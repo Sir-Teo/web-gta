@@ -103,7 +103,7 @@ export class WorldBike {
   // Minimal contact friction: the arcade controller presets horizontal velocity
   // each step (lateral grip comes free), so tire friction would only fight the
   // drive the way hull friction would fight a boat.
-  this.physical=installNativeVehicleBody(sim.world,assets.collision!,assets.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:.05});this.body=this.physical.body;this.car={body:this.body};
+  this.physical=installNativeVehicleBody(sim.world,assets.collision!,assets.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:.05});this.body=this.physical.body;this.car={body:this.body,root:this.root};
   if(assets.model&&assets.textures){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
@@ -307,7 +307,7 @@ export class WorldBike {
  snapshot(){return {modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,lean:+this.lean.toFixed(3),speed:+this.speed().toFixed(2),heading:+this.heading().toFixed(3),position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
  /** What the script's vehicle host reads of any vehicle: the body under `car`, and whether it has gone (heading() is
   * the bike's own). */
- readonly car:{body:RAPIER.RigidBody};disposed=false;
+ readonly car:{body:RAPIER.RigidBody;root:Group};disposed=false;
  dispose(){this.disposed=true;this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }
 function rotate(q:RAPIER.Rotation,v:{x:number;y:number;z:number}){

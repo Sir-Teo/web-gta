@@ -37,11 +37,20 @@ const isScriptDrivable=(v:unknown):v is import('./simulation/ScriptCarMissions')
  * side, so a driver and a front passenger are drawn where they sit; a script can seat a ped further back and
  * that ped rides unseen until the models carry rear seat points. A rider whose car has gone stops riding. */
 /** `driveBy` gives the drive-by clips and gun a leaning rider needs, once the gang drive-bys have loaded them. */
-function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp').NativeAnimation|undefined;gun?:{asset:{model:import('./assets/dff').DffModel;textures:import('./assets/modelTextures').ModelTexture[]}}}){
- const poses=[];
+function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp').NativeAnimation|undefined;gun?:{asset:{model:import('./assets/dff').DffModel;textures:import('./assets/modelTextures').ModelTexture[]}}},
+ bikeClip?:(block:string,name:string)=>import('./assets/ifp').NativeAnimation|undefined){
+ const poses:import('./render/VehicleOccupants').OccupantPose[]=[];
  for(const rider of scriptRiders){
   if(rider.gone||rider.car.disposed||rider.health<=0){scriptRiders.delete(rider);continue;}
-  // The occupant renderer seats peds in cars; a rider on a script bike, boat or aircraft rides unseen for now.
+  // A bike's rider sits on the saddle with the ride group's clip, as the player does: still, riding or pedalling by
+  // the bike's speed. A pillion, and riders of boats and aircraft, ride unseen for now.
+  const bike=rider.car as unknown as Partial<import('./simulation/WorldBike').WorldBike>;
+  if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&bike.car&&!rider.offset&&rider.seat==='driver'){
+   const pose=bike.riderPose(),clip=pose.seat&&bikeClip?.(pose.block,pose.idle);
+   if(pose.seat&&clip)poses.push({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,clip:pose.idle,seconds:clip.duration,animation:clip});
+   continue;
+  }
+  // The occupant renderer seats peds in cars; a rider on a script boat or aircraft rides unseen for now.
   if(!isScriptCar(rider.car))continue;
   // A ped a script attached hangs where it said, in the car's own axes; a seated one sits at the car's own
   // seat point, and the browser's cars carry one on each side.
@@ -2636,7 +2645,7 @@ async function boot() {
       target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z)};}
      else if(scriptFixedCamera&&render.fixedCamera===scriptFixedCamera){render.fixedCamera=undefined;scriptFixedCamera=undefined;}
     }
-    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby)],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby,(block,name)=>carEntry.clips.peek(block,name))],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);

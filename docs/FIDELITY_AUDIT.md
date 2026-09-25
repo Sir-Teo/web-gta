@@ -7783,3 +7783,5 @@ Each is now answered:
     are left-positive, the bike's steer right-positive. Gas is the pedal, and any brake or the handbrake squeezes the
     brake.
 - A script ped riding a bike is not drawn yet (the occupant renderer seats peds in cars only).
+- A script ped at a bike's handlebars is drawn on the saddle with its ride group's clip, as the player is: still,
+  riding or pedalling by the bike's speed, with the lean overlay left out. Pillions still ride unseen.

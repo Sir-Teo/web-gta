@@ -8,7 +8,9 @@ import type {WorldCar} from '../simulation/WorldCar';
 /** Native front-seat dummy is mirrored for the driver, as in GetSeatPositionInVehicle. */
 export function driverSeat(car:WorldCar){const dummy=car.car.root.getObjectByName('ped_frontseat');if(!dummy)return;car.car.root.updateWorldMatrix(true,true);const seat=car.car.root.worldToLocal(dummy.getWorldPosition(new Vector3()));seat.x=-Math.abs(seat.x);return seat;}
 /** One NPC in or leaving a car: a civilian roster index or a named pedestrian model, pinned in native car space. */
-export interface OccupantPose {key:string;car:WorldCar;model:number|string;local:{x:number;y:number;z:number};clip:string;seconds:number;animation?:NativeAnimation;gun?:{model:Parameters<typeof modelObject>[0];textures:Parameters<typeof modelObject>[1]}}
+/** What an occupant sits on: the vehicle's root (renderer axes) and its body, a car's or a bike's. */
+export interface OccupantVehicle {car:{root:import('three').Object3D;body:{handle:number}}}
+export interface OccupantPose {key:string;car:OccupantVehicle;model:number|string;local:{x:number;y:number;z:number};clip:string;seconds:number;animation?:NativeAnimation;gun?:{model:Parameters<typeof modelObject>[0];textures:Parameters<typeof modelObject>[1]}}
 /** NPC vehicle occupants: CAR_sit/CAR_sitp in their seats, or their exit clip while leaving. */
 export class VehicleOccupants {
  private catalog?:Awaited<ReturnType<typeof openWorldPedestrians>>;
