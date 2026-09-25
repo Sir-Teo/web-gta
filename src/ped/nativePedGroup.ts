@@ -6,6 +6,8 @@
  * appoints the first follower it still has. Everything here is by the handle a script holds, because that is
  * what the commands name; whether a handle still names a living ped is the caller's to say. */
 export const TOTAL_PED_GROUP_MEMBERS=8,LEADER_MEM_ID=7;
+/** ePedGroupDefaultTaskAllocatorType. */
+export const GROUP_ALLOCATOR={followAnyMeans:0,followLimited:1,standStill:2,chat:3,random:4} as const;
 export class NativePedGroup{
  /** One slot per member, the leader's last, each holding a handle or nothing. */
  private readonly members:(number|undefined)[]=Array(TOTAL_PED_GROUP_MEMBERS).fill(undefined);
@@ -40,6 +42,15 @@ export class NativePedGroup{
  flush(){this.members.fill(undefined);}
  /** m_separationRange: SET_GROUP_SEPARATION_RANGE's distance, 60 until a script sets it. */
  separationRange=60;
+ /** m_bMembersEnterLeadersVehicle, which SET_GROUP_FOLLOW_STATUS sets: the followers get in when the leader does. */
+ membersEnterLeadersVehicle=true;
+ /** CPedGroupIntelligence's default task allocator (SET_GROUP_DEFAULT_TASK_ALLOCATOR): FOLLOW_ANY_MEANS (0),
+  * FOLLOW_LIMITED (1), STAND_STILL (2), CHAT (3) or RANDOM (4). */
+ defaultTaskAllocator=GROUP_ALLOCATOR.followAnyMeans;
+ /** The group decision maker SET_GROUP_DECISION_MAKER gives it (SetGroupDecisionMakerType), -1 for none. */
+ decisionMaker=-1;
+ /** Whether the default task has the followers keep with their leader: the two follow allocators. */
+ get followsLeader(){return this.defaultTaskAllocator===GROUP_ALLOCATOR.followAnyMeans||this.defaultTaskAllocator===GROUP_ALLOCATOR.followLimited;}
  /** CPedGroupMembership::Process (0x5FBA60): the dead leave (a player leading stays), a group with followers but no
   * leader appoints one, and every follower further from the leader than the separation range leaves unless it never
   * leaves its group. */

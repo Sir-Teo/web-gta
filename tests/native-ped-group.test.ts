@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'vitest';
-import {LEADER_MEM_ID,NativePedGroup,TOTAL_PED_GROUP_MEMBERS} from '../src/ped/nativePedGroup';
+import {GROUP_ALLOCATOR,LEADER_MEM_ID,NativePedGroup,TOTAL_PED_GROUP_MEMBERS} from '../src/ped/nativePedGroup';
 
 test('a group holds eight, of which the last slot is the leader’s',()=>{
  const group=new NativePedGroup();
@@ -71,4 +71,11 @@ describe('MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS',()=>{
   // Room for more than the recruits can give: all of them go, the mission's stay.
   expect(followersToRemove(2,2,3,4)).toBe(2);
  });
+});
+
+test('a group follows its leader by any means and gets in with him until a script says otherwise',()=>{
+ const group=new NativePedGroup();
+ expect([group.defaultTaskAllocator,group.membersEnterLeadersVehicle,group.decisionMaker,group.followsLeader]).toEqual([GROUP_ALLOCATOR.followAnyMeans,true,-1,true]);
+ group.defaultTaskAllocator=GROUP_ALLOCATOR.followLimited;expect(group.followsLeader).toBe(true);
+ for(const still of [GROUP_ALLOCATOR.standStill,GROUP_ALLOCATOR.chat,GROUP_ALLOCATOR.random]){group.defaultTaskAllocator=still;expect(group.followsLeader).toBe(false);}
 });

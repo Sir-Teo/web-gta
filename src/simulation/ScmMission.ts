@@ -851,6 +851,14 @@ export class ScmMission {
    removeGroup:group=>{this.groups.get(group)?.flush();if(group!==PLAYER_GROUP_HANDLE)this.groups.delete(group);},
    setGroupLeader:(group,handle)=>{this.group(group).setLeader(handle);},
    setGroupMember:(group,handle)=>{this.group(group).addFollower(handle);},
+   setGroupFollowStatus:(group,state)=>{this.group(group).membersEnterLeadersVehicle=state;},
+   // SetGroupDecisionMakerType: the group's responses to its members' events are not simulated; the type is kept.
+   setGroupDecisionMaker:(group,decisionMaker)=>{this.group(group).decisionMaker=decisionMaker;},
+   // SetDefaultTaskAllocatorType. For the player's group it decides whether his followers keep with him.
+   setGroupDefaultTaskAllocator:(group,type)=>{
+    if(!Number.isInteger(type)||type<0||type>4)throw new UnsupportedScmCommand(-1,0,'SET_GROUP_DEFAULT_TASK_ALLOCATOR',`allocator ${type}`);
+    this.group(group).defaultTaskAllocator=type as NativePedGroup['defaultTaskAllocator'];
+   },
    pedIsInGroup:(handle,group)=>this.groups.get(group)?.isMember(handle)??false,
    pedIsGroupLeader:(handle,group)=>this.groups.get(group)?.isLeader(handle)??false,
    // GET_NUMBER_OF_FOLLOWERS asks after the group this ped leads.
@@ -2332,7 +2340,7 @@ export class ScmMission {
   // again (warped, attached) is a new body.
   const setFollows=this.world.setScriptPedFollowsPlayer;if(!setFollows)return;
   const players=this.groups.get(PLAYER_GROUP_HANDLE)!,now=new Set<number>();
-  for(const handle of players.all()){
+  if(players.followsLeader)for(const handle of players.all()){
    if(handle===PLAYER_PED_HANDLE||!players.isFollower(handle))continue;
    const entity=this.peds.entity(handle);if(entity!==undefined&&!this.peds.rideOf(handle)){setFollows.call(this.world,entity,true);now.add(handle);}
   }

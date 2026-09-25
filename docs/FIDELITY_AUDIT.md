@@ -7997,3 +7997,13 @@ Each is now answered:
   at the end of the ride.
 - The rider now steps off at the bike's side mount point: the driver's saddle to the left, the pillion to the right.
 - Verification: `tests/browser/script-bike-rider.spec.ts`.
+
+## Group settings
+
+- SET_GROUP_FOLLOW_STATUS sets m_bMembersEnterLeadersVehicle, SET_GROUP_DECISION_MAKER the group's decision maker
+  type, and SET_GROUP_DEFAULT_TASK_ALLOCATOR its default task allocator. SWEET7, GUNS1, SMOKE3 and many later
+  missions call them, and each used to stop its thread for want of an adapter.
+- The allocator decides whether the player's group keeps with him: FOLLOW_ANY_MEANS and FOLLOW_LIMITED follow, and
+  STAND_STILL, CHAT and RANDOM leave the followers where they are. The group decision maker's responses and the
+  members getting into the leader's car are not simulated yet; the values are kept for them.
+- Verification: `tests/native-ped-group.test.ts`, `tests/browser/script-group-follow.spec.ts`.

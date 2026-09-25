@@ -1,8 +1,8 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** A script ped the script puts in the player's group (SWEET1's Sweet, later the Grove crews) follows the player on
- * foot, as CTaskComplexFollowLeaderInFormation, whenever the script has no task of its own on it; out of the group
- * it stays. */
+ * foot, as CTaskComplexFollowLeaderInFormation, whenever the script has no task of its own on it; out of the group,
+ * or with the group's default task set to stand still, it stays. */
 test('a script ped in the player\'s group follows him, holds for a scripted task, and stays once let go',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
@@ -15,14 +15,15 @@ test('a script ped in the player\'s group follows him, holds for a scripted task
  const gap=()=>page.evaluate(h=>{const w=(window as any).__game.missionForProfiling().runtime.world,a=w.pedPosition(h),b=w.pedPosition(1);return Math.hypot(a.x-b.x,a.y-b.y);},ped);
  const group=await w('getPlayerGroup');
  await w('setGroupMember',group,ped);
- // The player moves 20 units off; the follower catches up.
- const moveAway=()=>page.evaluate(()=>{const g=(window as any).__game,w=g.missionForProfiling().runtime.world,p=w.pedPosition(1);w.setPedCoordinates(1,p.x+20,p.y,p.z);});
- await moveAway();
+ // The player moves 20 units along the street and back past his start: the ground the follower crosses is the
+ // street it came along.
+ const moveBy=(dx:number)=>page.evaluate(dx=>{const g=(window as any).__game,w=g.missionForProfiling().runtime.world,p=w.pedPosition(1);w.setPedCoordinates(1,p.x+dx,p.y,p.z);},dx);
+ await moveBy(20);
  expect(await gap()).toBeGreaterThan(15);
  await expect.poll(gap,{timeout:30000}).toBeLessThan(5);
  // A scripted task holds it where it is.
  await w('givePedScriptedTask',ped,{kind:'standStill',time:60000},0x05ba);
- await moveAway();
+ await moveBy(-40);
  await page.waitForTimeout(4000);
  expect(await gap()).toBeGreaterThan(15);
  // Out of the group, with its task cleared, it stays too.
@@ -30,5 +31,11 @@ test('a script ped in the player\'s group follows him, holds for a scripted task
  await w('clearPedTasks',ped);
  await page.waitForTimeout(4000);
  expect(await gap()).toBeGreaterThan(15);
+ // Back in the group, but with SET_GROUP_DEFAULT_TASK_ALLOCATOR's STAND_STILL, it does not follow either.
+ await w('setGroupMember',group,ped);await w('setGroupDefaultTaskAllocator',group,2);
+ await page.waitForTimeout(4000);
+ expect(await gap()).toBeGreaterThan(15);
+ await w('setGroupDefaultTaskAllocator',group,0);
+ await expect.poll(gap,{timeout:30000}).toBeLessThan(5);
  expect(errors).toEqual([]);
 });
