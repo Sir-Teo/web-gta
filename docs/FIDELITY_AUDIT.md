@@ -7850,3 +7850,14 @@ Each is now answered:
 - A mission's sequences are on its cleanup list (cleanUpMissionSequences). CMissionCleanup::Process itself is not
   ported yet.
 - Verification: `tests/scm-sequences.test.ts`, `tests/browser/script-nested-sequence.spec.ts`.
+
+## Unfreezing a script vehicle
+
+- setScriptVehicleFrozen turned Rapier's gravity on for a body let go (scale 1). Every vehicle body keeps Rapier
+  gravity off, because the native forces (and the bike's own step) apply it.
+  - A car's NativeVehicleForces then threw on every frame, and the whole step with it: the simulation stood still
+    while the script clock ran on. INTRO1 lets its bikes and the Ballas' car go.
+- Unfreezing now only re-enables the body.
+- A car let go at rest stays at rest, in the air or not, as in SA: CAutomobile::ProcessControl skips the physics of a
+  car static more than ten frames, and neither the freeze nor a teleport resets the count.
+- Verification: `tests/browser/script-car-freeze.spec.ts`.
