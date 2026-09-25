@@ -3695,7 +3695,7 @@ async function boot() {
                    if(weapons.inventory.selected===0||weapons.inventory.selected===1)void weaponView.equip(weapons.inventory.selected);
                    return;
                   }
-                  const p=onFoot(ped);if(p){p.fightingStyle=style;p.allowedAttackMoves=moves;}
+                  const p=onFoot(ped);if(p)pedestrians?.setFightingStyle(p,style,moves);
                  },
                  setScriptPedFollowsPlayer:(ped,follows)=>{const p=onFoot(ped);if(p&&p.follow!==follows){p.follow=follows;if(!follows)p.foe=undefined;}},
                  setEntryExitGroupWarping:(x,y,radius,on)=>{entryExits?.setAcceptNpcGroupNear(x,y,radius,on);},

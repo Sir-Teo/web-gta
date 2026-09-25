@@ -8062,5 +8062,6 @@ Each is now answered:
 - The player's style and moves are saved with the rest of his progress.
 - A weapon's swing clips are now installed on the player when it is taken up. Fists had only ever played the FightA
   clips ped.ifp already carried, and a bat's second and third swings had nothing to play.
-- Not yet: a script ped's own style (the gym trainers). It is recorded, and its fists still swing the standard combo.
+- A script ped given a style (the gym trainers) has the style's swings read from their block and put on its body. Its
+  fists then swing that combo, falls included; until the clips are in, it punches the standard combo.
 - Verification: `tests/native-melee.test.ts`, `tests/progression.test.ts`, `tests/browser/player-fighting-style.spec.ts`.

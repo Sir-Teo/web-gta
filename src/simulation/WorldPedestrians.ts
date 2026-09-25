@@ -33,7 +33,7 @@ import {getUpClip,getUpBlockedBy,isFrontClip,GET_UP_CLEAR_RADIUS} from '../ped/n
 import {gangAbuseContext,stareInRange,stareStandSeconds,stareTalkClip,stareTimeoutSeconds,stepStare,type StareState} from '../ped/nativeStareAtPed';
 import {WindowsCrtRandom} from '../core/WindowsCrtRandom';
 import {playerCollisionWithPedResponse} from '../ped/nativePlayerBump';
-import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, attackLineDistance, meleeAttackFalls } from './nativeMelee';
+import { NATIVE_UNARMED_STAGES, NATIVE_UNARMED_RANGE, NATIVE_MELEE_COMBOS, MELEE_SWING_CLIPS, attackLineDistance, fightingStyleCombo, meleeAttackFalls } from './nativeMelee';
 import { nextChainIndex, resolveStrike, chainCooldown, inStrikeCone } from '../combat/meleeChain';
 import { decideDamageResponse, applyDamageResponse, PedTaskAdapter } from '../ped/brain';
 import { playerPunchDamage, scaleBlow, npcPunchDamage } from '../ped/damage';
@@ -182,8 +182,7 @@ export interface Pedestrian {
  /** ePedCreatedBy::PED_MISSION: a ped a script made, which CPed::CanBeDeleted refuses to let the population
   * manager remove until CTheScripts::CleanUpThisPed hands it back. */
  mission?:boolean;
- /** CPed::m_nFightingStyle and m_nAllowedAttackMoves, which GIVE_MELEE_ATTACK_TO_CHAR sets on a script's ped. Its fists
-  * still swing the standard combo: the other styles' clips are not put on street peds yet. */
+ /** CPed::m_nFightingStyle and m_nAllowedAttackMoves, which GIVE_MELEE_ATTACK_TO_CHAR sets on a script's ped. */
  fightingStyle?:number;allowedAttackMoves?:number;
  /** bMoneyHasBeenGivenByScript: SET_CHAR_MONEY set m_nMoneyCount, which a script's ped then drops when it dies. */
  moneyByScript?:boolean;
@@ -1849,6 +1848,19 @@ export class WorldPedestrians {
  animProgress(ped:Pedestrian,animation:string){return this.isPlayingAnim(ped,animation)?ped.view.reactionProgress:undefined;}
  /** A clip from a script's animation block, for a ped the host draws in a seat rather than on foot. */
  loadScriptAnimation(file:string,name:string){return this.catalog?.scriptAnimation(file,name)??Promise.resolve(undefined);}
+ /** The combo a ped's fists swing: its fighting style's, once that style's clips are on its body, else UNARMED_1. */
+ private fists(p:Pedestrian):{combo:string;clips:readonly [string,string,string]}{
+  const combo=fightingStyleCombo(p.fightingStyle??4),swings=MELEE_SWING_CLIPS[combo];
+  if(combo!=='UNARMED'&&swings){const clips=swings.attacks.map(n=>n.toLowerCase()) as unknown as [string,string,string];if(clips.every(c=>p.view.hasReaction(c)))return {combo,clips};}
+  return {combo:'UNARMED',clips:['fighta_1','fighta_2','fighta_3']};
+ }
+ /** GIVE_MELEE_ATTACK_TO_CHAR on a ped: its style and moves, and the style's swings read from their block and put on
+  * its body (the gym trainers box, fight kung fu or kickbox with the player). */
+ setFightingStyle(p:Pedestrian,style:number,moves:number){
+  p.fightingStyle=style;p.allowedAttackMoves=moves;
+  const swings=MELEE_SWING_CLIPS[fightingStyleCombo(style)];if(!swings?.file)return;
+  for(const name of swings.attacks)void this.loadScriptAnimation(swings.file,name).then(clip=>{if(clip&&!this.disposed&&p.fightingStyle===style)p.view.installReactions({[name.toLowerCase()]:clip});});
+ }
  /** SET_CHAR_ANIM_SPEED and SET_CHAR_ANIM_CURRENT_TIME: the association the ped is playing under that name, if any. */
  setAnim(ped:Pedestrian,animation:string,change:{speed?:number;progress?:number}){setCharacterAnim(ped.view,animation,change);}
  /** HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE: the held model goes out of sight, and the ped keeps the weapon. */
@@ -2508,10 +2520,11 @@ export class WorldPedestrians {
    * strength, with the victim's HitA reaction for the move. */
   private stepBrawl(p:Pedestrian,foe:Pedestrian|undefined,dt:number){
    const target=foe?foe.actor.player.position:this.sim.player.position,canReach=foe?foe.health>0:this.sim.knockdown===0&&this.sim.player.health>0;
-   return this.stepFight(p,'UNARMED',['fighta_1','fighta_2','fighta_3'],target,canReach,dt,(stage,damage)=>{
+   const fists=this.fists(p);
+   return this.stepFight(p,fists.combo,fists.clips,target,canReach,dt,(stage,damage)=>{
     const q=p.actor.player.position,from={x:q.x,z:q.z};this.onThreat?.(p,{...q});
     if(foe){this.strikeFoe(p,foe,stage,damage);return;}
-    if(this.damagesPlayer(p,WEAPON.unarmed))this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.unarmed,from,fall:meleeAttackFalls('UNARMED',stage),fight:{move:stage}});
+    if(this.damagesPlayer(p,WEAPON.unarmed))this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.unarmed,from,fall:meleeAttackFalls(fists.combo,stage),fight:{move:stage}});
     this.onMeleeHit?.({...this.sim.player.position},false);
     this.defendPlayer(p);
    });
@@ -2521,8 +2534,8 @@ export class WorldPedestrians {
    * car's collision). */
   private stepCarBrawl(p:Pedestrian,vehicle:number,face:{x:number;z:number},dt:number){
    const car=this.resolveScriptVehicle?.(vehicle)?.entity();if(!car||car.wrecked)return;
-   const q=p.actor.player.position;
-   this.stepFight(p,'UNARMED',['fighta_1','fighta_2','fighta_3'],face,true,dt,(stage,damage)=>{
+   const q=p.actor.player.position,fists=this.fists(p);
+   this.stepFight(p,fists.combo,fists.clips,face,true,dt,(stage,damage)=>{
     car.damage(npcPunchDamage(damage,p.attackMult),undefined,false,undefined,{kind:'melee',weapon:WEAPON.unarmed,by:{ped:p}});
     this.onMeleeHit?.({x:face.x,y:q.y+PED_ORIGIN_HEIGHT,z:face.z},false);
    });
