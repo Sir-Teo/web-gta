@@ -187,6 +187,8 @@ export class WorldCar {
  readonly randomSeed=randomSeed();readonly driverSeedOdd=randomSeed()%2===1;
  /** The lamps are lit this frame (GetVehicleLightsStatus for a car with a driver; the host decides). */
  lightsOn=false;
+ /** m_nOverrideLights (FORCE_CAR_LIGHTS): 0 the car's own rule, 1 forced off, 2 forced on. */
+ overrideLights=0;
  /** m_fDirtLevel: CVehicle's constructor draws CGeneral::GetRandomNumber() % 15. MakeDirty's callers are unreversed, so
   * it stays put. */
  dirtLevel=randomSeed()%15;

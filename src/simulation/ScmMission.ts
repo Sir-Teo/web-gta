@@ -1,5 +1,6 @@
 import type {CarRecordingFrame} from '../assets/carRecordings';
 import {saveOrRetrieveDataForThisFrame,type CarRecordingVehicle} from '../engine/carRecordingPlayback';
+import {TRAIN_TYPES} from './nativeTrainTracks';
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
@@ -79,6 +80,23 @@ export interface ScmMissionWorld {
  setPlayerAmmo?(weaponType:number,ammo:number):void;
  addPlayerAmmo?(weaponType:number,ammo:number):void;
  hidePlayerWeapon?(hidden:boolean):void;
+ /** CTrain for the mission trains: made from a type at the track nearest a native point, read and driven. */
+ spawnMissionTrain?(type:number,position:{x:number;y:number;z:number},clockwise:boolean):Promise<unknown>;
+ trainCarriageOf?(train:unknown,index:number):unknown;
+ trainCabooseOf?(train:unknown):unknown;
+ scriptTrainModel?(carriage:unknown):number;
+ setScriptTrainSpeed?(train:unknown,speed:number):void;
+ setScriptTrainCruiseSpeed?(train:unknown,speed:number):void;
+ setScriptTrainForcedToSlowDown?(train:unknown,state:boolean):void;
+ scriptTrainClockwise?(train:unknown):boolean;
+ setScriptTrainPosition?(train:unknown,position:{x:number;y:number;z:number}):void;
+ removeScriptMissionTrain?(train:unknown):void;
+ releaseScriptMissionTrain?(train:unknown):void;
+ removeMissionTrains?():void;releaseMissionTrains?():void;removeAllTrains?():void;
+ scriptVehicleIsTrain?(car:unknown):boolean;
+ /** FORCE_CAR_LIGHTS (m_nOverrideLights) and SET_CAR_COLLISION (CEntity::m_bUsesCollision) on a car. */
+ setScriptVehicleOverrideLights?(car:unknown,lights:number):void;
+ setScriptVehicleUsesCollision?(car:unknown,state:boolean):void;
  /** CVehicleRecording's host: stream a file of carrec.img (calling `loaded` once its frames are here), read its
   * frames, and see a car as a playback moves it. */
  requestCarRecording?(fileNumber:number,loaded:(fileNumber:number)=>void):void;
@@ -877,10 +895,35 @@ export class ScmMission {
     let heading=getATanOfXY(at.x-x,at.y-y)+Math.PI/2;if(heading>2*Math.PI)heading-=2*Math.PI;
     this.vehicles.setHeading(handle,heading*180/Math.PI);
    },
-   // CTrain::RemoveMissionTrains and ReleaseMissionTrains walk the train pool: the port runs no trains, so no mission
-   // train can exist to remove or release.
-   deleteMissionTrains:()=>{},
-   markMissionTrainsAsNoLongerNeeded:()=>{},
+   // The mission trains (nativeTrain.ts, WorldTrain): the handle names the engine, and GET_TRAIN_CARRIAGE hands out
+   // a handle for a carriage the first time it is asked, as CPool::GetRef does.
+   createMissionTrain:(type,x,y,z,clockwise)=>{
+    const spawn=this.host('spawnMissionTrain','CREATE_MISSION_TRAIN');
+    const engine=TRAIN_TYPES[type]?.[0]??537;
+    return this.vehicles.create(engine,{x,y,z},0,()=>spawn(type,{x,y,z},clockwise) as Promise<unknown>);
+   },
+   trainCarriage:(handle,index)=>{
+    const carriage=this.host('trainCarriageOf','GET_TRAIN_CARRIAGE')(this.liveVehicle(handle),index);
+    return carriage===undefined?-1:this.vehicles.handleFor(carriage,this.world.scriptTrainModel?.(carriage)??-1);
+   },
+   getTrainCaboose:handle=>{
+    const caboose=this.host('trainCabooseOf','GET_TRAIN_CABOOSE')(this.liveVehicle(handle));
+    return caboose===undefined?-1:this.vehicles.handleFor(caboose,this.world.scriptTrainModel?.(caboose)??-1);
+   },
+   setTrainSpeed:(handle,speed)=>{this.host('setScriptTrainSpeed','SET_TRAIN_SPEED')(this.liveVehicle(handle),speed);},
+   setTrainCruiseSpeed:(handle,speed)=>{this.host('setScriptTrainCruiseSpeed','SET_TRAIN_CRUISE_SPEED')(this.liveVehicle(handle),speed);},
+   setTrainForcedToSlowDown:(handle,state)=>{this.host('setScriptTrainForcedToSlowDown','SET_TRAIN_FORCED_TO_SLOW_DOWN')(this.liveVehicle(handle),state);},
+   // bNotOnARailRoad: only a player's train leaves the rails, and the player drives none here.
+   hasTrainDerailed:handle=>{this.liveVehicle(handle);return false;},
+   findTrainDirection:handle=>this.host('scriptTrainClockwise','FIND_TRAIN_DIRECTION')(this.liveVehicle(handle)),
+   setMissionTrainCoordinates:(handle,x,y,z)=>{this.host('setScriptTrainPosition','SET_MISSION_TRAIN_COORDINATES')(this.liveVehicle(handle),{x,y,z});},
+   deleteMissionTrain:handle=>{this.host('removeScriptMissionTrain','DELETE_MISSION_TRAIN')(this.liveVehicle(handle));},
+   markMissionTrainAsNoLongerNeeded:handle=>{this.host('releaseScriptMissionTrain','MARK_MISSION_TRAIN_AS_NO_LONGER_NEEDED')(this.liveVehicle(handle));},
+   deleteMissionTrains:()=>{this.world.removeMissionTrains?.();},
+   markMissionTrainsAsNoLongerNeeded:()=>{this.world.releaseMissionTrains?.();},
+   deleteAllTrains:()=>{this.world.removeAllTrains?.();},
+   forceVehicleLights:(handle,lights)=>{this.host('setScriptVehicleOverrideLights','FORCE_CAR_LIGHTS')(this.liveVehicle(handle),lights);},
+   setVehicleCollision:(handle,state)=>{this.host('setScriptVehicleUsesCollision','SET_CAR_COLLISION')(this.liveVehicle(handle),state);},
    createUser3dMarker:(x,y,z,colour)=>this.host('createScriptUser3dMarker','CREATE_USER_3D_MARKER')(x,y,z,colour),
    removeUser3dMarker:index=>{this.host('removeScriptUser3dMarker','REMOVE_USER_3D_MARKER')(index);},
    pedIsSwimming:handle=>handle===PLAYER_PED_HANDLE?this.host('playerSwimming','IS_CHAR_SWIMMING')()
@@ -959,7 +1002,7 @@ export class ScmMission {
    // eVehicleAppearance. The browser builds a car for every vehicle a script makes, so one of those is an
    // automobile; the player's own is whatever he is riding.
    vehicleAppearance:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).appearance:(this.liveVehicle(handle),VEHICLE_APPEARANCE_AUTOMOBILE),
-   vehicleIsTrain:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).train:(this.liveVehicle(handle),false),
+   vehicleIsTrain:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).train:!!this.world.scriptVehicleIsTrain?.(this.liveVehicle(handle)),
    playerMissionGates:()=>this.world.playerMissionGates(),
    pedIsStopped:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().stopped:this.world.scriptPedStanding(this.livePed(handle)),
    pedIsDeadForScript:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().dead:this.peds.isDead(handle),

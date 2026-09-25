@@ -25,6 +25,9 @@ import {populationCycleAt,pickPopulationCarModel,gangCarShare,dominantGang,copCa
 import {GangCarRoster} from './nativePedRoster';
 import { trafficDriverBudget, clampBudget } from '../world/popcycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
+import {WorldTrain,trainCarriageModel} from './WorldTrain';
+import {TRAIN_TYPES,TRAIN_TRACK_FILES,readTrainTrack,type TrainTrack} from './nativeTrainTracks';
+import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 /** Resolve one random-model generator against a membership pool (CCarGenerator
  * model -1): uniform pick, keeping the record identity for once-per-session
@@ -66,6 +69,11 @@ export class WorldFleet {
  readonly planes=new Set<WorldPlane>();
  readonly boats=new Set<WorldBoat>();
  readonly bikes=new Set<WorldBike>();
+ /** The trains' carriages (CTrain), engine first within each train, and the tracks they run on. */
+ readonly trains=new Set<WorldTrain>();
+ private tracks?:Promise<TrainTrack[]>;
+ private loadedTracks?:TrainTrack[];
+ private readonly trainOf=new Map<NativeTrainCarriage,WorldTrain>();
  private catalogReady:Promise<Awaited<ReturnType<typeof openStaticWorldVehicles>>>;
  private zones?:WorldZones;
  private currentZone?:{infoLabel:string;textLabel:string;zoneInfoIndex:number;level:number;populationType?:number;gangStrength?:readonly number[];dealerStrength?:number;noCops?:boolean;races?:number};
@@ -217,7 +225,7 @@ export class WorldFleet {
  private disposed=false;
  private nextCheck=0;
  private catalog?:Awaited<ReturnType<typeof openStaticWorldVehicles>>;
- constructor(private sim:Simulation,private scene:Scene,private road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>,starter:WorldCar|undefined,base:string){
+ constructor(private sim:Simulation,private scene:Scene,private road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>,starter:WorldCar|undefined,private readonly base:string){
   if(starter){starter.playerVehicle=()=>this.occupied;this.cars.add(starter);}
   this.catalogReady=openStaticWorld(base).then(openStaticWorldVehicles);
   void this.catalogReady.then(catalog=>{if(!this.disposed)this.catalog=catalog;}).catch(error=>this.failures.set('catalog',String(error)));
@@ -546,5 +554,58 @@ export class WorldFleet {
    car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);car.alarmArmed=rollAlarm(record.alarmChance);{const c=assets.colourIndices;if(random&&!random.colours&&c)random.colours=[c[0],c[1]];}this.cars.add(car);this.generated.set(car,record.id);this.generatorState.set(record.id,{nextGen:now+4,waitFar:this.generatorState.get(record.id)?.waitFar??false});record.spent?.();
   }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(record.id);});
  }
- dispose(){this.disposed=true;for(const plane of this.planes)plane.dispose();this.planes.clear();for(const boat of this.boats)boat.dispose();this.boats.clear();for(const bike of this.bikes)bike.dispose();this.bikes.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}
+ /** CTrain::InitTrains' four track files, read once. */
+ trainTracks(){
+  return this.tracks??=Promise.all(TRAIN_TRACK_FILES.map(file=>fetch(new URL(`files/data/paths/${file}`,this.base).href).then(r=>r.ok?r.text():Promise.reject(new Error(`${file} ${r.status}`)))))
+   .then(texts=>this.loadedTracks=texts.map(readTrainTrack));
+ }
+ /** CreateMissionTrain: the type's carriages on the track nearest the native point, the engine returned. */
+ async spawnMissionTrain(type:number,point:{x:number;y:number;z:number},clockwise:boolean,nowMs:number){
+  const layout=TRAIN_TYPES[type];if(!layout)return undefined;
+  const [tracks,catalog]=await Promise.all([this.trainTracks(),this.catalogReady]);
+  const assets=new Map<number,Awaited<ReturnType<typeof catalog.load>>>();
+  for(const id of new Set(layout))assets.set(id,await catalog.load(id));
+  if(this.disposed)return undefined;
+  const carriages=createMissionTrain(tracks,point,clockwise,type,id=>trainCarriageModel(assets.get(id)!));
+  for(const c of carriages)c.processControl(tracks,1,nowMs);
+  const made=carriages.map(c=>{const t=new WorldTrain(this.sim.world,this.scene,assets.get(c.model.model)!,c);this.trains.add(t);this.trainOf.set(c,t);return t;});
+  return made[0];
+ }
+ /** The browser's carriage for a CTrain. */
+ trainFor(carriage:NativeTrainCarriage|undefined){return carriage&&this.trainOf.get(carriage);}
+ /** CTrain::ProcessControl for every carriage, each train from its engine back, then the bodies to their places. */
+ stepTrains(timeStep:number,nowMs:number){
+  const tracks=this.loadedTracks;if(!tracks)return;
+  for(const t of this.trains){
+   if(!t.carriage.isFront&&t.carriage.prev)continue;
+   for(let c:NativeTrainCarriage|undefined=t.carriage;c;c=c.next){c.processControl(tracks,timeStep,nowMs);this.trainOf.get(c)?.applyPose();}
+  }
+ }
+ /** SetNewTrainPosition: SetPosn, then FindPositionOnTrackFromCoors (unreversed), taken as the nearest node of the
+  * carriage's own track, from which ProcessControl carries on. */
+ setTrainPosition(train:WorldTrain,point:{x:number;y:number;z:number}){
+  const tracks=this.loadedTracks,c=train.carriage;if(!tracks)return;
+  const nodes=tracks[c.trackId].nodes;let best=0,bestDistance=Infinity;
+  nodes.forEach((n,i)=>{const d=(n.x-point.x)**2+(n.y-point.y)**2+(n.z-point.z)**2;if(d<bestDistance){bestDistance=d;best=i;}});
+  c.nodeIndex=best;c.railDistance=nodes[best].distance;c.position=[point.x,point.y,point.z];
+ }
+ /** A carriage leaves the world (CWorld::Remove and delete); its neighbours let go of it. */
+ removeTrainCarriage(train:WorldTrain){
+  const c=train.carriage;
+  if(c.prev)c.prev.next=undefined;
+  if(c.next){c.next.prev=undefined;}
+  this.trains.delete(train);this.trainOf.delete(c);train.dispose();
+ }
+ /** RemoveOneMissionTrain: this carriage and every one behind it. */
+ removeMissionTrain(train:WorldTrain){
+  for(let c:NativeTrainCarriage|undefined=train.carriage;c;){const next:NativeTrainCarriage|undefined=c.next;const t=this.trainOf.get(c);if(t)this.removeTrainCarriage(t);c=next;}
+ }
+ /** RemoveMissionTrains: every mission train's carriages (the player's own vehicle aside, which is no train here). */
+ removeMissionTrains(){for(const t of [...this.trains])if(t.carriage.missionTrain)this.removeTrainCarriage(t);}
+ /** ReleaseOneMissionTrain and ReleaseMissionTrains: the carriages stop being the mission's. */
+ releaseMissionTrain(train:WorldTrain){for(let c:NativeTrainCarriage|undefined=train.carriage;c;c=c.next)c.missionTrain=false;}
+ releaseMissionTrains(){for(const t of this.trains)t.carriage.missionTrain=false;}
+ /** RemoveAllTrains (unreversed): every train the world holds; the browser runs no random trains. */
+ removeAllTrains(){for(const t of [...this.trains])this.removeTrainCarriage(t);}
+ dispose(){this.disposed=true;for(const train of this.trains)train.dispose();this.trains.clear();for(const plane of this.planes)plane.dispose();this.planes.clear();for(const boat of this.boats)boat.dispose();this.boats.clear();for(const bike of this.bikes)bike.dispose();this.bikes.clear();for(const car of this.cars)car.dispose();this.cars.clear();this.generated.clear();this.catalog=undefined;}
 }

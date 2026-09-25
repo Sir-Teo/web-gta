@@ -34,6 +34,13 @@ export class ScmEntityPool<Entity>{
   this.settleInto(record,spawn);
   return handle;
  }
+ /** A handle for something the browser already holds, which the original's pool hands out the moment it is asked
+  * for a reference to it (GetRef of a carriage the train made). */
+ adopt(entity:Entity){
+  const handle=this.next++;
+  this.records.set(handle,{handle,entity,settled:true,failed:false,deleted:false,noLongerNeeded:false,pending:[]});
+  return handle;
+ }
  /** Swap what a handle names for something else the browser makes, which is what a ped changing from walking
   * to riding does: the old entity goes, the handle stays, and the new one arrives the same way the first did. */
  replace(handle:number,spawn:()=>Promise<Entity|undefined>){

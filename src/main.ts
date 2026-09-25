@@ -212,6 +212,8 @@ import {NativeHudBigMessages} from './ui/nativeHudBigMessages';
 import {ScriptCarRecordingStore} from './simulation/scriptCarRecordings';
 import {recordingVehicle} from './simulation/recordingBody';
 import {startPlaybackRecordedCar} from './engine/carRecordingPlayback';
+import {WorldTrain} from './simulation/WorldTrain';
+import {findCaboose,findCarriage,setTrainCruiseSpeed,setTrainSpeed} from './simulation/nativeTrain';
 import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/nativeAirResistance';
 import {PED_ORIGIN_HEIGHT,SWIM} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
@@ -965,6 +967,7 @@ async function boot() {
     // Bikes and boats light like every other vehicle: the object ambient and the day/night prelight blend.
     for(const vehicle of [...(fleet?.bikes??[]),...(fleet?.boats??[])])vehicle.setLighting(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
     for(const plane of fleet?.planes??[])plane.setLighting(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
+    for(const train of fleet?.trains??[])train.setLighting(render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));
     // GetVehicleLightsStatus for every car with a driver (the player, an autopilot, a script driver); a parked car's
     // CAutomobile::PreRender, which sets bLightsOn, is a retail stub, and generated cars start with it off.
     {const hours=Math.floor(sim.timeMinutes/60)%24,minutes=Math.floor(sim.timeMinutes)%60;
@@ -972,7 +975,8 @@ async function boot() {
      const gangArea=(zone?.gangStrength?.reduce((a,b)=>a+b,0)??0)>20,foggyness=weatherStarted?weather.foggyness:0,wetRoads=weatherStarted?weather.wetRoads:0;
      // A ridden motorbike reads the same rule; the bike's contact brightness is not kept, so the dark test is off.
      for(const bike of fleet?.bikes??[])bike.lightsOn=!bike.wrecked&&bike.occupied&&!BMX_MODELS.has(bike.modelId)&&vehicleLightsStatus({seed:bike.randomSeed,gangDriverOddSeed:false,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:1,camNoRain:cullZones.camNoRain});
-     for(const car of fleet?.cars??[])car.lightsOn=!car.wrecked&&(car.occupied||!!car.autopilot&&!car.driverOut)&&vehicleLightsStatus({seed:car.randomSeed,gangDriverOddSeed:car.gang!==undefined&&car.driverSeedOdd,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:car.contactBrightness(nativeDayNightBalance(sim.timeMinutes)),camNoRain:cullZones.camNoRain});}
+     // m_nOverrideLights answers first: FORCE_CAR_LIGHTS on or off, whoever drives.
+     for(const car of fleet?.cars??[])car.lightsOn=car.overrideLights===2?!car.wrecked:car.overrideLights===1?false:!car.wrecked&&(car.occupied||!!car.autopilot&&!car.driverOut)&&vehicleLightsStatus({seed:car.randomSeed,gangDriverOddSeed:car.gang!==undefined&&car.driverSeedOdd,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:car.contactBrightness(nativeDayNightBalance(sim.timeMinutes)),camNoRain:cullZones.camNoRain});}
     for(const car of fleet?.cars??[]){car.car.setViewDistance(car.car.root.position.distanceToSquared(camera.position),1);car.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));}
     // CWaterCannons::Render: the crossed quads of the live sections, and the splash where the jet meets a surface.
     {const f=camera.getWorldDirection(new Vector3());
@@ -2307,6 +2311,8 @@ async function boot() {
           steerUpDown:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),accelerate:input.down('KeyW')};hornHeldLast=horn;}
         // CObject::ProcessControl once a 30 fps game frame: the exploded props' roll and loose props settling static again.
         for(explodedClock+=step;explodedClock>=1/30;explodedClock-=1/30){hideExplodedProps();importedScene?.settleMoving();}
+        // CTrain::ProcessControl: every carriage to its place on the rails, the bodies following in this step.
+        fleet?.stepTrains(step*50,gameTimeMs);
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=playerControlsDisabled();car.pad=car.occupied&&!playerControlsDisabled()?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
@@ -2460,6 +2466,7 @@ async function boot() {
     for(const plane of fleet?.planes??[])plane.update(alpha);
     for(const boat of fleet?.boats??[])boat.update(alpha);
     for(const bike of fleet?.bikes??[])bike.update(alpha);
+    for(const train of fleet?.trains??[])train.update();
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns ${aircraft.gunAmmo} [Ctrl]${aircraft.modelId!==476?` · Rockets ${aircraft.rockets} [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(nativeDayNightBalance(sim.timeMinutes));}
     sirens.update(fleet?.cars??[],Math.floor(elapsed*1000));
@@ -3579,6 +3586,28 @@ async function boot() {
                  requestCarRecording:(fileNumber,loaded)=>{carRecordings.request(fileNumber,loaded);},
                  carRecordingFrames:fileNumber=>carRecordings.framesOf(fileNumber),
                  carRecordingVehicle:car=>car&&typeof car==='object'&&'recordingSlot' in car?recordingVehicle(car as ScriptCar):undefined,
+                 // CTrain: the fleet's mission trains, from native points.
+                 spawnMissionTrain:(type,position,clockwise)=>fleet?fleet.spawnMissionTrain(type,position,clockwise,gameTimeMs):Promise.resolve(undefined),
+                 trainCarriageOf:(train,index)=>train instanceof WorldTrain?fleet?.trainFor(findCarriage(train.carriage,index)):undefined,
+                 trainCabooseOf:train=>train instanceof WorldTrain?fleet?.trainFor(findCaboose(train.carriage)):undefined,
+                 scriptTrainModel:carriage=>carriage instanceof WorldTrain?carriage.modelId:-1,
+                 setScriptTrainSpeed:(train,speed)=>{if(train instanceof WorldTrain)setTrainSpeed(train.carriage,speed);},
+                 setScriptTrainCruiseSpeed:(train,speed)=>{if(train instanceof WorldTrain)setTrainCruiseSpeed(train.carriage,speed);},
+                 setScriptTrainForcedToSlowDown:(train,state)=>{if(train instanceof WorldTrain)train.carriage.forceSlowDown=state;},
+                 scriptTrainClockwise:train=>train instanceof WorldTrain&&train.carriage.clockwise,
+                 setScriptTrainPosition:(train,position)=>{if(train instanceof WorldTrain)fleet?.setTrainPosition(train,position);},
+                 removeScriptMissionTrain:train=>{if(train instanceof WorldTrain)fleet?.removeMissionTrain(train);},
+                 releaseScriptMissionTrain:train=>{if(train instanceof WorldTrain)fleet?.releaseMissionTrain(train);},
+                 removeMissionTrains:()=>{fleet?.removeMissionTrains();},
+                 releaseMissionTrains:()=>{fleet?.releaseMissionTrains();},
+                 removeAllTrains:()=>{fleet?.removeAllTrains();},
+                 scriptVehicleIsTrain:car=>car instanceof WorldTrain,
+                 setScriptVehicleOverrideLights:(car,lights)=>{if(car&&typeof car==='object'&&'overrideLights' in car)(car as ScriptCar).overrideLights=lights&3;},
+                 // CEntity::m_bUsesCollision: with it off nothing collides with the car, the ground included.
+                 setScriptVehicleUsesCollision:(car,state)=>{
+                  const body=car instanceof WorldTrain?car.body:(car as ScriptCar|undefined)?.car?.body;if(!body)return;
+                  for(let i=0;i<body.numColliders();i++)body.collider(i).setEnabled(state);
+                 },
                  spawnScriptVehicle:async(model,position,heading)=>{
                   if(!fleet||typeof model!=='number')return undefined;
                   return await fleet.spawnScriptCar(model,{x:position.x,y:position.z,z:-position.y},scriptCarRotation(heading)).catch(()=>undefined);
@@ -3635,6 +3664,8 @@ async function boot() {
                   return true;
                  },
                  placeScriptVehicle:(car,position,heading)=>{
+                  // A train's carriage is put on its rails at the nearest node (SetNewTrainPosition).
+                  if(car instanceof WorldTrain){fleet?.setTrainPosition(car,position);return;}
                   const target=car as ScriptCar;if(target.disposed)return;
                   const yaw=scriptCarRotation(heading),body=target.car.body;
                   body.setTranslation({x:position.x,y:position.z,z:-position.y},true);
@@ -3645,7 +3676,7 @@ async function boot() {
                  scriptVehicleBoxTop:car=>(car as ScriptCar).assets.collision.bounds.max[2],
                  scriptVehicleHeading:car=>{const degrees=((car as ScriptCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
                  scriptVehicleAlive:car=>!(car as ScriptCar).disposed,
-                 removeScriptVehicle:car=>{fleet?.removeScriptCar(car as ScriptCar);},
+                 removeScriptVehicle:car=>{if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptCar(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
                  playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied,

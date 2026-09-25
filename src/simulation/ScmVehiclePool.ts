@@ -28,11 +28,18 @@ export class ScmVehiclePool<Car>{
  /** The handles the script holds, in the order it was given them. */
  get handles(){return this.pool.handles;}
  /** CREATE_CAR: the handle comes back at once and the car follows. */
- create(model:number|string,position:{x:number;y:number;z:number},heading=0){
+ create(model:number|string,position:{x:number;y:number;z:number},heading=0,spawn?:()=>Promise<Car|undefined>){
   requireAsset([position.x,position.y,position.z,heading].every(Number.isFinite),'Invalid script car placement.');
   const said:ScriptCar={model,position:{...position},heading,moved:false};
-  const handle=this.pool.create(()=>this.host.spawn(model,{...said.position},said.heading));
+  const handle=this.pool.create(spawn??(()=>this.host.spawn(model,{...said.position},said.heading)));
   this.said.set(handle,said);
+  return handle;
+ }
+ /** The handle for a vehicle the browser made itself (a train's carriage), made the first time it is asked for. */
+ handleFor(entity:Car,model:number|string){
+  const known=this.pool.handleOf(entity);if(known!==undefined)return known;
+  const handle=this.pool.adopt(entity);
+  this.said.set(handle,{model,position:this.host.positionOf(entity),heading:this.host.headingOf(entity),moved:false});
   return handle;
  }
  private word(handle:number){const said=this.said.get(handle);requireAsset(said,'Script car handle names nothing.');return said!;}

@@ -7429,3 +7429,36 @@ Each is now answered:
 - ARE_SUBTITLES_SWITCHED_ON reads the engine's FrontEndMenuManager.m_bShowSubtitles, true by default, instead of a
   host that did not answer.
 - INTRO now runs on to its mission train (CREATE_MISSION_TRAIN), which the port does not have.
+
+## Mission trains
+
+- The port ran no trains, and INTRO, RYDER3, SMOKE3, DRUGS4, SCRASH2, STEAL2 and QUARRY make mission trains
+  (CREATE_MISSION_TRAIN, 22 uses; the speeds 75). They are now CTrain (nativeTrain.ts, nativeTrainTracks.ts and
+  WorldTrain):
+  - Tracks: InitTrains reads tracks.dat, tracks3.dat, tracks2.dat and tracks4.dat into tracks 0 to 3. CTrainNode
+    (reversed) keeps positions in eighths and the distance from the start in thirds of a unit. ReadAndInterpretTrackFile
+    is unreversed; its Vice City form measures each join in 2D, closing the loop, and that is followed.
+  - Types: CREATE_MISSION_TRAIN's type picks the carriages from the table at 0x8D44F8, as the Sanny Builder
+    documentation lists it. INTRO's type 13 is a freight engine and five flat cars.
+  - CreateMissionTrain is unreversed. The train starts at the track node nearest the point over every track. Its
+    carriages run engine first, each a carriage length along the rails from the one before.
+  - ProcessControl (reversed) runs for a train on its rails:
+    - the engine is drawn to the cruise speed by gas and brake, divided among its carriages;
+    - it waits out the station times from m_nTimeWhenStoppedAtStation, which starts at 0, so a train made in a
+      game's first 22 seconds waits, as in the original;
+    - the carriages behind follow;
+    - each is set between the points a bounding box's length apart on the rails, lifted by the handling's
+      suspension lower limit.
+  - SET_TRAIN_SPEED, SET_TRAIN_CRUISE_SPEED, GET_TRAIN_CARRIAGE, GET_TRAIN_CABOOSE, FIND_TRAIN_DIRECTION,
+    SET_MISSION_TRAIN_COORDINATES, the mission-train deletes and releases, DELETE_ALL_TRAINS and IS_CAR_A_TRAIN follow
+    the reversed helpers where they exist. A carriage's handle is made the first time it is asked for, as
+    CPool::GetRef does.
+  - A carriage's body is kinematic: it pushes what it meets and nothing moves it.
+- Not modelled:
+  - a mission train stopping at stations, since FindMaximumSpeedToStopAtStations is unreversed;
+  - the player driving or derailing a train;
+  - passengers and TrainHitStuff's damage;
+  - SET_TRAIN_FORCED_TO_SLOW_DOWN, which is kept but whose CalcDistanceToForbiddenTrainCrossing is not ported.
+- FORCE_CAR_LIGHTS sets m_nOverrideLights, which now answers before GetVehicleLightsStatus. SET_CAR_COLLISION sets
+  CEntity::m_bUsesCollision on the car's colliders. INTRO next needs the player riding as a passenger
+  (WARP_CHAR_INTO_CAR_AS_PASSENGER on the player), which the port does not have yet.
