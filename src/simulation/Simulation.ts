@@ -225,11 +225,15 @@ export class Simulation {
     if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
     if (event && megaPunchBlow(event.weapon)) amount = this.player.health;
     // ComputeWillKillPed's ordinary branch kills below 1 HP, not just at zero.
+    // CPed::m_nLastWeaponDamage: the weapon of a hit that took health (a fall is WEAPON_FALL), not one armour soaked up.
+    if (event && amount > 0) this.lastWeaponDamage = event.fall ? 54 : event.weapon;
     const before=this.player.health,remaining=before-amount;
     this.player.health = remaining<1?0:remaining;
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
     if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0 });
   }
+  /** CPed::m_nLastWeaponDamage for the player: -1 until a weapon has taken his health, and after CLEAR_CHAR_LAST_WEAPON_DAMAGE. */
+  lastWeaponDamage = -1;
   /** CTaskComplexDie on the player (TASK_DIE): he dies whatever he is proof against, the task being no damage. */
   killPlayer() {
     if (this.player.health <= 0) return;

@@ -833,9 +833,7 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  HAS_CHAR_BEEN_DAMAGED_BY_WEAPON:(t,p,i)=>{
   const wanted=t.readInt(p[1]),last=world(t,i,'pedLastWeaponDamage')(t.readInt(p[0]));
-  const matches=last!==undefined&&(wanted===WEAPON_ANYWEAPON?last.type!==WEAPON_UNIDENTIFIED
-   :wanted===WEAPON_ANYMELEE?last.melee:last.type===wanted);
-  t.updateCompareFlag(matches,negated(i));
+  t.updateCompareFlag(wanted===WEAPON_ANYMELEE||wanted===WEAPON_ANYWEAPON?checkDamagedWeaponType(last,wanted):last>=0&&last===wanted,negated(i));
  },
  SET_CHAR_COLLISION:(t,p,i)=>{world(t,i,'setPedCollision')(t.readInt(p[0]),bool(t,p[1]));},
  IS_CHAR_SHOOTING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsShooting')(t.readInt(p[0])),negated(i));},

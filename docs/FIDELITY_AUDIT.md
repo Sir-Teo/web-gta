@@ -7200,3 +7200,16 @@ the first ones now implemented:
   - Its IsCarUpsideDown tests only while CanPedStepOutCar(false) fails, that is while the car still moves. A car at
     rest on its roof would then never count. The geometric test alone (up.z < 0.3 with fewer than four wheels down,
     or up.z < 0) is used, shared with the crawl-out in CarEntry.
+
+## The weapon that last hurt a ped
+
+- CPed::m_nLastWeaponDamage (reVC's CPed::InflictDamage sets it, with the damager, whenever health is lost) is now
+  kept:
+  - on the player, with a fall as WEAPON_FALL and nothing recorded for a hit his armour soaks up whole;
+  - on the world's peds, for the player's weapons, blows between peds, peds' gunfire and fire (WEAPON_FLAMETHROWER).
+- HAS_CHAR_BEEN_DAMAGED_BY_WEAPON was answered by a host hook that did not exist. Its engine side also treated ANY
+  WEAPON as anything but WEAPON_UNIDENTIFIED. It now reads the type and puts the two wildcards through
+  CDarkel::CheckDamagedWeaponType, as the car question does, so a ram, a run over, drowning, a fall or the parachute
+  is no weapon.
+- CLEAR_CHAR_LAST_WEAPON_DAMAGE and CLEAR_CHAR_LAST_DAMAGE_ENTITY had no answer either. They now clear the fields.
+  The player's own damager is not kept, so the second has nothing to clear for him.

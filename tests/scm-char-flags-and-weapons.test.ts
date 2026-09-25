@@ -52,18 +52,20 @@ describe('the weapons a script asks a ped about',()=>{
  });
 
  test('the damage question treats its two wildcards apart from a named weapon',()=>{
-  const ask=(last:{type:number;melee:boolean}|undefined,weapon:number)=>
+  const ask=(last:number,weapon:number)=>
    run({pedLastWeaponDamage:()=>last},instruction(scmOpcode('HAS_CHAR_BEEN_DAMAGED_BY_WEAPON'),
     [int(PED),int(weapon)])).thread.condition;
-  expect(ask({type:WEAPON_PISTOL,melee:false},WEAPON_PISTOL)).toBe(true);
-  expect(ask({type:WEAPON_PISTOL,melee:false},WEAPON_BAT)).toBe(false);
-  expect(ask({type:WEAPON_PISTOL,melee:false},WEAPON_ANYWEAPON)).toBe(true);
-  expect(ask({type:WEAPON_PISTOL,melee:false},WEAPON_ANYMELEE)).toBe(false);
-  expect(ask({type:WEAPON_BAT,melee:true},WEAPON_ANYMELEE)).toBe(true);
-  // A ped damaged by nothing identifiable has not been damaged by any weapon.
-  expect(ask({type:WEAPON_UNIDENTIFIED,melee:false},WEAPON_ANYWEAPON)).toBe(false);
-  // A handle naming no ped answers false, whatever is asked.
-  expect(ask(undefined,WEAPON_ANYWEAPON)).toBe(false);
+  expect(ask(WEAPON_PISTOL,WEAPON_PISTOL)).toBe(true);
+  expect(ask(WEAPON_PISTOL,WEAPON_BAT)).toBe(false);
+  expect(ask(WEAPON_PISTOL,WEAPON_ANYWEAPON)).toBe(true);
+  expect(ask(WEAPON_PISTOL,WEAPON_ANYMELEE)).toBe(false);
+  expect(ask(WEAPON_BAT,WEAPON_ANYMELEE)).toBe(true);
+  // CDarkel::CheckDamagedWeaponType: nothing identifiable, a ram, a run over, drowning and a fall are no weapon.
+  for(const type of [WEAPON_UNIDENTIFIED,49,50,53,54])expect(ask(type,WEAPON_ANYWEAPON)).toBe(false);
+  expect(ask(51,WEAPON_ANYWEAPON)).toBe(true);
+  // A ped nothing has hurt has not been damaged by any weapon.
+  expect(ask(-1,WEAPON_ANYWEAPON)).toBe(false);
+  expect(ask(-1,-1)).toBe(false);
  });
 });
 

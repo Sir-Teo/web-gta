@@ -221,8 +221,9 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  pedHasWeapon?(handle:number,weaponType:number):boolean;
  /** CPed::GetActiveWeapon: the type it is holding, and whether that type is a melee one. */
  pedActiveWeapon?(handle:number):{type:number;melee:boolean};
- /** CPed::m_nLastWeaponDamage, which CDarkel::CheckDamagedWeaponType reads for the two wildcards. */
- pedLastWeaponDamage?(handle:number):{type:number;melee:boolean}|undefined;
+ /** CPed::m_nLastWeaponDamage (-1 when nothing has hurt the ped), which CDarkel::CheckDamagedWeaponType reads for the
+  * two wildcards. */
+ pedLastWeaponDamage?(handle:number):number;
  /** CPed::SetUsesCollision. */
  setPedCollision?(handle:number,usesCollision:boolean):void;
  /** CPed::bFiringWeapon. */

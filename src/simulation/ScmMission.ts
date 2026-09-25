@@ -263,6 +263,13 @@ export interface ScmMissionWorld {
  scriptVehicleUpsideDownForCheck?(car:unknown):boolean;
  /** A car's autopilot route: the node it set out from and the one it is on its way to. */
  scriptVehicleRouteNodes?(car:unknown):{starting:PathNode;current:PathNode}|undefined;
+ /** CPed::m_nLastWeaponDamage (-1 for none) for a script ped and for the player, and their clearing; the ped's
+  * m_pLastEntityDamage cleared. */
+ scriptPedLastWeaponDamage?(ped:unknown):number;
+ clearScriptPedLastWeaponDamage?(ped:unknown):void;
+ clearScriptPedLastDamagedBy?(ped:unknown):void;
+ playerLastWeaponDamage?():number;
+ clearPlayerLastWeaponDamage?():void;
  /** The car path areas CPathFind has loaded, or nothing before any have. */
  carPathAreas?():ReadonlyMap<number,PathArea>|undefined;
  /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
@@ -836,6 +843,14 @@ export class ScmMission {
    vehicleLastWeaponDamage:handle=>this.host('scriptVehicleLastWeaponDamage','HAS_CAR_BEEN_DAMAGED_BY_WEAPON')(this.liveVehicle(handle)),
    clearVehicleLastDamageEntity:handle=>{this.host('clearScriptVehicleLastDamagedBy','CLEAR_CAR_LAST_DAMAGE_ENTITY')(this.liveVehicle(handle));},
    clearCarLastWeaponDamage:handle=>{this.host('clearScriptVehicleLastWeaponDamage','CLEAR_CAR_LAST_WEAPON_DAMAGE')(this.liveVehicle(handle));},
+   pedLastWeaponDamage:handle=>handle===PLAYER_PED_HANDLE?this.host('playerLastWeaponDamage','HAS_CHAR_BEEN_DAMAGED_BY_WEAPON')()
+    :this.host('scriptPedLastWeaponDamage','HAS_CHAR_BEEN_DAMAGED_BY_WEAPON')(this.livePed(handle)),
+   clearPedLastWeaponDamage:handle=>{
+    if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerLastWeaponDamage','CLEAR_CHAR_LAST_WEAPON_DAMAGE')();
+    else this.host('clearScriptPedLastWeaponDamage','CLEAR_CHAR_LAST_WEAPON_DAMAGE')(this.livePed(handle));
+   },
+   // The player's own damager is not kept, so there is nothing of his to clear.
+   clearPedLastDamageEntity:handle=>{if(handle!==PLAYER_PED_HANDLE)this.host('clearScriptPedLastDamagedBy','CLEAR_CHAR_LAST_DAMAGE_ENTITY')(this.livePed(handle));},
    pedIsSittingInCar:(handle,vehicle)=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar&&this.playerCarHandle()===vehicle:this.peds.rideOf(handle)?.vehicle===vehicle,
    // CPed's own acquaintance table, through CAcquaintance's routines.
    setPedRelationship:(handle,relationship,pedType)=>{this.world.setScriptPedRelationship(this.livePed(handle),relationship,pedType);},
