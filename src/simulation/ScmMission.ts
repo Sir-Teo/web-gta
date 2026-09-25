@@ -567,6 +567,10 @@ export interface ScmMissionWorld {
 }
 /** CTheScripts' player slot: the script always addresses player zero, whose ped it creates first. */
 export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
+/** Where CPedGroup::Teleport puts each follower from the point, native world axes: CTaskComplexFollowLeaderInFormation's
+ * ms_offsets are static data the reversed sources do not carry, so these stand in for them, a unit apart in a wedge
+ * behind and to the sides. */
+const GROUP_TELEPORT_OFFSETS:readonly (readonly [number,number])[]=[[-1,-1],[1,-1],[-2,-2],[2,-2],[0,-2],[-3,-3],[3,-3]];
 /** The browser holds one vehicle for the player at a time, so the script's questions about the car it is in are
  * answered by a single handle rather than a pool the browser does not have. */
 export const PLAYER_VEHICLE_HANDLE=1;
@@ -1977,7 +1981,23 @@ export class ScmMission {
  }
  private teleportPlayer(x:number,y:number,z:number,command:string){
   const ground=z<=-100?this.world.groundLevel(x,y,z):undefined;
+  const onFoot=!this.world.playerPed().vehicle;
   if(!this.host('teleportPlayer',command)({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,command,'a player on a bike, boat or plane');
+  // CRunningScript::SetCharCoordinates with warpGang (the plain command; not _NO_OFFSET or _DONT_WARP_GANG): a leader
+  // on foot is moved by CPedGroup::Teleport, which takes his living followers along to the formation's offsets from
+  // the point. A follower still sits in its car here, as a mission ped the game does not set out of one.
+  if(command==='SET_CHAR_COORDINATES'&&onFoot){
+   const group=this.groups.get(PLAYER_GROUP_HANDLE);if(!group)return;
+   let slot=0;
+   for(const follower of group.all()){
+    if(follower===PLAYER_PED_HANDLE||!this.peds.exists(follower))continue;
+    const index=slot++;
+    if((this.peds.healthOf(follower)??0)<=0)continue;
+    const ride=this.peds.rideOf(follower);if(ride&&!ride.offset)continue;
+    const [ox,oy]=GROUP_TELEPORT_OFFSETS[index]??[0,0];
+    this.peds.setPosition(follower,{x:x+ox,y:y+oy,z:ground??z});
+   }
+  }
  }
  /** The handle for the vehicle the player is in, nothing on foot. Every vehicle in CPools has a handle, so a street car
   * the player took gets one the first time a script asks (STORE_CAR_CHAR_IS_IN_NO_SAVE, GET_CAR_CHAR_IS_USING), and

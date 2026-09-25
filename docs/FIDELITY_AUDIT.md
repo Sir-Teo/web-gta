@@ -8164,3 +8164,12 @@ stays open: `CPickups::CreatePickupCoorsCloseToCoors` is not reversed. Spec: `sc
 enter (`FindClosestCarSectorList`, unreversed, and here the nearest bike, boat and plane) passes over a vehicle
 without it, as RYDER2, MAF4 and QUARRY rely on to keep the player out of their props. Spec:
 `script-considered-by-player`.
+
+## SET_CHAR_COORDINATES warps the player's gang
+
+`CRunningScript::SetCharCoordinates` with warpGang (the plain command) moves a group leader on foot through
+`CPedGroup::Teleport`: the leader, then each living follower to the point plus
+`CTaskComplexFollowLeaderInFormation::ms_offsets[i]` in world axes. The player's followers were left behind, so a
+mission that moves CJ (or its probe) lost Sweet and re-blipped him (SWEET1B). `_DONT_WARP_GANG` moves the leader alone.
+The formation offsets are static data the reversed sources do not carry; a wedge a unit apart stands in for them. A
+mission follower in a car stays in it, as the game sets only non-mission followers out. Spec: `script-group-teleport`.
