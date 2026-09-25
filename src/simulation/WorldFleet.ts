@@ -29,9 +29,29 @@ import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 /** Resolve one random-model generator against a membership pool (CCarGenerator
  * model -1): uniform pick, keeping the record identity for once-per-session
  * ownership. Empty pools leave the generator for a later window. */
-export function resolveRandomParkedRecord(record:WorldCarGenerator,pool:readonly number[],random:()=>number=Math.random){
+export function resolveRandomParkedRecord(record:WorldCarGenerator,pool:readonly number[],random:()=>number=Math.random,info?:(modelId:number)=>PickableCar|undefined){
  if(record.modelId!==-1||!pool.length)return undefined;
- return {...record,modelId:pool[Math.floor(random()*pool.length)%pool.length]};
+ const modelId=info?pickRandomCar(pool,info,random,true,true):pool[Math.floor(random()*pool.length)%pool.length];
+ return modelId===undefined?undefined:{...record,modelId};
+}
+/** What CLoadedCarGroup::PickRandomCar reads of a model: its vehicles.ide class and frequency, whether the script
+ * suppressed it, and how many of it are in the world (m_nRefCount). */
+export interface PickableCar {vehicleClass:string;frequency:number;suppressed:boolean;instances:number}
+/** CLoadedCarGroup::PickRandomCar (0x611C50): up to ten draws weighted by frequency (a draw in [0, sum) walks the
+ * list, taking the first model whose frequency reaches what is left); a draw of a suppressed model, or of one with
+ * more than two in the world when `notTooMany`, is thrown away. With `onlyNormal` only the normal, poor family,
+ * rich family and motorbike classes take part. */
+export function pickRandomCar(pool:readonly number[],info:(modelId:number)=>PickableCar|undefined,random:()=>number,notTooMany:boolean,onlyNormal:boolean){
+ const choices=pool.filter(id=>{const i=info(id);return !!i&&(!onlyNormal||['normal','poorfamily','richfamily','motorbike'].includes(i.vehicleClass.toLowerCase()));});
+ if(!choices.length)return undefined;
+ const sum=choices.reduce((total,id)=>total+info(id)!.frequency,0);
+ for(let tries=0;tries<10;tries++){
+  let draw=Math.floor(random()*sum),picked=choices[choices.length-1];
+  for(const id of choices){const frequency=info(id)!.frequency;if(frequency>=draw){picked=id;break;}draw-=frequency;}
+  const i=info(picked)!;
+  if(!i.suppressed&&(!notTooMany||i.instances<=2))return picked;
+ }
+ return undefined;
 }
 /** Native parked cars: fixed-model records plus random-model generators resolved through the popcycle car
  * membership, scheduled as CCarGenerator::Process does (the 140 to 160 unit approach band, the start window, the
@@ -158,7 +178,11 @@ export class WorldFleet {
   // and the colours its first car got.
   const kept=this.randomModels.get(record.id);
   if(kept)return {...record,modelId:kept.model,primaryColor:kept.colours?.[0]??-1,secondaryColor:kept.colours?.[1]??-1};
-  const resolved=resolveRandomParkedRecord(record,this.parkedPool(),Math.random);
+  const catalog=this.catalog,suppressed=this.suppressedModels();
+  const info=(id:number):PickableCar|undefined=>{const v=catalog?.definitions.find(d=>d.id===id);if(!v)return undefined;
+   let instances=0;for(const vehicle of [...this.cars,...this.bikes])if(vehicle.modelId===id)instances++;
+   return {vehicleClass:v.vehicleClass,frequency:v.frequency,suppressed:suppressed.has(id)||suppressed.has(v.model.toLowerCase()),instances};};
+  const resolved=resolveRandomParkedRecord(record,this.parkedPool(),Math.random,info);
   if(resolved)this.randomModels.set(record.id,{model:resolved.modelId});
   return resolved&&{...resolved,primaryColor:-1,secondaryColor:-1};
  }
@@ -167,7 +191,7 @@ export class WorldFleet {
   const catalog=this.catalog,popType=this.currentZone?.populationType;
   try{
    if(catalog&&Number.isInteger(popType)&&popType!>=0&&popType!<20){
-    const models=[...catalog.populationCarModelsAt(popType!,this.sim.weekDay,Math.floor(this.sim.timeMinutes/60)%24)].filter(id=>isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id)));
+    const models=[...catalog.populationCarModelsAt(popType!,this.sim.weekDay,Math.floor(this.sim.timeMinutes/60)%24)].filter(id=>!!PLAYABLE_BIKES[id]||isBuildableCar(catalog,catalog.definitions.find(v=>v.id===id)));
     if(models.length)return models;
    }
   }catch{/* fall through to the fixed trio */}
@@ -481,6 +505,13 @@ export class WorldFleet {
   const record=candidates.find(record=>isBuildableCar(catalog,catalog.definitions.find(v=>v.id===record.modelId))&&groundAt(record))
    ??this.randomParkedRecord(candidates,groundAt);
   if(!record)return;
+  // A random generator's motorbike parks as a bike.
+  if(PLAYABLE_BIKES[record.modelId]){
+   if(this.bikes.size+this.boats.size>=6)return;
+   this.busy=true;this.attempted.add(record.id);
+   void this.generateBikeOrBoat(record,groundAt).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(record.id);});
+   return;
+  }
   // Query around the native elevation so bridges/garages keep their own floor.
   const [x,nativeY,nativeZ]=record.position,z=-nativeY,top=nativeZ>-100?nativeZ+1:1000;
   const ground=()=>groundAt(record);

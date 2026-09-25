@@ -6568,6 +6568,13 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - Both turn to the record's angle in 256ths of a circle.
   - A spot CheckForBlockage finds taken waits four more milliseconds, far from the player.
   - They count toward NumParkedCars' 5 by day and 10 at night.
+- **Random-model generators (CLoadedCarGroup::PickRandomCar(true, true)):**
+  - Up to ten draws, weighted by the vehicles.ide frequency: a draw in [0, sum) walks the list and takes the first
+    model whose frequency reaches what is left.
+  - Only the normal, poor family, rich family and motorbike classes take part. A suppressed model, or one already
+    in the world three times, is drawn again.
+  - The port had drawn every car of the popcycle groups with equal chance, and never a motorbike. A motorbike drawn
+    now parks as a bike.
+  - m_AppropriateLoadedCars is what CStreaming holds for the zone. The popcycle membership stands in for it.
 - **Not done:** CBike::ProcessControl is unreversed, so a generated bike stands upright rather than leaning on its
-  side stand (bOnSideStand). The random-model generators still draw only cars, where PickRandomCar can return a
-  loaded bike.
+  side stand (bOnSideStand).
