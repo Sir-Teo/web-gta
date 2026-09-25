@@ -19,6 +19,8 @@ export class NativePostEffects {
  private capture:THREE.Mesh;
  private filterPasses:Quad[];
  private flash:Quad;private nightTint:Quad;private nightGrain:Quad;
+ /** CPostEffects::DarknessFilter's black quad. */
+ private darkness:Quad;
  private infraredPasses:Quad[];private infraredTint:Quad;private infraredMain:Quad;private infraredGrain:Quad;
  private grainTexture:THREE.DataTexture;private grainPixels=new Uint8Array(256*256*4);
  private ripple:THREE.Mesh<THREE.BufferGeometry,THREE.ShaderMaterial>;private rippleRows=0;
@@ -26,6 +28,14 @@ export class NativePostEffects {
  private waterGreenValue=0;private underWaterState={active:false,depth:0};
  /** CPostEffects::m_bColorEnable. */
  colourFilterEnabled=true;
+ /** m_bDarknessFilter and m_DarknessFilterAlpha (SET_DARKNESS_EFFECT; 170 by default). */
+ darknessFilter=false;darknessAlpha=170;
+ /** m_bHeatHazeFX (SET_HEATHAZE_EFFECT). HeatHazeFX itself is unreversed and not drawn. */
+ heatHazeFX=false;
+ /** ScriptDarknessFilterSwitch: -1 is the default alpha, anything else clamped to a byte. */
+ scriptDarknessFilterSwitch(enable:boolean,alpha:number){this.darknessFilter=enable;this.darknessAlpha=alpha===-1?170:Math.max(0,Math.min(255,alpha));}
+ /** ScriptResetForEffects, from RestorePlayerStuffDuringResurrection: the script's heat haze and darkness go. */
+ scriptResetForEffects(){this.heatHazeFX=false;this.darknessFilter=false;}
  /** The pass colours last handed to ColourFilter (bytes). */
  private passes:[PostFxColour,PostFxColour]|undefined;
  private factor:[number,number,number]=[0,0,0];
@@ -50,6 +60,8 @@ export class NativePostEffects {
   const grain='uniform sampler2D grain;uniform vec2 uvScale;uniform float alpha;varying vec2 vUv;void main(){vec4 t=texture2D(grain,vUv*uvScale);gl_FragColor=vec4(t.rgb,t.a*alpha);}';
   const colourUniforms=()=>({colour:{value:new THREE.Vector3(1,1,1)},alpha:{value:1},expand:{value:0}});
   this.filterPasses=[frontQuad('Native colour filter pass 1',999.1,THREE.SrcAlphaFactor,THREE.OneFactor,modulated,colourUniforms()),frontQuad('Native colour filter pass 2',999.2,THREE.SrcAlphaFactor,THREE.OneFactor,modulated,colourUniforms())];
+  // DarknessFilter: a black quad over the screen at the filter's alpha, after the colour filter.
+  this.darkness=frontQuad('Native darkness filter',999.25,THREE.SrcAlphaFactor,THREE.OneMinusSrcAlphaFactor,flat,colourUniforms());
   this.flash=frontQuad('Native night vision flash',999.3,THREE.OneFactor,THREE.OneFactor,modulated,colourUniforms());
   this.nightTint=frontQuad('Native night vision tint',999.4,THREE.ZeroFactor,THREE.SrcColorFactor,flat,colourUniforms());
   this.infraredPasses=infraredExpansions().map((_,i)=>frontQuad(`Native infrared pass ${i+1}`,999.3+i*.01,THREE.OneFactor,THREE.OneFactor,modulated,colourUniforms()));
@@ -120,6 +132,8 @@ export class NativePostEffects {
   * the game time and the camera's water state. */
  update(pass1:PostFxColour|undefined,pass2:PostFxColour|undefined,options:{vision?:VisionMode;laRiotsLightMult?:number;extraMult?:number;timeStep?:number;timeMs?:number;underwaterness?:number;waterDepth?:number}={}){
   const vision=options.vision??null;this.vision=vision;
+  // Render: the darkness filter while neither vision mode is on.
+  this.setQuad(this.darkness,this.darknessFilter&&!vision,[0,0,0],this.darknessAlpha/255);
   const width=this.size.width||1,height=this.size.height||1;
   this.updateUnderWater(options.underwaterness??0,options.waterDepth??0,options.timeMs??0,options.timeStep??1,width,height);
   if(this.colourFilterEnabled&&pass1&&pass2){
@@ -144,6 +158,6 @@ export class NativePostEffects {
  }
  /** The colour filter's quads, for a probe that draws the frame with and without them. */
  get colourFilterQuads(){return this.filterPasses;}
- snapshot(){return {colourFilter:{enabled:this.colourFilterEnabled,visible:this.filterPasses.some(q=>q.visible),factor:this.factor.map(v=>+v.toFixed(4)),passes:this.passes},vision:this.vision,flashDraws:this.flashDraws,captureSize:{...this.size},underwater:{...this.underWaterState,green:+this.waterGreenValue.toFixed(2),rows:this.rippleRows,visible:this.ripple.visible}};}
+ snapshot(){return {colourFilter:{enabled:this.colourFilterEnabled,visible:this.filterPasses.some(q=>q.visible),factor:this.factor.map(v=>+v.toFixed(4)),passes:this.passes},vision:this.vision,darkness:{enabled:this.darknessFilter,alpha:this.darknessAlpha,visible:this.darkness.visible},heatHazeFX:this.heatHazeFX,flashDraws:this.flashDraws,captureSize:{...this.size},underwater:{...this.underWaterState,green:+this.waterGreenValue.toFixed(2),rows:this.rippleRows,visible:this.ripple.visible}};}
  dispose(){this.group.removeFromParent();this.front.dispose();this.grainTexture.dispose();this.group.traverse(o=>{const m=o as THREE.Mesh;if(m.isMesh){m.geometry.dispose();(m.material as THREE.Material).dispose();}});}
 }

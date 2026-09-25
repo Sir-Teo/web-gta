@@ -8072,3 +8072,10 @@ Each is now answered:
   cruise speed and driving style, the engine is turned on, and the ram and block missions go for the player.
   MISSION_NONE stops the car. HOODS5, FARLIE4, DRIV3, DRIV6 and CASINO4 use it; it used to stop their threads.
 - Verification: `tests/browser/script-world-queries.spec.ts`.
+
+## SET_DARKNESS_EFFECT and SET_HEATHAZE_EFFECT
+
+`CPostEffects::ScriptDarknessFilterSwitch` sets `m_bDarknessFilter` and its alpha (-1 means the default 170, anything
+else is clamped to a byte); `DarknessFilter` draws a black quad over the frame at that alpha after the colour filter
+and not while goggles are on. `SET_HEATHAZE_EFFECT` sets `m_bHeatHazeFX`, kept but not drawn (HeatHazeFX is not
+reversed). `ScriptResetForEffects`, from the resurrection restore, clears both. Spec: `script-darkness`.

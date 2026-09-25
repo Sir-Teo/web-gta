@@ -386,6 +386,9 @@ export interface ScmMissionWorld {
  gangWarGoingOn?():boolean;
  /** A script ped in the player's group follows him on foot as his recruits do, or stops. */
  setScriptPedFollowsPlayer?(ped:unknown,follows:boolean):void;
+ /** CPostEffects::ScriptDarknessFilterSwitch and ScriptHeatHazeFXSwitch. */
+ setDarknessFilter?(enable:boolean,alpha:number):void;
+ setHeatHazeFX?(enable:boolean):void;
  /** CPed::m_nFightingStyle and m_nAllowedAttackMoves (GIVE_MELEE_ATTACK_TO_CHAR); `undefined` is the player. */
  setPedFightingStyle?(ped:unknown,style:number,moves:number):void;
  /** TASK_PLAY_ANIM on a ped in a seat: the clip plays where it sits (seconds Infinity for no time of its own). */
@@ -871,6 +874,8 @@ export class ScmMission {
    removeGroup:group=>{this.groups.get(group)?.flush();if(group!==PLAYER_GROUP_HANDLE)this.groups.delete(group);},
    setGroupLeader:(group,handle)=>{this.group(group).setLeader(handle);},
    setGroupMember:(group,handle)=>{this.group(group).addFollower(handle);},
+   setDarknessEffect:(enable,alpha)=>{this.host('setDarknessFilter','SET_DARKNESS_EFFECT')(enable,alpha);},
+   setHeatHazeEffect:enable=>{this.host('setHeatHazeFX','SET_HEATHAZE_EFFECT')(enable);},
    setGroupFollowStatus:(group,state)=>{this.group(group).membersEnterLeadersVehicle=state;},
    // CPed's fighting style and allowed moves (the gyms teach the player boxing, kung fu and kickboxing).
    givePedMeleeAttack:(handle,style,moves)=>{this.host('setPedFightingStyle','GIVE_MELEE_ATTACK_TO_CHAR')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),style,moves);},

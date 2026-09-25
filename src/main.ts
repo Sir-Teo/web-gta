@@ -730,6 +730,8 @@ async function boot() {
     sim.player.health=mission?.runtime.game.playerInfo.maxHealth??100;
     // CGameLogic::Update's restart: m_nNumHoursDidntEat = 0 after the twelve hours pass.
     hunger.hoursDidntEat=0;
+    // CPostEffects::ScriptResetForEffects: the script's heat haze and darkness filter go.
+    postEffects.scriptResetForEffects();
     rebuildPlayerIfNeeded();
     sim.player.heading=(result.heading*Math.PI/180+Math.PI)%(Math.PI*2);
     render.yaw=sim.player.heading+Math.PI;input.clear();
@@ -3697,6 +3699,8 @@ async function boot() {
                   }
                   const p=onFoot(ped);if(p)pedestrians?.setFightingStyle(p,style,moves);
                  },
+                 setDarknessFilter:(enable,alpha)=>{postEffects.scriptDarknessFilterSwitch(enable,alpha);},
+                 setHeatHazeFX:enable=>{postEffects.heatHazeFX=enable;},
                  setScriptPedFollowsPlayer:(ped,follows)=>{const p=onFoot(ped);if(p&&p.follow!==follows){p.follow=follows;if(!follows)p.foe=undefined;}},
                  setEntryExitGroupWarping:(x,y,radius,on)=>{entryExits?.setAcceptNpcGroupNear(x,y,radius,on);},
                  // TASK_DRIVE_BY on a rider: the target is a point (script coordinates), a ped or a car handle.
