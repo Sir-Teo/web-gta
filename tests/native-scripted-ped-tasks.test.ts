@@ -151,6 +151,14 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'kindaStayInSamePlace',state:true},world({}))).toEqual({kind:'kindaStayInSamePlace',state:true});
  });
 
+ test('aiming and shooting at a point or a ped are CTaskSimpleGunControl, firing only for the shoot tasks',()=>{
+  const w=world({3:{x:0,y:0,z:0}});
+  expect(scriptedPedOrder({kind:'shootAtCoord',x:1,y:2,z:3,time:2000},w)).toEqual({kind:'gunAt',point:{x:1,y:2,z:3},fire:true,seconds:2});
+  expect(scriptedPedOrder({kind:'aimGunAtCoord',x:1,y:2,z:3,time:-1},w)).toEqual({kind:'gunAt',point:{x:1,y:2,z:3},fire:false,seconds:Infinity});
+  expect(scriptedPedOrder({kind:'shootAtPed',target:3,time:1000},w)).toEqual({kind:'gunAt',target:3,fire:true,seconds:1});
+  expect(scriptedPedOrder({kind:'aimGunAtPed',target:4,time:1000},w)).toBeUndefined();
+ });
+
  test('dying is its own order',()=>{
   expect(scriptedPedOrder({kind:'die'},world({}))).toEqual({kind:'die'});
  });

@@ -144,7 +144,9 @@ export interface Pedestrian {
   /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
   |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number}
   /** CTaskSimpleDuck for its time: ducked where it stands. */
-  |{kind:'duckFor';remaining:number};
+  |{kind:'duckFor';remaining:number}
+  /** CTaskSimpleGunControl: a renderer point or a ped (the player when neither) to aim at, firing or not. */
+  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** CTaskSimpleTogglePedThreatScanner's three switches, kept on the ped (its threat scan is not modelled). */
@@ -1498,6 +1500,15 @@ export class WorldPedestrians {
    case 'threatScanner':ped.threatScanner={onFoot:order.onFoot,inCar:order.inCar,duringScriptTask:order.duringScriptTask};break;
    case 'decisionMaker':ped.decisionMaker=order.index;break;
    case 'kindaStayInSamePlace':this.setFlag(ped,'kindaStayInSamePlace',order.state);break;
+   case 'gunAt':{
+    // An unarmed ped has no gun to control: the task is over at once.
+    if(!ped.weapon&&ped.weaponType===undefined)break;
+    let target:Pedestrian|undefined,player=false;
+    if(order.target!==undefined){const resolved=this.resolveScriptPed?.(order.target);if(!resolved)break;if(resolved==='player')player=true;else target=resolved;}
+    ped.order={kind:'gunAt',point:order.point&&{x:order.point.x,y:order.point.z,z:-order.point.y},target,player,fire:order.fire,remaining:order.seconds};
+    ped.flee=0;ped.loiter=false;
+    break;
+   }
    case 'duck':
     ped.actor.player.crouched=order.crouch;
     if(order.seconds!==undefined)ped.order={kind:'duckFor',remaining:order.seconds};
@@ -2515,6 +2526,11 @@ export class WorldPedestrians {
        this.startNextOrder(p);
       }
      }
+    }else if(p.order.kind==='gunAt'){
+     // Standing to aim; the gun block below points and fires. The task ends with its time or its target.
+     const o=p.order;dx=0;dz=0;o.remaining-=dt;
+     const gone=o.target!==undefined&&(o.target.health<=0||!this.people.includes(o.target))||o.player&&this.sim.player.health<=0;
+     if(o.remaining<=0||gone)this.startNextOrder(p);
     }else if(p.order.kind==='duckFor'){
      dx=0;dz=0;p.order.remaining-=dt;
      if(p.order.remaining<=0){p.actor.player.crouched=false;this.startNextOrder(p);}
@@ -2728,7 +2744,15 @@ export class WorldPedestrians {
    // CTaskComplexKillPedOnFoot aims at its threat (TaskAllocatorKillThreatsBasic hands a group member the leader's
    // attacker): a retaliating ped's live foe, otherwise the player. A follower never turns its gun on him.
    const gunFoe=p.retaliate>0&&p.foe&&p.foe.health>0?p.foe:undefined;
-   if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0&&(gunFoe||!p.follow)){
+   const gunOrder=p.order?.kind==='gunAt'?p.order:undefined;
+   if(gunOrder&&p.weapon&&p.health>0&&p.down===0&&!p.officer){
+    // A script's gun task: the point itself (spotTarget aims a unit above what it is given), or the ped's body.
+    const at=gunOrder.point?{...gunOrder.point,y:gunOrder.point.y-1}:gunOrder.target?gunOrder.target.actor.player.position:this.sim.player.position;
+    spot=this.spotTarget(p,at,cars,gunOrder.target);
+    state.heading=Math.atan2(spot.offset.x,spot.offset.z);
+    p.view.setWeaponPose('police_fire');p.view.setWeaponAim(spot.offset.clone().normalize());gunHold=0;
+    gunEngaged=gunOrder.fire&&spot.distance<p.weapon.info.weaponRange;
+   }else if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0&&(gunFoe||!p.follow)){
     spot=this.spotTarget(p,gunFoe?gunFoe.actor.player.position:this.sim.player.position,cars,gunFoe);
     p.view.setWeaponAim();p.view.setWeaponPose();
     const hostile=!!gunFoe||p.retaliate>0||gangHostile(p.gang,Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z));

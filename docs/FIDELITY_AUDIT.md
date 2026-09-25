@@ -6912,3 +6912,9 @@ the first ones now implemented:
     modelled.
   - TASK_SET_CHAR_DECISION_MAKER (9): the decision maker's actual index, as SET_CHAR_DECISION_MAKER gives it.
   - TASK_KINDA_STAY_IN_SAME_PLACE (8): the ped's bKindaStayInSamePlace.
+- **TASK_SHOOT_AT_COORD, TASK_AIM_GUN_AT_COORD, TASK_AIM_GUN_AT_CHAR and TASK_SHOOT_AT_CHAR** (26, 9, 13 and 8
+  missions): CTaskSimpleGunControl for the task's time.
+  - The ped stands, faces the point or ped (the player included) and aims.
+  - The shoot tasks fire through the port's own ped gun: the weapon's rate, reloads, dispersion and ammo count.
+  - It ends with its time or when its target is dead or gone. An unarmed ped has no gun to control, so the task is
+    over at once.

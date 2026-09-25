@@ -50,7 +50,10 @@ export type ScriptedPedOrder=
  |{kind:'lookAtPoint';x:number;y:number;z:number;seconds:number}
  |{kind:'threatScanner';onFoot:boolean;inCar:boolean;duringScriptTask:boolean}
  |{kind:'decisionMaker';index:number}
- |{kind:'kindaStayInSamePlace';state:boolean};
+ |{kind:'kindaStayInSamePlace';state:boolean}
+ /** CTaskSimpleGunControl for TASK_AIM_GUN_AT_* and TASK_SHOOT_AT_*: stand, face the target (a point in the script's
+  * coordinates, or a ped's handle) and aim, firing when `fire`, for `seconds`. */
+ |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -118,6 +121,10 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // CTaskSimpleHandsUp: HANDSUP held for the task's time.
   case 'handsUp':return {kind:'playAnim',file:'PED',name:'handsup',loop:false,keepLastFrame:true,seconds:seconds(task.time),release:true};
   case 'toggleDuck':return {kind:'duck',crouch:task.state};
+  case 'shootAtCoord':return {kind:'gunAt',point:{x:task.x,y:task.y,z:task.z},fire:true,seconds:seconds(task.time)};
+  case 'aimGunAtCoord':return {kind:'gunAt',point:{x:task.x,y:task.y,z:task.z},fire:false,seconds:seconds(task.time)};
+  case 'shootAtPed':return world.ped(task.target)?{kind:'gunAt',target:task.target,fire:true,seconds:seconds(task.time)}:undefined;
+  case 'aimGunAtPed':return world.ped(task.target)?{kind:'gunAt',target:task.target,fire:false,seconds:seconds(task.time)}:undefined;
   case 'lookAtCoord':return {kind:'lookAtPoint',x:task.x,y:task.y,z:task.z,seconds:seconds(task.time)};
   case 'togglePedThreatScanner':return {kind:'threatScanner',onFoot:task.onFoot,inCar:task.inCar,duringScriptTask:task.duringScriptTask};
   case 'setDecisionMaker':{const index=world.decisionMaker?.(task.decisionMaker);return index===undefined?undefined:{kind:'decisionMaker',index};}
