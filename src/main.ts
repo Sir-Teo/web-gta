@@ -2266,7 +2266,7 @@ async function boot() {
         // CPickup::Update: only a bribe can be taken from a vehicle, any vehicle (IsSphereTouchingVehicle); the rest need
         // the player on foot.
         const driven=worldCar?.occupied?worldCar:fleet?.occupied,ridden=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
-        pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):ridden?(point,radius)=>!!ridden.assets.collision&&sphereTouchingVehicle(ridden.body,ridden.assets.collision.bounds,point,radius):carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined);
+        pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):ridden?(point,radius)=>!!ridden.assets.collision&&sphereTouchingVehicle(ridden.body,ridden.assets.collision.bounds,point,radius):carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined,Math.floor(gameTimeExact*30/1000));
         const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');
         const cash=moneyDrops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops});
         if(cash){sim.money+=cash;sound.frontend(AE_FRONTEND.pickupMoney);}

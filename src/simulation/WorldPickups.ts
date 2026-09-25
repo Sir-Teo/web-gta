@@ -32,7 +32,15 @@ export interface PickupHost {
  /** CPickups::PlayerCanPickUpThisWeaponTypeAtThisMoment: a weapon not aimed with the arm is refused on the jetpack. */
  canPickUpWeapon?(weapon:number):boolean;
 }
+/** CPickups::aPickUps holds 620 slots. */
+export const PICKUP_SLOTS=620;
 interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean;quietUntil?:number;helpShown?:boolean;
+ /** The pickup's aPickUps slot, which picks the frames CPickups::Update reaches it on. */
+ slot:number;
+ /** CPickup::m_nFlags.bVisible: within 100 units of the camera when its streaming slice last ran. */
+ visible:boolean;
+ /** Taken out of the list (a timed-out or script-removed generated pickup). */
+ removed?:boolean;
  /** PICKUP_ONCE_TIMEOUT_SLOW: the second the pickup gives up and removes itself. */
  expiresAt?:number}
 const COLLECTABLE={horseshoe:'HO',oyster:'OY',snapshot:'SN'} as const;
@@ -51,7 +59,7 @@ export class WorldPickups {
  setPickups(pickups:readonly ScmPickup[]){
   for(const state of this.states)state.object?.removeFromParent();
   // Exterior plus interior discs: interiors stream by 3D distance like exteriors.
-  this.states=pickups.map(pickup=>({pickup,disabled:this.collected.has(pickup.id),regenerateAt:0,loading:false}));this.revenueLinks=undefined;
+  this.states=pickups.map((pickup,slot)=>({pickup,disabled:this.collected.has(pickup.id),regenerateAt:0,loading:false,slot,visible:false}));this.revenueLinks=undefined;this.bySlot=undefined;
   for(const key of Object.keys(this.totals) as (keyof typeof this.totals)[])this.totals[key]=pickups.filter(p=>p.category===key).length;
  }
  counts(){const count=(category:string)=>this.states.filter(s=>s.pickup.category===category&&this.collected.has(s.pickup.id)).length;return {horseshoe:count('horseshoe'),oyster:count('oyster'),snapshot:count('snapshot')};}
@@ -89,7 +97,9 @@ export class WorldPickups {
   * jetpack a flier drops. PICKUP_ONCE_TIMEOUT_SLOW pickups give up after a while; the original's timeout is in that
   * routine, so 5 minutes stands in. It is never saved. */
  generate(pickup:ScmPickup,timeoutSeconds=300){
-  this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds});this.revenueLinks=undefined;
+  // GenerateNewOne takes the first free slot.
+  const used=new Set(this.states.map(state=>state.slot));let slot=0;while(used.has(slot))slot++;
+  this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds,slot,visible:false});this.revenueLinks=undefined;this.bySlot=undefined;
  }
  /** Changes what a generated pickup carries, as a script's UPDATE_PICKUP_MONEY_PER_DAY does. */
  patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state)state.pickup={...state.pickup,...patch};}
@@ -97,10 +107,16 @@ export class WorldPickups {
   * removal reaches it. */
  removeGenerated(id:string){const state=this.states.find(s=>s.pickup.id===id);if(state)this.remove(state);}
  /** Takes a generated pickup back out of the world. */
- private remove(state:State){const index=this.states.indexOf(state);if(index>=0)this.states.splice(index,1);this.revenueLinks=undefined;this.despawn(state);}
+ private remove(state:State){const index=this.states.indexOf(state);if(index>=0)this.states.splice(index,1);state.removed=true;this.revenueLinks=undefined;this.bySlot=undefined;this.despawn(state);}
  private despawn(state:State){if(!state.object)return;state.object.removeFromParent();(state.object.userData.dispose as (()=>void)|undefined)?.();state.object=undefined;}
-  /** CPickups::Update and CPickup::Update for the player; `vehicle` is CVehicle::IsSphereTouchingVehicle for the player's vehicle. */
-  step(dt:number,vehicle?:(point:Vector3,radius:number)=>boolean){
+  /** The game frame CPickups::Update last ran on, and the camera the last drawn frame used (TheCamera during
+   * CGame::Process). */
+  private lastFrame?:number;private camera?:{x:number;z:number};
+  /** CPickups::Update and CPickup::Update for the player; `vehicle` is CVehicle::IsSphereTouchingVehicle for the player's vehicle.
+   * With `frame` (the 30 fps game frame counter) it runs as the original does, once a game frame: the streaming pass
+   * covers a thirty-second of the 620 slots (IsVisible: within 100 units of the camera in 2D) and the collection pass a
+   * sixth, over the visible pickups. Without it every pickup is checked on every call. */
+  step(dt:number,vehicle?:(point:Vector3,radius:number)=>boolean,frame?:number){
    this.seconds+=dt;const player=this.sim.player,p=player.position;
    // CPickup::Update for PICKUP_ASSET_REVENUE: by the frame's own milliseconds, a day's takings every 1,440,000 ms (one
    // game day), and only while the player is more than 10 units off; PassTime does not touch it.
@@ -115,15 +131,43 @@ export class WorldPickups {
      this.takings.set(pickup.id,Math.min(pickup.revenueLimit??0,(this.takings.get(pickup.id)??0)+dt*1000*(pickup.revenueRate??0)/1440000));
     }
    }
-  // Backwards, so a timed-out pickup can remove itself without a copy of the list.
-  for(let i=this.states.length-1;i>=0;i--){
-   const state=this.states[i];if(!state)continue;
+  if(frame===undefined){this.frameGated=false;this.updatePickups(vehicle,this.states.slice());return;}
+  this.frameGated=true;
+  // One pass a game frame; a stall of many frames runs at most one full round of each.
+  const first=this.lastFrame===undefined?frame:Math.max(this.lastFrame+1,frame-31);this.lastFrame=frame;
+  for(let f=first;f<=frame;f++){
+   const camera=this.camera;
+   if(camera){
+    const from=Math.floor(PICKUP_SLOTS*(f%32)/32),to=Math.floor(PICKUP_SLOTS*(f%32+1)/32);
+    for(const state of this.slotRange(from,to)){
+     const world=this.world(state.pickup);state.visible=Math.hypot(world.x-camera.x,world.z-camera.z)<100;
+     if(state.visible){if(!state.disabled)this.spawn(state);}else this.despawn(state);
+    }
+   }
+   const from=Math.floor(PICKUP_SLOTS*(f%6)/6),to=Math.floor(PICKUP_SLOTS*(f%6+1)/6);
+   this.updatePickups(vehicle,this.slotRange(from,to).filter(state=>state.visible));
+  }
+ }
+ /** The states in slots [from, to), by slot. */
+ private bySlot?:State[][];
+ private slotRange(from:number,to:number){
+  if(!this.bySlot){this.bySlot=Array.from({length:PICKUP_SLOTS},()=>[]);for(const state of this.states)this.bySlot[state.slot%PICKUP_SLOTS].push(state);}
+  const out:State[]=[];for(let slot=from;slot<to;slot++)for(const state of this.bySlot[slot])out.push(state);return out;
+ }
+ /** Whether CPickups::Update's frame slices run (step was given the game frame). */
+ private frameGated=false;
+ private updatePickups(vehicle:((point:Vector3,radius:number)=>boolean)|undefined,reached:readonly State[]){
+  const player=this.sim.player,p=player.position;
+  // Backwards, as the whole list once went, so the collection order is unchanged; a timed-out pickup removes itself.
+  for(let i=reached.length-1;i>=0;i--){
+   const state=reached[i];if(state.removed)continue;
    const {pickup}=state,world=this.world(pickup),distance=Math.hypot(world.x-p.x,world.y-(p.y+1),world.z-p.z);
    // CPickup::Update: a timed-out pickup removes itself.
    if(state.expiresAt!==undefined&&this.seconds>state.expiresAt){this.remove(state);continue;}
    if(state.disabled){
     if(this.collected.has(pickup.id))continue;
-    if(this.seconds>state.regenerateAt&&distance>10)state.disabled=false;else continue;
+    // Regenerating, CPickup::Update gives it its object at once.
+    if(this.seconds>state.regenerateAt&&distance>10){state.disabled=false;if(this.frameGated)this.spawn(state);}else continue;
    }
    if(pickup.category==='snapshot'||player.health<=0)continue;
    const xy=Math.hypot(world.x-p.x,world.z-p.z),dz=Math.abs(p.y+1-world.y);
@@ -206,10 +250,16 @@ export class WorldPickups {
  }
  /** CPickup::IsVisible streams objects within 100 units of the camera; DoPickUpEffects glows them. */
  render(camera:{x:number;y:number;z:number},milliseconds:number){
+  this.camera={x:camera.x,z:camera.z};
   for(const state of this.states){
-   const world=this.world(state.pickup),visible=!state.disabled&&Math.hypot(world.x-camera.x,world.z-camera.z)<100;
-   if(!visible){this.despawn(state);continue;}
-   this.spawn(state);if(!state.object)continue;
+   const world=this.world(state.pickup);
+   // With the game frame, the streaming slices of step own the objects; here they only turn.
+   if(!this.frameGated){
+    const visible=!state.disabled&&Math.hypot(world.x-camera.x,world.z-camera.z)<100;
+    if(!visible){this.despawn(state);continue;}
+    this.spawn(state);
+   }
+   if(!state.object)continue;
    const category=state.pickup.category,collectable=category==='horseshoe'||category==='oyster'||category==='snapshot';
    // CEntity::PreRender's pickup effects: money only turns (DoMoneyEffects, 2048 ms a turn) and a briefcase turns twice
    // as fast (DoMineEffects, 1024 ms; its red `coronaringb` torus corona and shadow are not drawn here). Everything else

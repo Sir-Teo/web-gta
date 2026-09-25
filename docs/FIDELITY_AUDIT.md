@@ -6532,3 +6532,16 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
     SkyGFX PS2 order, whose 255/128 colour scale also scales the ambient term.
   - Nine environment-mapped props with both colour sets (aprtree01_lvs, flamingo01_lvs, visagesign04 and others)
     now take the building pipe's reflection. The day/night pipe's env setup (0x5D7120) is unreversed.
+
+## Pickup frame slices (CPickups::Update)
+
+- **Streaming:** each game frame, CPickups::Update reaches one thirty-second of its 620 slots: `620 · (frame mod 32)
+  / 32` up to the next thirty-second. There IsVisible (2D, within 100 units of the camera) sets bVisible, gives a
+  visible, enabled pickup its object and takes a far one's away. The port had streamed every pickup on every
+  drawn frame.
+- **Collection:** the same frame, one sixth of the slots runs CPickup::Update, and only the pickups flagged visible.
+  So a pickup is taken, regenerates or times out at most once every six game frames, and never beyond 100 units of
+  the camera. The port had checked every pickup on every 60 Hz step.
+- **Slots:** the script's pickups take the slots in creation order, and a pickup made during play takes the first
+  free one (GenerateNewOne's search; that routine is unreversed).
+- A regenerating pickup gets its object back at once, as CPickup::Update calls GiveUsAPickUpObject.
