@@ -136,3 +136,11 @@ test('a victim whose task refuses to abort is marked instead of animated, and Co
  expect(computeDamageEventAnim(base({health:0,weapon:WEAPON.shotgun,direction:2}))).toMatchObject({clip:'ko_skid_back'});
  expect(computeDamageEventAnim(base({health:30,pedPiece:PED_PIECE.torso}))).toMatchObject({clip:'dam_stomach_frmft'});
 });
+
+test('bUpperBodyDamageAnimsOnly: a shotgun to the torso of a standing ped no longer knocks it down',()=>{
+ const hit=(upperBodyOnly:boolean)=>computeDamageAnim({weapon:WEAPON.shotgun,pedPiece:PED_PIECE.torso,direction:0,health:80,damageArmour:0,damageHealth:20,
+  victim:{player:false,inVehicle:false,moveState:PEDMOVE.still,upperBodyOnly},source:{ped:true},nextRandom:()=>0});
+ expect(hit(false).fallDown).toBe(true);expect(hit(false).force).toBe(5);
+ const kept=hit(true);
+ expect(kept.fallDown).toBe(false);expect(kept.force).toBe(0);
+});

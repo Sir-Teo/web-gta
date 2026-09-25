@@ -114,7 +114,9 @@ export interface Pedestrian {
   * that has landed upside down, bleeds, drowns in water and may be told to leave the player's group. */
  flags?:{notAllowedToDuck?:boolean;stayInCarOnJack?:boolean;doesntDropWeaponsWhenDead?:boolean;targetPriority?:boolean;stayOnBike?:boolean;
   getOutUpsideDownCar?:boolean;bleeding?:boolean;drownsInWater?:boolean;neverLeavesGroup?:boolean;
-  canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean;kindaStayInSamePlace?:boolean;deathPickupsPersist?:boolean};
+  canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean;kindaStayInSamePlace?:boolean;deathPickupsPersist?:boolean;
+  /** bUpperBodyDamageAnimsOnly (SET_CHAR_USES_UPPERBODY_DAMAGE_ANIMS_ONLY): ComputeDamageAnim keeps it on its feet. */
+  upperBodyDamageAnimsOnly?:boolean};
  /** CPed::m_nWeaponSkill, and whether the ped has used an entry-exit, which the script sets on it. */
  weaponSkill?:number;usedEntryExit?:boolean;
  /** The ranges a script sets on a ped: how far it tells respected friends about what it sees, how near a path
@@ -709,7 +711,7 @@ export class WorldPedestrians {
   const sourceFight=fight&&{comboSet:4,currentMove:fight.move,comboActive:fight.move===2,hitComboActive:false,hitClip:(move:number)=>fight.hits?.[move]?.name.toLowerCase()??`hita_${move+1}`,group:fight.group??'melee_1'};
   const result=computeDamageEventAnim({weapon,pedPiece:point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point),direction:weapon===WEAPON.explosion?browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z):browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
    health:p.health,damageArmour:0,damageHealth:damage,
-   victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:p.down>0,headBelowRoot:this.headBelowRoot(p),lyingOnFront:isFrontClip(p.fallClip)},
+   victim:{player:false,inVehicle:false,moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:p.down>0,headBelowRoot:this.headBelowRoot(p),lyingOnFront:isFrontClip(p.fallClip)},
    source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'melee_1',clip:'hita_2'}:undefined},megaPunch:megaPunchBlow(weapon),previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
   p.damageAnimId=result.id;return result;
  }
@@ -2216,7 +2218,7 @@ export class WorldPedestrians {
     if(p.onlyDamagedByPlayer||p.proofs?.collision){addCarForce(impact.vehicleForce);return;}
     p.health=0;
     const death=computeDeathAnim({weapon:kill.weapon,pedPiece:kill.pedPiece,direction:kill.direction,health:0,damageArmour:0,damageHealth:kill.damage,
-     victim:{player:false,inVehicle:false,moveState:this.moveState(p),fallingOrGettingUp:false,headBelowRoot:false},source:{ped:false,player:car.occupied},nextRandom:()=>this.damageRandom.next()});
+     victim:{player:false,inVehicle:false,moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:false,headBelowRoot:false},source:{ped:false,player:car.occupied},nextRandom:()=>this.damageRandom.next()});
     const thrown=fromNative(kill.pedMoveSpeed),clip=death.clip??'ko_skid_front';
     this.hit(p,thrown.x||pos.x-t.x,thrown.z||pos.z-t.z,0,clip,1000);
     p.impulse={x:thrown.x*50,z:thrown.z*50};p.down=Infinity;p.view.playReaction(clip,Infinity);

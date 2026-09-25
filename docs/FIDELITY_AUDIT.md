@@ -8173,3 +8173,9 @@ without it, as RYDER2, MAF4 and QUARRY rely on to keep the player out of their p
 mission that moves CJ (or its probe) lost Sweet and re-blipped him (SWEET1B). `_DONT_WARP_GANG` moves the leader alone.
 The formation offsets are static data the reversed sources do not carry; a wedge a unit apart stands in for them. A
 mission follower in a car stays in it, as the game sets only non-mission followers out. Spec: `script-group-teleport`.
+
+## SET_CHAR_USES_UPPERBODY_DAMAGE_ANIMS_ONLY
+
+`bUpperBodyDamageAnimsOnly` was already read by the ported `ComputeDamageAnim` (no heavy hit, no knockdown by a
+torso shot, no whole-body hit clip), but nothing set it for a script ped; the command now sets the ped's flag and the
+damage response passes it in (DRUGS3, DRUGS4, CASIN10). Test: `native-damage-anim`.

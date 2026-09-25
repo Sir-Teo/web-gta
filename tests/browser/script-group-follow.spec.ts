@@ -15,8 +15,8 @@ test('a script ped in the player\'s group follows him, holds for a scripted task
  const gap=()=>page.evaluate(h=>{const w=(window as any).__game.missionForProfiling().runtime.world,a=w.pedPosition(h),b=w.pedPosition(1);return Math.hypot(a.x-b.x,a.y-b.y);},ped);
  const group=await w('getPlayerGroup');
  await w('setGroupMember',group,ped);
- // The player moves 20 units along the street and back past his start: the ground the follower crosses is the
- // street it came along.
+ // The player moves 20 units along the street and back past his start, without his gang (the plain command would
+ // warp it with him): the ground the follower crosses is the street it came along.
  const moveBy=(dx:number)=>page.evaluate(dx=>{const g=(window as any).__game,w=g.missionForProfiling().runtime.world,p=w.pedPosition(1);w.setPedCoordinatesDontWarpGang(1,p.x+dx,p.y,p.z);},dx);
  await moveBy(20);
  expect(await gap()).toBeGreaterThan(15);

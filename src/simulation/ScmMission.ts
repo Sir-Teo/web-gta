@@ -310,7 +310,7 @@ export interface ScmMissionWorld {
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
- setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup'|'canBeShotInVehicle'|'cantBeDraggedOut'|'loadsCollision'|'kindaStayInSamePlace'|'deathPickupsPersist'|'targetPriority'|'stayOnBike',value:boolean):void;
+ setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup'|'canBeShotInVehicle'|'cantBeDraggedOut'|'loadsCollision'|'kindaStayInSamePlace'|'deathPickupsPersist'|'targetPriority'|'stayOnBike'|'upperBodyDamageAnimsOnly',value:boolean):void;
  /** UPDATE_PICKUP_MONEY_PER_DAY reaching the drawn pickup. */
  setScriptPickupMoneyPerDay?(handle:number,moneyPerDay:number):void;
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
@@ -947,6 +947,7 @@ export class ScmMission {
    isCharAttachedToAnyCar:handle=>handle!==PLAYER_PED_HANDLE&&!!this.peds.rideOf(handle)?.offset,
    // CMenuManager::m_bLanguageChanged: only the menu's language option sets it, and the language here stays American.
    hasLanguageChanged:()=>false,
+   setPedUsesUpperbodyDamageAnimsOnly:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'upperBodyDamageAnimsOnly',state);},
    setPedKindaStayInSamePlace:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'kindaStayInSamePlace',state);},
    // CPed::bIsTalking and the facial talk. The depot has no speech banks, so these hold what the script said
    // and nothing speaks; the thread carries on rather than stopping on a question nothing here answers.
