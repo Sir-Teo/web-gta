@@ -3398,6 +3398,9 @@ async function boot() {
                  setScriptVehicleProofs:(car,proofs)=>{(car as ScriptCar).proofs={...proofs};},
                  setScriptVehicleCanBeDamaged:(car,canBeDamaged)=>{(car as ScriptCar).canBeDamaged=canBeDamaged;},
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
+                 setScriptVehicleSiren:(car,on)=>{(car as ScriptCar).siren=on;},
+                 setScriptVehicleCanBeVisiblyDamaged:(car,state)=>{(car as ScriptCar).canBeVisiblyDamaged=state;},
+                 setTimeScale:scale=>{cheatTimeScale=scale;},
                  // The one ped the browser holds. CTheScripts::IsPedStopped asks a vehicle whether its moving
                  // speed is under a step's worth, and a ped on foot whether it is standing in place, on the
                  // ground and not shifting; the browser's own speed and grounded flag answer both.

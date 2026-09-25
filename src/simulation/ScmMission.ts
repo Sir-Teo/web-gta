@@ -285,6 +285,11 @@ export interface ScmMissionWorld {
  setScriptVehicleProofs(car:unknown,proofs:ScmPedProofs):void;
  setScriptVehicleCanBeDamaged(car:unknown,canBeDamaged:boolean):void;
  setScriptVehicleDoorLock(car:unknown,locked:boolean):void;
+ /** vehicleFlags.bSirenOrAlarm and autoFlags.bCanBeVisiblyDamaged. */
+ setScriptVehicleSiren?(car:unknown,on:boolean):void;
+ setScriptVehicleCanBeVisiblyDamaged?(car:unknown,state:boolean):void;
+ /** CTimer::ms_fTimeScale, which the game's cheats and the script share. */
+ setTimeScale?(scale:number):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
  /** CPlayerInfo::MakePlayerSafe with its radius, and the maxima the script raises. */
@@ -848,6 +853,11 @@ export class ScmMission {
    // CVehicle::m_nDoorLock: the script's lock states above unlocked all refuse entry, which is all the browser
    // keeps of the field.
    setVehicleDoorLock:(handle,lock)=>{this.world.setScriptVehicleDoorLock(this.liveVehicle(handle),lock!==0);},
+   // SWITCH_CAR_SIREN and SET_CAR_CAN_BE_VISIBLY_DAMAGED set the flags on the car; SET_TIME_SCALE sets
+   // CTimer::ms_fTimeScale, the one the speed cheats and the stunt slow motion also write.
+   switchVehicleSiren:(handle,on)=>{this.host('setScriptVehicleSiren','SWITCH_CAR_SIREN')(this.liveVehicle(handle),on);},
+   setVehicleCanBeVisiblyDamaged:(handle,state)=>{this.host('setScriptVehicleCanBeVisiblyDamaged','SET_CAR_CAN_BE_VISIBLY_DAMAGED')(this.liveVehicle(handle),state);},
+   setTimeScale:scale=>{this.host('setTimeScale','SET_TIME_SCALE')(scale);},
    vehicleExistsByHandle:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
    playerCity:()=>this.world.playerCity(),
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
@@ -936,6 +946,12 @@ export class ScmMission {
   const pose=this.world.playerVehiclePose?.();
   if(!pose)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return pose;
+ }
+ /** An optional host method, or the command gives up on a host that has none. */
+ private host<K extends keyof ScmMissionWorld>(name:K,command:string):NonNullable<ScmMissionWorld[K]>{
+  const method=this.world[name];
+  if(typeof method!=='function')throw new UnsupportedScmCommand(-1,0,command,'no host');
+  return (method as (...args:never[])=>unknown).bind(this.world) as NonNullable<ScmMissionWorld[K]>;
  }
  private liveVehicle(handle:number){
   // The player's own car is not one the script made: the host hands it over while the player drives it.

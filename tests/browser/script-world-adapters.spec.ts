@@ -39,5 +39,12 @@ test('the script’s camera, seat, speech and ped-matrix questions are answered'
   return {driver:w.vehicleDriver(car),upsideDown:w.vehicleIsUpsideDown(car),capped:g.state().player.armour,floored};
  },made);
  expect(rest).toEqual({driver:-1,upsideDown:false,capped:100,floored:0});
+ // The siren and visible-damage flags land on the car; the time scale is the one the speed cheats set.
+ const flags=await page.evaluate(({car}:{car:number})=>{
+  const g=(window as any).__game,m=g.missionForProfiling(),w=m.runtime.world,e=m.vehicles.entity(car);
+  w.switchVehicleSiren(car,true);w.setVehicleCanBeVisiblyDamaged(car,false);w.setTimeScale(.5);
+  const out={siren:e.siren,visibly:e.canBeVisiblyDamaged,scale:g.state().cheats.timeScale};w.setTimeScale(1);return out;
+ },made);
+ expect(flags).toEqual({siren:true,visibly:false,scale:.5});
  expect(errors).toEqual([]);
 });

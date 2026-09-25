@@ -81,6 +81,9 @@ export class WorldCar {
  /** vehicleFlags.bCanBeDamaged, which SET_VEHICLE_CAN_BE_DAMAGED clears. CAutomobile::BlowUpCar_Impl returns
   * at once without it, so a car that cannot be damaged cannot be blown up either. */
  canBeDamaged=true;
+ /** autoFlags.bCanBeVisiblyDamaged, which SET_CAR_CAN_BE_VISIBLY_DAMAGED clears: CDamageManager::ApplyDamage
+  * (0x6C24B0) then leaves every panel, door, wheel and light as it is, while the car still loses health. */
+ canBeVisiblyDamaged=true;
  /** autoFlags.bDoesNotGetDamagedUpsideDown, which SET_UPSIDEDOWN_CAR_NOT_DAMAGED sets: CAutomobile::VehicleDamage
   * returns at once for such a car on its roof unless it is the player's. */
  noUpsideDownDamage=false;
@@ -267,7 +270,7 @@ export class WorldCar {
   // Bullets leave a destroyed car at 1 health to burn out; blasts that exhaust its health blow it up at once.
   this.health=Math.max(explosive?0:1,this.health-amount);
   const piece=collider===undefined?undefined:this.pieceOf(collider);
-  if(piece!==undefined&&amount>25)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true),true);
+  if(piece!==undefined&&amount>25&&this.canBeVisiblyDamaged)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true),true);
   if(this.health===0){this.blowUp();return true;}
   return false;
  }
@@ -779,7 +782,7 @@ export class WorldCar {
    if(theirs>=(mine.x**2+mine.y**2+mine.z**2)/2500&&theirs>.01)WorldCar.onPlayerRammedLaw?.();
   }
   // Panels and doors take the hit unless the car is on its roof and moving slower than √0.3 units a frame.
-  if(up.y>0||(v.x**2+v.y**2+v.z**2)/2500>.3)this.applyComponents(applyCollisionComponents(this.damageState,piece,intensity,this.mass,{localDir,dirDotRight,van:!!(this.modelFlags&MODEL_FLAG.van)},Math.random));
+  if(this.canBeVisiblyDamaged&&(up.y>0||(v.x**2+v.y**2+v.z**2)/2500>.3))this.applyComponents(applyCollisionComponents(this.damageState,piece,intensity,this.mass,{localDir,dirDotRight,van:!!(this.modelFlags&MODEL_FLAG.van)},Math.random));
   const previous=this.health;
   const models={modelId:this.modelId,damagerModelId:damager?.modelId};
   if(this.onCollisionDamage){const raw=collisionHealthLossRaw({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,...models,damagerIsPlayer:rammedByPlayer});if(raw>0)this.onCollisionDamage(raw,rammedByPlayer);}

@@ -6697,3 +6697,10 @@ the first ones now implemented:
 - **ADD_ARMOUR_TO_CHAR** (12 missions): m_fArmour plus the amount, clamped to 0 and to CPlayerInfo::m_nMaxArmour for
   the player (as the armour pickup does) or 100 for other peds. The handler is unreversed. A script ped keeps the
   figure in its pool record, but the browser's ped damage does not spend ped armour yet.
+- **SWITCH_CAR_SIREN** (11 missions): vehicleFlags.bSirenOrAlarm on the car. The siren lights and the siren sound
+  already read that flag.
+- **SET_CAR_CAN_BE_VISIBLY_DAMAGED** (10 missions): autoFlags.bCanBeVisiblyDamaged. CDamageManager::ApplyDamage
+  (0x6C24B0) returns at once without it, so collisions and weapons leave panels, doors, wheels and lights as they
+  are while the car still loses health.
+- **SET_TIME_SCALE** (10 missions): CTimer::ms_fTimeScale, the same value the speed cheats and the stunt-jump slow
+  motion write.
