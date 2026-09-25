@@ -1292,7 +1292,9 @@ export class ScmMission {
     if(CAR_TASKS.has(task.kind)&&handle!==PLAYER_PED_HANDLE){
      this.livePed(handle);
      // At the named car's wheel the drive begins now; on foot, CTaskComplexCarDrive gets in first.
-     const ride=this.peds.rideOf(handle),atWheel=!!ride&&!ride.offset&&ride.seat==='driver'&&'vehicle' in task&&ride.vehicle===task.vehicle;
+     const ride=this.peds.rideOf(handle),atWheel=!!ride&&!ride.offset&&ride.seat==='driver'&&'vehicle' in task&&(ride.vehicle===task.vehicle||task.vehicle===-1);
+     // No car (-1) is the one the ped drives.
+     if(atWheel&&'vehicle' in task&&task.vehicle===-1)task={...task,vehicle:ride.vehicle};
      if(atWheel){this.startCarTask(handle,task,opcode);this.recordTask(handle,opcode,false);}
      else this.runSequence(handle,[task],false,opcode,false);
      return;
@@ -1632,6 +1634,9 @@ export class ScmMission {
     return this.leaveCarNow(handle,vehicle,opcode)?{kind:'settle'}:undefined;
    }
    case 'carDriveToCoord':case 'carTempAction':case 'carDriveWander':case 'carMission':{
+    // CTaskComplexCarDrive::CreateFirstSubTask with no car (-1): the one the ped is in. On foot it would enter any
+    // car as driver, which is not ported, so the task is over.
+    if(task.vehicle===-1){if(!riding||ride.seat!=='driver')return undefined;task={...task,vehicle:ride.vehicle};}
     if(riding&&ride.seat==='driver'&&ride.vehicle===task.vehicle){this.startCarTask(handle,task,opcode);return {kind:'held'};}
     if(riding||!this.vehicles.entity(task.vehicle))return undefined;
     this.world.giveScriptPedOrder(entity,{kind:'enterCar',vehicle:task.vehicle,seat:'driver',seconds:Number.POSITIVE_INFINITY});

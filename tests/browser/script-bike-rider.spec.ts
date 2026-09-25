@@ -23,6 +23,9 @@ test('a script ped gets on a script BMX and rides it to a point, and the peds ke
  await page.evaluate(({ped,bike,start})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(ped,{kind:'carDriveToCoord',vehicle:bike,x:start.x+60,y:start.y,z:start.z,speed:10,driveStyle:0,model:-1,drivingStyle:2},0x05d1),{...made,start});
  const moved=()=>page.evaluate(({bike,start})=>{const p=(window as any).__game.missionForProfiling().runtime.world.vehiclePosition(bike);return Math.hypot(p.x-start.x,p.y-start.y);},{...made,start});
  await expect.poll(moved,{timeout:60000}).toBeGreaterThan(10);
+ // A drive task naming no car (-1) drives the one the ped is on (CTaskComplexCarDrive::CreateFirstSubTask).
+ await page.evaluate(({ped,start})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(ped,{kind:'carDriveToCoord',vehicle:-1,x:start.x-60,y:start.y,z:start.z,speed:10,driveStyle:0,model:-1,drivingStyle:2},0x05d1),{...made,start});
+ expect(await page.evaluate(({bike,start})=>{const g=(window as any).__game,b=g.missionForProfiling().vehicles.entity(bike),m=g.scriptCars().missions.get(b);return m&&Math.round(m.goal.x-start.x);},{...made,start})).toBe(-60);
  // The rider is drawn on the saddle with the BMX group's clip.
  await expect.poll(()=>page.evaluate(bike=>{const g=(window as any).__game,b=g.missionForProfiling().vehicles.entity(bike);return [...g.occupants().views.keys()].includes(`script:${b.car.body.handle}:driver`);},made.bike),{timeout:30000}).toBe(true);
  expect(faults).toEqual([]);expect(errors).toEqual([]);

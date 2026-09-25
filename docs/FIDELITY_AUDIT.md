@@ -7785,3 +7785,6 @@ Each is now answered:
 - A script ped riding a bike is not drawn yet (the occupant renderer seats peds in cars only).
 - A script ped at a bike's handlebars is drawn on the saddle with its ride group's clip, as the player is: still,
   riding or pedalling by the bike's speed, with the lean overlay left out. Pillions still ride unseen.
+- A driving task that names no car (-1, as INTRO1's ride sequences do) drives the car the ped is in, as
+  CTaskComplexCarDrive::CreateFirstSubTask takes ped->m_pVehicle. Such a task used to find no car and end silently.
+  On foot it would enter any car as driver; that is not ported, so the task ends.
