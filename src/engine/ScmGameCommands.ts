@@ -1815,7 +1815,8 @@ const handlers:Record<string,ScmCommandHandler>={
  CLEAR_AREA_OF_CARS:(t,p,i)=>{world(t,i,'clearAreaOfVehicles')(vec(t,p,0),vec(t,p,3));},
  SET_PLAYER_CYCLE_WEAPON_BUTTON:(t,p,i)=>{world(t,i,'setPlayerCycleWeaponButton')(t.readInt(p[0]),bool(t,p[1]));},
  // The debug line the script draws between two points.
- LINE:(t,p,i)=>{world(t,i,'drawLine')(vec(t,p,0),vec(t,p,3));},
+ // A debug line in development builds; the shipped game reads its six floats and draws nothing.
+ LINE:(t,p)=>{vec(t,p,0);vec(t,p,3);},
  CLEAR_SKIP:(t,_p,i)=>{world(t,i,'clearSkip')();},
  // The same pass with no name to keep.
  REGISTER_ODDJOB_MISSION_PASSED:(t,_p,i,now)=>{game(t,i).registerMissionPassed(now);},
@@ -2426,7 +2427,8 @@ const handlers:Record<string,ScmCommandHandler>={
   t.writeInt(p[1],-index);
  },
  GET_CURRENT_CAR_MOD:(t,p,i)=>{t.writeInt(p[2],world(t,i,'getCurrentCarMod')(t.readInt(p[0]),t.readInt(p[1])));},
- GET_LATEST_CONSOLE_COMMAND:(t,p,i)=>{t.writeInt(p[0],world(t,i,'getLatestConsoleCommand')());},
+ // UnusedCommands.cpp: the shipped game has no console, and the answer is always 0.
+ GET_LATEST_CONSOLE_COMMAND:(t,p)=>{t.writeInt(p[0],0);},
  GET_WHEELIE_STATS:(t,p,i)=>{const result=world(t,i,'getWheelieStats')(t.readInt(p[0]));t.writeInt(p[1],result.twoWheelsTime);t.writeFloat(p[2],result.twoWheelsDistance);t.writeInt(p[3],result.wheelieTime);t.writeFloat(p[4],result.wheelieDistance);t.writeInt(p[5],result.stoppieTime);t.writeFloat(p[6],result.stoppieDistance);},
  RANDOM_PASSENGER_SAY:(t,p,i)=>{world(t,i,'randomPassengerSay')(t.readInt(p[0]),t.readInt(p[1]));},
  // FrontEndMenuManager.m_bShowSubtitles, on by default.

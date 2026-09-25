@@ -622,7 +622,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  percentageTaggedInArea?(x1:number,y1:number,x2:number,y2:number):number;
  clearAreaOfVehicles?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
  setPlayerCycleWeaponButton?(playerId:number,enabled:boolean):void;
- drawLine?(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number}):void;
  clearSkip?():void;
  /* The long tail: vehicles, planes, objects, searchlights and the world, each named by the schema. */
  vehicleIsTouchingObject?(handle:number,object:number):boolean;
@@ -923,7 +922,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  hasSaveGameFinished?():boolean;
  getObjectModel?(handle:number):number;
  getCurrentCarMod?(handle:number,slot:number):number;
- getLatestConsoleCommand?():number;
  getWheelieStats?(handle:number):{twoWheelsTime:number,twoWheelsDistance:number,wheelieTime:number,wheelieDistance:number,stoppieTime:number,stoppieDistance:number};
  randomPassengerSay?(handle:number,phrase:number):void;
  getStringWidthWithNumber?(gxtEntry:string,number:number):number;

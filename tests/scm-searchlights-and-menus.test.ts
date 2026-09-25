@@ -36,7 +36,7 @@ function recording(){
   setGroupLeader:method('leader'),addGroupDecisionMakerEventResponse:method('groupResponse'),
   addSparks:method('sparks'),
   percentageTaggedInArea:method('tagged',42),clearAreaOfVehicles:method('clearCars'),
-  drawLine:method('line'),clearSkip:method('clearSkip'),
+  clearSkip:method('clearSkip'),
  } as unknown as Partial<ScmWorldCommands>;
  return {world,calls,tasks};
 }
@@ -125,7 +125,7 @@ describe('the objects, vehicles and world of this batch',()=>{
   expect(readInt(40)).toBe(42);
   expect(calls).toEqual([
    ['sparks',{x:1,y:2,z:3},{x:0,y:0,z:1},20],['tagged',0,0,10,10],
-   ['clearCars',{x:0,y:0,z:0},{x:10,y:10,z:10}],['line',{x:0,y:0,z:0},{x:1,y:1,z:1}],
+   ['clearCars',{x:0,y:0,z:0},{x:10,y:10,z:10}],
    ['clearSkip'],
   ]);
  });
