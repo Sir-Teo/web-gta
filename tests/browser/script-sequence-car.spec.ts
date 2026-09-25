@@ -1,8 +1,9 @@
 import {test,expect} from '@playwright/test';
 /** A sequence with car tasks in it (CTaskComplexSequence): a ped on foot told to drive gets in at the wheel first
- * (CTaskComplexCarDrive), drives to the point, waits in its seat, gets out once the car is still and turns on foot.
- * GET_SEQUENCE_PROGRESS reads the task it is on, and -1 once the sequence is over. */
-test('a script ped runs a sequence that drives, waits, gets out and turns',async({page})=>{
+ * (CTaskComplexCarDrive), drives to the point, waits in its seat, gets out once the car is still, and walks on.
+ * GET_SEQUENCE_PROGRESS reads the task it is on, and -1 once the sequence is over. (Where the car stops, and at what
+ * angle to the kerb, varies, so the walk round it, CTaskComplexWalkRoundCar, is checked by the unit tests.) */
+test('a script ped runs a sequence that drives, waits, gets out and walks on',async({page})=>{
  test.setTimeout(300000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');
@@ -18,14 +19,13 @@ test('a script ped runs a sequence that drives, waits, gets out and turns',async
  const PERFORM=0x0618;
  const plan=await page.evaluate(({car,driver,opcode})=>{
   const m=(window as any).__game.missionForProfiling(),c=m.vehicles.positionOf(car);
-  // Twelve units along the car's heading of 90 (west). Script peds do not walk round a car in their way
-  // (CTaskComplexWalkRoundCar), so the last task is a turn rather than a walk.
+  // Twelve units along the car's heading of 90 (west), down Grove Street, then seven units back east along the road.
   const drive={x:c.x-12,y:c.y,z:c.z};
   m.runtime.world.givePedSequence(driver,[
    {kind:'carDriveToCoord',vehicle:car,...drive,speed:10,driveStyle:0,model:-1,drivingStyle:2},
    {kind:'pause',time:800},
    {kind:'leaveAnyCar'},
-   {kind:'achieveHeading',heading:180},
+   {kind:'goStraightToCoord',x:drive.x+7,y:drive.y,z:-100,speed:4,time:-1},
   ],false,opcode);
   return {drive,progress:m.runtime.world.pedSequenceProgress(driver)};
  },{...made,opcode:PERFORM});
@@ -41,12 +41,10 @@ test('a script ped runs a sequence that drives, waits, gets out and turns',async
  expect(Math.hypot(stopped.x-plan.drive.x,stopped.y-plan.drive.y)).toBeLessThan(6);
  await expect.poll(progress,{timeout:30000}).toBe(3);
  expect(await page.evaluate(({driver})=>(window as any).__game.missionForProfiling().peds.rideOf(driver)??null,made)).toBeNull();
- await expect.poll(status,{timeout:60000}).toBe(7);
+ await expect.poll(status,{timeout:120000}).toBe(7);
  expect(await progress()).toBe(-1);
  const at=await page.evaluate(({driver})=>(window as any).__game.missionForProfiling().peds.positionOf(driver),made);
- // Beside the car it stopped, facing south within CTaskSimpleAchieveHeading's 0.2 radian tolerance.
- expect(Math.hypot(at.x-stopped.x,at.y-stopped.y)).toBeLessThan(4);
- expect(Math.abs(await page.evaluate(({driver})=>(window as any).__game.missionForProfiling().peds.headingOf(driver),made)-180)).toBeLessThan(11.5);
+ expect(Math.hypot(at.x-(plan.drive.x+7),at.y-plan.drive.y)).toBeLessThan(1.5);
  // An on-foot sequence reads its progress too; a task given on its own is no sequence.
  const onFoot=await page.evaluate(({driver,opcode})=>{
   const w=(window as any).__game.missionForProfiling().runtime.world;

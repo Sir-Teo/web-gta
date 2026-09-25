@@ -7035,3 +7035,14 @@ the first ones now implemented:
   standstill is reverse, so a script car that had arrived backed away. It now holds VC's MISSION_NONE pedals as the
   car's own: no gas, half brake, the handbrake on.
 - Not modelled: script peds do not walk round a car in their way (CTaskComplexWalkRoundCar).
+
+### Script peds walk round cars, and a dead ped's task is over
+
+- CTaskComplexWalkRoundCar: its route (ComputeRouteRoundSmallCar / BigCar) is unreversed. A script ped walking to a
+  point therefore keeps to the bounding box of any car within 10 units, padded by its radius and room for wheels and
+  mirrors, and takes the shortest way round it by its corners. The first leg must be clear of the world's fixed
+  geometry, as IsWanderPathClear keeps a ped off a wall.
+- A ped set down inside the padding (at a door) steps clear of the body first.
+- This applies to go-to-point, point routes, node routes, go-while-shooting, go-to-ped and the walk to a car door.
+- A ped that dies holds no script task any more (CTaskComplexDie takes over its primary task), so
+  GET_SCRIPT_TASK_STATUS reads FINISHED_TASK rather than the dead ped's last order.

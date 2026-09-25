@@ -16,7 +16,10 @@ test('a script ped told to kill another does so, and the task ends with the targ
  const KILL=0x05e2;
  await page.evaluate(({killer,victim,opcode})=>{
   const game=(window as any).__game,m=game.missionForProfiling();
-  game.pedestrians().giveWeapon(m.peds.entity(killer),22,200);m.peds.setHealth(victim,10);
+  // Gunfire on Grove Street draws the gang's fire. As a mission does for its own peds, the killer wears the empty
+  // decision maker (m_empty.ped), so it answers no shot with a flight, and it is kept alive for the tasks that follow.
+  game.pedestrians().giveWeapon(m.peds.entity(killer),22,200);m.peds.setHealth(victim,10);m.peds.setInvulnerable(killer,true);
+  m.runtime.world.setPedDecisionMaker(killer,m.runtime.game.decisionMakers.load(0,false));
   m.runtime.world.givePedScriptedTask(killer,{kind:'killPedOnFoot',target:victim,time:-1,flags:0,actionDelay:0,actionChance:0,mustBeOnFoot:true},opcode);
  },{...made,opcode:KILL});
  const status=()=>page.evaluate(({killer,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(killer,opcode),{killer:made.killer,opcode:KILL});

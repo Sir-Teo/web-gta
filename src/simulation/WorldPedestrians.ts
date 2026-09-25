@@ -17,6 +17,7 @@ import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
+import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,planFollowNodeRoute} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
@@ -1637,6 +1638,27 @@ export class WorldPedestrians {
   ped.actor.player.position={...feet};ped.actor.player.previous={...feet};
   ped.body.setTranslation({x,y:ground+.9,z},true);ped.collider.setTranslation({x,y:ground+.9,z});
  }
+ /** The way a script ped walks toward `target` this frame, as a direction: straight, or round the nearest car in the
+  * way by its corners (CTaskComplexWalkRoundCar, see nativeWalkRoundCar). Cars more than 10 units off are not looked at. */
+ private roundCars(p:Pedestrian,target:{x:number;z:number},cars:Iterable<WorldCar>){
+  const q=p.actor.player.position;
+  let aim:{x:number;z:number}=target,nearest=Infinity;
+  for(const car of cars){
+   if(car.disposed)continue;
+   const c=car.car.body.translation(),d2=(c.x-q.x)**2+(c.z-q.z)**2;if(d2>100||d2>=nearest)continue;
+   const b=car.nativeBody,center=car.worldPoint({x:(b.boundsMin.x+b.boundsMax.x)/2,y:(b.boundsMin.y+b.boundsMax.y)/2,z:0}),ahead=car.worldPoint({x:0,y:1,z:0});
+   const fx=ahead.x-c.x,fz=ahead.z-c.z,fl=Math.hypot(fx,fz);if(fl<1e-6)continue;
+   const via=walkRoundCar(q,target,{center:{x:center.x,z:center.z},forward:{x:fx/fl,z:fz/fl},halfLength:(b.boundsMax.y-b.boundsMin.y)/2,halfWidth:(b.boundsMax.x-b.boundsMin.x)/2},
+    WALK_ROUND_PAD,(from,to)=>this.fixedBetween(from,to,q.y+.5));
+   if(via){aim=via;nearest=d2;}
+  }
+  return {x:aim.x-q.x,z:aim.z-q.z};
+ }
+ /** Whether the world's fixed geometry lies across a line at height `y` (a ped's knees): a wall or a kerb face. */
+ private fixedBetween(from:{x:number;z:number},to:{x:number;z:number},y:number){
+  const dx=to.x-from.x,dz=to.z-from.z,length=Math.hypot(dx,dz);if(length<1e-3)return false;
+  return !!this.sim.world.castRay(new RAPIER.Ray({x:from.x,y,z:from.z},{x:dx/length,y:0,z:dz/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+ }
  /** CTaskComplexFollowNodeRoute::SetTarget's ComputePathNodes and ComputeRoute from where the ped stands, in the
   * renderer's terms. */
  private planNodeRoute(ped:Pedestrian,target:{x:number;y:number;z:number}){
@@ -1683,7 +1705,9 @@ export class WorldPedestrians {
   ped.heldScriptClip=undefined;ped.sequence=undefined;ped.goTo=undefined;ped.scriptWanders=false;ped.order=this.defaultOrder(ped);
  }
  /** Whether a script's own task still runs on the ped (the default stand is not one). */
- hasScriptTask(ped:Pedestrian){return !!(ped.order&&!(ped.order.kind==='standStill'&&ped.order.isDefault)||ped.sequence||ped.goTo);}
+ /** Whether the ped holds a task a script gave it. A dead ped holds none: CTaskComplexDie takes over its primary task,
+  * and the scripted task's record is flushed (FINISHED_TASK). */
+ hasScriptTask(ped:Pedestrian){return ped.health>0&&!!(ped.order&&!(ped.order.kind==='standStill'&&ped.order.isDefault)||ped.sequence||ped.goTo);}
  /** The teleport behind WARP_CHAR_FROM_CAR_TO_COORD: the ped's tasks are flushed, the point is dropped to the
   * ground and the ped set down on it. A browser ped a script made is never in a car, so there is nothing to
   * climb out of first. */
@@ -2604,7 +2628,7 @@ export class WorldPedestrians {
     }else if(p.order.kind==='goToPointShooting'){
      const o=p.order,q=p.actor.player.position,gx=o.x-q.x,gz=o.z-q.z,distance=Math.hypot(gx,gz);dx=0;dz=0;
      if(goToPointArrived(distance,o.y===undefined?undefined:q.y+PED_ORIGIN_HEIGHT-o.y,o.radius,state.speed*dt))this.startNextOrder(p);
-     else{dx=gx;dz=gz;const moveState=goToPointMoveState(o.moveState,distance,GO_STRAIGHT_MOVE_STATE_RADIUS);orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;}
+     else{({x:dx,z:dz}=this.roundCars(p,o,cars));const moveState=goToPointMoveState(o.moveState,distance,GO_STRAIGHT_MOVE_STATE_RADIUS);orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;}
     }else if(p.order.kind==='gunAt'){
      // Standing to aim; the gun block below points and fires. The task ends with its time or its target.
      const o=p.order;dx=0;dz=0;o.remaining-=dt;
@@ -2618,7 +2642,7 @@ export class WorldPedestrians {
      const o=p.order,q=p.actor.player.position,point=o.points[o.at];dx=0;dz=0;
      const gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz);
      if(goToPointArrived(distance,point.y>MAP_Z_LOW_LIMIT?q.y+PED_ORIGIN_HEIGHT-point.y:undefined,GO_TO_POINT_RADIUS,state.speed*dt)){if(!nextRoutePoint(o))this.startNextOrder(p);}
-     else{dx=gx;dz=gz;orderSpeed=o.moveState>=7?p.sprintSpeed:o.moveState>=5?p.runSpeed:p.walkSpeed;}
+     else{({x:dx,z:dz}=this.roundCars(p,point,cars));orderSpeed=o.moveState>=7?p.sprintSpeed:o.moveState>=5?p.runSpeed:p.walkSpeed;}
     }else if(p.order.kind==='chat'){
      // CTaskComplexChat::ControlSubTask. A partner that is gone ends it, as does a finish flagged last frame. Either
      // ped finishes when the other's chat is at an earlier stage, or holds the same part and is still going. The lead
@@ -2648,7 +2672,7 @@ export class WorldPedestrians {
        if(last)this.startNextOrder(p);
        else if(++o.at>=o.points.length){Object.assign(o,this.planNodeRoute(p,o.target));o.at=0;}
       }else{
-       dx=gx;dz=gz;
+       ({x:dx,z:dz}=this.roundCars(p,point,cars));
        const moveState=last?goToPointMoveState(o.moveState,distance,FOLLOW_NODE_SLOW_DOWN_DISTANCE):o.moveState;
        orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;
       }
@@ -2662,7 +2686,7 @@ export class WorldPedestrians {
       const gx=target.x-q.x,gz=target.z-q.z,distance=Math.hypot(gx,gz);
       // Achieved: CTaskComplexTurnToFaceEntityOrCoord (bFaceEntityWhenDone), then the task is over.
       if(distance<=o.radius)p.order={kind:'achieveHeading',heading:Math.atan2(gx,gz)};
-      else{dx=gx;dz=gz;orderSpeed=goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)>=6?p.runSpeed:p.walkSpeed;}
+      else{({x:dx,z:dz}=this.roundCars(p,target,cars));orderSpeed=goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)>=6?p.runSpeed:p.walkSpeed;}
      }
     }else if(p.order.kind==='enterCar'){
      const o=p.order,car=this.resolveScriptVehicle?.(o.vehicle);dx=0;dz=0;
@@ -2677,7 +2701,7 @@ export class WorldPedestrians {
       // Setting the ped in swaps its body for a rider's, so it waits until the frame is done with this one.
       if(o.remaining<=0||door&&goToPointArrived(distance,undefined,ENTER_CAR_DOOR_RADIUS,state.speed*dt)){p.order={kind:'standStill',remaining:Number.POSITIVE_INFINITY};queueMicrotask(()=>{if(!this.disposed&&this.people.includes(p)&&!car.board(p,seat))this.startNextOrder(p);});}
       else if(!door||o.seek<=0)this.startNextOrder(p);
-      else{dx=door.x-q.x;dz=door.z-q.z;const moveState=goToPointMoveState(6,distance,ENTER_CAR_SLOW_DOWN_DISTANCE);orderSpeed=moveState>=6?p.runSpeed:p.walkSpeed;}
+      else{({x:dx,z:dz}=this.roundCars(p,door,cars));const moveState=goToPointMoveState(6,distance,ENTER_CAR_SLOW_DOWN_DISTANCE);orderSpeed=moveState>=6?p.runSpeed:p.walkSpeed;}
      }
     }else if(p.order.kind==='goToPoint'){
      const o=p.order;dx=0;dz=0;
@@ -2688,7 +2712,7 @@ export class WorldPedestrians {
      const moveState=goToPointMoveState(o.moveState,distance,o.moveStateRadius);
      const speed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;
      if(goToPointArrived(distance,o.y===undefined?undefined:q.y+PED_ORIGIN_HEIGHT-o.y,o.radius,state.speed*dt))this.startNextOrder(p);
-     else{dx=gx;dz=gz;orderSpeed=speed;}
+     else{({x:dx,z:dz}=this.roundCars(p,o,cars));orderSpeed=speed;}
     }else{
      dx=0;dz=0;
      const turned=achieveHeadingStep(state.heading,p.order.heading,p.headingChange,dt);
