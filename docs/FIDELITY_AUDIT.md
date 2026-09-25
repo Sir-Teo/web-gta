@@ -7076,3 +7076,12 @@ the first ones now implemented:
   - Script cars now keep only the mission mark, and their doors open.
   - ClearSpaceForMissionEntity spares mission cars, not door-locked ones (CVehicle::CanBeDeleted).
   - MARK_CAR_AS_NO_LONGER_NEEDED leaves the doors as they are (CleanUpThisVehicle clears bIsLocked alone).
+
+### The player's driving tasks
+
+- TASK_CAR_TEMP_ACTION and TASK_CAR_DRIVE_TO_COORD on the player run as CTaskSimpleCarDrive does for a scripted
+  driver, the car taken off his pad (STATUS_PHYSICS). The car he sits in (the one the script names, his own included)
+  drives on its autopilot, the temporary action or CCarAI's coordinate mission, with the same steering the script's
+  own drivers use.
+- When the action's time is out, or the mission clears, the car and the pad are his again. A task given over a running
+  drive gives the car back first.

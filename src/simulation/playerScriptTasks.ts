@@ -18,7 +18,8 @@ type Running=
  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;phase:'loading'|'ready'|'playing';elapsed:number}
  |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
  |{kind:'enterCar';vehicle:number;remaining:number;started:boolean}
- |{kind:'leaveCar';vehicle?:number;immediately:boolean;started:boolean};
+ |{kind:'leaveCar';vehicle?:number;immediately:boolean;started:boolean}
+ |{kind:'carTask';order:Extract<ScriptedPedOrder,{kind:'carTempAction'|'carDriveToCoord'}>;started:boolean};
 
 /** What the player's ped is and can do, in renderer terms (y up, the script's y is -z). */
 export interface PlayerTaskBody{
@@ -48,6 +49,12 @@ export interface PlayerTaskWorld{
   * enough to step out of (CTaskSimpleCarWaitToSlowDown; the immediate form does not wait), 'none' when he is in no
   * car or not the one named. */
  leaveCar?(vehicle:number|undefined,immediately:boolean):'started'|'wait'|'none';
+ /** A driving task on the car he is in (the one named): its autopilot takes the wheel; false when he is in no such car. */
+ startCarTask?(order:Extract<ScriptedPedOrder,{kind:'carTempAction'|'carDriveToCoord'}>):boolean;
+ /** Whether that task still drives: the temporary action or the mission is not yet over. */
+ carTaskRunning?():boolean;
+ /** The pad has the car back. */
+ endCarTask?():void;
  /** Where the player is with cars: on foot, on his way into one, or in one. */
  carState?():'none'|'entering'|'seated';
  /** CTaskSimpleDuckToggle on the player: he crouches or stands. */
@@ -72,7 +79,7 @@ export class PlayerScriptTasks{
  constructor(private world:PlayerTaskWorld){}
  /** The kinds the player can carry out; anything else the thread gives up on. */
  static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
-  order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar';}
+  order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord';}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body,false);}
@@ -87,6 +94,7 @@ export class PlayerScriptTasks{
  clear(body:PlayerTaskBody){
   const clip=this.running?.kind==='playAnim'?this.running.clip:this.held;
   if(clip!==undefined&&body.view?.reactionName===clip)body.view.clearReaction();
+  this.endCarTask();
   this.running=undefined;this.sequence=undefined;this.held=undefined;this.generation++;
  }
  private next(body:PlayerTaskBody){
@@ -102,7 +110,10 @@ export class PlayerScriptTasks{
   }
   this.sequence=undefined;this.running=undefined;
  }
+ /** A driving task that had the car gives it back. */
+ private endCarTask(){if(this.running?.kind==='carTask'&&this.running.started)this.world.endCarTask?.();}
  private apply(order:ScriptedPedOrder,body:PlayerTaskBody){
+  this.endCarTask();
   this.running=undefined;this.generation++;
   if(this.held!==undefined){if(body.view?.reactionName===this.held)body.view.clearReaction();this.held=undefined;}
   switch(order.kind){
@@ -127,6 +138,7 @@ export class PlayerScriptTasks{
    case 'duck':this.world.duck?.(order.crouch);break;
    case 'enterCar':this.running={kind:'enterCar',vehicle:order.vehicle,remaining:order.seconds,started:false};break;
    case 'leaveCar':this.running={kind:'leaveCar',vehicle:order.vehicle,immediately:order.immediately,started:false};break;
+   case 'carTempAction':case 'carDriveToCoord':this.running={kind:'carTask',order,started:false};break;
    // The trigger task starts the look and is over.
    case 'lookAt':this.world.lookAt?.(order.target,order.seconds);break;
    default:break;
@@ -146,6 +158,11 @@ export class PlayerScriptTasks{
     }
     if(state!=='seated'&&o.remaining!==Number.POSITIVE_INFINITY){o.remaining-=dt;if(o.remaining<=0){this.world.warpIntoCar?.(o.vehicle);this.next(body);return undefined;}}
     if(state!=='entering')this.next(body);
+    return undefined;
+   }
+   case 'carTask':{
+    if(!o.started){if(!(o.started=!!this.world.startCarTask?.(o.order)))this.next(body);return undefined;}
+    if(!this.world.carTaskRunning?.()){this.endCarTask();this.next(body);}
     return undefined;
    }
    case 'leaveCar':{

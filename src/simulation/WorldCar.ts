@@ -142,6 +142,9 @@ export class WorldCar {
  exitHandbrake=false;
  /** Seated driving input; cleared while a driver transition runs. */
  driverInput=true;
+ /** A driving task a script gave the player (CTaskSimpleCarDrive as STATUS_PHYSICS): the car's autopilot drives with
+  * him at the wheel, and his pad has no say until it is over. */
+ scriptDriven=false;
  onDoorEvent?:(event:'open'|'close',door:number)=>void;
  /** CPhysical::ApplyCollision audio reports: the other collider, the world contact point, the normal toward this car and the normal impulse per unit mass in native units per frame. */
  onCollision?:(report:{other:RAPIER.Collider;point:V3;normal:V3;impulse:number})=>void;
@@ -465,7 +468,7 @@ export class WorldCar {
  /** CTaskSimpleCarSetPedOut: the driver leaves the seat and stands at `foot`. */
  setPedOut(foot:V3,heading=this.sim.player.heading){
   if(this.occupied){const weapon=removeDriverFreebie(this);if(weapon)WorldCar.onFreebie?.(this,{kind:'weapon',...weapon});}
-  this.occupied=false;this.driverless=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
+  this.occupied=false;this.scriptDriven=false;this.driverless=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
   // The ped stands still out of the car: the move blend from the run up to it must not walk him on after the door.
   this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};
   const center={...foot,y:foot.y+.9};this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.heading=heading;
@@ -478,11 +481,11 @@ export class WorldCar {
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
    const nearby=this.inActiveRange();this.car.body.setEnabled(nearby);this.car.root.visible=true;if(!nearby)return;
    this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
-  const driving=this.occupied&&this.driverInput;
+  const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
-  const p=this.input.pedals,ai=this.occupied?undefined:this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
-  p.handbrake=this.occupied?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.driverless;
+  const p=this.input.pedals,ai=this.occupied&&!this.scriptDriven?undefined:this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
+  p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.driverless;
   // ProcessControlInputs' automaticallyHandBrake: while the driver waits to slow down, is dragged out or holds exit,
   // the gas is 0 and the brake full, not the handbrake alone.
   p.automaticallyHandbrake=this.occupied&&this.exitHandbrake;

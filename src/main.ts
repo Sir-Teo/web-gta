@@ -299,6 +299,8 @@ async function boot() {
  // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
  let mission:import('./simulation/ScmMission').ScmMission|undefined;
  // The script's tasks on CJ's own ped (TASK_GO_STRAIGHT_TO_COORD, TASK_PLAY_ANIM... on scplayer).
+ /** The player's car while a script's driving task has it. */
+ let scriptDrivenCar:ScriptCar|undefined;
  const playerTasks=new PlayerScriptTasks({
   animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
   duck:crouch=>{sim.setCrouched(crouch);},
@@ -317,6 +319,17 @@ async function boot() {
    return carEntry.exit()?'started':'wait';
   },
   carState:()=>carEntry.seated?'seated':carEntry.active?'entering':'none',
+  // The player's driving tasks: the car he sits in, the one the script names, drives on its autopilot.
+  startCarTask:order=>{
+   const car=carEntry.seated?carEntry.car:undefined;
+   if(!car||mission?.vehicleByHandle(order.vehicle)!==car)return false;
+   car.scriptDriven=true;scriptDrivenCar=car;
+   if(order.kind==='carTempAction')scriptCars.tempAction(car,order.action,order.seconds);
+   else scriptCars.gotoCoords(car,{x:order.x,y:order.z>-100?order.z:car.car.body.translation().y,z:-order.y},{cruise:order.cruise,style:order.style,accurate:order.accurate,straight:order.straight});
+   return true;
+  },
+  carTaskRunning:()=>!!scriptDrivenCar&&!scriptDrivenCar.disposed&&scriptDrivenCar.occupied&&(scriptCars.driving(scriptDrivenCar)||scriptCars.inTempAction(scriptDrivenCar)),
+  endCarTask:()=>{const car=scriptDrivenCar;scriptDrivenCar=undefined;if(!car)return;car.scriptDriven=false;scriptCars.forget(car);car.autopilot=undefined;},
   lookAt:(target,seconds)=>{const ped=onFoot(mission?.pedByHandle(target));if(ped&&typeof ped==='object')pedestrians?.playerLookAtPed(ped,seconds);},
   placeOnGround:(x,z,originY)=>{
    const ground=pedestrians?.groundUnder(x,z,(originY??sim.player.position.y+1+50)+.5);if(ground===undefined)return;

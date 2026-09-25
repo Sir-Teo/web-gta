@@ -97,3 +97,19 @@ test('TASK_LEAVE_ANY_CAR on the player waits for the car to be still, then he ge
  // On foot there is nothing to leave.
  tasks.give({kind:'leaveCar',immediately:false},body());tasks.step(1/30,body());expect(tasks.active).toBe(false);
 });
+
+test('a driving task on the player hands his car to its autopilot until it is over, and a new task takes it back',()=>{
+ let running=false;const log:string[]=[];
+ const tasks=new PlayerScriptTasks({...world,startCarTask:order=>{log.push(`start ${order.kind}`);running=true;return true;},carTaskRunning:()=>running,endCarTask:()=>{log.push('end');}});
+ tasks.give({kind:'carTempAction',vehicle:3,action:6,seconds:1},body());
+ expect(tasks.step(1/30,body())).toBeUndefined();expect(log).toEqual(['start carTempAction']);
+ tasks.step(1/30,body());expect(tasks.active).toBe(true);
+ running=false;tasks.step(1/30,body());expect(tasks.active).toBe(false);expect(log).toEqual(['start carTempAction','end']);
+ // Replaced mid-drive, the car is given back first.
+ tasks.give({kind:'carDriveToCoord',vehicle:3,x:0,y:0,z:0,cruise:10,style:0,accurate:false,straight:false},body());tasks.step(1/30,body());
+ tasks.give({kind:'standStill',seconds:1},body());
+ expect(log).toEqual(['start carTempAction','end','start carDriveToCoord','end']);
+ // Not in the named car: the task is over at once.
+ const refused=new PlayerScriptTasks({...world,startCarTask:()=>false});
+ refused.give({kind:'carTempAction',vehicle:3,action:6,seconds:1},body());refused.step(1/30,body());expect(refused.active).toBe(false);
+});

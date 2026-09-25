@@ -1312,6 +1312,8 @@ export class ScmMission {
  }
  /** CPlayerData::m_bGroupAlwaysFollow (SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS). */
  playerGroupAlwaysFollows=false;
+ /** What a car handle names: the player's own car for PLAYER_VEHICLE_HANDLE, a script car the browser built, or nothing. */
+ vehicleByHandle(handle:number):unknown{return handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.entity(handle);}
  /** What a ped handle names: the player, the browser's ped behind a live script handle, or nothing. */
  pedByHandle(handle:number):unknown{return handle===PLAYER_PED_HANDLE?'player':this.peds.exists(handle)?this.peds.entity(handle):undefined;}
  /** Where the peds a task names stand: the ped itself, a script ped, or the player (whose handle is no pool ped). */

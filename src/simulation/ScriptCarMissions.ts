@@ -237,7 +237,8 @@ export class ScriptCarMissions{
   if(paths&&around&&this.missions.size&&this.seconds-this.lastLoad>2){this.lastLoad=this.seconds;void paths.loadAround(around.x,around.z).catch(()=>{});}
   for(const [car,m] of this.missions){
    if(car.disposed){this.missions.delete(car);continue;}
-   if(car.wrecked||car.occupied){m.kind='none';m.temp=undefined;continue;}
+   // The player's own car drives on its mission only while a script's driving task has it (scriptDriven).
+   if(car.wrecked||car.occupied&&!car.scriptDriven){m.kind='none';m.temp=undefined;continue;}
    const p=car.car.body.translation();
    this.switchTargetMission(car,m,p);
    const gx=m.goal.x-p.x,gz=m.goal.z-p.z,distSq=gx*gx+gz*gz;
