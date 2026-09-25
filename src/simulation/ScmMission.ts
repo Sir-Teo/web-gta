@@ -292,6 +292,8 @@ export interface ScmMissionWorld {
  setTimeScale?(scale:number):void;
  /** CEntity::SetUsesCollision on a script ped and on the player. */
  setScriptPedCollision?(ped:unknown,uses:boolean):void;
+ /** CAutomobile::OpenDoor with the eDoors index the script names and an open ratio. */
+ openScriptVehicleDoor?(car:unknown,door:number,ratio:number):void;
  setPlayerCollision?(uses:boolean):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
@@ -861,6 +863,10 @@ export class ScmMission {
    switchVehicleSiren:(handle,on)=>{this.host('setScriptVehicleSiren','SWITCH_CAR_SIREN')(this.liveVehicle(handle),on);},
    setVehicleCanBeVisiblyDamaged:(handle,state)=>{this.host('setScriptVehicleCanBeVisiblyDamaged','SET_CAR_CAN_BE_VISIBLY_DAMAGED')(this.liveVehicle(handle),state);},
    setTimeScale:scale=>{this.host('setTimeScale','SET_TIME_SCALE')(scale);},
+   // OPEN_CAR_DOOR swings the door fully open and OPEN_CAR_DOOR_A_BIT to a ratio, through CAutomobile::OpenDoor with
+   // no ped and the sound on. The index is eDoors: bonnet, boot, then the front and rear doors left and right.
+   openVehicleDoor:(handle,door)=>{if(door>=0&&door<6)this.host('openScriptVehicleDoor','OPEN_CAR_DOOR')(this.liveVehicle(handle),door,1);},
+   openVehicleDoorABit:(handle,door,ratio)=>{if(door>=0&&door<6)this.host('openScriptVehicleDoor','OPEN_CAR_DOOR_A_BIT')(this.liveVehicle(handle),door,ratio);},
    // SET_CHAR_COLLISION (0x619, CharacterCommands SetCharCollision): CEntity::SetUsesCollision.
    setPedCollision:(handle,uses)=>{
     if(handle===PLAYER_PED_HANDLE)this.host('setPlayerCollision','SET_CHAR_COLLISION')(uses);

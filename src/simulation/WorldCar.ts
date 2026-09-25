@@ -397,9 +397,9 @@ export class WorldCar {
  doorMissing(door:number){return this.damageState.doors[door]===DAMSTATE.notPresent;}
  setDoorOpen(door:number){const s=this.damageState.doors;if(s[door]===DAMSTATE.ok)s[door]=DAMSTATE.opened;else if(s[door]===DAMSTATE.damaged)s[door]=DAMSTATE.openedDamaged;}
  setDoorClosed(door:number){const s=this.damageState.doors;if(s[door]===DAMSTATE.opened)s[door]=DAMSTATE.ok;else if(s[door]===DAMSTATE.openedDamaged)s[door]=DAMSTATE.damaged;}
- /** CAutomobile::OpenDoor. */
+ /** CAutomobile::OpenDoor (0x6A2360 area): nothing for a door whose car node the model lacks. */
  openDoor(door:number,ratio:number){
-  if(this.doorMissing(door))return;
+  if(this.doorMissing(door)||!this.car.doorPosition(door))return;
   const d=this.doors[door],wasClosed=d.closed;d.open(ratio);
   if(wasClosed&&!d.closed)this.onDoorEvent?.('open',door);
   else if(!wasClosed&&ratio===0){this.setDoorClosed(door);this.onDoorEvent?.('close',door);}

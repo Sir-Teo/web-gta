@@ -53,5 +53,13 @@ test('the script’s camera, seat, speech and ped-matrix questions are answered'
   return {off,on:m.peds.entity(walker).collider.isEnabled()};
  },made);
  expect(collision).toEqual({off:false,on:true});
+ // OPEN_CAR_DOOR swings the left front door wide; OPEN_CAR_DOOR_A_BIT sets the right front door to a ratio. The
+ // Infernus has no rear door nodes, so a rear door stays shut.
+ const doors=await page.evaluate(({car}:{car:number})=>{
+  const m=(window as any).__game.missionForProfiling(),w=m.runtime.world,e=m.vehicles.entity(car);
+  w.openVehicleDoor(car,2);w.openVehicleDoorABit(car,3,.5);w.openVehicleDoor(car,4);
+  return {front:+e.doors[2].ratio.toFixed(3),right:+e.doors[3].ratio.toFixed(3),rear:Math.abs(e.doors[4].ratio)};
+ },made);
+ expect(doors).toEqual({front:1,right:.5,rear:0});
  expect(errors).toEqual([]);
 });

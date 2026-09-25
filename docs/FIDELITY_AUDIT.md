@@ -6711,3 +6711,7 @@ the first ones now implemented:
     collision and solver groups go to 0. Contacts ignore it, but lines of sight still meet it.
   - Either way the ped's own movement query ignores these groups, so it still stands on the ground. The original
     ped would fall through the map unless the script also froze it, which the missions do.
+- **OPEN_CAR_DOOR and OPEN_CAR_DOOR_A_BIT** (18 missions): CAutomobile::OpenDoor with no ped and the sound on, to a
+  ratio of 1 or to the script's ratio. The door index is eDoors (bonnet, boot, LF, RF, LR, RR). CAutomobile::OpenDoor
+  now also returns at once when the model lacks the door's car node (m_aCarNodes[nodeIdx] null). The port used to
+  move and report a door that had no frame to move.

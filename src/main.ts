@@ -3403,6 +3403,7 @@ async function boot() {
                  setScriptVehicleCanBeDamaged:(car,canBeDamaged)=>{(car as ScriptCar).canBeDamaged=canBeDamaged;},
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
                  setScriptVehicleSiren:(car,on)=>{(car as ScriptCar).siren=on;},
+                 openScriptVehicleDoor:(car,door,ratio)=>{(car as Partial<ScriptCar>).openDoor?.(door,ratio);},
                  setScriptVehicleCanBeVisiblyDamaged:(car,state)=>{(car as ScriptCar).canBeVisiblyDamaged=state;},
                  setTimeScale:scale=>{cheatTimeScale=scale;},
                  // The one ped the browser holds. CTheScripts::IsPedStopped asks a vehicle whether its moving
