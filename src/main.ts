@@ -299,6 +299,8 @@ async function boot() {
  // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
  let mission:import('./simulation/ScmMission').ScmMission|undefined;
  // The script's tasks on CJ's own ped (TASK_GO_STRAIGHT_TO_COORD, TASK_PLAY_ANIM... on scplayer).
+ /** The cutscene skip button this frame, and the keys it reads as they were last frame. */
+ let cutsceneSkipNow=false,skipKeysLast={enter:false,space:false};
  /** The player's car while a script's driving task has it. */
  let scriptDrivenCar:ScriptCar|undefined;
  const playerTasks=new PlayerScriptTasks({
@@ -2562,6 +2564,9 @@ async function boot() {
        pads.justOutOfFrontEnd=padsAfterPause;padsAfterPause=false;}
       const clock=mission.runtime.game.clock;clock.follow(sim.timeMinutes,sim.weekDay);
       const set=[clock.hours,clock.minutes,clock.seconds,clock.currentDay];
+      // CCutsceneMgr::IsCutsceneSkipButtonBeingPressed: the left mouse button held, or Return or Space just pressed.
+      {const enter=input.down('Enter')||input.down('NumpadEnter'),space=input.down('Space');
+       cutsceneSkipNow=input.down('MouseFire')||enter&&!skipKeysLast.enter||space&&!skipKeysLast.space;skipKeysLast={enter,space};}
       mission.step(elapsed*1000,dt*1000);
       if(clock.hours!==set[0]||clock.minutes!==set[1]||clock.seconds!==set[2]||clock.currentDay!==set[3]){sim.timeMinutes=clock.hours*60+clock.minutes+clock.seconds/60;sim.weekDay=clock.currentDay;}
     }
@@ -3554,6 +3559,7 @@ async function boot() {
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
                  setScriptVehicleSiren:(car,on)=>{(car as ScriptCar).siren=on;},
                  openScriptVehicleDoor:(car,door,ratio)=>{(car as Partial<ScriptCar>).openDoor?.(door,ratio);},
+                 cutsceneSkipPressed:()=>cutsceneSkipNow,
                  scriptVehicleAutopilotFields:car=>({...(car as Partial<ScriptCar>).autopilotFields}),
                  setScriptVehicleStrong:(car,strong)=>{const c=car as Partial<ScriptCar>;if(c.takeLessDamage!==undefined)c.takeLessDamage=strong;},
                  scriptVehicleWheelsOnGround:car=>(car as Partial<ScriptCar>).wheelsOnGround??0,

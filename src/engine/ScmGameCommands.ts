@@ -1221,9 +1221,10 @@ const handlers:Record<string,ScmCommandHandler>={
  START_CUTSCENE:(t,_p,i)=>{const state=game(t,i);state.cutscene.start();if(state.cutscene.running)t.host?.world?.startCutscene?.();},
  HAS_CUTSCENE_FINISHED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cutscene.hasFinished,negated(i));},
  CLEAR_CUTSCENE:(t,_p,i)=>{game(t,i).cutscene.clear();t.host?.world?.clearCutscene?.();},
- // The skip pair names the label the script jumps to when a cutscene is skipped.
- SKIP_CUTSCENE_START_INTERNAL:(t,p,i)=>{game(t,i).cutscene.startSkip(t.readInt(p[0]));},
- SKIP_CUTSCENE_END:(t,_p,i)=>{game(t,i).cutscene.endSkip();},
+ // The skip pair: CRunningScript::m_SceneSkipIP, the label the thread jumps to when the skip button is pressed
+ // (CRunningScript::Process), and back to none.
+ SKIP_CUTSCENE_START_INTERNAL:(t,p)=>{t.sceneSkipIp=t.readInt(p[0]);},
+ SKIP_CUTSCENE_END:t=>{t.sceneSkipIp=undefined;},
  // SKIP_CUTSCENE_START is already in the native-nop list, which PC 1.0 parses and does nothing with, so only
  // its internal twin carries a body here. The overlap guard in the game-state test caught a handler added for
  // it, which is the second time that list has been right against a new one.
@@ -1232,7 +1233,7 @@ const handlers:Record<string,ScmCommandHandler>={
  // neither name, so they are not commands this script can contain and there is nothing to handle.
  // Whether the player is holding the button that skips one, which only a host knows.
  IS_SKIP_CUTSCENE_BUTTON_PRESSED:(t,_p,i)=>{
-  t.updateCompareFlag(world(t,i,'isSkipCutsceneButtonPressed')(),negated(i));
+  t.updateCompareFlag(world(t,i,'isCutsceneSkipButtonBeingPressed')(),negated(i));
  },
  SET_CUTSCENE_OFFSET:(t,p,i)=>{const point=vec(t,p,0);game(t,i).cutscene.setOffset(point.x,point.y,point.z);},
  GET_CUTSCENE_OFFSET:(t,p,i)=>{

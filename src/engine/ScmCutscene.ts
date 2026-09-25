@@ -10,12 +10,10 @@ export const TOTAL_SPECIAL_CHARACTERS=21;
 export class ScmCutscene {
  /** The name the script asked for, and where that request has got to. */
  name?:string;status=CUTSCENE_NONE;
- /** The label a skip jumps to while a cutscene is being skipped, and whether one is. */
- skipLabel?:number;skipping=false;
  /** LOAD_CUTSCene: the data is asked for and nothing is running yet. */
  load(name:string){
   requireAsset(name.length>0,'Invalid cutscene name.');
-  this.name=name;this.status=CUTSCENE_LOADING;this.skipping=false;this.skipLabel=undefined;this.wasSkipped=false;this.time=0;
+  this.name=name;this.status=CUTSCENE_LOADING;this.wasSkipped=false;this.time=0;
  }
  /** What a host calls once the data is in. */
  loaded(){if(this.status===CUTSCENE_LOADING)this.status=CUTSCENE_LOADED;}
@@ -26,8 +24,8 @@ export class ScmCutscene {
  /** What a host calls when the cutscene runs out, and the question the script waits on. */
  finish(){if(this.status===CUTSCENE_RUNNING)this.status=CUTSCENE_FINISHED;}
  get hasFinished(){return this.status===CUTSCENE_FINISHED;}
- /** CLEAR_CUTSCENE: everything goes, including a skip in progress. */
- clear(){this.name=undefined;this.status=CUTSCENE_NONE;this.skipping=false;this.skipLabel=undefined;this.wasSkipped=false;this.time=0;}
+ /** CLEAR_CUTSCENE: everything goes. */
+ clear(){this.name=undefined;this.status=CUTSCENE_NONE;this.wasSkipped=false;this.time=0;}
  /** Whether this cutscene was skipped, which the script asks after it has finished. A clear forgets it along
   * with everything else, so the question only answers for the cutscene just played. */
  wasSkipped=false;
@@ -39,9 +37,8 @@ export class ScmCutscene {
  }
  /** GET_CUTSCENE_TIME, which a host advances while the cutscene runs. */
  time=0;
- /** The skip pair: the first names the label the script jumps to, the second ends the skip. */
- startSkip(label:number){this.skipping=true;this.skipLabel=label;this.wasSkipped=true;}
- endSkip(){this.skipping=false;}
+ /** CCutsceneMgr::SkipCutscene: a running cutscene the player skips is over, and says so. */
+ skip(){if(this.status!==CUTSCENE_RUNNING)return;this.wasSkipped=true;this.status=CUTSCENE_FINISHED;}
 }
 export class ScmSpecialCharacters {
  /** The model each slot holds, or nothing where the slot is empty. */

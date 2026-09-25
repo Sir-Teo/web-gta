@@ -7107,3 +7107,14 @@ the first ones now implemented:
   otherwise).
 - SET_CHAR_KEEP_TASK is bKeepTasksAfterCleanUp: CleanUpThisPed hands such a ped back to the game without giving it the
   wander.
+
+### The cutscene skip button and the scene-skip label
+
+- SKIP_CUTSCENE_START_INTERNAL sets the running thread's m_SceneSkipIP, and SKIP_CUTSCENE_END clears it. While it is
+  set, CRunningScript::Process sends the thread to that label as soon as the skip button is pressed, blanking the big
+  message and ending its wait.
+- The skip button is CCutsceneMgr::IsCutsceneSkipButtonBeingPressed: the left mouse button held, or Return or Space
+  just pressed. IS_SKIP_CUTSCENE_BUTTON_PRESSED reads the same.
+- The port used to keep the label on the cutscene and to mark the cutscene skipped as soon as a skip was named.
+  WAS_CUTSCENE_SKIPPED is now CCutsceneMgr::ms_wasCutsceneSkipped: set only when a running cutscene is skipped, which
+  the port, finishing each cutscene as it starts, never does.

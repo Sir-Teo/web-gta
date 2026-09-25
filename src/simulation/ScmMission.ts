@@ -377,6 +377,8 @@ export interface ScmMissionWorld {
  setScriptLimitToGangSize?(size:number):void;
  /** CGangWars::SetGangWarsActive. */
  setGangWarsActive?(state:boolean):void;setPlayerGroupSeparationRange?(range:number):void;
+ /** CCutsceneMgr::IsCutsceneSkipButtonBeingPressed this frame. */
+ cutsceneSkipPressed?():boolean;
  /** A script car's own autopilot settings (SET_CAR_CRUISE_SPEED, SET_CAR_DRIVING_STYLE). */
  scriptVehicleAutopilotFields?(car:unknown):{cruiseSpeed?:number;drivingStyle?:number};
  /** vehicleFlags.bTakeLessDamage and the number of wheels on the ground. */
@@ -497,6 +499,7 @@ export class ScmMission {
    setVehicleStrong:(handle,strong)=>{this.host('setScriptVehicleStrong','SET_CAR_STRONG')(this.liveVehicle(handle),strong);},
    // IS_VEHICLE_ON_ALL_WHEELS: m_nNumContactWheels is four.
    vehicleIsOnAllWheels:handle=>this.host('scriptVehicleWheelsOnGround','IS_VEHICLE_ON_ALL_WHEELS')(this.liveVehicle(handle))>=4,
+   isCutsceneSkipButtonBeingPressed:()=>this.world.cutsceneSkipPressed?.()??false,
    setPedKeepTask:(handle,keep)=>{if(handle!==PLAYER_PED_HANDLE)this.peds.setKeepTask(handle,keep);},
    makeRoomInPlayerGangForMissionPeds:count=>{this.host('makeRoomInPlayerGang','MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS')(count,this.group(PLAYER_GROUP_HANDLE).countFollowers());},
    setCameraBehindPlayer:()=>{this.world.setCameraBehindPlayer();},

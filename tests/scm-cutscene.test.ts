@@ -57,14 +57,26 @@ describe('the cutscene a script loads and runs',()=>{
   expect(run(game,{},instruction(op('HAS_CUTSCENE_LOADED'),[])).condition).toBe(true);
  });
 
- test('the skip pair keeps the label the script jumps to, and the clear ends a skip',()=>{
+ test('the skip pair sets and clears the thread’s scene-skip label, and naming it skips nothing',()=>{
   const game=new ScmGameState();
-  run(game,{},instruction(op('SKIP_CUTSCENE_START_INTERNAL'),[int(1234)]));
-  expect(game.cutscene).toMatchObject({skipping:true,skipLabel:1234});
-  run(game,{},instruction(op('SKIP_CUTSCENE_END'),[]));
-  expect(game.cutscene.skipping).toBe(false);
-  run(game,{},instruction(op('SKIP_CUTSCENE_START_INTERNAL'),[int(1)]),instruction(op('CLEAR_CUTSCENE'),[]));
-  expect(game.cutscene).toMatchObject({skipping:false,skipLabel:undefined});
+  expect(run(game,{},instruction(op('SKIP_CUTSCENE_START_INTERNAL'),[int(1234)])).sceneSkipIp).toBe(1234);
+  expect(game.cutscene.wasSkipped).toBe(false);
+  expect(run(game,{},instruction(op('SKIP_CUTSCENE_START_INTERNAL'),[int(1)]),instruction(op('SKIP_CUTSCENE_END'),[])).sceneSkipIp).toBeUndefined();
+ });
+
+ test('with the label set, the skip button sends the thread there at once, out of its wait',()=>{
+  const game=new ScmGameState();let pressed=false;
+  // SKIP_CUTSCENE_START_INTERNAL 64; WAIT 10000 (at 12); … and at 64 a SET_VAR_INT 40 7.
+  const space=new Uint8Array(2048);
+  space.set([...instruction(op('SKIP_CUTSCENE_START_INTERNAL'),[int(64)]),...instruction(op('WAIT'),[int(10000)])],0);
+  space.set(instruction(op('SET_VAR_INT'),[[2,40] as const,int(7)]),64);
+  const thread=new ScmThread(space,0,0,undefined,{startScript(){},game,world:{fade(){},isCutsceneSkipButtonBeingPressed:()=>pressed} as ScmWorldCommands});
+  thread.run(0,16);
+  expect(new DataView(space.buffer).getInt32(40,true)).toBe(0);
+  pressed=true;
+  try{thread.run(50,4);}catch(error){if(!String(error).match(/watchdog|opcode|Unknown/))throw error;}
+  expect(new DataView(space.buffer).getInt32(40,true)).toBe(7);
+  expect(thread.sceneSkipIp).toBeUndefined();
  });
 });
 

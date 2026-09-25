@@ -420,7 +420,8 @@ export interface ScmWorldCommands {
  /** A SWAT officer roped in at a point. */
  createSwatRope?(pedType:number,model:number|string,x:number,y:number,z:number):number;
  /** Whether the player is holding the button that skips a cutscene. */
- isSkipCutsceneButtonPressed?():boolean;
+ /** CCutsceneMgr::IsCutsceneSkipButtonBeingPressed: the pad's cross, the left mouse button, Enter or Space. */
+ isCutsceneSkipButtonBeingPressed?():boolean;
  /** CStreaming's request for a streamed script file, by its proper index. */
  requestStreamedScript?(index:number):void;
  /** The cutscene data a host loads, runs and drops. */
@@ -1181,6 +1182,8 @@ export interface ScmThreadHost {
  * explicitly. This is not a campaign-complete VM. */
 export class ScmThread {
  ip:number;name='noname';condition=false;logical=0;wakeTime=0;terminated=false;
+ /** m_SceneSkipIP: SKIP_CUTSCENE_START's label, which the thread jumps to when the skip button is pressed. */
+ sceneSkipIp?:number;
  /** CRunningScript::Init defaults for the streamed-script fields: an ordinary thread is not external and has no
   * external type, which is what decides whether its objects are OBJECT_MISSION or OBJECT_MISSION2. */
  isExternal=false;externalType=-1;
@@ -1270,6 +1273,12 @@ export class ScmThread {
   requireAsset(timeStep===undefined||Number.isFinite(timeStep)&&timeStep>=0,'Invalid SCM timestep.');
   this.timeStep=timeStep;
   if(this.terminated)return 'terminated';
+  // CRunningScript::Process: with a scene-skip label set, the skip button sends the thread there at once, waking it,
+  // and blanks the big message (CHud::m_BigMessage[1]).
+  if(this.sceneSkipIp!==undefined&&this.host?.world?.isCutsceneSkipButtonBeingPressed?.()){
+   this.host.game?.messages.onClearBigMessage?.(1);
+   this.ip=this.target(this.sceneSkipIp);this.sceneSkipIp=undefined;this.wakeTime=0;
+  }
   if(nowMs<this.wakeTime)return 'waiting';
   for(let count=0;count<budget;count++){
    decodeScmInstructionInto(this.scriptSpace,this.globals,this.ip,this.scriptSpace.length,this.decoded);
