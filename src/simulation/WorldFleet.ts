@@ -390,7 +390,13 @@ export class WorldFleet {
    doomed.push(car);
   }
   for(const car of doomed){this.cars.delete(car);this.generated.delete(car);car.dispose();}
-  return doomed.length;
+  // The pass walks the whole vehicle pool: bikes, boats and aircraft nobody rides and no script holds go too.
+  let others=0;
+  const near=(v:{car:{body:RAPIER.RigidBody}})=>{const at=v.car.body.translation();return Math.hypot(at.x-point.x,at.z-point.z)<radius;};
+  for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&near(bike)){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
+  for(const boat of [...this.boats])if(!boat.occupied&&!boat.missionCar&&!boat.disposed&&near(boat)){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);others++;}
+  for(const plane of [...this.planes])if(!plane.occupied&&!plane.missionCar&&!plane.disposed&&near(plane)){plane.dispose();this.planes.delete(plane);others++;}
+  return doomed.length+others;
  }
  /** CWorld::ClearCarsFromArea (CLEAR_AREA_OF_CARS): every car inside the box (renderer corners) that is not the
   * player's, not locked and not a script's own goes. */

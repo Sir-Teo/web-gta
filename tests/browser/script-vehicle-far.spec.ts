@@ -25,5 +25,13 @@ test('a script bike 400 units from the player is still there',async({page})=>{
  const at={x:start.x+6,y:start.y};
  await w('clearAreaOfVehicles',{x:at.x-20,y:at.y-20,z:-50},{x:at.x+20,y:at.y+20,z:200});
  expect(await page.evaluate(()=>(window as any).__farBike.disposed)).toBe(true);
+ // CLEAR_AREA (CWorld::ClearExcitingStuffFromArea) does the same within its radius.
+ const second=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;return g.missionForProfiling().vehicles.create(481,{x:p.x+6,y:-p.z,z:-100},0);});
+ await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),second,{timeout:60000});
+ await page.evaluate(h=>{(window as any).__secondBike=(window as any).__game.missionForProfiling().vehicles.entity(h);},second);
+ await w('markVehicleNoLongerNeeded',second);
+ const here=await w('pedPosition',1) as {x:number;y:number;z:number};
+ await w('clearExcitingStuffFromArea',here,30,false,true);
+ expect(await page.evaluate(()=>(window as any).__secondBike.disposed)).toBe(true);
  expect(errors).toEqual([]);
 });

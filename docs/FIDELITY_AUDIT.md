@@ -8046,5 +8046,6 @@ Each is now answered:
 - A vehicle the script makes is a mission vehicle whatever its kind. The population leaves it however far off, until
   the script deletes it or lets it go (MARK_CAR_AS_NO_LONGER_NEEDED, mission cleanup).
 - CLEAR_AREA_OF_CARS is CWorld::ClearCarsFromArea, which walks the whole vehicle pool. It now clears bikes, boats and
-  aircraft that nobody rides and no script holds, as it clears cars; it used to clear cars only.
+  aircraft that nobody rides and no script holds, as it clears cars; it used to clear cars only. CLEAR_AREA's vehicle
+  pass (CWorld::ClearExcitingStuffFromArea) walks the same pool and now does the same within its radius.
 - Verification: `tests/browser/script-vehicle-far.spec.ts`.
