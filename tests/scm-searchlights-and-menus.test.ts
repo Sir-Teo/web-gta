@@ -26,8 +26,6 @@ function recording(){
   givePedScriptedTask:(_ped:number,task:ScmScriptedTask)=>{tasks.push(task);},
   createSearchlight:method('light',4),deleteSearchlight:method('deleteLight'),
   searchlightExists:method('lightExists',true),attachSearchlightToObject:method('attachLight'),
-  createMenu:method('menu',6),deleteMenu:method('deleteMenu'),setMenuColumn:method('column'),
-  setMenuItemWithNumber:method('item'),
   objectHealth:method('objectHealth',400),objectLastWeaponDamage:method('objectDamaged',31),
   detachObject:method('detach'),grabEntityOnRopeForObject:method('grab',{vehicle:1,ped:2,object:3}),
   vehiclePassengerSeatIsFree:method('seatFree',true),setVehicleMission:method('mission'),
@@ -69,20 +67,24 @@ describe('the searchlights and the menus',()=>{
   expect(calls).toEqual([['attachLight',4,11,12,13,{x:0,y:0,z:2}]]);
  });
 
- test('a menu column names a title and twelve rows',()=>{
-  const {world,calls}=recording();
-  const rows=Array.from({length:12},(_value,index)=>`ROW${index}`);
-  run(world,instruction(op('SET_MENU_COLUMN'),[int(6),int(0),'TITLE',...rows]));
-  expect(calls).toEqual([['column',6,0,'TITLE',rows]]);
+ test('a menu column names a title and twelve rows, DUMMY standing for none',()=>{
+  const rows=['ROW0','ROW1','ROW2',...Array.from({length:9},()=>'DUMMY')];
+  const {game}=run({},instruction(op('CREATE_MENU'),['DUMMY',float(10),float(20),float(200),int(2),int(1),int(1),int(0),gvar(40)]),
+   instruction(op('SET_MENU_COLUMN'),[int(0),int(0),'TITLE',...rows]));
+  const menu=game.menus.menus[0]!;
+  expect([menu.title,menu.headers[0],menu.rowTitles[0].slice(0,4),menu.numRows]).toEqual(['','TITLE',['ROW0','ROW1','ROW2',''],3]);
  });
 
- test('a menu is created with its box and alignment, and deleted by handle',()=>{
-  const {world,calls}=recording();
-  const {readInt}=run(world,instruction(op('CREATE_MENU'),
+ test('a menu is created with its box and alignment, read back and deleted by handle',()=>{
+  const {game,readInt}=run({},instruction(op('CREATE_MENU'),
    ['HEADER',float(10),float(20),float(200),int(2),int(1),int(1),int(0),gvar(40)]),
-   instruction(op('DELETE_MENU'),[int(6)]));
-  expect(readInt(40)).toBe(6);
-  expect(calls).toEqual([['menu','HEADER',10,20,200,2,true,true,0],['deleteMenu',6]]);
+   instruction(op('SET_MENU_COLUMN'),[int(0),int(0),'DUMMY','A','B',...Array.from({length:10},()=>'DUMMY')]),
+   instruction(op('GET_MENU_ITEM_SELECTED'),[int(0),gvar(44)]),
+   instruction(op('GET_MENU_ITEM_ACCEPTED'),[int(0),gvar(48)]),
+   instruction(op('DELETE_MENU'),[int(0)]),
+   instruction(op('GET_MENU_ITEM_SELECTED'),[int(0),gvar(52)]));
+  expect([readInt(40),readInt(44),readInt(48),readInt(52)]).toEqual([0,0,-99,-99]);
+  expect(game.menus.numInUse).toBe(0);
  });
 });
 

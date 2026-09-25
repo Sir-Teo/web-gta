@@ -217,6 +217,7 @@ import {ScriptCarRecordingStore} from './simulation/scriptCarRecordings';
 import {recordingVehicle} from './simulation/recordingBody';
 import {startPlaybackRecordedCar} from './engine/carRecordingPlayback';
 import {WorldTrain} from './simulation/WorldTrain';
+import {layoutMenu} from './ui/nativeHudMenus';
 import {applyStoredSwitches,markRoadNodeAsDontWander,switchRoadsOffInArea,unmarkAllRoadNodesAsDontWander} from './simulation/nativePathSwitches';
 import {pathAreaLoaded,pathAreaMaps} from './assets/worldPaths';
 import {findCaboose,findCarriage,setTrainCruiseSpeed,setTrainSpeed} from './simulation/nativeTrain';
@@ -2820,6 +2821,18 @@ async function boot() {
       // CMessages::Display's SetBigMessage for every other style, then CHud::Draw and DrawAfterFade's drawing of them.
       game.messages.onClearBigMessage??=style=>hudBigMessages.clear(style);
       for(let style=1;style<game.messages.big.length;style++){if(style===2)continue;const big=game.messages.big[style][0];hudBigMessages.set(style,big?text(big):'');}
+      // CHud::Draw: with no STYLE_MIDDLE message up, CMenuSystem::Process draws the script's menus (the ones not current
+      // dimmed) and moves the current one's highlight from the pad.
+      {const menus=game.menus,draws:import('./ui/nativeHudMenus').MenuDraw[]=[];
+       if(menus.numInUse&&!game.messages.big[0][0]){
+        // AE_FRONTEND_SELECT, _BACK and _HIGHLIGHT.
+        menus.onSound??=which=>{sound.frontend(which==='select'?1:which==='back'?2:3);};
+        menus.process(game.pads.pads[0]);
+        const menuText=(key:string,first:number,second:number)=>gxtHudText(insertNumbers(gxtText(key,key),first,second));
+        for(let id=0;id<menus.menus.length;id++){const menu=menus.menus[id];if(menus.inUse[id]&&menu&&id!==menus.currentMenuInUse)draws.push(layoutMenu(menu,false,menuText));}
+        const current=menus.menus[menus.currentMenuInUse];if(menus.inUse[menus.currentMenuInUse]&&current)draws.push(layoutMenu(current,true,menuText));
+       }
+       hud.menus(draws);}
       hud.bigMessages(hudBigMessages.draw(Math.max(0,gameTimeMs-hudBigMessagesClock),hud.element.clientWidth||innerWidth,game.drawOddJobTitleBeforeFade,()=>{
        hud.names.hideZoneName();game.help.set(undefined,true,false,false,game.messages);}));
       hud.missionTitleShowing=hudBigMessages.missionTitleShowing;hudBigMessagesClock=gameTimeMs;

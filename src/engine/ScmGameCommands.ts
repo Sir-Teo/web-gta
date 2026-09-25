@@ -10,6 +10,7 @@ import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_COORD,BLIP_DISPLAY_BLIPONLY,B
 import {STAT_MISSION_ATTEMPTS,STAT_PROGRESS_MADE} from './ScmGameState';
 import {skipForwardInRecording,skipToEndAndStopPlaybackRecordedCar,startPlaybackRecordedCar,stopPlaybackRecordedCar} from './carRecordingPlayback';
 import {BUTTON,CONTROLLER_JOYPAD} from './ScmPads';
+import {MENU_TYPE_DEFAULT,MENU_TYPE_GRID} from './ScmMenus';
 import {switchArea} from './ScmNodeSwitches';
 import {ScmCamera} from './ScmCamera';
 import {fixAngleDegrees} from './ScmObjects';
@@ -164,6 +165,8 @@ const WEAPON_UNIDENTIFIED=55,WEAPON_ANYMELEE=56,WEAPON_ANYWEAPON=57;
 /** CDarkel::CheckDamagedWeaponType: the melee weapons (WEAPON_UNARMED to WEAPON_CANE) for WEAPON_ANYMELEE; for
  * WEAPON_ANYWEAPON those, every weapon a ped carries up to WEAPON_INFRARED, WEAPON_EXPLOSION and WEAPON_UZI_DRIVEBY, but
  * not the parachute, a ram, a run over, drowning or a fall. No damage (-1) is never a match. */
+/** A script menu's text key: DUMMY is no text at all. */
+const menuKey=(key:string)=>key.toUpperCase()==='DUMMY'||!key?undefined:key;
 export function checkDamagedWeaponType(damage:number,expected:number){
  if(damage<0)return false;
  if(expected===WEAPON_ANYMELEE)return damage<=15;
@@ -1705,18 +1708,32 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'attachSearchlightToObject')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readInt(p[3]),vec(t,p,4));
  },
  /* --- The menus, whose column command names a title and twelve rows. */
+ /* --- CMenuSystem's script menus. A key of DUMMY stands for no text: the scripts fill every unused row and header
+  * with it, and a row the first column holds counts as one the menu has. */
  CREATE_MENU:(t,p,i)=>{
-  t.writeInt(p[8],world(t,i,'createMenu')(t.text(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),
+  t.writeInt(p[8],game(t,i).menus.create(MENU_TYPE_DEFAULT,menuKey(t.text(p[0])),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),
    t.readInt(p[4]),bool(t,p[5]),bool(t,p[6]),t.readInt(p[7])));
  },
- DELETE_MENU:(t,p,i)=>{world(t,i,'deleteMenu')(t.readInt(p[0]));},
+ CREATE_MENU_GRID:(t,p,i)=>{
+  t.writeInt(p[8],game(t,i).menus.create(MENU_TYPE_GRID,menuKey(t.text(p[0])),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),
+   t.readInt(p[4]),bool(t,p[5]),bool(t,p[6]),t.readInt(p[7])));
+ },
+ DELETE_MENU:(t,p,i)=>{game(t,i).menus.switchOff(t.readInt(p[0]));},
  SET_MENU_COLUMN:(t,p,i)=>{
-  const rows:string[]=[];
-  for(let row=3;row<15;row++)rows.push(t.text(p[row]));
-  world(t,i,'setMenuColumn')(t.readInt(p[0]),t.readInt(p[1]),t.text(p[2]),rows);
+  const rows:(string|undefined)[]=[];
+  for(let row=3;row<15;row++)rows.push(menuKey(t.text(p[row])));
+  game(t,i).menus.insertMenu(t.readInt(p[0]),t.readInt(p[1]),menuKey(t.text(p[2])),rows);
  },
  SET_MENU_ITEM_WITH_NUMBER:(t,p,i)=>{
-  world(t,i,'setMenuItemWithNumber')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.text(p[3]),t.readInt(p[4]));
+  game(t,i).menus.insertOneMenuItemWithNumber(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),menuKey(t.text(p[3])),t.readInt(p[4]),-1);
+ },
+ GET_MENU_ITEM_ACCEPTED:(t,p,i)=>{t.writeInt(p[1],game(t,i).menus.checkForAccept(t.readInt(p[0])));},
+ HIGHLIGHT_MENU_ITEM:(t,p,i)=>{game(t,i).menus.highlightOneItem(t.readInt(p[0]),t.readInt(p[1]),bool(t,p[2]));},
+ // The car's colour in that slot becomes the carcols index the grid shows at the row.
+ CHANGE_CAR_COLOUR_FROM_MENU:(t,p,i)=>{
+  const car=t.readInt(p[1]),slot=t.readInt(p[2]),colour=game(t,i).menus.getCarColourFromGrid(t.readInt(p[0]),t.readInt(p[3]));
+  const colours=world(t,i,'vehicleColours')(car);
+  world(t,i,'changeVehicleColour')(car,slot===0?colour:colours.primary,slot===1?colour:colours.secondary);
  },
  /* --- The objects. */
  GET_OBJECT_HEALTH:(t,p,i)=>{t.writeInt(p[1],world(t,i,'objectHealth')(t.readInt(p[0])));},
@@ -1922,8 +1939,7 @@ const handlers:Record<string,ScmCommandHandler>={
   const point=vec(t,p,0);world(t,i,'setUpSkip')(point.x,point.y,point.z,t.readFloat(p[3]));
  },
  SET_MENU_ITEM_WITH_2_NUMBERS:(t,p,i)=>{
-  world(t,i,'setMenuItemWithTwoNumbers')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.text(p[3]),
-   t.readInt(p[4]),t.readInt(p[5]));
+  game(t,i).menus.insertOneMenuItemWithNumber(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),menuKey(t.text(p[3])),t.readInt(p[4]),t.readInt(p[5]));
  },
  /* --- The last batch. STREAM_SCRIPT asks the streamer for a file the script names by its own index, which the
   * registry translates the same way the loaded question does. */
@@ -2115,7 +2131,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_ALWAYS_DRAW_3D_MARKERS:(t,p,i)=>{world(t,i,'setAlwaysDraw3dMarkers')(bool(t,p[0]));},
  IS_OBJECT_STATIC:(t,p,i)=>{t.updateCompareFlag(world(t,i,'objectIsStatic')(t.readInt(p[0])),negated(i));},
  SET_CAR_STAY_IN_SLOW_LANE:(t,p,i)=>{world(t,i,'setVehicleStayInSlowLane')(t.readInt(p[0]),bool(t,p[1]));},
- SET_MENU_COLUMN_WIDTH:(t,p,i)=>{world(t,i,'setMenuColumnWidth')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
+ SET_MENU_COLUMN_WIDTH:(t,p,i)=>{game(t,i).menus.setColumnWidth(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  CREATE_USER_3D_MARKER:(t,p,i)=>{
   const point=vec(t,p,0);
   t.writeInt(p[4],world(t,i,'createUser3dMarker')(point.x,point.y,point.z,t.readInt(p[3])));
@@ -2205,7 +2221,7 @@ const handlers:Record<string,ScmCommandHandler>={
   * with outputs writes them into the operands after its inputs. */
  SET_CAR_STAY_IN_FAST_LANE:(t,p,i)=>{world(t,i,'setCarStayInFastLane')(t.readInt(p[0]),bool(t,p[1]));},
  IS_VEHICLE_ATTACHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isVehicleAttached')(t.readInt(p[0])),negated(i));},
- ACTIVATE_MENU_ITEM:(t,p,i)=>{world(t,i,'activateMenuItem')(t.readInt(p[0]),t.readInt(p[1]),bool(t,p[2]));},
+ ACTIVATE_MENU_ITEM:(t,p,i)=>{game(t,i).menus.activateOneItem(t.readInt(p[0]),t.readInt(p[1]),bool(t,p[2]));},
  ATTACH_TRAILER_TO_CAB:(t,p,i)=>{world(t,i,'attachTrailerToCab')(t.readInt(p[0]),t.readInt(p[1]));},
  TASK_TIRED:(t,p,i)=>{world(t,i,'taskTired')(t.readInt(p[0]),t.readInt(p[1]));},
  WINCH_CAN_PICK_VEHICLE_UP:(t,p,i)=>{world(t,i,'winchCanPickVehicleUp')(t.readInt(p[0]),bool(t,p[1]));},
@@ -2217,7 +2233,7 @@ const handlers:Record<string,ScmCommandHandler>={
  CONVERT_METRES_TO_FEET:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'convertMetresToFeet')(t.readFloat(p[0])));},
  GET_LEVEL_DESIGN_COORDS_FOR_OBJECT:(t,p,i)=>{const result=world(t,i,'getLevelDesignCoordsForObject')(t.readInt(p[0]),t.readInt(p[1]));t.writeFloat(p[2],result.x);t.writeFloat(p[3],result.y);t.writeFloat(p[4],result.z);},
  IS_CHAR_ATTACHED_TO_ANY_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharAttachedToAnyCar')(t.readInt(p[0])),negated(i));},
- SET_ACTIVE_MENU_ITEM:(t,p,i)=>{world(t,i,'setActiveMenuItem')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_ACTIVE_MENU_ITEM:(t,p,i)=>{game(t,i).menus.setActiveMenuItem(t.readInt(p[0]),t.readInt(p[1]));},
  GET_CAR_MODEL_VALUE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCarModelValue')(model(t,i,p[0])));},
  COPY_SHARED_CHAR_DECISION_MAKER:(t,p,i)=>{const {handle,from}=game(t,i).decisionMakers.copy(t.readInt(p[0]),t.usesMissionCleanup);t.writeInt(p[1],handle);t.host?.world?.seedDecisionMaker?.(handle,from);},
  PLAY_BEAT_TRACK:(t,_p,i)=>{game(t,i).cutsceneTrack.play();},
@@ -2252,7 +2268,7 @@ const handlers:Record<string,ScmCommandHandler>={
  PLAYER_TAKE_OFF_GOGGLES:(t,p,i)=>{world(t,i,'playerTakeOffGoggles')(t.readInt(p[0]),bool(t,p[1]));},
  IS_CAR_STOPPED_IN_AREA_2D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarStoppedInArea2d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),bool(t,p[5])),negated(i));},
  GET_CAR_UPRIGHT_VALUE:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCarUprightValue')(t.readInt(p[0])));},
- SET_MENU_COLUMN_ORIENTATION:(t,p,i)=>{world(t,i,'setMenuColumnOrientation')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
+ SET_MENU_COLUMN_ORIENTATION:(t,p,i)=>{game(t,i).menus.setColumnOrientation(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  CLEAR_ATTRACTOR:(t,p,i)=>{world(t,i,'clearAttractor')(t.readInt(p[0]));},
  GET_CAR_MOVING_COMPONENT_OFFSET:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCarMovingComponentOffset')(t.readInt(p[0])));},
  GET_TERRITORY_UNDER_CONTROL_PERCENTAGE:(t,p,i)=>{t.writeInt(p[0],world(t,i,'getTerritoryUnderControlPercentage')());},
@@ -2309,7 +2325,7 @@ const handlers:Record<string,ScmCommandHandler>={
  HAS_TRAIN_DERAILED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasTrainDerailed')(t.readInt(p[0])),negated(i));},
  SET_GANG_WEAPONS:(t,p,i)=>{world(t,i,'setGangWeapons')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readInt(p[3]));},
  GET_RANDOM_CAR_IN_SPHERE_NO_SAVE:(t,p,i)=>{t.writeInt(p[5],world(t,i,'getRandomCarInSphereNoSave')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),model(t,i,p[4])));},
- GET_MENU_ITEM_SELECTED:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getMenuItemSelected')(t.readInt(p[0])));},
+ GET_MENU_ITEM_SELECTED:(t,p,i)=>{t.writeInt(p[1],game(t,i).menus.checkForSelected(t.readInt(p[0])));},
  SET_VEHICLE_DIRT_LEVEL:(t,p,i)=>{world(t,i,'setVehicleDirtLevel')(t.readInt(p[0]),t.readFloat(p[1]));},
  SWITCH_ARREST_PENALTIES:(t,p,i)=>{world(t,i,'switchArrestPenalties')(bool(t,p[0]));},
  SWITCH_DEATH_PENALTIES:(t,p,i)=>{world(t,i,'switchDeathPenalties')(bool(t,p[0]));},

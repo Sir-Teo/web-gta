@@ -71,6 +71,7 @@ export class Hud {
       <div class="vehicle-name" hidden></div>
       <div class="radio-name" hidden></div>
       <div class="prompt" role="status" aria-live="polite"></div>
+      <div class="script-menus" role="menu" aria-label="Menu" hidden></div>
       <div class="help-box" role="status" aria-live="polite" hidden></div>
       <div class="mission-timers" hidden></div>
       <div class="trip-skip" hidden><img alt=""><span></span></div>
@@ -270,6 +271,49 @@ export class Hud {
     show(e.lightBlue, d.lightBlueTop, 1, 1.8, 500);
     show(e.middleSmaller, d.middleSmaller, .6, 1.35, 500);
     show(e.whiteMiddleSmaller, d.whiteMiddleSmaller, .6, 1.35, 500);
+  }
+  /** CMenuSystem's menus as nativeHudMenus lays them out, over the 640 x 448 screen: the box and its gothic title,
+   * the headers and rows in the subtitles font at CFont scale 0.52 x 1.0 (a row wider than its column shrinks, as
+   * CFont's scale steps down), and a grid's colour cells. Rebuilt only when what is drawn changes. */
+  menus(draws: readonly import('./nativeHudMenus').MenuDraw[]) {
+    const el = this.element.querySelector<HTMLElement>('.script-menus')!;
+    if (el.hidden !== !draws.length) el.hidden = !draws.length;
+    if (!draws.length) { el.dataset.key = ''; return; }
+    const width = this.element.clientWidth || innerWidth, height = this.element.clientHeight || innerHeight;
+    const key = JSON.stringify(draws) + `|${width}|${height}`;
+    if (el.dataset.key === key) return;
+    el.dataset.key = key; el.replaceChildren();
+    const px = (x: number) => x / 640 * width, py = (y: number) => y / 448 * height, rgb = (c: readonly number[]) => `rgb(${c[0]},${c[1]},${c[2]})`;
+    const stretch = 2 * .52 * (width / 640) / (height / 448);
+    for (const draw of draws) {
+      if (draw.box) {
+        const box = document.createElement('div'); box.className = 'script-menu-box';
+        Object.assign(box.style, { left: `${px(draw.box.x)}px`, top: `${py(draw.box.y)}px`, width: `${px(draw.box.width)}px`, height: `${py(draw.box.height)}px` });
+        el.append(box);
+        if (draw.box.title) {
+          // DrawWindow: 10 in from the left, its baseline 16 above the box's top edge.
+          const title = document.createElement('div'); title.className = 'script-menu-title'; title.textContent = draw.box.title;
+          Object.assign(title.style, { left: `${px(draw.box.x + 10)}px`, top: `${py(draw.box.y - 16)}px`, fontSize: `${16 * 1.4 * height / 448}px`, color: rgb(draw.box.titleColour) });
+          el.append(title);
+        }
+      }
+      for (const r of draw.rects) {
+        const cell = document.createElement('div'); cell.className = 'script-menu-cell';
+        Object.assign(cell.style, { left: `${px(r.x)}px`, top: `${py(r.y)}px`, width: `${px(r.width)}px`, height: `${py(r.height)}px`, background: rgb(r.colour) });
+        el.append(cell);
+      }
+      for (const t of draw.texts) {
+        const span = document.createElement('div'); span.className = 'script-menu-text'; span.textContent = t.text;
+        const origin = t.align === 0 ? '50%' : t.align === 2 ? '100%' : '0';
+        Object.assign(span.style, { left: `${px(t.x)}px`, top: `${py(t.y)}px`, fontSize: `${16 * height / 448}px`, color: rgb(t.colour), transformOrigin: `${origin} 0` });
+        el.append(span);
+        const natural = span.offsetWidth * stretch, fit = t.fit === undefined ? Infinity : px(t.fit);
+        // CFont's x scale steps down by 0.05 until the row fits its column.
+        let scale = .52; while (natural * scale / .52 > fit && scale > .05) scale -= .05;
+        const sx = stretch * scale / .52, shift = t.align === 0 ? '-50%' : t.align === 2 ? '-100%' : '0';
+        span.style.transform = `translateX(${shift}) scaleX(${sx})`;
+      }
+    }
   }
   /** CHud::DrawTripSkip: the skip icon (hud.txd skipicon) and its label (FEC_TSK) above the radar while
    * CGameLogic::SkipCanBeActivated holds. */

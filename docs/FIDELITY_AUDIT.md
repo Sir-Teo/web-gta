@@ -7613,3 +7613,35 @@ Each is now answered:
 - The vehicle the script sees him in now includes bikes, boats and aircraft. IS_CHAR_IN_CAR against a script bike's
   handle holds while he rides it; INTRO waits on exactly that for the BMX.
 - Verification: `tests/browser/script-other-vehicles.spec.ts`.
+
+## CMenuSystem: the script's menus
+
+- Source: gta-reversed `MenuSystem.cpp`, all reversed but FillGridWithCarColours; CHud::Draw's call to Process;
+  CPad::GetAnaloguePadUp and its kin; CMenuManager::DrawWindow.
+- The menus are engine state (`src/engine/ScmMenus.ts`):
+  - Two slots; a new menu takes the id equal to the count in use, as CreateNewMenu does.
+  - Up to four columns of twelve GXT rows, with numbers per cell.
+  - Which rows can be chosen or are already bought, the highlight and the accepted row.
+  - A grid of car colours.
+- The commands run on it: CREATE_MENU, CREATE_MENU_GRID, DELETE_MENU, SET_MENU_COLUMN, SET_MENU_ITEM_WITH_NUMBER
+  and _WITH_2_NUMBERS, SET_MENU_COLUMN_WIDTH and _ORIENTATION, ACTIVATE_MENU_ITEM, SET_ACTIVE_MENU_ITEM,
+  HIGHLIGHT_MENU_ITEM, GET_MENU_ITEM_SELECTED and _ACCEPTED, and CHANGE_CAR_COLOUR_FROM_MENU.
+  - The scripts fill every unused row and header with the key DUMMY. The handlers read it as no text, since
+    CalcNonEmptyRows counts any key in the first column as a row.
+- Process runs in the HUD phase while the game is not user-paused and no STYLE_MIDDLE message is up:
+  - The stick moves the highlight once per push away from rest, and the d-pad on each press.
+  - The walk skips blank and unchoosable rows and wraps at either end.
+  - Cross (sprint here) accepts a choosable row for as long as it stays highlighted.
+  - The select, back and highlight frontend sounds play.
+- The HUD draws each menu as DisplayStandardMenu lays it out on the 640 × 448 screen:
+  - DrawWindow's black box at 190, with its gothic title.
+  - Headers and rows in the subtitles font. A row wider than its column shrinks in 0.05 steps of x scale.
+  - Row colours: light blue for the highlight, green for bought, night blue for choosable, dark grey otherwise.
+  - A menu that is not current is dimmed.
+  - Process's loop over the menus that are not current passes MENU_UNDEFINED as the id to draw, which reads out of
+    range in the reference. Here it draws each of those menus dimmed.
+- Not yet:
+  - FillGridWithCarColours is unreversed, so a grid shows black cells until the mod garage's colours are wired.
+  - CMenuSystem::Initialise does not run on a new game.
+- Verification: `tests/scm-menus.test.ts`, `tests/scm-searchlights-and-menus.test.ts`,
+  `tests/browser/script-menus.spec.ts`.

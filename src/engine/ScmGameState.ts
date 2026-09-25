@@ -13,6 +13,7 @@ import {ScmCamera} from './ScmCamera';
 import {ScmFires} from './ScmFires';
 import {ScmSetPieces} from './ScmSetPieces';
 import {ScmPads} from './ScmPads';
+import {ScmMenus} from './ScmMenus';
 import {ScmNodeSwitches} from './ScmNodeSwitches';
 import {ScmStreamedScripts} from './ScmStreamedScripts';
 import {ScmSequences} from './ScmSequences';
@@ -377,6 +378,8 @@ export class ScmGameState {
  readonly nodeSwitches=new ScmNodeSwitches();
  /** CPad as the script reads it, which a host fills from its own controls. */
  readonly pads=new ScmPads();
+ /** CMenuSystem's two script menus. */
+ readonly menus=new ScmMenus();
  /** CSetPieces' table of armed ambushes. */
  readonly setPieces=new ScmSetPieces();
  /** CWanted for the player the script alters. A host hands over the player's own with useWanted; until then the
