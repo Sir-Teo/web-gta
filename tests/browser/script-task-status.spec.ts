@@ -17,8 +17,8 @@ test('a script ped’s task reports its status until it finishes',async({page})=
  const status=(opcode=STAND_STILL)=>page.evaluate(({handle,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(handle,opcode),{handle:ped,opcode});
  // Nothing given yet: finished.
  expect(await status()).toBe(7);
- await page.evaluate(({handle,opcode})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(handle,{kind:'standStill',time:1500},opcode),{handle:ped,opcode:STAND_STILL});
- expect(await status()).toBe(0);
+ // Read in the same evaluate: the next Process makes it TASK_ASSOCIATED, and a frame may run between two evaluates.
+ expect(await page.evaluate(({handle,opcode})=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.givePedScriptedTask(handle,{kind:'standStill',time:1500},opcode);return w.scriptTaskStatus(handle,opcode);},{handle:ped,opcode:STAND_STILL})).toBe(0);
  // Another task's opcode is not this one's.
  expect(await status(0x05d3)).toBe(7);
  await expect.poll(()=>status(),{timeout:10000}).toBe(1);

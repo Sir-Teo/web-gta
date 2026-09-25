@@ -29,13 +29,18 @@ export type ScriptedPedOrder=
  |{kind:'playAnim';file:string;name:string;loop:boolean;keepLastFrame:boolean;seconds:number}
  /** CTaskSimpleTriggerLookAt: the head turns to a ped (a script handle, the player's included) for `seconds`; the
   * task itself is over as soon as it has started the look. */
- |{kind:'lookAt';target:number;seconds:number};
+ |{kind:'lookAt';target:number;seconds:number}
+ /** CTaskComplexEnterCarAsDriverTimed and CTaskComplexEnterCarAsPassengerTimed: run to the seat's door and get in,
+  * or be set in the seat when `seconds` run out. A passenger seat of -1 is any free one. */
+ |{kind:'enterCar';vehicle:number;seat:'driver'|number;seconds:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
  self():{x:number;y:number;z:number};
  /** Another ped the task names, or nothing when the handle names none. */
  ped(handle:number):{x:number;y:number;z:number}|undefined;
+ /** Whether a car handle names one the browser's peds can get into. */
+ vehicle?(handle:number):boolean;
 }
 /** The target and move-state radii TASK_GO_STRAIGHT_TO_COORD gives CTaskComplexGoToPointAndStandStill. The handler
  * is unreversed. 0.5 is the tightest radius the task itself allows a walking ped (its bStopExactly clamp), and 2 is
@@ -80,6 +85,8 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'playAnim':return {kind:'playAnim',file:task.animationFile,name:task.animationName,loop:task.loop,keepLastFrame:task.keepLastFrame,
    seconds:task.time>0?task.time/1000:Number.POSITIVE_INFINITY};
   case 'lookAtPed':return world.ped(task.target)?{kind:'lookAt',target:task.target,seconds:seconds(task.time)}:undefined;
+  case 'enterCarAsDriver':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:'driver',seconds:seconds(task.time)}:undefined;
+  case 'enterCarAsPassenger':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:task.seat,seconds:seconds(task.time)}:undefined;
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{
    const threat=world.ped(task.threat);if(!threat)return undefined;

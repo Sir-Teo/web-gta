@@ -2944,6 +2944,22 @@ async function boot() {
           pedestrians.onDropWeapon=(position,weapon,rounds,persist)=>{void drops.report(position,weapon,rounds,persist);};
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
           pedestrians.resolveScriptPed=handle=>{const ped=mission?.pedByHandle(handle);return ped==='player'?ped:onFoot(ped);};
+          pedestrians.resolveScriptVehicle=handle=>{
+           const m=mission,car=m?.vehicles.exists(handle)?m.vehicles.entity(handle) as ScriptCar|undefined:undefined;
+           if(!m||!car||typeof car.seat!=='function')return undefined;
+           return {
+            alive:()=>m.vehicles.exists(handle)&&!car.wrecked,
+            // Any free passenger seat for -1; a rear seat only where the model has ped_backseat. A seat a script ped
+            // already sits in is not free, and a taken driving seat is not jacked here.
+            seatFor:seat=>{
+             if(seat==='driver')return m.peds.seatTaken(handle,'driver')?undefined:'driver';
+             const rear=!!car.car.nativeFramePosition('ped_backseat');
+             return (seat>=0?[seat]:[0,1,2]).find(s=>s>=0&&s<=2&&(s===0||rear)&&!m.peds.seatTaken(handle,s));
+            },
+            doorPoint:seat=>{const local=carEntry.seatDoorPoint(car,seat);if(!local)return undefined;const w=car.worldPoint(local);return {x:w.x,y:w.y,z:w.z};},
+            board:(ped,seat)=>{const h=m.peds.handleOf(ped);if(h===undefined||!m.vehicles.exists(handle))return false;m.peds.warpIntoCar(h,handle,seat);return true;},
+           };
+          };
           // CDarkel::RegisterKillNotByPlayer for everyone else's kills: STAT_PEOPLE_WASTED_BY_OTHERS, a recruit of the
           // player's group costing 2 respect (STAT_RECRUITED_GANG_MEMBERS_KILLED), and a gangster's friendly or enemy count.
           pedestrians.onKill=victim=>{if(victim.byPlayerVehicle)mission?.runtime.game.stats.increment(121,1);
@@ -3220,7 +3236,8 @@ async function boot() {
                  giveScriptPedSequence:(ped,orders,repeat)=>{const p=onFoot(ped);if(p)pedestrians?.giveSequence(p,orders,repeat);},
                  clearScriptPedTasks:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearTasks(p);},
                  // A ped in a car holds no on-foot order the browser tracks, so its record is left as it is.
-                 scriptPedHasOrder:ped=>{const p=onFoot(ped);return p?pedestrians?.hasScriptTask(p)??false:true;},
+                 // A ped riding in a car runs none of the tasks the browser carries out on foot.
+                 scriptPedHasOrder:ped=>{const p=onFoot(ped);return p?pedestrians?.hasScriptTask(p)??false:false;},
                  // CWorld::ClearExcitingStuffFromArea: the deletable peds and cars in the radius go, and the
                  // fires in it are put out, which is CFireManager::ExtinguishPoint and the car-fire pass.
                  clearArea:(point,radius)=>{

@@ -6768,3 +6768,17 @@ the first ones now implemented:
   g_ikChainMan's look and is over at once, so a sequence goes straight on. A script ped's head follows the ped (or
   the player) through the port's CTaskSimpleIKChain blend for the task's time. The player's own look uses his
   existing glance chain.
+- **TASK_ENTER_CAR_AS_DRIVER and TASK_ENTER_CAR_AS_PASSENGER** (44 and 39 missions), on a car the script made:
+  CTaskComplexEnterCarAs…Timed.
+  - The ped runs to the seat's door as CTaskComplexGoToCarDoorAndStandStill does: PEDMOVE_RUN, 0.5 target radius,
+    walking inside 4 units, giving up after 30 s of seeking. The door point is GetPositionToOpenCarDoor's, from
+    ped_frontseat or ped_backseat and the car's get-in clip, and is re-read each frame as the car moves.
+  - There it is set in the seat. The open-door, get-in and close-door clips are not played for script peds.
+  - The Timed form's CTaskSimpleCarSetPedInAs… sets a ped still on its way in when its time runs out.
+  - A passenger seat of -1 takes the first free one. A rear seat needs the model's ped_backseat, and a seat a
+    script ped holds is not free. A taken driving seat is not jacked.
+  - The player's own car is not boardable by script peds yet, so those tasks still give the thread up.
+  - Setting a ped in swaps its body for a rider's, so it waits until the frame is done. Doing it inside the ped
+    loop freed a Rapier body mid-iteration and broke the physics world.
+- GET_SCRIPT_TASK_STATUS counts a ped riding in a car as holding none of the on-foot tasks. It used to report
+  such a ped's task as running for ever.

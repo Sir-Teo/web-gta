@@ -183,6 +183,17 @@ export class CarEntry {
   return nativeDoorPoint(seat,clipRootEnd(getIn.clip),car.assets.handling.values.seatOffset,side,mult,door?.angle??0);
  }
  private doorFor(side:Side){return side==='left'?DOOR.leftFront:DOOR.rightFront;}
+ /** GetPositionToOpenCarDoor for a script's seat: the driver's door, or passenger seat 0 (front right), 1 (rear left)
+  * or 2 (rear right), front seats from ped_frontseat and rear ones from ped_backseat, in native car space. Without
+  * the car's get-in clip yet the seat is pushed out by its handling seat offset alone. Nothing for a rear seat the
+  * model has no ped_backseat for. */
+ seatDoorPoint(car:WorldCar,seat:'driver'|number):V3|undefined{
+  const rear=seat!=='driver'&&seat>=1,side:Side=seat==='driver'||seat===1?'left':'right';
+  const frame=car.car.nativeFramePosition(rear?'ped_backseat':'ped_frontseat');if(!frame)return undefined;
+  const getIn=this.slotFor(car,VEHICLE_ANIM.getinLHS);
+  const door=car.doors[rear?(side==='left'?DOOR.leftRear:DOOR.rightRear):this.doorFor(side)] as {angle:number}|undefined;
+  return nativeDoorPoint({x:frame.x,y:frame.y,z:frame.z},getIn?clipRootEnd(getIn.clip):{x:0,y:0,z:0},car.assets.handling.values.seatOffset,side,1,door?.angle??0);
+ }
  private ground(point:V3,car:WorldCar){
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:point.x,y:point.y+1.5,z:point.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
   return hit?point.y+1.5-hit.timeOfImpact:undefined;

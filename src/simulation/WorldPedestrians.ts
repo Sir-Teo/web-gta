@@ -135,7 +135,10 @@ export interface Pedestrian {
   /** CTaskComplexKillPedOnFoot: the retaliation combat held on a foe (undefined for the player) until it dies. */
   |{kind:'killPed';foe?:Pedestrian;remaining:number}
   /** CTaskSimpleRunNamedAnim: the clip (by its lower-case name) once its block has loaded, and how long it has run. */
-  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;remaining:number;started:boolean;elapsed:number};
+  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;remaining:number;started:boolean;elapsed:number}
+  /** CTaskComplexEnterCar(…Timed): the car's script handle and seat, the time left before the ped is set in the seat,
+   * and CTaskComplexGoToCarDoorAndStandStill's 30 s of seeking the door. */
+  |{kind:'enterCar';vehicle:number;seat:'driver'|number;remaining:number;seek:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** The clip a finished TASK_PLAY_ANIM left held on its last frame (ANIMATION_FREEZE_LAST_FRAME). */
@@ -355,6 +358,9 @@ export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosio
 export function copHealth(model:string){const m=model.toLowerCase();return 100+(m==='swat'?50:m==='fbi'||m==='army'?100:0);}
 /** CAttractorScanner stand-in (unreversed): how far and how often a wanderer looks for attractors. */
 const ATTRACTOR_SCAN_RANGE=3,ATTRACTOR_SCAN_SECONDS=1;
+/** CTaskComplexEnterCar's CTaskComplexGoToCarDoorAndStandStill: PEDMOVE_RUN, a 0.5 target radius, slowing to a walk
+ * inside 4 units, and giving the door up after 30 s of seeking it. */
+const ENTER_CAR_DOOR_RADIUS=.5,ENTER_CAR_SLOW_DOWN_DISTANCE=4,ENTER_CAR_SEEK_SECONDS=30;
 /** MAP_Z_LOW_LIMIT: a script point at or below it is on the ground wherever that is. */
 const MAP_Z_LOW_LIMIT=-100;
 /** CTempColModels::ms_colModelPed1's bounding sphere radius. */
@@ -370,6 +376,9 @@ export class WorldPedestrians {
   /** Dead armed peds drop their gun with leftover rounds (one-shot pickup). */
   onDropWeapon?:(position:{x:number;y:number;z:number},weapon:number,rounds:number,persist?:boolean)=>void;
   /** CPed::CreateDeadPedMoney: the cash a dead ped leaves. */
+  /** A script's car by its handle, for CTaskComplexEnterCar: whether it is still there, the renderer point by the
+   * door of a seat (a passenger seat of -1 resolves to a free one, or nothing when none is), and setting the ped in. */
+  resolveScriptVehicle?:(handle:number)=>{alive():boolean;seatFor(seat:'driver'|number):'driver'|number|undefined;doorPoint(seat:'driver'|number):{x:number;y:number;z:number}|undefined;board(ped:Pedestrian,seat:'driver'|number):boolean}|undefined;
   /** The ped (or the player) a script's handle names, for the tasks that target one. */
   resolveScriptPed?:(handle:number)=>Pedestrian|'player'|undefined;
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
@@ -1471,6 +1480,11 @@ export class WorldPedestrians {
     ped.look=startLookAt(this.clock*1000,order.seconds*1000);
     break;
    }
+   case 'enterCar':{
+    if(!this.resolveScriptVehicle?.(order.vehicle))break;
+    ped.order={kind:'enterCar',vehicle:order.vehicle,seat:order.seat,remaining:order.seconds,seek:ENTER_CAR_SEEK_SECONDS};ped.flee=0;ped.loiter=false;
+    break;
+   }
    case 'die':this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;
    case 'smartFlee':{
     ped.flee=Math.max(ped.flee,order.seconds===Number.POSITIVE_INFINITY?Number.MAX_SAFE_INTEGER:order.seconds);
@@ -2467,6 +2481,21 @@ export class WorldPedestrians {
        if(!replaced){if(o.hold)p.heldScriptClip=o.clip;else p.view.clearReaction();}
        this.startNextOrder(p);
       }
+     }
+    }else if(p.order.kind==='enterCar'){
+     const o=p.order,car=this.resolveScriptVehicle?.(o.vehicle);dx=0;dz=0;
+     const seat=car?.alive()?car.seatFor(o.seat):undefined;
+     if(!car||seat===undefined)this.startNextOrder(p);
+     else{
+      o.remaining-=dt;o.seek-=dt;
+      const door=car.doorPoint(seat),q=p.actor.player.position;
+      const distance=door?Math.hypot(door.x-q.x,door.z-q.z):Infinity;
+      // The Timed task sets the ped in once its time is out (CTaskSimpleCarSetPedInAsPassenger / AsDriver). Getting to
+      // the door does the same here, since the open-door, get-in and close-door clips are not played for script peds.
+      // Setting the ped in swaps its body for a rider's, so it waits until the frame is done with this one.
+      if(o.remaining<=0||door&&goToPointArrived(distance,undefined,ENTER_CAR_DOOR_RADIUS,state.speed*dt)){p.order={kind:'standStill',remaining:Number.POSITIVE_INFINITY};queueMicrotask(()=>{if(!this.disposed&&this.people.includes(p)&&!car.board(p,seat))this.startNextOrder(p);});}
+      else if(!door||o.seek<=0)this.startNextOrder(p);
+      else{dx=door.x-q.x;dz=door.z-q.z;const moveState=goToPointMoveState(6,distance,ENTER_CAR_SLOW_DOWN_DISTANCE);orderSpeed=moveState>=6?p.runSpeed:p.walkSpeed;}
      }
     }else if(p.order.kind==='goToPoint'){
      const o=p.order;dx=0;dz=0;

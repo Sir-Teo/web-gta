@@ -108,6 +108,15 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'lookAtPed',target:3,time:-1},world({}))).toBeUndefined();
  });
 
+ test('getting into a car needs a car the peds can board, and takes the seat and the time',()=>{
+  const cars=(handle:number)=>handle===7;
+  const w={...world({}),vehicle:cars};
+  expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:7,time:-1},w)).toEqual({kind:'enterCar',vehicle:7,seat:'driver',seconds:Infinity});
+  expect(scriptedPedOrder({kind:'enterCarAsPassenger',vehicle:7,time:3000,seat:-1},w)).toEqual({kind:'enterCar',vehicle:7,seat:-1,seconds:3});
+  expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:8,time:-1},w)).toBeUndefined();
+  expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:7,time:-1},world({}))).toBeUndefined();
+ });
+
  test('dying is its own order',()=>{
   expect(scriptedPedOrder({kind:'die'},world({}))).toEqual({kind:'die'});
  });

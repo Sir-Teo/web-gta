@@ -981,6 +981,8 @@ export class ScmMission {
   return {
    self:()=>handle===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.positionOf(handle),
    ped:(other:number)=>other===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.exists(other)?this.peds.positionOf(other):undefined,
+   // A car the script made and the browser has built; the player's own car is not one a script ped can board yet.
+   vehicle:(vehicle:number)=>vehicle!==PLAYER_VEHICLE_HANDLE&&this.vehicles.exists(vehicle)&&!!this.vehicles.entity(vehicle),
   };
  }
  /** An optional host method, or the command gives up on a host that has none. */
