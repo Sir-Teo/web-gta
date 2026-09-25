@@ -73,11 +73,11 @@ describe('the runtime’s own switches in this batch',()=>{
 });
 
 describe('the vehicle, ped and object commands of this batch',()=>{
- test('a car with nobody at the wheel leaves the variable at nothing',()=>{
+ test('a car with nobody at the wheel gives -1, which names no ped (0 is a live pool slot)',()=>{
   expect(run({vehicleDriver:()=>5},undefined,
    instruction(op('GET_DRIVER_OF_CAR'),[int(CAR),gvar(40)])).readInt(40)).toBe(5);
   expect(run({vehicleDriver:()=>undefined},undefined,
-   instruction(op('GET_DRIVER_OF_CAR'),[int(CAR),gvar(40)])).readInt(40)).toBe(0);
+   instruction(op('GET_DRIVER_OF_CAR'),[int(CAR),gvar(40)])).readInt(40)).toBe(-1);
  });
 
  test('the random model gives back the model and the class together',()=>{

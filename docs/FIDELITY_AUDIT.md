@@ -6715,3 +6715,23 @@ the first ones now implemented:
   ratio of 1 or to the script's ratio. The door index is eDoors (bonnet, boot, LF, RF, LR, RR). CAutomobile::OpenDoor
   now also returns at once when the model lacks the door's car node (m_aCarNodes[nodeIdx] null). The port used to
   move and report a door that had no frame to move.
+- **Script peds stand still by default.** CPed's constructor sets a looped CTaskSimpleStandStill as
+  TASK_PRIMARY_DEFAULT (Ped.cpp). Only CPopulation::AddPed with makeWander replaces it with the wander. A ped
+  CREATE_CHAR makes therefore stands where it was put, both before its first task and between tasks.
+  - Before this change the port's script peds wandered the path nodes whenever no task was running.
+  - The default stand is not a script task: GET_SCRIPT_TASK_STATUS reports FINISHED for it.
+  - CLEAR_CHAR_TASKS leaves the default stand.
+  - TASK_WANDER_STANDARD is a primary task, so the ped keeps wandering.
+  - MARK_CHAR_AS_NO_LONGER_NEEDED follows CTheScripts::CleanUpThisPed on foot: a wandering ped carries on, and any
+    other primary task gives way to the wander.
+- **TASK_GO_STRAIGHT_TO_COORD** (957 uses, 86 missions, MAIN): CTaskComplexGoToPointAndStandStill, or its Timed form
+  when the time is not negative.
+  - SelectMoveState: a runner walks inside the move-state radius, and a sprinter also runs inside 10 units.
+  - CTaskSimpleGoToPoint arrives inside the radius when the height is within 2 units, or when the next step would
+    carry the ped past the point.
+  - The Timed form puts a ped that is not yet standing on the point when its time runs out, on the ground
+    CPedPlacement::FindZCoorForPed finds (the higher of two vertical probes).
+  - The script handler is unreversed. The target radius is taken as 0.5 and the move-state radius as the
+    constructor's 2.
+  - A z at or below MAP_Z_LOW_LIMIT means the ground, so no height check is made.
+  - An event response (a flight, a retaliation) moves the ped at its own speed while it lasts.

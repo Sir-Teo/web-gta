@@ -48,12 +48,12 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
   const peds=game.pedestrians();
   mission.peds.setHealth(ped,250);
   // A script heading of nothing is the browser's yaw of half a turn; watch how near the ped gets to it while
-  // the order lasts, because the wander it returns to afterwards starts turning it away at once.
+  // the order lasts.
   const offNorth=()=>Math.abs(Math.atan2(Math.sin(browserPed.actor.player.heading-Math.PI),Math.cos(browserPed.actor.player.heading-Math.PI)));
   let nearest=Number.POSITIVE_INFINITY;
   const wait=async()=>{
    const deadline=Date.now()+15000;
-   while(Date.now()<deadline&&browserPed.order){nearest=Math.min(nearest,offNorth());await new Promise(r=>setTimeout(r,16));}
+   while(Date.now()<deadline&&peds.hasScriptTask(browserPed)){nearest=Math.min(nearest,offNorth());await new Promise(r=>setTimeout(r,16));}
   };
   peds.giveOrder(browserPed,{kind:'standStill',seconds:1.5});
   const stood=browserPed.order?.kind??null,at={...browserPed.actor.player.position};
@@ -63,10 +63,10 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
   const turning=browserPed.order?.kind??null;
   nearest=Number.POSITIVE_INFINITY;
   await wait();
-  // The order ends on the frame the ped reaches the heading, and the wander it returns to starts turning it
-  // away on the next one, so the reading that matters is the one taken as the order clears.
+  // The order ends on the frame the ped reaches the heading, and the ped goes back to its default stand.
   nearest=Math.min(nearest,offNorth());
-  return {health:mission.peds.healthOf(ped),stood,moved,turning,finished:!browserPed.order,heading:nearest};
+  return {health:mission.peds.healthOf(ped),stood,moved,turning,finished:!peds.hasScriptTask(browserPed),
+   idle:browserPed.order?.kind==='standStill'&&!!browserPed.order.isDefault,heading:nearest};
  },{ped:made.ped});
  expect(ordered.health).toBe(250);
  expect(ordered.stood).toBe('standStill');
@@ -75,10 +75,11 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  expect(ordered.moved).toBeLessThan(2);
  expect(ordered.turning).toBe('achieveHeading');
  expect(ordered.finished).toBe(true);
- // The task ends on the frame the ped reaches the heading, and CPed::UpdateHeading turns it toward its next
- // wander point on the very next one — at the full rate, which is twice the task's — so the nearest reading a
- // test outside the frame loop can take is the tolerance plus one of those frames. What the tolerance itself
- // does is pinned exactly by the unit test over achieveHeadingStep.
+ // A script's ped does not wander off afterwards: CPed's default task is the looped CTaskSimpleStandStill.
+ expect(ordered.idle).toBe(true);
+ // The task ends on the frame the ped reaches the heading, so the nearest reading a test outside the frame loop
+ // can take is within the tolerance plus a frame. What the tolerance itself does is pinned exactly by the unit
+ // test over achieveHeadingStep.
  expect(ordered.heading).toBeLessThanOrEqual(.45);
 
  // CTaskComplexSequence: the tasks run one after another, in the order they were queued.
@@ -93,11 +94,11 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
    if(kind&&seen[seen.length-1]!==kind)seen.push(kind);
    await new Promise(r=>setTimeout(r,16));
   }
-  return {seen,sequence:browserPed.sequence??null,order:browserPed.order??null};
+  return {seen,sequence:browserPed.sequence??null,task:peds.hasScriptTask(browserPed)};
  },{ped:made.ped});
  expect(sequenced.seen).toEqual(['standStill','achieveHeading','standStill']);
- // A sequence that does not repeat is gone once its last task ends, and the ped has no order left.
- expect(sequenced.sequence).toBe(null);expect(sequenced.order).toBe(null);
+ // A sequence that does not repeat is gone once its last task ends, and the ped has no task of the script's left.
+ expect(sequenced.sequence).toBe(null);expect(sequenced.task).toBe(false);
 
  // GIVE_WEAPON_TO_CHAR: the type and the ammo are the ped's at once, and the held model follows.
  const armed=await page.evaluate(async({ped}:{ped:number})=>{
@@ -107,15 +108,15 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
   const atOnce={type:browserPed.weaponType,ammo:browserPed.totalAmmo,held:!!browserPed.weapon};
   const deadline=Date.now()+20000;
   while(Date.now()<deadline&&!browserPed.weapon)await new Promise(r=>setTimeout(r,200));
-  // CLEAR_CHAR_TASKS drops the order and leaves the ped to wander.
+  // CLEAR_CHAR_TASKS drops the order and leaves the ped its default stand.
   peds.giveOrder(browserPed,{kind:'standStill',seconds:Infinity});
   const ordered=browserPed.order?.kind??null;
   peds.clearTasks(browserPed);
-  return {atOnce,held:!!browserPed.weapon,ammo:browserPed.totalAmmo,ordered,cleared:browserPed.order??null};
+  return {atOnce,held:!!browserPed.weapon,ammo:browserPed.totalAmmo,ordered,cleared:peds.hasScriptTask(browserPed),idle:!!browserPed.order?.isDefault};
  },{ped:made.ped});
  expect(armed.atOnce).toEqual({type:22,ammo:40,held:false});
  expect(armed.held).toBe(true);expect(armed.ammo).toBe(40);
- expect(armed.ordered).toBe('standStill');expect(armed.cleared).toBe(null);
+ expect(armed.ordered).toBe('standStill');expect(armed.cleared).toBe(false);expect(armed.idle).toBe(true);
 
  // CREATE_CHAR_INSIDE_CAR: the ped rides where the car is, and the occupant renderer draws it in its seat.
  const riding=await page.evaluate(async({car}:{car:number})=>{

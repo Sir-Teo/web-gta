@@ -17,7 +17,7 @@ import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
-import {achieveHeadingStep,type ScriptedPedOrder} from './nativeScriptedPedTasks';
+import {achieveHeadingStep,goToPointArrived,goToPointMoveState,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
@@ -125,7 +125,15 @@ export interface Pedestrian {
  /** What a script's task is asking of this ped right now, for the two orders that take time: standing still
   * until the task's own time runs out, and turning to a heading at CTaskSimpleAchieveHeading's half rate until
   * it is within that task's tolerance. A browser yaw in radians; seconds for the stand. */
- order?:{kind:'standStill';remaining:number}|{kind:'achieveHeading';heading:number};
+ order?:{kind:'standStill';remaining:number;
+  /** The looped CTaskSimpleStandStill CPed's constructor makes the default task: what a script's ped does with no
+   * task of the script's own, which GET_SCRIPT_TASK_STATUS does not count as one. */
+  isDefault?:boolean}|{kind:'achieveHeading';heading:number}
+  /** CTaskComplexGoToPointAndStandStill(Timed): a renderer point, with its origin height (undefined for a point the
+   * script put on the ground), eMoveState and radii, and the seconds left of a timed task (Infinity otherwise). */
+  |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number};
+ /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
+ scriptWanders?:boolean;
  /** CTaskComplexSequence: the tasks a script queued, the index of the one running, and whether the whole
   * sequence starts again when the last one ends. The original's array holds eight. */
  sequence?:{orders:ScriptedPedOrder[];at:number;repeat:boolean};
@@ -341,6 +349,8 @@ export const pedProofedAgainst=(p:{proofs?:{bullet:boolean;fire:boolean;explosio
 export function copHealth(model:string){const m=model.toLowerCase();return 100+(m==='swat'?50:m==='fbi'||m==='army'?100:0);}
 /** CAttractorScanner stand-in (unreversed): how far and how often a wanderer looks for attractors. */
 const ATTRACTOR_SCAN_RANGE=3,ATTRACTOR_SCAN_SECONDS=1;
+/** MAP_Z_LOW_LIMIT: a script point at or below it is on the ground wherever that is. */
+const MAP_Z_LOW_LIMIT=-100;
 /** CTempColModels::ms_colModelPed1's bounding sphere radius. */
 const PED_BOUND_RADIUS=1;
 /** Heights above the feet of the stand-in ped hit spheres (see hideNearCamera). */
@@ -1355,7 +1365,7 @@ export class WorldPedestrians {
    if(this.disposed)return undefined;
    made=this.createPed({position,heading,source:built.source,officer:false,node,speed:0,speeds:built.speeds,stats:built.stats,modelRef});
   }
-  made.mission=true;made.flee=0;
+  made.mission=true;made.flee=0;made.order=this.defaultOrder(made);
   return made;
  }
  /** CPed::ProcessBuoyancy's physicalFlags.bSubmergedInWater: the origin, a unit above the feet, 0.6 under the
@@ -1389,23 +1399,32 @@ export class WorldPedestrians {
  private startNextOrder(ped:Pedestrian){
   for(let step=0;step<=SEQUENCE_TASK_SLOTS;step++){
    const sequence=ped.sequence;
-   if(!sequence){ped.order=undefined;return;}
+   if(!sequence){ped.order=this.defaultOrder(ped);return;}
    if(sequence.at>=sequence.orders.length){
-    if(!sequence.repeat){ped.sequence=undefined;ped.order=undefined;return;}
+    if(!sequence.repeat){ped.sequence=undefined;ped.order=this.defaultOrder(ped);return;}
     sequence.at=0;
    }
    this.applyOrder(ped,sequence.orders[sequence.at++]);
    if(ped.order)return;
   }
-  ped.sequence=undefined;ped.order=undefined;
+  ped.sequence=undefined;ped.order=this.defaultOrder(ped);
+ }
+ /** TASK_PRIMARY_DEFAULT for a ped with no primary task. CPed's constructor sets the looped CTaskSimpleStandStill
+  * (Ped.cpp), and only CPopulation::AddPed with makeWander swaps in the wander. So a ped a script made stands where
+  * it is between the script's tasks, and a street ped goes back to wandering. */
+ private defaultOrder(ped:Pedestrian):Pedestrian['order']{
+  return ped.mission&&!ped.scriptWanders?{kind:'standStill',remaining:Number.POSITIVE_INFINITY,isDefault:true}:undefined;
  }
  /** A script's task, carried out. CTaskComplexWanderStandard is what a street ped does unasked, so wandering
   * is the absence of an order; CTaskComplexDie kills the ped whatever it is proof against, because the task is
   * not damage; a smart flight sets the same flee the browser's own jacking and fright already use. */
  private applyOrder(ped:Pedestrian,order:ScriptedPedOrder){
-  ped.order=undefined;
+  ped.order=undefined;ped.scriptWanders=order.kind==='wander';
   switch(order.kind){
    case 'standStill':ped.order={kind:'standStill',remaining:order.seconds};ped.flee=0;ped.loiter=false;break;
+   // The script's point is (x, y, z) up; the renderer's is (x, z, -y) with y up.
+   case 'goToPoint':ped.order={kind:'goToPoint',x:order.x,z:-order.y,y:order.z>MAP_Z_LOW_LIMIT?order.z:undefined,moveState:order.moveState,
+    radius:order.radius,moveStateRadius:order.moveStateRadius,remaining:order.seconds};ped.flee=0;ped.loiter=false;break;
    // The script's degrees clockwise from north are the browser's yaw plus half a turn.
    case 'achieveHeading':ped.order={kind:'achieveHeading',heading:order.degrees*Math.PI/180+Math.PI};break;
    // Wandering is what the ped does with no task at all, so it ends the sequence rather than joining it.
@@ -1464,7 +1483,24 @@ export class WorldPedestrians {
   const held=ped.weapon?.info.type??ped.weaponType;if(held!==weaponType)return;
   ped.gun?.dispose();ped.gun=undefined;ped.weapon=undefined;ped.weaponType=undefined;ped.totalAmmo=undefined;ped.gunState=undefined;
  }
- clearTasks(ped:Pedestrian){ped.order=undefined;ped.sequence=undefined;ped.goTo=undefined;}
+ /** CPedPlacement::FindZCoorForPed then SetPosn: the highest ground under two probes from half a unit above the
+  * point (its origin height, or well above for a point on the ground), the ped's feet set on it. */
+ private placeOnGround(ped:Pedestrian,x:number,z:number,originY?:number){
+  const top=(originY??ped.actor.player.position.y+PED_ORIGIN_HEIGHT+50)+.5;
+  let ground:number|undefined;
+  for(const [ox,oz] of [[0,0],[.1,-.1]]){
+   const hit=this.sim.world.castRay(new RAPIER.Ray({x:x+ox,y:top,z:z+oz},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   if(hit)ground=Math.max(ground??-Infinity,top-hit.timeOfImpact);
+  }
+  if(ground===undefined)return;
+  const feet={x,y:ground,z};
+  ped.actor.player.position={...feet};ped.actor.player.previous={...feet};
+  ped.body.setTranslation({x,y:ground+.9,z},true);ped.collider.setTranslation({x,y:ground+.9,z});
+ }
+ /** CLEAR_CHAR_TASKS: the primary task goes, leaving the default. */
+ clearTasks(ped:Pedestrian){ped.sequence=undefined;ped.goTo=undefined;ped.scriptWanders=false;ped.order=this.defaultOrder(ped);}
+ /** Whether a script's own task still runs on the ped (the default stand is not one). */
+ hasScriptTask(ped:Pedestrian){return !!(ped.order&&!(ped.order.kind==='standStill'&&ped.order.isDefault)||ped.sequence||ped.goTo);}
  /** The teleport behind WARP_CHAR_FROM_CAR_TO_COORD: the ped's tasks are flushed, the point is dropped to the
   * ground and the ped set down on it. A browser ped a script made is never in a car, so there is nothing to
   * climb out of first. */
@@ -1505,7 +1541,11 @@ export class WorldPedestrians {
  private rainSkip(){const catalog=this.catalog;return catalog&&(this.rain?.()??0)>=.1?(name:string)=>catalog.sunbather(name):undefined;}
  rosterCivilian(){return this.roster?.choose(name=>this.wearing(name),this.rainSkip());}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
- releaseScripted(ped:Pedestrian){ped.mission=false;}
+ releaseScripted(ped:Pedestrian){
+  ped.mission=false;
+  // CleanUpThisPed on foot: a ped already wandering keeps it; any other primary task gives way to the wander.
+  if(!ped.scriptWanders){ped.sequence=undefined;ped.order=undefined;ped.scriptWanders=true;this.chooseTarget(ped);}
+ }
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */
  removeScripted(ped:Pedestrian){
   const at=this.people.indexOf(ped);if(at<0)return false;
@@ -2349,9 +2389,20 @@ export class WorldPedestrians {
    }
    // A script's task outranks the wander it replaced, and lasts until its own time or tolerance says it is
    // done. The wander's own arrival and crossing are held off while it does, because the ped is not wandering.
+   let orderSpeed:number|undefined;
    if(p.order&&p.health>0&&p.down===0){
     if(p.order.kind==='standStill'){
      dx=0;dz=0;p.order.remaining-=dt;if(p.order.remaining<=0)this.startNextOrder(p);
+    }else if(p.order.kind==='goToPoint'){
+     const o=p.order;dx=0;dz=0;
+     // CTaskComplexGoToPointAndStandStillTimed::ControlSubTask: out of time and not yet standing, the ped is put on
+     // the point, CPedPlacement::FindZCoorForPed's ground under it.
+     if(o.remaining!==Number.POSITIVE_INFINITY){o.remaining-=dt;if(o.remaining<=0){o.remaining=Number.POSITIVE_INFINITY;this.placeOnGround(p,o.x,o.z,o.y);}}
+     const q=p.actor.player.position,gx=o.x-q.x,gz=o.z-q.z,distance=Math.hypot(gx,gz);
+     const moveState=goToPointMoveState(o.moveState,distance,o.moveStateRadius);
+     const speed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;
+     if(goToPointArrived(distance,o.y===undefined?undefined:q.y+PED_ORIGIN_HEIGHT-o.y,o.radius,state.speed*dt))this.startNextOrder(p);
+     else{dx=gx;dz=gz;orderSpeed=speed;}
     }else{
      dx=0;dz=0;
      const turned=achieveHeadingStep(state.heading,p.order.heading,p.headingChange,dt);
@@ -2637,7 +2688,7 @@ export class WorldPedestrians {
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&(!p.follow||(p.foe?.health??0)>0)&&p.taunt===undefined;
      const retaliateDist=retaliating?Math.hypot((p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).x-state.position.x,(p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.loiter&&p.flee<=0&&p.retaliate<=0?0:policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??stealSpeed??hangoutSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0||this.clearStreets&&p.gang===undefined&&!p.dealer?p.sprintSpeed:p.walkSpeed));
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.loiter&&p.flee<=0&&p.retaliate<=0?0:(fleeing||retaliating?undefined:orderSpeed)??policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??stealSpeed??hangoutSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0||this.clearStreets&&p.gang===undefined&&!p.dealer?p.sprintSpeed:p.walkSpeed));
     // Eased gait: peds burst from their current pace instead of teleporting
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));

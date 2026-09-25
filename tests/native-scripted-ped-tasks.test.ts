@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'vitest';
-import {ACHIEVE_HEADING_TOLERANCE,achieveHeadingStep,nativeHeadingDegrees,scriptedPedOrder,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
+import {ACHIEVE_HEADING_TOLERANCE,achieveHeadingStep,goToPointArrived,goToPointMoveState,nativeHeadingDegrees,scriptedPedOrder,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
 import type {ScmScriptedTask} from '../src/engine/ScmThread';
 
 const world=(peds:Record<number,{x:number;y:number;z:number}>,self={x:0,y:0,z:0}):ScriptedTaskWorld=>
@@ -46,7 +46,7 @@ describe('the tasks a script gives a ped',()=>{
 
  test('a task with no browser behaviour yet gives nothing back, so the thread gives up instead of pretending',()=>{
   const unported:ScmScriptedTask[]=[{kind:'scratchHead'},{kind:'handsUp',time:1000},
-   {kind:'goStraightToCoord',x:0,y:0,z:0,speed:1,time:1000},{kind:'leaveAnyCar'}];
+   {kind:'leaveAnyCar'}];
   for(const task of unported)expect(scriptedPedOrder(task,world({}))).toBeUndefined();
  });
 
@@ -67,6 +67,27 @@ describe('the tasks a script gives a ped',()=>{
   // Turning to where it already faces is done at once and moves nothing.
   const still=achieveHeadingStep(1.25,1.25,rate,frame);
   expect(still.heading).toBeCloseTo(1.25,9);expect(still.done).toBe(true);
+ });
+
+ test('going straight to a point is CTaskComplexGoToPointAndStandStill, timed when the script gives a time',()=>{
+  expect(scriptedPedOrder({kind:'goStraightToCoord',x:1,y:2,z:3,speed:6,time:-1},world({})))
+   .toEqual({kind:'goToPoint',x:1,y:2,z:3,moveState:6,radius:.5,moveStateRadius:2,seconds:Infinity});
+  expect(scriptedPedOrder({kind:'goStraightToCoord',x:1,y:2,z:3,speed:4,time:2500},world({}))?.seconds).toBe(2.5);
+ });
+
+ test('SelectMoveState walks near the point, runs further and sprints past 10 units',()=>{
+  expect(goToPointMoveState(4,50,2)).toBe(4);
+  expect(goToPointMoveState(6,1.9,2)).toBe(4);expect(goToPointMoveState(6,2,2)).toBe(6);expect(goToPointMoveState(6,500,2)).toBe(6);
+  expect(goToPointMoveState(7,1,2)).toBe(4);expect(goToPointMoveState(7,9.9,2)).toBe(6);expect(goToPointMoveState(7,10,2)).toBe(7);
+ });
+
+ test('a go-to-point arrives inside its radius at the right height, or when the next step would pass the point',()=>{
+  expect(goToPointArrived(.4,0,.5,.05)).toBe(true);
+  expect(goToPointArrived(.6,0,.5,.05)).toBe(false);
+  // Two units or more off the point's height is not there yet, until the step would carry the ped past it.
+  expect(goToPointArrived(.4,2,.5,.05)).toBe(false);expect(goToPointArrived(.4,2,.5,.4)).toBe(true);
+  // A point on the ground has no height to check.
+  expect(goToPointArrived(.4,undefined,.5,0)).toBe(true);
  });
 
  test('dying is its own order',()=>{
