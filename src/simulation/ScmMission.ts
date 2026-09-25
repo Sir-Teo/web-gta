@@ -451,6 +451,8 @@ export interface ScmMissionWorld {
  setScriptVehicleFrozen(car:unknown,frozen:boolean):void;
  /** ANCHOR_BOAT: false for a vehicle that is not a boat. */
  setScriptBoatAnchored?(car:unknown,anchored:boolean):boolean;
+ /** CAnimBlendHierarchy::m_fTotalTime of a clip in a script's animation block, seconds, once read. */
+ scriptObjectAnimLength?(block:string,name:string):Promise<number|undefined>;
  /** SET_UPSIDEDOWN_CAR_NOT_DAMAGED: autoFlags.bDoesNotGetDamagedUpsideDown. */
  setScriptVehicleUpsideDownNotDamaged?(car:unknown,state:boolean):void;
  setScriptVehicleForwardSpeed(car:unknown,forwardSpeed:number):void;
@@ -1002,6 +1004,17 @@ export class ScmMission {
    // The handler is unreversed; off the water nothing writes its height, which reads here as 0.
    waterHeightAtCoords:(x,y,waves)=>this.host('waterLevelAt','GET_WATER_HEIGHT_AT_COORDS')(x,y,waves)??0,
    breakObject:(handle,intensity)=>{this.runtime.game.objects.breakObject(handle,intensity!==0);},
+   // PLAY_OBJECT_ANIM: the association goes on at once, and its length follows once the host has read the clip from
+   // the block (which the script has loaded before it plays).
+   playObjectAnim:(handle,name,block,blendDelta,lockF,loop)=>{
+    const objects=this.runtime.game.objects;objects.playAnim(handle,name,block,blendDelta,lockF,loop);
+    const anim=objects.at(handle).anim;
+    if(anim&&anim.length===undefined)void this.world.scriptObjectAnimLength?.(block,name).then(length=>{if(length!==undefined&&objects.exists(handle))objects.setAnimLength(handle,name,length);});
+   },
+   objectIsPlayingAnim:(handle,name)=>this.runtime.game.objects.isPlayingAnim(handle,name),
+   setObjectAnimSpeed:(handle,name,speed)=>{this.runtime.game.objects.setAnimSpeed(handle,name,speed);},
+   setObjectAnimProgress:(handle,name,progress)=>{this.runtime.game.objects.setAnimProgress(handle,name,progress);},
+   objectAnimProgress:(handle,name)=>this.runtime.game.objects.animProgress(handle,name),
    objectHasBeenDamaged:handle=>this.runtime.game.objects.hasBeenDamaged(handle),
    // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.
    setPedDropsObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly);},
@@ -2450,7 +2463,7 @@ export class ScmMission {
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();this.processGroups(nowMs);
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.processTaskRecords();

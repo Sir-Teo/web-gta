@@ -19,6 +19,8 @@ import {ModelReadCache,readModel} from '../assets/readModel';
 import {modelObject} from '../assets/ModelObjects';
 import type {IdeAssociation} from '../assets/ide';
 import type {ScmObject} from '../engine/ScmObjects';
+import type {NativeAnimation} from '../assets/ifp';
+import {animationTime,sampleTrack,type TrackPose} from '../animation/sample';
 /* The objects a script makes, drawn where the runtime says they are.
  *
  * ScmObjects already holds everything CObject carries for the script — position, heading, the full rotation,
@@ -28,10 +30,35 @@ import type {ScmObject} from '../engine/ScmObjects';
  *
  * A model the archive does not carry draws nothing, as CStreaming renders nothing for a model it cannot load,
  * and the object still exists for every question the script asks about it. */
+const UNIT=new Vector3(1,1,1);
+/** An object clump's frames under a clip, as FrameUpdateCallBackNonSkinned poses them: each frame's matrix is
+ * rebuilt from the key's rotation and, when the track has one, its translation (else the frame's own position),
+ * with no scale. Tracks are matched to frames by name; one naming no frame is left out. Nothing when none match. */
+function bindObjectAnimation(root:import('three').Object3D,clip:NativeAnimation){
+ const frames=new Map<string,import('three').Object3D>();
+ root.traverse(o=>{if(Number.isInteger(o.userData.nativeFrame)){const k=o.name.trim().toLowerCase();if(!frames.has(k))frames.set(k,o);}});
+ const bindings=clip.tracks.flatMap(track=>{
+  const target=track.times.length?frames.get(track.name.trim().toLowerCase()):undefined;if(!target)return [];
+  const rest=target.matrix.clone(),pose:TrackPose={rotation:new Quaternion(),translation:null};
+  return [{track,target,rest,position:new Vector3().setFromMatrixPosition(rest),pose}];
+ });
+ if(!bindings.length)return undefined;
+ return {
+  sample(seconds:number){
+   const time=animationTime(clip,seconds,false);
+   for(const b of bindings){sampleTrack(b.track,time,b.pose);b.target.matrix.compose(b.pose.translation??b.position,b.pose.rotation,UNIT);b.target.matrixWorldNeedsUpdate=true;}
+   root.updateMatrixWorld(true);
+  },
+  restore(){for(const b of bindings){b.target.matrix.copy(b.rest);b.target.matrixWorldNeedsUpdate=true;}root.updateMatrixWorld(true);},
+ };
+}
 export class ScriptObjectViews{
  private readonly views=new Map<number,{group:Group;dispose:()=>void;model:number|string;applied:Float64Array;shown:boolean;
   physical?:ReturnType<typeof installNativeCollisionMatrix>;collisionOn:boolean;col?:ColModel;
-  asset:{model:import('../assets/dff').DffModel;textures:import('../assets/modelTextures').ModelTexture[]}}>();
+  asset:{model:import('../assets/dff').DffModel;textures:import('../assets/modelTextures').ModelTexture[]};root:import('three').Object3D;
+  anim?:{name:string;binding?:ReturnType<typeof bindObjectAnimation>;time:number}}>();
+ /** A clip from a script's animation block, which PLAY_OBJECT_ANIM names. */
+ animation?:(block:string,name:string)=>Promise<NativeAnimation|undefined>;
  /** Which script object each of the colliders belongs to. */
  private readonly owners=new Map<number,number>();
  /** Which archive COL collection holds each model, and where in it: CColStore's files, read by their chunk headers. */
@@ -128,6 +155,7 @@ export class ScriptObjectViews{
      this.place(view.group,object);ScriptObjectViews.record(object,view.applied);view.shown=shown;
      if(view.physical)ScriptObjectViews.pose(view.physical.body,object,false);
     }
+    if(view.anim||object.anim)this.animate(object,view);
     if(view.physical&&view.collisionOn!==ScriptObjectViews.collides(object)){
      view.collisionOn=ScriptObjectViews.collides(object);
      for(let i=0;i<view.physical.body.numColliders();i++)view.physical.body.collider(i).setEnabled(view.collisionOn);
@@ -160,8 +188,24 @@ export class ScriptObjectViews{
    const group=new Group();group.add(built.root);
    this.place(group,object);this.scene.add(group);
    const applied=new Float64Array(TRANSFORM_FIELDS);ScriptObjectViews.record(object,applied);
-   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object),physical,collisionOn:ScriptObjectViews.collides(object),col,asset});
+   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object),physical,collisionOn:ScriptObjectViews.collides(object),col,asset,root:built.root});
   });
+ }
+ /** The association's pose on the clump's frames: each track drives the frame of its name (an object's clump has no
+  * HAnim bones), and a track naming no frame is left out, as RpAnimBlendClumpInit finds no node for it. The frames
+  * go back to their rest pose once the association has gone. Nothing is resampled while the time stands still. */
+ private animate(object:ScmObject,view:NonNullable<ReturnType<ScriptObjectViews['views']['get']>>){
+  const anim=object.anim;
+  if(!anim||view.anim&&view.anim.name!==anim.name.toUpperCase()){view.anim?.binding?.restore();view.anim=undefined;if(!anim)return;}
+  let state=view.anim;
+  if(!state){
+   const current:NonNullable<typeof view.anim>={name:anim.name.toUpperCase(),time:NaN};view.anim=state=current;
+   void this.animation?.(anim.block,anim.name).then(clip=>{
+    if(!clip||view.anim!==current)return;
+    current.binding=bindObjectAnimation(view.root,clip);
+   });
+  }
+  if(state.binding&&state.time!==anim.time){state.binding.sample(anim.time);state.time=anim.time;}
  }
  /* Native axes to the renderer's: x stays, the script's z is up here and its y runs the other way. CEntity's
   * heading turns about the up axis, and SET_OBJECT_ROTATION's three angles turn about each of them in turn. */

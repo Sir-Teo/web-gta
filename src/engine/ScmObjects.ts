@@ -77,7 +77,15 @@ export interface ScmObject {
  proofs:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
  /** CTheScripts::MissionCleanUp holds the object while this is set; DONT_REMOVE_OBJECT takes it off the list. */
  missionCleanup:boolean;
+ /** The CAnimBlendAssociation PLAY_OBJECT_ANIM put on the object's clump, if any. */
+ anim?:ScmObjectAnim;
 }
+/** A clump's animation association as the object commands reach it: the hierarchy's name and block, m_CurrentTime
+ * and m_Speed (seconds), ANIMATION_LOOPED and ANIMATION_STARTED, whether it fades out once done, and the hierarchy's
+ * m_fTotalTime once the host has the clip. `fading` counts down the -4 blend-out that ends in its deletion. */
+export interface ScmObjectAnim {name:string;block:string;time:number;speed:number;loop:boolean;fadeOutWhenDone:boolean;running:boolean;length?:number;fading?:number}
+/** A finished association that fades out does so at a blend delta of -4: a quarter second. */
+const FADE_OUT_SECONDS=.25;
 /** FixAngleDegrees (Scripts/CommandParser/Utility.hpp): one step either way, not a modulo. */
 export function fixAngleDegrees(degrees:number){
  if(degrees<0)return degrees+360;
@@ -90,6 +98,9 @@ const DEG=Math.PI/180;
 export class ScmObjects {
  /** CObjectData::SetObjectData's lookup, which the host fills from OBJECT.DAT once it is read. */
  objectInfo?:(model:number|string)=>ScmObjectInfo|undefined;
+ /** Whether the model is a clump (the IDE's anim and hier sections) rather than a single atomic: only a clump takes
+  * an animation. Unset, every model does. */
+ clumpModel?:(model:number|string)=>boolean;
  private readonly objects=new Map<number,ScmObject>();
  private nextHandle=1;
  /** The objects handed to g_breakMan since the host last looked, each with BreakObject_c::Init's bJustFaces: the
@@ -247,6 +258,57 @@ export class ScmObjects {
  freezePosition(handle:number,frozen:boolean){this.at(handle).dontApplySpeed=frozen;}
  /** SET_OBJECT_DYNAMIC: CEntity::SetIsStatic with the opposite of what the script asks for. */
  setDynamic(handle:number,dynamic:boolean){this.at(handle).isStatic=!dynamic;}
+ /** PLAY_OBJECT_ANIM: CAnimManager::BlendAnimation on the object's clump, whose RwObject must be a clump. The
+  * association already playing that hierarchy is kept where it is, started again only once it has run to its end;
+  * any other is blended out and goes. The fourth operand (lockF) keeps a finished one-shot on its last frame;
+  * without it the association fades out when done, as a ped's does. The blend in itself is not drawn. */
+ playAnim(handle:number,name:string,block:string,blendDelta:number,lockF:boolean,loop:boolean){
+  const object=this.at(handle);
+  requireAsset(!!name&&Number.isFinite(blendDelta),'Invalid object animation.');
+  if(this.clumpModel&&!this.clumpModel(object.model))return;
+  const found=this.animNamed(object,name);
+  if(found){
+   found.fading=undefined;
+   if(!found.running&&found.length!==undefined&&found.time===found.length){found.time=0;found.running=true;}
+   return;
+  }
+  object.anim={name,block,time:0,speed:1,loop,fadeOutWhenDone:!lockF,running:true};
+ }
+ /** RpAnimBlendClumpGetAssociation by name: hierarchy names are compared by their upper-case keys. */
+ private animNamed(object:ScmObject,name:string){const anim=object.anim;return anim&&anim.name.toUpperCase()===name.toUpperCase()?anim:undefined;}
+ /** The host's CAnimBlendHierarchy::m_fTotalTime for the association playing that clip, once it has it. */
+ setAnimLength(handle:number,name:string,length:number){
+  const anim=this.objects.get(handle)&&this.animNamed(this.at(handle),name);
+  if(anim&&Number.isFinite(length)&&length>=0)anim.length=length;
+ }
+ /** IS_OBJECT_PLAYING_ANIM: the clump has an association under that name, fading or not. */
+ isPlayingAnim(handle:number,name:string){return !!this.animNamed(this.at(handle),name);}
+ /** SET_OBJECT_ANIM_SPEED: m_Speed. */
+ setAnimSpeed(handle:number,name:string,speed:number){const anim=this.animNamed(this.at(handle),name);if(anim)anim.speed=speed;}
+ /** GET_OBJECT_ANIM_CURRENT_TIME: m_CurrentTime over the hierarchy's total time; nothing without the association. */
+ animProgress(handle:number,name:string){const anim=this.animNamed(this.at(handle),name);return anim?.length?anim.time/anim.length:0;}
+ /** SET_OBJECT_ANIM_CURRENT_TIME: CAnimBlendAssociation::SetCurrentTime of m_Speed times the progress, as the object
+  * handler has it (the char handler scales by the total time), wrapped for a loop and held at the end otherwise. */
+ setAnimProgress(handle:number,name:string,progress:number){
+  const anim=this.animNamed(this.at(handle),name);if(!anim)return;
+  anim.time=anim.speed*progress;
+  const length=anim.length;if(!length)return;
+  if(anim.time>=length)anim.time=anim.loop?anim.time%length:length;
+ }
+ /** CAnimBlendAssociation::UpdateTime and UpdateBlend for each object's association over a step of `seconds`: the
+  * time runs at m_Speed; at the end a loop wraps, and a one-shot stops there and, fading out when done, goes a
+  * quarter second later. Nothing runs past the end until the host has the clip's length. */
+ advanceAnims(seconds:number){
+  for(const object of this.objects.values()){
+   const anim=object.anim;if(!anim)continue;
+   if(anim.fading!==undefined){anim.fading-=seconds;if(anim.fading<=0)object.anim=undefined;continue;}
+   if(!anim.running)continue;
+   anim.time+=anim.speed*seconds;
+   const length=anim.length;if(length===undefined||anim.time<length)continue;
+   if(anim.loop)anim.time=length>0?anim.time%length:0;
+   else{anim.time=length;anim.running=false;if(anim.fadeOutWhenDone)anim.fading=FADE_OUT_SECONDS;}
+  }
+ }
  /** SET_OBJECT_PROOFS: the five physicalFlags the reversed SET_CAR_PROOFS and SET_CHAR_PROOFS set. */
  setProofs(handle:number,proofs:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}){
   this.at(handle).proofs={...proofs};

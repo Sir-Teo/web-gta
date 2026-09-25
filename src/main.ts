@@ -3453,6 +3453,7 @@ async function boot() {
               if(Array.isArray(data.ideRecords)&&!scriptObjectViews){
                scriptObjectViews=new ScriptObjectViews(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,data.ideRecords,sim.world);
                scriptObjectViews.visibleArea=()=>render.lighting.area;
+               scriptObjectViews.animation=(block,name)=>pedestrians?.scriptAnimation(block,name)??Promise.resolve(undefined);
                const byId=new Map<number,import('./assets/ide').IdeAssociation>(),byName=new Map<string,import('./assets/ide').IdeAssociation>();
                for(const record of data.ideRecords as import('./assets/ide').IdeAssociation[]){
                 if(!byId.has(record.id))byId.set(record.id,record);
@@ -3795,6 +3796,7 @@ async function boot() {
                    up:native(rotate({x:0,y:1,z:0})),position:{x:p.x,y:-p.z,z:p.y}};
                  },
                  setScriptVehicleUpsideDownNotDamaged:(car,state)=>{if('noUpsideDownDamage' in (car as object))(car as ScriptCar).noUpsideDownDamage=state;},
+                 scriptObjectAnimLength:(block,name)=>(pedestrians?.scriptAnimation(block,name)??Promise.resolve(undefined)).then(clip=>clip?.duration),
                  setScriptBoatAnchored:(car,anchored)=>{if(!(car instanceof WorldBoat))return false;car.setAnchored(anchored);return true;},
                  // physicalFlags.bDontApplySpeed: the car keeps its place and stops carrying any motion.
                  setScriptVehicleFrozen:(car,frozen)=>{
@@ -4184,6 +4186,12 @@ async function boot() {
                 mission.runtime.game.objects.objectInfo=model=>{
                   const name=typeof model==='number'?scriptPickupModels?.byId.get(model)?.model:model,values=name?(localObjectDefs??resolvedObjectDefs)?.get(name.toLowerCase())?.values:undefined;
                   return values&&{colDamageEffect:values.collisionDamageEffect??0,colDamageMultiplier:values.collisionDamageMultiplier??1,smashMultiplier:values.smashMultiplier??1,mass:values.mass??99999};
+                };
+                // A clump model (the IDE's anim and hier sections, and the vehicles, peds and weapons) takes an animation;
+                // an atomic one (objs, tobj) does not. An unknown model is let through.
+                mission.runtime.game.objects.clumpModel=model=>{
+                  const record=typeof model==='number'?scriptPickupModels?.byId.get(model):scriptPickupModels?.byName.get(model.toLowerCase());
+                  return !record||(record.section!=='objs'&&record.section!=='tobj');
                 };
                 // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);

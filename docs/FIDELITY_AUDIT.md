@@ -8087,3 +8087,17 @@ reversed). `ScriptResetForEffects`, from the resurrection restore, clears both. 
 back about its own position to the heading taken the first anchored frame. `WorldBoat.holdAnchor` does the same after
 the buoyancy and drive step, so a parked or script boat no longer drifts until the player drives it. `ANCHOR_BOAT`
 sets the flag alone, as the game does. Tests: `boat-anchor`, `script-other-vehicles`.
+
+## PLAY_OBJECT_ANIM and the object animation questions
+
+`PLAY_OBJECT_ANIM` blends a clip from a script-loaded block onto an object's clump (`CAnimManager::BlendAnimation`):
+the association already playing that hierarchy keeps its time and is started again only once it has run out; any
+other goes. An atomic model (the IDE's objs and tobj) has no clump and takes none, and `IS_OBJECT_PLAYING_ANIM` is
+false for it. The association's time runs at `m_Speed` (`CAnimBlendAssociation::UpdateTime`): a loop wraps, a one-shot
+stops at its end and, without lockF, fades out (-4, a quarter second) and is deleted. `GET_OBJECT_ANIM_CURRENT_TIME`
+is time over total, `SET_OBJECT_ANIM_SPEED` sets `m_Speed`, and `SET_OBJECT_ANIM_CURRENT_TIME` sets `m_Speed` times
+the progress, which is what the reversed object handler does (the char handler scales by the total time).
+`ScriptObjectViews` poses the clump's frames by name as `FrameUpdateCallBackNonSkinned` does, each matrix rebuilt
+from the key's rotation and translation (the frame's own position when the track has none) without scale, and puts
+them back at rest once the association goes. The blend in itself is not drawn. Tests: `scm-object-anim`,
+`script-object-anim`.
