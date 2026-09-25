@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** TASK_PLAY_ANIM: a PED clip plays once and the task ends with it; a clip from another block (ATTRACTORS) is read from
  * the archive, loops, and ends with the script's time. */
 test('a script ped plays a named clip from ped.ifp and from a script animation block',async({page})=>{
@@ -8,6 +9,7 @@ test('a script ped plays a named clip from ped.ifp and from a script animation b
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const ped=await page.evaluate(()=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),p=game.state().player.position;
   return mission.peds.create(4,'MALE01',{x:p.x+4,y:-p.z,z:p.y});

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CGameLogic's trip skip: SET_UP_SKIP offers it; in a car the HUD shows the skip icon and "Trip Skip" (CHud::DrawTripSkip);
  * CONVERSATION_YES (the D-pad right, Y on the PC) fades out, and three seconds on the car is set down at the skip's
  * point, "Later that day..." (SKIP) in the bottom-right style. */
@@ -9,6 +10,7 @@ test('a trip skip takes the player’s car to the point the script set up',async
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const car=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;return g.missionForProfiling().vehicles.create(400,{x:p.x+6,y:-p.z+7,z:p.y},90);});
  await page.waitForFunction(car=>!!(window as any).__game.missionForProfiling().vehicles.entity(car),car,{timeout:45000});
  await page.evaluate(car=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCar(1,car),car);

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** The particle systems a script makes: one standing at a point, and one hanging from a car that follows it.
  * Fx_c's own manager runs them, which is the manager the browser's explosions and skids already use. */
 test('a script’s particle system plays where it put it and follows what it hangs from',async({page})=>{
@@ -8,6 +9,7 @@ test('a script’s particle system plays where it put it and follows what it han
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await expect.poll(async()=>await page.evaluate(()=>!!(window as any).__game.worldFx?.().manager),{timeout:60000}).toBe(true);
 
  const out=await page.evaluate(async()=>{

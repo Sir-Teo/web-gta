@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CStuckCarCheck: a driven car that stays put through its check time is stuck (IS_CAR_STUCK), and one added
  * WITH_WARP is put back on a car node near where it was, once neither it nor the node is on screen. */
 test('a stuck script car out of sight is warped onto a road node',async({page})=>{
@@ -8,6 +9,7 @@ test('a stuck script car out of sight is warped onto a road node',async({page})=
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const car=await page.evaluate(()=>{
   const game=(window as any).__game,m=game.missionForProfiling(),p=game.state().player.position;
   return m.vehicles.create(400,{x:p.x,y:-p.z-30,z:p.y},0);

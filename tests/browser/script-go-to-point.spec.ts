@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** A ped a script makes stands (CPed's default CTaskSimpleStandStill) until tasked. TASK_GO_STRAIGHT_TO_COORD walks it
  * to the point and it stands there, and the timed form puts a ped that is still on its way on the point once the time
  * runs out. */
@@ -9,6 +10,7 @@ test('a script ped stands until told, walks straight to a point, and a timed go-
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const ped=await page.evaluate(()=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),p=game.state().player.position;
   return mission.peds.create(4,'MALE01',{x:p.x+4,y:-p.z,z:p.y});

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CStuntJumpManager's list is built by the script's own ADD_STUNT_JUMP. The browser read a list out of the
  * script's bytes ahead of time; it now uses the one the running script built. */
 test('the stunt jumps are the ones the running script added',async({page})=>{
@@ -8,6 +9,7 @@ test('the stunt jumps are the ones the running script added',async({page})=>{
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling().scriptStuntJumps().length),{timeout:30000}).toBeGreaterThan(0);
 
  const out=await page.evaluate(async()=>{

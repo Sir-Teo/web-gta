@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** The player's driving tasks: TASK_CAR_TEMP_ACTION and TASK_CAR_DRIVE_TO_COORD on the car he sits in drive it on its
  * autopilot with him at the wheel, and the pad has the car back once they are over. */
 test('a script drives the player’s car forward a moment, then to a point',async({page})=>{
@@ -8,6 +9,7 @@ test('a script drives the player’s car forward a moment, then to a point',asyn
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const car=await page.evaluate(()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;return m.vehicles.create(400,{x:p.x+6,y:-p.z,z:p.y},90);});
  await page.waitForFunction((car:number)=>!!(window as any).__game.missionForProfiling().vehicles.entity(car),car,{timeout:45000});
  await page.evaluate((car:number)=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCar(1,car),car);

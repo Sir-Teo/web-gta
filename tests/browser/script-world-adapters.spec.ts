@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** Mission world adapters the campaign's threads reach: IS_POINT_ON_SCREEN, WARP_CHAR_INTO_CAR_AS_PASSENGER with
  * GET_CAR_CHAR_IS_USING, the speech switches and GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS's ped matrix. */
 test('the script’s camera, seat, speech and ped-matrix questions are answered',async({page})=>{
@@ -8,6 +9,7 @@ test('the script’s camera, seat, speech and ped-matrix questions are answered'
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  // In front of the camera and behind it.
  const seen=await page.evaluate(()=>{
   const g=(window as any).__game,w=g.missionForProfiling().runtime.world,c=g.render().camera;

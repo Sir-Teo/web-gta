@@ -49,6 +49,11 @@ const MODEL_NEVADA=553;
 /** eScriptedTaskStatus and the scripts' FINISHED_TASK. */
 const TASK_EVENT_ASSOCIATED=0,TASK_TASK_ASSOCIATED=1,FINISHED_TASK=7;
 /** What the component commands reach on a CAutomobile. */
+type V3={x:number;y:number;z:number};
+/** ConvertPedNode2BoneTag: ePedNode (the index a hold task names) to the skeleton's bone tag. */
+const PED_NODE_BONE_TAG:Readonly<Record<number,number>>={1:3,2:5,3:32,4:22,5:34,6:24,7:41,8:51,9:43,10:53,11:52,12:42,13:33,14:23,15:31,16:21,17:4,18:8};
+/** CTaskSimpleHoldEntity's bone flag. */
+const HOLD_ENTITY_UPDATE_TRANSLATION_ONLY=0x10;
 export interface ScmCarComponents {
  popDoor(door:number,visible:boolean):void;popPanel(panel:number,visible:boolean):void;popBoot():void;
  fixDoor(door:number):void;fixPanel(panel:number):void;fixTyre(wheel:number):void;
@@ -312,6 +317,13 @@ export interface ScmMissionWorld {
  addExplosion(position:{x:number;y:number;z:number},type:number,options?:{sound?:boolean}):void;
  /** The CAutomobile a car handle stands for, for the component commands; nothing for a bike, boat or aircraft. */
  scriptCarComponents?(car:unknown):ScmCarComponents|undefined;
+ /** CTaskSimpleGangDriveBy on a rider (TASK_DRIVE_BY): false for a ped not riding, or before the drive-by assets load. */
+ setScriptPedDriveBy?(ped:unknown,target:{kind:'point';x:number;y:number;z:number}|{kind:'ped';handle:number}|{kind:'vehicle';handle:number},radius:number,fireRate:number,rightSide:boolean):boolean;
+ clearScriptPedDriveBy?(ped:unknown):void;
+ /** A ped's bone (by skeleton tag) as native rows and position: 'player' for the player's own ped. */
+ /** Minus the object's COL bounding box's lowest z (0 until the collision is in): how far its origin sits above its base. */
+ scriptObjectBaseOffset?(handle:number):number;
+ scriptPedBoneMatrix?(ped:unknown,tag:number):{position:V3;right:V3;forward:V3;up:V3}|undefined;
  /** CPhysical::m_vecTurnSpeed from the script's radians a second, set or added. */
  setScriptVehicleTurnSpeed?(car:unknown,speed:{x:number;y:number;z:number},add:boolean):void;
  setScriptVehicleCanBurstTyres(car:unknown,canBurst:boolean):void;
@@ -859,6 +871,9 @@ export class ScmMission {
    objectHealth:handle=>this.runtime.game.objects.at(handle).health,
    setObjectHealth:(handle,health)=>{this.runtime.game.objects.setHealth(handle,health);},
    objectHasBeenDamaged:handle=>this.runtime.game.objects.hasBeenDamaged(handle),
+   // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.
+   setPedDropsObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly);},
+   pedIsHoldingObject:(handle,object)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return this.heldObjectOf(handle)?.handle===object;},
    objectLastWeaponDamage:handle=>this.runtime.game.objects.at(handle).lastWeaponDamage,
    // CWorld::FindNearestObjectOfType over every object: the script's own and the map's props. Smashed is a hidden
    // object (bIsVisible off), damaged one showing its damaged model (m_bRenderDamaged).
@@ -1223,6 +1238,17 @@ export class ScmMission {
    // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns
    // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.
    givePedScriptedTask:(handle,task,opcode)=>{
+    // CTaskSimpleHoldEntity on the ped's partial-anim slot: it holds the object from here, and its other tasks go on.
+    if(task.kind==='pickUpObject'){this.pickUpObject(handle,task);return;}
+    // CTaskSimpleGangDriveBy: a ped with a car handle target fires at the car, else at the ped a handle names, else at
+    // the point. A ped not riding, or the player, is left as it is.
+    // Any other primary task takes the rider's drive-by from it.
+    if(task.kind!=='driveBy'&&task.kind!=='useMobilePhone'&&handle!==PLAYER_PED_HANDLE&&this.peds.exists(handle)){const e=this.peds.entity(handle);if(e!==undefined)this.world.clearScriptPedDriveBy?.(e);}
+    if(task.kind==='driveBy'){
+     if(handle===PLAYER_PED_HANDLE)return;
+     const target=task.targetVehicle>=0?{kind:'vehicle' as const,handle:task.targetVehicle}:task.targetPed>=0?{kind:'ped' as const,handle:task.targetPed}:{kind:'point' as const,x:task.x,y:task.y,z:task.z};
+     this.runners.delete(handle);this.world.setScriptPedDriveBy?.(this.livePed(handle),target,task.radius,task.fireRate,task.rightHandCarSeat);return;
+    }
     // A new primary task replaces whatever sequence the ped was running from here.
     if(handle!==PLAYER_PED_HANDLE&&task.kind!=='useMobilePhone')this.runners.delete(handle);
     if((task.kind==='leaveCar'||task.kind==='leaveAnyCar'||task.kind==='leaveCarImmediately')&&handle!==PLAYER_PED_HANDLE){this.livePed(handle);this.runSequence(handle,[task],false,opcode,false);return;}
@@ -1644,7 +1670,7 @@ export class ScmMission {
  }
  private clearTasks(handle:number,command:string){
   if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerTasks',command)();
-  else{this.runners.delete(handle);this.stopDriving(handle);this.world.clearScriptPedTasks(this.livePed(handle));}
+  else{this.runners.delete(handle);this.stopDriving(handle);const ped=this.livePed(handle);this.world.clearScriptPedDriveBy?.(ped);this.world.clearScriptPedTasks(ped);}
   this.taskRecords.delete(handle);
  }
  /** CRunningScript::SetCharCoordinates on the player: CWorld::PutToGroundIfTooLow first (a z at or below
@@ -1674,6 +1700,7 @@ export class ScmMission {
    self:()=>handle===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.positionOf(handle),
    ped:(other:number)=>other===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.exists(other)?this.peds.positionOf(other):undefined,
    decisionMaker:(dm:number)=>this.runtime.game.decisionMakers.actualIndex(dm),
+   vehiclePosition:(vehicle:number)=>vehicle===PLAYER_VEHICLE_HANDLE||!this.vehicles.exists(vehicle)||!this.vehicles.entity(vehicle)?undefined:this.vehicles.positionOf(vehicle),
    // A car the script made and the browser has built; the player's own car is not one a script ped can board yet.
    vehicle:(vehicle:number)=>vehicle!==PLAYER_VEHICLE_HANDLE&&this.vehicles.exists(vehicle)&&!!this.vehicles.entity(vehicle),
   };
@@ -1746,6 +1773,7 @@ export class ScmMission {
    object.heading=frame.heading+attached.rotation.z;
    object.rotation={x:attached.rotation.x,y:attached.rotation.y,z:0};
   }
+  for(const object of this.runtime.game.objects.all)if(object.heldBy)this.poseHeldObject(object);
   // FxSystem_c::SetMatrix for the systems that hang from something, which is what keeps them with it.
   for(const record of this.scriptFx.values()){
    if(!record.attached)continue;
@@ -1848,6 +1876,54 @@ export class ScmMission {
   return ped;
  }
  /** The vehicle the player is riding, which the commands that name his own car ask about. */
+ /** TASK_PICK_UP_OBJECT, first run of CTaskSimpleHoldEntity::ProcessPed: the object loses its collision, stops
+  * being static, and keeps its heading less the ped's as m_fRotation. A ped already holding something lets it go.
+  * The pick-up clip a script names is not played: the object is in the hand at once. */
+ private pickUpObject(handle:number,task:Extract<ScmScriptedTask,{kind:'pickUpObject'}>){
+  if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);
+  const objects=this.runtime.game.objects,object=objects.at(task.object);
+  if(this.heldObjectOf(handle))this.dropHeldObject(handle,true);
+  const pedHeading=this.pedHeadingRadians(handle);
+  object.usesCollision=false;object.isStatic=false;
+  object.heldBy={ped:handle,offset:{...task.offset},node:task.bone,flags:task.orientation,rotation:object.heading-pedHeading};
+  this.poseHeldObject(object);
+ }
+ private heldObjectOf(handle:number){return this.runtime.game.objects.all.find(object=>object.heldBy?.ped===handle);}
+ private pedHeadingRadians(handle:number){
+  const degrees=handle===PLAYER_PED_HANDLE?this.world.playerPed().heading??0:this.peds.headingOf(handle);
+  return degrees*Math.PI/180;
+ }
+ /** CTaskSimpleHoldEntity::DropEntity (0x6930F0). Collision comes back. Dropped quietly off (the operand false) the
+  * object stays where the hand left it; dropped on, a heavy one (99998 or more, so collision force off) is set down
+  * static under the ped, and a light one gets a push and falls, which here, with no fall to run, ends on the ground
+  * under the ped too. */
+ private dropHeldObject(handle:number,quietly:boolean){
+  const object=this.heldObjectOf(handle);if(!object)return;
+  object.heldBy=undefined;object.usesCollision=true;
+  if(!quietly){object.isStatic=true;return;}
+  const at=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.exists(handle)?this.peds.positionOf(handle):object.position;
+  const base=this.world.scriptObjectBaseOffset?.(object.handle)??0;
+  object.position={x:at.x,y:at.y,z:at.z-1+base};object.isStatic=true;object.velocity={x:0,y:0,z:0};
+ }
+ /** CTaskSimpleHoldEntity::SetPedPosition (0x6940A0): with HOLD_ENTITY_UPDATE_TRANSLATION_ONLY the object takes the
+  * bone's matrix and sits at the offset in the bone's axes; without it, it sits at the bone plus the offset in the
+  * ped's axes, turned from the ped's matrix by m_fRotation. A holder that has gone lets it drop. */
+ private poseHeldObject(object:import('../engine/ScmObjects').ScmObject){
+  const held=object.heldBy!;
+  if(held.ped!==PLAYER_PED_HANDLE&&!this.peds.exists(held.ped)){this.dropHeldObject(held.ped,true);return;}
+  const tag=PED_NODE_BONE_TAG[held.node];if(tag===undefined)return;
+  const entity=held.ped===PLAYER_PED_HANDLE?'player':this.peds.entity(held.ped);if(entity===undefined)return;
+  const bone=this.world.scriptPedBoneMatrix?.(entity,tag);if(!bone)return;
+  const o=held.offset,add=(p:{x:number;y:number;z:number},r:{right:V3;forward:V3;up:V3})=>({x:p.x+r.right.x*o.x+r.forward.x*o.y+r.up.x*o.z,y:p.y+r.right.y*o.x+r.forward.y*o.y+r.up.y*o.z,z:p.z+r.right.z*o.x+r.forward.z*o.y+r.up.z*o.z});
+  if(held.flags&HOLD_ENTITY_UPDATE_TRANSLATION_ONLY){
+   object.matrix={right:{...bone.right},forward:{...bone.forward},up:{...bone.up}};object.position=add(bone.position,bone);
+  }else{
+   const h=this.pedHeadingRadians(held.ped)+held.rotation,c=Math.cos(h),s=Math.sin(h);
+   const ped={right:{x:Math.cos(h-held.rotation),y:Math.sin(h-held.rotation),z:0},forward:{x:-Math.sin(h-held.rotation),y:Math.cos(h-held.rotation),z:0},up:{x:0,y:0,z:1}};
+   object.matrix={right:{x:c,y:s,z:0},forward:{x:-s,y:c,z:0},up:{x:0,y:0,z:1}};object.position=add(bone.position,ped);
+  }
+  object.heading=Math.atan2(-object.matrix.forward.x,object.matrix.forward.y);
+ }
  /** WARP_CHAR_INTO_CAR and its task: the player through the host, a script ped into the driver's seat. */
  private warpIntoCar(handle:number,vehicle:number,command:string){
   if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerIntoCar',command)(this.liveVehicle(vehicle)))throw new UnsupportedScmCommand(-1,0,command,'a player already riding, or a vehicle he cannot be seated in');return;}

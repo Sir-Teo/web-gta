@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** What INTRO1, INTRO2 and SWEET1 reach first: GET_CLOSEST_CAR_NODE (FindNodeClosestToCoors over the car nodes),
  * TASK_WARP_CHAR_INTO_CAR_AS_DRIVER, EXPLODE_CAR_IN_CUTSCENE and IS_CAR_WAITING_FOR_WORLD_COLLISION. */
 test('the closest car node, the warp task and the cutscene blow-up',async({page})=>{
@@ -6,6 +7,7 @@ test('the closest car node, the warp task and the cutscene blow-up',async({page}
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  // The path areas load around the player; the node the question gives is a road near him, and the heading form
  // agrees with it.
  const node=await page.evaluate(async()=>{

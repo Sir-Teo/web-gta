@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** TASK_KILL_CHAR_ON_FOOT: the ped fights its target with the browser's own combat until the target is dead, then the
  * task is over and the ped goes back to standing, not on to the player. */
 test('a script ped told to kill another does so, and the task ends with the target',async({page})=>{
@@ -8,6 +9,7 @@ test('a script ped told to kill another does so, and the task ends with the targ
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const made=await page.evaluate(()=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),p=game.state().player.position;
   return {killer:mission.peds.create(4,'MALE01',{x:p.x+6,y:-p.z,z:p.y}),victim:mission.peds.create(4,'MALE01',{x:p.x+9,y:-p.z-2,z:p.y})};

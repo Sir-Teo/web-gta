@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CMenuSystem: a script menu shows its title and rows from the GXT text, the pad moves its highlight (the stick
  * down on S) and Cross (sprint) accepts the highlighted row, which GET_MENU_ITEM_ACCEPTED reads. */
 test('a script menu is drawn and the pad chooses from it',async({page})=>{
@@ -6,6 +7,7 @@ test('a script menu is drawn and the pad chooses from it',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const id=await page.evaluate(()=>{
   const menus=(window as any).__game.missionForProfiling().runtime.game.menus;
   // MAIN's own import/export list: IE09 over IE16, IE10 and IE11, at (29, 170), 180 wide.

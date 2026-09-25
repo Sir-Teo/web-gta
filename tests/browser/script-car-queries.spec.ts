@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CREATE_CAR faces the car along the script's heading. TURN_CAR_TO_FACE_COORD turns a car where it stands; GET_MAXIMUM_NUMBER_OF_PASSENGERS counts the model's door
  * frames less one (a Landstalker has four); GET_NUMBER_OF_PASSENGERS counts who sits in the passenger seats. */
 test('a script car turns to face a point and reports its seats',async({page})=>{
@@ -8,6 +9,7 @@ test('a script car turns to face a point and reports its seats',async({page})=>{
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const car=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;return g.missionForProfiling().vehicles.create(400,{x:p.x+8,y:-p.z,z:p.y},90);});
  await page.waitForFunction(car=>!!(window as any).__game.missionForProfiling().vehicles.entity(car),car,{timeout:45000});
  const w=(fn:string,...args:number[])=>page.evaluate(({fn,args})=>(window as any).__game.missionForProfiling().runtime.world[fn](...args),{fn,args});

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** A script's tasks on CJ's own ped: TASK_GO_STRAIGHT_TO_COORD walks him to the mark and TASK_ACHIEVE_HEADING turns
  * him, with GET_SCRIPT_TASK_STATUS following each. */
 test('the script walks the player to a point and turns him',async({page})=>{
@@ -8,6 +9,7 @@ test('the script walks the player to a point and turns him',async({page})=>{
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const GO=0x05d3,HEADING=0x05d4;
  const status=(opcode:number)=>page.evaluate((opcode:number)=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(1,opcode),opcode);
  const start=await page.evaluate(()=>{const p=(window as any).__game.state().player.position;return {x:p.x,z:p.z};});

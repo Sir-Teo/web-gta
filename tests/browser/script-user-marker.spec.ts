@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CREATE_USER_3D_MARKER: C3dMarkers::User3dMarkerSet's cone, drawn every frame until REMOVE_USER_3D_MARKER. */
 test('a script user marker is drawn until it is removed',async({page})=>{
  test.setTimeout(180000);
@@ -8,6 +9,7 @@ test('a script user marker is drawn until it is removed',async({page})=>{
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const drawnBefore=(await state()).markers3d.drawn;
  // HUD_COLOUR_YELLOW (14), in front of CJ at head height.
  const index=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player,h=p.heading;

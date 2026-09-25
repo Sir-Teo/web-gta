@@ -148,6 +148,8 @@ export interface Pedestrian {
   |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
   /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
   |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number}
+  /** TASK_DIVE_AND_GET_UP: over when the evasive dive it started is. */
+  |{kind:'dive'}
   /** CTaskSimpleDuck for its time: ducked where it stands. */
   |{kind:'duckFor';remaining:number}
   /** CTaskSimpleGunControl: a renderer point or a ped (the player when neither) to aim at, firing or not. */
@@ -242,7 +244,8 @@ export interface Pedestrian {
  /** CTaskComplexOnFire: seconds the latest fire damage keeps the task alive, and the pain line cooldown. */
  onFire:number;onFireSpeech:number;
  /** CTaskComplexEvasiveStep / CTaskComplexEvasiveDiveAndGetUp from CEventPotentialGetRunOver. */
- evade?:{kind:'step'|'dive';phase:'turn'|'move'|'getup';time:number;heading:number;avoid:{x:number;z:number};/** The vehicle is the player's. */byPlayer?:boolean};
+ evade?:{kind:'step'|'dive';phase:'turn'|'move'|'lie'|'getup';time:number;heading:number;avoid:{x:number;z:number};/** The vehicle is the player's. */byPlayer?:boolean;
+  /** CTaskSimplePause's time on the ground after the dive (TASK_DIVE_AND_GET_UP's), seconds. */lie?:number};
  /** The response's simpler tasks: hands up, a shaken fist or a turn towards the vehicle. */
  carReact?:{clip?:string;time:number;duration:number;face:{x:number;z:number};turned:boolean;fromFarHorn:boolean};
  /** Bump shove cooldown (CEventPlayerCollisionWithPed complain-and-shove). */
@@ -1441,6 +1444,18 @@ export class WorldPedestrians {
  /** A script's task, carried out. CTaskComplexWanderStandard is what a street ped does unasked, so wandering
   * is the absence of an order; CTaskComplexDie kills the ped whatever it is proof against, because the task is
   * not damage; a smart flight sets the same flee the browser's own jacking and fright already use. */
+ /** A round from a shooter the peds do not hold themselves (a script's drive-by rider) meeting a ped's collider: the
+  * ped takes it and reacts as it does to one of the peds' own rounds, unless proofed or only the player may hurt it.
+  * Whether the collider was a ped's. */
+ bulletHit(collider:number,damage:number,weapon:number,direction:{x:number;z:number},end:Vector3){
+  const victim=this.people.find(other=>other.collider.handle===collider);if(!victim)return false;
+  if(pedProofedAgainst(victim,'bullet')||!npcDamageReaches(victim,{},weapon,true))return true;
+  victim.lastDamagedBy={};victim.health=healthAfter(victim.health,damage);if(damage>0)victim.lastWeaponDamage=weapon;
+  if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});
+  const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};
+  this.applyReaction(victim,this.damageReaction(victim,weapon,damage,vfrom,end,false),vfrom);
+  return true;
+ }
  giveOrder(ped:Pedestrian,order:ScriptedPedOrder){this.giveSequence(ped,[order],false,false);}
  /** CTaskComplexSequence through PERFORM_SEQUENCE_TASK: the tasks run in the order they were added, and a
   * repeating sequence starts again at the first when the last one ends. The original's sequence holds eight
@@ -1524,6 +1539,12 @@ export class WorldPedestrians {
     ped.look=startLookAt(this.clock*1000,order.seconds*1000);
     break;
    }
+   // CTaskComplexEvasiveDiveAndGetUp with its heading first (the dive's way, script x and y): the evasive dive the
+   // ped already makes from cars, with the script's time lying down.
+   case 'diveAndGetUp':
+    ped.evade={kind:'dive',phase:'turn',time:0,heading:Math.atan2(order.x,-order.y),avoid:{x:order.x,z:-order.y},lie:order.seconds};
+    ped.order={kind:'dive'};
+    break;
    case 'lookAtPoint':
     ped.lookTarget=undefined;ped.lookAt={x:order.x,y:order.z,z:-order.y};ped.lookAtAttractor=false;
     ped.look=startLookAt(this.clock*1000,order.seconds*1000);
@@ -2310,7 +2331,7 @@ export class WorldPedestrians {
     if(e.phase==='turn'){
      // CTaskSimpleAchieveHeading(heading, 2.0, 0.2).
      if(turn(e.heading,2)){
-      e.phase='move';e.time=0;p.view.playReaction(e.kind==='step'?'ev_step':'ev_dive');
+      e.phase='move';e.time=0;p.view.playReaction(e.kind==='step'?'ev_step':'ev_dive',e.lie?(p.view.reactionDuration('ev_dive')??2.33)+e.lie:undefined);
       // CTaskSimpleEvasiveDive::StartAnim: a cop diving from the player's car registers CRIME_VEHICLE_DAMAGE and
       // CRIME_SPEEDING at once.
       if(e.kind==='dive'&&p.officer&&e.byPlayer){this.law?.registerCrimeImmediately(CRIME.vehicleDamage,`ped:${p.id}`);this.law?.registerCrimeImmediately(CRIME.speeding,`ped:${p.id}`);}
@@ -2325,11 +2346,14 @@ export class WorldPedestrians {
      if(e.time>=length){
       p.impulse={x:0,z:0};
       if(e.kind==='step'){p.evade=undefined;return undefined;}
+      // CTaskSimplePause for the script's time, the dive's last pose held.
+      if(e.lie){e.phase='lie';e.time=0;return 0;}
       // No unconscious time; the ped turns a quarter and gets up with GETUP_FRONT (EV_DIVE is a front anim).
       state.heading-=Math.PI/2;e.phase='getup';e.time=0;p.view.playReaction('getup_front');
      }
      return 0;
     }
+    if(e.phase==='lie'){if(e.time>=e.lie!){state.heading-=Math.PI/2;e.phase='getup';e.time=0;p.view.playReaction('getup_front');}return 0;}
     if(e.time>=(p.view.reactionDuration('getup_front')??1.37))p.evade=undefined;
     return 0;
    }
@@ -2658,7 +2682,8 @@ export class WorldPedestrians {
    // done. The wander's own arrival and crossing are held off while it does, because the ped is not wandering.
    let orderSpeed:number|undefined;
    if(p.order&&p.health>0&&p.down===0){
-    if(p.order.kind==='standStill'){
+    if(p.order.kind==='dive'){dx=0;dz=0;if(!p.evade)this.startNextOrder(p);}
+    else if(p.order.kind==='standStill'){
      dx=0;dz=0;p.order.remaining-=dt;if(p.order.remaining<=0)this.startNextOrder(p);
     }else if(p.order.kind==='killPed'){
      // Over once the target is dead or gone (or the player dead), or when the task's own time runs out; the

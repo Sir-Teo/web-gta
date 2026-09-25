@@ -68,6 +68,10 @@ export class GangDriveBy {
     if(info){const loaded=await weapons.load(DRIVEBY_WEAPON,info.animGroup);if(!this.disposed&&loaded.asset)this.gunCache={asset:{model:loaded.asset.model,textures:loaded.asset.textures},info,reloadSeconds:nativeWeaponReloadMs(data,info)/1000};}
    }).catch(e=>{this.error=String(e);});
   }
+  /** A drive-by clip (drivebys.ifp) by its lower-case name, and the Micro SMG with its weapon info, once loaded: what
+   * a script's drive-by rider shares with the gang cars. */
+  clip(name:string){return this.clips.get(name);}
+  get gun(){return this.gunCache;}
   /** Cars this manager drives (excluded from the civilian driver poses). */
   covers(car:WorldCar){return this.units.some(u=>u.car===car);}
   /** CTaskComplexLeaveCarAndDie for a shot driver once the car rests: the host plays his exit and lays him dead. */

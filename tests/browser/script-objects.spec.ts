@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CREATE_OBJECT gives the script an object the runtime keeps everything about; the browser draws it where
  * those records say it is. This makes one beside the player and watches it appear, move and go. */
 test('an object the script makes is drawn where the script puts it',async({page})=>{
@@ -8,6 +9,7 @@ test('an object the script makes is drawn where the script puts it',async({page}
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
 
  // Model 1337 is a street bin, which every region of the archive carries.
  const made=await page.evaluate(()=>{

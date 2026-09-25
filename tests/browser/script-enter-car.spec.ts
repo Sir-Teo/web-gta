@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** TASK_ENTER_CAR_AS_PASSENGER and TASK_ENTER_CAR_AS_DRIVER on a car the script made: the ped runs to the seat's door
  * and gets in, and the timed form sets a ped still on its way into the seat when its time runs out. */
 test('script peds get into a script car as passenger and driver',async({page})=>{
@@ -8,6 +9,7 @@ test('script peds get into a script car as passenger and driver',async({page})=>
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const made=await page.evaluate(()=>{
   const game=(window as any).__game,m=game.missionForProfiling(),p=game.state().player.position;
   // The car faces north (a heading of nothing), so its front passenger door is on the east, the rider's side.

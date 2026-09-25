@@ -50,6 +50,9 @@ export type ScriptedPedOrder=
   * CTaskSimpleTogglePedThreatScanner, CTaskSimpleSetCharDecisionMaker (the decision maker's actual index) and
   * CTaskSimpleSetKindaStayInSamePlace. */
  |{kind:'lookAtPoint';x:number;y:number;z:number;seconds:number}
+ /** CTaskComplexEvasiveDiveAndGetUp with its heading first: turn to the dive's way (script x, y), EV_DIVE, lie for
+  * `seconds`, turn a quarter back and GETUP_FRONT. */
+ |{kind:'diveAndGetUp';x:number;y:number;seconds:number}
  |{kind:'threatScanner';onFoot:boolean;inCar:boolean;duringScriptTask:boolean}
  |{kind:'decisionMaker';index:number}
  |{kind:'kindaStayInSamePlace';state:boolean}
@@ -75,6 +78,8 @@ export type ScriptedPedOrder=
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
  self():{x:number;y:number;z:number};
+ /** A car the task names, where it is, or nothing when the handle names none the browser has built. */
+ vehiclePosition?(handle:number):{x:number;y:number;z:number}|undefined;
  /** Another ped the task names, or nothing when the handle names none. */
  ped(handle:number):{x:number;y:number;z:number}|undefined;
  /** A script's decision maker handle as the pool index it stands for (ScmDecisionMakers.actualIndex). */
@@ -100,6 +105,9 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // CTaskSimpleStandStill takes its time in milliseconds; a time of nothing is the looped form, which the
   // original builds from CTaskComplexBeStill and which ends only when something aborts it.
   case 'standStill':return {kind:'standStill',seconds:task.time?seconds(task.time):Number.POSITIVE_INFINITY};
+  // CTaskSimpleTriggerLookAt at the car: the head turns to where it is as the task starts.
+  case 'lookAtVehicle':{const at=world.vehiclePosition?.(task.vehicle);return at&&{kind:'lookAtPoint',...at,seconds:seconds(task.time)};}
+  case 'diveAndGetUp':return {kind:'diveAndGetUp',x:task.x,y:task.y,seconds:seconds(Math.max(0,task.time))};
   // CTaskSimplePause only waits out its interval. A ped with nothing else to do waits it out standing, which
   // for a ped a script has just made is the whole of what it does.
   case 'pause':return {kind:'standStill',seconds:seconds(task.time)};

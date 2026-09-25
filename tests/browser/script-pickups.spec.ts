@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CPickups holds the script's pickups beside the world's own, so the browser's pickup world takes them too:
  * one made by the script is drawn, and walking into it tells the script it has been collected. */
 test('a pickup the script makes appears, and collecting it is collected for the script',async({page})=>{
@@ -8,6 +9,7 @@ test('a pickup the script makes appears, and collecting it is collected for the 
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
 
  const made=await page.evaluate(()=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),p=game.state().player.position;

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 // CTaskComplexSmartFleeEntity(firedBy, 60): a ped that hears the player's shot sprints away until it is 60 from him.
 test('peds that hear the player fire flee him to 60 units, then stop fleeing',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -8,6 +9,7 @@ test('peds that hear the player fire flee him to 60 units, then stop fleeing',as
  await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  // MAIN turns CJ to its own start heading once the script runs; read his heading after that.
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await page.waitForTimeout(500);
  // The camera stays where it was when the script turns him; put it behind him so the shot goes where he faces.
  await page.evaluate(()=>{const g=(window as any).__game;g.turnPlayer(g.state().player.heading);});

@@ -7669,3 +7669,35 @@ Each is now answered:
 - IS_CAR_WAITING_FOR_WORLD_COLLISION (INTRO2) is false, as the ped form is. The browser holds play until the
   streamed collision is in.
 - Verification: `tests/browser/script-story-stops.spec.ts`.
+
+## A ped's position is its origin; held objects; the dive; the drive-by
+
+- GET_CHAR_COORDINATES and every question that reads a ped's place now get CPed::GetPosition, the ped's origin. That
+  is its collision's centre, a unit above the feet (GetDistanceFromCentreOfMassToBaseOfModel).
+  - In a vehicle the position is the vehicle's.
+  - Before, the browser reported the feet, a metre low. CRunningScript::SetCharCoordinates adds that distance to the
+    script's z, so placing a ped by its feet at the script's z was already right; reading back was not.
+- TASK_PICK_UP_OBJECT puts CTaskSimpleHoldEntity on the ped (gta-reversed `TaskSimpleHoldEntity.cpp`):
+  - The object loses its collision and keeps m_fRotation.
+  - Each frame it follows the ped's bone (ConvertPedNode2BoneTag: 5 the left hand, 6 the right). With
+    HOLD_ENTITY_UPDATE_TRANSLATION_ONLY it takes the bone's own matrix and sits at the offset in the bone's axes;
+    without it, it sits at the bone plus the offset in the ped's axes, turned from the ped by m_fRotation.
+  - IS_CHAR_HOLDING_OBJECT asks after it.
+  - DROP_OBJECT is DropEntity with the operand as its second argument: collision comes back. Off, the object stays
+    where the hand left it. On, it is set down under the ped; a light object's fall is not run, so it lands there
+    too.
+  - The pick-up clip a script names is not played: the object is in the hand at once.
+- TASK_DIVE_AND_GET_UP is CTaskComplexEvasiveDiveAndGetUp with its heading first: turn along the dive, EV_DIVE, lie
+  for the script's time, turn a quarter back, GETUP_FRONT.
+  - A script ped runs the evasive dive the peds already make from cars, with the lie added.
+  - The player goes through his knockdown. EV_DIVE's forward root motion is not applied to him.
+- TASK_LOOK_AT_VEHICLE starts CTaskSimpleTriggerLookAt at where the car is.
+- TASK_DRIVE_BY on a rider is CTaskSimpleGangDriveBy (unreversed), built on the gang drive-by's shooter:
+  - The rider leans out of its window with GANG_DRIVEBYLHS/RHS and the Micro SMG.
+  - Its bursts go at a point, a ped or a car within the task's radius, each burst fired at the command's rate. The
+    rounds burst tyres and hurt the player, cars and peds.
+  - A new task or CLEAR_CHAR_TASKS ends it.
+  - The rider fires the Micro SMG whatever the script gave it.
+- The game now opens on INTRO for real, and it takes CJ into the police car a few seconds in. The browser specs about
+  other things end the mission script once MAIN has launched it (`tests/browser/freeRoam.ts`) and play in free roam.
+- Verification: `tests/browser/script-held-object.spec.ts`, `script-dive.spec.ts`, `script-drive-by.spec.ts`.

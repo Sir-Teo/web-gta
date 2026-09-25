@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Group,Matrix4,Quaternion,Vector3,type Scene} from 'three';
 import {installNativeCollisionMatrix} from './nativeCollision';
+import {rotationFromNativeRows} from './recordingBody';
 import {colChunkNames,readCol,type ColModel} from '../assets/col';
 import {readImgEntry,type ImgEntry} from '../assets/img';
 /** Native Z-up model space into the renderer's axes: the colliders are baked in the model's own frame, and the body
@@ -29,7 +30,7 @@ import type {ScmObject} from '../engine/ScmObjects';
  * and the object still exists for every question the script asks about it. */
 export class ScriptObjectViews{
  private readonly views=new Map<number,{group:Group;dispose:()=>void;model:number|string;applied:Float64Array;shown:boolean;
-  physical?:ReturnType<typeof installNativeCollisionMatrix>;collisionOn:boolean}>();
+  physical?:ReturnType<typeof installNativeCollisionMatrix>;collisionOn:boolean;col?:ColModel}>();
  /** Which script object each of the colliders belongs to. */
  private readonly owners=new Map<number,number>();
  /** Which archive COL collection holds each model, and where in it: CColStore's files, read by their chunk headers. */
@@ -56,6 +57,8 @@ export class ScriptObjectViews{
  get drawn(){return this.views.size;}
  /** The script object a collider belongs to, for a shot or blast that met it. */
  objectForCollider(collider:number){return this.owners.get(collider);}
+ /** Minus the lowest z of the object's COL bounding box, once its collision is in. */
+ baseOffset(handle:number){const b=this.views.get(handle)?.col?.bounds;return b?-b.min[2]:undefined;}
  /** An object's body, once its collision is in. */
  bodyOf(handle:number){return this.views.get(handle)?.physical?.body;}
  /** The model's COL: its chunk alone, decoded from the collection the index names (the first holding the name). */
@@ -112,7 +115,7 @@ export class ScriptObjectViews{
     // Most of a script's objects never move again after it puts them down, so the transform is rebuilt only
     // when the record says something about it has changed.
     const shown=this.shows(object);
-    if(shown!==view.shown||ScriptObjectViews.moved(object,view.applied)){
+    if(shown!==view.shown||object.matrix||ScriptObjectViews.moved(object,view.applied)){
      this.place(view.group,object);ScriptObjectViews.record(object,view.applied);view.shown=shown;
      if(view.physical)ScriptObjectViews.pose(view.physical.body,object,false);
     }
@@ -148,7 +151,7 @@ export class ScriptObjectViews{
    const group=new Group();group.add(built.root);
    this.place(group,object);this.scene.add(group);
    const applied=new Float64Array(TRANSFORM_FIELDS);ScriptObjectViews.record(object,applied);
-   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object),physical,collisionOn:ScriptObjectViews.collides(object)});
+   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object),physical,collisionOn:ScriptObjectViews.collides(object),col});
   });
  }
  /* Native axes to the renderer's: x stays, the script's z is up here and its y runs the other way. CEntity's
@@ -172,6 +175,7 @@ export class ScriptObjectViews{
  private static collides(object:ScmObject){return object.usesCollision&&!object.attachedTo;}
  /** CEntity's heading about the up axis, then SET_OBJECT_ROTATION's tilts, as the renderer's quaternion. */
  private static orientation(object:ScmObject,into:Quaternion){
+  if(object.matrix){const m=object.matrix,q=rotationFromNativeRows([m.right.x,m.right.y,m.right.z],[m.forward.x,m.forward.y,m.forward.z]);return into.set(q.x,q.y,q.z,q.w);}
   const {x,y,z}=object.rotation;
   into.setFromAxisAngle(UP,object.heading+z);
   if(x)into.multiply(TILT.setFromAxisAngle(EAST,x));

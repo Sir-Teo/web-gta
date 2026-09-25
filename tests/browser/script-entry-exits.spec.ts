@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CEntryExitManager's flags are the script's. The browser applied a read-ahead list at load and ignored the
  * running script's calls; they now reach the same entrances, so a change the script makes later lands too. */
 test('the entrances the script switches are switched',async({page})=>{
@@ -8,6 +9,7 @@ test('the entrances the script switches are switched',async({page})=>{
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  // The opening makes its own switch calls; they are counted as they are made.
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling().snapshot().entryExitFlags),{timeout:30000}).toBeGreaterThan(0);
 

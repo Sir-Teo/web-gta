@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CRadar's table is the script's; the browser's radar draws it. A blip on a coordinate stays put, one on a
  * car follows it, and removing it takes it off the radar. */
 test('the blips a script sets are on the radar, and the ones tied to a car follow it',async({page})=>{
@@ -8,6 +9,7 @@ test('the blips a script sets are on the radar, and the ones tied to a car follo
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
 
  const out=await page.evaluate(async()=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),p=game.state().player.position;

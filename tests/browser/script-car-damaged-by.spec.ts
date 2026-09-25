@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CAutomobile::VehicleDamage: a car another vehicle crashes into keeps it as m_pLastDamageEntity, by
  * WEAPON_RAMMEDBYCAR. HAS_CAR_BEEN_DAMAGED_BY_CAR names it, HAS_CAR_BEEN_DAMAGED_BY_CHAR does not name the player,
  * and CLEAR_CAR_LAST_DAMAGE_ENTITY forgets it. */
@@ -9,6 +10,7 @@ test('a script car rammed by another knows which car hit it',async({page})=>{
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  // Two cars on Grove Street, facing west (a heading of 90), one behind the other.
  const made=await page.evaluate(()=>{
   const game=(window as any).__game,m=game.missionForProfiling(),p=game.state().player.position;

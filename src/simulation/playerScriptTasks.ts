@@ -13,6 +13,7 @@ const MAP_Z_LOW_LIMIT=-100;
 
 type Running=
  |{kind:'standStill';remaining:number}
+ |{kind:'dive';phase:'loading'|'diving'|'done';yaw:number;lie:number}
  |{kind:'achieveHeading';heading:number}
  |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number}
  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;phase:'loading'|'ready'|'playing';elapsed:number}
@@ -61,6 +62,9 @@ export interface PlayerTaskWorld{
  duck?(crouch:boolean):void;
  /** CTaskSimpleTriggerLookAt at a point in the script's coordinates. */
  lookAtPoint?(x:number,y:number,z:number,seconds:number):void;
+ /** CTaskComplexEvasiveDiveAndGetUp: the dive along a renderer yaw, the lie and the get-up; `diving` while it lasts. */
+ dive?(yaw:number,lieSeconds:number):boolean;
+ diving?():boolean;
  /** CTaskComplexDie: he dies. */
  die?():void;
  /** CTaskSimpleTriggerLookAt: the head looks at the ped a script handle names. */
@@ -84,7 +88,7 @@ export class PlayerScriptTasks{
  /** The kinds the player can carry out; anything else the thread gives up on. */
  static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
   order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord'||
-  order.kind==='lookAtPoint'||order.kind==='die';}
+  order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp';}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body,false);}
@@ -148,6 +152,18 @@ export class PlayerScriptTasks{
    case 'lookAt':this.world.lookAt?.(order.target,order.seconds);break;
    case 'lookAtPoint':this.world.lookAtPoint?.(order.x,order.y,order.z,order.seconds);break;
    case 'die':this.world.die?.();break;
+   // The script's (x, y) way is the renderer's (x, -y); its yaw is atan2(x, z) there.
+   case 'diveAndGetUp':{
+    const own:Running={kind:'dive',phase:'loading',yaw:Math.atan2(order.x,-order.y),lie:order.seconds};this.running=own;
+    const start=()=>{own.phase=this.world.dive?.(own.yaw,own.lie)?'diving':'done';};
+    if(body.view?.hasReaction('ev_dive')){start();break;}
+    const generation=this.generation;
+    void this.world.animation('ped','EV_dive').then(animation=>{
+     if(this.generation!==generation||this.running!==own)return;
+     if(animation&&body.view){body.view.installReactions({ev_dive:animation});start();}else own.phase='done';
+    });
+    break;
+   }
    default:break;
   }
  }
@@ -184,6 +200,10 @@ export class PlayerScriptTasks{
    case 'standStill':
     o.remaining-=dt;if(o.remaining<=0)this.next(body);
     return {kind:'hold'};
+   case 'dive':
+    if(o.phase==='loading')return {kind:'hold'};
+    if(o.phase==='done'||!this.world.diving?.())this.next(body);
+    return undefined;
    case 'achieveHeading':{
     const turned=achieveHeadingStep(body.heading,o.heading,NATIVE_PLAYER_HEADING_CHANGE_RATE,dt);
     if(turned.done)this.next(body);

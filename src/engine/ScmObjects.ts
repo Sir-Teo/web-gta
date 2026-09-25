@@ -57,6 +57,12 @@ export interface ScmObject {
  /** CEntity::m_pAttachedTo with its offset and rotation: what the object hangs from and where on it. The
   * offset is in the host's own axes and the rotation is three angles about them, as the commands give them. */
  attachedTo?:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};rotation:{x:number;y:number;z:number}};
+ /** The whole matrix, native rows, when something other than the heading and three angles sets it: the hand bone
+  * of a ped holding the object (CTaskSimpleHoldEntity::SetPedPosition copies the bone's matrix). */
+ matrix?:{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number}};
+ /** CTaskSimpleHoldEntity on the ped holding it: the ped's handle (the player's is 1), the offset, the PED_NODE the
+  * object follows, the bone flags and m_fRotation (the object's heading less the ped's when it was taken). */
+ heldBy?:{ped:number;offset:{x:number;y:number;z:number};node:number;flags:number;rotation:number};
  /** CEntity::m_nAreaCode, which SET_OBJECT_AREA_VISIBLE sets as the char command sets a ped's. */
  areaCode:number;
  /** CEntity::m_pLod, the object this one is the detailed version of, as a handle. */

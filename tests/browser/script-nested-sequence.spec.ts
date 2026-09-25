@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CTaskComplexUseSequence: PERFORM_SEQUENCE_TASK with a ped of -1 records a sequence into the open one (SMOKE2, HEIST9,
  * RIOT2 and others). The outer sequence runs it as one step: GET_SEQUENCE_PROGRESS reads the outer step, and
  * GET_SEQUENCE_PROGRESS_RECURSIVE the outer step with the nested one's. */
@@ -7,6 +8,7 @@ test('a sequence runs the sequences recorded into it, and reports both steps',as
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const ped=await page.evaluate(()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;
   return m.peds.create(4,'MALE01',{x:p.x+4,y:-p.z,z:p.y});});
  await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().peds.entity(h),ped,{timeout:45000});

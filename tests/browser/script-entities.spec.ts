@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CREATE_CAR and CREATE_CHAR hand the script a handle inside the command. The browser has to stream a model
  * before it can build either, so the pools hold the handle across that gap. This drives the pools the way the
  * script drives them — a handle used on the instruction after the one that made it — and checks that what the
@@ -10,6 +11,7 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
 
  // Make both beside the player, and use the handles at once, as the script does.
  const made=await page.evaluate(()=>{

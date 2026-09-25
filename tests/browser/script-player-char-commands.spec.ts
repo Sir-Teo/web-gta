@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** Commands that name any ped, given the player: they act on him rather than retiring the script (SWEET4's
  * SET_CHAR_CANT_BE_DRAGGED_OUT, HOODS5's SET_CHAR_RELATIONSHIP and CLEAR_LOOK_AT scplayer, 65 times in the script). */
 test('the player answers the char commands the script gives him',async({page})=>{
@@ -6,6 +7,7 @@ test('the player answers the char commands the script gives him',async({page})=>
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const out=await page.evaluate(()=>{
   const g=(window as any).__game,m=g.missionForProfiling(),w=m.runtime.world,p=g.pedestrians();
   const health=g.state().player.health;

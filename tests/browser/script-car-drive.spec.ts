@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** TASK_CAR_DRIVE_TO_COORD: a script ped at the wheel of a script car drives it to the point on CCarAI's coordinate
  * mission, the car's mission clears inside 3 units, and the task is over. */
 test('a script driver takes its car to a point',async({page})=>{
@@ -8,6 +9,7 @@ test('a script driver takes its car to a point',async({page})=>{
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const made=await page.evaluate(()=>{
   const game=(window as any).__game,m=game.missionForProfiling(),p=game.state().player.position;
   // In the street north of CJ's yard, facing west (a heading of 90).

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CREATE_CAR for a bike, a boat and a helicopter: each is built through its own class and answers the car commands
  * (position, heading, health, deletion). The sweep's WUZI5, SYN6 and KICKSTA had stopped on vehicles never made. */
 test('a script can make a bike, a boat and a helicopter',async({page})=>{
@@ -6,6 +7,7 @@ test('a script can make a bike, a boat and a helicopter',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const handles=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position,m=g.missionForProfiling();
   return [461,452,487].map((id,k)=>m.vehicles.create(id,{x:p.x+8+k*12,y:-p.z+10,z:-100},90));});
  for(const h of handles)await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),h,{timeout:60000});

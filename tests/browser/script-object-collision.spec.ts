@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** A script object is a CPhysical the world collides with: its model's COL stands where the record puts it, moves
  * with the record, goes when the script turns its collision off, and a blast ObjectDamages it (a cardboard box,
  * OBJECT.DAT effect 20, smashes: hidden, collision off, HAS_OBJECT_BEEN_DAMAGED). */
@@ -7,6 +8,7 @@ test('a script object collides, follows its record and smashes in a blast',async
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const made=await page.evaluate(()=>{
   const g=(window as any).__game,p=g.state().player.position,x=p.x+8,z=p.z,ground=g.groundAt(x,z,p.y+20)??p.y;
   const objects=g.missionForProfiling().runtime.game.objects,object=objects.create('cardboardbox',{x,y:-z,z:ground+.3},{external:false,missionCleanup:false});

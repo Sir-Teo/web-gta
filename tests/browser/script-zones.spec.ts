@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CTheZones' info records are the script's. The browser read a copy out of the script's bytes before anything
  * ran them, which is a new game's profile and nothing later; it now reads the live table, so what the script
  * changes while it runs is what the population sees. */
@@ -9,6 +10,7 @@ test('the zone the fleet reads is the one the script is holding',async({page})=>
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.state().fleet?.zone?.zoneInfoIndex??-1),{timeout:30000}).toBeGreaterThanOrEqual(0);
 
  // At the start the live table and the one read ahead of time agree, which is what running the opening should

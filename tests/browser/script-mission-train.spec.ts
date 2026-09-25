@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CTrain for CREATE_MISSION_TRAIN: the type's carriages on the nearest track (type 10: a freight engine and one flat
  * car, as RYDER3 makes it), drawn up to the cruise speed along the rails, the carriage a car's length behind. */
 test('a mission train runs along its track at its cruise speed',async({page})=>{
@@ -6,6 +7,7 @@ test('a mission train runs along its track at its cruise speed',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const train=await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.createMissionTrain(10,2278.18,-1144.88,27.51,true));
  await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),train,{timeout:60000});
  const carriage=await page.evaluate(h=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.setTrainSpeed(h,10);w.setTrainCruiseSpeed(h,20);return w.trainCarriage(h,1);},train);

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CCamera's fixed mode: the script puts the camera at a source looking at a point, and gives it back with a
  * restore. The browser's own camera runs until it is asked for and again as soon as it is handed back. */
 test('the camera goes where the script puts it and comes back when it is restored',async({page})=>{
@@ -8,6 +9,7 @@ test('the camera goes where the script puts it and comes back when it is restore
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
 
  const out=await page.evaluate(async()=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),p=game.state().player.position;

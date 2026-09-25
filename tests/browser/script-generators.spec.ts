@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CTheCarGenerators holds the script's generators in the same array as the world's, and CStreaming will not
  * bring in a model the script has suppressed. Both reach the browser's fleet. */
 test('a car generator the script makes joins the world’s, and a suppressed model is passed over',async({page})=>{
@@ -8,6 +9,7 @@ test('a car generator the script makes joins the world’s, and a suppressed mod
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
 
  const made=await page.evaluate(async()=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),p=game.state().player.position;

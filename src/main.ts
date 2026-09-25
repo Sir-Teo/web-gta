@@ -22,6 +22,8 @@ const scriptCarRotation=(degrees:number)=>degrees*Math.PI/180;
 /** A ped a script made inside a car. It never walks: it rides where the car goes, and the occupant renderer
  * draws it in its seat. CPopulation::AddPedInCar makes one of these rather than a ped on the ground. */
 interface ScriptRider{rider:true;model:number|string;car:import('./simulation/WorldCar').WorldCar;
+ /** TASK_DRIVE_BY: the rider leans out and fires (scriptDriveBy). */
+ driveBy?:import('./simulation/scriptDriveBy').ScriptDriveBy;
  seat:number|'driver';health:number;heading:number;accuracy:number;invulnerable:boolean;gone:boolean;
  /** Where on the car the ped hangs, in the car's own axes, for one attached rather than seated. */
  offset?:{x:number;y:number;z:number}}
@@ -32,7 +34,8 @@ const isScriptCar=(v:unknown):v is import('./simulation/WorldCar').WorldCar=>!!v
 /** The riders the occupant renderer should draw this frame. The browser's cars carry a seat point on each
  * side, so a driver and a front passenger are drawn where they sit; a script can seat a ped further back and
  * that ped rides unseen until the models carry rear seat points. A rider whose car has gone stops riding. */
-function scriptOccupantPoses(){
+/** `driveBy` gives the drive-by clips and gun a leaning rider needs, once the gang drive-bys have loaded them. */
+function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp').NativeAnimation|undefined;gun?:{asset:{model:import('./assets/dff').DffModel;textures:import('./assets/modelTextures').ModelTexture[]}}}){
  const poses=[];
  for(const rider of scriptRiders){
   if(rider.gone||rider.car.disposed||rider.health<=0){scriptRiders.delete(rider);continue;}
@@ -42,6 +45,12 @@ function scriptOccupantPoses(){
   // seat point, and the browser's cars carry one on each side.
   const seat=rider.offset??rider.car.seat(rider.seat==='driver'?'left':'right');
   if(!seat||!rider.offset&&typeof rider.seat==='number'&&rider.seat!==0)continue;
+  // A drive-by rider plays GANG_DRIVEBYLHS/RHS on the window it fires from, the gun in its hand.
+  const d=rider.driveBy,clipName=d&&`gang_driveby${d.side==='left'?'lhs':'rhs'}`,clip=clipName?driveBy?.clip(clipName):undefined;
+  if(d&&clip&&clip.duration>0&&!rider.offset){
+   poses.push({key:`script:${rider.car.car.body.handle}:${rider.seat}`,car:rider.car,model:rider.model,local:seat,clip:clipName!,seconds:d.seconds%clip.duration,animation:clip,gun:driveBy?.gun?.asset});
+   continue;
+  }
   poses.push({key:`script:${rider.car.car.body.handle}:${rider.offset?'on':rider.seat}`,car:rider.car,
    model:rider.model,local:seat,clip:rider.offset?'car_sit':sitClip(rider.car.modelFlags,rider.seat==='driver'),seconds:0});
  }
@@ -218,6 +227,7 @@ import {recordingVehicle} from './simulation/recordingBody';
 import {startPlaybackRecordedCar} from './engine/carRecordingPlayback';
 import {WorldTrain} from './simulation/WorldTrain';
 import {layoutMenu} from './ui/nativeHudMenus';
+import {newScriptDriveBy,stepScriptDriveBy,type ScriptDriveByWorld} from './simulation/scriptDriveBy';
 import {applyStoredSwitches,markRoadNodeAsDontWander,switchRoadsOffInArea,unmarkAllRoadNodesAsDontWander} from './simulation/nativePathSwitches';
 import {pathAreaLoaded,pathAreaMaps} from './assets/worldPaths';
 import {findCaboose,findCarriage,setTrainCruiseSpeed,setTrainSpeed} from './simulation/nativeTrain';
@@ -273,6 +283,7 @@ async function boot() {
   /** The player riding a car as a passenger (WARP_CHAR_INTO_CAR_AS_PASSENGER): the car and its seat (1 front right,
    * 2 rear left, 3 rear right). The car goes on under its own driver, AI or recording. */
   let playerPassenger:{car:ScriptCar;seat:1|2|3}|undefined;
+  const boneScratch=new Matrix4();
   /** The passenger steps out on his own side: his seat's point carried out past the body, set down on the ground. */
   const leavePassengerSeat=(inPlace=false)=>{
    const ride=playerPassenger;if(!ride)return;playerPassenger=undefined;
@@ -327,6 +338,15 @@ async function boot() {
   let traffic:WorldTraffic|undefined;
   let police:WorldPolice|undefined;
   let driveby:import('./simulation/GangDriveBy').GangDriveBy|undefined;
+  /** What a script's drive-by rider fires at and through: the player, the cars, the peds, and where its target is. */
+  const scriptDriveByWorld:ScriptDriveByWorld={sim,cars:()=>fleet?.cars??[],random:Math.random,
+   targetPosition:target=>{
+    if(target.kind==='point')return {x:target.x,y:target.y,z:target.z};
+    const at=target.kind==='ped'?mission?.runtime.world?.pedPosition?.(target.handle):mission&&mission.vehicles.exists(target.handle)?mission.vehicles.positionOf(target.handle):undefined;
+    return at&&{x:at.x,y:at.z-(target.kind==='ped'?PED_ORIGIN_HEIGHT:0),z:-at.y};
+   },
+   hitPed:(collider,damage,weapon,direction,end)=>!!pedestrians?.bulletHit(collider,damage,weapon,direction,end),
+   onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
   let pedestrians:WorldPedestrians|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
   let worldZones:import('./assets/worldZones').WorldZones|undefined;
@@ -363,6 +383,14 @@ async function boot() {
    return carEntry.exit()?'started':'wait';
   },
   carState:()=>carEntry.seated?'seated':carEntry.active?'entering':'none',
+  // CTaskComplexEvasiveDiveAndGetUp on CJ: turned along the dive, EV_DIVE held through the script's lie, then
+  // GETUP_FRONT, through the same knockdown a fall gives him. The dive's forward root motion is not applied.
+  dive:(yaw,lie)=>{
+   const view=render.nativeCharacter;if(!view?.hasReaction('ev_dive')||carEntry.seated||playerPassenger)return false;
+   sim.player.heading=yaw;const fall=view.reactionDuration('ev_dive')??2.33,getUp=playerFall(view,'ev_dive');
+   sim.knockdown=fall+lie+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ev_dive',fall+lie);return true;
+  },
+  diving:()=>sim.knockdown>0,
   // The player's driving tasks: the car he sits in, the one the script names, drives on its autopilot.
   startCarTask:order=>{
    const car=carEntry.seated?carEntry.car:undefined;
@@ -2305,6 +2333,7 @@ async function boot() {
          phone.step(view);if(!phone.active&&key!=='player')phones.delete(key);
         }});
         guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>{scriptCars.step(step,sim.player.position);if(mission)scriptCars.pathAreas(sim.player.position);});guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied?worldCar:undefined));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
+        guard('scriptDriveBys',()=>{const gun=driveby?.gun;if(!gun)return;for(const rider of scriptRiders)if(rider.driveBy&&!rider.gone&&rider.health>0&&!rider.car.wrecked)stepScriptDriveBy(rider.driveBy,rider.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);});
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
         guard('pedestrians.beforeStep',()=>pedestrians?.beforeStep(step,fleet?.cars??[]));
         frameProfile.stepPeds+=performance.now()-tPeds;
@@ -2605,7 +2634,7 @@ async function boot() {
       target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z)};}
      else if(scriptFixedCamera&&render.fixedCamera===scriptFixedCamera){render.fixedCamera=undefined;scriptFixedCamera=undefined;}
     }
-    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...carEntry.leavingPoses(),...scriptOccupantPoses()],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby)],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
@@ -3449,7 +3478,7 @@ async function boot() {
                   target.body.setTranslation({x:place.x,y:place.y+.9,z:place.z},true);
                  },
                  setScriptPedHeading:(ped,degrees)=>{const p=onFoot(ped);if(p)p.actor.player.heading=scriptYaw(degrees);else{const r=asRider(ped);if(r)r.heading=scriptYaw(degrees);}},
-                 scriptPedPosition:ped=>{const r=asRider(ped);const q=r?r.car.car.body.translation():onFoot(ped)!.actor.player.position;return {x:q.x,y:-q.z,z:q.y};},
+                 scriptPedPosition:ped=>{const r=asRider(ped);if(r){const q=r.car.car.body.translation();return {x:q.x,y:-q.z,z:q.y};}const q=onFoot(ped)!.actor.player.position;return {x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT};},
                  scriptPedHeading:ped=>{const r=asRider(ped);const yaw=r?r.car.heading():onFoot(ped)!.actor.player.heading;const degrees=(yaw-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
                  scriptPedHealth:ped=>asRider(ped)?.health??onFoot(ped)?.health??0,
                  setScriptPedHealth:(ped,health)=>{const r=asRider(ped);if(r)r.health=health;else{const p=onFoot(ped);if(p)p.health=health;}},
@@ -3583,6 +3612,22 @@ async function boot() {
                  scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
                  burstScriptVehicleTyre:(car,wheel)=>{if(isScriptCar(car))car.burstTyre(wheel,true);},
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
+                 // TASK_DRIVE_BY on a rider: the target is a point (script coordinates), a ped or a car handle.
+                 setScriptPedDriveBy:(ped,target,radius,fireRate,rightSide)=>{
+                  const rider=asRider(ped);if(!rider)return false;
+                  const t=target.kind==='point'?{kind:'point' as const,x:target.x,y:target.z,z:-target.y}:target;
+                  rider.driveBy=newScriptDriveBy(t,radius,fireRate,rightSide);return true;
+                 },
+                 clearScriptPedDriveBy:ped=>{const rider=asRider(ped);if(rider)rider.driveBy=undefined;},
+                 scriptObjectBaseOffset:handle=>scriptObjectViews?.baseOffset(handle)??0,
+                 // The bone's world matrix: its columns are the bone's own axes, turned back from the renderer's
+                 // (x, z, -y) into native rows.
+                 scriptPedBoneMatrix:(ped,tag)=>{
+                  const view=ped==='player'?render.nativeCharacter:(ped as {view?:import('./render/NativeCharacter').NativeCharacter}).view;
+                  const m=view?.boneMatrix(tag,boneScratch);if(!m)return undefined;
+                  const e=m.elements,n=(x:number,y:number,z:number)=>({x,y:-z,z:y}),unit=(v:{x:number;y:number;z:number})=>{const l=Math.hypot(v.x,v.y,v.z)||1;return {x:v.x/l,y:v.y/l,z:v.z/l};};
+                  return {position:n(e[12],e[13],e[14]),right:unit(n(e[0],e[1],e[2])),forward:unit(n(e[4],e[5],e[6])),up:unit(n(e[8],e[9],e[10]))};
+                 },
                  // m_vecTurnSpeed is radians a frame; the script's are a second, so they are the body's own rate here
                  // (native x, y, z to the renderer's x, z, -y).
                  setScriptVehicleTurnSpeed:(car,speed,add)=>{
@@ -3901,7 +3946,10 @@ async function boot() {
                   // their own; a helicopter is a plane here until the fleet tells them apart.
                   const appearance=car?1:fleet?.occupiedBike?2:fleet?.occupiedBoat?4:fleet?.occupiedPlane?5:0;
                   return {
-                   position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},
+                   // CPed::GetPosition is the ped's origin, its collision's centre a unit above the feet
+                   // (GetDistanceFromCentreOfMassToBaseOfModel); in a vehicle it is the vehicle's, which the player's
+                   // position already follows.
+                   position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y+(vehicle?0:PED_ORIGIN_HEIGHT)},
                    vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,inAirProper:()=>!(car?car.audio.contactWheels>0:'airborne' in vehicle&&!(vehicle as {airborne:boolean}).airborne)&&!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
                    health:sim.player.health,dead:sim.player.health<=0,

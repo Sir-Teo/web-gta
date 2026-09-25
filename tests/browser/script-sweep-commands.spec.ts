@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** Commands a mission sweep found without an answer: the player's entry exit, ped-type relationships, the weapon in
  * a slot and the group size cap. */
 test('the player’s entry exit, ped-type relationships and weapon slots answer the script',async({page})=>{
@@ -6,6 +7,7 @@ test('the player’s entry exit, ped-type relationships and weapon slots answer 
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const out=await page.evaluate(()=>{
   const w=(window as any).__game.missionForProfiling().runtime.world;
   // Caligula's Palace's door, as the casino missions name it.

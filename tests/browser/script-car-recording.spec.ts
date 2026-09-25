@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CVehicleRecording: REQUEST_CAR_RECORDING streams the file from carrec.img, and a playback puts the car on the
  * recording each frame, between the frames either side of its clock. INTRO waits on files 706 and 707. */
 test('a script car plays back a recording streamed from carrec.img',async({page})=>{
@@ -6,6 +7,7 @@ test('a script car plays back a recording streamed from carrec.img',async({page}
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.vehicleRecordings.requestRecordingFile(706));
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.vehicleRecordings.hasRecordingFileBeenLoaded(706)),{timeout:30000}).toBe(true);
  const start=await page.evaluate(()=>(window as any).__game.carRecordings().framesOf(706)[0].position);

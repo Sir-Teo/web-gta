@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** SET_ANIM_GROUP_FOR_CHAR gives a script ped another walkcycle (its moves and their speeds), and
  * SET_NEXT_DESIRED_MOVE_STATE's walk is how the next enter-car task goes to the door. */
 test('a script ped walks with the gang walkcycle and walks, not runs, to a car when told',async({page})=>{
@@ -8,6 +9,7 @@ test('a script ped walks with the gang walkcycle and walks, not runs, to a car w
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const made=await page.evaluate(()=>{
   const game=(window as any).__game,m=game.missionForProfiling(),p=game.state().player.position;
   const ped=m.peds.create(4,'MALE01',{x:p.x+4,y:-p.z,z:p.y}),car=m.vehicles.create(400,{x:p.x+14,y:-p.z,z:p.y},90);

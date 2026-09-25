@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** A sequence with car tasks in it (CTaskComplexSequence): a ped on foot told to drive gets in at the wheel first
  * (CTaskComplexCarDrive), drives to the point, waits in its seat, gets out once the car is still, and walks on.
  * GET_SEQUENCE_PROGRESS reads the task it is on, and -1 once the sequence is over. (Where the car stops, and at what
@@ -10,6 +11,7 @@ test('a script ped runs a sequence that drives, waits, gets out and walks on',as
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const made=await page.evaluate(()=>{
   const game=(window as any).__game,m=game.missionForProfiling(),p=game.state().player.position;
   // In the street north of CJ's yard, facing west (a heading of 90): the driver's door is on the car's south side,

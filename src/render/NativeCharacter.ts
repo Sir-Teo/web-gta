@@ -86,6 +86,8 @@ export class NativeCharacter {
     const index=this.source.model.frames.findIndex(f=>f.hanim?.id===id);let bone:Object3D|undefined;this.owner.root.traverse(o=>{if(o.userData.nativeFrame===index)bone=o;});
     this.bones.set(id,bone);return bone;
   }
+  /** The bone's world matrix (RpHAnimHierarchyGetMatrixArray's entry), or undefined without that bone. */
+  boneMatrix(id:number,out=new Matrix4()){const bone=this.bone(id);if(!bone)return undefined;return out.copy(this.worldOf(bone));}
   /** CPed::GetTransformedBonePosition in the world, or undefined without that bone. */
   bonePosition(id:number,out=new Vector3()){const bone=this.bone(id);if(!bone)return undefined;return out.setFromMatrixPosition(this.worldOf(bone));}
   /** A node's world matrix from the character root down its ancestors' local matrices, without walking the whole
