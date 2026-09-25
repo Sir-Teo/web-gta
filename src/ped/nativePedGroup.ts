@@ -46,7 +46,7 @@ export class NativePedGroup{
  membersEnterLeadersVehicle=true;
  /** CPedGroupIntelligence's default task allocator (SET_GROUP_DEFAULT_TASK_ALLOCATOR): FOLLOW_ANY_MEANS (0),
   * FOLLOW_LIMITED (1), STAND_STILL (2), CHAT (3) or RANDOM (4). */
- defaultTaskAllocator=GROUP_ALLOCATOR.followAnyMeans;
+ defaultTaskAllocator:number=GROUP_ALLOCATOR.followAnyMeans;
  /** The group decision maker SET_GROUP_DECISION_MAKER gives it (SetGroupDecisionMakerType), -1 for none. */
  decisionMaker=-1;
  /** Whether the default task has the followers keep with their leader: the two follow allocators. */

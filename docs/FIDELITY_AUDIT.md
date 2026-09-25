@@ -7986,8 +7986,9 @@ Each is now answered:
 - A script ped in the player's group follows him on foot, as his street recruits do (the group's default
   CTaskComplexFollowLeaderInFormation), whenever the script has no task of its own running on it. It stops once it
   leaves the group. The script's own group processing lets it go past the separation range.
-- Not yet: followers boarding the player's car. The car entry seats street recruits by removing them and making them
-  again inside, which would lose a script ped's handle; script followers stay on foot for now.
+- Script followers board the player's car through the script's own passenger task, not the car entry's recruit
+  seating, which removes a ped and makes it again inside and would lose its handle (see "The player's car has a
+  handle" below).
 - Verification: `tests/browser/script-group-follow.spec.ts`.
 
 ## Getting off a script bike
@@ -8007,3 +8008,20 @@ Each is now answered:
   STAND_STILL, CHAT and RANDOM leave the followers where they are. The group decision maker's responses and the
   members getting into the leader's car are not simulated yet; the values are kept for them.
 - Verification: `tests/native-ped-group.test.ts`, `tests/browser/script-group-follow.spec.ts`.
+
+## The player's car has a handle
+
+- Every vehicle in CPools has a handle. The port handed scripts PLAYER_VEHICLE_HANDLE for any street car the player
+  drove: a handle meaning "whatever he is in now", which script peds could not board and which changed meaning when he
+  changed cars. The first time a script asks (STORE_CAR_CHAR_IS_IN_NO_SAVE, IS_CHAR_IN_CAR, GET_CAR_CHAR_IS_USING), the
+  car now gets a handle of its own in the script's vehicle pool. That handle names the car after he gets out, and
+  stops naming anything once the car is gone.
+  - The record of a handle whose car has gone is dropped the next time a car is adopted.
+  - A car the script did not make is not the mission's, so mission cleanup leaves it alone.
+- CGroupEventHandler's leader-entered-car and leader-exited-car responses, for the script's peds in the player's
+  group:
+  - As he gets in, each follower on foot with no script task of its own takes CTaskComplexEnterCarAsPassenger into a
+    free seat, while the group enters the leader's vehicle (SET_GROUP_FOLLOW_STATUS) and follows him.
+  - As he gets out, follower i leaves rand(-250, 250) + 500 i ms after him.
+  - These are the group's tasks, so GET_SCRIPT_TASK_STATUS does not report them.
+- Verification: `tests/browser/script-group-car.spec.ts`.

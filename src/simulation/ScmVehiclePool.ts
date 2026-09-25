@@ -35,10 +35,15 @@ export class ScmVehiclePool<Car>{
   this.said.set(handle,said);
   return handle;
  }
- /** The handle for a vehicle the browser made itself (a train's carriage), made the first time it is asked for. */
+ /** Handles given to vehicles the script did not make, which go once their vehicle has: a handle whose vehicle is
+  * gone names nothing whether or not its record stays, so the pool does not grow with every car the player drives. */
+ private readonly adopted=new Set<number>();
+ /** The handle for a vehicle the browser made itself (a train's carriage, the car the player took), made the first
+  * time it is asked for. */
  handleFor(entity:Car,model:number|string){
   const known=this.pool.handleOf(entity);if(known!==undefined)return known;
-  const handle=this.pool.adopt(entity);
+  for(const old of this.adopted)if(!this.pool.exists(old)){this.adopted.delete(old);this.pool.forget(old);this.said.delete(old);}
+  const handle=this.pool.adopt(entity);this.adopted.add(handle);
   this.said.set(handle,{model,position:this.host.positionOf(entity),heading:this.host.headingOf(entity),moved:false});
   return handle;
  }

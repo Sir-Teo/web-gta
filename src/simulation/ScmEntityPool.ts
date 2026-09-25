@@ -93,6 +93,9 @@ export class ScmEntityPool<Entity>{
   return record!.entity?of(record!.entity):fallback();
  }
  /** The entity goes now if it is here, and is refused on arrival if it is not. */
+ /** Drop a handle's record and leave its entity alone: for a handle naming something the script never made, once
+  * that is gone. */
+ forget(handle:number){this.records.delete(handle);}
  delete(handle:number){
   const record=this.records.get(handle);if(!record)return;
   record.deleted=true;record.pending.length=0;

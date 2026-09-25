@@ -857,7 +857,7 @@ export class ScmMission {
    // SetDefaultTaskAllocatorType. For the player's group it decides whether his followers keep with him.
    setGroupDefaultTaskAllocator:(group,type)=>{
     if(!Number.isInteger(type)||type<0||type>4)throw new UnsupportedScmCommand(-1,0,'SET_GROUP_DEFAULT_TASK_ALLOCATOR',`allocator ${type}`);
-    this.group(group).defaultTaskAllocator=type as NativePedGroup['defaultTaskAllocator'];
+    this.group(group).defaultTaskAllocator=type;
    },
    pedIsInGroup:(handle,group)=>this.groups.get(group)?.isMember(handle)??false,
    pedIsGroupLeader:(handle,group)=>this.groups.get(group)?.isLeader(handle)??false,
@@ -1852,12 +1852,14 @@ export class ScmMission {
   const ground=z<=-100?this.world.groundLevel(x,y,z):undefined;
   if(!this.host('teleportPlayer',command)({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,command,'a player on a bike, boat or plane');
  }
- /** The handle for the vehicle the player is in: the script's own handle when it is a car the script made (so
-  * IS_CHAR_IN_CAR against that car holds), PLAYER_VEHICLE_HANDLE for any other, nothing on foot. */
+ /** The handle for the vehicle the player is in, nothing on foot. Every vehicle in CPools has a handle, so a street car
+  * the player took gets one the first time a script asks (STORE_CAR_CHAR_IS_IN_NO_SAVE, GET_CAR_CHAR_IS_USING), and
+  * keeps naming that car after he leaves it: the script can then seat its peds in it, warp it, or ask after it.
+  * PLAYER_VEHICLE_HANDLE is left for a vehicle the host cannot hand over or whose model it does not know. */
  private playerCarHandle(){
-  if(!this.world.playerPed().vehicle)return undefined;
-  const entity=this.world.playerVehicleEntity?.();
-  return (entity!==undefined?this.vehicles.handleOf(entity):undefined)??PLAYER_VEHICLE_HANDLE;
+  const vehicle=this.world.playerPed().vehicle;if(!vehicle)return undefined;
+  const entity=this.world.playerVehicleEntity?.();if(entity===undefined)return PLAYER_VEHICLE_HANDLE;
+  return this.vehicles.handleOf(entity)??(vehicle.model!==undefined?this.vehicles.handleFor(entity,vehicle.model):PLAYER_VEHICLE_HANDLE);
  }
  /** CPlayerData::m_bGroupAlwaysFollow (SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS). */
  playerGroupAlwaysFollows=false;
@@ -2321,7 +2323,7 @@ export class ScmMission {
  private readonly neverLeavesGroup=new Set<number>();
  /** CPedGroups::Process's membership half: each script group processes, and a group left empty is removed. The
   * player's group is never removed. */
- private processGroups(){
+ private processGroups(nowMs:number){
   const peds={
    alive:(h:number)=>h===PLAYER_PED_HANDLE?this.world.playerPed().health>0:this.peds.exists(h)&&!this.peds.isDead(h),
    isPlayer:(h:number)=>h===PLAYER_PED_HANDLE,
@@ -2346,6 +2348,38 @@ export class ScmMission {
   }
   for(const handle of this.followingPlayer)if(!now.has(handle)){const entity=this.peds.entity(handle);if(entity!==undefined)setFollows.call(this.world,entity,false);}
   this.followingPlayer=now;
+  this.groupFollowsIntoCars(players,nowMs);
+ }
+ /** The car the player's group last saw him in, and the followers still to get out of it. */
+ private groupCar?:number;
+ private groupExits:{handle:number;vehicle:number;at:number}[]=[];
+ /** CGroupEventHandler::ComputeResponseLeaderEnteredCar and ComputeResponseLeaderExitedCar for the player's group, for
+  * the script's peds in it. As he gets in, each follower on foot with no script task of its own takes
+  * CTaskComplexEnterCarAsPassenger into a free seat, while the group's members enter the leader's vehicle. As he gets
+  * out, follower i leaves its seat rand(-250, 250) + 500 i ms after him. These are the group's tasks, not the script's,
+  * so GET_SCRIPT_TASK_STATUS does not see them (they go under no command's opcode). */
+ private groupFollowsIntoCars(players:NativePedGroup,nowMs:number){
+  const car=this.world.playerPed().vehicle?this.playerCarHandle():undefined;
+  const followers=players.all().filter(h=>h!==PLAYER_PED_HANDLE&&players.isFollower(h)&&this.peds.exists(h)&&!this.peds.isDead(h)&&this.peds.entity(h)!==undefined);
+  const groupTask=(handle:number,task:ScmScriptedTask)=>{
+   try{this.runtime.world!.givePedScriptedTask!(handle,task,0);}catch(error){if(!(error instanceof UnsupportedScmCommand)&&!(error instanceof ScmEntityPending))throw error;}
+   this.taskRecords.delete(handle);
+  };
+  if(car!==this.groupCar){
+   const left=this.groupCar;this.groupCar=car;
+   if(left!==undefined&&left!==PLAYER_VEHICLE_HANDLE){
+    let i=0;
+    for(const handle of followers)if(this.peds.rideOf(handle)?.vehicle===left&&!this.taskRecords.has(handle))this.groupExits.push({handle,vehicle:left,at:nowMs+Math.max(0,this.random.next()/(RANDOM_SAMPLE_MAX+1)*500-250+i++*500)});
+   }
+   if(car!==undefined&&car!==PLAYER_VEHICLE_HANDLE&&players.membersEnterLeadersVehicle&&players.followsLeader){
+    this.groupExits=this.groupExits.filter(exit=>exit.vehicle!==car);
+    for(const handle of followers)if(!this.peds.rideOf(handle)&&!this.taskRecords.has(handle))groupTask(handle,{kind:'enterCarAsPassenger',vehicle:car,time:-1,seat:-1});
+   }
+  }
+  if(!this.groupExits.length)return;
+  const due=this.groupExits.filter(exit=>exit.at<=nowMs);if(!due.length)return;
+  this.groupExits=this.groupExits.filter(exit=>exit.at>nowMs);
+  for(const exit of due)if(this.peds.exists(exit.handle)&&this.peds.rideOf(exit.handle)?.vehicle===exit.vehicle&&!this.taskRecords.has(exit.handle))groupTask(exit.handle,{kind:'leaveCar',vehicle:exit.vehicle});
  }
  /** The player's group's script peds last set following him. */
  private followingPlayer=new Set<number>();
@@ -2366,7 +2400,7 @@ export class ScmMission {
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();this.processGroups();
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.processTaskRecords();
