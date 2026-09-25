@@ -212,6 +212,14 @@ export class WorldCar {
   alarmArmed=false;
   /** The fleet car owning a rigid body handle, for the collision record between vehicles. */
   otherCar?:(bodyHandle:number)=>WorldCar|undefined;
+ /** CUpsideDownCarCheck::IsCarUpsideDown (0x463830)'s test of the car: up.z below 0.3 with fewer than four wheels on
+  * the ground, or below zero. gta-reversed's reading makes the test only while CanPedStepOutCar(false) fails, while the
+  * car still moves, which would leave a car at rest on its roof never counted and nobody crawling out of one; that
+  * gate is left out. */
+ upsideDownForCheck(){
+  const q=this.car.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
+  return upY<.3&&this.wheelGround.filter(Boolean).length<4||upY<0;
+ }
  /** CVehicle::m_pLastDamageEntity: whoever last hurt the car, which CLEAR_CAR_LAST_DAMAGE_ENTITY forgets. */
  lastDamagedBy?:CarDamager;
  /** CVehicle::m_nLastWeaponDamageType: the eWeaponType that last hurt the car, -1 until one has. */

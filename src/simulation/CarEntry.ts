@@ -382,10 +382,7 @@ export class CarEntry {
  private quitOutside(){this.message='The car is moving too fast.';this.cancel();}
  /** CUpsideDownCarCheck::IsCarUpsideDown (0x463830): up.z below 0.3 with fewer than four wheels on the ground, or
   * below zero. (The leave task that sets CTaskSimpleCarGetOut's flag is not reversed; the geometric test is.) */
- private upsideDown(car:WorldCar){
-  const q=car.car.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
-  return upY<.3&&car.wheelGround.filter(Boolean).length<4||upY<0;
- }
+ private upsideDown(car:WorldCar){return car.upsideDownForCheck();}
  /** CTaskSimpleCarGetOut::ComputeAnimID's upside-down doors: the driver's while right.z ≥ −0.5, the passenger's
   * while right.z ≤ 0.5, and CAR_crawloutRHS for either (ped.ifp carries only the one clip). */
  private beginCrawlOut(car:WorldCar){

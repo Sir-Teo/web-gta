@@ -104,7 +104,6 @@ describe('the ped state a script reads and writes',()=>{
    setPedAmmo:(...args:unknown[])=>{calls.push(['ammo',...args]);},
    setPedMoney:(...args:unknown[])=>{calls.push(['money',...args]);},
    warpPedIntoCarAsPassenger:(...args:unknown[])=>{calls.push(['warp',...args]);},
-   removeStuckCarCheck:(...args:unknown[])=>{calls.push(['unstuck',...args]);},
    pedIsInWater:()=>true,
   } as unknown as Partial<ScmWorldCommands>;
   const {thread}=run(world,undefined,
@@ -117,7 +116,7 @@ describe('the ped state a script reads and writes',()=>{
    instruction(scmOpcode('IS_CHAR_IN_WATER'),[int(PED)]));
   expect(calls).toEqual([
    ['visible',PED,false],['disarm',PED],['ammo',PED,22,60],['money',PED,250],
-   ['warp',PED,CAR,1],['unstuck',CAR],
+   ['warp',PED,CAR,1],
   ]);
   expect(thread.condition).toBe(true);
  });

@@ -229,6 +229,8 @@ export class ScriptCarMissions{
  }
  private forward3(car:WorldCar){const q=car.car.body.rotation();return toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)));}
  private forward(car:WorldCar){const f=this.forward3(car),l=Math.hypot(f.x,f.y)||1;return {x:f.x/l,y:f.y/l};}
+ /** CAutoPilot's m_startingRouteNode and m_currentAddress for a car on a mission: the ends of the link it drives. */
+ routeNodes(car:WorldCar){const link=this.missions.get(car)?.link;return link&&{starting:link.from,current:link.to};}
  /** The loaded car path areas the script's node questions search (CPathFind searches only the areas it has loaded),
   * kept streaming round `around` as the missions keep them. Nothing until the first load has finished. */
  pathAreas(around?:{x:number;z:number}){

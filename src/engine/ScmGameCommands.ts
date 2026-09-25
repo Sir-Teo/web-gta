@@ -913,7 +913,7 @@ const handlers:Record<string,ScmCommandHandler>={
  WARP_CHAR_INTO_CAR_AS_PASSENGER:(t,p,i)=>{
   world(t,i,'warpPedIntoCarAsPassenger')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));
  },
- REMOVE_STUCK_CAR_CHECK:(t,p,i)=>{world(t,i,'removeStuckCarCheck')(t.readInt(p[0]));},
+ REMOVE_STUCK_CAR_CHECK:(t,p,i)=>{game(t,i).stuckCars.remove(t.readInt(p[0]));},
  // CFireManager::StartScriptFire at the ped, at eight tenths strength and one generation, as the command asks.
  START_CHAR_FIRE:(t,p,i)=>{
   const position=world(t,i,'pedPosition')(t.readInt(p[0]));
@@ -975,12 +975,14 @@ const handlers:Record<string,ScmCommandHandler>={
   t.updateCompareFlag(world(t,i,'explosionInArea')(t.readInt(p[0]),min,max),negated(i));
  },
  // The plain stuck-car check leaves the warp off and its four switches at nothing.
- ADD_STUCK_CAR_CHECK:(t,p,i)=>{
-  world(t,i,'addStuckCarCheck')(t.readInt(p[0]),t.readFloat(p[1]),t.readInt(p[2]),false,
-   {stuck:false,flipped:false,inWater:false,nodesToCheck:0});
+ // CStuckCarCheck::AddCarToCheck starts from where the car is now.
+ ADD_STUCK_CAR_CHECK:(t,p,i,now)=>{
+  const handle=t.readInt(p[0]);
+  game(t,i).stuckCars.add(handle,world(t,i,'vehiclePosition')(handle),now,t.readFloat(p[1]),t.readInt(p[2]));
  },
- ADD_STUCK_CAR_CHECK_WITH_WARP:(t,p,i)=>{
-  world(t,i,'addStuckCarCheck')(t.readInt(p[0]),t.readFloat(p[1]),t.readInt(p[2]),true,
+ ADD_STUCK_CAR_CHECK_WITH_WARP:(t,p,i,now)=>{
+  const handle=t.readInt(p[0]);
+  game(t,i).stuckCars.add(handle,world(t,i,'vehiclePosition')(handle),now,t.readFloat(p[1]),t.readInt(p[2]),
    {stuck:bool(t,p[3]),flipped:bool(t,p[4]),inWater:bool(t,p[5]),nodesToCheck:t.readInt(p[6])});
  },
  IS_OBJECT_PLAYING_ANIM:(t,p,i)=>{
@@ -1043,7 +1045,7 @@ const handlers:Record<string,ScmCommandHandler>={
   const position=world(t,i,'deadPedPickupCoordinates')(t.readInt(p[0]));
   t.writeFloat(p[1],position.x);t.writeFloat(p[2],position.y);t.writeFloat(p[3],position.z);
  },
- IS_CAR_STUCK:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsStuck')(t.readInt(p[0])),negated(i));},
+ IS_CAR_STUCK:(t,p,i)=>{t.updateCompareFlag(game(t,i).stuckCars.isStuck(t.readInt(p[0])),negated(i));},
  // The active camera's own source, and the point it looks at, which is that source plus its forward.
  GET_ACTIVE_CAMERA_COORDINATES:(t,p,i)=>{
   const source=world(t,i,'activeCameraSource')();
@@ -2138,9 +2140,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CAR_FOLLOW_CAR:(t,p,i)=>{
   world(t,i,'setVehicleFollowVehicle')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]));
  },
- DOES_CAR_HAVE_STUCK_CAR_CHECK:(t,p,i)=>{
-  t.updateCompareFlag(world(t,i,'vehicleHasStuckCarCheck')(t.readInt(p[0])),negated(i));
- },
+ DOES_CAR_HAVE_STUCK_CAR_CHECK:(t,p,i)=>{t.updateCompareFlag(game(t,i).stuckCars.has(t.readInt(p[0])),negated(i));},
  // The plain colours are the first two of the four the vehicle carries.
  GET_CAR_COLOURS:(t,p,i)=>{
   const colours=world(t,i,'vehicleColours')(t.readInt(p[0]));
@@ -2324,8 +2324,9 @@ const handlers:Record<string,ScmCommandHandler>={
  // The garage is named by its text label, as the other garage commands name it.
  SET_TARGET_CAR_FOR_MISSION_GARAGE:(t,p,i)=>{const car=t.readInt(p[1]);game(t,i).garages.setTargetCar(t.text(p[0]),car>0?car:undefined);},
  TASK_GO_TO_COORD_WHILE_AIMING:(t,p,i)=>{world(t,i,'taskGoToCoordWhileAiming')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readInt(p[7]),t.readFloat(p[8]),t.readFloat(p[9]),t.readFloat(p[10]));},
- ADD_UPSIDEDOWN_CAR_CHECK:(t,p,i)=>{world(t,i,'addUpsidedownCarCheck')(t.readInt(p[0]));},
- IS_CAR_STUCK_ON_ROOF:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarStuckOnRoof')(t.readInt(p[0])),negated(i));},
+ ADD_UPSIDEDOWN_CAR_CHECK:(t,p,i)=>{game(t,i).upsideDownCars.add(t.readInt(p[0]));},
+ REMOVE_UPSIDEDOWN_CAR_CHECK:(t,p,i)=>{game(t,i).upsideDownCars.remove(t.readInt(p[0]));},
+ IS_CAR_STUCK_ON_ROOF:(t,p,i)=>{t.updateCompareFlag(game(t,i).upsideDownCars.hasBeenUpsideDownForAWhile(t.readInt(p[0])),negated(i));},
  CREATE_BIRDS:(t,p,i)=>{world(t,i,'createBirds')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]),t.readInt(p[7]));},
  DONT_SUPPRESS_ANY_CAR_MODELS:(t,p,i)=>{world(t,i,'dontSuppressAnyCarModels')();},
  SET_FREEBIES_IN_VEHICLE:(t,p,i)=>{world(t,i,'setFreebiesInVehicle')(t.readInt(p[0]),bool(t,p[1]));},

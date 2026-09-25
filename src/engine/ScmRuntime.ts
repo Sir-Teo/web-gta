@@ -123,7 +123,8 @@ export class ScmRuntime {
   const delta=Math.trunc(timeStepMs);this.processing=true;
   const tick=(view:DataView)=>{for(const index of [TIMER_A,TIMER_B]){const at=index*4;view.setInt32(at,view.getInt32(at,true)+delta,true);}};
   try{
-   // CTheScripts::Process: fail countdown, text-line reset, mission timers, then threads.
+   // CTheScripts::Process: the two car watches, fail countdown, text-line reset, mission timers, then threads.
+   if(this.world){this.game.upsideDownCars.updateTimers(delta,this.world);this.game.stuckCars.process(nowMs,this.world);}
    if(this.game.failCurrentMission)this.game.failCurrentMission--;
    this.game.introRectangles.beginFrame(this.game.introText.useTextCommands);
    this.game.introText.beginFrame();

@@ -3406,6 +3406,8 @@ async function boot() {
                  // gate is held so a script that closes and opens it carries on.
                  setAllPedSpeechDisabled:disabled=>{allPedSpeechDisabled=disabled;},
                  scriptPedLastDamagedBy:ped=>onFoot(ped)?.lastDamagedBy,
+                 scriptVehicleUpsideDownForCheck:car=>(car as ScriptCar).upsideDownForCheck(),
+                 scriptVehicleRouteNodes:car=>scriptCars.routeNodes(car as ScriptCar),
                  carPathAreas:()=>scriptCars.pathAreas({x:sim.player.position.x,z:sim.player.position.z}),
                  scriptVehicleLastDamagedBy:car=>(car as ScriptCar).lastDamagedBy,
                  scriptVehicleLastWeaponDamage:car=>(car as ScriptCar).lastWeaponDamage,

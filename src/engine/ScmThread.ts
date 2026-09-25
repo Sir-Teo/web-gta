@@ -5,6 +5,7 @@ import {NATIVE_NOP_OPCODES} from './ScmNativeNops';
 import {RANDOM_SAMPLE_MAX,randomFloatInRange,randomIntInRange} from './nativeRandomRange';
 import {SCM_GAME_COMMANDS} from './ScmGameCommands';
 import type {ScmGameState} from './ScmGameState';
+import type {ScmCarCheckWorld} from './ScmCarChecks';
 
 export class UnsupportedScmCommand extends Error {
  constructor(readonly offset:number,readonly opcode:number,readonly command:string,detail=''){
@@ -94,7 +95,7 @@ export type ScmScriptedTask=
  |{kind:'leaveCarAndFlee';vehicle:number;x:number;y:number;z:number}
  |{kind:'gotoCar';vehicle:number;time:number;radius:number}
  |{kind:'dead'};
-export interface ScmWorldCommands {
+export interface ScmWorldCommands extends ScmCarCheckWorld {
  fade(milliseconds:number,direction:number,nowMs:number):void;
  /** CPlayerInfo::IsRestartingAfterDeath() || IsRestartingAfterArrest(). */
  isPlayerRestarting?():boolean;
@@ -276,8 +277,6 @@ export interface ScmWorldCommands {
  pedInPassengerSeat?(vehicle:number,seat:number):number|undefined;
  /** CTaskSimpleCarSetPedInAsPassenger after an immediate task flush: a warp into a seat. */
  warpPedIntoCarAsPassenger?(handle:number,vehicle:number,seat:number):void;
- /** CTheScripts::StuckCars, which the script adds a car to and takes it out of again. */
- removeStuckCarCheck?(vehicle:number):void;
  /** CPed::AttachPedToEntity over an object rather than a car, with its angle limit in radians. */
  attachPedToObject?(handle:number,object:number,offset:{x:number;y:number;z:number},position:number,angleLimit:number,weapon:number):void;
  /** m_fHealth, bSignalAfterKill, and the active weapon's type on its own. */
@@ -295,9 +294,6 @@ export interface ScmWorldCommands {
  explosionInArea?(type:number,min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;
  /** CTheZones::FindZone for ZONE_TYPE_INFO at the player's own position. */
  playerIsInInfoZone?(playerId:number,zoneName:string):boolean;
- /** CStuckCarCheck::AddCarToCheck, with the warp form's four extra switches. */
- addStuckCarCheck?(vehicle:number,radius:number,timeMs:number,warp:boolean,
-  options:{stuck:boolean;flipped:boolean;inWater:boolean;nodesToCheck:number}):void;
  /** An animation an object is playing: whether it is, and its speed and progress. */
  objectIsPlayingAnim?(handle:number,animation:string):boolean;
  setObjectAnimSpeed?(handle:number,animation:string,speed:number):void;
@@ -323,7 +319,6 @@ export interface ScmWorldCommands {
  /** CPed::CreateDeadPedPickupCoors, which is not the same as the dead ped's own position. */
  deadPedPickupCoordinates?(handle:number):{x:number;y:number;z:number};
  /** CStuckCarCheck::HasCarBeenStuckForAWhile. */
- vehicleIsStuck?(handle:number):boolean;
  /** The active camera's own source, and the point it looks at, which is that source plus its forward. */
  activeCameraSource?():{x:number;y:number;z:number};
  activeCameraFront?():{x:number;y:number;z:number};
@@ -750,7 +745,6 @@ export interface ScmWorldCommands {
  waterHeightAtCoords?(x:number,y:number,ignoreWaves:boolean):number;
  markMissionTrainAsNoLongerNeeded?(handle:number):void;
  setVehicleFollowVehicle?(handle:number,other:number,radius:number):void;
- vehicleHasStuckCarCheck?(handle:number):boolean;
  setTaxiLights?(handle:number,state:boolean):void;
  addBlipForSearchlight?(handle:number):number;
  /* The last 277 commands the script uses, generated from the pinned Sanny Builder schema this project already
@@ -887,8 +881,6 @@ export interface ScmWorldCommands {
  getNthClosestCarNodeWithHeading?(xCoord:number,yCoord:number,zCoord:number,nth:number):{x:number,y:number,z:number,heading:number};
  isThisModelACar?(modelId:number|string):boolean;
  taskGoToCoordWhileAiming?(char:number,x:number,y:number,z:number,speed:number,turnRadius:number,stopRadius:number,target:number,xOffset:number,yOffset:number,zOffset:number):void;
- addUpsidedownCarCheck?(handle:number):void;
- isCarStuckOnRoof?(handle:number):boolean;
  createBirds?(xFrom:number,yFrom:number,zFrom:number,xTo:number,yTo:number,zTo:number,quantity:number,type:number):void;
  dontSuppressAnyCarModels?():void;
  setFreebiesInVehicle?(handle:number,state:boolean):void;

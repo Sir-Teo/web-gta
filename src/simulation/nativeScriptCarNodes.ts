@@ -4,7 +4,8 @@ import type {PathArea,PathNode} from '../assets/pathNodes';
  * - FindNthNodeClosestToCoors: the same N more times, each time passing over the nodes already picked.
  * - FindNodeCoorsForScript (gta-reversed 0x4505E0): a node of some width gives a point beside it, across from its
  *   first link, so a car set down there is not on the divider.
- * - FindNodeOrientationForCarPlacement (reVC's): the heading of the node's first link. */
+ * - FindNodeOrientationForCarPlacement (reVC's): the heading of the node's first link.
+ * - FindNodeCoorsForScript for two nodes (0x450780): a point beside the first, headed for the second. */
 
 /** The loaded node a link slot names. */
 function linked(areas:ReadonlyMap<number,PathArea>,node:PathNode,slot=0){
@@ -62,4 +63,15 @@ export function findNodeOrientationForCarPlacement(areas:ReadonlyMap<number,Path
  const dx=next.position[0]-node.position[0],dy=next.position[1]-node.position[1];
  if(!dx&&!dy)return 0;
  return Math.atan2(-dx,dy)*180/Math.PI;
+}
+
+/** FindNodeCoorsForScript(a, b): the heading in degrees of the way from a to b, and the point width + 2.7 to the left of
+ * that way beside a, or a itself for a node of no width. */
+export function findNodeCoorsForScriptBetween(a:PathNode,b:PathNode){
+ let dx=b.position[0]-a.position[0],dy=b.position[1]-a.position[1];const length=Math.hypot(dx,dy);
+ if(length){dx/=length;dy/=length;}
+ const heading=Math.atan2(-dx,dy)*180/Math.PI,[x,y,z]=a.position;
+ if(!a.width)return {x,y,z,heading};
+ const offset=a.width+2.7;
+ return {x:x-dy*offset,y:y+dx*offset,z,heading};
 }

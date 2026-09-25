@@ -1,4 +1,5 @@
 import {ScmOnscreenTimer} from './ScmOnscreenTimer';
+import {ScmStuckCarCheck,ScmUpsideDownCarCheck} from './ScmCarChecks';
 import {NativeAudioZones} from '../audio/nativeAudioZones';
 import {requireAsset} from '../assets/binary';
 import {ScmHelpMessage,ScmIntroRectangles,ScmIntroText,ScmMessages,STYLE_MIDDLE_SMALLER_HIGHER} from './ScmMessages';
@@ -316,6 +317,9 @@ export class ScmGameState {
  readonly scriptBrains=new ScmScriptBrains();
  /** CGarages as the script addresses them, once a host has loaded the world's own. */
  readonly garages=new ScmGarages();
+ /** CTheScripts::UpsideDownCars and StuckCars. */
+ readonly upsideDownCars=new ScmUpsideDownCarCheck();
+ readonly stuckCars=new ScmStuckCarCheck();
  /** CAudioZones, which SWITCH_AUDIO_ZONE turns on and off by name. */
  readonly audioZones=new NativeAudioZones();
  /** The pickups a script placed, which the file reader also reads statically. */

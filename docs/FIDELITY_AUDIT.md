@@ -7175,3 +7175,28 @@ the first ones now implemented:
 - FindNodeClosestToCoors's measure is |dx| + |dy| + 3|dz|. The Nth search runs it N + 1 times, passing over the nodes
   it has already picked. It searches only the loaded areas, which stream round the player while a mission runs. With
   nothing found, the answer is the zero vector, as SA's FindNodeCoorsForScript gives for an invalid node.
+
+## Stuck and upside-down car checks
+
+- CTheScripts' two car watches now run in the engine, at the top of each frame as CTheScripts::Process runs them.
+  Before, the commands went to world hooks that nothing answered.
+- CStuckCarCheck (StuckCarCheck.cpp, reversed) has sixteen slots.
+  - Every CheckTime, a car with a driver that has moved less than StuckRadius since the last check is stuck
+    (IS_CAR_STUCK). A car nobody drives starts its clock and place again, and a car that has gone frees its slot.
+  - DOES_CAR_HAVE_STUCK_CAR_CHECK and REMOVE_STUCK_CAR_CHECK use the same slots.
+  - The WITH_WARP form warps a car that is stuck, flipped or under water, as its switches say, once the car's
+    bounding sphere is out of view. The node count is an int8.
+  - A negative count uses the car's own route: FindNodeCoorsForScript(m_currentAddress, m_startingRouteNode), here the
+    ends of the link the script car mission drives. Otherwise the first to Nth nodes nearest the last checked place are
+    tried.
+  - AttemptToWarpVehicle refuses a point the camera sees within 4 units, or one a mission entity stands within 4
+    units of. Otherwise it sets the car there, upright, with the node's heading.
+- CUpsideDownCarCheck has six slots. A car's clock runs while it is upside down, and IS_CAR_STUCK_ON_ROOF is a clock
+  past 2000 ms. REMOVE_UPSIDEDOWN_CAR_CHECK, which had no handler, is now answered.
+- Places where gta-reversed was not followed:
+  - Its AddCarToCheck has no break, filling every free slot, and its UpdateTimers leaves a vanished car's slot at 0,
+    which AddCarToCheck never takes again. Vice City's handling (first free slot, -1 when the car has gone), which
+    reVC keeps, is followed.
+  - Its IsCarUpsideDown tests only while CanPedStepOutCar(false) fails, that is while the car still moves. A car at
+    rest on its roof would then never count. The geometric test alone (up.z < 0.3 with fewer than four wheels down,
+    or up.z < 0) is used, shared with the crawl-out in CarEntry.

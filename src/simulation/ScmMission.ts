@@ -6,8 +6,8 @@ import {findNavigationZone,pointInWorldZone,type WorldZones} from '../assets/wor
 import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {NativePedGroup} from '../ped/nativePedGroup';
-import {findNodeCoorsForScript,findNodeOrientationForCarPlacement,findNthNodeClosestToCoors} from './nativeScriptCarNodes';
-import type {PathArea} from '../assets/pathNodes';
+import {findNodeCoorsForScript,findNodeCoorsForScriptBetween,findNodeOrientationForCarPlacement,findNthNodeClosestToCoors} from './nativeScriptCarNodes';
+import type {PathArea,PathNode} from '../assets/pathNodes';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
 import {PED_SIGHT_TARGET_RAISE,pedSightAngleAndRange} from '../ped/nativePedSight';
 import {isMissionObjectType,type ScmObject} from '../engine/ScmObjects';
@@ -259,6 +259,10 @@ export interface ScmMissionWorld {
  setAllPedSpeechDisabled(disabled:boolean):void;
  /** Whoever last hurt the ped, as the browser's own objects, for the caller to name. */
  scriptPedLastDamagedBy(ped:unknown):{player?:true;ped?:unknown;car?:unknown}|undefined;
+ /** CUpsideDownCarCheck::IsCarUpsideDown for a car. */
+ scriptVehicleUpsideDownForCheck?(car:unknown):boolean;
+ /** A car's autopilot route: the node it set out from and the one it is on its way to. */
+ scriptVehicleRouteNodes?(car:unknown):{starting:PathNode;current:PathNode}|undefined;
  /** The car path areas CPathFind has loaded, or nothing before any have. */
  carPathAreas?():ReadonlyMap<number,PathArea>|undefined;
  /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
@@ -805,6 +809,22 @@ export class ScmMission {
     const ride=ped===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(ped)?.vehicle;
     return ride!==undefined&&last.car!==undefined&&last.car===this.vehicleByHandle(ride);
    },
+   // The car watches CTheScripts::Process runs. They ask only about a car the browser has built: one still streaming
+   // in has no driver in its seat, so the stuck check starts again from where it stands.
+   vehicleHasDriver:handle=>{
+    if(handle===PLAYER_VEHICLE_HANDLE)return !!this.world.playerPed().vehicle;
+    if(!this.vehicles.entity(handle))return false;
+    return this.playerCarHandle()===handle||this.peds.driverOf(handle)!==undefined;
+   },
+   vehicleIsUpsideDownForCheck:handle=>{const car=this.vehicleByHandle(handle);return !!car&&!!this.world.scriptVehicleUpsideDownForCheck?.(car);},
+   vehicleRouteNodeForScript:handle=>{
+    const car=this.vehicleByHandle(handle),route=car?this.world.scriptVehicleRouteNodes?.(car):undefined;
+    return route?findNodeCoorsForScriptBetween(route.current,route.starting):undefined;
+   },
+   // CStuckCarCheck's search: from nought, switched-off nodes included.
+   carPlacementNode:(point,nth)=>this.scriptCarNode(point,nth,false),
+   // SetCoordsOfScriptCar with the orientation cleared, then the heading. The player's own car is no script car.
+   warpVehicle:(handle,point,heading)=>{if(handle===PLAYER_VEHICLE_HANDLE)return;this.vehicles.setPosition(handle,point);this.vehicles.setHeading(handle,heading);},
    // GET_NTH_CLOSEST_CAR_NODE counts from one (FindNthNodeClosestToCoors from nought) over the car nodes not switched
    // off. With nothing found, FindNodeCoorsForScript gives back the zero vector.
    nthClosestVehicleNode:(x,y,z,nth)=>{const node=this.scriptCarNode({x,y,z},nth-1,true);return node?{x:node.x,y:node.y,z:node.z}:{x:0,y:0,z:0};},

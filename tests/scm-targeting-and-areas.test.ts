@@ -25,7 +25,7 @@ function run(world:Partial<ScmWorldCommands>,...instructions:number[][]){
  const thread=new ScmThread(space,CODE,0,undefined,host);
  try{thread.run(0,16);}catch(error){if(!String(error).includes('watchdog'))throw error;}
  const view=new DataView(space.buffer);
- return {thread,readInt:(offset:number)=>view.getInt32(offset,true),readFloat:(offset:number)=>view.getFloat32(offset,true)};
+ return {thread,game:host.game!,readInt:(offset:number)=>view.getInt32(offset,true),readFloat:(offset:number)=>view.getFloat32(offset,true)};
 }
 const PED=7,OBJECT=9;
 
@@ -64,15 +64,16 @@ describe('the boxes a script tests',()=>{
  });
 
  test('the stuck-car check without a warp leaves its four switches at nothing',()=>{
-  const calls:unknown[]=[];
-  const world={addStuckCarCheck:(...args:unknown[])=>{calls.push(args);}};
-  run(world,instruction(scmOpcode('ADD_STUCK_CAR_CHECK'),[int(9),float(2.5),int(4000)]),
+  const world={vehiclePosition:()=>({x:1,y:2,z:3})};
+  const {game,thread}=run(world,instruction(scmOpcode('ADD_STUCK_CAR_CHECK'),[int(9),float(2.5),int(4000)]),
    instruction(scmOpcode('ADD_STUCK_CAR_CHECK_WITH_WARP'),
-    [int(9),float(3),int(5000),int(1),int(0),int(1),int(4)]));
-  expect(calls).toEqual([
-   [9,2.5,4000,false,{stuck:false,flipped:false,inWater:false,nodesToCheck:0}],
-   [9,3,5000,true,{stuck:true,flipped:false,inWater:true,nodesToCheck:4}],
-  ]);
+    [int(10),float(3),int(5000),int(1),int(0),int(1),int(4)]),
+   instruction(scmOpcode('DOES_CAR_HAVE_STUCK_CAR_CHECK'),[int(10)]));
+  expect(thread.condition).toBe(true);
+  expect(game.stuckCars.cars[0]).toMatchObject({handle:9,lastPos:{x:1,y:2,z:3},stuckRadius:2.5,checkTime:4000,
+   warpCar:false,warpIfStuck:false,warpIfFlipped:false,warpIfInWater:false,numberOfNodesToCheck:0});
+  expect(game.stuckCars.cars[1]).toMatchObject({handle:10,stuckRadius:3,checkTime:5000,
+   warpCar:true,warpIfStuck:true,warpIfFlipped:false,warpIfInWater:true,numberOfNodesToCheck:4});
  });
 });
 

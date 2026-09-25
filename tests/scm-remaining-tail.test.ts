@@ -89,7 +89,6 @@ describe('the questions and switches of the tail',()=>{
    ['IS_OBJECT_IN_WATER','objectIsInWater',[int(OBJECT)]],
    ['IS_CAR_VISIBLY_DAMAGED','vehicleIsVisiblyDamaged',[int(CAR)]],
    ['IS_CHAR_HEAD_MISSING','pedHeadIsMissing',[int(PED)]],
-   ['DOES_CAR_HAVE_STUCK_CAR_CHECK','vehicleHasStuckCarCheck',[int(CAR)]],
   ];
   for(const [name,method,operands] of cases){
    const on={[method]:()=>true} as Partial<ScmWorldCommands>;
