@@ -866,8 +866,11 @@ export class WorldPedestrians {
     // a hidden one the off-screen band (15-25); the ped fades in either way.
     const pcdm=this.pcdm(),on=onscreenSpawnBand(pcdm),off=offscreenSpawnBand(pcdm);
     const minD=Math.min(on.min,off.min),maxD=Math.max(on.max,off.max);
-    const nodes=[...catalog.areas.values()].flatMap(a=>a.nodes).filter(n=>this.allowed(n)&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)<maxD&&Math.hypot(n.position[0]-center.x,-n.position[1]-center.z)>minD).sort((a,b)=>Math.hypot(a.position[0]-center.x,-a.position[1]-center.z)-Math.hypot(b.position[0]-center.x,-b.position[1]-center.z));
-    for(const node of nodes){
+    // The band's nodes nearest first: each distance is taken once, not again in every comparison of the sort.
+    const band:{node:PathNode;d:number}[]=[];
+    for(const a of catalog.areas.values())for(const n of a.nodes){const d=Math.hypot(n.position[0]-center.x,-n.position[1]-center.z);if(d<maxD&&d>minD&&this.allowed(n))band.push({node:n,d});}
+    band.sort((a,b)=>a.d-b.d);
+    for(const {node} of band){
      const desiredOfficers=this.footOfficerLimit(),officer=!!catalog.officer&&this.people.filter(p=>p.officer&&p.health>0).length<desiredOfficers;
      const cap=this.limits?.()??{civilians:18,total:26};
      if(this.people.length>=cap.total||!officer&&(this.people.filter(p=>!p.officer).length>=cap.civilians||this.noCivilians()))break;
@@ -1230,7 +1233,8 @@ export class WorldPedestrians {
   }
   return best;
  }
- private nearestNode(position:{x:number;z:number}){return [...(this.catalog?.areas.values()??[])].flatMap(a=>a.nodes).filter(n=>this.allowed(n)).sort((a,b)=>Math.hypot(a.position[0]-position.x,-a.position[1]-position.z)-Math.hypot(b.position[0]-position.x,-b.position[1]-position.z))[0];}
+ /** The allowed path node nearest a point, however far: one scan rather than a sort of every node. */
+ private nearestNode(position:{x:number;z:number}){return this.closestNode(position,Number.POSITIVE_INFINITY);}
   /** Living on-foot pedestrians as wading walkers for foot splashes (stable keys). */
   walkers(){return this.people.filter(p=>p.health>0&&p.down===0).map(p=>({key:p as object,position:{...p.actor.player.position},speed:p.actor.player.speed,grounded:true}));}
   /** A driver dragged out or leaving a car becomes a street ped that flees (the usual decision-maker response to EVENT_DRAGGED_OUT_CAR). */
