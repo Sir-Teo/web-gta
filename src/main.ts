@@ -2654,7 +2654,7 @@ async function boot() {
         if(source)breakModel(source.model,source.textures,source.bounds,source.matrix,justFaces,objectDefValues(source.id)??{});
       }
       broken.length=0;
-      scriptObjectViews.update(mission.scriptObjects());
+      scriptObjectViews.update(mission.scriptObjects(),paused?0:dt*timeScale());
     }
     // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes
     // them too. The IDE associations name the dff and txd a model id stands for, which is the one thing the
@@ -3486,6 +3486,8 @@ async function boot() {
               if(Array.isArray(data.ideRecords)&&!scriptObjectViews){
                scriptObjectViews=new ScriptObjectViews(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,data.ideRecords,sim.world);
                scriptObjectViews.visibleArea=()=>render.lighting.area;
+               // CObjectData's physics for a script object CPhysical moves, as an uprooted prop takes them.
+               scriptObjectViews.physicsOf=model=>{const values=objectDefValues(model);if(!values)return undefined;const air=values.airResistance??.99;return {turnMass:values.turnMass,elasticity:values.elasticity??0,damping:air>.1&&air<1?-50*Math.log(air):0};};
                scriptObjectViews.animation=(block,name)=>pedestrians?.scriptAnimation(block,name)??Promise.resolve(undefined);
                const byId=new Map<number,import('./assets/ide').IdeAssociation>(),byName=new Map<string,import('./assets/ide').IdeAssociation>();
                for(const record of data.ideRecords as import('./assets/ide').IdeAssociation[]){

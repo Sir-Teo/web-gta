@@ -8186,3 +8186,17 @@ damage response passes it in (DRUGS3, DRUGS4, CASIN10). Test: `native-damage-ani
 in the new car whatever he sat in. The host refused a player who was already driving or riding (the SWEET2 probe
 met it moving CJ from one car to the next). He now leaves the old car where he sits (as
 `WARP_CHAR_FROM_CAR_TO_COORD` sets him out) and is seated in the new one. Spec: `script-player-car`.
+
+## Script objects that CPhysical moves
+
+A script object was a kinematic body its record placed, so `SET_OBJECT_DYNAMIC`, `SET_OBJECT_VELOCITY` and gravity did
+nothing. An object that is not static (`SET_OBJECT_DYNAMIC`), not frozen (`FREEZE_OBJECT_POSITION`), and neither
+attached nor held now becomes a dynamic body with its record's mass and OBJECT.DAT's turn mass, elasticity and air
+resistance (as an uprooted world prop does), moving off at the record's speed. Each frame the script's own writes (a
+new place, turn or speed) go to the body, and the body's pose and speed come back into the record, so
+`GET_OBJECT_COORDINATES`, `GET_OBJECT_VELOCITY` and `GET_OBJECT_SPEED` read where it went. `CObject::ProcessControl`'s
+settling runs once a 30 fps frame: move and turn speed averaged into `m_vecForce` and `m_vecTorque`, and under
+TimeStep x 0.003 for more than ten frames the object goes static again with its speed gone. `ADD_TO_OBJECT_VELOCITY`
+adds units a second as `SET_OBJECT_VELOCITY` sets them (RYDER2's boxes, BCOUR's papers).
+`SET_OBJECT_COORDINATES_AND_VELOCITY` stays open: its handler is in no source to hand. Specs:
+`script-object-physics`, `scm-object-anim`.

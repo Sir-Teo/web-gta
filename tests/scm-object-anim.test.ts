@@ -55,3 +55,9 @@ test('an atomic model takes no animation',()=>{
  objects.playAnim(h,'BD_FIRE1','BD_FIRE',1000,false,true);
  expect(objects.isPlayingAnim(h,'BD_FIRE1')).toBe(false);
 });
+
+test('ADD_TO_OBJECT_VELOCITY adds units a second to the frame speed, as SET_OBJECT_VELOCITY sets it',()=>{
+ const {objects,h}=made();
+ objects.setVelocity(h,{x:5,y:0,z:0});objects.addToVelocity(h,{x:5,y:10,z:-2.5});
+ expect(objects.getVelocity(h)).toEqual({x:10,y:10,z:-2.5});expect(objects.at(h).velocity.x).toBeCloseTo(.2,9);
+});

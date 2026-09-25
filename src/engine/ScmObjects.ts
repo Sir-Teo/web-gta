@@ -231,6 +231,10 @@ export class ScmObjects {
  setVelocity(handle:number,velocity:{x:number;y:number;z:number}){
   const object=this.at(handle);object.velocity={x:velocity.x/50,y:velocity.y/50,z:velocity.z/50};
  }
+ /** ADD_TO_OBJECT_VELOCITY: the same units per second, added to m_vecMoveSpeed. */
+ addToVelocity(handle:number,velocity:{x:number;y:number;z:number}){
+  const object=this.at(handle),v=object.velocity;object.velocity={x:v.x+velocity.x/50,y:v.y+velocity.y/50,z:v.z+velocity.z/50};
+ }
  getVelocity(handle:number){const v=this.at(handle).velocity;return {x:v.x*50,y:v.y*50,z:v.z*50};}
  setPosition(handle:number,position:{x:number;y:number;z:number}){this.at(handle).position={...position};}
  setScale(handle:number,scale:number){requireAsset(Number.isFinite(scale),'Invalid object scale.');this.at(handle).scale=scale;}

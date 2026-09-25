@@ -56,7 +56,13 @@ export class ScriptObjectViews{
  private readonly views=new Map<number,{group:Group;dispose:()=>void;model:number|string;applied:Float64Array;shown:boolean;
   physical?:ReturnType<typeof installNativeCollisionMatrix>;collisionOn:boolean;col?:ColModel;
   asset:{model:import('../assets/dff').DffModel;textures:import('../assets/modelTextures').ModelTexture[]};root:import('three').Object3D;
-  anim?:{name:string;binding?:ReturnType<typeof bindObjectAnimation>;time:number}}>();
+  anim?:{name:string;binding?:ReturnType<typeof bindObjectAnimation>;time:number};
+  /** While the object is a moving CPhysical: what was last written into its record from the body (to tell the
+   * script's own writes apart) and CObject::ProcessControl's settling state. */
+  dyn?:{pos:{x:number;y:number;z:number};vel:{x:number;y:number;z:number};heading:number;rot:{x:number;y:number;z:number};
+   force:{x:number;y:number;z:number};torque:{x:number;y:number;z:number};still:number;clock:number}}>();
+ /** OBJECT.DAT's turn mass, elasticity and air resistance (as damping) for a model; the mass is the record's. */
+ physicsOf?:(model:number|string)=>{turnMass?:number;elasticity:number;damping:number}|undefined;
  /** A clip from a script's animation block, which PLAY_OBJECT_ANIM names. */
  animation?:(block:string,name:string)=>Promise<NativeAnimation|undefined>;
  /** Which script object each of the colliders belongs to. */
@@ -142,7 +148,7 @@ export class ScriptObjectViews{
   return promise;
  }
  /** Put the script's objects where it says they are, and take away the ones it has deleted. */
- update(objects:readonly ScmObject[]){
+ update(objects:readonly ScmObject[],seconds=0){
   if(this.disposed)return;
   const live=new Set<number>();
   for(const object of objects){
@@ -150,12 +156,18 @@ export class ScriptObjectViews{
    const view=this.views.get(object.handle);
    if(view&&view.model!==object.model){this.remove(object.handle);}
    else if(view){
+    if(view.physical){
+     const wanted=ScriptObjectViews.moves(object);
+     if(wanted&&!view.dyn)this.startMoving(object,view);
+     else if(!wanted&&view.dyn)this.stopMoving(object,view);
+     if(view.dyn)this.syncMoving(object,view,seconds);
+    }
     // Most of a script's objects never move again after it puts them down, so the transform is rebuilt only
     // when the record says something about it has changed.
     const shown=this.shows(object);
     if(shown!==view.shown||object.matrix||ScriptObjectViews.moved(object,view.applied)){
      this.place(view.group,object);ScriptObjectViews.record(object,view.applied);view.shown=shown;
-     if(view.physical)ScriptObjectViews.pose(view.physical.body,object,false);
+     if(view.physical&&!view.dyn)ScriptObjectViews.pose(view.physical.body,object,false);
     }
     if(view.anim||object.anim)this.animate(object,view);
     if(view.physical&&view.collisionOn!==ScriptObjectViews.collides(object)){
@@ -208,6 +220,56 @@ export class ScriptObjectViews{
    });
   }
   if(state.binding&&state.time!==anim.time){state.binding.sample(anim.time);state.time=anim.time;}
+ }
+ /** Whether CPhysical moves the object: not static (SET_OBJECT_DYNAMIC), speed applied (not FREEZE_OBJECT_POSITION),
+  * and neither hanging from nor held by anything, which place it themselves. */
+ private static moves(object:ScmObject){return !object.isStatic&&!object.dontApplySpeed&&!object.attachedTo&&!object.heldBy&&!object.broken;}
+ /** The body becomes a dynamic one with the object's mass, OBJECT.DAT's turn mass, elasticity and air resistance, as
+  * an uprooted world prop does, moving off at the record's speed. */
+ private startMoving(object:ScmObject,view:NonNullable<ReturnType<ScriptObjectViews['views']['get']>>){
+  const body=view.physical!.body,info=this.physicsOf?.(object.model),mass=Math.min(object.mass,99999),turn=info?.turnMass??mass;
+  for(let i=0;i<body.numColliders();i++){const c=body.collider(i);c.setDensity(0);c.setRestitution(info?.elasticity??0);}
+  ScriptObjectViews.pose(body,object,true);
+  body.setBodyType(RAPIER.RigidBodyType.Dynamic,true);
+  body.setAdditionalMassProperties(mass,{x:0,y:0,z:0},{x:turn,y:turn,z:turn},{x:0,y:0,z:0,w:1},true);
+  body.setLinearDamping(info?.damping??0);body.setAngularDamping(info?.damping??0);
+  const v=object.velocity;body.setLinvel({x:v.x*50,y:v.z*50,z:-v.y*50},true);body.setAngvel({x:0,y:0,z:0},true);
+  view.dyn={pos:{...object.position},vel:{...v},heading:object.heading,rot:{...object.rotation},force:{x:0,y:0,z:0},torque:{x:0,y:0,z:0},still:0,clock:0};
+ }
+ /** Back to a body the record places: the object keeps the pose it came to rest in. */
+ private stopMoving(object:ScmObject,view:NonNullable<ReturnType<ScriptObjectViews['views']['get']>>){
+  const body=view.physical!.body;
+  body.setLinvel({x:0,y:0,z:0},false);body.setAngvel({x:0,y:0,z:0},false);
+  body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased,true);
+  object.velocity={x:0,y:0,z:0};view.dyn=undefined;
+ }
+ /** A moving object's frame: the script's own writes since the last frame go to the body (a new place, speed or
+  * turn), CObject::ProcessControl's settling runs once a 30 fps game frame (move and turn speed averaged into
+  * m_vecForce and m_vecTorque; under TimeStep x 0.003 for more than 10 frames and it goes static with its speed
+  * gone), and the body's pose and speed are written back into the record the script reads. */
+ private syncMoving(object:ScmObject,view:NonNullable<ReturnType<ScriptObjectViews['views']['get']>>,seconds:number){
+  const body=view.physical!.body,d=view.dyn!;
+  const p=object.position,v=object.velocity,r=object.rotation;
+  if(p.x!==d.pos.x||p.y!==d.pos.y||p.z!==d.pos.z)body.setTranslation({x:p.x,y:p.z,z:-p.y},true);
+  if(object.heading!==d.heading||r.x!==d.rot.x||r.y!==d.rot.y||r.z!==d.rot.z){object.matrix=undefined;body.setRotation(ScriptObjectViews.orientation(object,POSE),true);}
+  if(v.x!==d.vel.x||v.y!==d.vel.y||v.z!==d.vel.z)body.setLinvel({x:v.x*50,y:v.z*50,z:-v.y*50},true);
+  d.clock+=seconds;
+  for(;d.clock>=1/30;d.clock-=1/30){
+   const lv=body.linvel(),av=body.angvel(),limit=50/30*.003;
+   d.force={x:(d.force.x+lv.x/50)/2,y:(d.force.y+lv.y/50)/2,z:(d.force.z+lv.z/50)/2};
+   d.torque={x:(d.torque.x+av.x/50)/2,y:(d.torque.y+av.y/50)/2,z:(d.torque.z+av.z/50)/2};
+   const still=Math.hypot(d.force.x,d.force.y,d.force.z)<limit&&Math.hypot(d.torque.x,d.torque.y,d.torque.z)<limit;
+   d.still=still?d.still+1:0;
+   if(d.still>10){object.isStatic=true;break;}
+  }
+  const t=body.translation(),q=body.rotation(),lv=body.linvel();
+  object.position={x:t.x,y:-t.z,z:t.y};
+  object.velocity=object.isStatic?{x:0,y:0,z:0}:{x:lv.x/50,y:-lv.z/50,z:lv.y/50};
+  const quat=POSE.set(q.x,q.y,q.z,q.w),right=EAST.clone().applyQuaternion(quat),forward=NORTH.clone().negate().applyQuaternion(quat),up=UP.clone().applyQuaternion(quat);
+  object.matrix={right:{x:right.x,y:-right.z,z:right.y},forward:{x:forward.x,y:-forward.z,z:forward.y},up:{x:up.x,y:-up.z,z:up.y}};
+  object.heading=Math.atan2(-object.matrix.forward.x,object.matrix.forward.y);
+  d.pos={...object.position};d.vel={...object.velocity};d.heading=object.heading;d.rot={...object.rotation};
+  if(object.isStatic)this.stopMoving(object,view);
  }
  /* Native axes to the renderer's: x stays, the script's z is up here and its y runs the other way. CEntity's
   * heading turns about the up axis, and SET_OBJECT_ROTATION's three angles turn about each of them in turn. */
