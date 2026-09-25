@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-test('packaged shrub responds to native ambient but not invented directional normals',async({page})=>{
+test('packaged shrub is a day/night building: the world ambient lights it, the object ambient and the sun do not',async({page})=>{
  test.setTimeout(90000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/models.html');
  const result=await page.evaluate(async()=>{
@@ -16,16 +16,16 @@ test('packaged shrub responds to native ambient but not invented directional nor
   const box=new THREE.Box3().setFromObject(adapter.root),center=box.getCenter(new THREE.Vector3()),radius=box.getSize(new THREE.Vector3()).length();
   const camera=new THREE.PerspectiveCamera(45,1,.01,100);camera.position.copy(center).add(new THREE.Vector3(0,radius*.3,radius*1.5));camera.lookAt(center);
   const sun=new THREE.DirectionalLight(0xffffff,0);sun.position.set(2,5,4);scene.add(sun);
-  const capture=(ambient:number,intensity:number)=>{
-   adapter.setEntityLighting([.2,.2,.2],[ambient,ambient,ambient],1);sun.intensity=intensity;
+  const capture=(ambient:number,intensity:number,object=.4)=>{
+   adapter.setAmbient([ambient,ambient,ambient]);adapter.setEntityLighting([.2,.2,.2],[object,object,object],1);sun.intensity=intensity;
    renderer.setRenderTarget(target);renderer.render(scene,camera);const pixels=new Uint8Array(128*128*4);renderer.readRenderTargetPixels(target,0,0,128,128,pixels);return pixels;
   };
-  const dark=capture(0,0),bright=capture(.8,0),sunny=capture(.8,20);
-  let changed=0,directionalChanges=0,delta=0;
-  for(let i=0;i<dark.length;i+=4){if(dark[i]!==bright[i])changed++;if(bright[i]!==sunny[i])directionalChanges++;delta+=bright[i]-dark[i];}
+  const dark=capture(0,0),bright=capture(.8,0),sunny=capture(.8,20),objectLit=capture(.8,0,.9);
+  let changed=0,directionalChanges=0,objectChanges=0,delta=0;
+  for(let i=0;i<dark.length;i+=4){if(dark[i]!==bright[i])changed++;if(bright[i]!==sunny[i])directionalChanges++;if(bright[i]!==objectLit[i])objectChanges++;delta+=bright[i]-dark[i];}
   const materials:string[]=[];adapter.root.traverse((n:any)=>{if(n.isMesh)for(const m of Array.isArray(n.material)?n.material:[n.material])materials.push(m.type);});
-  adapter.dispose();world.free();target.dispose();renderer.dispose();return {changed,directionalChanges,delta,materials};
+  adapter.dispose();world.free();target.dispose();renderer.dispose();return {changed,directionalChanges,objectChanges,delta,materials};
  });
- expect(result.changed).toBeGreaterThan(100);expect(result.delta).toBeGreaterThan(1000);expect(result.directionalChanges).toBe(0);
- expect(result.materials.every(m=>m==='MeshLambertMaterial')).toBe(true);expect(errors).toEqual([]);
+ expect(result.changed).toBeGreaterThan(100);expect(result.delta).toBeGreaterThan(1000);expect(result.directionalChanges).toBe(0);expect(result.objectChanges).toBe(0);
+ expect(result.materials.every(m=>m==='MeshBasicMaterial')).toBe(true);expect(errors).toEqual([]);
 });

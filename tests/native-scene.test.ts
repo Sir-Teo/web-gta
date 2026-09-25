@@ -18,6 +18,8 @@ const makePart = (): ScenePart => ({
   name: 'diagnostic_col3', textures: [], dictionaryNames: [], notices: [], collisionSource: 'diagnostic.col',
   placements: [0, 10].map(x => ({ modelId: 103, modelName: 'diagnostic_col3', instanceType: 0, interior: 0, position: [x, 0, 0], rotation: [0, 0, 0, 1], lodIndex: -1 })),
 });
+/** The stored day/night balance a day/night building material blends by (its buildingNight uniform). */
+const dayNightBalance = (mesh: any) => { const material = (Array.isArray(mesh.material) ? mesh.material : [mesh.material])[0]; const shader = { uniforms: {} as any, vertexShader: '#include <color_vertex>', fragmentShader: '' }; material.onBeforeCompile(shader, {}); return shader.uniforms.buildingNight.value as number; };
 let world: RAPIER.World;
 beforeAll(async () => { await RAPIER.init(); });
 afterEach(() => {world?.free();world=undefined!;});
@@ -42,7 +44,9 @@ test('native scene installs both visual instances and physical source metadata a
   expect(installed.sources.get(hit.collider.handle)).toMatchObject({ modelName: 'diagnostic_col3', source: { kind: 'sphere' }, placement: { position: [10, 0, 0] } });
   const meshes: any[] = []; installed.root.traverse(o => { if ((o as any).isMesh) meshes.push(o); });
   expect(meshes).toHaveLength(2); expect(meshes[0].geometry).toBe(meshes[1].geometry);
-  installed.setNight(1); expect(meshes[0].geometry.getAttribute('color').array[0]).toBeLessThan(1);
+  // Night colours and prelight make it a day/night building (IsCBPCPipelineAttached): no CPU colour copy.
+  expect(meshes[0].geometry.hasAttribute('color')).toBe(false);expect(meshes[0].geometry.hasAttribute('nativeNight')).toBe(true);
+  installed.setNight(1); expect(dayNightBalance(meshes[0])).toBe(1);
   installed.dispose(); installed.dispose(); expect(scene.children).toEqual([existing]); expect(world.bodies.len()).toBe(0); expect(world.colliders.len()).toBe(1);
   expect(()=>installed.shadowReceivers({center:{x:0,y:1,z:0},side:{x:1,z:0},front:{x:0,z:1},depth:4})).toThrow('disposed');
 });
@@ -106,16 +110,18 @@ test('collision ownership is per placement and rejects cyclic or duplicate refer
 
 test('scene clock updates prelight within the same hour independently from timed visibility', () => {
   world=new RAPIER.World({x:0,y:-9.81,z:0}); const part=makePart(), installed=installNativeScene(world,new Scene(),[part]);
-  const source=part.model.geometries[0], day=source.colors![0]/255, night=source.nightColors![0]/255;
-  let color:any; installed.root.traverse(o=>{if(!color && (o as any).isMesh)color=(o as any).geometry.getAttribute('color');});
-  installed.setTime(360);expect(color.array[0]).toBeCloseTo(night);
-  installed.setTime(390);expect(color.array[0]).toBeCloseTo((day+night)/2);
-  const version=color.version; installed.setTime(390);expect(color.version).toBe(version);
-  installed.setTime(390.5);expect(color.version).toBeGreaterThan(version);expect(color.array[0]).toBeCloseTo(day+(night-day)*29.5/60);
-  installed.setTime(420);expect(color.array[0]).toBeCloseTo(day);
-  installed.setTime(1230);expect(color.array[0]).toBeCloseTo((day+night)/2);
-  installed.setTime(1260);expect(color.array[0]).toBeCloseTo(night);
-  expect(source.colors![0]/255).toBe(day);expect(source.nightColors![0]/255).toBe(night);
+  let mesh:any; installed.root.traverse(o=>{if(!mesh && (o as any).isMesh)mesh=o;});
+  installed.setTime(360);expect(dayNightBalance(mesh)).toBe(1);
+  installed.setTime(390);expect(dayNightBalance(mesh)).toBeCloseTo(.5);
+  installed.setTime(390.5);expect(dayNightBalance(mesh)).toBeCloseTo(29.5/60);
+  installed.setTime(420);expect(dayNightBalance(mesh)).toBe(0);
+  // With a game frame, only a model the renderer reaches re-blends, and then by PreRenderUpdate's rule.
+  installed.setTime(400,undefined,1,undefined,7);expect(dayNightBalance(mesh)).toBe(0);
+  const camera=new PerspectiveCamera(60,1,.1,500);camera.position.set(5,30,0);camera.lookAt(5,0,0);camera.updateMatrixWorld(true);
+  installed.updateView(camera);
+  installed.setTime(400,undefined,1,undefined,8);expect(dayNightBalance(mesh)).toBeCloseTo(20/60);
+  installed.setTime(1230);expect(dayNightBalance(mesh)).toBeCloseTo(.5);
+  installed.setTime(1260);expect(dayNightBalance(mesh)).toBe(1);
   installed.dispose();
 });
 
@@ -339,7 +345,8 @@ test('direct candidate clearance matches the isolated oracle for low ceilings an
 
 test('placed generic lighting follows base-entity ambient and survives scene replacement',()=>{
  world=new RAPIER.World({x:0,y:0,z:0});const part=makePart();
- for(const g of part.model.geometries)g.flags|=0x20;
+ // Without a night set the placement is no building, so CEntity::CreateRwObject marks it m_bLightObject.
+ for(const g of part.model.geometries){g.flags|=0x20;g.nightColors=undefined;}
  for(const a of part.model.atomics)a.pipeline=undefined;
  let installed=installNativeScene(world,new Scene(),[part]);
  const uniforms=()=>{const values:any[]=[];installed.root.traverse((node:any)=>{
@@ -374,7 +381,7 @@ test('same-dataset replacement keeps a retained model\'s built source, so its ge
  const next=old.replace([referencedPart()],undefined,'fixture');
  expect(geometries(next.root)[0]).toBe(original);expect(disposed).toBe(0);expect(next.pooledModelCount).toBe(1);
  // Night prelight and building lighting state carry over: the shared materials read the same uniform objects.
- next.setNight(1);expect(original.getAttribute('color')).toBeTruthy();
+ next.setNight(1);expect(original.getAttribute('nativeNight')).toBeTruthy();
  // A model absent from the next window leaves the pool and frees its GPU-facing resources.
  const other=referencedPart();other.name='other_model';other.placements.forEach(p=>{p.modelName='other_model';});other.sourceRefs=other.placements.map((_,index)=>({namespace:'primary' as const,index:index+100,format:'text' as const,sourceName:'fixture.ipl'}));
  const swapped=next.replace([other],undefined,'fixture');

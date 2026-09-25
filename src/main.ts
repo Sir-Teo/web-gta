@@ -866,7 +866,8 @@ async function boot() {
      if(g.splash)worldFx.waterCannon.splash([g.splash.point.x,g.splash.point.y,g.splash.point.z],[g.splash.normal.x,g.splash.normal.y,g.splash.normal.z],1000/60,Math.random);}
     // CVehicle::DoHeadLightBeam: the lit headlights' fans, for the cars whose lights are on.
     headlightBeams.frame([...(fleet?.cars??[])].some(car=>car.lightsOn)?[...(fleet?.cars??[])].filter(car=>car.lightsOn&&car.car.body.isEnabled()).map(car=>{const p=car.car.body.translation(),r=car.car.body.rotation(),d=car.car.nativeFramePosition('headlights');return {position:{x:p.x,y:p.y,z:p.z},rotation:{x:r.x,y:r.y,z:r.z,w:r.w},dummy:d?{x:d.x,y:d.y,z:d.z}:undefined,broken:[car.damageState.lights[0],car.damageState.lights[1]] as [boolean,boolean],tilt:car.modelId===530?.5:.15};}):[],{x:camera.position.x,y:camera.position.y,z:camera.position.z});
-    importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier,render.lighting.nativeObjectAmbient);
+    // CCustomBuildingRenderer::Update steps its counter once a 30 fps game frame (CGame::Process).
+    importedScene?.setTime(sim.timeMinutes,render.lighting.nativeWorldAmbient,render.lighting.sunLightMultiplier,render.lighting.nativeObjectAmbient,Math.floor(gameTimeExact*30/1000));
     // CWeather::Wind drives grass bending (Windyness itself follows the reVC categories; see docs/research/NATIVE_WEATHER.md).
     // COcclusion::ProcessBeforeRendering: this frame's active occluders before the visibility pass culls behind them.
     occlusion.processBeforeRendering(occlusionCamera(),render.lighting.area===0);

@@ -94,14 +94,23 @@ test('explicit static building atomics opt into a separate material while sharin
   expect((previewMeshes[0].material as THREE.Material[])[0].customProgramCacheKey()).not.toContain('native-building-base');preview.dispose();
 });
 
-test('single-color building pipeline ignores unused extra-color alpha for its render policy', async () => {
-  const { buildingLightingState, BUILDING_PIPELINE } = await import('../src/assets/buildingMaterial');
-  const model=readDff(fixture('walk-floor-building.dff')),g=model.geometries[0];
-  g.colors=new Uint8Array(g.positions.length/3*4).fill(255);g.nightColors=new Uint8Array(g.colors.length).fill(64);
-  model.atomics.push({...model.atomics[0],pipeline:BUILDING_PIPELINE});
-  const visual=modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()});const meshes:THREE.Mesh[]=[];visual.root.traverse(o=>{if(o instanceof THREE.Mesh)meshes.push(o);});
-  const dn=(meshes[0].material as THREE.Material[])[0],single=(meshes[1].material as THREE.Material[])[0];
-  expect(dn.transparent).toBe(true);expect(single.transparent).toBe(false);expect(single.depthWrite).toBe(true);visual.dispose();
+test('AtomicSetup picks the building pipe from the colour sets: night colours make it day/night whatever the stored ID', async () => {
+  const { buildingLightingState, BUILDING_PIPELINE, BUILDING_DN_PIPELINE } = await import('../src/assets/buildingMaterial');
+  const meshes=(root:THREE.Object3D)=>{const out:THREE.Mesh[]=[];root.traverse(o=>{if(o instanceof THREE.Mesh)out.push(o);});return out;};
+  const build=(pipeline:number|undefined,night:boolean)=>{
+    const model=readDff(fixture('walk-floor-building.dff')),g=model.geometries[0];
+    g.colors=new Uint8Array(g.positions.length/3*4).fill(255);g.nightColors=night?new Uint8Array(g.colors.length).fill(64):undefined;
+    model.atomics.forEach(a=>{a.pipeline=pipeline;});
+    return modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()});
+  };
+  // An explicit plain-building ID with a night set still gets the day/night pipe; its night alpha makes it translucent.
+  const dn=build(BUILDING_PIPELINE,true),dnMaterial=(meshes(dn.root)[0].material as THREE.Material[])[0];
+  expect(dnMaterial.type).toBe('MeshBasicMaterial');expect(dnMaterial.transparent).toBe(true);dn.dispose();
+  // An explicit day/night ID without a night set gets the plain pipe, which reads the day colours only.
+  const single=build(BUILDING_DN_PIPELINE,false),singleMaterial=(meshes(single.root)[0].material as THREE.Material[])[0];
+  expect(singleMaterial.transparent).toBe(false);expect(singleMaterial.depthWrite).toBe(true);expect(meshes(single.root)[0].geometry.hasAttribute('color')).toBe(false);single.dispose();
+  // No ID and no night set: not a building (IsCBPCPipelineAttached fails), so it keeps the generic prelit path.
+  const plain=build(undefined,false);expect(meshes(plain.root)[0].geometry.hasAttribute('color')).toBe(true);plain.dispose();
 });
 
 test('building material alpha is isolated to each material vertex span', async () => {
@@ -142,23 +151,28 @@ test('Bin Mesh strip spans retain connector vertices and reject malformed or rep
   for(const payloads of [[payload,payload],[concat(payload,new Uint8Array(4))],[binMeshPayload([{material:0,indices:[99,99,99]}],true)],[binMeshPayload([{material:0,indices:[0,1]}])]])expect(()=>readDff(geometryPluginFixture(fixture(),0x50e,payloads))).toThrow();
 });
 
-test('GPU-only building geometry avoids mutable float palettes while mixed and preview paths keep them',async()=>{
+test('day/night building geometry blends on the GPU by its own stored balance; the preview path keeps a CPU palette',async()=>{
   const {buildingLightingState}=await import('../src/assets/buildingMaterial');
   const model=readDff(fixture('walk-floor-building.dff')),g=model.geometries[0];
   g.colors=new Uint8Array(g.positions.length/3*4).fill(64);g.nightColors=new Uint8Array(g.colors.length).fill(192);
   const meshes=(root:THREE.Object3D)=>{const out:THREE.Mesh[]=[];root.traverse(o=>{if(o instanceof THREE.Mesh)out.push(o);});return out;};
-  const gpu=modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()}),mesh=meshes(gpu.root)[0];
+  const state=buildingLightingState();state.night.value=.25;
+  const gpu=modelObject(model,[],undefined,undefined,{buildingLighting:state}),mesh=meshes(gpu.root)[0];
   expect(mesh.geometry.hasAttribute('color')).toBe(false);expect((mesh.material as THREE.MeshBasicMaterial[])[0].vertexColors).toBe(false);
   const day=mesh.geometry.getAttribute('nativeDay') as THREE.BufferAttribute,night=mesh.geometry.getAttribute('nativeNight') as THREE.BufferAttribute;
   expect(day.array).toBe(g.colors);expect(night.array).toBe(g.nightColors);
+  const balance=()=>{const shader={uniforms:{} as any,vertexShader:'#include <color_vertex>',fragmentShader:''};(mesh.material as THREE.Material[])[0].onBeforeCompile(shader as any,{} as any);return shader.uniforms.buildingNight.value as number;};
+  // Created at the scene's balance (CEntity::CreateRwObject).
+  expect(balance()).toBe(.25);
   for(let i=0;i<=60;i++)gpu.setNight(i/60);
-  expect(day.version).toBe(0);expect(night.version).toBe(0);expect(g.colors[0]).toBe(64);gpu.dispose();
-  model.atomics.push({...model.atomics[0],pipeline:undefined});
-  const mixed=modelObject(model,[],undefined,undefined,{buildingLighting:buildingLightingState()}),both=meshes(mixed.root);
-  expect(both[0].geometry).toBe(both[1].geometry);mixed.setNight(.5);
-  expect(both[1].geometry.getAttribute('color').getX(0)).toBeCloseTo(128/255);
-  expect((both[1].material as THREE.MeshBasicMaterial[])[0].vertexColors).toBe(true);mixed.dispose();
-  const preview=modelObject(model);preview.setNight(1);expect(meshes(preview.root)[0].geometry.getAttribute('color').getX(0)).toBeCloseTo(192/255);preview.dispose();
+  expect(balance()).toBe(1);expect(day.version).toBe(0);expect(night.version).toBe(0);expect(g.colors[0]).toBe(64);
+  // PreRenderUpdate: a change of 0.01 or less never lands; one of 0.3 or less waits for the atomic's turn in sixteen frames.
+  gpu.preRenderUpdate(.995,0);expect(balance()).toBe(1);
+  const turns=Array.from({length:16},(_,frame)=>{gpu.preRenderUpdate(.9,frame);return balance();});
+  expect(turns.filter(v=>v===.9)).toHaveLength(16-turns.indexOf(.9));expect(turns.indexOf(.9)).toBeGreaterThanOrEqual(0);
+  gpu.preRenderUpdate(.5,turns.indexOf(.9)+1);expect(balance()).toBe(.5);gpu.dispose();
+  const preview=modelObject(model);preview.setNight(.5);expect(meshes(preview.root)[0].geometry.getAttribute('color').getX(0)).toBeCloseTo(128/255);
+  preview.setNight(1);expect(meshes(preview.root)[0].geometry.getAttribute('color').getX(0)).toBeCloseTo(192/255);preview.dispose();
 });
 
 test('clump light and camera frame structs are distinct from the clump header', async () => {

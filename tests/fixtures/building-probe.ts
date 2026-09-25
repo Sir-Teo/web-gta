@@ -8,11 +8,12 @@ const bytes = new Uint8Array(await (await fetch('/tests/fixtures/walk-floor-buil
 Object.assign(window,{ buildingProbe: () => {
   const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setSize(64,64);renderer.outputColorSpace=THREE.LinearSRGBColorSpace;document.body.append(renderer.domElement);
   const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-4,4,4,-4,.1,30);camera.position.set(0,10,0);camera.up.set(0,0,-1);camera.lookAt(0,0,0);
-  function sample(day:number,night:number,balance:number,wet=0,dayAlpha=255,nightAlpha=255,ambient=0,materialColor=255,coefficient=1,single=false,textured=false,fadeAlpha=255,lightMultiplier=1) {
-    const model=readDff(bytes),state=buildingLightingState();state.night.value=balance;state.wetness.value=wet;state.ambient.value.setScalar(ambient/255*lightMultiplier);
+  function sample(day:number,night:number,balance:number,_unused=0,dayAlpha=255,nightAlpha=255,ambient=0,materialColor=255,coefficient=1,single=false,textured=false,fadeAlpha=255,lightMultiplier=1) {
+    const model=readDff(bytes),state=buildingLightingState();state.night.value=balance;state.ambient.value.setScalar(ambient/255*lightMultiplier);
     if(single)model.atomics.forEach(a=>a.pipeline=BUILDING_PIPELINE);
     model.geometries.forEach(g=>{g.flags|=64;const count=g.positions.length/3;g.colors=new Uint8Array(count*4);g.nightColors=new Uint8Array(count*4);
       for(let i=0;i<count*4;i++){g.colors[i]=i%4===3?dayAlpha:day;g.nightColors[i]=i%4===3?nightAlpha:night;}
+      if(single)g.nightColors=undefined;
       g.materials.forEach(m=>{m.color=[materialColor,materialColor,materialColor,255];m.surface[0]=coefficient;m.texture=textured?'test':'';});if(textured)g.uvs=[new Float32Array(count*2)];
     });
     const textures=textured?[{name:'test',filter:1,addressU:1,addressV:1,hasAlpha:false,mips:[{width:1,height:1,data:new Uint8ClampedArray([128,128,128,255])}]}]:[];
@@ -29,7 +30,7 @@ Object.assign(window,{ buildingProbe: () => {
   const facingSunAmbient=sunAmbient();
   for(let i=0;i<20;i++)sunState.update(720,sunCamera,[1,1,1],[1,1,1],.02,0,()=>true);
   const blockedSunAmbient=sunAmbient();
-  const result={clearAmbient,facingSunAmbient,blockedSunAmbient,day:sample(51,153,0),night:sample(51,153,1),midpoint:sample(51,153,.5),ambientAfterModulation:sample(102,102,0,0,255,255,51,128),ambientCoefficient:sample(0,0,0,0,255,255,128,255,.5),single:sample(51,153,1,0,255,255,0,255,1,true),dryAlpha:sample(255,255,0,0,64,192),wetAlpha:sample(255,255,1,1,64,192),halfWet:sample(255,255,.1,.5,64,192),texturedAmbient:sample(0,0,0,0,255,255,64,255,1,false,true),fade:sample(128,128,0,0,255,255,0,255,1,false,false,128)};
+  const result={clearAmbient,facingSunAmbient,blockedSunAmbient,day:sample(51,153,0),night:sample(51,153,1),midpoint:sample(51,153,.5),ambientAfterModulation:sample(102,102,0,0,255,255,51,128),ambientCoefficient:sample(0,0,0,0,255,255,128,255,.5),single:sample(51,153,1,0,255,255,0,255,1,true),dayAlpha:sample(255,255,0,0,64,192),nightAlpha:sample(255,255,1,0,64,192),midAlpha:sample(255,255,.5,0,64,192),texturedAmbient:sample(0,0,0,0,255,255,64,255,1,false,true),fade:sample(128,128,0,0,255,255,0,255,1,false,false,128)};
   // Two native meshes share one material: the translucent left draw must not remove right-side depth writes.
   const model=readDff(bytes),g=model.geometries[0];
   g.positions=new Float32Array([-4,-4,0, 0,-4,0, -2,4,0, 0,-4,0, 4,-4,0, 2,4,0]);

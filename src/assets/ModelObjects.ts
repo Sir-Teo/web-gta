@@ -10,7 +10,8 @@ import type { ModelTexture } from './modelTextures';
 import { placementMatrix } from './placement';
 import { TexturePool } from './TexturePool';
 import { materialVertexAlpha } from './vertexAlpha';
-import { buildingMaterial, BUILDING_DN_PIPELINE, isBuildingPipeline, type BuildingLightingState } from './buildingMaterial';
+import { buildingMaterial, isBuildingAtomic, isDayNightAtomic, type BuildingLightingState } from './buildingMaterial';
+import { blendPrelightByte, dayNightPhase, nativeDayNightPrelight, preRenderUpdate as dayNightPreRenderUpdate, type NativeDayNightPrelight } from './nativeDayNightPrelight';
 import { UvAnimationPlayer } from './uvAnimation';
 import { nativeEnvMap } from './nativeEnvMap';
 /** One material's RpUVAnim playback: its own texture instance (the raster is shared) whose matrix the player writes.
@@ -34,8 +35,9 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   const materialBindings:ModelMaterialBinding[]=[], uvAnimators: UvAnimator[] = [];
   const animationsByName = new Map((model.uvAnimations ?? []).map(anim => [anim.name.toLowerCase(), anim]));
   const palettes = model.geometries.map(g => g.skin ? skinFrames(model, g.skin.boneCount) : undefined);
-  const cpuPrelight = new Set(model.atomics.filter(a => (a.flags & 4) &&
-    !(options.buildingLighting && !model.geometries[a.geometry].skin && isBuildingPipeline(a.pipeline))).map(a => a.geometry));
+  // Atomics the building pipes draw blend their prelight in the shader; the rest keep a CPU colour attribute.
+  const buildingAtomic = (a: DffModel['atomics'][number]) => !!options.buildingLighting && !model.geometries[a.geometry].skin && isBuildingAtomic(a.pipeline, model.geometries[a.geometry]);
+  const cpuPrelight = new Set(model.atomics.filter(a => (a.flags & 4) && !buildingAtomic(a)).map(a => a.geometry));
   const skeletons: THREE.Skeleton[] = [];
   const root = new THREE.Group();
   if (placement) { root.matrixAutoUpdate = false; root.matrix.copy(placementMatrix(placement)); }
@@ -61,7 +63,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     }
     if (source.normals) geometry.setAttribute('normal', new THREE.BufferAttribute(source.normals, 3));
     source.uvs.forEach((uv, i) => geometry.setAttribute(i ? `uv${i}` : 'uv', new THREE.BufferAttribute(uv, 2)));
-    if (cpuPrelight.has(geometryIndex) && (source.colors || source.nightColors)) geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(source.positions.length / 3 * 4).fill(1), 4));
+    if (cpuPrelight.has(geometryIndex) && source.colors) geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(source.positions.length / 3 * 4).fill(1), 4));
     // Native BinMesh data already supplies the index order and draw spans.
     // Only models without it need triangles regrouped by material.
     const spansAt=clock();
@@ -92,7 +94,8 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       color: source.flags & 64 ? new THREE.Color().setRGB(m.color[0] / 255, m.color[1] / 255, m.color[2] / 255) : 0xffffff,
       opacity: m.color[3] / 255, transparent: m.color[3] < 255 || vertexAlpha || !!texture?.alpha,
       depthWrite: !(m.color[3] < 255 || vertexAlpha || texture?.alpha),
-      vertexColors: !!(source.colors || source.nightColors), side: THREE.FrontSide,
+      // A geometry without prelight has no vertex colours, whatever night set it carries (not a day/night building).
+      vertexColors: !!source.colors, side: THREE.FrontSide,
     };
       const material = options.worldLighting && source.flags & 0x20 ? nativeLitMaterial(parameters, source.flags & 0x10 ? m.surface : [m.surface[0],m.surface[1],0], options.ambient) : nativeRasterOutput(new THREE.MeshBasicMaterial(parameters));
       ownedMaterials.add(material);
@@ -114,23 +117,25 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
     });
     materialsMs += clock() - materialsAt;
     const drawSpans = spans;
-    return { geometry, materials, drawMaterials: drawSpans.map(span => materials[span.material]), source, spans: drawSpans, building: new Map<number, THREE.MeshBasicMaterial[]>() };
+    return { geometry, materials, drawMaterials: drawSpans.map(span => materials[span.material]), source, spans: drawSpans, building: new Map<boolean, THREE.MeshBasicMaterial[]>(), dayNight: undefined as NativeDayNightPrelight | undefined };
   });
   modelBuildStats.geometriesMs += clock() - startedAt - mapsMs - normalsMs - materialsMs - spansMs - alphaScanMs; modelBuildStats.normalsMs += normalsMs; modelBuildStats.materialsMs += materialsMs; modelBuildStats.spansMs += spansMs; modelBuildStats.alphaScanMs += alphaScanMs;
   model.atomics.forEach((atomic, atomicIndex) => {
     if (!(atomic.flags & 4)) return;
     const record = geometries[atomic.geometry], { geometry, source } = record;
     let materials = record.drawMaterials;
-    if (options.buildingLighting && !source.skin && isBuildingPipeline(atomic.pipeline)) {
+    if (buildingAtomic(atomic)) {
       if (!geometry.hasAttribute('nativeDay')) {
         geometry.setAttribute('nativeDay', new THREE.BufferAttribute(source.colors ?? new Uint8Array(source.positions.length / 3 * 4).fill(255), 4, true));
         geometry.setAttribute('nativeNight', new THREE.BufferAttribute(source.nightColors ?? source.colors ?? new Uint8Array(source.positions.length / 3 * 4).fill(255), 4, true));
       }
-      let selected = record.building.get(atomic.pipeline!);
+      const dayNight = isDayNightAtomic(source);
+      let selected = record.building.get(dayNight);
       if (!selected) {
-        const dayNight = atomic.pipeline === BUILDING_DN_PIPELINE;
         const vertexAlpha = materialVertexAlpha([source.colors, ...(dayNight ? [source.nightColors] : [])], record.spans);
-        selected = record.drawMaterials.map((material,i) => {const result=buildingMaterial(material as THREE.MeshBasicMaterial, source.materials[record.spans[i].material].surface[0], options.buildingLighting!, dayNight, vertexAlpha[i]);ownedMaterials.add(result);return result;}); record.building.set(atomic.pipeline!,selected);
+        // The geometry's own DNBalance, blended at the scene's balance on creation.
+        if (dayNight) record.dayNight ??= nativeDayNightPrelight(dayNightPhase(model.frames[atomic.frame]?.name ?? '', atomic.geometry), options.buildingLighting!.night.value);
+        selected = record.drawMaterials.map((material,i) => {const result=buildingMaterial(material as THREE.MeshBasicMaterial, source.materials[record.spans[i].material].surface[0], options.buildingLighting!, dayNight, vertexAlpha[i], record.dayNight);ownedMaterials.add(result);return result;}); record.building.set(dayNight,selected);
       }
       materials = selected;
     }
@@ -143,23 +148,30 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
       frames[atomic.frame].add(mesh); mesh.bind(skeleton, new THREE.Matrix4());
     } else { const mesh = new THREE.Mesh(geometry, materials); mesh.matrixAutoUpdate = false; mesh.userData.nativeAtomic = atomicIndex; mesh.userData.nativePipeline = atomic.pipeline; frames[atomic.frame].add(mesh); }
   });
+  const dayNightStates = geometries.flatMap(record => record.dayNight ? [record.dayNight] : []);
   let lastNight: number | undefined;
+  /** Blends every day/night prelight at `amount` now: CEntity::CreateRwObject's PreRenderUpdate(ignoreDNBalanceParam).
+   * Geometries outside the building pipes blend on the CPU, the same way, when they carry both colour sets. */
   const setNight = (amount: number) => {
     if (!Number.isFinite(amount)) throw new Error('Night prelight amount must be finite.');
+    for (const state of dayNightStates) dayNightPreRenderUpdate(state, amount, 0, true);
+    blendCpuPrelight(amount);
+  };
+  const blendCpuPrelight = (amount: number) => {
     amount = THREE.MathUtils.clamp(amount, 0, 1);
     if (amount === lastNight) return;
     const initializing = lastNight === undefined; lastNight = amount;
     geometries.forEach(({ geometry, source }) => {
-      if (!initializing && !source.nightColors) return;
       const color = geometry.getAttribute('color'); if (!color) return;
-      for (let i = 0; i < color.array.length; i++) {
-        const day = source.colors?.[i] ?? 255, night = source.nightColors?.[i] ?? day;
-        color.array[i] = (day + (night - day) * amount) / 255;
-      }
+      const day = source.colors!, night = source.nightColors, array = color.array;
+      if (!night) { if (initializing) { for (let i = 0; i < array.length; i++) array[i] = day[i] / 255; color.needsUpdate = true; } return; }
+      for (let i = 0; i < array.length; i++) array[i] = blendPrelightByte(day[i], night[i], amount) / 255;
       color.needsUpdate = true;
     });
   };
-  const nightAt = clock(); setNight(0); modelBuildStats.nightMs += clock() - nightAt; root.updateMatrixWorld(true);
+  /** CEntity::PreRender's CCustomBuildingDNPipeline::PreRenderUpdate for a drawn model, once a game frame. */
+  const preRenderUpdate = (balance: number, frame: number) => { for (const state of dayNightStates) dayNightPreRenderUpdate(state, balance, frame); };
+  const nightAt = clock(); blendCpuPrelight(0); modelBuildStats.nightMs += clock() - nightAt; root.updateMatrixWorld(true);
   const boundsAt = clock();
   const bounds = new THREE.Box3().setFromObject(root);
   modelBuildStats.boundsMs += clock() - boundsAt;
@@ -168,7 +180,7 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
   }
   /** The texture the model built for a dictionary name, including ones no material uses (a car's lit-lamp texture). */
   const textureMap = (name: string) => maps.get(name.toLowerCase())?.map ?? undefined;
-  return { root, setNight, dispose, materialBindings, bounds, uvAnimators, textureMap };
+  return { root, setNight, preRenderUpdate, dispose, materialBindings, bounds, uvAnimators, textureMap };
   }catch(error){dispose();throw error;}
 }
 /** Union of one model's world bounds across placements without traversing
@@ -280,5 +292,5 @@ export function placedModelObjects(model: DffModel, textures: ModelTexture[], pl
    assertPlacedBounds(unionPlacedBounds(source.bounds, source.root.matrixWorld, placements));
    } catch(error) { dispose();throw error; }
   // Object hierarchies are separate; mesh geometry, materials and textures are shared.
-  return { root, setNight: source.setNight, dispose, source };
+  return { root, setNight: source.setNight, preRenderUpdate: source.preRenderUpdate, dispose, source };
 }

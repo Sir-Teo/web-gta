@@ -44,7 +44,8 @@ export interface InstalledNativeScene {
   area:number;root:Group;sources:Map<number,InstalledCollisionSource>;missingCollision:string[];
   shadowReceivers:(footprint:ShadowFootprint,projection?:Matrix4)=>ReturnType<typeof nativeShadowReceivers>;
   setObjectData:(definitions?:ReadonlyMap<string,ObjectDataRecord>)=>void;
-  setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number,objectAmbient?:readonly number[])=>void;
+  /** `frame` is the 30 fps game frame; without it every model's prelight takes the time's balance at once. */
+  setTime:(minutes:number,ambient?:[number,number,number],lightMultiplier?:number,objectAmbient?:readonly number[],frame?:number)=>void;
   updateView:(camera:VisibilityCamera,lowLodScale?:number,wind?:NativeGrassWindState,simulateVegetation?:boolean,tunnels?:{tunnels:boolean;outside:boolean})=>void;
   /** Placements the last view update culled behind occluders (CRenderer::SetupEntityVisibility). */
   occludedCount:()=>number;
@@ -247,7 +248,8 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
   };
   let lastHour: number | undefined;
   let lastView:{x:number;y:number;z:number;scale:number;time:number;fx:number;fy:number;fz:number;fov:number;tunnels:boolean;outside:boolean}|undefined,frameAcc=0;
-  const setTime = (minutes: number, ambient?: [number,number,number],lightMultiplier=1,objectAmbient?:readonly number[]) => {
+  let lastPrelightFrame:number|undefined;
+  const setTime = (minutes: number, ambient?: [number,number,number],lightMultiplier=1,objectAmbient?:readonly number[],frame?:number) => {
     if (disposed) return;
     requireAsset(Number.isFinite(minutes), 'Scene time must be finite.');
     requireAsset(Number.isFinite(lightMultiplier)&&lightMultiplier>=.6&&lightMultiplier<=1,'Invalid sun light multiplier.');
@@ -259,7 +261,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     const balance = nativeDayNightBalance(minutes);
     buildingLighting.night.value = balance;
     buildingLighting.ambient.value.set(...(ambient ?? sampleTimecycle(minutes).ambient)).multiplyScalar(lightMultiplier);
-    visuals.forEach(visual => visual.setNight(balance));
+    // Without a game frame the prelight takes the balance at once, as a newly created entity does. Once a game frame,
+    // each model CRenderer::PreRender reaches runs CCustomBuildingDNPipeline::PreRenderUpdate.
+    if(frame===undefined)visuals.forEach(visual => visual.setNight(balance));
+    else if(frame!==lastPrelightFrame&&visibility){lastPrelightFrame=frame;const reached=visibility.partPreRendered;for(let i=0;i<visuals.length;i++)if(reached[i])visuals[i].preRenderUpdate(balance,frame);}
     vegetation?.setAmbient(buildingLighting.ambient.value.toArray());
     vegetation?.setEntityLighting(ambient??sampleTimecycle(minutes).ambient,objectAmbient,lightMultiplier);
     clock={minutes,ambient:ambient?[...ambient]:undefined,lightMultiplier,objectAmbient:objectAmbient?[...objectAmbient]:undefined};nightOverride=undefined;

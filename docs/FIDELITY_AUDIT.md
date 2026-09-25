@@ -6497,3 +6497,38 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - For 20 s, a new crime restores at least the old chaos, and SetWantedLevelNoDrop restores the old level.
 - **GIVE_WEAPON_TO_CHAR and SET_CURRENT_CHAR_WEAPON on the player** arm and switch CJ. They used to stop the script
   (the first) or do nothing (the second).
+
+## Building pipes and the day/night prelight (CCustomBuildingRenderer, CCustomBuildingDNPipeline)
+
+- **Which atomics are buildings:** CCustomBuildingRenderer::IsCBPCPipelineAttached (0x5D7F40) accepts an explicit
+  building pipeline ID (0x53F2009C, 0x53F20098), or else a geometry with both a night colour set and prelight.
+  AtomicSetup (0x5D7F00) then picks the day/night pipe whenever both sets are there, and the plain pipe otherwise,
+  whatever ID was stored. Both routines are unreversed in gta-reversed. The jte/GTASA decompilation and aap's
+  librwgta (`isBuildingPipeAttached`, `setupBuildingPipe`: "pc: if two sets -> DN, else -> regular") agree.
+  - Of the published archive's atomics, 11,723 have both sets and no pipeline plugin. Only 6 carry the DN ID and 8
+    the plain one. The port used to key the building pass on the ID alone, so nearly every building drew as a lit
+    object: the sun's directional light and the object ambient on top of a CPU-blended prelight.
+  - A building never gets m_bLightObject (CEntity::CreateRwObject), so CEntity::SetupLighting returns false and
+    RemoveLighting leaves the world ambient with the directional off. Buildings now draw without the sun's shading.
+  - A geometry with a night set but no prelight (the nightlights and lanitewin models) is no building, and the port
+    no longer shows its night colours as vertex colours.
+- **Alpha:** NVCPipelineProcess blends all four bytes, alpha included, by the balance. The port had taken alpha
+  from the night set, moving to the day set with a wetness input that nothing set. That rule is the PS2 one. 18 of
+  the archive's day/night geometries have different day and night alpha (road_sfe, lod_nw_bit and others).
+- **When the prelight changes (PreRenderUpdate, 0x5D7200):** each geometry keeps the balance it was last blended at.
+  - Once a game frame, CEntity::PreRender runs it for each model the renderer reaches: the drawn ones and the
+    off-screen lit ones in range.
+  - A change of 0.01 or less is dropped. One of 0.3 or less waits for the atomic's turn: address / 0x70 mod 16
+    against CCustomBuildingRenderer::Update's counter, advanced once a CGame::Process, with s_Magic2 cleared there.
+    The address is a heap pointer, so a hash of the model's name stands in.
+  - A model created (CEntity::CreateRwObject) blends at the current balance at once.
+  - The blend truncates each byte, `to * t + from * (1 - t)`.
+  - The port had blended every vertex of every model on the CPU on every frame, continuously. The blend now runs in
+    the building shader by the geometry's stored balance, so no colour buffer is rewritten or re-uploaded.
+- **Cost:** the per-frame prelight work fell from 7.8% of the frame's CPU samples to 0.2% in a Grove Street
+  profile. The day/night geometries no longer keep a float colour copy.
+- **Not done:**
+  - The PC render callbacks themselves (0x5D6480 DN, 0x5D77D0 plain) are unreversed. The base pass stays the
+    SkyGFX PS2 order, whose 255/128 colour scale also scales the ambient term.
+  - Nine environment-mapped props with both colour sets (aprtree01_lvs, flamingo01_lvs, visagesign04 and others)
+    now take the building pipe's reflection. The day/night pipe's env setup (0x5D7120) is unreversed.

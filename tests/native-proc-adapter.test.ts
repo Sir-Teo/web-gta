@@ -97,7 +97,7 @@ test('tree wind replaces only visual at components while paused, exploded and hi
 test('procedural generic lighting uses entity-kind factors and excludes diffuse light without native normals',()=>{
  const world=new RAPIER.World({x:0,y:0,z:0});
  const model=readDff(new Uint8Array(readFileSync('tests/fixtures/dragonff-model.dff')));
- for(const geometry of model.geometries)geometry.flags=(geometry.flags|0x20)&~0x10;
+ for(const geometry of model.geometries){geometry.flags=(geometry.flags|0x20)&~0x10;geometry.nightColors=undefined;}
  for(const atomic of model.atomics)atomic.pipeline=undefined;
  const assets=(['building','object'] as const).map((kind,id)=>({name:kind,definition:{id,drawDistance:50,flags:0},entityKind:kind,model,collision:col(),textures:[]} as unknown as Awaited<ReturnType<typeof readNativeProcAssets>>[number]));
  const adapter=new NativeProcObjects(world,assets);
