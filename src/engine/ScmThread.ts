@@ -190,6 +190,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  createCar?(model:number|string,x:number,y:number,z:number):number;
  deleteVehicle?(handle:number):void;
  vehicleExists?(handle:number):boolean;
+ /** Wait (ScmEntityPending) while the car behind a handle is still being built. */
+ awaitVehicle?(handle:number):void;
  /** What the script calls a dead car. The command's own dispatch is not reversed, so what counts as wrecked
   * is the host's; the runtime only keeps the part the ped equivalent shows, that a handle naming nothing is. */
  vehicleIsDeadForScript?(handle:number):boolean;
@@ -554,7 +556,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  closeAllVehicleDoors?(handle:number):void;
  setVehicleCanBeVisiblyDamaged?(handle:number,state:boolean):void;
  setUpsideDownVehicleNotDamaged?(handle:number,state:boolean):void;
- skipInPlaybackRecordedCar?(handle:number,amount:number):void;
  createMissionTrain?(type:number,x:number,y:number,z:number,direction:boolean):number;
  /** The groups a script makes, sets and drops. */
  createGroup?(defaultTaskAllocator:number):number;
@@ -653,8 +654,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  lineOfSightIsClear?(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},
   flags:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean;particles:boolean}):boolean;
  /** The audio, markers and remaining world settings of the tail. */
- beatTrackStatus?():number;
- stopBeatTrack?():void;
  switchAmbientPlanes?(state:boolean):void;
  syncWater?():void;
  drawSphere?(x:number,y:number,z:number,radius:number):void;
@@ -670,7 +669,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setObjectCoordinatesAndVelocity?(handle:number,x:number,y:number,z:number):void;
  forceVehicleLights?(handle:number,lights:number):void;
  setVehicleCanBeDamaged?(handle:number,state:boolean):void;
- skipToEndAndStopPlaybackRecordedCar?(handle:number):void;
  vehicleGotoCoordinatesAccurate?(handle:number,x:number,y:number,z:number):void;
  vehicleWasDamagedByVehicle?(handle:number,other:number):boolean;
  popVehicleBoot?(handle:number):void;
@@ -735,7 +733,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setExtraColours?(colour:number,fade:boolean):void;
  beatProximity?(track:number):{first:number;second:number;third:number};
  modelDimensions?(model:number|string):{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}};
- preloadBeatTrack?(track:number):void;
  deleteMissionTrains?():void;
  setHelpMessageBoxSize?(size:number):void;
  pedHeadIsMissing?(handle:number):boolean;
@@ -770,7 +767,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isCharAttachedToAnyCar?(handle:number):boolean;
  setActiveMenuItem?(handle:number,row:number):void;
  getCarModelValue?(model:number|string):number;
- playBeatTrack?():void;
  setObjectRotationVelocity?(handle:number,x:number,y:number,z:number):void;
  locateStoppedCar2d?(handle:number,x:number,y:number,xRadius:number,yRadius:number,drawSphere:boolean):boolean;
  taskShakeFist?(handle:number):void;
@@ -929,7 +925,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  getLatestConsoleCommand?():number;
  getWheelieStats?(handle:number):{twoWheelsTime:number,twoWheelsDistance:number,wheelieTime:number,wheelieDistance:number,stoppieTime:number,stoppieDistance:number};
  randomPassengerSay?(handle:number,phrase:number):void;
- areSubtitlesSwitchedOn?():boolean;
  getStringWidthWithNumber?(gxtEntry:string,number:number):number;
  setForceRandomCarModel?(modelId:number|string):void;
  isPlayerInRemoteMode?(handle:number):boolean;

@@ -28,11 +28,14 @@ export class ScmVehicleRecordings {
  /** REQUEST_CAR_RECORDING: the streamer is asked for the file and the slot starts empty. A host loads it. */
  requestRecordingFile(fileNumber:number){
   requireAsset(Number.isInteger(fileNumber),'Invalid recording file number.');
-  const existing=this.find(fileNumber);
-  if(existing){existing.loaded=false;existing.references=0;return existing;}
-  const file:ScmRecordingFile={fileNumber,loaded:false,references:0};
-  this.files.push(file);return file;
+  let file=this.find(fileNumber);
+  if(file){file.loaded=false;file.references=0;}
+  else{file={fileNumber,loaded:false,references:0};this.files.push(file);}
+  this.onRequest?.(fileNumber);
+  return file;
  }
+ /** CStreaming::RequestModel for the file's slot: the host streams it and calls loadRecordingFile. */
+ onRequest?:(fileNumber:number)=>void;
  /** What a host calls once it has the data. */
  loadRecordingFile(fileNumber:number){const file=this.find(fileNumber)??this.requestRecordingFile(fileNumber);file.loaded=true;}
  /** HAS_CAR_RECORDING_BEEN_LOADED: the file is known and its data is there. */

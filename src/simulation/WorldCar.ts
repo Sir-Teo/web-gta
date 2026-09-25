@@ -116,6 +116,10 @@ export class WorldCar {
  onlyDamagedByPlayer=false;
  burnTimer=0;
  wrecked=false;
+ /** m_autoPilot.m_vehicleRecordingId, and the pedals a playback without car AI sets (CAutomobile::ProcessAI does
+  * nothing then, so they drive the car). */
+ recordingSlot=-1;recordingControls?:{steerAngle:number;gas:number;brake:number;handbrake:boolean};
+ get body(){return this.car.body;}
  /** Set by BlowUpCar until the weapon system spawns its explosion. */
  pendingExplosion=false;
  readonly damageState=createCarDamage();
@@ -537,7 +541,7 @@ export class WorldCar {
   // CAutomobile::ProcessCarOnFireAndExplode for ordinary cars.
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;
   this.crushCarsInPath();
-  this.input.ai=this.wrecked?undefined:ai?.native??abandoned;
+  this.input.ai=this.wrecked?undefined:this.recordingSlot>=0&&this.recordingControls?this.recordingControls:ai?.native??abandoned;
   // CAutomobile::DoHoverSuspensionRatios: the Vortex rides its wheel lines on the water surface.
   const hover=this.modelId===MODEL_VORTEX&&this.waterLevel&&hoverActive(this.axes().up[2],this.drowning)
    ?(wheel:CarWheel,line:{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}},groundContactZ:number|undefined)=>hoverWheelContact({start:line.start,end:line.end,groundContactZ,waterLevel:this.waterLevel!(line.end.x,line.end.y)}):undefined;

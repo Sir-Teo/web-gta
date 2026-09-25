@@ -7401,5 +7401,31 @@ Each is now answered:
 
 - The host built a script car's matrix with the body's local +z as forward. The car's front is its local -z, which
   the player's own vehicle pose already used, so a car facing north reported forward as south, and the rows were
-  left-handed. GET_OFFSET_FROM_CAR_IN_WORLD_COORDS (and GET_OFFSET_FROM_CAR... for objects), and attachments to a
-  car, put every forward offset behind the car. Forward is now local -z: up = right x forward, as CMatrix has it.
+  left-handed. GET_OFFSET_FROM_CAR_IN_WORLD_COORDS, the other command that offsets from a car's matrix, and attachments to
+  a car put every forward offset behind the car. Forward is now local -z: up = right x forward, as CMatrix has it.
+
+## Car recordings, beat tracks and subtitles
+
+- carrec.img's recordings were decoded and CVehicleRecording's playback was ported, but nothing streamed a file or
+  moved a car. INTRO, the first mission, waited for ever on HAS_CAR_RECORDING_BEEN_LOADED 706 and 707. The script
+  requests recordings 323 times and starts 286 playbacks.
+  - REQUEST_CAR_RECORDING now streams the file: carrec.img is fetched the first time, and the slot comes from
+    FindIndexWithFileNameNumber (slot 0 for a number no entry has, as in the original). The frames are cached, and
+    loadRecordingFile is called once they are read.
+  - The START, STOP, SKIP_IN and SKIP_TO_END playback commands take the car's side through the host.
+  - A car still being built holds a START until it is there.
+  - SaveOrRetrieveDataForThisFrame runs after each physics step, where CWorld::Process runs it after the collisions.
+    Its time span is the clock since four frames ago.
+  - A playback without car AI sets bDisableCollisionForce and clears bCollidable. CPhysical's collision code then
+    treats the car as immovable: things still hit it, and nothing pushes it. The body becomes kinematic (velocity
+    based) for the playback, and is dynamic again, keeping its speed, when the playback stops.
+  - CAutomobile::ProcessAI does nothing for such a car, so the recording's steer, gas, brake and handbrake drive it.
+  - A playback using car AI (MISSION_FOLLOW_RECORDED_PATH) is still not followed, as before.
+- The beat tracks (PRELOAD, PLAY and STOP_BEAT_TRACK, GET_BEAT_TRACK_STATUS) had no host, and INTRO stopped at
+  PRELOAD_BEAT_TRACK. They are now CAECutsceneTrackManager's status machine, which is reversed, serviced once a frame.
+  It drives a silent stream, as the port ships none of the audio streams:
+  - loading, loaded, playing and stopping report 1 to 4 as GetCutsceneTrackStatus does;
+  - a track's length is in its stream file, so a silent track plays until it is stopped.
+- ARE_SUBTITLES_SWITCHED_ON reads the engine's FrontEndMenuManager.m_bShowSubtitles, true by default, instead of a
+  host that did not answer.
+- INTRO now runs on to its mission train (CREATE_MISSION_TRAIN), which the port does not have.

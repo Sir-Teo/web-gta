@@ -17,6 +17,8 @@ import {ScmNodeSwitches} from './ScmNodeSwitches';
 import {ScmStreamedScripts} from './ScmStreamedScripts';
 import {ScmSequences} from './ScmSequences';
 import {ScmVehicleRecordings} from './ScmVehicleRecordings';
+import {ScmCutsceneTrack} from './ScmCutsceneTrack';
+import type {CarRecordingPlaybackHost} from './carRecordingPlayback';
 import {ScmAnimBlocks} from './ScmAnimBlocks';
 import {ScmPickups} from './ScmPickups';
 import {ScmGarages} from './ScmGarages';
@@ -348,6 +350,15 @@ export class ScmGameState {
  readonly animBlocks=new ScmAnimBlocks();
  /** CVehicleRecording's files and its sixteen playback slots. */
  readonly vehicleRecordings=new ScmVehicleRecordings();
+ /** CAECutsceneTrackManager, which the beat tracks play through. */
+ readonly cutsceneTrack=new ScmCutsceneTrack();
+ /** The cars a playback moves and the frames it reads, which the host gives. Without them the commands keep only
+  * the slots. */
+ carRecordingVehicles?:Omit<CarRecordingPlaybackHost,'recordings'>;
+ get carRecordingHost():CarRecordingPlaybackHost|undefined{
+  const v=this.carRecordingVehicles;
+  return v&&{recordings:this.vehicleRecordings,frames:n=>v.frames(n),vehicle:h=>v.vehicle(h)};
+ }
  /** CTaskSequences' sixty-four sequences, which a script records tasks into. */
  readonly sequences=new ScmSequences();
  /** CStreamedScripts' registry of the external script files beside MAIN.SCM. */

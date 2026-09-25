@@ -209,6 +209,9 @@ import {NativePermanentShadows,explosionScorch} from './render/nativePermanentSh
 import {NativeCullZones,fewerPedsLimits} from './world/nativeCullZones';
 import {heldPadActions,padStateFromActions} from './input/nativePadState';
 import {NativeHudBigMessages} from './ui/nativeHudBigMessages';
+import {ScriptCarRecordingStore} from './simulation/scriptCarRecordings';
+import {recordingVehicle} from './simulation/recordingBody';
+import {startPlaybackRecordedCar} from './engine/carRecordingPlayback';
 import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/nativeAirResistance';
 import {PED_ORIGIN_HEIGHT,SWIM} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
@@ -665,6 +668,7 @@ async function boot() {
   // CGameLogic's trip skip reaches the world through this. CPad::IsDPadRightPressed is the frame's own edge, kept
   // below each frame from the pad the held keys make.
   // CHud's big messages outside STYLE_MIDDLE and STYLE_WHITE_MIDDLE, stepped by game time.
+  const carRecordings=new ScriptCarRecordingStore(()=>fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/paths/carrec.img`,location.href)).then(r=>r.ok?r.blob():Promise.reject(new Error(`carrec.img ${r.status}`))));
   const hudBigMessages=new NativeHudBigMessages();let hudBigMessagesClock=0;
   let skipButtonDown=false,skipButtonPressed=false,skipPadCamera=false,tripSkipHelpShown=false;
   // CPad::DisablePlayerControls: the script's SET_PLAYER_CONTROL, or bCamera while a trip skip moves the player.
@@ -1888,6 +1892,10 @@ async function boot() {
     missionForProfiling:()=>mission,
     /** CTimer::m_snTimeInMilliseconds as the game frames count it. */
     gameTimeMs:()=>gameTimeMs,
+    /** The car recordings streamed so far, and the last failure. */
+    carRecordings:()=>carRecordings,
+    /** START_PLAYBACK_RECORDED_CAR on a script car, for a spec driving one along a recording. */
+    startCarPlayback:(car:number,fileNumber:number,looped=false)=>{const host=mission?.runtime.game.carRecordingHost;return host?startPlaybackRecordedCar(host,car,fileNumber,false,looped):-1;},
     /** CClothes::RebuildPlayerIfNeeded, as a restart or an entry-exit transfer runs it. */
     rebuildPlayerIfNeeded:()=>rebuildPlayerIfNeeded(),
     /** One pixel of a freshly drawn frame at fractions of the drawing buffer (GL origin bottom-left): the frame
@@ -2334,6 +2342,8 @@ async function boot() {
         if(render.nativeCharacter?.duckRollDone)duck.rollFinished();
         kickSweptProps();
         guard('pedestrians.afterStep',()=>pedestrians?.afterStep());
+        // CWorld::Process: after the collisions, CVehicleRecording puts each played-back car on its recording.
+        mission?.processCarRecordings(gameTimeMs);
         for(const car of fleet?.cars??[])car.afterStep(step);
         // BreakManager_c::Update once per native frame at the PC frame limiter's 30 fps (APP_MAX_FPS).
         for(breakClock+=step;breakClock>=1/30;breakClock-=1/30)breakManager.update(50/30,worldFx.breakFx);
@@ -3565,6 +3575,10 @@ async function boot() {
                  // CCarCtrl::CreateCarForScript through the fleet the browser already drives. The script speaks
                  // native coordinates and degrees clockwise from north; the browser holds renderer coordinates
                  // and the same yaw the player controller uses, which is those degrees in radians plus π.
+                 // CVehicleRecording: carrec.img's files streamed on request, and a script car as a playback moves it.
+                 requestCarRecording:(fileNumber,loaded)=>{carRecordings.request(fileNumber,loaded);},
+                 carRecordingFrames:fileNumber=>carRecordings.framesOf(fileNumber),
+                 carRecordingVehicle:car=>car&&typeof car==='object'&&'recordingSlot' in car?recordingVehicle(car as ScriptCar):undefined,
                  spawnScriptVehicle:async(model,position,heading)=>{
                   if(!fleet||typeof model!=='number')return undefined;
                   return await fleet.spawnScriptCar(model,{x:position.x,y:position.z,z:-position.y},scriptCarRotation(heading)).catch(()=>undefined);

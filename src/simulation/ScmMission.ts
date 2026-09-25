@@ -1,3 +1,5 @@
+import type {CarRecordingFrame} from '../assets/carRecordings';
+import {saveOrRetrieveDataForThisFrame,type CarRecordingVehicle} from '../engine/carRecordingPlayback';
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
@@ -77,6 +79,11 @@ export interface ScmMissionWorld {
  setPlayerAmmo?(weaponType:number,ammo:number):void;
  addPlayerAmmo?(weaponType:number,ammo:number):void;
  hidePlayerWeapon?(hidden:boolean):void;
+ /** CVehicleRecording's host: stream a file of carrec.img (calling `loaded` once its frames are here), read its
+  * frames, and see a car as a playback moves it. */
+ requestCarRecording?(fileNumber:number,loaded:(fileNumber:number)=>void):void;
+ carRecordingFrames?(fileNumber:number):readonly CarRecordingFrame[]|undefined;
+ carRecordingVehicle?(car:unknown):CarRecordingVehicle|undefined;
  /** The player's side of commands that name any ped:
   * - CLEAR_LOOK_AT ends the look the player was given;
   * - SET_CHAR_VISIBLE sets CEntity::m_bIsVisible (and gPlayerPedVisible);
@@ -1115,6 +1122,8 @@ export class ScmMission {
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
    createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
    vehicleExists:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
+   // A car still being built holds the command that needs it until it is there.
+   awaitVehicle:handle=>{if(handle!==PLAYER_VEHICLE_HANDLE&&this.vehicles.exists(handle)&&!this.vehicles.settledFor(handle))throw new ScmEntityPending(`vehicle ${handle}`);},
    vehicleIsDeadForScript:handle=>handle===PLAYER_VEHICLE_HANDLE?!this.world.playerPed().vehicle:!this.vehicles.exists(handle),
    vehiclePosition:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).position:this.vehicles.positionOf(handle),
    // reVC's SET_CAR_COORDINATES: the point lifted by CEntity::GetDistanceFromCentreOfMassToBaseOfModel, the car
@@ -1290,6 +1299,13 @@ export class ScmMission {
   },SCRIPT_VEHICLE_FIRST_HANDLE);
   const {runtime,header}=ScmRuntime.load(script,adapter,this.random);
   this.runtime=runtime;
+  // CVehicleRecording's host side: files streamed from carrec.img, and the cars playbacks move.
+  const recordings=runtime.game.vehicleRecordings;
+  recordings.onRequest=fileNumber=>{this.world.requestCarRecording?.(fileNumber,loaded=>{recordings.loadRecordingFile(loaded);});};
+  if(this.world.carRecordingVehicle)runtime.game.carRecordingVehicles={
+   frames:fileNumber=>this.world.carRecordingFrames?.(fileNumber),
+   vehicle:handle=>{const car=this.vehicleByHandle(handle);return car===undefined?undefined:this.world.carRecordingVehicle?.(car);},
+  };
   // CShopping's reach outside the script: the model table, the level's price and the player's weapons and armour.
   runtime.game.shopping.host={
    modelIndex:name=>this.world.modelIndex?.(name)??-1,
@@ -1902,6 +1918,16 @@ export class ScmMission {
  private nextGroup=1;
  private readonly entry:number;
  /** CTheScripts::Process for one frame. The first call starts MAIN, as CGame::Initialise does. */
+ /** CTimer's last four frame times, for m_snPPPPreviousTimeInMilliseconds. */
+ private readonly frameTimes:number[]=[];
+ /** CVehicleRecording::SaveOrRetrieveDataForThisFrame, after the frame's collisions (CWorld::Process): each playback
+  * puts its car on the recording. `nowMs` is the game clock. */
+ processCarRecordings(nowMs:number){
+  const times=this.frameTimes,host=this.runtime.game.carRecordingHost;
+  const previous=times.length<4?times[0]??nowMs:times[times.length-4];
+  times.push(nowMs);if(times.length>4)times.shift();
+  if(host&&!this.stopped)saveOrRetrieveDataForThisFrame(host,Math.max(0,nowMs-previous));
+ }
  step(nowMs:number,timeStepMs:number){
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
@@ -1910,7 +1936,9 @@ export class ScmMission {
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.processTaskRecords();
-   const game=this.runtime.game;game.onscreenTimer.process(this.globals,timeStepMs,game.widescreenOn,()=>this.world.frontendAudioEvent?.(33));}
+   const game=this.runtime.game;game.onscreenTimer.process(this.globals,timeStepMs,game.widescreenOn,()=>this.world.frontendAudioEvent?.(33));
+   // CAudioEngine::Service after the frame: the beat track's status moves on.
+   game.cutsceneTrack.service(timeStepMs);}
   catch(error){
    if(error instanceof UnsupportedScmCommand)this.stopped={command:error.command,offset:error.offset,detail:error.message};
    else this.stopped={command:'error',offset:-1,detail:String(error)};

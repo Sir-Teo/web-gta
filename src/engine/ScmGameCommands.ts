@@ -8,6 +8,7 @@ import {scmOpcode} from './scmOpcodes';
 import {USE_TEXT_DISABLE_NEXT_FRAME,USE_TEXT_ENABLED_BY_SCRIPT} from './ScmMessages';
 import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_COORD,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_OBJECT,BLIP_PICKUP} from './ScmRadar';
 import {STAT_MISSION_ATTEMPTS,STAT_PROGRESS_MADE} from './ScmGameState';
+import {skipForwardInRecording,skipToEndAndStopPlaybackRecordedCar,startPlaybackRecordedCar,stopPlaybackRecordedCar} from './carRecordingPlayback';
 import {BUTTON,CONTROLLER_JOYPAD} from './ScmPads';
 import {switchArea} from './ScmNodeSwitches';
 import {ScmCamera} from './ScmCamera';
@@ -187,6 +188,12 @@ function playAnimTask(t:ScmThread,p:ScmParameter[],interruptable:boolean):ScmScr
  return {kind:'playAnim',animationName:t.text(p[1]),animationFile:t.text(p[2]),blendSpeed:t.readFloat(p[3]),
   loop:!!t.readInt(p[4]),lockX:!!t.readInt(p[5]),lockY:!!t.readInt(p[6]),keepLastFrame:!!t.readInt(p[7]),
   time:t.readInt(p[8]),interruptable};
+}
+/** StartPlaybackRecordedCar: the slot, and the car's side when the host holds the car. */
+function startPlayback(thread:ScmThread,i:ScmInstruction,car:number,fileNumber:number,useCarAI:boolean,looped:boolean){
+ const g=game(thread,i),host=g.carRecordingHost;
+ thread.host?.world?.awaitVehicle?.(car);
+ if(host)startPlaybackRecordedCar(host,car,fileNumber,useCarAI,looped);else g.vehicleRecordings.startPlayback(car,fileNumber,useCarAI,looped);
 }
 function scriptedTask(thread:ScmThread,i:ScmInstruction,pedHandle:number,task:ScmScriptedTask){
  if(pedHandle===-1){game(thread,i).sequences.addTaskToActiveSequence(task);return;}
@@ -558,10 +565,11 @@ const handlers:Record<string,ScmCommandHandler>={
  REQUEST_CAR_RECORDING:(t,p,i)=>{game(t,i).vehicleRecordings.requestRecordingFile(t.readInt(p[0]));},
  HAS_CAR_RECORDING_BEEN_LOADED:(t,p,i)=>{t.updateCompareFlag(game(t,i).vehicleRecordings.hasRecordingFileBeenLoaded(t.readInt(p[0])),negated(i));},
  REMOVE_CAR_RECORDING:(t,p,i)=>{game(t,i).vehicleRecordings.removeRecordingFile(t.readInt(p[0]));},
- START_PLAYBACK_RECORDED_CAR:(t,p,i)=>{game(t,i).vehicleRecordings.startPlayback(t.readInt(p[0]),t.readInt(p[1]),false,false);},
- START_PLAYBACK_RECORDED_CAR_USING_AI:(t,p,i)=>{game(t,i).vehicleRecordings.startPlayback(t.readInt(p[0]),t.readInt(p[1]),true,false);},
- START_PLAYBACK_RECORDED_CAR_LOOPED:(t,p,i)=>{game(t,i).vehicleRecordings.startPlayback(t.readInt(p[0]),t.readInt(p[1]),false,true);},
- STOP_PLAYBACK_RECORDED_CAR:(t,p,i)=>{game(t,i).vehicleRecordings.stopPlayback(t.readInt(p[0]));},
+ // CVehicleRecording's playbacks, the car's side through the host's cars (carRecordingPlayback.ts).
+ START_PLAYBACK_RECORDED_CAR:(t,p,i)=>{startPlayback(t,i,t.readInt(p[0]),t.readInt(p[1]),false,false);},
+ START_PLAYBACK_RECORDED_CAR_USING_AI:(t,p,i)=>{startPlayback(t,i,t.readInt(p[0]),t.readInt(p[1]),true,false);},
+ START_PLAYBACK_RECORDED_CAR_LOOPED:(t,p,i)=>{startPlayback(t,i,t.readInt(p[0]),t.readInt(p[1]),false,true);},
+ STOP_PLAYBACK_RECORDED_CAR:(t,p,i)=>{const g=game(t,i),host=g.carRecordingHost;if(host)stopPlaybackRecordedCar(host,t.readInt(p[0]));else g.vehicleRecordings.stopPlayback(t.readInt(p[0]));},
  PAUSE_PLAYBACK_RECORDED_CAR:(t,p,i)=>{game(t,i).vehicleRecordings.setPaused(t.readInt(p[0]),true);},
  UNPAUSE_PLAYBACK_RECORDED_CAR:(t,p,i)=>{game(t,i).vehicleRecordings.setPaused(t.readInt(p[0]),false);},
  SET_PLAYBACK_SPEED:(t,p,i)=>{game(t,i).vehicleRecordings.setSpeed(t.readInt(p[0]),t.readFloat(p[1]));},
@@ -1628,7 +1636,8 @@ const handlers:Record<string,ScmCommandHandler>={
  CLOSE_ALL_CAR_DOORS:(t,p,i)=>{world(t,i,'closeAllVehicleDoors')(t.readInt(p[0]));},
  SET_CAR_CAN_BE_VISIBLY_DAMAGED:(t,p,i)=>{world(t,i,'setVehicleCanBeVisiblyDamaged')(t.readInt(p[0]),bool(t,p[1]));},
  SET_UPSIDEDOWN_CAR_NOT_DAMAGED:(t,p,i)=>{world(t,i,'setUpsideDownVehicleNotDamaged')(t.readInt(p[0]),bool(t,p[1]));},
- SKIP_IN_PLAYBACK_RECORDED_CAR:(t,p,i)=>{world(t,i,'skipInPlaybackRecordedCar')(t.readInt(p[0]),t.readFloat(p[1]));},
+ // CVehicleRecording::SkipForwardInRecording: the clock on by that much of the path.
+ SKIP_IN_PLAYBACK_RECORDED_CAR:(t,p,i)=>{const host=game(t,i).carRecordingHost;if(host)skipForwardInRecording(host,t.readInt(p[0]),t.readFloat(p[1]));},
  CREATE_MISSION_TRAIN:(t,p,i)=>{
   const point=vec(t,p,1);
   t.writeInt(p[5],world(t,i,'createMissionTrain')(t.readInt(p[0]),point.x,point.y,point.z,bool(t,p[4])));
@@ -1894,8 +1903,9 @@ const handlers:Record<string,ScmCommandHandler>={
   t.updateCompareFlag(world(t,i,'lineOfSightIsClear')(vec(t,p,0),vec(t,p,3),
    {buildings:bool(t,p[6]),vehicles:bool(t,p[7]),peds:bool(t,p[8]),objects:bool(t,p[9]),particles:bool(t,p[10])}),negated(i));
  },
- GET_BEAT_TRACK_STATUS:(t,p,i)=>{t.writeInt(p[0],world(t,i,'beatTrackStatus')());},
- STOP_BEAT_TRACK:(t,_p,i)=>{world(t,i,'stopBeatTrack')();},
+ // CAudioEngine's beat track, through CAECutsceneTrackManager (ScmCutsceneTrack).
+ GET_BEAT_TRACK_STATUS:(t,p,i)=>{t.writeInt(p[0],game(t,i).cutsceneTrack.reportedStatus);},
+ STOP_BEAT_TRACK:(t,_p,i)=>{game(t,i).cutsceneTrack.stop();},
  // The PC build answers nought (reVC's GTA_PC branch without DETECT_PAD_INPUT_SWITCH): keyboard and mouse.
  GET_CONTROLLER_MODE:(t,p)=>{t.writeInt(p[0],0);},
  SWITCH_AMBIENT_PLANES:(t,p,i)=>{world(t,i,'switchAmbientPlanes')(bool(t,p[0]));},
@@ -1966,7 +1976,8 @@ const handlers:Record<string,ScmCommandHandler>={
  FORCE_CAR_LIGHTS:(t,p,i)=>{world(t,i,'forceVehicleLights')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CAR_CAN_BE_DAMAGED:(t,p,i)=>{world(t,i,'setVehicleCanBeDamaged')(t.readInt(p[0]),bool(t,p[1]));},
  SKIP_TO_END_AND_STOP_PLAYBACK_RECORDED_CAR:(t,p,i)=>{
-  world(t,i,'skipToEndAndStopPlaybackRecordedCar')(t.readInt(p[0]));
+  const g=game(t,i),host=g.carRecordingHost;
+  if(host)skipToEndAndStopPlaybackRecordedCar(host,t.readInt(p[0]));else g.vehicleRecordings.stopPlayback(t.readInt(p[0]));
  },
  CAR_GOTO_COORDINATES_ACCURATE:(t,p,i)=>{
   const point=vec(t,p,1);
@@ -2114,7 +2125,7 @@ const handlers:Record<string,ScmCommandHandler>={
   t.writeFloat(p[1],bounds.min.x);t.writeFloat(p[2],bounds.min.y);t.writeFloat(p[3],bounds.min.z);
   t.writeFloat(p[4],bounds.max.x);t.writeFloat(p[5],bounds.max.y);t.writeFloat(p[6],bounds.max.z);
  },
- PRELOAD_BEAT_TRACK:(t,p,i)=>{world(t,i,'preloadBeatTrack')(t.readInt(p[0]));},
+ PRELOAD_BEAT_TRACK:(t,p,i)=>{game(t,i).cutsceneTrack.preloadBeatTrack(t.readInt(p[0]));},
  DELETE_MISSION_TRAINS:(t,_p,i)=>{world(t,i,'deleteMissionTrains')();},
  SET_HELP_MESSAGE_BOX_SIZE:(t,p,i)=>{world(t,i,'setHelpMessageBoxSize')(t.readInt(p[0]));},
  IS_CHAR_HEAD_MISSING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedHeadIsMissing')(t.readInt(p[0])),negated(i));},
@@ -2202,7 +2213,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_ACTIVE_MENU_ITEM:(t,p,i)=>{world(t,i,'setActiveMenuItem')(t.readInt(p[0]),t.readInt(p[1]));},
  GET_CAR_MODEL_VALUE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCarModelValue')(model(t,i,p[0])));},
  COPY_SHARED_CHAR_DECISION_MAKER:(t,p,i)=>{const {handle,from}=game(t,i).decisionMakers.copy(t.readInt(p[0]),t.usesMissionCleanup);t.writeInt(p[1],handle);t.host?.world?.seedDecisionMaker?.(handle,from);},
- PLAY_BEAT_TRACK:(t,p,i)=>{world(t,i,'playBeatTrack')();},
+ PLAY_BEAT_TRACK:(t,_p,i)=>{game(t,i).cutsceneTrack.play();},
  SET_OBJECT_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'setObjectRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  LOCATE_STOPPED_CAR_2D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'locateStoppedCar2d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),bool(t,p[5])),negated(i));},
  TASK_SHAKE_FIST:(t,p,i)=>{world(t,i,'taskShakeFist')(t.readInt(p[0]));},
@@ -2385,7 +2396,8 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_LATEST_CONSOLE_COMMAND:(t,p,i)=>{t.writeInt(p[0],world(t,i,'getLatestConsoleCommand')());},
  GET_WHEELIE_STATS:(t,p,i)=>{const result=world(t,i,'getWheelieStats')(t.readInt(p[0]));t.writeInt(p[1],result.twoWheelsTime);t.writeFloat(p[2],result.twoWheelsDistance);t.writeInt(p[3],result.wheelieTime);t.writeFloat(p[4],result.wheelieDistance);t.writeInt(p[5],result.stoppieTime);t.writeFloat(p[6],result.stoppieDistance);},
  RANDOM_PASSENGER_SAY:(t,p,i)=>{world(t,i,'randomPassengerSay')(t.readInt(p[0]),t.readInt(p[1]));},
- ARE_SUBTITLES_SWITCHED_ON:(t,p,i)=>{t.updateCompareFlag(world(t,i,'areSubtitlesSwitchedOn')(),negated(i));},
+ // FrontEndMenuManager.m_bShowSubtitles, on by default.
+ ARE_SUBTITLES_SWITCHED_ON:(t,_p,i)=>{t.updateCompareFlag(game(t,i).showSubtitles,negated(i));},
  GET_STRING_WIDTH_WITH_NUMBER:(t,p,i)=>{t.writeInt(p[2],world(t,i,'getStringWidthWithNumber')(t.text(p[0]),t.readInt(p[1])));},
  RESET_NUM_OF_MODELS_KILLED_BY_PLAYER:(t,_p,i)=>{game(t,i).resetModelsKilledByPlayer();},
  SET_FORCE_RANDOM_CAR_MODEL:(t,p,i)=>{world(t,i,'setForceRandomCarModel')(model(t,i,p[0]));},
