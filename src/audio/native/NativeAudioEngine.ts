@@ -153,6 +153,12 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** StopRadio as the player leaves (a retail stub; the port saves the station it keeps the fields for). */
  stopRadio(nowMs:number,hour:number,day:number){if(this.radioId!==RADIO_ID.emergency)this.savedRadio={id:this.radioId,timeMs:nowMs,hour,day};this.radioId=RADIO_ID.off;}
  /** The player's retune: through the eleven stations and off (user tracks retune to off with none installed). */
+ /** CAudioEngine::RetuneRadio (0x507E10) and CAERadioTrackManager::RetuneRadio: the script's station request; user
+  * tracks with none loaded mean off. The port has no beat tracks, so GetBeatTrackStatus never holds it back. */
+ retuneRadio(id:number){
+  if(!Number.isInteger(id)||id<RADIO_ID.emergency||id>RADIO_ID.off)return;
+  this.radioId=id===RADIO_ID.userTracks?RADIO_ID.off:id;
+ }
  tuneRadio(dir=1){
   if(this.radioId===RADIO_ID.emergency)return undefined;
   const cycle=[1,2,3,4,5,6,7,8,9,10,11,RADIO_ID.off],i=Math.max(0,cycle.indexOf(this.radioId));

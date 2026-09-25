@@ -1457,6 +1457,11 @@ export class WorldPedestrians {
  clearLookAt(ped:Pedestrian){ped.look=undefined;ped.lookTarget=undefined;ped.view.setHeadLook(undefined,0);}
  /** CPedIntelligence::ClearTasks through a script's CLEAR_CHAR_TASKS: the ped drops what it was told to do and
   * goes back to the wander a street ped does unasked. */
+ /** CPed::ClearWeapon on a street or script ped: it carries one weapon, which goes only if it is that one. */
+ clearWeapon(ped:Pedestrian,weaponType:number){
+  const held=ped.weapon?.info.type??ped.weaponType;if(held!==weaponType)return;
+  ped.gun?.dispose();ped.gun=undefined;ped.weapon=undefined;ped.weaponType=undefined;ped.totalAmmo=undefined;ped.gunState=undefined;
+ }
  clearTasks(ped:Pedestrian){ped.order=undefined;ped.sequence=undefined;ped.goTo=undefined;}
  /** The teleport behind WARP_CHAR_FROM_CAR_TO_COORD: the ped's tasks are flushed, the point is dropped to the
   * ground and the ped set down on it. A browser ped a script made is never in a car, so there is nothing to

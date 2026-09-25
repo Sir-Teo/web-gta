@@ -2,7 +2,7 @@ import {describe,expect,test} from 'vitest';
 import {ScmPedPool,type ScmPedPoolHost} from '../src/simulation/ScmPedPool';
 
 /** A ped the fake browser holds, with everything the script can say about one. */
-interface FakePed {id:number;position:{x:number;y:number;z:number};heading:number;health:number;accuracy:number;
+interface FakePed {id:number;position:{x:number;y:number;z:number};heading:number;health:number;accuracy:number;shootingRate?:number;
  invulnerable:boolean;proofs:string[];alive:boolean;scripted:boolean}
 /** A host whose spawning finishes only when the test says so, which is what the browser's really does. */
 function pool(options:{fails?:boolean}={}){
@@ -36,6 +36,7 @@ function pool(options:{fails?:boolean}={}){
   setHealth:(ped,health)=>{ped.health=health;},
   kill:ped=>{ped.health=0;},
   setAccuracy:(ped,accuracy)=>{ped.accuracy=accuracy;},
+  setShootingRate:(ped,rate)=>{ped.shootingRate=rate;},
   setInvulnerable:(ped,enabled)=>{ped.invulnerable=enabled;},
   setProofs:(ped,proofs)=>{ped.proofs=Object.entries(proofs).filter(([,on])=>on).map(([name])=>name);},
   aliveOf:ped=>ped.alive,
@@ -64,6 +65,8 @@ describe('the peds a script creates before the browser can load them',()=>{
   peds.setHeading(handle,90);
   peds.setHealth(handle,250);
   peds.setAccuracy(handle,95);
+  // m_nWeaponShootingRate is a byte.
+  peds.setShootingRate(handle,300);
   peds.setInvulnerable(handle,true);
   peds.setProofs(handle,{bullet:true,fire:false,explosion:true,collision:false,melee:false});
   // Reading back before it arrives gives what the script itself set.
@@ -73,7 +76,7 @@ describe('the peds a script creates before the browser can load them',()=>{
   await settle();
   const ped=spawned[0];
   expect(ped.position).toEqual({x:5,y:6,z:7});
-  expect(ped.heading).toBe(90);expect(ped.health).toBe(250);expect(ped.accuracy).toBe(95);
+  expect(ped.heading).toBe(90);expect(ped.health).toBe(250);expect(ped.accuracy).toBe(95);expect(ped.shootingRate).toBe(44);
   expect(ped.invulnerable).toBe(true);expect(ped.proofs).toEqual(['bullet','explosion']);
  });
 

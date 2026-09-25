@@ -42,6 +42,8 @@ const MODEL_NEVADA=553;
 /** eScriptedTaskStatus and the scripts' FINISHED_TASK. */
 const TASK_EVENT_ASSOCIATED=0,TASK_TASK_ASSOCIATED=1,FINISHED_TASK=7;
 export interface ScmMissionWorld {
+ /** CAudioEngine::RetuneRadio for SET_RADIO_CHANNEL (an eRadioID). */
+ retuneRadio?(station:number):void;
  /** CAEFrontendAudioEntity::AddAudioEvent, for the reports the script's own systems make (the timer count). */
  frontendAudioEvent?(event:number):void;
  /** TheCamera's fade (m_fFadeAlpha, m_bFading), one for the script and the game alike; the host processes it. Without
@@ -71,6 +73,8 @@ export interface ScmMissionWorld {
   /** The vehicle it is in, as eVehicleAppearance and whether that vehicle is a train. */
   vehicle:{appearance:number;train:boolean;model?:number;inAirProper?:()=>boolean}|undefined;
   stopped:boolean;health:number;dead:boolean;
+  /** CPlaceable::GetHeading in degrees, as the script reads a ped's. */
+  heading?:number;
   /** CEntity::GetAreaCode: the interior it is in, zero being the normal world. */
   areaCode:number;
   /** CPed::m_aWeapons as the types it carries, and the one it is holding. */
@@ -133,6 +137,8 @@ export interface ScmMissionWorld {
  setScriptPedHealth(ped:unknown,health:number):void;
  killScriptPed(ped:unknown):void;
  setScriptPedAccuracy(ped:unknown,accuracy:number):void;
+ /** CPed::m_nWeaponShootingRate, which CTaskSimpleGunControl's bursts and pauses read. */
+ setScriptPedShootingRate?(ped:unknown,rate:number):void;
  setScriptPedInvulnerable(ped:unknown,enabled:boolean):void;
  setScriptPedProofs(ped:unknown,proofs:ScmPedProofs):void;
  scriptPedAlive(ped:unknown):boolean;
@@ -163,6 +169,8 @@ export interface ScmMissionWorld {
  /** Whether the ped is still answering an event of that type. */
  scriptPedRespondingTo(ped:unknown,event:number):boolean;
  giveScriptPedWeapon(ped:unknown,weaponType:number,ammo:number):void;
+ /** CPed::ClearWeapon and CPed::ClearWeapons: a script ped's, or (with no ped) the player's. */
+ clearPedWeapon?(ped:unknown|undefined,weaponType:number):void;clearPedWeapons?(ped:unknown|undefined):void;
  scriptPedWeapon(ped:unknown):{type:number;ammo:number}|undefined;
  setScriptPedAmmo(ped:unknown,ammo:number):void;
  setScriptPedFrozen(ped:unknown,frozen:boolean):void;
@@ -399,6 +407,15 @@ export class ScmMission {
     if(!this.world.givePlayerWeapon)throw new UnsupportedScmCommand(-1,0,'GIVE_WEAPON_TO_CHAR','the player');
     this.world.givePlayerWeapon(weaponType,ammo);
    },
+   // REMOVE_WEAPON_FROM_CHAR and REMOVE_ALL_CHAR_WEAPONS: CPed::ClearWeapon and CPed::ClearWeapons.
+   removeWeaponFromPed:(handle,weaponType)=>{
+    if(!this.world.clearPedWeapon)throw new UnsupportedScmCommand(-1,0,'REMOVE_WEAPON_FROM_CHAR','no host');
+    this.world.clearPedWeapon(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),weaponType);
+   },
+   removeAllPedWeapons:handle=>{
+    if(!this.world.clearPedWeapons)throw new UnsupportedScmCommand(-1,0,'REMOVE_ALL_CHAR_WEAPONS','no host');
+    this.world.clearPedWeapons(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle));
+   },
    setPedCurrentWeapon:(handle,weaponType)=>{if(handle===PLAYER_PED_HANDLE)this.world.setPlayerCurrentWeapon?.(weaponType);},
    setPedAmmo:(handle,weaponType,ammo)=>{
     const held=this.world.scriptPedWeapon(this.livePed(handle));
@@ -476,6 +493,8 @@ export class ScmMission {
    createRandomCharInCar:(vehicle,seat)=>this.peds.createRandomInCar(vehicle,seat),
    // CTaskSimpleCarSetPedInAsDriver after an immediate flush: the ped stops walking and rides.
    warpPedIntoCar:(handle,vehicle)=>{this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');},
+   // The passenger seat is the one CREATE_CHAR_AS_PASSENGER takes, from the same operand.
+   warpPedIntoCarAsPassenger:(handle,vehicle,seat)=>{this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,seat);},
    // CPed::AttachPedToEntity and DettachPedFromEntity. The angle limit and the weapon belong to a ped that can
    // aim from where it hangs, which this browser's riders do not do yet, so they are not taken.
    attachPedToCar:(handle,vehicle,offset)=>{this.peds.attachToCar(handle,vehicle,offset);},
@@ -692,6 +711,13 @@ export class ScmMission {
    // CPopulation::AddPed through the pool, which hands the script a handle at once.
    createChar:(pedType,model,x,y,z)=>this.peds.create(pedType,model,{x,y,z}),
    pedHeading:handle=>this.peds.headingOf(handle),
+   // A ped stands upright: its matrix is its heading's turn about the vertical, at its position. The player's comes
+   // from the host; one the host does not know is not guessed.
+   pedMatrix:handle=>{
+    if(handle===PLAYER_PED_HANDLE){const player=this.world.playerPed();if(player.heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS','player heading');
+     return {...headingFrame(player.heading*Math.PI/180),position:player.position};}
+    return {...headingFrame(this.peds.headingOf(handle)*Math.PI/180),position:this.ridingIn(handle)??this.peds.positionOf(handle)};
+   },
    setPedCoordinates:(handle,x,y,z)=>{this.peds.setPosition(handle,{x,y,z});},
    // SET_CHAR_COORDINATES_NO_OFFSET and the gang form differ from the plain one in what they do to a ped in a
    // car and to the ped's group, neither of which the browser's scripted peds have yet.
@@ -700,6 +726,8 @@ export class ScmMission {
    setPedHealth:(handle,health)=>{this.peds.setHealth(handle,health);},
    killPed:handle=>{this.peds.kill(handle);},
    setPedAccuracy:(handle,accuracy)=>{this.peds.setAccuracy(handle,accuracy);},
+   setPedShootRate:(handle,rate)=>{this.peds.setShootingRate(handle,rate);},
+   setRadioChannel:station=>{this.world.retuneRadio?.(station);},
    setPedInvulnerable:(handle,enabled)=>{this.peds.setInvulnerable(handle,enabled);},
    setPedProofs:(handle,proofs)=>{this.peds.setProofs(handle,proofs);},
    deletePed:handle=>{this.peds.delete(handle);},
@@ -819,6 +847,7 @@ export class ScmMission {
    setHealth:(ped,health)=>{this.world.setScriptPedHealth(ped,health);},
    kill:ped=>{this.world.killScriptPed(ped);},
    setAccuracy:(ped,accuracy)=>{this.world.setScriptPedAccuracy(ped,accuracy);},
+   setShootingRate:(ped,rate)=>{this.world.setScriptPedShootingRate?.(ped,rate);},
    setInvulnerable:(ped,enabled)=>{this.world.setScriptPedInvulnerable(ped,enabled);},
    setProofs:(ped,proofs)=>{this.world.setScriptPedProofs(ped,proofs);},
    aliveOf:ped=>this.world.scriptPedAlive(ped),

@@ -3118,6 +3118,7 @@ async function boot() {
                void import('./simulation/ScmMission').then(({ScmMission})=>{
                 mission=new ScmMission(new Uint8Array(data.script),zones,{
                   frontendAudioEvent:event=>sound.frontend(event),
+                  retuneRadio:station=>{sound.nativeEngine?.retuneRadio(station);},
                  // TheCamera's one fade: DO_FADE shares it with the game logic, the entry exits and the restarts.
                  cameraFade,showFade:(direction,milliseconds)=>hud.fade(direction===0,milliseconds),
                  startExtraColour:(colour,fade)=>localLighting.startExtraColour(colour,fade),stopExtraColour:fade=>localLighting.stopExtraColour(fade),
@@ -3180,6 +3181,7 @@ async function boot() {
                  setScriptPedHealth:(ped,health)=>{const r=asRider(ped);if(r)r.health=health;else{const p=onFoot(ped);if(p)p.health=health;}},
                  killScriptPed:ped=>{const r=asRider(ped);if(r){r.health=0;r.gone=true;scriptRiders.delete(r);}else{const p=onFoot(ped);if(p)p.health=0;}},
                  setScriptPedAccuracy:(ped,accuracy)=>{const r=asRider(ped);if(r)r.accuracy=accuracy;else{const p=onFoot(ped);if(p)p.gunAccuracy=accuracy;}},
+                 setScriptPedShootingRate:(ped,rate)=>{const p=onFoot(ped);if(p)p.shootingRate=rate;},
                  setScriptPedInvulnerable:(ped,enabled)=>{const r=asRider(ped);if(r)r.invulnerable=enabled;else{const p=onFoot(ped);if(p)p.onlyDamagedByPlayer=enabled;}},
                  setScriptPedProofs:(ped,proofs)=>{const p=onFoot(ped);if(p)p.proofs={...proofs};},
                  scriptPedAlive:ped=>{const r=asRider(ped);if(r)return !r.gone&&!r.car.disposed;return !!pedestrians?.holdsScripted(ped as Pedestrian);},
@@ -3208,6 +3210,15 @@ async function boot() {
                   }
                  },
                  giveScriptPedWeapon:(ped,weaponType,ammo)=>{const p=onFoot(ped);if(p)pedestrians?.giveWeapon(p,weaponType,ammo);},
+                 // CPed::ClearWeapon/ClearWeapons: the goggles come off with their weapon (RemoveGogglesModel).
+                 clearPedWeapon:(ped,weaponType)=>{
+                  if(ped!==undefined){const p=onFoot(ped);if(p)pedestrians?.clearWeapon(p,weaponType);return;}
+                  const before=weapons.inventory.selected;if(!weapons.inventory.clearWeapon(weaponType))return;
+                  if((weaponType===44||weaponType===45)&&weapons.vision){weapons.vision=null;weapons.goggles=undefined;}
+                  if(weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);},
+                 clearPedWeapons:ped=>{
+                  if(ped!==undefined){const p=onFoot(ped);const held=p?.weapon?.info.type??p?.weaponType;if(p&&held!==undefined)pedestrians?.clearWeapon(p,held);return;}
+                  weapons.inventory.strip();weapons.vision=null;weapons.goggles=undefined;void weaponView.equip(0);},
                  scriptPedWeapon:ped=>{
                   const held=onFoot(ped);
                   return held?.weaponType===undefined?undefined:{type:held.weaponType,ammo:held.totalAmmo??0};
@@ -3396,6 +3407,7 @@ async function boot() {
                    vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,inAirProper:()=>!(car?car.audio.contactWheels>0:'airborne' in vehicle&&!(vehicle as {airborne:boolean}).airborne)&&!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
                    health:sim.player.health,dead:sim.player.health<=0,
+                   heading:((((sim.player.heading-Math.PI)*180/Math.PI)%360)+360)%360,
                    areaCode:render.lighting.area,
                    // The inventory holds one of each weapon the player has picked up, and the catalog says
                    // which of them are melee.

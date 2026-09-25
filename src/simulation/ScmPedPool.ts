@@ -27,6 +27,8 @@ export interface ScmPedPoolHost<Ped>{
  setHealth(ped:Ped,health:number):void;
  kill(ped:Ped):void;
  setAccuracy(ped:Ped,accuracy:number):void;
+ /** CPed::m_nWeaponShootingRate. */
+ setShootingRate?(ped:Ped,rate:number):void;
  setInvulnerable(ped:Ped,enabled:boolean):void;
  setProofs(ped:Ped,proofs:ScmPedProofs):void;
  /** Whether the browser still holds it, and how to let it go. */
@@ -142,6 +144,8 @@ export class ScmPedPool<Ped>{
   this.pool.apply(handle,ped=>{this.host.kill(ped);});
  }
  setAccuracy(handle:number,accuracy:number){this.pool.apply(handle,ped=>{this.host.setAccuracy(ped,accuracy);});}
+ /** SET_CHAR_SHOOT_RATE: the rate is a byte (m_nWeaponShootingRate is a uint8). */
+ setShootingRate(handle:number,rate:number){this.pool.apply(handle,ped=>{this.host.setShootingRate?.(ped,rate&0xff);});}
  setInvulnerable(handle:number,enabled:boolean){this.pool.apply(handle,ped=>{this.host.setInvulnerable(ped,enabled);});}
  setProofs(handle:number,proofs:ScmPedProofs){this.pool.apply(handle,ped=>{this.host.setProofs(ped,proofs);});}
  /** DELETE_CHAR: the ped goes now if it is here, and is refused on arrival if it is not. */

@@ -97,6 +97,12 @@ export class WeaponInventory {
  }
  /** CWeapon::Reload: the clip fills from the total. */
  private finishReload(){const a=this.ammo.get(this.selected)!,n=Math.min(this.magazine()-a.clip,a.reserve);a.clip+=n;a.reserve-=n;this.duration=0;}
+ /** CPed::ClearWeapon (0x5E62B0): the weapon goes only if its slot holds it, and a held one leaves the ped unarmed. */
+ clearWeapon(id:number){
+  if(id===0||!this.owned.has(id))return false;
+  if(this.selected===id)this.select(0);
+  this.owned.delete(id);this.ammo.set(id,{clip:0,reserve:0});this.stashedReloads.delete(id);return true;
+ }
  /** Busted/Wasted: CPed::ClearWeapons removes everything but plain fists. */
  strip(){for(const w of WEAPONS){if(w.id===0)continue;this.ammo.set(w.id,{clip:0,reserve:0});}this.owned.clear();this.owned.add(0);this.select(0);this.reloading=0;this.cooldowns.clear();this.stashedReloads.clear();}
  /** Weapon cycling over the weapons held, in slot order (CPlayerPed::ProcessWeaponSwitch is unreversed; the slot

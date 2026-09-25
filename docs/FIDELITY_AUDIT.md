@@ -6622,3 +6622,20 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - A wander task never finishes, so its record stays until it is replaced.
 - **Simplified:** the port holds one scripted order per ped, so each ped has one record, not one per task slot.
   The PRIMARY and SECONDARY states (a task held but not active) do not arise.
+
+## Mission world adapters, first batch
+
+Of the 777 world adapters the command handlers call, 535 had no implementation in the live mission world. A thread
+that reached one was retired, which stops the campaign well before its content does. By the missions that use them,
+the first ones now implemented:
+
+- **SET_CHAR_SHOOT_RATE** (237 uses, 40 missions): CPed::m_nWeaponShootingRate, a byte. It sets the burst length
+  and pause of a script ped's gun (CTaskSimpleGunControl, already ported for street peds).
+- **SET_RADIO_CHANNEL** (34 missions): CAudioEngine::RetuneRadio. User tracks with none loaded mean off. The port
+  has no beat tracks to hold the retune back.
+- **WARP_CHAR_INTO_CAR_AS_PASSENGER** (30 missions): the seat operand is the one CREATE_CHAR_AS_PASSENGER takes.
+- **GET_OFFSET_FROM_CHAR_IN_WORLD_COORDS** (21 missions): a ped's matrix is its heading's turn about the vertical,
+  at its position. The player's heading now reaches the script.
+- **REMOVE_WEAPON_FROM_CHAR** (19 missions) and **REMOVE_ALL_CHAR_WEAPONS** (8): CPed::ClearWeapon and ClearWeapons.
+  - A weapon goes only if its slot holds it, and a held one leaves the ped unarmed.
+  - The goggles come off with their weapon (RemoveGogglesModel).
