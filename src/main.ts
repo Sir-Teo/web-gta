@@ -3432,6 +3432,7 @@ async function boot() {
                  playerIsPlayingAnim:animation=>(render.nativeCharacter?.reactionName??'').toLowerCase()===animation.toLowerCase(),
                  // The player's m_nAreaCode: the browser draws him wherever the camera is, so it is kept, not acted on.
                  setPlayerArea:area=>{playerAreaCode=area;},
+                 setPlayerProofs:proofs=>{sim.playerProofs={...proofs};},
                  teleportPlayer:position=>{
                   const x=position.x,z=-position.y,y=position.z,car=worldCar?.occupied?worldCar:fleet?.occupied;
                   if(car){

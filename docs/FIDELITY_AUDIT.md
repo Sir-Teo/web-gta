@@ -6855,3 +6855,12 @@ the first ones now implemented:
   - SET_CHAR_AREA_VISIBLE (30 missions) keeps his area code; the browser draws him in any area.
   - SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH (33 missions) and the facial-talk pair (28 missions) have nothing to act on,
     since his speech lines are not played.
+- **SET_CHAR_PROOFS on the player** (16 missions): physicalFlags' five proofs, applied through CPhysical::
+  CanPhysicalBeDamaged's reversed mapping (combat/nativePhysicalProofs.ts):
+  - the melee weapons fall to melee proofing;
+  - the bombs, rockets, satchels and WEAPON_EXPLOSION to explosion proofing;
+  - the molotov and flamethrower to fire proofing;
+  - the guns and WEAPON_UZI_DRIVEBY to bullet proofing;
+  - a car ramming or running him over, and falls (WEAPON_FALL), to collision proofing;
+  - tear gas, the spray can and drowning always get through.
+  Before, the command gave the thread up.

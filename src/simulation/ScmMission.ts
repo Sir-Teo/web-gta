@@ -80,6 +80,7 @@ export interface ScmMissionWorld {
  playerInAir?():boolean;
  playerIsPlayingAnim?(animation:string):boolean;
  setPlayerArea?(area:number):void;
+ setPlayerProofs?(proofs:ScmPedProofs):void;
  warpPlayerIntoCar?(car:unknown):boolean;
  warpPlayerFromCarToCoord?(position:{x:number;y:number;z:number}):boolean;
  /** (Each answers false for what it does not carry out: a player on a bike, boat or plane, or already in a car.) */
@@ -814,7 +815,7 @@ export class ScmMission {
    setPedShootRate:(handle,rate)=>{this.peds.setShootingRate(handle,rate);},
    setRadioChannel:station=>{this.world.retuneRadio?.(station);},
    setPedInvulnerable:(handle,enabled)=>{this.peds.setInvulnerable(handle,enabled);},
-   setPedProofs:(handle,proofs)=>{this.peds.setProofs(handle,proofs);},
+   setPedProofs:(handle,proofs)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerProofs','SET_CHAR_PROOFS')(proofs);else this.peds.setProofs(handle,proofs);},
    deletePed:handle=>{this.peds.delete(handle);},
    markPedNoLongerNeeded:handle=>{this.peds.markNoLongerNeeded(handle);},
    pedType:handle=>this.peds.typeOf(handle),

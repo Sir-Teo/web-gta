@@ -10,6 +10,7 @@ import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJum
 import { stepStamina, STAMINA_DRAIN, STAMINA_REGEN_IDLE } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PED_SOLVER_GROUPS } from './solverGroups';
+import { physicalCanBeDamaged, type PhysicalProofs } from '../combat/nativePhysicalProofs';
 import { angleDelta, clamp, damp, type Vec3 } from '../core/math';
 import { CLIMB, NativeClimbTask, initialClimbHeight, testForClimb, type ClimbClip, type ClimbEntity, type ClimbWorld, type ClimbPedState } from '../ped/nativeClimb';
 
@@ -201,6 +202,8 @@ export class Simulation {
   playerCanBeDamaged=true;
   /** CPlayerInfo::m_bFireProof and CHEAT_NO_ONE_CAN_STOP_US, which the host answers. */
   playerFireProof?:()=>boolean;playerWeaponProof?:()=>boolean;
+  /** CPhysical::physicalFlags' proofs on the player, which SET_CHAR_PROOFS sets. */
+  playerProofs?:PhysicalProofs;
   damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number;
     /** CTaskSimplePlayerOnFire's ComputeFireDamage: health only, a CEventDamage only once it kills. */ burning?: boolean }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
@@ -212,6 +215,9 @@ export class Simulation {
     // CEventDamage::AffectsPed: MAKE_PLAYER_FIRE_PROOF turns molotov and flamethrower damage away; ComputeWillKillPed:
     // with CHEAT_NO_ONE_CAN_STOP_US the player takes nothing from a weapon (types below WEAPON_LAST_WEAPON, 47).
     if(event&&(event.weapon===18||event.weapon===37)&&this.playerFireProof?.())return;
+    // SET_CHAR_PROOFS on the player: CPhysical::CanPhysicalBeDamaged turns the weapon's class away (a fall is
+    // WEAPON_FALL, collision-proofed).
+    if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.fall?54:event.weapon))return;
     if(event&&event.weapon<47&&this.playerWeaponProof?.())return;
     // Compatibility gap: per-damage-kind stat scaling is not yet established.
     amount *= NATIVE_PLAYER_DEFEND_MULT;
