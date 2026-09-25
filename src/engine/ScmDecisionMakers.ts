@@ -24,6 +24,8 @@ export interface ScmDecisionMaker {
  /** Whether the thread that loaded it uses mission cleanup, which decides whether it is freed with the mission. */
  forMission:boolean;
  group:boolean;referenceIndex:number;loaded:boolean;
+ /** A copy's source: the default decision maker whose decisions it took (-1 for none). */
+ copiedFrom?:number;
 }
 export class ScmDecisionMakers {
  private readonly slots:(ScmDecisionMaker|undefined)[]=Array(TOTAL_DECISION_MAKERS).fill(undefined);
@@ -43,11 +45,32 @@ export class ScmDecisionMakers {
  /** LOAD_CHAR_DECISION_MAKER and its group twin: the first free slot after the built-in ones takes it. */
  load(type:number,forMission:boolean,group=false){
   requireAsset(Number.isInteger(type),'Invalid decision maker type.');
+  const file=ScmDecisionMakers.fileFor(type,group);
+  return this.allocate({type,file:file??'',forMission,group,loaded:file!==undefined});
+ }
+ /** COPY_CHAR_DECISION_MAKER: a new slot holding a copy of a default decision maker (a script handle whose low half
+  * is the default's index, or -1 for none). CDecisionMakerTypes' copy is not in the reference; the new slot is
+  * allocated as a load's is, and the host fills it with the source's decisions. */
+ copy(source:number,forMission:boolean){
+  requireAsset(Number.isInteger(source),'Invalid decision maker source.');
+  const from=source===-1?-1:ScmDecisionMakers.indexOf(source);
+  return {handle:this.allocate({type:-1,file:'',forMission,group:false,loaded:true,copiedFrom:from}),from};
+ }
+ /** CTheScripts::GetActualScriptThingIndex for a decision maker: the slot a handle names, or -1 when a script slot's
+  * reference no longer matches (freed and reused). The game's own makers below COUNT_GAME_DECISION_MAKERS are always
+  * there. */
+ actualIndex(handle:number){
+  if(handle===-1)return -1;
+  const index=ScmDecisionMakers.indexOf(handle);
+  if(index<COUNT_GAME_DECISION_MAKERS)return index;
+  const maker=index<TOTAL_DECISION_MAKERS?this.slots[index]:undefined;
+  return maker&&maker.referenceIndex===(handle>>>16)?index:-1;
+ }
+ private allocate(fields:Omit<ScmDecisionMaker,'index'|'referenceIndex'>){
   let index=COUNT_GAME_DECISION_MAKERS;
   while(index<TOTAL_DECISION_MAKERS&&this.slots[index])index++;
   requireAsset(index<TOTAL_DECISION_MAKERS,'Every decision maker slot is taken.');
-  const file=ScmDecisionMakers.fileFor(type,group);
-  const maker:ScmDecisionMaker={index,type,file:file??'',forMission,group,referenceIndex:1,loaded:file!==undefined};
+  const maker:ScmDecisionMaker={index,referenceIndex:1,...fields};
   this.slots[index]=maker;
   const {handle,referenceIndex}=scriptThingHandle(index,maker.referenceIndex);
   maker.referenceIndex=referenceIndex;

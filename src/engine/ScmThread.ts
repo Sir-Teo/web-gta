@@ -527,7 +527,8 @@ export interface ScmWorldCommands {
  createFxSystemOnPed?(name:string,handle:number,offset:{x:number;y:number;z:number},ignoreBoundingChecks:boolean):number;
  /** The decision makers a script copies and clears responses on. */
  clearGroupDecisionMakerEventResponse?(decisionMaker:number,event:number):void;
- copyPedDecisionMaker?(source:number):number;
+ /** The decisions of a copied decision maker, from the default it copies (-1 for none). */
+ seedDecisionMaker?(handle:number,source:number):void;
  /** The world switches and the pad sticks. */
  switchRandomTrains?(state:boolean):void;
  setAllVehiclesCanBeDamaged?(state:boolean):void;
@@ -772,7 +773,6 @@ export interface ScmWorldCommands {
  isCharAttachedToAnyCar?(handle:number):boolean;
  setActiveMenuItem?(handle:number,row:number):void;
  getCarModelValue?(model:number|string):number;
- copySharedCharDecisionMaker?(template:number):number;
  playBeatTrack?():void;
  setObjectRotationVelocity?(handle:number,x:number,y:number,z:number):void;
  locateStoppedCar2d?(handle:number,x:number,y:number,xRadius:number,yRadius:number,drawSphere:boolean):boolean;

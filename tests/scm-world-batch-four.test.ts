@@ -34,7 +34,7 @@ function recording(){
   setPedCanBeKnockedOffBike:method('bike'),pedIsHoldingObject:method('holding',true),
   clearAllPedRelationships:method('relations'),objectIsAttached:method('attached',true),
   createFxSystemOnPed:method('fxOnPed',21),
-  clearGroupDecisionMakerEventResponse:method('clearGroup'),copyPedDecisionMaker:method('copy',33),
+  clearGroupDecisionMakerEventResponse:method('clearGroup'),seedDecisionMaker:method('seed'),
   switchRandomTrains:method('trains'),
   setAllVehiclesCanBeDamaged:method('allDamage'),displayHud:method('hud'),
   
@@ -127,9 +127,13 @@ describe('the helicopters, vehicles and world switches',()=>{
   const fx=run(world,undefined,instruction(op('CREATE_FX_SYSTEM_ON_CHAR'),
    ['smoke',int(PED),float(0),float(0),float(1),int(1),gvar(40)]));
   expect(fx.readInt(40)).toBe(21);
-  const copy=run(world,undefined,instruction(op('COPY_CHAR_DECISION_MAKER'),[int(5),gvar(40)]));
-  expect(copy.readInt(40)).toBe(33);
+  // The copy takes the first script slot (10) with its first handle, and the host seeds it from default 2 (R_Norm).
+  const copy=run(world,undefined,instruction(op('COPY_CHAR_DECISION_MAKER'),[int(0x10002),gvar(40)]));
+  expect(copy.readInt(40)).toBe(0x2000a);
   expect(calls[0]).toEqual(['fxOnPed','smoke',PED,{x:0,y:0,z:1},true]);
+  expect(calls[1]).toEqual(['seed',0x2000a,2]);
+  expect(copy.game.decisionMakers.actualIndex(0x2000a)).toBe(10);expect(copy.game.decisionMakers.actualIndex(0x3000a)).toBe(-1);
+  expect(copy.game.decisionMakers.actualIndex(0x10006)).toBe(6);expect(copy.game.decisionMakers.actualIndex(-1)).toBe(-1);
  });
 
  test('the late comparison matches its twin, and reads a local against a global',()=>{

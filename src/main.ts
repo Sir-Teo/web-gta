@@ -3119,6 +3119,7 @@ async function boot() {
                 mission=new ScmMission(new Uint8Array(data.script),zones,{
                   frontendAudioEvent:event=>sound.frontend(event),
                   retuneRadio:station=>{sound.nativeEngine?.retuneRadio(station);},
+                  defaultDecisionMaker:index=>pedestrians?.defaultDecisionMaker(index),
                  // TheCamera's one fade: DO_FADE shares it with the game logic, the entry exits and the restarts.
                  cameraFade,showFade:(direction,milliseconds)=>hud.fade(direction===0,milliseconds),
                  startExtraColour:(colour,fade)=>localLighting.startExtraColour(colour,fade),stopExtraColour:fade=>localLighting.stopExtraColour(fade),

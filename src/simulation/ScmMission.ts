@@ -42,6 +42,8 @@ const MODEL_NEVADA=553;
 /** eScriptedTaskStatus and the scripts' FINISHED_TASK. */
 const TASK_EVENT_ASSOCIATED=0,TASK_TASK_ASSOCIATED=1,FINISHED_TASK=7;
 export interface ScmMissionWorld {
+ /** One of CDecisionMakerTypes' default decision makers, as the files load it (by its index). */
+ defaultDecisionMaker?(index:number):import('../ped/nativeDecisionMaker').DecisionMaker|undefined;
  /** CAudioEngine::RetuneRadio for SET_RADIO_CHANNEL (an eRadioID). */
  retuneRadio?(station:number):void;
  /** CAEFrontendAudioEntity::AddAudioEvent, for the reports the script's own systems make (the timer count). */
@@ -443,7 +445,13 @@ export class ScmMission {
    pedIsWaitingForCollision:handle=>{this.livePed(handle);return false;},
    damagePed:(handle,amount)=>{this.world.damageScriptPed(this.livePed(handle),amount);},
    // CPedIntelligence::SetPedDecisionMakerType, and the fields the rest of this batch names.
-   setPedDecisionMaker:(handle,decisionMaker)=>{this.world.setScriptPedDecisionMaker(this.livePed(handle),decisionMaker);},
+   // SetCharDecisionMaker (reversed): the ped wears the slot CTheScripts::GetActualScriptThingIndex gives, -1 for none.
+   setPedDecisionMaker:(handle,decisionMaker)=>{this.world.setScriptPedDecisionMaker(this.livePed(handle),this.runtime.game.decisionMakers.actualIndex(decisionMaker));},
+   seedDecisionMaker:(handle,source)=>{
+    const rows=this.decisionsFor(handle);rows.clear();
+    const from=source<0?undefined:this.world.defaultDecisionMaker?.(source);
+    if(from)for(const [event,choices] of from)rows.set(event,choices.map(choice=>({...choice})));
+   },
    setPedMaxHealth:(handle,health)=>{this.peds.setMaxHealth(handle,health);},
    playerCameraState:()=>this.world.playerCameraState(),
    // CPed::SetAreaCode: the ped belongs to that area and is drawn only there.

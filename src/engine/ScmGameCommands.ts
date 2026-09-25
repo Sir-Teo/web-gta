@@ -1524,7 +1524,8 @@ const handlers:Record<string,ScmCommandHandler>={
  CLEAR_GROUP_DECISION_MAKER_EVENT_RESPONSE:(t,p,i)=>{
   world(t,i,'clearGroupDecisionMakerEventResponse')(t.readInt(p[0]),t.readInt(p[1]));
  },
- COPY_CHAR_DECISION_MAKER:(t,p,i)=>{t.writeInt(p[1],world(t,i,'copyPedDecisionMaker')(t.readInt(p[0])));},
+ // A copy of a default decision maker in a slot of its own; the host fills it with the source's decisions.
+ COPY_CHAR_DECISION_MAKER:(t,p,i)=>{const {handle,from}=game(t,i).decisionMakers.copy(t.readInt(p[0]),t.usesMissionCleanup);t.writeInt(p[1],handle);t.host?.world?.seedDecisionMaker?.(handle,from);},
  // The world switches and the pad's two sticks.
  // Handler unreversed: the command sets CCarCtrl::bAllowEmergencyServicesToBeCreated, which only the
  // (unreversed) emergency-services generator reads.
@@ -2166,7 +2167,7 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_CHAR_ATTACHED_TO_ANY_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharAttachedToAnyCar')(t.readInt(p[0])),negated(i));},
  SET_ACTIVE_MENU_ITEM:(t,p,i)=>{world(t,i,'setActiveMenuItem')(t.readInt(p[0]),t.readInt(p[1]));},
  GET_CAR_MODEL_VALUE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCarModelValue')(model(t,i,p[0])));},
- COPY_SHARED_CHAR_DECISION_MAKER:(t,p,i)=>{t.writeInt(p[1],world(t,i,'copySharedCharDecisionMaker')(t.readInt(p[0])));},
+ COPY_SHARED_CHAR_DECISION_MAKER:(t,p,i)=>{const {handle,from}=game(t,i).decisionMakers.copy(t.readInt(p[0]),t.usesMissionCleanup);t.writeInt(p[1],handle);t.host?.world?.seedDecisionMaker?.(handle,from);},
  PLAY_BEAT_TRACK:(t,p,i)=>{world(t,i,'playBeatTrack')();},
  SET_OBJECT_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'setObjectRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  LOCATE_STOPPED_CAR_2D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'locateStoppedCar2d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),bool(t,p[5])),negated(i));},

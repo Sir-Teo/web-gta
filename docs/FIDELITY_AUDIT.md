@@ -6639,3 +6639,17 @@ the first ones now implemented:
 - **REMOVE_WEAPON_FROM_CHAR** (19 missions) and **REMOVE_ALL_CHAR_WEAPONS** (8): CPed::ClearWeapon and ClearWeapons.
   - A weapon goes only if its slot holds it, and a held one leaves the ped unarmed.
   - The goggles come off with their weapon (RemoveGogglesModel).
+
+## Decision makers a script picks or copies
+
+- **Bug fixed:** SET_CHAR_DECISION_MAKER stored the script's handle on the ped. Handles carry the slot's
+  reference in their high half (0x2000A, say), while the script's own decisions are kept by slot, and the default
+  makers by index. So no decision maker a script built or named ever answered for its ped. SetCharDecisionMaker
+  (reversed) passes CTheScripts::GetActualScriptThingIndex: the slot (the handle's low half), or −1 when a script
+  slot's reference no longer matches. The ped now wears that index.
+- **COPY_CHAR_DECISION_MAKER and COPY_SHARED_CHAR_DECISION_MAKER** (24 missions) no longer stop the thread.
+  - They take a new slot as a load does, and the slot is filled with the source's decisions from the published
+    default files: 0x10002 R_Norm, 0x10003 R_Tough, 0x10006 m_empty and 0x10007 Indoors are the ones the missions
+    copy.
+  - The script's own ADD_CHAR_DECISION_MAKER_EVENT_RESPONSE rows then add to those.
+  - CDecisionMakerTypes' copy is not in the reference. A source of −1 gives an empty maker.

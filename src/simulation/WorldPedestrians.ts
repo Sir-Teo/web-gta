@@ -437,6 +437,8 @@ export class WorldPedestrians {
  }
  /** A ped on a kill task against the player: brawling with him, or a cop's beat-down or arrest. */
  private attackingPlayer(p:Pedestrian){return p.retaliate>0&&!p.foe||!!p.fight||p.arrest>0;}
+ /** A default decision maker as the files load it, for a script's copy. */
+ defaultDecisionMaker(index:number){return this.catalog?.decisionMakers[index];}
  /** CDecisionMakerTypes::MakeDecision for a ped on foot by its pedstats decision maker, or undefined when the decision
   * files are not published (the caller keeps its authored answer). */
  private decide(p:Pedestrian,event:number,relationship:Relationship,random=()=>this.damageRandom.next()/32768){
