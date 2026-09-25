@@ -7976,3 +7976,16 @@ Each is now answered:
 - SET_ONLY_CREATE_GANG_MEMBERS sets CPopulation::m_bOnlyCreateRandomGangMembers. In CPopCycle::FindNewPedType it makes
   the gangs' chance 50; refusing gangs still wins, and a gang that cannot be made makes nobody.
 - Verification: `tests/native-zone-names.test.ts`, `tests/scm-population-switches.test.ts`, `tests/gang-wars.test.ts`.
+
+## The player's group: its leader and its script peds
+
+- CPlayerPed leads its own group from its creation on. The port's player group had no leader recorded, so
+  CPedGroupMembership::Process appointed the first ped a script added as leader. After that the ped was no follower,
+  pedIsGroupLeader answered yes for it, and GET_GROUP_SIZE counted it as the leader. The player now leads the group,
+  and does again after a flush.
+- A script ped in the player's group follows him on foot, as his street recruits do (the group's default
+  CTaskComplexFollowLeaderInFormation), whenever the script has no task of its own running on it. It stops once it
+  leaves the group. The script's own group processing lets it go past the separation range.
+- Not yet: followers boarding the player's car. The car entry seats street recruits by removing them and making them
+  again inside, which would lose a script ped's handle; script followers stay on foot for now.
+- Verification: `tests/browser/script-group-follow.spec.ts`.

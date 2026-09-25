@@ -3104,14 +3104,16 @@ export class WorldPedestrians {
     // Recruited crew hold a loose wedge behind the player on foot and ride
     // passenger seats (front-right plus rear bench) when the mark drives.
    let followSpeed:number|undefined;
-   if(p.follow&&!p.officer&&p.health>0&&p.down===0){
+   // A script's ped follows only while the script has no task of its own running on it: the group's task sits under
+   // the primary one (CPedIntelligence's TASK_PRIMARY_PRIMARY over the group's default).
+   if(p.follow&&!p.officer&&p.health>0&&p.down===0&&!(p.mission&&this.hasScriptTask(p))){
     // CPedGroupMembership::Process keeps a dead player leading his group and lets go of any follower further than the
-    // separation range from him, on foot or driving, in 3D.
+    // separation range from him, on foot or driving, in 3D. The script's own groups do that for its peds.
     {
      const ride=[...cars].find(c=>c.occupied);
      const pp=ride?ride.car.body.translation():this.sim.player.position;
      const gap=Math.hypot(pp.x-state.position.x,pp.y-state.position.y,pp.z-state.position.z);
-     if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup){p.follow=false;p.foe=undefined;}
+     if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup&&!p.mission){p.follow=false;p.foe=undefined;}
      else if(this.sim.player.health<=0){}
      else if(p.retaliate<=0){
       const hx=this.sim.player.heading,side=p.id%2?1.3:-1.3;
@@ -3265,7 +3267,9 @@ export class WorldPedestrians {
  restoreCameraHidden(){for(const p of this.cameraHidden)if(this.people.includes(p))p.view.root.visible=true;this.cameraHidden.length=0;}
  private cameraHidden:Pedestrian[]=[];
  /** The player's group members (PassengerCrowd), without building a whole snapshot. */
- followers(){const out:{id:number;position:{x:number;y:number;z:number};health:number;down:number}[]=[];for(const p of this.people)if(p.follow)out.push({id:p.id,position:p.actor.player.position,health:p.health,down:p.down});return out;}
+ /** The player's followers the car entry seats by taking them off the street and making them again inside: street
+  * recruits only. A script's ped keeps its handle, so it is not one of them. */
+ followers(){const out:{id:number;position:{x:number;y:number;z:number};health:number;down:number}[]=[];for(const p of this.people)if(p.follow&&!p.mission)out.push({id:p.id,position:p.actor.player.position,health:p.health,down:p.down});return out;}
  /** The drawn peds, for CPed::PreRenderAfterTest's dummy shadows: their ids and BONE_ROOT in the world (browser space). */
  *shadowCasters(){for(const p of this.people)if(p.view.root.visible)yield {id:p.id,root:p.view.shadowPosition()};}
  render(alpha:number,ambient:readonly number[]|undefined,night:number,thermal=false){for(const p of this.people){p.view.setThermal(thermal);p.view.setAmbient(ambient);p.view.setNight(night);p.view.update(p.actor,alpha);}}

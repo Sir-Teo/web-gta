@@ -384,6 +384,8 @@ export interface ScmMissionWorld {
  gangWarFightingGoingOn?():boolean;
  /** CGangWars::GangWarGoingOn: a war under way, or a defensive attack the player has been told of. */
  gangWarGoingOn?():boolean;
+ /** A script ped in the player's group follows him on foot as his recruits do, or stops. */
+ setScriptPedFollowsPlayer?(ped:unknown,follows:boolean):void;
  /** CEntity::SetAreaCode for a car. */
  setScriptVehicleArea?(car:unknown,area:number):void;
  /** CGameLogic::SetUpSkip (a native point and heading in degrees), ClearSkip(false) and IsSkipWaitingForScriptToFadeIn. */
@@ -2319,10 +2321,26 @@ export class ScmMission {
    position:(h:number)=>h===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.exists(h)?this.peds.positionOf(h):undefined,
   };
   for(const [handle,group] of this.groups){
+   // CPlayerPed leads its own group from its creation on, so a flushed player's group has him back as leader, and
+   // Process never appoints one of his followers in his place.
+   if(handle===PLAYER_GROUP_HANDLE&&group.leader===undefined)group.setLeader(PLAYER_PED_HANDLE);
    group.process(peds);
    if(!group.countMembers()&&handle!==PLAYER_GROUP_HANDLE)this.groups.delete(handle);
   }
+  // The player's group's script peds take the group's default task, CTaskComplexFollowLeaderInFormation, whenever the
+  // script has none running on them; one that leaves the group stops. Set every frame, because a ped the pool makes
+  // again (warped, attached) is a new body.
+  const setFollows=this.world.setScriptPedFollowsPlayer;if(!setFollows)return;
+  const players=this.groups.get(PLAYER_GROUP_HANDLE)!,now=new Set<number>();
+  for(const handle of players.all()){
+   if(handle===PLAYER_PED_HANDLE||!players.isFollower(handle))continue;
+   const entity=this.peds.entity(handle);if(entity!==undefined&&!this.peds.rideOf(handle)){setFollows.call(this.world,entity,true);now.add(handle);}
+  }
+  for(const handle of this.followingPlayer)if(!now.has(handle)){const entity=this.peds.entity(handle);if(entity!==undefined)setFollows.call(this.world,entity,false);}
+  this.followingPlayer=now;
  }
+ /** The player's group's script peds last set following him. */
+ private followingPlayer=new Set<number>();
  private nextGroup=1;
  private readonly entry:number;
  /** CTheScripts::Process for one frame. The first call starts MAIN, as CGame::Initialise does. */
