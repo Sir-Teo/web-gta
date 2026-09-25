@@ -530,7 +530,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** The decisions of a copied decision maker, from the default it copies (-1 for none). */
  seedDecisionMaker?(handle:number,source:number):void;
  /** The world switches and the pad sticks. */
- switchRandomTrains?(state:boolean):void;
  setAllVehiclesCanBeDamaged?(state:boolean):void;
  displayHud?(state:boolean):void;
  addExplosionVariableShake?(x:number,y:number,z:number,type:number,shake:number):void;
@@ -642,7 +641,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  playerIsUsingJetpack?(playerId:number):boolean;
  setGroupSeparationRange?(group:number,range:number):void;
  clearAreaOfPeds?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
- setCreateRandomGangMembers?(state:boolean):void;
  setGangWarsActive?(state:boolean):void;
  /** The searchlight aimed at a ped, and the line of sight the script tests. */
  pointSearchlightAtPed?(searchlight:number,handle:number,speed:number):void;
@@ -810,7 +808,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setEnableRcDetonateOnContact?(state:boolean):void;
  setEnableRcDetonate?(state:boolean):void;
  taskWarpCharIntoCarAsDriver?(char:number,vehicle:number):void;
- setCreateRandomCops?(state:boolean):void;
  setOnlyCreateGangMembers?(state:boolean):void;
  setObjectAsStealable?(handle:number,state:boolean):void;
  setPlayerDisplayVitalStatsButton?(playerId:number,enabled:boolean):void;

@@ -35,7 +35,6 @@ function recording(){
   clearAllPedRelationships:method('relations'),objectIsAttached:method('attached',true),
   createFxSystemOnPed:method('fxOnPed',21),
   clearGroupDecisionMakerEventResponse:method('clearGroup'),seedDecisionMaker:method('seed'),
-  switchRandomTrains:method('trains'),
   setAllVehiclesCanBeDamaged:method('allDamage'),displayHud:method('hud'),
   
   addExplosionVariableShake:method('shake'),
@@ -116,9 +115,11 @@ describe('the helicopters, vehicles and world switches',()=>{
    instruction(op('ADD_EXPLOSION_VARIABLE_SHAKE'),[float(1),float(2),float(3),int(4),float(0.5)]),
    instruction(op('GET_POSITION_OF_ANALOGUE_STICKS'),[int(0),gvar(40),gvar(44),gvar(48),gvar(52)]));
   expect(calls).toEqual([
-   ['trains',true],['allDamage',false],
+   ['allDamage',false],
    ['shake',1,2,3,4,0.5],
   ]);
+  // CTrain::bDisableRandomTrains is the engine's own: switched on, random trains are not disabled.
+  expect(game.disableRandomTrains).toBe(false);
   expect([readInt(40),readInt(44),readInt(48),readInt(52)]).toEqual([10,-20,30,-40]);
  });
 

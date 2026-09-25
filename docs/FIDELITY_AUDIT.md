@@ -7251,3 +7251,17 @@ the first ones now implemented:
   - GET_CONTROLLER_MODE: 0, the PC build's answer.
 - FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION freezes the car as FREEZE_CAR_POSITION does. Waiting for collision to
   load is the browser's streaming.
+
+## Random creation switches and trains
+
+- SET_CREATE_RANDOM_GANG_MEMBERS and SET_CREATE_RANDOM_COPS set CPopulation::m_bDontCreateRandomGangMembers and
+  m_bDontCreateRandomCops in the engine, off meaning don't. Before, they went to world hooks that nothing answered.
+  - CPopCycle::FindNewPedType reads them. While gang members are not to be made, the gang chance is -10, and the
+    port's turf roll that stands in without popcycle targets makes none either.
+  - The port makes no random foot cops, so the cop switch is stored only.
+- SWITCH_RANDOM_TRAINS sets CTrain::bDisableRandomTrains in the engine. The port runs no trains, so DELETE_MISSION_TRAINS
+  and MARK_MISSION_TRAINS_AS_NO_LONGER_NEEDED, which walk the train pool, have none to act on.
+- Spec fix: native-heat-seeker picked up streaming traffic far up the street before its own car was placed. Once
+  marked, a car stays preferred at a quarter of its rating, as PickTargetForHeatSeekingMissile does, and a building
+  hid that car. The spec now aims first, parks its car on the camera's line and makes other vehicles untargetable, as
+  VEHICLE_CAN_BE_TARGETTED_BY_HS_MISSILE does.

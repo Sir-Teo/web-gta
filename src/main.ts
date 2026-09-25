@@ -3064,7 +3064,7 @@ async function boot() {
             strengths.forEach((value,index)=>{if(value>strength){strength=value;gang=index;}});
             return strength>0?{gang,strength}:undefined;
           };
-          pedestrians.gangTurf=turfAt;
+          pedestrians.gangTurf=turfAt;pedestrians.dontCreateRandomGangMembers=()=>!!mission?.runtime.game.population.dontCreateRandomGangMembers;
           pedestrians.gangsNeeded=(x,z)=>{
             const population=worldZones?.population;
             if(!population)return 0;

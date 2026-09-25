@@ -834,6 +834,10 @@ export class ScmMission {
     let heading=getATanOfXY(at.x-x,at.y-y)+Math.PI/2;if(heading>2*Math.PI)heading-=2*Math.PI;
     this.vehicles.setHeading(handle,heading*180/Math.PI);
    },
+   // CTrain::RemoveMissionTrains and ReleaseMissionTrains walk the train pool: the port runs no trains, so no mission
+   // train can exist to remove or release.
+   deleteMissionTrains:()=>{},
+   markMissionTrainsAsNoLongerNeeded:()=>{},
    // The car watches CTheScripts::Process runs. They ask only about a car the browser has built: one still streaming
    // in has no driver in its seat, so the stuck check starts again from where it stands.
    vehicleHasDriver:handle=>{

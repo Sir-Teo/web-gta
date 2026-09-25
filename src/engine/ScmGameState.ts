@@ -317,6 +317,11 @@ export class ScmGameState {
  readonly scriptBrains=new ScmScriptBrains();
  /** CGarages as the script addresses them, once a host has loaded the world's own. */
  readonly garages=new ScmGarages();
+ /** CPopulation's random-creation switches: m_bDontCreateRandomGangMembers (SET_CREATE_RANDOM_GANG_MEMBERS) and
+  * m_bDontCreateRandomCops (SET_CREATE_RANDOM_COPS), which CPopCycle::FindNewPedType reads. */
+ readonly population={dontCreateRandomGangMembers:false,dontCreateRandomCops:false};
+ /** CTrain::bDisableRandomTrains, which SWITCH_RANDOM_TRAINS sets. */
+ disableRandomTrains=false;
  /** CTheScripts::UpsideDownCars and StuckCars. */
  readonly upsideDownCars=new ScmUpsideDownCarCheck();
  readonly stuckCars=new ScmStuckCarCheck();

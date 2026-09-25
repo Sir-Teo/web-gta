@@ -1559,7 +1559,7 @@ const handlers:Record<string,ScmCommandHandler>={
  // Handler unreversed: the command sets CCarCtrl::bAllowEmergencyServicesToBeCreated, which only the
  // (unreversed) emergency-services generator reads.
  SWITCH_EMERGENCY_SERVICES:(t,p,i)=>{game(t,i).allowEmergencyServices=bool(t,p[0]);},
- SWITCH_RANDOM_TRAINS:(t,p,i)=>{world(t,i,'switchRandomTrains')(bool(t,p[0]));},
+ SWITCH_RANDOM_TRAINS:(t,p,i)=>{game(t,i).disableRandomTrains=!bool(t,p[0]);},
  SET_ALL_CARS_CAN_BE_DAMAGED:(t,p,i)=>{world(t,i,'setAllVehiclesCanBeDamaged')(bool(t,p[0]));},
  // CTheScripts::bDisplayHud, which CHud::Draw reads for the player info and the wanted level.
  DISPLAY_HUD:(t,p,i)=>{game(t,i).displayHud=bool(t,p[0]);},
@@ -1884,7 +1884,7 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_PLAYER_USING_JETPACK:(t,p,i)=>{t.updateCompareFlag(world(t,i,'playerIsUsingJetpack')(t.readInt(p[0])),negated(i));},
  SET_GROUP_SEPARATION_RANGE:(t,p,i)=>{world(t,i,'setGroupSeparationRange')(t.readInt(p[0]),t.readFloat(p[1]));},
  CLEAR_AREA_OF_CHARS:(t,p,i)=>{world(t,i,'clearAreaOfPeds')(vec(t,p,0),vec(t,p,3));},
- SET_CREATE_RANDOM_GANG_MEMBERS:(t,p,i)=>{world(t,i,'setCreateRandomGangMembers')(bool(t,p[0]));},
+ SET_CREATE_RANDOM_GANG_MEMBERS:(t,p,i)=>{game(t,i).population.dontCreateRandomGangMembers=!bool(t,p[0]);},
  SET_GANG_WARS_ACTIVE:(t,p,i)=>{world(t,i,'setGangWarsActive')(bool(t,p[0]));},
  /* --- The searchlight, the line of sight, and the rest of the world. */
  POINT_SEARCHLIGHT_AT_CHAR:(t,p,i)=>{
@@ -2247,7 +2247,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_ENABLE_RC_DETONATE_ON_CONTACT:(t,p,i)=>{world(t,i,'setEnableRcDetonateOnContact')(bool(t,p[0]));},
  SET_ENABLE_RC_DETONATE:(t,p,i)=>{world(t,i,'setEnableRcDetonate')(bool(t,p[0]));},
  TASK_WARP_CHAR_INTO_CAR_AS_DRIVER:(t,p,i)=>{world(t,i,'taskWarpCharIntoCarAsDriver')(t.readInt(p[0]),t.readInt(p[1]));},
- SET_CREATE_RANDOM_COPS:(t,p,i)=>{world(t,i,'setCreateRandomCops')(bool(t,p[0]));},
+ SET_CREATE_RANDOM_COPS:(t,p,i)=>{game(t,i).population.dontCreateRandomCops=!bool(t,p[0]);},
  SET_FREE_RESPRAYS:(t,p,i)=>{game(t,i).freeResprays=bool(t,p[0]);},
  SET_ONLY_CREATE_GANG_MEMBERS:(t,p,i)=>{world(t,i,'setOnlyCreateGangMembers')(bool(t,p[0]));},
  SET_OBJECT_AS_STEALABLE:(t,p,i)=>{world(t,i,'setObjectAsStealable')(t.readInt(p[0]),bool(t,p[1]));},

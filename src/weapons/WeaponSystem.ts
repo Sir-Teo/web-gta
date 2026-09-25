@@ -239,9 +239,9 @@ export class WeaponSystem {
   }
   if(this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0){const center=this.sim.playerBody.translation(),d=distance(position,center);if(d<radius&&!this.sim.world.castRay(new RAPIER.Ray(position,normalize(add(center,position,-1))),Math.max(0,d-.1),true,RAPIER.QueryFilterFlags.ONLY_FIXED))this.sim.damagePlayer(damage*(1-d/radius));}
  }
- /** CExplosion::AddExplosion: FX and sound, then CWorld::TriggerExplosion's one-shot damage and push. */
  /** CExplosion::aExplosions, for the slot each blast takes and the script's TestForExplosionInArea. */
  readonly explosionSlots=new NativeExplosionSlots();
+ /** CExplosion::AddExplosion: FX and sound, then CWorld::TriggerExplosion's one-shot damage and push. */
  private explode(position:Vec3,type:number=EXPLOSION_TYPE.grenade,victim?:object,byPlayer=false){
   // AddExplosion makes nothing when every slot is taken.
   if(!this.explosionSlots.add(type,this.toNative(position),this.nowMs))return;

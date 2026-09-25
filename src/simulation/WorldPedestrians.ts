@@ -902,7 +902,7 @@ export class WorldPedestrians {
     if(targets){
      const living={civilians:0,cops:0,dealers:0,gangs:0},byGang=Array(10).fill(0);
      for(const p of this.people){if(p.health<=0)continue;if(p.officer)living.cops++;else if(p.dealer)living.dealers++;else if(p.gang!==undefined){living.gangs++;byGang[p.gang]++;}else living.civilians++;}
-     const order=newPedTypeOrder(targets,living,Math.random,{cops:true,gangs:!this.gangTurf,dealers:!this.dealerTurf});
+     const order=newPedTypeOrder(targets,living,Math.random,{cops:true,gangs:!this.gangTurf||!!this.dontCreateRandomGangMembers?.(),dealers:!this.dealerTurf});
      if(!order.length)break;
      let produced=false;
      for(const type of order){
@@ -926,7 +926,7 @@ export class WorldPedestrians {
     // Turf gangs claim the node first (CPopulation gang-density roll): the
     // party holds formation instead of joining the civilian round-robin.
     else if(!officer){
-     const turf=this.gangTurf?.(x,z);
+     const turf=this.dontCreateRandomGangMembers?.()?undefined:this.gangTurf?.(x,z);
      if(turf&&turf.gang>=0&&turf.gang<10&&Math.random()*255<turf.strength){
       const size=gangPartySize(Math.floor(Math.random()*100));
       if(size>0&&this.people.length+size<=cap.total){await this.spawnGangParty(turf.gang,size,node,center,turf.strength);}
@@ -1166,6 +1166,8 @@ export class WorldPedestrians {
    limits?:()=>{civilians:number;total:number}|undefined;
    /** Gang turf at a native point: pedgrp.dat gang index 0–9 with INITIAL strength 0–255. */
    gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
+   /** CPopulation::m_bDontCreateRandomGangMembers, which a script sets with SET_CREATE_RANDOM_GANG_MEMBERS. */
+   dontCreateRandomGangMembers?:()=>boolean;
    /** Dealer corner strength (INITIAL SET_ZONE_DEALER_STRENGTH 0–255). */
    dealerTurf?:(x:number,z:number)=>number|undefined;
   /** A corner dealer (pedgrp.dat dealers): loiters on the spot until spooked. */
