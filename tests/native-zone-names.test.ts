@@ -1,6 +1,6 @@
 import {describe,expect,it} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {prepareWorldZones,readZones} from '../src/assets/worldZones';
+import {findZone,prepareWorldZones,readZones} from '../src/assets/worldZones';
 import {ZONE_TEXT,zoneText} from '../src/ui/nativeZoneText';
 import {NativePlaceName} from '../src/ui/nativePlaceName';
 
@@ -20,4 +20,17 @@ describe('zone names',()=>{
   expect(place.process(zones,[0,0,1000],true)).toBe('San Andreas');
  });
  it('keeps a label TheText has no entry for',()=>{expect(zoneText('NOPE')).toBe('NOPE');});
+ it('finds a zone by its text label in every part it is split into, and by its own name for the info type',()=>{
+  const parts=zones.navigation.filter(z=>z.textLabel==='OCEAF'&&z.infoLabel!=='OCEAF');
+  expect(parts.length).toBeGreaterThan(1);
+  for(const part of parts){
+   const centre=part.min.map((v,i)=>(v+part.max[i])/2) as [number,number,number];
+   expect(findZone(zones,centre,'oceaf','navi')).toBe(true);
+   expect(findZone(zones,centre,part.infoLabel,'info')).toBe(true);
+   expect(findZone(zones,centre,'OCEAF','info')).toBe(zones.navigation.some(z=>z.infoLabel==='OCEAF'&&centre.every((v,i)=>v>=z.min[i]&&v<=z.max[i])));
+  }
+  // Grove Street is Ganton by its text label, and nowhere near the sea.
+  expect(findZone(zones,[2495,-1687,13],'GAN','navi')).toBe(true);
+  expect(findZone(zones,[2495,-1687,13],'OCEAF','navi')).toBe(false);
+ });
 });

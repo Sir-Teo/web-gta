@@ -122,16 +122,21 @@ export function populationTargets(row:PopulationCycleRow,zoneType:number,gangStr
 export type NewPedType='civilian'|'cop'|'dealer'|'gang';
 /** CPopCycle::FindNewPedType: each type's chance is its target less its living count (a chance under two is scaled
  * by a random fraction; refused types get -10), and the types are tried from the highest chance down while one is
- * positive. Returns that order; the caller takes the first it can produce. */
-export function newPedTypeOrder(targets:PopulationTargets,living:{civilians:number;cops:number;dealers:number;gangs:number},random:()=>number,refuse:{gangs?:boolean;cops?:boolean;dealers?:boolean}={}):NewPedType[]{
+ * positive. Returns that order; the caller takes the first it can produce.
+ *
+ * CPopulation::m_bOnlyCreateRandomGangMembers (`onlyGangs`, SET_ONLY_CREATE_GANG_MEMBERS) makes the gangs' chance 50,
+ * though refusing them still wins, and a gang that cannot be made then makes nobody rather than the next type. */
+export function newPedTypeOrder(targets:PopulationTargets,living:{civilians:number;cops:number;dealers:number;gangs:number},random:()=>number,refuse:{gangs?:boolean;cops?:boolean;dealers?:boolean;onlyGangs?:boolean}={}):NewPedType[]{
  const chances:[NewPedType,number][]=[
   ['civilian',targets.other-living.civilians],
   ['cop',refuse.cops?-10:targets.cops-living.cops],
   ['dealer',refuse.dealers?-10:targets.dealers-living.dealers],
-  ['gang',refuse.gangs?-10:targets.gangs-living.gangs],
+  ['gang',refuse.gangs?-10:refuse.onlyGangs?50:targets.gangs-living.gangs],
  ];
  for(const entry of chances)if(entry[1]<2)entry[1]*=random();
- return chances.filter(([,chance])=>chance>0).sort((a,b)=>b[1]-a[1]).map(([type])=>type);
+ const order=chances.filter(([,chance])=>chance>0).sort((a,b)=>b[1]-a[1]).map(([type])=>type);
+ const gang=order.indexOf('gang');
+ return refuse.onlyGangs&&gang>=0?order.slice(0,gang+1):order;
 }
 /** CPopCycle::PickGangToCreateMembersOf: the gang whose share of the zone's strength exceeds its share of the living
  * gang members by the most; -1 without any strength. */

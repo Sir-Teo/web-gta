@@ -8,7 +8,7 @@ import {speechLengthMs} from '../engine/ScmMissionAudio';
 import {gxtText} from '../assets/gxt';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
-import {findNavigationZone,pointInWorldZone,type WorldZones} from '../assets/worldZones';
+import {findZone,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {NativePedGroup} from '../ped/nativePedGroup';
@@ -382,6 +382,8 @@ export interface ScmMissionWorld {
  scriptPedSwimming?(ped:unknown):boolean;
  /** CGangWars::GangWarFightingGoingOn. */
  gangWarFightingGoingOn?():boolean;
+ /** CGangWars::GangWarGoingOn: a war under way, or a defensive attack the player has been told of. */
+ gangWarGoingOn?():boolean;
  /** CEntity::SetAreaCode for a car. */
  setScriptVehicleArea?(car:unknown,area:number):void;
  /** CGameLogic::SetUpSkip (a native point and heading in degrees), ClearSkip(false) and IsSkipWaitingForScriptToFadeIn. */
@@ -825,13 +827,11 @@ export class ScmMission {
    // CTheScripts' elegant removal: a mission ped on foot is handed back to the game rather than taken out of
    // the world. A browser ped a script made is never in a vehicle, so that is the whole of it.
    removePedElegantly:handle=>{this.peds.markNoLongerNeeded(handle);},
-   // CTheZones::FindZoneByLabel for a navigation zone, then PointLiesWithinZone. A label no zone carries can
-   // hold nobody, which is the answer the lookup's own failure gives.
-   pedIsInNaviZone:(handle,zoneName)=>{
-    const zone=findNavigationZone(this.zones,zoneName);if(!zone)return false;
-    const at=this.peds.positionOf(handle);
-    return pointInWorldZone(zone,[at.x,at.y,at.z]);
-   },
+   // IS_CHAR_IN_ZONE is CTheZones::FindZone of ZONE_TYPE_NAVI: any navigation zone with that text label, so every
+   // part of a zone split in several. It used to take the first zone named so, which missed the parts.
+   pedIsInNaviZone:(handle,zoneName)=>{const at=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(handle)??this.peds.positionOf(handle);return findZone(this.zones,[at.x,at.y,at.z],zoneName,'navi');},
+   // IS_PLAYER_IN_INFO_ZONE: FindZone of ZONE_TYPE_INFO at the player, by the zones' own names.
+   playerIsInInfoZone:(_player,zoneName)=>{const at=this.world.playerPed().position;return findZone(this.zones,[at.x,at.y,at.z],zoneName,'info');},
    // The CPed bits a script sets by name, and the critical hit it can spare the ped.
    setPedFlag:(handle,flag,value)=>{this.world.setScriptPedFlag(this.livePed(handle),flag,value);},
    setPedSimpleFlag:(handle,flag,value)=>{
@@ -1149,6 +1149,7 @@ export class ScmMission {
    pedIsSwimming:handle=>handle===PLAYER_PED_HANDLE?this.host('playerSwimming','IS_CHAR_SWIMMING')()
     :this.host('scriptPedSwimming','IS_CHAR_SWIMMING')(this.livePed(handle)),
    isGangWarFightingGoingOn:()=>this.host('gangWarFightingGoingOn','IS_GANG_WAR_FIGHTING_GOING_ON')(),
+   gangWarIsGoingOn:()=>this.host('gangWarGoingOn','IS_GANG_WAR_GOING_ON')(),
    // The trip skip's four set-ups: after a mission, or for a named vehicle, or for one the script finishes off.
    setUpSkip:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP')([x,y,z],heading,false,undefined,false);},
    setUpSkipAfterMission:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP_AFTER_MISSION')([x,y,z],heading,true,undefined,false);},

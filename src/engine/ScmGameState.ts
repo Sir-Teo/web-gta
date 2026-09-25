@@ -336,8 +336,12 @@ export class ScmGameState {
  /** CGarages as the script addresses them, once a host has loaded the world's own. */
  readonly garages=new ScmGarages();
  /** CPopulation's random-creation switches: m_bDontCreateRandomGangMembers (SET_CREATE_RANDOM_GANG_MEMBERS) and
-  * m_bDontCreateRandomCops (SET_CREATE_RANDOM_COPS), which CPopCycle::FindNewPedType reads. */
- readonly population={dontCreateRandomGangMembers:false,dontCreateRandomCops:false};
+  * m_bDontCreateRandomCops (SET_CREATE_RANDOM_COPS), which CPopCycle::FindNewPedType reads, and
+  * m_bOnlyCreateRandomGangMembers (SET_ONLY_CREATE_GANG_MEMBERS). */
+ readonly population={dontCreateRandomGangMembers:false,dontCreateRandomCops:false,onlyCreateRandomGangMembers:false};
+ /** CGangWars::bTrainingMission (SET_GANG_WARS_TRAINING_MISSION): a war starts only in the training zone, and no
+  * defensive attack counts down. */
+ gangWarsTrainingMission=false;
  /** CTrain::bDisableRandomTrains, which SWITCH_RANDOM_TRAINS sets. */
  disableRandomTrains=false;
  /** CDarkel::RegisteredKills for player 0: the models of the peds and vehicles the player has killed or blown up, and

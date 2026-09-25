@@ -108,3 +108,10 @@ test('a war starts only where CanPlayerStartAGangWarHere allows, and takeovers a
  g.updateTerritoryUnderControlPercentage();expect(stats.at(-1)).toMatch(/^held:/);
  void state;
 });
+
+test('a training mission holds the defensive attack\'s countdown',()=>{
+ const zones=world(),{h,state}=host(zones);let training=true;h.trainingMission=()=>training;
+ const g=new GangWars(h);g.timeTillNextAttack=100;run(g,state,200);
+ expect(g.timeTillNextAttack).toBe(100);expect(g.state2).toBe(ATTACK_STATE.none);
+ training=false;run(g,state,200);expect(g.state2).toBe(ATTACK_STATE.notified);
+});

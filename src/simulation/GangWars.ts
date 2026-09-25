@@ -45,6 +45,8 @@ export interface GangWarHost {
  /** CGangWars::CanPlayerStartAGangWarHere for a zone info: the training zone only, or the script's specific zones,
   * or anywhere when it has named none. */
  canStartHere?(zoneInfoIndex:number):boolean;
+ /** CGangWars::bTrainingMission: no defensive attack counts down meanwhile. */
+ trainingMission?():boolean;
  /** STAT_TERRITORIES_TAKEN_OVER / _LOST (+1), and STAT_TERRITORIES_HELD with its record. */
  territoryStat?(kind:'taken'|'lost'|'held',value:number):void;
  /** The defensive war's coord blip. */
@@ -270,7 +272,7 @@ export class GangWars {
      }
     }
    }
-  }else if(!this.host.playerOnMission()&&!this.host.playerInAircraft()){
+  }else if(!this.host.playerOnMission()&&!this.host.trainingMission?.()&&!this.host.playerInAircraft()){
    if(this.state===WAR_STATE.notInWar)this.timeTillNextAttack-=this.host.weatherLA()?dtMs:dtMs*.6;
    if(this.timeTillNextAttack<0)this.startDefensiveGangWar();
   }

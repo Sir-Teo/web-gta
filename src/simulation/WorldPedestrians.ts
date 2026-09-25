@@ -925,7 +925,7 @@ export class WorldPedestrians {
     if(targets){
      const living={civilians:0,cops:0,dealers:0,gangs:0},byGang=Array(10).fill(0);
      for(const p of this.people){if(p.health<=0)continue;if(p.officer)living.cops++;else if(p.dealer)living.dealers++;else if(p.gang!==undefined){living.gangs++;byGang[p.gang]++;}else living.civilians++;}
-     const order=newPedTypeOrder(targets,living,Math.random,{cops:true,gangs:!this.gangTurf||!!this.dontCreateRandomGangMembers?.(),dealers:!this.dealerTurf});
+     const order=newPedTypeOrder(targets,living,Math.random,{cops:true,gangs:!this.gangTurf||!!this.dontCreateRandomGangMembers?.(),dealers:!this.dealerTurf,onlyGangs:!!this.onlyCreateRandomGangMembers?.()});
      if(!order.length)break;
      let produced=false;
      for(const type of order){
@@ -1191,6 +1191,8 @@ export class WorldPedestrians {
    gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
    /** CPopulation::m_bDontCreateRandomGangMembers, which a script sets with SET_CREATE_RANDOM_GANG_MEMBERS. */
    dontCreateRandomGangMembers?:()=>boolean;
+   /** CPopulation::m_bOnlyCreateRandomGangMembers, which SET_ONLY_CREATE_GANG_MEMBERS sets. */
+   onlyCreateRandomGangMembers?:()=>boolean;
    /** Dealer corner strength (INITIAL SET_ZONE_DEALER_STRENGTH 0–255). */
    dealerTurf?:(x:number,z:number)=>number|undefined;
   /** A corner dealer (pedgrp.dat dealers): loiters on the spot until spooked. */

@@ -7961,3 +7961,18 @@ Each is now answered:
   clip SMOKE2 or CRASH1 stopped would still have ended its task. The script's time for the task stays on the clock.
 - Verification: `tests/player-script-tasks.test.ts`, `tests/browser/script-anim-speed.spec.ts`,
   `tests/browser/script-play-anim.spec.ts`.
+
+## Zones by label, and CRASH4's gang-war switches
+
+- IS_CHAR_IN_ZONE is CTheZones::FindZone of ZONE_TYPE_NAVI (reversed). It matches any navigation zone whose text
+  label is the name and that holds the point, so every part of a split zone counts (OCEAF1 to OCEAF3 are all OCEAF).
+  The port used to take the first type-0 zone whose own name matched, which missed the parts. It also failed
+  outright on the player, whose position is not in the ped pool.
+- IS_PLAYER_IN_INFO_ZONE is FindZone of ZONE_TYPE_INFO, by the zones' own names.
+- IS_GANG_WAR_GOING_ON is CGangWars::GangWarGoingOn: a war under way, or a defensive attack the player has been
+  told of.
+- SET_GANG_WARS_TRAINING_MISSION sets CGangWars::bTrainingMission. While it is set, a war starts only in the training
+  zone and no defensive attack counts down. Before, "a training zone is named" stood in for the flag.
+- SET_ONLY_CREATE_GANG_MEMBERS sets CPopulation::m_bOnlyCreateRandomGangMembers. In CPopCycle::FindNewPedType it makes
+  the gangs' chance 50; refusing gangs still wins, and a gang that cannot be made makes nobody.
+- Verification: `tests/native-zone-names.test.ts`, `tests/scm-population-switches.test.ts`, `tests/gang-wars.test.ts`.

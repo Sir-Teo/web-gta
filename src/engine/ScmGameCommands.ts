@@ -2291,7 +2291,7 @@ const handlers:Record<string,ScmCommandHandler>={
  TASK_WARP_CHAR_INTO_CAR_AS_DRIVER:(t,p,i)=>{world(t,i,'taskWarpCharIntoCarAsDriver')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CREATE_RANDOM_COPS:(t,p,i)=>{game(t,i).population.dontCreateRandomCops=!bool(t,p[0]);},
  SET_FREE_RESPRAYS:(t,p,i)=>{game(t,i).freeResprays=bool(t,p[0]);},
- SET_ONLY_CREATE_GANG_MEMBERS:(t,p,i)=>{world(t,i,'setOnlyCreateGangMembers')(bool(t,p[0]));},
+ SET_ONLY_CREATE_GANG_MEMBERS:(t,p,i)=>{game(t,i).population.onlyCreateRandomGangMembers=bool(t,p[0]);},
  SET_OBJECT_AS_STEALABLE:(t,p,i)=>{world(t,i,'setObjectAsStealable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_PLAYER_DISPLAY_VITAL_STATS_BUTTON:(t,p,i)=>{world(t,i,'setPlayerDisplayVitalStatsButton')(t.readInt(p[0]),bool(t,p[1]));},
  // The sequence's own step, and the step of the sequence that step runs (-1 when it runs none); SMOKE2 waits on
@@ -2440,7 +2440,7 @@ const handlers:Record<string,ScmCommandHandler>={
  CLEAR_LOADED_SHOP:(t,_p,i)=>{game(t,i).shopping.removeLoadedShop();},
  GET_NEAREST_TAG_POSITION:(t,p,i)=>{const result=world(t,i,'getNearestTagPosition')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]));t.writeFloat(p[3],result.x);t.writeFloat(p[4],result.y);t.writeFloat(p[5],result.z);},
  FIX_CAR_PANEL:(t,p,i)=>{world(t,i,'fixCarPanel')(t.readInt(p[0]),t.readInt(p[1]));},
- SET_GANG_WARS_TRAINING_MISSION:(t,p,i)=>{world(t,i,'setGangWarsTrainingMission')(bool(t,p[0]));},
+ SET_GANG_WARS_TRAINING_MISSION:(t,p,i)=>{game(t,i).gangWarsTrainingMission=bool(t,p[0]);},
  SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE:(t,p,i)=>{world(t,i,'setCharUsesCollisionClosestObjectOfType')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),model(t,i,p[4]),bool(t,p[5]),t.readInt(p[6]));},
  SET_ONSCREEN_COUNTER_FLASH_WHEN_FIRST_DISPLAYED:(t,p,i)=>{game(t,i).onscreenTimer.setCounterFlashWhenFirstDisplayed(t.globalOffset(p[0]),bool(t,p[1]));},
  SET_OBJECT_MASS:(t,p,i)=>{world(t,i,'setObjectMass')(t.readInt(p[0]),t.readFloat(p[1]));},

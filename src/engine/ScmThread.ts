@@ -812,7 +812,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setEnableRcDetonateOnContact?(state:boolean):void;
  setEnableRcDetonate?(state:boolean):void;
  taskWarpCharIntoCarAsDriver?(char:number,vehicle:number):void;
- setOnlyCreateGangMembers?(state:boolean):void;
  setObjectAsStealable?(handle:number,state:boolean):void;
  setPlayerDisplayVitalStatsButton?(playerId:number,enabled:boolean):void;
  getSequenceProgressRecursive?(handle:number):{p2:number,p3:number};
@@ -932,7 +931,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isPlayerInRemoteMode?(handle:number):boolean;
  getNearestTagPosition?(xCoord:number,yCoord:number,zCoord:number):{x:number,y:number,z:number};
  fixCarPanel?(handle:number,panelId:number):void;
- setGangWarsTrainingMission?(state:boolean):void;
  setCharUsesCollisionClosestObjectOfType?(x:number,y:number,z:number,radius:number,modelId:number|string,state:boolean,target:number):void;
  setObjectMass?(handle:number,mass:number):void;
  isObjectInArea3d?(handle:number,leftBottomX:number,leftBottomY:number,leftBottomZ:number,rightTopX:number,rightTopY:number,rightTopZ:number,drawSphere:boolean):boolean;
