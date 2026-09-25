@@ -1242,6 +1242,17 @@ export class ScmMission {
     if(task.kind==='pickUpObject'){this.pickUpObject(handle,task);return;}
     // CTaskSimpleGangDriveBy: a ped with a car handle target fires at the car, else at the ped a handle names, else at
     // the point. A ped not riding, or the player, is left as it is.
+    // CTaskComplexShuffleSeats (reversed; the CAR_SHUFFLE clip is not played): across the car, the front right to the
+    // driver's seat and back, the rear right to the rear left and back, when that seat is free.
+    if(task.kind==='shuffleToNextCarSeat'){
+     if(handle===PLAYER_PED_HANDLE)return;
+     this.livePed(handle);const ride=this.peds.rideOf(handle);
+     if(!ride||ride.vehicle!==task.vehicle||ride.offset)return;
+     const to=ride.seat==='driver'?0:ride.seat===0?'driver':ride.seat===1?2:ride.seat===2?1:undefined;if(to===undefined)return;
+     const free=to==='driver'?this.peds.driverOf(task.vehicle)===undefined&&this.playerCarHandle()!==task.vehicle:!this.peds.seatTaken(task.vehicle,to);
+     if(free)this.peds.warpIntoCar(handle,task.vehicle,to);
+     return;
+    }
     // Any other primary task takes the rider's drive-by from it.
     if(task.kind!=='driveBy'&&task.kind!=='useMobilePhone'&&handle!==PLAYER_PED_HANDLE&&this.peds.exists(handle)){const e=this.peds.entity(handle);if(e!==undefined)this.world.clearScriptPedDriveBy?.(e);}
     if(task.kind==='driveBy'){
@@ -1700,6 +1711,7 @@ export class ScmMission {
    self:()=>handle===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.positionOf(handle),
    ped:(other:number)=>other===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.exists(other)?this.peds.positionOf(other):undefined,
    decisionMaker:(dm:number)=>this.runtime.game.decisionMakers.actualIndex(dm),
+   objectPosition:(object:number)=>this.runtime.game.objects.exists(object)?{...this.runtime.game.objects.at(object).position}:undefined,
    vehiclePosition:(vehicle:number)=>vehicle===PLAYER_VEHICLE_HANDLE||!this.vehicles.exists(vehicle)||!this.vehicles.entity(vehicle)?undefined:this.vehicles.positionOf(vehicle),
    // A car the script made and the browser has built; the player's own car is not one a script ped can board yet.
    vehicle:(vehicle:number)=>vehicle!==PLAYER_VEHICLE_HANDLE&&this.vehicles.exists(vehicle)&&!!this.vehicles.entity(vehicle),

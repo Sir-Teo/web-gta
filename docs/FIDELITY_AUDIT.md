@@ -7702,3 +7702,23 @@ Each is now answered:
   other things wait for INTRO (so INITIAL finishes the setup), end it (`tests/browser/freeRoam.ts`) and play in free
   roam.
 - Verification: `tests/browser/script-held-object.spec.ts`, `script-dive.spec.ts`, `script-drive-by.spec.ts`.
+
+## More scripted ped tasks for the early story
+
+- TASK_GOTO_CHAR_OFFSET (SWEET1) is CTaskComplexSeekEntity with CEntitySeekPosCalculatorRadiusAngleOffset
+  (reversed):
+  - The ped seeks the point the radius out from the target, at the angle from the target's heading (0 straight
+    ahead).
+  - It arrives within half a unit, then faces the target.
+- TASK_LOOK_ABOUT (SWEET1B) is CTaskSimpleLookAbout (reversed): CTaskSimpleRunTimedAnim of IDLE_HBHB for the
+  script's time.
+- TASK_LOOK_AT_OBJECT (SWEET2) starts the look at the object where it is.
+- TASK_DIE_NAMED_ANIM (SWEET1B) kills the ped with the script's clip, held on its last frame, once the clip has
+  loaded.
+- TASK_FLEE_POINT, TASK_FLEE_CHAR and TASK_FLEE_CHAR_ANY_MEANS run as the smart flee the port already had, away from
+  where the threat is as the task starts. The plain CTaskComplexFleePoint and FleeEntity keep off the path nodes, and
+  the any-means form would take a car; neither is modelled apart.
+- TASK_SHUFFLE_TO_NEXT_CAR_SEAT is CTaskComplexShuffleSeats (reversed), without the CAR_SHUFFLE clip. It moves the
+  ped across the car when that seat is free: the front right to the driver's seat and back, the rear right to the
+  rear left and back.
+- Verification: `tests/browser/script-ped-tasks-more.spec.ts`.

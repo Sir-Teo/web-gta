@@ -12,8 +12,8 @@ export type ScriptedPedOrder=
  |{kind:'achieveHeading';degrees:number}
  /** CTaskComplexWanderStandard: back to walking the path nodes, which is what a street ped does unasked. */
  |{kind:'wander'}
- /** CTaskComplexDie. */
- |{kind:'die'}
+ /** CTaskComplexDie, with the named clip of TASK_DIE_NAMED_ANIM when one is given. */
+ |{kind:'die';file?:string;name?:string}
  /** CTaskComplexSmartFleePoint and CTaskComplexSmartFleeEntity: run from a place until `safe` units away, or
   * for `seconds`. The point is in the script's coordinates. */
  |{kind:'smartFlee';from:{x:number;y:number};safe:number;seconds:number}
@@ -42,7 +42,10 @@ export type ScriptedPedOrder=
  |{kind:'followRoute';points:readonly {x:number;y:number;z:number}[];moveState:number;mode:number}
  /** CTaskComplexSeekEntity for TASK_GOTO_CHAR: to within `radius` of a ped (a handle, the player's included), for
   * `seconds`. */
- |{kind:'gotoPed';target:number;radius:number;seconds:number}
+ |{kind:'gotoPed';target:number;radius:number;seconds:number;
+  /** CEntitySeekPosCalculatorRadiusAngleOffset (TASK_GOTO_CHAR_OFFSET): the point `radius` out from the target at
+   * `angle` radians from its heading, 0 being straight ahead of it. */
+  offset?:{radius:number;angle:number}}
  /** CTaskSimpleDuckToggle (TASK_TOGGLE_DUCK): the ped ducks or stands, and the task is over at once; with `seconds`,
   * CTaskSimpleDuck (TASK_DUCK) holds it ducked where it is for that long. */
  |{kind:'duck';crouch:boolean;seconds?:number}
@@ -80,6 +83,8 @@ export interface ScriptedTaskWorld{
  self():{x:number;y:number;z:number};
  /** A car the task names, where it is, or nothing when the handle names none the browser has built. */
  vehiclePosition?(handle:number):{x:number;y:number;z:number}|undefined;
+ /** A script object the task names, where it is. */
+ objectPosition?(handle:number):{x:number;y:number;z:number}|undefined;
  /** Another ped the task names, or nothing when the handle names none. */
  ped(handle:number):{x:number;y:number;z:number}|undefined;
  /** A script's decision maker handle as the pool index it stands for (ScmDecisionMakers.actualIndex). */
@@ -125,6 +130,17 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   }
   case 'wanderStandard':return {kind:'wander'};
   case 'die':return {kind:'die'};
+  case 'dieNamedAnim':return {kind:'die',file:task.animationFile,name:task.animationName};
+  // CTaskSimpleLookAbout: CTaskSimpleRunTimedAnim of IDLE_HBHB for the script's time.
+  case 'lookAbout':return {kind:'playAnim',file:'ped',name:'IDLE_HBHB',loop:true,keepLastFrame:false,seconds:seconds(task.time)};
+  case 'lookAtObject':{const at=world.objectPosition?.(task.object);return at&&{kind:'lookAtPoint',...at,seconds:seconds(task.time)};}
+  // CTaskComplexFleePoint and CTaskComplexFleeEntity (and the any-means form on foot) are taken as their smart forms:
+  // away from where the threat is as the task starts.
+  case 'fleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
+  case 'fleePed':case 'fleePedAnyMeans':{
+   const threat=world.ped(task.threat);if(!threat)return undefined;
+   return {kind:'smartFlee',from:{x:threat.x,y:threat.y},safe:task.radius,seconds:seconds(task.time)};
+  }
   // TASK_DEAD (unreversed; CTaskSimpleDead's ProcessPed is not reversed either) kills the ped as TASK_DIE does. MAIN
   // uses it for the bodies it lays out at scenes.
   case 'dead':return {kind:'die'};
@@ -155,6 +171,8 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'goToCoordAnyMeans':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:Number.POSITIVE_INFINITY};
   case 'gotoPed':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:task.radius,seconds:seconds(task.time)}:undefined;
+  // CTaskComplexSeekEntity with CEntitySeekPosCalculatorRadiusAngleOffset, arrived within half a unit of that point.
+  case 'gotoPedOffset':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:.5,seconds:seconds(task.time),offset:{radius:task.offsetX,angle:task.offsetY*Math.PI/180}}:undefined;
   case 'killPedOnFootTimed':return world.ped(task.target)?{kind:'killPed',target:task.target,seconds:seconds(task.time)}:undefined;
   // CTaskSimpleScratchHead: the ped.ifp XPRESSscratch clip once.
   case 'scratchHead':return {kind:'playAnim',file:'PED',name:'XPRESSscratch',loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY};

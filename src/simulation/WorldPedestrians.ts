@@ -147,7 +147,7 @@ export interface Pedestrian {
   /** CTaskComplexFollowPointRoute over renderer points (x, z, and the origin height y). */
   |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
   /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
-  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number}
+  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number;offset?:{radius:number;angle:number}}
   /** TASK_DIVE_AND_GET_UP: over when the evasive dive it started is. */
   |{kind:'dive'}
   /** CTaskSimpleDuck for its time: ducked where it stands. */
@@ -1600,7 +1600,7 @@ export class WorldPedestrians {
     break;
    case 'gotoPed':{
     const target=this.resolveScriptPed?.(order.target);if(!target)break;
-    ped.order={kind:'gotoPed',target:target==='player'?undefined:target,radius:order.radius,remaining:order.seconds};ped.flee=0;ped.loiter=false;
+    ped.order={kind:'gotoPed',target:target==='player'?undefined:target,radius:order.radius,remaining:order.seconds,offset:order.offset};ped.flee=0;ped.loiter=false;
     break;
    }
    case 'enterCar':{
@@ -1608,7 +1608,22 @@ export class WorldPedestrians {
     ped.order={kind:'enterCar',vehicle:order.vehicle,seat:order.seat,remaining:order.seconds,seek:ENTER_CAR_SEEK_SECONDS,moveState:order.moveState??6};ped.flee=0;ped.loiter=false;
     break;
    }
-   case 'die':this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;
+   case 'die':{
+    if(!order.name){this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;}
+    // TASK_DIE_NAMED_ANIM: the ped dies with the script's clip, held on its last frame, once the clip is on it.
+    const clip=order.name.toLowerCase(),die=()=>{
+     if(ped.health<=0||!this.people.includes(ped))return;
+     ped.health=0;this.hit(ped,0,1,0,clip,1000);ped.down=Infinity;ped.view.playReaction(clip,Infinity);
+     this.onKill?.({id:ped.id,officer:ped.officer,gang:ped.gang,pedType:ped.pedType,recruit:!!ped.follow,byPlayer:false});
+    };
+    if(ped.view.hasReaction(clip)&&(order.file??'ped').toLowerCase()==='ped'){die();break;}
+    void (this.catalog?.scriptAnimation(order.file??'ped',order.name)??Promise.resolve(undefined)).then(animation=>{
+     if(this.disposed)return;
+     if(animation)ped.view.installReactions({[clip]:animation});
+     if(animation)die();else this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);
+    });
+    break;
+   }
    case 'smartFlee':{
     ped.flee=Math.max(ped.flee,order.seconds===Number.POSITIVE_INFINITY?Number.MAX_SAFE_INTEGER:order.seconds);
     // The script's point is in its own coordinates; the browser's are the renderer's.
@@ -2762,13 +2777,16 @@ export class WorldPedestrians {
      }
     }else if(p.order.kind==='gotoPed'){
      const o=p.order,q=p.actor.player.position;dx=0;dz=0;
-     const target=o.target?(o.target.health>0&&this.people.includes(o.target)?o.target.actor.player.position:undefined):this.sim.player.position;
+     const holder=o.target?(o.target.health>0&&this.people.includes(o.target)?o.target.actor.player:undefined):this.sim.player;
+     // The offset point: the target's native heading is its yaw less half a turn; the native offset (-sin a, cos a)
+     // runs (-sin a, -cos a) here.
+     const target=holder&&(o.offset?(()=>{const a=holder.heading-Math.PI+o.offset!.angle;return {x:holder.position.x-Math.sin(a)*o.offset!.radius,y:holder.position.y,z:holder.position.z-Math.cos(a)*o.offset!.radius};})():holder.position);
      if(o.remaining!==Number.POSITIVE_INFINITY)o.remaining-=dt;
      if(!target||o.remaining<=0)this.startNextOrder(p);
      else{
       const gx=target.x-q.x,gz=target.z-q.z,distance=Math.hypot(gx,gz);
       // Achieved: CTaskComplexTurnToFaceEntityOrCoord (bFaceEntityWhenDone), then the task is over.
-      if(distance<=o.radius)p.order={kind:'achieveHeading',heading:Math.atan2(gx,gz)};
+      if(distance<=o.radius)p.order={kind:'achieveHeading',heading:o.offset&&holder?Math.atan2(holder.position.x-q.x,holder.position.z-q.z):Math.atan2(gx,gz)};
       else{({x:dx,z:dz}=this.roundCars(p,target,cars));orderSpeed=goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)>=6?p.runSpeed:p.walkSpeed;}
      }
     }else if(p.order.kind==='enterCar'){
