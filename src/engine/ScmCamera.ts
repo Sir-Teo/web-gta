@@ -27,6 +27,12 @@ export class ScmCamera {
  /** m_fNearClipScript: SET_NEAR_CLIP's plane, used while useNearClipScript holds (either restore clears it). */
  nearClipScript=.9;
  modeObbeCamIsInForCar=OBBE_MODE_DEFAULT;scriptParametersSetForInterp=false;
+ /** SET_INTERPOLATION_PARAMETERS (CCamera::SetParametersForScriptInterpolation): the share of the interpolation to
+  * stop moving in and to catch up in, as fractions, and its time in ms. */
+ scriptPercentageInterToStopMoving=0;scriptPercentageInterToCatchUp=0;scriptTimeForInterpolation=0;
+ /** m_bIgnoreFadingStuffForMusic, which SET_MUSIC_DOES_FADE clears: CCamera::Fade leaves the music alone but for a
+  * fade out. */
+ ignoreFadingStuffForMusic=false;
  enable1rstPersonCamCntrlsScript=false;allow1rstPersonWeaponsCamera=false;
  useScriptZoomValuePed=false;useScriptZoomValueCar=false;avoidTheGeometryProbsTimer=0;
  /** gAllowScriptedFixedCameraCollision, and m_bBlockZoom which the persist-field-of-view command sets. */
@@ -92,6 +98,10 @@ export class ScmCamera {
  }
  /** CCamera::SetNearClipScript (0x50BF90). */
  setNearClipScript(nearClip:number){this.nearClipScript=nearClip;this.useNearClipScript=true;}
+ setParametersForScriptInterpolation(stopMoving:number,catchUp:number,timeMs:number){
+  this.scriptTimeForInterpolation=timeMs>>>0;this.scriptParametersSetForInterp=true;
+  this.scriptPercentageInterToStopMoving=stopMoving/100;this.scriptPercentageInterToCatchUp=catchUp/100;
+ }
  /** The body CCamera::Restore and RestoreWithJumpCut share: both hand the camera back to the player, pick the
   * mode from what the player is doing, and reset the script's interpolation fields. */
  private restoreCommon(player:PlayerCameraState){

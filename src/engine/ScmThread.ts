@@ -563,8 +563,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  disableAllEntryExits?(state:boolean):void;
  setDarknessEffect?(enable:boolean,pitchBlack:number):void;
  enableCraneControls?(up:boolean,down:boolean,release:boolean):void;
- setInterpolationParameters?(interpolationToStopMoving:number,time:number):void;
- setMusicDoesFade?(state:boolean):void;
  enableAmbientCrime?(state:boolean):void;
  pointIsObscuredByMissionEntity?(x:number,y:number,z:number,radiusX:number,radiusY:number,radiusZ:number):boolean;
  pedSayContext?(handle:number,phrase:number):number;
@@ -653,7 +651,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** The audio, markers and remaining world settings of the tail. */
  beatTrackStatus?():number;
  stopBeatTrack?():void;
- controllerMode?():number;
  switchAmbientPlanes?(state:boolean):void;
  syncWater?():void;
  drawSphere?(x:number,y:number,z:number,radius:number):void;

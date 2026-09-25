@@ -273,6 +273,8 @@ export interface ScmMissionWorld {
  /** CVehicle::m_nMaxPassengers, and CAutomobile::BurstTyre with its physical effect. */
  scriptVehicleMaximumPassengers?(car:unknown):number;
  burstScriptVehicleTyre?(car:unknown,wheel:number):void;
+ /** CExplosion::TestForExplosionInArea over the active explosions (native box). */
+ explosionInArea?(type:number,min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;
  /** The car path areas CPathFind has loaded, or nothing before any have. */
  carPathAreas?():ReadonlyMap<number,PathArea>|undefined;
  /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
@@ -884,6 +886,9 @@ export class ScmMission {
    },
    vehicleMatrix:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle)),
    freezeVehiclePosition:(handle,frozen)=>{this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
+   // bIsFrozen and bInfiniteMass as FREEZE_CAR_POSITION sets them; the collision it waits for is the browser's to stream.
+   freezeVehiclePositionAndDontLoadCollision:(handle,frozen)=>{this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
+   explosionInArea:(type,min,max)=>this.host('explosionInArea','IS_EXPLOSION_IN_AREA')(type,min,max),
    setUpsideDownVehicleNotDamaged:(handle,state)=>{this.world.setScriptVehicleUpsideDownNotDamaged?.(this.liveVehicle(handle),state);},
    setVehicleForwardSpeed:(handle,forwardSpeed)=>{this.world.setScriptVehicleForwardSpeed(this.liveVehicle(handle),forwardSpeed);},
    // CWorld::FindGroundZForCoord looks straight down from a thousand above and answers twenty where the world

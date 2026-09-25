@@ -17,7 +17,7 @@ import {HeatSeekLock,pickHeatSeekTarget,type HeatSeekCandidate} from './nativeHe
 import {CRIME} from '../simulation/nativeWanted';
 import {meleeComboFor} from '../weapons/gunnery';
 import {NativeFireManager,explosionFireCount,type FireTarget} from '../combat/nativeFire';
-import {EXPLOSION,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
+import {EXPLOSION,NativeExplosionSlots,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
 import type {MeleeSwing} from '../simulation/nativeMelee';
 import {launchVelocity,projectileTuning} from '../weapons/gunnery';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
@@ -240,7 +240,11 @@ export class WeaponSystem {
   if(this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0){const center=this.sim.playerBody.translation(),d=distance(position,center);if(d<radius&&!this.sim.world.castRay(new RAPIER.Ray(position,normalize(add(center,position,-1))),Math.max(0,d-.1),true,RAPIER.QueryFilterFlags.ONLY_FIXED))this.sim.damagePlayer(damage*(1-d/radius));}
  }
  /** CExplosion::AddExplosion: FX and sound, then CWorld::TriggerExplosion's one-shot damage and push. */
+ /** CExplosion::aExplosions, for the slot each blast takes and the script's TestForExplosionInArea. */
+ readonly explosionSlots=new NativeExplosionSlots();
  private explode(position:Vec3,type:number=EXPLOSION_TYPE.grenade,victim?:object,byPlayer=false){
+  // AddExplosion makes nothing when every slot is taken.
+  if(!this.explosionSlots.add(type,this.toNative(position),this.nowMs))return;
   const params=explosionParams(type);
   // CExplosion::AddExplosion tests the ground under a molotov for water: there it makes no FX and no fires, but the
   // explosion itself stays, centred where it burst, and keeps setting peds and cars alight.
@@ -941,7 +945,7 @@ export class WeaponSystem {
    const p=this.sim.player.position;this.fire({origin:{...p,y:p.y+1.3},direction:{x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)}});
   }
   if(this.strike){this.strike.remaining-=dt;if(this.strike.remaining<=0){const strike=this.strike;this.strike=undefined;this.resolveStrike(strike);}}
-  this.updateAreaShots(dt);this.updateBullets(dt);this.nowMs+=dt*1000;this.updateFires(dt);this.releaseExplosions();
+  this.updateAreaShots(dt);this.updateBullets(dt);this.nowMs+=dt*1000;this.explosionSlots.expire(this.nowMs);this.updateFires(dt);this.releaseExplosions();
   for(const h of this.hazards){h.remaining-=dt;h.tick-=dt;if(h.tick<=0){h.tick=.5;this.effect(h.kind,h.position,h.position,.7,h.radius);this.radial(h.position,h.radius,h.kind==='flame'?12:4,h.kind==='flame');this.pedestrians()?.frighten(h.position,15);}}
   this.hazards=this.hazards.filter(h=>h.remaining>0);
   const survivors:Projectile[]=[];

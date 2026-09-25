@@ -7234,3 +7234,20 @@ the first ones now implemented:
   - GET_NUMBER_OF_PASSENGERS: the script's peds in the passenger seats.
   - BURST_CAR_TYRE: CAutomobile::BurstTyre with the script's eCarWheel.
   - TURN_CAR_TO_FACE_COORD: reVC's GetATanOfXY(position - point) + π/2.
+
+## Explosion slots, and a few camera and car settings
+
+- CExplosion::aExplosions: sixteen slots. AddExplosion takes the first free one and makes nothing, blast and all, when
+  none is free. A slot stays active until its expiry, which is the lifetime plus the type's own time (750 ms for a
+  grenade, 4250 for a car and so on), as CExplosion::Update expires it.
+  - IS_EXPLOSION_IN_AREA is TestForExplosionInArea over the active slots: that type, or any for EXPLOSION_UNDEFINED,
+    at a point in the box, faces included.
+  - gta-reversed's expiry compares an unsigned difference with nought, which is only true at the exact millisecond.
+    Here a slot expires once its time is reached.
+- The engine now answers these itself; before, they went to world hooks that nothing answered, retiring the thread:
+  - SET_INTERPOLATION_PARAMETERS: CCamera::SetParametersForScriptInterpolation, with the catch-up share being 100 less
+    the stop share.
+  - SET_MUSIC_DOES_FADE: m_bIgnoreFadingStuffForMusic, stored. The port has no music fade for it to change.
+  - GET_CONTROLLER_MODE: 0, the PC build's answer.
+- FREEZE_CAR_POSITION_AND_DONT_LOAD_COLLISION freezes the car as FREEZE_CAR_POSITION does. Waiting for collision to
+  load is the browser's streaming.

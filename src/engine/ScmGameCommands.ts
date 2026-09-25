@@ -1655,10 +1655,11 @@ const handlers:Record<string,ScmCommandHandler>={
  ENABLE_CRANE_CONTROLS:(t,p,i)=>{
   world(t,i,'enableCraneControls')(bool(t,p[0]),bool(t,p[1]),bool(t,p[2]));
  },
+ // The catch-up share is what the stop share leaves of a hundred.
  SET_INTERPOLATION_PARAMETERS:(t,p,i)=>{
-  world(t,i,'setInterpolationParameters')(t.readFloat(p[0]),t.readInt(p[1]));
+  const stop=t.readFloat(p[0]);game(t,i).camera.setParametersForScriptInterpolation(stop,100-stop,t.readInt(p[1]));
  },
- SET_MUSIC_DOES_FADE:(t,p,i)=>{world(t,i,'setMusicDoesFade')(bool(t,p[0]));},
+ SET_MUSIC_DOES_FADE:(t,p,i)=>{game(t,i).camera.ignoreFadingStuffForMusic=!bool(t,p[0]);},
  ENABLE_AMBIENT_CRIME:(t,p,i)=>{world(t,i,'enableAmbientCrime')(bool(t,p[0]));},
  IS_POINT_OBSCURED_BY_A_MISSION_ENTITY:(t,p,i)=>{
   const point=vec(t,p,0),radius=vec(t,p,3);
@@ -1896,7 +1897,8 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  GET_BEAT_TRACK_STATUS:(t,p,i)=>{t.writeInt(p[0],world(t,i,'beatTrackStatus')());},
  STOP_BEAT_TRACK:(t,_p,i)=>{world(t,i,'stopBeatTrack')();},
- GET_CONTROLLER_MODE:(t,p,i)=>{t.writeInt(p[0],world(t,i,'controllerMode')());},
+ // The PC build answers nought (reVC's GTA_PC branch without DETECT_PAD_INPUT_SWITCH): keyboard and mouse.
+ GET_CONTROLLER_MODE:(t,p)=>{t.writeInt(p[0],0);},
  SWITCH_AMBIENT_PLANES:(t,p,i)=>{world(t,i,'switchAmbientPlanes')(bool(t,p[0]));},
  SYNC_WATER:(t,_p,i)=>{world(t,i,'syncWater')();},
  DRAW_SPHERE:(t,p,i)=>{

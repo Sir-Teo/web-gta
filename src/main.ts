@@ -3419,6 +3419,7 @@ async function boot() {
                  scriptVehicleRouteNodes:car=>scriptCars.routeNodes(car as ScriptCar),
                  scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
                  burstScriptVehicleTyre:(car,wheel)=>{(car as ScriptCar).burstTyre(wheel,true);},
+                 explosionInArea:(type,min,max)=>weapons.explosionSlots.inArea(type,min,max),
                  carPathAreas:()=>scriptCars.pathAreas({x:sim.player.position.x,z:sim.player.position.z}),
                  scriptVehicleLastDamagedBy:car=>(car as ScriptCar).lastDamagedBy,
                  scriptVehicleLastWeaponDamage:car=>(car as ScriptCar).lastWeaponDamage,

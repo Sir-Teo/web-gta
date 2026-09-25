@@ -97,7 +97,7 @@ describe('the tail of vehicle, object and world commands',()=>{
    controlVehicleDoor:method('door'),addToObjectVelocity:method('velocity'),
    attachObjectToObject:method('attachObject'),pointSearchlightAtPed:method('light'),
    drawSphere:method('sphere'),setUpSkip:method('skip'),registerFastestTime:method('fastest'),
-   objectSpeed:method('speed',2.5),controllerMode:method('mode',1),
+   objectSpeed:method('speed',2.5),
   } as unknown as Partial<ScmWorldCommands>;
   const {readInt,readFloat}=run(world,undefined,
    instruction(op('GET_TRAIN_CARRIAGE'),[int(CAR),int(1),gvar(40)]),
@@ -113,12 +113,13 @@ describe('the tail of vehicle, object and world commands',()=>{
    instruction(op('GET_CONTROLLER_MODE'),[gvar(48)]));
   expect(readInt(40)).toBe(22);
   expect(readFloat(44)).toBeCloseTo(2.5,5);
-  expect(readInt(48)).toBe(1);
+  // The PC build's controller mode is nought, whatever the host.
+  expect(readInt(48)).toBe(0);
   expect(calls).toEqual([
    ['carriage',CAR,1],['attachCar',CAR,10,{x:0,y:1,z:2},{x:0,y:0,z:90}],['door',CAR,2,1,0.5],
    ['velocity',OBJECT,1,0,0],['attachObject',OBJECT,12,{x:0,y:0,z:1},{x:0,y:0,z:0}],
    ['light',4,PED,2],['sphere',1,2,3,5],['skip',10,20,3,90],['fastest',12,4500],
-   ['speed',OBJECT],['mode'],
+   ['speed',OBJECT],
   ]);
  });
 });

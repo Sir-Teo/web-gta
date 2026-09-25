@@ -38,6 +38,32 @@ export function explosionParams(type:number):ExplosionParams{
  }
 }
 
+/** eExplosionType's EXPLOSION_UNDEFINED, which TestForExplosionInArea takes for any type. */
+export const EXPLOSION_UNDEFINED=-1;
+/** CExplosion::aExplosions: sixteen slots. AddExplosion takes the first inactive one (GetFree) and makes nothing when
+ * all are active; a slot stays active until its expiry time (lifetime plus the type's own time) is reached in
+ * CExplosion::Update. Positions are native. */
+export class NativeExplosionSlots {
+ static readonly SIZE=16;
+ private readonly active:{type:number;position:{x:number;y:number;z:number};expireMs:number}[]=[];
+ get count(){return this.active.length;}
+ /** Update's expiry, for a time `nowMs`. */
+ expire(nowMs:number){for(let i=this.active.length-1;i>=0;i--)if(nowMs>=this.active[i].expireMs)this.active.splice(i,1);}
+ /** AddExplosion's slot: false when none is free, and the explosion is not made. */
+ add(type:number,position:{x:number;y:number;z:number},nowMs:number,lifetimeMs=0){
+  this.expire(nowMs);
+  if(this.active.length>=NativeExplosionSlots.SIZE)return false;
+  this.active.push({type,position:{...position},expireMs:nowMs+lifetimeMs+explosionParams(type).durationMs});
+  return true;
+ }
+ /** TestForExplosionInArea: an active explosion of the type (or of any, for EXPLOSION_UNDEFINED) at a point within the
+  * box, faces included. */
+ inArea(type:number,min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}){
+  return this.active.some(e=>(type===EXPLOSION_UNDEFINED||e.type===type)&&e.position.x>=min.x&&e.position.x<=max.x
+   &&e.position.y>=min.y&&e.position.y<=max.y&&e.position.z>=min.z&&e.position.z<=max.z);
+ }
+}
+
 /** min(1, 2 (radius - distance) / radius): full strength inside half the radius. Zero outside. */
 export function explosionFalloff(radius:number,distance:number){return distance>=radius?0:Math.min(1,2*(radius-distance)/radius);}
 /** Direction from the blast to the entity, never pointing down. */
