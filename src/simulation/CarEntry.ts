@@ -96,7 +96,7 @@ export class CarEntry {
  get seated(){return this.phase==='seated';}
   snapshot(){return {cancelReason:this.cancelReason??null,phase:this.phase??null,side:this.side,time:this.time,clip:this.clipFor()?.key??null,car:this.car?.modelId??null,passengers:this.passengers.map(p=>({seat:p.seat,follow:p.follow})),npc:this.npc?{kind:this.npc.kind,time:this.npc.time,done:this.npc.done}:null,message:this.message??null};}
   /** Native seat local for a passenger seat (front-right plus mirrored rear bench). */
-  private passengerSeat(car:WorldCar,seat:1|2|3):V3|undefined{
+  passengerSeat(car:WorldCar,seat:1|2|3):V3|undefined{
    if(seat===1)return car.seat('right');
    const frame=car.car.nativeFramePosition('ped_backseat');if(!frame)return undefined;
    return {x:seat===2?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z};

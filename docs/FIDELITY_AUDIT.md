@@ -7498,3 +7498,20 @@ Each is now answered:
 - The host's car commands read any vehicle's body, heading, health and whether it has gone. Car-only behaviour
   (road driving, tyres, area visibility, paint, the occupant renderer's seats) is skipped for the others for now.
   Peds seated in a script bike, boat or aircraft ride unseen until those seats are drawn.
+
+## The player as a passenger, and INTRO's ride
+
+- WARP_CHAR_INTO_CAR_AS_PASSENGER on the player (INTRO, RYDER3, DRUGS1, DES3, CASIN10, MANSIO2 and one more) seats
+  him in a car's passenger seat (CTaskSimpleCarSetPedInAsPassenger). SA's seat 0 is the front right, 1 and 2 the
+  rear, and -1 takes the first. The car goes on under whoever drives it: its script driver, AI or recording.
+  - He rides with the car and is drawn sitting in his seat. The car camera follows the car.
+  - The script sees him in it (IS_CHAR_IN_CAR, STORE_CAR_CHAR_IS_IN).
+  - The exit button sets him down beside his own side. The get-out clip is not played.
+  - Drive-bys from the passenger seat are not ported yet.
+- A ped made in a car the browser is still building (CREATE_CAR then CREATE_RANDOM_CHAR_AS_DRIVER, as INTRO does)
+  waits for the car. Before, the spawn read the car at once, found nothing and failed the ped.
+- IS_CAR_IN_AIR_PROPER answers for any vehicle, not only the player's own handle. HJ asks it of the car the player
+  sits in.
+- A car a recording holds is kinematic here, so WorldCar's own suspension and drive step is skipped for it. It had
+  thrown "Native chassis snapshot requires a dynamic body" every frame.
+- INTRO now plays its ride: the police car runs recordings 706 and 707 with CJ in the back, past the freight train.

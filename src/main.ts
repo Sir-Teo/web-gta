@@ -267,6 +267,18 @@ async function boot() {
   const sim = new Simulation();
   const flightInstruments=document.createElement('div');flightInstruments.className='flight-instruments';flightInstruments.hidden=true;hud.element.append(flightInstruments);
   let worldCar:ScriptCar|undefined;
+  /** The player riding a car as a passenger (WARP_CHAR_INTO_CAR_AS_PASSENGER): the car and its seat (1 front right,
+   * 2 rear left, 3 rear right). The car goes on under its own driver, AI or recording. */
+  let playerPassenger:{car:ScriptCar;seat:1|2|3}|undefined;
+  /** The passenger steps out on his own side: his seat's point carried out past the body, set down on the ground. */
+  const leavePassengerSeat=()=>{
+   const ride=playerPassenger;if(!ride)return;playerPassenger=undefined;
+   const local=carEntry.passengerSeat(ride.car,ride.seat),side=ride.seat===2?-1:1;
+   const bounds=ride.car.assets.collision.bounds,x=side*(Math.max(Math.abs(bounds.min[0]),Math.abs(bounds.max[0]))+.6);
+   const w=ride.car.worldPoint({x,y:local?.y??0,z:local?.z??0}),top=w.y+2;
+   const hit=sim.world.castRay(new RAPIER.Ray({x:w.x,y:top,z:w.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   ride.car.setPlayerOutAsPassenger({x:w.x,y:hit?top-hit.timeOfImpact+.03:w.y-.5,z:w.z},ride.car.heading());
+  };
   let scriptObjectViews:ScriptObjectViews|undefined;
   let scriptFixedCamera:typeof render.fixedCamera,stuntCamera:typeof render.fixedCamera;
   let scriptGeneratorCount=0;
@@ -2008,6 +2020,7 @@ async function boot() {
       if(!sim.climbing&&(input.consume('KeyF')&&!playerControlsDisabled()||planeExitReady)&&!law.arrested){
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.
         if(sim.jetPack){/* the jetpack task owns the button */}
+        else if(playerPassenger)leavePassengerSeat();
         else if(sim.player.swimming){hud.message('Get out of the water first.');}
         else{
         const plane=fleet?.nearestPlane();
@@ -2105,7 +2118,7 @@ async function boot() {
          inAircraft=!!plane;}
         {const game=mission?.runtime.game;
          if(game&&statReactions&&sim.player.health>0){
-          const bike=fleet?.occupiedBike,onFoot=!worldCar?.occupied&&!fleet?.occupied&&!bike&&!fleet?.occupiedBoat&&!fleet?.occupiedPlane;
+          const bike=fleet?.occupiedBike,onFoot=!worldCar?.occupied&&!fleet?.occupied&&!bike&&!fleet?.occupiedBoat&&!fleet?.occupiedPlane&&!playerPassenger;
           if(statFrameDue&&onFoot&&sim.footMove==='sprint')statReactions.sprinting(1000/30);
           else if(statFrameDue&&onFoot&&sim.footMove==='run')statReactions.running(1000/30);
           // CBike counts four wheel contact points.
@@ -2131,7 +2144,7 @@ async function boot() {
          hud.tripSkip(canSkip,canSkip?gxtHudText(gxtText('FEC_TSK','TRIP SKIP')):'');}
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
-        const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!entryBusy&&!bikeMount.active&&(!carEntry.active||carEntry.phase==='approach');
+        const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!playerPassenger&&!entryBusy&&!bikeMount.active&&(!carEntry.active||carEntry.phase==='approach');
         // CTaskSimplePlayerOnFoot raises CEventGunAimedAt on a locked ped. With the mouse there is no lock; the ped under
         // the crosshair (m_p3rdPersonMouseTarget, from the stubbed Compute3rdPersonMouseTarget) gets it instead.
         if(onFoot&&weapons.aiming&&weapons.lock&&weapons.inventory.info()?.fire==='instant')pedestrians?.gunAimedAt(weapons.lock.handle,{...sim.player.position});
@@ -2329,7 +2342,7 @@ async function boot() {
         // CAutomobile::ProcessControlInputs does for the quad.
         for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied?(bikeMount.active&&bikeMount.bike===bike||controlsOff?{throttle:0,steer:0,brake:true,disabled:controlsOff}:{throttle:axes.y,steer:axes.x,brake:input.down('Space'),hop:input.down('ControlLeft')}):undefined);
         const tPlayer=performance.now();
-        const riding=!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned||bikeMount.pinned);
+        const riding=!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned||bikeMount.pinned||playerPassenger);
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
         if(wasRiding!==riding){wasRiding=riding;sim.player.moveBlend=0;sim.player.speed=0;sim.player.jumpMomentum={x:0,z:0};render.nativeCharacter?.resetLocomotion();}
         if(riding){
@@ -2456,7 +2469,9 @@ async function boot() {
     if(paused||terrainPause||navigation?.open||arsenal.open)input.dropPresses();
     const tBetween=performance.now();
     if(!paused&&!navigation?.open&&!arsenal.open){stepPrebuild();requestFollowingTerrain();}
-    render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike;
+    // A passenger whose car has gone or burnt out is set down beside it.
+    if(playerPassenger&&(playerPassenger.car.disposed||playerPassenger.car.wrecked))leavePassengerSeat();
+    render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike||!!playerPassenger;
     {
       const p=sim.player,water=render.lighting.water.levels?.level(p.position.x,-p.position.z),entering=carEntry.active&&['approach','align','locked','open','pullout','getIn','closeInside','shuffle'].includes(carEntry.phase!);
       const inCar=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||carEntry.seated||carEntry.phase==='waitSlow'||carEntry.phase==='getOut';
@@ -2558,7 +2573,11 @@ async function boot() {
       const focus=sim.climb.cameraTarget({x:lerp(p.previous.x,p.position.x),y:-lerp(p.previous.z,p.position.z),z:lerp(p.previous.y,p.position.y)+1});
       render.cameraFocus={x:focus.x,y:focus.z-1,z:-focus.y};
     }
-    if(climbAnim&&render.nativeCharacter?.hasVehicleClip(climbAnim.clip.toLowerCase())){
+    const passengerSeat=playerPassenger&&carEntry.passengerSeat(playerPassenger.car,playerPassenger.seat),passengerClip=playerPassenger&&sitClip(playerPassenger.car.modelFlags,false);
+    if(playerPassenger&&passengerSeat&&passengerClip&&render.nativeCharacter?.hasVehicleClip(passengerClip)){
+      // The passenger sits in his seat (CTaskSimpleCarDrive's sit, not the driver's).
+      render.vehiclePose={frame:{vehicle:playerPassenger.car.car.root,local:passengerSeat},pose:{clip:passengerClip,seconds:0,blend:1}};
+    }else if(climbAnim&&render.nativeCharacter?.hasVehicleClip(climbAnim.clip.toLowerCase())){
       render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{clip:climbAnim.clip.toLowerCase(),seconds:climbAnim.time,blend:climbAnim.blend}};
     }else if(climbJump!==undefined&&render.nativeCharacter?.hasVehicleClip('climb_jump')){
       // CTaskSimpleJump::Launch blends CLIMB_jump for a climb jump; CTaskSimpleInAir keeps it while it plays.
@@ -3607,6 +3626,12 @@ async function boot() {
                  releaseMissionTrains:()=>{fleet?.releaseMissionTrains();},
                  removeAllTrains:()=>{fleet?.removeAllTrains();},
                  scriptVehicleIsTrain:car=>car instanceof WorldTrain,
+                 scriptVehicleInAirProper:car=>{
+                  if(car instanceof WorldTrain)return false;
+                  const body=(car as {car:{body:import('@dimforge/rapier3d-compat').RigidBody}}).car.body;
+                  const airborne=isScriptCar(car)?car.audio.contactWheels===0:'airborne' in (car as object)?!!(car as {airborne:boolean}).airborne:false;
+                  return airborne&&!touchesBuildingOrVehicle(body);
+                 },
                  setPedTypeRelationship:(relationship,pedType,other,on)=>{pedestrians?.setPedTypeRelationship(relationship,pedType,other,on);},
                  pedTypeRelationshipSet:(relationship,pedType,other)=>!!pedestrians?.pedTypeRelationshipSet(relationship,pedType,other),
                  maxGroupMembers:()=>maxGroupMembers(),
@@ -3671,6 +3696,14 @@ async function boot() {
                   }
                   fleet?.generateEvenIfClose();return true;
                  },
+                 // CTaskSimpleCarSetPedInAsPassenger for the player: SA's seat 0 is the front right, 1 and 2 the rear; -1 the
+                 // first free one.
+                 warpPlayerIntoCarAsPassenger:(car,seat)=>{
+                  if(!isScriptCar(car)||car.disposed)return false;
+                  if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger)return false;
+                  const chosen=(seat>=0&&seat<=2?seat+1:1) as 1|2|3;
+                  carEntry.cancel();car.setPlayerInAsPassenger(chosen);playerPassenger={car,seat:chosen};return true;
+                 },
                  warpPlayerIntoCar:car=>{
                   const target=car as ScriptCar;if(target.disposed||typeof target.setPedInAsDriver!=='function')return false;
                   if(target.occupied)return true;
@@ -3700,7 +3733,7 @@ async function boot() {
                  removeScriptVehicle:car=>{if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptVehicle(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
-                 playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied,
+                 playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car,
                  playerVehiclePose:()=>{
                   const car=worldCar?.occupied?worldCar:fleet?.occupied,other=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane,body=car?car.car.body:other?.body;
                   if(!body)return undefined;
@@ -3766,7 +3799,7 @@ async function boot() {
                  // speed is under a step's worth, and a ped on foot whether it is standing in place, on the
                  // ground and not shifting; the browser's own speed and grounded flag answer both.
                  playerPed:()=>{
-                  const car=worldCar?.occupied?worldCar:fleet?.occupied;
+                  const car=worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car;
                   const vehicle=car??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
                   const speed=vehicle?Math.hypot(sim.player.position.x-sim.player.previous.x,sim.player.position.z-sim.player.previous.z)*60:sim.player.speed;
                   // eVehicleAppearance: a car is an automobile, and the browser's bikes, boats and planes are

@@ -509,6 +509,21 @@ export class WorldCar {
  setPedInAsDriver(){
   const freebie=setDriverFreebie(this);if(freebie)WorldCar.onFreebie?.(this,freebie);
   this.engineRunning=!this.wrecked;this.autopilot=undefined;this.driverless=false;this.holdForEntry=false;this.sim.setCrouched(false);this.occupied=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};}
+ /** The player's passenger seat (CarEntry's numbering: 1 front right, 2 rear left, 3 rear right), 0 while he is not
+  * a passenger here. The car goes on under whoever drives it; the player rides along. */
+ playerPassengerSeat=0;
+ /** CTaskSimpleCarSetPedInAsPassenger for the player: he takes the seat and loses his on-foot collision. */
+ setPlayerInAsPassenger(seat:number){
+  this.sim.setCrouched(false);this.playerPassengerSeat=seat;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);
+  this.sim.player.moveBlend=0;this.sim.player.speed=0;
+ }
+ /** CTaskSimpleCarSetPedOut for the passenger: he stands at `foot`. */
+ setPlayerOutAsPassenger(foot:V3,heading=this.sim.player.heading){
+  this.playerPassengerSeat=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
+  this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};
+  const center={...foot,y:foot.y+.9};this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.heading=heading;
+  this.sim.playerBody.setTranslation(center,true);this.sim.playerBody.setNextKinematicTranslation(center);this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;
+ }
  /** CTaskSimpleCarSetPedOut: the driver leaves the seat and stands at `foot`. */
  setPedOut(foot:V3,heading=this.sim.player.heading){
   if(this.occupied){const weapon=removeDriverFreebie(this);if(weapon)WorldCar.onFreebie?.(this,{kind:'weapon',...weapon});}
@@ -568,6 +583,9 @@ export class WorldCar {
   if(this.car.nitro.installed)this.car.nitrousControl(0,seconds*50,this.gasPedal,this.occupied?{fire:this.pad.carGun,looking:this.pad.looking}:undefined,!this.occupied&&!!this.autopilot);
   // SkipPhysics stops only the physics: damage, fire and the controls above still run.
   if(this.skipPhysics(seconds))return;
+  // A car a recording holds (collision force off, a kinematic body here) is put on the recording after the step;
+  // its own suspension and drive have nothing to move, and the recording's pedals show in its lamps.
+  if(!this.car.body.isDynamic()){this.steerAngle=this.recordingControls?.steerAngle??this.steerAngle;this.gasPedal=this.recordingControls?.gas??this.gasPedal;return;}
   {const v=this.car.body.linvel();this.prevSpeed=Math.hypot(v.x,v.y,v.z)/50;}
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;this.lastCompression=result.sampled.compression;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
@@ -987,7 +1005,8 @@ export class WorldCar {
   // CVehicle::UpdateClumpAlpha from CAutomobile::ProcessControl: 16 a frame, at the frame limiter's 30 fps.
   if(this.alpha<255&&!this.disposed){this.alpha=Math.min(255,this.alpha+16*seconds*30);this.car.setAlpha(this.alpha/255);}
   this.resolveProps();this.collisions();this.collisionDamage();this.upsideDownDamage(seconds);this.processComponents(seconds);this.debris.step(seconds);this.debris.sync();
-  if(!this.occupied)return;const p=this.car.body.translation(),q=this.car.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={x:p.x,y:p.y,z:p.z};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.car.body.linvel().x,this.car.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
+  // The player rides with the car, driving it or as a passenger.
+  if(!this.occupied&&!this.playerPassengerSeat)return;const p=this.car.body.translation(),q=this.car.body.rotation(),player=this.sim.player;player.previous={...player.position};player.position={x:p.x,y:p.y,z:p.z};player.heading=Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));player.speed=Math.hypot(this.car.body.linvel().x,this.car.body.linvel().z);player.grounded=true;this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});
  }
  setLighting(worldAmbient:readonly number[]|undefined,objectAmbient:readonly number[]|undefined,sunMultiplier:number,night:number){
   const contact=worldAmbient?nativeContactLightMultiplier(worldAmbient,nativeCarContactBrightness(this.collisionLighting,night)):1;

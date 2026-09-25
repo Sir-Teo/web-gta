@@ -45,6 +45,8 @@ export class ScmVehiclePool<Car>{
  private word(handle:number){const said=this.said.get(handle);requireAsset(said,'Script car handle names nothing.');return said!;}
  /** DOES_VEHICLE_EXIST: a handle the script still holds whose car has not failed and has not gone. */
  exists(handle:number){return this.pool.exists(handle);}
+ /** The car once its making has settled (CREATE_CHAR_INSIDE_CAR on a car still being built waits for it). */
+ whenSettled(handle:number){return this.pool.whenSettled(handle);}
  /** The browser's own car, once it has built one. */
  entity(handle:number){return this.pool.entity(handle);}
  /** The handle that names that entity, or nothing when no handle does. */

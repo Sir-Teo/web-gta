@@ -11,6 +11,8 @@ import {requireAsset} from '../assets/binary';
 interface PooledEntity<Entity>{
  handle:number;entity?:Entity;
  settled:boolean;failed:boolean;deleted:boolean;noLongerNeeded:boolean;
+ /** The making now under way, which settles when it does. */
+ making?:Promise<void>;
  pending:((entity:Entity)=>void)[];
 }
 export interface ScmEntityPoolHost<Entity>{
@@ -50,7 +52,7 @@ export class ScmEntityPool<Entity>{
   this.settleInto(record,spawn);
  }
  private settleInto(record:PooledEntity<Entity>,spawn:()=>Promise<Entity|undefined>){
-  void spawn().then(entity=>{
+  record.making=spawn().then(entity=>{
    record.settled=true;
    if(!entity){record.failed=true;return;}
    if(record.deleted){this.host.remove(entity);return;}
@@ -58,6 +60,12 @@ export class ScmEntityPool<Entity>{
    for(const action of record.pending)action(entity);
    record.pending.length=0;
   }).catch(()=>{record.settled=true;record.failed=true;});
+ }
+ /** The entity once its making has settled: at once for one already made, nothing for one that failed or has gone. */
+ async whenSettled(handle:number):Promise<Entity|undefined>{
+  const record=this.records.get(handle);if(!record)return undefined;
+  if(!record.settled)await record.making;
+  return record.deleted?undefined:record.entity;
  }
  /** The browser's own entity, once it has one. */
  entity(handle:number){return this.records.get(handle)?.entity;}

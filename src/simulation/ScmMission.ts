@@ -80,6 +80,10 @@ export interface ScmMissionWorld {
  setPlayerAmmo?(weaponType:number,ammo:number):void;
  addPlayerAmmo?(weaponType:number,ammo:number):void;
  hidePlayerWeapon?(hidden:boolean):void;
+ /** IS_CAR_IN_AIR_PROPER for a script vehicle: no wheel on the ground and nothing touched. */
+ scriptVehicleInAirProper?(car:unknown):boolean;
+ /** CTaskSimpleCarSetPedInAsPassenger for the player, SA's seat numbering (-1 the first free); false when he cannot. */
+ warpPlayerIntoCarAsPassenger?(car:unknown,seat:number):boolean;
  /** CPedType's acquaintance tables by ePedType index. */
  setPedTypeRelationship?(relationship:number,pedType:number,otherPedType:number,on:boolean):void;
  pedTypeRelationshipSet?(relationship:number,pedType:number,otherPedType:number):boolean;
@@ -755,7 +759,14 @@ export class ScmMission {
     this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');
    },
    // The passenger seat is the one CREATE_CHAR_AS_PASSENGER takes, from the same operand.
-   warpPedIntoCarAsPassenger:(handle,vehicle,seat)=>{this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,seat);},
+   warpPedIntoCarAsPassenger:(handle,vehicle,seat)=>{
+    if(handle===PLAYER_PED_HANDLE){
+     if(!this.host('warpPlayerIntoCarAsPassenger','WARP_CHAR_INTO_CAR_AS_PASSENGER')(this.liveVehicle(vehicle),seat))
+      throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_INTO_CAR_AS_PASSENGER','a player already in a vehicle, or a vehicle other than a car');
+     return;
+    }
+    this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,seat);
+   },
    // CPed::AttachPedToEntity and DettachPedFromEntity. The angle limit and the weapon belong to a ped that can
    // aim from where it hangs, which this browser's riders do not do yet, so they are not taken.
    attachPedToCar:(handle,vehicle,offset)=>{this.peds.attachToCar(handle,vehicle,offset);},
@@ -1224,7 +1235,10 @@ export class ScmMission {
    // stunt-bonus script (HJ) reads zeros and the wheelie questions (reversed, over those counters) answer no.
    // IS_CAR_IN_AIR_PROPER (VehicleCommands.cpp, reversed): nothing it collides with is a building or a vehicle. The
    // host answers for the player's own vehicle; a car the script made is not measured.
-   vehicleIsInAirProper:handle=>{const v=this.playerVehicle(handle);if(!v.inAirProper)throw new UnsupportedScmCommand(-1,0,'IS_CAR_IN_AIR_PROPER',`vehicle ${handle}`);return v.inAirProper();},
+   vehicleIsInAirProper:handle=>{
+    if(handle!==PLAYER_VEHICLE_HANDLE)return this.host('scriptVehicleInAirProper','IS_CAR_IN_AIR_PROPER')(this.liveVehicle(handle));
+    const v=this.playerVehicle(handle);if(!v.inAirProper)throw new UnsupportedScmCommand(-1,0,'IS_CAR_IN_AIR_PROPER',`vehicle ${handle}`);return v.inAirProper();
+   },
    // IS_CAR_UPRIGHT's handler is not reversed: the car is upright unless it lies on its roof (its up axis below the
    // horizontal), as the command is documented.
    isCarUpright:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z>=0,
@@ -1345,9 +1359,10 @@ export class ScmMission {
   // Script handles start clear of the player's own, which is 1 for him and for the car he drives.
   this.peds=new ScmPedPool<unknown>({
    spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,model,position),
-   spawnInCar:(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,model,this.vehicles.entity(vehicle),seat),
-   spawnRandomInCar:(vehicle,seat)=>this.world.spawnScriptRandomPedInCar(this.vehicles.entity(vehicle),seat),
-   spawnOnCar:(pedType,model,vehicle,offset)=>this.world.spawnScriptPedOnCar(pedType,model,this.vehicles.entity(vehicle),offset),
+   // A ped made in a car the browser is still building waits for the car.
+   spawnInCar:async(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,model,await this.vehicleOrPlayer(vehicle),seat),
+   spawnRandomInCar:async(vehicle,seat)=>this.world.spawnScriptRandomPedInCar(await this.vehicleOrPlayer(vehicle),seat),
+   spawnOnCar:async(pedType,model,vehicle,offset)=>this.world.spawnScriptPedOnCar(pedType,model,await this.vehicleOrPlayer(vehicle),offset),
    place:(ped,position)=>{this.world.placeScriptPed(ped,position);},
    setHeading:(ped,degrees)=>{this.world.setScriptPedHeading(ped,degrees);},
    positionOf:ped=>this.world.scriptPedPosition(ped),
@@ -1584,6 +1599,8 @@ export class ScmMission {
  /** CPlayerData::m_bGroupAlwaysFollow (SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS). */
  playerGroupAlwaysFollows=false;
  /** What a car handle names: the player's own car for PLAYER_VEHICLE_HANDLE, a script car the browser built, or nothing. */
+ /** A car by handle once it is built: the player's own at once, a script car when its making settles. */
+ private async vehicleOrPlayer(handle:number):Promise<unknown>{return handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.whenSettled(handle);}
  vehicleByHandle(handle:number):unknown{return handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.entity(handle);}
  /** What a ped handle names: the player, the browser's ped behind a live script handle, or nothing. */
  pedByHandle(handle:number):unknown{return handle===PLAYER_PED_HANDLE?'player':this.peds.exists(handle)?this.peds.entity(handle):undefined;}
