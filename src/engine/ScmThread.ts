@@ -585,7 +585,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setMenuItemWithNumber?(handle:number,column:number,row:number,text:string,value:number):void;
  /** The objects and vehicles of this batch. */
  objectHealth?(handle:number):number;
- objectWasDamagedByWeapon?(handle:number,weaponType:number):boolean;
+ /** CObject::m_nLastWeaponDamage, -1 for none. */
+ objectLastWeaponDamage?(handle:number):number;
  sortOutObjectCollisionWithVehicle?(object:number,vehicle:number):void;
  detachObject?(handle:number,pitch:number,heading:number,strength:number,applyTurnForce:boolean):void;
  grabEntityOnRopeForObject?(handle:number):{vehicle:number;ped:number;object:number};

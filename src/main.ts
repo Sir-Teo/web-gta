@@ -1427,8 +1427,25 @@ async function boot() {
     for(const texture of part.textures)if(wanted.has(texture.name.toLowerCase())&&!textures.has(texture.name.toLowerCase()))textures.set(texture.name.toLowerCase(),nativeTexture(texture));
     breakPieces.attach(object,textures);
   };
+  /** A model's OBJECT.DAT values, by id (through the IDE's dff name) or by name. */
+  const objectDefValues=(model:number|string)=>{
+    const name=typeof model==='number'?scriptPickupModels?.byId.get(model)?.model:model;
+    return name?(localObjectDefs??resolvedObjectDefs)?.get(name.toLowerCase())?.values:undefined;
+  };
+  /** CWeapon::DoBulletImpact (and CBulletInfo::Update for the sniper) on a script object the player's fire hits:
+   * ObjectDamage with the gun-break damage for a breakable, and the sniper's 50 on anything. The push a lighter
+   * object takes is not applied: the record holds the object where the script put it. */
+  const shootScriptObject=(handle:number,sniper:boolean,weapon:number)=>{
+    const objects=mission?.runtime.game.objects;if(!objects?.exists(handle))return;
+    const object=objects.at(handle),values=objectDefValues(object.model);
+    const info={effect:object.colDamageEffect,colDamageMultiplier:object.colDamageMultiplier,uprootLimit:values?.uprootLimit??0,mass:object.mass,gunBreakMode:values?.gunBreakMode,smashMultiplier:object.smashMultiplier};
+    const damages=sniper?sniperHitsObject(info,object.isStatic).damages:[bulletHitsObject(info,object.isStatic,false).damage].filter((d):d is number=>d!==undefined);
+    for(const damage of damages)objects.damage(handle,damage,weapon,'player');
+  };
   /** CWeapon::DoBulletImpact on an OBJECT.DAT prop: a push that can unfreeze it, or ObjectDamage for breakables. */
-  const shootProp=(hit:import('@dimforge/rapier3d-compat').RayColliderIntersection,point:{x:number;y:number;z:number},incremental:boolean,sniper=false)=>{
+  const shootProp=(hit:import('@dimforge/rapier3d-compat').RayColliderIntersection,point:{x:number;y:number;z:number},incremental:boolean,sniper:boolean,weapon:number)=>{
+    const scriptObject=scriptObjectViews?.objectForCollider(hit.collider.handle);
+    if(scriptObject!==undefined){shootScriptObject(scriptObject,sniper,weapon);return;}
     // CGlass::WasGlassHitByBullet: the first round cracks a window, later ones break it one time in four.
     const window=glassWindowAt(hit.collider.handle);
     if(window){const outcome=wasGlassHitByBullet(window.state);if(outcome==='break')breakWindow(hit.collider.handle,0,[0,0,0],[point.x,-point.z,point.y],false);return;}
@@ -1590,7 +1607,18 @@ async function boot() {
   /** CWorld::TriggerExplosionSectorList's object pass over OBJECT.DAT props: TryToExplode,
    * unfreezing when the blast force beats the uproot limit, ObjectDamage and the push. */
   weapons.onScorch=point=>{scorches.add(explosionScorch([point.x,-point.z,point.y]),gameTimeMs);};
-  weapons.onExplosion=(point,params)=>{
+  weapons.onExplosion=(point,params,byPlayer)=>{
+    // The script's objects in the blast: ObjectDamage(WEAPON_EXPLOSION) from whoever set it off, 300 x falloff for
+    // one the blast frees and the falloff alone for one it leaves static. The record keeps the object in place.
+    if(mission&&scriptObjectViews){
+      const objects=mission.runtime.game.objects;
+      for(const object of mission.scriptObjects()){
+        if(!object.usesCollision||!scriptObjectViews.bodyOf(object.handle))continue;
+        const falloff=explosionFalloff(params.radius,Math.hypot(object.position.x-point.x,object.position.z-point.y,-object.position.y-point.z));if(!falloff)continue;
+        const values=objectDefValues(object.model),freed=!object.isStatic||explosionUnfreezes(params.force,values?.uprootLimit??0);
+        objects.damage(object.handle,freed?300*falloff:falloff,51,byPlayer?'player':'other');
+      }
+    }
     const scene=importedScene;if(!scene)return;
     const toNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y}),fromNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:v.z,z:-v.y});
     const seen=new Set<number>();
@@ -1810,6 +1838,8 @@ async function boot() {
     collisionMaterialHistogram:()=>{const h:Record<number,number>={};for(const record of importedScene?.sources.values()??[]){const s=record.source;if(s.kind!=='mesh')continue;for(const m of s.mesh.materials)h[m]=(h[m]??0)+1;}return h;},
     /** Dev probe: the collision surface under a renderer-frame point (material id, face and source kind), or null. */
     surfaceAt:(x:number,z:number,top=200)=>{const hit=sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)return null;const record=importedScene?.sources.get(hit.collider.handle);const surface=record?nativeCollisionSurface(record.source,hit):undefined;return {y:top-hit.timeOfImpact,handle:hit.collider.handle,known:!!record,model:record?.modelName??null,kind:record?.source.kind??null,material:surface?.material??null,face:surface?.faceIndex??null,featureType:hit.featureType,keys:record?Object.keys(record):[]};},
+    /** The first collider a ray straight down meets, and the script object it belongs to, if any. */
+    rayDown:(x:number,z:number,top=200)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+100,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);return hit?{y:top-hit.timeOfImpact,scriptObject:scriptObjectViews?.objectForCollider(hit.collider.handle)??null}:null;},
     groundAt:(x:number,z:number,top=200)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?top-hit.timeOfImpact:null;},
     /** Set the game clock, in minutes after midnight. */
     setTime:(minutes:number)=>{sim.timeMinutes=((minutes%1440)+1440)%1440;return sim.timeMinutes;},
@@ -3328,7 +3358,7 @@ async function boot() {
               // The objects a script makes are drawn from the runtime's own records; the IDE associations say
               // which dff and txd each model id stands for.
               if(Array.isArray(data.ideRecords)&&!scriptObjectViews){
-               scriptObjectViews=new ScriptObjectViews(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,data.ideRecords);
+               scriptObjectViews=new ScriptObjectViews(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,data.ideRecords,sim.world);
                scriptObjectViews.visibleArea=()=>render.lighting.area;
                const byId=new Map<number,import('./assets/ide').IdeAssociation>(),byName=new Map<string,import('./assets/ide').IdeAssociation>();
                for(const record of data.ideRecords as import('./assets/ide').IdeAssociation[]){
@@ -3647,6 +3677,20 @@ async function boot() {
                  switchPathNodes:(area,isOff,isCars,backToOriginal)=>{for(const areas of pathAreaMaps)switchRoadsOffInArea(areas,area,isOff,isCars,backToOriginal);},
                  markRoadNodeAsDontWander:point=>{for(const areas of pathAreaMaps)markRoadNodeAsDontWander(areas,point);},
                  unmarkAllRoadNodesAsDontWander:()=>{for(const areas of pathAreaMaps)unmarkAllRoadNodesAsDontWander(areas);},
+                 // The map's props in the streamed window: smashed once ObjectDamage turned the collision off and hid it,
+                 // damaged once its damaged model shows.
+                 closestWorldObjectOfType:(point,radius,model)=>{
+                  const scene=importedScene,name=(typeof model==='number'?scriptPickupModels?.byId.get(model)?.model:model)?.toLowerCase();if(!scene||!name)return undefined;
+                  let best:{distance:number;smashed:boolean;damaged:boolean}|undefined;
+                  for(const [handle,source] of scene.sources){
+                   if(!source.placement||source.modelName.toLowerCase()!==name)continue;
+                   const [x,y,z]=source.placement.position,distance=Math.hypot(x-point.x,y-point.y,z-point.z);
+                   if(distance>=radius||best&&distance>=best.distance)continue;
+                   const state=propStates.get(handle);
+                   best={distance,smashed:!!state?.destroyed||smashedPlacements.has(placementKey(source.modelName,source.placement.position)),damaged:!!state?.renderDamaged};
+                  }
+                  return best;
+                 },
                  scriptVehicleInAirProper:car=>{
                   if(car instanceof WorldTrain)return false;
                   const body=(car as {car:{body:import('@dimforge/rapier3d-compat').RigidBody}}).car.body;
@@ -3948,6 +3992,12 @@ async function boot() {
                  law.native.stats=game.stats;
                  game.stats.bind(137,{get:()=>cheats.timesCheated,set:v=>{cheats.timesCheated=v;}});
                  for(let stat=69;stat<=78;stat++)game.stats.bind(stat,{get:()=>weapons.inventory.practice.get(stat-47)??0,set:v=>{weapons.inventory.practice.set(stat-47,v);}});}
+                // CObjectData::SetObjectData for the script's objects: the model's OBJECT.DAT row, by the dff name the
+                // IDE gives its id.
+                mission.runtime.game.objects.objectInfo=model=>{
+                  const name=typeof model==='number'?scriptPickupModels?.byId.get(model)?.model:model,values=name?(localObjectDefs??resolvedObjectDefs)?.get(name.toLowerCase())?.values:undefined;
+                  return values&&{colDamageEffect:values.collisionDamageEffect??0,colDamageMultiplier:values.collisionDamageMultiplier??1,smashMultiplier:values.smashMultiplier??1,mass:values.mass??99999};
+                };
                 // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);
                 // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.

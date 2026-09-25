@@ -83,6 +83,8 @@ export interface ScmMissionWorld {
  markRoadNodeAsDontWander?(point:{x:number;y:number;z:number}):void;
  switchPathNodes?(area:{xMin:number;xMax:number;yMin:number;yMax:number;zMin:number;zMax:number},isOff:boolean,isCars:boolean,backToOriginal:boolean):void;
  unmarkAllRoadNodesAsDontWander?():void;
+ /** The nearest of the map's own objects of a model within the radius (native), and whether it is smashed or shows its damage. */
+ closestWorldObjectOfType?(point:{x:number;y:number;z:number},radius:number,model:number|string):{distance:number;smashed:boolean;damaged:boolean}|undefined;
  /** IS_CAR_IN_AIR_PROPER for a script vehicle: no wheel on the ground and nothing touched. */
  scriptVehicleInAirProper?(car:unknown):boolean;
  /** CTaskSimpleCarSetPedInAsPassenger for the player, SA's seat numbering (-1 the first free); false when he cannot. */
@@ -843,7 +845,25 @@ export class ScmMission {
    // CObject's own fields, which the runtime keeps, and the two questions only the world can answer.
    objectHealth:handle=>this.runtime.game.objects.at(handle).health,
    setObjectHealth:(handle,health)=>{this.runtime.game.objects.setHealth(handle,health);},
-   objectHasBeenDamaged:handle=>this.runtime.game.objects.at(handle).damaged,
+   objectHasBeenDamaged:handle=>this.runtime.game.objects.hasBeenDamaged(handle),
+   objectLastWeaponDamage:handle=>this.runtime.game.objects.at(handle).lastWeaponDamage,
+   // CWorld::FindNearestObjectOfType over every object: the script's own and the map's props. Smashed is a hidden
+   // object (bIsVisible off), damaged one showing its damaged model (m_bRenderDamaged).
+   closestObjectOfTypeIsSmashedOrDamaged:(x,y,z,radius,model,smashed,damaged)=>{
+    let best:{distance:number;smashed:boolean;damaged:boolean}|undefined;
+    for(const object of this.runtime.game.objects.all){
+     if(object.model!==model)continue;
+     const distance=Math.hypot(object.position.x-x,object.position.y-y,object.position.z-z);
+     if(distance<radius&&(!best||distance<best.distance))best={distance,smashed:!object.visible,damaged:object.renderDamaged};
+    }
+    const prop=this.world.closestWorldObjectOfType?.({x,y,z},radius,model);
+    if(prop&&(!best||prop.distance<best.distance))best=prop;
+    return !!best&&(smashed&&best.smashed||damaged&&best.damaged);
+   },
+   clearObjectLastWeaponDamage:handle=>{this.runtime.game.objects.clearLastWeaponDamage(handle);},
+   // objectFlags.bIsTargetable; CPlayerPed::FindWeaponLockOnTarget's object pass reads it through the host.
+   makeObjectTargettable:(handle,targetable)=>{this.runtime.game.objects.at(handle).targetable=targetable;},
+   setObjectOnlyDamagedByPlayer:(handle,only)=>{this.runtime.game.objects.at(handle).onlyDamagedByPlayer=only;},
    // The object handler is unreversed; like the ped's, the flag is taken as it is read (reVC does the same).
    hasObjectBeenPhotographed:handle=>{const o=this.runtime.game.objects.at(handle),was=!!o.photographed;o.photographed=false;return was;},
    objectSpeed:handle=>this.runtime.game.objects.speed(handle),

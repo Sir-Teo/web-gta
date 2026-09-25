@@ -28,7 +28,7 @@ function recording(){
   searchlightExists:method('lightExists',true),attachSearchlightToObject:method('attachLight'),
   createMenu:method('menu',6),deleteMenu:method('deleteMenu'),setMenuColumn:method('column'),
   setMenuItemWithNumber:method('item'),
-  objectHealth:method('objectHealth',400),objectWasDamagedByWeapon:method('objectDamaged',true),
+  objectHealth:method('objectHealth',400),objectLastWeaponDamage:method('objectDamaged',31),
   detachObject:method('detach'),grabEntityOnRopeForObject:method('grab',{vehicle:1,ped:2,object:3}),
   vehiclePassengerSeatIsFree:method('seatFree',true),setVehicleMission:method('mission'),
   controlVehicleHydraulics:method('hydraulics'),vehicleTyreIsBurst:method('burst',true),

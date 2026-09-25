@@ -7538,3 +7538,48 @@ Each is now answered:
 - A car deleted with the player in a passenger seat (DELETE_CAR, or anything else that removes it) leaves him on
   foot where he sat, as CVehicle's destructor does through CPed::FlagToDestroyWhenNextProcessed. Before, the exit
   read the freed body and the physics world faulted for the rest of the session.
+
+## The script's objects are physical, and ObjectDamage reaches them
+
+- Source: gta-reversed `Object.cpp` (CObject::Init, ObjectDamage 0x5A0D90), `ObjectData.cpp` (SetObjectData
+  0x5A2D00), `Weapon.cpp` (DoBulletImpact's object branch), all reversed; reVC's `Script4.cpp` for
+  HAS_OBJECT_BEEN_DAMAGED.
+- Before, an object a script made was only drawn: nothing collided with it and nothing damaged it. Now each one
+  gets its model's COL as a kinematic body where its record puts it. The body moves with the record and is on while
+  the object uses collision. The COL comes from an index of the archive's collision collections, built from their
+  chunk headers, and only the model's own chunk is decoded. Decoding every collection on the main thread cost
+  seconds.
+  - An object hanging from a car, ped or object goes without collision while attached, so it does not push what it
+    hangs from.
+  - The push a shot or blast gives a light object is not applied: the record holds the object in place.
+- CObject::Init's SetObjectData now gives a script object its model's OBJECT.DAT effect, damage and smash
+  multipliers and mass. A model without a row gets 99999 of mass and is explosion proof, as is a heavy row with no
+  effect.
+- ObjectDamage on a script object:
+  - Nothing reaches an object without collision, and the proofs turn weapons away.
+  - Health drops by the damage times the multiplier.
+  - The rest waits for an effect. bInvulnerable (SET_OBJECT_ONLY_DAMAGED_BY_PLAYER) keeps anyone but the player's
+    ped or vehicle from setting it off. m_nLastWeaponDamage records the weapon.
+  - Past 150, or at no health, the effect runs:
+    - effect 1 swaps to the damaged model;
+    - effect 20 smashes it (hidden, collision off);
+    - effect 21 swaps first and smashes on the next;
+    - effects 200 and 202 go to the break manager, with just the faces past the smash multiplier.
+- What reaches it:
+  - The player's shots: a breakable takes the gun-break damage, and the sniper's round 50 on anything.
+  - Blasts: WEAPON_EXPLOSION, 300 × falloff for an object the blast frees and the falloff alone for one it leaves
+    static, from the player when he set it off.
+- The script commands:
+  - HAS_OBJECT_BEEN_DAMAGED reads the damaged model or the object being hidden, as reVC does. Before, it read any
+    lost health.
+  - HAS_OBJECT_BEEN_DAMAGED_BY_WEAPON reads m_nLastWeaponDamage, with CDarkel's wildcards.
+  - CLEAR_OBJECT_LAST_WEAPON_DAMAGE, MAKE_OBJECT_TARGETTABLE (the flag) and SET_OBJECT_ONLY_DAMAGED_BY_PLAYER now
+    answer.
+  - IS_CLOSEST_OBJECT_OF_TYPE_SMASHED_OR_DAMAGED looks over the script's objects and the streamed map props.
+- Not yet:
+  - The damaged model is not drawn (the flag is kept).
+  - A broken script object's pieces do not fly.
+  - Lock-on does not yet read the targetable flag.
+  - Cars and melee do not damage script objects.
+  - BREAK_OBJECT still gives up: its second operand is unknown and neither reference has it.
+- Verification: `tests/scm-object-damage.test.ts`, `tests/browser/script-object-collision.spec.ts`.

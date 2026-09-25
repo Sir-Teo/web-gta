@@ -1,4 +1,5 @@
 import {requireAsset} from '../assets/binary';
+import {physicalCanBeDamaged} from '../combat/nativePhysicalProofs';
 /* The script's own CObjects, pinned gta-reversed ead3051 (`ObjectCommands.cpp`'s Object namespace, which is
  * reversed, over `CObject::Create` and the CEntity/CPhysical fields each command reaches). The table stands in
  * for CPools' object pool: it holds what the script can read back, so a host can mirror each record into the
@@ -14,6 +15,18 @@ export const MAX_SCRIPT_OBJECTS=350;
 export const COL_DAMAGE_EFFECT_NONE=0,COL_DAMAGE_EFFECT_SMASH_COMPLETELY=4;
 /** CObject::Init's m_fHealth. */
 export const DEFAULT_OBJECT_HEALTH=1000;
+/** eObjectColDamageEffect's values ObjectDamage acts on (OBJECT.DAT's column 9). */
+const EFFECT_CHANGE_MODEL=1,EFFECT_SMASH_COMPLETELY=20,EFFECT_CHANGE_THEN_SMASH=21,EFFECT_BREAKABLE=200,EFFECT_BREAKABLE_REMOVED=202;
+/** What CObjectData::SetObjectData copies from a model's OBJECT.DAT row; a model without one gets the default
+ * object info (a multiplier of one, no effect) and 99999 of mass. */
+export interface ScmObjectInfo {colDamageEffect:number;colDamageMultiplier:number;smashMultiplier:number;mass:number}
+/** Who did the damage, as far as ObjectDamage asks: the player's ped or vehicle pass bInvulnerable. */
+export type ScmObjectDamager='player'|'playerVehicle'|'vehicle'|'other'|undefined;
+/** What ObjectDamage did: bWasDestroyed, whether the object lost its collision and was hidden, whether its model
+ * swapped to the damaged one, and whether it went to the break manager (with bJustFaces). */
+export interface ScmObjectDamageResult {destroyed:boolean;removed:boolean;changedModel:boolean;broken?:{justFaces:boolean}}
+/** eWeaponType's WEAPON_UNIDENTIFIED and WEAPON_RUNOVERBYCAR. */
+const WEAPON_UNIDENTIFIED=55,WEAPON_RUNOVERBYCAR=50;
 export interface ScmObject {
  handle:number;model:number|string;
  position:{x:number;y:number;z:number};
@@ -26,6 +39,19 @@ export interface ScmObject {
  scale:number;usesCollision:boolean;objectType:number;
  /** CObject::m_fHealth, which CObject::Init sets to a thousand, and whether anything has taken any of it. */
  health:number;damaged:boolean;
+ /** CObject::m_nLastWeaponDamage: the weapon type of the last ObjectDamage that reached the effect, -1 (255) for none. */
+ lastWeaponDamage:number;
+ /** CEntity::m_bRenderDamaged: the model has swapped to its damaged atomic. */
+ renderDamaged:boolean;
+ /** objectFlags.bIsBroken: the break manager took it. */
+ broken:boolean;
+ /** objectFlags.bIsTargetable, which MAKE_OBJECT_TARGETTABLE sets. */
+ targetable:boolean;
+ /** physicalFlags.bInvulnerable, which SET_OBJECT_ONLY_DAMAGED_BY_PLAYER sets: only the player's ped or vehicle
+  * set off the damage effect (the health still goes down). */
+ onlyDamagedByPlayer:boolean;
+ /** m_pObjectInfo's m_fColDamageMultiplier and m_fSmashMultiplier, and m_fMass. */
+ colDamageMultiplier:number;smashMultiplier:number;mass:number;
  /** CEntity::bIsVisible, which SET_OBJECT_VISIBLE clears. */
  visible:boolean;
  /** CEntity::m_pAttachedTo with its offset and rotation: what the object hangs from and where on it. The
@@ -56,6 +82,8 @@ const DEG=Math.PI/180;
 /** The script's objects. Handles are never reused while an object lives, as a pool handle carries a slot and a
  * reuse counter; a deleted object's handle stops existing, which is what DOES_OBJECT_EXIST reports. */
 export class ScmObjects {
+ /** CObjectData::SetObjectData's lookup, which the host fills from OBJECT.DAT once it is read. */
+ objectInfo?:(model:number|string)=>ScmObjectInfo|undefined;
  private readonly objects=new Map<number,ScmObject>();
  private nextHandle=1;
  get count(){return this.objects.size;}
@@ -71,8 +99,18 @@ export class ScmObjects {
   const handle=this.nextHandle++;
   const object:ScmObject={handle,model,position:{...position},heading:0,rotation:{x:0,y:0,z:0},velocity:{x:0,y:0,z:0},scale:1,usesCollision:true,
    objectType:options.external?OBJECT_MISSION2:OBJECT_MISSION,areaCode:0,colDamageEffect:COL_DAMAGE_EFFECT_NONE,dontApplySpeed:false,isStatic:true,
-   health:DEFAULT_OBJECT_HEALTH,damaged:false,visible:true,
+   health:DEFAULT_OBJECT_HEALTH,damaged:false,visible:true,lastWeaponDamage:-1,renderDamaged:false,broken:false,targetable:false,onlyDamagedByPlayer:false,
+   colDamageMultiplier:1,smashMultiplier:1,mass:99999,
    proofs:{bullet:false,fire:false,explosion:false,collision:false,melee:false},missionCleanup:options.missionCleanup};
+  // CObject::Init -> CObjectData::SetObjectData. A model with a heavy row (99998 or more) and no effect is explosion
+  // proof, as one without a row is.
+  if(this.objectInfo){
+   const info=this.objectInfo(model);
+   if(info){
+    object.colDamageEffect=info.colDamageEffect;object.colDamageMultiplier=info.colDamageMultiplier;object.smashMultiplier=info.smashMultiplier;object.mass=info.mass;
+    if(info.mass>=99998&&!info.colDamageEffect)object.proofs.explosion=true;
+   }else object.proofs.explosion=true;
+  }
   this.objects.set(handle,object);
   return object;
  }
@@ -91,6 +129,36 @@ export class ScmObjects {
   if(health<object.health)object.damaged=true;
   object.health=Math.max(0,health);
  }
+ /** CObject::ObjectDamage (0x5A0D90, reversed) on a script object. Not here: the crack palace wall's SWAT van
+  * rule and the forklift's exemption (a host passes neither), and what the destruction sets off (TryToExplode,
+  * the sound, the FX), which the host runs from the result. */
+ damage(handle:number,damage:number,weaponType:number,damager:ScmObjectDamager):ScmObjectDamageResult{
+  const object=this.at(handle),out:ScmObjectDamageResult={destroyed:false,removed:false,changedModel:false};
+  requireAsset(Number.isFinite(damage)&&Number.isInteger(weaponType),'Invalid object damage.');
+  if(!object.usesCollision)return out;
+  if(weaponType===WEAPON_UNIDENTIFIED&&(damager==='vehicle'||damager==='playerVehicle'))weaponType=WEAPON_RUNOVERBYCAR;
+  if(!physicalCanBeDamaged(object.proofs,weaponType))return out;
+  const scaled=damage*object.colDamageMultiplier;
+  object.health=Math.max(0,object.health-scaled);
+  if(scaled>0)object.damaged=true;
+  if(!object.colDamageEffect||object.onlyDamagedByPlayer&&damager!=='player'&&damager!=='playerVehicle')return out;
+  object.lastWeaponDamage=weaponType;
+  if(!(scaled>150||object.health===0))return out;
+  const smash=()=>{object.usesCollision=false;object.visible=false;object.isStatic=true;object.proofs.explosion=true;object.velocity={x:0,y:0,z:0};out.removed=true;out.destroyed=true;};
+  switch(object.colDamageEffect){
+   case EFFECT_CHANGE_MODEL:if(!object.renderDamaged){out.destroyed=true;out.changedModel=true;}object.renderDamaged=true;break;
+   case EFFECT_SMASH_COMPLETELY:smash();break;
+   case EFFECT_CHANGE_THEN_SMASH:if(object.renderDamaged)smash();else{object.renderDamaged=true;out.changedModel=true;}break;
+   case EFFECT_BREAKABLE:case EFFECT_BREAKABLE_REMOVED:
+    out.broken={justFaces:scaled>object.smashMultiplier*150};smash();object.broken=true;break;
+  }
+  if(!object.usesCollision&&!object.visible)object.health=0;
+  return out;
+ }
+ /** HAS_OBJECT_BEEN_DAMAGED, as reVC's CRunningScript reads it: the damaged model shows, or the object is hidden. */
+ hasBeenDamaged(handle:number){const object=this.at(handle);return object.renderDamaged||!object.visible;}
+ /** CLEAR_OBJECT_LAST_WEAPON_DAMAGE. */
+ clearLastWeaponDamage(handle:number){this.at(handle).lastWeaponDamage=-1;}
  /** ATTACH_OBJECT_TO_CAR, _TO_CHAR and _TO_OBJECT: the object hangs from that entity at an offset. */
  attach(handle:number,kind:'vehicle'|'ped'|'object',other:number,offset:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number}){
   const object=this.at(handle);

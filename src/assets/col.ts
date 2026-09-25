@@ -102,6 +102,19 @@ export function readCol(bytes: Uint8Array, warnings: string[] = [], sanitize = f
   return models;
 }
 
+/** The models a COL collection holds, read from each chunk's header alone (fourcc, size, 22-character name), with
+ * where each chunk lies, so one model can be decoded without the rest of the file. */
+export function colChunkNames(bytes: Uint8Array) {
+  const out: { name: string; start: number; end: number }[] = [], view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let start = 0; start + 32 <= bytes.length;) {
+    const magic = String.fromCharCode(bytes[start], bytes[start + 1], bytes[start + 2], bytes[start + 3]), size = view.getUint32(start + 4, true), end = start + 8 + size;
+    if (!/^COL[L234]$/.test(magic) || size < 24 || end > bytes.length) break;
+    let name = ''; for (let i = 0; i < 22; i++) { const c = bytes[start + 8 + i]; if (!c) break; name += String.fromCharCode(c); }
+    out.push({ name, start, end }); start = end;
+  }
+  return out;
+}
+
 export async function readCollisionFile(file?: File, archive?: File, entry?: ImgEntry): Promise<ColModel[] | undefined> {
   if (!file) {
     if (!entry) return undefined;

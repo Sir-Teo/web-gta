@@ -1,4 +1,12 @@
-import {Group,Quaternion,Vector3,type Scene} from 'three';
+import RAPIER from '@dimforge/rapier3d-compat';
+import {Group,Matrix4,Quaternion,Vector3,type Scene} from 'three';
+import {installNativeCollisionMatrix} from './nativeCollision';
+import {colChunkNames,readCol,type ColModel} from '../assets/col';
+import {readImgEntry,type ImgEntry} from '../assets/img';
+/** Native Z-up model space into the renderer's axes: the colliders are baked in the model's own frame, and the body
+ * then carries the object's turn and position. */
+const NATIVE_AXES=new Matrix4().makeRotationX(-Math.PI/2);
+const POSE=new Quaternion();
 /* Turning a record into a transform needs no new objects: the same few are reused every time, because this
  * runs once per script object per frame and the script's objects mostly stand still. */
 const TURN=new Quaternion(),TILT=new Quaternion(),UP=new Vector3(0,1,0),EAST=new Vector3(1,0,0),NORTH=new Vector3(0,0,1);
@@ -20,7 +28,13 @@ import type {ScmObject} from '../engine/ScmObjects';
  * A model the archive does not carry draws nothing, as CStreaming renders nothing for a model it cannot load,
  * and the object still exists for every question the script asks about it. */
 export class ScriptObjectViews{
- private readonly views=new Map<number,{group:Group;dispose:()=>void;model:number|string;applied:Float64Array;shown:boolean}>();
+ private readonly views=new Map<number,{group:Group;dispose:()=>void;model:number|string;applied:Float64Array;shown:boolean;
+  physical?:ReturnType<typeof installNativeCollisionMatrix>;collisionOn:boolean}>();
+ /** Which script object each of the colliders belongs to. */
+ private readonly owners=new Map<number,number>();
+ /** Which archive COL collection holds each model, and where in it: CColStore's files, read by their chunk headers. */
+ private collisionIndex?:Promise<Map<string,{entry:ImgEntry;start:number;end:number}>>;
+ private readonly collisions=new Map<string,Promise<ColModel|undefined>>();
  private readonly models=new Map<string,Promise<{model:import('../assets/dff').DffModel;textures:import('../assets/modelTextures').ModelTexture[]}|undefined>>();
  private readonly loading=new Set<number>();
  private readonly byId=new Map<number,IdeAssociation>();
@@ -30,7 +44,9 @@ export class ScriptObjectViews{
  private disposed=false;
  private readonly ambient=nativeAmbientState();
  error?:string;
- constructor(private readonly scene:Scene,private readonly base:string,associations:readonly IdeAssociation[]){
+ /** `world` gives each object its model's collision (CObject is a CPhysical the world collides with): a kinematic
+  * body the record moves, whose colliders are on while the object uses collision. */
+ constructor(private readonly scene:Scene,private readonly base:string,associations:readonly IdeAssociation[],private readonly world?:RAPIER.World){
   for(const record of associations){
    if(!this.byId.has(record.id))this.byId.set(record.id,record);
    const name=record.model.toLowerCase();
@@ -38,6 +54,31 @@ export class ScriptObjectViews{
   }
  }
  get drawn(){return this.views.size;}
+ /** The script object a collider belongs to, for a shot or blast that met it. */
+ objectForCollider(collider:number){return this.owners.get(collider);}
+ /** An object's body, once its collision is in. */
+ bodyOf(handle:number){return this.views.get(handle)?.physical?.body;}
+ /** The model's COL: its chunk alone, decoded from the collection the index names (the first holding the name). */
+ private collision(name:string){
+  const key=name.toLowerCase();let found=this.collisions.get(key);
+  if(!found){
+   found=(async()=>{
+    this.collisionIndex??=(async()=>{
+     this.source??=openStaticWorld(this.base);const source=await this.source,index=new Map<string,{entry:ImgEntry;start:number;end:number}>();
+     for(const entry of source.entries){
+      if(!/\.col$/i.test(entry.name))continue;
+      for(const chunk of colChunkNames(await readImgEntry(source.file,entry))){const k=chunk.name.toLowerCase();if(!index.has(k))index.set(k,{entry,start:chunk.start,end:chunk.end});}
+     }
+     return index;
+    })();
+    const at=(await this.collisionIndex).get(key);if(!at)return undefined;
+    const source=await this.source!,bytes=await readImgEntry(source.file,at.entry);
+    return readCol(bytes.subarray(at.start,at.end))[0];
+   })().catch(error=>{this.error=String(error);return undefined;});
+   this.collisions.set(key,found);
+  }
+  return found;
+ }
  /** The group an object is drawn in, for a caller checking where it ended up. */
  groupFor(handle:number){return this.views.get(handle)?.group;}
  /** The dff and txd names a script's model stands for, by id or by the name the script used. */
@@ -73,6 +114,11 @@ export class ScriptObjectViews{
     const shown=this.shows(object);
     if(shown!==view.shown||ScriptObjectViews.moved(object,view.applied)){
      this.place(view.group,object);ScriptObjectViews.record(object,view.applied);view.shown=shown;
+     if(view.physical)ScriptObjectViews.pose(view.physical.body,object,false);
+    }
+    if(view.physical&&view.collisionOn!==ScriptObjectViews.collides(object)){
+     view.collisionOn=ScriptObjectViews.collides(object);
+     for(let i=0;i<view.physical.body.numColliders();i++)view.physical.body.collider(i).setEnabled(view.collisionOn);
     }
     continue;
    }
@@ -84,16 +130,25 @@ export class ScriptObjectViews{
   if(this.loading.has(object.handle))return;
   const record=this.association(object.model);if(!record)return;
   this.loading.add(object.handle);
-  void this.load(record).then(asset=>{
+  void Promise.all([this.load(record),this.world?this.collision(record.model):undefined]).then(([asset,col])=>{
    this.loading.delete(object.handle);
    if(!asset||this.disposed||this.views.has(object.handle))return;
    const built=modelObject(asset.model,asset.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});
+   let physical:ReturnType<typeof installNativeCollisionMatrix>|undefined;
+   if(this.world&&col&&(col.spheres.length||col.boxes.length||col.mesh.indices.length)){
+    try{
+     physical=installNativeCollisionMatrix(this.world,col,NATIVE_AXES);
+     physical.body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased,true);
+     ScriptObjectViews.pose(physical.body,object,true);
+     for(const collider of physical.sources.keys()){this.owners.set(collider,object.handle);if(!ScriptObjectViews.collides(object))this.world.getCollider(collider)?.setEnabled(false);}
+    }catch(error){physical?.dispose();physical=undefined;this.error=String(error);}
+   }
    // Frustum culling stays on: a script's objects are world props standing where it put them, and most of
    // them are behind the camera at any moment, so letting three.js skip them is most of their cost.
    const group=new Group();group.add(built.root);
    this.place(group,object);this.scene.add(group);
    const applied=new Float64Array(TRANSFORM_FIELDS);ScriptObjectViews.record(object,applied);
-   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object)});
+   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object),physical,collisionOn:ScriptObjectViews.collides(object)});
   });
  }
  /* Native axes to the renderer's: x stays, the script's z is up here and its y runs the other way. CEntity's
@@ -111,13 +166,27 @@ export class ScriptObjectViews{
   return applied[0]!==p.x||applied[1]!==p.y||applied[2]!==p.z||applied[3]!==object.heading
    ||applied[4]!==r.x||applied[5]!==r.y||applied[6]!==r.z||applied[7]!==object.scale;
  }
+ /** Whether the colliders are on: the object uses collision and hangs from nothing. An attached object's body would
+  * sit inside what it hangs from and push it (the original leaves the pair out of each other's collision), so here
+  * it goes without collision while attached. */
+ private static collides(object:ScmObject){return object.usesCollision&&!object.attachedTo;}
+ /** CEntity's heading about the up axis, then SET_OBJECT_ROTATION's tilts, as the renderer's quaternion. */
+ private static orientation(object:ScmObject,into:Quaternion){
+  const {x,y,z}=object.rotation;
+  into.setFromAxisAngle(UP,object.heading+z);
+  if(x)into.multiply(TILT.setFromAxisAngle(EAST,x));
+  if(y)into.multiply(TILT.setFromAxisAngle(NORTH,-y));
+  return into;
+ }
+ /** The body where the record puts the object: at once when it is made, as the next kinematic step after. */
+ private static pose(body:RAPIER.RigidBody,object:ScmObject,now:boolean){
+  const t={x:object.position.x,y:object.position.z,z:-object.position.y},q=ScriptObjectViews.orientation(object,POSE);
+  if(now){body.setTranslation(t,true);body.setRotation(q,true);}
+  else{body.setNextKinematicTranslation(t);body.setNextKinematicRotation(q);}
+ }
  private place(group:Group,object:ScmObject){
   group.position.set(object.position.x,object.position.z,-object.position.y);
-  const {x,y,z}=object.rotation;
-  TURN.setFromAxisAngle(UP,object.heading+z);
-  if(x)TURN.multiply(TILT.setFromAxisAngle(EAST,x));
-  if(y)TURN.multiply(TILT.setFromAxisAngle(NORTH,-y));
-  group.quaternion.copy(TURN);
+  group.quaternion.copy(ScriptObjectViews.orientation(object,TURN));
   group.scale.setScalar(object.scale);
   // CEntity::bIsVisible and m_nAreaCode: an object a script hid stays hidden, and one that belongs to an
   // area is drawn only while the camera is in it.
@@ -128,6 +197,7 @@ export class ScriptObjectViews{
  private remove(handle:number){
   const view=this.views.get(handle);if(!view)return;
   view.group.removeFromParent();view.dispose();this.views.delete(handle);
+  if(view.physical){for(const collider of view.physical.sources.keys())this.owners.delete(collider);view.physical.dispose();}
  }
  dispose(){this.disposed=true;for(const handle of [...this.views.keys()])this.remove(handle);}
 }

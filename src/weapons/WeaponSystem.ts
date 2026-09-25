@@ -137,11 +137,12 @@ export class WeaponSystem {
  /** Water surface height at a native x/y, when there is water there. */
  waterLevel?:(x:number,y:number)=>number|undefined;
  /** TriggerExplosion's object pass, for the scene's OBJECT.DAT props. Renderer-frame point. */
- onExplosion?:(point:Vec3,params:ExplosionParams)=>void;
+ onExplosion?:(point:Vec3,params:ExplosionParams,byPlayer:boolean)=>void;
  /** CExplosion::AddExplosion's CShadows::AddPermanentShadow scorch, for every explosion. */
  onScorch?:(point:Vec3)=>void;
  /** CWeapon::DoBulletImpact's object branch for a bullet hitting a non-ped, non-vehicle collider. `incremental` marks a shotgun pellet. */
- onObjectShot?:(hit:RAPIER.RayColliderIntersection,point:Vec3,incremental:boolean,sniper?:boolean)=>void;
+ /** DoBulletImpact on an object the player's fire hits, with the weapon type it goes in as. */
+ onObjectShot?:(hit:RAPIER.RayColliderIntersection,point:Vec3,incremental:boolean,sniper:boolean,weapon:number)=>void;
  /** The melee swing CTaskSimpleFight plays: a combo stage, the ground attack or the moving attack. */
  onMeleeSwing?:(w:WeaponDefinition,swing:MeleeSwing)=>void;
  onHit?:(weapon:number)=>void;
@@ -310,7 +311,7 @@ export class WeaponSystem {
   for(const bike of this.fleet()?.bikes??[]){if(bike.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,bike.body.translation()));if(falloff&&bike.damage(1100*falloff*params.damagePercentage))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);}
   for(const boat of this.fleet()?.boats??[]){if(boat.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,boat.body.translation()));if(falloff&&boat.damage(1100*falloff*params.damagePercentage))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);}
   for(const plane of this.fleet()?.planes??[]){if(plane.health<=0)continue;const falloff=explosionFalloff(params.radius,distance(position,plane.body.translation()));if(falloff&&plane.damage(1100*falloff*params.damagePercentage)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);}}
-  this.onExplosion?.(position,params);
+  this.onExplosion?.(position,params,byPlayer);
  }
  private hazard(kind:Hazard['kind'],position:Vec3,radius:number,remaining=kind==='flame'?6:9){if(this.hazards.length>=16)this.hazards.shift();this.hazards.push({kind,position:{...position},radius,remaining,tick:0});}
  /** A plane or helicopter (EXPLOSION_AIRCRAFT, with its follow-up rockets while it lasts), a boat (EXPLOSION_BOAT) or a
@@ -445,7 +446,7 @@ export class WeaponSystem {
   if(rocket&&(plane.modelId===476||plane.rockets<=0||this.projectiles.length>=MAX_PROJECTILES)||!rocket&&plane.gunAmmo<=0)return false;
   this.aircraftCooldown=rocket?.8:.1;this.aircraftShots++;const q=new Quaternion().copy(plane.body.rotation()),direction=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation(),from=new Vector3(0,0,-Math.min(6,plane.assets.collision!.bounds.radius)).applyQuaternion(q).add(position);
   if(rocket){plane.rockets--;this.projectiles.push({id:this.serial++,weapon:35,position:from,velocity:direction.clone().multiplyScalar(55).add(plane.body.linvel()),fuse:8,stuck:false,owner:plane.body.handle});}
-  else{plane.gunAmmo--;const hit=this.ray(from,direction,400,plane.body),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??400);this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,38,true);if(hit){this.hitFx(hit,end,8,direction);this.damage(hit.collider.handle,35,direction);}}
+  else{plane.gunAmmo--;const hit=this.ray(from,direction,400,plane.body),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??400);this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,38,true);if(hit){this.hitFx(hit,end,8,38,direction);this.damage(hit.collider.handle,35,direction);}}
   this.onSound?.('fire',rocket?35:38,from,'aircraft');this.onCrime?.(rocket?CRIME.explosion:CRIME.fireWeapon,'player');return true;
  }
  /** Random offset inside the native free-aim crosshair circle (CPlayerPed::GetWeaponRadiusOnScreen). */
@@ -611,7 +612,7 @@ export class WeaponSystem {
    if(tyre){const at=add(b.position,b.direction,tyre.t);if(tyre.car.burstTyre(tyre.wheel,true,'player'))this.onHit?.(b.weapon);this.effect('impact',at);}
    else if(hit){
     const point=add(b.position,b.direction,hit.timeOfImpact),ped=this.pedestrians()?.targets().some(t=>t.handle===hit.collider.handle);
-    this.hitFx(hit,point,8,b.direction,true);
+    this.hitFx(hit,point,8,b.weapon,b.direction,true);
     // CBulletInfo::Update only damages what it hits (or bursts a tyre); the car push is DoBulletImpact's alone.
     if(ped){b.passed.add(hit.collider.handle);next=point;}
     if(this.damage(hit.collider.handle,b.damage,b.direction,false,'bullet',{weapon:b.weapon,point}))this.onHit?.(b.weapon);
@@ -636,10 +637,10 @@ export class WeaponSystem {
   }
  }
  /** CWeapon::DoBulletImpact FX for a ray hit: blood on pedestrians, sparks on vehicles, the surface BULLET_FX elsewhere. */
- private hitFx(hit:RAPIER.RayColliderIntersection,point:Vec3,amount:number,direction?:Vec3,sniper=false){
+ private hitFx(hit:RAPIER.RayColliderIntersection,point:Vec3,amount:number,weapon:number,direction?:Vec3,sniper=false){
   const handle=hit.collider.handle;
   if(direction)this.onBulletHit?.(hit,point,Math.asin(Math.max(-1,Math.min(1,-(direction.x*hit.normal.x+direction.y*hit.normal.y+direction.z*hit.normal.z))))*180/Math.PI);
-  this.onObjectShot?.(hit,point,amount<8,sniper);
+  this.onObjectShot?.(hit,point,amount<8,sniper,weapon);
   if(!this.fx?.ready)return;
    const ped=this.pedestrians()?.targets().some(t=>t.handle===handle),vehicle=[...(this.fleet()?.cars??[])].some(c=>{for(let i=0;i<c.car.body.numColliders();i++)if(c.car.body.collider(i).handle===handle)return true;return false;})||[...(this.fleet()?.boats??[])].some(b=>{for(let i=0;i<b.body.numColliders();i++)if(b.body.collider(i).handle===handle)return true;return false;});
   this.fx.bulletHit({point,normal:{x:hit.normal.x,y:hit.normal.y,z:hit.normal.z},collider:handle,featureType:hit.featureType,featureId:hit.featureId,ped:ped?{head:false,dead:false}:undefined,vehicle},amount);
@@ -669,7 +670,7 @@ export class WeaponSystem {
   if(!shotgun){
    this.tracer(source,end,'player',.065);this.fx?.gunshot(source,direction,w.id,false);if(!hit)return true;this.effect('impact',end);
    const target=this.pedestrians()?.targets().find(t=>t.handle===hit.collider.handle),pointBlank=!!target&&!target.noCriticalHits&&distance(target.position,source)<=1;
-   this.hitFx(hit,end,8,direction);this.pushShotVehicle(hit,end,w.id);
+   this.hitFx(hit,end,8,w.id,direction);this.pushShotVehicle(hit,end,w.id);
    if(this.damage(hit.collider.handle,pointBlank?150:info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);return true;
   }
   // SetUpPelletCol: pellet lines spread with distance to the first victim; hits on that victim accumulate.
@@ -684,7 +685,7 @@ export class WeaponSystem {
   this.fx?.gunshot(source,direction,w.id,false);
   // DoBulletImpact's 150-point player shot within a unit spares only the shotgun and SPAS-12: the sawn-off gets it.
   const victim=hit&&this.pedestrians()?.targets().find(t=>t.handle===hit.collider.handle),pointBlank=w.id===26&&!!victim&&!victim.noCriticalHits&&distance(victim.position,source)<=1;
-  if(hit){this.effect('impact',end);this.hitFx(hit,end,8,direction);if(pellets)this.pushShotVehicle(hit,end,w.id);if(pellets&&this.damage(hit.collider.handle,pointBlank?150:pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
+  if(hit){this.effect('impact',end);this.hitFx(hit,end,8,w.id,direction);if(pellets)this.pushShotVehicle(hit,end,w.id);if(pellets&&this.damage(hit.collider.handle,pointBlank?150:pellets*info.damage,direction,false,'bullet',{weapon:w.id,point:end}))this.onHit?.(w.id);}
   return true;
  }
  /** CWeapon::DoBulletImpact's vehicle push on the car a ray hit (see bulletVehicle). */

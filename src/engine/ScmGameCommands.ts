@@ -1721,7 +1721,8 @@ const handlers:Record<string,ScmCommandHandler>={
  /* --- The objects. */
  GET_OBJECT_HEALTH:(t,p,i)=>{t.writeInt(p[1],world(t,i,'objectHealth')(t.readInt(p[0])));},
  HAS_OBJECT_BEEN_DAMAGED_BY_WEAPON:(t,p,i)=>{
-  t.updateCompareFlag(world(t,i,'objectWasDamagedByWeapon')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+  const last=world(t,i,'objectLastWeaponDamage')(t.readInt(p[0])),wanted=t.readInt(p[1]);
+  t.updateCompareFlag(wanted===WEAPON_ANYMELEE||wanted===WEAPON_ANYWEAPON?checkDamagedWeaponType(last,wanted):last>=0&&last===wanted,negated(i));
  },
  SORT_OUT_OBJECT_COLLISION_WITH_CAR:(t,p,i)=>{
   world(t,i,'sortOutObjectCollisionWithVehicle')(t.readInt(p[0]),t.readInt(p[1]));
