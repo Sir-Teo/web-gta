@@ -97,6 +97,12 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder(task(3,-1),world({}))).toBeUndefined();
  });
 
+ test('playing an anim is CTaskSimpleRunNamedAnim, for the script’s time when it gives one',()=>{
+  const task=(time:number):ScmScriptedTask=>({kind:'playAnim',animationName:'IDLE_chat',animationFile:'PED',blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:true,time,interruptable:true});
+  expect(scriptedPedOrder(task(-1),world({}))).toEqual({kind:'playAnim',file:'PED',name:'IDLE_chat',loop:false,keepLastFrame:true,seconds:Infinity});
+  expect(scriptedPedOrder(task(2500),world({}))).toMatchObject({seconds:2.5});
+ });
+
  test('dying is its own order',()=>{
   expect(scriptedPedOrder({kind:'die'},world({}))).toEqual({kind:'die'});
  });

@@ -6743,3 +6743,14 @@ the first ones now implemented:
   - The attack-style flags, the action delay and chance, and the must-be-on-foot bit are not modelled.
 - Script tasks can now name the player (handle 1) as their target. TASK_TURN_CHAR_TO_FACE_CHAR, TASK_SMART_FLEE_CHAR
   and TASK_KILL_CHAR_ON_FOOT aimed at the player used to give up, because the player is no pool ped.
+- **TASK_PLAY_ANIM and TASK_PLAY_ANIM_NON_INTERRUPTABLE** (923 + 325 uses, 77 + 38 missions): CTaskSimpleRunNamedAnim.
+  - A PED clip comes from ped.ifp. Any other block is its own .ifp from the archive, read once. Name-only tracks are
+    resolved through ped.ifp's skeleton.
+  - A looped clip wraps; a one-shot clip ends the task at its end. With keep-last-frame the pose holds until the
+    ped's next task or CLEAR_CHAR_TASKS.
+  - The script's time, when it gives one, ends the task, looped clips included.
+  - A fall or hit that takes the ped's pose also ends the task. A missing block or clip ends it at once.
+  - IS_CHAR_PLAYING_ANIM and GET_CHAR_ANIM_CURRENT_TIME read it. The current time is now the clip-relative
+    m_fCurrentTime over the total time, wrapping for a looped clip.
+  - The blend delta, the X/Y root locks and the interruptable bit are not modelled: the clip replaces the pose at
+    once and the ped stays in place.

@@ -112,7 +112,24 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const attractorsEntry=source.entry('attractors.ifp'),attractorClips=attractorsEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,attractorsEntry)).animations.filter(c=>/^stepsit_/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
  // The gangs anim block (gangs.ifp): CTaskComplexGangLeader's partial talk clips prtial_gngtlkA to H.
  const gangsEntry=source.entry('gangs.ifp'),gangClips=gangsEntry?Object.fromEntries(readIfp(await readImgEntry(source.file,gangsEntry)).animations.filter(c=>/^prtial_gngtlk/i.test(c.name)).map(c=>[c.name.toLowerCase(),c])):{};
+ /** A clip from an animation block a script asked for (REQUEST_ANIMATION, then TASK_PLAY_ANIM's file and name):
+  * PED is ped.ifp itself, and any other block is its own .ifp in the archive, with name-only tracks resolved through
+  * ped.ifp's skeleton. Nothing when the block or the clip is missing. */
+ const scriptBlocks=new Map<string,Promise<import('./ifp').NativeAnimation[]|undefined>>();
+ const scriptAnimation=async(file:string,name:string)=>{
+  const block=file.toLowerCase(),wanted=name.toLowerCase();
+  if(block==='ped')return animations[wanted];
+  let pending=scriptBlocks.get(block);
+  if(!pending){
+   const entry=source.entry(`${block}.ifp`);
+   pending=entry?readImgEntry(source.file,entry).then(bytes=>readIfp(bytes).animations,()=>undefined):Promise.resolve(undefined);
+   scriptBlocks.set(block,pending);
+  }
+  const clip=(await pending)?.find(c=>c.name.toLowerCase()===wanted);
+  if(!clip)return undefined;
+  try{return resolveTrackBones(clip,pack);}catch{return clip;}
+ };
  // CPopulation::IsSunbather: the BEACH_GUY and BEACH_GIRL pedstats.
  const sunbather=(name:string)=>/^STAT_BEACH_(GUY|GIRL)$/i.test(pedIde.get(name.toLowerCase())?.stat??'');
- return {sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,stealth,gangClips,attractorClips,...worldPaths(source)};
+ return {sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,scriptAnimation,stealth,gangClips,attractorClips,...worldPaths(source)};
 }

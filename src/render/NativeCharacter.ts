@@ -228,7 +228,7 @@ export class NativeCharacter {
   /** Native BONE_R_HAND (24) by default; BONE_L_HAND is 34. */
   hand(boneId=24){return this.bone(boneId);}
   setWeaponPose(name?:string,time=.05){this.weaponPose=name;if(name)this.aimPose={name,time};}
-  private reaction?: {name:string;seconds:number;duration:number;speed:number};
+  private reaction?: {name:string;seconds:number;duration:number;speed:number;loop:boolean};
   installReactions(clips:Record<string,NativeAnimation>,upperBody=false) {
     for(const [name,source] of Object.entries(clips)){
       const clip=upperBody?{...source,tracks:source.tracks.filter(t=>t.boneId>=2&&t.boneId<=5||t.boneId>=21&&t.boneId<=36)}:source;
@@ -240,8 +240,13 @@ export class NativeCharacter {
   clearReaction(){if(this.reaction){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
   /** The reaction clip playing, if any. */
   get reactionName(){return this.reaction?.name;}
-  /** How far through its own length the reaction has played, from nothing to one. */
-  get reactionProgress(){const r=this.reaction;return r&&r.duration>0?Math.min(1,r.seconds/r.duration):undefined;}
+  /** How far through the clip the reaction is, from nothing to one (m_fCurrentTime over the hierarchy's total time):
+   * a looped clip wraps, and one held past its end stays at one. */
+  get reactionProgress(){
+    const r=this.reaction;if(!r)return undefined;
+    const clip=this.reactions.get(r.name)?.duration??0;if(!(clip>0))return undefined;
+    const time=r.seconds*r.speed;return r.loop?(time%clip)/clip:Math.min(1,time/clip);
+  }
   /** Plays a vehicle clip's last frame as a reaction for `seconds`, such as the ground pose CAR_jackedLHS
    * ends on. Helper tracks the ped skeleton lacks are dropped, as installVehicleClips does. */
   holdClipEnd(name:string,source:NativeAnimation,seconds:number){
@@ -256,9 +261,10 @@ export class NativeCharacter {
   holdReaction(){if(this.reaction)this.reaction.duration=Infinity;}
   hasReaction(name:string){return this.reactions.has(name);}
   reactionDuration(name:string){return this.reactions.get(name)?.duration;}
-  playReaction(name:string,duration?:number,fitDuration=false,startSeconds=0) {
+  /** `loop` wraps the clip (an ANIMATION_LOOPED association); otherwise it stops on its last frame. */
+  playReaction(name:string,duration?:number,fitDuration=false,startSeconds=0,loop=false) {
     const binding=this.reactions.get(name);if(!binding)return;
-    this.reaction={name,seconds:startSeconds,duration:duration??binding.duration,speed:fitDuration&&duration?binding.duration/duration:1};
+    this.reaction={name,seconds:startSeconds,duration:duration??binding.duration,speed:fitDuration&&duration?binding.duration/duration:1,loop};
   }
   private action: Action = 'idle';
   private lastGroundAction: Action = 'idle';
@@ -725,7 +731,7 @@ export class NativeCharacter {
       if(this.aimBlend>=1)aimPose.sample(this.aimPose!.time,false,false);
       else{this.aimTransition??=new PoseTransition(this.transitionTargets());this.aimTransition.capture();aimPose.sample(this.aimPose!.time,false,false);this.aimTransition.apply(this.aimBlend);}
     }
-    if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,false,false);
+    if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,this.reaction.loop,false);
     if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false,false);}
     if(!this.weaponReload)this.aimUpperBody();
     this.applyLegSwing();

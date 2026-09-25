@@ -23,7 +23,10 @@ export type ScriptedPedOrder=
  |{kind:'goToPoint';x:number;y:number;z:number;moveState:number;radius:number;moveStateRadius:number;seconds:number}
  /** CTaskComplexKillPedOnFoot: attack a ped (a script handle, the player's included) until it is dead or gone, or for
   * `seconds`. */
- |{kind:'killPed';target:number;seconds:number};
+ |{kind:'killPed';target:number;seconds:number}
+ /** CTaskSimpleRunNamedAnim: a clip from a script's animation block, looped or once (then held on its last frame
+  * or let go), for `seconds` when the script gives a time. */
+ |{kind:'playAnim';file:string;name:string;loop:boolean;keepLastFrame:boolean;seconds:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -69,6 +72,10 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // The attack style flags, the action delay and chance, and the must-be-on-foot bit are not modelled: the ped
   // fights with the browser's own armed and melee combat.
   case 'killPedOnFoot':return world.ped(task.target)?{kind:'killPed',target:task.target,seconds:seconds(task.time)}:undefined;
+  // The blend delta, the X and Y root locks and the interruptable bit are not modelled: the clip replaces the pose at
+  // once and the ped stays where it stands.
+  case 'playAnim':return {kind:'playAnim',file:task.animationFile,name:task.animationName,loop:task.loop,keepLastFrame:task.keepLastFrame,
+   seconds:task.time>0?task.time/1000:Number.POSITIVE_INFINITY};
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{
    const threat=world.ped(task.threat);if(!threat)return undefined;

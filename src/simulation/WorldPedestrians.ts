@@ -133,9 +133,13 @@ export interface Pedestrian {
    * script put on the ground), eMoveState and radii, and the seconds left of a timed task (Infinity otherwise). */
   |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number}
   /** CTaskComplexKillPedOnFoot: the retaliation combat held on a foe (undefined for the player) until it dies. */
-  |{kind:'killPed';foe?:Pedestrian;remaining:number};
+  |{kind:'killPed';foe?:Pedestrian;remaining:number}
+  /** CTaskSimpleRunNamedAnim: the clip (by its lower-case name) once its block has loaded, and how long it has run. */
+  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;remaining:number;started:boolean;elapsed:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
+ /** The clip a finished TASK_PLAY_ANIM left held on its last frame (ANIMATION_FREEZE_LAST_FRAME). */
+ heldScriptClip?:string;
  /** CTaskComplexSequence: the tasks a script queued, the index of the one running, and whether the whole
   * sequence starts again when the last one ends. The original's array holds eight. */
  sequence?:{orders:ScriptedPedOrder[];at:number;repeat:boolean};
@@ -1424,6 +1428,8 @@ export class WorldPedestrians {
   * not damage; a smart flight sets the same flee the browser's own jacking and fright already use. */
  private applyOrder(ped:Pedestrian,order:ScriptedPedOrder){
   ped.order=undefined;ped.scriptWanders=order.kind==='wander';
+  // A clip a script left on its last frame holds the pose until the ped's next task replaces it.
+  if(ped.heldScriptClip!==undefined){if(ped.view.reactionName===ped.heldScriptClip)ped.view.clearReaction();ped.heldScriptClip=undefined;}
   switch(order.kind){
    case 'standStill':ped.order={kind:'standStill',remaining:order.seconds};ped.flee=0;ped.loiter=false;break;
    // The script's point is (x, y, z) up; the renderer's is (x, z, -y) with y up.
@@ -1437,6 +1443,23 @@ export class WorldPedestrians {
     const target=this.resolveScriptPed?.(order.target);if(!target)break;
     ped.order={kind:'killPed',foe:target==='player'?undefined:target,remaining:order.seconds};
     ped.flee=0;ped.fleePlayer=undefined;ped.loiter=false;ped.foe=ped.order.foe;ped.retaliate=Math.max(ped.retaliate,1);
+    break;
+   }
+   case 'playAnim':{
+    const clip=order.name.toLowerCase(),own={kind:'playAnim' as const,clip,loop:order.loop,hold:order.keepLastFrame,remaining:order.seconds,started:false,elapsed:0};
+    ped.order=own;ped.flee=0;ped.loiter=false;
+    const catalog=this.catalog;
+    // A PED clip may already be on the ped; any other is fetched from its block and put on it once read. A block or
+    // clip that is not there ends the task.
+    if(!ped.view.hasReaction(clip)||order.file.toLowerCase()!=='ped'){
+     const loading=catalog?.scriptAnimation(order.file,order.name)??Promise.resolve(undefined);
+     void loading.then(animation=>{
+      if(this.disposed||ped.order!==own)return;
+      if(!animation){this.startNextOrder(ped);return;}
+      ped.view.installReactions({[clip]:animation});own.started=false;
+     });
+     own.started=true;own.elapsed=-1;
+    }
     break;
    }
    case 'die':this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;
@@ -1508,7 +1531,12 @@ export class WorldPedestrians {
   ped.body.setTranslation({x,y:ground+.9,z},true);ped.collider.setTranslation({x,y:ground+.9,z});
  }
  /** CLEAR_CHAR_TASKS: the primary task goes, leaving the default. */
- clearTasks(ped:Pedestrian){ped.sequence=undefined;ped.goTo=undefined;ped.scriptWanders=false;ped.order=this.defaultOrder(ped);}
+ clearTasks(ped:Pedestrian){
+  // A named clip the task was running goes with it, and so does one held on its last frame.
+  const clip=ped.order?.kind==='playAnim'?ped.order.clip:ped.heldScriptClip;
+  if(clip!==undefined&&ped.view.reactionName===clip)ped.view.clearReaction();
+  ped.heldScriptClip=undefined;ped.sequence=undefined;ped.goTo=undefined;ped.scriptWanders=false;ped.order=this.defaultOrder(ped);
+ }
  /** Whether a script's own task still runs on the ped (the default stand is not one). */
  hasScriptTask(ped:Pedestrian){return !!(ped.order&&!(ped.order.kind==='standStill'&&ped.order.isDefault)||ped.sequence||ped.goTo);}
  /** The teleport behind WARP_CHAR_FROM_CAR_TO_COORD: the ped's tasks are flushed, the point is dropped to the
@@ -2410,6 +2438,21 @@ export class WorldPedestrians {
      const over=o.foe?o.foe.health<=0||!this.people.includes(o.foe):this.sim.player.health<=0;
      if(over||o.remaining<=0){p.retaliate=0;p.foe=undefined;p.fight=undefined;this.startNextOrder(p);}
      else{p.foe=o.foe;p.retaliate=Math.max(p.retaliate,1);}
+    }else if(p.order.kind==='playAnim'){
+     const o=p.order;dx=0;dz=0;
+     // elapsed -1 marks a clip still being read.
+     if(!o.started){p.view.playReaction(o.clip,o.loop||o.hold?Number.POSITIVE_INFINITY:undefined,false,0,o.loop);o.started=true;o.elapsed=0;}
+     else if(o.elapsed>=0){
+      o.elapsed+=dt;o.remaining-=dt;
+      const clipLength=p.view.reactionDuration(o.clip)??0;
+      // The script's time ends the task, a looped clip included; otherwise it ends as the clip does, or when something
+      // else (a fall, a hit) has taken the ped's pose.
+      const replaced=p.view.reactionName!==o.clip,ended=!o.loop&&o.elapsed>=clipLength;
+      if(o.remaining<=0||replaced||ended){
+       if(!replaced){if(o.hold)p.heldScriptClip=o.clip;else p.view.clearReaction();}
+       this.startNextOrder(p);
+      }
+     }
     }else if(p.order.kind==='goToPoint'){
      const o=p.order;dx=0;dz=0;
      // CTaskComplexGoToPointAndStandStillTimed::ControlSubTask: out of time and not yet standing, the ped is put on
