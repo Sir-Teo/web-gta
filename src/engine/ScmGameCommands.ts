@@ -2047,7 +2047,9 @@ const handlers:Record<string,ScmCommandHandler>={
   t.writeFloat(p[3],node.x);t.writeFloat(p[4],node.y);t.writeFloat(p[5],node.z);
  },
  GET_NTH_CLOSEST_CAR_NODE:(t,p,i)=>{
-  const point=vec(t,p,0),node=world(t,i,'nthClosestVehicleNode')(point.x,point.y,point.z,t.readInt(p[3]));
+  const point=vec(t,p,0);
+  if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=world(t,i,'groundZForCoord')(point.x,point.y);
+  const node=world(t,i,'nthClosestVehicleNode')(point.x,point.y,point.z,t.readInt(p[3]));
   t.writeFloat(p[4],node.x);t.writeFloat(p[5],node.y);t.writeFloat(p[6],node.z);
  },
  GET_CLOSEST_CAR_NODE_WITH_HEADING:(t,p,i)=>{
@@ -2314,7 +2316,10 @@ const handlers:Record<string,ScmCommandHandler>={
  DRAW_LIGHT_WITH_RANGE:(t,p,i)=>{world(t,i,'drawLightWithRange')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readFloat(p[6]));},
  ADD_BIG_GUN_FLASH:(t,p,i)=>{world(t,i,'addBigGunFlash')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]));},
  ADD_BLIP_FOR_CAR_OLD:(t,p,i)=>{t.writeInt(p[3],world(t,i,'addBlipForCarOld')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2])));},
- GET_NTH_CLOSEST_CAR_NODE_WITH_HEADING:(t,p,i)=>{const result=world(t,i,'getNthClosestCarNodeWithHeading')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]));t.writeFloat(p[4],result.x);t.writeFloat(p[5],result.y);t.writeFloat(p[6],result.z);t.writeFloat(p[7],result.heading);},
+ GET_NTH_CLOSEST_CAR_NODE_WITH_HEADING:(t,p,i)=>{
+  const point=vec(t,p,0);
+  if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=world(t,i,'groundZForCoord')(point.x,point.y);
+  const result=world(t,i,'getNthClosestCarNodeWithHeading')(point.x,point.y,point.z,t.readInt(p[3]));t.writeFloat(p[4],result.x);t.writeFloat(p[5],result.y);t.writeFloat(p[6],result.z);t.writeFloat(p[7],result.heading);},
  IS_THIS_MODEL_A_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isThisModelACar')(model(t,i,p[0])),negated(i));},
  // The garage is named by its text label, as the other garage commands name it.
  SET_TARGET_CAR_FOR_MISSION_GARAGE:(t,p,i)=>{const car=t.readInt(p[1]);game(t,i).garages.setTargetCar(t.text(p[0]),car>0?car:undefined);},

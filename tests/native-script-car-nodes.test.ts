@@ -1,0 +1,50 @@
+import {describe,expect,test} from 'vitest';
+import {findNodeCoorsForScript,findNodeOrientationForCarPlacement,findNthNodeClosestToCoors} from '../src/simulation/nativeScriptCarNodes';
+import type {PathArea,PathNode} from '../src/assets/pathNodes';
+
+// One area: three car nodes along a road running north (+y), one switched off, one boat node and one ped node.
+function area():Map<number,PathArea>{
+ const node=(i:number,position:[number,number,number],extra:Partial<PathNode>={}):PathNode=>({address:{area:0,node:i},position,kind:'vehicle',baseLink:0,linkCount:0,width:0,floodFill:0,flags:0,deadEnd:false,switchedOff:false,water:false,dontWander:false,spawnProbability:15,behaviour:0,...extra});
+ const nodes=[
+  node(0,[0,0,0],{baseLink:0,linkCount:1,width:1}),
+  node(1,[0,10,0],{baseLink:1,linkCount:2}),
+  node(2,[0,20,0],{baseLink:3,linkCount:1,switchedOff:true}),
+  node(3,[1,1,0],{water:true}),
+  node(4,[0,1,0],{kind:'pedestrian'}),
+ ];
+ const links=[{area:0,node:1},{area:0,node:0},{area:0,node:2},{area:0,node:1}];
+ return new Map([[0,{area:0,vehicleCount:4,pedestrianCount:1,linkCount:4,nodes,navigation:[],links,navigationLinks:[],lengths:new Uint8Array(),intersections:new Uint8Array(),bytesRead:0}]]);
+}
+const car={kind:'vehicle' as const,maxDistance:999999.9};
+
+describe('the car path questions the script asks',()=>{
+ test('the nth node passes over the ones nearer, and over switched-off and boat nodes when asked',()=>{
+  const areas=area(),at={x:0,y:19,z:0};
+  expect(findNthNodeClosestToCoors(areas,at,0,car)?.address.node).toBe(2);
+  expect(findNthNodeClosestToCoors(areas,at,1,car)?.address.node).toBe(1);
+  expect(findNthNodeClosestToCoors(areas,at,0,{...car,ignoreDisabled:true})?.address.node).toBe(1);
+  // Three land car nodes, so there is no fourth.
+  expect(findNthNodeClosestToCoors(areas,at,3,car)).toBeUndefined();
+  expect(findNthNodeClosestToCoors(areas,{x:1,y:1,z:0},0,{...car,water:true})?.address.node).toBe(3);
+  // The measure is |dx| + |dy| + 3|dz|: from 4.5 north and 2 up, node 0 is 4.5 + 6 away and node 1 5.5 + 6.
+  expect(findNthNodeClosestToCoors(areas,{x:0,y:4.5,z:2},0,car)?.address.node).toBe(0);
+  expect(findNthNodeClosestToCoors(areas,{x:0,y:5.5,z:2},0,car)?.address.node).toBe(1);
+  expect(findNthNodeClosestToCoors(areas,at,0,{...car,maxDistance:.5})).toBeUndefined();
+ });
+
+ test('a node with width gives the point beside it; one without gives itself',()=>{
+  const areas=area(),nodes=areas.get(0)!.nodes;
+  // The way to the first link is north, turned east-facing (x ≥ 0) it stays north; its left is west, 1 + 2.7 away.
+  const beside=findNodeCoorsForScript(areas,nodes[0]);
+  expect(beside.x).toBeCloseTo(-3.7,6);expect(beside.y).toBeCloseTo(0,6);
+  expect(findNodeCoorsForScript(areas,nodes[1])).toEqual({x:0,y:10,z:0});
+ });
+
+ test('a car set down on a node faces its first link',()=>{
+  const areas=area(),nodes=areas.get(0)!.nodes;
+  expect(findNodeOrientationForCarPlacement(areas,nodes[0])).toBeCloseTo(0,6);
+  // Node 1's first link is node 0, to the south.
+  expect(Math.abs(findNodeOrientationForCarPlacement(areas,nodes[1]))).toBeCloseTo(180,6);
+  expect(findNodeOrientationForCarPlacement(areas,nodes[3])).toBe(0);
+ });
+});

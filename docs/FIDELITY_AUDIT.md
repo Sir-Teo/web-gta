@@ -7162,3 +7162,16 @@ the first ones now implemented:
 - Unconfirmed for SA: SA's own handlers are not in gta-reversed. VC's CGameLogic::RemoveShortCutDropOffPointForMission
   belongs to the shortcut taxi, which SA does not have. CStats::CheckPointReachedSuccessfully has no SA counterpart
   found.
+
+## The script's car node questions
+
+- GET_NTH_CLOSEST_CAR_NODE and GET_NTH_CLOSEST_CAR_NODE_WITH_HEADING had no world answer. They are now reVC's
+  handler:
+  - A point at or below MAP_Z_LOW_LIMIT is first dropped to the ground.
+  - FindNthNodeClosestToCoors finds the node, counting from one, over the car nodes that are not switched off.
+  - FindNodeCoorsForScript gives the point: beside a node that has width, width + 2.7 to the left of the way to its
+    first link, turned to face east. For the heading, FindNodeOrientationForCarPlacement gives the heading of that
+    first link.
+- FindNodeClosestToCoors's measure is |dx| + |dy| + 3|dz|. The Nth search runs it N + 1 times, passing over the nodes
+  it has already picked. It searches only the loaded areas, which stream round the player while a mission runs. With
+  nothing found, the answer is the zero vector, as SA's FindNodeCoorsForScript gives for an invalid node.

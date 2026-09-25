@@ -2170,7 +2170,7 @@ async function boot() {
          if(key!=='player'&&!pedestrians?.hasPed(key as Pedestrian)){phones.delete(key);continue;}
          phone.step(view);if(!phone.active&&key!=='player')phones.delete(key);
         }});
-        guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>scriptCars.step(step,sim.player.position));guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied?worldCar:undefined));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
+        guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>{scriptCars.step(step,sim.player.position);if(mission)scriptCars.pathAreas(sim.player.position);});guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied?worldCar:undefined));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
         guard('pedestrians.beforeStep',()=>pedestrians?.beforeStep(step,fleet?.cars??[]));
         frameProfile.stepPeds+=performance.now()-tPeds;
@@ -3406,6 +3406,7 @@ async function boot() {
                  // gate is held so a script that closes and opens it carries on.
                  setAllPedSpeechDisabled:disabled=>{allPedSpeechDisabled=disabled;},
                  scriptPedLastDamagedBy:ped=>onFoot(ped)?.lastDamagedBy,
+                 carPathAreas:()=>scriptCars.pathAreas({x:sim.player.position.x,z:sim.player.position.z}),
                  scriptVehicleLastDamagedBy:car=>(car as ScriptCar).lastDamagedBy,
                  scriptVehicleLastWeaponDamage:car=>(car as ScriptCar).lastWeaponDamage,
                  clearScriptVehicleLastDamagedBy:car=>{(car as ScriptCar).lastDamagedBy=undefined;},

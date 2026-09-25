@@ -6,6 +6,8 @@ import {findNavigationZone,pointInWorldZone,type WorldZones} from '../assets/wor
 import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {NativePedGroup} from '../ped/nativePedGroup';
+import {findNodeCoorsForScript,findNodeOrientationForCarPlacement,findNthNodeClosestToCoors} from './nativeScriptCarNodes';
+import type {PathArea} from '../assets/pathNodes';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
 import {PED_SIGHT_TARGET_RAISE,pedSightAngleAndRange} from '../ped/nativePedSight';
 import {isMissionObjectType,type ScmObject} from '../engine/ScmObjects';
@@ -257,6 +259,8 @@ export interface ScmMissionWorld {
  setAllPedSpeechDisabled(disabled:boolean):void;
  /** Whoever last hurt the ped, as the browser's own objects, for the caller to name. */
  scriptPedLastDamagedBy(ped:unknown):{player?:true;ped?:unknown;car?:unknown}|undefined;
+ /** The car path areas CPathFind has loaded, or nothing before any have. */
+ carPathAreas?():ReadonlyMap<number,PathArea>|undefined;
  /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
  scriptVehicleLastDamagedBy?(car:unknown):{player?:true;ped?:unknown;car?:unknown}|undefined;
  scriptVehicleLastWeaponDamage?(car:unknown):number;
@@ -801,6 +805,10 @@ export class ScmMission {
     const ride=ped===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(ped)?.vehicle;
     return ride!==undefined&&last.car!==undefined&&last.car===this.vehicleByHandle(ride);
    },
+   // GET_NTH_CLOSEST_CAR_NODE counts from one (FindNthNodeClosestToCoors from nought) over the car nodes not switched
+   // off. With nothing found, FindNodeCoorsForScript gives back the zero vector.
+   nthClosestVehicleNode:(x,y,z,nth)=>{const node=this.scriptCarNode({x,y,z},nth-1,true);return node?{x:node.x,y:node.y,z:node.z}:{x:0,y:0,z:0};},
+   getNthClosestCarNodeWithHeading:(x,y,z,nth)=>this.scriptCarNode({x,y,z},nth-1,true)??{x:0,y:0,z:0,heading:0},
    vehicleWasDamagedByVehicle:(handle,other)=>{
     const last=this.host('scriptVehicleLastDamagedBy','HAS_CAR_BEEN_DAMAGED_BY_CAR')(this.liveVehicle(handle));
     return last?.car!==undefined&&last.car===this.liveVehicle(other);
@@ -1394,6 +1402,13 @@ export class ScmMission {
   const car=handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.entity(handle);
   if(!car)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return car;
+ }
+ /** FindNthNodeClosestToCoors over the loaded car nodes, then FindNodeCoorsForScript and
+  * FindNodeOrientationForCarPlacement for the node found. */
+ private scriptCarNode(point:{x:number;y:number;z:number},nth:number,ignoreDisabled:boolean){
+  const areas=this.world.carPathAreas?.();if(!areas)return undefined;
+  const node=findNthNodeClosestToCoors(areas,point,nth,{kind:'vehicle',maxDistance:999999.9,ignoreDisabled});
+  return node&&{...findNodeCoorsForScript(areas,node),heading:findNodeOrientationForCarPlacement(areas,node)};
  }
  /** Where a ped that rides in a car is, which is where the car is. */
  private ridingIn(handle:number){
