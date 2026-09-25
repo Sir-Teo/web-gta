@@ -57,6 +57,12 @@ test('a script ped stands until told, walks straight to a point, and a timed go-
  await expect.poll(()=>page.evaluate(({handle,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(handle,opcode),{handle:ped,opcode:GOTO}),{timeout:30000}).toBe(7);
  const near=await page.evaluate((handle:number)=>{const g=(window as any).__game,q=g.missionForProfiling().peds.entity(handle).actor.player.position,p=g.state().player.position;return Math.hypot(q.x-p.x,q.z-p.z);},ped);
  expect(near).toBeLessThan(2.6);
+ // TASK_TOGGLE_DUCK: the ped crouches (the ped.ifp WEAPON_crouch pose) and the task is over; TASK_DUCK for a time.
+ const DUCK=0x04eb,DUCK_FOR=0x05c5;
+ const ducked=await page.evaluate(({handle,DUCK})=>{const m=(window as any).__game.missionForProfiling();m.runtime.world.givePedScriptedTask(handle,{kind:'toggleDuck',state:true},DUCK);return m.peds.entity(handle).actor.player.crouched;},{handle:ped,DUCK});
+ expect(ducked).toBe(true);
+ await page.evaluate(({handle,DUCK_FOR})=>{const m=(window as any).__game.missionForProfiling();m.runtime.world.givePedScriptedTask(handle,{kind:'duck',time:800},DUCK_FOR);},{handle:ped,DUCK_FOR});
+ await expect.poll(()=>page.evaluate((handle:number)=>(window as any).__game.missionForProfiling().peds.entity(handle).actor.player.crouched,ped),{timeout:30000}).toBe(false);
  // TASK_LOOK_AT_CHAR at the player: the head look starts and the trigger task is over.
  const LOOK=0x05bf;
  const look=await page.evaluate(({handle,opcode})=>{

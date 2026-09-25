@@ -556,7 +556,8 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_PLAYBACK_SPEED:(t,p,i)=>{game(t,i).vehicleRecordings.setSpeed(t.readInt(p[0]),t.readFloat(p[1]));},
  IS_PLAYBACK_GOING_ON_FOR_CAR:(t,p,i)=>{t.updateCompareFlag(game(t,i).vehicleRecordings.isPlaybackGoingOn(t.readInt(p[0])),negated(i));},
  // --- Commands over reversed engine routines: the area clear, the object-space transform and the task status.
- CLEAR_AREA:(t,p,i)=>{world(t,i,'clearExcitingStuffFromArea')(vec(t,p,0),t.readFloat(p[3]),bool(t,p[4]),t.usesMissionCleanup);},
+ // A mission's own clear acts; MAIN's and the INTRO mission's belong to the new game's opening (see ScmMission).
+ CLEAR_AREA:(t,p,i)=>{world(t,i,'clearExcitingStuffFromArea')(vec(t,p,0),t.readFloat(p[3]),bool(t,p[4]),t.usesMissionCleanup&&t.name.toLowerCase()!=='intro');},
  // CEntity::TransformFromObjectSpace: the offset through the car's own rows, right, forward and up.
  GET_OFFSET_FROM_CAR_IN_WORLD_COORDS:(t,p,i)=>{
   const world3=transformFromObjectSpace(world(t,i,'vehicleMatrix')(t.readInt(p[0])),vec(t,p,1));

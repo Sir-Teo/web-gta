@@ -138,6 +138,11 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'goToCoordAnyMeans',x:1,y:2,z:3,speed:6,vehicle:-1},w)).toMatchObject({kind:'goToPoint',x:1,y:2,moveState:6});
  });
 
+ test('ducking: the toggle at once, and TASK_DUCK for its time',()=>{
+  expect(scriptedPedOrder({kind:'toggleDuck',state:true},world({}))).toEqual({kind:'duck',crouch:true});
+  expect(scriptedPedOrder({kind:'duck',time:1500},world({}))).toEqual({kind:'duck',crouch:true,seconds:1.5});
+ });
+
  test('dying is its own order',()=>{
   expect(scriptedPedOrder({kind:'die'},world({}))).toEqual({kind:'die'});
  });

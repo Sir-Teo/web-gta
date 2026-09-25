@@ -142,7 +142,9 @@ export interface Pedestrian {
   /** CTaskComplexFollowPointRoute over renderer points (x, z, and the origin height y). */
   |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
   /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
-  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number};
+  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number}
+  /** CTaskSimpleDuck for its time: ducked where it stands. */
+  |{kind:'duckFor';remaining:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** The clip a finished TASK_PLAY_ANIM left held on its last frame (ANIMATION_FREEZE_LAST_FRAME). */
@@ -1487,6 +1489,10 @@ export class WorldPedestrians {
     ped.look=startLookAt(this.clock*1000,order.seconds*1000);
     break;
    }
+   case 'duck':
+    ped.actor.player.crouched=order.crouch;
+    if(order.seconds!==undefined)ped.order={kind:'duckFor',remaining:order.seconds};
+    break;
    case 'followRoute':
     ped.order={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at:0,mode:order.mode,traversals:0,moveState:order.moveState};ped.flee=0;ped.loiter=false;
     break;
@@ -2500,6 +2506,9 @@ export class WorldPedestrians {
        this.startNextOrder(p);
       }
      }
+    }else if(p.order.kind==='duckFor'){
+     dx=0;dz=0;p.order.remaining-=dt;
+     if(p.order.remaining<=0){p.actor.player.crouched=false;this.startNextOrder(p);}
     }else if(p.order.kind==='followRoute'){
      // CTaskSimpleGoToPoint to each point at a 0.5 radius (no stand at the last: standStillAfterMove is false).
      const o=p.order,q=p.actor.player.position,point=o.points[o.at];dx=0;dz=0;

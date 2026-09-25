@@ -52,6 +52,9 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  // HANDSUP, HANDSCOWER and a few other ped.ifp clips carry name-only tracks.
  const animations=Object.fromEntries(pack.animations.map(clip=>{let resolved=clip;try{resolved=resolveTrackBones(clip,pack);}catch{/* left as is; binding it reports the bone */}return [clip.name.toLowerCase(),resolved];}));
  for(const name of ['fighta_1','ko_skid_front','getup_front'])if(!animations[name])throw new Error(`Missing native interaction animation: ${name}.`);
+ /** CTaskSimpleDuck's ped.ifp clips, WEAPON_crouch standing and GunCrouchFwd moving, for a ped a script ducks. */
+ const crouchWalk=animations['guncrouchfwd'],crouchTrack=crouchWalk?.tracks.findIndex(t=>t.boneId===0&&!!t.translations&&t.times.length>0)??-1;
+ const crouch=animations['weapon_crouch']&&crouchWalk&&crouchTrack>=0?{crouchIdle:{clip:animations['weapon_crouch']},crouchWalk:{clip:crouchWalk,track:crouchTrack}}:{};
  const models:CharacterSource[]=[],modelNames:string[]=[],modelSpeeds:PedLocomotionSpeeds[]=[],modelStats:PedDamageStats[]=[];
  const hasModel=(name:string)=>!!source.entry(`${name}.dff`)&&!!source.entry(`${name}.txd`);
  const loadModel=async(name:string)=>{
@@ -59,7 +62,7 @@ export async function openWorldPedestrians(base:string,includePolice=false){
   if(!entry||!textureEntry)throw new Error(`Missing civilian ${name}.`);
   const asset=await readModel({file:source.file,entry,textureEntry},cache);
   const loco=locomotionFor(name);
-  return {source:{model:asset.model,textures:asset.textures,convention:'san-andreas-ped',clip:loco.walk.clip,track:loco.walk.track!,idle:loco.idle,run:loco.run,sprint:loco.sprint} as CharacterSource,speeds:loco.speeds,stats:statsFor(name)};
+  return {source:{model:asset.model,textures:asset.textures,convention:'san-andreas-ped',clip:loco.walk.clip,track:loco.walk.track!,idle:loco.idle,run:loco.run,sprint:loco.sprint,...crouch} as CharacterSource,speeds:loco.speeds,stats:statsFor(name)};
  };
  for(const name of [...CIVILIAN_ROSTER,...(includePolice?['lapd1' as const]:[])]){
   const built=await loadModel(name);

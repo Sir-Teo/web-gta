@@ -40,7 +40,10 @@ export type ScriptedPedOrder=
  |{kind:'followRoute';points:readonly {x:number;y:number;z:number}[];moveState:number;mode:number}
  /** CTaskComplexSeekEntity for TASK_GOTO_CHAR: to within `radius` of a ped (a handle, the player's included), for
   * `seconds`. */
- |{kind:'gotoPed';target:number;radius:number;seconds:number};
+ |{kind:'gotoPed';target:number;radius:number;seconds:number}
+ /** CTaskSimpleDuckToggle (TASK_TOGGLE_DUCK): the ped ducks or stands, and the task is over at once; with `seconds`,
+  * CTaskSimpleDuck (TASK_DUCK) holds it ducked where it is for that long. */
+ |{kind:'duck';crouch:boolean;seconds?:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -105,6 +108,8 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'scratchHead':return {kind:'playAnim',file:'PED',name:'XPRESSscratch',loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY};
   // CTaskSimpleHandsUp: HANDSUP held for the task's time.
   case 'handsUp':return {kind:'playAnim',file:'PED',name:'handsup',loop:false,keepLastFrame:true,seconds:seconds(task.time),release:true};
+  case 'toggleDuck':return {kind:'duck',crouch:task.state};
+  case 'duck':return {kind:'duck',crouch:true,seconds:seconds(task.time)};
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{
    const threat=world.ped(task.threat);if(!threat)return undefined;

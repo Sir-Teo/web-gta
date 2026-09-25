@@ -6,6 +6,11 @@ test('peds that hear the player fire flee him to 60 units, then stop fleeing',as
  await page.waitForFunction(()=>(window as any).__game?.state().weapons?.ready&&(window as any).__game.state().nativeCharacter&&((window as any).__game.state().pedestrians?.people??[]).length>0,undefined,{timeout:60000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ // MAIN turns CJ to its own start heading once the script runs; read his heading after that.
+ await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await page.waitForTimeout(500);
+ // The camera stays where it was when the script turns him; put it behind him so the shot goes where he faces.
+ await page.evaluate(()=>{const g=(window as any).__game;g.turnPlayer(g.state().player.heading);});
  const s0=await state(),p=s0.player.position,h=s0.player.heading;
  // Eight units to the side, out of the line of fire.
  // Street civilians arrive once the popcycle targets and the zone roster exist; the debug ped is one of them.

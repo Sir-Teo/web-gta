@@ -37,6 +37,8 @@ export interface PlayerTaskBody{
 export interface PlayerTaskWorld{
  /** A clip from the script's animation block (PED is ped.ifp). */
  animation(file:string,name:string):Promise<NativeAnimation|undefined>;
+ /** CTaskSimpleDuckToggle on the player: he crouches or stands. */
+ duck?(crouch:boolean):void;
  /** CTaskSimpleTriggerLookAt: the head looks at the ped a script handle names. */
  lookAt?(target:number,seconds:number):void;
  /** CPedPlacement::FindZCoorForPed and SetPosn: the feet on the ground under the point. */
@@ -56,7 +58,7 @@ export class PlayerScriptTasks{
  private generation=0;
  constructor(private world:PlayerTaskWorld){}
  /** The kinds the player can carry out; anything else the thread gives up on. */
- static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='followRoute';}
+ static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined;}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body);}
@@ -106,6 +108,7 @@ export class PlayerScriptTasks{
     break;
    }
    case 'followRoute':this.running={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at:0,mode:order.mode,traversals:0,moveState:order.moveState};break;
+   case 'duck':this.world.duck?.(order.crouch);break;
    // The trigger task starts the look and is over.
    case 'lookAt':this.world.lookAt?.(order.target,order.seconds);break;
    default:break;

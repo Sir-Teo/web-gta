@@ -6898,3 +6898,11 @@ the first ones now implemented:
   - PHONE_OUT when the script puts it away, after which the phone goes.
   The legs keep walking meanwhile. The player's held weapon is hidden while the phone is out. Script peds carry
   one the same way.
+- **TASK_TOGGLE_DUCK and TASK_DUCK** (34 and 15 missions): CTaskSimpleDuckToggle crouches or stands the ped and is
+  over at once. CTaskSimpleDuck holds it ducked where it stands for the task's time.
+  - Street and script peds now carry CTaskSimpleDuck's ped.ifp clips (WEAPON_crouch and GunCrouchFwd), so a ducked
+    ped shows the crouch.
+  - On the player the toggle is his own crouch.
+- **CLEAR_AREA from the INTRO mission** is counted like MAIN's, not acted on. MAIN launches INTRO with the new game,
+  and it clears 500 units round Grove Street. Acting on it emptied the street the browser had already populated
+  (a fleeing ped vanished mid-run), which is the same ordering difference as MAIN's own opening sweep.

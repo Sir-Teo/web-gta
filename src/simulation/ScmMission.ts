@@ -749,7 +749,9 @@ export class ScmMission {
     * that world is ready, so the same clear arrives seconds late and would sweep away a street the original
     * had not put there yet. The host's own clearArea does what the routine does, for the day the script starts
     * before the population does, or for a mission that clears an area while it runs. */
-   // A mission clearing its area while it runs gets the host's clear; MAIN's own sweeps are only counted.
+   // A mission clearing its area while it runs gets the host's clear. MAIN's own sweeps, and the INTRO mission's
+   // (MAIN launches it with the new game and it clears 500 units round Grove Street), are only counted, for the
+   // ordering reason above.
    clearExcitingStuffFromArea:(point,radius,_projectiles,fromMission)=>{this.areasCleared++;if(fromMission)this.world.clearArea(point,radius);},
    // CWorld::ClearCarsFromArea and ClearPedsFromArea over the script's box.
    clearAreaOfVehicles:(min,max)=>{this.host('clearVehiclesInBox','CLEAR_AREA_OF_CARS')(min,max);},
