@@ -60,7 +60,7 @@ describe('the remaining tasks',()=>{
    instruction(op('TASK_SHOOT_AT_COORD'),[int(PED),float(4),float(5),float(6),int(2000)]),
    instruction(op('TASK_SET_CHAR_DECISION_MAKER'),[int(PED),int(12)]));
   expect(tasks.map(entry=>entry.task)).toEqual([
-   {kind:'followPointRoute',speed:2,mode:1},
+   {kind:'followPointRoute',speed:2,mode:1,route:[]},
    {kind:'goToCoordAnyMeans',x:1,y:2,z:3,speed:2,vehicle:CAR},
    {kind:'enterCarAsDriver',vehicle:CAR,time:5000},
    {kind:'enterCarAsPassenger',vehicle:CAR,time:5000,seat:2},
