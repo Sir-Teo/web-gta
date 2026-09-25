@@ -39,14 +39,15 @@ export async function openWeaponAssets(base:string){
    if(w.reloadClip){reloadClip=await clipFrom(w.reloadPack!,w.reloadClip);if(!reloadClip)throw new Error(`Missing ${w.name} reload animation.`);}
   }
   // The combo's native swing clips: three attacks, the ground attack and the moving attack.
-  let melee:{attacks:NativeAnimation[];ground?:NativeAnimation;moving?:NativeAnimation;hits?:NativeAnimation[]}|undefined;
+  let melee:{attacks:NativeAnimation[];ground?:NativeAnimation;moving?:NativeAnimation;hits?:NativeAnimation[];file:string}|undefined;
   // Before WEAPON.DAT is installed, the pack names the same combo its baseCombo would.
   const combo=baseCombo??({'':'UNARMED',baseball:'BBALLBAT',knife:'KNIFE',sword:'SWORD',chainsaw:'CHAINSAW',dildo:'DILDO',flowers:'FLOWERS'} as Record<string,string>)[w.pack??''];
   const swings=w.kind==='melee'&&combo?MELEE_SWING_CLIPS[combo]:undefined;
   if(swings){
-   const attacks=await Promise.all(swings.attacks.map(name=>clipFrom(w.pack??'',name)));
-   const hits=await Promise.all(swings.hits.map(name=>clipFrom(w.pack??'',name)));
-   if(attacks.every(Boolean))melee={attacks:attacks as NativeAnimation[],ground:await clipFrom(w.pack??'',swings.ground),moving:await clipFrom(w.pack??'',swings.moving),hits:hits.every(Boolean)?hits as NativeAnimation[]:undefined};
+   const file=swings.file??w.pack??'';
+   const attacks=await Promise.all(swings.attacks.map(name=>clipFrom(file,name)));
+   const hits=await Promise.all(swings.hits.map(name=>clipFrom(file,name)));
+   if(attacks.every(Boolean))melee={file,attacks:attacks as NativeAnimation[],ground:await clipFrom(file,swings.ground),moving:await clipFrom(file,swings.moving),hits:hits.every(Boolean)?hits as NativeAnimation[]:undefined};
   }
   const clips={clip:clip!,crouchClip,reloadClip,crouchReloadClip,throwStart,throwUp,melee,animGroup:group?animGroup:undefined};
   if(!w.model)return {...clips,asset:undefined,icon:undefined,crosshair:undefined,projectileAsset:undefined};

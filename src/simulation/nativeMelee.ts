@@ -30,6 +30,11 @@ export const NATIVE_MELEE_COMBOS: Record<string, NativeMeleeCombo> = {
   SWORD: { range: 1.6, stages: [stage(11, 20, 0.5, 10), stage(15, 22, 0.5, 15), stage(12, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 8 / FPS, chain: 10 / FPS, damage: 10 } },
   DILDO: { range: 1.6, stages: [stage(11, 22, 0.5, 18), stage(15, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 11 / FPS, chain: 13 / FPS, damage: 10 } },
   FLOWERS: { range: 1.6, stages: [stage(6, 21, 0.5, 18), stage(15, 28, 0.5, 18), stage(13, 99, 0.5, 25)], ground: { hit: 18 / FPS, chain: 30 / FPS, damage: 25 }, moving: { hit: 11 / FPS, chain: 13 / FPS, damage: 10 } },
+  // The three styles the gyms teach, melee.dat's UNARMED_2 (boxing, melee_2), UNARMED_3 (kung fu, melee_3) and
+  // UNARMED_4 (kickboxing, melee_4).
+  UNARMED_2: { range: 1.6, stages: [stage(6, 18, 0.4, 10), stage(8, 27, 0.4, 7), stage(11, 99, 0.4, 16)], ground: { hit: 12 / FPS, chain: 21 / FPS, damage: 25 }, moving: { hit: 4 / FPS, chain: 10 / FPS, damage: 5 } },
+  UNARMED_3: { range: 1.6, stages: [stage(9, 15, 0.4, 6), stage(13, 23, 0.4, 9), stage(15, 99, 0.4, 15)], ground: { hit: 8 / FPS, chain: 17 / FPS, damage: 25 }, moving: { hit: 7 / FPS, chain: 10 / FPS, damage: 5 } },
+  UNARMED_4: { range: 1.6, stages: [stage(13, 25, 0.4, 12), stage(6, 48, 0.5, 15), stage(9, 99, 0.4, 200)], ground: { hit: 11 / FPS, chain: 99 / FPS, damage: 25 }, moving: { hit: 9 / FPS, chain: 10 / FPS, damage: 5 } },
   CHAINSAW: { range: 1.6, stages: [stage(14, 25, 0.5, 50), stage(14, 20, 0.5, 60), stage(13, 99, 0.5, 100)], ground: { hit: 10 / FPS, chain: 11 / FPS, damage: 25 }, moving: { hit: 1 / FPS, chain: 1.1 / FPS, damage: 25 } },
 };
 /** Resolve a weapon.dat baseCombo to its melee.dat table. */
@@ -64,10 +69,15 @@ export function attackLineDistance(origin: { x: number; z: number }, forward: { 
  * FIGHT_G (a downed target) and FIGHT_M (attacking on the move), then the victim's
  * FIGHT_HIT_1..3, which CTaskSimpleBeHit::StartAnim takes from the attacker's combo
  * group. Keyed by the weapon.dat baseCombo, which melee.dat maps to the group. */
-export interface MeleeSwingClips {attacks:readonly [string,string,string];ground:string;moving:string;hits:readonly [string,string,string]}
+export interface MeleeSwingClips {attacks:readonly [string,string,string];ground:string;moving:string;hits:readonly [string,string,string];
+ /** The IFP block the group lives in (AnimAssocDefinitions), when it is not the weapon's own. */
+ file?:string}
 const swing=(a:string,b:string,c:string,ground:string,moving:string,hit:string,hit3=`${hit}_3`):MeleeSwingClips=>({attacks:[a,b,c],ground,moving,hits:[`${hit}_1`,`${hit}_2`,hit3]});
 export const MELEE_SWING_CLIPS:Record<string,MeleeSwingClips>={
  UNARMED:swing('FightA_1','FightA_2','FightA_3','FightA_G','FightA_M','HitA'),
+ UNARMED_2:{...swing('FightB_1','FightB_2','FightB_3','FightB_G','FightB_M','HitB'),file:'fight_b'},
+ UNARMED_3:{...swing('FightC_1','FightC_2','FightC_3','FightC_G','FightC_M','HitC'),file:'fight_c'},
+ UNARMED_4:{...swing('FightD_1','FightD_2','FightD_3','FightD_G','FightD_M','HitD'),file:'fight_d'},
  BBALLBAT:swing('Bat_1','Bat_2','Bat_3','Bat_4','BAT_PART','Bat_Hit'),
  GOLFCLUB:swing('Bat_1','Bat_2','Bat_3','Bat_4','BAT_PART','Bat_Hit'),
  KNIFE:swing('knife_1','knife_2','knife_3','knife_G','knife_part','knife_hit'),
@@ -86,3 +96,11 @@ export function meleeSwingClip(clips:MeleeSwingClips,swing:MeleeSwing){return sw
 export const MELEE_COMBO_FLAGS:Record<string,number>={UNARMED:0x60f,UNARMED_2:0x64f,UNARMED_3:0x64f,UNARMED_4:0x264f,BBALLBAT:0x64f,KNIFE:0x64f,GOLFCLUB:0x00f,SWORD:0x64f,CHAINSAW:0x44f,DILDO:0x607,FLOWERS:0x00};
 /** Whether attack `stage` (0, 1 or 2) of a combo knocks its victim down. */
 export function meleeAttackFalls(combo:string,stage:0|1|2){return (((MELEE_COMBO_FLAGS[combo]??0)>>4)&(1<<stage))!==0;}
+/** eFightingStyle: STYLE_STANDARD (4), STYLE_BOXING (5), STYLE_KUNG_FU (6) and STYLE_KNEE_HEAD (7) are melee.dat's
+ * UNARMED_1 to UNARMED_4 by combo index; CPlayerPed starts on STYLE_GRAB_KICK (15, KICK_STD's index) with every move
+ * allowed (15). */
+export const FIGHTING_STYLE={standard:4,boxing:5,kungFu:6,kneeHead:7,grabKick:15,elbows:16} as const;
+/** The combo a ped's fists use for its fighting style. CTaskSimpleFight's choice is unreversed; what the game shows is
+ * the three gym styles punching with their own combos and every other style (the player's grab-kick start included)
+ * with the standard UNARMED_1. */
+export function fightingStyleCombo(style:number):string{return style===5?'UNARMED_2':style===6?'UNARMED_3':style===7?'UNARMED_4':'UNARMED';}

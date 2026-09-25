@@ -386,6 +386,8 @@ export interface ScmMissionWorld {
  gangWarGoingOn?():boolean;
  /** A script ped in the player's group follows him on foot as his recruits do, or stops. */
  setScriptPedFollowsPlayer?(ped:unknown,follows:boolean):void;
+ /** CPed::m_nFightingStyle and m_nAllowedAttackMoves (GIVE_MELEE_ATTACK_TO_CHAR); `undefined` is the player. */
+ setPedFightingStyle?(ped:unknown,style:number,moves:number):void;
  /** TASK_PLAY_ANIM on a ped in a seat: the clip plays where it sits (seconds Infinity for no time of its own). */
  playScriptRiderClip?(ped:unknown,clip:{file:string;name:string;loop:boolean;hold:boolean;seconds:number}):void;
  /** Whether the seated clip is over: its time out, or a clip not looping at its end, or one that could not load. */
@@ -860,6 +862,8 @@ export class ScmMission {
    setGroupLeader:(group,handle)=>{this.group(group).setLeader(handle);},
    setGroupMember:(group,handle)=>{this.group(group).addFollower(handle);},
    setGroupFollowStatus:(group,state)=>{this.group(group).membersEnterLeadersVehicle=state;},
+   // CPed's fighting style and allowed moves (the gyms teach the player boxing, kung fu and kickboxing).
+   givePedMeleeAttack:(handle,style,moves)=>{this.host('setPedFightingStyle','GIVE_MELEE_ATTACK_TO_CHAR')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),style,moves);},
    // SetGroupDecisionMakerType: the group's responses to its members' events are not simulated; the type is kept.
    setGroupDecisionMaker:(group,decisionMaker)=>{this.group(group).decisionMaker=decisionMaker;},
    // SetDefaultTaskAllocatorType. For the player's group it decides whether his followers keep with him.

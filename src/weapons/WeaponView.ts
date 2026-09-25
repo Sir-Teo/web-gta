@@ -55,7 +55,7 @@ export class WeaponView {
   void this.catalog.then(c=>c.weaponData()).then(data=>{if(!this.disposed)weapons.installNative(data);}).catch(e=>{if(!this.disposed)this.error=String(e);});
   scene.add(this.effects);
   // Melee swings play their combo stage's clip from the native group table.
-  weapons.meleeClips=()=>{const a=this.current(),m=a?.melee;return m?{group:weaponById(this.weapons.inventory.selected)?.pack||'ped',hits:m.hits,durations:{attacks:m.attacks.map(c=>c.duration),ground:m.ground?.duration,moving:m.moving?.duration}}:undefined;};
+  weapons.meleeClips=()=>{const a=this.current(),m=a?.melee;return m?{group:m.file||'ped',hits:m.hits,durations:{attacks:m.attacks.map(c=>c.duration),ground:m.ground?.duration,moving:m.moving?.duration}}:undefined;};
   weapons.onMeleeSwing=(w,swing)=>{const m=this.current()?.melee;const clip=m&&(swing.kind==='attack'?m.attacks[swing.stage]:m[swing.kind]??m.attacks[0]);if(!clip)return;this.character()?.playReaction(clip.name.toLowerCase(),Math.max(.3,Math.min(clip.duration,1.2)),true);};
   weapons.onUse=w=>{if(w.kind==='melee'&&this.current()?.melee)return;const a=this.current(),crouch=this.weapons.sim.player.crouched&&!!a?.crouchClip,name=(crouch?a!.crouchClip!:a?.clip)?.name.toLowerCase()??w.clip?.toLowerCase()??'';this.character()?.playReaction(name,Math.max(.3,Math.min(this.weapons.inventory.interval,.7)),true);};
   // CTaskSimpleThrowProjectile's clips play at their own pace; the throw task reads their lengths back.
@@ -63,13 +63,13 @@ export class WeaponView {
   weapons.throwClipSeconds=name=>{const a=this.current();return [a?.clip,a?.throwStart,a?.throwUp].find(c=>c?.name.toLowerCase()===name)?.duration;};
   weapons.inventory.reloadClipSeconds=(id,crouched)=>{const a=this.current();if(!a||this.selected!==id)return undefined;return (crouched?a.crouchReloadClip??a.reloadClip:a.reloadClip)?.duration;};
  }
- private key(id:number,group?:string){return `${id}/${group??''}`;}
+ private key(id:number,group?:string){return `${id}/${group??''}/${this.weapons.inventory.meleeCombo(id)??''}`;}
  private current(){return this.assets.get(this.key(this.selected,this.group));}
  async equip(id:number){
   const generation=++this.serial,w=weaponById(id)!,info=this.weapons.inventory.info(id),group=info?.animGroup&&groupedKind(w.kind)&&WEAPON_ANIM_GROUPS[info.animGroup]?info.animGroup:undefined,twin=!!info&&hasWeaponFlag(info,WEAPON_FLAG.twinPistol);
   this.weapons.ready=false;this.selected=id;this.group=group;this.twin=twin;this.icon=undefined;this.crosshair=undefined;this.error=undefined;this.owner=this.character();this.held?.dispose();this.held=undefined;this.leftHeld?.root.userData.pivot?.removeFromParent();this.leftHeld?.dispose();this.leftHeld=undefined;this.character()?.setWeaponPose();this.character()?.setWeaponAim();this.character()?.setWeaponReload();
   try{
-   const key=this.key(id,group);let assets=this.assets.get(key);if(!assets){assets=await (await this.catalog).load(id,group,this.weapons.inventory.info(id)?.baseCombo);this.assets.set(key,assets);while(this.assets.size>8)this.assets.delete(this.assets.keys().next().value!);}
+   const key=this.key(id,group);let assets=this.assets.get(key);if(!assets){assets=await (await this.catalog).load(id,group,this.weapons.inventory.meleeCombo(id));this.assets.set(key,assets);while(this.assets.size>8)this.assets.delete(this.assets.keys().next().value!);}
    if(this.disposed||generation!==this.serial)return;
    const url=(raster:{width:number;height:number;data:ArrayLike<number>})=>{const c=document.createElement('canvas');c.width=raster.width;c.height=raster.height;c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(raster.data),c.width,c.height),0,0);return c.toDataURL();};
    if(assets.icon)this.icon=url(assets.icon);
@@ -79,6 +79,8 @@ export class WeaponView {
    for(const clip of [assets.clip,assets.crouchClip])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip},upper);
    for(const clip of [assets.reloadClip,assets.crouchReloadClip])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip},true);
    for(const clip of [assets.throwStart,assets.throwUp])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip});
+   // The combo's swings (the style's own block for the fists): each attack, the ground and the moving one.
+   const melee=assets.melee;if(melee)for(const clip of [...melee.attacks,melee.ground,melee.moving])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip});
    const hand=this.owner.hand();
    const attach=(held:ReturnType<typeof modelObject>)=>{held.root.rotation.set(0,0,0);held.root.traverse(o=>{const index=o.userData.nativeFrame;if(index!==undefined&&assets!.asset!.model.frames[index].parent<0){o.matrix.identity();o.matrixWorldNeedsUpdate=true;}delete o.userData.nativeFrame;});};
    if(assets.asset){

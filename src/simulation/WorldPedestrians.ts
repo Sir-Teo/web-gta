@@ -182,6 +182,9 @@ export interface Pedestrian {
  /** ePedCreatedBy::PED_MISSION: a ped a script made, which CPed::CanBeDeleted refuses to let the population
   * manager remove until CTheScripts::CleanUpThisPed hands it back. */
  mission?:boolean;
+ /** CPed::m_nFightingStyle and m_nAllowedAttackMoves, which GIVE_MELEE_ATTACK_TO_CHAR sets on a script's ped. Its fists
+  * still swing the standard combo: the other styles' clips are not put on street peds yet. */
+ fightingStyle?:number;allowedAttackMoves?:number;
  /** bMoneyHasBeenGivenByScript: SET_CHAR_MONEY set m_nMoneyCount, which a script's ped then drops when it dies. */
  moneyByScript?:boolean;
  /** CTaskComplexWander's direction in eighths of a turn, and CPed::m_nRandomSeed. */

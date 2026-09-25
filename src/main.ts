@@ -3688,6 +3688,15 @@ async function boot() {
                   return over;
                  },
                  clearScriptRiderClip:ped=>{const rider=asRider(ped);if(rider)rider.clip=undefined;},
+                 setPedFightingStyle:(ped,style,moves)=>{
+                  if(ped===undefined){
+                   weapons.inventory.fightingStyle=style;weapons.inventory.allowedAttackMoves=moves;progression.save();
+                   // Fists and brass knuckles swing the style's own clips from here, so they are taken up again.
+                   if(weapons.inventory.selected===0||weapons.inventory.selected===1)void weaponView.equip(weapons.inventory.selected);
+                   return;
+                  }
+                  const p=onFoot(ped);if(p){p.fightingStyle=style;p.allowedAttackMoves=moves;}
+                 },
                  setScriptPedFollowsPlayer:(ped,follows)=>{const p=onFoot(ped);if(p&&p.follow!==follows){p.follow=follows;if(!follows)p.foe=undefined;}},
                  setEntryExitGroupWarping:(x,y,radius,on)=>{entryExits?.setAcceptNpcGroupNear(x,y,radius,on);},
                  // TASK_DRIVE_BY on a rider: the target is a point (script coordinates), a ped or a car handle.

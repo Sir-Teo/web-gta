@@ -30,6 +30,8 @@ export class Progression {
    if(Array.isArray(data.owned)){inventory.owned.clear();inventory.owned.add(0);for(const id of data.owned)if(WEAPONS.some(w=>w.id===id))inventory.owned.add(id);}
    if(Array.isArray(data.practice))for(const row of data.practice)if(Array.isArray(row)&&WEAPONS.some(w=>w.id===row[0])&&finite(row[1],1000))inventory.practice.set(skillStatWeapon(row[0]),row[1]);
    if(Number.isInteger(data.selected))inventory.select(data.selected);
+   if(Number.isInteger(data.fightingStyle)&&data.fightingStyle>=4&&data.fightingStyle<=16)inventory.fightingStyle=data.fightingStyle;
+   if(Number.isInteger(data.allowedAttackMoves)&&data.allowedAttackMoves>=0&&data.allowedAttackMoves<=15)inventory.allowedAttackMoves=data.allowedAttackMoves;
    if(Array.isArray(data.pickups))for(const id of data.pickups.slice(0,2000))if(typeof id==='string'&&id.length<=64)this.pickups.add(id);
    if(Array.isArray(data.tags))this.tags=data.tags.slice(0,200).filter((t:unknown)=>Array.isArray(t)&&typeof t[0]==='string'&&t[0].length<=64&&finite(t[1],255)&&Number.isInteger(t[1]));
    const saved=data.savedLocation;
@@ -60,7 +62,7 @@ export class Progression {
   this.saveTime+=dt;if(this.saveTime>=5){this.saveTime=0;this.save();}
  }
  snapshot(){return {distances:{...this.distances},completed:[...this.completed],practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.map(m=>({id:m.id,name:m.name,description:m.description,done:m.done})),currentMission:this.currentMission()?.id??null,missionProgress:this.missionProgress()??null,saveSlots:this.slots.map((s,i)=>({slot:i,has:!!s}))};}
- save(){try{this.storage?.setItem(KEY,JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,ammo:[...this.inventory.ammo].map(([id,a])=>[id,a.clip,a.reserve]),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,missions:this.missions.filter(m=>m.done).map(m=>m.id)}));return true;}catch{return false;}}
+ save(){try{this.storage?.setItem(KEY,JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:[...this.inventory.ammo].map(([id,a])=>[id,a.clip,a.reserve]),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,missions:this.missions.filter(m=>m.done).map(m=>m.id)}));return true;}catch{return false;}}
  /** Interior save points plus the save menu: three slots with location, clock and cash. */
  slots:(null|{x:number;y:number;z:number;heading:number;timeMinutes:number;money:number})[]=[null,null,null];
  saveToSlot(slot:number){

@@ -493,7 +493,7 @@ export class WeaponSystem {
    this.lastWhip=false;
   }
   // A press while a combo move plays waits for its chain frame (CTaskSimpleFight chains moves; ProcessPed is a stub).
-  if(w.kind==='melee'&&this.inventory.cooldown>0&&info&&meleeComboFor(info.baseCombo)){this.meleeQueued=true;return false;}
+  if(w.kind==='melee'&&this.inventory.cooldown>0&&info&&meleeComboFor(this.inventory.meleeCombo(w.id))){this.meleeQueued=true;return false;}
   if(!this.inventory.fire())return false;this.onUse?.(w);this.onSound?.('fire',w.id,this.sim.player.position);
   // CTaskComplexUseGoggles: goggles_put_on runs first; PutOnGoggles/TakeOffGoggles apply when it finishes.
   if(w.kind==='nightvision'||w.kind==='infrared'){if(!this.goggles)this.goggles={kind:w.kind,remaining:this.gogglesClipSeconds};return true;}
@@ -519,7 +519,7 @@ export class WeaponSystem {
    // Native melee.dat combo resolved through the weapon.dat baseCombo row:
    // stage damage with the 1.6 m strike reach; only landed swings chain.
    // Sprinting swings use the AMOVING row instead of the staged damage.
-   const combo=info?meleeComboFor(info.baseCombo):undefined;
+   const combo=info?meleeComboFor(this.inventory.meleeCombo(w.id)):undefined;
    const now=this.nowMs/1000;
    const range=combo?.range??w.range,moving=this.sim.player.speed>6;
    // A downed ped in reach takes the AGROUND attack (FightA_G, a kick or stamp) instead of a standing swing.

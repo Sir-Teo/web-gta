@@ -36,3 +36,21 @@ test('lock-on prefers the ped closest to the camera line', () => {
   const side = attackLineDistance(origin, fwd, { x: 5, z: 5 }, false);
   expect(ahead).toBeLessThan(side);
 });
+
+test('the gym styles are melee.dat UNARMED_2 to UNARMED_4, and only they change the fists', async () => {
+  const { fightingStyleCombo, MELEE_SWING_CLIPS } = await import('../src/simulation/nativeMelee');
+  const { WeaponInventory } = await import('../src/weapons/Inventory');
+  expect(NATIVE_MELEE_COMBOS.UNARMED_2.stages.map(s => s.damage)).toEqual([10, 7, 16]);
+  expect(NATIVE_MELEE_COMBOS.UNARMED_3.stages[0].hit).toBeCloseTo(9 / 30, 6);
+  expect(NATIVE_MELEE_COMBOS.UNARMED_4.stages[2].damage).toBe(200);
+  expect([4, 5, 6, 7, 15, 16].map(fightingStyleCombo)).toEqual(['UNARMED', 'UNARMED_2', 'UNARMED_3', 'UNARMED_4', 'UNARMED', 'UNARMED']);
+  expect(MELEE_SWING_CLIPS.UNARMED_3).toMatchObject({ file: 'fight_c', attacks: ['FightC_1', 'FightC_2', 'FightC_3'], hits: ['HitC_1', 'HitC_2', 'HitC_3'] });
+  const inventory = new WeaponInventory();
+  // CPlayerPed starts on STYLE_GRAB_KICK with every move; his fists punch the standard combo.
+  expect([inventory.fightingStyle, inventory.allowedAttackMoves]).toEqual([15, 15]);
+  inventory.fightingStyle = 5;
+  expect(inventory.meleeCombo(0)).toBe('UNARMED_2');
+  expect(inventory.meleeCombo(1)).toBe('UNARMED_2');
+  // A bat keeps its own combo whatever the style.
+  expect(inventory.meleeCombo(5)).toBe(inventory.info(5)?.baseCombo);
+});

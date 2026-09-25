@@ -19,3 +19,12 @@ test('only the weapons with skill stats train, each at its AR_STATS.DAT rate',()
   expect(inv.practice.get(28)).toBeCloseTo(.4,6);expect(inv.practice.has(34)).toBe(false);expect(inv.practice.has(33)).toBe(false);
  }finally{sim.dispose();}
 });
+
+test('the fighting style the gyms teach is saved and restored',()=>{
+ const sim=new Simulation(),inv=new WeaponInventory();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  const p=new Progression(inv,sim,storage);inv.fightingStyle=6;inv.allowedAttackMoves=6;p.save();
+  const restored=new WeaponInventory();new Progression(restored,sim,storage);
+  expect([restored.fightingStyle,restored.allowedAttackMoves]).toEqual([6,6]);
+ }finally{sim.dispose();}
+});

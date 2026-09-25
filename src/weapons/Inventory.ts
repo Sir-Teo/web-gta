@@ -1,3 +1,4 @@
+import {fightingStyleCombo} from '../simulation/nativeMelee';
 import {CHEATS} from '../simulation/nativeCheats';
 import {WEAPONS,weaponById} from './catalog';
 import {WEAPON_FLAG,hasWeaponFlag,nativeShotDelayMs,nativeWeaponInfo,nativeWeaponReloadMs,playerWeaponSkill,weaponHasSkills,type NativeWeaponData,type WeaponSkill} from './weaponData';
@@ -6,6 +7,12 @@ export const skillStatWeapon=(id:number)=>id===32?28:id;
 const reserveFor=(clip:number,reloadable:boolean)=>reloadable?Math.max(clip*8,24):0;
 export class WeaponInventory {
  selected=0;reloading=0;shots=0;
+ /** CPed::m_nFightingStyle and m_nAllowedAttackMoves for the player, which GIVE_MELEE_ATTACK_TO_CHAR sets at the gyms:
+  * CPlayerPed starts on STYLE_GRAB_KICK (15) with every move (15). */
+ fightingStyle=15;allowedAttackMoves=15;
+ /** The melee.dat combo a weapon swings with: fists and brass knuckles take the fighting style's, anything else its
+  * WEAPON.DAT base combo. */
+ meleeCombo(id:number){const base=this.info(id)?.baseCombo;return id===0||id===1?(this.fightingStyle>=5&&this.fightingStyle<=7?fightingStyleCombo(this.fightingStyle):base):base;}
  /** CWeapon::m_TimeForNextShotMs is per weapon, so a camera delay does not block the next item. */
  private cooldowns=new Map<number,number>();
  get cooldown(){return this.cooldowns.get(this.selected)??0;}

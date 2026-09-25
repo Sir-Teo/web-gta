@@ -8049,3 +8049,18 @@ Each is now answered:
   aircraft that nobody rides and no script holds, as it clears cars; it used to clear cars only. CLEAR_AREA's vehicle
   pass (CWorld::ClearExcitingStuffFromArea) walks the same pool and now does the same within its radius.
 - Verification: `tests/browser/script-vehicle-far.spec.ts`.
+
+## Fighting styles
+
+- GIVE_MELEE_ATTACK_TO_CHAR sets CPed::m_nFightingStyle and m_nAllowedAttackMoves. The gyms teach the player boxing (5),
+  kung fu (6) and kickboxing (7); the command used to stop the gym threads.
+- By combo index those styles are melee.dat's UNARMED_2 to UNARMED_4, with anim groups melee_2 to melee_4 in the fight_b,
+  fight_c and fight_d blocks (AnimAssocDefinitions). Their hit and chain frames and damage come from melee.dat.
+- CPlayerPed starts on STYLE_GRAB_KICK (15) with every move. CTaskSimpleFight's combo choice is unreversed. The port
+  follows what the game shows: the three gym styles punch with their own combos and clips, and every other style
+  punches with the standard UNARMED_1. Brass knuckles take the style too.
+- The player's style and moves are saved with the rest of his progress.
+- A weapon's swing clips are now installed on the player when it is taken up. Fists had only ever played the FightA
+  clips ped.ifp already carried, and a bat's second and third swings had nothing to play.
+- Not yet: a script ped's own style (the gym trainers). It is recorded, and its fists still swing the standard combo.
+- Verification: `tests/native-melee.test.ts`, `tests/progression.test.ts`, `tests/browser/player-fighting-style.spec.ts`.
