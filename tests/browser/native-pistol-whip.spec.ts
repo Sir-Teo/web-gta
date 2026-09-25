@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {scriptClockSettled} from './scriptClock';
+import {endStoryMission} from './freeRoam';
 
 // CTaskSimpleUseGun::RequirePistolWhip: firing at a ped within a unit in front swings the gun butt instead of shooting.
 test('firing a pistol at a ped in reach pistol-whips it with GUN_BUTT and spends no round',async({page})=>{
@@ -7,9 +7,10 @@ test('firing a pistol at a ped in reach pistol-whips it with GUN_BUTT and spends
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>{const s=await state();return !!s.weapons?.ready&&!!s.nativeCharacter&&(s.pedestrians?.people?.length??0)>0;},{timeout:60000}).toBe(true);
+ // INTRO takes CJ into the police car a few seconds in and holds his controls; this plays on in free roam.
+ await endStoryMission(page);
  await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
- // The script turns CJ as it opens without swinging the camera round: once it has, face him and the camera one way.
- await scriptClockSettled(page);
+ // Face CJ and the camera one way.
  await page.evaluate(()=>(window as any).__game.turnPlayer(Math.PI));
  const s0=await state(),h=s0.player.heading,at={x:s0.player.position.x+Math.sin(h)*.8,y:s0.player.position.y,z:s0.player.position.z+Math.cos(h)*.8};
  // Street civilians arrive once the popcycle targets and the zone roster exist; the debug ped is one of them.
@@ -19,7 +20,7 @@ test('firing a pistol at a ped in reach pistol-whips it with GUN_BUTT and spends
  const ped=async()=>(await state()).pedestrians.people.find((p:any)=>p.id===id);
  const clip=(await state()).weapons.clip;
  await page.mouse.move(700,450);await page.mouse.down();await page.waitForTimeout(40);await page.mouse.up();
- await page.waitForTimeout(120);expect((await state()).nativeCharacter.reaction).toBe('gun_butt');
+ await expect.poll(async()=>(await state()).nativeCharacter.reaction,{timeout:5000,intervals:[30]}).toBe('gun_butt');
  // melee.dat PISTOL_WHIP lands on frame 7 for 10 (the player's attack stat applies); the victim plays HIT_GUN_BUTT.
  await expect.poll(async()=>(await ped())?.health).toBeLessThan(100);
  expect((await ped())?.reaction).toBe('hita_2');expect((await state()).weapons.clip).toBe(clip);

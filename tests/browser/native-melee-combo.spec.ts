@@ -1,10 +1,13 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('left clicks punch through the native combo and kick a downed pedestrian',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ // INTRO takes CJ into the police car a few seconds in and holds his controls; this plays on in free roam.
+ await endStoryMission(page);
  await expect.poll(async()=>(await state()).pedestrians?.people?.filter((p:any)=>!p.officer&&p.health>0).length??0,{timeout:30000}).toBeGreaterThan(0);
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  // Stand a civilian 1.1 m in front of CJ, facing him.
@@ -33,7 +36,10 @@ test('left clicks punch through the native combo and kick a downed pedestrian',a
  expect(down[0]).toBe(0);expect(down[1]).toBe(0);expect(down[2]).toBeGreaterThan(0);
  // A downed victim in reach takes the AGROUND kick.
  await page.waitForTimeout(600);
- const before=(await ped()).health;await click();await page.waitForTimeout(500);
- expect((await ped()).health).toBeLessThan(before);
+ // The kick lands on AGROUND's hit frame, 10.5 frames of game time on, which a slow renderer takes longer to reach. A
+ // press that chained a fourth blow can have finished the victim; it is given its health back while it lies there.
+ await page.evaluate(id=>{const p=(window as any).__game.pedestrians().people.find((p:any)=>p.id===id);if(p.health>0)p.health=100;},id);
+ const before=(await ped()).health;expect(before).toBeGreaterThan(0);await click();
+ await expect.poll(async()=>(await ped()).health,{timeout:10000}).toBeLessThan(before);
  expect(errors).toEqual([]);
 });
