@@ -1243,8 +1243,9 @@ const handlers:Record<string,ScmCommandHandler>={
  // The mission-passed report keeps the key it names; the stat behind it is CStats::IncrementStat, which the
  // progress commands already reach, so this only records the key rather than guessing which stat it moves.
  REGISTER_MISSION_PASSED:(t,p,i)=>{game(t,i).missionPassedKey=t.text(p[0]);},
- CLEAR_ONSCREEN_COUNTER:(t,p,i)=>{game(t,i).clearedCounters.add(t.readInt(p[0]));},
- CLEAR_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).clearedTimers.add(t.readInt(p[0]));},
+ // The onscreen commands name a global variable itself: COnscreenTimer keeps its offset and reads it every frame.
+ CLEAR_ONSCREEN_COUNTER:(t,p,i)=>{game(t,i).onscreenTimer.clearCounter(t.globalOffset(p[0]));},
+ CLEAR_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).onscreenTimer.clearClock(t.globalOffset(p[0]));},
  /* --- The rest of the tasks the schema names, and the world commands beside them. */
  TASK_FOLLOW_POINT_ROUTE:(t,p,i)=>{
   scriptedTask(t,i,t.readInt(p[0]),{kind:'followPointRoute',speed:t.readInt(p[1]),mode:t.readInt(p[2])});
@@ -1364,9 +1365,7 @@ const handlers:Record<string,ScmCommandHandler>={
   const colour=world(t,i,'hudColour')(t.readInt(p[0]));
   t.writeInt(p[1],colour.red);t.writeInt(p[2],colour.green);t.writeInt(p[3],colour.blue);t.writeInt(p[4],colour.alpha);
  },
- DISPLAY_ONSCREEN_TIMER_WITH_STRING:(t,p,i)=>{
-  world(t,i,'displayOnscreenTimerWithString')(t.readInt(p[0]),t.readInt(p[1]),t.text(p[2]));
- },
+ DISPLAY_ONSCREEN_TIMER_WITH_STRING:(t,p,i)=>{game(t,i).onscreenTimer.addClock(t.globalOffset(p[0]),t.text(p[2]),t.readInt(p[1]));},
  // The last of the tasks the schema names.
  TASK_CHAT_WITH_CHAR:(t,p,i)=>{
   scriptedTask(t,i,t.readInt(p[0]),{kind:'chatWithPed',other:t.readInt(p[1]),leadSpeaker:bool(t,p[2]),unknown:t.readInt(p[3])});
@@ -1462,9 +1461,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_RADAR_ZOOM:(t,p,i)=>{game(t,i).radarZoom=t.readInt(p[0]);},
  SET_NEAR_CLIP:(t,p,i)=>{world(t,i,'setNearClip')(t.readFloat(p[0]));},
  SET_TIME_SCALE:(t,p,i)=>{world(t,i,'setTimeScale')(t.readFloat(p[0]));},
- DISPLAY_ONSCREEN_COUNTER_WITH_STRING:(t,p,i)=>{
-  world(t,i,'displayOnscreenCounterWithString')(t.readInt(p[0]),t.readInt(p[1]),t.text(p[2]));
- },
+ DISPLAY_ONSCREEN_COUNTER_WITH_STRING:(t,p,i)=>{game(t,i).onscreenTimer.addCounter(t.globalOffset(p[0]),t.readInt(p[1]),t.text(p[2]),0);},
  /* --- More tasks, the helicopters, and the world switches. */
  TASK_TOGGLE_PED_THREAT_SCANNER:(t,p,i)=>{
   scriptedTask(t,i,t.readInt(p[0]),{kind:'togglePedThreatScanner',onFoot:bool(t,p[1]),inCar:bool(t,p[2]),duringScriptTask:bool(t,p[3])});
@@ -1535,10 +1532,10 @@ const handlers:Record<string,ScmCommandHandler>={
  SWITCH_RANDOM_TRAINS:(t,p,i)=>{world(t,i,'switchRandomTrains')(bool(t,p[0]));},
  SET_ALL_CARS_CAN_BE_DAMAGED:(t,p,i)=>{world(t,i,'setAllVehiclesCanBeDamaged')(bool(t,p[0]));},
  DISPLAY_HUD:(t,p,i)=>{world(t,i,'displayHud')(bool(t,p[0]));},
- FREEZE_ONSCREEN_TIMER:(t,p,i)=>{world(t,i,'freezeOnscreenTimer')(bool(t,p[0]));},
- DISPLAY_NTH_ONSCREEN_COUNTER_WITH_STRING:(t,p,i)=>{
-  world(t,i,'displayNthOnscreenCounterWithString')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.text(p[3]));
- },
+ FREEZE_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).onscreenTimer.paused=bool(t,p[0]);},
+ // The Nth counter is one-based: the plain counter is the first (slot 0), and the missions that show both start
+ // the Nth ones at 2.
+ DISPLAY_NTH_ONSCREEN_COUNTER_WITH_STRING:(t,p,i)=>{game(t,i).onscreenTimer.addCounter(t.globalOffset(p[0]),t.readInt(p[1]),t.text(p[3]),t.readInt(p[2])-1);},
  ADD_EXPLOSION_VARIABLE_SHAKE:(t,p,i)=>{
   const point=vec(t,p,0);
   world(t,i,'addExplosionVariableShake')(point.x,point.y,point.z,t.readInt(p[3]),t.readFloat(p[4]));
@@ -1998,7 +1995,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SWITCH_STREAMING:(t,p,i)=>{world(t,i,'switchStreaming')(bool(t,p[0]));},
  SET_AREA51_SAM_SITE:(t,p,i)=>{world(t,i,'setArea51SamSite')(bool(t,p[0]));},
  SWITCH_POLICE_HELIS:(t,p,i)=>{world(t,i,'switchPoliceHelis')(bool(t,p[0]));},
- DISPLAY_ONSCREEN_TIMER:(t,p,i)=>{world(t,i,'displayOnscreenTimer')(t.readInt(p[0]),t.readInt(p[1]));},
+ DISPLAY_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).onscreenTimer.addClock(t.globalOffset(p[0]),undefined,t.readInt(p[1]));},
  CLEAR_EXTRA_COLOURS:(t,p,i)=>{world(t,i,'clearExtraColours')(bool(t,p[0]));},
  // The wanted ceiling the script set, read back from the runtime's own field.
  GET_MAX_WANTED_LEVEL:(t,p,i)=>{t.writeInt(p[0],game(t,i).maximumWantedLevel);},
@@ -2230,7 +2227,7 @@ const handlers:Record<string,ScmCommandHandler>={
  TASK_SAY:(t,p,i)=>{world(t,i,'taskSay')(t.readInt(p[0]),t.readInt(p[1]));},
  EXPLODE_CAR_IN_CUTSCENE_SHAKE_AND_BITS:(t,p,i)=>{world(t,i,'explodeCarInCutsceneShakeAndBits')(t.readInt(p[0]),bool(t,p[1]),bool(t,p[2]),bool(t,p[3]));},
  BOAT_STOP:(t,p,i)=>{world(t,i,'boatStop')(t.readInt(p[0]));},
- SET_TIMER_BEEP_COUNTDOWN_TIME:(t,p,i)=>{world(t,i,'setTimerBeepCountdownTime')(t.readInt(p[0]),t.readInt(p[1]));},
+ SET_TIMER_BEEP_COUNTDOWN_TIME:(t,p,i)=>{game(t,i).onscreenTimer.setClockBeepCountdownSecs(t.globalOffset(p[0]),t.readInt(p[1]));},
  IS_OBJECT_INTERSECTING_WORLD:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isObjectIntersectingWorld')(t.readInt(p[0])),negated(i));},
  TASK_COMPLEX_PICKUP_OBJECT:(t,p,i)=>{world(t,i,'taskComplexPickupObject')(t.readInt(p[0]),t.readInt(p[1]));},
  IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isLastBuildingModelShotByPlayer')(t.readInt(p[0]),model(t,i,p[1])),negated(i));},
@@ -2347,7 +2344,7 @@ const handlers:Record<string,ScmCommandHandler>={
  FIX_CAR_PANEL:(t,p,i)=>{world(t,i,'fixCarPanel')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_GANG_WARS_TRAINING_MISSION:(t,p,i)=>{world(t,i,'setGangWarsTrainingMission')(bool(t,p[0]));},
  SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE:(t,p,i)=>{world(t,i,'setCharUsesCollisionClosestObjectOfType')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),model(t,i,p[4]),bool(t,p[5]),t.readInt(p[6]));},
- SET_ONSCREEN_COUNTER_FLASH_WHEN_FIRST_DISPLAYED:(t,p,i)=>{world(t,i,'setOnscreenCounterFlashWhenFirstDisplayed')(t.readInt(p[0]),bool(t,p[1]));},
+ SET_ONSCREEN_COUNTER_FLASH_WHEN_FIRST_DISPLAYED:(t,p,i)=>{game(t,i).onscreenTimer.setCounterFlashWhenFirstDisplayed(t.globalOffset(p[0]),bool(t,p[1]));},
  SET_OBJECT_MASS:(t,p,i)=>{world(t,i,'setObjectMass')(t.readInt(p[0]),t.readFloat(p[1]));},
  IS_OBJECT_IN_AREA_3D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isObjectInArea3d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),bool(t,p[7])),negated(i));},
  GET_OBJECT_QUATERNION:(t,p,i)=>{const result=world(t,i,'getObjectQuaternion')(t.readInt(p[0]));t.writeFloat(p[1],result.x);t.writeFloat(p[2],result.y);t.writeFloat(p[3],result.z);t.writeFloat(p[4],result.w);},

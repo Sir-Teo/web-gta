@@ -37,7 +37,7 @@ function recording(){
   setScriptLimitToGangSize:method('gangLimit'),makeRoomInPlayerGangForMissionPeds:method('room'),
   flushPatrolRoute:method('flushPatrol'),markRoadNodeAsDontWander:method('dontWander'),
   setRadioChannel:method('radio'),setNearClip:method('clip'),
-  setTimeScale:method('timeScale'),displayOnscreenCounterWithString:method('counter'),
+  setTimeScale:method('timeScale'),
  } as unknown as Partial<ScmWorldCommands>;
  return {world,calls,tasks};
 }
@@ -138,12 +138,11 @@ describe('the vehicle, object and world commands of this batch',()=>{
    instruction(op('SET_TIME_SCALE'),[float(0.25)]),
    instruction(op('FLUSH_PATROL_ROUTE'),[]),
    instruction(op('MARK_ROAD_NODE_AS_DONT_WANDER'),[float(7),float(8),float(9)]),
-   instruction(op('SET_SCRIPT_LIMIT_TO_GANG_SIZE'),[int(4)]),
-   instruction(op('DISPLAY_ONSCREEN_COUNTER_WITH_STRING'),[int(1),int(0),'COUNT']));
+   instruction(op('SET_SCRIPT_LIMIT_TO_GANG_SIZE'),[int(4)]));
   expect(readInt(40)).toBe(17);
   expect(calls).toEqual([
    ['fx','smoke',1,2,3,true],['radio',3],['clip',0.5],['timeScale',0.25],
-   ['flushPatrol'],['dontWander',7,8,9],['gangLimit',4],['counter',1,0,'COUNT'],
+   ['flushPatrol'],['dontWander',7,8,9],['gangLimit',4],
   ]);
  });
 });

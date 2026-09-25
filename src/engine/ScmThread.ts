@@ -477,8 +477,6 @@ export interface ScmWorldCommands {
  /** The blip's own entry-exit, and the HUD colour the script reads. */
  setBlipEntryExit?(blip:number,x:number,y:number,radius:number):void;
  hudColour?(colour:number):{red:number;green:number;blue:number;alpha:number};
- /** The onscreen timer the script displays with a label. */
- displayOnscreenTimerWithString?(timer:number,direction:number,text:string):void;
  /* The vehicle, object and world commands of this batch, each named by the schema. */
  switchVehicleSiren?(handle:number,state:boolean):void;
  vehicleGotoCoordinates?(handle:number,x:number,y:number,z:number):void;
@@ -510,8 +508,6 @@ export interface ScmWorldCommands {
  setRadarZoom?(zoom:number):void;
  setNearClip?(distance:number):void;
  setTimeScale?(scale:number):void;
- /** The onscreen counter the script displays with a label. */
- displayOnscreenCounterWithString?(counter:number,display:number,text:string):void;
  /* The aircraft, vehicle and world commands of this batch, each named by the schema. */
  heliGotoCoords?(handle:number,x:number,y:number,z:number,minAltitude:number,maxAltitude:number):void;
  setHeliBladesFullSpeed?(handle:number):void;
@@ -537,8 +533,6 @@ export interface ScmWorldCommands {
  switchRandomTrains?(state:boolean):void;
  setAllVehiclesCanBeDamaged?(state:boolean):void;
  displayHud?(state:boolean):void;
- freezeOnscreenTimer?(state:boolean):void;
- displayNthOnscreenCounterWithString?(counter:number,display:number,slot:number,text:string):void;
  addExplosionVariableShake?(x:number,y:number,z:number,type:number,shake:number):void;
  analogueSticks?(pad:number):{leftX:number;leftY:number;rightX:number;rightY:number};
  /* The vehicles, boats, trains, groups and particles of this batch. */
@@ -701,7 +695,6 @@ export interface ScmWorldCommands {
  switchStreaming?(state:boolean):void;
  setArea51SamSite?(state:boolean):void;
  switchPoliceHelis?(state:boolean):void;
- displayOnscreenTimer?(timer:number,direction:number):void;
  clearExtraColours?(fade:boolean):void;
  attachCameraToVehicle?(handle:number,offset:{x:number;y:number;z:number},pointAt:{x:number;y:number;z:number},tilt:number,switchType:number):void;
  attachCameraToVehicleLookAtVehicle?(handle:number,offset:{x:number;y:number;z:number},target:number,tilt:number,switchType:number):void;
@@ -840,7 +833,6 @@ export interface ScmWorldCommands {
  taskSay?(handle:number,phrase:number):void;
  explodeCarInCutsceneShakeAndBits?(handle:number,shake:boolean,effect:boolean,sound:boolean):void;
  boatStop?(handle:number):void;
- setTimerBeepCountdownTime?(timer:number,timeInSec:number):void;
  isObjectIntersectingWorld?(handle:number):boolean;
  taskComplexPickupObject?(char:number,object:number):void;
  isLastBuildingModelShotByPlayer?(handle:number,modelId:number|string):boolean;
@@ -953,7 +945,6 @@ export interface ScmWorldCommands {
  fixCarPanel?(handle:number,panelId:number):void;
  setGangWarsTrainingMission?(state:boolean):void;
  setCharUsesCollisionClosestObjectOfType?(x:number,y:number,z:number,radius:number,modelId:number|string,state:boolean,target:number):void;
- setOnscreenCounterFlashWhenFirstDisplayed?(counter:number,state:boolean):void;
  setObjectMass?(handle:number,mass:number):void;
  isObjectInArea3d?(handle:number,leftBottomX:number,leftBottomY:number,leftBottomZ:number,rightTopX:number,rightTopY:number,rightTopZ:number,drawSphere:boolean):boolean;
  getObjectQuaternion?(handle:number):{x:number,y:number,z:number,w:number};

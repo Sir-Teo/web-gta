@@ -105,6 +105,7 @@ const scratchAim = new Vector3();
 const scratchSpine = new Vector3(),scratchPoolFront = new Vector3(),scratchCameraFront = new Vector3();
 import {nativeSaveEffects,type ScmSavePoint} from './assets/scmSavePoints';
 import {AE_FRONTEND} from './audio/native/NativeFrontendAudio';
+import {HUD_COLOURS} from './ui/nativeHudColours';
 import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
@@ -2593,6 +2594,8 @@ async function boot() {
       else if(help!==shownScript.help){const [key,number]=help.split('#');hud.help(help?gxtHudText(number!==undefined?insertNumbers(gxtText(key,key),Number(number)):gxtText(key,key)):'',game.help.permanent?1e9:game.help.quick?3000:5000);shownScript.help=help;}
      }}
     {const colour=mission?.runtime.game.fadeColour;if(colour)hud.fadeColour(colour.red,colour.green,colour.blue);}
+    {const shown=mission&&!paused?mission.onscreenDisplay():undefined,label=(key:string)=>key?gxtHudText(gxtText(key,key)):'';
+     hud.missionTimers(shown&&{clock:shown.clock&&{text:shown.clock.text,label:label(shown.clock.key)},counters:shown.counters.map(c=>({text:c.text,label:label(c.key),type:c.type,value:c.value,colour:HUD_COLOURS[c.colour]??HUD_COLOURS[3]}))});}
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     // The script's own blips join the browser's: CRadar's table, drawn where the things it names are.
     navigation?.setLiveBlips([...(mission?.radarBlips()??[]),...(gangWarBlip&&gangWarBlip.visible?[{x:gangWarBlip.position.x,z:-gangWarBlip.position.y,sprite:attackBlipSprite(gangWarBlip.gang)}]:[]),...(pedestrians?.attackWavePositions()??[]).map(p=>{const c=GANG_COLOURS[p.gang??0]??[255,255,255];return {x:p.x,z:p.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:2};})]);
@@ -3114,6 +3117,7 @@ async function boot() {
                const zones=worldZones;
                void import('./simulation/ScmMission').then(({ScmMission})=>{
                 mission=new ScmMission(new Uint8Array(data.script),zones,{
+                  frontendAudioEvent:event=>sound.frontend(event),
                  // TheCamera's one fade: DO_FADE shares it with the game logic, the entry exits and the restarts.
                  cameraFade,showFade:(direction,milliseconds)=>hud.fade(direction===0,milliseconds),
                  startExtraColour:(colour,fade)=>localLighting.startExtraColour(colour,fade),stopExtraColour:fade=>localLighting.stopExtraColour(fade),

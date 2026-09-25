@@ -37,7 +37,7 @@ function recording(){
   clearGroupDecisionMakerEventResponse:method('clearGroup'),copyPedDecisionMaker:method('copy',33),
   switchRandomTrains:method('trains'),
   setAllVehiclesCanBeDamaged:method('allDamage'),displayHud:method('hud'),
-  freezeOnscreenTimer:method('freezeTimer'),displayNthOnscreenCounterWithString:method('nthCounter'),
+  
   addExplosionVariableShake:method('shake'),
   analogueSticks:method('sticks',{leftX:10,leftY:-20,rightX:30,rightY:-40}),
  } as unknown as Partial<ScmWorldCommands>;
@@ -113,11 +113,10 @@ describe('the helicopters, vehicles and world switches',()=>{
    instruction(op('SWITCH_RANDOM_TRAINS'),[int(1)]),
    instruction(op('SET_ALL_CARS_CAN_BE_DAMAGED'),[int(0)]),
    instruction(op('DISPLAY_HUD'),[int(1)]),
-   instruction(op('FREEZE_ONSCREEN_TIMER'),[int(1)]),
    instruction(op('ADD_EXPLOSION_VARIABLE_SHAKE'),[float(1),float(2),float(3),int(4),float(0.5)]),
    instruction(op('GET_POSITION_OF_ANALOGUE_STICKS'),[int(0),gvar(40),gvar(44),gvar(48),gvar(52)]));
   expect(calls).toEqual([
-   ['trains',true],['allDamage',false],['hud',true],['freezeTimer',true],
+   ['trains',true],['allDamage',false],['hud',true],
    ['shake',1,2,3,4,0.5],['sticks',0],
   ]);
   expect([readInt(40),readInt(44),readInt(48),readInt(52)]).toEqual([10,-20,30,-40]);

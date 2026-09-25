@@ -80,15 +80,11 @@ describe('the special characters and the mission reports',()=>{
   expect(()=>game.specialCharacters.at(TOTAL_SPECIAL_CHARACTERS+1)).toThrow(/range/);
  });
 
- test('the mission reports and the cleared counters are kept by number',()=>{
+ test('the mission reports are kept',()=>{
   const game=new ScmGameState();
   run(game,{},instruction(op('MISSION_HAS_FINISHED'),[]),
-   instruction(op('REGISTER_MISSION_PASSED'),['INTRO1']),
-   instruction(op('CLEAR_ONSCREEN_COUNTER'),[int(2)]),
-   instruction(op('CLEAR_ONSCREEN_TIMER'),[int(1)]));
+   instruction(op('REGISTER_MISSION_PASSED'),['INTRO1']));
   expect(game.missionFinished).toBe(true);
   expect(game.missionPassedKey).toBe('INTRO1');
-  expect([...game.clearedCounters]).toEqual([2]);
-  expect([...game.clearedTimers]).toEqual([1]);
  });
 });

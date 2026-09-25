@@ -68,6 +68,7 @@ export class Hud {
       <div class="radio-name" hidden></div>
       <div class="prompt" role="status" aria-live="polite"></div>
       <div class="help-box" role="status" aria-live="polite" hidden></div>
+      <div class="mission-timers" hidden></div>
       <div class="stat-update" hidden><span class="stat-name"></span> <b class="stat-sign"></b><div class="stat-bar"><i></i></div></div>
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>TAB</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
@@ -162,6 +163,24 @@ export class Hud {
   }
   /** DO_FADE: `out` fades the screen to the fading colour over `milliseconds`, otherwise back to the game. */
   /** CCamera::DrawBordersForWideScreen: black bars to GetScreenRect's top and bottom while widescreen is on. */
+  /** The script's mission clock and counters (COnscreenTimer::ProcessForDisplay's text). CHud::DrawMissionTimers is
+   * unreversed, so the rows' placement and type are authored: under the wanted level, the label on the left and the
+   * value on the right, a bar counter's value as a filled bar out of 100, in the counter's HUD colour. */
+  missionTimers(display:{clock?:{text:string;label:string};counters:{text:string;label:string;type:number;colour:readonly number[];value:number}[]}|undefined){
+    const box=this.element.querySelector<HTMLElement>('.mission-timers')!;
+    const key=display?JSON.stringify(display):'';if(key===this.shownTimers)return;this.shownTimers=key;
+    box.hidden=!display;if(!display){box.replaceChildren();return;}
+    const rows:HTMLElement[]=[];
+    const row=(label:string,value:HTMLElement|string,colour:readonly number[])=>{const r=document.createElement('div');r.className='timer-row';r.style.color=`rgb(${colour.join(',')})`;
+      const l=document.createElement('span');l.className='timer-label';l.textContent=label;const v=document.createElement('span');v.className='timer-value';if(typeof value==='string')v.textContent=value;else v.append(value);r.append(l,v);rows.push(r);};
+    if(display.clock)row(display.clock.label,display.clock.text,[172,203,241]);
+    for(const counter of display.counters){
+      if(counter.type===1){const bar=document.createElement('div');bar.className='timer-bar';const fill=document.createElement('i');fill.style.width=`${Math.max(0,Math.min(100,counter.value))}%`;fill.style.background=`rgb(${counter.colour.join(',')})`;bar.append(fill);row(counter.label,bar,counter.colour);}
+      else row(counter.label,counter.text,counter.colour);
+    }
+    box.replaceChildren(...rows);
+  }
+  private shownTimers='';
   widescreen(on:boolean){
     for(const bar of this.element.querySelectorAll<HTMLElement>('.widescreen-border'))if(bar.hidden===on)bar.hidden=!on;
     // CHud::Draw and DrawAfterFade leave out the crosshair, player info, wanted level, vehicle name, radar, 3D markers

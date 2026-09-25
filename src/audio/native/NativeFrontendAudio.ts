@@ -3,7 +3,7 @@ import type {NativeSoundManager} from './NativeSoundManager';
 import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 /** Frontend pickup events reported by CPickup::Update, CPickups::GivePlayerGoodiesWithPickUpMI and the collectable counters. */
 export const AE_FRONTEND={fireFailSniper:41,fireFailRocket:42,pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
- bulletPassLeftRear:27,bulletPassLeftFront:28,bulletPassRightRear:29,bulletPassRightFront:30,partMissionComplete:43} as const;
+ bulletPassLeftRear:27,bulletPassLeftFront:28,bulletPassRightRear:29,bulletPassRightFront:30,timerCount:33,partMissionComplete:43} as const;
 /** SND_BANK_GENRL_BULLET_PASS_1 to _4 and SND_BANK_SLOT_BULLET_PASS. */
 const BULLET_PASS_FIRST=28,BULLET_PASS_LAST=31,BULLET_PASS_SLOT=42;
 const BULLET_PASS_POSITION:Readonly<Record<number,{x:number;y:number;z:number}>>={27:{x:-.1,y:-1,z:0},28:{x:-.1,y:1,z:0},29:{x:.1,y:-1,z:0},30:{x:.1,y:1,z:0}};
@@ -11,6 +11,8 @@ const BULLET_PASS_POSITION:Readonly<Record<number,{x:number;y:number;z:number}>>
  * The function is still a plugin call upstream; its commented decompilation is followed. */
 export class NativeFrontendAudio implements NativeAudioEntity {
  private lastGeneral=-5;private lastMissionComplete=-5;
+ /** m_nLatestTimerCount: when AE_FRONTEND_TIMER_COUNT last found its sounds already playing. */
+ private latestTimerCount=0;
  /** m_BulletPassBank, m_BulletPassCount and m_nLastFrameBulletPass. */
  private bulletPassBank=BULLET_PASS_FIRST;private bulletPassCount=0;private lastFrameBulletPass=0;
  constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private defaultVolume:(event:number)=>number,private random:()=>number=Math.random){
@@ -30,6 +32,13 @@ export class NativeFrontendAudio implements NativeAudioEntity {
    // AE_FRONTEND_FIRE_FAIL_SNIPERRIFFLE / _ROCKET: frontend sound 10 or 11 ahead of the listener.
    case AE_FRONTEND.fireFailSniper:case AE_FRONTEND.fireFailRocket:
     this.manager.playSound({slot:SLOT.frontendGame,sound:event===AE_FRONTEND.fireFailSniper?10:11,entity:this,position:{x:0,y:1,z:0},volume,rollOff:1,speed,flags:SOUND.frontEnd|SOUND.uncancellable});break;
+   // AE_FRONTEND_TIMER_COUNT: frontend sounds 4 and 5 left and right, kept going while the countdown reports every
+   // frame; UpdateParameters stops them 100 ms after the last report.
+   case AE_FRONTEND.timerCount:
+    if(this.manager.areSoundsOfThisEventPlayingForThisEntity(AE_FRONTEND.timerCount,this)){this.latestTimerCount=this.manager.clock.timeMs;return;}
+    for(const [sound,x] of [[4,-1],[5,1]] as const)this.manager.playSound({slot:SLOT.frontendGame,sound,entity:this,position:{x,y:0,z:0},volume,rollOff:1,speed,doppler:1,event:AE_FRONTEND.timerCount,
+     flags:SOUND.forcedFront|SOUND.unduckable|SOUND.playPhysically|SOUND.requestUpdates|SOUND.uncancellable|SOUND.frontEnd});
+    break;
    case AE_FRONTEND.pickupDrugs:case AE_FRONTEND.pickupCollectable1:case AE_FRONTEND.partMissionComplete:if(frame>=this.lastMissionComplete+5){this.lastMissionComplete=frame;pair(18,19);}break;
   }
  }
@@ -50,5 +59,8 @@ export class NativeFrontendAudio implements NativeAudioEntity {
   this.manager.playSound({slot:BULLET_PASS_SLOT,sound:Math.floor(this.random()*3),entity:this,position,volume,rollOff:1,speed:1,doppler:1,flags:SOUND.requestUpdates|SOUND.frontEnd,speedVariance:.03125});
   this.bulletPassCount++;
  }
- updateParameters(_sound:NativeSound,_playPosition:number){}
+ /** CAEFrontendAudioEntity::UpdateParameters (0x4DEDA0): the timer count stops 100 ms after its last report. */
+ updateParameters(sound:NativeSound,playPosition:number){
+  if(sound.event===AE_FRONTEND.timerCount&&playPosition>0&&this.manager.clock.timeMs>this.latestTimerCount+100)sound.stopSoundAndForget();
+ }
 }

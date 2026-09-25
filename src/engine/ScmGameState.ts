@@ -1,3 +1,4 @@
+import {ScmOnscreenTimer} from './ScmOnscreenTimer';
 import {NativeAudioZones} from '../audio/nativeAudioZones';
 import {requireAsset} from '../assets/binary';
 import {ScmHelpMessage,ScmIntroRectangles,ScmIntroText,ScmMessages,STYLE_MIDDLE_SMALLER_HIGHER} from './ScmMessages';
@@ -229,8 +230,8 @@ export class ScmGameState {
  readonly specialCharacters=new ScmSpecialCharacters();
  /** Whether the mission the script is running has reported itself finished, and the key it passed on. */
  missionFinished=false;missionPassedKey?:string;
- /** The onscreen counters and timers the script clears by number. */
- readonly clearedCounters=new Set<number>();readonly clearedTimers=new Set<number>();
+ /** CUserDisplay::OnscnTimer: the mission clock and counters, on script globals. */
+ readonly onscreenTimer=new ScmOnscreenTimer();
  /** The route a task follows, which EXTEND_ROUTE builds a point at a time and FLUSH_ROUTE empties. */
  readonly route:{x:number;y:number;z:number}[]=[];
  /** CCarCtrl::CarDensityMultiplier, beside the ped one. */

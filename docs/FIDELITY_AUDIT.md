@@ -6578,3 +6578,30 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - m_AppropriateLoadedCars is what CStreaming holds for the zone. The popcycle membership stands in for it.
 - **Not done:** CBike::ProcessControl is unreversed, so a generated bike stands upright rather than leaning on its
   side stand (bOnSideStand).
+
+## Mission clock and counters (COnscreenTimer)
+
+- **Before:** DISPLAY_ONSCREEN_TIMER, DISPLAY_ONSCREEN_TIMER_WITH_STRING, the counter commands, FREEZE_ONSCREEN_TIMER,
+  SET_TIMER_BEEP_COUNTDOWN_TIME and SET_ONSCREEN_COUNTER_FLASH_WHEN_FIRST_DISPLAYED went to world adapters that did
+  not exist, so a mission that used them stopped: 64 timed and 89 counted uses across the campaign. The clear
+  commands kept the variable's value instead of clearing by the variable.
+- **Now:** COnscreenTimer, COnscreenTimerEntry and COnscreenCounterEntry are ported (`engine/ScmOnscreenTimer.ts`).
+  - The commands name the global variable itself. The entries keep its byte offset and read or write it directly.
+  - Once a game frame, after the scripts (CUserDisplay::Process), the clock moves its variable by the frame's whole
+    milliseconds, and is left alone while frozen.
+  - A countdown under its beep seconds (12 by default) reports AE_FRONTEND_TIMER_COUNT unless widescreen is on. One
+    that runs out stops at 0 and frees the clock.
+  - The display text is "%02d:%02d" of minutes (mod 100) and seconds. A counter shows "%d", clamped at 0, or
+    "%d / %d".
+  - A new counter is light blue and flashes when first shown. Only a free slot takes one, and only a free clock
+    takes a clock.
+- **The Nth counter index is one-based:** the plain counter is slot 0. The two missions that show a plain counter
+  beside Nth ones number the Nth ones from 2 (ANR_37 with 2 and 3, TX_TOTL with 3), and the Blood Bowl pair uses 1
+  and 2.
+- **Timer count audio:** frontend sounds 4 and 5, left and right. A report that finds them already playing only
+  refreshes m_nLatestTimerCount; UpdateParameters stops them 100 ms after the last report. This follows the
+  commented decompilation, as the port's other frontend events do.
+- **Not done:**
+  - CHud::DrawMissionTimers is unreversed. The rows' placement, font and the first-shown flash are authored: under
+    the wanted level, label left and value right, a bar counter filled out of 100, in its HUD colour.
+  - ADD_ONE_OFF_SOUND still has no adapter (ProcessMissionAudioEvent is unreversed).

@@ -40,6 +40,8 @@ const MODEL_NEVADA=553;
 
 /** What the browser can answer for the script while it runs its opening. */
 export interface ScmMissionWorld {
+ /** CAEFrontendAudioEntity::AddAudioEvent, for the reports the script's own systems make (the timer count). */
+ frontendAudioEvent?(event:number):void;
  /** TheCamera's fade (m_fFadeAlpha, m_bFading), one for the script and the game alike; the host processes it. Without
   * one the mission keeps and processes its own. */
  cameraFade?:ScmCameraFade;
@@ -1180,7 +1182,9 @@ export class ScmMission {
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();this.processGroups();}
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();this.processGroups();
+   // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
+   const game=this.runtime.game;game.onscreenTimer.process(this.globals,timeStepMs,game.widescreenOn,()=>this.world.frontendAudioEvent?.(33));}
   catch(error){
    if(error instanceof UnsupportedScmCommand)this.stopped={command:error.command,offset:error.offset,detail:error.message};
    else this.stopped={command:'error',offset:-1,detail:String(error)};
@@ -1190,6 +1194,16 @@ export class ScmMission {
   if(intro)this.introSeen=true;else if(this.introSeen)this.introDone=true;
  }
  /** What the script has done so far, for the dev API and the browser tests. */
+ /** The script's globals, which the onscreen clock and counters read and write. */
+ private get globals(){const space=this.runtime.scriptSpace;return this.globalsView??=new DataView(space.buffer,space.byteOffset,space.byteLength);}
+ private globalsView?:DataView;
+ /** COnscreenTimer::ProcessForDisplay for the HUD: the clock and the counters, as text with their GXT keys. */
+ onscreenDisplay(){
+  const timer=this.runtime.game.onscreenTimer;timer.processForDisplay(this.globals);
+  if(!timer.display)return undefined;
+  return {clock:timer.clock.enabled?{text:timer.clock.displayed,key:timer.clock.textKey}:undefined,
+   counters:timer.counters.map((c,slot)=>c.enabled?{slot,text:c.displayed,key:c.textKey,type:c.type,colour:c.colourId,flash:c.flashWhenFirstDisplayed,value:c.varId+4<=this.globals.byteLength?this.globals.getInt32(c.varId,true):0}:undefined).filter(c=>c!==undefined)};
+ }
  snapshot(){
   const {game}=this.runtime;
   return {
