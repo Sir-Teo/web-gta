@@ -301,6 +301,12 @@ export interface ScmMissionWorld {
  openScriptVehicleDoor?(car:unknown,door:number,ratio:number):void;
  /** GetPositionToOpenCarDoor for a seat of a script car, in the script's coordinates, on the ground. */
  scriptVehicleSeatDoor?(car:unknown,seat:'driver'|number):{x:number;y:number;z:number}|undefined;
+ /** CCarAI's coordinate missions on a script car (ScriptCarMissions), in the script's coordinates, and
+  * m_nStraightLineDistance. */
+ driveScriptVehicleTo?(car:unknown,goal:{x:number;y:number;z:number},o:{cruise:number;style:number;accurate:boolean;straight:boolean}):void;
+ setScriptVehicleStraightLineDistance?(car:unknown,distance:number):void;
+ /** The car's CCarAI mission cleared (MISSION_NONE): its driver's task was cleared, or the driver got out. */
+ stopScriptVehicle?(car:unknown):void;
  setPlayerCollision?(uses:boolean):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
@@ -787,6 +793,7 @@ export class ScmMission {
    // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.
    givePedScriptedTask:(handle,task,opcode)=>{
     if((task.kind==='leaveCar'||task.kind==='leaveAnyCar'||task.kind==='leaveCarImmediately')&&handle!==PLAYER_PED_HANDLE){this.leaveCar(handle,task.kind==='leaveAnyCar'?undefined:task.vehicle,opcode);return;}
+    if(task.kind==='carDriveToCoord'&&handle!==PLAYER_PED_HANDLE){this.driveToCoord(handle,task,opcode);return;}
     const order=scriptedPedOrder(task,this.taskWorld(handle));
     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
     if(handle===PLAYER_PED_HANDLE){this.givePlayer([order],false,opcode);return;}
@@ -828,6 +835,8 @@ export class ScmMission {
    // IS_CAR_UPRIGHT's handler is not reversed: the car is upright unless it lies on its roof (its up axis below the
    // horizontal), as the command is documented.
    isCarUpright:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z>=0,
+   // SET_CAR_STRAIGHT_LINE_DISTANCE: CAutoPilot::m_nStraightLineDistance, which FindSwitchDistanceClose reads.
+   setVehicleStraightLineDistance:(handle,distance)=>{this.host('setScriptVehicleStraightLineDistance','SET_CAR_STRAIGHT_LINE_DISTANCE')(this.liveVehicle(handle),distance);},
    // IS_CAR_UPSIDEDOWN's handler is unreversed; CVehicle::IsUpsideDown (0x6D1D90) is the car's up axis at or below -0.9.
    vehicleIsUpsideDown:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z<=-.9,
    // GET_DRIVER_OF_CAR: m_pDriver's handle, or -1 with nobody driving. The player drives the car it is in.
@@ -976,7 +985,27 @@ export class ScmMission {
   if(!car)throw new UnsupportedScmCommand(opcode,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${ride.vehicle}`);
   const at=this.host('scriptVehicleSeatDoor','TASK_LEAVE_CAR')(car,ride.seat);
   if(!at)throw new UnsupportedScmCommand(opcode,0,'A_SEAT_WITHOUT_A_DOOR',String(ride.seat));
+  this.stopDriving(handle);
   this.peds.detachFromCar(handle,at);
+  this.recordTask(handle,opcode,false);
+ }
+ /** A script driver's car stops its CCarAI mission when the driver's task goes. */
+ private stopDriving(handle:number){
+  const ride=this.peds.rideOf(handle);if(!ride||ride.offset||ride.seat!=='driver')return;
+  const car=this.vehicles.entity(ride.vehicle);if(car)this.world.stopScriptVehicle?.(car);
+ }
+ /** CTaskComplexDriveToPoint for a script ped at the wheel of a script car: CCarAI::GetCarToGoToCoors (mode 0),
+  * …Accurate (1) or …StraightLine (2) with the task's cruise speed and driving style; the racing mode (3) drives as the
+  * plain one. The task is over once the car's mission clears. A driver not yet at that car's wheel would first get in
+  * (CTaskComplexCarDrive), which the browser does not do here. */
+ private driveToCoord(handle:number,task:{vehicle:number;x:number;y:number;z:number;speed:number;driveStyle:number;drivingStyle:number},opcode:number){
+  this.livePed(handle);
+  const ride=this.peds.rideOf(handle);
+  if(!ride||ride.offset||ride.seat!=='driver'||ride.vehicle!==task.vehicle)throw new UnsupportedScmCommand(opcode,0,'A_DRIVER_NOT_AT_THE_WHEEL',`ped ${handle}`);
+  const car=this.vehicles.entity(task.vehicle);
+  if(!car)throw new UnsupportedScmCommand(opcode,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${task.vehicle}`);
+  this.host('driveScriptVehicleTo','TASK_CAR_DRIVE_TO_COORD')(car,{x:task.x,y:task.y,z:task.z},
+   {cruise:task.speed,style:task.drivingStyle,accurate:task.driveStyle===1,straight:task.driveStyle===2});
   this.recordTask(handle,opcode,false);
  }
  /** The player's ped runs only the tasks PlayerScriptTasks knows; any other gives the thread up. */
@@ -988,7 +1017,7 @@ export class ScmMission {
  }
  private clearTasks(handle:number,command:string){
   if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerTasks',command)();
-  else this.world.clearScriptPedTasks(this.livePed(handle));
+  else{this.stopDriving(handle);this.world.clearScriptPedTasks(this.livePed(handle));}
   this.taskRecords.delete(handle);
  }
  /** What a ped handle names: the player, the browser's ped behind a live script handle, or nothing. */

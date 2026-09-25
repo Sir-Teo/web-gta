@@ -6788,3 +6788,20 @@ the first ones now implemented:
   - The get-out clips are not played.
   - A ped on foot, or in a car other than the one named, has nothing to do, and the task is over at once.
   - The player's own exit through these tasks still gives the thread up.
+- **TASK_CAR_DRIVE_TO_COORD** (324 uses, 55 missions), for a script ped at the wheel of a script car:
+  CTaskComplexDriveToPoint through ScriptCarMissions.
+  - Modes: CCarAI::GetCarToGoToCoors (mode 0), …Accurate (1) and …StraightLine (2). The racing mode (3) drives as
+    mode 0.
+  - The task's speed and driving style become the autopilot's.
+  - UpdateCarAI's reversed switching (CarAI.cpp) is followed: GOTOCOORDINATES turns straight inside
+    m_nStraightLineDistance (default 20), and the straight mission clears inside 3 units (1 when accurate). Past
+    the distance + 5 it rejoins the road every eighth frame.
+  - JoinCarWithRoadSystemGotoCoors (unreversed; Vice City's rule) drives straight when there is no road route.
+  - The road following, the red-light stops for STOP_FOR_CARS and SLOW_DOWN_FOR_CARS, and the stuck recovery are
+    the police units'. Traffic avoidance is not modelled.
+  - The task is over when the car's mission clears. MISSION_NONE holds the brakes.
+  - CLEAR_CHAR_TASKS on the driver, or the driver leaving, clears the mission.
+  - A driver not yet at that car's wheel still gives the thread up: CTaskComplexCarDrive would put it in first.
+  - The car path nodes are read the first time a script drives.
+- **SET_CAR_STRAIGHT_LINE_DISTANCE** (19 missions): CAutoPilot::m_nStraightLineDistance, which the coordinate missions
+  switch on.

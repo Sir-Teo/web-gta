@@ -111,6 +111,7 @@ import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
 import {PlayerScriptTasks} from './simulation/playerScriptTasks';
+import {ScriptCarMissions} from './simulation/ScriptCarMissions';
 import {ScriptObjectViews} from './simulation/ScriptObjectViews';
 import {weaponById} from './weapons/catalog';
 import {CAR_FIRE_HEALTH} from './simulation/nativeCarDamage';
@@ -304,6 +305,16 @@ async function boot() {
    sim.player.position={x,y:ground,z};sim.player.previous={x,y:ground,z};
    sim.playerBody.setTranslation({x,y:ground+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:ground+.9,z});sim.playerCollider.setTranslation({x,y:ground+.9,z});
   },
+ });
+ // CCarAI's coordinate missions for the cars the script's own drivers take somewhere.
+ // The car path nodes are read the first time a script drives a car.
+ let scriptCarPathsReady:import('./simulation/ScriptCarMissions').ScriptCarPaths|undefined,scriptCarPathsAsked=false;
+ const scriptCars=new ScriptCarMissions(()=>{
+  if(!scriptCarPathsAsked){scriptCarPathsAsked=true;void Promise.all([import('./assets/staticWorldArchive'),import('./assets/worldPaths')]).then(async([{openStaticWorld},{worldPaths}])=>{
+   const paths=worldPaths(await openStaticWorld(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
+   const p=sim.player.position;await paths.loadAround(p.x,p.z);scriptCarPathsReady=paths;
+  }).catch(()=>{scriptCarPathsAsked=false;});}
+  return scriptCarPathsReady;
  });
  const playerTaskBody=()=>({position:sim.player.position,heading:sim.player.heading,speed:sim.player.speed,onFoot:sim.playerCollider.isEnabled(),view:render.nativeCharacter});
  let lastGameFrame=0;
@@ -2112,7 +2123,7 @@ async function boot() {
         const rocket=input.consume('KeyB')||input.down('KeyB');
         if(fleet?.occupiedPlane&&(firing||input.down('ControlLeft')||input.down('ControlRight')||rocket))weapons.fireAircraft(fleet.occupiedPlane,rocket);
         const tTraffic=performance.now();
-        guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied?worldCar:undefined));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
+        guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>scriptCars.step(step,sim.player.position));guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied?worldCar:undefined));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
         guard('pedestrians.beforeStep',()=>pedestrians?.beforeStep(step,fleet?.cars??[]));
         frameProfile.stepPeds+=performance.now()-tPeds;
@@ -3237,7 +3248,8 @@ async function boot() {
                  clearScriptPedTasks:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearTasks(p);},
                  // A ped in a car holds no on-foot order the browser tracks, so its record is left as it is.
                  // A ped riding in a car runs none of the tasks the browser carries out on foot.
-                 scriptPedHasOrder:ped=>{const p=onFoot(ped);return p?pedestrians?.hasScriptTask(p)??false:false;},
+                 // A ped riding in a car holds a task only while it drives the car on a CCarAI mission.
+                 scriptPedHasOrder:ped=>{const p=onFoot(ped);if(p)return pedestrians?.hasScriptTask(p)??false;const r=asRider(ped);return !!r&&r.seat==='driver'&&scriptCars.driving(r.car);},
                  // CWorld::ClearExcitingStuffFromArea: the deletable peds and cars in the radius go, and the
                  // fires in it are put out, which is CFireManager::ExtinguishPoint and the car-fire pass.
                  clearArea:(point,radius)=>{
@@ -3443,6 +3455,10 @@ async function boot() {
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
                  setScriptVehicleSiren:(car,on)=>{(car as ScriptCar).siren=on;},
                  openScriptVehicleDoor:(car,door,ratio)=>{(car as Partial<ScriptCar>).openDoor?.(door,ratio);},
+                 // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.
+                 driveScriptVehicleTo:(car,goal,o)=>{scriptCars.gotoCoords(car as ScriptCar,{x:goal.x,y:goal.z>-100?goal.z:(car as ScriptCar).car.body.translation().y,z:-goal.y},o);},
+                 setScriptVehicleStraightLineDistance:(car,distance)=>{scriptCars.setStraightLineDistance(car as ScriptCar,distance);},
+                 stopScriptVehicle:car=>{scriptCars.clear(car as ScriptCar);},
                  scriptVehicleSeatDoor:(car,seat)=>{
                   const c=car as ScriptCar;if(typeof c.seat!=='function')return undefined;
                   const local=carEntry.seatDoorPoint(c,seat);if(!local)return undefined;
