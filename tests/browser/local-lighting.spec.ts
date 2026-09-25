@@ -18,11 +18,12 @@ test('local timecycle changes visible sky, selects weather, rejects bad replacem
   await expect(page.locator('#lighting-status')).toContainText('loaded for this session');
   await page.getByLabel('Weather',{exact:true}).selectOption('0');
   await expect.poll(async()=>(await state()).native.top).toEqual([1,0,0]);
-  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.far)).toBe(120);
-  expect(await page.evaluate(()=>(window as any).__game.state().camera.fog)).toMatchObject({type:"Fog",near:20,far:120});
+  // CTimeCycle interpolates in float32, so a flat 120 can come back a float step off (120.0000076).
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.far)).toBeCloseTo(120,3);
+  {const fog=await page.evaluate(()=>(window as any).__game.state().camera.fog);expect(fog.type).toBe('Fog');expect(fog.near).toBeCloseTo(20,3);expect(fog.far).toBeCloseTo(120,3);}
   const red=await pixel();expect(red[0]).toBeGreaterThan(245);expect(red[2]).toBeLessThan(10);
   await page.getByLabel('Weather',{exact:true}).selectOption('1');await expect.poll(async()=>(await state()).native.top).toEqual([0,0,1]);
-  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.far)).toBe(300);
+  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().camera.far)).toBeCloseTo(300,3);
   const blue=await pixel();expect(blue[2]).toBeGreaterThan(245);expect(blue[0]).toBeLessThan(10);
   await page.getByLabel('Local timecycle file').setInputFiles({name:'bad.dat',mimeType:'text/plain',buffer:Buffer.from('broken')});
   await expect(page.locator('#lighting-status')).toContainText('Current lighting retained');expect((await state()).imported).toBe('diagnostic.dat');
