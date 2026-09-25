@@ -3996,6 +3996,15 @@ async function boot() {
                   return scriptCars.carMission(car,{mission:o.mission,target:target as ScriptCar|undefined,cruise:o.cruise,style:o.style});
                  },
                  scriptVehicleSeatDoor:(car,seat)=>{
+                  // A bike's rider steps off at its side: the driver's saddle to the left, the pillion to the right, as the
+                  // leave-car task picks the door by the seat. A bike has no doors, and a car's frames are not on it.
+                  if(!isScriptCar(car)){
+                   const bike=car as import('./simulation/WorldBike').WorldBike;if(typeof bike.seat!=='function'||!bike.body)return undefined;
+                   const saddle=bike.seat();if(!saddle)return undefined;const side=seat==='driver'?'left':'right';
+                   const w=bikeMount.worldPoint(bike,bikeMount.sidePoint(bike,side)??{x:saddle.x+(side==='left'?-1:1),y:saddle.y,z:saddle.z});
+                   const ground=pedestrians?.groundUnder(w.x,w.z,w.y+2)??w.y;
+                   return {x:w.x,y:-w.z,z:ground};
+                  }
                   const c=car as ScriptCar;if(typeof c.seat!=='function')return undefined;
                   const local=carEntry.seatDoorPoint(c,seat);if(!local)return undefined;
                   const w=c.worldPoint(local),ground=pedestrians?.groundUnder(w.x,w.z,w.y+2)??w.y;

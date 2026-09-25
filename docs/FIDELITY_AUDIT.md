@@ -7989,3 +7989,11 @@ Each is now answered:
 - Not yet: followers boarding the player's car. The car entry seats street recruits by removing them and making them
   again inside, which would lose a script ped's handle; script followers stay on foot for now.
 - Verification: `tests/browser/script-group-follow.spec.ts`.
+
+## Getting off a script bike
+
+- An on-foot task given to a ped riding a script bike takes the ped off first, at the point the leave-car task picks.
+  That point was read from a car's door frames, which a bike does not have, so the command threw and stopped INTRO1
+  at the end of the ride.
+- The rider now steps off at the bike's side mount point: the driver's saddle to the left, the pillion to the right.
+- Verification: `tests/browser/script-bike-rider.spec.ts`.

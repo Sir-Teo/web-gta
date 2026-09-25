@@ -28,5 +28,14 @@ test('a script ped gets on a script BMX and rides it to a point, and the peds ke
  expect(await page.evaluate(({bike,start})=>{const g=(window as any).__game,b=g.missionForProfiling().vehicles.entity(bike),m=g.scriptCars().missions.get(b);return m&&Math.round(m.goal.x-start.x);},{...made,start})).toBe(-60);
  // The rider is drawn on the saddle with the BMX group's clip.
  await expect.poll(()=>page.evaluate(bike=>{const g=(window as any).__game,b=g.missionForProfiling().vehicles.entity(bike);return [...g.occupants().views.keys()].includes(`script:${b.car.body.handle}:driver`);},made.bike),{timeout:30000}).toBe(true);
+ // An on-foot task takes the rider off first (INTRO1 plays a clip on each homie at the end of the ride): he steps
+ // off at the bike's left, where a car's door frames used to be read off the bike and stop the script.
+ const gaveUp=()=>page.evaluate(()=>(window as any).__game.missionForProfiling().snapshot().gaveUp.length);
+ const before=await gaveUp();
+ await page.evaluate(({ped})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(ped,{kind:'playAnim',animationName:'IDLE_chat',animationFile:'PED',blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:true},0x0605),made);
+ await expect.poll(()=>page.evaluate(({ped})=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(ped)??null,made),{timeout:30000}).toBeNull();
+ const off=await page.evaluate(({ped,bike})=>{const w=(window as any).__game.missionForProfiling().runtime.world,a=w.pedPosition(ped),b=w.vehiclePosition(bike);return Math.hypot(a.x-b.x,a.y-b.y);},made);
+ expect(off).toBeLessThan(3);
+ expect(await gaveUp()).toBe(before);
  expect(faults).toEqual([]);expect(errors).toEqual([]);
 });
