@@ -2554,16 +2554,18 @@ const handlers:Record<string,ScmCommandHandler>={
  LOCATE_CHAR_IN_CAR_CHAR_3D:locateCharChar(true,{car:true,foot:false}),
  // --- CTaskSequences (TaskSequences.cpp is reversed; the four command dispatches are not, and each names the
  // static it reaches). A sequence records the tasks that follow it until the script closes it.
- OPEN_SEQUENCE_TASK:(t,p,i)=>{game(t,i).sequences.open(t.readInt(p[0]));},
+ // The operand is the handle the command hands back, (m_nId << 16 | slot), which the other commands name it by.
+ OPEN_SEQUENCE_TASK:(t,p,i)=>{t.writeInt(p[0],game(t,i).sequences.open(t.usesMissionCleanup));},
  CLOSE_SEQUENCE_TASK:(t,p,i)=>{game(t,i).sequences.close(t.readInt(p[0]));},
  CLEAR_SEQUENCE_TASK:(t,p,i)=>{game(t,i).sequences.clear(t.readInt(p[0]));},
  // The handler checks the index it is given and then sets the repeat mode of the active sequence instead.
  SET_SEQUENCE_TO_REPEAT:(t,p,i)=>{game(t,i).sequences.setRepeatMode(t.readInt(p[0]),bool(t,p[1]));},
  // With a ped of -1 the sequence is recorded into the one open as a CTaskComplexUseSequence step.
  PERFORM_SEQUENCE_TASK:(t,p,i)=>{
-  const ped=t.readInt(p[0]),index=t.readInt(p[1]),sequence=game(t,i).sequences.at(index);
-  if(ped===-1){game(t,i).sequences.addTaskToActiveSequence({kind:'useSequence',sequence:index});return;}
-  world(t,i,'givePedSequence')(ped,sequence.tasks,sequence.repeatMode!==0,i.opcode&0x7fff);
+  // A handle naming no sequence (cleared, or never opened) gives nothing.
+  const ped=t.readInt(p[0]),found=game(t,i).sequences.sequenceFor(t.readInt(p[1]));if(!found)return;
+  if(ped===-1){game(t,i).sequences.addTaskToActiveSequence({kind:'useSequence',sequence:found.slot});return;}
+  world(t,i,'givePedSequence')(ped,found.sequence.tasks,found.sequence.repeatMode!==0,i.opcode&0x7fff);
  },
  // --- The tasks a script hands a ped (CharacterCommands.cpp is reversed for these four).
  // A ped handle of -1 does not name a ped at all: the task joins the sequence being recorded.

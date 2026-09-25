@@ -13,10 +13,10 @@ test('a sequence runs the sequences recorded into it, and reports both steps',as
   return m.peds.create(4,'MALE01',{x:p.x+4,y:-p.z,z:p.y});});
  await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().peds.entity(h),ped,{timeout:45000});
  await page.evaluate(h=>{const m=(window as any).__game.missionForProfiling(),s=m.runtime.game.sequences;
-  s.open(40);s.addTaskToActiveSequence({kind:'standStill',time:1200});s.addTaskToActiveSequence({kind:'standStill',time:1200});s.close(40);
-  s.open(41);s.addTaskToActiveSequence({kind:'standStill',time:1200});s.addTaskToActiveSequence({kind:'useSequence',sequence:40});
-  s.addTaskToActiveSequence({kind:'standStill',time:60000});s.close(41);
-  m.runtime.world.givePedSequence(h,s.at(41).tasks,false,0x618);},ped);
+  const inner=s.open();s.addTaskToActiveSequence({kind:'standStill',time:1200});s.addTaskToActiveSequence({kind:'standStill',time:1200});s.close(inner);
+  const outer=s.open();s.addTaskToActiveSequence({kind:'standStill',time:1200});s.addTaskToActiveSequence({kind:'useSequence',sequence:s.index(inner)});
+  s.addTaskToActiveSequence({kind:'standStill',time:60000});s.close(outer);
+  m.runtime.world.givePedSequence(h,s.sequenceFor(outer).sequence.tasks,false,0x618);},ped);
  const progress=()=>page.evaluate(h=>{const w=(window as any).__game.missionForProfiling().runtime.world;const r=w.getSequenceProgressRecursive(h);return [w.pedSequenceProgress(h),r.p2,r.p3];},ped);
  const seen=new Set<string>();
  await expect.poll(async()=>{const v=await progress();seen.add(v.join(','));return v;},{timeout:60000,intervals:[100]}).toEqual([2,2,-1]);

@@ -89,7 +89,7 @@ describe('the tasks a script hands its peds',()=>{
   // With no sequence open the runtime refuses, which is what the sequence table already does.
   expect(()=>given(instruction(op('TASK_PAUSE'),[int(-1),int(500)]))).toThrow(/no sequence open/);
   const withSequence=new ScmGameState();
-  withSequence.sequences.open(0);
+  withSequence.sequences.open();
   const space=new Uint8Array(2048);space.set(instruction(op('TASK_PAUSE'),[int(-1),int(500)]),CODE);
   const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game:withSequence,world:{fade(){}} as ScmWorldCommands});
   try{thread.run(0,4);}catch(error){if(!String(error).includes('watchdog'))throw error;}

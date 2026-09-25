@@ -46,10 +46,10 @@ describe('the tasks a script hands a ped',()=>{
 
  test('a handle of -1 records the task into the sequence instead of giving it to a ped',()=>{
   const host=taskHost();
-  host.game.sequences.open(3);
+  host.game.sequences.open();
   run(command(scmOpcode('TASK_TURN_CHAR_TO_FACE_CHAR'),[-1,9]),host.world,host.game);
   expect(host.given).toHaveLength(0);
-  expect(host.game.sequences.at(3).tasks).toEqual([{kind:'turnToFaceEntity',target:9}]);
+  expect(host.game.sequences.at(0).tasks).toEqual([{kind:'turnToFaceEntity',target:9}]);
  });
 
  test('clearing a ped’s tasks flushes it at once',()=>{

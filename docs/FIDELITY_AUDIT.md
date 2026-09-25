@@ -7835,3 +7835,18 @@ Each is now answered:
   - The wheel spheres are fixed to the body and slide rather than roll. Against the ground's averaged friction they
     cost a 100 kg BMX about 3.7 m/s², more than 0.8 throttle's pedalling (3.6 m/s² at full).
   - The AI's part-throttle bikes stood still until the stuck recovery backed them up, over and over (INTRO1's homies).
+
+## Sequence handles
+
+- OPEN_SEQUENCE_TASK's operand is the handle the command hands back (sa.json marks it a constructor output). The port
+  read it as an input: a slot index taken from whatever the variable held, 0 when unset.
+  - Every mission that opens sequences before performing them had them all recorded into one slot, and the last
+    opened won. INTRO1's homies rode sequence 111's route (towards 1781, -1111) in place of sequence 82's.
+- CTheScripts::ScriptSequenceTaskArray is now kept. A script holds a slot through a handle (m_nId << 16 | slot), made
+  by GetNewUniqueScriptThingIndex and checked by GetActualScriptThingIndex on every other sequence command.
+  - OPEN takes the first slot neither open nor held. CTaskSequences::GetAvailableSlot is unreversed; the peds'
+    sequences are copies here, so a slot in use by a ped is free to reuse.
+  - CLEAR lets the slot go; a stale handle names nothing, and PERFORM with one gives nothing.
+- A mission's sequences are on its cleanup list (cleanUpMissionSequences). CMissionCleanup::Process itself is not
+  ported yet.
+- Verification: `tests/scm-sequences.test.ts`, `tests/browser/script-nested-sequence.spec.ts`.
