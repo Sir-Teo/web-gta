@@ -22,6 +22,11 @@ test('the player\'s street car gets a handle, and his group\'s script peds ride 
  // The follower gets in beside him.
  await expect.poll(()=>w('pedVehicle',ped),{timeout:90000}).toBe(car);
  expect(await w('scriptTaskStatus',ped,-1)).toBe(7);
+ // Set down beside the car while he stays in it (a crash, or the script), it climbs back in: its default task,
+ // CTaskComplexFollowLeaderAnyMeans, boards the leader's car whenever he sits in one.
+ await w('warpPedFromCarToCoord',ped,...Object.values(await page.evaluate(()=>{const p=(window as any).__game.state().player.position;return {x:p.x+3,y:-p.z,z:-100};})));
+ expect(await w('pedVehicle',ped)).toBeUndefined();
+ await expect.poll(()=>w('pedVehicle',ped),{timeout:90000}).toBe(car);
  // He gets out; the follower follows him out, and the handle still names the car.
  await w('givePedScriptedTask',1,{kind:'leaveCar',vehicle:car},0x0622);
  await expect.poll(()=>w('pedVehicle',1),{timeout:60000}).toBeUndefined();

@@ -8207,3 +8207,12 @@ The command went to the script ped pool whatever the handle, so on the player it
 after a fight or cutscene, and a script's kill, were lost. `SetCharHealth` on the player now sets his health capped
 at `CPlayerInfo::m_nMaxHealth` (a script ped's max health follows its first setting instead), and 0 kills him as it
 kills any ped (CTaskComplexDie from a script command event). Spec: `script-player-car`.
+
+## Followers climb back into the leader's car
+
+The player group's followers run `CTaskComplexFollowLeaderAnyMeans` (the FOLLOW_ANY_MEANS default allocator), which
+boards the leader's car whenever he sits in one. Only the moment he got in sent them, so a homie set down by a crash
+or by the script stayed on foot while CJ waited in the car (Drive-Thru's return to Grove Street never came). A
+follower on foot with nothing of the script's to do, and not already on its way, is now sent to get in again,
+every three seconds while it stays out. `WARP_CHAR_FROM_CAR_TO_COORD` on a script ped in a car now sets it out of
+the seat as well as moving it, where it used to go on counting as in the car. Spec: `script-group-car`.

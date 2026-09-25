@@ -877,8 +877,12 @@ export class ScmMission {
    warpPedFromCarToCoord:(handle,x,y,z)=>{
     const ground=this.world.groundLevel(x,y,z);
     if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerFromCarToCoord','WARP_CHAR_FROM_CAR_TO_COORD')({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_FROM_CAR_TO_COORD','a player on a bike, boat or plane');return;}
-    this.world.warpScriptPedToCoord(this.livePed(handle),{x,y,z:ground??z});
-    this.peds.setPosition(handle,{x,y,z:ground??z});
+    // A ped in a car is set out of it at the point (CTaskSimpleCarSetPedOut, then the teleport): its seat is freed and
+    // it no longer counts as in the car.
+    const at={x,y,z:ground??z};
+    if(this.peds.rideOf(handle)){this.stopDriving(handle);this.peds.detachFromCar(handle,at);return;}
+    this.world.warpScriptPedToCoord(this.livePed(handle),at);
+    this.peds.setPosition(handle,at);
    },
    // CTheScripts' elegant removal: a mission ped on foot is handed back to the game rather than taken out of
    // the world. A browser ped a script made is never in a vehicle, so that is the whole of it.
@@ -2508,6 +2512,8 @@ export class ScmMission {
  /** The car the player's group last saw him in, and the followers still to get out of it. */
  private groupCar?:number;
  private groupExits:{handle:number;vehicle:number;at:number}[]=[];
+ /** When each follower was last sent to get in the leader's car (CTaskComplexFollowLeaderAnyMeans). */
+ private groupBoarding=new Map<number,number>();
  /** CGroupEventHandler::ComputeResponseLeaderEnteredCar and ComputeResponseLeaderExitedCar for the player's group, for
   * the script's peds in it. As he gets in, each follower on foot with no script task of its own takes
   * CTaskComplexEnterCarAsPassenger into a free seat, while the group's members enter the leader's vehicle. As he gets
@@ -2528,9 +2534,22 @@ export class ScmMission {
    }
    if(car!==undefined&&car!==PLAYER_VEHICLE_HANDLE&&players.membersEnterLeadersVehicle&&players.followsLeader){
     this.groupExits=this.groupExits.filter(exit=>exit.vehicle!==car);
-    for(const handle of followers)if(!this.peds.rideOf(handle)&&!this.taskRecords.has(handle))groupTask(handle,{kind:'enterCarAsPassenger',vehicle:car,time:-1,seat:-1});
+    for(const handle of followers)if(!this.peds.rideOf(handle)&&!this.taskRecords.has(handle)){this.groupBoarding.set(handle,nowMs);groupTask(handle,{kind:'enterCarAsPassenger',vehicle:car,time:-1,seat:-1});}
    }
   }
+  // CTaskComplexFollowLeaderAnyMeans, the default task of a follower in the player's group: while the leader sits in a
+  // car, a follower on foot with nothing of the script's to do goes to get in it, not only as he gets in (a homie
+  // thrown out by a crash, or set down by the script, climbs back in). Asked again every three seconds while it is
+  // still on foot, as the task starts over when its entry fails.
+  if(car!==undefined&&car!==PLAYER_VEHICLE_HANDLE&&players.membersEnterLeadersVehicle&&players.followsLeader){
+   for(const handle of followers){
+    if(this.peds.rideOf(handle)||this.taskRecords.has(handle)||this.runners.has(handle)||this.groupExits.some(exit=>exit.handle===handle))continue;
+    // Still on its way to the car (the entry is its order): left to finish.
+    const entity=this.peds.entity(handle);if(entity!==undefined&&this.world.scriptPedHasOrder?.(entity)){this.groupBoarding.set(handle,nowMs);continue;}
+    const last=this.groupBoarding.get(handle);if(last!==undefined&&nowMs-last<3000)continue;
+    this.groupBoarding.set(handle,nowMs);groupTask(handle,{kind:'enterCarAsPassenger',vehicle:car,time:-1,seat:-1});
+   }
+  }else this.groupBoarding.clear();
   if(!this.groupExits.length)return;
   const due=this.groupExits.filter(exit=>exit.at<=nowMs);if(!due.length)return;
   this.groupExits=this.groupExits.filter(exit=>exit.at>nowMs);
