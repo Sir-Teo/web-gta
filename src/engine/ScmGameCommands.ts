@@ -8,7 +8,7 @@ import {scmOpcode} from './scmOpcodes';
 import {USE_TEXT_DISABLE_NEXT_FRAME,USE_TEXT_ENABLED_BY_SCRIPT} from './ScmMessages';
 import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_COORD,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_OBJECT,BLIP_PICKUP} from './ScmRadar';
 import {STAT_MISSION_ATTEMPTS,STAT_PROGRESS_MADE} from './ScmGameState';
-import {CONTROLLER_JOYPAD} from './ScmPads';
+import {BUTTON,CONTROLLER_JOYPAD} from './ScmPads';
 import {switchArea} from './ScmNodeSwitches';
 import {ScmCamera} from './ScmCamera';
 import {fixAngleDegrees} from './ScmObjects';
@@ -1353,8 +1353,18 @@ const handlers:Record<string,ScmCommandHandler>={
    bool(t,p[7]),bool(t,p[8]));
  },
  // The object commands: a slide to a point at its own speed, and the health it carries.
+ /* SLIDE_OBJECT's handler is unreversed; Vice City's is followed. Each axis moves toward the target by its speed
+  * times the timestep, stopping at the target, and the flag is set once all three have arrived. With the collision
+  * check, a move the host finds blocked is not made. */
  SLIDE_OBJECT:(t,p,i)=>{
-  world(t,i,'slideObject')(t.readInt(p[0]),vec(t,p,1),vec(t,p,4),bool(t,p[7]));
+  const objects=game(t,i).objects,handle=t.readInt(p[0]),target=vec(t,p,1),speed=vec(t,p,4),check=bool(t,p[7]);
+  if(t.timeStep===undefined)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,'no timestep');
+  const from=objects.at(handle).position,step=Math.fround(t.timeStep);
+  const axis=(at:number,to:number,rate:number)=>{const f=Math.fround;if(to<at){const n=f(at-f(rate*step));return n<to?to:n;}const n=f(at+f(rate*step));return n>to?to:n;};
+  const next={x:axis(from.x,target.x,speed.x),y:axis(from.y,target.y,speed.y),z:axis(from.z,target.z,speed.z)};
+  const blocked=check&&!!t.host?.world?.objectBlockedAt?.(handle,next);
+  if(!blocked)objects.setPosition(handle,next);
+  t.updateCompareFlag(next.x===target.x&&next.y===target.y&&next.z===target.z,negated(i));
  },
  SET_OBJECT_HEALTH:(t,p,i)=>{world(t,i,'setObjectHealth')(t.readInt(p[0]),t.readInt(p[1]));},
  PLAY_FX_SYSTEM:(t,p,i)=>{world(t,i,'playFxSystem')(t.readInt(p[0]));},
@@ -1541,10 +1551,11 @@ const handlers:Record<string,ScmCommandHandler>={
   const point=vec(t,p,0);
   world(t,i,'addExplosionVariableShake')(point.x,point.y,point.z,t.readInt(p[3]),t.readFloat(p[4]));
  },
+ // CPad::GetPad(pad)->NewState's four stick axes, -128 to 128, from the pad state the host writes.
  GET_POSITION_OF_ANALOGUE_STICKS:(t,p,i)=>{
-  const sticks=world(t,i,'analogueSticks')(t.readInt(p[0]));
-  t.writeInt(p[1],sticks.leftX);t.writeInt(p[2],sticks.leftY);
-  t.writeInt(p[3],sticks.rightX);t.writeInt(p[4],sticks.rightY);
+  const pads=game(t,i).pads,pad=t.readInt(p[0]);
+  t.writeInt(p[1],pads.state(pad,BUTTON.leftStickX));t.writeInt(p[2],pads.state(pad,BUTTON.leftStickY));
+  t.writeInt(p[3],pads.state(pad,BUTTON.rightStickX));t.writeInt(p[4],pads.state(pad,BUTTON.rightStickY));
  },
  // CTheScripts::bMiniGameInProgress, which the runtime already keeps.
  IS_MINIGAME_IN_PROGRESS:(t,_p,i)=>{t.updateCompareFlag(game(t,i).miniGameInProgress,negated(i));},

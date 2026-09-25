@@ -6665,3 +6665,15 @@ the first ones now implemented:
   - The switch these and SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH set was never read. A ped's pain, flee and threat lines
     now keep quiet while it is off, as AddSayEvent does.
   - The browser keeps one switch for both of the original's.
+
+## Mission world adapters, third batch
+
+- **IS_CAR_IN_WATER** (17 missions, MAIN): the vehicle's in-water flag from its buoyancy, as Vice City's handler
+  reads bIsInWater. SA's handler is unreversed.
+- **GET_POSITION_OF_ANALOGUE_STICKS** (15 missions, MAIN): CPad::NewState's four stick axes, read straight from the
+  script's pad state (−128 to 128). It no longer needs the host.
+- **SLIDE_OBJECT** (73 uses, 14 missions, MAIN): Vice City's handler, since SA's is unreversed.
+  - Each axis moves toward the target by its speed × the frame's timestep, stopping at the target.
+  - The compare flag is set once all three axes have arrived.
+  - With the collision check, a move the host reports blocked is not made. The browser host does not report
+    collisions for script objects yet, so they slide through.

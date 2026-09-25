@@ -102,15 +102,22 @@ describe('the vehicle, ped and object commands of this batch',()=>{
   expect(chances.dislike).toBeCloseTo(0.4,6);
  });
 
- test('the object slide carries a point and a speed of its own',()=>{
-  const calls:unknown[]=[];
-  run({slideObject:(...args)=>{calls.push(args);}},undefined,
-   instruction(op('SLIDE_OBJECT'),[int(OBJECT),float(1),float(2),float(3),float(0.1),float(0.2),float(0.3),int(1)]));
-  const [handle,position,speed,collisionCheck]=calls[0] as [number,Record<string,number>,Record<string,number>,boolean];
-  expect([handle,position,collisionCheck]).toEqual([OBJECT,{x:1,y:2,z:3},true]);
-  expect(speed.x).toBeCloseTo(0.1,6);
-  expect(speed.y).toBeCloseTo(0.2,6);
-  expect(speed.z).toBeCloseTo(0.3,6);
+ test('an object slides toward its target a timestep at a time, stopping there, and says when it has arrived',()=>{
+  const game=new ScmGameState(),handle=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false}).handle;
+  const slide=(timeStep:number,world:Partial<ScmWorldCommands>={})=>{
+   const space=new Uint8Array(2048),view=new DataView(space.buffer);view.setInt32(40,0,true);
+   space.set([...instruction(op('SLIDE_OBJECT'),[int(handle),float(1),float(-2),float(0),float(0.25),float(0.5),float(0),int(world.objectBlockedAt?1:0)]),
+    ...instruction(op('GOTO_IF_FALSE'),[int(CODE+64)]),...instruction(op('SET_VAR_INT'),[gvar(40),int(1)])],CODE);
+   const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game,world:{fade(){},...world} as ScmWorldCommands});
+   try{thread.run(0,4,timeStep);}catch(error){if(!String(error).match(/watchdog|opcode|Unknown/))throw error;}
+   return view.getInt32(40,true)===1;
+  };
+  // 0.25 and 0.5 units a frame at a timestep of 1: a quarter of the way along x, and half way along y.
+  expect(slide(1)).toBe(false);expect(game.objects.at(handle).position).toEqual({x:0.25,y:-0.5,z:0});
+  // A blocked move is not made.
+  expect(slide(1,{objectBlockedAt:()=>true})).toBe(false);expect(game.objects.at(handle).position).toEqual({x:0.25,y:-0.5,z:0});
+  // It stops at the target on each axis, and says so once all three are there.
+  expect(slide(10)).toBe(true);expect(game.objects.at(handle).position).toEqual({x:1,y:-2,z:0});
  });
 
  test('the HUD colour reads back its four channels',()=>{

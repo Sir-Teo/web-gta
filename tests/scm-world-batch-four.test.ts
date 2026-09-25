@@ -39,7 +39,6 @@ function recording(){
   setAllVehiclesCanBeDamaged:method('allDamage'),displayHud:method('hud'),
   
   addExplosionVariableShake:method('shake'),
-  analogueSticks:method('sticks',{leftX:10,leftY:-20,rightX:30,rightY:-40}),
  } as unknown as Partial<ScmWorldCommands>;
  return {world,calls,tasks};
 }
@@ -107,9 +106,10 @@ describe('the helicopters, vehicles and world switches',()=>{
    [int(CAR),float(20),float(20),float(30),float(30),int(0)])).thread.condition).toBe(false);
  });
 
- test('the world switches and the pad sticks reach the host',()=>{
+ test('the world switches reach the host and the pad sticks come from the pad state',()=>{
   const {world,calls}=recording();
-  const {readInt}=run(world,undefined,
+  const game=new ScmGameState();Object.assign(game.pads.pads[0],{leftStickX:10,leftStickY:-20,rightStickX:30,rightStickY:-40});
+  const {readInt}=run(world,game,
    instruction(op('SWITCH_RANDOM_TRAINS'),[int(1)]),
    instruction(op('SET_ALL_CARS_CAN_BE_DAMAGED'),[int(0)]),
    instruction(op('DISPLAY_HUD'),[int(1)]),
@@ -117,7 +117,7 @@ describe('the helicopters, vehicles and world switches',()=>{
    instruction(op('GET_POSITION_OF_ANALOGUE_STICKS'),[int(0),gvar(40),gvar(44),gvar(48),gvar(52)]));
   expect(calls).toEqual([
    ['trains',true],['allDamage',false],['hud',true],
-   ['shake',1,2,3,4,0.5],['sticks',0],
+   ['shake',1,2,3,4,0.5],
   ]);
   expect([readInt(40),readInt(44),readInt(48),readInt(52)]).toEqual([10,-20,30,-40]);
  });

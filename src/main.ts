@@ -3390,6 +3390,7 @@ async function boot() {
                  // original's own step is a fiftieth of a unit a second.
                  scriptVehicleStopped:car=>{const v=(car as ScriptCar).car.body.linvel();return Math.hypot(v.x,v.y,v.z)/50<=.01;},
                  scriptVehicleOnFire:car=>(car as ScriptCar).onFire,
+                 scriptVehicleInWater:car=>!!(car as {inWater?:boolean}).inWater,
                  scriptVehicleOnScreen:car=>{const p=(car as ScriptCar).car.body.translation();return !populationOutsideView(render.camera,p,2);},
                  explodeScriptVehicle:car=>{(car as ScriptCar).blowUp();},
                  fixScriptVehicle:car=>{(car as ScriptCar).fix();},

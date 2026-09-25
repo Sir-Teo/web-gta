@@ -469,7 +469,8 @@ export interface ScmWorldCommands {
  addPedDecisionMakerEventResponse?(decisionMaker:number,event:number,taskId:number,
   chances:{respect:number;hate:number;like:number;dislike:number},inCar:boolean,onFoot:boolean):void;
  /** The object commands: a slide to a point at a speed, and its health. */
- slideObject?(handle:number,position:{x:number;y:number;z:number},speed:{x:number;y:number;z:number},collisionCheck:boolean):void;
+ /** SLIDE_OBJECT's collision check: whether the object would collide at a native position. */
+ objectBlockedAt?(handle:number,position:{x:number;y:number;z:number}):boolean;
  setObjectHealth?(handle:number,health:number):void;
  /** The particle system a script plays, and a one-off sound at a point. */
  playFxSystem?(handle:number):void;
@@ -534,7 +535,6 @@ export interface ScmWorldCommands {
  setAllVehiclesCanBeDamaged?(state:boolean):void;
  displayHud?(state:boolean):void;
  addExplosionVariableShake?(x:number,y:number,z:number,type:number,shake:number):void;
- analogueSticks?(pad:number):{leftX:number;leftY:number;rightX:number;rightY:number};
  /* The vehicles, boats, trains, groups and particles of this batch. */
  anchorBoat?(handle:number,state:boolean):void;
  vehicleIsOnFire?(handle:number):boolean;
@@ -1262,10 +1262,13 @@ export class ScmThread {
  }
  /** Run until WAIT/termination. The watchdog throws instead of silently
   * yielding a runaway script and changing original cooperative scheduling. */
+ /** CTimer::ms_fTimeStep for the frame being run, for the commands that move things by it. */
+ timeStep?:number;
  run(nowMs:number,budget=10000,timeStep?:number):'waiting'|'terminated'{
   requireAsset(Number.isInteger(nowMs)&&nowMs>=0&&nowMs<=0xffffffff,'Invalid SCM clock.');
   requireAsset(Number.isInteger(budget)&&budget>0,'Invalid SCM instruction budget.');
   requireAsset(timeStep===undefined||Number.isFinite(timeStep)&&timeStep>=0,'Invalid SCM timestep.');
+  this.timeStep=timeStep;
   if(this.terminated)return 'terminated';
   if(nowMs<this.wakeTime)return 'waiting';
   for(let count=0;count<budget;count++){

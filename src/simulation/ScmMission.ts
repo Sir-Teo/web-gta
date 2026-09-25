@@ -42,6 +42,8 @@ const MODEL_NEVADA=553;
 /** eScriptedTaskStatus and the scripts' FINISHED_TASK. */
 const TASK_EVENT_ASSOCIATED=0,TASK_TASK_ASSOCIATED=1,FINISHED_TASK=7;
 export interface ScmMissionWorld {
+ /** CPhysical::physicalFlags.bSubmergedInWater of a vehicle: cBuoyancy found it in the water. */
+ scriptVehicleInWater?(car:unknown):boolean;
  /** CCamera::IsSphereVisible for a native point. */
  isSphereVisible?(point:{x:number;y:number;z:number},radius:number):boolean;
  /** One of CDecisionMakerTypes' default decision makers, as the files load it (by its index). */
@@ -813,6 +815,8 @@ export class ScmMission {
    vehicleHealth:handle=>this.world.scriptVehicleHealth(this.liveVehicle(handle)),
    setVehicleHealth:(handle,health)=>{this.world.setScriptVehicleHealth(this.liveVehicle(handle),health);},
    vehicleSpeed:handle=>this.world.scriptVehicleSpeed(this.liveVehicle(handle)),
+   // IS_CAR_IN_WATER (unreversed): the car's in-water flag, as Vice City's handler reads bIsInWater.
+   vehicleIsInWater:handle=>{if(!this.world.scriptVehicleInWater)throw new UnsupportedScmCommand(-1,0,'IS_CAR_IN_WATER','no host');return this.world.scriptVehicleInWater(this.liveVehicle(handle));},
    vehicleIsStopped:handle=>this.world.scriptVehicleStopped(this.liveVehicle(handle)),
    vehicleIsOnFire:handle=>this.world.scriptVehicleOnFire(this.liveVehicle(handle)),
    vehicleIsOnScreen:handle=>this.world.scriptVehicleOnScreen(this.liveVehicle(handle)),
