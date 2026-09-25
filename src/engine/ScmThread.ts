@@ -34,7 +34,9 @@ export type ScmScriptedTask=
  |{kind:'lookAtPed';target:number;time:number}
  |{kind:'carDriveToCoord';vehicle:number;x:number;y:number;z:number;speed:number;driveStyle:number;model:number|string;drivingStyle:number}
  |{kind:'driveBy';targetPed:number;targetVehicle:number;x:number;y:number;z:number;radius:number;type:number;rightHandCarSeat:boolean;fireRate:number}
- |{kind:'followPointRoute';speed:number;mode:number}
+ |{kind:'followPointRoute';speed:number;mode:number;
+  /** The CPointRoute the task copies when it is made: the points EXTEND_ROUTE had added by then. */
+  route?:readonly {x:number;y:number;z:number}[]}
  |{kind:'goToCoordAnyMeans';x:number;y:number;z:number;speed:number;vehicle:number}
  |{kind:'enterCarAsDriver';vehicle:number;time:number}
  |{kind:'enterCarAsPassenger';vehicle:number;time:number;seat:number}

@@ -6826,3 +6826,19 @@ the first ones now implemented:
   - **IS_CHAR_IN_CAR, IS_CHAR_SITTING_IN_CAR, STORE_CAR_CHAR_IS_IN, GET_CAR_CHAR_IS_USING and GET_DRIVER_OF_CAR** now
     name a car the script made by the script's own handle while the player is in it. Before, they always answered
     PLAYER_VEHICLE_HANDLE, so a mission waiting for CJ to get into its car never went on.
+- **TASK_FOLLOW_POINT_ROUTE** (120 uses, 21 missions): CTaskComplexFollowPointRoute with its constructor defaults.
+  - The task copies the CPointRoute as it stands when the task is made, including inside a sequence.
+  - Each point is a CTaskSimpleGoToPoint at a 0.5 radius, with no stand at the last.
+  - The modes follow GetSubTaskType: once, there and back (RETURN), back and forth for ever, or round again for ever.
+  - EXTEND_ROUTE now stops at CPointRoute's eight points (Route::AddUnlessFull); it used to grow without bound.
+  - This works for script peds and for the player.
+- **TASK_GOTO_CHAR** (8 missions): CTaskComplexSeekEntity to within the radius of a ped or the player, running and
+  walking inside 2 units.
+  - Once there it turns to face the target (bFaceEntityWhenDone) and is over.
+  - It also ends when the time runs out or the target is gone.
+  - The node route it takes over longer distances is a straight line here.
+- **TASK_GO_TO_COORD_ANY_MEANS** (17 missions) on foot as the go-to-point task. The vehicle
+  CTaskComplexGoToPointAnyMeans would take for a long way is not modelled.
+- **TASK_KILL_CHAR_ON_FOOT_TIMED** (14 missions): the kill task with its time.
+- **TASK_SCRATCH_HEAD** (15 missions): XPRESSscratch once.
+- **TASK_HANDS_UP** (8 missions): HANDSUP held for the task's time, then let go.

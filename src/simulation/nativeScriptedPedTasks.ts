@@ -26,13 +26,21 @@ export type ScriptedPedOrder=
  |{kind:'killPed';target:number;seconds:number}
  /** CTaskSimpleRunNamedAnim: a clip from a script's animation block, looped or once (then held on its last frame
   * or let go), for `seconds` when the script gives a time. */
- |{kind:'playAnim';file:string;name:string;loop:boolean;keepLastFrame:boolean;seconds:number}
+ |{kind:'playAnim';file:string;name:string;loop:boolean;keepLastFrame:boolean;seconds:number;
+  /** A held last frame is let go when the time runs out rather than kept (CTaskSimpleHandsUp). */
+  release?:boolean}
  /** CTaskSimpleTriggerLookAt: the head turns to a ped (a script handle, the player's included) for `seconds`; the
   * task itself is over as soon as it has started the look. */
  |{kind:'lookAt';target:number;seconds:number}
  /** CTaskComplexEnterCarAsDriverTimed and CTaskComplexEnterCarAsPassengerTimed: run to the seat's door and get in,
   * or be set in the seat when `seconds` run out. A passenger seat of -1 is any free one. */
- |{kind:'enterCar';vehicle:number;seat:'driver'|number;seconds:number};
+ |{kind:'enterCar';vehicle:number;seat:'driver'|number;seconds:number}
+ /** CTaskComplexFollowPointRoute: the points in order at eMoveState, each arrived at inside 0.5, then per its mode
+  * (0 once, 1 there and back, 2 back and forth for ever, 3 round again for ever). */
+ |{kind:'followRoute';points:readonly {x:number;y:number;z:number}[];moveState:number;mode:number}
+ /** CTaskComplexSeekEntity for TASK_GOTO_CHAR: to within `radius` of a ped (a handle, the player's included), for
+  * `seconds`. */
+ |{kind:'gotoPed';target:number;radius:number;seconds:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -87,6 +95,16 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'lookAtPed':return world.ped(task.target)?{kind:'lookAt',target:task.target,seconds:seconds(task.time)}:undefined;
   case 'enterCarAsDriver':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:'driver',seconds:seconds(task.time)}:undefined;
   case 'enterCarAsPassenger':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:task.seat,seconds:seconds(task.time)}:undefined;
+  case 'followPointRoute':return task.route&&task.route.length?{kind:'followRoute',points:task.route.map(p=>({...p})),moveState:task.speed,mode:task.mode}:undefined;
+  // CTaskComplexGoToPointAnyMeans on foot: the vehicle it would take for a long way is not modelled.
+  case 'goToCoordAnyMeans':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
+   moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:Number.POSITIVE_INFINITY};
+  case 'gotoPed':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:task.radius,seconds:seconds(task.time)}:undefined;
+  case 'killPedOnFootTimed':return world.ped(task.target)?{kind:'killPed',target:task.target,seconds:seconds(task.time)}:undefined;
+  // CTaskSimpleScratchHead: the ped.ifp XPRESSscratch clip once.
+  case 'scratchHead':return {kind:'playAnim',file:'PED',name:'XPRESSscratch',loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY};
+  // CTaskSimpleHandsUp: HANDSUP held for the task's time.
+  case 'handsUp':return {kind:'playAnim',file:'PED',name:'handsup',loop:false,keepLastFrame:true,seconds:seconds(task.time),release:true};
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{
    const threat=world.ped(task.threat);if(!threat)return undefined;
@@ -111,6 +129,19 @@ export function goToPointMoveState(moveState:number,distance:number,moveStateRad
  * or when the step the ped is about to take would carry it past the point, whatever the height. */
 export function goToPointArrived(distance:number,heightGap:number|undefined,radius:number,step:number){
  return distance<radius&&(heightGap===undefined||Math.abs(heightGap)<2)||distance<=step;
+}
+/** CTaskComplexFollowPointRoute::GetSubTaskType once a point is reached: the next index, or the route's turn at its
+ * end by mode (reversing the points for RETURN's first pass and BACK_AND_FORTH), or nothing when it is over. */
+export function nextRoutePoint(route:{points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number}){
+ route.at++;
+ if(route.at<route.points.length)return true;
+ route.traversals++;
+ switch(route.mode){
+  case 1:if(route.traversals!==1)return false;route.points.reverse();route.at=0;return true;
+  case 2:route.points.reverse();route.at=0;return true;
+  case 3:route.at=0;return true;
+  default:return false;
+ }
 }
 export function achieveHeadingStep(current:number,desired:number,headingChangeDegrees:number,seconds:number){
  let delta=desired-current;delta=Math.atan2(Math.sin(delta),Math.cos(delta));

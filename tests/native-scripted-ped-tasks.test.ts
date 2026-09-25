@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'vitest';
-import {ACHIEVE_HEADING_TOLERANCE,achieveHeadingStep,goToPointArrived,goToPointMoveState,nativeHeadingDegrees,scriptedPedOrder,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
+import {ACHIEVE_HEADING_TOLERANCE,achieveHeadingStep,goToPointArrived,goToPointMoveState,nativeHeadingDegrees,nextRoutePoint,scriptedPedOrder,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
 import type {ScmScriptedTask} from '../src/engine/ScmThread';
 
 const world=(peds:Record<number,{x:number;y:number;z:number}>,self={x:0,y:0,z:0}):ScriptedTaskWorld=>
@@ -45,7 +45,7 @@ describe('the tasks a script gives a ped',()=>{
  });
 
  test('a task with no browser behaviour yet gives nothing back, so the thread gives up instead of pretending',()=>{
-  const unported:ScmScriptedTask[]=[{kind:'scratchHead'},{kind:'handsUp',time:1000},
+  const unported:ScmScriptedTask[]=[{kind:'lookAbout',time:1000},{kind:'jump',state:true},
    {kind:'leaveAnyCar'}];
   for(const task of unported)expect(scriptedPedOrder(task,world({}))).toBeUndefined();
  });
@@ -115,6 +115,27 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'enterCarAsPassenger',vehicle:7,time:3000,seat:-1},w)).toEqual({kind:'enterCar',vehicle:7,seat:-1,seconds:3});
   expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:8,time:-1},w)).toBeUndefined();
   expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:7,time:-1},world({}))).toBeUndefined();
+ });
+
+ test('a point route copies the route and walks it by CTaskComplexFollowPointRoute’s modes',()=>{
+  const route=[{x:1,y:1,z:0},{x:2,y:2,z:0}];
+  expect(scriptedPedOrder({kind:'followPointRoute',speed:4,mode:0,route},world({}))).toEqual({kind:'followRoute',points:route,moveState:4,mode:0});
+  expect(scriptedPedOrder({kind:'followPointRoute',speed:4,mode:0,route:[]},world({}))).toBeUndefined();
+  const walk=(mode:number)=>{const r={points:[{x:0,y:0,z:0},{x:1,y:0,z:0},{x:2,y:0,z:0}],at:0,mode,traversals:0};const seen:number[]=[r.points[0].x];
+   for(let i=0;i<9&&nextRoutePoint(r);i++)seen.push(r.points[r.at].x);return seen;};
+  expect(walk(0)).toEqual([0,1,2]);
+  expect(walk(1)).toEqual([0,1,2,2,1,0]);
+  expect(walk(2).slice(0,9)).toEqual([0,1,2,2,1,0,0,1,2]);
+  expect(walk(3).slice(0,7)).toEqual([0,1,2,0,1,2,0]);
+ });
+
+ test('going to a ped, killing it for a time, and the short clips',()=>{
+  const w=world({3:{x:0,y:0,z:0}});
+  expect(scriptedPedOrder({kind:'gotoPed',target:3,time:5000,radius:2},w)).toEqual({kind:'gotoPed',target:3,radius:2,seconds:5});
+  expect(scriptedPedOrder({kind:'killPedOnFootTimed',target:3,time:2000},w)).toEqual({kind:'killPed',target:3,seconds:2});
+  expect(scriptedPedOrder({kind:'scratchHead'},w)).toMatchObject({kind:'playAnim',name:'XPRESSscratch',loop:false});
+  expect(scriptedPedOrder({kind:'handsUp',time:3000},w)).toMatchObject({kind:'playAnim',name:'handsup',keepLastFrame:true,release:true,seconds:3});
+  expect(scriptedPedOrder({kind:'goToCoordAnyMeans',x:1,y:2,z:3,speed:6,vehicle:-1},w)).toMatchObject({kind:'goToPoint',x:1,y:2,moveState:6});
  });
 
  test('dying is its own order',()=>{

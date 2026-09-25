@@ -17,7 +17,7 @@ import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
-import {achieveHeadingStep,goToPointArrived,goToPointMoveState,type ScriptedPedOrder} from './nativeScriptedPedTasks';
+import {achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
@@ -135,10 +135,14 @@ export interface Pedestrian {
   /** CTaskComplexKillPedOnFoot: the retaliation combat held on a foe (undefined for the player) until it dies. */
   |{kind:'killPed';foe?:Pedestrian;remaining:number}
   /** CTaskSimpleRunNamedAnim: the clip (by its lower-case name) once its block has loaded, and how long it has run. */
-  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;remaining:number;started:boolean;elapsed:number}
+  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;started:boolean;elapsed:number}
   /** CTaskComplexEnterCar(…Timed): the car's script handle and seat, the time left before the ped is set in the seat,
    * and CTaskComplexGoToCarDoorAndStandStill's 30 s of seeking the door. */
-  |{kind:'enterCar';vehicle:number;seat:'driver'|number;remaining:number;seek:number};
+  |{kind:'enterCar';vehicle:number;seat:'driver'|number;remaining:number;seek:number}
+  /** CTaskComplexFollowPointRoute over renderer points (x, z, and the origin height y). */
+  |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
+  /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
+  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** The clip a finished TASK_PLAY_ANIM left held on its last frame (ANIMATION_FREEZE_LAST_FRAME). */
@@ -361,6 +365,9 @@ const ATTRACTOR_SCAN_RANGE=3,ATTRACTOR_SCAN_SECONDS=1;
 /** CTaskComplexEnterCar's CTaskComplexGoToCarDoorAndStandStill: PEDMOVE_RUN, a 0.5 target radius, slowing to a walk
  * inside 4 units, and giving the door up after 30 s of seeking it. */
 const ENTER_CAR_DOOR_RADIUS=.5,ENTER_CAR_SLOW_DOWN_DISTANCE=4,ENTER_CAR_SEEK_SECONDS=30;
+/** CTaskSimpleGoToPoint's radius in CTaskComplexFollowPointRoute; the seek task's walk inside 2 units of its target
+ * (CEntitySeekPosCalculator's move-state radius, taken as the go-to task's). */
+const GO_TO_POINT_RADIUS=.5,GO_TO_PED_WALK_DISTANCE=2;
 /** MAP_Z_LOW_LIMIT: a script point at or below it is on the ground wherever that is. */
 const MAP_Z_LOW_LIMIT=-100;
 /** CTempColModels::ms_colModelPed1's bounding sphere radius. */
@@ -1457,7 +1464,7 @@ export class WorldPedestrians {
     break;
    }
    case 'playAnim':{
-    const clip=order.name.toLowerCase(),own={kind:'playAnim' as const,clip,loop:order.loop,hold:order.keepLastFrame,remaining:order.seconds,started:false,elapsed:0};
+    const clip=order.name.toLowerCase(),own={kind:'playAnim' as const,clip,loop:order.loop,hold:order.keepLastFrame,release:!!order.release,remaining:order.seconds,started:false,elapsed:0};
     ped.order=own;ped.flee=0;ped.loiter=false;
     const catalog=this.catalog;
     // A PED clip may already be on the ped; any other is fetched from its block and put on it once read. A block or
@@ -1478,6 +1485,14 @@ export class WorldPedestrians {
     const target=this.resolveScriptPed?.(order.target);if(!target)break;
     ped.lookTarget=target==='player'?undefined:target;ped.lookAt=undefined;ped.lookAtAttractor=false;
     ped.look=startLookAt(this.clock*1000,order.seconds*1000);
+    break;
+   }
+   case 'followRoute':
+    ped.order={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at:0,mode:order.mode,traversals:0,moveState:order.moveState};ped.flee=0;ped.loiter=false;
+    break;
+   case 'gotoPed':{
+    const target=this.resolveScriptPed?.(order.target);if(!target)break;
+    ped.order={kind:'gotoPed',target:target==='player'?undefined:target,radius:order.radius,remaining:order.seconds};ped.flee=0;ped.loiter=false;
     break;
    }
    case 'enterCar':{
@@ -2476,11 +2491,29 @@ export class WorldPedestrians {
       const clipLength=p.view.reactionDuration(o.clip)??0;
       // The script's time ends the task, a looped clip included; otherwise it ends as the clip does, or when something
       // else (a fall, a hit) has taken the ped's pose.
-      const replaced=p.view.reactionName!==o.clip,ended=!o.loop&&o.elapsed>=clipLength;
+      // A held clip the task lets go (hands up) lasts the task's time rather than the clip's.
+      const replaced=p.view.reactionName!==o.clip,ended=!o.loop&&!(o.hold&&o.release)&&o.elapsed>=clipLength;
       if(o.remaining<=0||replaced||ended){
-       if(!replaced){if(o.hold)p.heldScriptClip=o.clip;else p.view.clearReaction();}
+       if(!replaced){if(o.hold&&!o.release)p.heldScriptClip=o.clip;else p.view.clearReaction();}
        this.startNextOrder(p);
       }
+     }
+    }else if(p.order.kind==='followRoute'){
+     // CTaskSimpleGoToPoint to each point at a 0.5 radius (no stand at the last: standStillAfterMove is false).
+     const o=p.order,q=p.actor.player.position,point=o.points[o.at];dx=0;dz=0;
+     const gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz);
+     if(goToPointArrived(distance,point.y>MAP_Z_LOW_LIMIT?q.y+PED_ORIGIN_HEIGHT-point.y:undefined,GO_TO_POINT_RADIUS,state.speed*dt)){if(!nextRoutePoint(o))this.startNextOrder(p);}
+     else{dx=gx;dz=gz;orderSpeed=o.moveState>=7?p.sprintSpeed:o.moveState>=5?p.runSpeed:p.walkSpeed;}
+    }else if(p.order.kind==='gotoPed'){
+     const o=p.order,q=p.actor.player.position;dx=0;dz=0;
+     const target=o.target?(o.target.health>0&&this.people.includes(o.target)?o.target.actor.player.position:undefined):this.sim.player.position;
+     if(o.remaining!==Number.POSITIVE_INFINITY)o.remaining-=dt;
+     if(!target||o.remaining<=0)this.startNextOrder(p);
+     else{
+      const gx=target.x-q.x,gz=target.z-q.z,distance=Math.hypot(gx,gz);
+      // Achieved: CTaskComplexTurnToFaceEntityOrCoord (bFaceEntityWhenDone), then the task is over.
+      if(distance<=o.radius)p.order={kind:'achieveHeading',heading:Math.atan2(gx,gz)};
+      else{dx=gx;dz=gz;orderSpeed=goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)>=6?p.runSpeed:p.walkSpeed;}
      }
     }else if(p.order.kind==='enterCar'){
      const o=p.order,car=this.resolveScriptVehicle?.(o.vehicle);dx=0;dz=0;

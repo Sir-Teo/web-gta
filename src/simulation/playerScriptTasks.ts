@@ -1,6 +1,6 @@
 import type {NativeAnimation} from '../assets/ifp';
 import {PED_ORIGIN_HEIGHT} from './nativeSwim';
-import {achieveHeadingStep,goToPointArrived,goToPointMoveState,type ScriptedPedOrder} from './nativeScriptedPedTasks';
+import {achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {NATIVE_PLAYER_HEADING_CHANGE_RATE} from './nativePlayerLocomotion';
 
 /* The tasks a script gives the player's own ped (scplayer): CPedIntelligence's primary task, run instead of
@@ -15,7 +15,8 @@ type Running=
  |{kind:'standStill';remaining:number}
  |{kind:'achieveHeading';heading:number}
  |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number}
- |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;remaining:number;phase:'loading'|'ready'|'playing';elapsed:number};
+ |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;phase:'loading'|'ready'|'playing';elapsed:number}
+ |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number};
 
 /** What the player's ped is and can do, in renderer terms (y up, the script's y is -z). */
 export interface PlayerTaskBody{
@@ -55,7 +56,7 @@ export class PlayerScriptTasks{
  private generation=0;
  constructor(private world:PlayerTaskWorld){}
  /** The kinds the player can carry out; anything else the thread gives up on. */
- static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt';}
+ static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='followRoute';}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body);}
@@ -93,7 +94,7 @@ export class PlayerScriptTasks{
    case 'goToPoint':this.running={kind:'goToPoint',x:order.x,z:-order.y,y:order.z>MAP_Z_LOW_LIMIT?order.z:undefined,moveState:order.moveState,
     radius:order.radius,moveStateRadius:order.moveStateRadius,remaining:order.seconds};break;
    case 'playAnim':{
-    const clip=order.name.toLowerCase(),own:Running={kind:'playAnim',clip,loop:order.loop,hold:order.keepLastFrame,remaining:order.seconds,phase:'loading',elapsed:0};
+    const clip=order.name.toLowerCase(),own:Running={kind:'playAnim',clip,loop:order.loop,hold:order.keepLastFrame,release:!!order.release,remaining:order.seconds,phase:'loading',elapsed:0};
     this.running=own;
     const generation=this.generation;
     if(order.file.toLowerCase()==='ped'&&body.view?.hasReaction(clip)){own.phase='ready';break;}
@@ -104,6 +105,7 @@ export class PlayerScriptTasks{
     });
     break;
    }
+   case 'followRoute':this.running={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at:0,mode:order.mode,traversals:0,moveState:order.moveState};break;
    // The trigger task starts the look and is over.
    case 'lookAt':this.world.lookAt?.(order.target,order.seconds);break;
    default:break;
@@ -129,14 +131,19 @@ export class PlayerScriptTasks{
     const moveState=goToPointMoveState(o.moveState,distance,o.moveStateRadius);
     return {kind:'move',yaw:Math.atan2(gx,gz),walk:moveState<=5,sprint:moveState>=7};
    }
+   case 'followRoute':{
+    const q=body.position,point=o.points[o.at],gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz);
+    if(goToPointArrived(distance,point.y>MAP_Z_LOW_LIMIT?q.y+PED_ORIGIN_HEIGHT-point.y:undefined,.5,body.speed*dt)){if(!nextRoutePoint(o))this.next(body);return {kind:'hold'};}
+    return {kind:'move',yaw:Math.atan2(gx,gz),walk:o.moveState<=5,sprint:o.moveState>=7};
+   }
    case 'playAnim':{
     const view=body.view;
     if(o.phase==='loading')return {kind:'hold'};
     if(o.phase==='ready'&&view){view.playReaction(o.clip,o.loop||o.hold?Number.POSITIVE_INFINITY:undefined,false,0,o.loop);o.phase='playing';o.elapsed=0;return {kind:'hold'};}
     o.elapsed+=dt;o.remaining-=dt;
-    const replaced=view?.reactionName!==o.clip,ended=!o.loop&&o.elapsed>=(view?.reactionDuration(o.clip)??0);
+    const replaced=view?.reactionName!==o.clip,ended=!o.loop&&!(o.hold&&o.release)&&o.elapsed>=(view?.reactionDuration(o.clip)??0);
     if(o.remaining<=0||replaced||ended){
-     if(!replaced&&view){if(o.hold)this.held=o.clip;else view.clearReaction();}
+     if(!replaced&&view){if(o.hold&&!o.release)this.held=o.clip;else view.clearReaction();}
      this.next(body);
     }
     return {kind:'hold'};

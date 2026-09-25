@@ -1248,7 +1248,7 @@ const handlers:Record<string,ScmCommandHandler>={
  CLEAR_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).onscreenTimer.clearClock(t.globalOffset(p[0]));},
  /* --- The rest of the tasks the schema names, and the world commands beside them. */
  TASK_FOLLOW_POINT_ROUTE:(t,p,i)=>{
-  scriptedTask(t,i,t.readInt(p[0]),{kind:'followPointRoute',speed:t.readInt(p[1]),mode:t.readInt(p[2])});
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'followPointRoute',speed:t.readInt(p[1]),mode:t.readInt(p[2]),route:game(t,i).route.map(point=>({...point}))});
  },
  TASK_GO_TO_COORD_ANY_MEANS:(t,p,i)=>{
   const point=vec(t,p,1);
@@ -2529,7 +2529,8 @@ const handlers:Record<string,ScmCommandHandler>={
    ...point,radius:t.readFloat(p[6]),type:t.readInt(p[7]),rightHandCarSeat:bool(t,p[8]),fireRate:t.readInt(p[9])});
  },
  // The route a task follows, which the script builds a point at a time and then flushes.
- EXTEND_ROUTE:(t,p,i)=>{game(t,i).route.push({...vec(t,p,0)});},
+ // CPointRoute holds eight points (0x64 bytes), and a point past the eighth is not added (Route::AddUnlessFull).
+ EXTEND_ROUTE:(t,p,i)=>{const route=game(t,i).route;if(route.length<8)route.push({...vec(t,p,0)});},
  FLUSH_ROUTE:(t,_p,i)=>{game(t,i).route.length=0;},
  CLEAR_CHAR_TASKS_IMMEDIATELY:(t,p,i)=>{world(t,i,'clearPedTasksImmediately')(t.readInt(p[0]));},
  // --- The vehicles a script holds (VehicleCommands.cpp is reversed; the creation dispatch reaches
