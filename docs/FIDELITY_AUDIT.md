@@ -7815,3 +7815,10 @@ Each is now answered:
     SET_HEADING_LIMIT_FOR_ATTACHED_CHAR.
 - Each now reads an integer. The two attachment ranges are degrees turned to radians, as the car form's is.
 - An audit compared every handler's operand reads with sa.json's declared types; only these eight disagreed.
+- GET_CAR_FORWARD_X and _Y follow VC's handler (reVC): the forward vector's ground components over its ground length.
+- GET_CAR_PITCH and GET_CAR_ROLL are unreversed. They read the forward and right axes' angles above the ground, in
+  degrees, running past 90 (to 180 on the roof) once the car is upside down.
+- GET_CAR_SPEED_VECTOR is m_vecMoveSpeed in units a second.
+- LOCATE_STOPPED_CAR_2D and _3D share the car locate. The box test and IsVehicleStopped must both hold, and the
+  highlight is drawn either way.
+- CAR_GOTO_COORDINATES_ACCURATE is CAR_GOTO_COORDINATES on the accurate mission.

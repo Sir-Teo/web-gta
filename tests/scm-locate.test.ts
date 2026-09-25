@@ -92,6 +92,17 @@ describe('locating a car',()=>{
   expect(tall.condition).toBe(false);
  });
 
+ test('the stopped forms want the car still as well as inside, in two dimensions or three',()=>{
+  const host=locateHost();let stopped=false;
+  const world={...host.world,vehiclePosition:()=>({x:50,y:50,z:5}),vehicleIsStopped:()=>stopped} as ScmWorldCommands;
+  expect(run(locate(scmOpcode('LOCATE_STOPPED_CAR_2D'),9,[50,50,4,4],0),world).condition).toBe(false);
+  stopped=true;
+  expect(run(locate(scmOpcode('LOCATE_STOPPED_CAR_2D'),9,[50,50,4,4],0),world).condition).toBe(true);
+  expect(run(locate(scmOpcode('LOCATE_STOPPED_CAR_2D'),9,[60,50,4,4],0),world).condition).toBe(false);
+  expect(run(locate(scmOpcode('LOCATE_STOPPED_CAR_3D'),9,[50,50,5,4,4,4],1),world).condition).toBe(true);
+  expect(host.highlights).toHaveLength(1);
+ });
+
  test('the car form highlights its area too',()=>{
   const host=locateHost();
   const world={...host.world,vehiclePosition:()=>({x:0,y:0,z:0})} as ScmWorldCommands;

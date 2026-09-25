@@ -80,13 +80,15 @@ function insideBox(position:{x:number;y:number;z:number},point:{x:number;y:numbe
  return !threeDimensional||Math.abs(position.z-point.z)<=radius.z;
 }
 /** The locate commands that name a vehicle rather than a ped, in the shape the reversed char helper has. */
-function locateVehicle(threeDimensional:boolean):ScmCommandHandler{
+function locateVehicle(threeDimensional:boolean,stopped=false):ScmCommandHandler{
  return (t,p,i)=>{
   const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
   const point={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:threeDimensional?t.readFloat(p[3]):0};
   const radius={x:t.readFloat(p[1+axes]),y:t.readFloat(p[2+axes]),z:threeDimensional?t.readFloat(p[3+axes]):0};
   if(bool(t,p[1+axes*2]))t.host?.world?.highlightArea?.(point,radius);
-  t.updateCompareFlag(insideBox(world(t,i,'vehiclePosition')(handle),point,radius,threeDimensional),negated(i));
+  // The stopped forms ask CTheScripts::IsVehicleStopped as well.
+  const stoppedAsked=!stopped||world(t,i,'vehicleIsStopped')(handle);
+  t.updateCompareFlag(stoppedAsked&&insideBox(world(t,i,'vehiclePosition')(handle),point,radius,threeDimensional),negated(i));
  };
 }
 /** The locate commands that name a point: the ped, the point, the radius, then the highlight flag. */
@@ -1780,13 +1782,7 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'planeGotoCoords')(t.readInt(p[0]),point.x,point.y,point.z,t.readFloat(p[4]),t.readFloat(p[5]));
  },
  // The stopped locate for a car, which the vehicle locate already measures once the car has stopped.
- LOCATE_STOPPED_CAR_3D:(t,p,i)=>{
-  const handle=t.readInt(p[0]);
-  const point=vec(t,p,1),radius={x:t.readFloat(p[4]),y:t.readFloat(p[5]),z:t.readFloat(p[6])};
-  if(bool(t,p[7]))t.host?.world?.highlightArea?.(point,radius);
-  const stopped=world(t,i,'vehicleIsStopped')(handle);
-  t.updateCompareFlag(stopped&&insideBox(world(t,i,'vehiclePosition')(handle),point,radius,true),negated(i));
- },
+ LOCATE_STOPPED_CAR_3D:locateVehicle(true,true),
  /* --- The groups and the world. */
  SET_GROUP_LEADER:(t,p,i)=>{world(t,i,'setGroupLeader')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_GROUP_DEFAULT_TASK_ALLOCATOR:(t,p,i)=>{
@@ -2244,7 +2240,7 @@ const handlers:Record<string,ScmCommandHandler>={
  COPY_SHARED_CHAR_DECISION_MAKER:(t,p,i)=>{const {handle,from}=game(t,i).decisionMakers.copy(t.readInt(p[0]),t.usesMissionCleanup);t.writeInt(p[1],handle);t.host?.world?.seedDecisionMaker?.(handle,from);},
  PLAY_BEAT_TRACK:(t,_p,i)=>{game(t,i).cutsceneTrack.play();},
  SET_OBJECT_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'setObjectRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
- LOCATE_STOPPED_CAR_2D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'locateStoppedCar2d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),bool(t,p[5])),negated(i));},
+ LOCATE_STOPPED_CAR_2D:locateVehicle(false,true),
  TASK_SHAKE_FIST:(t,p,i)=>{world(t,i,'taskShakeFist')(t.readInt(p[0]));},
  DRAW_CROSSHAIR:(t,p,i)=>{world(t,i,'drawCrosshair')(bool(t,p[0]));},
  GET_CAR_SPEED_VECTOR:(t,p,i)=>{const result=world(t,i,'getCarSpeedVector')(t.readInt(p[0]));t.writeFloat(p[1],result.x);t.writeFloat(p[2],result.y);t.writeFloat(p[3],result.z);},

@@ -3734,6 +3734,7 @@ async function boot() {
                  setScriptPedMoney:(ped,money)=>{const p=onFoot(ped);if(p){p.money=money<<16>>16;p.moneyByScript=true;}},
                  takeScriptPedPhotographed:ped=>{const p=onFoot(ped);if(!p?.photographed)return false;p.photographed=false;return true;},
                  // CMatrix's rows in the script's own axes: right, forward, up and the position.
+                 scriptVehicleVelocity:car=>{const v=(car as ScriptCar).car.body.linvel();return {x:v.x,y:-v.z,z:v.y};},
                  scriptVehicleMatrix:car=>{
                   const body=(car as ScriptCar).car.body,q=body.rotation(),p=body.translation();
                   const rotate=(v:{x:number;y:number;z:number})=>{

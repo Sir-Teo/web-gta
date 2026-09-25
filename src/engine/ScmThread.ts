@@ -768,7 +768,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setActiveMenuItem?(handle:number,row:number):void;
  getCarModelValue?(model:number|string):number;
  setObjectRotationVelocity?(handle:number,x:number,y:number,z:number):void;
- locateStoppedCar2d?(handle:number,x:number,y:number,xRadius:number,yRadius:number,drawSphere:boolean):boolean;
  taskShakeFist?(handle:number):void;
  drawCrosshair?(state:boolean):void;
  getCarSpeedVector?(handle:number):{x:number,y:number,z:number};

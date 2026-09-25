@@ -424,6 +424,8 @@ export interface ScmMissionWorld {
  setScriptPedMoney?(ped:unknown,money:number):void;
  /** HAS_CHAR_BEEN_PHOTOGRAPHED: the ped's bHasBeenPhotographed, cleared as it is read. */
  takeScriptPedPhotographed?(ped:unknown):boolean;
+ /** CPhysical::m_vecMoveSpeed in units a second (× 50), script axes. */
+ scriptVehicleVelocity?(car:unknown):{x:number;y:number;z:number};
  scriptVehicleMatrix(car:unknown):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  setScriptVehicleFrozen(car:unknown,frozen:boolean):void;
  /** SET_UPSIDEDOWN_CAR_NOT_DAMAGED: autoFlags.bDoesNotGetDamagedUpsideDown. */
@@ -553,6 +555,12 @@ const CREATED_CRUISE_SPEED=13;
 /** handlingFlags.bLowRider. */
 const HANDLING_LOW_RIDER=0x2000000;
 /** The tasks that drive or leave a car, which the on-foot peds cannot run. */
+/** An axis's angle above the ground in degrees; with the car upside down (its up axis below the ground) the angle
+ * runs on past 90, to 180 flat on the roof. */
+const tiltDegrees=(axis:{x:number;y:number;z:number},upZ:number)=>{
+ const degrees=Math.atan2(axis.z,Math.hypot(axis.x,axis.y))*180/Math.PI;
+ return upZ>=0?degrees:(degrees>=0?180-degrees:-180-degrees);
+};
 const CAR_TASKS:ReadonlySet<ScmScriptedTask['kind']>=new Set(['carDriveToCoord','carTempAction','carDriveWander','carMission','leaveCar','leaveAnyCar','leaveCarImmediately']);
 /** Orders that only set something and are over at once, with nothing for them to act on while the ped sits in a car. */
 const IN_SEAT_OVER_AT_ONCE:ReadonlySet<ScriptedPedOrder['kind']>=new Set(['lookAt','lookAtPoint','threatScanner','decisionMaker','kindaStayInSamePlace']);
@@ -635,6 +643,20 @@ export class ScmMission {
     const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
     this.host('driveScriptVehicleTo','CAR_GOTO_COORDINATES')(car,{x,y,z},{cruise:Math.max(fields.cruiseSpeed??CREATED_CRUISE_SPEED,6),style:fields.drivingStyle??0,accurate:false,straight:false});
    },
+   // CAR_GOTO_COORDINATES_ACCURATE: the same drive on the accurate mission, which slows to stop on the point.
+   vehicleGotoCoordinatesAccurate:(handle,x,y,z)=>{
+    const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
+    this.host('driveScriptVehicleTo','CAR_GOTO_COORDINATES_ACCURATE')(car,{x,y,z},{cruise:Math.max(fields.cruiseSpeed??CREATED_CRUISE_SPEED,6),style:fields.drivingStyle??0,accurate:true,straight:false});
+   },
+   // GET_CAR_FORWARD_X and _Y (VC's handler, reVC): the forward vector's two ground components over its ground length.
+   vehicleForwardX:handle=>{const f=this.vehicleMatrixOf(handle).forward;return f.x/Math.hypot(f.x,f.y);},
+   vehicleForwardY:handle=>{const f=this.vehicleMatrixOf(handle).forward;return f.y/Math.hypot(f.x,f.y);},
+   // GET_CAR_PITCH and GET_CAR_ROLL (unreversed): the forward and right axes' angles above the ground, in degrees, past
+   // 90 once the car is upside down.
+   getCarPitch:handle=>{const m=this.vehicleMatrixOf(handle);return tiltDegrees(m.forward,m.up.z);},
+   vehicleRoll:handle=>{const m=this.vehicleMatrixOf(handle);return tiltDegrees(m.right,m.up.z);},
+   // GET_CAR_SPEED_VECTOR: m_vecMoveSpeed in units a second.
+   getCarSpeedVector:handle=>this.host('scriptVehicleVelocity','GET_CAR_SPEED_VECTOR')(this.liveVehicle(handle)),
    // CAR_SET_IDLE: MISSION_NONE.
    setVehicleIdle:handle=>{this.host('stopScriptVehicle','CAR_SET_IDLE')(this.liveVehicle(handle));},
    // CLOSE_ALL_CAR_DOORS: every door to shut.
@@ -1559,6 +1581,8 @@ export class ScmMission {
   * is still being loaded, or never arrived, gives the thread up rather than being answered with a guess. */
  /** The browser's car behind a script handle, for the questions only a built car can answer. */
  /** The pose of the vehicle the player rides, of whatever kind. */
+ /** A car's axes and place in script terms: the player's own car through its pose, a script car through its body. */
+ private vehicleMatrixOf(handle:number){return handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle));}
  private playerPose(handle:number){
   const pose=this.world.playerVehiclePose?.();
   if(!pose)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
