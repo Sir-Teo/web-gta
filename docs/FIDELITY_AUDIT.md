@@ -7265,3 +7265,17 @@ the first ones now implemented:
   marked, a car stays preferred at a quarter of its rating, as PickTargetForHeatSeekingMissile does, and a building
   hid that car. The spec now aims first, parks its car on the camera's line and makes other vehicles untargetable, as
   VEHICLE_CAN_BE_TARGETTED_BY_HS_MISSILE does.
+
+## Moving a script car, and what clearing space removes
+
+- SET_CAR_COORDINATES now does what reVC's handler does:
+  - a point at or below MAP_Z_LOW_LIMIT drops to the ground;
+  - the point is lifted by CEntity::GetDistanceFromCentreOfMassToBaseOfModel (minus the collision box's lowest z),
+    so the car stands on it rather than sunk to its middle;
+  - the car keeps its heading;
+  - ClearSpaceForMissionEntity clears round it;
+  - a car on a script mission joins the roads again from where it now stands (JoinCarWithRoadSystem for a cruise, the
+    road route worked out again for the rest).
+- SET_CAR_COORDINATES and SET_CAR_HEADING on handle 1, the player's own car, did nothing. They now move and turn it.
+- ClearSpaceForMissionEntity removed any ped its box touched. It now removes only one CPed::CanBeDeleted allows:
+  neither a ped a mission made nor a follower of the player's group. This covers CREATE_CAR as well.

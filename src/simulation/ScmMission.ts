@@ -275,6 +275,11 @@ export interface ScmMissionWorld {
  burstScriptVehicleTyre?(car:unknown,wheel:number):void;
  /** CExplosion::TestForExplosionInArea over the active explosions (native box). */
  explosionInArea?(type:number,min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;
+ /** CEntity::GetDistanceFromCentreOfMassToBaseOfModel for a car (-its bounding box's lowest z); ClearSpaceForMissionEntity
+  * round it where it stands; and its script mission joined to the roads again after a teleport. */
+ scriptVehicleBaseOffset?(car:unknown):number;
+ clearSpaceForScriptVehicle?(car:unknown):void;
+ rejoinScriptVehicleRoads?(car:unknown):void;
  /** The car path areas CPathFind has loaded, or nothing before any have. */
  carPathAreas?():ReadonlyMap<number,PathArea>|undefined;
  /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
@@ -1071,9 +1076,20 @@ export class ScmMission {
    vehicleExists:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
    vehicleIsDeadForScript:handle=>handle===PLAYER_VEHICLE_HANDLE?!this.world.playerPed().vehicle:!this.vehicles.exists(handle),
    vehiclePosition:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).position:this.vehicles.positionOf(handle),
-   setVehicleCoordinates:(handle,x,y,z)=>{this.vehicles.setPosition(handle,{x,y,z});},
+   // reVC's SET_CAR_COORDINATES: the point lifted by CEntity::GetDistanceFromCentreOfMassToBaseOfModel, the car
+   // teleported there keeping its heading, the space round it cleared (ClearSpaceForMissionEntity), and a car on a
+   // mission joined to the roads again from where it now stands. The player's own car (handle 1) moves the same way.
+   setVehicleCoordinates:(handle,x,y,z)=>{
+    const car=this.vehicleByHandle(handle),at={x,y,z:z+(car!==undefined?this.world.scriptVehicleBaseOffset?.(car)??0:0)};
+    if(handle===PLAYER_VEHICLE_HANDLE)this.world.placeScriptVehicle(this.liveVehicle(handle),at,this.playerPose(handle).heading);
+    else this.vehicles.setPosition(handle,at);
+    if(car!==undefined){this.world.clearSpaceForScriptVehicle?.(car);this.world.rejoinScriptVehicleRoads?.(car);}
+   },
    vehicleHeading:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).heading:this.vehicles.headingOf(handle),
-   setVehicleHeading:(handle,degrees)=>{this.vehicles.setHeading(handle,degrees);},
+   setVehicleHeading:(handle,degrees)=>{
+    if(handle===PLAYER_VEHICLE_HANDLE)this.world.placeScriptVehicle(this.liveVehicle(handle),this.playerPose(handle).position,degrees);
+    else this.vehicles.setHeading(handle,degrees);
+   },
    deleteVehicle:handle=>{this.vehicles.delete(handle);},
    markVehicleNoLongerNeeded:handle=>{const car=this.vehicles.entity(handle);if(car)this.world.releaseScriptVehicle?.(car);this.vehicles.markNoLongerNeeded(handle);},
    // The player's own car (not one the script made) answers from the host.

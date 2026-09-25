@@ -229,6 +229,13 @@ export class ScriptCarMissions{
  }
  private forward3(car:WorldCar){const q=car.car.body.rotation();return toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)));}
  private forward(car:WorldCar){const f=this.forward3(car),l=Math.hypot(f.x,f.y)||1;return {x:f.x/l,y:f.y/l};}
+ /** A car SET_CAR_COORDINATES moved: JoinCarWithRoadSystem for a cruise from where it now stands, and the road route
+  * worked out again for the missions that drive to a point or at the player. */
+ rejoinRoads(car:WorldCar){
+  const m=this.missions.get(car);if(!m)return;
+  m.link=undefined;m.cruiseNext=undefined;m.route=[];
+  if(m.kind!=='cruise'&&ROAD_KINDS.has(m.kind))this.route(car,m);
+ }
  /** CAutoPilot's m_startingRouteNode and m_currentAddress for a car on a mission: the ends of the link it drives. */
  routeNodes(car:WorldCar){const link=this.missions.get(car)?.link;return link&&{starting:link.from,current:link.to};}
  /** The loaded car path areas the script's node questions search (CPathFind searches only the areas it has loaded),

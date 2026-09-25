@@ -832,6 +832,9 @@ export class WorldPedestrians {
   targets(all=false){return this.people.filter(p=>p.health>0&&(all||!p.neverTargeted)).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0,noCriticalHits:!!p.noCriticalHits}));}
  /** CPopulation::RemovePed by collider handle; false when the handle is not a ped. */
  removeCollider(handle:number){const p=this.people.find(p=>p.collider.handle===handle);if(!p)return false;this.remove(p);this.people.splice(this.people.indexOf(p),1);return true;}
+ /** ClearSpaceForMissionEntity's removal: only a ped CPed::CanBeDeleted allows, which is neither one a mission made nor
+  * a follower of the player's group. */
+ removeDeletableCollider(handle:number){const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.mission||p.follow)return false;return this.removeCollider(handle);}
  /** The peds' rigid body handles (the camera's cone cast never tests peds). */
  readonly bodyHandles=new Set<number>();
  private remove(p:Pedestrian){this.bodyHandles.delete(p.body.handle);if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}

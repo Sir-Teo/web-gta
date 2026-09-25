@@ -23,6 +23,18 @@ test('a script car turns to face a point and reports its seats',async({page})=>{
  expect(await w('vehicleHeading',car)).toBeCloseTo(270,0);
  const after=await w('vehiclePosition',car);
  expect(Math.hypot(after.x-before.x,after.y-before.y)).toBeLessThan(.5);
+ // SET_CAR_COORDINATES to a ground-level point: the car stands on it, lifted by its model's base offset, keeping its
+ // heading; ClearSpaceForMissionEntity takes no ped a mission made.
+ const offset=await page.evaluate(car=>-(window as any).__game.missionForProfiling().vehicles.entity(car).assets.collision.bounds.min[2],car);
+ const bystander=await page.evaluate(({x,y,z})=>(window as any).__game.missionForProfiling().peds.create(4,'male01',{x:x+4,y,z}),after);
+ await page.waitForFunction(ped=>!!(window as any).__game.missionForProfiling().peds.entity(ped),bystander,{timeout:45000});
+ const ground=after.z-offset;
+ await w('setVehicleCoordinates',car,after.x+4,after.y,ground);
+ const moved=await w('vehiclePosition',car);
+ expect(moved.x).toBeCloseTo(after.x+4,1);expect(Math.abs(moved.z-(ground+offset))).toBeLessThan(.25);
+ // The heading it had (settled a little off 270 on the springs) goes with it.
+ expect(Math.abs(await w('vehicleHeading',car)-270)).toBeLessThan(5);
+ expect(await page.evaluate(ped=>(window as any).__game.missionForProfiling().peds.exists(ped),bystander)).toBe(true);
  expect(await w('vehicleMaximumPassengers',car)).toBe(3);
  expect(await w('vehiclePassengerCount',car)).toBe(0);
  const rider=await page.evaluate(car=>(window as any).__game.missionForProfiling().peds.createInCar(4,'male01',car,0),car);

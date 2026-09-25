@@ -2585,7 +2585,11 @@ const handlers:Record<string,ScmCommandHandler>={
   const position=world(t,i,'vehiclePosition')(t.readInt(p[0]));
   t.writeFloat(p[1],position.x);t.writeFloat(p[2],position.y);t.writeFloat(p[3],position.z);
  },
- SET_CAR_COORDINATES:(t,p,i)=>{const v=vec(t,p,1);world(t,i,'setVehicleCoordinates')(t.readInt(p[0]),v.x,v.y,v.z);},
+ // A point at or below MAP_Z_LOW_LIMIT is the ground's under it (FindGroundZForCoord).
+ SET_CAR_COORDINATES:(t,p,i)=>{
+  const v=vec(t,p,1);if(v.z<=ScmCamera.MAP_Z_LOW_LIMIT)v.z=world(t,i,'groundZForCoord')(v.x,v.y);
+  world(t,i,'setVehicleCoordinates')(t.readInt(p[0]),v.x,v.y,v.z);
+ },
  GET_CAR_HEADING:(t,p,i)=>{t.writeFloat(p[1],fixAngleDegrees(world(t,i,'vehicleHeading')(t.readInt(p[0]))));},
  SET_CAR_HEADING:(t,p,i)=>{world(t,i,'setVehicleHeading')(t.readInt(p[0]),fixAngleDegrees(t.readFloat(p[1])));},
  SET_CAR_PROOFS:(t,p,i)=>{world(t,i,'setVehicleProofs')(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},

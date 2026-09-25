@@ -3101,7 +3101,7 @@ async function boot() {
             worldCar.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
             fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.outside=()=>render.lighting.area===0;fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
             // ClearSpaceForMissionEntity's ped removals reach the crowd once it exists.
-            fleet.clearPed=handle=>pedestrians?.removeCollider(handle)??false;
+            fleet.clearPed=handle=>pedestrians?.removeDeletableCollider(handle)??false;
             fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;
@@ -3420,6 +3420,9 @@ async function boot() {
                  scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
                  burstScriptVehicleTyre:(car,wheel)=>{(car as ScriptCar).burstTyre(wheel,true);},
                  explosionInArea:(type,min,max)=>weapons.explosionSlots.inArea(type,min,max),
+                 scriptVehicleBaseOffset:car=>-(car as ScriptCar).assets.collision.bounds.min[2],
+                 clearSpaceForScriptVehicle:car=>{const c=car as ScriptCar,t=c.car.body.translation(),r=c.car.body.rotation();fleet?.clearSpaceFor({x:t.x,y:t.y,z:t.z},2*Math.atan2(r.y,r.w),c.assets.collision.bounds);},
+                 rejoinScriptVehicleRoads:car=>{scriptCars.rejoinRoads(car as ScriptCar);},
                  carPathAreas:()=>scriptCars.pathAreas({x:sim.player.position.x,z:sim.player.position.z}),
                  scriptVehicleLastDamagedBy:car=>(car as ScriptCar).lastDamagedBy,
                  scriptVehicleLastWeaponDamage:car=>(car as ScriptCar).lastWeaponDamage,
