@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** GET_CHAR_IN_CAR_PASSENGER_SEAT (MAIN, LOWR, SWEET6), IS_LINE_OF_SIGHT_CLEAR (BCRASH1, HEIST5), DOES_GROUP_EXIST
  * (RYDER2) and SET_CAR_ENGINE_ON (GARAG1, SYN1). */
-test('a script reads a passenger seat, a line of sight, a group, a car engine, a car'\''s axes and speed, and drives it accurately',async({page})=>{
+test('a script reads a passenger seat, a line of sight, a group, a car engine, car axes and speed, and an accurate drive',async({page})=>{
  test.setTimeout(300000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
