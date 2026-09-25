@@ -1660,7 +1660,7 @@ const handlers:Record<string,ScmCommandHandler>={
   const stop=t.readFloat(p[0]);game(t,i).camera.setParametersForScriptInterpolation(stop,100-stop,t.readInt(p[1]));
  },
  SET_MUSIC_DOES_FADE:(t,p,i)=>{game(t,i).camera.ignoreFadingStuffForMusic=!bool(t,p[0]);},
- ENABLE_AMBIENT_CRIME:(t,p,i)=>{world(t,i,'enableAmbientCrime')(bool(t,p[0]));},
+ ENABLE_AMBIENT_CRIME:(t,p,i)=>{game(t,i).enableAmbientCrime=bool(t,p[0]);},
  IS_POINT_OBSCURED_BY_A_MISSION_ENTITY:(t,p,i)=>{
   const point=vec(t,p,0),radius=vec(t,p,3);
   t.updateCompareFlag(world(t,i,'pointIsObscuredByMissionEntity')(point.x,point.y,point.z,radius.x,radius.y,radius.z),negated(i));

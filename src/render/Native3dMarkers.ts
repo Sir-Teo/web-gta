@@ -54,7 +54,8 @@ export class Native3dMarkersMesh {
     holder.add(object.root);holder.visible=false;holder.name=`Native direction arrow ${i} ${pass?'colour':'black'}`;this.scene.add(holder);
     return {holder,materials,dispose:object.dispose};
    }));
-   for(let i=0;i<MAX_3D_MARKERS;i++){
+   // The script's five user markers draw beside the placed ones.
+   for(let i=0;i<MAX_3D_MARKERS+5;i++){
     this.slots.push(models.map(({model,textures},kind)=>{
      const object=modelObject(model,textures,undefined,undefined,{worldLighting:true,ambient:this.light}),holder=new THREE.Group();
      // The holder carries the marker's whole matrix.

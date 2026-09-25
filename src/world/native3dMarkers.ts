@@ -161,6 +161,24 @@ export class Native3dMarkers {
   for(const a of this.directionArrows)a.used=false;
   return out;
  }
+ /** ms_user3dMarkers: five markers a script sets (tUser3dMarker), each kept until it is deleted. */
+ readonly userMarkers=Array.from({length:5},()=>({used:false,position:[0,0,0] as [number,number,number],color:[0,0,0] as [number,number,number]}));
+ /** User3dMarkerSet (0x720FD0): the first free slot takes the point and colour; its index, or -1 with none free. */
+ userMarkerSet(x:number,y:number,z:number,rgb:readonly [number,number,number]){
+  const index=this.userMarkers.findIndex(m=>!m.used);if(index<0)return -1;
+  Object.assign(this.userMarkers[index],{used:true,position:[x,y,z],color:[rgb[0],rgb[1],rgb[2]]});
+  return index;
+ }
+ /** User3dMarkerDelete (0x721090): a slot index out of range is ignored. */
+ userMarkerDelete(index:number){if(index>=0&&index<this.userMarkers.length)this.userMarkers[index].used=false;}
+ userMarkerDeleteAll(){for(const m of this.userMarkers)m.used=false;}
+ /** User3dMarkersDraw (0x723240) through tUser3dMarker::Render: the cone at its own size and no turn, a quarter unit
+  * up and down on the diamond's angle, opaque in its colour. */
+ drawUserMarkers(){
+  const bob=Math.sin(this.angleDiamondDeg*Math.PI/180)*.25;
+  return this.userMarkers.filter(m=>m.used).map(m=>({marker:{...blank(),type:MARKER3D.cone,position:[m.position[0],m.position[1],m.position[2]+bob] as [number,number,number],size:1,stdSize:1},
+   color:[m.color[0],m.color[1],m.color[2],255] as [number,number,number,number]}));
+ }
  /** C3dMarkers::Update (0x7227B0): the diamond angle turns 5° a time step; placed markers become active. */
  update(timeStep:number){
   this.angleDiamondDeg+=timeStep*5;

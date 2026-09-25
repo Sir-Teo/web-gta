@@ -322,6 +322,8 @@ export class ScmGameState {
  readonly population={dontCreateRandomGangMembers:false,dontCreateRandomCops:false};
  /** CTrain::bDisableRandomTrains, which SWITCH_RANDOM_TRAINS sets. */
  disableRandomTrains=false;
+ /** CLoadMonitor::m_bEnableAmbientCrime, which ENABLE_AMBIENT_CRIME sets. */
+ enableAmbientCrime=true;
  /** CTheScripts::UpsideDownCars and StuckCars. */
  readonly upsideDownCars=new ScmUpsideDownCarCheck();
  readonly stuckCars=new ScmStuckCarCheck();

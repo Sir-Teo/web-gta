@@ -280,6 +280,14 @@ export interface ScmMissionWorld {
  scriptVehicleBaseOffset?(car:unknown):number;
  clearSpaceForScriptVehicle?(car:unknown):void;
  rejoinScriptVehicleRoads?(car:unknown):void;
+ /** C3dMarkers::User3dMarkerSet (an eHudColours colour) and User3dMarkerDelete. */
+ createScriptUser3dMarker?(x:number,y:number,z:number,colour:number):number;
+ removeScriptUser3dMarker?(index:number):void;
+ /** Whether a ped swims (CTaskSimpleSwim): the player's own, and a script ped's. */
+ playerSwimming?():boolean;
+ scriptPedSwimming?(ped:unknown):boolean;
+ /** CGangWars::GangWarFightingGoingOn. */
+ gangWarFightingGoingOn?():boolean;
  /** The car path areas CPathFind has loaded, or nothing before any have. */
  carPathAreas?():ReadonlyMap<number,PathArea>|undefined;
  /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
@@ -843,6 +851,11 @@ export class ScmMission {
    // train can exist to remove or release.
    deleteMissionTrains:()=>{},
    markMissionTrainsAsNoLongerNeeded:()=>{},
+   createUser3dMarker:(x,y,z,colour)=>this.host('createScriptUser3dMarker','CREATE_USER_3D_MARKER')(x,y,z,colour),
+   removeUser3dMarker:index=>{this.host('removeScriptUser3dMarker','REMOVE_USER_3D_MARKER')(index);},
+   pedIsSwimming:handle=>handle===PLAYER_PED_HANDLE?this.host('playerSwimming','IS_CHAR_SWIMMING')()
+    :this.host('scriptPedSwimming','IS_CHAR_SWIMMING')(this.livePed(handle)),
+   isGangWarFightingGoingOn:()=>this.host('gangWarFightingGoingOn','IS_GANG_WAR_FIGHTING_GOING_ON')(),
    // The car watches CTheScripts::Process runs. They ask only about a car the browser has built: one still streaming
    // in has no driver in its seat, so the stuck check starts again from where it stands.
    vehicleHasDriver:handle=>{

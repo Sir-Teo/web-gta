@@ -562,7 +562,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  disableAllEntryExits?(state:boolean):void;
  setDarknessEffect?(enable:boolean,pitchBlack:number):void;
  enableCraneControls?(up:boolean,down:boolean,release:boolean):void;
- enableAmbientCrime?(state:boolean):void;
  pointIsObscuredByMissionEntity?(x:number,y:number,z:number,radiusX:number,radiusY:number,radiusZ:number):boolean;
  pedSayContext?(handle:number,phrase:number):number;
  setHeadingForAttachedPlayer?(playerId:number,heading:number,headingRange:number):void;

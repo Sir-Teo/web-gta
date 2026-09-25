@@ -7279,3 +7279,17 @@ the first ones now implemented:
 - SET_CAR_COORDINATES and SET_CAR_HEADING on handle 1, the player's own car, did nothing. They now move and turn it.
 - ClearSpaceForMissionEntity removed any ped its box touched. It now removes only one CPed::CanBeDeleted allows:
   neither a ped a mission made nor a follower of the player's group. This covers CREATE_CAR as well.
+
+## Commands that retired the ambient threads
+
+A sweep of missions launched from the running game showed ambient threads giving up on commands nobody answered.
+Each is now answered:
+
+- HELP and IS_CHAR_SWIMMING: the player swims when the port's swim state says so. The world's peds do not swim; in
+  deep water they drown.
+- ADPLANE and CREATE_USER_3D_MARKER / REMOVE_USER_3D_MARKER: C3dMarkers' five user markers (User3dMarkerSet,
+  reversed). Each takes the first free slot and an eHudColours colour, and is drawn every frame by
+  tUser3dMarker::Render until deleted: the cone at its own size, a quarter unit up and down on the diamond angle.
+- MOB_LA1 and IS_GANG_WAR_FIGHTING_GOING_ON: CGangWars::GangWarFightingGoingOn, which the port's gang wars already
+  keep.
+- INTRO1 and ENABLE_AMBIENT_CRIME: CLoadMonitor::m_bEnableAmbientCrime, stored in the engine.

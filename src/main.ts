@@ -893,7 +893,7 @@ async function boot() {
         debugMarkers.forEach((q,i)=>markers3d.placeMarkerCone(0x10000+i,q,2,255,255,0,255,1024,1,5,false,cam,ctx));
         // CCheckpoints::Render: the script's race tubes and rings, placed as markers each frame.
         mission?.runtime.game.checkpoints.markers.render(markers3d,ctx,(x,y)=>render.lighting.water.levels?.levelNoWaves(x,y));
-        markers3d.update(timeStep);markersMesh.frame(markers3d.render(visible),camera);markersMesh.frameArrows(markers3d.drawDirectionArrows());
+        markers3d.update(timeStep);markersMesh.frame([...markers3d.drawUserMarkers(),...markers3d.render(visible)],camera);markersMesh.frameArrows(markers3d.drawDirectionArrows());
       }
       // CEntity::CreateRwObject's CTagManager::ResetAlpha for a newly installed scene's tags.
       if(importedScene&&tagManager&&tagScene!==importedScene){for(const key of importedScene.tagKeys())importedScene.setTagAlpha(key,tagManager.alpha(key));tagScene=importedScene;}
@@ -3423,6 +3423,12 @@ async function boot() {
                  scriptVehicleBaseOffset:car=>-(car as ScriptCar).assets.collision.bounds.min[2],
                  clearSpaceForScriptVehicle:car=>{const c=car as ScriptCar,t=c.car.body.translation(),r=c.car.body.rotation();fleet?.clearSpaceFor({x:t.x,y:t.y,z:t.z},2*Math.atan2(r.y,r.w),c.assets.collision.bounds);},
                  rejoinScriptVehicleRoads:car=>{scriptCars.rejoinRoads(car as ScriptCar);},
+                 createScriptUser3dMarker:(x,y,z,colour)=>markers3d.userMarkerSet(x,y,z,HUD_COLOURS[colour]??[0,0,0]),
+                 removeScriptUser3dMarker:index=>{markers3d.userMarkerDelete(index);},
+                 playerSwimming:()=>sim.player.swimming,
+                 // The world's peds do not swim: in deep water they drown.
+                 scriptPedSwimming:()=>false,
+                 gangWarFightingGoingOn:()=>!!gangWars?.gangWarFightingGoingOn(),
                  carPathAreas:()=>scriptCars.pathAreas({x:sim.player.position.x,z:sim.player.position.z}),
                  scriptVehicleLastDamagedBy:car=>(car as ScriptCar).lastDamagedBy,
                  scriptVehicleLastWeaponDamage:car=>(car as ScriptCar).lastWeaponDamage,
