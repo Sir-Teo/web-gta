@@ -7775,3 +7775,11 @@ Each is now answered:
 - A bike now resolves as a bike. It has the driver's saddle and one pillion (seat 0). The ped gets on from the
   nearer side, at BikeMount's side point (the seat less the jump-on clip's end), or a unit out while the clips load.
 - Verification: `tests/browser/script-bike-rider.spec.ts`.
+- The driving tasks now drive a bike as well: TASK_CAR_DRIVE_TO_COORD, TASK_CAR_TEMP_ACTION, TASK_CAR_DRIVE_WANDER
+  and TASK_CAR_MISSION, and the straight-line distance, stop and route hooks.
+  - ScriptCarMissions (CAutoPilot and CCarAI) drives anything with a body, bounds and an autopilot. The bike's rider
+    takes the pedals, as CBike::ProcessControlInputs reads the same CAutoPilot fields.
+  - The native wheel angle over the handling's steering lock is the bike's steer, with the sign turned: native angles
+    are left-positive, the bike's steer right-positive. Gas is the pedal, and any brake or the handbrake squeezes the
+    brake.
+- A script ped riding a bike is not drawn yet (the occupant renderer seats peds in cars only).

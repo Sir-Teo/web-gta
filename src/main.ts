@@ -31,6 +31,8 @@ const scriptRiders=new Set<ScriptRider>();
 const asRider=(entity:unknown)=>(entity as ScriptRider|undefined)?.rider?entity as ScriptRider:undefined;
 /** A script vehicle that is a car (WorldCar) rather than a bike, boat, aircraft or train carriage. */
 const isScriptCar=(v:unknown):v is import('./simulation/WorldCar').WorldCar=>!!v&&typeof (v as {setPedInAsDriver?:unknown}).setPedInAsDriver==='function';
+/** A script vehicle CAutoPilot drives: a car, or a bike, whose rider takes the autopilot's pedals. */
+const isScriptDrivable=(v:unknown):v is import('./simulation/ScriptCarMissions').ScriptDrivable=>isScriptCar(v)||!!v&&typeof (v as {autopilotInput?:unknown}).autopilotInput==='function';
 /** The riders the occupant renderer should draw this frame. The browser's cars carry a seat point on each
  * side, so a driver and a front passenger are drawn where they sit; a script can seat a ped further back and
  * that ped rides unseen until the models carry rear seat points. A rider whose car has gone stops riding. */
@@ -1894,7 +1896,7 @@ async function boot() {
     placePed:(x:number,y:number,z:number)=>pedestrians?.debugPlace({x,y,z})??null,
     /** CPostEffects::m_bColorEnable. */
     setColourFilter:(on:boolean)=>{postEffects.colourFilterEnabled=!!on;return postEffects.colourFilterEnabled;},
-    pedestrians:()=>pedestrians,
+    pedestrians:()=>pedestrians,scriptCars:()=>scriptCars,
     RAPIER,
     /** Kill a pedestrian where it stands through the ordinary damage path. */
     killPed:(id:number)=>{const p=pedestrians?.snapshot().people.find(p=>p.id===id);return p?pedestrians!.damageCollider(p.handle,1000,{x:0,z:1}):false;},
@@ -2417,7 +2419,7 @@ async function boot() {
         // While the rider waits or gets off, the bike only brakes.
         // DisablePlayerControls: no hop (CBmx refuses the press and drops the charge), gas off and the brakes on, as
         // CAutomobile::ProcessControlInputs does for the quad.
-        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied?(bikeMount.active&&bikeMount.bike===bike||controlsOff?{throttle:0,steer:0,brake:true,disabled:controlsOff}:{throttle:axes.y,steer:axes.x,brake:input.down('Space'),hop:input.down('ControlLeft')}):undefined);
+        for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied&&!bike.scriptDriven?(bikeMount.active&&bikeMount.bike===bike||controlsOff?{throttle:0,steer:0,brake:true,disabled:controlsOff}:{throttle:axes.y,steer:axes.x,brake:input.down('Space'),hop:input.down('ControlLeft')}):bike.autopilotInput());
         const tPlayer=performance.now();
         const riding=!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned||bikeMount.pinned||playerPassenger);
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
@@ -3628,7 +3630,7 @@ async function boot() {
                  clearPlayerLastWeaponDamage:()=>{sim.lastWeaponDamage=-1;},
                  // CUpsideDownCarCheck::IsCarUpsideDown; a vehicle without the car's wheel contacts is judged by its up alone.
                  scriptVehicleUpsideDownForCheck:car=>{if(isScriptCar(car))return car.upsideDownForCheck();const q=(car as {car:{body:import('@dimforge/rapier3d-compat').RigidBody}}).car.body.rotation();return 1-2*(q.x*q.x+q.z*q.z)<0;},
-                 scriptVehicleRouteNodes:car=>isScriptCar(car)?scriptCars.routeNodes(car):undefined,
+                 scriptVehicleRouteNodes:car=>isScriptDrivable(car)?scriptCars.routeNodes(car):undefined,
                  scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
                  burstScriptVehicleTyre:(car,wheel)=>{if(isScriptCar(car))car.burstTyre(wheel,true);},
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
@@ -3659,7 +3661,7 @@ async function boot() {
                  explosionInArea:(type,min,max)=>weapons.explosionSlots.inArea(type,min,max),
                  scriptVehicleBaseOffset:car=>-(car as ScriptCar).assets.collision.bounds.min[2],
                  clearSpaceForScriptVehicle:car=>{const c=car as ScriptCar,t=c.car.body.translation(),r=c.car.body.rotation();fleet?.clearSpaceFor({x:t.x,y:t.y,z:t.z},2*Math.atan2(r.y,r.w),c.assets.collision.bounds);},
-                 rejoinScriptVehicleRoads:car=>{if(isScriptCar(car))scriptCars.rejoinRoads(car);},
+                 rejoinScriptVehicleRoads:car=>{if(isScriptDrivable(car))scriptCars.rejoinRoads(car);},
                  createScriptUser3dMarker:(x,y,z,colour)=>markers3d.userMarkerSet(x,y,z,HUD_COLOURS[colour]??[0,0,0]),
                  removeScriptUser3dMarker:index=>{markers3d.userMarkerDelete(index);},
                  playerSwimming:()=>sim.player.swimming,
@@ -3938,16 +3940,17 @@ async function boot() {
                  setDeathPenalties:apply=>{gameLogic.penaltyForDeathApplies=apply;},
                  setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},
                  // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.
-                 driveScriptVehicleTo:(car,goal,o)=>{if(isScriptCar(car))scriptCars.gotoCoords(car,{x:goal.x,y:goal.z>-100?goal.z:(car as ScriptCar).car.body.translation().y,z:-goal.y},o);},
-                 setScriptVehicleStraightLineDistance:(car,distance)=>{if(isScriptCar(car))scriptCars.setStraightLineDistance(car,distance);},
-                 stopScriptVehicle:car=>{if(isScriptCar(car))scriptCars.clear(car);},
-                 scriptVehicleTempAction:(car,action,seconds)=>{if(isScriptCar(car))scriptCars.tempAction(car,action,seconds);},
-                 scriptVehicleWander:(car,o)=>{if(isScriptCar(car))scriptCars.wander(car,o);},
+                 driveScriptVehicleTo:(car,goal,o)=>{if(isScriptDrivable(car))scriptCars.gotoCoords(car,{x:goal.x,y:goal.z>-100?goal.z:(car as ScriptCar).car.body.translation().y,z:-goal.y},o);},
+                 setScriptVehicleStraightLineDistance:(car,distance)=>{if(isScriptDrivable(car))scriptCars.setStraightLineDistance(car,distance);},
+                 stopScriptVehicle:car=>{if(isScriptDrivable(car))scriptCars.clear(car);},
+                 scriptVehicleTempAction:(car,action,seconds)=>{if(isScriptDrivable(car))scriptCars.tempAction(car,action,seconds);},
+                 scriptVehicleWander:(car,o)=>{if(isScriptDrivable(car))scriptCars.wander(car,o);},
                  scriptVehicleCarMission:(car,o)=>{
                   const target=o.target as Partial<ScriptCar>|undefined;
                   // Only a car the browser drives with the native body can be a target.
                   if(target&&!(target.car&&target.nativeBody))return false;
-                  return scriptCars.carMission(car as ScriptCar,{mission:o.mission,target:target as ScriptCar|undefined,cruise:o.cruise,style:o.style});
+                  if(!isScriptDrivable(car))return false;
+                  return scriptCars.carMission(car,{mission:o.mission,target:target as ScriptCar|undefined,cruise:o.cruise,style:o.style});
                  },
                  scriptVehicleSeatDoor:(car,seat)=>{
                   const c=car as ScriptCar;if(typeof c.seat!=='function')return undefined;

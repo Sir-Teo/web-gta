@@ -59,6 +59,20 @@ export class WorldBike {
  /** Set by blowUp until the weapon system spawns its explosion. */
  pendingExplosion=false;
  occupied=false;throttle=0;steer=0;brake=false;message?:string;
+ /** CAutoPilot's pedals while a script drives the bike (ScriptCarMissions), and whether the player's own bike is on a
+  * script's driving task. */
+ autopilot?:import('./WorldCar').WorldCar['autopilot'];scriptDriven?:boolean;
+ /** The collision model's bounds (native units), which the driving AI reads for its width. */
+ get nativeBody(){const b=this.assets.collision.bounds;return {boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}
+ /** The rider's controls from the autopilot. Its native wheel angle (radians, left positive) over the handling's
+  * lock is the bike's steer (right positive); gas is the pedal; any brake or the handbrake squeezes the brake.
+  * Without native pedals (a stuck car's recovery) the pad's throttle, brake-to-reverse and steering are used. */
+ autopilotInput(){
+  const a=this.autopilot;if(!a)return undefined;
+  if(!a.native)return {throttle:a.throttle-a.brake,steer:a.steering,brake:false};
+  const lock=this.assets.handling.values.steeringLock*Math.PI/180||1;
+  return {throttle:a.native.gas,steer:Math.max(-1,Math.min(1,-a.native.steerAngle/lock)),brake:a.native.handbrake||a.native.brake>.05&&a.native.gas<=0};
+ }
  /** CEntity::m_nRandomSeed, and whether the lamps are lit this frame (GetVehicleLightsStatus; the host decides). */
  readonly randomSeed=randomSeed();lightsOn=false;
  /** Visual lean roll in radians (positive leans right); the body stays upright like the native render matrix. */
