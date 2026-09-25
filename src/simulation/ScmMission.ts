@@ -1,3 +1,4 @@
+import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 import type {CarRecordingFrame} from '../assets/carRecordings';
 import {saveOrRetrieveDataForThisFrame,type CarRecordingVehicle} from '../engine/carRecordingPlayback';
 import {TRAIN_TYPES} from './nativeTrainTracks';
@@ -1370,12 +1371,9 @@ export class ScmMission {
    // SET_VEHICLE_DIRT_LEVEL: m_fDirtLevel, which the dirt texture blend reads (0 to 15).
    setVehicleDirtLevel:(handle,level)=>{this.host('setScriptVehicleDirtLevel','SET_VEHICLE_DIRT_LEVEL')(this.liveVehicle(handle),Math.max(0,Math.min(15,level)));},
    // IS_CHAR_IN_TAXI: the model of the car the ped is in (the player's own included), nothing on foot.
-   pedVehicleModelId:handle=>{
-    const vehicle=handle===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(handle)?.vehicle;
-    if(vehicle===undefined)return undefined;
-    const model=vehicle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(vehicle).model:this.vehicles.modelOf(vehicle);
-    return typeof model==='number'?model:undefined;
-   },
+   pedVehicleModelId:handle=>this.pedVehicleModel(handle),
+   // CVehicle::IsLawEnforcementVehicle on the vehicle the ped rides, by its model.
+   pedVehicleIsLawEnforcement:handle=>{const model=this.pedVehicleModel(handle);return model!==undefined&&LAW_ENFORCEMENT_MODELS.has(model);},
    playerIsUsingJetpack:()=>this.host('playerUsingJetpack','IS_PLAYER_USING_JETPACK')(),
    // CGameLogic::bPenaltyForDeathApplies and bPenaltyForArrestApplies.
    switchDeathPenalties:state=>{this.host('setDeathPenalties','SWITCH_DEATH_PENALTIES')(state);},
@@ -1846,6 +1844,13 @@ export class ScmMission {
   return ped;
  }
  /** The vehicle the player is riding, which the commands that name his own car ask about. */
+ /** The model of the vehicle a ped rides, by its handle. */
+ private pedVehicleModel(handle:number){
+  const vehicle=handle===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(handle)?.vehicle;
+  if(vehicle===undefined)return undefined;
+  const model=vehicle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(vehicle).model:this.vehicles.modelOf(vehicle);
+  return typeof model==='number'?model:undefined;
+ }
  private playerVehicle(handle:number){
   const vehicle=handle===PLAYER_VEHICLE_HANDLE?this.world.playerPed().vehicle:undefined;
   if(!vehicle)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);

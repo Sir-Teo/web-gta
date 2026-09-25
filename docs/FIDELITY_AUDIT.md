@@ -7645,3 +7645,13 @@ Each is now answered:
   - CMenuSystem::Initialise does not run on a new game.
 - Verification: `tests/scm-menus.test.ts`, `tests/scm-searchlights-and-menus.test.ts`,
   `tests/browser/script-menus.spec.ts`.
+
+## INTRO plays through
+
+- With CJ put on the BMX, INTRO runs to its end in the long probe. It plays the train, the police car's two
+  recordings with CJ in the back, the leave task, the walk and the bike. It terminates and starts INTROST, MOB_RAN
+  and MOB_LA1, with no faults.
+- The one stop after it: R3 asked IS_CHAR_IN_ANY_POLICE_VEHICLE of CJ on the bike, and CVehicle's
+  IsLawEnforcementVehicle had no adapter. It now answers from the model (the enforcer, predator, rhino, barracks,
+  FBI rancher and truck, the police bike, the four police cars and the S.W.A.T. van).
+- Verification: `tests/browser/script-other-vehicles.spec.ts`.

@@ -27,7 +27,8 @@ test('the player warps onto a script bike and the script sees him on it',async({
  const bike=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;return g.missionForProfiling().vehicles.create(481,{x:p.x+5,y:-p.z+5,z:-100},0);});
  await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),bike,{timeout:60000});
  await page.evaluate(h=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCar(1,h),bike);
- const seen=await page.evaluate(h=>{const w=(window as any).__game.missionForProfiling().runtime.world;return {vehicle:w.pedVehicle(1)};},bike);
- expect(seen).toEqual({vehicle:bike});
+ const seen=await page.evaluate(h=>{const w=(window as any).__game.missionForProfiling().runtime.world;return {vehicle:w.pedVehicle(1),model:w.pedVehicleModelId(1),police:w.pedVehicleIsLawEnforcement(1)};},bike);
+ // R3 asks IS_CHAR_IN_ANY_POLICE_VEHICLE of him on it: a BMX is no law enforcement vehicle.
+ expect(seen).toEqual({vehicle:bike,model:481,police:false});
  expect(errors).toEqual([]);
 });
