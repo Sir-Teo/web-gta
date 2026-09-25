@@ -42,6 +42,8 @@ const MODEL_NEVADA=553;
 /** eScriptedTaskStatus and the scripts' FINISHED_TASK. */
 const TASK_EVENT_ASSOCIATED=0,TASK_TASK_ASSOCIATED=1,FINISHED_TASK=7;
 export interface ScmMissionWorld {
+ /** CCamera::IsSphereVisible for a native point. */
+ isSphereVisible?(point:{x:number;y:number;z:number},radius:number):boolean;
  /** One of CDecisionMakerTypes' default decision makers, as the files load it (by its index). */
  defaultDecisionMaker?(index:number):import('../ped/nativeDecisionMaker').DecisionMaker|undefined;
  /** CAudioEngine::RetuneRadio for SET_RADIO_CHANNEL (an eRadioID). */
@@ -511,6 +513,16 @@ export class ScmMission {
    // CPed::bIsTalking and the facial talk. The depot has no speech banks, so these hold what the script said
    // and nothing speaks; the thread carries on rather than stopping on a question nothing here answers.
    shutPedUpForScriptedSpeech:(handle,enabled)=>{this.world.setScriptPedSpeech(this.livePed(handle),enabled);},
+   // SHUT_CHAR_UP, DISABLE_CHAR_SPEECH and ENABLE_CHAR_SPEECH (reversed): CPed::DisablePedSpeech and EnablePedSpeech.
+   // The browser keeps one speech switch per ped, which the scripted-speech command sets too. The player has no
+   // speech bank here, so his is nothing to switch.
+   setPedSpeechDisabled:(handle,disabled)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedSpeech(this.livePed(handle),disabled);},
+   disablePedSpeech:handle=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedSpeech(this.livePed(handle),true);},
+   enablePedSpeech:handle=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedSpeech(this.livePed(handle),false);},
+   // GET_CAR_CHAR_IS_USING (reversed): the car the ped sits in, else the one it is entering; none is -1. The
+   // browser does not hand the script the car the player is walking to.
+   pedCarInUse:handle=>handle===PLAYER_PED_HANDLE?(this.world.playerPed().vehicle?PLAYER_VEHICLE_HANDLE:-1):this.peds.rideOf(handle)?.vehicle??-1,
+   isSphereVisible:(point,radius)=>{if(!this.world.isSphereVisible)throw new UnsupportedScmCommand(-1,0,'IS_POINT_ON_SCREEN','no camera');return this.world.isSphereVisible(point,radius);},
    startPedFacialTalk:(handle,duration)=>{this.world.setScriptPedFacialTalk(this.livePed(handle),duration/1000);},
    stopPedFacialTalk:handle=>{this.world.setScriptPedFacialTalk(this.livePed(handle),undefined);},
    hidePedWeaponForScriptedCutscene:(handle,state)=>{this.world.hideScriptPedWeapon(this.livePed(handle),state);},

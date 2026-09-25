@@ -2931,9 +2931,11 @@ async function boot() {
            else if(!victim.byPlayer){const stats=mission?.runtime.game.stats;if(stats){if(victim.recruit){stats.decrement(68,2);stats.increment(163,1);}stats.increment(120,1);if(victim.gang!==undefined)stats.increment(victim.gang===1?240:239,1);}}if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
           pedestrians.playerVehicleVelocity=()=>{const b=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body;if(!b)return undefined;const v=b.linvel();return {x:v.x,y:v.y,z:v.z};};
-          pedestrians.onPain=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'pain',speechSeed(position));
-          pedestrians.onFlee=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'flee',speechSeed(position));
-          pedestrians.onThreat=(ped,position)=>sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'threat',speechSeed(position));
+          // CAEPedSpeechAudioEntity::AddSayEvent says nothing for a ped whose speech a script disabled.
+          const speaks=(ped:object)=>!(ped as {shutUp?:boolean}).shutUp;
+          pedestrians.onPain=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'pain',speechSeed(position));};
+          pedestrians.onFlee=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'flee',speechSeed(position));};
+          pedestrians.onThreat=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'threat',speechSeed(position));};
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           pedestrians.onCrunch=(ped,position)=>sound.nativeEngine?.pedCrunch(ped,{x:position.x,y:-position.z,z:position.y});
           pedestrians.onCarCrunch=car=>sound.nativeEngine?.vehicle(car,car.modelId)?.addAudioEvent(AE.pedCrunch);
@@ -3120,6 +3122,8 @@ async function boot() {
                   frontendAudioEvent:event=>sound.frontend(event),
                   retuneRadio:station=>{sound.nativeEngine?.retuneRadio(station);},
                   defaultDecisionMaker:index=>pedestrians?.defaultDecisionMaker(index),
+                  // CCamera::IsSphereVisible: the sphere against the camera's frustum.
+                  isSphereVisible:(point,radius)=>{const c=render.camera;c.updateMatrixWorld();return new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(c.projectionMatrix,c.matrixWorldInverse)).intersectsSphere(new Sphere(new Vector3(point.x,point.z,-point.y),Math.max(0,radius)));},
                  // TheCamera's one fade: DO_FADE shares it with the game logic, the entry exits and the restarts.
                  cameraFade,showFade:(direction,milliseconds)=>hud.fade(direction===0,milliseconds),
                  startExtraColour:(colour,fade)=>localLighting.startExtraColour(colour,fade),stopExtraColour:fade=>localLighting.stopExtraColour(fade),

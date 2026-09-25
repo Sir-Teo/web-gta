@@ -6653,3 +6653,15 @@ the first ones now implemented:
     copy.
   - The script's own ADD_CHAR_DECISION_MAKER_EVENT_RESPONSE rows then add to those.
   - CDecisionMakerTypes' copy is not in the reference. A source of −1 gives an empty maker.
+
+## Mission world adapters, second batch
+
+- **IS_POINT_ON_SCREEN** (20 missions, and MAIN; reversed): CCamera::IsSphereVisible against the camera frustum. A
+  point below the map takes the ground height first.
+- **GET_CAR_CHAR_IS_USING** (10 missions, MAIN; reversed): the car the ped sits in, else −1. The car the player is
+  walking to enter is not handed to the script.
+- **SHUT_CHAR_UP, DISABLE_CHAR_SPEECH and ENABLE_CHAR_SPEECH** (11 missions each, MAIN; reversed):
+  CPed::DisablePedSpeech and EnablePedSpeech.
+  - The switch these and SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH set was never read. A ped's pain, flee and threat lines
+    now keep quiet while it is off, as AddSayEvent does.
+  - The browser keeps one switch for both of the original's.
