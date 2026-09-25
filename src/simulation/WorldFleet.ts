@@ -423,12 +423,13 @@ export class WorldFleet {
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
   get occupiedPlane(){for(const plane of this.planes)if(plane.occupied)return plane;return undefined;}
-  nearestPlane(){
+  /** The nearest plane; `forEntry` passes over one a script took out of the player's consideration. */
+  nearestPlane(forEntry=false){
     const occupied=this.occupiedPlane;
     if(occupied)return occupied;
     let best:WorldPlane|undefined;
     let bestDist=Infinity;
-    for(const plane of this.planes){const d=plane.distance();if(d<bestDist){bestDist=d;best=plane;}}
+    for(const plane of this.planes){if(forEntry&&plane.consideredByPlayer===false)continue;const d=plane.distance();if(d<bestDist){bestDist=d;best=plane;}}
     return best;
   }
   async spawnPlane(modelId:number,x:number,z:number,heading:number){
@@ -451,21 +452,23 @@ export class WorldFleet {
     return best;
   }
   get occupiedBoat(){for(const boat of this.boats)if(boat.occupied)return boat;return undefined;}
-  nearestBoat(){
+  /** The nearest boat; `forEntry` passes over one a script took out of the player's consideration. */
+  nearestBoat(forEntry=false){
     const occupied=this.occupiedBoat;
     if(occupied)return occupied;
     let best:WorldBoat|undefined;
     let bestDist=Infinity;
-    for(const boat of this.boats){const d=boat.distance();if(d<bestDist){bestDist=d;best=boat;}}
+    for(const boat of this.boats){if(forEntry&&boat.consideredByPlayer===false)continue;const d=boat.distance();if(d<bestDist){bestDist=d;best=boat;}}
     return best;
   }
   get occupiedBike(){for(const bike of this.bikes)if(bike.occupied)return bike;return undefined;}
-  nearestBike(){
+  /** The nearest bike; `forEntry` passes over one a script took out of the player's consideration. */
+  nearestBike(forEntry=false){
     const occupied=this.occupiedBike;
     if(occupied)return occupied;
     let best:WorldBike|undefined;
     let bestDist=Infinity;
-    for(const bike of this.bikes){const d=bike.distance();if(d<bestDist){bestDist=d;best=bike;}}
+    for(const bike of this.bikes){if(forEntry&&bike.consideredByPlayer===false)continue;const d=bike.distance();if(d<bestDist){bestDist=d;best=bike;}}
     return best;
   }
  /** Bikes and boats a generator made, by generator id. */

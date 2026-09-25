@@ -328,6 +328,8 @@ export class WorldBike {
  readonly car:{body:RAPIER.RigidBody;root:Group};disposed=false;
  /** A script's vehicle (CVehicle's MISSION_VEHICLE creation): the population never removes it; the script lets it go. */
  missionCar=false;
+ /** CVehicle::bConsideredByPlayer, which SET_VEHICLE_IS_CONSIDERED_BY_PLAYER clears: the player's enter search passes it over. */
+ consideredByPlayer=true;
  dispose(){this.disposed=true;this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }
 function rotate(q:RAPIER.Rotation,v:{x:number;y:number;z:number}){

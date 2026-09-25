@@ -451,6 +451,8 @@ export interface ScmMissionWorld {
  setScriptVehicleFrozen(car:unknown,frozen:boolean):void;
  /** ANCHOR_BOAT: false for a vehicle that is not a boat. */
  setScriptBoatAnchored?(car:unknown,anchored:boolean):boolean;
+ /** SET_VEHICLE_IS_CONSIDERED_BY_PLAYER: CVehicle::bConsideredByPlayer. */
+ setScriptVehicleConsideredByPlayer?(car:unknown,state:boolean):void;
  /** CPhysical::GetHasCollidedWith between two entities as they stand: their collision touches this frame. */
  scriptEntitiesTouching?(a:ScmTouchEntity,b:ScmTouchEntity):boolean;
  /** Whether a script object's collision touches anything but itself (its m_apCollidedEntities is not empty). */
@@ -730,6 +732,7 @@ export class ScmMission {
    },
    // SET_CAR_CAN_GO_AGAINST_TRAFFIC: CAutoPilot's bCantGoAgainstTraffic, the inverse of the operand. Nothing reversed
    // reads the bit, so it is kept and does nothing more.
+   setVehicleIsConsideredByPlayer:(handle,state)=>{this.host('setScriptVehicleConsideredByPlayer','SET_VEHICLE_IS_CONSIDERED_BY_PLAYER')(this.liveVehicle(handle),state);},
    setVehicleCanGoAgainstTraffic:(handle,state)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'cantGoAgainstTraffic',state?0:1);},
    vehicleGotoCoordinates:(handle,x,y,z)=>{
     const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};

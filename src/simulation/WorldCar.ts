@@ -90,6 +90,8 @@ export class WorldCar {
  /** VehicleCreatedBy MISSION_VEHICLE: a car a script made, which the area clears leave alone until
   * MARK_CAR_AS_NO_LONGER_NEEDED (CTheScripts::CleanUpThisVehicle) makes it a random one. */
  missionCar=false;
+ /** CVehicle::bConsideredByPlayer, which SET_VEHICLE_IS_CONSIDERED_BY_PLAYER clears: the player's enter search passes it over. */
+ consideredByPlayer=true;
  /** autoFlags.bDoesNotGetDamagedUpsideDown, which SET_UPSIDEDOWN_CAR_NOT_DAMAGED sets: CAutomobile::VehicleDamage
   * returns at once for such a car on its roof unless it is the player's. */
  noUpsideDownDamage=false;

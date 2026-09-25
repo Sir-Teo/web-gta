@@ -2146,7 +2146,7 @@ async function boot() {
         else if(playerPassenger)leavePassengerSeat();
         else if(sim.player.swimming){hud.message('Get out of the water first.');}
         else{
-        const plane=fleet?.nearestPlane();
+        const plane=fleet?.nearestPlane(true);
         // Entry/exit clips resolve through the model's handling anim group; a first
         // miss starts the block load and falls back to the immediate warp this once.
         const planeSteps=(target:import('./simulation/WorldPlane').WorldPlane,phase:'getin'|'getout')=>{
@@ -2177,9 +2177,9 @@ async function boot() {
           // by the reversed EvaluateCarPosition, (1 - |angle off the player's facing| / 2π) × (10 - distance); the best
           // score wins, so a car ahead beats a nearer one behind.
           const p=sim.player.position,carScore=(c:{car:{body:{translation():{x:number;z:number}}};distance():number})=>{const q=c.car.body.translation();return evaluateCarPosition(sim.player.heading,Math.atan2(q.x-p.x,q.z-p.z),c.distance());};
-          const car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>carScore(b)-carScore(a))[0];
-          const boat=fleet?.nearestBoat();
-          const bike=fleet?.nearestBike();
+          const car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return c.consideredByPlayer!==false&&Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>carScore(b)-carScore(a))[0];
+          const boat=fleet?.nearestBoat(true);
+          const bike=fleet?.nearestBike(true);
           if(plane&&(!car||plane.distance()<car.distance())&&(!boat||plane.distance()<boat.distance())&&(!bike||plane.distance()<bike.distance())&&plane.distance()<10){
            const reason=plane.enterCheck();if(reason)hud.message(reason);
            else{const steps=planeSteps(plane,'getin');if(steps){installPlaneSteps(steps);plane.beginEnter(steps);}else hud.message(plane.finishEnter());}
@@ -3843,6 +3843,7 @@ async function boot() {
                   });
                   return touching;
                  },
+                 setScriptVehicleConsideredByPlayer:(car,state)=>{if(car&&typeof car==='object'&&'consideredByPlayer' in car)(car as {consideredByPlayer:boolean}).consideredByPlayer=state;},
                  setScriptBoatAnchored:(car,anchored)=>{if(!(car instanceof WorldBoat))return false;car.setAnchored(anchored);return true;},
                  // physicalFlags.bDontApplySpeed: the car keeps its place and stops carrying any motion.
                  setScriptVehicleFrozen:(car,frozen)=>{

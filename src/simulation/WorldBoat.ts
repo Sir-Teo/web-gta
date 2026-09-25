@@ -303,6 +303,8 @@ export class WorldBoat {
  readonly car:{body:RAPIER.RigidBody};disposed=false;
  /** A script's vehicle (CVehicle's MISSION_VEHICLE creation): the population never removes it; the script lets it go. */
  missionCar=false;
+ /** CVehicle::bConsideredByPlayer, which SET_VEHICLE_IS_CONSIDERED_BY_PLAYER clears: the player's enter search passes it over. */
+ consideredByPlayer=true;
  /** FREEZE_CAR_POSITION: the body held where it is. */
  frozen=false;
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}

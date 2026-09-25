@@ -8157,3 +8157,10 @@ down where it sat rather than stopping the thread.
 body lies rather than where its root was left (CAT1, SCRASH3, SYN2). `SET_PLAYER_GROUP_TO_FOLLOW_NEVER` sets
 `m_bGroupNeverFollow`, kept beside the always flag for `TellGroupToStartFollowingPlayer`. `GET_DEAD_CHAR_PICKUP_COORDS`
 stays open: `CPickups::CreatePickupCoorsCloseToCoors` is not reversed. Spec: `script-world-queries`.
+
+## SET_VEHICLE_IS_CONSIDERED_BY_PLAYER
+
+`CVehicle::bConsideredByPlayer` starts set and the command clears or sets it; the player's search for a vehicle to
+enter (`FindClosestCarSectorList`, unreversed, and here the nearest bike, boat and plane) passes over a vehicle
+without it, as RYDER2, MAF4 and QUARRY rely on to keep the player out of their props. Spec:
+`script-considered-by-player`.
