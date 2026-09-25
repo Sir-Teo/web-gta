@@ -3204,8 +3204,27 @@ async function boot() {
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
           pedestrians.resolveScriptPed=handle=>{const ped=mission?.pedByHandle(handle);return ped==='player'?ped:onFoot(ped);};
           pedestrians.resolveScriptVehicle=handle=>{
-           const m=mission,car=m?.vehicles.exists(handle)?m.vehicles.entity(handle) as ScriptCar|undefined:undefined;
-           if(!m||!car||typeof car.seat!=='function')return undefined;
+           const m=mission,entity=m?.vehicles.exists(handle)?m.vehicles.entity(handle):undefined;
+           if(!m||!entity)return undefined;
+           // A bike (BMX INTRO1's homies ride, and the motorbikes) has a driver's saddle and one pillion, each got on
+           // from the side, the jump-on clip's end short of the seat when the clips are in and a unit out otherwise.
+           if(!isScriptCar(entity)){
+            const bike=entity as import('./simulation/WorldBike').WorldBike;
+            if(typeof bike.seat!=='function'||!bike.body)return undefined;
+            return {
+             alive:()=>m.vehicles.exists(handle)&&!bike.wrecked,
+             entity:()=>undefined,
+             seatFor:seat=>seat==='driver'?(m.peds.seatTaken(handle,'driver')?undefined:'driver'):(seat<=0&&!m.peds.seatTaken(handle,0)?0:undefined),
+             doorPoint:(_seat,from)=>{
+              const seat=bike.seat();if(!seat)return undefined;
+              const sides=(['left','right'] as const).map(side=>bikeMount.worldPoint(bike,bikeMount.sidePoint(bike,side)??{x:seat.x+(side==='left'?-1:1),y:seat.y,z:seat.z}));
+              const w=sides.reduce((a,b)=>Math.hypot(a.x-from.x,a.z-from.z)<=Math.hypot(b.x-from.x,b.z-from.z)?a:b);
+              return {x:w.x,y:w.y,z:w.z};
+             },
+             board:(ped,seat)=>{const h=m.peds.handleOf(ped);if(h===undefined||!m.vehicles.exists(handle))return false;m.peds.warpIntoCar(h,handle,seat);return true;},
+            };
+           }
+           const car=entity;
            return {
             alive:()=>m.vehicles.exists(handle)&&!car.wrecked,
             entity:()=>m.vehicles.exists(handle)?car:undefined,

@@ -420,7 +420,8 @@ export class WorldPedestrians {
   /** CPed::CreateDeadPedMoney: the cash a dead ped leaves. */
   /** A script's car by its handle, for CTaskComplexEnterCar: whether it is still there, the renderer point by the
    * door of a seat (a passenger seat of -1 resolves to a free one, or nothing when none is), and setting the ped in. */
-  resolveScriptVehicle?:(handle:number)=>{alive():boolean;entity():WorldCar|undefined;seatFor(seat:'driver'|number):'driver'|number|undefined;doorPoint(seat:'driver'|number):{x:number;y:number;z:number}|undefined;board(ped:Pedestrian,seat:'driver'|number):boolean}|undefined;
+  resolveScriptVehicle?:(handle:number)=>{alive():boolean;entity():WorldCar|undefined;seatFor(seat:'driver'|number):'driver'|number|undefined;/** Where the ped gets in from, for a ped at `from` (a bike is got on from its nearer side). */
+  doorPoint(seat:'driver'|number,from:{x:number;z:number}):{x:number;y:number;z:number}|undefined;board(ped:Pedestrian,seat:'driver'|number):boolean}|undefined;
   /** The ped (or the player) a script's handle names, for the tasks that target one. */
   resolveScriptPed?:(handle:number)=>Pedestrian|'player'|undefined;
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
@@ -2848,7 +2849,7 @@ export class WorldPedestrians {
      if(!car||seat===undefined)this.startNextOrder(p);
      else{
       o.remaining-=dt;o.seek-=dt;
-      const door=car.doorPoint(seat),q=p.actor.player.position;
+      const q=p.actor.player.position,door=car.doorPoint(seat,q);
       const distance=door?Math.hypot(door.x-q.x,door.z-q.z):Infinity;
       // The Timed task sets the ped in once its time is out (CTaskSimpleCarSetPedInAsPassenger / AsDriver). Getting to
       // the door does the same here, since the open-door, get-in and close-door clips are not played for script peds.

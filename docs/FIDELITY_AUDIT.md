@@ -7766,3 +7766,12 @@ Each is now answered:
   - A melee weapon other than fists (a bat) fights with fists here.
 - bStayInSamePlace is not kept on browser peds (TASK_STAY_IN_SAME_PLACE is a stand), so the pause branches never run.
 - Verification: `tests/browser/script-destroy-car.spec.ts`, `tests/native-scripted-ped-tasks.test.ts`.
+
+## Script peds getting on bikes
+
+- A script ped's enter task on a script bike took the bike for a car and read a car's seat frames off it. That threw
+  inside the pedestrians' step every frame, so every street and script ped stopped (INTRO1's homies froze beside
+  their BMXs).
+- A bike now resolves as a bike. It has the driver's saddle and one pillion (seat 0). The ped gets on from the
+  nearer side, at BikeMount's side point (the seat less the jump-on clip's end), or a unit out while the clips load.
+- Verification: `tests/browser/script-bike-rider.spec.ts`.
