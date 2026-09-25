@@ -6608,3 +6608,17 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   AMMUNATION_BUY_WEAPON, 1058 PART_MISSION_COMPLETE, ...) and a point, so it goes to ReportMissionAudioEvent like
   REPORT_MISSION_AUDIO_EVENT_AT_POSITION. The command's own dispatch is unreversed. Nothing plays the reports yet
   (ProcessMissionAudioEvent is unreversed). Only the latest 64 are kept; the list had grown for the whole session.
+
+## Script task status (CPedScriptedTaskRecord)
+
+- **Before:** GET_SCRIPT_TASK_STATUS (624 uses in 72 missions) went to a world adapter that did not exist, so the
+  thread stopped.
+- **Now:** a task given to a script's ped keeps a record, as CPedScriptedTaskRecordData::Set does.
+  - It is EVENT_ASSOCIATED (0) until the next CPedScriptedTaskRecord::Process, run once a game frame after the
+    scripts, and TASK_ASSOCIATED (1) while the ped still holds its order or sequence.
+  - The record is flushed once the order is over, the ped is gone, or CLEAR_CHAR_TASKS clears it.
+  - GetStatus(ped, opcode) answers from a record whose opcode matches, or −1. The command reports −1 as 7
+    (FINISHED_TASK), the value the missions compare against. The command's own dispatch is unreversed.
+  - A wander task never finishes, so its record stays until it is replaced.
+- **Simplified:** the port holds one scripted order per ped, so each ped has one record, not one per task slot.
+  The PRIMARY and SECONDARY states (a task held but not active) do not arise.

@@ -39,6 +39,8 @@ import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 const MODEL_NEVADA=553;
 
 /** What the browser can answer for the script while it runs its opening. */
+/** eScriptedTaskStatus and the scripts' FINISHED_TASK. */
+const TASK_EVENT_ASSOCIATED=0,TASK_TASK_ASSOCIATED=1,FINISHED_TASK=7;
 export interface ScmMissionWorld {
  /** CAEFrontendAudioEntity::AddAudioEvent, for the reports the script's own systems make (the timer count). */
  frontendAudioEvent?(event:number):void;
@@ -147,6 +149,8 @@ export interface ScmMissionWorld {
  giveScriptPedOrder(ped:unknown,order:ScriptedPedOrder):void;
  /** A sequence of tasks, run in order, and started again from the first when it repeats. */
  giveScriptPedSequence(ped:unknown,orders:readonly ScriptedPedOrder[],repeat:boolean):void;
+ /** Whether a script's ped is still carrying out the order or sequence it was given (CTaskManager still holds it). */
+ scriptPedHasOrder?(ped:unknown):boolean;
  clearScriptPedTasks(ped:unknown):void;
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
  clearArea(point:{x:number;y:number;z:number},radius:number):void;
@@ -410,8 +414,11 @@ export class ScmMission {
    },
    // CPedIntelligence::ClearTasks, and its immediate form, which the browser cannot tell apart: a ped with no
    // order left goes back to wandering either way, having nothing to finish first.
-   clearPedTasks:handle=>{this.world.clearScriptPedTasks(this.livePed(handle));},
-   clearPedTasksImmediately:handle=>{this.world.clearScriptPedTasks(this.livePed(handle));},
+   clearPedTasks:handle=>{this.world.clearScriptPedTasks(this.livePed(handle));this.taskRecords.delete(handle);},
+   clearPedTasksImmediately:handle=>{this.world.clearScriptPedTasks(this.livePed(handle));this.taskRecords.delete(handle);},
+   // CPedScriptedTaskRecord::GetStatus(ped, opcode): the record's status, or −1 without one, which the command
+   // reports as 7 (FINISHED_TASK), the value the missions compare against.
+   scriptTaskStatus:(handle,opcode)=>{const record=this.taskRecords.get(handle);return record&&(opcode===-1||record.opcode===opcode)?record.status:FINISHED_TASK;},
    freezePedPosition:(handle,frozen)=>{this.world.setScriptPedFrozen(this.livePed(handle),frozen);},
    pedIsInAir:handle=>this.world.scriptPedInAir(this.livePed(handle)),
    // m_bIsStaticWaitingForCollision: a ped the browser built stands on ground it has already loaded, so it is
@@ -711,6 +718,7 @@ export class ScmMission {
     });
     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
     this.world.giveScriptPedOrder(this.livePed(handle),order);
+    this.recordTask(handle,opcode,order.kind==='wander');
    },
    // CTaskComplexSequence: every task in the sequence has to be one the browser runs, because a sequence with
    // a hole in it is not the sequence the script asked for.
@@ -726,6 +734,7 @@ export class ScmMission {
      orders.push(order);
     }
     this.world.giveScriptPedSequence(this.livePed(handle),orders,repeat);
+    this.recordTask(handle,opcode,false);
    },
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
    createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
@@ -1184,6 +1193,7 @@ export class ScmMission {
   this.elapsed+=timeStepMs;
   try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();this.processGroups();
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
+   this.processTaskRecords();
    const game=this.runtime.game;game.onscreenTimer.process(this.globals,timeStepMs,game.widescreenOn,()=>this.world.frontendAudioEvent?.(33));}
   catch(error){
    if(error instanceof UnsupportedScmCommand)this.stopped={command:error.command,offset:error.offset,detail:error.message};
@@ -1194,6 +1204,23 @@ export class ScmMission {
   if(intro)this.introSeen=true;else if(this.introSeen)this.introDone=true;
  }
  /** What the script has done so far, for the dev API and the browser tests. */
+ /** CPedScriptedTaskRecord's records, one per ped here (the port holds one scripted order at a time). A wander
+  * task never finishes, so it keeps its record until it is replaced or cleared. */
+ private readonly taskRecords=new Map<number,{opcode:number;status:number;wander:boolean}>();
+ /** CPedScriptedTaskRecordData::Set through a CEventScriptCommand: EVENT_ASSOCIATED until the next Process. */
+ private recordTask(handle:number,opcode:number,wander:boolean){this.taskRecords.set(handle,{opcode,status:TASK_EVENT_ASSOCIATED,wander});}
+ /** CPedScriptedTaskRecord::Process (0x6085E0): a record whose ped is gone, or whose task the ped no longer holds, is
+  * flushed; one still held is TASK_ASSOCIATED. */
+ private processTaskRecords(){
+  for(const [handle,record] of this.taskRecords){
+   if(!this.peds.exists(handle)){this.taskRecords.delete(handle);continue;}
+   if(record.wander){record.status=TASK_TASK_ASSOCIATED;continue;}
+   // A ped still being made (its handle given, its body pending) keeps the order it will be given.
+   const ped=this.peds.entity(handle);
+   if(this.world.scriptPedHasOrder&&ped!==undefined&&!this.world.scriptPedHasOrder(ped)){this.taskRecords.delete(handle);continue;}
+   record.status=TASK_TASK_ASSOCIATED;
+  }
+ }
  /** The script's globals, which the onscreen clock and counters read and write. */
  private get globals(){const space=this.runtime.scriptSpace;return this.globalsView??=new DataView(space.buffer,space.byteOffset,space.byteLength);}
  private globalsView?:DataView;

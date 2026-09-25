@@ -3193,6 +3193,8 @@ async function boot() {
                  giveScriptPedOrder:(ped,order)=>{const p=onFoot(ped);if(p)pedestrians?.giveOrder(p,order);},
                  giveScriptPedSequence:(ped,orders,repeat)=>{const p=onFoot(ped);if(p)pedestrians?.giveSequence(p,orders,repeat);},
                  clearScriptPedTasks:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearTasks(p);},
+                 // A ped in a car holds no on-foot order the browser tracks, so its record is left as it is.
+                 scriptPedHasOrder:ped=>{const p=onFoot(ped);return p?!!(p.order||p.sequence||p.goTo):true;},
                  // CWorld::ClearExcitingStuffFromArea: the deletable peds and cars in the radius go, and the
                  // fires in it are put out, which is CFireManager::ExtinguishPoint and the car-fire pass.
                  clearArea:(point,radius)=>{
