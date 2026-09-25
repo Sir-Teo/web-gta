@@ -17,7 +17,7 @@ import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
-import {achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
+import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
@@ -146,7 +146,9 @@ export interface Pedestrian {
   /** CTaskSimpleDuck for its time: ducked where it stands. */
   |{kind:'duckFor';remaining:number}
   /** CTaskSimpleGunControl: a renderer point or a ped (the player when neither) to aim at, firing or not. */
-  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number};
+  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number}
+  /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. */
+  |{kind:'goToPointShooting';x:number;z:number;y?:number;moveState:number;radius:number;target?:Pedestrian;player:boolean};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** CTaskSimpleTogglePedThreatScanner's three switches, kept on the ped (its threat scan is not modelled). */
@@ -1500,6 +1502,12 @@ export class WorldPedestrians {
    case 'threatScanner':ped.threatScanner={onFoot:order.onFoot,inCar:order.inCar,duringScriptTask:order.duringScriptTask};break;
    case 'decisionMaker':ped.decisionMaker=order.index;break;
    case 'kindaStayInSamePlace':this.setFlag(ped,'kindaStayInSamePlace',order.state);break;
+   case 'goToPointShooting':{
+    const resolved=this.resolveScriptPed?.(order.target);if(!resolved)break;
+    ped.order={kind:'goToPointShooting',x:order.x,z:-order.y,y:order.z>MAP_Z_LOW_LIMIT?order.z:undefined,moveState:order.moveState,radius:order.radius,
+     target:resolved==='player'?undefined:resolved,player:resolved==='player'};ped.flee=0;ped.loiter=false;
+    break;
+   }
    case 'gunAt':{
     // An unarmed ped has no gun to control: the task is over at once.
     if(!ped.weapon&&ped.weaponType===undefined)break;
@@ -2325,7 +2333,9 @@ export class WorldPedestrians {
     // CWeapon::Fire counts a ped's rounds only under 25,000; a ped given more never runs out.
     if(p.totalAmmo!==undefined&&p.totalAmmo<25000)p.totalAmmo=Math.max(0,p.totalAmmo-1);
     if(p.gunFight)p.gunFight.lastAttack=this.clock;
-    state.heading=Math.atan2(aimOffset.x,aimOffset.z);p.view.update(p.actor,1);
+    // A ped shooting on the move (CTaskComplexGoToPointShooting) keeps walking its way and aims the gun alone.
+    if(p.order?.kind!=='goToPointShooting')state.heading=Math.atan2(aimOffset.x,aimOffset.z);
+    p.view.update(p.actor,1);
     const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
     const direction=new Vector3().copy(p.aimPoint??aim).sub(muzzle).normalize();
     // Native weapon dispersion: the muzzle ray scatters inside the
@@ -2526,6 +2536,10 @@ export class WorldPedestrians {
        this.startNextOrder(p);
       }
      }
+    }else if(p.order.kind==='goToPointShooting'){
+     const o=p.order,q=p.actor.player.position,gx=o.x-q.x,gz=o.z-q.z,distance=Math.hypot(gx,gz);dx=0;dz=0;
+     if(goToPointArrived(distance,o.y===undefined?undefined:q.y+PED_ORIGIN_HEIGHT-o.y,o.radius,state.speed*dt))this.startNextOrder(p);
+     else{dx=gx;dz=gz;const moveState=goToPointMoveState(o.moveState,distance,GO_STRAIGHT_MOVE_STATE_RADIUS);orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;}
     }else if(p.order.kind==='gunAt'){
      // Standing to aim; the gun block below points and fires. The task ends with its time or its target.
      const o=p.order;dx=0;dz=0;o.remaining-=dt;
@@ -2744,14 +2758,17 @@ export class WorldPedestrians {
    // CTaskComplexKillPedOnFoot aims at its threat (TaskAllocatorKillThreatsBasic hands a group member the leader's
    // attacker): a retaliating ped's live foe, otherwise the player. A follower never turns its gun on him.
    const gunFoe=p.retaliate>0&&p.foe&&p.foe.health>0?p.foe:undefined;
-   const gunOrder=p.order?.kind==='gunAt'?p.order:undefined;
+   const gunOrder=p.order?.kind==='gunAt'||p.order?.kind==='goToPointShooting'?p.order:undefined;
    if(gunOrder&&p.weapon&&p.health>0&&p.down===0&&!p.officer){
     // A script's gun task: the point itself (spotTarget aims a unit above what it is given), or the ped's body.
-    const at=gunOrder.point?{...gunOrder.point,y:gunOrder.point.y-1}:gunOrder.target?gunOrder.target.actor.player.position:this.sim.player.position;
+    const point=gunOrder.kind==='gunAt'?gunOrder.point:undefined;
+    const at=point?{...point,y:point.y-1}:gunOrder.target?gunOrder.target.actor.player.position:this.sim.player.position;
     spot=this.spotTarget(p,at,cars,gunOrder.target);
-    state.heading=Math.atan2(spot.offset.x,spot.offset.z);
+    // Standing, the ped turns to what it aims at; on the move it keeps its heading and aims the gun.
+    if(gunOrder.kind==='gunAt')state.heading=Math.atan2(spot.offset.x,spot.offset.z);
     p.view.setWeaponPose('police_fire');p.view.setWeaponAim(spot.offset.clone().normalize());gunHold=0;
-    gunEngaged=gunOrder.fire&&spot.distance<p.weapon.info.weaponRange;
+    const alive=gunOrder.target?gunOrder.target.health>0:gunOrder.kind==='gunAt'&&gunOrder.point?true:this.sim.player.health>0;
+    gunEngaged=(gunOrder.kind==='goToPointShooting'||gunOrder.fire)&&alive&&spot.distance<p.weapon.info.weaponRange;
    }else if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0&&(gunFoe||!p.follow)){
     spot=this.spotTarget(p,gunFoe?gunFoe.actor.player.position:this.sim.player.position,cars,gunFoe);
     p.view.setWeaponAim();p.view.setWeaponPose();

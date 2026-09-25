@@ -6918,3 +6918,11 @@ the first ones now implemented:
   - The shoot tasks fire through the port's own ped gun: the weapon's rate, reloads, dispersion and ammo count.
   - It ends with its time or when its target is dead or gone. An unarmed ped has no gun to control, so the task is
     over at once.
+
+### TASK_GO_TO_COORD_WHILE_SHOOTING (CTaskComplexGoToPointShooting)
+
+- The ped walks (or runs, by the script's move state) to the point and stops inside the stop radius. Meanwhile its gun
+  is on the target ped and it fires by its weapon's own rate. Its heading stays on the path: no strafing, since the
+  body faces where it walks and the arms aim.
+- The task ends at the point. GET_SCRIPT_TASK_STATUS then reads FINISHED_TASK (7). If the target dies on the way, the
+  ped stops firing and keeps walking.

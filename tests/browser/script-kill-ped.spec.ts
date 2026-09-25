@@ -35,6 +35,15 @@ test('a script ped told to kill another does so, and the task ends with the targ
  await expect.poll(shootStatus,{timeout:30000}).toBe(7);
  const after2=await page.evaluate(({killer})=>(window as any).__game.missionForProfiling().peds.entity(killer).totalAmmo,made);
  expect(after2).toBeLessThan(before);
+ // TASK_GO_TO_COORD_WHILE_SHOOTING: walks four units while firing at another ped.
+ const target2=await page.evaluate(({killer})=>{const m=(window as any).__game.missionForProfiling(),q=m.peds.positionOf(killer);return m.peds.create(4,'MALE01',{x:q.x,y:q.y-6,z:q.z});},made);
+ await page.waitForFunction((h:number)=>!!(window as any).__game.missionForProfiling().peds.entity(h),target2,{timeout:45000});
+ const ammo2=await page.evaluate(({killer})=>(window as any).__game.missionForProfiling().peds.entity(killer).totalAmmo,made);
+ const WHILE_SHOOTING=0x0637;
+ await page.evaluate(({killer,target2,opcode})=>{const m=(window as any).__game.missionForProfiling(),q=m.peds.positionOf(killer);
+  m.runtime.world.givePedScriptedTask(killer,{kind:'goToCoordWhileShooting',x:q.x+4,y:q.y,z:-100,speed:4,turnRadius:.5,stopRadius:.5,target:target2},opcode);},{killer:made.killer,target2,opcode:WHILE_SHOOTING});
+ await expect.poll(()=>page.evaluate(({killer,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(killer,opcode),{killer:made.killer,opcode:WHILE_SHOOTING}),{timeout:60000}).toBe(7);
+ expect(await page.evaluate(({killer})=>(window as any).__game.missionForProfiling().peds.entity(killer).totalAmmo,made)).toBeLessThan(ammo2);
  // EXPLODE_CHAR_HEAD: a sniper round's 1000 to the head, whatever the ped's health.
  const exploded=await page.evaluate(({killer})=>{const m=(window as any).__game.missionForProfiling();m.peds.setHealth(killer,500);m.runtime.world.explodePedHead(killer);return m.peds.healthOf(killer);},made);
  expect(exploded).toBeLessThanOrEqual(0);

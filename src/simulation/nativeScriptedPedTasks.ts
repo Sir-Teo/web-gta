@@ -53,7 +53,9 @@ export type ScriptedPedOrder=
  |{kind:'kindaStayInSamePlace';state:boolean}
  /** CTaskSimpleGunControl for TASK_AIM_GUN_AT_* and TASK_SHOOT_AT_*: stand, face the target (a point in the script's
   * coordinates, or a ped's handle) and aim, firing when `fire`, for `seconds`. */
- |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number};
+ |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number}
+ /** CTaskComplexGoToPointShooting: to a point at eMoveState, stopping inside `radius`, firing at a ped on the way. */
+ |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -121,6 +123,8 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // CTaskSimpleHandsUp: HANDSUP held for the task's time.
   case 'handsUp':return {kind:'playAnim',file:'PED',name:'handsup',loop:false,keepLastFrame:true,seconds:seconds(task.time),release:true};
   case 'toggleDuck':return {kind:'duck',crouch:task.state};
+  case 'goToCoordWhileShooting':return world.ped(task.target)?{kind:'goToPointShooting',x:task.x,y:task.y,z:task.z,moveState:task.speed,
+   radius:task.stopRadius>0?task.stopRadius:GO_STRAIGHT_TARGET_RADIUS,target:task.target}:undefined;
   case 'shootAtCoord':return {kind:'gunAt',point:{x:task.x,y:task.y,z:task.z},fire:true,seconds:seconds(task.time)};
   case 'aimGunAtCoord':return {kind:'gunAt',point:{x:task.x,y:task.y,z:task.z},fire:false,seconds:seconds(task.time)};
   case 'shootAtPed':return world.ped(task.target)?{kind:'gunAt',target:task.target,fire:true,seconds:seconds(task.time)}:undefined;

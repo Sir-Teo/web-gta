@@ -159,6 +159,11 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'aimGunAtPed',target:4,time:1000},w)).toBeUndefined();
  });
 
+ test('going to a point while shooting at a ped',()=>{
+  expect(scriptedPedOrder({kind:'goToCoordWhileShooting',x:1,y:2,z:3,speed:6,turnRadius:.5,stopRadius:1,target:3},world({3:{x:0,y:0,z:0}})))
+   .toEqual({kind:'goToPointShooting',x:1,y:2,z:3,moveState:6,radius:1,target:3});
+ });
+
  test('dying is its own order',()=>{
   expect(scriptedPedOrder({kind:'die'},world({}))).toEqual({kind:'die'});
  });
