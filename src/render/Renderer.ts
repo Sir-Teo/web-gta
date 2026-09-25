@@ -116,12 +116,16 @@ export class GameRenderer {
     const w = Math.max(1, this.canvas.clientWidth), h = Math.max(1, this.canvas.clientHeight);
     this.renderer.setSize(w, h, false); applyWindowedCameraProjection(this.camera,w,h,this.sourceFov);
   }
+  /** SET_CHAR_VISIBLE off on the player. */
+  scriptPlayerHidden = false;
   update(dt: number, alpha: number, input: Input, elapsed: number, paused=false) {
     const p = this.sim.player;
     const clock=()=>performance.now();let mark=clock();const lap=(key:keyof typeof this.profile)=>{const now=clock();(this.profile as any)[key]+=now-mark;mark=now;};
     this.crouchAmount = damp(this.crouchAmount, p.crouched ? 1 : 0, 14, dt);
     if(this.vehiclePose&&this.nativeCharacter){if(!this.nativeCharacter.updateVehicle(this.vehiclePose.frame,this.vehiclePose.pose))this.nativeCharacter.root.visible=false;}
     else{this.nativeCharacter?.update(this.sim, alpha);if((this.vehicleView||this.firstPerson)&&this.nativeCharacter)this.nativeCharacter.root.visible=false;}
+    // SET_CHAR_VISIBLE on the player (CEntity::m_bIsVisible): nothing of him is drawn, in a vehicle or out.
+    if(this.scriptPlayerHidden&&this.nativeCharacter)this.nativeCharacter.root.visible=false;
     // The prelight night blend on the schedule every other entity uses (CustomBuildingRenderer's DN balance).
     this.nativeCharacter?.setNight(nativeDayNightBalance(this.sim.timeMinutes));lap('character');
     const fp=this.firstPerson;

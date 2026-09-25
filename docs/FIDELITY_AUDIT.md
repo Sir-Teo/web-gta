@@ -7367,3 +7367,26 @@ Each is now answered:
 - CTheScripts::bDrawOddJobTitleBeforeFade starts true (CTheScripts::Init); it had started false.
 - The unique stunt bonus goes through CMessages as CStuntJumpManager puts it: USJ queued in
   STYLE_MIDDLE_SMALLER_HIGHER, and REWARD with the amount in STYLE_WHITE_MIDDLE_SMALLER.
+
+## Char commands on the player, and nested sequences
+
+- A mission sweep found scripts retiring on commands that name any ped when the ped was the player (`$12`). The
+  script calls CLEAR_LOOK_AT on the player 65 times, SET_CHAR_VISIBLE 12 times, and SET_CHAR_CANT_BE_DRAGGED_OUT,
+  the relationship commands, DAMAGE_CHAR and IS_CHAR_WAITING_FOR_WORLD_COLLISION a few times each; SWEET4 and
+  HOODS5 stopped on them. Each now acts on the player:
+  - CLEAR_LOOK_AT ends his look;
+  - SET_CHAR_VISIBLE hides his model and held weapon (CEntity::m_bIsVisible);
+  - the relationship commands edit his own CAcquaintance, copied from PLAYER1's ped.dat table;
+  - DAMAGE_CHAR goes through his damage path, armour first unless the command says not;
+  - he is never waiting for world collision;
+  - bDontDragMeOutCar is kept, though nothing in the browser drags him out yet.
+- PERFORM_SEQUENCE_TASK with a ped of -1 records a CTaskComplexUseSequence into the open sequence. SMOKE2, HEIST9,
+  RIOT2, SWEET2, SYN5, SYND4 and RYDER3 build sequences out of sequences this way; the task had no kind, so SMOKE2
+  stopped. A sequence given to a ped now runs its nested sequences inline. Each task remembers its step and its
+  nested step, so:
+  - GET_SEQUENCE_PROGRESS reads the outer step;
+  - GET_SEQUENCE_PROGRESS_RECURSIVE (which had no answer) reads both. SMOKE2 waits on (1, 4), -1 when the step is a
+    plain task.
+  A nested sequence is taken as it stands when the outer one is given, and runs once through.
+- SWITCH_COPS_ON_BIKES is CStreaming::DisableCopBikes(!state), kept in the engine. The browser's police ride no
+  bikes yet.

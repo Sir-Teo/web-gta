@@ -28,6 +28,8 @@ const UNION_BITS=new DataView(new ArrayBuffer(4));
 export type ScmScriptedTask=
  |{kind:'killPedOnFoot';target:number;time:number;flags:number;actionDelay:number;actionChance:number;mustBeOnFoot:boolean}
  |{kind:'turnToFaceEntity';target:number}
+ /** CTaskComplexUseSequence: PERFORM_SEQUENCE_TASK recorded into a sequence runs another sequence as one step. */
+ |{kind:'useSequence';sequence:number}
  /* The tasks below take their operands from the pinned Sanny Builder schema this project already generates its
   * opcode table from, which names and types every one of them. The names here are the schema's own. */
  |{kind:'goStraightToCoord';x:number;y:number;z:number;speed:number;time:number}
@@ -738,7 +740,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  deleteMissionTrains?():void;
  setHelpMessageBoxSize?(size:number):void;
  pedHeadIsMissing?(handle:number):boolean;
- switchCopsOnBikes?(state:boolean):void;
  groupSize?(group:number):{members:number;leader:number};
  projectileIsInArea?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;
  createEmergencyServicesVehicle?(model:number|string,x:number,y:number,z:number):void;

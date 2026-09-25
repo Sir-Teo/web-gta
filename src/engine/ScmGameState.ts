@@ -270,6 +270,9 @@ export class ScmGameState {
  readonly shopping=new ScmShopping();
  /** CTheScripts::bDrawOddJobTitleBeforeFade. */
  drawOddJobTitleBeforeFade=true;
+ /** CStreaming::m_bDisableCopBikes: StreamCopModels streams no bike cop while it is set. The browser's police do
+  * not ride bikes yet, so nothing reads it. */
+ disableCopBikes=false;
  /** CWeapon::ms_bTakePhoto with CPostEffects::m_bSavePhotoFromScript. */
  takePhoto=false;savePhotoFromScript=false;
  /** FrontEndMenuManager.m_bWidescreenOn, which the script can read. */

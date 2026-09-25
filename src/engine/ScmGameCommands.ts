@@ -1165,8 +1165,6 @@ const handlers:Record<string,ScmCommandHandler>={
  // The handler is unreversed. Every mission sets it just before a TASK_ENTER_CAR_AS_*, which takes it.
  SET_NEXT_DESIRED_MOVE_STATE:(t,p,i)=>{game(t,i).nextDesiredMoveState=t.readInt(p[0]);},
  GET_SEQUENCE_PROGRESS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedSequenceProgress')(t.readInt(p[0])));},
- // GET_SEQUENCE_PROGRESS_RECURSIVE stays out: its documentation names one operand and a return, while the
- // command carries three, so the third one's meaning is not in this source.
  PERFORM_SEQUENCE_TASK_FROM_PROGRESS:(t,p,i)=>{
   world(t,i,'performSequenceTaskFromProgress')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readInt(p[3]));
  },
@@ -2119,7 +2117,8 @@ const handlers:Record<string,ScmCommandHandler>={
  DELETE_MISSION_TRAINS:(t,_p,i)=>{world(t,i,'deleteMissionTrains')();},
  SET_HELP_MESSAGE_BOX_SIZE:(t,p,i)=>{world(t,i,'setHelpMessageBoxSize')(t.readInt(p[0]));},
  IS_CHAR_HEAD_MISSING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedHeadIsMissing')(t.readInt(p[0])),negated(i));},
- SWITCH_COPS_ON_BIKES:(t,p,i)=>{world(t,i,'switchCopsOnBikes')(bool(t,p[0]));},
+ // CStreaming::DisableCopBikes(!state): SWEET4 and HEIST4 keep bike cops out of their chases.
+ SWITCH_COPS_ON_BIKES:(t,p,i)=>{game(t,i).disableCopBikes=!bool(t,p[0]);},
  // The group size gives back both how many follow and who leads.
  GET_GROUP_SIZE:(t,p,i)=>{
   const size=world(t,i,'groupSize')(t.readInt(p[0]));
@@ -2252,6 +2251,8 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_ONLY_CREATE_GANG_MEMBERS:(t,p,i)=>{world(t,i,'setOnlyCreateGangMembers')(bool(t,p[0]));},
  SET_OBJECT_AS_STEALABLE:(t,p,i)=>{world(t,i,'setObjectAsStealable')(t.readInt(p[0]),bool(t,p[1]));},
  SET_PLAYER_DISPLAY_VITAL_STATS_BUTTON:(t,p,i)=>{world(t,i,'setPlayerDisplayVitalStatsButton')(t.readInt(p[0]),bool(t,p[1]));},
+ // The sequence's own step, and the step of the sequence that step runs (-1 when it runs none); SMOKE2 waits on
+ // (1, 4), the fifth task of its second nested sequence.
  GET_SEQUENCE_PROGRESS_RECURSIVE:(t,p,i)=>{const result=world(t,i,'getSequenceProgressRecursive')(t.readInt(p[0]));t.writeInt(p[1],result.p2);t.writeInt(p[2],result.p3);},
  SET_TRAIN_FORCED_TO_SLOW_DOWN:(t,p,i)=>{world(t,i,'setTrainForcedToSlowDown')(t.readInt(p[0]),bool(t,p[1]));},
  DELETE_MISSION_TRAIN:(t,p,i)=>{world(t,i,'deleteMissionTrain')(t.readInt(p[0]));},
@@ -2517,9 +2518,11 @@ const handlers:Record<string,ScmCommandHandler>={
  CLEAR_SEQUENCE_TASK:(t,p,i)=>{game(t,i).sequences.clear(t.readInt(p[0]));},
  // The handler checks the index it is given and then sets the repeat mode of the active sequence instead.
  SET_SEQUENCE_TO_REPEAT:(t,p,i)=>{game(t,i).sequences.setRepeatMode(t.readInt(p[0]),bool(t,p[1]));},
+ // With a ped of -1 the sequence is recorded into the one open as a CTaskComplexUseSequence step.
  PERFORM_SEQUENCE_TASK:(t,p,i)=>{
-  const sequence=game(t,i).sequences.at(t.readInt(p[1]));
-  world(t,i,'givePedSequence')(t.readInt(p[0]),sequence.tasks,sequence.repeatMode!==0,i.opcode&0x7fff);
+  const ped=t.readInt(p[0]),index=t.readInt(p[1]),sequence=game(t,i).sequences.at(index);
+  if(ped===-1){game(t,i).sequences.addTaskToActiveSequence({kind:'useSequence',sequence:index});return;}
+  world(t,i,'givePedSequence')(ped,sequence.tasks,sequence.repeatMode!==0,i.opcode&0x7fff);
  },
  // --- The tasks a script hands a ped (CharacterCommands.cpp is reversed for these four).
  // A ped handle of -1 does not name a ped at all: the task joins the sequence being recorded.

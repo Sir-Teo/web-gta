@@ -536,7 +536,7 @@ async function boot() {
      void weaponView.equip(inv.selected);
     }else if(!sim.jetPack&&jetSavedWeapon!==undefined){inv.select(jetSavedWeapon);jetSavedWeapon=undefined;jetWeaponHidden=false;void weaponView.equip(inv.selected);}
   };
-  weaponView.visible=()=>!playerWeaponHiddenByScript&&!phones.get('player')?.active&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
+  weaponView.visible=()=>!playerWeaponHiddenByScript&&!render.scriptPlayerHidden&&!phones.get('player')?.active&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
   weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
   const worldFx=new WorldFx(render.scene,sim,render.camera);
@@ -3573,6 +3573,12 @@ async function boot() {
                  setPlayerAmmo:(weapon,ammo)=>{weapons.inventory.setTotalAmmo(weapon,ammo);},
                  addPlayerAmmo:(weapon,ammo)=>{weapons.inventory.grantAmmo(weapon,ammo);},
                  hidePlayerWeapon:hidden=>{playerWeaponHiddenByScript=hidden;},
+                 clearPlayerLookAt:()=>{pedestrians?.clearPlayerLookAt();},
+                 setPlayerVisible:visible=>{render.scriptPlayerHidden=!visible;},
+                 setPlayerRelationship:(relationship,pedType)=>{pedestrians?.playerAcquaintance.setAs(relationship,1<<pedType);},
+                 clearPlayerRelationship:(relationship,pedType)=>{pedestrians?.playerAcquaintance.clearAs(relationship,1<<pedType);},
+                 clearPlayerRelationships:relationship=>{pedestrians?.playerAcquaintance.clear(relationship);},
+                 damagePlayer:(amount,damageArmour)=>{sim.damagePlayer(amount,!damageArmour);},
                  setPlayerFrozen:frozen=>{playerFrozenByScript=frozen;},
                  playerInWater:()=>sim.player.swimming,
                  playerInAir:()=>!sim.player.grounded&&!sim.player.swimming,

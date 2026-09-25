@@ -77,6 +77,17 @@ export interface ScmMissionWorld {
  setPlayerAmmo?(weaponType:number,ammo:number):void;
  addPlayerAmmo?(weaponType:number,ammo:number):void;
  hidePlayerWeapon?(hidden:boolean):void;
+ /** The player's side of commands that name any ped:
+  * - CLEAR_LOOK_AT ends the look the player was given;
+  * - SET_CHAR_VISIBLE sets CEntity::m_bIsVisible (and gPlayerPedVisible);
+  * - the relationship commands edit the player's own CAcquaintance;
+  * - DAMAGE_CHAR takes health, armour first unless told not to. */
+ clearPlayerLookAt?():void;
+ setPlayerVisible?(visible:boolean):void;
+ setPlayerRelationship?(relationship:number,pedType:number):void;
+ clearPlayerRelationship?(relationship:number,pedType:number):void;
+ clearPlayerRelationships?(relationship:number):void;
+ damagePlayer?(amount:number,damageArmour:boolean):void;
  setPlayerFrozen?(frozen:boolean):void;
  playerInWater?():boolean;
  playerInAir?():boolean;
@@ -506,6 +517,10 @@ export class ScmMission {
  playerModelsBuilt=0;
  /** Whether the script has left the player in control of themselves. */
  playerControl=true;
+ /** The player's CPed::bDontDragMeOutCar (SET_CHAR_CANT_BE_DRAGGED_OUT). */
+ playerCantBeDraggedOut=false;
+ /** For a ped running a sequence with nested ones, each flattened task's step and nested step. */
+ private readonly sequenceSteps=new Map<number,{outer:number;inner:number}[]>();
  /** The mission text block the script last asked for. */
  missionText?:string;
  /** The cutscenes the script asked for, in order. */
@@ -628,8 +643,9 @@ export class ScmMission {
    pedIsInAir:handle=>handle===PLAYER_PED_HANDLE?this.host('playerInAir','IS_CHAR_IN_AIR')():this.world.scriptPedInAir(this.livePed(handle)),
    // m_bIsStaticWaitingForCollision: a ped the browser built stands on ground it has already loaded, so it is
    // never waiting for collision to arrive.
-   pedIsWaitingForCollision:handle=>{this.livePed(handle);return false;},
-   damagePed:(handle,amount)=>{this.world.damageScriptPed(this.livePed(handle),amount);},
+   // m_bIsStaticWaitingForCollision: the browser streams collision round the player, so the player never waits.
+   pedIsWaitingForCollision:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return false;},
+   damagePed:(handle,amount,damageArmour)=>{if(handle===PLAYER_PED_HANDLE)this.host('damagePlayer','DAMAGE_CHAR')(amount,damageArmour);else this.world.damageScriptPed(this.livePed(handle),amount);},
    // CPedIntelligence::SetPedDecisionMakerType, and the fields the rest of this batch names.
    // SetCharDecisionMaker (reversed): the ped wears the slot CTheScripts::GetActualScriptThingIndex gives, -1 for none.
    setPedDecisionMaker:(handle,decisionMaker)=>{this.world.setScriptPedDecisionMaker(this.livePed(handle),this.runtime.game.decisionMakers.actualIndex(decisionMaker));},
@@ -816,7 +832,8 @@ export class ScmMission {
    // loaded, so there is nothing to wait for and it is the plain freeze.
    freezePedPositionAndWaitForCollision:(handle,freeze)=>{this.world.setScriptPedFrozen(this.livePed(handle),freeze);},
    setPedCanBeShotInVehicle:(handle,canBeShot)=>{this.world.setScriptPedFlag(this.livePed(handle),'canBeShotInVehicle',canBeShot);},
-   setPedCantBeDraggedOut:(handle,cannot)=>{this.world.setScriptPedFlag(this.livePed(handle),'cantBeDraggedOut',cannot);},
+   // The player's bDontDragMeOutCar is kept here: nothing in the browser drags the player out yet.
+   setPedCantBeDraggedOut:(handle,cannot)=>{if(handle===PLAYER_PED_HANDLE)this.playerCantBeDraggedOut=cannot;else this.world.setScriptPedFlag(this.livePed(handle),'cantBeDraggedOut',cannot);},
    setPedLoadsCollision:(handle,loads)=>{this.world.setScriptPedFlag(this.livePed(handle),'loadsCollision',loads);},
    // bDeathPickupsPersist: CreateDeadPedWeaponPickups makes PICKUP_ONCE_FOR_MISSION pickups, which never time out.
    setPedDeathWeaponsPersist:(handle,persist)=>{this.world.setScriptPedFlag(this.livePed(handle),'deathPickupsPersist',persist);},
@@ -906,11 +923,11 @@ export class ScmMission {
    clearPedLastDamageEntity:handle=>{if(handle!==PLAYER_PED_HANDLE)this.host('clearScriptPedLastDamagedBy','CLEAR_CHAR_LAST_DAMAGE_ENTITY')(this.livePed(handle));},
    pedIsSittingInCar:(handle,vehicle)=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar&&this.playerCarHandle()===vehicle:this.peds.rideOf(handle)?.vehicle===vehicle,
    // CPed's own acquaintance table, through CAcquaintance's routines.
-   setPedRelationship:(handle,relationship,pedType)=>{this.world.setScriptPedRelationship(this.livePed(handle),relationship,pedType);},
-   clearPedRelationship:(handle,relationship,pedType)=>{this.world.clearScriptPedRelationship(this.livePed(handle),relationship,pedType);},
-   clearAllPedRelationships:(handle,relationshipType)=>{this.world.clearScriptPedRelationships(this.livePed(handle),relationshipType);},
+   setPedRelationship:(handle,relationship,pedType)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerRelationship','SET_CHAR_RELATIONSHIP')(relationship,pedType);else this.world.setScriptPedRelationship(this.livePed(handle),relationship,pedType);},
+   clearPedRelationship:(handle,relationship,pedType)=>{if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerRelationship','CLEAR_CHAR_RELATIONSHIP')(relationship,pedType);else this.world.clearScriptPedRelationship(this.livePed(handle),relationship,pedType);},
+   clearAllPedRelationships:(handle,relationshipType)=>{if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerRelationships','CLEAR_ALL_CHAR_RELATIONSHIPS')(relationshipType);else this.world.clearScriptPedRelationships(this.livePed(handle),relationshipType);},
    setPedNeverTargeted:(handle,enabled)=>{this.world.setScriptPedNeverTargeted(this.livePed(handle),enabled);},
-   clearPedLookAt:handle=>{this.world.clearScriptPedLookAt(this.livePed(handle));},
+   clearPedLookAt:handle=>{if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerLookAt','CLEAR_LOOK_AT')();else this.world.clearScriptPedLookAt(this.livePed(handle));},
    // The player's own cash is CPlayerInfo's, not the ped's m_nMoneyCount.
    setPedMoney:(handle,money)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedMoney?.(this.livePed(handle),money);},
    takePedPhotographedFlag:handle=>handle!==PLAYER_PED_HANDLE&&!!this.world.takeScriptPedPhotographed?.(this.livePed(handle)),
@@ -1044,7 +1061,7 @@ export class ScmMission {
    pedIsMale:handle=>this.peds.isMale(handle),
    pedSpeed:handle=>this.world.scriptPedSpeed(this.livePed(handle)),
    pedIsInWater:handle=>handle===PLAYER_PED_HANDLE?this.host('playerInWater','IS_CHAR_IN_WATER')():this.world.scriptPedSubmerged(this.livePed(handle)),
-   setPedVisible:(handle,visible)=>{this.world.setScriptPedVisible(this.livePed(handle),visible);},
+   setPedVisible:(handle,visible)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerVisible','SET_CHAR_VISIBLE')(visible);else this.world.setScriptPedVisible(this.livePed(handle),visible);},
    // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns
    // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.
    givePedScriptedTask:(handle,task,opcode)=>{
@@ -1072,7 +1089,9 @@ export class ScmMission {
    },
    // CTaskComplexSequence: every task in the sequence has to be one the browser runs, because a sequence with
    // a hole in it is not the sequence the script asked for.
-   givePedSequence:(handle,tasks,repeat,opcode)=>{
+   givePedSequence:(handle,sequenceTasks,repeat,opcode)=>{
+    const {tasks,steps}=this.expandSequence(sequenceTasks);
+    if(steps)this.sequenceSteps.set(handle,steps);else this.sequenceSteps.delete(handle);
     const world=this.taskWorld(handle);
     const orders=[];
     const carTasks=handle!==PLAYER_PED_HANDLE&&tasks.some(task=>CAR_TASKS.has(task.kind));
@@ -1091,12 +1110,8 @@ export class ScmMission {
     this.recordTask(handle,opcode,false);
    },
    // GET_SEQUENCE_PROGRESS (unreversed): CTaskComplexSequence::m_CurrentTaskIndex of the ped's running sequence, -1 with none.
-   pedSequenceProgress:handle=>{
-    if(handle===PLAYER_PED_HANDLE)return this.world.playerSequenceProgress?.()??-1;
-    const r=this.runners.get(handle);if(r)return r.sequence?r.progress:-1;
-    const ped=this.peds.entity(handle);
-    return ped===undefined?-1:this.world.scriptPedSequenceProgress?.(ped)??-1;
-   },
+   pedSequenceProgress:handle=>this.sequenceStep(handle).outer,
+   getSequenceProgressRecursive:handle=>{const step=this.sequenceStep(handle);return {p2:step.outer,p3:step.inner};},
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
    createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
    vehicleExists:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
@@ -1615,6 +1630,41 @@ export class ScmMission {
   };
   // A system given a direction points along it; one without keeps the entity's own facing.
   return fxMatrix(attached.direction?directionFrame(attached.direction):frame,position);
+ }
+ /** The flattened step of the sequence a ped runs, as the runner, the player or the ped itself counts it. */
+ private flatSequenceProgress(handle:number){
+  if(handle===PLAYER_PED_HANDLE)return this.world.playerSequenceProgress?.()??-1;
+  const r=this.runners.get(handle);if(r)return r.sequence?r.progress:-1;
+  const ped=this.peds.entity(handle);
+  return ped===undefined?-1:this.world.scriptPedSequenceProgress?.(ped)??-1;
+ }
+ /** CTaskComplexSequence::m_CurrentTaskIndex, and the step of the CTaskComplexUseSequence it is on (-1 when that
+  * step is a plain task). */
+ private sequenceStep(handle:number){
+  const flat=this.flatSequenceProgress(handle);
+  if(flat<0)return {outer:-1,inner:-1};
+  return this.sequenceSteps.get(handle)?.[flat]??{outer:flat,inner:-1};
+ }
+ /** Nested sequences (CTaskComplexUseSequence) are run inline: each is replaced by the tasks its sequence holds
+  * when the outer one is given, and each flattened task remembers which step, and which step of the nested
+  * sequence, it is. A nested sequence runs once through; one that repeats would never hand back to the outer one,
+  * which is not followed. `steps` is undefined when nothing is nested. */
+ private expandSequence(tasks:readonly ScmScriptedTask[]){
+  if(!tasks.some(task=>task.kind==='useSequence'))return {tasks,steps:undefined};
+  const flat:ScmScriptedTask[]=[],steps:{outer:number;inner:number}[]=[];
+  const nested=(index:number,outer:number,inner:number|undefined,depth:number)=>{
+   // A sequence that names itself, directly or not, is cut off rather than followed for ever.
+   if(depth>4)return;
+   this.runtime.game.sequences.at(index).tasks.forEach((task,step)=>{
+    if(task.kind==='useSequence')nested(task.sequence,outer,inner??step,depth+1);
+    else{flat.push(task);steps.push({outer,inner:inner??step});}
+   });
+  };
+  tasks.forEach((task,outer)=>{
+   if(task.kind==='useSequence')nested(task.sequence,outer,undefined,1);
+   else{flat.push(task);steps.push({outer,inner:-1});}
+  });
+  return {tasks:flat,steps};
  }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);

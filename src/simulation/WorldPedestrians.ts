@@ -1743,15 +1743,20 @@ export class WorldPedestrians {
  /** CPed's m_acquaintance: CPed's constructor copies its ped type's ped.dat table, which the script's relationship
   * commands then edit. The copy is made when a command first needs it. */
  acquaintanceOf(ped:Pedestrian){
-  if(!ped.acquaintance){
-   const table=new NativeAcquaintance(),lists=ped.pedType?this.catalog?.acquaintances.get(ped.pedType):undefined;
-   if(lists)for(const [id,names] of [[ACQUAINTANCE_RESPECT,lists.respect],[ACQUAINTANCE_LIKE,lists.like],[ACQUAINTANCE_DISLIKE,lists.dislike],[ACQUAINTANCE_HATE,lists.hate]] as const){
-    let mask=0;for(const name of names){const type=nativePedType(name);if(type!==undefined)mask|=1<<type;}table.set(id,mask);
-   }
-   ped.acquaintance=table;
-  }
-  return ped.acquaintance;
+  return ped.acquaintance??=this.pedTypeAcquaintance(ped.pedType);
  }
+ /** The player's own m_acquaintance, which SET_CHAR_RELATIONSHIP on the player edits: PLAYER1's ped.dat table. */
+ get playerAcquaintance(){return this.playerOwnAcquaintance??=this.pedTypeAcquaintance('PLAYER1');}
+ private playerOwnAcquaintance?:NativeAcquaintance;
+ private pedTypeAcquaintance(pedType:string|undefined){
+  const table=new NativeAcquaintance(),lists=pedType?this.catalog?.acquaintances.get(pedType):undefined;
+  if(lists)for(const [id,names] of [[ACQUAINTANCE_RESPECT,lists.respect],[ACQUAINTANCE_LIKE,lists.like],[ACQUAINTANCE_DISLIKE,lists.dislike],[ACQUAINTANCE_HATE,lists.hate]] as const){
+   let mask=0;for(const name of names){const type=nativePedType(name);if(type!==undefined)mask|=1<<type;}table.set(id,mask);
+  }
+  return table;
+ }
+ /** CLEAR_LOOK_AT on the player: the look it was given ends. */
+ clearPlayerLookAt(){this.playerLook=undefined;this.playerLookTarget=undefined;this.playerLookPoint=undefined;}
  /** Whether the named animation is the reaction the ped is playing. */
  isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
  /** How far through that animation the ped is, or nothing when it is playing something else. */
