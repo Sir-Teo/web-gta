@@ -127,6 +127,8 @@ export class ScmMessages {
  * SetHelpMessageWithNumber (0x588E30). Strings hold GXT labels. */
 export class ScmHelpMessage {
  message='';toPrint='';last='';state=0;permanent=false;quick=false;statId=0;maxStatValue=1000;statUpdateValue=0;
+ /** Counts the sets that got through: each blanks m_pLastHelpMessage, so the same text set again is drawn afresh. */
+ revision=0;
  /** Conditions the HUD reads from other systems; each defaults to inactive. */
  blocked?:()=>boolean;
  /** CHud::SetHelpMessage. The three buffers are blanked before the
@@ -134,6 +136,7 @@ export class ScmHelpMessage {
   * even when the early return leaves the state flag set. */
  set(key:string|undefined,quick:boolean,permanent:boolean,addToBrief:boolean,messages:ScmMessages){
   if(this.blocked?.())return;
+  this.revision++;
   this.toPrint='';this.last='';this.message=key??'';
   if(this.state&&this.message===this.toPrint)return;
   this.last='';
@@ -146,6 +149,7 @@ export class ScmHelpMessage {
  /** CHud::SetHelpMessageWithNumber: the number becomes part of the displayed text. */
  setWithNumber(key:string,number:number,quick:boolean,permanent:boolean){
   if(this.blocked?.())return;
+  this.revision++;
   this.message=`${key}#${number}`;this.last='';
   if(permanent){this.state=1;this.toPrint=this.message;this.last=this.message;}
   else this.state=0;
@@ -158,7 +162,7 @@ export class ScmHelpMessage {
   if(this.blocked?.())return false;
   this.toPrint='';this.last='';this.message='';
   if(this.state)return false;
-  this.state=0;this.quick=false;this.permanent=false;
+  this.state=0;this.quick=false;this.permanent=false;this.revision++;
   this.statId=statId;this.statUpdateValue=diff;this.maxStatValue=max;this.message=increase?'+':'-';
   return true;
  }

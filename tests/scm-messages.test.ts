@@ -76,6 +76,10 @@ test('help message blanks its buffers before the permanent comparison and honour
  let blocked=true;help.blocked=()=>blocked;
  help.set('HELP4',false,false,false,messages);expect(help.message).toBe('HELP3');
  blocked=false;help.setWithNumber('NUM',7,false,true);expect([help.message,help.state,help.toPrint]).toEqual(['NUM#7',1,'NUM#7']);
+ // Every set that gets through counts, the same text again included; a blocked one does not.
+ const before=help.revision;help.set('HELP5',false,false,false,messages);help.set('HELP5',false,false,false,messages);
+ expect(help.revision).toBe(before+2);
+ blocked=true;help.set('HELP6',false,false,false,messages);expect(help.revision).toBe(before+2);
 });
 
 test('intro text lines carry tScriptText defaults, reset each frame and need USE_TEXT_COMMANDS',()=>{

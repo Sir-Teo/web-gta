@@ -402,7 +402,7 @@ async function boot() {
   sim.externalDeathRecovery=true;
   let arrested=false,gameTimeMs=0,previousGameTimeMs=0,gameTimeExact=0;
   /** The script messages last handed to the HUD, by label and creation time. */
-  const shownScript={brief:'',big:['','','','','','',''],help:''};
+  const shownScript={brief:'',big:['','','','','','',''],help:'',helpRevision:0};
   hud.messageClock=()=>gameTimeMs;
   /** The player's CTaskSimpleDuck move command. */
   const duck=new NativeDuckMove();
@@ -2631,10 +2631,10 @@ async function boot() {
        const big=game.messages.big[style][0],key=big?`${big.key}|${big.createdAt}`:'';
        if(key!==shownScript.big[style]){if(big)show(text(big),big.visibleTime);shownScript.big[style]=key;}
       }
-      const help=game.help.message;
-      // A stat update's "+" or "-" is drawn by displayStatUpdate itself.
-      if(help!==shownScript.help&&game.help.statId){shownScript.help=help;}
-      else if(help!==shownScript.help){const [key,number]=help.split('#');hud.help(help?gxtHudText(number!==undefined?insertNumbers(gxtText(key,key),Number(number)):gxtText(key,key)):'',game.help.permanent?1e9:game.help.quick?3000:5000);shownScript.help=help;}
+      // Each set is drawn afresh, the same text included; a stat update's "+" or "-" is drawn by displayStatUpdate itself.
+      const help=game.help.message,revision=game.help.revision;
+      if(revision!==shownScript.helpRevision&&game.help.statId){shownScript.help=help;shownScript.helpRevision=revision;}
+      else if(revision!==shownScript.helpRevision){const [key,number]=help.split('#');hud.help(help?gxtHudText(number!==undefined?insertNumbers(gxtText(key,key),Number(number)):gxtText(key,key)):'',game.help.permanent?1e9:game.help.quick?3000:5000);shownScript.help=help;shownScript.helpRevision=revision;}
      }}
     {const colour=mission?.runtime.game.fadeColour;if(colour)hud.fadeColour(colour.red,colour.green,colour.blue);}
     {const shown=mission&&!paused?mission.onscreenDisplay():undefined,label=(key:string)=>key?gxtHudText(gxtText(key,key)):'';
@@ -3367,10 +3367,10 @@ async function boot() {
                  cameraFront:()=>{const d=render.camera.getWorldDirection(new Vector3());return {x:d.x,y:-d.z,z:d.y};},
                  cameraFov:()=>render.camera.fov,
                  setCameraInFrontOfPlayer:()=>{render.camDirectlyInFront=sim.player.heading;},
-                 // CHud's help box is its own panel in the original. This browser has one line for the text the
-                 // script prints and no separate help box, so no help message is ever up on its own: a thread
-                 // waiting for one to clear carries on at once, which is what an absent box means.
-                 helpMessageShowing:()=>false,
+                 // CHud::HelpMessageDisplayed: the help box (or the stat box, which is the same one) is up.
+                 helpMessageShowing:()=>hud.helpShowing(),
+                 // IS_THIS_HELP_MESSAGE_BEING_DISPLAYED: the box is up with the script's own text for that key.
+                 helpMessageShowingKey:key=>hud.helpShowing()&&shownScript.help.split('#')[0]===key,
                  randomCivilianModel:()=>pedestrians?.rosterCivilian(),
                  setScriptPedRange:(ped,range,value)=>{const p=onFoot(ped);if(p)(p.ranges??={})[range]=value;},
                  pointOnScreen:(position,radius)=>!populationOutsideView(render.camera,{x:position.x,y:position.z,z:-position.y},radius),

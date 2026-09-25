@@ -6979,3 +6979,12 @@ the first ones now implemented:
   bPenaltyForArrestApplies.
 - DOES_DECISION_MAKER_EXIST and GET_OBJECT_MODEL are answered from the runtime's own pools. A named model reads back as
   the script's negative used-object id, which is what the script compares it with.
+
+### The help box as the scripts see it
+
+- IS_HELP_MESSAGE_BEING_DISPLAYED (CHud::HelpMessageDisplayed) now reads the HUD's help box, stat box included, as a
+  drawn frame left it. It used to answer false always, so a thread waiting for help to clear never waited.
+- IS_THIS_HELP_MESSAGE_BEING_DISPLAYED also requires that the box shows the script's text for that key.
+- SetHelpMessage blanks m_pLastHelpMessage, so the same help printed again after it went is drawn afresh. The HUD used
+  to redraw only on a changed key, so a repeated PRINT_HELP of the same text stayed hidden. Each set that gets through
+  now counts, and the HUD redraws on the count.

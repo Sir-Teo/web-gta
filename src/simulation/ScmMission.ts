@@ -261,6 +261,8 @@ export interface ScmMissionWorld {
  cameraFov():number;
  setCameraInFrontOfPlayer():void;
  helpMessageShowing():boolean;
+ /** Whether the help box is up with the text a GXT key names. */
+ helpMessageShowingKey?(key:string):boolean;
  /** The civilian model the zone roster would have used, for the random ped the game picks itself. */
  randomCivilianModel():number|string|undefined;
  setScriptPedRange(ped:unknown,range:'informFriends'|'followNodeThreshold'|'sense',value:number):void;
@@ -633,6 +635,7 @@ export class ScmMission {
    },
    isMessageBeingDisplayed:()=>this.world.messageShowing(),
    isHelpMessageBeingDisplayed:()=>this.world.helpMessageShowing(),
+   isThisHelpMessageBeingDisplayed:key=>this.host('helpMessageShowingKey','IS_THIS_HELP_MESSAGE_BEING_DISPLAYED')(key),
    // Where the camera is and what it looks along, which is the browser's own camera whether the script has
    // taken it over or not, and the mode and field of view it is running with.
    // CCamera::SetCameraDirectlyInFrontForFollowPed_CamOnAString, the other side of the behind command.
