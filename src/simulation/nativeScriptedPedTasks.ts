@@ -106,6 +106,9 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   }
   case 'wanderStandard':return {kind:'wander'};
   case 'die':return {kind:'die'};
+  // TASK_DEAD (unreversed; CTaskSimpleDead's ProcessPed is not reversed either) kills the ped as TASK_DIE does. MAIN
+  // uses it for the bodies it lays out at scenes.
+  case 'dead':return {kind:'die'};
   case 'goStraightToCoord':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:seconds(task.time)};
   // The attack style flags, the action delay and chance, and the must-be-on-foot bit are not modelled: the ped

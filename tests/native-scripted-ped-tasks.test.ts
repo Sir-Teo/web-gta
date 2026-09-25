@@ -170,5 +170,6 @@ describe('the tasks a script gives a ped',()=>{
 
  test('dying is its own order',()=>{
   expect(scriptedPedOrder({kind:'die'},world({}))).toEqual({kind:'die'});
+  expect(scriptedPedOrder({kind:'dead'},world({}))).toEqual({kind:'die'});
  });
 });
