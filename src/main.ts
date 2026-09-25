@@ -2713,7 +2713,7 @@ async function boot() {
     // CHud::DrawAfterFade skips DrawAreaName in a plane. It also skips it while DISPLAY_ZONE_NAMES is off, but
     // MAIN.SCM turns names off for the INTRO mission, which here never gets past waiting for car recordings 706
     // and 707 (no host reads carrec.img), so the script's switch is recorded and not applied.
-    hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane,!!mission?.runtime.game.widescreenOn);
+    hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane,!!mission?.runtime.game.widescreenOn,mission?.runtime.game.displayVehicleName===false);
     hud.widescreen(!!mission?.runtime.game.widescreenOn);
     hud.displayHud(mission?.runtime.game.displayHud??true);
     {const camera=mission?.runtime.game.camera;render.scriptNearClip=camera?.useNearClipScript?camera.nearClipScript:undefined;}

@@ -610,7 +610,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setHeatHazeEffect?(state:boolean):void;
  addSparks?(position:{x:number;y:number;z:number},velocity:{x:number;y:number;z:number},density:number):void;
  setCanTriggerGangWarWhenOnMission?(state:boolean):void;
- displayVehicleNames?(state:boolean):void;
  setTagStatusInArea?(x1:number,y1:number,x2:number,y2:number,percent:number):void;
  percentageTaggedInArea?(x1:number,y1:number,x2:number,y2:number):number;
  clearAreaOfVehicles?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;

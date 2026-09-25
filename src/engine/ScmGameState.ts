@@ -196,6 +196,8 @@ export class ScmGameState {
  totalNumberOfMissions=0;progressTotal=0;missionRespectTotal=0;
  /** CHud::bScriptDontDisplayAreaName inverse. */
  displayAreaName=true;
+ /** CHud::bScriptDontDisplayVehicleName, inverted (DISPLAY_CAR_NAMES). */
+ displayVehicleName=true;
  /** CHud::bScriptDontDisplayRadar inverse, and CHud::SetZoneName's key from SET_AREA_NAME. */
  displayRadar=true;
  /** CTheScripts::RadarZoomValue: 0, or what SET_RADAR_ZOOM takes off the on-foot radar range. */

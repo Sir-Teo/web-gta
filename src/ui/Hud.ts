@@ -25,7 +25,7 @@ export class Hud {
    * during either. */
   radioName(name:string|undefined){const el=this.element.querySelector<HTMLElement>('.radio-name')!;if(!name){el.hidden=true;this.radioLeftMs=0;this.radioPending=false;return;}el.textContent=name;this.radioPending=true;}
   private nameEls?:{radio:HTMLElement;zone:HTMLElement;vehicle:HTMLElement};
-  drawNames(dtMs:number,paused=false,inVehicle=false,areaNameOff=false,widescreen=false){
+  drawNames(dtMs:number,paused=false,inVehicle=false,areaNameOff=false,widescreen=false,vehicleNameOff=false){
     this.inVehicle=inVehicle;
     const radio=this.nameEls?.radio??this.element.querySelector<HTMLElement>('.radio-name')!;
     const els=this.nameEls??={radio,zone:this.element.querySelector<HTMLElement>('.location')!,vehicle:this.element.querySelector<HTMLElement>('.vehicle-name')!};
@@ -33,7 +33,7 @@ export class Hud {
     radio.hidden=!inVehicle||paused||widescreen||this.radioLeftMs<=0;
     // CHud::Draw skips DrawAreaName and DrawVehicleName in widescreen, so their fades and timers wait (CSS hides them).
     if(paused||widescreen)return;
-    const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle')||this.missionTitleShowing,areaNameOff});
+    const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle')||this.missionTitleShowing,areaNameOff,vehicleNameOff});
     for(const [key,el,name] of [['zone',els.zone,out.zone],['vehicle',els.vehicle,out.vehicle]] as const){
       if(el.hidden!==!name)el.hidden=!name;
       if(name){if(el.textContent!==name.text)el.textContent=name.text;this.put(`${key}.alpha`,String(name.alpha/255),v=>{el.style.opacity=v;});}

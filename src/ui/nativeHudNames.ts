@@ -21,8 +21,9 @@ export class NativeHudNames {
  /** One frame of DrawAreaName then DrawVehicleName, as CHud::DrawAfterFade orders them. */
  /** `areaNameOff`: CHud::DrawAfterFade skips DrawAreaName, its state frozen, while the player flies a plane or a
   * helicopter or the script has turned zone names off (DISPLAY_ZONE_NAMES). */
- update(dtMs:number,o:{message?:boolean;bigMessage?:boolean;areaNameOff?:boolean}={}):{zone?:DrawnName;vehicle?:DrawnName}{
-  return {zone:o.areaNameOff?undefined:this.drawAreaName(dtMs,o),vehicle:this.drawVehicleName(dtMs,!!o.message)};
+ /** `vehicleNameOff`: CHud::Draw skips DrawVehicleName, its state frozen, while DISPLAY_CAR_NAMES is off. */
+ update(dtMs:number,o:{message?:boolean;bigMessage?:boolean;areaNameOff?:boolean;vehicleNameOff?:boolean}={}):{zone?:DrawnName;vehicle?:DrawnName}{
+  return {zone:o.areaNameOff?undefined:this.drawAreaName(dtMs,o),vehicle:o.vehicleNameOff?undefined:this.drawVehicleName(dtMs,!!o.message)};
  }
  /** CHud::DrawBustedWastedMessage's first frame: both names go at once. */
  /** DrawMissionTitle's first frame: m_ZoneState = NAME_DONT_SHOW and m_ZoneFadeTimer = 0. */

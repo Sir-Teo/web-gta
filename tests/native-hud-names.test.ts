@@ -27,4 +27,10 @@ describe('CHud::DrawAreaName and DrawVehicleName',()=>{
   const n=new NativeHudNames();n.setZoneName('Ganton');run(n,1500);
   expect(n.update(20,{bigMessage:true}).zone).toBeUndefined();expect(n.zone.state).toBe(NAME_FADE_OUT);
  });
+ it('DISPLAY_CAR_NAMES off skips DrawVehicleName: nothing drawn and its clock held',()=>{
+  const n=new NativeHudNames();n.setVehicleName('Greenwood');run(n,500);
+  const alpha=n.update(20).vehicle!.alpha;
+  expect(run(n,5000,20,{vehicleNameOff:true}).vehicle).toBeUndefined();
+  expect(n.update(20).vehicle!.alpha).toBeGreaterThanOrEqual(alpha);
+ });
 });

@@ -7390,3 +7390,9 @@ Each is now answered:
   A nested sequence is taken as it stands when the outer one is given, and runs once through.
 - SWITCH_COPS_ON_BIKES is CStreaming::DisableCopBikes(!state), kept in the engine. The browser's police ride no
   bikes yet.
+
+## DISPLAY_CAR_NAMES
+
+- ZERO5 retired on DISPLAY_CAR_NAMES, which had no answer. It is now CHud::bScriptDontDisplayVehicleName, inverted and
+  kept in the engine. While it is off, CHud::Draw skips DrawVehicleName: nothing is drawn, and the name's fade clock
+  waits.
