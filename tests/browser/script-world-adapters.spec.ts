@@ -18,10 +18,10 @@ test('the script’s camera, seat, speech and ped-matrix questions are answered'
  expect(seen).toEqual({ahead:true,behind:false});
  const made=await page.evaluate(()=>{
   const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;
-  const car=m.vehicles.create(411,{x:p.x+8,y:-p.z,z:p.y},90),ped=m.peds.create(4,'MALE01',{x:p.x+4,y:-p.z,z:p.y});
-  return {car,ped};
+  const car=m.vehicles.create(411,{x:p.x+8,y:-p.z,z:p.y},90),ped=m.peds.create(4,'MALE01',{x:p.x+4,y:-p.z,z:p.y}),walker=m.peds.create(4,'MALE01',{x:p.x-4,y:-p.z,z:p.y});
+  return {car,ped,walker};
  });
- await page.waitForFunction(({car,ped}:{car:number;ped:number})=>{const m=(window as any).__game.missionForProfiling();return !!(m.vehicles.entity(car)&&m.peds.entity(ped));},made,{timeout:45000});
+ await page.waitForFunction(({car,ped,walker}:{car:number;ped:number;walker:number})=>{const m=(window as any).__game.missionForProfiling();return !!(m.vehicles.entity(car)&&m.peds.entity(ped)&&m.peds.entity(walker));},made,{timeout:45000});
  const matrix=await page.evaluate(({ped}:{ped:number})=>{const m=(window as any).__game.missionForProfiling(),w=m.runtime.world;return {matrix:w.pedMatrix(ped),heading:m.peds.headingOf(ped),player:w.pedMatrix(1)};},made);
  // The forward axis is the heading's (-sin h, cos h), upright.
  const h=matrix.heading*Math.PI/180;
@@ -46,5 +46,12 @@ test('the script’s camera, seat, speech and ped-matrix questions are answered'
   const out={siren:e.siren,visibly:e.canBeVisiblyDamaged,scale:g.state().cheats.timeScale};w.setTimeScale(1);return out;
  },made);
  expect(flags).toEqual({siren:true,visibly:false,scale:.5});
+ // SET_CHAR_COLLISION: a script ped without collision leaves the query pipeline, and comes back.
+ const collision=await page.evaluate(({walker}:{walker:number})=>{
+  const m=(window as any).__game.missionForProfiling(),w=m.runtime.world;
+  w.setPedCollision(walker,false);const off=m.peds.entity(walker).collider.isEnabled();w.setPedCollision(walker,true);
+  return {off,on:m.peds.entity(walker).collider.isEnabled()};
+ },made);
+ expect(collision).toEqual({off:false,on:true});
  expect(errors).toEqual([]);
 });

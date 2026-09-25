@@ -3230,6 +3230,10 @@ async function boot() {
                  },
                  setScriptPedAmmo:(ped,ammo)=>{const p=onFoot(ped);if(p)p.totalAmmo=ammo;},
                  setScriptPedFrozen:(ped,frozen)=>{const p=onFoot(ped);if(p)p.frozen=frozen;},
+                 // A ped without collision leaves the query pipeline: nothing touches it and no line of sight meets
+                 // it. Its own movement query still finds the ground.
+                 setScriptPedCollision:(ped,uses)=>{onFoot(ped)?.collider.setEnabled(uses);},
+                 setPlayerCollision:uses=>{sim.setPlayerUsesCollision(uses);},
                  scriptPedInAir:ped=>!!onFoot(ped)?.air,
                  scriptPedArea:ped=>onFoot(ped)?.areaCode??0,
                  setScriptPedSkill:(ped,skill)=>{const p=onFoot(ped);if(p)pedestrians?.setWeaponSkill(p,skill);},

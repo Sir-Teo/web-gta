@@ -290,6 +290,9 @@ export interface ScmMissionWorld {
  setScriptVehicleCanBeVisiblyDamaged?(car:unknown,state:boolean):void;
  /** CTimer::ms_fTimeScale, which the game's cheats and the script share. */
  setTimeScale?(scale:number):void;
+ /** CEntity::SetUsesCollision on a script ped and on the player. */
+ setScriptPedCollision?(ped:unknown,uses:boolean):void;
+ setPlayerCollision?(uses:boolean):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
  /** CPlayerInfo::MakePlayerSafe with its radius, and the maxima the script raises. */
@@ -858,6 +861,11 @@ export class ScmMission {
    switchVehicleSiren:(handle,on)=>{this.host('setScriptVehicleSiren','SWITCH_CAR_SIREN')(this.liveVehicle(handle),on);},
    setVehicleCanBeVisiblyDamaged:(handle,state)=>{this.host('setScriptVehicleCanBeVisiblyDamaged','SET_CAR_CAN_BE_VISIBLY_DAMAGED')(this.liveVehicle(handle),state);},
    setTimeScale:scale=>{this.host('setTimeScale','SET_TIME_SCALE')(scale);},
+   // SET_CHAR_COLLISION (0x619, CharacterCommands SetCharCollision): CEntity::SetUsesCollision.
+   setPedCollision:(handle,uses)=>{
+    if(handle===PLAYER_PED_HANDLE)this.host('setPlayerCollision','SET_CHAR_COLLISION')(uses);
+    else this.host('setScriptPedCollision','SET_CHAR_COLLISION')(this.livePed(handle),uses);
+   },
    vehicleExistsByHandle:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
    playerCity:()=>this.world.playerCity(),
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},

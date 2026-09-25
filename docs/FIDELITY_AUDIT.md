@@ -6704,3 +6704,10 @@ the first ones now implemented:
   are while the car still loses health.
 - **SET_TIME_SCALE** (10 missions): CTimer::ms_fTimeScale, the same value the speed cheats and the stunt-jump slow
   motion write.
+- **SET_CHAR_COLLISION** (44 uses, 17 missions): CEntity::SetUsesCollision (CharacterCommands SetCharCollision).
+  - A script ped without collision has its capsule taken out of the query pipeline. Nothing touches it and no line of
+    sight meets it, which matches CWorld::ProcessLineOfSight skipping entities without m_bUsesCollision.
+  - The player's capsule stays enabled, since the rest of the port reads an enabled capsule as "on foot". Instead its
+    collision and solver groups go to 0. Contacts ignore it, but lines of sight still meet it.
+  - Either way the ped's own movement query ignores these groups, so it still stands on the ground. The original
+    ped would fall through the map unless the script also froze it, which the missions do.

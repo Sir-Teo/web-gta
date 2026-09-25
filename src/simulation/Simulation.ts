@@ -244,6 +244,15 @@ export class Simulation {
   /** CEventHandler::ComputeVehicleDiedResponse (0x4BA8B0) assigns zero
    * health directly. This event is not an armour/stat-scaled damage hit.
    * Native scorch visuals, dying tasks and bike knock-off remain separate work. */
+  /** CEntity::m_bUsesCollision on the player, which SET_CHAR_COLLISION clears: nothing makes contact with the player's
+   * capsule. The capsule stays enabled, since the rest of the game reads an enabled capsule as the player being on foot,
+   * and the player's own movement query does not filter by these groups, so the player still walks on the ground. */
+  playerUsesCollision=true;
+  setPlayerUsesCollision(uses:boolean){
+    if(this.playerUsesCollision===uses)return;
+    this.playerUsesCollision=uses;
+    this.playerCollider.setCollisionGroups(uses?0xffffffff:0);this.playerCollider.setSolverGroups(uses?PED_SOLVER_GROUPS:0);
+  }
   vehicleOccupantDied(){
     if(this.player.health<=0)return;
     this.player.health=0;this.player.speed=0;this.deathRemaining=DEATH_RECOVERY_SECONDS;
