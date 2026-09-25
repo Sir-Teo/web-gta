@@ -7532,3 +7532,9 @@ Each is now answered:
 - MARK_ROAD_NODE_AS_DONT_WANDER marks the nearest land car node; UNMARK_ALL_ROAD_NODES_AS_DONT_WANDER clears the
   flag on every loaded car node, the ones the files set included, as the original does.
 - Verification: `tests/native-path-switches.test.ts`.
+- TASK_LEAVE_CAR_IMMEDIATELY and the other leave-car tasks take the player out of a passenger seat, beside it, at
+  once for the immediate form and once the car is still enough otherwise. INTRO gives it as the police car pulls up,
+  then walks CJ off. The passenger's get-out clip is still not played.
+- A car deleted with the player in a passenger seat (DELETE_CAR, or anything else that removes it) leaves him on
+  foot where he sat, as CVehicle's destructor does through CPed::FlagToDestroyWhenNextProcessed. Before, the exit
+  read the freed body and the physics world faulted for the rest of the session.

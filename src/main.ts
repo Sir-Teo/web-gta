@@ -273,8 +273,14 @@ async function boot() {
    * 2 rear left, 3 rear right). The car goes on under its own driver, AI or recording. */
   let playerPassenger:{car:ScriptCar;seat:1|2|3}|undefined;
   /** The passenger steps out on his own side: his seat's point carried out past the body, set down on the ground. */
-  const leavePassengerSeat=()=>{
+  const leavePassengerSeat=(inPlace=false)=>{
    const ride=playerPassenger;if(!ride)return;playerPassenger=undefined;
+   // A car deleted under him (CVehicle's destructor flags its passengers, and CPed::FlagToDestroyWhenNextProcessed
+   // clears the player's vehicle and leaves him where he sat): he drops from where the car was.
+   if(inPlace||ride.car.disposed){
+    const at=sim.player.position,hit=sim.world.castRay(new RAPIER.Ray({x:at.x,y:at.y+2,z:at.z},{x:0,y:-1,z:0}),8,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+    ride.car.setPlayerOutAsPassenger({x:at.x,y:hit?at.y+2-hit.timeOfImpact+.03:at.y,z:at.z});return;
+   }
    const local=carEntry.passengerSeat(ride.car,ride.seat),side=ride.seat===2?-1:1;
    const bounds=ride.car.assets.collision.bounds,x=side*(Math.max(Math.abs(bounds.min[0]),Math.abs(bounds.max[0]))+.6);
    const w=ride.car.worldPoint({x,y:local?.y??0,z:local?.z??0}),top=w.y+2;
@@ -341,6 +347,13 @@ async function boot() {
   },
   warpIntoCar:vehicle=>{const car=mission?.vehicles.entity(vehicle) as Partial<ScriptCar>|undefined;if(car&&typeof car.setPedInAsDriver==='function'&&!car.disposed&&!car.occupied){carEntry.cancel();carEntry.warpIn(car as ScriptCar);}},
   leaveCar:(vehicle,immediately)=>{
+   // From a passenger seat he steps out beside it (the passenger's get-out clip is not ported).
+   const ride=playerPassenger;
+   if(ride&&!carEntry.seated){
+    if(vehicle!==undefined&&mission?.vehicles.entity(vehicle)!==ride.car)return 'none';
+    if(!immediately&&!ride.car.disposed&&!ride.car.canStepOut())return 'wait';
+    leavePassengerSeat();return 'none';
+   }
    const car=carEntry.car;
    if(!carEntry.seated||!car)return 'none';
    if(vehicle!==undefined&&mission?.vehicles.entity(vehicle)!==car)return 'none';
@@ -3738,7 +3751,7 @@ async function boot() {
                  scriptVehicleBoxTop:car=>(car as ScriptCar).assets.collision.bounds.max[2],
                  scriptVehicleHeading:car=>{const degrees=((car as ScriptCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
                  scriptVehicleAlive:car=>!(car as ScriptCar).disposed,
-                 removeScriptVehicle:car=>{if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptVehicle(car as ScriptCar);},
+                 removeScriptVehicle:car=>{if(playerPassenger?.car===car)leavePassengerSeat(true);if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptVehicle(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
                  playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car,
