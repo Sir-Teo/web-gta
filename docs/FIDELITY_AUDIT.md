@@ -8108,3 +8108,15 @@ them back at rest once the association goes. The blend in itself is not drawn. T
 `MISSION_CRUISE` with its engine on, its cruise speed raised to at least 1 and the anti-reverse timer restarted.
 `SET_CAR_CAN_GO_AGAINST_TRAFFIC` sets `CAutoPilot::bCantGoAgainstTraffic` to the inverse of its operand; nothing in
 the reversed sources reads the bit, so it is only kept. Spec: `script-world-queries`.
+
+## A script teleport waits for its terrain
+
+`CPed::Teleport` puts the ped at the point and CStreaming brings in the collision under a teleported player before
+he can fall (`m_bIsStaticWaitingForCollision`). Here the window for the new place was asked for only after the
+jump allowance (700 ms airborne), so a player a script put past the streamed window dropped about a metre first, and
+the terrain hold then let go for a step between two windows (nothing pending counted as safe), so he landed below
+the ground and fell out of the world. Now a script teleport asks for the window at once, and the hold lets go only
+once the installed window covers the player. Spec: `script-teleport-terrain`.
+
+The interiors archive (`gta_int.img`) is still not published, and its public source host is not reachable from this
+environment, so interior doors (INTRO2's barber's among them) stay shut.

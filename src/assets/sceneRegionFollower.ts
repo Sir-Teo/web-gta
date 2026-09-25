@@ -60,8 +60,10 @@ export class SceneRegionFollower {
  matches(id:number){return this.enabled&&this.pending?.id===id;}
  /** Past the safety boundary while a window is in flight, or while a failed one waits for its retry. */
  needsPause(position:{x:number;z:number}){
-  return this.enabled&&(!!this.pending||this.failures>0)&&Math.hypot(position.x-this.region.x,-position.z-this.region.y)>=this.region.radius*REGION_PAUSE_FRACTION;
+  return this.enabled&&(!!this.pending||this.failures>0)&&!this.covers(position);
  }
+ /** Inside the installed window's safety boundary. */
+ covers(position:{x:number;z:number}){return Math.hypot(position.x-this.region.x,-position.z-this.region.y)<this.region.radius*REGION_PAUSE_FRACTION;}
  finish(id:number,success:boolean,now=clock()){
   if(!this.matches(id))return false;
   if(success){this.region=this.pending!.region;this.failures=0;this.retryAt=0;}

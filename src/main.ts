@@ -3042,7 +3042,9 @@ async function boot() {
     // A terrain pause is self-healing: once the follower has nothing in flight
     // and nothing is waiting to install, the game resumes itself. A follower
     // that was deliberately stopped keeps its own menu instead.
-    if(terrainPause&&!installingScene&&!pendingFollowingData&&follower?.snapshot().enabled===true&&(airborne||follower.snapshot().pending===null&&!follower.needsPause(sim.player.position))){
+    // The installed window must cover him: between one window going in and the next being asked for nothing is
+    // pending, and letting the step run there dropped a player the script had put past the window.
+    if(terrainPause&&!installingScene&&!pendingFollowingData&&follower?.snapshot().enabled===true&&(airborne||follower.snapshot().pending===null&&(!eligible||follower.covers(sim.player.position)))){
       terrainHold(false);return;
     }
     // Following that stopped for good releases the hold; failFollowing has opened the menu with the reason.
@@ -3065,9 +3067,15 @@ async function boot() {
    * over ground that is not streamed in yet would otherwise fall out of the world while the window waited for him
    * to land on nothing (the boundary hold freezes him mid-air). Only a brief hop keeps the swap off. */
   let airborneSince=0;
+  /** Set by a script teleport until the player stands again: the window for the new place is asked for at once and
+   * the hold freezes him where the script put him, as CStreaming loads the collision under a teleported player before
+   * he falls (m_bIsStaticWaitingForCollision). Waiting out the jump allowance let him drop through the unloaded ground
+   * first and land below it once the window came in. */
+  let scriptTeleported=false;
   const playerMayTakeTerrain=()=>{
     const now=performance.now();
-    if(sim.player.grounded||!!fleet?.occupiedPlane){airborneSince=0;return true;}
+    if(sim.player.grounded||!!fleet?.occupiedPlane){airborneSince=0;scriptTeleported=false;return true;}
+    if(scriptTeleported)return true;
     if(!airborneSince)airborneSince=now;
     // A jump is over in well under a second; anything longer is a fall, a parachute descent or a launch.
     return now-airborneSince>700||sim.player.verticalSpeed<-4;
@@ -3924,7 +3932,8 @@ async function boot() {
                    sim.player.position={x,y,z};sim.player.previous={x,y,z};sim.player.speed=0;sim.player.verticalSpeed=0;sim.player.jumpMomentum={x:0,z:0};
                    sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});
                   }
-                  fleet?.generateEvenIfClose();return true;
+                  fleet?.generateEvenIfClose();
+                  scriptTeleported=true;requestFollowingTerrain();return true;
                  },
                  // CTaskSimpleCarSetPedInAsPassenger for the player: SA's seat 0 is the front right, 1 and 2 the rear; -1 the
                  // first free one.
