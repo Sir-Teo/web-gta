@@ -13,3 +13,17 @@ test('CPed::ClearWeapon takes one weapon and leaves a held one unarmed; ClearWea
  // Fists never go.
  expect(inventory.clearWeapon(0)).toBe(false);
 });
+
+test('CPed::SetAmmo and GrantAmmo on the weapons the player holds',()=>{
+ const inventory=new WeaponInventory();inventory.strip();
+ inventory.give(22,50);
+ const magazine=inventory.magazine(22);
+ expect(inventory.setTotalAmmo(22,100)).toBe(true);
+ expect(inventory.ammo.get(22)).toEqual({clip:magazine,reserve:100-magazine});
+ expect(inventory.grantAmmo(22,5)).toBe(true);
+ const a=inventory.ammo.get(22)!;expect(a.clip+a.reserve).toBe(105);
+ // Less than a clip: all of it loaded.
+ inventory.setTotalAmmo(22,3);expect(inventory.ammo.get(22)).toEqual({clip:3,reserve:0});
+ // A weapon he does not have, and fists, are left alone.
+ expect(inventory.setTotalAmmo(31,100)).toBe(false);expect(inventory.grantAmmo(31,10)).toBe(false);expect(inventory.setTotalAmmo(0,5)).toBe(false);
+});

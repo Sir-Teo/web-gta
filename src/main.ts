@@ -316,6 +316,8 @@ async function boot() {
   }).catch(()=>{scriptCarPathsAsked=false;});}
   return scriptCarPathsReady;
  });
+ // HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE and FREEZE_CHAR_POSITION on the player.
+ let playerWeaponHiddenByScript=false,playerFrozenByScript=false,playerAreaCode=0;
  const playerTaskBody=()=>({position:sim.player.position,heading:sim.player.heading,speed:sim.player.speed,onFoot:sim.playerCollider.isEnabled(),view:render.nativeCharacter});
  let lastGameFrame=0;
  /** TheText (text/american.gxt). */
@@ -489,7 +491,7 @@ async function boot() {
      void weaponView.equip(inv.selected);
     }else if(!sim.jetPack&&jetSavedWeapon!==undefined){inv.select(jetSavedWeapon);jetSavedWeapon=undefined;jetWeaponHidden=false;void weaponView.equip(inv.selected);}
   };
-  weaponView.visible=()=>!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
+  weaponView.visible=()=>!playerWeaponHiddenByScript&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
   weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
   const worldFx=new WorldFx(render.scene,sim,render.camera);
@@ -2164,6 +2166,8 @@ async function boot() {
         // A warp with no walk-in (UNKNOWN_PAIRING, FOOD_DATE_FLAG) sets bPlayerOnInteriorTransition, one of
         // DisablePlayerControls' reasons, and on foot adds CTaskSimpleUninterruptable: CJ stands still through the fade.
         else if(entryExits?.active&&onFoot)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:undefined};
+        // physicalFlags.bDontApplySpeed: a player the script froze does not move on the pad.
+        else if(onFoot&&playerFrozenByScript)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:undefined};
         // A task the script gave CJ's ped speaks for the pad while it runs (on foot; the driving tasks are not run).
         else if(onFoot&&playerTasks.active&&sim.player.health>0){
          const task=playerTasks.step(step,playerTaskBody());
@@ -3180,7 +3184,8 @@ async function boot() {
                  // his facing is part of that placement, so the heading the script sets him is recorded and
                  // not applied. Turning him from the script would fight the placement rather than add to it:
                  // the opening's own call is the new game's facing, and honouring it moved the spawn.
-                 setPlayerHeading:()=>{},
+                 // CPed::SetHeading on foot: m_fCurrentRotation and m_fAimingRotation both, so he stays facing it.
+                 setPlayerHeading:degrees=>{sim.player.heading=scriptYaw(degrees);},
                  // CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString.
                  setCameraBehindPlayer:()=>{render.camDirectlyBehind=sim.player.heading;},
                  loadScene:()=>{},
@@ -3418,6 +3423,15 @@ async function boot() {
                  },
                  // The script's (x, y, z) is the renderer's (x, z, -y), the player's feet on z. In a car, the car goes with
                  // him, its centre of mass GetDistanceFromCentreOfMassToBaseOfModel above the point.
+                 setPlayerAmmo:(weapon,ammo)=>{weapons.inventory.setTotalAmmo(weapon,ammo);},
+                 addPlayerAmmo:(weapon,ammo)=>{weapons.inventory.grantAmmo(weapon,ammo);},
+                 hidePlayerWeapon:hidden=>{playerWeaponHiddenByScript=hidden;},
+                 setPlayerFrozen:frozen=>{playerFrozenByScript=frozen;},
+                 playerInWater:()=>sim.player.swimming,
+                 playerInAir:()=>!sim.player.grounded&&!sim.player.swimming,
+                 playerIsPlayingAnim:animation=>(render.nativeCharacter?.reactionName??'').toLowerCase()===animation.toLowerCase(),
+                 // The player's m_nAreaCode: the browser draws him wherever the camera is, so it is kept, not acted on.
+                 setPlayerArea:area=>{playerAreaCode=area;},
                  teleportPlayer:position=>{
                   const x=position.x,z=-position.y,y=position.z,car=worldCar?.occupied?worldCar:fleet?.occupied;
                   if(car){

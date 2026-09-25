@@ -36,5 +36,15 @@ test('the script puts the player in its car, moves him, and takes him out',async
   w.setPedCoordinates(1,to.x,to.y,to.z);const q=g.state().player.position;return Math.hypot(q.x-to.x,-q.z-to.y);
  });
  expect(walked).toBeLessThan(.01);
+ // The player's side of the ped commands: heading, weapon hiding, the frozen pad, water and air, the playing clip.
+ const player=await page.evaluate(()=>{
+  const g=(window as any).__game,w=g.missionForProfiling().runtime.world;
+  w.setCharHeading(1,90);const heading=w.pedHeading(1);
+  w.hidePedWeaponForScriptedCutscene(1,true);w.hidePedWeaponForScriptedCutscene(1,false);
+  w.freezePedPosition(1,true);w.freezePedPosition(1,false);
+  w.setPedAreaVisible(1,0);w.shutPedUpForScriptedSpeech(1,true);w.startPedFacialTalk(1,1000);w.stopPedFacialTalk(1);
+  return {heading,water:w.pedIsInWater(1),air:w.pedIsInAir(1),anim:w.pedIsPlayingAnim(1,'IDLE_chat')};
+ });
+ expect(player.heading).toBeCloseTo(90,3);expect(player).toMatchObject({water:false,air:false,anim:false});
  expect(errors).toEqual([]);
 });

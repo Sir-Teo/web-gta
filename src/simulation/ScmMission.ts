@@ -69,6 +69,17 @@ export interface ScmMissionWorld {
  teleportPlayer?(position:{x:number;y:number;z:number}):boolean;
  /** WARP_CHAR_INTO_CAR on the player (CTaskSimpleCarSetPedInAsDriver without the entry tasks), and
   * WARP_CHAR_FROM_CAR_TO_COORD (out of the vehicle and teleported). */
+ /** The player's side of the ped commands a script also gives him: CPed::SetAmmo and GrantAmmo, the weapon hidden
+  * for a cut, physicalFlags.bDontApplySpeed (FREEZE_CHAR_POSITION), the swimming and falling questions, the clip
+  * playing, and m_nAreaCode. */
+ setPlayerAmmo?(weaponType:number,ammo:number):void;
+ addPlayerAmmo?(weaponType:number,ammo:number):void;
+ hidePlayerWeapon?(hidden:boolean):void;
+ setPlayerFrozen?(frozen:boolean):void;
+ playerInWater?():boolean;
+ playerInAir?():boolean;
+ playerIsPlayingAnim?(animation:string):boolean;
+ setPlayerArea?(area:number):void;
  warpPlayerIntoCar?(car:unknown):boolean;
  warpPlayerFromCarToCoord?(position:{x:number;y:number;z:number}):boolean;
  /** (Each answers false for what it does not carry out: a player on a bike, boat or plane, or already in a car.) */
@@ -460,10 +471,12 @@ export class ScmMission {
    },
    setPedCurrentWeapon:(handle,weaponType)=>{if(handle===PLAYER_PED_HANDLE)this.world.setPlayerCurrentWeapon?.(weaponType);},
    setPedAmmo:(handle,weaponType,ammo)=>{
+    if(handle===PLAYER_PED_HANDLE){this.host('setPlayerAmmo','SET_CHAR_AMMO')(weaponType,ammo);return;}
     const held=this.world.scriptPedWeapon(this.livePed(handle));
     if(held?.type===weaponType)this.world.setScriptPedAmmo(this.livePed(handle),ammo);
    },
    addAmmoToPed:(handle,weaponType,ammo)=>{
+    if(handle===PLAYER_PED_HANDLE){this.host('addPlayerAmmo','ADD_AMMO_TO_CHAR')(weaponType,ammo);return;}
     const held=this.world.scriptPedWeapon(this.livePed(handle));
     if(held?.type===weaponType)this.world.setScriptPedAmmo(this.livePed(handle),held.ammo+ammo);
    },
@@ -478,8 +491,8 @@ export class ScmMission {
    // CPedScriptedTaskRecord::GetStatus(ped, opcode): the record's status, or −1 without one, which the command
    // reports as 7 (FINISHED_TASK), the value the missions compare against.
    scriptTaskStatus:(handle,opcode)=>{const record=this.taskRecords.get(handle);return record&&(opcode===-1||record.opcode===opcode)?record.status:FINISHED_TASK;},
-   freezePedPosition:(handle,frozen)=>{this.world.setScriptPedFrozen(this.livePed(handle),frozen);},
-   pedIsInAir:handle=>this.world.scriptPedInAir(this.livePed(handle)),
+   freezePedPosition:(handle,frozen)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerFrozen','FREEZE_CHAR_POSITION')(frozen);else this.world.setScriptPedFrozen(this.livePed(handle),frozen);},
+   pedIsInAir:handle=>handle===PLAYER_PED_HANDLE?this.host('playerInAir','IS_CHAR_IN_AIR')():this.world.scriptPedInAir(this.livePed(handle)),
    // m_bIsStaticWaitingForCollision: a ped the browser built stands on ground it has already loaded, so it is
    // never waiting for collision to arrive.
    pedIsWaitingForCollision:handle=>{this.livePed(handle);return false;},
@@ -495,8 +508,8 @@ export class ScmMission {
    setPedMaxHealth:(handle,health)=>{this.peds.setMaxHealth(handle,health);},
    playerCameraState:()=>this.world.playerCameraState(),
    // CPed::SetAreaCode: the ped belongs to that area and is drawn only there.
-   setPedAreaVisible:(handle,area)=>{this.world.setScriptPedArea(this.livePed(handle),area);},
-   pedIsPlayingAnim:(handle,animation)=>this.world.scriptPedIsPlayingAnim(this.livePed(handle),animation),
+   setPedAreaVisible:(handle,area)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerArea','SET_CHAR_AREA_VISIBLE')(area);else this.world.setScriptPedArea(this.livePed(handle),area);},
+   pedIsPlayingAnim:(handle,animation)=>handle===PLAYER_PED_HANDLE?this.host('playerIsPlayingAnim','IS_CHAR_PLAYING_ANIM')(animation):this.world.scriptPedIsPlayingAnim(this.livePed(handle),animation),
    // WARP_CHAR_FROM_CAR_TO_COORD drops the point to the ground first, as the teleport does.
    warpPedFromCarToCoord:(handle,x,y,z)=>{
     const ground=this.world.groundLevel(x,y,z);
@@ -554,7 +567,8 @@ export class ScmMission {
    setPedKindaStayInSamePlace:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'kindaStayInSamePlace',state);},
    // CPed::bIsTalking and the facial talk. The depot has no speech banks, so these hold what the script said
    // and nothing speaks; the thread carries on rather than stopping on a question nothing here answers.
-   shutPedUpForScriptedSpeech:(handle,enabled)=>{this.world.setScriptPedSpeech(this.livePed(handle),enabled);},
+   // The player's own speech lines are not played, so shutting him up, or his face talking, has nothing to act on.
+   shutPedUpForScriptedSpeech:(handle,enabled)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedSpeech(this.livePed(handle),enabled);},
    // SHUT_CHAR_UP, DISABLE_CHAR_SPEECH and ENABLE_CHAR_SPEECH (reversed): CPed::DisablePedSpeech and EnablePedSpeech.
    // The browser keeps one speech switch per ped, which the scripted-speech command sets too. The player has no
    // speech bank here, so his is nothing to switch.
@@ -570,9 +584,9 @@ export class ScmMission {
    vehiclePassengerSeatIsFree:(handle,seat)=>!this.peds.seatTaken(handle,seat),
    pedCarInUse:handle=>handle===PLAYER_PED_HANDLE?this.playerCarHandle()??-1:this.peds.rideOf(handle)?.vehicle??-1,
    isSphereVisible:(point,radius)=>{if(!this.world.isSphereVisible)throw new UnsupportedScmCommand(-1,0,'IS_POINT_ON_SCREEN','no camera');return this.world.isSphereVisible(point,radius);},
-   startPedFacialTalk:(handle,duration)=>{this.world.setScriptPedFacialTalk(this.livePed(handle),duration/1000);},
-   stopPedFacialTalk:handle=>{this.world.setScriptPedFacialTalk(this.livePed(handle),undefined);},
-   hidePedWeaponForScriptedCutscene:(handle,state)=>{this.world.hideScriptPedWeapon(this.livePed(handle),state);},
+   startPedFacialTalk:(handle,duration)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFacialTalk(this.livePed(handle),duration/1000);},
+   stopPedFacialTalk:handle=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFacialTalk(this.livePed(handle),undefined);},
+   hidePedWeaponForScriptedCutscene:(handle,state)=>{if(handle===PLAYER_PED_HANDLE)this.host('hidePlayerWeapon','HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE')(state);else this.world.hideScriptPedWeapon(this.livePed(handle),state);},
    addExplosion:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type);},
    setVehicleCanBurstTyres:(handle,state)=>{this.world.setScriptVehicleCanBurstTyres(this.liveVehicle(handle),state);},
    setVehicleHeavy:(handle,state)=>{this.world.setScriptVehicleHeavy?.(this.liveVehicle(handle),state);},
@@ -777,7 +791,11 @@ export class ScmMission {
    getTerritoryUnderControlPercentage:()=>this.world.territoryUnderControlPercentage(),
    // CPopulation::AddPed through the pool, which hands the script a handle at once.
    createChar:(pedType,model,x,y,z)=>this.peds.create(pedType,model,{x,y,z}),
-   pedHeading:handle=>this.peds.headingOf(handle),
+   pedHeading:handle=>{
+    if(handle!==PLAYER_PED_HANDLE)return this.peds.headingOf(handle);
+    const heading=this.world.playerPed().heading;if(heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_CHAR_HEADING','player heading');
+    return heading;
+   },
    // A ped stands upright: its matrix is its heading's turn about the vertical, at its position. The player's comes
    // from the host; one the host does not know is not guessed.
    pedMatrix:handle=>{
@@ -802,7 +820,7 @@ export class ScmMission {
    pedType:handle=>this.peds.typeOf(handle),
    pedIsMale:handle=>this.peds.isMale(handle),
    pedSpeed:handle=>this.world.scriptPedSpeed(this.livePed(handle)),
-   pedIsInWater:handle=>this.world.scriptPedSubmerged(this.livePed(handle)),
+   pedIsInWater:handle=>handle===PLAYER_PED_HANDLE?this.host('playerInWater','IS_CHAR_IN_WATER')():this.world.scriptPedSubmerged(this.livePed(handle)),
    setPedVisible:(handle,visible)=>{this.world.setScriptPedVisible(this.livePed(handle),visible);},
    // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns
    // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.

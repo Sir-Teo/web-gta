@@ -103,6 +103,18 @@ export class WeaponInventory {
   if(this.selected===id)this.select(0);
   this.owned.delete(id);this.ammo.set(id,{clip:0,reserve:0});this.stashedReloads.delete(id);return true;
  }
+ /** CPed::SetAmmo (SET_CHAR_AMMO) on a weapon the player holds: the total becomes `total` (a clip's worth loaded, the
+  * rest in reserve). Nothing for a weapon he does not have. */
+ setTotalAmmo(id:number,total:number){
+  if(!this.owned.has(id)||id===0)return false;
+  const t=Math.max(0,Math.min(99999,Math.trunc(total))),clip=Math.min(this.magazine(id),t);
+  this.ammo.set(id,{clip,reserve:t-clip});return true;
+ }
+ /** CPed::GrantAmmo (ADD_AMMO_TO_CHAR) on a weapon the player holds: the total goes up by `amount`. */
+ grantAmmo(id:number,amount:number){
+  const a=this.ammo.get(id);if(!a||!this.owned.has(id)||id===0)return false;
+  return this.setTotalAmmo(id,a.clip+a.reserve+amount);
+ }
  /** Busted/Wasted: CPed::ClearWeapons removes everything but plain fists. */
  strip(){for(const w of WEAPONS){if(w.id===0)continue;this.ammo.set(w.id,{clip:0,reserve:0});}this.owned.clear();this.owned.add(0);this.select(0);this.reloading=0;this.cooldowns.clear();this.stashedReloads.clear();}
  /** Weapon cycling over the weapons held, in slot order (CPlayerPed::ProcessWeaponSwitch is unreversed; the slot

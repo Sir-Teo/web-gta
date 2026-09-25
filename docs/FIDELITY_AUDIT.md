@@ -6842,3 +6842,16 @@ the first ones now implemented:
 - **TASK_KILL_CHAR_ON_FOOT_TIMED** (14 missions): the kill task with its time.
 - **TASK_SCRATCH_HEAD** (15 missions): XPRESSscratch once.
 - **TASK_HANDS_UP** (8 missions): HANDSUP held for the task's time, then let go.
+- **More of the ped commands a script gives the player.** These used to give the thread up for scplayer, or did
+  nothing:
+  - GET_CHAR_HEADING (13 missions) reads his heading.
+  - SET_CHAR_HEADING (117 missions) now turns him on foot, through CPed::SetHeading's current and aiming rotation.
+    Before, it was a no-op kept from when the script never moved the player. MAIN's own SET_CHAR_HEADING 262 after
+    CREATE_PLAYER now faces him as the original does at the start.
+  - SET_CHAR_AMMO and ADD_AMMO_TO_CHAR are CPed::SetAmmo and GrantAmmo on the weapons he holds.
+  - HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE (34 missions) hides his held weapon.
+  - FREEZE_CHAR_POSITION (17 missions) holds him still on the pad.
+  - IS_CHAR_IN_WATER, IS_CHAR_IN_AIR and IS_CHAR_PLAYING_ANIM answer for him.
+  - SET_CHAR_AREA_VISIBLE (30 missions) keeps his area code; the browser draws him in any area.
+  - SHUT_CHAR_UP_FOR_SCRIPTED_SPEECH (33 missions) and the facial-talk pair (28 missions) have nothing to act on,
+    since his speech lines are not played.
