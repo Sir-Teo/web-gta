@@ -6948,3 +6948,20 @@ the first ones now implemented:
   with bForce).
 - A timed task that runs out teleports the ped onto the target, and the task ends.
 - A MAP_Z_LOW_LIMIT target has its ground looked for from above the ped.
+
+### TASK_CHAT_WITH_CHAR (CTaskComplexChat)
+
+- The script handler is unreversed. The command is taken to build CTaskComplexChat from its lead-speaker flag and its
+  last operand as the stage (every mission passes 1), with no speech context, so nothing is said.
+- CreateFirstSubTask: the listener stands (CTaskSimpleStandStill, 999999 ms). The lead speaker chats (CTaskSimpleChat:
+  IDLE_chat looped for the same time).
+- ControlSubTask, as reversed:
+  - A partner that is gone ends the task.
+  - Either ped finishes when the partner's chat is at an earlier stage, or when the partner has the same part and has
+    not finished.
+  - A lead speaker who is not talking finishes both chats at once when the partner listens. Otherwise it gives up after
+    fifty silent frames.
+- Script peds play no speech, so a chat between two of them ends a frame after both have it, and the mission's
+  sequence moves on (the rap loops in the lowrider meeting).
+- With the player as the partner (he holds no chat task), the speaker gives up after its silent frames, and a listener
+  keeps listening.

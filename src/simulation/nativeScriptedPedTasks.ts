@@ -58,7 +58,10 @@ export type ScriptedPedOrder=
  |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number}
  /** CTaskComplexFollowNodeRoute: along the ped path nodes to a point at eMoveState, or straight at it when it is near
   * and clear; put on the point when `seconds` run out. */
- |{kind:'followNodeRoute';x:number;y:number;z:number;moveState:number;seconds:number};
+ |{kind:'followNodeRoute';x:number;y:number;z:number;moveState:number;seconds:number}
+ /** CTaskComplexChat with a partner (a handle, the player's included): the lead speaker chats (CTaskSimpleChat, IDLE_chat),
+  * the other stands and listens, each at the script's stage. */
+ |{kind:'chat';partner:number;chatter:boolean;stage:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -117,6 +120,9 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'enterCarAsPassenger':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:task.seat,seconds:seconds(task.time)}:undefined;
   case 'followPointRoute':return task.route&&task.route.length?{kind:'followRoute',points:task.route.map(p=>({...p})),moveState:task.speed,mode:task.mode}:undefined;
   // CTaskComplexGoToPointAnyMeans on foot: the vehicle it would take for a long way is not modelled.
+  // TASK_CHAT_WITH_CHAR (unreversed) builds CTaskComplexChat from the lead-speaker flag and its last operand (1 in
+  // every mission), taken here as the task's stage, with no speech context: nothing is said.
+  case 'chatWithPed':return world.ped(task.other)?{kind:'chat',partner:task.other,chatter:task.leadSpeaker,stage:task.unknown}:undefined;
   case 'followPathNodesToCoord':return {kind:'followNodeRoute',x:task.x,y:task.y,z:task.z,moveState:task.speed,seconds:seconds(task.time)};
   case 'goToCoordAnyMeans':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:Number.POSITIVE_INFINITY};

@@ -151,6 +151,8 @@ export interface Pedestrian {
   /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. */
   |{kind:'goToPointShooting';x:number;z:number;y?:number;moveState:number;radius:number;target?:Pedestrian;player:boolean}
   /** The points in the renderer's terms, the target (its origin height) last when `lastIsTarget`. */
+  /** CTaskComplexChat: `partner` is nothing for the player, who never holds a chat task. */
+  |{kind:'chat';partner?:Pedestrian;chatter:boolean;stage:number;finished:boolean;noChat:number;remaining:number}
   |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];at:number;lastIsTarget:boolean;moveState:number;remaining:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
@@ -379,6 +381,8 @@ const ENTER_CAR_DOOR_RADIUS=.5,ENTER_CAR_SLOW_DOWN_DISTANCE=4,ENTER_CAR_SEEK_SEC
 /** CTaskSimpleGoToPoint's radius in CTaskComplexFollowPointRoute; the seek task's walk inside 2 units of its target
  * (CEntitySeekPosCalculator's move-state radius, taken as the go-to task's). */
 const GO_TO_POINT_RADIUS=.5,GO_TO_PED_WALK_DISTANCE=2;
+/** CTaskComplexChat's sub-tasks run 999999 ms; its lead speaker gives up after fifty silent frames. */
+const CHAT_SECONDS=999.999,CHAT_SILENT_FRAMES=50,CHAT_CLIP='idle_chat';
 /** MAP_Z_LOW_LIMIT: a script point at or below it is on the ground wherever that is. */
 const MAP_Z_LOW_LIMIT=-100;
 /** CTempColModels::ms_colModelPed1's bounding sphere radius. */
@@ -1528,6 +1532,22 @@ export class WorldPedestrians {
     ped.actor.player.crouched=order.crouch;
     if(order.seconds!==undefined)ped.order={kind:'duckFor',remaining:order.seconds};
     break;
+   case 'chat':{
+    const resolved=this.resolveScriptPed?.(order.partner);if(!resolved)break;
+    // CreateFirstSubTask: the listener stands (CTaskSimpleStandStill 999999 ms); the lead speaker chats
+    // (CTaskSimpleChat, IDLE_chat for the same time).
+    const own={kind:'chat' as const,partner:resolved==='player'?undefined:resolved,chatter:order.chatter,stage:order.stage,finished:false,noChat:0,remaining:CHAT_SECONDS};
+    ped.order=own;ped.flee=0;ped.loiter=false;
+    if(order.chatter){
+     const play=()=>{if(!this.disposed&&ped.order===own&&ped.view.hasReaction(CHAT_CLIP))ped.view.playReaction(CHAT_CLIP,Number.POSITIVE_INFINITY,false,0,true);};
+     if(ped.view.hasReaction(CHAT_CLIP))play();
+     else void (this.catalog?.scriptAnimation('PED','IDLE_chat')??Promise.resolve(undefined)).then(animation=>{
+      if(!animation||this.disposed||ped.order!==own)return;
+      ped.view.installReactions({[CHAT_CLIP]:animation});play();
+     });
+    }
+    break;
+   }
    case 'followNodeRoute':{
     // ComputePathNodes: the target is put a unit above the ground under it first. A point on the map's floor
     // (MAP_Z_LOW_LIMIT) is looked for from above the ped instead of from under the map.
@@ -2594,6 +2614,22 @@ export class WorldPedestrians {
      const gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz);
      if(goToPointArrived(distance,point.y>MAP_Z_LOW_LIMIT?q.y+PED_ORIGIN_HEIGHT-point.y:undefined,GO_TO_POINT_RADIUS,state.speed*dt)){if(!nextRoutePoint(o))this.startNextOrder(p);}
      else{dx=gx;dz=gz;orderSpeed=o.moveState>=7?p.sprintSpeed:o.moveState>=5?p.runSpeed:p.walkSpeed;}
+    }else if(p.order.kind==='chat'){
+     // CTaskComplexChat::ControlSubTask. A partner that is gone ends it, as does a finish flagged last frame. Either
+     // ped finishes when the other's chat is at an earlier stage, or holds the same part and is still going. The lead
+     // speaker, never talking (no speech plays for script peds), finishes both at once when the other listens, and
+     // gives up after fifty frames of silence otherwise.
+     const o=p.order;dx=0;dz=0;o.remaining-=dt;
+     const gone=o.partner!==undefined&&!this.people.includes(o.partner);
+     if(gone||o.finished||o.remaining<=0){if(p.view.reactionName===CHAT_CLIP)p.view.clearReaction();this.startNextOrder(p);}
+     else{
+      const other=o.partner?.order?.kind==='chat'?o.partner.order:undefined;
+      if(other&&(other.stage<o.stage||!other.finished&&o.chatter===other.chatter))o.finished=true;
+      if(o.chatter){
+       if(other&&!other.finished&&!other.chatter)other.finished=o.finished=true;
+       if(++o.noChat>CHAT_SILENT_FRAMES){o.finished=true;if(other)other.finished=true;}
+      }
+     }
     }else if(p.order.kind==='followNodeRoute'){
      const o=p.order,q=p.actor.player.position;dx=0;dz=0;
      // Out of time, the stand-still sub-task teleports the ped onto the target and the task is over.
