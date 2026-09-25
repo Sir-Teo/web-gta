@@ -266,7 +266,7 @@ export interface ScmMissionWorld {
  /** A task the script gave the ped, already turned into something the browser can carry out. */
  giveScriptPedOrder(ped:unknown,order:ScriptedPedOrder):void;
  /** A sequence of tasks, run in order, and started again from the first when it repeats. */
- giveScriptPedSequence(ped:unknown,orders:readonly ScriptedPedOrder[],repeat:boolean):void;
+ giveScriptPedSequence(ped:unknown,orders:readonly ScriptedPedOrder[],repeat:boolean,start?:number):void;
  /** Whether a script's ped is still carrying out the order or sequence it was given (CTaskManager still holds it). */
  scriptPedHasOrder?(ped:unknown):boolean;
  /** The index of the task a ped's script sequence is on, -1 without one (a single task is none). */
@@ -275,7 +275,7 @@ export interface ScmMissionWorld {
  playerSequenceProgress?():number;
  clearScriptPedTasks(ped:unknown):void;
  /** The script's tasks on the player's own ped (PlayerScriptTasks), and whether one still runs. */
- givePlayerOrders?(orders:readonly ScriptedPedOrder[],repeat:boolean,sequence?:boolean):void;
+ givePlayerOrders?(orders:readonly ScriptedPedOrder[],repeat:boolean,sequence?:boolean,start?:number):void;
  clearPlayerTasks?():void;
  playerHasScriptTask?():boolean;
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
@@ -578,6 +578,43 @@ export function getATanOfXY(x:number,y:number){if(x===0&&y===0)return 0;const a=
  * and CBoundingBox::IsPointWithin's test of an entity's position against it, edges included. */
 export function insideMissionCube(x:number,y:number,z:number,rx:number,ry:number,rz:number,p:{x:number;y:number;z:number}){
  return Math.abs(p.x-x)<=Math.abs(rx)&&Math.abs(p.y-y)<=Math.abs(ry)&&Math.abs(p.z-z)<=Math.abs(rz);
+}
+/** Nested sequences (CTaskComplexUseSequence) are run inline: each is replaced by the tasks its sequence holds
+ * when the outer one is given, and each flattened task remembers which step, and which step of the nested
+ * sequence, it is. A nested sequence runs once through; one that repeats would never hand back to the outer one,
+ * which is not followed. `steps` is undefined when nothing is nested.
+ *
+ * PERFORM_SEQUENCE_TASK_FROM_PROGRESS gives m_nCurrentTaskIndex and m_nEndTaskIndex. CreateFirstSubTask starts at
+ * the first; when that task is itself a use-sequence, it starts at the second. `start` is where in the flattened
+ * list that is. A repeat goes back to the first task (CTaskComplexSequence::CreateNextSubTask), nested ones from
+ * their own first. A use-sequence recorded with its own progress keeps it every time it is run. */
+export function expandScriptSequence(tasks:readonly ScmScriptedTask[],sequenceTasks:(index:number)=>readonly ScmScriptedTask[],from?:{task:number;subTask:number}){
+ const at=from?.task??0,sub=from?.subTask??-1;
+ if(!tasks.some(task=>task.kind==='useSequence'))return {tasks,steps:undefined,start:at};
+ const flat:ScmScriptedTask[]=[],steps:{outer:number;inner:number}[]=[];
+ let start=-1;
+ const nested=(task:Extract<ScmScriptedTask,{kind:'useSequence'}>,outer:number,inner:number|undefined,depth:number,first=0)=>{
+  // A sequence that names itself, directly or not, is cut off rather than followed for ever.
+  if(depth>4)return;
+  const begin=task.from?.task??first;
+  sequenceTasks(task.sequence).forEach((inside,step)=>{
+   if(step<begin)return;
+   if(inside.kind==='useSequence')nested(inside,outer,inner??step,depth+1,step===begin?Math.max(0,task.from?.subTask??0):0);
+   else{flat.push(inside);steps.push({outer,inner:inner??step});}
+  });
+ };
+ tasks.forEach((task,outer)=>{
+  if(outer===at)start=flat.length;
+  if(task.kind==='useSequence'){
+   // Only the pass FROM_PROGRESS starts is cut short, and the flattened list is the whole sequence: the start
+   // is found at the nested step it names.
+   const before=flat.length;
+   nested(task,outer,undefined,1);
+   if(outer===at&&sub>0){const found=steps.findIndex((step,i)=>i>=before&&step.outer===outer&&step.inner>=sub);start=found<0?flat.length:found;}
+  }
+  else{flat.push(task);steps.push({outer,inner:-1});}
+ });
+ return {tasks:flat,steps,start:start<0?flat.length:start};
 }
 export class ScmMission {
  /** The script's own fade, which it keeps until the INTRO has run: MAIN fades out with DO_FADE 0 0 before launching
@@ -1359,8 +1396,8 @@ export class ScmMission {
    },
    // CTaskComplexSequence: every task in the sequence has to be one the browser runs, because a sequence with
    // a hole in it is not the sequence the script asked for.
-   givePedSequence:(handle,sequenceTasks,repeat,opcode)=>{
-    const {tasks,steps}=this.expandSequence(sequenceTasks);
+   givePedSequence:(handle,sequenceTasks,repeat,opcode,from)=>{
+    const {tasks,steps,start}=this.expandSequence(sequenceTasks,from);
     if(steps)this.sequenceSteps.set(handle,steps);else this.sequenceSteps.delete(handle);
     const world=this.taskWorld(handle);
     const orders=[];
@@ -1371,12 +1408,12 @@ export class ScmMission {
      if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
      orders.push(order);
     }
-    if(handle===PLAYER_PED_HANDLE){this.givePlayer(orders,repeat,opcode,true);return;}
+    if(handle===PLAYER_PED_HANDLE){this.givePlayer(orders,repeat,opcode,true,start);return;}
     this.runners.delete(handle);
     const ride=this.peds.rideOf(handle);
     // With a car task in it, or for a ped in a car, the sequence runs from here a task at a time.
-    if(carTasks||ride&&!ride.offset){this.livePed(handle);this.runSequence(handle,tasks,repeat,opcode,true);return;}
-    this.world.giveScriptPedSequence(this.livePed(handle),orders,repeat);
+    if(carTasks||ride&&!ride.offset){this.livePed(handle);this.runSequence(handle,tasks,repeat,opcode,true,start);return;}
+    this.world.giveScriptPedSequence(this.livePed(handle),orders,repeat,start);
     this.recordTask(handle,opcode,false);
    },
    // GET_SEQUENCE_PROGRESS (unreversed): CTaskComplexSequence::m_CurrentTaskIndex of the ped's running sequence, -1 with none.
@@ -1664,14 +1701,15 @@ export class ScmMission {
   * with a car task in it, or one given to a ped in a car (and a single task given to a ped in a car, which is a
   * sequence of one that reads no progress). `progress` is m_CurrentTaskIndex. */
  private readonly runners=new Map<number,{tasks:readonly ScmScriptedTask[];at:number;repeat:boolean;opcode:number;sequence:boolean;progress:number;step?:RunnerStep}>();
- private runSequence(handle:number,tasks:readonly ScmScriptedTask[],repeat:boolean,opcode:number,sequence:boolean){
-  this.runners.set(handle,{tasks:tasks.slice(0,8),at:0,repeat,opcode,sequence,progress:0});
+ private runSequence(handle:number,tasks:readonly ScmScriptedTask[],repeat:boolean,opcode:number,sequence:boolean,start=0){
+  const at=Math.min(Math.max(0,start),tasks.length);
+  this.runners.set(handle,{tasks:[...tasks],at,repeat,opcode,sequence,progress:at});
   this.recordTask(handle,opcode,false);
   this.advanceRunner(handle);
  }
- /** The sequence's next task, past the ones that are over as soon as they start; eight of those at most. */
+ /** The sequence's next task, past the ones that are over as soon as they start; one pass of those at most. */
  private advanceRunner(handle:number){
-  for(let n=0;n<=8;n++){
+  for(let n=0,steps=this.runners.get(handle)?.tasks.length??0;n<=steps;n++){
    const r=this.runners.get(handle);if(!r)return;
    if(r.at>=r.tasks.length){if(!r.repeat){this.runners.delete(handle);return;}r.at=0;}
    r.progress=r.at;
@@ -1770,10 +1808,10 @@ export class ScmMission {
   return this.liveVehicle(vehicle);
  }
  /** The player's ped runs only the tasks PlayerScriptTasks knows; any other gives the thread up. */
- private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number,sequence=false){
+ private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number,sequence=false,start=0){
   const other=orders.find(order=>!PlayerScriptTasks.runs(order));
   if(other)throw new UnsupportedScmCommand(opcode,0,'A_PLAYER_TASK_THE_BROWSER_DOES_NOT_RUN',other.kind);
-  this.host('givePlayerOrders','A_PLAYER_TASK')(orders,repeat,sequence);
+  this.host('givePlayerOrders','A_PLAYER_TASK')(orders,repeat,sequence,start);
   this.recordTask(PLAYER_PED_HANDLE,opcode,false);
  }
  private clearTasks(handle:number,command:string){
@@ -1956,26 +1994,8 @@ export class ScmMission {
   if(flat<0)return {outer:-1,inner:-1};
   return this.sequenceSteps.get(handle)?.[flat]??{outer:flat,inner:-1};
  }
- /** Nested sequences (CTaskComplexUseSequence) are run inline: each is replaced by the tasks its sequence holds
-  * when the outer one is given, and each flattened task remembers which step, and which step of the nested
-  * sequence, it is. A nested sequence runs once through; one that repeats would never hand back to the outer one,
-  * which is not followed. `steps` is undefined when nothing is nested. */
- private expandSequence(tasks:readonly ScmScriptedTask[]){
-  if(!tasks.some(task=>task.kind==='useSequence'))return {tasks,steps:undefined};
-  const flat:ScmScriptedTask[]=[],steps:{outer:number;inner:number}[]=[];
-  const nested=(index:number,outer:number,inner:number|undefined,depth:number)=>{
-   // A sequence that names itself, directly or not, is cut off rather than followed for ever.
-   if(depth>4)return;
-   this.runtime.game.sequences.at(index).tasks.forEach((task,step)=>{
-    if(task.kind==='useSequence')nested(task.sequence,outer,inner??step,depth+1);
-    else{flat.push(task);steps.push({outer,inner:inner??step});}
-   });
-  };
-  tasks.forEach((task,outer)=>{
-   if(task.kind==='useSequence')nested(task.sequence,outer,undefined,1);
-   else{flat.push(task);steps.push({outer,inner:-1});}
-  });
-  return {tasks:flat,steps};
+ private expandSequence(tasks:readonly ScmScriptedTask[],from?:{task:number;subTask:number}){
+  return expandScriptSequence(tasks,index=>this.runtime.game.sequences.at(index).tasks,from);
  }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);

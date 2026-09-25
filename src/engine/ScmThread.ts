@@ -29,7 +29,9 @@ export type ScmScriptedTask=
  |{kind:'killPedOnFoot';target:number;time:number;flags:number;actionDelay:number;actionChance:number;mustBeOnFoot:boolean}
  |{kind:'turnToFaceEntity';target:number}
  /** CTaskComplexUseSequence: PERFORM_SEQUENCE_TASK recorded into a sequence runs another sequence as one step. */
- |{kind:'useSequence';sequence:number}
+ |{kind:'useSequence';sequence:number;
+  /** PERFORM_SEQUENCE_TASK_FROM_PROGRESS recorded into a sequence: m_nCurrentTaskIndex and m_nEndTaskIndex. */
+  from?:{task:number;subTask:number}}
  /* The tasks below take their operands from the pinned Sanny Builder schema this project already generates its
   * opcode table from, which names and types every one of them. The names here are the schema's own. */
  |{kind:'goStraightToCoord';x:number;y:number;z:number;speed:number;time:number}
@@ -393,8 +395,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** How far through its sequence a ped is, plainly and following nested sequences. */
  pedSequenceProgress?(handle:number):number;
  pedSequenceProgressRecursive?(handle:number):number;
- /** A sequence played from one task index to another rather than from its start. */
- performSequenceTaskFromProgress?(handle:number,sequence:number,startTask:number,endTask:number):void;
  /** Armour and ammo added to what the ped already carries, and a weapon taken away. */
  addArmourToPed?(handle:number,amount:number):void;
  addAmmoToPed?(handle:number,weaponType:number,ammo:number):void;
@@ -1038,7 +1038,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
   * rather than built, since the tasks are the host's. */
  givePedScriptedTask?(pedHandle:number,task:ScmScriptedTask,opcode:number):void;
  /** PERFORM_SEQUENCE_TASK: the ped runs the tasks a sequence recorded, repeating them when it was told to. */
- givePedSequence?(pedHandle:number,tasks:readonly ScmScriptedTask[],repeat:boolean,opcode:number):void;
+ givePedSequence?(pedHandle:number,tasks:readonly ScmScriptedTask[],repeat:boolean,opcode:number,from?:{task:number;subTask:number}):void;
  /** CPedIntelligence::SetPedDecisionMakerType: the decision maker a ped answers events with, or -1 for none. */
  setPedDecisionMaker?(handle:number,decisionMaker:number):void;
  /** CPed::SetAreaCode, which for the normal world also drops the ped's entry-exit and, for the player, the

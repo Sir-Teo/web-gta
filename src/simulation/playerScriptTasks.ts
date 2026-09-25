@@ -92,9 +92,10 @@ export class PlayerScriptTasks{
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body,false);}
- /** CTaskComplexSequence on the player: eight tasks at most, one after another. */
- giveSequence(orders:readonly ScriptedPedOrder[],repeat:boolean,body:PlayerTaskBody,sequence=true){
-  this.sequence={orders:orders.slice(0,8),at:0,repeat,sequence};
+ /** CTaskComplexSequence on the player: the tasks one after another, from `start` on the first pass (nested
+  * sequences arrive run inline, so there can be more than the eight one sequence holds). */
+ giveSequence(orders:readonly ScriptedPedOrder[],repeat:boolean,body:PlayerTaskBody,sequence=true,start=0){
+  this.sequence={orders:[...orders],at:Math.min(Math.max(0,start),orders.length),repeat,sequence};
   this.next(body);
  }
  /** GET_SEQUENCE_PROGRESS on the player: the index of the task his sequence is on, -1 without one. */
@@ -107,7 +108,7 @@ export class PlayerScriptTasks{
   this.running=undefined;this.sequence=undefined;this.held=undefined;this.generation++;
  }
  private next(body:PlayerTaskBody){
-  for(let step=0;step<=8;step++){
+  for(let step=0,steps=this.sequence?.orders.length??0;step<=steps;step++){
    const sequence=this.sequence;
    if(!sequence){this.running=undefined;return;}
    if(sequence.at>=sequence.orders.length){

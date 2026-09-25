@@ -3540,7 +3540,7 @@ async function boot() {
                  scriptPedOnScreen:ped=>{const r=asRider(ped);const at=r?r.car.car.body.translation():onFoot(ped)?.actor.player.position;return !!at&&!populationOutsideView(render.camera,at,2);},
                  setScriptPedVisible:(ped,visible)=>{const p=onFoot(ped);if(p)p.hidden=!visible;},
                  giveScriptPedOrder:(ped,order)=>{const p=onFoot(ped);if(p)pedestrians?.giveOrder(p,order);},
-                 giveScriptPedSequence:(ped,orders,repeat)=>{const p=onFoot(ped);if(p)pedestrians?.giveSequence(p,orders,repeat);},
+                 giveScriptPedSequence:(ped,orders,repeat,start)=>{const p=onFoot(ped);if(p)pedestrians?.giveSequence(p,orders,repeat,true,start);},
                  clearScriptPedTasks:ped=>{const p=onFoot(ped);if(p)pedestrians?.clearTasks(p);},
                  // A ped in a car holds no on-foot order the browser tracks, so its record is left as it is.
                  // A ped riding in a car runs none of the tasks the browser carries out on foot.
@@ -3577,7 +3577,7 @@ async function boot() {
                  // A ped without collision leaves the query pipeline: nothing touches it and no line of sight meets
                  // it. Its own movement query still finds the ground.
                  setScriptPedCollision:(ped,uses)=>{onFoot(ped)?.collider.setEnabled(uses);},
-                 givePlayerOrders:(orders,repeat,sequence)=>{playerTasks.giveSequence(orders,repeat,playerTaskBody(),sequence);},
+                 givePlayerOrders:(orders,repeat,sequence,start)=>{playerTasks.giveSequence(orders,repeat,playerTaskBody(),sequence,start);},
                  playerSequenceProgress:()=>playerTasks.progress,
                  scriptPedSequenceProgress:ped=>{const p=onFoot(ped);return p&&pedestrians?pedestrians.sequenceProgress(p):-1;},
                  clearPlayerTasks:()=>{playerTasks.clear(playerTaskBody());},

@@ -27,7 +27,6 @@ function recording(extra:Record<string,unknown>={}){
   setPedInformRespectedFriends:method('friends'),setPedFollowNodeThresholdDistance:method('threshold'),
   setPedSenseRange:method('sense'),setPedAnimGroup:method('animGroup'),setNextDesiredMoveState:method('moveState'),
   pedSequenceProgress:method('progress',3),pedSequenceProgressRecursive:method('progressDeep',5),
-  performSequenceTaskFromProgress:method('fromProgress'),
   addArmourToPed:method('armour'),addAmmoToPed:method('ammo'),removeWeaponFromPed:method('disarm'),
   givePedMeleeAttack:method('melee'),damagePed:method('damage'),setPedDropsObject:method('drop'),
   setPedListensToPlayerGroupCommands:method('listen'),setPedDontRemove:method('keep'),
@@ -69,12 +68,11 @@ describe('the ped commands the reference documents but does not register',()=>{
   ]);
  });
 
- test('the sequence progress is read, and the ranged form takes both task indices',()=>{
+ test('the sequence progress is read',()=>{
   const {world,calls}=recording();
   const plain=run(world,instruction(op('GET_SEQUENCE_PROGRESS'),[int(PED),gvar(40)]));
   expect(plain.readInt(40)).toBe(3);
-  run(world,instruction(op('PERFORM_SEQUENCE_TASK_FROM_PROGRESS'),[int(PED),int(2),int(1),int(4)]));
-  expect(calls).toEqual([['progress',PED],['fromProgress',PED,2,1,4]]);
+  expect(calls).toEqual([['progress',PED]]);
  });
 
  test('the weapon and damage commands carry what the documentation names',()=>{

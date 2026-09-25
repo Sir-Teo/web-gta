@@ -3,6 +3,7 @@ import {ScmThread,type ScmScriptedTask,type ScmThreadHost,type ScmWorldCommands}
 import {ScmGameState} from '../src/engine/ScmGameState';
 import {DONT_REPEAT,MAX_SEQUENCE_TASKS,NUM_SEQUENCES,REPEAT_FOREVER} from '../src/engine/ScmSequences';
 import {scmOpcode} from '../src/engine/scmOpcodes';
+import {expandScriptSequence} from '../src/simulation/ScmMission';
 
 /** Script space: the instruction at 0 and the global variables after it. */
 const SPACE=512,VAR=400;
@@ -122,6 +123,19 @@ describe('the sequences a script records',()=>{
   expect(performed).toHaveLength(1);
  });
 
+ test('performing from progress hands over where to start, and recorded into a sequence keeps it',()=>{
+  const game=new ScmGameState();
+  const given:{ped:number;from:unknown}[]=[];
+  const handle=game.sequences.open();game.sequences.addTaskToActiveSequence(task(1));game.sequences.close(handle);
+  const world={givePedSequence:(ped:number,_tasks:readonly ScmScriptedTask[],_repeat:boolean,_opcode:number,from?:unknown)=>{given.push({ped,from});}};
+  run(build(scmOpcode('PERFORM_SEQUENCE_TASK_FROM_PROGRESS'),[int(41),int(handle),byte(0),byte(3)]),game,world);
+  expect(given).toEqual([{ped:41,from:{task:0,subTask:3}}]);
+  // With no ped, the task goes into the sequence being recorded.
+  const outer=game.sequences.open();
+  run(build(scmOpcode('PERFORM_SEQUENCE_TASK_FROM_PROGRESS'),[int(-1),int(handle),byte(0),byte(2)]),game,world);
+  expect(game.sequences.sequenceFor(outer)!.sequence.tasks).toEqual([{kind:'useSequence',sequence:0,from:{task:0,subTask:2}}]);
+ });
+
  test('a mission\'s sequences go with its cleanup, and initialising puts every slot back',()=>{
   const game=new ScmGameState();
   const mission=game.sequences.open(true);game.sequences.addTaskToActiveSequence(task(1));game.sequences.close(mission);
@@ -133,5 +147,34 @@ describe('the sequences a script records',()=>{
   expect(game.sequences.active).toBe(-1);
   expect(game.sequences.index(own)).toBe(-1);
   expect(game.sequences.at(1).opened).toBe(false);
+ });
+
+ test('nested sequences run inline, each holding up to eight, so the whole can be longer than eight',()=>{
+  const inner=[1,2,3,4,5,6,7,8].map(task);
+  const outer=[{kind:'useSequence',sequence:1} as ScmScriptedTask,task(20),task(21)];
+  const {tasks,steps,start}=expandScriptSequence(outer,()=>inner);
+  expect(tasks).toHaveLength(10);
+  expect(steps![8]).toEqual({outer:1,inner:-1});
+  expect(start).toBe(0);
+ });
+
+ test('from progress starts at the task named, and inside a nested one at its step; a plain one ignores the step',()=>{
+  const inner=[1,2,3,4,5].map(task);
+  const outer=[{kind:'useSequence',sequence:1} as ScmScriptedTask,task(20)];
+  // SMOKE2: the nested sequence at task 0, from its step 3.
+  const nested=expandScriptSequence(outer,()=>inner,{task:0,subTask:3});
+  expect(nested.tasks[nested.start]).toEqual(task(4));
+  expect(nested.steps![nested.start]).toEqual({outer:0,inner:3});
+  // The list is still the whole sequence, for the repeat.
+  expect(nested.tasks).toHaveLength(6);
+  const plain=expandScriptSequence(outer,()=>inner,{task:1,subTask:3});
+  expect(plain.tasks[plain.start]).toEqual(task(20));
+  expect(expandScriptSequence([task(1),task(2)],()=>[],{task:1,subTask:4}).start).toBe(1);
+ });
+
+ test('a use-sequence recorded with a progress of its own runs from there each time',()=>{
+  const inner=[1,2,3].map(task);
+  const outer=[task(10),{kind:'useSequence',sequence:1,from:{task:1,subTask:-1}} as ScmScriptedTask];
+  expect(expandScriptSequence(outer,()=>inner).tasks).toEqual([task(10),task(2),task(3)]);
  });
 });

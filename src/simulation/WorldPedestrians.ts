@@ -359,8 +359,6 @@ const WEAPON_LAST_MELEE=15;
 /** CTaskSimpleFightingControl's FIGHT_CTRL_MAX_ATTACK_ANGLE_RAD. */
 const FIGHT_CTRL_MAX_ATTACK_ANGLE=15*Math.PI/180;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
-/** CTaskComplexSequence's array of tasks. */
-const SEQUENCE_TASK_SLOTS=8;
 export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 /** CPhysical's damage response by weapon class (0x5426C0): melee, bullet, explosion and fire each have their
  * proof, and a spray can damages whatever it hits. Collision proof belongs to the brass knuckles, golf club
@@ -1470,24 +1468,25 @@ export class WorldPedestrians {
  }
  giveOrder(ped:Pedestrian,order:ScriptedPedOrder){this.giveSequence(ped,[order],false,false);}
  /** CTaskComplexSequence through PERFORM_SEQUENCE_TASK: the tasks run in the order they were added, and a
-  * repeating sequence starts again at the first when the last one ends. The original's sequence holds eight
-  * tasks, so anything past the eighth was never going to run. */
- giveSequence(ped:Pedestrian,orders:readonly ScriptedPedOrder[],repeat:boolean,sequence=true){
+  * repeating sequence starts again at the first when the last one ends. Each sequence the script records holds
+  * eight tasks at most; nested ones arrive run inline, so the list can be longer. PERFORM_SEQUENCE_TASK_FROM_PROGRESS
+  * starts part way in (`start`), and a repeat still starts again from the first. */
+ giveSequence(ped:Pedestrian,orders:readonly ScriptedPedOrder[],repeat:boolean,sequence=true,start=0){
   if(ped.health<=0)return;
   // CPedIntelligence::SetTaskDuringLife replaces the primary task, so whatever the ped was busy with stops:
   // an attractor it had queued for, and a road crossing it had begun.
   if(ped.attract)this.leaveAttractor(ped);
   ped.crossing=undefined;
-  ped.sequence={orders:orders.slice(0,SEQUENCE_TASK_SLOTS),at:0,repeat,sequence};
+  ped.sequence={orders:[...orders],at:Math.min(Math.max(0,start),orders.length),repeat,sequence};
   this.startNextOrder(ped);
  }
  /** CTaskComplexSequence::m_CurrentTaskIndex of the ped's script sequence (GET_SEQUENCE_PROGRESS), -1 with none: a
   * single task given on its own is no sequence. */
  sequenceProgress(ped:Pedestrian){const s=ped.sequence;return s?.sequence?s.at-1:-1;}
  /** Begin the sequence's next task, skipping past the ones that are over as soon as they start. A repeating
-  * sequence of nothing but those would never yield, so it is given the same eight steps the array holds. */
+  * sequence of nothing but those would never yield, so it is given one pass through its tasks. */
  private startNextOrder(ped:Pedestrian){
-  for(let step=0;step<=SEQUENCE_TASK_SLOTS;step++){
+  for(let step=0,steps=ped.sequence?.orders.length??0;step<=steps;step++){
    const sequence=ped.sequence;
    if(!sequence){ped.order=this.defaultOrder(ped);return;}
    if(sequence.at>=sequence.orders.length){

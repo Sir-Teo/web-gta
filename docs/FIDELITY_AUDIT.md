@@ -7917,3 +7917,15 @@ Each is now answered:
   model's breakable plugin, at the object's matrix, with its COL bounds, as it does for map props. Before this, a
   broken script object only vanished.
 - Verification: `tests/scm-object-damage.test.ts`, `tests/browser/script-break-object.spec.ts`.
+
+## Sequences performed from part way in
+
+- PERFORM_SEQUENCE_TASK_FROM_PROGRESS is CTaskComplexUseSequence with m_nCurrentTaskIndex and m_nEndTaskIndex set;
+  the handler itself is unreversed. CreateFirstSubTask (reversed) starts at the first index, and when that task is a
+  nested use-sequence, starts the nested one at the second. SMOKE2 uses it to put its ped back into a nested
+  sequence part way through after a cut. A repeat starts from the beginning again. With ped -1 the task is recorded
+  into the open sequence, and it keeps its progress each time it runs.
+- The runners capped a sequence at eight tasks after nested sequences had been run inline. A sequence holding nested
+  ones lost every task past the eighth flattened one. The eight-task limit belongs to each recorded sequence, which
+  the recorder already keeps. The runners' skip loop for tasks that end at once is now bounded by one pass.
+- Verification: `tests/scm-sequences.test.ts`, `tests/browser/script-nested-sequence.spec.ts`.

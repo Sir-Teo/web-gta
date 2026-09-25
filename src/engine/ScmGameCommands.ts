@@ -1180,8 +1180,14 @@ const handlers:Record<string,ScmCommandHandler>={
  // The handler is unreversed. Every mission sets it just before a TASK_ENTER_CAR_AS_*, which takes it.
  SET_NEXT_DESIRED_MOVE_STATE:(t,p,i)=>{game(t,i).nextDesiredMoveState=t.readInt(p[0]);},
  GET_SEQUENCE_PROGRESS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedSequenceProgress')(t.readInt(p[0])));},
+ // CTaskComplexUseSequence with m_nCurrentTaskIndex and m_nEndTaskIndex set (the handler is unreversed): the
+ // sequence from the given task, and when that task is a nested sequence, from the given step of it. SMOKE2 puts
+ // its ped back into a nested sequence part way through after a cut.
  PERFORM_SEQUENCE_TASK_FROM_PROGRESS:(t,p,i)=>{
-  world(t,i,'performSequenceTaskFromProgress')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readInt(p[3]));
+  const ped=t.readInt(p[0]),found=game(t,i).sequences.sequenceFor(t.readInt(p[1])),from={task:t.readInt(p[2]),subTask:t.readInt(p[3])};
+  if(!found)return;
+  if(ped===-1){game(t,i).sequences.addTaskToActiveSequence({kind:'useSequence',sequence:found.slot,from});return;}
+  world(t,i,'givePedSequence')(ped,found.sequence.tasks,found.sequence.repeatMode!==0,i.opcode&0x7fff,from);
  },
  ADD_ARMOUR_TO_CHAR:(t,p,i)=>{world(t,i,'addArmourToPed')(t.readInt(p[0]),t.readInt(p[1]));},
  ADD_AMMO_TO_CHAR:(t,p,i)=>{world(t,i,'addAmmoToPed')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
