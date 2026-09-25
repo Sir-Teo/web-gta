@@ -797,7 +797,8 @@ export interface ScmWorldCommands {
  locateObject2d?(handle:number,x:number,y:number,xRadius:number,yRadius:number,drawSphere:boolean):boolean;
  attachCarToObject?(handle:number,handle2:number,xOffset:number,yOffset:number,zOffset:number,xRotation:number,yRotation:number,zRotation:number):void;
  fixCarTyre?(handle:number,tireId:number):void;
- hasCarBeenDamagedByWeapon?(handle:number,weaponType:number):boolean;
+ /** CVehicle::m_nLastWeaponDamageType: the eWeaponType that last hurt the car, -1 when none has. */
+ vehicleLastWeaponDamage?(handle:number):number;
  getCityFromCoords?(x:number,y:number,z:number):number;
  setHeliStabiliser?(handle:number,state:boolean):void;
  getCharHeightAboveGround?(handle:number):number;

@@ -3406,6 +3406,10 @@ async function boot() {
                  // gate is held so a script that closes and opens it carries on.
                  setAllPedSpeechDisabled:disabled=>{allPedSpeechDisabled=disabled;},
                  scriptPedLastDamagedBy:ped=>onFoot(ped)?.lastDamagedBy,
+                 scriptVehicleLastDamagedBy:car=>(car as ScriptCar).lastDamagedBy,
+                 scriptVehicleLastWeaponDamage:car=>(car as ScriptCar).lastWeaponDamage,
+                 clearScriptVehicleLastDamagedBy:car=>{(car as ScriptCar).lastDamagedBy=undefined;},
+                 clearScriptVehicleLastWeaponDamage:car=>{(car as ScriptCar).lastWeaponDamage=-1;},
                  messageShowing:()=>hud.messageShowing,
                  cameraSource:()=>{const p=render.camera.position;return {x:p.x,y:-p.z,z:p.y};},
                  cameraFront:()=>{const d=render.camera.getWorldDirection(new Vector3());return {x:d.x,y:-d.z,z:d.y};},

@@ -160,6 +160,15 @@ function locateCharVehicle(threeDimensional:boolean,gates:{car:boolean;foot:bool
 /** eVehicleAppearance, which IsPedInVehicleOfAppearance compares against. */
 /** eWeaponType's two wildcards and the unidentified type the damage question treats as none. */
 const WEAPON_UNIDENTIFIED=55,WEAPON_ANYMELEE=56,WEAPON_ANYWEAPON=57;
+/** CDarkel::CheckDamagedWeaponType: the melee weapons (WEAPON_UNARMED to WEAPON_CANE) for WEAPON_ANYMELEE; for
+ * WEAPON_ANYWEAPON those, every weapon a ped carries up to WEAPON_INFRARED, WEAPON_EXPLOSION and WEAPON_UZI_DRIVEBY, but
+ * not the parachute, a ram, a run over, drowning or a fall. No damage (-1) is never a match. */
+export function checkDamagedWeaponType(damage:number,expected:number){
+ if(damage<0)return false;
+ if(expected===WEAPON_ANYMELEE)return damage<=15;
+ if(expected!==WEAPON_ANYWEAPON)return false;
+ return damage<=45||damage===51||damage===52;
+}
 /** eModelID entries the taxi and police questions name outright. */
 const MODEL_TAXI=420,MODEL_CABBIE=438,MODEL_PREDATOR=430;
 const VEHICLE_APPEARANCE_BIKE=2,VEHICLE_APPEARANCE_HELI=3,VEHICLE_APPEARANCE_BOAT=4,VEHICLE_APPEARANCE_PLANE=5;
@@ -2209,7 +2218,10 @@ const handlers:Record<string,ScmCommandHandler>={
  LOCATE_OBJECT_2D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'locateObject2d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),bool(t,p[5])),negated(i));},
  ATTACH_CAR_TO_OBJECT:(t,p,i)=>{world(t,i,'attachCarToObject')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]));},
  FIX_CAR_TYRE:(t,p,i)=>{world(t,i,'fixCarTyre')(t.readInt(p[0]),t.readInt(p[1]));},
- HAS_CAR_BEEN_DAMAGED_BY_WEAPON:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasCarBeenDamagedByWeapon')(t.readInt(p[0]),t.readInt(p[1])),negated(i));},
+ HAS_CAR_BEEN_DAMAGED_BY_WEAPON:(t,p,i)=>{
+  const last=world(t,i,'vehicleLastWeaponDamage')(t.readInt(p[0])),wanted=t.readInt(p[1]);
+  t.updateCompareFlag(wanted===WEAPON_ANYMELEE||wanted===WEAPON_ANYWEAPON?checkDamagedWeaponType(last,wanted):last>=0&&last===wanted,negated(i));
+ },
  GET_CITY_FROM_COORDS:(t,p,i)=>{t.writeInt(p[3],world(t,i,'getCityFromCoords')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2])));},
  SET_HELI_STABILISER:(t,p,i)=>{world(t,i,'setHeliStabiliser')(t.readInt(p[0]),bool(t,p[1]));},
  GET_CHAR_HEIGHT_ABOVE_GROUND:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCharHeightAboveGround')(t.readInt(p[0])));},

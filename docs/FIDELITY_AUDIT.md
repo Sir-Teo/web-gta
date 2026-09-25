@@ -7130,3 +7130,24 @@ the first ones now implemented:
 - MARK_OBJECT_AS_NO_LONGER_NEEDED runs CTheScripts::CleanUpThisObject: a mission object becomes OBJECT_TEMPORARY, stays
   in the world and comes off the cleanup list. The port used to only take it off the list. DONT_REMOVE_OBJECT still only
   takes it off the list.
+
+## Who last damaged a car
+
+- WorldCar keeps CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType (-1 until something has hurt the car).
+- CVehicle::InflictDamage (reVC; SA's is unreversed in gta-reversed) sets both on a car that still has health, once the
+  proofs and bInvulnerable have let the damage through.
+  - The player's weapons record his ped as the damager.
+  - Peds' gunfire records the shooting ped.
+  - A gang drive-by records its shooter, a model inside the gang car that no script handle names.
+  - A blast records WEAPON_EXPLOSION (51) and a fire WEAPON_FLAMETHROWER (37).
+- CAutomobile::VehicleDamage: a crash past the damage threshold with another vehicle, the player's included, leaves
+  that vehicle as the damager, by WEAPON_RAMMEDBYCAR (49).
+- The script's questions read these fields:
+  - HAS_CAR_BEEN_DAMAGED_BY_CHAR matches the ped, or the vehicle that ped is in. For the player, his ped is his weapons'
+    damager and his car is the rammer.
+  - HAS_CAR_BEEN_DAMAGED_BY_CAR matches the vehicle.
+  - HAS_CAR_BEEN_DAMAGED_BY_WEAPON compares the type, and puts the two wildcards through
+    CDarkel::CheckDamagedWeaponType.
+  - CLEAR_CAR_LAST_DAMAGE_ENTITY and CLEAR_CAR_LAST_WEAPON_DAMAGE forget the damager and the weapon.
+- Not yet: when the engine catches fire (health under 250), VehicleDamage also sets m_pLastDamageEntity to the last
+  collision's entity, buildings included. The port keeps no engine status for that transition.

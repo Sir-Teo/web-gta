@@ -69,6 +69,8 @@ export const carRefusesDamage=(car:{canBeDamaged:boolean;proofs?:{bullet:boolean
  const k=kind===true?'explosion':kind===false?'bullet':kind;
  return !car.canBeDamaged||!!car.proofs?.[k];
 };
+/** Who hurt a car: the player's ped, another ped, or a vehicle. */
+export type CarDamager={player?:true;ped?:unknown;car?:WorldCar};
 export class WorldCar {
  readonly car:ReturnType<typeof installNativeCar>;
  readonly modelId:number;
@@ -210,6 +212,10 @@ export class WorldCar {
   alarmArmed=false;
   /** The fleet car owning a rigid body handle, for the collision record between vehicles. */
   otherCar?:(bodyHandle:number)=>WorldCar|undefined;
+ /** CVehicle::m_pLastDamageEntity: whoever last hurt the car, which CLEAR_CAR_LAST_DAMAGE_ENTITY forgets. */
+ lastDamagedBy?:CarDamager;
+ /** CVehicle::m_nLastWeaponDamageType: the eWeaponType that last hurt the car, -1 until one has. */
+ lastWeaponDamage=-1;
   /** CAutomobile::VehicleDamage's collision: the health loss before divisors and whether the player's car did it
    * (CEventVehicleDamageCollision needs over 5 from a driven car). */
   onCollisionDamage?:(rawLoss:number,byPlayer:boolean)=>void;
@@ -263,13 +269,19 @@ export class WorldCar {
  /** Weapon damage: CVehicle::InflictDamage port — health loss scaled by impact
   * angle (grazing shots keep 40%, square hits 100%) plus CAutomobile::VehicleDamage
   * component progression for the hit COL piece. Returns true only when the car is wrecked. */
- damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean}={}){
+ damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean;weapon?:number;by?:CarDamager}={}){
   const kind:CarDamageKind=explosive?'explosion':options.kind??'bullet';
   if(this.wrecked||carRefusesDamage(this,kind))return false;
   // CVehicle::CanVehicleBeDamaged: a car only the player may damage (bInvulnerable) refuses anyone else's harm, and the
   // player's own car, once under 250 and burning, takes no more from blasts (the VehicleDamage path they use).
   if(this.onlyDamagedByPlayer&&!this.occupied&&options.byPlayer===false)return false;
   if(explosive&&this.occupied&&this.health<250)return false;
+  // CVehicle::InflictDamage: a car with health left keeps the weapon and whoever used it. A blast is WEAPON_EXPLOSION
+  // (51) and a fire WEAPON_FLAMETHROWER (37); the player's harm is his own ped's.
+  if(this.health>0){
+   this.lastWeaponDamage=options.weapon??(explosive?51:kind==='fire'?37:-1);
+   this.lastDamagedBy=options.by??(options.byPlayer?{player:true}:undefined);
+  }
   if(shotDir&&!explosive){
    // Face-normal falloff in native axes: the struck face is the car axis most
    // opposed to the shot; grazing shots keep 40%, square hits deal 100%.
@@ -783,6 +795,9 @@ export class WorldCar {
    if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle)rammedByPlayer=true;const hit=this.otherCar?.(parent.handle);if(hit&&hit!==this){this.recordVehicleCollision(hit);damager=hit;}}
    const flags=this.pieceOf(collider.handle);if(flags!==undefined&&flags!==COLLISION_COMPONENT.default||!point){piece=flags??piece;point={...collider.translation()};}
   });}
+  // A crash with another vehicle leaves it as the damager, by WEAPON_RAMMEDBYCAR (49).
+  const rammer=damager??(rammedByPlayer?player:undefined);
+  if(rammer){this.lastWeaponDamage=49;this.lastDamagedBy={car:rammer};}
   // CPhysical::ApplyCollision: under the float-away cheat a vehicle the player's vehicle hits loses its gravity.
   if(rammedByPlayer&&CHEATS.isActive('carsFloatAway')&&this.input.gravity)this.input.gravity.applyGravity=false;
   if(!point)return;

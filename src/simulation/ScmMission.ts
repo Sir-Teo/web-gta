@@ -257,6 +257,11 @@ export interface ScmMissionWorld {
  setAllPedSpeechDisabled(disabled:boolean):void;
  /** Whoever last hurt the ped, as the browser's own objects, for the caller to name. */
  scriptPedLastDamagedBy(ped:unknown):{player?:true;ped?:unknown;car?:unknown}|undefined;
+ /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
+ scriptVehicleLastDamagedBy?(car:unknown):{player?:true;ped?:unknown;car?:unknown}|undefined;
+ scriptVehicleLastWeaponDamage?(car:unknown):number;
+ clearScriptVehicleLastDamagedBy?(car:unknown):void;
+ clearScriptVehicleLastWeaponDamage?(car:unknown):void;
  /** CHud: whether a message the script put up is still on screen, and whether a help message is. */
  messageShowing():boolean;
  /** Where the camera is, what it looks along, and its field of view, in the script's own coordinates. */
@@ -788,6 +793,21 @@ export class ScmMission {
     const vehicle=last.car===undefined?undefined:this.vehicles.handleOf(last.car);
     return ped===undefined&&vehicle===undefined?undefined:{ped,vehicle};
    },
+   // HAS_CAR_BEEN_DAMAGED_BY_CHAR: the car's m_pLastDamageEntity is the ped, or the vehicle the ped is in.
+   vehicleWasDamagedByPed:(handle,ped)=>{
+    const last=this.host('scriptVehicleLastDamagedBy','HAS_CAR_BEEN_DAMAGED_BY_CHAR')(this.liveVehicle(handle));
+    if(!last)return false;
+    if(ped===PLAYER_PED_HANDLE?last.player:last.ped!==undefined&&last.ped===this.livePed(ped))return true;
+    const ride=ped===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(ped)?.vehicle;
+    return ride!==undefined&&last.car!==undefined&&last.car===this.vehicleByHandle(ride);
+   },
+   vehicleWasDamagedByVehicle:(handle,other)=>{
+    const last=this.host('scriptVehicleLastDamagedBy','HAS_CAR_BEEN_DAMAGED_BY_CAR')(this.liveVehicle(handle));
+    return last?.car!==undefined&&last.car===this.liveVehicle(other);
+   },
+   vehicleLastWeaponDamage:handle=>this.host('scriptVehicleLastWeaponDamage','HAS_CAR_BEEN_DAMAGED_BY_WEAPON')(this.liveVehicle(handle)),
+   clearVehicleLastDamageEntity:handle=>{this.host('clearScriptVehicleLastDamagedBy','CLEAR_CAR_LAST_DAMAGE_ENTITY')(this.liveVehicle(handle));},
+   clearCarLastWeaponDamage:handle=>{this.host('clearScriptVehicleLastWeaponDamage','CLEAR_CAR_LAST_WEAPON_DAMAGE')(this.liveVehicle(handle));},
    pedIsSittingInCar:(handle,vehicle)=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar&&this.playerCarHandle()===vehicle:this.peds.rideOf(handle)?.vehicle===vehicle,
    // CPed's own acquaintance table, through CAcquaintance's routines.
    setPedRelationship:(handle,relationship,pedType)=>{this.world.setScriptPedRelationship(this.livePed(handle),relationship,pedType);},
