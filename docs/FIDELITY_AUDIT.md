@@ -7016,3 +7016,22 @@ the first ones now implemented:
 - Not modelled:
   - The reverse after a collision with the target (GetHasCollidedWith): the port keeps no per-car collision record.
   - The police-only parts (occupants leaving, the chase-speed mellowing).
+
+### Sequences with car tasks, tasks for peds in cars, GET_SEQUENCE_PROGRESS, and MISSION_NONE's brakes
+
+- Some sequences run from the mission a task at a time: one with a car task in it (drive to a point, temporary
+  action, wander, car mission, leave the car), or one given to a ped in a car. Each task begins when the one before
+  it is over, following CTaskComplexSequence.
+- A driving task given to a ped on foot gets in at the wheel first, as CTaskComplexCarDrive::CreateFirstSubTask does.
+- An on-foot task given to a ped in a car leaves the car first, which it used to drop silently. A pause or a
+  stand-still is waited out in the seat. The head-look and flag tasks have nothing to act on in a seat and are over at
+  once.
+- TASK_LEAVE_CAR and TASK_LEAVE_ANY_CAR first run CTaskSimpleCarWaitToSlowDown: a script driver's car is put on
+  MISSION_NONE, and the ped waits until the car can be stepped out of (CVehicle::CanPedStepOutCar). The Immediately
+  form does not wait.
+- GET_SEQUENCE_PROGRESS (unreversed) reads the running sequence's m_CurrentTaskIndex, for script peds on foot or in
+  cars and for the player, and -1 with no sequence (a single task is none).
+- MISSION_NONE (and a cruise with no road yet) used to give the car a full brake through the pad mapping, which at a
+  standstill is reverse, so a script car that had arrived backed away. It now holds VC's MISSION_NONE pedals as the
+  car's own: no gas, half brake, the handbrake on.
+- Not modelled: script peds do not walk round a car in their way (CTaskComplexWalkRoundCar).

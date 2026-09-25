@@ -56,6 +56,8 @@ export function escortStation(side:EscortSide,target:{position:{x:number;y:numbe
 /** Where the player is, for the missions against him: his position, the car he drives (if any) and his speed, renderer
  * space, units a second. */
 export interface ScriptCarPlayer{position:{x:number;y:number;z:number};vehicle?:WorldCar;velocity:{x:number;y:number;z:number}}
+/** SteerAICarWithPhysics_OnlyMission's MISSION_NONE (VC): no swerve or gas, half brake, the handbrake on. */
+export const HOLD:Pedals={swerve:0,accel:0,brake:.5,handbrake:true};
 /** eCarDrivingStyle. */
 export const DRIVINGSTYLE={stopForCars:0,slowDownForCars:1,avoidCars:2,ploughThrough:3,stopForCarsIgnoreLights:4} as const;
 
@@ -306,9 +308,10 @@ export class ScriptCarMissions{
    const pedals=scriptTempActionPedals(t.action,Math.max(0,t.remaining)*1000,{forwardSpeed});
    if(pedals)return {steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
   }
-  // MISSION_NONE: no gas, the brakes on.
-  if(m.kind==='none')return {steering:0,throttle:0,brake:1,handbrake:false};
   const native=(pedals:Pedals):WorldCar['autopilot']=>({steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}});
+  // MISSION_NONE: no gas, half brake and the handbrake, as the car's own pedals (the pad's brake at a standstill
+  // would put it in reverse).
+  if(m.kind==='none')return native(HOLD);
   // EMERGENCYVEHICLE_STOP and STOP_FOREVER: half brake with the handbrake on.
   if(m.kind==='emergencyStop'||m.kind==='stopForever')return native({swerve:0,accel:0,brake:.5,handbrake:true});
   const close=this.closePedals(car,m,state);
@@ -317,9 +320,9 @@ export class ScriptCarMissions{
   let pedals:Pedals|undefined;
   const paths=this.paths();
   if(m.kind==='cruise'){
-   if(!paths)return {steering:0,throttle:0,brake:1,handbrake:false};
+   if(!paths)return native(HOLD);
    if(!m.link){const q=car.car.body.translation();m.link=joinCarWithRoadSystem(paths.areas,{x:q.x,y:-q.z,z:q.y},f);}
-   const link=m.link;if(!link)return {steering:0,throttle:0,brake:1,handbrake:false};
+   const link=m.link;if(!link)return native(HOLD);
    // PickNextNodeRandomly: one continuation per node change.
    const pick=(from:TrafficLink)=>{const options=trafficLinks(paths.areas,from.to,false).filter(n=>n.to!==from.from);return options.length?options[Math.floor(this.random()*options.length)]:undefined;};
    if(!m.cruiseNext||m.cruiseNext.from!==link.to)m.cruiseNext=pick(link);

@@ -51,7 +51,7 @@ export type PlayerTaskControl=
  |{kind:'hold';facing?:number};
 
 export class PlayerScriptTasks{
- private sequence?:{orders:ScriptedPedOrder[];at:number;repeat:boolean};
+ private sequence?:{orders:ScriptedPedOrder[];at:number;repeat:boolean;sequence:boolean};
  private running?:Running;
  /** A clip left on its last frame, which the next task lets go. */
  private held?:string;
@@ -61,12 +61,14 @@ export class PlayerScriptTasks{
  static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined;}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
- give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body);}
+ give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body,false);}
  /** CTaskComplexSequence on the player: eight tasks at most, one after another. */
- giveSequence(orders:readonly ScriptedPedOrder[],repeat:boolean,body:PlayerTaskBody){
-  this.sequence={orders:orders.slice(0,8),at:0,repeat};
+ giveSequence(orders:readonly ScriptedPedOrder[],repeat:boolean,body:PlayerTaskBody,sequence=true){
+  this.sequence={orders:orders.slice(0,8),at:0,repeat,sequence};
   this.next(body);
  }
+ /** GET_SEQUENCE_PROGRESS on the player: the index of the task his sequence is on, -1 without one. */
+ get progress(){const s=this.sequence;return s?.sequence?s.at-1:-1;}
  /** CLEAR_CHAR_TASKS (and its immediate form) on the player: the task and any clip it ran go at once. */
  clear(body:PlayerTaskBody){
   const clip=this.running?.kind==='playAnim'?this.running.clip:this.held;

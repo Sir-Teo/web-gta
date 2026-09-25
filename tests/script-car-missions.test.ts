@@ -19,7 +19,7 @@ test('with no road route the car drives straight at the point and stops inside 3
  expect(drive.native.gas).toBeGreaterThan(0);expect(Math.abs(drive.native.steerAngle)).toBeLessThan(.01);
  at.z=-47.5;missions.step(1/50);
  expect(missions.mission(c)).toBe('none');expect(missions.driving(c)).toBe(false);
- expect(raw.autopilot).toEqual({steering:0,throttle:0,brake:1,handbrake:false});
+ expect(raw.autopilot).toEqual({steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:0,gas:0,brake:.5,handbrake:true}});
 });
 
 test('the accurate mission only clears inside 1 unit',()=>{
@@ -45,7 +45,7 @@ test('a temporary action runs for its time over the mission, then the mission (o
  missions.step(.05);
  expect(raw.autopilot).toMatchObject({native:{steerAngle:0,gas:0,brake:0,handbrake:true}});
  missions.step(.06);expect(missions.inTempAction(c)).toBe(false);
- missions.step(.02);expect(raw.autopilot).toEqual({steering:0,throttle:0,brake:1,handbrake:false});
+ missions.step(.02);expect(raw.autopilot).toEqual({steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:0,gas:0,brake:.5,handbrake:true}});
 });
 
 test('the temporary actions the scripts use',()=>{

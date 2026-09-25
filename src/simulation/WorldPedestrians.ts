@@ -162,7 +162,9 @@ export interface Pedestrian {
  heldScriptClip?:string;
  /** CTaskComplexSequence: the tasks a script queued, the index of the one running, and whether the whole
   * sequence starts again when the last one ends. The original's array holds eight. */
- sequence?:{orders:ScriptedPedOrder[];at:number;repeat:boolean};
+ sequence?:{orders:ScriptedPedOrder[];at:number;repeat:boolean;
+  /** A PERFORM_SEQUENCE_TASK sequence, rather than one task given alone. */
+  sequence:boolean};
  /** ePedCreatedBy::PED_MISSION: a ped a script made, which CPed::CanBeDeleted refuses to let the population
   * manager remove until CTheScripts::CleanUpThisPed hands it back. */
  mission?:boolean;
@@ -1426,19 +1428,22 @@ export class WorldPedestrians {
  /** A script's task, carried out. CTaskComplexWanderStandard is what a street ped does unasked, so wandering
   * is the absence of an order; CTaskComplexDie kills the ped whatever it is proof against, because the task is
   * not damage; a smart flight sets the same flee the browser's own jacking and fright already use. */
- giveOrder(ped:Pedestrian,order:ScriptedPedOrder){this.giveSequence(ped,[order],false);}
+ giveOrder(ped:Pedestrian,order:ScriptedPedOrder){this.giveSequence(ped,[order],false,false);}
  /** CTaskComplexSequence through PERFORM_SEQUENCE_TASK: the tasks run in the order they were added, and a
   * repeating sequence starts again at the first when the last one ends. The original's sequence holds eight
   * tasks, so anything past the eighth was never going to run. */
- giveSequence(ped:Pedestrian,orders:readonly ScriptedPedOrder[],repeat:boolean){
+ giveSequence(ped:Pedestrian,orders:readonly ScriptedPedOrder[],repeat:boolean,sequence=true){
   if(ped.health<=0)return;
   // CPedIntelligence::SetTaskDuringLife replaces the primary task, so whatever the ped was busy with stops:
   // an attractor it had queued for, and a road crossing it had begun.
   if(ped.attract)this.leaveAttractor(ped);
   ped.crossing=undefined;
-  ped.sequence={orders:orders.slice(0,SEQUENCE_TASK_SLOTS),at:0,repeat};
+  ped.sequence={orders:orders.slice(0,SEQUENCE_TASK_SLOTS),at:0,repeat,sequence};
   this.startNextOrder(ped);
  }
+ /** CTaskComplexSequence::m_CurrentTaskIndex of the ped's script sequence (GET_SEQUENCE_PROGRESS), -1 with none: a
+  * single task given on its own is no sequence. */
+ sequenceProgress(ped:Pedestrian){const s=ped.sequence;return s?.sequence?s.at-1:-1;}
  /** Begin the sequence's next task, skipping past the ones that are over as soon as they start. A repeating
   * sequence of nothing but those would never yield, so it is given the same eight steps the array holds. */
  private startNextOrder(ped:Pedestrian){

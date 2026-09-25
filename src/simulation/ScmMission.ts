@@ -1,6 +1,6 @@
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
-import {UnsupportedScmCommand,type ScmWorldCommands} from '../engine/ScmThread';
+import {UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findNavigationZone,pointInWorldZone,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
@@ -195,9 +195,13 @@ export interface ScmMissionWorld {
  giveScriptPedSequence(ped:unknown,orders:readonly ScriptedPedOrder[],repeat:boolean):void;
  /** Whether a script's ped is still carrying out the order or sequence it was given (CTaskManager still holds it). */
  scriptPedHasOrder?(ped:unknown):boolean;
+ /** The index of the task a ped's script sequence is on, -1 without one (a single task is none). */
+ scriptPedSequenceProgress?(ped:unknown):number;
+ /** The same for the player's own sequence. */
+ playerSequenceProgress?():number;
  clearScriptPedTasks(ped:unknown):void;
  /** The script's tasks on the player's own ped (PlayerScriptTasks), and whether one still runs. */
- givePlayerOrders?(orders:readonly ScriptedPedOrder[],repeat:boolean):void;
+ givePlayerOrders?(orders:readonly ScriptedPedOrder[],repeat:boolean,sequence?:boolean):void;
  clearPlayerTasks?():void;
  playerHasScriptTask?():boolean;
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
@@ -345,6 +349,8 @@ export interface ScmMissionWorld {
  openScriptVehicleDoor?(car:unknown,door:number,ratio:number):void;
  /** GetPositionToOpenCarDoor for a seat of a script car, in the script's coordinates, on the ground. */
  scriptVehicleSeatDoor?(car:unknown,seat:'driver'|number):{x:number;y:number;z:number}|undefined;
+ /** CVehicle::CanPedStepOutCar(false): the car is still enough to step out of. */
+ scriptVehicleStill?(car:unknown):boolean;
  /** CCarAI's coordinate missions on a script car (ScriptCarMissions), in the script's coordinates, and
   * m_nStraightLineDistance. */
  driveScriptVehicleTo?(car:unknown,goal:{x:number;y:number;z:number},o:{cruise:number;style:number;accurate:boolean;straight:boolean}):void;
@@ -401,6 +407,18 @@ const PED_TYPE_CIVMALE=4;
  * than a static reading of the file. */
 /** handlingFlags.bLowRider. */
 const HANDLING_LOW_RIDER=0x2000000;
+/** The tasks that drive or leave a car, which the on-foot peds cannot run. */
+const CAR_TASKS:ReadonlySet<ScmScriptedTask['kind']>=new Set(['carDriveToCoord','carTempAction','carDriveWander','carMission','leaveCar','leaveAnyCar','leaveCarImmediately']);
+/** Orders that only set something and are over at once, with nothing for them to act on while the ped sits in a car. */
+const IN_SEAT_OVER_AT_ONCE:ReadonlySet<ScriptedPedOrder['kind']>=new Set(['lookAt','lookAtPoint','threatScanner','decisionMaker','kindaStayInSamePlace']);
+/** Where a runner's task stands: held by the ped, waited out in the seat, waiting for the ped to be rebuilt (then the
+ * task to begin), or getting in at the wheel before the drive. */
+type RunnerStep=
+ |{kind:'held'}
+ |{kind:'wait';remaining:number}
+ |{kind:'settle';then?:ScmScriptedTask}
+ |{kind:'board';vehicle:number;then:ScmScriptedTask}
+ |{kind:'slowing';then:ScmScriptedTask};
 export class ScmMission {
  /** The script's own fade, which it keeps until the INTRO has run: MAIN fades out with DO_FADE 0 0 before launching
   * it and only the intro's end fades back in, which here never comes (docs/FIDELITY_AUDIT.md "The intro that cannot
@@ -864,29 +882,25 @@ export class ScmMission {
    // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns
    // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.
    givePedScriptedTask:(handle,task,opcode)=>{
-    if((task.kind==='leaveCar'||task.kind==='leaveAnyCar'||task.kind==='leaveCarImmediately')&&handle!==PLAYER_PED_HANDLE){this.leaveCar(handle,task.kind==='leaveAnyCar'?undefined:task.vehicle,opcode);return;}
+    // A new primary task replaces whatever sequence the ped was running from here.
+    if(handle!==PLAYER_PED_HANDLE&&task.kind!=='useMobilePhone')this.runners.delete(handle);
+    if((task.kind==='leaveCar'||task.kind==='leaveAnyCar'||task.kind==='leaveCarImmediately')&&handle!==PLAYER_PED_HANDLE){this.livePed(handle);this.runSequence(handle,[task],false,opcode,false);return;}
     // CTaskComplexUseMobilePhone is a secondary task: it does not take the ped's primary task or its task record.
     if(task.kind==='useMobilePhone'){this.host('usePedMobilePhone','TASK_USE_MOBILE_PHONE')(handle===PLAYER_PED_HANDLE?'player':this.livePed(handle),task.start);return;}
-    if(task.kind==='carDriveToCoord'&&handle!==PLAYER_PED_HANDLE){this.driveToCoord(handle,task,opcode);return;}
-    if(task.kind==='carTempAction'&&handle!==PLAYER_PED_HANDLE){
-     this.host('scriptVehicleTempAction','TASK_CAR_TEMP_ACTION')(this.driverCar(handle,task.vehicle,opcode),task.actionId,task.time/1000);
-     this.recordTask(handle,opcode,false);return;
-    }
-    if(task.kind==='carMission'&&handle!==PLAYER_PED_HANDLE){
-     const car=this.driverCar(handle,task.vehicle,opcode);
-     // -1 names no car: the player's missions (ram, block) go after him.
-     const target=task.targetVehicle===-1?undefined:this.liveVehicle(task.targetVehicle);
-     if(!this.host('scriptVehicleCarMission','TASK_CAR_MISSION')(car,{mission:task.missionId,target,cruise:task.cruiseSpeed,style:task.drivingStyle}))
-      throw new UnsupportedScmCommand(opcode,0,'A_CAR_MISSION_THE_BROWSER_DOES_NOT_DRIVE',`mission ${task.missionId}`);
-     this.recordTask(handle,opcode,false);return;
-    }
-    if(task.kind==='carDriveWander'&&handle!==PLAYER_PED_HANDLE){
-     this.host('scriptVehicleWander','TASK_CAR_DRIVE_WANDER')(this.driverCar(handle,task.vehicle,opcode),{cruise:task.speed,style:task.drivingMode});
-     this.recordTask(handle,opcode,false);return;
+    if(CAR_TASKS.has(task.kind)&&handle!==PLAYER_PED_HANDLE){
+     this.livePed(handle);
+     // At the named car's wheel the drive begins now; on foot, CTaskComplexCarDrive gets in first.
+     const ride=this.peds.rideOf(handle),atWheel=!!ride&&!ride.offset&&ride.seat==='driver'&&'vehicle' in task&&ride.vehicle===task.vehicle;
+     if(atWheel){this.startCarTask(handle,task,opcode);this.recordTask(handle,opcode,false);}
+     else this.runSequence(handle,[task],false,opcode,false);
+     return;
     }
     const order=scriptedPedOrder(task,this.taskWorld(handle));
     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
     if(handle===PLAYER_PED_HANDLE){this.givePlayer([order],false,opcode);return;}
+    // A ped in a car runs an on-foot task from here: out of the car first, or in its seat.
+    const ride=this.peds.rideOf(handle);
+    if(ride&&!ride.offset&&order.kind!=='wander'){this.livePed(handle);this.runSequence(handle,[task],false,opcode,false);return;}
     this.world.giveScriptPedOrder(this.livePed(handle),order);
     this.recordTask(handle,opcode,order.kind==='wander');
    },
@@ -895,14 +909,27 @@ export class ScmMission {
    givePedSequence:(handle,tasks,repeat,opcode)=>{
     const world=this.taskWorld(handle);
     const orders=[];
+    const carTasks=handle!==PLAYER_PED_HANDLE&&tasks.some(task=>CAR_TASKS.has(task.kind));
     for(const task of tasks){
+     if(carTasks&&CAR_TASKS.has(task.kind))continue;
      const order=scriptedPedOrder(task,world);
      if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
      orders.push(order);
     }
-    if(handle===PLAYER_PED_HANDLE){this.givePlayer(orders,repeat,opcode);return;}
+    if(handle===PLAYER_PED_HANDLE){this.givePlayer(orders,repeat,opcode,true);return;}
+    this.runners.delete(handle);
+    const ride=this.peds.rideOf(handle);
+    // With a car task in it, or for a ped in a car, the sequence runs from here a task at a time.
+    if(carTasks||ride&&!ride.offset){this.livePed(handle);this.runSequence(handle,tasks,repeat,opcode,true);return;}
     this.world.giveScriptPedSequence(this.livePed(handle),orders,repeat);
     this.recordTask(handle,opcode,false);
+   },
+   // GET_SEQUENCE_PROGRESS (unreversed): CTaskComplexSequence::m_CurrentTaskIndex of the ped's running sequence, -1 with none.
+   pedSequenceProgress:handle=>{
+    if(handle===PLAYER_PED_HANDLE)return this.world.playerSequenceProgress?.()??-1;
+    const r=this.runners.get(handle);if(r)return r.sequence?r.progress:-1;
+    const ped=this.peds.entity(handle);
+    return ped===undefined?-1:this.world.scriptPedSequenceProgress?.(ped)??-1;
    },
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
    createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
@@ -1098,35 +1125,145 @@ export class ScmMission {
   if(!pose)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return pose;
  }
+ /** Whether a script car is still enough to step out of; one the browser does not hold, or a host that cannot tell, is. */
+ private vehicleStill(vehicle:number){const car=this.vehicles.entity(vehicle);return car===undefined||(this.world.scriptVehicleStill?.(car)??true);}
  /** CTaskComplexLeaveCar (and LeaveAnyCar, and the Immediately form) for a script ped riding a script car: it is set
   * down at its seat's door, on foot. The get-out clips are not played. A ped on foot, or in another car than the one
   * named, has nothing to do and the task is over at once. */
- private leaveCar(handle:number,vehicle:number|undefined,opcode:number){
-  this.livePed(handle);
+ /** The ped out of its car at its seat's door, rebuilt on foot; false when it rides no car (or not the one named). */
+ private leaveCarNow(handle:number,vehicle:number|undefined,opcode:number){
   const ride=this.peds.rideOf(handle);
-  if(!ride||ride.offset||vehicle!==undefined&&vehicle!==ride.vehicle)return;
+  if(!ride||ride.offset||vehicle!==undefined&&vehicle!==ride.vehicle)return false;
   const car=this.vehicles.entity(ride.vehicle);
   if(!car)throw new UnsupportedScmCommand(opcode,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${ride.vehicle}`);
   const at=this.host('scriptVehicleSeatDoor','TASK_LEAVE_CAR')(car,ride.seat);
   if(!at)throw new UnsupportedScmCommand(opcode,0,'A_SEAT_WITHOUT_A_DOOR',String(ride.seat));
   this.stopDriving(handle);
   this.peds.detachFromCar(handle,at);
+  return true;
+ }
+ /** A driving task on the car the ped is at the wheel of: CCarAI's mission, a temporary action, or the wander. */
+ private startCarTask(handle:number,task:ScmScriptedTask,opcode:number){
+  switch(task.kind){
+   // CTaskComplexDriveToPoint: CCarAI::GetCarToGoToCoors (mode 0), …Accurate (1) or …StraightLine (2) with the task's
+   // cruise speed and driving style; the racing mode (3) drives as the plain one. It is over once the mission clears.
+   case 'carDriveToCoord':{
+    const car=this.driverCar(handle,task.vehicle,opcode);
+    this.host('driveScriptVehicleTo','TASK_CAR_DRIVE_TO_COORD')(car,{x:task.x,y:task.y,z:task.z},
+     {cruise:task.speed,style:task.drivingStyle,accurate:task.driveStyle===1,straight:task.driveStyle===2});
+    return;
+   }
+   case 'carTempAction':this.host('scriptVehicleTempAction','TASK_CAR_TEMP_ACTION')(this.driverCar(handle,task.vehicle,opcode),task.actionId,task.time/1000);return;
+   case 'carDriveWander':this.host('scriptVehicleWander','TASK_CAR_DRIVE_WANDER')(this.driverCar(handle,task.vehicle,opcode),{cruise:task.speed,style:task.drivingMode});return;
+   case 'carMission':{
+    const car=this.driverCar(handle,task.vehicle,opcode);
+    // -1 names no car: the player's missions (ram, block) go after him.
+    const target=task.targetVehicle===-1?undefined:this.liveVehicle(task.targetVehicle);
+    if(!this.host('scriptVehicleCarMission','TASK_CAR_MISSION')(car,{mission:task.missionId,target,cruise:task.cruiseSpeed,style:task.drivingStyle}))
+     throw new UnsupportedScmCommand(opcode,0,'A_CAR_MISSION_THE_BROWSER_DOES_NOT_DRIVE',`mission ${task.missionId}`);
+    return;
+   }
+   default:throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+  }
+ }
+ /** CTaskComplexSequence run from here, a task at a time, for the sequences the on-foot peds cannot carry alone: one
+  * with a car task in it, or one given to a ped in a car (and a single task given to a ped in a car, which is a
+  * sequence of one that reads no progress). `progress` is m_CurrentTaskIndex. */
+ private readonly runners=new Map<number,{tasks:readonly ScmScriptedTask[];at:number;repeat:boolean;opcode:number;sequence:boolean;progress:number;step?:RunnerStep}>();
+ private runSequence(handle:number,tasks:readonly ScmScriptedTask[],repeat:boolean,opcode:number,sequence:boolean){
+  this.runners.set(handle,{tasks:tasks.slice(0,8),at:0,repeat,opcode,sequence,progress:0});
   this.recordTask(handle,opcode,false);
+  this.advanceRunner(handle);
+ }
+ /** The sequence's next task, past the ones that are over as soon as they start; eight of those at most. */
+ private advanceRunner(handle:number){
+  for(let n=0;n<=8;n++){
+   const r=this.runners.get(handle);if(!r)return;
+   if(r.at>=r.tasks.length){if(!r.repeat){this.runners.delete(handle);return;}r.at=0;}
+   r.progress=r.at;
+   const task=r.tasks[r.at++];
+   const step=this.dispatch(handle,task,r.opcode);
+   if(step){r.step=step;return;}
+  }
+  this.runners.delete(handle);
+ }
+ /** One task of a runner's sequence begun on the ped as it is now, or nothing when it is over at once:
+  * - A car task runs on the car the ped drives. On foot, the ped gets in at the wheel first, as
+  *   CTaskComplexCarDrive::CreateFirstSubTask does.
+  * - A leave-car task sets the ped down at its door.
+  * - An on-foot task leaves the car first. A pause or a stand-still is waited out in the seat, and the head-look and
+  *   flag tasks, which have nothing to act on in a seat, are over at once. */
+ private dispatch(handle:number,task:ScmScriptedTask,opcode:number):RunnerStep|undefined{
+  const entity=this.peds.entity(handle);
+  if(entity===undefined)return {kind:'settle',then:task};
+  const ride=this.peds.rideOf(handle),riding=!!ride&&!ride.offset;
+  switch(task.kind){
+   case 'leaveCar':case 'leaveCarImmediately':case 'leaveAnyCar':{
+    const vehicle=task.kind==='leaveAnyCar'?undefined:task.vehicle;
+    if(!riding||vehicle!==undefined&&vehicle!==ride.vehicle)return undefined;
+    // CTaskSimpleCarWaitToSlowDown first (not for the Immediately form): a script driver stops its car's mission,
+    // and the ped waits in its seat until the car is still enough to step out of.
+    if(task.kind!=='leaveCarImmediately'&&!this.vehicleStill(ride.vehicle)){this.stopDriving(handle);return {kind:'slowing',then:task};}
+    return this.leaveCarNow(handle,vehicle,opcode)?{kind:'settle'}:undefined;
+   }
+   case 'carDriveToCoord':case 'carTempAction':case 'carDriveWander':case 'carMission':{
+    if(riding&&ride.seat==='driver'&&ride.vehicle===task.vehicle){this.startCarTask(handle,task,opcode);return {kind:'held'};}
+    if(riding||!this.vehicles.entity(task.vehicle))return undefined;
+    this.world.giveScriptPedOrder(entity,{kind:'enterCar',vehicle:task.vehicle,seat:'driver',seconds:Number.POSITIVE_INFINITY});
+    return {kind:'board',vehicle:task.vehicle,then:task};
+   }
+  }
+  const order=scriptedPedOrder(task,this.taskWorld(handle));
+  if(!order)return undefined;
+  if(riding){
+   if(order.kind==='standStill')return {kind:'wait',remaining:order.seconds};
+   if(IN_SEAT_OVER_AT_ONCE.has(order.kind))return undefined;
+   return this.leaveCarNow(handle,undefined,opcode)?{kind:'settle',then:task}:undefined;
+  }
+  this.world.giveScriptPedOrder(entity,order);
+  return {kind:'held'};
+ }
+ /** Each runner's task, a frame on: over when the ped no longer holds it, its wait is out, or the ped it waits for is
+  * built. A task the browser cannot begin ends the runner, and the thread is told nothing (it has moved on). */
+ private processRunners(dt:number){
+  for(const [handle,r] of this.runners){
+   if(!this.peds.exists(handle)){this.runners.delete(handle);continue;}
+   try{
+    const step=r.step,entity=this.peds.entity(handle);
+    if(!step){this.advanceRunner(handle);continue;}
+    switch(step.kind){
+     case 'wait':step.remaining-=dt;if(step.remaining<=0)this.advanceRunner(handle);break;
+     case 'slowing':{
+      const ride=this.peds.rideOf(handle);
+      if(!ride||ride.offset||!this.vehicles.exists(ride.vehicle))this.advanceRunner(handle);
+      else if(this.vehicleStill(ride.vehicle)){const next=this.dispatch(handle,step.then,r.opcode);if(next)r.step=next;else this.advanceRunner(handle);}
+      break;
+     }
+     case 'settle':
+      if(entity===undefined)break;
+      if(step.then){const next=this.dispatch(handle,step.then,r.opcode);if(next)r.step=next;else this.advanceRunner(handle);}
+      else this.advanceRunner(handle);
+      break;
+     case 'board':{
+      const ride=this.peds.rideOf(handle);
+      if(ride&&!ride.offset&&ride.vehicle===step.vehicle&&ride.seat==='driver'){
+       if(entity!==undefined){const next=this.dispatch(handle,step.then,r.opcode);if(next)r.step=next;else this.advanceRunner(handle);}
+      }else if(entity!==undefined&&!ride&&!this.world.scriptPedHasOrder?.(entity))this.advanceRunner(handle);
+      break;
+     }
+     case 'held':if(entity!==undefined&&this.world.scriptPedHasOrder&&!this.world.scriptPedHasOrder(entity))this.advanceRunner(handle);break;
+    }
+   }catch(error){
+    if(!(error instanceof UnsupportedScmCommand))throw error;
+    this.runners.delete(handle);
+    this.gaveUp.push({thread:'(sequence)',command:error.command,offset:error.offset,detail:error.message});
+   }
+  }
  }
  /** A script driver's car stops its CCarAI mission when the driver's task goes. */
  private stopDriving(handle:number){
   const ride=this.peds.rideOf(handle);if(!ride||ride.offset||ride.seat!=='driver')return;
   const car=this.vehicles.entity(ride.vehicle);if(car)this.world.stopScriptVehicle?.(car);
- }
- /** CTaskComplexDriveToPoint for a script ped at the wheel of a script car: CCarAI::GetCarToGoToCoors (mode 0),
-  * …Accurate (1) or …StraightLine (2) with the task's cruise speed and driving style; the racing mode (3) drives as the
-  * plain one. The task is over once the car's mission clears. A driver not yet at that car's wheel would first get in
-  * (CTaskComplexCarDrive), which the browser does not do here. */
- private driveToCoord(handle:number,task:{vehicle:number;x:number;y:number;z:number;speed:number;driveStyle:number;drivingStyle:number},opcode:number){
-  const car=this.driverCar(handle,task.vehicle,opcode);
-  this.host('driveScriptVehicleTo','TASK_CAR_DRIVE_TO_COORD')(car,{x:task.x,y:task.y,z:task.z},
-   {cruise:task.speed,style:task.drivingStyle,accurate:task.driveStyle===1,straight:task.driveStyle===2});
-  this.recordTask(handle,opcode,false);
  }
  /** The script car a driving task names, which the ped must already be at the wheel of. */
  private driverCar(handle:number,vehicle:number,opcode:number){
@@ -1138,15 +1275,15 @@ export class ScmMission {
   return car;
  }
  /** The player's ped runs only the tasks PlayerScriptTasks knows; any other gives the thread up. */
- private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number){
+ private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number,sequence=false){
   const other=orders.find(order=>!PlayerScriptTasks.runs(order));
   if(other)throw new UnsupportedScmCommand(opcode,0,'A_PLAYER_TASK_THE_BROWSER_DOES_NOT_RUN',other.kind);
-  this.host('givePlayerOrders','A_PLAYER_TASK')(orders,repeat);
+  this.host('givePlayerOrders','A_PLAYER_TASK')(orders,repeat,sequence);
   this.recordTask(PLAYER_PED_HANDLE,opcode,false);
  }
  private clearTasks(handle:number,command:string){
   if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerTasks',command)();
-  else{this.stopDriving(handle);this.world.clearScriptPedTasks(this.livePed(handle));}
+  else{this.runners.delete(handle);this.stopDriving(handle);this.world.clearScriptPedTasks(this.livePed(handle));}
   this.taskRecords.delete(handle);
  }
  /** CRunningScript::SetCharCoordinates on the player: CWorld::PutToGroundIfTooLow first (a z at or below
@@ -1533,6 +1670,7 @@ export class ScmMission {
   this.elapsed+=timeStepMs;
   try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.followAttachments();this.processGroups();
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
+   this.processRunners(timeStepMs/1000);
    this.processTaskRecords();
    const game=this.runtime.game;game.onscreenTimer.process(this.globals,timeStepMs,game.widescreenOn,()=>this.world.frontendAudioEvent?.(33));}
   catch(error){
@@ -1558,7 +1696,7 @@ export class ScmMission {
     continue;
    }
    if(!this.peds.exists(handle)){this.taskRecords.delete(handle);continue;}
-   if(record.wander){record.status=TASK_TASK_ASSOCIATED;continue;}
+   if(record.wander||this.runners.has(handle)){record.status=TASK_TASK_ASSOCIATED;continue;}
    // A ped still being made (its handle given, its body pending) keeps the order it will be given.
    const ped=this.peds.entity(handle);
    if(this.world.scriptPedHasOrder&&ped!==undefined&&!this.world.scriptPedHasOrder(ped)){this.taskRecords.delete(handle);continue;}

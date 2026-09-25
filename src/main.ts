@@ -42,6 +42,7 @@ function scriptOccupantPoses(){
 /** The browser's walking ped behind a script handle, or nothing when the handle names a ped that rides. */
 const onFoot=(entity:unknown)=>asRider(entity)?undefined:entity as import('./simulation/WorldPedestrians').Pedestrian|undefined;
 import {ActivityJournal} from './ui/ActivityJournal';
+import {canPedStepOutCar} from './vehicle/nativeDieInCar';
 import {VehicleOccupants} from './render/VehicleOccupants';
 import {SirenLights} from './render/SirenLights';
 import {Skidmarks} from './render/Skidmarks';
@@ -3298,7 +3299,9 @@ async function boot() {
                  // A ped without collision leaves the query pipeline: nothing touches it and no line of sight meets
                  // it. Its own movement query still finds the ground.
                  setScriptPedCollision:(ped,uses)=>{onFoot(ped)?.collider.setEnabled(uses);},
-                 givePlayerOrders:(orders,repeat)=>{playerTasks.giveSequence(orders,repeat,playerTaskBody());},
+                 givePlayerOrders:(orders,repeat,sequence)=>{playerTasks.giveSequence(orders,repeat,playerTaskBody(),sequence);},
+                 playerSequenceProgress:()=>playerTasks.progress,
+                 scriptPedSequenceProgress:ped=>{const p=onFoot(ped);return p&&pedestrians?pedestrians.sequenceProgress(p):-1;},
                  clearPlayerTasks:()=>{playerTasks.clear(playerTaskBody());},
                  playerHasScriptTask:()=>playerTasks.active,
                  setPlayerCollision:uses=>{sim.setPlayerUsesCollision(uses);},
@@ -3517,6 +3520,11 @@ async function boot() {
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
                  setScriptVehicleSiren:(car,on)=>{(car as ScriptCar).siren=on;},
                  openScriptVehicleDoor:(car,door,ratio)=>{(car as Partial<ScriptCar>).openDoor?.(door,ratio);},
+                 scriptVehicleStill:car=>{
+                  const body=(car as Partial<ScriptCar>).car?.body;if(!body)return true;
+                  const v=body.linvel(),w=body.angvel();
+                  return canPedStepOutCar(1,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50});
+                 },
                  scriptVehicleHasHydraulics:car=>!!(car as Partial<ScriptCar>).hydraulics,
                  setScriptVehicleHydraulics:(car,fitted)=>{const c=car as Partial<ScriptCar>;if(fitted)c.fitHydraulics?.();else c.removeHydraulics?.();},
                  scriptVehicleHandlingFlags:car=>(car as Partial<ScriptCar>).handlingFlags??0,
