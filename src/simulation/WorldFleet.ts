@@ -300,9 +300,9 @@ export class WorldFleet {
    ground=hit?top-hit.timeOfImpact:0;
   }
   const at={x:position.x,y:ground-bounds.min[2],z:position.z};
-  if(PLAYABLE_BIKES[modelId]){const bike=new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,heading);this.bikes.add(bike);return bike;}
-  if(PLAYABLE_BOATS[modelId]){const boat=new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));boat.waterLevel=this.waterLevel;this.boats.add(boat);return boat;}
-  const plane=new WorldPlane(this.sim,this.scene,assets as ConstructorParameters<typeof WorldPlane>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
+  if(PLAYABLE_BIKES[modelId]){const bike=new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,heading);bike.missionCar=true;this.bikes.add(bike);return bike;}
+  if(PLAYABLE_BOATS[modelId]){const boat=new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));boat.waterLevel=this.waterLevel;boat.missionCar=true;this.boats.add(boat);return boat;}
+  const plane=new WorldPlane(this.sim,this.scene,assets as ConstructorParameters<typeof WorldPlane>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));plane.waterLevel=this.waterLevel;plane.missionCar=true;this.planes.add(plane);return plane;
  }
  /** CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names, and the other two are
   * left as the car's own variation chose them. A slot the palette does not carry is left alone, which is what
@@ -515,9 +515,11 @@ export class WorldFleet {
    if(car.occupied||car.disposed){this.generated.delete(car);if(car.occupied){this.generatorState.set(id,{nextGen:(this.generatorState.get(id)?.nextGen??now)+GENERATOR_TAKEN_WAIT_MS,waitFar:true});this.randomModels.delete(id);}continue;}
    if(car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}
   }
-  for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
-  for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);}
-  for(const bike of this.bikes)if(!bike.occupied&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);}
+  // A script's vehicles stay, however far off, until the script deletes them or lets them go (INTRO1 parks a homie's
+  // BMX out of the way and uses it again; it used to be culled from under the script).
+  for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&!plane.missionCar&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
+  for(const boat of this.boats)if(!boat.occupied&&!boat.missionCar&&boat.distance()>350){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);}
+  for(const bike of this.bikes)if(!bike.occupied&&!bike.missionCar&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);}
   if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
   // CCarGenerator::Process: generators under 950 work while the player is outside, those at 950 or higher (the
   // interiors) while he is inside.

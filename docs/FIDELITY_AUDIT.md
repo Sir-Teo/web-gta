@@ -8037,3 +8037,12 @@ Each is now answered:
   mission, style and cruise speed back as they were before it. A script car's are none, so the car stops. The port
   left it driving under a ped doing something else, and GET_SCRIPT_TASK_STATUS kept reporting the ped busy.
 - Verification: `tests/browser/script-bike-rider.spec.ts`.
+
+## A script's bikes, boats and aircraft stay
+
+- The population culled any bike, boat or aircraft 350 units from the player that he was not riding, including the
+  script's own. INTRO1 parks a homie's BMX out of the way at the end of the ride; it was removed from under the
+  script, and a later query read the freed body.
+- A vehicle the script makes is a mission vehicle whatever its kind. The population leaves it however far off, until
+  the script deletes it or lets it go (MARK_CAR_AS_NO_LONGER_NEEDED, mission cleanup).
+- Verification: `tests/browser/script-vehicle-far.spec.ts`.

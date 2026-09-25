@@ -340,6 +340,8 @@ export class WorldPlane {
  /** What the script's vehicle host reads of any vehicle: the body under `car`, the heading as WorldCar's (the
   * body's yaw turned half round), and whether it has gone. */
  readonly car:{body:RAPIER.RigidBody};disposed=false;
+ /** A script's vehicle (CVehicle's MISSION_VEHICLE creation): the population never removes it; the script lets it go. */
+ missionCar=false;
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
  dispose(){this.disposed=true;this.root.removeFromParent();this.visual.dispose();this.physical.dispose();}
 }

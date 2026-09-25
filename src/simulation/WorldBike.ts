@@ -326,6 +326,8 @@ export class WorldBike {
  /** What the script's vehicle host reads of any vehicle: the body under `car`, and whether it has gone (heading() is
   * the bike's own). */
  readonly car:{body:RAPIER.RigidBody;root:Group};disposed=false;
+ /** A script's vehicle (CVehicle's MISSION_VEHICLE creation): the population never removes it; the script lets it go. */
+ missionCar=false;
  dispose(){this.disposed=true;this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }
 function rotate(q:RAPIER.Rotation,v:{x:number;y:number;z:number}){
