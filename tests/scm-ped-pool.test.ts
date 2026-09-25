@@ -219,3 +219,16 @@ describe('the peds a script creates before the browser can load them',()=>{
   expect(()=>peds.positionOf(999)).toThrow(/names nothing/);
  });
 });
+
+describe('the seats a script’s peds sit in',()=>{
+ test('a seat is taken by a live ped riding in it, not by one on the roof or one that died',async()=>{
+  const {pool:peds,settle}=pool();
+  const rider=peds.createInCar(4,'MALE01',7,0);
+  peds.createInCar(4,'MALE01',7,'driver');
+  const roof=peds.create(4,'MALE01',{x:0,y:0,z:0});peds.attachToCar(roof,7,{x:0,y:0,z:1});
+  await settle();
+  expect(peds.seatTaken(7,0)).toBe(true);expect(peds.seatTaken(7,'driver')).toBe(true);
+  expect(peds.seatTaken(7,1)).toBe(false);expect(peds.seatTaken(8,0)).toBe(false);
+  peds.kill(rider);expect(peds.seatTaken(7,0)).toBe(false);
+ });
+});

@@ -1153,8 +1153,6 @@ export interface ScmWorldCommands {
  groundZForCoord?(x:number,y:number):number;
  /** LOAD_TEXTURE_DICTIONARY: CTxdStore loads models\txd\<name>.txd into the script slot and keeps a reference;
   * REMOVE_TEXTURE_DICTIONARY drops it again. */
- loadScriptTextureDictionary?(name:string):void;
- removeScriptTextureDictionary?():void;
  /** CPopCycle::m_nCurrentZoneType for GET_CURRENT_POPULATION_ZONE_TYPE. */
  currentPopulationZoneType?():number;
  /** CStreaming requests. A negative script model id names a UsedObjectArray entry. */

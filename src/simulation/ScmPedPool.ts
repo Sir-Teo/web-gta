@@ -92,6 +92,11 @@ export class ScmPedPool<Ped>{
  }
  /** The car a ped rides in, or nothing while it is on foot. */
  rideOf(handle:number){return this.said.get(handle)?.ride;}
+ /** Whether a live script ped sits in a car's seat (a number, or the driver's). */
+ seatTaken(vehicle:number,seat:number|'driver'){
+  for(const [handle,said] of this.said)if(said.ride&&!said.ride.offset&&said.ride.vehicle===vehicle&&said.ride.seat===seat&&this.pool.exists(handle)&&!said.dead)return true;
+  return false;
+ }
  private word(handle:number){const said=this.said.get(handle);requireAsset(said,'Script ped handle names nothing.');return said!;}
  exists(handle:number){return this.pool.exists(handle);}
  /** The browser's own ped, once it has built one. */

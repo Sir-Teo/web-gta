@@ -6677,3 +6677,10 @@ the first ones now implemented:
   - The compare flag is set once all three axes have arrived.
   - With the collision check, a move the host reports blocked is not made. The browser host does not report
     collisions for script objects yet, so they slide through.
+- **LOAD_TEXTURE_DICTIONARY and REMOVE_TEXTURE_DICTIONARY** (13 missions, MAIN): the script's texture slot. The
+  loaded name is the script's own state, like LOAD_SPRITE's names. Drawing CTheScripts::IntroRectangles is not
+  done: the host draws none of the script's sprites and rectangles yet.
+- **IS_CHAR_TALKING** (9 missions, MAIN): false. The browser plays no speech lines for a script's peds (the speech
+  banks are not published), so none is ever mid-line. A mission waiting on a conversation moves on.
+- **IS_CAR_PASSENGER_SEAT_FREE** (7 missions, MAIN): no live script ped sits in that seat of the car. A ped
+  attached to the roof takes no seat.

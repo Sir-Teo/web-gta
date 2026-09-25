@@ -238,6 +238,9 @@ export class ScmIntroRectangles {
   rectangle.cornerA={x:this.stretchX(x-width*0.5),y:this.stretchY(y-height*0.5)};
   rectangle.cornerB={x:this.stretchX(x+width*0.5),y:this.stretchY(y+height*0.5)};
  }
+ /** The models\\txd dictionary LOAD_TEXTURE_DICTIONARY put in the script's texture slot, which LOAD_SPRITE's
+  * names are looked up in; none once REMOVE_TEXTURE_DICTIONARY has freed it. */
+ dictionary?:string;
  /** LOAD_SPRITE: the name is lowered and cut to fifteen characters, as the handler's buffer holds. */
  loadSprite(slot:number,name:string){
   requireAsset(Number.isInteger(slot)&&slot>0&&slot<=MAX_NUM_SCRIPT_SPRITES,'Script sprite slot out of range.');

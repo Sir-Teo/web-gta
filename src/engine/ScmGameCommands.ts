@@ -2702,8 +2702,9 @@ const handlers:Record<string,ScmCommandHandler>={
  DRAW_SPRITE_WITH_ROTATION:(t,p,i)=>{game(t,i).introRectangles.drawSpriteWithRotation(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),rgba(t,p,6));},
  DRAW_WINDOW:(t,p,i)=>{game(t,i).introRectangles.drawWindow(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.text(p[4]),t.readInt(p[5]));},
  SET_SPRITES_DRAW_BEFORE_FADE:(t,p,i)=>{game(t,i).introRectangles.setDrawBeforeFade(bool(t,p[0]));},
- LOAD_TEXTURE_DICTIONARY:(t,p,i)=>{world(t,i,'loadScriptTextureDictionary')(t.text(p[0]));},
- REMOVE_TEXTURE_DICTIONARY:(t,_p,i)=>{world(t,i,'removeScriptTextureDictionary')();},
+ // The script's texture slot: which dictionary it holds is the script's own state; drawing its sprites is the host's.
+ LOAD_TEXTURE_DICTIONARY:(t,p,i)=>{game(t,i).introRectangles.dictionary=t.text(p[0]).toLowerCase();},
+ REMOVE_TEXTURE_DICTIONARY:(t,_p,i)=>{game(t,i).introRectangles.dictionary=undefined;},
  // --- TheCamera (CameraCommands.cpp is reversed, over routines that only set fields).
  SET_FIXED_CAMERA_POSITION:(t,p,i)=>{game(t,i).camera.setCamPositionForFixedMode(vec(t,p,0),vec(t,p,3));},
  POINT_CAMERA_AT_POINT:(t,p,i)=>{

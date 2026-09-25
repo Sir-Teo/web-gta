@@ -523,6 +523,11 @@ export class ScmMission {
    enablePedSpeech:handle=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedSpeech(this.livePed(handle),false);},
    // GET_CAR_CHAR_IS_USING (reversed): the car the ped sits in, else the one it is entering; none is -1. The
    // browser does not hand the script the car the player is walking to.
+   // IS_CHAR_TALKING (unreversed; CPed::GetPedTalking): the browser plays no speech lines for a script's peds, the
+   // speech banks not being published, so none of them is ever mid-line.
+   pedIsTalking:()=>false,
+   // IS_CAR_PASSENGER_SEAT_FREE: no script ped sits in that seat of the script's car.
+   vehiclePassengerSeatIsFree:(handle,seat)=>!this.peds.seatTaken(handle,seat),
    pedCarInUse:handle=>handle===PLAYER_PED_HANDLE?(this.world.playerPed().vehicle?PLAYER_VEHICLE_HANDLE:-1):this.peds.rideOf(handle)?.vehicle??-1,
    isSphereVisible:(point,radius)=>{if(!this.world.isSphereVisible)throw new UnsupportedScmCommand(-1,0,'IS_POINT_ON_SCREEN','no camera');return this.world.isSphereVisible(point,radius);},
    startPedFacialTalk:(handle,duration)=>{this.world.setScriptPedFacialTalk(this.livePed(handle),duration/1000);},
