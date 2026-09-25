@@ -377,6 +377,11 @@ export class ScriptCarMissions{
     const stop=lights&&nativeShouldStopForLight({position:[state.position.x,state.position.y],appearance:'car',physicsStatus:true,
      current:{navigation:link.navigation,routeAddress:link.to.address,travelSign:link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1}},Math.floor(this.seconds*1000)>>>0);
     pedals=steerFollowPath(state,travel(link),m.lane,travel(next),{cruiseSpeed:m.cruise,trafficSpeed:m.cruise,stop});
+   }else if(!next&&(m.kind==='gotoCoords'||m.kind==='gotoCoordsAccurate')){
+    // SteerAICarWithPhysicsFollowPath (VC): with the path search spent (PickNextNodeToFollowPath finds under two
+    // nodes), the go-to missions turn straight for the point, the accurate one staying accurate.
+    m.kind=m.kind==='gotoCoords'?'gotoCoordsStraight':'gotoCoordsStraightAccurate';
+    pedals=steerHeadingForTarget(state,goal,m.cruise);
    }else if(!next){
     // The route is spent before the switch distance: carry on along the road's continuation.
     const options=trafficLinks(paths.areas,link.to,true).filter(n=>n.to!==link.from);

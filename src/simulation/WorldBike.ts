@@ -192,7 +192,9 @@ export class WorldBike {
   return this.finishEnter();
  }
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
-  const nearby=this.distance()<250;this.body.setEnabled(nearby&&!this.frozen);this.root.visible=nearby;if(!nearby)return;
+  // A body out of the world (far off, frozen, or waiting for collision) takes none of the step: its speed would be
+  // worked on with nothing to move it.
+  const nearby=this.distance()<250,active=nearby&&!this.frozen&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   if(this.wrecked){this.throttle=0;}
@@ -246,6 +248,16 @@ export class WorldBike {
   // plays out at speed 1.5, so the launch comes (T − 0.2) × charge/25 / 1.5 later: a tap hops at once.
   else if(this.controlJump>0){const clip=WorldBike.hopClipSeconds?.(this.modelId);this.hopLaunch=clip!==undefined?Math.max(0,clip-.2)*(this.controlJump/25)/1.5:HOP_RELEASE_SECONDS;}
   if(this.controlJump>0)this.throttle=0;
+ }
+ /** CColStore::HasCollisionLoaded for the bike's spot: a vehicle out where the world's collision has not streamed in
+  * waits for it (bIsStaticWaitingForCollision) rather than falling through the map. Asked twice a second, as fixed
+  * ground under the bike, anywhere below it. */
+ private groundCheck={seconds:0,loaded:true};
+ private collisionLoaded(dt:number){
+  const g=this.groundCheck;g.seconds-=dt;if(g.seconds>0)return g.loaded;g.seconds=.5;
+  const p=this.body.translation();
+  g.loaded=!!this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+2,z:p.z},{x:0,y:-1,z:0}),500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  return g.loaded;
  }
  /** Whether the ground is under the bike's wheels (a short ray down from the body). */
  private wheelsDown(){

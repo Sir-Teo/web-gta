@@ -7894,3 +7894,15 @@ Each is now answered:
 - TASK_GOTO_CAR seeks the car at a run to within the task's radius, for its time. The car's position is taken when the
   task starts.
 - Verification: `tests/browser/script-leave-car-tasks.spec.ts`.
+
+## Bikes on long routes
+
+- A bike waits where the world's collision has not streamed in (CColStore::HasCollisionLoaded,
+  bIsStaticWaitingForCollision) rather than falling through the map. The check is a downward ray for fixed ground,
+  asked twice a second. INTRO1's lead homie rode ahead of the streaming and fell to -46.
+- A bike or boat whose body is out of the world (far off, frozen or waiting) takes none of its step. The step used to
+  go on working its speed from the body's stale velocity, which grew without bound (a catapulted BMX reached
+  -2101 m/s) while the body sat disabled.
+- MISSION_GOTOCOORDS (and _ACCURATE) with its path search spent turns straight for the point
+  (SteerAICarWithPhysicsFollowPath, VC). The port kept cruising the road's continuation instead, so riders circled
+  15 to 20 units from waypoints just off the road, never inside the straight-line distance.
