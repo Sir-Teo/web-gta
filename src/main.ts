@@ -1242,6 +1242,28 @@ async function boot() {
     });}
     return touching;
   };
+  /** How close two collisions count as touching for CPhysical's collision records, kept for the frame's contacts: a
+   * resting contact sits within this of the surface, and a ped's character controller stops a few centimetres short of
+   * what it walks into where the game's ped would press against it. */
+  const TOUCH_MARGIN=.1;
+  /** The solid colliders of an entity a touching question names. */
+  const touchColliders=(e:import('./simulation/ScmMission').ScmTouchEntity)=>{
+    type Bodied={car?:{body?:import('@dimforge/rapier3d-compat').RigidBody};body?:import('@dimforge/rapier3d-compat').RigidBody};
+    const body=e.kind==='player'?sim.playerBody:e.kind==='object'?scriptObjectViews?.bodyOf(e.handle):e.kind==='ped'?onFoot(e.entity)?.body:(e.entity as Bodied)?.car?.body??(e.entity as Bodied)?.body;
+    const out:import('@dimforge/rapier3d-compat').Collider[]=[];
+    if(body)for(let i=0;i<body.numColliders();i++){const c=body.collider(i);if(!c.isSensor()&&c.isEnabled())out.push(c);}
+    return out;
+  };
+  /** Whether any collider of one touches any of the other: a contact the narrow phase already has, else the shapes
+   * within TOUCH_MARGIN (a kinematic pair, a ped against a script object, makes no contact pair). */
+  const collidersTouch=(a:readonly import('@dimforge/rapier3d-compat').Collider[],b:readonly import('@dimforge/rapier3d-compat').Collider[])=>{
+    for(const ca of a)for(const cb of b){
+      if(ca.handle===cb.handle)continue;
+      let hit=false;sim.world.contactPair(ca,cb,m=>{if(m.numContacts()>0)hit=true;});if(hit)return true;
+      try{if(ca.contactCollider(cb,TOUCH_MARGIN))return true;}catch{/* a shape pair Rapier has no contact query for (two meshes) */}
+    }
+    return false;
+  };
   const placementKey=(model:string,[x,y,z]:readonly number[])=>`${model.toLowerCase()}:${x.toFixed(2)}:${y.toFixed(2)}:${z.toFixed(2)}`;
   /** Placements whose object has m_bRenderDamaged (or has gone), by lowercased model: their lights stay off. */
   const damagedLights=new Map<string,[number,number,number][]>();
@@ -3808,6 +3830,19 @@ async function boot() {
                  },
                  setScriptVehicleUpsideDownNotDamaged:(car,state)=>{if('noUpsideDownDamage' in (car as object))(car as ScriptCar).noUpsideDownDamage=state;},
                  scriptObjectAnimLength:(block,name)=>(pedestrians?.scriptAnimation(block,name)??Promise.resolve(undefined)).then(clip=>clip?.duration),
+                 scriptEntitiesTouching:(a,b)=>collidersTouch(touchColliders(a),touchColliders(b)),
+                 // An object's own records: anything within a hair of its collision (the world, a car, a ped), found among
+                 // the colliders in its bounding box.
+                 scriptObjectTouchingAnything:handle=>{
+                  const body=scriptObjectViews?.bodyOf(handle),radius=scriptObjectViews?.boundsRadius(handle);if(!body||radius===undefined)return false;
+                  const own=touchColliders({kind:'object',handle}),r=radius+TOUCH_MARGIN;let touching=false;
+                  sim.world.collidersWithAabbIntersectingAabb(body.translation(),{x:r,y:r,z:r},other=>{
+                   if(other.parent()?.handle===body.handle||other.isSensor())return true;
+                   if(collidersTouch(own,[other]))touching=true;
+                   return !touching;
+                  });
+                  return touching;
+                 },
                  setScriptBoatAnchored:(car,anchored)=>{if(!(car instanceof WorldBoat))return false;car.setAnchored(anchored);return true;},
                  // physicalFlags.bDontApplySpeed: the car keeps its place and stops carrying any motion.
                  setScriptVehicleFrozen:(car,frozen)=>{

@@ -451,6 +451,10 @@ export interface ScmMissionWorld {
  setScriptVehicleFrozen(car:unknown,frozen:boolean):void;
  /** ANCHOR_BOAT: false for a vehicle that is not a boat. */
  setScriptBoatAnchored?(car:unknown,anchored:boolean):boolean;
+ /** CPhysical::GetHasCollidedWith between two entities as they stand: their collision touches this frame. */
+ scriptEntitiesTouching?(a:ScmTouchEntity,b:ScmTouchEntity):boolean;
+ /** Whether a script object's collision touches anything but itself (its m_apCollidedEntities is not empty). */
+ scriptObjectTouchingAnything?(handle:number):boolean;
  /** CAnimBlendHierarchy::m_fTotalTime of a clip in a script's animation block, seconds, once read. */
  scriptObjectAnimLength?(block:string,name:string):Promise<number|undefined>;
  /** SET_UPSIDEDOWN_CAR_NOT_DAMAGED: autoFlags.bDoesNotGetDamagedUpsideDown. */
@@ -575,6 +579,8 @@ const PED_TYPE_CIVMALE=4;
  * the reason is kept so the gap is visible rather than silent. Everything the script sets before that point,
  * the clock, the stats, the zone population, the restart points and the rest, is real script state rather
  * than a static reading of the file. */
+/** An entity a touching question names: the player, a script ped or vehicle the host built, or a script object. */
+export type ScmTouchEntity={kind:'player'}|{kind:'ped'|'vehicle';entity:unknown}|{kind:'object';handle:number};
 /** CCarCtrl::CreateCarForScript's cruise speed. */
 const CREATED_CRUISE_SPEED=13;
 /** handlingFlags.bLowRider. */
@@ -1016,6 +1022,19 @@ export class ScmMission {
    // The handler is unreversed; off the water nothing writes its height, which reads here as 0.
    waterHeightAtCoords:(x,y,waves)=>this.host('waterLevelAt','GET_WATER_HEIGHT_AT_COORDS')(x,y,waves)??0,
    breakObject:(handle,intensity)=>{this.runtime.game.objects.breakObject(handle,intensity!==0);},
+   // IS_CHAR_TOUCHING_OBJECT, _VEHICLE and _CHAR: GetPedOrItsVehicle(ped)->GetHasCollidedWith(other), the other ped
+   // also by its vehicle when it sits in one; IS_VEHICLE_TOUCHING_OBJECT and IS_CAR_TOUCHING_CAR ask the car's.
+   pedIsTouching:(handle,other)=>{
+    const self=this.touchEntityOfPed(handle);
+    const target:ScmTouchEntity=other.kind==='ped'?this.touchEntityOfPed(other.handle):other.kind==='vehicle'?{kind:'vehicle',entity:this.liveVehicle(other.handle)}:(this.runtime.game.objects.at(other.handle),{kind:'object',handle:other.handle});
+    return this.host('scriptEntitiesTouching','IS_CHAR_TOUCHING')(self,target);
+   },
+   vehicleIsTouchingObject:(handle,object)=>{this.runtime.game.objects.at(object);return this.host('scriptEntitiesTouching','IS_VEHICLE_TOUCHING_OBJECT')({kind:'vehicle',entity:this.liveVehicle(handle)},{kind:'object',handle:object});},
+   isCarTouchingCar:(handle,other)=>this.host('scriptEntitiesTouching','IS_CAR_TOUCHING_CAR')({kind:'vehicle',entity:this.liveVehicle(handle)},{kind:'vehicle',entity:this.liveVehicle(other)}),
+   // SET_OBJECT_RECORDS_COLLISIONS: physicalFlags.bCanBeCollidedWith, without which AddCollisionRecord keeps nothing and
+   // HAS_OBJECT_COLLIDED_WITH_ANYTHING never holds.
+   setObjectRecordsCollisions:(handle,state)=>{this.runtime.game.objects.at(handle).recordsCollisions=state;},
+   objectHasCollidedWithAnything:handle=>!!this.runtime.game.objects.at(handle).recordsCollisions&&this.host('scriptObjectTouchingAnything','HAS_OBJECT_COLLIDED_WITH_ANYTHING')(handle),
    // PLAY_OBJECT_ANIM: the association goes on at once, and its length follows once the host has read the clip from
    // the block (which the script has loaded before it plays).
    playObjectAnim:(handle,name,block,blendDelta,lockF,loop)=>{
@@ -1923,6 +1942,13 @@ export class ScmMission {
  }
  /** CRunningScript::SetCharCoordinates on the player: CWorld::PutToGroundIfTooLow first (a z at or below
   * MAP_Z_LOW_LIMIT is the ground there). The group teleport that warpGang asks for is not modelled. */
+ /** GetPedOrItsVehicle for a touching question: the vehicle a ped sits in (not one it is only held on), else the ped. */
+ private touchEntityOfPed(handle:number):ScmTouchEntity{
+  if(handle===PLAYER_PED_HANDLE){const car=this.world.playerPed().vehicle?this.world.playerVehicleEntity?.():undefined;return car!==undefined?{kind:'vehicle',entity:car}:{kind:'player'};}
+  const ride=this.peds.rideOf(handle);
+  if(ride&&!ride.offset)return {kind:'vehicle',entity:this.liveVehicle(ride.vehicle)};
+  return {kind:'ped',entity:this.livePed(handle)};
+ }
  private teleportPlayer(x:number,y:number,z:number,command:string){
   const ground=z<=-100?this.world.groundLevel(x,y,z):undefined;
   if(!this.host('teleportPlayer',command)({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,command,'a player on a bike, boat or plane');

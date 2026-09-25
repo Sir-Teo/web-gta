@@ -87,6 +87,8 @@ export class ScriptObjectViews{
  objectForCollider(collider:number){return this.owners.get(collider);}
  /** Minus the lowest z of the object's COL bounding box, once its collision is in. */
  baseOffset(handle:number){const b=this.views.get(handle)?.col?.bounds;return b?-b.min[2]:undefined;}
+ /** The COL bounding sphere's radius, once the collision is in. */
+ boundsRadius(handle:number){return this.views.get(handle)?.col?.bounds.radius;}
  /** An object's body, once its collision is in. */
  bodyOf(handle:number){return this.views.get(handle)?.physical?.body;}
  /** The model's COL: its chunk alone, decoded from the collection the index names (the first holding the name). */

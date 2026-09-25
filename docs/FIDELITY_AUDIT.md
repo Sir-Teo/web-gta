@@ -8129,3 +8129,14 @@ cutscene that took a button away left it working. CPad's getters for each (`GetE
 `GetWeapon`, `CycleWeaponLeftJustDown`/`RightJustDown`, and the duck and jump ones) answer nothing while the flag is
 up; the player's input now does the same. `CEntryExit::TransitionFinished` puts the enter-car button back.
 `CPad::Clear(true)` clears them all only on a new or loaded game. Spec: `script-pad-switches`.
+
+## The touching questions and an object's collision records
+
+`IS_CHAR_TOUCHING_OBJECT`, `_VEHICLE`, `_CHAR`, `_OBJECT_ON_FOOT`, `IS_VEHICLE_TOUCHING_OBJECT` and
+`IS_CAR_TOUCHING_CAR` are `CPhysical::GetHasCollidedWith` on `GetPedOrItsVehicle`: the entities the frame's
+collisions recorded. They had no host and stopped RYDER2, RYDER3, DRUGS3/4 and TRUTH1. Here two entities touch when
+the narrow phase has a contact between their colliders, or their shapes lie within 0.1 of each other (a kinematic
+pair, a ped against a script object, makes no contact pair, and a ped's character controller stops a few
+centimetres short of what it walks into). `SET_OBJECT_RECORDS_COLLISIONS` sets `bCanBeCollidedWith`, without which
+`AddCollisionRecord` keeps nothing; `HAS_OBJECT_COLLIDED_WITH_ANYTHING` then holds while anything but the object
+itself touches its collision. Spec: `script-touching`.

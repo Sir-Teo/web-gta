@@ -77,6 +77,9 @@ export interface ScmObject {
  proofs:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
  /** CTheScripts::MissionCleanUp holds the object while this is set; DONT_REMOVE_OBJECT takes it off the list. */
  missionCleanup:boolean;
+ /** physicalFlags.bCanBeCollidedWith, which SET_OBJECT_RECORDS_COLLISIONS sets: whether the object keeps a record
+  * of what it touches. */
+ recordsCollisions?:boolean;
  /** The CAnimBlendAssociation PLAY_OBJECT_ANIM put on the object's clump, if any. */
  anim?:ScmObjectAnim;
 }
