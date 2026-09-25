@@ -288,6 +288,8 @@ export interface ScmMissionWorld {
  scriptPedSwimming?(ped:unknown):boolean;
  /** CGangWars::GangWarFightingGoingOn. */
  gangWarFightingGoingOn?():boolean;
+ /** CEntity::SetAreaCode for a car. */
+ setScriptVehicleArea?(car:unknown,area:number):void;
  /** The car path areas CPathFind has loaded, or nothing before any have. */
  carPathAreas?():ReadonlyMap<number,PathArea>|undefined;
  /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
@@ -1163,6 +1165,7 @@ export class ScmMission {
    explodeVehicle:handle=>{this.world.explodeScriptVehicle(this.liveVehicle(handle));},
    fixCar:handle=>{this.world.fixScriptVehicle(this.liveVehicle(handle));},
    setVehicleVisible:(handle,state)=>{this.world.setScriptVehicleVisible(this.liveVehicle(handle),state);},
+   setVehicleAreaVisible:(handle,area)=>{this.host('setScriptVehicleArea','SET_VEHICLE_AREA_VISIBLE')(this.liveVehicle(handle),area);},
    setVehicleProofs:(handle,proofs)=>{this.world.setScriptVehicleProofs(this.liveVehicle(handle),proofs);},
    setVehicleCanBeDamaged:(handle,canBeDamaged)=>{this.world.setScriptVehicleCanBeDamaged(this.liveVehicle(handle),canBeDamaged);},
    // CVehicle::m_nDoorLock: the script's lock states above unlocked all refuse entry, which is all the browser

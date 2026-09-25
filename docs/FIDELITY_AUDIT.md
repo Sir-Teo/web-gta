@@ -7303,3 +7303,11 @@ Each is now answered:
 - Such a command now raises ScmEntityPending. The thread waits a frame at that command and runs it again, until the
   entity is there. It has consumed nothing and set no compare flag in between.
 - A handle whose making failed, or one that names nothing, still gives up.
+
+## A script car's area
+
+- SET_VEHICLE_AREA_VISIBLE, used in 13 script blocks, had no answer. It is now CEntity::SetAreaCode on the car:
+  - a car in area 0 (the outside world) draws everywhere;
+  - a car in an interior draws only while that interior is the area being shown. This is the rule the port's script
+    objects already follow, and the renderer checks it each frame for cars with a non-zero area.
+- SET_CAR_VISIBLE's own say is kept beside it, so a hidden car stays hidden in any area.

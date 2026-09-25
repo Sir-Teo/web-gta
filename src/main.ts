@@ -893,6 +893,8 @@ async function boot() {
         debugMarkers.forEach((q,i)=>markers3d.placeMarkerCone(0x10000+i,q,2,255,255,0,255,1024,1,5,false,cam,ctx));
         // CCheckpoints::Render: the script's race tubes and rings, placed as markers each frame.
         mission?.runtime.game.checkpoints.markers.render(markers3d,ctx,(x,y)=>render.lighting.water.levels?.levelNoWaves(x,y));
+        // A car a script put in an area other than the outside world shows only while that area does.
+        for(const car of fleet?.cars??[])if(car.areaCode)car.showForArea(render.lighting.area);
         markers3d.update(timeStep);markersMesh.frame([...markers3d.drawUserMarkers(),...markers3d.render(visible)],camera);markersMesh.frameArrows(markers3d.drawDirectionArrows());
       }
       // CEntity::CreateRwObject's CTagManager::ResetAlpha for a newly installed scene's tags.
@@ -3581,7 +3583,8 @@ async function boot() {
                  scriptVehicleOnScreen:car=>{const p=(car as ScriptCar).car.body.translation();return !populationOutsideView(render.camera,p,2);},
                  explodeScriptVehicle:car=>{(car as ScriptCar).blowUp();},
                  fixScriptVehicle:car=>{(car as ScriptCar).fix();},
-                 setScriptVehicleVisible:(car,visible)=>{(car as ScriptCar).car.root.visible=visible;},
+                 setScriptVehicleVisible:(car,visible)=>{const c=car as ScriptCar;c.scriptVisible=visible;c.showForArea(render.lighting.area);},
+                 setScriptVehicleArea:(car,area)=>{const c=car as ScriptCar;c.areaCode=area;c.showForArea(render.lighting.area);},
                  setScriptVehicleProofs:(car,proofs)=>{(car as ScriptCar).proofs={...proofs};},
                  setScriptVehicleCanBeDamaged:(car,canBeDamaged)=>{(car as ScriptCar).canBeDamaged=canBeDamaged;},
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},

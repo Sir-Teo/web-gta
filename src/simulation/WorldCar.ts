@@ -227,6 +227,13 @@ export class WorldCar {
   const q=this.car.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
   return upY<.3&&this.wheelGround.filter(Boolean).length<4||upY<0;
  }
+ /** CEntity::m_nAreaCode, which SET_VEHICLE_AREA_VISIBLE sets: 0 is the outside world, any other an interior. */
+ areaCode=0;
+ /** SET_CAR_VISIBLE's own say, which the area check keeps. */
+ scriptVisible=true;
+ /** Drawn when the script has not hidden it and it is in the outside world or the area being shown, as a script
+  * object is. */
+ showForArea(area:number){this.car.root.visible=this.scriptVisible&&(this.areaCode===0||this.areaCode===area);}
  /** CVehicle::m_pLastDamageEntity: whoever last hurt the car, which CLEAR_CAR_LAST_DAMAGE_ENTITY forgets. */
  lastDamagedBy?:CarDamager;
  /** CVehicle::m_nLastWeaponDamageType: the eWeaponType that last hurt the car, -1 until one has. */
