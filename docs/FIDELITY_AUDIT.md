@@ -8150,3 +8150,10 @@ RYDER2, RYDER3 and MUSIC1 ask for are the ones shown. Test: `native-vehicle-extr
 
 A ped told to leave a car that has since been deleted (TASK_LEAVE_CAR, or an on-foot task given while seated) is set
 down where it sat rather than stopping the thread.
+
+## GET_DEAD_CHAR_COORDINATES and SET_PLAYER_GROUP_TO_FOLLOW_NEVER
+
+`GetDeadCharCoordinates` answers the position of the car a ped sits in, else `GetBonePosition(BONE_PELVIS)`, where a
+body lies rather than where its root was left (CAT1, SCRASH3, SYN2). `SET_PLAYER_GROUP_TO_FOLLOW_NEVER` sets
+`m_bGroupNeverFollow`, kept beside the always flag for `TellGroupToStartFollowingPlayer`. `GET_DEAD_CHAR_PICKUP_COORDS`
+stays open: `CPickups::CreatePickupCoorsCloseToCoors` is not reversed. Spec: `script-world-queries`.

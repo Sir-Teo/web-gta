@@ -57,6 +57,11 @@ test('a script reads a passenger seat, a line of sight, a group, a car engine, c
  await w('attachPedToCar',rider,made.car,{x:0,y:-1,z:1});
  expect(await w('isCharAttachedToAnyCar',rider)).toBe(true);
  expect(await w('isCharAttachedToAnyCar',made.ped)).toBe(false);
+ // GET_DEAD_CHAR_COORDINATES: the car a seated ped is in; a ped only held on the car by its pelvis, near its root.
+ const seatedAt=await w('deadPedCoordinates',made.ped),carAt=await w('vehiclePosition',made.car);
+ expect(Math.hypot(seatedAt.x-carAt.x,seatedAt.y-carAt.y,seatedAt.z-carAt.z)).toBeLessThan(.01);
+ const pelvis=await w('deadPedCoordinates',rider),root=await w('pedPosition',rider);
+ expect(Math.hypot(pelvis.x-root.x,pelvis.y-root.y)).toBeLessThan(1);expect(Math.abs(pelvis.z-root.z)).toBeLessThan(1.2);
  expect(await w('hasLanguageChanged')).toBe(false);
  // The lake at 40.6 north of the desert, without the swell; dry land writes nothing, read as 0.
  expect(await w('waterHeightAtCoords',-1170,2680,false)).toBeCloseTo(40.6,3);

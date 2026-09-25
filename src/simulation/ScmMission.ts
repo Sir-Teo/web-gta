@@ -1579,6 +1579,17 @@ export class ScmMission {
    explodePedHead:handle=>{if(handle===PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'EXPLODE_CHAR_HEAD','the player');this.host('explodeScriptPedHead','EXPLODE_CHAR_HEAD')(this.livePed(handle));},
    // CPlayerPed::ForceGroupToAlwaysFollow (PlayerCommands.cpp): the player's group keeps following whatever he does.
    forcePlayerGroupToAlwaysFollow:(_player,enable)=>{this.playerGroupAlwaysFollows=enable;},
+   // CPlayerPed's m_bGroupNeverFollow, which TellGroupToStartFollowingPlayer checks as the always flag is checked.
+   setPlayerGroupToFollowNever:(_player,state)=>{this.playerGroupNeverFollows=state;},
+   // GET_DEAD_CHAR_COORDINATES: the car a ped sits in, else its pelvis bone (BONE_PELVIS), where a body lies rather
+   // than where its root was left.
+   deadPedCoordinates:handle=>{
+    const ride=handle===PLAYER_PED_HANDLE?undefined:this.peds.rideOf(handle);
+    if(ride&&!ride.offset&&this.vehicles.exists(ride.vehicle))return this.vehicles.positionOf(ride.vehicle);
+    if(handle===PLAYER_PED_HANDLE&&this.world.playerPed().vehicle)return this.world.playerPed().position;
+    if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);
+    return this.pedBoneFrame(handle,1)?.position??(handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.positionOf(handle));
+   },
    // CPed::bIsTargetPriority and bStayInCarOnJack's bike twin (m_nPedFlags): the ped's flags, kept on it.
    setPedIsTargetPriority:(handle,state)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'targetPriority',state);},
    setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
@@ -1976,6 +1987,8 @@ export class ScmMission {
  }
  /** CPlayerData::m_bGroupAlwaysFollow (SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS). */
  playerGroupAlwaysFollows=false;
+ /** CPlayerData::m_bGroupNeverFollow (SET_PLAYER_GROUP_TO_FOLLOW_NEVER). */
+ playerGroupNeverFollows=false;
  /** What a car handle names: the player's own car for PLAYER_VEHICLE_HANDLE, a script car the browser built, or nothing. */
  /** A car by handle once it is built: the player's own at once, a script car when its making settles. */
  private async vehicleOrPlayer(handle:number):Promise<unknown>{return handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.whenSettled(handle);}
