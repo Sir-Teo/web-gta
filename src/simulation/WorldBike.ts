@@ -103,7 +103,11 @@ export class WorldBike {
   // Minimal contact friction: the arcade controller presets horizontal velocity
   // each step (lateral grip comes free), so tire friction would only fight the
   // drive the way hull friction would fight a boat.
-  this.physical=installNativeVehicleBody(sim.world,assets.collision!,assets.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:.05});this.body=this.physical.body;this.car={body:this.body,root:this.root};
+  this.physical=installNativeVehicleBody(sim.world,assets.collision!,assets.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},
+   // beforeStep sets the bike's ground velocity itself each step (the handling's acceleration, braking and coasting), so
+   // contact friction is only drag: the wheel spheres are fixed to the body and slide rather than roll, and against the
+   // ground's own friction they cost a hundred-kilo BMX about as much as its full pedalling. None of it is taken.
+   {friction:0,restitution:.05,frictionCombineRule:RAPIER.CoefficientCombineRule.Min});this.body=this.physical.body;this.car={body:this.body,root:this.root};
   if(assets.model&&assets.textures){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }

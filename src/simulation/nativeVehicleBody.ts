@@ -6,7 +6,9 @@ import type {prepareHandling} from './nativeHandling';
 import type {NativeCollisionSource} from './nativeCollision';
 /** Dynamic COL adapter. Pose uses browser axes; source geometry/COM convert once.
  * Rapier contact friction/restitution are explicit approximations, not SURFINFO. */
-export function installNativeVehicleBody(world:RAPIER.World,model:ColModel,handling:ReturnType<typeof prepareHandling>,pose:{position:Vec3;rotation:RAPIER.Rotation},contact:{friction:number;restitution:number}){
+export function installNativeVehicleBody(world:RAPIER.World,model:ColModel,handling:ReturnType<typeof prepareHandling>,pose:{position:Vec3;rotation:RAPIER.Rotation},contact:{friction:number;restitution:number;
+ /** How the contact friction combines with what the vehicle touches (Rapier's default averages the two). */
+ frictionCombineRule?:RAPIER.CoefficientCombineRule}){
   const h=handling.values,p=pose.position,q=pose.rotation;
   requireAsset([p.x,p.y,p.z,q.x,q.y,q.z,q.w,h.mass,h.turnMass,h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ,contact.friction,contact.restitution].every(n=>Number.isFinite(Math.fround(n))),'Nonfinite vehicle body input.');
   requireAsset(h.mass>0&&h.turnMass>0&&Math.abs(q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w-1)<1e-5&&contact.friction>=0&&contact.restitution>=0&&contact.restitution<=1,'Invalid vehicle mass, pose or collision response.');
@@ -17,7 +19,7 @@ export function installNativeVehicleBody(world:RAPIER.World,model:ColModel,handl
     .setAdditionalMassProperties(h.mass,{x:h.centerOfMassX,y:h.centerOfMassZ,z:-h.centerOfMassY},{x:h.turnMass,y:h.turnMass,z:h.turnMass},{x:0,y:0,z:0,w:1}));
   const sources=new Map<number,NativeCollisionSource>();let disposed=false;
   const dispose=()=>{if(disposed)return;disposed=true;sources.clear();if(body.isValid())world.removeRigidBody(body);};
-  const add=(desc:RAPIER.ColliderDesc,source:NativeCollisionSource)=>{const collider=world.createCollider(desc.setDensity(0).setFriction(contact.friction).setRestitution(contact.restitution),body);sources.set(collider.handle,source);};
+  const add=(desc:RAPIER.ColliderDesc,source:NativeCollisionSource)=>{if(contact.frictionCombineRule!==undefined)desc.setFrictionCombineRule(contact.frictionCombineRule);const collider=world.createCollider(desc.setDensity(0).setFriction(contact.friction).setRestitution(contact.restitution),body);sources.set(collider.handle,source);};
   try{
     model.spheres.forEach((sphere,index)=>{requireAsset(Number.isFinite(Math.fround(sphere.radius))&&sphere.radius>0&&sphere.center.length===3&&sphere.center.every(n=>Number.isFinite(Math.fround(n))),'Invalid vehicle collision sphere.');add(RAPIER.ColliderDesc.ball(sphere.radius).setTranslation(sphere.center[0],sphere.center[2],-sphere.center[1]),{kind:'sphere',index,surface:sphere.surface});});
     model.boxes.forEach((box,index)=>{

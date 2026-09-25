@@ -7830,3 +7830,8 @@ Each is now answered:
 - The rebuilt body now takes the ped's health as it stands. It also gets what the script set on it: accuracy, shoot
   rate, invulnerability, proofs and anim group.
 - Verification: `tests/scm-ped-pool.test.ts`.
+- A bike's contact friction is gone (zero, combined by the minimum). WorldBike sets the bike's ground velocity itself
+  each step from the handling's acceleration, brakes and coasting, so friction only acted as drag.
+  - The wheel spheres are fixed to the body and slide rather than roll. Against the ground's averaged friction they
+    cost a 100 kg BMX about 3.7 m/s², more than 0.8 throttle's pedalling (3.6 m/s² at full).
+  - The AI's part-throttle bikes stood still until the stuck recovery backed them up, over and over (INTRO1's homies).
