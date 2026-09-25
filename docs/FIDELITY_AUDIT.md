@@ -7994,8 +7994,7 @@ Each is now answered:
 ## Getting off a script bike
 
 - An on-foot task given to a ped riding a script bike takes the ped off first, at the point the leave-car task picks.
-  That point was read from a car's door frames, which a bike does not have, so the command threw and stopped INTRO1
-  at the end of the ride.
+  That point was read from a car's door frames, which a bike does not have, so the command threw.
 - The rider now steps off at the bike's side mount point: the driver's saddle to the left, the pillion to the right.
 - Verification: `tests/browser/script-bike-rider.spec.ts`.
 
@@ -8025,3 +8024,16 @@ Each is now answered:
   - As he gets out, follower i leaves rand(-250, 250) + 500 i ms after him.
   - These are the group's tasks, so GET_SCRIPT_TASK_STATUS does not report them.
 - Verification: `tests/browser/script-group-car.spec.ts`.
+
+## Clips in the seat, and a replaced drive task
+
+- TASK_PLAY_ANIM does not take a ped out of its seat: CTaskSimpleRunAnim plays where the ped sits. INTRO1's homies wave
+  BMX_COMEON (MISC) from their saddles at the end of the ride and then ride home on sequence 72. The port took them
+  off their bikes first, and the ride home never happened.
+  - The clip is read from its block and drawn on the seated rider in place of the seat's pose, looped or held at its
+    end, and the task ends with the clip or its time.
+  - The ped's next task, or CLEAR_CHAR_TASKS, lets a held clip go.
+- A driving task that another primary task replaces is CTaskComplexCarDrive's destructor, which puts the car's
+  mission, style and cruise speed back as they were before it. A script car's are none, so the car stops. The port
+  left it driving under a ped doing something else, and GET_SCRIPT_TASK_STATUS kept reporting the ped busy.
+- Verification: `tests/browser/script-bike-rider.spec.ts`.

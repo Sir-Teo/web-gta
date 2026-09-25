@@ -1844,6 +1844,8 @@ export class WorldPedestrians {
  isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
  /** How far through that animation the ped is, or nothing when it is playing something else. */
  animProgress(ped:Pedestrian,animation:string){return this.isPlayingAnim(ped,animation)?ped.view.reactionProgress:undefined;}
+ /** A clip from a script's animation block, for a ped the host draws in a seat rather than on foot. */
+ loadScriptAnimation(file:string,name:string){return this.catalog?.scriptAnimation(file,name)??Promise.resolve(undefined);}
  /** SET_CHAR_ANIM_SPEED and SET_CHAR_ANIM_CURRENT_TIME: the association the ped is playing under that name, if any. */
  setAnim(ped:Pedestrian,animation:string,change:{speed?:number;progress?:number}){setCharacterAnim(ped.view,animation,change);}
  /** HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE: the held model goes out of sight, and the ped keeps the weapon. */

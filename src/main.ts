@@ -26,7 +26,9 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
  driveBy?:import('./simulation/scriptDriveBy').ScriptDriveBy;
  seat:number|'driver';health:number;heading:number;accuracy:number;invulnerable:boolean;gone:boolean;
  /** Where on the car the ped hangs, in the car's own axes, for one attached rather than seated. */
- offset?:{x:number;y:number;z:number}}
+ offset?:{x:number;y:number;z:number};
+ /** TASK_PLAY_ANIM in the seat: the clip once read, the game time it began at, and how it ends. */
+ clip?:{name:string;animation?:import('./assets/ifp').NativeAnimation;started:number;loop:boolean;hold:boolean;seconds:number;failed?:boolean}}
 const scriptRiders=new Set<ScriptRider>();
 const asRider=(entity:unknown)=>(entity as ScriptRider|undefined)?.rider?entity as ScriptRider:undefined;
 /** A script vehicle that is a car (WorldCar) rather than a bike, boat, aircraft or train carriage. */
@@ -38,16 +40,18 @@ const isScriptDrivable=(v:unknown):v is import('./simulation/ScriptCarMissions')
  * that ped rides unseen until the models carry rear seat points. A rider whose car has gone stops riding. */
 /** `driveBy` gives the drive-by clips and gun a leaning rider needs, once the gang drive-bys have loaded them. */
 function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp').NativeAnimation|undefined;gun?:{asset:{model:import('./assets/dff').DffModel;textures:import('./assets/modelTextures').ModelTexture[]}}},
- bikeClip?:(block:string,name:string)=>import('./assets/ifp').NativeAnimation|undefined){
+ bikeClip?:(block:string,name:string)=>import('./assets/ifp').NativeAnimation|undefined,nowMs=0){
  const poses:import('./render/VehicleOccupants').OccupantPose[]=[];
  for(const rider of scriptRiders){
   if(rider.gone||rider.car.disposed||rider.health<=0){scriptRiders.delete(rider);continue;}
+  // A clip the script plays on the seated rider takes the place of the seat's own pose: looped, or held at its end.
+  const own=rider.clip?.animation,played=own&&rider.clip?{clip:rider.clip.name,animation:own,seconds:own.duration>0?(rider.clip.loop?((nowMs-rider.clip.started)/1000)%own.duration:Math.min((nowMs-rider.clip.started)/1000,own.duration)):0}:undefined;
   // A bike's rider sits on the saddle with the ride group's clip, as the player does: still, riding or pedalling by
   // the bike's speed. A pillion, and riders of boats and aircraft, ride unseen for now.
   const bike=rider.car as unknown as Partial<import('./simulation/WorldBike').WorldBike>;
   if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&bike.car&&!rider.offset&&rider.seat==='driver'){
    const pose=bike.riderPose(),clip=pose.seat&&bikeClip?.(pose.block,pose.idle);
-   if(pose.seat&&clip)poses.push({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,clip:pose.idle,seconds:clip.duration,animation:clip});
+   if(pose.seat&&(clip||played))poses.push({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,...(played??{clip:pose.idle,seconds:clip!.duration,animation:clip!})});
    continue;
   }
   // The occupant renderer seats peds in cars; a rider on a script boat or aircraft rides unseen for now.
@@ -63,7 +67,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
    continue;
   }
   poses.push({key:`script:${rider.car.car.body.handle}:${rider.offset?'on':rider.seat}`,car:rider.car,
-   model:rider.model,local:seat,clip:rider.offset?'car_sit':sitClip(rider.car.modelFlags,rider.seat==='driver'),seconds:0});
+   model:rider.model,local:seat,...(played??{clip:rider.offset?'car_sit':sitClip(rider.car.modelFlags,rider.seat==='driver'),seconds:0})});
  }
  return poses;
 }
@@ -2658,7 +2662,7 @@ async function boot() {
       target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z)};}
      else if(scriptFixedCamera&&render.fixedCamera===scriptFixedCamera){render.fixedCamera=undefined;scriptFixedCamera=undefined;}
     }
-    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby,(block,name)=>carEntry.clips.peek(block,name))],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby,(block,name)=>carEntry.clips.peek(block,name),gameTimeMs)],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
@@ -3671,6 +3675,19 @@ async function boot() {
                  burstScriptVehicleTyre:(car,wheel)=>{if(isScriptCar(car))car.burstTyre(wheel,true);},
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
                  setScriptPedListensToGroupCommands:(ped,listens)=>{const p=onFoot(ped);if(p)p.ignoresGroupCommands=!listens;},
+                 playScriptRiderClip:(ped,o)=>{
+                  const rider=asRider(ped);if(!rider)return;
+                  const clip:NonNullable<ScriptRider['clip']>={name:o.name.toLowerCase(),started:gameTimeMs,loop:o.loop,hold:o.hold,seconds:o.seconds};rider.clip=clip;
+                  void (pedestrians?.loadScriptAnimation(o.file,o.name)??Promise.resolve(undefined)).then(animation=>{if(rider.clip!==clip)return;if(!animation){clip.failed=true;return;}clip.animation=animation;clip.started=gameTimeMs;},()=>{clip.failed=true;});
+                 },
+                 scriptRiderClipDone:ped=>{
+                  const rider=asRider(ped),clip=rider?.clip;if(!rider||!clip||clip.failed){if(rider)rider.clip=undefined;return true;}
+                  if(!clip.animation)return false;
+                  const elapsed=(gameTimeMs-clip.started)/1000,over=elapsed>=clip.seconds||!clip.loop&&elapsed>=clip.animation.duration;
+                  if(over&&!clip.hold)rider.clip=undefined;
+                  return over;
+                 },
+                 clearScriptRiderClip:ped=>{const rider=asRider(ped);if(rider)rider.clip=undefined;},
                  setScriptPedFollowsPlayer:(ped,follows)=>{const p=onFoot(ped);if(p&&p.follow!==follows){p.follow=follows;if(!follows)p.foe=undefined;}},
                  setEntryExitGroupWarping:(x,y,radius,on)=>{entryExits?.setAcceptNpcGroupNear(x,y,radius,on);},
                  // TASK_DRIVE_BY on a rider: the target is a point (script coordinates), a ped or a car handle.

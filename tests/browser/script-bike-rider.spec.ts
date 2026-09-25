@@ -28,14 +28,23 @@ test('a script ped gets on a script BMX and rides it to a point, and the peds ke
  expect(await page.evaluate(({bike,start})=>{const g=(window as any).__game,b=g.missionForProfiling().vehicles.entity(bike),m=g.scriptCars().missions.get(b);return m&&Math.round(m.goal.x-start.x);},{...made,start})).toBe(-60);
  // The rider is drawn on the saddle with the BMX group's clip.
  await expect.poll(()=>page.evaluate(bike=>{const g=(window as any).__game,b=g.missionForProfiling().vehicles.entity(bike);return [...g.occupants().views.keys()].includes(`script:${b.car.body.handle}:driver`);},made.bike),{timeout:30000}).toBe(true);
- // An on-foot task takes the rider off first (INTRO1 plays a clip on each homie at the end of the ride): he steps
- // off at the bike's left, where a car's door frames used to be read off the bike and stop the script.
+ // TASK_PLAY_ANIM does not take the rider off: INTRO1's homies wave BMX_COMEON (MISC) from their saddles and ride on.
  const gaveUp=()=>page.evaluate(()=>(window as any).__game.missionForProfiling().snapshot().gaveUp.length);
  const before=await gaveUp();
- await page.evaluate(({ped})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(ped,{kind:'playAnim',animationName:'IDLE_chat',animationFile:'PED',blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:true},0x0605),made);
- await expect.poll(()=>page.evaluate(({ped})=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(ped)??null,made),{timeout:30000}).toBeNull();
- const off=await page.evaluate(({ped,bike})=>{const w=(window as any).__game.missionForProfiling().runtime.world,a=w.pedPosition(ped),b=w.vehiclePosition(bike);return Math.hypot(a.x-b.x,a.y-b.y);},made);
- expect(off).toBeLessThan(3);
+ const PLAY=0x0605;
+ await page.evaluate(({ped})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(ped,{kind:'playAnim',animationName:'BMX_COMEON',animationFile:'MISC',blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:true},0x0605),made);
+ const seated=()=>page.evaluate(({ped,bike})=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(ped)===bike,made);
+ const drawn=()=>page.evaluate(bike=>{const g=(window as any).__game,b=g.missionForProfiling().vehicles.entity(bike);return g.occupants().views.get(`script:${b.car.body.handle}:driver`)?.view.snapshot().vehicleClip??null;},made.bike);
+ await expect.poll(drawn,{timeout:30000}).toBe('bmx_comeon');
+ expect(await seated()).toBe(true);
+ // The clip ends and the task with it, the rider still on the saddle and back in its riding pose.
+ await expect.poll(()=>page.evaluate(({ped})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(ped,0x0605),{ped:made.ped}),{timeout:30000}).toBe(7);
+ expect(await seated()).toBe(true);
+ await expect.poll(drawn,{timeout:10000}).not.toBe('bmx_comeon');
+ // A walking task does take him off, at the bike's left, where a car's door frames used to be read off the bike.
+ const at=await page.evaluate(({bike})=>(window as any).__game.missionForProfiling().runtime.world.vehiclePosition(bike),made);
+ await page.evaluate(({ped,at})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(ped,{kind:'goStraightToCoord',x:at.x+4,y:at.y+4,z:at.z,speed:4,time:-1},0x05d3),{...made,at});
+ await expect.poll(seated,{timeout:30000}).toBe(false);
  expect(await gaveUp()).toBe(before);
  expect(faults).toEqual([]);expect(errors).toEqual([]);
 });
