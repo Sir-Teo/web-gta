@@ -231,6 +231,12 @@ export class NativeClimbTask<E extends ClimbEntity=ClimbEntity>{
    }else{
     this.standing=false;
     ped.moveSpeed={x:delta.x/timeStep,y:delta.y/timeStep,z:delta.z/timeStep};
+    // The settle offset is under 0.317 here, so at the original 30 fps step (1.67) this speed never passes 0.19. The
+    // port's 60 Hz step would double it, past the -0.375 a landing reads as a fall. gta-reversed's reversible fix
+    // (CTaskSimpleClimb_ProcessPed_SettleSpeedFrameRate) bounds it at 0.2, as the coarse step above is, which keeps the
+    // 30 fps result.
+    const settle=Math.hypot(ped.moveSpeed.x,ped.moveSpeed.y,ped.moveSpeed.z);
+    if(settle>.2)ped.moveSpeed={x:ped.moveSpeed.x*.2/settle,y:ped.moveSpeed.y*.2/settle,z:ped.moveSpeed.z*.2/settle};
     const a=this.anim;
     if(a&&!a.playing&&this.heightForAnim===CLIMB.STANDUP){
      if(this.testForVault(world,ped)){this.heightForAnim=CLIMB.VAULT;this.changeAnimation=true;}

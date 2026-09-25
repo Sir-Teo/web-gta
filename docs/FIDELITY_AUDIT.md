@@ -6545,3 +6545,12 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
 - **Slots:** the script's pickups take the slots in creation order, and a pickup made during play takes the first
   free one (GenerateNewOne's search; that routine is unreversed).
 - A regenerating pickup gets its object back at once, as CPickup::Update calls GiveUsAPickUpObject.
+
+## Climb settle speed at the 60 Hz step
+
+- In CTaskSimpleClimb::ProcessPed's settle branch the offset to the hold is under 0.317 and becomes a speed:
+  offset / time step. At the original 30 fps step (1.67) that never passes 0.19. At the port's 60 Hz step (0.83) it
+  reached 0.38, past the −0.375 a landing reads as a fall.
+- gta-reversed 25f72a7 added a reversible fix (CTaskSimpleClimb_ProcessPed_SettleSpeedFrameRate) that bounds the
+  settle speed at 0.2, as the coarse step above it is bounded. The port now does the same. At the original step the
+  bound never applies, so the 30 fps result is kept.

@@ -113,6 +113,20 @@ describe('CTaskSimpleClimb::ProcessPed',()=>{
   // CLIMB_FINISHED_V: 0.5 past the edge, falling at 0.05 units per frame.
   expect(result.ped.position.y).toBeGreaterThan(1.1);expect(result.ped.moveSpeed.z).toBeCloseTo(-.05);
  });
+ test('the settle speed is bounded at 0.2, which the original 30 fps step never reaches, so a 60 Hz step lands no harder',()=>{
+  const wall=box({x:-3,y:.6,z:0},{x:3,y:1.6,z:3}),world=boxWorld([wall]);
+  const found=testForClimb(world,ped,true);if(!found||found==='invalid')throw new Error('no hold');
+  // Hanging, 0.3 short of the hold offset: inside the settle branch (under 0.317).
+  const task=new NativeClimbTask(found.entity,found.hold,CLIMB.GRAB,false,DURATIONS);
+  const hang={x:found.hold.position.x+climbOffset3D(CLIMB_OFFSETS.hanging,0).x,y:found.hold.position.y+climbOffset3D(CLIMB_OFFSETS.hanging,0).y,z:found.hold.position.z+climbOffset3D(CLIMB_OFFSETS.hanging,0).z};
+  const at60={position:{x:hang.x,y:hang.y,z:hang.z-.3},heading:0,moveSpeed:{x:0,y:0,z:0},isPlayer:true};
+  task.updateAnim(1/60);task.process(at60,{jump:true,jumpJustDown:false,exitVehicle:false},world,50/60);
+  expect(Math.hypot(at60.moveSpeed.x,at60.moveSpeed.y,at60.moveSpeed.z)).toBeCloseTo(.2,6);
+  const at30task=new NativeClimbTask(found.entity,found.hold,CLIMB.GRAB,false,DURATIONS);
+  const at30={position:{x:hang.x,y:hang.y,z:hang.z-.3},heading:0,moveSpeed:{x:0,y:0,z:0},isPlayer:true};
+  at30task.updateAnim(1/30);at30task.process(at30,{jump:true,jumpJustDown:false,exitVehicle:false},world,50/30);
+  expect(at30.moveSpeed.z).toBeCloseTo(.3/(50/30),6);
+ });
  test('exit-vehicle drops the ped',()=>{
   const wall=box({x:-3,y:.6,z:0},{x:3,y:1.6,z:3}),world=boxWorld([wall]);
   const found=testForClimb(world,ped,true);if(!found||found==='invalid')throw new Error('no hold');
