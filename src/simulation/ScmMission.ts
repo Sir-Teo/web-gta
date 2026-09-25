@@ -47,6 +47,14 @@ const MODEL_NEVADA=553;
 /** What the browser can answer for the script while it runs its opening. */
 /** eScriptedTaskStatus and the scripts' FINISHED_TASK. */
 const TASK_EVENT_ASSOCIATED=0,TASK_TASK_ASSOCIATED=1,FINISHED_TASK=7;
+/** What the component commands reach on a CAutomobile. */
+export interface ScmCarComponents {
+ popDoor(door:number,visible:boolean):void;popPanel(panel:number,visible:boolean):void;popBoot():void;
+ fixDoor(door:number):void;fixPanel(panel:number):void;fixTyre(wheel:number):void;
+ damageDoor(door:number):void;damagePanel(panel:number):void;
+ tyreBurst(wheel:number):boolean;doorFullyOpen(door:number):boolean;
+ readonly damageState:{readonly doors:readonly number[]};petrolTankIsWeakPoint:boolean;
+}
 export interface ScmMissionWorld {
  /** CPhysical::physicalFlags.bSubmergedInWater of a vehicle: cBuoyancy found it in the water. */
  scriptVehicleInWater?(car:unknown):boolean;
@@ -299,8 +307,12 @@ export interface ScmMissionWorld {
  setScriptPedSpeech(ped:unknown,shutUp:boolean):void;
  setScriptPedFacialTalk(ped:unknown,seconds:number|undefined):void;
  hideScriptPedWeapon(ped:unknown,hidden:boolean):void;
- /** CExplosion::AddExplosion at a point in the script's own coordinates. */
- addExplosion(position:{x:number;y:number;z:number},type:number):void;
+ /** CExplosion::AddExplosion at a point in the script's own coordinates; `sound` false for ADD_EXPLOSION_NO_SOUND. */
+ addExplosion(position:{x:number;y:number;z:number},type:number,options?:{sound?:boolean}):void;
+ /** The CAutomobile a car handle stands for, for the component commands; nothing for a bike, boat or aircraft. */
+ scriptCarComponents?(car:unknown):ScmCarComponents|undefined;
+ /** CPhysical::m_vecTurnSpeed from the script's radians a second, set or added. */
+ setScriptVehicleTurnSpeed?(car:unknown,speed:{x:number;y:number;z:number},add:boolean):void;
  setScriptVehicleCanBurstTyres(car:unknown,canBurst:boolean):void;
  /** SET_CAR_HEAVY: physicalFlags.bMakeMassTwiceAsBig. */
  setScriptVehicleHeavy?(car:unknown,heavy:boolean):void;
@@ -944,6 +956,27 @@ export class ScmMission {
    // CVehicle::m_nNumPassengers: the script's peds in the car's passenger seats.
    vehiclePassengerCount:handle=>this.peds.passengersOf(handle),
    // The script's 0 to 3 are eCarWheel (front left, rear left, front right, rear right), which BurstTyre passes through.
+   // The CAutomobile component commands: CAutomobile::PopDoor, PopPanel, PopBoot, FixDoor, FixPanel, FixTyre, and
+   // the damage and state questions. A car that is not a CAutomobile gives no answer and takes no change.
+   popVehicleDoor:(handle,door,visible)=>{this.carComponents(handle)?.popDoor(door,visible);},
+   popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
+   popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
+   fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},
+   fixCarPanel:(handle,panel)=>{this.carComponents(handle)?.fixPanel(panel);},
+   fixCarTyre:(handle,wheel)=>{this.carComponents(handle)?.fixTyre(wheel);},
+   damageVehicleDoor:(handle,door)=>{this.carComponents(handle)?.damageDoor(door);},
+   damageVehiclePanel:(handle,panel)=>{this.carComponents(handle)?.damagePanel(panel);},
+   vehicleTyreIsBurst:(handle,wheel)=>this.carComponents(handle)?.tyreBurst(wheel)??false,
+   // Visibly damaged: crumpled, crumpled and open, or gone.
+   isCarDoorDamaged:(handle,door)=>{const state=this.carComponents(handle)?.damageState.doors[door];return state===2||state===3||state===4;},
+   isCarDoorFullyOpen:(handle,door)=>this.carComponents(handle)?.doorFullyOpen(door)??false,
+   // vehicleFlags.bPetrolTankIsWeakPoint (CVehicle's constructor sets it); kept for the shot that reads it.
+   setVehiclePetrolTankWeakpoint:(handle,weak)=>{const car=this.carComponents(handle);if(car)car.petrolTankIsWeakPoint=weak;},
+   setVehicleRotationVelocity:(handle,x,y,z)=>{this.host('setScriptVehicleTurnSpeed','SET_CAR_ROTATION_VELOCITY')(this.liveVehicle(handle),{x,y,z},false);},
+   addToCarRotationVelocity:(handle,x,y,z)=>{this.host('setScriptVehicleTurnSpeed','ADD_TO_CAR_ROTATION_VELOCITY')(this.liveVehicle(handle),{x,y,z},true);},
+   addExplosionNoSound:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type,{sound:false});},
+   // The camera shake an explosion gives is not modelled, so the shake the script names changes nothing yet.
+   addExplosionVariableShake:(x,y,z,type)=>{this.world.addExplosion({x,y,z},type);},
    burstVehicleTyre:(handle,wheel)=>{this.host('burstScriptVehicleTyre','BURST_CAR_TYRE')(this.liveVehicle(handle),wheel);},
    // reVC's TURN_CAR_TO_FACE_COORD: GetATanOfXY(position - point) + π/2, less a turn once past one, as a heading.
    turnVehicleToFaceCoord:(handle,x,y)=>{
@@ -1649,6 +1682,8 @@ export class ScmMission {
   if(typeof method!=='function')throw new UnsupportedScmCommand(-1,0,command,'no host');
   return (method as (...args:never[])=>unknown).bind(this.world) as NonNullable<ScmMissionWorld[K]>;
  }
+ /** The CAutomobile behind a car handle, when the host has one. */
+ private carComponents(handle:number){return this.world.scriptCarComponents?.(this.liveVehicle(handle));}
  private liveVehicle(handle:number){
   // The player's own car is not one the script made: the host hands it over while the player drives it.
   const car=handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.entity(handle);

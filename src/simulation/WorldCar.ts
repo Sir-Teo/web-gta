@@ -440,6 +440,52 @@ export class WorldCar {
   this.doors.forEach((door,i)=>{if(door.angle!==0||door.prevAngle!==0){door.angle=door.prevAngle=door.angVel=0;this.car.setDoorAngle(i,door.axis,0);}});
   this.visual={};this.refreshVisuals(true);
  }
+ /** vehicleFlags.bPetrolTankIsWeakPoint, which CVehicle's constructor sets and SET_PETROL_TANK_WEAKPOINT clears. The
+  * shot at the petrol tank that reads it is not ported. */
+ petrolTankIsWeakPoint=true;
+ /** CAutomobile::PopDoor (0x6ADEF0): a door still there goes, thrown clear as a flying door when the effect shows. */
+ popDoor(door:number,visible:boolean){
+  if(this.damageState.doors[door]===DAMSTATE.notPresent)return;
+  if(visible)this.spawnFlying(`${DOOR_FRAMES[door]}_dummy`,FLYING.door);
+  this.damageState.doors[door]=DAMSTATE.notPresent;this.refreshVisuals();
+ }
+ /** CAutomobile::PopPanel (0x6ADF80): a panel not already off goes, thrown clear as a flying panel when shown. */
+ popPanel(panel:number,visible:boolean){
+  if(this.damageState.panels[panel]===DAMSTATE.openedDamaged)return;
+  if(visible)this.spawnFlying(`${PANEL_FRAMES[panel]}_dummy`,FLYING.panel);
+  this.damageState.panels[panel]=DAMSTATE.openedDamaged;this.visual[PANEL_FRAMES[panel]]=DAMSTATE.openedDamaged;this.refreshVisuals();
+ }
+ /** CAutomobile::FixDoor (0x6A35A0): shut and whole again, unless the model has no doors. */
+ fixDoor(door:number){
+  if(this.modelFlags&MODEL_FLAG.noDoors)return;
+  const d=this.doors[door];d.angle=d.prevAngle=d.angVel=0;this.car.setDoorAngle(door,d.axis,0);
+  this.damageState.doors[door]=DAMSTATE.ok;this.refreshVisuals();
+ }
+ /** CAutomobile::FixPanel (0x6A3670): whole again, and its bouncing panel stops. */
+ fixPanel(panel:number){
+  const frame=PANEL_FRAMES[panel];
+  this.damageState.panels[panel]=DAMSTATE.ok;this.panels=this.panels.filter(p=>p.frame!==`${frame}_dummy`);
+  this.visual[frame]=DAMSTATE.ok;this.refreshVisuals();
+ }
+ /** CAutomobile::FixTyre (0x6A3580). */
+ fixTyre(wheel:number){this.damageState.wheels[wheel]=0;}
+ /** CAutomobile::PopBoot (0x6AF910): a boot still shut springs fully open. */
+ popBoot(){
+  const state=this.damageState.doors[DOOR.boot];
+  if(state===DAMSTATE.ok||state===DAMSTATE.damaged)this.openDoor(DOOR.boot,1);
+ }
+ /** DAMAGE_CAR_DOOR and DAMAGE_CAR_PANEL (unreversed): the component crumpled in place, a door shut, as
+  * CDamageManager's first step of damage leaves it; a component already past that stays as it is. */
+ damageDoor(door:number){
+  const state=this.damageState.doors[door];if(state!==DAMSTATE.ok&&state!==DAMSTATE.opened)return;
+  this.damageState.doors[door]=DAMSTATE.damaged;this.applyComponents([{kind:'door',index:door,state:DAMSTATE.damaged}]);
+ }
+ damagePanel(panel:number){
+  if(this.damageState.panels[panel]!==DAMSTATE.ok)return;
+  this.damageState.panels[panel]=DAMSTATE.damaged;this.applyComponents([{kind:'panel',index:panel,state:DAMSTATE.damaged}]);
+ }
+ /** IS_CAR_TYRE_BURST: WHEEL_STATUS_BURST on the wheel, or on any wheel for 4. */
+ tyreBurst(wheel:number){return wheel===4?this.damageState.wheels.some(w=>w===1):this.damageState.wheels[wheel]===1;}
  /** ProcessCarOnFireAndExplode: below 250 health a car burns, unless it is sinking (bIsDrowning). */
  get onFire(){return !this.wrecked&&this.health<CAR_FIRE_HEALTH&&!this.drowning;}
  distance(){const a=this.sim.player.position,b=this.car.body.translation();return Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);}

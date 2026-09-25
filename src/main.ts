@@ -3546,7 +3546,7 @@ async function boot() {
                  setScriptPedFacialTalk:(ped,seconds)=>{const p=onFoot(ped);if(p)p.facialTalk=seconds;},
                  hideScriptPedWeapon:(ped,hidden)=>{const p=onFoot(ped);if(p)pedestrians?.hideWeapon(p,hidden);},
                  // CExplosion::AddExplosion, which the weapon system already runs for its own blasts.
-                 addExplosion:(position,type)=>{weapons.debugExplosion({x:position.x,y:position.z,z:-position.y},type);},
+                 addExplosion:(position,type,options)=>{weapons.debugExplosion({x:position.x,y:position.z,z:-position.y},type,options?.sound??true);},
                  // vehicleFlags.bTyresDontBurst inverted: a shot wheel keeps its air.
                  setScriptVehicleCanBurstTyres:(car,canBurst)=>{(car as ScriptCar).tyresDontBurst=!canBurst;},
                  setScriptVehicleHeavy:(car,heavy)=>{(car as {heavy?:boolean}).heavy=heavy;},
@@ -3569,6 +3569,13 @@ async function boot() {
                  scriptVehicleRouteNodes:car=>isScriptCar(car)?scriptCars.routeNodes(car):undefined,
                  scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
                  burstScriptVehicleTyre:(car,wheel)=>{if(isScriptCar(car))car.burstTyre(wheel,true);},
+                 scriptCarComponents:car=>isScriptCar(car)?car:undefined,
+                 // m_vecTurnSpeed is radians a frame; the script's are a second, so they are the body's own rate here
+                 // (native x, y, z to the renderer's x, z, -y).
+                 setScriptVehicleTurnSpeed:(car,speed,add)=>{
+                  const body=(car as {car?:{body?:import('@dimforge/rapier3d-compat').RigidBody}}).car?.body;if(!body||!body.isDynamic())return;
+                  const w=add?body.angvel():{x:0,y:0,z:0};body.setAngvel({x:w.x+speed.x,y:w.y+speed.z,z:w.z-speed.y},true);
+                 },
                  explosionInArea:(type,min,max)=>weapons.explosionSlots.inArea(type,min,max),
                  scriptVehicleBaseOffset:car=>-(car as ScriptCar).assets.collision.bounds.min[2],
                  clearSpaceForScriptVehicle:car=>{const c=car as ScriptCar,t=c.car.body.translation(),r=c.car.body.rotation();fleet?.clearSpaceFor({x:t.x,y:t.y,z:t.z},2*Math.atan2(r.y,r.w),c.assets.collision.bounds);},

@@ -7583,3 +7583,25 @@ Each is now answered:
   - Cars and melee do not damage script objects.
   - BREAK_OBJECT still gives up: its second operand is unknown and neither reference has it.
 - Verification: `tests/scm-object-damage.test.ts`, `tests/browser/script-object-collision.spec.ts`.
+
+## The car component commands
+
+- Source: gta-reversed `Automobile.cpp`: PopDoor (0x6ADEF0), PopPanel (0x6ADF80), PopBoot, FixDoor (0x6A35A0),
+  FixPanel (0x6A3670) and FixTyre, all reversed. reVC's `Script8.cpp` gives the rotation velocity's units for the
+  object form. The car commands themselves are SA's own and unreversed.
+- POP_CAR_DOOR and POP_CAR_PANEL take a component off, as a flying door or panel when the effect is shown.
+  POP_CAR_BOOT springs a shut boot fully open.
+- FIX_CAR_DOOR shuts and restores a door (not on a doorless model). FIX_CAR_PANEL restores a panel and stops its
+  bounce. FIX_CAR_TYRE mends a tyre.
+- IS_CAR_TYRE_BURST reads WHEEL_STATUS_BURST, with 4 for any wheel. IS_CAR_DOOR_FULLY_OPEN counts a missing door as
+  open, as CAutomobile does.
+- Authored, since nothing reversed says more:
+  - DAMAGE_CAR_DOOR and DAMAGE_CAR_PANEL crumple the component in place, as CDamageManager's first step of damage
+    leaves it.
+  - IS_CAR_DOOR_DAMAGED answers for a crumpled, crumpled-open or missing door.
+- SET_CAR_ROTATION_VELOCITY and ADD_TO_CAR_ROTATION_VELOCITY set m_vecTurnSpeed from radians a second, the body's
+  own rate.
+- SET_PETROL_TANK_WEAKPOINT keeps vehicleFlags.bPetrolTankIsWeakPoint; the shot that reads it is not ported.
+- ADD_EXPLOSION_NO_SOUND leaves out the blast's sound only. ADD_EXPLOSION_VARIABLE_SHAKE is a plain explosion until
+  explosion camera shake is modelled.
+- Verification: `tests/browser/script-car-components.spec.ts`.

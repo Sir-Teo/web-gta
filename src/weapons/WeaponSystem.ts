@@ -243,7 +243,7 @@ export class WeaponSystem {
  /** CExplosion::aExplosions, for the slot each blast takes and the script's TestForExplosionInArea. */
  readonly explosionSlots=new NativeExplosionSlots();
  /** CExplosion::AddExplosion: FX and sound, then CWorld::TriggerExplosion's one-shot damage and push. */
- private explode(position:Vec3,type:number=EXPLOSION_TYPE.grenade,victim?:object,byPlayer=false){
+ private explode(position:Vec3,type:number=EXPLOSION_TYPE.grenade,victim?:object,byPlayer=false,makeSound=true){
   // AddExplosion makes nothing when every slot is taken.
   if(!this.explosionSlots.add(type,this.toNative(position),this.nowMs))return;
   const params=explosionParams(type);
@@ -258,7 +258,7 @@ export class WeaponSystem {
   // CreateAndPlayFxWithSound: the FX and its sound together, -36 dB for a molotov, neither for a molotov that lands in
   // water, and neither for a grenade blast with a victim (the reversed case leaves that branch empty).
   const silent=underwater||type===EXPLOSION_TYPE.grenade&&!!victim;
-  this.explosions++;if(!silent){this.onSound?.('explosion',type===EXPLOSION_TYPE.molotov?-36:0,position);this.effect('explosion',position,position,.8,params.radius);this.fx?.explosion(type,position);}this.pedestrians()?.frighten(position,45);
+  this.explosions++;if(!silent){if(makeSound)this.onSound?.('explosion',type===EXPLOSION_TYPE.molotov?-36:0,position);this.effect('explosion',position,position,.8,params.radius);this.fx?.explosion(type,position);}this.pedestrians()?.frighten(position,45);
   if(params.force>0)this.blast(position,params,victim,byPlayer);
   if(type===EXPLOSION_TYPE.molotov){
    this.molotovs.push({position,remaining:params.durationMs/1000});if(!underwater)this.explosionFires(position,true);
@@ -321,7 +321,8 @@ export class WeaponSystem {
   if(kind==='aircraft'&&victim)this.aircraftExplosions.push({victim,remainingMs:explosionParams(EXPLOSION_TYPE.aircraft).durationMs,frameMs:0});
  }
  /** Development: add an explosion of a native type at a renderer-frame point. */
- debugExplosion(position:Vec3,type:number){this.explode(position,type);}
+ /** CExplosion::AddExplosion from the script: no creator; `makeSound` false leaves out only the blast's sound. */
+ debugExplosion(position:Vec3,type:number,makeSound=true){this.explode(position,type,undefined,false,makeSound);}
  /** The EXPLOSION_ROCKET a burning aircraft nobody flies sets off where it is. */
  burningAircraftExplosion(position:Vec3){this.explode(position,EXPLOSION_TYPE.rocket);}
  /** CObject::Explode: EXPLOSION_OBJECT (radius 10) half a unit above the object. */
