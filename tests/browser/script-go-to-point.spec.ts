@@ -41,5 +41,13 @@ test('a script ped stands until told, walks straight to a point, and a timed go-
  await expect.poll(status,{timeout:10000}).toBe(7);
  const placed=await where();
  expect(Math.hypot(placed.x-far.x,placed.z-far.z)).toBeLessThan(.6);
+ // TASK_LOOK_AT_CHAR at the player: the head look starts and the trigger task is over.
+ const LOOK=0x05bf;
+ const look=await page.evaluate(({handle,opcode})=>{
+  const m=(window as any).__game.missionForProfiling();m.runtime.world.givePedScriptedTask(handle,{kind:'lookAtPed',target:1,time:3000},opcode);
+  const p=m.peds.entity(handle);return {looking:!!p.look,target:p.lookTarget??null};
+ },{handle:ped,opcode:LOOK});
+ expect(look).toEqual({looking:true,target:null});
+ await expect.poll(()=>page.evaluate(({handle,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(handle,opcode),{handle:ped,opcode:LOOK}),{timeout:5000}).toBe(7);
  expect(errors).toEqual([]);
 });

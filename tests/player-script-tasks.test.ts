@@ -55,3 +55,12 @@ test('a clip plays once and the task ends with it; clearing drops it',async()=>{
  tasks.step(1/30,b);expect(reaction).toBe('idle_chat');
  tasks.clear(b);expect(reaction).toBeUndefined();expect(tasks.active).toBe(false);
 });
+
+test('the look-at trigger starts the head look and is over at once, letting a sequence go on',()=>{
+ const looks:unknown[]=[];
+ const tasks=new PlayerScriptTasks({...world,lookAt:(target,seconds)=>{looks.push([target,seconds]);}});
+ tasks.give({kind:'lookAt',target:9,seconds:3},body());
+ expect(looks).toEqual([[9,3]]);expect(tasks.active).toBe(false);
+ tasks.giveSequence([{kind:'lookAt',target:9,seconds:1},{kind:'standStill',seconds:1}],false,body());
+ expect(tasks.active).toBe(true);expect(tasks.step(.1,body())).toEqual({kind:'hold'});
+});

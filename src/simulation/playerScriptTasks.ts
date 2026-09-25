@@ -36,6 +36,8 @@ export interface PlayerTaskBody{
 export interface PlayerTaskWorld{
  /** A clip from the script's animation block (PED is ped.ifp). */
  animation(file:string,name:string):Promise<NativeAnimation|undefined>;
+ /** CTaskSimpleTriggerLookAt: the head looks at the ped a script handle names. */
+ lookAt?(target:number,seconds:number):void;
  /** CPedPlacement::FindZCoorForPed and SetPosn: the feet on the ground under the point. */
  placeOnGround(x:number,z:number,originY?:number):void;
 }
@@ -53,7 +55,7 @@ export class PlayerScriptTasks{
  private generation=0;
  constructor(private world:PlayerTaskWorld){}
  /** The kinds the player can carry out; anything else the thread gives up on. */
- static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim';}
+ static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt';}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body);}
@@ -102,6 +104,8 @@ export class PlayerScriptTasks{
     });
     break;
    }
+   // The trigger task starts the look and is over.
+   case 'lookAt':this.world.lookAt?.(order.target,order.seconds);break;
    default:break;
   }
  }

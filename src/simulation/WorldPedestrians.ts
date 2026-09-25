@@ -927,6 +927,8 @@ export class WorldPedestrians {
    /** CPlayerPed's own LookAtInterestingEntities: CJ glances at a street ped within 15 units, 1 frame in 100. */
    private playerLook?:LookAtTask;private playerLookTarget?:Pedestrian;
    get playerLookBlend(){return this.playerLook?.blend??0;}
+   /** CTaskSimpleTriggerLookAt on the player's own ped: his head turns to the ped for the task's time. */
+   playerLookAtPed(target:Pedestrian,seconds:number){this.playerLookTarget=target;this.playerLook=startLookAt(this.clock*1000,seconds*1000);}
    private stepPlayerLook(dt:number,clock:number){
     const view=this.playerView();if(!view)return;
     const pl=this.sim.player.position,nowMs=clock*1000;
@@ -1460,6 +1462,13 @@ export class WorldPedestrians {
      });
      own.started=true;own.elapsed=-1;
     }
+    break;
+   }
+   // g_ikChainMan.LookAt through the trigger task, which ends at once: the look outlives it.
+   case 'lookAt':{
+    const target=this.resolveScriptPed?.(order.target);if(!target)break;
+    ped.lookTarget=target==='player'?undefined:target;ped.lookAt=undefined;ped.lookAtAttractor=false;
+    ped.look=startLookAt(this.clock*1000,order.seconds*1000);
     break;
    }
    case 'die':this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;

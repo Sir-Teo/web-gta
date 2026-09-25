@@ -6764,3 +6764,7 @@ the first ones now implemented:
     CTaskSimplePlayerOnFoot the same way.
   - GET_SCRIPT_TASK_STATUS and CLEAR_CHAR_TASKS work for the player.
   - The player's own handle can be a task's self as well as its target.
+- **TASK_LOOK_AT_CHAR** (164 uses, 43 missions; 27 on the player): CTaskSimpleTriggerLookAt, which starts
+  g_ikChainMan's look and is over at once, so a sequence goes straight on. A script ped's head follows the ped (or
+  the player) through the port's CTaskSimpleIKChain blend for the task's time. The player's own look uses his
+  existing glance chain.

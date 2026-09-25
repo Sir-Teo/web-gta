@@ -103,6 +103,11 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder(task(2500),world({}))).toMatchObject({seconds:2.5});
  });
 
+ test('looking at a ped is the trigger task, which needs the ped to exist',()=>{
+  expect(scriptedPedOrder({kind:'lookAtPed',target:3,time:4000},world({3:{x:0,y:0,z:0}}))).toEqual({kind:'lookAt',target:3,seconds:4});
+  expect(scriptedPedOrder({kind:'lookAtPed',target:3,time:-1},world({}))).toBeUndefined();
+ });
+
  test('dying is its own order',()=>{
   expect(scriptedPedOrder({kind:'die'},world({}))).toEqual({kind:'die'});
  });

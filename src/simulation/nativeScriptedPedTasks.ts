@@ -26,7 +26,10 @@ export type ScriptedPedOrder=
  |{kind:'killPed';target:number;seconds:number}
  /** CTaskSimpleRunNamedAnim: a clip from a script's animation block, looped or once (then held on its last frame
   * or let go), for `seconds` when the script gives a time. */
- |{kind:'playAnim';file:string;name:string;loop:boolean;keepLastFrame:boolean;seconds:number};
+ |{kind:'playAnim';file:string;name:string;loop:boolean;keepLastFrame:boolean;seconds:number}
+ /** CTaskSimpleTriggerLookAt: the head turns to a ped (a script handle, the player's included) for `seconds`; the
+  * task itself is over as soon as it has started the look. */
+ |{kind:'lookAt';target:number;seconds:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -76,6 +79,7 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // once and the ped stays where it stands.
   case 'playAnim':return {kind:'playAnim',file:task.animationFile,name:task.animationName,loop:task.loop,keepLastFrame:task.keepLastFrame,
    seconds:task.time>0?task.time/1000:Number.POSITIVE_INFINITY};
+  case 'lookAtPed':return world.ped(task.target)?{kind:'lookAt',target:task.target,seconds:seconds(task.time)}:undefined;
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{
    const threat=world.ped(task.threat);if(!threat)return undefined;

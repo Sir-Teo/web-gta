@@ -298,6 +298,7 @@ async function boot() {
  // The script's tasks on CJ's own ped (TASK_GO_STRAIGHT_TO_COORD, TASK_PLAY_ANIM... on scplayer).
  const playerTasks=new PlayerScriptTasks({
   animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
+  lookAt:(target,seconds)=>{const ped=onFoot(mission?.pedByHandle(target));if(ped&&typeof ped==='object')pedestrians?.playerLookAtPed(ped,seconds);},
   placeOnGround:(x,z,originY)=>{
    const ground=pedestrians?.groundUnder(x,z,(originY??sim.player.position.y+1+50)+.5);if(ground===undefined)return;
    sim.player.position={x,y:ground,z};sim.player.previous={x,y:ground,z};
