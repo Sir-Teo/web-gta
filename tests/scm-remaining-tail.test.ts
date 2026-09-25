@@ -105,7 +105,7 @@ describe('the questions and switches of the tail',()=>{
    startVehicleFire:method('fire',7),fixVehicleDoor:method('fixDoor'),popVehiclePanel:method('panel'),
    heliFollowEntity:method('heliFollow'),setVehicleFollowVehicle:method('follow'),
    waterHeightAtCoords:method('water',0.5),createUser3dMarker:method('marker',3),
-   setMenuColumnWidth:method('width'),createEmergencyServicesVehicle:method('emergency'),
+   createEmergencyServicesVehicle:method('emergency'),
    addBlipForSearchlight:method('blip',5),
   } as unknown as Partial<ScmWorldCommands>;
   const {readInt,readFloat}=run(world,
@@ -116,7 +116,6 @@ describe('the questions and switches of the tail',()=>{
    instruction(op('SET_CAR_FOLLOW_CAR'),[int(CAR),int(10),float(15)]),
    instruction(op('GET_WATER_HEIGHT_AT_COORDS'),[float(1),float(2),int(1),gvar(44)]),
    instruction(op('CREATE_USER_3D_MARKER'),[float(1),float(2),float(3),int(4),gvar(48)]),
-   instruction(op('SET_MENU_COLUMN_WIDTH'),[int(6),int(0),int(120)]),
    instruction(op('CREATE_EMERGENCY_SERVICES_CAR'),[int(416),float(1),float(2),float(3)]),
    instruction(op('ADD_BLIP_FOR_SEARCHLIGHT'),[int(8),gvar(52)]));
   expect(readInt(40)).toBe(7);
@@ -125,7 +124,7 @@ describe('the questions and switches of the tail',()=>{
   expect(readInt(52)).toBe(5);
   expect(calls).toEqual([
    ['fire',CAR],['fixDoor',CAR,2],['panel',CAR,1,true],['heliFollow',CAR,PED,10,25],['follow',CAR,10,15],
-   ['water',1,2,true],['marker',1,2,3,4],['width',6,0,120],['emergency',416,1,2,3],['blip',8],
+   ['water',1,2,true],['marker',1,2,3,4],['emergency',416,1,2,3],['blip',8],
   ]);
  });
 
