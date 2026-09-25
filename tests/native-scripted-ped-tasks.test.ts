@@ -36,6 +36,12 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'turnToFaceEntity',target:7},world({}))).toBeUndefined();
  });
 
+ test('destroying a car names a car the browser has built, or the thread gives up',()=>{
+  const cars:ScriptedTaskWorld={...world({}),vehicle:handle=>handle===5};
+  expect(scriptedPedOrder({kind:'destroyCar',vehicle:5},cars)).toEqual({kind:'destroyCar',vehicle:5});
+  expect(scriptedPedOrder({kind:'destroyCar',vehicle:6},cars)).toBeUndefined();
+ });
+
  test('a smart flight keeps the point, the safe distance and the time',()=>{
   expect(scriptedPedOrder({kind:'smartFleePoint',x:1,y:2,z:3,radius:40,time:8000},world({})))
    .toEqual({kind:'smartFlee',from:{x:1,y:2},safe:40,seconds:8});

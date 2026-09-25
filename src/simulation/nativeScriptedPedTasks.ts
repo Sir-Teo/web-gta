@@ -64,6 +64,10 @@ export type ScriptedPedOrder=
  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number}
  /** CTaskComplexGoToPointShooting: to a point at eMoveState, stopping inside `radius`, firing at a ped on the way. */
  |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number}
+ /** CTaskComplexDestroyCar: with a gun, CTaskComplexDestroyCarArmed (seek the car into half the weapon's range and
+  * shoot it); unarmed, CTaskComplexDestroyCarMelee (seek it into its bound radius and fight it). Over once the car
+  * is wrecked. A ped in a car leaves it first, which the mission does before the ped is given this. */
+ |{kind:'destroyCar';vehicle:number}
  /** CTaskComplexFollowNodeRoute: along the ped path nodes to a point at eMoveState, or straight at it when it is near
   * and clear; put on the point when `seconds` run out. */
  |{kind:'followNodeRoute';x:number;y:number;z:number;moveState:number;seconds:number}
@@ -181,6 +185,7 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'toggleDuck':return {kind:'duck',crouch:task.state};
   case 'goToCoordWhileShooting':return world.ped(task.target)?{kind:'goToPointShooting',x:task.x,y:task.y,z:task.z,moveState:task.speed,
    radius:task.stopRadius>0?task.stopRadius:GO_STRAIGHT_TARGET_RADIUS,target:task.target}:undefined;
+  case 'destroyCar':return world.vehicle?.(task.vehicle)?{kind:'destroyCar',vehicle:task.vehicle}:undefined;
   case 'shootAtCoord':return {kind:'gunAt',point:{x:task.x,y:task.y,z:task.z},fire:true,seconds:seconds(task.time)};
   case 'aimGunAtCoord':return {kind:'gunAt',point:{x:task.x,y:task.y,z:task.z},fire:false,seconds:seconds(task.time)};
   case 'shootAtPed':return world.ped(task.target)?{kind:'gunAt',target:task.target,fire:true,seconds:seconds(task.time)}:undefined;

@@ -7749,3 +7749,20 @@ Each is now answered:
   out of reach, so the length is estimated. The estimate uses the subtitle the dialogue prints just before PLAY:
   about 15 characters a second, plus a 300 ms lead. With no subtitle it is 2 s.
 - Verification: `tests/scm-mission-audio.test.ts`.
+
+## TASK_DESTROY_CAR
+
+- CTaskComplexDestroyCar (reversed): a ped in a car leaves it first (the mission's runner does that before the order).
+  After that, a ped with a melee weapon fights the car and any other shoots it. The task ends when the car is wrecked.
+- Armed (CTaskComplexDestroyCarArmed, reversed apart from ControlSubTask's jump):
+  - CalculateSearchPositionAndRanges halves the weapon's range. The ped fires from 0.9 of that (at least 0.8), seeks
+    (CTaskComplexSeekEntity, at a run) until under 1.1 of it, or stops at once when it is kinda staying in place.
+  - The gun control lasts 5000 ms. Then the seek comes back, which hands straight back while the car is in range.
+  - The ped faces the car and fires at its middle through the ordinary ped gun: bursts, spread, tyres, car damage.
+- Melee (CTaskComplexDestroyCarMelee, reversed): the ped seeks to the car's bound radius plus 0.35, fights inside it,
+  and seeks again 0.6 beyond.
+  - CTaskSimpleFight::FightHitCar is unreversed. The fists close on the nearest point of the car's collision and use
+    the UNARMED combo. A strike that lands does its melee.dat damage times the ped's attack strength as melee damage.
+  - A melee weapon other than fists (a bat) fights with fists here.
+- bStayInSamePlace is not kept on browser peds (TASK_STAY_IN_SAME_PLACE is a stand), so the pause branches never run.
+- Verification: `tests/browser/script-destroy-car.spec.ts`, `tests/native-scripted-ped-tasks.test.ts`.

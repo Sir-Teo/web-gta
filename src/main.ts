@@ -3208,6 +3208,7 @@ async function boot() {
            if(!m||!car||typeof car.seat!=='function')return undefined;
            return {
             alive:()=>m.vehicles.exists(handle)&&!car.wrecked,
+            entity:()=>m.vehicles.exists(handle)?car:undefined,
             // Any free passenger seat for -1; a rear seat only where the model has ped_backseat. A seat a script ped
             // already sits in is not free, and a taken driving seat is not jacked here.
             seatFor:seat=>{

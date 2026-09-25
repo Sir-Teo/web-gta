@@ -158,6 +158,12 @@ export interface Pedestrian {
   |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number}
   /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. */
   |{kind:'goToPointShooting';x:number;z:number;y?:number;moveState:number;radius:number;target?:Pedestrian;player:boolean}
+  /** CTaskComplexDestroyCar on a script car: armed or melee, and the subtask it is in. `seek` is CTaskComplexSeekEntity;
+   * `attack` is CTaskSimpleGunControl (for `remaining` seconds) or CTaskSimpleFightingControl; `first` is before
+   * CreateFirstSubTask has looked at the range. */
+  |{kind:'destroyCar';vehicle:number;melee:boolean;phase:'first'|'seek'|'attack';remaining:number;
+   /** While fighting: the point of the car's collision nearest the ped, which the fists aim at. */
+   face?:{x:number;z:number}}
   /** The points in the renderer's terms, the target (its origin height) last when `lastIsTarget`. */
   /** CTaskComplexChat: `partner` is nothing for the player, who never holds a chat task. */
   |{kind:'chat';partner?:Pedestrian;chatter:boolean;stage:number;finished:boolean;noChat:number;remaining:number}
@@ -394,6 +400,9 @@ const ENTER_CAR_DOOR_RADIUS=.5,ENTER_CAR_SLOW_DOWN_DISTANCE=4,ENTER_CAR_SEEK_SEC
 const GO_TO_POINT_RADIUS=.5,GO_TO_PED_WALK_DISTANCE=2;
 /** CTaskComplexChat's sub-tasks run 999999 ms; its lead speaker gives up after fifty silent frames. */
 const CHAT_SECONDS=999.999,CHAT_SILENT_FRAMES=50,CHAT_CLIP='idle_chat';
+/** CTaskComplexDestroyCarArmed's CTaskSimpleGunControl lasts 5000 ms. The melee task fights inside the car's bound
+ * radius and 0.35, and seeks again once the ped is 0.6 past that. */
+const DESTROY_CAR_GUN_SECONDS=5,DESTROY_CAR_MELEE_REACH=.35,DESTROY_CAR_MELEE_SLACK=.6;
 /** MAP_Z_LOW_LIMIT: a script point at or below it is on the ground wherever that is. */
 const MAP_Z_LOW_LIMIT=-100;
 /** CTempColModels::ms_colModelPed1's bounding sphere radius. */
@@ -411,7 +420,7 @@ export class WorldPedestrians {
   /** CPed::CreateDeadPedMoney: the cash a dead ped leaves. */
   /** A script's car by its handle, for CTaskComplexEnterCar: whether it is still there, the renderer point by the
    * door of a seat (a passenger seat of -1 resolves to a free one, or nothing when none is), and setting the ped in. */
-  resolveScriptVehicle?:(handle:number)=>{alive():boolean;seatFor(seat:'driver'|number):'driver'|number|undefined;doorPoint(seat:'driver'|number):{x:number;y:number;z:number}|undefined;board(ped:Pedestrian,seat:'driver'|number):boolean}|undefined;
+  resolveScriptVehicle?:(handle:number)=>{alive():boolean;entity():WorldCar|undefined;seatFor(seat:'driver'|number):'driver'|number|undefined;doorPoint(seat:'driver'|number):{x:number;y:number;z:number}|undefined;board(ped:Pedestrian,seat:'driver'|number):boolean}|undefined;
   /** The ped (or the player) a script's handle names, for the tasks that target one. */
   resolveScriptPed?:(handle:number)=>Pedestrian|'player'|undefined;
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
@@ -1569,6 +1578,11 @@ export class WorldPedestrians {
     ped.flee=0;ped.loiter=false;
     break;
    }
+   case 'destroyCar':
+    // IsTypeMelee on the active weapon: no gun (or a melee weapon, types below 16) fights the car with fists.
+    ped.order={kind:'destroyCar',vehicle:order.vehicle,melee:!ped.weapon&&(ped.weaponType===undefined||ped.weaponType<16),phase:'first',remaining:0};
+    ped.flee=0;ped.loiter=false;
+    break;
    case 'duck':
     ped.actor.player.crouched=order.crouch;
     if(order.seconds!==undefined)ped.order={kind:'duckFor',remaining:order.seconds};
@@ -2487,6 +2501,17 @@ export class WorldPedestrians {
     this.defendPlayer(p);
    });
   }
+  /** The fist combo on a car. CTaskSimpleFight::FightHitCar is unreversed, so a strike that lands does the move's
+   * melee.dat damage, times the ped's attack strength, to the car as melee damage, at `face` (the nearest point of the
+   * car's collision). */
+  private stepCarBrawl(p:Pedestrian,vehicle:number,face:{x:number;z:number},dt:number){
+   const car=this.resolveScriptVehicle?.(vehicle)?.entity();if(!car||car.wrecked)return;
+   const q=p.actor.player.position;
+   this.stepFight(p,'UNARMED',['fighta_1','fighta_2','fighta_3'],face,true,dt,(stage,damage)=>{
+    car.damage(npcPunchDamage(damage,p.attackMult),undefined,false,undefined,{kind:'melee',weapon:WEAPON.unarmed,by:{ped:p}});
+    this.onMeleeHit?.({x:face.x,y:q.y+PED_ORIGIN_HEIGHT,z:face.z},false);
+   });
+  }
   /** CTaskSimpleArrestPed::StartAnim on the player: ARRESTgun on the cop, PEDSTATE_ARRESTED on the
    * player, and SetDownTime(100'000) so the player stays on the ground. */
   private arrestPlayer(p:Pedestrian){
@@ -2730,6 +2755,31 @@ export class WorldPedestrians {
      const o=p.order,q=p.actor.player.position,gx=o.x-q.x,gz=o.z-q.z,distance=Math.hypot(gx,gz);dx=0;dz=0;
      if(goToPointArrived(distance,o.y===undefined?undefined:q.y+PED_ORIGIN_HEIGHT-o.y,o.radius,state.speed*dt))this.startNextOrder(p);
      else{({x:dx,z:dz}=this.roundCars(p,o,cars));const moveState=goToPointMoveState(o.moveState,distance,GO_STRAIGHT_MOVE_STATE_RADIUS);orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;}
+    }else if(p.order.kind==='destroyCar'){
+     const o=p.order,car=this.resolveScriptVehicle?.(o.vehicle)?.entity();dx=0;dz=0;
+     // ControlSubTask: the task is over once the car's health is gone (or the car is).
+     if(!car||car.wrecked||car.disposed){if(o.melee)p.fight=undefined;this.startNextOrder(p);}
+     else{
+      const q=p.actor.player.position,c=car.car.body.translation(),distance=Math.hypot(c.x-q.x,c.y-(q.y+PED_ORIGIN_HEIGHT),c.z-q.z);
+      // CalculateSearchPositionAndRanges: half the weapon's range, fired at from 0.9 of it (at least 0.8) and sought
+      // again past 1.1 of it; the melee task's reach is the car's bound radius and 0.35.
+      const half=(p.weapon?.info.weaponRange??0)/2,fireFrom=Math.max(.8,half*.9),seekPast=half*1.1,reach=car.boundRadius+DESTROY_CAR_MELEE_REACH;
+      if(o.phase==='first')o.phase=distance<=(o.melee?reach:fireFrom)?'attack':'seek',o.remaining=DESTROY_CAR_GUN_SECONDS;
+      if(o.phase==='seek'){
+       if(o.melee?distance<=reach:distance<seekPast||!!p.flags?.kindaStayInSamePlace){o.phase='attack';o.remaining=DESTROY_CAR_GUN_SECONDS;}
+       else{({x:dx,z:dz}=this.roundCars(p,c,[...cars].filter(other=>other!==car)));orderSpeed=p.runSpeed;}
+      }else if(o.melee){
+       if(distance>reach+DESTROY_CAR_MELEE_SLACK){o.phase='seek';o.face=undefined;p.fight=undefined;}
+       else{
+        // A strike has to reach the body, so the fight closes on the car's collision where it is nearest.
+        const body=car.car.body.handle,near=this.sim.world.projectPoint({x:q.x,y:q.y+PED_ORIGIN_HEIGHT,z:q.z},true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,undefined,cl=>cl.parent()?.handle===body);
+        o.face=near?{x:near.point.x,z:near.point.z}:{x:c.x,z:c.z};
+        if(!p.fight&&Math.hypot(o.face.x-q.x,o.face.z-q.z)>NATIVE_MELEE_COMBOS.UNARMED.range*.8){dx=o.face.x-q.x;dz=o.face.z-q.z;orderSpeed=p.walkSpeed;}
+       }
+      }
+      // The gun control runs its time, then the seek, which hands straight back while the car is in range.
+      else if((o.remaining-=dt)<=0){o.remaining=DESTROY_CAR_GUN_SECONDS;if(distance>=seekPast&&!p.flags?.kindaStayInSamePlace)o.phase='seek';}
+     }
     }else if(p.order.kind==='gunAt'){
      // Standing to aim; the gun block below points and fires. The task ends with its time or its target.
      const o=p.order;dx=0;dz=0;o.remaining-=dt;
@@ -2986,7 +3036,14 @@ export class WorldPedestrians {
    // attacker): a retaliating ped's live foe, otherwise the player. A follower never turns its gun on him.
    const gunFoe=p.retaliate>0&&p.foe&&p.foe.health>0?p.foe:undefined;
    const gunOrder=p.order?.kind==='gunAt'||p.order?.kind==='goToPointShooting'?p.order:undefined;
-   if(gunOrder&&p.weapon&&p.health>0&&p.down===0&&!p.officer){
+   const carToShoot=p.order?.kind==='destroyCar'&&!p.order.melee&&p.order.phase==='attack'?this.resolveScriptVehicle?.(p.order.vehicle)?.entity():undefined;
+   if(carToShoot&&!carToShoot.wrecked&&p.weapon&&p.health>0&&p.down===0&&!p.officer){
+    // CTaskSimpleGunControl on the car: face it and fire at its middle (spotTarget aims a unit above what it is given).
+    const c=carToShoot.car.body.translation();spot=this.spotTarget(p,{x:c.x,y:c.y-1,z:c.z},cars);
+    state.heading=Math.atan2(spot.offset.x,spot.offset.z);
+    p.view.setWeaponPose('police_fire');p.view.setWeaponAim(spot.offset.clone().normalize());gunHold=0;
+    gunEngaged=spot.distance<p.weapon.info.weaponRange;
+   }else if(gunOrder&&p.weapon&&p.health>0&&p.down===0&&!p.officer){
     // A script's gun task: the point itself (spotTarget aims a unit above what it is given), or the ped's body.
     const point=gunOrder.kind==='gunAt'?gunOrder.point:undefined;
     const at=point?{...point,y:point.y-1}:gunOrder.target?gunOrder.target.actor.player.position:this.sim.player.position;
@@ -3015,6 +3072,8 @@ export class WorldPedestrians {
     // Out of shooting reach, TASK_COMPLEX_SEEK_ENTITY closes on the player, unless the ped keeps its place.
     else if(hostile&&spot.visible&&p.retaliate<=0&&!p.loiter){dx=this.sim.player.position.x-state.position.x;dz=this.sim.player.position.z-state.position.z;gunHold=p.runSpeed;}
    }
+   // CTaskComplexDestroyCarMelee's fighting control: fists on the car's nearest face, closing on it first.
+   if(p.order?.kind==='destroyCar'&&p.order.melee&&p.order.face&&p.health>0&&p.down===0)this.stepCarBrawl(p,p.order.vehicle,p.order.face,dt);
    // Street retaliation: victims trade punches with their enemy (CTaskComplexFight).
    // Crew share the player's enemies; everyone else answers the player.
    if(!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
