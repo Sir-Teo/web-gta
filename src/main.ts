@@ -3249,7 +3249,7 @@ async function boot() {
                  // A ped in a car holds no on-foot order the browser tracks, so its record is left as it is.
                  // A ped riding in a car runs none of the tasks the browser carries out on foot.
                  // A ped riding in a car holds a task only while it drives the car on a CCarAI mission.
-                 scriptPedHasOrder:ped=>{const p=onFoot(ped);if(p)return pedestrians?.hasScriptTask(p)??false;const r=asRider(ped);return !!r&&r.seat==='driver'&&scriptCars.driving(r.car);},
+                 scriptPedHasOrder:ped=>{const p=onFoot(ped);if(p)return pedestrians?.hasScriptTask(p)??false;const r=asRider(ped);return !!r&&r.seat==='driver'&&(scriptCars.driving(r.car)||scriptCars.inTempAction(r.car));},
                  // CWorld::ClearExcitingStuffFromArea: the deletable peds and cars in the radius go, and the
                  // fires in it are put out, which is CFireManager::ExtinguishPoint and the car-fire pass.
                  clearArea:(point,radius)=>{
@@ -3459,6 +3459,8 @@ async function boot() {
                  driveScriptVehicleTo:(car,goal,o)=>{scriptCars.gotoCoords(car as ScriptCar,{x:goal.x,y:goal.z>-100?goal.z:(car as ScriptCar).car.body.translation().y,z:-goal.y},o);},
                  setScriptVehicleStraightLineDistance:(car,distance)=>{scriptCars.setStraightLineDistance(car as ScriptCar,distance);},
                  stopScriptVehicle:car=>{scriptCars.clear(car as ScriptCar);},
+                 scriptVehicleTempAction:(car,action,seconds)=>{scriptCars.tempAction(car as ScriptCar,action,seconds);},
+                 scriptVehicleWander:(car,o)=>{scriptCars.wander(car as ScriptCar,o);},
                  scriptVehicleSeatDoor:(car,seat)=>{
                   const c=car as ScriptCar;if(typeof c.seat!=='function')return undefined;
                   const local=carEntry.seatDoorPoint(c,seat);if(!local)return undefined;

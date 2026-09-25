@@ -28,5 +28,16 @@ test('a script driver takes its car to a point',async({page})=>{
  await expect.poll(status,{timeout:60000}).toBe(7);
  const at=await page.evaluate(({car})=>(window as any).__game.missionForProfiling().vehicles.positionOf(car),made);
  expect(Math.hypot(at.x-goal.x,at.y-goal.y)).toBeLessThan(6);
+ // TASK_CAR_TEMP_ACTION 6 (TEMPACT_HANDBRAKESTRAIGHT) for a second: running, then over.
+ const TEMP=0x06c7,WANDER=0x05d2;
+ const temp=()=>page.evaluate(({driver,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(driver,opcode),{driver:made.driver,opcode:TEMP});
+ await page.evaluate(({car,driver,opcode})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(driver,{kind:'carTempAction',vehicle:car,actionId:6,time:1000},opcode),{...made,opcode:TEMP});
+ await expect.poll(temp,{timeout:5000}).toBe(1);
+ await expect.poll(temp,{timeout:10000}).toBe(7);
+ // TASK_CAR_DRIVE_WANDER: the car drives off along the roads and the task keeps running.
+ await page.evaluate(({car,driver,opcode})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(driver,{kind:'carDriveWander',vehicle:car,speed:10,drivingMode:2},opcode),{...made,opcode:WANDER});
+ const wanderFrom=await page.evaluate(({car})=>(window as any).__game.missionForProfiling().vehicles.positionOf(car),made);
+ await expect.poll(async()=>{const q=await page.evaluate(({car})=>(window as any).__game.missionForProfiling().vehicles.positionOf(car),made);return Math.hypot(q.x-wanderFrom.x,q.y-wanderFrom.y);},{timeout:30000}).toBeGreaterThan(8);
+ expect(await page.evaluate(({driver,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(driver,opcode),{driver:made.driver,opcode:WANDER})).toBe(1);
  expect(errors).toEqual([]);
 });

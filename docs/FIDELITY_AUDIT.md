@@ -6805,3 +6805,11 @@ the first ones now implemented:
   - The car path nodes are read the first time a script drives.
 - **SET_CAR_STRAIGHT_LINE_DISTANCE** (19 missions): CAutoPilot::m_nStraightLineDistance, which the coordinate missions
   switch on.
+- **TASK_CAR_TEMP_ACTION** (76 uses, 29 missions) for a script driver: CAutoPilot's temporary action for the task's
+  time, over whatever mission the car has; the task is over when the action is. SA's steerer is a stub, so:
+  - wait, reverse, the handbrake turns, the turns and go-forward follow Vice City;
+  - the SA-only reverses use the wheel full left, full right or straight;
+  - TEMPACT_BRAKE is a full brake.
+  HANDBRAKESTRAIGHT (6) is 50 of the scripts' 76 uses. The player's own car is not driven by it yet.
+- **TASK_CAR_DRIVE_WANDER** (22 missions): MISSION_CRUISE along the roads, one continuation picked at random at each
+  node (PickNextNodeRandomly), at the task's speed and style. It keeps running until it is cleared.

@@ -307,6 +307,9 @@ export interface ScmMissionWorld {
  setScriptVehicleStraightLineDistance?(car:unknown,distance:number):void;
  /** The car's CCarAI mission cleared (MISSION_NONE): its driver's task was cleared, or the driver got out. */
  stopScriptVehicle?(car:unknown):void;
+ /** CAutoPilot's temporary action for its time, and MISSION_CRUISE, on a script car. */
+ scriptVehicleTempAction?(car:unknown,action:number,seconds:number):void;
+ scriptVehicleWander?(car:unknown,o:{cruise:number;style:number}):void;
  setPlayerCollision?(uses:boolean):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
@@ -794,6 +797,14 @@ export class ScmMission {
    givePedScriptedTask:(handle,task,opcode)=>{
     if((task.kind==='leaveCar'||task.kind==='leaveAnyCar'||task.kind==='leaveCarImmediately')&&handle!==PLAYER_PED_HANDLE){this.leaveCar(handle,task.kind==='leaveAnyCar'?undefined:task.vehicle,opcode);return;}
     if(task.kind==='carDriveToCoord'&&handle!==PLAYER_PED_HANDLE){this.driveToCoord(handle,task,opcode);return;}
+    if(task.kind==='carTempAction'&&handle!==PLAYER_PED_HANDLE){
+     this.host('scriptVehicleTempAction','TASK_CAR_TEMP_ACTION')(this.driverCar(handle,task.vehicle,opcode),task.actionId,task.time/1000);
+     this.recordTask(handle,opcode,false);return;
+    }
+    if(task.kind==='carDriveWander'&&handle!==PLAYER_PED_HANDLE){
+     this.host('scriptVehicleWander','TASK_CAR_DRIVE_WANDER')(this.driverCar(handle,task.vehicle,opcode),{cruise:task.speed,style:task.drivingMode});
+     this.recordTask(handle,opcode,false);return;
+    }
     const order=scriptedPedOrder(task,this.taskWorld(handle));
     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
     if(handle===PLAYER_PED_HANDLE){this.givePlayer([order],false,opcode);return;}
@@ -999,14 +1010,19 @@ export class ScmMission {
   * plain one. The task is over once the car's mission clears. A driver not yet at that car's wheel would first get in
   * (CTaskComplexCarDrive), which the browser does not do here. */
  private driveToCoord(handle:number,task:{vehicle:number;x:number;y:number;z:number;speed:number;driveStyle:number;drivingStyle:number},opcode:number){
-  this.livePed(handle);
-  const ride=this.peds.rideOf(handle);
-  if(!ride||ride.offset||ride.seat!=='driver'||ride.vehicle!==task.vehicle)throw new UnsupportedScmCommand(opcode,0,'A_DRIVER_NOT_AT_THE_WHEEL',`ped ${handle}`);
-  const car=this.vehicles.entity(task.vehicle);
-  if(!car)throw new UnsupportedScmCommand(opcode,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${task.vehicle}`);
+  const car=this.driverCar(handle,task.vehicle,opcode);
   this.host('driveScriptVehicleTo','TASK_CAR_DRIVE_TO_COORD')(car,{x:task.x,y:task.y,z:task.z},
    {cruise:task.speed,style:task.drivingStyle,accurate:task.driveStyle===1,straight:task.driveStyle===2});
   this.recordTask(handle,opcode,false);
+ }
+ /** The script car a driving task names, which the ped must already be at the wheel of. */
+ private driverCar(handle:number,vehicle:number,opcode:number){
+  this.livePed(handle);
+  const ride=this.peds.rideOf(handle);
+  if(!ride||ride.offset||ride.seat!=='driver'||ride.vehicle!==vehicle)throw new UnsupportedScmCommand(opcode,0,'A_DRIVER_NOT_AT_THE_WHEEL',`ped ${handle}`);
+  const car=this.vehicles.entity(vehicle);
+  if(!car)throw new UnsupportedScmCommand(opcode,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${vehicle}`);
+  return car;
  }
  /** The player's ped runs only the tasks PlayerScriptTasks knows; any other gives the thread up. */
  private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number){

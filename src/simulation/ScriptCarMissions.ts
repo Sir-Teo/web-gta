@@ -2,7 +2,7 @@ import {Quaternion,Vector3} from 'three';
 import type {PathArea} from '../assets/pathNodes';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {lanePoint,nextLaneOnLink,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,type Pedals} from '../vehicle/nativeCarCtrl';
+import {lanePoint,nextLaneOnLink,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,tempActionPedals,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
 import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
 import type {WorldCar} from './WorldCar';
 
@@ -19,7 +19,7 @@ import type {WorldCar} from './WorldCar';
  * stub. Traffic avoidance is not modelled: STOP_FOR_CARS and SLOW_DOWN_FOR_CARS only stop at red lights. */
 
 /** eCarMission, the ones a script's drive asks for. */
-export type ScriptCarMissionKind='gotoCoords'|'gotoCoordsStraight'|'gotoCoordsAccurate'|'gotoCoordsStraightAccurate'|'none';
+export type ScriptCarMissionKind='gotoCoords'|'gotoCoordsStraight'|'gotoCoordsAccurate'|'gotoCoordsStraightAccurate'|'cruise'|'none';
 /** eCarDrivingStyle. */
 export const DRIVINGSTYLE={stopForCars:0,slowDownForCars:1,avoidCars:2,ploughThrough:3,stopForCarsIgnoreLights:4} as const;
 
@@ -30,6 +30,32 @@ interface Mission{
  cruise:number;style:number;straightLineDistance:number;
  link?:TrafficLink;lane:number;nextLane:number;route:TrafficLink[];cruiseNext?:TrafficLink;joinedAt:number;
  stuck:number;recoveryMode:number;lastRecovery:number;recovery?:{kind:number;remaining:number};
+ /** m_nTempAction and the time left of it (m_nTempActionTime). */
+ temp?:{action:number;remaining:number};
+}
+/** eAutoPilotTempAction, the ones the scripts use. */
+export const TEMPACT={wait:1,reverse:3,handbrakeTurnLeft:4,handbrakeTurnRight:5,handbrakeStraight:6,turnLeft:7,turnRight:8,goForward:9,
+ reverseLeft:13,reverseRight:14,reverseStraight:22,brake:24} as const;
+/** CCarCtrl::SteerAICarWithPhysics for a temporary action; SA's steerer is a stub, so these are Vice City's where VC has
+ * the action (wait, reverse, the handbrake turns, the turns, go forward) and plain readings of the SA-only ones: the
+ * reverses with the wheel full left, full right or straight, and TEMPACT_BRAKE's full brake. */
+export function scriptTempActionPedals(action:number,remainingMs:number,o:{follow?:Pedals;forwardSpeed:number}):Pedals|undefined{
+ const rolling=o.forwardSpeed>.04,back=(swerve:number):Pedals=>({swerve,accel:rolling?0:-.5,brake:rolling?.5:0,handbrake:false});
+ switch(action){
+  case TEMPACT.wait:return tempActionPedals('wait',remainingMs);
+  case TEMPACT.reverse:return tempActionPedals('reverse',remainingMs,o);
+  case TEMPACT.handbrakeTurnLeft:return {swerve:1,accel:0,brake:0,handbrake:true};
+  case TEMPACT.handbrakeTurnRight:return {swerve:-1,accel:0,brake:0,handbrake:true};
+  case TEMPACT.handbrakeStraight:return tempActionPedals('handbrakeStraight',remainingMs);
+  case TEMPACT.turnLeft:return turnPedals('left');
+  case TEMPACT.turnRight:return turnPedals('right');
+  case TEMPACT.goForward:return {swerve:0,accel:.5,brake:0,handbrake:false};
+  case TEMPACT.reverseLeft:return back(1);
+  case TEMPACT.reverseRight:return back(-1);
+  case TEMPACT.reverseStraight:return back(0);
+  case TEMPACT.brake:return {swerve:0,accel:0,brake:1,handbrake:false};
+  default:return undefined;
+ }
 }
 export type ScriptCarPaths={areas:ReadonlyMap<number,PathArea>;loadAround(x:number,z:number):Promise<void>};
 type Paths=ScriptCarPaths;
@@ -42,6 +68,20 @@ export class ScriptCarMissions{
  constructor(private paths:()=>Paths|undefined,private random:()=>number=Math.random){}
  /** Whether the car is on a coordinate mission still (CTaskComplexDriveToPoint is running). */
  driving(car:WorldCar){const m=this.missions.get(car);return !!m&&m.kind!=='none';}
+ /** Whether a temporary action still runs on the car (TASK_CAR_TEMP_ACTION's CTaskSimpleCarDrive). */
+ inTempAction(car:WorldCar){return !!this.missions.get(car)?.temp;}
+ /** TASK_CAR_TEMP_ACTION: CAutoPilot::SetTempAction for the task's time, over whatever mission the car has. */
+ tempAction(car:WorldCar,action:number,seconds:number){
+  let m=this.missions.get(car);if(!m){m=this.idle();this.missions.set(car,m);}
+  m.temp={action,remaining:seconds};
+ }
+ /** TASK_CAR_DRIVE_WANDER's MISSION_CRUISE: along the roads, picking where to go at each junction. */
+ wander(car:WorldCar,o:{cruise:number;style:number}){
+  const existing=this.missions.get(car),m:Mission={...this.idle(existing?.straightLineDistance),kind:'cruise',cruise:o.cruise,style:o.style};
+  this.missions.set(car,m);
+  const paths=this.paths();if(!paths)return;
+  const p=car.car.body.translation();m.link=joinCarWithRoadSystem(paths.areas,{x:p.x,y:-p.z,z:p.y},this.forward(car));
+ }
  mission(car:WorldCar){return this.missions.get(car)?.kind;}
  /** CCarAI::GetCarToGoToCoors and its accurate and straight-line forms, with the task's cruise speed and style. */
  gotoCoords(car:WorldCar,goal:{x:number;y:number;z:number},o:{accurate?:boolean;straight?:boolean;cruise:number;style:number;straightLineDistance?:number}){
@@ -81,7 +121,7 @@ export class ScriptCarMissions{
   if(paths&&around&&this.missions.size&&this.seconds-this.lastLoad>2){this.lastLoad=this.seconds;void paths.loadAround(around.x,around.z).catch(()=>{});}
   for(const [car,m] of this.missions){
    if(car.disposed){this.missions.delete(car);continue;}
-   if(car.wrecked||car.occupied){m.kind='none';continue;}
+   if(car.wrecked||car.occupied){m.kind='none';m.temp=undefined;continue;}
    const p=car.car.body.translation(),gx=m.goal.x-p.x,gz=m.goal.z-p.z,distSq=gx*gx+gz*gz;
    switch(m.kind){
     case 'gotoCoords':if(distSq<=m.straightLineDistance**2)m.kind='gotoCoordsStraight';break;
@@ -101,13 +141,39 @@ export class ScriptCarMissions{
   }
  }
  private drive(car:WorldCar,m:Mission,dt:number):WorldCar['autopilot']{
-  // MISSION_NONE: no gas, the brakes on.
-  if(m.kind==='none')return {steering:0,throttle:0,brake:1,handbrake:false};
   const p=car.car.body.translation(),v=car.car.body.linvel(),f=this.forward(car);
   const state={position:{x:p.x,y:-p.z},forward:f,moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:this.forward3(car)};
+  if(m.temp){
+   const t=m.temp;t.remaining-=dt;if(t.remaining<=0)m.temp=undefined;
+   const forwardSpeed=state.moveSpeed.x*f.x+state.moveSpeed.y*f.y;
+   const pedals=scriptTempActionPedals(t.action,Math.max(0,t.remaining)*1000,{forwardSpeed});
+   if(pedals)return {steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
+  }
+  // MISSION_NONE: no gas, the brakes on.
+  if(m.kind==='none')return {steering:0,throttle:0,brake:1,handbrake:false};
   const goal={x:m.goal.x,y:-m.goal.z};
   let pedals:Pedals|undefined;
   const paths=this.paths();
+  if(m.kind==='cruise'){
+   if(!paths)return {steering:0,throttle:0,brake:1,handbrake:false};
+   if(!m.link){const q=car.car.body.translation();m.link=joinCarWithRoadSystem(paths.areas,{x:q.x,y:-q.z,z:q.y},f);}
+   const link=m.link;if(!link)return {steering:0,throttle:0,brake:1,handbrake:false};
+   // PickNextNodeRandomly: one continuation per node change.
+   const pick=(from:TrafficLink)=>{const options=trafficLinks(paths.areas,from.to,false).filter(n=>n.to!==from.from);return options.length?options[Math.floor(this.random()*options.length)]:undefined;};
+   if(!m.cruiseNext||m.cruiseNext.from!==link.to)m.cruiseNext=pick(link);
+   let next=m.cruiseNext;
+   if(next&&shouldPickNextNode(state,travel(link),m.lane,travel(next),m.nextLane)){
+    m.link=next;m.lane=m.nextLane;m.cruiseNext=pick(next);next=m.cruiseNext;
+    if(next)m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5);
+   }
+   const at=m.link;
+   if(next&&at){
+    const lights=m.style===DRIVINGSTYLE.stopForCars||m.style===DRIVINGSTYLE.slowDownForCars;
+    const stop=lights&&nativeShouldStopForLight({position:[state.position.x,state.position.y],appearance:'car',physicsStatus:true,
+     current:{navigation:at.navigation,routeAddress:at.to.address,travelSign:at.dx*at.navigation.direction[0]-at.dz*at.navigation.direction[1]>=0?1:-1}},Math.floor(this.seconds*1000)>>>0);
+    pedals=steerFollowPath(state,travel(at),m.lane,travel(next),{cruiseSpeed:m.cruise,trafficSpeed:m.cruise,stop});
+   }else if(at){const end=travel(at).position;pedals=steerHeadingForTarget(state,end,m.cruise);}
+  }
   if((m.kind==='gotoCoords'||m.kind==='gotoCoordsAccurate')&&paths&&m.link){
    let link=m.link,next=m.route.length?m.route[0]:undefined;
    if(next&&next.from===link.to&&shouldPickNextNode(state,travel(link),m.lane,travel(next),m.nextLane)){

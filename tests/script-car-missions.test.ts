@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {ScriptCarMissions} from '../src/simulation/ScriptCarMissions';
+import {ScriptCarMissions,scriptTempActionPedals} from '../src/simulation/ScriptCarMissions';
 import type {WorldCar} from '../src/simulation/WorldCar';
 
 /** A car at a renderer point facing native north (-z), at rest. */
@@ -36,4 +36,24 @@ test('a wrecked, taken or removed car drops its mission',()=>{
  raw.occupied=true;missions.step(1/50);expect(missions.driving(c)).toBe(false);
  missions.gotoCoords(c,{x:0,y:0,z:-50},{cruise:20,style:0});raw.occupied=false;raw.disposed=true;missions.step(1/50);
  expect(missions.mission(c)).toBeUndefined();
+});
+
+test('a temporary action runs for its time over the mission, then the mission (or the brakes) comes back',()=>{
+ const missions=new ScriptCarMissions(()=>undefined),{car:c,raw}=car(0,0);
+ missions.tempAction(c,6,.1);
+ expect(missions.inTempAction(c)).toBe(true);
+ missions.step(.05);
+ expect(raw.autopilot).toMatchObject({native:{steerAngle:0,gas:0,brake:0,handbrake:true}});
+ missions.step(.06);expect(missions.inTempAction(c)).toBe(false);
+ missions.step(.02);expect(raw.autopilot).toEqual({steering:0,throttle:0,brake:1,handbrake:false});
+});
+
+test('the temporary actions the scripts use',()=>{
+ expect(scriptTempActionPedals(9,0,{forwardSpeed:0})).toEqual({swerve:0,accel:.5,brake:0,handbrake:false});
+ expect(scriptTempActionPedals(7,0,{forwardSpeed:0})).toEqual({swerve:1,accel:1,brake:0,handbrake:false});
+ expect(scriptTempActionPedals(4,0,{forwardSpeed:0})).toEqual({swerve:1,accel:0,brake:0,handbrake:true});
+ // Reversing brakes first while the car still rolls forward.
+ expect(scriptTempActionPedals(22,0,{forwardSpeed:.1})).toEqual({swerve:0,accel:0,brake:.5,handbrake:false});
+ expect(scriptTempActionPedals(14,0,{forwardSpeed:0})).toEqual({swerve:-1,accel:-.5,brake:0,handbrake:false});
+ expect(scriptTempActionPedals(99,0,{forwardSpeed:0})).toBeUndefined();
 });
