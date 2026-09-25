@@ -2,7 +2,8 @@ import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** GET_CHAR_IN_CAR_PASSENGER_SEAT (MAIN, LOWR, SWEET6), IS_LINE_OF_SIGHT_CLEAR (BCRASH1, HEIST5), DOES_GROUP_EXIST
  * (RYDER2), SET_CAR_ENGINE_ON (GARAG1, SYN1), IS_CHAR_ATTACHED_TO_ANY_CAR (LOWR, SWEET6), HAS_LANGUAGE_CHANGED,
- * GET_WATER_HEIGHT_AT_COORDS (SMOKE2, DRIV2) and SET_CAR_MISSION (HOODS5, CASINO4). */
+ * GET_WATER_HEIGHT_AT_COORDS (SMOKE2, DRIV2), SET_CAR_MISSION (HOODS5, CASINO4), CAR_WANDER_RANDOMLY (STEAL2, CASINO4)
+ * and SET_CAR_CAN_GO_AGAINST_TRAFFIC (HOODS5, HEIST2). */
 test('a script reads a passenger seat, a line of sight, a group, a car engine, car axes and speed, and an accurate drive',async({page})=>{
  test.setTimeout(300000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
@@ -44,6 +45,12 @@ test('a script reads a passenger seat, a line of sight, a group, a car engine, c
  expect(await mission()).toBe('stopForever');
  await w('setVehicleMission',made.car,0);
  expect(await mission()).toBe('none');
+ // CAR_WANDER_RANDOMLY puts it on MISSION_CRUISE at a cruise speed of at least 1; the traffic switch is kept.
+ await w('setVehicleCruiseSpeed',made.car,0);await w('vehicleWanderRandomly',made.car);
+ expect(await mission()).toBe('cruise');
+ await w('setVehicleCanGoAgainstTraffic',made.car,false);
+ expect(await page.evaluate(car=>(window as any).__game.missionForProfiling().vehicles.entity(car).autopilotFields,made.car)).toMatchObject({cruiseSpeed:1,cantGoAgainstTraffic:1});
+ await w('setVehicleMission',made.car,0);
  // A ped held on the car by ATTACH_CHAR_TO_CAR is attached to it; one in a seat is not.
  const rider=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;return g.missionForProfiling().peds.create(4,'MALE01',{x:p.x+4,y:-p.z-3,z:p.y});});
  await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().peds.entity(h),rider,{timeout:60000});

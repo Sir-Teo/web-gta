@@ -8101,3 +8101,10 @@ the progress, which is what the reversed object handler does (the char handler s
 from the key's rotation and translation (the frame's own position when the track has none) without scale, and puts
 them back at rest once the association goes. The blend in itself is not drawn. Tests: `scm-object-anim`,
 `script-object-anim`.
+
+## CAR_WANDER_RANDOMLY and SET_CAR_CAN_GO_AGAINST_TRAFFIC
+
+`CAR_WANDER_RANDOMLY` follows VC's handler (SA's is not reversed): the car joins the road system on
+`MISSION_CRUISE` with its engine on, its cruise speed raised to at least 1 and the anti-reverse timer restarted.
+`SET_CAR_CAN_GO_AGAINST_TRAFFIC` sets `CAutoPilot::bCantGoAgainstTraffic` to the inverse of its operand; nothing in
+the reversed sources reads the bit, so it is only kept. Spec: `script-world-queries`.

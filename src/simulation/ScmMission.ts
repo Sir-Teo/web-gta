@@ -306,7 +306,7 @@ export interface ScmMissionWorld {
  setScriptPedArea(ped:unknown,area:number):void;
  setScriptPedSkill(ped:unknown,skill:number):void;
  setScriptPedUsedEntryExit(ped:unknown):void;
- setScriptVehicleAutopilot(car:unknown,field:'cruiseSpeed'|'drivingStyle'|'loadsCollision',value:number):void;
+ setScriptVehicleAutopilot(car:unknown,field:'cruiseSpeed'|'drivingStyle'|'loadsCollision'|'cantGoAgainstTraffic',value:number):void;
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
@@ -713,6 +713,18 @@ export class ScmMission {
     if(!this.host('scriptVehicleCarMission','SET_CAR_MISSION')(car,{mission,cruise:fields.cruiseSpeed??CREATED_CRUISE_SPEED,style:fields.drivingStyle??0}))
      throw new UnsupportedScmCommand(-1,0,'SET_CAR_MISSION',`mission ${mission}`);
    },
+   // CAR_WANDER_RANDOMLY (VC's handler; SA's is unreversed): the car joins the road system on MISSION_CRUISE with the
+   // engine on, a cruise speed of at least 1 and the anti-reverse timer restarted.
+   vehicleWanderRandomly:handle=>{
+    const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
+    if('engineRunning' in (car as object))(car as {engineRunning:boolean}).engineRunning=true;
+    const cruise=Math.max(1,fields.cruiseSpeed??CREATED_CRUISE_SPEED);
+    this.world.setScriptVehicleAutopilot(car,'cruiseSpeed',cruise);
+    this.host('scriptVehicleWander','CAR_WANDER_RANDOMLY')(car,{cruise,style:fields.drivingStyle??0});
+   },
+   // SET_CAR_CAN_GO_AGAINST_TRAFFIC: CAutoPilot's bCantGoAgainstTraffic, the inverse of the operand. Nothing reversed
+   // reads the bit, so it is kept and does nothing more.
+   setVehicleCanGoAgainstTraffic:(handle,state)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'cantGoAgainstTraffic',state?0:1);},
    vehicleGotoCoordinates:(handle,x,y,z)=>{
     const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
     this.host('driveScriptVehicleTo','CAR_GOTO_COORDINATES')(car,{x,y,z},{cruise:Math.max(fields.cruiseSpeed??CREATED_CRUISE_SPEED,6),style:fields.drivingStyle??0,accurate:false,straight:false});
