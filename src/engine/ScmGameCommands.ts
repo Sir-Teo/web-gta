@@ -621,8 +621,9 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  HAS_MISSION_AUDIO_LOADED:(t,p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.hasLoaded(t.readInt(p[0])),negated(i));},
  PLAY_MISSION_AUDIO:(t,p,i)=>{
-  const slot=t.readInt(p[0]);
-  if(game(t,i).missionAudio.play(slot))t.host?.world?.playMissionAudio?.(slot);
+  const slot=t.readInt(p[0]),g=game(t,i),audio=g.missionAudio;
+  const sample=audio.slots[slot-1]?.audioEvent??-1,subtitle=g.messages.briefs[0]?.key;
+  if(audio.play(slot,t.host?.world?.missionAudioLengthMs?.(sample,subtitle)))t.host?.world?.playMissionAudio?.(slot);
  },
  HAS_MISSION_AUDIO_FINISHED:(t,p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.hasFinished(t.readInt(p[0])),negated(i));},
  IS_MISSION_AUDIO_PLAYING:(t,_p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.anyPlaying,negated(i));},

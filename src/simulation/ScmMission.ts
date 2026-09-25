@@ -4,6 +4,8 @@ import {saveOrRetrieveDataForThisFrame,type CarRecordingVehicle} from '../engine
 import {TRAIN_TYPES} from './nativeTrainTracks';
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
+import {speechLengthMs} from '../engine/ScmMissionAudio';
+import {gxtText} from '../assets/gxt';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findNavigationZone,pointInWorldZone,type WorldZones} from '../assets/worldZones';
@@ -1450,6 +1452,7 @@ export class ScmMission {
    },
    vehicleExistsByHandle:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
    playerCity:()=>this.world.playerCity(),
+   missionAudioLengthMs:(_sample,subtitle)=>subtitle?speechLengthMs(gxtText(subtitle,'')):undefined,
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},
    stopAllLawEnforcers:()=>{this.world.stopAllLawEnforcers();},

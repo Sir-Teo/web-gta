@@ -130,6 +130,8 @@ export class ScmRuntime {
    if(this.game.failCurrentMission)this.game.failCurrentMission--;
    this.game.introRectangles.beginFrame(this.game.introText.useTextCommands);
    this.game.introText.beginFrame();
+   // The audio engine's service of the last frame: a sample asked for is in, a playing one may have run out.
+   this.game.missionAudio.service(delta);
    tick(this.missionLocals);
    for(let slot=this.head,next:Slot|undefined;slot;slot=next){
     next=slot.next;

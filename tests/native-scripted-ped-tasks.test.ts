@@ -45,7 +45,7 @@ describe('the tasks a script gives a ped',()=>{
  });
 
  test('a task with no browser behaviour yet gives nothing back, so the thread gives up instead of pretending',()=>{
-  const unported:ScmScriptedTask[]=[{kind:'lookAbout',time:1000},{kind:'jump',state:true}];
+  const unported:ScmScriptedTask[]=[{kind:'sitDown',time:1000},{kind:'jump',state:true}];
   for(const task of unported)expect(scriptedPedOrder(task,world({}))).toBeUndefined();
  });
 

@@ -217,6 +217,9 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
   * own, counting from one. */
  loadMissionAudio?(scriptSlot:number,sampleId:number):void;
  playMissionAudio?(scriptSlot:number):void;
+ /** How long the sample runs, in ms. `subtitle` is the key of the brief on screen as it starts, which the
+  * dialogue routines print just before they play the line. */
+ missionAudioLengthMs?(sampleId:number,subtitle:string|undefined):number|undefined;
  clearMissionAudio?(scriptSlot:number):void;
  /** The eLevelName of the map zone the player stands in: countryside, then the three cities. */
  playerCity?(playerId:number):number;

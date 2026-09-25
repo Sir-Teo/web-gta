@@ -116,3 +116,28 @@ test('ADD_ONE_OFF_SOUND reports its script event at its point, and only the late
  for(let i=0;i<REPORTS_KEPT+10;i++)audio.report(1000+i,{x:i,y:0,z:0});
  expect(audio.reported).toHaveLength(REPORTS_KEPT);expect(audio.reported[0].audioEvent).toBe(1010);
 });
+
+test('the audio service streams a sample in by the next frame and runs a played one out after its length',async()=>{
+ const {ScmMissionAudio,AUDIO_LOADING,speechLengthMs,DEFAULT_SAMPLE_MS}=await import('../src/engine/ScmMissionAudio');
+ const audio=new ScmMissionAudio();
+ audio.preload(2,20015);expect(audio.slots[1].loadingStatus).toBe(AUDIO_LOADING);expect(audio.hasLoaded(2)).toBe(false);
+ audio.service(33);expect(audio.hasLoaded(2)).toBe(true);
+ expect(audio.play(2,1000)).toBe(true);expect(audio.anyPlaying).toBe(true);
+ audio.service(600);expect(audio.hasFinished(2)).toBe(false);
+ audio.service(400);expect(audio.hasFinished(2)).toBe(true);expect(audio.anyPlaying).toBe(false);
+ // A sample played without a length runs the default; an empty slot never finishes.
+ audio.preload(1,20016);audio.service(0);audio.play(1);audio.service(DEFAULT_SAMPLE_MS-1);expect(audio.hasFinished(1)).toBe(false);
+ audio.service(1);expect(audio.hasFinished(1)).toBe(true);
+ audio.service(10000);expect(audio.hasFinished(3)).toBe(false);
+ // A line's length follows its subtitle, less the HUD tokens.
+ expect(speechLengthMs('~w~Hi')).toBe(800);expect(speechLengthMs('')).toBe(DEFAULT_SAMPLE_MS);
+ expect(speechLengthMs('x'.repeat(60))).toBe(300+60*66);
+});
+
+test('PLAY_MISSION_AUDIO asks the host for the line\'s length with the brief on screen',()=>{
+ const game=new ScmGameState();const asked:unknown[]=[];
+ game.missionAudio.preload(1,20015);game.missionAudio.service(0);
+ game.messages.addMessageJump('INT1_AQ',4000,1,false,0);
+ run(game,{missionAudioLengthMs:(sample:number,subtitle:string|undefined)=>{asked.push([sample,subtitle]);return 1500;}},instruction(op('PLAY_MISSION_AUDIO'),[1]));
+ expect(asked).toEqual([[20015,'INT1_AQ']]);expect(game.missionAudio.slots[0].remainingMs).toBe(1500);
+});

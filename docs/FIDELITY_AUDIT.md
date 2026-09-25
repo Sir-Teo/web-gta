@@ -7737,3 +7737,15 @@ Each is now answered:
 - SET_CHAR_SAY_CONTEXT and _IMPORTANT return -1 with nothing said, as CPed::Say does when no line plays. The speech
   banks and CAEPedSpeechAudioEntity's contexts are not ported.
 - Verification: `tests/browser/script-sweet1b-flags.spec.ts`.
+
+## Mission audio slots are serviced
+
+- Nothing moved a slot on after LOAD_MISSION_AUDIO, so HAS_MISSION_AUDIO_LOADED and HAS_MISSION_AUDIO_FINISHED were
+  never true. Every dialogue routine waited on them for good; INTRO1 stopped at its first ride-along conversation.
+- The runtime now services the slots at the top of each CTheScripts::Process frame, where the audio engine's last
+  service has run. A loading sample is in by the next frame. A playing one finishes once its length has run out.
+- A sample's length is in its bank header in the SCRIPT pack (GetBankAndSoundFromScriptSlotAudioEvent: bank
+  147 + (event - 2000) / 200, sound (event - 2000) % 200). That pack is not in the content depot and its hosts are
+  out of reach, so the length is estimated. The estimate uses the subtitle the dialogue prints just before PLAY:
+  about 15 characters a second, plus a 300 ms lead. With no subtitle it is 2 s.
+- Verification: `tests/scm-mission-audio.test.ts`.
