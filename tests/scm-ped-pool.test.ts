@@ -259,3 +259,19 @@ describe('SET_ANIM_GROUP_FOR_CHAR',()=>{
   expect(spawned.at(-1)!.animGroup).toBe('gang1');
  });
 });
+
+test('a ped keeps its health and what the script set on it through getting in and out of a car',async()=>{
+ const {pool:peds,settle,spawned}=pool();
+ const handle=peds.create(4,'MALE01',{x:0,y:0,z:0});await settle();
+ peds.setHealth(handle,2000);peds.setAccuracy(handle,90);peds.setShootingRate(handle,70);peds.setInvulnerable(handle,true);
+ peds.setProofs(handle,{bullet:true,fire:false,explosion:true,collision:false,melee:false});
+ // Hurt on foot before getting in: the body in the car carries the health it has now.
+ spawned[0].health=1500;
+ peds.warpIntoCar(handle,1024,'driver');await settle();
+ const rider=spawned[1];
+ expect(rider).toMatchObject({health:1500,accuracy:90,shootingRate:70,invulnerable:true,proofs:['bullet','explosion']});
+ expect(peds.healthOf(handle)).toBe(1500);
+ rider.health=1200;
+ peds.detachFromCar(handle,{x:5,y:5,z:0});await settle();
+ expect(spawned[2]).toMatchObject({health:1200,accuracy:90,shootingRate:70,invulnerable:true,proofs:['bullet','explosion']});
+});

@@ -7822,3 +7822,11 @@ Each is now answered:
 - LOCATE_STOPPED_CAR_2D and _3D share the car locate. The box test and IsVehicleStopped must both hold, and the
   highlight is drawn either way.
 - CAR_GOTO_COORDINATES_ACCURATE is CAR_GOTO_COORDINATES on the accurate mission.
+
+## A script ped keeps its state in and out of cars
+
+- CPed is one object in SA whether it is in a car or not. The browser builds the ped a new body when it gets in, onto
+  or out of a car, and that body used to start fresh. A health of 2000 set on foot became 100 in the saddle.
+- The rebuilt body now takes the ped's health as it stands. It also gets what the script set on it: accuracy, shoot
+  rate, invulnerability, proofs and anim group.
+- Verification: `tests/scm-ped-pool.test.ts`.

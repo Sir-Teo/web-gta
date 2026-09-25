@@ -49,7 +49,10 @@ interface ScriptPed{pedType:number;model?:number|string;position:{x:number;y:num
  /** The anim group SET_ANIM_GROUP_FOR_CHAR named, which the ped keeps when it is built again (out of a car). */
  animGroup?:string;
  /** CPed::bKeepTasksAfterCleanUp (SET_CHAR_KEEP_TASK). */
- keepTask?:boolean}
+ keepTask?:boolean;
+ /** What the script set on the ped that the browser keeps on its body, so that the body built when the ped gets in or
+  * out of a car carries it on: CPed is one object in SA, in its car or out of it. */
+ accuracy?:number;shootingRate?:number;invulnerable?:boolean;proofs?:ScmPedProofs}
 /** ePedType, of which only these two are female. */
 const PED_TYPE_CIVMALE=4,PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
@@ -86,20 +89,20 @@ export class ScmPedPool<Ped>{
  warpIntoCar(handle:number,vehicle:number,seat:number|'driver'){
   const said=this.said.get(handle);if(!said)return;
   said.ride={vehicle,seat};
-  this.pool.replace(handle,()=>this.host.spawnInCar(said.pedType,said.model??PED_TYPE_CIVMALE,vehicle,seat));
+  this.rebuild(handle,said,()=>this.host.spawnInCar(said.pedType,said.model??PED_TYPE_CIVMALE,vehicle,seat));
  }
  /** ATTACH_PED_TO_CAR: the ped leaves the ground and rides on the car at the offset the script names. */
  attachToCar(handle:number,vehicle:number,offset:{x:number;y:number;z:number}){
   const said=this.said.get(handle);if(!said)return;
   requireAsset([offset.x,offset.y,offset.z].every(Number.isFinite),'Invalid script ped attachment.');
   said.ride={vehicle,seat:0,offset:{...offset}};
-  this.pool.replace(handle,()=>this.host.spawnOnCar(said.pedType,said.model??PED_TYPE_CIVMALE,vehicle,{...offset}));
+  this.rebuild(handle,said,()=>this.host.spawnOnCar(said.pedType,said.model??PED_TYPE_CIVMALE,vehicle,{...offset}));
  }
  /** DETACH_PED_FROM_CAR: the ped is back on the ground where the car had it, and walks again. */
  detachFromCar(handle:number,at:{x:number;y:number;z:number}){
   const said=this.said.get(handle);if(!said||!said.ride)return;
   said.ride=undefined;said.position={...at};
-  this.pool.replace(handle,()=>this.host.spawn(said.pedType,said.model??PED_TYPE_CIVMALE,{...at}).then(ped=>{if(ped!==undefined&&said.animGroup)this.host.setAnimGroup?.(ped,said.animGroup);return ped;}));
+  this.rebuild(handle,said,()=>this.host.spawn(said.pedType,said.model??PED_TYPE_CIVMALE,{...at}));
  }
  /** The car a ped rides in, or nothing while it is on foot. */
  rideOf(handle:number){return this.said.get(handle)?.ride;}
@@ -175,10 +178,26 @@ export class ScmPedPool<Ped>{
   said.dead=true;said.health=0;
   this.pool.apply(handle,ped=>{this.host.kill(ped);});
  }
- setAccuracy(handle:number,accuracy:number){this.pool.apply(handle,ped=>{this.host.setAccuracy(ped,accuracy);});}
+ /** The ped's body built again (into a car, onto one, or out on foot), with the health it has now and what the
+  * script set on it. */
+ private rebuild(handle:number,said:ScriptPed,spawn:()=>Promise<Ped|undefined>){
+  const health=this.pool.read(handle,ped=>this.host.healthOf(ped),()=>said.health);
+  if(health>0)said.health=health;
+  this.pool.replace(handle,()=>spawn().then(ped=>{
+   if(ped===undefined)return ped;
+   if(said.health>0&&!said.dead)this.host.setHealth(ped,said.health);
+   if(said.accuracy!==undefined)this.host.setAccuracy(ped,said.accuracy);
+   if(said.shootingRate!==undefined)this.host.setShootingRate?.(ped,said.shootingRate);
+   if(said.invulnerable!==undefined)this.host.setInvulnerable(ped,said.invulnerable);
+   if(said.proofs)this.host.setProofs(ped,said.proofs);
+   if(said.animGroup)this.host.setAnimGroup?.(ped,said.animGroup);
+   return ped;
+  }));
+ }
+ setAccuracy(handle:number,accuracy:number){const said=this.said.get(handle);if(said)said.accuracy=accuracy;this.pool.apply(handle,ped=>{this.host.setAccuracy(ped,accuracy);});}
  /** SET_CHAR_SHOOT_RATE: the rate is a byte (m_nWeaponShootingRate is a uint8). */
- setShootingRate(handle:number,rate:number){this.pool.apply(handle,ped=>{this.host.setShootingRate?.(ped,rate&0xff);});}
- setInvulnerable(handle:number,enabled:boolean){this.pool.apply(handle,ped=>{this.host.setInvulnerable(ped,enabled);});}
+ setShootingRate(handle:number,rate:number){const said=this.said.get(handle);if(said)said.shootingRate=rate&0xff;this.pool.apply(handle,ped=>{this.host.setShootingRate?.(ped,rate&0xff);});}
+ setInvulnerable(handle:number,enabled:boolean){const said=this.said.get(handle);if(said)said.invulnerable=enabled;this.pool.apply(handle,ped=>{this.host.setInvulnerable(ped,enabled);});}
  /** SET_CHAR_KEEP_TASK: whether the ped keeps its task when the script lets it go. */
  setKeepTask(handle:number,keep:boolean){const said=this.said.get(handle);if(said)said.keepTask=keep;}
  /** SET_ANIM_GROUP_FOR_CHAR, now or once the ped is built. */
@@ -186,7 +205,7 @@ export class ScmPedPool<Ped>{
   const said=this.said.get(handle);if(said)said.animGroup=group;
   this.pool.apply(handle,ped=>{this.host.setAnimGroup?.(ped,group);});
  }
- setProofs(handle:number,proofs:ScmPedProofs){this.pool.apply(handle,ped=>{this.host.setProofs(ped,proofs);});}
+ setProofs(handle:number,proofs:ScmPedProofs){const said=this.said.get(handle);if(said)said.proofs={...proofs};this.pool.apply(handle,ped=>{this.host.setProofs(ped,proofs);});}
  /** DELETE_CHAR: the ped goes now if it is here, and is refused on arrival if it is not. */
  delete(handle:number){this.pool.delete(handle);this.said.delete(handle);}
  /** MARK_CHAR_AS_NO_LONGER_NEEDED: the ped stays for the streamer to reclaim and the script lets go of it. */
