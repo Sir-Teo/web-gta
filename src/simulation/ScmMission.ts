@@ -1,6 +1,6 @@
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
-import {UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
+import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findNavigationZone,pointInWorldZone,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
@@ -1299,8 +1299,7 @@ export class ScmMission {
  private leaveCarNow(handle:number,vehicle:number|undefined,opcode:number){
   const ride=this.peds.rideOf(handle);
   if(!ride||ride.offset||vehicle!==undefined&&vehicle!==ride.vehicle)return false;
-  const car=this.vehicles.entity(ride.vehicle);
-  if(!car)throw new UnsupportedScmCommand(opcode,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${ride.vehicle}`);
+  const car=this.liveVehicle(ride.vehicle);
   const at=this.host('scriptVehicleSeatDoor','TASK_LEAVE_CAR')(car,ride.seat);
   if(!at)throw new UnsupportedScmCommand(opcode,0,'A_SEAT_WITHOUT_A_DOOR',String(ride.seat));
   this.stopDriving(handle);
@@ -1435,9 +1434,7 @@ export class ScmMission {
   this.livePed(handle);
   const ride=this.peds.rideOf(handle);
   if(!ride||ride.offset||ride.seat!=='driver'||ride.vehicle!==vehicle)throw new UnsupportedScmCommand(opcode,0,'A_DRIVER_NOT_AT_THE_WHEEL',`ped ${handle}`);
-  const car=this.vehicles.entity(vehicle);
-  if(!car)throw new UnsupportedScmCommand(opcode,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${vehicle}`);
-  return car;
+  return this.liveVehicle(vehicle);
  }
  /** The player's ped runs only the tasks PlayerScriptTasks knows; any other gives the thread up. */
  private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number,sequence=false){
@@ -1489,6 +1486,7 @@ export class ScmMission {
  private liveVehicle(handle:number){
   // The player's own car is not one the script made: the host hands it over while the player drives it.
   const car=handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.entity(handle);
+  if(!car&&handle!==PLAYER_VEHICLE_HANDLE&&this.vehicles.exists(handle)&&!this.vehicles.settledFor(handle))throw new ScmEntityPending(`vehicle ${handle}`);
   if(!car)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return car;
  }
@@ -1606,6 +1604,8 @@ export class ScmMission {
  }
  private livePed(handle:number){
   const ped=this.peds.entity(handle);
+  // A ped still being built is waited for; one whose making failed, or a handle naming none, is not there to ask.
+  if(!ped&&this.peds.exists(handle)&&!this.peds.settledFor(handle))throw new ScmEntityPending(`ped ${handle}`);
   if(!ped)throw new UnsupportedScmCommand(-1,0,'A_PED_THE_BROWSER_DOES_NOT_HOLD',`ped ${handle}`);
   return ped;
  }

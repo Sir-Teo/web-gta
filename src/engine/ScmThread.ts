@@ -12,6 +12,12 @@ export class UnsupportedScmCommand extends Error {
   super(`Unsupported SCM command ${command} (0x${opcode.toString(16)}) at ${offset}${detail?`: ${detail}`:''}`);
  }
 }
+/** A command naming a ped or car the browser is still building. The original has the entity the moment the creating
+ * command returns; here the thread waits at the command and runs it again the next frame, once the entity is there.
+ * Anything outside a thread that meets one treats it as the command it cannot run. */
+export class ScmEntityPending extends UnsupportedScmCommand {
+ constructor(what:string){super(-1,0,'AN_ENTITY_THE_BROWSER_IS_STILL_BUILDING',what);}
+}
 type NumericKind='int'|'float';
 /** One scratch word for the untagged 32-bit union a script parameter is. Written and read within a single
  * read, so a thread never sees another's. */
@@ -1373,7 +1379,8 @@ export class ScmThread {
    else{
     const handler=SCM_GAME_COMMANDS.get(op);
     if(!handler)throw new UnsupportedScmCommand(i.offset,op,i.name);
-    handler(this,p,i,nowMs);
+    try{handler(this,p,i,nowMs);}
+    catch(error){if(!(error instanceof ScmEntityPending))throw error;this.wakeTime=nowMs>>>0;return 'waiting';}
    }
    this.ip=next;
   }

@@ -7293,3 +7293,13 @@ Each is now answered:
 - MOB_LA1 and IS_GANG_WAR_FIGHTING_GOING_ON: CGangWars::GangWarFightingGoingOn, which the port's gang wars already
   keep.
 - INTRO1 and ENABLE_AMBIENT_CRIME: CLoadMonitor::m_bEnableAmbientCrime, stored in the engine.
+
+## Commands on a ped or car still being built
+
+- In SA, CREATE_CHAR and CREATE_CAR hand back an entity that exists at once. The browser builds it asynchronously
+  over a few frames. Commands that could be queued against the handle already were. Any command that needed the live
+  entity, though, gave up and retired the thread: a mission sweep showed HOODS5 dying on SET_CHAR_RELATIONSHIP right
+  after creating its ped.
+- Such a command now raises ScmEntityPending. The thread waits a frame at that command and runs it again, until the
+  entity is there. It has consumed nothing and set no compare flag in between.
+- A handle whose making failed, or one that names nothing, still gives up.
