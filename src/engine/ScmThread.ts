@@ -417,6 +417,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** A particle system tied to one of the ped's bones. */
  attachFxSystemToPedBone?(fxSystem:number,handle:number,bone:number):void;
  /** The attachment commands that limit which way an attached ped may face. */
+ /** `heading` is the attachment's facing (0 to 3, as the attach commands take it) and the ranges are radians. */
  setHeadingLimitForAttachedPed?(handle:number,heading:number,headingRange:number):void;
  attachPedToBike?(handle:number,vehicle:number,offset:{x:number;y:number;z:number},heading:number,headingRange:number,pitchRange:number,weapon:number):void;
  /** Whether the ped stands in a searchlight, or at the attractor the script names. */

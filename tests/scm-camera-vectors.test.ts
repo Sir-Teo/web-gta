@@ -37,15 +37,15 @@ describe('the two linear runs a script gives the camera',()=>{
   expect(camera.lookingAtVector).toBe(true);
  });
 
- test('the move takes a float duration and leaves the looking-at flag alone',()=>{
+ test('the move takes an integer duration and leaves the looking-at flag alone',()=>{
   const game=new ScmGameState();
   const before=game.camera.lookingAtVector;
   run(game,{},1000,instruction(scmOpcode('CAMERA_SET_VECTOR_MOVE'),
-   [float(0),float(0),float(0),float(5),float(5),float(5),float(1500.5),int(0)]));
+   [float(0),float(0),float(0),float(5),float(5),float(5),int(1500),int(0)]));
   expect(game.camera.moveLinearFrom).toEqual({x:0,y:0,z:0});
   expect(game.camera.moveLinearTo).toEqual({x:5,y:5,z:5});
   expect(game.camera.moveLinearStartTime).toBe(1000);
-  expect(game.camera.moveLinearEndTime).toBeCloseTo(2500.5,3);
+  expect(game.camera.moveLinearEndTime).toBe(2500);
   expect(game.camera.moveLinearWithEase).toBe(false);
   expect(game.camera.lookingAtVector).toBe(before);
  });

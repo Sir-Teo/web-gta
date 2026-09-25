@@ -76,7 +76,7 @@ describe('the ped state a script reads and writes',()=>{
   expect(walking.int(40)).toBe(0);
  });
 
- test('an empty passenger seat leaves the variable at nothing',()=>{
+ test('an empty passenger seat reads -1',()=>{
   const asked:number[][]=[];
   const taken=run({pedInPassengerSeat:(vehicle:number,seat:number)=>{asked.push([vehicle,seat]);return 5;}},undefined,
    instruction(scmOpcode('GET_CHAR_IN_CAR_PASSENGER_SEAT'),[int(CAR),int(2),gvar(40)]));
@@ -84,7 +84,7 @@ describe('the ped state a script reads and writes',()=>{
   expect(asked).toEqual([[CAR,2]]);
   const free=run({pedInPassengerSeat:()=>undefined},undefined,
    instruction(scmOpcode('GET_CHAR_IN_CAR_PASSENGER_SEAT'),[int(CAR),int(2),gvar(40)]));
-  expect(free.int(40)).toBe(0);
+  expect(free.int(40)).toBe(-1);
  });
 
  test('setting a ped alight starts a script fire where it stands',()=>{

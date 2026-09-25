@@ -8,7 +8,7 @@ test('a command naming a ped still being built waits a frame at that command and
  const set=scmOpcode('SET_CHAR_HEALTH'),end=scmOpcode('TERMINATE_THIS_SCRIPT');
  const int=(v:number)=>{const b=new Uint8Array(4);new DataView(b.buffer).setInt32(0,v,true);return [1,...b];};
  const float=(v:number)=>{const b=new Uint8Array(4);new DataView(b.buffer).setFloat32(0,v,true);return [6,...b];};
- const code=[set&0xff,set>>8&0xff,...int(7),...float(50),end&0xff,end>>8&0xff];
+ const code=[set&0xff,set>>8&0xff,...int(7),...int(50),end&0xff,end>>8&0xff];
  const space=new Uint8Array(64);space.set(code,0);
  let built=false;const set50:number[]=[];
  const world={fade(){},setPedHealth:(_handle:number,health:number)=>{if(!built)throw new ScmEntityPending('ped 7');set50.push(health);}} as unknown as ScmWorldCommands;

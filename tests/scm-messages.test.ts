@@ -116,7 +116,7 @@ test('help, text-line and streaming commands update state or call the adapter wi
  const world:ScmWorldCommands={fade(){},isFading:()=>true,loadMissionText(name){calls.push(['text',name]);},requestModel(m){calls.push(['request',m]);},hasModelLoaded:m=>m===400,markModelNotNeeded(m){calls.push(['mark',m]);},loadAllModelsNow(){calls.push(['loadAll']);}};
  const space=new Uint8Array(2048);
  space.set([...op('PRINT_HELP',key('HLP')),...op('PRINT_HELP_FOREVER',key('HLPF')),...op('CLEAR_HELP'),...op('USE_TEXT_COMMANDS',int(1)),...op('SET_TEXT_COLOUR',int(1),int(2),int(3),int(4)),...op('SET_TEXT_DROPSHADOW',int(1),int(9),int(8),int(7),int(6)),
-  ...op('DISPLAY_TEXT_WITH_FLOAT',float(100),float(200),key('FLT'),float(3.75),float(2)),...op('DISPLAY_TEXT_WITH_2_NUMBERS',float(1),float(2),key('TWO'),int(8),int(9)),
+  ...op('DISPLAY_TEXT_WITH_FLOAT',float(100),float(200),key('FLT'),float(3.75),int(2)),...op('DISPLAY_TEXT_WITH_2_NUMBERS',float(1),float(2),key('TWO'),int(8),int(9)),
   ...op('LOAD_MISSION_TEXT',key('INTRO')),...op('REQUEST_MODEL',int(400)),...op('REQUEST_MODEL',int(-2)),...op('HAS_MODEL_LOADED',int(400)),...op('MARK_MODEL_AS_NO_LONGER_NEEDED',int(-1)),...op('LOAD_ALL_MODELS_NOW'),
   ...op(scmOpcode('GET_FADING_STATUS')|0x8000),...op('DISPLAY_NON_MINIGAME_HELP_MESSAGES',int(0)),...op('PRINT_HELP',key('HID')),0x4e,0],128);
  const runtime=new ScmRuntime(space,world,undefined,undefined,{file:new Uint8Array(0),offsets:[],exclusiveMissions:0,objectNames:['','CJ_PHONE','LOD_LAND']});

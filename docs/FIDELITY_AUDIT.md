@@ -7803,3 +7803,15 @@ Each is now answered:
 - DOES_GROUP_EXIST: a group made and not removed; the player's group is always there.
 - SET_CAR_ENGINE_ON sets bEngineOn (the engine sound's state). The car's drive does not read it yet.
 - Verification: `tests/browser/script-world-queries.spec.ts`.
+
+## Integer operands read as floats
+
+- Eight handlers read an operand as a float that the SA command library types as an integer. The scripts pass int
+  literals and int variables there, so the bits were reinterpreted.
+  - SET_CHAR_HEALTH 2000 became 2.8e-42: INTRO1's homies died at the first touch, and the mission failed
+    (INT2_F2).
+  - The same held for SET_CHAR_MAX_HEALTH, SET_CAR_HEALTH, IS_CHAR_HEALTH_GREATER, CAMERA_SET_VECTOR_MOVE's time,
+    DISPLAY_TEXT_WITH_FLOAT's precision, and the facings of ATTACH_CHAR_TO_BIKE and
+    SET_HEADING_LIMIT_FOR_ATTACHED_CHAR.
+- Each now reads an integer. The two attachment ranges are degrees turned to radians, as the car form's is.
+- An audit compared every handler's operand reads with sa.json's declared types; only these eight disagreed.

@@ -73,7 +73,7 @@ describe('the peds a script holds',()=>{
   const handle=host.world.createChar!(4,105,0,0,0);
   const command=(health:number)=>{
    const bytes=new Uint8Array(12);const view=new DataView(bytes.buffer);
-   view.setUint16(0,0x223,true);bytes[2]=1;view.setInt32(3,handle,true);bytes[7]=6;view.setFloat32(8,health,true);
+   view.setUint16(0,0x223,true);bytes[2]=1;view.setInt32(3,handle,true);bytes[7]=1;view.setInt32(8,health,true);
    return bytes;
   };
   runOne(threadAt(command(50),0,host.world));

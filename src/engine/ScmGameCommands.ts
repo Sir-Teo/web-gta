@@ -374,7 +374,7 @@ const handlers:Record<string,ScmCommandHandler>={
  DISPLAY_TEXT:(t,p,i)=>{game(t,i).introText.display(t.readFloat(p[0]),t.readFloat(p[1]),t.text(p[2]),-1,-1);},
  DISPLAY_TEXT_WITH_NUMBER:displayTextWithNumbers(1),DISPLAY_TEXT_WITH_2_NUMBERS:displayTextWithNumbers(2),
  DISPLAY_TEXT_WITH_FLOAT:(t,p,i)=>{
-  const value=t.readFloat(p[3]),precision=t.readFloat(p[4]),whole=Math.trunc(value),fraction=value-whole;
+  const value=t.readFloat(p[3]),precision=t.readInt(p[4]),whole=Math.trunc(value),fraction=value-whole;
   game(t,i).introText.display(t.readFloat(p[0]),t.readFloat(p[1]),t.text(p[2]),whole,Math.trunc(Math.fround(Math.pow(10,precision))*fraction));
  },
  SET_TEXT_SCALE:(t,p,i)=>{game(t,i).introText.pending.scale={x:t.readFloat(p[0]),y:t.readFloat(p[1])};},
@@ -433,7 +433,8 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  SET_CHAR_COORDINATES:(t,p,i)=>{const v=vec(t,p,1);world(t,i,'setPedCoordinates')(t.readInt(p[0]),v.x,v.y,v.z);},
  SET_CHAR_HEALTH:(t,p,i)=>{
-  const handle=t.readInt(p[0]),health=t.readFloat(p[1]);
+  // The health is an integer operand (0223, `int`), which the original converts to the float it keeps.
+  const handle=t.readInt(p[0]),health=t.readInt(p[1]);
   if(health===0)world(t,i,'killPed')(handle);else world(t,i,'setPedHealth')(handle,health);
  },
  SET_CHAR_ACCURACY:(t,p,i)=>{world(t,i,'setPedAccuracy')(t.readInt(p[0]),t.readInt(p[1])&255);},
@@ -598,14 +599,14 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_SCRIPT_TASK_STATUS:(t,p,i)=>{t.writeInt(p[2],world(t,i,'scriptTaskStatus')(t.readInt(p[0]),t.readInt(p[1])));},
  // --- One-field commands whose dispatch is not reversed, each named for the field it reaches.
  GIVE_WEAPON_TO_CHAR:(t,p,i)=>{world(t,i,'givePedWeapon')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
- SET_CHAR_MAX_HEALTH:(t,p,i)=>{world(t,i,'setPedMaxHealth')(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_CHAR_MAX_HEALTH:(t,p,i)=>{world(t,i,'setPedMaxHealth')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CHAR_SHOOT_RATE:(t,p,i)=>{world(t,i,'setPedShootRate')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CHAR_RELATIONSHIP:(t,p,i)=>{world(t,i,'setPedRelationship')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  CLEAR_CHAR_RELATIONSHIP:(t,p,i)=>{world(t,i,'clearPedRelationship')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  // Unlike the immediate form, this one lets the ped finish what it is doing.
  CLEAR_CHAR_TASKS:(t,p,i)=>{world(t,i,'clearPedTasks')(t.readInt(p[0]));},
  GET_CAR_HEALTH:(t,p,i)=>{t.writeInt(p[1],Math.trunc(world(t,i,'vehicleHealth')(t.readInt(p[0]))));},
- SET_CAR_HEALTH:(t,p,i)=>{world(t,i,'setVehicleHealth')(t.readInt(p[0]),t.readFloat(p[1]));},
+ SET_CAR_HEALTH:(t,p,i)=>{world(t,i,'setVehicleHealth')(t.readInt(p[0]),t.readInt(p[1]));},
  FREEZE_CAR_POSITION:(t,p,i)=>{world(t,i,'freezeVehiclePosition')(t.readInt(p[0]),bool(t,p[1]));},
  LOCK_CAR_DOORS:(t,p,i)=>{world(t,i,'setVehicleDoorLock')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CAR_DENSITY_MULTIPLIER:(t,p,i)=>{game(t,i).carDensityMultiplier=t.readFloat(p[0]);},
@@ -880,7 +881,7 @@ const handlers:Record<string,ScmCommandHandler>={
   game(t,i).camera.vectorTrackLinear(vec(t,p,0),vec(t,p,3),t.readInt(p[6]),bool(t,p[7]),nowMs);
  },
  CAMERA_SET_VECTOR_MOVE:(t,p,i,nowMs)=>{
-  game(t,i).camera.vectorMoveLinear(vec(t,p,0),vec(t,p,3),t.readFloat(p[6]),bool(t,p[7]),nowMs);
+  game(t,i).camera.vectorMoveLinear(vec(t,p,0),vec(t,p,3),t.readInt(p[6]),bool(t,p[7]),nowMs);
  },
  // CCamera::TakeControl over a vehicle the script names, which does nothing for a handle naming no car.
  POINT_CAMERA_AT_CAR:(t,p,i)=>{
@@ -932,7 +933,7 @@ const handlers:Record<string,ScmCommandHandler>={
  /* --- The last of the reversed character, player, camera and object commands with a body of their own. */
  IS_CHAR_HEALTH_GREATER:(t,p,i)=>{
   // The source compares with "greater or equal" although the command is named for "greater".
-  t.updateCompareFlag(world(t,i,'pedHealth')(t.readInt(p[0]))>=t.readFloat(p[1]),negated(i));
+  t.updateCompareFlag(world(t,i,'pedHealth')(t.readInt(p[0]))>=t.readInt(p[1]),negated(i));
  },
  SET_CHAR_SIGNAL_AFTER_KILL:(t,p,i)=>{world(t,i,'pedSignalAfterKill')(t.readInt(p[0]),bool(t,p[1]));},
  GET_CURRENT_CHAR_WEAPON:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedActiveWeapon')(t.readInt(p[0])).type);},
@@ -1204,12 +1205,12 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'attachFxSystemToPedBone')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));
  },
  SET_HEADING_LIMIT_FOR_ATTACHED_CHAR:(t,p,i)=>{
-  world(t,i,'setHeadingLimitForAttachedPed')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]));
+  world(t,i,'setHeadingLimitForAttachedPed')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2])*Math.PI/180);
  },
  // The bike attachment carries two ranges rather than the one the car and object forms take.
  ATTACH_CHAR_TO_BIKE:(t,p,i)=>{
   world(t,i,'attachPedToBike')(t.readInt(p[0]),t.readInt(p[1]),vec(t,p,2),
-   t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]),t.readInt(p[8]));
+   t.readInt(p[5]),t.readFloat(p[6])*Math.PI/180,t.readFloat(p[7])*Math.PI/180,t.readInt(p[8]));
  },
  // The searchlight command names the light first and the ped second, which its own block says.
  IS_CHAR_IN_SEARCHLIGHT:(t,p,i)=>{

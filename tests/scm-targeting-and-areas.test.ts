@@ -80,8 +80,8 @@ describe('the boxes a script tests',()=>{
 describe('the last of the ped and object commands',()=>{
  test('the health question compares with greater or equal, despite its name',()=>{
   const world={pedHealth:()=>100};
-  expect(run(world,instruction(scmOpcode('IS_CHAR_HEALTH_GREATER'),[int(PED),float(100)])).thread.condition).toBe(true);
-  expect(run(world,instruction(scmOpcode('IS_CHAR_HEALTH_GREATER'),[int(PED),float(101)])).thread.condition).toBe(false);
+  expect(run(world,instruction(scmOpcode('IS_CHAR_HEALTH_GREATER'),[int(PED),int(100)])).thread.condition).toBe(true);
+  expect(run(world,instruction(scmOpcode('IS_CHAR_HEALTH_GREATER'),[int(PED),int(101)])).thread.condition).toBe(false);
  });
 
  test('the dead ped’s point and its current weapon are read from the host',()=>{

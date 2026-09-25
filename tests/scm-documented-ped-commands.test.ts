@@ -119,11 +119,11 @@ describe('the ped commands the reference documents but does not register',()=>{
  test('the bike attachment carries two ranges where the car form takes one',()=>{
   const {world,calls}=recording();
   run(world,instruction(op('ATTACH_CHAR_TO_BIKE'),
-   [int(PED),int(CAR),float(0),float(1),float(2),float(90),float(45),float(10),int(22)]),
-   instruction(op('SET_HEADING_LIMIT_FOR_ATTACHED_CHAR'),[int(PED),float(180),float(30)]));
+   [int(PED),int(CAR),float(0),float(1),float(2),int(2),float(45),float(10),int(22)]),
+   instruction(op('SET_HEADING_LIMIT_FOR_ATTACHED_CHAR'),[int(PED),int(3),float(30)]));
   expect(calls).toEqual([
-   ['bike',PED,CAR,{x:0,y:1,z:2},90,45,10,22],
-   ['headingLimit',PED,180,30],
+   ['bike',PED,CAR,{x:0,y:1,z:2},2,45*Math.PI/180,10*Math.PI/180,22],
+   ['headingLimit',PED,3,30*Math.PI/180],
   ]);
  });
 

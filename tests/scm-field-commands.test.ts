@@ -51,7 +51,7 @@ describe('the one-field commands',()=>{
   const h=host();
   run(build(scmOpcode('GIVE_WEAPON_TO_CHAR'),[int(1),int(24),int(200)]),h.world);
   expect(h.seen.weapon).toEqual({handle:1,weaponType:24,ammo:200});
-  run(build(scmOpcode('SET_CHAR_MAX_HEALTH'),[int(1),flt(250)]),h.world);
+  run(build(scmOpcode('SET_CHAR_MAX_HEALTH'),[int(1),int(250)]),h.world);
   expect(h.seen.maxHealth).toBe(250);
   run(build(scmOpcode('SET_CHAR_SHOOT_RATE'),[int(1),int(70)]),h.world);
   expect(h.seen.shootRate).toBe(70);
@@ -73,7 +73,7 @@ describe('the one-field commands',()=>{
   const h=host();
   const reader=run(build(scmOpcode('GET_CAR_HEALTH'),[int(1),local(3)]),h.world);
   expect(reader.thread.locals.getInt32(3*4,true)).toBe(640);
-  run(build(scmOpcode('SET_CAR_HEALTH'),[int(1),flt(300)]),h.world);
+  run(build(scmOpcode('SET_CAR_HEALTH'),[int(1),int(300)]),h.world);
   expect(h.seen.carHealth).toBe(300);
   run(build(scmOpcode('FREEZE_CAR_POSITION'),[int(1),byte(1)]),h.world);
   expect(h.seen.frozen).toBe(true);
