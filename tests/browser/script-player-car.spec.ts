@@ -25,6 +25,13 @@ test('the script puts the player in its car, moves him, and takes him out',async
   w.setPedCoordinates(1,to.x,to.y,to.z);const after=m.vehicles.positionOf(car);return {dx:after.x-to.x,dy:after.y-to.y};
  },car);
  expect(Math.abs(moved.dx)).toBeLessThan(.01);expect(Math.abs(moved.dy)).toBeLessThan(.01);
+ // WARP_CHAR_INTO_CAR on another car while he sits in this one: he leaves it and is put in the other.
+ const second=await page.evaluate((car:number)=>{const m=(window as any).__game.missionForProfiling(),c=m.vehicles.positionOf(car);return m.vehicles.create(400,{x:c.x,y:c.y+6,z:c.z},0);},car);
+ await page.waitForFunction((h:number)=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),second,{timeout:45000});
+ const swapped=await page.evaluate(([a,b]:number[])=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.warpPedIntoCar(1,b);return {vehicle:w.pedVehicle(1),first:w.vehicleDriver(a),second:w.vehicleDriver(b)};},[car,second]);
+ expect(swapped).toEqual({vehicle:second,first:-1,second:1});
+ await page.evaluate(([a]:number[])=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCar(1,a),[car,second]);
+ expect(await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1))).toBe(car);
  // WARP_CHAR_FROM_CAR_TO_COORD: out and on foot at the point.
  const out=await page.evaluate((car:number)=>{
   const g=(window as any).__game,m=g.missionForProfiling(),w=m.runtime.world,c=m.vehicles.positionOf(car);

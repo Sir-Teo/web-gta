@@ -8179,3 +8179,10 @@ mission follower in a car stays in it, as the game sets only non-mission followe
 `bUpperBodyDamageAnimsOnly` was already read by the ported `ComputeDamageAnim` (no heavy hit, no knockdown by a
 torso shot, no whole-body hit clip), but nothing set it for a script ped; the command now sets the ped's flag and the
 damage response passes it in (DRUGS3, DRUGS4, CASIN10). Test: `native-damage-anim`.
+
+## WARP_CHAR_INTO_CAR on a player already in another car
+
+`WarpCharIntoCar` flushes the ped's tasks and runs `CTaskSimpleCarSetPedInAsDriver` (unreversed), which puts the ped
+in the new car whatever he sat in. The host refused a player who was already driving or riding, which stopped SWEET2
+when its script moved CJ from one car to the next. He now leaves the old car where he sits (as
+`WARP_CHAR_FROM_CAR_TO_COORD` sets him out) and is seated in the new one. Spec: `script-player-car`.

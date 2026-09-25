@@ -3985,6 +3985,11 @@ async function boot() {
                  warpPlayerIntoCar:car=>{
                   const riding=()=>!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger);
                   const target=car as ScriptCar;
+                  // CTaskSimpleCarSetPedInAsDriver on a player seated in another car: he leaves that one where he sits
+                  // (as WARP_CHAR_FROM_CAR_TO_COORD sets him out) and is put in this one.
+                  const seatedIn=worldCar?.occupied?worldCar:fleet?.occupied;
+                  if(seatedIn&&seatedIn!==car){const at=sim.player.position;carEntry.cancel();seatedIn.setPedOut({x:at.x,y:at.y,z:at.z});}
+                  else if(playerPassenger&&playerPassenger.car!==car)leavePassengerSeat(true);
                   if(typeof target.setPedInAsDriver!=='function'){
                    // A bike, boat or aircraft: CTaskSimpleCarSetPedInAsDriver seats him at once, so no jump-on plays.
                    const other=car as {disposed?:boolean;occupied?:boolean;finishEnter?:()=>unknown;mountTimer?:number};
