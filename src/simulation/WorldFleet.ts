@@ -404,7 +404,14 @@ export class WorldFleet {
    doomed.push(car);
   }
   for(const car of doomed){this.cars.delete(car);this.generated.delete(car);car.dispose();}
-  return doomed.length;
+  // CWorld::ClearCarsFromArea walks the whole vehicle pool: the bikes, boats and aircraft go the same way when nobody
+  // rides them and no script holds them.
+  let others=0;
+  const inBox=(v:{car:{body:RAPIER.RigidBody}})=>{const at=v.car.body.translation();return at.x>=lo.x&&at.x<=hi.x&&at.y>=lo.y&&at.y<=hi.y&&at.z>=lo.z&&at.z<=hi.z;};
+  for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&inBox(bike)){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
+  for(const boat of [...this.boats])if(!boat.occupied&&!boat.missionCar&&!boat.disposed&&inBox(boat)){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);others++;}
+  for(const plane of [...this.planes])if(!plane.occupied&&!plane.missionCar&&!plane.disposed&&inBox(plane)){plane.dispose();this.planes.delete(plane);others++;}
+  return doomed.length+others;
  }
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
