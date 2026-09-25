@@ -64,6 +64,14 @@ export interface ScmMissionWorld {
   * runs, from its own start, a restart point or a save, so the host records this rather than moving them. */
  playerCreatedAt(x:number,y:number,z:number):void;
  setPlayerHeading(degrees:number):void;
+ /** CRunningScript::SetCharCoordinates for the player (script coordinates, already put to the ground if too low):
+  * his vehicle is teleported with him in it, or he is. */
+ teleportPlayer?(position:{x:number;y:number;z:number}):boolean;
+ /** WARP_CHAR_INTO_CAR on the player (CTaskSimpleCarSetPedInAsDriver without the entry tasks), and
+  * WARP_CHAR_FROM_CAR_TO_COORD (out of the vehicle and teleported). */
+ warpPlayerIntoCar?(car:unknown):boolean;
+ warpPlayerFromCarToCoord?(position:{x:number;y:number;z:number}):boolean;
+ /** (Each answers false for what it does not carry out: a player on a bike, boat or plane, or already in a car.) */
  /** CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString. */
  setCameraBehindPlayer():void;
  /** CStreaming::LoadScene and the collision request that goes before it. */
@@ -423,7 +431,7 @@ export class ScmMission {
    pedExists:handle=>handle===PLAYER_PED_HANDLE||this.peds.exists(handle),
    // GetCharCoordinates gives the vehicle's position while the ped rides in one.
    pedPosition:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(handle)??this.peds.positionOf(handle),
-   pedVehicle:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().vehicle&&PLAYER_VEHICLE_HANDLE:this.peds.rideOf(handle)?.vehicle,
+   pedVehicle:handle=>handle===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(handle)?.vehicle,
    // CEntity::m_nAreaCode. A ped a script made belongs to the area it was told to, which is the ordinary
    // world until SET_CHAR_AREA_VISIBLE says otherwise.
    pedAreaCode:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().areaCode:this.world.scriptPedArea(this.livePed(handle)),
@@ -492,6 +500,7 @@ export class ScmMission {
    // WARP_CHAR_FROM_CAR_TO_COORD drops the point to the ground first, as the teleport does.
    warpPedFromCarToCoord:(handle,x,y,z)=>{
     const ground=this.world.groundLevel(x,y,z);
+    if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerFromCarToCoord','WARP_CHAR_FROM_CAR_TO_COORD')({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_FROM_CAR_TO_COORD','a player on a bike, boat or plane');return;}
     this.world.warpScriptPedToCoord(this.livePed(handle),{x,y,z:ground??z});
     this.peds.setPosition(handle,{x,y,z:ground??z});
    },
@@ -532,7 +541,10 @@ export class ScmMission {
    createCharInsideCar:(vehicle,pedType,model,seat)=>this.peds.createInCar(pedType,model,vehicle,seat),
    createRandomCharInCar:(vehicle,seat)=>this.peds.createRandomInCar(vehicle,seat),
    // CTaskSimpleCarSetPedInAsDriver after an immediate flush: the ped stops walking and rides.
-   warpPedIntoCar:(handle,vehicle)=>{this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');},
+   warpPedIntoCar:(handle,vehicle)=>{
+    if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerIntoCar','WARP_CHAR_INTO_CAR')(this.liveVehicle(vehicle)))throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_INTO_CAR','a player in another vehicle');return;}
+    this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');
+   },
    // The passenger seat is the one CREATE_CHAR_AS_PASSENGER takes, from the same operand.
    warpPedIntoCarAsPassenger:(handle,vehicle,seat)=>{this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,seat);},
    // CPed::AttachPedToEntity and DettachPedFromEntity. The angle limit and the weapon belong to a ped that can
@@ -556,7 +568,7 @@ export class ScmMission {
    pedIsTalking:()=>false,
    // IS_CAR_PASSENGER_SEAT_FREE: no script ped sits in that seat of the script's car.
    vehiclePassengerSeatIsFree:(handle,seat)=>!this.peds.seatTaken(handle,seat),
-   pedCarInUse:handle=>handle===PLAYER_PED_HANDLE?(this.world.playerPed().vehicle?PLAYER_VEHICLE_HANDLE:-1):this.peds.rideOf(handle)?.vehicle??-1,
+   pedCarInUse:handle=>handle===PLAYER_PED_HANDLE?this.playerCarHandle()??-1:this.peds.rideOf(handle)?.vehicle??-1,
    isSphereVisible:(point,radius)=>{if(!this.world.isSphereVisible)throw new UnsupportedScmCommand(-1,0,'IS_POINT_ON_SCREEN','no camera');return this.world.isSphereVisible(point,radius);},
    startPedFacialTalk:(handle,duration)=>{this.world.setScriptPedFacialTalk(this.livePed(handle),duration/1000);},
    stopPedFacialTalk:handle=>{this.world.setScriptPedFacialTalk(this.livePed(handle),undefined);},
@@ -666,7 +678,7 @@ export class ScmMission {
     const vehicle=last.car===undefined?undefined:this.vehicles.handleOf(last.car);
     return ped===undefined&&vehicle===undefined?undefined:{ped,vehicle};
    },
-   pedIsSittingInCar:(handle,vehicle)=>this.peds.rideOf(handle)?.vehicle===vehicle,
+   pedIsSittingInCar:(handle,vehicle)=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar&&this.playerCarHandle()===vehicle:this.peds.rideOf(handle)?.vehicle===vehicle,
    // CPed's own acquaintance table, through CAcquaintance's routines.
    setPedRelationship:(handle,relationship,pedType)=>{this.world.setScriptPedRelationship(this.livePed(handle),relationship,pedType);},
    clearPedRelationship:(handle,relationship,pedType)=>{this.world.clearScriptPedRelationship(this.livePed(handle),relationship,pedType);},
@@ -773,11 +785,11 @@ export class ScmMission {
      return {...headingFrame(player.heading*Math.PI/180),position:player.position};}
     return {...headingFrame(this.peds.headingOf(handle)*Math.PI/180),position:this.ridingIn(handle)??this.peds.positionOf(handle)};
    },
-   setPedCoordinates:(handle,x,y,z)=>{this.peds.setPosition(handle,{x,y,z});},
+   setPedCoordinates:(handle,x,y,z)=>{if(handle===PLAYER_PED_HANDLE)this.teleportPlayer(x,y,z,'SET_CHAR_COORDINATES');else this.peds.setPosition(handle,{x,y,z});},
    // SET_CHAR_COORDINATES_NO_OFFSET and the gang form differ from the plain one in what they do to a ped in a
    // car and to the ped's group, neither of which the browser's scripted peds have yet.
-   setPedCoordinatesNoOffset:(handle,x,y,z)=>{this.peds.setPosition(handle,{x,y,z});},
-   setPedCoordinatesDontWarpGang:(handle,x,y,z)=>{this.peds.setPosition(handle,{x,y,z});},
+   setPedCoordinatesNoOffset:(handle,x,y,z)=>{if(handle===PLAYER_PED_HANDLE)this.teleportPlayer(x,y,z,'SET_CHAR_COORDINATES_NO_OFFSET');else this.peds.setPosition(handle,{x,y,z});},
+   setPedCoordinatesDontWarpGang:(handle,x,y,z)=>{if(handle===PLAYER_PED_HANDLE)this.teleportPlayer(x,y,z,'SET_CHAR_COORDINATES_DONT_WARP_GANG');else this.peds.setPosition(handle,{x,y,z});},
    setPedHealth:(handle,health)=>{this.peds.setHealth(handle,health);},
    killPed:handle=>{this.peds.kill(handle);},
    setPedAccuracy:(handle,accuracy)=>{this.peds.setAccuracy(handle,accuracy);},
@@ -851,7 +863,7 @@ export class ScmMission {
    // IS_CAR_UPSIDEDOWN's handler is unreversed; CVehicle::IsUpsideDown (0x6D1D90) is the car's up axis at or below -0.9.
    vehicleIsUpsideDown:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z<=-.9,
    // GET_DRIVER_OF_CAR: m_pDriver's handle, or -1 with nobody driving. The player drives the car it is in.
-   vehicleDriver:handle=>handle===PLAYER_VEHICLE_HANDLE?(this.world.playerPed().vehicle?PLAYER_PED_HANDLE:-1):this.peds.driverOf(handle)??-1,
+   vehicleDriver:handle=>handle===PLAYER_VEHICLE_HANDLE?(this.world.playerPed().vehicle?PLAYER_PED_HANDLE:-1):this.playerCarHandle()===handle?PLAYER_PED_HANDLE:this.peds.driverOf(handle)??-1,
    // ADD_ARMOUR_TO_CHAR: m_fArmour plus the amount, up to CPlayerInfo::m_nMaxArmour for the player and 100 for anyone
    // else (the handler is unreversed; the armour pickup caps the player the same way). Script peds keep the figure,
    // which the browser's ped damage does not yet spend.
@@ -1035,6 +1047,19 @@ export class ScmMission {
   if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerTasks',command)();
   else{this.stopDriving(handle);this.world.clearScriptPedTasks(this.livePed(handle));}
   this.taskRecords.delete(handle);
+ }
+ /** CRunningScript::SetCharCoordinates on the player: CWorld::PutToGroundIfTooLow first (a z at or below
+  * MAP_Z_LOW_LIMIT is the ground there). The group teleport that warpGang asks for is not modelled. */
+ private teleportPlayer(x:number,y:number,z:number,command:string){
+  const ground=z<=-100?this.world.groundLevel(x,y,z):undefined;
+  if(!this.host('teleportPlayer',command)({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,command,'a player on a bike, boat or plane');
+ }
+ /** The handle for the vehicle the player is in: the script's own handle when it is a car the script made (so
+  * IS_CHAR_IN_CAR against that car holds), PLAYER_VEHICLE_HANDLE for any other, nothing on foot. */
+ private playerCarHandle(){
+  if(!this.world.playerPed().vehicle)return undefined;
+  const entity=this.world.playerVehicleEntity?.();
+  return (entity!==undefined?this.vehicles.handleOf(entity):undefined)??PLAYER_VEHICLE_HANDLE;
  }
  /** What a ped handle names: the player, the browser's ped behind a live script handle, or nothing. */
  pedByHandle(handle:number):unknown{return handle===PLAYER_PED_HANDLE?'player':this.peds.exists(handle)?this.peds.entity(handle):undefined;}

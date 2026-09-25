@@ -3416,6 +3416,34 @@ async function boot() {
                   if(!fleet||typeof model!=='number')return undefined;
                   return await fleet.spawnScriptCar(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(heading)).catch(()=>undefined);
                  },
+                 // The script's (x, y, z) is the renderer's (x, z, -y), the player's feet on z. In a car, the car goes with
+                 // him, its centre of mass GetDistanceFromCentreOfMassToBaseOfModel above the point.
+                 teleportPlayer:position=>{
+                  const x=position.x,z=-position.y,y=position.z,car=worldCar?.occupied?worldCar:fleet?.occupied;
+                  if(car){
+                   const body=car.car.body,lift=-car.nativeBody.boundsMin.z;
+                   body.setTranslation({x,y:y+lift,z},true);body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
+                  }else if(fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane)return false;
+                  else{
+                   carEntry.cancel();
+                   sim.player.position={x,y,z};sim.player.previous={x,y,z};sim.player.speed=0;sim.player.verticalSpeed=0;sim.player.jumpMomentum={x:0,z:0};
+                   sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});
+                  }
+                  fleet?.generateEvenIfClose();return true;
+                 },
+                 warpPlayerIntoCar:car=>{
+                  const target=car as ScriptCar;if(target.disposed||typeof target.setPedInAsDriver!=='function')return false;
+                  if(target.occupied)return true;
+                  if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane)return false;
+                  carEntry.cancel();carEntry.warpIn(target);return true;
+                 },
+                 warpPlayerFromCarToCoord:position=>{
+                  const car=worldCar?.occupied?worldCar:fleet?.occupied,x=position.x,z=-position.y,y=position.z;
+                  if(car){carEntry.cancel();car.setPedOut({x,y,z});}
+                  else if(fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane)return false;
+                  else{sim.player.position={x,y,z};sim.player.previous={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});}
+                  return true;
+                 },
                  placeScriptVehicle:(car,position,heading)=>{
                   const target=car as ScriptCar;if(target.disposed)return;
                   const yaw=scriptYaw(heading),body=target.car.body;

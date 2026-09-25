@@ -6813,3 +6813,16 @@ the first ones now implemented:
   HANDBRAKESTRAIGHT (6) is 50 of the scripts' 76 uses. The player's own car is not driven by it yet.
 - **TASK_CAR_DRIVE_WANDER** (22 missions): MISSION_CRUISE along the roads, one continuation picked at random at each
   node (PickNextNodeRandomly), at the task's speed and style. It keeps running until it is cleared.
+- **The player and the script's cars and coordinates.** Several common commands did nothing, or gave the thread
+  up, for scplayer (handle 1), which the ped pool does not hold:
+  - **SET_CHAR_COORDINATES** (642 uses, 116 missions), and its NO_OFFSET and DONT_WARP_GANG forms, now follow
+    CRunningScript::SetCharCoordinates: PutToGroundIfTooLow, then the player's vehicle is teleported with him in it
+    (its centre of mass GetDistanceFromCentreOfMassToBaseOfModel above the point), or he is. Before, they silently
+    did nothing for the player. The group teleport is not modelled.
+  - **WARP_CHAR_INTO_CAR** (47 missions) seats the player through CTaskSimpleCarSetPedInAsDriver without the entry
+    tasks (CarEntry.warpIn).
+  - **WARP_CHAR_FROM_CAR_TO_COORD** (59 missions) sets him out on foot at the point.
+  - A player on a bike, boat or plane, or already in another car, still gives the thread up for these.
+  - **IS_CHAR_IN_CAR, IS_CHAR_SITTING_IN_CAR, STORE_CAR_CHAR_IS_IN, GET_CAR_CHAR_IS_USING and GET_DRIVER_OF_CAR** now
+    name a car the script made by the script's own handle while the player is in it. Before, they always answered
+    PLAYER_VEHICLE_HANDLE, so a mission waiting for CJ to get into its car never went on.
