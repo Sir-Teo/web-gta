@@ -7655,3 +7655,17 @@ Each is now answered:
   IsLawEnforcementVehicle had no adapter. It now answers from the model (the enforcer, predator, rhino, barracks,
   FBI rancher and truck, the police bike, the four police cars and the S.W.A.T. van).
 - Verification: `tests/browser/script-other-vehicles.spec.ts`.
+
+## The early story's first stops
+
+- GET_CLOSEST_CAR_NODE and GET_CLOSEST_CAR_NODE_WITH_HEADING (INTRO1) follow reVC's CRunningScript:
+  - Find the ground for a z at or below -100.
+  - FindNodeClosestToCoors over the car nodes, disabled ones passed over.
+  - Then FindNodeCoorsForScript, and FindNodeOrientationForCarPlacement for the heading.
+- TASK_WARP_CHAR_INTO_CAR_AS_DRIVER (SWEET1) and _AS_PASSENGER give CTaskSimpleCarSetPedInAsDriver or ...AsPassenger:
+  the ped is in at once, by the same paths the warp commands take.
+- EXPLODE_CAR_IN_CUTSCENE (INTRO1) is BlowUpCarCutSceneNoExtras: the blow-up without the player's havoc and
+  property-damage stat, which the browser's blow-up does not count anyway.
+- IS_CAR_WAITING_FOR_WORLD_COLLISION (INTRO2) is false, as the ped form is. The browser holds play until the
+  streamed collision is in.
+- Verification: `tests/browser/script-story-stops.spec.ts`.

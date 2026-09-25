@@ -714,6 +714,9 @@ export class ScmMission {
    // never waiting for collision to arrive.
    // m_bIsStaticWaitingForCollision: the browser streams collision round the player, so the player never waits.
    pedIsWaitingForCollision:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return false;},
+   // m_bIsStaticWaitingForCollision: the browser holds play until the streamed collision around the player is in, so
+   // a car never waits on it, as a ped does not.
+   vehicleIsWaitingForWorldCollision:handle=>{this.liveVehicle(handle);return false;},
    damagePed:(handle,amount,damageArmour)=>{if(handle===PLAYER_PED_HANDLE)this.host('damagePlayer','DAMAGE_CHAR')(amount,damageArmour);else this.world.damageScriptPed(this.livePed(handle),amount);},
    // CPedIntelligence::SetPedDecisionMakerType, and the fields the rest of this batch names.
    // SetCharDecisionMaker (reversed): the ped wears the slot CTheScripts::GetActualScriptThingIndex gives, -1 for none.
@@ -772,19 +775,16 @@ export class ScmMission {
    createCharInsideCar:(vehicle,pedType,model,seat)=>this.peds.createInCar(pedType,model,vehicle,seat),
    createRandomCharInCar:(vehicle,seat)=>this.peds.createRandomInCar(vehicle,seat),
    // CTaskSimpleCarSetPedInAsDriver after an immediate flush: the ped stops walking and rides.
-   warpPedIntoCar:(handle,vehicle)=>{
-    if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerIntoCar','WARP_CHAR_INTO_CAR')(this.liveVehicle(vehicle)))throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_INTO_CAR','a player already riding, or a vehicle he cannot be seated in');return;}
-    this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');
-   },
+   warpPedIntoCar:(handle,vehicle)=>{this.warpIntoCar(handle,vehicle,'WARP_CHAR_INTO_CAR');},
    // The passenger seat is the one CREATE_CHAR_AS_PASSENGER takes, from the same operand.
-   warpPedIntoCarAsPassenger:(handle,vehicle,seat)=>{
-    if(handle===PLAYER_PED_HANDLE){
-     if(!this.host('warpPlayerIntoCarAsPassenger','WARP_CHAR_INTO_CAR_AS_PASSENGER')(this.liveVehicle(vehicle),seat))
-      throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_INTO_CAR_AS_PASSENGER','a player already in a vehicle, or a vehicle other than a car');
-     return;
-    }
-    this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,seat);
-   },
+   warpPedIntoCarAsPassenger:(handle,vehicle,seat)=>{this.warpIntoCarAsPassenger(handle,vehicle,seat,'WARP_CHAR_INTO_CAR_AS_PASSENGER');},
+   // CTaskSimpleCarSetPedInAsDriver and ...AsPassenger as the ped's primary task: the ped is in at once, so the task
+   // is over by the time the script next asks after it.
+   taskWarpCharIntoCarAsDriver:(handle,vehicle)=>{this.runners.delete(handle);this.warpIntoCar(handle,vehicle,'TASK_WARP_CHAR_INTO_CAR_AS_DRIVER');},
+   taskWarpCharIntoCarAsPassenger:(handle,vehicle,seat)=>{this.runners.delete(handle);this.warpIntoCarAsPassenger(handle,vehicle,seat,'TASK_WARP_CHAR_INTO_CAR_AS_PASSENGER');},
+   // CAutomobile::BlowUpCarCutSceneNoExtras: the blow-up without the havoc and property-damage stat an ordinary
+   // one counts for the player (which the host's blow-up does not count either).
+   explodeVehicleInCutscene:handle=>{this.world.explodeScriptVehicle(this.liveVehicle(handle));},
    // CPed::AttachPedToEntity and DettachPedFromEntity. The angle limit and the weapon belong to a ped that can
    // aim from where it hangs, which this browser's riders do not do yet, so they are not taken.
    attachPedToCar:(handle,vehicle,offset)=>{this.peds.attachToCar(handle,vehicle,offset);},
@@ -1048,6 +1048,10 @@ export class ScmMission {
    warpVehicle:(handle,point,heading)=>{if(handle===PLAYER_VEHICLE_HANDLE)return;this.vehicles.setPosition(handle,point);this.vehicles.setHeading(handle,heading);},
    // GET_NTH_CLOSEST_CAR_NODE counts from one (FindNthNodeClosestToCoors from nought) over the car nodes not switched
    // off. With nothing found, FindNodeCoorsForScript gives back the zero vector.
+   // FindNodeClosestToCoors over the car nodes, disabled ones passed over, then FindNodeCoorsForScript (and
+   // FindNodeOrientationForCarPlacement), as reVC's CRunningScript has them.
+   closestVehicleNode:(x,y,z)=>{const node=this.scriptCarNode({x,y,z},0,true);return node?{x:node.x,y:node.y,z:node.z}:{x:0,y:0,z:0};},
+   closestVehicleNodeWithHeading:(x,y,z)=>this.scriptCarNode({x,y,z},0,true)??{x:0,y:0,z:0,heading:0},
    nthClosestVehicleNode:(x,y,z,nth)=>{const node=this.scriptCarNode({x,y,z},nth-1,true);return node?{x:node.x,y:node.y,z:node.z}:{x:0,y:0,z:0};},
    getNthClosestCarNodeWithHeading:(x,y,z,nth)=>this.scriptCarNode({x,y,z},nth-1,true)??{x:0,y:0,z:0,heading:0},
    vehicleWasDamagedByVehicle:(handle,other)=>{
@@ -1844,6 +1848,19 @@ export class ScmMission {
   return ped;
  }
  /** The vehicle the player is riding, which the commands that name his own car ask about. */
+ /** WARP_CHAR_INTO_CAR and its task: the player through the host, a script ped into the driver's seat. */
+ private warpIntoCar(handle:number,vehicle:number,command:string){
+  if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerIntoCar',command)(this.liveVehicle(vehicle)))throw new UnsupportedScmCommand(-1,0,command,'a player already riding, or a vehicle he cannot be seated in');return;}
+  this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');
+ }
+ private warpIntoCarAsPassenger(handle:number,vehicle:number,seat:number,command:string){
+  if(handle===PLAYER_PED_HANDLE){
+   if(!this.host('warpPlayerIntoCarAsPassenger',command)(this.liveVehicle(vehicle),seat))
+    throw new UnsupportedScmCommand(-1,0,command,'a player already in a vehicle, or a vehicle other than a car');
+   return;
+  }
+  this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,seat);
+ }
  /** The model of the vehicle a ped rides, by its handle. */
  private pedVehicleModel(handle:number){
   const vehicle=handle===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(handle)?.vehicle;

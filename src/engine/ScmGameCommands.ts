@@ -2076,7 +2076,9 @@ const handlers:Record<string,ScmCommandHandler>={
  RESET_VEHICLE_HYDRAULICS:(t,p,i)=>{world(t,i,'resetVehicleHydraulics')(t.readInt(p[0]));},
  // The three node lookups, which give back a point and, for one of them, the heading to face along it.
  GET_CLOSEST_CAR_NODE:(t,p,i)=>{
-  const point=vec(t,p,0),node=world(t,i,'closestVehicleNode')(point.x,point.y,point.z);
+  const point=vec(t,p,0);
+  if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=world(t,i,'groundZForCoord')(point.x,point.y);
+  const node=world(t,i,'closestVehicleNode')(point.x,point.y,point.z);
   t.writeFloat(p[3],node.x);t.writeFloat(p[4],node.y);t.writeFloat(p[5],node.z);
  },
  GET_NTH_CLOSEST_CAR_NODE:(t,p,i)=>{
@@ -2086,7 +2088,9 @@ const handlers:Record<string,ScmCommandHandler>={
   t.writeFloat(p[4],node.x);t.writeFloat(p[5],node.y);t.writeFloat(p[6],node.z);
  },
  GET_CLOSEST_CAR_NODE_WITH_HEADING:(t,p,i)=>{
-  const point=vec(t,p,0),node=world(t,i,'closestVehicleNodeWithHeading')(point.x,point.y,point.z);
+  const point=vec(t,p,0);
+  if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=world(t,i,'groundZForCoord')(point.x,point.y);
+  const node=world(t,i,'closestVehicleNodeWithHeading')(point.x,point.y,point.z);
   t.writeFloat(p[3],node.x);t.writeFloat(p[4],node.y);t.writeFloat(p[5],node.z);t.writeFloat(p[6],node.heading);
  },
  IS_CAR_WAITING_FOR_WORLD_COLLISION:(t,p,i)=>{
