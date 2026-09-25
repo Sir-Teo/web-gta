@@ -105,7 +105,7 @@ export interface Pedestrian {
  /** The CPed bits SET_CHAR_* commands set, each held the way the command gives it rather than inverted:
   * whether the ped may duck, stays in a car being jacked, drops its weapons when it dies, gets out of a car
   * that has landed upside down, bleeds, drowns in water and may be told to leave the player's group. */
- flags?:{notAllowedToDuck?:boolean;stayInCarOnJack?:boolean;doesntDropWeaponsWhenDead?:boolean;
+ flags?:{notAllowedToDuck?:boolean;stayInCarOnJack?:boolean;doesntDropWeaponsWhenDead?:boolean;targetPriority?:boolean;stayOnBike?:boolean;
   getOutUpsideDownCar?:boolean;bleeding?:boolean;drownsInWater?:boolean;neverLeavesGroup?:boolean;
   canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean;kindaStayInSamePlace?:boolean;deathPickupsPersist?:boolean};
  /** CPed::m_nWeaponSkill, and whether the ped has used an entry-exit, which the script sets on it. */

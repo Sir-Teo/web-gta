@@ -81,6 +81,8 @@ export interface ScmMissionWorld {
  playerIsPlayingAnim?(animation:string):boolean;
  setPlayerArea?(area:number):void;
  setPlayerProofs?(proofs:ScmPedProofs):void;
+ /** EXPLODE_CHAR_HEAD's CEventDamage: a sniper rifle's 1000 to the head, from nobody. */
+ explodeScriptPedHead?(ped:unknown):void;
  /** CWorld::ClearCarsFromArea and ClearPedsFromArea over a box in the script's coordinates. */
  clearVehiclesInBox?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
  clearPedsInBox?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
@@ -225,7 +227,7 @@ export interface ScmMissionWorld {
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
- setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup'|'canBeShotInVehicle'|'cantBeDraggedOut'|'loadsCollision'|'kindaStayInSamePlace'|'deathPickupsPersist',value:boolean):void;
+ setScriptPedFlag(ped:unknown,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar'|'bleeding'|'drownsInWater'|'neverLeavesGroup'|'canBeShotInVehicle'|'cantBeDraggedOut'|'loadsCollision'|'kindaStayInSamePlace'|'deathPickupsPersist'|'targetPriority'|'stayOnBike',value:boolean):void;
  /** UPDATE_PICKUP_MONEY_PER_DAY reaching the drawn pickup. */
  setScriptPickupMoneyPerDay?(handle:number,moneyPerDay:number):void;
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
@@ -888,6 +890,19 @@ export class ScmMission {
    // IS_CAR_UPRIGHT's handler is not reversed: the car is upright unless it lies on its roof (its up axis below the
    // horizontal), as the command is documented.
    isCarUpright:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z>=0,
+   // EXPLODE_CHAR_HEAD (CharacterCommands.cpp): CEventDamage with WEAPON_SNIPERRIFLE on PED_PIECE_HEAD, 1000 through
+   // CPedDamageResponseCalculator, from no one.
+   explodePedHead:handle=>{if(handle===PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'EXPLODE_CHAR_HEAD','the player');this.host('explodeScriptPedHead','EXPLODE_CHAR_HEAD')(this.livePed(handle));},
+   // CPlayerPed::ForceGroupToAlwaysFollow (PlayerCommands.cpp): the player's group keeps following whatever he does.
+   forcePlayerGroupToAlwaysFollow:(_player,enable)=>{this.playerGroupAlwaysFollows=enable;},
+   // CPed::bIsTargetPriority and bStayInCarOnJack's bike twin (m_nPedFlags): the ped's flags, kept on it.
+   setPedIsTargetPriority:(handle,state)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'targetPriority',state);},
+   setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
+   // The car's own fields the script sets that the browser's cars keep but do not act on: the heli's rotor speed,
+   // CVehicle's status, and CAutomobile::m_fCarTraction.
+   setHeliBladesFullSpeed:handle=>{(this.liveVehicle(handle) as {rotorFullSpeed?:boolean}).rotorFullSpeed=true;},
+   setVehicleStatus:(handle,status)=>{(this.liveVehicle(handle) as {scriptStatus?:number}).scriptStatus=status;},
+   setVehicleTraction:(handle,traction)=>{(this.liveVehicle(handle) as {carTraction?:number}).carTraction=traction;},
    // POINT_CAMERA_AT_CAR and POINT_CAMERA_AT_CHAR: CCamera::TakeControl on the entity for the script (2).
    pointCameraAtVehicle:(handle,mode,switchType)=>{if(handle!==PLAYER_VEHICLE_HANDLE)this.liveVehicle(handle);this.runtime.game.camera.takeControl({kind:'vehicle',handle},mode,switchType,2);},
    pointCameraAtPed:(handle,_isPlayer,mode,switchType)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.runtime.game.camera.takeControl({kind:'ped',handle},mode,switchType,2);},
@@ -1094,6 +1109,8 @@ export class ScmMission {
   const entity=this.world.playerVehicleEntity?.();
   return (entity!==undefined?this.vehicles.handleOf(entity):undefined)??PLAYER_VEHICLE_HANDLE;
  }
+ /** CPlayerData::m_bGroupAlwaysFollow (SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS). */
+ playerGroupAlwaysFollows=false;
  /** What a ped handle names: the player, the browser's ped behind a live script handle, or nothing. */
  pedByHandle(handle:number):unknown{return handle===PLAYER_PED_HANDLE?'player':this.peds.exists(handle)?this.peds.entity(handle):undefined;}
  /** Where the peds a task names stand: the ped itself, a script ped, or the player (whose handle is no pool ped). */

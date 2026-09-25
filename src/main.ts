@@ -3433,6 +3433,8 @@ async function boot() {
                  // The player's m_nAreaCode: the browser draws him wherever the camera is, so it is kept, not acted on.
                  setPlayerArea:area=>{playerAreaCode=area;},
                  setPlayerProofs:proofs=>{sim.playerProofs={...proofs};},
+                 explodeScriptPedHead:ped=>{const p=onFoot(ped);if(!p)return;const q=p.actor.player.position;
+                  pedestrians?.damageCollider(p.collider.handle,1000,{x:0,z:1},'bullet',{weapon:34,point:{x:q.x,y:q.y+1.6,z:q.z},noSource:true});},
                  clearVehiclesInBox:(min,max)=>{fleet?.clearCarsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
                  clearPedsInBox:(min,max)=>{pedestrians?.clearPedsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
                  // CTheScripts::CleanUpThisVehicle: unlocked, no longer a mission car, and off its script mission.

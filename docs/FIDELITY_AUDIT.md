@@ -6883,3 +6883,10 @@ the first ones now implemented:
 - **MARK_CAR_AS_NO_LONGER_NEEDED** follows CTheScripts::CleanUpThisVehicle: the car is a random, unlocked one again,
   off its script mission.
 - **SET_CAR_TEMP_ACTION** (13 missions): the temporary action on a script car for its time.
+- **EXPLODE_CHAR_HEAD** (8 missions): the reversed handler's CEventDamage with WEAPON_SNIPERRIFLE on PED_PIECE_HEAD,
+  1000 through the damage response, from no one. It kills the ped whatever its health.
+- These now keep their state rather than giving the thread up, though nothing in the browser reads it yet:
+  - SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS (15 missions; CPlayerPed::ForceGroupToAlwaysFollow);
+  - SET_CHAR_IS_TARGET_PRIORITY (13) and SET_CHAR_CAN_BE_KNOCKED_OFF_BIKE (14), as the ped's flags;
+  - SET_HELI_BLADES_FULL_SPEED (15), SET_CAR_STATUS (10) and SET_CAR_TRACTION (9) on the car. CAutomobile's
+    m_fCarTraction is only read for STATUS_PHYSICS cars, and gta-reversed's reading of that line is doubtful.

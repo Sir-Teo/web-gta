@@ -26,5 +26,8 @@ test('a script ped told to kill another does so, and the task ends with the targ
   return {victimDead:m.peds.isDead?m.peds.isDead(victim):m.peds.healthOf(victim)<=0,retaliate:k.retaliate,idle:!!k.order?.isDefault,player:(window as any).__game.state().player.health};
  },made);
  expect(after.victimDead).toBe(true);expect(after.retaliate).toBe(0);expect(after.idle).toBe(true);expect(after.player).toBeGreaterThan(0);
+ // EXPLODE_CHAR_HEAD: a sniper round's 1000 to the head, whatever the ped's health.
+ const exploded=await page.evaluate(({killer})=>{const m=(window as any).__game.missionForProfiling();m.peds.setHealth(killer,500);m.runtime.world.explodePedHead(killer);return m.peds.healthOf(killer);},made);
+ expect(exploded).toBeLessThanOrEqual(0);
  expect(errors).toEqual([]);
 });
