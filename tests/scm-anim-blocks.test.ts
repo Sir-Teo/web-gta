@@ -27,6 +27,16 @@ describe('the animation blocks a script holds',()=>{
   expect(run(withName(scmOpcode('HAS_ANIMATION_LOADED'),'RIOT'),game).condition).toBe(true);
  });
 
+ test('the streamer\'s next pass brings in every block still held, and not one let go',()=>{
+  const game=new ScmGameState();
+  run(withName(scmOpcode('REQUEST_ANIMATION'),'MISC'),game);
+  run(withName(scmOpcode('REQUEST_ANIMATION'),'GANGS'),game);
+  run(withName(scmOpcode('REMOVE_ANIMATION'),'GANGS'),game);
+  game.animBlocks.service();
+  expect(run(withName(scmOpcode('HAS_ANIMATION_LOADED'),'MISC'),game).condition).toBe(true);
+  expect(game.animBlocks.hasLoaded('GANGS')).toBe(false);
+ });
+
  test('blocks are matched without regard to case',()=>{
   const game=new ScmGameState();
   run(withName(scmOpcode('REQUEST_ANIMATION'),'Riot'),game);

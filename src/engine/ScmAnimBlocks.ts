@@ -1,8 +1,9 @@
 import {requireAsset} from '../assets/binary';
 /* CAnimManager's animation blocks as a script holds them, pinned gta-reversed ead3051 (`AnimManager.cpp`:
  * `GetAnimationBlock` 0x4D3940 by name, `AddAnimBlockRef` 0x4D3FC0 and `RemoveAnimBlockRef` 0x4D3FD0, all
- * reversed, over the CAnimBlock record's name, loaded flag and reference count). Streaming the file in is the
- * host's; this is the block table the script asks after. */
+ * reversed, over the CAnimBlock record's name, loaded flag and reference count). This is the block table the script
+ * asks after. CStreaming brings a requested block in on its next pass, which `service` stands for; the host reads
+ * the IFP itself when a task first plays one of its clips. */
 export interface ScmAnimBlock {name:string;loaded:boolean;references:number}
 export class ScmAnimBlocks {
  private blocks:ScmAnimBlock[]=[];
@@ -15,6 +16,11 @@ export class ScmAnimBlocks {
   block.references++;return block;
  }
  private add(name:string){const block:ScmAnimBlock={name,loaded:false,references:0};this.blocks.push(block);return block;}
+ /** CStreaming::Update's pass: every block still held and not in yet comes in. REQUEST_ANIMATION is answered on
+  * the frame after, as a request is serviced after the scripts have run; LOAD_ALL_MODELS_NOW
+  * (CStreaming::LoadAllRequestedModels) calls this at once. No block ever came in before this, so a script waiting
+  * on HAS_ANIMATION_LOADED (INTRO1 after the ride, for MISC) waited for ever. */
+ service(){for(const block of this.blocks)if(block.references>0)block.loaded=true;}
  /** What a host calls once the file is in memory. */
  load(name:string){const block=this.find(name)??this.add(name);block.loaded=true;}
  /** HAS_ANIMATION_LOADED: the block is known and its animations are there. */

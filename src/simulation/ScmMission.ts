@@ -1286,7 +1286,7 @@ export class ScmMission {
    requestModel:model=>{this.requestedModels.add(String(model));this.world.requestModel(model);},
    hasModelLoaded:()=>true,
    markModelNotNeeded:()=>{},
-   loadAllModelsNow:()=>{},
+   loadAllModelsNow:()=>{this.runtime.game.animBlocks.service();},
    loadCutscene:name=>{this.cutscenes.push(name);this.world.loadCutscene(name);this.runtime.game.cutscene.loaded();},
    startCutscene:()=>{this.runtime.game.cutscene.finish();},
    clearCutscene:()=>{},

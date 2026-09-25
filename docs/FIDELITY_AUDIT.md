@@ -7929,3 +7929,12 @@ Each is now answered:
   ones lost every task past the eighth flattened one. The eight-task limit belongs to each recorded sequence, which
   the recorder already keeps. The runners' skip loop for tasks that end at once is now bounded by one pass.
 - Verification: `tests/scm-sequences.test.ts`, `tests/browser/script-nested-sequence.spec.ts`.
+
+## Animation blocks come in
+
+- A block a script requested never came in: nothing set CAnimBlock's loaded flag. So any script waiting on
+  HAS_ANIMATION_LOADED waited for ever; INTRO1 hung on MISC once the ride was over.
+- CStreaming's pass now brings in every block still held, on the frame after the request. LOAD_ALL_MODELS_NOW
+  (CStreaming::LoadAllRequestedModels) brings them in at once. A block let go before the pass stays out. The host
+  still reads the IFP when a task first plays one of its clips.
+- Verification: `tests/scm-anim-blocks.test.ts`.

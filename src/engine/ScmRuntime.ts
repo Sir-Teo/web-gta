@@ -151,6 +151,8 @@ export class ScmRuntime {
    this.game.introText.beginFrame();
    // The audio engine's service of the last frame: a sample asked for is in, a playing one may have run out.
    this.game.missionAudio.service(delta);
+   // The streamer's pass: the animation blocks requested last frame are in.
+   this.game.animBlocks.service();
    tick(this.missionLocals);
    for(let slot=this.head,next:Slot|undefined;slot;slot=next){
     next=slot.next;
