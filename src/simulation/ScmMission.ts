@@ -772,7 +772,7 @@ export class ScmMission {
    createRandomCharInCar:(vehicle,seat)=>this.peds.createRandomInCar(vehicle,seat),
    // CTaskSimpleCarSetPedInAsDriver after an immediate flush: the ped stops walking and rides.
    warpPedIntoCar:(handle,vehicle)=>{
-    if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerIntoCar','WARP_CHAR_INTO_CAR')(this.liveVehicle(vehicle)))throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_INTO_CAR','a player in another vehicle');return;}
+    if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerIntoCar','WARP_CHAR_INTO_CAR')(this.liveVehicle(vehicle)))throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_INTO_CAR','a player already riding, or a vehicle he cannot be seated in');return;}
     this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');
    },
    // The passenger seat is the one CREATE_CHAR_AS_PASSENGER takes, from the same operand.

@@ -7605,3 +7605,11 @@ Each is now answered:
 - ADD_EXPLOSION_NO_SOUND leaves out the blast's sound only. ADD_EXPLOSION_VARIABLE_SHAKE is a plain explosion until
   explosion camera shake is modelled.
 - Verification: `tests/browser/script-car-components.spec.ts`.
+
+## The player warped onto a bike, boat or aircraft
+
+- WARP_CHAR_INTO_CAR on the player now seats him on a bike, boat or aircraft as well as a car, at once with no
+  jump-on (CTaskSimpleCarSetPedInAsDriver). Before, it gave up with a message that blamed another vehicle.
+- The vehicle the script sees him in now includes bikes, boats and aircraft. IS_CHAR_IN_CAR against a script bike's
+  handle holds while he rides it; INTRO waits on exactly that for the BMX.
+- Verification: `tests/browser/script-other-vehicles.spec.ts`.

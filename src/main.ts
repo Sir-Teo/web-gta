@@ -3777,9 +3777,19 @@ async function boot() {
                   carEntry.cancel();car.setPlayerInAsPassenger(chosen);playerPassenger={car,seat:chosen};return true;
                  },
                  warpPlayerIntoCar:car=>{
-                  const target=car as ScriptCar;if(target.disposed||typeof target.setPedInAsDriver!=='function')return false;
+                  const riding=()=>!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger);
+                  const target=car as ScriptCar;
+                  if(typeof target.setPedInAsDriver!=='function'){
+                   // A bike, boat or aircraft: CTaskSimpleCarSetPedInAsDriver seats him at once, so no jump-on plays.
+                   const other=car as {disposed?:boolean;occupied?:boolean;finishEnter?:()=>unknown;mountTimer?:number};
+                   if(other.disposed||typeof other.finishEnter!=='function')return false;
+                   if(other.occupied)return true;
+                   if(riding())return false;
+                   carEntry.cancel();bikeMount.abandon();other.finishEnter();if(other.mountTimer!==undefined)other.mountTimer=0;return true;
+                  }
+                  if(target.disposed)return false;
                   if(target.occupied)return true;
-                  if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane)return false;
+                  if(riding())return false;
                   carEntry.cancel();carEntry.warpIn(target);return true;
                  },
                  warpPlayerFromCarToCoord:position=>{
@@ -3805,7 +3815,7 @@ async function boot() {
                  removeScriptVehicle:car=>{if(playerPassenger?.car===car)leavePassengerSeat(true);if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptVehicle(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
-                 playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car,
+                 playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane,
                  playerVehiclePose:()=>{
                   const car=worldCar?.occupied?worldCar:fleet?.occupied,other=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane,body=car?car.car.body:other?.body;
                   if(!body)return undefined;

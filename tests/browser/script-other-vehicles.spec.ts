@@ -16,3 +16,18 @@ test('a script can make a bike, a boat and a helicopter',async({page})=>{
  expect(await page.evaluate(hs=>hs.map((h:number)=>(window as any).__game.missionForProfiling().vehicles.exists(h)),handles)).toEqual([false,false,false]);
  expect(errors).toEqual([]);
 });
+
+/** WARP_CHAR_INTO_CAR onto a script BMX, as INTRO's probe does for the ride to Grove Street: the player is seated at
+ * once and IS_CHAR_IN_CAR against the bike's handle holds. */
+test('the player warps onto a script bike and the script sees him on it',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ const bike=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;return g.missionForProfiling().vehicles.create(481,{x:p.x+5,y:-p.z+5,z:-100},0);});
+ await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().vehicles.entity(h),bike,{timeout:60000});
+ await page.evaluate(h=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCar(1,h),bike);
+ const seen=await page.evaluate(h=>{const w=(window as any).__game.missionForProfiling().runtime.world;return {vehicle:w.pedVehicle(1)};},bike);
+ expect(seen).toEqual({vehicle:bike});
+ expect(errors).toEqual([]);
+});
