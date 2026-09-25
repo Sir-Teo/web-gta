@@ -42,8 +42,7 @@ export function walkRoundCar(from:V2,to:V2,box:CarFootprint,pad=WALK_ROUND_PAD,b
  const L=box.halfLength+pad,W=box.halfWidth+pad,a=local(box,from),b=local(box,to);
  // A goal inside the padded box (a door beside the car) is walked straight at once the ped is clear of the car itself.
  const goalInside=Math.abs(b.u)<L&&Math.abs(b.v)<W;
- if(Math.abs(a.u)<L-EDGE&&Math.abs(a.v)<W-EDGE){
-  if(goalInside)return undefined;
+ if(Math.abs(a.u)<L-EDGE&&Math.abs(a.v)<W-EDGE&&!goalInside){
   const outU=L-Math.abs(a.u),outV=W-Math.abs(a.v);
   return outV<=outU?world(box,a.u,Math.sign(a.v||1)*(W+.05)):world(box,Math.sign(a.u||1)*(L+.05),a.v);
  }

@@ -113,6 +113,12 @@ export class ScmPedPool<Ped>{
   for(const [handle,said] of this.said)if(said.ride&&!said.ride.offset&&said.ride.vehicle===vehicle&&said.ride.seat==='driver'&&this.pool.exists(handle)&&!said.dead)return handle;
   return undefined;
  }
+ /** The live script peds in a car's passenger seats. */
+ passengersOf(vehicle:number){
+  let count=0;
+  for(const [handle,said] of this.said)if(said.ride&&!said.ride.offset&&said.ride.vehicle===vehicle&&said.ride.seat!=='driver'&&this.pool.exists(handle)&&!said.dead)count++;
+  return count;
+ }
  /** CPed::m_fArmour of a script ped: 0 until a script gives it some. */
  armourOf(handle:number){return this.word(handle).armour??0;}
  setArmour(handle:number,armour:number){this.word(handle).armour=armour;}

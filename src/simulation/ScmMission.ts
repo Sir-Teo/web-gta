@@ -270,6 +270,9 @@ export interface ScmMissionWorld {
  clearScriptPedLastDamagedBy?(ped:unknown):void;
  playerLastWeaponDamage?():number;
  clearPlayerLastWeaponDamage?():void;
+ /** CVehicle::m_nMaxPassengers, and CAutomobile::BurstTyre with its physical effect. */
+ scriptVehicleMaximumPassengers?(car:unknown):number;
+ burstScriptVehicleTyre?(car:unknown,wheel:number):void;
  /** The car path areas CPathFind has loaded, or nothing before any have. */
  carPathAreas?():ReadonlyMap<number,PathArea>|undefined;
  /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
@@ -452,6 +455,8 @@ type RunnerStep=
  |{kind:'settle';then?:ScmScriptedTask}
  |{kind:'board';vehicle:number;then:ScmScriptedTask}
  |{kind:'slowing';then:ScmScriptedTask};
+/** CGeneral::GetATanOfXY: the angle of (x, y) from the x axis, in [0, 2π). */
+export function getATanOfXY(x:number,y:number){if(x===0&&y===0)return 0;const a=Math.atan2(y,x);return a<0?a+2*Math.PI:a;}
 /** IS_POINT_OBSCURED_BY_A_MISSION_ENTITY's box, the point less and plus each radius with the ends swapped into order,
  * and CBoundingBox::IsPointWithin's test of an entity's position against it, edges included. */
 export function insideMissionCube(x:number,y:number,z:number,rx:number,ry:number,rz:number,p:{x:number;y:number;z:number}){
@@ -815,6 +820,17 @@ export class ScmMission {
     if(ped===PLAYER_PED_HANDLE?last.player:last.ped!==undefined&&last.ped===this.livePed(ped))return true;
     const ride=ped===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(ped)?.vehicle;
     return ride!==undefined&&last.car!==undefined&&last.car===this.vehicleByHandle(ride);
+   },
+   vehicleMaximumPassengers:handle=>this.host('scriptVehicleMaximumPassengers','GET_MAXIMUM_NUMBER_OF_PASSENGERS')(this.liveVehicle(handle)),
+   // CVehicle::m_nNumPassengers: the script's peds in the car's passenger seats.
+   vehiclePassengerCount:handle=>this.peds.passengersOf(handle),
+   // The script's 0 to 3 are eCarWheel (front left, rear left, front right, rear right), which BurstTyre passes through.
+   burstVehicleTyre:(handle,wheel)=>{this.host('burstScriptVehicleTyre','BURST_CAR_TYRE')(this.liveVehicle(handle),wheel);},
+   // reVC's TURN_CAR_TO_FACE_COORD: GetATanOfXY(position - point) + π/2, less a turn once past one, as a heading.
+   turnVehicleToFaceCoord:(handle,x,y)=>{
+    const at=handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).position:this.vehicles.positionOf(handle);
+    let heading=getATanOfXY(at.x-x,at.y-y)+Math.PI/2;if(heading>2*Math.PI)heading-=2*Math.PI;
+    this.vehicles.setHeading(handle,heading*180/Math.PI);
    },
    // The car watches CTheScripts::Process runs. They ask only about a car the browser has built: one still streaming
    // in has no driver in its seat, so the stuck check starts again from where it stands.

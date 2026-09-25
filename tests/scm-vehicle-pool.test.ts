@@ -111,3 +111,19 @@ describe('the cars a script creates before the browser can build them',()=>{
   expect(()=>cars.positionOf(999)).toThrow(/names nothing/);
  });
 });
+
+describe('turning or moving a car that has driven off',()=>{
+ test('a heading turns the car where it is now, and a move keeps the heading it has now',async()=>{
+  const {pool:cars,settle,spawned}=pool();
+  const handle=cars.create(411,{x:0,y:0,z:1},0);
+  cars.setPosition(handle,{x:5,y:0,z:1});
+  await settle();
+  // The car drives away and turns by itself.
+  spawned[0].position={x:50,y:60,z:1};spawned[0].heading=30;
+  cars.setHeading(handle,90);
+  expect(spawned[0].position).toEqual({x:50,y:60,z:1});expect(spawned[0].heading).toBe(90);
+  spawned[0].heading=45;
+  cars.setPosition(handle,{x:7,y:8,z:1});
+  expect(spawned[0].position).toEqual({x:7,y:8,z:1});expect(spawned[0].heading).toBe(45);
+ });
+});

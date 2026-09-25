@@ -15,6 +15,10 @@ import {nativeWeaponMovement} from './weapons/nativeWeaponMovement';
 import {Progression} from './simulation/Progression';
 /** A script heading, degrees clockwise from north, as the yaw the browser turns bodies by. */
 const scriptYaw=(degrees:number)=>degrees*Math.PI/180+Math.PI;
+/** A script car heading (degrees, 0 facing north) as the body's rotation about the up axis. A car's front is its body's
+ * -z, which a rotation of nothing already points north, so the angle is the heading itself; scriptYaw's half turn is for
+ * the ped headings, which measure the facing from the renderer's +z. */
+const scriptCarRotation=(degrees:number)=>degrees*Math.PI/180;
 /** A ped a script made inside a car. It never walks: it rides where the car goes, and the occupant renderer
  * draws it in its seat. CPopulation::AddPedInCar makes one of these rather than a ped on the ground. */
 interface ScriptRider{rider:true;model:number|string;car:import('./simulation/WorldCar').WorldCar;
@@ -3413,6 +3417,8 @@ async function boot() {
                  clearPlayerLastWeaponDamage:()=>{sim.lastWeaponDamage=-1;},
                  scriptVehicleUpsideDownForCheck:car=>(car as ScriptCar).upsideDownForCheck(),
                  scriptVehicleRouteNodes:car=>scriptCars.routeNodes(car as ScriptCar),
+                 scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
+                 burstScriptVehicleTyre:(car,wheel)=>{(car as ScriptCar).burstTyre(wheel,true);},
                  carPathAreas:()=>scriptCars.pathAreas({x:sim.player.position.x,z:sim.player.position.z}),
                  scriptVehicleLastDamagedBy:car=>(car as ScriptCar).lastDamagedBy,
                  scriptVehicleLastWeaponDamage:car=>(car as ScriptCar).lastWeaponDamage,
@@ -3485,7 +3491,7 @@ async function boot() {
                  // and the same yaw the player controller uses, which is those degrees in radians plus π.
                  spawnScriptVehicle:async(model,position,heading)=>{
                   if(!fleet||typeof model!=='number')return undefined;
-                  return await fleet.spawnScriptCar(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(heading)).catch(()=>undefined);
+                  return await fleet.spawnScriptCar(model,{x:position.x,y:position.z,z:-position.y},scriptCarRotation(heading)).catch(()=>undefined);
                  },
                  // The script's (x, y, z) is the renderer's (x, z, -y), the player's feet on z. In a car, the car goes with
                  // him, its centre of mass GetDistanceFromCentreOfMassToBaseOfModel above the point.
@@ -3534,7 +3540,7 @@ async function boot() {
                  },
                  placeScriptVehicle:(car,position,heading)=>{
                   const target=car as ScriptCar;if(target.disposed)return;
-                  const yaw=scriptYaw(heading),body=target.car.body;
+                  const yaw=scriptCarRotation(heading),body=target.car.body;
                   body.setTranslation({x:position.x,y:position.z,z:-position.y},true);
                   body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
                   body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);

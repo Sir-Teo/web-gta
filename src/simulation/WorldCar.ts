@@ -37,6 +37,7 @@ import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
 import {installNativeCar,type NativeCarAssets} from './installNativeCar';
 import type {NativeRaycastPlayerInput} from './NativeRaycastVehicle';
 import type {NativeCollisionSource} from './nativeCollision';
+import {CAR_DOOR_FRAMES,maximumPassengersFromDoors} from './nativeVehiclePassengers';
 import {CAR_BURN_SECONDS,CAR_FIRE_HEALTH,COLLISION_COMPONENT,DAMSTATE,DOOR_FRAMES,PANEL_FRAMES,applyCollisionComponents,collisionHealthLoss,collisionHealthLossRaw,createCarDamage,type ComponentChange} from './nativeCarDamage';
 import {carWindscreenFrame,findGlassTriangles} from './nativeGlass';
 import {DOOR,MODEL_FLAG,createCarDoors,type CarAxes,type Vec} from './nativeDoor';
@@ -212,6 +213,12 @@ export class WorldCar {
   alarmArmed=false;
   /** The fleet car owning a rigid body handle, for the collision record between vehicles. */
   otherCar?:(bodyHandle:number)=>WorldCar|undefined;
+ /** CVehicle::m_nMaxPassengers: GetMaximumNumberOfPassengersFromNumberOfDoors over the door frames the model carries. */
+ get maximumPassengers(){
+  const frames=this.assets.model.frames.map(f=>f.name.toLowerCase());
+  return maximumPassengersFromDoors({modelId:this.modelId,type:this.assets.vehicle.type,doors:frames.filter(n=>CAR_DOOR_FRAMES.has(n)).length,
+   tandemSeats:!!(this.modelFlags&MODEL_FLAG.tandemSeats),rearSeat:frames.includes('ped_backseat')});
+ }
  /** CUpsideDownCarCheck::IsCarUpsideDown (0x463830)'s test of the car: up.z below 0.3 with fewer than four wheels on
   * the ground, or below zero. gta-reversed's reading makes the test only while CanPedStepOutCar(false) fails, while the
   * car still moves, which would leave a car at rest on its roof never counted and nobody crawling out of one; that

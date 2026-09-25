@@ -10,7 +10,8 @@ test('a script driver takes its car to a point',async({page})=>{
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  const made=await page.evaluate(()=>{
   const game=(window as any).__game,m=game.missionForProfiling(),p=game.state().player.position;
-  const car=m.vehicles.create(400,{x:p.x+8,y:-p.z,z:p.y},90),driver=m.peds.create(4,'MALE01',{x:p.x+6,y:-p.z,z:p.y});
+  // In the street north of CJ's yard, facing west (a heading of 90).
+  const car=m.vehicles.create(400,{x:p.x+8,y:-p.z+7,z:p.y},90),driver=m.peds.create(4,'MALE01',{x:p.x+6,y:-p.z+4,z:p.y});
   return {car,driver};
  });
  await page.waitForFunction(({car,driver}:{car:number;driver:number})=>{const m=(window as any).__game.missionForProfiling();return !!(m.vehicles.entity(car)&&m.peds.entity(driver));},made,{timeout:45000});

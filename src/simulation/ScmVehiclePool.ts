@@ -49,15 +49,17 @@ export class ScmVehiclePool<Car>{
  /** Where the car is: its own place once it exists, and what the script last set until then. */
  positionOf(handle:number){const said=this.word(handle);return this.pool.read(handle,car=>this.host.positionOf(car),()=>({...said.position}));}
  headingOf(handle:number){const said=this.word(handle);return this.pool.read(handle,car=>this.host.headingOf(car),()=>said.heading);}
+ /** SET_CAR_COORDINATES: the car moves and keeps the heading it has now, not the one the script last gave it. */
  setPosition(handle:number,position:{x:number;y:number;z:number}){
   const said=this.said.get(handle);if(!said)return;
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid script car position.');
-  said.position={...position};said.moved=true;this.replace(handle,said);
+  said.heading=this.headingOf(handle);said.position={...position};said.moved=true;this.replace(handle,said);
  }
+ /** SET_CAR_HEADING (CPlaceable::SetHeading): the car turns where it stands now, not where the script last put it. */
  setHeading(handle:number,heading:number){
   const said=this.said.get(handle);if(!said)return;
   requireAsset(Number.isFinite(heading),'Invalid script car heading.');
-  said.heading=heading;said.moved=true;this.replace(handle,said);
+  said.position=this.positionOf(handle);said.heading=heading;said.moved=true;this.replace(handle,said);
  }
  /* A car nobody has touched keeps the placement its own spawning chose, which is the one settled on the ground
   * and lifted off the base of the model, as CCarCtrl::CreateCarForScript leaves it; the raw point the script

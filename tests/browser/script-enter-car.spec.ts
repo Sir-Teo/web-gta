@@ -10,7 +10,8 @@ test('script peds get into a script car as passenger and driver',async({page})=>
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  const made=await page.evaluate(()=>{
   const game=(window as any).__game,m=game.missionForProfiling(),p=game.state().player.position;
-  return {car:m.vehicles.create(400,{x:p.x+10,y:-p.z,z:p.y},0),rider:m.peds.create(4,'MALE01',{x:p.x+6,y:-p.z,z:p.y}),
+  // The car faces north (a heading of nothing), so its front passenger door is on the east, the rider's side.
+  return {car:m.vehicles.create(400,{x:p.x+10,y:-p.z,z:p.y},0),rider:m.peds.create(4,'MALE01',{x:p.x+14,y:-p.z,z:p.y}),
    driver:m.peds.create(4,'MALE01',{x:p.x-25,y:-p.z,z:p.y})};
  });
  await page.waitForFunction(({car,rider,driver}:{car:number;rider:number;driver:number})=>{const m=(window as any).__game.missionForProfiling();return !!(m.vehicles.entity(car)&&m.peds.entity(rider)&&m.peds.entity(driver));},made,{timeout:45000});

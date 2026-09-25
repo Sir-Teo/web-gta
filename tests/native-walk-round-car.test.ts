@@ -36,4 +36,12 @@ describe('CTaskComplexWalkRoundCar’s way round',()=>{
   // From the far side the car is still gone round.
   expect(walkRoundCar({x:.5,z:4},{x:.5,z:-1.3},car)).toBeDefined();
  });
+ test('a ped that has strayed inside the padding at the car’s end still goes round to a door on the far side',()=>{
+  // Just off the front bumper, on the +z side, for the door on the -z side: straight on is through the body.
+  const via=walkRoundCar({x:2.7,z:.4},{x:.5,z:-1.3},car)!;
+  expect(via).toBeDefined();
+  expect(via.x).toBeCloseTo(L,6);expect(via.z).toBeCloseTo(-W,6);
+  // Inside the padding with the body not in the way, the door is walked at once.
+  expect(walkRoundCar({x:.5,z:-1.6},{x:.5,z:-1.3},car)).toBeUndefined();
+ });
 });

@@ -7213,3 +7213,24 @@ the first ones now implemented:
   is no weapon.
 - CLEAR_CHAR_LAST_WEAPON_DAMAGE and CLEAR_CHAR_LAST_DAMAGE_ENTITY had no answer either. They now clear the fields.
   The player's own damager is not kept, so the second has nothing to clear for him.
+
+## Script cars' facing, and the car queries
+
+- Script cars were set down facing the opposite way to their heading, so a CREATE_CAR heading of 90 faced east.
+  - The heading was put through the ped conversion (scriptYaw), which adds a half turn because ped headings measure
+    the facing from the renderer's +z. A car's front is its body's -z, which a body rotation of nothing already points
+    north, so the rotation is the heading itself.
+  - GET_CAR_HEADING always read the true facing, so a car set to 0 read back 180.
+  - Both CREATE_CAR and SET_CAR_HEADING / SET_CAR_COORDINATES now face the car as the script says.
+- SET_CAR_HEADING also put the car back where the script last placed it, and SET_CAR_COORDINATES turned it back to
+  the last heading the script gave. CPlaceable::SetHeading turns the car where it stands, and
+  SetCoordsOfScriptCar keeps its orientation.
+- CTaskComplexWalkRoundCar: a ped that had strayed inside the padding round the car's end, walking to a door on the
+  far side, walked straight at the door through the body. It now goes round unless the car itself is not in the way.
+  Specs with the old, wrong facing had put the peds by the door on the wrong side of the car.
+- New answers:
+  - GET_MAXIMUM_NUMBER_OF_PASSENGERS: CVehicle::m_nMaxPassengers, which is
+    GetMaximumNumberOfPassengersFromNumberOfDoors (reversed) over the door frames the model carries.
+  - GET_NUMBER_OF_PASSENGERS: the script's peds in the passenger seats.
+  - BURST_CAR_TYRE: CAutomobile::BurstTyre with the script's eCarWheel.
+  - TURN_CAR_TO_FACE_COORD: reVC's GetATanOfXY(position - point) + π/2.
