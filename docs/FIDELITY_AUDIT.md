@@ -8079,3 +8079,11 @@ Each is now answered:
 else is clamped to a byte); `DarknessFilter` draws a black quad over the frame at that alpha after the colour filter
 and not while goggles are on. `SET_HEATHAZE_EFFECT` sets `m_bHeatHazeFX`, kept but not drawn (HeatHazeFX is not
 reversed). `ScriptResetForEffects`, from the resurrection restore, clears both. Spec: `script-darkness`.
+
+## ANCHOR_BOAT and a boat's anchor
+
+`CBoat`'s constructor sets `bLockedToXY`, and `CBoat::ProcessControl` clears it (with `m_LockedHeading`) under
+`STATUS_PLAYER`; while it holds, the tail of `ProcessControl` zeroes the hull's speed across the water and turns it
+back about its own position to the heading taken the first anchored frame. `WorldBoat.holdAnchor` does the same after
+the buoyancy and drive step, so a parked or script boat no longer drifts until the player drives it. `ANCHOR_BOAT`
+sets the flag alone, as the game does. Tests: `boat-anchor`, `script-other-vehicles`.

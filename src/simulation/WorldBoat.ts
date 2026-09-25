@@ -162,6 +162,7 @@ export class WorldBoat {
   // CBoat::ProcessControl fire section: below 250 health the hull burns out after 5 s.
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   this.floatOnWater(dt);
+  this.holdAnchor();
   this.stepVelocity={...this.body.linvel()};
   pruneWakeTrail(this.wake,dt*50);
   const v=this.body.linvel(),speed=Math.hypot(v.x,v.z)/50;
@@ -234,6 +235,25 @@ export class WorldBoat {
   this.body.setLinvel({x:mx*50,y:mz*50-9.81*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
  }
  private lastImmersion=0;
+ /** m_nBoatFlags.bLockedToXY: set by the constructor and ANCHOR_BOAT, cleared once the player drives (STATUS_PLAYER). */
+ anchored=true;
+ /** m_LockedHeading, taken the first anchored frame (-10000 in the game: unset). */
+ private lockedHeading:number|undefined;
+ /** CBoat::ProcessControl's tail: an anchored hull loses its speed across the water and is turned back to the
+  * heading it was anchored at about its own position; the swell still lifts, pitches and rolls it. */
+ private holdAnchor(){
+  if(this.occupied){this.anchored=false;this.lockedHeading=undefined;}
+  if(!this.anchored)return;
+  const v=this.body.linvel();this.body.setLinvel({x:0,y:v.y,z:0},true);
+  const heading=this.heading();
+  if(this.lockedHeading===undefined){this.lockedHeading=heading;return;}
+  const turn=new Quaternion().setFromAxisAngle(new Vector3(0,1,0),this.lockedHeading-heading);
+  this.body.setRotation(turn.multiply(new Quaternion().copy(this.body.rotation())),true);
+ }
+ /** ANCHOR_BOAT sets the flag alone: a hull let go and anchored again swings back to the heading it first held,
+  * which only the player's driving forgets. */
+ setAnchored(state:boolean){this.anchored=state;}
+ get anchorHeading(){return this.lockedHeading;}
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
  }

@@ -449,6 +449,8 @@ export interface ScmMissionWorld {
  scriptVehicleVelocity?(car:unknown):{x:number;y:number;z:number};
  scriptVehicleMatrix(car:unknown):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  setScriptVehicleFrozen(car:unknown,frozen:boolean):void;
+ /** ANCHOR_BOAT: false for a vehicle that is not a boat. */
+ setScriptBoatAnchored?(car:unknown,anchored:boolean):boolean;
  /** SET_UPSIDEDOWN_CAR_NOT_DAMAGED: autoFlags.bDoesNotGetDamagedUpsideDown. */
  setScriptVehicleUpsideDownNotDamaged?(car:unknown,state:boolean):void;
  setScriptVehicleForwardSpeed(car:unknown,forwardSpeed:number):void;
@@ -1249,6 +1251,7 @@ export class ScmMission {
     this.world.giveScriptPedOrder(this.livePed(handle),stay?{kind:'standStill',seconds:Number.POSITIVE_INFINITY}:{kind:'wander'});
    },
    vehicleMatrix:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle)),
+   anchorBoat:(handle,state)=>{this.host('setScriptBoatAnchored','ANCHOR_BOAT')(this.liveVehicle(handle),state);},
    freezeVehiclePosition:(handle,frozen)=>{this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},
    // bIsFrozen and bInfiniteMass as FREEZE_CAR_POSITION sets them; the collision it waits for is the browser's to stream.
    freezeVehiclePositionAndDontLoadCollision:(handle,frozen)=>{this.world.setScriptVehicleFrozen(this.liveVehicle(handle),frozen);},

@@ -241,6 +241,7 @@ import {ScriptCarRecordingStore} from './simulation/scriptCarRecordings';
 import {recordingVehicle} from './simulation/recordingBody';
 import {startPlaybackRecordedCar} from './engine/carRecordingPlayback';
 import {WorldTrain} from './simulation/WorldTrain';
+import {WorldBoat} from './simulation/WorldBoat';
 import {layoutMenu} from './ui/nativeHudMenus';
 import {newScriptDriveBy,stepScriptDriveBy,type ScriptDriveByWorld} from './simulation/scriptDriveBy';
 import {applyStoredSwitches,markRoadNodeAsDontWander,switchRoadsOffInArea,unmarkAllRoadNodesAsDontWander} from './simulation/nativePathSwitches';
@@ -3794,6 +3795,7 @@ async function boot() {
                    up:native(rotate({x:0,y:1,z:0})),position:{x:p.x,y:-p.z,z:p.y}};
                  },
                  setScriptVehicleUpsideDownNotDamaged:(car,state)=>{if('noUpsideDownDamage' in (car as object))(car as ScriptCar).noUpsideDownDamage=state;},
+                 setScriptBoatAnchored:(car,anchored)=>{if(!(car instanceof WorldBoat))return false;car.setAnchored(anchored);return true;},
                  // physicalFlags.bDontApplySpeed: the car keeps its place and stops carrying any motion.
                  setScriptVehicleFrozen:(car,frozen)=>{
                   const body=(car as ScriptCar).car.body;
