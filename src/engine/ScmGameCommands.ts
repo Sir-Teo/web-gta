@@ -1257,7 +1257,9 @@ const handlers:Record<string,ScmCommandHandler>={
  MISSION_HAS_FINISHED:(t,_p,i)=>{game(t,i).missionFinished=true;},
  // The mission-passed report keeps the key it names; the stat behind it is CStats::IncrementStat, which the
  // progress commands already reach, so this only records the key rather than guessing which stat it moves.
- REGISTER_MISSION_PASSED:(t,p,i)=>{game(t,i).missionPassedKey=t.text(p[0]);},
+ // CStats::LastMissionPassedName, then the pass itself (reVC's REGISTER_MISSION_PASSED: MissionsPassed, which SA keeps as
+ // STAT_MISSIONS_PASSED, and CTheScripts::LastMissionPassedTime; the shortcut taxi's drop-off is Vice City's alone).
+ REGISTER_MISSION_PASSED:(t,p,i,now)=>{const g=game(t,i);g.missionPassedKey=t.text(p[0]);g.registerMissionPassed(now);},
  // The onscreen commands name a global variable itself: COnscreenTimer keeps its offset and reads it every frame.
  CLEAR_ONSCREEN_COUNTER:(t,p,i)=>{game(t,i).onscreenTimer.clearCounter(t.globalOffset(p[0]));},
  CLEAR_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).onscreenTimer.clearClock(t.globalOffset(p[0]));},
@@ -1783,7 +1785,8 @@ const handlers:Record<string,ScmCommandHandler>={
  // The debug line the script draws between two points.
  LINE:(t,p,i)=>{world(t,i,'drawLine')(vec(t,p,0),vec(t,p,3));},
  CLEAR_SKIP:(t,_p,i)=>{world(t,i,'clearSkip')();},
- REGISTER_ODDJOB_MISSION_PASSED:(t,_p,i)=>{world(t,i,'registerOddjobMissionPassed')();},
+ // The same pass with no name to keep.
+ REGISTER_ODDJOB_MISSION_PASSED:(t,_p,i,now)=>{game(t,i).registerMissionPassed(now);},
  /* --- Two more pieces of arithmetic the runtime does itself. */
  // The angle between two vectors, in degrees, which the script reads as a bearing between nothing and a turn.
  GET_ANGLE_BETWEEN_2D_VECTORS:(t,p,i)=>{

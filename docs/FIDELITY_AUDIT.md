@@ -7151,3 +7151,14 @@ the first ones now implemented:
   - CLEAR_CAR_LAST_DAMAGE_ENTITY and CLEAR_CAR_LAST_WEAPON_DAMAGE forget the damager and the weapon.
 - Not yet: when the engine catches fire (health under 250), VehicleDamage also sets m_pLastDamageEntity to the last
   collision's entity, buildings included. The port keeps no engine status for that transition.
+
+## Passing a mission
+
+- REGISTER_MISSION_PASSED and REGISTER_ODDJOB_MISSION_PASSED were only half done. The first only kept the label, and
+  the odd job pass went to a world hook that nothing answered, which retired the calling thread.
+- Both now do what reVC's handlers do. The pass counts in STAT_MISSIONS_PASSED (147): VC's CStats::MissionsPassed,
+  which SA keeps as a stat and which no script command raises. CTheScripts::LastMissionPassedTime, which CJ's mood
+  reads, is set to the game timer. REGISTER_MISSION_PASSED also keeps CStats::LastMissionPassedName.
+- Unconfirmed for SA: SA's own handlers are not in gta-reversed. VC's CGameLogic::RemoveShortCutDropOffPointForMission
+  belongs to the shortcut taxi, which SA does not have. CStats::CheckPointReachedSuccessfully has no SA counterpart
+  found.

@@ -38,7 +38,7 @@ function recording(){
   setGroupLeader:method('leader'),addGroupDecisionMakerEventResponse:method('groupResponse'),
   addSparks:method('sparks'),
   percentageTaggedInArea:method('tagged',42),clearAreaOfVehicles:method('clearCars'),
-  drawLine:method('line'),clearSkip:method('clearSkip'),registerOddjobMissionPassed:method('oddjob'),
+  drawLine:method('line'),clearSkip:method('clearSkip'),
  } as unknown as Partial<ScmWorldCommands>;
  return {world,calls,tasks};
 }
@@ -119,13 +119,12 @@ describe('the objects, vehicles and world of this batch',()=>{
    instruction(op('GET_PERCENTAGE_TAGGED_IN_AREA'),[float(0),float(0),float(10),float(10),gvar(40)]),
    instruction(op('CLEAR_AREA_OF_CARS'),[float(0),float(0),float(0),float(10),float(10),float(10)]),
    instruction(op('LINE'),[float(0),float(0),float(0),float(1),float(1),float(1)]),
-   instruction(op('CLEAR_SKIP'),[]),
-   instruction(op('REGISTER_ODDJOB_MISSION_PASSED'),[]));
+   instruction(op('CLEAR_SKIP'),[]));
   expect(readInt(40)).toBe(42);
   expect(calls).toEqual([
    ['sparks',{x:1,y:2,z:3},{x:0,y:0,z:1},20],['tagged',0,0,10,10],
    ['clearCars',{x:0,y:0,z:0},{x:10,y:10,z:10}],['line',{x:0,y:0,z:0},{x:1,y:1,z:1}],
-   ['clearSkip'],['oddjob'],
+   ['clearSkip'],
   ]);
  });
 

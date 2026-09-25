@@ -617,7 +617,6 @@ export interface ScmWorldCommands {
  setPlayerCycleWeaponButton?(playerId:number,enabled:boolean):void;
  drawLine?(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number}):void;
  clearSkip?():void;
- registerOddjobMissionPassed?():void;
  /* The long tail: vehicles, planes, objects, searchlights and the world, each named by the schema. */
  vehicleIsTouchingObject?(handle:number,object:number):boolean;
  trainCarriage?(handle:number,index:number):number;

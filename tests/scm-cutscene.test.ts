@@ -1,6 +1,6 @@
 import {describe,expect,test} from 'vitest';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
-import {ScmGameState} from '../src/engine/ScmGameState';
+import {STAT_MISSIONS_PASSED,ScmGameState} from '../src/engine/ScmGameState';
 import {CUTSCENE_NONE,TOTAL_SPECIAL_CHARACTERS} from '../src/engine/ScmCutscene';
 import {scmOpcode} from '../src/engine/scmOpcodes';
 
@@ -97,6 +97,12 @@ describe('the special characters and the mission reports',()=>{
   run(game,{},instruction(op('MISSION_HAS_FINISHED'),[]),
    instruction(op('REGISTER_MISSION_PASSED'),['INTRO1']));
   expect(game.missionFinished).toBe(true);
+  expect(game.missionPassedKey).toBe('INTRO1');
+  // Passing counts in STAT_MISSIONS_PASSED and keeps the time; an odd job passes the same way, with no name.
+  expect(game.stats.get(STAT_MISSIONS_PASSED)).toBe(1);
+  expect(game.lastMissionPassedTime).toBe(0);
+  run(game,{},instruction(op('REGISTER_ODDJOB_MISSION_PASSED'),[]));
+  expect(game.stats.get(STAT_MISSIONS_PASSED)).toBe(2);
   expect(game.missionPassedKey).toBe('INTRO1');
  });
 });

@@ -38,7 +38,7 @@ import {NativeWanted} from '../simulation/nativeWanted';
 const STAT_FIRST_UNUSED=82,STAT_FIRST_INT=120,STAT_FLOAT_COUNT=82,STAT_INT_COUNT=223;
 const STAT_MAX_HEALTH=24,STAT_STAMINA=22;
 /** eStats ids the script's own commands name. */
-export const STAT_PROGRESS_MADE=0,STAT_MISSION_ATTEMPTS=146,STAT_CALORIES=245,STAT_RIOT_MISSION_ACCOMPLISHED=335;
+export const STAT_PROGRESS_MADE=0,STAT_MISSION_ATTEMPTS=146,STAT_MISSIONS_PASSED=147,STAT_CALORIES=245,STAT_RIOT_MISSION_ACCOMPLISHED=335;
 /** CStuntJumpManager::STUNT_JUMP_COUNT. */
 const STUNT_JUMP_COUNT=256;
 /** CStats::IsStatCapped (0x559630). */
@@ -230,6 +230,12 @@ export class ScmGameState {
  readonly specialCharacters=new ScmSpecialCharacters();
  /** Whether the mission the script is running has reported itself finished, and the key it passed on. */
  missionFinished=false;missionPassedKey?:string;
+ /** CTheScripts::LastMissionPassedTime: when a mission or an odd job was last passed, -1 until one has been. CJ's
+  * mood (CAEPedSpeechAudioEntity::GetCurrentCJMood) reads it. */
+ lastMissionPassedTime=-1;
+ /** What passing a mission or an odd job does besides naming it: the count of missions passed goes up and the time is
+  * kept. */
+ registerMissionPassed(nowMs:number){this.stats.increment(STAT_MISSIONS_PASSED,1);this.lastMissionPassedTime=nowMs>>>0;}
  /** The last PLAY_MISSION_PASSED_TUNE the script asked for, by the tune's number. */
  missionPassedTune?:number;
  /** SET_NEXT_DESIRED_MOVE_STATE: the eMoveState the next enter-car task walks or runs to the door at, back to
