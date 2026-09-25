@@ -208,6 +208,7 @@ import {fireGlow,missileGlow} from './combat/nativeFireGlow';
 import {NativePermanentShadows,explosionScorch} from './render/nativePermanentShadows';
 import {NativeCullZones,fewerPedsLimits} from './world/nativeCullZones';
 import {heldPadActions,padStateFromActions} from './input/nativePadState';
+import {NativeHudBigMessages} from './ui/nativeHudBigMessages';
 import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/nativeAirResistance';
 import {PED_ORIGIN_HEIGHT,SWIM} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
@@ -663,6 +664,8 @@ async function boot() {
   };
   // CGameLogic's trip skip reaches the world through this. CPad::IsDPadRightPressed is the frame's own edge, kept
   // below each frame from the pad the held keys make.
+  // CHud's big messages outside STYLE_MIDDLE and STYLE_WHITE_MIDDLE, stepped by game time.
+  const hudBigMessages=new NativeHudBigMessages();let hudBigMessagesClock=0;
   let skipButtonDown=false,skipButtonPressed=false,skipPadCamera=false,tripSkipHelpShown=false;
   // CPad::DisablePlayerControls: the script's SET_PLAYER_CONTROL, or bCamera while a trip skip moves the player.
   const playerControlsDisabled=()=>mission?.playerControl===false||skipPadCamera;
@@ -2716,7 +2719,7 @@ async function boot() {
     {const camera=mission?.runtime.game.camera;render.scriptNearClip=camera?.useNearClipScript?camera.nearClipScript:undefined;}
     // CMessages::Process once a game frame, and CMessages::Display handing the front of each queue to the HUD: the
     // brief to the subtitle line, STYLE_MIDDLE and STYLE_WHITE_MIDDLE to their big messages, and CHud's help message.
-    // (The other styles' own layouts are not drawn; they use the middle message.)
+    // The other styles go through CHud's own clocks (nativeHudBigMessages).
     {const game=mission?.runtime.game;
      if(game&&!paused){
       game.messages.process(gameTimeMs);
@@ -2727,6 +2730,12 @@ async function boot() {
        const big=game.messages.big[style][0],key=big?`${big.key}|${big.createdAt}`:'';
        if(key!==shownScript.big[style]){if(big)show(text(big),big.visibleTime);shownScript.big[style]=key;}
       }
+      // CMessages::Display's SetBigMessage for every other style, then CHud::Draw and DrawAfterFade's drawing of them.
+      game.messages.onClearBigMessage??=style=>hudBigMessages.clear(style);
+      for(let style=1;style<game.messages.big.length;style++){if(style===2)continue;const big=game.messages.big[style][0];hudBigMessages.set(style,big?text(big):'');}
+      hud.bigMessages(hudBigMessages.draw(Math.max(0,gameTimeMs-hudBigMessagesClock),hud.element.clientWidth||innerWidth,game.drawOddJobTitleBeforeFade,()=>{
+       hud.names.hideZoneName();game.help.set(undefined,true,false,false,game.messages);}));
+      hud.missionTitleShowing=hudBigMessages.missionTitleShowing;hudBigMessagesClock=gameTimeMs;
       // Each set is drawn afresh, the same text included; a stat update's "+" or "-" is drawn by displayStatUpdate itself.
       const help=game.help.message,revision=game.help.revision;
       if(revision!==shownScript.helpRevision&&game.help.statId){shownScript.help=help;shownScript.helpRevision=revision;}
@@ -3247,8 +3256,11 @@ async function boot() {
                     sim.money+=reward;sound.frontend(AE_FRONTEND.partMissionComplete);
                     // USJ_ALL goes to the help box; the bonus title shows for 5 s either way, the reward line beneath it.
                     if(all)hud.help(gxtHudText(gxtText('USJ_ALL','ALL UNIQUE STUNTS COMPLETED!')));
-                    // AddBigMessageQ(USJ, 5000, STYLE_MIDDLE_SMALLER_HIGHER), then AddBigMessageWithNumber(REWARD, 6000, ...).
-                    hud.bigMessage(gxtHudText(gxtText('USJ','UNIQUE STUNT BONUS!')),gxtHudText(insertNumbers(gxtText('REWARD','REWARD $~1~'),reward)),5000,6000,true);
+                    // AddBigMessageQ(USJ, 5000, STYLE_MIDDLE_SMALLER_HIGHER), then AddBigMessageWithNumber(REWARD, 6000,
+                    // STYLE_WHITE_MIDDLE_SMALLER, reward). Without the script's messages, the middle message stands in.
+                    const messages=mission?.runtime.game.messages;
+                    if(messages){messages.addBigMessage2('USJ',5000,4,false,gameTimeMs);messages.addBigMessage2('REWARD',6000,5,true,gameTimeMs,undefined,[reward,-1,-1,-1,-1,-1]);}
+                    else hud.bigMessage(gxtHudText(gxtText('USJ','UNIQUE STUNT BONUS!')),gxtHudText(insertNumbers(gxtText('REWARD','REWARD $~1~'),reward)),5000,6000,true);
                     progression.save();
                   },
                 });

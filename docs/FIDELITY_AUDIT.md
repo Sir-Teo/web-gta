@@ -7342,3 +7342,28 @@ Each is now answered:
   (RestorePlayerStuffDuringResurrection).
 - While the skip moves the player, CPad::bCamera holds DisablePlayerControls, as SET_PLAYER_CONTROL off does. The
   port's control checks read both.
+
+## Big-message styles
+
+- Only STYLE_MIDDLE and STYLE_WHITE_MIDDLE big messages were drawn; the other five styles were queued and never
+  shown. nativeHudBigMessages.ts now follows CHud (gta-reversed Hud.cpp): CMessages::Display hands each style's
+  queue front to SetBigMessage every frame, and then:
+  - DrawMissionTitle (STYLE_BOTTOM_RIGHT: mission titles, the trip skip's "Later that day...") runs its own clock.
+    It holds past its queue time and ignores the queue meanwhile:
+    - its first frame clears the zone name and the help message;
+    - it stays up while a counter runs from -60 to the screen width less 20 at 0.3 a millisecond (the PC dropped
+      Vice City's scaling, so wider screens hold it longer; the HUD's CSS width is the screen width);
+    - it holds for 120 fiftieths of a second;
+    - it fades at 1 alpha a millisecond.
+    It is gold pricedown at the bottom right, drawn after the fade, and DrawAreaName steps aside while it runs.
+  - DrawOddJobMessage:
+    - STYLE_MIDDLE_SMALLER_HIGHER (gold, above the centre) shows while there is no mission title, before or after
+      the fade as DRAW_ODDJOB_TITLE_BEFORE_FADE says;
+    - STYLE_LIGHT_BLUE_TOP and STYLE_MIDDLE_SMALLER show while queued;
+    - STYLE_WHITE_MIDDLE_SMALLER runs OddJob2's slide in, 1.5 s hold, slide out and 5 s off, on 30 fps frames.
+  - ClearThisPrintBigNow ends a style's clock.
+- The fonts stand in as the HUD's others do: pricedown as Impact and FONT_MENU as Arial Black. CFont's scale is
+  over the 640 x 448 frame, with half as wide as tall taken as the fonts' own shape.
+- CTheScripts::bDrawOddJobTitleBeforeFade starts true (CTheScripts::Init); it had started false.
+- The unique stunt bonus goes through CMessages as CStuntJumpManager puts it: USJ queued in
+  STYLE_MIDDLE_SMALLER_HIGHER, and REWARD with the amount in STYLE_WHITE_MIDDLE_SMALLER.

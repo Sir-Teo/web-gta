@@ -1,6 +1,7 @@
 import type { AudioSettings } from '../audio/settings';
 import {healthBarHidden,armourBarHidden,hudMoney,healthBarWidth,barFill} from './nativeHudBars';
 import { NativeHudNames } from './nativeHudNames';
+import type { DrawnHudBigMessages } from './nativeHudBigMessages';
 import type { Simulation } from '../simulation/Simulation';
 
 export class Hud {
@@ -32,7 +33,7 @@ export class Hud {
     radio.hidden=!inVehicle||paused||widescreen||this.radioLeftMs<=0;
     // CHud::Draw skips DrawAreaName and DrawVehicleName in widescreen, so their fades and timers wait (CSS hides them).
     if(paused||widescreen)return;
-    const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle'),areaNameOff});
+    const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle')||this.missionTitleShowing,areaNameOff});
     for(const [key,el,name] of [['zone',els.zone,out.zone],['vehicle',els.vehicle,out.vehicle]] as const){
       if(el.hidden!==!name)el.hidden=!name;
       if(name){if(el.textContent!==name.text)el.textContent=name.text;this.put(`${key}.alpha`,String(name.alpha/255),v=>{el.style.opacity=v;});}
@@ -60,7 +61,10 @@ export class Hud {
       </section>
 
       <div class="widescreen-border top" aria-hidden="true" hidden></div><div class="widescreen-border bottom" aria-hidden="true" hidden></div>
+      <div class="hud-big light-blue-top" role="status" hidden></div><div class="hud-big middle-smaller" role="status" hidden></div>
+      <div class="hud-big white-middle-smaller" role="status" hidden></div><div class="hud-big oddjob-title" role="status" hidden></div>
       <div class="screen-fade" aria-hidden="true"></div>
+      <div class="hud-big mission-title" role="status" hidden></div>
       <div class="big-message" role="status" aria-live="polite" hidden><b></b><span></span></div>
       <div class="white-middle-message" role="status" aria-live="assertive" hidden></div>
       <div class="location" hidden></div>
@@ -237,6 +241,35 @@ export class Hud {
       el.style.transform = `translate(-50%, -100%) scaleX(${(width / 640) / (height / 448)})`;
       void el.offsetWidth; el.style.transition = 'opacity 638ms linear'; el.style.opacity = '1';
     }
+  }
+  /** DrawMissionTitle's clock is running: DrawAreaName steps aside for it. */
+  missionTitleShowing = false;
+  private bigEls?: Record<'title'|'oddJob'|'lightBlue'|'middleSmaller'|'whiteMiddleSmaller', HTMLElement>;
+  /** CHud's big messages in the styles nativeHudBigMessages draws. CFont's scale (sx, sy) is over the 640 x 448
+   * frame: the glyphs are 16 sy / 448 of the screen tall, and a scale of half as wide as tall is the fonts' own shape.
+   * `centre` is CFont's centre size, the width centred text wraps at. */
+  bigMessages(d: DrawnHudBigMessages) {
+    const q = (c: string) => this.element.querySelector<HTMLElement>(`.${c}`)!;
+    const e = this.bigEls ??= { title: q('mission-title'), oddJob: q('oddjob-title'), lightBlue: q('light-blue-top'), middleSmaller: q('middle-smaller'), whiteMiddleSmaller: q('white-middle-smaller') };
+    const width = this.element.clientWidth || innerWidth, height = this.element.clientHeight || innerHeight;
+    const show = (el: HTMLElement, text: string | undefined, sx: number, sy: number, centre?: number) => {
+      if (el.hidden !== !text) el.hidden = !text;
+      if (!text) return;
+      const key = `${text}|${width}|${height}`;
+      if (el.dataset.key === key) return;
+      el.dataset.key = key; el.textContent = text;
+      const stretch = 2 * (sx / sy) * (width / 640) / (height / 448);
+      el.style.fontSize = `${16 * sy * height / 448}px`;
+      el.style.setProperty('--stretch', String(stretch));
+      el.style.maxWidth = centre ? `${centre / 640 * width / stretch}px` : '';
+    };
+    show(e.title, d.missionTitle?.text, 1, 1.3);
+    if (d.missionTitle) this.put('title.alpha', String(d.missionTitle.alpha / 255), v => { e.title.style.opacity = v; });
+    show(e.oddJob, d.oddJobTitle?.text, .6, 1.35, 350);
+    if (d.oddJobTitle) e.oddJob.classList.toggle('after-fade', d.oddJobTitle.afterFade);
+    show(e.lightBlue, d.lightBlueTop, 1, 1.8, 500);
+    show(e.middleSmaller, d.middleSmaller, .6, 1.35, 500);
+    show(e.whiteMiddleSmaller, d.whiteMiddleSmaller, .6, 1.35, 500);
   }
   /** CHud::DrawTripSkip: the skip icon (hud.txd skipicon) and its label (FEC_TSK) above the radar while
    * CGameLogic::SkipCanBeActivated holds. */

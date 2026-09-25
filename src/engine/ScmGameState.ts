@@ -269,7 +269,7 @@ export class ScmGameState {
  /** CShopping: shopping.dat's prices and shops. */
  readonly shopping=new ScmShopping();
  /** CTheScripts::bDrawOddJobTitleBeforeFade. */
- drawOddJobTitleBeforeFade=false;
+ drawOddJobTitleBeforeFade=true;
  /** CWeapon::ms_bTakePhoto with CPostEffects::m_bSavePhotoFromScript. */
  takePhoto=false;savePhotoFromScript=false;
  /** FrontEndMenuManager.m_bWidescreenOn, which the script can read. */

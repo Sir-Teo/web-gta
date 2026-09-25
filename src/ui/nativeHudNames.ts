@@ -25,6 +25,8 @@ export class NativeHudNames {
   return {zone:o.areaNameOff?undefined:this.drawAreaName(dtMs,o),vehicle:this.drawVehicleName(dtMs,!!o.message)};
  }
  /** CHud::DrawBustedWastedMessage's first frame: both names go at once. */
+ /** DrawMissionTitle's first frame: m_ZoneState = NAME_DONT_SHOW and m_ZoneFadeTimer = 0. */
+ hideZoneName(){this.zone.state=NAME_DONT_SHOW;this.zone.fadeTimer=0;}
  clearForBigMessage(){if(this.vehicle.state)this.vehicle.state=NAME_DONT_SHOW;if(this.zone.state)this.zone.state=NAME_DONT_SHOW;}
  private drawAreaName(dt:number,o:{message?:boolean;bigMessage?:boolean}):DrawnName|undefined{
   const z=this.zone;if(!this.zoneName)return undefined;
