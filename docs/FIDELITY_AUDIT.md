@@ -6754,3 +6754,13 @@ the first ones now implemented:
     m_fCurrentTime over the total time, wrapping for a looped clip.
   - The blend delta, the X/Y root locks and the interruptable bit are not modelled: the clip replaces the pose at
     once and the ped stays in place.
+- **Script tasks on the player's own ped** (scplayer): 49 missions run sequences on him, 40 play clips, 38 walk him
+  to a mark and 21 turn him to face someone. These used to give the thread up, because the player is no pool ped.
+  - PlayerScriptTasks runs stand-still, achieve-heading (at STAT_PLAYER's heading change of 9), go-to-point
+    (walk/run/sprint by SelectMoveState, the Timed placement included) and named clips.
+  - Sequences of those run too. Anything else still gives the thread up.
+  - While a task runs on foot it speaks for the pad, whatever SET_PLAYER_CONTROL says: the stick points at the mark,
+    or the player is held facing the task's heading. CPedIntelligence's primary task replaces
+    CTaskSimplePlayerOnFoot the same way.
+  - GET_SCRIPT_TASK_STATUS and CLEAR_CHAR_TASKS work for the player.
+  - The player's own handle can be a task's self as well as its target.

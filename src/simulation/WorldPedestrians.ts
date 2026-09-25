@@ -1519,16 +1519,22 @@ export class WorldPedestrians {
  /** CPedPlacement::FindZCoorForPed then SetPosn: the highest ground under two probes from half a unit above the
   * point (its origin height, or well above for a point on the ground), the ped's feet set on it. */
  private placeOnGround(ped:Pedestrian,x:number,z:number,originY?:number){
-  const top=(originY??ped.actor.player.position.y+PED_ORIGIN_HEIGHT+50)+.5;
+  const ground=this.groundUnder(x,z,(originY??ped.actor.player.position.y+PED_ORIGIN_HEIGHT+50)+.5);
+  if(ground===undefined)return;
+  const feet={x,y:ground,z};
+  ped.actor.player.position={...feet};ped.actor.player.previous={...feet};
+  ped.body.setTranslation({x,y:ground+.9,z},true);ped.collider.setTranslation({x,y:ground+.9,z});
+ }
+ /** A clip from a script's animation block, for the player's own tasks too. */
+ scriptAnimation(file:string,name:string){return this.catalog?.scriptAnimation(file,name)??Promise.resolve(undefined);}
+ /** CPedPlacement::FindZCoorForPed for any point: the highest ground under two probes from half a unit above it. */
+ groundUnder(x:number,z:number,top:number){
   let ground:number|undefined;
   for(const [ox,oz] of [[0,0],[.1,-.1]]){
    const hit=this.sim.world.castRay(new RAPIER.Ray({x:x+ox,y:top,z:z+oz},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    if(hit)ground=Math.max(ground??-Infinity,top-hit.timeOfImpact);
   }
-  if(ground===undefined)return;
-  const feet={x,y:ground,z};
-  ped.actor.player.position={...feet};ped.actor.player.previous={...feet};
-  ped.body.setTranslation({x,y:ground+.9,z},true);ped.collider.setTranslation({x,y:ground+.9,z});
+  return ground;
  }
  /** CLEAR_CHAR_TASKS: the primary task goes, leaving the default. */
  clearTasks(ped:Pedestrian){

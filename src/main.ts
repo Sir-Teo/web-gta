@@ -110,6 +110,7 @@ import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
+import {PlayerScriptTasks} from './simulation/playerScriptTasks';
 import {ScriptObjectViews} from './simulation/ScriptObjectViews';
 import {weaponById} from './weapons/catalog';
 import {CAR_FIRE_HEALTH} from './simulation/nativeCarDamage';
@@ -294,6 +295,16 @@ async function boot() {
   const placeName=new NativePlaceName();
  // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
  let mission:import('./simulation/ScmMission').ScmMission|undefined;
+ // The script's tasks on CJ's own ped (TASK_GO_STRAIGHT_TO_COORD, TASK_PLAY_ANIM... on scplayer).
+ const playerTasks=new PlayerScriptTasks({
+  animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
+  placeOnGround:(x,z,originY)=>{
+   const ground=pedestrians?.groundUnder(x,z,(originY??sim.player.position.y+1+50)+.5);if(ground===undefined)return;
+   sim.player.position={x,y:ground,z};sim.player.previous={x,y:ground,z};
+   sim.playerBody.setTranslation({x,y:ground+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:ground+.9,z});sim.playerCollider.setTranslation({x,y:ground+.9,z});
+  },
+ });
+ const playerTaskBody=()=>({position:sim.player.position,heading:sim.player.heading,speed:sim.player.speed,onFoot:sim.playerCollider.isEnabled(),view:render.nativeCharacter});
  let lastGameFrame=0;
  /** TheText (text/american.gxt). */
  let theText:import('./assets/gxt').NativeText|undefined;
@@ -2141,6 +2152,12 @@ async function boot() {
         // A warp with no walk-in (UNKNOWN_PAIRING, FOOD_DATE_FLAG) sets bPlayerOnInteriorTransition, one of
         // DisablePlayerControls' reasons, and on foot adds CTaskSimpleUninterruptable: CJ stands still through the fade.
         else if(entryExits?.active&&onFoot)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:undefined};
+        // A task the script gave CJ's ped speaks for the pad while it runs (on foot; the driving tasks are not run).
+        else if(onFoot&&playerTasks.active&&sim.player.health>0){
+         const task=playerTasks.step(step,playerTaskBody());
+         if(task?.kind==='move')controls={...controls,x:0,y:-1,cameraYaw:task.yaw,walk:task.walk,sprint:task.sprint,jump:false,facing:undefined};
+         else if(task)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:task.facing};
+        }
         if(!sim.player.swimming)controls=nativeWeaponMovement(controls,weapons.native,weapons.inventory.selected,weapons.aiming);
         // CTaskSimpleUseGun moves an aimed gun's holder on the GunMove clips at the skill row's move speed.
         const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
@@ -3234,6 +3251,9 @@ async function boot() {
                  // A ped without collision leaves the query pipeline: nothing touches it and no line of sight meets
                  // it. Its own movement query still finds the ground.
                  setScriptPedCollision:(ped,uses)=>{onFoot(ped)?.collider.setEnabled(uses);},
+                 givePlayerOrders:(orders,repeat)=>{playerTasks.giveSequence(orders,repeat,playerTaskBody());},
+                 clearPlayerTasks:()=>{playerTasks.clear(playerTaskBody());},
+                 playerHasScriptTask:()=>playerTasks.active,
                  setPlayerCollision:uses=>{sim.setPlayerUsesCollision(uses);},
                  scriptPedInAir:ped=>!!onFoot(ped)?.air,
                  scriptPedArea:ped=>onFoot(ped)?.areaCode??0,

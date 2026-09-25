@@ -35,6 +35,7 @@ const headingFrame=(heading:number)=>({
 });
 import {ScmDecisionMakers} from '../engine/ScmDecisionMakers';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
+import {PlayerScriptTasks} from './playerScriptTasks';
 /** MI_NEVADA, whose radar cone floats higher above its box. */
 const MODEL_NEVADA=553;
 
@@ -166,6 +167,10 @@ export interface ScmMissionWorld {
  /** Whether a script's ped is still carrying out the order or sequence it was given (CTaskManager still holds it). */
  scriptPedHasOrder?(ped:unknown):boolean;
  clearScriptPedTasks(ped:unknown):void;
+ /** The script's tasks on the player's own ped (PlayerScriptTasks), and whether one still runs. */
+ givePlayerOrders?(orders:readonly ScriptedPedOrder[],repeat:boolean):void;
+ clearPlayerTasks?():void;
+ playerHasScriptTask?():boolean;
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
  clearArea(point:{x:number;y:number;z:number},radius:number):void;
  /** Whether nothing solid stands between two points in the script's own coordinates. */
@@ -449,8 +454,8 @@ export class ScmMission {
    },
    // CPedIntelligence::ClearTasks, and its immediate form, which the browser cannot tell apart: a ped with no
    // order left goes back to wandering either way, having nothing to finish first.
-   clearPedTasks:handle=>{this.world.clearScriptPedTasks(this.livePed(handle));this.taskRecords.delete(handle);},
-   clearPedTasksImmediately:handle=>{this.world.clearScriptPedTasks(this.livePed(handle));this.taskRecords.delete(handle);},
+   clearPedTasks:handle=>{this.clearTasks(handle,'CLEAR_CHAR_TASKS');},
+   clearPedTasksImmediately:handle=>{this.clearTasks(handle,'CLEAR_CHAR_TASKS_IMMEDIATELY');},
    // CPedScriptedTaskRecord::GetStatus(ped, opcode): the record's status, or −1 without one, which the command
    // reports as 7 (FINISHED_TASK), the value the missions compare against.
    scriptTaskStatus:(handle,opcode)=>{const record=this.taskRecords.get(handle);return record&&(opcode===-1||record.opcode===opcode)?record.status:FINISHED_TASK;},
@@ -781,6 +786,7 @@ export class ScmMission {
    givePedScriptedTask:(handle,task,opcode)=>{
     const order=scriptedPedOrder(task,this.taskWorld(handle));
     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+    if(handle===PLAYER_PED_HANDLE){this.givePlayer([order],false,opcode);return;}
     this.world.giveScriptPedOrder(this.livePed(handle),order);
     this.recordTask(handle,opcode,order.kind==='wander');
    },
@@ -794,6 +800,7 @@ export class ScmMission {
      if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
      orders.push(order);
     }
+    if(handle===PLAYER_PED_HANDLE){this.givePlayer(orders,repeat,opcode);return;}
     this.world.giveScriptPedSequence(this.livePed(handle),orders,repeat);
     this.recordTask(handle,opcode,false);
    },
@@ -955,12 +962,24 @@ export class ScmMission {
   if(!pose)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return pose;
  }
+ /** The player's ped runs only the tasks PlayerScriptTasks knows; any other gives the thread up. */
+ private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number){
+  const other=orders.find(order=>!PlayerScriptTasks.runs(order));
+  if(other)throw new UnsupportedScmCommand(opcode,0,'A_PLAYER_TASK_THE_BROWSER_DOES_NOT_RUN',other.kind);
+  this.host('givePlayerOrders','A_PLAYER_TASK')(orders,repeat);
+  this.recordTask(PLAYER_PED_HANDLE,opcode,false);
+ }
+ private clearTasks(handle:number,command:string){
+  if(handle===PLAYER_PED_HANDLE)this.host('clearPlayerTasks',command)();
+  else this.world.clearScriptPedTasks(this.livePed(handle));
+  this.taskRecords.delete(handle);
+ }
  /** What a ped handle names: the player, the browser's ped behind a live script handle, or nothing. */
  pedByHandle(handle:number):unknown{return handle===PLAYER_PED_HANDLE?'player':this.peds.exists(handle)?this.peds.entity(handle):undefined;}
  /** Where the peds a task names stand: the ped itself, a script ped, or the player (whose handle is no pool ped). */
  private taskWorld(handle:number){
   return {
-   self:()=>this.peds.positionOf(handle),
+   self:()=>handle===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.positionOf(handle),
    ped:(other:number)=>other===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.exists(other)?this.peds.positionOf(other):undefined,
   };
  }
@@ -1319,6 +1338,10 @@ export class ScmMission {
   * flushed; one still held is TASK_ASSOCIATED. */
  private processTaskRecords(){
   for(const [handle,record] of this.taskRecords){
+   if(handle===PLAYER_PED_HANDLE){
+    if(this.world.playerHasScriptTask?.())record.status=TASK_TASK_ASSOCIATED;else this.taskRecords.delete(handle);
+    continue;
+   }
    if(!this.peds.exists(handle)){this.taskRecords.delete(handle);continue;}
    if(record.wander){record.status=TASK_TASK_ASSOCIATED;continue;}
    // A ped still being made (its handle given, its body pending) keeps the order it will be given.
