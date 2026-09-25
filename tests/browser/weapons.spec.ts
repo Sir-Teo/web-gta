@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 test('every handheld weapon has a native model, textures and a firing/use animation',async({page})=>{
  test.setTimeout(120000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
  const [{openWeaponAssets},{WEAPONS},{modelObject}]=await Promise.all(['/src/weapons/assets.ts','/src/weapons/catalog.ts','/src/assets/ModelObjects.ts'].map(p=>import(p)));
@@ -13,6 +14,8 @@ test('arsenal equips every weapon and guns aim, fire, reload when empty, and pau
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  await page.keyboard.press('Tab');await expect(page.locator('.arsenal')).toBeVisible();
  expect(await page.locator('[data-weapon]').count()).toBe(44);await page.screenshot({path:'artifacts/arsenal.png'});
@@ -33,12 +36,17 @@ test('arsenal equips every weapon and guns aim, fire, reload when empty, and pau
 test('camera downloads a photo in its first-person mode, vision toggles and sniper scope works',async({page})=>{
  test.setTimeout(120000);await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  const equip=async(id:number)=>{await page.keyboard.press('Tab');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);};
  // The camera fires only in MODE_CAMERA, entered by holding the target button.
  await equip(43);await page.mouse.move(720,450);await page.mouse.down({button:'right'});await expect.poll(async()=>(await state()).camera.firstPerson).toBe('camera');
  const download=page.waitForEvent('download');await page.keyboard.press('ControlLeft');expect((await download).suggestedFilename()).toMatch(/^San-Andreas-.*\.png$/);
  await page.mouse.up({button:'right'});await expect.poll(async()=>(await state()).camera.firstPerson).toBeNull();
- for(const [id,vision] of [[44,'nightvision'],[45,'infrared']] as const){await equip(id);await page.waitForTimeout(750);await page.keyboard.press('ControlLeft');await expect.poll(async()=>(await state()).weapons.vision).toBe(vision);await page.waitForTimeout(550);await page.keyboard.press('ControlLeft');await expect.poll(async()=>(await state()).weapons.vision).toBeNull();}
+ // The goggles toggle on the fire button's press, once goggles_put_on has played (0.8 s of game time, which runs
+ // behind the wall clock on a loaded machine); a tap is held for a few frames so a slow frame cannot miss it.
+ const tap=async()=>{await page.keyboard.down('ControlLeft');await page.waitForTimeout(150);await page.keyboard.up('ControlLeft');};
+ for(const [id,vision] of [[44,'nightvision'],[45,'infrared']] as const){await equip(id);await page.waitForTimeout(750);await tap();await expect.poll(async()=>(await state()).weapons.vision,{timeout:20000}).toBe(vision);await page.waitForTimeout(1500);await tap();await expect.poll(async()=>(await state()).weapons.vision,{timeout:20000}).toBeNull();}
  await equip(34);await page.mouse.down({button:'right'});await expect(page.locator('.weapon-crosshair.native-scope')).toBeVisible();await page.screenshot({path:'artifacts/weapons-scope.png'});await page.mouse.up({button:'right'});await expect(page.locator('.weapon-crosshair')).toBeHidden();
 });
 
