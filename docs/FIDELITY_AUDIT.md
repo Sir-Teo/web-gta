@@ -8200,3 +8200,10 @@ TimeStep x 0.003 for more than ten frames the object goes static again with its 
 adds units a second as `SET_OBJECT_VELOCITY` sets them (RYDER2's boxes, BCOUR's papers).
 `SET_OBJECT_COORDINATES_AND_VELOCITY` stays open: its handler is in no source to hand. Specs:
 `script-object-physics`, `scm-object-anim`.
+
+## SET_CHAR_HEALTH on the player
+
+The command went to the script ped pool whatever the handle, so on the player it did nothing: a script's health top-up
+after a fight or cutscene, and a script's kill, were lost. `SetCharHealth` on the player now sets his health capped
+at `CPlayerInfo::m_nMaxHealth` (a script ped's max health follows its first setting instead), and 0 kills him as it
+kills any ped (CTaskComplexDie from a script command event). Spec: `script-player-car`.

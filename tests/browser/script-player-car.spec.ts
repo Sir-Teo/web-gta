@@ -64,5 +64,11 @@ test('the script puts the player in its car, moves him, and takes him out',async
  await page.evaluate(opcode=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(1,{kind:'leaveAnyCar'},opcode),LEAVE);
  await expect.poll(()=>status(LEAVE),{timeout:60000}).toBe(7);
  expect(await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1)??null)).toBeNull();
+ // SET_CHAR_HEALTH on the player: capped at CPlayerInfo::m_nMaxHealth, and 0 kills him.
+ const health=await page.evaluate(()=>{const g=(window as any).__game,w=g.missionForProfiling().runtime.world,out:number[]=[];
+  w.setPedHealth(1,50);out.push(g.state().player.health);w.setPedHealth(1,500);out.push(g.state().player.health);return out;});
+ expect(health).toEqual([50,100]);
+ await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.killPed(1));
+ expect(await page.evaluate(()=>(window as any).__game.state().player.health)).toBe(0);
  expect(errors).toEqual([]);
 });

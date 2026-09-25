@@ -558,6 +558,8 @@ export interface ScmMissionWorld {
  registerScriptRoadblock?(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},gang:boolean):void;
  clearScriptRoadblocks?():void;
  setPlayerMaxHealth(maxHealth:number):void;
+ /** The player's health (SET_CHAR_HEALTH), and his death at none. */
+ setPlayerHealth?(health:number):void;killPlayer?():void;
  setPlayerMaxArmour(maxArmour:number):void;
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
  setClosestEntryExitFlag(x:number,y:number,radius:number,flag:number,on:boolean):void;
@@ -1426,8 +1428,10 @@ export class ScmMission {
    // car and to the ped's group, neither of which the browser's scripted peds have yet.
    setPedCoordinatesNoOffset:(handle,x,y,z)=>{if(handle===PLAYER_PED_HANDLE)this.teleportPlayer(x,y,z,'SET_CHAR_COORDINATES_NO_OFFSET');else this.peds.setPosition(handle,{x,y,z});},
    setPedCoordinatesDontWarpGang:(handle,x,y,z)=>{if(handle===PLAYER_PED_HANDLE)this.teleportPlayer(x,y,z,'SET_CHAR_COORDINATES_DONT_WARP_GANG');else this.peds.setPosition(handle,{x,y,z});},
-   setPedHealth:(handle,health)=>{this.peds.setHealth(handle,health);},
-   killPed:handle=>{this.peds.kill(handle);},
+   // SetCharHealth on the player: the health capped at CPlayerInfo::m_nMaxHealth, which a script ped's is not.
+   setPedHealth:(handle,health)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerHealth','SET_CHAR_HEALTH')(Math.min(health,this.runtime.game.playerInfo.maxHealth));else this.peds.setHealth(handle,health);},
+   // SET_CHAR_HEALTH 0 (CTaskComplexDie through a script command event): the player dies as any ped does.
+   killPed:handle=>{if(handle===PLAYER_PED_HANDLE)this.host('killPlayer','SET_CHAR_HEALTH')();else this.peds.kill(handle);},
    setPedAccuracy:(handle,accuracy)=>{this.peds.setAccuracy(handle,accuracy);},
    setPedShootRate:(handle,rate)=>{this.peds.setShootingRate(handle,rate);},
    setRadioChannel:station=>{this.world.retuneRadio?.(station);},

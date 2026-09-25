@@ -4207,6 +4207,8 @@ async function boot() {
                  registerScriptRoadblock:(a,b,gang)=>{police?.registerScriptRoadblock(a,b,gang);},
                  clearScriptRoadblocks:()=>{police?.clearScriptRoadblocks();},
                  setPlayerMaxHealth:maxHealth=>{sim.player.health=maxHealth;},
+                 setPlayerHealth:health=>{if(sim.player.health>0)sim.player.health=health;},
+                 killPlayer:()=>{sim.killPlayer();},
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.
                  groundLevel:(x,y)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:200,z:-y},{x:0,y:-1,z:0}),300,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?200-hit.timeOfImpact:undefined;},
