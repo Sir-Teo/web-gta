@@ -1476,7 +1476,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_RADIO_CHANNEL:(t,p,i)=>{world(t,i,'setRadioChannel')(t.readInt(p[0]));},
  // CTheScripts::RadarZoomValue, which CRadar::DrawMap takes off the on-foot range.
  SET_RADAR_ZOOM:(t,p,i)=>{game(t,i).radarZoom=t.readInt(p[0]);},
- SET_NEAR_CLIP:(t,p,i)=>{world(t,i,'setNearClip')(t.readFloat(p[0]));},
+ SET_NEAR_CLIP:(t,p,i)=>{game(t,i).camera.setNearClipScript(t.readFloat(p[0]));},
  SET_TIME_SCALE:(t,p,i)=>{world(t,i,'setTimeScale')(t.readFloat(p[0]));},
  DISPLAY_ONSCREEN_COUNTER_WITH_STRING:(t,p,i)=>{game(t,i).onscreenTimer.addCounter(t.globalOffset(p[0]),t.readInt(p[1]),t.text(p[2]),0);},
  /* --- More tasks, the helicopters, and the world switches. */
@@ -1549,7 +1549,8 @@ const handlers:Record<string,ScmCommandHandler>={
  SWITCH_EMERGENCY_SERVICES:(t,p,i)=>{game(t,i).allowEmergencyServices=bool(t,p[0]);},
  SWITCH_RANDOM_TRAINS:(t,p,i)=>{world(t,i,'switchRandomTrains')(bool(t,p[0]));},
  SET_ALL_CARS_CAN_BE_DAMAGED:(t,p,i)=>{world(t,i,'setAllVehiclesCanBeDamaged')(bool(t,p[0]));},
- DISPLAY_HUD:(t,p,i)=>{world(t,i,'displayHud')(bool(t,p[0]));},
+ // CTheScripts::bDisplayHud, which CHud::Draw reads for the player info and the wanted level.
+ DISPLAY_HUD:(t,p,i)=>{game(t,i).displayHud=bool(t,p[0]);},
  FREEZE_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).onscreenTimer.paused=bool(t,p[0]);},
  // The Nth counter is one-based: the plain counter is the first (slot 0), and the missions that show both start
  // the Nth ones at 2.

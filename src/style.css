@@ -9,6 +9,7 @@
 .screen-fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
 /* GetScreenRect with m_fScreenReductionPercentage 30: the top bar ends 22 lines (of 448) short of 15% of the screen, the bottom one begins 14 lines past it. */
 .widescreen-border{position:absolute;left:0;right:0;background:#000;pointer-events:none}.widescreen-border.top{top:0;height:calc(15vh - 22 / 448 * 100vh)}.widescreen-border.bottom{bottom:0;height:calc(15vh + 14 / 448 * 100vh)}.widescreen-border[hidden]{display:none}
+.script-hud-off .status,.script-hud-off .bars,.script-hud-off .wanted-status{visibility:hidden}
 .widescreen .status,.widescreen .bars,.widescreen .wanted-status,.widescreen .vehicle-name,.widescreen .location,.widescreen .native-navigation,.widescreen .weapon-crosshair,.widescreen .radar-altimeter,.widescreen .radar-altimeter-mark{visibility:hidden}
 .big-message{position:absolute;left:50%;top:34%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;white-space:nowrap}
 .white-middle-message{position:absolute;left:50%;top:calc(50% - 30 / 448 * 100%);transform:translate(-50%,-100%);transform-origin:50% 100%;font-family:Unifraktur,Georgia,serif;font-weight:700;line-height:1;color:#e1e1e1;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:3px 3px 0 #000;white-space:nowrap;pointer-events:none}

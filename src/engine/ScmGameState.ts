@@ -235,6 +235,8 @@ export class ScmGameState {
  /** SET_NEXT_DESIRED_MOVE_STATE: the eMoveState the next enter-car task walks or runs to the door at, back to
   * CTaskComplexEnterCar's PEDMOVE_RUN once a task has taken it. */
  nextDesiredMoveState=6;
+ /** CTheScripts::bDisplayHud (DISPLAY_HUD). */
+ displayHud=true;
  /** CUserDisplay::OnscnTimer: the mission clock and counters, on script globals. */
  readonly onscreenTimer=new ScmOnscreenTimer();
  /** The route a task follows, which EXTEND_ROUTE builds a point at a time and FLUSH_ROUTE empties. */

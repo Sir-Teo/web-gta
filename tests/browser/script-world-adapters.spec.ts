@@ -71,5 +71,13 @@ test('the script’s camera, seat, speech and ped-matrix questions are answered'
   return {before,after,removed,lowRider:w.isCarLowRider(car),dirt:e.dirtLevel,model:w.pedVehicleModelId(ped),onFoot:w.pedVehicleModelId(1)??null};
  },made);
  expect(fitted).toEqual({before:false,after:true,removed:false,lowRider:false,dirt:15,model:411,onFoot:null});
+ // CLOSE_ALL_CAR_DOORS shuts the doors the script opened; SET_CAR_STRONG marks bTakeLessDamage; a car at rest has all
+ // four wheels down.
+ const shut=await page.evaluate(({car}:{car:number})=>{
+  const m=(window as any).__game.missionForProfiling(),w=m.runtime.world,e=m.vehicles.entity(car);
+  w.closeAllVehicleDoors(car);w.setVehicleStrong(car,true);
+  return {front:e.doors[2].ratio,right:e.doors[3].ratio,strong:e.takeLessDamage,wheels:w.vehicleIsOnAllWheels(car)};
+ },made);
+ expect(shut).toEqual({front:0,right:0,strong:true,wheels:true});
  expect(errors).toEqual([]);
 });

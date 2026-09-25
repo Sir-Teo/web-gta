@@ -2653,6 +2653,8 @@ async function boot() {
     // and 707 (no host reads carrec.img), so the script's switch is recorded and not applied.
     hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane,!!mission?.runtime.game.widescreenOn);
     hud.widescreen(!!mission?.runtime.game.widescreenOn);
+    hud.displayHud(mission?.runtime.game.displayHud??true);
+    {const camera=mission?.runtime.game.camera;render.scriptNearClip=camera?.useNearClipScript?camera.nearClipScript:undefined;}
     // CMessages::Process once a game frame, and CMessages::Display handing the front of each queue to the HUD: the
     // brief to the subtitle line, STYLE_MIDDLE and STYLE_WHITE_MIDDLE to their big messages, and CHud's help message.
     // (The other styles' own layouts are not drawn; they use the middle message.)
@@ -3287,7 +3289,7 @@ async function boot() {
                  setScriptPedProofs:(ped,proofs)=>{const p=onFoot(ped);if(p)p.proofs={...proofs};},
                  scriptPedAlive:ped=>{const r=asRider(ped);if(r)return !r.gone&&!r.car.disposed;return !!pedestrians?.holdsScripted(ped as Pedestrian);},
                  removeScriptPed:ped=>{const r=asRider(ped);if(r){r.gone=true;scriptRiders.delete(r);return;}pedestrians?.removeScripted(ped as Pedestrian);},
-                 releaseScriptPed:ped=>{const p=onFoot(ped);if(p)pedestrians?.releaseScripted(p);},
+                 releaseScriptPed:(ped,keepTask)=>{const p=onFoot(ped);if(p)pedestrians?.releaseScripted(p,keepTask);},
                  scriptPedSpeed:ped=>{const r=asRider(ped);if(r){const v=r.car.car.body.linvel();return Math.hypot(v.x,v.y,v.z);}return onFoot(ped)?.actor.player.speed??0;},
                  scriptPedStanding:ped=>{const p=onFoot(ped);return p?!!pedestrians?.standingStill(p):false;},
                  scriptPedSubmerged:ped=>{const p=onFoot(ped);return p?!!pedestrians?.submerged(p):false;},
@@ -3552,6 +3554,9 @@ async function boot() {
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
                  setScriptVehicleSiren:(car,on)=>{(car as ScriptCar).siren=on;},
                  openScriptVehicleDoor:(car,door,ratio)=>{(car as Partial<ScriptCar>).openDoor?.(door,ratio);},
+                 scriptVehicleAutopilotFields:car=>({...(car as Partial<ScriptCar>).autopilotFields}),
+                 setScriptVehicleStrong:(car,strong)=>{const c=car as Partial<ScriptCar>;if(c.takeLessDamage!==undefined)c.takeLessDamage=strong;},
+                 scriptVehicleWheelsOnGround:car=>(car as Partial<ScriptCar>).wheelsOnGround??0,
                  scriptVehicleStill:car=>{
                   const body=(car as Partial<ScriptCar>).car?.body;if(!body)return true;
                   const v=body.linvel(),w=body.angvel();

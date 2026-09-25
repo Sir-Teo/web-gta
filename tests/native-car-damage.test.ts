@@ -38,3 +38,13 @@ test('a hard rear hit on a van damages the back door on the side it lands (Vehic
  expect(hit(false,.5,600)).toEqual([]);
  expect(hit(true,.5,300)).toEqual([]);
 });
+test('SET_CAR_STRONG (bTakeLessDamage) takes a sixth for the player’s car and a twelfth for any other',()=>{
+ const base={intensity:3000,mass:1500,collisionDamageMultiplier:1,hitByPlayerVehicle:false};
+ const player=collisionHealthLoss({...base,playerVehicle:true}),strongPlayer=collisionHealthLoss({...base,playerVehicle:true,takeLessDamage:true});
+ const other=collisionHealthLoss({...base,playerVehicle:false}),strongOther=collisionHealthLoss({...base,playerVehicle:false,takeLessDamage:true});
+ expect(player).toBeGreaterThan(0);
+ expect(strongPlayer).toBeCloseTo(player*2/6,6);
+ expect(strongOther).toBeCloseTo(other*4/12,6);
+ // A strong car the player rams still takes the twelfth, not the rammed car's 1.5.
+ expect(collisionHealthLoss({...base,playerVehicle:false,hitByPlayerVehicle:true,takeLessDamage:true})).toBeCloseTo(strongOther,6);
+});

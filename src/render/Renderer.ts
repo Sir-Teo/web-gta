@@ -44,6 +44,8 @@ export class GameRenderer {
   playerShadowAllowed=true;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
   fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3};
+  /** CCamera::m_fNearClipScript while m_bUseNearClipScript holds (SET_NEAR_CLIP, until a restore). */
+  scriptNearClip?:number;
   /** CCamera::m_bCamDirectlyBehind, which SET_CAMERA_BEHIND_PLAYER sets: the string camera swings straight
    * behind the ped on the next update and the flag clears. Its in-front counterpart is the other side. */
   /** m_fPedOrientForBehindOrInFront: the ped's heading when SET_CAMERA_BEHIND_PLAYER or _IN_FRONT_OF_PLAYER ran. */
@@ -194,7 +196,7 @@ export class GameRenderer {
     // CCam::Process_Fixed sets FOV 70 whatever mode the player was in.
     const fov=this.fixedCamera?70:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
     // Process_Rocket's near clip plane is 0.15.
-    const near=fp&&isRocketMode(fp)?.15:.08;
+    const near=this.scriptNearClip??(fp&&isRocketMode(fp)?.15:.08);
     if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}
     mark=clock();this.lighting.update(this.sim.timeMinutes, p.position, this.camera,dt,coronaLookMask(this.glance),this.sourceFov,!paused);lap('lighting');
     const contact = this.contactLighting !== undefined && this.lighting.nativeWorldAmbient ? nativeContactLightMultiplier(this.lighting.nativeWorldAmbient,nativeContactBrightness(this.contactLighting!,nativeDayNightBalance(this.sim.timeMinutes))) : 1;

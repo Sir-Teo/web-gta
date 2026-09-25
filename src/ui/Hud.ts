@@ -181,6 +181,9 @@ export class Hud {
     box.replaceChildren(...rows);
   }
   private shownTimers='';
+  /** CTheScripts::bDisplayHud: off, CHud::Draw leaves out the player info and the wanted level. */
+  displayHud(on:boolean){if(on===this.hudOn)return;this.hudOn=on;document.body.classList.toggle('script-hud-off',!on);}
+  private hudOn=true;
   widescreen(on:boolean){
     for(const bar of this.element.querySelectorAll<HTMLElement>('.widescreen-border'))if(bar.hidden===on)bar.hidden=!on;
     // CHud::Draw and DrawAfterFade leave out the crosshair, player info, wanted level, vehicle name, radar, 3D markers

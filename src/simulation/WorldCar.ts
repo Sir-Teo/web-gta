@@ -145,6 +145,10 @@ export class WorldCar {
  /** A driving task a script gave the player (CTaskSimpleCarDrive as STATUS_PHYSICS): the car's autopilot drives with
   * him at the wheel, and his pad has no say until it is over. */
  scriptDriven=false;
+ /** vehicleFlags.bTakeLessDamage (SET_CAR_STRONG). */
+ takeLessDamage=false;
+ /** CAutomobile::m_nNumContactWheels: the wheels whose suspension line touched something last step. */
+ get wheelsOnGround(){const c=this.lastCompression;return c?Object.values(c).filter(x=>x<1).length:0;}
  onDoorEvent?:(event:'open'|'close',door:number)=>void;
  /** CPhysical::ApplyCollision audio reports: the other collider, the world contact point, the normal toward this car and the normal impulse per unit mass in native units per frame. */
  onCollision?:(report:{other:RAPIER.Collider;point:V3;normal:V3;impulse:number})=>void;
@@ -796,7 +800,7 @@ export class WorldCar {
   const previous=this.health;
   const models={modelId:this.modelId,damagerModelId:damager?.modelId};
   if(this.onCollisionDamage){const raw=collisionHealthLossRaw({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,...models,damagerIsPlayer:rammedByPlayer});if(raw>0)this.onCollisionDamage(raw,rammedByPlayer);}
-  this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:rammedByPlayer,...models}));
+  this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:rammedByPlayer,...models,takeLessDamage:this.takeLessDamage}));
   // CAutomobile::VehicleDamage: the smash n boom cheat blows up whatever the player's vehicle hits. Otherwise a
   // crash-killed car stays at 1 health to burn, unless any Rhino killed it and it is not the player's own car.
   if(CHEATS.isActive('smashNBoom')&&rammedByPlayer){this.blowUp();return;}

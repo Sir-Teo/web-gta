@@ -1758,8 +1758,10 @@ export class WorldPedestrians {
  private rainSkip(){const catalog=this.catalog;return catalog&&(this.rain?.()??0)>=.1?(name:string)=>catalog.sunbather(name):undefined;}
  rosterCivilian(){return this.roster?.choose(name=>this.wearing(name),this.rainSkip());}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
- releaseScripted(ped:Pedestrian){
+ releaseScripted(ped:Pedestrian,keepTask=false){
   ped.mission=false;
+  // bKeepTasksAfterCleanUp: the ped carries on with what it was doing.
+  if(keepTask)return;
   // CleanUpThisPed on foot: a ped already wandering keeps it; any other primary task gives way to the wander.
   if(!ped.scriptWanders){ped.sequence=undefined;ped.order=undefined;ped.scriptWanders=true;this.chooseTarget(ped);}
  }

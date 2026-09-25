@@ -90,9 +90,13 @@ export function collisionHealthLossRaw(input:{intensity:number;mass:number;colli
  if(input.damagerModelId===432)loss*=15;
  return loss>0?loss:0;
 }
-export function collisionHealthLoss(input:{intensity:number;mass:number;collisionDamageMultiplier:number;playerVehicle:boolean;hitByPlayerVehicle:boolean;modelId?:number;damagerModelId?:number}){
+export function collisionHealthLoss(input:{intensity:number;mass:number;collisionDamageMultiplier:number;playerVehicle:boolean;hitByPlayerVehicle:boolean;modelId?:number;damagerModelId?:number;
+ /** vehicleFlags.bTakeLessDamage (SET_CAR_STRONG): a sixth for the player's car, a twelfth for any other. */
+ takeLessDamage?:boolean}){
  const loss=collisionHealthLossRaw({...input,damagerIsPlayer:input.hitByPlayerVehicle});if(loss<=0)return 0;
- return input.playerVehicle?loss/2:input.hitByPlayerVehicle?loss/1.5:loss/4;
+ if(input.playerVehicle)return input.takeLessDamage?loss/6:loss/2;
+ if(input.takeLessDamage)return loss/12;
+ return input.hitByPlayerVehicle?loss/1.5:loss/4;
 }
 /** Native burn-out: below 250 health a car burns and blows up after 5000 ms. */
 export const CAR_FIRE_HEALTH=250,CAR_BURN_SECONDS=5;

@@ -141,7 +141,7 @@ describe('the vehicle, object and world commands of this batch',()=>{
    instruction(op('SET_SCRIPT_LIMIT_TO_GANG_SIZE'),[int(4)]));
   expect(readInt(40)).toBe(17);
   expect(calls).toEqual([
-   ['fx','smoke',1,2,3,true],['radio',3],['clip',0.5],['timeScale',0.25],
+   ['fx','smoke',1,2,3,true],['radio',3],['timeScale',0.25],
    ['flushPatrol'],['dontWander',7,8,9],['gangLimit',4],
   ]);
  });

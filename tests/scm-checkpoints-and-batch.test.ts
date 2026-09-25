@@ -143,6 +143,13 @@ describe('the vehicle, ped and object commands of this batch',()=>{
   expect(tasks.map(t=>'moveState' in t?t.moveState:undefined)).toEqual([4,6]);
  });
 
+ test('SET_NEAR_CLIP and DISPLAY_HUD are the runtime’s own camera and HUD state',()=>{
+  const game=new ScmGameState();
+  run({},game,instruction(op('SET_NEAR_CLIP'),[float(.25)]),instruction(op('DISPLAY_HUD'),[int(0)]));
+  expect(game.camera.useNearClipScript).toBe(true);expect(game.camera.nearClipScript).toBeCloseTo(.25,6);
+  expect(game.displayHud).toBe(false);
+ });
+
  test('the HUD colour reads back its four channels',()=>{
   const {readInt}=run({hudColour:()=>({red:255,green:128,blue:64,alpha:200})},undefined,
    instruction(op('GET_HUD_COLOUR'),[int(3),gvar(40),gvar(44),gvar(48),gvar(52)]));

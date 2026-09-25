@@ -7091,3 +7091,19 @@ the first ones now implemented:
 - TASK_LOOK_AT_COORD on the player starts his head look at the point (g_ikChainMan.LookAt through the trigger task)
   for its time, and the task is over at once.
 - TASK_DIE on the player kills him whatever proofs he wears: CTaskComplexDie is not damage.
+
+### Camera near clip, the HUD switch, and a batch of car and ped commands
+
+- SET_NEAR_CLIP is CCamera::SetNearClipScript: the renderer uses that near plane until CCamera::Restore or
+  RestoreWithJumpCut clears m_bUseNearClipScript.
+- DISPLAY_HUD is CTheScripts::bDisplayHud. Off, CHud::Draw leaves out the player info (money, weapon, bars) and the
+  wanted level.
+- CAR_GOTO_COORDINATES follows VC's handler (SA's is unreversed): CCarAI's coordinate mission at the car's own cruise
+  speed (at least 6; CreateCarForScript's 13 until set) and driving style.
+- CAR_SET_IDLE is MISSION_NONE. CLOSE_ALL_CAR_DOORS shuts every door. IS_VEHICLE_ON_ALL_WHEELS needs four contact
+  wheels.
+- SET_CAR_STRONG is vehicleFlags.bTakeLessDamage. CAutomobile::VehicleDamage (reversed) then divides a collision's
+  health loss by 6 for the player's car (2 otherwise) and by 12 for any other car (1.5 when rammed by the player, 4
+  otherwise).
+- SET_CHAR_KEEP_TASK is bKeepTasksAfterCleanUp: CleanUpThisPed hands such a ped back to the game without giving it the
+  wander.

@@ -38,7 +38,7 @@ export interface ScmPedPoolHost<Ped>{
  aliveOf(ped:Ped):boolean;
  remove(ped:Ped):void;
  /** CTheScripts::CleanUpThisPed: the ped goes back to being the population manager's to remove. */
- release(ped:Ped):void;
+ release(ped:Ped,keepTask?:boolean):void;
 }
 /** What the script said about a ped, which answers for it until the browser has built one. */
 interface ScriptPed{pedType:number;model?:number|string;position:{x:number;y:number;z:number};heading:number;health:number;maxHealth:number;dead:boolean;
@@ -47,7 +47,9 @@ interface ScriptPed{pedType:number;model?:number|string;position:{x:number;y:num
  /** CPed::m_fArmour, which ADD_ARMOUR_TO_CHAR raises. */
  armour?:number;
  /** The anim group SET_ANIM_GROUP_FOR_CHAR named, which the ped keeps when it is built again (out of a car). */
- animGroup?:string}
+ animGroup?:string;
+ /** CPed::bKeepTasksAfterCleanUp (SET_CHAR_KEEP_TASK). */
+ keepTask?:boolean}
 /** ePedType, of which only these two are female. */
 const PED_TYPE_CIVMALE=4,PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
@@ -167,6 +169,8 @@ export class ScmPedPool<Ped>{
  /** SET_CHAR_SHOOT_RATE: the rate is a byte (m_nWeaponShootingRate is a uint8). */
  setShootingRate(handle:number,rate:number){this.pool.apply(handle,ped=>{this.host.setShootingRate?.(ped,rate&0xff);});}
  setInvulnerable(handle:number,enabled:boolean){this.pool.apply(handle,ped=>{this.host.setInvulnerable(ped,enabled);});}
+ /** SET_CHAR_KEEP_TASK: whether the ped keeps its task when the script lets it go. */
+ setKeepTask(handle:number,keep:boolean){const said=this.said.get(handle);if(said)said.keepTask=keep;}
  /** SET_ANIM_GROUP_FOR_CHAR, now or once the ped is built. */
  setAnimGroup(handle:number,group:string){
   const said=this.said.get(handle);if(said)said.animGroup=group;
@@ -177,7 +181,8 @@ export class ScmPedPool<Ped>{
  delete(handle:number){this.pool.delete(handle);this.said.delete(handle);}
  /** MARK_CHAR_AS_NO_LONGER_NEEDED: the ped stays for the streamer to reclaim and the script lets go of it. */
  markNoLongerNeeded(handle:number){
-  this.pool.apply(handle,ped=>{this.host.release(ped);});
+  const keepTask=!!this.said.get(handle)?.keepTask;
+  this.pool.apply(handle,ped=>{this.host.release(ped,keepTask);});
   this.pool.markNoLongerNeeded(handle);this.said.delete(handle);
  }
 }

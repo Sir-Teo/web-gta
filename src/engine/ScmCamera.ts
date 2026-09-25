@@ -24,6 +24,8 @@ export class ScmCamera {
  garageFixedCamPositionSet=false;
  startInterScript=false;restoreByJumpCut=false;cameraJustRestored=false;
  positionAlongSpline=0;startingSpline=false;useNearClipScript=false;
+ /** m_fNearClipScript: SET_NEAR_CLIP's plane, used while useNearClipScript holds (either restore clears it). */
+ nearClipScript=.9;
  modeObbeCamIsInForCar=OBBE_MODE_DEFAULT;scriptParametersSetForInterp=false;
  enable1rstPersonCamCntrlsScript=false;allow1rstPersonWeaponsCamera=false;
  useScriptZoomValuePed=false;useScriptZoomValueCar=false;avoidTheGeometryProbsTimer=0;
@@ -88,6 +90,8 @@ export class ScmCamera {
   this.lookingAtVector=true;this.modeToGoTo=MODE_FIXED;this.lookingAtPlayer=false;this.targetEntity=undefined;
   this.fixedModeVector={...target};this.typeOfSwitch=switchType;this.startInterScript=true;
  }
+ /** CCamera::SetNearClipScript (0x50BF90). */
+ setNearClipScript(nearClip:number){this.nearClipScript=nearClip;this.useNearClipScript=true;}
  /** The body CCamera::Restore and RestoreWithJumpCut share: both hand the camera back to the player, pick the
   * mode from what the player is doing, and reset the script's interpolation fields. */
  private restoreCommon(player:PlayerCameraState){

@@ -181,7 +181,7 @@ export interface ScmMissionWorld {
  setScriptPedProofs(ped:unknown,proofs:ScmPedProofs):void;
  scriptPedAlive(ped:unknown):boolean;
  removeScriptPed(ped:unknown):void;
- releaseScriptPed(ped:unknown):void;
+ releaseScriptPed(ped:unknown,keepTask?:boolean):void;
  scriptPedSpeed(ped:unknown):number;
  scriptPedStanding(ped:unknown):boolean;
  scriptPedSubmerged(ped:unknown):boolean;
@@ -377,6 +377,11 @@ export interface ScmMissionWorld {
  setScriptLimitToGangSize?(size:number):void;
  /** CGangWars::SetGangWarsActive. */
  setGangWarsActive?(state:boolean):void;setPlayerGroupSeparationRange?(range:number):void;
+ /** A script car's own autopilot settings (SET_CAR_CRUISE_SPEED, SET_CAR_DRIVING_STYLE). */
+ scriptVehicleAutopilotFields?(car:unknown):{cruiseSpeed?:number;drivingStyle?:number};
+ /** vehicleFlags.bTakeLessDamage and the number of wheels on the ground. */
+ setScriptVehicleStrong?(car:unknown,strong:boolean):void;
+ scriptVehicleWheelsOnGround?(car:unknown):number;
  /** Room in the player's group for `room` mission peds, beside the `missionMembers` the script's group already holds. */
  makeRoomInPlayerGang?(room:number,missionMembers:number):void;
  /** SET_ANIM_GROUP_FOR_CHAR on a ped the browser built; false for a group it cannot play. */
@@ -409,6 +414,8 @@ const PED_TYPE_CIVMALE=4;
  * the reason is kept so the gap is visible rather than silent. Everything the script sets before that point,
  * the clock, the stats, the zone population, the restart points and the rest, is real script state rather
  * than a static reading of the file. */
+/** CCarCtrl::CreateCarForScript's cruise speed. */
+const CREATED_CRUISE_SPEED=13;
 /** handlingFlags.bLowRider. */
 const HANDLING_LOW_RIDER=0x2000000;
 /** The tasks that drive or leave a car, which the on-foot peds cannot run. */
@@ -477,6 +484,20 @@ export class ScmMission {
     if(handle===PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'SET_ANIM_GROUP_FOR_CHAR','the player');
     this.peds.setAnimGroup(handle,group.toLowerCase());
    },
+   // CAR_GOTO_COORDINATES (VC's handler; SA's is unreversed): the car's own cruise speed, at least 6, and driving style
+   // take it to the point, joining the road or going straight as JoinCarWithRoadSystemGotoCoors decides.
+   vehicleGotoCoordinates:(handle,x,y,z)=>{
+    const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
+    this.host('driveScriptVehicleTo','CAR_GOTO_COORDINATES')(car,{x,y,z},{cruise:Math.max(fields.cruiseSpeed??CREATED_CRUISE_SPEED,6),style:fields.drivingStyle??0,accurate:false,straight:false});
+   },
+   // CAR_SET_IDLE: MISSION_NONE.
+   setVehicleIdle:handle=>{this.host('stopScriptVehicle','CAR_SET_IDLE')(this.liveVehicle(handle));},
+   // CLOSE_ALL_CAR_DOORS: every door to shut.
+   closeAllVehicleDoors:handle=>{const car=this.liveVehicle(handle),open=this.host('openScriptVehicleDoor','CLOSE_ALL_CAR_DOORS');for(let door=0;door<6;door++)open(car,door,0);},
+   setVehicleStrong:(handle,strong)=>{this.host('setScriptVehicleStrong','SET_CAR_STRONG')(this.liveVehicle(handle),strong);},
+   // IS_VEHICLE_ON_ALL_WHEELS: m_nNumContactWheels is four.
+   vehicleIsOnAllWheels:handle=>this.host('scriptVehicleWheelsOnGround','IS_VEHICLE_ON_ALL_WHEELS')(this.liveVehicle(handle))>=4,
+   setPedKeepTask:(handle,keep)=>{if(handle!==PLAYER_PED_HANDLE)this.peds.setKeepTask(handle,keep);},
    makeRoomInPlayerGangForMissionPeds:count=>{this.host('makeRoomInPlayerGang','MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS')(count,this.group(PLAYER_GROUP_HANDLE).countFollowers());},
    setCameraBehindPlayer:()=>{this.world.setCameraBehindPlayer();},
    // SetCharHeading (CharacterCommands.cpp): a ped in a vehicle keeps the heading it has, and one on foot
@@ -1095,7 +1116,7 @@ export class ScmMission {
    setProofs:(ped,proofs)=>{this.world.setScriptPedProofs(ped,proofs);},
    aliveOf:ped=>this.world.scriptPedAlive(ped),
    remove:ped=>{this.world.removeScriptPed(ped);},
-   release:ped=>{this.world.releaseScriptPed(ped);},
+   release:(ped,keepTask)=>{this.world.releaseScriptPed(ped,keepTask);},
   },SCRIPT_PED_FIRST_HANDLE);
   this.vehicles=new ScmVehiclePool<unknown>({
    spawn:(model,position,heading)=>this.world.spawnScriptVehicle(model,position,heading),
