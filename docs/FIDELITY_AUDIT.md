@@ -6782,3 +6782,9 @@ the first ones now implemented:
     loop freed a Rapier body mid-iteration and broke the physics world.
 - GET_SCRIPT_TASK_STATUS counts a ped riding in a car as holding none of the on-foot tasks. It used to report
   such a ped's task as running for ever.
+- **TASK_LEAVE_CAR, TASK_LEAVE_ANY_CAR and TASK_LEAVE_CAR_IMMEDIATELY** (40, 38 and 9 missions) for a script ped
+  riding a script car.
+  - The ped is set down on foot at its seat's door point (GetPositionToOpenCarDoor), on the ground there.
+  - The get-out clips are not played.
+  - A ped on foot, or in a car other than the one named, has nothing to do, and the task is over at once.
+  - The player's own exit through these tasks still gives the thread up.

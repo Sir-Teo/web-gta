@@ -299,6 +299,8 @@ export interface ScmMissionWorld {
  setScriptPedCollision?(ped:unknown,uses:boolean):void;
  /** CAutomobile::OpenDoor with the eDoors index the script names and an open ratio. */
  openScriptVehicleDoor?(car:unknown,door:number,ratio:number):void;
+ /** GetPositionToOpenCarDoor for a seat of a script car, in the script's coordinates, on the ground. */
+ scriptVehicleSeatDoor?(car:unknown,seat:'driver'|number):{x:number;y:number;z:number}|undefined;
  setPlayerCollision?(uses:boolean):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
@@ -784,6 +786,7 @@ export class ScmMission {
    // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns
    // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.
    givePedScriptedTask:(handle,task,opcode)=>{
+    if((task.kind==='leaveCar'||task.kind==='leaveAnyCar'||task.kind==='leaveCarImmediately')&&handle!==PLAYER_PED_HANDLE){this.leaveCar(handle,task.kind==='leaveAnyCar'?undefined:task.vehicle,opcode);return;}
     const order=scriptedPedOrder(task,this.taskWorld(handle));
     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
     if(handle===PLAYER_PED_HANDLE){this.givePlayer([order],false,opcode);return;}
@@ -961,6 +964,20 @@ export class ScmMission {
   const pose=this.world.playerVehiclePose?.();
   if(!pose)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return pose;
+ }
+ /** CTaskComplexLeaveCar (and LeaveAnyCar, and the Immediately form) for a script ped riding a script car: it is set
+  * down at its seat's door, on foot. The get-out clips are not played. A ped on foot, or in another car than the one
+  * named, has nothing to do and the task is over at once. */
+ private leaveCar(handle:number,vehicle:number|undefined,opcode:number){
+  this.livePed(handle);
+  const ride=this.peds.rideOf(handle);
+  if(!ride||ride.offset||vehicle!==undefined&&vehicle!==ride.vehicle)return;
+  const car=this.vehicles.entity(ride.vehicle);
+  if(!car)throw new UnsupportedScmCommand(opcode,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${ride.vehicle}`);
+  const at=this.host('scriptVehicleSeatDoor','TASK_LEAVE_CAR')(car,ride.seat);
+  if(!at)throw new UnsupportedScmCommand(opcode,0,'A_SEAT_WITHOUT_A_DOOR',String(ride.seat));
+  this.peds.detachFromCar(handle,at);
+  this.recordTask(handle,opcode,false);
  }
  /** The player's ped runs only the tasks PlayerScriptTasks knows; any other gives the thread up. */
  private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number){

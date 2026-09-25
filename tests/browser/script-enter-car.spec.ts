@@ -27,5 +27,21 @@ test('script peds get into a script car as passenger and driver',async({page})=>
  await expect.poll(()=>ride(made.rider),{timeout:30000}).toEqual({vehicle:made.car,seat:0});
  await expect.poll(()=>status(made.rider,PASSENGER),{timeout:10000}).toBe(7);
  await expect.poll(()=>status(made.driver,DRIVER),{timeout:10000}).toBe(7);
+ // TASK_LEAVE_CAR and TASK_LEAVE_ANY_CAR: both are set down on foot beside the car, and the tasks end.
+ const LEAVE=0x05cd,LEAVE_ANY=0x0633;
+ await page.evaluate(({car,rider,driver,LEAVE,LEAVE_ANY})=>{
+  const w=(window as any).__game.missionForProfiling().runtime.world;
+  w.givePedScriptedTask(rider,{kind:'leaveCar',vehicle:car},LEAVE);w.givePedScriptedTask(driver,{kind:'leaveAnyCar'},LEAVE_ANY);
+ },{...made,LEAVE,LEAVE_ANY});
+ expect(await ride(made.rider)).toBe(null);expect(await ride(made.driver)).toBe(null);
+ await page.waitForFunction(({rider,driver}:{rider:number;driver:number})=>{const m=(window as any).__game.missionForProfiling(),a=m.peds.entity(rider),b=m.peds.entity(driver);return !!(a?.actor&&b?.actor);},made,{timeout:30000});
+ const beside=await page.evaluate(({car,rider,driver})=>{
+  const m=(window as any).__game.missionForProfiling(),c=m.vehicles.positionOf(car);
+  const d=(h:number)=>{const q=m.peds.positionOf(h);return Math.hypot(q.x-c.x,q.y-c.y);};
+  return {rider:d(rider),driver:d(driver)};
+ },made);
+ expect(beside.rider).toBeLessThan(4);expect(beside.driver).toBeLessThan(4);
+ expect(beside.rider).toBeGreaterThan(.8);expect(beside.driver).toBeGreaterThan(.8);
+ await expect.poll(()=>status(made.rider,LEAVE),{timeout:10000}).toBe(7);
  expect(errors).toEqual([]);
 });

@@ -3443,6 +3443,12 @@ async function boot() {
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
                  setScriptVehicleSiren:(car,on)=>{(car as ScriptCar).siren=on;},
                  openScriptVehicleDoor:(car,door,ratio)=>{(car as Partial<ScriptCar>).openDoor?.(door,ratio);},
+                 scriptVehicleSeatDoor:(car,seat)=>{
+                  const c=car as ScriptCar;if(typeof c.seat!=='function')return undefined;
+                  const local=carEntry.seatDoorPoint(c,seat);if(!local)return undefined;
+                  const w=c.worldPoint(local),ground=pedestrians?.groundUnder(w.x,w.z,w.y+2)??w.y;
+                  return {x:w.x,y:-w.z,z:ground};
+                 },
                  setScriptVehicleCanBeVisiblyDamaged:(car,state)=>{(car as ScriptCar).canBeVisiblyDamaged=state;},
                  setTimeScale:scale=>{cheatTimeScale=scale;},
                  // The one ped the browser holds. CTheScripts::IsPedStopped asks a vehicle whether its moving
