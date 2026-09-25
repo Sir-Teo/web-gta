@@ -696,6 +696,16 @@ export class ScmMission {
    },
    // CAR_GOTO_COORDINATES (VC's handler; SA's is unreversed): the car's own cruise speed, at least 6, and driving style
    // take it to the point, joining the road or going straight as JoinCarWithRoadSystemGotoCoors decides.
+   // SET_CAR_MISSION (VC's handler; SA's is unreversed): CAutoPilot::m_nCarMission straight from the script, with the
+   // car's own cruise speed and driving style, the anti-reverse timer restarted and the engine on. The ram and block
+   // missions go for the player; MISSION_NONE stops the car.
+   setVehicleMission:(handle,mission)=>{
+    const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
+    if('engineRunning' in (car as object))(car as {engineRunning:boolean}).engineRunning=true;
+    if(mission===0){this.world.stopScriptVehicle?.(car);return;}
+    if(!this.host('scriptVehicleCarMission','SET_CAR_MISSION')(car,{mission,cruise:fields.cruiseSpeed??CREATED_CRUISE_SPEED,style:fields.drivingStyle??0}))
+     throw new UnsupportedScmCommand(-1,0,'SET_CAR_MISSION',`mission ${mission}`);
+   },
    vehicleGotoCoordinates:(handle,x,y,z)=>{
     const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
     this.host('driveScriptVehicleTo','CAR_GOTO_COORDINATES')(car,{x,y,z},{cruise:Math.max(fields.cruiseSpeed??CREATED_CRUISE_SPEED,6),style:fields.drivingStyle??0,accurate:false,straight:false});

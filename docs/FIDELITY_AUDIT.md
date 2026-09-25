@@ -8065,3 +8065,10 @@ Each is now answered:
 - A script ped given a style (the gym trainers) has the style's swings read from their block and put on its body. Its
   fists then swing that combo, falls included; until the clips are in, it punches the standard combo.
 - Verification: `tests/native-melee.test.ts`, `tests/progression.test.ts`, `tests/browser/player-fighting-style.spec.ts`.
+
+## SET_CAR_MISSION
+
+- CAutoPilot::m_nCarMission set straight from the script (VC's handler; SA's is unreversed). The car keeps its own
+  cruise speed and driving style, the engine is turned on, and the ram and block missions go for the player.
+  MISSION_NONE stops the car. HOODS5, FARLIE4, DRIV3, DRIV6 and CASINO4 use it; it used to stop their threads.
+- Verification: `tests/browser/script-world-queries.spec.ts`.
