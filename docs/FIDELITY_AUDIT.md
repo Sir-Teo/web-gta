@@ -6554,3 +6554,20 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
 - gta-reversed 25f72a7 added a reversible fix (CTaskSimpleClimb_ProcessPed_SettleSpeedFrameRate) that bounds the
   settle speed at 0.2, as the coarse step above it is bounded. The port now does the same. At the original step the
   bound never applies, so the 30 fps result is kept.
+
+## Bike and boat generators (CCarGenerator::DoInternalProcessing)
+
+- **What changed:** the map's car generators include 33 bikes (BMX, mountain bikes, Choppers, Sanchez, quads,
+  NRG-500s) and 73 boats (Dinghies, Speeders, Reefers, Marquis, Squalos and others). The port had spawned only the
+  car and aircraft records. In their place it invented one bike on flat ground near the player (BMX first) and one
+  boat on the nearest water, which the original never does. Both inventions are gone. The generators now make their
+  own bikes and boats:
+  - A boat sits at the record's height, or on the ground below when the record is below the map (baseZ).
+  - A bike stands on the ground ProcessVerticalLine finds from a unit above the record, or from 1000 when the record
+    is below the map.
+  - Both turn to the record's angle in 256ths of a circle.
+  - A spot CheckForBlockage finds taken waits four more milliseconds, far from the player.
+  - They count toward NumParkedCars' 5 by day and 10 at night.
+- **Not done:** CBike::ProcessControl is unreversed, so a generated bike stands upright rather than leaning on its
+  side stand (bOnSideStand). The random-model generators still draw only cars, where PickRandomCar can return a
+  loaded bike.

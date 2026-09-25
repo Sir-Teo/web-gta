@@ -9,6 +9,9 @@ test('a moored runabout boards, drives and leaves in the shallows',async({page})
   fleet.waterLevel=()=>0;
   try{
    let boat:[...typeof fleet.boats][number]|undefined;
+   // A Predator's generator 30 units north on the water: CCarGenerator::DoInternalProcessing moors it at the record's height.
+   fleet.setGenerators([{id:'test:boat',source:'test.ipl',sourceIndex:0,position:[0,30,0],angle:0,modelId:430,primaryColor:-1,secondaryColor:-1,flags:0,alarmChance:0,doorLockChance:0,minDelay:0,maxDelay:0}]);
+   fleet.generateEvenIfClose();
    for(let i=0;i<300&&!boat;i++){fleet.update(i*2100);await new Promise(r=>setTimeout(r,20));boat=[...fleet.boats][0];}
    if(!boat)throw new Error(JSON.stringify(fleet.snapshot().failures));
    for(let i=0;i<120;i++){boat.beforeStep(1/60);sim.world.step();boat.afterStep();}

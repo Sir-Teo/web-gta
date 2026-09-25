@@ -380,7 +380,29 @@ export class WorldFleet {
     for(const bike of this.bikes){const d=bike.distance();if(d<bestDist){bestDist=d;best=bike;}}
     return best;
   }
- private bikeCursor=0;
+ /** Bikes and boats a generator made, by generator id. */
+ private generatedOther=new Map<WorldBike|WorldBoat,string>();
+ /** CCarGenerator::DoInternalProcessing for a bike or boat record. A boat sits at the generator's own height (or the
+  * ground under it when that is below the map), a bike on the ground ProcessVerticalLine finds a unit above the record
+  * (from 1000 when the record is below the map); either turns to the record's angle in 256ths of a circle, and a spot
+  * CheckForBlockage finds taken waits four more milliseconds, far from the player. */
+ private async generateBikeOrBoat(record:WorldCarGenerator,groundAt:(record:WorldCarGenerator)=>RAPIER.RayColliderHit|null){
+  const catalog=await this.catalogReady;if(this.disposed)return;
+  const boat=!!PLAYABLE_BOATS[record.modelId],assets=boat?await catalog.load(record.modelId):await loadFixedWorldBike(catalog,{modelId:record.modelId,primaryColor:record.primaryColor,secondaryColor:record.secondaryColor});
+  if(this.disposed)return;
+  const [x,nativeY,nativeZ]=record.position,z=-nativeY,player=this.sim.player.position;
+  if(Math.hypot(x-player.x,z-player.z)>=GENERATOR_RANGE+5)return;
+  const bounds=assets.collision?.bounds;if(!bounds)throw new Error('Generated vehicle has no collision bounds.');
+  if(this.blocked(record.position,bounds)){const state=this.generatorState.get(record.id)??{nextGen:0,waitFar:false};this.generatorState.set(record.id,{nextGen:state.nextGen+4,waitFar:true});return;}
+  const angle=Math.trunc(record.angle*256/(Math.PI*2))*Math.PI*2/256;
+  let base:number;
+  if(boat&&nativeZ>-100)base=nativeZ;
+  else{const hit=groundAt(record);if(!hit)return;base=(nativeZ>-100?nativeZ+1:1000)-hit.timeOfImpact;}
+  const at={x,y:base-bounds.min[2],z};
+  const vehicle=boat?new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,angle,rotatedColours(catalog,assets.vehicle.model)):new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,angle);
+  if(vehicle instanceof WorldBoat){vehicle.waterLevel=this.waterLevel;this.boats.add(vehicle);}else this.bikes.add(vehicle);
+  this.generatedOther.set(vehicle,record.id);
+ }
  async spawnBike(modelId:number,x:number,z:number,heading:number){
   const catalog=await this.catalogReady,assets=await loadFixedWorldBike(catalog,{modelId,primaryColor:-1,secondaryColor:-1});if(this.disposed)throw new Error('World fleet disposed.');
   // Query around the native elevation so bridges/garages keep their own floor.
@@ -391,42 +413,10 @@ export class WorldFleet {
   if(blocker){this.failures.set(`bike:${modelId}`,`spot taken at (${x.toFixed(1)}, ${(ground+1).toFixed(1)}, ${z.toFixed(1)}) by collider ${blocker.handle}${blocker.isSensor()?' (sensor)':''}${blocker.parent()?.isFixed()?' (fixed)':''}`);return undefined;}
   const bike=new WorldBike(this.sim,this.scene,assets,{x,y:ground-assets.collision.bounds.min[2]+.1,z},heading);this.bikes.add(bike);return bike;
  }
- /** Flat open ground near the player for one parked bike (authored spawner;
-  * native bike generators are not local). Returns a browser-space spot or undefined. */
- bikeGroundSpot(){
-  const p=this.sim.player.position;
-  for(const radius of [12,20,30])for(let i=0;i<12;i++){
-   const a=i/12*Math.PI*2,x=p.x+Math.cos(a)*radius,z=p.z+Math.sin(a)*radius;
-   const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:p.y+10,z},{x:0,y:-1,z:0}),20,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   if(!hit||hit.normal.y<.8)continue;
-   const ground=p.y+10-hit.timeOfImpact;
-   if(this.sim.world.intersectionWithShape({x,y:ground+1,z},{x:0,y:0,z:0,w:1},new RAPIER.Cuboid(.6,.8,1.4)))continue;
-   if([...this.bikes].some(b=>{const q=b.body.translation();return Math.hypot(q.x-x,q.z-z)<15;}))continue;
-   return {x,z};
-  }
-  return undefined;
- }
- private boatCursor=0;
  async spawnBoat(modelId:number,x:number,z:number,heading:number){
   const catalog=await this.catalogReady,assets=await catalog.load(modelId);if(this.disposed)throw new Error('World fleet disposed.');
   if(assets.vehicle.type!=='boat')throw new Error('Not a boat definition.');
   const boat=new WorldBoat(this.sim,this.scene,assets,{x,y:1,z},heading,rotatedColours(catalog,assets.vehicle.model));boat.waterLevel=this.waterLevel;this.boats.add(boat);return boat;
- }
- /** Open water near the player for one beached-range runabout (authored spawner;
-  * native boat generators are not local). Returns a browser-space spot or undefined. */
- boatWaterSpot(){
-  const level=this.waterLevel;if(!level)return undefined;
-  const p=this.sim.player.position;
-  for(const radius of [25,40,60])for(let i=0;i<12;i++){
-   const a=i/12*Math.PI*2,x=p.x+Math.cos(a)*radius,z=p.z+Math.sin(a)*radius,water=level(x,-z);
-   if(water===undefined)continue;
-   const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:water+10,z},{x:0,y:-1,z:0}),20,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   if(hit&&water+10-hit.timeOfImpact>water+.5)continue;
-   if(this.sim.world.intersectionWithShape({x,y:water+1,z},{x:0,y:0,z:0,w:1},new RAPIER.Cuboid(2,1,5)))continue;
-   if([...this.boats].some(b=>{const q=b.body.translation();return Math.hypot(q.x-x,q.z-z)<15;}))continue;
-   return {x,z,water};
-  }
-  return undefined;
  }
   snapshot(){return {lastClear:this.lastClear??null,gangCars:this.gangCars?.loaded??[],planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),closeCounter:this.closeCounter,parkedLimit:parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),cars:[...this.cars].map(car=>({handle:car.car.body.handle,plate:car.assets.plate??null,alarm:+car.alarm.toFixed(2),alarmArmed:car.alarmArmed,id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()},heading:+(q=>Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.y*q.y+q.z*q.z)))(car.car.body.rotation()).toFixed(3)}))};}
  /** CGame::CanSeeOutSideFromCurrArea: nothing generates inside an interior. */
@@ -452,28 +442,18 @@ export class WorldFleet {
    if(car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}
   }
   for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
-  for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);}
-  for(const bike of this.bikes)if(!bike.occupied&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);}
+  for(const boat of this.boats)if(!boat.occupied&&boat.distance()>350){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);}
+  for(const bike of this.bikes)if(!bike.occupied&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);}
   if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
   // CCarGenerator::Process: generators under 950 work while the player is outside, those at 950 or higher (the
-  // interiors) while he is inside. The browser's own parked bike and boat are for the outside.
+  // interiors) while he is inside.
   const outside=this.outside();
-  if(outside){
-  // One parked bike on flat ground near the player when roaming without one (BMX first).
-  if(!this.bikes.size&&!this.occupiedBike){
-   const spot=this.bikeGroundSpot();
-   if(spot){const models=Object.keys(PLAYABLE_BIKES).map(Number).sort((a,b)=>(a===481?0:1)-(b===481?0:1)||a-b),model=models[(this.bikeCursor++)%models.length];this.busy=true;void this.spawnBike(model,spot.x,spot.z,0).catch(error=>{if(!this.disposed)this.failures.set(`bike:${model}`,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});return;}
-  }
-  if(!this.boats.size&&!this.occupiedBoat){
-   const spot=this.boatWaterSpot();
-   if(spot){const models=Object.keys(PLAYABLE_BOATS).map(Number),model=models[(this.boatCursor++)%models.length];this.busy=true;void this.spawnBoat(model,spot.x,spot.z,0).catch(error=>{if(!this.disposed)this.failures.set(`boat:${model}`,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;});return;}
-  }
-  }
   const p=this.sim.player.position,catalog=this.catalog;
   // FindPlayerSpeed: the occupied car's velocity, or the on-foot displacement (only its direction matters).
   const occ=this.occupied,vel=occ&&!occ.disposed?occ.car.body.linvel():{x:p.x-this.sim.player.previous.x,z:p.z-this.sim.player.previous.z};
-  const live=new Set(this.generated.values()),speed={x:vel.x,y:-vel.z};
-  const parkedLimit=parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),parked=this.generated.size;
+  const live=new Set([...this.generated.values(),...this.generatedOther.values()]),speed={x:vel.x,y:-vel.z};
+  // CCarCtrl::NumParkedCars counts every vehicle a generator made, bikes and boats too.
+  const parkedLimit=parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),parked=this.generated.size+this.generatedOther.size;
   const candidates=this.records.filter(record=>{
    if(this.attempted.has(record.id)||live.has(record.id))return false;
    if((record.position[2]<950)!==outside)return false;
@@ -494,6 +474,9 @@ export class WorldFleet {
   };
   const planeRecord=candidates.find(record=>PLAYABLE_PLANES[record.modelId]&&groundAt(record));
   if(planeRecord&&this.planes.size<3){this.busy=true;this.attempted.add(planeRecord.id);void this.spawnPlane(planeRecord.modelId,planeRecord.position[0],-planeRecord.position[1],planeRecord.angle).catch(error=>this.failures.set(planeRecord.id,String(error))).finally(()=>{this.busy=false;});return;}
+  // CCarGenerator::DoInternalProcessing makes a bike (on its side stand) or a boat from its record like any car.
+  const otherRecord=candidates.find(record=>PLAYABLE_BIKES[record.modelId]||PLAYABLE_BOATS[record.modelId]);
+  if(otherRecord&&this.bikes.size+this.boats.size<6){this.busy=true;this.attempted.add(otherRecord.id);void this.generateBikeOrBoat(otherRecord,groundAt).catch(error=>{if(!this.disposed)this.failures.set(otherRecord.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(otherRecord.id);});return;}
   if(this.cars.size>=9)return;
   const record=candidates.find(record=>isBuildableCar(catalog,catalog.definitions.find(v=>v.id===record.modelId))&&groundAt(record))
    ??this.randomParkedRecord(candidates,groundAt);
