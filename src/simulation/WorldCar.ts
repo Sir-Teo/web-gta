@@ -84,6 +84,9 @@ export class WorldCar {
  /** autoFlags.bCanBeVisiblyDamaged, which SET_CAR_CAN_BE_VISIBLY_DAMAGED clears: CDamageManager::ApplyDamage
   * (0x6C24B0) then leaves every panel, door, wheel and light as it is, while the car still loses health. */
  canBeVisiblyDamaged=true;
+ /** VehicleCreatedBy MISSION_VEHICLE: a car a script made, which the area clears leave alone until
+  * MARK_CAR_AS_NO_LONGER_NEEDED (CTheScripts::CleanUpThisVehicle) makes it a random one. */
+ missionCar=false;
  /** autoFlags.bDoesNotGetDamagedUpsideDown, which SET_UPSIDEDOWN_CAR_NOT_DAMAGED sets: CAutomobile::VehicleDamage
   * returns at once for such a car on its roof unless it is the player's. */
  noUpsideDownDamage=false;

@@ -272,7 +272,7 @@ export class WorldFleet {
   car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;
   // bIsLocked and STATUS_ABANDONED: nobody drives it and nobody gets in until the script says so.
-  car.locked=true;
+  car.locked=true;car.missionCar=true;
   this.cars.add(car);return car;
  }
  /** CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names, and the other two are
@@ -348,9 +348,23 @@ export class WorldFleet {
  clearCarsInArea(point:{x:number;z:number},radius:number){
   const doomed:WorldCar[]=[];
   for(const car of this.cars){
-   if(car.occupied||car.locked||car.disposed)continue;
+   if(car.occupied||car.locked||car.disposed||car.missionCar)continue;
    const at=car.car.body.translation();
    if(Math.hypot(at.x-point.x,at.z-point.z)>=radius)continue;
+   doomed.push(car);
+  }
+  for(const car of doomed){this.cars.delete(car);this.generated.delete(car);car.dispose();}
+  return doomed.length;
+ }
+ /** CWorld::ClearCarsFromArea (CLEAR_AREA_OF_CARS): every car inside the box (renderer corners) that is not the
+  * player's, not locked and not a script's own goes. */
+ clearCarsInBox(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number}){
+  const lo={x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),z:Math.min(a.z,b.z)},hi={x:Math.max(a.x,b.x),y:Math.max(a.y,b.y),z:Math.max(a.z,b.z)};
+  const doomed:WorldCar[]=[];
+  for(const car of this.cars){
+   if(car.occupied||car.locked||car.disposed||car.missionCar)continue;
+   const at=car.car.body.translation();
+   if(at.x<lo.x||at.x>hi.x||at.y<lo.y||at.y>hi.y||at.z<lo.z||at.z>hi.z)continue;
    doomed.push(car);
   }
   for(const car of doomed){this.cars.delete(car);this.generated.delete(car);car.dispose();}

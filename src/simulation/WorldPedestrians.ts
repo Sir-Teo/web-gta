@@ -2915,6 +2915,18 @@ export class WorldPedestrians {
  /** CPopulation::RemoveAllRandomPeds, as an entry exit lands the player. */
  /** CWorld::ClearExcitingStuffFromArea's ped pass: every ped within the radius on the plane that
   * CPed::CanBeDeleted allows and that is not following the player goes. */
+ /** CWorld::ClearPedsFromArea (CLEAR_AREA_OF_CHARS): the deletable peds inside the box (renderer corners) go. */
+ clearPedsInBox(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number}){
+  const lo={x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),z:Math.min(a.z,b.z)},hi={x:Math.max(a.x,b.x),y:Math.max(a.y,b.y),z:Math.max(a.z,b.z)};
+  let removed=0;
+  this.people=this.people.filter(p=>{
+   if(p.mission||p.follow||p.crew)return true;
+   const q=p.actor.player.position,y=q.y+PED_ORIGIN_HEIGHT;
+   if(q.x<lo.x||q.x>hi.x||y<lo.y||y>hi.y||q.z<lo.z||q.z>hi.z)return true;
+   this.remove(p);removed++;return false;
+  });
+  return removed;
+ }
  clearPedsInArea(point:{x:number;z:number},radius:number){
   let removed=0;
   this.people=this.people.filter(p=>{

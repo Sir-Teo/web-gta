@@ -3433,6 +3433,10 @@ async function boot() {
                  // The player's m_nAreaCode: the browser draws him wherever the camera is, so it is kept, not acted on.
                  setPlayerArea:area=>{playerAreaCode=area;},
                  setPlayerProofs:proofs=>{sim.playerProofs={...proofs};},
+                 clearVehiclesInBox:(min,max)=>{fleet?.clearCarsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
+                 clearPedsInBox:(min,max)=>{pedestrians?.clearPedsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
+                 // CTheScripts::CleanUpThisVehicle: unlocked, no longer a mission car, and off its script mission.
+                 releaseScriptVehicle:car=>{const c=car as ScriptCar;if(c.disposed)return;c.missionCar=false;c.locked=false;if(scriptCars.mission(c)!==undefined){scriptCars.forget(c);c.autopilot=undefined;}},
                  teleportPlayer:position=>{
                   const x=position.x,z=-position.y,y=position.z,car=worldCar?.occupied?worldCar:fleet?.occupied;
                   if(car){

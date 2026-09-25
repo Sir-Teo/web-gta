@@ -6864,3 +6864,22 @@ the first ones now implemented:
   - a car ramming or running him over, and falls (WEAPON_FALL), to collision proofing;
   - tear gas, the spray can and drowning always get through.
   Before, the command gave the thread up.
+- **POINT_CAMERA_AT_CAR and POINT_CAMERA_AT_CHAR** (18 and 11 missions): CCamera::TakeControl on the entity.
+  - A request from the script yields to a cutscene's unless the cinema camera is on.
+  - MODE_NONE means the entity's own follow or on-a-string camera.
+  - The restores and TakeControlNoEntity drop the entity.
+  - In fixed mode (56 of the scripts' 58 uses) the camera stays at SET_FIXED_CAMERA_POSITION and looks at the
+    entity where it is each frame.
+  - The two on-a-string uses get a chase point behind and above the entity in place of CCam's follow mode.
+- **CLEAR_AREA inside a mission** now clears (CWorld::ClearExcitingStuffFromArea through the host). MAIN's own sweeps
+  are still only counted, for the ordering reason noted above: a thread knows it is a mission by its mission
+  cleanup.
+- **CLEAR_AREA_OF_CARS and CLEAR_AREA_OF_CHARS** (10 and 8 missions): CWorld::ClearCarsFromArea and
+  ClearPedsFromArea over the box.
+  - The deletable cars and peds go: not the player's car, not locked, not a mission car; not a mission ped or a
+    member of the crew.
+  - Script cars are now marked as mission cars (VehicleCreatedBy MISSION_VEHICLE). Before, only being locked kept
+    them out of the clears, and a script that unlocked its car could have it swept away.
+- **MARK_CAR_AS_NO_LONGER_NEEDED** follows CTheScripts::CleanUpThisVehicle: the car is a random, unlocked one again,
+  off its script mission.
+- **SET_CAR_TEMP_ACTION** (13 missions): the temporary action on a script car for its time.

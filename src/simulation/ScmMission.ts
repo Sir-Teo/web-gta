@@ -81,6 +81,11 @@ export interface ScmMissionWorld {
  playerIsPlayingAnim?(animation:string):boolean;
  setPlayerArea?(area:number):void;
  setPlayerProofs?(proofs:ScmPedProofs):void;
+ /** CWorld::ClearCarsFromArea and ClearPedsFromArea over a box in the script's coordinates. */
+ clearVehiclesInBox?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
+ clearPedsInBox?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
+ /** CTheScripts::CleanUpThisVehicle: the car is a random one again. */
+ releaseScriptVehicle?(car:unknown):void;
  warpPlayerIntoCar?(car:unknown):boolean;
  warpPlayerFromCarToCoord?(position:{x:number;y:number;z:number}):boolean;
  /** (Each answers false for what it does not carry out: a player on a bike, boat or plane, or already in a car.) */
@@ -740,7 +745,13 @@ export class ScmMission {
     * that world is ready, so the same clear arrives seconds late and would sweep away a street the original
     * had not put there yet. The host's own clearArea does what the routine does, for the day the script starts
     * before the population does, or for a mission that clears an area while it runs. */
-   clearExcitingStuffFromArea:()=>{this.areasCleared++;},
+   // A mission clearing its area while it runs gets the host's clear; MAIN's own sweeps are only counted.
+   clearExcitingStuffFromArea:(point,radius,_projectiles,fromMission)=>{this.areasCleared++;if(fromMission)this.world.clearArea(point,radius);},
+   // CWorld::ClearCarsFromArea and ClearPedsFromArea over the script's box.
+   clearAreaOfVehicles:(min,max)=>{this.host('clearVehiclesInBox','CLEAR_AREA_OF_CARS')(min,max);},
+   clearAreaOfPeds:(min,max)=>{this.host('clearPedsInBox','CLEAR_AREA_OF_CHARS')(min,max);},
+   // SET_CAR_TEMP_ACTION on a script car: CAutoPilot::SetTempAction for the time.
+   setVehicleTempAction:(handle,action,time)=>{this.host('scriptVehicleTempAction','SET_CAR_TEMP_ACTION')(this.liveVehicle(handle),action,time/1000);},
    // CPed::OurPedCanSeeThisEntity: in front, inside forty units, and nothing solid between the two of them.
    // The ped is looked at a unit above its own position, which is its head.
    pedCanSeePed:(handle,other)=>{
@@ -865,7 +876,7 @@ export class ScmMission {
    vehicleHeading:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).heading:this.vehicles.headingOf(handle),
    setVehicleHeading:(handle,degrees)=>{this.vehicles.setHeading(handle,degrees);},
    deleteVehicle:handle=>{this.vehicles.delete(handle);},
-   markVehicleNoLongerNeeded:handle=>{this.vehicles.markNoLongerNeeded(handle);},
+   markVehicleNoLongerNeeded:handle=>{const car=this.vehicles.entity(handle);if(car)this.world.releaseScriptVehicle?.(car);this.vehicles.markNoLongerNeeded(handle);},
    // The player's own car (not one the script made) answers from the host.
    vehicleModel:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle),
    // CPlayerInfo's two-wheel, wheelie and stoppie counters are kept by the unreversed CPlayerInfo::Process and the
@@ -877,6 +888,9 @@ export class ScmMission {
    // IS_CAR_UPRIGHT's handler is not reversed: the car is upright unless it lies on its roof (its up axis below the
    // horizontal), as the command is documented.
    isCarUpright:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z>=0,
+   // POINT_CAMERA_AT_CAR and POINT_CAMERA_AT_CHAR: CCamera::TakeControl on the entity for the script (2).
+   pointCameraAtVehicle:(handle,mode,switchType)=>{if(handle!==PLAYER_VEHICLE_HANDLE)this.liveVehicle(handle);this.runtime.game.camera.takeControl({kind:'vehicle',handle},mode,switchType,2);},
+   pointCameraAtPed:(handle,_isPlayer,mode,switchType)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.runtime.game.camera.takeControl({kind:'ped',handle},mode,switchType,2);},
    // SET_CAR_STRAIGHT_LINE_DISTANCE: CAutoPilot::m_nStraightLineDistance, which FindSwitchDistanceClose reads.
    setVehicleStraightLineDistance:(handle,distance)=>{this.host('setScriptVehicleStraightLineDistance','SET_CAR_STRAIGHT_LINE_DISTANCE')(this.liveVehicle(handle),distance);},
    // IS_CAR_UPSIDEDOWN's handler is unreversed; CVehicle::IsUpsideDown (0x6D1D90) is the car's up axis at or below -0.9.
@@ -1305,10 +1319,32 @@ export class ScmMission {
   * returns to whatever camera it was running. */
  scriptCamera(){
   const camera=this.runtime.game.camera;
-  if(camera.lookingAtPlayer||camera.modeToGoTo!==MODE_FIXED)return undefined;
-  const source=camera.fixedModeSource,target=camera.fixedModeVector;
-  return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
+  if(camera.lookingAtPlayer)return undefined;
+  const entity=camera.lookingAtVector?undefined:camera.targetEntity,at=entity&&this.cameraEntityPosition(entity);
+  if(camera.modeToGoTo===MODE_FIXED){
+   // The fixed camera looks at its vector, or at the entity TakeControl gave it, where that entity is now.
+   const source=camera.fixedModeSource,target=at??camera.fixedModeVector;
+   return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
+  }
+  // MODE_CAM_ON_A_STRING and the follow camera on an entity the script names (two missions): a chase point behind
+  // and above it stands in for CCam's own follow modes.
+  if(entity&&at){
+   const heading=(entity.kind==='ped'?this.pedHeadingOf(entity.handle):this.vehicleHeadingOf(entity.handle))*Math.PI/180;
+   const back=entity.kind==='ped'?4:7,up=entity.kind==='ped'?1.5:2.5;
+   const source={x:at.x+Math.sin(heading)*back,y:at.y-Math.cos(heading)*back,z:at.z+up};
+   return {position:{x:source.x,y:source.z,z:-source.y},target:{x:at.x,y:at.z,z:-at.y}};
+  }
+  return undefined;
  }
+ /** Where the entity the camera is on stands now, in the script's coordinates. */
+ private cameraEntityPosition(entity:{kind:'ped'|'vehicle';handle:number}){
+  try{
+   if(entity.kind==='ped')return entity.handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.exists(entity.handle)?this.peds.positionOf(entity.handle):undefined;
+   return entity.handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehiclePose?.()?.position:this.vehicles.exists(entity.handle)?this.vehicles.positionOf(entity.handle):undefined;
+  }catch{return undefined;}
+ }
+ private pedHeadingOf(handle:number){return handle===PLAYER_PED_HANDLE?this.world.playerPed().heading??0:this.peds.headingOf(handle);}
+ private vehicleHeadingOf(handle:number){return handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehiclePose?.()?.heading??0:this.vehicles.headingOf(handle);}
  /* The pickups the script has made. CPickups keeps them in the same array as the world's own, and the browser
   * has a pickup world of its own to put them in; what it needs beyond the record is the dff and txd the model
   * stands for, which the host looks up. A pickup the browser reports collected is collected for the script

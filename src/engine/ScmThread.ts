@@ -1080,7 +1080,7 @@ export interface ScmWorldCommands {
  switchEntryExit?(name:string,on:boolean):void;
  /** CWorld::ClearExcitingStuffFromArea (0x56A0D0): the peds, cars and objects in a radius that may be
   * deleted, leaving the player and their group alone. The flag also takes the projectiles and shadows. */
- clearExcitingStuffFromArea?(point:{x:number;y:number;z:number},radius:number,removeProjectilesAndShadows:boolean):void;
+ clearExcitingStuffFromArea?(point:{x:number;y:number;z:number},radius:number,removeProjectilesAndShadows:boolean,fromMission?:boolean):void;
  /** A vehicle's matrix rows, right, forward, up and position, for the object-space transform. */
  vehicleMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPedScriptedTaskRecord::GetStatus(ped, opcode): the status the record holds for that command, or none. */
