@@ -26,6 +26,8 @@ test('CJ flinches from a nearby blast that throws him, and falls dead when a bla
  await expect(wasted).toHaveText('wasted');await expect(wasted).toBeVisible();
  expect(await wasted.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(225, 225, 225)');
  await expect(page.locator('.location')).toBeHidden();
- await expect(wasted).toBeHidden({timeout:8000});
+ // Four seconds of game time: a frame advances the clock by 100 ms at most, and under a software renderer the page
+ // draws only a few frames a second, so the wall-clock wait is far longer than the message.
+ await expect(wasted).toBeHidden({timeout:60000});
  expect(errors).toEqual([]);
 });
