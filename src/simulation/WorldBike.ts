@@ -62,6 +62,8 @@ export class WorldBike {
  /** CAutoPilot's pedals while a script drives the bike (ScriptCarMissions), and whether the player's own bike is on a
   * script's driving task. */
  autopilot?:import('./WorldCar').WorldCar['autopilot'];scriptDriven?:boolean;
+ /** FREEZE_CAR_POSITION: the body held where it is. */
+ frozen=false;
  /** The collision model's bounds (native units), which the driving AI reads for its width. */
  get nativeBody(){const b=this.assets.collision.bounds;return {boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}
  /** The rider's controls from the autopilot. Its native wheel angle (radians, left positive) over the handling's
@@ -190,7 +192,7 @@ export class WorldBike {
   return this.finishEnter();
  }
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
-  const nearby=this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
+  const nearby=this.distance()<250;this.body.setEnabled(nearby&&!this.frozen);this.root.visible=nearby;if(!nearby)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   if(this.wrecked){this.throttle=0;}

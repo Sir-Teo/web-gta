@@ -584,7 +584,8 @@ export class WorldCar {
    if(sources!==this.sourceOwner){this.sourceOwner=sources;this.sources=new Map([...(sources??[])].map(([id,value])=>[id,value.source]));}
    this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
-   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby);this.car.root.visible=true;if(!nearby)return;
+   // A frozen car (FREEZE_CAR_POSITION) keeps its body out of the world while its other logic goes on.
+   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby&&!this.frozen);this.car.root.visible=true;if(!nearby)return;
    this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
   const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
@@ -859,6 +860,8 @@ export class WorldCar {
   * non-player driver, so a car the player steps out of keeps idling; a jump-out's CTaskSimpleCarSetPedOut is built
   * with bSwitchOffEngine. */
  engineRunning=false;
+ /** FREEZE_CAR_POSITION: physicalFlags.bDontApplySpeed, the body held where it is. */
+ frozen=false;
  /** CVehicle::RemoveDriver's STATUS_ABANDONED: a car its driver left (stepped, jumped, crawled or was dragged out). */
  driverless=false;
  /** PrepareVehicleForPedEnter: the NPC driver stops while someone lines up with the car. */

@@ -7861,3 +7861,6 @@ Each is now answered:
 - A car let go at rest stays at rest, in the air or not, as in SA: CAutomobile::ProcessControl skips the physics of a
   car static more than ten frames, and neither the freeze nor a teleport resets the count.
 - Verification: `tests/browser/script-car-freeze.spec.ts`.
+- A frozen vehicle now stays frozen. Each car, bike and boat step enabled its body whenever the player was in range,
+  which undid the freeze on the next step: FREEZE_CAR_POSITION never held a vehicle near the player. They keep a
+  `frozen` flag (bDontApplySpeed) that the range check respects.

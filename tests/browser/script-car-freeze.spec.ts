@@ -19,7 +19,8 @@ test('a script car frozen and let go holds, and the frame keeps running',async({
  await w('freezeVehiclePosition',car,true);
  const at=await w('vehiclePosition',car) as {x:number;y:number;z:number};
  await w('setVehicleCoordinates',car,at.x,at.y,at.z+4);
- await page.waitForTimeout(300);
+ // The move lands within a frame or two, however slow the frames run; the height it settles at is held.
+ let last=NaN;await expect.poll(async()=>{const now=await height(),same=Math.abs(now-last)<1e-4;last=now;await page.waitForTimeout(250);return same;},{timeout:20000}).toBe(true);
  const held=await height();await page.waitForTimeout(1500);
  expect(Math.abs(await height()-held)).toBeLessThan(.01);
  await w('freezeVehiclePosition',car,false);

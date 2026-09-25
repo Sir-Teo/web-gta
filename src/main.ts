@@ -3752,6 +3752,8 @@ async function boot() {
                   const body=(car as ScriptCar).car.body;
                   // Every vehicle body keeps Rapier's gravity off (installNativeVehicleBody): the native forces, or the bike's
                   // own step, apply it. Unfreezing used to turn it on, and a car's forces then threw every frame.
+                  // Each vehicle's own step enables its body when in range; the flag keeps a frozen one out.
+                  if('frozen' in (car as object))(car as {frozen:boolean}).frozen=frozen;
                   body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);body.setEnabled(!frozen);
                  },
                  // SET_CAR_FORWARD_SPEED: the speed along the car's own forward, in units a second.
