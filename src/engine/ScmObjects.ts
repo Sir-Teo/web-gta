@@ -187,6 +187,9 @@ export class ScmObjects {
   if(isMissionObjectType(object.objectType))object.objectType=OBJECT_TEMPORARY;
   object.missionCleanup=false;
  }
+ /** CMissionCleanup::Process for objects: every object still on the mission's cleanup list is cleaned up as
+  * MARK_OBJECT_AS_NO_LONGER_NEEDED would. */
+ cleanUpMissionObjects(){for(const [handle,object] of this.objects)if(object.missionCleanup)this.markNoLongerNeeded(handle);}
  /** SetObjectHeading: the degrees are fixed once into range before they become radians. */
  setHeading(handle:number,degrees:number){this.at(handle).heading=fixAngleDegrees(degrees)*DEG;}
  /** SET_OBJECT_ROTATION: CPlaceable::SetOrientation's three angles, degrees in and radians kept, with the

@@ -221,6 +221,9 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
   * dialogue routines print just before they play the line. */
  missionAudioLengthMs?(sampleId:number,subtitle:string|undefined):number|undefined;
  clearMissionAudio?(scriptSlot:number):void;
+ /** CMissionCleanup::Process's part in the world, as a mission script ends: the peds, cars and objects on the mission's
+  * cleanup list are let go (CleanUpThisPed, CleanUpThisVehicle, CleanUpThisObject) and the camera put back. */
+ missionCleanUp?():void;
  /** The eLevelName of the map zone the player stands in: countryside, then the three cities. */
  playerCity?(playerId:number):number;
  /** CClothes::RebuildPlayer over the clothes description, then CReplay::Init. */

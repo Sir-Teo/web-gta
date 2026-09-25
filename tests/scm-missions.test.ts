@@ -182,3 +182,23 @@ test('without a world adapter the same MAIN stops at the first collision request
  const main=runtime.start(header.entry).thread;
  expect(()=>runtime.process(100,20)).toThrow('REQUEST_COLLISION');expect(main.ip).toBe(56022);
 });
+
+test('a mission script ending processes its cleanup: the world lets its entities go and the mission state is put back',()=>{
+ let cleaned=0;const made:boolean[]=[];
+ const world={fade(){},missionCleanUp:()=>{cleaned++;}} as unknown as ScmWorldCommands;
+ const {runtime}=missionFixture([op('SCRIPT_NAME',name8('CLEAN')),op('SET_CAR_DENSITY_MULTIPLIER',[6,0,0,0,0]),op('SWITCH_WIDESCREEN',int(1)),op(1,int(0)),op(0x4e)],
+  [op('LOAD_AND_LAUNCH_MISSION_INTERNAL',int(0)),op(1,int(0)),op(0x4e)],world);
+ const g=runtime.game;
+ runtime.process(0,20);runtime.process(20,20);
+ made.push(runtime.currentThread===undefined);
+ expect(g.carDensityMultiplier).toBe(0);expect(g.widescreenOn).toBe(true);
+ const sequence=g.sequences.open(true);g.sequences.close(sequence);
+ runtime.process(40,20);
+ // TERMINATE_THIS_SCRIPT on the mission: its cleanup list is processed once.
+ expect(cleaned).toBe(1);
+ expect(g.carDensityMultiplier).toBe(1);expect(g.widescreenOn).toBe(false);
+ expect(g.sequences.index(sequence)).toBe(-1);
+ // MAIN ending is not a mission's end.
+ runtime.terminateAllWithName('noname');expect(cleaned).toBe(1);
+ expect(made).toEqual([true]);
+});

@@ -7864,3 +7864,22 @@ Each is now answered:
 - A frozen vehicle now stays frozen. Each car, bike and boat step enabled its body whenever the player was in range,
   which undid the freeze on the next step: FREEZE_CAR_POSITION never held a vehicle near the player. They keep a
   `frozen` flag (bDontApplySpeed) that the range check respects.
+
+## CMissionCleanup::Process
+
+- Nothing let go of a mission's peds, cars, objects, sequences or decision makers when it ended, and nothing reset the
+  mission state it had changed.
+- A mission script ending (TERMINATE_THIS_SCRIPT, or a mission terminated by name) now processes its cleanup. SA's
+  Process is unreversed; Vice City's (reVC) is followed for the state this port keeps, together with SA's own lists:
+  - ped and car density multipliers back to 1, crime sensitivity (the wanted multiplier) to 1;
+  - widescreen off and the camera restored behind the player;
+  - the four mission audio slots cleared, and the weather released;
+  - the police and everyone no longer ignoring the player, and drive-bys allowed again;
+  - the upside-down and stuck car checks emptied;
+  - the mission's sequences and decision makers freed.
+- The cleanup list is CMissionCleanup's. A ped or car a mission script makes is added (AddEntityToList). Deleting it,
+  marking it no longer needed or DONT_REMOVE_CHAR takes it off. At the end the rest are let go as
+  MARK_*_AS_NO_LONGER_NEEDED would; objects still flagged for cleanup go the same way.
+- Not yet reset: roadblocks, special-character and cutscene-object streaming, script textures, the onscreen timer's
+  disable flag, drunkenness, the short cut, riot intensity and the remote-detonation flags.
+- Verification: `tests/scm-missions.test.ts`.

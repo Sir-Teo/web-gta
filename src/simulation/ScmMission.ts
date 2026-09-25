@@ -813,8 +813,8 @@ export class ScmMission {
    },
    // CPedGroupMembership::RemoveMember, which leaves a leader where it is.
    removePedFromGroup:handle=>{for(const group of this.groups.values())if(group.isFollower(handle))group.removeMember(handle);},
-   createCharInsideCar:(vehicle,pedType,model,seat)=>this.peds.createInCar(pedType,model,vehicle,seat),
-   createRandomCharInCar:(vehicle,seat)=>this.peds.createRandomInCar(vehicle,seat),
+   createCharInsideCar:(vehicle,pedType,model,seat)=>this.forCleanup(this.cleanupPeds,this.peds.createInCar(pedType,model,vehicle,seat)),
+   createRandomCharInCar:(vehicle,seat)=>this.forCleanup(this.cleanupPeds,this.peds.createRandomInCar(vehicle,seat)),
    // CTaskSimpleCarSetPedInAsDriver after an immediate flush: the ped stops walking and rides.
    warpPedIntoCar:(handle,vehicle)=>{this.warpIntoCar(handle,vehicle,'WARP_CHAR_INTO_CAR');},
    // The passenger seat is the one CREATE_CHAR_AS_PASSENGER takes, from the same operand.
@@ -992,7 +992,7 @@ export class ScmMission {
    createRandomChar:(x,y,z)=>{
     const model=this.world.randomCivilianModel();
     if(model===undefined)throw new UnsupportedScmCommand(-1,0,'A_RANDOM_PED_THE_ZONE_CANNOT_YET_SUPPLY','');
-    return this.peds.create(PED_TYPE_CIVMALE,model,{x,y,z});
+    return this.forCleanup(this.cleanupPeds,this.peds.create(PED_TYPE_CIVMALE,model,{x,y,z}));
    },
    // The freeze that also waits for collision: a ped the browser built stands on ground it has already
    // loaded, so there is nothing to wait for and it is the plain freeze.
@@ -1260,7 +1260,7 @@ export class ScmMission {
    getNearestTagPosition:(x,y,z)=>this.world.nearestTagPosition?.(x,y,z)??{x,y,z},
    getTerritoryUnderControlPercentage:()=>this.world.territoryUnderControlPercentage(),
    // CPopulation::AddPed through the pool, which hands the script a handle at once.
-   createChar:(pedType,model,x,y,z)=>this.peds.create(pedType,model,{x,y,z}),
+   createChar:(pedType,model,x,y,z)=>this.forCleanup(this.cleanupPeds,this.peds.create(pedType,model,{x,y,z})),
    pedHeading:handle=>{
     if(handle!==PLAYER_PED_HANDLE)return this.peds.headingOf(handle);
     const heading=this.world.playerPed().heading;if(heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_CHAR_HEADING','player heading');
@@ -1285,8 +1285,10 @@ export class ScmMission {
    setRadioChannel:station=>{this.world.retuneRadio?.(station);},
    setPedInvulnerable:(handle,enabled)=>{this.peds.setInvulnerable(handle,enabled);},
    setPedProofs:(handle,proofs)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerProofs','SET_CHAR_PROOFS')(proofs);else this.peds.setProofs(handle,proofs);},
-   deletePed:handle=>{this.peds.delete(handle);},
-   markPedNoLongerNeeded:handle=>{this.peds.markNoLongerNeeded(handle);},
+   deletePed:handle=>{this.cleanupPeds.delete(handle);this.peds.delete(handle);},
+   markPedNoLongerNeeded:handle=>{this.cleanupPeds.delete(handle);this.peds.markNoLongerNeeded(handle);},
+   // DONT_REMOVE_CHAR: CMissionCleanup::RemoveEntityFromList; the ped stays the script's after the mission.
+   setPedDontRemove:handle=>{this.cleanupPeds.delete(handle);},
    pedType:handle=>this.peds.typeOf(handle),
    pedIsMale:handle=>this.peds.isMale(handle),
    pedSpeed:handle=>this.world.scriptPedSpeed(this.livePed(handle)),
@@ -1367,7 +1369,7 @@ export class ScmMission {
    pedSequenceProgress:handle=>this.sequenceStep(handle).outer,
    getSequenceProgressRecursive:handle=>{const step=this.sequenceStep(handle);return {p2:step.outer,p3:step.inner};},
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
-   createCar:(model,x,y,z)=>this.vehicles.create(model,{x,y,z}),
+   createCar:(model,x,y,z)=>this.forCleanup(this.cleanupVehicles,this.vehicles.create(model,{x,y,z})),
    vehicleExists:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
    // A car still being built holds the command that needs it until it is there.
    awaitVehicle:handle=>{if(handle!==PLAYER_VEHICLE_HANDLE&&this.vehicles.exists(handle)&&!this.vehicles.settledFor(handle))throw new ScmEntityPending(`vehicle ${handle}`);},
@@ -1387,8 +1389,17 @@ export class ScmMission {
     if(handle===PLAYER_VEHICLE_HANDLE)this.world.placeScriptVehicle(this.liveVehicle(handle),this.playerPose(handle).position,degrees);
     else this.vehicles.setHeading(handle,degrees);
    },
-   deleteVehicle:handle=>{this.vehicles.delete(handle);},
-   markVehicleNoLongerNeeded:handle=>{const car=this.vehicles.entity(handle);if(car)this.world.releaseScriptVehicle?.(car);this.vehicles.markNoLongerNeeded(handle);},
+   deleteVehicle:handle=>{this.cleanupVehicles.delete(handle);this.vehicles.delete(handle);},
+   markVehicleNoLongerNeeded:handle=>{this.cleanupVehicles.delete(handle);this.releaseVehicle(handle);},
+   // CMissionCleanup::Process: what the mission made and still holds is let go, and the camera put back behind the
+   // player (TheCamera.Restore).
+   missionCleanUp:()=>{
+    for(const handle of this.cleanupVehicles)if(this.vehicles.exists(handle))this.releaseVehicle(handle);
+    for(const handle of this.cleanupPeds)if(this.peds.exists(handle))this.peds.markNoLongerNeeded(handle);
+    this.cleanupVehicles.clear();this.cleanupPeds.clear();
+    this.runtime.game.objects.cleanUpMissionObjects();
+    this.runtime.game.camera.restore(this.world.playerCameraState());
+   },
    // The player's own car (not one the script made) answers from the host.
    vehicleModel:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle),
    // CPlayerInfo's two-wheel, wheelie and stoppie counters are kept by the unreversed CPlayerInfo::Process and the
@@ -1581,6 +1592,13 @@ export class ScmMission {
   * is still being loaded, or never arrived, gives the thread up rather than being answered with a guess. */
  /** The browser's car behind a script handle, for the questions only a built car can answer. */
  /** The pose of the vehicle the player rides, of whatever kind. */
+ /** CMissionCleanup's list: the peds and cars a mission script made (AddEntityToList), until the script deletes one,
+  * lets it go, or says not to remove it. */
+ private readonly cleanupPeds=new Set<number>();private readonly cleanupVehicles=new Set<number>();
+ /** CMissionCleanup::AddEntityToList when the thread making the entity is a mission's (m_bUseMissionCleanup). */
+ private forCleanup(list:Set<number>,handle:number){if(this.runtime?.currentThread?.usesMissionCleanup)list.add(handle);return handle;}
+ /** MARK_CAR_AS_NO_LONGER_NEEDED and the cleanup's CleanUpThisVehicle. */
+ private releaseVehicle(handle:number){const car=this.vehicles.entity(handle);if(car)this.world.releaseScriptVehicle?.(car);this.vehicles.markNoLongerNeeded(handle);}
  /** A car's axes and place in script terms: the player's own car through its pose, a script car through its body. */
  private vehicleMatrixOf(handle:number){return handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle));}
  private playerPose(handle:number){

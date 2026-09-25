@@ -41,6 +41,8 @@ export class ScmUpsideDownCarCheck {
  /** AddCarToCheck: the first free slot. (gta-reversed's reading has no break, filling every free slot, and an
   * UpdateTimers that leaves a vanished car's slot at 0, which AddCarToCheck never takes again; the check would stop
   * working after a frame. Vice City's, which reVC keeps, is followed.) */
+ /** CUpsideDownCarCheck::Init: every slot free. */
+ init(){for(const car of this.cars){car.handle=-1;car.time=0;}}
  add(handle:number){const car=this.cars.find(c=>c.handle<0);if(car){car.handle=handle;car.time=0;}}
  remove(handle:number){for(const car of this.cars)if(car.handle===handle){car.handle=-1;car.time=0;}}
  /** HasCarBeenUpsideDownForAWhile: the first slot with the car decides. */
@@ -82,6 +84,8 @@ export class ScmStuckCarCheck {
    numberOfNodesToCheck:warp?warp.nodesToCheck<<24>>24:0});
  }
  remove(handle:number){for(let i=0;i<this.cars.length;i++)if(this.cars[i].handle===handle)this.cars[i]=emptyStuckCar();}
+ /** CStuckCarCheck::Init: every slot free. */
+ init(){for(let i=0;i<this.cars.length;i++)this.cars[i]=emptyStuckCar();}
  clearStuckFlag(handle:number){for(const car of this.cars)if(car.handle===handle)car.carStuck=false;}
  /** HasCarBeenStuckForAWhile. */
  isStuck(handle:number){return this.cars.some(c=>c.handle===handle&&c.carStuck);}

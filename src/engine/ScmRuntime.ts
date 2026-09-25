@@ -1,3 +1,4 @@
+import {MISSION_AUDIO_COUNT} from './ScmMissionAudio';
 import {requireAsset} from '../assets/binary';
 import {readScmHeader} from '../assets/scm';
 import {ScmGameState} from './ScmGameState';
@@ -92,8 +93,26 @@ export class ScmRuntime {
   const wanted=name.toLowerCase();
   for(let slot=this.head,next:Slot|undefined;slot;slot=next){next=slot.next;if(slot.thread.name.toLowerCase()===wanted){slot.thread.terminated=true;this.retire(slot);}}
  }
+ /** The thread running its commands now, which the world's commands can ask about (whether it is a mission's). */
+ currentThread?:ScmThread;
+ /** CMissionCleanup::Process, run as a mission script ends. SA's is unreversed; Vice City's (reVC) is followed for
+  * the state this port keeps, with SA's own lists: the sequences and decision makers a mission made. The host lets
+  * go of the mission's peds, cars and objects and puts the camera back. */
+ private missionCleanUp(){
+  const g=this.game;
+  g.pedDensityMultiplier=1;g.carDensityMultiplier=1;g.wantedMultiplier=1;
+  g.widescreenOn=false;
+  for(let slot=1;slot<=MISSION_AUDIO_COUNT;slot++)g.missionAudio.clear(slot);
+  g.releaseWeather();
+  g.playerInfo.policeBackOff=false;g.playerInfo.everybodyBackOff=false;g.playerInfo.canDoDriveBy=true;
+  g.upsideDownCars.init();g.stuckCars.init();
+  g.sequences.cleanUpMissionSequences();g.decisionMakers.cleanUpMissionMakers();
+  this.world?.missionCleanUp?.();
+ }
  private retire(slot:Slot){
   if(slot.retired)return;slot.retired=true;
+  // TERMINATE_THIS_SCRIPT on a mission script processes the mission's cleanup list.
+  if(slot.thread.usesMissionCleanup)this.missionCleanUp();
   if(slot.previous)slot.previous.next=slot.next;else this.head=slot.next;
   if(slot.next)slot.next.previous=slot.previous;
   this.idle.unshift(slot.id);
@@ -147,6 +166,7 @@ export class ScmRuntime {
     // A command this runtime has not ported stops that thread where the original would have carried on. The
     // rest of the script keeps running, which is what lets MAIN's own loop go on after a mission gives up.
     // `onUnsupported` is how a host hears about it; without one the command still throws.
+    this.currentThread=thread;
     try{thread.run(nowMs,instructionBudget,Math.fround(timeStepMs/20));}
     catch(error){
      if(error instanceof UnsupportedScmCommand&&this.onUnsupported)this.onUnsupported(error,slot.thread);
@@ -156,6 +176,6 @@ export class ScmRuntime {
     }
     if(thread.terminated)this.retire(slot);
    }
-  }finally{this.processing=false;}
+  }finally{this.processing=false;this.currentThread=undefined;}
  }
 }
