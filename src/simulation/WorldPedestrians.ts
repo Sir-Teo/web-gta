@@ -963,24 +963,26 @@ export class WorldPedestrians {
    playerVehicleSpeed?:()=>number;
    private pcdm(){return pedCreationDistMultiplier(this.playerVehicleSpeed?.()??0);}
    /** CPlayerPed's own LookAtInterestingEntities: CJ glances at a street ped within 15 units, 1 frame in 100. */
-   private playerLook?:LookAtTask;private playerLookTarget?:Pedestrian;
+   private playerLook?:LookAtTask;private playerLookTarget?:Pedestrian;private playerLookPoint?:{x:number;y:number;z:number};
    get playerLookBlend(){return this.playerLook?.blend??0;}
    /** CTaskSimpleTriggerLookAt on the player's own ped: his head turns to the ped for the task's time. */
-   playerLookAtPed(target:Pedestrian,seconds:number){this.playerLookTarget=target;this.playerLook=startLookAt(this.clock*1000,seconds*1000);}
+   playerLookAtPed(target:Pedestrian,seconds:number){this.playerLookTarget=target;this.playerLookPoint=undefined;this.playerLook=startLookAt(this.clock*1000,seconds*1000);}
+   /** TASK_LOOK_AT_COORD on the player: the head looks at a point (renderer space) for `seconds`. */
+   playerLookAtPoint(point:{x:number;y:number;z:number},seconds:number){this.playerLookTarget=undefined;this.playerLookPoint={...point};this.playerLook=startLookAt(this.clock*1000,seconds*1000);}
    private stepPlayerLook(dt:number,clock:number){
     const view=this.playerView();if(!view)return;
     const pl=this.sim.player.position,nowMs=clock*1000;
     // The aim's LookAt (priority 3) takes over the chain's one look task, so the glance is gone rather than waiting.
-    if(view.aimLooking){this.playerLook=undefined;this.playerLookTarget=undefined;}
+    if(view.aimLooking){this.playerLook=undefined;this.playerLookTarget=undefined;this.playerLookPoint=undefined;}
     else if(this.playerLook){
-     const target=this.playerLookTarget;
-     if(!stepLookAt(this.playerLook,nowMs,dt*1000)||!target||target.health<=0||!this.people.includes(target)){this.playerLook=undefined;this.playerLookTarget=undefined;}
+     const target=this.playerLookTarget,point=this.playerLookPoint;
+     if(!stepLookAt(this.playerLook,nowMs,dt*1000)||!point&&(!target||target.health<=0||!this.people.includes(target))){this.playerLook=undefined;this.playerLookTarget=undefined;this.playerLookPoint=undefined;}
     }else if(this.frameDue&&this.sim.player.health>0&&shouldStartLookAt(true,false,Math.random)){
      const near=this.people.filter(p=>p.health>0&&p.down===0&&Math.hypot(p.actor.player.position.x-pl.x,p.actor.player.position.z-pl.z)<=LOOK_AT_RANGE);
      if(near.length){this.playerLookTarget=near[Math.floor(Math.random()*near.length)];this.playerLook=startLookAt(nowMs,lookAtDurationMs(Math.random));}
     }
-    const t=this.playerLookTarget?.actor.player.position;
-    view.setHeadLook(this.playerLook&&t?new Vector3(t.x,t.y+0.9,t.z):undefined,this.playerLook?.blend??0);
+    const t=this.playerLookTarget?.actor.player.position,point=this.playerLookPoint;
+    view.setHeadLook(this.playerLook&&point?new Vector3(point.x,point.y,point.z):this.playerLook&&t?new Vector3(t.x,t.y+0.9,t.z):undefined,this.playerLook?.blend??0);
    }
    /** CWaterLevel::GetWaterLevel at a native point (main wires the water), for CPed::ProcessBuoyancy. */
    waterLevel?:(x:number,y:number)=>number|undefined;

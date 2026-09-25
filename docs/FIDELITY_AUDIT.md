@@ -7085,3 +7085,9 @@ the first ones now implemented:
   own drivers use.
 - When the action's time is out, or the mission clears, the car and the pad are his again. A task given over a running
   drive gives the car back first.
+
+### TASK_LOOK_AT_COORD and TASK_DIE on the player
+
+- TASK_LOOK_AT_COORD on the player starts his head look at the point (g_ikChainMan.LookAt through the trigger task)
+  for its time, and the task is over at once.
+- TASK_DIE on the player kills him whatever proofs he wears: CTaskComplexDie is not damage.

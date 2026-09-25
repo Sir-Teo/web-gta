@@ -113,3 +113,10 @@ test('a driving task on the player hands his car to its autopilot until it is ov
  const refused=new PlayerScriptTasks({...world,startCarTask:()=>false});
  refused.give({kind:'carTempAction',vehicle:3,action:6,seconds:1},body());refused.step(1/30,body());expect(refused.active).toBe(false);
 });
+
+test('TASK_LOOK_AT_COORD and TASK_DIE on the player start the look or the death and are over at once',()=>{
+ const log:unknown[]=[];
+ const tasks=new PlayerScriptTasks({...world,lookAtPoint:(x,y,z,s)=>{log.push(['look',x,y,z,s]);},die:()=>{log.push('die');}});
+ tasks.giveSequence([{kind:'lookAtPoint',x:1,y:2,z:3,seconds:2},{kind:'die'}],false,body());
+ expect(log).toEqual([['look',1,2,3,2],'die']);expect(tasks.active).toBe(false);
+});

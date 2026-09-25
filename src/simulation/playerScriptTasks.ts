@@ -59,6 +59,10 @@ export interface PlayerTaskWorld{
  carState?():'none'|'entering'|'seated';
  /** CTaskSimpleDuckToggle on the player: he crouches or stands. */
  duck?(crouch:boolean):void;
+ /** CTaskSimpleTriggerLookAt at a point in the script's coordinates. */
+ lookAtPoint?(x:number,y:number,z:number,seconds:number):void;
+ /** CTaskComplexDie: he dies. */
+ die?():void;
  /** CTaskSimpleTriggerLookAt: the head looks at the ped a script handle names. */
  lookAt?(target:number,seconds:number):void;
  /** CPedPlacement::FindZCoorForPed and SetPosn: the feet on the ground under the point. */
@@ -79,7 +83,8 @@ export class PlayerScriptTasks{
  constructor(private world:PlayerTaskWorld){}
  /** The kinds the player can carry out; anything else the thread gives up on. */
  static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
-  order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord';}
+  order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar'||order.kind==='carTempAction'||order.kind==='carDriveToCoord'||
+  order.kind==='lookAtPoint'||order.kind==='die';}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body,false);}
@@ -141,6 +146,8 @@ export class PlayerScriptTasks{
    case 'carTempAction':case 'carDriveToCoord':this.running={kind:'carTask',order,started:false};break;
    // The trigger task starts the look and is over.
    case 'lookAt':this.world.lookAt?.(order.target,order.seconds);break;
+   case 'lookAtPoint':this.world.lookAtPoint?.(order.x,order.y,order.z,order.seconds);break;
+   case 'die':this.world.die?.();break;
    default:break;
   }
  }

@@ -330,6 +330,8 @@ async function boot() {
   },
   carTaskRunning:()=>!!scriptDrivenCar&&!scriptDrivenCar.disposed&&scriptDrivenCar.occupied&&(scriptCars.driving(scriptDrivenCar)||scriptCars.inTempAction(scriptDrivenCar)),
   endCarTask:()=>{const car=scriptDrivenCar;scriptDrivenCar=undefined;if(!car)return;car.scriptDriven=false;scriptCars.forget(car);car.autopilot=undefined;},
+  lookAtPoint:(x,y,z,seconds)=>{pedestrians?.playerLookAtPoint({x,y:z,z:-y},seconds);},
+  die:()=>{sim.killPlayer();},
   lookAt:(target,seconds)=>{const ped=onFoot(mission?.pedByHandle(target));if(ped&&typeof ped==='object')pedestrians?.playerLookAtPed(ped,seconds);},
   placeOnGround:(x,z,originY)=>{
    const ground=pedestrians?.groundUnder(x,z,(originY??sim.player.position.y+1+50)+.5);if(ground===undefined)return;

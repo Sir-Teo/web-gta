@@ -230,6 +230,13 @@ export class Simulation {
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
     if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0 });
   }
+  /** CTaskComplexDie on the player (TASK_DIE): he dies whatever he is proof against, the task being no damage. */
+  killPlayer() {
+    if (this.player.health <= 0) return;
+    const before = this.player.health;
+    this.player.health = 0; this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0;
+    this.damageEvents.push({ weapon: 0, armour: 0, health: before, died: true });
+  }
   /** CEventDamage for the player, for the reaction the renderer plays (ComputeDamageAnim / ComputeDeathAnim). */
   damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number; armour: number; health: number; died: boolean }[] = [];
   /** Seconds left of a fall and get-up (CTaskComplexFallAndGetUp), during which input is ignored. */
