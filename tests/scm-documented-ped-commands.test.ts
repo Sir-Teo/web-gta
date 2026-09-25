@@ -60,10 +60,12 @@ describe('the ped commands the reference documents but does not register',()=>{
    instruction(op('SET_INFORM_RESPECTED_FRIENDS'),[int(PED),float(25),int(3)]),
    instruction(op('SET_FOLLOW_NODE_THRESHOLD_DISTANCE'),[int(PED),float(8.5)]),
    instruction(op('SET_SENSE_RANGE'),[int(PED),float(30)]),
-   instruction(op('SET_ANIM_GROUP_FOR_CHAR'),[int(PED),int(12)]),
+   // The anim group is named, as main.scm writes it (a string operand): CAnimManager finds the group by its name.
+   instruction(op('SET_ANIM_GROUP_FOR_CHAR'),[int(PED),'GANG1']),
+   // SET_NEXT_DESIRED_MOVE_STATE is the runtime's own, for the next enter-car task: the world is not asked.
    instruction(op('SET_NEXT_DESIRED_MOVE_STATE'),[int(2)]));
   expect(calls).toEqual([
-   ['friends',PED,25,3],['threshold',PED,8.5],['sense',PED,30],['animGroup',PED,12],['moveState',2],
+   ['friends',PED,25,3],['threshold',PED,8.5],['sense',PED,30],['animGroup',PED,'GANG1'],
   ]);
  });
 

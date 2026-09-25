@@ -377,6 +377,10 @@ export interface ScmMissionWorld {
  setScriptLimitToGangSize?(size:number):void;
  /** CGangWars::SetGangWarsActive. */
  setGangWarsActive?(state:boolean):void;setPlayerGroupSeparationRange?(range:number):void;
+ /** Room in the player's group for `room` mission peds, beside the `missionMembers` the script's group already holds. */
+ makeRoomInPlayerGang?(room:number,missionMembers:number):void;
+ /** SET_ANIM_GROUP_FOR_CHAR on a ped the browser built; false for a group it cannot play. */
+ setScriptPedAnimGroup?(ped:unknown,group:string):boolean;
  /** CWaterLevel::SyncWater: restart the visual wave cycle now. */
  syncWater?():void;
  registerScriptRoadblock?(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},gang:boolean):void;
@@ -468,6 +472,12 @@ export class ScmMission {
    createPlayer:(_playerId,x,y,z)=>{this.playerStart={x,y,z};this.world.playerCreatedAt(x,y,z);},
    getPlayerChar:()=>PLAYER_PED_HANDLE,
    getPlayerGroup:()=>PLAYER_GROUP_HANDLE,
+   // SET_ANIM_GROUP_FOR_CHAR on a ped the script made; the player's own motion group follows his fat and muscle.
+   setPedAnimGroup:(handle,group)=>{
+    if(handle===PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'SET_ANIM_GROUP_FOR_CHAR','the player');
+    this.peds.setAnimGroup(handle,group.toLowerCase());
+   },
+   makeRoomInPlayerGangForMissionPeds:count=>{this.host('makeRoomInPlayerGang','MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS')(count,this.group(PLAYER_GROUP_HANDLE).countFollowers());},
    setCameraBehindPlayer:()=>{this.world.setCameraBehindPlayer();},
    // SetCharHeading (CharacterCommands.cpp): a ped in a vehicle keeps the heading it has, and one on foot
    // takes the angle for both its aiming and its current rotation.
@@ -1081,6 +1091,7 @@ export class ScmMission {
    setAccuracy:(ped,accuracy)=>{this.world.setScriptPedAccuracy(ped,accuracy);},
    setShootingRate:(ped,rate)=>{this.world.setScriptPedShootingRate?.(ped,rate);},
    setInvulnerable:(ped,enabled)=>{this.world.setScriptPedInvulnerable(ped,enabled);},
+   setAnimGroup:(ped,group)=>this.world.setScriptPedAnimGroup?.(ped,group)??false,
    setProofs:(ped,proofs)=>{this.world.setScriptPedProofs(ped,proofs);},
    aliveOf:ped=>this.world.scriptPedAlive(ped),
    remove:ped=>{this.world.removeScriptPed(ped);},

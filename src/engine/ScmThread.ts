@@ -38,8 +38,8 @@ export type ScmScriptedTask=
   /** The CPointRoute the task copies when it is made: the points EXTEND_ROUTE had added by then. */
   route?:readonly {x:number;y:number;z:number}[]}
  |{kind:'goToCoordAnyMeans';x:number;y:number;z:number;speed:number;vehicle:number}
- |{kind:'enterCarAsDriver';vehicle:number;time:number}
- |{kind:'enterCarAsPassenger';vehicle:number;time:number;seat:number}
+ |{kind:'enterCarAsDriver';vehicle:number;time:number;moveState?:number}
+ |{kind:'enterCarAsPassenger';vehicle:number;time:number;seat:number;moveState?:number}
  |{kind:'leaveCar';vehicle:number}
  |{kind:'standStill';time:number}
  |{kind:'shootAtCoord';x:number;y:number;z:number;time:number}
@@ -376,7 +376,7 @@ export interface ScmWorldCommands {
  setPedFollowNodeThresholdDistance?(handle:number,range:number):void;
  setPedSenseRange?(handle:number,range:number):void;
  /** The animation group a ped moves with, and the move state the next task takes. */
- setPedAnimGroup?(handle:number,animGroup:number):void;
+ setPedAnimGroup?(handle:number,animGroup:string):void;
  setNextDesiredMoveState?(moveState:number):void;
  /** How far through its sequence a ped is, plainly and following nested sequences. */
  pedSequenceProgress?(handle:number):number;

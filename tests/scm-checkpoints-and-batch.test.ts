@@ -134,6 +134,15 @@ describe('the vehicle, ped and object commands of this batch',()=>{
   expect(read(named)).toBe(-2);
  });
 
+ test('SET_NEXT_DESIRED_MOVE_STATE is taken by the next enter-car task, and the one after runs',()=>{
+  const tasks:ScmScriptedTask[]=[];
+  run({givePedScriptedTask:(_ped:number,task:ScmScriptedTask)=>{tasks.push(task);}},undefined,
+   instruction(op('SET_NEXT_DESIRED_MOVE_STATE'),[int(4)]),
+   instruction(op('TASK_ENTER_CAR_AS_PASSENGER'),[int(PED),int(CAR),int(10000),int(0)]),
+   instruction(op('TASK_ENTER_CAR_AS_DRIVER'),[int(PED),int(CAR),int(10000)]));
+  expect(tasks.map(t=>'moveState' in t?t.moveState:undefined)).toEqual([4,6]);
+ });
+
  test('the HUD colour reads back its four channels',()=>{
   const {readInt}=run({hudColour:()=>({red:255,green:128,blue:64,alpha:200})},undefined,
    instruction(op('GET_HUD_COLOUR'),[int(3),gvar(40),gvar(44),gvar(48),gvar(52)]));

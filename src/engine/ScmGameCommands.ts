@@ -207,6 +207,8 @@ function model(t:ScmThread,i:ScmInstruction,p:ScmParameter){
  if(!names)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,'no used-object table');
  requireAsset(-id<names.length,'Script model id outside the used-object table.');return names[-id];
 }
+/** The move state SET_NEXT_DESIRED_MOVE_STATE left for an enter-car task, which takes it; the next is a run again. */
+function takeNextDesiredMoveState(t:ScmThread,i:ScmInstruction){const g=game(t,i),state=g.nextDesiredMoveState;g.nextDesiredMoveState=6;return state;}
 /** Print/PrintNow: subtitle-only text is dropped while subtitles are off. */
 function subtitleAllowed(t:ScmThread,i:ScmInstruction,key:string){
  const state=game(t,i);if(state.showSubtitles)return true;
@@ -1148,9 +1150,11 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  SET_FOLLOW_NODE_THRESHOLD_DISTANCE:(t,p,i)=>{world(t,i,'setPedFollowNodeThresholdDistance')(t.readInt(p[0]),t.readFloat(p[1]));},
  SET_SENSE_RANGE:(t,p,i)=>{world(t,i,'setPedSenseRange')(t.readInt(p[0]),t.readFloat(p[1]));},
- SET_ANIM_GROUP_FOR_CHAR:(t,p,i)=>{world(t,i,'setPedAnimGroup')(t.readInt(p[0]),t.readInt(p[1]));},
+ // The group is named (a string operand in main.scm), as CAnimManager::GetAnimationGroupIdByName finds it.
+ SET_ANIM_GROUP_FOR_CHAR:(t,p,i)=>{world(t,i,'setPedAnimGroup')(t.readInt(p[0]),t.text(p[1]));},
  // The move state command names no ped: it sets the state the next task will take.
- SET_NEXT_DESIRED_MOVE_STATE:(t,p,i)=>{world(t,i,'setNextDesiredMoveState')(t.readInt(p[0]));},
+ // The handler is unreversed. Every mission sets it just before a TASK_ENTER_CAR_AS_*, which takes it.
+ SET_NEXT_DESIRED_MOVE_STATE:(t,p,i)=>{game(t,i).nextDesiredMoveState=t.readInt(p[0]);},
  GET_SEQUENCE_PROGRESS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedSequenceProgress')(t.readInt(p[0])));},
  // GET_SEQUENCE_PROGRESS_RECURSIVE stays out: its documentation names one operand and a return, while the
  // command carries three, so the third one's meaning is not in this source.
@@ -1256,10 +1260,10 @@ const handlers:Record<string,ScmCommandHandler>={
   scriptedTask(t,i,t.readInt(p[0]),{kind:'goToCoordAnyMeans',...point,speed:t.readInt(p[4]),vehicle:t.readInt(p[5])});
  },
  TASK_ENTER_CAR_AS_DRIVER:(t,p,i)=>{
-  scriptedTask(t,i,t.readInt(p[0]),{kind:'enterCarAsDriver',vehicle:t.readInt(p[1]),time:t.readInt(p[2])});
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'enterCarAsDriver',vehicle:t.readInt(p[1]),time:t.readInt(p[2]),moveState:takeNextDesiredMoveState(t,i)});
  },
  TASK_ENTER_CAR_AS_PASSENGER:(t,p,i)=>{
-  scriptedTask(t,i,t.readInt(p[0]),{kind:'enterCarAsPassenger',vehicle:t.readInt(p[1]),time:t.readInt(p[2]),seat:t.readInt(p[3])});
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'enterCarAsPassenger',vehicle:t.readInt(p[1]),time:t.readInt(p[2]),seat:t.readInt(p[3]),moveState:takeNextDesiredMoveState(t,i)});
  },
  TASK_LEAVE_CAR:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'leaveCar',vehicle:t.readInt(p[1])});},
  TASK_STAND_STILL:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'standStill',time:t.readInt(p[1])});},

@@ -30,6 +30,9 @@ export interface ScmPedPoolHost<Ped>{
  /** CPed::m_nWeaponShootingRate. */
  setShootingRate?(ped:Ped,rate:number):void;
  setInvulnerable(ped:Ped,enabled:boolean):void;
+ /** CPed::m_nAnimGroup and SetMoveAnim (SET_ANIM_GROUP_FOR_CHAR): the named walkcycle's moves; false for a name the
+  * browser has no walkcycle for. */
+ setAnimGroup?(ped:Ped,group:string):boolean;
  setProofs(ped:Ped,proofs:ScmPedProofs):void;
  /** Whether the browser still holds it, and how to let it go. */
  aliveOf(ped:Ped):boolean;
@@ -42,7 +45,9 @@ interface ScriptPed{pedType:number;model?:number|string;position:{x:number;y:num
  /** The car the ped rides in, once a script has put it in one. */
  ride?:{vehicle:number;seat:number|'driver';offset?:{x:number;y:number;z:number}};
  /** CPed::m_fArmour, which ADD_ARMOUR_TO_CHAR raises. */
- armour?:number}
+ armour?:number;
+ /** The anim group SET_ANIM_GROUP_FOR_CHAR named, which the ped keeps when it is built again (out of a car). */
+ animGroup?:string}
 /** ePedType, of which only these two are female. */
 const PED_TYPE_CIVMALE=4,PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
@@ -90,7 +95,7 @@ export class ScmPedPool<Ped>{
  detachFromCar(handle:number,at:{x:number;y:number;z:number}){
   const said=this.said.get(handle);if(!said||!said.ride)return;
   said.ride=undefined;said.position={...at};
-  this.pool.replace(handle,()=>this.host.spawn(said.pedType,said.model??PED_TYPE_CIVMALE,{...at}));
+  this.pool.replace(handle,()=>this.host.spawn(said.pedType,said.model??PED_TYPE_CIVMALE,{...at}).then(ped=>{if(ped!==undefined&&said.animGroup)this.host.setAnimGroup?.(ped,said.animGroup);return ped;}));
  }
  /** The car a ped rides in, or nothing while it is on foot. */
  rideOf(handle:number){return this.said.get(handle)?.ride;}
@@ -162,6 +167,11 @@ export class ScmPedPool<Ped>{
  /** SET_CHAR_SHOOT_RATE: the rate is a byte (m_nWeaponShootingRate is a uint8). */
  setShootingRate(handle:number,rate:number){this.pool.apply(handle,ped=>{this.host.setShootingRate?.(ped,rate&0xff);});}
  setInvulnerable(handle:number,enabled:boolean){this.pool.apply(handle,ped=>{this.host.setInvulnerable(ped,enabled);});}
+ /** SET_ANIM_GROUP_FOR_CHAR, now or once the ped is built. */
+ setAnimGroup(handle:number,group:string){
+  const said=this.said.get(handle);if(said)said.animGroup=group;
+  this.pool.apply(handle,ped=>{this.host.setAnimGroup?.(ped,group);});
+ }
  setProofs(handle:number,proofs:ScmPedProofs){this.pool.apply(handle,ped=>{this.host.setProofs(ped,proofs);});}
  /** DELETE_CHAR: the ped goes now if it is here, and is refused on arrival if it is not. */
  delete(handle:number){this.pool.delete(handle);this.said.delete(handle);}

@@ -34,7 +34,9 @@ export type ScriptedPedOrder=
  |{kind:'lookAt';target:number;seconds:number}
  /** CTaskComplexEnterCarAsDriverTimed and CTaskComplexEnterCarAsPassengerTimed: run to the seat's door and get in,
   * or be set in the seat when `seconds` run out. A passenger seat of -1 is any free one. */
- |{kind:'enterCar';vehicle:number;seat:'driver'|number;seconds:number}
+ |{kind:'enterCar';vehicle:number;seat:'driver'|number;seconds:number;
+  /** The eMoveState to the door (SET_NEXT_DESIRED_MOVE_STATE); a run without one. */
+  moveState?:number}
  /** CTaskComplexFollowPointRoute: the points in order at eMoveState, each arrived at inside 0.5, then per its mode
   * (0 once, 1 there and back, 2 back and forth for ever, 3 round again for ever). */
  |{kind:'followRoute';points:readonly {x:number;y:number;z:number}[];moveState:number;mode:number}
@@ -77,6 +79,8 @@ export interface ScriptedTaskWorld{
  * is unreversed. 0.5 is the tightest radius the task itself allows a walking ped (its bStopExactly clamp), and 2 is
  * the constructor's own move-state default. */
 export const GO_STRAIGHT_TARGET_RADIUS=.5,GO_STRAIGHT_MOVE_STATE_RADIUS=2;
+/** An enter-car task's move state when the script set one other than the run it defaults to. */
+const moveStateOf=(task:{moveState?:number})=>task.moveState!==undefined&&task.moveState!==6?{moveState:task.moveState}:{};
 /** A task time in milliseconds as seconds; the original's -1 means for ever. */
 const seconds=(milliseconds:number)=>milliseconds<0?Number.POSITIVE_INFINITY:milliseconds/1000;
 /** CVector2D::Heading, atan2(-x, y), in the degrees a script speaks. */
@@ -119,8 +123,8 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'playAnim':return {kind:'playAnim',file:task.animationFile,name:task.animationName,loop:task.loop,keepLastFrame:task.keepLastFrame,
    seconds:task.time>0?task.time/1000:Number.POSITIVE_INFINITY};
   case 'lookAtPed':return world.ped(task.target)?{kind:'lookAt',target:task.target,seconds:seconds(task.time)}:undefined;
-  case 'enterCarAsDriver':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:'driver',seconds:seconds(task.time)}:undefined;
-  case 'enterCarAsPassenger':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:task.seat,seconds:seconds(task.time)}:undefined;
+  case 'enterCarAsDriver':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:'driver',seconds:seconds(task.time),...moveStateOf(task)}:undefined;
+  case 'enterCarAsPassenger':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:task.seat,seconds:seconds(task.time),...moveStateOf(task)}:undefined;
   case 'followPointRoute':return task.route&&task.route.length?{kind:'followRoute',points:task.route.map(p=>({...p})),moveState:task.speed,mode:task.mode}:undefined;
   // CTaskComplexGoToPointAnyMeans on foot: the vehicle it would take for a long way is not modelled.
   // TASK_CHAT_WITH_CHAR (unreversed) builds CTaskComplexChat from the lead-speaker flag and its last operand (1 in

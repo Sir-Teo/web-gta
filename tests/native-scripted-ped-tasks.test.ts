@@ -114,6 +114,9 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:7,time:-1},w)).toEqual({kind:'enterCar',vehicle:7,seat:'driver',seconds:Infinity});
   expect(scriptedPedOrder({kind:'enterCarAsPassenger',vehicle:7,time:3000,seat:-1},w)).toEqual({kind:'enterCar',vehicle:7,seat:-1,seconds:3});
   expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:8,time:-1},w)).toBeUndefined();
+  // SET_NEXT_DESIRED_MOVE_STATE's walk rides on the task; the run is the default and says nothing.
+  expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:7,time:-1,moveState:4},w)).toMatchObject({moveState:4});
+  expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:7,time:-1,moveState:6},w)).not.toHaveProperty('moveState');
   expect(scriptedPedOrder({kind:'enterCarAsDriver',vehicle:7,time:-1},world({}))).toBeUndefined();
  });
 

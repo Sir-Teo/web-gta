@@ -3,7 +3,7 @@ import {ScmPedPool,type ScmPedPoolHost} from '../src/simulation/ScmPedPool';
 
 /** A ped the fake browser holds, with everything the script can say about one. */
 interface FakePed {id:number;position:{x:number;y:number;z:number};heading:number;health:number;accuracy:number;shootingRate?:number;
- invulnerable:boolean;proofs:string[];alive:boolean;scripted:boolean}
+ invulnerable:boolean;proofs:string[];alive:boolean;scripted:boolean;animGroup?:string}
 /** A host whose spawning finishes only when the test says so, which is what the browser's really does. */
 function pool(options:{fails?:boolean}={}){
  let nextId=1;
@@ -38,6 +38,7 @@ function pool(options:{fails?:boolean}={}){
   setAccuracy:(ped,accuracy)=>{ped.accuracy=accuracy;},
   setShootingRate:(ped,rate)=>{ped.shootingRate=rate;},
   setInvulnerable:(ped,enabled)=>{ped.invulnerable=enabled;},
+  setAnimGroup:(ped,group)=>{ped.animGroup=group;return true;},
   setProofs:(ped,proofs)=>{ped.proofs=Object.entries(proofs).filter(([,on])=>on).map(([name])=>name);},
   aliveOf:ped=>ped.alive,
   remove:ped=>{ped.alive=false;},
@@ -243,5 +244,18 @@ describe('the driver and the armour of a script’s peds',()=>{
   expect(peds.driverOf(7)).toBe(driver);expect(peds.driverOf(8)).toBeUndefined();
   expect(peds.armourOf(driver)).toBe(0);peds.setArmour(driver,40);expect(peds.armourOf(driver)).toBe(40);
   peds.kill(driver);expect(peds.driverOf(7)).toBeUndefined();
+ });
+});
+
+describe('SET_ANIM_GROUP_FOR_CHAR',()=>{
+ test('a group named before the ped is built lands on it, and stays through a ride and back out',async()=>{
+  const {pool:peds,settle,spawned}=pool();
+  const handle=peds.create(4,'MALE01',{x:0,y:0,z:0});
+  peds.setAnimGroup(handle,'gang1');
+  await settle();
+  expect(spawned[0].animGroup).toBe('gang1');
+  peds.warpIntoCar(handle,1024,'driver');await settle();
+  peds.detachFromCar(handle,{x:9,y:8,z:7});await settle();
+  expect(spawned.at(-1)!.animGroup).toBe('gang1');
  });
 });

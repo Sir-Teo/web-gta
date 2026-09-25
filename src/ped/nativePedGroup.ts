@@ -70,3 +70,9 @@ export class NativePedGroup{
   }
  }
 }
+
+/** MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS (unreversed): how many of the removable followers must go for `room` more
+ * to fit beside `kept` members that stay (the ones a mission made), in a group `limit` strong. */
+export function followersToRemove(removable:number,kept:number,room:number,limit:number){
+ return Math.max(0,Math.min(removable,removable+kept+room-limit));
+}

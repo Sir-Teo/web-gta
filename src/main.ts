@@ -3650,6 +3650,8 @@ async function boot() {
                  syncWater:()=>{render.lighting.water.syncWater();},
                  setScriptLimitToGangSize:size=>{if(pedestrians)pedestrians.scriptGangLimit=size;},
                  setPlayerGroupSeparationRange:range=>{if(pedestrians)pedestrians.groupSeparationRange=range;},
+                 makeRoomInPlayerGang:(room,missionMembers)=>{pedestrians?.makeRoomForMissionPeds(room,missionMembers);},
+                 setScriptPedAnimGroup:(ped,group)=>{const p=onFoot(ped);return !!p&&!!pedestrians?.setAnimGroup(p,group);},
                  registerScriptRoadblock:(a,b,gang)=>{police?.registerScriptRoadblock(a,b,gang);},
                  clearScriptRoadblocks:()=>{police?.clearScriptRoadblocks();},
                  setPlayerMaxHealth:maxHealth=>{sim.player.health=maxHealth;},

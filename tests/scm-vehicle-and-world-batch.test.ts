@@ -62,8 +62,8 @@ describe('the remaining tasks',()=>{
   expect(tasks.map(entry=>entry.task)).toEqual([
    {kind:'followPointRoute',speed:2,mode:1,route:[]},
    {kind:'goToCoordAnyMeans',x:1,y:2,z:3,speed:2,vehicle:CAR},
-   {kind:'enterCarAsDriver',vehicle:CAR,time:5000},
-   {kind:'enterCarAsPassenger',vehicle:CAR,time:5000,seat:2},
+   {kind:'enterCarAsDriver',vehicle:CAR,time:5000,moveState:6},
+   {kind:'enterCarAsPassenger',vehicle:CAR,time:5000,seat:2,moveState:6},
    {kind:'leaveCar',vehicle:CAR},
    {kind:'standStill',time:1000},
    {kind:'shootAtCoord',x:4,y:5,z:6,time:2000},

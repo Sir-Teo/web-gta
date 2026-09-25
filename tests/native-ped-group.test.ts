@@ -1,4 +1,4 @@
-import {expect,test} from 'vitest';
+import {describe,expect,test} from 'vitest';
 import {LEADER_MEM_ID,NativePedGroup,TOTAL_PED_GROUP_MEMBERS} from '../src/ped/nativePedGroup';
 
 test('a group holds eight, of which the last slot is the leader’s',()=>{
@@ -59,4 +59,16 @@ test('a dead player keeps leading, and followers beyond the separation range lea
  expect(group.leader).toBe(1);expect(group.all().sort()).toEqual([1,2,4]);
  group.separationRange=10;group.process({alive:()=>true,isPlayer:()=>false,neverLeavesGroup:()=>false,position:h=>at[h]});
  expect(group.all()).toEqual([1]);
+});
+
+describe('MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS',()=>{
+ test('the street recruits make the room, as many as the limit needs and no more than there are',async()=>{
+  const {followersToRemove}=await import('../src/ped/nativePedGroup');
+  // Four recruits of a limit of four, room for one: one goes.
+  expect(followersToRemove(4,0,1,4)).toBe(1);
+  // Two recruits and a mission ped of four: room for one fits already.
+  expect(followersToRemove(2,1,1,4)).toBe(0);
+  // Room for more than the recruits can give: all of them go, the mission's stay.
+  expect(followersToRemove(2,2,3,4)).toBe(2);
+ });
 });

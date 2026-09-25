@@ -7046,3 +7046,18 @@ the first ones now implemented:
 - This applies to go-to-point, point routes, node routes, go-while-shooting, go-to-ped and the walk to a car door.
 - A ped that dies holds no script task any more (CTaskComplexDie takes over its primary task), so
   GET_SCRIPT_TASK_STATUS reads FINISHED_TASK rather than the dead ped's last order.
+
+### SET_ANIM_GROUP_FOR_CHAR, SET_NEXT_DESIRED_MOVE_STATE and MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS
+
+- SET_ANIM_GROUP_FOR_CHAR:
+  - main.scm writes the group as a name (a string operand: GANG1, FATMAN, SEXYWOMAN, DRUNKMAN, BLINDMAN and others),
+    which retail looks up by name. The engine used to read it as a number.
+  - A script ped takes that animgrp.dat walkcycle's walk, run, sprint and idle, and their root speeds (CPed::SetMoveAnim).
+  - Said before the ped is built, it applies once the ped is. It is kept when the ped is built again out of a car.
+  - The player's motion group stays his fat and muscle's.
+- SET_NEXT_DESIRED_MOVE_STATE (unreversed): every mission sets it just before a TASK_ENTER_CAR_AS_DRIVER or _PASSENGER.
+  So the next enter-car task takes it, walking or running to the door, and the one after goes back to
+  CTaskComplexEnterCar's run.
+- MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS (unreversed): the player's street recruits leave until the group,
+  FindMaxNumberOfGroupMembers strong (at most the script's limit), has room. As CPedGroupMembership::RemoveNFollowers
+  does, the members a mission made stay.

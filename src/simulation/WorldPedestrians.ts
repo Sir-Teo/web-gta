@@ -18,6 +18,7 @@ import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
+import {followersToRemove} from '../ped/nativePedGroup';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,planFollowNodeRoute} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
@@ -140,7 +141,7 @@ export interface Pedestrian {
   |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;started:boolean;elapsed:number}
   /** CTaskComplexEnterCar(…Timed): the car's script handle and seat, the time left before the ped is set in the seat,
    * and CTaskComplexGoToCarDoorAndStandStill's 30 s of seeking the door. */
-  |{kind:'enterCar';vehicle:number;seat:'driver'|number;remaining:number;seek:number}
+  |{kind:'enterCar';vehicle:number;seat:'driver'|number;remaining:number;seek:number;moveState:number}
   /** CTaskComplexFollowPointRoute over renderer points (x, z, and the origin height y). */
   |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
   /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
@@ -1572,7 +1573,7 @@ export class WorldPedestrians {
    }
    case 'enterCar':{
     if(!this.resolveScriptVehicle?.(order.vehicle))break;
-    ped.order={kind:'enterCar',vehicle:order.vehicle,seat:order.seat,remaining:order.seconds,seek:ENTER_CAR_SEEK_SECONDS};ped.flee=0;ped.loiter=false;
+    ped.order={kind:'enterCar',vehicle:order.vehicle,seat:order.seat,remaining:order.seconds,seek:ENTER_CAR_SEEK_SECONDS,moveState:order.moveState??6};ped.flee=0;ped.loiter=false;
     break;
    }
    case 'die':this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;
@@ -1682,6 +1683,13 @@ export class WorldPedestrians {
    if(ground===undefined||Math.abs(ground-previous)>=maxHeightChange)return false;
    previous=ground;
   }
+  return true;
+ }
+ /** SET_ANIM_GROUP_FOR_CHAR: the walkcycle's moves and their speeds on the ped. */
+ setAnimGroup(ped:Pedestrian,group:string){
+  const loco=this.catalog?.walkcycleLocomotion(group);if(!loco)return false;
+  ped.view.setLocomotion({walk:loco.walk,run:loco.run,sprint:loco.sprint,idle:loco.idle});
+  ped.walkSpeed=loco.speeds.walk;ped.runSpeed=loco.speeds.run;ped.sprintSpeed=loco.speeds.sprint;
   return true;
  }
  /** Whether a ped is still in the world. */
@@ -2038,6 +2046,13 @@ export class WorldPedestrians {
    if(crew.length>=Math.min(maxGroupMembers(),this.scriptGangLimit))return 'full';
    gold.p.follow=true;gold.p.flee=0;gold.p.foe=undefined;this.leaveParty(gold.p);
    return 'joined';
+  }
+  /** MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS (unreversed): room for `room` more in the player's group, whose size is
+   * FindMaxNumberOfGroupMembers (at most the script's limit). The street recruits go first, as
+   * CPedGroupMembership::RemoveNFollowers passes over the members a mission made, which `missionMembers` counts. */
+  makeRoomForMissionPeds(room:number,missionMembers:number){
+   const crew=this.people.filter(p=>p.follow&&p.health>0);
+   for(const m of crew.slice(0,followersToRemove(crew.length,missionMembers,room,Math.min(maxGroupMembers(),this.scriptGangLimit)))){m.follow=false;m.foe=undefined;}
   }
   /** CPedGroupMembership::AddFollower takes a ped out of the group it was in: a recruit leaves his street gang's
    * party, and a party that loses its leader, or is left with one member, breaks up. */
@@ -2701,7 +2716,7 @@ export class WorldPedestrians {
       // Setting the ped in swaps its body for a rider's, so it waits until the frame is done with this one.
       if(o.remaining<=0||door&&goToPointArrived(distance,undefined,ENTER_CAR_DOOR_RADIUS,state.speed*dt)){p.order={kind:'standStill',remaining:Number.POSITIVE_INFINITY};queueMicrotask(()=>{if(!this.disposed&&this.people.includes(p)&&!car.board(p,seat))this.startNextOrder(p);});}
       else if(!door||o.seek<=0)this.startNextOrder(p);
-      else{({x:dx,z:dz}=this.roundCars(p,door,cars));const moveState=goToPointMoveState(6,distance,ENTER_CAR_SLOW_DOWN_DISTANCE);orderSpeed=moveState>=6?p.runSpeed:p.walkSpeed;}
+      else{({x:dx,z:dz}=this.roundCars(p,door,cars));const moveState=goToPointMoveState(o.moveState,distance,ENTER_CAR_SLOW_DOWN_DISTANCE);orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;}
      }
     }else if(p.order.kind==='goToPoint'){
      const o=p.order;dx=0;dz=0;

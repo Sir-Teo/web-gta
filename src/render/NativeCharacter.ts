@@ -382,6 +382,17 @@ export class NativeCharacter {
     this.motionGroup = name && group ? name : undefined;
   }
   get playerMotionGroup() { return this.motionGroup ?? 'player'; }
+  /** CPed::SetMoveAnim for a ped given another anim group (SET_ANIM_GROUP_FOR_CHAR): that walkcycle's walk, run, sprint
+   * and idle in place of the ones it was built with, each running move starting the new clip from its first frame. */
+  setLocomotion(group: Record<'walk' | 'run' | 'sprint' | 'idle', CharacterClip>) {
+    if (!this.moveDurations) return;
+    for (const [action, assignment] of Object.entries(group)) {
+      this.addClip(action as Action, assignment);
+      this.moveDurations[action as MoveClip].duration = this.clips[action as Action]!.duration;
+    }
+    for (const a of this.moveAnims?.assocs.values() ?? []) if (a.clip in group) a.time = 0;
+    this.movePrevious.clear();
+  }
   /** Shared clip installation for constructor roles and post-construction swim roles. */
   private addClip(action: Action, assignment: CharacterClip, swim = false) {
     const { clip, track: index } = assignment;

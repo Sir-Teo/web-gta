@@ -49,6 +49,9 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  // CPedStats::GetPedStatType gives STAT_SENSIBLE_GUY for a name pedstats.dat does not list.
  const statsFor=(name:string):PedDamageStats=>{const stat=pedStats.get(pedIde.get(name.toLowerCase())?.stat??'')??pedStats.get('STAT_SENSIBLE_GUY');const pedType=pedIde.get(name.toLowerCase())?.pedType,rich=pedGroups.rich.has(name.toLowerCase());return stat?{attack:stat.attack,defend:stat.defend,temper:stat.temper,decisionMaker:stat.decisionMaker,flags:stat.shootingRate,headingChange:stat.headingChange,pedType,rich}:{attack:1,defend:1,temper:50,decisionMaker:2,flags:40,headingChange:7.5,pedType,rich};};
  const locomotionFor=(name:string)=>pedLocomotion(pack,animGroups.get(pedIde.get(name)?.animGroup??'man')??man);
+ /** A walkcycle's moves by its animgrp.dat name, for a ped a script gives another group; nothing for one ped.ifp
+  * cannot play (the player's and the ones in other blocks). */
+ const walkcycleLocomotion=(group:string)=>{const cycle=animGroups.get(group.toLowerCase());if(!cycle)return undefined;try{return pedLocomotion(pack,cycle);}catch{return undefined;}};
  // HANDSUP, HANDSCOWER and a few other ped.ifp clips carry name-only tracks.
  const animations=Object.fromEntries(pack.animations.map(clip=>{let resolved=clip;try{resolved=resolveTrackBones(clip,pack);}catch{/* left as is; binding it reports the bone */}return [clip.name.toLowerCase(),resolved];}));
  for(const name of ['fighta_1','ko_skid_front','getup_front'])if(!animations[name])throw new Error(`Missing native interaction animation: ${name}.`);
@@ -134,5 +137,5 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  };
  // CPopulation::IsSunbather: the BEACH_GUY and BEACH_GIRL pedstats.
  const sunbather=(name:string)=>/^STAT_BEACH_(GUY|GIRL)$/i.test(pedIde.get(name.toLowerCase())?.stat??'');
- return {sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,scriptAnimation,stealth,gangClips,attractorClips,...worldPaths(source)};
+ return {sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,walkcycleLocomotion,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,scriptAnimation,stealth,gangClips,attractorClips,...worldPaths(source)};
 }
