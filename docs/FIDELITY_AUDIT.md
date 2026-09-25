@@ -6735,3 +6735,11 @@ the first ones now implemented:
     constructor's 2.
   - A z at or below MAP_Z_LOW_LIMIT means the ground, so no height check is made.
   - An event response (a flight, a retaliation) moves the ped at its own speed while it lasts.
+- **TASK_KILL_CHAR_ON_FOOT** (754 uses, 68 missions), with its ducking and timed forms: CTaskComplexKillPedOnFoot,
+  whose control is unreversed. The ped fights its target with the port's own armed and melee retaliation combat.
+  - The task is over once the target is dead or gone, the player's death included, or once the timed form's time
+    runs out. The retaliation ends with it, so the ped does not turn on the player afterwards, and it goes back to
+    its default stand.
+  - The attack-style flags, the action delay and chance, and the must-be-on-foot bit are not modelled.
+- Script tasks can now name the player (handle 1) as their target. TASK_TURN_CHAR_TO_FACE_CHAR, TASK_SMART_FLEE_CHAR
+  and TASK_KILL_CHAR_ON_FOOT aimed at the player used to give up, because the player is no pool ped.

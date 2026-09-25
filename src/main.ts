@@ -2925,6 +2925,7 @@ async function boot() {
           pedestrians.onMeleeHit=(position,byPlayer)=>sound.combat('impact',0,position,byPlayer?'player':'npc');
           pedestrians.onDropWeapon=(position,weapon,rounds,persist)=>{void drops.report(position,weapon,rounds,persist);};
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
+          pedestrians.resolveScriptPed=handle=>{const ped=mission?.pedByHandle(handle);return ped==='player'?ped:onFoot(ped);};
           // CDarkel::RegisterKillNotByPlayer for everyone else's kills: STAT_PEOPLE_WASTED_BY_OTHERS, a recruit of the
           // player's group costing 2 respect (STAT_RECRUITED_GANG_MEMBERS_KILLED), and a gangster's friendly or enemy count.
           pedestrians.onKill=victim=>{if(victim.byPlayerVehicle)mission?.runtime.game.stats.increment(121,1);

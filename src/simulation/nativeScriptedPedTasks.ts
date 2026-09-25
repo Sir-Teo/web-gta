@@ -20,7 +20,10 @@ export type ScriptedPedOrder=
  /** CTaskComplexGoToPointAndStandStill, or its Timed form when `seconds` is finite: walk, run or sprint (eMoveState)
   * straight at a point in the script's coordinates until within `radius`, then stand. The timed form puts a ped that
   * has not arrived when its time runs out on the point. A `z` at or below MAP_Z_LOW_LIMIT means "on the ground". */
- |{kind:'goToPoint';x:number;y:number;z:number;moveState:number;radius:number;moveStateRadius:number;seconds:number};
+ |{kind:'goToPoint';x:number;y:number;z:number;moveState:number;radius:number;moveStateRadius:number;seconds:number}
+ /** CTaskComplexKillPedOnFoot: attack a ped (a script handle, the player's included) until it is dead or gone, or for
+  * `seconds`. */
+ |{kind:'killPed';target:number;seconds:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -63,6 +66,9 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'die':return {kind:'die'};
   case 'goStraightToCoord':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:seconds(task.time)};
+  // The attack style flags, the action delay and chance, and the must-be-on-foot bit are not modelled: the ped
+  // fights with the browser's own armed and melee combat.
+  case 'killPedOnFoot':return world.ped(task.target)?{kind:'killPed',target:task.target,seconds:seconds(task.time)}:undefined;
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{
    const threat=world.ped(task.threat);if(!threat)return undefined;

@@ -779,10 +779,7 @@ export class ScmMission {
    // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns
    // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.
    givePedScriptedTask:(handle,task,opcode)=>{
-    const order=scriptedPedOrder(task,{
-     self:()=>this.peds.positionOf(handle),
-     ped:other=>this.peds.exists(other)?this.peds.positionOf(other):undefined,
-    });
+    const order=scriptedPedOrder(task,this.taskWorld(handle));
     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
     this.world.giveScriptPedOrder(this.livePed(handle),order);
     this.recordTask(handle,opcode,order.kind==='wander');
@@ -790,10 +787,7 @@ export class ScmMission {
    // CTaskComplexSequence: every task in the sequence has to be one the browser runs, because a sequence with
    // a hole in it is not the sequence the script asked for.
    givePedSequence:(handle,tasks,repeat,opcode)=>{
-    const world={
-     self:()=>this.peds.positionOf(handle),
-     ped:(other:number)=>this.peds.exists(other)?this.peds.positionOf(other):undefined,
-    };
+    const world=this.taskWorld(handle);
     const orders=[];
     for(const task of tasks){
      const order=scriptedPedOrder(task,world);
@@ -960,6 +954,15 @@ export class ScmMission {
   const pose=this.world.playerVehiclePose?.();
   if(!pose)throw new UnsupportedScmCommand(-1,0,'A_VEHICLE_THE_BROWSER_DOES_NOT_HOLD',`vehicle ${handle}`);
   return pose;
+ }
+ /** What a ped handle names: the player, the browser's ped behind a live script handle, or nothing. */
+ pedByHandle(handle:number):unknown{return handle===PLAYER_PED_HANDLE?'player':this.peds.exists(handle)?this.peds.entity(handle):undefined;}
+ /** Where the peds a task names stand: the ped itself, a script ped, or the player (whose handle is no pool ped). */
+ private taskWorld(handle:number){
+  return {
+   self:()=>this.peds.positionOf(handle),
+   ped:(other:number)=>other===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.exists(other)?this.peds.positionOf(other):undefined,
+  };
  }
  /** An optional host method, or the command gives up on a host that has none. */
  private host<K extends keyof ScmMissionWorld>(name:K,command:string):NonNullable<ScmMissionWorld[K]>{

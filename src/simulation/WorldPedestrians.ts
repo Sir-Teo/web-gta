@@ -131,7 +131,9 @@ export interface Pedestrian {
   isDefault?:boolean}|{kind:'achieveHeading';heading:number}
   /** CTaskComplexGoToPointAndStandStill(Timed): a renderer point, with its origin height (undefined for a point the
    * script put on the ground), eMoveState and radii, and the seconds left of a timed task (Infinity otherwise). */
-  |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number};
+  |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number}
+  /** CTaskComplexKillPedOnFoot: the retaliation combat held on a foe (undefined for the player) until it dies. */
+  |{kind:'killPed';foe?:Pedestrian;remaining:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** CTaskComplexSequence: the tasks a script queued, the index of the one running, and whether the whole
@@ -364,6 +366,8 @@ export class WorldPedestrians {
   /** Dead armed peds drop their gun with leftover rounds (one-shot pickup). */
   onDropWeapon?:(position:{x:number;y:number;z:number},weapon:number,rounds:number,persist?:boolean)=>void;
   /** CPed::CreateDeadPedMoney: the cash a dead ped leaves. */
+  /** The ped (or the player) a script's handle names, for the tasks that target one. */
+  resolveScriptPed?:(handle:number)=>Pedestrian|'player'|undefined;
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
  /** A ped killed by player damage (mission kill tracking; NPC-vs-NPC deaths excluded). */
  /** AE_PED_CRUNCH: a ped killed by a fall hits the ground. */
@@ -1429,6 +1433,12 @@ export class WorldPedestrians {
    case 'achieveHeading':ped.order={kind:'achieveHeading',heading:order.degrees*Math.PI/180+Math.PI};break;
    // Wandering is what the ped does with no task at all, so it ends the sequence rather than joining it.
    case 'wander':ped.sequence=undefined;ped.flee=0;ped.loiter=false;this.chooseTarget(ped);break;
+   case 'killPed':{
+    const target=this.resolveScriptPed?.(order.target);if(!target)break;
+    ped.order={kind:'killPed',foe:target==='player'?undefined:target,remaining:order.seconds};
+    ped.flee=0;ped.fleePlayer=undefined;ped.loiter=false;ped.foe=ped.order.foe;ped.retaliate=Math.max(ped.retaliate,1);
+    break;
+   }
    case 'die':this.damageCollider(ped.collider.handle,10000,{x:0,z:1},'bullet',{noSource:true},true);break;
    case 'smartFlee':{
     ped.flee=Math.max(ped.flee,order.seconds===Number.POSITIVE_INFINITY?Number.MAX_SAFE_INTEGER:order.seconds);
@@ -2393,6 +2403,13 @@ export class WorldPedestrians {
    if(p.order&&p.health>0&&p.down===0){
     if(p.order.kind==='standStill'){
      dx=0;dz=0;p.order.remaining-=dt;if(p.order.remaining<=0)this.startNextOrder(p);
+    }else if(p.order.kind==='killPed'){
+     // Over once the target is dead or gone (or the player dead), or when the task's own time runs out; the
+     // retaliation it holds up ends with it. Until then the combat below moves and fights.
+     const o=p.order;dx=0;dz=0;o.remaining-=dt;
+     const over=o.foe?o.foe.health<=0||!this.people.includes(o.foe):this.sim.player.health<=0;
+     if(over||o.remaining<=0){p.retaliate=0;p.foe=undefined;p.fight=undefined;this.startNextOrder(p);}
+     else{p.foe=o.foe;p.retaliate=Math.max(p.retaliate,1);}
     }else if(p.order.kind==='goToPoint'){
      const o=p.order;dx=0;dz=0;
      // CTaskComplexGoToPointAndStandStillTimed::ControlSubTask: out of time and not yet standing, the ped is put on

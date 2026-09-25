@@ -72,7 +72,7 @@ describe('the tasks a script gives a ped',()=>{
  test('going straight to a point is CTaskComplexGoToPointAndStandStill, timed when the script gives a time',()=>{
   expect(scriptedPedOrder({kind:'goStraightToCoord',x:1,y:2,z:3,speed:6,time:-1},world({})))
    .toEqual({kind:'goToPoint',x:1,y:2,z:3,moveState:6,radius:.5,moveStateRadius:2,seconds:Infinity});
-  expect(scriptedPedOrder({kind:'goStraightToCoord',x:1,y:2,z:3,speed:4,time:2500},world({}))?.seconds).toBe(2.5);
+  expect(scriptedPedOrder({kind:'goStraightToCoord',x:1,y:2,z:3,speed:4,time:2500},world({}))).toMatchObject({seconds:2.5});
  });
 
  test('SelectMoveState walks near the point, runs further and sprints past 10 units',()=>{
@@ -88,6 +88,13 @@ describe('the tasks a script gives a ped',()=>{
   expect(goToPointArrived(.4,2,.5,.05)).toBe(false);expect(goToPointArrived(.4,2,.5,.4)).toBe(true);
   // A point on the ground has no height to check.
   expect(goToPointArrived(.4,undefined,.5,0)).toBe(true);
+ });
+
+ test('killing a ped on foot needs the target to exist, and lasts until it dies or for the timed form’s time',()=>{
+  const task=(target:number,time:number):ScmScriptedTask=>({kind:'killPedOnFoot',target,time,flags:0,actionDelay:0,actionChance:0,mustBeOnFoot:true});
+  expect(scriptedPedOrder(task(3,-1),world({3:{x:1,y:1,z:0}}))).toEqual({kind:'killPed',target:3,seconds:Infinity});
+  expect(scriptedPedOrder(task(3,4000),world({3:{x:1,y:1,z:0}}))).toEqual({kind:'killPed',target:3,seconds:4});
+  expect(scriptedPedOrder(task(3,-1),world({}))).toBeUndefined();
  });
 
  test('dying is its own order',()=>{
