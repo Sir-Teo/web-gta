@@ -186,6 +186,10 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'goToCoordWhileShooting':return world.ped(task.target)?{kind:'goToPointShooting',x:task.x,y:task.y,z:task.z,moveState:task.speed,
    radius:task.stopRadius>0?task.stopRadius:GO_STRAIGHT_TARGET_RADIUS,target:task.target}:undefined;
   case 'destroyCar':return world.vehicle?.(task.vehicle)?{kind:'destroyCar',vehicle:task.vehicle}:undefined;
+  // TASK_GOTO_CAR: CTaskComplexSeekEntity after the car, at a run, to within the radius, for the time; the car's place
+  // is taken as the task starts.
+  case 'gotoCar':{const at=world.vehiclePosition?.(task.vehicle);return at&&{kind:'goToPoint',x:at.x,y:at.y,z:at.z,moveState:6,radius:task.radius,
+   moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:seconds(task.time)};}
   case 'shootAtCoord':return {kind:'gunAt',point:{x:task.x,y:task.y,z:task.z},fire:true,seconds:seconds(task.time)};
   case 'aimGunAtCoord':return {kind:'gunAt',point:{x:task.x,y:task.y,z:task.z},fire:false,seconds:seconds(task.time)};
   case 'shootAtPed':return world.ped(task.target)?{kind:'gunAt',target:task.target,fire:true,seconds:seconds(task.time)}:undefined;

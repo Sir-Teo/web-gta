@@ -7883,3 +7883,14 @@ Each is now answered:
 - Not yet reset: roadblocks, special-character and cutscene-object streaming, script textures, the onscreen timer's
   disable flag, drunkenness, the short cut, riot intensity and the remote-detonation flags.
 - Verification: `tests/scm-missions.test.ts`.
+
+## Leaving cars and going to one
+
+- TASK_EVERYONE_LEAVE_CAR names a car. Each script ped seated in it, and the player if he is, takes
+  CTaskComplexLeaveCar for it.
+- TASK_LEAVE_CAR_AND_FLEE is CTaskComplexLeaveCarAndFlee (reversed): out of the car, then CTaskComplexSmartFleePoint
+  from the point, 60 units safe for 1,000,000 ms.
+  - A boat's rider first runs to a point behind the boat; that is not followed.
+- TASK_GOTO_CAR seeks the car at a run to within the task's radius, for its time. The car's position is taken when the
+  task starts.
+- Verification: `tests/browser/script-leave-car-tasks.spec.ts`.

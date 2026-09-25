@@ -118,6 +118,12 @@ export class ScmPedPool<Ped>{
   for(const [handle,said] of this.said)if(said.ride&&!said.ride.offset&&said.ride.vehicle===vehicle&&said.ride.seat===seat&&this.pool.exists(handle)&&!said.dead)return handle;
   return undefined;
  }
+ /** The live script peds seated in a car, the driver among them (not the ones a script attached to it). */
+ ridersOf(vehicle:number){
+  const riders:number[]=[];
+  for(const [handle,said] of this.said)if(said.ride&&!said.ride.offset&&said.ride.vehicle===vehicle&&this.pool.exists(handle)&&!said.dead)riders.push(handle);
+  return riders;
+ }
  /** The live script peds in a car's passenger seats. */
  passengersOf(vehicle:number){
   let count=0;

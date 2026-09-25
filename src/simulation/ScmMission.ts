@@ -1299,6 +1299,19 @@ export class ScmMission {
    givePedScriptedTask:(handle,task,opcode)=>{
     // CTaskSimpleHoldEntity on the ped's partial-anim slot: it holds the object from here, and its other tasks go on.
     if(task.kind==='pickUpObject'){this.pickUpObject(handle,task);return;}
+    // TASK_EVERYONE_LEAVE_CAR names a car: each ped seated in it takes CTaskComplexLeaveCar for it, the player too.
+    if(task.kind==='everyoneLeaveCar'){
+     for(const rider of this.peds.ridersOf(task.vehicle))adapter.givePedScriptedTask!(rider,{kind:'leaveCar',vehicle:task.vehicle},opcode);
+     if(this.playerCarHandle()===task.vehicle)adapter.givePedScriptedTask!(PLAYER_PED_HANDLE,{kind:'leaveCar',vehicle:task.vehicle},opcode);
+     return;
+    }
+    // CTaskComplexLeaveCarAndFlee (reversed): out of the car, then CTaskComplexSmartFleePoint from the point, 60 units
+    // safe and 1,000,000 ms long. (A boat's rider first runs to a point behind it, which is not followed.)
+    if(task.kind==='leaveCarAndFlee'&&handle!==PLAYER_PED_HANDLE){
+     this.livePed(handle);this.runners.delete(handle);
+     this.runSequence(handle,[{kind:'leaveCar',vehicle:task.vehicle},{kind:'smartFleePoint',x:task.x,y:task.y,z:task.z,radius:60,time:1_000_000}],false,opcode,false);
+     return;
+    }
     // CTaskSimpleGangDriveBy: a ped with a car handle target fires at the car, else at the ped a handle names, else at
     // the point. A ped not riding, or the player, is left as it is.
     // CTaskComplexShuffleSeats (reversed; the CAR_SHUFFLE clip is not played): across the car, the front right to the
