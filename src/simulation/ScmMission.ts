@@ -81,6 +81,8 @@ export interface ScmMissionWorld {
  playerIsPlayingAnim?(animation:string):boolean;
  setPlayerArea?(area:number):void;
  setPlayerProofs?(proofs:ScmPedProofs):void;
+ /** TASK_USE_MOBILE_PHONE on the player ('player') or a script ped: the phone out or put away. */
+ usePedMobilePhone?(ped:unknown,start:boolean):void;
  /** EXPLODE_CHAR_HEAD's CEventDamage: a sniper rifle's 1000 to the head, from nobody. */
  explodeScriptPedHead?(ped:unknown):void;
  /** CWorld::ClearCarsFromArea and ClearPedsFromArea over a box in the script's coordinates. */
@@ -840,6 +842,8 @@ export class ScmMission {
    // into nothing, and the thread gives up rather than leaving the ped standing as though it had obeyed.
    givePedScriptedTask:(handle,task,opcode)=>{
     if((task.kind==='leaveCar'||task.kind==='leaveAnyCar'||task.kind==='leaveCarImmediately')&&handle!==PLAYER_PED_HANDLE){this.leaveCar(handle,task.kind==='leaveAnyCar'?undefined:task.vehicle,opcode);return;}
+    // CTaskComplexUseMobilePhone is a secondary task: it does not take the ped's primary task or its task record.
+    if(task.kind==='useMobilePhone'){this.host('usePedMobilePhone','TASK_USE_MOBILE_PHONE')(handle===PLAYER_PED_HANDLE?'player':this.livePed(handle),task.start);return;}
     if(task.kind==='carDriveToCoord'&&handle!==PLAYER_PED_HANDLE){this.driveToCoord(handle,task,opcode);return;}
     if(task.kind==='carTempAction'&&handle!==PLAYER_PED_HANDLE){
      this.host('scriptVehicleTempAction','TASK_CAR_TEMP_ACTION')(this.driverCar(handle,task.vehicle,opcode),task.actionId,task.time/1000);

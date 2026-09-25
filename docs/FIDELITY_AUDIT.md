@@ -6890,3 +6890,11 @@ the first ones now implemented:
   - SET_CHAR_IS_TARGET_PRIORITY (13) and SET_CHAR_CAN_BE_KNOCKED_OFF_BIKE (14), as the ped's flags;
   - SET_HELI_BLADES_FULL_SPEED (15), SET_CAR_STATUS (10) and SET_CAR_TRACTION (9) on the car. CAutomobile's
     m_fCarTraction is only read for STATUS_PHYSICS cars, and gta-reversed's reading of that line is doubtful.
+- **TASK_USE_MOBILE_PHONE** (56 uses, 23 missions and MAIN; 17 of them on the player): CTaskComplexUseMobilePhone,
+  a secondary task, so it takes neither the primary task nor the task record. The task is unreversed, so this is
+  what it shows:
+  - the ped.ifp PHONE_IN clip on the upper body, with the cellphone model (330) in the right hand;
+  - PHONE_TALK looped while the call lasts, coming back after anything that takes the upper body for a moment;
+  - PHONE_OUT when the script puts it away, after which the phone goes.
+  The legs keep walking meanwhile. The player's held weapon is hidden while the phone is out. Script peds carry
+  one the same way.

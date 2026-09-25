@@ -1563,6 +1563,8 @@ export class WorldPedestrians {
   ped.actor.player.position={...feet};ped.actor.player.previous={...feet};
   ped.body.setTranslation({x,y:ground+.9,z},true);ped.collider.setTranslation({x,y:ground+.9,z});
  }
+ /** Whether a ped is still in the world. */
+ hasPed(ped:Pedestrian){return this.people.includes(ped);}
  /** A clip from a script's animation block, for the player's own tasks too. */
  scriptAnimation(file:string,name:string){return this.catalog?.scriptAnimation(file,name)??Promise.resolve(undefined);}
  /** CPedPlacement::FindZCoorForPed for any point: the highest ground under two probes from half a unit above it. */

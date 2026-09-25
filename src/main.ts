@@ -111,6 +111,7 @@ import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
 import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
 import {PlayerScriptTasks} from './simulation/playerScriptTasks';
+import {PlayerPhone} from './simulation/PlayerPhone';
 import {ScriptCarMissions} from './simulation/ScriptCarMissions';
 import {ScriptObjectViews} from './simulation/ScriptObjectViews';
 import {weaponById} from './weapons/catalog';
@@ -318,6 +319,9 @@ async function boot() {
  });
  // HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE and FREEZE_CHAR_POSITION on the player.
  let playerWeaponHiddenByScript=false,playerFrozenByScript=false,playerAreaCode=0;
+ // CTaskComplexUseMobilePhone on the player and on the script's peds.
+ const phones=new Map<unknown,PlayerPhone>();
+ const phoneFor=(key:unknown)=>{let phone=phones.get(key);if(!phone){phone=new PlayerPhone(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined));phones.set(key,phone);}return phone;};
  const playerTaskBody=()=>({position:sim.player.position,heading:sim.player.heading,speed:sim.player.speed,onFoot:sim.playerCollider.isEnabled(),view:render.nativeCharacter});
  let lastGameFrame=0;
  /** TheText (text/american.gxt). */
@@ -491,7 +495,7 @@ async function boot() {
      void weaponView.equip(inv.selected);
     }else if(!sim.jetPack&&jetSavedWeapon!==undefined){inv.select(jetSavedWeapon);jetSavedWeapon=undefined;jetWeaponHidden=false;void weaponView.equip(inv.selected);}
   };
-  weaponView.visible=()=>!playerWeaponHiddenByScript&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
+  weaponView.visible=()=>!playerWeaponHiddenByScript&&!phones.get('player')?.active&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
   weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
   const worldFx=new WorldFx(render.scene,sim,render.camera);
@@ -2125,6 +2129,11 @@ async function boot() {
         const rocket=input.consume('KeyB')||input.down('KeyB');
         if(fleet?.occupiedPlane&&(firing||input.down('ControlLeft')||input.down('ControlRight')||rocket))weapons.fireAircraft(fleet.occupiedPlane,rocket);
         const tTraffic=performance.now();
+        guard('phones.step',()=>{for(const [key,phone] of phones){
+         const view=key==='player'?render.nativeCharacter:(key as Pedestrian).view;
+         if(key!=='player'&&!pedestrians?.hasPed(key as Pedestrian)){phones.delete(key);continue;}
+         phone.step(view);if(!phone.active&&key!=='player')phones.delete(key);
+        }});
         guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>scriptCars.step(step,sim.player.position));guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied?worldCar:undefined));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
         guard('pedestrians.beforeStep',()=>pedestrians?.beforeStep(step,fleet?.cars??[]));
@@ -3433,6 +3442,7 @@ async function boot() {
                  // The player's m_nAreaCode: the browser draws him wherever the camera is, so it is kept, not acted on.
                  setPlayerArea:area=>{playerAreaCode=area;},
                  setPlayerProofs:proofs=>{sim.playerProofs={...proofs};},
+                 usePedMobilePhone:(ped,start)=>{if(ped==='player'||onFoot(ped))phoneFor(ped).use(start);},
                  explodeScriptPedHead:ped=>{const p=onFoot(ped);if(!p)return;const q=p.actor.player.position;
                   pedestrians?.damageCollider(p.collider.handle,1000,{x:0,z:1},'bullet',{weapon:34,point:{x:q.x,y:q.y+1.6,z:q.z},noSource:true});},
                  clearVehiclesInBox:(min,max)=>{fleet?.clearCarsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},

@@ -23,5 +23,12 @@ test('the script walks the player to a point and turns him',async({page})=>{
  const heading=await page.evaluate(()=>(window as any).__game.state().player.heading);
  const want=Math.PI/2+Math.PI,off=Math.abs(Math.atan2(Math.sin(heading-want),Math.cos(heading-want)));
  expect(off).toBeLessThan(.25);
+ // TASK_USE_MOBILE_PHONE: PHONE_IN, then PHONE_TALK looped with the phone in his hand; FALSE puts it away.
+ const PHONE=0x0729;
+ await page.evaluate((opcode:number)=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(1,{kind:'useMobilePhone',start:true},opcode),PHONE);
+ const reaction=()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter?.reaction??null);
+ await expect.poll(reaction,{timeout:30000}).toBe('phone:phone_talk');
+ await page.evaluate((opcode:number)=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(1,{kind:'useMobilePhone',start:false},opcode),PHONE);
+ await expect.poll(reaction,{timeout:30000}).toBe(null);
  expect(errors).toEqual([]);
 });
