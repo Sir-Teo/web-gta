@@ -322,6 +322,14 @@ export class ScmGameState {
  readonly population={dontCreateRandomGangMembers:false,dontCreateRandomCops:false};
  /** CTrain::bDisableRandomTrains, which SWITCH_RANDOM_TRAINS sets. */
  disableRandomTrains=false;
+ /** CDarkel::RegisteredKills for player 0: the models of the peds and vehicles the player has killed or blown up, and
+  * how many of each (an int16 a slot). */
+ private readonly registeredKills=new Map<number,number>();
+ registerKill(modelId:number){this.registeredKills.set(modelId,((this.registeredKills.get(modelId)??0)+1)<<16>>16);}
+ /** CDarkel::QueryModelsKilledByPlayer. */
+ modelsKilledByPlayer(modelId:number){return this.registeredKills.get(modelId)??0;}
+ /** CDarkel::ResetModelsKilledByPlayer. */
+ resetModelsKilledByPlayer(){this.registeredKills.clear();}
  /** CLoadMonitor::m_bEnableAmbientCrime, which ENABLE_AMBIENT_CRIME sets. */
  enableAmbientCrime=true;
  /** CTheScripts::UpsideDownCars and StuckCars. */

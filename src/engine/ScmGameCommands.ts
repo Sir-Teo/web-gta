@@ -2385,10 +2385,11 @@ const handlers:Record<string,ScmCommandHandler>={
  RANDOM_PASSENGER_SAY:(t,p,i)=>{world(t,i,'randomPassengerSay')(t.readInt(p[0]),t.readInt(p[1]));},
  ARE_SUBTITLES_SWITCHED_ON:(t,p,i)=>{t.updateCompareFlag(world(t,i,'areSubtitlesSwitchedOn')(),negated(i));},
  GET_STRING_WIDTH_WITH_NUMBER:(t,p,i)=>{t.writeInt(p[2],world(t,i,'getStringWidthWithNumber')(t.text(p[0]),t.readInt(p[1])));},
- RESET_NUM_OF_MODELS_KILLED_BY_PLAYER:(t,p,i)=>{world(t,i,'resetNumOfModelsKilledByPlayer')(t.readInt(p[0]));},
+ RESET_NUM_OF_MODELS_KILLED_BY_PLAYER:(t,_p,i)=>{game(t,i).resetModelsKilledByPlayer();},
  SET_FORCE_RANDOM_CAR_MODEL:(t,p,i)=>{world(t,i,'setForceRandomCarModel')(model(t,i,p[0]));},
  IS_PLAYER_IN_REMOTE_MODE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerInRemoteMode')(t.readInt(p[0])),negated(i));},
- GET_NUM_OF_MODELS_KILLED_BY_PLAYER:(t,p,i)=>{t.writeInt(p[2],world(t,i,'getNumOfModelsKilledByPlayer')(t.readInt(p[0]),model(t,i,p[1])));},
+ // The kills are counted by model index; a model the script names by its text is one no kill was counted under.
+ GET_NUM_OF_MODELS_KILLED_BY_PLAYER:(t,p,i)=>{const m=model(t,i,p[1]);t.writeInt(p[2],typeof m==='number'?game(t,i).modelsKilledByPlayer(m):0);},
  CLEAR_LOADED_SHOP:(t,_p,i)=>{game(t,i).shopping.removeLoadedShop();},
  GET_NEAREST_TAG_POSITION:(t,p,i)=>{const result=world(t,i,'getNearestTagPosition')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]));t.writeFloat(p[3],result.x);t.writeFloat(p[4],result.y);t.writeFloat(p[5],result.z);},
  FIX_CAR_PANEL:(t,p,i)=>{world(t,i,'fixCarPanel')(t.readInt(p[0]),t.readInt(p[1]));},

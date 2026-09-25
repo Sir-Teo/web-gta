@@ -7311,3 +7311,14 @@ Each is now answered:
   - a car in an interior draws only while that interior is the area being shown. This is the rule the port's script
     objects already follow, and the renderer checks it each frame for cars with a non-zero area.
 - SET_CAR_VISIBLE's own say is kept beside it, so a hidden car stays hidden in any area.
+
+## Models killed by the player, and switching an unused car generator
+
+- CDarkel::RegisteredKills (reversed) is kept in the engine for player 0. Every BlowUpCar, whoever caused it, counts
+  the vehicle's model (RegisterCarBlownUpByPlayer). GET_NUM_OF_MODELS_KILLED_BY_PLAYER reads the count and
+  RESET_NUM_OF_MODELS_KILLED_BY_PLAYER clears it; both went to world hooks that nothing answered.
+- The script only ever asks about a vehicle (model 459). The ped kills RegisterKillByPlayer also counts are not
+  counted yet: the port's peds do not carry their SA model index.
+- SWITCH_CAR_GENERATOR on a slot nothing had set up threw "index out of range". CTheCarGenerators::Get indexes the
+  whole 500-slot array, so such a slot is an unused generator: the switch changes it to no effect. An index past the
+  array still fails.

@@ -409,7 +409,7 @@ export class WorldCar {
  /** The Fire Truck / S.W.A.T. water cannon node (misc_a) turned to the aim's yaw. */
  setCannon(yaw:number){const c=Math.cos(yaw),s=Math.sin(yaw);this.car.setFrameBasis('misc_a',[[0,0,c],[0,1,s],[0,2,0],[1,0,-s],[1,1,c],[1,2,0],[2,0,0],[2,1,0],[2,2,1]]);}
  blowUp(){
-  if(this.wrecked||!this.canBeDamaged)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);vehicleDestroyed.report?.('road');
+  if(this.wrecked||!this.canBeDamaged)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);vehicleDestroyed.report?.('road',this.modelId);
   const doors:ComponentChange[]=[];
   for(let i=0;i<this.damageState.doors.length;i++){if(this.damageState.doors[i]!==DAMSTATE.notPresent){this.damageState.doors[i]=DAMSTATE.notPresent;doors.push({kind:'door',index:i,state:DAMSTATE.notPresent});}}
   // FuckCarCompletely resets every panel status to OK afterwards, so bumper and panel atomics keep their earlier damage.

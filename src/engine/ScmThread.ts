@@ -931,10 +931,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  randomPassengerSay?(handle:number,phrase:number):void;
  areSubtitlesSwitchedOn?():boolean;
  getStringWidthWithNumber?(gxtEntry:string,number:number):number;
- resetNumOfModelsKilledByPlayer?(handle:number):void;
  setForceRandomCarModel?(modelId:number|string):void;
  isPlayerInRemoteMode?(handle:number):boolean;
- getNumOfModelsKilledByPlayer?(handle:number,modelId:number|string):number;
  getNearestTagPosition?(xCoord:number,yCoord:number,zCoord:number):{x:number,y:number,z:number};
  fixCarPanel?(handle:number,panelId:number):void;
  setGangWarsTrainingMission?(state:boolean):void;

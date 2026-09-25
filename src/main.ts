@@ -1471,7 +1471,7 @@ async function boot() {
    * -5 respect and one more friendly gang member killed (and a recruited one when he was in CJ's group; the gang
    * strength message that follows is not a stat DisplayScriptStatUpdateMessage shows); any other
    * gangster +0.75 respect and one more enemy gang member killed. Kills by anyone else register nothing. */
-  vehicleDestroyed.report=kind=>mission?.runtime.game.stats.increment(kind==='boat'?123:122,1);
+  vehicleDestroyed.report=(kind,modelId)=>{const game=mission?.runtime.game;if(!game)return;game.registerKill(modelId);game.stats.increment(kind==='boat'?123:122,1);};
   const registerKillByPlayer=(victim:{officer:boolean;gang?:number;pedType?:string;recruit?:boolean})=>{
     const stats=mission?.runtime.game.stats;if(!stats)return;
     // CDarkel::RegisterKillByPlayer counts STAT_PEOPLE_YOUVE_WASTED and STAT_KILLS_SINCE_LAST_CHECKPOINT (which a save

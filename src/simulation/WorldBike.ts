@@ -124,7 +124,7 @@ export class WorldBike {
  /** CBike::BlowUpCar; CBmx overrides it with a NOP, so the BMX, Chopper and Mountain Bike never explode (the
   * blow-up-cars cheat and a wreck included). */
  blowUp(){
-  if(this.wrecked||!this.motorbike)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;vehicleDestroyed.report?.('road');
+  if(this.wrecked||!this.motorbike)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;vehicleDestroyed.report?.('road',this.modelId);
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  /** A burning motorbike blows up after 5 s; a pedal bike has no engine to catch. */

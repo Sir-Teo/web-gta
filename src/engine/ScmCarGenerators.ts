@@ -52,8 +52,12 @@ export class ScmCarGenerators {
   this.generators[index]=record;return index;
  }
  at(index:number){
-  requireAsset(Number.isInteger(index)&&index>=0&&index<this.generators.length,'Car generator index out of range.');
-  return this.generators[index];
+  requireAsset(Number.isInteger(index)&&index>=0&&index<NUM_CAR_GENERATORS,'Car generator index out of range.');
+  // CTheCarGenerators::Get indexes the whole array: a slot nothing has set up is an unused generator, which a switch
+  // changes to no effect and nothing makes cars from.
+  return this.generators[index]??{position:[0,0,0],angle:0,modelId:-1,primaryColour:-1,secondaryColour:-1,waitUntilFarFromPlayer:false,
+   highPriority:false,playerHasAlreadyOwnedCar:false,ignorePopulationLimit:false,alarmChance:0,doorLockChance:0,minDelay:0,maxDelay:0,iplId:0,
+   vehicleHandle:-1,nextGenTime:0,generateCount:0,used:false} satisfies ScmCarGenerator;
  }
  /** SWITCH_CAR_GENERATOR (VehicleCommands.cpp, reversed): none turns the generator off; any other count
   * switches it on, which means always, and only then is a count of a hundred or fewer written over that. The
