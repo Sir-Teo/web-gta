@@ -50,6 +50,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   const lines=nativeVehicleSuspension(assets.vehicle,assets.handling,assets.model,wheelFrames);
   // Each wheel's rest height (CVehicleModelInfo::GetWheelPosn's z), before hydraulics move the lines.
   const restWheelZ=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,lines[w].start.z-assets.handling.values.suspensionUpperLimit])) as Record<CarWheel,number>;
+  // The lines as the handling first sets them, which a car losing its hydraulics goes back to.
+  const restLines=Object.fromEntries(NATIVE_CAR_WHEELS.map(w=>[w,{startZ:lines[w].start.z,spring:lines[w].springLength,lineLength:lines[w].lineLength}])) as Record<CarWheel,{startZ:number;spring:number;lineLength:number}>;
   const wheelPose=nativeSuspensionRestPose(lines,assets.handling.values.suspensionForce);
   let wheelCurrent=Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,{rotation:0,speed:0,steering:0,height:wheelPose.positions[wheel]}])) as WheelAnimationPoses;
   let wheelPrevious=structuredClone(wheelCurrent),wheelAnimation:ReturnType<typeof bindNativeWheelAnimation>|undefined;
@@ -165,6 +167,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
      const l=lines[wheel];l.start.z=startZ;l.end.z=startZ-lineLength;l.springLength=spring;l.lineLength=lineLength;
      controller!.setSuspensionLine(wheel,startZ,spring,lineLength);
     },
+    /** Every suspension line back where the handling first put it. */
+    restoreSuspensionLines(){for(const wheel of NATIVE_CAR_WHEELS){const r=restLines[wheel];this.setSuspensionLine(wheel,r.startZ,r.spring,r.lineLength);}},
     fitEndlessNitro(){requireAsset(!disposed,'Native car is disposed.');controller!.fitEndlessNitro();},
     wheelSnapshot(){return structuredClone(wheelCurrent);},
     /** A car on rails (STATUS_SIMPLE) is placed rather than simulated: the render interpolates from where it was. */

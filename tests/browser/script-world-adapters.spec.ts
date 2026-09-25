@@ -61,5 +61,15 @@ test('the script’s camera, seat, speech and ped-matrix questions are answered'
   return {front:+e.doors[2].ratio.toFixed(3),right:+e.doors[3].ratio.toFixed(3),rear:Math.abs(e.doors[4].ratio)};
  },made);
  expect(doors).toEqual({front:1,right:.5,rear:0});
+ // The Infernus is no low rider and has no hydraulics until the script fits them; the dirt level is clamped to 15;
+ // the passenger's car is an Infernus, not a taxi.
+ const fitted=await page.evaluate(({car,ped}:{car:number;ped:number})=>{
+  const m=(window as any).__game.missionForProfiling(),w=m.runtime.world,e=m.vehicles.entity(car);
+  const before=w.vehicleHasHydraulics(car);w.setVehicleHydraulics(car,true);const after=w.vehicleHasHydraulics(car);
+  w.setVehicleHydraulics(car,false);const removed=w.vehicleHasHydraulics(car);
+  w.setVehicleDirtLevel(car,40);
+  return {before,after,removed,lowRider:w.isCarLowRider(car),dirt:e.dirtLevel,model:w.pedVehicleModelId(ped),onFoot:w.pedVehicleModelId(1)??null};
+ },made);
+ expect(fitted).toEqual({before:false,after:true,removed:false,lowRider:false,dirt:15,model:411,onFoot:null});
  expect(errors).toEqual([]);
 });

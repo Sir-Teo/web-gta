@@ -576,6 +576,10 @@ export class WorldCar {
   const b=this.car.hydraulicBasis();
   this.hydraulics=new NativeHydraulics(hydraulicLimits(h.suspensionUpperLimit,h.suspensionLowerLimit,h.handlingFlags,b.lowestSphereZ,b.wheelZ.frontLeft,b.frontRadius),b.frontRadius);
  }
+ /** RemoveVehicleUpgrade(MI_HYDRAULICS) (unreversed): the flag goes, and the suspension is the handling's again. */
+ removeHydraulics(){if(!this.hydraulics)return;this.hydraulics=undefined;this.car.restoreSuspensionLines();}
+ /** CVehicle::m_nHandlingFlags from the car's handling line. */
+ get handlingFlags(){return this.assets.handling.values.handlingFlags;}
  /** CAutomobile::HydraulicControl for the player's car: the lines it asks for set over each wheel's rest height. */
  /** A hydraulic sound for the car's audio entity: AE_SUSPENSION_HYDRAULIC 107, _TRIGGER 109, _ON 110, _OFF 111. */
   onHydraulicSound?:(event:number)=>void;

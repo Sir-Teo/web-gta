@@ -3515,6 +3515,13 @@ async function boot() {
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
                  setScriptVehicleSiren:(car,on)=>{(car as ScriptCar).siren=on;},
                  openScriptVehicleDoor:(car,door,ratio)=>{(car as Partial<ScriptCar>).openDoor?.(door,ratio);},
+                 scriptVehicleHasHydraulics:car=>!!(car as Partial<ScriptCar>).hydraulics,
+                 setScriptVehicleHydraulics:(car,fitted)=>{const c=car as Partial<ScriptCar>;if(fitted)c.fitHydraulics?.();else c.removeHydraulics?.();},
+                 scriptVehicleHandlingFlags:car=>(car as Partial<ScriptCar>).handlingFlags??0,
+                 setScriptVehicleDirtLevel:(car,level)=>{const c=car as Partial<ScriptCar>;if(c.dirtLevel!==undefined)c.dirtLevel=level;},
+                 playerUsingJetpack:()=>!!sim.jetPack,
+                 setDeathPenalties:apply=>{gameLogic.penaltyForDeathApplies=apply;},
+                 setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},
                  // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.
                  driveScriptVehicleTo:(car,goal,o)=>{scriptCars.gotoCoords(car as ScriptCar,{x:goal.x,y:goal.z>-100?goal.z:(car as ScriptCar).car.body.translation().y,z:-goal.y},o);},
                  setScriptVehicleStraightLineDistance:(car,distance)=>{scriptCars.setStraightLineDistance(car as ScriptCar,distance);},

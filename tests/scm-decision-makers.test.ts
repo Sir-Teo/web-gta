@@ -78,3 +78,24 @@ describe('the decision makers a script loads',()=>{
   expect(game.decisionMakers.get(global(40))).toMatchObject({group:true,file:'MISSION.grp'});
  });
 });
+
+describe('DOES_DECISION_MAKER_EXIST',()=>{
+ test('the game’s own makers always, a script’s while its slot still holds it, and -1 never',()=>{
+  const game=new ScmGameState();
+  const handle=run(game,false,instruction(scmOpcode('LOAD_CHAR_DECISION_MAKER'),[int(1),gvar(40)])).global(40);
+  // IF DOES_DECISION_MAKER_EXIST handle; SET_VAR_INT 44 1.
+  const exists=(dm:number)=>{
+   const space=new Uint8Array(2048),view=new DataView(space.buffer);
+   space.set([...instruction(scmOpcode('DOES_DECISION_MAKER_EXIST'),[int(dm)]),...instruction(scmOpcode('GOTO_IF_FALSE'),[int(CODE+64)]),
+    ...instruction(scmOpcode('SET_VAR_INT'),[gvar(44),int(1)])],CODE);
+   const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game,world:{fade(){}} as ScmWorldCommands});
+   try{thread.run(0,4);}catch(error){if(!String(error).match(/watchdog|opcode|Unknown/))throw error;}
+   return view.getInt32(44,true)===1;
+  };
+  expect(exists(handle)).toBe(true);
+  expect(exists(0)).toBe(true);
+  expect(exists(-1)).toBe(false);
+  game.decisionMakers.remove(handle);
+  expect(exists(handle)).toBe(false);
+ });
+});

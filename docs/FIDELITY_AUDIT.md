@@ -6965,3 +6965,17 @@ the first ones now implemented:
   sequence moves on (the rap loops in the lowrider meeting).
 - With the player as the partner (he holds no chat task), the speaker gives up after its silent frames, and a listener
   keeps listening.
+
+### MAIN's query batch: hydraulics, low riders, dirt, taxis, jetpack, penalties, decision makers, object models
+
+- DOES_CAR_HAVE_HYDRAULICS reads handlingFlags.bHydraulicInst. SET_CAR_HYDRAULICS fits the upgrade, or removes it and
+  puts the suspension lines back where the handling set them (RemoveVehicleUpgrade is unreversed).
+- IS_CAR_LOW_RIDER reads handlingFlags.bLowRider (0x2000000), as handling.cfg sets it for the Voodoo, Savanna, Broadway
+  and the rest.
+- SET_VEHICLE_DIRT_LEVEL sets m_fDirtLevel, clamped to the 0-15 the dirt blend reads.
+- IS_CHAR_IN_TAXI compares the model of the car the ped is in (the player's own included) with the Cabbie and the Taxi.
+- IS_PLAYER_USING_JETPACK reports whether the player has the jetpack on.
+- SWITCH_DEATH_PENALTIES and SWITCH_ARREST_PENALTIES set CGameLogic's bPenaltyForDeathApplies and
+  bPenaltyForArrestApplies.
+- DOES_DECISION_MAKER_EXIST and GET_OBJECT_MODEL are answered from the runtime's own pools. A named model reads back as
+  the script's negative used-object id, which is what the script compares it with.

@@ -120,6 +120,20 @@ describe('the vehicle, ped and object commands of this batch',()=>{
   expect(slide(10)).toBe(true);expect(game.objects.at(handle).position).toEqual({x:1,y:-2,z:0});
  });
 
+ test('an object’s model is its number, or the script’s own used-object id for a named one',()=>{
+  const game=new ScmGameState();
+  const numbered=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false}).handle;
+  const named=game.objects.create('barrel4',{x:0,y:0,z:0},{external:false,missionCleanup:false}).handle;
+  const read=(handle:number)=>{
+   const space=new Uint8Array(2048);space.set(instruction(op('GET_OBJECT_MODEL'),[int(handle),gvar(40)]),CODE);
+   const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game,world:{fade(){}} as ScmWorldCommands,objectNames:['','kmb_rocks','barrel4']});
+   try{thread.run(0,1);}catch(error){if(!String(error).match(/watchdog|opcode|Unknown/))throw error;}
+   return new DataView(space.buffer).getInt32(40,true);
+  };
+  expect(read(numbered)).toBe(1337);
+  expect(read(named)).toBe(-2);
+ });
+
  test('the HUD colour reads back its four channels',()=>{
   const {readInt}=run({hudColour:()=>({red:255,green:128,blue:64,alpha:200})},undefined,
    instruction(op('GET_HUD_COLOUR'),[int(3),gvar(40),gvar(44),gvar(48),gvar(52)]));

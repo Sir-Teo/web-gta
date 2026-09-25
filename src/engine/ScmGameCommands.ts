@@ -2271,7 +2271,8 @@ const handlers:Record<string,ScmCommandHandler>={
  SWITCH_ARREST_PENALTIES:(t,p,i)=>{world(t,i,'switchArrestPenalties')(bool(t,p[0]));},
  SWITCH_DEATH_PENALTIES:(t,p,i)=>{world(t,i,'switchDeathPenalties')(bool(t,p[0]));},
  STORE_WANTED_LEVEL:(t,p,i)=>{t.writeInt(p[1],world(t,i,'storeWantedLevel')(t.readInt(p[0])));},
- DOES_DECISION_MAKER_EXIST:(t,p,i)=>{t.updateCompareFlag(world(t,i,'doesDecisionMakerExist')(t.readInt(p[0])),negated(i));},
+ // The runtime's own table: the game's makers are always there, a script's while its slot still holds it.
+ DOES_DECISION_MAKER_EXIST:(t,p,i)=>{t.updateCompareFlag(game(t,i).decisionMakers.actualIndex(t.readInt(p[0]))>=0,negated(i));},
  CONVERT_METRES_TO_FEET_INT:(t,p,i)=>{t.writeInt(p[1],world(t,i,'convertMetresToFeetInt')(t.readInt(p[0])));},
  SET_POOL_TABLE_COORDS:(t,p,i)=>{world(t,i,'setPoolTableCoords')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]));},
  SET_OBJECT_DRAW_LAST:(t,p,i)=>{world(t,i,'setObjectDrawLast')(t.readInt(p[0]),bool(t,p[1]));},
@@ -2343,7 +2344,14 @@ const handlers:Record<string,ScmCommandHandler>={
  UPDATE_PICKUP_MONEY_PER_DAY:(t,p,i)=>{world(t,i,'updatePickupMoneyPerDay')(t.readInt(p[0]),t.readInt(p[1]));},
  ACTIVATE_SAVE_MENU:(t,p,i)=>{world(t,i,'activateSaveMenu')();},
  HAS_SAVE_GAME_FINISHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasSaveGameFinished')(),negated(i));},
- GET_OBJECT_MODEL:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getObjectModel')(t.readInt(p[0])));},
+ // A named model is the script's own used-object id (negative), which is what the script compares it with.
+ GET_OBJECT_MODEL:(t,p,i)=>{
+  const model=game(t,i).objects.at(t.readInt(p[0])).model;
+  if(typeof model==='number'){t.writeInt(p[1],model);return;}
+  const index=t.host?.objectNames?.indexOf(model)??-1;
+  if(index<=0)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,`object model ${model} outside the used-object table`);
+  t.writeInt(p[1],-index);
+ },
  GET_CURRENT_CAR_MOD:(t,p,i)=>{t.writeInt(p[2],world(t,i,'getCurrentCarMod')(t.readInt(p[0]),t.readInt(p[1])));},
  GET_LATEST_CONSOLE_COMMAND:(t,p,i)=>{t.writeInt(p[0],world(t,i,'getLatestConsoleCommand')());},
  GET_WHEELIE_STATS:(t,p,i)=>{const result=world(t,i,'getWheelieStats')(t.readInt(p[0]));t.writeInt(p[1],result.twoWheelsTime);t.writeFloat(p[2],result.twoWheelsDistance);t.writeInt(p[3],result.wheelieTime);t.writeFloat(p[4],result.wheelieDistance);t.writeInt(p[5],result.stoppieTime);t.writeFloat(p[6],result.stoppieDistance);},

@@ -326,6 +326,19 @@ export interface ScmMissionWorld {
  setTimeScale?(scale:number):void;
  /** CEntity::SetUsesCollision on a script ped and on the player. */
  setScriptPedCollision?(ped:unknown,uses:boolean):void;
+ /** handlingFlags.bHydraulicInst on a car: whether it is fitted, and AddVehicleUpgrade or RemoveVehicleUpgrade of
+  * MI_HYDRAULICS. */
+ scriptVehicleHasHydraulics?(car:unknown):boolean;
+ setScriptVehicleHydraulics?(car:unknown,fitted:boolean):void;
+ /** CVehicle::m_nHandlingFlags as the car's handling line gives them. */
+ scriptVehicleHandlingFlags?(car:unknown):number;
+ /** CVehicle::m_fDirtLevel. */
+ setScriptVehicleDirtLevel?(car:unknown,level:number):void;
+ /** CPlayerPed's jetpack task: whether the player wears one and flies it. */
+ playerUsingJetpack?():boolean;
+ /** CGameLogic's penalty switches: whether money and weapons go with the next death or arrest. */
+ setDeathPenalties?(apply:boolean):void;
+ setArrestPenalties?(apply:boolean):void;
  /** CAutomobile::OpenDoor with the eDoors index the script names and an open ratio. */
  openScriptVehicleDoor?(car:unknown,door:number,ratio:number):void;
  /** GetPositionToOpenCarDoor for a seat of a script car, in the script's coordinates, on the ground. */
@@ -381,6 +394,8 @@ const PED_TYPE_CIVMALE=4;
  * the reason is kept so the gap is visible rather than silent. Everything the script sets before that point,
  * the clock, the stats, the zone population, the restart points and the rest, is real script state rather
  * than a static reading of the file. */
+/** handlingFlags.bLowRider. */
+const HANDLING_LOW_RIDER=0x2000000;
 export class ScmMission {
  /** The script's own fade, which it keeps until the INTRO has run: MAIN fades out with DO_FADE 0 0 before launching
   * it and only the intro's end fades back in, which here never comes (docs/FIDELITY_AUDIT.md "The intro that cannot
@@ -955,6 +970,24 @@ export class ScmMission {
    setTimeScale:scale=>{this.host('setTimeScale','SET_TIME_SCALE')(scale);},
    // OPEN_CAR_DOOR swings the door fully open and OPEN_CAR_DOOR_A_BIT to a ratio, through CAutomobile::OpenDoor with
    // no ped and the sound on. The index is eDoors: bonnet, boot, then the front and rear doors left and right.
+   // DOES_CAR_HAVE_HYDRAULICS reads handlingFlags.bHydraulicInst; SET_CAR_HYDRAULICS fits or removes the upgrade.
+   vehicleHasHydraulics:handle=>this.host('scriptVehicleHasHydraulics','DOES_CAR_HAVE_HYDRAULICS')(this.liveVehicle(handle)),
+   setVehicleHydraulics:(handle,state)=>{this.host('setScriptVehicleHydraulics','SET_CAR_HYDRAULICS')(this.liveVehicle(handle),state);},
+   // IS_CAR_LOW_RIDER: handlingFlags.bLowRider (0x2000000).
+   isCarLowRider:handle=>(this.host('scriptVehicleHandlingFlags','IS_CAR_LOW_RIDER')(this.liveVehicle(handle))&HANDLING_LOW_RIDER)!==0,
+   // SET_VEHICLE_DIRT_LEVEL: m_fDirtLevel, which the dirt texture blend reads (0 to 15).
+   setVehicleDirtLevel:(handle,level)=>{this.host('setScriptVehicleDirtLevel','SET_VEHICLE_DIRT_LEVEL')(this.liveVehicle(handle),Math.max(0,Math.min(15,level)));},
+   // IS_CHAR_IN_TAXI: the model of the car the ped is in (the player's own included), nothing on foot.
+   pedVehicleModelId:handle=>{
+    const vehicle=handle===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(handle)?.vehicle;
+    if(vehicle===undefined)return undefined;
+    const model=vehicle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(vehicle).model:this.vehicles.modelOf(vehicle);
+    return typeof model==='number'?model:undefined;
+   },
+   playerIsUsingJetpack:()=>this.host('playerUsingJetpack','IS_PLAYER_USING_JETPACK')(),
+   // CGameLogic::bPenaltyForDeathApplies and bPenaltyForArrestApplies.
+   switchDeathPenalties:state=>{this.host('setDeathPenalties','SWITCH_DEATH_PENALTIES')(state);},
+   switchArrestPenalties:state=>{this.host('setArrestPenalties','SWITCH_ARREST_PENALTIES')(state);},
    openVehicleDoor:(handle,door)=>{if(door>=0&&door<6)this.host('openScriptVehicleDoor','OPEN_CAR_DOOR')(this.liveVehicle(handle),door,1);},
    openVehicleDoorABit:(handle,door,ratio)=>{if(door>=0&&door<6)this.host('openScriptVehicleDoor','OPEN_CAR_DOOR_A_BIT')(this.liveVehicle(handle),door,ratio);},
    // SET_CHAR_COLLISION (0x619, CharacterCommands SetCharCollision): CEntity::SetUsesCollision.
