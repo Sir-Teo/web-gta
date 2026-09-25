@@ -2,7 +2,7 @@ import {Quaternion,Vector3} from 'three';
 import type {PathArea} from '../assets/pathNodes';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {lanePoint,nextLaneOnLink,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,tempActionPedals,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
+import {lanePoint,nextLaneOnLink,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,tempActionPedals,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
 import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
 import type {WorldCar} from './WorldCar';
 
@@ -19,7 +19,43 @@ import type {WorldCar} from './WorldCar';
  * stub. Traffic avoidance is not modelled: STOP_FOR_CARS and SLOW_DOWN_FOR_CARS only stop at red lights. */
 
 /** eCarMission, the ones a script's drive asks for. */
-export type ScriptCarMissionKind='gotoCoords'|'gotoCoordsStraight'|'gotoCoordsAccurate'|'gotoCoordsStraightAccurate'|'cruise'|'none';
+export type ScriptCarMissionKind='gotoCoords'|'gotoCoordsStraight'|'gotoCoordsAccurate'|'gotoCoordsStraightAccurate'|'cruise'|'none'
+ |'ramPlayerFar'|'ramPlayerClose'|'blockPlayerFar'|'blockPlayerClose'|'blockPlayerStop'
+ |'ramCarFar'|'ramCarClose'|'blockCarFar'|'blockCarClose'|'blockCarStop'
+ |'emergencyStop'|'stopForever'|'escort'|'escortFar';
+/** eCarMission's numbers for TASK_CAR_MISSION, and the kind each starts as. */
+export const CAR_MISSION:Readonly<Record<number,ScriptCarMissionKind>>={0:'none',1:'cruise',2:'ramPlayerFar',3:'ramPlayerClose',4:'blockPlayerFar',
+ 5:'blockPlayerClose',6:'blockPlayerStop',10:'emergencyStop',11:'stopForever',15:'ramCarFar',16:'ramCarClose',17:'blockCarFar',18:'blockCarClose',
+ 19:'blockCarStop',29:'escort',30:'escort',31:'escort',32:'escort',57:'escortFar',58:'escortFar',59:'escortFar',60:'escortFar'};
+/** MISSION_ESCORT_LEFT, _RIGHT, _REAR and _FRONT (29-32) and their FARAWAY forms. */
+export type EscortSide='left'|'right'|'rear'|'front';
+export const escortSide=(mission:number):EscortSide|undefined=>(['left','right','rear','front'] as const)[mission>=57?mission-57:mission-29];
+/** The kinds that follow the road toward a goal (SteerAICarWithPhysicsFollowPath), a moving one for the FARAWAY missions. */
+const ROAD_KINDS:ReadonlySet<ScriptCarMissionKind>=new Set(['gotoCoords','gotoCoordsAccurate','ramPlayerFar','blockPlayerFar','ramCarFar','blockCarFar','escortFar']);
+/** VC's SteerAICarWithPhysicsTryingToBlockTarget: the target's speed counted up to 0.13 a frame, and the handbrake stop
+ * inside 5 units, back to blocking past 10. */
+export const MAX_SPEED_TO_ACCOUNT_IN_INTERCEPTING=.13,DISTANCE_TO_SWITCH_FROM_BLOCK_TO_STOP=5,DISTANCE_TO_SWITCH_FROM_STOP_TO_BLOCK=10;
+/** Where a blocking car heads: the target's position plus its speed (capped) times GAME_SPEED_TO_CARAI_SPEED, native 2-D. */
+export function blockTargetPoint(target:{x:number;y:number},speed:{x:number;y:number}){
+ const length=Math.hypot(speed.x,speed.y),k=length>MAX_SPEED_TO_ACCOUNT_IN_INTERCEPTING?MAX_SPEED_TO_ACCOUNT_IN_INTERCEPTING/length:1;
+ return {x:target.x+speed.x*k*60,y:target.y+speed.y*k*60};
+}
+/** The escort's station beside, behind or ahead of the car it escorts (CCarCtrl::SteerAICarTowardsPointInEscort is
+ * unreversed, so the spacing is authored): a lane-width gap beside the pair's widths, or four units past their
+ * lengths, native 2-D. */
+export function escortStation(side:EscortSide,target:{position:{x:number;y:number};forward:{x:number;y:number};halfWidth:number;halfLength:number},own:{halfWidth:number;halfLength:number}){
+ const right={x:target.forward.y,y:-target.forward.x};
+ const across=target.halfWidth+own.halfWidth+2,along=target.halfLength+own.halfLength+4;
+ switch(side){
+  case 'left':return {x:target.position.x-right.x*across,y:target.position.y-right.y*across};
+  case 'right':return {x:target.position.x+right.x*across,y:target.position.y+right.y*across};
+  case 'rear':return {x:target.position.x-target.forward.x*along,y:target.position.y-target.forward.y*along};
+  case 'front':return {x:target.position.x+target.forward.x*along,y:target.position.y+target.forward.y*along};
+ }
+}
+/** Where the player is, for the missions against him: his position, the car he drives (if any) and his speed, renderer
+ * space, units a second. */
+export interface ScriptCarPlayer{position:{x:number;y:number;z:number};vehicle?:WorldCar;velocity:{x:number;y:number;z:number}}
 /** eCarDrivingStyle. */
 export const DRIVINGSTYLE={stopForCars:0,slowDownForCars:1,avoidCars:2,ploughThrough:3,stopForCarsIgnoreLights:4} as const;
 
@@ -32,6 +68,15 @@ interface Mission{
  stuck:number;recoveryMode:number;lastRecovery:number;recovery?:{kind:number;remaining:number};
  /** m_nTempAction and the time left of it (m_nTempActionTime). */
  temp?:{action:number;remaining:number};
+ /** m_TargetEntity for the car missions; nothing for the player's. */
+ target?:WorldCar;
+ escort?:EscortSide;
+ /** When the moving goal's route was last worked out, and for where. */
+ routeAt?:number;routeGoal?:{x:number;y:number;z:number};
+ /** TEMPACT_TURNLEFT or TURNRIGHT the ram sets for 250 ms beside the player's car. */
+ turn?:{dir:'left'|'right';until:number};
+ /** m_nRandomSeed's low byte, for the ram's side. */
+ seed:number;
 }
 /** eAutoPilotTempAction, the ones the scripts use. */
 export const TEMPACT={wait:1,reverse:3,handbrakeTurnLeft:4,handbrakeTurnRight:5,handbrakeStraight:6,turnLeft:7,turnRight:8,goForward:9,
@@ -65,7 +110,27 @@ const toNative=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y});
 export class ScriptCarMissions{
  private missions=new Map<WorldCar,Mission>();
  private seconds=0;private frame=0;private lastLoad=-Infinity;
+ /** The player, for the missions against him; with none, those missions hold the car still. */
+ player?:()=>ScriptCarPlayer;
  constructor(private paths:()=>Paths|undefined,private random:()=>number=Math.random){}
+ /** TASK_CAR_MISSION: CTaskComplexCarDriveMission sets the autopilot's mission, target, cruise speed and style.
+  * Missions the browser does not drive give nothing back. */
+ carMission(car:WorldCar,o:{mission:number;target?:WorldCar;cruise:number;style:number}){
+  const kind=CAR_MISSION[o.mission];if(kind===undefined)return false;
+  if(kind==='cruise'){this.wander(car,o);return true;}
+  const needsCar=kind.startsWith('ramCar')||kind.startsWith('blockCar')||kind.startsWith('escort');
+  if(needsCar&&!o.target)return false;
+  const existing=this.missions.get(car),m:Mission={...this.idle(existing?.straightLineDistance),kind,cruise:o.cruise,style:o.style,target:needsCar?o.target:undefined,
+   escort:kind.startsWith('escort')?escortSide(o.mission):undefined,seed:Math.floor(this.random()*32768)};
+  this.missions.set(car,m);
+  if(ROAD_KINDS.has(kind)){const goal=this.targetPosition(m);if(goal){m.goal=goal;this.route(car,m);m.routeAt=this.seconds;m.routeGoal={...goal};}}
+  return true;
+ }
+ /** Where the mission's target is: the target car, or the player (FindPlayerCoors). */
+ private targetPosition(m:Mission){
+  if(m.target)return m.target.disposed?undefined:{...m.target.car.body.translation()};
+  const player=this.player?.();return player?{...(player.vehicle?player.vehicle.car.body.translation():player.position)}:undefined;
+ }
  /** Whether the car is on a coordinate mission still (CTaskComplexDriveToPoint is running). */
  driving(car:WorldCar){const m=this.missions.get(car);return !!m&&m.kind!=='none';}
  /** Whether a temporary action still runs on the car (TASK_CAR_TEMP_ACTION's CTaskSimpleCarDrive). */
@@ -88,7 +153,7 @@ export class ScriptCarMissions{
   const existing=this.missions.get(car);
   const kind:ScriptCarMissionKind=o.straight?(o.accurate?'gotoCoordsStraightAccurate':'gotoCoordsStraight'):this.join(car,goal)?(o.accurate?'gotoCoordsStraightAccurate':'gotoCoordsStraight'):(o.accurate?'gotoCoordsAccurate':'gotoCoords');
   this.missions.set(car,{kind,goal:{...goal},cruise:o.cruise,style:o.style,straightLineDistance:o.straightLineDistance??existing?.straightLineDistance??20,
-   lane:0,nextLane:0,route:existing?.route??[],link:existing?.link,joinedAt:-Infinity,stuck:0,recoveryMode:0,lastRecovery:-Infinity});
+   lane:0,nextLane:0,route:existing?.route??[],link:existing?.link,joinedAt:-Infinity,stuck:0,recoveryMode:0,lastRecovery:-Infinity,seed:existing?.seed??0});
   if(kind==='gotoCoords'||kind==='gotoCoordsAccurate')this.route(car,this.missions.get(car)!);
  }
  /** SET_CAR_STRAIGHT_LINE_DISTANCE: m_nStraightLineDistance (a byte). */
@@ -96,7 +161,7 @@ export class ScriptCarMissions{
  /** The mission is dropped (the task was cleared, or the driver left): the car holds its brakes as MISSION_NONE. */
  clear(car:WorldCar){const m=this.missions.get(car);if(m){m.kind='none';m.route=[];m.recovery=undefined;}}
  forget(car:WorldCar){this.missions.delete(car);}
- private idle(straightLineDistance=20):Mission{return {kind:'none',goal:{x:0,y:0,z:0},cruise:0,style:0,straightLineDistance,lane:0,nextLane:0,route:[],joinedAt:-Infinity,stuck:0,recoveryMode:0,lastRecovery:-Infinity};}
+ private idle(straightLineDistance=20):Mission{return {kind:'none',goal:{x:0,y:0,z:0},cruise:0,style:0,straightLineDistance,lane:0,nextLane:0,route:[],joinedAt:-Infinity,stuck:0,recoveryMode:0,lastRecovery:-Infinity,seed:0};}
  /** Vice City's JoinCarWithRoadSystemGotoCoors: true (drive straight) when there is no road route of two nodes or more. */
  private join(car:WorldCar,goal:{x:number;y:number;z:number}){
   const paths=this.paths();if(!paths)return true;
@@ -111,6 +176,55 @@ export class ScriptCarMissions{
   m.link=joinCarWithRoadSystem(paths.areas,{x:p.x,y:-p.z,z:p.y},this.forward(car));m.lane=m.nextLane=0;m.cruiseNext=undefined;
   m.route=m.link?findTrafficRoute(paths.areas,m.link.to,m.goal)??[]:[];
  }
+ /** SteerAICarWithPhysics_OnlyMission's close missions (VC's CarCtrl.cpp; SA's is a stub), or nothing for the others. */
+ private closePedals(car:WorldCar,m:Mission,state:{position:{x:number;y:number};forward:{x:number;y:number};moveSpeed:{x:number;y:number;z:number}}):Pedals|undefined{
+  const player=this.player?.();
+  const speedOf=(c:WorldCar)=>{const v=c.car.body.linvel();return {x:v.x/50,y:-v.z/50};};
+  const targetNative=()=>{
+   if(m.target){const t=m.target.car.body.translation();return {at:{x:t.x,y:-t.z},speed:speedOf(m.target)};}
+   if(!player)return undefined;
+   if(player.vehicle){const t=player.vehicle.car.body.translation();return {at:{x:t.x,y:-t.z},speed:speedOf(player.vehicle)};}
+   return {at:{x:player.position.x,y:-player.position.z},speed:{x:player.velocity.x/50,y:-player.velocity.z/50}};
+  };
+  switch(m.kind){
+   case 'ramPlayerClose':{
+    const t=targetNative();if(!t)return {swerve:0,accel:0,brake:1,handbrake:false};
+    const v=player?.vehicle,vr=v?.car.body.rotation(),vq=vr&&new Quaternion(vr.x,vr.y,vr.z,vr.w);
+    const vf=vq&&toNative(new Vector3(0,0,-1).applyQuaternion(vq)),vright=vq&&toNative(new Vector3(1,0,0).applyQuaternion(vq));
+    const ram=ramPlayerCloseTarget({seed:m.seed,player:t.at,car:{position:state.position,forward:state.forward,halfWidth:car.nativeBody.boundsMax.x},
+     playerVehicle:v&&vf&&vright?{position:t.at,forward:{x:vf.x,y:vf.y},right:{x:vright.x,y:vright.y},halfWidth:v.nativeBody.boundsMax.x,speed:Math.hypot(t.speed.x,t.speed.y)}:undefined});
+    if(ram.turn&&!(m.turn&&this.seconds<m.turn.until))m.turn={dir:ram.turn,until:this.seconds+.25};
+    return m.turn&&this.seconds<m.turn.until?turnPedals(m.turn.dir):steerHeadingForTarget(state,ram.target,m.cruise);
+   }
+   case 'ramCarClose':{const t=targetNative();return t?steerHeadingForTarget(state,t.at,m.cruise):undefined;}
+   case 'blockPlayerClose':case 'blockCarClose':{
+    const t=targetNative();if(!t)return {swerve:0,accel:0,brake:1,handbrake:false};
+    // DRIVINGSTYLE_AVOID_CARS for the block, and the handbrake stop once it is in front.
+    m.style=DRIVINGSTYLE.avoidCars;
+    const aim=blockTargetPoint(t.at,t.speed);
+    const pedals=steerHeadingForTarget(state,aim,m.cruise);
+    if((aim.x-state.position.x)**2+(aim.y-state.position.y)**2<DISTANCE_TO_SWITCH_FROM_BLOCK_TO_STOP**2)m.kind=m.kind==='blockCarClose'?'blockCarStop':'blockPlayerStop';
+    return pedals;
+   }
+   case 'blockPlayerStop':case 'blockCarStop':{
+    const t=targetNative();
+    if(t&&(t.at.x-state.position.x)**2+(t.at.y-state.position.y)**2>DISTANCE_TO_SWITCH_FROM_STOP_TO_BLOCK**2)m.kind=m.kind==='blockCarStop'?'blockCarClose':'blockPlayerClose';
+    return {swerve:0,accel:0,brake:1,handbrake:true};
+   }
+   case 'escort':{
+    const target=m.target;if(!target)return undefined;
+    const tp=target.car.body.translation(),tr=target.car.body.rotation(),tf=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(tr.x,tr.y,tr.z,tr.w)));
+    const fl=Math.hypot(tf.x,tf.y)||1,forward={x:tf.x/fl,y:tf.y/fl},b=target.nativeBody,o=car.nativeBody;
+    const station=escortStation(m.escort??'rear',{position:{x:tp.x,y:-tp.z},forward,halfWidth:b.boundsMax.x,halfLength:b.boundsMax.y},{halfWidth:o.boundsMax.x,halfLength:o.boundsMax.y});
+    // Aim a few units down the escorted car's line from the station, and hold its speed, closing the gap along it.
+    const ts=speedOf(target),targetSpeed=(ts.x*forward.x+ts.y*forward.y)*60;
+    const behind=(station.x-state.position.x)*forward.x+(station.y-state.position.y)*forward.y;
+    const aim={x:station.x+forward.x*5,y:station.y+forward.y*5};
+    return steerHeadingForTarget(state,aim,Math.max(0,Math.min(m.cruise,targetSpeed+behind*2)));
+   }
+  }
+  return undefined;
+ }
  private forward3(car:WorldCar){const q=car.car.body.rotation();return toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)));}
  private forward(car:WorldCar){const f=this.forward3(car),l=Math.hypot(f.x,f.y)||1;return {x:f.x/l,y:f.y/l};}
  /** One frame for every car a script is driving: UpdateCarAI's mission switching, then the steering. */
@@ -122,7 +236,9 @@ export class ScriptCarMissions{
   for(const [car,m] of this.missions){
    if(car.disposed){this.missions.delete(car);continue;}
    if(car.wrecked||car.occupied){m.kind='none';m.temp=undefined;continue;}
-   const p=car.car.body.translation(),gx=m.goal.x-p.x,gz=m.goal.z-p.z,distSq=gx*gx+gz*gz;
+   const p=car.car.body.translation();
+   this.switchTargetMission(car,m,p);
+   const gx=m.goal.x-p.x,gz=m.goal.z-p.z,distSq=gx*gx+gz*gz;
    switch(m.kind){
     case 'gotoCoords':if(distSq<=m.straightLineDistance**2)m.kind='gotoCoordsStraight';break;
     case 'gotoCoordsAccurate':if(distSq<=m.straightLineDistance**2)m.kind='gotoCoordsStraightAccurate';break;
@@ -140,6 +256,47 @@ export class ScriptCarMissions{
    car.autopilot=this.drive(car,m,dt);
   }
  }
+ /** CCarAI::UpdateCarAI for the missions against a target (CarAI.cpp, reversed), with the moving goal kept up for the
+  * FARAWAY ones: their route is worked out again every 3 s, or once the target has moved 20 units. */
+ private switchTargetMission(car:WorldCar,m:Mission,p:{x:number;y:number;z:number}){
+  if(m.kind==='none'||m.kind==='cruise'||m.kind.startsWith('gotoCoords')||m.kind==='emergencyStop'||m.kind==='stopForever')return;
+  // A target car that is gone ends the mission (RAMCAR_CLOSE's ends in cruising instead).
+  if(m.target?.disposed){
+   if(m.kind==='ramCarClose'){const cruise=m.cruise,style=m.style;this.wander(car,{cruise,style});}else m.kind='none';
+   return;
+  }
+  const target=this.targetPosition(m);if(!target){m.kind='none';return;}
+  const player=this.player?.(),playerAt=player?(player.vehicle?player.vehicle.car.body.translation():player.position):target;
+  const d2=(target.x-p.x)**2+(target.z-p.z)**2,close=m.straightLineDistance,far=close+5;
+  switch(m.kind){
+   // EntitiesGoHeadOn: the two face each other within 40 units.
+   case 'ramPlayerFar':if(d2<=close**2||d2<40**2&&this.headOn(car,player))m.kind='ramPlayerClose';break;
+   // SA takes a close ram or block that falls behind back to RAMPLAYER_FARAWAY alike, when a road route there exists.
+   case 'ramPlayerClose':case 'blockPlayerClose':if(d2>far**2&&!this.join(car,target))m.kind='ramPlayerFar';break;
+   case 'ramCarFar':if(d2<=close**2)m.kind='ramCarClose';break;
+   case 'ramCarClose':if(d2>=far**2){m.kind='ramCarFar';this.route(car,m);}break;
+   case 'blockCarFar':if(d2<=close**2)m.kind='blockCarClose';break;
+   // BLOCKCAR_CLOSE only rejoins the road when the target gets away; the mission stays.
+   case 'blockCarClose':if(d2>=close**2){const q=car.car.body.translation(),paths=this.paths();if(paths)m.link=joinCarWithRoadSystem(paths.areas,{x:q.x,y:-q.z,z:q.y},this.forward(car));}break;
+   // The escort's switching measures the player, not the car it escorts; a straight-line distance of 240 or more
+   // holds it close.
+   case 'escort':{const e2=(playerAt.x-p.x)**2+(playerAt.z-p.z)**2;if(m.straightLineDistance<240&&e2>=far**2&&!this.join(car,playerAt)){m.kind='escortFar';this.route(car,m);}break;}
+   case 'escortFar':{const e2=(playerAt.x-p.x)**2+(playerAt.z-p.z)**2;if(e2<=close**2)m.kind='escort';break;}
+  }
+  if(ROAD_KINDS.has(m.kind)){
+   m.goal={...target};
+   if(this.seconds-(m.routeAt??-Infinity)>3||!m.routeGoal||Math.hypot(m.routeGoal.x-target.x,m.routeGoal.z-target.z)>20){m.routeAt=this.seconds;m.routeGoal={...target};this.route(car,m);}
+  }
+ }
+ /** CCarAI::EntitiesGoHeadOn(player, car). */
+ private headOn(car:WorldCar,player?:ScriptCarPlayer){
+  if(!player)return false;
+  const p=car.car.body.translation(),a=player.vehicle?player.vehicle.car.body.translation():player.position;
+  const dx=a.x-p.x,dz=a.z-p.z,l=Math.hypot(dx,dz)||1,d={x:dx/l,y:-dz/l};
+  const own=this.forward(car),theirs=player.vehicle?this.forward(player.vehicle):undefined;
+  if(!theirs)return false;
+  return theirs.x*d.x+theirs.y*d.y<=-.8&&own.x*d.x+own.y*d.y>=.8;
+ }
  private drive(car:WorldCar,m:Mission,dt:number):WorldCar['autopilot']{
   const p=car.car.body.translation(),v=car.car.body.linvel(),f=this.forward(car);
   const state={position:{x:p.x,y:-p.z},forward:f,moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:this.forward3(car)};
@@ -151,6 +308,11 @@ export class ScriptCarMissions{
   }
   // MISSION_NONE: no gas, the brakes on.
   if(m.kind==='none')return {steering:0,throttle:0,brake:1,handbrake:false};
+  const native=(pedals:Pedals):WorldCar['autopilot']=>({steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}});
+  // EMERGENCYVEHICLE_STOP and STOP_FOREVER: half brake with the handbrake on.
+  if(m.kind==='emergencyStop'||m.kind==='stopForever')return native({swerve:0,accel:0,brake:.5,handbrake:true});
+  const close=this.closePedals(car,m,state);
+  if(close)return native(close);
   const goal={x:m.goal.x,y:-m.goal.z};
   let pedals:Pedals|undefined;
   const paths=this.paths();
@@ -174,7 +336,7 @@ export class ScriptCarMissions{
     pedals=steerFollowPath(state,travel(at),m.lane,travel(next),{cruiseSpeed:m.cruise,trafficSpeed:m.cruise,stop});
    }else if(at){const end=travel(at).position;pedals=steerHeadingForTarget(state,end,m.cruise);}
   }
-  if((m.kind==='gotoCoords'||m.kind==='gotoCoordsAccurate')&&paths&&m.link){
+  if(ROAD_KINDS.has(m.kind)&&paths&&m.link){
    let link=m.link,next=m.route.length?m.route[0]:undefined;
    if(next&&next.from===link.to&&shouldPickNextNode(state,travel(link),m.lane,travel(next),m.nextLane)){
     m.route.shift();m.link=link=next;m.lane=m.nextLane;next=m.route[0];

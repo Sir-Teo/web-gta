@@ -39,6 +39,14 @@ test('a script driver takes its car to a point',async({page})=>{
  const wanderFrom=await page.evaluate(({car})=>(window as any).__game.missionForProfiling().vehicles.positionOf(car),made);
  await expect.poll(async()=>{const q=await page.evaluate(({car})=>(window as any).__game.missionForProfiling().vehicles.positionOf(car),made);return Math.hypot(q.x-wanderFrom.x,q.y-wanderFrom.y);},{timeout:30000}).toBeGreaterThan(8);
  expect(await page.evaluate(({driver,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(driver,opcode),{driver:made.driver,opcode:WANDER})).toBe(1);
+ // TASK_CAR_MISSION MISSION_RAMPLAYER_CLOSE (-1: no target car): the car turns on the player and closes in; the task
+ // keeps running. An escort needs the car it escorts, and one of the browser's own.
+ const MISSION=0x06e1;
+ const gap=()=>page.evaluate(({car})=>{const g=(window as any).__game,q=g.missionForProfiling().vehicles.positionOf(car),p=g.state().player.position;return Math.hypot(q.x-p.x,q.y+p.z);},made);
+ const before=await gap();
+ await page.evaluate(({car,driver,opcode})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(driver,{kind:'carMission',vehicle:car,targetVehicle:-1,missionId:3,cruiseSpeed:10,drivingStyle:2},opcode),{...made,opcode:MISSION});
+ await expect.poll(gap,{timeout:30000}).toBeLessThan(Math.max(6,before-4));
+ expect(await page.evaluate(({driver,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(driver,opcode),{driver:made.driver,opcode:MISSION})).toBe(1);
  // POINT_CAMERA_AT_CAR in fixed mode: the camera stays where SET_FIXED_CAMERA_POSITION put it and looks at the car.
  const camera=await page.evaluate(({car})=>{
   const m=(window as any).__game.missionForProfiling(),w=m.runtime.world,c=m.vehicles.positionOf(car);

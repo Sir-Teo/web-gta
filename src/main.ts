@@ -318,6 +318,8 @@ async function boot() {
   }).catch(()=>{scriptCarPathsAsked=false;});}
   return scriptCarPathsReady;
  });
+ // The player the missions against him chase: where he is, the car he drives, and how fast he goes.
+ scriptCars.player=()=>({position:sim.player.position,vehicle:worldCar?.occupied?worldCar:undefined,velocity:{x:sim.lastMove.velocity.x,y:0,z:sim.lastMove.velocity.z}});
  // HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE and FREEZE_CHAR_POSITION on the player.
  let playerWeaponHiddenByScript=false,playerFrozenByScript=false,playerAreaCode=0;
  // CTaskComplexUseMobilePhone on the player and on the script's peds.
@@ -3528,6 +3530,12 @@ async function boot() {
                  stopScriptVehicle:car=>{scriptCars.clear(car as ScriptCar);},
                  scriptVehicleTempAction:(car,action,seconds)=>{scriptCars.tempAction(car as ScriptCar,action,seconds);},
                  scriptVehicleWander:(car,o)=>{scriptCars.wander(car as ScriptCar,o);},
+                 scriptVehicleCarMission:(car,o)=>{
+                  const target=o.target as Partial<ScriptCar>|undefined;
+                  // Only a car the browser drives with the native body can be a target.
+                  if(target&&!(target.car&&target.nativeBody))return false;
+                  return scriptCars.carMission(car as ScriptCar,{mission:o.mission,target:target as ScriptCar|undefined,cruise:o.cruise,style:o.style});
+                 },
                  scriptVehicleSeatDoor:(car,seat)=>{
                   const c=car as ScriptCar;if(typeof c.seat!=='function')return undefined;
                   const local=carEntry.seatDoorPoint(c,seat);if(!local)return undefined;

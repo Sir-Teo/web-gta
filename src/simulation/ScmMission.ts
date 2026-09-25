@@ -354,6 +354,9 @@ export interface ScmMissionWorld {
  /** CAutoPilot's temporary action for its time, and MISSION_CRUISE, on a script car. */
  scriptVehicleTempAction?(car:unknown,action:number,seconds:number):void;
  scriptVehicleWander?(car:unknown,o:{cruise:number;style:number}):void;
+ /** CTaskComplexCarDriveMission's autopilot mission (eCarMission) against a target car, or the player with none;
+  * false for a mission the browser does not drive. */
+ scriptVehicleCarMission?(car:unknown,o:{mission:number;target?:unknown;cruise:number;style:number}):boolean;
  setPlayerCollision?(uses:boolean):void;
  /** CWorld::StopAllLawEnforcersInTheirTracks. */
  stopAllLawEnforcers():void;
@@ -867,6 +870,14 @@ export class ScmMission {
     if(task.kind==='carDriveToCoord'&&handle!==PLAYER_PED_HANDLE){this.driveToCoord(handle,task,opcode);return;}
     if(task.kind==='carTempAction'&&handle!==PLAYER_PED_HANDLE){
      this.host('scriptVehicleTempAction','TASK_CAR_TEMP_ACTION')(this.driverCar(handle,task.vehicle,opcode),task.actionId,task.time/1000);
+     this.recordTask(handle,opcode,false);return;
+    }
+    if(task.kind==='carMission'&&handle!==PLAYER_PED_HANDLE){
+     const car=this.driverCar(handle,task.vehicle,opcode);
+     // -1 names no car: the player's missions (ram, block) go after him.
+     const target=task.targetVehicle===-1?undefined:this.liveVehicle(task.targetVehicle);
+     if(!this.host('scriptVehicleCarMission','TASK_CAR_MISSION')(car,{mission:task.missionId,target,cruise:task.cruiseSpeed,style:task.drivingStyle}))
+      throw new UnsupportedScmCommand(opcode,0,'A_CAR_MISSION_THE_BROWSER_DOES_NOT_DRIVE',`mission ${task.missionId}`);
      this.recordTask(handle,opcode,false);return;
     }
     if(task.kind==='carDriveWander'&&handle!==PLAYER_PED_HANDLE){

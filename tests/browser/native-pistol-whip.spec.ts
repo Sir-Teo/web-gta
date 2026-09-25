@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {scriptClockSettled} from './scriptClock';
 
 // CTaskSimpleUseGun::RequirePistolWhip: firing at a ped within a unit in front swings the gun butt instead of shooting.
 test('firing a pistol at a ped in reach pistol-whips it with GUN_BUTT and spends no round',async({page})=>{
@@ -7,6 +8,9 @@ test('firing a pistol at a ped in reach pistol-whips it with GUN_BUTT and spends
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>{const s=await state();return !!s.weapons?.ready&&!!s.nativeCharacter&&(s.pedestrians?.people?.length??0)>0;},{timeout:60000}).toBe(true);
  await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ // The script turns CJ as it opens without swinging the camera round: once it has, face him and the camera one way.
+ await scriptClockSettled(page);
+ await page.evaluate(()=>(window as any).__game.turnPlayer(Math.PI));
  const s0=await state(),h=s0.player.heading,at={x:s0.player.position.x+Math.sin(h)*.8,y:s0.player.position.y,z:s0.player.position.z+Math.cos(h)*.8};
  // Street civilians arrive once the popcycle targets and the zone roster exist; the debug ped is one of them.
  await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);

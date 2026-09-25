@@ -9,6 +9,9 @@ test('a 3d marker cone draws a yellow diamond',async({page})=>{
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await scriptClockSettled(page);
  await page.evaluate(()=>(window as any).__game.setTime(12*60));
+ // The script turns CJ as it starts (toward the houses) without swinging the camera round: face him and the camera
+ // back down the street.
+ await page.evaluate(()=>(window as any).__game.turnPlayer(Math.PI));
  // Six units from the player at head height, ahead and to one side, clear of CJ.
  const p=(await state()).player,h=p.heading??0,side=Math.sqrt(6**2-5**2);
  await page.evaluate(({x,y,z})=>(window as any).__game.placeMarkerCone(x,y,z),{x:p.position.x+Math.sin(h)*5-Math.cos(h)*side,y:p.position.y+1.5,z:p.position.z+Math.cos(h)*5+Math.sin(h)*side});

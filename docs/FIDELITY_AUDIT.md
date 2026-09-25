@@ -6988,3 +6988,31 @@ the first ones now implemented:
 - SetHelpMessage blanks m_pLastHelpMessage, so the same help printed again after it went is drawn afresh. The HUD used
   to redraw only on a changed key, so a repeated PRINT_HELP of the same text stayed hidden. Each set that gets through
   now counts, and the HUD redraws on the count.
+
+### TASK_CAR_MISSION (CTaskComplexCarDriveMission)
+
+- The script's eCarMission goes on the driver's car, with the target car (-1 for the missions against the player), the
+  cruise speed and the driving style.
+- CCarAI::UpdateCarAI switching is reversed (CarAI.cpp):
+  - RAMPLAYER_FARAWAY closes in within the straight-line distance, or within 40 units head-on (EntitiesGoHeadOn).
+  - A close ram or block falling past that distance + 5 goes back to RAMPLAYER_FARAWAY when a road route exists. SA
+    does this for BLOCKPLAYER_CLOSE too.
+  - BLOCKPLAYER_FARAWAY has no case, so it keeps following the road.
+  - RAMCAR and BLOCKCAR switch on the target car's distance. BLOCKCAR_CLOSE only rejoins the road when the target gets
+    away. A destroyed target ends the mission; RAMCAR_CLOSE goes back to cruising instead.
+  - The escorts measure their switch against the player, not the car they escort, and a straight-line distance of 240
+    or more holds them close.
+- The FARAWAY missions follow the road to the moving target. The route is worked out again every 3 s, or once the
+  target has moved 20 units.
+- The close steering is Vice City's (SA's SteerAICarWithPhysics_OnlyMission is a stub):
+  - RAMPLAYER_CLOSE lines up beside the player's car and turns in, or aims a seed-offset point.
+  - RAMCAR_CLOSE heads for the car.
+  - The blocks aim at the target plus its speed, capped at 0.13 a frame, times 60, and hold the handbrake inside 5
+    units until the target is 10 away.
+  - EMERGENCYVEHICLE_STOP and STOP_FOREVER hold half brake and the handbrake.
+- The escort's steering (SteerAICarTowardsPointInEscort) is unreversed, so its station is authored: a lane-width gap
+  beside the pair's widths, or four units past their lengths. The escort holds the escorted car's speed and closes the
+  gap along its line.
+- Not modelled:
+  - The reverse after a collision with the target (GetHasCollidedWith): the port keeps no per-car collision record.
+  - The police-only parts (occupants leaving, the chase-speed mellowing).

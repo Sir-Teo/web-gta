@@ -152,8 +152,7 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
  expect(painted.after[2]).toEqual(painted.before[2]);
  expect(painted.after[3]).toEqual(painted.before[3]);
 
- // SET_CHAR_HEADING turns a ped the script made. The player's own facing is the browser's placement, so his
- // heading is recorded and not applied — a decision, not a gap, and the adapter says so.
+ // SET_CHAR_HEADING turns a ped the script made, and the player too (CPed::SetHeading on scplayer).
  const turned=await page.evaluate(async({ped}:{ped:number})=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),adapter=(mission as any).runtime.world;
   const playerBefore=game.state().player.heading;
@@ -163,10 +162,11 @@ test('the script’s own peds and cars arrive, obey and go',async({page})=>{
   const wanted=90*Math.PI/180+Math.PI;
   const pedHeading=mission.peds.entity(ped).actor.player.heading;
   const off=Math.abs(Math.atan2(Math.sin(pedHeading-wanted),Math.cos(pedHeading-wanted)));
-  return {off,playerMoved:Math.abs(game.state().player.heading-playerBefore)};
+  const player=game.state().player.heading;
+  return {off,playerOff:Math.abs(Math.atan2(Math.sin(player-wanted),Math.cos(player-wanted))),playerBefore};
  },{ped:made.ped});
  expect(turned.off).toBeLessThan(.001);
- expect(turned.playerMoved).toBeLessThan(.001);
+ expect(turned.playerOff).toBeLessThan(.001);
 
  // The questions that used to be answered only for the player are now answered for the script's own.
  const asked=await page.evaluate(({ped,car}:{ped:number;car:number})=>{

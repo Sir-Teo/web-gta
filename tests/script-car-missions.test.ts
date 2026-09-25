@@ -57,3 +57,66 @@ test('the temporary actions the scripts use',()=>{
  expect(scriptTempActionPedals(14,0,{forwardSpeed:0})).toEqual({swerve:-1,accel:-.5,brake:0,handbrake:false});
  expect(scriptTempActionPedals(99,0,{forwardSpeed:0})).toBeUndefined();
 });
+
+/** A car with a body's bounds, for the missions that read its size. */
+function sized(x:number,z:number,velocity={x:0,y:0,z:0}){
+ const made=car(x,z);
+ Object.assign(made.raw,{nativeBody:{boundsMax:{x:1,y:2.5,z:1},boundsMin:{x:-1,y:-2.5,z:-1}}});
+ made.raw.car.body.linvel=()=>velocity;
+ return made;
+}
+
+test('TASK_CAR_MISSION’s numbers name the eCarMission kinds, and the escorts their sides',async()=>{
+ const {CAR_MISSION,escortSide}=await import('../src/simulation/ScriptCarMissions');
+ expect([CAR_MISSION[2],CAR_MISSION[4],CAR_MISSION[17],CAR_MISSION[29],CAR_MISSION[11]]).toEqual(['ramPlayerFar','blockPlayerFar','blockCarFar','escort','stopForever']);
+ expect([29,30,31,32].map(escortSide)).toEqual(['left','right','rear','front']);
+ expect(CAR_MISSION[20]).toBeUndefined();
+});
+
+test('the block aims where the target will be, its speed counted up to 0.13 a frame',async()=>{
+ const {blockTargetPoint}=await import('../src/simulation/ScriptCarMissions');
+ expect(blockTargetPoint({x:0,y:0},{x:.1,y:0})).toEqual({x:6,y:0});
+ const fast=blockTargetPoint({x:0,y:0},{x:.26,y:0});expect(fast.x).toBeCloseTo(7.8,6);
+});
+
+test('the escort stations beside, behind or ahead of the car it escorts',async()=>{
+ const {escortStation}=await import('../src/simulation/ScriptCarMissions');
+ const target={position:{x:0,y:0},forward:{x:0,y:1},halfWidth:1,halfLength:2.5},own={halfWidth:1,halfLength:2.5};
+ const at=(side:'left'|'right'|'rear'|'front')=>{const p=escortStation(side,target,own);return {x:p.x+0,y:p.y+0};};
+ expect(at('left')).toEqual({x:-4,y:0});expect(at('right')).toEqual({x:4,y:0});
+ expect(at('rear')).toEqual({x:0,y:-9});expect(at('front')).toEqual({x:0,y:9});
+});
+
+test('a ram on the player closes in within the straight-line distance, and a block stops in front of a target car',()=>{
+ const missions=new ScriptCarMissions(()=>undefined),{car:c}=sized(0,0);
+ missions.player=()=>({position:{x:0,y:0,z:-100},velocity:{x:0,y:0,z:0}});
+ expect(missions.carMission(c,{mission:2,cruise:30,style:2})).toBe(true);
+ missions.step(1/50);expect(missions.mission(c)).toBe('ramPlayerFar');
+ missions.player=()=>({position:{x:0,y:0,z:-15},velocity:{x:0,y:0,z:0}});
+ missions.step(1/50);expect(missions.mission(c)).toBe('ramPlayerClose');
+ // A car mission needs its target car.
+ const other=sized(0,-8),blocker=sized(0,0);
+ expect(missions.carMission(blocker.car,{mission:17,cruise:30,style:2})).toBe(false);
+ expect(missions.carMission(blocker.car,{mission:17,target:other.car,cruise:30,style:2})).toBe(true);
+ missions.step(1/50);expect(missions.mission(blocker.car)).toBe('blockCarClose');
+ // Inside 5 units of where the target will be it holds the handbrake; past 10 it blocks again.
+ other.at.z=-4;missions.step(1/50);expect(missions.mission(blocker.car)).toBe('blockCarStop');
+ other.at.z=-12;missions.step(1/50);expect(missions.mission(blocker.car)).toBe('blockCarClose');
+ // The target gone, the mission ends.
+ other.raw.disposed=true;missions.step(1/50);expect(missions.mission(blocker.car)).toBe('none');
+});
+
+test('an escort holds the escorted car’s speed and closes the gap to its station',()=>{
+ const missions=new ScriptCarMissions(()=>undefined);
+ const leader=sized(0,-20,{x:0,y:0,z:-10}),escort=sized(0,0);
+ missions.player=()=>({position:{x:0,y:0,z:-20},velocity:{x:0,y:0,z:0}});
+ expect(missions.carMission(escort.car,{mission:31,target:leader.car,cruise:40,style:2})).toBe(true);
+ missions.step(1/50);
+ expect(missions.mission(escort.car)).toBe('escort');
+ // Behind its station (9 units behind the leader, at z=-11), it drives on.
+ const drive=escort.raw.autopilot as {native:{gas:number;brake:number}};
+ expect(drive.native.gas).toBeGreaterThan(0);
+ // Eight units past the station (the leader's 12 less twice the gap) it lets the leader draw ahead.
+ escort.at.z=-19;missions.step(1/50);
+ expect((escort.raw.autopilot as {native:{gas:number;brake:number}}).native.gas).toBe(0);
+});
