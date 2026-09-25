@@ -60,3 +60,13 @@ test('the extra frames are found by name in extra1 to extra6 order, whatever the
  expect(vehicleExtraFrames([{name:'chassis'}])).toEqual([]);
  expect(vehicleExtraFrames([{name:' Extra1 '},{name:'extra3'}])).toEqual([0,1]);
 });
+
+test('SET_CAR_MODEL_COMPONENTS: ms_compsToUse takes each slot it sets, -1 for none, and the rules choose the rest',()=>{
+ // ALLOW_ALWAYS over components 0 and 1 for A, nothing for B: with the draw at 0 the rules would give 0, then the
+ // one extra no rule lists (2).
+ const rule=(1<<12)|0xf10;
+ expect(chooseVehicleExtras(rule,3,()=>0,false)).toEqual([0,2]);
+ expect(chooseVehicleExtras(rule,3,()=>0,false,[1,-2])).toEqual([1,2]);
+ expect(chooseVehicleExtras(rule,3,()=>0,false,[-1,1])).toEqual([1]);
+ expect(chooseVehicleExtras(rule,3,()=>0,false,[-2,-2])).toEqual([0,2]);
+});

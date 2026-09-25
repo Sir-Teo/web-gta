@@ -8140,3 +8140,13 @@ pair, a ped against a script object, makes no contact pair, and a ped's characte
 centimetres short of what it walks into). `SET_OBJECT_RECORDS_COLLISIONS` sets `bCanBeCollidedWith`, without which
 `AddCollisionRecord` keeps nothing; `HAS_OBJECT_COLLIDED_WITH_ANYTHING` then holds while anything but the object
 itself touches its collision. Spec: `script-touching`.
+
+## SET_CAR_MODEL_COMPONENTS
+
+`CVehicleModelInfo::SetComponentsToUse` fills `ms_compsToUse`, which the next instance's `ChooseComponent` and
+`ChooseSecondComponent` take as they are (-1 for no extra) before resetting each to -2; a slot left at -2 is chosen by
+the model's comps rules. The script's next `CREATE_CAR` carries the pair to its (asynchronous) build, so the extras
+RYDER2, RYDER3 and MUSIC1 ask for are the ones shown. Test: `native-vehicle-extras`.
+
+A ped told to leave a car that has since been deleted (TASK_LEAVE_CAR, or an on-foot task given while seated) is set
+down where it sat rather than stopping the thread.

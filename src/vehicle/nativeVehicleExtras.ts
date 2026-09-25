@@ -71,12 +71,16 @@ export function chooseSecondExtra(comps:VehicleComps,numExtras:number,random:()=
  }
  return -1;
 }
-/** CreateInstance's pair of extras for one vehicle, as indices into the model's extras in name order. */
-export function chooseVehicleExtras(comps:number,numExtras:number,random:()=>number=Math.random,raining=false){
+/** ms_compsToUse's unset value. */
+export const COMPS_NOT_SET=-2;
+/** CreateInstance's pair of extras for one vehicle, as indices into the model's extras in name order.
+ * `componentsToUse` is ms_compsToUse (SET_CAR_MODEL_COMPONENTS): a slot other than -2 is taken as it is, -1 for none,
+ * in place of that slot's choice. */
+export function chooseVehicleExtras(comps:number,numExtras:number,random:()=>number=Math.random,raining=false,componentsToUse?:readonly [number,number]){
  if(!numExtras)return [] as number[];
  const decoded=decodeVehicleComps(comps);
- const first=chooseFirstExtra(decoded,numExtras,random,raining);
- const second=chooseSecondExtra(decoded,numExtras,random,raining);
+ const first=componentsToUse&&componentsToUse[0]!==COMPS_NOT_SET?componentsToUse[0]:chooseFirstExtra(decoded,numExtras,random,raining);
+ const second=componentsToUse&&componentsToUse[1]!==COMPS_NOT_SET?componentsToUse[1]:chooseSecondExtra(decoded,numExtras,random,raining);
  return [first,second].filter(index=>index>=0&&index<numExtras);
 }
 /** The model's `extra1`..`extra6` frames in name order, as PreprocessHierarchy collects them. */

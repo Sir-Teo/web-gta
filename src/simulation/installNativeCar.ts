@@ -35,6 +35,8 @@ export interface NativeCarAssets {
   wheelFrames?:Record<CarWheel,number>;colors?:NativeCarColors;lightTexture?:ModelTexture;lightsOnTexture?:ModelTexture;
   /** CVehicleModelInfo's extra component choice: the instance's random and CWeather's rainy state. */
   extraRandom?:()=>number;raining?:boolean;
+  /** CVehicleModelInfo::ms_compsToUse as SET_CAR_MODEL_COMPONENTS left it for this instance. */
+  componentsToUse?:readonly [number,number];
   /** ChooseVehicleColour's carcols variation and its four palette indices. */
   colourIndices?:readonly [number,number,number,number];colourVariation?:number;
   /** CVehicleModelInfo's plate text and GetMapRegionPlateDesign's plateback (CCustomCarPlateMgr). */
@@ -59,7 +61,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   // CVehicleModelInfo::CreateInstance: PreprocessHierarchy takes every `extra` atomic out of the clump and this
   // instance adds back at most the two its comps rules choose, so the rest of the model's extras never render.
   const extraFrames=vehicleExtraFrames(assets.model.frames);
-  const chosenExtras=extraFrames.length?chooseVehicleExtras(assets.vehicle.components,extraFrames.length,assets.extraRandom,assets.raining):[];
+  const chosenExtras=extraFrames.length?chooseVehicleExtras(assets.vehicle.components,extraFrames.length,assets.extraRandom,assets.raining,assets.componentsToUse):[];
   const shownExtraFrames=new Set(chosenExtras.map(index=>extraFrames[index]));
   const prepared={...basePrepared,atomics:basePrepared.atomics.map((a,i)=>{
     const name=assets.model.frames[a.frame].name;

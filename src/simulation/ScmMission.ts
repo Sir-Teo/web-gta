@@ -468,7 +468,7 @@ export interface ScmMissionWorld {
  playerVehicleEntity?():unknown|undefined;
  /** Where the player's vehicle of any kind is and how it lies: native position, axes and CPlaceable::GetHeading in degrees. */
  playerVehiclePose?():{position:{x:number;y:number;z:number};right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};heading:number}|undefined;
- spawnScriptVehicle(model:number|string,position:{x:number;y:number;z:number},heading:number):Promise<unknown>;
+ spawnScriptVehicle(model:number|string,position:{x:number;y:number;z:number},heading:number,componentsToUse?:readonly [number,number]):Promise<unknown>;
  placeScriptVehicle(car:unknown,position:{x:number;y:number;z:number},heading:number):void;
  scriptVehiclePosition(car:unknown):{x:number;y:number;z:number};
  /** The top of a script car's collision box above its origin (GetColModel()->GetBoundingBox().m_vecMax.z). */
@@ -1521,7 +1521,15 @@ export class ScmMission {
    pedSequenceProgress:handle=>this.sequenceStep(handle).outer,
    getSequenceProgressRecursive:handle=>{const step=this.sequenceStep(handle);return {p2:step.outer,p3:step.inner};},
    // CCarCtrl::CreateCarForScript through the pool, which hands the script a handle at once.
-   createCar:(model,x,y,z)=>this.forCleanup(this.cleanupVehicles,this.vehicles.create(model,{x,y,z})),
+   // CCarCtrl::CreateCarForScript builds the car at once, and its CreateInstance takes ms_compsToUse and resets both
+   // slots to -2; the car here is built later, so the pair goes with it.
+   createCar:(model,x,y,z)=>{
+    const comps=this.componentsToUse;this.componentsToUse=undefined;
+    const handle=comps?this.vehicles.create(model,{x,y,z},0,()=>this.world.spawnScriptVehicle(model,{x,y,z},0,comps)):this.vehicles.create(model,{x,y,z});
+    return this.forCleanup(this.cleanupVehicles,handle);
+   },
+   // SET_CAR_MODEL_COMPONENTS: CVehicleModelInfo::SetComponentsToUse, the next instance's two extras (-1 none).
+   setVehicleModelComponents:(_model,first,second)=>{this.componentsToUse=[first,second];},
    vehicleExists:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
    // A car still being built holds the command that needs it until it is there.
    awaitVehicle:handle=>{if(handle!==PLAYER_VEHICLE_HANDLE&&this.vehicles.exists(handle)&&!this.vehicles.settledFor(handle))throw new ScmEntityPending(`vehicle ${handle}`);},
@@ -1767,6 +1775,8 @@ export class ScmMission {
  private leaveCarNow(handle:number,vehicle:number|undefined,opcode:number){
   const ride=this.peds.rideOf(handle);
   if(!ride||ride.offset||vehicle!==undefined&&vehicle!==ride.vehicle)return false;
+  // A car deleted with the ped still in it leaves the ped where it sat.
+  if(!this.vehicles.exists(ride.vehicle)){this.stopDriving(handle);this.peds.detachFromCar(handle,this.peds.positionOf(handle));return true;}
   const car=this.liveVehicle(ride.vehicle);
   const at=this.host('scriptVehicleSeatDoor','TASK_LEAVE_CAR')(car,ride.seat);
   if(!at)throw new UnsupportedScmCommand(opcode,0,'A_SEAT_WITHOUT_A_DOOR',String(ride.seat));
@@ -1942,6 +1952,8 @@ export class ScmMission {
  }
  /** CRunningScript::SetCharCoordinates on the player: CWorld::PutToGroundIfTooLow first (a z at or below
   * MAP_Z_LOW_LIMIT is the ground there). The group teleport that warpGang asks for is not modelled. */
+ /** CVehicleModelInfo::ms_compsToUse, until the next car the script makes takes it. */
+ private componentsToUse?:[number,number];
  /** GetPedOrItsVehicle for a touching question: the vehicle a ped sits in (not one it is only held on), else the ped. */
  private touchEntityOfPed(handle:number):ScmTouchEntity{
   if(handle===PLAYER_PED_HANDLE){const car=this.world.playerPed().vehicle?this.world.playerVehicleEntity?.():undefined;return car!==undefined?{kind:'vehicle',entity:car}:{kind:'player'};}

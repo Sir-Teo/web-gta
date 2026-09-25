@@ -266,9 +266,10 @@ export class WorldFleet {
   * a z at or below the map's low limit dropped to the ground first, lifted off the base of its model, kept from
   * removal, engine off and abandoned. Unlike the traffic spawn it does not refuse a spot that is taken: the original
   * clears the space with CTheScripts::ClearSpaceForMissionEntity rather than declining to make the car. */
- async spawnScriptCar(modelId:number,position:{x:number;y:number;z:number},heading:number){
+ async spawnScriptCar(modelId:number,position:{x:number;y:number;z:number},heading:number,componentsToUse?:readonly [number,number]){
   const catalog=await this.catalogReady;
   const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z),raining:this.raining?.()??false,playerColours:this.playerColours()});
+  assets.componentsToUse=componentsToUse;
   if(this.disposed)return undefined;
   let ground=position.y;
   if(ground<=MAP_Z_LOW_LIMIT){
@@ -288,9 +289,9 @@ export class WorldFleet {
   * its own class, set down the same way as a car (a point at or below the map's low limit dropped to the ground,
   * then lifted off the base of its model) and kept as the mission's. Other kinds (trains are made by
   * CREATE_MISSION_TRAIN) are not built. */
- async spawnScriptVehicle(modelId:number,position:{x:number;y:number;z:number},heading:number){
+ async spawnScriptVehicle(modelId:number,position:{x:number;y:number;z:number},heading:number,componentsToUse?:readonly [number,number]){
   const catalog=await this.catalogReady,definition=catalog.definitions.find(v=>v.id===modelId);
-  if(!definition||!(PLAYABLE_BIKES[modelId]||PLAYABLE_BOATS[modelId]||PLAYABLE_PLANES[modelId]))return this.spawnScriptCar(modelId,position,heading);
+  if(!definition||!(PLAYABLE_BIKES[modelId]||PLAYABLE_BOATS[modelId]||PLAYABLE_PLANES[modelId]))return this.spawnScriptCar(modelId,position,heading,componentsToUse);
   const assets=PLAYABLE_BIKES[modelId]?await loadFixedWorldBike(catalog,{modelId,primaryColor:-1,secondaryColor:-1}):await catalog.load(modelId);
   if(this.disposed)return undefined;
   const bounds=assets.collision?.bounds;if(!bounds)return undefined;

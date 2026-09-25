@@ -3930,9 +3930,9 @@ async function boot() {
                   const body=car instanceof WorldTrain?car.body:(car as ScriptCar|undefined)?.car?.body;if(!body)return;
                   for(let i=0;i<body.numColliders();i++)body.collider(i).setEnabled(state);
                  },
-                 spawnScriptVehicle:async(model,position,heading)=>{
+                 spawnScriptVehicle:async(model,position,heading,componentsToUse)=>{
                   if(!fleet||typeof model!=='number')return undefined;
-                  return await fleet.spawnScriptVehicle(model,{x:position.x,y:position.z,z:-position.y},scriptCarRotation(heading)).catch(()=>undefined);
+                  return await fleet.spawnScriptVehicle(model,{x:position.x,y:position.z,z:-position.y},scriptCarRotation(heading),componentsToUse).catch(()=>undefined);
                  },
                  // The script's (x, y, z) is the renderer's (x, z, -y), the player's feet on z. In a car, the car goes with
                  // him, its centre of mass GetDistanceFromCentreOfMassToBaseOfModel above the point.
