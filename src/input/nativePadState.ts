@@ -88,6 +88,9 @@ const BINDINGS:readonly (readonly [PadAction,readonly string[]])[]=[
  ['PED_LOOKBEHIND',['MouseMiddle']],['PED_JUMPING',['Space']],['PED_SPRINT',['ShiftLeft','ShiftRight']],['PED_DUCK',['KeyC']],
  ['PED_SNIPER_ZOOM_IN',['PageUp','KeyX']],['PED_SNIPER_ZOOM_OUT',['PageDown','KeyZ']],['VEHICLE_ENTER_EXIT',['KeyF']],
  ['CAMERA_CHANGE_VIEW_ALL_SITUATIONS',['KeyV','Home']],
+ // The PC default for CONVERSATION_YES (the D-pad right: answering yes, and the trip skip SKIP_1 names). NO's default,
+ // N, is the port's radio tuning.
+ ['CONVERSATION_YES',['KeyY']],
  ['VEHICLE_FIRE_WEAPON',['MouseFire','ControlLeft','ControlRight']],['VEHICLE_LOOKBEHIND',['MouseMiddle']],
  ['VEHICLE_LOOKLEFT',['KeyQ']],['VEHICLE_LOOKRIGHT',['KeyE']],['VEHICLE_HORN',['CapsLock','KeyH']],['VEHICLE_HANDBRAKE',['Space']],
  ['VEHICLE_ACCELERATE',['KeyW','ArrowUp']],['VEHICLE_BRAKE',['KeyS','ArrowDown']],

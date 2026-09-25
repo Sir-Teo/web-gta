@@ -290,6 +290,10 @@ export interface ScmMissionWorld {
  gangWarFightingGoingOn?():boolean;
  /** CEntity::SetAreaCode for a car. */
  setScriptVehicleArea?(car:unknown,area:number):void;
+ /** CGameLogic::SetUpSkip (a native point and heading in degrees), ClearSkip(false) and IsSkipWaitingForScriptToFadeIn. */
+ setUpScriptSkip?(position:readonly [number,number,number],heading:number,afterMission:boolean,vehicle:unknown,finishedByScript:boolean):void;
+ clearScriptSkip?():void;
+ isScriptSkipWaitingForFadeIn?():boolean;
  /** The car path areas CPathFind has loaded, or nothing before any have. */
  carPathAreas?():ReadonlyMap<number,PathArea>|undefined;
  /** CVehicle::m_pLastDamageEntity and m_nLastWeaponDamageType, as the browser's own objects, and their clearing. */
@@ -858,6 +862,13 @@ export class ScmMission {
    pedIsSwimming:handle=>handle===PLAYER_PED_HANDLE?this.host('playerSwimming','IS_CHAR_SWIMMING')()
     :this.host('scriptPedSwimming','IS_CHAR_SWIMMING')(this.livePed(handle)),
    isGangWarFightingGoingOn:()=>this.host('gangWarFightingGoingOn','IS_GANG_WAR_FIGHTING_GOING_ON')(),
+   // The trip skip's four set-ups: after a mission, or for a named vehicle, or for one the script finishes off.
+   setUpSkip:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP')([x,y,z],heading,false,undefined,false);},
+   setUpSkipAfterMission:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP_AFTER_MISSION')([x,y,z],heading,true,undefined,false);},
+   setUpSkipForSpecificVehicle:(x,y,z,heading,car)=>{this.host('setUpScriptSkip','SET_UP_SKIP_FOR_SPECIFIC_VEHICLE')([x,y,z],heading,false,this.liveVehicle(car),false);},
+   setUpSkipForVehicleFinishedByScript:(x,y,z,heading,car)=>{this.host('setUpScriptSkip','SET_UP_SKIP_FOR_VEHICLE_FINISHED_BY_SCRIPT')([x,y,z],heading,false,this.liveVehicle(car),true);},
+   clearSkip:()=>{this.host('clearScriptSkip','CLEAR_SKIP')();},
+   isSkipWaitingForScriptToFadeIn:()=>this.host('isScriptSkipWaitingForFadeIn','IS_SKIP_WAITING_FOR_SCRIPT_TO_FADE_IN')(),
    // The car watches CTheScripts::Process runs. They ask only about a car the browser has built: one still streaming
    // in has no driver in its seat, so the stuck check starts again from where it stands.
    vehicleHasDriver:handle=>{

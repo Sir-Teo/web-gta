@@ -171,7 +171,7 @@ import {bindLocalObjectData} from './ui/localObjectData';
 import {bindLocalSunTexture} from './ui/localSunTexture';
 import { NativeMap } from './ui/NativeMap';
 import { Hud } from './ui/Hud';
-import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, type GameLogicWorld } from './simulation/nativeGameLogic';
+import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, type GameLogicWorld, type SkipWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
 import { NativeBirds, sampledDistanceToWater } from './world/nativeBirds';
@@ -612,6 +612,7 @@ async function boot() {
   const nativePlayerPosition=():[number,number,number]=>[sim.player.position.x,-sim.player.position.z,sim.player.position.y];
   const nativeLevelAt=(p:readonly [number,number,number])=>worldZones?worldLevelAt(worldZones,[p[0],p[1],p[2]]):LEVEL_COUNTRYSIDE;
   const gameLogicWorld:GameLogicWorld={
+   setPadCamera:held=>{skipPadCamera=held;},
     playerOnAMission:()=>!!mission?.playerOnAMission(),
    isPlayerDead:()=>sim.player.health<=0,
    isPlayerArrested:()=>arrested,
@@ -660,8 +661,48 @@ async function boot() {
    // CPlayerInfo's bust lines need the engine-wide CRT stream, which the
    // browser does not share yet, so no line is selected.
   };
+  // CGameLogic's trip skip reaches the world through this. CPad::IsDPadRightPressed is the frame's own edge, kept
+  // below each frame from the pad the held keys make.
+  let skipButtonDown=false,skipButtonPressed=false,skipPadCamera=false,tripSkipHelpShown=false;
+  // CPad::DisablePlayerControls: the script's SET_PLAYER_CONTROL, or bCamera while a trip skip moves the player.
+  const playerControlsDisabled=()=>mission?.playerControl===false||skipPadCamera;
+  const skipWorld:SkipWorld={
+   canSeeOutside:()=>render.lighting.area===0,
+   isFading:()=>cameraFade.fading,
+   // FindPlayerVehicle when it is a car, bike, monster truck, quad or BMX.
+   playerRoadVehicle:()=>worldCar?.occupied?worldCar:fleet?.occupied??fleet?.occupiedBike??undefined,
+   playerSwimming:()=>sim.player.swimming,
+   playerLeavingCar:()=>carEntry.phase==='waitSlow'||carEntry.phase==='getOut'||carEntry.phase==='closeOutside'||carEntry.phase==='jumpOut'||carEntry.phase==='getUp'||carEntry.phase==='crawlOut',
+   skipButtonJustPressed:()=>skipButtonPressed,
+   setPadCamera:held=>{skipPadCamera=held;},
+   fade:(direction,seconds)=>gameLogicWorld.fade(direction,seconds),
+   // CMessages::AddBigMessage(TheText.Get("SKIP"), 4500, STYLE_BOTTOM_RIGHT).
+   showSkipMessage:()=>{mission?.runtime.game.messages.addBigMessage2('SKIP',4500,1,false,gameTimeMs);},
+   clearHudMessage:()=>{hud.message('');},
+   // UpdateSkip's move, in native coordinates.
+   teleportForSkip:(position,headingDegrees)=>{
+    const [x,y,z]=position,hit=sim.world.castRay(new RAPIER.Ray({x,y:z+50,z:-y},{x:0,y:-1,z:0}),150,true,RAPIER.QueryFilterFlags.ONLY_FIXED),ground=hit?z+50-hit.timeOfImpact:z;
+    const car=worldCar?.occupied?worldCar:fleet?.occupied,bike=fleet?.occupiedBike;
+    if(car||bike){
+     const body=car?car.car.body:bike!.body,yaw=scriptCarRotation(headingDegrees);
+     if(car)fleet?.clearSpaceFor({x,y:ground-car.nativeBody.boundsMin.z,z:-y},yaw,car.assets.collision.bounds);
+     // Teleport, SetHeading and PlaceOnRoadProperly: the wheels on the road at the point, then rolling on at the
+     // forward over 2.5 units a frame, the camera behind.
+     const lift=car?-car.nativeBody.boundsMin.z:1;
+     body.setTranslation({x,y:ground+lift,z:-y},true);body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
+     body.setLinvel({x:-Math.sin(yaw)*20,y:0,z:-Math.cos(yaw)*20},true);body.setAngvel({x:0,y:0,z:0},true);
+     render.yaw=yaw;
+    }else{
+     sim.player.position={x,y:ground,z:-y};sim.player.previous={...sim.player.position};sim.player.speed=0;
+     sim.playerBody.setTranslation({x,y:ground+.9,z:-y},true);sim.playerBody.setNextKinematicTranslation({x,y:ground+.9,z:-y});sim.playerCollider.setTranslation({x,y:ground+.9,z:-y});
+    }
+    fleet?.generateEvenIfClose();
+   },
+   playerPosition:()=>nativePlayerPosition(),
+   passTime:minutes=>gameLogicWorld.passTime(minutes),
+  };
   const arsenal=new Arsenal(hud.element,weapons);
-  void afterStartPackage.then(()=>loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint','radarRingPlane','fist',...NativeMap.blipSpriteNames()])).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);hud.fistIcon=sprites.fist;}).catch(()=>{});
+  void afterStartPackage.then(()=>loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint','radarRingPlane','fist','skipicon',...NativeMap.blipSpriteNames()])).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);hud.fistIcon=sprites.fist;hud.skipIcon=sprites.skipicon;}).catch(()=>{});
   arsenal.onSelect=id=>{void weaponView.equip(id);};
   arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);};
   render.shadowReceivers=(footprint,projection)=>{
@@ -883,7 +924,7 @@ async function boot() {
           // stands in for CColStore::HasCollisionLoaded.
           groundZ:(x,y,z)=>markerGround(x,y,z),collisionLoaded:(x,y)=>markerGround(x,y,1000)!==undefined,
           waterNoWaves:(x,y)=>render.lighting.water.levels?.levelNoWaves(x,y)};
-        if(entryExits&&!interiorTransfer)for(const {enex,position} of entryExits.markers(cam,[f.x,-f.z],render.lighting.area,Math.floor(sim.timeMinutes/60)%24,q=>visible(q,1),mission?.playerControl===false))
+        if(entryExits&&!interiorTransfer)for(const {enex,position} of entryExits.markers(cam,[f.x,-f.z],render.lighting.area,Math.floor(sim.timeMinutes/60)%24,q=>visible(q,1),playerControlsDisabled()))
           markers3d.placeMarkerCone(enex.index+1,position,2,255,255,0,255,1024,1,5,false,cam,ctx);
         // CRadar::Draw3dMarkers (from CHud::Draw, not in widescreen): cones over blipped things, cylinders at contact points.
         if(mission&&!mission.runtime.game.widescreenOn)for(const m of mission.radarMarkers(render.lighting.area!==0)){
@@ -1945,7 +1986,7 @@ async function boot() {
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
       if(planeExitReady)fleet!.occupiedPlane!.exitPending=false;
       // CPad::DisablePlayerControls (SET_PLAYER_CONTROL off): every pad query answers 0, the exit button included.
-      if(!sim.climbing&&(input.consume('KeyF')&&mission?.playerControl!==false||planeExitReady)&&!law.arrested){
+      if(!sim.climbing&&(input.consume('KeyF')&&!playerControlsDisabled()||planeExitReady)&&!law.arrested){
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.
         if(sim.jetPack){/* the jetpack task owns the button */}
         else if(sim.player.swimming){hud.message('Get out of the water first.');}
@@ -2007,7 +2048,7 @@ async function boot() {
        // one flagged for crouch-fire; PlayerControlDucked stands the player up once it fails.
        const duckable=()=>{const info=weapons.inventory.info(),w=weapons.inventory.weapon;const moving=sim.player.moveBlend>1&&!sim.player.crouched;
         return !moving&&(w.kind==='melee'||w.id===41||!info||info.fire==='melee'||info.fire==='use'||!!(info.flags&WEAPON_FLAG.crouchFire));};
-       if (input.consume('KeyC')&&mission?.playerControl!==false&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling&&(sim.player.crouched||duckable())) { sim.toggleCrouch(); }
+       if (input.consume('KeyC')&&!playerControlsDisabled()&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling&&(sim.player.crouched||duckable())) { sim.toggleCrouch(); }
        else if(sim.player.crouched&&!duck.rolling&&!duckable())sim.setCrouched(false);
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
@@ -2051,7 +2092,7 @@ async function boot() {
           // CBike counts four wheel contact points.
           if(statFrameDue&&bike?.motorbike){const v=bike.body.linvel();statReactions.onMotorBike(1000/30,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
          }
-         if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),mission?.playerControl===false||game.widescreenOn||!!navigation?.open||arsenal.open,{
+         if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),playerControlsDisabled()||game.widescreenOn||!!navigation?.open||arsenal.open,{
           fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>{game.stats.decrement(21,v);displayStatUpdate(false,21,v);},decrementMuscle:v=>{game.stats.decrement(23,v);displayStatUpdate(false,23,v);},
           hurt:v=>{sim.player.health-=v;},rumble:()=>{game.pads.startShake(0,400,110,0,gameTimeMs);},helpMessage:()=>hud.help(gxtHudText(gxtText('NOTEAT',"You're hungry. Eat something to keep your strength up."))),
          });}
@@ -2062,6 +2103,13 @@ async function boot() {
         importedScene?.advanceUvAnimations(step);
         cameraFade.process(step);
         gameLogic.update(gameTimeMs,previousGameTimeMs,gameLogicWorld,CITY_UNLOCKED,nativeLevelAt);
+        // CGameLogic::Update then UpdateSkip, with the D-pad right's edge for this frame; CHud::DrawTripSkip while a skip
+        // can be taken (SKIP_1's help the first time it shows).
+        {const down=!!mission&&mission.runtime.game.pads.pads[0].dpadRight>0;skipButtonPressed=down&&!skipButtonDown;skipButtonDown=down;}
+        gameLogic.updateSkip(gameTimeMs,skipWorld);
+        {const canSkip=gameLogic.skipCanBeActivated(skipWorld);
+         if(canSkip&&!tripSkipHelpShown){tripSkipHelpShown=true;hud.help(gxtHudText(gxtText('SKIP_1','')),5000);}else if(!canSkip)tripSkipHelpShown=false;
+         hud.tripSkip(canSkip,canSkip?gxtHudText(gxtText('FEC_TSK','TRIP SKIP')):'');}
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined);
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
         const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!entryBusy&&!bikeMount.active&&(!carEntry.active||carEntry.phase==='approach');
@@ -2074,17 +2122,17 @@ async function boot() {
         const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
         // The first-person weapon modes ignore weapon cycling; the wheel zooms instead (up zooms in).
         if(render.firstPerson){if(next||previous)render.zoomInput.notch=previous?1:-1;}
-        else if(onFoot&&!sim.jetPack&&mission?.playerControl!==false&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
+        else if(onFoot&&!sim.jetPack&&!playerControlsDisabled()&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
         // SA has no reload control: CWeapon::Fire reloads when a clip runs out.
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight'),click=input.consume('MouseClick');
         // The left button fires whenever it is not dragging the camera: aiming, under pointer lock, or a short click.
         const mouseFires=weapons.aiming||document.pointerLockElement===canvas;
         // CPad::GetWeapon is the held button: every gun keeps firing at its own rate while it is down.
         const held=weapons.inventory.weapon.automatic||['bullet','shotgun','rocket','guided','camera'].includes(weapons.inventory.weapon.kind);
-        const firing=mission?.playerControl===false?false:held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key);
+        const firing=playerControlsDisabled()?false:held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key);
         // The minigun's use-gun task runs while it is aimed or fired: its barrel spins up, and spins dry without a shot.
         {const miniUse=onFoot&&weapons.inventory.selected===38&&(weapons.aiming||firing);weaponView.stepGunSpin(step,miniUse);if(miniUse&&!firing)sound.nativeEngine?.minigunSpin();}
-        {const justDown=mouseFires&&mouse||click||key;if(justDown&&onFoot&&mission?.playerControl!==false&&!sim.player.swimming){const fail=weapons.fireFailEvent();if(fail!==undefined)sound.frontend(fail);}}
+        {const justDown=mouseFires&&mouse||click||key;if(justDown&&onFoot&&!playerControlsDisabled()&&!sim.player.swimming){const fail=weapons.fireFailEvent();if(fail!==undefined)sound.frontend(fail);}}
         // CTaskSimplePlayerOnFoot's weapon control does not run under the climb task.
         // No gun fires while the player sprints (m_nMoveState != PEDMOVE_SPRINT); a sprinting swing is the moving attack.
         // Aimed without bMoveFire, a gun waits for m_MoveCmd to settle before it fires (CTaskSimpleUseGun::StartAnim).
@@ -2185,7 +2233,7 @@ async function boot() {
           fistWeapon:()=>([WEAPON.unarmed,WEAPON.brassKnuckle,WEAPON.golfClub,WEAPON.knife] as number[]).includes(weapons.inventory.selected),
           // CTaskSimpleShakeFist: ANIM_ID_FUCKU from the default group.
           shakeFist:()=>{const view=render.nativeCharacter;if(view&&!view.reactionName&&view.hasReaction('fucku'))view.playReaction('fucku');}})){playerCarHits.contacts++;if(hit.hurt){playerCarHits.hurt++;playerCarHits.hurtBy=hit.response.event.kind;}playerCarHits.last=hit.response.event.kind;}
-        const controlsOff=mission?.playerControl===false;
+        const controlsOff=playerControlsDisabled();
         const axes = law.arrested||weapons.stealth||entryBusy||controlsOff?{x:0,y:0}:input.axes();
         let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy&&!controlsOff;
         // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint or a jump press stands a crouched CJ up
@@ -2248,7 +2296,7 @@ async function boot() {
           steerUpDown:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),accelerate:input.down('KeyW')};hornHeldLast=horn;}
         // CObject::ProcessControl once a 30 fps game frame: the exploded props' roll and loose props settling static again.
         for(explodedClock+=step;explodedClock>=1/30;explodedClock-=1/30){hideExplodedProps();importedScene?.settleMoving();}
-        for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=mission?.playerControl===false;car.pad=car.occupied&&mission?.playerControl!==false?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
+        for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=playerControlsDisabled();car.pad=car.occupied&&!playerControlsDisabled()?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
@@ -2347,7 +2395,7 @@ async function boot() {
           const p=sim.player.position;
           // CPlayerPed::CanPlayerStartMission: in control, no attack task, alive. Vehicles are not teleported yet.
           const canStart=onFoot&&sim.player.health>0&&!law.arrested&&!sim.climbing&&sim.player.grounded&&!weapons.aiming&&!sim.player.swimming&&sim.knockdown===0&&sim.deathRemaining===0;
-          entryExits.update({position:[p.x,-p.z,p.y+1],vehicle:onFoot?undefined:{type:'other',big:false},canStartMission:canStart},Math.floor(sim.timeMinutes/60)%24,mission?.playerControl===false);
+          entryExits.update({position:[p.x,-p.z,p.y+1],vehicle:onFoot?undefined:{type:'other',big:false},canStartMission:canStart},Math.floor(sim.timeMinutes/60)%24,playerControlsDisabled());
          }
         }
         // CPickup::Update: only a bribe can be taken from a vehicle, any vehicle (IsSphereTouchingVehicle); the rest need
@@ -3431,6 +3479,9 @@ async function boot() {
                  // The world's peds do not swim: in deep water they drown.
                  scriptPedSwimming:()=>false,
                  gangWarFightingGoingOn:()=>!!gangWars?.gangWarFightingGoingOn(),
+                 setUpScriptSkip:(position,heading,afterMission,vehicle,finishedByScript)=>{gameLogic.setUpSkip(position,heading,afterMission,vehicle,finishedByScript,gameTimeMs,skipWorld);},
+                 clearScriptSkip:()=>{gameLogic.clearSkip(false,skipWorld);},
+                 isScriptSkipWaitingForFadeIn:()=>gameLogic.isSkipWaitingForScriptToFadeIn(),
                  carPathAreas:()=>scriptCars.pathAreas({x:sim.player.position.x,z:sim.player.position.z}),
                  scriptVehicleLastDamagedBy:car=>(car as ScriptCar).lastDamagedBy,
                  scriptVehicleLastWeaponDamage:car=>(car as ScriptCar).lastWeaponDamage,

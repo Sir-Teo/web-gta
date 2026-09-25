@@ -116,3 +116,11 @@ test('KillPlayer and ArrestPlayer each end a gang war in progress and count thei
  const busted=fixture();busted.state.arrested=true;busted.state.wanted=2;busted.step(1000,980);
  expect(busted.named('endGangWar')).toHaveLength(1);expect(busted.named('stat')).toEqual([['stat',133,1]]);
 });
+
+test('a resurrection clears any trip skip, after-mission ones too, and lets the pad go',()=>{
+ const f=fixture(),held:boolean[]=[];f.world.setPadCamera=h=>{held.push(h);};
+ f.logic.setUpSkip([1,2,3],0,true,undefined,false,0);
+ f.state.dead=true;f.step(1000,980);f.step(4001,3999);f.state.fading=false;f.state.dead=false;
+ expect(f.step(6000,5900)).toBe(GAMELOGIC_STATE_PLAYING);
+ expect(f.logic.canPlayerTripSkip()).toBe(false);expect(held).toEqual([false]);
+});

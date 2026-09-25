@@ -69,6 +69,7 @@ export class Hud {
       <div class="prompt" role="status" aria-live="polite"></div>
       <div class="help-box" role="status" aria-live="polite" hidden></div>
       <div class="mission-timers" hidden></div>
+      <div class="trip-skip" hidden><img alt=""><span></span></div>
       <div class="stat-update" hidden><span class="stat-name"></span> <b class="stat-sign"></b><div class="stat-bar"><i></i></div></div>
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>TAB</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
@@ -237,7 +238,20 @@ export class Hud {
       void el.offsetWidth; el.style.transition = 'opacity 638ms linear'; el.style.opacity = '1';
     }
   }
-  menuMessage(text: string) { this.element.querySelector('.menu-message')!.textContent = text; }
+  /** CHud::DrawTripSkip: the skip icon (hud.txd skipicon) and its label (FEC_TSK) above the radar while
+   * CGameLogic::SkipCanBeActivated holds. */
+  skipIcon?: string;
+  tripSkip(show: boolean, label = '') {
+    const el = this.element.querySelector<HTMLElement>('.trip-skip')!;
+    if (el.hidden === !show && (!show || el.querySelector('span')!.textContent === label)) return;
+    el.hidden = !show;
+    if (!show) return;
+    const img = el.querySelector('img')!;
+    if (this.skipIcon && img.getAttribute('src') !== this.skipIcon) img.src = this.skipIcon;
+    img.hidden = !this.skipIcon;
+    el.querySelector('span')!.textContent = label;
+  }
+    menuMessage(text: string) { this.element.querySelector('.menu-message')!.textContent = text; }
   /** Whether a message the script put up is still on screen, which is what IS_MESSAGE_BEING_DISPLAYED asks:
    * CHud's big message, or the prompt line the text commands write. */
   get messageShowing(){return !!this.prompt.textContent||!this.element.querySelector<HTMLElement>('.big-message')!.hidden;}

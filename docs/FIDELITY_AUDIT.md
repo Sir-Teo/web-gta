@@ -7322,3 +7322,23 @@ Each is now answered:
 - SWITCH_CAR_GENERATOR on a slot nothing had set up threw "index out of range". CTheCarGenerators::Get indexes the
   whole 500-slot array, so such a slot is an unused generator: the switch changes it to no effect. An index past the
   array still fails.
+
+## Trip skip
+
+- CGameLogic's trip skip, reversed in gta-reversed GameLogic.cpp, is kept in nativeGameLogic.ts. SET_UP_SKIP,
+  SET_UP_SKIP_AFTER_MISSION, SET_UP_SKIP_FOR_SPECIFIC_VEHICLE, SET_UP_SKIP_FOR_VEHICLE_FINISHED_BY_SCRIPT, CLEAR_SKIP
+  and IS_SKIP_WAITING_FOR_SCRIPT_TO_FADE_IN had no answer; the taxi, courier and many mission retries use them.
+- UpdateSkip runs after CGameLogic::Update each frame:
+  - a skip on offer lapses after 35 seconds, or once the player comes within 25 units of its point;
+  - while SkipCanBeActivated (outside, not fading, in a road vehicle, the named one if any; an after-mission skip also
+    takes a swimming player) CHud::DrawTripSkip shows the skip icon and "Trip Skip", with SKIP_1's help once;
+  - CONVERSATION_YES (the D-pad right; Y on the PC) fades out over 2.5 seconds with SKIP in the bottom-right style.
+    Three seconds on, the player's car is set down at the point with the heading, rolling on, and the clock passes
+    distance/20 + 23 minutes. Then it fades back in, or waits for the script if the script finishes the skip.
+- gta-reversed's SetUpSkip stores neither the heading nor the vehicle, which UpdateSkip and SkipCanBeActivated then
+  read. Both are kept, since the arguments exist for them.
+- ClearSkip(false) ends any skip, after-mission ones included. It runs when a mission launches
+  (LOAD_AND_LAUNCH_MISSION_INTERNAL) and when the player is resurrected after being wasted or busted
+  (RestorePlayerStuffDuringResurrection).
+- While the skip moves the player, CPad::bCamera holds DisablePlayerControls, as SET_PLAYER_CONTROL off does. The
+  port's control checks read both.

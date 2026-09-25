@@ -11,6 +11,12 @@
 .widescreen-border{position:absolute;left:0;right:0;background:#000;pointer-events:none}.widescreen-border.top{top:0;height:calc(15vh - 22 / 448 * 100vh)}.widescreen-border.bottom{bottom:0;height:calc(15vh + 14 / 448 * 100vh)}.widescreen-border[hidden]{display:none}
 .script-hud-off .status,.script-hud-off .bars,.script-hud-off .wanted-status{visibility:hidden}
 .widescreen .status,.widescreen .bars,.widescreen .wanted-status,.widescreen .vehicle-name,.widescreen .location,.widescreen .native-navigation,.widescreen .weapon-crosshair,.widescreen .radar-altimeter,.widescreen .radar-altimeter-mark{visibility:hidden}
+/* CHud::DrawTripSkip over the 640 x 448 frame: the icon from (54, 448-189) to (118, 448-125), the label centred on
+   x = 86 at y = 448-127, FONT_MENU at 0.3 by 0.7, light grey with a one-pixel black edge. */
+.trip-skip{position:absolute;left:8.4375%;top:57.8125%;width:10%;height:14.2857%;pointer-events:none}
+.trip-skip img{width:100%;height:100%;image-rendering:auto}
+.trip-skip span{position:absolute;left:50%;top:calc(100% - 0.4464%);transform:translate(-50%,0);white-space:nowrap;
+ font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:calc(0.7 * 16 / 448 * 100vh);line-height:1;color:rgb(225,225,225);text-shadow:1px 1px 0 #000}
 .big-message{position:absolute;left:50%;top:34%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;white-space:nowrap}
 .white-middle-message{position:absolute;left:50%;top:calc(50% - 30 / 448 * 100%);transform:translate(-50%,-100%);transform-origin:50% 100%;font-family:Unifraktur,Georgia,serif;font-weight:700;line-height:1;color:#e1e1e1;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:3px 3px 0 #000;white-space:nowrap;pointer-events:none}
 .white-middle-message[hidden]{display:none}.white-middle .location{visibility:hidden}

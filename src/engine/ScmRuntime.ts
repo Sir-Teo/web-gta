@@ -84,6 +84,8 @@ export class ScmRuntime {
   new Uint8Array(this.missionLocals.buffer).fill(0);
   this.start(MAIN_SCRIPT_SIZE,[],{base:MAIN_SCRIPT_SIZE,mission:true});
   this.game.alreadyRunningAMissionScript=true;
+  // LoadAndLaunchMissionInternal ends any trip skip on offer: CGameLogic::ClearSkip(false).
+  this.world?.clearSkip?.();
  }
  /** TerminateAllScriptsWithThisName (ScriptCommands.cpp): case-insensitive. */
  terminateAllWithName(name:string){
