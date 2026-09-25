@@ -17,7 +17,7 @@ test('a script ped in the player\'s group follows him, holds for a scripted task
  await w('setGroupMember',group,ped);
  // The player moves 20 units along the street and back past his start: the ground the follower crosses is the
  // street it came along.
- const moveBy=(dx:number)=>page.evaluate(dx=>{const g=(window as any).__game,w=g.missionForProfiling().runtime.world,p=w.pedPosition(1);w.setPedCoordinates(1,p.x+dx,p.y,p.z);},dx);
+ const moveBy=(dx:number)=>page.evaluate(dx=>{const g=(window as any).__game,w=g.missionForProfiling().runtime.world,p=w.pedPosition(1);w.setPedCoordinatesDontWarpGang(1,p.x+dx,p.y,p.z);},dx);
  await moveBy(20);
  expect(await gap()).toBeGreaterThan(15);
  await expect.poll(gap,{timeout:30000}).toBeLessThan(5);
