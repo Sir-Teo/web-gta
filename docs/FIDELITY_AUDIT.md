@@ -7396,3 +7396,10 @@ Each is now answered:
 - ZERO5 retired on DISPLAY_CAR_NAMES, which had no answer. It is now CHud::bScriptDontDisplayVehicleName, inverted and
   kept in the engine. While it is off, CHud::Draw skips DrawVehicleName: nothing is drawn, and the name's fade clock
   waits.
+
+## A script car's matrix
+
+- The host built a script car's matrix with the body's local +z as forward. The car's front is its local -z, which
+  the player's own vehicle pose already used, so a car facing north reported forward as south, and the rows were
+  left-handed. GET_OFFSET_FROM_CAR_IN_WORLD_COORDS (and GET_OFFSET_FROM_CAR... for objects), and attachments to a
+  car, put every forward offset behind the car. Forward is now local -z: up = right x forward, as CMatrix has it.

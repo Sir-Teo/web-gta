@@ -3543,7 +3543,8 @@ async function boot() {
                    return {x:v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:v.z+q.w*t.z+q.x*t.y-q.y*t.x};
                   };
                   const native=(v:{x:number;y:number;z:number})=>({x:v.x,y:-v.z,z:v.y});
-                  return {right:native(rotate({x:1,y:0,z:0})),forward:native(rotate({x:0,y:0,z:1})),
+                  // The body's front is its local -z (as playerVehiclePose reads it), so up = right x forward holds.
+                  return {right:native(rotate({x:1,y:0,z:0})),forward:native(rotate({x:0,y:0,z:-1})),
                    up:native(rotate({x:0,y:1,z:0})),position:{x:p.x,y:-p.z,z:p.y}};
                  },
                  setScriptVehicleUpsideDownNotDamaged:(car,state)=>{if('noUpsideDownDamage' in (car as object))(car as ScriptCar).noUpsideDownDamage=state;},
