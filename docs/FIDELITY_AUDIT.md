@@ -7462,3 +7462,29 @@ Each is now answered:
 - FORCE_CAR_LIGHTS sets m_nOverrideLights, which now answers before GetVehicleLightsStatus. SET_CAR_COLLISION sets
   CEntity::m_bUsesCollision on the car's colliders. INTRO next needs the player riding as a passenger
   (WARP_CHAR_INTO_CAR_AS_PASSENGER on the player), which the port does not have yet.
+
+## A second mission sweep's stops
+
+- GIVE_PLAYER_CLOTHES takes the texture and model hashes as integers, which the script passes as 0 to take a part
+  off (HEIST9, BURGJB). They were read as names, and the thread stopped on "Unsupported SCM string variable". Only
+  the outside-shop form names them.
+- SET_CHAR_HAS_USED_ENTRY_EXIT on the player sets his m_pEnex to the entry exit nearest the point within the radius
+  (FindNearestEntryExit). Eleven casino, heist and mansion missions start with it. GET_NAME_OF_ENTRY_EXIT_CHAR_USED
+  and GET_POSITION_OF_ENTRY_EXIT_CHAR_USED read it back: the name, the entrance's centre and its angle.
+- CPedType's tables:
+  - SET_RELATIONSHIP had been recorded and never applied. With CLEAR_RELATIONSHIP, it now edits a ped type's
+    acquaintances (SetPedTypeAsAcquaintance, ClearPedTypeAsAcquaintance, both reversed).
+  - A ped copies its type's table when it needs its own. A ped of an edited type reads its type's table.
+  - IS_RELATIONSHIP_SET reads the table.
+- Engine switches:
+  - STORE_WANTED_LEVEL reads the engine's wanted level;
+  - SWITCH_AMBIENT_PLANES, SWITCH_STREAMING (ms_disableStreaming), SET_AREA51_SAM_SITE and SET_MESSAGE_FORMATTING
+    (bUseMessageFormatting with its margin and width) are kept;
+  - CAN_TRIGGER_GANG_WAR_WHEN_ON_A_MISSION is bCanTriggerGangWarWhenOnAMission, which AddKillToProvocation reads.
+- The gang wars' host had answered "not on a mission" to everything. It now asks IsPlayerOnAMission, as
+  CGangWars::Update and AddKillToProvocation do (INTRO still does not count).
+- GET_GROUP_SIZE is unreversed. It writes whether the group has a leader, then its members besides, in the order its
+  outputs are documented (the leader count had been written second). FIND_MAX_NUMBER_OF_GROUP_MEMBERS is
+  CStats::FindMaxNumberOfGroupMembers, and GET_CHAR_WEAPON_IN_SLOT is CPed::GetWeaponInSlot with
+  CPickups::ModelForWeapon.
+- LOAD_PATH_NODES_IN_AREA is answered: the browser keeps every node its paths stream in.

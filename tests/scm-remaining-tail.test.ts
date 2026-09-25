@@ -58,10 +58,10 @@ describe('the lookups that give back points',()=>{
   expect([readFloat(52),readFloat(56),readFloat(60)]).toEqual([1,2,3]);
  });
 
- test('the group size gives back both how many follow and who leads',()=>{
-  const {readInt}=run({groupSize:()=>({members:4,leader:12})},
+ test('the group size gives back whether it has a leader, then how many follow',()=>{
+  const {readInt}=run({groupSize:()=>({members:4,leader:1})},
    instruction(op('GET_GROUP_SIZE'),[int(3),gvar(40),gvar(44)]));
-  expect([readInt(40),readInt(44)]).toEqual([4,12]);
+  expect([readInt(40),readInt(44)]).toEqual([1,4]);
  });
 
  test('the plain colours are the first two of the four a vehicle carries',()=>{

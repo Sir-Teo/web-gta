@@ -23,6 +23,8 @@ export interface GangWarHost {
  /** The player's native position. */
  player():{x:number;y:number;z:number};
  playerOnMission():boolean;
+ /** CGangWars::bCanTriggerGangWarWhenOnAMission. */
+ canTriggerGangWarWhenOnAMission?():boolean;
  playerInAircraft():boolean;
  /** CWeather::WeatherRegion == LA: the defensive timer runs at full speed there. */
  weatherLA():boolean;
@@ -64,7 +66,7 @@ export class GangWars {
  constructor(private host:GangWarHost){this.timeTillNextAttack=this.calculateTimeTillNextAttack();}
  /** CGangWars::AddKillToProvocation: a Ballas or Vagos kill by the player on foot. */
  addKillToProvocation(gang:number|undefined){
-  if(this.host.playerOnMission())return;
+  if(!this.host.canTriggerGangWarWhenOnAMission?.()&&this.host.playerOnMission())return;
   if(gang!==GANG.ballas&&gang!==GANG.vagos)return;
   this.provocation+=1;
  }

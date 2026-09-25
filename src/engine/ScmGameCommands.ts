@@ -1780,7 +1780,8 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_HEATHAZE_EFFECT:(t,p,i)=>{world(t,i,'setHeatHazeEffect')(bool(t,p[0]));},
  ADD_SPARKS:(t,p,i)=>{world(t,i,'addSparks')(vec(t,p,0),vec(t,p,3),t.readInt(p[6]));},
  SWITCH_AUDIO_ZONE:(t,p,i)=>{game(t,i).audioZones.switch(t.text(p[0]),bool(t,p[1]));},
- CAN_TRIGGER_GANG_WAR_WHEN_ON_A_MISSION:(t,p,i)=>{world(t,i,'setCanTriggerGangWarWhenOnMission')(bool(t,p[0]));},
+ // CGangWars::bCanTriggerGangWarWhenOnAMission, which AddKillToProvocation reads.
+ CAN_TRIGGER_GANG_WAR_WHEN_ON_A_MISSION:(t,p,i)=>{game(t,i).canTriggerGangWarWhenOnAMission=bool(t,p[0]);},
  // CHud::bScriptDontDisplayVehicleName, inverted.
  DISPLAY_CAR_NAMES:(t,p,i)=>{game(t,i).displayVehicleName=bool(t,p[0]);},
  SET_TAG_STATUS_IN_AREA:(t,p,i)=>{
@@ -1908,7 +1909,8 @@ const handlers:Record<string,ScmCommandHandler>={
  STOP_BEAT_TRACK:(t,_p,i)=>{game(t,i).cutsceneTrack.stop();},
  // The PC build answers nought (reVC's GTA_PC branch without DETECT_PAD_INPUT_SWITCH): keyboard and mouse.
  GET_CONTROLLER_MODE:(t,p)=>{t.writeInt(p[0],0);},
- SWITCH_AMBIENT_PLANES:(t,p,i)=>{world(t,i,'switchAmbientPlanes')(bool(t,p[0]));},
+ // CPlane::SwitchAmbientPlanes (unreversed): whether ambient planes are generated. The browser generates none.
+ SWITCH_AMBIENT_PLANES:(t,p,i)=>{game(t,i).ambientPlanes=bool(t,p[0]);},
  SYNC_WATER:(t,_p,i)=>{world(t,i,'syncWater')();},
  DRAW_SPHERE:(t,p,i)=>{
   const point=vec(t,p,0);world(t,i,'drawSphere')(point.x,point.y,point.z,t.readFloat(p[3]));
@@ -2037,8 +2039,10 @@ const handlers:Record<string,ScmCommandHandler>={
  ENABLE_ENTRY_EXIT_PLAYER_GROUP_WARPING:(t,p,i)=>{
   world(t,i,'enableEntryExitPlayerGroupWarping')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),bool(t,p[3]));
  },
- SWITCH_STREAMING:(t,p,i)=>{world(t,i,'switchStreaming')(bool(t,p[0]));},
- SET_AREA51_SAM_SITE:(t,p,i)=>{world(t,i,'setArea51SamSite')(bool(t,p[0]));},
+ // CStreaming::ms_disableStreaming, inverted: the IPL and collision stores and the renderer stop asking for more.
+ SWITCH_STREAMING:(t,p,i)=>{game(t,i).disableStreaming=!bool(t,p[0]);},
+ // Whether Area 69's SAM site fires; nothing in the browser fires it yet.
+ SET_AREA51_SAM_SITE:(t,p,i)=>{game(t,i).area51SamSite=bool(t,p[0]);},
  SWITCH_POLICE_HELIS:(t,p,i)=>{world(t,i,'switchPoliceHelis')(bool(t,p[0]));},
  DISPLAY_ONSCREEN_TIMER:(t,p,i)=>{game(t,i).onscreenTimer.addClock(t.globalOffset(p[0]),undefined,t.readInt(p[1]));},
  CLEAR_EXTRA_COLOURS:(t,p,i)=>{world(t,i,'clearExtraColours')(bool(t,p[0]));},
@@ -2088,7 +2092,8 @@ const handlers:Record<string,ScmCommandHandler>={
  IMPROVE_CAR_BY_CHEATING:(t,p,i)=>{world(t,i,'improveVehicleByCheating')(t.readInt(p[0]),bool(t,p[1]));},
  SET_BOAT_CRUISE_SPEED:(t,p,i)=>{world(t,i,'setBoatCruiseSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
  SET_MESSAGE_FORMATTING:(t,p,i)=>{
-  world(t,i,'setMessageFormatting')(bool(t,p[0]),t.readInt(p[1]),t.readInt(p[2]));
+  // CTheScripts::bUseMessageFormatting with the margin and width the subtitle box takes.
+  const g=game(t,i);g.messageFormatting={on:bool(t,p[0]),margin:t.readInt(p[1]),width:t.readInt(p[2])};
  },
  HELI_FOLLOW_ENTITY:(t,p,i)=>{
   world(t,i,'heliFollowEntity')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]));
@@ -2133,8 +2138,9 @@ const handlers:Record<string,ScmCommandHandler>={
  SWITCH_COPS_ON_BIKES:(t,p,i)=>{game(t,i).disableCopBikes=!bool(t,p[0]);},
  // The group size gives back both how many follow and who leads.
  GET_GROUP_SIZE:(t,p,i)=>{
+  // Unreversed: whether the group has a leader, then its members besides the leader (CountMembersExcludingLeader).
   const size=world(t,i,'groupSize')(t.readInt(p[0]));
-  t.writeInt(p[1],size.members);t.writeInt(p[2],size.leader);
+  t.writeInt(p[1],size.leader);t.writeInt(p[2],size.members);
  },
  IS_PROJECTILE_IN_AREA:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'projectileIsInArea')(vec(t,p,0),vec(t,p,3)),negated(i));
@@ -2306,7 +2312,8 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_VEHICLE_DIRT_LEVEL:(t,p,i)=>{world(t,i,'setVehicleDirtLevel')(t.readInt(p[0]),t.readFloat(p[1]));},
  SWITCH_ARREST_PENALTIES:(t,p,i)=>{world(t,i,'switchArrestPenalties')(bool(t,p[0]));},
  SWITCH_DEATH_PENALTIES:(t,p,i)=>{world(t,i,'switchDeathPenalties')(bool(t,p[0]));},
- STORE_WANTED_LEVEL:(t,p,i)=>{t.writeInt(p[1],world(t,i,'storeWantedLevel')(t.readInt(p[0])));},
+ // FindPlayerWanted()->m_nWantedLevel.
+ STORE_WANTED_LEVEL:(t,p,i)=>{t.writeInt(p[1],game(t,i).wanted.level);},
  // The runtime's own table: the game's makers are always there, a script's while its slot still holds it.
  DOES_DECISION_MAKER_EXIST:(t,p,i)=>{t.updateCompareFlag(game(t,i).decisionMakers.actualIndex(t.readInt(p[0]))>=0,negated(i));},
  CONVERT_METRES_TO_FEET_INT:(t,p,i)=>{t.writeInt(p[1],world(t,i,'convertMetresToFeetInt')(t.readInt(p[0])));},
@@ -2375,6 +2382,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_OBJECT_RENDER_SCORCHED:(t,p,i)=>{world(t,i,'setObjectRenderScorched')(t.readInt(p[0]),bool(t,p[1]));},
  IS_PLAYER_PERFORMING_WHEELIE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerPerformingWheelie')(t.readInt(p[0])),negated(i));},
  IS_PLAYER_PERFORMING_STOPPIE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerPerformingStoppie')(t.readInt(p[0])),negated(i));},
+ // GetPedTypeAcquaintances(id, type) & GetPedFlag(other).
  IS_RELATIONSHIP_SET:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isRelationshipSet')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2])),negated(i));},
  CLEAR_RELATIONSHIP:(t,p,i)=>{world(t,i,'clearRelationship')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  GET_CLOSEST_STEALABLE_OBJECT:(t,p,i)=>{t.writeInt(p[4],world(t,i,'getClosestStealableObject')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3])));},
@@ -2497,10 +2505,11 @@ const handlers:Record<string,ScmCommandHandler>={
   const appearance=vehicle===undefined?undefined:world(t,i,'vehicleAppearance')(vehicle);
   t.updateCompareFlag(appearance===VEHICLE_APPEARANCE_HELI||appearance===VEHICLE_APPEARANCE_PLANE,negated(i));
  },
- // GIVE_PLAYER_CLOTHES is CPedClothesDesc::SetTextureAndModel by name. Its outside-shop twin takes the same
- // four operands and dresses the same description; the reference leaves that one's handler unregistered, so
- // what is kept beyond the dressing is that the script asked for it away from a shop.
- GIVE_PLAYER_CLOTHES:(t,p,i)=>{game(t,i).clothes.setTextureAndModel(t.text(p[1]),t.text(p[2]),t.readInt(p[3]));},
+ // GIVE_PLAYER_CLOTHES is CPedClothesDesc::SetTextureAndModel by key: its texture and model operands are the
+ // hashes themselves (the script passes 0 and 0 to take a part off). Its outside-shop twin names them, and dresses
+ // the same description; the reference leaves that one's handler unregistered, so what is kept beyond the dressing
+ // is that the script asked for it away from a shop.
+ GIVE_PLAYER_CLOTHES:(t,p,i)=>{game(t,i).clothes.setTextureAndModelKeys(t.readInt(p[1]),t.readInt(p[2]),t.readInt(p[3]));},
  GIVE_PLAYER_CLOTHES_OUTSIDE_SHOP:(t,p,i)=>{
   const state=game(t,i);state.clothes.setTextureAndModel(t.text(p[1]),t.text(p[2]),t.readInt(p[3]));
   state.clothesGivenOutsideShop++;

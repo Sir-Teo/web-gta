@@ -80,6 +80,17 @@ export interface ScmMissionWorld {
  setPlayerAmmo?(weaponType:number,ammo:number):void;
  addPlayerAmmo?(weaponType:number,ammo:number):void;
  hidePlayerWeapon?(hidden:boolean):void;
+ /** CPedType's acquaintance tables by ePedType index. */
+ setPedTypeRelationship?(relationship:number,pedType:number,otherPedType:number,on:boolean):void;
+ pedTypeRelationshipSet?(relationship:number,pedType:number,otherPedType:number):boolean;
+ /** CStats::FindMaxNumberOfGroupMembers. */
+ maxGroupMembers?():number;
+ /** CPed::GetWeaponInSlot for the player (no ped) or a script ped. */
+ pedWeaponInSlot?(ped:unknown,slot:number):{type:number;ammo:number;model:number};
+ /** The player's m_pEnex: set to the entry exit nearest a point, and read back (its name, its entrance's centre and
+  * its entrance angle in degrees). */
+ setPlayerUsedEntryExit?(x:number,y:number,radius:number):void;
+ playerEntryExit?():{name:string;position:readonly [number,number,number];heading:number}|undefined;
  /** CTrain for the mission trains: made from a type at the track nearest a native point, read and driven. */
  spawnMissionTrain?(type:number,position:{x:number;y:number;z:number},clockwise:boolean):Promise<unknown>;
  trainCarriageOf?(train:unknown,index:number):unknown;
@@ -603,7 +614,18 @@ export class ScmMission {
     }
     if(this.peds.rideOf(ped)===undefined)this.peds.setHeading(ped,degrees);
    },
-   setRelationship:(relationship,pedType,otherPedType)=>{this.relationships.push({relationship,pedType,otherPedType});},
+   // CPedType's tables: SET_RELATIONSHIP and CLEAR_RELATIONSHIP edit a ped type's acquaintances, which peds made
+   // after it copy.
+   setRelationship:(relationship,pedType,otherPedType)=>{this.relationships.push({relationship,pedType,otherPedType});this.world.setPedTypeRelationship?.(relationship,pedType,otherPedType,true);},
+   clearRelationship:(relationship,pedType,otherPedType)=>{this.world.setPedTypeRelationship?.(relationship,pedType,otherPedType,false);},
+   isRelationshipSet:(relationship,pedType,otherPedType)=>this.host('pedTypeRelationshipSet','IS_RELATIONSHIP_SET')(relationship,pedType,otherPedType),
+   // GET_GROUP_SIZE: whether the group has a leader, and its members besides.
+   groupSize:group=>{const g=this.groups.get(group);return {leader:g?.leader!==undefined?1:0,members:g?g.countFollowers():0};},
+   maxGroupMembers:()=>this.host('maxGroupMembers','FIND_MAX_NUMBER_OF_GROUP_MEMBERS')(),
+   // CPed::GetWeaponInSlot(slot): its type, total ammo and CPickups::ModelForWeapon.
+   pedWeaponInSlot:(handle,slot)=>this.host('pedWeaponInSlot','GET_CHAR_WEAPON_IN_SLOT')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),slot),
+   // CPathFind's area of nodes loaded for the script's cars. The browser keeps every node the paths stream in.
+   loadPathNodesInArea:()=>{},
    setLaRiots:active=>{this.laRiots=active;this.world.setLaRiots(active);},
    groundLevel:(x,y,z)=>this.world.groundLevel(x,y,z),
    // CEntity::GetDistanceFromCentreOfMassToBaseOfModel needs the model's own bounds, which the browser only
@@ -1059,7 +1081,17 @@ export class ScmMission {
    },
    // CPed's own fields, which the host holds for a ped it built.
    setPedWeaponSkill:(handle,skill)=>{this.world.setScriptPedSkill(this.livePed(handle),skill);},
-   setPedHasUsedEntryExit:handle=>{this.world.setScriptPedUsedEntryExit(this.livePed(handle));},
+   // The ped's m_pEnex: for the player, the nearest entry exit within the radius of the point (FindNearestEntryExit),
+   // whose door he then leaves an interior by.
+   setPedHasUsedEntryExit:(handle,x,y,radius)=>{
+    if(handle===PLAYER_PED_HANDLE)this.host('setPlayerUsedEntryExit','SET_CHAR_HAS_USED_ENTRY_EXIT')(x,y,radius);
+    else this.world.setScriptPedUsedEntryExit(this.livePed(handle));
+   },
+   getNameOfEntryExitCharUsed:handle=>handle===PLAYER_PED_HANDLE?this.host('playerEntryExit','GET_NAME_OF_ENTRY_EXIT_CHAR_USED')()?.name??'':(this.livePed(handle),''),
+   getPositionOfEntryExitCharUsed:handle=>{
+    const used=handle===PLAYER_PED_HANDLE?this.host('playerEntryExit','GET_POSITION_OF_ENTRY_EXIT_CHAR_USED')():(this.livePed(handle),undefined);
+    return used?{x:used.position[0],y:used.position[1],z:used.position[2],heading:used.heading}:{x:0,y:0,z:0,heading:0};
+   },
    // CAutoPilot's fields for a car the script made, which nothing drives here yet: they are the car's, kept
    // for the day something reads them, and the adapter says which of the two that is.
    setVehicleCruiseSpeed:(handle,maxSpeed)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'cruiseSpeed',maxSpeed);},

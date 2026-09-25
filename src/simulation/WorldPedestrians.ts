@@ -21,7 +21,7 @@ import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
 import {followersToRemove} from '../ped/nativePedGroup';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,planFollowNodeRoute} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
-import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
+import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
@@ -508,9 +508,10 @@ export class WorldPedestrians {
   // A relationship a script set on this ped answers first: CPed's own acquaintance table is consulted before
   // the one its ped type came with. Respect and like are a friend, dislike and hate a threat, and a type in
   // no list at all falls back to the table from ped.dat.
-  const own=p.acquaintance&&nativePedType(source?source.pedType:'PLAYER1');
-  if(p.acquaintance&&own!==undefined){
-   const id=p.acquaintance.idFor(own);
+  const table=p.acquaintance??(p.pedType&&this.editedTypes.has(p.pedType)?this.typeTables.get(p.pedType):undefined);
+  const own=table&&nativePedType(source?source.pedType:'PLAYER1');
+  if(table&&own!==undefined){
+   const id=table.idFor(own);
    if(id===ACQUAINTANCE_RESPECT||id===ACQUAINTANCE_LIKE)return RELATIONSHIP.friend;
    if(id===ACQUAINTANCE_DISLIKE||id===ACQUAINTANCE_HATE)return RELATIONSHIP.threat;
    if(id===ACQUAINTANCE_IGNORE)return RELATIONSHIP.neutral;
@@ -1743,7 +1744,29 @@ export class WorldPedestrians {
  /** CPed's m_acquaintance: CPed's constructor copies its ped type's ped.dat table, which the script's relationship
   * commands then edit. The copy is made when a command first needs it. */
  acquaintanceOf(ped:Pedestrian){
-  return ped.acquaintance??=this.pedTypeAcquaintance(ped.pedType);
+  return ped.acquaintance??=this.copyOf(this.pedTypeTable(ped.pedType));
+ }
+ /** CPedType::ms_apPedTypes: each ped type's CAcquaintance, from ped.dat, which SET_RELATIONSHIP and CLEAR_RELATIONSHIP
+  * edit. A ped copies its type's table when it is made (here, when a command first needs its own). */
+ private readonly typeTables=new Map<string,NativeAcquaintance>();
+ /** The ped types a script has edited: a ped of such a type with no table of its own reads its type's. */
+ private readonly editedTypes=new Set<string>();
+ pedTypeTable(pedType:string|undefined){
+  const key=pedType??'';let table=this.typeTables.get(key);
+  if(!table){table=this.pedTypeAcquaintance(pedType);this.typeTables.set(key,table);}
+  return table;
+ }
+ private copyOf(table:NativeAcquaintance){const copy=new NativeAcquaintance();for(let id=0;id<5;id++)copy.set(id,table.get(id));return copy;}
+ /** CPedType::SetPedTypeAsAcquaintance and ClearPedTypeAsAcquaintance with GetPedFlag(other), by ePedType index. */
+ setPedTypeRelationship(acquaintance:number,pedType:number,other:number,on:boolean){
+  const name=NATIVE_PED_TYPES[pedType];if(name===undefined||!(other>=0&&other<32))return;
+  const table=this.pedTypeTable(name);if(on)table.setAs(acquaintance,1<<other);else table.clearAs(acquaintance,1<<other);
+  this.editedTypes.add(name);
+ }
+ /** GetPedTypeAcquaintances(id, type) & GetPedFlag(other). */
+ pedTypeRelationshipSet(acquaintance:number,pedType:number,other:number){
+  const name=NATIVE_PED_TYPES[pedType];if(name===undefined||!(other>=0&&other<32))return false;
+  return (this.pedTypeTable(name).get(acquaintance)&(1<<other)>>>0)!==0;
  }
  /** The player's own m_acquaintance, which SET_CHAR_RELATIONSHIP on the player edits: PLAYER1's ped.dat table. */
  get playerAcquaintance(){return this.playerOwnAcquaintance??=this.pedTypeAcquaintance('PLAYER1');}

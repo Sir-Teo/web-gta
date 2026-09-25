@@ -277,6 +277,16 @@ export class ScmGameState {
  /** CStreaming::m_bDisableCopBikes: StreamCopModels streams no bike cop while it is set. The browser's police do
   * not ride bikes yet, so nothing reads it. */
  disableCopBikes=false;
+ /** CPlane's ambient plane generation (SWITCH_AMBIENT_PLANES); the browser generates none. */
+ ambientPlanes=true;
+ /** CStreaming::ms_disableStreaming (SWITCH_STREAMING off). */
+ disableStreaming=false;
+ /** SET_AREA51_SAM_SITE's switch. */
+ area51SamSite=true;
+ /** CGangWars::bCanTriggerGangWarWhenOnAMission. */
+ canTriggerGangWarWhenOnAMission=false;
+ /** CTheScripts::bUseMessageFormatting, and the margin and width SET_MESSAGE_FORMATTING gives with it. */
+ messageFormatting={on:false,margin:0,width:0};
  /** CWeapon::ms_bTakePhoto with CPostEffects::m_bSavePhotoFromScript. */
  takePhoto=false;savePhotoFromScript=false;
  /** FrontEndMenuManager.m_bWidescreenOn, which the script can read. */

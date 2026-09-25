@@ -14,6 +14,13 @@ function giveClothes(opcode:number,texture:string,model:string,part:number){
  bytes.push(4,part&0xff);
  return new Uint8Array(bytes);
 }
+/** GIVE_PLAYER_CLOTHES's own operands: the texture and model hashes as integers. */
+function giveClothesKeys(opcode:number,texture:number,model:number,part:number){
+ const bytes:number[]=[opcode&0xff,opcode>>8&0xff,1,0,0,0,0];
+ for(const key of [texture,model]){const b=new Uint8Array(4);new DataView(b.buffer).setInt32(0,key|0,true);bytes.push(1,...b);}
+ bytes.push(4,part&0xff);
+ return new Uint8Array(bytes);
+}
 function run(bytes:Uint8Array,game:ScmGameState){
  const host:ScmThreadHost={startScript(){},game,world:{fade(){}} as ScmWorldCommands};
  const thread=new ScmThread(bytes,0,0,undefined,host);
@@ -40,7 +47,7 @@ describe('the key the game hashes its names with',()=>{
 describe('the clothes a script gives the player',()=>{
  test('a texture part is dressed, and the model part it depends on with it',()=>{
   const game=new ScmGameState();
-  run(giveClothes(scmOpcode('GIVE_PLAYER_CLOTHES'),'vest','torso',CLOTHES_TEXTURE.torso),game);
+  run(giveClothesKeys(scmOpcode('GIVE_PLAYER_CLOTHES'),nativeUppercaseKey('vest'),nativeUppercaseKey('torso'),CLOTHES_TEXTURE.torso),game);
   expect(game.clothes.textureKeys[CLOTHES_TEXTURE.torso]).toBe(nativeUppercaseKey('vest'));
   expect(game.clothes.modelKeys[CLOTHES_MODEL.torso]).toBe(nativeUppercaseKey('torso'));
   expect(game.clothes.dressedParts).toBe(1);
@@ -48,9 +55,16 @@ describe('the clothes a script gives the player',()=>{
 
  test('a texture part with no model of its own dresses no model key',()=>{
   const game=new ScmGameState();
-  run(giveClothes(scmOpcode('GIVE_PLAYER_CLOTHES'),'tattoo','ignored',CLOTHES_TEXTURE.leftChest),game);
+  run(giveClothesKeys(scmOpcode('GIVE_PLAYER_CLOTHES'),nativeUppercaseKey('tattoo'),nativeUppercaseKey('ignored'),CLOTHES_TEXTURE.leftChest),game);
   expect(game.clothes.textureKeys[CLOTHES_TEXTURE.leftChest]).toBe(nativeUppercaseKey('tattoo'));
   expect([...game.clothes.modelKeys].every(key=>key===0)).toBe(true);
+ });
+
+ test('hashes of 0 take the part off, as HEIST9 and BURGJB undress the player',()=>{
+  const game=new ScmGameState();
+  run(giveClothesKeys(scmOpcode('GIVE_PLAYER_CLOTHES'),nativeUppercaseKey('vest'),nativeUppercaseKey('torso'),CLOTHES_TEXTURE.torso),game);
+  run(giveClothesKeys(scmOpcode('GIVE_PLAYER_CLOTHES'),0,0,CLOTHES_TEXTURE.torso),game);
+  expect(game.clothes.textureKeys[CLOTHES_TEXTURE.torso]).toBe(0);expect(game.clothes.modelKeys[CLOTHES_MODEL.torso]).toBe(0);
  });
 
  test('the outside-shop twin dresses the same description and is counted',()=>{

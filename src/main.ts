@@ -218,7 +218,7 @@ import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/native
 import {PED_ORIGIN_HEIGHT,SWIM} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
-import { ENEX, EntryExitManager, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
+import { ENEX, EntryExitManager, entryExitPosition, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
 import { worldLevelAt } from './assets/worldZones';
 import './style.css';
 
@@ -3602,6 +3602,22 @@ async function boot() {
                  releaseMissionTrains:()=>{fleet?.releaseMissionTrains();},
                  removeAllTrains:()=>{fleet?.removeAllTrains();},
                  scriptVehicleIsTrain:car=>car instanceof WorldTrain,
+                 setPedTypeRelationship:(relationship,pedType,other,on)=>{pedestrians?.setPedTypeRelationship(relationship,pedType,other,on);},
+                 pedTypeRelationshipSet:(relationship,pedType,other)=>!!pedestrians?.pedTypeRelationshipSet(relationship,pedType,other),
+                 maxGroupMembers:()=>maxGroupMembers(),
+                 pedWeaponInSlot:(ped,slot)=>{
+                  const inv=weapons.inventory,model=(type:number)=>inv.info(type)?.models[0]??-1;
+                  if(ped===undefined){
+                   const type=[...inv.owned].find(id=>id!==0&&inv.slotOf(id)===slot&&((inv.ammo.get(id)?.clip??0)+(inv.ammo.get(id)?.reserve??0)>0||!weaponById(id)?.reload));
+                   if(type===undefined)return {type:0,ammo:0,model:model(0)};
+                   const a=inv.ammo.get(type)!;return {type,ammo:a.clip+a.reserve,model:model(type)};
+                  }
+                  // A script ped holds the one weapon it was given.
+                  const held=onFoot(ped),type=held?.weaponType;
+                  return type!==undefined&&inv.slotOf(type)===slot?{type,ammo:held?.totalAmmo??0,model:model(type)}:{type:0,ammo:0,model:model(0)};
+                 },
+                 setPlayerUsedEntryExit:(x,y,radius)=>{if(entryExits)entryExits.enteredBy=entryExits.findNearest(x,y,radius);},
+                 playerEntryExit:()=>{const e=entryExits?.enteredBy;return e&&{name:e.name,position:entryExitPosition(e),heading:e.angle*180/Math.PI};},
                  setScriptVehicleOverrideLights:(car,lights)=>{if(car&&typeof car==='object'&&'overrideLights' in car)(car as ScriptCar).overrideLights=lights&3;},
                  // CEntity::m_bUsesCollision: with it off nothing collides with the car, the ground included.
                  setScriptVehicleUsesCollision:(car,state)=>{
@@ -3893,7 +3909,7 @@ async function boot() {
                };
                const groundY=(x:number,z:number,top:number)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:top+50,z},{x:0,y:-1,z:0}),150,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?top+50-hit.timeOfImpact:top;};
                gangWars=new GangWars({
-                nowMs:()=>elapsed*1000,player:()=>toNative(sim.player.position),playerOnMission:()=>false,playerInAircraft:()=>!!fleet?.occupiedPlane,
+                nowMs:()=>elapsed*1000,player:()=>toNative(sim.player.position),playerOnMission:()=>!!mission?.playerOnAMission(),canTriggerGangWarWhenOnAMission:()=>!!mission?.runtime.game.canTriggerGangWarWhenOnAMission,playerInAircraft:()=>!!fleet?.occupiedPlane,
                 canStartHere:infoIndex=>{const g=mission?.runtime.game;if(!g)return true;if(g.gangWarTrainingZone>=0)return infoIndex===g.gangWarTrainingZone;return !g.specificGangWarZones.length||g.specificGangWarZones.includes(infoIndex);},
                 territoryStat:(kind,value)=>{const stats=mission?.runtime.game.stats;if(!stats)return;if(kind==='taken')stats.increment(234,1);else if(kind==='lost')stats.increment(235,1);else{stats.set(236,value);stats.setNewRecord(237,value);}},
                 weatherLA:()=>nativeWeatherRegion(sim.player.position.x,-sim.player.position.z)===WEATHER_REGION.la,zones:()=>worldZones,

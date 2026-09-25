@@ -610,7 +610,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
   chances:{respect:number;hate:number;like:number;dislike:number},inCar:boolean,onFoot:boolean):void;
  setHeatHazeEffect?(state:boolean):void;
  addSparks?(position:{x:number;y:number;z:number},velocity:{x:number;y:number;z:number},density:number):void;
- setCanTriggerGangWarWhenOnMission?(state:boolean):void;
  setTagStatusInArea?(x1:number,y1:number,x2:number,y2:number,percent:number):void;
  percentageTaggedInArea?(x1:number,y1:number,x2:number,y2:number):number;
  clearAreaOfVehicles?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
@@ -654,7 +653,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  lineOfSightIsClear?(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},
   flags:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean;particles:boolean}):boolean;
  /** The audio, markers and remaining world settings of the tail. */
- switchAmbientPlanes?(state:boolean):void;
  syncWater?():void;
  drawSphere?(x:number,y:number,z:number,radius:number):void;
  removeUser3dMarker?(handle:number):void;
@@ -689,8 +687,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  modelIsHeli?(model:number|string):boolean;
  modelIsPlane?(model:number|string):boolean;
  enableEntryExitPlayerGroupWarping?(x:number,y:number,radius:number,state:boolean):void;
- switchStreaming?(state:boolean):void;
- setArea51SamSite?(state:boolean):void;
  switchPoliceHelis?(state:boolean):void;
  clearExtraColours?(fade:boolean):void;
  attachCameraToVehicle?(handle:number,offset:{x:number;y:number;z:number},pointAt:{x:number;y:number;z:number},tilt:number,switchType:number):void;
@@ -717,7 +713,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  vehicleIsVisiblyDamaged?(handle:number):boolean;
  improveVehicleByCheating?(handle:number,state:boolean):void;
  setBoatCruiseSpeed?(handle:number,speed:number):void;
- setMessageFormatting?(state:boolean,first:number,second:number):void;
  heliFollowEntity?(handle:number,ped:number,vehicle:number,radius:number):void;
  setSearchlightClipIfColliding?(handle:number,state:boolean):void;
  areaIsOccupied?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number},
@@ -852,7 +847,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setVehicleDirtLevel?(handle:number,level:number):void;
  switchArrestPenalties?(state:boolean):void;
  switchDeathPenalties?(state:boolean):void;
- storeWantedLevel?(handle:number):number;
  doesDecisionMakerExist?(handle:number):boolean;
  convertMetresToFeetInt?(meters:number):number;
  setPoolTableCoords?(leftBottomX:number,leftBottomY:number,leftBottomZ:number,rightTopX:number,rightTopY:number,rightTopZ:number):void;
