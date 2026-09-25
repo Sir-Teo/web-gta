@@ -55,7 +55,10 @@ export type ScriptedPedOrder=
   * coordinates, or a ped's handle) and aim, firing when `fire`, for `seconds`. */
  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number}
  /** CTaskComplexGoToPointShooting: to a point at eMoveState, stopping inside `radius`, firing at a ped on the way. */
- |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number};
+ |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number}
+ /** CTaskComplexFollowNodeRoute: along the ped path nodes to a point at eMoveState, or straight at it when it is near
+  * and clear; put on the point when `seconds` run out. */
+ |{kind:'followNodeRoute';x:number;y:number;z:number;moveState:number;seconds:number};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -114,6 +117,7 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'enterCarAsPassenger':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:task.seat,seconds:seconds(task.time)}:undefined;
   case 'followPointRoute':return task.route&&task.route.length?{kind:'followRoute',points:task.route.map(p=>({...p})),moveState:task.speed,mode:task.mode}:undefined;
   // CTaskComplexGoToPointAnyMeans on foot: the vehicle it would take for a long way is not modelled.
+  case 'followPathNodesToCoord':return {kind:'followNodeRoute',x:task.x,y:task.y,z:task.z,moveState:task.speed,seconds:seconds(task.time)};
   case 'goToCoordAnyMeans':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:Number.POSITIVE_INFINITY};
   case 'gotoPed':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:task.radius,seconds:seconds(task.time)}:undefined;

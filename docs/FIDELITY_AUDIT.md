@@ -6926,3 +6926,25 @@ the first ones now implemented:
   body faces where it walks and the arms aim.
 - The task ends at the point. GET_SCRIPT_TASK_STATUS then reads FINISHED_TASK (7). If the target dies on the way, the
   ped stops firing and keeps walking.
+
+### TASK_FOLLOW_PATH_NODES_TO_COORD (CTaskComplexFollowNodeRoute)
+
+- The script's form uses the constructor defaults: target tolerance 0.5, slow-down distance 3, height-change threshold
+  2 and blending on. With blending on, CalcGoToTaskType never runs, so the ped does not slow for corners. The port
+  models none, which matches.
+- ComputePathNodes:
+  - The target is put a unit above the ground under it.
+  - A target within 30 units (CPedIntelligence::m_FollowNodeThresholdDistance) with a clear wander path is walked
+    straight at. Otherwise the route is CPathFind::ComputeRoute over the ped nodes, eight nodes at most.
+  - The route is dropped when its first node lies 3 units past the target (50 when the heights differ by 2 or more).
+  - The route is cut at the first node (raised a unit) from which the target is straight and clear.
+- The unreversed pieces have stand-ins:
+  - ComputeRoute: a Dijkstra search by link length between the ped nodes nearest each end, in the same flood-fill group.
+  - IsWanderPathClear: no fixed geometry across the line, and ground found at four steps, each within the height
+    change of the last.
+- Legs between nodes are CTaskSimpleGoToPoint (radius 0.5, the task's move state). The last leg to the target is
+  CTaskComplexGoToPointAndStandStill, walking inside the slow-down distance.
+- When eight nodes fill the route, the target does not fit. Reaching the last node plans the next stretch (SetTarget
+  with bForce).
+- A timed task that runs out teleports the ped onto the target, and the task ends.
+- A MAP_Z_LOW_LIMIT target has its ground looked for from above the ped.

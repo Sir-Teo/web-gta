@@ -136,6 +136,8 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'scratchHead'},w)).toMatchObject({kind:'playAnim',name:'XPRESSscratch',loop:false});
   expect(scriptedPedOrder({kind:'handsUp',time:3000},w)).toMatchObject({kind:'playAnim',name:'handsup',keepLastFrame:true,release:true,seconds:3});
   expect(scriptedPedOrder({kind:'goToCoordAnyMeans',x:1,y:2,z:3,speed:6,vehicle:-1},w)).toMatchObject({kind:'goToPoint',x:1,y:2,moveState:6});
+  expect(scriptedPedOrder({kind:'followPathNodesToCoord',x:1,y:2,z:3,speed:4,time:-1},w)).toEqual({kind:'followNodeRoute',x:1,y:2,z:3,moveState:4,seconds:Number.POSITIVE_INFINITY});
+  expect(scriptedPedOrder({kind:'followPathNodesToCoord',x:1,y:2,z:3,speed:6,time:2500},w)).toMatchObject({seconds:2.5});
  });
 
  test('ducking: the toggle at once, and TASK_DUCK for its time',()=>{

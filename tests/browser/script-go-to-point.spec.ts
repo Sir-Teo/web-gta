@@ -45,6 +45,15 @@ test('a script ped stands until told, walks straight to a point, and a timed go-
  // RETURN reverses at the end: later, arrived, then arrived, later.
  const routed=await where();
  expect(Math.hypot(routed.x-later.x,routed.z-later.z)).toBeLessThan(.8);
+ // TASK_FOLLOW_PATH_NODES_TO_COORD back along the line: near and clear, so straight at it, ending within the
+ // tolerance of the point.
+ const NODES=0x05f5;
+ await page.evaluate(({handle,opcode,arrived})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(handle,
+  {kind:'followPathNodesToCoord',x:arrived.x,y:-arrived.z,z:-100,speed:4,time:-1},opcode),{handle:ped,opcode:NODES,arrived});
+ expect(await page.evaluate(({handle})=>(window as any).__game.missionForProfiling().peds.entity(handle).order?.kind,{handle:ped})).toBe('followNodeRoute');
+ await expect.poll(()=>page.evaluate(({handle,opcode})=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(handle,opcode),{handle:ped,opcode:NODES}),{timeout:60000}).toBe(7);
+ const noded=await where();
+ expect(Math.hypot(noded.x-arrived.x,noded.z-arrived.z)).toBeLessThan(.6);
  // Timed: half a second to go 20 units at a walk is not enough, so the task sets it down on the point.
  const far={x:arrived.x-20,z:arrived.z};
  await go(far,4,500);

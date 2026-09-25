@@ -17,6 +17,7 @@ import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
+import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,planFollowNodeRoute} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
@@ -148,7 +149,9 @@ export interface Pedestrian {
   /** CTaskSimpleGunControl: a renderer point or a ped (the player when neither) to aim at, firing or not. */
   |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number}
   /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. */
-  |{kind:'goToPointShooting';x:number;z:number;y?:number;moveState:number;radius:number;target?:Pedestrian;player:boolean};
+  |{kind:'goToPointShooting';x:number;z:number;y?:number;moveState:number;radius:number;target?:Pedestrian;player:boolean}
+  /** The points in the renderer's terms, the target (its origin height) last when `lastIsTarget`. */
+  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];at:number;lastIsTarget:boolean;moveState:number;remaining:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** CTaskSimpleTogglePedThreatScanner's three switches, kept on the ped (its threat scan is not modelled). */
@@ -1525,6 +1528,14 @@ export class WorldPedestrians {
     ped.actor.player.crouched=order.crouch;
     if(order.seconds!==undefined)ped.order={kind:'duckFor',remaining:order.seconds};
     break;
+   case 'followNodeRoute':{
+    // ComputePathNodes: the target is put a unit above the ground under it first. A point on the map's floor
+    // (MAP_Z_LOW_LIMIT) is looked for from above the ped instead of from under the map.
+    const q=ped.actor.player.position,top=order.z>MAP_Z_LOW_LIMIT?order.z+1:q.y+PED_ORIGIN_HEIGHT+50;
+    const ground=this.groundUnder(order.x,-order.y,top),target={x:order.x,y:ground===undefined?Math.max(order.z,q.y+PED_ORIGIN_HEIGHT):ground+1,z:-order.y};
+    ped.order={kind:'followNodeRoute',target,...this.planNodeRoute(ped,target),at:0,moveState:order.moveState,remaining:order.seconds};ped.flee=0;ped.loiter=false;
+    break;
+   }
    case 'followRoute':
     ped.order={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at:0,mode:order.mode,traversals:0,moveState:order.moveState};ped.flee=0;ped.loiter=false;
     break;
@@ -1600,6 +1611,31 @@ export class WorldPedestrians {
   const feet={x,y:ground,z};
   ped.actor.player.position={...feet};ped.actor.player.previous={...feet};
   ped.body.setTranslation({x,y:ground+.9,z},true);ped.collider.setTranslation({x,y:ground+.9,z});
+ }
+ /** CTaskComplexFollowNodeRoute::SetTarget's ComputePathNodes and ComputeRoute from where the ped stands, in the
+  * renderer's terms. */
+ private planNodeRoute(ped:Pedestrian,target:{x:number;y:number;z:number}){
+  const q=ped.actor.player.position,areas=this.catalog?.areas??new Map();
+  const plan=planFollowNodeRoute({areas,clear:(from,to,maxHeightChange)=>this.wanderPathClear(from,to,maxHeightChange)},
+   {x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT},{x:target.x,y:-target.z,z:target.y});
+  return {points:plan.points.map(n=>({x:n.x,y:n.z,z:-n.y})),lastIsTarget:plan.lastIsTarget};
+ }
+ /** CPedGeometryAnalyser::IsWanderPathClear(from, to, maxHeightChange, 4) (unreversed), in native Z-up points: nothing
+  * fixed across the line at the ped's middle, and the ground found at four steps along it, none rising or falling past
+  * `maxHeightChange` from the one before. */
+ private wanderPathClear(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},maxHeightChange:number){
+  const ax=from.x,ay=from.z,az=-from.y,bx=to.x,by=to.z,bz=-to.y,length=Math.hypot(bx-ax,by-ay,bz-az);
+  if(length>1e-3){
+   const hit=this.sim.world.castRay(new RAPIER.Ray({x:ax,y:ay,z:az},{x:(bx-ax)/length,y:(by-ay)/length,z:(bz-az)/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   if(hit)return false;
+  }
+  let previous=from.z-PED_ORIGIN_HEIGHT;
+  for(let i=1;i<=4;i++){
+   const t=i/4,ground=this.groundUnder(ax+(bx-ax)*t,az+(bz-az)*t,Math.max(ay,by)+maxHeightChange);
+   if(ground===undefined||Math.abs(ground-previous)>=maxHeightChange)return false;
+   previous=ground;
+  }
+  return true;
  }
  /** Whether a ped is still in the world. */
  hasPed(ped:Pedestrian){return this.people.includes(ped);}
@@ -2558,6 +2594,24 @@ export class WorldPedestrians {
      const gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz);
      if(goToPointArrived(distance,point.y>MAP_Z_LOW_LIMIT?q.y+PED_ORIGIN_HEIGHT-point.y:undefined,GO_TO_POINT_RADIUS,state.speed*dt)){if(!nextRoutePoint(o))this.startNextOrder(p);}
      else{dx=gx;dz=gz;orderSpeed=o.moveState>=7?p.sprintSpeed:o.moveState>=5?p.runSpeed:p.walkSpeed;}
+    }else if(p.order.kind==='followNodeRoute'){
+     const o=p.order,q=p.actor.player.position;dx=0;dz=0;
+     // Out of time, the stand-still sub-task teleports the ped onto the target and the task is over.
+     if(o.remaining!==Number.POSITIVE_INFINITY)o.remaining-=dt;
+     if(o.remaining<=0){this.placeOnGround(p,o.target.x,o.target.z,o.target.y);this.startNextOrder(p);}
+     else{
+      const point=o.points[o.at],gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz),last=o.lastIsTarget&&o.at===o.points.length-1;
+      // The legs between nodes are CTaskSimpleGoToPoint at the task's move state; the last, to the target, is
+      // CTaskComplexGoToPointAndStandStill with the task's tolerance and slow-down distance.
+      if(goToPointArrived(distance,q.y+PED_ORIGIN_HEIGHT-point.y,last?FOLLOW_NODE_TARGET_TOLERANCE:FOLLOW_NODE_POINT_RADIUS,state.speed*dt)){
+       if(last)this.startNextOrder(p);
+       else if(++o.at>=o.points.length){Object.assign(o,this.planNodeRoute(p,o.target));o.at=0;}
+      }else{
+       dx=gx;dz=gz;
+       const moveState=last?goToPointMoveState(o.moveState,distance,FOLLOW_NODE_SLOW_DOWN_DISTANCE):o.moveState;
+       orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;
+      }
+     }
     }else if(p.order.kind==='gotoPed'){
      const o=p.order,q=p.actor.player.position;dx=0;dz=0;
      const target=o.target?(o.target.health>0&&this.people.includes(o.target)?o.target.actor.player.position:undefined):this.sim.player.position;
