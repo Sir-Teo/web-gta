@@ -46,5 +46,14 @@ test('the script puts the player in its car, moves him, and takes him out',async
   return {heading,water:w.pedIsInWater(1),air:w.pedIsInAir(1),anim:w.pedIsPlayingAnim(1,'IDLE_chat')};
  });
  expect(player.heading).toBeCloseTo(90,3);expect(player).toMatchObject({water:false,air:false,anim:false});
+ // TASK_ENTER_CAR_AS_DRIVER: CJ walks to the door and gets in through his own entry; TASK_LEAVE_ANY_CAR gets him out.
+ const ENTER=0x05cb,LEAVE=0x0633;
+ const status=(opcode:number)=>page.evaluate(opcode=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(1,opcode),opcode);
+ await page.evaluate(({car,opcode})=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.setPlayerControl?.(0,false);w.givePedScriptedTask(1,{kind:'enterCarAsDriver',vehicle:car,time:-1,moveState:4},opcode);},{car,opcode:ENTER});
+ await expect.poll(()=>status(ENTER),{timeout:60000}).toBe(7);
+ expect(await page.evaluate((car:number)=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1),car)).toBe(car);
+ await page.evaluate(opcode=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(1,{kind:'leaveAnyCar'},opcode),LEAVE);
+ await expect.poll(()=>status(LEAVE),{timeout:60000}).toBe(7);
+ expect(await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1)??null)).toBeNull();
  expect(errors).toEqual([]);
 });

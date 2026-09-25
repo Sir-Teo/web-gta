@@ -7061,3 +7061,18 @@ the first ones now implemented:
 - MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS (unreversed): the player's street recruits leave until the group,
   FindMaxNumberOfGroupMembers strong (at most the script's limit), has room. As CPedGroupMembership::RemoveNFollowers
   does, the members a mission made stay.
+
+### The player's enter- and leave-car tasks, and the doors of a script's car
+
+- TASK_ENTER_CAR_AS_DRIVER on the player runs his own walk to the door, open and get-in (CarEntry). A pad the task has
+  no say in is left to it, and the task ends once he is seated or the entry gives up. The Timed form sets him in when
+  its time runs out.
+- TASK_LEAVE_CAR, TASK_LEAVE_ANY_CAR and the Immediately form on the player run his get-out, once the car is still
+  enough to step out of (CTaskSimpleCarWaitToSlowDown; the Immediately form does not wait). The player's tasks are now
+  stepped in a car as well as on foot.
+- CCarCtrl::CreateCarForScript sets vehicleFlags.bIsLocked, which keeps a mission's car from being removed. It is not
+  the door lock (m_nDoorLock, CARLOCK_UNLOCKED until LOCK_CAR_DOORS). The port kept both in one flag, so every script
+  car's doors were locked to CJ.
+  - Script cars now keep only the mission mark, and their doors open.
+  - ClearSpaceForMissionEntity spares mission cars, not door-locked ones (CVehicle::CanBeDeleted).
+  - MARK_CAR_AS_NO_LONGER_NEEDED leaves the doors as they are (CleanUpThisVehicle clears bIsLocked alone).

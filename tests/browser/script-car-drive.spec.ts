@@ -55,7 +55,8 @@ test('a script driver takes its car to a point',async({page})=>{
   return {target:cam?.target,car:{x:now.x,y:now.z,z:-now.y},position:cam?.position};
  },made);
  expect(camera.target.x).toBeCloseTo(camera.car.x,1);expect(camera.target.z).toBeCloseTo(camera.car.z,1);
- // MARK_CAR_AS_NO_LONGER_NEEDED: the car is a random one again, unlocked and off the script's mission.
+ // MARK_CAR_AS_NO_LONGER_NEEDED: the car is a random one again and off the script's mission; its doors, never locked,
+ // stay as they were.
  const released=await page.evaluate(({car})=>{
   const m=(window as any).__game.missionForProfiling(),e=m.vehicles.entity(car);
   m.runtime.world.restoreCamera?.();m.runtime.world.markVehicleNoLongerNeeded(car);return {mission:e.missionCar,locked:e.locked,autopilot:e.autopilot??null};

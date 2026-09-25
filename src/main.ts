@@ -302,6 +302,21 @@ async function boot() {
  const playerTasks=new PlayerScriptTasks({
   animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
   duck:crouch=>{sim.setCrouched(crouch);},
+  enterCar:vehicle=>{
+   const car=mission?.vehicles.entity(vehicle) as Partial<ScriptCar>|undefined;
+   if(!car||typeof car.setPedInAsDriver!=='function'||car.disposed||carEntry.active)return false;
+   return carEntry.enter(car as ScriptCar);
+  },
+  warpIntoCar:vehicle=>{const car=mission?.vehicles.entity(vehicle) as Partial<ScriptCar>|undefined;if(car&&typeof car.setPedInAsDriver==='function'&&!car.disposed&&!car.occupied){carEntry.cancel();carEntry.warpIn(car as ScriptCar);}},
+  leaveCar:(vehicle,immediately)=>{
+   const car=carEntry.car;
+   if(!carEntry.seated||!car)return 'none';
+   if(vehicle!==undefined&&mission?.vehicles.entity(vehicle)!==car)return 'none';
+   // CTaskSimpleCarWaitToSlowDown: the script's sensible leave waits for the car to be still enough to step out of.
+   if(!immediately&&!car.canStepOut())return 'wait';
+   return carEntry.exit()?'started':'wait';
+  },
+  carState:()=>carEntry.seated?'seated':carEntry.active?'entering':'none',
   lookAt:(target,seconds)=>{const ped=onFoot(mission?.pedByHandle(target));if(ped&&typeof ped==='object')pedestrians?.playerLookAtPed(ped,seconds);},
   placeOnGround:(x,z,originY)=>{
    const ground=pedestrians?.groundUnder(x,z,(originY??sim.player.position.y+1+50)+.5);if(ground===undefined)return;
@@ -2181,12 +2196,14 @@ async function boot() {
         else if(entryExits?.active&&onFoot)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:undefined};
         // physicalFlags.bDontApplySpeed: a player the script froze does not move on the pad.
         else if(onFoot&&playerFrozenByScript)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:undefined};
-        // A task the script gave CJ's ped speaks for the pad while it runs (on foot; the driving tasks are not run).
+        // A task the script gave CJ's ped speaks for the pad while it runs on foot; getting into or out of a car, CarEntry
+        // moves him, and the task is stepped below.
         else if(onFoot&&playerTasks.active&&sim.player.health>0){
          const task=playerTasks.step(step,playerTaskBody());
          if(task?.kind==='move')controls={...controls,x:0,y:-1,cameraYaw:task.yaw,walk:task.walk,sprint:task.sprint,jump:false,facing:undefined};
          else if(task)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:task.facing};
         }
+        if(!onFoot&&playerTasks.active&&sim.player.health>0)playerTasks.step(step,playerTaskBody());
         if(!sim.player.swimming)controls=nativeWeaponMovement(controls,weapons.native,weapons.inventory.selected,weapons.aiming);
         // CTaskSimpleUseGun moves an aimed gun's holder on the GunMove clips at the skill row's move speed.
         const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
@@ -3454,7 +3471,7 @@ async function boot() {
                  clearVehiclesInBox:(min,max)=>{fleet?.clearCarsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
                  clearPedsInBox:(min,max)=>{pedestrians?.clearPedsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
                  // CTheScripts::CleanUpThisVehicle: unlocked, no longer a mission car, and off its script mission.
-                 releaseScriptVehicle:car=>{const c=car as ScriptCar;if(c.disposed)return;c.missionCar=false;c.locked=false;if(scriptCars.mission(c)!==undefined){scriptCars.forget(c);c.autopilot=undefined;}},
+                 releaseScriptVehicle:car=>{const c=car as ScriptCar;if(c.disposed)return;c.missionCar=false;if(scriptCars.mission(c)!==undefined){scriptCars.forget(c);c.autopilot=undefined;}},
                  teleportPlayer:position=>{
                   const x=position.x,z=-position.y,y=position.z,car=worldCar?.occupied?worldCar:fleet?.occupied;
                   if(car){

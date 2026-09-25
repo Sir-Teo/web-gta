@@ -255,8 +255,8 @@ export class WorldFleet {
    car.trafficOrigin=true;car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
  }
  /** CCarCtrl::CreateCarForScript (0x431F80): the model loaded and the car set down where the script says, with
-  * a z at or below the map's low limit dropped to the ground first, lifted off the base of its model, locked,
-  * engine off and abandoned. Unlike the traffic spawn it does not refuse a spot that is taken: the original
+  * a z at or below the map's low limit dropped to the ground first, lifted off the base of its model, kept from
+  * removal, engine off and abandoned. Unlike the traffic spawn it does not refuse a spot that is taken: the original
   * clears the space with CTheScripts::ClearSpaceForMissionEntity rather than declining to make the car. */
  async spawnScriptCar(modelId:number,position:{x:number;y:number;z:number},heading:number){
   const catalog=await this.catalogReady;
@@ -271,8 +271,9 @@ export class WorldFleet {
   const car=new WorldCar(this.sim,this.scene,assets,{x:position.x,y:ground-assets.collision.bounds.min[2],z:position.z},this.road,heading);
   car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;
-  // bIsLocked and STATUS_ABANDONED: nobody drives it and nobody gets in until the script says so.
-  car.locked=true;car.missionCar=true;
+  // vehicleFlags.bIsLocked, which keeps the car from being removed (missionCar), and STATUS_ABANDONED: nobody drives
+  // it. Its doors (m_nDoorLock) are left as they are, CARLOCK_UNLOCKED, for LOCK_CAR_DOORS to change.
+  car.missionCar=true;
   this.cars.add(car);return car;
  }
  /** CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names, and the other two are
@@ -323,7 +324,7 @@ export class WorldFleet {
  clearPed?:(colliderHandle:number)=>boolean;
  /** Dev: the last clearSpaceFor result. */
  lastClear?:{cars:number;peds:number;center:{x:number;y:number;z:number};half:{x:number;y:number;z:number}};
- /** CTheScripts::ClearSpaceForMissionEntity: every deletable car (not the player's, not locked) and every ped whose
+ /** CTheScripts::ClearSpaceForMissionEntity: every deletable car (not the player's, not a mission's) and every ped whose
   * collision the new car's bounding box overlaps at its spawn pose is removed, occupants included. */
  clearSpaceFor(position:{x:number;y:number;z:number},heading:number,bounds:{min:readonly number[];max:readonly number[]}){
   const half={x:(bounds.max[0]-bounds.min[0])/2,y:(bounds.max[2]-bounds.min[2])/2,z:(bounds.max[1]-bounds.min[1])/2};
@@ -333,7 +334,8 @@ export class WorldFleet {
   const cars=new Set<WorldCar>(),peds:number[]=[];
   this.sim.world.intersectionsWithShape(center,rotation,new RAPIER.Cuboid(half.x,half.y,half.z),collider=>{
    const body=collider.parent();const car=body?this.carByBody(body.handle):undefined;
-   if(car){if(!car.occupied&&!car.locked)cars.add(car);}
+   // CVehicle::CanBeDeleted: a car a mission made is not; a car with its doors locked is.
+   if(car){if(!car.occupied&&!car.missionCar)cars.add(car);}
    else if(collider.handle!==this.sim.playerCollider.handle)peds.push(collider.handle);
    return true;
   });

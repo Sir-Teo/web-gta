@@ -12,8 +12,9 @@ test('the script walks the player to a point and turns him',async({page})=>{
  const status=(opcode:number)=>page.evaluate((opcode:number)=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(1,opcode),opcode);
  const start=await page.evaluate(()=>{const p=(window as any).__game.state().player.position;return {x:p.x,z:p.z};});
  const target={x:start.x+4,z:start.z};
- await page.evaluate(({target,opcode})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(1,{kind:'goStraightToCoord',x:target.x,y:-target.z,z:-100,speed:4,time:-1},opcode),{target,opcode:GO});
- expect(await status(GO)).toBe(0);
+ // Read in the same evaluate: the next Process makes it TASK_ASSOCIATED, and a frame may run between two evaluates.
+ expect(await page.evaluate(({target,opcode})=>{const w=(window as any).__game.missionForProfiling().runtime.world;
+  w.givePedScriptedTask(1,{kind:'goStraightToCoord',x:target.x,y:-target.z,z:-100,speed:4,time:-1},opcode);return w.scriptTaskStatus(1,opcode);},{target,opcode:GO})).toBe(0);
  await expect.poll(()=>status(GO),{timeout:30000}).toBe(7);
  const arrived=await page.evaluate(()=>{const p=(window as any).__game.state().player.position;return {x:p.x,z:p.z};});
  expect(Math.hypot(arrived.x-target.x,arrived.z-target.z)).toBeLessThan(.7);

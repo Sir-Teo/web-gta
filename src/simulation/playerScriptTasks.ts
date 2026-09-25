@@ -16,7 +16,9 @@ type Running=
  |{kind:'achieveHeading';heading:number}
  |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number}
  |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;phase:'loading'|'ready'|'playing';elapsed:number}
- |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number};
+ |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
+ |{kind:'enterCar';vehicle:number;remaining:number;started:boolean}
+ |{kind:'leaveCar';vehicle?:number;immediately:boolean;started:boolean};
 
 /** What the player's ped is and can do, in renderer terms (y up, the script's y is -z). */
 export interface PlayerTaskBody{
@@ -37,6 +39,17 @@ export interface PlayerTaskBody{
 export interface PlayerTaskWorld{
  /** A clip from the script's animation block (PED is ped.ifp). */
  animation(file:string,name:string):Promise<NativeAnimation|undefined>;
+ /** CTaskComplexEnterCarAsDriver on the player: his own walk to the door and get-in (CarEntry) for the car a script
+  * handle names; false when it cannot begin. */
+ enterCar?(vehicle:number):boolean;
+ /** The Timed form out of time: set in at the wheel. */
+ warpIntoCar?(vehicle:number):void;
+ /** CTaskComplexLeaveCar on the player: 'started' once he is getting out, 'wait' while the car is not yet still
+  * enough to step out of (CTaskSimpleCarWaitToSlowDown; the immediate form does not wait), 'none' when he is in no
+  * car or not the one named. */
+ leaveCar?(vehicle:number|undefined,immediately:boolean):'started'|'wait'|'none';
+ /** Where the player is with cars: on foot, on his way into one, or in one. */
+ carState?():'none'|'entering'|'seated';
  /** CTaskSimpleDuckToggle on the player: he crouches or stands. */
  duck?(crouch:boolean):void;
  /** CTaskSimpleTriggerLookAt: the head looks at the ped a script handle names. */
@@ -58,7 +71,8 @@ export class PlayerScriptTasks{
  private generation=0;
  constructor(private world:PlayerTaskWorld){}
  /** The kinds the player can carry out; anything else the thread gives up on. */
- static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined;}
+ static runs(order:ScriptedPedOrder){return order.kind==='standStill'||order.kind==='achieveHeading'||order.kind==='goToPoint'||order.kind==='playAnim'||order.kind==='lookAt'||order.kind==='followRoute'||order.kind==='duck'&&order.seconds===undefined||
+  order.kind==='enterCar'&&order.seat==='driver'||order.kind==='leaveCar';}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
  give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body,false);}
@@ -111,15 +125,38 @@ export class PlayerScriptTasks{
    }
    case 'followRoute':this.running={kind:'followRoute',points:order.points.map(q=>({x:q.x,y:q.z,z:-q.y})),at:0,mode:order.mode,traversals:0,moveState:order.moveState};break;
    case 'duck':this.world.duck?.(order.crouch);break;
+   case 'enterCar':this.running={kind:'enterCar',vehicle:order.vehicle,remaining:order.seconds,started:false};break;
+   case 'leaveCar':this.running={kind:'leaveCar',vehicle:order.vehicle,immediately:order.immediately,started:false};break;
    // The trigger task starts the look and is over.
    case 'lookAt':this.world.lookAt?.(order.target,order.seconds);break;
    default:break;
   }
  }
- /** One frame of the running task, and what it asks of the pad. Nothing when no task of the script's runs. */
+ /** One frame of the running task, and what it asks of the pad. Nothing when no task of the script's runs, or while
+  * one runs that CarEntry moves him for (getting into or out of a car). */
  step(dt:number,body:PlayerTaskBody):PlayerTaskControl|undefined{
   const o=this.running;if(!o)return undefined;
   switch(o.kind){
+   case 'enterCar':{
+    const state=this.world.carState?.()??'none';
+    if(!o.started){
+     // Already in: nothing to do. Otherwise the walk to the door and the get-in begin, or the task is over.
+     if(state==='seated'||!(o.started=!!this.world.enterCar?.(o.vehicle)))this.next(body);
+     return undefined;
+    }
+    if(state!=='seated'&&o.remaining!==Number.POSITIVE_INFINITY){o.remaining-=dt;if(o.remaining<=0){this.world.warpIntoCar?.(o.vehicle);this.next(body);return undefined;}}
+    if(state!=='entering')this.next(body);
+    return undefined;
+   }
+   case 'leaveCar':{
+    if(!o.started){
+     const began=this.world.leaveCar?.(o.vehicle,o.immediately)??'none';
+     if(began==='started')o.started=true;else if(began==='none')this.next(body);
+     return undefined;
+    }
+    if((this.world.carState?.()??'none')==='none')this.next(body);
+    return undefined;
+   }
    case 'standStill':
     o.remaining-=dt;if(o.remaining<=0)this.next(body);
     return {kind:'hold'};

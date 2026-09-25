@@ -64,3 +64,36 @@ test('the look-at trigger starts the head look and is over at once, letting a se
  tasks.giveSequence([{kind:'lookAt',target:9,seconds:1},{kind:'standStill',seconds:1}],false,body());
  expect(tasks.active).toBe(true);expect(tasks.step(.1,body())).toEqual({kind:'hold'});
 });
+
+test('TASK_ENTER_CAR_AS_DRIVER on the player walks him in through CarEntry, leaving the pad alone, until he is seated',()=>{
+ let state:'none'|'entering'|'seated'='none';const asked:number[]=[];
+ const tasks=new PlayerScriptTasks({...world,enterCar:vehicle=>{asked.push(vehicle);state='entering';return true;},carState:()=>state});
+ tasks.give({kind:'enterCar',vehicle:9,seat:'driver',seconds:Infinity},body());
+ expect(tasks.step(1/30,body())).toBeUndefined();expect(asked).toEqual([9]);
+ expect(tasks.step(1/30,body())).toBeUndefined();expect(tasks.active).toBe(true);
+ state='seated';tasks.step(1/30,body());expect(tasks.active).toBe(false);
+});
+
+test('the timed enter sets him in when its time runs out, and a car that cannot be entered ends the task',()=>{
+ let state:'none'|'entering'|'seated'='none';const warped:number[]=[];
+ const tasks=new PlayerScriptTasks({...world,enterCar:()=>{state='entering';return true;},warpIntoCar:v=>{warped.push(v);},carState:()=>state});
+ tasks.give({kind:'enterCar',vehicle:9,seat:'driver',seconds:.1},body());
+ tasks.step(.05,body());tasks.step(.05,body());tasks.step(.05,body());
+ expect(warped).toEqual([9]);expect(tasks.active).toBe(false);
+ const refused=new PlayerScriptTasks({...world,enterCar:()=>false,carState:()=>'none'});
+ refused.give({kind:'enterCar',vehicle:9,seat:'driver',seconds:Infinity},body());refused.step(1/30,body());
+ expect(refused.active).toBe(false);
+ // Only the driver's seat is his to take.
+ expect(PlayerScriptTasks.runs({kind:'enterCar',vehicle:9,seat:0,seconds:Infinity})).toBe(false);
+});
+
+test('TASK_LEAVE_ANY_CAR on the player waits for the car to be still, then he gets out',()=>{
+ let state:'none'|'entering'|'seated'='seated',still=false;
+ const tasks=new PlayerScriptTasks({...world,carState:()=>state,leaveCar:()=>state==='none'?'none':still?'started':'wait'});
+ tasks.give({kind:'leaveCar',immediately:false},body());
+ tasks.step(1/30,body());tasks.step(1/30,body());expect(tasks.active).toBe(true);
+ still=true;tasks.step(1/30,body());expect(tasks.active).toBe(true);
+ state='none';tasks.step(1/30,body());expect(tasks.active).toBe(false);
+ // On foot there is nothing to leave.
+ tasks.give({kind:'leaveCar',immediately:false},body());tasks.step(1/30,body());expect(tasks.active).toBe(false);
+});

@@ -45,9 +45,14 @@ describe('the tasks a script gives a ped',()=>{
  });
 
  test('a task with no browser behaviour yet gives nothing back, so the thread gives up instead of pretending',()=>{
-  const unported:ScmScriptedTask[]=[{kind:'lookAbout',time:1000},{kind:'jump',state:true},
-   {kind:'leaveAnyCar'}];
+  const unported:ScmScriptedTask[]=[{kind:'lookAbout',time:1000},{kind:'jump',state:true}];
   for(const task of unported)expect(scriptedPedOrder(task,world({}))).toBeUndefined();
+ });
+
+ test('the leave-car tasks name the car (or any) and whether the ped waits for it to be still',()=>{
+  expect(scriptedPedOrder({kind:'leaveAnyCar'},world({}))).toEqual({kind:'leaveCar',immediately:false});
+  expect(scriptedPedOrder({kind:'leaveCar',vehicle:5},world({}))).toEqual({kind:'leaveCar',vehicle:5,immediately:false});
+  expect(scriptedPedOrder({kind:'leaveCarImmediately',vehicle:5},world({}))).toEqual({kind:'leaveCar',vehicle:5,immediately:true});
  });
 
  test('a turn takes half the ped\u2019s heading rate a frame and ends inside the task\u2019s tolerance',()=>{

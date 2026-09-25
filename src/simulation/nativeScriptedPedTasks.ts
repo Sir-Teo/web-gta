@@ -63,7 +63,10 @@ export type ScriptedPedOrder=
  |{kind:'followNodeRoute';x:number;y:number;z:number;moveState:number;seconds:number}
  /** CTaskComplexChat with a partner (a handle, the player's included): the lead speaker chats (CTaskSimpleChat, IDLE_chat),
   * the other stands and listens, each at the script's stage. */
- |{kind:'chat';partner:number;chatter:boolean;stage:number};
+ |{kind:'chat';partner:number;chatter:boolean;stage:number}
+ /** CTaskComplexLeaveCar (and the any-car and immediate forms) for the player: out of the car he is in, the one
+  * named or any; the on-foot peds' leave tasks run from the mission. */
+ |{kind:'leaveCar';vehicle?:number;immediately:boolean};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
@@ -130,6 +133,9 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // TASK_CHAT_WITH_CHAR (unreversed) builds CTaskComplexChat from the lead-speaker flag and its last operand (1 in
   // every mission), taken here as the task's stage, with no speech context: nothing is said.
   case 'chatWithPed':return world.ped(task.other)?{kind:'chat',partner:task.other,chatter:task.leadSpeaker,stage:task.unknown}:undefined;
+  case 'leaveCar':return {kind:'leaveCar',vehicle:task.vehicle,immediately:false};
+  case 'leaveAnyCar':return {kind:'leaveCar',immediately:false};
+  case 'leaveCarImmediately':return {kind:'leaveCar',vehicle:task.vehicle,immediately:true};
   case 'followPathNodesToCoord':return {kind:'followNodeRoute',x:task.x,y:task.y,z:task.z,moveState:task.speed,seconds:seconds(task.time)};
   case 'goToCoordAnyMeans':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:Number.POSITIVE_INFINITY};
