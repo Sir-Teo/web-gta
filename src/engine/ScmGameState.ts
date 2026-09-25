@@ -230,6 +230,8 @@ export class ScmGameState {
  readonly specialCharacters=new ScmSpecialCharacters();
  /** Whether the mission the script is running has reported itself finished, and the key it passed on. */
  missionFinished=false;missionPassedKey?:string;
+ /** The last PLAY_MISSION_PASSED_TUNE the script asked for, by the tune's number. */
+ missionPassedTune?:number;
  /** CUserDisplay::OnscnTimer: the mission clock and counters, on script globals. */
  readonly onscreenTimer=new ScmOnscreenTimer();
  /** The route a task follows, which EXTEND_ROUTE builds a point at a time and FLUSH_ROUTE empties. */

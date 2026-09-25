@@ -3451,7 +3451,7 @@ async function boot() {
                  modelIndex:name=>scriptPickupModels?.byName.get(name.toLowerCase())?.id??-1,
                  givePlayerWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected;if(weapons.inventory.give(weapon,ammo)&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);},
                  setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
-                 setPlayerArmour:armour=>{sim.player.armour=armour;},
+                 setPlayerArmour:armour=>{sim.player.armour=armour;},playerArmour:()=>sim.player.armour,
                  loadMissionText:()=>{},
                  // The browser plays no cutscenes; the request is recorded so the script's loop carries on.
                  // The browser's own tag manager and gang wars answer these three.

@@ -6684,3 +6684,16 @@ the first ones now implemented:
   banks are not published), so none is ever mid-line. A mission waiting on a conversation moves on.
 - **IS_CAR_PASSENGER_SEAT_FREE** (7 missions, MAIN): no live script ped sits in that seat of the car. A ped
   attached to the roof takes no seat.
+- **PLAY_MISSION_PASSED_TUNE** (141 uses, 117 missions, MAIN): it used to need a host adapter, and without one it
+  retired the mission thread at the moment of its pass, before REGISTER_MISSION_PASSED and the rewards ran. SA's
+  handler is unreversed, and the tune is a stream track (CAECutsceneTrackManager, m_bPlayingMissionCompleteTrack)
+  that the port does not package. The command now records the tune number in the game state, calls the host's player
+  if one exists, and the script carries on.
+- **GET_DRIVER_OF_CAR** (67 uses, 15 missions): m_pDriver's handle, or -1 with nobody driving. It used to write 0,
+  which is a live pool index. A script car's driver is the live script ped in its driving seat. The player drives
+  the car it is in.
+- **IS_CAR_UPSIDEDOWN** (12 missions): CVehicle::IsUpsideDown (0x6D1D90), the up axis's z at or below -0.9. The
+  script handler itself is unreversed.
+- **ADD_ARMOUR_TO_CHAR** (12 missions): m_fArmour plus the amount, clamped to 0 and to CPlayerInfo::m_nMaxArmour for
+  the player (as the armour pickup does) or 100 for other peds. The handler is unreversed. A script ped keeps the
+  figure in its pool record, but the browser's ped damage does not spend ped armour yet.

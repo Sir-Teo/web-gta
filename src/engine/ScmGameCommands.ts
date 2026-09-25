@@ -1300,7 +1300,9 @@ const handlers:Record<string,ScmCommandHandler>={
   const point=vec(t,p,0);
   world(t,i,'extendPatrolRoute')(point.x,point.y,point.z,t.text(p[3]),t.text(p[4]));
  },
- PLAY_MISSION_PASSED_TUNE:(t,p,i)=>{world(t,i,'playMissionPassedTune')(t.readInt(p[0]));},
+ // The retail handler is unreversed; the tune is a stream track the port does not package, so a host without it only
+ // records the request and the mission script carries on to its pass.
+ PLAY_MISSION_PASSED_TUNE:(t,p,i)=>{const tune=t.readInt(p[0]);game(t,i).missionPassedTune=tune;t.host?.world?.playMissionPassedTune?.(tune);},
  IS_MESSAGE_BEING_DISPLAYED:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'isMessageBeingDisplayed')(),negated(i));},
  IS_HELP_MESSAGE_BEING_DISPLAYED:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'isHelpMessageBeingDisplayed')(),negated(i));},
  HAS_SPECIAL_CHARACTER_LOADED:(t,p,i)=>{
@@ -1329,7 +1331,7 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_CAR_ON_SCREEN:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsOnScreen')(t.readInt(p[0])),negated(i));},
  EXPLODE_CAR:(t,p,i)=>{world(t,i,'explodeVehicle')(t.readInt(p[0]));},
  // A car with nobody at the wheel leaves the variable at nothing.
- GET_DRIVER_OF_CAR:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehicleDriver')(t.readInt(p[0]))??0);},
+ GET_DRIVER_OF_CAR:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehicleDriver')(t.readInt(p[0]))??-1);},
  // The random model gives back both the model and the class it belongs to.
  GET_RANDOM_CAR_MODEL_IN_MEMORY:(t,p,i)=>{
   const chosen=world(t,i,'randomVehicleModelInMemory')(bool(t,p[0]));

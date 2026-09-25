@@ -112,6 +112,8 @@ export interface ScmMissionWorld {
  givePlayerWeapon?(weaponType:number,ammo:number):void;
  setPlayerCurrentWeapon?(weaponType:number):void;
  setPlayerArmour?(armour:number):void;
+ /** CPed::m_fArmour on the player. */
+ playerArmour?():number;
  /** The cutscene data the script asks for. The browser plays none yet, so a host records the request and the
   * mission moves the state on itself, which keeps the script's own loop running rather than stalling it. */
  loadCutscene(name:string):void;
@@ -812,6 +814,19 @@ export class ScmMission {
    // IS_CAR_UPRIGHT's handler is not reversed: the car is upright unless it lies on its roof (its up axis below the
    // horizontal), as the command is documented.
    isCarUpright:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z>=0,
+   // IS_CAR_UPSIDEDOWN's handler is unreversed; CVehicle::IsUpsideDown (0x6D1D90) is the car's up axis at or below -0.9.
+   vehicleIsUpsideDown:handle=>(handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle):this.world.scriptVehicleMatrix(this.liveVehicle(handle))).up.z<=-.9,
+   // GET_DRIVER_OF_CAR: m_pDriver's handle, or -1 with nobody driving. The player drives the car it is in.
+   vehicleDriver:handle=>handle===PLAYER_VEHICLE_HANDLE?(this.world.playerPed().vehicle?PLAYER_PED_HANDLE:-1):this.peds.driverOf(handle)??-1,
+   // ADD_ARMOUR_TO_CHAR: m_fArmour plus the amount, up to CPlayerInfo::m_nMaxArmour for the player and 100 for anyone
+   // else (the handler is unreversed; the armour pickup caps the player the same way). Script peds keep the figure,
+   // which the browser's ped damage does not yet spend.
+   addArmourToPed:(handle,amount)=>{
+    if(handle===PLAYER_PED_HANDLE){
+     if(!this.world.playerArmour||!this.world.setPlayerArmour)throw new UnsupportedScmCommand(-1,0,'ADD_ARMOUR_TO_CHAR','no host');
+     this.world.setPlayerArmour(Math.min(Math.max(this.world.playerArmour()+amount,0),this.runtime.game.playerInfo.maxArmour));
+    }else this.peds.setArmour(handle,Math.min(Math.max(this.peds.armourOf(handle)+amount,0),100));
+   },
    // RANDOM_PASSENGER_SAY: a passenger's speech line (CAEPedSpeechAudioEntity); the speech banks are not published.
    randomPassengerSay:()=>{},
    getWheelieStats:()=>({twoWheelsTime:0,twoWheelsDistance:0,wheelieTime:0,wheelieDistance:0,stoppieTime:0,stoppieDistance:0}),

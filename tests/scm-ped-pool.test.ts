@@ -232,3 +232,16 @@ describe('the seats a script’s peds sit in',()=>{
   peds.kill(rider);expect(peds.seatTaken(7,0)).toBe(false);
  });
 });
+
+describe('the driver and the armour of a script’s peds',()=>{
+ test('the driver is the live ped in the driving seat; armour starts at nothing and is kept',async()=>{
+  const {pool:peds,settle}=pool();
+  peds.createInCar(4,'MALE01',7,0);
+  expect(peds.driverOf(7)).toBeUndefined();
+  const driver=peds.createInCar(4,'MALE01',7,'driver');
+  await settle();
+  expect(peds.driverOf(7)).toBe(driver);expect(peds.driverOf(8)).toBeUndefined();
+  expect(peds.armourOf(driver)).toBe(0);peds.setArmour(driver,40);expect(peds.armourOf(driver)).toBe(40);
+  peds.kill(driver);expect(peds.driverOf(7)).toBeUndefined();
+ });
+});

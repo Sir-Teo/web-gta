@@ -32,5 +32,12 @@ test('the script’s camera, seat, speech and ped-matrix questions are answered'
  expect(await using()).toBe(-1);
  await page.evaluate(({ped,car}:{ped:number;car:number})=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCarAsPassenger(ped,car,0),made);
  expect(await using()).toBe(made.car);
+ // A passenger is no driver; the upright car is not upside down; the player's armour rises to its maximum.
+ const rest=await page.evaluate(({car}:{car:number})=>{
+  const g=(window as any).__game,m=g.missionForProfiling(),w=m.runtime.world;
+  w.addArmourToPed(1,-200);const floored=g.state().player.armour;w.addArmourToPed(1,90);w.addArmourToPed(1,25);
+  return {driver:w.vehicleDriver(car),upsideDown:w.vehicleIsUpsideDown(car),capped:g.state().player.armour,floored};
+ },made);
+ expect(rest).toEqual({driver:-1,upsideDown:false,capped:100,floored:0});
  expect(errors).toEqual([]);
 });

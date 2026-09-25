@@ -40,7 +40,9 @@ export interface ScmPedPoolHost<Ped>{
 /** What the script said about a ped, which answers for it until the browser has built one. */
 interface ScriptPed{pedType:number;model?:number|string;position:{x:number;y:number;z:number};heading:number;health:number;maxHealth:number;dead:boolean;
  /** The car the ped rides in, once a script has put it in one. */
- ride?:{vehicle:number;seat:number|'driver';offset?:{x:number;y:number;z:number}}}
+ ride?:{vehicle:number;seat:number|'driver';offset?:{x:number;y:number;z:number}};
+ /** CPed::m_fArmour, which ADD_ARMOUR_TO_CHAR raises. */
+ armour?:number}
 /** ePedType, of which only these two are female. */
 const PED_TYPE_CIVMALE=4,PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
@@ -97,6 +99,14 @@ export class ScmPedPool<Ped>{
   for(const [handle,said] of this.said)if(said.ride&&!said.ride.offset&&said.ride.vehicle===vehicle&&said.ride.seat===seat&&this.pool.exists(handle)&&!said.dead)return true;
   return false;
  }
+ /** CVehicle::m_pDriver among the script's peds: the live one in the car's driving seat. */
+ driverOf(vehicle:number){
+  for(const [handle,said] of this.said)if(said.ride&&!said.ride.offset&&said.ride.vehicle===vehicle&&said.ride.seat==='driver'&&this.pool.exists(handle)&&!said.dead)return handle;
+  return undefined;
+ }
+ /** CPed::m_fArmour of a script ped: 0 until a script gives it some. */
+ armourOf(handle:number){return this.word(handle).armour??0;}
+ setArmour(handle:number,armour:number){this.word(handle).armour=armour;}
  private word(handle:number){const said=this.said.get(handle);requireAsset(said,'Script ped handle names nothing.');return said!;}
  exists(handle:number){return this.pool.exists(handle);}
  /** The browser's own ped, once it has built one. */
