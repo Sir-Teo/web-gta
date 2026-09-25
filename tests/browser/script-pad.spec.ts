@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** CPad reaches the script: IS_BUTTON_PRESSED and GET_PAD_STATE read what the held keys make, on foot and at the
  * wheel (CControllerConfigManager's two mappings). */
 test('the script reads the pad the keys make',async({page})=>{
@@ -8,6 +9,7 @@ test('the script reads the pad the keys make',async({page})=>{
  const pad=()=>page.evaluate(()=>({...(window as any).__game.missionForProfiling().runtime.game.pads.pads[0]}));
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(()=>page.evaluate(()=>!!(window as any).__game.missionForProfiling()),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
  await page.keyboard.down('ShiftLeft');await page.keyboard.down('KeyW');
  await expect.poll(async()=>{const p=await pad();return [p.cross,p.leftStickY];},{timeout:5000}).toEqual([255,-128]);
  await page.keyboard.up('ShiftLeft');await page.keyboard.up('KeyW');

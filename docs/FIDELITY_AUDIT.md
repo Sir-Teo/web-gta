@@ -7699,5 +7699,6 @@ Each is now answered:
   - A new task or CLEAR_CHAR_TASKS ends it.
   - The rider fires the Micro SMG whatever the script gave it.
 - The game now opens on INTRO for real, and it takes CJ into the police car a few seconds in. The browser specs about
-  other things end the mission script once MAIN has launched it (`tests/browser/freeRoam.ts`) and play in free roam.
+  other things wait for INTRO (so INITIAL finishes the setup), end it (`tests/browser/freeRoam.ts`) and play in free
+  roam.
 - Verification: `tests/browser/script-held-object.spec.ts`, `script-dive.spec.ts`, `script-drive-by.spec.ts`.
