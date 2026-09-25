@@ -1358,9 +1358,9 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  SET_OBJECT_HEALTH:(t,p,i)=>{world(t,i,'setObjectHealth')(t.readInt(p[0]),t.readInt(p[1]));},
  PLAY_FX_SYSTEM:(t,p,i)=>{world(t,i,'playFxSystem')(t.readInt(p[0]));},
- ADD_ONE_OFF_SOUND:(t,p,i)=>{
-  const point=vec(t,p,0);world(t,i,'addOneOffSound')(point.x,point.y,point.z,t.readInt(p[3]));
- },
+ // Its AE_SCRIPT_* events (AMMUNATION_BUY_WEAPON 1052, PART_MISSION_COMPLETE 1058, ...) with a point: the same
+ // ReportMissionAudioEvent as REPORT_MISSION_AUDIO_EVENT_AT_POSITION (the command's own dispatch is unreversed).
+ ADD_ONE_OFF_SOUND:(t,p,i)=>{game(t,i).missionAudio.report(t.readInt(p[3]),vec(t,p,0));},
  GET_HUD_COLOUR:(t,p,i)=>{
   const colour=world(t,i,'hudColour')(t.readInt(p[0]));
   t.writeInt(p[1],colour.red);t.writeInt(p[2],colour.green);t.writeInt(p[3],colour.blue);t.writeInt(p[4],colour.alpha);

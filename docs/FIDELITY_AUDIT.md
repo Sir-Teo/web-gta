@@ -6583,7 +6583,7 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
 
 - **Before:** DISPLAY_ONSCREEN_TIMER, DISPLAY_ONSCREEN_TIMER_WITH_STRING, the counter commands, FREEZE_ONSCREEN_TIMER,
   SET_TIMER_BEEP_COUNTDOWN_TIME and SET_ONSCREEN_COUNTER_FLASH_WHEN_FIRST_DISPLAYED went to world adapters that did
-  not exist, so a mission that used them stopped: 64 timed and 89 counted uses across the campaign. The clear
+  not exist, so a mission that used them stopped: 71 timed and 89 counted uses across the campaign. The clear
   commands kept the variable's value instead of clearing by the variable.
 - **Now:** COnscreenTimer, COnscreenTimerEntry and COnscreenCounterEntry are ported (`engine/ScmOnscreenTimer.ts`).
   - The commands name the global variable itself. The entries keep its byte offset and read or write it directly.
@@ -6604,4 +6604,7 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
 - **Not done:**
   - CHud::DrawMissionTimers is unreversed. The rows' placement, font and the first-shown flash are authored: under
     the wanted level, label left and value right, a bar counter filled out of 100, in its HUD colour.
-  - ADD_ONE_OFF_SOUND still has no adapter (ProcessMissionAudioEvent is unreversed).
+- **ADD_ONE_OFF_SOUND** (67 uses) no longer stops a mission. Its operands are an AE_SCRIPT_* event (1052
+  AMMUNATION_BUY_WEAPON, 1058 PART_MISSION_COMPLETE, ...) and a point, so it goes to ReportMissionAudioEvent like
+  REPORT_MISSION_AUDIO_EVENT_AT_POSITION. The command's own dispatch is unreversed. Nothing plays the reports yet
+  (ProcessMissionAudioEvent is unreversed). Only the latest 64 are kept; the list had grown for the whole session.

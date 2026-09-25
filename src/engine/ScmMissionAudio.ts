@@ -24,6 +24,8 @@ export interface ScmMissionAudioSlot {
  loadingStatus:number;playing:boolean;finished:boolean;
 }
 const emptySlot=():ScmMissionAudioSlot=>({audioEvent:-1,bankId:-1,bankSlotId:-1,loadingStatus:AUDIO_NOT_LOADED,playing:false,finished:false});
+/** How many recent mission audio reports are kept. */
+export const REPORTS_KEPT=64;
 export class ScmMissionAudio {
  readonly slots:ScmMissionAudioSlot[]=Array.from({length:MISSION_AUDIO_COUNT},emptySlot);
  /** The events the script reported, in order, for a host that plays them one by one. */
@@ -75,7 +77,9 @@ export class ScmMissionAudio {
  /** The report commands, which do not use a slot at all: they ask for one event at a place or an entity. */
  report(audioEvent:number,at:{x:number;y:number;z:number}|{kind:string;handle:number}){
   requireAsset(Number.isInteger(audioEvent),'Invalid mission audio event.');
-  this.reported.push({audioEvent,at});
+  // Only the latest are kept: nothing plays them yet (ProcessMissionAudioEvent is unreversed), and a whole session's
+  // worth would only grow.
+  this.reported.push({audioEvent,at});if(this.reported.length>REPORTS_KEPT)this.reported.splice(0,this.reported.length-REPORTS_KEPT);
  }
  get loadedCount(){return this.slots.filter(slot=>slot.loadingStatus===AUDIO_LOADED).length;}
 }

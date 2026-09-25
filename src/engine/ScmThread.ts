@@ -473,7 +473,6 @@ export interface ScmWorldCommands {
  setObjectHealth?(handle:number,health:number):void;
  /** The particle system a script plays, and a one-off sound at a point. */
  playFxSystem?(handle:number):void;
- addOneOffSound?(x:number,y:number,z:number,soundId:number):void;
  /** The blip's own entry-exit, and the HUD colour the script reads. */
  setBlipEntryExit?(blip:number,x:number,y:number,radius:number):void;
  hudColour?(colour:number):{red:number;green:number;blue:number;alpha:number};

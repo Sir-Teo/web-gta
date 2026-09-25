@@ -109,3 +109,10 @@ describe('the mission audio a script loads and plays',()=>{
   expect(game2.missionAudio.slots.every(slot=>slot.audioEvent===-1)).toBe(true);
  });
 });
+
+test('ADD_ONE_OFF_SOUND reports its script event at its point, and only the latest reports are kept',async()=>{
+ const {ScmMissionAudio,REPORTS_KEPT}=await import('../src/engine/ScmMissionAudio');
+ const audio=new ScmMissionAudio();
+ for(let i=0;i<REPORTS_KEPT+10;i++)audio.report(1000+i,{x:i,y:0,z:0});
+ expect(audio.reported).toHaveLength(REPORTS_KEPT);expect(audio.reported[0].audioEvent).toBe(1010);
+});
