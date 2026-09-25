@@ -8120,3 +8120,12 @@ once the installed window covers the player. Spec: `script-teleport-terrain`.
 
 The interiors archive (`gta_int.img`) is still not published, and its public source host is not reachable from this
 environment, so interior doors (INTRO2's barber's among them) stay shut.
+
+## The pad switches the player commands set
+
+`SET_PLAYER_DUCK_BUTTON`, `_JUMP_BUTTON`, `_FIRE_BUTTON`, `_ENTER_CAR_BUTTON` and now `_CYCLE_WEAPON_BUTTON` put up
+CPad's `bDisablePlayer...` flags. They were recorded but nothing read them, so a gym, the shooting range or a
+cutscene that took a button away left it working. CPad's getters for each (`GetExitVehicle`, `ExitVehicleJustDown`,
+`GetWeapon`, `CycleWeaponLeftJustDown`/`RightJustDown`, and the duck and jump ones) answer nothing while the flag is
+up; the player's input now does the same. `CEntryExit::TransitionFinished` puts the enter-car button back.
+`CPad::Clear(true)` clears them all only on a new or loaded game. Spec: `script-pad-switches`.

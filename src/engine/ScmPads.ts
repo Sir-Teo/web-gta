@@ -61,8 +61,8 @@ export class ScmPads {
  }
  /* The pad flags the player commands switch. Each command gives its flag the other way round from the field:
   * the script enables a button and the pad disables it. */
- readonly disabled=[{duck:false,enterCar:false,fireWeapon:false,jump:false},
-  {duck:false,enterCar:false,fireWeapon:false,jump:false}];
+ readonly disabled=[{duck:false,enterCar:false,fireWeapon:false,jump:false,cycleWeapon:false},
+  {duck:false,enterCar:false,fireWeapon:false,jump:false,cycleWeapon:false}];
  /** bPlayerSafe, which CPlayerInfo::MakePlayerSafe sets: the script takes control away by making the player
   * safe, so the question of whether control is on is this flag read the other way round. */
  readonly playerSafe=[false,false];

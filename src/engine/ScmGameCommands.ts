@@ -1813,7 +1813,8 @@ const handlers:Record<string,ScmCommandHandler>={
   t.writeInt(p[4],world(t,i,'percentageTaggedInArea')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3])));
  },
  CLEAR_AREA_OF_CARS:(t,p,i)=>{world(t,i,'clearAreaOfVehicles')(vec(t,p,0),vec(t,p,3));},
- SET_PLAYER_CYCLE_WEAPON_BUTTON:(t,p,i)=>{world(t,i,'setPlayerCycleWeaponButton')(t.readInt(p[0]),bool(t,p[1]));},
+ // bDisablePlayerCycleWeapon, which CPad::CycleWeaponLeftJustDown and CycleWeaponRightJustDown honour.
+ SET_PLAYER_CYCLE_WEAPON_BUTTON:(t,p,i)=>{game(t,i).pads.setDisabled(t.readInt(p[0]),'cycleWeapon',!bool(t,p[1]));},
  // The debug line the script draws between two points.
  // A debug line in development builds; the shipped game reads its six floats and draws nothing.
  LINE:(t,p)=>{vec(t,p,0);vec(t,p,3);},

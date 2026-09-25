@@ -755,6 +755,9 @@ async function boot() {
   let skipButtonDown=false,skipButtonPressed=false,skipPadCamera=false,tripSkipHelpShown=false;
   // CPad::DisablePlayerControls: the script's SET_PLAYER_CONTROL, or bCamera while a trip skip moves the player.
   const playerControlsDisabled=()=>mission?.playerControl===false||skipPadCamera;
+  /** The pad's own switches the player commands set (SET_PLAYER_ENTER_CAR_BUTTON and the rest): CPad's getters for
+   * that button answer nothing while its bDisablePlayer flag is up, as they do with the controls off. */
+  const padSwitchedOff=(button:'duck'|'enterCar'|'fireWeapon'|'jump'|'cycleWeapon')=>!!mission?.runtime.game.pads.disabled[0][button];
   const skipWorld:SkipWorld={
    canSeeOutside:()=>render.lighting.area===0,
    isFading:()=>cameraFade.fading,
@@ -2115,7 +2118,7 @@ async function boot() {
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
       if(planeExitReady)fleet!.occupiedPlane!.exitPending=false;
       // CPad::DisablePlayerControls (SET_PLAYER_CONTROL off): every pad query answers 0, the exit button included.
-      if(!sim.climbing&&(input.consume('KeyF')&&!playerControlsDisabled()||planeExitReady)&&!law.arrested){
+      if(!sim.climbing&&(input.consume('KeyF')&&!playerControlsDisabled()&&!padSwitchedOff('enterCar')||planeExitReady)&&!law.arrested){
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.
         if(sim.jetPack){/* the jetpack task owns the button */}
         else if(playerPassenger)leavePassengerSeat();
@@ -2178,7 +2181,7 @@ async function boot() {
        // one flagged for crouch-fire; PlayerControlDucked stands the player up once it fails.
        const duckable=()=>{const info=weapons.inventory.info(),w=weapons.inventory.weapon;const moving=sim.player.moveBlend>1&&!sim.player.crouched;
         return !moving&&(w.kind==='melee'||w.id===41||!info||info.fire==='melee'||info.fire==='use'||!!(info.flags&WEAPON_FLAG.crouchFire));};
-       if (input.consume('KeyC')&&!playerControlsDisabled()&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling&&(sim.player.crouched||duckable())) { sim.toggleCrouch(); }
+       if (input.consume('KeyC')&&!playerControlsDisabled()&&!padSwitchedOff('duck')&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling&&(sim.player.crouched||duckable())) { sim.toggleCrouch(); }
        else if(sim.player.crouched&&!duck.rolling&&!duckable())sim.setCrouched(false);
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
@@ -2252,14 +2255,14 @@ async function boot() {
         const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
         // The first-person weapon modes ignore weapon cycling; the wheel zooms instead (up zooms in).
         if(render.firstPerson){if(next||previous)render.zoomInput.notch=previous?1:-1;}
-        else if(onFoot&&!sim.jetPack&&!playerControlsDisabled()&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
+        else if(onFoot&&!sim.jetPack&&!playerControlsDisabled()&&!padSwitchedOff('cycleWeapon')&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
         // SA has no reload control: CWeapon::Fire reloads when a clip runs out.
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight'),click=input.consume('MouseClick');
         // The left button fires whenever it is not dragging the camera: aiming, under pointer lock, or a short click.
         const mouseFires=weapons.aiming||document.pointerLockElement===canvas;
         // CPad::GetWeapon is the held button: every gun keeps firing at its own rate while it is down.
         const held=weapons.inventory.weapon.automatic||['bullet','shotgun','rocket','guided','camera'].includes(weapons.inventory.weapon.kind);
-        const firing=playerControlsDisabled()?false:held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key);
+        const firing=playerControlsDisabled()||padSwitchedOff('fireWeapon')?false:held?(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight')||key||mouseFires&&mouse||click):(mouseFires&&mouse||click||key);
         // The minigun's use-gun task runs while it is aimed or fired: its barrel spins up, and spins dry without a shot.
         {const miniUse=onFoot&&weapons.inventory.selected===38&&(weapons.aiming||firing);weaponView.stepGunSpin(step,miniUse);if(miniUse&&!firing)sound.nativeEngine?.minigunSpin();}
         {const justDown=mouseFires&&mouse||click||key;if(justDown&&onFoot&&!playerControlsDisabled()&&!sim.player.swimming){const fail=weapons.fireFailEvent();if(fail!==undefined)sound.frontend(fail);}}
@@ -2366,12 +2369,12 @@ async function boot() {
           shakeFist:()=>{const view=render.nativeCharacter;if(view&&!view.reactionName&&view.hasReaction('fucku'))view.playReaction('fucku');}})){playerCarHits.contacts++;if(hit.hurt){playerCarHits.hurt++;playerCarHits.hurtBy=hit.response.event.kind;}playerCarHits.last=hit.response.event.kind;}
         const controlsOff=playerControlsDisabled();
         const axes = law.arrested||weapons.stealth||entryBusy||controlsOff?{x:0,y:0}:input.axes();
-        let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy&&!controlsOff;
+        let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy&&!controlsOff&&!padSwitchedOff('jump');
         // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint or a jump press stands a crouched CJ up
         // (ClearTaskDuckSecondary). Only the ducked control runs that frame, so the press does not also jump.
         if(sim.player.crouched&&sim.player.grounded&&!law.arrested&&(jumpPressed||input.down('ShiftLeft')||input.down('ShiftRight'))&&(duck.rolling||sim.setCrouched(false)))jumpPressed=false;
         // PlayerControlZelda jumps only while the target button is up (PlayerControlZeldaWeapon never does).
-        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim'),jumpHeld:input.down('Space')&&!law.arrested,exitVehicle:input.down('KeyF'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
+        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim'),jumpHeld:input.down('Space')&&!law.arrested&&!padSwitchedOff('jump'),exitVehicle:input.down('KeyF')&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.
         if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
           const splash=updatePlayerSwim(sim.player,{moveMag:Math.max(0,axes.y),sprint:input.down('ShiftLeft')||input.down('ShiftRight'),jump:jumpPressed,dive:key,underwaterStroke:render.nativeCharacter?.swimUnderAssociation()},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
@@ -3149,7 +3152,7 @@ async function boot() {
   /** CEntryExit::TransitionFinished once the screen is black: CStreaming::LoadScene at the spawn point's exit in its
    * area (the game clock is suspended meanwhile), then the teleport. */
   function startInteriorTransfer(t:EntryExitTransition){
-    if(!staticWorld){entryExits?.arrived();return;}
+    if(!staticWorld){entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);return;}
     interiorTransfer=t;follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;
     const [x,y]=t.spawn.exit,area=t.spawn.area;
     staticWorld.request(-2,area===0?{x,y,radius:180,lodRadius:1000,includeCollisionBounds:true}:{x,y,radius:100,includeCollisionBounds:true,interior:area});
@@ -3173,7 +3176,7 @@ async function boot() {
     render.yaw=heading+Math.PI;
     // CPopulation::RemoveAllRandomPeds; the interior's own peds (PopulateInterior) are not generated.
     pedestrians?.removeAllRandomPeds();
-    entryExits?.arrived();rebuildPlayerIfNeeded();
+    entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);rebuildPlayerIfNeeded();
     // TransitionFinished's shop (reconstructed): a reward interior's door unloads the shop, any other door loads the
     // shop its name names and marks its pair as the reward side.
     {const shopping=mission?.runtime.game.shopping,door=t.enex;
@@ -3183,7 +3186,7 @@ async function boot() {
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);
   }
   function failInteriorTransfer(message:string){
-    interiorTransfer=undefined;entryExits?.arrived();
+    interiorTransfer=undefined;entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);
     follower=new SceneRegionFollower({x:sim.player.position.x,y:-sim.player.position.z,radius:180,lodRadius:1000,includeCollisionBounds:true});
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);hud.message(message);
   }
