@@ -359,6 +359,12 @@ const WEAPON_LAST_MELEE=15;
 /** CTaskSimpleFightingControl's FIGHT_CTRL_MAX_ATTACK_ANGLE_RAD. */
 const FIGHT_CTRL_MAX_ATTACK_ANGLE=15*Math.PI/180;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
+/** RpAnimBlendClumpGetAssociation by name (any case), then SetSpeed or SetCurrentTime at a fraction of the clip. */
+export function setCharacterAnim(view:{readonly reactionName:string|undefined;setReactionSpeed(name:string,speed:number):boolean;setReactionProgress(name:string,fraction:number):boolean},animation:string,change:{speed?:number;progress?:number}){
+ const name=view.reactionName;if(!name||name.toLowerCase()!==animation.toLowerCase())return;
+ if(change.speed!==undefined)view.setReactionSpeed(name,change.speed);
+ if(change.progress!==undefined)view.setReactionProgress(name,change.progress);
+}
 export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
 /** CPhysical's damage response by weapon class (0x5426C0): melee, bullet, explosion and fire each have their
  * proof, and a spray can damages whatever it hits. Collision proof belongs to the brass knuckles, golf club
@@ -1836,6 +1842,8 @@ export class WorldPedestrians {
  isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
  /** How far through that animation the ped is, or nothing when it is playing something else. */
  animProgress(ped:Pedestrian,animation:string){return this.isPlayingAnim(ped,animation)?ped.view.reactionProgress:undefined;}
+ /** SET_CHAR_ANIM_SPEED and SET_CHAR_ANIM_CURRENT_TIME: the association the ped is playing under that name, if any. */
+ setAnim(ped:Pedestrian,animation:string,change:{speed?:number;progress?:number}){setCharacterAnim(ped.view,animation,change);}
  /** HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE: the held model goes out of sight, and the ped keeps the weapon. */
  hideWeapon(ped:Pedestrian,hidden:boolean){ped.weaponHidden=hidden;if(ped.gun)ped.gun.root.visible=!hidden;}
  /** One of the CPed bits a script sets by name. */
@@ -2741,11 +2749,11 @@ export class WorldPedestrians {
      if(!o.started){p.view.playReaction(o.clip,o.loop||o.hold?Number.POSITIVE_INFINITY:undefined,false,0,o.loop);o.started=true;o.elapsed=0;}
      else if(o.elapsed>=0){
       o.elapsed+=dt;o.remaining-=dt;
-      const clipLength=p.view.reactionDuration(o.clip)??0;
       // The script's time ends the task, a looped clip included; otherwise it ends as the clip does, or when something
       // else (a fall, a hit) has taken the ped's pose.
       // A held clip the task lets go (hands up) lasts the task's time rather than the clip's.
-      const replaced=p.view.reactionName!==o.clip,ended=!o.loop&&!(o.hold&&o.release)&&o.elapsed>=clipLength;
+      // The clip ends when its own time does (SET_CHAR_ANIM_SPEED can stop it, SET_CHAR_ANIM_CURRENT_TIME move it).
+      const replaced=p.view.reactionName!==o.clip,ended=!o.loop&&!(o.hold&&o.release)&&(p.view.reactionProgress??1)>=1;
       if(o.remaining<=0||replaced||ended){
        if(!replaced){if(o.hold&&!o.release)p.heldScriptClip=o.clip;else p.view.clearReaction();}
        this.startNextOrder(p);

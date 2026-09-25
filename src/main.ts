@@ -138,7 +138,7 @@ import {HUD_COLOURS} from './ui/nativeHudColours';
 import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
 import {WorldTraffic} from './simulation/WorldTraffic';
-import {WorldPedestrians,type Pedestrian} from './simulation/WorldPedestrians';
+import {WorldPedestrians,setCharacterAnim,type Pedestrian} from './simulation/WorldPedestrians';
 import {PlayerScriptTasks} from './simulation/playerScriptTasks';
 import {PlayerPhone} from './simulation/PlayerPhone';
 import {ScriptCarMissions} from './simulation/ScriptCarMissions';
@@ -3640,6 +3640,8 @@ async function boot() {
                  // bNoCriticalHits is the command's own value inverted.
                  setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},
                  scriptPedAnimProgress:(ped,animation)=>{const p=onFoot(ped);return p?pedestrians?.animProgress(p,animation):undefined;},
+                 setScriptPedAnim:(ped,animation,change)=>{if(ped===undefined){if(render.nativeCharacter)setCharacterAnim(render.nativeCharacter,animation,change);return;}const p=onFoot(ped);if(p)pedestrians?.setAnim(p,animation,change);},
+                 playerAnimProgress:animation=>{const view=render.nativeCharacter;return view&&(view.reactionName??'').toLowerCase()===animation.toLowerCase()?view.reactionProgress:undefined;},
                  setScriptPedSpeech:(ped,shutUp)=>{const p=onFoot(ped);if(p)p.shutUp=shutUp;},
                  setScriptPedFacialTalk:(ped,seconds)=>{const p=onFoot(ped);if(p)p.facialTalk=seconds;},
                  hideScriptPedWeapon:(ped,hidden)=>{const p=onFoot(ped);if(p)pedestrians?.hideWeapon(p,hidden);},

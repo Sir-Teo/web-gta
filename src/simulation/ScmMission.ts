@@ -315,6 +315,10 @@ export interface ScmMissionWorld {
  setScriptPickupMoneyPerDay?(handle:number,moneyPerDay:number):void;
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
  scriptPedAnimProgress(ped:unknown,animation:string):number|undefined;
+ /** SET_CHAR_ANIM_SPEED and SET_CHAR_ANIM_CURRENT_TIME on the clip the ped plays by that name; `undefined` is the player. */
+ setScriptPedAnim?(ped:unknown,animation:string,change:{speed?:number;progress?:number}):void;
+ /** GET_CHAR_ANIM_CURRENT_TIME on the player. */
+ playerAnimProgress?(animation:string):number|undefined;
  setScriptPedSpeech(ped:unknown,shutUp:boolean):void;
  setScriptPedFacialTalk(ped:unknown,seconds:number|undefined):void;
  hideScriptPedWeapon(ped:unknown,hidden:boolean):void;
@@ -835,7 +839,9 @@ export class ScmMission {
     if(flag==='neverLeavesGroup'){if(value)this.neverLeavesGroup.add(handle);else this.neverLeavesGroup.delete(handle);}
    },
    setPedSuffersCriticalHits:(handle,suffers)=>{this.world.setScriptPedCriticalHits(this.livePed(handle),suffers);},
-   pedAnimProgress:(handle,animation)=>this.world.scriptPedAnimProgress(this.livePed(handle),animation),
+   pedAnimProgress:(handle,animation)=>handle===PLAYER_PED_HANDLE?this.host('playerAnimProgress','GET_CHAR_ANIM_CURRENT_TIME')(animation):this.world.scriptPedAnimProgress(this.livePed(handle),animation),
+   setPedAnimSpeed:(handle,animation,speed)=>{this.host('setScriptPedAnim','SET_CHAR_ANIM_SPEED')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),animation,{speed});},
+   setPedAnimProgress:(handle,animation,progress)=>{this.host('setScriptPedAnim','SET_CHAR_ANIM_CURRENT_TIME')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),animation,{progress});},
    // A browser ped a script made never rides, so it sits in no car at all.
    // A ped a script put in a car rides there until something takes it out; nothing else in this browser does.
    // CPedGroups: the groups a script makes, and the membership commands that read and change them.

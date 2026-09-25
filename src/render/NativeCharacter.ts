@@ -230,7 +230,9 @@ export class NativeCharacter {
   /** Native BONE_R_HAND (24) by default; BONE_L_HAND is 34. */
   hand(boneId=24){return this.bone(boneId);}
   setWeaponPose(name?:string,time=.05){this.weaponPose=name;if(name)this.aimPose={name,time};}
-  private reaction?: {name:string;seconds:number;duration:number;speed:number;loop:boolean};
+  /** The script or reaction clip on top of the move: CAnimBlendAssociation's m_fCurrentTime and m_fSpeed, with the
+   * clip time it is let go at (Infinity while held). */
+  private reaction?: {name:string;time:number;end:number;speed:number;loop:boolean};
   installReactions(clips:Record<string,NativeAnimation>,upperBody=false) {
     for(const [name,source] of Object.entries(clips)){
       const clip=upperBody?{...source,tracks:source.tracks.filter(t=>t.boneId>=2&&t.boneId<=5||t.boneId>=21&&t.boneId<=36)}:source;
@@ -247,7 +249,15 @@ export class NativeCharacter {
   get reactionProgress(){
     const r=this.reaction;if(!r)return undefined;
     const clip=this.reactions.get(r.name)?.duration??0;if(!(clip>0))return undefined;
-    const time=r.seconds*r.speed;return r.loop?(time%clip)/clip:Math.min(1,time/clip);
+    return r.loop?(r.time%clip)/clip:Math.min(1,r.time/clip);
+  }
+  /** CAnimBlendAssociation::SetSpeed on the clip playing, when it is the one named (SET_CHAR_ANIM_SPEED). */
+  setReactionSpeed(name:string,speed:number){const r=this.reaction;if(!r||r.name!==name)return false;r.speed=speed;return true;}
+  /** CAnimBlendAssociation::SetCurrentTime at a fraction of the clip, when it is the one named
+   * (SET_CHAR_ANIM_CURRENT_TIME). */
+  setReactionProgress(name:string,fraction:number){
+    const r=this.reaction;if(!r||r.name!==name)return false;
+    r.time=fraction*(this.reactions.get(name)?.duration??0);return true;
   }
   /** Plays a vehicle clip's last frame as a reaction for `seconds`, such as the ground pose CAR_jackedLHS
    * ends on. Helper tracks the ped skeleton lacks are dropped, as installVehicleClips does. */
@@ -260,13 +270,14 @@ export class NativeCharacter {
     const end=this.reactions.get(name)!.duration;this.playReaction(name,end+seconds,false,end);return true;
   }
   /** Keeps the current reaction on its last frame until cleared, as a ped held down. */
-  holdReaction(){if(this.reaction)this.reaction.duration=Infinity;}
+  holdReaction(){if(this.reaction)this.reaction.end=Infinity;}
   hasReaction(name:string){return this.reactions.has(name);}
   reactionDuration(name:string){return this.reactions.get(name)?.duration;}
   /** `loop` wraps the clip (an ANIMATION_LOOPED association); otherwise it stops on its last frame. */
   playReaction(name:string,duration?:number,fitDuration=false,startSeconds=0,loop=false) {
     const binding=this.reactions.get(name);if(!binding)return;
-    this.reaction={name,seconds:startSeconds,duration:duration??binding.duration,speed:fitDuration&&duration?binding.duration/duration:1,loop};
+    const speed=fitDuration&&duration?binding.duration/duration:1;
+    this.reaction={name,time:startSeconds*speed,end:(duration??binding.duration)*speed,speed,loop};
   }
   private action: Action = 'idle';
   private lastGroundAction: Action = 'idle';
@@ -455,7 +466,7 @@ export class NativeCharacter {
     this.ikClockMs+=dt*1000;this.ikFrameMs+=dt*1000;this.stepHeading=sim.player.heading;
     this.stepAimLook(dt*1000);
     this.aimBlend=this.weaponPose&&!lowered?Math.min(1,this.aimBlend+8*dt):Math.max(0,this.aimBlend-(this.weaponPose&&lowered?4:8)*dt);
-    if(this.reaction){this.reaction.seconds+=dt;if(this.reaction.seconds>=this.reaction.duration){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
+    if(this.reaction){this.reaction.time+=dt*this.reaction.speed;if(this.reaction.time>=this.reaction.end){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;
     if (sim.player.swimming && this.clips.swimTread) return this.stepSwim(dt, controls, sim);
     const moving = Math.hypot(controls.x, controls.y) > 0;
@@ -744,7 +755,7 @@ export class NativeCharacter {
       if(this.aimBlend>=1)aimPose.sample(this.aimPose!.time,false,false);
       else{this.aimTransition??=new PoseTransition(this.transitionTargets());this.aimTransition.capture();aimPose.sample(this.aimPose!.time,false,false);this.aimTransition.apply(this.aimBlend);}
     }
-    if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.seconds*this.reaction.speed,this.reaction.loop,false);
+    if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.time,this.reaction.loop,false);
     if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false,false);}
     if(!this.weaponReload)this.aimUpperBody();
     this.applyLegSwing();

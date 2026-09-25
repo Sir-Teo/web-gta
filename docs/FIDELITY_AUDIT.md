@@ -7949,3 +7949,15 @@ Each is now answered:
 - HAS_LANGUAGE_CHANGED: only the menu's language option sets CMenuManager::m_bLanguageChanged, and the language here
   stays American, so it is false.
 - Verification: `tests/browser/script-world-queries.spec.ts`.
+
+## Script clip speed and time
+
+- The clip a ped plays on top of its move now keeps CAnimBlendAssociation's own clock: the current time and a speed.
+  Before, it kept wall seconds scaled by a fixed speed.
+- SET_CHAR_ANIM_SPEED is SetSpeed on the association the ped plays under that name (any case), and
+  SET_CHAR_ANIM_CURRENT_TIME is SetCurrentTime at that fraction of the clip. A name the ped is not playing changes
+  nothing. Both reach the player's clip too, as does GET_CHAR_ANIM_CURRENT_TIME, which used to fail on the player.
+- TASK_PLAY_ANIM ends as the clip's own time does. It used to end on the wall clock against the clip's length, so a
+  clip SMOKE2 or CRASH1 stopped would still have ended its task. The script's time for the task stays on the clock.
+- Verification: `tests/player-script-tasks.test.ts`, `tests/browser/script-anim-speed.spec.ts`,
+  `tests/browser/script-play-anim.spec.ts`.

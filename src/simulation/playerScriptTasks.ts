@@ -36,6 +36,8 @@ export interface PlayerTaskBody{
   clearReaction():void;
   readonly reactionName:string|undefined;
   reactionDuration(name:string):number|undefined;
+  /** The clip's time over its length, which SET_CHAR_ANIM_SPEED and SET_CHAR_ANIM_CURRENT_TIME move. */
+  readonly reactionProgress:number|undefined;
  };
 }
 export interface PlayerTaskWorld{
@@ -228,7 +230,8 @@ export class PlayerScriptTasks{
     if(o.phase==='loading')return {kind:'hold'};
     if(o.phase==='ready'&&view){view.playReaction(o.clip,o.loop||o.hold?Number.POSITIVE_INFINITY:undefined,false,0,o.loop);o.phase='playing';o.elapsed=0;return {kind:'hold'};}
     o.elapsed+=dt;o.remaining-=dt;
-    const replaced=view?.reactionName!==o.clip,ended=!o.loop&&!(o.hold&&o.release)&&o.elapsed>=(view?.reactionDuration(o.clip)??0);
+    // The clip ends when its own time does, which a script can stop or move; the task's time is the clock's.
+    const replaced=view?.reactionName!==o.clip,ended=!o.loop&&!(o.hold&&o.release)&&(view?.reactionProgress??1)>=1;
     if(o.remaining<=0||replaced||ended){
      if(!replaced&&view){if(o.hold&&!o.release)this.held=o.clip;else view.clearReaction();}
      this.next(body);

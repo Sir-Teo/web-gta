@@ -43,14 +43,18 @@ test('a heading is turned to at the player’s rate, and a sequence runs its tas
 });
 
 test('a clip plays once and the task ends with it; clearing drops it',async()=>{
- const played:unknown[]=[];let reaction:string|undefined;
- const view={hasReaction:()=>true,installReactions:()=>{},playReaction:(name:string,...rest:unknown[])=>{played.push([name,...rest]);reaction=name;},
-  clearReaction:()=>{reaction=undefined;},get reactionName(){return reaction;},reactionDuration:()=>.1};
+ // The clip's own clock, 0.1 long, which the character advances as it draws; a script can stop it.
+ const played:unknown[]=[];let reaction:string|undefined,time=0,speed=1;
+ const view={hasReaction:()=>true,installReactions:()=>{},playReaction:(name:string,...rest:unknown[])=>{played.push([name,...rest]);reaction=name;time=0;},
+  clearReaction:()=>{reaction=undefined;},get reactionName(){return reaction;},reactionDuration:()=>.1,get reactionProgress(){return reaction?Math.min(1,time/.1):undefined;}};
  const tasks=new PlayerScriptTasks(world),b={...body(),view};
+ const step=(dt:number)=>{time+=dt*speed;tasks.step(dt,b);};
  tasks.give({kind:'playAnim',file:'PED',name:'IDLE_chat',loop:false,keepLastFrame:false,seconds:Infinity},b);
  tasks.step(1/30,b);expect(played).toEqual([['idle_chat',undefined,false,0,false]]);
- tasks.step(.05,b);expect(tasks.active).toBe(true);
- tasks.step(.06,b);expect(tasks.active).toBe(false);expect(reaction).toBeUndefined();
+ step(.05);expect(tasks.active).toBe(true);
+ // Stopped by SET_CHAR_ANIM_SPEED, the clip holds the task past its length.
+ speed=0;step(.2);expect(tasks.active).toBe(true);
+ speed=1;step(.06);expect(tasks.active).toBe(false);expect(reaction).toBeUndefined();
  tasks.give({kind:'playAnim',file:'PED',name:'IDLE_chat',loop:true,keepLastFrame:false,seconds:Infinity},b);
  tasks.step(1/30,b);expect(reaction).toBe('idle_chat');
  tasks.clear(b);expect(reaction).toBeUndefined();expect(tasks.active).toBe(false);
