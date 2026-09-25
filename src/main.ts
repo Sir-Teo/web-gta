@@ -217,6 +217,8 @@ import {ScriptCarRecordingStore} from './simulation/scriptCarRecordings';
 import {recordingVehicle} from './simulation/recordingBody';
 import {startPlaybackRecordedCar} from './engine/carRecordingPlayback';
 import {WorldTrain} from './simulation/WorldTrain';
+import {applyStoredSwitches,markRoadNodeAsDontWander,switchRoadsOffInArea,unmarkAllRoadNodesAsDontWander} from './simulation/nativePathSwitches';
+import {pathAreaLoaded,pathAreaMaps} from './assets/worldPaths';
 import {findCaboose,findCarriage,setTrainCruiseSpeed,setTrainSpeed} from './simulation/nativeTrain';
 import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/nativeAirResistance';
 import {PED_ORIGIN_HEIGHT,SWIM} from './simulation/nativeSwim';
@@ -686,6 +688,8 @@ async function boot() {
   // CGameLogic's trip skip reaches the world through this. CPad::IsDPadRightPressed is the frame's own edge, kept
   // below each frame from the pad the held keys make.
   // CHud's big messages outside STYLE_MIDDLE and STYLE_WHITE_MIDDLE, stepped by game time.
+  // LoadPathFindData: an area loads, then takes the script's stored switches.
+  pathAreaLoaded.hook=(areas,areaId)=>{const switches=mission?.runtime.game.nodeSwitches.switches;if(switches?.length)applyStoredSwitches(areas,areaId,switches);};
   const carRecordings=new ScriptCarRecordingStore(()=>fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/paths/carrec.img`,location.href)).then(r=>r.ok?r.blob():Promise.reject(new Error(`carrec.img ${r.status}`))));
   const hudBigMessages=new NativeHudBigMessages();let hudBigMessagesClock=0;
   let skipButtonDown=false,skipButtonPressed=false,skipPadCamera=false,tripSkipHelpShown=false;
@@ -3626,6 +3630,10 @@ async function boot() {
                  releaseMissionTrains:()=>{fleet?.releaseMissionTrains();},
                  removeAllTrains:()=>{fleet?.removeAllTrains();},
                  scriptVehicleIsTrain:car=>car instanceof WorldTrain,
+                 // CPathFind's switches over every path loader's areas (the browser's systems each keep their own).
+                 switchPathNodes:(area,isOff,isCars,backToOriginal)=>{for(const areas of pathAreaMaps)switchRoadsOffInArea(areas,area,isOff,isCars,backToOriginal);},
+                 markRoadNodeAsDontWander:point=>{for(const areas of pathAreaMaps)markRoadNodeAsDontWander(areas,point);},
+                 unmarkAllRoadNodesAsDontWander:()=>{for(const areas of pathAreaMaps)unmarkAllRoadNodesAsDontWander(areas);},
                  scriptVehicleInAirProper:car=>{
                   if(car instanceof WorldTrain)return false;
                   const body=(car as {car:{body:import('@dimforge/rapier3d-compat').RigidBody}}).car.body;

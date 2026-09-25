@@ -26,7 +26,7 @@ test('the published roadblox.dat lists its nodes',()=>{
 });
 
 // One area: node 0 at (0,0) with navigation links 0 and 1 on a road running north (two lanes each way).
-const pathNode=(position:[number,number,number],width=0):PathNode=>({address:{area:0,node:0},position,kind:'vehicle',baseLink:0,linkCount:2,width,floodFill:0,flags:0,deadEnd:false,switchedOff:false,water:false,dontWander:false,spawnProbability:15,behaviour:0});
+const pathNode=(position:[number,number,number],width=0):PathNode=>({address:{area:0,node:0},position,kind:'vehicle',baseLink:0,linkCount:2,width,floodFill:0,flags:0,deadEnd:false,switchedOff:false,switchedOffOriginal:false,water:false,dontWander:false,spawnProbability:15,behaviour:0});
 const navi=(y:number):NavigationNode=>({position:[0,y],attachedTo:{area:0,node:0},direction:[0,1],width:0,oppositeLanes:2,sameLanes:2,trafficLightDirection:false,trafficLightState:0,bridgeLights:false,flags:0});
 const paths=(node:PathNode):RoadBlockPaths=>({node:a=>a.area===0&&a.node===0?node:undefined,naviLink:(_area,link)=>link===0?navi(-5):link===1?navi(5):undefined});
 

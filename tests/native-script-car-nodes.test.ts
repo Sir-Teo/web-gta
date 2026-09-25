@@ -4,7 +4,7 @@ import type {PathArea,PathNode} from '../src/assets/pathNodes';
 
 // One area: three car nodes along a road running north (+y), one switched off, one boat node and one ped node.
 function area():Map<number,PathArea>{
- const node=(i:number,position:[number,number,number],extra:Partial<PathNode>={}):PathNode=>({address:{area:0,node:i},position,kind:'vehicle',baseLink:0,linkCount:0,width:0,floodFill:0,flags:0,deadEnd:false,switchedOff:false,water:false,dontWander:false,spawnProbability:15,behaviour:0,...extra});
+ const node=(i:number,position:[number,number,number],extra:Partial<PathNode>={}):PathNode=>({address:{area:0,node:i},position,kind:'vehicle',baseLink:0,linkCount:0,width:0,floodFill:0,flags:0,deadEnd:false,switchedOff:false,switchedOffOriginal:false,water:false,dontWander:false,spawnProbability:15,behaviour:0,...extra});
  const nodes=[
   node(0,[0,0,0],{baseLink:0,linkCount:1,width:1}),
   node(1,[0,10,0],{baseLink:1,linkCount:2}),

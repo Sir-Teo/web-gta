@@ -8,7 +8,7 @@ function graph(edges:[number,number,number][]){
  const area:PathArea={area:0,nodes,vehicleCount:count,pedestrianCount:0,linkCount:edges.length,navigation:[],links:[],navigationLinks:[],lengths:new Uint8Array(edges.length),intersections:new Uint8Array(edges.length),bytesRead:0};
  for(let i=0;i<count;i++){
   const outgoing=edges.filter(([from])=>from===i),baseLink=area.links.length;
-  nodes.push({address:address(i),position:[i,0,0],kind:'vehicle',baseLink,linkCount:outgoing.length,width:0,floodFill:0,flags:0,deadEnd:false,switchedOff:false,water:false,dontWander:false,spawnProbability:0,behaviour:0});
+  nodes.push({address:address(i),position:[i,0,0],kind:'vehicle',baseLink,linkCount:outgoing.length,width:0,floodFill:0,flags:0,deadEnd:false,switchedOff:false,switchedOffOriginal:false,water:false,dontWander:false,spawnProbability:0,behaviour:0});
   for(const [,to,length] of outgoing){const index=area.navigation.length;area.lengths[index]=length;area.links.push(address(to));area.navigationLinks.push(address(index));area.navigation.push({position:[0,0],attachedTo:address(to),direction:[1,0],width:0,oppositeLanes:0,sameLanes:1,trafficLightDirection:false,trafficLightState:0,bridgeLights:false,flags:0});}
  }
  return new Map([[0,area]]);

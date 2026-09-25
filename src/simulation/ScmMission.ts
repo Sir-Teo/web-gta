@@ -80,6 +80,9 @@ export interface ScmMissionWorld {
  setPlayerAmmo?(weaponType:number,ammo:number):void;
  addPlayerAmmo?(weaponType:number,ammo:number):void;
  hidePlayerWeapon?(hidden:boolean):void;
+ markRoadNodeAsDontWander?(point:{x:number;y:number;z:number}):void;
+ switchPathNodes?(area:{xMin:number;xMax:number;yMin:number;yMax:number;zMin:number;zMax:number},isOff:boolean,isCars:boolean,backToOriginal:boolean):void;
+ unmarkAllRoadNodesAsDontWander?():void;
  /** IS_CAR_IN_AIR_PROPER for a script vehicle: no wheel on the ground and nothing touched. */
  scriptVehicleInAirProper?(car:unknown):boolean;
  /** CTaskSimpleCarSetPedInAsPassenger for the player, SA's seat numbering (-1 the first free); false when he cannot. */
@@ -955,6 +958,10 @@ export class ScmMission {
    deleteMissionTrains:()=>{this.world.removeMissionTrains?.();},
    markMissionTrainsAsNoLongerNeeded:()=>{this.world.releaseMissionTrains?.();},
    deleteAllTrains:()=>{this.world.removeAllTrains?.();},
+   // CPathFind::MarkRoadNodeAsDontWander and UnMarkAllRoadNodesAsDontWander on the loaded car nodes.
+   markRoadNodeAsDontWander:(x,y,z)=>{this.world.markRoadNodeAsDontWander?.({x,y,z});},
+   unmarkAllRoadNodesAsDontWander:()=>{this.world.unmarkAllRoadNodesAsDontWander?.();},
+   flushPatrolRoute:()=>{this.patrolRoute.length=0;},
    forceVehicleLights:(handle,lights)=>{this.host('setScriptVehicleOverrideLights','FORCE_CAR_LIGHTS')(this.liveVehicle(handle),lights);},
    setVehicleCollision:(handle,state)=>{this.host('setScriptVehicleUsesCollision','SET_CAR_COLLISION')(this.liveVehicle(handle),state);},
    createUser3dMarker:(x,y,z,colour)=>this.host('createScriptUser3dMarker','CREATE_USER_3D_MARKER')(x,y,z,colour),
@@ -1390,6 +1397,8 @@ export class ScmMission {
   const {runtime,header}=ScmRuntime.load(script,adapter,this.random);
   this.runtime=runtime;
   // CVehicleRecording's host side: files streamed from carrec.img, and the cars playbacks move.
+  // CPathFind's switches reach the host's loaded path nodes as they are made.
+  runtime.game.nodeSwitches.onSwitch=(area,isOff,isCars,backToOriginal)=>{this.world.switchPathNodes?.(area,isOff,isCars,backToOriginal);};
   const recordings=runtime.game.vehicleRecordings;
   recordings.onRequest=fileNumber=>{this.world.requestCarRecording?.(fileNumber,loaded=>{recordings.loadRecordingFile(loaded);});};
   if(this.world.carRecordingVehicle)runtime.game.carRecordingVehicles={

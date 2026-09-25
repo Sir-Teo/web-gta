@@ -11,7 +11,7 @@ function area(points:[number,number,number][],{floodFill=()=>1,extra=[] as [numb
   const baseLink=links.length;
   for(const j of neighbours[i]){links.push({area:0,node:j});lengths.push(Math.round(Math.hypot(points[j][0]-position[0],points[j][1]-position[1],points[j][2]-position[2])));}
   return {address:{area:0,node:i},position,kind:'pedestrian',baseLink,linkCount:neighbours[i].length,width:0,floodFill:floodFill(i),flags:0,
-   deadEnd:false,switchedOff:false,water:false,dontWander:false,spawnProbability:0,behaviour:0};
+   deadEnd:false,switchedOff:false,switchedOffOriginal:false,water:false,dontWander:false,spawnProbability:0,behaviour:0};
  });
  return new Map([[0,{area:0,vehicleCount:0,pedestrianCount:nodes.length,linkCount:links.length,nodes,navigation:[],links,navigationLinks:links.map(()=>null),
   lengths:Uint8Array.from(lengths),intersections:new Uint8Array(links.length),bytesRead:0}]]);

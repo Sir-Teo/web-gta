@@ -4,6 +4,8 @@ export interface PathNode {
  address:PathAddress;position:[number,number,number];kind:'vehicle'|'pedestrian';
  baseLink:number;linkCount:number;width:number;floodFill:number;flags:number;
  deadEnd:boolean;switchedOff:boolean;water:boolean;dontWander:boolean;
+ /** CPathNode::m_isSwitchedOffOriginal: the switch as the area loaded, which the back-to-original switches restore. */
+ switchedOffOriginal:boolean;
  spawnProbability:number;behaviour:number;
 }
 export interface NavigationNode {
@@ -37,7 +39,7 @@ export function readPathNodes(bytes:Uint8Array,area:number):PathArea{
   requireAsset(nodeAddress.area===area&&nodeAddress.node===index,'Path node address does not match its area/index.');
   requireAsset(numLinks===0||baseLink>=0&&baseLink+numLinks<=linkCount,'Path node links exceed the static address table.');
   nodes.push({address:nodeAddress,position,kind:index<vehicleCount?'vehicle':'pedestrian',baseLink,linkCount:numLinks,width,floodFill,flags,
-   deadEnd:!!(flags&16),switchedOff:!!(flags&32),water:!!(flags&128),dontWander:!!(flags&1024),spawnProbability:(flags>>>16)&15,behaviour:(flags>>>20)&15});
+   deadEnd:!!(flags&16),switchedOff:!!(flags&32),switchedOffOriginal:!!(flags&32),water:!!(flags&128),dontWander:!!(flags&1024),spawnProbability:(flags>>>16)&15,behaviour:(flags>>>20)&15});
  }
  for(let index=0;index<navigationCount;index++){
   const position:[number,number]=[i16()/8,i16()/8],attachedTo=address(),direction:[number,number]=[i8()/100,i8()/100],width=i8()/16,lanes=r.u8(),flags=r.u16();

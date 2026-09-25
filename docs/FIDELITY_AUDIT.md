@@ -7515,3 +7515,20 @@ Each is now answered:
 - A car a recording holds is kinematic here, so WorldCar's own suspension and drive step is skipped for it. It had
   thrown "Native chassis snapshot requires a dynamic body" every frame.
 - INTRO now plays its ride: the police car runs recordings 706 and 707 with CJ in the back, past the freight train.
+
+## CPathFind's road switches reach the loaded nodes
+
+- Source: gta-reversed `PathFind.cpp`, SwitchRoadsOffInAreaForOneRegion (0x452820), SwitchOffNodeAndNeighbours
+  (0x452160), LoadPathFindData, MarkRoadNodeAsDontWander (0x450560) and UnMarkAllRoadNodesAsDontWander (0x44D400),
+  all reversed.
+- Before, SWITCH_ROADS_OFF and its kin only kept the switch list; no node changed, so traffic and peds went on
+  wandering roads a mission had closed. Now each switch flips the car or ped nodes in its box on every loaded
+  area, and runs on along each road both ways until a junction (more than two switchable neighbours), the junction
+  itself included. Nodes of behaviour 1 or 2 are never switched. The back-to-original form gives each node the
+  flag it loaded with (m_isSwitchedOffOriginal, now kept per node).
+- An area that loads later takes every stored switch, as LoadPathFindData does, through a hook on the lazy path
+  loader. The browser's systems (traffic, police, peds, gang drive-bys, the script's node queries) each keep their
+  own neighbourhood of areas where the original has one CPathFind, so the switches go to all of them.
+- MARK_ROAD_NODE_AS_DONT_WANDER marks the nearest land car node; UNMARK_ALL_ROAD_NODES_AS_DONT_WANDER clears the
+  flag on every loaded car node, the ones the files set included, as the original does.
+- Verification: `tests/native-path-switches.test.ts`.

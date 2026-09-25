@@ -1,7 +1,7 @@
 import {expect,test} from 'vitest';
 import {findTrafficRoute,trafficLinks} from '../src/simulation/trafficRoute';
 import type {PathNode,PathArea} from '../src/assets/pathNodes';
-const node=(id:number,x:number):PathNode=>({address:{area:0,node:id},position:[x,0,0],kind:'vehicle',baseLink:id,linkCount:1,width:5,floodFill:0,flags:0,deadEnd:false,switchedOff:false,water:false,dontWander:false,spawnProbability:15,behaviour:0});
+const node=(id:number,x:number):PathNode=>({address:{area:0,node:id},position:[x,0,0],kind:'vehicle',baseLink:id,linkCount:1,width:5,floodFill:0,flags:0,deadEnd:false,switchedOff:false,switchedOffOriginal:false,water:false,dontWander:false,spawnProbability:15,behaviour:0});
 function graph(){
  const nodes=[node(0,0),node(1,20)];
  const area:PathArea={area:0,nodes,vehicleCount:2,pedestrianCount:0,linkCount:2,navigation:[{position:[10,0],attachedTo:nodes[1].address,direction:[1,0],width:5,sameLanes:1,oppositeLanes:1,trafficLightDirection:false,trafficLightState:0,bridgeLights:false,flags:0}],links:[nodes[1].address,nodes[0].address],navigationLinks:[{area:0,node:0},{area:0,node:0}],lengths:new Uint8Array([20,20]),intersections:new Uint8Array(2),bytesRead:0};

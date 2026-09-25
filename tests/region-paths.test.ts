@@ -1,7 +1,7 @@
 import {expect,test} from 'vitest';
 import {selectRegionPaths} from '../src/assets/regionPaths';
 import type {PathArea,PathNode,PathAddress} from '../src/assets/pathNodes';
-const node=(area:number,index:number,position:[number,number,number],kind:PathNode['kind']='vehicle',water=false):PathNode=>({address:{area,node:index},position,kind,water,baseLink:index,linkCount:1,width:0,floodFill:0,flags:0,deadEnd:false,switchedOff:false,dontWander:false,spawnProbability:0,behaviour:0});
+const node=(area:number,index:number,position:[number,number,number],kind:PathNode['kind']='vehicle',water=false):PathNode=>({address:{area,node:index},position,kind,water,baseLink:index,linkCount:1,width:0,floodFill:0,flags:0,deadEnd:false,switchedOff:false,switchedOffOriginal:false,dontWander:false,spawnProbability:0,behaviour:0});
 const area=(id:number,nodes:PathNode[],links:PathAddress[]):PathArea=>({area:id,nodes,links,vehicleCount:0,pedestrianCount:0,linkCount:links.length,navigation:[],navigationLinks:[],lengths:new Uint8Array(),intersections:new Uint8Array(),bytesRead:0});
 test('keeps crossing segments with exterior endpoints and converts native coordinates without flattening',()=>{
  const a=node(1,0,[-2,0,3]),b=node(2,0,[2,0,5]);

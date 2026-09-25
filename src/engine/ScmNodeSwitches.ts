@@ -23,8 +23,11 @@ export class ScmNodeSwitches {
   * The removal follows retail, which shifts only one entry down and then decrements the count, so the entry
   * after the removed one ends up duplicated. The reference marks that as an R* bug and fixes it behind a flag;
   * this port keeps what the original does, since a mission's later switches see that list. */
+ /** The node pass over the loaded areas (SwitchRoadsOffInAreaForOneRegion for each), which the host runs. */
+ onSwitch?:(area:{xMin:number;xMax:number;yMin:number;yMax:number;zMin:number;zMax:number},isOff:boolean,isCars:boolean,backToOriginal:boolean)=>void;
  switchRoadsOffInArea(area:{xMin:number;xMax:number;yMin:number;yMax:number;zMin:number;zMax:number},isOff:boolean,isCars:boolean,backToOriginal:boolean){
   requireAsset([area.xMin,area.xMax,area.yMin,area.yMax,area.zMin,area.zMax].every(Number.isFinite),'Invalid node switch area.');
+  this.onSwitch?.(area,isOff,isCars,backToOriginal);
   for(let i=0;i<this.switches.length;i++){
    const existing=this.switches[i];
    if(existing.xMin<area.xMin||existing.yMin<area.yMin||existing.zMin<area.zMin)continue;
