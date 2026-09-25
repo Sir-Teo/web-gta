@@ -7118,3 +7118,15 @@ the first ones now implemented:
 - The port used to keep the label on the cutscene and to mark the cutscene skipped as soon as a skip was named.
   WAS_CUTSCENE_SKIPPED is now CCutsceneMgr::ms_wasCutsceneSkipped: set only when a running cutscene is skipped, which
   the port, finishing each cutscene as it starts, never does.
+
+## Points obscured by mission entities and objects the script lets go of
+
+- IS_POINT_OBSCURED_BY_A_MISSION_ENTITY takes a point and three radii (reVC Script4.cpp; gta-reversed
+  CWorld::FindMissionEntitiesIntersectingCube). The box runs from the point less each radius to the point plus it, ends
+  swapped into order. It is obscured when the position of a mission vehicle, a mission ped or a mission object
+  (OBJECT_MISSION or OBJECT_MISSION2) lies inside it, faces included. The player's own ped and car are not mission
+  entities, and nor is anything the script has marked as no longer needed.
+- eObjectType numbers OBJECT_MISSION2 as 6. The port had it as 3, which is OBJECT_TEMPORARY.
+- MARK_OBJECT_AS_NO_LONGER_NEEDED runs CTheScripts::CleanUpThisObject: a mission object becomes OBJECT_TEMPORARY, stays
+  in the world and comes off the cleanup list. The port used to only take it off the list. DONT_REMOVE_OBJECT still only
+  takes it off the list.

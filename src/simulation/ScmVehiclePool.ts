@@ -25,6 +25,8 @@ export class ScmVehiclePool<Car>{
  private readonly said=new Map<number,ScriptCar>();
  constructor(private readonly host:ScmVehiclePoolHost<Car>,first=1){this.pool=new ScmEntityPool(host,first);}
  get count(){return this.pool.count;}
+ /** The handles the script holds, in the order it was given them. */
+ get handles(){return this.pool.handles;}
  /** CREATE_CAR: the handle comes back at once and the car follows. */
  create(model:number|string,position:{x:number;y:number;z:number},heading=0){
   requireAsset([position.x,position.y,position.z,heading].every(Number.isFinite),'Invalid script car placement.');

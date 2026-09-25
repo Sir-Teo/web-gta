@@ -3,8 +3,11 @@ import {requireAsset} from '../assets/binary';
  * reversed, over `CObject::Create` and the CEntity/CPhysical fields each command reaches). The table stands in
  * for CPools' object pool: it holds what the script can read back, so a host can mirror each record into the
  * world it draws. Positions are native (x east, y north, z up) and headings are radians, as CEntity keeps them. */
-/** CObject::m_nObjectType: a script that runs as a mission creates OBJECT_MISSION, an external one OBJECT_MISSION2. */
-export const OBJECT_MISSION=2,OBJECT_MISSION2=3;
+/** eObjectType, CObject::m_nObjectType: a script that runs as a mission creates OBJECT_MISSION, an external one
+ * OBJECT_MISSION2; CTheScripts::CleanUpThisObject turns either into OBJECT_TEMPORARY. */
+export const OBJECT_MISSION=2,OBJECT_TEMPORARY=3,OBJECT_MISSION2=6;
+/** CObject::IsMissionObject. */
+export const isMissionObjectType=(type:number)=>type===OBJECT_MISSION||type===OBJECT_MISSION2;
 /** CPools' object pool holds this many; the script never comes close. */
 export const MAX_SCRIPT_OBJECTS=350;
 /** eObjectColDamageEffect: nothing happens on a collision, the default a new object takes. */
@@ -99,9 +102,17 @@ export class ScmObjects {
  isAttached(handle:number){return this.at(handle).attachedTo!==undefined;}
  /** GET_OBJECT_SPEED: m_vecMoveSpeed's magnitude times fifty, as the car command reads its own. */
  speed(handle:number){const v=this.at(handle).velocity;return Math.hypot(v.x,v.y,v.z)*50;}
- /** MarkObjectNoLongerNeeded / DoNotRemoveObject: both take the object off the mission cleanup list; the first
-  * also hands it to CTheScripts::CleanUpThisObject, which leaves it in the world for the streamer to reclaim. */
+ /** DoNotRemoveObject: the object comes off the mission cleanup list. */
  releaseFromCleanup(handle:number){if(this.objects.has(handle))this.at(handle).missionCleanup=false;}
+ /** MarkObjectNoLongerNeeded: CTheScripts::CleanUpThisObject leaves a mission object in the world as OBJECT_TEMPORARY
+  * (its m_nRemovalTime twenty thousand seconds on, which the game never reaches), no longer the mission's, and it
+  * comes off the cleanup list as DoNotRemoveObject takes it. */
+ markNoLongerNeeded(handle:number){
+  if(!this.objects.has(handle))return;
+  const object=this.at(handle);
+  if(isMissionObjectType(object.objectType))object.objectType=OBJECT_TEMPORARY;
+  object.missionCleanup=false;
+ }
  /** SetObjectHeading: the degrees are fixed once into range before they become radians. */
  setHeading(handle:number,degrees:number){this.at(handle).heading=fixAngleDegrees(degrees)*DEG;}
  /** SET_OBJECT_ROTATION: CPlaceable::SetOrientation's three angles, degrees in and radians kept, with the

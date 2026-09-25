@@ -2765,7 +2765,7 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  DELETE_OBJECT:(t,p,i)=>{game(t,i).objects.remove(t.readInt(p[0]));},
  DOES_OBJECT_EXIST:(t,p,i)=>{t.updateCompareFlag(game(t,i).objects.exists(t.readInt(p[0])),negated(i));},
- MARK_OBJECT_AS_NO_LONGER_NEEDED:(t,p,i)=>{game(t,i).objects.releaseFromCleanup(t.readInt(p[0]));},
+ MARK_OBJECT_AS_NO_LONGER_NEEDED:(t,p,i)=>{game(t,i).objects.markNoLongerNeeded(t.readInt(p[0]));},
  DONT_REMOVE_OBJECT:(t,p,i)=>{game(t,i).objects.releaseFromCleanup(t.readInt(p[0]));},
  GET_OBJECT_COORDINATES:(t,p,i)=>{
   const position=game(t,i).objects.at(t.readInt(p[0])).position;

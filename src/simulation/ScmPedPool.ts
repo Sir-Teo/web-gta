@@ -59,6 +59,8 @@ export class ScmPedPool<Ped>{
  private readonly said=new Map<number,ScriptPed>();
  constructor(private readonly host:ScmPedPoolHost<Ped>,first=1){this.pool=new ScmEntityPool(host,first);}
  get count(){return this.pool.count;}
+ /** The handles the script holds, in the order it was given them. */
+ get handles(){return this.pool.handles;}
  /** CREATE_CHAR and its random forms: the handle comes back at once and the ped follows. */
  create(pedType:number,model:number|string,position:{x:number;y:number;z:number}){
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid script ped placement.');

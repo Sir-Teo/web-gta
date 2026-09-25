@@ -8,7 +8,7 @@ import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {NativePedGroup} from '../ped/nativePedGroup';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
 import {PED_SIGHT_TARGET_RAISE,pedSightAngleAndRange} from '../ped/nativePedSight';
-import type {ScmObject} from '../engine/ScmObjects';
+import {isMissionObjectType,type ScmObject} from '../engine/ScmObjects';
 import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_DISPLAY_MARKERONLY,BLIP_FLAG_THREAT,BLIP_FLAG_UNK,BLIP_NONE,BLIP_OBJECT,BLIP_PICKUP} from '../engine/ScmRadar';
 import {MODE_FIXED} from '../engine/ScmCamera';
 import {HUD_COLOURS,HUD_COLOUR_BLUE,HUD_COLOUR_RED,radarTraceColour,radarTraceRgb} from '../ui/nativeHudColours';
@@ -432,6 +432,11 @@ type RunnerStep=
  |{kind:'settle';then?:ScmScriptedTask}
  |{kind:'board';vehicle:number;then:ScmScriptedTask}
  |{kind:'slowing';then:ScmScriptedTask};
+/** IS_POINT_OBSCURED_BY_A_MISSION_ENTITY's box, the point less and plus each radius with the ends swapped into order,
+ * and CBoundingBox::IsPointWithin's test of an entity's position against it, edges included. */
+export function insideMissionCube(x:number,y:number,z:number,rx:number,ry:number,rz:number,p:{x:number;y:number;z:number}){
+ return Math.abs(p.x-x)<=Math.abs(rx)&&Math.abs(p.y-y)<=Math.abs(ry)&&Math.abs(p.z-z)<=Math.abs(rz);
+}
 export class ScmMission {
  /** The script's own fade, which it keeps until the INTRO has run: MAIN fades out with DO_FADE 0 0 before launching
   * it and only the intro's end fades back in, which here never comes (docs/FIDELITY_AUDIT.md "The intro that cannot
@@ -720,6 +725,14 @@ export class ScmMission {
    hasObjectBeenPhotographed:handle=>{const o=this.runtime.game.objects.at(handle),was=!!o.photographed;o.photographed=false;return was;},
    objectSpeed:handle=>this.runtime.game.objects.speed(handle),
    objectIsStatic:handle=>this.runtime.game.objects.at(handle).isStatic,
+   // CWorld::FindMissionEntitiesIntersectingCube over the box the radii span: a mission car, a mission ped or a mission
+   // object whose position is inside it (edges included), found through the sectors the box covers.
+   pointIsObscuredByMissionEntity:(x,y,z,rx,ry,rz)=>{
+    const within=(p:{x:number;y:number;z:number})=>insideMissionCube(x,y,z,rx,ry,rz,p);
+    for(const handle of this.vehicles.handles)if(this.vehicles.exists(handle)&&within(this.vehicles.positionOf(handle)))return true;
+    for(const handle of this.peds.handles)if(this.peds.exists(handle)&&within(this.ridingIn(handle)??this.peds.positionOf(handle)))return true;
+    return this.runtime.game.objects.all.some(o=>isMissionObjectType(o.objectType)&&within(o.position));
+   },
    setObjectVisible:(handle,state)=>{this.runtime.game.objects.at(handle).visible=state;},
    // CEntity::GetIsOnScreen and physicalFlags.bSubmergedInWater, asked of where the object stands.
    objectIsOnScreen:handle=>this.world.pointOnScreen(this.runtime.game.objects.at(handle).position,1),
