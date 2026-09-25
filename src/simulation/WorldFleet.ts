@@ -240,7 +240,7 @@ export class WorldFleet {
   const hit=(p:{x:number;y:number;z:number},radius:number,minZ:number,maxZ:number)=>
    Math.hypot(p.x-point[0],-p.z-point[1])<bounds.radius+radius&&p.y+maxZ+1>point[2]+bounds.min[2]&&p.y+minZ-1<point[2]+bounds.max[2];
   for(const vehicle of [...this.cars,...this.bikes,...this.boats,...this.planes]){
-   const body='car' in vehicle?vehicle.car.body:vehicle.body,b=vehicle.assets.collision?.bounds;
+   const body=vehicle.car.body,b=vehicle.assets.collision?.bounds;
    if(!b||!body.isEnabled())continue;
    if(hit(body.translation(),b.radius,b.min[2],b.max[2]))return true;
   }
@@ -284,6 +284,26 @@ export class WorldFleet {
   car.missionCar=true;
   this.cars.add(car);return car;
  }
+ /** CCarCtrl::CreateCarForScript for any vehicle the script names: a bike, boat, plane or helicopter goes through
+  * its own class, set down the same way as a car (a point at or below the map's low limit dropped to the ground,
+  * then lifted off the base of its model) and kept as the mission's. Other kinds (trains are made by
+  * CREATE_MISSION_TRAIN) are not built. */
+ async spawnScriptVehicle(modelId:number,position:{x:number;y:number;z:number},heading:number){
+  const catalog=await this.catalogReady,definition=catalog.definitions.find(v=>v.id===modelId);
+  if(!definition||!(PLAYABLE_BIKES[modelId]||PLAYABLE_BOATS[modelId]||PLAYABLE_PLANES[modelId]))return this.spawnScriptCar(modelId,position,heading);
+  const assets=PLAYABLE_BIKES[modelId]?await loadFixedWorldBike(catalog,{modelId,primaryColor:-1,secondaryColor:-1}):await catalog.load(modelId);
+  if(this.disposed)return undefined;
+  const bounds=assets.collision?.bounds;if(!bounds)return undefined;
+  let ground=position.y;
+  if(ground<=MAP_Z_LOW_LIMIT){
+   const top=1000,hit=this.sim.world.castRay(new RAPIER.Ray({x:position.x,y:top,z:position.z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   ground=hit?top-hit.timeOfImpact:0;
+  }
+  const at={x:position.x,y:ground-bounds.min[2],z:position.z};
+  if(PLAYABLE_BIKES[modelId]){const bike=new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,heading);this.bikes.add(bike);return bike;}
+  if(PLAYABLE_BOATS[modelId]){const boat=new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));boat.waterLevel=this.waterLevel;this.boats.add(boat);return boat;}
+  const plane=new WorldPlane(this.sim,this.scene,assets as ConstructorParameters<typeof WorldPlane>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));plane.waterLevel=this.waterLevel;this.planes.add(plane);return plane;
+ }
  /** CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names, and the other two are
   * left as the car's own variation chose them. A slot the palette does not carry is left alone, which is what
   * the loader's own unresolved paint would have been. */
@@ -299,6 +319,12 @@ export class WorldFleet {
  }
  /** CWorld::Remove through a script's DELETE_CAR, for a car the streamer never owned. */
  removeScriptCar(car:WorldCar){if(this.cars.delete(car))car.dispose();}
+ /** The same for a script's bike, boat or aircraft. */
+ removeScriptVehicle(vehicle:WorldCar|WorldBike|WorldBoat|WorldPlane){
+  if(vehicle instanceof WorldCar)return this.removeScriptCar(vehicle);
+  const removed=vehicle instanceof WorldBike?this.bikes.delete(vehicle):vehicle instanceof WorldBoat?this.boats.delete(vehicle):this.planes.delete(vehicle);
+  if(removed)vehicle.dispose();
+ }
  /** CCheat::VehicleCheat (0x43A0B0): the model loaded and set down its bounding radius + 2 ahead of the player (renderer
   * position, heading), turned to face across the player's path (m_fCurrentRotation + π/2), abandoned and unlocked.
   * Aircraft go through spawnPlane. CTheScripts::ClearSpaceForMissionEntity then removes the deletable cars (with their

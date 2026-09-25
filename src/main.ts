@@ -27,6 +27,8 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
  offset?:{x:number;y:number;z:number}}
 const scriptRiders=new Set<ScriptRider>();
 const asRider=(entity:unknown)=>(entity as ScriptRider|undefined)?.rider?entity as ScriptRider:undefined;
+/** A script vehicle that is a car (WorldCar) rather than a bike, boat, aircraft or train carriage. */
+const isScriptCar=(v:unknown):v is import('./simulation/WorldCar').WorldCar=>!!v&&typeof (v as {setPedInAsDriver?:unknown}).setPedInAsDriver==='function';
 /** The riders the occupant renderer should draw this frame. The browser's cars carry a seat point on each
  * side, so a driver and a front passenger are drawn where they sit; a script can seat a ped further back and
  * that ped rides unseen until the models carry rear seat points. A rider whose car has gone stops riding. */
@@ -34,6 +36,8 @@ function scriptOccupantPoses(){
  const poses=[];
  for(const rider of scriptRiders){
   if(rider.gone||rider.car.disposed||rider.health<=0){scriptRiders.delete(rider);continue;}
+  // The occupant renderer seats peds in cars; a rider on a script bike, boat or aircraft rides unseen for now.
+  if(!isScriptCar(rider.car))continue;
   // A ped a script attached hangs where it said, in the car's own axes; a seated one sits at the car's own
   // seat point, and the browser's cars carry one on each side.
   const seat=rider.offset??rider.car.seat(rider.seat==='driver'?'left':'right');
@@ -3484,7 +3488,7 @@ async function boot() {
                  setScriptVehicleOnlyDamagedByPlayer:(car,enabled)=>{(car as ScriptCar).onlyDamagedByPlayer=enabled;},
                  projectilesInBox:(min,max,destroy)=>weapons.projectilesInBox(min,max,destroy),
                  setScriptVehicleHeatSeekTargetable:(car,targetable)=>{(car as {hsTargetable?:boolean}).hsTargetable=targetable;},
-                 recolourScriptVehicle:(car,primary,secondary)=>{fleet?.recolourCar(car as ScriptCar,primary,secondary);},
+                 recolourScriptVehicle:(car,primary,secondary)=>{if(isScriptCar(car))fleet?.recolourCar(car,primary,secondary);},
                  // The depot carries no speech banks, so no ped speaks and there is nothing to silence; the
                  // gate is held so a script that closes and opens it carries on.
                  setAllPedSpeechDisabled:disabled=>{allPedSpeechDisabled=disabled;},
@@ -3494,14 +3498,15 @@ async function boot() {
                  clearScriptPedLastDamagedBy:ped=>{const p=onFoot(ped);if(p)p.lastDamagedBy=undefined;},
                  playerLastWeaponDamage:()=>sim.lastWeaponDamage,
                  clearPlayerLastWeaponDamage:()=>{sim.lastWeaponDamage=-1;},
-                 scriptVehicleUpsideDownForCheck:car=>(car as ScriptCar).upsideDownForCheck(),
-                 scriptVehicleRouteNodes:car=>scriptCars.routeNodes(car as ScriptCar),
+                 // CUpsideDownCarCheck::IsCarUpsideDown; a vehicle without the car's wheel contacts is judged by its up alone.
+                 scriptVehicleUpsideDownForCheck:car=>{if(isScriptCar(car))return car.upsideDownForCheck();const q=(car as {car:{body:import('@dimforge/rapier3d-compat').RigidBody}}).car.body.rotation();return 1-2*(q.x*q.x+q.z*q.z)<0;},
+                 scriptVehicleRouteNodes:car=>isScriptCar(car)?scriptCars.routeNodes(car):undefined,
                  scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
-                 burstScriptVehicleTyre:(car,wheel)=>{(car as ScriptCar).burstTyre(wheel,true);},
+                 burstScriptVehicleTyre:(car,wheel)=>{if(isScriptCar(car))car.burstTyre(wheel,true);},
                  explosionInArea:(type,min,max)=>weapons.explosionSlots.inArea(type,min,max),
                  scriptVehicleBaseOffset:car=>-(car as ScriptCar).assets.collision.bounds.min[2],
                  clearSpaceForScriptVehicle:car=>{const c=car as ScriptCar,t=c.car.body.translation(),r=c.car.body.rotation();fleet?.clearSpaceFor({x:t.x,y:t.y,z:t.z},2*Math.atan2(r.y,r.w),c.assets.collision.bounds);},
-                 rejoinScriptVehicleRoads:car=>{scriptCars.rejoinRoads(car as ScriptCar);},
+                 rejoinScriptVehicleRoads:car=>{if(isScriptCar(car))scriptCars.rejoinRoads(car);},
                  createScriptUser3dMarker:(x,y,z,colour)=>markers3d.userMarkerSet(x,y,z,HUD_COLOURS[colour]??[0,0,0]),
                  removeScriptUser3dMarker:index=>{markers3d.userMarkerDelete(index);},
                  playerSwimming:()=>sim.player.swimming,
@@ -3626,7 +3631,7 @@ async function boot() {
                  },
                  spawnScriptVehicle:async(model,position,heading)=>{
                   if(!fleet||typeof model!=='number')return undefined;
-                  return await fleet.spawnScriptCar(model,{x:position.x,y:position.z,z:-position.y},scriptCarRotation(heading)).catch(()=>undefined);
+                  return await fleet.spawnScriptVehicle(model,{x:position.x,y:position.z,z:-position.y},scriptCarRotation(heading)).catch(()=>undefined);
                  },
                  // The script's (x, y, z) is the renderer's (x, z, -y), the player's feet on z. In a car, the car goes with
                  // him, its centre of mass GetDistanceFromCentreOfMassToBaseOfModel above the point.
@@ -3692,7 +3697,7 @@ async function boot() {
                  scriptVehicleBoxTop:car=>(car as ScriptCar).assets.collision.bounds.max[2],
                  scriptVehicleHeading:car=>{const degrees=((car as ScriptCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
                  scriptVehicleAlive:car=>!(car as ScriptCar).disposed,
-                 removeScriptVehicle:car=>{if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptCar(car as ScriptCar);},
+                 removeScriptVehicle:car=>{if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptVehicle(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
                  playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied,
@@ -3712,10 +3717,10 @@ async function boot() {
                  scriptVehicleOnFire:car=>(car as ScriptCar).onFire,
                  scriptVehicleInWater:car=>!!(car as {inWater?:boolean}).inWater,
                  scriptVehicleOnScreen:car=>{const p=(car as ScriptCar).car.body.translation();return !populationOutsideView(render.camera,p,2);},
-                 explodeScriptVehicle:car=>{(car as ScriptCar).blowUp();},
-                 fixScriptVehicle:car=>{(car as ScriptCar).fix();},
-                 setScriptVehicleVisible:(car,visible)=>{const c=car as ScriptCar;c.scriptVisible=visible;c.showForArea(render.lighting.area);},
-                 setScriptVehicleArea:(car,area)=>{const c=car as ScriptCar;c.areaCode=area;c.showForArea(render.lighting.area);},
+                 explodeScriptVehicle:car=>{(car as {blowUp?:()=>void}).blowUp?.();},
+                 fixScriptVehicle:car=>{if(isScriptCar(car))car.fix();else (car as {health:number}).health=1000;},
+                 setScriptVehicleVisible:(car,visible)=>{if(!isScriptCar(car))return;car.scriptVisible=visible;car.showForArea(render.lighting.area);},
+                 setScriptVehicleArea:(car,area)=>{if(!isScriptCar(car))return;car.areaCode=area;car.showForArea(render.lighting.area);},
                  setScriptVehicleProofs:(car,proofs)=>{(car as ScriptCar).proofs={...proofs};},
                  setScriptVehicleCanBeDamaged:(car,canBeDamaged)=>{(car as ScriptCar).canBeDamaged=canBeDamaged;},
                  setScriptVehicleDoorLock:(car,locked)=>{(car as ScriptCar).locked=locked;},
@@ -3738,11 +3743,11 @@ async function boot() {
                  setDeathPenalties:apply=>{gameLogic.penaltyForDeathApplies=apply;},
                  setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},
                  // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.
-                 driveScriptVehicleTo:(car,goal,o)=>{scriptCars.gotoCoords(car as ScriptCar,{x:goal.x,y:goal.z>-100?goal.z:(car as ScriptCar).car.body.translation().y,z:-goal.y},o);},
-                 setScriptVehicleStraightLineDistance:(car,distance)=>{scriptCars.setStraightLineDistance(car as ScriptCar,distance);},
-                 stopScriptVehicle:car=>{scriptCars.clear(car as ScriptCar);},
-                 scriptVehicleTempAction:(car,action,seconds)=>{scriptCars.tempAction(car as ScriptCar,action,seconds);},
-                 scriptVehicleWander:(car,o)=>{scriptCars.wander(car as ScriptCar,o);},
+                 driveScriptVehicleTo:(car,goal,o)=>{if(isScriptCar(car))scriptCars.gotoCoords(car,{x:goal.x,y:goal.z>-100?goal.z:(car as ScriptCar).car.body.translation().y,z:-goal.y},o);},
+                 setScriptVehicleStraightLineDistance:(car,distance)=>{if(isScriptCar(car))scriptCars.setStraightLineDistance(car,distance);},
+                 stopScriptVehicle:car=>{if(isScriptCar(car))scriptCars.clear(car);},
+                 scriptVehicleTempAction:(car,action,seconds)=>{if(isScriptCar(car))scriptCars.tempAction(car,action,seconds);},
+                 scriptVehicleWander:(car,o)=>{if(isScriptCar(car))scriptCars.wander(car,o);},
                  scriptVehicleCarMission:(car,o)=>{
                   const target=o.target as Partial<ScriptCar>|undefined;
                   // Only a car the browser drives with the native body can be a target.

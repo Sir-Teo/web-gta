@@ -102,7 +102,7 @@ export class WorldPlane {
   requireAsset(PLAYABLE_PLANES[assets.vehicle.id]&&assets.collision&&assets.flyingHandling&&!assets.missingTextures.length,'Unresolved aircraft resources.');
   this.modelId=assets.vehicle.id;this.name=PLAYABLE_PLANES[this.modelId];
   this.handling=prepareHandling(assets.handling,assets.flyingHandling!.handlingId);this.water.buoyancy=this.handling.buoyancy;
-  this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;
+  this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body};
   const model={...assets.model,atomics:assets.model.atomics.map(a=>({...a,flags:/(_dam|_vlo|moving_prop|moving_rotor)/i.test(assets.model.frames[a.frame].name)?0:a.flags}))};
   // Native plane models reuse a main wheel atomic at empty wheel dummy frames.
   const wheelAtomic=model.atomics.find(a=>/^wheel(?:\d|_[lr])?$/.test(model.frames[a.frame].name));
@@ -337,5 +337,9 @@ export class WorldPlane {
  }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.reflection)this.updateReflection(rgb);if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual.setNight(night);}
  snapshot(){return {inWater:this.inWater,drowning:this.drowning,health:this.health,gunAmmo:this.gunAmmo,rockets:this.rockets,vtol:this.modelId===520?this.vtol:null,helicopter:this.helicopter,modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
- dispose(){this.root.removeFromParent();this.visual.dispose();this.physical.dispose();}
+ /** What the script's vehicle host reads of any vehicle: the body under `car`, the heading as WorldCar's (the
+  * body's yaw turned half round), and whether it has gone. */
+ readonly car:{body:RAPIER.RigidBody};disposed=false;
+ heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
+ dispose(){this.disposed=true;this.root.removeFromParent();this.visual.dispose();this.physical.dispose();}
 }

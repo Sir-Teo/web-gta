@@ -84,7 +84,7 @@ export class WorldBoat {
   this.modelId=assets.vehicle.id;this.name=PLAYABLE_BOATS[this.modelId];
   // The table index only feeds unused gear/speed outputs for hulls (no drivetrain).
   this.handling=prepareHandling(assets.handling,0);this.water.buoyancy=this.handling.buoyancy;
-  this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;
+  this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body};
   if(assets.model&&!assets.missingTextures.length){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
@@ -277,5 +277,9 @@ export class WorldBoat {
  }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.reflection)this.updateReflection(rgb);if(this.wrecked){this.visual?.setNight(night);return;}if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual?.setNight(night);}
   snapshot(){return {inWater:this.inWater,immersion:+this.immersion.toFixed(3),modelId:this.modelId,name:this.name,health:this.health,wrecked:this.wrecked,onFire:this.onFire,occupied:this.occupied,wake:this.wake.coords.length,splashes:this.splashes.length,position:{...this.body.translation()},velocity:{...this.body.linvel()}};}
- dispose(){this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
+ /** What the script's vehicle host reads of any vehicle: the body under `car`, the heading as WorldCar's (the
+  * body's yaw turned half round), and whether it has gone. */
+ readonly car:{body:RAPIER.RigidBody};disposed=false;
+ heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
+ dispose(){this.disposed=true;this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
 }

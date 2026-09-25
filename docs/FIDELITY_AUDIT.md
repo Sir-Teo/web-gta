@@ -7488,3 +7488,13 @@ Each is now answered:
   CStats::FindMaxNumberOfGroupMembers, and GET_CHAR_WEAPON_IN_SLOT is CPed::GetWeaponInSlot with
   CPickups::ModelForWeapon.
 - LOAD_PATH_NODES_IN_AREA is answered: the browser keeps every node its paths stream in.
+
+## Script bikes, boats and aircraft
+
+- CREATE_CAR built only cars: any other model failed to load and the handle named nothing, so commands on it gave
+  up (the sweep's WUZI5, SYN6, KICKSTA). CreateCarForScript makes any vehicle. The fleet now builds a bike, boat,
+  plane or helicopter through its own class, set down as a car is: a point at or below the map's low limit is
+  dropped to the ground, then lifted off the base of the model. It is kept as the mission's.
+- The host's car commands read any vehicle's body, heading, health and whether it has gone. Car-only behaviour
+  (road driving, tyres, area visibility, paint, the occupant renderer's seats) is skipped for the others for now.
+  Peds seated in a script bike, boat or aircraft ride unseen until those seats are drawn.
