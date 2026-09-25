@@ -3575,13 +3575,25 @@ async function boot() {
                  setScriptPedSkill:(ped,skill)=>{const p=onFoot(ped);if(p)pedestrians?.setWeaponSkill(p,skill);},
                  setScriptPedUsedEntryExit:ped=>{const p=onFoot(ped);if(p)p.usedEntryExit=true;},
                  setScriptVehicleAutopilot:(car,field,value)=>{((car as ScriptCar).autopilotFields??={})[field]=value;},
-                 // CWorld::ProcessLineOfSight against the world's own fixed collision.
-                 lineOfSightClear:(from,to)=>{
+                 // CWorld::ProcessLineOfSight against the world's own fixed collision; with `flags`, CWorld::GetIsLineOfSightClear
+                 // over the entity kinds they name: buildings (the fixed world), vehicles, peds (the player's included) and
+                 // objects (any other body). Dummies are not bodies here.
+                 lineOfSightClear:(from,to,flags)=>{
                   const a={x:from.x,y:from.z,z:-from.y},b={x:to.x,y:to.z,z:-to.y};
                   const d={x:b.x-a.x,y:b.y-a.y,z:b.z-a.z},length=Math.hypot(d.x,d.y,d.z);
                   if(length<=0)return true;
-                  const hit=sim.world.castRay(new RAPIER.Ray(a,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-                  return !hit;
+                  const ray=new RAPIER.Ray(a,{x:d.x/length,y:d.y/length,z:d.z/length});
+                  if(!flags)return !sim.world.castRay(ray,length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+                  const vehicleBodies=new Set<number>();
+                  for(const set of [fleet?.cars,fleet?.bikes,fleet?.boats,fleet?.planes,fleet?.trains])for(const v of set??[])vehicleBodies.add((v as {car?:{body:{handle:number}};body?:{handle:number}}).car?.body.handle??(v as {body:{handle:number}}).body.handle);
+                  const blocks=(c:import('@dimforge/rapier3d-compat').Collider)=>{
+                   const body=c.parent();
+                   if(!body||body.isFixed())return flags.buildings;
+                   if(vehicleBodies.has(body.handle))return flags.vehicles;
+                   if(c.handle===sim.playerCollider.handle||pedestrians?.pedPosition(c.handle))return flags.peds;
+                   return flags.objects;
+                  };
+                  return !sim.world.castRay(ray,length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,undefined,blocks);
                  },
                  nearestEntryExit:(x,y,radius)=>entryExits?.findNearest(x,y,radius)?.index,
                  // The one event a browser ped answers, and whether it is still answering it.

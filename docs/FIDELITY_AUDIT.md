@@ -7788,3 +7788,18 @@ Each is now answered:
 - A driving task that names no car (-1, as INTRO1's ride sequences do) drives the car the ped is in, as
   CTaskComplexCarDrive::CreateFirstSubTask takes ped->m_pVehicle. Such a task used to find no car and end silently.
   On foot it would enter any car as driver; that is not ported, so the task ends.
+
+## Passenger seat, line of sight, group and engine queries
+
+- GET_CHAR_IN_CAR_PASSENGER_SEAT reads m_apPassengers[seat] (reversed): the script ped in that seat.
+  - The original reads an empty seat's null pointer. The scripts ask IS_CAR_PASSENGER_SEAT_FREE first; here an empty
+    seat reads -1.
+- IS_LINE_OF_SIGHT_CLEAR is CWorld::GetIsLineOfSightClear over the kinds the script names:
+  - buildings: the fixed world;
+  - vehicles: fleet bodies;
+  - peds: street, script and the player;
+  - objects: any other body.
+  - Dummies and the see-through flag have no bodies to test here.
+- DOES_GROUP_EXIST: a group made and not removed; the player's group is always there.
+- SET_CAR_ENGINE_ON sets bEngineOn (the engine sound's state). The car's drive does not read it yet.
+- Verification: `tests/browser/script-world-queries.spec.ts`.

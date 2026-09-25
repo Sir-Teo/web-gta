@@ -109,8 +109,10 @@ export class ScmPedPool<Ped>{
   return false;
  }
  /** CVehicle::m_pDriver among the script's peds: the live one in the car's driving seat. */
- driverOf(vehicle:number){
-  for(const [handle,said] of this.said)if(said.ride&&!said.ride.offset&&said.ride.vehicle===vehicle&&said.ride.seat==='driver'&&this.pool.exists(handle)&&!said.dead)return handle;
+ driverOf(vehicle:number){return this.occupantOf(vehicle,'driver');}
+ /** The live script ped in a seat of a car: the driver's, or a passenger seat (0 front right, 1 and 2 the rear). */
+ occupantOf(vehicle:number,seat:number|'driver'){
+  for(const [handle,said] of this.said)if(said.ride&&!said.ride.offset&&said.ride.vehicle===vehicle&&said.ride.seat===seat&&this.pool.exists(handle)&&!said.dead)return handle;
   return undefined;
  }
  /** The live script peds in a car's passenger seats. */

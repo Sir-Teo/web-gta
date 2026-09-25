@@ -281,7 +281,8 @@ export interface ScmMissionWorld {
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
  clearArea(point:{x:number;y:number;z:number},radius:number):void;
  /** Whether nothing solid stands between two points in the script's own coordinates. */
- lineOfSightClear(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number}):boolean;
+ lineOfSightClear(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},
+  flags?:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean}):boolean;
  /** CStreaming's random vehicle model in memory, with the class it belongs to. */
  randomVehicleInMemory():{model:number;vehicleClass:number}|undefined;
  /** CEntryExitManager's nearest door to a point within a range, by its own pool index. */
@@ -825,6 +826,16 @@ export class ScmMission {
    pedIsTalking:()=>false,
    // IS_CAR_PASSENGER_SEAT_FREE: no script ped sits in that seat of the script's car.
    vehiclePassengerSeatIsFree:(handle,seat)=>!this.peds.seatTaken(handle,seat),
+   // CVehicle::m_apPassengers[seat] (GET_CHAR_IN_CAR_PASSENGER_SEAT, reversed): the ped there. The original reads an
+   // empty seat's null pointer; the scripts ask IS_CAR_PASSENGER_SEAT_FREE first, and an empty seat reads -1 here.
+   pedInPassengerSeat:(handle,seat)=>this.peds.occupantOf(handle,seat)??-1,
+   // CWorld::GetIsLineOfSightClear(from, to, buildings, vehicles, peds, objects, dummies): dummies and the see-through
+   // flag have no bodies to test here.
+   lineOfSightIsClear:(from,to,flags)=>this.world.lineOfSightClear(from,to,flags),
+   // CPedGroups::ms_activeGroups: the groups made and not removed, the player's always among them.
+   groupExists:group=>this.groups.has(group),
+   // CVehicle::m_nVehicleFlags.bEngineOn.
+   setVehicleEngineOn:(handle,state)=>{const car=this.liveVehicle(handle) as {engineRunning?:boolean};if('engineRunning' in car)car.engineRunning=state;},
    pedCarInUse:handle=>handle===PLAYER_PED_HANDLE?this.playerCarHandle()??-1:this.peds.rideOf(handle)?.vehicle??-1,
    isSphereVisible:(point,radius)=>{if(!this.world.isSphereVisible)throw new UnsupportedScmCommand(-1,0,'IS_POINT_ON_SCREEN','no camera');return this.world.isSphereVisible(point,radius);},
    startPedFacialTalk:(handle,duration)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFacialTalk(this.livePed(handle),duration/1000);},

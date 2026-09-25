@@ -918,7 +918,7 @@ const handlers:Record<string,ScmCommandHandler>={
  // The car a ped rides, or the one it is climbing into; a ped doing neither leaves the variable at nothing.
  GET_CAR_CHAR_IS_USING:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedCarInUse')(t.readInt(p[0]))??0);},
  GET_CHAR_IN_CAR_PASSENGER_SEAT:(t,p,i)=>{
-  t.writeInt(p[2],world(t,i,'pedInPassengerSeat')(t.readInt(p[0]),t.readInt(p[1]))??0);
+  t.writeInt(p[2],world(t,i,'pedInPassengerSeat')(t.readInt(p[0]),t.readInt(p[1]))??-1);
  },
  WARP_CHAR_INTO_CAR_AS_PASSENGER:(t,p,i)=>{
   world(t,i,'warpPedIntoCarAsPassenger')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));
