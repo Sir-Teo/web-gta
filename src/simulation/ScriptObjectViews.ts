@@ -6,7 +6,7 @@ import {colChunkNames,readCol,type ColModel} from '../assets/col';
 import {readImgEntry,type ImgEntry} from '../assets/img';
 /** Native Z-up model space into the renderer's axes: the colliders are baked in the model's own frame, and the body
  * then carries the object's turn and position. */
-const NATIVE_AXES=new Matrix4().makeRotationX(-Math.PI/2);
+const NATIVE_AXES=new Matrix4().makeRotationX(-Math.PI/2),FROM_RENDERER=new Matrix4().makeRotationX(Math.PI/2);
 const POSE=new Quaternion();
 /* Turning a record into a transform needs no new objects: the same few are reused every time, because this
  * runs once per script object per frame and the script's objects mostly stand still. */
@@ -30,7 +30,8 @@ import type {ScmObject} from '../engine/ScmObjects';
  * and the object still exists for every question the script asks about it. */
 export class ScriptObjectViews{
  private readonly views=new Map<number,{group:Group;dispose:()=>void;model:number|string;applied:Float64Array;shown:boolean;
-  physical?:ReturnType<typeof installNativeCollisionMatrix>;collisionOn:boolean;col?:ColModel}>();
+  physical?:ReturnType<typeof installNativeCollisionMatrix>;collisionOn:boolean;col?:ColModel;
+  asset:{model:import('../assets/dff').DffModel;textures:import('../assets/modelTextures').ModelTexture[]}}>();
  /** Which script object each of the colliders belongs to. */
  private readonly owners=new Map<number,number>();
  /** Which archive COL collection holds each model, and where in it: CColStore's files, read by their chunk headers. */
@@ -81,6 +82,14 @@ export class ScriptObjectViews{
    this.collisions.set(key,found);
   }
   return found;
+ }
+ /** What BreakObject_c::Init reads off an object: its model (whose first atomic carries the breakable plugin) and
+  * textures, its COL bounds and its matrix in native axes. Nothing while the model or its collision is loading. */
+ breakSource(handle:number){
+  const view=this.views.get(handle);if(!view?.col)return undefined;
+  view.group.updateMatrix();
+  const matrix=new Matrix4().copy(FROM_RENDERER).multiply(view.group.matrix).multiply(NATIVE_AXES);
+  return {id:view.model,model:view.asset.model,textures:view.asset.textures,bounds:view.col.bounds,matrix:matrix.elements};
  }
  /** The group an object is drawn in, for a caller checking where it ended up. */
  groupFor(handle:number){return this.views.get(handle)?.group;}
@@ -151,7 +160,7 @@ export class ScriptObjectViews{
    const group=new Group();group.add(built.root);
    this.place(group,object);this.scene.add(group);
    const applied=new Float64Array(TRANSFORM_FIELDS);ScriptObjectViews.record(object,applied);
-   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object),physical,collisionOn:ScriptObjectViews.collides(object),col});
+   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object),physical,collisionOn:ScriptObjectViews.collides(object),col,asset});
   });
  }
  /* Native axes to the renderer's: x stays, the script's z is up here and its y runs the other way. CEntity's

@@ -909,6 +909,7 @@ export class ScmMission {
    // CObject's own fields, which the runtime keeps, and the two questions only the world can answer.
    objectHealth:handle=>this.runtime.game.objects.at(handle).health,
    setObjectHealth:(handle,health)=>{this.runtime.game.objects.setHealth(handle,health);},
+   breakObject:(handle,intensity)=>{this.runtime.game.objects.breakObject(handle,intensity!==0);},
    objectHasBeenDamaged:handle=>this.runtime.game.objects.hasBeenDamaged(handle),
    // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.
    setPedDropsObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly);},

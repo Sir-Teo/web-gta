@@ -7906,3 +7906,14 @@ Each is now answered:
 - MISSION_GOTOCOORDS (and _ACCURATE) with its path search spent turns straight for the point
   (SteerAICarWithPhysicsFollowPath, VC). The port kept cruising the road's continuation instead, so riders circled
   15 to 20 units from waypoints just off the road, never inside the straight-line distance.
+
+## Breaking script objects
+
+- BREAK_OBJECT's handler is not in the reversed sources. It is ported from what the scripts rely on. The object
+  goes to g_breakMan, as ObjectDamage's breakable branch does, with the command's second operand as bJustFaces. It is
+  then hidden without collision, so HAS_OBJECT_BEEN_DAMAGED holds. This happens whatever the model's OBJECT.DAT
+  effect: WUZI5's padlock and CRASH1's window have none, and the scripts still break them.
+- Any break of a script object now leaves its pieces: a shot, a blast or the command. The host builds them from the
+  model's breakable plugin, at the object's matrix, with its COL bounds, as it does for map props. Before this, a
+  broken script object only vanished.
+- Verification: `tests/scm-object-damage.test.ts`, `tests/browser/script-break-object.spec.ts`.

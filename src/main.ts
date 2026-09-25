@@ -1447,9 +1447,13 @@ async function boot() {
   };
   /** BreakObject_c::Init for a removed placement: its first atomic's breakable plugin, placement matrix and collision bounds. */
   const breakPlacement=(placement:import('./assets/ipl').IplInstance,part:import('./assets/scene').ScenePart,justFaces:boolean,values:import('./assets/objectData').ObjectDataRecord['values'])=>{
-    const atomic=part.model.atomics[0],info=atomic&&part.model.geometries[atomic.geometry]?.breakable;
-    const bounds=part.collision?.bounds;if(!info||!bounds)return;
-    const m=nativePlacementMatrix(placement).elements,ambient=render.lighting.nativeWorldAmbient;
+    const bounds=part.collision?.bounds;if(!bounds)return;
+    breakModel(part.model,part.textures,bounds,nativePlacementMatrix(placement).elements,justFaces,values);
+  };
+  /** BreakObject_c::Init for a model at a native matrix: its first atomic's breakable plugin and its collision bounds. */
+  const breakModel=(model:import('./assets/dff').DffModel,modelTextures:readonly import('./assets/modelTextures').ModelTexture[],bounds:{min:readonly [number,number,number];max:readonly [number,number,number]},m:ArrayLike<number>,justFaces:boolean,values:import('./assets/objectData').ObjectDataRecord['values'])=>{
+    const atomic=model.atomics[0],info=atomic&&model.geometries[atomic.geometry]?.breakable;if(!info)return;
+    const ambient=render.lighting.nativeWorldAmbient;
     const object=breakManager.add({
       info,ltm:rwMatrix([m[0],m[1],m[2]],[m[4],m[5],m[6]],[m[8],m[9],m[10]],[m[12],m[13],m[14]]),
       velocity:[values.breakVelocityX??0,values.breakVelocityY??0,values.breakVelocityZ??0],velocityRandom:values.breakVelocityRandom??0,
@@ -1464,7 +1468,7 @@ async function boot() {
     });
     if(!object)return;
     const wanted=new Set(info.textures.map(name=>name.toLowerCase())),textures=new Map<string,import('three').Texture>();
-    for(const texture of part.textures)if(wanted.has(texture.name.toLowerCase())&&!textures.has(texture.name.toLowerCase()))textures.set(texture.name.toLowerCase(),nativeTexture(texture));
+    for(const texture of modelTextures)if(wanted.has(texture.name.toLowerCase())&&!textures.has(texture.name.toLowerCase()))textures.set(texture.name.toLowerCase(),nativeTexture(texture));
     breakPieces.attach(object,textures);
   };
   /** A model's OBJECT.DAT values, by id (through the IDE's dff name) or by name. */
@@ -2610,7 +2614,16 @@ async function boot() {
      const count=mission.scriptSetPieceCount();
      if(count!==scriptSetPieceCount){scriptSetPieceCount=count;setPieces.setPieces(mission.scriptSetPieces());}
     }
-    if(scriptObjectViews&&mission)scriptObjectViews.update(mission.scriptObjects());
+    if(scriptObjectViews&&mission){
+      // The script's objects g_breakMan took this frame, broken from the models still drawn before the views hide them.
+      const broken=mission.runtime.game.objects.broken;
+      for(const {handle,justFaces} of broken){
+        const source=scriptObjectViews.breakSource(handle);
+        if(source)breakModel(source.model,source.textures,source.bounds,source.matrix,justFaces,objectDefValues(source.id)??{});
+      }
+      broken.length=0;
+      scriptObjectViews.update(mission.scriptObjects());
+    }
     // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes
     // them too. The IDE associations name the dff and txd a model id stands for, which is the one thing the
     // script's record does not carry; a model the archive has no entry for cannot be drawn and is left out.

@@ -55,6 +55,20 @@ describe('ObjectDamage on a script object',()=>{
   expect(objects.damage(a,200,PISTOL,'other').broken).toEqual({justFaces:false});
   expect(objects.damage(b,301,PISTOL,'other').broken).toEqual({justFaces:true});
   expect(objects.at(a).broken).toBe(true);
+  // The host takes both from the queue to spawn their pieces.
+  expect(objects.broken).toEqual([{handle:a,justFaces:false},{handle:b,justFaces:true}]);
+ });
+
+ test('BREAK_OBJECT breaks and hides an object whatever its effect, and queues its pieces once',()=>{
+  // WUZI5 breaks a padlock whose row has no effect; DECON waits on HAS_OBJECT_BEEN_DAMAGED.
+  const {objects,make}=pool({1:{colDamageEffect:0}});
+  const lock=make(1);
+  objects.breakObject(lock,false);
+  const o=objects.at(lock);
+  expect([o.usesCollision,o.visible,o.broken,o.health,o.proofs.explosion]).toEqual([false,false,true,0,true]);
+  expect(objects.hasBeenDamaged(lock)).toBe(true);
+  objects.breakObject(lock,true);
+  expect(objects.broken).toEqual([{handle:lock,justFaces:false}]);
  });
 
  test('only the player sets off an object only he may damage, though its health still goes',()=>{

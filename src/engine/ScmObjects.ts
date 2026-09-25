@@ -92,6 +92,9 @@ export class ScmObjects {
  objectInfo?:(model:number|string)=>ScmObjectInfo|undefined;
  private readonly objects=new Map<number,ScmObject>();
  private nextHandle=1;
+ /** The objects handed to g_breakMan since the host last looked, each with BreakObject_c::Init's bJustFaces: the
+  * host spawns the pieces from the model while it still has it. */
+ readonly broken:{handle:number;justFaces:boolean}[]=[];
  get count(){return this.objects.size;}
  get handles(){return [...this.objects.keys()];}
  /** Every record, for a host mirroring them into the world it draws. */
@@ -156,10 +159,20 @@ export class ScmObjects {
    case EFFECT_SMASH_COMPLETELY:smash();break;
    case EFFECT_CHANGE_THEN_SMASH:if(object.renderDamaged)smash();else{object.renderDamaged=true;out.changedModel=true;}break;
    case EFFECT_BREAKABLE:case EFFECT_BREAKABLE_REMOVED:
-    out.broken={justFaces:scaled>object.smashMultiplier*150};smash();object.broken=true;break;
+    out.broken={justFaces:scaled>object.smashMultiplier*150};smash();object.broken=true;this.broken.push({handle,justFaces:out.broken.justFaces});break;
   }
   if(!object.usesCollision&&!object.visible)object.health=0;
   return out;
+ }
+ /** BREAK_OBJECT: ObjectDamage's breakable branch whatever the model's effect (WUZI5 breaks a padlock and CRASH1 a
+  * window whose OBJECT.DAT rows have none, and DECON loops until HAS_OBJECT_BEEN_DAMAGED says it went), with the
+  * command's second operand as bJustFaces. The handler is not in the reversed sources; this is what the scripts rely on. An object
+  * already broken has no model left to break. */
+ breakObject(handle:number,justFaces:boolean){
+  const object=this.at(handle);
+  if(!object.broken)this.broken.push({handle,justFaces});
+  object.usesCollision=false;object.visible=false;object.isStatic=true;object.proofs.explosion=true;object.velocity={x:0,y:0,z:0};
+  object.broken=true;object.health=0;
  }
  /** HAS_OBJECT_BEEN_DAMAGED, as reVC's CRunningScript reads it: the damaged model shows, or the object is hidden. */
  hasBeenDamaged(handle:number){const object=this.at(handle);return object.renderDamaged||!object.visible;}
