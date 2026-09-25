@@ -3612,6 +3612,8 @@ async function boot() {
                  scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
                  burstScriptVehicleTyre:(car,wheel)=>{if(isScriptCar(car))car.burstTyre(wheel,true);},
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
+                 setScriptPedListensToGroupCommands:(ped,listens)=>{const p=onFoot(ped);if(p)p.ignoresGroupCommands=!listens;},
+                 setEntryExitGroupWarping:(x,y,radius,on)=>{entryExits?.setAcceptNpcGroupNear(x,y,radius,on);},
                  // TASK_DRIVE_BY on a rider: the target is a point (script coordinates), a ped or a car handle.
                  setScriptPedDriveBy:(ped,target,radius,fireRate,rightSide)=>{
                   const rider=asRider(ped);if(!rider)return false;

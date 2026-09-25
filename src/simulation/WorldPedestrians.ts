@@ -100,6 +100,8 @@ export interface Pedestrian {
  shutUp?:boolean;facialTalk?:number;
  /** CPed::m_pLastEntityDamage: whoever last hurt this ped — the player, another ped, or a car that hit it. */
  lastDamagedBy?:{player?:true;ped?:Pedestrian;car?:WorldCar};
+ /** CPed::bDoesntListenToPlayerGroupCommands (LISTEN_TO_PLAYER_GROUP_COMMANDS off): the player's dismissal passes it by. */
+ ignoresGroupCommands?:boolean;
  /** CPed::m_nLastWeaponDamage: the weapon of the last hit that took health, -1 until one has. */
  lastWeaponDamage?:number;
  /** The weapon hidden for a scripted cutscene, which is the held model taken out of sight rather than away. */
@@ -2116,7 +2118,8 @@ export class WorldPedestrians {
    const crew=this.people.filter(p=>p.follow&&p.health>0);
    if(!gold){
     if(!crew.length)return 'none';
-    for(const m of crew){m.follow=false;m.foe=undefined;}
+    const listening=crew.filter(m=>!m.ignoresGroupCommands);if(!listening.length)return 'none';
+    for(const m of listening){m.follow=false;m.foe=undefined;}
     return 'dismissed';
    }
    // CPlayerPed::MakeThisPedJoinOurGroup's cap: FindMaxNumberOfGroupMembers, at most the script's limit.

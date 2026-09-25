@@ -143,6 +143,11 @@ export class EntryExitManager {
   return best;
  }
  /** CEntryExitManager::EnableBurglaryHouses (0x43F180): the switch, and BURGLARY_ACCESS set or cleared on every door. */
+ /** EnableEntryExitPlayerGroupWarping (unreversed): ENEX_FLAG_ACCEPT_NPC_GROUP on the entrances within `radius` of
+  * (x, y), native, which lets the player's group come through with him. */
+ setAcceptNpcGroupNear(x:number,y:number,radius:number,on:boolean){
+  for(const e of this.pool){const p=entryExitPosition(e);if((p[0]-x)**2+(p[1]-y)**2<=radius*radius)set(e,ENEX.ACCEPT_NPC_GROUP,on);}
+ }
  enableBurglaryHouses(on:boolean){this.burglaryHousesEnabled=on;for(const e of this.pool)set(e,ENEX.BURGLARY_ACCESS,on);}
  /** SWITCH_ENTRY_EXIT: every record of that name. */
  switchAccess(name:string,on:boolean){const key=name.toLowerCase();for(const e of this.pool)if(e.name.toLowerCase()===key)set(e,ENEX.ENABLE_ACCESS,on);}

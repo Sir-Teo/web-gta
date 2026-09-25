@@ -378,6 +378,8 @@ export class ScmGameState {
  readonly nodeSwitches=new ScmNodeSwitches();
  /** CPad as the script reads it, which a host fills from its own controls. */
  readonly pads=new ScmPads();
+ /** CInteriorManager_c's peds switch (ACTIVATE_INTERIOR_PEDS), on unless a script turns it off. */
+ interiorPedsActive=true;
  /** CMenuSystem's two script menus. */
  readonly menus=new ScmMenus();
  /** CSetPieces' table of armed ambushes. */

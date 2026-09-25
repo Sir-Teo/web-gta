@@ -7722,3 +7722,18 @@ Each is now answered:
   ped across the car when that seat is free: the front right to the driver's seat and back, the rear right to the
   rear left and back.
 - Verification: `tests/browser/script-ped-tasks-more.spec.ts`.
+
+## SWEET1B's and INTRO2's switches
+
+- LISTEN_TO_PLAYER_GROUP_COMMANDS off sets CPed::bDoesntListenToPlayerGroupCommands: the player's empty-handed
+  dismissal passes that follower by.
+- ENABLE_ENTRY_EXIT_PLAYER_GROUP_WARPING sets ENEX_FLAG_ACCEPT_NPC_GROUP on the entrances within the radius. The
+  group coming through with the player is not modelled yet, so nothing reads the flag.
+- ATTACH_FX_SYSTEM_TO_CHAR_BONE is FxSystem_c::AttachToBone (reversed): the system follows the bone (a tag) each step.
+- SET_CHAR_SIGNAL_AFTER_KILL sets bSignalAfterKill (reversed), kept for the kill task's after-kill signal, which is
+  not ported.
+- IS_CHAR_HEAD_MISSING is false: the browser never takes a ped's head.
+- ACTIVATE_INTERIOR_PEDS sets CInteriorManager_c's peds switch. The browser makes no interior peds yet.
+- SET_CHAR_SAY_CONTEXT and _IMPORTANT return -1 with nothing said, as CPed::Say does when no line plays. The speech
+  banks and CAEPedSpeechAudioEntity's contexts are not ported.
+- Verification: `tests/browser/script-sweet1b-flags.spec.ts`.

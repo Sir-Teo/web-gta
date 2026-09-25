@@ -317,6 +317,10 @@ export interface ScmMissionWorld {
  addExplosion(position:{x:number;y:number;z:number},type:number,options?:{sound?:boolean}):void;
  /** The CAutomobile a car handle stands for, for the component commands; nothing for a bike, boat or aircraft. */
  scriptCarComponents?(car:unknown):ScmCarComponents|undefined;
+ /** CPed::bDoesntListenToPlayerGroupCommands, the other way round. */
+ setScriptPedListensToGroupCommands?(ped:unknown,listens:boolean):void;
+ /** ENABLE_ENTRY_EXIT_PLAYER_GROUP_WARPING: ENEX_FLAG_ACCEPT_NPC_GROUP on the entrances near a point. */
+ setEntryExitGroupWarping?(x:number,y:number,radius:number,on:boolean):void;
  /** CTaskSimpleGangDriveBy on a rider (TASK_DRIVE_BY): false for a ped not riding, or before the drive-by assets load. */
  setScriptPedDriveBy?(ped:unknown,target:{kind:'point';x:number;y:number;z:number}|{kind:'ped';handle:number}|{kind:'vehicle';handle:number},radius:number,fireRate:number,rightSide:boolean):boolean;
  clearScriptPedDriveBy?(ped:unknown):void;
@@ -874,6 +878,24 @@ export class ScmMission {
    // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.
    setPedDropsObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly);},
    pedIsHoldingObject:(handle,object)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return this.heldObjectOf(handle)?.handle===object;},
+   setPedListensToPlayerGroupCommands:(handle,listens)=>{this.world.setScriptPedListensToGroupCommands?.(this.livePed(handle),listens);},
+   // CPed::bSignalAfterKill (true from the constructor): kept for the kill task's after-kill signal, not ported.
+   pedSignalAfterKill:(handle,signal)=>{this.livePed(handle);this.signalAfterKill.set(handle,signal);},
+   // bHeadStuckInCollision's head loss: the browser never takes a ped's head, so none is missing.
+   pedHeadIsMissing:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return false;},
+   enableEntryExitPlayerGroupWarping:(x,y,radius,on)=>{this.world.setEntryExitGroupWarping?.(x,y,radius,on);},
+   // CInteriorManager_c::ActivatePeds: kept; the browser makes no interior peds of its own yet.
+   activateInteriorPeds:on=>{this.runtime.game.interiorPedsActive=on;},
+   // CPed::Say: the speech banks and CAEPedSpeechAudioEntity's contexts are not ported, so nothing is said and the
+   // sound comes back as -1.
+   pedSayContext:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return -1;},
+   pedSayContextImportant:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return -1;},
+   // FxSystem_c::AttachToBone: the system follows the bone (a bone tag) from here.
+   attachFxSystemToPedBone:(fx,handle,bone)=>{
+    const record=this.scriptFx.get(fx);if(!record)throw new UnsupportedScmCommand(-1,0,'AN_FX_SYSTEM_THE_BROWSER_DOES_NOT_HOLD',`fx ${fx}`);
+    if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);
+    record.attached={kind:'ped',handle,offset:{x:0,y:0,z:0},bone};
+   },
    objectLastWeaponDamage:handle=>this.runtime.game.objects.at(handle).lastWeaponDamage,
    // CWorld::FindNearestObjectOfType over every object: the script's own and the map's props. Smashed is a hidden
    // object (bIsVisible off), damaged one showing its damaged model (m_bRenderDamaged).
@@ -1834,8 +1856,8 @@ export class ScmMission {
   return handle;
  }
  /** Where an attached system sits and which way it points, in the script's own coordinates. */
- private fxMatrixFor(attached:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};direction?:{x:number;y:number;z:number}}){
-  const frame=this.attachmentFrame(attached);if(!frame)return undefined;
+ private fxMatrixFor(attached:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};direction?:{x:number;y:number;z:number};bone?:number}){
+  const frame=attached.bone!==undefined&&attached.kind==='ped'?this.pedBoneFrame(attached.handle,attached.bone):this.attachmentFrame(attached);if(!frame)return undefined;
   const {offset}=attached;
   const position={
    x:frame.position.x+frame.right.x*offset.x+frame.forward.x*offset.y+frame.up.x*offset.z,
@@ -1936,6 +1958,12 @@ export class ScmMission {
   }
   object.heading=Math.atan2(-object.matrix.forward.x,object.matrix.forward.y);
  }
+ /** A ped's bone (a skeleton tag) as a frame: its rows and position. */
+ private pedBoneFrame(handle:number,tag:number){
+  if(handle!==PLAYER_PED_HANDLE&&!this.peds.exists(handle))return undefined;
+  const entity=handle===PLAYER_PED_HANDLE?'player':this.peds.entity(handle);if(entity===undefined)return undefined;
+  return this.world.scriptPedBoneMatrix?.(entity,tag);
+ }
  /** WARP_CHAR_INTO_CAR and its task: the player through the host, a script ped into the driver's seat. */
  private warpIntoCar(handle:number,vehicle:number,command:string){
   if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerIntoCar',command)(this.liveVehicle(vehicle)))throw new UnsupportedScmCommand(-1,0,command,'a player already riding, or a vehicle he cannot be seated in');return;}
@@ -1976,7 +2004,9 @@ export class ScmMission {
  /* The particle systems a script makes. CREATE_FX_SYSTEM hands back a handle the script plays, stops and
   * kills; the ones made on a car, a ped or an object hang from it and are given its matrix again each step,
   * which is what FxSystem_c::SetMatrix is for. The systems themselves are the host's. */
- private readonly scriptFx=new Map<number,{system:unknown;attached?:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};direction?:{x:number;y:number;z:number}}}>();
+ private readonly scriptFx=new Map<number,{system:unknown;attached?:{kind:'vehicle'|'ped'|'object';handle:number;offset:{x:number;y:number;z:number};direction?:{x:number;y:number;z:number};bone?:number}}>();
+ /** SET_CHAR_SIGNAL_AFTER_KILL by ped handle. */
+ private readonly signalAfterKill=new Map<number,boolean>();
  private nextFx=1;
   /* The blips the script has put on the radar, as the browser's own map draws them. CRadar keeps the table;
   * a coord blip carries its own point and an entity blip follows the thing it names, so the handle is looked
