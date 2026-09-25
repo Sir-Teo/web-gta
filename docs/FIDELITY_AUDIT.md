@@ -6906,3 +6906,9 @@ the first ones now implemented:
 - **CLEAR_AREA from the INTRO mission** is counted like MAIN's, not acted on. MAIN launches INTRO with the new game,
   and it clears 500 units round Grove Street. Acting on it emptied the street the browser had already populated
   (a fleeing ped vanished mid-run), which is the same ordering difference as MAIN's own opening sweep.
+- **The setter tasks**, each of which sets something on the ped and is over at once, so a sequence goes straight on:
+  - TASK_LOOK_AT_COORD (11 missions): CTaskSimpleTriggerLookAt at a point.
+  - TASK_TOGGLE_PED_THREAT_SCANNER (11): its three switches are kept on the ped; the threat scan itself is not
+    modelled.
+  - TASK_SET_CHAR_DECISION_MAKER (9): the decision maker's actual index, as SET_CHAR_DECISION_MAKER gives it.
+  - TASK_KINDA_STAY_IN_SAME_PLACE (8): the ped's bKindaStayInSamePlace.

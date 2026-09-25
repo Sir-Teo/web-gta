@@ -147,6 +147,8 @@ export interface Pedestrian {
   |{kind:'duckFor';remaining:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
+ /** CTaskSimpleTogglePedThreatScanner's three switches, kept on the ped (its threat scan is not modelled). */
+ threatScanner?:{onFoot:boolean;inCar:boolean;duringScriptTask:boolean};
  /** The clip a finished TASK_PLAY_ANIM left held on its last frame (ANIMATION_FREEZE_LAST_FRAME). */
  heldScriptClip?:string;
  /** CTaskComplexSequence: the tasks a script queued, the index of the one running, and whether the whole
@@ -1489,6 +1491,13 @@ export class WorldPedestrians {
     ped.look=startLookAt(this.clock*1000,order.seconds*1000);
     break;
    }
+   case 'lookAtPoint':
+    ped.lookTarget=undefined;ped.lookAt={x:order.x,y:order.z,z:-order.y};ped.lookAtAttractor=false;
+    ped.look=startLookAt(this.clock*1000,order.seconds*1000);
+    break;
+   case 'threatScanner':ped.threatScanner={onFoot:order.onFoot,inCar:order.inCar,duringScriptTask:order.duringScriptTask};break;
+   case 'decisionMaker':ped.decisionMaker=order.index;break;
+   case 'kindaStayInSamePlace':this.setFlag(ped,'kindaStayInSamePlace',order.state);break;
    case 'duck':
     ped.actor.player.crouched=order.crouch;
     if(order.seconds!==undefined)ped.order={kind:'duckFor',remaining:order.seconds};

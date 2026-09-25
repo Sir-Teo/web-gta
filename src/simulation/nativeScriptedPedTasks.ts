@@ -43,13 +43,22 @@ export type ScriptedPedOrder=
  |{kind:'gotoPed';target:number;radius:number;seconds:number}
  /** CTaskSimpleDuckToggle (TASK_TOGGLE_DUCK): the ped ducks or stands, and the task is over at once; with `seconds`,
   * CTaskSimpleDuck (TASK_DUCK) holds it ducked where it is for that long. */
- |{kind:'duck';crouch:boolean;seconds?:number};
+ |{kind:'duck';crouch:boolean;seconds?:number}
+ /** The simple tasks that set something on the ped and are over at once: CTaskSimpleTriggerLookAt at a point,
+  * CTaskSimpleTogglePedThreatScanner, CTaskSimpleSetCharDecisionMaker (the decision maker's actual index) and
+  * CTaskSimpleSetKindaStayInSamePlace. */
+ |{kind:'lookAtPoint';x:number;y:number;z:number;seconds:number}
+ |{kind:'threatScanner';onFoot:boolean;inCar:boolean;duringScriptTask:boolean}
+ |{kind:'decisionMaker';index:number}
+ |{kind:'kindaStayInSamePlace';state:boolean};
 /** Where the peds a task names stand, which a turn or a flight is measured against. */
 export interface ScriptedTaskWorld{
  /** The ped being given the task. */
  self():{x:number;y:number;z:number};
  /** Another ped the task names, or nothing when the handle names none. */
  ped(handle:number):{x:number;y:number;z:number}|undefined;
+ /** A script's decision maker handle as the pool index it stands for (ScmDecisionMakers.actualIndex). */
+ decisionMaker?(handle:number):number|undefined;
  /** Whether a car handle names one the browser's peds can get into. */
  vehicle?(handle:number):boolean;
 }
@@ -109,6 +118,10 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // CTaskSimpleHandsUp: HANDSUP held for the task's time.
   case 'handsUp':return {kind:'playAnim',file:'PED',name:'handsup',loop:false,keepLastFrame:true,seconds:seconds(task.time),release:true};
   case 'toggleDuck':return {kind:'duck',crouch:task.state};
+  case 'lookAtCoord':return {kind:'lookAtPoint',x:task.x,y:task.y,z:task.z,seconds:seconds(task.time)};
+  case 'togglePedThreatScanner':return {kind:'threatScanner',onFoot:task.onFoot,inCar:task.inCar,duringScriptTask:task.duringScriptTask};
+  case 'setDecisionMaker':{const index=world.decisionMaker?.(task.decisionMaker);return index===undefined?undefined:{kind:'decisionMaker',index};}
+  case 'kindaStayInSamePlace':return {kind:'kindaStayInSamePlace',state:task.state};
   case 'duck':return {kind:'duck',crouch:true,seconds:seconds(task.time)};
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{

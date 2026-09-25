@@ -143,6 +143,14 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'duck',time:1500},world({}))).toEqual({kind:'duck',crouch:true,seconds:1.5});
  });
 
+ test('the setter tasks: a look at a point, the threat scanner, a decision maker and the kinda-stay flag',()=>{
+  expect(scriptedPedOrder({kind:'lookAtCoord',x:1,y:2,z:3,time:2000},world({}))).toEqual({kind:'lookAtPoint',x:1,y:2,z:3,seconds:2});
+  expect(scriptedPedOrder({kind:'togglePedThreatScanner',onFoot:true,inCar:false,duringScriptTask:true},world({}))).toEqual({kind:'threatScanner',onFoot:true,inCar:false,duringScriptTask:true});
+  expect(scriptedPedOrder({kind:'setDecisionMaker',decisionMaker:7},{...world({}),decisionMaker:h=>h===7?4:undefined})).toEqual({kind:'decisionMaker',index:4});
+  expect(scriptedPedOrder({kind:'setDecisionMaker',decisionMaker:7},world({}))).toBeUndefined();
+  expect(scriptedPedOrder({kind:'kindaStayInSamePlace',state:true},world({}))).toEqual({kind:'kindaStayInSamePlace',state:true});
+ });
+
  test('dying is its own order',()=>{
   expect(scriptedPedOrder({kind:'die'},world({}))).toEqual({kind:'die'});
  });
