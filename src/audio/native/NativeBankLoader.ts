@@ -6,6 +6,8 @@ export const SLOT={frontendGame:0,frontendMenu:1,collisions:2,bulletHits:3,explo
 export const BANK={apacheD:13,bulletHits:27,collisions:39,explosions:52,frontendGame:59,horn:74,icevanP:79,rain:105,vehicleGen:138,weapons:143} as const;
 export interface NativeBankManifest {version:1;packageSha256:string;banks:{id:number;path:string;dataBytes:number;bytes:number;sounds:number;sha256:string}[]}
 type Fetcher=(entry:NativeBankManifest['banks'][number])=>Promise<Uint8Array>;
+/** How long a bank that failed to download waits before a request may try it again; after the last, it stays failed. */
+const RETRY_WAITS_MS=[5000,20000,60000];
 const hex=(b:ArrayBuffer)=>[...new Uint8Array(b)].map(v=>v.toString(16).padStart(2,'0')).join('');
 /** CAEMP3BankLoader bank slots over the packaged GENRL banks (`public/play/audio/banks.json`).
  * A slot keeps its previous bank until the requested bank has been read, as the streaming requests do. */
@@ -14,6 +16,8 @@ export class NativeBankLoader implements NativeBankSlots {
  private requests=new Map<number,number>();
  private decoded=new Map<number,Promise<NativeBankSound[]>>();
  readonly failures=new Map<number,string>();
+ /** Failed downloads so far, per bank. */
+ private attempts=new Map<number,number>();
  constructor(readonly manifest:NativeBankManifest,private fetchBank:Fetcher){
   if(manifest.version!==1||!Array.isArray(manifest.banks))throw new Error('Invalid native audio bank manifest.');
  }
@@ -33,7 +37,15 @@ export class NativeBankLoader implements NativeBankSlots {
   if(!pending){
    const entry=this.manifest.banks.find(b=>b.id===bank);
    pending=entry?this.fetchBank(entry).then(bytes=>readSfxBank(bytes,entry.dataBytes).map(s=>({samples:sfxPcmSamples(s),sampleRate:s.sampleRate,headroom:s.headroom,loopStart:s.loopStartOffset===0xffffffff?-1:s.loopStartOffset}))):Promise.reject(new Error(`Sound bank ${bank} is not packaged.`));
-   this.decoded.set(bank,pending);pending.catch(e=>this.failures.set(bank,String(e)));
+   this.decoded.set(bank,pending);
+   const attempt=pending;
+   attempt.then(()=>{this.failures.delete(bank);this.attempts.delete(bank);},e=>{
+    this.failures.set(bank,String(e));if(!entry)return;
+    // A download that failed is tried again on a later request, after a growing wait; a bank that keeps failing stays failed.
+    const tries=(this.attempts.get(bank)??0)+1;this.attempts.set(bank,tries);
+    const wait=RETRY_WAITS_MS[tries-1];if(wait===undefined)return;
+    setTimeout(()=>{if(this.decoded.get(bank)===attempt)this.decoded.delete(bank);},wait);
+   });
   }
   return pending;
  }
