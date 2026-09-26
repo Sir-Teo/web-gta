@@ -2874,8 +2874,9 @@ async function boot() {
     // CTheScripts::Process: the original script runs a frame at a time once the world has handed it over.
     // CClock is one clock: the script reads the world's time of day and weekday, and what the script sets
     // (SET_TIME_OF_DAY, RESTORE_CLOCK) is the world's.
-    if(paused)padsAfterPause=true;
-    if(mission&&!paused){
+    if(paused||navigation?.open||arsenal.open)padsAfterPause=true;
+    // The script stops with the game: the pause menu, and the full map and the arsenal, which hold the simulation too.
+    if(mission&&!paused&&!navigation?.open&&!arsenal.open){
       // CPad::Update: the script reads the pad the held keys make, through the driving mapping while the player drives
       // with the controls on. JustOutOfFrontEnd holds for the first frame after the menu.
       {const pads=mission.runtime.game.pads,driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
