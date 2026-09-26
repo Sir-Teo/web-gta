@@ -478,6 +478,8 @@ export class WorldPedestrians {
  playerArmed:()=>boolean=()=>false;
  canSpawn:(point:{x:number;y:number;z:number},radius:number)=>boolean=()=>true;
  private catalog?:Catalog;
+ /** The catalog's load, settling on the catalog or on nothing when it failed or the crowd was disposed. */
+ private readonly catalogLoad:Promise<Catalog|undefined>;
  private disposed=false;
  private busy=false;
  private nextCheck=0;
@@ -497,7 +499,7 @@ export class WorldPedestrians {
  private damageRandom=new WindowsCrtRandom(1);
  private error?:string;
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
-  void openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return;this.catalog=c;this.installPlayerReactions();}).catch(e=>{this.error=String(e);});
+  this.catalogLoad=openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return undefined;this.catalog=c;this.installPlayerReactions();return c;}).catch(e=>{this.error=String(e);return undefined;});
  }
   private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['xpressscratch','gas_cwr','atm','seat_down','seat_idle','seat_up','drown','fall_glide','fall_fall','fall_land','fall_collapse','ko_skid_back','fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','getup','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front','gun_butt','gun_butt_crouch','hit_gun_butt',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]])),...c.attractorClips};}
  private reactionOwner?:NativeCharacter;
@@ -1442,7 +1444,12 @@ export class WorldPedestrians {
   * script says and flagged PED_MISSION, so the population manager leaves it alone until the script lets go.
   * Resolves to nothing when the model cannot be loaded, which is the handle the script then finds empty. */
  async spawnScripted(modelRef:number|string,position:{x:number;y:number;z:number},heading:number){
-  const catalog=this.catalog;if(!catalog||this.disposed)return undefined;
+  // CREATE_CHAR never fails for want of the model: the script streamed it first. A script that runs before the
+  // browser's ped catalog has finished loading waits for it instead of losing the ped.
+  const catalog=this.catalog??await this.catalogLoad;if(!catalog||this.disposed)return undefined;
+  // The ped's wander target is its nearest path node. The path areas stream in around the player with the
+  // population's own checks, so a script that runs first loads them rather than losing the ped.
+  if(!this.nearestNode(position)){const at=this.sim.player.position;await catalog.loadAround(at.x,at.z);if(this.disposed)return undefined;}
   const node=this.nearestNode(position);if(!node)return undefined;
   let made:Pedestrian|undefined;
   if(typeof modelRef==='number'){
