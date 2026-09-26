@@ -8314,3 +8314,17 @@ collider: a script object, a vehicle body, the player or a street ped, an IPL du
 `IS_CAR_VISIBLY_DAMAGED` reads `vehicleFlags.bIsDamaged`, which `CVehicle::SetComponentVisibility` sets whenever a
 component shows its damaged atomic (`SetPanelDamage` at opened or damaged, `SetBumperDamage` at opened,
 `SetDoorDamage` at damaged) and `CAutomobile::Fix` clears. Spec: `script-area-occupied`.
+
+## APPLY_FORCE_TO_CAR and CONTROL_CAR_HYDRAULICS
+
+`APPLY_FORCE_TO_CAR` is `CPhysical::ApplyForce` with the force scaled by the car's mass: the move speed changes by the
+force itself in units a frame, and the turn speed by (offset - rotated centre of mass) x force x mass / turn mass,
+with the offset world-aligned from the car's position. The handler is not in the reversed sources; the mass scale is
+what the scripts' figures need to do anything (LOWR and SWEET6 pull their dancers back with 0.01 a unit of
+displacement every frame, ZERO4 lifts with 0.005), and FREEZE_CAR_POSITION's bDisableMoveForce stops it. Only
+automobiles take it here; another vehicle is a reported gap.
+`CONTROL_CAR_HYDRAULICS` fills `hydraulicData.m_aWheelSuspension`, which `CAutomobile::HydraulicControl` reads as each
+corner's change for a mission car in STATUS_PHYSICS (a ped at the wheel, hydraulics fitted) and zeroes after every
+step, so the scripts set it each frame; the horn and the stick stay the player's. `RESET_VEHICLE_HYDRAULICS` ("makes
+it sit"; not in the reversed sources) clears the corners and the pump's `m_wMiscComponentAngle`, the idle stance.
+Specs: `script-car-force-hydraulics`, `hydraulics` (unit).

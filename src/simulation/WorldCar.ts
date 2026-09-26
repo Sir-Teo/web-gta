@@ -709,13 +709,25 @@ export class WorldCar {
  /** CAutomobile::HydraulicControl for the player's car: the lines it asks for set over each wheel's rest height. */
  /** A hydraulic sound for the car's audio entity: AE_SUSPENSION_HYDRAULIC 107, _TRIGGER 109, _ON 110, _OFF 111. */
   onHydraulicSound?:(event:number)=>void;
+ /** CONTROL_CAR_HYDRAULICS: hydraulicData.m_aWheelSuspension, each corner's change for the next HydraulicControl step. */
+ hydraulicWheels:Record<CarWheel,number>={frontLeft:0,rearLeft:0,frontRight:0,rearRight:0};
+ /** CONTROL_CAR_HYDRAULICS sets the corners; RESET_VEHICLE_HYDRAULICS ("makes it sit": the handler is not in the
+  * reversed sources) clears them and m_wMiscComponentAngle, the idle stance. */
+ setScriptHydraulics(wheels:Record<CarWheel,number>|null){
+  if(wheels)requireAsset(Object.values(wheels).every(Number.isFinite),'Invalid hydraulic levels.');
+  this.hydraulicWheels=wheels?{...wheels}:{frontLeft:0,rearLeft:0,frontRight:0,rearRight:0};
+  if(!wheels&&this.hydraulics)this.hydraulics.angle=0;
+ }
  /** HydraulicControl runs once a 30 fps game frame (its counter steps per frame); a horn press is taken on its step. */
  private hydraulicClock=0;
  private hydraulicControl(dt:number){
   const hydraulics=this.hydraulics;if(!hydraulics)return;
   this.hydraulicClock+=dt;const due=this.hydraulicClock>=1/30;if(due)this.hydraulicClock%=1/30;
   if(!due&&!this.pad.hornJustDown)return;
-  const out=hydraulics.step({player:this.occupied,hornJustDown:this.pad.hornJustDown,stick:this.pad.stick??{leftRight:0,upDown:0},prevSpeed:this.prevSpeed,gas:this.gasPedal,jump:!!this.pad.hydraulicJump,timeStep:50/30});
+  // STATUS_PHYSICS: a mission car a ped drives, whose corners the script sets; the step uses them up.
+  const scripted=!this.occupied&&this.missionCar&&!this.driverless?{...this.hydraulicWheels}:undefined;
+  if(scripted)this.hydraulicWheels={frontLeft:0,rearLeft:0,frontRight:0,rearRight:0};
+  const out=hydraulics.step({player:this.occupied,hornJustDown:this.pad.hornJustDown,stick:this.pad.stick??{leftRight:0,upDown:0},prevSpeed:this.prevSpeed,gas:this.gasPedal,jump:!!this.pad.hydraulicJump,timeStep:50/30,scripted});
   for(const sound of out.sounds)this.onHydraulicSound?.({suspensionHydraulic:107,suspensionTrigger:109,suspensionOn:110,suspensionOff:111}[sound]);
   if(!out.lines)return;
   const b=this.car.hydraulicBasis();
@@ -876,6 +888,20 @@ export class WorldCar {
  engineRunning=false;
  /** FREEZE_CAR_POSITION: physicalFlags.bDontApplySpeed, the body held where it is. */
  frozen=false;
+ /** APPLY_FORCE_TO_CAR: CPhysical::ApplyForce(force x mass, offset) (native axes; the offset from the car's position,
+  * world-aligned): the move speed changes by the force itself, in units a frame, and the turn speed by
+  * (offset - centre of mass) x force x mass / turn mass. The mass scale is read from the scripts' own figures (LOWR's
+  * spring of 0.01 a unit back to the car's spot, ZERO4's lift of 0.005), which move a car only so; the handler is not
+  * in the reversed sources. bDisableMoveForce (FREEZE_CAR_POSITION here) keeps it from moving. */
+ applyScriptForce(force:{x:number;y:number;z:number},offset:{x:number;y:number;z:number}){
+  requireAsset([force.x,force.y,force.z,offset.x,offset.y,offset.z].every(Number.isFinite),'Invalid script force.');
+  if(this.frozen)return;
+  const b=this.car.body,v=b.linvel(),w=b.angvel(),p=b.translation(),com=b.worldCom();
+  const f={x:force.x*this.mass,y:force.z*this.mass,z:-force.y*this.mass},arm={x:p.x+offset.x-com.x,y:p.y+offset.z-com.y,z:p.z-offset.y-com.z};
+  b.setLinvel({x:v.x+force.x*50,y:v.y+force.z*50,z:v.z-force.y*50},true);
+  const torque={x:arm.y*f.z-arm.z*f.y,y:arm.z*f.x-arm.x*f.z,z:arm.x*f.y-arm.y*f.x},tm=this.turnMass;
+  b.setAngvel({x:w.x+torque.x/tm*50,y:w.y+torque.y/tm*50,z:w.z+torque.z/tm*50},true);
+ }
  /** m_bIsStaticWaitingForCollision: CreateCarForScript sets it on a mission car, which stands static until
   * CColStore::HasCollisionLoaded for its spot; here, until fixed ground (or water) is under it, asked twice a second.
   * `reground` marks a car CWorld::FindGroundZForCoord set down at its 20 fallback (a z at or below the map's low limit

@@ -53,3 +53,25 @@ test('a horn press back to the normal stance falls through into the stick, while
  expect(h.angle).toBe(60);expect(back.sounds[0]).toBe('suspensionHydraulic');
  expect(back.lines!.frontLeft.upper).not.toBeCloseTo(limits.normalUpper,3);
 });
+
+test('a mission car an AI drives takes its corners from the script, and a car with none set squats',()=>{
+ const h=new NativeHydraulics(limits);
+ const ai={...idle,player:false};
+ // Neither the player's nor scripted: HydraulicControl does not run.
+ expect(h.step(ai).lines).toBeUndefined();
+ // All four at nothing, at rest: the idle stance.
+ const none={frontLeft:0,rearLeft:0,frontRight:0,rearRight:0};
+ expect(h.step({...ai,scripted:none}).lines!.frontLeft.upper).toBeCloseTo(limits.idleUpper,6);
+ // The left side up: those corners go to the extended line, the right ones stay at the normal travel; the horn is
+ // the player's alone.
+ const raise={frontLeft:1,rearLeft:1,frontRight:0,rearRight:0};
+ // Out of the idle stance the first step only wakes the pump (the change is dropped and the angle goes to 60).
+ expect(h.step({...ai,scripted:raise}).lines!.frontLeft.upper).toBeCloseTo(limits.normalUpper,6);expect(h.angle).toBe(60);
+ const left=h.step({...ai,hornJustDown:true,scripted:raise});
+ expect(h.angle).toBe(60);
+ expect(left.lines!.frontLeft.upper).toBeCloseTo(limits.extendedUpper,6);expect(left.lines!.rearLeft.upper).toBeCloseTo(limits.extendedUpper,6);
+ expect(left.lines!.frontRight.upper).toBeCloseTo(limits.normalUpper,6);
+ // Half way: the line between the two.
+ const half=h.step({...ai,scripted:{frontLeft:.5,rearLeft:0,frontRight:0,rearRight:0}});
+ expect(half.lines!.frontLeft.upper).toBeCloseTo((limits.extendedUpper+limits.normalUpper)/2,6);
+});

@@ -1,8 +1,9 @@
 /* CAutomobile::HydraulicControl (0x6A0510), pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166
  * (Automobile.cpp). A car fitted with hydraulics (handlingFlags.bHydraulicInst, 0x20000) rides on suspension lines the
  * player moves: it squats to its idle stance at a standstill and rises to normal as it drives off, the horn throws it
- * to the extended stance and back, and the car-gun stick lifts each corner. Only the player's car is driven here (a
- * mission car's STATUS_PHYSICS branch needs the script's special collision model). Local native units, Z up. */
+ * to the extended stance and back, and the car-gun stick lifts each corner. A mission car an AI drives (STATUS_PHYSICS,
+ * with its special collision model) takes each corner's change from m_aWheelSuspension, which CONTROL_CAR_HYDRAULICS
+ * sets and every step clears. Local native units, Z up. */
 import type {CarWheel} from '../simulation/nativeDriveContacts';
 
 export const HANDLING_HYDRAULIC_GEOM=0x10000,HANDLING_HYDRAULIC_INST=0x20000,HANDLING_HYDRAULIC_NONE=0x40000;
@@ -30,7 +31,9 @@ export interface HydraulicInput {player:boolean;hornJustDown:boolean;stick:{left
  /** CPad::GetHydraulicJump (ShockButtonR): every corner goes up at once. */
  jump?:boolean;
  /** The frame's CTimer::GetTimeStep, for the line-movement sound thresholds. */
- timeStep?:number}
+ timeStep?:number;
+ /** STATUS_PHYSICS: hydraulicData.m_aWheelSuspension, the script's change for each corner. */
+ scripted?:Record<CarWheel,number>}
 export type HydraulicSound='suspensionOn'|'suspensionOff'|'suspensionTrigger'|'suspensionHydraulic';
 /** Where each suspension line starts (its upper end over the wheel) and how long its spring is. */
 export type HydraulicLines=Record<CarWheel,{upper:number;spring:number}>;
@@ -44,7 +47,7 @@ export class NativeHydraulics {
  /** One HydraulicControl step: the lines to set (relative to each wheel's rest position) and the sounds it raises. */
  step(input:HydraulicInput):{lines?:HydraulicLines;sounds:HydraulicSound[]}{
   const sounds:HydraulicSound[]=[];
-  if(!input.player)return {sounds};
+  if(!input.player&&!input.scripted)return {sounds};
   const l=this.limits;let normalUpper=l.normalUpper,normalLower=l.normalLower;
   const extendedSpring=l.extendedUpper-l.extendedLower;let normalSpring=normalUpper-normalLower;
   if(this.angle>=20||input.prevSpeed<=.02||input.gas===0){
@@ -52,14 +55,14 @@ export class NativeHydraulics {
   }else if(this.angle)this.angle++;
   else{this.angle=20;sounds.push('suspensionOn');}
   const lines={} as HydraulicLines;
-  if(input.hornJustDown){
+  if(input.player&&input.hornJustDown){
    this.angle=this.angle<500?500:60;
    if(this.angle>=500){for(const w of WHEELS)lines[w]={upper:l.extendedUpper,spring:extendedSpring};sounds.push('suspensionTrigger');this.remember(lines);return {lines,sounds};}
    for(const w of WHEELS)lines[w]={upper:normalUpper,spring:normalSpring};sounds.push('suspensionHydraulic');
   }
   // Holding the hydraulic jump keeps every corner at 1; otherwise the car-gun stick lifts them.
-  const change:Record<CarWheel,number>={frontLeft:1,rearLeft:1,frontRight:1,rearRight:1};
-  if(!input.jump){
+  const change:Record<CarWheel,number>=input.scripted?{...input.scripted}:{frontLeft:1,rearLeft:1,frontRight:1,rearRight:1};
+  if(!input.scripted&&!input.jump){
    const x=input.stick.leftRight,y=input.stick.upDown,jump=Math.hypot(x,y)*1.5/128,a=Math.atan2(x,y)-Math.PI/4;
    const rearRight=Math.cos(a)*jump,frontRight=Math.sin(a)*jump;
    change.frontLeft=Math.max(0,-rearRight);change.rearLeft=Math.max(0,-frontRight);change.frontRight=Math.max(0,frontRight);change.rearRight=Math.max(0,rearRight);

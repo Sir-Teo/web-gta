@@ -3785,6 +3785,7 @@ async function boot() {
                  vehicleModelType:model=>fleet?fleet.vehicleIdeType(model):null,
                  scriptVehicleWaitingForCollision:car=>isScriptCar(car)&&car.waitingForCollision,
                  scriptVehicleVisiblyDamaged:car=>isScriptCar(car)&&car.visiblyDamaged,
+                 applyScriptVehicleForce:(car,force,offset)=>{if(!isScriptCar(car))return false;car.applyScriptForce(force,offset);return true;},
                  setScriptVehicleAirResistance:(car,multiplier)=>{if(!isScriptCar(car))return false;car.setAirResistanceMultiplier(multiplier);return true;},
                  setScriptPedListensToGroupCommands:(ped,listens)=>{const p=onFoot(ped);if(p)p.ignoresGroupCommands=!listens;},
                  playScriptRiderClip:(ped,o)=>{
@@ -4140,6 +4141,7 @@ async function boot() {
                   return canPedStepOutCar(1,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50});
                  },
                  scriptVehicleHasHydraulics:car=>!!(car as Partial<ScriptCar>).hydraulics,
+                 setScriptVehicleHydraulicLevels:(car,wheels)=>{if(!isScriptCar(car)||!car.hydraulics)return false;car.setScriptHydraulics(wheels);return true;},
                  setScriptVehicleHydraulics:(car,fitted)=>{const c=car as Partial<ScriptCar>;if(fitted)c.fitHydraulics?.();else c.removeHydraulics?.();},
                  scriptVehicleHandlingFlags:car=>(car as Partial<ScriptCar>).handlingFlags??0,
                  setScriptVehicleDirtLevel:(car,level)=>{const c=car as Partial<ScriptCar>;if(c.dirtLevel!==undefined)c.dirtLevel=level;},

@@ -340,6 +340,8 @@ export interface ScmMissionWorld {
  scriptVehicleWaitingForCollision?(car:unknown):boolean;
  /** vehicleFlags.bIsDamaged. */
  scriptVehicleVisiblyDamaged?(car:unknown):boolean;
+ /** CPhysical::ApplyForce on a script car; false for a vehicle the browser cannot push so. */
+ applyScriptVehicleForce?(car:unknown,force:{x:number;y:number;z:number},offset:{x:number;y:number;z:number}):boolean;
  /** CPed::bDoesntListenToPlayerGroupCommands, the other way round. */
  setScriptPedListensToGroupCommands?(ped:unknown,listens:boolean):void;
  /** ENABLE_ENTRY_EXIT_PLAYER_GROUP_WARPING: ENEX_FLAG_ACCEPT_NPC_GROUP on the entrances near a point. */
@@ -514,6 +516,8 @@ export interface ScmMissionWorld {
  /** handlingFlags.bHydraulicInst on a car: whether it is fitted, and AddVehicleUpgrade or RemoveVehicleUpgrade of
   * MI_HYDRAULICS. */
  scriptVehicleHasHydraulics?(car:unknown):boolean;
+ /** CONTROL_CAR_HYDRAULICS's corners (null: RESET_VEHICLE_HYDRAULICS); false for a vehicle without hydraulics here. */
+ setScriptVehicleHydraulicLevels?(car:unknown,wheels:{frontLeft:number;rearLeft:number;frontRight:number;rearRight:number}|null):boolean;
  setScriptVehicleHydraulics?(car:unknown,fitted:boolean):void;
  /** CVehicle::m_nHandlingFlags as the car's handling line gives them. */
  scriptVehicleHandlingFlags?(car:unknown):number;
@@ -1247,6 +1251,9 @@ export class ScmMission {
    modelIsPlane:model=>this.vehicleModelType(model,'IS_THIS_MODEL_A_PLANE')==='plane',
    // vehicleFlags.bIsDamaged: only an automobile shows damaged components here.
    vehicleIsVisiblyDamaged:handle=>this.world.scriptVehicleVisiblyDamaged?.(this.liveVehicle(handle))??false,
+   applyForceToVehicle:(handle,force,offset)=>{
+    if(!this.host('applyScriptVehicleForce','APPLY_FORCE_TO_CAR')(this.liveVehicle(handle),force,offset))throw new UnsupportedScmCommand(-1,0,'APPLY_FORCE_TO_CAR','a bike, boat or aircraft');
+   },
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
    fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},
@@ -1726,6 +1733,10 @@ export class ScmMission {
    // OPEN_CAR_DOOR swings the door fully open and OPEN_CAR_DOOR_A_BIT to a ratio, through CAutomobile::OpenDoor with
    // no ped and the sound on. The index is eDoors: bonnet, boot, then the front and rear doors left and right.
    // DOES_CAR_HAVE_HYDRAULICS reads handlingFlags.bHydraulicInst; SET_CAR_HYDRAULICS fits or removes the upgrade.
+   // CONTROL_CAR_HYDRAULICS: hydraulicData.m_aWheelSuspension, which HydraulicControl reads for a mission car an AI
+   // drives and clears after each step. A car without the hydraulics has no special collision model to move.
+   controlVehicleHydraulics:(handle,frontLeft,rearLeft,frontRight,rearRight)=>{this.world.setScriptVehicleHydraulicLevels?.(this.liveVehicle(handle),{frontLeft,rearLeft,frontRight,rearRight});},
+   resetVehicleHydraulics:handle=>{this.world.setScriptVehicleHydraulicLevels?.(this.liveVehicle(handle),null);},
    vehicleHasHydraulics:handle=>this.host('scriptVehicleHasHydraulics','DOES_CAR_HAVE_HYDRAULICS')(this.liveVehicle(handle)),
    setVehicleHydraulics:(handle,state)=>{this.host('setScriptVehicleHydraulics','SET_CAR_HYDRAULICS')(this.liveVehicle(handle),state);},
    // IS_CAR_LOW_RIDER: handlingFlags.bLowRider (0x2000000).
