@@ -8216,3 +8216,13 @@ or by the script stayed on foot while CJ waited in the car (Drive-Thru's return 
 follower on foot with nothing of the script's to do, and not already on its way, is now sent to get in again,
 every three seconds while it stays out. `WARP_CHAR_FROM_CAR_TO_COORD` on a script ped in a car now sets it out of
 the seat as well as moving it, where it used to go on counting as in the car. Spec: `script-group-car`.
+
+## A blocked fall, and a player put inside the world
+
+A fall the world stopped short of the ground (not landing) kept adding gravity to the player's vertical speed, which
+grew without bound while he stood blocked; `CPhysical::ApplyCollision` takes the speed into the surface, so the fall
+speed is now what the step could actually move. A player whose capsule begins inside the fixed world (SWEET1B's
+crack-den blip sits under the porch it marks) could not move at all, never grounded, where the game's ped collision
+pushes a ped clear: he is now lifted to the first free height above, a quarter unit at a time up to three units.
+The falling-terrain spec now ends the opening mission first, as the free-roam specs do: left running, the intro puts
+CJ back in Los Santos for its next scene. Specs: `terrain-under-a-falling-player`, `player-high-fall`.

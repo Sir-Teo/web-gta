@@ -172,6 +172,15 @@ export class Simulation {
     return blocked;
   }
   get playerCenterHeight() { return this.player.crouched ? 0.65 : 0.9; }
+  /** The lowest centre height above `center`, within 3 units in quarter-unit steps, where the player's capsule touches
+   * none of the fixed world; nothing when it is not inside the world now or no such height is found. */
+  private liftOutOfWorld(center: { x: number; y: number; z: number }) {
+    const shape = this.playerCollider.shape, rotation = this.playerCollider.rotation();
+    const inside = (y: number) => { let hit = false; this.world.intersectionsWithShape({ x: center.x, y, z: center.z }, rotation, shape, () => { hit = true; return false; }, RAPIER.QueryFilterFlags.ONLY_FIXED | RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody); return hit; };
+    if (!inside(center.y)) return undefined;
+    for (let rise = .25; rise <= 3; rise += .25) if (!inside(center.y + rise)) return center.y + rise;
+    return undefined;
+  }
   setCrouched(crouched: boolean): boolean {
     if (crouched === this.player.crouched) return true;
     const oldCenter = this.playerBody.translation();
@@ -404,6 +413,15 @@ export class Simulation {
       this.player.speed = Math.hypot(movement.x, movement.z) / dt;
     }
     const position = this.playerBody.translation();
+    // A fall the world stops short of the ground: CPhysical::ApplyCollision takes the speed into the surface, so the
+    // fall speed is what the step could move (it used to go on growing while he stood blocked). A capsule that begins
+    // inside the fixed world (a script put him under a porch) is lifted out, as the ped's collision pushes it clear.
+    const blocked = !resolved.grounded && this.player.verticalSpeed < 0 && dt > 0 && movement.y > this.player.verticalSpeed * dt * .5;
+    if (blocked) {
+      this.player.verticalSpeed = movement.y / dt;
+      const lifted = this.liftOutOfWorld(position);
+      if (lifted !== undefined) { this.playerBody.setTranslation({ x: position.x, y: lifted, z: position.z }, true); this.playerBody.setNextKinematicTranslation({ x: position.x, y: lifted, z: position.z }); this.player.position = { ...this.player.position, y: lifted - this.playerCenterHeight }; this.player.verticalSpeed = 0; this.player.grounded = false; return; }
+    }
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = resolved.grounded;
     // CTaskSimpleInAir: m_fMinZSpeed keeps the fastest fall; past 0.1 units a frame down with nothing within 4 units

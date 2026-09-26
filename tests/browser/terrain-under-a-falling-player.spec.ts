@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** A player dropped over ground that is not streamed in (a parachutist far from any window, or a dev teleport) used
  * to fall out of the world: the follower asked for nothing while he was airborne, and a window that did arrive was
  * deferred until he landed on nothing. The falling player now gets his window and lands on it. */
@@ -6,6 +7,9 @@ test('a player falling over unstreamed ground gets its terrain and lands',async(
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  await page.waitForFunction(()=>(window as any).__game?.state().player.grounded);
+ // Free roam: the opening mission, left running, would put him back in Los Santos for its next scene.
+ await page.waitForFunction(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started,undefined,{timeout:60000});
+ await endStoryMission(page);
  await page.waitForFunction(()=>{const s=(window as any).__game.state();return s.following.requests>=1&&s.following.pending===null;},null,{timeout:30000}).catch(()=>{});
  // Downtown San Fierro, 120 m up, more than 4 km from the loaded window.
  await page.evaluate(()=>(window as any).__game.placePlayer(-2000,120,-300));
