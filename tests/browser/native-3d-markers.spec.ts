@@ -5,10 +5,10 @@ import {scriptClockSettled} from './scriptClock';
 // yellow, bobbing above its point.
 test('a 3d marker cone draws a yellow diamond',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
- await scriptClockSettled(page);
+ await scriptClockSettled(page);await endStoryMission(page);
  await page.evaluate(()=>(window as any).__game.setTime(12*60));
  // The script turns CJ as it starts (toward the houses) without swinging the camera round: face him and the camera
  // back down the street.
