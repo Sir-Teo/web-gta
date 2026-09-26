@@ -11,6 +11,6 @@ test('a script checkpoint draws its tube, arrow and ring',async({page})=>{
  const state=()=>page.evaluate(()=>(window as any).__game.state().markers3d);
  await expect.poll(async()=>(await state()).drawn,{timeout:5000}).toBe(2);
  expect((await state()).arrows).toBe(1);expect((await state()).error).toBeNull();
- await page.screenshot({path:'scratch/checkpoints.png'});
+ await page.screenshot({path:'artifacts/checkpoints.png'});
  expect(errors).toEqual([]);
 });
