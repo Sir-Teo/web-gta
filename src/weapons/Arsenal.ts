@@ -16,7 +16,7 @@ export class Arsenal {
   this.element.querySelector('.arsenal-close')!.addEventListener('click',()=>this.toggle(false));
   this.element.querySelector('.refill-ammo')!.addEventListener('click',()=>{weapons.inventory.refill();this.update();});
   this.element.querySelector('input')!.addEventListener('input',e=>{const query=(e.target as HTMLInputElement).value.toLowerCase();for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.hidden=!button.textContent!.toLowerCase().includes(query);});
-  this.readout.className='weapon-readout';this.crosshair.className='weapon-crosshair';this.crosshair.hidden=true;
+  this.readout.className='weapon-readout';this.readout.setAttribute('aria-label','Equipped weapon');this.crosshair.className='weapon-crosshair';this.crosshair.hidden=true;
   // CHud::DrawCrossHairs draws a first-person crosshair raster four times, mirrored into each quarter.
   for(let i=0;i<4;i++)this.crosshair.append(document.createElement('i'));
   // CHud::Draw draws the crosshairs before the rest of the HUD, which covers them.
@@ -26,10 +26,12 @@ export class Arsenal {
  /** `scope` is the held weapon's CROSSHAIR raster as an image URL. */
  /** hud.txd's siteM16 and siterocket as image URLs, once loaded. */
  hudSprites:Record<string,string>={};
+ /** What update() last wrote, so a frame that changes nothing writes nothing to the document. */
+ private pressedId?:number;private shownRadius?:number;
  update(error?:string,scope?:string){const s=this.weapons.snapshot(),w=this.weapons.inventory.weapon;
   // The original HUD has no weapon name, skill or state line; CHud::DrawAmmo draws the ammo under the icon.
   // Only a failed weapon asset is reported here.
-  this.readout.textContent=!s.ready&&error?`${w.name} · Asset unavailable`:'';this.readout.setAttribute('aria-label','Equipped weapon');
+  {const text=!s.ready&&error?`${w.name} · Asset unavailable`:'';if(this.readout.textContent!==text)this.readout.textContent=text;}
   // CHud::DrawCrossHairs draws each raster four times, mirrored into each quarter:
   // - the sniper's and camera's CROSSHAIR quarters span 210 × 210 and 256 × 192 of the 640 × 448 frame around the centre;
   // - the rocket's siterocket quarters are 24 × 24, 20 from the centre;
@@ -44,6 +46,6 @@ export class Arsenal {
   this.crosshair.classList.toggle('native-rocket',rocket);this.crosshair.classList.toggle('native-site',circle&&!!image);
   this.crosshair.classList.toggle('scope',mode==='sniper'&&!image);this.crosshair.classList.toggle('site',!!mode&&!image&&mode!=='sniper');
   if(image&&this.crosshair.dataset.image!==image){this.crosshair.dataset.image=image;this.crosshair.style.setProperty('--scope-image',`url("${image}")`);}
-  const radius=this.weapons.crosshairRadius;this.crosshair.style.setProperty('--crosshair-radius',String(radius));this.crosshair.classList.toggle('dot',radius<=.2&&circle);for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.setAttribute('aria-pressed',String(Number(button.dataset.weapon)===s.id));}
+  const radius=this.weapons.crosshairRadius;if(radius!==this.shownRadius){this.shownRadius=radius;this.crosshair.style.setProperty('--crosshair-radius',String(radius));}this.crosshair.classList.toggle('dot',radius<=.2&&circle);if(s.id!==this.pressedId){this.pressedId=s.id;for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.setAttribute('aria-pressed',String(Number(button.dataset.weapon)===s.id));}}
  dispose(){this.element.remove();this.readout.remove();this.crosshair.remove();}
 }
