@@ -140,8 +140,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  helpMessageBlocked?():boolean;
  /** CHud big-message buffer blanking from ClearThisPrintBigNow. */
  clearBigMessage?(style:number):void;
- /** CWorld::PutToGroundIfTooLow for CREATE_OBJECT: the ground under a point, or undefined where the world has
-  * nothing there, which leaves the point alone as the native call does. */
+ /** CWorld::ProcessVerticalLine from the native point down to z = -1000: the first ground under it, or undefined
+  * where the world has nothing there. FindGroundZForCoord asks from z = 1000. */
  groundLevel?(x:number,y:number,z:number):number|undefined;
  /** CEntity::GetDistanceFromCentreOfMassToBaseOfModel (0x536BE0): how far CREATE_OBJECT lifts the object. */
  modelBaseOffset?(model:number|string):number;

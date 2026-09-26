@@ -1,4 +1,5 @@
 import {cullAirResistance} from './nativeAirResistance';
+import {requireAsset} from '../assets/binary';
 /** CMonsterTruck subclasses: Monster, Monster A and Monster B. */
 const MONSTER_TRUCKS=new Set([444,556,557]);
 import {randomSeed} from './nativeVehicleLights';
@@ -92,6 +93,9 @@ export class WorldCar {
  missionCar=false;
  /** CVehicle::bConsideredByPlayer, which SET_VEHICLE_IS_CONSIDERED_BY_PLAYER clears: the player's enter search passes it over. */
  consideredByPlayer=true;
+ /** SET_VEHICLE_AIR_RESISTANCE_MULTIPLIER: m_fAirResistance becomes GetDefaultAirResistance() times the scale. */
+ setAirResistanceMultiplier(multiplier:number){requireAsset(Number.isFinite(multiplier)&&multiplier>=0,'Invalid air resistance multiplier.');this.input.airResistance!.multiplier=Math.fround(multiplier);}
+ get airResistanceMultiplier(){return this.input.airResistance!.multiplier??1;}
  /** autoFlags.bDoesNotGetDamagedUpsideDown, which SET_UPSIDEDOWN_CAR_NOT_DAMAGED sets: CAutomobile::VehicleDamage
   * returns at once for such a car on its roof unless it is the player's. */
  noUpsideDownDamage=false;
@@ -112,7 +116,7 @@ export class WorldCar {
  tyresDontBurst=false;
  /** CAutoPilot's own fields as a script sets them: the cruise speed, the driving style and whether the car
   * loads collision round itself. Nothing drives a script's car here yet, so these are held and no more. */
- autopilotFields?:{cruiseSpeed?:number;drivingStyle?:number;loadsCollision?:number;cantGoAgainstTraffic?:number};
+ autopilotFields?:{cruiseSpeed?:number;drivingStyle?:number;loadsCollision?:number;cantGoAgainstTraffic?:number;stayInSlowLane?:number};
  /** physicalFlags.bInvulnerable on a car, which SET_CAR_ONLY_DAMAGED_BY_PLAYER sets: a blow from anyone but
   * the player leaves it alone, which in this browser is a ped's gunfire. */
  onlyDamagedByPlayer=false;
@@ -587,7 +591,8 @@ export class WorldCar {
    this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
    // A frozen car (FREEZE_CAR_POSITION) keeps its body out of the world while its other logic goes on.
-   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby&&!this.frozen);this.car.root.visible=true;if(!nearby)return;
+   if(this.waitingForCollision&&(this.occupied||this.collisionArrived(seconds)))this.waitingForCollision=false;
+   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision)return;
    this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
   const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
@@ -864,6 +869,27 @@ export class WorldCar {
  engineRunning=false;
  /** FREEZE_CAR_POSITION: physicalFlags.bDontApplySpeed, the body held where it is. */
  frozen=false;
+ /** m_bIsStaticWaitingForCollision: CreateCarForScript sets it on a mission car, which stands static until
+  * CColStore::HasCollisionLoaded for its spot; here, until fixed ground (or water) is under it, asked twice a second.
+  * `reground` marks a car CWorld::FindGroundZForCoord set down at its 20 fallback (a z at or below the map's low limit
+  * with no collision in yet): when the ground comes in it is set down on it, as the original's scripts load the
+  * scene before they make such a car. */
+ waitingForCollision=false;
+ private collisionWait={seconds:0,reground:false};
+ waitForCollision(reground:boolean){this.waitingForCollision=true;this.collisionWait={seconds:0,reground};}
+ private collisionArrived(seconds:number){
+  const w=this.collisionWait;w.seconds-=seconds;if(w.seconds>0)return false;w.seconds=.5;
+  const p=this.car.body.translation(),top=w.reground?1000:p.y+2;
+  const hit=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:top,z:p.z},{x:0,y:-1,z:0}),w.reground?2000:500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  const water=this.waterLevel?.(p.x,-p.z);
+  if(!hit&&water===undefined)return false;
+  if(w.reground){
+   const ground=Math.max(hit?top-hit.timeOfImpact:-Infinity,water??-Infinity);
+   this.car.body.setTranslation({x:p.x,y:ground-this.assets.collision.bounds.min[2],z:p.z},true);
+   this.car.body.setLinvel({x:0,y:0,z:0},true);this.car.body.setAngvel({x:0,y:0,z:0},true);
+  }
+  return true;
+ }
  /** CVehicle::RemoveDriver's STATUS_ABANDONED: a car its driver left (stepped, jumped, crawled or was dragged out). */
  driverless=false;
  /** PrepareVehicleForPedEnter: the NPC driver stops while someone lines up with the car. */

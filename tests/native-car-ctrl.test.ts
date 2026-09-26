@@ -67,6 +67,8 @@ test('PickNextNodeRandomly avoids U-turns, dead ends and wrong-way roads, and fa
  const turned=pickNextNodeRandomly({...base,candidates:[back,wrongWay],random:cycle});
  expect(turned).toEqual({choice:back,uTurn:true});
  expect(nextLaneOnLink(0,2,20,true,true)).toBe(1);expect(nextLaneOnLink(0,2,10,true,true)).toBe(0);expect(nextLaneOnLink(1,1,20,false,false)).toBe(0);
+ // bStayInSlowLane: the outermost lane whatever the draw; a link with no lanes keeps the lane.
+ expect(nextLaneOnLink(0,3,20,true,false,true)).toBe(2);expect(nextLaneOnLink(2,2,5,false,false,true)).toBe(1);expect(nextLaneOnLink(1,0,20,false,false,true)).toBe(1);
 });
 
 test('TestCollisionBetween2MovingRects and SlowCarDownForOtherCar slow a car closing on a stopped one',()=>{

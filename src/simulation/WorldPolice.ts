@@ -475,6 +475,13 @@ export class WorldPolice {
  }
  beforeStep(dt:number,playerCar?:WorldCar){
   this.seconds+=dt;
+  // A car the fleet or a script let go since the last dispatch update (which prunes once a second) is gone: its
+  // body is freed, and reading it would panic the physics world.
+  for(let i=this.units.length-1;i>=0;i--)if(this.units[i].car.disposed||!this.units[i].car.car.body.isValid())this.units.splice(i,1);
+  if(playerCar&&(playerCar.disposed||!playerCar.car.body.isValid())){
+   if(import.meta.env?.DEV)console.warn('Police step: the player\'s car has no body',{disposed:playerCar.disposed,occupied:playerCar.occupied,model:playerCar.modelId});
+   playerCar=undefined;
+  }
   this.updateHelis(playerCar);
   this.generateRoadBlocks(!!(playerCar||this.fleet.occupied||this.fleet.occupiedBike||this.fleet.occupiedBoat||this.fleet.occupiedPlane));
   this.updateAlarms(dt);

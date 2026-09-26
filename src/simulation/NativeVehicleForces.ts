@@ -13,7 +13,8 @@ type Tires=NativeSuspendedWheelInput['tires'];
 export interface NativeVehicleForceInput {
   /** Explicit ownership: when supplied, Rapier gravity must be disabled. */
   gravity?:NativeGravityFlags;
-  airResistance?:{extraMultiplier?:number};
+  /** `multiplier` is SET_VEHICLE_AIR_RESISTANCE_MULTIPLIER's scale on the handling drag (m_fAirResistance). */
+  airResistance?:{extraMultiplier?:number;multiplier?:number};
   suspension:Omit<NativeSuspendedWheelInput['suspension'],'linear'|'angular'|'centerOfMass'|'mass'|'turnMass'|'direction'>;
   tires:Omit<Tires,'velocity'|'burnoutGeometry'|'wheelParameters'>&{wheelParameters:Omit<Tires['wheelParameters'],'tireTemperature'>};
   steeringControl:Omit<NonNullable<NativeSuspendedWheelInput['steeringControl']>,'right'>;
@@ -91,7 +92,7 @@ export class NativeVehicleForces {
     const gravity=input.gravity?nativeGravity(input.suspension.timeStep,input.gravity):undefined;
     let linear=gravity?{...chassis.linear,z:Math.fround(chassis.linear.z+gravity.linear.z)}:chassis.linear;
     requireAsset(!input.airResistance||(this.body.linearDamping()===0&&this.body.angularDamping()===0),'Disable Rapier chassis damping before applying native air resistance.');
-    const air=input.airResistance?nativeAirResistance(linear,chassis.angular,input.suspension.timeStep,nativeCarAirResistance(h.values.dragMultiplier),input.airResistance.extraMultiplier):undefined;
+    const air=input.airResistance?nativeAirResistance(linear,chassis.angular,input.suspension.timeStep,Math.fround(nativeCarAirResistance(h.values.dragMultiplier)*(input.airResistance.multiplier??1)),input.airResistance.extraMultiplier):undefined;
     if(air)linear=air.linear;
     const result=stepNativeSuspendedWheelFrame(h,this.wheelFrame,{
       suspension:{...input.suspension,...chassis,linear,angular:air?.angular??chassis.angular,mass:h.values.mass,turnMass:h.values.turnMass},

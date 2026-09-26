@@ -123,11 +123,14 @@ export function pickNextNodeRandomly<T>(o:{previous:V2;current:V2;candidates:rea
  return {choice:candidates.find(c=>c.uTurn),uTurn:true};
 }
 /** PickNextNodeRandomly's lane on the next link: when `change` (a one-in-four draw) is set, move a lane over on a
- * segment of 14 units or more, to the right when `right`; then clamp to the lanes in the direction of travel. */
-export function nextLaneOnLink(lane:number,lanesOnNext:number,segmentLength:number,change:boolean,right:boolean){
+ * segment of 14 units or more, to the right when `right`; then clamp to the lanes in the direction of travel.
+ * `slowLane` is CAutoPilot::bStayInSlowLane (SET_CAR_STAY_IN_SLOW_LANE): the outermost lane, the counterpart of VC's
+ * m_bStayInFastLane, which takes lane 0 after the clamp. */
+export function nextLaneOnLink(lane:number,lanesOnNext:number,segmentLength:number,change:boolean,right:boolean,slowLane=false){
  if(lanesOnNext<=0)return lane;
  let next=lane;
  if(change&&segmentLength>=14)next+=right?1:-1;
+ if(slowLane)return lanesOnNext-1;
  return Math.max(0,Math.min(lanesOnNext-1,next));
 }
 

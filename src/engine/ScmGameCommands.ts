@@ -2835,8 +2835,7 @@ const handlers:Record<string,ScmCommandHandler>={
  CREATE_OBJECT:(t,p,i)=>{
   const g=game(t,i),asset=model(t,i,p[0]),position=vec(t,p,1);
   // CWorld::PutToGroundIfTooLow, then the lift by the distance from the centre of mass to the base of the model.
-  const ground=world(t,i,'groundLevel')(position.x,position.y,position.z);
-  if(ground!==undefined&&position.z<ground)position.z=ground;
+  if(position.z<=-100)position.z=world(t,i,'groundLevel')(position.x,position.y,1000)??20;
   position.z+=world(t,i,'modelBaseOffset')(asset);
   t.writeInt(p[4],g.objects.create(asset,position,{external:t.isExternal||t.externalType!==-1,missionCleanup:t.usesMissionCleanup}).handle);
  },

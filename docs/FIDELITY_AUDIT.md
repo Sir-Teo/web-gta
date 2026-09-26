@@ -8271,3 +8271,36 @@ vehicle: the offset is carried in the object's drawn frame (its record's positio
 streams), with the same facing side, turn limit, chosen weapon and the saved weapon restored on
 `DETACH_CHAR_FROM_CAR`. An object that goes away lets him go. `IS_CHAR_ATTACHED_TO_ANY_CAR` stays car-only, as the
 command's name says. A script ped's attachment to an object is still a reported gap. Spec: `script-player-on-object`.
+
+## Car drag, model types, slow lane and SET_CHAR_VELOCITY
+
+`SET_VEHICLE_AIR_RESISTANCE_MULTIPLIER` (HOODS5, DESERT9) sets `m_fAirResistance` to the handling's default
+(`GetDefaultAirResistance`: drag/1000/2, or the raw drag at 0.01 and under) times the scale, which
+`CPhysical::ApplyAirResistance` then uses for an automobile. Only automobiles run the native air resistance here; the
+command is taken and ignored for other vehicles, whose motion has none. The handler is not in the reversed sources;
+the scale-of-default form follows the command's name and the field it sets.
+`IS_THIS_MODEL_A_CAR`, `_BOAT`, `_HELI` and `_PLANE` are `CModelInfo::IsCarModel` etc.: the vehicle type exactly as
+vehicles.ide spells it, so a monster truck or quad is no car and a model that is no vehicle is none of them.
+`SET_CAR_STAY_IN_SLOW_LANE` sets `CAutoPilot::bStayInSlowLane`, which the script-car lane pick
+(`PickNextNodeRandomly`) answers with the outermost lane, the counterpart of VC's `m_bStayInFastLane` taking lane 0.
+`IS_GERMAN_GAME` is false. `SET_CHAR_VELOCITY` (`CPhysical::SetVelocity`, the script's figure over 50) on the player:
+the air carries the horizontal part and a rise takes him off the ground; a script ped's is a reported gap.
+Spec: `script-car-drag-and-models`.
+
+## Ground lookups, mission cars waiting for collision, and the teleport hold
+
+- `CWorld::FindGroundZForCoord` casts from z = 1000 and answers 20 where there is no ground; the host's ray started
+  at 200 (missing everything higher: Mount Chiliad, the tall roofs) and the car spawn answered 0.
+- `CWorld::FindGroundZFor3DCoord` casts from the point itself and answers 0 on a miss (was the point's own z).
+- `PutToGroundIfTooLow` only moves a z at or below -100: `CREATE_OBJECT` raised any object below the first ground
+  under it (a buried prop, anything under a bridge) and `WARP_CHAR_FROM_CAR_TO_COORD` grounded the point whatever z
+  the script gave.
+- `CreateCarForScript` sets `m_bIsStaticWaitingForCollision` on a mission car: it now stands static until fixed ground
+  or water is under it (asked twice a second), and `IS_CAR_WAITING_FOR_WORLD_COLLISION` reads it. A car put down at the
+  20 fallback is set down on the ground when it arrives, since the original's scripts load the scene first; one the
+  player sits in never waits.
+- A script teleport engages the terrain hold on the frame its window is requested, not the next one, so the step no
+  longer runs the player over a spot with no collision.
+- The police step drops units whose car is gone and ignores a player car with no body, instead of reading a freed
+  Rapier body (a panic that ends every later physics call). SWEET2's probe met it at Emmet's.
+Specs: `script-car-drag-and-models`, `scm-objects` (unit).

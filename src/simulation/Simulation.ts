@@ -131,6 +131,14 @@ export class Simulation {
   /** Vehicle tasks share the same breath state as swimming. Drowning bypasses armour. */
   /** CPed::bDrownsInWater for the player (SET_CHAR_DROWNS_IN_WATER). */
   playerDrownsInWater=true;
+  /** CPhysical::SetVelocity on the player (SET_CHAR_VELOCITY), in native units per 50th of a second: the air carries
+   * the horizontal part as his jump momentum, and a rise takes him off the ground; standing, the next step's
+   * animation drives him again, as CPed's own move speed does. */
+  setPlayerVelocity(v:{x:number;y:number;z:number}){
+    if(![v.x,v.y,v.z].every(Number.isFinite))throw new Error('Invalid player velocity.');
+    this.player.jumpMomentum={x:v.x*50,z:-v.y*50};this.player.verticalSpeed=v.z*50;
+    if(v.z>0)this.player.grounded=false;
+  }
   handlePlayerBreath(dt:number,decrease=true,multiplier=1){
     const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50,undefined,undefined,this.playerDrownsInWater);
     // CEventDamage drops WEAPON_DROWNING damage to a ped that does not drown.

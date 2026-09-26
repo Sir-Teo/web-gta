@@ -3133,6 +3133,9 @@ async function boot() {
     followTimer=setTimeout(()=>failFollowing(request.id,'The terrain request timed out.'),staticWorld?45000:30000);requestedAt.set(request.id,performance.now());
     // Resident: the installed window's models plus the pool's retired sources, whose models the main thread still holds.
     if(staticWorld)staticWorld.request(request.id,request.region,[...new Set([...residentModels.keys(),...(importedScene?.retiredModels().keys()??[])])]);else sceneChannel!.postMessage({type:'region-request',...request});
+    // A window asked for a player already outside the installed one (a script teleport) holds at once, before the
+    // step can run him over ground that is not there.
+    if(eligible&&!airborne&&follower?.needsPause(sim.player.position))terrainHold(true);
   }
   /** A window may be asked for and installed under a player who stands, flies, or falls: a parachutist or a jumper
    * over ground that is not streamed in yet would otherwise fall out of the world while the window waited for him
@@ -3759,6 +3762,9 @@ async function boot() {
                  scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
                  burstScriptVehicleTyre:(car,wheel)=>{if(isScriptCar(car))car.burstTyre(wheel,true);},
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
+                 vehicleModelType:model=>fleet?fleet.vehicleIdeType(model):null,
+                 scriptVehicleWaitingForCollision:car=>isScriptCar(car)&&car.waitingForCollision,
+                 setScriptVehicleAirResistance:(car,multiplier)=>{if(!isScriptCar(car))return false;car.setAirResistanceMultiplier(multiplier);return true;},
                  setScriptPedListensToGroupCommands:(ped,listens)=>{const p=onFoot(ped);if(p)p.ignoresGroupCommands=!listens;},
                  playScriptRiderClip:(ped,o)=>{
                   const rider=asRider(ped);if(!rider)return;
@@ -4285,11 +4291,13 @@ async function boot() {
                   pinAttachedPlayer();return true;
                  },
                  detachPlayerFromVehicle:()=>{detachPlayer();},
+                 setPlayerVelocity:velocity=>{sim.setPlayerVelocity(velocity);},
                  playerAttachedObject:()=>playerAttached?.object,
                  playerAttachedVehicle:()=>playerAttached?.car,
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.
-                 groundLevel:(x,y)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:200,z:-y},{x:0,y:-1,z:0}),300,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?200-hit.timeOfImpact:undefined;},
+                 // CWorld::ProcessVerticalLine from the point down to z = -1000.
+                 groundLevel:(x,y,z)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:z,z:-y},{x:0,y:-1,z:0}),z+1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?z-hit.timeOfImpact:undefined;},
                  // CEntryExitManager's flags are the script's: SET_CLOSEST_ENTRY_EXIT_FLAG and ENABLE_ENTRY_EXIT
                  // reach the same entrances the read-ahead applied at load, and now also whatever the script
                  // changes later, which the read-ahead could not see.

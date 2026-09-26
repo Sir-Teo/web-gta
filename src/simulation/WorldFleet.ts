@@ -142,6 +142,13 @@ export class WorldFleet {
   vehicleClass(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.vehicleClass;}
   /** VEHICLES.IDE model name of a model id, once the catalog has loaded. */
   modelName(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.model;}
+  /** CVehicleModelInfo::m_nVehicleType as vehicles.ide spells it (car, mtruck, quad, heli, plane, boat, train, bike,
+   * bmx, trailer), by id or by dff name; undefined for a model that is no vehicle, null until the catalog loads. */
+  vehicleIdeType(model:number|string){
+   if(!this.catalog)return null;
+   const name=typeof model==='string'?model.toLowerCase():undefined;
+   return this.catalog.definitions.find(v=>name===undefined?v.id===model:v.model.toLowerCase()===name)?.type;
+  }
   /** The player's zone level: 0 countryside, 1 Los Santos, 2 San Fierro, 3 Las Venturas. */
   zoneLevel(){return this.currentZone?.level??0;}
   private popRow(){
@@ -271,18 +278,18 @@ export class WorldFleet {
   const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z),raining:this.raining?.()??false,playerColours:this.playerColours()});
   assets.componentsToUse=componentsToUse;
   if(this.disposed)return undefined;
-  let ground=position.y;
+  let ground=position.y,fellBack=false;
   if(ground<=MAP_Z_LOW_LIMIT){
-   // CWorld::FindGroundZForCoord, from high above the point looking down.
+   // CWorld::FindGroundZForCoord, from high above the point looking down, and 20 where nothing is hit.
    const top=1000,hit=this.sim.world.castRay(new RAPIER.Ray({x:position.x,y:top,z:position.z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   ground=hit?top-hit.timeOfImpact:0;
+   ground=hit?top-hit.timeOfImpact:20;fellBack=!hit;
   }
   const car=new WorldCar(this.sim,this.scene,assets,{x:position.x,y:ground-assets.collision.bounds.min[2],z:position.z},this.road,heading);
   car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;
   // vehicleFlags.bIsLocked, which keeps the car from being removed (missionCar), and STATUS_ABANDONED: nobody drives
   // it. Its doors (m_nDoorLock) are left as they are, CARLOCK_UNLOCKED, for LOCK_CAR_DOORS to change.
-  car.missionCar=true;
+  car.missionCar=true;car.waitForCollision(fellBack);
   this.cars.add(car);return car;
  }
  /** CCarCtrl::CreateCarForScript for any vehicle the script names: a bike, boat, plane or helicopter goes through

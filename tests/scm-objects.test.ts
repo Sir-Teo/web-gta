@@ -11,9 +11,9 @@ function host(game:ScmGameState,objectNames:readonly string[],world?:Partial<Scm
  const adapter={fade(){},groundLevel:()=>10,modelBaseOffset:()=>0.5,...world} as ScmWorldCommands;
  return {startScript(){throw new Error('unexpected');},game,world:adapter,objectNames} satisfies ScmThreadHost;
 }
-function threadAt(bytes:Uint8Array,offset:number,game=new ScmGameState(),world?:Partial<ScmWorldCommands>){
+function threadAt(bytes:Uint8Array,offset:number,game=new ScmGameState(),world?:Partial<ScmWorldCommands>,locals?:DataView){
  const names=readScmHeader(bytes).objectNames;
- return {thread:new ScmThread(bytes,offset,0,undefined,host(game,names,world)),game};
+ return {thread:new ScmThread(bytes,offset,0,locals,host(game,names,world)),game};
 }
 const runOne=(thread:ScmThread)=>{try{thread.run(0,1);}catch(error){if(!String(error).includes('watchdog'))throw error;}};
 
@@ -26,20 +26,37 @@ describe('script objects',()=>{
   expect(fixAngleDegrees(-450)).toBe(-90);
  });
 
- test('CREATE_OBJECT drops the point to the ground and lifts the object off its base',()=>{
+ test('CREATE_OBJECT keeps a point above the map\'s low limit and lifts the object off its base',()=>{
   const bytes=file(),header=readScmHeader(bytes);
   const code=decodeScmInstructions(bytes,header.missions[0].start,header.missions[0].end);
   const create=code.find(i=>i.name==='CREATE_OBJECT')!;
   expect(create).toBeDefined();
+  // CWorld::PutToGroundIfTooLow leaves a z above -100 alone, whatever ground is above or below it.
   const {thread,game}=threadAt(bytes,create.offset,new ScmGameState(),{groundLevel:()=>1000,modelBaseOffset:()=>0.5});
   runOne(thread);
   const object=game.objects.at(game.objects.handles[0]);
-  expect(object.position.z).toBe(1000.5);
+  expect(object.position.z).toBeCloseTo((create.parameters[3].value as number)+.5,4);
   const id=create.parameters[0].value as number;
   expect(object.model).toBe(id>=0?id:readScmHeader(bytes).objectNames[-id]);
   expect(object.objectType).toBe(OBJECT_MISSION);
   expect(object.scale).toBe(1);
   expect(object.usesCollision).toBe(true);
+ });
+
+ test('CREATE_OBJECT at z = -100 (DRIV2) drops to FindGroundZForCoord, 20 where there is no ground',()=>{
+  const bytes=file(),header=readScmHeader(bytes);
+  const mission=header.missions.map(m=>({m,code:decodeScmInstructions(bytes,m.start,m.end)})).find(({code})=>String(code[0].parameters?.[0]?.value)==='DRIV2')!;
+  const create=mission.code.find(i=>i.name==='CREATE_OBJECT'&&(i.parameters[3].value as number)<=-100)!;
+  expect(create).toBeDefined();
+  const asked:number[]=[];
+  const missionLocals=()=>new DataView(new ArrayBuffer(1024*4));
+  const ground=threadAt(bytes,create.offset,new ScmGameState(),{groundLevel:(_x,_y,z)=>{asked.push(z);return 12;},modelBaseOffset:()=>0.5},missionLocals());
+  runOne(ground.thread);
+  expect(ground.game.objects.at(ground.game.objects.handles[0]).position.z).toBe(12.5);
+  expect(asked).toEqual([1000]);
+  const none=threadAt(bytes,create.offset,new ScmGameState(),{groundLevel:()=>undefined,modelBaseOffset:()=>0.5},missionLocals());
+  runOne(none.thread);
+  expect(none.game.objects.at(none.game.objects.handles[0]).position.z).toBe(20.5);
  });
 
  test('CREATE_OBJECT_NO_OFFSET leaves the point where the script put it',()=>{

@@ -11,6 +11,7 @@ export interface ScriptDrivable {
  readonly wrecked:boolean;readonly disposed:boolean;readonly occupied:boolean;scriptDriven?:boolean;
  readonly nativeBody:{boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
  autopilot?:WorldCar['autopilot'];
+ autopilotFields?:{stayInSlowLane?:number};
 }
 
 /* CCarAI's coordinate missions for the cars a script drives (TASK_CAR_DRIVE_TO_COORD's CTaskComplexDriveToPoint).
@@ -353,7 +354,7 @@ export class ScriptCarMissions{
    let next=m.cruiseNext;
    if(next&&shouldPickNextNode(state,travel(link),m.lane,travel(next),m.nextLane)){
     m.link=next;m.lane=m.nextLane;m.cruiseNext=pick(next);next=m.cruiseNext;
-    if(next)m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5);
+    if(next)m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5,car.autopilotFields?.stayInSlowLane===1);
    }
    const at=m.link;
    if(next&&at){
@@ -367,7 +368,7 @@ export class ScriptCarMissions{
    let link=m.link,next=m.route.length?m.route[0]:undefined;
    if(next&&next.from===link.to&&shouldPickNextNode(state,travel(link),m.lane,travel(next),m.nextLane)){
     m.route.shift();m.link=link=next;m.lane=m.nextLane;next=m.route[0];
-    if(next)m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5);
+    if(next)m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5,car.autopilotFields?.stayInSlowLane===1);
    }
    const here=lanePoint(travel(link),m.lane),t=travel(link),roadZ=(link.from.position[2]+link.to.position[2])/2;
    const offRoute=Math.abs((state.position.x-here.x)*t.forward.y-(state.position.y-here.y)*t.forward.x)>12||Math.abs(p.y-roadZ)>3||m.recoveryMode>=2&&!!m.recovery;

@@ -175,8 +175,8 @@ export interface ScmMissionWorld {
  loadScene(x:number,y:number,z:number):void;
  /** CGameLogic::SetLaRiotsActive. */
  setLaRiots(active:boolean):void;
- /** CWorld::PutToGroundIfTooLow for the objects the script creates: the ground under a native point, or
-  * nothing where the world has none there. */
+ /** CWorld::ProcessVerticalLine from the native point down to z = -1000: the first ground under it, or nothing
+  * where the world has none there. */
  groundLevel(x:number,y:number,z:number):number|undefined;
  /** The player's own ped, which is the only ped the browser holds while the opening runs: its position in
   * native axes, the vehicle it is in if any, whether it has stopped, and its health. */
@@ -310,7 +310,7 @@ export interface ScmMissionWorld {
  setScriptPedArea(ped:unknown,area:number):void;
  setScriptPedSkill(ped:unknown,skill:number):void;
  setScriptPedUsedEntryExit(ped:unknown):void;
- setScriptVehicleAutopilot(car:unknown,field:'cruiseSpeed'|'drivingStyle'|'loadsCollision'|'cantGoAgainstTraffic',value:number):void;
+ setScriptVehicleAutopilot(car:unknown,field:'cruiseSpeed'|'drivingStyle'|'loadsCollision'|'cantGoAgainstTraffic'|'stayInSlowLane',value:number):void;
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
@@ -330,6 +330,12 @@ export interface ScmMissionWorld {
  addExplosion(position:{x:number;y:number;z:number},type:number,options?:{sound?:boolean}):void;
  /** The CAutomobile a car handle stands for, for the component commands; nothing for a bike, boat or aircraft. */
  scriptCarComponents?(car:unknown):ScmCarComponents|undefined;
+ /** A model's vehicles.ide type; undefined for no vehicle, null while the vehicle catalog loads. */
+ vehicleModelType?(model:number|string):string|undefined|null;
+ /** m_fAirResistance as the handling's drag times the scale; false for a vehicle whose motion here has none. */
+ setScriptVehicleAirResistance?(car:unknown,multiplier:number):boolean;
+ /** m_bIsStaticWaitingForCollision on a vehicle. */
+ scriptVehicleWaitingForCollision?(car:unknown):boolean;
  /** CPed::bDoesntListenToPlayerGroupCommands, the other way round. */
  setScriptPedListensToGroupCommands?(ped:unknown,listens:boolean):void;
  /** ENABLE_ENTRY_EXIT_PLAYER_GROUP_WARPING: ENEX_FLAG_ACCEPT_NPC_GROUP on the entrances near a point. */
@@ -570,6 +576,8 @@ export interface ScmMissionWorld {
  attachPlayerToObject?(object:number,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;playerAttachedObject?():number|undefined;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
+ /** CPhysical::SetVelocity on the player, native units per 50th of a second. */
+ setPlayerVelocity?(velocity:{x:number;y:number;z:number}):void;
  setPlayerMaxArmour(maxArmour:number):void;
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
  setClosestEntryExitFlag(x:number,y:number,radius:number,flag:number,on:boolean):void;
@@ -749,6 +757,8 @@ export class ScmMission {
    // SET_CAR_CAN_GO_AGAINST_TRAFFIC: CAutoPilot's bCantGoAgainstTraffic, the inverse of the operand. Nothing reversed
    // reads the bit, so it is kept and does nothing more.
    setVehicleIsConsideredByPlayer:(handle,state)=>{this.host('setScriptVehicleConsideredByPlayer','SET_VEHICLE_IS_CONSIDERED_BY_PLAYER')(this.liveVehicle(handle),state);},
+   // SET_CAR_STAY_IN_SLOW_LANE: CAutoPilot::bStayInSlowLane.
+   setVehicleStayInSlowLane:(handle,state)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'stayInSlowLane',state?1:0);},
    setVehicleCanGoAgainstTraffic:(handle,state)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'cantGoAgainstTraffic',state?0:1);},
    vehicleGotoCoordinates:(handle,x,y,z)=>{
     const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
@@ -868,9 +878,8 @@ export class ScmMission {
    // never waiting for collision to arrive.
    // m_bIsStaticWaitingForCollision: the browser streams collision round the player, so the player never waits.
    pedIsWaitingForCollision:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return false;},
-   // m_bIsStaticWaitingForCollision: the browser holds play until the streamed collision around the player is in, so
-   // a car never waits on it, as a ped does not.
-   vehicleIsWaitingForWorldCollision:handle=>{this.liveVehicle(handle);return false;},
+   // m_bIsStaticWaitingForCollision: a mission car stands static until the world's collision is under it.
+   vehicleIsWaitingForWorldCollision:handle=>this.world.scriptVehicleWaitingForCollision?.(this.liveVehicle(handle))??false,
    damagePed:(handle,amount,damageArmour)=>{if(handle===PLAYER_PED_HANDLE)this.host('damagePlayer','DAMAGE_CHAR')(amount,damageArmour);else this.world.damageScriptPed(this.livePed(handle),amount);},
    // CPedIntelligence::SetPedDecisionMakerType, and the fields the rest of this batch names.
    // SetCharDecisionMaker (reversed): the ped wears the slot CTheScripts::GetActualScriptThingIndex gives, -1 for none.
@@ -885,9 +894,9 @@ export class ScmMission {
    // CPed::SetAreaCode: the ped belongs to that area and is drawn only there.
    setPedAreaVisible:(handle,area)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerArea','SET_CHAR_AREA_VISIBLE')(area);else this.world.setScriptPedArea(this.livePed(handle),area);},
    pedIsPlayingAnim:(handle,animation)=>handle===PLAYER_PED_HANDLE?this.host('playerIsPlayingAnim','IS_CHAR_PLAYING_ANIM')(animation):this.world.scriptPedIsPlayingAnim(this.livePed(handle),animation),
-   // WARP_CHAR_FROM_CAR_TO_COORD drops the point to the ground first, as the teleport does.
+   // WARP_CHAR_FROM_CAR_TO_COORD: CWorld::PutToGroundIfTooLow first, as the teleport does.
    warpPedFromCarToCoord:(handle,x,y,z)=>{
-    const ground=this.world.groundLevel(x,y,z);
+    const ground=z<=-100?this.findGroundZForCoord(x,y):undefined;
     if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerFromCarToCoord','WARP_CHAR_FROM_CAR_TO_COORD')({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_FROM_CAR_TO_COORD','a player on a bike, boat or plane');return;}
     // A ped in a car is set out of it at the point (CTaskSimpleCarSetPedOut, then the teleport): its seat is freed and
     // it no longer counts as in the car.
@@ -978,7 +987,14 @@ export class ScmMission {
    // m_pAttachedTo, which is what LOWR and SWEET6 ask about before they detach.
    isCharAttachedToAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerAttachedVehicle?.()!==undefined:!!this.peds.rideOf(handle)?.offset,
    // CMenuManager::m_bLanguageChanged: only the menu's language option sets it, and the language here stays American.
+   // SET_CHAR_VELOCITY: the player's; a script ped's walk has no free velocity to take one yet.
+   setPedVelocity:(handle,velocity)=>{
+    if(handle!==PLAYER_PED_HANDLE){this.livePed(handle);throw new UnsupportedScmCommand(-1,0,'SET_CHAR_VELOCITY','a script ped');}
+    this.host('setPlayerVelocity','SET_CHAR_VELOCITY')(velocity);
+   },
    hasLanguageChanged:()=>false,
+   // IS_GERMAN_GAME: these are the English-language data files, not the German release's.
+   gameIsGerman:()=>false,
    setPedUsesUpperbodyDamageAnimsOnly:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'upperBodyDamageAnimsOnly',state);},
    setPedKindaStayInSamePlace:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'kindaStayInSamePlace',state);},
    // CPed::bIsTalking and the facial talk. The depot has no speech banks, so these hold what the script said
@@ -1166,8 +1182,9 @@ export class ScmMission {
    stopFxSystem:handle=>{this.world.stopScriptFx(this.fxOf(handle));},
    killFxSystem:handle=>{this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
    killFxSystemNow:handle=>{this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
-   // CWorld::FindGroundZFor3DCoord looks down from the point itself rather than from a thousand above.
-   groundZFor3DCoord:(x,y,z)=>this.world.groundLevel(x,y,z)??z,
+   // CWorld::FindGroundZFor3DCoord looks down from the point itself rather than from a thousand above, and answers
+   // 0 where it meets nothing.
+   groundZFor3DCoord:(x,y,z)=>this.world.groundLevel(x,y,z)??0,
    // CREATE_RANDOM_CHAR: the game picks the model, which is the one the zone's own roster would have used.
    createRandomChar:(x,y,z)=>{
     const model=this.world.randomCivilianModel();
@@ -1212,6 +1229,14 @@ export class ScmMission {
    // The CAutomobile component commands: CAutomobile::PopDoor, PopPanel, PopBoot, FixDoor, FixPanel, FixTyre, and
    // the damage and state questions. A car that is not a CAutomobile gives no answer and takes no change.
    popVehicleDoor:(handle,door,visible)=>{this.carComponents(handle)?.popDoor(door,visible);},
+   // SET_VEHICLE_AIR_RESISTANCE_MULTIPLIER: only an automobile runs CPhysical::ApplyAirResistance here.
+   setVehicleAirResistanceMultiplier:(handle,multiplier)=>{this.world.setScriptVehicleAirResistance?.(this.liveVehicle(handle),multiplier);},
+   // CModelInfo::IsCarModel, IsBoatModel, IsHeliModel and IsPlaneModel: the model info's vehicle type, exactly (a
+   // monster truck or quad is no car); anything that is no vehicle model is none of them.
+   isThisModelACar:model=>this.vehicleModelType(model,'IS_THIS_MODEL_A_CAR')==='car',
+   modelIsBoat:model=>this.vehicleModelType(model,'IS_THIS_MODEL_A_BOAT')==='boat',
+   modelIsHeli:model=>this.vehicleModelType(model,'IS_THIS_MODEL_A_HELI')==='heli',
+   modelIsPlane:model=>this.vehicleModelType(model,'IS_THIS_MODEL_A_PLANE')==='plane',
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
    fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},
@@ -1347,7 +1372,7 @@ export class ScmMission {
    setVehicleForwardSpeed:(handle,forwardSpeed)=>{this.world.setScriptVehicleForwardSpeed(this.liveVehicle(handle),forwardSpeed);},
    // CWorld::FindGroundZForCoord looks straight down from a thousand above and answers twenty where the world
    // has no ground under the point.
-   groundZForCoord:(x,y)=>this.world.groundLevel(x,y,0)??20,
+   groundZForCoord:(x,y)=>this.findGroundZForCoord(x,y),
    // A ped a script made never rides in the browser yet, so it is always on foot and never sitting in a car.
    pedIsOnFoot:handle=>handle===PLAYER_PED_HANDLE?!this.world.playerPed().vehicle:this.peds.exists(handle)&&this.peds.rideOf(handle)===undefined,
    pedIsSittingInAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().sittingInCar:this.peds.rideOf(handle)!==undefined,
@@ -2017,8 +2042,11 @@ export class ScmMission {
   if(ride&&!ride.offset)return {kind:'vehicle',entity:this.liveVehicle(ride.vehicle)};
   return {kind:'ped',entity:this.livePed(handle)};
  }
+ /** CWorld::FindGroundZForCoord: straight down from z = 1000, and 20 where the world has no ground under the point. */
+ private findGroundZForCoord(x:number,y:number){return this.world.groundLevel(x,y,1000)??20;}
  private teleportPlayer(x:number,y:number,z:number,command:string){
-  const ground=z<=-100?this.world.groundLevel(x,y,z):undefined;
+  // CWorld::PutToGroundIfTooLow.
+  const ground=z<=-100?this.findGroundZForCoord(x,y):undefined;
   const onFoot=!this.world.playerPed().vehicle;
   if(!this.host('teleportPlayer',command)({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,command,'a player on a bike, boat or plane');
   // CRunningScript::SetCharCoordinates with warpGang (the plain command; not _NO_OFFSET or _DONT_WARP_GANG): a leader
@@ -2071,6 +2099,11 @@ export class ScmMission {
   };
  }
  /** An optional host method, or the command gives up on a host that has none. */
+ private vehicleModelType(model:number|string,command:string){
+  const type=this.host('vehicleModelType',command)(model);
+  if(type===null)throw new ScmEntityPending('the vehicle catalog');
+  return type;
+ }
  private host<K extends keyof ScmMissionWorld>(name:K,command:string):NonNullable<ScmMissionWorld[K]>{
   const method=this.world[name];
   if(typeof method!=='function')throw new UnsupportedScmCommand(-1,0,command,'no host');
