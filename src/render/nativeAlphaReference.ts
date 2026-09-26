@@ -6,7 +6,9 @@ export function nativeAlphaReference(material:Material,reference:number){
  const compile=material.onBeforeCompile,key=material.customProgramCacheKey;
  material.onBeforeCompile=function(shader,renderer){
   compile.call(this,shader,renderer);
-  shader.fragmentShader=shader.fragmentShader.replace('#include <alphatest_fragment>',this.alphaTest>0?'if (diffuseColor.a <= alphaTest) discard;':'if (diffuseColor.a <= 0.0) discard;');
+  // In bytes, as the D3D ALPHAREF test compares them: a texel stored as the reference itself must fail, where the float
+  // sampled from it can land a rounding step above the float reference and pass.
+  shader.fragmentShader=shader.fragmentShader.replace('#include <alphatest_fragment>',this.alphaTest>0?'if (floor(diffuseColor.a * 255.0 + 0.5) <= floor(alphaTest * 255.0 + 0.5)) discard;':'if (floor(diffuseColor.a * 255.0 + 0.5) <= 0.0) discard;');
  };
  material.customProgramCacheKey=function(){return `${key.call(this)}-native-alpha-greater-${this.alphaTest>0?'reference':'zero'}`;};
 }
