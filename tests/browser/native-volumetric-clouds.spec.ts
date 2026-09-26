@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {scriptClockSettled} from './scriptClock';
+import {endStoryMission} from './freeRoam';
 
 // CClouds::VolumetricCloudsRender: the puffy high clouds appear once the camera passes 220 units and fade out below it.
 test('volumetric clouds appear at altitude and fade out near the ground',async({page})=>{
@@ -8,6 +9,8 @@ test('volumetric clouds appear at altitude and fade out near the ground',async({
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await scriptClockSettled(page);
+ // INTRO's scripted camera stays at Grove Street however high CJ is put; the fader follows the camera.
+ await endStoryMission(page);
  await page.evaluate(()=>(window as any).__game.setTime(12*60));
  // On the ground the height fader runs the pass out altogether.
  await page.waitForTimeout(1500);
