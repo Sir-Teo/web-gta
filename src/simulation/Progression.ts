@@ -43,6 +43,14 @@ export class Progression {
    if(saved&&[saved.x,saved.y,saved.z,saved.heading,saved.timeMinutes].every(v=>typeof v==='number'&&Number.isFinite(v))&&Math.abs(saved.x)<4000&&Math.abs(saved.y)<4000&&saved.z>-200&&saved.z<2000&&saved.timeMinutes>=0&&saved.timeMinutes<1440)this.savedLocation={x:saved.x,y:saved.y,z:saved.z,heading:saved.heading,timeMinutes:saved.timeMinutes,weekDay:Number.isInteger(saved.weekDay)&&saved.weekDay>=1&&saved.weekDay<=7?saved.weekDay:undefined};
    for(const [key,set] of [['stuntJumpsFound',this.stuntJumpsFound],['stuntJumpsDone',this.stuntJumpsDone]] as const)if(Array.isArray(data[key]))for(const id of data[key].slice(0,256))if(typeof id==='string'&&id.length<=64)set.add(id);
    if(Array.isArray(data.missions))for(const id of data.missions){const m=this.missions.find(m=>m.id===id);if(m)m.done=true;}
+   // The mission under way: its counters, and the driven distance its drive objective counts from.
+   const counters=data.missionCounters;
+   if(counters&&typeof counters==='object'){
+    if(finite(counters.kills,1000)&&Number.isInteger(counters.kills))this.missionKills=counters.kills;
+    if(finite(counters.hits,100000)&&Number.isInteger(counters.hits))this.missionHits=counters.hits;
+    if(finite(counters.collect,1000)&&Number.isInteger(counters.collect))this.missionCollect=counters.collect;
+    if(finite(counters.driveBase,1e9)&&counters.driveBase<=this.distances.drive)this.missionDriveBase=counters.driveBase;
+   }
   }catch{/* Disabled storage or invalid saves leave the playable defaults intact. */}
  }
  /** AR_STATS.DAT's STAT_INC_*_SKILL increment per weapon type, once loaded. */
@@ -68,7 +76,7 @@ export class Progression {
  }
  snapshot(){return {distances:{...this.distances},completed:[...this.completed],practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.map(m=>({id:m.id,name:m.name,description:m.description,done:m.done})),currentMission:this.currentMission()?.id??null,missionProgress:this.missionProgress()??null,saveSlots:this.slots.map((s,i)=>({slot:i,has:!!s}))};}
  /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
- save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.filter(m=>m.done).map(m=>m.id)});if(text.length>MAX_SAVE_LENGTH)return false;this.storage.setItem(KEY,text);return true;}catch{return false;}}
+ save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.filter(m=>m.done).map(m=>m.id),missionCounters:{kills:this.missionKills,hits:this.missionHits,collect:this.missionCollect,driveBase:this.missionDriveBase}});if(text.length>MAX_SAVE_LENGTH)return false;this.storage.setItem(KEY,text);return true;}catch{return false;}}
  /** Interior save points plus the save menu: three slots with location, clock and cash. */
  slots:(null|{x:number;y:number;z:number;heading:number;timeMinutes:number;money:number})[]=[null,null,null];
  saveToSlot(slot:number){

@@ -44,3 +44,22 @@ test('mission progress requires standing at the marker', () => {
   expect(p.currentMission()?.id).toBe('grove-intro');
  } finally { sim.dispose(); }
 });
+
+test('a mission under way keeps its progress across a reload, and its drive counts from its unlock',()=>{
+ const sim=new Simulation();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ sim.player.position={x:8,y:0,z:-25};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);
+  // A kilometre driven before the drive objective unlocks.
+  p.distances.drive=1000;
+  p.missionUpdate();p.recordKill(0);p.recordKill(2);p.recordKill(0);p.missionUpdate();
+  expect(p.currentMission()?.id).toBe('wheelman');expect(p.missionProgress()).toEqual({done:0,total:1500});
+  p.save();
+  const restored=new Progression(new WeaponInventory(),sim,storage);
+  expect(restored.currentMission()?.id).toBe('wheelman');expect(restored.missionProgress()).toEqual({done:0,total:1500});
+  // The marksman's hits so far come back too.
+  for(const m of restored.missions)if(m.id==='wheelman')m.done=true;
+  for(let i=0;i<7;i++)restored.hit(30);restored.save();
+  expect(new Progression(new WeaponInventory(),sim,storage).missionProgress()).toEqual({done:7,total:15});
+ }finally{sim.dispose();}
+});
