@@ -844,7 +844,7 @@ async function boot() {
    passTime:minutes=>gameLogicWorld.passTime(minutes),
   };
   const arsenal=new Arsenal(hud.element,weapons);
-  void afterStartPackage.then(()=>loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint','radarRingPlane','fist','skipicon',...NativeMap.blipSpriteNames()])).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);hud.fistIcon=sprites.fist;hud.skipIcon=sprites.skipicon;}).catch(()=>{});
+  void afterStartPackage.then(()=>loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint','arrow','radarRingPlane','fist','skipicon',...NativeMap.blipSpriteNames()])).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);hud.fistIcon=sprites.fist;hud.skipIcon=sprites.skipicon;}).catch(()=>{});
   arsenal.onSelect=id=>{void weaponView.equip(id);};
   /** An overlay opened over a locked pointer lets it go so its controls can be clicked, without that pausing the game. */
   let overlayReleasedLock=false,lockLostAt=-Infinity;

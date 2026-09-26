@@ -37,7 +37,9 @@ export class NativeMap {
  private loaded=false;
 
  /** hud.txd's RADAR_DISC (tinted black once) and blip sprites, when loaded. */
- private sprites:{disc?:HTMLCanvasElement;north?:HTMLImageElement;centre?:HTMLImageElement;waypoint?:HTMLImageElement;ring?:HTMLImageElement}={};
+ private sprites:{disc?:HTMLCanvasElement;north?:HTMLImageElement;centre?:HTMLImageElement;waypoint?:HTMLImageElement;ring?:HTMLImageElement;mapHere?:HTMLImageElement}={};
+ /** DrawYouAreHereSprite's blink, and the mouse over the frontend map (0-1 across the drawn square) for its ruler. */
+ private hereTimer=0;private hereShown=true;private pointer?:{x:number;y:number;held:boolean};
  /** The script's sprite blips (the INITIAL mission's) and their sprites by eRadarSprite. */
  private blips:readonly ScmRadarBlip[]=[];private blipSprites=new Map<number,HTMLImageElement>();
  /** Live blips the game adds (a gang war's attack point and attackers): browser x/z, a sprite by eRadarSprite or a
@@ -63,6 +65,8 @@ export class NativeMap {
   this.element.querySelector<HTMLSelectElement>('.map-destination')!.onchange=e=>{const places:Record<string,{x:number;z:number}>={grove:{x:2495,z:1687},meadows:{x:400,z:-2500},'ls-airport':{x:1685,z:2420},'sf-airport':{x:-1330,z:240},'lv-airport':{x:1450,z:-1450}};const destination=places[(e.target as HTMLSelectElement).value];if(destination){this.notice=undefined;this.waypoint={...destination};this.draw();}(e.target as HTMLSelectElement).blur();};
   const fly=this.element.querySelector<HTMLButtonElement>('.map-fly')!;
   fly.onclick=async()=>{if(!this.onFly)return;fly.disabled=true;try{await this.onFly(Number(this.element.querySelector<HTMLSelectElement>('.map-aircraft')!.value));}catch(error){this.notice=error instanceof Error?error.message:String(error);this.draw();}finally{fly.disabled=false;}};
+  const track=(e:MouseEvent)=>{const r=this.full.getBoundingClientRect(),side=Math.min(r.width,r.height),u=(e.clientX-r.left-(r.width-side)/2)/side,v=(e.clientY-r.top-(r.height-side)/2)/side;this.pointer=u>=0&&u<=1&&v>=0&&v<=1?{x:u,y:v,held:(e.buttons&1)!==0}:undefined;this.draw();};
+  this.full.addEventListener('mousemove',track);this.full.addEventListener('mousedown',track);this.full.addEventListener('mouseup',track);this.full.addEventListener('mouseleave',()=>{this.pointer=undefined;this.draw();});
   this.full.onclick=e=>{this.notice=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';const r=this.full.getBoundingClientRect();
    // The square map is drawn contained (object-fit) in a box the panel may squeeze out of square: measure the click
    // against the drawn square, and leave the bars beside it alone.
@@ -79,7 +83,7 @@ export class NativeMap {
   const image=(name:string,then:(img:HTMLImageElement)=>void)=>{const url=urls[name];if(!url)return;const img=new Image();img.onload=()=>{then(img);this.draw();};img.src=url;};
   // CHud::DrawRadar draws RADAR_DISC in black: the texture's alpha, tinted.
   image('radardisc',img=>{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const g=c.getContext('2d')!;g.drawImage(img,0,0);g.globalCompositeOperation='source-in';g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);this.sprites.disc=c;});
-  image('radar_north',img=>{this.sprites.north=img;});RADAR_SPRITE_NAMES.forEach((name,sprite)=>{if(name&&sprite>4)image(name,img=>{this.blipSprites.set(sprite,img);});});image('radarRingPlane',img=>{this.sprites.ring=img;});image('radar_centre',img=>{this.sprites.centre=img;});image('radar_waypoint',img=>{this.sprites.waypoint=img;});
+  image('radar_north',img=>{this.sprites.north=img;});RADAR_SPRITE_NAMES.forEach((name,sprite)=>{if(name&&sprite>4)image(name,img=>{this.blipSprites.set(sprite,img);});});image('radarRingPlane',img=>{this.sprites.ring=img;});image('radar_centre',img=>{this.sprites.centre=img;});image('radar_waypoint',img=>{this.sprites.waypoint=img;});image('arrow',img=>{this.sprites.mapHere=img;});
  }
  /** The INITIAL mission's sprite blips; their sprites load with the other hud.txd rasters. */
  setScriptBlips(blips:readonly ScmRadarBlip[]){this.blips=blips;this.draw();}
@@ -122,9 +126,23 @@ export class NativeMap {
    for(const o of this.zoneOverlays){const a=worldToMap(o.x1,o.z1),b=worldToMap(o.x2,o.z2);c.fillStyle=o.colour;c.fillRect((a.x-ox)*scale,(a.y-oy)*scale,(b.x-a.x)*scale,(b.y-a.y)*scale);}
    if(full)this.drawMapBlips(c,w);
    const px=(p.x-ox)*scale,py=(p.y-oy)*scale;
-   if(this.waypoint){const target=worldToMap(this.waypoint.x,this.waypoint.z),tx=(target.x-ox)*scale,ty=(target.y-oy)*scale;c.strokeStyle='#f765ce';c.lineWidth=full?3:2;c.setLineDash([6,5]);c.beginPath();c.moveTo(px,py);c.lineTo(tx,ty);c.stroke();c.setLineDash([]);c.fillStyle='#f765ce';c.strokeStyle='#1a1321';c.beginPath();c.arc(Math.max(9,Math.min(w-9,tx)),Math.max(9,Math.min(w-9,ty)),full?10:6,0,Math.PI*2);c.fill();c.stroke();}
-   c.save();c.translate(px,py);c.rotate(-this.heading);const s=full?13:9;c.beginPath();c.moveTo(0,s);c.lineTo(-s*.7,-s*.8);c.lineTo(0,-s*.4);c.lineTo(s*.7,-s*.8);c.closePath();c.fillStyle='white';c.strokeStyle='#111';c.lineWidth=full?3:2;c.fill();c.stroke();c.restore();
-   c.font=`bold ${full?25:16}px sans-serif`;c.fillStyle='#fff';c.strokeStyle='#111';c.lineWidth=3;c.strokeText('N',12,full?34:24);c.fillText('N',12,full?34:24);
+   // The frontend map has no north blip and no line to the waypoint: the waypoint's own sprite at its spot, drawn
+   // after the other blips, and the player as DrawYouAreHereSprite (below).
+   const shown=this.full.clientHeight||w,u=(innerHeight/448)*(w/shown);
+   if(this.waypoint){const target=worldToMap(this.waypoint.x,this.waypoint.z),tx=(target.x-ox)*scale,ty=(target.y-oy)*scale;
+    if(this.sprites.waypoint)c.drawImage(this.sprites.waypoint,tx-8*u,ty-8*u,16*u,16*u);
+    else{c.fillStyle='#f765ce';c.strokeStyle='#1a1321';c.lineWidth=3;c.beginPath();c.arc(tx,ty,8*u,0,Math.PI*2);c.fill();c.stroke();}}
+   // CRadar::DrawYouAreHereSprite: RADAR_SPRITE_MAP_HERE (hud.txd's arrow), shown and hidden in turn every 700 ms,
+   // turned to the player's heading plus 180 degrees (the browser heading itself), corners 25 lines out, and set 17
+   // screen pixels from him a quarter turn round from that angle.
+   const now=performance.now();if(now-this.hereTimer>700){this.hereTimer=now;this.hereShown=!this.hereShown;}
+   if(this.hereShown){
+    const angle=this.heading,circle=angle+Math.PI/2,px17=17*(w/shown),hx=px+px17*Math.cos(circle),hy=py-px17*Math.sin(circle);
+    if(this.sprites.mapHere){const side=25*Math.SQRT2*u;c.save();c.translate(hx,hy);c.rotate(-angle);c.scale(1,-1);c.drawImage(this.sprites.mapHere,-side/2,-side/2,side,side);c.restore();}
+    else{const s=13;c.save();c.translate(hx,hy);c.rotate(-this.heading);c.beginPath();c.moveTo(0,s);c.lineTo(-s*.7,-s*.8);c.lineTo(0,-s*.4);c.lineTo(s*.7,-s*.8);c.closePath();c.fillStyle='white';c.strokeStyle='#111';c.lineWidth=3;c.fill();c.stroke();c.restore();}
+   }
+   // The map ruler: two gold lines across the map through the mouse, while no button is held.
+   if(this.pointer&&!this.pointer.held){c.fillStyle='rgb(144,98,16)';const t=Math.max(1,(w/shown));c.fillRect(this.pointer.x*w-t,0,2*t,w);c.fillRect(0,this.pointer.y*w-t,w,2*t);}
   };
   /** The HUD radar (CRadar::DrawMap and DrawBlips): the map turned so the camera's view is up, the player
    * arrow at the centre, the waypoint blip limited to the rim, and the north blip on the rim. */
