@@ -8254,3 +8254,12 @@ otherwise `DettachPedFromEntity` empties the weapon given for the ride and gives
 and his collision returns. `IS_CHAR_ATTACHED_TO_ANY_CAR` answers for him. Not done: the first-person
 `MODE_HELICANNON_1STPERSON` camera the game switches to, and `SET_HEADING_FOR_ATTACHED_PLAYER`, whose handler is in
 no source to hand. Spec: `script-player-attached`.
+
+## DELETE_CAR under the player
+
+`CVehicle`'s destructor flags its driver and passengers (`FlagToDestroyWhenNextProcessed`), which takes the player out
+of the vehicle and leaves him where he sat (he is never destroyed). The host deleted a car the player drove without
+setting him out: he still counted as in it, and the next frame's reads of the freed body panicked the physics world
+(Rapier's "unreachable"), after which every physics call failed ("recursive use of an object"), as SWEET2's probe
+met at Emmet's. The player is now set out in place first (and let go if he hung from the car), and the police step no
+longer reads a disposed car. Spec: `script-delete-player-car`.

@@ -2410,7 +2410,7 @@ async function boot() {
          if(key!=='player'&&!pedestrians?.hasPed(key as Pedestrian)){phones.delete(key);continue;}
          phone.step(view);if(!phone.active&&key!=='player')phones.delete(key);
         }});
-        guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>{scriptCars.step(step,sim.player.position);if(mission)scriptCars.pathAreas(sim.player.position);});guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied?worldCar:undefined));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
+        guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>{scriptCars.step(step,sim.player.position);if(mission)scriptCars.pathAreas(sim.player.position);});guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied&&!worldCar.disposed?worldCar:undefined));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
         guard('scriptDriveBys',()=>{const gun=driveby?.gun;if(!gun)return;for(const rider of scriptRiders)if(rider.driveBy&&!rider.gone&&rider.health>0&&!rider.car.wrecked)stepScriptDriveBy(rider.driveBy,rider.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);});
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
         guard('pedestrians.beforeStep',()=>pedestrians?.beforeStep(step,fleet?.cars??[]));
@@ -4057,7 +4057,12 @@ async function boot() {
                  scriptVehicleBoxTop:car=>(car as ScriptCar).assets.collision.bounds.max[2],
                  scriptVehicleHeading:car=>{const degrees=((car as ScriptCar).heading()-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
                  scriptVehicleAlive:car=>!(car as ScriptCar).disposed,
-                 removeScriptVehicle:car=>{if(playerPassenger?.car===car)leavePassengerSeat(true);if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptVehicle(car as ScriptCar);},
+                 // CVehicle's destructor flags its driver (FlagToDestroyWhenNextProcessed): the player, whom it does not
+                 // destroy, is out of the car and left where he sat, as a passenger is; one hanging from it is let go.
+                 removeScriptVehicle:car=>{if(playerPassenger?.car===car)leavePassengerSeat(true);
+                  if(playerAttached?.car===car)detachPlayer();
+                  const seated=car as {occupied?:boolean;setPedOut?:(foot:{x:number;y:number;z:number})=>void;finishExit?:(foot?:{x:number;y:number;z:number})=>void};
+                  if(seated.occupied){const at={...sim.player.position};carEntry.cancel();bikeMount.abandon();if(seated.setPedOut)seated.setPedOut(at);else seated.finishExit?.(at);}if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptVehicle(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
                  playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane,
