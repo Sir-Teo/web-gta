@@ -291,6 +291,8 @@ export interface ScmMissionWorld {
   flags?:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean}):boolean;
  /** CStreaming's random vehicle model in memory, with the class it belongs to. */
  randomVehicleInMemory():{model:number;vehicleClass:number}|undefined;
+ /** Whether anything of the named kinds has its bounds in the native box (min and max corners). */
+ areaOccupied?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number},kinds:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean;dummies:boolean}):boolean;
  /** CEntryExitManager's nearest door to a point within a range, by its own pool index. */
  nearestEntryExit(x:number,y:number,radius:number):number|undefined;
  /** Whether the ped is still answering an event of that type. */
@@ -336,6 +338,8 @@ export interface ScmMissionWorld {
  setScriptVehicleAirResistance?(car:unknown,multiplier:number):boolean;
  /** m_bIsStaticWaitingForCollision on a vehicle. */
  scriptVehicleWaitingForCollision?(car:unknown):boolean;
+ /** vehicleFlags.bIsDamaged. */
+ scriptVehicleVisiblyDamaged?(car:unknown):boolean;
  /** CPed::bDoesntListenToPlayerGroupCommands, the other way round. */
  setScriptPedListensToGroupCommands?(ped:unknown,listens:boolean):void;
  /** ENABLE_ENTRY_EXIT_PLAYER_GROUP_WARPING: ENEX_FLAG_ACCEPT_NPC_GROUP on the entrances near a point. */
@@ -1020,6 +1024,10 @@ export class ScmMission {
    // CWorld::GetIsLineOfSightClear(from, to, buildings, vehicles, peds, objects, dummies): dummies and the see-through
    // flag have no bodies to test here.
    lineOfSightIsClear:(from,to,flags)=>this.world.lineOfSightClear(from,to,flags),
+   // CWorld::FindObjectsIntersectingCube over the lists the flags name, the corners sorted first.
+   areaIsOccupied:(a,b,flags)=>this.host('areaOccupied','IS_AREA_OCCUPIED')(
+    {x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),z:Math.min(a.z,b.z)},{x:Math.max(a.x,b.x),y:Math.max(a.y,b.y),z:Math.max(a.z,b.z)},
+    {buildings:flags.solid,vehicles:flags.vehicles,peds:flags.peds,objects:flags.objects,dummies:flags.particles}),
    // CPedGroups::ms_activeGroups: the groups made and not removed, the player's always among them.
    groupExists:group=>this.groups.has(group),
    // CVehicle::m_nVehicleFlags.bEngineOn.
@@ -1237,6 +1245,8 @@ export class ScmMission {
    modelIsBoat:model=>this.vehicleModelType(model,'IS_THIS_MODEL_A_BOAT')==='boat',
    modelIsHeli:model=>this.vehicleModelType(model,'IS_THIS_MODEL_A_HELI')==='heli',
    modelIsPlane:model=>this.vehicleModelType(model,'IS_THIS_MODEL_A_PLANE')==='plane',
+   // vehicleFlags.bIsDamaged: only an automobile shows damaged components here.
+   vehicleIsVisiblyDamaged:handle=>this.world.scriptVehicleVisiblyDamaged?.(this.liveVehicle(handle))??false,
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
    fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},

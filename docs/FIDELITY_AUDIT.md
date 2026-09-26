@@ -8304,3 +8304,13 @@ Spec: `script-car-drag-and-models`.
 - The police step drops units whose car is gone and ignores a player car with no body, instead of reading a freed
   Rapier body (a panic that ends every later physics call). SWEET2's probe met it at Emmet's.
 Specs: `script-car-drag-and-models`, `scm-objects` (unit).
+
+## IS_AREA_OCCUPIED and IS_CAR_VISIBLY_DAMAGED
+
+`IS_AREA_OCCUPIED` is `CWorld::FindObjectsIntersectingCube` (reVC's handler, the corners sorted first) over the lists
+its five flags name: buildings, vehicles, peds, objects and dummies. The original tests each entity's bounding sphere
+against the box; the collider bounds stand in for it (Rapier's AABB overlap), sorted into the lists by what owns the
+collider: a script object, a vehicle body, the player or a street ped, an IPL dummy or object, else a building.
+`IS_CAR_VISIBLY_DAMAGED` reads `vehicleFlags.bIsDamaged`, which `CVehicle::SetComponentVisibility` sets whenever a
+component shows its damaged atomic (`SetPanelDamage` at opened or damaged, `SetBumperDamage` at opened,
+`SetDoorDamage` at damaged) and `CAutomobile::Fix` clears. Spec: `script-area-occupied`.

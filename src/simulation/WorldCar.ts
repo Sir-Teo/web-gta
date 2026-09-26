@@ -388,7 +388,13 @@ export class WorldCar {
   }
   this.refreshVisuals();
  }
+ /** vehicleFlags.bIsDamaged (IS_CAR_VISIBLY_DAMAGED): CVehicle::SetComponentVisibility sets it whenever a component
+  * shows its damaged atomic (SetPanelDamage at opened or damaged, SetBumperDamage at opened, SetDoorDamage at damaged),
+  * and CAutomobile::Fix clears it. */
+ visiblyDamaged=false;
  private refreshVisuals(all=false){
+  const p=this.damageState.panels;
+  if(p.some((s,i)=>PANEL_FRAMES[i].startsWith('bump_')?s===DAMSTATE.opened:s===DAMSTATE.opened||s===DAMSTATE.damaged)||this.damageState.doors.some(s=>s===DAMSTATE.damaged))this.visiblyDamaged=true;
   const states:Record<string,number>={...this.visual};
   PANEL_FRAMES.forEach((name,i)=>{if(all||this.damageState.panels[i]!==DAMSTATE.ok)states[name]=this.damageState.panels[i];});
   DOOR_FRAMES.forEach((name,i)=>{states[name]=this.damageState.doors[i];});
@@ -445,6 +451,7 @@ export class WorldCar {
   this.panels.length=0;
   this.doors.forEach((door,i)=>{if(door.angle!==0||door.prevAngle!==0){door.angle=door.prevAngle=door.angVel=0;this.car.setDoorAngle(i,door.axis,0);}});
   this.visual={};this.refreshVisuals(true);
+  this.visiblyDamaged=false;
  }
  /** vehicleFlags.bPetrolTankIsWeakPoint, which CVehicle's constructor sets and SET_PETROL_TANK_WEAKPOINT clears. The
   * shot at the petrol tank that reads it is not ported. */

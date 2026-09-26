@@ -3700,6 +3700,26 @@ async function boot() {
                   };
                   return !sim.world.castRay(ray,length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,undefined,blocks);
                  },
+                 // FindObjectsIntersectingCube tests each entity's bounding sphere against the box; the collider
+                 // bounds stand in for it. The handles are gathered first and sorted into the lists after the query.
+                 areaOccupied:(min,max,kinds)=>{
+                  const found:import('@dimforge/rapier3d-compat').Collider[]=[];
+                  sim.world.collidersWithAabbIntersectingAabb({x:(min.x+max.x)/2,y:(min.z+max.z)/2,z:-(min.y+max.y)/2},{x:(max.x-min.x)/2,y:(max.z-min.z)/2,z:(max.y-min.y)/2},c=>{found.push(c);return true;});
+                  if(!found.length)return false;
+                  const vehicleBodies=new Set<number>();
+                  for(const set of [fleet?.cars,fleet?.bikes,fleet?.boats,fleet?.planes,fleet?.trains])for(const v of set??[])vehicleBodies.add((v as {car?:{body:{handle:number}};body?:{handle:number}}).car?.body.handle??(v as {body:{handle:number}}).body.handle);
+                  return found.some(c=>{
+                   if(c.isSensor())return false;
+                   if(scriptObjectViews?.objectForCollider(c.handle)!==undefined)return kinds.objects;
+                   const body=c.parent();
+                   if(body&&vehicleBodies.has(body.handle))return kinds.vehicles;
+                   if(c.handle===sim.playerCollider.handle||pedestrians?.pedPosition(c.handle))return kinds.peds;
+                   const kind=importedScene?.sources.get(c.handle)?.entityKind;
+                   if(kind==='dummy')return kinds.dummies;
+                   if(kind==='object')return kinds.objects;
+                   return body?.isFixed()!==false?kinds.buildings:kinds.objects;
+                  });
+                 },
                  nearestEntryExit:(x,y,radius)=>entryExits?.findNearest(x,y,radius)?.index,
                  // The one event a browser ped answers, and whether it is still answering it.
                  scriptPedRespondingTo:(ped,event)=>{
@@ -3764,6 +3784,7 @@ async function boot() {
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
                  vehicleModelType:model=>fleet?fleet.vehicleIdeType(model):null,
                  scriptVehicleWaitingForCollision:car=>isScriptCar(car)&&car.waitingForCollision,
+                 scriptVehicleVisiblyDamaged:car=>isScriptCar(car)&&car.visiblyDamaged,
                  setScriptVehicleAirResistance:(car,multiplier)=>{if(!isScriptCar(car))return false;car.setAirResistanceMultiplier(multiplier);return true;},
                  setScriptPedListensToGroupCommands:(ped,listens)=>{const p=onFoot(ped);if(p)p.ignoresGroupCommands=!listens;},
                  playScriptRiderClip:(ped,o)=>{

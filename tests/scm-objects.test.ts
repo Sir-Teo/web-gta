@@ -11,7 +11,7 @@ function host(game:ScmGameState,objectNames:readonly string[],world?:Partial<Scm
  const adapter={fade(){},groundLevel:()=>10,modelBaseOffset:()=>0.5,...world} as ScmWorldCommands;
  return {startScript(){throw new Error('unexpected');},game,world:adapter,objectNames} satisfies ScmThreadHost;
 }
-function threadAt(bytes:Uint8Array,offset:number,game=new ScmGameState(),world?:Partial<ScmWorldCommands>,locals?:DataView){
+function threadAt(bytes:Uint8Array,offset:number,game=new ScmGameState(),world?:Partial<ScmWorldCommands>,locals?:DataView<ArrayBuffer>){
  const names=readScmHeader(bytes).objectNames;
  return {thread:new ScmThread(bytes,offset,0,locals,host(game,names,world)),game};
 }
