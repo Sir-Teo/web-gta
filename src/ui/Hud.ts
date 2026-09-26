@@ -145,7 +145,8 @@ export class Hud {
   }
   button(id: string) { return this.element.querySelector<HTMLButtonElement>(`#${id}`)!; }
   setMenu(open: boolean) { this.menu.hidden = !open; this.element.classList.toggle('paused', open); }
-  message(text: string, milliseconds = 3000) { this.prompt.textContent = text; this.messageUntil = performance.now() + milliseconds; }
+  /** A prompt line, timed on the game clock like CMessages' messages, so it does not run out while the game is paused. */
+  message(text: string, milliseconds = 3000) { this.prompt.textContent = text; this.messageUntil = this.messageClock() + milliseconds; }
   /** CHud::SetHelpMessage: the top-left help box. DrawHelpText is not reversed; the box shows for `milliseconds`. */
   help(text: string, milliseconds = 5000) {
     const box = this.element.querySelector<HTMLElement>('.help-box')!;box.textContent = text;box.hidden = !text;
@@ -340,7 +341,7 @@ export class Hud {
     const q=(selector:string)=>this.element.querySelector<HTMLElement>(selector)!;
     const e=this.els??=(()=>{const health=q('.health-bar'),armour=q('.armour-bar'),breath=q('.breath-bar');
       return {help:q('.help-box'),stat:q('.stat-update'),health,healthFill:health.querySelector<HTMLElement>('i')!,armour,armourFill:armour.querySelector<HTMLElement>('i')!,breath,breathFill:breath.querySelector<HTMLElement>('i')!};})();
-    if(this.prompt.textContent&&performance.now()>this.messageUntil)this.prompt.textContent='';
+    if(this.prompt.textContent&&this.messageClock()>this.messageUntil)this.prompt.textContent='';
     const now=this.messageClock();
     if(this.helpUntil&&now>this.helpUntil){this.helpUntil=0;e.help.hidden=true;}
     if(this.statUpdateUntil&&now>this.statUpdateUntil){this.statUpdateUntil=0;e.stat.hidden=true;}
