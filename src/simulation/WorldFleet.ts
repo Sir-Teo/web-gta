@@ -361,7 +361,7 @@ export class WorldFleet {
   }
   if(PLAYABLE_BIKES[modelId]){
    const assets=await catalog.load(modelId),d=(assets.collision?.bounds.radius??0)+2;
-   return this.spawnBike(modelId,player.x+forward.x*d,player.z+forward.z*d,rotZ);
+   return this.spawnBike(modelId,player.x+forward.x*d,player.z+forward.z*d,rotZ,player.y);
   }
   const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(this.sim.player.position.x,-this.sim.player.position.z),raining:this.raining?.()??false,playerColours:this.playerColours()});
   if(this.disposed)throw new Error('World fleet disposed.');
@@ -513,15 +513,25 @@ export class WorldFleet {
   if(vehicle instanceof WorldBoat){vehicle.waterLevel=this.waterLevel;this.boats.add(vehicle);}else this.bikes.add(vehicle);
   this.generatedOther.set(vehicle,record.id);
  }
- async spawnBike(modelId:number,x:number,z:number,heading:number){
+ /** The cheat's bike: CCheat::VehicleCheat never refuses the spot. It clears the space with
+  * CTheScripts::ClearSpaceForMissionEntity and CBike::PlaceOnRoadProperly sets it on the ground nearest the player's
+  * own height (a vertical line 5 units up and down), so a bridge, roof or garage above him is not taken for the floor. */
+ async spawnBike(modelId:number,x:number,z:number,heading:number,height?:number){
   const catalog=await this.catalogReady,assets=await loadFixedWorldBike(catalog,{modelId,primaryColor:-1,secondaryColor:-1});if(this.disposed)throw new Error('World fleet disposed.');
-  // Query around the native elevation so bridges/garages keep their own floor.
-  const top=1000,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-  if(!hit)throw new Error('No bike terrain beneath the spawn.');
-  const ground=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)};
-  const blocker=this.sim.world.intersectionWithShape({x,y:ground+1,z},rotation,new RAPIER.Cuboid(.6,.8,1.4));
-  if(blocker){this.failures.set(`bike:${modelId}`,`spot taken at (${x.toFixed(1)}, ${(ground+1).toFixed(1)}, ${z.toFixed(1)}) by collider ${blocker.handle}${blocker.isSensor()?' (sensor)':''}${blocker.parent()?.isFixed()?' (fixed)':''}`);return undefined;}
-  const bike=new WorldBike(this.sim,this.scene,assets,{x,y:ground-assets.collision.bounds.min[2]+.1,z},heading);this.bikes.add(bike);return bike;
+  const ground=this.groundNear(x,z,height);
+  if(ground===undefined)throw new Error('No bike terrain beneath the spawn.');
+  const at={x,y:ground-assets.collision.bounds.min[2]+.1,z};
+  this.clearSpaceFor(at,heading,assets.collision.bounds);
+  const bike=new WorldBike(this.sim,this.scene,assets,at,heading);this.bikes.add(bike);return bike;
+ }
+ /** The fixed ground under (x, z): with a reference height, the surface nearest it within 5 units up or down (the
+  * pair of vertical lines PlaceOnRoadProperly casts), otherwise the highest. */
+ private groundNear(x:number,z:number,height?:number){
+  const cast=(from:number,length:number,up=false)=>{const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:from,z},{x:0,y:up?1:-1,z:0}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?from+(up?1:-1)*hit.timeOfImpact:undefined;};
+  if(height===undefined)return cast(1000,2000);
+  const below=cast(height,5),above=cast(height,5,true);
+  if(below===undefined)return above;if(above===undefined)return below;
+  return Math.abs(above-height)<Math.abs(below-height)?above:below;
  }
  async spawnBoat(modelId:number,x:number,z:number,heading:number){
   const catalog=await this.catalogReady,assets=await catalog.load(modelId);if(this.disposed)throw new Error('World fleet disposed.');
