@@ -24,10 +24,9 @@ test('a script reads a passenger seat, a line of sight, a group, a car engine, c
  const flags=(vehicles:boolean)=>({buildings:true,vehicles,peds:false,objects:false,particles:false});
  expect(await w('lineOfSightIsClear',ends.from,ends.to,flags(true))).toBe(false);
  expect(await w('lineOfSightIsClear',ends.from,ends.to,flags(false))).toBe(true);
- const group=await w('createGroup');
- expect(await w('groupExists',group)).toBe(true);
- await w('removeGroup',group);
- expect(await w('groupExists',group)).toBe(false);
+ // Within the one frame: CPedGroups::Process removes a group still empty on the next, as the original does.
+ const group=await page.evaluate(()=>{const w=(window as any).__game.missionForProfiling().runtime.world,g=w.createGroup(),made=w.groupExists(g);w.removeGroup(g);return {made,removed:!w.groupExists(g)};});
+ expect(group).toEqual({made:true,removed:true});
  await w('setVehicleEngineOn',made.car,true);
  expect(await page.evaluate(car=>(window as any).__game.missionForProfiling().vehicles.entity(car).engineRunning,made.car)).toBe(true);
  // A car standing level facing north (heading 0): forward (0, 1), no pitch or roll, and no speed.
