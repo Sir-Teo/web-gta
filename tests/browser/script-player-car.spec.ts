@@ -54,7 +54,10 @@ test('the script puts the player in its car, moves him, and takes him out',async
   w.setPedAreaVisible(1,0);w.shutPedUpForScriptedSpeech(1,true);w.startPedFacialTalk(1,1000);w.stopPedFacialTalk(1);
   return {heading,water:w.pedIsInWater(1),air:w.pedIsInAir(1),anim:w.pedIsPlayingAnim(1,'IDLE_chat')};
  });
- expect(player.heading).toBeCloseTo(90,3);expect(player).toMatchObject({water:false,air:false,anim:false});
+ expect(player.heading).toBeCloseTo(90,3);expect(player).toMatchObject({water:false,anim:false});
+ // SET_CHAR_COORDINATES goes through CPed::Teleport, which clears bIsStanding: the player is in the air until the next
+ // physics step sets him down.
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.pedIsInAir(1))).toBe(false);
  // TASK_ENTER_CAR_AS_DRIVER: CJ walks to the door and gets in through his own entry; TASK_LEAVE_ANY_CAR gets him out.
  const ENTER=0x05cb,LEAVE=0x0633;
  const status=(opcode:number)=>page.evaluate(opcode=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(1,opcode),opcode);
