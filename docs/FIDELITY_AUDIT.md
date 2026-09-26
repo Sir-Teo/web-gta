@@ -8355,3 +8355,12 @@ the world holds. Specs: `script-pickup-coords`, `native-dead-ped-pickup` (unit).
 `CTimer::GetTimeStep()`, a health point a 50th of a second. The script's seated peds now take it (straight off the
 health, the maximum untouched), and `SET_CAR_WATERTIGHT` sets `autoFlags.bWaterTight`, which spares them but not the
 player. Street drivers in sunk traffic are not drowned here. Spec: `script-car-watertight`.
+
+## SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE and SET_USES_COLLISION_OF_CLOSEST_OBJECT_OF_TYPE
+
+The visibility command reached a host that did nothing. Both now follow reVC's handler for the first: the point
+dropped to the ground at or below the map's low limit, then the nearest entity of the model within the radius, among
+the map's buildings and dummies and the script's objects, gets `bIsVisible` or `bUsesCollision`. A map placement is
+hidden without touching its collision (or has its colliders taken out without hiding it), and the choice is kept by
+placement key and applied again to every terrain window that streams it in, as `CTheScripts::AddToInvisibilitySwapArray`
+keeps it through LOD swaps. Spec: `script-closest-object-flags`.

@@ -103,7 +103,9 @@ export interface ScmMissionWorld {
  switchPathNodes?(area:{xMin:number;xMax:number;yMin:number;yMax:number;zMin:number;zMax:number},isOff:boolean,isCars:boolean,backToOriginal:boolean):void;
  unmarkAllRoadNodesAsDontWander?():void;
  /** The nearest of the map's own objects of a model within the radius (native), and whether it is smashed or shows its damage. */
- closestWorldObjectOfType?(point:{x:number;y:number;z:number},radius:number,model:number|string):{distance:number;smashed:boolean;damaged:boolean}|undefined;
+ closestWorldObjectOfType?(point:{x:number;y:number;z:number},radius:number,model:number|string):{distance:number;smashed:boolean;damaged:boolean;key?:string}|undefined;
+ /** bIsVisible or bUsesCollision on the map object with this placement key, kept while it streams in and out. */
+ setWorldObjectFlag?(key:string,flag:'visible'|'collision',state:boolean):void;
  /** IS_CAR_IN_AIR_PROPER for a script vehicle: no wheel on the ground and nothing touched. */
  scriptVehicleInAirProper?(car:unknown):boolean;
  /** CTaskSimpleCarSetPedInAsPassenger for the player, SA's seat numbering (-1 the first free); false when he cannot. */
@@ -205,8 +207,6 @@ export interface ScmMissionWorld {
   physicalResponseTask:boolean;eventResponseTask:boolean;nonDrivePrimaryTask:boolean;attackTask:boolean;
   scriptCommandEvent:boolean;
  };
- /** The nearest world object of a model, whose visibility the script switches. */
- setVisibilityOfClosestObjectOfType(x:number,y:number,z:number,radius:number,model:number|string,visible:boolean):void;
  /** CClothes::RebuildPlayer: the browser builds its own player model, so what it does with this is its own.
   * The script calls it after dressing the player. */
  buildPlayerModel():void;
@@ -1800,7 +1800,8 @@ export class ScmMission {
    clearAllScriptRoadblocks:()=>{this.world.clearScriptRoadblocks?.();},
    setPlayerMaxHealth:(_player,maxHealth)=>{this.world.setPlayerMaxHealth(maxHealth);},
    setPlayerMaxArmour:(_player,maxArmour)=>{this.world.setPlayerMaxArmour(maxArmour);},
-   setVisibilityOfClosestObjectOfType:(x,y,z,radius,m,visible)=>{this.objectVisibilities++;this.world.setVisibilityOfClosestObjectOfType(x,y,z,radius,m,visible);},
+   setVisibilityOfClosestObjectOfType:(x,y,z,radius,m,visible)=>{this.objectVisibilities++;this.closestObjectOfTypeFlag(x,y,z,radius,m,'visible',visible);},
+   setUsesCollisionOfClosestObjectOfType:(x,y,z,radius,m,state)=>{this.closestObjectOfTypeFlag(x,y,z,radius,m,'collision',state);},
    setClosestEntryExitFlag:(x,y,radius,flag,on)=>{this.entryExitFlags++;this.world.setClosestEntryExitFlag(x,y,radius,flag,on);},
    switchEntryExit:(name,on)=>{this.entryExitFlags++;this.world.switchEntryExit(name,on);},
    enableBurglaryHouses:on=>{this.world.enableBurglaryHouses(on);},
@@ -2152,6 +2153,23 @@ export class ScmMission {
    const car=this.vehicles.entity(ride.vehicle);
    if(car&&(this.peds.healthOf(handle)??0)>0&&drowns.call(this.world,car))this.peds.loseHealth(handle,timeStepMs/20);
   }
+ }
+ /** SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE and SET_USES_COLLISION_OF_CLOSEST_OBJECT_OF_TYPE (reVC's handler for the
+  * first): the point dropped to the ground at or below the map's low limit, then the nearest entity of the model within
+  * the radius among the map's buildings and dummies and the script's objects has bIsVisible (kept through its LOD
+  * swaps by the invisibility swap array) or bUsesCollision set. */
+ private closestObjectOfTypeFlag(x:number,y:number,z:number,radius:number,model:number|string,flag:'visible'|'collision',state:boolean){
+  if(z<=-100)z=this.findGroundZForCoord(x,y);
+  let best:{distance:number;apply:()=>void}|undefined;
+  const objects=this.runtime.game.objects;
+  for(const object of objects.all){
+   if(object.model!==model)continue;
+   const distance=Math.hypot(object.position.x-x,object.position.y-y,object.position.z-z);
+   if(distance<radius&&(!best||distance<best.distance))best={distance,apply:()=>{if(flag==='visible')object.visible=state;else objects.setUsesCollision(object.handle,state);}};
+  }
+  const map=this.world.closestWorldObjectOfType?.({x,y,z},radius,model);
+  if(map?.key!==undefined&&(!best||map.distance<best.distance)){const key=map.key;best={distance:map.distance,apply:()=>this.world.setWorldObjectFlag?.(key,flag,state)};}
+  best?.apply();
  }
  private vehicleModelType(model:number|string,command:string){
   const type=this.host('vehicleModelType',command)(model);

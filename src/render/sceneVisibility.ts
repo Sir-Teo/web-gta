@@ -142,6 +142,8 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
     for (let part = 0; part < partAlpha.length; part++) if (partAlpha[part] < 255) partAlpha[part] = partRendered[part] ? Math.min(255, partAlpha[part] + 16 * frames) : 255;
   };
   const remove=(part:number,placement:number)=>{const entry=entries[offsets[part]+placement];if(!entry||entry.part!==part)return false;entry.removed=true;entry.object.visible=false;return true;};
+  /** A placement hidden by `remove` drawn again (bIsVisible back on); the next update decides whether it shows. */
+  const restore=(part:number,placement:number)=>{const entry=entries[offsets[part]+placement];if(!entry||entry.part!==part)return false;entry.removed=false;return true;};
   /** Rigid motion of an uprooted prop: its visual, culling sphere and fade origin follow `matrix`. */
   const homes=new Map<number,{matrix:Matrix4;inverse:Matrix4;sphere?:Sphere;origin:Vector3}>(),motion=new Matrix4();
   const move=(part:number,placement:number,matrix:Matrix4)=>{
@@ -158,7 +160,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
   const litInRange = () => lit.filter(index => entries[index].inRange).map(index => ({ index, part: entries[index].part, placement: index - offsets[entries[index].part], matrix: entries[index].object.matrix }));
   /** A placement's material-slot alpha (see placementFade.setMaterialAlpha). */
   const setMaterialAlpha=(part:number,placement:number,slot:number,alpha:number)=>{const i=offsets[part]+placement;if(entries[i]?.part===part)fades[i].setMaterialAlpha(slot,alpha);};
-  return { partAlpha, partPreRendered, update, remove, move, setMaterialAlpha, litInRange, refreshLit, stats, dispose: () => { fades.forEach(fade => fade.dispose()); sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
+  return { partAlpha, partPreRendered, update, remove, restore, move, setMaterialAlpha, litInRange, refreshLit, stats, dispose: () => { fades.forEach(fade => fade.dispose()); sharedNormals.clear(); }, get count() { return entries.reduce((n, e) => n + Number(e.root.visible && e.object.visible), 0); },
     models: () => parts.flatMap((part, i) => entries.some(e => e.part === i && e.root.visible && e.object.visible) ? [part.name] : []),
     /** Dev probe: placements within `radius` of a renderer-space point, with their visibility and LOD state. */
     near: (x: number, z: number, radius: number) => entries.flatMap((e, i) => { const d = Math.hypot(e.origin.x - x, e.origin.z - z); return d <= radius ? [{ name: parts[e.part].name, distance: +d.toFixed(1), visible: e.root.visible && e.object.visible, selected: e.selected, covered: e.covered, hasLod: e.hasLod, parent: e.parent >= 0 ? parts[entries[e.parent].part].name : null, children: e.children.length, drawDistance: e.distance, y: +e.origin.y.toFixed(1) }] : []; }) };

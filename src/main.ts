@@ -1312,7 +1312,16 @@ async function boot() {
   const damagedLights=new Map<string,[number,number,number][]>();
   const markLightDamaged=(model:string,position:readonly number[])=>{const key=model.toLowerCase(),list=damagedLights.get(key)??[];list.push([position[0],position[1],position[2]]);damagedLights.set(key,list);};
   const lightIsDamaged=(model:string|undefined,m:readonly number[])=>!!model&&!!damagedLights.get(model)?.some(p=>Math.abs(p[0]-m[12])<.05&&Math.abs(p[1]-m[13])<.05&&Math.abs(p[2]-m[14])<.05);
+  /** The map objects a script hid (SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE) or took the collision off
+   * (SET_USES_COLLISION_OF_CLOSEST_OBJECT_OF_TYPE), by placement key, applied again to every window that streams them in. */
+  const hiddenPlacements=new Set<string>(),solidlessPlacements=new Set<string>();
   const reapplySmashedProps=(scene:NonNullable<typeof importedScene>)=>{
+    if(hiddenPlacements.size||solidlessPlacements.size)for(const [handle,source] of scene.sources){
+      if(!source.placement)continue;
+      const key=placementKey(source.modelName,source.placement.position);
+      if(hiddenPlacements.has(key))scene.setPlacementHidden(handle,true);
+      if(solidlessPlacements.has(key))scene.setPlacementCollision(handle,false);
+    }
     if(!smashedPlacements.size&&!movedPlacements.size)return;
     const present=new Set<string>();
     for(const [handle,source] of [...scene.sources]){
@@ -1927,7 +1936,7 @@ async function boot() {
     /** Dev diagnostic: what each collider of the occupied native car is touching. */
     smashedProps:()=>smashedProps.slice(),
     /** The scene's OBJECT.DAT placements whose model matches, for specs. */
-    propsNamed:(pattern:string)=>{const re=new RegExp(pattern,'i'),out:{handle:number;model:string;position:number[];present:boolean}[]=[];for(const [handle,source] of importedScene?.sources??[])if(source.placement&&re.test(source.modelName))out.push({handle,model:source.modelName,position:[...source.placement.position],present:!!sim.world.getCollider(handle)?.parent()?.isEnabled()});return out;},
+    propsNamed:(pattern:string)=>{const re=new RegExp(pattern,'i'),out:{handle:number;model:string;position:number[];present:boolean;solid:boolean}[]=[];for(const [handle,source] of importedScene?.sources??[])if(source.placement&&re.test(source.modelName))out.push({handle,model:source.modelName,position:[...source.placement.position],present:!!sim.world.getCollider(handle)?.parent()?.isEnabled(),solid:!!sim.world.getCollider(handle)?.isEnabled()});return out;},
     /** CObject::TryToExplode on the placement behind a collider handle. */
     explodeProp:(handle:number)=>{const collider=sim.world.getCollider(handle);return !!collider&&!!scenePropFor(collider)?.tryToExplode?.();},
     /** Uprooted props that moved, with their current pose (renderer frame). */
@@ -1955,6 +1964,8 @@ async function boot() {
     /** Dev probe: the first shoot-through collision face (SURFINFO shootThrough) a ring of level rays from the player (at `height` over its centre) meets. */
     shootThroughProbe:(range=60,height=.5)=>{const p=sim.player.position;for(let i=0;i<128;i++){const a=i/128*Math.PI*2,dir={x:Math.sin(a),y:0,z:Math.cos(a)},from={x:p.x,y:p.y+height,z:p.z};const hit=sim.world.castRayAndGetNormal(new RAPIER.Ray(from,dir),range,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,sim.playerCollider,sim.playerBody);if(hit&&worldFx.isShootThrough(hit))return {from,dir,distance:hit.timeOfImpact};}return null;},
     collisionMaterialHistogram:()=>{const h:Record<number,number>={};for(const record of importedScene?.sources.values()??[]){const s=record.source;if(s.kind!=='mesh')continue;for(const m of s.mesh.materials)h[m]=(h[m]??0)+1;}return h;},
+    /** The map placements a script hid or took the collision off, by placement key. */
+    scriptPlacementFlags:()=>({hidden:[...hiddenPlacements],solidless:[...solidlessPlacements]}),
     /** Dev probe: the collision surface under a renderer-frame point (material id, face and source kind), or null. */
     surfaceAt:(x:number,z:number,top=200)=>{const hit=sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)return null;const record=importedScene?.sources.get(hit.collider.handle);const surface=record?nativeCollisionSurface(record.source,hit):undefined;return {y:top-hit.timeOfImpact,handle:hit.collider.handle,known:!!record,model:record?.modelName??null,kind:record?.source.kind??null,material:surface?.material??null,face:surface?.faceIndex??null,featureType:hit.featureType,keys:record?Object.keys(record):[]};},
     /** What a ray between two renderer-frame points meets first (the player excluded). */
@@ -3976,15 +3987,23 @@ async function boot() {
                  unmarkAllRoadNodesAsDontWander:()=>{for(const areas of pathAreaMaps)unmarkAllRoadNodesAsDontWander(areas);},
                  // The map's props in the streamed window: smashed once ObjectDamage turned the collision off and hid it,
                  // damaged once its damaged model shows.
+                 setWorldObjectFlag:(key,flag,state)=>{
+                  const set=flag==='visible'?hiddenPlacements:solidlessPlacements;
+                  if(state)set.delete(key);else set.add(key);
+                  for(const [handle,source] of importedScene?.sources??[]){
+                   if(!source.placement||placementKey(source.modelName,source.placement.position)!==key)continue;
+                   if(flag==='visible')importedScene!.setPlacementHidden(handle,!state);else importedScene!.setPlacementCollision(handle,state);
+                  }
+                 },
                  closestWorldObjectOfType:(point,radius,model)=>{
                   const scene=importedScene,name=(typeof model==='number'?scriptPickupModels?.byId.get(model)?.model:model)?.toLowerCase();if(!scene||!name)return undefined;
-                  let best:{distance:number;smashed:boolean;damaged:boolean}|undefined;
+                  let best:{distance:number;smashed:boolean;damaged:boolean;key:string}|undefined;
                   for(const [handle,source] of scene.sources){
                    if(!source.placement||source.modelName.toLowerCase()!==name)continue;
                    const [x,y,z]=source.placement.position,distance=Math.hypot(x-point.x,y-point.y,z-point.z);
                    if(distance>=radius||best&&distance>=best.distance)continue;
                    const state=propStates.get(handle);
-                   best={distance,smashed:!!state?.destroyed||smashedPlacements.has(placementKey(source.modelName,source.placement.position)),damaged:!!state?.renderDamaged};
+                   best={distance,smashed:!!state?.destroyed||smashedPlacements.has(placementKey(source.modelName,source.placement.position)),damaged:!!state?.renderDamaged,key:placementKey(source.modelName,source.placement.position)};
                   }
                   return best;
                  },
@@ -4351,7 +4370,6 @@ async function boot() {
                  disableAllEntryExits:disabled=>{if(entryExits)entryExits.disabled=disabled;},
                  // CObject's visibility by model near a point needs the object pool this browser does not keep
                  // for the world's own props; the script's own objects answer SET_OBJECT_VISIBLE instead.
-                 setVisibilityOfClosestObjectOfType:()=>{},
                 });
                 // The script's wanted commands act on the player's own CWanted, not a copy of their own.
                 mission.runtime.game.useWanted(law.native);
