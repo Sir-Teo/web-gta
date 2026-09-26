@@ -1666,8 +1666,11 @@ export class WorldPedestrians {
    }
    case 'smartFlee':{
     ped.flee=Math.max(ped.flee,order.seconds===Number.POSITIVE_INFINITY?Number.MAX_SAFE_INTEGER:order.seconds);
-    // The script's point is in its own coordinates; the browser's are the renderer's.
-    ped.fleeFrom={x:order.from.x,z:-order.from.y};
+    // The script's point is in its own coordinates; the browser's are the renderer's. A point at the very spot the ped
+    // stands on leaves CTaskComplexSmartFleePoint no direction; CVector::Normalise turns that zero vector into (1, 0, 0),
+    // so the ped flees east rather than standing for the whole flight.
+    const q=ped.actor.player.position,from={x:order.from.x,z:-order.from.y};
+    ped.fleeFrom=from.x===q.x&&from.z===q.z?{x:from.x-1e-3,z:from.z}:from;
     this.onFlee?.(ped,{...ped.actor.player.position});
     break;
    }
