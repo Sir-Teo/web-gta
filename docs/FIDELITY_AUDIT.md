@@ -8240,3 +8240,17 @@ player's handle names nothing and the thread stops:
 Still open from the scan: `ATTACH_CHAR_TO_CAR` and `DETACH_CHAR_FROM_CAR` on the player (the turret mode
 `CPed::AttachPedToEntity` puts him in, 45 uses) and `LISTEN_TO_PLAYER_GROUP_COMMANDS`. Specs: `script-player-car`,
 `player-drowns-in-water`.
+
+## The player attached to a vehicle
+
+`ATTACH_CHAR_TO_CAR` on the player (RYDER3's truck, DRUGS1/4, SYN1/2, WUZI5, CASINO9, HEIST4, 8 attaches and 37
+detaches) went to the script ped pool and stopped the thread. `CPed::AttachPedToEntity`'s player branch now runs: not
+while he sits in a vehicle; his collision goes; the weapon he held and its ammo are kept (`m_nSavedWeapon`,
+`m_nTurretAmmo`, the first time only); the given weapon comes with 30000 rounds (none for fists) and is chosen.
+`PositionAttachedPed` (VC's, SA's is not reversed) pins him each step at the vehicle's matrix with the offset carried
+in its axes, turned to where he aims within the limit about the side he faces (0 ahead, 1 left, 2 behind, 3 right),
+standing and taking the vehicle's motion. `DETACH_CHAR_FROM_CAR` does nothing to a player who hangs from nothing;
+otherwise `DettachPedFromEntity` empties the weapon given for the ride and gives back the one he had with its ammo,
+and his collision returns. `IS_CHAR_ATTACHED_TO_ANY_CAR` answers for him. Not done: the first-person
+`MODE_HELICANNON_1STPERSON` camera the game switches to, and `SET_HEADING_FOR_ATTACHED_PLAYER`, whose handler is in
+no source to hand. Spec: `script-player-attached`.

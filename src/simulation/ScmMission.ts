@@ -564,6 +564,9 @@ export interface ScmMissionWorld {
  setPlayerMaxHealth(maxHealth:number):void;
  /** CPed::bDrownsInWater on the player. */
  setPlayerDrownsInWater?(drowns:boolean):void;
+ /** CPed::AttachPedToEntity and DettachPedFromEntity for the player on a vehicle; false when he cannot be attached. */
+ attachPlayerToVehicle?(car:unknown,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;
+ detachPlayerFromVehicle?():void;playerAttachedVehicle?():unknown;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
  setPlayerMaxArmour(maxArmour:number):void;
@@ -955,12 +958,18 @@ export class ScmMission {
    explodeVehicleInCutscene:handle=>{this.world.explodeScriptVehicle(this.liveVehicle(handle));},
    // CPed::AttachPedToEntity and DettachPedFromEntity. The angle limit and the weapon belong to a ped that can
    // aim from where it hangs, which this browser's riders do not do yet, so they are not taken.
-   attachPedToCar:(handle,vehicle,offset)=>{this.peds.attachToCar(handle,vehicle,offset);},
-   detachPedFromCar:handle=>{this.peds.detachFromCar(handle,this.peds.positionOf(handle));},
+   // ATTACH_CHAR_TO_CAR on the player: CPed::AttachPedToEntity's player branch (the host pins him, turns him to his
+   // aim within the limit and swaps his weapon); a script ped rides the car at the offset.
+   attachPedToCar:(handle,vehicle,offset,position,angleLimit,weapon)=>{
+    if(handle===PLAYER_PED_HANDLE){this.host('attachPlayerToVehicle','ATTACH_CHAR_TO_CAR')(this.liveVehicle(vehicle),offset,position,angleLimit,weapon);return;}
+    this.peds.attachToCar(handle,vehicle,offset);
+   },
+   // DetachCharFromCar: only a ped that hangs from something is let go.
+   detachPedFromCar:handle=>{if(handle===PLAYER_PED_HANDLE){this.world.detachPlayerFromVehicle?.();return;}this.peds.detachFromCar(handle,this.peds.positionOf(handle));},
    // CPed::m_pAttachedTo is a vehicle: ATTACH_CHAR_TO_CAR's hold, not a seat. The reversed handler tests the ped
    // itself for being a vehicle, which never holds; its sibling STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE reads
    // m_pAttachedTo, which is what LOWR and SWEET6 ask about before they detach.
-   isCharAttachedToAnyCar:handle=>handle!==PLAYER_PED_HANDLE&&!!this.peds.rideOf(handle)?.offset,
+   isCharAttachedToAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerAttachedVehicle?.()!==undefined:!!this.peds.rideOf(handle)?.offset,
    // CMenuManager::m_bLanguageChanged: only the menu's language option sets it, and the language here stays American.
    hasLanguageChanged:()=>false,
    setPedUsesUpperbodyDamageAnimsOnly:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'upperBodyDamageAnimsOnly',state);},

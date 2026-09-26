@@ -299,6 +299,37 @@ async function boot() {
   /** The player riding a car as a passenger (WARP_CHAR_INTO_CAR_AS_PASSENGER): the car and its seat (1 front right,
    * 2 rear left, 3 rear right). The car goes on under its own driver, AI or recording. */
   let playerPassenger:{car:ScriptCar;seat:1|2|3}|undefined;
+  /** CPed::m_pAttachedTo for the player (ATTACH_CHAR_TO_CAR): the vehicle, the offset in its axes (native), the side
+   * he faces (m_fTurretAngleA: 0 ahead, 1 left, 2 behind, 3 right), the turn allowed either side of it (radians), and
+   * the weapon and ammo he had before (m_nSavedWeapon, m_nTurretAmmo). */
+  let playerAttached:{car:unknown;offset:{x:number;y:number;z:number};side:number;limit:number;savedWeapon?:number;savedAmmo?:number}|undefined;
+  const attachedBody=(car:unknown)=>{const c=car as {car?:{body?:import('@dimforge/rapier3d-compat').RigidBody};body?:import('@dimforge/rapier3d-compat').RigidBody;disposed?:boolean};return c.disposed?undefined:c.car?.body??c.body;};
+  /** PositionAttachedPed for the player: his matrix is the vehicle's with the offset carried in its axes, turned to
+   * where he aims (the camera's heading in sniper mode) within the limit about the side he faces; he takes the
+   * vehicle's speed and stands. */
+  const pinAttachedPlayer=()=>{
+    const a=playerAttached;if(!a)return;
+    const body=attachedBody(a.car);if(!body||!body.isValid()){detachPlayer();return;}
+    const t=body.translation(),r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w);
+    const off=new Vector3(a.offset.x,a.offset.z,-a.offset.y).applyQuaternion(q),forward=new Vector3(0,0,-1).applyQuaternion(q);
+    const centre={x:t.x+off.x,y:t.y+off.y,z:t.z+off.z};
+    const base=Math.atan2(forward.x,forward.z)-a.side*Math.PI/2;
+    let heading=render.yaw+Math.PI;
+    if(a.limit<Math.PI){let d=Math.atan2(Math.sin(heading-base),Math.cos(heading-base));d=Math.max(-a.limit,Math.min(a.limit,d));heading=base+d;}
+    const feet={x:centre.x,y:centre.y-1,z:centre.z};
+    sim.player.position={...feet};sim.player.previous={...feet};sim.player.heading=heading;sim.player.speed=0;sim.player.verticalSpeed=0;sim.player.grounded=true;sim.player.jumpMomentum={x:0,z:0};
+    const at={x:feet.x,y:feet.y+sim.playerCenterHeight,z:feet.z};sim.playerBody.setTranslation(at,true);sim.playerBody.setNextKinematicTranslation(at);sim.playerCollider.setTranslation(at);
+  };
+  /** CPed::DettachPedFromEntity for the player: he stands where he was; the weapon given for the ride is emptied and the
+   * one he had before comes back with its ammo; his collision returns. */
+  const detachPlayer=()=>{
+    const a=playerAttached;if(!a)return;playerAttached=undefined;
+    sim.playerCollider.setEnabled(true);
+    if(a.savedWeapon!==undefined&&sim.player.health>0){
+     const inv=weapons.inventory;inv.setTotalAmmo(inv.selected,0);
+     inv.select(a.savedWeapon);inv.setTotalAmmo(a.savedWeapon,a.savedAmmo??0);void weaponView.equip(inv.selected);
+    }
+  };
   const boneScratch=new Matrix4();
   /** The passenger steps out on his own side: his seat's point carried out past the body, set down on the ground. */
   const leavePassengerSeat=(inPlace=false)=>{
@@ -2466,7 +2497,7 @@ async function boot() {
         // CAutomobile::ProcessControlInputs does for the quad.
         for(const bike of fleet?.bikes??[])bike.beforeStep(step,bike.occupied&&!bike.scriptDriven?(bikeMount.active&&bikeMount.bike===bike||controlsOff?{throttle:0,steer:0,brake:true,disabled:controlsOff}:{throttle:axes.y,steer:axes.x,brake:input.down('Space'),hop:input.down('ControlLeft')}):bike.autopilotInput());
         const tPlayer=performance.now();
-        const riding=!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned||bikeMount.pinned||playerPassenger);
+        const riding=!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.pinned||bikeMount.pinned||playerPassenger||playerAttached);
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
         if(wasRiding!==riding){wasRiding=riding;sim.player.moveBlend=0;sim.player.speed=0;sim.player.jumpMomentum={x:0,z:0};render.nativeCharacter?.resetLocomotion();}
         if(riding){
@@ -2534,6 +2565,7 @@ async function boot() {
         for(const boat of fleet?.boats??[])if(boat.afterStep())weapons.vehicleExplosion(boat.body.translation(),'boat');
         for(const bike of fleet?.bikes??[]){bike.propFor??=scenePropFor;if(bike.afterStep())weapons.vehicleExplosion(bike.body.translation(),'bike');}
         carEntry.syncPlayer();
+        pinAttachedPlayer();
         for(const plane of fleet?.planes??[]){plane.onBurnExplosion??=at=>weapons.burningAircraftExplosion(at);if(plane.afterStep())weapons.vehicleExplosion(plane.body.translation(),'aircraft',()=>fleet?.planes.has(plane)?{...plane.body.translation()}:undefined);}
         if(stuntJumps){
          // Any vehicle but a boat, plane or helicopter: cars and bikes alike.
@@ -4213,6 +4245,20 @@ async function boot() {
                  setPlayerHealth:health=>{if(sim.player.health>0)sim.player.health=health;},
                  killPlayer:()=>{sim.killPlayer();},
                  setPlayerDrownsInWater:drowns=>{sim.playerDrownsInWater=drowns;},
+                 // CPed::AttachPedToEntity for the player: not while he sits in a vehicle. His collision goes, he keeps the
+                 // weapon he had (m_nSavedWeapon, m_nTurretAmmo), is given this one with 30000 rounds (none for fists)
+                 // and has it chosen.
+                 attachPlayerToVehicle:(car,offset,side,limit,weapon)=>{
+                  if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger||!attachedBody(car))return false;
+                  const inv=weapons.inventory,previous=playerAttached;
+                  playerAttached={car,offset:{...offset},side:side&3,limit,savedWeapon:previous?.savedWeapon??inv.selected,savedAmmo:previous?.savedAmmo??((inv.ammo.get(inv.selected)?.clip??0)+(inv.ammo.get(inv.selected)?.reserve??0))};
+                  carEntry.cancel();sim.playerCollider.setEnabled(false);
+                  if(weapon!==0)inv.give(weapon,30000);
+                  inv.select(weapon);void weaponView.equip(inv.selected);
+                  pinAttachedPlayer();return true;
+                 },
+                 detachPlayerFromVehicle:()=>{detachPlayer();},
+                 playerAttachedVehicle:()=>playerAttached?.car,
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.
                  groundLevel:(x,y)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:200,z:-y},{x:0,y:-1,z:0}),300,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?200-hit.timeOfImpact:undefined;},
