@@ -4313,7 +4313,10 @@ async function boot() {
                  givePlayerWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected;if(weapons.inventory.give(weapon,ammo)&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);},
                  setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
                  setPlayerArmour:armour=>{sim.player.armour=armour;},playerArmour:()=>sim.player.armour,
-                 loadMissionText:()=>{},
+                 // CText::LoadMissionText: the mission's table replaces the loaded one, so its subtitles and briefs read as
+                 // text rather than keys. The GXT may still be loading at the mission's start; the request waits for it.
+                 loadMissionText:name=>{const load=(t:import('./assets/gxt').NativeText)=>{try{t.loadMissionText(name);}catch(e){console.warn(`Mission text ${name}: ${(e as Error).message}`);}};
+                  if(theText)load(theText);else void import('./assets/gxt').then(m=>m.loadNativeText(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(load).catch(()=>{});},
                  // The browser plays no cutscenes; the request is recorded so the script's loop carries on.
                  // The browser's own tag manager and gang wars answer these three.
                  tagsTagged:()=>tagManager?.numTagged??0,

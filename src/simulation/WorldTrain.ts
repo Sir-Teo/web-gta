@@ -1,3 +1,4 @@
+import {bindNativeCarPaint,type NativeCarColors} from '../render/nativeCarPaint';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Group,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -32,14 +33,16 @@ export class WorldTrain {
  readonly car:{body:RAPIER.RigidBody};
  health=1000;wrecked=false;onFire=false;missionCar=true;
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
- constructor(world:RAPIER.World,scene:Scene,asset:Asset,readonly carriage:NativeTrainCarriage){
+ /** `colors`: CVehicleModelInfo::ChooseVehicleColour's paint for the carriage's colour-coded materials (the engine's
+  * livery; unpainted, those materials keep carcols' placeholder magenta and green). */
+ constructor(world:RAPIER.World,scene:Scene,asset:Asset,readonly carriage:NativeTrainCarriage,colors?:NativeCarColors){
   this.modelId=asset.vehicle.id;
   const id=TRAIN_HANDLING_IDS[asset.vehicle.handling]??98;
   const handling=prepareHandling(asset.handling,id);
   this.physical=installNativeVehicleBody(world,asset.collision!,handling,{position:{x:0,y:-1000,z:0},rotation:{x:0,y:0,z:0,w:1}},{friction:.5,restitution:.05});
   this.body=this.physical.body;this.car={body:this.body};
   this.body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased,true);
-  try{this.visual=modelObject(asset.model,asset.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});this.root.add(this.visual.root);}
+  try{this.visual=modelObject(asset.model,asset.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});if(colors)bindNativeCarPaint(this.visual.materialBindings,asset.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}
   catch{this.visual=undefined;}
   scene.add(this.root);
   this.applyPose(true);

@@ -8488,3 +8488,11 @@ that draw once each time he comes into view (in front, within the 15-unit seeing
 sets on him until he is sixty units clear. A gang that only dislikes him leaves him be, and only a hating gang sends its
 cars on drive-bys. The authored disrespect rule (a weak mark leaned on inside 5 m) stays. Specs: `gang-shootout`,
 `driveby-attack`, `native-population` (unit).
+
+## Mission text and train paint
+
+`LOAD_MISSION_TEXT` reached a host that did nothing, so only MAIN's keys resolved and every subtitle or brief from a
+mission table came out as its key: the opening's Tenpenny dialogue read "PRO@24", "PRO@27". The host now loads the
+named table into TheText (`CText::LoadMissionText`: it replaces the one loaded; a request made while the GXT is still
+loading waits for it). Trains were built without `ChooseVehicleColour`'s paint, so their colour-coded materials kept
+carcols' placeholder magenta and green; carriages now take their model's colours as boats and aircraft do.

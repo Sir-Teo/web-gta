@@ -632,7 +632,7 @@ export class WorldFleet {
   if(this.disposed)return undefined;
   const carriages=createMissionTrain(tracks,point,clockwise,type,id=>trainCarriageModel(assets.get(id)!));
   for(const c of carriages)c.processControl(tracks,1,nowMs);
-  const made=carriages.map(c=>{const t=new WorldTrain(this.sim.world,this.scene,assets.get(c.model.model)!,c);this.trains.add(t);this.trainOf.set(c,t);return t;});
+  const made=carriages.map(c=>{const asset=assets.get(c.model.model)!,t=new WorldTrain(this.sim.world,this.scene,asset,c,rotatedColours(catalog,asset.vehicle.model));this.trains.add(t);this.trainOf.set(c,t);return t;});
   return made[0];
  }
  /** The browser's carriage for a CTrain. */
