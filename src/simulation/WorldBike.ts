@@ -3,6 +3,8 @@ import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
 import {randomSeed} from './nativeVehicleLights';
 import {vehicleDestroyed} from './vehicleDestroyed';
+import {bikeWheelSupports} from '../vehicle/nativeBikeWheels';
+import {bindNativeCarLod} from '../render/nativeCarLod';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {AdditiveBlending,CanvasTexture,Group,Quaternion,Sprite,SpriteMaterial,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
@@ -98,6 +100,10 @@ export class WorldBike {
  /** Props destroyed or knocked loose by this bike, for diagnostics. */
  propsSmashed=0;propsUprooted=0;
  private previous:{x:number;y:number;z:number};private previousRotation:RAPIER.Rotation;
+ /** CVehicleModelInfo's detail switch: chassis_vlo stands in for the full model only past the LOD distance. */
+ private lod?:ReturnType<typeof bindNativeCarLod>;
+ /** The camera's squared distance this frame, which picks the bike's detail (as for cars). */
+ setViewDistance(distanceSquared:number,generationMultiplier:number){return this.lod?.update(distanceSquared,generationMultiplier);}
  constructor(private sim:Simulation,scene:Scene,readonly assets:NativeBikeAssets,position:{x:number;y:number;z:number},heading=0){
   requireAsset(PLAYABLE_BIKES[assets.vehicle.id]&&assets.collision,'Unresolved bike resources.');
   requireAsset(assets.bike,`Unresolved bike handling: ${assets.vehicle.handling}.`);
@@ -110,8 +116,11 @@ export class WorldBike {
    // contact friction is only drag: the wheel spheres are fixed to the body and slide rather than roll, and against the
    // ground's own friction they cost a hundred-kilo BMX about as much as its full pedalling. None of it is taken.
    {friction:0,restitution:.05,frictionCombineRule:RAPIER.CoefficientCombineRule.Min});this.body=this.physical.body;this.car={body:this.body,root:this.root};
+  // The tyres carry it (nativeBikeWheels): a ball per wheel on the same frictionless contact.
+  for(const w of bikeWheelSupports(assets.model,assets.wheelFrames,assets.vehicle.frontWheelSize,assets.vehicle.rearWheelSize))
+   sim.world.createCollider(RAPIER.ColliderDesc.ball(w.radius).setTranslation(w.center.x,w.center.z,-w.center.y).setDensity(0).setFriction(0).setRestitution(.05).setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min),this.body);
   if(assets.model&&assets.textures){
-   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);this.root.add(this.visual.root);}catch{this.visual=undefined;}
+   try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);try{this.lod=bindNativeCarLod(this.visual.root,assets.model,[...assets.wheelFrames.front,...assets.wheelFrames.rear]);}catch{this.lod=undefined;}this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
   // Bike TXDs carry no vehiclelights128 texture, so the lamp pass mounts glow
   // sprites at the hull ends instead of textured lamp atomics.

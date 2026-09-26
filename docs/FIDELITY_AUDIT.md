@@ -8465,3 +8465,13 @@ part of the capsule inside the car (Rapier's contact depth against each car coll
 normal, flat on the ground. A car held at 5 m/s shoves CJ ahead of its bumper; a 12 m/s one pushes him clear and stops
 short, as `ComputeVehicleCollisionResponse` only knocks a standing player down from 0.5 units a frame. Spec:
 `native-car-player`.
+
+## Bikes on their wheels
+
+`CBike` rides on suspension lines set up from its wheel dummies, not on its collision model, whose spheres cover the
+frame and the rider. The browser's bike is a rigid body without springs, and it came to rest on those spheres, 0.2 to
+0.5 units lower than its tyres allow: every bike's wheels sat sunk in the road. A ball the size of each wheel
+(vehicles.ide's wheel size is the diameter), centred on the wheel dummy composed up through its parents, now carries it
+on the same frictionless contact, so the tyres rest on the ground. Bikes also took the cars' detail switch: their
+`chassis_vlo` stood drawn through the full model at every distance. A sweep of the car models on flat ground found every
+car's wheels on the road. Specs: `native-bike-wheels` (unit), the bike browser specs.

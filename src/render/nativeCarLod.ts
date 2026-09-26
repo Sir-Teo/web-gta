@@ -13,9 +13,10 @@ export function nativeCarLod(distanceSquared:number,generationMultiplier:number)
 /** Bind only atomic meshes, never frame groups: hiding a chassis frame would also
  * hide nested components. Native wheel callbacks bypass the body detail threshold.
  * Initially choose high detail until the scene supplies its camera distance. */
-export function bindNativeCarLod(root:Object3D,model:DffModel,wheels:Record<CarWheel,number>){
- const wheelFrames=new Set(Object.values(wheels));
- requireAsset(wheelFrames.size===4&&[...wheelFrames].every(i=>Number.isInteger(i)&&i>=0&&i<model.frames.length),'Invalid vehicle LOD wheel frames.');
+/** `wheels`: a car's four wheel dummies, or a bike's (its front and rear wheel frames), which every detail keeps. */
+export function bindNativeCarLod(root:Object3D,model:DffModel,wheels:Record<CarWheel,number>|readonly number[]){
+ const wheelFrames=new Set(Array.isArray(wheels)?wheels:Object.values(wheels));
+ requireAsset((Array.isArray(wheels)?wheelFrames.size>0:wheelFrames.size===4)&&[...wheelFrames].every(i=>Number.isInteger(i)&&i>=0&&i<model.frames.length),'Invalid vehicle LOD wheel frames.');
  const meshes=new Map<number,Object3D[]>();root.traverse(node=>{const index=node.userData.nativeAtomic;if(index!==undefined){const group=meshes.get(index)??[];group.push(node);meshes.set(index,group);}});
  const targets:{node:Object3D;role:'wheel'|'high'|'low'}[]=[];
  model.atomics.forEach((atomic,index)=>{

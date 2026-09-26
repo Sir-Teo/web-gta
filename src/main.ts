@@ -1106,6 +1106,7 @@ async function boot() {
      for(const bike of fleet?.bikes??[])bike.lightsOn=!bike.wrecked&&bike.occupied&&!BMX_MODELS.has(bike.modelId)&&vehicleLightsStatus({seed:bike.randomSeed,gangDriverOddSeed:false,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:1,camNoRain:cullZones.camNoRain});
      // m_nOverrideLights answers first: FORCE_CAR_LIGHTS on or off, whoever drives.
      for(const car of fleet?.cars??[])car.lightsOn=car.overrideLights===2?!car.wrecked:car.overrideLights===1?false:!car.wrecked&&(car.occupied||!!car.autopilot&&!car.driverOut)&&vehicleLightsStatus({seed:car.randomSeed,gangDriverOddSeed:car.gang!==undefined&&car.driverSeedOdd,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:car.contactBrightness(nativeDayNightBalance(sim.timeMinutes)),camNoRain:cullZones.camNoRain});}
+    for(const bike of fleet?.bikes??[])bike.setViewDistance(bike.root.position.distanceToSquared(camera.position),1);
     for(const car of fleet?.cars??[]){car.car.setViewDistance(car.car.root.position.distanceToSquared(camera.position),1);car.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));}
     // CWaterCannons::Render: the crossed quads of the live sections, and the splash where the jet meets a surface.
     {const f=camera.getWorldDirection(new Vector3());
