@@ -52,6 +52,8 @@ export class NativeMap {
  zones?:NativeZonesVisited;
  /** HIDE_ALL_FRONTEND_BLIPS, or the player off the map (SET_PLAYER_IS_IN_STADIUM): no blips on the frontend map. */
  hideMapBlips=false;
+ /** CPlaceName::GetForMap: the name of the smallest zone at a native x/y, for the area under the mouse. */
+ placeAt?:(x:number,y:number)=>string|undefined;
  private zoneOverlays:readonly ZoneOverlay[]=[];
  setZoneOverlays(overlays:readonly ZoneOverlay[]){this.zoneOverlays=overlays;}
  constructor(container:HTMLElement){
@@ -143,6 +145,16 @@ export class NativeMap {
    }
    // The map ruler: two gold lines across the map through the mouse, while no button is held.
    if(this.pointer&&!this.pointer.held){c.fillStyle='rgb(144,98,16)';const t=Math.max(1,(w/shown));c.fillRect(this.pointer.x*w-t,0,2*t,w);c.fillRect(0,this.pointer.y*w-t,w,2*t);}
+   // CPlaceName::GetForMap under the mouse, once its square is explored (or 80 are) and while no button is held:
+   // pricedown at 0.8, light gray with a black edge, right-aligned 30 lines in from the map's right and bottom.
+   if(this.pointer&&!this.pointer.held&&this.placeAt){
+    const at=mapToWorld(this.pointer.x,this.pointer.y),zones=this.zones;
+    if(!zones||zones.revealed>=80||zones.wasVisited(at.x,-at.z)){
+     const name=this.placeAt(at.x,-at.z);
+     if(name){const size=16*u;c.save();c.font=`400 ${size.toFixed(1)}px Impact,'Arial Narrow',sans-serif`;c.textAlign='right';c.textBaseline='top';c.lineJoin='round';
+      c.lineWidth=4*u;c.strokeStyle='#000';c.strokeText(name,w-30*u,w-30*u);c.fillStyle='rgb(225,225,225)';c.fillText(name,w-30*u,w-30*u);c.restore();}
+    }
+   }
   };
   /** The HUD radar (CRadar::DrawMap and DrawBlips): the map turned so the camera's view is up, the player
    * arrow at the centre, the waypoint blip limited to the rim, and the north blip on the rim. */
