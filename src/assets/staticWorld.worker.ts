@@ -1,6 +1,18 @@
 import {openStaticWorldSource,readStaticWorldRegion} from './staticWorldSource';
 import {pruneWorldCache} from './staticWorldArchive';
 let ready:ReturnType<typeof openStaticWorldSource>|undefined;
+/** The archive's base URL, once initialized. */
+let base:string|undefined;
+/** Opens the world source and announces it. An opening that failed (a download error at startup) is forgotten, so the
+ * next terrain request opens it again instead of failing the same way for the rest of the session. */
+function open(){
+ const opening=openStaticWorldSource(base!);ready=opening;
+ return opening.then(world=>{
+  // Old chunks of a republished world leave the persistent cache once the first windows have had the network.
+  setTimeout(()=>{void pruneWorldCache(world.source.hashes());},60000);
+  self.postMessage({type:'ready',carGenerators:world.carGenerators,occluders:world.occluders,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,garages:world.garages,audioZones:world.audioZones,cullZones:world.cullZones,entryExits:{...world.entryExits,archives:world.source.archives},tags:world.tags,setPieces:world.setPieces,ideRecords:world.ideRecords,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined},script:world.scriptBytes});
+ },error=>{if(ready===opening)ready=undefined;throw error;});
+}
 let busy=false;
 /** Coalesce overlapping follow requests instead of failing: only the latest follow region matters for streaming
  * (CStreaming-style: camera position wins). Transfer requests (negative ids: a save point, a hangar flight, an
@@ -15,10 +27,8 @@ self.onmessage=async({data})=>{
  let activeId:number|undefined=data?.id;
  try{
    if(data.action==='initialize'){
-    if(ready)throw new Error('World source is already initialized.');ready=openStaticWorldSource(data.base);const world=await ready;
-    // Old chunks of a republished world leave the persistent cache once the first windows have had the network.
-    setTimeout(()=>{void pruneWorldCache(world.source.hashes());},60000);
-    self.postMessage({type:'ready',carGenerators:world.carGenerators,occluders:world.occluders,pickups:world.pickups,stuntJumps:world.stuntJumps,savePoints:world.savePoints,radarBlips:world.radarBlips,restartPoints:world.restartPoints,garages:world.garages,audioZones:world.audioZones,cullZones:world.cullZones,entryExits:{...world.entryExits,archives:world.source.archives},tags:world.tags,setPieces:world.setPieces,ideRecords:world.ideRecords,worldZones:world.worldZones,zoneInitialization:{...world.zoneInitialization,population:undefined},script:world.scriptBytes});return;
+    if(base!==undefined)throw new Error('World source is already initialized.');
+    base=data.base;await open();return;
    }
    if(data.action==='effects'&&ready){
     // 2d effects for models a prebuilt scene package carried without them, per geometry.
@@ -30,7 +40,8 @@ self.onmessage=async({data})=>{
     }
     self.postMessage({type:'effects',effects});return;
    }
-   if(data.action!=='region'||!ready){throw new Error('Invalid world terrain request.');}
+   if(data.action!=='region'||base===undefined){throw new Error('Invalid world terrain request.');}
+   if(!ready)void open().catch(()=>{});
    if(busy){enqueue({id:data.id,region:data.region,resident:data.resident});return;}
    activeId=data.id;
    let activeRegion:any=data.region,activeResident:string[]|undefined=data.resident;

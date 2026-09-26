@@ -4566,6 +4566,8 @@ async function boot() {
               if(flightTransfer){flightTransfer.reject(new Error(data.message));flightTransfer=undefined;menuBusy(false);hud.menuMessage(data.message);return;}
               const pending=follower?.snapshot().pending;
               if(pending)failFollowing(pending,data.message);
+              // The world source failed to open (followId undefined): following goes on, and its next request opens it again.
+              else if(data.followId===undefined)hud.menuMessage(`${data.message} The current terrain remains available.`);
               else{follower?.stop();hud.menuMessage(`${data.message} The current terrain remains available.`);}
             }
           });
