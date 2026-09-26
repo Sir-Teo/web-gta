@@ -1084,7 +1084,9 @@ export class ScmMission {
    // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.
    setPedDropsObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly);},
    pedIsHoldingObject:(handle,object)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return this.heldObjectOf(handle)?.handle===object;},
-   setPedListensToPlayerGroupCommands:(handle,listens)=>{this.world.setScriptPedListensToGroupCommands?.(this.livePed(handle),listens);},
+   // bDoesntListenToPlayerGroupCommands, which the group command events read of each member: the player, who gives
+   // the commands, keeps it without effect.
+   setPedListensToPlayerGroupCommands:(handle,listens)=>{if(handle===PLAYER_PED_HANDLE){this.playerListensToGroupCommands=listens;return;}this.world.setScriptPedListensToGroupCommands?.(this.livePed(handle),listens);},
    // CPed::bSignalAfterKill (true from the constructor): kept for the kill task's after-kill signal, not ported.
    pedSignalAfterKill:(handle,signal)=>{this.livePed(handle);this.signalAfterKill.set(handle,signal);},
    // bHeadStuckInCollision's head loss: the browser never takes a ped's head, so none is missing.
@@ -2041,6 +2043,8 @@ export class ScmMission {
  playerGroupAlwaysFollows=false;
  /** CPlayerData::m_bGroupNeverFollow (SET_PLAYER_GROUP_TO_FOLLOW_NEVER). */
  playerGroupNeverFollows=false;
+ /** The player's own bDoesntListenToPlayerGroupCommands, the other way round. */
+ playerListensToGroupCommands=true;
  /** What a car handle names: the player's own car for PLAYER_VEHICLE_HANDLE, a script car the browser built, or nothing. */
  /** A car by handle once it is built: the player's own at once, a script car when its making settles. */
  private async vehicleOrPlayer(handle:number):Promise<unknown>{return handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.whenSettled(handle);}

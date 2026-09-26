@@ -8237,8 +8237,8 @@ player's handle names nothing and the thread stops:
 - `SET_CHAR_DROWNS_IN_WATER`: `bDrownsInWater` on the player. `HandlePlayerBreath` runs the breath down only while
   it is set; otherwise it raises the drowning damage at once, which `CEventDamage` drops for a ped that does not drown,
   so he never drowns. The other simple ped flags have nothing on the player to act on.
-Still open from the scan: `ATTACH_CHAR_TO_CAR` and `DETACH_CHAR_FROM_CAR` on the player (the turret mode
-`CPed::AttachPedToEntity` puts him in, 45 uses) and `LISTEN_TO_PLAYER_GROUP_COMMANDS`. Specs: `script-player-car`,
+`LISTEN_TO_PLAYER_GROUP_COMMANDS` on the player keeps his flag, which the group command events read only of members.
+The attach family is covered below. The scan now finds nothing. Specs: `script-player-car`,
 `player-drowns-in-water`.
 
 ## The player attached to a vehicle
