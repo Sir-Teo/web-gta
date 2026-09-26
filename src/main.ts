@@ -505,6 +505,8 @@ async function boot() {
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let stuntJumps:StuntJumps|undefined,savePoints:ScmSavePoint[]=[],saving=false;
   let savedTransfer:{x:number;y:number;z:number;heading:number;quiet?:boolean}|undefined;
+  /** Whether a loaded game has had the new game's INTRO ended for it. */
+  let introSkipped=false;
   /** CEntryExitManager and the teleport CEntryExit::TransitionFinished waits on while the spawn point's area streams. */
   let entryExits:EntryExitManager|undefined,interiorTransfer:EntryExitTransition|undefined;
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
@@ -2910,6 +2912,17 @@ async function boot() {
       {const enter=input.down('Enter')||input.down('NumpadEnter'),space=input.down('Space');
        cutsceneSkipNow=input.down('MouseFire')||enter&&!skipKeysLast.enter||space&&!skipKeysLast.space;skipKeysLast={enter,space};}
       mission.step(elapsed*1000,dt*1000);
+      // Loading a game the player saved does not play the new game's opening again: once INITIAL has set the world up
+      // and MAIN launches INTRO, the story mission is ended (as leaving it for free roam does), the screen fades in
+      // and the save point's clock and place are put back.
+      if(!introSkipped&&progression.savedLocation&&mission.runtime.active.some(slot=>slot.thread.base>0&&slot.thread.name==='INTRO')){
+        introSkipped=true;const runtime=mission.runtime;
+        for(const slot of [...runtime.active])if(slot.thread.base>0)runtime.terminateAllWithName(slot.thread.name);
+        runtime.game.alreadyRunningAMissionScript=false;runtime.game.displayAreaName=true;
+        // A 0 ms fade-in never finishes in CCamera::ProcessFade, so the shortest that does.
+        runtime.world?.fade(1,1,performance.now());
+        restoreSavedLocation(progression.savedLocation,!savedTransfer);
+      }
       if(clock.hours!==set[0]||clock.minutes!==set[1]||clock.seconds!==set[2]||clock.currentDay!==set[3]){sim.timeMinutes=clock.hours*60+clock.minutes+clock.seconds/60;sim.weekDay=clock.currentDay;}
     }
     sound.update(render.camera.position, render.viewYaw, render.viewPitch);
@@ -3296,6 +3309,15 @@ async function boot() {
   };
   /** CEntryExit::TransitionFinished once the screen is black: CStreaming::LoadScene at the spawn point's exit in its
    * area (the game clock is suspended meanwhile), then the teleport. */
+  /** The last save point's clock and, with `place`, where the player stood and faced there. */
+  function restoreSavedLocation(saved:NonNullable<typeof progression.savedLocation>,place:boolean){
+    sim.timeMinutes=saved.timeMinutes;if(saved.weekDay)sim.weekDay=saved.weekDay;
+    if(!place)return;
+    const position={x:saved.x,y:saved.z,z:-saved.y};
+    sim.player.position={...position};sim.player.previous={...position};sim.player.heading=saved.heading;
+    sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
+    render.yaw=saved.heading+Math.PI;
+  }
   /** The deadline of the transfer under way (an interior's or the hangar flight's terrain). */
   let transferTimer:ReturnType<typeof setTimeout>|undefined;
   const TRANSFER_TIMEOUT_MS=45000;
@@ -3600,13 +3622,7 @@ async function boot() {
               // first 54 m of travel, so the LOD world is up before the player drives off.
               // A save point inside it is restored in place: the clock, and where the player stood and faced.
               else{
-                if(saved&&!savedTransfer&&!flightTransfer){
-                  sim.timeMinutes=saved.timeMinutes;if(saved.weekDay)sim.weekDay=saved.weekDay;
-                  const position={x:saved.x,y:saved.z,z:-saved.y};
-                  sim.player.position={...position};sim.player.previous={...position};sim.player.heading=saved.heading;
-                  sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
-                  render.yaw=saved.heading+Math.PI;
-                }
+                if(saved&&!savedTransfer&&!flightTransfer)restoreSavedLocation(saved,true);
                 if(follower&&!flightTransfer)follower.primeNext=true;
               }
               if(Array.isArray(data.stuntJumps)){
