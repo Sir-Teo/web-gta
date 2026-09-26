@@ -11,7 +11,8 @@ test('New Game appears only with a saved game and starts over without it',async(
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('web-gta.progress.v1')!).money)).toBe(1234);
  page.once('dialog',d=>void d.accept());await Promise.all([page.waitForEvent('load'),newGame.click()]);
  await expect(play).toBeVisible({timeout:120000});await expect(newGame).toBeHidden();
- expect(await page.evaluate(()=>(window as any).__game.state().money)).not.toBe(1234);
+ // CPlayerInfo starts with nothing; INTRO pays the $350 as it ends.
+ expect(await page.evaluate(()=>(window as any).__game.state().money)).toBe(0);
  expect(await page.evaluate(()=>localStorage.getItem('web-gta.progress.v1'))).not.toContain('savedLocation');
  expect(errors).toEqual([]);
 });

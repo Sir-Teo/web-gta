@@ -28,8 +28,8 @@ test('native SCM pickups spin, grant armour, ammo and bribes, regenerate after 3
   return {spawned:afterCollect.spawned,shot,spin:[spin0,spin1],armour,afterCollect,stayed,regenerated,photo,final};
  });
  const {shot,...summary}=result;console.log(JSON.stringify(summary));
- expect(result.armour).toBe(100);expect(result.afterCollect.wanted).toBe(1);expect(result.afterCollect.given).toEqual([[22,30]]);expect(result.afterCollect.money).toBe(450);expect(result.afterCollect.counts.horseshoe).toBe(1);
- expect(result.spin[1]).not.toBe(result.spin[0]);expect(result.stayed).toBe(2);expect(result.regenerated).toBe(5);expect(result.photo).toBe(true);expect(result.final.counts.snapshot).toBe(1);expect(result.final.money).toBe(200450);
+ expect(result.armour).toBe(100);expect(result.afterCollect.wanted).toBe(1);expect(result.afterCollect.given).toEqual([[22,30]]);expect(result.afterCollect.money).toBe(100);expect(result.afterCollect.counts.horseshoe).toBe(1);
+ expect(result.spin[1]).not.toBe(result.spin[0]);expect(result.stayed).toBe(2);expect(result.regenerated).toBe(5);expect(result.photo).toBe(true);expect(result.final.counts.snapshot).toBe(1);expect(result.final.money).toBe(200100);
  writeFileSync('artifacts/native-pickups.png',Buffer.from(shot.split(',')[1],'base64'));expect(errors).toEqual([]);
 });
 

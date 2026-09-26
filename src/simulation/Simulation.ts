@@ -111,7 +111,8 @@ export class Simulation {
     return days;
   }
   clockRate() { return CHEATS.isActive('alwaysMidnight') || CHEATS.isActive('orangeSky') ? 0 : CHEATS.isActive('fasterClock') ? 30 : GAME_MINUTES_PER_SECOND; }
-  money = 350;
+  /** CPlayerInfo::m_nMoney starts at 0: the new game's $350 is INTRO's ADD_SCORE. */
+  money = 0;
   respawn = { ...SPAWN };
   readonly imported = true;
   constructor() {
