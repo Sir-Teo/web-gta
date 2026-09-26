@@ -2204,7 +2204,8 @@ async function boot() {
     frame = requestAnimationFrame(animate);
     // Frame pacing: the limiter's 30 a second in play, 10 a second under the menu, or every display frame when off.
     // A skipped frame leaves `last` alone so the simulation clock still receives the whole interval.
-    if(!frameDue(pacer,now,paused?MENU_FPS:display.frameLimiter?FRAME_LIMITER_FPS:undefined))return;
+    // The pause menu, the full map and the arsenal all hold the game: the world behind them draws at the menu's rate.
+    if(!frameDue(pacer,now,paused||navigation?.open||arsenal.open?MENU_FPS:display.frameLimiter?FRAME_LIMITER_FPS:undefined))return;
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
