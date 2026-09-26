@@ -74,7 +74,6 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
 }
 /** The browser's walking ped behind a script handle, or nothing when the handle names a ped that rides. */
 const onFoot=(entity:unknown)=>asRider(entity)?undefined:entity as import('./simulation/WorldPedestrians').Pedestrian|undefined;
-import {ActivityJournal} from './ui/ActivityJournal';
 import {canPedStepOutCar} from './vehicle/nativeDieInCar';
 import {VehicleOccupants} from './render/VehicleOccupants';
 import {SirenLights} from './render/SirenLights';
@@ -595,8 +594,8 @@ async function boot() {
   // CPlayerInfo::m_bFastReload, which SET_PLAYER_FAST_RELOAD sets on the script's player info.
   weapons.inventory.fastReload=()=>!!mission?.runtime.game.playerInfo.fastReload;
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
-  const progression=new Progression(weapons.inventory,sim,progressStorage),journal=new ActivityJournal(hud.element,progression);
-  progression.onReward=(name,reward)=>hud.message(`${name} completed · +$${reward}`);weapons.onHit=id=>progression.hit(id);
+  const progression=new Progression(weapons.inventory,sim,progressStorage);
+  weapons.onHit=id=>progression.hit(id);
   const saveProgress=()=>{progression.save();};window.addEventListener('pagehide',saveProgress);
    const PICKUP_TEXT:Record<string,string>={HO:'Horseshoes',OY:'Oysters',SN:'Snapshots'};
    // Dead armed peds drop their gun for its leftover rounds (one-shot pickups).
@@ -644,7 +643,7 @@ async function boot() {
     },
     onCollect:(pickup,message)=>{
       // A pickup the script made is collected for the script too, which is what it asks after.
-      if(pickup.section==='script'&&mission){const handle=Number(pickup.id.slice('script:'.length));if(Number.isInteger(handle))mission.collectScriptPickup(handle);}if(!paused)sound.nativeEngine?.pickup(pickup.category,pickup.type);progression.recordCollect(pickup.category);if(message){
+      if(pickup.section==='script'&&mission){const handle=Number(pickup.id.slice('script:'.length));if(Number.isInteger(handle))mission.collectScriptPickup(handle);}if(!paused)sound.nativeEngine?.pickup(pickup.category,pickup.type);if(message){
         // CGarages::TriggerMessage of HO_, OY_ and SN_ONE with the counts in its ~1~s, or the _ALL line.
         const [code,count]=message.split(' '),name=/^(HO|OY|SN)_(ONE|ALL)$/.test(code)?PICKUP_TEXT[code.slice(0,2)]:undefined;
         hud.message(!name?message:gxtHudText(code.endsWith('_ALL')?gxtText(code,`All ${name.toLowerCase()} found!`):insertNumbers(gxtText(code,`${name} ~1~ out of ~1~`),...count.split('/').map(Number))),5000);}progression.save();},
@@ -760,7 +759,7 @@ async function boot() {
    clearCrossHairs(){},
    clearMessages(){hud.message('');},
    resetWastedText(){hud.whiteMiddleMessage('');},
-   punish(fee){sim.money=Math.max(0,sim.money-fee);weapons.inventory.strip();void weaponView.equip(0);progression.failEscape();progression.save();},
+   punish(fee){sim.money=Math.max(0,sim.money-fee);weapons.inventory.strip();void weaponView.equip(0);progression.save();},
    showWastedMessage(){hud.whiteMiddleMessage('wasted',4000);},
    showBustedMessage(){hud.whiteMiddleMessage('busted',5000);},
    // CGameLogic::PassTime: the clock and weekday, the days-passed stat, CClock::SetGameClock (which counts a day
@@ -2656,7 +2655,7 @@ async function boot() {
          stuntJumps.update(step*1000,{driving:!!body&&sim.player.health>0&&!law.arrested,position:p?{x:p.x,y:-p.z,z:p.y}:{x:0,y:0,z:0},
           moveSpeed:v?{x:v.x/50,y:-v.z/50,z:v.y/50}:{x:0,y:0,z:0},collided:car?car.entitiesCollided:bike?bike.entitiesCollided():1,lost:car?car.wrecked||car.drowning||under:bike?bike.wrecked||under:false});
         }
-        progression.tick(step,!!worldCar?.occupied,law.level,law.arrested);
+        progression.tick(step,!!worldCar?.occupied,law.arrested);
         carEntry.drivingSkill=progression.drivingSkill;
         if(entryExits&&importedScene&&!interiorTransfer){
          const active=entryExits.active;
@@ -2874,7 +2873,7 @@ async function boot() {
     frameProfile.between+=performance.now()-tBetween;const tRender=performance.now();
     render.update(dt, alpha, input, elapsed, paused||terrainPause||!!navigation?.open||arsenal.open);
     frameProfile.render+=performance.now()-tRender;frameProfile.frames++;
-    journal.update();wantedHud.update(law,gameTimeMs);
+    wantedHud.update(law,gameTimeMs);
     arsenal.update(weaponView.error,weaponView.crosshair);
     hud.weapon(weapons.inventory.weapon.name,weaponView.icon,weapons.inventory.selected===0);
     // CTaskSimplePlayerOnFoot::PlayIdleAnimations on CPad's untouched time (game time: it stops while paused). Ducking,
@@ -3457,7 +3456,7 @@ async function boot() {
           // CDarkel::RegisterKillNotByPlayer for everyone else's kills: STAT_PEOPLE_WASTED_BY_OTHERS, a recruit of the
           // player's group costing 2 respect (STAT_RECRUITED_GANG_MEMBERS_KILLED), and a gangster's friendly or enemy count.
           pedestrians.onKill=victim=>{if(victim.byPlayerVehicle)mission?.runtime.game.stats.increment(121,1);
-           else if(!victim.byPlayer){const stats=mission?.runtime.game.stats;if(stats){if(victim.recruit){stats.decrement(68,2);stats.increment(163,1);}stats.increment(120,1);if(victim.gang!==undefined)stats.increment(victim.gang===1?240:239,1);}}if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){progression.recordKill(victim.gang);if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
+           else if(!victim.byPlayer){const stats=mission?.runtime.game.stats;if(stats){if(victim.recruit){stats.decrement(68,2);stats.increment(163,1);}stats.increment(120,1);if(victim.gang!==undefined)stats.increment(victim.gang===1?240:239,1);}}if(victim.byPlayer&&sim.playerCollider.isEnabled())gangWars?.addKillToProvocation(victim.gang);if(victim.byPlayer&&pedTypeAtLeastDealer(victim.pedType))playerKilledADealer(worldZones,{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});if(victim.byPlayer){if(victim.gang!==undefined&&GANG_RIVALS.has(victim.gang))addRespect(5);registerKillByPlayer(victim);}};
           const speechSeed=(position:{x:number;z:number})=>Math.abs(Math.floor(position.x*13+position.z*7));
           pedestrians.playerVehicleVelocity=()=>{const b=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body;if(!b)return undefined;const v=b.linvel();return {x:v.x,y:v.y,z:v.z};};
           // CAEPedSpeechAudioEntity::AddSayEvent says nothing for a ped whose speech a script disabled.
@@ -4638,7 +4637,7 @@ async function boot() {
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
-    alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);journal.dispose();worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };

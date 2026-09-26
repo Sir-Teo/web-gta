@@ -12,7 +12,7 @@ WASD moves, Shift sprints, Space jumps, C crouches, G recruits nearby Families m
 
 Open **M → Aircraft → Fly from Verdant Meadows** to start on the original airfield in the same world. W/S adjusts throttle, ↓/↑ raises/lowers the nose, A/D banks, Q/E steers the rudder, G toggles retractable gear, and Space brakes on the ground. F exits after landing and stopping. The flight HUD shows airspeed, height above ground, throttle and gear. Nearby supported planes also spawn at original IPL locations. Flight uses authored flight equations with native assets and source handling coefficients (stall authority, ground effect, crosswind coupling); helicopters and Hydra VTOL use an authored lift controller. Space stabilizes hover, T switches Hydra flight mode, Ctrl fires mounted guns and B launches rockets on supported military aircraft. Collision and weapon damage can destroy aircraft. Helicopter searchlight pursuit, rotor-gated flight response and pilot seating run through the port; full-mission flight choreography remains unfinished. See [aircraft implementation](docs/research/PLAYABLE_AIRCRAFT.md).
 
-Activities in the pause menu track walking, driving and escaping a two-star pursuit, with one-time cash rewards. Money, ammunition, selected weapon, practice and activity progress save locally; position and world state do not.
+Money, ammunition, the weapons held, weapon and driving skill, collected pickups, sprayed tags, stunt jumps, explored map squares and the last save point save locally; a game started after a save point was used skips the introduction and resumes there.
 
 See the [remaining gaps checklist](docs/GAPS_CHECKLIST.md) for implemented features and outstanding work.
 
