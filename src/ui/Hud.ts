@@ -353,7 +353,7 @@ export class Hud {
     this.put('health.now',String(Math.ceil(sim.player.health)),v=>e.health.setAttribute('aria-valuenow',v));
     this.put('health.width',`${healthBarWidth(limits.maxHealth)*78}px`,v=>{e.health.style.width=v;});
     this.put('health.fill',`${barFill(sim.player.health,limits.maxHealth)}%`,v=>{e.healthFill.style.width=v;});
-    this.put('health.blink',healthBarHidden(sim.player.health,frame)?'hidden':'visible',v=>{e.healthFill.style.visibility=v;});
+    this.put('health.blink',healthBarHidden(sim.player.health,frame)?'hidden':'',v=>{e.healthFill.style.visibility=v;});
     // CHud::RenderArmorBar shows armour only above 1.
     this.put('armour.hidden',String(armourBarHidden(sim.player.armour)),v=>{e.armour.hidden=v==='true';});
     this.put('armour.now',String(Math.ceil(sim.player.armour)),v=>e.armour.setAttribute('aria-valuenow',v));
