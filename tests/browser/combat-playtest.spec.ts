@@ -1,7 +1,8 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 test('live pursuit populates off camera and remains playable while shooting and turning',async({page})=>{
  test.setTimeout(90000);const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await page.keyboard.type('turnuptheheat');await expect.poll(async()=>(await state()).wanted.level).toBe(2);
  await expect.poll(async()=>(await state()).police?.units.length??0,{timeout:20000}).toBeGreaterThan(0);

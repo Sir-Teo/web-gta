@@ -1,9 +1,10 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 // CTaskSimplePlayerOnFoot::PlayerControlDucked: a jump press or sprint stands a crouched CJ up; the jump press does not
 // also jump.
 test('jump and sprint stand a crouched CJ up',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await page.keyboard.press('KeyC');await expect.poll(async()=>(await state()).player.crouched).toBe(true);
@@ -24,7 +25,7 @@ test('jump and sprint stand a crouched CJ up',async({page})=>{
 // right) with the gun held, and the stick walks forward and back on GUNCROUCHFWD/BWD without turning CJ.
 test('a crouched CJ aiming a pistol rolls sideways and steps back',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1668));await page.waitForTimeout(300);

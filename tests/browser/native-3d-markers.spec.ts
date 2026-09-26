@@ -1,10 +1,11 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 import {scriptClockSettled} from './scriptClock';
 // C3dMarkers: a cone placed every frame (as CEntryExitManager::Update places entry exit markers) draws diamond_3 in
 // yellow, bobbing above its point.
 test('a 3d marker cone draws a yellow diamond',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await scriptClockSettled(page);

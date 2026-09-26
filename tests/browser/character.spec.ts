@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 test('a local rig and locomotion clip drive the playable character and freeze with pause', async ({page}) => {
   await page.goto('/models.html');
   await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
@@ -10,7 +11,7 @@ test('a local rig and locomotion clip drive the playable character and freeze wi
   const popupPromise=page.waitForEvent('popup'); await page.getByRole('button',{name:'Test character in game'}).click(); const game=await popupPromise;
   const errors:string[]=[];game.on('pageerror',e=>errors.push(e.message));
   await expect(game.locator('.menu-message')).toContainText('Local locomotion clip ready');
-  await game.getByRole('button',{name:'Explore San Andreas',exact:true}).click();
+  await game.getByRole('button',{name:'Explore San Andreas',exact:true}).click();await endStoryMission(game);
   const state=()=>game.evaluate(()=>(window as any).__game.state());
   await expect.poll(async()=>(await state()).nativeCharacter?.visible).toBe(true);
   const start=(await state()).player.position;
@@ -59,7 +60,7 @@ test('explicit idle walk and run assignments select native actions and clear wit
   await expect(page.locator('#landing-assignment')).toContainText('diagnostic_turn');
   const popup=page.waitForEvent('popup');await page.getByRole('button',{name:'Test character in game'}).click();const game=await popup;
   const errors:string[]=[];game.on('pageerror',e=>errors.push(e.message));
-  await expect(game.locator('.menu-message')).toContainText('Local locomotion clip ready');await game.getByRole('button',{name:'Explore San Andreas',exact:true}).click();
+  await expect(game.locator('.menu-message')).toContainText('Local locomotion clip ready');await game.getByRole('button',{name:'Explore San Andreas',exact:true}).click();await endStoryMission(game);
   const state=()=>game.evaluate(()=>(window as any).__game.state());
   await expect.poll(async()=>(await state()).nativeCharacter.seconds).toBeGreaterThan(.1);
   expect((await state()).nativeCharacter.action).toBe('idle');

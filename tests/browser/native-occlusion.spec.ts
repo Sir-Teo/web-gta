@@ -1,10 +1,11 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 // COcclusion: occluLA.ipl puts a 34 x 9 x 4 occluder wall at native (2502, -1718.7) south of Grove Street. Facing it from
 // twelve units north, the wall becomes an active occluder and the placements behind it are culled.
 test('the Grove Street occluder wall hides the placements behind it',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).occlusion.occluders,{timeout:60000}).toBeGreaterThan(900);

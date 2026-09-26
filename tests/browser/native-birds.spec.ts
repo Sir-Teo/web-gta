@@ -1,9 +1,10 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 // CBirds::Update and CBirds::Render: a flock flies at the camera by day; CBirds::HandleGunShot drops a bird a bullet
 // passes through.
 test('birds fly past the camera by day and a gunshot drops one',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);

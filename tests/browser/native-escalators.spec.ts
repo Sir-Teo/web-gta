@@ -1,10 +1,11 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 // CEscalators: the escl_LA escalator at native (1129, -1502, 18.3) in Los Santos builds its steps when the camera
 // comes near and moves them along the flight.
 test('a streamed escalator builds moving steps near the camera',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).escalators.ready,{timeout:60000}).toBe(true);
@@ -36,7 +37,7 @@ test('a streamed escalator builds moving steps near the camera',async({page})=>{
 // the steps and is carried along the run.
 test('CJ standing on a moving escalator is carried along its run',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).escalators.ready,{timeout:60000}).toBe(true);

@@ -1,11 +1,12 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** Entering the starter car from the front used to leave the camera where it stood, in front of the car; leaving the
  * car without driving then put it in CJ's face and forward walked him toward it. The car camera now swings behind the
  * vehicle as soon as CJ is in, and the on-foot camera hangs on a string behind his movement. */
 test('the camera is behind the car once seated and behind CJ after he leaves it',async({page})=>{
  test.setTimeout(180000);
  await page.goto('/');
- await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await page.locator('canvas.world').click({position:{x:400,y:300}});await page.waitForTimeout(1500);
