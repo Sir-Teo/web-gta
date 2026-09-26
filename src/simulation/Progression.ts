@@ -21,7 +21,8 @@ export class Progression {
  onReward?:(name:string,reward:number)=>void;
  constructor(private inventory:WeaponInventory,private sim:Simulation,private storage?:Pick<Storage,'getItem'|'setItem'>){
   try{const raw=storage?.getItem(KEY);if(!raw||raw.length>32768)return;const data=JSON.parse(raw);if(data.version!==1)return;
-   if(finite(data.money,999999999))sim.money=data.money;
+   // CPlayerInfo::m_nMoney is signed: the HUD draws a debt as -$%07d.
+   if(Number.isInteger(data.money)&&data.money>=-9999999&&data.money<=999999999)sim.money=data.money;
    for(const mode of ['walk','drive'] as const)if(finite(data.distances?.[mode],1e9))this.distances[mode]=data.distances[mode];
    if(Array.isArray(data.completed))for(const id of data.completed)if(ACTIVITIES.some(a=>a.id===id))this.completed.add(id);
    if(finite(data.drivingSkill,1000))this.drivingSkill=data.drivingSkill;

@@ -4,7 +4,7 @@ import {Progression} from '../src/simulation/Progression';
 import {Simulation} from '../src/simulation/Simulation';
 import {WeaponInventory} from '../src/weapons/Inventory';
 beforeAll(async()=>{await RAPIER.init();});
-test('versioned saves restore ammo, money and practice; malformed fields retain defaults',()=>{const sim=new Simulation(),inv=new WeaponInventory();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};try{const p=new Progression(inv,sim,storage);inv.select(31);inv.fire();sim.money=999;p.hit(31);p.save();const restored=new WeaponInventory();new Progression(restored,sim,storage);expect(restored.selected).toBe(31);expect(restored.ammo.get(31)?.clip).toBe(49);expect(restored.practice.get(31)).toBe(5);expect(sim.money).toBe(999);raw=JSON.stringify({version:1,money:-1,ammo:[[31,Infinity,-1]],practice:[[31,999999]],selected:999});const safe=new WeaponInventory();new Progression(safe,sim,storage);expect(safe.selected).toBe(0);expect(safe.ammo.get(31)?.clip).toBe(50);expect(safe.practice.size).toBe(0);}finally{sim.dispose();}});
+test('versioned saves restore ammo, money and practice; malformed fields retain defaults',()=>{const sim=new Simulation(),inv=new WeaponInventory();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};try{const p=new Progression(inv,sim,storage);inv.select(31);inv.fire();sim.money=999;p.hit(31);p.save();const restored=new WeaponInventory();new Progression(restored,sim,storage);expect(restored.selected).toBe(31);expect(restored.ammo.get(31)?.clip).toBe(49);expect(restored.practice.get(31)).toBe(5);expect(sim.money).toBe(999);raw=JSON.stringify({version:1,money:'lots',ammo:[[31,Infinity,-1]],practice:[[31,999999]],selected:999});const safe=new WeaponInventory();new Progression(safe,sim,storage);expect(safe.selected).toBe(0);expect(safe.ammo.get(31)?.clip).toBe(50);expect(safe.practice.size).toBe(0);}finally{sim.dispose();}});
 test('driving activity rejects teleports and awards once',()=>{const sim=new Simulation(),p=new Progression(new WeaponInventory(),sim);try{p.tick(1/60,true,0,false);sim.player.position.x=10000;p.tick(1/60,true,0,false);expect(p.distances.drive).toBe(0);for(let i=0;i<1100;i++){sim.player.position.x++;p.tick(1/60,true,0,false);}expect(p.completed.has('drive')).toBe(true);expect(sim.money).toBe(850);}finally{sim.dispose();}});
 test('escape reward excludes death and arrest, and practice has bounded effects',()=>{const sim=new Simulation(),inv=new WeaponInventory(),p=new Progression(inv,sim);try{p.tick(.1,false,2,false);p.tick(.1,false,0,true);expect(p.completed.size).toBe(0);p.tick(.1,false,2,false);sim.player.health=0;p.tick(.1,false,0,false);expect(p.completed.size).toBe(0);sim.player.health=100;p.tick(.1,false,2,false);p.tick(.1,false,0,false);expect(p.completed.has('escape')).toBe(true);inv.select(31);for(let i=0;i<1000;i++)p.hit(31);expect(inv.proficiency).toBe(1);expect(inv.reloadDuration).toBeCloseTo(inv.weapon.reload*.8);}finally{sim.dispose();}});
 test('driving skill grows with driven distance, persists, and rejects teleports',()=>{const sim=new Simulation(),inv=new WeaponInventory();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};try{const p=new Progression(inv,sim,storage);p.tick(1/60,true,0,false);for(let i=0;i<2500;i++){sim.player.position.x++;p.tick(1/60,true,0,false);}expect(p.drivingSkill).toBeCloseTo(100,6);expect(p.snapshot().drivingSkill).toBeCloseTo(100,6);p.save();const restored=new Progression(new WeaponInventory(),sim,storage);expect(restored.drivingSkill).toBeCloseTo(100,6);sim.player.position.x=100000;restored.tick(1/60,true,0,false);expect(restored.drivingSkill).toBeCloseTo(100,6);}finally{sim.dispose();}});
@@ -34,5 +34,14 @@ test('sprayed tags survive a save and a reload',()=>{
  try{
   const p=new Progression(new WeaponInventory(),sim,storage);p.tags=[['tag:2490:-1680',255],['tag:2500:-1700',128]];p.save();
   expect(new Progression(new WeaponInventory(),sim,storage).tags).toEqual([['tag:2490:-1680',255],['tag:2500:-1700',128]]);
+ }finally{sim.dispose();}
+});
+
+test('a debt survives a reload, a fractional or out-of-range sum does not',()=>{
+ const sim=new Simulation();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  sim.money=-500;new Progression(new WeaponInventory(),sim,storage).save();sim.money=350;
+  new Progression(new WeaponInventory(),sim,storage);expect(sim.money).toBe(-500);
+  for(const money of [2.5,-10000000]){raw=JSON.stringify({version:1,money});sim.money=350;new Progression(new WeaponInventory(),sim,storage);expect(sim.money).toBe(350);}
  }finally{sim.dispose();}
 });
