@@ -3036,6 +3036,10 @@ async function boot() {
       (key,first,second)=>gxtHudText(insertNumbers(gxtText(key,key),first,second)),hud.element.clientWidth||innerWidth,hud.element.clientHeight||innerHeight,Math.min(2,devicePixelRatio||1));}
     {const shown=mission&&!paused?mission.onscreenDisplay():undefined,label=(key:string)=>key?gxtHudText(gxtText(key,key)):'';
      hud.missionTimers(shown&&{clock:shown.clock&&{text:shown.clock.text,label:label(shown.clock.key)},counters:shown.counters.map(c=>({text:c.text,label:label(c.key),type:c.type,value:c.value,colour:HUD_COLOURS[c.colour]??HUD_COLOURS[3]}))});}
+    // CTheZones::Update, while the game runs: the map squares the player has explored, which fog the frontend map.
+    {const game=mission?.runtime.game;
+     if(!paused&&!navigation?.open&&!arsenal.open)progression.zones.update(gameTimeMs,sim.player.position.x,-sim.player.position.z,render.lighting.area===0,!!game?.playerIsOffTheMap);
+     if(navigation){navigation.zones=progression.zones;navigation.hideMapBlips=!!(game?.hideAllFrontEndMapBlips||game?.playerIsOffTheMap);}}
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     // The script's own blips join the browser's: CRadar's table, drawn where the things it names are.
     navigation?.setLiveBlips([...(mission?.radarBlips()??[]),...(gangWarBlip&&gangWarBlip.visible?[{x:gangWarBlip.position.x,z:-gangWarBlip.position.y,sprite:attackBlipSprite(gangWarBlip.gang)}]:[]),...(pedestrians?.attackWavePositions()??[]).map(p=>{const c=GANG_COLOURS[p.gang??0]??[255,255,255];return {x:p.x,z:p.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:2};})]);

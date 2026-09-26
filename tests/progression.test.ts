@@ -75,3 +75,12 @@ test('a save as large as the loader allows is restored, and a failed write says 
   expect(new Progression(new WeaponInventory(),sim,{getItem:()=>null,setItem:()=>{throw new Error('QuotaExceededError');}}).save()).toBe(false);
  }finally{sim.dispose();}
 });
+
+test('the explored map squares survive a reload',()=>{
+ const sim=new Simulation();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);p.zones.update(0,2495,-1687,true,false);p.zones.update(6000,2495,-1687,true,false);p.save();
+  const restored=new Progression(new WeaponInventory(),sim,storage);
+  expect(restored.zones.revealed).toBe(1);expect(restored.zones.wasVisited(2495,-1687)).toBe(true);
+ }finally{sim.dispose();}
+});

@@ -1,5 +1,6 @@
 import {limitRadarPoint,radarNorth,radarPoint,RADAR_MIN_RANGE} from './nativeRadar';
 import {RADAR_SPRITE_NAMES,type ScmRadarBlip} from '../assets/scmRadarBlips';
+import {ZONE_SQUARES,type NativeZonesVisited} from '../world/nativeZonesVisited';
 /** CRadar::DisplayThisBlip for a player who cannot see outside: only traces and the centre, north,
  * waypoint, mafia casino, school, triad casino and cash sprites (the menu's blip-category toggles do not exist here). */
 const INDOOR_SPRITES=new Set([0,1,2,3,4,25,36,41,44,52]);
@@ -46,6 +47,10 @@ export class NativeMap {
  setLiveBlips(blips:readonly LiveBlip[]){this.liveBlips=blips;}
  /** CGame::currArea is not 0: the radar shows no map. */
  indoors=false;
+ /** CTheZones' explored squares, which fog the frontend map and hide its short-range blips. */
+ zones?:NativeZonesVisited;
+ /** HIDE_ALL_FRONTEND_BLIPS, or the player off the map (SET_PLAYER_IS_IN_STADIUM): no blips on the frontend map. */
+ hideMapBlips=false;
  private zoneOverlays:readonly ZoneOverlay[]=[];
  setZoneOverlays(overlays:readonly ZoneOverlay[]){this.zoneOverlays=overlays;}
  constructor(container:HTMLElement){
@@ -86,6 +91,28 @@ export class NativeMap {
  private notice?:string;
  toggle(open=!this.open){this.notice=undefined;this.panel.hidden=!open;this.onToggle?.(open);if(document.activeElement instanceof HTMLButtonElement)document.activeElement.blur();this.draw();}
  update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
+ /** CRadar::DrawBlips with the frontend's map drawing (m_bDrawingMap): every trace at blip size 1 with its height
+  * triangle, and every sprite, short-range ones included, sized in the screen lines the menu draws in. */
+ private drawMapBlips(c:CanvasRenderingContext2D,w:number){
+  // The radar fog: the squares not yet visited, while fewer than 80 are, in (111, 137, 170, 200).
+  const zones=this.zones;
+  if(zones&&zones.revealed<80){c.fillStyle='rgba(111,137,170,0.784)';const cell=w/ZONE_SQUARES;for(let x=0;x<ZONE_SQUARES;x++)for(let y=0;y<ZONE_SQUARES;y++)if(!zones.visited[x*ZONE_SQUARES+y])c.fillRect(x*cell,y*cell,cell,cell);}
+  if(this.hideMapBlips)return;
+  const revealed=(x:number,z:number,shortRange?:boolean)=>!zones||zones.blipRevealed(x,-z,!!shortRange);
+  const shown=this.full.clientHeight||w,u=(innerHeight/448)*(w/shown),at=(x:number,z:number)=>{const m=worldToMap(x,z);return {x:m.x*w,y:m.y*w};};
+  for(const blip of this.liveBlips){
+   if(blip.sprite!==undefined&&this.blipSprites.has(blip.sprite))continue;
+   const q=at(blip.x,blip.z),dz=blip.dz??0,colour=blip.colour??'#fff';
+   const tri=(half:number,up:boolean,fill:string,tip:number,base:number)=>{const k=up?-1:1;c.fillStyle=fill;c.beginPath();c.moveTo(q.x,q.y+k*tip*u);c.lineTo(q.x+half*u,q.y-k*base*u);c.lineTo(q.x-half*u,q.y-k*base*u);c.closePath();c.fill();};
+   if(dz>2){tri(4,true,'#000',4,3);tri(2,true,colour,2,2);}
+   else if(dz<-4){tri(4,false,'#000',4,3);tri(2,false,colour,2,2);}
+   else{c.fillStyle='#000';c.fillRect(q.x-2*u,q.y-2*u,4*u,4*u);c.fillStyle=colour;c.fillRect(q.x-u,q.y-u,2*u,2*u);}
+  }
+  // DrawRadarSprite: 8 lines either side of the blip.
+  const sprite=(img:HTMLImageElement,x:number,z:number)=>{const q=at(x,z);c.drawImage(img,q.x-8*u,q.y-8*u,16*u,16*u);};
+  for(const blip of this.blips){const img=this.blipSprites.get(blip.sprite);if(img&&displayThisBlip(blip.sprite,this.indoors)&&revealed(blip.x,-blip.y,blip.shortRange))sprite(img,blip.x,-blip.y);}
+  for(const blip of this.liveBlips){const img=blip.sprite!==undefined?this.blipSprites.get(blip.sprite):undefined;if(img&&displayThisBlip(blip.sprite!,this.indoors)&&revealed(blip.x,blip.z,blip.shortRange))sprite(img,blip.x,blip.z);}
+ }
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
   if(this.loaded)this.status.textContent=this.notice??(distance===undefined?'North is up · Cyan markers: parked vehicles · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`);
@@ -95,6 +122,7 @@ export class NativeMap {
    if(this.loaded)c.drawImage(this.image,-ox*scale,-oy*scale,scale,scale);
    for(const o of this.zoneOverlays){const a=worldToMap(o.x1,o.z1),b=worldToMap(o.x2,o.z2);c.fillStyle=o.colour;c.fillRect((a.x-ox)*scale,(a.y-oy)*scale,(b.x-a.x)*scale,(b.y-a.y)*scale);}
    for(const vehicle of this.vehicles){const v=worldToMap(vehicle.x,vehicle.z),vx=(v.x-ox)*scale,vy=(v.y-oy)*scale;c.fillStyle='#51e4ef';c.strokeStyle='#111';c.lineWidth=2;c.fillRect(vx-4,vy-6,8,12);c.strokeRect(vx-4,vy-6,8,12);}
+   if(full)this.drawMapBlips(c,w);
    const px=(p.x-ox)*scale,py=(p.y-oy)*scale;
    if(this.waypoint){const target=worldToMap(this.waypoint.x,this.waypoint.z),tx=(target.x-ox)*scale,ty=(target.y-oy)*scale;c.strokeStyle='#f765ce';c.lineWidth=full?3:2;c.setLineDash([6,5]);c.beginPath();c.moveTo(px,py);c.lineTo(tx,ty);c.stroke();c.setLineDash([]);c.fillStyle='#f765ce';c.strokeStyle='#1a1321';c.beginPath();c.arc(Math.max(9,Math.min(w-9,tx)),Math.max(9,Math.min(w-9,ty)),full?10:6,0,Math.PI*2);c.fill();c.stroke();}
    c.save();c.translate(px,py);c.rotate(-this.heading);const s=full?13:9;c.beginPath();c.moveTo(0,s);c.lineTo(-s*.7,-s*.8);c.lineTo(0,-s*.4);c.lineTo(s*.7,-s*.8);c.closePath();c.fillStyle='white';c.strokeStyle='#111';c.lineWidth=full?3:2;c.fill();c.stroke();c.restore();

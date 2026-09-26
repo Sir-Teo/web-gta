@@ -1,6 +1,7 @@
 import {WEAPONS} from '../weapons/catalog';
 import {skillStatWeapon,type WeaponInventory} from '../weapons/Inventory';
 import type {Simulation} from './Simulation';
+import {NativeZonesVisited} from '../world/nativeZonesVisited';
 export const ACTIVITIES=[{id:'walk',name:'Neighborhood explorer',description:'Walk 500 metres on foot.',target:500,reward:200},{id:'drive',name:'Street driver',description:'Drive one kilometre.',target:1000,reward:500},{id:'escape',name:'Lose the heat',description:'Escape a pursuit of two stars or more without being arrested or killed.',target:1,reward:300}] as const;
 const KEY='web-gta.progress.v1';
 /** The largest save the loader reads, well above what its own caps allow (2000 pickups, 512 stunt jumps, 200 tags). A
@@ -17,6 +18,8 @@ export class Progression {
  tags:[string,number][]=[];
  /** Collected one-time pickups and collectables (CPickups states), by ScmPickup id. */
  readonly pickups=new Set<string>();
+ /** CTheZones' explored map squares, saved as the original saves them. */
+ readonly zones=new NativeZonesVisited();
  /** CStuntJumpManager found/completed jumps, by ScmStuntJump id. */
  stuntJumpsFound=new Set<string>();stuntJumpsDone=new Set<string>();
  /** Where the last save point put the player (native x/y, browser height) and the clock it saved. */
@@ -38,6 +41,7 @@ export class Progression {
    if(Number.isInteger(data.fightingStyle)&&data.fightingStyle>=4&&data.fightingStyle<=16)inventory.fightingStyle=data.fightingStyle;
    if(Number.isInteger(data.allowedAttackMoves)&&data.allowedAttackMoves>=0&&data.allowedAttackMoves<=15)inventory.allowedAttackMoves=data.allowedAttackMoves;
    if(Array.isArray(data.pickups))for(const id of data.pickups.slice(0,2000))if(typeof id==='string'&&id.length<=64)this.pickups.add(id);
+   this.zones.load(data.zonesVisited);
    if(Array.isArray(data.tags))this.tags=data.tags.slice(0,200).filter((t:unknown)=>Array.isArray(t)&&typeof t[0]==='string'&&t[0].length<=64&&finite(t[1],255)&&Number.isInteger(t[1]));
    const saved=data.savedLocation;
    if(saved&&[saved.x,saved.y,saved.z,saved.heading,saved.timeMinutes].every(v=>typeof v==='number'&&Number.isFinite(v))&&Math.abs(saved.x)<4000&&Math.abs(saved.y)<4000&&saved.z>-200&&saved.z<2000&&saved.timeMinutes>=0&&saved.timeMinutes<1440)this.savedLocation={x:saved.x,y:saved.y,z:saved.z,heading:saved.heading,timeMinutes:saved.timeMinutes,weekDay:Number.isInteger(saved.weekDay)&&saved.weekDay>=1&&saved.weekDay<=7?saved.weekDay:undefined};
@@ -76,7 +80,7 @@ export class Progression {
  }
  snapshot(){return {distances:{...this.distances},completed:[...this.completed],practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.map(m=>({id:m.id,name:m.name,description:m.description,done:m.done})),currentMission:this.currentMission()?.id??null,missionProgress:this.missionProgress()??null,saveSlots:this.slots.map((s,i)=>({slot:i,has:!!s}))};}
  /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
- save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.filter(m=>m.done).map(m=>m.id),missionCounters:{kills:this.missionKills,hits:this.missionHits,collect:this.missionCollect,driveBase:this.missionDriveBase}});if(text.length>MAX_SAVE_LENGTH)return false;this.storage.setItem(KEY,text);return true;}catch{return false;}}
+ save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save(),missions:this.missions.filter(m=>m.done).map(m=>m.id),missionCounters:{kills:this.missionKills,hits:this.missionHits,collect:this.missionCollect,driveBase:this.missionDriveBase}});if(text.length>MAX_SAVE_LENGTH)return false;this.storage.setItem(KEY,text);return true;}catch{return false;}}
  /** Interior save points plus the save menu: three slots with location, clock and cash. */
  slots:(null|{x:number;y:number;z:number;heading:number;timeMinutes:number;money:number})[]=[null,null,null];
  saveToSlot(slot:number){
