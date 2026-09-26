@@ -98,7 +98,8 @@ export class Progression {
  currentMission(){return this.missions.find(m=>!m.done);}
  recordKill(gang?:number){
   const m=this.currentMission();
-  if(m?.kills&&this.reached(m)&&(gang===undefined||m.kills.gangs.includes(gang)))this.missionKills++;
+  // Only a member of one of the objective's gangs counts: a civilian or a cop has no gang.
+  if(m?.kills&&this.reached(m)&&gang!==undefined&&m.kills.gangs.includes(gang))this.missionKills++;
  }
  recordCollect(category:string){
   if(!['horseshoe','oyster','snapshot'].includes(category))return;

@@ -16,8 +16,8 @@ test('mission chain unlocks sequentially with reach, kill, drive, hit and collec
   expect(p.currentMission()?.id).toBe('grove-intro');
   p.missionUpdate();
   expect(p.currentMission()?.id).toBe('grove-defense');
-  // Wrong gang does not count; rivals do.
-  p.recordKill(1); p.recordKill(5);
+  // Wrong gang, or none (a civilian or a cop), does not count; rivals do.
+  p.recordKill(1); p.recordKill(5); p.recordKill(); p.recordKill(undefined);
   expect(p.missionProgress()).toEqual({ done: 0, total: 3 });
   p.recordKill(0); p.recordKill(0); p.recordKill(2);
   p.missionUpdate();
