@@ -343,6 +343,9 @@ export interface ScmMissionWorld {
  setScriptVehicleAirResistance?(car:unknown,multiplier:number):boolean;
  /** m_bIsStaticWaitingForCollision on a vehicle. */
  scriptVehicleWaitingForCollision?(car:unknown):boolean;
+ /** m_pEntityIgnoredCollision: the object and the car pass through each other until they part; undefined while the
+  * object's collision loads, false for a vehicle that is no automobile here. */
+ sortOutScriptObjectCollisionWithCar?(object:number,car:unknown):boolean|undefined;
  /** A vehicle model's collision bounding box; undefined while it loads, null for a model that is no vehicle. */
  vehicleModelBounds?(model:number):{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}}|null|undefined;
  /** Whether a vehicle drowns the peds sat in it: bIsDrowning, and not bWaterTight. */
@@ -1276,6 +1279,13 @@ export class ScmMission {
     if(bounds===undefined)throw new ScmEntityPending(`model ${model}`);
     if(bounds===null)throw new UnsupportedScmCommand(-1,0,'GET_MODEL_DIMENSIONS',`an object model (${model})`);
     return bounds;
+   },
+   // SORT_OUT_OBJECT_COLLISION_WITH_CAR (RYDER2's crates put in the van): the object ignores the car until they part.
+   sortOutObjectCollisionWithVehicle:(object,vehicle)=>{
+    this.runtime.game.objects.at(object);
+    const done=this.host('sortOutScriptObjectCollisionWithCar','SORT_OUT_OBJECT_COLLISION_WITH_CAR')(object,this.liveVehicle(vehicle));
+    if(done===undefined)throw new ScmEntityPending(`object ${object}`);
+    if(!done)throw new UnsupportedScmCommand(-1,0,'SORT_OUT_OBJECT_COLLISION_WITH_CAR','a bike, boat or aircraft');
    },
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},

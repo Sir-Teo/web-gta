@@ -131,6 +131,18 @@ export class Simulation {
   /** Vehicle tasks share the same breath state as swimming. Drowning bypasses armour. */
   /** CPed::bDrownsInWater for the player (SET_CHAR_DROWNS_IN_WATER). */
   playerDrownsInWater=true;
+  /** m_pEntityIgnoredCollision for the pairs the script sorted out (SORT_OUT_OBJECT_COLLISION_WITH_CAR): body-handle
+   * pairs, both ways, whose contacts every step drops. The filter reads handles only; nothing touches the world from
+   * inside it. */
+  readonly ignoredBodyPairs=new Set<string>();
+  readonly physicsHooks={
+    filterContactPair:(_c1:number,_c2:number,b1:number,b2:number)=>this.ignoredBodyPairs.has(b1<b2?`${b1}:${b2}`:`${b2}:${b1}`)?null:RAPIER.SolverFlags.COMPUTE_IMPULSE,
+    filterIntersectionPair:()=>true,
+  };
+  /** Rapier's JS World.step hands the hooks on only through stepWithEvents, which it takes when given an event queue. */
+  private readonly hookEvents=new RAPIER.EventQueue(true);
+  /** One world step; with the hooks only while a pair is being ignored, so the usual step stays the plain one. */
+  stepWorld(){if(this.ignoredBodyPairs.size)this.world.step(this.hookEvents,this.physicsHooks);else this.world.step();}
   /** CPhysical::SetVelocity on the player (SET_CHAR_VELOCITY), in native units per 50th of a second: the air carries
    * the horizontal part as his jump momentum, and a rise takes him off the ground; standing, the next step's
    * animation drives him again, as CPed's own move speed does. */
@@ -159,7 +171,7 @@ export class Simulation {
     this.player.previous = { ...this.player.position };
     if (this.climb) this.stepClimb(dt, controls);
     else this.moveCharacter(dt, controls);
-    this.world.step();
+    this.stepWorld();
     const center = this.playerBody.translation();
     this.player.position = { x: center.x, y: center.y - this.playerCenterHeight, z: center.z };
     // Fallen out of the world: only far below the lowest ground (the sea floor is above -50). The earlier rule,

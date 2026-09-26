@@ -1315,6 +1315,24 @@ async function boot() {
   /** The map objects a script hid (SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE) or took the collision off
    * (SET_USES_COLLISION_OF_CLOSEST_OBJECT_OF_TYPE), by placement key, applied again to every window that streams them in. */
   const hiddenPlacements=new Set<string>(),solidlessPlacements=new Set<string>();
+  /** SORT_OUT_OBJECT_COLLISION_WITH_CAR: a script object's m_pEntityIgnoredCollision on a car, by object handle. */
+  const sortedOutCollisions=new Map<number,{car:ScriptCar;pairs:string[];colliders:number[]}>();
+  const pairKey=(a:number,b:number)=>a<b?`${a}:${b}`:`${b}:${a}`;
+  const dropSortedOut=(handle:number)=>{
+    const entry=sortedOutCollisions.get(handle);if(!entry)return;
+    sortedOutCollisions.delete(handle);for(const pair of entry.pairs)sim.ignoredBodyPairs.delete(pair);
+    for(const h of entry.colliders)sim.world.getCollider(h)?.setActiveHooks(RAPIER.ActiveHooks.NONE);
+  };
+  /** CPhysical::ProcessCollisionSectorList lets go of the ignored entity once the two bounding spheres no longer
+   * touch (or either is gone). */
+  const releaseSortedOutCollisions=()=>{
+    for(const [handle,entry] of sortedOutCollisions){
+     const body=scriptObjectViews?.bodyOf(handle),car=entry.car;
+     if(!body?.isValid()||car.disposed||!car.car.body.isValid()){dropSortedOut(handle);continue;}
+     const a=body.translation(),b=car.car.body.translation(),n=car.nativeBody,carRadius=Math.hypot(n.boundsMax.x-n.boundsMin.x,n.boundsMax.y-n.boundsMin.y,n.boundsMax.z-n.boundsMin.z)/2;
+     if(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)>=(scriptObjectViews?.boundsRadius(handle)??0)+carRadius)dropSortedOut(handle);
+    }
+  };
   const reapplySmashedProps=(scene:NonNullable<typeof importedScene>)=>{
     if(hiddenPlacements.size||solidlessPlacements.size)for(const [handle,source] of scene.sources){
       if(!source.placement)continue;
@@ -1966,6 +1984,8 @@ async function boot() {
     collisionMaterialHistogram:()=>{const h:Record<number,number>={};for(const record of importedScene?.sources.values()??[]){const s=record.source;if(s.kind!=='mesh')continue;for(const m of s.mesh.materials)h[m]=(h[m]??0)+1;}return h;},
     /** The map placements a script hid or took the collision off, by placement key. */
     scriptPlacementFlags:()=>({hidden:[...hiddenPlacements],solidless:[...solidlessPlacements]}),
+    /** Script objects still passing through the car they were sorted out with. */
+    sortedOutCollisions:()=>[...sortedOutCollisions.keys()],
     /** Dev probe: the collision surface under a renderer-frame point (material id, face and source kind), or null. */
     surfaceAt:(x:number,z:number,top=200)=>{const hit=sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)return null;const record=importedScene?.sources.get(hit.collider.handle);const surface=record?nativeCollisionSurface(record.source,hit):undefined;return {y:top-hit.timeOfImpact,handle:hit.collider.handle,known:!!record,model:record?.modelName??null,kind:record?.source.kind??null,material:surface?.material??null,face:surface?.faceIndex??null,featureType:hit.featureType,keys:record?Object.keys(record):[]};},
     /** What a ray between two renderer-frame points meets first (the player excluded). */
@@ -2529,7 +2549,7 @@ async function boot() {
           // CPlayerPed::ProcessControl: in any vehicle but a CBmx (the BMX, Chopper and Mountain Bike), sprint energy
           // recovers as standing still.
           if(!BMX_MODELS.has(fleet?.occupiedBike?.modelId??-1))sim.player.stamina=stepStamina(sim.player.stamina,false,false,step);
-          sim.world.step();sim.advanceClock(step*sim.clockRate());
+          sim.stepWorld();sim.advanceClock(step*sim.clockRate());
           sim.advancePlayerDeath(step,()=>{
             carEntry.abandon();bikeMount.abandon();
             if(worldCar)worldCar.occupied=false;
@@ -2543,7 +2563,7 @@ async function boot() {
         else {const animated=sim.climbing?controls:render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming&&!(controls.gunMove&&animated.animationMotion)?controls:animated);}
         frameProfile.stepPlayer+=performance.now()-tPlayer;
         if(render.nativeCharacter?.duckRollDone)duck.rollFinished();
-        kickSweptProps();
+        kickSweptProps();releaseSortedOutCollisions();
         guard('pedestrians.afterStep',()=>pedestrians?.afterStep());
         // CWorld::Process: after the collisions, CVehicleRecording puts each played-back car on its recording.
         mission?.processCarRecordings(gameTimeMs);
@@ -3805,6 +3825,16 @@ async function boot() {
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
                  vehicleModelType:model=>fleet?fleet.vehicleIdeType(model):null,
                  scriptVehicleWaitingForCollision:car=>isScriptCar(car)&&car.waitingForCollision,
+                 sortOutScriptObjectCollisionWithCar:(object,car)=>{
+                  if(!isScriptCar(car))return false;
+                  const body=scriptObjectViews?.bodyOf(object);if(!body?.isValid())return undefined;
+                  dropSortedOut(object);
+                  const colliders:number[]=[];for(let i=0;i<body.numColliders();i++){const c=body.collider(i);c.setActiveHooks(RAPIER.ActiveHooks.FILTER_CONTACT_PAIRS);colliders.push(c.handle);}
+                  // Keyed on the bodies the car's colliders report as their parents, which the filter is handed.
+                  const parents=new Set<number>([car.car.body.handle]);for(let i=0;i<car.car.body.numColliders();i++){const p=car.car.body.collider(i).parent();if(p)parents.add(p.handle);}
+                  const pairs=[...parents].map(p=>pairKey(body.handle,p));for(const pair of pairs)sim.ignoredBodyPairs.add(pair);
+                  sortedOutCollisions.set(object,{car,pairs,colliders});return true;
+                 },
                  vehicleModelBounds:model=>fleet?fleet.modelBounds(model):undefined,
                  scriptVehicleDrownsOccupants:car=>isScriptCar(car)&&car.drowning&&!car.waterTight,
                  setScriptVehicleWatertight:(car,state)=>{(car as {waterTight?:boolean}).waterTight=state;},

@@ -8371,3 +8371,13 @@ The model's `CColModel` bounding box, min and max corners. A vehicle model's com
 loads it, kept per model; the thread waits at the command the frames the load takes, as it does for an entity still
 being built. An object model's box is not held here yet and stays a reported gap (MUSIC2, CAT1); MAIN's use, the SF
 crane measuring the car it drops, is a vehicle. Spec: `script-car-drag-and-models`.
+
+## SORT_OUT_OBJECT_COLLISION_WITH_CAR
+
+RYDER2 drops each crate into the van, makes it dynamic, and gives it the van as `m_pEntityIgnoredCollision`, so the
+two pass through each other (`CObject`/`CVehicle::SpecialEntityPreCollisionStuff` mark the pair ignored) until
+`CPhysical::ProcessCollisionSectorList` finds their bounding spheres no longer touching and lets go. The browser drops
+the pair's contacts with a Rapier contact filter hook on the object's colliders, keyed on the body handles its
+colliders report, and releases it after the step once the object's COL sphere and the car's bounds sphere part, or
+either is gone. Rapier's JS step hands hooks over only with an event queue, so the world steps with one only while a
+pair is ignored. Spec: `script-object-car-collision`.
