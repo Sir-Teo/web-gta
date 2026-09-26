@@ -21,5 +21,7 @@ test('a script ped in a sunk car drowns unless the car is watertight',async({pag
  await expect.poll(()=>page.evaluate(m=>{const g=(window as any).__game.missionForProfiling();return g.vehicles.entity(m.open).drowning&&g.vehicles.entity(m.tight).drowning;},made),{timeout:60000}).toBe(true);
  await expect.poll(()=>w('pedHealth',made.a),{timeout:30000}).toBeLessThan(60);
  expect(await w('pedHealth',made.b)).toBe(100);
+ // IS_CAR_DEAD: a drowning car is dead to the script (bIsDrowning), watertight or not.
+ expect([await w('vehicleIsDeadForScript',made.open),await w('vehicleIsDeadForScript',made.tight)]).toEqual([true,true]);
  expect(errors).toEqual([]);
 });

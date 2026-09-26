@@ -8396,3 +8396,10 @@ pair is ignored. Spec: `script-object-car-collision`.
 - `GET_VEHICLE_CLASS` (MAIN, HOODS5) is `m_nVehicleClass`: vehicles.ide's class in eVehicleClass order, `ignore` -1.
 - `IS_CHAR_GETTING_IN_TO_A_CAR` (HOODS5) asks for an active enter-car task, the player's car entry or mount, or a
   script ped's enter-car order. Specs: `scm-objects` (unit), `script-world-queries`.
+
+## IS_CAR_DEAD
+
+The script's question answered "dead" only once the car no longer existed, so a car blown up or sunk stayed alive to
+every mission: SWEET2's target practice on a car (shoot it until it burns and blows) could never end. It is now
+reVC's handler: no vehicle, `STATUS_WRECKED`, or `bIsDrowning`; a car still being built is not dead. The player's own
+car (handle 1) reads the same from the car he is in. Specs: `script-world-queries`, `script-car-watertight`.

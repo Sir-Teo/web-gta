@@ -349,6 +349,8 @@ export interface ScmMissionWorld {
  setScriptVehicleAirResistance?(car:unknown,multiplier:number):boolean;
  /** m_bIsStaticWaitingForCollision on a vehicle. */
  scriptVehicleWaitingForCollision?(car:unknown):boolean;
+ /** STATUS_WRECKED or bIsDrowning: what IS_CAR_DEAD asks. */
+ scriptVehicleIsDead(car:unknown):boolean;
  /** m_pEntityIgnoredCollision: the object and the car pass through each other until they part; undefined while the
   * object's collision loads, false for a vehicle that is no automobile here. */
  sortOutScriptObjectCollisionWithCar?(object:number,car:unknown):boolean|undefined;
@@ -1672,7 +1674,13 @@ export class ScmMission {
    vehicleExists:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
    // A car still being built holds the command that needs it until it is there.
    awaitVehicle:handle=>{if(handle!==PLAYER_VEHICLE_HANDLE&&this.vehicles.exists(handle)&&!this.vehicles.settledFor(handle))throw new ScmEntityPending(`vehicle ${handle}`);},
-   vehicleIsDeadForScript:handle=>handle===PLAYER_VEHICLE_HANDLE?!this.world.playerPed().vehicle:!this.vehicles.exists(handle),
+   // IS_CAR_DEAD (reVC's handler): no vehicle, STATUS_WRECKED, or bIsDrowning. A car still being built is not dead.
+   vehicleIsDeadForScript:handle=>{
+    if(handle===PLAYER_VEHICLE_HANDLE){const car=this.world.playerPed().vehicle?this.world.playerVehicleEntity?.():undefined;return car===undefined||this.world.scriptVehicleIsDead(car);}
+    if(!this.vehicles.exists(handle))return true;
+    const car=this.vehicles.entity(handle);
+    return car!==undefined&&this.world.scriptVehicleIsDead(car);
+   },
    vehiclePosition:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).position:this.vehicles.positionOf(handle),
    // reVC's SET_CAR_COORDINATES: the point lifted by CEntity::GetDistanceFromCentreOfMassToBaseOfModel, the car
    // teleported there keeping its heading, the space round it cleared (ClearSpaceForMissionEntity), and a car on a
