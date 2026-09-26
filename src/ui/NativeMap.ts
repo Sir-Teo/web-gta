@@ -59,7 +59,12 @@ export class NativeMap {
   this.element.querySelector<HTMLSelectElement>('.map-destination')!.onchange=e=>{const places:Record<string,{x:number;z:number}>={grove:{x:2495,z:1687},meadows:{x:400,z:-2500},'ls-airport':{x:1685,z:2420},'sf-airport':{x:-1330,z:240},'lv-airport':{x:1450,z:-1450}};const destination=places[(e.target as HTMLSelectElement).value];if(destination){this.notice=undefined;this.waypoint={...destination};this.draw();}(e.target as HTMLSelectElement).blur();};
   const fly=this.element.querySelector<HTMLButtonElement>('.map-fly')!;
   fly.onclick=async()=>{if(!this.onFly)return;fly.disabled=true;try{await this.onFly(Number(this.element.querySelector<HTMLSelectElement>('.map-aircraft')!.value));}catch(error){this.notice=error instanceof Error?error.message:String(error);this.draw();}finally{fly.disabled=false;}};
-  this.full.onclick=e=>{this.notice=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';const r=this.full.getBoundingClientRect();this.waypoint=mapToWorld((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);this.draw();};
+  this.full.onclick=e=>{this.notice=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';const r=this.full.getBoundingClientRect();
+   // The square map is drawn contained (object-fit) in a box the panel may squeeze out of square: measure the click
+   // against the drawn square, and leave the bars beside it alone.
+   const side=Math.min(r.width,r.height),u=(e.clientX-r.left-(r.width-side)/2)/side,v=(e.clientY-r.top-(r.height-side)/2)/side;
+   if(u<0||u>1||v<0||v>1)return;
+   this.waypoint=mapToWorld(u,v);this.draw();};
   this.image.onload=()=>{this.loaded=true;this.draw();};this.image.onerror=()=>{this.status.textContent='Map image could not load. Reload to retry.';};
   this.element.addEventListener('click',e=>{if(e.target instanceof HTMLButtonElement)e.target.blur();});
   // The radar is first drawn when play starts: fetch it behind what the menu is waiting on.
