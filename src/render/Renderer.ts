@@ -1,5 +1,6 @@
 import {nativeDayNightBalance} from '../world/nativeDayNight';
 import { retainPrograms } from './retainPrograms';
+import { ProgramWarmer } from './programWarmer';
 import { setCompressedTextureSupport } from '../assets/nativeTexture';
 import {nativeContactBrightness,nativeContactLightMultiplier} from '../simulation/nativeContactLighting';
 import {applyWindowedCameraProjection, GAME_CAMERA_FOV} from './cameraProjection';
@@ -20,6 +21,8 @@ export class GameRenderer {
   // tree to be recomputed each frame; moving objects still update their own subtrees.
   readonly scene = (() => { const scene = new THREE.Scene(); scene.matrixAutoUpdate = false; return scene; })();
   readonly camera = new THREE.PerspectiveCamera(GAME_CAMERA_FOV, 1, 0.08, 650);
+  /** Links new objects' shader programs beside the frames instead of in the one they first draw in. */
+  readonly programWarmer: ProgramWarmer;
   aiming=false;
   /** The camera's first-person weapon mode (see nativeFirstPerson), or undefined for the follow camera. */
   firstPerson?:FirstPersonMode;
@@ -96,6 +99,7 @@ export class GameRenderer {
     // driver that stalls the frame each time streaming brings a new material variant (it was a sixth of the CPU in a
     // steady walk). A development build keeps the checks so a broken shader still says why.
     this.renderer.debug.checkShaderErrors = import.meta.env.DEV;
+    this.programWarmer = new ProgramWarmer(this.renderer, this.scene, this.camera);
     // SA's PC rasters are mostly DXT: sample them compressed, as the D3D9 device does.
     setCompressedTextureSupport(this.renderer.extensions.has('WEBGL_compressed_texture_s3tc'));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -211,6 +215,7 @@ export class GameRenderer {
     this.nativeCharacter?.setAmbient(this.lighting.nativeObjectAmbient,this.lighting.sunLightMultiplier*contact,contact);
     this.beforeRender?.(this.camera);lap('beforeRender');
     this.nativeShadow.update(this.renderer,this.nativeCharacter,this.shadowReceivers,this.camera.position,this.sim.timeMinutes,this.lighting.nativeShadowStrength,paused,this.playerShadowAllowed);lap('shadow');
+    this.programWarmer.beforeRender(performance.now());
     this.renderer.render(this.scene, this.camera);this.afterRender?.();retainPrograms(this.renderer);lap('render');this.profile.frames++;
   }
   dispose() {

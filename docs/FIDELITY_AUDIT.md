@@ -8443,3 +8443,13 @@ forward run clip, sliding. Now the stance holds melee_1's `FIGHTIDLE` and the st
 `CTaskSimpleFight::ControlFight` are not reversed: the shuffles are picked as the gun task picks its moves for a weapon
 aimed with the arm (the dominant stick direction, past ±0.75 sideways, blended in at 8), reading the stick as it stands.
 Weapon groups' own idles (the bat's, the knife's) are not used for the stance. Spec: `native-fight-stance`.
+
+## Shader programs linked beside the frames
+
+A kill that brings the police made the frame the first police car drew in stall: three compiles and links a material's
+program on its first draw and waits for the driver, and the cop car's paint and wheel materials were new variants. The
+same first-draw wait hit the moon, coronas, light pools, birds and dropped pickups. `ProgramWarmer` batches the objects
+added to the scene since the last frame through `WebGLRenderer.compile` (against the scene's own lights, fog and
+environment, without walking the whole tree), and where `KHR_parallel_shader_compile` is present, keeps a mesh whose
+program is not linked yet out of the camera's layers until the driver reports it done. Without the extension (headless
+SwiftShader) it does nothing and three links on first use as before. Spec: `program-warmer` (unit).
