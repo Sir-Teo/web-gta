@@ -28,3 +28,11 @@ test('the fighting style the gyms teach is saved and restored',()=>{
   expect([restored.fightingStyle,restored.allowedAttackMoves]).toEqual([6,6]);
  }finally{sim.dispose();}
 });
+
+test('sprayed tags survive a save and a reload',()=>{
+ const sim=new Simulation();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);p.tags=[['tag:2490:-1680',255],['tag:2500:-1700',128]];p.save();
+  expect(new Progression(new WeaponInventory(),sim,storage).tags).toEqual([['tag:2490:-1680',255],['tag:2500:-1700',128]]);
+ }finally{sim.dispose();}
+});
