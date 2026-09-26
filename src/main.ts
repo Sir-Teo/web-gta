@@ -3530,8 +3530,10 @@ async function boot() {
            }
           }).catch(error=>{if(alive)hud.message(`Vehicle could not load: ${error.message}`);});
           if(navigation)navigation.onFly=modelId=>{
+            // Any vehicle, and any entry or exit under way: the player can only be put in the new aircraft from on foot.
+            const riding=fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBike||fleet?.occupiedBoat||worldCar?.occupied||playerPassenger||playerAttached||carEntry.phase!==undefined||bikeMount.active;
+            if(riding)return Promise.reject(new Error('Leave your current vehicle before choosing another plane.'));
             if(!fleet||!staticWorld||flightTransfer||installingScene)return Promise.reject(new Error('Wait for world loading to finish.'));
-            if(fleet.occupied||fleet.occupiedPlane)return Promise.reject(new Error('Leave your current vehicle before choosing another plane.'));
             // The airfield replaces the current window: a follow request in flight (the primed start window, say) is dropped.
             follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;pendingPrebuild?.job.dispose();pendingPrebuild=undefined;
             navigation.toggle(false);pause();menuBusy(true);hud.menuMessage('Loading Verdant Meadows and your aircraft…');

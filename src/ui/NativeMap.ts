@@ -55,11 +55,11 @@ export class NativeMap {
   this.altimeter.className='radar-altimeter';this.altimeterMark.className='radar-altimeter-mark';this.altimeter.hidden=this.altimeterMark.hidden=true;this.element.append(this.altimeter,this.altimeterMark);this.mini=this.element.querySelector('.minimap-button canvas')!;this.full=this.element.querySelector('.world-map-panel canvas')!;this.panel=this.element.querySelector('.world-map-panel')!;this.status=this.element.querySelector('.map-status')!;
   this.element.querySelector<HTMLButtonElement>('.minimap-button')!.onclick=()=>this.toggle();
   this.element.querySelector<HTMLButtonElement>('.map-close')!.onclick=()=>this.toggle(false);
-  this.element.querySelector<HTMLButtonElement>('.map-clear')!.onclick=()=>{this.waypoint=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';this.draw();};
-  this.element.querySelector<HTMLSelectElement>('.map-destination')!.onchange=e=>{const places:Record<string,{x:number;z:number}>={grove:{x:2495,z:1687},meadows:{x:400,z:-2500},'ls-airport':{x:1685,z:2420},'sf-airport':{x:-1330,z:240},'lv-airport':{x:1450,z:-1450}};const destination=places[(e.target as HTMLSelectElement).value];if(destination){this.waypoint={...destination};this.draw();}(e.target as HTMLSelectElement).blur();};
+  this.element.querySelector<HTMLButtonElement>('.map-clear')!.onclick=()=>{this.notice=undefined;this.waypoint=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';this.draw();};
+  this.element.querySelector<HTMLSelectElement>('.map-destination')!.onchange=e=>{const places:Record<string,{x:number;z:number}>={grove:{x:2495,z:1687},meadows:{x:400,z:-2500},'ls-airport':{x:1685,z:2420},'sf-airport':{x:-1330,z:240},'lv-airport':{x:1450,z:-1450}};const destination=places[(e.target as HTMLSelectElement).value];if(destination){this.notice=undefined;this.waypoint={...destination};this.draw();}(e.target as HTMLSelectElement).blur();};
   const fly=this.element.querySelector<HTMLButtonElement>('.map-fly')!;
-  fly.onclick=async()=>{if(!this.onFly)return;fly.disabled=true;try{await this.onFly(Number(this.element.querySelector<HTMLSelectElement>('.map-aircraft')!.value));}catch(error){this.status.textContent=String(error);}finally{fly.disabled=false;}};
-  this.full.onclick=e=>{this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';const r=this.full.getBoundingClientRect();this.waypoint=mapToWorld((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);this.draw();};
+  fly.onclick=async()=>{if(!this.onFly)return;fly.disabled=true;try{await this.onFly(Number(this.element.querySelector<HTMLSelectElement>('.map-aircraft')!.value));}catch(error){this.notice=error instanceof Error?error.message:String(error);this.draw();}finally{fly.disabled=false;}};
+  this.full.onclick=e=>{this.notice=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';const r=this.full.getBoundingClientRect();this.waypoint=mapToWorld((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);this.draw();};
   this.image.onload=()=>{this.loaded=true;this.draw();};this.image.onerror=()=>{this.status.textContent='Map image could not load. Reload to retry.';};
   this.element.addEventListener('click',e=>{if(e.target instanceof HTMLButtonElement)e.target.blur();});
   // The radar is first drawn when play starts: fetch it behind what the menu is waiting on.
@@ -77,11 +77,13 @@ export class NativeMap {
  /** Names of the hud.txd rasters the script blips use. */
  static blipSpriteNames(){return RADAR_SPRITE_NAMES.filter((n,i):n is string=>!!n&&i>4);}
  get open(){return !this.panel.hidden;}
- toggle(open=!this.open){this.panel.hidden=!open;this.onToggle?.(open);if(document.activeElement instanceof HTMLButtonElement)document.activeElement.blur();this.draw();}
+ /** Why the last flight was refused, kept in the status line (which every draw rewrites) until the next map action. */
+ private notice?:string;
+ toggle(open=!this.open){this.notice=undefined;this.panel.hidden=!open;this.onToggle?.(open);if(document.activeElement instanceof HTMLButtonElement)document.activeElement.blur();this.draw();}
  update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
-  if(this.loaded)this.status.textContent=distance===undefined?'North is up · Cyan markers: parked vehicles · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`;
+  if(this.loaded)this.status.textContent=this.notice??(distance===undefined?'North is up · Cyan markers: parked vehicles · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`);
   const draw=(canvas:HTMLCanvasElement,full:boolean)=>{
    const c=canvas.getContext('2d')!,w=canvas.width,span=full?1:700/6000,scale=w/span,ox=full?0:p.x-span/2,oy=full?0:p.y-span/2;
    c.clearRect(0,0,w,w);c.fillStyle='#79aabd';c.fillRect(0,0,w,w);
