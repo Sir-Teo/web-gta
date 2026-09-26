@@ -1316,6 +1316,12 @@ export class ScmMission {
    // SET_GANG_WEAPONS: CGangs::SetGangWeapons, which the gang members the population makes from now on draw from.
    setGangWeapons:(gang,first,second,third)=>{setGangWeapons(gang,first,second,third);},
    drawCrosshair:state=>{this.host('setForceCrosshair','DRAW_CROSSHAIR')(state);},
+   // DRAW_CORONA (reVC's handler): the point dropped to the ground at or below the map's low limit, then
+   // RegisterCorona with the thread's id, full intensity, the script's colour, size, type and flare, and reflection.
+   drawCorona:(x,y,z,size,coronaType,flareType,r,g,b,id)=>{
+    if(z<=-100)z=this.findGroundZForCoord(x,y);
+    this.coronaQueue.push({id,position:[x,y,z],size,color:[r&255,g&255,b&255],coronaType,flareType});
+   },
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
    fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},
@@ -2226,6 +2232,9 @@ export class ScmMission {
   if(map?.key!==undefined&&(!best||map.distance<best.distance)){const key=map.key;best={distance:map.distance,apply:()=>this.world.setWorldObjectFlag?.(key,flag,state)};}
   best?.apply();
  }
+ /** DRAW_CORONA's registrations since the host last took them: the host registers each with CCoronas that frame. */
+ private coronaQueue:{id:number;position:[number,number,number];size:number;color:[number,number,number];coronaType:number;flareType:number}[]=[];
+ takeScriptCoronas(){const out=this.coronaQueue;this.coronaQueue=[];return out;}
  private vehicleModelType(model:number|string,command:string){
   const type=this.host('vehicleModelType',command)(model);
   if(type===null)throw new ScmEntityPending('the vehicle catalog');

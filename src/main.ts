@@ -960,6 +960,9 @@ async function boot() {
           const p=projectile.position,missile=missileGlow(projectile.id,[p.x,-p.z,p.y]);glow.pools.push(missile.pool);glow.coronas.push(missile.corona);
         }
         for(const corona of glow.coronas)coronas.register(corona,cam);
+        // DRAW_CORONA: 450 units of range, reflected in wet roads, no obstacle check (reVC's RegisterCorona call). Only
+        // the star raster is drawn here, whatever type the script names.
+        for(const c of mission?.takeScriptCoronas()??[])coronas.register({id:c.id,color:c.color,intensity:255,position:c.position,size:c.size,range:450,flareType:c.flareType,reflection:true},cam);
         const scene=importedScene;lightPools.frame([...pools,...glow.pools],cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.poolTexture);
         // CVehicle::DoHeadLightReflection: the road pools under lit headlights (each car's GetVehicleLightsStatus).
         const twinPools:import('./world/nativeEntityLights').LightPool[]=[],singlePools:import('./world/nativeEntityLights').LightPool[]=[];
@@ -1986,6 +1989,8 @@ async function boot() {
     scriptPlacementFlags:()=>({hidden:[...hiddenPlacements],solidless:[...solidlessPlacements]}),
     /** Script objects still passing through the car they were sorted out with. */
     sortedOutCollisions:()=>[...sortedOutCollisions.keys()],
+    /** The live CCoronas slots: id, colour, intensity and where. */
+    coronaSlots:()=>coronas.coronas.filter(c=>c.id).map(c=>({id:c.id,color:[...c.color],alpha:c.alpha,position:[...c.position],size:c.size,farClip:c.farClip})),
     /** Dev probe: the collision surface under a renderer-frame point (material id, face and source kind), or null. */
     surfaceAt:(x:number,z:number,top=200)=>{const hit=sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)return null;const record=importedScene?.sources.get(hit.collider.handle);const surface=record?nativeCollisionSurface(record.source,hit):undefined;return {y:top-hit.timeOfImpact,handle:hit.collider.handle,known:!!record,model:record?.modelName??null,kind:record?.source.kind??null,material:surface?.material??null,face:surface?.faceIndex??null,featureType:hit.featureType,keys:record?Object.keys(record):[]};},
     /** What a ray between two renderer-frame points meets first (the player excluded). */

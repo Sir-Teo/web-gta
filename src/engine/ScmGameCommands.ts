@@ -2257,7 +2257,7 @@ const handlers:Record<string,ScmCommandHandler>={
  DRAW_CROSSHAIR:(t,p,i)=>{world(t,i,'drawCrosshair')(bool(t,p[0]));},
  GET_CAR_SPEED_VECTOR:(t,p,i)=>{const result=world(t,i,'getCarSpeedVector')(t.readInt(p[0]));t.writeFloat(p[1],result.x);t.writeFloat(p[2],result.y);t.writeFloat(p[3],result.z);},
  ADD_BLOOD:(t,p,i)=>{world(t,i,'addBlood')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]),t.readInt(p[7]));},
- DRAW_CORONA:(t,p,i)=>{world(t,i,'drawCorona')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]));},
+ DRAW_CORONA:(t,p,i)=>{world(t,i,'drawCorona')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]),t.base+i.offset);},
  MARK_MISSION_TRAINS_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markMissionTrainsAsNoLongerNeeded')();},
  REQUEST_VEHICLE_MOD:(t,p,i)=>{world(t,i,'requestVehicleMod')(model(t,i,p[0]));},
  ADD_VEHICLE_MOD:(t,p,i)=>{t.writeInt(p[2],world(t,i,'addVehicleMod')(t.readInt(p[0]),model(t,i,p[1])));},

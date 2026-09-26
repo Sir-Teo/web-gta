@@ -774,7 +774,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  drawCrosshair?(state:boolean):void;
  getCarSpeedVector?(handle:number):{x:number,y:number,z:number};
  addBlood?(x:number,y:number,z:number,velocityX:number,velocityY:number,velocityZ:number,density:number,handle:number):void;
- drawCorona?(x:number,y:number,z:number,size:number,coronaType:number,flareType:number,r:number,g:number,b:number):void;
+ /** `id` is the thread's own for the command (its script-space offset): RegisterCorona's `this + m_nIp`. */
+ drawCorona?(x:number,y:number,z:number,size:number,coronaType:number,flareType:number,r:number,g:number,b:number,id:number):void;
  markMissionTrainsAsNoLongerNeeded?():void;
  requestVehicleMod?(modelId:number|string):void;
  addVehicleMod?(handle:number,modelId:number|string):number;

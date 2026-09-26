@@ -67,6 +67,13 @@ test('a script reads a passenger seat, a line of sight, a group, a car engine, c
  const crosshair=()=>page.evaluate(()=>{const e=document.querySelector('.weapon-crosshair') as HTMLElement|null;return !!e&&!e.hidden;});
  await w('drawCrosshair',true);await expect.poll(crosshair,{timeout:5000}).toBe(true);
  await w('drawCrosshair',false);await expect.poll(crosshair,{timeout:5000}).toBe(false);
+ // DRAW_CORONA: registered under the thread's id with the script's colour and size and 450 units of range, and gone
+ // once the script stops asking for it each frame.
+ const me=await w('pedPosition',1);
+ const ask=()=>w('drawCorona',me.x+3,me.y,me.z+1,.5,0,0,255,10,20,4242);
+ const slot=()=>page.evaluate(()=>(window as any).__game.coronaSlots().find((c:any)=>c.id===4242)??null);
+ await expect.poll(async()=>{await ask();return slot();},{timeout:10000}).toMatchObject({color:[255,10,20],alpha:255,size:.5,farClip:450});
+ await expect.poll(slot,{timeout:10000}).toBeNull();
  // GET_VEHICLE_CLASS: vehicles.ide's class, the police car's 'ignore' as -1.
  expect(await w('getVehicleClass',made.car)).toBe(-1);
  // IS_CAR_DEAD: whole, the car lives; blown up (STATUS_WRECKED), it is dead though it is still there.

@@ -8423,3 +8423,12 @@ reversed sources, and this follows its documented purpose. Spec: `script-world-q
 `CTaskSimpleShakeFist` (reversed) blends the default group's FUCKU clip in at 4 with finish and blend auto-remove, and
 ends when the clip does. The command now gives that as the script's play-anim task (ped.ifp's `fucku`, blend 4, once,
 interruptible) rather than stopping the thread (GUNS1, CAT3). Spec: `scm-final-tail` (unit).
+
+## DRAW_CORONA
+
+reVC's handler: the point dropped to the ground at or below the map's low limit, then `CCoronas::RegisterCorona` with
+the thread's own id (`this + m_nIp`), full intensity, the script's colour, size and flare, 450 units of range and the
+wet-road reflection on, once for each frame the script asks (RYDER2's marker over the crates, SYND4, KICKSTA). The
+mission queues the registrations and the frame hands them to the corona port with the camera, so a corona the script
+stops drawing fades out as any other. Only the star raster is drawn here, whatever corona type the script names.
+Spec: `script-world-queries`.
