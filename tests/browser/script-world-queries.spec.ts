@@ -63,6 +63,10 @@ test('a script reads a passenger seat, a line of sight, a group, a car engine, c
  const pelvis=await w('deadPedCoordinates',rider),root=await w('pedPosition',rider);
  expect(Math.hypot(pelvis.x-root.x,pelvis.y-root.y)).toBeLessThan(1);expect(Math.abs(pelvis.z-root.z)).toBeLessThan(1.2);
  expect(await w('hasLanguageChanged')).toBe(false);
+ // DRAW_CROSSHAIR: the aiming circle shows without aiming while it is on, and goes with it.
+ const crosshair=()=>page.evaluate(()=>{const e=document.querySelector('.weapon-crosshair') as HTMLElement|null;return !!e&&!e.hidden;});
+ await w('drawCrosshair',true);await expect.poll(crosshair,{timeout:5000}).toBe(true);
+ await w('drawCrosshair',false);await expect.poll(crosshair,{timeout:5000}).toBe(false);
  // GET_VEHICLE_CLASS: vehicles.ide's class, the police car's 'ignore' as -1.
  expect(await w('getVehicleClass',made.car)).toBe(-1);
  // IS_CAR_DEAD: whole, the car lives; blown up (STATUS_WRECKED), it is dead though it is still there.

@@ -100,6 +100,8 @@ export class WeaponSystem {
  lock?:{handle:number;position:Vec3};
  private lockCamera?:{origin:Vec3;direction:Vec3};
  /** CPlayerPed::GetWeaponRadiusOnScreen for the held gun: the crosshair's size and the shot's spread. */
+ /** DRAW_CROSSHAIR (RYDER3's crate throwing): the aiming crosshair drawn whether or not the player aims. */
+ forceCrosshair=false;
  get crosshairRadius(){const info=this.inventory.info();return info&&info.fire!=='melee'?nativeWeaponRadiusOnScreen(info,this.attackButtonCounter,this.sim.player.crouched):.2;}
  hits=0;explosions=0;aircraftShots=0;private aircraftCooldown=0;private serial=0;
  /** The camera's first-person weapon mode (the sniper, rocket or camera view), set by the caller each frame. */

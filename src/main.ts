@@ -3825,6 +3825,7 @@ async function boot() {
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
                  vehicleModelType:model=>fleet?fleet.vehicleIdeType(model):null,
                  scriptVehicleWaitingForCollision:car=>isScriptCar(car)&&car.waitingForCollision,
+                 setForceCrosshair:state=>{weapons.forceCrosshair=state;},
                  scriptVehicleIsDead:car=>{const v=car as {wrecked?:boolean;drowning?:boolean;disposed?:boolean};return v.disposed===true||v.wrecked===true||v.drowning===true;},
                  pedEnteringCar:ped=>ped===undefined?carEntry.active||bikeMount.active:onFoot(ped)?.order?.kind==='enterCar',
                  vehicleModelClass:model=>fleet?.vehicleClass(model),

@@ -350,6 +350,8 @@ export interface ScmMissionWorld {
  setScriptVehicleAirResistance?(car:unknown,multiplier:number):boolean;
  /** m_bIsStaticWaitingForCollision on a vehicle. */
  scriptVehicleWaitingForCollision?(car:unknown):boolean;
+ /** DRAW_CROSSHAIR. */
+ setForceCrosshair?(state:boolean):void;
  /** STATUS_WRECKED or bIsDrowning: what IS_CAR_DEAD asks. */
  scriptVehicleIsDead(car:unknown):boolean;
  /** m_pEntityIgnoredCollision: the object and the car pass through each other until they part; undefined while the
@@ -1313,6 +1315,7 @@ export class ScmMission {
    },
    // SET_GANG_WEAPONS: CGangs::SetGangWeapons, which the gang members the population makes from now on draw from.
    setGangWeapons:(gang,first,second,third)=>{setGangWeapons(gang,first,second,third);},
+   drawCrosshair:state=>{this.host('setForceCrosshair','DRAW_CROSSHAIR')(state);},
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
    fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},

@@ -35,9 +35,10 @@ export class Arsenal {
   // - the rocket's siterocket quarters are 24 × 24, 20 from the centre;
   // - in the aim camera, siteM16 quarters span 64 × the weapon radius, with a dot at the 0.2 minimum, for PISTOL to
   //   COUNTRYRIFLE, the flamethrower and the minigun only.
-  const mode=this.weapons.firstPerson,circle=!mode&&(w.id>=22&&w.id<=33||w.id===37||w.id===38);
+  // DRAW_CROSSHAIR forces the aim camera's siteM16 circle whatever is held.
+  const forced=this.weapons.forceCrosshair,mode=this.weapons.firstPerson,circle=!mode&&(forced||w.id>=22&&w.id<=33||w.id===37||w.id===38);
   const image=mode==='sniper'||mode==='camera'?scope:mode==='rocket'||mode==='rocketHs'?this.hudSprites.siterocket:circle?this.hudSprites.siteM16:undefined;
-  this.crosshair.hidden=!this.weapons.aiming||this.open||!mode&&!circle;
+  this.crosshair.hidden=!(this.weapons.aiming||forced)||this.open||!mode&&!circle;
   const scoped=(mode==='sniper'||mode==='camera')&&!!image,rocket=!!mode&&!scoped&&mode!=='sniper'&&mode!=='camera'&&!!image;
   this.crosshair.classList.toggle('native-scope',scoped);this.crosshair.classList.toggle('camera',scoped&&mode==='camera');
   this.crosshair.classList.toggle('native-rocket',rocket);this.crosshair.classList.toggle('native-site',circle&&!!image);

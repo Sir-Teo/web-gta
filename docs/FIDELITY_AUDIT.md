@@ -8411,3 +8411,9 @@ them only as the reward for spraying all hundred tags; the table was fixed rathe
 weapon choices now start at `CGangs::Initialise`'s defaults each new game (the Families a pistol) and the command
 sets a gang's three (MAIN's tag reward, RYDER2's pistol and Tec-9), which the members the population makes from then
 on draw from. Spec: `native-gang-weapons` (unit).
+
+## DRAW_CROSSHAIR
+
+RYDER3 has the player on the truck throw crates to Ryder with the aiming crosshair forced on. The command sets a flag
+that shows the aim camera's siteM16 circle whether or not the player aims or holds a gun; the handler is not in the
+reversed sources, and this follows its documented purpose. Spec: `script-world-queries`.
