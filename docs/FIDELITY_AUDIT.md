@@ -8263,3 +8263,11 @@ setting him out: he still counted as in it, and the next frame's reads of the fr
 (Rapier's "unreachable"), after which every physics call failed ("recursive use of an object"), as SWEET2's probe
 met at Emmet's. The player is now set out in place first (and let go if he hung from the car), and the police step no
 longer reads a disposed car. Spec: `script-delete-player-car`.
+
+## ATTACH_CHAR_TO_OBJECT on the player
+
+`CPed::AttachPedToEntity` takes any physical, so the player's attachment now hangs from a script object as well as a
+vehicle: the offset is carried in the object's drawn frame (its record's position and heading while the model
+streams), with the same facing side, turn limit, chosen weapon and the saved weapon restored on
+`DETACH_CHAR_FROM_CAR`. An object that goes away lets him go. `IS_CHAR_ATTACHED_TO_ANY_CAR` stays car-only, as the
+command's name says. A script ped's attachment to an object is still a reported gap. Spec: `script-player-on-object`.

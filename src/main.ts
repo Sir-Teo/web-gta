@@ -302,15 +302,27 @@ async function boot() {
   /** CPed::m_pAttachedTo for the player (ATTACH_CHAR_TO_CAR): the vehicle, the offset in its axes (native), the side
    * he faces (m_fTurretAngleA: 0 ahead, 1 left, 2 behind, 3 right), the turn allowed either side of it (radians), and
    * the weapon and ammo he had before (m_nSavedWeapon, m_nTurretAmmo). */
-  let playerAttached:{car:unknown;offset:{x:number;y:number;z:number};side:number;limit:number;savedWeapon?:number;savedAmmo?:number}|undefined;
+  let playerAttached:{car?:unknown;object?:number;offset:{x:number;y:number;z:number};side:number;limit:number;savedWeapon?:number;savedAmmo?:number}|undefined;
+  /** Where the thing the player hangs from is and how it is turned, renderer axes: a vehicle's body, or a script
+   * object's drawn group (its record while the model loads). */
+  const attachedFrame=(a:NonNullable<typeof playerAttached>):{t:{x:number;y:number;z:number};q:Quaternion}|undefined=>{
+    if(a.object!==undefined){
+     const objects=mission?.runtime.game.objects;if(!objects?.exists(a.object))return undefined;
+     const group=scriptObjectViews?.groupFor(a.object);
+     if(group){group.updateWorldMatrix(true,false);const t=group.getWorldPosition(new Vector3()),q=group.getWorldQuaternion(new Quaternion());return {t,q};}
+     const o=objects.at(a.object);return {t:{x:o.position.x,y:o.position.z,z:-o.position.y},q:new Quaternion().setFromAxisAngle(new Vector3(0,1,0),o.heading)};
+    }
+    const body=attachedBody(a.car);if(!body||!body.isValid())return undefined;
+    const r=body.rotation();return {t:body.translation(),q:new Quaternion(r.x,r.y,r.z,r.w)};
+  };
   const attachedBody=(car:unknown)=>{const c=car as {car?:{body?:import('@dimforge/rapier3d-compat').RigidBody};body?:import('@dimforge/rapier3d-compat').RigidBody;disposed?:boolean};return c.disposed?undefined:c.car?.body??c.body;};
   /** PositionAttachedPed for the player: his matrix is the vehicle's with the offset carried in its axes, turned to
    * where he aims (the camera's heading in sniper mode) within the limit about the side he faces; he takes the
    * vehicle's speed and stands. */
   const pinAttachedPlayer=()=>{
     const a=playerAttached;if(!a)return;
-    const body=attachedBody(a.car);if(!body||!body.isValid()){detachPlayer();return;}
-    const t=body.translation(),r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w);
+    const frame=attachedFrame(a);if(!frame){detachPlayer();return;}
+    const {t,q}=frame;
     const off=new Vector3(a.offset.x,a.offset.z,-a.offset.y).applyQuaternion(q),forward=new Vector3(0,0,-1).applyQuaternion(q);
     const centre={x:t.x+off.x,y:t.y+off.y,z:t.z+off.z};
     const base=Math.atan2(forward.x,forward.z)-a.side*Math.PI/2;
@@ -1945,6 +1957,8 @@ async function boot() {
     collisionMaterialHistogram:()=>{const h:Record<number,number>={};for(const record of importedScene?.sources.values()??[]){const s=record.source;if(s.kind!=='mesh')continue;for(const m of s.mesh.materials)h[m]=(h[m]??0)+1;}return h;},
     /** Dev probe: the collision surface under a renderer-frame point (material id, face and source kind), or null. */
     surfaceAt:(x:number,z:number,top=200)=>{const hit=sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)return null;const record=importedScene?.sources.get(hit.collider.handle);const surface=record?nativeCollisionSurface(record.source,hit):undefined;return {y:top-hit.timeOfImpact,handle:hit.collider.handle,known:!!record,model:record?.modelName??null,kind:record?.source.kind??null,material:surface?.material??null,face:surface?.faceIndex??null,featureType:hit.featureType,keys:record?Object.keys(record):[]};},
+    /** What a ray between two renderer-frame points meets first (the player excluded). */
+    rayBetween:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number})=>{const d={x:to.x-from.x,y:to.y-from.y,z:to.z-from.z},l=Math.hypot(d.x,d.y,d.z)||1;const hit=sim.world.castRay(new RAPIER.Ray(from,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,sim.playerCollider,sim.playerBody);return hit?{at:hit.timeOfImpact,of:l,scriptObject:scriptObjectViews?.objectForCollider(hit.collider.handle)??null,model:importedScene?.sources.get(hit.collider.handle)?.modelName??null}:null;},
     /** The first collider a ray straight down meets, and the script object it belongs to, if any. */
     rayDown:(x:number,z:number,top=200)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+100,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);return hit?{y:top-hit.timeOfImpact,scriptObject:scriptObjectViews?.objectForCollider(hit.collider.handle)??null}:null;},
     groundAt:(x:number,z:number,top=200)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),top+100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?top-hit.timeOfImpact:null;},
@@ -4259,7 +4273,19 @@ async function boot() {
                   inv.select(weapon);void weaponView.equip(inv.selected);
                   pinAttachedPlayer();return true;
                  },
+                 // ATTACH_CHAR_TO_OBJECT on the player: the same attachment to a script object (the shooting range's
+                 // stand, HEIST5, MANSIO1, CASINO9).
+                 attachPlayerToObject:(object,offset,side,limit,weapon)=>{
+                  if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger)return false;
+                  const inv=weapons.inventory,previous=playerAttached;
+                  playerAttached={object,offset:{...offset},side:side&3,limit,savedWeapon:previous?.savedWeapon??inv.selected,savedAmmo:previous?.savedAmmo??((inv.ammo.get(inv.selected)?.clip??0)+(inv.ammo.get(inv.selected)?.reserve??0))};
+                  carEntry.cancel();sim.playerCollider.setEnabled(false);
+                  if(weapon!==0)inv.give(weapon,30000);
+                  inv.select(weapon);void weaponView.equip(inv.selected);
+                  pinAttachedPlayer();return true;
+                 },
                  detachPlayerFromVehicle:()=>{detachPlayer();},
+                 playerAttachedObject:()=>playerAttached?.object,
                  playerAttachedVehicle:()=>playerAttached?.car,
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.

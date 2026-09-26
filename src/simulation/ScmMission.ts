@@ -567,6 +567,7 @@ export interface ScmMissionWorld {
  /** CPed::AttachPedToEntity and DettachPedFromEntity for the player on a vehicle; false when he cannot be attached. */
  attachPlayerToVehicle?(car:unknown,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;
  detachPlayerFromVehicle?():void;playerAttachedVehicle?():unknown;
+ attachPlayerToObject?(object:number,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;playerAttachedObject?():number|undefined;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
  setPlayerMaxArmour(maxArmour:number):void;
@@ -963,6 +964,12 @@ export class ScmMission {
    attachPedToCar:(handle,vehicle,offset,position,angleLimit,weapon)=>{
     if(handle===PLAYER_PED_HANDLE){this.host('attachPlayerToVehicle','ATTACH_CHAR_TO_CAR')(this.liveVehicle(vehicle),offset,position,angleLimit,weapon);return;}
     this.peds.attachToCar(handle,vehicle,offset);
+   },
+   // ATTACH_CHAR_TO_OBJECT: the player's attachment to a script object; a script ped's is not ported yet.
+   attachPedToObject:(handle,object,offset,position,angleLimit,weapon)=>{
+    this.runtime.game.objects.at(object);
+    if(handle!==PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'ATTACH_CHAR_TO_OBJECT','a script ped');
+    this.host('attachPlayerToObject','ATTACH_CHAR_TO_OBJECT')(object,offset,position,angleLimit,weapon);
    },
    // DetachCharFromCar: only a ped that hangs from something is let go.
    detachPedFromCar:handle=>{if(handle===PLAYER_PED_HANDLE){this.world.detachPlayerFromVehicle?.();return;}this.peds.detachFromCar(handle,this.peds.positionOf(handle));},
