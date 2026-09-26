@@ -3622,6 +3622,8 @@ async function boot() {
               const savedInside=!!saved?.area&&!!entryExits?.areaAvailable(saved.area);
               if(saved&&!savedTransfer&&!flightTransfer&&(savedInside||!saved.area&&Math.hypot(saved.x-sim.player.position.x,-saved.y-sim.player.position.z)>150)){
                 savedTransfer=saved;sim.timeMinutes=saved.timeMinutes;if(saved.weekDay)sim.weekDay=saved.weekDay;fleet?.generateEvenIfClose();
+                // As a door does: the outside stops following, so none of its windows lands after the interior.
+                if(savedInside){follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;}
                 staticWorld?.request(-1,savedInside?{x:saved.x,y:saved.y,radius:100,includeCollisionBounds:true,interior:saved.area}:{x:saved.x,y:saved.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
               }
 
