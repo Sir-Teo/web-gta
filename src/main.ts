@@ -842,7 +842,10 @@ async function boot() {
   const arsenal=new Arsenal(hud.element,weapons);
   void afterStartPackage.then(()=>loadHudSprites(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,['siteM16','siterocket','radardisc','radar_north','radar_centre','radar_waypoint','radarRingPlane','fist','skipicon',...NativeMap.blipSpriteNames()])).then(sprites=>{arsenal.hudSprites=sprites;navigation?.setRadarSprites(sprites);hud.fistIcon=sprites.fist;hud.skipIcon=sprites.skipicon;}).catch(()=>{});
   arsenal.onSelect=id=>{void weaponView.equip(id);};
-  arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);};
+  /** An overlay opened over a locked pointer lets it go so its controls can be clicked, without that pausing the game. */
+  let overlayReleasedLock=false,lockLostAt=-Infinity;
+  const releaseLockForOverlay=()=>{if(document.pointerLockElement!==canvas)return;overlayReleasedLock=true;document.exitPointerLock();};
+  arsenal.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open&&!navigation?.open);if(open)releaseLockForOverlay();};
   render.shadowReceivers=(footprint,projection)=>{
     if(!importedScene)return {chunks:[],candidateCount:0,triangleCount:0,vertexCount:0};
     return importedScene.shadowReceivers(footprint,projection);
@@ -1235,7 +1238,7 @@ async function boot() {
   sound.reset(sim);
   // Open the (suspended) output device while the menu waits, not inside the click that starts play.
   if(typeof requestIdleCallback==='function')requestIdleCallback(()=>sound.prepare(),{timeout:4000});else setTimeout(()=>sound.prepare(),1000);
-  if(navigation)navigation.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open);};
+  if(navigation)navigation.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open);if(open)releaseLockForOverlay();};
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   // The PC original's frame limiter (on by default): display frames pace at 30 a second over the 60 Hz simulation.
   const display=readDisplaySettings(),pacer:FramePacer={lastDrawn:0};
@@ -1837,7 +1840,14 @@ async function boot() {
   function menuBusy(busy: boolean) {
     hud.element.querySelectorAll<HTMLButtonElement>('.menu-actions button').forEach(button => button.disabled = busy);
   }
-  const input = new Input(canvas, () => {if(navigation?.open)navigation.toggle(false);else pause();});
+  // Escape closes the map, leaves the pause menu as the original's does when the game can be resumed, and otherwise pauses.
+  const input = new Input(canvas, () => {
+    const resume=hud.button('play');
+    if(navigation?.open)navigation.toggle(false);
+    // The Escape that just let a locked pointer go (and paused) is not also a request to resume.
+    else if(paused&&started&&!resume.hidden&&!resume.disabled&&performance.now()-lockLostAt>300)play();
+    else pause();
+  });
   const cheats=CHEATS;
   /** CTimer::ms_fTimeScale as the gameplay cheats set it; a unique stunt jump's 0.3 overrides it and ResetTimeScale
    * afterwards puts it back to 1. */
@@ -1951,7 +1961,13 @@ async function boot() {
   const onVisibility = () => { if (document.hidden) pause(); };
   document.addEventListener('visibilitychange', onVisibility);
   const onBlur = () => pause(); window.addEventListener('blur', onBlur);
-  const onLockChange = () => { if (!document.pointerLockElement && started) pause(); };
+  // Losing the pointer lock pauses the game, except when an overlay let it go so its controls can be clicked.
+  const onLockChange = () => {
+    if (document.pointerLockElement) { overlayReleasedLock = false; return; }
+    if (!started) return;
+    if (overlayReleasedLock) { overlayReleasedLock = false; return; }
+    lockLostAt = performance.now(); pause();
+  };
   document.addEventListener('pointerlockchange', onLockChange);
   const onContextLost = (event: Event) => { event.preventDefault(); pause(); hud.menuMessage('Graphics paused. Waiting for the display to recover…'); };
   const onContextRestored = () => { render.nativeShadow.invalidateCapture(); hud.menuMessage('Display recovered. Resume when ready.'); render.resize(); };
