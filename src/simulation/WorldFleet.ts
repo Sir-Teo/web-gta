@@ -142,6 +142,18 @@ export class WorldFleet {
   vehicleClass(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.vehicleClass;}
   /** VEHICLES.IDE model name of a model id, once the catalog has loaded. */
   modelName(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.model;}
+  /** CColModel::m_boundBox of a vehicle model (GET_MODEL_DIMENSIONS), native: read once from the loaded model and
+   * kept; undefined while it loads (the first ask starts it), null for a model that is no vehicle. */
+  private modelBoxes=new Map<number,{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}}|null|'loading'>();
+  modelBounds(modelId:number){
+   const known=this.modelBoxes.get(modelId);if(known!==undefined)return known==='loading'?undefined:known;
+   const catalog=this.catalog;if(!catalog)return undefined;
+   if(!catalog.definitions.some(v=>v.id===modelId)){this.modelBoxes.set(modelId,null);return null;}
+   this.modelBoxes.set(modelId,'loading');
+   void catalog.load(modelId).then(a=>{const b=a.collision.bounds;this.modelBoxes.set(modelId,{min:{x:b.min[0],y:b.min[1],z:b.min[2]},max:{x:b.max[0],y:b.max[1],z:b.max[2]}});})
+    .catch(error=>{this.modelBoxes.delete(modelId);this.failures.set(`bounds:${modelId}`,String(error));});
+   return undefined;
+  }
   /** CVehicleModelInfo::m_nVehicleType as vehicles.ide spells it (car, mtruck, quad, heli, plane, boat, train, bike,
    * bmx, trailer), by id or by dff name; undefined for a model that is no vehicle, null until the catalog loads. */
   vehicleIdeType(model:number|string){

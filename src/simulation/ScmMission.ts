@@ -343,6 +343,8 @@ export interface ScmMissionWorld {
  setScriptVehicleAirResistance?(car:unknown,multiplier:number):boolean;
  /** m_bIsStaticWaitingForCollision on a vehicle. */
  scriptVehicleWaitingForCollision?(car:unknown):boolean;
+ /** A vehicle model's collision bounding box; undefined while it loads, null for a model that is no vehicle. */
+ vehicleModelBounds?(model:number):{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}}|null|undefined;
  /** Whether a vehicle drowns the peds sat in it: bIsDrowning, and not bWaterTight. */
  scriptVehicleDrownsOccupants?(car:unknown):boolean;
  /** SET_CAR_WATERTIGHT: bWaterTight on a car or a bike. */
@@ -1267,6 +1269,14 @@ export class ScmMission {
     if(!this.host('applyScriptVehicleForce','APPLY_FORCE_TO_CAR')(this.liveVehicle(handle),force,offset))throw new UnsupportedScmCommand(-1,0,'APPLY_FORCE_TO_CAR','a bike, boat or aircraft');
    },
    setVehicleWatertight:(handle,state)=>{this.host('setScriptVehicleWatertight','SET_CAR_WATERTIGHT')(this.liveVehicle(handle),state);},
+   // GET_MODEL_DIMENSIONS: the model's CColModel bounding box. A vehicle's is read from its collision (the thread waits
+   // the frames the model takes to load); an object's is not held here yet.
+   modelDimensions:model=>{
+    const bounds=typeof model==='number'?this.host('vehicleModelBounds','GET_MODEL_DIMENSIONS')(model):null;
+    if(bounds===undefined)throw new ScmEntityPending(`model ${model}`);
+    if(bounds===null)throw new UnsupportedScmCommand(-1,0,'GET_MODEL_DIMENSIONS',`an object model (${model})`);
+    return bounds;
+   },
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
    fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},

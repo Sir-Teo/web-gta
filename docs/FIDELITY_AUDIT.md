@@ -8364,3 +8364,10 @@ the map's buildings and dummies and the script's objects, gets `bIsVisible` or `
 hidden without touching its collision (or has its colliders taken out without hiding it), and the choice is kept by
 placement key and applied again to every terrain window that streams it in, as `CTheScripts::AddToInvisibilitySwapArray`
 keeps it through LOD swaps. Spec: `script-closest-object-flags`.
+
+## GET_MODEL_DIMENSIONS
+
+The model's `CColModel` bounding box, min and max corners. A vehicle model's comes from its collision as the catalog
+loads it, kept per model; the thread waits at the command the frames the load takes, as it does for an entity still
+being built. An object model's box is not held here yet and stays a reported gap (MUSIC2, CAT1); MAIN's use, the SF
+crane measuring the car it drops, is a vehicle. Spec: `script-car-drag-and-models`.

@@ -15,6 +15,11 @@ test('a script scales a car\'s drag, reads model types, keeps a car in the slow 
  expect([await w('modelIsBoat',452),await w('modelIsHeli',487),await w('modelIsPlane',593)]).toEqual([true,true,true]);
  expect([await w('isThisModelACar',444),await w('modelIsBoat',466),await w('modelIsHeli',593),await w('modelIsPlane',487),await w('isThisModelACar',1337)]).toEqual([false,false,false,false,false]);
  expect(await w('gameIsGerman')).toBe(false);
+ // GET_MODEL_DIMENSIONS: a police car's collision box, about 5 long and 2 wide, round its centre (the thread waits
+ // while the model loads).
+ const box=await expect.poll(()=>w('modelDimensions',596).catch(()=>null),{timeout:30000}).not.toBeNull().then(()=>w('modelDimensions',596));
+ expect(box.max.y-box.min.y).toBeGreaterThan(4);expect(box.max.y-box.min.y).toBeLessThan(6.5);
+ expect(box.max.x-box.min.x).toBeGreaterThan(1.6);expect(box.min.x).toBeLessThan(0);expect(box.max.x).toBeGreaterThan(0);
  // Two cars made on the airport's runway the moment the player is put there, before its collision is in:
  // CreateCarForScript sets them at FindGroundZForCoord's 20 waiting for collision (static), and they are set down
  // on the runway (12.55) when it arrives.
