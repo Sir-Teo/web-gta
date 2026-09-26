@@ -4,6 +4,7 @@ import {installNativeCollisionMatrix} from './nativeCollision';
 import {rotationFromNativeRows} from './recordingBody';
 import {colChunkNames,readCol,type ColModel} from '../assets/col';
 import {readImgEntry,type ImgEntry} from '../assets/img';
+import {orderedConcurrent} from '../assets/orderedConcurrent';
 /** Native Z-up model space into the renderer's axes: the colliders are baked in the model's own frame, and the body
  * then carries the object's turn and position. */
 const NATIVE_AXES=new Matrix4().makeRotationX(-Math.PI/2),FROM_RENDERER=new Matrix4().makeRotationX(Math.PI/2);
@@ -104,10 +105,12 @@ export class ScriptObjectViews{
    found=(async()=>{
     this.collisionIndex??=(async()=>{
      this.source??=openStaticWorld(this.base);const source=await this.source,index=new Map<string,{entry:ImgEntry;start:number;end:number}>();
-     for(const entry of source.entries){
-      if(!/\.col$/i.test(entry.name))continue;
-      for(const chunk of colChunkNames(await readImgEntry(source.file,entry))){const k=chunk.name.toLowerCase();if(!index.has(k))index.set(k,{entry,start:chunk.start,end:chunk.end});}
-     }
+     // The archive holds 216 COL files. Read one after another, each read waits on the event loop behind a
+     // frame, so every script object waited some 216 frames for its collision (over a minute on a slow
+     // machine); read 16 at a time, taken in archive order so the first file holding a name still wins.
+     const files=source.entries.filter(entry=>/\.col$/i.test(entry.name));
+     const chunks=orderedConcurrent(files,async entry=>({entry,names:colChunkNames(await readImgEntry(source.file,entry))}),16);
+     for await(const {entry,names} of chunks)for(const chunk of names){const k=chunk.name.toLowerCase();if(!index.has(k))index.set(k,{entry,start:chunk.start,end:chunk.end});}
      return index;
     })();
     const at=(await this.collisionIndex).get(key);if(!at)return undefined;
