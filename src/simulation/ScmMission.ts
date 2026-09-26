@@ -715,8 +715,10 @@ export class ScmMission {
  private readonly ownFade=new ScmCameraFade();
  get fade(){return this.world.cameraFade??this.ownFade;}
  /** Between START_CUTSCENE and CLEAR_CUTSCENE: the browser has no cutscene to show, so the screen stays faded out
-  * through it rather than fading in on the world the cutscene would have covered. */
- private cutsceneOpen=false;
+  * through it rather than fading in on the world the cutscene would have covered. The hold goes with the thread that
+  * started the cutscene, so a mission ended mid-cutscene does not leave the screen black. */
+ private cutsceneThread?:unknown;
+ private get cutsceneOpen(){const thread=this.cutsceneThread;return !!thread&&this.runtime.active.some(slot=>slot.thread===thread);}
  readonly runtime:ScmRuntime;
  /** Where the script stopped outright, or nothing while any of it is still running. */
  stopped?:{command:string;offset:number;detail:string};
@@ -1543,8 +1545,8 @@ export class ScmMission {
    markModelNotNeeded:()=>{},
    loadAllModelsNow:()=>{this.runtime.game.animBlocks.service();},
    loadCutscene:name=>{this.cutscenes.push(name);this.world.loadCutscene(name);this.runtime.game.cutscene.loaded();},
-   startCutscene:()=>{this.cutsceneOpen=true;this.runtime.game.cutscene.finish();},
-   clearCutscene:()=>{this.cutsceneOpen=false;},
+   startCutscene:()=>{this.cutsceneThread=this.runtime.currentThread;this.runtime.game.cutscene.finish();},
+   clearCutscene:()=>{this.cutsceneThread=undefined;},
    findNumberTagsTagged:()=>this.world.tagsTagged(),
    percentageTaggedInArea:(x1,y1,x2,y2)=>this.world.tagsPercentageInArea(x1,y1,x2,y2),
    // The handler is unreversed; MAIN.SCM passes 0 or 1, read here as CTagManager::SetAlphaInArea with 0 or 255.
@@ -1719,7 +1721,7 @@ export class ScmMission {
     for(const handle of this.cleanupVehicles)if(this.vehicles.exists(handle))this.releaseVehicle(handle);
     for(const handle of this.cleanupPeds)if(this.peds.exists(handle))this.peds.markNoLongerNeeded(handle);
     this.cleanupVehicles.clear();this.cleanupPeds.clear();
-    this.runtime.game.objects.cleanUpMissionObjects();
+    this.runtime.game.objects.cleanUpMissionObjects();this.cutsceneThread=undefined;
     this.runtime.game.camera.restore(this.world.playerCameraState());
    },
    // The player's own car (not one the script made) answers from the host.

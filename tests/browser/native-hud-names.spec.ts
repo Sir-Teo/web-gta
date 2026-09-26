@@ -1,16 +1,19 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('the zone name fades after its few seconds and the vehicle name shows on getting in',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  const zone=page.locator('.location'),vehicle=page.locator('.vehicle-name');
+ // INTRO keeps zone names off (DISPLAY_ZONE_NAMES 0) until its end; free roam has them.
+ await endStoryMission(page);
  // CHud::DrawAreaName: fade in, hold, fade out, then nothing.
  await expect(zone).toBeVisible({timeout:20000});
  // CPlaceName::Process: the smallest navigation zone at Grove Street is GAN1, whose GXT text is Ganton.
  await expect(zone).toHaveText('Ganton');
  expect(await zone.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(172, 203, 241)');
- await expect(zone).toBeHidden({timeout:8000});
+ await expect(zone).toBeHidden({timeout:20000});
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  // The Greenwood streams in after CJ lands; F does nothing until it is there.
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);

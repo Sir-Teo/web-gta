@@ -10,6 +10,7 @@ export async function endStoryMission(page:Page){
   r.game.alreadyRunningAMissionScript=false;
   // The story faded the screen out (MAIN's opening DO_FADE 0 0) and turned zone names off until INTRO's end; free
   // roam comes back in at once with names on.
-  r.world.fade(0,1,performance.now());r.game.displayAreaName=true;
+  // (A 0 ms fade-in never ends in CCamera::ProcessFade, so the shortest that does.)
+  r.world.fade(1,1,performance.now());r.game.displayAreaName=true;
  });
 }
