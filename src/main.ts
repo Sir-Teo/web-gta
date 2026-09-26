@@ -3794,6 +3794,8 @@ async function boot() {
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
                  vehicleModelType:model=>fleet?fleet.vehicleIdeType(model):null,
                  scriptVehicleWaitingForCollision:car=>isScriptCar(car)&&car.waitingForCollision,
+                 scriptVehicleDrownsOccupants:car=>isScriptCar(car)&&car.drowning&&!car.waterTight,
+                 setScriptVehicleWatertight:(car,state)=>{(car as {waterTight?:boolean}).waterTight=state;},
                  scriptVehicleVisiblyDamaged:car=>isScriptCar(car)&&car.visiblyDamaged,
                  applyScriptVehicleForce:(car,force,offset)=>{if(!isScriptCar(car))return false;car.applyScriptForce(force,offset);return true;},
                  setScriptVehicleAirResistance:(car,multiplier)=>{if(!isScriptCar(car))return false;car.setAirResistanceMultiplier(multiplier);return true;},

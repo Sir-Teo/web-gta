@@ -880,6 +880,8 @@ export class WorldCar {
   /** Native-coordinate WATER.DAT height query (shared with aircraft). */
   waterLevel?:(x:number,y:number)=>number|undefined;
   private water={touching:false,buoyancy:0};inWater=false;drowning=false;
+  /** autoFlags.bWaterTight (SET_CAR_WATERTIGHT): the peds sat in it do not drown when it goes under; the player still does. */
+  waterTight=false;
   /** cBuoyancy::AddSplashParticles spray waiting for the FX system, and the move speed of the last splash reported to the audio engine. */
   readonly splashes:{position:NativeVec;velocity:NativeVec}[]=[];splashReport?:NativeVec;private splashClock=0;
  /** CVehicle::m_nVehicleFlags.bEngineOn for a car a driver has sat in: RemoveDriver switches it off only for a

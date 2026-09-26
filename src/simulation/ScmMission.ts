@@ -343,6 +343,10 @@ export interface ScmMissionWorld {
  setScriptVehicleAirResistance?(car:unknown,multiplier:number):boolean;
  /** m_bIsStaticWaitingForCollision on a vehicle. */
  scriptVehicleWaitingForCollision?(car:unknown):boolean;
+ /** Whether a vehicle drowns the peds sat in it: bIsDrowning, and not bWaterTight. */
+ scriptVehicleDrownsOccupants?(car:unknown):boolean;
+ /** SET_CAR_WATERTIGHT: bWaterTight on a car or a bike. */
+ setScriptVehicleWatertight?(car:unknown,state:boolean):void;
  /** vehicleFlags.bIsDamaged. */
  scriptVehicleVisiblyDamaged?(car:unknown):boolean;
  /** CPhysical::ApplyForce on a script car; false for a vehicle the browser cannot push so. */
@@ -1262,6 +1266,7 @@ export class ScmMission {
    applyForceToVehicle:(handle,force,offset)=>{
     if(!this.host('applyScriptVehicleForce','APPLY_FORCE_TO_CAR')(this.liveVehicle(handle),force,offset))throw new UnsupportedScmCommand(-1,0,'APPLY_FORCE_TO_CAR','a bike, boat or aircraft');
    },
+   setVehicleWatertight:(handle,state)=>{this.host('setScriptVehicleWatertight','SET_CAR_WATERTIGHT')(this.liveVehicle(handle),state);},
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
    fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},
@@ -2138,6 +2143,16 @@ export class ScmMission {
   };
  }
  /** An optional host method, or the command gives up on a host that has none. */
+ /** CAutomobile::ProcessPedInVehicleBuoyancy for the script's seated peds: in a drowning car that is not watertight
+  * each takes WEAPON_DROWNING at a health point a 50th of a second (the damage calculator's CTimer::GetTimeStep). */
+ private drownRiders(timeStepMs:number){
+  const drowns=this.world.scriptVehicleDrownsOccupants;if(!drowns)return;
+  for(const handle of this.peds.handles){
+   const ride=this.peds.rideOf(handle);if(!ride||ride.offset||!this.vehicles.exists(ride.vehicle))continue;
+   const car=this.vehicles.entity(ride.vehicle);
+   if(car&&(this.peds.healthOf(handle)??0)>0&&drowns.call(this.world,car))this.peds.loseHealth(handle,timeStepMs/20);
+  }
+ }
  private vehicleModelType(model:number|string,command:string){
   const type=this.host('vehicleModelType',command)(model);
   if(type===null)throw new ScmEntityPending('the vehicle catalog');
@@ -2679,6 +2694,7 @@ export class ScmMission {
   try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
+   this.drownRiders(timeStepMs);
    this.processTaskRecords();
    const game=this.runtime.game;game.onscreenTimer.process(this.globals,timeStepMs,game.widescreenOn,()=>this.world.frontendAudioEvent?.(33));
    // CAudioEngine::Service after the frame: the beat track's status moves on.

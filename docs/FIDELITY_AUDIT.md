@@ -8347,3 +8347,11 @@ its outer edge back to the ped's middle is clear, and no vehicle is within 1.2; 
 and the line count, and the line stops asking after vehicles and objects. None taken: the ped's own spot, 0.4 up.
 `IS_ANY_PICKUP_AT_COORDS` is `TestForPickupsInBubble` half a unit round the point (reVC's handler), over every pickup
 the world holds. Specs: `script-pickup-coords`, `native-dead-ped-pickup` (unit).
+
+## Script peds drown in a sunk car; SET_CAR_WATERTIGHT
+
+`CAutomobile::ProcessPedInVehicleBuoyancy` drowns everyone sat in a car that has gone under: the player through
+`HandlePlayerBreath` (already ported), anyone else with WEAPON_DROWNING at the damage calculator's
+`CTimer::GetTimeStep()`, a health point a 50th of a second. The script's seated peds now take it (straight off the
+health, the maximum untouched), and `SET_CAR_WATERTIGHT` sets `autoFlags.bWaterTight`, which spares them but not the
+player. Street drivers in sunk traffic are not drowned here. Spec: `script-car-watertight`.

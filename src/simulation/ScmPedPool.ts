@@ -179,6 +179,15 @@ export class ScmPedPool<Ped>{
   if(said.maxHealth===DEFAULT_PED_HEALTH)said.maxHealth=health;
   this.pool.apply(handle,ped=>{this.host.setHealth(ped,health);});
  }
+ /** Damage that goes straight off the health (WEAPON_DROWNING in a sunk car has no armour to take it): none left
+  * kills the ped. The maximum is left alone. */
+ loseHealth(handle:number,amount:number){
+  const said=this.said.get(handle);if(!said||!(amount>0))return;
+  const health=this.healthOf(handle)-amount;
+  if(health<=0){this.kill(handle);return;}
+  said.health=health;
+  this.pool.apply(handle,ped=>{this.host.setHealth(ped,health);});
+ }
  kill(handle:number){
   const said=this.said.get(handle);if(!said)return;
   said.dead=true;said.health=0;
