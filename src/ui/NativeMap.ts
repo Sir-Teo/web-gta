@@ -33,7 +33,6 @@ export class NativeMap {
  showRadar(on:boolean){const b=this.element.querySelector<HTMLElement>('.minimap-button');if(b&&b.hidden===on)b.hidden=!on;}
  /** CHud::DrawRadar's altimeter: the bar left of the radar and its height mark. */
  private altimeter=document.createElement('div');private altimeterMark=document.createElement('div');
- private vehicles:readonly {x:number;z:number;name?:string}[]=[];
  private waypoint?:{x:number;z:number};
  private loaded=false;
 
@@ -90,7 +89,7 @@ export class NativeMap {
  /** Why the last flight was refused, kept in the status line (which every draw rewrites) until the next map action. */
  private notice?:string;
  toggle(open=!this.open){this.notice=undefined;this.panel.hidden=!open;this.onToggle?.(open);if(document.activeElement instanceof HTMLButtonElement)document.activeElement.blur();this.draw();}
- update(position:{x:number;z:number},heading:number,vehicles:readonly {x:number;z:number;name?:string}[]=[],radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}){if(radar)this.radar=radar;this.vehicles=vehicles;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
+ update(position:{x:number;z:number},heading:number,radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}){if(radar)this.radar=radar;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
  /** CRadar::DrawBlips with the frontend's map drawing (m_bDrawingMap): every trace at blip size 1 with its height
   * triangle, and every sprite, short-range ones included, sized in the screen lines the menu draws in. */
  private drawMapBlips(c:CanvasRenderingContext2D,w:number){
@@ -115,13 +114,12 @@ export class NativeMap {
  }
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
-  if(this.loaded)this.status.textContent=this.notice??(distance===undefined?'North is up · Cyan markers: parked vehicles · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`);
+  if(this.loaded)this.status.textContent=this.notice??(distance===undefined?'North is up · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`);
   const draw=(canvas:HTMLCanvasElement,full:boolean)=>{
    const c=canvas.getContext('2d')!,w=canvas.width,span=full?1:700/6000,scale=w/span,ox=full?0:p.x-span/2,oy=full?0:p.y-span/2;
    c.clearRect(0,0,w,w);c.fillStyle='#79aabd';c.fillRect(0,0,w,w);
    if(this.loaded)c.drawImage(this.image,-ox*scale,-oy*scale,scale,scale);
    for(const o of this.zoneOverlays){const a=worldToMap(o.x1,o.z1),b=worldToMap(o.x2,o.z2);c.fillStyle=o.colour;c.fillRect((a.x-ox)*scale,(a.y-oy)*scale,(b.x-a.x)*scale,(b.y-a.y)*scale);}
-   for(const vehicle of this.vehicles){const v=worldToMap(vehicle.x,vehicle.z),vx=(v.x-ox)*scale,vy=(v.y-oy)*scale;c.fillStyle='#51e4ef';c.strokeStyle='#111';c.lineWidth=2;c.fillRect(vx-4,vy-6,8,12);c.strokeRect(vx-4,vy-6,8,12);}
    if(full)this.drawMapBlips(c,w);
    const px=(p.x-ox)*scale,py=(p.y-oy)*scale;
    if(this.waypoint){const target=worldToMap(this.waypoint.x,this.waypoint.z),tx=(target.x-ox)*scale,ty=(target.y-oy)*scale;c.strokeStyle='#f765ce';c.lineWidth=full?3:2;c.setLineDash([6,5]);c.beginPath();c.moveTo(px,py);c.lineTo(tx,ty);c.stroke();c.setLineDash([]);c.fillStyle='#f765ce';c.strokeStyle='#1a1321';c.beginPath();c.arc(Math.max(9,Math.min(w-9,tx)),Math.max(9,Math.min(w-9,ty)),full?10:6,0,Math.PI*2);c.fill();c.stroke();}

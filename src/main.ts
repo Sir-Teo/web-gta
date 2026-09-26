@@ -3048,7 +3048,7 @@ async function boot() {
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     // The script's own blips join the browser's: CRadar's table, drawn where the things it names are.
     navigation?.setLiveBlips([...(mission?.radarBlips()??[]),...(gangWarBlip&&gangWarBlip.visible?[{x:gangWarBlip.position.x,z:-gangWarBlip.position.y,sprite:attackBlipSprite(gangWarBlip.gang)}]:[]),...(pedestrians?.attackWavePositions()??[]).map(p=>{const c=GANG_COLOURS[p.gang??0]??[255,255,255];return {x:p.x,z:p.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:2};})]);
-    navigation?.update(sim.player.position,sim.player.heading,[...[...(fleet?.cars??[])].filter(car=>!car.occupied).map(car=>({...car.car.body.translation(),name:car.name})),...[...(fleet?.planes??[])].filter(p=>!p.occupied).map(p=>({...p.body.translation(),name:p.name}))],
+    navigation?.update(sim.player.position,sim.player.heading,
       // CRadar: the camera looks along viewYaw + pi; the range follows the vehicle's speed, or a plane's altitude (not a
       // helicopter's or the Vortex's, which go by speed).
       (()=>{const plane=fleet?.occupiedPlane,body=plane?plane.body:[...(fleet?.cars??[])].find(c=>c.occupied)?.car.body??fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body;const v=body?.linvel();
