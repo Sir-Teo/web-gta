@@ -8337,3 +8337,13 @@ view swings round to it. The handler is not in the reversed sources and `m_fTurr
 so this follows the command's operands as the scripts use them: RYDER3's 225 either way (free), DRUGS4's 174 with 8
 (a narrow arc over the back), SYN1's 135 with 135. A player attached to nothing is left alone.
 Spec: `script-player-attached`.
+
+## GET_DEAD_CHAR_PICKUP_COORDS and IS_ANY_PICKUP_AT_COORDS
+
+SA's `CPed::CreateDeadPedPickupCoors` hands over to `CPickups::CreatePickupCoorsCloseToCoors` (0x458A80), unreversed;
+the port is VC's own body of it (reVC): thirty-two tries at a random point 1.5 units round the ped, dropped to the
+ground under it and lifted 0.5, taken once it is more than 2 from the player, no pickup is within 1.3, the line from
+its outer edge back to the ped's middle is clear, and no vehicle is within 1.2; from the eighteenth try only the ground
+and the line count, and the line stops asking after vehicles and objects. None taken: the ped's own spot, 0.4 up.
+`IS_ANY_PICKUP_AT_COORDS` is `TestForPickupsInBubble` half a unit round the point (reVC's handler), over every pickup
+the world holds. Specs: `script-pickup-coords`, `native-dead-ped-pickup` (unit).

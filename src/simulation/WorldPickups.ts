@@ -105,6 +105,9 @@ export class WorldPickups {
  patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state)state.pickup={...state.pickup,...patch};}
  /** Takes a generated pickup back out of the world by the id it was made with, which is how a script's own
   * removal reaches it. */
+ /** CPickups::TestForPickupsInBubble: any pickup within the radius of the native point (active or not, as the
+  * original walks every slot). */
+ anyInBubble(p:{x:number;y:number;z:number},radius:number){return this.states.some(s=>Math.hypot(s.pickup.position[0]-p.x,s.pickup.position[1]-p.y,s.pickup.position[2]-p.z)<radius);}
  removeGenerated(id:string){const state=this.states.find(s=>s.pickup.id===id);if(state)this.remove(state);}
  /** Takes a generated pickup back out of the world. */
  private remove(state:State){const index=this.states.indexOf(state);if(index>=0)this.states.splice(index,1);state.removed=true;this.revenueLinks=undefined;this.bySlot=undefined;this.despawn(state);}

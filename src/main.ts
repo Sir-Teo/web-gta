@@ -3702,6 +3702,16 @@ async function boot() {
                  },
                  // FindObjectsIntersectingCube tests each entity's bounding sphere against the box; the collider
                  // bounds stand in for it. The handles are gathered first and sorted into the lists after the query.
+                 pickupsInBubble:(p,radius)=>pickups.anyInBubble(p,radius),
+                 // TestSphereAgainstWorld with only the vehicles list: gathered first, sorted after the query.
+                 vehicleInSphere:(p,radius)=>{
+                  const found:number[]=[];
+                  sim.world.intersectionsWithShape({x:p.x,y:p.z,z:-p.y},{x:0,y:0,z:0,w:1},new RAPIER.Ball(radius),c=>{found.push(c.handle);return true;},RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);
+                  if(!found.length)return false;
+                  const vehicleBodies=new Set<number>();
+                  for(const set of [fleet?.cars,fleet?.bikes,fleet?.boats,fleet?.planes,fleet?.trains])for(const v of set??[])vehicleBodies.add((v as {car?:{body:{handle:number}};body?:{handle:number}}).car?.body.handle??(v as {body:{handle:number}}).body.handle);
+                  return found.some(h=>{const body=sim.world.getCollider(h)?.parent();return !!body&&vehicleBodies.has(body.handle);});
+                 },
                  areaOccupied:(min,max,kinds)=>{
                   const found:import('@dimforge/rapier3d-compat').Collider[]=[];
                   sim.world.collidersWithAabbIntersectingAabb({x:(min.x+max.x)/2,y:(min.z+max.z)/2,z:-(min.y+max.y)/2},{x:(max.x-min.x)/2,y:(max.z-min.z)/2,z:(max.y-min.y)/2},c=>{found.push(c);return true;});

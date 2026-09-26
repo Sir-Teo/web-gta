@@ -6,6 +6,7 @@ import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {speechLengthMs} from '../engine/ScmMissionAudio';
 import {gxtText} from '../assets/gxt';
+import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findZone,type WorldZones} from '../assets/worldZones';
@@ -291,6 +292,10 @@ export interface ScmMissionWorld {
   flags?:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean}):boolean;
  /** CStreaming's random vehicle model in memory, with the class it belongs to. */
  randomVehicleInMemory():{model:number;vehicleClass:number}|undefined;
+ /** CPickups::TestForPickupsInBubble round a native point. */
+ pickupsInBubble?(p:{x:number;y:number;z:number},radius:number):boolean;
+ /** CWorld::TestSphereAgainstWorld against vehicles only, native point. */
+ vehicleInSphere?(p:{x:number;y:number;z:number},radius:number):boolean;
  /** Whether anything of the named kinds has its bounds in the native box (min and max corners). */
  areaOccupied?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number},kinds:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean;dummies:boolean}):boolean;
  /** CEntryExitManager's nearest door to a point within a range, by its own pool index. */
@@ -1673,6 +1678,16 @@ export class ScmMission {
    setPlayerGroupToFollowNever:(_player,state)=>{this.playerGroupNeverFollows=state;},
    // GET_DEAD_CHAR_COORDINATES: the car a ped sits in, else its pelvis bone (BONE_PELVIS), where a body lies rather
    // than where its root was left.
+   // IS_ANY_PICKUP_AT_COORDS: TestForPickupsInBubble half a unit round the point (reVC's handler).
+   anyPickupAtCoords:(x,y,z)=>this.host('pickupsInBubble','IS_ANY_PICKUP_AT_COORDS')({x,y,z},.5),
+   // GET_DEAD_CHAR_PICKUP_COORDS: CPed::CreateDeadPedPickupCoors round the ped.
+   deadPedPickupCoordinates:handle=>{
+    const at=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:(this.livePed(handle),this.peds.positionOf(handle));
+    const bubble=this.host('pickupsInBubble','GET_DEAD_CHAR_PICKUP_COORDS'),vehicles=this.host('vehicleInSphere','GET_DEAD_CHAR_PICKUP_COORDS');
+    const flags=(both:boolean)=>({buildings:true,vehicles:both,peds:false,objects:both});
+    return deadPedPickupCoors(at,this.world.playerPed().position,{groundZ:(x,y,z)=>this.world.groundLevel(x,y,z),pickupsInBubble:bubble,
+     lineOfSightClear:(a,b,both)=>this.world.lineOfSightClear(a,b,flags(both)),vehicleInSphere:vehicles,random256:()=>Math.floor(Math.random()*256)});
+   },
    deadPedCoordinates:handle=>{
     const ride=handle===PLAYER_PED_HANDLE?undefined:this.peds.rideOf(handle);
     if(ride&&!ride.offset&&this.vehicles.exists(ride.vehicle))return this.vehicles.positionOf(ride.vehicle);
