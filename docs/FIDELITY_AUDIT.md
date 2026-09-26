@@ -8432,3 +8432,14 @@ wet-road reflection on, once for each frame the script asks (RYDER2's marker ove
 mission queues the registrations and the frame hands them to the corona port with the camera, so a corona the script
 stops drawing fades out as any other. Only the star raster is drawn here, whatever corona type the script names.
 Spec: `script-world-queries`.
+
+## Fight stance
+
+Holding the target button with a melee weapon starts `CTaskSimpleFight` (`CTaskSimplePlayerOnFoot::ProcessPlayerWeapon`),
+and while it runs `PlayerControlFighter` moves CJ rather than `PlayerControlZelda`. Before, the aimed-melee case passed
+the pad straight to the simulation: CJ kept facing the camera while running sideways or backwards at run speed on the
+forward run clip, sliding. Now the stance holds melee_1's `FIGHTIDLE` and the stick shuffles him on the standard group's
+`FightSH_FWD/BWD/Left/Right`, moved by their root travel with his facing kept on the camera. `PlayerControlFighter` and
+`CTaskSimpleFight::ControlFight` are not reversed: the shuffles are picked as the gun task picks its moves for a weapon
+aimed with the arm (the dominant stick direction, past ±0.75 sideways, blended in at 8), reading the stick as it stands.
+Weapon groups' own idles (the bat's, the knife's) are not used for the stance. Spec: `native-fight-stance`.

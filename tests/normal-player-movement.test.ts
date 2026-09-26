@@ -2,7 +2,7 @@ import {expect,test} from 'vitest';
 import {normalPlayerMovement} from '../src/assets/normalPlayerMovement';
 import type {AnimationPackage,AnimationTrack} from '../src/assets/ifp';
 const track=(boneId:number):AnimationTrack=>({boneId,name:'not-a-root-name',frameType:4,times:new Float32Array([0,1]),rotations:new Float32Array([0,0,0,1,0,0,0,1]),translations:new Float32Array(6)});
-const pack=():AnimationPackage=>({name:'ped',format:'ANP3',animations:['Gun_stand','GunMove_FWD','GunMove_BWD','GunMove_L','GunMove_R','WALK_start','Run_stop','Run_stopR','IDLE_stance','WALK_player','run_player','SPRINT_civi','WEAPON_crouch','GunCrouchFwd','JUMP_launch','JUMP_launch_R','JUMP_glide','FALL_land','GunCrouchBwd','Crouch_Roll_L','Crouch_Roll_R','JUMP_land'].map(name=>({name,flags:0,duration:1,tracks:[track(12),track(0)]}))});
+const pack=():AnimationPackage=>({name:'ped',format:'ANP3',animations:['Gun_stand','GunMove_FWD','GunMove_BWD','GunMove_L','GunMove_R','WALK_start','Run_stop','Run_stopR','IDLE_stance','WALK_player','run_player','SPRINT_civi','WEAPON_crouch','GunCrouchFwd','JUMP_launch','JUMP_launch_R','JUMP_glide','FALL_land','GunCrouchBwd','Crouch_Roll_L','Crouch_Roll_R','JUMP_land','FIGHTIDLE','FightSh_FWD','FightSh_BWD','FightSh_Left','FightSh_Right'].map(name=>({name,flags:0,duration:1,tracks:[track(12),track(0)]}))});
 test('native roles use exact case-insensitive names and root bone identity, preserving idle source motion',()=>{
  const source=pack(),roles=normalPlayerMovement(source);
  expect(roles.walk).toEqual({clip:source.animations[9],track:1});
@@ -24,9 +24,11 @@ test('native roles use exact case-insensitive names and root bone identity, pres
  expect(roles.walkStart).toEqual({clip:source.animations[5],track:1});
  expect(roles.runStop).toEqual({clip:source.animations[6],track:1});
  expect(roles.runStopR).toEqual({clip:source.animations[7],track:1});
+ expect(roles.fightIdle).toEqual({clip:source.animations[22]});
+ expect(roles.fightShL).toEqual({clip:source.animations[25],track:1});
 });
 test('incomplete or ambiguous packages cannot produce a partial preset',()=>{
- const source=pack();source.animations.pop();expect(()=>normalPlayerMovement(source)).toThrow('jump_land');
+ const source=pack();source.animations.splice(21,1);expect(()=>normalPlayerMovement(source)).toThrow('jump_land');
  const duplicate=pack();duplicate.animations.push({...duplicate.animations[1],name:'walk_PLAYER'});expect(()=>normalPlayerMovement(duplicate)).toThrow('walk_player');
 });
 test('a translated non-root track cannot substitute for native root motion',()=>{

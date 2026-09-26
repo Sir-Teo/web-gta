@@ -2516,6 +2516,9 @@ async function boot() {
         // CTaskSimpleUseGun moves an aimed gun's holder on the GunMove clips at the skill row's move speed.
         const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
         if(aimedGun)controls={...controls,gunMove:{aimWithArm:!!(aimedGun.flags&WEAPON_FLAG.aimWithArm),moveAim:!!(aimedGun.flags&WEAPON_FLAG.moveAim),moveFire:!!(aimedGun.flags&WEAPON_FLAG.moveFire),firing:gunFiring,moveSpeed:aimedGun.moveSpeed}};
+        // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon: the target button with a melee weapon starts CTaskSimpleFight, whose
+        // stance shuffles CJ about on the FightSh clips (PlayerControlFighter) instead of walking him.
+        else if(weapons.aiming&&onFoot&&weapons.inventory.weapon.kind==='melee'&&!sim.player.crouched)controls={...controls,fightMove:true};
         // CTaskSimplePlayerOnFoot::PlayerControlDucked feeds CTaskSimpleDuck::ControlDuckMove: aiming a gun walks forward and
         // back on the stick and rolls on a sideways push; otherwise CJ turns to the stick and crouch-walks forward.
         if(sim.player.crouched&&sim.player.grounded&&onFoot&&!sim.player.swimming&&sim.player.health>0){
@@ -2565,7 +2568,7 @@ async function boot() {
           });
         }
         else if(carEntry.rolling||bikeMount.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:(carEntry.rolling?entryMotion:bikeMotion)??{x:0,z:0},animationMotionSpace:'world'});
-        else {const animated=sim.climbing?controls:render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming&&!(controls.gunMove&&animated.animationMotion)?controls:animated);}
+        else {const animated=sim.climbing?controls:render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming&&!((controls.gunMove||controls.fightMove)&&animated.animationMotion)?controls:animated);}
         frameProfile.stepPlayer+=performance.now()-tPlayer;
         if(render.nativeCharacter?.duckRollDone)duck.rollFinished();
         kickSweptProps();releaseSortedOutCollisions();
