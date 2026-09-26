@@ -1,8 +1,9 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('an empty car on its roof burns down and blows up',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  // The Greenwood streams in after CJ lands; the tracked car is the one nearest CJ, so he stands ten units from the
@@ -19,7 +20,7 @@ test('an empty car on its roof burns down and blows up',async({page})=>{
 
 test("the player's own car on its roof is set alight after about four seconds",async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  // The Greenwood streams in after CJ lands; F does nothing until it is there.

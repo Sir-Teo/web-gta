@@ -1,8 +1,9 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('the Rhino aims its turret at the camera, fires its cannon on Ctrl and blows up the car it drives into',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);

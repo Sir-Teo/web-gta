@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 import {scriptClockSettled} from './scriptClock';
 // CCoronas::Render's flare pass: with the morning sun on screen and its line to the camera clear, its 26 lens-flare
 // sprites are strung along the line from the screen centre through it.
@@ -7,7 +8,7 @@ test('the sun draws its lens flare when it is on screen',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
- await scriptClockSettled(page);
+ await scriptClockSettled(page);await endStoryMission(page);
  await page.evaluate(()=>(window as any).__game.setTime(8*60));
  // The corona fades in only while it is on screen, so look up at the low morning sun in the east.
  await page.mouse.move(700,600);await page.mouse.down();await page.mouse.move(700,150,{steps:10});await page.mouse.up();

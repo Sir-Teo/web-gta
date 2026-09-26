@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 import {scriptClockSettled} from './scriptClock';
 // CEntity::ProcessLightsForEntity and CCoronas: at night Grove Street's lampposts register their 2d effect lights,
 // drawn as coronas over the lamp heads.
@@ -13,7 +14,7 @@ test('street lamps light their coronas at night',async({page})=>{
  await expect.poll(async()=>(await state()).coronas.sceneFx,{timeout:10000}).toBeGreaterThan(0);
  expect((await state()).fx.active).toContain('insects');
  // By day the lamps stay dark.
- await scriptClockSettled(page);
+ await scriptClockSettled(page);await endStoryMission(page);
  await page.evaluate(()=>(window as any).__game.setTime(12*60));await page.waitForTimeout(1000);
  expect((await state()).coronas.drawn).toBe(0);expect((await state()).coronas.pools).toBe(0);
  await page.evaluate(()=>(window as any).__game.setTime(23*60));

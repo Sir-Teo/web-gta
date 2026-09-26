@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** Drives CJ west along the Los Santos flood channel at car speed (15 m/s, teleporting each 200 ms onto the ground)
  * through several 180-unit windows, as a car ride through Ganton and East Los Santos does, and checks that terrain
  * following never stops: every window installs, the safety pause stays short, and the frame loop keeps running.
@@ -14,7 +15,7 @@ test('driving through several windows keeps streaming without stopping or strand
   window.requestAnimationFrame=cb=>raf(now=>{const s=performance.now();cb(now);const e=performance.now(),gap=lastEnd?s-lastEnd:0;if(lastStart)perf.period.push(s-lastStart);lastStart=s;lastEnd=e;perf.work.push(e-s);if(gap>150||e-s>50)perf.gaps.push([Math.round(s),Math.round(gap),Math.round(e-s)]);});
   const warn=console.warn.bind(console);console.warn=(...a:unknown[])=>{perf.warns.push(String(a[0]).slice(0,200));warn(...a);};
  });
- await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
+ await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  const before=await state();

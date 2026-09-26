@@ -1,4 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 const state=(page:Page)=>page.evaluate(()=>(window as any).__game.state());
 /** The placed civilian by id. */
@@ -10,7 +11,7 @@ const ped=(page:Page,id:number)=>page.evaluate(id=>{
 test('a car parked over a fallen ped or CJ keeps them down until it moves; the get-up clip follows the fall clip',async({page})=>{
  test.setTimeout(180000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  await expect.poll(async()=>(await state(page)).player.grounded).toBe(true);
  // CJ: the empty starter car twelve metres behind runs him down. It coasts and brakes on the way, and the hit needs
  // 25 m/s at contact, so it leaves at 36.

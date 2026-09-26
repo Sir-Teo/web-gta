@@ -1,9 +1,10 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** The ambient scripts that watch the player's car (HJ's stunt bonuses, TRAINSL) keep running once he drives: the
  * player's own car answers through its handle, and a thread that still fails gives up alone. */
 test('the scripts keep running while the player drives',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);

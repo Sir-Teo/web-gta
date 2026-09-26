@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 /** The basic interactions a session leans on: pedestrians keep walking while the player drives, a pistol aimed
  * on foot walks on the GunMove clips and keeps firing, aim transitions do not stall the run, and a car is entered,
  * driven, left at speed and walked away from. Reproduced the September 19 reports (world and pedestrians frozen
@@ -6,7 +7,7 @@ import {test,expect} from '@playwright/test';
 test('pedestrians, pistol aim-walking and car entry and exit keep working',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');
- await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
+ await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  const canvas=page.locator('canvas.world');await canvas.click({position:{x:400,y:300}});

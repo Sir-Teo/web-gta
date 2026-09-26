@@ -1,7 +1,8 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 test('single world, original radar waypoint and native car driving',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCar)).not.toBeNull();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().fleet?.zone?.infoLabel)).toBe('GAN1');
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().fleet?.zone?.populationType)).toBe(7);

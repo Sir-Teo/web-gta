@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('the frame limiter draws 30 frames a second over the 60 Hz simulation, idles the menu at 10 and lifts when switched off',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -10,7 +11,7 @@ test('the frame limiter draws 30 frames a second over the 60 Hz simulation, idle
  const m0=await state();await page.waitForTimeout(2000);const m1=await state();
  const menuFps=(m1.frameProfile.frames-m0.frameProfile.frames)/2;
  expect(menuFps).toBeLessThanOrEqual(13);
- await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await page.waitForTimeout(1500);
  expect((await state()).frameLimiter).toBe(true);
