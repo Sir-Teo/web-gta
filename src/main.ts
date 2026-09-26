@@ -3,6 +3,7 @@ import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {gxtHudText,gxtText,insertNumbers} from './assets/gxt';
+import {ScriptTextLayer} from './ui/ScriptTextLayer';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
 import {NativeParachuteTimer,WEAPON_PARACHUTE} from './simulation/nativeParachuteTimer';
@@ -567,6 +568,8 @@ async function boot() {
   let arrested=false,gameTimeMs=0,previousGameTimeMs=0,gameTimeExact=0;
   /** The script messages last handed to the HUD, by label and creation time. */
   const shownScript={brief:'',big:['','','','','','',''],help:'',helpRevision:0};
+  // CHud::DrawScriptText's two passes: the script's DISPLAY_TEXT lines and boxes under and over the screen fade.
+  const scriptText=new ScriptTextLayer(hud.element.querySelector('.screen-fade')!,hud.element.querySelector('.screen-fade')!);
   hud.messageClock=()=>gameTimeMs;
   /** The player's CTaskSimpleDuck move command. */
   const duck=new NativeDuckMove();
@@ -2969,10 +2972,8 @@ async function boot() {
     const radioVehicle=!!vehicleName;
     hud.names.setVehicleName(vehicleName);
     if(!paused&&walkDemo){const zoneName=placeName.process(worldZones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y],render.lighting.area!==0);if(zoneName)hud.names.setZoneName(zoneName);}
-    // CHud::DrawAfterFade skips DrawAreaName in a plane. It also skips it while DISPLAY_ZONE_NAMES is off, but
-    // MAIN.SCM turns names off for the INTRO mission, which here never gets past waiting for car recordings 706
-    // and 707 (no host reads carrec.img), so the script's switch is recorded and not applied.
-    hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane,!!mission?.runtime.game.widescreenOn,mission?.runtime.game.displayVehicleName===false);
+    // CHud::DrawAfterFade skips DrawAreaName in a plane and while the script has DISPLAY_ZONE_NAMES off.
+    hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane||mission?.runtime.game.displayAreaName===false,!!mission?.runtime.game.widescreenOn,mission?.runtime.game.displayVehicleName===false);
     hud.widescreen(!!mission?.runtime.game.widescreenOn);
     hud.displayHud(mission?.runtime.game.displayHud??true);
     {const camera=mission?.runtime.game.camera;render.scriptNearClip=camera?.useNearClipScript?camera.nearClipScript:undefined;}
@@ -3013,6 +3014,9 @@ async function boot() {
       else if(revision!==shownScript.helpRevision){const [key,number]=help.split('#');hud.help(help?gxtHudText(number!==undefined?insertNumbers(gxtText(key,key),Number(number)):gxtText(key,key)):'',game.help.permanent?1e9:game.help.quick?3000:5000);shownScript.help=help;shownScript.helpRevision=revision;}
      }}
     {const colour=mission?.runtime.game.fadeColour;if(colour)hud.fadeColour(colour.red,colour.green,colour.blue);}
+    {const game=mission?.runtime.game,shown=game&&!paused&&!game.messages.big[0][0];
+     scriptText.draw(shown?{lines:game.introText.lines,count:game.introText.count,rectangles:game.introRectangles.rectangles,rectangleCount:game.introRectangles.count}:undefined,
+      (key,first,second)=>gxtHudText(insertNumbers(gxtText(key,key),first,second)),hud.element.clientWidth||innerWidth,hud.element.clientHeight||innerHeight,Math.min(2,devicePixelRatio||1));}
     {const shown=mission&&!paused?mission.onscreenDisplay():undefined,label=(key:string)=>key?gxtHudText(gxtText(key,key)):'';
      hud.missionTimers(shown&&{clock:shown.clock&&{text:shown.clock.text,label:label(shown.clock.key)},counters:shown.counters.map(c=>({text:c.text,label:label(c.key),type:c.type,value:c.value,colour:HUD_COLOURS[c.colour]??HUD_COLOURS[3]}))});}
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));

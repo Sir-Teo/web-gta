@@ -710,12 +710,13 @@ export function expandScriptSequence(tasks:readonly ScmScriptedTask[],sequenceTa
  return {tasks:flat,steps,start:start<0?flat.length:start};
 }
 export class ScmMission {
- /** The script's own fade, which it keeps until the INTRO has run: MAIN fades out with DO_FADE 0 0 before launching
-  * it and only the intro's end fades back in, which here never comes (docs/FIDELITY_AUDIT.md "The intro that cannot
-  * finish"). Afterwards the script shares TheCamera's fade with the game. */
+ /** TheCamera's one fade, which the script shares with the game from MAIN's opening DO_FADE 0 0 on; a host without one
+  * leaves the script its own. */
  private readonly ownFade=new ScmCameraFade();
- private introSeen=false;private introDone=false;
- get fade(){return this.introDone&&this.world.cameraFade?this.world.cameraFade:this.ownFade;}
+ get fade(){return this.world.cameraFade??this.ownFade;}
+ /** Between START_CUTSCENE and CLEAR_CUTSCENE: the browser has no cutscene to show, so the screen stays faded out
+  * through it rather than fading in on the world the cutscene would have covered. */
+ private cutsceneOpen=false;
  readonly runtime:ScmRuntime;
  /** Where the script stopped outright, or nothing while any of it is still running. */
  stopped?:{command:string;offset:number;detail:string};
@@ -755,7 +756,7 @@ export class ScmMission {
   // A new game: CGangs::Initialise's weapon choices before the script changes any.
   resetGangWeapons();
   const adapter:ScmWorldCommands={
-   fade:(milliseconds,direction,nowMs)=>{const shared=this.fade!==this.ownFade;this.fade.fade(milliseconds,direction,nowMs);if(shared)this.world.showFade?.(direction,milliseconds);},
+   fade:(milliseconds,direction,nowMs)=>{if(direction===1&&this.cutsceneOpen)direction=0;const shared=this.fade!==this.ownFade;this.fade.fade(milliseconds,direction,nowMs);if(shared)this.world.showFade?.(direction,milliseconds);},
    isFading:()=>this.fade.fading,
    setExtraColours:(colour,fade)=>{this.world.startExtraColour?.(colour,fade);},
    clearExtraColours:fade=>{this.world.stopExtraColour?.(fade);},
@@ -1542,8 +1543,8 @@ export class ScmMission {
    markModelNotNeeded:()=>{},
    loadAllModelsNow:()=>{this.runtime.game.animBlocks.service();},
    loadCutscene:name=>{this.cutscenes.push(name);this.world.loadCutscene(name);this.runtime.game.cutscene.loaded();},
-   startCutscene:()=>{this.runtime.game.cutscene.finish();},
-   clearCutscene:()=>{},
+   startCutscene:()=>{this.cutsceneOpen=true;this.runtime.game.cutscene.finish();},
+   clearCutscene:()=>{this.cutsceneOpen=false;},
    findNumberTagsTagged:()=>this.world.tagsTagged(),
    percentageTaggedInArea:(x1,y1,x2,y2)=>this.world.tagsPercentageInArea(x1,y1,x2,y2),
    // The handler is unreversed; MAIN.SCM passes 0 or 1, read here as CTagManager::SetAlphaInArea with 0 or 255.
@@ -2786,8 +2787,6 @@ export class ScmMission {
    else this.stopped={command:'error',offset:-1,detail:String(error)};
   }
   if(this.fade===this.ownFade)this.ownFade.process(timeStepMs/1000);
-  const intro=this.runtime.active.some(slot=>slot.thread.name.toUpperCase()==='INTRO');
-  if(intro)this.introSeen=true;else if(this.introSeen)this.introDone=true;
  }
  /** What the script has done so far, for the dev API and the browser tests. */
  /** CPedScriptedTaskRecord's records, one per ped here (the port holds one scripted order at a time). A wander

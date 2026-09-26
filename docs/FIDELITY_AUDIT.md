@@ -5373,29 +5373,45 @@ Alongside, two rendering mistakes of the kind that look implemented but never sh
 never fade, because three compiles an opaque material with its alpha forced to 1 and does not recompile when
 `transparent` flips; and the hidden volumetric clouds piled up buffer update ranges every frame.
 
-## The intro that cannot finish
+## The intro's opening
 
-MAIN.SCM launches INTRO on a new game, and in this browser that mission stops for good at its first
-`HAS_CAR_RECORDING_BEEN_LOADED` loop: no host reads carrec.img, so recordings 706 and 707 never arrive. Everything
-the intro sets before that point stays set, and everything it would undo later never happens. Three settings pass
-through that window:
+(Formerly "The intro that cannot finish".)
+
+MAIN.SCM launches INTRO on a new game. For a long time that mission stopped for good at its first
+`HAS_CAR_RECORDING_BEEN_LOADED` loop, so everything it set before that point stayed set, and everything it would undo
+later never happened. It now plays through (car recordings, trains and the BMX ride are wired), and the settings
+that passed through that window are handed over as the original hands them:
 
 - **The clock** — the intro's `SET_TIME_OF_DAY 6 30` is honoured. CClock is one clock for the script and the world,
   so the world picks it up and runs on from there. A new game in the original also comes out of the intro in the
   morning.
 - **Zone names** — MAIN.SCM turns them off before launching INTRO, and only the intro's end turns them back on.
-  Honouring `DISPLAY_ZONE_NAMES` would hide the area name for the whole of free roam, so the script's switch is
-  recorded but not applied. The plane gate CHud::DrawAfterFade also has still applies.
+  Now that the intro plays through, `DISPLAY_ZONE_NAMES` is applied: CHud::DrawAfterFade skips DrawAreaName while it
+  is off, as it does in a plane.
 - **Forced weather** — INTRO forces weather 14 (SUNNY_COUNTRYSIDE) and releases it only at its end. The script's
   FORCE_WEATHER, FORCE_WEATHER_NOW and RELEASE_WEATHER therefore stay on the script's own CWeather copy and do not
   reach the rendered weather. Handing the world's weather to the script would freeze free roam on the intro's sky.
 
-- **Fades.** MAIN runs `DO_FADE 0 0` (instant black) before launching INTRO, and only the intro's end fades back in.
-  - The script therefore keeps its own fade until the INTRO thread has run and gone.
-  - From then on, DO_FADE shares TheCamera's single fade with the game logic, the entry exits and the restarts, and is drawn.
-  - Before this change, the script's fade was a separate copy that nothing drew, and its fade checks could not see the game's fades.
+- **Fades.** MAIN runs `DO_FADE 0 0` (instant black) before launching INTRO, and the intro fades in on its first
+  camera shot. DO_FADE shares TheCamera's single fade with the game logic, the entry exits and the restarts from that
+  first command on, so a new game opens on black as the original does.
+  - The browser has no cuts.img, so each cutscene ends the frame it starts. A fade-in between START_CUTSCENE and
+    CLEAR_CUTSCENE would uncover the world the cutscene covers, so it is held at black; the script's fade-out after
+    the cutscene and its fade-in on the next camera shot run as written.
+  - Until this change the script kept its own undrawn fade until the INTRO thread had gone, so the opening showed the
+    world behind the title cards and the skipped cutscenes.
+- **Title cards.** INTRO draws "Francis INTL. Airport, Liberty City, 1992." with DISPLAY_TEXT over the black screen,
+  fading its alpha in and out. The script's text lines and DRAW_RECT boxes are now drawn (`src/ui/ScriptTextLayer.ts`,
+  CHud::DrawScriptText): the lines marked SET_TEXT_DRAW_BEFORE_FADE under the fade, the rest over it. The glyphs are
+  the web fonts for CFont's four styles, at the cell height CFont uses (20 x the halved y scale) and stretched to its x
+  scale. DRAW_SPRITE's textured boxes are not drawn. The second card, "Los Santos International Airport.", is timed
+  6.8 s into PROLOG1, which does not play, so it never shows.
+- **Draw order.** Render2dStuff draws CHud::Draw's layer (radar, player info, help box, big messages), DoFade covers
+  it, and CHud::DrawAfterFade draws the area name, subtitles, mission title and the after-fade odd-job message over the
+  fade. The HUD's elements are stacked the same way now, so the radar and the stat notices no longer show on a black
+  screen.
 
-Once car recordings load and the intro can play through, the zone names and the weather should be handed over as the clock was; the fade already is.
+The weather still waits to be handed over as the clock was.
 
 carrec.img is now published and read (`src/assets/carRecordings.ts`, with CVehicleRecording's playback in
 `src/engine/carRecordingPlayback.ts`). The host still does not hand recordings to the script. Marking 706 and 707
@@ -5973,7 +5989,7 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Not in the reference:** gta-reversed leaves Process_FollowPed_SA, Process_FollowCar_SA, Process_AimWeapon, CCam::Process and CCamera::Process unreversed. The zoom tables, the look-behind, the swing-behind and the smoothing therefore stay the port's own.
 - **First-person look (Process_Rocket):** pitch now turns at 0.8 of the yaw rate at any FOV (4 × 0.0015 against 3 × 0.0025). It was 0.56. The absolute rate is still the port's own.
 - **Camera behind / in front:** SET_CAMERA_BEHIND_PLAYER and _IN_FRONT_OF_PLAYER keep the ped's heading from when the command ran (m_fPedOrientForBehindOrInFront), not the next render's.
-- **Fades:** see "The intro that cannot finish".
+- **Fades:** see "The intro's opening".
 - **Camera shake:** the camera never moves with CamShake, because the code that applies m_fCamShakeForce is unreversed. The positional CamShake callers are therefore not wired either.
 
 ## Car generators audit
