@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-test('a rival attack car cruises in with a posed drive-by crew',async({page})=>{
+test('a hating gang\'s attack car cruises in with a posed drive-by crew',async({page})=>{
  test.setTimeout(180000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
   const [{GangDriveBy},{WorldFleet},{Simulation},{loadWorldRoadMaterials},{VehicleOccupants},{THREE,RAPIER}]=await Promise.all(['/src/simulation/GangDriveBy.ts','/src/simulation/WorldFleet.ts','/src/simulation/Simulation.ts','/src/assets/worldRoadMaterials.ts','/src/render/VehicleOccupants.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
   await RAPIER.init();const sim=new Simulation(),scene=new THREE.Scene(),base=new URL('/play/world/',location.href).href;
@@ -10,6 +10,8 @@ test('a rival attack car cruises in with a posed drive-by crew',async({page})=>{
    const driveby=new GangDriveBy(sim,fleet,base);
    const occupants=new VehicleOccupants(scene,base);
    driveby.gangTurf=()=>({gang:0,strength:255});
+   // Only a gang that hates the player sends its cars after him.
+   driveby.gangHatesPlayer=(gang:number)=>gang===0;
    let shots=0;driveby.onShot=()=>{shots++;};
   try{
    for(let i=0;i<300&&!driveby.snapshot().units.length;i++){driveby.update(i*1600);await new Promise(r=>setTimeout(r,20));}

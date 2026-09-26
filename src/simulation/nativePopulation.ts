@@ -71,12 +71,17 @@ export function gangFormationOffset(index:number,random:()=>number=Math.random):
  if(random()<.5)z=-z;
  return {x,z};
 }
-/** Story hostiles for a Grove (Families) player: Ballas and Los Santos Vagos
- * attack on sight in their turf (ped.dat mutual gang hate). Respect (0–100,
- * from 40) gates the rest: neutral gangs lean on a disrespected mark inside
- * 5 m, while respected players only draw rival turf heat. */
+/** The street gangs' index (CGangs: 0 Ballas, 1 Families, 2 Vagos, ...) as the ped type their members are (GANG1 on). */
+export const gangPedType=(gang:number)=>7+gang;
+/** How a gang's members come to fight the player on sight: its ped type's acquaintance with PLAYER1, which MAIN.SCM
+ * sets (Ballas, Vagos and Aztecas only dislike him at the start; SWEET4 turns the Ballas' to hate). The acquaintance
+ * scanner's hate event reaches the gang's group, whose RANDOM.grp answers a threat with CTaskAllocatorKillThreatsBasic
+ * 200 times in 700 and with nothing otherwise; dislike draws a stare, a hassle or nothing, never an attack.
+ * PED_SEEING_RANGE is CPedIntelligence's m_fSeeingRange. Respect (0–100, from 40) gates the rest: neutral gangs lean
+ * on a disrespected mark inside 5 m (authored). */
+export const PED_SEEING_RANGE=15,TURF_KILL_THREATS_CHANCE=200/700;
+/** The Families' rivals, whose dead count to the player's respect (authored). */
 export const GANG_RIVALS:ReadonlySet<number>=new Set([0,2]);
-export const GANG_AGGRO_RADIUS = 12;
 export const GANG_DISRESPECT_RADIUS = 5;
 let respect = 40;
 export function gangRespect(){return respect;}
@@ -88,8 +93,7 @@ export function maxGroupMembers(totalRespect=respect*10){
 export function addRespect(delta:number){respect=Math.max(0,Math.min(100,respect+delta));}
 export function gangHostile(gang:number|undefined,distance:number,mark=respect){
  if(gang===undefined)return false;
- if(GANG_RIVALS.has(gang))return distance<GANG_AGGRO_RADIUS;
- // Families (1) never turn on their own; other neutrals press a weak mark.
+ // Families (1) never turn on their own; other gangs press a weak mark.
  if(gang===1)return false;
  return mark<25&&distance<GANG_DISRESPECT_RADIUS;
 }

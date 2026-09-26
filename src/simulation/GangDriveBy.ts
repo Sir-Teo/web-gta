@@ -11,7 +11,6 @@ import {readPedGroups} from '../assets/pedGroups';
 import {openWeaponAssets} from '../weapons/assets';
 import {nativeWeaponInfo,nativeWeaponReloadMs,type NativeWeaponInfo} from '../weapons/weaponData';
 import {stepNpcGun,npcAimSpread,type NpcGunState} from './npcGun';
-import {GANG_RIVALS} from './nativePopulation';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import type {DffModel} from '../assets/dff';
 import type {ModelTexture} from '../assets/modelTextures';
@@ -49,6 +48,9 @@ export class GangDriveBy {
   gangTurf?:(x:number,z:number)=>{gang:number;strength:number}|undefined;
   /** The gang's resident models (CStreaming keeps two per active gang); the whole group when unset. */
   gangResident?:(gang:number)=>string[];
+  /** Whether the gang holding the turf hates the player (its ped type's acquaintance with PLAYER1): only then does
+   * one of its cars come by shooting at him. */
+  gangHatesPlayer?:(gang:number)=>boolean;
   error?:string;
   constructor(private sim:Simulation,private fleet:WorldFleet,base:string,private random:()=>number=Math.random){
    void openStaticWorld(base).then(async source=>{
@@ -122,7 +124,7 @@ export class GangDriveBy {
    const player=this.sim.player.position;
    if(this.sim.player.health<=0)return;
    const turf=this.gangTurf?.(player.x,player.z);
-   if(!turf||!GANG_RIVALS.has(turf.gang)||this.random()*255>=turf.strength)return;
+   if(!turf||!this.gangHatesPlayer?.(turf.gang)||this.random()*255>=turf.strength)return;
    const resident=this.gangResident?.(turf.gang);
    const members=resident&&resident.length>=2?resident:this.gangs[turf.gang]??[];
    if(members.length<2)return;

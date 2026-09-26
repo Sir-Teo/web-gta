@@ -8475,3 +8475,16 @@ frame and the rider. The browser's bike is a rigid body without springs, and it 
 on the same frictionless contact, so the tyres rest on the ground. Bikes also took the cars' detail switch: their
 `chassis_vlo` stood drawn through the full model at every distance. A sweep of the car models on flat ground found every
 car's wheels on the road. Specs: `native-bike-wheels` (unit), the bike browser specs.
+
+## Gangs attack the player only when they hate him
+
+The street gangs jumped a Grove player on sight: Ballas and Vagos members within 12 m always set on him, and a Ballas
+or Vagos car came by shooting every 50 s in their turf, from the first minute of the game. SA has no such rule. How a
+gang regards CJ is its ped type's acquaintance with PLAYER1, which MAIN.SCM sets: the Ballas, Vagos and Aztecas only
+dislike him at the start, and SWEET4's pass turns the Ballas' to hate. A gang member's acquaintance scanner raises the
+sighting to its group, and RANDOM.grp answers a hated ped with `CTaskAllocatorKillThreatsBasic` 200 times in 700 and
+with nothing otherwise; a disliked one draws a stare, a hassle or nothing. Now a gang member that hates the player rolls
+that draw once each time he comes into view (in front, within the 15-unit seeing range); on an attack its whole party
+sets on him until he is sixty units clear. A gang that only dislikes him leaves him be, and only a hating gang sends its
+cars on drive-bys. The authored disrespect rule (a weak mark leaned on inside 5 m) stays. Specs: `gang-shootout`,
+`driveby-attack`, `native-population` (unit).

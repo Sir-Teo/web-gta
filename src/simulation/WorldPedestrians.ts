@@ -45,7 +45,7 @@ import {deadPedTyreBlood} from './nativeTyreBlood';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import {findNextNodeWandering,wanderStep,wanderTargetOffset} from '../ped/nativeWander';
 import {TRAFFIC_LIGHT,nativeTrafficLights} from '../world/nativeTrafficLights';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, separationPush, maxGroupMembers } from './nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, separationPush, maxGroupMembers, PED_SEEING_RANGE, TURF_KILL_THREATS_CHANCE, gangPedType } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -230,6 +230,9 @@ export interface Pedestrian {
  stealth?:number;
  /** Street brawl: counts down while this ped fights the player back (EVENT_DAMAGE). */
  retaliate:number;retaliateCooldown:number;
+ /** The player came into this gang member's view (it rolls its group's answer once a sighting), and the group set on
+  * him (CTaskAllocatorKillThreatsBasic). */
+ turfSighted?:boolean;turfFoe?:boolean;
   /** A cop who left a police car seat (CPed::m_pVehicle), and the door point it is heading back to. */
   crew?:{unit:object;seat:number};goTo?:{x:number;z:number;walk:boolean;arrive?:number};
   /** CTaskComplexWanderCop::LookForCriminals' answer: the cop seeks the criminal (CTaskComplexSeekEntity, 30 s). */
@@ -1184,6 +1187,8 @@ export class WorldPedestrians {
   gangWeaponRandom:()=>number=Math.random;
   /** CTaskComplexGangLeader's draws (talk anims, looks, the 5 % walk), overridable by probes. */
   hangoutRandom:()=>number=Math.random;
+  /** The group's decision draw when a hating gang member sights the player (RANDOM.grp's kill-threats share). */
+  turfRandom:()=>number=Math.random;
   /** The jacked driver's decision draw and CreateStealCarBackSeq's coin, overridable by probes. */
   jackedRandom:()=>number=()=>this.damageRandom.next()/32768;
   /** The player's vehicle for the cop wander's LookForCarAlarms and LookForStolenCopCars: where it is, whether its
@@ -1807,6 +1812,11 @@ export class WorldPedestrians {
  clearRelationship(ped:Pedestrian,acquaintance:number,pedType:number){this.acquaintanceOf(ped).clearAs(acquaintance,1<<pedType);}
  /** CPed's m_acquaintance: CPed's constructor copies its ped type's ped.dat table, which the script's relationship
   * commands then edit. The copy is made when a command first needs it. */
+ /** The acquaintance a ped holds the player in (PLAYER1): its own table once a command gave it one, else its type's
+  * as ped.dat and the script's SET_RELATIONSHIP left it. */
+ regardForPlayer(ped:Pedestrian){return (ped.acquaintance??this.pedTypeTable(ped.pedType)).idFor(0);}
+ /** Whether a street gang's ped type (CGangs index) hates the player, as ped.dat and the script's relationships stand. */
+ gangHatesPlayer(gang:number){const type=NATIVE_PED_TYPES[gangPedType(gang)];return !!type&&this.pedTypeTable(type).idFor(0)===ACQUAINTANCE_HATE;}
  acquaintanceOf(ped:Pedestrian){
   return ped.acquaintance??=this.copyOf(this.pedTypeTable(ped.pedType));
  }
@@ -3054,10 +3064,21 @@ export class WorldPedestrians {
      }
     }
    }
-   // Turf hostiles: rival gangs jump a Grove player on sight, then hold turf.
+   // Gangs that hate the player: the acquaintance scanner's sighting (in front, within the seeing range) reaches the
+   // gang's group, which answers with a kill-threats task for every member TURF_KILL_THREATS_CHANCE of the time, once
+   // for each time he comes into view (see nativePopulation). A gang that only dislikes him leaves him be.
    if(!p.officer&&p.health>0&&p.down===0&&this.sim.player.health>0){
-    const t=this.sim.player.position;
-    if(p.attackWave||this.gangWar&&p.gang!==undefined&&p.gang!==1||gangHostile(p.gang,Math.hypot(t.x-state.position.x,t.z-state.position.z))){p.retaliate=Math.max(p.retaliate,2);p.flee=0;}
+    const t=this.sim.player.position,d=Math.hypot(t.x-state.position.x,t.z-state.position.z);
+    if(p.gang!==undefined&&!p.follow&&this.regardForPlayer(p)===ACQUAINTANCE_HATE){
+     const h=state.heading,inFront=(t.x-state.position.x)*Math.sin(h)+(t.z-state.position.z)*Math.cos(h)>0;
+     if(d<=PED_SEEING_RANGE&&inFront&&!p.turfSighted){
+      p.turfSighted=true;
+      if(this.turfRandom()<TURF_KILL_THREATS_CHANCE)for(const m of p.party?.members??[p])if(m.health>0&&!m.officer){m.turfFoe=true;m.turfSighted=true;}
+     }else if(d>PED_SEEING_RANGE*2)p.turfSighted=false;
+    }
+    // CTaskComplexKillPedOnFoot holds until the player gets clear of it.
+    if(p.turfFoe&&d>PED_SEEING_RANGE*4)p.turfFoe=false;
+    if(p.attackWave||this.gangWar&&p.gang!==undefined&&p.gang!==1||p.turfFoe||gangHostile(p.gang,d)){p.retaliate=Math.max(p.retaliate,2);p.flee=0;}
    }
    // Armed turf gangs stand and shoot instead of brawling (escalated pursuit).
    let gunHold:number|undefined,gunEngaged=false;
@@ -3086,7 +3107,7 @@ export class WorldPedestrians {
    }else if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0&&(gunFoe||!p.follow)){
     spot=this.spotTarget(p,gunFoe?gunFoe.actor.player.position:this.sim.player.position,cars,gunFoe);
     p.view.setWeaponAim();p.view.setWeaponPose();
-    const hostile=!!gunFoe||p.retaliate>0||gangHostile(p.gang,Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z));
+    const hostile=!!gunFoe||p.retaliate>0||!!p.turfFoe||gangHostile(p.gang,Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z));
     const fight=p.gunFight??={shooting:false,lastAttack:-Infinity},range=p.weapon.info.targetRange,d=spot.distance;
     if(!hostile||!spot.visible)fight.shooting=false;
     // CTaskComplexKillPedOnFootArmed: fire from a quarter of the target range at once, or from half of it once two

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush, SEPARATION_RADIUS, GANG_RIVALS, GANG_AGGRO_RADIUS, managePed } from '../src/simulation/nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush, SEPARATION_RADIUS, GANG_RIVALS, TURF_KILL_THREATS_CHANCE, gangPedType, managePed } from '../src/simulation/nativePopulation';
 
 test('creation bands match re3 MIN 40 RANGE 10 OFFSCREEN 0.5', () => {
   expect(onscreenSpawnBand(1)).toEqual({ min: 42.5, max: 50.5 });
@@ -33,15 +33,16 @@ test('gang formation spreads members 0.75 units apart per index', () => {
   expect(second.z).toBeLessThanOrEqual(1.5);
 });
 
-test('rival gangs jump the player on sight inside the aggro radius', () => {
-  expect(GANG_AGGRO_RADIUS).toBe(12);
+test('rivals no longer jump the player by turf alone; only a weak mark is leaned on', () => {
   expect([...GANG_RIVALS].sort()).toEqual([0, 2]);
-  expect(gangHostile(0, 5)).toBe(true);
-  expect(gangHostile(2, 11.9)).toBe(true);
-  expect(gangHostile(0, 12)).toBe(false);
-  expect(gangHostile(1, 5)).toBe(false);
-  expect(gangHostile(7, 5)).toBe(false);
+  expect(gangHostile(0, 5)).toBe(false);
+  expect(gangHostile(2, 11.9)).toBe(false);
+  expect(gangHostile(0, 4, 20)).toBe(true);
+  expect(gangHostile(1, 4, 20)).toBe(false);
+  expect(gangHostile(7, 6, 20)).toBe(false);
   expect(gangHostile(undefined, 5)).toBe(false);
+  expect(TURF_KILL_THREATS_CHANCE).toBeCloseTo(2 / 7);
+  expect(gangPedType(0)).toBe(7);
 });
 
 test('escalated parties arm one pistol against armed or wanted marks', () => {
@@ -75,7 +76,7 @@ test('respect gates neutral gangs and rewards rival kills',async()=>{
   expect(pop.gangRespect()).toBe(10);
   expect(pop.gangHostile(3,4)).toBe(true);
   expect(pop.gangHostile(1,4)).toBe(false);
-  expect(pop.gangHostile(0,11)).toBe(true);
+  expect(pop.gangHostile(0,11)).toBe(false);
   pop.addRespect(200);
   expect(pop.gangRespect()).toBe(100);
   expect(pop.gangHostile(3,4)).toBe(false);
