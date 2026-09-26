@@ -26,7 +26,8 @@ export class Progression {
    for(const mode of ['walk','drive'] as const)if(finite(data.distances?.[mode],1e9))this.distances[mode]=data.distances[mode];
    if(Array.isArray(data.completed))for(const id of data.completed)if(ACTIVITIES.some(a=>a.id===id))this.completed.add(id);
    if(finite(data.drivingSkill,1000))this.drivingSkill=data.drivingSkill;
-   if(Array.isArray(data.ammo))for(const row of data.ammo){if(!Array.isArray(row)||row.length!==3)continue;const w=WEAPONS.find(w=>w.id===row[0]);if(w&&finite(row[1],inventory.maxMagazine(w.id))&&finite(row[2],100000)&&Number.isInteger(row[1])&&Number.isInteger(row[2]))inventory.ammo.set(w.id,{clip:row[1],reserve:row[2]});}
+   // The clip is checked against the magazines once WEAPON.DAT has loaded (the inventory holds the rows until then).
+   if(Array.isArray(data.ammo))inventory.restoreAmmo(data.ammo.filter((row:unknown):row is [number,number,number]=>Array.isArray(row)&&row.length===3&&WEAPONS.some(w=>w.id===row[0])&&finite(row[1],1000)&&finite(row[2],100000)&&Number.isInteger(row[1])&&Number.isInteger(row[2])));
    // The weapons held; saves from before the slot model keep the whole arsenal.
    if(Array.isArray(data.owned)){inventory.owned.clear();inventory.owned.add(0);for(const id of data.owned)if(WEAPONS.some(w=>w.id===id))inventory.owned.add(id);}
    if(Array.isArray(data.practice))for(const row of data.practice)if(Array.isArray(row)&&WEAPONS.some(w=>w.id===row[0])&&finite(row[1],1000))inventory.practice.set(skillStatWeapon(row[0]),row[1]);
@@ -63,7 +64,7 @@ export class Progression {
   this.saveTime+=dt;if(this.saveTime>=5){this.saveTime=0;this.save();}
  }
  snapshot(){return {distances:{...this.distances},completed:[...this.completed],practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.map(m=>({id:m.id,name:m.name,description:m.description,done:m.done})),currentMission:this.currentMission()?.id??null,missionProgress:this.missionProgress()??null,saveSlots:this.slots.map((s,i)=>({slot:i,has:!!s}))};}
- save(){try{this.storage?.setItem(KEY,JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:[...this.inventory.ammo].map(([id,a])=>[id,a.clip,a.reserve]),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.filter(m=>m.done).map(m=>m.id)}));return true;}catch{return false;}}
+ save(){try{this.storage?.setItem(KEY,JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.filter(m=>m.done).map(m=>m.id)}));return true;}catch{return false;}}
  /** Interior save points plus the save menu: three slots with location, clock and cash. */
  slots:(null|{x:number;y:number;z:number;heading:number;timeMinutes:number;money:number})[]=[null,null,null];
  saveToSlot(slot:number){

@@ -43,6 +43,29 @@ export class WeaponInventory {
  installNative(data:NativeWeaponData){
   this.native=data;
   for(const w of WEAPONS){const a=this.ammo.get(w.id)!,clip=this.magazine(w.id);if(a.clip>clip||a.clip===w.magazine&&a.reserve===(w.reload?w.magazine*8:0)){a.reserve=reserveFor(clip,this.reloadable(w.id));a.clip=clip;}}
+  if(this.deferredAmmo){const rows=this.deferredAmmo;this.deferredAmmo=undefined;this.applyAmmo(rows);}
+ }
+ /** Saved clips larger than the base magazine (a pistol's at hitman skill) waiting for WEAPON.DAT's clip sizes. */
+ private deferredAmmo?:(readonly [number,number,number])[];
+ /** A save's [weapon, clip, reserve] rows: what fits the magazines known now is applied at once, the rest once the
+  * native weapon data has loaded and the saved skill decides the clip. */
+ restoreAmmo(rows:readonly (readonly [number,number,number])[]){
+  const later=this.native?[]:rows.filter(([id,clip])=>clip>this.maxMagazine(id));
+  this.applyAmmo(rows.filter(row=>!later.includes(row)));
+  this.deferredAmmo=later.length?[...later]:undefined;
+ }
+ private applyAmmo(rows:readonly (readonly [number,number,number])[]){
+  for(const [id,clip,reserve] of rows){
+   const a=this.ammo.get(id);if(!a||clip>this.maxMagazine(id))continue;
+   // A clip above the magazine at the current skill keeps its rounds in reserve.
+   a.clip=Math.min(clip,this.magazine(id));a.reserve=reserve+clip-a.clip;
+  }
+ }
+ /** The ammunition to save: the rows still waiting for the native data are saved as they were read. */
+ ammoRows(){
+  const rows=new Map([...this.ammo].map(([id,a])=>[id,[id,a.clip,a.reserve] as [number,number,number]]));
+  for(const row of this.deferredAmmo??[])rows.set(row[0],[...row]);
+  return [...rows.values()];
  }
  skill(id=this.selected):WeaponSkill{return this.native?playerWeaponSkill(this.native,id,this.practice.get(skillStatWeapon(id))??0):1;}
  info(id=this.selected){return this.native&&nativeWeaponInfo(this.native,id,this.skill(id));}

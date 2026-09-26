@@ -3,6 +3,8 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {Progression} from '../src/simulation/Progression';
 import {Simulation} from '../src/simulation/Simulation';
 import {WeaponInventory} from '../src/weapons/Inventory';
+import {readFileSync} from 'node:fs';
+import {readWeaponData} from '../src/weapons/weaponData';
 beforeAll(async()=>{await RAPIER.init();});
 test('versioned saves restore ammo, money and practice; malformed fields retain defaults',()=>{const sim=new Simulation(),inv=new WeaponInventory();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};try{const p=new Progression(inv,sim,storage);inv.select(31);inv.fire();sim.money=999;p.hit(31);p.save();const restored=new WeaponInventory();new Progression(restored,sim,storage);expect(restored.selected).toBe(31);expect(restored.ammo.get(31)?.clip).toBe(49);expect(restored.practice.get(31)).toBe(5);expect(sim.money).toBe(999);raw=JSON.stringify({version:1,money:'lots',ammo:[[31,Infinity,-1]],practice:[[31,999999]],selected:999});const safe=new WeaponInventory();new Progression(safe,sim,storage);expect(safe.selected).toBe(0);expect(safe.ammo.get(31)?.clip).toBe(50);expect(safe.practice.size).toBe(0);}finally{sim.dispose();}});
 test('driving activity rejects teleports and awards once',()=>{const sim=new Simulation(),p=new Progression(new WeaponInventory(),sim);try{p.tick(1/60,true,0,false);sim.player.position.x=10000;p.tick(1/60,true,0,false);expect(p.distances.drive).toBe(0);for(let i=0;i<1100;i++){sim.player.position.x++;p.tick(1/60,true,0,false);}expect(p.completed.has('drive')).toBe(true);expect(sim.money).toBe(850);}finally{sim.dispose();}});
@@ -43,5 +45,16 @@ test('a debt survives a reload, a fractional or out-of-range sum does not',()=>{
   sim.money=-500;new Progression(new WeaponInventory(),sim,storage).save();sim.money=350;
   new Progression(new WeaponInventory(),sim,storage);expect(sim.money).toBe(-500);
   for(const money of [2.5,-10000000]){raw=JSON.stringify({version:1,money});sim.money=350;new Progression(new WeaponInventory(),sim,storage);expect(sim.money).toBe(350);}
+ }finally{sim.dispose();}
+});
+
+test('a hitman pistol clip saved before WEAPON.DAT loads is restored once it has',()=>{
+ const sim=new Simulation();let raw=JSON.stringify({version:1,ammo:[[22,33,777]],practice:[[22,1000]]});const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  const inv=new WeaponInventory(),p=new Progression(inv,sim,storage);
+  // Saved again before the data arrives, the row is kept as it was read.
+  p.save();expect(JSON.parse(raw).ammo).toContainEqual([22,33,777]);
+  inv.installNative(readWeaponData(readFileSync('public/play/world/files/data/weapon.dat','utf8')));
+  expect(inv.ammo.get(22)).toEqual({clip:33,reserve:777});
  }finally{sim.dispose();}
 });
