@@ -3207,7 +3207,10 @@ async function boot() {
     if(!automatic){follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;}
     if (!importedScene || installingScene) { sceneChannel?.postMessage({type:'region-error',message:'Wait for the current scene request to finish.'}); return; }
     const quiet=data.keepPlayer===true;
-    installingScene=true;if(!automatic&&!quiet)pause();if(!quiet){menuBusy(true);hud.menuMessage('Preparing the selected terrain…');}
+    // A window the follower streams in as the player moves stays off the menu, as CStreaming's loads do: pausing
+    // while one installs neither disables the menu nor turns "Resume game" into the workshop's "Walk imported scene".
+    const menuQuiet=quiet||automatic;
+    installingScene=true;if(!automatic&&!quiet)pause();if(!menuQuiet){menuBusy(true);hud.menuMessage('Preparing the selected terrain…');}
     try {
       const [{nativeSceneDestination,assertInstalledSceneSupport},{prepareTimecycleBoxes},vegetation]=await Promise.all([import('./simulation/nativeSceneDestination'),import('./world/nativeTimecycleBoxes'),readSceneVegetationOnce('environment' in data?data.environment:undefined)]);
       if(vegetation&&'proceduralAssets' in data)vegetation.proceduralAssets=data.proceduralAssets as import('./world/WalkingVegetation').WalkingVegetationPackage['proceduralAssets'];
@@ -3246,7 +3249,7 @@ async function boot() {
       lastSwap={ms:+(performance.now()-swapStart).toFixed(1),latencyMs:data.latencyMs??0,workerMs:+(data.workerMs??0).toFixed(0),timings:data.timings??{},parts:data.parts.length,placements:next.instanceCount,reusedPlacements:next.reusedPlacementCount,pooledModels:next.pooledModelCount,payloadMB:+(payloadBytes/1e6).toFixed(1),resident:residentCount,prebuiltMs:data.prebuiltMs??0,stages:Object.fromEntries(Object.entries(next.buildStages).map(([k,v])=>[k,+v.toFixed(1)]))};
       residentModels=residentModelsOf(data.parts);
       sim.respawn=spawn!;if(!preserve&&!quiet){sim.resetPlayer();render.yaw=sim.player.heading+Math.PI;}if(!automatic&&!quiet)sound.reset(sim);
-      if(!quiet){hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
+      if(!menuQuiet){hud.button('play').hidden=false;hud.button('play').textContent='Walk imported scene';
       hud.menuMessage('Terrain updated. Current environment and character settings are retained.');}
       if(automatic)follower!.finish(data.followId!,true);completed=true;
       sceneChannel?.postMessage({type:'region-installed'});
@@ -3261,7 +3264,7 @@ async function boot() {
       if(!keepPrebuilt){data.prebuilt?.dispose();data.prebuilt=undefined;}
       installingScene=false;
       if(completed||automatic&&!follower?.matches(data.followId!)){clearTimeout(followTimer);pendingFollowingData=undefined;followBoundaryPaused=false;}
-      if(alive){if(!quiet)menuBusy(false);if(completed&&autoResume&&paused&&loadRequest===resumeVersion&&!document.hidden)play();}
+      if(alive){if(!menuQuiet)menuBusy(false);if(completed&&autoResume&&paused&&loadRequest===resumeVersion&&!document.hidden)play();}
     }
   };
   /** CEntryExit::TransitionFinished once the screen is black: CStreaming::LoadScene at the spawn point's exit in its
