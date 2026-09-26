@@ -275,7 +275,11 @@ async function boot() {
   const startScene=walkDemo?{
     pack:import('./assets/scenePack').then(({readScenePack})=>{
       const url=new URL(`${import.meta.env.BASE_URL}play/${included.file}`,location.href).href,early=(window as {__startScenePack?:{url:string;response:Promise<Response>}}).__startScenePack;
-      return readScenePack(url,early?.url===url?early.response:undefined);
+      // A download that fails (a dropped connection, a busy server) is tried twice more, after 1 and 3 s, before the
+      // menu reports it: the first attempt reads the response index.html started, the others fetch afresh.
+      const attempt=(tries:number):ReturnType<typeof readScenePack>=>readScenePack(url,tries===0&&early?.url===url?early.response:undefined)
+        .catch(async error=>{if(tries>=2)throw error;await new Promise(resolve=>setTimeout(resolve,1000*3**tries));return attempt(tries+1);});
+      return attempt(0);
     }),
     // The start package was published from the same archive the worker streams: installing it under the archive's
     // identity lets the first streamed window borrow its colliders, textures and model sources like every later one.
