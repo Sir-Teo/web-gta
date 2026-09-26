@@ -3294,13 +3294,19 @@ async function boot() {
   };
   /** CEntryExit::TransitionFinished once the screen is black: CStreaming::LoadScene at the spawn point's exit in its
    * area (the game clock is suspended meanwhile), then the teleport. */
+  /** The deadline of the transfer under way (an interior's or the hangar flight's terrain). */
+  let transferTimer:ReturnType<typeof setTimeout>|undefined;
+  const TRANSFER_TIMEOUT_MS=45000;
   function startInteriorTransfer(t:EntryExitTransition){
     if(!staticWorld){entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);return;}
     interiorTransfer=t;follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;
+    // A request the worker never answers gives up after the time an ordinary terrain request has.
+    clearTimeout(transferTimer);transferTimer=setTimeout(()=>{if(interiorTransfer===t)failInteriorTransfer('The entrance could not be loaded in time.');},TRANSFER_TIMEOUT_MS);
     const [x,y]=t.spawn.exit,area=t.spawn.area;
     staticWorld.request(-2,area===0?{x,y,radius:180,lodRadius:1000,includeCollisionBounds:true}:{x,y,radius:100,includeCollisionBounds:true,interior:area});
   }
   async function finishInteriorTransfer(data:TerrainUpdate){
+    clearTimeout(transferTimer);
     const t=interiorTransfer!,spawn=t.spawn;
     const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,keepPlayer:true}).catch(()=>false);
     if(!alive)return;
@@ -3329,7 +3335,7 @@ async function boot() {
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);
   }
   function failInteriorTransfer(message:string){
-    interiorTransfer=undefined;entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);
+    clearTimeout(transferTimer);interiorTransfer=undefined;entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);
     follower=new SceneRegionFollower({x:sim.player.position.x,y:-sim.player.position.z,radius:180,lodRadius:1000,includeCollisionBounds:true});
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);hud.message(message);
   }
@@ -3562,7 +3568,17 @@ async function boot() {
             // The airfield replaces the current window: a follow request in flight (the primed start window, say) is dropped.
             follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;pendingPrebuild?.job.dispose();pendingPrebuild=undefined;
             navigation.toggle(false);pause();menuBusy(true);hud.menuMessage('Loading Verdant Meadows and your aircraft…');
-            return new Promise<void>((resolve,reject)=>{flightTransfer={modelId,resolve,reject};staticWorld!.request(-1,{x:150,y:2500,radius:180,lodRadius:1000,includeCollisionBounds:true});});
+            return new Promise<void>((resolve,reject)=>{
+              const transfer={modelId,resolve,reject};flightTransfer=transfer;
+              staticWorld!.request(-1,{x:150,y:2500,radius:180,lodRadius:1000,includeCollisionBounds:true});
+              clearTimeout(transferTimer);transferTimer=setTimeout(()=>{
+                if(flightTransfer!==transfer)return;
+                // Given up: the menu is free again and the terrain around the player streams on.
+                flightTransfer=undefined;menuBusy(false);hud.menuMessage('Verdant Meadows could not be loaded in time.');
+                follower=new SceneRegionFollower({x:sim.player.position.x,y:-sim.player.position.z,radius:180,lodRadius:1000,includeCollisionBounds:true});
+                reject(new Error('Verdant Meadows could not be loaded in time.'));
+              },TRANSFER_TIMEOUT_MS);
+            });
           };
           follower=new SceneRegionFollower({x:included.spawn.x,y:-included.spawn.z,radius:180,lodRadius:1000,includeCollisionBounds:true});
           staticWorld=new StaticWorldProvider(`${import.meta.env.BASE_URL}play/world/`,data=>{
@@ -4555,7 +4571,7 @@ async function boot() {
             }
             if(data.type==='terrain'&&data.followId===-2&&interiorTransfer){void finishInteriorTransfer(data);return;}
             if(data.type==='terrain'&&data.followId===-1&&flightTransfer){
-              const transfer=flightTransfer;flightTransfer=undefined;
+              const transfer=flightTransfer;flightTransfer=undefined;clearTimeout(transferTimer);
               void (async()=>{try{
                 const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,preferredSpawn:{x:150,z:-2500}});
                 if(!installed)throw new Error('Airfield terrain could not be installed.');
@@ -4568,10 +4584,12 @@ async function boot() {
                 follower=new SceneRegionFollower({x:150,y:2500,radius:180,lodRadius:1000,includeCollisionBounds:true});play();transfer.resolve();
               }catch(error){hud.menuMessage(String(error));transfer.reject(error);}})();return;
             }
+            // A transfer's window (a negative id) that nothing waits for any more, since its request timed out.
+            if(data.type==='terrain'&&data.followId!==undefined&&data.followId<0)return;
             if(data.type==='terrain')scheduleWindow(data);
             if(data.type==='error'){
               if(interiorTransfer&&data.followId===-2){failInteriorTransfer(data.message);return;}
-              if(flightTransfer){flightTransfer.reject(new Error(data.message));flightTransfer=undefined;menuBusy(false);hud.menuMessage(data.message);return;}
+              if(flightTransfer){clearTimeout(transferTimer);flightTransfer.reject(new Error(data.message));flightTransfer=undefined;menuBusy(false);hud.menuMessage(data.message);return;}
               const pending=follower?.snapshot().pending;
               if(pending)failFollowing(pending,data.message);
               // The world source failed to open (followId undefined): following goes on, and its next request opens it again.
