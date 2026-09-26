@@ -52,6 +52,8 @@ export interface ScmObject {
  onlyDamagedByPlayer:boolean;
  /** m_pObjectInfo's m_fColDamageMultiplier and m_fSmashMultiplier, and m_fMass. */
  colDamageMultiplier:number;smashMultiplier:number;mass:number;
+ /** CPhysical::m_fTurnMass as SET_OBJECT_TURN_MASS set it; otherwise OBJECT.DAT's (the host's). */
+ turnMass?:number;
  /** CEntity::bIsVisible, which SET_OBJECT_VISIBLE clears. */
  visible:boolean;
  /** CEntity::m_pAttachedTo with its offset and rotation: what the object hangs from and where on it. The
@@ -218,12 +220,13 @@ export class ScmObjects {
   * MARK_OBJECT_AS_NO_LONGER_NEEDED would. */
  cleanUpMissionObjects(){for(const [handle,object] of this.objects)if(object.missionCleanup)this.markNoLongerNeeded(handle);}
  /** SetObjectHeading: the degrees are fixed once into range before they become radians. */
- setHeading(handle:number,degrees:number){this.at(handle).heading=fixAngleDegrees(degrees)*DEG;}
- /** SET_OBJECT_ROTATION: CPlaceable::SetOrientation's three angles, degrees in and radians kept, with the
-  * heading following the one about the vertical axis. */
+ setHeading(handle:number,degrees:number){const object=this.at(handle);object.heading=fixAngleDegrees(degrees)*DEG;object.matrix=undefined;}
+ /** SET_OBJECT_ROTATION: CPlaceable::SetOrientation's three angles, degrees in and radians kept. The turn about the
+  * vertical axis is the heading, which carries it (the tilts stay in `rotation`, whose z is left at nothing): keeping
+  * it in both drew the object turned twice over. */
  setRotation(handle:number,x:number,y:number,z:number){
   const object=this.at(handle);
-  object.rotation={x:x*DEG,y:y*DEG,z:z*DEG};object.heading=fixAngleDegrees(z)*DEG;
+  object.rotation={x:x*DEG,y:y*DEG,z:0};object.heading=fixAngleDegrees(z)*DEG;object.matrix=undefined;
  }
  /** GetObjectHeading: radians back to fixed degrees. */
  getHeading(handle:number){return fixAngleDegrees(this.at(handle).heading/DEG);}
@@ -238,10 +241,12 @@ export class ScmObjects {
  getVelocity(handle:number){const v=this.at(handle).velocity;return {x:v.x*50,y:v.y*50,z:v.z*50};}
  setPosition(handle:number,position:{x:number;y:number;z:number}){this.at(handle).position={...position};}
  setScale(handle:number,scale:number){requireAsset(Number.isFinite(scale),'Invalid object scale.');this.at(handle).scale=scale;}
- /** CMatrix::SetRotate (Core/Matrix.cpp 0x59AD20 region, reversed): the object's own rows from its three
-  * angles, which the object-space transform needs. */
+ /** The object's own rows, which the object-space transform needs: CMatrix::SetRotate (Core/Matrix.cpp 0x59AD20 region,
+  * reversed) from its tilts and heading, or the whole matrix when something set one. */
  matrix(handle:number){
-  const object=this.at(handle),{x,y,z}=object.rotation;
+  const object=this.at(handle),{x,y}=object.rotation,z=object.heading+object.rotation.z;
+  // A whole matrix set some other way (a holding ped's bone, a quaternion) is the object's own.
+  if(object.matrix)return {right:{...object.matrix.right},forward:{...object.matrix.forward},up:{...object.matrix.up},position:{...object.position}};
   const sx=Math.sin(x),cx=Math.cos(x),sy=Math.sin(y),cy=Math.cos(y),sz=Math.sin(z),cz=Math.cos(z);
   return {
    right:{x:cz*cy-sz*sx*sy,y:cz*sx*sy+sz*cy,z:-(sy*cx)},
@@ -250,6 +255,29 @@ export class ScmObjects {
    position:{...object.position},
   };
  }
+ /** GET_OBJECT_QUATERNION: CQuaternion::Set of the object's matrix (native axes; the rotation taking x, y, z to
+  * its right, forward and up). */
+ getQuaternion(handle:number){
+  const m=this.matrix(handle);
+  return quaternionFromRows(m.right,m.forward,m.up);
+ }
+ /** SET_OBJECT_QUATERNION: CQuaternion::Get into the object's matrix, the heading following its forward. */
+ setQuaternion(handle:number,q:{x:number;y:number;z:number;w:number}){
+  const object=this.at(handle);
+  requireAsset([q.x,q.y,q.z,q.w].every(Number.isFinite),'Invalid object quaternion.');
+  const l=Math.hypot(q.x,q.y,q.z,q.w)||1,x=q.x/l,y=q.y/l,z=q.z/l,r=q.w/l;
+  const x2=x*2,y2=y*2,z2=z*2;
+  object.matrix={right:{x:1-(z2*z+y2*y),y:z2*r+y2*x,z:z2*x-y2*r},forward:{x:y2*x-z2*r,y:1-(z2*z+x2*x),z:x2*r+z2*y},up:{x:y2*r+z2*x,y:z2*y-x2*r,z:1-(y2*y+x2*x)}};
+  object.heading=Math.atan2(-object.matrix.forward.x,object.matrix.forward.y);
+ }
+ /** IS_OBJECT_IN_AREA_3D: CEntity::IsWithinArea, the corners taken either way round. */
+ isInArea3d(handle:number,a:{x:number;y:number;z:number},b:{x:number;y:number;z:number}){
+  const p=this.at(handle).position;
+  return p.x>=Math.min(a.x,b.x)&&p.x<=Math.max(a.x,b.x)&&p.y>=Math.min(a.y,b.y)&&p.y<=Math.max(a.y,b.y)&&p.z>=Math.min(a.z,b.z)&&p.z<=Math.max(a.z,b.z);
+ }
+ /** SET_OBJECT_MASS and SET_OBJECT_TURN_MASS: CPhysical::m_fMass and m_fTurnMass. */
+ setMass(handle:number,mass:number){requireAsset(Number.isFinite(mass)&&mass>0,'Invalid object mass.');this.at(handle).mass=mass;}
+ setTurnMass(handle:number,turnMass:number){requireAsset(Number.isFinite(turnMass)&&turnMass>0,'Invalid object turn mass.');this.at(handle).turnMass=turnMass;}
  /** CONNECT_LODS: CEntity::SetLod, which points an object at the one it stands in for at a distance. */
  connectLods(handle:number,lodHandle:number){this.at(lodHandle);this.at(handle).lod=lodHandle;}
  /** SET_OBJECT_AREA_VISIBLE: the area the object is drawn in, the same field the ped command sets. */
@@ -320,4 +348,14 @@ export class ScmObjects {
  setProofs(handle:number,proofs:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean}){
   this.at(handle).proofs={...proofs};
  }
+}
+/** The unit quaternion of the rotation whose columns are these three native axes (Shepperd's method). */
+export function quaternionFromRows(right:{x:number;y:number;z:number},forward:{x:number;y:number;z:number},up:{x:number;y:number;z:number}){
+ const m00=right.x,m10=right.y,m20=right.z,m01=forward.x,m11=forward.y,m21=forward.z,m02=up.x,m12=up.y,m22=up.z,trace=m00+m11+m22;
+ let x:number,y:number,z:number,w:number;
+ if(trace>0){const s=Math.sqrt(trace+1)*2;w=s/4;x=(m21-m12)/s;y=(m02-m20)/s;z=(m10-m01)/s;}
+ else if(m00>m11&&m00>m22){const s=Math.sqrt(1+m00-m11-m22)*2;w=(m21-m12)/s;x=s/4;y=(m01+m10)/s;z=(m02+m20)/s;}
+ else if(m11>m22){const s=Math.sqrt(1+m11-m00-m22)*2;w=(m02-m20)/s;x=(m01+m10)/s;y=s/4;z=(m12+m21)/s;}
+ else{const s=Math.sqrt(1+m22-m00-m11)*2;w=(m10-m01)/s;x=(m02+m20)/s;y=(m12+m21)/s;z=s/4;}
+ return {x,y,z,w};
 }

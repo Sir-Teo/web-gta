@@ -7,6 +7,7 @@ import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {speechLengthMs} from '../engine/ScmMissionAudio';
 import {gxtText} from '../assets/gxt';
 import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
+import {VEHICLE_CLASSES} from '../assets/pedGroups';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findZone,type WorldZones} from '../assets/worldZones';
@@ -276,6 +277,11 @@ export interface ScmMissionWorld {
  giveScriptPedSequence(ped:unknown,orders:readonly ScriptedPedOrder[],repeat:boolean,start?:number):void;
  /** Whether a script's ped is still carrying out the order or sequence it was given (CTaskManager still holds it). */
  scriptPedHasOrder?(ped:unknown):boolean;
+ /** TASK_COMPLEX_ENTER_CAR_AS_DRIVER/_AS_PASSENGER or GO_TO_CAR_DOOR_AND_STAND_STILL active: a script ped's, or the player's
+  * (undefined ped). */
+ pedEnteringCar?(ped:unknown|undefined):boolean;
+ /** vehicles.ide's class of a vehicle model (CVehicleModelInfo::m_nVehicleClass), or undefined for none. */
+ vehicleModelClass?(model:number):string|undefined;
  /** The index of the task a ped's script sequence is on, -1 without one (a single task is none). */
  scriptPedSequenceProgress?(ped:unknown):number;
  /** The same for the player's own sequence. */
@@ -1178,6 +1184,11 @@ export class ScmMission {
    hasObjectBeenPhotographed:handle=>{const o=this.runtime.game.objects.at(handle),was=!!o.photographed;o.photographed=false;return was;},
    objectSpeed:handle=>this.runtime.game.objects.speed(handle),
    objectIsStatic:handle=>this.runtime.game.objects.at(handle).isStatic,
+   getObjectQuaternion:handle=>this.runtime.game.objects.getQuaternion(handle),
+   setObjectQuaternion:(handle,x,y,z,w)=>{this.runtime.game.objects.setQuaternion(handle,{x,y,z,w});},
+   isObjectInArea3d:(handle,ax,ay,az,bx,by,bz)=>this.runtime.game.objects.isInArea3d(handle,{x:ax,y:ay,z:az},{x:bx,y:by,z:bz}),
+   setObjectMass:(handle,mass)=>{this.runtime.game.objects.setMass(handle,mass);},
+   setObjectTurnMass:(handle,turnMass)=>{this.runtime.game.objects.setTurnMass(handle,turnMass);},
    // CWorld::FindMissionEntitiesIntersectingCube over the box the radii span: a mission car, a mission ped or a mission
    // object whose position is inside it (edges included), found through the sectors the box covers.
    pointIsObscuredByMissionEntity:(x,y,z,rx,ry,rz)=>{
@@ -1286,6 +1297,14 @@ export class ScmMission {
     const done=this.host('sortOutScriptObjectCollisionWithCar','SORT_OUT_OBJECT_COLLISION_WITH_CAR')(object,this.liveVehicle(vehicle));
     if(done===undefined)throw new ScmEntityPending(`object ${object}`);
     if(!done)throw new UnsupportedScmCommand(-1,0,'SORT_OUT_OBJECT_COLLISION_WITH_CAR','a bike, boat or aircraft');
+   },
+   // IS_CHAR_GETTING_IN_TO_A_CAR: one of the entering tasks is active (CharacterCommands' handler).
+   pedIsGettingIntoCar:handle=>this.host('pedEnteringCar','IS_CHAR_GETTING_IN_TO_A_CAR')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle)),
+   // GET_VEHICLE_CLASS: m_nVehicleClass, VEHICLE_CLASS_NORMAL (0) to _BICYCLE (11) in vehicles.ide's order, _IGNORE -1.
+   getVehicleClass:handle=>{
+    const model=handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle);
+    const name=typeof model==='number'?this.host('vehicleModelClass','GET_VEHICLE_CLASS')(model):undefined;
+    return name===undefined?-1:(VEHICLE_CLASSES as readonly string[]).indexOf(name);
    },
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},

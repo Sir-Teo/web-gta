@@ -8381,3 +8381,18 @@ the pair's contacts with a Rapier contact filter hook on the object's colliders,
 colliders report, and releases it after the step once the object's COL sphere and the car's bounds sphere part, or
 either is gone. Rapier's JS step hands hooks over only with an event queue, so the world steps with one only while a
 pair is ignored. Spec: `script-object-car-collision`.
+
+## Object orientation, RYDER2's object commands, GET_VEHICLE_CLASS and IS_CHAR_GETTING_IN_TO_A_CAR
+
+- An object's turn about the vertical axis lived in both its heading and `rotation.z` after `SET_OBJECT_ROTATION`,
+  and the views add the two, so such an object was drawn turned twice over; the heading alone now carries it. The
+  object matrix behind `GET_OFFSET_FROM_OBJECT_IN_WORLD_COORDS` ignored the heading (`SET_OBJECT_HEADING` objects
+  gave offsets as if unturned) and any whole matrix (a held object's bone, a quaternion); it now takes both, and
+  `SET_OBJECT_HEADING` resets a whole matrix as `CPlaceable::SetHeading` resets the rotation.
+- `GET_OBJECT_QUATERNION` and `SET_OBJECT_QUATERNION` (RYDER2's crates) go through the matrix as `CQuaternion::Set`
+  and `CQuaternion::Get(RwMatrix*)` do (the rotation taking x, y, z to right, forward, up). `IS_OBJECT_IN_AREA_3D` is
+  `CEntity::IsWithinArea`. `SET_OBJECT_MASS` and `SET_OBJECT_TURN_MASS` set `m_fMass` and `m_fTurnMass`, which the
+  body takes when it goes dynamic.
+- `GET_VEHICLE_CLASS` (MAIN, HOODS5) is `m_nVehicleClass`: vehicles.ide's class in eVehicleClass order, `ignore` -1.
+- `IS_CHAR_GETTING_IN_TO_A_CAR` (HOODS5) asks for an active enter-car task, the player's car entry or mount, or a
+  script ped's enter-car order. Specs: `scm-objects` (unit), `script-world-queries`.

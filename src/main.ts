@@ -3825,6 +3825,8 @@ async function boot() {
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
                  vehicleModelType:model=>fleet?fleet.vehicleIdeType(model):null,
                  scriptVehicleWaitingForCollision:car=>isScriptCar(car)&&car.waitingForCollision,
+                 pedEnteringCar:ped=>ped===undefined?carEntry.active||bikeMount.active:onFoot(ped)?.order?.kind==='enterCar',
+                 vehicleModelClass:model=>fleet?.vehicleClass(model),
                  sortOutScriptObjectCollisionWithCar:(object,car)=>{
                   if(!isScriptCar(car))return false;
                   const body=scriptObjectViews?.bodyOf(object);if(!body?.isValid())return undefined;

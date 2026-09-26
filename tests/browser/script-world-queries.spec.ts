@@ -63,6 +63,15 @@ test('a script reads a passenger seat, a line of sight, a group, a car engine, c
  const pelvis=await w('deadPedCoordinates',rider),root=await w('pedPosition',rider);
  expect(Math.hypot(pelvis.x-root.x,pelvis.y-root.y)).toBeLessThan(1);expect(Math.abs(pelvis.z-root.z)).toBeLessThan(1.2);
  expect(await w('hasLanguageChanged')).toBe(false);
+ // GET_VEHICLE_CLASS: vehicles.ide's class, the police car's 'ignore' as -1.
+ expect(await w('getVehicleClass',made.car)).toBe(-1);
+ // IS_CHAR_GETTING_IN_TO_A_CAR: a ped sent to the car is getting in until it sits; the idle player is not.
+ expect(await w('pedIsGettingIntoCar',1)).toBe(false);
+ const walker=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;return g.missionForProfiling().peds.create(4,'MALE01',{x:p.x+2,y:-p.z+6,z:p.y});});
+ await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().peds.entity(h),walker,{timeout:60000});
+ expect(await w('pedIsGettingIntoCar',walker)).toBe(false);
+ await w('givePedScriptedTask',walker,{kind:'enterCarAsPassenger',vehicle:made.car,time:20000,seat:1,moveState:4},0x05ca);
+ await expect.poll(()=>w('pedIsGettingIntoCar',walker),{timeout:10000}).toBe(true);
  // The lake at 40.6 north of the desert, without the swell; dry land writes nothing, read as 0.
  expect(await w('waterHeightAtCoords',-1170,2680,false)).toBeCloseTo(40.6,3);
  expect(await w('waterHeightAtCoords',2495,-1680,false)).toBe(0);

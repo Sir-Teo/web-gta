@@ -134,13 +134,17 @@ describe('script objects',()=>{
 });
 
 describe('object rotation',()=>{
- test('the three angles are kept in radians, and the last is the heading',()=>{
+ test('the tilts are kept in radians, and the turn about the vertical axis is the heading',()=>{
   const game=new ScmGameState();
   const object=game.objects.create(1,{x:0,y:0,z:0},{external:false,missionCleanup:false});
   game.objects.setRotation(object.handle,0,90,180);
   expect(object.rotation.y).toBeCloseTo(Math.PI/2,6);
-  expect(object.rotation.z).toBeCloseTo(Math.PI,6);
+  // The turn about the vertical axis lives in the heading alone, so nothing draws it twice.
+  expect(object.rotation.z).toBe(0);
   expect(game.objects.getHeading(object.handle)).toBeCloseTo(180,4);
+  // The matrix turns with it: a half turn puts forward to the south.
+  game.objects.setRotation(object.handle,0,0,180);
+  expect(game.objects.matrix(object.handle).forward.y).toBeCloseTo(-1,6);
   // A negative angle about the vertical axis is fixed into range for the heading, as SetObjectHeading does.
   game.objects.setRotation(object.handle,0,0,-90);
   expect(game.objects.getHeading(object.handle)).toBeCloseTo(270,4);
@@ -193,5 +197,30 @@ describe('an object that hangs from something',()=>{
   const game=new ScmGameState();
   const object=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
   expect(()=>game.objects.attach(object.handle,'ped',1,{x:Number.NaN,y:0,z:0},{x:0,y:0,z:0})).toThrow(/Invalid/);
+ });
+});
+
+describe('object orientation and area',()=>{
+ test('GET/SET_OBJECT_QUATERNION go through the object matrix both ways, and a heading reads back as a turn about z',()=>{
+  const game=new ScmGameState(),objects=game.objects;
+  const h=objects.create('cardboardbox',{x:1,y:2,z:3},{external:false,missionCleanup:false}).handle;
+  // Unturned: the identity.
+  const id=objects.getQuaternion(h);expect(id.w).toBeCloseTo(1,6);expect(Math.hypot(id.x,id.y,id.z)).toBeCloseTo(0,6);
+  // A quarter turn anticlockwise about z: forward points west.
+  objects.setHeading(h,90);const q=objects.getQuaternion(h);
+  expect(q.z).toBeCloseTo(Math.SQRT1_2,5);expect(q.w).toBeCloseTo(Math.SQRT1_2,5);
+  // Set back from a tilted quaternion: the matrix and the quaternion agree, and forward gives the heading.
+  const t={x:.2,y:-.1,z:.5,w:.84},l=Math.hypot(t.x,t.y,t.z,t.w);
+  objects.setQuaternion(h,t);const back=objects.getQuaternion(h);
+  expect(back.x).toBeCloseTo(t.x/l,5);expect(back.y).toBeCloseTo(t.y/l,5);expect(back.z).toBeCloseTo(t.z/l,5);expect(back.w).toBeCloseTo(t.w/l,5);
+  const f=objects.at(h).matrix!.forward;expect(objects.at(h).heading).toBeCloseTo(Math.atan2(-f.x,f.y),6);
+ });
+ test('IS_OBJECT_IN_AREA_3D takes the corners either way round; SET_OBJECT_MASS and _TURN_MASS keep the figures',()=>{
+  const objects=new ScmGameState().objects,h=objects.create('cardboardbox',{x:1,y:2,z:3},{external:false,missionCleanup:false}).handle;
+  expect(objects.isInArea3d(h,{x:0,y:0,z:0},{x:2,y:3,z:4})).toBe(true);
+  expect(objects.isInArea3d(h,{x:2,y:3,z:4},{x:0,y:0,z:0})).toBe(true);
+  expect(objects.isInArea3d(h,{x:0,y:0,z:0},{x:2,y:3,z:2.9})).toBe(false);
+  objects.setMass(h,40);objects.setTurnMass(h,12);expect(objects.at(h).mass).toBe(40);expect(objects.at(h).turnMass).toBe(12);
+  expect(()=>objects.setMass(h,0)).toThrow();
  });
 });

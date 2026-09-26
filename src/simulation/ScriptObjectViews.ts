@@ -227,7 +227,7 @@ export class ScriptObjectViews{
  /** The body becomes a dynamic one with the object's mass, OBJECT.DAT's turn mass, elasticity and air resistance, as
   * an uprooted world prop does, moving off at the record's speed. */
  private startMoving(object:ScmObject,view:NonNullable<ReturnType<ScriptObjectViews['views']['get']>>){
-  const body=view.physical!.body,info=this.physicsOf?.(object.model),mass=Math.min(object.mass,99999),turn=info?.turnMass??mass;
+  const body=view.physical!.body,info=this.physicsOf?.(object.model),mass=Math.min(object.mass,99999),turn=object.turnMass??info?.turnMass??mass;
   for(let i=0;i<body.numColliders();i++){const c=body.collider(i);c.setDensity(0);c.setRestitution(info?.elasticity??0);}
   ScriptObjectViews.pose(body,object,true);
   body.setBodyType(RAPIER.RigidBodyType.Dynamic,true);
