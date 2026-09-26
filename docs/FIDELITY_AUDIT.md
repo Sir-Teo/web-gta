@@ -8403,3 +8403,11 @@ The script's question answered "dead" only once the car no longer existed, so a 
 every mission: SWEET2's target practice on a car (shoot it until it burns and blows) could never end. It is now
 reVC's handler: no vehicle, `STATUS_WRECKED`, or `bIsDrowning`; a car still being built is not dead. The player's own
 car (handle 1) reads the same from the car he is in. Specs: `script-world-queries`, `script-car-watertight`.
+
+## SET_GANG_WEAPONS
+
+The Families were armed from the start with the Desert Eagle, MP5 and knife that MAIN's `SET_GANG_WEAPONS` gives
+them only as the reward for spraying all hundred tags; the table was fixed rather than set by the command. The gang
+weapon choices now start at `CGangs::Initialise`'s defaults each new game (the Families a pistol) and the command
+sets a gang's three (MAIN's tag reward, RYDER2's pistol and Tec-9), which the members the population makes from then
+on draw from. Spec: `native-gang-weapons` (unit).

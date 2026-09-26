@@ -7,6 +7,7 @@ import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {speechLengthMs} from '../engine/ScmMissionAudio';
 import {gxtText} from '../assets/gxt';
 import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
+import {resetGangWeapons,setGangWeapons} from './nativeGangWeapons';
 import {VEHICLE_CLASSES} from '../assets/pedGroups';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
@@ -749,6 +750,8 @@ export class ScmMission {
  private started=false;
  private elapsed=0;
  constructor(script:Uint8Array,private readonly zones:WorldZones,private readonly world:ScmMissionWorld){
+  // A new game: CGangs::Initialise's weapon choices before the script changes any.
+  resetGangWeapons();
   const adapter:ScmWorldCommands={
    fade:(milliseconds,direction,nowMs)=>{const shared=this.fade!==this.ownFade;this.fade.fade(milliseconds,direction,nowMs);if(shared)this.world.showFade?.(direction,milliseconds);},
    isFading:()=>this.fade.fading,
@@ -1308,6 +1311,8 @@ export class ScmMission {
     const name=typeof model==='number'?this.host('vehicleModelClass','GET_VEHICLE_CLASS')(model):undefined;
     return name===undefined?-1:(VEHICLE_CLASSES as readonly string[]).indexOf(name);
    },
+   // SET_GANG_WEAPONS: CGangs::SetGangWeapons, which the gang members the population makes from now on draw from.
+   setGangWeapons:(gang,first,second,third)=>{setGangWeapons(gang,first,second,third);},
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
    fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},
