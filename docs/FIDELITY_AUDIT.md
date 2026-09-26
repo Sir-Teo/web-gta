@@ -8417,3 +8417,9 @@ on draw from. Spec: `native-gang-weapons` (unit).
 RYDER3 has the player on the truck throw crates to Ryder with the aiming crosshair forced on. The command sets a flag
 that shows the aim camera's siteM16 circle whether or not the player aims or holds a gun; the handler is not in the
 reversed sources, and this follows its documented purpose. Spec: `script-world-queries`.
+
+## TASK_SHAKE_FIST
+
+`CTaskSimpleShakeFist` (reversed) blends the default group's FUCKU clip in at 4 with finish and blend auto-remove, and
+ends when the clip does. The command now gives that as the script's play-anim task (ped.ifp's `fucku`, blend 4, once,
+interruptible) rather than stopping the thread (GUNS1, CAT3). Spec: `scm-final-tail` (unit).

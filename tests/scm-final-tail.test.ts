@@ -80,6 +80,12 @@ describe('the last of the tail',()=>{
   expect(run({},game,instruction(op('GET_MAX_WANTED_LEVEL'),[gvar(40)])).readInt(40)).toBe(4);
  });
 
+ test('TASK_SHAKE_FIST is CTaskSimpleShakeFist: the FUCKU clip at a blend of 4, over when it finishes',()=>{
+  const tasks:ScmScriptedTask[]=[];
+  run({givePedScriptedTask:(_ped:number,task:ScmScriptedTask)=>{tasks.push(task);}},undefined,instruction(op('TASK_SHAKE_FIST'),[int(PED)]));
+  expect(tasks).toEqual([{kind:'playAnim',animationName:'fucku',animationFile:'ped',blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:true}]);
+ });
+
  test('the last tasks carry their own operands',()=>{
   const tasks:ScmScriptedTask[]=[];
   run({givePedScriptedTask:(_ped:number,task:ScmScriptedTask)=>{tasks.push(task);}},undefined,
