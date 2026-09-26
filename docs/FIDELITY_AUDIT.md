@@ -8453,3 +8453,15 @@ added to the scene since the last frame through `WebGLRenderer.compile` (against
 environment, without walking the whole tree), and where `KHR_parallel_shader_compile` is present, keeps a mesh whose
 program is not linked yet out of the camera's layers until the driver reports it done. Without the extension (headless
 SwiftShader) it does nothing and three links on first use as before. Spec: `program-warmer` (unit).
+
+## Cars no longer pass through CJ
+
+Car and player colliders sit in solver groups that skip each other, so the car's impulse on CJ is the ped branch of
+`CPhysical::ApplyCollision` (playerCarHit) rather than a kinematic wall. Two things let a car roll straight through him:
+the character controller carrying out that push still swept against the very car doing the pushing, so a capsule the
+car had reached counted as stuck and stayed put; and nothing stood in for `CPhysical::ProcessCollision`'s separation of
+entities that overlap. The push's sweep now leaves the striking car out (walls and other cars still stop it), and the
+part of the capsule inside the car (Rapier's contact depth against each car collider) is carried out along the contact
+normal, flat on the ground. A car held at 5 m/s shoves CJ ahead of its bumper; a 12 m/s one pushes him clear and stops
+short, as `ComputeVehicleCollisionResponse` only knocks a standing player down from 0.5 units a frame. Spec:
+`native-car-player`.

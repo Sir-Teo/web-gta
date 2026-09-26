@@ -287,6 +287,11 @@ export class Simulation {
   onHitHead?: () => number | undefined;
   /** Horizontal move speed a vehicle collision left on the player, in m/s. */
   collisionPush = { x: 0, z: 0 };
+  /** The bodies of the vehicles that struck the player this step: the sweep that carries out their push leaves them out,
+   * as the ped's collision response moves it clear of the car rather than stopping against it. */
+  pushingBodies = new Set<number>();
+  /** How far the player must move this step to leave the cars that struck him (see playerCarHit). */
+  collisionShift = { x: 0, z: 0 };
   /** The move speed (units a second) of a moving object the grounded player stands on: an escalator step. CPhysical
    * carries a ped by its ground physical's speed; the escalator's ramp is what the player really stands on here. */
   groundCarry?: (feet: { x: number; y: number; z: number }) => { x: number; y: number; z: number } | undefined;
@@ -424,9 +429,12 @@ export class Simulation {
     // CPhysical::ApplyCollision's impulse from a vehicle stays in the ped's move speed on top of its animation.
     const push = this.collisionPush, pushSpeed = Math.hypot(push.x, push.z);
     if (pushSpeed > 1e-3) { requested.x += push.x * dt; requested.z += push.z * dt; }
+    const shift = this.collisionShift; requested.x += shift.x; requested.z += shift.z; shift.x = 0; shift.z = 0;
     let carryY = 0;
     if (wasGrounded && this.groundCarry) { const p = this.player.position, carry = this.groundCarry({ x: p.x, y: p.y, z: p.z }); if (carry) { requested.x += carry.x * dt; requested.z += carry.z * dt; carryY = Math.max(0, carry.y) * dt; } }
-    const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt + carryY, z: requested.z });
+    const pushing = this.pushingBodies, filter = pushing.size ? (collider: RAPIER.Collider) => { const parent = collider.parent(); return !parent || !pushing.has(parent.handle); } : undefined;
+    const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt + carryY, z: requested.z }, filter);
+    pushing.clear();
     this.lastMove = { hits: [...resolved.hits], velocity: { x: dt > 0 ? requested.x / dt : 0, z: dt > 0 ? requested.z / dt : 0 } };
     const movement = resolved.movement;
     // CEntity::m_bIsStuck stand-in: a push the character controller could not carry out.

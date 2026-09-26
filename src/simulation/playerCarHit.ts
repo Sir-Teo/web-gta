@@ -38,7 +38,7 @@ export function carsStrikePlayer(sim:Simulation,cars:Iterable<WorldCar>,hooks:Pl
   let touching=false;
   for(let i=0;i<body.numColliders()&&!touching;i++){const c=body.collider(i);touching=!c.isSensor()&&c.isEnabled()&&c.intersectsShape(PROBE,at,rotation);}
   if(!touching)continue;
-  const hit=strike(sim,car,at,hooks);if(hit)hits.push(hit);
+  const hit=strike(sim,car,at,hooks);if(hit){hits.push(hit);sim.pushingBodies.add(body.handle);}
  }
  return hits;
 }
@@ -55,6 +55,14 @@ function strike(sim:Simulation,car:WorldCar,at:V,hooks:PlayerCarHitHooks):Player
  if(!impact)return undefined;
  const addCarForce=(force:V)=>{const dv=fromNative(force),v=body.linvel();body.setLinvel({x:v.x+dv.x/physics.mass*50,y:v.y+dv.y/physics.mass*50,z:v.z+dv.z/physics.mass*50},true);};
  addCarForce(impact.vehicleForce);
+ // The car's collision and the player's capsule share no solver, so nothing else separates them: the part of the
+ // capsule inside the car is carried out along the contact normal, flat on the ground (CPhysical::ProcessCollision
+ // moves colliding entities apart before it applies their impulses).
+ let depth=0,out={x:0,z:0};
+ for(let i=0;i<body.numColliders();i++){const c=body.collider(i);if(c.isSensor()||!c.isEnabled())continue;
+  const k=c.contactShape(sim.playerCollider.shape,at,sim.playerBody.rotation(),0);
+  if(k&&k.distance<depth){const l=Math.hypot(k.normal1.x,k.normal1.z);if(l>1e-3){depth=k.distance;out={x:k.normal1.x/l,z:k.normal1.z/l};}}}
+ if(depth<0){sim.collisionShift.x+=out.x*-depth;sim.collisionShift.z+=out.z*-depth;}
  // The impulse stays in the move speed. The player's own walk comes from its animation and is set
  // again next frame, so only what the car adds beyond stopping that walk carries on.
  const change=fromNative(impact.pedForce),walkIn=Math.max(0,own.x*normal.x+own.z*normal.z);

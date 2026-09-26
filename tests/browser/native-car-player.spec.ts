@@ -32,11 +32,14 @@ test('a slow car shoves a standing CJ aside without hurting him',async({page})=>
  test.setTimeout(120000);const {state,errors}=await start(page);
  const before=(await state()).player.position;
  // An empty car brakes, so it is held at 5 m/s as a driver would.
- for(let i=0;i<50;i++){await page.evaluate(()=>(window as any).__game.launchCar(5));await page.waitForTimeout(50);}
+ // Held until it has reached him and a little after (a slow machine runs the game slower than the wall clock).
+ let after=0;for(let i=0;i<400&&after<20;i++){await page.evaluate(()=>(window as any).__game.launchCar(5));await page.waitForTimeout(50);if((await state()).playerCarHits.contacts>0)after++;}
  expect((await state()).playerCarHits.contacts).toBeGreaterThan(0);
  const s=await state();
  expect(s.player.health).toBe(100);expect(s.playerCarHits.hurt).toBe(0);
  // CJ is moved out of the car's path instead of the car meeting a wall.
  expect(Math.hypot(s.player.position.x-before.x,s.player.position.z-before.z)).toBeGreaterThan(.5);
+ // He is shoved clear of the car, not left inside it: the bumper stays in front of him.
+ expect(await page.evaluate(()=>{const g=(window as any).__game,c=g.state().nativeCar.position,p=g.state().player.position;return p.z<c.z-2;})).toBe(true);
  expect(errors).toEqual([]);
 });
