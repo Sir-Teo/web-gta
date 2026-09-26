@@ -1350,8 +1350,9 @@ available. Vehicle, boat, population and wanted work already draws on them.
     answers with a line;
   - "… picked up" for a dropped gun, where the pickup sound remains;
   - "There is not enough room to stand."
-- Still shown, and still not in the original: the browser activity rewards,
-  save-point and asset-error messages, and the plane, boat and bike hints.
+  - the browser activity rewards, which went with the Activities.
+- Still shown, and still not in the original: the save-point and
+  asset-error messages, and the plane, boat and bike hints.
 
 ## Skidmarks
 
