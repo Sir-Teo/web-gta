@@ -24,6 +24,14 @@ test('the player rides on a car at an offset with a given gun, and is let go wit
  const c0=await w('vehiclePosition',car);
  await w('setVehicleCoordinates',car,c0.x+20,c0.y,c0.z);
  await expect.poll(async()=>{const d=await where();return Math.hypot(d.dx,d.dy+1.5);},{timeout:15000}).toBeLessThan(.5);
+ // SET_HEADING_FOR_ATTACHED_PLAYER: now facing a quarter turn anticlockwise from the car's front (its left), 10 degrees
+ // either way; the view swings there and he keeps within it.
+ await w('setHeadingForAttachedPlayer',0,90,10);
+ const facing=()=>page.evaluate(h=>{const g=(window as any).__game,c=g.missionForProfiling().vehicles.entity(h).car.body.rotation();
+  // The car's front in renderer axes, and CJ's heading against it (anticlockwise seen from above is positive).
+  const x=2*(c.x*c.z+c.w*c.y)*-1,z=-(1-2*(c.x*c.x+c.y*c.y));const front=Math.atan2(x,z),d=front-g.state().player.heading;return Math.atan2(Math.sin(d),Math.cos(d))*180/Math.PI;},car);
+ await expect.poll(facing,{timeout:5000}).toBeGreaterThan(79);
+ expect(await facing()).toBeLessThan(101);
  await w('detachPedFromCar',1);
  expect(await w('isCharAttachedToAnyCar',1)).toBe(false);
  const back=await page.evaluate(()=>{const inv=(window as any).__game.weapons().inventory,a=inv.ammo.get(22),ak=inv.ammo.get(30);return {selected:inv.selected,pistol:a.clip+a.reserve,ak:ak.clip+ak.reserve};});

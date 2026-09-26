@@ -581,6 +581,7 @@ export interface ScmMissionWorld {
  /** CPed::AttachPedToEntity and DettachPedFromEntity for the player on a vehicle; false when he cannot be attached. */
  attachPlayerToVehicle?(car:unknown,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;
  detachPlayerFromVehicle?():void;playerAttachedVehicle?():unknown;
+ setAttachedPlayerHeading?(heading:number,range:number):boolean;
  attachPlayerToObject?(object:number,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;playerAttachedObject?():number|undefined;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
@@ -982,6 +983,8 @@ export class ScmMission {
     if(handle===PLAYER_PED_HANDLE){this.host('attachPlayerToVehicle','ATTACH_CHAR_TO_CAR')(this.liveVehicle(vehicle),offset,position,angleLimit,weapon);return;}
     this.peds.attachToCar(handle,vehicle,offset);
    },
+   // SET_HEADING_FOR_ATTACHED_PLAYER: a player not attached to anything is left alone.
+   setHeadingForAttachedPlayer:(_player,heading,range)=>{this.world.setAttachedPlayerHeading?.(heading,range);},
    // ATTACH_CHAR_TO_OBJECT: the player's attachment to a script object; a script ped's is not ported yet.
    attachPedToObject:(handle,object,offset,position,angleLimit,weapon)=>{
     this.runtime.game.objects.at(object);

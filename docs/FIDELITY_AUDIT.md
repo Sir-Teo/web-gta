@@ -8328,3 +8328,12 @@ corner's change for a mission car in STATUS_PHYSICS (a ped at the wheel, hydraul
 step, so the scripts set it each frame; the horn and the stick stay the player's. `RESET_VEHICLE_HYDRAULICS` ("makes
 it sit"; not in the reversed sources) clears the corners and the pump's `m_wMiscComponentAngle`, the idle stance.
 Specs: `script-car-force-hydraulics`, `hydraulics` (unit).
+
+## SET_HEADING_FOR_ATTACHED_PLAYER
+
+The attached player's facing (`ATTACH_CHAR_TO_CAR`'s side, a quarter turn a step) becomes the command's heading, in
+degrees anticlockwise from the front of what he hangs from, with its range as the turn allowed either side, and the
+view swings round to it. The handler is not in the reversed sources and `m_fTurretAngleA` only holds the four sides,
+so this follows the command's operands as the scripts use them: RYDER3's 225 either way (free), DRUGS4's 174 with 8
+(a narrow arc over the back), SYN1's 135 with 135. A player attached to nothing is left alone.
+Spec: `script-player-attached`.

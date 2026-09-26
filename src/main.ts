@@ -302,7 +302,7 @@ async function boot() {
   /** CPed::m_pAttachedTo for the player (ATTACH_CHAR_TO_CAR): the vehicle, the offset in its axes (native), the side
    * he faces (m_fTurretAngleA: 0 ahead, 1 left, 2 behind, 3 right), the turn allowed either side of it (radians), and
    * the weapon and ammo he had before (m_nSavedWeapon, m_nTurretAmmo). */
-  let playerAttached:{car?:unknown;object?:number;offset:{x:number;y:number;z:number};side:number;limit:number;savedWeapon?:number;savedAmmo?:number}|undefined;
+  let playerAttached:{car?:unknown;object?:number;offset:{x:number;y:number;z:number};side:number;limit:number;facing?:number;savedWeapon?:number;savedAmmo?:number}|undefined;
   /** Where the thing the player hangs from is and how it is turned, renderer axes: a vehicle's body, or a script
    * object's drawn group (its record while the model loads). */
   const attachedFrame=(a:NonNullable<typeof playerAttached>):{t:{x:number;y:number;z:number};q:Quaternion}|undefined=>{
@@ -325,7 +325,7 @@ async function boot() {
     const {t,q}=frame;
     const off=new Vector3(a.offset.x,a.offset.z,-a.offset.y).applyQuaternion(q),forward=new Vector3(0,0,-1).applyQuaternion(q);
     const centre={x:t.x+off.x,y:t.y+off.y,z:t.z+off.z};
-    const base=Math.atan2(forward.x,forward.z)-a.side*Math.PI/2;
+    const base=Math.atan2(forward.x,forward.z)-(a.facing??a.side*Math.PI/2);
     let heading=render.yaw+Math.PI;
     if(a.limit<Math.PI){let d=Math.atan2(Math.sin(heading-base),Math.cos(heading-base));d=Math.max(-a.limit,Math.min(a.limit,d));heading=base+d;}
     const feet={x:centre.x,y:centre.y-1,z:centre.z};
@@ -4316,6 +4316,15 @@ async function boot() {
                  detachPlayerFromVehicle:()=>{detachPlayer();},
                  setPlayerVelocity:velocity=>{sim.setPlayerVelocity(velocity);},
                  playerAttachedObject:()=>playerAttached?.object,
+                 // SET_HEADING_FOR_ATTACHED_PLAYER: the way he faces on the thing he hangs from (degrees anticlockwise from
+                 // its front, as the side's quarter turns are) and the turn allowed either side of it; the view turns there.
+                 setAttachedPlayerHeading:(heading,range)=>{
+                  const a=playerAttached;if(!a)return false;
+                  a.facing=heading*Math.PI/180;a.limit=range*Math.PI/180;
+                  const frame=attachedFrame(a);
+                  if(frame){const f=new Vector3(0,0,-1).applyQuaternion(frame.q);render.yaw=Math.atan2(f.x,f.z)-a.facing-Math.PI;}
+                  pinAttachedPlayer();return true;
+                 },
                  playerAttachedVehicle:()=>playerAttached?.car,
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.
