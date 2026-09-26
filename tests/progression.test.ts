@@ -58,3 +58,20 @@ test('a hitman pistol clip saved before WEAPON.DAT loads is restored once it has
   expect(inv.ammo.get(22)).toEqual({clip:33,reserve:777});
  }finally{sim.dispose();}
 });
+
+test('a save as large as the loader allows is restored, and a failed write says so and keeps the last save',()=>{
+ const sim=new Simulation();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);
+  for(let i=0;i<2000;i++)p.pickups.add(`pickup:${String(i).padStart(56,'0')}`);
+  for(let i=0;i<256;i++){p.stuntJumpsFound.add(`jump:${String(i).padStart(58,'0')}`);p.stuntJumpsDone.add(`jump:${String(i).padStart(58,'0')}`);}
+  expect(p.save()).toBe(true);expect(raw.length).toBeGreaterThan(32768);
+  expect(new Progression(new WeaponInventory(),sim,storage).pickups.size).toBe(2000);
+  const kept=raw;
+  // Far past anything the loader's caps allow: not written.
+  for(let i=0;i<20000;i++)p.pickups.add(`extra:${String(i).padStart(56,'0')}`);
+  expect(p.save()).toBe(false);expect(raw).toBe(kept);
+  expect(new Progression(new WeaponInventory(),sim).save()).toBe(false);
+  expect(new Progression(new WeaponInventory(),sim,{getItem:()=>null,setItem:()=>{throw new Error('QuotaExceededError');}}).save()).toBe(false);
+ }finally{sim.dispose();}
+});

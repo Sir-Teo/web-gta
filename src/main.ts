@@ -630,8 +630,8 @@ async function boot() {
         sim.player.position={...position};sim.player.previous={...position};sim.player.heading=heading;
         sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
         render.yaw=heading+Math.PI;
-        progression.savedLocation={x:position.x,y:point.respawn[1],z:position.y,heading,timeMinutes:sim.timeMinutes,weekDay:sim.weekDay};progression.save();
-        hud.fade(false,1000);hud.message('Game saved.');
+        progression.savedLocation={x:position.x,y:point.respawn[1],z:position.y,heading,timeMinutes:sim.timeMinutes,weekDay:sim.weekDay};const saved=progression.save();
+        hud.fade(false,1000);hud.message(saved?'Game saved.':'The game could not be saved.');
         window.setTimeout(()=>{saving=false;},500);
       },1000);
     },

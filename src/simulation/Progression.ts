@@ -3,6 +3,9 @@ import {skillStatWeapon,type WeaponInventory} from '../weapons/Inventory';
 import type {Simulation} from './Simulation';
 export const ACTIVITIES=[{id:'walk',name:'Neighborhood explorer',description:'Walk 500 metres on foot.',target:500,reward:200},{id:'drive',name:'Street driver',description:'Drive one kilometre.',target:1000,reward:500},{id:'escape',name:'Lose the heat',description:'Escape a pursuit of two stars or more without being arrested or killed.',target:1,reward:300}] as const;
 const KEY='web-gta.progress.v1';
+/** The largest save the loader reads, well above what its own caps allow (2000 pickups, 512 stunt jumps, 200 tags). A
+ * save that would not fit is not written, so the last one the loader accepts stays. */
+const MAX_SAVE_LENGTH=512*1024;
 const finite=(v:unknown,max:number)=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=max;
 /** Session activities and a bounded, versioned local save. Location is deliberately not persisted. */
 export class Progression {
@@ -20,7 +23,7 @@ export class Progression {
  savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number};private peakWanted=0;private previous?:{x:number;y:number;z:number};private saveTime=0;
  onReward?:(name:string,reward:number)=>void;
  constructor(private inventory:WeaponInventory,private sim:Simulation,private storage?:Pick<Storage,'getItem'|'setItem'>){
-  try{const raw=storage?.getItem(KEY);if(!raw||raw.length>32768)return;const data=JSON.parse(raw);if(data.version!==1)return;
+  try{const raw=storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;
    // CPlayerInfo::m_nMoney is signed: the HUD draws a debt as -$%07d.
    if(Number.isInteger(data.money)&&data.money>=-9999999&&data.money<=999999999)sim.money=data.money;
    for(const mode of ['walk','drive'] as const)if(finite(data.distances?.[mode],1e9))this.distances[mode]=data.distances[mode];
@@ -64,14 +67,15 @@ export class Progression {
   this.saveTime+=dt;if(this.saveTime>=5){this.saveTime=0;this.save();}
  }
  snapshot(){return {distances:{...this.distances},completed:[...this.completed],practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.map(m=>({id:m.id,name:m.name,description:m.description,done:m.done})),currentMission:this.currentMission()?.id??null,missionProgress:this.missionProgress()??null,saveSlots:this.slots.map((s,i)=>({slot:i,has:!!s}))};}
- save(){try{this.storage?.setItem(KEY,JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.filter(m=>m.done).map(m=>m.id)}));return true;}catch{return false;}}
+ /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
+ save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],distances:this.distances,completed:[...this.completed],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,missions:this.missions.filter(m=>m.done).map(m=>m.id)});if(text.length>MAX_SAVE_LENGTH)return false;this.storage.setItem(KEY,text);return true;}catch{return false;}}
  /** Interior save points plus the save menu: three slots with location, clock and cash. */
  slots:(null|{x:number;y:number;z:number;heading:number;timeMinutes:number;money:number})[]=[null,null,null];
  saveToSlot(slot:number){
   const p=this.sim.player;
   this.slots[slot]={x:p.position.x,y:p.position.y,z:p.position.z,heading:p.heading,timeMinutes:this.sim.timeMinutes,money:this.sim.money};
   this.savedLocation={x:p.position.x,y:p.position.y,z:p.position.z,heading:p.heading,timeMinutes:this.sim.timeMinutes};
-  this.save();return true;
+  return this.save();
  }
  loadFromSlot(slot:number){
   const s=this.slots[slot];if(!s)return false;
