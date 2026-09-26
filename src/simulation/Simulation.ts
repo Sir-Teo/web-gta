@@ -129,9 +129,12 @@ export class Simulation {
   /** Once per fixed frame, including frames spent in a vehicle. */
   beginPlayerBreathFrame(dt:number){beginPlayerBreathFrame(this.player,dt*50);}
   /** Vehicle tasks share the same breath state as swimming. Drowning bypasses armour. */
+  /** CPed::bDrownsInWater for the player (SET_CHAR_DROWNS_IN_WATER). */
+  playerDrownsInWater=true;
   handlePlayerBreath(dt:number,decrease=true,multiplier=1){
-    const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50);
-    if(result.damage>0)this.damagePlayer(result.damage,true);
+    const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50,undefined,undefined,this.playerDrownsInWater);
+    // CEventDamage drops WEAPON_DROWNING damage to a ped that does not drown.
+    if(result.damage>0&&this.playerDrownsInWater)this.damagePlayer(result.damage,true);
     return result;
   }
   step(dt: number, controls: Controls) {

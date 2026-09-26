@@ -4118,6 +4118,8 @@ async function boot() {
                    position:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y+(vehicle?0:PED_ORIGIN_HEIGHT)},
                    vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,inAirProper:()=>!(car?car.audio.contactWheels>0:'airborne' in vehicle&&!(vehicle as {airborne:boolean}).airborne)&&!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
+                   // m_vecMoveSpeed's magnitude in units a second: the car's in one, his own (with the fall) on foot.
+                   moveSpeed:vehicle?speed:Math.hypot(sim.player.speed,sim.player.verticalSpeed),
                    health:sim.player.health,dead:sim.player.health<=0,
                    heading:((((sim.player.heading-Math.PI)*180/Math.PI)%360)+360)%360,
                    areaCode:render.lighting.area,
@@ -4126,6 +4128,7 @@ async function boot() {
                    weapons:{
                     carried:[...weapons.inventory.ammo].filter(([id,ammo])=>id===0||ammo.clip>0||ammo.reserve>0).map(([id])=>id),
                     active:{type:weapons.inventory.selected,melee:weapons.inventory.weapon.kind==='melee'},
+                    ammo:Object.fromEntries([...weapons.inventory.ammo].map(([id,a])=>[id,a.clip+a.reserve])),
                    },
                    shooting:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),
                    // The player is always the camera's subject, and rides in the seat rather than hanging off it.
@@ -4209,6 +4212,7 @@ async function boot() {
                  setPlayerMaxHealth:maxHealth=>{sim.player.health=maxHealth;},
                  setPlayerHealth:health=>{if(sim.player.health>0)sim.player.health=health;},
                  killPlayer:()=>{sim.killPlayer();},
+                 setPlayerDrownsInWater:drowns=>{sim.playerDrownsInWater=drowns;},
                  setPlayerMaxArmour:maxArmour=>{sim.player.armour=maxArmour;},
                  // The script's native x and y become the browser's x and negated z.
                  groundLevel:(x,y)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:200,z:-y},{x:0,y:-1,z:0}),300,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?200-hit.timeOfImpact:undefined;},

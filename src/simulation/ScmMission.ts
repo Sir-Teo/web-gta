@@ -190,7 +190,11 @@ export interface ScmMissionWorld {
   /** CEntity::GetAreaCode: the interior it is in, zero being the normal world. */
   areaCode:number;
   /** CPed::m_aWeapons as the types it carries, and the one it is holding. */
-  weapons:{carried:readonly number[];active:{type:number;melee:boolean}};
+  /** GET_CHAR_SPEED: m_vecMoveSpeed's magnitude, units a second. */
+  moveSpeed?:number;
+  weapons:{carried:readonly number[];active:{type:number;melee:boolean};
+   /** CWeapon::m_nTotalAmmo of each weapon he carries. */
+   ammo?:Readonly<Record<number,number>>};
   /** CPed::bFiringWeapon, CEntity::GetIsOnScreen, and whether it is sitting in the car it rides. */
   shooting:boolean;onScreen:boolean;sittingInCar:boolean;
  };
@@ -558,6 +562,8 @@ export interface ScmMissionWorld {
  registerScriptRoadblock?(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number},gang:boolean):void;
  clearScriptRoadblocks?():void;
  setPlayerMaxHealth(maxHealth:number):void;
+ /** CPed::bDrownsInWater on the player. */
+ setPlayerDrownsInWater?(drowns:boolean):void;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
  setPlayerMaxArmour(maxArmour:number):void;
@@ -839,7 +845,9 @@ export class ScmMission {
     const held=this.world.scriptPedWeapon(this.livePed(handle));
     if(held?.type===weaponType)this.world.setScriptPedAmmo(this.livePed(handle),held.ammo+ammo);
    },
+   // GetAmmoInCharWeapon: the total ammo of the ped's weapon of that type, 0 without one (the player's from his slots).
    pedWeaponAmmo:(handle,weaponType)=>{
+    if(handle===PLAYER_PED_HANDLE){const w=this.world.playerPed().weapons;return w.carried.includes(weaponType)?w.ammo?.[weaponType]??0:0;}
     const held=this.world.scriptPedWeapon(this.livePed(handle));
     return held?.type===weaponType?held.ammo:0;
    },
@@ -895,6 +903,8 @@ export class ScmMission {
    // The CPed bits a script sets by name, and the critical hit it can spare the ped.
    setPedFlag:(handle,flag,value)=>{this.world.setScriptPedFlag(this.livePed(handle),flag,value);},
    setPedSimpleFlag:(handle,flag,value)=>{
+    // The player's own: whether he drowns; the group and car flags have nothing on him to act on.
+    if(handle===PLAYER_PED_HANDLE){if(flag==='drownsInWater')this.world.setPlayerDrownsInWater?.(value);return;}
     this.world.setScriptPedFlag(this.livePed(handle),flag,value);
     if(flag==='neverLeavesGroup'){if(value)this.neverLeavesGroup.add(handle);else this.neverLeavesGroup.delete(handle);}
    },
@@ -1447,7 +1457,7 @@ export class ScmMission {
    setPedDontRemove:handle=>{this.cleanupPeds.delete(handle);},
    pedType:handle=>this.peds.typeOf(handle),
    pedIsMale:handle=>this.peds.isMale(handle),
-   pedSpeed:handle=>this.world.scriptPedSpeed(this.livePed(handle)),
+   pedSpeed:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().moveSpeed??0:this.world.scriptPedSpeed(this.livePed(handle)),
    pedIsInWater:handle=>handle===PLAYER_PED_HANDLE?this.host('playerInWater','IS_CHAR_IN_WATER')():this.world.scriptPedSubmerged(this.livePed(handle)),
    setPedVisible:(handle,visible)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerVisible','SET_CHAR_VISIBLE')(visible);else this.world.setScriptPedVisible(this.livePed(handle),visible);},
    // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns

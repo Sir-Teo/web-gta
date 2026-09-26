@@ -64,6 +64,10 @@ test('the script puts the player in its car, moves him, and takes him out',async
  await page.evaluate(opcode=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(1,{kind:'leaveAnyCar'},opcode),LEAVE);
  await expect.poll(()=>status(LEAVE),{timeout:60000}).toBe(7);
  expect(await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1)??null)).toBeNull();
+ // GET_CHAR_SPEED and GET_AMMO_IN_CHAR_WEAPON on the player (SWEET2 counts his pistol rounds): his own, not a script ped's.
+ const own=await page.evaluate(()=>{const g=(window as any).__game,w=g.missionForProfiling().runtime.world,inv=g.weapons().inventory;
+  inv.setTotalAmmo(22,0);const none=w.pedWeaponAmmo(1,22);inv.give(22,60);return {speed:w.pedSpeed(1),none,pistol:w.pedWeaponAmmo(1,22),total:inv.ammo.get(22).clip+inv.ammo.get(22).reserve};});
+ expect(own.none).toBe(0);expect(own.pistol).toBe(own.total);expect(own.pistol).toBeGreaterThan(0);expect(own.speed).toBeGreaterThanOrEqual(0);expect(own.speed).toBeLessThan(15);
  // SET_CHAR_HEALTH on the player: capped at CPlayerInfo::m_nMaxHealth, and 0 kills him.
  const health=await page.evaluate(()=>{const g=(window as any).__game,w=g.missionForProfiling().runtime.world,out:number[]=[];
   w.setPedHealth(1,50);out.push(g.state().player.health);w.setPedHealth(1,500);out.push(g.state().player.health);return out;});

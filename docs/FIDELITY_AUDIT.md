@@ -8226,3 +8226,17 @@ crack-den blip sits under the porch it marks) could not move at all, never groun
 pushes a ped clear: he is now lifted to the first free height above, a quarter unit at a time up to three units.
 The falling-terrain spec now ends the opening mission first, as the free-roam specs do: left running, the intro puts
 CJ back in Los Santos for its next scene. Specs: `terrain-under-a-falling-player`, `player-high-fall`.
+
+## The player's side of the ped questions
+
+A scan of every command main.scm gives `$scplayer` found adapters that went straight to the script ped pool, where the
+player's handle names nothing and the thread stops:
+- `GET_AMMO_IN_CHAR_WEAPON` (SWEET2 counts CJ's pistol rounds): `GetAmmoInCharWeapon` reads the total ammo of the
+  ped's weapon of that type, 0 without one; the player's comes from his inventory.
+- `GET_CHAR_SPEED`: `m_vecMoveSpeed`'s magnitude times 50, the car's while he drives, his own (with the fall) on foot.
+- `SET_CHAR_DROWNS_IN_WATER`: `bDrownsInWater` on the player. `HandlePlayerBreath` runs the breath down only while
+  it is set; otherwise it raises the drowning damage at once, which `CEventDamage` drops for a ped that does not drown,
+  so he never drowns. The other simple ped flags have nothing on the player to act on.
+Still open from the scan: `ATTACH_CHAR_TO_CAR` and `DETACH_CHAR_FROM_CAR` on the player (the turret mode
+`CPed::AttachPedToEntity` puts him in, 45 uses) and `LISTEN_TO_PLAYER_GROUP_COMMANDS`. Specs: `script-player-car`,
+`player-drowns-in-water`.
