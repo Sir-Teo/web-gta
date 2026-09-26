@@ -3553,7 +3553,17 @@ async function boot() {
               }
               // The bundled start scene has no distant ring: ask for the spawn's full window now rather than at the
               // first 54 m of travel, so the LOD world is up before the player drives off.
-              else{if(saved){sim.timeMinutes=saved.timeMinutes;if(saved.weekDay)sim.weekDay=saved.weekDay;}if(follower&&!flightTransfer)follower.primeNext=true;}
+              // A save point inside it is restored in place: the clock, and where the player stood and faced.
+              else{
+                if(saved&&!savedTransfer&&!flightTransfer){
+                  sim.timeMinutes=saved.timeMinutes;if(saved.weekDay)sim.weekDay=saved.weekDay;
+                  const position={x:saved.x,y:saved.z,z:-saved.y};
+                  sim.player.position={...position};sim.player.previous={...position};sim.player.heading=saved.heading;
+                  sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
+                  render.yaw=saved.heading+Math.PI;
+                }
+                if(follower&&!flightTransfer)follower.primeNext=true;
+              }
               if(Array.isArray(data.stuntJumps)){
                 stuntJumps=new StuntJumps(data.stuntJumps,{
                   // CTimer::SetTimeScale and TheCamera.TakeControl(vehicle, MODE_FIXED, JUMPCUT).
