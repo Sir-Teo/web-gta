@@ -22,8 +22,9 @@ export class Progression {
  readonly zones=new NativeZonesVisited();
  /** CStuntJumpManager found/completed jumps, by ScmStuntJump id. */
  stuntJumpsFound=new Set<string>();stuntJumpsDone=new Set<string>();
- /** Where the last save point put the player (native x/y, browser height) and the clock it saved. */
- savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number};private previous?:{x:number;y:number;z:number};private saveTime=0;
+ /** Where the last save point put the player (native x/y, browser height), the clock it saved and, inside, the
+  * interior (CGame::currArea) and the doors taken into it (CEntryExitManager's stack, as pool indices). */
+ savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number;area?:number;enexStack?:number[]};private previous?:{x:number;y:number;z:number};private saveTime=0;
  constructor(private inventory:WeaponInventory,private sim:Simulation,private storage?:Pick<Storage,'getItem'|'setItem'>){
   try{const raw=storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;
    // CPlayerInfo::m_nMoney is signed: the HUD draws a debt as -$%07d.
@@ -41,7 +42,8 @@ export class Progression {
    this.zones.load(data.zonesVisited);
    if(Array.isArray(data.tags))this.tags=data.tags.slice(0,200).filter((t:unknown)=>Array.isArray(t)&&typeof t[0]==='string'&&t[0].length<=64&&finite(t[1],255)&&Number.isInteger(t[1]));
    const saved=data.savedLocation;
-   if(saved&&[saved.x,saved.y,saved.z,saved.heading,saved.timeMinutes].every(v=>typeof v==='number'&&Number.isFinite(v))&&Math.abs(saved.x)<4000&&Math.abs(saved.y)<4000&&saved.z>-200&&saved.z<2000&&saved.timeMinutes>=0&&saved.timeMinutes<1440)this.savedLocation={x:saved.x,y:saved.y,z:saved.z,heading:saved.heading,timeMinutes:saved.timeMinutes,weekDay:Number.isInteger(saved.weekDay)&&saved.weekDay>=1&&saved.weekDay<=7?saved.weekDay:undefined};
+   if(saved&&[saved.x,saved.y,saved.z,saved.heading,saved.timeMinutes].every(v=>typeof v==='number'&&Number.isFinite(v))&&Math.abs(saved.x)<4000&&Math.abs(saved.y)<4000&&saved.z>-200&&saved.z<2000&&saved.timeMinutes>=0&&saved.timeMinutes<1440)this.savedLocation={x:saved.x,y:saved.y,z:saved.z,heading:saved.heading,timeMinutes:saved.timeMinutes,weekDay:Number.isInteger(saved.weekDay)&&saved.weekDay>=1&&saved.weekDay<=7?saved.weekDay:undefined,
+    ...(Number.isInteger(saved.area)&&saved.area>0&&saved.area<=18?{area:saved.area,enexStack:Array.isArray(saved.enexStack)?saved.enexStack.slice(0,8).filter((i:unknown)=>Number.isInteger(i)&&(i as number)>=0&&(i as number)<400):[]}:{})};
    for(const [key,set] of [['stuntJumpsFound',this.stuntJumpsFound],['stuntJumpsDone',this.stuntJumpsDone]] as const)if(Array.isArray(data[key]))for(const id of data[key].slice(0,256))if(typeof id==='string'&&id.length<=64)set.add(id);
   }catch{/* Disabled storage or invalid saves leave the playable defaults intact. */}
  }

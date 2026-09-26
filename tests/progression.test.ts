@@ -93,3 +93,13 @@ test('a new game clears the saved progress and saves nothing more',()=>{
   sim.money=0;const fresh=new Progression(new WeaponInventory(),sim,storage);expect(fresh.savedLocation).toBeUndefined();expect(sim.money).toBe(0);
  }finally{sim.dispose();}
 });
+
+test('an interior save keeps its area and door stack; bad ones are dropped',()=>{
+ const sim=new Simulation();const at={x:2495.9,y:-1707.4,z:1013.3,heading:0,timeMinutes:600};
+ let raw=JSON.stringify({version:1,savedLocation:{...at,area:3,enexStack:[12,-1,'x',400,7]}});const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);expect(p.savedLocation).toMatchObject({area:3,enexStack:[12,7]});
+  p.save();expect(new Progression(new WeaponInventory(),sim,storage).savedLocation).toMatchObject({area:3,enexStack:[12,7]});
+  for(const area of [0,19,2.5,'3']){raw=JSON.stringify({version:1,savedLocation:{...at,area,enexStack:[1]}});const q=new Progression(new WeaponInventory(),sim,storage);expect(q.savedLocation).toBeDefined();expect(q.savedLocation!.area).toBeUndefined();expect(q.savedLocation!.enexStack).toBeUndefined();}
+ }finally{sim.dispose();}
+});

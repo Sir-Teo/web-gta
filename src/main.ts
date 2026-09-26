@@ -503,7 +503,7 @@ async function boot() {
   let gangWars:GangWars|undefined,gangWarBlip:{position:{x:number;y:number;z:number};gang:number;visible:boolean}|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let stuntJumps:StuntJumps|undefined,savePoints:ScmSavePoint[]=[],saving=false;
-  let savedTransfer:{x:number;y:number;z:number;heading:number;quiet?:boolean}|undefined;
+  let savedTransfer:{x:number;y:number;z:number;heading:number;quiet?:boolean;area?:number;enexStack?:number[]}|undefined;
   /** Whether a loaded game has had the new game's INTRO ended for it. */
   let introSkipped=false;
   /** CEntryExitManager and the teleport CEntryExit::TransitionFinished waits on while the spawn point's area streams. */
@@ -636,7 +636,9 @@ async function boot() {
         sim.player.position={...position};sim.player.previous={...position};sim.player.heading=heading;
         sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
         render.yaw=heading+Math.PI;
-        progression.savedLocation={x:position.x,y:point.respawn[1],z:position.y,heading,timeMinutes:sim.timeMinutes,weekDay:sim.weekDay};const saved=progression.save();
+        // The safehouses' discs are inside: the save keeps the interior (CGame::currArea) and the doors taken into it.
+        const area=render.lighting.area,enexStack=area>0&&entryExits?entryExits.stack.map(e=>entryExits!.pool.indexOf(e)).filter(i=>i>=0):undefined;
+        progression.savedLocation={x:position.x,y:point.respawn[1],z:position.y,heading,timeMinutes:sim.timeMinutes,weekDay:sim.weekDay,...(area>0?{area,enexStack}:{})};const saved=progression.save();
         hud.fade(false,1000);hud.message(saved?'Game saved.':'The game could not be saved.');
         window.setTimeout(()=>{saving=false;},500);
       },1000);
@@ -2920,7 +2922,7 @@ async function boot() {
         runtime.game.alreadyRunningAMissionScript=false;runtime.game.displayAreaName=true;
         // A 0 ms fade-in never finishes in CCamera::ProcessFade, so the shortest that does.
         runtime.world?.fade(1,1,performance.now());
-        restoreSavedLocation(progression.savedLocation,!savedTransfer);
+        restoreSavedLocation(progression.savedLocation,!savedTransfer&&!progression.savedLocation.area);
       }
       if(clock.hours!==set[0]||clock.minutes!==set[1]||clock.seconds!==set[2]||clock.currentDay!==set[3]){sim.timeMinutes=clock.hours*60+clock.minutes+clock.seconds/60;sim.weekDay=clock.currentDay;}
     }
@@ -3616,15 +3618,19 @@ async function boot() {
               if(Array.isArray(data.tags)){tagManager=new NativeTagManager(data.tags);tagManager.load(progression.tags);}if(Array.isArray(data.setPieces))setPieces=new NativeSetPieces(data.setPieces);if(data.entryExits){const interiors=data.entryExits.archives.includes('gta_int.img');entryExits=new EntryExitManager(data.entryExits.rows,Math.random,area=>area===0||interiors);entryExits.applyScript(data.entryExits.script);}if(Array.isArray(data.savePoints))savePoints=data.savePoints;if(Array.isArray(data.radarBlips))navigation?.setScriptBlips(data.radarBlips);if(data.restartPoints)nativeRestart.load(data.restartPoints);
               // A save point outside the starting region needs its own terrain before the player can stand there.
               const saved=progression.savedLocation;
-              if(saved&&!savedTransfer&&!flightTransfer&&Math.hypot(saved.x-sim.player.position.x,-saved.y-sim.player.position.z)>150){
+              // So does one inside an interior, wherever it is: the interior streams as its door would load it.
+              const savedInside=!!saved?.area&&!!entryExits?.areaAvailable(saved.area);
+              if(saved&&!savedTransfer&&!flightTransfer&&(savedInside||!saved.area&&Math.hypot(saved.x-sim.player.position.x,-saved.y-sim.player.position.z)>150)){
                 savedTransfer=saved;sim.timeMinutes=saved.timeMinutes;if(saved.weekDay)sim.weekDay=saved.weekDay;fleet?.generateEvenIfClose();
-                staticWorld?.request(-1,{x:saved.x,y:saved.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
+                staticWorld?.request(-1,savedInside?{x:saved.x,y:saved.y,radius:100,includeCollisionBounds:true,interior:saved.area}:{x:saved.x,y:saved.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
               }
+
               // The bundled start scene has no distant ring: ask for the spawn's full window now rather than at the
               // first 54 m of travel, so the LOD world is up before the player drives off.
               // A save point inside it is restored in place: the clock, and where the player stood and faced.
               else{
-                if(saved&&!savedTransfer&&!flightTransfer)restoreSavedLocation(saved,true);
+                // An interior that cannot stream (no GTA_INT.IMG) keeps the saved clock and leaves the player at the start.
+                if(saved&&!savedTransfer&&!flightTransfer)restoreSavedLocation(saved,!saved.area);
                 if(follower&&!flightTransfer)follower.primeNext=true;
               }
               if(Array.isArray(data.stuntJumps)){
@@ -4585,7 +4591,10 @@ async function boot() {
                 const position={x:target.x,y:target.z,z:-target.y};
                 sim.player.position={...position};sim.player.previous={...position};sim.player.heading=target.heading;
                 sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
-                render.yaw=target.heading+Math.PI;follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
+                render.yaw=target.heading+Math.PI;
+                // Inside, nothing follows (as after a door) and the way back out is the doors the save kept.
+                if(target.area){follower=undefined;pedestrians?.removeAllRandomPeds();if(entryExits){entryExits.clearStack();for(const i of target.enexStack??[]){const e=entryExits.pool[i];if(e)entryExits.stack.push(e);}}}
+                else follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
                 if(!target.quiet)hud.message('Loaded your last save point.');
               })();return;
             }
