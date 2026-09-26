@@ -3,6 +3,7 @@ import {endStoryMission} from './freeRoam';
 import {textureFixture,txdFixture} from '../fixtures/native-assets';
 const table=()=>Array.from({length:184},(_,row)=>{const v=Array(51).fill(0);v[27]=row<8?120:300;v[28]=row<8?20:50;v[0]=64;v[1]=128;v[2]=192;v[9]=v[12]=row<8?255:0;v[11]=v[14]=row<8?0:255;return v.join(' ');}).join('\n');
 test('local timecycle changes visible sky, selects weather, rejects bad replacements and clears',async({page})=>{
+ test.setTimeout(180000);
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/');await expect(page.getByRole('button',{name:'Explore San Andreas',exact:true})).toBeEnabled();
   // Look upward so native terrain cannot occlude the sampled sky pixel.

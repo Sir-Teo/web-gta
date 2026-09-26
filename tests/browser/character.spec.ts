@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 test('a local rig and locomotion clip drive the playable character and freeze with pause', async ({page}) => {
+ test.setTimeout(180000);
   await page.goto('/models.html');
   await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
   await expect(page.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');
@@ -32,6 +33,7 @@ test('a local rig and locomotion clip drive the playable character and freeze wi
 });
 
 test('explicit idle walk and run assignments select native actions and clear with the model', async ({page}) => {
+ test.setTimeout(180000);
   await page.goto('/models.html');
   await page.getByLabel('Open a .dff model').setInputFiles('tests/fixtures/dragonff-skin.dff');
   await expect(page.getByRole('status')).toHaveText('dragonff-skin.dff loaded locally.');

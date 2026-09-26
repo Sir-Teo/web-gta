@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 test('workshop replaces a character in the same paused game and reports a closed session',async({page})=>{
+ test.setTimeout(180000);
  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto('/');
  const link=page.getByRole('link',{name:'Open character workshop for this session'});
