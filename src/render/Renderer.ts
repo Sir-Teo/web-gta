@@ -92,6 +92,10 @@ export class GameRenderer {
     // 1.5x on retina multiplies fragment work without matching reference detail.
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(1);
+    // three.js reads every new program's link status and info logs back when it compiles it, a synchronous wait on the
+    // driver that stalls the frame each time streaming brings a new material variant (it was a sixth of the CPU in a
+    // steady walk). A development build keeps the checks so a broken shader still says why.
+    this.renderer.debug.checkShaderErrors = import.meta.env.DEV;
     // SA's PC rasters are mostly DXT: sample them compressed, as the D3D9 device does.
     setCompressedTextureSupport(this.renderer.extensions.has('WEBGL_compressed_texture_s3tc'));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
