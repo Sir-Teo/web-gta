@@ -3869,13 +3869,10 @@ async function boot() {
                  // the colliders in its bounding box.
                  scriptObjectTouchingAnything:handle=>{
                   const body=scriptObjectViews?.bodyOf(handle),radius=scriptObjectViews?.boundsRadius(handle);if(!body||radius===undefined)return false;
-                  const own=touchColliders({kind:'object',handle}),r=radius+TOUCH_MARGIN;let touching=false;
-                  sim.world.collidersWithAabbIntersectingAabb(body.translation(),{x:r,y:r,z:r},other=>{
-                   if(other.parent()?.handle===body.handle||other.isSensor())return true;
-                   if(collidersTouch(own,[other]))touching=true;
-                   return !touching;
-                  });
-                  return touching;
+                  // The candidates are gathered first and tested after: no physics call is made inside the query's callback.
+                  const own=touchColliders({kind:'object',handle}),r=radius+TOUCH_MARGIN,near:import('@dimforge/rapier3d-compat').Collider[]=[];
+                  sim.world.collidersWithAabbIntersectingAabb(body.translation(),{x:r,y:r,z:r},other=>{near.push(other);return true;});
+                  return collidersTouch(own,near.filter(other=>!other.isSensor()&&other.parent()?.handle!==body.handle));
                  },
                  setScriptVehicleConsideredByPlayer:(car,state)=>{if(car&&typeof car==='object'&&'consideredByPlayer' in car)(car as {consideredByPlayer:boolean}).consideredByPlayer=state;},
                  setScriptBoatAnchored:(car,anchored)=>{if(!(car instanceof WorldBoat))return false;car.setAnchored(anchored);return true;},
