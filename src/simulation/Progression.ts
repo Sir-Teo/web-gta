@@ -65,6 +65,8 @@ export class Progression {
  snapshot(){return {practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags,saveSlots:this.slots.map((s,i)=>({slot:i,has:!!s}))};}
  /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
  save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save()});if(text.length>MAX_SAVE_LENGTH)return false;this.storage.setItem(KEY,text);return true;}catch{return false;}}
+ /** The front end's New Game: the progress is gone, and nothing more is saved until the page loads the new game. */
+ startNewGame(){try{this.storage?.setItem(KEY,'');}catch{/* The reload starts the new game even when the save cannot be cleared. */}this.storage=undefined;}
  /** Interior save points plus the save menu: three slots with location, clock and cash. */
  slots:(null|{x:number;y:number;z:number;heading:number;timeMinutes:number;money:number})[]=[null,null,null];
  saveToSlot(slot:number){

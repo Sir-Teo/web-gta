@@ -84,3 +84,12 @@ test('the explored map squares survive a reload',()=>{
   expect(restored.zones.revealed).toBe(1);expect(restored.zones.wasVisited(2495,-1687)).toBe(true);
  }finally{sim.dispose();}
 });
+
+test('a new game clears the saved progress and saves nothing more',()=>{
+ const sim=new Simulation();let raw=JSON.stringify({version:1,money:1234,savedLocation:{x:1,y:2,z:3,heading:0,timeMinutes:600}});const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);expect(p.savedLocation).toBeDefined();
+  p.startNewGame();expect(raw).toBe('');expect(p.save()).toBe(false);expect(raw).toBe('');
+  sim.money=0;const fresh=new Progression(new WeaponInventory(),sim,storage);expect(fresh.savedLocation).toBeUndefined();expect(sim.money).toBe(0);
+ }finally{sim.dispose();}
+});

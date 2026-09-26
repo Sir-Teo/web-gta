@@ -3403,6 +3403,9 @@ async function boot() {
         sim.respawn = importedSpawn(sim.world, data.parts, new Set(importedScene.sources.keys()), sim.playerCollider, data.preferredSpawn); sim.resetPlayer();
         render.yaw = sim.player.heading + Math.PI; sound.reset(sim);
         hud.button('play').hidden = false; hud.button('play').textContent = walkDemo?`Explore ${included.name}`:'Walk imported scene';
+        // The front end's Start Game offers New Game beside the saved game: FESZ_QR asks first, and the page starts over.
+        const newGame=hud.button('new-game');newGame.hidden=!(walkDemo&&progression.savedLocation);newGame.textContent=gxtText('FES_NGA','New Game');
+        newGame.onclick=()=>{if(!confirm(gxtText('FESZ_QR','Are you sure you want to start a new game? All current game progress will be lost. Proceed?')))return;progression.startNewGame();location.reload();};
         hud.menuMessage((walkDemo?`${included.name} is ready. WASD to walk, Shift to sprint, Space to jump.`:'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
