@@ -12,7 +12,7 @@ import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
 import {playCarHorn} from './nativeCarHorn';
-import {collisionDamageResponse,gunShotDriverResponse,weaponDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
+import {collisionDamageResponse,damageDriverResponse,gunShotDriverResponse,weaponDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
 import {isKillTaskAppropriate} from '../ped/nativeDecisionMaker';
 import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 /** A cruising car's CAutoPilot: the link it is heading for, the one after, a lane on each, and its cruise speed. */
@@ -82,7 +82,16 @@ export class WorldTraffic {
    if(!driver||car.occupied||car.driverOut||car.wrecked||!car.autopilot||driver.dead||driver.fled||driver.raged)return undefined;
    if(driver.dying)return 'hit';
    driver.health=Math.max(0,driver.health-damage);
-   if(driver.health>0)return 'hit';
+   if(driver.health>0){
+    // CEventDamage in the car: ComputeDamageResponse sends a weapon hit on a ped in a vehicle straight to the personality
+    // response. A driver already answering an event keeps to it.
+    if(!driver.fleeScene&&!driver.chase){
+     const answer=damageDriverResponse(this.driverDecisionMaker?.(car),RELATIONSHIP.player,this.random);
+     if(answer==='fleeScene'){driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;}
+     else if(answer==='killPed'){driver.chase={until:this.elapsed+CHASE_SECONDS};driver.avoidCars=true;}
+    }
+    return 'hit';
+   }
    // PreparePedVehicleForPedDeath: real physics, cruise speed zero, no mission, and TEMPACT_HANDBRAKESTRAIGHT for 2000 ms.
    driver.dying={at:this.elapsed*1000};driver.cruiseSpeed=0;driver.temp={action:'handbrakeStraight',until:this.elapsed*1000+2000,from:'death'};
    // His health is gone from the shot on: dragged out before CTaskComplexDieInCar has run its 2000 ms, he comes out a

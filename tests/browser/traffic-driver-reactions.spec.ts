@@ -62,3 +62,17 @@ test('a driver within 45 units of CJ\'s gunshot answers it; a silenced or distan
  },setup);
  expect(result).toEqual({far:false,silenced:false,near:true,cruise:40});
 });
+
+test('a driver CJ wounds answers the damage from his decision maker instead of cruising on',async({page})=>{
+ test.setTimeout(180000);await page.goto('/models.html');
+ const result=await page.evaluate(async setup=>{
+  const run=new Function(`return (async()=>{${setup}
+   try{
+    const t=traffic,driver=t.drivers.find(d=>d.car===car);t.driverDecisionMaker=()=>3;t.random=()=>.3;
+    const shot=t.driverShot(car,10);
+    return {shot,flee:!!driver.fleeScene,chase:!!driver.chase,health:driver.health};
+   }finally{traffic.dispose();fleet.dispose();sim.dispose();}})()`);
+  return run();
+ },setup);
+ expect(result).toEqual({shot:'hit',flee:true,chase:false,health:90});
+});

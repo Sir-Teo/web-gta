@@ -57,6 +57,29 @@ export function gunShotDriverResponse(decisionMaker:number|undefined,relationshi
  const task=makeDecision(dm,GUN_SHOT_EVENT,relationship,true,random);
  return task===TASK.carDriveMissionFleeScene||task===TASK.killPedOnFoot?'fleeScene':'none';
 }
+/* CEventDamage (event 9) on a driver shot by the player: the in-vehicle rows, answered by
+ * ComputePersonalityResponseToDamage (CEventHandler 0x4BF9B0). */
+export const DAMAGE_EVENT=9;
+export const DAMAGE_DRIVER_ROWS:readonly (readonly DecisionChoice[])[]=[
+ [],
+ [{task:TASK.informRespectedFriends,chances:[0,100,0,100],inVehicle:true,onFoot:true}],
+ [{task:TASK.smartFleeEntity,chances:[20,40,40,40],inVehicle:true,onFoot:true},row(TASK.carDriveMissionFleeScene,[0,100,100,0])],
+ [{task:TASK.killPedOnFoot,chances:[20,100,100,100],inVehicle:true,onFoot:true},row(TASK.carDriveMissionFleeScene,[0,0,50,50])],
+ [row(TASK.carDriveMissionFleeScene,[0,100,100,100])],
+];
+const damageMakers:DecisionMaker[]=DAMAGE_DRIVER_ROWS.map(choices=>new Map([[DAMAGE_EVENT,choices]]));
+/** The wounded driver's answer. ComputePersonalityResponseToDamage turns CAR_DRIVE_MISSION_FLEE_SCENE into
+ * CTaskComplexCarDriveMissionKillPed for a ped in a vehicle (0x4BF9DD), and KILL_PED_ON_FOOT that is not appropriate
+ * (no gun against a gunman) into the flee-scene drive for a driver. SMART_FLEE_ENTITY's in-car course is not reversed
+ * and is left as no answer. */
+export function damageDriverResponse(decisionMaker:number|undefined,relationship:Relationship,random:()=>number):'none'|'fleeScene'|'killPed'{
+ const dm=damageMakers[decisionMaker??2]??damageMakers[2];
+ switch(makeDecision(dm,DAMAGE_EVENT,relationship,true,random)){
+  case TASK.carDriveMissionFleeScene:return 'killPed';
+  case TASK.killPedOnFoot:return 'fleeScene';
+  default:return 'none';
+ }
+}
 /** CTaskComplexCarDriveMissionFleeScene: MISSION_CRUISE, DRIVING_STYLE_AVOID_CARS, cruise speed 40. */
 export const FLEE_SCENE_CRUISE_SPEED=40;
 /** The rammed driver's answer (CEventHandler::ComputeVehicleDamageResponse maps the drawn task). */

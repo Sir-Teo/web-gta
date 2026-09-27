@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {collisionDamageResponse,gunShotDriverResponse,weaponDamageResponse,RELATIONSHIP} from '../src/vehicle/nativeCollisionDecision';
+import {collisionDamageResponse,damageDriverResponse,gunShotDriverResponse,weaponDamageResponse,RELATIONSHIP} from '../src/vehicle/nativeCollisionDecision';
 test('R_Norm rammed by the player: of 125, nothing 50, a flee-scene drive, road rage and a ram back (CarDriveMissionKillPed) 25 each',()=>{
  expect(collisionDamageResponse(2,RELATIONSHIP.player,()=>.1)).toBe('none');
  expect(collisionDamageResponse(2,RELATIONSHIP.player,()=>.5)).toBe('fleeScene');
@@ -42,4 +42,14 @@ test('a gunshot (event 15): normal and weak drivers flee the scene at even odds,
  expect(gunShotDriverResponse(2,RELATIONSHIP.neutral,()=>.3)).toBe('none');
  expect(gunShotDriverResponse(0,RELATIONSHIP.player,()=>.3)).toBe('none');
  expect(gunShotDriverResponse(1,RELATIONSHIP.player,()=>.3)).toBe('none');
+});
+test('a wounded driver (event 9 in the car): the flee-scene draw is the kill-ped chase, an inappropriate kill the flee-scene drive',()=>{
+ // R_Norm: smart flee 40 (no in-car answer), flee scene 100 (the chase).
+ expect(damageDriverResponse(2,RELATIONSHIP.player,()=>.1)).toBe('none');
+ expect(damageDriverResponse(2,RELATIONSHIP.player,()=>.8)).toBe('killPed');
+ // R_Tough: kill on foot 100 (unarmed against a gun: flee scene), flee scene 50 (the chase).
+ expect(damageDriverResponse(3,RELATIONSHIP.player,()=>.3)).toBe('fleeScene');
+ expect(damageDriverResponse(3,RELATIONSHIP.player,()=>.9)).toBe('killPed');
+ expect(damageDriverResponse(4,RELATIONSHIP.player,()=>.5)).toBe('killPed');
+ expect(damageDriverResponse(1,RELATIONSHIP.player,()=>.5)).toBe('none');
 });
