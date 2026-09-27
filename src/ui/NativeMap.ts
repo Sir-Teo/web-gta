@@ -82,8 +82,8 @@ export class NativeMap {
   this.element.querySelector<HTMLSelectElement>('.map-destination')!.onchange=e=>{const places:Record<string,{x:number;z:number}>={grove:{x:2495,z:1687},meadows:{x:400,z:-2500},'ls-airport':{x:1685,z:2420},'sf-airport':{x:-1330,z:240},'lv-airport':{x:1450,z:-1450}};const destination=places[(e.target as HTMLSelectElement).value];if(destination){this.notice=undefined;this.waypoint={...destination};this.draw();}(e.target as HTMLSelectElement).blur();};
   const fly=this.element.querySelector<HTMLButtonElement>('.map-fly')!;
   fly.onclick=async()=>{if(!this.onFly)return;fly.disabled=true;try{await this.onFly(Number(this.element.querySelector<HTMLSelectElement>('.map-aircraft')!.value));}catch(error){this.notice=error instanceof Error?error.message:String(error);this.draw();}finally{fly.disabled=false;}};
-  const track=(e:MouseEvent)=>{const r=this.full.getBoundingClientRect(),side=Math.min(r.width,r.height),u=(e.clientX-r.left-(r.width-side)/2)/side,v=(e.clientY-r.top-(r.height-side)/2)/side;this.pointer=u>=0&&u<=1&&v>=0&&v<=1?{x:u,y:v,held:(e.buttons&1)!==0}:undefined;this.draw();};
-  this.full.addEventListener('mousemove',track);this.full.addEventListener('mousedown',track);this.full.addEventListener('mouseup',track);this.full.addEventListener('mouseleave',()=>{this.pointer=undefined;this.draw();});
+  const track=(e:MouseEvent)=>{const r=this.full.getBoundingClientRect(),side=Math.min(r.width,r.height),u=(e.clientX-r.left-(r.width-side)/2)/side,v=(e.clientY-r.top-(r.height-side)/2)/side;this.pointer=u>=0&&u<=1&&v>=0&&v<=1?{x:u,y:v,held:(e.buttons&1)!==0}:undefined;this.requestDraw();};
+  this.full.addEventListener('mousemove',track);this.full.addEventListener('mousedown',track);this.full.addEventListener('mouseup',track);this.full.addEventListener('mouseleave',()=>{this.pointer=undefined;this.requestDraw();});
   this.full.onclick=e=>{this.notice=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';const r=this.full.getBoundingClientRect();
    // The square map is drawn contained (object-fit) in a box the panel may squeeze out of square: measure the click
    // against the drawn square, and leave the bars beside it alone.
@@ -136,6 +136,9 @@ export class NativeMap {
   for(const blip of this.blips){const img=this.blipSprites.get(blip.sprite);if(img&&displayThisBlip(blip.sprite,this.indoors)&&revealed(blip.x,-blip.y,blip.shortRange))sprite(img,blip.x,-blip.y);}
   for(const blip of this.liveBlips){const img=blip.sprite!==undefined?this.blipSprites.get(blip.sprite):undefined;if(img&&displayThisBlip(blip.sprite!,this.indoors)&&revealed(blip.x,blip.z,blip.shortRange))sprite(img,blip.x,blip.z);}
  }
+ /** Pointer events come faster than frames: they ask for one redraw on the next frame rather than a redraw each. */
+ private drawQueued=false;
+ private requestDraw(){if(this.drawQueued)return;this.drawQueued=true;requestAnimationFrame(()=>{this.drawQueued=false;this.draw();});}
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
   if(this.loaded)this.status.textContent=this.notice??(distance===undefined?'North is up · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`);
