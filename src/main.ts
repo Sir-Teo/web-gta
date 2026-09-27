@@ -2292,7 +2292,12 @@ async function boot() {
     // Vehicle radio tuning (N cycles the 11 stations while driving).
     if(input.consume('KeyN')&&!paused&&radioModel!==undefined){const station=sound.nativeEngine?.tuneRadio(input.down('ShiftLeft')||input.down('ShiftRight')?-1:1);if(station)hud.radioName(station);}
     // ProcessPlayerWeapon drops the aim of any non-melee weapon while the player sprints.
-    const playerSprinting=!!render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee';
+    // A weapon aimed with the arm (the pistols, the Uzi and Tec-9) keeps PlayerControlZelda, which sprints on the sprint
+    // button while he moves; that sprint (PEDMOVE_SPRINT with m_nWeaponFire) ends the use-gun task. The aimed walk never
+    // reports a sprint itself, so the button is read here; ZeldaWeapon's two-handed guns never sprint.
+    const armAimInfo=weapons.inventory.info(),armAimed=!!armAimInfo&&!!(armAimInfo.flags&WEAPON_FLAG.aimWithArm);
+    const armSprint=armAimed&&(input.down('ShiftLeft')||input.down('ShiftRight'))&&!sim.player.sprintExhausted&&(()=>{const a=input.axes();return Math.hypot(a.x,a.y)>0;})();
+    const playerSprinting=(!!render.nativeCharacter?.sprinting||armSprint)&&weapons.inventory.weapon.kind!=='melee';
     // CTaskSimplePlayerOnFoot, whose ProcessPlayerWeapon aims and fires, is not the task running while a knockdown's fall
     // and get-up (the event-response slot) or the death sequence owns the player, nor while a jump's launch or the
     // in-air task does (CTaskComplexJump replaces it as the primary task until the landing).
