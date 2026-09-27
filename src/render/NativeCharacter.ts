@@ -285,6 +285,8 @@ export class NativeCharacter {
     this.reaction={name,time:startSeconds*speed,end:(duration??binding.duration)*speed,speed,loop};
   }
   private action: Action = 'idle';
+  /** CTaskComplexJump, CTaskSimpleInAir or CTaskSimpleLand holds the ped: the launch clip, the in-air pose or the landing. */
+  get jumping() { return launchAction(this.action) || this.action === 'airborne' || landingAction(this.action); }
   private lastGroundAction: Action = 'idle';
   private landingSpeed = 1;
   private swimPlaybackSpeed = 1;
