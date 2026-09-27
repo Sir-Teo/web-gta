@@ -2302,7 +2302,7 @@ export class WorldPedestrians {
   private hit(p:Pedestrian,x:number,z:number,strength:number,clip='ko_skid_front',lieMs=1000/((p.shootingRate??40)/40)){
   if(p.down>0)return;
   const fall=p.view.reactionDuration(clip)??1,getUp=p.view.reactionDuration(getUpClip(clip))??1.37;
-  p.down=fall+lieMs/1000+getUp;p.flee=8;this.hits++;p.fallClip=clip;p.stuckUnderCar=false;
+  p.down=fall+lieMs/1000+getUp;p.flee=Math.max(p.flee,8);this.hits++;p.fallClip=clip;p.stuckUnderCar=false;
   const length=Math.hypot(x,z)||1;p.impulse={x:x/length*strength,z:z/length*strength};
   p.view.playReaction(clip,fall+lieMs/1000);
   // A low collider allows the vehicle to pass over a knocked-down civilian.
