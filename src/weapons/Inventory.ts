@@ -151,8 +151,10 @@ export class WeaponInventory {
  }
  /** CPed::GrantAmmo (ADD_AMMO_TO_CHAR) on a weapon the player holds: the total goes up by `amount`. */
  grantAmmo(id:number,amount:number){
+  // Only m_TotalAmmo grows (to 99999): the rounds go to the reserve and the clip is left as it is.
   const a=this.ammo.get(id);if(!a||!this.owned.has(id)||id===0)return false;
-  return this.setTotalAmmo(id,a.clip+a.reserve+amount);
+  if(!this.magazine(id))return this.setTotalAmmo(id,a.clip+a.reserve+amount);
+  a.reserve=Math.max(0,Math.min(99999-a.clip,a.reserve+Math.trunc(amount)));return true;
  }
  /** Busted/Wasted: CPed::ClearWeapons removes everything but plain fists. */
  strip(){for(const w of WEAPONS){if(w.id===0)continue;this.ammo.set(w.id,{clip:0,reserve:0});}this.owned.clear();this.owned.add(0);this.select(0);this.reloading=0;this.cooldowns.clear();this.stashedReloads.clear();}
