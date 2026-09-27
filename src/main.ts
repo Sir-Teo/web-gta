@@ -2403,7 +2403,9 @@ async function boot() {
           else if(boat&&(!car||boat.distance()<car.distance())&&(!bike||boat.distance()<bike.distance())&&boat.distance()<10){if(sim.knockdown===0)boat.interact();}
           else if(bike&&(!car||bike.distance()<car.distance())&&bike.distance()<10){
             // Board through the bike's jump-on clip once its animation group has loaded; before that, the instant mount.
-            if(sim.knockdown>0||bike.enterCheck()||bikeMount.active){}else if(!bikeMount.ready(bike))bike.interact();else if(!bikeMount.mount(bike))bikeMount.message=undefined;
+            // A bike a script ped rides (INTRO1's homies' BMXs) has its driver seat taken: nothing to board.
+            const bikeHandle=mission?.vehicles.handleOf(bike),scriptRidden=bikeHandle!==undefined&&!!mission?.peds.seatTaken(bikeHandle,'driver');
+            if(sim.knockdown>0||scriptRidden||bike.enterCheck()||bikeMount.active){}else if(!bikeMount.ready(bike))bike.interact();else if(!bikeMount.mount(bike))bikeMount.message=undefined;
           }
           else if(car)carEntry.enter(car);
         }

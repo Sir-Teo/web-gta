@@ -22,6 +22,8 @@ interface ClipUse{key:string;clip:NativeAnimation}
  * animation group): the side's jump-on clip onto the saddle, the get-off clip down beside it, or, at speed, the
  * get-off-back tumble. Like the car clips, jump-on starts at its origin (the side point) and ends at the seat, and
  * get-off runs the other way, so the entity is pinned at the side point while the clip's root carries the body. */
+/** TaskComplexEnterCar's give-up speed for the player: the vehicle's 2D move speed over 0.2 units a frame. */
+export function bikeTooFastToBoard(bike:{body:{linvel():{x:number;y:number;z:number}}}){const v=bike.body.linvel();return Math.hypot(v.x,v.z)/50>.2;}
 export class BikeMount {
  bike?:WorldBike;phase?:BikeMountPhase;side:BikeSide='left';time=0;message?:string;
  private setOut=false;private jumpSpeed=0;
@@ -57,6 +59,8 @@ export class BikeMount {
  /** Boards from the side nearer the player, or false when neither side has room or the clips are not loaded. */
  mount(bike:WorldBike){
   if(this.phase||!this.ready(bike))return false;
+  // CTaskComplexEnterCar gives the player up once the vehicle's 2D speed passes 0.2 units a frame.
+  if(bikeTooFastToBoard(bike))return false;
   const p=this.sim.player.position,sides=(['left','right'] as BikeSide[]).map(side=>({side,at:this.room(bike,side)})).filter(s=>s.at&&this.sideClip(bike,VEHICLE_ANIM.getinLHS,VEHICLE_ANIM.getinRHS,s.side))
    .sort((a,b)=>Math.hypot(a.at!.foot.x-p.x,a.at!.foot.z-p.z)-Math.hypot(b.at!.foot.x-p.x,b.at!.foot.z-p.z));
   const pick=sides[0];if(!pick){this.message='No room beside the bike.';return false;}
@@ -119,6 +123,7 @@ export class BikeMount {
   const finished=!!clip&&this.time>=clip.clip.duration;
   switch(this.phase){
    case 'mount':{
+    if(bikeTooFastToBoard(bike)){this.abandon();return;}
     const local=this.sidePoint(bike,this.side);if(local)this.pinTo(bike,local);
     if(finished||!clip){this.finish();bike.finishEnter();}
     return;
