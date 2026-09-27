@@ -309,8 +309,11 @@ export class CarEntry {
   if(!local){if(this.approachTime>3){this.message=this.error='The car animations could not load.';this.cancel();}return {...controls,x:0,y:0,jump:false};}
   const target=car.worldPoint(local),p=this.sim.player.position,dx=target.x-p.x,dz=target.z-p.z,distance=Math.hypot(dx,dz);
    // CCarEnterExit::IsPlayerToQuitCarEnter port: steering away from the door quits, as the JCK_HLP hint describes.
+   // Away from the car as well: standing closer to the car than the door's stand point (an open door's point lies
+   // out past its swing), pushing toward the car is not backing off.
   const c=Math.cos(controls.cameraYaw),s=Math.sin(controls.cameraYaw),inputX=input.x*c-input.y*s,inputZ=-input.x*s-input.y*c;
-  if(input.quit||Math.hypot(inputX,inputZ)>.1&&inputX*dx+inputZ*dz<0||this.approachTime>30||distance>50||car.wrecked){this.cancelReason=input.quit?'quit':this.approachTime>30?'time':distance>50?'far':car.wrecked?'wrecked':'steer';this.cancel();return controls;}
+  const centre=car.car.body.translation(),awayFromCar=inputX*(centre.x-p.x)+inputZ*(centre.z-p.z)<0;
+  if(input.quit||Math.hypot(inputX,inputZ)>.1&&inputX*dx+inputZ*dz<0&&awayFromCar||this.approachTime>30||distance>50||car.wrecked){this.cancelReason=input.quit?'quit':this.approachTime>30?'time':distance>50?'far':car.wrecked?'wrecked':'steer';this.cancel();return controls;}
   if(distance<=.5){this.doorReached();return {...controls,x:0,y:0,jump:false,sprint:false};}
   // A door drifting away with its car (a hovercraft sliding on land) is chased, not counted as a blocked way.
   if(distance<this.bestDistance-.05||car.speed2D()>.001){this.bestDistance=distance;this.stall=0;}
