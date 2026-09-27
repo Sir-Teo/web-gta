@@ -63,9 +63,17 @@ export class Progression {
   const p=this.sim.player.position;
   if(driving&&this.previous&&this.sim.player.health>0&&!arrested){const distance=Math.hypot(p.x-this.previous.x,p.y-this.previous.y,p.z-this.previous.z);if(distance<Math.max(1,dt*100))this.drivingSkill=Math.min(1000,this.drivingSkill+distance/25);}
   this.previous={...p};
-  this.saveTime+=dt;if(this.saveTime>=5){this.saveTime=0;this.save();}
+  this.saveTime+=dt;if(this.saveTime>=5){this.saveTime=0;this.autosave();}
  }
  snapshot(){return {practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags,saveSlots:this.slots.map((s,i)=>({slot:i,has:!!s}))};}
+ /** Told once when the periodic save starts failing (storage full, blocked, or the save too long), and again only
+  * after one has succeeded since. */
+ onSaveFailed?:()=>void;
+ private saveFailing=false;
+ private autosave(){
+  if(!this.storage)return;
+  const ok=this.save();if(!ok&&!this.saveFailing)this.onSaveFailed?.();this.saveFailing=!ok;
+ }
  /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
  save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save()});if(text.length>MAX_SAVE_LENGTH)return false;this.storage.setItem(KEY,text);return true;}catch{return false;}}
  /** The front end's New Game: the progress is gone, and nothing more is saved until the page loads the new game. */

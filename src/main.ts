@@ -602,6 +602,7 @@ async function boot() {
   if(freshGame){const u=new URL(location.href);u.searchParams.delete('new-game');history.replaceState(history.state,'',u.href);}
   const progression=new Progression(weapons.inventory,sim,progressStorage,freshGame);
   weapons.onHit=id=>progression.hit(id);
+  progression.onSaveFailed=()=>hud.message('Progress could not be saved: browser storage is full or blocked.',6000);
   const saveProgress=()=>{progression.save();};window.addEventListener('pagehide',saveProgress);
    const PICKUP_TEXT:Record<string,string>={HO:'Horseshoes',OY:'Oysters',SN:'Snapshots'};
    // Dead armed peds drop their gun for its leftover rounds (one-shot pickups).

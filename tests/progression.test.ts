@@ -112,3 +112,11 @@ test('an interior save keeps its area and door stack; bad ones are dropped',()=>
   for(const area of [0,19,2.5,'3']){raw=JSON.stringify({version:1,savedLocation:{...at,area,enexStack:[1]}});const q=new Progression(new WeaponInventory(),sim,storage);expect(q.savedLocation).toBeDefined();expect(q.savedLocation!.area).toBeUndefined();expect(q.savedLocation!.enexStack).toBeUndefined();}
  }finally{sim.dispose();}
 });
+test('the periodic save reports a failure once, and again only after a save has worked',()=>{
+ const sim=new Simulation();let fail=true,raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{if(fail)throw new Error('QuotaExceededError');raw=v;}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);let told=0;p.onSaveFailed=()=>{told++;};
+  p.tick(5,false,false);p.tick(5,false,false);expect(told).toBe(1);
+  fail=false;p.tick(5,false,false);expect(raw).not.toBe('');fail=true;p.tick(5,false,false);expect(told).toBe(2);
+ }finally{sim.dispose();}
+});
