@@ -150,10 +150,13 @@ export class GameRenderer {
     // Looking behind is a third-person control (AffectControllerStateOn_ButtonDown_ThirdPersonOnly).
     // In a road vehicle Q and E look left and right and both together look behind (m_bLookingLeft/Right).
     const carLooks=this.vehicleView&&this.vehicleLooks;
-    this.glance = cameraGlance(carLooks, !fp&&input.down('KeyQ'), !fp&&input.down('KeyE'),
+    // A held game (the pause menu, the map, the arsenal) takes no camera input: the view stays as it was left.
+    if (!paused) this.glance = cameraGlance(carLooks, !fp&&input.down('KeyQ'), !fp&&input.down('KeyE'),
       !fp&&(input.down('MouseMiddle') || !this.vehicleView&&input.down('Numpad1')));
     if (this.glance !== 'none' || previousGlance !== 'none') this.lastLook = elapsed;
-    if (this.glance !== 'none') {
+    if (paused) {
+      input.lookX = input.lookY = 0;
+    } else if (this.glance !== 'none') {
       input.lookX = input.lookY = 0;
     } else if (input.lookX || input.lookY) {
       if(fp){
