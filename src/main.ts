@@ -272,15 +272,17 @@ async function boot() {
   // The start package (about 11 MB) is what the play button waits on: request it, and the archive identity it is
   // installed under, before the physics WASM and the rest of boot, rather than after them. Failures surface where
   // the package is installed, below.
-  const startScene=walkDemo?{
-    pack:import('./assets/scenePack').then(({readScenePack})=>{
+  /** `useEarly`: the first attempt reads the response index.html started (a retry from the menu fetches afresh). */
+  const readStartPack=(useEarly:boolean)=>import('./assets/scenePack').then(({readScenePack})=>{
       const url=new URL(`${import.meta.env.BASE_URL}play/${included.file}`,location.href).href,early=(window as {__startScenePack?:{url:string;response:Promise<Response>}}).__startScenePack;
       // A download that fails (a dropped connection, a busy server) is tried twice more, after 1 and 3 s, before the
       // menu reports it: the first attempt reads the response index.html started, the others fetch afresh.
-      const attempt=(tries:number):ReturnType<typeof readScenePack>=>readScenePack(url,tries===0&&early?.url===url?early.response:undefined)
+      const attempt=(tries:number):ReturnType<typeof readScenePack>=>readScenePack(url,useEarly&&tries===0&&early?.url===url?early.response:undefined)
         .catch(async error=>{if(tries>=2)throw error;await new Promise(resolve=>setTimeout(resolve,1000*3**tries));return attempt(tries+1);});
       return attempt(0);
-    }),
+    });
+  const startScene=walkDemo?{
+    pack:readStartPack(true),
     // The start package was published from the same archive the worker streams: installing it under the archive's
     // identity lets the first streamed window borrow its colliders, textures and model sources like every later one.
     identity:fetch(`${import.meta.env.BASE_URL}play/world/manifest.json`).then(r=>r.ok?r.json():undefined).then(m=>typeof m?.archive?.sha256==='string'?`static-world:${m.archive.sha256}`:undefined).catch(()=>undefined),
@@ -4728,9 +4730,15 @@ async function boot() {
       sceneChannel.postMessage({ type: 'ready' });
     } else {
       hud.menuMessage(`Downloading ${included.name}… The first load includes the terrain and character assets.`);
-      void Promise.all([startScene!.pack,startScene!.identity]).then(([data,identity])=>{bundledProceduralAssets=data.proceduralAssets;if(identity)data.datasetIdentity=identity;return installScene(data);}).catch(error=>{
-        hud.menuMessage(error instanceof Error?error.message:'The included world could not be loaded. Reload to retry.');
+      // A download that still fails after its own retries offers Retry in the menu: once the connection is back the
+      // package is fetched again, without reloading the page.
+      const loadStartScene=(pack:NonNullable<typeof startScene>['pack'])=>void Promise.all([pack,startScene!.identity]).then(([data,identity])=>{bundledProceduralAssets=data.proceduralAssets;if(identity)data.datasetIdentity=identity;return installScene(data);}).catch(error=>{
+        if(!alive)return;
+        hud.menuMessage(`${error instanceof Error?error.message:'The included world could not be loaded.'} Check the connection, then retry.`);
+        const retry=hud.button('play');retry.hidden=false;retry.disabled=false;retry.textContent='Retry download';
+        retry.onclick=()=>{retry.onclick=play;retry.hidden=true;hud.menuMessage(`Downloading ${included.name}…`);loadStartScene(readStartPack(false));};
       });
+      loadStartScene(startScene!.pack);
     }
   }
   frame = requestAnimationFrame(animate);
