@@ -3077,7 +3077,8 @@ export class WorldPedestrians {
    }
    let investigateSpeed:number|undefined;
    if(p.investigate){
-    if(p.health<=0||p.down>0||p.flee>0||p.retaliate>0||p.gunReact||p.evade||p.carReact||p.fight||p.stagger>0){p.investigate=undefined;p.lookAt=undefined;}
+    // CTaskComplexInvestigateDeadPed finishes once its dead ped is gone (!m_deadPed): a culled body is not visited.
+    if(p.health<=0||p.down>0||p.flee>0||p.retaliate>0||p.gunReact||p.evade||p.carReact||p.fight||p.stagger>0||!this.people.includes(p.investigate.body)){p.investigate=undefined;p.lookAt=undefined;}
     else{
      const inv=p.investigate,b=inv.body.actor.player.position,bx=b.x-state.position.x,bz=b.z-state.position.z,bd=Math.hypot(bx,bz)||1;
      dx=0;dz=0;investigateSpeed=0;
