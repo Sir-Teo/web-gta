@@ -669,7 +669,7 @@ async function boot() {
      else if(loaded(22)||loaded(26)){const handgun=[...inv.owned].find(id=>id!==0&&inv.slotOf(id)===inv.slotOf(22));if(handgun!==undefined)inv.select(handgun);else jetWeaponHidden=true;}
      else jetWeaponHidden=true;
      void weaponView.equip(inv.selected);
-    }else if(!sim.jetPack&&jetSavedWeapon!==undefined){inv.select(jetSavedWeapon);jetSavedWeapon=undefined;jetWeaponHidden=false;void weaponView.equip(inv.selected);}
+    }else if(!sim.jetPack&&jetSavedWeapon!==undefined){if(inv.owned.has(jetSavedWeapon))inv.select(jetSavedWeapon);jetSavedWeapon=undefined;jetWeaponHidden=false;void weaponView.equip(inv.selected);}
   };
   // CPed::RemoveWeaponWhenEnteringVehicle as the player takes a vehicle's controls: weapon changes lock, and the SMG slot's
   // Uzi or Tec-9 with ammo, else its MP5, is taken up; that is the one weapon a driver's drive-by fires. With none the
@@ -778,7 +778,8 @@ async function boot() {
    clearCrossHairs(){},
    clearMessages(){hud.message('');},
    resetWastedText(){hud.whiteMiddleMessage('');},
-   punish(fee){sim.money=Math.max(0,sim.money-fee);weapons.inventory.strip();void weaponView.equip(0);progression.save();},
+   // CPed::ClearWeapons also takes the goggles off (RemoveGogglesModel), and their vision with them.
+   punish(fee){sim.money=Math.max(0,sim.money-fee);weapons.inventory.strip();weapons.vision=null;weapons.goggles=undefined;void weaponView.equip(0);progression.save();},
    showWastedMessage(){hud.whiteMiddleMessage('wasted',4000);},
    showBustedMessage(){hud.whiteMiddleMessage('busted',5000);},
    // CGameLogic::PassTime: the clock and weekday, the days-passed stat, CClock::SetGameClock (which counts a day
