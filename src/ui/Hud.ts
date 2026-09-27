@@ -363,12 +363,14 @@ export class Hud {
     // game's 30 fps frames (and stops while paused).
     const frame=Math.floor(now*30/1000)>>>0;
     this.put('health.now',String(Math.ceil(sim.player.health)),v=>e.health.setAttribute('aria-valuenow',v));
+    this.put('health.max',String(Math.ceil(limits.maxHealth)),v=>e.health.setAttribute('aria-valuemax',v));
     this.put('health.width',`${healthBarWidth(limits.maxHealth)*78}px`,v=>{e.health.style.width=v;});
     this.put('health.fill',`${barFill(sim.player.health,limits.maxHealth)}%`,v=>{e.healthFill.style.width=v;});
     this.put('health.blink',healthBarHidden(sim.player.health,frame)?'hidden':'',v=>{e.healthFill.style.visibility=v;});
     // CHud::RenderArmorBar shows armour only above 1.
     this.put('armour.hidden',String(armourBarHidden(sim.player.armour)),v=>{e.armour.hidden=v==='true';});
     this.put('armour.now',String(Math.ceil(sim.player.armour)),v=>e.armour.setAttribute('aria-valuenow',v));
+    this.put('armour.max',String(Math.ceil(limits.maxArmour)),v=>e.armour.setAttribute('aria-valuemax',v));
     this.put('armour.fill',`${barFill(sim.player.armour,limits.maxArmour)}%`,v=>{e.armourFill.style.width=v;});
     // CHud::RenderBreathBar: light blue, the armour bar's width, breath over lung capacity. Its caller is unreversed; the bar
     // shows while CJ is under the water or short of air.
