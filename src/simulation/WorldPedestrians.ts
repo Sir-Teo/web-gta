@@ -1211,6 +1211,8 @@ export class WorldPedestrians {
   /** The player's vehicle for the cop wander's LookForCarAlarms and LookForStolenCopCars: where it is, whether its
    * alarm sounds (m_nAlarmState counting down), whether it is a law enforcer and whether it is wrecked. */
   playerVehicle?:()=>{position:{x:number;y:number;z:number};alarm:boolean;law:boolean;wrecked:boolean}|undefined;
+  /** The body of the bike, boat or aircraft the player rides (his own collider is off while he does). */
+  playerRide?:()=>RAPIER.RigidBody|undefined;
    /** Popcycle density caps for the current zone and clock (fleet provider; 18/26 fallback). */
    limits?:()=>{civilians:number;total:number}|undefined;
    /** Gang turf at a native point: pedgrp.dat gang index 0–9 with INITIAL strength 0–255. */
@@ -2622,7 +2624,10 @@ export class WorldPedestrians {
    const peds=new Set(this.people.map(q=>q.collider.handle));
    const hit=distance>0?this.sim.world.castRay(new RAPIER.Ray(eye,offset.clone().normalize()),distance+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body,c=>!peds.has(c.handle)):null;
    // The foe's own collider is one of the skipped peds, so it is in sight when nothing else stands in front of it.
-   const occupied=[...cars].find(c=>c.occupied),visible=foe?!hit||hit.timeOfImpact>=distance:!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
+   // A player on a bike, boat or aircraft sits on its body with his own collider off: the line reaches him when it
+   // meets that body or nothing short of him (the target's own vehicle does not block the line).
+   const occupied=[...cars].find(c=>c.occupied),ride=foe?undefined:this.playerRide?.();
+   const visible=foe?!hit||hit.timeOfImpact>=distance:ride?!hit||hit.timeOfImpact>=distance||hit.collider.parent()?.handle===ride.handle:!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
    return {eye,aim,offset,distance,visible};
   }
   /** Muzzle-ray firing sequence with reloads, flashes and dispersion. */
