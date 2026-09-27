@@ -18,6 +18,7 @@ import {bikeLeanDrop,bikeRiderLean,quadRiderLean} from './nativeBikeLean';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import {browserLocalDirection} from '../combat/nativeDamageAnim';
 import {CAR_SOLVER_GROUPS} from './solverGroups';
+import {bikeTooFastToBoard} from './BikeMount';
 import {applyNativeBikeBuoyancy,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
@@ -178,6 +179,8 @@ export class WorldBike {
   if(this.sim.player.health<=0)return '';
   if(this.wrecked)return 'This bike is destroyed.';
   if(this.distance()>Math.max(4,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
+  // CTaskComplexEnterCar's TASK_SIMPLE_BIKE_PICK_UP (0x63EDAB): the player gives up on a bike moving over 0.2 units a frame.
+  if(bikeTooFastToBoard(this))return `The ${this.name} is moving too fast.`;
   return '';
  }
  /** '' when the player may disembark, otherwise the refusal reason. */

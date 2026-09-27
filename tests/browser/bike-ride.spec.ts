@@ -122,3 +122,20 @@ test('a bike under water drowns: CJ loses breath on the bottom and falls off onc
  expect(result.airborne).toBe(true);
  expect(errors).toEqual([]);
 });
+
+test('a bike rolling over 0.2 units a frame cannot be boarded (CTaskComplexEnterCar gives up)',async({page})=>{
+ test.setTimeout(180000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
+  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(/* @vite-ignore */ p)));
+  await RAPIER.init();const base=new URL('/play/world/',location.href).href;
+  const catalog=await openStaticWorldVehicles(await openStaticWorld(base));
+  const sim=new Simulation(),scene=new THREE.Scene();
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(0,-.5,0));
+  sim.respawn={x:1.5,y:.55,z:2};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
+  const bike=new WorldBike(sim,scene,await loadFixedWorldBike(catalog,{modelId:481,primaryColor:-1,secondaryColor:-1}),{x:0,y:1.5,z:0},0);
+  try{
+   const still=bike.enterCheck();bike.body.setLinvel({x:0,y:0,z:-12},true);const rolling=bike.enterCheck();
+   return {still,rolling};
+  }finally{bike.dispose();sim.dispose();}
+ });
+ expect(result.still).toBe('');expect(result.rolling).toMatch(/too fast/);
+});

@@ -174,6 +174,8 @@ export class WorldPlane {
    if(this.sim.player.health<=0)return '';
    if(this.health<=0)return 'This aircraft is destroyed.';
    if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
+   // CTaskComplexEnterCar (0x63EDAB): the player gives up at the door of a vehicle moving over 0.2 units a frame.
+   {const v=this.body.linvel();if(Math.hypot(v.x,v.z)/50>.2)return `The ${this.name} is moving too fast.`;}
    return '';
   }
   /** CVehicle::CanPedStepOutCar (0x6D1F30) and CanPedJumpOutCar (0x6D2030) for planes and helicopters, in units per
