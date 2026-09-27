@@ -327,7 +327,7 @@ export class WorldFleet {
    ground=hit?top-hit.timeOfImpact:0;
   }
   const at={x:position.x,y:ground-bounds.min[2],z:position.z};
-  if(PLAYABLE_BIKES[modelId]){const bike=new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,heading);bike.missionCar=true;this.bikes.add(bike);return bike;}
+  if(PLAYABLE_BIKES[modelId]){const bike=new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,heading);bike.missionCar=true;bike.waterLevel=this.waterLevel;this.bikes.add(bike);return bike;}
   if(PLAYABLE_BOATS[modelId]){const boat=new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));boat.waterLevel=this.waterLevel;boat.missionCar=true;this.boats.add(boat);return boat;}
   const plane=new WorldPlane(this.sim,this.scene,assets as ConstructorParameters<typeof WorldPlane>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));plane.waterLevel=this.waterLevel;plane.missionCar=true;this.planes.add(plane);return plane;
  }
@@ -517,7 +517,7 @@ export class WorldFleet {
   else{const hit=groundAt(record);if(!hit)return;base=(nativeZ>-100?nativeZ+1:1000)-hit.timeOfImpact;}
   const at={x,y:base-bounds.min[2],z};
   const vehicle=boat?new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,angle,rotatedColours(catalog,assets.vehicle.model)):new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,angle);
-  if(vehicle instanceof WorldBoat){vehicle.waterLevel=this.waterLevel;this.boats.add(vehicle);}else this.bikes.add(vehicle);
+  vehicle.waterLevel=this.waterLevel;if(vehicle instanceof WorldBoat)this.boats.add(vehicle);else this.bikes.add(vehicle);
   this.generatedOther.set(vehicle,record.id);
  }
  /** The cheat's bike: CCheat::VehicleCheat never refuses the spot. It clears the space with
@@ -529,7 +529,7 @@ export class WorldFleet {
   if(ground===undefined)throw new Error('No bike terrain beneath the spawn.');
   const at={x,y:ground-assets.collision.bounds.min[2]+.1,z};
   this.clearSpaceFor(at,heading,assets.collision.bounds);
-  const bike=new WorldBike(this.sim,this.scene,assets,at,heading);this.bikes.add(bike);return bike;
+  const bike=new WorldBike(this.sim,this.scene,assets,at,heading);bike.waterLevel=this.waterLevel;this.bikes.add(bike);return bike;
  }
  /** The fixed ground under (x, z): with a reference height, the surface nearest it within 5 units up or down (the
   * pair of vertical lines PlaceOnRoadProperly casts), otherwise the highest. */

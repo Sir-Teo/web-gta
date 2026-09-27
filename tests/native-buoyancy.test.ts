@@ -1,6 +1,6 @@
 import {expect,test} from 'vitest';
 import {WaterLevelIndex} from '../src/world/waterLevel';
-import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,processNativeBuoyancy,type NativeBuoyancyBody} from '../src/simulation/nativeBuoyancy';
+import {applyNativeBikeBuoyancy,applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,processNativeBuoyancy,type NativeBuoyancyBody} from '../src/simulation/nativeBuoyancy';
 const vertex=(x:number,y:number,z:number)=>({position:[x,y,z] as [number,number,number],flow:[0,0] as [number,number],bigWaves:0,smallWaves:0});
 test('water heights interpolate native quads and triangles and choose the highest surface',()=>{
  const index=new WaterLevelIndex([{vertices:[vertex(0,0,0),vertex(100,0,2),vertex(0,100,0),vertex(100,100,2)],flags:1,line:1},{vertices:[vertex(300,0,5),vertex(400,0,5),vertex(300,100,7)],flags:1,line:2},{vertices:[vertex(40,40,9),vertex(60,40,9),vertex(40,60,9),vertex(60,60,9)],flags:0,line:3}]);
@@ -59,4 +59,14 @@ test("the player's upright Vortex rides the water without drowning unless it was
   const r=applyNativeBuoyancy(b,flat(0),1,{rotorSpeed:0,initialBuoyancy:before});return {r,kept:b.buoyancyConstant===before};};
  const riding=sunk(false);expect(riding.r.drowning).toBe(false);expect(riding.kept).toBe(true);
  expect(sunk(true).r.drowning).toBe(true);
+});
+test('CBike::ProcessBuoyancy drowns past 0.8, or 0.4 off its wheels, and keeps its buoyancy constant',()=>{
+ const bike=(z:number,extra:Partial<NativeBuoyancyBody>={})=>body(z,{mass:500,turnMass:200,buoyancyConstant:500*.8/103,boundsMin:[-.5,-1,-.6],boundsMax:[.5,1,.6],...extra});
+ // Water halfway up: a ratio between 0.4 and 0.8 drowns only a bike with a wheel off the ground.
+ const wading=bike(0,{anyWheelOffGround:false}),state={};const shallow=applyNativeBikeBuoyancy(wading,flat(0),1,state);
+ expect(shallow.ratio).toBeGreaterThan(.4);expect(shallow.ratio).toBeLessThan(.8);expect(shallow.drowning).toBe(false);
+ expect(applyNativeBikeBuoyancy(bike(0,{anyWheelOffGround:true}),flat(0),1,{}).drowning).toBe(true);
+ const sunk=bike(-2,{moveSpeed:[0,0,-.5]}),constant=sunk.buoyancyConstant,deep=applyNativeBikeBuoyancy(sunk,flat(0),1,{});
+ expect(deep.drowning).toBe(true);expect(sunk.moveSpeed[2]).toBeGreaterThanOrEqual(-.1);expect(sunk.buoyancyConstant).toBe(constant);
+ expect(applyNativeBikeBuoyancy(bike(5),flat(0),1,{}).inWater).toBe(false);
 });

@@ -17,6 +17,7 @@ import {bikeLeanTarget,approachBikeLean} from '../flight/aero';
 import {bikeLeanDrop,bikeRiderLean,quadRiderLean} from './nativeBikeLean';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import {browserLocalDirection} from '../combat/nativeDamageAnim';
+import {applyNativeBikeBuoyancy,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
 export const PLAYABLE_BIKES:Readonly<Record<number,string>>={448:'Pizzaboy',461:'PCJ-600',462:'Faggio',463:'Freeway',468:'Sanchez',471:'Quadbike',481:'BMX',509:'Chopper',510:'Mountain Bike',521:'FCR-900',522:'NRG-500',523:'HPV-1000',581:'BF-400',586:'Wayfarer'};
@@ -238,6 +239,7 @@ export class WorldBike {
   const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
   this.lean=approachBikeLean(this.lean,target,this.assets.bike.desLean,dt);
   if(this.quad)this.riderLean=quadRiderLean(this.riderLean,this.steer,this.assets.bike.fullAnimLean,this.assets.bike.desLean,dt);
+  this.floatOnWater(dt);
   this.stepVelocity={...this.body.linvel()};this.stepTurn={...this.body.angvel()};
   this.mountTimer=Math.max(0,this.mountTimer-dt);
   this.engine01=(this.modelId===481||this.modelId===510||this.modelId===509)?Math.min(1,Math.abs(this.throttle)):Math.min(1,Math.abs(want)/Math.max(1,top));
@@ -294,6 +296,35 @@ export class WorldBike {
   const p=this.body.translation(),player=this.sim.player;
   player.previous={...player.position};player.position={...p};player.heading=this.heading();player.speed=Math.abs(this.speed());player.grounded=true;
   this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return false;
+ }
+ /** WATER.DAT's level at a native (x, y), which the fleet hands its bikes. */
+ waterLevel?:(x:number,y:number)=>number|undefined;
+ private water={touching:false};inWater=false;drowning=false;
+ /** CBike::ProcessBuoyancy over WATER.DAT surfaces, in the car path's browser gravity scale. The controller keeps the
+  * bike from pitching or rolling, so of the turn force only the yaw damping stays. Drowning with CJ on board, he loses
+  * breath (HandlePlayerBreath) while a wheel still touches the bottom, and is knocked off (KNOCK_OFF_TYPE_FALL) once
+  * none does; a bike with no rider has its engine cut. */
+ private floatOnWater(dt:number){
+  const level=this.waterLevel;if(!level){this.inWater=this.drowning=false;return;}
+  const p=this.body.translation(),q=this.body.rotation(),v=this.body.linvel(),w=this.body.angvel(),h=this.assets.handling.values,b=this.assets.collision.bounds;
+  const native=(a:{x:number;y:number;z:number}):NativeVec=>[a.x,-a.z,a.y],axis=(x:number,y:number,z:number)=>native(rotate(q,{x,y,z})),offGround=!this.wheelsDown();
+  const state:NativeBuoyancyBody={position:native(p),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:false,anyWheelOffGround:offGround,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.assets.handling.buoyancy,moveSpeed:native({x:v.x/50,y:v.y/50,z:v.z/50}),turnSpeed:native({x:w.x/50,y:w.y/50,z:w.z/50})};
+  const result=applyNativeBikeBuoyancy(state,level,dt*50,{},9.81/20);
+  this.water.touching=state.touchingWater;this.inWater=result.inWater;this.drowning=result.drowning;
+  if(!result.inWater)return;
+  const [mx,my,mz]=state.moveSpeed;this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:w.x,y:state.turnSpeed[2]*50,z:w.z},true);
+  if(!result.drowning)return;
+  if(!this.occupied){this.throttle=0;return;}
+  if(this.sim.player.health<=0)return;
+  this.sim.handlePlayerBreath(dt);
+  if(offGround)this.fallOff();
+ }
+ /** CEventKnockOffBike with KNOCK_OFF_TYPE_FALL: the rider drops off with a fifth of the bike's flat move speed and
+  * FALL_FALL, which the in-air fall plays until he lands or swims. */
+ private fallOff(){
+  const v=this.body.linvel(),spot=this.knockOffSpot();if(!spot)return;
+  this.leave(spot);
+  this.sim.collisionPush={x:v.x*.2,z:v.z*.2};this.sim.player.verticalSpeed=0;this.sim.player.grounded=false;this.sim.player.speed=0;
  }
  /** Knock-off from the velocity change the contact solver applied during the world step. */
  private collisionKnockOff(){
