@@ -1761,6 +1761,9 @@ async function boot() {
       // CTaskSimpleClimb::MakeAbortable refuses any event under priority 71 while the ped lives: damage (65) cannot
       // floor or flinch a climbing CJ.
       if(sim.climb)continue;
+      // CTaskSimpleSwim::MakeAbortable likewise gives way only to priority 71 or a killing blow, so ComputeDamageAnim
+      // drops the fall (m_bFallDown false) and plays nothing: a swimming CJ is neither floored nor flinched.
+      if(sim.player.swimming)continue;
       // A cop's nightstick finisher (melee.dat FALL_3) floors CJ only from the front: ComputeDamageAnim's combo branch,
       // FIGHT_HIT_1 + move from the bat group with the fall (that group's Bat_Hit clips are not on CJ; the knockout
       // stands in). From another side it is an ordinary hit.
