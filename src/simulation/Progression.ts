@@ -75,7 +75,7 @@ export class Progression {
   this.previous={...p};
   this.saveTime+=dt;if(this.saveTime>=5){this.saveTime=0;this.autosave();}
  }
- snapshot(){return {practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags,saveSlots:this.slots.map((s,i)=>({slot:i,has:!!s}))};}
+ snapshot(){return {practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags};}
  /** Told once when the periodic save starts failing (storage full, blocked, or the save too long), and again only
   * after one has succeeded since. */
  onSaveFailed?:(reason:'storage'|'conflict')=>void;
@@ -94,17 +94,4 @@ export class Progression {
  /** The front end's New Game: the progress is gone, and nothing more is saved until the page loads the new game. */
  /** Whether the old save is gone; when it could not be cleared the caller starts the new game without reading it. */
  startNewGame(){let cleared=!this.storage;try{this.storage?.setItem(KEY,'');cleared=this.storage?.getItem(KEY)==='';}catch{cleared=false;}this.storage=undefined;return cleared;}
- /** Interior save points plus the save menu: three slots with location, clock and cash. */
- slots:(null|{x:number;y:number;z:number;heading:number;timeMinutes:number;money:number})[]=[null,null,null];
- saveToSlot(slot:number){
-  const p=this.sim.player;
-  this.slots[slot]={x:p.position.x,y:p.position.y,z:p.position.z,heading:p.heading,timeMinutes:this.sim.timeMinutes,money:this.sim.money};
-  this.savedLocation={x:p.position.x,y:p.position.y,z:p.position.z,heading:p.heading,timeMinutes:this.sim.timeMinutes};
-  return this.save();
- }
- loadFromSlot(slot:number){
-  const s=this.slots[slot];if(!s)return false;
-  this.sim.respawn={x:s.x,y:s.y,z:s.z};this.sim.money=s.money;this.sim.timeMinutes=s.timeMinutes;
-  return true;
- }
 }
