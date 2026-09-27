@@ -2418,7 +2418,7 @@ async function boot() {
         return !moving&&(w.kind==='melee'||w.id===41||!info||info.fire==='melee'||info.fire==='use'||!!(info.flags&WEAPON_FLAG.crouchFire));};
        // PlayerControlZelda starts the duck, so only while CTaskSimplePlayerOnFoot runs: not in the air, swimming,
        // climbing, knocked down or dying.
-       if (input.consume('KeyC')&&!playerControlsDisabled()&&!padSwitchedOff('duck')&&!playerDown&&sim.player.grounded&&!sim.player.swimming&&!sim.climbing&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling&&(sim.player.crouched||duckable())) { sim.toggleCrouch(); }
+       if (input.consume('KeyC')&&!playerControlsDisabled()&&!padSwitchedOff('duck')&&!playerDown&&!playerJumping&&sim.hitHead===0&&sim.player.grounded&&!sim.player.swimming&&!sim.climbing&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active&&!duck.rolling&&(sim.player.crouched||duckable())) { sim.toggleCrouch(); }
        else if(sim.player.crouched&&!duck.rolling&&!duckable())sim.setCrouched(false);
       if (input.consume('KeyL')) canvas.requestPointerLock()?.catch(() => hud.message('Pointer lock unavailable. Drag to look.'));
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
