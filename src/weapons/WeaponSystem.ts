@@ -81,7 +81,8 @@ export class WeaponSystem {
  /** The held melee weapon's combo group and its victim clips (FIGHT_HIT_1..3), from the weapon view. */
  meleeClips?:()=>{group?:string;hits?:readonly import('../assets/ifp').NativeAnimation[];durations?:{attacks:readonly number[];ground?:number;moving?:number}}|undefined;
  /** An attack press during a move: the next move starts at this one's chain frame. */
- private meleeQueued=false;
+ /** The melee weapon a press was queued with, waiting for the move's chain frame. */
+ private meleeQueued?:number;
  /** CTaskSimpleThrowProjectile on the player: WEAPON_start_throw, then the throw clip whose fire frame releases the projectile. */
  private throwState?:{clip:typeof THROW_START_CLIP|ThrowClip;elapsed:number;heldMs:number;released:boolean;fired:boolean;weapon:WeaponDefinition;camera:{origin:Vec3;direction:Vec3}};
  /** CPad::GetWeapon this frame (the fire button held), timing the throw's button counter. */
@@ -500,7 +501,7 @@ export class WeaponSystem {
    this.lastWhip=false;
   }
   // A press while a combo move plays waits for its chain frame (CTaskSimpleFight chains moves; ProcessPed is a stub).
-  if(w.kind==='melee'&&this.inventory.cooldown>0&&info&&meleeComboFor(this.inventory.meleeCombo(w.id))){this.meleeQueued=true;return false;}
+  if(w.kind==='melee'&&this.inventory.cooldown>0&&info&&meleeComboFor(this.inventory.meleeCombo(w.id))){this.meleeQueued=w.id;return false;}
   if(!this.inventory.fire())return false;this.onUse?.(w);this.onSound?.('fire',w.id,this.sim.player.position);
   // CTaskComplexUseGoggles: goggles_put_on runs first; PutOnGoggles/TakeOffGoggles apply when it finishes.
   if(w.kind==='nightvision'||w.kind==='infrared'){if(!this.goggles)this.goggles={kind:w.kind,remaining:this.gogglesClipSeconds};return true;}
@@ -949,8 +950,14 @@ export class WeaponSystem {
   this.inventory.tick(dt);this.effects=this.effects.filter(e=>(e.life-=dt)>0);this.stepThrow(dt,camera);
   // The canopy closes on landing, in water as on the ground (a ped submerged in water is not using a parachute).
   if(this.sim.player.grounded||this.sim.player.swimming||this.sim.player.health<=0)this.parachute=false;
-  if(this.meleeQueued&&this.inventory.cooldown<=0){
-   this.meleeQueued=false;
+  // A queued press belongs to the fight it was made in: a weapon switch, a knockdown or death drops it (it would
+  // otherwise fire whatever is held by then, past every input check), and the pending strike goes with a fall as
+  // CTaskSimpleThrowProjectile's MakeAbortable ends the throw (CTaskSimpleFight's own is a retail stub).
+  const down=this.sim.knockdown>0||this.sim.player.health<=0;
+  if(this.meleeQueued!==undefined&&(down||this.inventory.selected!==this.meleeQueued))this.meleeQueued=undefined;
+  if(this.strike&&down)this.strike=undefined;
+  if(this.meleeQueued!==undefined&&this.inventory.cooldown<=0){
+   this.meleeQueued=undefined;
    const p=this.sim.player.position;this.fire({origin:{...p,y:p.y+1.3},direction:{x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)}});
   }
   if(this.strike){this.strike.remaining-=dt;if(this.strike.remaining<=0){const strike=this.strike;this.strike=undefined;this.resolveStrike(strike);}}
