@@ -2484,7 +2484,8 @@ async function boot() {
         gunFiring=firing;
         // CTaskSimpleJetPack::ProcessControlInput fires only an instant-hit weapon aimed with the arm.
         stepJetPackWeapon();
-        stepDriverWeapon(!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike||fleet?.occupiedPlane));
+        // CTaskSimpleCarGetOut gives the weapon back (ReplaceWeaponWhenExitingVehicle) as its clip starts, not once he is out.
+        stepDriverWeapon(!!(worldCar?.occupied&&carEntry.phase!=='getOut'||fleet?.occupied&&!(carEntry.phase==='getOut'&&carEntry.car===fleet.occupied)||fleet?.occupiedBoat||fleet?.occupiedBike||fleet?.occupiedPlane));
         const jetFireAllowed=!sim.jetPack||!jetWeaponHidden&&(()=>{const info=weapons.inventory.info();return !!info&&info.fire==='instant'&&!!(info.flags&WEAPON_FLAG.aimWithArm);})();
         if(onFoot&&jetFireAllowed&&!playerDown&&!playerJumping&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&firing){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
