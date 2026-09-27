@@ -1367,7 +1367,9 @@ async function boot() {
   const placementKey=(model:string,[x,y,z]:readonly number[])=>`${model.toLowerCase()}:${x.toFixed(2)}:${y.toFixed(2)}:${z.toFixed(2)}`;
   /** Placements whose object has m_bRenderDamaged (or has gone), by lowercased model: their lights stay off. */
   const damagedLights=new Map<string,[number,number,number][]>();
-  const markLightDamaged=(model:string,position:readonly number[])=>{const key=model.toLowerCase(),list=damagedLights.get(key)??[];list.push([position[0],position[1],position[2]]);damagedLights.set(key,list);};
+  // Each broken lamp is recorded once: a damaged prop is hit again and again (every bullet, every frame a car leans on
+  // it), and a list growing with each hit made every frame's lit-placement check slower over a long session.
+  const markLightDamaged=(model:string,position:readonly number[])=>{const key=model.toLowerCase(),list=damagedLights.get(key)??[];if(list.some(p=>Math.abs(p[0]-position[0])<.05&&Math.abs(p[1]-position[1])<.05&&Math.abs(p[2]-position[2])<.05))return;list.push([position[0],position[1],position[2]]);damagedLights.set(key,list);};
   const lightIsDamaged=(model:string|undefined,m:readonly number[])=>!!model&&!!damagedLights.get(model)?.some(p=>Math.abs(p[0]-m[12])<.05&&Math.abs(p[1]-m[13])<.05&&Math.abs(p[2]-m[14])<.05);
   /** The map objects a script hid (SET_VISIBILITY_OF_CLOSEST_OBJECT_OF_TYPE) or took the collision off
    * (SET_USES_COLLISION_OF_CLOSEST_OBJECT_OF_TYPE), by placement key, applied again to every window that streams them in. */
