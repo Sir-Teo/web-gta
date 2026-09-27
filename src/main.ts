@@ -503,7 +503,7 @@ async function boot() {
  let theText:import('./assets/gxt').NativeText|undefined;
  void import('./assets/gxt').then(m=>m.loadNativeText(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(t=>{theText=t;}).catch(e=>console.error('AMERICAN.GXT failed to load',e));
   let wasRiding=false;
-  let tankTurret:TankTurret=initialTankTurret(),tankLastFire=-Infinity;
+  let tankTurret:TankTurret=initialTankTurret(),tankLastFire=-Infinity,tankGunWasDown=false;
   let cannonAim:CannonAim=initialCannonAim(),cannonFrame=0,cannonClock=0,cannonFiring=false;const waterCannon=new WaterCannon();
   let gangWars:GangWars|undefined,gangWarBlip:{position:{x:number;y:number;z:number};gang:number;visible:boolean}|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
@@ -2535,7 +2535,9 @@ async function boot() {
          tankTurret=stepTankTurret(tankTurret,{x:front.x,y:-front.z,z:front.y},step*50);
          tank.setTurret(tankTurret.yaw,tankTurret.pitch);
          const nowMs=elapsed*1000;
-         if(!carGunOff&&(input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'))&&nowMs>tankLastFire+TANK_FIRE_INTERVAL_MS){
+         // CarGunJustDown: a fresh press fires, once the last shot is 800 ms old; holding the button fires no more.
+         const gunDown=!carGunOff&&(input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire')),gunJustDown=gunDown&&!tankGunWasDown;tankGunWasDown=gunDown;
+         if(gunJustDown&&nowMs>tankLastFire+TANK_FIRE_INTERVAL_MS){
           tankLastFire=nowMs;
           const local=tankShotDirection(tankTurret),dir=new Vector3(local.x,local.z,-local.y).applyQuaternion(tq);
           const muzzle=tank.muzzleWorld()??(()=>{const m=tankDefaultMuzzle(tankTurret),p=tank.car.body.translation(),o=new Vector3(m.x,m.z,-m.y).applyQuaternion(tq);return new Vector3(p.x+o.x,p.y+o.y,p.z+o.z);})();
