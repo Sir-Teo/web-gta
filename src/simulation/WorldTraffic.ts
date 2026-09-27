@@ -82,6 +82,9 @@ export class WorldTraffic {
    if(driver.health>0)return 'hit';
    // PreparePedVehicleForPedDeath: real physics, cruise speed zero, no mission, and TEMPACT_HANDBRAKESTRAIGHT for 2000 ms.
    driver.dying={at:this.elapsed*1000};driver.cruiseSpeed=0;driver.temp={action:'handbrakeStraight',until:this.elapsed*1000+2000,from:'death'};
+   // His health is gone from the shot on: dragged out before CTaskComplexDieInCar has run its 2000 ms, he comes out a
+   // corpse, not a live ped who runs or comes back for the car.
+   car.driverDead=true;
    return 'killed';
   }
   /** The driver's pedstats decision maker (0 gang member, 1 cop, 2 normal, 3 tough, 4 weak) for the collision decision. */
