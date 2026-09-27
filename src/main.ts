@@ -306,6 +306,8 @@ async function boot() {
   /** The player riding a car as a passenger (WARP_CHAR_INTO_CAR_AS_PASSENGER): the car and its seat (1 front right,
    * 2 rear left, 3 rear right). The car goes on under its own driver, AI or recording. */
   let playerPassenger:{car:ScriptCar;seat:1|2|3}|undefined;
+  /** The exit button was pressed in a passenger seat: he gets out once the car is slow enough. */
+  let passengerExitPending=false;
   /** CPed::m_pAttachedTo for the player (ATTACH_CHAR_TO_CAR): the vehicle, the offset in its axes (native), the side
    * he faces (m_fTurretAngleA: 0 ahead, 1 left, 2 behind, 3 right), the turn allowed either side of it (radians), and
    * the weapon and ammo he had before (m_nSavedWeapon, m_nTurretAmmo). */
@@ -2322,11 +2324,14 @@ async function boot() {
       // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
       if(planeExitReady)fleet!.occupiedPlane!.exitPending=false;
+      if(passengerExitPending){const ride=playerPassenger;if(!ride)passengerExitPending=false;else if(ride.car.disposed||ride.car.canStepOut()){passengerExitPending=false;leavePassengerSeat();}}
       // CPad::DisablePlayerControls (SET_PLAYER_CONTROL off): every pad query answers 0, the exit button included.
       if(!sim.climbing&&(input.consume('KeyF')&&!playerControlsDisabled()&&!padSwitchedOff('enterCar')||planeExitReady)&&!law.arrested){
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.
         if(sim.jetPack){/* the jetpack task owns the button */}
-        else if(playerPassenger)leavePassengerSeat();
+        // A passenger leaves through CTaskComplexLeaveCar too: CTaskSimpleCarWaitToSlowDown holds him in the seat until
+        // the car is slow enough to step out of (the passenger's roll-out is not ported, so he waits for that).
+        else if(playerPassenger)passengerExitPending=true;
         // The original gives no text for any of the vehicle refusals and notices below; the calls keep their effects.
         else if(sim.player.swimming){}
         else{
