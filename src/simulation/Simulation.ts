@@ -473,7 +473,7 @@ export class Simulation {
     }
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
       if (this.fall.falling) { this.fallLanding = this.fall.minVz < -.4 * 50 ? 'knockdown' : 'collapse'; this.fallLandingSound = true; }
-      this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
+      { const hurt = landingDamage(this.player.verticalSpeed); if (hurt > 0) this.damagePlayer(hurt, true, { weapon: 54 }); }
     }
     if (this.player.grounded) this.fall = { minVz: 0, falling: false };
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
@@ -666,7 +666,7 @@ export class Simulation {
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = resolved.grounded;
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
-      this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
+      { const hurt = landingDamage(this.player.verticalSpeed); if (hurt > 0) this.damagePlayer(hurt, true, { weapon: 54 }); }
     }
     this.player.phase += this.player.speed * dt * 2.8;
   }
