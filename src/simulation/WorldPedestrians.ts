@@ -2831,6 +2831,9 @@ export class WorldPedestrians {
     p.onFireSpeech=Math.max(0,p.onFireSpeech-dt);if(this.frameDue&&p.onFireSpeech===0&&Math.random()<.1){p.onFireSpeech=2;this.onPain?.(p,{...state.position});}
    }
    p.scratch=Math.max(0,p.scratch-dt);p.retaliate=Math.max(0,p.retaliate-dt);if(p.retaliate<=0||!this.sim.player.swimming)p.taunt=undefined;p.retaliateCooldown=Math.max(0,p.retaliateCooldown-dt);p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);p.stagger=Math.max(0,p.stagger-dt);p.bumpCooldown=Math.max(0,p.bumpCooldown-dt);
+   // The kill task that named the foe is over once its window runs out: a later fight (turf, a bump) is with the player,
+   // not the ped the last one was with. A script's kill order keeps its own target.
+   if(p.retaliate<=0&&p.foe&&!p.order)p.foe=undefined;
    // The fight move belongs to CTaskSimpleFight inside the kill task: a knockdown, death, flee or fire that ends the
    // kill task ends the move with it, so none is resumed (or lands) later.
    if(p.fight&&(p.down>0||p.health<=0||p.retaliate<=0&&!p.officer&&!(p.order?.kind==='destroyCar'&&p.order.melee)))p.fight=undefined;
