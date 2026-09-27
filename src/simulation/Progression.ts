@@ -25,9 +25,11 @@ export class Progression {
  /** Where the last save point put the player (native x/y, browser height), the clock it saved and, inside, the
   * interior (CGame::currArea) and the doors taken into it (CEntryExitManager's stack, as pool indices). */
  savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number;area?:number;enexStack?:number[]};private previous?:{x:number;y:number;z:number};private saveTime=0;
+ /** Whether stored progress was loaded (cash, weapons, stats or a save point), which New Game would throw away. */
+ hadSave=false;
  /** `fresh`: a New Game whose old save could not be cleared: what is stored is not read, and the next save replaces it. */
  constructor(private inventory:WeaponInventory,private sim:Simulation,private storage?:Pick<Storage,'getItem'|'setItem'>,fresh=false){
-  try{const raw=fresh?undefined:storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;
+  try{const raw=fresh?undefined:storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;this.hadSave=true;
    // CPlayerInfo::m_nMoney is signed: the HUD draws a debt as -$%07d.
    if(Number.isInteger(data.money)&&data.money>=-9999999&&data.money<=999999999)sim.money=data.money;
    if(finite(data.drivingSkill,1000))this.drivingSkill=data.drivingSkill;
