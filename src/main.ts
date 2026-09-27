@@ -626,12 +626,16 @@ async function boot() {
       // CPickup::Update takes the save disk only when CPlayerPed::CanPlayerStartMission: the game playing, the player
       // alive and in control, no physical response (a knockdown, a fall), no primary task (climbing, swimming, the
       // jetpack, a car entry) and no attack (aiming or a weapon mid-use).
-      if(gameLogic.state!==0||sim.player.health<=0||law.arrested||sim.knockdown>0||!sim.player.grounded||sim.climb||sim.player.swimming||sim.jetPack||carEntry.active||weapons.aiming||weapons.inventory.cooldown>0)return;
+      const canStartMission=()=>!(gameLogic.state!==0||sim.player.health<=0||law.arrested||sim.knockdown>0||!sim.player.grounded||sim.climb||sim.player.swimming||sim.jetPack||carEntry.active||weapons.aiming||weapons.inventory.cooldown>0);
+      if(!canStartMission())return;
       const point=savePoints.filter(p=>Math.hypot(p.pickup[0]-pickup.position[0],p.pickup[1]-pickup.position[1],p.pickup[2]-pickup.position[2])<2)[0];
       if(!point)return;
       saving=true;hud.fade(true,1000);
       window.setTimeout(()=>{
         if(!alive)return;
+        // The original's save menu holds the game from the pickup on; here the world runs under the fade, so what
+        // happened meanwhile (a death, an arrest, a knockdown, a car entry, the pause menu) calls the save off.
+        if(paused||!canStartMission()){hud.fade(false,1000);saving=false;return;}
         const effects=nativeSaveEffects({health:sim.player.health,maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,timeMinutes:sim.timeMinutes});
         // DoGameSpecificStuffBeforeSave: the six hours pass on a full stomach.
         hunger.hoursDidntEat=0;
