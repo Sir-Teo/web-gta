@@ -511,7 +511,7 @@ export class NativeCharacter {
     // CTaskSimpleJetPack::ProcessAnims blends the idle animation while the pack carries the ped.
     const selected: Action = !this.supported(sim) ? 'idle' : controls.jetPack && !sim.player.grounded ? 'idle' : sim.player.grounded && landing ? selectedLanding : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? this.duckAction(controls, moving) : !moving ? 'idle' : controls.sprint && runnable ? this.clips.sprint ? 'sprint' : 'run' : this.clips.sprint && !controls.walk ? 'run' : 'walk';
     const locomotion = selected === 'idle' || selected === 'walk' || selected === 'run' || selected === 'sprint';
-    const action: Action = controls.fightMove && this.fightAnims && locomotion && sim.player.grounded ? 'fightMove' : controls.gunMove && this.gunAnims && locomotion && sim.player.grounded ? 'gunMove' : this.moveAnims && locomotion ? 'move' : selected;
+    const action: Action = controls.fightMove && this.fightAnims && locomotion && sim.player.grounded ? 'fightMove' : controls.gunMove && this.gunAnims && locomotion && sim.player.grounded ? 'gunMove' : this.moveAnims && locomotion && !(controls.jetPack && !sim.player.grounded) ? 'move' : selected;
     // Aiming starts CTaskSimpleUseGun standing; putting the gun down leaves SetRealMoveAnim to rebuild the move clips.
     if (action === 'gunMove' && this.action !== 'gunMove') { this.gunAnims!.start(controls.gunMove!.aimWithArm); this.gunPrevious.clear(); }
     // Targeting with a melee weapon starts CTaskSimpleFight in its stance.
