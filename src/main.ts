@@ -2244,7 +2244,10 @@ async function boot() {
     if(input.consume('KeyN')&&!paused&&radioModel!==undefined){const station=sound.nativeEngine?.tuneRadio(input.down('ShiftLeft')||input.down('ShiftRight')?-1:1);if(station)hud.radioName(station);}
     // ProcessPlayerWeapon drops the aim of any non-melee weapon while the player sprints.
     const playerSprinting=!!render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee';
-    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&!bikeMount.active&&input.down('MouseAim');
+    // CTaskSimplePlayerOnFoot, whose ProcessPlayerWeapon aims and fires, is not the task running while a knockdown's fall
+    // and get-up (the event-response slot) or the death sequence owns the player.
+    const playerDown=sim.knockdown>0||sim.player.health<=0;
+    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&!bikeMount.active&&!playerDown&&input.down('MouseAim');
     // ProcessPlayerWeapon: aiming a b1stPerson weapon puts the camera in its weapon mode; releasing the button leaves it.
     const firstPerson=weapons.aiming?firstPersonMode(weapons.inventory.selected,weapons.inventory.info()):undefined;
     render.aiming=weapons.aiming;render.firstPerson=firstPerson;weapons.firstPerson=firstPerson;
@@ -2427,9 +2430,9 @@ async function boot() {
         // CTaskSimpleJetPack::ProcessControlInput fires only an instant-hit weapon aimed with the arm.
         stepJetPackWeapon();
         const jetFireAllowed=!sim.jetPack||!jetWeaponHidden&&(()=>{const info=weapons.inventory.info();return !!info&&info.fire==='instant'&&!!(info.flags&WEAPON_FLAG.aimWithArm);})();
-        if(onFoot&&jetFireAllowed&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&firing){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
+        if(onFoot&&jetFireAllowed&&!playerDown&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&firing){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
-        weapons.throwHeld=onFoot&&(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'));
+        weapons.throwHeld=onFoot&&!playerDown&&(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'));
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
         if(worldCar?.occupied&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
