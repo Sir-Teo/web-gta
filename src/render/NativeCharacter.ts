@@ -313,6 +313,7 @@ export class NativeCharacter {
   private headingOffset: number;
   private motionSpace: 'world' | 'actor';
   private wasAirborne = false;
+  private swamLast = false;
   /** A climb took over from the jump or fall: no landing clip follows it. */
   resetAirborne() { this.wasAirborne = false; }
   /** m_fMoveBlendRatio (PlayerControlZelda). */
@@ -474,7 +475,7 @@ export class NativeCharacter {
   supported(sim: Pick<Simulation, 'player'>) { return sim.player.health > 0 && (sim.player.grounded ? !sim.player.crouched || !!this.clips.crouchIdle && !!this.clips.crouchWalk : !!this.clips.airborne); }
   /** A ride ends (CTaskSimpleCarSetPedOut leaves the ped standing): the move blend ratio does not carry over from the
    * run up to the car, which would walk him on after the door closes. */
-  resetLocomotion(){this.moveBlend=0;this.lastGroundAction='idle';}
+  resetLocomotion(){this.moveBlend=0;this.lastGroundAction='idle';this.moveAnims?.reset();}
   step(dt: number, controls: Controls, sim: Pick<Simulation, 'player'>): Controls {
     // BlendAnimation(aim, 8) on AIM, blend delta -8 on release, -4 when a weapon without bMoveAim lowers on the move.
     const lowered=this.action==='gunMove'&&this.gunAimLowered;
@@ -485,7 +486,9 @@ export class NativeCharacter {
     this.landingFootContacts = undefined;
     // CTaskComplexInAirAndLand makes no land task after a climb or into water: the swim (and the climb, resetAirborne)
     // ends the air time.
-    if (sim.player.swimming && this.clips.swimTread) { this.wasAirborne = false; return this.stepSwim(dt, controls, sim); }
+    if (sim.player.swimming && this.clips.swimTread) { this.wasAirborne = false; this.swamLast = true; return this.stepSwim(dt, controls, sim); }
+    // Out of the water the on-foot task starts afresh from idle: no run stop from the sprint that ran into the water.
+    if (this.swamLast) { this.swamLast = false; this.moveAnims?.reset(); }
     const moving = Math.hypot(controls.x, controls.y) > 0;
     const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= STAMINA_EXHAUST_FLOOR);
     const landed = this.wasAirborne && sim.player.grounded;

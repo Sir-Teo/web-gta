@@ -43,6 +43,9 @@ export class NativeMoveAnims{
   this.assocs.set(clip,a);return a;
  }
  private remove(clip:MoveClip){this.assocs.delete(clip);}
+ /** CTaskSimplePlayerOnFoot::MakeAbortable at ABORT_PRIORITY_IMMEDIATE: BlendAnimation(IDLE, 1000), idle at once with
+  * the walk, run, sprint and stop clips gone and the heading rate back. */
+ reset(){this.assocs.clear();this.add('idle');this.headingLocked=false;this.moveState='still';}
  /** CAnimManager::BlendAnimation for these non-partial clips. */
  private blendAnimation(clip:MoveClip,delta:number){
   let fadedOut=false;

@@ -834,7 +834,7 @@ async function boot() {
     // FlushImmediately drops whatever fall, get-up or arrest hold was running (RestartNonPartialAnims).
     if(playerPassenger)leavePassengerSeat(true);
     if(playerAttached){playerAttached.savedWeapon=undefined;detachPlayer();}
-    playerGetUp=0;playerStuckUnderCar=false;playerFallClip=undefined;render.nativeCharacter?.clearReaction();
+    playerGetUp=0;playerStuckUnderCar=false;playerFallClip=undefined;render.nativeCharacter?.clearReaction();render.nativeCharacter?.resetLocomotion();
     sim.respawn={x:result.position[0],y:result.position[2]+1,z:-result.position[1]};
     sim.resetPlayer();
     // RestorePlayerStuffDuringResurrection: health back to CPlayerInfo::m_nMaxHealth.
