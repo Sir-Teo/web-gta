@@ -301,6 +301,9 @@ export class CarEntry {
  /** Controls that run the player to the chosen door (CTaskComplexGoToCarDoorAndStandStill: PEDMOVE_RUN, radius 0.5, 50 m, 30 s). */
  approach(dt:number,controls:Controls,input:{x:number;y:number;quit:boolean}):Controls{
   const car=this.car;if(this.phase!=='approach'||!car)return controls;
+  // A knockdown's fall and get-up runs in the event-response slot, above the primary enter-car task, which waits
+  // unprocessed (no steering check, no clock) and goes to the door once the player is back on his feet.
+  if(this.sim.knockdown>0)return {...controls,x:0,y:0,jump:false,sprint:false};
   this.approachTime+=dt;
   const local=this.doorPoint(car,this.side);
   if(!local){if(this.approachTime>3){this.message=this.error='The car animations could not load.';this.cancel();}return {...controls,x:0,y:0,jump:false};}
