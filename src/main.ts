@@ -2593,7 +2593,7 @@ async function boot() {
         // and extinguisher are area-effect weapons without bAimWithArm, which CTaskSimplePlayerOnFoot::ProcessPed moves
         // through PlayerControlZeldaWeapon like the rifles.
         const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame','spray','extinguisher'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
-        if(aimedGun)controls={...controls,gunMove:{aimWithArm:!!(aimedGun.flags&WEAPON_FLAG.aimWithArm),moveAim:!!(aimedGun.flags&WEAPON_FLAG.moveAim),moveFire:!!(aimedGun.flags&WEAPON_FLAG.moveFire),firing:gunFiring,moveSpeed:aimedGun.moveSpeed}};
+        if(aimedGun)controls={...controls,gunMove:{aimWithArm:!!(aimedGun.flags&WEAPON_FLAG.aimWithArm),moveAim:!!(aimedGun.flags&WEAPON_FLAG.moveAim),moveFire:!!(aimedGun.flags&WEAPON_FLAG.moveFire),firing:gunFiring&&!weapons.inventory.reloading,moveSpeed:aimedGun.moveSpeed}};
         // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon: the target button with a melee weapon starts CTaskSimpleFight, whose
         // stance shuffles CJ about on the FightSh clips (PlayerControlFighter) instead of walking him.
         else if(weapons.aiming&&onFoot&&weapons.inventory.weapon.kind==='melee'&&!sim.player.crouched)controls={...controls,fightMove:true};
