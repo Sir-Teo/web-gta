@@ -173,6 +173,8 @@ export class Simulation {
     this.advanceClock(dt * this.clockRate());
     this.player.previous = { ...this.player.position };
     // The climb places the ped itself: pushes and shifts from blows or cars are not stored up to be released after it.
+    // CTaskComplexInWater replaces the in-air task too: what the drop into the water measured is not carried out of it.
+    if (this.player.swimming && this.fall.falling) this.fall = { minVz: 0, falling: false };
     if (this.climb) { this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 }; this.stepClimb(dt, controls); }
     else this.moveCharacter(dt, controls);
     this.stepWorld();
@@ -491,6 +493,9 @@ export class Simulation {
   }
   /** CTaskSimpleClimb::TestForClimb from CTaskSimpleJump::ProcessPed (the launch) or CTaskSimpleInAir::ProcessPed, then
    * the climb CTaskComplexJump or CTaskComplexInAirAndLand::ControlSubTask starts on the hold. */
+  /** CPed::Teleport's FlushImmediately for the player: the climb, the jump's glide, the hit-head stop and the fall
+   * (CTaskSimpleInAir's minimum speed) all end, so none of them carries on from where he was. */
+  flushPlayerTasks() { this.climb = undefined; this.jumpGlide = undefined; this.hitHead = 0; this.fall = { minVz: 0, falling: false }; }
   private startClimb(launch: boolean, dt: number, controls: Controls) {
     const world = this.climbWorld, durations = this.climbDurations;
     // Both the launch and the in-air test need CGame::CanSeeOutSideFromCurrArea: no climbing inside interiors.
@@ -500,6 +505,8 @@ export class Simulation {
     if (found === 'invalid') { if (!launch && this.jumpGlide) this.jumpGlide.invalidClimb = true; return false; }
     if (!found) return false;
     this.climb = new NativeClimbTask(found.entity, found.hold, initialClimbHeight(found.hold.position, ped.position, !launch), false, durations);
+    // The climb replaces the in-air task, and a new one starts its fall afresh (TaskSimpleInAir's m_fMinZSpeed = 0).
+    this.fall = { minVz: 0, falling: false };
     this.player.jumpMomentum = { x: 0, z: 0 }; this.player.verticalSpeed = 0; this.player.grounded = false;
     this.stepClimb(dt, controls);
     return true;
@@ -769,7 +776,7 @@ export class Simulation {
     this.abortJetPack();
     this.animationMovement = null;
     this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0;
-    this.climb = undefined; this.jumpGlide = undefined;
+    this.flushPlayerTasks(); this.collisionShift = { x: 0, z: 0 };
 
     this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.player.adrenaline = 0; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));

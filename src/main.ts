@@ -476,7 +476,7 @@ async function boot() {
   lookAt:(target,seconds)=>{const ped=onFoot(mission?.pedByHandle(target));if(ped&&typeof ped==='object')pedestrians?.playerLookAtPed(ped,seconds);},
   placeOnGround:(x,z,originY)=>{
    const ground=pedestrians?.groundUnder(x,z,(originY??sim.player.position.y+1+50)+.5);if(ground===undefined)return;
-   sim.player.position={x,y:ground,z};sim.player.previous={x,y:ground,z};
+   sim.flushPlayerTasks();sim.player.position={x,y:ground,z};sim.player.previous={x,y:ground,z};
    sim.playerBody.setTranslation({x,y:ground+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:ground+.9,z});sim.playerCollider.setTranslation({x,y:ground+.9,z});
   },
  });
@@ -661,7 +661,7 @@ async function boot() {
         law.setLevel(effects.wanted);sim.player.stamina=effects.stamina;sim.player.sprintExhausted=false;
         // SET_CHAR_HEADING takes degrees where 0 faces north, so the browser heading is the native angle turned around.
         const heading=(point.heading*Math.PI/180+Math.PI)%(Math.PI*2),position={x:point.respawn[0],y:point.respawn[2],z:-point.respawn[1]};
-        sim.player.position={...position};sim.player.previous={...position};sim.player.heading=heading;
+        sim.flushPlayerTasks();sim.player.position={...position};sim.player.previous={...position};sim.player.heading=heading;
         sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
         render.yaw=heading+Math.PI;
         // The safehouses' discs are inside: the save keeps the interior (CGame::currArea) and the doors taken into it.
@@ -890,7 +890,7 @@ async function boot() {
      body.setLinvel({x:-Math.sin(yaw)*20,y:0,z:-Math.cos(yaw)*20},true);body.setAngvel({x:0,y:0,z:0},true);
      render.yaw=yaw;
     }else{
-     sim.player.position={x,y:ground,z:-y};sim.player.previous={...sim.player.position};sim.player.speed=0;
+     sim.flushPlayerTasks();sim.player.position={x,y:ground,z:-y};sim.player.previous={...sim.player.position};sim.player.speed=0;
      sim.playerBody.setTranslation({x,y:ground+.9,z:-y},true);sim.playerBody.setNextKinematicTranslation({x,y:ground+.9,z:-y});sim.playerCollider.setTranslation({x,y:ground+.9,z:-y});
     }
     fleet?.generateEvenIfClose();
@@ -3442,7 +3442,7 @@ async function boot() {
     sim.timeMinutes=saved.timeMinutes;if(saved.weekDay)sim.weekDay=saved.weekDay;
     if(!place)return;
     const position={x:saved.x,y:saved.z,z:-saved.y};
-    sim.player.position={...position};sim.player.previous={...position};sim.player.heading=saved.heading;
+    sim.flushPlayerTasks();sim.player.position={...position};sim.player.previous={...position};sim.player.heading=saved.heading;
     sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
     render.yaw=saved.heading+Math.PI;
   }
@@ -3471,7 +3471,7 @@ async function boot() {
     });
     // CPed::Teleport to the ped centre, then the spawn point's exit heading (native forward (−sin, cos)).
     const feet={x:point[0],y:point[2]-1,z:-point[1]},heading=spawn.exitAngle*Math.PI/180+Math.PI;
-    sim.player.position={...feet};sim.player.previous={...feet};sim.player.heading=heading;sim.player.speed=0;sim.respawn={...feet};
+    sim.flushPlayerTasks();sim.player.position={...feet};sim.player.previous={...feet};sim.player.heading=heading;sim.player.speed=0;sim.respawn={...feet};
     sim.playerBody.setTranslation({x:feet.x,y:feet.y+.9,z:feet.z},true);sim.playerBody.setNextKinematicTranslation({x:feet.x,y:feet.y+.9,z:feet.z});
     // TheCamera.RestoreWithJumpCut behind the player.
     render.yaw=heading+Math.PI;
@@ -4330,7 +4330,7 @@ async function boot() {
                    body.setTranslation({x,y:y+lift,z},true);body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
                   }else if(fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane)return false;
                   else{
-                   carEntry.cancel();
+                   carEntry.cancel();sim.flushPlayerTasks();
                    sim.player.position={x,y,z};sim.player.previous={x,y,z};sim.player.speed=0;sim.player.verticalSpeed=0;sim.player.jumpMomentum={x:0,z:0};
                    sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});
                   }
@@ -4370,7 +4370,7 @@ async function boot() {
                   const car=worldCar?.occupied?worldCar:fleet?.occupied,x=position.x,z=-position.y,y=position.z;
                   if(car){carEntry.cancel();car.setPedOut({x,y,z});}
                   else if(fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane)return false;
-                  else{sim.player.position={x,y,z};sim.player.previous={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});}
+                  else{sim.flushPlayerTasks();sim.player.position={x,y,z};sim.player.previous={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});}
                   return true;
                  },
                  placeScriptVehicle:(car,position,heading)=>{
@@ -4720,7 +4720,7 @@ async function boot() {
                 const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,preferredSpawn:{x:target.x,z:-target.y}}).catch(()=>false);
                 if(!installed||!alive){if(!target.quiet)hud.message('Your save point could not be loaded.');return;}
                 const position={x:target.x,y:target.z,z:-target.y};
-                sim.player.position={...position};sim.player.previous={...position};sim.player.heading=target.heading;
+                sim.flushPlayerTasks();sim.player.position={...position};sim.player.previous={...position};sim.player.heading=target.heading;
                 sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
                 render.yaw=target.heading+Math.PI;
                 // Inside, nothing follows (as after a door) and the way back out is the doors the save kept.
