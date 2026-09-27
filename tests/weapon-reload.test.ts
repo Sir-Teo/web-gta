@@ -55,6 +55,6 @@ test('at 100% completion a shot empties the clip but not the total (CWeapon::Fir
  const i=inventory();i.select(30);const a=i.ammo.get(30)!,total=a.clip+a.reserve;
  i.fullCompletion=()=>true;i.fire();
  expect(a.clip+a.reserve).toBe(total);expect(a.clip).toBe(i.magazine(30)-1);
- i.fullCompletion=()=>false;i.cooldowns.clear?.();(i as any).cooldown=0;i.fire();
+ i.fullCompletion=()=>false;(i as any).cooldown=0;i.fire();
  expect(a.clip+a.reserve).toBe(total-1);
 });
