@@ -25,7 +25,8 @@ export class Input {
     for (const type of ['keydown', 'keyup', 'mousedown', 'mouseup', 'mousemove', 'wheel'] as const) window.addEventListener(type, () => { this.touches++; }, { ...options, passive: true });
     window.addEventListener('keydown', e => {
       // Escape works from the menu's buttons too (a clicked button keeps the focus); a text field or list keeps its own.
-      if (e.code === 'Escape') { if (!e.repeat && !(e.target as HTMLElement).closest('input, select, textarea')) onPause(); return; }
+      // A text field or an open list keeps its own Escape; a slider, checkbox or button does not use it.
+      if (e.code === 'Escape') { if (!e.repeat && !(e.target as HTMLElement).closest('input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=button]), select, textarea')) onPause(); return; }
       if ((e.target as HTMLElement).closest('input, select, button')) return;
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home'].includes(e.code) || takesBrowserShortcut(e)) e.preventDefault();
       if (!this.held.has(e.code)) { this.pressed.add(e.code); if (/^Key[A-Z]$/.test(e.code)) this.onLetter?.(e.code.slice(3)); }
