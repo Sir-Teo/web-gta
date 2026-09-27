@@ -172,7 +172,8 @@ export class Simulation {
     else if (this.hitHead > 0) { this.hitHead = Math.max(0, this.hitHead - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
     this.advanceClock(dt * this.clockRate());
     this.player.previous = { ...this.player.position };
-    if (this.climb) this.stepClimb(dt, controls);
+    // The climb places the ped itself: pushes and shifts from blows or cars are not stored up to be released after it.
+    if (this.climb) { this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 }; this.stepClimb(dt, controls); }
     else this.moveCharacter(dt, controls);
     this.stepWorld();
     const center = this.playerBody.translation();
