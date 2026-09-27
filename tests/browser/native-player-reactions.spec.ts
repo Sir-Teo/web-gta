@@ -7,7 +7,9 @@ test('CJ flinches from a nearby blast that throws him, and falls dead when a bla
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  // Pedestrians install the shared ped.ifp reactions on CJ.
  await expect.poll(async()=>(await state()).pedestrians?.people?.length??0,{timeout:30000}).toBeGreaterThan(0);
- await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1668));await page.waitForTimeout(400);
+ await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1668));
+ // Standing, out of the placement's drop: a blast on CJ still in the air (CTaskSimpleInAir) or landing plays no flinch.
+ await expect.poll(async()=>{const s=await state();return s.player.grounded&&!/^(airborne|landing|launch)/.test(s.nativeCharacter?.action??'');},{timeout:10000}).toBe(true);
  // A small blast (radius 3, force 90) near its edge: about 30 damage. WEAPON_EXPLOSION takes ComputeDamageAnim's
  // ordinary branch (no fall): a HIT_* reaction, while TriggerExplosionSectorList's push lifts him off his feet.
  await page.evaluate(()=>{const g=(window as any).__game;g.sim.player.heading=Math.PI/2;g.explodeAt(2482.7,13.5,1668,11);});

@@ -268,7 +268,7 @@ export class Simulation {
     const before=this.player.health,remaining=before-amount;
     this.player.health = remaining<1?0:remaining;
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
-    if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0 });
+    if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0, inAirTask: !!this.playerInAirTask?.() });
   }
   /** CPed::m_nLastWeaponDamage for the player: -1 until a weapon has taken his health, and after CLEAR_CHAR_LAST_WEAPON_DAMAGE. */
   lastWeaponDamage = -1;
@@ -280,7 +280,10 @@ export class Simulation {
     this.damageEvents.push({ weapon: 0, armour: 0, health: before, died: true });
   }
   /** CEventDamage for the player, for the reaction the renderer plays (ComputeDamageAnim / ComputeDeathAnim). */
-  damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number; armour: number; health: number; died: boolean }[] = [];
+  damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number; armour: number; health: number; died: boolean; inAirTask?: boolean }[] = [];
+  /** Whether the player's active task is CTaskSimpleJump, CTaskSimpleInAir or CTaskSimpleLand as a damage event is
+   * raised (the host reads it from the character), since the reaction is played a frame or more later. */
+  playerInAirTask?: () => boolean;
   /** Seconds left of a fall and get-up (CTaskComplexFallAndGetUp), during which input is ignored. */
   knockdown = 0;
   /** The get-up at the end of `knockdown`; while more than this remains the player is still in the fall. */

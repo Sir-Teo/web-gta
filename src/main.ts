@@ -1706,6 +1706,7 @@ async function boot() {
   /** Records the clip the player fell with and returns the length of the get-up it calls for (CTaskSimpleGetUp). */
   const playerFall=(view:import('./render/NativeCharacter').NativeCharacter|undefined,clip:string)=>{playerFallClip=clip;return view?.reactionDuration(getUpClip(clip))??1.2;};
   // A teleport flushes the knockdown's fall and get-up: CJ stands at the destination rather than lying there.
+  sim.playerInAirTask=()=>!sim.jetPack&&!!render.nativeCharacter?.jumping;
   sim.onFlushPlayerTasks=()=>{playerGetUp=0;playerStuckUnderCar=false;playerFallClip=undefined;render.nativeCharacter?.clearReaction();};
   /** CPedPlacement::IsPositionClearOfCars at the player's origin (a unit above the feet). */
   const carOverPlayer=()=>{
@@ -1771,6 +1772,11 @@ async function boot() {
       // CTaskSimpleSwim::MakeAbortable likewise gives way only to priority 71 or a killing blow, so ComputeDamageAnim
       // drops the fall (m_bFallDown false) and plays nothing: a swimming CJ is neither floored nor flinched.
       if(sim.player.swimming)continue;
+      // CTaskSimpleJump, CTaskSimpleInAir and CTaskSimpleLand refuse an urgent abort too: ComputeDamageAnim sets
+      // ANIM_ID_DOOR_LHINGE_O without the fall, so a hit on the launch, in the air or on the landing neither floors nor
+      // flinches CJ (the jetpack is no jump). The tasks as they stood when the event was raised count: a blast's own lift
+      // has not started the in-air task yet.
+      if(event.inAirTask)continue;
       // A cop's nightstick finisher (melee.dat FALL_3) floors CJ only from the front: ComputeDamageAnim's combo branch,
       // FIGHT_HIT_1 + move from the bat group with the fall (that group's Bat_Hit clips are not on CJ; the knockout
       // stands in). From another side it is an ordinary hit.
