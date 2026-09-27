@@ -117,6 +117,13 @@ export class Hud {
     const fist=this.element.querySelector('.status svg.weapon')!,slot=document.createElement('div');slot.className='weapon-slot';
     fist.replaceWith(slot);this.ammoText.className='weapon-ammo';this.ammoText.hidden=true;slot.append(fist,this.weaponIcon,this.ammoText);
     this.menu = this.element.querySelector('.menu-backdrop')!;
+    // Tab and Shift+Tab walk the open menu's controls and wrap round, so the keyboard never falls back to the game.
+    this.menu.addEventListener('keydown', e => {
+      if (e.code !== 'Tab') return;
+      const controls = [...this.menu.querySelectorAll<HTMLElement>('button,input,select,a[href]')].filter(c => !(c as HTMLButtonElement).disabled && !c.hidden && c.offsetParent !== null), at = controls.indexOf(document.activeElement as HTMLElement);
+      if (!controls.length) return;
+      if (e.shiftKey && at <= 0) { e.preventDefault(); controls[controls.length - 1].focus(); } else if (!e.shiftKey && (at < 0 || at === controls.length - 1)) { e.preventDefault(); controls[0].focus(); }
+    });
     this.prompt = this.element.querySelector('.prompt')!;
     this.clock = this.element.querySelector('.game-time')!;
     this.money = this.element.querySelector('.cash')!;
@@ -144,7 +151,11 @@ export class Hud {
     this.element.querySelector('#audio-status')!.textContent = state.unavailable ? 'Sound is unavailable in this browser.' : state.failed ? 'Some sounds could not load. Gameplay remains available.' : state.loaded ? '' : 'Sounds load when you begin playing.';
   }
   button(id: string) { return this.element.querySelector<HTMLButtonElement>(`#${id}`)!; }
-  setMenu(open: boolean) { this.menu.hidden = !open; this.element.classList.toggle('paused', open); }
+  /** Opening the menu moves the keyboard into it (its first control), so Tab reaches its buttons from the game. */
+  setMenu(open: boolean) {
+    const opening = open && this.menu.hidden;this.menu.hidden = !open; this.element.classList.toggle('paused', open);
+    if (opening && !this.menu.contains(document.activeElement)) this.menu.querySelector<HTMLElement>('button:not([disabled]):not([hidden])')?.focus({ preventScroll: true });
+  }
   /** A prompt line, timed on the game clock like CMessages' messages, so it does not run out while the game is paused. */
   message(text: string, milliseconds = 3000) { this.prompt.textContent = text; this.messageUntil = this.messageClock() + milliseconds; }
   /** CHud::SetHelpMessage: the top-left help box. DrawHelpText is not reversed; the box shows for `milliseconds`. */
