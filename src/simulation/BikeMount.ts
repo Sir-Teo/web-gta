@@ -111,6 +111,8 @@ export class BikeMount {
  step(dt:number):{x:number;z:number}|undefined{
   const bike=this.bike;if(!this.phase||!bike)return;
   if(bike.wrecked&&this.phase!=='jumpOff'){this.abandon();return;}
+  // CTaskComplexLeaveCar::ControlSubTask winds the leave up once the rider is already out (a tip-over or knock-off).
+  if(this.phase!=='mount'&&!this.setOut&&!bike.occupied){this.finish();return;}
   const clip=this.clipFor(),previous=this.time;this.time+=dt;
   const finished=!!clip&&this.time>=clip.clip.duration;
   switch(this.phase){
