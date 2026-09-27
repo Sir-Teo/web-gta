@@ -29,6 +29,8 @@ import {WorldTrain,trainCarriageModel} from './WorldTrain';
 import {TRAIN_TYPES,TRAIN_TRACK_FILES,readTrainTrack,type TrainTrack} from './nativeTrainTracks';
 import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
+/** CCarCtrl::PruneVehiclesOfInterest drops a vehicle of interest 180000 ms after it was last registered. */
+const VEHICLE_OF_INTEREST_MS=180000;
 /** Resolve one random-model generator against a membership pool (CCarGenerator
  * model -1): uniform pick, keeping the record identity for once-per-session
  * ownership. Empty pools leave the generator for a later window. */
@@ -228,6 +230,9 @@ export class WorldFleet {
  /** Records mid-spawn (their asset load is pending). */
  private attempted=new Set<string>();
  private generated=new Map<WorldCar,string>();
+ /** CCarCtrl's vehicles of interest: a car the player has driven, with the last time he sat in it. RegisterVehicleOfInterest
+  * keeps it for three minutes (PruneVehiclesOfInterest); after that it is an ordinary abandoned car, removed far off. */
+ private driven=new Map<WorldCar,number>();
  /** CCarGenerator's m_nNextGenTime and bWaitUntilFarFromPlayer per record. */
  private generatorState=new Map<string,{nextGen:number;waitFar:boolean}>();
  /** CTheCarGenerators::GenerateEvenIfPlayerIsCloseCounter: the start window lets nearby generators fill at once. */
@@ -560,6 +565,11 @@ export class WorldFleet {
    // CCarGenerator::Process: the player took the car, so the generator waits a minute and until he is far away.
    if(car.occupied||car.disposed){this.generated.delete(car);if(car.occupied){this.generatorState.set(id,{nextGen:(this.generatorState.get(id)?.nextGen??now)+GENERATOR_TAKEN_WAIT_MS,waitFar:true});this.randomModels.delete(id);}continue;}
    if(car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}
+  }
+  for(const car of this.cars)if(car.occupied&&!car.missionCar&&!car.trafficOrigin&&!this.generated.has(car))this.driven.set(car,now);
+  for(const [car,last] of this.driven){
+   if(car.disposed||!this.cars.has(car)||car.missionCar){this.driven.delete(car);continue;}
+   if(!car.occupied&&now-last>VEHICLE_OF_INTEREST_MS&&car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.driven.delete(car);car.dispose();}
   }
   // A script's vehicles stay, however far off, until the script deletes them or lets them go (INTRO1 parks a homie's
   // BMX out of the way and uses it again; it used to be culled from under the script).
