@@ -249,7 +249,7 @@ import {applyStoredSwitches,markRoadNodeAsDontWander,switchRoadsOffInArea,unmark
 import {pathAreaLoaded,pathAreaMaps} from './assets/worldPaths';
 import {findCaboose,findCarriage,setTrainCruiseSpeed,setTrainSpeed} from './simulation/nativeTrain';
 import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/nativeAirResistance';
-import {PED_ORIGIN_HEIGHT,SWIM} from './simulation/nativeSwim';
+import {PED_ORIGIN_HEIGHT,SWIM,swimJumpoutPose} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
 import {MOUSE_ACCEL_MAX,MOUSE_ACCEL_MIN,MOUSE_ACCEL_STEP,mouseYawScale,parseMouseSettings,readMouseSettings,saveMouseSettings} from './input/mouseSettings';
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
@@ -516,6 +516,8 @@ async function boot() {
   let introSkipped=false;
   /** CEntryExitManager and the teleport CEntryExit::TransitionFinished waits on while the spawn point's area streams. */
   let entryExits:EntryExitManager|undefined,interiorTransfer:EntryExitTransition|undefined;
+  /** How long CJ has been in SWIM_BACK_TO_SURFACE, for its SWIM_JUMPOUT and CLIMB_jump. */
+  let swimJumpoutSeconds:number|undefined;
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   let surfaceSprint:Map<number,boolean>|undefined,surfaceClimbable:Map<number,boolean>|undefined,surfaceSteep:Map<number,boolean>|undefined;
   let surfaceSprintBlocked=false;
@@ -2653,6 +2655,7 @@ async function boot() {
           // CEventDamage::AffectsPed turns WEAPON_DROWNING away from a ped that does not drown.
           if(splash.damage>0&&sim.playerDrownsInWater)sim.damagePlayer(splash.damage,true,{weapon:WEAPON.drowning});
           controls={...controls,swimWater,jump:sim.player.swimming?false:controls.jump};
+          swimJumpoutSeconds=sim.player.swimming&&sim.player.swimState===SWIM.backToSurface?(swimJumpoutSeconds??0)+step:undefined;
         }
         // A dead CJ's body keeps its buoyancy (CPed::ProcessBuoyancy): the sim floats it on this surface.
         else if(onFoot&&sim.player.health<=0)controls={...controls,swimWater};else if(sim.player.swimming)stopSwim();
@@ -2967,7 +2970,7 @@ async function boot() {
     // The climb's clip lengths come from ped.ifp; climbing waits for them.
     if(!sim.climbDurations){const clips=CLIMB_CLIPS.map(name=>carEntry.clips.peek('ped',name));if(clips.every(clip=>clip))sim.climbDurations=Object.fromEntries(CLIMB_CLIPS.map((name,i)=>[name,clips[i]!.duration])) as Record<typeof CLIMB_CLIPS[number],number>;}
     // CTaskSimpleClimb's partial CLIMB_* association, standing at the ped position with its root translation.
-    const climbAnim=sim.climb?.anim,climbJump=sim.climbJumpSeconds,climbClips=(climbAnim||climbJump!==undefined)&&render.nativeCharacter?CLIMB_CLIPS.map(name=>[name.toLowerCase(),carEntry.clips.ped(name)] as const):undefined;
+    const climbAnim=sim.climb?.anim,climbJump=sim.climbJumpSeconds,climbClips=(climbAnim||climbJump!==undefined||swimJumpoutSeconds!==undefined)&&render.nativeCharacter?CLIMB_CLIPS.map(name=>[name.toLowerCase(),carEntry.clips.ped(name)] as const):undefined;
     if(climbClips?.every(([,clip])=>clip))render.nativeCharacter!.installVehicleClips(Object.fromEntries(climbClips) as Record<string,import('./assets/ifp').NativeAnimation>);
     const p=sim.player,lerp=(a:number,b:number)=>a+(b-a)*alpha;
     render.cameraFocus=undefined;
@@ -2982,6 +2985,10 @@ async function boot() {
       render.vehiclePose={frame:{vehicle:playerPassenger.car.car.root,local:passengerSeat},pose:{clip:passengerClip,seconds:0,blend:1}};
     }else if(climbAnim&&render.nativeCharacter?.hasVehicleClip(climbAnim.clip.toLowerCase())){
       render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{clip:climbAnim.clip.toLowerCase(),seconds:climbAnim.time,blend:climbAnim.blend}};
+    }else if(swimJumpoutSeconds!==undefined&&sim.player.swimming&&render.nativeCharacter&&(()=>{const clip=carEntry.clips.peek('swim','Swim_Jumpout');if(clip&&!render.nativeCharacter.hasVehicleClip('swim_jumpout'))render.nativeCharacter.installVehicleClips({swim_jumpout:clip});return !!clip&&render.nativeCharacter.hasVehicleClip('climb_jump');})()){
+      // CTaskSimpleSwim::ProcessSwimAnims, SWIM_BACK_TO_SURFACE: SWIM_JUMPOUT, then CLIMB_jump.
+      const pose=swimJumpoutPose(swimJumpoutSeconds,carEntry.clips.peek('swim','Swim_Jumpout')?.duration??0);
+      render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{...pose,blend:1}};
     }else if(climbJump!==undefined&&render.nativeCharacter?.hasVehicleClip('climb_jump')){
       // CTaskSimpleJump::Launch blends CLIMB_jump for a climb jump; CTaskSimpleInAir keeps it while it plays.
       render.vehiclePose={frame:{position:{x:lerp(p.previous.x,p.position.x),y:lerp(p.previous.y,p.position.y)+1,z:lerp(p.previous.z,p.position.z)},heading:p.heading},pose:{clip:'climb_jump',seconds:climbJump,blend:1}};

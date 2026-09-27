@@ -85,3 +85,10 @@ export function swimRotationTowardSurface(pitch:number,changer:number,origin:num
  changer=Math.min(changer+seconds/10,.05);
  return {pitch:pitch+timeStep*changer,changer};
 }
+
+/** CTaskSimpleSwim::ProcessSwimAnims in SWIM_BACK_TO_SURFACE: SWIM_JUMPOUT, handed over to CLIMB_jump once a quarter of
+ * it has played (m_fTotalTime / 4). `seconds` counts from the jump-out's start. */
+export function swimJumpoutPose(seconds:number,jumpoutDuration:number){
+ const quarter=jumpoutDuration/4;
+ return seconds<quarter?{clip:'swim_jumpout' as const,seconds}:{clip:'climb_jump' as const,seconds:seconds-quarter};
+}
