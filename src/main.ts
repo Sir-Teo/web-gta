@@ -2203,6 +2203,12 @@ async function boot() {
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
       tick: clock.tick, memory: { ...render.renderer.info.memory }, draws: render.renderer.info.render.calls, triangles: render.renderer.info.render.triangles }),
   } });
+  /** How long a group button has been held. The game's help text: "Holding GROUP_CONTROL_FWD or GROUP_CONTROL_BWD for a
+   * few seconds ... will disband your group"; the exact hold is in the unreversed ProcessGroupBehaviour, so authored. */
+  let groupButtonHeld=0;
+  const GROUP_DISBAND_HOLD_SECONDS=2;
+  /** weapon.dat UNARMED's target range, for a target with no weapon row. */
+  const GROUP_RECRUIT_MELEE_RANGE=10;
   function animate(now: number) {
     if (!alive) return;
     frame = requestAnimationFrame(animate);
@@ -2214,12 +2220,25 @@ async function boot() {
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
     if(input.consume('Tab')&&!paused&&!navigation?.open)arsenal.toggle();
-    // Grove crew recruitment (empty-handed press disbands).
-    if(!paused&&!navigation?.open&&!arsenal.open&&!fleet?.occupiedPlane&&input.consume('KeyG')){
-     // SET_PLAYER_GROUP_RECRUITMENT off (m_bGroupStuffDisabled) stops ProcessGroupBehaviour's recruiting.
-     const result=mission?.runtime.game.playerInfo.groupStuffDisabled?undefined:pedestrians?.recruit();
-     // Recruiting shows no text in the original; the recruit answers with a line.
-     if(result==='joined'){const p=sim.player.position;sound.nativeEngine?.speech('greet',{x:p.x,y:-p.z,z:p.y});}
+    // The group buttons, GROUP_CONTROL_FWD (G) and GROUP_CONTROL_BWD (H), on foot: a targeted Families member joins,
+    // otherwise the group follows (G) or stays in position (H); holding either disbands it.
+    {
+     const onFoot=!paused&&!navigation?.open&&!arsenal.open&&!worldCar?.occupied&&!fleet?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active;
+     // SET_PLAYER_GROUP_RECRUITMENT off (m_bGroupStuffDisabled) stops ProcessGroupBehaviour altogether.
+     const enabled=onFoot&&!!pedestrians&&!mission?.runtime.game.playerInfo.groupStuffDisabled;
+     // In a vehicle the buttons are the vehicle's (G raises an aircraft's gear, H sounds the horn).
+     const forward=enabled&&input.consume('KeyG'),back=enabled&&input.consume('KeyH');
+     const held=enabled&&(input.down('KeyG')||input.down('KeyH'));
+     groupButtonHeld=held?groupButtonHeld+dt:0;
+     if(held&&groupButtonHeld>=GROUP_DISBAND_HOLD_SECONDS&&groupButtonHeld-dt<GROUP_DISBAND_HOLD_SECONDS)pedestrians!.disbandGroup();
+     if(enabled&&(forward||back)){
+      // PED_LOCK_TARGET held: a gun's crosshair names the ped; otherwise the nearest ahead within the target range.
+      const info=weapons.inventory.info(),crosshair=['bullet','shotgun','rocket'].includes(weapons.inventory.weapon.kind);
+      const target=input.down('MouseAim')?{handle:crosshair?weapons.lock?.handle??-1:undefined,range:info?.targetRange??GROUP_RECRUIT_MELEE_RANGE}:undefined;
+      const result=pedestrians!.groupControl(forward?'forward':'back',target);
+      // Recruiting shows no text in the original; the recruit answers with a line.
+      if(result==='joined'){const p=sim.player.position;sound.nativeEngine?.speech('greet',{x:p.x,y:-p.z,z:p.y});}
+     }
     }
     // Vehicle radio tuning (N cycles the 11 stations while driving).
     if(input.consume('KeyN')&&!paused&&radioModel!==undefined){const station=sound.nativeEngine?.tuneRadio(input.down('ShiftLeft')||input.down('ShiftRight')?-1:1);if(station)hud.radioName(station);}

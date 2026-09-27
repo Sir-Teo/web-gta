@@ -24,8 +24,8 @@ test('a recruited homie boards, rides and climbs back out',async({page})=>{
    sim.player.position={x:mark.position.x+2,y:mark.position.y,z:mark.position.z};
    sim.playerBody.setTranslation({x:mark.position.x+2,y:mark.position.y+.9,z:mark.position.z},true);
    sim.playerBody.setNextKinematicTranslation({x:mark.position.x+2,y:mark.position.y+.9,z:mark.position.z});
-   sim.world.step();
-   out.recruited=crowd.recruit();
+   sim.world.step();sim.player.heading=-Math.PI/2;
+   out.recruited=crowd.groupControl('forward',{range:10});
    // Park the player beside the Greenwood and warp into the driver seat.
    sim.player.position={x:2492,y:12.55,z:1680};sim.player.heading=0;
    sim.playerBody.setTranslation({x:2492,y:13.45,z:1680},true);

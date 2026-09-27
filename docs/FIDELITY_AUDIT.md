@@ -7742,8 +7742,8 @@ Each is now answered:
 
 ## SWEET1B's and INTRO2's switches
 
-- LISTEN_TO_PLAYER_GROUP_COMMANDS off sets CPed::bDoesntListenToPlayerGroupCommands: the player's empty-handed
-  dismissal passes that follower by.
+- LISTEN_TO_PLAYER_GROUP_COMMANDS off sets CPed::bDoesntListenToPlayerGroupCommands: the player's follow, stay and
+  disband commands pass that follower by.
 - ENABLE_ENTRY_EXIT_PLAYER_GROUP_WARPING sets ENEX_FLAG_ACCEPT_NPC_GROUP on the entrances within the radius. The
   group coming through with the player is not modelled yet, so nothing reads the flag.
 - ATTACH_FX_SYSTEM_TO_CHAR_BONE is FxSystem_c::AttachToBone (reversed): the system follows the bone (a tag) each step.

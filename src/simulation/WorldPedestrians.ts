@@ -273,6 +273,8 @@ export interface Pedestrian {
  modelRef:number|string;
  /** Recruited Grove crew: shadows the player and shares their enemies. */
  follow:boolean;
+ /** Told to stay in position (GROUP_CONTROL_BWD): the member holds this spot until told to follow again. */
+ holdPosition?:{x:number;y:number;z:number};
  /** Animation id of the last CEventDamage reaction, for the native re-pick. */
  damageAnimId?:number;
  /** Current enemy for crew and brawlers (undefined means the player). */
@@ -2171,24 +2173,40 @@ export class WorldPedestrians {
   /** SET_SCRIPT_LIMIT_TO_GANG_SIZE (m_nScriptLimitToGangSize, 99 at start) and the player group's
    * CPedGroupMembership::m_separationRange (60, SET_GROUP_SEPARATION_RANGE). */
   scriptGangLimit=99;groupSeparationRange=60;
-  /** G recruit gesture: the nearest living Families member within five metres
-   * joins (as many as respect allows); an empty-handed press disbands. Attacking a homie
-   * makes them leave the crew. */
-  recruit():'joined'|'full'|'dismissed'|'none'{
+  /** CPlayerPed::ProcessGroupBehaviour's buttons, GROUP_CONTROL_FWD (G) and GROUP_CONTROL_BWD (H), on foot. The function
+   * is unreversed; the game's own help text states the rules: "Hold PED_LOCK_TARGET to target a gang member and press
+   * GROUP_CONTROL_FWD or GROUP_CONTROL_BWD to recruit him to your group"; "Press GROUP_CONTROL_BWD to instruct your gang
+   * to stay in position or GROUP_CONTROL_FWD to instruct them to follow you"; holding either for a few seconds disbands
+   * the group (see `disbandGroup`). `target` is what the player targets while holding the target button: the ped under
+   * a gun's crosshair (`handle`, -1 for none), else the nearest ped ahead within the weapon's target range. */
+  groupControl(button:'forward'|'back',target?:{handle?:number;range:number}):'joined'|'full'|'follow'|'stay'|'none'{
    if(this.sim.player.health<=0)return 'none';
-   const origin=this.sim.player.position;
-   const gold=this.people.filter(p=>!p.officer&&p.health>0&&p.down===0&&p.gang===1&&!p.follow).map(p=>({p,d:Math.hypot(p.actor.player.position.x-origin.x,p.actor.player.position.z-origin.z)})).filter(t=>t.d<5).sort((a,b)=>a.d-b.d)[0];
    const crew=this.people.filter(p=>p.follow&&p.health>0);
-   if(!gold){
-    if(!crew.length)return 'none';
-    const listening=crew.filter(m=>!m.ignoresGroupCommands);if(!listening.length)return 'none';
-    for(const m of listening){m.follow=false;m.foe=undefined;}
-    return 'dismissed';
+   const mark=target&&this.targetedRecruit(target);
+   if(mark){
+    // CPlayerPed::MakeThisPedJoinOurGroup's cap: FindMaxNumberOfGroupMembers, at most the script's limit.
+    if(crew.length>=Math.min(maxGroupMembers(),this.scriptGangLimit))return 'full';
+    mark.follow=true;mark.holdPosition=undefined;mark.flee=0;mark.foe=undefined;this.leaveParty(mark);
+    return 'joined';
    }
-   // CPlayerPed::MakeThisPedJoinOurGroup's cap: FindMaxNumberOfGroupMembers, at most the script's limit.
-   if(crew.length>=Math.min(maxGroupMembers(),this.scriptGangLimit))return 'full';
-   gold.p.follow=true;gold.p.flee=0;gold.p.foe=undefined;this.leaveParty(gold.p);
-   return 'joined';
+   const listening=crew.filter(m=>!m.ignoresGroupCommands);if(!listening.length)return 'none';
+   for(const m of listening)m.holdPosition=button==='back'?{...m.actor.player.position}:undefined;
+   return button==='back'?'stay':'follow';
+  }
+  /** Holding a group button, or leaving the group behind, disbands it: every member that listens to the player's group
+   * commands leaves. */
+  disbandGroup(){
+   const listening=this.people.filter(p=>p.follow&&p.health>0&&!p.ignoresGroupCommands);
+   for(const m of listening){m.follow=false;m.holdPosition=undefined;m.foe=undefined;}
+   return listening.length>0;
+  }
+  /** The living Families member the player targets, not yet in his group. */
+  private targetedRecruit(target:{handle?:number;range:number}){
+   const candidates=this.people.filter(p=>!p.officer&&p.health>0&&p.down===0&&p.gang===1&&!p.follow);
+   if(target.handle!==undefined)return candidates.find(p=>p.collider.handle===target.handle);
+   const origin=this.sim.player.position,h=this.sim.player.heading,ahead={x:Math.sin(h),z:Math.cos(h)};
+   return candidates.map(p=>{const dx=p.actor.player.position.x-origin.x,dz=p.actor.player.position.z-origin.z,d=Math.hypot(dx,dz);return {p,d,along:d?(dx*ahead.x+dz*ahead.z)/d:1};})
+    .filter(t=>t.d<=target.range&&t.along>Math.SQRT1_2).sort((a,b)=>a.d-b.d)[0]?.p;
   }
   /** MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS (unreversed): room for `room` more in the player's group, whose size is
    * FindMaxNumberOfGroupMembers (at most the script's limit). The street recruits go first, as
@@ -3164,8 +3182,12 @@ export class WorldPedestrians {
      const ride=[...cars].find(c=>c.occupied);
      const pp=ride?ride.car.body.translation():this.sim.player.position;
      const gap=Math.hypot(pp.x-state.position.x,pp.y-state.position.y,pp.z-state.position.z);
-     if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup&&!p.mission){p.follow=false;p.foe=undefined;}
+     if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup&&!p.mission){p.follow=false;p.holdPosition=undefined;p.foe=undefined;}
      else if(this.sim.player.health<=0){}
+     else if(p.retaliate<=0&&p.holdPosition){
+      dx=p.holdPosition.x-state.position.x;dz=p.holdPosition.z-state.position.z;
+      followSpeed=Math.hypot(dx,dz)>1?p.walkSpeed:0;
+     }
      else if(p.retaliate<=0){
       const hx=this.sim.player.heading,side=p.id%2?1.3:-1.3;
       dx=pp.x-Math.sin(hx)*2.5-Math.cos(hx)*side-state.position.x;
@@ -3319,8 +3341,8 @@ export class WorldPedestrians {
  private cameraHidden:Pedestrian[]=[];
  /** The player's group members (PassengerCrowd), without building a whole snapshot. */
  /** The player's followers the car entry seats by taking them off the street and making them again inside: street
-  * recruits only. A script's ped keeps its handle, so it is not one of them. */
- followers(){const out:{id:number;position:{x:number;y:number;z:number};health:number;down:number}[]=[];for(const p of this.people)if(p.follow&&!p.mission)out.push({id:p.id,position:p.actor.player.position,health:p.health,down:p.down});return out;}
+  * recruits only, and not those told to stay in position. A script's ped keeps its handle, so it is not one of them. */
+ followers(){const out:{id:number;position:{x:number;y:number;z:number};health:number;down:number}[]=[];for(const p of this.people)if(p.follow&&!p.mission&&!p.holdPosition)out.push({id:p.id,position:p.actor.player.position,health:p.health,down:p.down});return out;}
  /** The drawn peds, for CPed::PreRenderAfterTest's dummy shadows: their ids and BONE_ROOT in the world (browser space). */
  *shadowCasters(){for(const p of this.people)if(p.view.root.visible)yield {id:p.id,root:p.view.shadowPosition()};}
  render(alpha:number,ambient:readonly number[]|undefined,night:number,thermal=false){for(const p of this.people){p.view.setThermal(thermal);p.view.setAmbient(ambient);p.view.setNight(night);p.view.update(p.actor,alpha);}}

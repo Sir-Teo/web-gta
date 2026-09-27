@@ -22,7 +22,11 @@ test('Grove crew recruitment follows, fights and disbands',async({page})=>{
    sim.playerBody.setTranslation({x:mark.position.x+2,y:mark.position.y+.9,z:mark.position.z},true);
    sim.playerBody.setNextKinematicTranslation({x:mark.position.x+2,y:mark.position.y+.9,z:mark.position.z});
    sim.world.step();
-   out.joined=crowd.recruit();
+   // Without a target the buttons only command a group, and there is none yet.
+   out.untargeted=crowd.groupControl('forward');
+   // Targeting him (he stands two units west, ahead of CJ) and pressing a group button recruits him.
+   sim.player.heading=-Math.PI/2;
+   out.joined=crowd.groupControl('forward',{range:10});
    const homie=()=>crowd.snapshot().people.find((p:any)=>p.follow);
    if(!homie())throw new Error('Nobody joined');
    // March north: the crew shadows the mark.
@@ -34,21 +38,40 @@ test('Grove crew recruitment follows, fights and disbands',async({page})=>{
    for(let i=0;i<300;i++)tick();
    const kept=crowd.snapshot().people.find((p:any)=>p.follow);
    out.followed=kept?Math.hypot(kept.position.x-sim.player.position.x,kept.position.z-sim.player.position.z):null;
+   // GROUP_CONTROL_BWD: the crew stays in position while CJ walks on; GROUP_CONTROL_FWD calls it after him again.
+   out.stay=crowd.groupControl('back');
+   const held={...homie()!.position};
+   sim.player.position={x:held.x,y:held.y,z:held.z-40};
+   sim.playerBody.setTranslation({x:held.x,y:held.y+.9,z:held.z-40},true);
+   sim.playerBody.setNextKinematicTranslation({x:held.x,y:held.y+.9,z:held.z-40});
+   sim.world.step();
+   for(let i=0;i<300;i++)tick();
+   const stayed=homie();
+   out.stayedMoved=stayed?Math.hypot(stayed.position.x-held.x,stayed.position.z-held.z):null;
+   out.follow=crowd.groupControl('forward');
+   for(let i=0;i<600;i++)tick();
+   const back=homie();
+   out.cameBack=back?Math.hypot(back.position.x-sim.player.position.x,back.position.z-sim.player.position.z):null;
    // A one-star officer wades in with the nightstick: the crew answers it.
    law.setLevel(1);
    for(let i=0;i<300&&!crowd.snapshot().people.some((p:any)=>p.officer);i++){crowd.update(200000+i*1600);await new Promise(r=>setTimeout(r,10));}
    let bloodied=false;
    for(let i=0;i<1500&&!bloodied;i++){if(i%60===0)sim.player.health=100;tick();bloodied=crowd.snapshot().people.some((p:any)=>p.officer&&p.health<100);}
    out.brawl=bloodied;
-   out.dismissed=crowd.recruit();
+   out.dismissed=crowd.disbandGroup();
    out.crewLeft=crowd.snapshot().people.filter((p:any)=>p.follow).length;
    return out;
   }finally{crowd.dispose();sim.dispose();}
  });
+ expect(result.untargeted).toBe('none');
  expect(result.joined).toBe('joined');
  expect(result.followed).toBeLessThan(12);
+ expect(result.stay).toBe('stay');
+ expect(result.stayedMoved).toBeLessThan(1.5);
+ expect(result.follow).toBe('follow');
+ expect(result.cameBack).toBeLessThan(12);
  expect(result.brawl).toBe(true);
- expect(result.dismissed).toBe('dismissed');
+ expect(result.dismissed).toBe(true);
  expect(result.crewLeft).toBe(0);
 });
 
@@ -73,8 +96,8 @@ test('an armed homie shoots at the one attacking CJ, not at CJ',async({page})=>{
    const mark=crowd.snapshot().people.find((p:any)=>p.gang===1);
    if(!mark)throw new Error('No Families member');
    const place=(x:number,y:number,z:number)=>{sim.player.position={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.world.step();};
-   place(mark.position.x+2,mark.position.y,mark.position.z);sim.player.heading=0;
-   out.joined=crowd.recruit();
+   place(mark.position.x+2,mark.position.y,mark.position.z);sim.player.heading=-Math.PI/2;
+   out.joined=crowd.groupControl('forward',{range:10});
    const homie=(crowd as any).people.find((p:any)=>p.follow);
    if(!homie)throw new Error('Nobody joined');
    crowd.giveWeapon(homie,22,500);
