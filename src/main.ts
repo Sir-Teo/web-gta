@@ -4375,6 +4375,7 @@ async function boot() {
                  // destroy, is out of the car and left where he sat, as a passenger is; one hanging from it is let go.
                  removeScriptVehicle:car=>{if(playerPassenger?.car===car)leavePassengerSeat(true);
                   if(playerAttached?.car===car)detachPlayer();
+                  if(carEntry.car===car&&!carEntry.seated)carEntry.cancel();
                   const seated=car as {occupied?:boolean;setPedOut?:(foot:{x:number;y:number;z:number})=>void;finishExit?:(foot?:{x:number;y:number;z:number})=>void};
                   if(seated.occupied){const at={...sim.player.position};carEntry.cancel();bikeMount.abandon();if(seated.setPedOut)seated.setPedOut(at);else seated.finishExit?.(at);}if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptVehicle(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a

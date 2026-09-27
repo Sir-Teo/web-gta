@@ -303,6 +303,7 @@ export class CarEntry {
  /** Controls that run the player to the chosen door (CTaskComplexGoToCarDoorAndStandStill: PEDMOVE_RUN, radius 0.5, 50 m, 30 s). */
  approach(dt:number,controls:Controls,input:{x:number;y:number;quit:boolean}):Controls{
   const car=this.car;if(this.phase!=='approach'||!car)return controls;
+  if(car.disposed){this.cancel();return controls;}
   // A knockdown's fall and get-up runs in the event-response slot, above the primary enter-car task, which waits
   // unprocessed (no steering check, no clock) and goes to the door once the player is back on his feet.
   if(this.sim.knockdown>0)return {...controls,x:0,y:0,jump:false,sprint:false};
@@ -474,7 +475,7 @@ export class CarEntry {
   return this.startNpc(car,'getOut',onOut);
  }
  /** CTaskSimpleCarSetPedSlowDraggedOut: the victim lands at the jacked clip's end offset (2D) with its Z on the ground. */
- private stepNpc(dt:number){for(const npc of this.npcs)if(!npc.done)this.stepOneNpc(npc,dt);}
+ private stepNpc(dt:number){for(const npc of this.npcs){if(npc.car.disposed)npc.done=true;if(!npc.done)this.stepOneNpc(npc,dt);}}
  private stepOneNpc(npc:NonNullable<CarEntry['npc']>,dt:number){
   npc.time+=dt;
   if(npc.kind==='jacked'&&!(this.car===npc.car&&this.phase==='pullout'))this.openDoor(npc.car,DOOR.leftFront,'jacked',npc.time,npc.clip.group);
@@ -499,6 +500,8 @@ export class CarEntry {
 
   if(this.npcs.some(n=>n.done))this.npcs=this.npcs.filter(n=>!n.done);
   const car=this.car;if(!this.phase||!car)return;
+  // m_Car is a registered reference: a car deleted under the task (a script's DELETE_CAR) ends it.
+  if(car.disposed){this.cancel();return;}
   if(car.wrecked&&!this.rolling&&this.phase!=='jumpOut'){this.cancel();return;}
   if(this.phase==='approach')return;
   if((this.phase==='align'||this.phase==='open'||this.phase==='pullout')&&this.playerQuits(car,input))this.quitAfterDoor=true;
