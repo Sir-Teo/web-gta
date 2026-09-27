@@ -9,6 +9,8 @@ test('the script stands still while the full map is open',async({page})=>{
  // The clock the script's WAITs are measured against, as the frame hands it to the script.
  await page.evaluate(()=>{const m=(window as any).__game.missionForProfiling(),step=m.step.bind(m);m.step=(now:number,dt:number)=>{(window as any).__scriptNow=now;return step(now,dt);};});
  const scriptNow=()=>page.evaluate(()=>(window as any).__scriptNow as number);
+ // The first step through the wrapper records the clock before the map opens, so nothing is compared against undefined.
+ await page.waitForFunction(()=>typeof (window as any).__scriptNow==='number',undefined,{timeout:30000});
  await page.keyboard.press('KeyM');await expect(page.locator('.world-map-panel')).toBeVisible();
  // A frame may still step between the key and the map opening.
  await page.waitForTimeout(300);const opened=await scriptMs(),openedNow=await scriptNow();
