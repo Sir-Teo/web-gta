@@ -776,7 +776,8 @@ export class WeaponSystem {
   const fireWorld:Parameters<NativeFireManager['update']>[0]={nowMs:this.nowMs,timeStep:50/30,random:Math.random,cameraPosition:this.toNative(this.sim.player.position),
    targetPosition:(t:FireTarget)=>{
     // A ped's fire burns on after it dies, a unit lower (targetDead), until the body is removed.
-    if(t.kind==='ped'){const p=this.pedestrians()?.pedPosition?.(t.key as number)??people.find(q=>q.handle===t.key);return p&&this.toNative(p.position);}
+    // A ped under water has it put out (CTaskComplexOnFire, bSubmergedInWater), as the player's goes out swimming.
+    if(t.kind==='ped'){const p=this.pedestrians()?.pedPosition?.(t.key as number)??people.find(q=>q.handle===t.key);return p&&!(p as {submerged?:boolean}).submerged?this.toNative(p.position):undefined;}
     if(t.kind==='player')return playerOnFoot&&!this.sim.player.swimming?this.toNative(this.sim.player.position):undefined;
     if(t.kind==='vehicle'){const entry=this.burnableVehicles().find(e=>e.v===t.key);return !entry||entry.v.wrecked?undefined:this.toNative(entry.body.translation());}
     return undefined;

@@ -867,7 +867,7 @@ export class WorldPedestrians {
   }
   frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&!p.fleePlayer&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
-  pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0};}
+  pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0,submerged:this.submerged(p)};}
   // bNeverEverTargetThisPed keeps a ped out of the lock-on the weapon system draws its targets from.
   /** Living peds for the weapons; `all` keeps those SET_CHAR_NEVER_TARGETTED hides from targeting. */
   targets(all=false){return this.people.filter(p=>p.health>0&&(all||!p.neverTargeted)).map(p=>({handle:p.collider.handle,position:{...p.body.translation()},officer:p.officer,armed:!!p.weapon,attacking:p.retaliate>0,down:p.down>0,noCriticalHits:!!p.noCriticalHits}));}
@@ -2798,6 +2798,8 @@ export class WorldPedestrians {
    if(p.event&&!this.answering(p))p.event=undefined;
    // CTaskComplexOnFire's CTaskComplexSmartFleeEntity: sprint away from the player while the fire lasts,
    // with CTX_GLOBAL_PAIN_ON_FIRE said at a tenth probability (one line at a time).
+   // CTaskComplexOnFire: a ped under water has his fire put out (Extinguish) and burns no more.
+   if(p.onFire>0&&this.submerged(p))p.onFire=0;
    if(p.onFire>0&&p.health>0&&p.down===0){
     p.onFire=Math.max(0,p.onFire-dt);p.flee=Math.max(p.flee,.5);p.fleeFrom={x:this.sim.player.position.x,z:this.sim.player.position.z};p.retaliate=0;p.gunReact=undefined;
     p.onFireSpeech=Math.max(0,p.onFireSpeech-dt);if(this.frameDue&&p.onFireSpeech===0&&Math.random()<.1){p.onFireSpeech=2;this.onPain?.(p,{...state.position});}
