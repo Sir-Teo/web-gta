@@ -51,3 +51,10 @@ test('CPed::GetWeaponInSlot names the weapon held in a slot, fists never',()=>{
  expect(i.inSlot(i.slotOf(2))).toBeUndefined();
  expect(i.inSlot(i.slotOf(0))).toBeUndefined();
 });
+test('at 100% completion a shot empties the clip but not the total (CWeapon::Fire)',()=>{
+ const i=inventory();i.select(30);const a=i.ammo.get(30)!,total=a.clip+a.reserve;
+ i.fullCompletion=()=>true;i.fire();
+ expect(a.clip+a.reserve).toBe(total);expect(a.clip).toBe(i.magazine(30)-1);
+ i.fullCompletion=()=>false;i.cooldowns.clear?.();(i as any).cooldown=0;i.fire();
+ expect(a.clip+a.reserve).toBe(total-1);
+});

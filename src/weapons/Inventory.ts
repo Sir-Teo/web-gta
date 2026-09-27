@@ -25,6 +25,8 @@ export class WeaponInventory {
  private duration=0;
  /** CPlayerInfo::m_bFastReload (SET_PLAYER_FAST_RELOAD), which the host reads from the script's player info. */
  fastReload:()=>boolean=()=>false;
+ /** CStats::GetPercentageProgress() reaching 100 (the host reads the stats). */
+ fullCompletion:()=>boolean=()=>false;
  /** The inventory's own clock, for the reloads weapons carry while put away. */
  private clock=0;
  /** A reload left running when its weapon was put away: CWeapon keeps m_TimeForNextShotMs per slot, so switching
@@ -174,7 +176,10 @@ export class WeaponInventory {
   const w=this.weapon,a=this.ammo.get(w.id)!,magazine=this.magazine();if(this.cooldown>0||this.reloading)return false;
   // CWeapon::Fire: the infinite ammo cheat leaves the clip and total untouched.
   // CWeapon::Fire fills an empty clip from the total and fires on the same press.
-  if(magazine&&a.clip<=0){if(a.reserve<=0)return false;const n=Math.min(magazine,a.reserve);a.clip=n;a.reserve-=n;}if(magazine&&!CHEATS.isActive('infiniteAmmo'))a.clip--;this.cooldown=this.interval;this.shots++;
+  if(magazine&&a.clip<=0){if(a.reserve<=0)return false;const n=Math.min(magazine,a.reserve);a.clip=n;a.reserve-=n;}if(magazine&&!CHEATS.isActive('infiniteAmmo')){a.clip--;
+   // The player's m_TotalAmmo falls only for the detonator or below 100% (CStats::GetPercentageProgress): at full
+   // completion the clip still empties and reloads, but the total stays where it was.
+   if(w.id!==40&&this.fullCompletion())a.reserve++;}this.cooldown=this.interval;this.shots++;
   // CWeapon::Fire enters WEAPONSTATE_RELOADING as soon as the clip empties.
   if(this.native&&magazine&&a.clip===0&&a.reserve>0&&this.reloadable(w.id)){this.duration=Math.max(this.reloadDuration,this.cooldown);this.reloading=this.duration;}
   return true;

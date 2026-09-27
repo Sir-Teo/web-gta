@@ -9,7 +9,7 @@ import {NativeHunger} from './simulation/nativeHunger';
 import {NativeParachuteTimer,WEAPON_PARACHUTE} from './simulation/nativeParachuteTimer';
 import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
 import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL} from './simulation/nativeStatReactions';
-import {STAT_CALORIES,ScmStats} from './engine/ScmGameState';
+import {STAT_CALORIES,STAT_PROGRESS_MADE,ScmStats} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
 import {nativeWeaponMovement} from './weapons/nativeWeaponMovement';
@@ -610,6 +610,7 @@ async function boot() {
   sim.indoors=()=>render.lighting.area!==0;
   // CPlayerInfo::m_bFastReload, which SET_PLAYER_FAST_RELOAD sets on the script's player info.
   weapons.inventory.fastReload=()=>!!mission?.runtime.game.playerInfo.fastReload;
+  weapons.inventory.fullCompletion=()=>{const g=mission?.runtime.game;return !!g&&g.progressTotal>0&&g.stats.get(STAT_PROGRESS_MADE)/g.progressTotal>=1;};
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
   // A New Game whose old save could not be cleared comes back with ?new-game: the old progress is not read, and the
   // flag leaves the address so a later reload loads what the new game has saved since.
