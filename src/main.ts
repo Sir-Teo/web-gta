@@ -596,7 +596,11 @@ async function boot() {
   // CPlayerInfo::m_bFastReload, which SET_PLAYER_FAST_RELOAD sets on the script's player info.
   weapons.inventory.fastReload=()=>!!mission?.runtime.game.playerInfo.fastReload;
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
-  const progression=new Progression(weapons.inventory,sim,progressStorage);
+  // A New Game whose old save could not be cleared comes back with ?new-game: the old progress is not read, and the
+  // flag leaves the address so a later reload loads what the new game has saved since.
+  const freshGame=new URLSearchParams(location.search).has('new-game');
+  if(freshGame){const u=new URL(location.href);u.searchParams.delete('new-game');history.replaceState(history.state,'',u.href);}
+  const progression=new Progression(weapons.inventory,sim,progressStorage,freshGame);
   weapons.onHit=id=>progression.hit(id);
   const saveProgress=()=>{progression.save();};window.addEventListener('pagehide',saveProgress);
    const PICKUP_TEXT:Record<string,string>={HO:'Horseshoes',OY:'Oysters',SN:'Snapshots'};
@@ -3479,7 +3483,7 @@ async function boot() {
         hud.button('play').hidden = false; hud.button('play').textContent = walkDemo?`Explore ${included.name}`:'Walk imported scene';
         // The front end's Start Game offers New Game beside the saved game: FESZ_QR asks first, and the page starts over.
         const newGame=hud.button('new-game');newGame.hidden=!(walkDemo&&progression.savedLocation);newGame.textContent=gxtText('FES_NGA','New Game');
-        newGame.onclick=()=>{if(!confirm(gxtText('FESZ_QR','Are you sure you want to start a new game? All current game progress will be lost. Proceed?')))return;progression.startNewGame();location.reload();};
+        newGame.onclick=()=>{if(!confirm(gxtText('FESZ_QR','Are you sure you want to start a new game? All current game progress will be lost. Proceed?')))return;if(progression.startNewGame())location.reload();else{const u=new URL(location.href);u.searchParams.set('new-game','1');location.replace(u.href);}};
         hud.menuMessage((walkDemo?`${included.name} is ready. WASD to walk, Shift to sprint, Space to jump.`:'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){

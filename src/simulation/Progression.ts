@@ -25,8 +25,9 @@ export class Progression {
  /** Where the last save point put the player (native x/y, browser height), the clock it saved and, inside, the
   * interior (CGame::currArea) and the doors taken into it (CEntryExitManager's stack, as pool indices). */
  savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number;area?:number;enexStack?:number[]};private previous?:{x:number;y:number;z:number};private saveTime=0;
- constructor(private inventory:WeaponInventory,private sim:Simulation,private storage?:Pick<Storage,'getItem'|'setItem'>){
-  try{const raw=storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;
+ /** `fresh`: a New Game whose old save could not be cleared: what is stored is not read, and the next save replaces it. */
+ constructor(private inventory:WeaponInventory,private sim:Simulation,private storage?:Pick<Storage,'getItem'|'setItem'>,fresh=false){
+  try{const raw=fresh?undefined:storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;
    // CPlayerInfo::m_nMoney is signed: the HUD draws a debt as -$%07d.
    if(Number.isInteger(data.money)&&data.money>=-9999999&&data.money<=999999999)sim.money=data.money;
    if(finite(data.drivingSkill,1000))this.drivingSkill=data.drivingSkill;
@@ -68,7 +69,8 @@ export class Progression {
  /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
  save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save()});if(text.length>MAX_SAVE_LENGTH)return false;this.storage.setItem(KEY,text);return true;}catch{return false;}}
  /** The front end's New Game: the progress is gone, and nothing more is saved until the page loads the new game. */
- startNewGame(){try{this.storage?.setItem(KEY,'');}catch{/* The reload starts the new game even when the save cannot be cleared. */}this.storage=undefined;}
+ /** Whether the old save is gone; when it could not be cleared the caller starts the new game without reading it. */
+ startNewGame(){let cleared=!this.storage;try{this.storage?.setItem(KEY,'');cleared=this.storage?.getItem(KEY)==='';}catch{cleared=false;}this.storage=undefined;return cleared;}
  /** Interior save points plus the save menu: three slots with location, clock and cash. */
  slots:(null|{x:number;y:number;z:number;heading:number;timeMinutes:number;money:number})[]=[null,null,null];
  saveToSlot(slot:number){

@@ -89,11 +89,20 @@ test('a new game clears the saved progress and saves nothing more',()=>{
  const sim=new Simulation();let raw=JSON.stringify({version:1,money:1234,savedLocation:{x:1,y:2,z:3,heading:0,timeMinutes:600}});const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
  try{
   const p=new Progression(new WeaponInventory(),sim,storage);expect(p.savedLocation).toBeDefined();
-  p.startNewGame();expect(raw).toBe('');expect(p.save()).toBe(false);expect(raw).toBe('');
+  expect(p.startNewGame()).toBe(true);expect(raw).toBe('');expect(p.save()).toBe(false);expect(raw).toBe('');
   sim.money=0;const fresh=new Progression(new WeaponInventory(),sim,storage);expect(fresh.savedLocation).toBeUndefined();expect(sim.money).toBe(0);
  }finally{sim.dispose();}
 });
 
+test('a New Game whose save cannot be cleared says so, and a fresh start does not read the old save',()=>{
+ const sim=new Simulation();const raw=JSON.stringify({version:1,money:1234,savedLocation:{x:1,y:2,z:3,heading:0,timeMinutes:600}});
+ const storage={getItem:()=>raw,setItem:()=>{throw new Error('QuotaExceededError');}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);expect(p.savedLocation).toBeDefined();
+  expect(p.startNewGame()).toBe(false);
+  sim.money=0;const fresh=new Progression(new WeaponInventory(),sim,storage,true);expect(fresh.savedLocation).toBeUndefined();expect(sim.money).toBe(0);
+ }finally{sim.dispose();}
+});
 test('an interior save keeps its area and door stack; bad ones are dropped',()=>{
  const sim=new Simulation();const at={x:2495.9,y:-1707.4,z:1013.3,heading:0,timeMinutes:600};
  let raw=JSON.stringify({version:1,savedLocation:{...at,area:3,enexStack:[12,-1,'x',400,7]}});const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
