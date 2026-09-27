@@ -708,6 +708,8 @@ async function boot() {
     const inv=weapons.inventory,loaded=(id:number)=>{const a=inv.ammo.get(id);return inv.owned.has(id)&&!!a&&a.clip+a.reserve>0;};
     if(driving&&driverSavedWeapon===undefined){
      driverSavedWeapon=inv.selected;
+     // RemoveWeaponWhenEnteringVehicle: without m_bCanDoDriveBy the weapon is only put away, no SMG taken up.
+     if(mission?.runtime.game.playerInfo.canDoDriveBy===false)return;
      // The port's arsenal can own the three at once; the one already in hand is the slot's.
      const smg=DRIVER_DRIVEBY_WEAPONS.includes(inv.selected)&&loaded(inv.selected)?inv.selected:DRIVER_DRIVEBY_WEAPONS.find(loaded);
      if(smg!==undefined&&smg!==inv.selected){inv.select(smg);void weaponView.equip(inv.selected);}
@@ -2523,7 +2525,10 @@ async function boot() {
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
         // CPad::GetCarGunFired and CarGunJustDown answer false while DisablePlayerControls is set: no vehicle weapon fires.
         const carGunOff=playerControlsDisabled();
-        if(worldCar?.occupied&&!carGunOff&&!law.arrested&&!weapons.stealth){
+        // CAutomobile::ProcessControl skips DoDriveByShootings in the S.W.A.T. van and the Rhino (their gun is the car's),
+        // and SET_PLAYER_CAN_DO_DRIVE_BY off leaves the driver no drive-by weapon.
+        const driveByAllowed=mission?.runtime.game.playerInfo.canDoDriveBy!==false;
+        if(worldCar?.occupied&&worldCar.modelId!==432&&worldCar.modelId!==601&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
         }
