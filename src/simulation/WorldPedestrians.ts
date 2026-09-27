@@ -2220,7 +2220,7 @@ export class WorldPedestrians {
    * FindMaxNumberOfGroupMembers (at most the script's limit). The street recruits go first, as
    * CPedGroupMembership::RemoveNFollowers passes over the members a mission made, which `missionMembers` counts. */
   makeRoomForMissionPeds(room:number,missionMembers:number){
-   const crew=this.people.filter(p=>p.follow&&p.health>0);
+   const crew=this.people.filter(p=>p.follow&&p.health>0&&!p.mission);
    for(const m of crew.slice(0,followersToRemove(crew.length,missionMembers,room,Math.min(maxGroupMembers(),this.scriptGangLimit))))this.leaveGroup(m);
   }
   /** CPedGroupMembership::AddFollower takes a ped out of the group it was in: a recruit leaves his street gang's
