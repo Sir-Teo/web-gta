@@ -490,6 +490,8 @@ export class WorldPolice {
   for(const u of this.units){
    const car=u.car;u.seconds+=dt;
    if(car.occupied||car.wrecked){car.autopilot=undefined;continue;}
+   // The player dragged the driver out (CreateDragPedOutSubTask): his seat is empty from then on.
+   if(car.driverOut&&(u.seats[0]||u.deadSeats[0])&&!u.leaving.some(l=>l.seat===0)){u.seats[0]=false;u.deadSeats[0]=false;}
    // Crew exiting: CTaskSimpleCarGetOut clips at the door, then CTaskSimpleCarSetPedOut.
    for(let i=u.leaving.length-1;i>=0;i--){
     const l=u.leaving[i];l.time+=dt;
