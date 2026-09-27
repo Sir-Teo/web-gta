@@ -110,6 +110,8 @@ export class BikeMount {
  /** One fixed step. Returns the jump-off tumble's world motion once the rider is set out. */
  step(dt:number):{x:number;z:number}|undefined{
   const bike=this.bike;if(!this.phase||!bike)return;
+  // A bike deleted or cleared away under the mount or dismount ends it (its body is gone).
+  if(bike.disposed){this.abandon();return;}
   if(bike.wrecked&&this.phase!=='jumpOff'){this.abandon();return;}
   // CTaskComplexLeaveCar::ControlSubTask winds the leave up once the rider is already out (a tip-over or knock-off).
   if(this.phase!=='mount'&&!this.setOut&&!bike.occupied){this.finish();return;}

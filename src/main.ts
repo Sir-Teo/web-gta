@@ -4408,6 +4408,7 @@ async function boot() {
                  removeScriptVehicle:car=>{if(playerPassenger?.car===car)leavePassengerSeat(true);
                   if(playerAttached?.car===car)detachPlayer();
                   if(carEntry.car===car&&!carEntry.seated)carEntry.cancel();
+                  if(bikeMount.bike===car&&bikeMount.active&&!(car as {occupied?:boolean}).occupied)bikeMount.abandon();
                   const seated=car as {occupied?:boolean;setPedOut?:(foot:{x:number;y:number;z:number})=>void;finishExit?:(foot?:{x:number;y:number;z:number})=>void};
                   if(seated.occupied){const at={...sim.player.position};carEntry.cancel();bikeMount.abandon();if(seated.setPedOut)seated.setPedOut(at);else seated.finishExit?.(at);}if(car instanceof WorldTrain)fleet?.removeTrainCarriage(car);else fleet?.removeScriptVehicle(car as ScriptCar);},
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
