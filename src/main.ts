@@ -2341,12 +2341,14 @@ async function boot() {
           const boat=fleet?.nearestBoat(true);
           const bike=fleet?.nearestBike(true);
           if(plane&&(!car||plane.distance()<car.distance())&&(!boat||plane.distance()<boat.distance())&&(!bike||plane.distance()<bike.distance())&&plane.distance()<10){
-           if(!plane.enterCheck()){const steps=planeSteps(plane,'getin');if(steps){installPlaneSteps(steps);plane.beginEnter(steps);}else plane.finishEnter();}
+           // Planes, boats and bikes board without an approach to hold, so a press while the knockdown's fall and get-up
+           // own CJ boards nothing (a car's approach waits for the get-up instead).
+           if(sim.knockdown===0&&!plane.enterCheck()){const steps=planeSteps(plane,'getin');if(steps){installPlaneSteps(steps);plane.beginEnter(steps);}else plane.finishEnter();}
           }
-          else if(boat&&(!car||boat.distance()<car.distance())&&(!bike||boat.distance()<bike.distance())&&boat.distance()<10)boat.interact();
+          else if(boat&&(!car||boat.distance()<car.distance())&&(!bike||boat.distance()<bike.distance())&&boat.distance()<10){if(sim.knockdown===0)boat.interact();}
           else if(bike&&(!car||bike.distance()<car.distance())&&bike.distance()<10){
             // Board through the bike's jump-on clip once its animation group has loaded; before that, the instant mount.
-            if(bike.enterCheck()||bikeMount.active){}else if(!bikeMount.ready(bike))bike.interact();else if(!bikeMount.mount(bike))bikeMount.message=undefined;
+            if(sim.knockdown>0||bike.enterCheck()||bikeMount.active){}else if(!bikeMount.ready(bike))bike.interact();else if(!bikeMount.mount(bike))bikeMount.message=undefined;
           }
           else if(car)carEntry.enter(car);
         }
