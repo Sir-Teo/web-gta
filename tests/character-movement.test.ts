@@ -177,3 +177,17 @@ test('a teleport lands no fall speed, jump momentum or knockdown with CJ (CPed::
   expect(sim.player.health).toBe(100); expect(sim.knockdown).toBe(0); expect(flushed).toBe(1);
   expect(Math.abs(sim.player.position.x) + Math.abs(sim.player.position.z)).toBeLessThan(.05);
 });
+test('CJ rides a moving body he stands on, and a jump from it keeps its speed (CTaskSimpleJump::Launch)', () => {
+  setup('box');
+  // A floating deck (a truck bed) moving at 5 m/s along +x, its top at 1.
+  const deck = sim.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0, .75, 0).setGravityScale(0).setLinvel(5, 0, 0).lockRotations());
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(6, .25, 3).setDensity(1000), deck);
+  sim.player.position = { x: 0, y: 1.02, z: 0 }; sim.playerBody.setTranslation({ x: 0, y: 1.92, z: 0 }, true);
+  for (let i = 0; i < 10; i++) { deck.setLinvel({ x: 5, y: 0, z: 0 }, true); sim.step(1/60, { ...controls }); }
+  const x0 = sim.player.position.x, d0 = deck.translation().x;
+  for (let i = 0; i < 30; i++) { deck.setLinvel({ x: 5, y: 0, z: 0 }, true); sim.step(1/60, { ...controls }); }
+  // Half a second at 5 m/s: he keeps his place on the deck.
+  expect(sim.player.position.x - x0).toBeGreaterThan(2); expect(Math.abs((sim.player.position.x - x0) - (deck.translation().x - d0))).toBeLessThan(.3);
+  deck.setLinvel({ x: 5, y: 0, z: 0 }, true); sim.step(1/60, { ...controls, jump: true });
+  expect(sim.player.jumpMomentum.x).toBeGreaterThan(4);
+});

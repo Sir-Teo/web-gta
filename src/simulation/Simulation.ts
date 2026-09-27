@@ -302,6 +302,17 @@ export class Simulation {
   /** The move speed (units a second) of a moving object the grounded player stands on: an escalator step. CPhysical
    * carries a ped by its ground physical's speed; the escalator's ramp is what the player really stands on here. */
   groundCarry?: (feet: { x: number; y: number; z: number }) => { x: number; y: number; z: number } | undefined;
+  /** The speed of what the player stands on: the host's moving floors (escalators), else m_standingOnEntity, a moving
+   * body (a vehicle, a physical prop) under his feet, whose velocity at the contact carries him (CPhysical's standing
+   * ride). */
+  private carrySpeed() {
+    const p = this.player.position, feet = { x: p.x, y: p.y, z: p.z };
+    const floor = this.groundCarry?.(feet); if (floor) return floor;
+    const hit = this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y + .3, z: p.z }, { x: 0, y: -1, z: 0 }), .6, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS | RAPIER.QueryFilterFlags.EXCLUDE_FIXED, undefined, this.playerCollider, this.playerBody);
+    const body = hit?.collider.parent(); if (!body || !body.isDynamic()) return undefined;
+    const v = body.velocityAtPoint({ x: p.x, y: p.y + .3 - hit!.timeOfImpact, z: p.z });
+    return Math.hypot(v.x, v.y, v.z) > .05 ? { x: v.x, y: v.y, z: v.z } : undefined;
+  }
   /** The last collision push was blocked, as CEntity::m_bIsStuck. */
   playerStuck = false;
   /** CEventHandler::ComputeVehicleDiedResponse (0x4BA8B0) assigns zero
@@ -381,6 +392,9 @@ export class Simulation {
         // The ground speed goes along the heading; a climb jump goes straight up.
         const speed = blocked === 'climbJump' ? 0 : nativeJumpGroundSpeed(controls.moveAssociations ?? this.moveAssociations(sprinting)) * 50;
         this.player.jumpMomentum = { x: Math.sin(this.player.heading) * speed, z: Math.cos(this.player.heading) * speed };
+        // Off m_standingOnEntity the jump keeps that entity's move speed on top (not a climb jump's straight rise).
+        const carry = blocked === 'climbJump' ? undefined : this.carrySpeed();
+        if (carry) { this.player.jumpMomentum.x += carry.x; this.player.jumpMomentum.z += carry.z; }
         this.jumpGlide = { invalidClimb: false, pushMs: 0, climbJump: blocked === 'climbJump' ? this.climbDurations?.CLIMB_jump ?? .567 : 0 };
       }
     } else if (!this.player.grounded && this.jumpGlide && !this.jumpGlide.invalidClimb && this.player.health > 0 &&
@@ -445,7 +459,7 @@ export class Simulation {
     if (pushSpeed > 1e-3) { requested.x += push.x * dt; requested.z += push.z * dt; }
     const shift = this.collisionShift; requested.x += shift.x; requested.z += shift.z; shift.x = 0; shift.z = 0;
     let carryY = 0;
-    if (wasGrounded && this.groundCarry) { const p = this.player.position, carry = this.groundCarry({ x: p.x, y: p.y, z: p.z }); if (carry) { requested.x += carry.x * dt; requested.z += carry.z * dt; carryY = Math.max(0, carry.y) * dt; } }
+    if (wasGrounded) { const carry = this.carrySpeed(); if (carry) { requested.x += carry.x * dt; requested.z += carry.z * dt; carryY = Math.max(0, carry.y) * dt; } }
     const pushing = this.pushingBodies, filter = pushing.size ? (collider: RAPIER.Collider) => { const parent = collider.parent(); return !parent || !pushing.has(parent.handle); } : undefined;
     const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt + carryY, z: requested.z }, filter);
     pushing.clear();
