@@ -1731,7 +1731,10 @@ async function boot() {
       // CTaskSimpleGetUp::StartAnim: a car over the origin sphere keeps CJ down (bStuckUnderCar) and runs him over for
       // the time step a frame; otherwise the get-up matching the fall clip's ANIMATION_IS_FRONT flag plays.
       if(sim.player.health>0&&getUpBlockedBy(carOverPlayer()?{bike:false,standingOn:false,attached:false}:undefined)){
-        playerStuckUnderCar=true;sim.knockdown=playerGetUp;view.holdReaction();if(dt>0)sim.damagePlayer(stuckUnderCarDamage(dt*50,true),false,{weapon:WEAPON.runOverByCar});
+        // CTaskSimpleGetUp does not start while bStuckUnderCar: the fall clip stays on its last frame. Its reaction has
+        // usually just ended as the lie ran out, so it is put back held on that frame.
+        playerStuckUnderCar=true;sim.knockdown=playerGetUp;
+        if(playerFallClip&&view.reactionName!==playerFallClip&&view.hasReaction(playerFallClip))view.playReaction(playerFallClip,Infinity,false,view.reactionDuration(playerFallClip)??0);else view.holdReaction();if(dt>0)sim.damagePlayer(stuckUnderCarDamage(dt*50,true),false,{weapon:WEAPON.runOverByCar});
       }else{playerStuckUnderCar=false;view.playReaction(getUpClip(playerFallClip),playerGetUp,true);playerGetUp=0;}
     }
     for(const event of sim.damageEvents.splice(0)){
