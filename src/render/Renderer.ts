@@ -36,6 +36,9 @@ export class GameRenderer {
   get fov(){return this.sourceFov;}
   private wasFirstPerson=false;
   private wasAiming=false;
+  /** The frontend's mouse options: the sensitivity slider turns the sideways look only (the retail camera's vertical
+   * rate stays 0.0015), and CPad::UpdateMouse inverts the vertical movement in play with bInvertMouseY. */
+  mouseYawScale=1;mouseYSign=1;
   private head=new THREE.Vector3();
   /** Player car entry, exit or driving pose; replaces on-foot animation while set. */
   /** The player's camera follow point (feet position) when a task moves it off the ped, as CTaskSimpleClimb::GetCameraTargetPos. */
@@ -165,11 +168,11 @@ export class GameRenderer {
       if(fp){
         // The browser pitch is minus the camera's vertical angle.
         const scale=firstPersonLookScale(this.zoom.fov),range=firstPersonAlphaRange(fp);
-        this.yaw -= input.lookX * .003 * scale.yaw;
-        this.pitch = clamp(this.pitch + input.lookY * .002 * scale.pitch, -range.max, -range.min);
+        this.yaw -= input.lookX * .003 * scale.yaw * this.mouseYawScale;
+        this.pitch = clamp(this.pitch + input.lookY * this.mouseYSign * .002 * scale.pitch, -range.max, -range.min);
       }else{
-        this.yaw -= input.lookX * .003;
-        this.pitch = clamp(this.pitch + input.lookY * .002, this.aiming?-1.1:-.18, 1.05);
+        this.yaw -= input.lookX * .003 * this.mouseYawScale;
+        this.pitch = clamp(this.pitch + input.lookY * this.mouseYSign * .002, this.aiming?-1.1:-.18, 1.05);
       }
       this.lastLook = elapsed;
       input.lookX = input.lookY = 0;

@@ -251,6 +251,7 @@ import {findCaboose,findCarriage,setTrainCruiseSpeed,setTrainSpeed} from './simu
 import {VEHICLE_AIR_RESISTANCE_MULT,cullAirResistance} from './simulation/nativeAirResistance';
 import {PED_ORIGIN_HEIGHT,SWIM} from './simulation/nativeSwim';
 import { coronaLookMask } from './render/cameraLook';
+import {MOUSE_ACCEL_MAX,MOUSE_ACCEL_MIN,MOUSE_ACCEL_STEP,mouseYawScale,parseMouseSettings,readMouseSettings,saveMouseSettings} from './input/mouseSettings';
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
 import { ENEX, EntryExitManager, entryExitPosition, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
 import { worldLevelAt } from './assets/worldZones';
@@ -611,6 +612,13 @@ async function boot() {
   if(freshGame){const u=new URL(location.href);u.searchParams.delete('new-game');history.replaceState(history.state,'',u.href);}
   const progression=new Progression(weapons.inventory,sim,progressStorage,freshGame);
   weapons.onHit=id=>progression.hit(id);
+  // The frontend's mouse options (Controls): the sensitivity slider and vertical inversion, kept between sessions.
+  const mouseSettings=readMouseSettings();
+  const applyMouseSettings=()=>{render.mouseYawScale=mouseYawScale(mouseSettings);render.mouseYSign=mouseSettings.invertY?-1:1;};applyMouseSettings();
+  {const sens=hud.element.querySelector<HTMLInputElement>('#mouse-sens')!,invert=hud.element.querySelector<HTMLInputElement>('#mouse-invert')!;
+   sens.min=String(MOUSE_ACCEL_MIN);sens.max=String(MOUSE_ACCEL_MAX);sens.step=String(MOUSE_ACCEL_STEP);sens.value=String(mouseSettings.accel);invert.checked=mouseSettings.invertY;
+   sens.oninput=()=>{Object.assign(mouseSettings,parseMouseSettings({...mouseSettings,accel:Number(sens.value)}));applyMouseSettings();saveMouseSettings(mouseSettings);};
+   invert.onchange=()=>{mouseSettings.invertY=invert.checked;applyMouseSettings();saveMouseSettings(mouseSettings);};}
   progression.onSaveFailed=reason=>hud.message(reason==='conflict'?'Progress was saved from another tab; this tab no longer saves over it. Reload to continue from it.':'Progress could not be saved: browser storage is full or blocked.',8000);
   const saveProgress=()=>{progression.save();};window.addEventListener('pagehide',saveProgress);
    const PICKUP_TEXT:Record<string,string>={HO:'Horseshoes',OY:'Oysters',SN:'Snapshots'};
@@ -3010,7 +3018,7 @@ async function boot() {
     if(mission&&!paused&&!terrainPause&&!navigation?.open&&!arsenal.open){
       // CPad::Update: the script reads the pad the held keys make, through the driving mapping while the player drives
       // with the controls on. JustOutOfFrontEnd holds for the first frame after the menu.
-      {const pads=mission.runtime.game.pads,driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
+      {const pads=mission.runtime.game.pads;pads.invertMouseY=mouseSettings.invertY;const driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
        padStateFromActions(heldPadActions(code=>input.down(code)),driving?'driving':render.firstPerson?'firstPerson':'thirdPerson',false,pads.pads[0]);
        pads.justOutOfFrontEnd=padsAfterPause;padsAfterPause=false;}
       const clock=mission.runtime.game.clock;clock.follow(sim.timeMinutes,sim.weekDay);
