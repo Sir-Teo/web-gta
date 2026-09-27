@@ -1,3 +1,12 @@
+const isModifierButton = (code: string) => code.startsWith('Alt') || code.startsWith('Control');
+/** SA's PC controls hold Alt to walk and Ctrl to fire, as plain buttons. The browser reads them as modifiers: Alt alone
+ * focuses its menu, and with the keys played beside them they go back a page (Alt+←), focus the address bar (Alt+D),
+ * open the find bar (Ctrl+F), save or bookmark the page (Ctrl+S, Ctrl+D) or reload it (Ctrl+R), each taking the
+ * keyboard, or the game, away mid-play. Ctrl+Shift combinations stay the browser's (developer tools). */
+export function takesBrowserShortcut(e: { code: string; altKey: boolean; ctrlKey: boolean; shiftKey: boolean }) {
+  return isModifierButton(e.code) || e.altKey || e.ctrlKey && !e.shiftKey;
+}
+
 export class Input {
   private held = new Set<string>();
   private pressed = new Set<string>();
@@ -18,11 +27,15 @@ export class Input {
       // Escape works from the menu's buttons too (a clicked button keeps the focus); a text field or list keeps its own.
       if (e.code === 'Escape') { if (!e.repeat && !(e.target as HTMLElement).closest('input, select, textarea')) onPause(); return; }
       if ((e.target as HTMLElement).closest('input, select, button')) return;
-      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home'].includes(e.code)) e.preventDefault();
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home'].includes(e.code) || takesBrowserShortcut(e)) e.preventDefault();
       if (!this.held.has(e.code)) { this.pressed.add(e.code); if (/^Key[A-Z]$/.test(e.code)) this.onLetter?.(e.code.slice(3)); }
       this.held.add(e.code);
     }, options);
-    window.addEventListener('keyup', e => this.held.delete(e.code), options);
+    window.addEventListener('keyup', e => {
+      this.held.delete(e.code);
+      // Releasing Alt alone shows or focuses the browser's menu bar.
+      if (isModifierButton(e.code) && !(e.target as HTMLElement).closest('input, select, textarea, button')) e.preventDefault();
+    }, options);
     window.addEventListener('blur', () => this.clear(), options);
     canvas.addEventListener('mousedown', e => {
       if(e.button===0){this.drag=true;this.held.add('MouseFire');this.pressed.add('MouseFire');this.press={x:e.clientX,y:e.clientY,at:performance.now(),moved:0};}
