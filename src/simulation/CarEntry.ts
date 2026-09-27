@@ -476,7 +476,14 @@ export class CarEntry {
   * get-out clip and `onOut` places him at the door. False when the car has no exit clip. */
  evictDriver(car:WorldCar,onOut:(position:V3,heading:number)=>void){
   if(car.driverOut||this.npcs.some(n=>n.car===car&&!n.done))return false;
-  return this.startNpc(car,'getOut',onOut);
+  if(this.startNpc(car,'getOut',onOut))return true;
+  // The car's exit clips have not been read yet (a van or bus group nobody has used): ask for them, and set the driver
+  // out at his door now rather than leave him in a seat his decision (fire, road rage, flight) has already left.
+  void this.clips.load(car.animGroup).catch(()=>{});
+  const local=this.doorPoint(car,'left'),bounds=car.assets.collision.bounds;
+  const base=car.worldPoint(local??{x:-(Math.max(Math.abs(bounds.min[0]),Math.abs(bounds.max[0]))+.6),y:0,z:0}),ground=this.ground(base,car)??base.y-1;
+  car.driverOut=true;car.autopilot=undefined;car.holdForEntry=false;
+  onOut({x:base.x,y:ground+.03,z:base.z},car.heading());return true;
  }
  /** CTaskSimpleCarSetPedSlowDraggedOut: the victim lands at the jacked clip's end offset (2D) with its Z on the ground. */
  private stepNpc(dt:number){for(const npc of this.npcs){if(npc.car.disposed)npc.done=true;if(!npc.done)this.stepOneNpc(npc,dt);}}
