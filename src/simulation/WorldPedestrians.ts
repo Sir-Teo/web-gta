@@ -2671,15 +2671,17 @@ export class WorldPedestrians {
   private frameClock=0;private frameDue=true;
   beforeStep(dt:number,cars:Iterable<WorldCar>){
    this.frameClock+=dt;this.frameDue=this.frameClock>=1/30;if(this.frameDue)this.frameClock-=1/30;
-   {const law=this.law,pl=this.sim.player.position;this.pursuers.clear();
+   {const law=this.law,pl=this.sim.player.position,chasing=new Set(this.pursuers);this.pursuers.clear();
     if(law?.level&&!law.native.backOff){
-     // A cop leaves a player driving fast enough past it (distSq × speedSq ≥ 16, the reversed `*`) and waits 3 s.
+     // A cop does not join the pursuit of a player driving fast enough past it (distSq × speedSq ≥ 16, the reversed
+     // `*`) and waits 3 s. That test is CTaskComplexPolicePursuit::SetPursuit's, from CreateFirstSubTask only:
+     // PersistPursuit keeps a cop already in the chase whatever the player's speed.
      const vehicle=this.playerVehicleVelocity?.(),speedSq=vehicle?((vehicle.x/50)**2+(vehicle.y/50)**2+(vehicle.z/50)**2):0;
      const cops=this.people.filter(p=>{
       if(!p.officer||p.health<=0||p.goTo)return false;
       if((p.pursuitRetry??0)>this.clock)return false;
       const q=p.actor.player.position,distSq=(q.x-pl.x)**2+(q.y-pl.y)**2+(q.z-pl.z)**2;
-      if(vehicle&&distSq*speedSq>=16){p.pursuitRetry=this.clock+3;return false;}
+      if(vehicle&&!chasing.has(p)&&distSq*speedSq>=16){p.pursuitRetry=this.clock+3;return false;}
       return true;
      }).sort((a,b)=>Math.hypot(a.actor.player.position.x-pl.x,a.actor.player.position.z-pl.z)-Math.hypot(b.actor.player.position.x-pl.x,b.actor.player.position.z-pl.z));
      for(const cop of cops.slice(0,law.native.maxCopsInPursuit))this.pursuers.add(cop);
