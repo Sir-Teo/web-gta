@@ -72,6 +72,13 @@ export function roadblockCrewPlacements(positionsType:0|1|2,count:number,radiusR
  return out;
 }
 /** CCarAI::MellowOutChaseSpeed for one and two stars. */
+/** CCarAI::UpdateCarAI's hand-over between land and water (0x420445): whether a law vehicle after the wanted player
+ * takes TEMPACT_WAIT (a second at a time). A land unit waits while he swims or is in a boat; a boat waits while he is
+ * on foot out of the water or in a car or bike. An aircraft of his changes nothing. */
+export function lawVehicleWaits(o:{wanted:number;unitBoat:boolean;player:'land'|'swimming'|'boat'|'aircraft'}){
+ if(o.wanted<=0||o.player==='aircraft')return false;
+ return o.player==='land'?o.unitBoat:!o.unitBoat;
+}
 export function mellowChaseSpeed(wanted:number,distance:number,playerInCar:boolean,playerSpeed:number,cruise:number){
  let speed=cruise;
  if(wanted===1)speed=playerInCar?distance<10?15:distance<20?22:25:distance<20?5:distance<40?13:25;
@@ -582,6 +589,8 @@ export class WorldPolice {
    const state={position:{x:p.x,y:-p.z},forward:{x:f3.x/fl,y:f3.y/fl},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:f3};
    const goal={x:target.x,y:-target.z};u.seed??=Math.floor(this.random()*65536);
    let pedals:Pedals|undefined,aim:{x:number;z:number}={x:target.x-p.x,z:target.z-p.z};
+   // A land law car halts at the water's edge rather than driving in after a swimming or boating suspect.
+   if(lawVehicleWaits({wanted:this.law.level,unitBoat:false,player:this.fleet.occupiedBoat?'boat':this.fleet.occupiedPlane?'aircraft':this.sim.player.swimming?'swimming':'land'})){car.autopilot={throttle:0,brake:1,steering:0,handbrake:speed<.5};continue;}
    if(u.goForwardUntil!==undefined){
     // SetupQuickCar's TEMPACT_GOFORWARD for 100 ms.
     u.goForwardUntil-=dt;if(u.goForwardUntil<=0)u.goForwardUntil=undefined;
