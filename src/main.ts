@@ -576,6 +576,8 @@ async function boot() {
   let arrested=false,gameTimeMs=0,previousGameTimeMs=0,gameTimeExact=0;
   /** The game clock the script last ran at, and the mission it ran for (a new mission starts from the clock as it is). */
   let scriptGameTimeExact=0,scriptClockMission:unknown;
+  /** The script stop last reported to the player. */
+  let scriptStopReported:unknown;
   /** The script messages last handed to the HUD, by label and creation time. */
   const shownScript={brief:'',big:['','','','','','',''],help:'',helpRevision:0};
   // CHud::DrawScriptText's two passes: the script's DISPLAY_TEXT lines and boxes under and over the screen fade.
@@ -2997,6 +2999,10 @@ async function boot() {
       if(scriptClockMission!==mission){scriptClockMission=mission;scriptGameTimeExact=gameTimeExact;}
       const scriptStepMs=gameTimeExact-scriptGameTimeExact;scriptGameTimeExact=gameTimeExact;
       mission.step(gameTimeExact,scriptStepMs);
+      // The script runtime stops at a command the port cannot run: say so once, with the command, rather than leave the
+      // story silently frozen (the world and free roam go on).
+      if(mission.stopped&&scriptStopReported!==mission.stopped){scriptStopReported=mission.stopped;console.error('The mission script stopped',mission.stopped);
+        hud.message(`The story script stopped (${mission.stopped.command}${mission.stopped.offset>=0?` at ${mission.stopped.offset}`:''}); free roam continues. Reloading the page starts it again.`,10000);}
       // Loading a game the player saved does not play the new game's opening again: once INITIAL has set the world up
       // and MAIN launches INTRO, the story mission is ended (as leaving it for free roam does), the screen fades in
       // and the save point's clock and place are put back.
