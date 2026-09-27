@@ -63,7 +63,8 @@ export class Input {
         this.lookX += e.movementX; this.lookY += e.movementY;
       }
     }, options);
-    canvas.addEventListener('wheel',e=>{e.preventDefault();this.pressed.add(e.deltaY>0?'WheelNext':'WheelPrevious');},{...options,passive:false});
+    // Only a vertical turn of the wheel is a weapon step; a sideways scroll (a trackpad, a tilt wheel) is not.
+    canvas.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY!==0)this.pressed.add(e.deltaY>0?'WheelNext':'WheelPrevious');},{...options,passive:false});
     canvas.addEventListener('contextmenu', e => e.preventDefault(), options);
   }
   down(code: string) { return this.held.has(code); }
