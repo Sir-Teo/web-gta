@@ -26,7 +26,8 @@ import {firstPersonMode,isRocketMode,type FirstPersonMode} from './nativeFirstPe
 function projectileVelocity(kind:string,direction:Vec3):Vec3{try{return launchVelocity(kind,direction);}catch{return add(direction,{x:0,y:0,z:0});}}
 function projectileFuse(kind:string,rocket:boolean){try{return projectileTuning(kind).fuse;}catch{return rocket?8:kind==='satchel'?Infinity:3;}}
 /** Native handheld IDs usable one-handed from a car (authored set; the gang task is not reversed). */
-const DRIVEBY_WEAPONS=new Set([22,23,24,26,28,29,30,32]);
+/** The driver's drive-by weapons: the SMG slot's Uzi, MP5 and Tec-9, the only one RemoveWeaponWhenEnteringVehicle takes up. */
+const DRIVEBY_WEAPONS=new Set([28,29,32]);
 /** The kinds CTaskSimpleThrowProjectile throws (weapon.dat bThrow). */
 const THROWN_KINDS=new Set(['grenade','gas','molotov','satchel']);
 /** eExplosionType values the weapon system raises (CExplosion::AddExplosion). */

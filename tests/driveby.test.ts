@@ -20,14 +20,15 @@ function setup(){
 
 const camera={origin:{x:-10,y:2.2,z:0},direction:{x:1,y:-0.05,z:0}};
 
-test('drive-by fires one-handed weapons from the camera-side window',()=>{
+test('drive-by fires the SMG slot\'s weapon from the camera-side window',()=>{
   const {sim,weapons,crimes,car}=setup();
   try{
-    weapons.inventory.give(22,17);
-    expect(weapons.inventory.selected).toBe(22);
+    weapons.inventory.give(28,50);
+    expect(weapons.inventory.selected).toBe(28);
+    const clip=weapons.inventory.snapshot().clip;
     expect(weapons.fireDriveby(car,camera)).toBe(true);
     // Fired from the +x window (camera looks along +x at the car's right side).
-    expect(weapons.inventory.snapshot().clip).toBe(16);
+    expect(weapons.inventory.snapshot().clip).toBe(clip-1);
     expect(weapons.effects.some(e=>e.kind==='tracer')).toBe(true);
     expect(crimes).toContain(CRIME.fireWeapon);
     // Cooldown blocks an immediate second shot; ticking restores it.
@@ -37,13 +38,15 @@ test('drive-by fires one-handed weapons from the camera-side window',()=>{
   }finally{sim.dispose();}
 });
 
-test('drive-by refuses unoccupied cars and two-handed weapons',()=>{
+test('drive-by refuses unoccupied cars and every weapon but the SMGs',()=>{
   const {sim,weapons,car}=setup();
   try{
-    weapons.inventory.give(22,17);
+    weapons.inventory.give(32,50);
     (car as {occupied:boolean}).occupied=false;
     expect(weapons.fireDriveby(car,camera)).toBe(false);
     (car as {occupied:boolean}).occupied=true;
+    // RemoveWeaponWhenEnteringVehicle takes up only the SMG slot: a driver's pistol, Desert Eagle or sawn-off stays quiet.
+    for(const id of [22,24,26]){weapons.inventory.give(id,20);weapons.inventory.select(id);expect(weapons.fireDriveby(car,camera)).toBe(false);}
     weapons.inventory.give(31,30);weapons.inventory.select(31);
     expect(weapons.fireDriveby(car,camera)).toBe(false);
     weapons.inventory.select(4);

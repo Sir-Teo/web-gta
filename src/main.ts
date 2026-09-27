@@ -671,6 +671,23 @@ async function boot() {
      void weaponView.equip(inv.selected);
     }else if(!sim.jetPack&&jetSavedWeapon!==undefined){inv.select(jetSavedWeapon);jetSavedWeapon=undefined;jetWeaponHidden=false;void weaponView.equip(inv.selected);}
   };
+  // CPed::RemoveWeaponWhenEnteringVehicle as the player takes a vehicle's controls: weapon changes lock, and the SMG slot's
+  // Uzi or Tec-9 with ammo, else its MP5, is taken up; that is the one weapon a driver's drive-by fires. With none the
+  // weapon stays put and there is no drive-by. ReplaceWeaponWhenExitingVehicle gives the saved weapon back.
+  let driverSavedWeapon:number|undefined;
+  const DRIVER_DRIVEBY_WEAPONS=[28,32,29];
+  const stepDriverWeapon=(driving:boolean)=>{
+    const inv=weapons.inventory,loaded=(id:number)=>{const a=inv.ammo.get(id);return inv.owned.has(id)&&!!a&&a.clip+a.reserve>0;};
+    if(driving&&driverSavedWeapon===undefined){
+     driverSavedWeapon=inv.selected;
+     // The port's arsenal can own the three at once; the one already in hand is the slot's.
+     const smg=DRIVER_DRIVEBY_WEAPONS.includes(inv.selected)&&loaded(inv.selected)?inv.selected:DRIVER_DRIVEBY_WEAPONS.find(loaded);
+     if(smg!==undefined&&smg!==inv.selected){inv.select(smg);void weaponView.equip(inv.selected);}
+    }else if(!driving&&driverSavedWeapon!==undefined){
+     if(driverSavedWeapon!==inv.selected&&inv.owned.has(driverSavedWeapon)){inv.select(driverSavedWeapon);void weaponView.equip(inv.selected);}
+     driverSavedWeapon=undefined;
+    }
+  };
   weaponView.visible=()=>!playerWeaponHiddenByScript&&!render.scriptPlayerHidden&&!phones.get('player')?.active&&!jetWeaponHidden&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&(!carEntry.active||carEntry.phase==='approach');
   weapons.muzzle=left=>weaponView.muzzle(left);
   weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
@@ -2431,6 +2448,7 @@ async function boot() {
         gunFiring=firing;
         // CTaskSimpleJetPack::ProcessControlInput fires only an instant-hit weapon aimed with the arm.
         stepJetPackWeapon();
+        stepDriverWeapon(!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBoat||fleet?.occupiedBike||fleet?.occupiedPlane));
         const jetFireAllowed=!sim.jetPack||!jetWeaponHidden&&(()=>{const info=weapons.inventory.info();return !!info&&info.fire==='instant'&&!!(info.flags&WEAPON_FLAG.aimWithArm);})();
         if(onFoot&&jetFireAllowed&&!playerDown&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&firing){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
