@@ -1685,11 +1685,12 @@ async function boot() {
       if(landing==='knockdown'&&view.hasReaction('ko_skid_back')){const fall=view.reactionDuration('ko_skid_back')??1,getUp=playerFall(view,'ko_skid_back');sim.knockdown=fall+.7+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ko_skid_back',fall+.7);}
       else if(landing==='collapse'&&view.hasReaction('fall_collapse')){const d=view.reactionDuration('fall_collapse')??1;view.playReaction('fall_collapse',d);sim.knockdown=d;sim.knockdownGetUp=0;}
     }
-    if(playerGetUp&&sim.knockdown<=playerGetUp&&view){
+    // A CJ killed while he lies stays down: the death sequence owns him, not the get-up.
+    if(playerGetUp&&sim.knockdown<=playerGetUp&&view&&sim.player.health>0){
       // CTaskSimpleGetUp::StartAnim: a car over the origin sphere keeps CJ down (bStuckUnderCar) and runs him over for
       // the time step a frame; otherwise the get-up matching the fall clip's ANIMATION_IS_FRONT flag plays.
       if(sim.player.health>0&&getUpBlockedBy(carOverPlayer()?{bike:false,standingOn:false,attached:false}:undefined)){
-        playerStuckUnderCar=true;sim.knockdown=playerGetUp;view.holdReaction();sim.damagePlayer(stuckUnderCarDamage(dt*50,true),false,{weapon:WEAPON.runOverByCar});
+        playerStuckUnderCar=true;sim.knockdown=playerGetUp;view.holdReaction();if(dt>0)sim.damagePlayer(stuckUnderCarDamage(dt*50,true),false,{weapon:WEAPON.runOverByCar});
       }else{playerStuckUnderCar=false;view.playReaction(getUpClip(playerFallClip),playerGetUp,true);playerGetUp=0;}
     }
     for(const event of sim.damageEvents.splice(0)){
@@ -1700,7 +1701,7 @@ async function boot() {
       const moveState=sim.player.speed<.1?PEDMOVE.still:sim.player.speed<3?PEDMOVE.walk:sim.player.speed<7?PEDMOVE.run:PEDMOVE.sprint;
       const victim={player:true,inVehicle:false,moveState,fallingOrGettingUp:sim.knockdown>0,standing:sim.player.grounded,hitAnimDelayUntil:playerHitAnimDelay,driving:false};
       if(event.died){
-        playerDied=true;
+        playerDied=true;playerGetUp=0;playerStuckUnderCar=false;
         // ComputeDeathAnim's floor branch has no player test: CJ killed while he falls or lies (head below his root)
         // takes FLOOR_HIT, or FLOOR_HIT_F on his front.
         const lying=sim.knockdown>sim.knockdownGetUp;
@@ -2781,7 +2782,8 @@ async function boot() {
     if(!paused&&!navigation?.open&&!arsenal.open&&roadSurfaces){const surfaces=roadSurfaces,now=Math.floor(elapsed*1000);skids.update(now);
       for(const car of fleet?.cars??[])skids.lay(car,now,{skidMark:material=>surfaces.records.get(material)?.skidMark,water:material=>!!surfaces.records.get(material)?.values.water},render.camera);}
     skids.render(Math.floor(elapsed*1000),nativeDayNightBalance(sim.timeMinutes));
-    playerDamageReactions(dt);
+    // The car over a stuck CJ runs him over only while the world runs, not under the pause menu, map or arsenal.
+    playerDamageReactions(!paused&&!terrainPause&&!navigation?.open&&!arsenal.open?dt:0);
     breakPieces.sync(breakManager);
     syncMovedProps();
     if(weatherStarted)wakes.update(fleet?.boats??[],{waterLevel:(x,y)=>render.lighting.water.levels?.level(x,y),camera:render.camera.position,windClipped:weather.windClipped,elapsedMs:Math.floor(elapsed*1000)});
