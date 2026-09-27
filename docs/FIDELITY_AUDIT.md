@@ -5894,7 +5894,8 @@ A window swap now fades its new buildings in over about half a second instead of
 - **Default keys:** the PC defaults bind jump to Left Shift and sprint to Space, the reverse of the port. The keys are left as they are for now.
 - **Script pad reads:** the script now reads CPad. Each frame the held keys become controller actions through the port's bindings. CControllerConfigManager's reversed mappings then fill the pad: the driving one at the wheel with the controls on, else first or third person. CheckAndSetStick zeroes a stick when both directions are down, and CheckAndSetPad toggles the d-pad pair.
   - IS_BUTTON_PRESSED and GET_PAD_STATE read that state, and JustOutOfFrontEnd holds for the first frame after a pause.
-  - Not fed: mouse-wheel presses (the port consumes them before the script runs), GET_PC_MOUSE_MOVEMENT's mouse movement, and actions the port has no key for (answer phone, the conversation keys, the alternate fire).
+  - The PC defaults the port had left unbound are fed: GROUP_CONTROL_BWD (H), CONVERSATION_NO (N, beside Y), VEHICLE_STEERUP and STEERDOWN (the arrows) and TOGGLE_SUBMISSIONS (2, numpad plus).
+  - Not fed: mouse-wheel presses (the port consumes them before the script runs), GET_PC_MOUSE_MOVEMENT's mouse movement, and actions whose PC key the port uses for something else (PED_ANSWER_PHONE's Tab opens the arsenal; VEHICLE_FIRE_WEAPON_ALT's Left Ctrl fires).
 - **Run blend:** PlayerControlZelda's blend is stick length / 60, which gives 2.13 for one key and 3.02 for a diagonal. The port uses a fixed 1.8 for running. Mapping 3.02 needs SetRealMoveAnim, which is not reversed.
 
 ## Parked cars stop simulating (fake physics)

@@ -35,4 +35,6 @@ test('HUD text puts numbers in the ~1~s, breaks lines on ~n~ and drops colour to
  expect(gxtHudText(text.get('GW_YRS'))).toBe('This hood is yours!');
  expect(insertNumbers('~1~ of ~1~',7)).toBe('7 of -1');
  expect(gxtHudText('Press ~k~~VEHICLE_ENTER_EXIT~ to get in, ~k~~PED_ANSWER_PHONE~ to answer')).toBe('Press F to get in, PED ANSWER PHONE to answer');
+ expect(gxtHudText("Press ~k~~CONVERSATION_NO~ to answer 'NO' or press ~k~~CONVERSATION_YES~ to answer 'YES'.")).toBe("Press N to answer 'NO' or press Y to answer 'YES'.");
+ expect(gxtHudText('Press ~k~~GROUP_CONTROL_BWD~ to instruct your gang to stay in position')).toBe('Press H to instruct your gang to stay in position');
 });

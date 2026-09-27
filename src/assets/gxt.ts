@@ -83,7 +83,12 @@ export function gxtText(key:string,fallback:string){return current?.get(key)||fa
 export function insertNumbers(text:string,...numbers:number[]){let i=0;return text.replace(/~1~/g,()=>String(numbers[i++]??-1));}
 /** The controls a ~k~ token names, as the browser binds them; any other shows its action name. */
 const BROWSER_CONTROLS:Readonly<Record<string,string>>={VEHICLE_ENTER_EXIT:'F',PED_SPRINT:'SHIFT',PED_JUMPING:'SPACE',PED_DUCK:'C',
- VEHICLE_RADIO_STATION_UP:'N',PED_FIREWEAPON:'LEFT MOUSE',PED_LOCK_TARGET:'RIGHT MOUSE',CAMERA_CHANGE_VIEW_ALL_SITUATIONS:'V',GROUP_CONTROL_FWD:'G'};
+ VEHICLE_RADIO_STATION_UP:'N',PED_FIREWEAPON:'LEFT MOUSE',PED_LOCK_TARGET:'RIGHT MOUSE',CAMERA_CHANGE_VIEW_ALL_SITUATIONS:'V',GROUP_CONTROL_FWD:'G',
+ GROUP_CONTROL_BWD:'H',CONVERSATION_YES:'Y',CONVERSATION_NO:'N',TOGGLE_SUBMISSIONS:'2',GO_FORWARD:'W',GO_BACK:'S',GO_LEFT:'A',GO_RIGHT:'D',
+ VEHICLE_ACCELERATE:'W',VEHICLE_BRAKE:'S',VEHICLE_STEERLEFT:'A',VEHICLE_STEERRIGHT:'D',VEHICLE_STEERUP:'UP',VEHICLE_STEERDOWN:'DOWN',
+ VEHICLE_HANDBRAKE:'SPACE',VEHICLE_HORN:'H',VEHICLE_LOOKLEFT:'Q',VEHICLE_LOOKRIGHT:'E',PED_LOOKBEHIND:'MIDDLE MOUSE',
+ PED_SNIPER_ZOOM_IN:'PGUP',PED_SNIPER_ZOOM_OUT:'PGDN',PED_CYCLE_WEAPON_LEFT:'MOUSE WHEEL UP',PED_CYCLE_WEAPON_RIGHT:'MOUSE WHEEL DOWN',
+ VEHICLE_TURRETUP:'NUM 2',VEHICLE_TURRETDOWN:'NUM 8',VEHICLE_TURRETLEFT:'NUM 4',VEHICLE_TURRETRIGHT:'NUM 6',SNEAK_ABOUT:'ALT'};
 /** The browser HUD draws plain text: ~n~ breaks the line, a ~k~ control names its key, and colour and style tokens
  * (~w~, ~r~, ~h~, ~z~ and the rest) drop. */
 export function gxtHudText(text:string){return text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>BROWSER_CONTROLS[action]??action.replace(/_/g,' ')).replace(/~n~/g,'\n').replace(/~[a-z]~/g,'');}

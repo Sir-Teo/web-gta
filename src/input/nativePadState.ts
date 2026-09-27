@@ -84,17 +84,20 @@ export function padStateFromActions(actions:Iterable<PadAction>,controls:PadCont
  * port consumes before the script runs, so they do not reach the pad. */
 const BINDINGS:readonly (readonly [PadAction,readonly string[]])[]=[
  ['GO_FORWARD',['KeyW','ArrowUp']],['GO_BACK',['KeyS','ArrowDown']],['GO_LEFT',['KeyA','ArrowLeft']],['GO_RIGHT',['KeyD','ArrowRight']],
- ['PED_FIRE_WEAPON',['MouseFire','ControlLeft','ControlRight']],['PED_LOCK_TARGET',['MouseAim']],['GROUP_CONTROL_FWD',['KeyG']],
+ ['PED_FIRE_WEAPON',['MouseFire','ControlLeft','ControlRight']],['PED_LOCK_TARGET',['MouseAim']],['GROUP_CONTROL_FWD',['KeyG']],['GROUP_CONTROL_BWD',['KeyH']],
  ['PED_LOOKBEHIND',['MouseMiddle']],['PED_JUMPING',['Space']],['PED_SPRINT',['ShiftLeft','ShiftRight']],['PED_DUCK',['KeyC']],
  ['PED_SNIPER_ZOOM_IN',['PageUp','KeyX']],['PED_SNIPER_ZOOM_OUT',['PageDown','KeyZ']],['VEHICLE_ENTER_EXIT',['KeyF']],
  ['CAMERA_CHANGE_VIEW_ALL_SITUATIONS',['KeyV','Home']],
- // The PC default for CONVERSATION_YES (the D-pad right: answering yes, and the trip skip SKIP_1 names). NO's default,
- // N, is the port's radio tuning.
- ['CONVERSATION_YES',['KeyY']],
+ // The PC defaults for CONVERSATION_YES and CONVERSATION_NO (the D-pad pair): a script's yes-or-no questions, wagers and
+ // the treadmill's level, and the trip skip SKIP_1 names. N also tunes the radio in the port's vehicles.
+ ['CONVERSATION_YES',['KeyY']],['CONVERSATION_NO',['KeyN']],
  ['VEHICLE_FIRE_WEAPON',['MouseFire','ControlLeft','ControlRight']],['VEHICLE_LOOKBEHIND',['MouseMiddle']],
  ['VEHICLE_LOOKLEFT',['KeyQ']],['VEHICLE_LOOKRIGHT',['KeyE']],['VEHICLE_HORN',['CapsLock','KeyH']],['VEHICLE_HANDBRAKE',['Space']],
  ['VEHICLE_ACCELERATE',['KeyW','ArrowUp']],['VEHICLE_BRAKE',['KeyS','ArrowDown']],
  ['VEHICLE_STEERLEFT',['KeyA','ArrowLeft']],['VEHICLE_STEERRIGHT',['KeyD','ArrowRight']],
+ // The PC defaults: the arrow keys lean a bike or pitch a plane, and move through the garage and shop menus the script
+ // draws while the player sits in a car; 2 or numpad plus starts and stops a vehicle's submission (taxi, vigilante).
+ ['VEHICLE_STEERUP',['ArrowUp']],['VEHICLE_STEERDOWN',['ArrowDown']],['TOGGLE_SUBMISSIONS',['Digit2','NumpadAdd']],
  ['VEHICLE_TURRETLEFT',['Numpad4']],['VEHICLE_TURRETRIGHT',['Numpad6']],['VEHICLE_TURRETUP',['Numpad2']],['VEHICLE_TURRETDOWN',['Numpad8']],
 ];
 /** The actions whose browser keys are down. */

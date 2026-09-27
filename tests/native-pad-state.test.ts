@@ -25,3 +25,14 @@ test('first person zooms on square and cross and the script reads it through Get
  expect(pads.isPressed(0,BUTTON.square)).toBe(true);
  padStateFromActions([],'firstPerson',false,pads.pads[0]);expect(pads.isPressed(0,BUTTON.square)).toBe(false);
 });
+test('the PC defaults the script reads: H for the group, Y and N for answers, the arrows and 2 at the wheel',()=>{
+ const foot=(code:string)=>padStateFromActions(heldPadActions(c=>c===code),'thirdPerson');
+ expect(foot('KeyH').dpadDown).toBe(255);
+ expect(foot('KeyY').dpadRight).toBe(255);expect(foot('KeyN').dpadLeft).toBe(255);
+ const wheel=(code:string)=>padStateFromActions(heldPadActions(c=>c===code),'driving');
+ // H at the wheel is the horn alone; the group button is on-foot only.
+ expect([wheel('KeyH').leftShock,wheel('KeyH').dpadDown]).toEqual([255,0]);
+ expect(wheel('KeyN').dpadLeft).toBe(255);
+ expect(wheel('Digit2').rightShock).toBe(255);expect(wheel('NumpadAdd').rightShock).toBe(255);
+ expect(wheel('ArrowUp').leftStickY).toBe(-128);expect(wheel('ArrowDown').leftStickY).toBe(128);
+});
