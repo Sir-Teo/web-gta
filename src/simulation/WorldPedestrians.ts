@@ -3146,7 +3146,9 @@ export class WorldPedestrians {
       const push=2/Math.max(.3,Math.hypot(px,pz));
       p.impulse.x+=-px*push;p.impulse.z+=-pz*push;
       state.heading=Math.atan2(px,pz);
-      if(p.temper>=60){p.retaliate=Math.max(p.retaliate,4);p.flee=0;}
+      // Only when ComputePlayerCollisionWithPedResponse finds the ped annoyed (AnnoyPlayerPed), and never a recruit in
+      // formation, whom the bump leaves with the BUMP line alone.
+      if(p.temper>=60&&!p.follow&&response.annoy){p.retaliate=Math.max(p.retaliate,4);p.flee=0;}
      }
     }
    }
