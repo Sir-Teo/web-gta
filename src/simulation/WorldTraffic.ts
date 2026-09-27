@@ -12,7 +12,7 @@ import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
 import {playCarHorn} from './nativeCarHorn';
-import {collisionDamageResponse,weaponDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
+import {collisionDamageResponse,gunShotDriverResponse,weaponDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
 import {isKillTaskAppropriate} from '../ped/nativeDecisionMaker';
 import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 /** A cruising car's CAutoPilot: the link it is heading for, the one after, a lane on each, and its cruise speed. */
@@ -342,6 +342,18 @@ export class WorldTraffic {
   // otherwise CTaskComplexCarDriveMissionKillPed goes after the player. That task is not reversed: the chase drives at
   // him, avoiding cars, for CHASE_SECONDS (authored) or until he is CHASE_GIVE_UP_DISTANCE away.
   else if(response==='killPed'){if(this.playerOnMission?.())fleeScene();else{driver.chase={until:this.elapsed+CHASE_SECONDS};driver.avoidCars=true;}}
+ }
+ /** CEventGunShot on the traffic drivers: CEventGunShot::AffectsPed excludes only a passenger whose car has a driver,
+  * so a driver within 45 units of the shooter hears the shot (a silenced one only where it could see it: not
+  * modelled, so none) and answers from his decision maker. A driver already answering an event keeps to it. */
+ gunShot(from:{x:number;y:number;z:number},silent:boolean,byPlayer:boolean){
+  if(silent)return;
+  for(const driver of this.drivers){
+   const car=driver.car;
+   if(driver.gone||car.disposed||car.occupied||!car.autopilot||car.driverOut||car.wrecked||driver.dead||driver.dying||driver.raged||driver.fled||driver.fleeScene||driver.chase)continue;
+   const p=car.car.body.translation();if(Math.hypot(p.x-from.x,p.y-from.y,p.z-from.z)>45)continue;
+   if(gunShotDriverResponse(this.driverDecisionMaker?.(car),byPlayer?RELATIONSHIP.player:RELATIONSHIP.neutral,this.random)==='fleeScene'){driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;}
+  }
  }
  /** CTheScripts::IsPlayerOnAMission, for the kill-ped answer to a ram. */
  playerOnMission?:()=>boolean;

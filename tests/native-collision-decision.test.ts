@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {collisionDamageResponse,weaponDamageResponse,RELATIONSHIP} from '../src/vehicle/nativeCollisionDecision';
+import {collisionDamageResponse,gunShotDriverResponse,weaponDamageResponse,RELATIONSHIP} from '../src/vehicle/nativeCollisionDecision';
 test('R_Norm rammed by the player: of 125, nothing 50, a flee-scene drive, road rage and a ram back (CarDriveMissionKillPed) 25 each',()=>{
  expect(collisionDamageResponse(2,RELATIONSHIP.player,()=>.1)).toBe('none');
  expect(collisionDamageResponse(2,RELATIONSHIP.player,()=>.5)).toBe('fleeScene');
@@ -32,4 +32,14 @@ test('a tyre shot out (event 41): normal drivers flee the scene three times in f
  expect(weaponDamageResponse(4,RELATIONSHIP.neutral,()=>.5)).toBe('none');
  expect(weaponDamageResponse(0,RELATIONSHIP.player,()=>.5)).toBe('none');
  expect(weaponDamageResponse(1,RELATIONSHIP.neutral,()=>.5)).toBe('killCriminal');
+});
+test('a gunshot (event 15): normal and weak drivers flee the scene at even odds, tough ones always, gang and cop drivers never',()=>{
+ expect(gunShotDriverResponse(2,RELATIONSHIP.player,()=>.3)).toBe('fleeScene');
+ expect(gunShotDriverResponse(2,RELATIONSHIP.player,()=>.7)).toBe('none');
+ expect(gunShotDriverResponse(4,RELATIONSHIP.player,()=>.3)).toBe('fleeScene');
+ // The kill task is the tough driver's only choice, and without a gun he does not take it against a gunman.
+ expect(gunShotDriverResponse(3,RELATIONSHIP.player,()=>.99)).toBe('fleeScene');
+ expect(gunShotDriverResponse(2,RELATIONSHIP.neutral,()=>.3)).toBe('none');
+ expect(gunShotDriverResponse(0,RELATIONSHIP.player,()=>.3)).toBe('none');
+ expect(gunShotDriverResponse(1,RELATIONSHIP.player,()=>.3)).toBe('none');
 });

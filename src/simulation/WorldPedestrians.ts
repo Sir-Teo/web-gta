@@ -774,6 +774,7 @@ export class WorldPedestrians {
    * silenced shot only reaches peds facing the muzzle with a clear line of sight. They answer from their decision
    * maker; without the decision files they flee as frighten() makes them. */
   gunShot(start:{x:number;y:number;z:number},silent:boolean,shooter?:number){
+   this.onGunShot?.(start,silent,shooter===undefined);
    const source=shooter===undefined?undefined:this.people.find(o=>o.id===shooter);
    for(const p of this.people){
     // Not the shooter itself, nor anyone in its group (the player's recruits when the player fires).
@@ -1221,6 +1222,9 @@ export class WorldPedestrians {
   /** The player's vehicle for the cop wander's LookForCarAlarms and LookForStolenCopCars: where it is, whether its
    * alarm sounds (m_nAlarmState counting down), whether it is a law enforcer and whether it is wrecked. */
   playerVehicle?:()=>{position:{x:number;y:number;z:number};alarm:boolean;law:boolean;wrecked:boolean}|undefined;
+  /** The same CEventGunShot for the peds in vehicles (the traffic drivers): the shot's point, whether it was silenced,
+   * and whether the player fired it. */
+  onGunShot?:(from:{x:number;y:number;z:number},silent:boolean,byPlayer:boolean)=>void;
   /** The bikes the ped strike pass tests with the cars. */
   bikes?:()=>Iterable<PedStriker>;
   /** The body of the bike, boat or aircraft the player rides (his own collider is off while he does), and whether it

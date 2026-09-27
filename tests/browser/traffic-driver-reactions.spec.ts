@@ -45,3 +45,20 @@ test('a rammed driver who draws the kill task drives at CJ, and flees the scene 
  expect(result.chase).toBe(true);
  expect(result.closed).toBeGreaterThan(5);
 });
+
+test('a driver within 45 units of CJ\'s gunshot answers it; a silenced or distant shot goes unheard',async({page})=>{
+ test.setTimeout(180000);await page.goto('/models.html');
+ const result=await page.evaluate(async setup=>{
+  const run=new Function(`return (async()=>{${setup}
+   try{
+    const t=traffic,driver=t.drivers.find(d=>d.car===car);t.driverDecisionMaker=()=>3;
+    const at=car.car.body.translation();
+    t.gunShot({x:at.x+60,y:at.y,z:at.z},false,true);const far=!!driver.fleeScene;
+    t.gunShot({x:at.x+10,y:at.y,z:at.z},true,true);const silenced=!!driver.fleeScene;
+    t.gunShot({x:at.x+10,y:at.y,z:at.z},false,true);
+    return {far,silenced,near:!!driver.fleeScene,cruise:driver.cruiseSpeed};
+   }finally{traffic.dispose();fleet.dispose();sim.dispose();}})()`);
+  return run();
+ },setup);
+ expect(result).toEqual({far:false,silenced:false,near:true,cruise:40});
+});

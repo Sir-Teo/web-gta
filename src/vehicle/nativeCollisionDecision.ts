@@ -39,6 +39,24 @@ export function weaponDamageResponse(decisionMaker:number|undefined,relationship
   default:return 'none';
  }
 }
+/* CEventGunShot (event 15) as a driver hears it: the in-vehicle rows of the same files. Gang members and cops have
+ * none; normal and weak drivers flee the scene or not at even odds, tough ones always take the kill task. */
+export const GUN_SHOT_EVENT=15;
+export const GUN_SHOT_DRIVER_ROWS:readonly (readonly DecisionChoice[])[]=[
+ [],
+ [],
+ [row(TASK.carDriveMissionFleeScene,[0,100,100,0]),row(TASK.none,[0,100,100,0])],
+ [{task:TASK.killPedOnFoot,chances:[0,30,30,30],inVehicle:true,onFoot:true}],
+ [row(TASK.carDriveMissionFleeScene,[0,100,100,0]),row(TASK.none,[0,100,100,0])],
+];
+const gunShotMakers:DecisionMaker[]=GUN_SHOT_DRIVER_ROWS.map(choices=>new Map([[GUN_SHOT_EVENT,choices]]));
+/** A driver's answer to a gunshot (CEventHandler::ComputeShotFiredResponse): the flee-scene drive, or the kill task,
+ * which a driver without a gun against a gunman does not take (IsKillTaskAppropriate): he flees the scene instead. */
+export function gunShotDriverResponse(decisionMaker:number|undefined,relationship:Relationship,random:()=>number):'none'|'fleeScene'{
+ const dm=gunShotMakers[decisionMaker??2]??gunShotMakers[2];
+ const task=makeDecision(dm,GUN_SHOT_EVENT,relationship,true,random);
+ return task===TASK.carDriveMissionFleeScene||task===TASK.killPedOnFoot?'fleeScene':'none';
+}
 /** CTaskComplexCarDriveMissionFleeScene: MISSION_CRUISE, DRIVING_STYLE_AVOID_CARS, cruise speed 40. */
 export const FLEE_SCENE_CRUISE_SPEED=40;
 /** The rammed driver's answer (CEventHandler::ComputeVehicleDamageResponse maps the drawn task). */
