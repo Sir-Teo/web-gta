@@ -1272,7 +1272,7 @@ async function boot() {
   // Open the (suspended) output device while the menu waits, not inside the click that starts play.
   if(typeof requestIdleCallback==='function')requestIdleCallback(()=>sound.prepare(),{timeout:4000});else setTimeout(()=>sound.prepare(),1000);
   if(navigation)navigation.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open);if(open)releaseLockForOverlay();};
-  if(navigation){navigation.canOpen=()=>!mission?.runtime.game.widescreenOn;}
+  if(navigation){navigation.canOpen=()=>!mission?.runtime.game.widescreenOn;navigation.onLetter=letter=>input.onLetter?.(letter);}
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   // The PC original's frame limiter (on by default): display frames pace at 30 a second over the 60 Hz simulation.
   const display=readDisplaySettings(),pacer:FramePacer={lastDrawn:0};

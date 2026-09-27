@@ -22,6 +22,8 @@ export class NativeMap {
  /** Whether the map may open now: not while the game shows its widescreen borders (a cutscene or scripted scene),
   * where the HUD, the map with it, is hidden. */
  canOpen?:()=>boolean;
+ /** Letter keys the open map takes from the game, passed on to CCheat's string. */
+ onLetter?:(letter:string)=>void;
  readonly element=document.createElement('section');
  private image=new Image();
  private mini:HTMLCanvasElement;
@@ -68,7 +70,10 @@ export class NativeMap {
   this.element.querySelector<HTMLButtonElement>('.map-close')!.onclick=()=>this.toggle(false);
   // Tab and Shift+Tab stay among the open map's controls, wrapping round; M closes it from any but a list.
   this.panel.addEventListener('keydown',e=>{
-   if(e.code==='KeyM'&&!(e.target as HTMLElement).closest('select')){e.preventDefault();e.stopPropagation();if(!e.repeat)this.toggle(false);return;}
+   // The game's keydown skips a focused control, and M stops here: those letters still go to the cheat string.
+   const target=e.target as HTMLElement,letter=/^Key([A-Z])$/.exec(e.code)?.[1];
+   if(letter&&!e.repeat&&!target.closest('select')&&(e.code==='KeyM'||target.closest('input, button')))this.onLetter?.(letter);
+   if(e.code==='KeyM'&&!target.closest('select')){e.preventDefault();e.stopPropagation();if(!e.repeat)this.toggle(false);return;}
    if(e.code!=='Tab')return;e.stopPropagation();
    const controls=[...this.panel.querySelectorAll<HTMLElement>('select,button')].filter(c=>!(c as HTMLButtonElement).disabled),at=controls.indexOf(document.activeElement as HTMLElement);
    if(e.shiftKey&&at<=0){e.preventDefault();controls[controls.length-1]?.focus();}else if(!e.shiftKey&&(at<0||at===controls.length-1)){e.preventDefault();controls[0]?.focus();}
