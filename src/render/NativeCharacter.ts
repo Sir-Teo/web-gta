@@ -515,7 +515,7 @@ export class NativeCharacter {
     if (action === 'fightMove' && this.action !== 'fightMove') { this.fightAnims!.start(true); this.gunPrevious.clear(); }
     // CTaskSimpleUseGun::RemoveStanceAnims: leaving the aim with the stick past 50 blends WALK in with a move blend
     // ratio of 1, so CJ walks on rather than breaking straight into the run the stick asks for.
-    if (action !== 'gunMove' && action !== 'fightMove' && (this.action === 'gunMove' || this.action === 'fightMove') && this.moveAnims) {this.moveAnims.assocs.clear();if(Math.hypot(controls.x,controls.y)>50/128)this.moveBlend=Math.min(this.moveBlend,1);}
+    if (action !== 'gunMove' && action !== 'fightMove' && (this.action === 'gunMove' || this.action === 'fightMove') && this.moveAnims) {this.moveAnims.assocs.clear();this.moveAnims.headingLocked=false;if(Math.hypot(controls.x,controls.y)>50/128)this.moveBlend=Math.min(this.moveBlend,1);}
     if (sim.player.grounded && !oneShot(action)) this.lastGroundAction = action === 'move' ? this.moveAnims!.moveState === 'sprint' ? 'sprint' : 'run' : action;
     // A roll asked for again once its clip ended starts over (DeleteDuckAnimCB cleared m_MoveAnim).
     if (rollAction(action) && action === this.action && this.duckRollDone) { this.seconds = this.previous = 0; this.duckRollDone = false; }
