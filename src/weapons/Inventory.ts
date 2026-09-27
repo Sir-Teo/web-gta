@@ -112,6 +112,9 @@ export class WeaponInventory {
   }else if(slot===10)return true;
   else total+=Math.max(0,Math.floor(ammo));
   if(magazine){total=Math.min(99999,total);const clip=Math.min(magazine,total);a.clip=clip;a.reserve=total-clip;}
+  // CPed::GiveWeapon reloads the weapon it gives and leaves it WEAPONSTATE_READY: a reload that was running (on it, or
+  // on the weapon it replaced in the slot) is over.
+  this.stashedReloads.delete(id);if(this.selected===id){this.reloading=0;this.duration=0;}
   if(this.selected===0&&id!==0)this.select(id);return true;
  }
  select(id:number){

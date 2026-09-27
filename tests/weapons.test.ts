@@ -187,3 +187,7 @@ test('CEventDamage::ReportCriminalEvent queues a crime by the weapon that did th
  // The extinguisher and the parachute queue nothing.
  expect(criminalEventCrime(42,false)).toBe(CRIME.none);expect(criminalEventCrime(46,false)).toBe(CRIME.none);
 });
+test('a weapon given mid-reload is loaded and ready at once (CPed::GiveWeapon)',()=>{
+ const inv=new WeaponInventory();inv.give(22,40);inv.select(22);inv.ammo.set(22,{clip:0,reserve:20});expect(inv.reload()).toBe(true);expect(inv.reloading).toBeGreaterThan(0);
+ inv.give(22,17);expect(inv.reloading).toBe(0);expect(inv.fire()).toBe(true);
+});
