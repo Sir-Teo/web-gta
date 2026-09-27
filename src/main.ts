@@ -1743,7 +1743,7 @@ async function boot() {
       // toward the victim (CWorld::TriggerExplosionSectorList's impactVelocity).
       const p=sim.player.position,away=event.weapon===WEAPON.explosion?-1:1,direction=event.from?browserLocalDirection(sim.player.heading,(event.from.x-p.x)*away,(event.from.z-p.z)*away):0;
       const moveState=sim.player.speed<.1?PEDMOVE.still:sim.player.speed<3?PEDMOVE.walk:sim.player.speed<7?PEDMOVE.run:PEDMOVE.sprint;
-      const victim={player:true,inVehicle:false,moveState,fallingOrGettingUp:sim.knockdown>0,standing:sim.player.grounded,hitAnimDelayUntil:playerHitAnimDelay,driving:false};
+      const victim={player:true,inVehicle:false,moveState,fallingOrGettingUp:sim.knockdown>0,standing:sim.player.grounded,submerged:sim.player.swimming,hitAnimDelayUntil:playerHitAnimDelay,driving:false};
       if(event.died){
         playerDied=true;playerGetUp=0;playerStuckUnderCar=false;
         // ComputeDeathAnim's floor branch has no player test: CJ killed while he falls or lies (head below his root)
@@ -1755,6 +1755,8 @@ async function boot() {
         continue;
       }
       if(sim.knockdown>0)continue;
+      // WEAPON_DROWNING short of death animates nothing: the swim task or the seat refuses the event.
+      if(event.weapon===WEAPON.drowning)continue;
       // CTaskComplexEnterCar (and the leave and the seat) aborts only at ABORT_PRIORITY_IMMEDIATE once past the walk to the
       // door: a damage response cannot floor or flinch CJ pinned to a door or seated (the hurt still counts).
       if(carEntry.pinned||carEntry.seated||bikeMount.pinned)continue;
@@ -2646,7 +2648,7 @@ async function boot() {
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.
         if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
           const splash=updatePlayerSwim(sim.player,{moveMag:Math.max(0,axes.y),sprint:input.down('ShiftLeft')||input.down('ShiftRight'),jump:jumpPressed,dive:key||mouseFires&&mouse||click,underwaterStroke:render.nativeCharacter?.swimUnderAssociation()},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
-          if(splash.damage>0)sim.damagePlayer(splash.damage,true);
+          if(splash.damage>0)sim.damagePlayer(splash.damage,true,{weapon:WEAPON.drowning});
           controls={...controls,swimWater,jump:sim.player.swimming?false:controls.jump};
         }else if(sim.player.swimming)stopSwim();
         if(carEntry.active&&sim.player.swimming)carEntry.cancel();

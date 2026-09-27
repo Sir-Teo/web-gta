@@ -157,7 +157,7 @@ export class Simulation {
   handlePlayerBreath(dt:number,decrease=true,multiplier=1){
     const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50,undefined,undefined,this.playerDrownsInWater);
     // CEventDamage drops WEAPON_DROWNING damage to a ped that does not drown.
-    if(result.damage>0&&this.playerDrownsInWater)this.damagePlayer(result.damage,true);
+    if(result.damage>0&&this.playerDrownsInWater)this.damagePlayer(result.damage,true,{weapon:53});// WEAPON_DROWNING
     return result;
   }
   step(dt: number, controls: Controls) {
