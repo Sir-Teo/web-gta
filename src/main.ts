@@ -2618,7 +2618,7 @@ async function boot() {
         fleet?.stepTrains(step*50,gameTimeMs);
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=playerControlsDisabled();car.pad=car.occupied&&!playerControlsDisabled()?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
-        for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;if(phase==='getin')plane.finishEnter();else plane.finishExit();}
+        for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const {phase,foot}=plane.entry;plane.entry=undefined;if(phase==='getin')plane.finishEnter();else plane.finishExit(foot);}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
         // ProcessDrivingAnims in a boat: a boat without m_bSitInBoat uses the DRIVE_BOAT set, steering and looking back.
         {const boat=fleet?.occupiedBoat;if(boat&&!(boat.modelFlags&MODEL_FLAG.sitInBoat))boat.driving.step(step,{steer:boat.steerAngle,reversing:boat.gasPedal<0&&!(boat.modelFlags&MODEL_FLAG.low),idleFull:true,ride:BOAT_RIDE,duration:name=>carEntry.clips.ped(name)?.duration});}

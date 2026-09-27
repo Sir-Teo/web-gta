@@ -39,7 +39,7 @@ export function planeEntrySlots(group:VehicleAnimGroupData|undefined,phase:'geti
  return steps;
 }
 export interface PlaneEntryStep {clip:NativeAnimation;clipName:string}
-export interface PlaneEntry {phase:'getin'|'getout';steps:PlaneEntryStep[];index:number;time:number}
+export interface PlaneEntry {phase:'getin'|'getout';steps:PlaneEntryStep[];index:number;time:number;foot?:{x:number;y:number;z:number}}
 /** Advance a choreographed entry/exit sequence; true when its final clip completes. */
 export function advancePlaneEntry(entry:PlaneEntry,dt:number){
  entry.time+=dt;
@@ -149,7 +149,7 @@ export class WorldPlane {
    this.sim.player.speed=Math.hypot(v.x,v.z);this.sim.player.jumpMomentum={x:v.x,z:v.z};this.sim.player.grounded=false;
    return message;
   }
-  cancelEntry(){const e=this.entry;if(!e)return;this.entry=undefined;if(e.phase==='getout')this.finishExit();}
+  cancelEntry(){const e=this.entry;if(!e)return;this.entry=undefined;if(e.phase==='getout')this.finishExit(e.foot);}
   /** Bailing out mid-flight with the parachute: the fall starts with the
   * aircraft's velocity and the canopy glide takes over (native skydive).
   * The jumper leaves below the belly with room for the full standing
@@ -225,7 +225,8 @@ export class WorldPlane {
    this.occupied=false;this.throttle=0;this.sim.cameraExcludedBody=undefined;
    this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;
    this.sim.playerBody.setTranslation({x:foot.x,y:foot.y+.9,z:foot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:foot.x,y:foot.y+.9,z:foot.z});
-   this.entry={phase:'getout',steps,index:0,time:0};
+   // CTaskSimpleCarSetPedOut has already placed him: the getout clip ends where it started.
+   this.entry={phase:'getout',steps,index:0,time:0,foot:{...foot}};
   }
   finishExit(foot?:{x:number;y:number;z:number}){
    const spot=foot??this.exitFoot();if(!spot)return 'No clear ground beside the plane.';
