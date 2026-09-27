@@ -39,6 +39,8 @@ export class WeaponInventory {
  readonly owned=new Set<number>(WEAPONS.map(w=>w.id));
  /** CWeaponInfo::m_nSlot, once WEAPON.DAT has loaded. */
  slotOf(id:number){return this.info(id)?.slot;}
+ /** CPed::GetWeaponInSlot: the weapon held in `slot` (fists count as none). */
+ inSlot(slot:number|undefined){if(slot===undefined)return undefined;for(const id of this.owned)if(id!==0&&this.slotOf(id)===slot)return id;return undefined;}
  get weapon(){return weaponById(this.selected)!;}
  installNative(data:NativeWeaponData){
   this.native=data;

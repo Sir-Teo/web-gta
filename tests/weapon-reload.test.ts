@@ -45,3 +45,9 @@ test('after Busted only fists are held; GiveWeapon fills slots, carries shotgun 
  i.select(22);i.cooldown=0;i.fire();i.cooldown=0;i.fire();const before=i.ammo.get(22)!.clip;
  i.give(22,5);const after=i.ammo.get(22)!;expect(after.clip).toBe(i.magazine(22));expect(after.clip).toBeGreaterThan(before);expect(after.clip+after.reserve).toBe(34-2+5);
 });
+test('CPed::GetWeaponInSlot names the weapon held in a slot, fists never',()=>{
+ const i=inventory();i.strip();i.give(27,20);
+ expect(i.inSlot(i.slotOf(25))).toBe(27);
+ expect(i.inSlot(i.slotOf(2))).toBeUndefined();
+ expect(i.inSlot(i.slotOf(0))).toBeUndefined();
+});

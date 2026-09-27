@@ -3700,14 +3700,20 @@ async function boot() {
           void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials'),import('./simulation/WorldFleet')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials},{WorldFleet}])=>{
             // CPed::GetBikeRidingSkill for the player.
             void import('./simulation/WorldBike').then(({WorldBike})=>{WorldBike.ridingSkill=()=>Math.min(1000,(mission?.runtime.game.stats.get(STAT_BIKE_SKILL)??0)/1000);WorldBike.riderStaysOn=()=>!!mission?.runtime.game.playerInfo.stayOnBike;WorldBike.onKnockedOff=clip=>{/* CTaskComplexFallAndGetUp: the fall, the player's 500 ms down after a vehicle, the get-up. */const view=render.nativeCharacter;if(!view?.hasReaction(clip)||sim.player.health<=0)return;const fall=view.reactionDuration(clip)??1,getUp=playerFall(view,clip);sim.knockdown=fall+.5+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+.5);};WorldBike.hopClipSeconds=model=>{const group=model===509?'choppa':model===510?'mtb':'bmx';return carEntry.clips.peek(group,`${group.toUpperCase()}_bunnyhop`)?.duration;};});
-            // CVehicle::SetDriver and RemoveDriver's freebies (nativeFreebies). The port's inventory has no weapon slots,
-            // so DoesPlayerWantNewWeapon never turns the weapon into GrantAmmo.
+            // CVehicle::SetDriver and RemoveDriver's freebies (nativeFreebies). The weapon goes through
+            // DoesPlayerWantNewWeapon(type, true): taken only into an empty slot or onto the same weapon; with another
+            // weapon in the slot the cop car's shotgun becomes GrantAmmo on it (which feeds whatever the slot holds) and
+            // the Caddy's golf club is not given.
             WorldCar.onFreebie=(_car,freebie)=>{
              if(freebie.kind==='health')addPlayerHealth(freebie.amount);
              else if(freebie.kind==='money')sim.money+=freebie.amount;
              else if(freebie.kind==='armour')sim.player.armour=Math.max(mission?.runtime.game.playerInfo.maxArmour??100,sim.player.armour);
              else if(freebie.kind==='calories'){const stats=mission?.runtime.game.stats;if(stats?.player)stats.increment(STAT_CALORIES,freebie.amount);else addPlayerHealth(freebie.amount);}
-             else{const before=weapons.inventory.selected;if(weapons.inventory.give(freebie.weapon,freebie.ammo)&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);}
+             else{
+              const inv=weapons.inventory,held=inv.inSlot(inv.slotOf(freebie.weapon));
+              if(held!==undefined&&held!==freebie.weapon){if(freebie.weapon===WEAPON.shotgun)inv.grantAmmo(held,freebie.ammo);}
+              else{const before=inv.selected;if(inv.give(freebie.weapon,freebie.ammo)&&inv.selected!==before)void weaponView.equip(inv.selected);}
+             }
             };
             const [assets,road]=await Promise.all([loadIncludedGreenwood(`${import.meta.env.BASE_URL}play/vehicles/greenwood/`),loadWorldRoadMaterials(`${import.meta.env.BASE_URL}play/world/`)]);if(!alive)return;worldFx.surfaces=road.records;roadSurfaces=road;surfaceAudio??={byId:road.audio,warnings:[]};
             const x=2491,z=1680,hit=sim.world.castRay(new RAPIER.Ray({x,y:80,z},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
