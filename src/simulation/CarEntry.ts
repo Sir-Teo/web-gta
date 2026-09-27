@@ -85,6 +85,9 @@ export class CarEntry {
   /** STAT_DRIVING_SKILL, accumulated by distance driven and persisted with progression. */
   drivingSkill=0;
   message?:string;
+  /** A failure the player is told about: the entry clips never loaded. (The refusals in `message` are silent, as in
+   * the original: a locked door, a blocked way, a car moving too fast or no room to get out show no text.) */
+  error?:string;
   onDriverOut?:(car:WorldCar,position:V3,heading:number)=>void;
   /** The player landed after CTaskComplexCarSlowBeDraggedOut, lying in the jacked clip's last frame. */
   onPlayerDraggedOut?:(clip:{key:string;clip:NativeAnimation})=>void;
@@ -300,7 +303,7 @@ export class CarEntry {
   const car=this.car;if(this.phase!=='approach'||!car)return controls;
   this.approachTime+=dt;
   const local=this.doorPoint(car,this.side);
-  if(!local){if(this.approachTime>3){this.message='The car animations could not load.';this.cancel();}return {...controls,x:0,y:0,jump:false};}
+  if(!local){if(this.approachTime>3){this.message=this.error='The car animations could not load.';this.cancel();}return {...controls,x:0,y:0,jump:false};}
   const target=car.worldPoint(local),p=this.sim.player.position,dx=target.x-p.x,dz=target.z-p.z,distance=Math.hypot(dx,dz);
    // CCarEnterExit::IsPlayerToQuitCarEnter port: steering away from the door quits, as the JCK_HLP hint describes.
   const c=Math.cos(controls.cameraYaw),s=Math.sin(controls.cameraYaw),inputX=input.x*c-input.y*s,inputZ=-input.x*s-input.y*c;

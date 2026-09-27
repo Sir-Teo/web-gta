@@ -2299,7 +2299,7 @@ async function boot() {
          }
         else if(fleet?.occupiedBoat)hud.message(fleet.occupiedBoat.interact());
         else if(fleet?.occupiedBike){const bike=fleet.occupiedBike;if(bikeMount.active){}else if(!bikeMount.ready(bike))hud.message(bike.interact());else if(!bikeMount.dismount(bike)&&bikeMount.message){hud.message(bikeMount.message);bikeMount.message=undefined;}}
-        else if(carEntry.seated){if(!carEntry.exit()&&carEntry.message)hud.message(carEntry.message);}
+        else if(carEntry.seated)carEntry.exit();
         else if(carEntry.phase==='approach')carEntry.cancel();
         else if(!carEntry.active&&sim.player.health>0){
           // CPlayerInfo::FindClosestCarSectorList (unreversed): the cars in a 10-unit box around the player, each scored
@@ -2318,7 +2318,7 @@ async function boot() {
             // Board through the bike's jump-on clip once its animation group has loaded; before that, the instant mount.
             const check=bike.enterCheck();if(check)hud.message(check);else if(bikeMount.active){}else if(!bikeMount.ready(bike))hud.message(bike.interact());else if(!bikeMount.mount(bike)&&bikeMount.message){hud.message(bikeMount.message);bikeMount.message=undefined;}
           }
-          else if(car){if(!carEntry.enter(car)&&carEntry.message)hud.message(carEntry.message);}
+          else if(car)carEntry.enter(car);
         }
         }
       }
@@ -2890,7 +2890,7 @@ async function boot() {
         render.vehiclePose={frame:{vehicle:bike.root,local:seat},pose:{clip:pose.idle,seconds:idle.duration,blend:1,overlay:lean&&pose.overlay?{...pose.overlay}:undefined}};
       }else render.vehiclePose=undefined;
     }else render.vehiclePose=undefined;
-    if(carEntry.message){hud.message(carEntry.message);carEntry.message=undefined;}
+    if(carEntry.error){hud.message(carEntry.error);carEntry.error=undefined;}
     for(const bike of fleet?.bikes??[])if(bike.message){hud.message(bike.message);bike.message=undefined;}
     if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:cullNoRain()});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');if(mission&&(mission.scriptFireCount()>0||scriptFiresBurning>0)){scriptFiresBurning=mission.scriptFireCount();weapons.fires.syncScriptFires(mission.scriptFires());}worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
     frameProfile.between+=performance.now()-tBetween;const tRender=performance.now();
