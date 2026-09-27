@@ -683,6 +683,10 @@ export class WorldPedestrians {
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
     if(applied>0)p.lastWeaponDamage=weapon;
+    // A recruit the player shoots or strikes with a weapon leaves his group, as one he punches does; the damage response
+    // below then answers the player as it would a stranger's (CDarkel asks IsMember first, so a kill still counts him).
+    const wasRecruit=!!p.follow;
+    if(byPlayer&&p.follow){p.follow=false;p.holdPosition=undefined;p.foe=undefined;}
     // Every hit and death takes CEventDamage::ComputeAnim, melee with the attacker's fight move. Surviving blast
     // victims fall with the knockout clip for the hit direction at the push CWorld::TriggerExplosionSectorList
     // computed (explosionOnPed in the weapon system).
@@ -712,7 +716,7 @@ export class WorldPedestrians {
      }
      if(p.health>0&&!floored)this.onPain?.(p,{...q});
     }
-    if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:!!p.follow,byPlayer});
+    if(p.health===0)this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:wasRecruit,byPlayer});
     return {id:p.id,officer:p.officer};
    }
  /** Browser stand-in for the twelve CPedModelInfo hit spheres. Their bone,
