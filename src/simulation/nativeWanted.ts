@@ -53,6 +53,14 @@ export class NativeWanted {
  }
  /** CWanted::SetMaximumWantedLevel (0x561E70). */
  setMaximumWantedLevel(level:number){this.maximumWantedLevel=level;this.maximumChaos=MAXIMUM_CHAOS[level];}
+ /** CWanted::Reset / Initialise (0x562390), as RestorePlayerStuffDuringResurrection runs it: the level, chaos and
+  * pursuit sizes, the parole memory, the back-off flags, the multiplier and the crime queue all go back to a new game's
+  * (the SET_MAX_WANTED_LEVEL globals stay). */
+ reset(){
+  this.policeBackOff=this.policeBackOffGarage=this.everybodyBackOff=false;this.storedBackOff=false;
+  this.chaos=0;this.level=0;this.chaosBeforeParole=0;this.levelBeforeParole=0;this.timeOfParole=0;this.lastDecreased=0;this.lastLevelChange=0;
+  this.maxCopsInPursuit=0;this.maxCopCarsInPursuit=0;this.chanceOnRoadBlock=0;this.multiplier=1;this.chase=undefined;this.crimes.fill(undefined);
+ }
  /** CWanted::SetWantedLevel: clears the crime queue. */
  /** CWanted::ClearQdCrimes, as a cutscene's load does. */
  clearQueuedCrimes(){this.crimes.fill(undefined);}
