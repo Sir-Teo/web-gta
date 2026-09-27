@@ -2516,8 +2516,11 @@ async function boot() {
         gunFiring=firing;
         // CTaskSimpleJetPack::ProcessControlInput fires only an instant-hit weapon aimed with the arm.
         stepJetPackWeapon();
+        // The drive task is gone once the getout, the drag-out or the jump-out starts: no drive-by from then on, and
+        // the leaving task gives the weapon back (ReplaceWeaponWhenExitingVehicle) as it starts.
+        const leavingCar=carEntry.phase==='getOut'||carEntry.phase==='draggedOut'||carEntry.phase==='jumpOut'||carEntry.phase==='crawlOut';
         // CTaskSimpleCarGetOut gives the weapon back (ReplaceWeaponWhenExitingVehicle) as its clip starts, not once he is out.
-        stepDriverWeapon(!!(worldCar?.occupied&&carEntry.phase!=='getOut'||fleet?.occupied&&!(carEntry.phase==='getOut'&&carEntry.car===fleet.occupied)||fleet?.occupiedBoat||fleet?.occupiedBike||fleet?.occupiedPlane));
+        stepDriverWeapon(!!(worldCar?.occupied&&!leavingCar||fleet?.occupied&&!(leavingCar&&carEntry.car===fleet.occupied)||fleet?.occupiedBoat||fleet?.occupiedBike||fleet?.occupiedPlane));
         const jetFireAllowed=!sim.jetPack||!jetWeaponHidden&&(()=>{const info=weapons.inventory.info();return !!info&&info.fire==='instant'&&!!(info.flags&WEAPON_FLAG.aimWithArm);})();
         if(onFoot&&jetFireAllowed&&!playerDown&&!playerJumping&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&firing){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
@@ -2528,7 +2531,7 @@ async function boot() {
         // CAutomobile::ProcessControl skips DoDriveByShootings in the S.W.A.T. van and the Rhino (their gun is the car's),
         // and SET_PLAYER_CAN_DO_DRIVE_BY off leaves the driver no drive-by weapon.
         const driveByAllowed=mission?.runtime.game.playerInfo.canDoDriveBy!==false;
-        if(worldCar?.occupied&&worldCar.modelId!==432&&worldCar.modelId!==601&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
+        if(worldCar?.occupied&&!leavingCar&&worldCar.modelId!==432&&worldCar.modelId!==601&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
         }
