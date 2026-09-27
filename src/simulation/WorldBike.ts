@@ -37,6 +37,8 @@ const HOP_RELEASE_SECONDS=.3;
 export class WorldBike {
  /** CPed::GetBikeRidingSkill for the player: STAT_BIKE_SKILL / 1000 (the host reads the stat). */
  static ridingSkill?:()=>number;
+ /** The player's CantBeKnockedOffBike, which the script sets (the host reads it). */
+ static riderStaysOn?:()=>boolean;
  /** A motorbike rather than a CBmx. */
  get motorbike(){return !BMX_MODELS.has(this.modelId);}
  /** No ground under the wheels. */
@@ -292,7 +294,8 @@ export class WorldBike {
  /** Knock-off from the velocity change the contact solver applied during the world step. */
  private collisionKnockOff(){
   const before=this.stepVelocity;this.stepVelocity=undefined;
-  if(!before||!this.occupied||!this.body.isEnabled())return;
+  // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown.
+  if(!before||!this.occupied||!this.body.isEnabled()||WorldBike.riderStaysOn?.())return;
   const v=this.body.linvel(),dx=v.x-before.x,dy=v.y-before.y,dz=v.z-before.z,change=Math.hypot(dx,dy,dz);
   if(change<.5)return;
   const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0});

@@ -1766,7 +1766,7 @@ export class ScmMission {
    },
    // CPed::bIsTargetPriority and bStayInCarOnJack's bike twin (m_nPedFlags): the ped's flags, kept on it.
    setPedIsTargetPriority:(handle,state)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'targetPriority',state);},
-   setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
+   setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle===PLAYER_PED_HANDLE)this.runtime.game.playerInfo.stayOnBike=stayOnBike;else this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
    // The car's own fields the script sets that the browser's cars keep but do not act on: the heli's rotor speed,
    // CVehicle's status, and CAutomobile::m_fCarTraction.
    setHeliBladesFullSpeed:handle=>{(this.liveVehicle(handle) as {rotorFullSpeed?:boolean}).rotorFullSpeed=true;},

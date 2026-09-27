@@ -32,7 +32,12 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
    out.hopVy=hopVy;
    // A wall stop at speed knocks the rider off through the force formula.
    sim.world.createCollider(RAPIER.ColliderDesc.cuboid(5,3,.5).setTranslation(0,3,-40));
+   // A rider the script keeps on (SET_CHAR_CAN_BE_KNOCKED_OFF_BIKE) rides the same crash out.
+   WorldBike.riderStaysOn=()=>true;
    bike.body.setTranslation({x:0,y:1.5,z:-20},true);bike.body.setRotation({x:0,y:0,z:0,w:1},true);bike.body.setLinvel({x:0,y:0,z:-30},true);
+   for(let i=0;i<120&&bike.snapshot().occupied;i++)tick({throttle:0,steer:0,brake:false});
+   out.keptOn=bike.snapshot().occupied;WorldBike.riderStaysOn=undefined;
+   bike.body.setTranslation({x:0,y:1.5,z:-20},true);bike.body.setRotation({x:0,y:0,z:0,w:1},true);bike.body.setLinvel({x:0,y:0,z:-30},true);bike.body.setAngvel({x:0,y:0,z:0},true);
    for(let i=0;i<120&&bike.snapshot().occupied;i++)tick({throttle:0,steer:0,brake:false});
    out.knocked=!bike.snapshot().occupied;
    out.knockMessage=bike.message;
@@ -52,6 +57,7 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
  expect(Math.abs((result.heading as number)-(result.headingBefore as number))).toBeGreaterThan(.05);
  expect(result.lean).toBeGreaterThan(.02);
  expect(result.overlay).toMatchObject({clip:'bmx_right'});
+ expect(result.keptOn).toBe(true);
  expect(result.knocked).toBe(true);
  expect(result.knockMessage).toBe('Knocked off the bike!');
  expect(errors).toEqual([]);

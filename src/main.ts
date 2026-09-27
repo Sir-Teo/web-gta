@@ -3660,7 +3660,7 @@ async function boot() {
           };
           void Promise.all([import('./assets/includedGreenwood'),import('./simulation/WorldCar'),import('./assets/worldRoadMaterials'),import('./simulation/WorldFleet')]).then(async([{loadIncludedGreenwood},{WorldCar},{loadWorldRoadMaterials},{WorldFleet}])=>{
             // CPed::GetBikeRidingSkill for the player.
-            void import('./simulation/WorldBike').then(({WorldBike})=>{WorldBike.ridingSkill=()=>Math.min(1000,(mission?.runtime.game.stats.get(STAT_BIKE_SKILL)??0)/1000);WorldBike.hopClipSeconds=model=>{const group=model===509?'choppa':model===510?'mtb':'bmx';return carEntry.clips.peek(group,`${group.toUpperCase()}_bunnyhop`)?.duration;};});
+            void import('./simulation/WorldBike').then(({WorldBike})=>{WorldBike.ridingSkill=()=>Math.min(1000,(mission?.runtime.game.stats.get(STAT_BIKE_SKILL)??0)/1000);WorldBike.riderStaysOn=()=>!!mission?.runtime.game.playerInfo.stayOnBike;WorldBike.hopClipSeconds=model=>{const group=model===509?'choppa':model===510?'mtb':'bmx';return carEntry.clips.peek(group,`${group.toUpperCase()}_bunnyhop`)?.duration;};});
             // CVehicle::SetDriver and RemoveDriver's freebies (nativeFreebies). The port's inventory has no weapon slots,
             // so DoesPlayerWantNewWeapon never turns the weapon into GrantAmmo.
             WorldCar.onFreebie=(_car,freebie)=>{
