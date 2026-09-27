@@ -1,4 +1,5 @@
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
+import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
 import type {CarRecordingFrame} from '../assets/carRecordings';
 import {saveOrRetrieveDataForThisFrame,type CarRecordingVehicle} from '../engine/carRecordingPlayback';
 import {TRAIN_TYPES} from './nativeTrainTracks';
@@ -621,10 +622,6 @@ export interface ScmMissionWorld {
 }
 /** CTheScripts' player slot: the script always addresses player zero, whose ped it creates first. */
 export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
-/** Where CPedGroup::Teleport puts each follower from the point, native world axes: CTaskComplexFollowLeaderInFormation's
- * ms_offsets are static data the reversed sources do not carry, so these stand in for them, a unit apart in a wedge
- * behind and to the sides. */
-const GROUP_TELEPORT_OFFSETS:readonly (readonly [number,number])[]=[[-1,-1],[1,-1],[-2,-2],[2,-2],[0,-2],[-3,-3],[3,-3]];
 /** The browser holds one vehicle for the player at a time, so the script's questions about the car it is in are
  * answered by a single handle rather than a pool the browser does not have. */
 export const PLAYER_VEHICLE_HANDLE=1;

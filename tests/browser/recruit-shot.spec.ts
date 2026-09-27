@@ -19,3 +19,28 @@ test('a recruit CJ shoots leaves his group instead of wandering off inside it',a
  });
  expect(result.shot).toEqual({follow:false,alive:true});
 });
+
+test('an entrance that accepts the group warps CJ\'s recruits in beside him',async({page})=>{
+ test.setTimeout(180000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
+  const [{WorldPedestrians},{WantedSystem},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(/* @vite-ignore */ p)));
+  await RAPIER.init();const sim=new Simulation(),scene=new THREE.Scene(),base=new URL('/play/world/',location.href).href;
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(2490,12,1680));
+  sim.respawn={x:2470,y:12.55,z:1680};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
+  const law=new WantedSystem(),crowd=new WorldPedestrians(sim,scene,base,()=>undefined,law) as any;
+  crowd.pedTargets=()=>({dealers:0,gangs:0,cops:0,other:2,gangStrengths:Array(10).fill(0)});
+  try{
+   for(let i=0;i<300&&crowd.snapshot().people.length<2;i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
+   const [a,b]=crowd.people;if(!b)throw new Error('no peds');
+   a.follow=true;a.retaliate=5;b.follow=false;
+   const at={x:2500,y:12.55,z:1690},bBefore={...b.actor.player.position};
+   const warped=crowd.warpGangWithPlayer(at,5,()=>true);
+   const q=a.actor.player.position;
+   return {warped,distance:Math.hypot(q.x-at.x,q.z-at.z),area:a.areaCode,retaliate:a.retaliate,strangerStayed:b.actor.player.position.x===bBefore.x&&b.actor.player.position.z===bBefore.z};
+  }finally{crowd.dispose?.();sim.dispose();}
+ });
+ expect(result.warped).toBe(1);
+ expect(result.distance).toBeLessThan(2);
+ expect(result.area).toBe(5);
+ expect(result.retaliate).toBe(0);
+ expect(result.strangerStayed).toBe(true);
+});

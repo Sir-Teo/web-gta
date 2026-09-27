@@ -1,4 +1,5 @@
 import {deadPedWeaponDrops} from './WeaponDrops';
+import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
 import { CHEATS, megaPunchBlow } from './nativeCheats';
 import {GangPedRoster,ZonePedRoster,type PedZoneGroups} from './nativePedRoster';
 import {newPedTypeOrder,gangToCreateMembersOf,type PopulationTargets} from '../assets/populationCycle';
@@ -3441,6 +3442,24 @@ export class WorldPedestrians {
   return removed;
  }
  /* Only peds CPed::CanBeDeleted allows: the player's crew, police crews, attack waves and the script's peds stay. */
+ /** CEntryExit::WarpGangWithPlayer (0x43F1F0), when the entrance accepts the player's group (ENEX_FLAG_ACCEPT_NPC_GROUP):
+  * each living follower is teleported to the formation offsets around the player's new point (while there are offsets
+  * left and the point is valid), its reactions flushed (FlushImmediately), turned to face him and given his area. A
+  * script's order on a mission recruit is left to the script. Returns how many came along. */
+ warpGangWithPlayer(at:{x:number;y:number;z:number},area:number|undefined,valid:(point:{x:number;y:number;z:number})=>boolean){
+  let slot=0,warped=0;
+  for(const p of this.people){
+   if(!p.follow||p.health<=0)continue;
+   let point:{x:number;y:number;z:number}|undefined;
+   while(slot<GROUP_TELEPORT_OFFSETS.length&&!point){const [ox,oy]=GROUP_TELEPORT_OFFSETS[slot++];const tried={x:at.x+ox,y:at.y,z:at.z-oy};if(valid(tried))point=tried;}
+   if(!point)break;
+   const state=p.actor.player;state.position={...point};state.previous={...point};state.speed=0;state.heading=Math.atan2(at.x-point.x,at.z-point.z);
+   p.body.setTranslation({x:point.x,y:point.y+.9,z:point.z},true);p.body.setNextKinematicTranslation({x:point.x,y:point.y+.9,z:point.z});p.collider.setTranslation({x:point.x,y:point.y+.9,z:point.z});
+   p.impulse={x:0,z:0};p.retaliate=0;p.foe=undefined;p.fight=undefined;p.flee=0;p.fleePlayer=undefined;p.gunReact=undefined;p.evade=undefined;p.carReact=undefined;p.event=undefined;p.air=undefined;p.holdPosition=undefined;
+   p.areaCode=area;warped++;
+  }
+  return warped;
+ }
  removeAllRandomPeds(){const kept=this.people.filter(p=>p.follow||p.crew||p.attackWave||p.mission);for(const p of this.people)if(!kept.includes(p))this.remove(p);this.people=kept;}
  dispose(){this.disposed=true;for(const p of this.people)this.remove(p);this.people=[];}
 }

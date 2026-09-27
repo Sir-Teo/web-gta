@@ -3513,6 +3513,16 @@ async function boot() {
     render.yaw=heading+Math.PI;
     // CPopulation::RemoveAllRandomPeds; the interior's own peds (PopulateInterior) are not generated.
     pedestrians?.removeAllRandomPeds();
+    // TransitionFinished: a spawn point that accepts the player's group warps his followers in with him
+    // (IsTeleportPointValid: a clear 0.35 sphere in sight of him).
+    if(spawn.flags&ENEX.ACCEPT_NPC_GROUP){
+      const eye={x:feet.x,y:feet.y+1,z:feet.z};
+      pedestrians?.warpGangWithPlayer(feet,spawn.area,q=>{
+        const c={x:q.x,y:q.y+1,z:q.z};if(sim.world.intersectionWithShape(c,{x:0,y:0,z:0,w:1},new RAPIER.Ball(.35),undefined,undefined,sim.playerCollider))return false;
+        const d={x:c.x-eye.x,y:c.y-eye.y,z:c.z-eye.z},length=Math.hypot(d.x,d.y,d.z)||1;
+        return !sim.world.castRay(new RAPIER.Ray(eye,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC,undefined,sim.playerCollider);
+      });
+    }
     entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);rebuildPlayerIfNeeded();
     // TransitionFinished's shop (reconstructed): a reward interior's door unloads the shop, any other door loads the
     // shop its name names and marks its pair as the reward side.
