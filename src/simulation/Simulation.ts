@@ -459,6 +459,9 @@ export class Simulation {
       const lifted = this.liftOutOfWorld(position);
       if (lifted !== undefined) { this.playerBody.setTranslation({ x: position.x, y: lifted, z: position.z }, true); this.playerBody.setNextKinematicTranslation({ x: position.x, y: lifted, z: position.z }); this.player.position = { ...this.player.position, y: lifted - this.playerCenterHeight }; this.player.verticalSpeed = 0; this.player.grounded = false; return; }
     }
+    // The same rule rising: a jump into a ceiling loses the speed the ceiling stopped, instead of pressing along under
+    // it until gravity cancels the rise.
+    else if (this.player.verticalSpeed > 0 && dt > 0 && movement.y < this.player.verticalSpeed * dt * .5) this.player.verticalSpeed = Math.max(0, movement.y / dt);
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = resolved.grounded;
     // CTaskSimpleInAir: m_fMinZSpeed keeps the fastest fall; past 0.1 units a frame down with nothing within 4 units
