@@ -2273,7 +2273,8 @@ async function boot() {
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.
         if(sim.jetPack){/* the jetpack task owns the button */}
         else if(playerPassenger)leavePassengerSeat();
-        else if(sim.player.swimming){hud.message('Get out of the water first.');}
+        // The original gives no text for any of the vehicle refusals and notices below; the calls keep their effects.
+        else if(sim.player.swimming){}
         else{
         const plane=fleet?.nearestPlane(true);
         // Entry/exit clips resolve through the model's handling anim group; a first
@@ -2291,14 +2292,13 @@ async function boot() {
           const leave=exiting.leaveMode();
           if(sim.player.health>0&&leave==='wait')exiting.exitPending=true;
           // In the air a step or a jump both leave with the aircraft's velocity; the parachute is the player's choice after.
-          else if(!exiting.grounded){const out=exiting.exitAir();hud.message(weapons.parachute?out:'Out of the aircraft');}
-          else if(leave==='jump'){const foot=exiting.exitFoot();hud.message(foot?exiting.jumpOutOnGround(foot)??'':'No clear ground beside the plane.');}
+          else if(!exiting.grounded)exiting.exitAir();
+          else if(leave==='jump'){const foot=exiting.exitFoot();if(foot)exiting.jumpOutOnGround(foot);}
           else{const blocked=exiting.exitCheck();
-          if(blocked)hud.message(blocked);
-          else{const foot=exiting.exitFoot();if(!foot)hud.message('No clear ground beside the plane.');else{const steps=planeSteps(exiting,'getout');if(steps){installPlaneSteps(steps);exiting.beginExit(foot,steps);}else hud.message(exiting.finishExit(foot));}}}
+          if(!blocked){const foot=exiting.exitFoot();if(foot){const steps=planeSteps(exiting,'getout');if(steps){installPlaneSteps(steps);exiting.beginExit(foot,steps);}else exiting.finishExit(foot);}}}
          }
-        else if(fleet?.occupiedBoat)hud.message(fleet.occupiedBoat.interact());
-        else if(fleet?.occupiedBike){const bike=fleet.occupiedBike;if(bikeMount.active){}else if(!bikeMount.ready(bike))hud.message(bike.interact());else if(!bikeMount.dismount(bike)&&bikeMount.message){hud.message(bikeMount.message);bikeMount.message=undefined;}}
+        else if(fleet?.occupiedBoat)fleet.occupiedBoat.interact();
+        else if(fleet?.occupiedBike){const bike=fleet.occupiedBike;if(bikeMount.active){}else if(!bikeMount.ready(bike))bike.interact();else if(!bikeMount.dismount(bike))bikeMount.message=undefined;}
         else if(carEntry.seated)carEntry.exit();
         else if(carEntry.phase==='approach')carEntry.cancel();
         else if(!carEntry.active&&sim.player.health>0){
@@ -2310,20 +2310,19 @@ async function boot() {
           const boat=fleet?.nearestBoat(true);
           const bike=fleet?.nearestBike(true);
           if(plane&&(!car||plane.distance()<car.distance())&&(!boat||plane.distance()<boat.distance())&&(!bike||plane.distance()<bike.distance())&&plane.distance()<10){
-           const reason=plane.enterCheck();if(reason)hud.message(reason);
-           else{const steps=planeSteps(plane,'getin');if(steps){installPlaneSteps(steps);plane.beginEnter(steps);}else hud.message(plane.finishEnter());}
+           if(!plane.enterCheck()){const steps=planeSteps(plane,'getin');if(steps){installPlaneSteps(steps);plane.beginEnter(steps);}else plane.finishEnter();}
           }
-          else if(boat&&(!car||boat.distance()<car.distance())&&(!bike||boat.distance()<bike.distance())&&boat.distance()<10)hud.message(boat.interact());
+          else if(boat&&(!car||boat.distance()<car.distance())&&(!bike||boat.distance()<bike.distance())&&boat.distance()<10)boat.interact();
           else if(bike&&(!car||bike.distance()<car.distance())&&bike.distance()<10){
             // Board through the bike's jump-on clip once its animation group has loaded; before that, the instant mount.
-            const check=bike.enterCheck();if(check)hud.message(check);else if(bikeMount.active){}else if(!bikeMount.ready(bike))hud.message(bike.interact());else if(!bikeMount.mount(bike)&&bikeMount.message){hud.message(bikeMount.message);bikeMount.message=undefined;}
+            if(bike.enterCheck()||bikeMount.active){}else if(!bikeMount.ready(bike))bike.interact();else if(!bikeMount.mount(bike))bikeMount.message=undefined;
           }
           else if(car)carEntry.enter(car);
         }
         }
       }
-      if(input.consume('KeyT')&&fleet?.occupiedPlane)hud.message(fleet.occupiedPlane.toggleVtol());
-      if(input.consume('KeyG')&&fleet?.occupiedPlane)hud.message(fleet.occupiedPlane.toggleGear());
+      if(input.consume('KeyT')&&fleet?.occupiedPlane)fleet.occupiedPlane.toggleVtol();
+      if(input.consume('KeyG')&&fleet?.occupiedPlane)fleet.occupiedPlane.toggleGear();
       elapsed += dt;
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
       // The original switches camera modes without any text.
@@ -2590,7 +2589,7 @@ async function boot() {
         fleet?.stepTrains(step*50,gameTimeMs);
         for(const car of fleet?.cars??[]){car.wetRoads=weatherStarted?weather.wetRoads:0;car.propFor??=scenePropFor;car.firstPersonCamera=!!render.firstPerson;car.controlsDisabled=playerControlsDisabled();car.pad=car.occupied&&!playerControlsDisabled()?carPad:NO_CAR_PAD;car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
         for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
-        for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;hud.message(phase==='getin'?plane.finishEnter():plane.finishExit());}
+        for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const phase=plane.entry.phase;plane.entry=undefined;if(phase==='getin')plane.finishEnter();else plane.finishExit();}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
         // ProcessDrivingAnims in a boat: a boat without m_bSitInBoat uses the DRIVE_BOAT set, steering and looking back.
         {const boat=fleet?.occupiedBoat;if(boat&&!(boat.modelFlags&MODEL_FLAG.sitInBoat))boat.driving.step(step,{steer:boat.steerAngle,reversing:boat.gasPedal<0&&!(boat.modelFlags&MODEL_FLAG.low),idleFull:true,ride:BOAT_RIDE,duration:name=>carEntry.clips.ped(name)?.duration});}
@@ -2891,7 +2890,6 @@ async function boot() {
       }else render.vehiclePose=undefined;
     }else render.vehiclePose=undefined;
     if(carEntry.error){hud.message(carEntry.error);carEntry.error=undefined;}
-    for(const bike of fleet?.bikes??[])if(bike.message){hud.message(bike.message);bike.message=undefined;}
     if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:cullNoRain()});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');if(mission&&(mission.scriptFireCount()>0||scriptFiresBurning>0)){scriptFiresBurning=mission.scriptFireCount();weapons.fires.syncScriptFires(mission.scriptFires());}worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
     frameProfile.between+=performance.now()-tBetween;const tRender=performance.now();
     render.update(dt, alpha, input, elapsed, paused||terrainPause||!!navigation?.open||arsenal.open);
@@ -4632,7 +4630,7 @@ async function boot() {
                 for(const previous of fleet.planes){const p=previous.body.translation();if(!previous.occupied&&Math.hypot(p.x-150,p.z+2500)<40){previous.dispose();fleet.planes.delete(previous);}}
                 // The hangar is a browser convenience on the original continuous airfield.
                 const plane=await fleet.spawnPlane(transfer.modelId,150,-2500,-Math.PI/2);
-                sim.player.position={...plane.body.translation()};hud.message(plane.interact());render.yaw=sim.player.heading-Math.PI;
+                sim.player.position={...plane.body.translation()};plane.interact();render.yaw=sim.player.heading-Math.PI;
                 follower=new SceneRegionFollower({x:150,y:2500,radius:180,lodRadius:1000,includeCollisionBounds:true});play();transfer.resolve();
               }catch(error){hud.menuMessage(String(error));transfer.reject(error);}})();return;
             }
