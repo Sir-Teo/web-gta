@@ -229,6 +229,8 @@ export class WorldFleet {
  private records:readonly WorldCarGenerator[]=[];
  /** Records mid-spawn (their asset load is pending). */
  private attempted=new Set<string>();
+ /** Aircraft made by a generator, by the generator's id: culling one frees its generator. */
+ private generatedPlanes=new Map<WorldPlane,string>();
  private generated=new Map<WorldCar,string>();
  /** CCarCtrl's vehicles of interest: a car the player has driven, with the last time he sat in it. RegisterVehicleOfInterest
   * keeps it for three minutes (PruneVehiclesOfInterest); after that it is an ordinary abandoned car, removed far off. */
@@ -573,7 +575,7 @@ export class WorldFleet {
   }
   // A script's vehicles stay, however far off, until the script deletes them or lets them go (INTRO1 parks a homie's
   // BMX out of the way and uses it again; it used to be culled from under the script).
-  for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&!plane.missionCar&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
+  for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&!plane.missionCar&&plane.distance()>350){plane.dispose();this.planes.delete(plane);const id=this.generatedPlanes.get(plane);if(id!==undefined){this.generatedPlanes.delete(plane);this.attempted.delete(id);}}
   for(const boat of this.boats)if(!boat.occupied&&!boat.missionCar&&boat.distance()>350){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);}
   for(const bike of this.bikes)if(!bike.occupied&&!bike.missionCar&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);}
   if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
@@ -605,7 +607,14 @@ export class WorldFleet {
    return this.sim.world.castRay(new RAPIER.Ray({x,y:top,z:-y},{x:0,y:-1,z:0}),top+1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   };
   const planeRecord=candidates.find(record=>PLAYABLE_PLANES[record.modelId]&&groundAt(record));
-  if(planeRecord&&this.planes.size<3){this.busy=true;this.attempted.add(planeRecord.id);void this.spawnPlane(planeRecord.modelId,planeRecord.position[0],-planeRecord.position[1],planeRecord.angle).catch(error=>this.failures.set(planeRecord.id,String(error))).finally(()=>{this.busy=false;});return;}
+  if(planeRecord&&this.planes.size<3){
+   this.busy=true;this.attempted.add(planeRecord.id);
+   // The aircraft stands for its generator until it is culled; a spawn that fails frees the generator to try again after
+   // the generator's wait, instead of keeping it blocked for the session.
+   void this.spawnPlane(planeRecord.modelId,planeRecord.position[0],-planeRecord.position[1],planeRecord.angle).then(plane=>{this.generatedPlanes.set(plane,planeRecord.id);})
+    .catch(error=>{this.failures.set(planeRecord.id,String(error));this.attempted.delete(planeRecord.id);this.generatorState.set(planeRecord.id,{nextGen:now+GENERATOR_TAKEN_WAIT_MS,waitFar:false});}).finally(()=>{this.busy=false;});
+   return;
+  }
   // CCarGenerator::DoInternalProcessing makes a bike (on its side stand) or a boat from its record like any car.
   const otherRecord=candidates.find(record=>PLAYABLE_BIKES[record.modelId]||PLAYABLE_BOATS[record.modelId]);
   if(otherRecord&&this.bikes.size+this.boats.size<6){this.busy=true;this.attempted.add(otherRecord.id);void this.generateBikeOrBoat(otherRecord,groundAt).catch(error=>{if(!this.disposed)this.failures.set(otherRecord.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(otherRecord.id);});return;}
