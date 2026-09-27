@@ -191,3 +191,8 @@ test('a weapon given mid-reload is loaded and ready at once (CPed::GiveWeapon)',
  const inv=new WeaponInventory();inv.give(22,40);inv.select(22);inv.ammo.set(22,{clip:0,reserve:20});expect(inv.reload()).toBe(true);expect(inv.reloading).toBeGreaterThan(0);
  inv.give(22,17);expect(inv.reloading).toBe(0);expect(inv.fire()).toBe(true);
 });
+test('switching to a weapon loads its clip from the total (CPlayerPed::MakeChangesForNewWeapon)',()=>{
+ const inv=new WeaponInventory();inv.give(30,90);inv.ammo.set(30,{clip:10,reserve:50});
+ inv.loadClipForNewWeapon(30);const size=inv.magazine(30);expect(inv.ammo.get(30)).toEqual({clip:Math.min(size,60),reserve:60-Math.min(size,60)});
+ inv.ammo.set(30,{clip:3,reserve:2});inv.loadClipForNewWeapon(30);expect(inv.ammo.get(30)).toEqual({clip:5,reserve:0});
+});

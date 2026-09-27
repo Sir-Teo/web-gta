@@ -128,6 +128,12 @@ export class WeaponInventory {
   if(stashed){const left=stashed.endAt-this.clock;if(left>0){this.reloading=left;this.duration=stashed.duration;}else this.finishReload();}
   return true;
  }
+ /** CPlayerPed::MakeChangesForNewWeapon, which the player's weapon switch goes through: the clip is loaded from the
+  * total, m_AmmoInClip = min(m_TotalAmmo, clip size), so a part-used clip is full again once switched back to. */
+ loadClipForNewWeapon(id=this.selected){
+  const a=this.ammo.get(id),magazine=this.magazine(id);if(!a||!magazine)return;
+  const total=a.clip+a.reserve,clip=Math.min(magazine,total);a.clip=clip;a.reserve=total-clip;
+ }
  /** CWeapon::Reload: the clip fills from the total. */
  private finishReload(){const a=this.ammo.get(this.selected)!,n=Math.min(this.magazine()-a.clip,a.reserve);a.clip+=n;a.reserve-=n;this.duration=0;}
  /** CPed::ClearWeapon (0x5E62B0): the weapon goes only if its slot holds it, and a held one leaves the ped unarmed. */
