@@ -2653,7 +2653,9 @@ async function boot() {
           // CEventDamage::AffectsPed turns WEAPON_DROWNING away from a ped that does not drown.
           if(splash.damage>0&&sim.playerDrownsInWater)sim.damagePlayer(splash.damage,true,{weapon:WEAPON.drowning});
           controls={...controls,swimWater,jump:sim.player.swimming?false:controls.jump};
-        }else if(sim.player.swimming)stopSwim();
+        }
+        // A dead CJ's body keeps its buoyancy (CPed::ProcessBuoyancy): the sim floats it on this surface.
+        else if(onFoot&&sim.player.health<=0)controls={...controls,swimWater};else if(sim.player.swimming)stopSwim();
         if(carEntry.active&&sim.player.swimming)carEntry.cancel();
         if(carEntry.phase==='approach')controls=carEntry.approach(step,controls,{x:axes.x,y:axes.y,quit:controls.jump||firing});
         if(carEntry.active&&(sim.player.health<=0||law.arrested))carEntry.abandon();

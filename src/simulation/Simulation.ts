@@ -3,7 +3,7 @@ import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
-import { PED_ORIGIN_HEIGHT, swimResistance, swimRotationTowardSurface, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
+import { PED_ORIGIN_HEIGHT, pedFloatDepth, swimResistance, swimRotationTowardSurface, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
@@ -387,6 +387,13 @@ export class Simulation {
     const climbJump = !!glide && glide.climbJump > 0;
     if (glide && climbJump) glide.climbJump = Math.max(0, glide.climbJump - dt);
     this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * (climbJump ? .65 : 1) * dt;
+    // CPed::ProcessBuoyancy runs on for a dead ped, at 1.8 times the buoyancy: a body in the water rises or settles to
+    // float with its origin pedFloatDepth(false) under the surface (at the street peds' 5 units a second either way).
+    const deadIn = controls.swimWater;
+    if (this.player.health <= 0 && deadIn !== undefined && this.player.position.y + PED_ORIGIN_HEIGHT < deadIn) {
+      const rest = deadIn - pedFloatDepth(false) - PED_ORIGIN_HEIGHT;
+      this.player.verticalSpeed = Math.max(-5, Math.min(5, (rest - this.player.position.y) / Math.max(dt, 1e-3)));
+    }
     if (!this.player.grounded && !controls.parachute) {
       const momentum = this.player.jumpMomentum, forward = { x: Math.sin(this.player.heading), z: Math.cos(this.player.heading) };
       // CTaskSimpleInAir under CTaskComplexJump: a rising jump keeps 0.05 units per frame forward for 1000 ms of pushing.

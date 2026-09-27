@@ -148,3 +148,12 @@ test('the game weekday starts on Thursday and rolls over at midnight like CClock
   clock.advanceClock(1440 * 7);
   expect(clock.weekDay).toBe(1);
 });
+test('a dead CJ in the water floats just under the surface instead of sinking (CPed::ProcessBuoyancy)', () => {
+  setup('box');
+  // A deep pool: water at 10 over the floor at 0, the body put in at 5.
+  sim.player.position = { x: 0, y: 5, z: 0 }; sim.playerBody.setTranslation({ x: 0, y: 5.9, z: 0 }, true); sim.player.health = 0;
+  for (let i = 0; i < 240; i++) sim.step(1/60, { ...controls, swimWater: 10 });
+  const origin = sim.player.position.y + 1;
+  // pedFloatDepth(false) = 1.9 / 1.8 - 1: the origin rests 0.056 under the surface.
+  expect(origin).toBeGreaterThan(9.8); expect(origin).toBeLessThan(10);
+});
