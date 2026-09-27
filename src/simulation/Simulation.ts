@@ -474,7 +474,9 @@ export class Simulation {
     // CTaskSimpleInAir: m_fMinZSpeed keeps the fastest fall; past 0.1 units a frame down with nothing within 4 units
     // below, the ped goes into FALL_FALL. CTaskComplexInAirAndLand then lands a FALL_FALL with FALL_COLLAPSE, or, if the
     // fall ever passed 0.4 units a frame, knocks the ped flat (CTaskSimpleFall, KO_SKID_BACK, 700 ms).
-    if (!this.player.grounded && !controls.parachute && !controls.jetPack) {
+    // The canopy replaces CTaskComplexInAirAndLand: the freefall before it opened lands no FALL_COLLAPSE or knockdown.
+    if (controls.parachute) this.fall = { minVz: 0, falling: false };
+    else if (!this.player.grounded && !controls.jetPack) {
       this.fall.minVz = Math.min(this.fall.minVz, this.player.verticalSpeed);
       if (!this.fall.falling && this.player.verticalSpeed < -.1 * 50) {
         const p = this.playerBody.translation();

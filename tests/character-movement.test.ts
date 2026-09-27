@@ -157,3 +157,13 @@ test('a dead CJ in the water floats just under the surface instead of sinking (C
   // pedFloatDepth(false) = 1.9 / 1.8 - 1: the origin rests 0.056 under the surface.
   expect(origin).toBeGreaterThan(9.8); expect(origin).toBeLessThan(10);
 });
+test('a canopy opened after a long freefall lands with no FALL_COLLAPSE or knockdown', () => {
+  setup('box');
+  // Dropped from 200 units: past the knockdown speed within a couple of seconds.
+  sim.player.position = { x: 0, y: 200, z: 0 }; sim.playerBody.setTranslation({ x: 0, y: 200.9, z: 0 }, true); sim.player.grounded = false;
+  for (let i = 0; i < 150; i++) sim.step(1/60, { ...controls });
+  expect(sim.fall.falling).toBe(true); expect(sim.fall.minVz).toBeLessThan(-.4 * 50);
+  let landing: string | undefined;
+  for (let i = 0; i < 6000 && !sim.player.grounded; i++) { sim.step(1/60, { ...controls, parachute: true }); landing ??= sim.fallLanding; }
+  expect(sim.player.grounded).toBe(true); expect(landing).toBeUndefined();
+});
