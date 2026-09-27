@@ -97,3 +97,9 @@ test('underwater, a swimmer pitched up past 45 degrees within 0.65 of the surfac
  p.position.y=8.5;p.swimPitch=0;updatePlayerSwim(p,input,10,1/60,undefined);expect(p.swimState).toBe(SWIM.underwaterSprinting);
  p.swimPitch=1;updatePlayerSwim(p,input,10,1/60,undefined);expect(p.swimState).toBe(SWIM.tread);
 });
+test('a swimmer who does not drown (SET_CHAR_DROWNS_IN_WATER off) keeps his breath under water',()=>{
+ const under=()=>player({swimming:true,swimState:SWIM.underwaterSprinting,position:{x:0,y:5,z:0}});
+ const drowner=under(),holder=under();
+ for(let i=0;i<50;i++){updatePlayerSwim(drowner,input,10,1/50,undefined);updatePlayerSwim(holder,{...input,drownsInWater:false},10,1/50,undefined);}
+ expect(drowner.breath).toBeLessThan(100);expect(holder.breath).toBe(100);
+});

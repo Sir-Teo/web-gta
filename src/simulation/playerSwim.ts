@@ -11,7 +11,9 @@ export interface SwimPlayer extends PlayerBreathState {
  verticalSpeed?:number;
 }
 /** Per-step player input for the swim task. */
-export interface SwimInput {moveMag:number;sprint:boolean;jump:boolean;dive:boolean;underwaterStroke?:SwimStrokeAssociation}
+export interface SwimInput {moveMag:number;sprint:boolean;jump:boolean;dive:boolean;underwaterStroke?:SwimStrokeAssociation;
+ /** CPed::bDrownsInWater (SET_CHAR_DROWNS_IN_WATER): off, the swimmer holds his breath for ever. */
+ drownsInWater?:boolean}
 /** CTaskComplexInWater/CTaskSimpleSwim player flow: entry with the origin 0.6 under (straight to underwater
  * sprinting when it is 2 under), the strand exit (CPed::ProcessBuoyancy: no water ends the task at once; standing
  * where the origin is not 0.6 under counts SWIM_STOP_TIME), surface/dive state selection, dive timing and breath.
@@ -44,5 +46,5 @@ export function updatePlayerSwim(player:SwimPlayer,input:SwimInput,water:number|
   // The jump-out plays out (SWIM_JUMPOUT, then CLIMB_JUMP) and CJ treads once he has dropped back into the water.
   if(water===undefined||(player.verticalSpeed??0)<=0&&player.position.y+PED_ORIGIN_HEIGHT<water)player.swimState=SWIM.tread;
  }
- return handlePlayerBreath(player,player.swimState===SWIM.underwaterSprinting,swimBreathMultiplier(player.swimState,input.underwaterStroke),dt*50);
+ return handlePlayerBreath(player,player.swimState===SWIM.underwaterSprinting,swimBreathMultiplier(player.swimState,input.underwaterStroke),dt*50,undefined,undefined,input.drownsInWater??true);
 }

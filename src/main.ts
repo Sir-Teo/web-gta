@@ -2647,8 +2647,9 @@ async function boot() {
         let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim'),jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl.
         if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
-          const splash=updatePlayerSwim(sim.player,{moveMag:Math.max(0,axes.y),sprint:input.down('ShiftLeft')||input.down('ShiftRight'),jump:jumpPressed,dive:key||mouseFires&&mouse||click,underwaterStroke:render.nativeCharacter?.swimUnderAssociation()},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
-          if(splash.damage>0)sim.damagePlayer(splash.damage,true,{weapon:WEAPON.drowning});
+          const splash=updatePlayerSwim(sim.player,{moveMag:Math.max(0,axes.y),sprint:input.down('ShiftLeft')||input.down('ShiftRight'),jump:jumpPressed,dive:key||mouseFires&&mouse||click,underwaterStroke:render.nativeCharacter?.swimUnderAssociation(),drownsInWater:sim.playerDrownsInWater},swimWater,step,carEntry.clips.peek('swim','Swim_Dive_Under')?.duration);
+          // CEventDamage::AffectsPed turns WEAPON_DROWNING away from a ped that does not drown.
+          if(splash.damage>0&&sim.playerDrownsInWater)sim.damagePlayer(splash.damage,true,{weapon:WEAPON.drowning});
           controls={...controls,swimWater,jump:sim.player.swimming?false:controls.jump};
         }else if(sim.player.swimming)stopSwim();
         if(carEntry.active&&sim.player.swimming)carEntry.cancel();
