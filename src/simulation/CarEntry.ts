@@ -217,8 +217,9 @@ export class CarEntry {
   enter(car:WorldCar){
    if(this.active)return false;
    if(car.wrecked){this.message='This vehicle is destroyed.';return false;}
-   // CTaskComplexEnterCar ends at once for a car on fire (m_pFire).
-   if(car.onFire)return false;
+   // CTaskComplexEnterCar ends at once for a car with a CFire on it (m_pFire: a molotov's, a flamethrower's or a
+   // script's). The engine fire under 250 health (ProcessCarOnFireAndExplode) is only a particle and bars nothing:
+   // CJ may get into a burning car before it blows. No entity fire is kept on the browser's cars.
   this.car=car;void this.clips.load(car.animGroup).catch(()=>{});
   // CCarEnterExit::GetNearestCarDoor: the driver's door unless the passenger door is nearer (buses always use the
   // driver's), each only with room at it (IsRoomForPedToLeaveCar), else the other; with room at neither, no entry.
