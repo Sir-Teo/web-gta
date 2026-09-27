@@ -1272,6 +1272,7 @@ async function boot() {
   // Open the (suspended) output device while the menu waits, not inside the click that starts play.
   if(typeof requestIdleCallback==='function')requestIdleCallback(()=>sound.prepare(),{timeout:4000});else setTimeout(()=>sound.prepare(),1000);
   if(navigation)navigation.onToggle=open=>{input.clear();sound.setPlaying(!paused&&!open);if(open)releaseLockForOverlay();};
+  if(navigation){navigation.canOpen=()=>!mission?.runtime.game.widescreenOn;}
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   // The PC original's frame limiter (on by default): display frames pace at 30 a second over the 60 Hz simulation.
   const display=readDisplaySettings(),pacer:FramePacer={lastDrawn:0};
@@ -3079,6 +3080,8 @@ async function boot() {
     // CHud::DrawAfterFade skips DrawAreaName in a plane and while the script has DISPLAY_ZONE_NAMES off.
     hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane||mission?.runtime.game.displayAreaName===false,!!mission?.runtime.game.widescreenOn,mission?.runtime.game.displayVehicleName===false);
     hud.widescreen(!!mission?.runtime.game.widescreenOn);
+    // The widescreen borders hide the HUD and the map with it: a map left open would hold the game unseen.
+    if(mission?.runtime.game.widescreenOn&&navigation?.open)navigation.toggle(false);
     hud.displayHud(mission?.runtime.game.displayHud??true);
     {const camera=mission?.runtime.game.camera;render.scriptNearClip=camera?.useNearClipScript?camera.nearClipScript:undefined;}
     // CMessages::Process once a game frame, and CMessages::Display handing the front of each queue to the HUD: the

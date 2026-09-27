@@ -19,6 +19,9 @@ export interface ZoneOverlay {x1:number;z1:number;x2:number;z2:number;colour:str
 export class NativeMap {
  onFly?:(modelId:number)=>Promise<void>;
  onToggle?:(open:boolean)=>void;
+ /** Whether the map may open now: not while the game shows its widescreen borders (a cutscene or scripted scene),
+  * where the HUD, the map with it, is hidden. */
+ canOpen?:()=>boolean;
  readonly element=document.createElement('section');
  private image=new Image();
  private mini:HTMLCanvasElement;
@@ -101,7 +104,7 @@ export class NativeMap {
  get open(){return !this.panel.hidden;}
  /** Why the last flight was refused, kept in the status line (which every draw rewrites) until the next map action. */
  private notice?:string;
- toggle(open=!this.open){this.notice=undefined;this.panel.hidden=!open;this.onToggle?.(open);
+ toggle(open=!this.open){if(open&&!this.open&&this.canOpen?.()===false)return;this.notice=undefined;this.panel.hidden=!open;this.onToggle?.(open);
   // The open map takes the keyboard (Tab walks its controls from the panel); closed, the game has it back.
   if(open)this.panel.focus({preventScroll:true});else if(this.panel.contains(document.activeElement)||document.activeElement instanceof HTMLButtonElement)(document.querySelector('canvas.world') as HTMLCanvasElement|null)?.focus();
   this.draw();}
