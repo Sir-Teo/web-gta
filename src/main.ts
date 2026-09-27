@@ -2607,7 +2607,8 @@ async function boot() {
           else cannonAudio.clearSplash();
           cannonAudio.service(tip?{x:tip.point.x,y:tip.point.y,z:tip.point.z}:undefined);
          }}
-        if(fleet?.occupiedBoat&&!carGunOff&&!law.arrested&&!weapons.stealth){
+        // SET_PLAYER_CAN_DO_DRIVE_BY off leaves the boat's helmsman no drive-by weapon, as it does a car's driver.
+        if(fleet?.occupiedBoat&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}
         }
