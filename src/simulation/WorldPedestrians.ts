@@ -866,7 +866,9 @@ export class WorldPedestrians {
     this.onFlee?.(p,{...q});
    }
   }
-  frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&p.health>0&&!p.fleePlayer&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
+  // Not the player's recruits (they answer as his group) nor a mission ped carrying out a script task: neither drops
+  // what it is doing for this authored fright (an explosion raises no event for bystanders in CExplosion).
+  frighten(position:{x:number;z:number},radius:number){for(const p of this.people)if(!p.officer&&!p.follow&&!(p.mission&&this.hasScriptTask(p))&&p.health>0&&!p.fleePlayer&&Math.hypot(p.actor.player.position.x-position.x,p.actor.player.position.z-position.z)<radius){p.flee=Math.max(p.flee,8);p.fleeFrom={...position};this.onFlee?.(p,{...p.actor.player.position});}}
   /** A ped by collider, living or dead, while it is in the world: where a fire on it burns (CFire::ProcessFire). */
   pedPosition(handle:number){const p=this.people.find(q=>q.collider.handle===handle);return p&&{position:{...p.body.translation()},dead:p.health<=0,submerged:this.submerged(p)};}
   // bNeverEverTargetThisPed keeps a ped out of the lock-on the weapon system draws its targets from.
