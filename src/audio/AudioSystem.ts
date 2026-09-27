@@ -173,6 +173,8 @@ export class AudioSystem {
     listener.forwardX.value = -Math.sin(yaw) * Math.cos(pitch); listener.forwardY.value = -Math.sin(pitch); listener.forwardZ.value = -Math.cos(yaw) * Math.cos(pitch);
     listener.upX.value = 0; listener.upY.value = 1; listener.upZ.value = 0;
   }
+  /** What the menu's audio line needs, without the meter or the voice snapshots. */
+  status() { return { unavailable: this.unavailable, failed: this.failed, loaded: this.loaded }; }
   state() {
     let rms = 0;
     if (this.context?.state === 'running') {

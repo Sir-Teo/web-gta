@@ -3089,7 +3089,7 @@ async function boot() {
         fires:fires.map(f=>[f.key,f.at] as const),
         player:{weapon:weapons.inventory.selected,swimming:sim.player.swimming,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,inVehicle:!!radioDriven,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:radioModel!==undefined}};
     });
-    hud.audioStatus(sound.state());
+    hud.audioStatus(sound.status());
     hud.update(sim, render.viewYaw, {maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:mission?.runtime.game.playerInfo.maxArmour??100});
     // CHud::DrawVehicleName: TheText.Get of the model's game name (vehicles.ide's GXT key); the model name until the
     // text has loaded.

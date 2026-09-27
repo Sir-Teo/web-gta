@@ -148,7 +148,8 @@ export class Hud {
     limiter.checked = settings.frameLimiter; limiter.onchange = () => update({ frameLimiter: limiter.checked });
   }
   audioStatus(state: { unavailable: boolean; failed: number; loaded: boolean }) {
-    this.element.querySelector('#audio-status')!.textContent = state.unavailable ? 'Sound is unavailable in this browser.' : state.failed ? 'Some sounds could not load. Gameplay remains available.' : state.loaded ? '' : 'Sounds load when you begin playing.';
+    const text = state.unavailable ? 'Sound is unavailable in this browser.' : state.failed ? 'Some sounds could not load. Gameplay remains available.' : state.loaded ? '' : 'Sounds load when you begin playing.';
+    this.put('audio.status', text, v => { this.element.querySelector('#audio-status')!.textContent = v; });
   }
   button(id: string) { return this.element.querySelector<HTMLButtonElement>(`#${id}`)!; }
   /** Opening the menu moves the keyboard into it (its first control), so Tab reaches its buttons from the game. */
