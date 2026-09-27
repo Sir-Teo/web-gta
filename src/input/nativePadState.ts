@@ -81,11 +81,11 @@ export function padStateFromActions(actions:Iterable<PadAction>,controls:PadCont
 
 /** The browser's bindings for each action, as the port's controls read them (the PC defaults differ; see
  * docs/FIDELITY_AUDIT.md "Player input"). Mouse-wheel weapon cycling and radio tuning are one-frame presses the
- * port consumes before the script runs, so they do not reach the pad. */
+ * port consumes before the script runs, so they do not reach the pad; Q and E, the PC's weapon cycling keys, do. */
 const BINDINGS:readonly (readonly [PadAction,readonly string[]])[]=[
  ['GO_FORWARD',['KeyW','ArrowUp']],['GO_BACK',['KeyS','ArrowDown']],['GO_LEFT',['KeyA','ArrowLeft']],['GO_RIGHT',['KeyD','ArrowRight']],
  ['PED_FIRE_WEAPON',['MouseFire','ControlLeft','ControlRight']],['PED_LOCK_TARGET',['MouseAim']],['GROUP_CONTROL_FWD',['KeyG']],['GROUP_CONTROL_BWD',['KeyH']],
- ['PED_LOOKBEHIND',['MouseMiddle']],['PED_JUMPING',['Space']],['PED_SPRINT',['ShiftLeft','ShiftRight']],['PED_DUCK',['KeyC']],
+ ['PED_LOOKBEHIND',['MouseMiddle']],['PED_CYCLE_WEAPON_LEFT',['KeyQ']],['PED_CYCLE_WEAPON_RIGHT',['KeyE']],['PED_JUMPING',['Space']],['PED_SPRINT',['ShiftLeft','ShiftRight']],['PED_DUCK',['KeyC']],
  ['PED_SNIPER_ZOOM_IN',['PageUp','KeyX']],['PED_SNIPER_ZOOM_OUT',['PageDown','KeyZ']],['VEHICLE_ENTER_EXIT',['KeyF']],
  ['CAMERA_CHANGE_VIEW_ALL_SITUATIONS',['KeyV','Home']],
  // The PC defaults for CONVERSATION_YES and CONVERSATION_NO (the D-pad pair): a script's yes-or-no questions, wagers and

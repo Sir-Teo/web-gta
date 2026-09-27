@@ -2403,7 +2403,9 @@ async function boot() {
         // CPed::ProcessBuoyancy: the ped origin (a unit above the feet) 0.6 under the surface starts the in-water task.
         const swimWater=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z);
         const stopSwim=()=>{sim.player.swimming=false;sim.player.swimState=0;sim.player.swimBlend=0;sim.player.swimStopTime=0;sim.player.swimDiveTime=0;sim.player.swimVel={x:0,z:0};};
-        const reload=input.consume('KeyR'),next=input.consume('WheelNext'),previous=input.consume('WheelPrevious');
+        // PED_CYCLE_WEAPON_LEFT and _RIGHT: the PC defaults Q and E, and the mouse wheel. (In a vehicle Q and E look aside.)
+        const cycleLeft=input.consume('KeyQ'),cycleRight=input.consume('KeyE');
+        const reload=input.consume('KeyR'),next=input.consume('WheelNext')||onFoot&&cycleRight,previous=input.consume('WheelPrevious')||onFoot&&cycleLeft;
         // The first-person weapon modes ignore weapon cycling; the wheel zooms instead (up zooms in).
         if(render.firstPerson){if(next||previous)render.zoomInput.notch=previous?1:-1;}
         else if(onFoot&&!sim.jetPack&&!playerControlsDisabled()&&!padSwitchedOff('cycleWeapon')&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}

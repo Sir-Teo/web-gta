@@ -29,6 +29,7 @@ test('the PC defaults the script reads: H for the group, Y and N for answers, th
  const foot=(code:string)=>padStateFromActions(heldPadActions(c=>c===code),'thirdPerson');
  expect(foot('KeyH').dpadDown).toBe(255);
  expect(foot('KeyY').dpadRight).toBe(255);expect(foot('KeyN').dpadLeft).toBe(255);
+ expect(foot('KeyQ').leftShoulder2).toBe(255);expect(foot('KeyE').rightShoulder2).toBe(255);
  const wheel=(code:string)=>padStateFromActions(heldPadActions(c=>c===code),'driving');
  // H at the wheel is the horn alone; the group button is on-foot only.
  expect([wheel('KeyH').leftShock,wheel('KeyH').dpadDown]).toEqual([255,0]);
