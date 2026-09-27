@@ -116,6 +116,8 @@ export class WorldBoat {
    const out=new Vector3(side*(this.assets.collision!.bounds.max[0]+1.5),2,0).applyQuaternion(q).add(new Vector3().copy(p));
    const hit=this.sim.world.castRay(new RAPIER.Ray(out,{x:0,y:-1,z:0}),12,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)continue;
    const foot={x:out.x,y:out.y-hit.timeOfImpact+.04,z:out.z},center={...foot,y:foot.y+.9};
+   // The seabed under deep water is no footing: that side is left to the overboard swim, as a car's door is.
+   const level=this.waterLevel?.(foot.x,-foot.z);if(level!==undefined&&level>foot.y+.5)continue;
    if(this.sim.world.intersectionWithShape(center,{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.6,.3),undefined,undefined,this.sim.playerCollider,this.body))continue;
    return foot;
   }
