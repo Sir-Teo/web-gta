@@ -3007,7 +3007,7 @@ export class WorldPedestrians {
    let hangoutSpeed:number|undefined;
    if(p.party&&p.health>0&&p.down===0){
     const leader=p.party.leader,alive=p.party.members.filter(m=>m.health>0&&m.down===0);
-    if(p.flee>0||p.retaliate>0||p.fight||p.gunReact||p.evade||p.carReact||p.attackWave||leader.health<=0||alive.length<2){for(const m of p.party.members){m.party=undefined;m.hangout=undefined;m.lookTarget=undefined;}}
+    if(p.flee>0||p.retaliate>0||p.fight||p.gunReact||p.evade||p.carReact||p.attackWave||leader.health<=0||!this.people.includes(leader)||alive.length<2){for(const m of p.party.members){m.party=undefined;m.hangout=undefined;m.lookTarget=undefined;}}
     else{
      const h=leader.hangout;
      const facePoint=(x:number,z:number)=>{let delta=Math.atan2(x-state.position.x,z-state.position.z)-state.heading;delta=Math.atan2(Math.sin(delta),Math.cos(delta));const turn=p.headingChange*Math.PI/180*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));return Math.abs(delta);};
