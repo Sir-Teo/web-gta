@@ -44,7 +44,9 @@ export class Arsenal {
  hudSprites:Record<string,string>={};
  /** What update() last wrote, so a frame that changes nothing writes nothing to the document. */
  private pressedId?:number;private shownRadius?:number;
- update(error?:string,scope?:string){const s=this.weapons.snapshot(),w=this.weapons.inventory.weapon;
+ update(error?:string,scope?:string){
+  // Read only what the HUD shows: the full weapon snapshot (projectiles, shots, fires) is for the dev API, not every frame.
+  const s={ready:this.weapons.ready,id:this.weapons.inventory.selected},w=this.weapons.inventory.weapon;
   // The original HUD has no weapon name, skill or state line; CHud::DrawAmmo draws the ammo under the icon.
   // Only a failed weapon asset is reported here.
   {const text=!s.ready&&error?`${w.name} · Asset unavailable`:'';if(this.readout.textContent!==text)this.readout.textContent=text;}
