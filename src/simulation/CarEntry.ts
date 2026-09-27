@@ -246,10 +246,11 @@ export class CarEntry {
  /** CTaskSimpleCarSetPedInAsDriver without its entry tasks. */
  warpIn(car:WorldCar){this.car=car;this.side='left';void this.clips.load(car.animGroup).catch(()=>{});car.setPedInAsDriver();this.begin('seated');}
  cancel(){if(this.car){this.car.holdForEntry=false;if(!this.car.occupied)this.sim.playerCollider.setEnabled(true);}this.phase=undefined;this.car=undefined;this.lineUp=undefined;}
- /** The player died or was removed mid-sequence: leave the car at its driver door and stop every task. */
+ /** The player died or was removed mid-sequence: leave the car at its driver door and stop every task. The car is
+  * abandoned however fast it is going, as CVehicle::RemoveDriver sets STATUS_ABANDONED unconditionally. */
  abandon(){
   const car=this.car;
-  if(car?.occupied){const local=this.doorPoint(car,'left'),world=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);car.setPedOut({x:world.x,y:(this.ground(world,car)??world.y-1)+.03,z:world.z},car.heading());car.driverless=car.speed2D()>.01;}
+  if(car?.occupied){const local=this.doorPoint(car,'left'),world=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);car.setPedOut({x:world.x,y:(this.ground(world,car)??world.y-1)+.03,z:world.z},car.heading());}
   this.cancel();
  }
  private begin(phase:EntryPhase,blendDelta=1000){
