@@ -2175,7 +2175,7 @@ export class WorldPedestrians {
    const q=p.actor.player.position,from={x:q.x,z:q.z};
    const reaction=this.damageReaction(foe,WEAPON.unarmed,applied,from,undefined,false,{move:stage});
    if(!this.applyReaction(foe,reaction,from)&&foe.health>0)foe.stagger=.5;
-   if(!foe.health){p.foe=undefined;if(!p.follow){p.retaliate=0;p.fight=undefined;}this.onKill?.({id:foe.id,officer:foe.officer,gang:foe.gang,pedType:foe.pedType,recruit:!!foe.follow,byPlayer:false});return;}
+   if(!foe.health){p.foe=undefined;p.retaliate=0;p.fight=undefined;this.onKill?.({id:foe.id,officer:foe.officer,gang:foe.gang,pedType:foe.pedType,recruit:!!foe.follow,byPlayer:false});return;}
    if(!foe.officer){foe.foe=p;foe.retaliate=Math.max(foe.retaliate,4);foe.flee=0;}
   }
   /** SET_SCRIPT_LIMIT_TO_GANG_SIZE (m_nScriptLimitToGangSize, 99 at start) and the player group's
@@ -2775,7 +2775,8 @@ export class WorldPedestrians {
    if(p.fleePlayer?.from&&!this.people.includes(p.fleePlayer.from)){p.flee=0;p.fleePlayer=undefined;}
    // CTaskComplexKillPedOnFoot keeps the target it was built with, and CTaskComplexKillPedOnFootMelee ends once that
    // target is dead or gone (!m_target || m_fHealth <= 0): the fight is over, it never turns on the player instead.
-   if(p.foe&&(p.foe.health<=0||!this.people.includes(p.foe))){p.foe=undefined;if(!p.follow){p.retaliate=0;p.fight=undefined;}}
+   // A group member's kill task ends the same way, and he goes back to following.
+   if(p.foe&&(p.foe.health<=0||!this.people.includes(p.foe))){p.foe=undefined;p.retaliate=0;p.fight=undefined;}
    if(p.fleePlayer&&p.flee>0&&p.fleeFrom){
     const f=p.fleePlayer,player=f.from?f.from.actor.player.position:f.entity?.()??f.point??this.sim.player.position,q=p.actor.player.position;f.check-=dt;
     // Each moved check re-aims the flee. It also raises CEventSeenPanickedPed, but that event (priority 13) only
