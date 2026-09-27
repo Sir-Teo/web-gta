@@ -167,3 +167,13 @@ test('a canopy opened after a long freefall lands with no FALL_COLLAPSE or knock
   for (let i = 0; i < 6000 && !sim.player.grounded; i++) { sim.step(1/60, { ...controls, parachute: true }); landing ??= sim.fallLanding; }
   expect(sim.player.grounded).toBe(true); expect(landing).toBeUndefined();
 });
+test('a teleport lands no fall speed, jump momentum or knockdown with CJ (CPed::Teleport)', () => {
+  setup('box');
+  sim.player.verticalSpeed = -40; sim.player.jumpMomentum = { x: 5, z: 3 }; sim.collisionPush = { x: 2, z: 0 }; sim.knockdown = 2; sim.knockdownGetUp = 1;
+  let flushed = 0; sim.onFlushPlayerTasks = () => flushed++;
+  sim.flushPlayerTasks();
+  sim.player.position = { x: 0, y: .03, z: 0 }; sim.playerBody.setTranslation({ x: 0, y: .93, z: 0 }, true);
+  for (let i = 0; i < 10; i++) sim.step(1/60, { ...controls });
+  expect(sim.player.health).toBe(100); expect(sim.knockdown).toBe(0); expect(flushed).toBe(1);
+  expect(Math.abs(sim.player.position.x) + Math.abs(sim.player.position.z)).toBeLessThan(.05);
+});

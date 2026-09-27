@@ -505,9 +505,17 @@ export class Simulation {
   }
   /** CTaskSimpleClimb::TestForClimb from CTaskSimpleJump::ProcessPed (the launch) or CTaskSimpleInAir::ProcessPed, then
    * the climb CTaskComplexJump or CTaskComplexInAirAndLand::ControlSubTask starts on the hold. */
-  /** CPed::Teleport's FlushImmediately for the player: the climb, the jump's glide, the hit-head stop and the fall
-   * (CTaskSimpleInAir's minimum speed) all end, so none of them carries on from where he was. */
-  flushPlayerTasks() { this.climb = undefined; this.jumpGlide = undefined; this.hitHead = 0; this.fall = { minVz: 0, falling: false }; }
+  /** CPed::Teleport for the player: FlushImmediately ends the climb, the jump's glide, the hit-head stop, the fall
+   * (CTaskSimpleInAir's minimum speed) and a knockdown's CTaskComplexFallAndGetUp, so none of them carries on from where
+   * he was; m_vecMoveSpeed is reset, so no fall speed, jump momentum or push lands with him (the next step finds the
+   * ground, bIsStanding's part, without a landing).
+   * `onFlushPlayerTasks` lets the host drop the fall and get-up clips with the task. */
+  flushPlayerTasks() {
+    this.climb = undefined; this.jumpGlide = undefined; this.hitHead = 0; this.fall = { minVz: 0, falling: false };
+    this.player.verticalSpeed = 0; this.player.jumpMomentum = { x: 0, z: 0 }; this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 };
+    if (this.player.health > 0 && this.knockdown > 0) { this.knockdown = 0; this.knockdownGetUp = 0; this.onFlushPlayerTasks?.(); }
+  }
+  onFlushPlayerTasks?: () => void;
   private startClimb(launch: boolean, dt: number, controls: Controls) {
     const world = this.climbWorld, durations = this.climbDurations;
     // Both the launch and the in-air test need CGame::CanSeeOutSideFromCurrArea: no climbing inside interiors.
