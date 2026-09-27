@@ -19,7 +19,7 @@ import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 /** How long a rammed driver's CTaskComplexCarDriveMissionKillPed chase lasts, and how far off the player ends it (authored:
  * the task is not reversed). */
 const CHASE_SECONDS=30,CHASE_GIVE_UP_DISTANCE=120;
-interface Driver {/** The chase CTaskComplexCarDriveMissionKillPed runs after the player. */chase?:{until:number};car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
+interface Driver {/** The chase CTaskComplexCarDriveMissionKillPed runs after the player. */chase?:{until:number};/** Road rage waiting for the car to slow before he gets out. */rageWait?:boolean;car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
  temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'|'death'|'flipped'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
  seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
@@ -250,6 +250,12 @@ export class WorldTraffic {
     else{driver.deadInSeat=true;this.onDriverDeadInSeat?.(car);}
     car.autopilot={steering:0,throttle:0,brake:1,handbrake:true};continue;
    }
+   if(driver.rageWait){
+    const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
+    if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){driver.rageWait=false;this.onRoadRage?.(car);}
+    else car.autopilot={steering:0,throttle:0,brake:1,handbrake:Math.hypot(v.x,v.z)<.3};
+    continue;
+   }
    if(car.holdForEntry){const v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z);car.autopilot={steering:0,throttle:0,brake:1,handbrake:speed<.3};continue;}
    const body=car.car.body,p=body.translation(),r=body.rotation(),v=body.linvel(),speed=Math.hypot(v.x,v.z);
    driver.distance+=Math.hypot(p.x-driver.last.x,p.z-driver.last.z);driver.last={x:p.x,z:p.z};
@@ -346,7 +352,9 @@ export class WorldTraffic {
   const response=collisionDamageResponse(this.driverDecisionMaker?.(car),RELATIONSHIP.player,this.random);
   const fleeScene=()=>{driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;};
   if(response==='fleeScene')fleeScene();
-  else if(response==='roadRage'){driver.raged=true;this.onRoadRage?.(car);}
+  // CTaskComplexRoadRage leaves the car through CTaskComplexLeaveCar with sensible set: CTaskSimpleCarWaitToSlowDown
+  // holds him in the seat, braking, until the car can be stepped out of.
+  else if(response==='roadRage'){driver.raged=true;driver.rageWait=true;}
   // TASK_COMPLEX_CAR_DRIVE_MISSION_KILL_PED (0x4C3111): a game driver the player rams during a mission flees the scene;
   // otherwise CTaskComplexCarDriveMissionKillPed goes after the player. That task is not reversed: the chase drives at
   // him, avoiding cars, for CHASE_SECONDS (authored) or until he is CHASE_GIVE_UP_DISTANCE away.

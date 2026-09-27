@@ -24,12 +24,12 @@ test('a driver rammed by the player draws his decision: road rage gets him out t
    for(let i=0;i<300;i++)tick();
    const back=ahead(-11),ram=await fleet.spawnTrafficCar(492,back.position,back.heading);
    car.playerVehicle=()=>ram;
-   let raged=0,evicted=0;traffic.driverDecisionMaker=()=>2;traffic.random=()=>.9;
-   traffic.onRoadRage=(c:any)=>{raged++;evicted+=entry.evictDriver(c,(position:any,heading:number)=>crowd.spawnRoadRage(0,position,heading,undefined))?1:0;};
+   let raged=0,evicted=0,exitSpeed=-1;traffic.driverDecisionMaker=()=>2;traffic.random=()=>.7;
+   traffic.onRoadRage=(c:any)=>{raged++;const lv=c.car.body.linvel();exitSpeed=Math.hypot(lv.x,lv.z);evicted+=entry.evictDriver(c,(position:any,heading:number)=>crowd.spawnRoadRage(0,position,heading,undefined))?1:0;};
    const forward={x:-Math.sin(back.heading)*12,z:-Math.cos(back.heading)*12};
    let hitAt=-1;for(let i=0;i<240;i++){if(hitAt<0)ram.car.body.setLinvel({x:forward.x,y:0,z:forward.z},true);tick();if(raged&&hitAt<0)hitAt=i;if(hitAt>=0&&i>hitAt+30)break;}
    const snap=traffic.snapshot().cars.find((c:any)=>c.modelId===car.modelId&&Math.hypot(c.position.x-car.car.body.translation().x,c.position.z-car.car.body.translation().z)<1);
-   const rammed={hitAt,raged,evicted,driverOut:car.driverOut,autopilot:!!car.autopilot,health:car.health,snap:snap?{raged:snap.raged,fleeScene:snap.fleeScene}:null};
+   const rammed={hitAt,raged,evicted,exitSpeed,driverOut:car.driverOut,autopilot:!!car.autopilot,health:car.health,snap:snap?{raged:snap.raged,fleeScene:snap.fleeScene}:null};
    // The player stands 8 m off the driver's door; the rager gets out, faces him, shakes a fist and comes over.
    follow=false;const door=car.car.body.translation();sim.player.position={x:door.x+8,y:door.y,z:door.z};
    let exitFrames=0;for(let i=0;i<300;i++){tick();if(i%20===0)await new Promise(r=>setTimeout(r,40));if(entry.npcPoses().length)exitFrames++;if(exitFrames&&!entry.npcPoses().length&&i>30)break;}
@@ -42,14 +42,16 @@ test('a driver rammed by the player draws his decision: road rage gets him out t
    const rage={people:crowd.people.length,found:!!rager,exitFrames,phases,fistClip,attackAt,closest,retaliate:rager?.retaliate??null,foe:rager?.foe?'ped':'player'};
    // A second driver's draw lands on the flee-scene drive: cruise speed 40 avoiding cars.
    const other=traffic.drivers.find((d:any)=>d.car!==car);const beforeFlee={cruise:other?.cruiseSpeed,avoid:other?.avoidCars};
-   traffic.random=()=>.6;traffic.collisionEvent(other,10,true);
+   traffic.random=()=>.5;traffic.collisionEvent(other,10,true);
    const flee={cruise:other?.cruiseSpeed,avoid:other?.avoidCars,fleeScene:!!other?.fleeScene,raged:!!other?.raged};
    traffic.collisionEvent(other,3,true);const small={cruise:other?.cruiseSpeed};
    return {rammed,rage,beforeFlee,flee,small};
   }finally{crowd.dispose();traffic.dispose();fleet.dispose();sim.dispose();}
  });
  // The ram costs the car over 5 raw health; the R_Norm draw at .9 is road rage, and the driver is put out.
- expect(result.rammed.hitAt).toBeGreaterThanOrEqual(0);expect(result.rammed.raged).toBe(1);expect(result.rammed.evicted).toBe(1);
+ expect(result.rammed.hitAt).toBeGreaterThanOrEqual(0);
+ // CTaskSimpleCarWaitToSlowDown: he gets out once the shunted car has all but stopped.
+ expect(result.rammed.exitSpeed).toBeLessThan(1.5);expect(result.rammed.raged).toBe(1);expect(result.rammed.evicted).toBe(1);
  expect(result.rammed.driverOut).toBe(true);expect(result.rammed.autopilot).toBe(false);expect(result.rammed.health).toBeLessThan(1000);
  expect(result.rammed.snap?.raged).toBe(true);
  // Out of the car he turns to face the player, shakes his fist (FUCKU) and then seeks him to fight (20 s).
