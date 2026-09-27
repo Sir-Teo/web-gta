@@ -1428,7 +1428,9 @@ export class WorldPedestrians {
   for(const p of this.people){
    if(p.officer||p.health<=0||p.down>0||p.gang===undefined||p.follow)continue;
    const q=p.actor.player.position;if(Math.hypot(q.x-at.x,q.z-at.z)>10)continue;
-   p.flee=Math.max(p.flee,SMART_FLEE_SECONDS);p.fleeFrom={...at};p.fleePlayer={safe:15,check:SMART_FLEE_CHECK_SECONDS,point:{...at}};p.retaliate=0;
+   // Priority 54: a ped answering damage (65) keeps fighting.
+   if(!this.takesPriority(p,EVENT.vehicleOnFire))continue;
+   p.event={type:EVENT.vehicleOnFire};p.flee=Math.max(p.flee,SMART_FLEE_SECONDS);p.fleeFrom={...at};p.fleePlayer={safe:15,check:SMART_FLEE_CHECK_SECONDS,point:{...at}};p.retaliate=0;
   }
  }
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon). */
