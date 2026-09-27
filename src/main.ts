@@ -3620,7 +3620,7 @@ async function boot() {
            const pos={x:point.x,y:-point.z,z:point.y},n={x:normal.x,y:-normal.z,z:normal.y},ped={key:handle,surface:SURFACE.ped};
            c.reportCollision(carCollider(car),ped,pos,n,carImpulse,1);c.reportCollision(ped,carCollider(car),pos,{x:-n.x,y:-n.y,z:-n.z},pedImpulse,1);};
           pedestrians.onWaterCannonSmoke=(p,v)=>worldFx.waterCannon.pedSmoke([p.x,p.y,p.z],[v.x,v.y,v.z]);
-          worldFx.onDanger=(plane,radius)=>{let last={x:0,z:0};const at=()=>{if(fleet?.planes.has(plane)&&plane.health>0){const t=plane.body.translation();last={x:t.x,z:t.z};}return last;};pedestrians?.danger(at,radius,plane.occupied?'player':plane.policeHeli?'cop':undefined);};
+          worldFx.onDanger=(plane,radius)=>{const at=()=>{if(!fleet?.planes.has(plane))return undefined;const t=plane.body.translation();return {x:t.x,z:t.z};};pedestrians?.danger(at,radius,plane.occupied?'player':plane.policeHeli?'cop':undefined);};
           pedestrians.rain=()=>weatherStarted?weather.rain:0;
           // Turf gangs from the INITIAL zone population: strongest gang wins the node.
           // Shared by street parties and drive-by attack cars.

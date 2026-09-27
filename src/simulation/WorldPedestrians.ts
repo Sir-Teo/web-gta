@@ -222,7 +222,7 @@ export interface Pedestrian {
  /** CTaskComplexSmartFleeEntity from the player (or `from`, another ped): the safe distance and the seconds to the next
   * position check. */
  /** CTaskComplexSmartFleeEntity: `from` a ped, `point` a stopped car, else the player; `safe` ends the flight. */
- fleePlayer?:{safe:number;check:number;from?:Pedestrian;point?:{x:number;z:number};entity?:()=>{x:number;z:number}};
+ fleePlayer?:{safe:number;check:number;from?:Pedestrian;point?:{x:number;z:number};entity?:()=>{x:number;z:number}|undefined};
  /** CEventHandlerHistory's current event while the ped answers it: its type, its source ped (the player when
   * undefined) and, for damage, the weapon. */
  event?:{type:number;source?:Pedestrian;weapon?:number};
@@ -841,7 +841,7 @@ export class WorldPedestrians {
     const relationship=this.relationshipTo(o,dead);
     const task=this.decide(o,EVENT.deadPed,relationship,this.deadPedRandom)??deadPedDecisionTask(o.decisionMaker,relationship,this.deadPedRandom);
     if(task===TASK.investigateDeadPed){o.investigate={phase:'stand',time:1,body:dead,start:{x:q.x,z:q.z},lookMs:5000+Math.floor(this.deadPedRandom()*2000)};o.loiter=false;}
-    else if(task===TASK.smartFleeEntity){o.flee=Math.max(o.flee,SMART_FLEE_SECONDS);o.fleeFrom={x:b.x,z:b.z};o.fleePlayer={safe:100000,check:SMART_FLEE_CHECK_SECONDS,point:{x:b.x,z:b.z}};o.retaliate=0;}
+    else if(task===TASK.smartFleeEntity){o.flee=Math.max(o.flee,SMART_FLEE_SECONDS);o.fleeFrom={x:b.x,z:b.z};o.fleePlayer={safe:100000,check:SMART_FLEE_CHECK_SECONDS,from:dead};o.retaliate=0;}
    }
   }
   /** CEventDanger (priority 20), which a low aircraft raises (CAutomobile::DoHeliDustEffect): AffectsPed reaches the living
@@ -850,8 +850,8 @@ export class WorldPedestrians {
    * so nothing) and cops have no answer. The source is the pilot: the player, a cop, or no one in an empty aircraft,
    * whose source type the unreversed ComputeEventSourceType leaves unknown (neutral here). The player's recruits answer
    * as a group, which is not modelled. */
-  danger(at:()=>{x:number;z:number},radius:number,pilot:'player'|'cop'|undefined){
-   const c=at();
+  danger(at:()=>{x:number;z:number}|undefined,radius:number,pilot:'player'|'cop'|undefined){
+   const c=at();if(!c)return;
    for(const p of this.people){
     if(p.health<=0||p.follow)continue;
     const q=p.actor.player.position;if((q.x-c.x)**2+(q.z-c.z)**2>radius*radius)continue;
@@ -2782,7 +2782,7 @@ export class WorldPedestrians {
    }else p.flee=Math.max(0,p.flee-dt);
    // CTaskComplexSmartFleeEntity::ControlSubTask: a ped fled from is followed, dead or alive, while it exists; once it
    // is removed the flee is abandoned.
-   if(p.fleePlayer?.from&&!this.people.includes(p.fleePlayer.from)){p.flee=0;p.fleePlayer=undefined;}
+   if(p.fleePlayer?.from&&!this.people.includes(p.fleePlayer.from)||p.fleePlayer?.entity&&!p.fleePlayer.entity()){p.flee=0;p.fleePlayer=undefined;}
    // CTaskComplexKillPedOnFoot keeps the target it was built with, and CTaskComplexKillPedOnFootMelee ends once that
    // target is dead or gone (!m_target || m_fHealth <= 0): the fight is over, it never turns on the player instead.
    // A group member's kill task ends the same way, and he goes back to following.
