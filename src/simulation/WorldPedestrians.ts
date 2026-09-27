@@ -422,6 +422,8 @@ const MAP_Z_LOW_LIMIT=-100;
 const PED_BOUND_RADIUS=1;
 /** Heights above the feet of the stand-in ped hit spheres (see hideNearCamera). */
 const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
+/** What a ped carries into a car and out again as CJ's passenger. */
+interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;gang?:number;gangClips:boolean}
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
   /** `shooter` is the ped's id and live position (renderer frame), for the ped's own CAEPedWeaponAudioEntity. */
@@ -1448,7 +1450,9 @@ export class WorldPedestrians {
  boardPassenger(id:number){
   const i=this.people.findIndex(p=>p.id===id);if(i<0)return undefined;
   const [p]=this.people.splice(i,1);this.remove(p);
-  return {modelRef:p.modelRef,follow:p.follow,gang:p.gang};
+  // The same ped rides and gets out: CPed keeps his weapons, health and gang in the car.
+  const keep:PassengerKeep={weapon:p.weapon,health:p.health,gang:p.gang,gangClips:p.gang!==undefined};
+  return {modelRef:p.modelRef,follow:p.follow,gang:p.gang,keep};
  }
  /** CPopulation::AddPed (0x612710) through a script's CREATE_CHAR: the model loaded, the ped stood where the
   * script says and flagged PED_MISSION, so the population manager leaves it alone until the script lets go.
@@ -1920,21 +1924,23 @@ export class WorldPedestrians {
  /** Whether the world still holds this ped, which a handle the streamer reclaimed no longer names. */
  holdsScripted(ped:Pedestrian){return this.people.includes(ped);}
  /** A passenger climbs out at a door point and rejoins the street. */
- async spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean){
+ async spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean,keepValue?:unknown){
+  const keep=keepValue as PassengerKeep|undefined;
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const node=this.nearestNode(position);if(!node)return false;
   if(typeof modelRef==='number'){
    const index=((modelRef%catalog.models.length)+catalog.models.length)%catalog.models.length;
-   this.createPed({position,heading,source:catalog.models[index],officer:false,node,speed:catalog.modelSpeeds[index]?.walk??NATIVE_PED_WALK_SPEED,speeds:catalog.modelSpeeds[index],stats:catalog.modelStats[index],modelRef:index});
+   this.createPed({position,heading,source:catalog.models[index],officer:false,node,weapon:keep?.weapon,gang:keep?.gang,speed:catalog.modelSpeeds[index]?.walk??NATIVE_PED_WALK_SPEED,speeds:catalog.modelSpeeds[index],stats:catalog.modelStats[index],modelRef:index});
   }else{
    let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;temper?:number}};
    try{built={source:await catalog.character(modelRef),speeds:await catalog.characterSpeeds(modelRef),stats:await catalog.characterStats(modelRef)};}
    catch{return false;}
    if(this.disposed)return false;
-   this.createPed({position,heading,source:built.source,officer:false,node,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,modelRef});
+   this.createPed({position,heading,source:built.source,officer:false,node,weapon:keep?.weapon,gang:keep?.gang,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,modelRef});
   }
   const p=this.people[this.people.length-1];
   p.follow=follow;p.flee=0;
+  if(keep){p.health=keep.health;if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);}
   return true;
  }
  private allowed(n:PathNode){return n.kind==='pedestrian'&&!n.water&&!n.switchedOff&&!n.dontWander&&n.linkCount>0;}

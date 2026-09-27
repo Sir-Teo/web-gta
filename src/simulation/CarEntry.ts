@@ -53,8 +53,9 @@ export function nativeDoorPoint(seat:V3,getInEnd:V3,seatOffset:number,side:Side,
 export interface PassengerCrowd {
   /** The player's group members still standing: the only peds that can take a seat. */
   followers():readonly {id:number;position:{x:number;y:number;z:number};health:number;down:number}[];
-  boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number}|undefined;
-  spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean):Promise<boolean>|boolean;
+  /** `keep`: what the ped takes into the car and out again (his weapon, health and gang), opaque to the car. */
+  boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number;keep?:unknown}|undefined;
+  spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean,keep?:unknown):Promise<boolean>|boolean;
   /** A rider of a car that blew up: CAutomobile::BlowUpCar's KillPedsInVehicle leaves him dead. */
   spawnDead?(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number):unknown;
 }
@@ -67,7 +68,7 @@ const PASSENGER_SEATS=[{seat:1,door:DOOR.rightFront,side:'right'},{seat:2,door:D
 export class CarEntry {
   car?:WorldCar;phase?:EntryPhase;side:Side='left';time=0;
   /** Crew riding along: model refs with seats, ejected when the driver leaves. */
-  passengers:{modelRef:number|string;seat:1|2|3;follow:boolean;gang?:number}[]=[];
+  passengers:{modelRef:number|string;seat:1|2|3;follow:boolean;gang?:number;keep?:unknown}[]=[];
   /** Street population for boarding and ejection (wired by the host). */
   crowd?:PassengerCrowd;
   private prevSeated=false;
@@ -157,7 +158,7 @@ export class CarEntry {
     if(!taken)continue;
     boarded.add(near.id);
     if(!car.doorMissing(s.door)){car.openDoor(s.door,1);this.doorCloses.push({car,door:s.door,at:this.passengerClock+0.8});}
-    this.passengers.push({modelRef:taken.modelRef,seat:s.seat,follow:taken.follow,gang:taken.gang});
+    this.passengers.push({modelRef:taken.modelRef,seat:s.seat,follow:taken.follow,gang:taken.gang,keep:taken.keep});
    }
   }
   /** CGroupEventHandler::ComputeResponseLeaderExitedCar: follower i leaves its seat rand(-250, 250) + 500 i ms after
@@ -178,7 +179,7 @@ export class CarEntry {
     const spot={x:door.x,y:(hit?door.y+1.5-hit.timeOfImpact:door.y-1)+.03,z:door.z};
     // A car that blew up killed everyone aboard (CVehicle::KillPedsInVehicle, CEventVehicleDied for each rider).
     if(car.wrecked&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang)).catch(()=>{});return;}
-    void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow)).catch(()=>{});
+    void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow,rider.keep)).catch(()=>{});
    }
   }
   private passengerCar?:WorldCar;
