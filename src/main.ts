@@ -572,6 +572,8 @@ async function boot() {
   const nativeRestart=new NativeRestart(),gameLogic=new NativeGameLogic(nativeRestart),cameraFade=new ScmCameraFade();
   sim.externalDeathRecovery=true;
   let arrested=false,gameTimeMs=0,previousGameTimeMs=0,gameTimeExact=0;
+  /** The game clock the script last ran at, and the mission it ran for (a new mission starts from the clock as it is). */
+  let scriptGameTimeExact=0,scriptClockMission:unknown;
   /** The script messages last handed to the HUD, by label and creation time. */
   const shownScript={brief:'',big:['','','','','','',''],help:'',helpRevision:0};
   // CHud::DrawScriptText's two passes: the script's DISPLAY_TEXT lines and boxes under and over the screen fade.
@@ -2962,7 +2964,7 @@ async function boot() {
     // (SET_TIME_OF_DAY, RESTORE_CLOCK) is the world's.
     if(paused||navigation?.open||arsenal.open)padsAfterPause=true;
     // The script stops with the game: the pause menu, and the full map and the arsenal, which hold the simulation too.
-    if(mission&&!paused&&!navigation?.open&&!arsenal.open){
+    if(mission&&!paused&&!terrainPause&&!navigation?.open&&!arsenal.open){
       // CPad::Update: the script reads the pad the held keys make, through the driving mapping while the player drives
       // with the controls on. JustOutOfFrontEnd holds for the first frame after the menu.
       {const pads=mission.runtime.game.pads,driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
@@ -2973,7 +2975,11 @@ async function boot() {
       // CCutsceneMgr::IsCutsceneSkipButtonBeingPressed: the left mouse button held, or Return or Space just pressed.
       {const enter=input.down('Enter')||input.down('NumpadEnter'),space=input.down('Space');
        cutsceneSkipNow=input.down('MouseFire')||enter&&!skipKeysLast.enter||space&&!skipKeysLast.space;skipKeysLast={enter,space};}
-      mission.step(elapsed*1000,dt*1000);
+      // CTheScripts::Process reads CTimer's game clock: WAITs, TIMERA/B and the onscreen timers stop while the world is
+      // held (a streaming hold included) and run slower under the stunt jump's or a cheat's time scale.
+      if(scriptClockMission!==mission){scriptClockMission=mission;scriptGameTimeExact=gameTimeExact;}
+      const scriptStepMs=gameTimeExact-scriptGameTimeExact;scriptGameTimeExact=gameTimeExact;
+      mission.step(gameTimeExact,scriptStepMs);
       // Loading a game the player saved does not play the new game's opening again: once INITIAL has set the world up
       // and MAIN launches INTRO, the story mission is ended (as leaving it for free roam does), the screen fades in
       // and the save point's clock and place are put back.
