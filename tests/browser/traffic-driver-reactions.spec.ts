@@ -76,3 +76,21 @@ test('a driver CJ wounds answers the damage from his decision maker instead of c
  },setup);
  expect(result).toEqual({shot:'hit',flee:true,chase:false,health:90});
 });
+
+test('a ram from the bike CJ rides provokes the driver as a car\'s does',async({page})=>{
+ test.setTimeout(180000);await page.goto('/models.html');
+ const result=await page.evaluate(async setup=>{
+  const run=new Function(`return (async()=>{${setup}
+   try{
+    const t=traffic,driver=t.drivers.find(d=>d.car===car);t.driverDecisionMaker=()=>3;t.random=()=>.9;t.playerOnMission=()=>false;
+    // A 200 kg stand-in for CJ's bike, 8 units off the car's side and closing at 25 m/s.
+    const at=car.car.body.translation(),bike=sim.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(at.x+8,at.y,at.z).setLinvel(-25,0,0).setGravityScale(0));
+    sim.world.createCollider(RAPIER.ColliderDesc.cuboid(.4,.6,1).setMass(200),bike);
+    car.playerBikeBody=()=>bike.handle;
+    for(let i=0;i<60&&!driver.chase&&!driver.raged&&!driver.fleeScene;i++){t.beforeStep(1/60);for(const c of fleet.cars)c.beforeStep(1/60,{x:0,y:0},false);sim.world.step();for(const c of fleet.cars)c.afterStep?.(1/60);}
+    return {chase:!!driver.chase};
+   }finally{traffic.dispose();fleet.dispose();sim.dispose();}})()`);
+  return run();
+ },setup);
+ expect(result.chase).toBe(true);
+});

@@ -181,6 +181,9 @@ export class WorldCar {
  private visual:Record<string,number>={};
  /** The player's car, used for native rammed-by-player damage divisors. */
  playerVehicle?:()=>WorldCar|undefined;
+ /** The body handle of the bike or quad the player rides: CAutomobile::VehicleDamage raises CEventVehicleDamageCollision
+  * for any driven damager, so a ram from it is the player's as a car's is. */
+ playerBikeBody?:()=>number|undefined;
   occupied=false;
   trafficOrigin=false;
   /** The clump alpha (0 to 255): a generated car starts at 0 and CVehicle::UpdateClumpAlpha raises it 16 a frame. */
@@ -951,11 +954,11 @@ export class WorldCar {
   if(intensity<=this.mass/1500*25)return;
   const up={x:2*(q.x*q.y-q.w*q.z),y:1-2*(q.x*q.x+q.z*q.z),z:2*(q.y*q.z+q.w*q.x)},right={x:1-2*(q.y*q.y+q.z*q.z),y:2*(q.x*q.y+q.w*q.z),z:2*(q.x*q.z-q.w*q.y)};
   let piece:number=COLLISION_COMPONENT.default,point:{x:number;y:number;z:number}|undefined,building=true,rammedByPlayer=false,damager:WorldCar|undefined;
-  const player=this.playerVehicle?.();
+  const player=this.playerVehicle?.(),playerBike=this.playerBikeBody?.();
   for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
    if(other.isSensor()||other.handle===this.sim.playerCollider.handle)return;const parent=other.parent();
    let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});if(!touching)return;
-   if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle)rammedByPlayer=true;const hit=this.otherCar?.(parent.handle);if(hit&&hit!==this){this.recordVehicleCollision(hit);damager=hit;}}
+   if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle||playerBike!==undefined&&parent.handle===playerBike)rammedByPlayer=true;const hit=this.otherCar?.(parent.handle);if(hit&&hit!==this){this.recordVehicleCollision(hit);damager=hit;}}
    const flags=this.pieceOf(collider.handle);if(flags!==undefined&&flags!==COLLISION_COMPONENT.default||!point){piece=flags??piece;point={...collider.translation()};}
   });}
   // A crash with another vehicle leaves it as the damager, by WEAPON_RAMMEDBYCAR (49).
