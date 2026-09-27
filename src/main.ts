@@ -2543,7 +2543,8 @@ async function boot() {
           const muzzle=tank.muzzleWorld()??(()=>{const m=tankDefaultMuzzle(tankTurret),p=tank.car.body.translation(),o=new Vector3(m.x,m.z,-m.y).applyQuaternion(tq);return new Vector3(p.x+o.x,p.y+o.y,p.z+o.z);})();
           const length=dir.length()||1,unit={x:dir.x/length,y:dir.y/length,z:dir.z/length};
           const hit=sim.world.castRay(new RAPIER.Ray(muzzle,unit),TANK_SHOT_RANGE*length,true,undefined,undefined,undefined,tank.car.body);
-          const end=hit?Math.max(0,hit.timeOfImpact-TANK_SHOT_RANGE*length*.04):TANK_SHOT_RANGE*length;
+          // The blast stands back 4% of the way from the hit toward the turret (colPoint - (colPoint - turret) * 0.04).
+          const end=hit?hit.timeOfImpact*.96:TANK_SHOT_RANGE*length;
           const explosion={x:muzzle.x+unit.x*end,y:muzzle.y+unit.y*end,z:muzzle.z+unit.z*end};
           weapons.debugExplosion(explosion,EXPLOSION.tankFire);
           const mass=tank.assets.handling.values.mass;
