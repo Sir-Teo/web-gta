@@ -560,6 +560,12 @@ export class WorldPedestrians {
  /** Whether the response to the ped's current event still runs. */
  /** Whether the ped is still carrying out its current event's response: a fight, a flee, the gun-aimed-at reaction,
   * or the evasive step/dive and hands-up of CEventPotentialGetRunOver (priority 51, above an aimed gun's 50). */
+ /** CPedGroupMembership::RemoveMember only frees the slot: a member fighting an enemy keeps that kill task (it never
+  * turns on the player), and one with no enemy left stops fighting. */
+ private leaveGroup(p:Pedestrian){
+  p.follow=false;p.holdPosition=undefined;
+  if(!(p.retaliate>0&&p.foe&&p.foe.health>0&&this.people.includes(p.foe))){p.foe=undefined;p.retaliate=0;p.fight=undefined;}
+ }
  private answering(p:Pedestrian){return p.retaliate>0||p.flee>0||!!p.gunReact||!!p.evade||!!p.carReact;}
  /** Whether an event of `type` from `source` (the player when undefined) displaces the one the ped answers. */
  private takesPriority(p:Pedestrian,type:number,source?:Pedestrian){return takesPriorityOverCurrentEvent(p.event&&this.answering(p)?p.event:undefined,type,source);}
@@ -2199,7 +2205,7 @@ export class WorldPedestrians {
    * commands leaves. */
   disbandGroup(){
    const listening=this.people.filter(p=>p.follow&&p.health>0&&!p.ignoresGroupCommands);
-   for(const m of listening){m.follow=false;m.holdPosition=undefined;m.foe=undefined;}
+   for(const m of listening)this.leaveGroup(m);
    return listening.length>0;
   }
   /** The living Families member the player targets, not yet in his group. */
@@ -2215,7 +2221,7 @@ export class WorldPedestrians {
    * CPedGroupMembership::RemoveNFollowers passes over the members a mission made, which `missionMembers` counts. */
   makeRoomForMissionPeds(room:number,missionMembers:number){
    const crew=this.people.filter(p=>p.follow&&p.health>0);
-   for(const m of crew.slice(0,followersToRemove(crew.length,missionMembers,room,Math.min(maxGroupMembers(),this.scriptGangLimit)))){m.follow=false;m.foe=undefined;}
+   for(const m of crew.slice(0,followersToRemove(crew.length,missionMembers,room,Math.min(maxGroupMembers(),this.scriptGangLimit))))this.leaveGroup(m);
   }
   /** CPedGroupMembership::AddFollower takes a ped out of the group it was in: a recruit leaves his street gang's
    * party, and a party that loses its leader, or is left with one member, breaks up. */
@@ -3194,7 +3200,7 @@ export class WorldPedestrians {
      const ride=[...cars].find(c=>c.occupied);
      const pp=ride?ride.car.body.translation():this.sim.player.position;
      const gap=Math.hypot(pp.x-state.position.x,pp.y-state.position.y,pp.z-state.position.z);
-     if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup&&!p.mission){p.follow=false;p.holdPosition=undefined;p.foe=undefined;}
+     if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup&&!p.mission)this.leaveGroup(p);
      else if(this.sim.player.health<=0){}
      else if(p.retaliate<=0&&p.holdPosition){
       dx=p.holdPosition.x-state.position.x;dz=p.holdPosition.z-state.position.z;
