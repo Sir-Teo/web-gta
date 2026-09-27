@@ -527,7 +527,7 @@ export class WorldPolice {
      u.driverDying=undefined;
      const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
      if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){u.seats[0]=false;this.onCrewDiesOut?.(car,u.member.model);car.driverOut=true;}
-     else u.deadSeats[0]=true;
+     else{u.deadSeats[0]=true;car.driverDead=true;}
     }
     car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};continue;
    }

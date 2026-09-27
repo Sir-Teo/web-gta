@@ -230,7 +230,7 @@ export class WorldTraffic {
    // CTaskComplexDieInCar: 2000 ms after the fatal shot, out of the door and dead if the car can be stepped out of, else dead in the seat.
    if(driver.dying&&now>=driver.dying.at+DIE_IN_CAR_OFFSET_MS){
     const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
-    driver.dead=true;driver.dying=undefined;
+    driver.dead=true;driver.dying=undefined;car.driverDead=true;
     if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50}))this.onDriverDiesOut?.(car);
     else{driver.deadInSeat=true;this.onDriverDeadInSeat?.(car);}
     car.autopilot={steering:0,throttle:0,brake:1,handbrake:true};continue;

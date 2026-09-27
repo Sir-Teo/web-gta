@@ -200,7 +200,7 @@ export class GangDriveBy {
     // a car with a dead driver brakes to a halt and stays.
     if(u.driverDying){
      if(u.seconds>=u.driverDying.at+DIE_IN_CAR_OFFSET_MS/1000){
-      u.driverDying=undefined;u.driverDead=true;
+      u.driverDying=undefined;u.driverDead=true;car.driverDead=true;
       const w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
       if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){this.onCrewDiesOut?.(car,u.driver);car.driverOut=true;}
      }

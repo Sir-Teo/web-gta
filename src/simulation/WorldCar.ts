@@ -927,6 +927,8 @@ export class WorldCar {
  }
  /** CVehicle::RemoveDriver's STATUS_ABANDONED: a car its driver left (stepped, jumped, crawled or was dragged out). */
  driverless=false;
+ /** The AI driver in the seat has died there (CTaskComplexDieInCar's dead-in-seat branch): pulled out, he is a corpse. */
+ driverDead=false;
  /** PrepareVehicleForPedEnter: the NPC driver stops while someone lines up with the car. */
  holdForEntry=false;
  /** The NPC driver was dragged out or left; the car keeps no autopilot. */

@@ -569,7 +569,8 @@ async function boot() {
   const carEntry=new CarEntry(sim,new VehicleAnimationLibrary(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
   /** The player's bike mount and dismount through the bike's animation group (shares the clip library). */
   const bikeMount=new BikeMount(sim,carEntry.clips);
-  carEntry.onDriverOut=(car,position,heading)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);pedestrians?.spawnJacked(occupants.driverModel(car),position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach');};
+  // CEventDraggedOutCar::AffectsPed needs a living ped: a driver who died in his seat is dragged out a corpse.
+  carEntry.onDriverOut=(car,position,heading)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);if(car.driverDead){car.driverDead=false;pedestrians?.spawnDead(occupants.driverModel(car),position,heading,car.gang);return;}pedestrians?.spawnJacked(occupants.driverModel(car),position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach');};
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
   // CGameLogic::Update drives the wasted and busted sequences over the native
   // CRestart tables; the simulation's own timer only releases the seat.
