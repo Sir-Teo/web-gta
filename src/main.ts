@@ -2709,7 +2709,7 @@ async function boot() {
           });
         }
         else if(carEntry.rolling||bikeMount.rolling)sim.step(step,{...controls,x:0,y:0,jump:false,sprint:false,animationMotion:(carEntry.rolling?entryMotion:bikeMotion)??{x:0,z:0},animationMotionSpace:'world'});
-        else {const animated=sim.climbing?controls:render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming&&!((controls.gunMove||controls.fightMove)&&animated.animationMotion)?controls:animated);}
+        else {if(sim.climbing)render.nativeCharacter?.resetAirborne();const animated=sim.climbing?controls:render.nativeCharacter?.step(step, controls, sim)??controls;sim.step(step,weapons.aiming&&!((controls.gunMove||controls.fightMove)&&animated.animationMotion)?controls:animated);}
         frameProfile.stepPlayer+=performance.now()-tPlayer;
         if(render.nativeCharacter?.duckRollDone)duck.rollFinished();
         kickSweptProps();releaseSortedOutCollisions();

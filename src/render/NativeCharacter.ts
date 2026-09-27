@@ -313,6 +313,8 @@ export class NativeCharacter {
   private headingOffset: number;
   private motionSpace: 'world' | 'actor';
   private wasAirborne = false;
+  /** A climb took over from the jump or fall: no landing clip follows it. */
+  resetAirborne() { this.wasAirborne = false; }
   /** m_fMoveBlendRatio (PlayerControlZelda). */
   private moveBlend = 0;
   /** The player's movement associations (CPlayerPed::SetRealMoveAnim) and their times before the last update. */
@@ -481,7 +483,9 @@ export class NativeCharacter {
     this.aimBlend=this.weaponPose&&!lowered?Math.min(1,this.aimBlend+8*dt):Math.max(0,this.aimBlend-(this.weaponPose&&lowered?4:8)*dt);
     if(this.reaction){this.reaction.time+=dt*this.reaction.speed;if(this.reaction.time>=this.reaction.end){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;
-    if (sim.player.swimming && this.clips.swimTread) return this.stepSwim(dt, controls, sim);
+    // CTaskComplexInAirAndLand makes no land task after a climb or into water: the swim (and the climb, resetAirborne)
+    // ends the air time.
+    if (sim.player.swimming && this.clips.swimTread) { this.wasAirborne = false; return this.stepSwim(dt, controls, sim); }
     const moving = Math.hypot(controls.x, controls.y) > 0;
     const runnable = !!(this.clips.sprint ?? this.clips.run) && sim.player.stamina > 0 && (!sim.player.sprintExhausted || sim.player.stamina >= STAMINA_EXHAUST_FLOOR);
     const landed = this.wasAirborne && sim.player.grounded;
