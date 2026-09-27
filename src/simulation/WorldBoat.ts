@@ -97,7 +97,19 @@ export class WorldBoat {
   if(this.sim.player.health<=0)return '';
   if(this.wrecked)return 'This boat is destroyed.';
   if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
+  // CTaskComplexEnterBoatAsDriver::CreateFirstSubTask: only a ped standing on the boat or touching it
+  // (m_standingOnEntity, m_pContactEntity) goes to the wheel; from the dock beside it he must get aboard first.
+  if(!this.playerAboardOrTouching())return `Get onto the ${this.name} first.`;
   return '';
+ }
+ private playerAboardOrTouching(){
+  const p=this.sim.player.position,handle=this.body.handle;
+  const under=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+.3,z:p.z},{x:0,y:-1,z:0}),.8,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
+  if(under?.collider.parent()?.handle===handle)return true;
+  // Touching: the ped's capsule grown by a few centimetres meets the hull.
+  let touching=false;
+  this.sim.world.intersectionsWithShape({x:p.x,y:p.y+.9,z:p.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.6,.36),collider=>{if(collider.parent()?.handle===handle){touching=true;return false;}return true;},RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
+  return touching;
  }
  /** '' when the player may disembark, otherwise the refusal reason. Deep-water
   * exits put the player overboard swimming (CTaskComplexInWater engages). */
