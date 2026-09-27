@@ -22,6 +22,8 @@ import type {IdeAssociation} from '../assets/ide';
 import type {ScmObject} from '../engine/ScmObjects';
 import type {NativeAnimation} from '../assets/ifp';
 import {animationTime,sampleTrack,type TrackPose} from '../animation/sample';
+/** How long a failed script-object read is remembered before it is tried again. */
+const SCRIPT_OBJECT_RETRY_MS=2000;
 /* The objects a script makes, drawn where the runtime says they are.
  *
  * ScmObjects already holds everything CObject carries for the script — position, heading, the full rotation,
@@ -103,8 +105,8 @@ export class ScriptObjectViews{
   const key=name.toLowerCase();let found=this.collisions.get(key);
   if(!found){
    found=(async()=>{
-    this.collisionIndex??=(async()=>{
-     this.source??=openStaticWorld(this.base);const source=await this.source,index=new Map<string,{entry:ImgEntry;start:number;end:number}>();
+    if(!this.collisionIndex){const indexing=(async()=>{
+     const source=await this.openSource(),index=new Map<string,{entry:ImgEntry;start:number;end:number}>();
      // The archive holds 216 COL files. Read one after another, each read waits on the event loop behind a
      // frame, so every script object waited some 216 frames for its collision (over a minute on a slow
      // machine); read 16 at a time, taken in archive order so the first file holding a name still wins.
@@ -112,12 +114,12 @@ export class ScriptObjectViews{
      const chunks=orderedConcurrent(files,async entry=>({entry,names:colChunkNames(await readImgEntry(source.file,entry))}),16);
      for await(const {entry,names} of chunks)for(const chunk of names){const k=chunk.name.toLowerCase();if(!index.has(k))index.set(k,{entry,start:chunk.start,end:chunk.end});}
      return index;
-    })();
+    })();this.collisionIndex=indexing;indexing.catch(()=>{if(this.collisionIndex===indexing)this.collisionIndex=undefined;});}
     const at=(await this.collisionIndex).get(key);if(!at)return undefined;
-    const source=await this.source!,bytes=await readImgEntry(source.file,at.entry);
+    const source=await this.openSource(),bytes=await readImgEntry(source.file,at.entry);
     return readCol(bytes.subarray(at.start,at.end))[0];
-   })().catch(error=>{this.error=String(error);return undefined;});
-   this.collisions.set(key,found);
+   })();
+   this.collisions.set(key,found);this.forgetOnFailure(this.collisions,key,found);
   }
   return found;
  }
@@ -135,18 +137,31 @@ export class ScriptObjectViews{
  private association(model:number|string){
   return typeof model==='number'?this.byId.get(model):this.byName.get(model.toLowerCase());
  }
+ /** The archive, opened once; a failed open is dropped so the next read tries again. */
+ private openSource(){
+  if(!this.source){const opening=openStaticWorld(this.base);this.source=opening;opening.catch(()=>{if(this.source===opening)this.source=undefined;});}
+  return this.source;
+ }
+ /** A download or decode that fails (a dropped connection, a timeout) is not kept: after a short wait the cache forgets
+  * it, so the object's model or collision is read again rather than missing for the rest of the session. */
+ private forgetOnFailure<T>(cache:Map<string,Promise<T>>,key:string,promise:Promise<T>){
+  promise.catch(error=>{
+   this.error=String(error);
+   setTimeout(()=>{if(cache.get(key)===promise)cache.delete(key);},SCRIPT_OBJECT_RETRY_MS);
+  });
+ }
  private load(record:IdeAssociation){
   const key=`${record.model}|${record.dictionary}`.toLowerCase();let promise=this.models.get(key);
   if(!promise){
    promise=(async()=>{
-    this.source??=openStaticWorld(this.base);const source=await this.source;this.cache??=new ModelReadCache(source.file,source.entries);
+    const source=await this.openSource();this.cache??=new ModelReadCache(source.file,source.entries);
     const entry=source.entry(`${record.model}.dff`);
     const textureEntry=source.entry(`${record.dictionary}.txd`);
     if(!entry)return undefined;
     const read=await readModel({file:source.file,entry,textureEntry},this.cache);
     return {model:read.model,textures:read.textures};
-   })().catch(error=>{this.error=String(error);return undefined;});
-   this.models.set(key,promise);
+   })();
+   this.models.set(key,promise);this.forgetOnFailure(this.models,key,promise);
   }
   return promise;
  }
@@ -187,7 +202,8 @@ export class ScriptObjectViews{
   if(this.loading.has(object.handle))return;
   const record=this.association(object.model);if(!record)return;
   this.loading.add(object.handle);
-  void Promise.all([this.load(record),this.world?this.collision(record.model):undefined]).then(([asset,col])=>{
+  // A failed read leaves no view: the object is spawned again once the failure has been forgotten.
+  void Promise.all([this.load(record),this.world?this.collision(record.model):undefined]).catch(()=>{this.loading.delete(object.handle);return [] as const;}).then(([asset,col])=>{
    this.loading.delete(object.handle);
    if(!asset||this.disposed||this.views.has(object.handle))return;
    const built=modelObject(asset.model,asset.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});
