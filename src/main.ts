@@ -4510,7 +4510,8 @@ async function boot() {
                  playerCity:()=>worldLevelAt(zones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y]),
                  modelIndex:name=>scriptPickupModels?.byName.get(name.toLowerCase())?.id??-1,
                  givePlayerWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected;if(weapons.inventory.give(weapon,ammo)&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);},
-                 setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
+                 // SetCurrentCharWeapon only picks among the weapons the ped holds: a type he does not have changes nothing.
+                 setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.owned.has(weapon)&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
                  setPlayerArmour:armour=>{sim.player.armour=armour;},playerArmour:()=>sim.player.armour,
                  // CText::LoadMissionText: the mission's table replaces the loaded one, so its subtitles and briefs read as
                  // text rather than keys. The GXT may still be loading at the mission's start; the request waits for it.
