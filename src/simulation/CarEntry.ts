@@ -436,7 +436,9 @@ export class CarEntry {
    }
    this.message='Both doors are blocked.';return false;
   }
-  this.side=side;car.driverInput=false;car.exitHandbrake=false;this.doorExisted=!car.doorMissing(this.door);
+  // The exit press left ProcessControlInputs' automatic handbrake on (gas 0, full brake), and the driver's
+  // PEDSTATE_EXIT_CAR stops the inputs being read again until he is out: the car holds still through the getout.
+  this.side=side;car.driverInput=false;car.exitHandbrake=true;this.doorExisted=!car.doorMissing(this.door);
   if(this.sideSlot(VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS))this.begin('getOut');else this.afterGetOut();
   return true;
  }
