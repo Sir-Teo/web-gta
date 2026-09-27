@@ -15,11 +15,21 @@ export interface StaticWorldManifest {
 const LIMIT=64*1024*1024;
 function safePath(path:string){return typeof path==='string'&&/^[a-zA-Z0-9_./-]+$/.test(path)&&!path.startsWith('/')&&!path.split('/').some(p=>p==='..'||p==='');}
 function validateResource(resource:{bytes:number;sha256:string}){requireAsset(Number.isSafeInteger(resource.bytes)&&resource.bytes>0&&resource.bytes<=LIMIT&&/^[a-f0-9]{64}$/.test(resource.sha256),'Invalid static world resource.');}
-async function collect(stream:ReadableStream<Uint8Array>,limit:number){
+async function collect(stream:ReadableStream<Uint8Array>,limit:number,progress?:()=>void){
  const reader=stream.getReader(),chunks:Uint8Array[]=[];let size=0;
- try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;requireAsset(size<=limit,'Static world resource exceeds its byte limit.');chunks.push(value);}}
+ try{for(;;){const {done,value}=await reader.read();if(done)break;progress?.();size+=value.length;requireAsset(size<=limit,'Static world resource exceeds its byte limit.');chunks.push(value);}}
  catch(error){await reader.cancel();throw error;}finally{reader.releaseLock();}
  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}return bytes;
+}
+/** A download that receives nothing for this long is abandoned, so a request the network never answers fails (and is
+ * retried by its caller) instead of holding the world worker, and every window queued behind it, for good. */
+export const WORLD_STALL_MS=20000;
+/** The caller's signal, also aborted once `stallMs` pass without `alive()` being called. */
+export function stallGuard(signal?:AbortSignal,stallMs=WORLD_STALL_MS){
+ const controller=new AbortController();let timer:ReturnType<typeof setTimeout>|undefined;
+ const abort=()=>controller.abort(signal!.reason);signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();
+ const alive=()=>{clearTimeout(timer);timer=setTimeout(()=>controller.abort(new Error('World content download stalled.')),stallMs);};alive();
+ return {signal:controller.signal,alive,done:()=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);}};
 }
 async function fetchWorldResource(url:URL,signal?:AbortSignal,cache:RequestCache='default'){
  for(let attempt=0;;attempt++){
@@ -71,9 +81,13 @@ export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha25
  const cached=await cachedWorldBytes(resource);if(cached)return cached;
  // A stale HTTP-cached copy of a republished path fails the checksum once; the second attempt bypasses the cache.
  for(const mode of ['default','reload'] as RequestCache[]){
-  const response=await fetchWorldResource(url,signal,mode);requireAsset(response.ok&&response.body,`World content download failed: ${url.pathname}`);
-  const body=gzip?response.body!.pipeThrough(new DecompressionStream('gzip')):response.body!;
-  const bytes=await collect(body,resource.bytes);requireAsset(bytes.length===resource.bytes,'Incomplete static world resource.');
+  const guard=stallGuard(signal);let bytes:Uint8Array<ArrayBuffer>;
+  try{
+   const response=await fetchWorldResource(url,guard.signal,mode);requireAsset(response.ok&&response.body,`World content download failed: ${url.pathname}`);
+   const body=gzip?response.body!.pipeThrough(new DecompressionStream('gzip')):response.body!;
+   bytes=await collect(body,resource.bytes,guard.alive);
+  }finally{guard.done();}
+  requireAsset(bytes.length===resource.bytes,'Incomplete static world resource.');
   if(await sha256Hex(bytes)===resource.sha256){storeWorldBytes(resource,bytes);return bytes;}
   if(mode==='reload')break;
  }
