@@ -120,3 +120,14 @@ test('the periodic save reports a failure once, and again only after a save has 
   fail=false;p.tick(5,false,false);expect(raw).not.toBe('');fail=true;p.tick(5,false,false);expect(told).toBe(2);
  }finally{sim.dispose();}
 });
+test('a tab does not save over newer progress another tab has saved since it loaded',()=>{
+ const sim=new Simulation();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  const a=new Progression(new WeaponInventory(),sim,storage),b=new Progression(new WeaponInventory(),sim,storage);
+  expect(a.save()).toBe(true);expect(a.save()).toBe(true);
+  // B loaded before A's saves: it stops rather than put its older state back, and says why.
+  let reason='';b.onSaveFailed=r=>{reason=r;};const before=raw;b.tick(5,false,false);expect(raw).toBe(before);expect(reason).toBe('conflict');
+  // A tab that loads the newer save goes on saving.
+  const c=new Progression(new WeaponInventory(),sim,storage);expect(c.save()).toBe(true);
+ }finally{sim.dispose();}
+});

@@ -2,6 +2,8 @@ import {WEAPONS} from '../weapons/catalog';
 import {skillStatWeapon,type WeaponInventory} from '../weapons/Inventory';
 import type {Simulation} from './Simulation';
 import {NativeZonesVisited} from '../world/nativeZonesVisited';
+/** The revision a stored save carries (0 for none, or one written before revisions). */
+const storedRevision=(raw:string|null|undefined)=>{const m=raw?/"revision":(\d+)/.exec(raw):null;return m?Number(m[1]):0;};
 const KEY='web-gta.progress.v1';
 /** The largest save the loader reads, well above what its own caps allow (2000 pickups, 512 stunt jumps, 200 tags). A
  * save that would not fit is not written, so the last one the loader accepts stays. */
@@ -27,9 +29,13 @@ export class Progression {
  savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number;area?:number;enexStack?:number[]};private previous?:{x:number;y:number;z:number};private saveTime=0;
  /** Whether stored progress was loaded (cash, weapons, stats or a save point), which New Game would throw away. */
  hadSave=false;
+ /** The save's revision this tab last read or wrote; a write bumps it. */
+ private revision=0;
+ /** Another tab saved newer progress, so this one stopped saving. */
+ conflict=false;
  /** `fresh`: a New Game whose old save could not be cleared: what is stored is not read, and the next save replaces it. */
  constructor(private inventory:WeaponInventory,private sim:Simulation,private storage?:Pick<Storage,'getItem'|'setItem'>,fresh=false){
-  try{const raw=fresh?undefined:storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;this.hadSave=true;
+  try{const raw=fresh?undefined:storage?.getItem(KEY);if(!raw||raw.length>MAX_SAVE_LENGTH)return;const data=JSON.parse(raw);if(data.version!==1)return;this.hadSave=true;if(Number.isSafeInteger(data.revision)&&data.revision>0)this.revision=data.revision;
    // CPlayerInfo::m_nMoney is signed: the HUD draws a debt as -$%07d.
    if(Number.isInteger(data.money)&&data.money>=-9999999&&data.money<=999999999)sim.money=data.money;
    if(finite(data.drivingSkill,1000))this.drivingSkill=data.drivingSkill;
@@ -70,14 +76,17 @@ export class Progression {
  snapshot(){return {practice:this.inventory.practice.get(skillStatWeapon(this.inventory.selected))??0,skill:this.inventory.snapshot().skill,drivingSkill:this.drivingSkill,tags:this.tags,saveSlots:this.slots.map((s,i)=>({slot:i,has:!!s}))};}
  /** Told once when the periodic save starts failing (storage full, blocked, or the save too long), and again only
   * after one has succeeded since. */
- onSaveFailed?:()=>void;
+ onSaveFailed?:(reason:'storage'|'conflict')=>void;
  private saveFailing=false;
  private autosave(){
   if(!this.storage)return;
-  const ok=this.save();if(!ok&&!this.saveFailing)this.onSaveFailed?.();this.saveFailing=!ok;
+  const ok=this.save();if(!ok&&!this.saveFailing)this.onSaveFailed?.(this.conflict?'conflict':'storage');this.saveFailing=!ok;
  }
  /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
- save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save()});if(text.length>MAX_SAVE_LENGTH)return false;this.storage.setItem(KEY,text);return true;}catch{return false;}}
+ save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save(),revision:this.revision+1});if(text.length>MAX_SAVE_LENGTH)return false;
+  // Another tab that has saved since this one loaded (a higher revision) is not overwritten with this tab's older state.
+  if(storedRevision(this.storage.getItem(KEY))>this.revision){this.conflict=true;return false;}
+  this.storage.setItem(KEY,text);this.revision++;return true;}catch{return false;}}
  /** The front end's New Game: the progress is gone, and nothing more is saved until the page loads the new game. */
  /** Whether the old save is gone; when it could not be cleared the caller starts the new game without reading it. */
  startNewGame(){let cleared=!this.storage;try{this.storage?.setItem(KEY,'');cleared=this.storage?.getItem(KEY)==='';}catch{cleared=false;}this.storage=undefined;return cleared;}
