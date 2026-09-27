@@ -16,6 +16,7 @@ import {requireAsset} from '../assets/binary';
 import {bikeLeanTarget,approachBikeLean} from '../flight/aero';
 import {bikeLeanDrop,bikeRiderLean,quadRiderLean} from './nativeBikeLean';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
+import {browserLocalDirection} from '../combat/nativeDamageAnim';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
 export const PLAYABLE_BIKES:Readonly<Record<number,string>>={448:'Pizzaboy',461:'PCJ-600',462:'Faggio',463:'Freeway',468:'Sanchez',471:'Quadbike',481:'BMX',509:'Chopper',510:'Mountain Bike',521:'FCR-900',522:'NRG-500',523:'HPV-1000',581:'BF-400',586:'Wayfarer'};
@@ -39,6 +40,9 @@ export class WorldBike {
  static ridingSkill?:()=>number;
  /** The player's CantBeKnockedOffBike, which the script sets (the host reads it). */
  static riderStaysOn?:()=>boolean;
+ /** CEventKnockOffBike's response for the player: the host plays the fall clip CalcForcesAndAnims picked and the
+  * get-up after it (CTaskComplexFallAndGetUp). */
+ static onKnockedOff?:(clip:string)=>void;
  /** A motorbike rather than a CBmx. */
  get motorbike(){return !BMX_MODELS.has(this.modelId);}
  /** No ground under the wheels. */
@@ -191,7 +195,7 @@ export class WorldBike {
  }
  finishExit(foot?:{x:number;y:number;z:number}){
   const spot=foot??this.exitFoot();if(!spot)return 'No clear ground beside the bike.';
-  this.occupied=false;this.throttle=0;this.steer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});return 'On foot';
+  this.leave(spot);this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;return 'On foot';
  }
  interact(){
   if(this.sim.player.health<=0)return '';
@@ -304,7 +308,41 @@ export class WorldBike {
   // ApplyCollision family); the contact solver's change for the whole step stands in for the strongest contact.
   const mass=this.assets.handling.values.mass;
   const force=knockOffForce({intensity:mass*change/50,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
-  if(knocksOffRider(force)){this.finishExit();this.message='Knocked off the bike!';}
+  if(knocksOffRider(force))this.knockOff(v,{x:dx,y:dy,z:dz},change);
+ }
+ /** CEventKnockOffBike with KNOCK_OFF_TYPE_SKIDBACKFRONT (the only type CBike::DamageKnockOffRider raises). The rider
+  * keeps the bike's move speed and takes -0.3 (a BMX -0.2) of the collision's velocity change flat, plus 3 to 5 (a
+  * BMX 6) / 70 units a frame up; the clip is the one for the side the hit came from (GetLocalDirection of the
+  * reversed impact: KO_SKID_BACK in front, KD_RIGHT left, KO_SKID_FRONT behind, KD_LEFT right). A rider with nowhere
+  * clear to go (SetPedSafePosition fails) stays on. */
+ private knockOff(velocity:{x:number;y:number;z:number},impact:{x:number;y:number;z:number},change:number){
+  const spot=this.knockOffSpot();if(!spot)return;
+  this.leave(spot);
+  const factor=this.motorbike?-.3:-.2,up=(3+Math.random()*((this.motorbike?5:6)-3))/70*50,player=this.sim.player;
+  this.sim.collisionPush={x:velocity.x+factor*impact.x,z:velocity.z+factor*impact.z};
+  player.verticalSpeed=velocity.y+up;player.grounded=false;player.speed=0;
+  const direction=change>0?browserLocalDirection(player.heading,-impact.x,-impact.z):0;
+  WorldBike.onKnockedOff?.((['ko_skid_back','kd_right','ko_skid_front','kd_left'] as const)[direction]);
+  this.message='Knocked off the bike!';
+ }
+ /** CEventKnockOffBike::SetPedSafePosition: the seat, lifted half a unit when that is clear too, else 0.6 up or
+  * down, else a clear spot beside the bike (PositionPedOutOfCollision); each must leave the ped clear of the world
+  * and in sight of the bike past buildings and objects. */
+ private knockOffSpot(){
+  const p=this.body.translation(),seat={x:p.x,y:p.y,z:p.z};
+  const clear=(foot:{x:number;y:number;z:number})=>{
+   const center={x:foot.x,y:foot.y+.9,z:foot.z};
+   if(this.sim.world.intersectionWithShape(center,{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.6,.3),RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.body))return false;
+   const dx=center.x-p.x,dy=center.y-p.y,dz=center.z-p.z,length=Math.hypot(dx,dy,dz);
+   return length<1e-3||!this.sim.world.castRay(new RAPIER.Ray(p,{x:dx/length,y:dy/length,z:dz/length}),length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS|RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC,undefined,this.sim.playerCollider,this.body);
+  };
+  if(clear(seat)){const lifted={...seat,y:seat.y+.5};return clear(lifted)?lifted:seat;}
+  for(const dy of [.6,-.6]){const tried={...seat,y:seat.y+dy};if(clear(tried))return tried;}
+  return this.exitFoot();
+ }
+ /** CTaskSimpleCarSetPedOut: the rider is off the bike at `spot`. */
+ private leave(spot:{x:number;y:number;z:number}){
+  this.occupied=false;this.throttle=0;this.steer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
  }
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);

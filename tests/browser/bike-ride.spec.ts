@@ -36,7 +36,7 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
    WorldBike.riderStaysOn=()=>true;
    bike.body.setTranslation({x:0,y:1.5,z:-20},true);bike.body.setRotation({x:0,y:0,z:0,w:1},true);bike.body.setLinvel({x:0,y:0,z:-30},true);
    for(let i=0;i<120&&bike.snapshot().occupied;i++)tick({throttle:0,steer:0,brake:false});
-   out.keptOn=bike.snapshot().occupied;WorldBike.riderStaysOn=undefined;
+   out.keptOn=bike.snapshot().occupied;WorldBike.riderStaysOn=undefined;WorldBike.onKnockedOff=(clip:string)=>{out.clip=clip;out.thrown=Math.hypot(sim.collisionPush.x,sim.collisionPush.z);out.rising=sim.player.verticalSpeed;out.airborne=!sim.player.grounded;};
    bike.body.setTranslation({x:0,y:1.5,z:-20},true);bike.body.setRotation({x:0,y:0,z:0,w:1},true);bike.body.setLinvel({x:0,y:0,z:-30},true);bike.body.setAngvel({x:0,y:0,z:0},true);
    for(let i=0;i<120&&bike.snapshot().occupied;i++)tick({throttle:0,steer:0,brake:false});
    out.knocked=!bike.snapshot().occupied;
@@ -60,6 +60,11 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
  expect(result.keptOn).toBe(true);
  expect(result.knocked).toBe(true);
  expect(result.knockMessage).toBe('Knocked off the bike!');
+ // CEventKnockOffBike (SKIDBACKFRONT): a head-on stop throws the rider forward, lifted, with KO_SKID_BACK.
+ expect(result.clip).toBe('ko_skid_back');
+ expect(result.thrown).toBeGreaterThan(2);
+ expect(result.rising).toBeGreaterThan(2);
+ expect(result.airborne).toBe(true);
  expect(errors).toEqual([]);
 });
 
