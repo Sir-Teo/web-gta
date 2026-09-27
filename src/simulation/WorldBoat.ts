@@ -129,6 +129,8 @@ export class WorldBoat {
  }
  finishExit(foot?:{x:number;y:number;z:number}){
   const spot=foot??this.exitFoot();
+  // Neither ground beside the hull nor water to go over into (a boat on land, both sides blocked): he stays aboard.
+  if(!spot&&this.waterLevel?.(this.body.translation().x,-this.body.translation().z)===undefined)return 'No clear ground beside the boat.';
   this.occupied=false;this.throttle=0;this.steer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
   if(spot){this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});return 'On foot';}
   // No ground beside the hull: overboard into the water (swim engages on the next step).
