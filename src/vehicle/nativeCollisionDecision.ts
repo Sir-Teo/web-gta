@@ -8,8 +8,8 @@ export const VEHICLE_DAMAGE_COLLISION_EVENT=73;
 export const COLLISION_DECISION_ROWS:readonly (readonly DecisionChoice[])[]=[
  [row(TASK.informGroup,[0,100,100,100])],
  [row(TASK.none,[0,0,50,0]),row(TASK.killCriminal,[0,100,0,100])],
- [row(TASK.none,[100,50,50,50]),row(TASK.carDriveMissionFleeScene,[0,25,25,25]),row(TASK.roadRage,[0,25,25,25]),row(TASK.carDriveMissionKillPed,[0,25,0,0])],
- [row(TASK.none,[100,50,50,50]),row(TASK.roadRage,[0,50,50,50]),row(TASK.carDriveMissionKillPed,[0,150,0,0])],
+ [row(TASK.none,[100,50,50,50]),row(TASK.carDriveMissionFleeScene,[0,25,25,25]),row(TASK.roadRage,[0,25,25,25]),row(TASK.carDriveMissionKillPed,[0,0,25,0])],
+ [row(TASK.none,[100,50,50,50]),row(TASK.roadRage,[0,50,50,50]),row(TASK.carDriveMissionKillPed,[0,0,150,0])],
  [row(TASK.none,[100,0,50,90]),row(TASK.carDriveMissionFleeScene,[0,100,50,10])],
 ];
 const makers:DecisionMaker[]=COLLISION_DECISION_ROWS.map(choices=>new Map([[VEHICLE_DAMAGE_COLLISION_EVENT,choices]]));

@@ -23,3 +23,25 @@ test('a driver shot dead is a corpse from the shot on, even if CJ drags him out 
  },setup);
  expect(result).toEqual({before:false,shot:'killed',dead:true});
 });
+
+test('a rammed driver who draws the kill task drives at CJ, and flees the scene instead while CJ is on a mission',async({page})=>{
+ test.setTimeout(180000);await page.goto('/models.html');
+ const result=await page.evaluate(async setup=>{
+  const run=new Function(`return (async()=>{${setup}
+   try{
+    const t=traffic,driver=t.drivers.find(d=>d.car===car);
+    t.driverDecisionMaker=()=>2;t.random=()=>.9;t.playerOnMission=()=>true;
+    t.collisionEvent(driver,20,true);const onMission={chase:!!driver.chase,flee:!!driver.fleeScene};driver.fleeScene=false;
+    t.playerOnMission=()=>false;t.collisionEvent(driver,20,true);
+    const at=car.car.body.translation(),goal={x:at.x+25,y:at.y,z:at.z};
+    const step=()=>{sim.player.position={...goal};t.beforeStep(1/60);for(const c of fleet.cars)c.beforeStep(1/60,{x:0,y:0},false);sim.world.step();for(const c of fleet.cars)c.afterStep?.(1/60);};
+    const d0=Math.hypot(at.x-goal.x,at.z-goal.z);for(let i=0;i<180;i++)step();
+    const q=car.car.body.translation();
+    return {onMission,chase:!!driver.chase,closed:d0-Math.hypot(q.x-goal.x,q.z-goal.z)};
+   }finally{traffic.dispose();fleet.dispose();sim.dispose();}})()`);
+  return run();
+ },setup);
+ expect(result.onMission).toEqual({chase:false,flee:true});
+ expect(result.chase).toBe(true);
+ expect(result.closed).toBeGreaterThan(5);
+});
