@@ -13,12 +13,16 @@ test('the player rides a script car as a passenger and gets out beside it',async
  await page.evaluate(c=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCarAsPassenger(1,c,2),car);
  const inside=await page.evaluate(c=>{const w=(window as any).__game.missionForProfiling().runtime.world;return {inCar:w.pedIsInCar?.(1,c),car:w.pedVehicle(1)};},car);
  expect(inside.car).toBe(car);
- // The car moves on; the player goes with it.
- const target=await page.evaluate(c=>{const m=(window as any).__game.missionForProfiling(),at=m.vehicles.positionOf(c);m.runtime.world.setVehicleCoordinates(c,at.x+25,at.y,at.z);return {x:at.x+25,y:at.y};},car);
+ // The script's car is asked for at z -100 (placed on the ground when it arrives): move it only once it stands there,
+ // or it is carried on from below the world and falls, and the leave below waits for a car that never slows.
+ await page.waitForFunction(c=>(window as any).__game.missionForProfiling().vehicles.positionOf(c).z>-50,car,{timeout:30000});
+ // The car moves on (set down from a little above, so ground there that rises is not inside it); the player goes with it.
+ const target=await page.evaluate(c=>{const m=(window as any).__game.missionForProfiling(),at=m.vehicles.positionOf(c);m.runtime.world.setVehicleCoordinates(c,at.x+25,at.y,at.z+1.5);return {x:at.x+25,y:at.y};},car);
  await expect.poll(async()=>{const p=await page.evaluate(()=>(window as any).__game.state().player.position);return Math.hypot(p.x-target.x,-p.z-target.y);},{timeout:15000}).toBeLessThan(4);
  await page.waitForTimeout(800);
+ // CTaskSimpleCarWaitToSlowDown: the passenger gets out once the car has settled enough to step out of.
  await page.keyboard.press('KeyF');
- await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1)??null),{timeout:10000}).toBeNull();
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1)??null),{timeout:20000}).toBeNull();
  const out=await page.evaluate(c=>{const g=(window as any).__game,p=g.state().player.position,at=g.missionForProfiling().vehicles.positionOf(c);return {d:Math.hypot(p.x-at.x,-p.z-at.y),grounded:g.state().player.grounded};},car);
  expect(out.d).toBeLessThan(5);expect(out.d).toBeGreaterThan(1);
  expect(errors).toEqual([]);
