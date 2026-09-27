@@ -4654,6 +4654,7 @@ async function boot() {
                  clearScriptRoadblocks:()=>{police?.clearScriptRoadblocks();},
                  setPlayerMaxHealth:maxHealth=>{sim.player.health=maxHealth;},
                  setPlayerHealth:health=>{if(sim.player.health>0)sim.player.health=health;},
+                 setFreeHealthCare:on=>{gameLogic.freeHealthCare=on;},
                  killPlayer:()=>{sim.killPlayer();},
                  setPlayerDrownsInWater:drowns=>{sim.playerDrownsInWater=drowns;},
                  // CPed::AttachPedToEntity for the player: not while he sits in a vehicle. His collision goes, he keeps the

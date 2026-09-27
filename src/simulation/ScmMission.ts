@@ -611,6 +611,8 @@ export interface ScmMissionWorld {
  attachPlayerToObject?(object:number,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;playerAttachedObject?():number|undefined;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
+ /** CPlayerInfo::m_bFreeHealthCare (SET_FREE_HEALTH_CARE): the next hospital trip costs nothing and keeps the weapons. */
+ setFreeHealthCare?(on:boolean):void;
  /** CPhysical::SetVelocity on the player, native units per 50th of a second. */
  setPlayerVelocity?(velocity:{x:number;y:number;z:number}):void;
  setPlayerMaxArmour(maxArmour:number):void;
@@ -1765,6 +1767,7 @@ export class ScmMission {
    },
    // CPed::bIsTargetPriority and bStayInCarOnJack's bike twin (m_nPedFlags): the ped's flags, kept on it.
    setPedIsTargetPriority:(handle,state)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'targetPriority',state);},
+   setFreeHealthCare:(_player,on)=>{this.host('setFreeHealthCare','SET_FREE_HEALTH_CARE')(on);},
    setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle===PLAYER_PED_HANDLE)this.runtime.game.playerInfo.stayOnBike=stayOnBike;else this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
    // The car's own fields the script sets that the browser's cars keep but do not act on: the heli's rotor speed,
    // CVehicle's status, and CAutomobile::m_fCarTraction.
