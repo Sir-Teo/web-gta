@@ -1,6 +1,7 @@
 import {limitRadarPoint,radarNorth,radarPoint,RADAR_MIN_RANGE} from './nativeRadar';
 import {RADAR_SPRITE_NAMES,type ScmRadarBlip} from '../assets/scmRadarBlips';
 import {ZONE_SQUARES,type NativeZonesVisited} from '../world/nativeZonesVisited';
+import {FrontendMapView,FRONTEND_MAP_PAN_STEP,FRONTEND_MAP_TICK_MS,FRONTEND_MAP_WHEEL_STEP,FRONTEND_MAP_ZOOM_STEP} from './frontendMapView';
 /** CRadar::DisplayThisBlip for a player who cannot see outside: only traces and the centre, north,
  * waypoint, mafia casino, school, triad casino and cash sprites (the menu's blip-category toggles do not exist here). */
 const INDOOR_SPRITES=new Set([0,1,2,3,4,25,36,41,44,52]);
@@ -74,10 +75,16 @@ export class NativeMap {
    const target=e.target as HTMLElement,letter=/^Key([A-Z])$/.exec(e.code)?.[1];
    if(letter&&!e.repeat&&!target.closest('select')&&(e.code==='KeyM'||target.closest('input, button')))this.onLetter?.(letter);
    if(e.code==='KeyM'&&!target.closest('select')){e.preventDefault();e.stopPropagation();if(!e.repeat)this.toggle(false);return;}
+   // The frontend map's keys: PgUp/PgDn zoom and the arrows pan while held; Home centres on CJ (the map's opening view).
+   if(['PageUp','PageDown','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)&&!target.closest('select')){e.preventDefault();this.mapKeys.add(e.code);this.mapKeyTick=0;this.stepMapKeys();this.draw();return;}
+   if(e.code==='Home'&&!target.closest('select')){e.preventDefault();const m=worldToMap(this.position.x,this.position.z);this.view.centreOn(m.x,m.y);this.draw();return;}
    if(e.code!=='Tab')return;e.stopPropagation();
    const controls=[...this.panel.querySelectorAll<HTMLElement>('select,button')].filter(c=>!(c as HTMLButtonElement).disabled),at=controls.indexOf(document.activeElement as HTMLElement);
    if(e.shiftKey&&at<=0){e.preventDefault();controls[controls.length-1]?.focus();}else if(!e.shiftKey&&(at<0||at===controls.length-1)){e.preventDefault();controls[0]?.focus();}
   });
+  this.panel.addEventListener('keyup',e=>{this.mapKeys.delete(e.code);});
+  // CPad::IsMouseWheelUp zooms in, down zooms out, 28 lines a notch; a sideways scroll does nothing.
+  this.full.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY===0)return;this.view.zoom(e.deltaY<0?FRONTEND_MAP_WHEEL_STEP:-FRONTEND_MAP_WHEEL_STEP);this.requestDraw();},{passive:false});
   this.element.querySelector<HTMLButtonElement>('.map-clear')!.onclick=()=>{this.notice=undefined;this.waypoint=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';this.draw();};
   this.element.querySelector<HTMLSelectElement>('.map-destination')!.onchange=e=>{const places:Record<string,{x:number;z:number}>={grove:{x:2495,z:1687},meadows:{x:400,z:-2500},'ls-airport':{x:1685,z:2420},'sf-airport':{x:-1330,z:240},'lv-airport':{x:1450,z:-1450}};const destination=places[(e.target as HTMLSelectElement).value];if(destination){this.notice=undefined;this.waypoint={...destination};this.draw();}(e.target as HTMLSelectElement).blur();};
   const fly=this.element.querySelector<HTMLButtonElement>('.map-fly')!;
@@ -89,7 +96,7 @@ export class NativeMap {
    // against the drawn square, and leave the bars beside it alone.
    const side=Math.min(r.width,r.height),u=(e.clientX-r.left-(r.width-side)/2)/side,v=(e.clientY-r.top-(r.height-side)/2)/side;
    if(u<0||u>1||v<0||v>1)return;
-   this.waypoint=mapToWorld(u,v);this.draw();};
+   const m=this.view.toMap(u,v);this.waypoint=mapToWorld(m.x,m.y);this.draw();};
   this.image.onload=()=>{this.loaded=true;this.draw();};this.image.onerror=()=>{this.status.textContent='Map image could not load. Reload to retry.';};
   this.element.addEventListener('click',e=>{if(e.target instanceof HTMLButtonElement)e.target.blur();});
   // The radar is first drawn when play starts: fetch it behind what the menu is waiting on.
@@ -109,20 +116,21 @@ export class NativeMap {
  get open(){return !this.panel.hidden;}
  /** Why the last flight was refused, kept in the status line (which every draw rewrites) until the next map action. */
  private notice?:string;
- toggle(open=!this.open){if(open&&!this.open&&this.canOpen?.()===false)return;this.notice=undefined;this.panel.hidden=!open;this.onToggle?.(open);
+ toggle(open=!this.open){if(open&&!this.open&&this.canOpen?.()===false)return;if(open!==this.open){this.view.reset();this.mapKeys.clear();}this.notice=undefined;this.panel.hidden=!open;this.onToggle?.(open);
   // The open map takes the keyboard (Tab walks its controls from the panel); closed, the game has it back.
   if(open)this.panel.focus({preventScroll:true});else if(this.panel.contains(document.activeElement)||document.activeElement instanceof HTMLButtonElement)(document.querySelector('canvas.world') as HTMLCanvasElement|null)?.focus();
   this.draw();}
- update(position:{x:number;z:number},heading:number,radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}){if(radar)this.radar=radar;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
+ update(position:{x:number;z:number},heading:number,radar?:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}){this.stepMapKeys();if(radar)this.radar=radar;this.position={x:position.x,z:position.z};this.heading=heading;this.draw();}
  /** CRadar::DrawBlips with the frontend's map drawing (m_bDrawingMap): every trace at blip size 1 with its height
   * triangle, and every sprite, short-range ones included, sized in the screen lines the menu draws in. */
- private drawMapBlips(c:CanvasRenderingContext2D,w:number){
+ /** `ox`, `oy` and `scale`: the frame's window on the map (map fractions) and canvas pixels per map fraction. */
+ private drawMapBlips(c:CanvasRenderingContext2D,w:number,ox:number,oy:number,scale:number){
   // The radar fog: the squares not yet visited, while fewer than 80 are, in (111, 137, 170, 200).
   const zones=this.zones;
-  if(zones&&zones.revealed<80){c.fillStyle='rgba(111,137,170,0.784)';const cell=w/ZONE_SQUARES;for(let x=0;x<ZONE_SQUARES;x++)for(let y=0;y<ZONE_SQUARES;y++)if(!zones.visited[x*ZONE_SQUARES+y])c.fillRect(x*cell,y*cell,cell,cell);}
+  if(zones&&zones.revealed<80){c.fillStyle='rgba(111,137,170,0.784)';const cell=scale/ZONE_SQUARES;for(let x=0;x<ZONE_SQUARES;x++)for(let y=0;y<ZONE_SQUARES;y++)if(!zones.visited[x*ZONE_SQUARES+y])c.fillRect(x*cell-ox*scale,y*cell-oy*scale,cell,cell);}
   if(this.hideMapBlips)return;
   const revealed=(x:number,z:number,shortRange?:boolean)=>!zones||zones.blipRevealed(x,-z,!!shortRange);
-  const shown=this.full.clientHeight||w,u=(innerHeight/448)*(w/shown),at=(x:number,z:number)=>{const m=worldToMap(x,z);return {x:m.x*w,y:m.y*w};};
+  const shown=this.full.clientHeight||w,u=(innerHeight/448)*(w/shown),at=(x:number,z:number)=>{const m=worldToMap(x,z);return {x:(m.x-ox)*scale,y:(m.y-oy)*scale};};
   for(const blip of this.liveBlips){
    if(blip.sprite!==undefined&&this.blipSprites.has(blip.sprite))continue;
    const q=at(blip.x,blip.z),dz=blip.dz??0,colour=blip.colour??'#fff';
@@ -136,18 +144,29 @@ export class NativeMap {
   for(const blip of this.blips){const img=this.blipSprites.get(blip.sprite);if(img&&displayThisBlip(blip.sprite,this.indoors)&&revealed(blip.x,-blip.y,blip.shortRange))sprite(img,blip.x,-blip.y);}
   for(const blip of this.liveBlips){const img=blip.sprite!==undefined?this.blipSprites.get(blip.sprite):undefined;if(img&&displayThisBlip(blip.sprite!,this.indoors)&&revealed(blip.x,blip.z,blip.shortRange))sprite(img,blip.x,blip.z);}
  }
+ /** The full map's zoom and pan, and the zoom and pan keys held on it. */
+ private readonly view=new FrontendMapView();private readonly mapKeys=new Set<string>();private mapKeyTick=0;
+ /** The frontend's map keys, one step per FRONTEND_MAP_TICK_MS while held: PgUp/PgDn zoom, the arrows pan. */
+ private stepMapKeys(){
+  // The map is redrawn at the menu's 10 fps, so the steps due since the last are taken together (the original's
+  // frame-rate fix scales them by the time passed the same way).
+  if(!this.mapKeys.size||!this.open)return;const now=performance.now(),since=now-this.mapKeyTick;if(since<=FRONTEND_MAP_TICK_MS)return;
+  const ticks=this.mapKeyTick?Math.min(10,since/FRONTEND_MAP_TICK_MS):1;this.mapKeyTick=now;
+  const k=this.mapKeys,zoom=(k.has('PageUp')?1:0)-(k.has('PageDown')?1:0),dx=(k.has('ArrowRight')?1:0)-(k.has('ArrowLeft')?1:0),dy=(k.has('ArrowDown')?1:0)-(k.has('ArrowUp')?1:0);
+  if(zoom)this.view.zoom(zoom*FRONTEND_MAP_ZOOM_STEP*ticks);if(dx||dy)this.view.pan(dx*FRONTEND_MAP_PAN_STEP*ticks,dy*FRONTEND_MAP_PAN_STEP*ticks);
+ }
  /** Pointer events come faster than frames: they ask for one redraw on the next frame rather than a redraw each. */
  private drawQueued=false;
  private requestDraw(){if(this.drawQueued)return;this.drawQueued=true;requestAnimationFrame(()=>{this.drawQueued=false;this.draw();});}
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
-  if(this.loaded)this.status.textContent=this.notice??(distance===undefined?'North is up · Click anywhere to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`);
+  if(this.loaded)this.status.textContent=this.notice??(distance===undefined?'North is up · Wheel or PgUp/PgDn zooms · Arrows pan · Home finds CJ · Click to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`);
   const draw=(canvas:HTMLCanvasElement,full:boolean)=>{
-   const c=canvas.getContext('2d')!,w=canvas.width,span=full?1:700/6000,scale=w/span,ox=full?0:p.x-span/2,oy=full?0:p.y-span/2;
+   const win=this.view.window,c=canvas.getContext('2d')!,w=canvas.width,span=full?win.span:700/6000,scale=w/span,ox=full?win.x:p.x-span/2,oy=full?win.y:p.y-span/2;
    c.clearRect(0,0,w,w);c.fillStyle='#79aabd';c.fillRect(0,0,w,w);
    if(this.loaded)c.drawImage(this.image,-ox*scale,-oy*scale,scale,scale);
    for(const o of this.zoneOverlays){const a=worldToMap(o.x1,o.z1),b=worldToMap(o.x2,o.z2);c.fillStyle=o.colour;c.fillRect((a.x-ox)*scale,(a.y-oy)*scale,(b.x-a.x)*scale,(b.y-a.y)*scale);}
-   if(full)this.drawMapBlips(c,w);
+   if(full)this.drawMapBlips(c,w,ox,oy,scale);
    const px=(p.x-ox)*scale,py=(p.y-oy)*scale;
    // The frontend map has no north blip and no line to the waypoint: the waypoint's own sprite at its spot, drawn
    // after the other blips, and the player as DrawYouAreHereSprite (below).
@@ -169,7 +188,7 @@ export class NativeMap {
    // CPlaceName::GetForMap under the mouse, once its square is explored (or 80 are) and while no button is held:
    // pricedown at 0.8, light gray with a black edge, right-aligned 30 lines in from the map's right and bottom.
    if(this.pointer&&!this.pointer.held&&this.placeAt){
-    const at=mapToWorld(this.pointer.x,this.pointer.y),zones=this.zones;
+    const pm=this.view.toMap(this.pointer.x,this.pointer.y),at=mapToWorld(pm.x,pm.y),zones=this.zones;
     if(!zones||zones.revealed>=80||zones.wasVisited(at.x,-at.z)){
      const name=this.placeAt(at.x,-at.z);
      if(name){const size=16*u;c.save();c.font=`400 ${size.toFixed(1)}px Impact,'Arial Narrow',sans-serif`;c.textAlign='right';c.textBaseline='top';c.lineJoin='round';
