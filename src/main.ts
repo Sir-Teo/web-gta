@@ -2585,8 +2585,10 @@ async function boot() {
         }
         if(!onFoot&&playerTasks.active&&sim.player.health>0)playerTasks.step(step,playerTaskBody());
         if(!sim.player.swimming)controls=nativeWeaponMovement(controls,weapons.native,weapons.inventory.selected,weapons.aiming);
-        // CTaskSimpleUseGun moves an aimed gun's holder on the GunMove clips at the skill row's move speed.
-        const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
+        // CTaskSimpleUseGun moves an aimed gun's holder on the GunMove clips at the skill row's move speed. The spray can
+        // and extinguisher are area-effect weapons without bAimWithArm, which CTaskSimplePlayerOnFoot::ProcessPed moves
+        // through PlayerControlZeldaWeapon like the rifles.
+        const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame','spray','extinguisher'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
         if(aimedGun)controls={...controls,gunMove:{aimWithArm:!!(aimedGun.flags&WEAPON_FLAG.aimWithArm),moveAim:!!(aimedGun.flags&WEAPON_FLAG.moveAim),moveFire:!!(aimedGun.flags&WEAPON_FLAG.moveFire),firing:gunFiring,moveSpeed:aimedGun.moveSpeed}};
         // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon: the target button with a melee weapon starts CTaskSimpleFight, whose
         // stance shuffles CJ about on the FightSh clips (PlayerControlFighter) instead of walking him.
