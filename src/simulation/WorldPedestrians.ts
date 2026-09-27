@@ -835,13 +835,14 @@ export class WorldPedestrians {
    const b=dead.actor.player.position;
    if(dead.drowning||dead.drowned)return;
    for(const o of this.people){
-    if(o===dead||o.health<=0||o.down>0||o.investigate||o.follow)continue;
+    // CEventDeadPed is priority 15: a ped answering a stronger event (a fight, a flee from a shot) ignores the body.
+    if(o===dead||o.health<=0||o.down>0||o.investigate||o.follow||!this.takesPriority(o,EVENT.deadPed,dead))continue;
     const q=o.actor.player.position,dx=b.x-q.x,dy=b.y-q.y,dz=b.z-q.z;
     if(dx*dx+dy*dy+dz*dz>64||dx*Math.sin(o.actor.player.heading)+dz*Math.cos(o.actor.player.heading)<0)continue;
     const relationship=this.relationshipTo(o,dead);
     const task=this.decide(o,EVENT.deadPed,relationship,this.deadPedRandom)??deadPedDecisionTask(o.decisionMaker,relationship,this.deadPedRandom);
     if(task===TASK.investigateDeadPed){o.investigate={phase:'stand',time:1,body:dead,start:{x:q.x,z:q.z},lookMs:5000+Math.floor(this.deadPedRandom()*2000)};o.loiter=false;}
-    else if(task===TASK.smartFleeEntity){o.flee=Math.max(o.flee,SMART_FLEE_SECONDS);o.fleeFrom={x:b.x,z:b.z};o.fleePlayer={safe:100000,check:SMART_FLEE_CHECK_SECONDS,from:dead};o.retaliate=0;}
+    else if(task===TASK.smartFleeEntity){o.flee=Math.max(o.flee,SMART_FLEE_SECONDS);o.fleeFrom={x:b.x,z:b.z};o.fleePlayer={safe:100000,check:SMART_FLEE_CHECK_SECONDS,from:dead};o.retaliate=0;o.event={type:EVENT.deadPed};}
    }
   }
   /** CEventDanger (priority 20), which a low aircraft raises (CAutomobile::DoHeliDustEffect): AffectsPed reaches the living
