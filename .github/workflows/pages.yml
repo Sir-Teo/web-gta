@@ -21,7 +21,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -34,6 +34,8 @@ jobs:
       - uses: actions/configure-pages@v5
         id: pages
       - run: npm ci --no-audit --no-fund
+      # The unit suite gates the deploy (the build's own tsc --noEmit is the type check).
+      - run: npm test
       - run: npm run build
         env:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}/
