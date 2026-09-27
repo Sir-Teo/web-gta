@@ -2611,7 +2611,10 @@ async function boot() {
         if(sim.player.crouched&&sim.player.grounded&&onFoot&&!sim.player.swimming&&sim.player.health>0){
           // The pad's walk axis is negative forward; the key axes are positive forward.
           const move=playerDuckMove(controls.x,-controls.y,weapons.aiming&&weapons.inventory.weapon.kind!=='melee');
-          duck.control(move.x,move.y,step*50);controls={...controls,duck:{clip:duck.clip,speed:duck.speed}};
+          duck.control(move.x,move.y,step*50);
+          // CTaskSimpleUseGun::SetMoveAnim, ducked, with its last command FIRE, FIREBURST or RELOAD: ForceStopMove.
+          if(weapons.aiming&&weapons.inventory.weapon.kind!=='melee'&&(gunFiring||weapons.inventory.reloading))duck.forceStopMove();
+          controls={...controls,duck:{clip:duck.clip,speed:duck.speed}};
         }else duck.reset();
         // The player's pad for NitrousControl and BoostJumpControl: the car-gun button, the look keys and a fresh horn press.
         {const horn=input.down('CapsLock')||input.down('KeyH'),looking=input.down('KeyQ')||input.down('KeyE')||input.down('MouseMiddle');
