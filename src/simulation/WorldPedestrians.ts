@@ -558,7 +558,9 @@ export class WorldPedestrians {
   return true;
  }
  /** Whether the response to the ped's current event still runs. */
- private answering(p:Pedestrian){return p.retaliate>0||p.flee>0||!!p.gunReact;}
+ /** Whether the ped is still carrying out its current event's response: a fight, a flee, the gun-aimed-at reaction,
+  * or the evasive step/dive and hands-up of CEventPotentialGetRunOver (priority 51, above an aimed gun's 50). */
+ private answering(p:Pedestrian){return p.retaliate>0||p.flee>0||!!p.gunReact||!!p.evade||!!p.carReact;}
  /** Whether an event of `type` from `source` (the player when undefined) displaces the one the ped answers. */
  private takesPriority(p:Pedestrian,type:number,source?:Pedestrian){return takesPriorityOverCurrentEvent(p.event&&this.answering(p)?p.event:undefined,type,source);}
  /** A kill task on `source` (the player when undefined): CTaskComplexKillPedOnFoot's ControlSubTask is a stub, so the
