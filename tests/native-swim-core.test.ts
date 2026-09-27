@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {pedFloatDepth,SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimBreathMultiplier,swimEntry,swimResistance,swimSubmergeVelocity,swimSubmergeZ,swimSurfaceState} from '../src/simulation/nativeSwim';
+import {pedFloatDepth,SWIM,SWIM_STOP_TIME,swimBlendRatio,swimBreath,swimBreathMultiplier,swimEntry,swimResistance,swimRotationTowardSurface,swimSubmergeVelocity,swimSubmergeZ,swimSurfaceState} from '../src/simulation/nativeSwim';
 
 test('swim starts with the ped origin (a unit above the feet) 0.6 under the surface; the stop threshold is 15 native time units',()=>{
  expect(SWIM_STOP_TIME).toBe(15);
@@ -69,4 +69,15 @@ test('breath recovers at the surface, drains underwater and kills empty lungs',(
 test('a ped without the swim servo floats where 1.1× (1.8× dead) buoyancy balances gravity: the origin 0.727 (0.056) under',()=>{
  expect(pedFloatDepth(true)).toBeCloseTo(1.9/1.1-1,10);
  expect(pedFloatDepth(false)).toBeCloseTo(1.9/1.8-1,10);
+});
+test('an underwater swimmer near the surface tips up past 45 degrees on his own (ProcessSwimmingResistance)',()=>{
+ // Origin 0.3 under the surface, level: the changer ramps to 0.025 a frame and the pitch climbs past pi/4.
+ let pitch=0,changer=0,frames=0;
+ while(pitch<=Math.PI/4&&frames<200){({pitch,changer}=swimRotationTowardSurface(pitch,changer,-.3,0,1,1/50));frames++;}
+ expect(pitch).toBeGreaterThan(Math.PI/4);expect(changer).toBeCloseTo(.025,5);expect(frames).toBeLessThan(60);
+ // Deep down nothing turns him, and a changer left over dies away.
+ expect(swimRotationTowardSurface(.2,.02,-5,0,1,1/50)).toEqual({pitch:.2,changer:.02*.95});
+ expect(swimRotationTowardSurface(.2,.0005,-5,0,1,1/50)).toEqual({pitch:.2,changer:0});
+ // Out of the water's reach (no level) the pitch is left alone.
+ expect(swimRotationTowardSurface(.2,.01,-5,undefined,1,1/50)).toEqual({pitch:.2,changer:.01});
 });

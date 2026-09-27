@@ -3,7 +3,7 @@ import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
-import { PED_ORIGIN_HEIGHT, swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
+import { PED_ORIGIN_HEIGHT, swimResistance, swimRotationTowardSurface, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
@@ -69,7 +69,7 @@ export class Simulation {
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
     /** CPlayerPedData::m_bAdrenaline: seconds left of an adrenaline pill (m_nAdrenalineEndTime), 0 when none. */
     adrenaline: 0,
-   swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
+   swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimStateChanger: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
    /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
    moveBlend: 0, jumpMomentum: { x: 0, z: 0 } };
   deathRemaining = 0;
@@ -608,9 +608,14 @@ export class Simulation {
     // split along it, with 0.01 units a frame of rise, all through the same 0.9 resistance. Elsewhere the pitch decays.
     const underwater = this.player.swimState === 4;
     if (underwater) {
+      // The camera turns the pitch only while m_fStateChanger is 0, or upward.
       const turn = clamp(((controls.cameraPitch ?? 0) - this.player.swimPitch) * 10, -1, 1);
-      this.player.swimPitch = clamp(this.player.swimPitch + dt * turn + timeStep / 1000, -80 * Math.PI / 180, 80 * Math.PI / 180);
-    } else this.player.swimPitch = Math.abs(this.player.swimPitch) > .01 ? this.player.swimPitch * Math.pow(.95, timeStep) : 0;
+      const steered = this.player.swimStateChanger === 0 || turn > 0 ? dt * turn : 0;
+      const pitch = clamp(this.player.swimPitch + steered + timeStep / 1000, -80 * Math.PI / 180, 80 * Math.PI / 180);
+      // ProcessSwimmingResistance: near the surface the swimmer tips up on his own until he treads.
+      const surfacing = swimRotationTowardSurface(pitch, this.player.swimStateChanger, this.player.position.y + PED_ORIGIN_HEIGHT, controls.swimWater, timeStep, dt);
+      this.player.swimPitch = clamp(surfacing.pitch, -80 * Math.PI / 180, 80 * Math.PI / 180); this.player.swimStateChanger = surfacing.changer;
+    } else { this.player.swimPitch = Math.abs(this.player.swimPitch) > .01 ? this.player.swimPitch * Math.pow(.95, timeStep) : 0; this.player.swimStateChanger = 0; }
     // ProcessSwimmingResistance takes the stroke's shift over a 30 fps frame as a move speed in units per 1/50 s, so at
     // the game's frame rate CJ swims 50/30 of the clip's own speed (the "slower swimming at high frame rates" quirk).
     const shift = animationMotion ?? { x: 0, z: 0 };
