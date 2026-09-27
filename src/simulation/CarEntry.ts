@@ -321,10 +321,13 @@ export class CarEntry {
   const c=Math.cos(controls.cameraYaw),s=Math.sin(controls.cameraYaw),inputX=input.x*c-input.y*s,inputZ=-input.x*s-input.y*c;
   const centre=car.car.body.translation(),awayFromCar=inputX*(centre.x-p.x)+inputZ*(centre.z-p.z)<0;
   if(input.quit||Math.hypot(inputX,inputZ)>.1&&inputX*dx+inputZ*dz<0&&awayFromCar||this.approachTime>30||distance>50||car.wrecked){this.cancelReason=input.quit?'quit':this.approachTime>30?'time':distance>50?'far':car.wrecked?'wrecked':'steer';this.cancel();return controls;}
-  if(distance<=.5){this.doorReached();return {...controls,x:0,y:0,jump:false,sprint:false};}
+  // CTaskComplexEnterCar: a door another ped is using (a driver still climbing out) is waited for at the door
+  // (TASK_SIMPLE_CAR_WAIT_FOR_DOOR_NOT_TO_BE_IN_USE). The NPC drivers here use the driver's door.
+  const doorBusy=this.side==='left'&&this.npcs.some(n=>n.car===car&&!n.done);
+  if(distance<=.5){if(!doorBusy)this.doorReached();return {...controls,x:0,y:0,jump:false,sprint:false};}
   // A door drifting away with its car (a hovercraft sliding on land) is chased, not counted as a blocked way.
   if(distance<this.bestDistance-.05||car.speed2D()>.001){this.bestDistance=distance;this.stall=0;}
-  else if((this.stall+=dt)>1.2){if(distance<1.2)this.doorReached();else{this.message='The way to the door is blocked.';this.cancelReason='blocked';this.cancel();}return {...controls,x:0,y:0,jump:false};}
+  else if(!doorBusy&&(this.stall+=dt)>1.2){if(distance<1.2)this.doorReached();else{this.message='The way to the door is blocked.';this.cancelReason='blocked';this.cancel();}return {...controls,x:0,y:0,jump:false};}
   let aim={x:dx,z:dz};
   // ComputeRouteToDoor: walk around the car's collision bounds instead of into them.
   const b=car.assets.collision.bounds,center=car.car.body.translation(),h=car.heading(),sin=Math.sin(h),cos=Math.cos(h);
