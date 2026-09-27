@@ -2266,7 +2266,9 @@ async function boot() {
     // in-air task does (CTaskComplexJump replaces it as the primary task until the landing).
     const playerDown=sim.knockdown>0||sim.player.health<=0;
     const playerJumping=!!render.nativeCharacter?.jumping&&!sim.jetPack&&!sim.player.swimming;
-    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&!bikeMount.active&&!playerDown&&!playerJumping&&input.down('MouseAim');
+    // CPad::GetTarget answers false while DisablePlayerControls is set (the script's SET_PLAYER_CONTROL, the skip
+    // camera, an arrest), and ProcessPlayerWeapon never runs in a passenger seat.
+    weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!playerControlsDisabled()&&!law.arrested&&!playerPassenger&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&!bikeMount.active&&!playerDown&&!playerJumping&&input.down('MouseAim');
     // ProcessPlayerWeapon: aiming a b1stPerson weapon puts the camera in its weapon mode; releasing the button leaves it.
     const firstPerson=weapons.aiming?firstPersonMode(weapons.inventory.selected,weapons.inventory.info()):undefined;
     render.aiming=weapons.aiming;render.firstPerson=firstPerson;weapons.firstPerson=firstPerson;
