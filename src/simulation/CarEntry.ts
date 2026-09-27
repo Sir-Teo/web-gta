@@ -55,6 +55,8 @@ export interface PassengerCrowd {
   followers():readonly {id:number;position:{x:number;y:number;z:number};health:number;down:number}[];
   boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number}|undefined;
   spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean):Promise<boolean>|boolean;
+  /** A rider of a car that blew up: CAutomobile::BlowUpCar's KillPedsInVehicle leaves him dead. */
+  spawnDead?(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number):unknown;
 }
 /** CTaskSimpleCarGetOut's upside-down clip, ANIM_ID_DEFAULT_CAR_CRAWLOUTRHS_0 and _1. */
 const CRAWL_OUT='CAR_crawloutRHS';
@@ -174,6 +176,8 @@ export class CarEntry {
     const door=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);
     const hit=this.sim.world.castRay(new RAPIER.Ray({x:door.x,y:door.y+1.5,z:door.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
     const spot={x:door.x,y:(hit?door.y+1.5-hit.timeOfImpact:door.y-1)+.03,z:door.z};
+    // A car that blew up killed everyone aboard (CVehicle::KillPedsInVehicle, CEventVehicleDied for each rider).
+    if(car.wrecked&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang)).catch(()=>{});return;}
     void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow)).catch(()=>{});
    }
   }
