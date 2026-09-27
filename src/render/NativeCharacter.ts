@@ -760,7 +760,8 @@ export class NativeCharacter {
   get moveBlendRatio(){return this.moveBlend;}
   update(sim: Pick<Simulation, 'player'>, alpha: number) {
     if(this.vehicleClip)this.endVehicle();
-    const p = sim.player; this.root.visible = this.supported(sim);
+    // A dead CJ stays drawn: the death clip plays on his body through the wasted sequence.
+    const p = sim.player; this.root.visible = p.health <= 0 || this.supported(sim);
     this.root.position.set(p.previous.x+(p.position.x-p.previous.x)*alpha,p.previous.y+(p.position.y-p.previous.y)*alpha+this.originHeight,p.previous.z+(p.position.z-p.previous.z)*alpha);
     // Heading is interpolated between fixed steps as the position is; a wrapped difference turns the short way.
     const from=this.stepHeading??p.heading,turn=Math.atan2(Math.sin(p.heading-from),Math.cos(p.heading-from)),heading=from+turn*alpha;
