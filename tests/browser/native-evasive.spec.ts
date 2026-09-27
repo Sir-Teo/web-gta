@@ -55,3 +55,27 @@ test('a beat cop in the path of a honking car gets out of the way too',async({pa
  expect(seen[0]).toMatch(/^(step|dive):/);
  expect(errors).toEqual([]);
 });
+
+test('a ped fighting CJ at the roadside still gets out of a car\'s way',async({page})=>{
+ test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ const state=()=>page.evaluate(()=>(window as any).__game.state());
+ await expect.poll(async()=>(await state()).player.grounded).toBe(true);
+ await expect.poll(async()=>(await state()).pedestrians?.ready,{timeout:30000}).toBe(true);
+ await page.evaluate(()=>(window as any).__game.placePlayer(2489.2,12.6,1669));
+ await page.evaluate(()=>(window as any).__game.placeCar(2491,13.3,1680,0));
+ await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
+ const id=await page.evaluate(()=>(window as any).__game.placePed(2491,12.55,1669));
+ // CEventPotentialGetRunOver (51) outranks the hated sighting's kill task (26): the fight does not keep him in the lane.
+ await page.evaluate(id=>{const p=(window as any).__game.pedestrians().people.find((q:any)=>q.id===id);p.retaliate=60;p.foe=undefined;p.event=undefined;},id);
+ await page.waitForTimeout(300);
+ await page.evaluate(()=>{const g=(window as any).__game;g.setHorn(100);g.launchCar(12);});
+ const seen:string[]=[];
+ for(let i=0;i<40;i++){
+  const ped=(await state()).pedestrians.people.find((p:any)=>p.id===id);
+  if(ped?.evade&&seen.at(-1)!==ped.evade)seen.push(ped.evade);
+  await page.waitForTimeout(50);
+ }
+ expect(seen.length,JSON.stringify(seen)).toBeGreaterThan(0);
+ expect(errors).toEqual([]);
+});

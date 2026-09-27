@@ -2433,8 +2433,10 @@ export class WorldPedestrians {
    }
    // CEventPotentialGetRunOver (priority 51) displaces a gun aimed at the ped (50) but not a hurt ped's CEventDamage
    // (65), and HandleEvents drops a repeat while its response runs: a ped fleeing a horn rolls no new horn reaction.
+   // Its AffectsPed has no combat test: a ped fighting over a shot (35) or a hated sighting (26) still gets out of the
+   // way, the kill task (the non-temporary response) resuming after the dodge.
    // The vehicle-collision scan raises the event once a 30 fps game frame, so its random response rolls that often.
-   if(this.frameDue&&!p.evade&&!p.carReact&&p.retaliate<=0&&this.takesPriority(p,EVENT.potentialGetRunOver)){
+   if(this.frameDue&&!p.evade&&!p.carReact&&this.takesPriority(p,EVENT.potentialGetRunOver)){
     for(const car of cars){
      const v=this.runOverVehicles.get(car);
      if(!v||!potentialGetRunOver({x:state.position.x,z:state.position.z,height:state.position.y},v))continue;
@@ -3218,7 +3220,7 @@ export class WorldPedestrians {
    if(p.order?.kind==='destroyCar'&&p.order.melee&&p.order.face&&p.health>0&&p.down===0)this.stepCarBrawl(p,p.order.vehicle,p.order.face,dt);
    // Street retaliation: victims trade punches with their enemy (CTaskComplexFight).
    // Crew share the player's enemies; everyone else answers the player.
-   if(!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&this.sim.player.health>0){
+   if(!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&!p.evade&&this.sim.player.health>0){
      const foe=p.foe&&p.foe.health>0?p.foe:undefined;
      if(!foe)p.foe=undefined;
      if(p.follow&&!foe){
