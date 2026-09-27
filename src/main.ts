@@ -797,6 +797,11 @@ async function boot() {
     // RestorePlayerStuffDuringResurrection: back to the normal world (area 0) with an empty door stack. From an
     // interior the outside world at the restart point has to stream in first, as a save point's does.
     const inside=render.lighting.area!==0;entryExits?.clearStack();
+    // ResetForResurrectionAndFadeOut takes him out of a vehicle he sits in as a passenger, and the Teleport's
+    // FlushImmediately drops whatever fall, get-up or arrest hold was running (RestartNonPartialAnims).
+    if(playerPassenger)leavePassengerSeat(true);
+    if(playerAttached){playerAttached.savedWeapon=undefined;detachPlayer();}
+    playerGetUp=0;playerStuckUnderCar=false;playerFallClip=undefined;render.nativeCharacter?.clearReaction();
     sim.respawn={x:result.position[0],y:result.position[2]+1,z:-result.position[1]};
     sim.resetPlayer();
     // RestorePlayerStuffDuringResurrection: health back to CPlayerInfo::m_nMaxHealth.
