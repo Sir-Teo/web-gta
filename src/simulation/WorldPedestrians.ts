@@ -56,6 +56,8 @@ import {openWorldPedestrians} from '../assets/worldPedestrians';
 import type {PathNode} from '../assets/pathNodes';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
+/** A vehicle the ped strike pass tests: a car, or a bike, which CPhysical::ApplyCollision treats alike. */
+type PedStriker={body:RAPIER.RigidBody;nativeBody:WorldCar['nativeBody'];occupied:boolean;boundRadius?:number;car?:WorldCar};
 
 type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
 /** The weapons that choke (WEAPON_SPRAYCAN, WEAPON_EXTINGUISHER, WEAPON_TEARGAS). */
@@ -1211,6 +1213,8 @@ export class WorldPedestrians {
   /** The player's vehicle for the cop wander's LookForCarAlarms and LookForStolenCopCars: where it is, whether its
    * alarm sounds (m_nAlarmState counting down), whether it is a law enforcer and whether it is wrecked. */
   playerVehicle?:()=>{position:{x:number;y:number;z:number};alarm:boolean;law:boolean;wrecked:boolean}|undefined;
+  /** The bikes the ped strike pass tests with the cars. */
+  bikes?:()=>Iterable<PedStriker>;
   /** The body of the bike, boat or aircraft the player rides (his own collider is off while he does), and whether it
    * is a bike, whose rider a bullet can strike. */
   playerRide?:()=>{body:RAPIER.RigidBody;bike:boolean}|undefined;
@@ -2253,21 +2257,21 @@ export class WorldPedestrians {
    * CTaskSimpleKillPedWithCar runs. Faster than 2 m/s the ped is knocked down;
    * slower, it is only pushed. Normal and contact point are taken from the ped
    * centre towards the car's centre of mass. */
-  private carStrikesPed(car:WorldCar,p:Pedestrian){
+  private carStrikesPed(striker:PedStriker,p:Pedestrian){
    type V={x:number;y:number;z:number};
-   const toNative=(v:V):V=>({x:v.x,y:-v.z,z:v.y}),fromNative=(v:V):V=>({x:v.x,y:v.z,z:-v.y});
-   const body=car.car.body,com=body.worldCom(),at=p.body.translation(),linvel=body.linvel(),angvel=body.angvel();
+   const toNative=(v:V):V=>({x:v.x,y:-v.z,z:v.y}),fromNative=(v:V):V=>({x:v.x,y:v.z,z:-v.y}),car=striker.car;
+   const body=striker.body,com=body.worldCom(),at=p.body.translation(),linvel=body.linvel(),angvel=body.angvel();
    const flat={x:com.x-at.x,z:com.z-at.z},reach=Math.hypot(flat.x,flat.z);if(reach<1e-4)return;
-   const normal={x:flat.x/reach,y:0,z:flat.z/reach},physics=car.nativeBody;
+   const normal={x:flat.x/reach,y:0,z:flat.z/reach},physics=striker.nativeBody;
    const heading=p.actor.player.heading,pedSpeed=p.actor.player.speed;
    const pedMove={x:(Math.sin(heading)*pedSpeed+p.impulse.x)/50,y:0,z:(Math.cos(heading)*pedSpeed+p.impulse.z)/50};
    const impact=carHitsPed({mass:physics.mass,turnMass:physics.turnMass,elasticity:VEHICLE_ELASTICITY,offset:toNative({x:at.x-com.x,y:at.y-com.y,z:at.z-com.z}),
     moveSpeed:toNative({x:linvel.x/50,y:linvel.y/50,z:linvel.z/50}),turnSpeed:toNative({x:angvel.x/50,y:angvel.y/50,z:angvel.z/50})},toNative(pedMove),toNative(normal));
    if(!impact)return;
    // ApplyCollision's ReportCollision both ways: the car's intensity over its mass, the ped's over his.
-   this.onCarPedCollision?.(car,p.collider.handle,{x:at.x,y:at.y,z:at.z},normal,impact.vehicleIntensity/physics.mass,impact.pedIntensity/PED_MASS);
+   if(car)this.onCarPedCollision?.(car,p.collider.handle,{x:at.x,y:at.y,z:at.z},normal,impact.vehicleIntensity/physics.mass,impact.pedIntensity/PED_MASS);
    const addCarForce=(force:V)=>{const dv=fromNative(force);body.setLinvel({x:linvel.x+dv.x/physics.mass*50,y:linvel.y+dv.y/physics.mass*50,z:linvel.z+dv.z/physics.mass*50},true);};
-   const speed=Math.hypot(linvel.x,linvel.z),crime=()=>{if(car.occupied)this.law?.registerCrime(p.officer?CRIME.killCopPedWithCar:CRIME.killPedWithCar,`ped:${p.id}`,this.policeDontCare(`ped:${p.id}`));};
+   const speed=Math.hypot(linvel.x,linvel.z),crime=()=>{if(striker.occupied)this.law?.registerCrime(p.officer?CRIME.killCopPedWithCar:CRIME.killPedWithCar,`ped:${p.id}`,this.policeDontCare(`ped:${p.id}`));};
    if(impact.pedIntensity>PED_CAR_KILL_INTENSITY){
     const r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),axis=(x:number,y:number,z:number)=>toNative(new Vector3(x,y,z).applyQuaternion(q));
     // CPedGeometryAnalyser::ComputePedHitSide(ped, car) is a retail stub: the side facing the car's approach.
@@ -2278,14 +2282,14 @@ export class WorldPedestrians {
     if(p.onlyDamagedByPlayer||p.proofs?.collision){addCarForce(impact.vehicleForce);return;}
     p.health=0;
     const death=computeDeathAnim({weapon:kill.weapon,pedPiece:kill.pedPiece,direction:kill.direction,health:0,damageArmour:0,damageHealth:kill.damage,
-     victim:{player:false,inVehicle:false,moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:false,headBelowRoot:false},source:{ped:false,player:car.occupied},nextRandom:()=>this.damageRandom.next()});
+     victim:{player:false,inVehicle:false,moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:false,headBelowRoot:false},source:{ped:false,player:striker.occupied},nextRandom:()=>this.damageRandom.next()});
     const thrown=fromNative(kill.pedMoveSpeed),clip=death.clip??'ko_skid_front';
     this.hit(p,thrown.x||pos.x-t.x,thrown.z||pos.z-t.z,0,clip,1000);
     p.impulse={x:thrown.x*50,z:thrown.z*50};p.down=Infinity;p.view.playReaction(clip,Infinity);
     addCarForce({x:impact.vehicleForce.x+kill.vehicleForce.x,y:impact.vehicleForce.y+kill.vehicleForce.y,z:impact.vehicleForce.z+kill.vehicleForce.z});
-    if(kill.crunch)this.onCarCrunch?.(car);
+    if(kill.crunch&&car)this.onCarCrunch?.(car);
     // RegisterKill's source is the car, not the player ped: his own car only counts STAT_PEOPLE_YOUVE_WASTED.
-    crime();this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:!!p.follow,byPlayer:false,byPlayerVehicle:car.occupied});
+    crime();this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit:!!p.follow,byPlayer:false,byPlayerVehicle:striker.occupied});
     return;
    }
    addCarForce(impact.vehicleForce);
@@ -2752,6 +2756,7 @@ export class WorldPedestrians {
      if(alpha!==p.alpha){p.alpha=alpha;p.view.setAlpha(alpha/255);}}}
    this.frame++;this.elapsed+=dt;this.cooldown=Math.max(0,this.cooldown-dt);
    this.runOverVehicles.clear();for(const car of cars){const v=this.runOverVehicle(car);if(v)this.runOverVehicles.set(car,v);}
+   const strikers:PedStriker[]=[...[...cars].map(car=>({body:car.car.body,nativeBody:car.nativeBody,occupied:car.occupied,boundRadius:car.boundRadius,car})),...(this.bikes?.()??[])];
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
    this.installPlayerReactions();
    const bodies=this.people.filter(p=>p.health>0&&p.down===0).map(p=>p.actor.player.position);
@@ -2773,14 +2778,14 @@ export class WorldPedestrians {
     else{p.view.step(dt,{x:0,y:0,cameraYaw:state.heading,walk:true,sprint:false,jump:false},p.actor);continue;}
    }
    const at=p.body.translation();
-   for(const car of cars){
-    if(!car.car.body.isEnabled()||p.down>0||p.health<=0)continue;
-    // Only cars whose bounds can reach the probe get the per-collider test.
-    const c=car.car.body.translation(),reach=(car.boundRadius??Infinity)+1.2;
+   for(const striker of strikers){
+    if(!striker.body.isEnabled()||p.down>0||p.health<=0)continue;
+    // Only vehicles whose bounds can reach the probe get the per-collider test.
+    const c=striker.body.translation(),reach=(striker.boundRadius??Infinity)+1.2;
     if((c.x-at.x)**2+(c.z-at.z)**2>reach*reach)continue;
-     for(let i=0;i<car.car.body.numColliders();i++){
-      const collider=car.car.body.collider(i);
-      if(!collider.isSensor()&&collider.intersectsShape(PED_VEHICLE_PROBE,p.body.translation(),p.body.rotation())){this.carStrikesPed(car,p);break;}
+     for(let i=0;i<striker.body.numColliders();i++){
+      const collider=striker.body.collider(i);
+      if(!collider.isSensor()&&collider.intersectsShape(PED_VEHICLE_PROBE,p.body.translation(),p.body.rotation())){this.carStrikesPed(striker,p);break;}
     }
    }
    if(p.down>0){

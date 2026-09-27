@@ -17,6 +17,7 @@ import {bikeLeanTarget,approachBikeLean} from '../flight/aero';
 import {bikeLeanDrop,bikeRiderLean,quadRiderLean} from './nativeBikeLean';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import {browserLocalDirection} from '../combat/nativeDamageAnim';
+import {CAR_SOLVER_GROUPS} from './solverGroups';
 import {applyNativeBikeBuoyancy,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
@@ -44,6 +45,12 @@ export class WorldBike {
  /** CEventKnockOffBike's response for the player: the host plays the fall clip CalcForcesAndAnims picked and the
   * get-up after it (CTaskComplexFallAndGetUp). */
  static onKnockedOff?:(clip:string)=>void;
+ private nativeBodyCache?:{mass:number;turnMass:number;boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
+ /** Handling mass and turn mass with the collision model's bounds (native units), as WorldCar gives them: the ped
+  * strike pass reads all of it, the driving AI the width. */
+ get nativeBody(){if(!this.nativeBodyCache){const b=this.assets.collision.bounds,h=this.assets.handling.values;this.nativeBodyCache={mass:h.mass,turnMass:h.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}return this.nativeBodyCache;}
+ /** Distance from the bike's origin to the farthest corner of its collision bounds, for cheap range culls. */
+ get boundRadius(){const b=this.assets.collision.bounds;return Math.hypot(Math.max(-b.min[0],b.max[0]),Math.max(-b.min[1],b.max[1]),Math.max(-b.min[2],b.max[2]));}
  /** A motorbike rather than a CBmx. */
  get motorbike(){return !BMX_MODELS.has(this.modelId);}
  /** No ground under the wheels. */
@@ -73,8 +80,6 @@ export class WorldBike {
  autopilot?:import('./WorldCar').WorldCar['autopilot'];scriptDriven?:boolean;
  /** FREEZE_CAR_POSITION: the body held where it is. */
  frozen=false;
- /** The collision model's bounds (native units), which the driving AI reads for its width. */
- get nativeBody(){const b=this.assets.collision.bounds;return {boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}
  /** The rider's controls from the autopilot. Its native wheel angle (radians, left positive) over the handling's
   * lock is the bike's steer (right positive); gas is the pedal; any brake or the handbrake squeezes the brake.
   * Without native pedals (a stuck car's recovery) the pad's throttle, brake-to-reverse and steering are used. */
@@ -126,6 +131,9 @@ export class WorldBike {
   // The tyres carry it (nativeBikeWheels): a ball per wheel on the same frictionless contact.
   for(const w of bikeWheelSupports(assets.model,assets.wheelFrames,assets.vehicle.frontWheelSize,assets.vehicle.rearWheelSize))
    sim.world.createCollider(RAPIER.ColliderDesc.ball(w.radius).setTranslation(w.center.x,w.center.z,-w.center.y).setDensity(0).setFriction(0).setRestitution(.05).setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min),this.body);
+  // A car's solver group: peds are kinematic capsules that would stop the bike dead, so, as for cars, the ped strike
+  // pass (CPhysical::ApplyCollision between the two) settles a bike meeting a ped instead of the solver.
+  for(let i=0;i<this.body.numColliders();i++)this.body.collider(i).setSolverGroups(CAR_SOLVER_GROUPS);
   if(assets.model&&assets.textures){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);try{this.lod=bindNativeCarLod(this.visual.root,assets.model,[...assets.wheelFrames.front,...assets.wheelFrames.rear]);}catch{this.lod=undefined;}this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
