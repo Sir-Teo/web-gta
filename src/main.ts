@@ -2521,7 +2521,9 @@ async function boot() {
         // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
         weapons.throwHeld=onFoot&&!playerDown&&(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'));
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
-        if(worldCar?.occupied&&!law.arrested&&!weapons.stealth){
+        // CPad::GetCarGunFired and CarGunJustDown answer false while DisablePlayerControls is set: no vehicle weapon fires.
+        const carGunOff=playerControlsDisabled();
+        if(worldCar?.occupied&&!carGunOff&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
         }
@@ -2533,7 +2535,7 @@ async function boot() {
          tankTurret=stepTankTurret(tankTurret,{x:front.x,y:-front.z,z:front.y},step*50);
          tank.setTurret(tankTurret.yaw,tankTurret.pitch);
          const nowMs=elapsed*1000;
-         if((input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'))&&nowMs>tankLastFire+TANK_FIRE_INTERVAL_MS){
+         if(!carGunOff&&(input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'))&&nowMs>tankLastFire+TANK_FIRE_INTERVAL_MS){
           tankLastFire=nowMs;
           const local=tankShotDirection(tankTurret),dir=new Vector3(local.x,local.z,-local.y).applyQuaternion(tq);
           const muzzle=tank.muzzleWorld()??(()=>{const m=tankDefaultMuzzle(tankTurret),p=tank.car.body.translation(),o=new Vector3(m.x,m.z,-m.y).applyQuaternion(tq);return new Vector3(p.x+o.x,p.y+o.y,p.z+o.z);})();
@@ -2554,7 +2556,7 @@ async function boot() {
          const swat=cannonCar.modelId===601,q=cannonCar.car.body.rotation(),cq=new Quaternion(q.x,q.y,q.z,q.w),front=render.camera.getWorldDirection(scratchAim).clone().applyQuaternion(cq.clone().invert());
          cannonAim=stepFireTruckAim(cannonAim,{x:front.x,y:-front.z,z:front.y},step*50,swat);
          cannonCar.setCannon(cannonAim.yaw);
-         cannonFiring=input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire');
+         cannonFiring=!carGunOff&&(input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'));
          if(cannonFiring&&cannonFrameDue){
           const local=cannonDirection(cannonAim),dir=new Vector3(local.x,local.z,-local.y).applyQuaternion(cq);
           const node=cannonCar.car.frameWorldPosition('misc_a'),p=cannonCar.car.body.translation();
@@ -2586,13 +2588,13 @@ async function boot() {
           else cannonAudio.clearSplash();
           cannonAudio.service(tip?{x:tip.point.x,y:tip.point.y,z:tip.point.z}:undefined);
          }}
-        if(fleet?.occupiedBoat&&!law.arrested&&!weapons.stealth){
+        if(fleet?.occupiedBoat&&!carGunOff&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}
         }
 
         const rocket=input.consume('KeyB')||input.down('KeyB');
-        if(fleet?.occupiedPlane&&(firing||input.down('ControlLeft')||input.down('ControlRight')||rocket))weapons.fireAircraft(fleet.occupiedPlane,rocket);
+        if(fleet?.occupiedPlane&&!carGunOff&&(firing||input.down('ControlLeft')||input.down('ControlRight')||rocket))weapons.fireAircraft(fleet.occupiedPlane,rocket);
         const tTraffic=performance.now();
         guard('phones.step',()=>{for(const [key,phone] of phones){
          const view=key==='player'?render.nativeCharacter:(key as Pedestrian).view;
