@@ -22,7 +22,16 @@ export class Arsenal {
   });
   this.element.querySelector('.arsenal-close')!.addEventListener('click',()=>this.toggle(false));
   this.element.querySelector('.refill-ammo')!.addEventListener('click',()=>{weapons.inventory.refill();this.update();});
-  this.element.querySelector('input')!.addEventListener('input',e=>{const query=(e.target as HTMLInputElement).value.toLowerCase();for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.hidden=!button.textContent!.toLowerCase().includes(query);});
+  // A search hides the weapons that do not match, the groups left with none, and says so when nothing matches.
+  const empty=document.createElement('p');empty.className='arsenal-empty';empty.textContent='No weapons found.';empty.hidden=true;grid.after(empty);
+  this.element.querySelector('input')!.addEventListener('input',e=>{
+   const query=(e.target as HTMLInputElement).value.trim().toLowerCase();let shown=0;
+   for(const section of grid.querySelectorAll<HTMLElement>(':scope > section')){
+    let any=false;for(const button of section.querySelectorAll<HTMLButtonElement>('[data-weapon]')){button.hidden=!button.textContent!.toLowerCase().includes(query);if(!button.hidden){any=true;shown++;}}
+    section.hidden=!any;
+   }
+   empty.hidden=shown>0;
+  });
   this.readout.className='weapon-readout';this.readout.setAttribute('aria-label','Equipped weapon');this.crosshair.className='weapon-crosshair';this.crosshair.hidden=true;
   // CHud::DrawCrossHairs draws a first-person crosshair raster four times, mirrored into each quarter.
   for(let i=0;i<4;i++)this.crosshair.append(document.createElement('i'));
