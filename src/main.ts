@@ -2608,7 +2608,8 @@ async function boot() {
         }
 
         const rocket=input.consume('KeyB')||input.down('KeyB');
-        if(fleet?.occupiedPlane&&!carGunOff&&(firing||input.down('ControlLeft')||input.down('ControlRight')||rocket))weapons.fireAircraft(fleet.occupiedPlane,rocket);
+        // The guns and the ordnance are separate buttons with separate clocks: both can fire together.
+        if(fleet?.occupiedPlane&&!carGunOff){if(firing||input.down('ControlLeft')||input.down('ControlRight'))weapons.fireAircraft(fleet.occupiedPlane,false);if(rocket)weapons.fireAircraft(fleet.occupiedPlane,true);}
         const tTraffic=performance.now();
         guard('phones.step',()=>{for(const [key,phone] of phones){
          const view=key==='player'?render.nativeCharacter:(key as Pedestrian).view;

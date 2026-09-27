@@ -105,7 +105,9 @@ export class WeaponSystem {
  /** DRAW_CROSSHAIR (RYDER3's crate throwing): the aiming crosshair drawn whether or not the player aims. */
  forceCrosshair=false;
  get crosshairRadius(){const info=this.inventory.info();return info&&info.fire!=='melee'?nativeWeaponRadiusOnScreen(info,this.attackButtonCounter,this.sim.player.crouched):.2;}
- hits=0;explosions=0;aircraftShots=0;private aircraftCooldown=0;private serial=0;
+ hits=0;explosions=0;aircraftShots=0;private serial=0;
+ /** CVehicle::m_nGunFiringTime and m_nProjectileWeaponFiringTime: the guns and the ordnance keep their own clocks. */
+ private aircraftGunCooldown=0;private aircraftOrdnanceCooldown=0;
  /** The camera's first-person weapon mode (the sniper, rocket or camera view), set by the caller each frame. */
  firstPerson?:FirstPersonMode;
  /** The heat seeker's lock in its camera (CPlayerPedData's HS missile fields), keyed by vehicle body handle. */
@@ -451,11 +453,18 @@ export class WeaponSystem {
   return found;
  }
  fireAircraft(plane:WorldPlane,rocket=false){
-  if(!plane.occupied||plane.health<=0||!plane.armed||this.aircraftCooldown>0||this.sim.player.health<=0)return false;
+  if(!plane.occupied||plane.health<=0||!plane.armed||(rocket?this.aircraftOrdnanceCooldown:this.aircraftGunCooldown)>0||this.sim.player.health<=0)return false;
   if(rocket&&(plane.modelId===476||plane.rockets<=0||this.projectiles.length>=MAX_PROJECTILES)||!rocket&&plane.gunAmmo<=0)return false;
-  this.aircraftCooldown=rocket?.8:.1;this.aircraftShots++;const q=new Quaternion().copy(plane.body.rotation()),direction=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation(),from=new Vector3(0,0,-Math.min(6,plane.assets.collision!.bounds.radius)).applyQuaternion(q).add(position);
+  // GetPlaneGunsRateOfFire (Seasparrow 40, Rustler 80, Hydra 17, others 60 ms) and GetPlaneOrdnanceRateOfFire (Hunter and
+  // Hydra 500, Rustler and Seasparrow 1000 ms).
+  if(rocket)this.aircraftOrdnanceCooldown=({425:.5,520:.5,476:1,447:1} as Record<number,number>)[plane.modelId]??.35;
+  else this.aircraftGunCooldown=({447:.04,476:.08,520:.017} as Record<number,number>)[plane.modelId]??.06;
+  this.aircraftShots++;
+  // FirePlaneGuns fires a CWeapon of WEAPON_MINIGUN (Hunter, Hydra) or WEAPON_M4 (Rustler, Seasparrow): its weapon.dat
+  // damage and range.
+  const gunWeapon=plane.modelId===476||plane.modelId===447?31:38,gunInfo=this.inventory.info(gunWeapon),gunDamage=gunInfo?.damage??35,gunRange=gunInfo?.weaponRange??400;const q=new Quaternion().copy(plane.body.rotation()),direction=new Vector3(0,0,-1).applyQuaternion(q),position=plane.body.translation(),from=new Vector3(0,0,-Math.min(6,plane.assets.collision!.bounds.radius)).applyQuaternion(q).add(position);
   if(rocket){plane.rockets--;this.projectiles.push({id:this.serial++,weapon:35,position:from,velocity:direction.clone().multiplyScalar(55).add(plane.body.linvel()),fuse:8,stuck:false,owner:plane.body.handle});}
-  else{plane.gunAmmo--;const hit=this.ray(from,direction,400,plane.body),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??400);this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,38,true);if(hit){this.hitFx(hit,end,8,38,direction);this.damage(hit.collider.handle,35,direction);}}
+  else{plane.gunAmmo--;const hit=this.ray(from,direction,gunRange,plane.body),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??gunRange);this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,38,true);if(hit){this.hitFx(hit,end,8,38,direction);this.damage(hit.collider.handle,gunDamage,direction);}}
   this.onSound?.('fire',rocket?35:38,from,'aircraft');this.onCrime?.(rocket?CRIME.explosion:CRIME.fireWeapon,'player');return true;
  }
  /** Random offset inside the native free-aim crosshair circle (CPlayerPed::GetWeaponRadiusOnScreen). */
@@ -927,7 +936,7 @@ export class WeaponSystem {
   this.lock=vehicle?{handle:vehicle.collider(0).handle,position:{...vehicle.translation()}}:undefined;
  }
   tick(dt:number,camera?:{origin:Vec3;direction:Vec3}){
-   this.aircraftCooldown=Math.max(0,this.aircraftCooldown-dt);
+   this.aircraftGunCooldown=Math.max(0,this.aircraftGunCooldown-dt);this.aircraftOrdnanceCooldown=Math.max(0,this.aircraftOrdnanceCooldown-dt);
    this.inventory.crouched=this.sim.player.crouched;
    if(camera)this.lockCamera={origin:{...camera.origin},direction:{...camera.direction}};
   this.updateLock();this.updateHeatSeek();
