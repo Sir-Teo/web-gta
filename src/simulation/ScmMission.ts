@@ -622,6 +622,8 @@ export interface ScmMissionWorld {
 }
 /** CTheScripts' player slot: the script always addresses player zero, whose ped it creates first. */
 export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
+/** CVehicle::CanPedOpenLocks answered for the player by eCarLock. */
+export const playerLockedOut=(lock:number)=>lock===2||lock===3||lock===4||lock===5||lock===7;
 /** The browser holds one vehicle for the player at a time, so the script's questions about the car it is in are
  * answered by a single handle rather than a pool the browser does not have. */
 export const PLAYER_VEHICLE_HANDLE=1;
@@ -1806,9 +1808,10 @@ export class ScmMission {
    setVehicleAreaVisible:(handle,area)=>{this.host('setScriptVehicleArea','SET_VEHICLE_AREA_VISIBLE')(this.liveVehicle(handle),area);},
    setVehicleProofs:(handle,proofs)=>{this.world.setScriptVehicleProofs(this.liveVehicle(handle),proofs);},
    setVehicleCanBeDamaged:(handle,canBeDamaged)=>{this.world.setScriptVehicleCanBeDamaged(this.liveVehicle(handle),canBeDamaged);},
-   // CVehicle::m_nDoorLock: the script's lock states above unlocked all refuse entry, which is all the browser
-   // keeps of the field.
-   setVehicleDoorLock:(handle,lock)=>{this.world.setScriptVehicleDoorLock(this.liveVehicle(handle),lock!==0);},
+   // CVehicle::m_nDoorLock and CanPedOpenLocks for the player: CARLOCK_LOCKED (2), LOCKOUT_PLAYER_ONLY (3),
+   // LOCKED_PLAYER_INSIDE (4), COP_CAR (5) and SKIP_SHUT_DOORS (7) keep him out; NOT_USED (0), UNLOCKED (1) and
+   // FORCE_SHUT_DOORS (6) let him open the door. Whether he may get in is all the browser keeps of the field.
+   setVehicleDoorLock:(handle,lock)=>{this.world.setScriptVehicleDoorLock(this.liveVehicle(handle),playerLockedOut(lock));},
    // SWITCH_CAR_SIREN and SET_CAR_CAN_BE_VISIBLY_DAMAGED set the flags on the car; SET_TIME_SCALE sets
    // CTimer::ms_fTimeScale, the one the speed cheats and the stunt slow motion also write.
    switchVehicleSiren:(handle,on)=>{this.host('setScriptVehicleSiren','SWITCH_CAR_SIREN')(this.liveVehicle(handle),on);},
