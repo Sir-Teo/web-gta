@@ -2479,7 +2479,8 @@ async function boot() {
         const reload=input.consume('KeyR'),next=input.consume('WheelNext')||onFoot&&cycleRight,previous=input.consume('WheelPrevious')||onFoot&&cycleLeft;
         // The first-person weapon modes ignore weapon cycling; the wheel zooms instead (up zooms in).
         if(render.firstPerson){if(next||previous)render.zoomInput.notch=previous?1:-1;}
-        else if(onFoot&&!sim.jetPack&&!playerControlsDisabled()&&!padSwitchedOff('cycleWeapon')&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
+        // CTaskComplexUseGoggles sets m_bDontAllowWeaponChange for as long as the goggles go on or come off.
+        else if(onFoot&&!sim.jetPack&&!weapons.goggles&&!playerControlsDisabled()&&!padSwitchedOff('cycleWeapon')&&(next||previous)){weapons.inventory.cycle(next?1:-1);void weaponView.equip(weapons.inventory.selected);}
         // SA has no reload control: CWeapon::Fire reloads when a clip runs out.
         const mouse=input.consume('MouseFire'),key=input.consume('ControlLeft')||input.consume('ControlRight'),click=input.consume('MouseClick');
         // The left button fires whenever it is not dragging the camera: aiming, under pointer lock, or a short click.
