@@ -2542,7 +2542,7 @@ async function boot() {
         if(carEntry.phase==='approach')controls=carEntry.approach(step,controls,{x:axes.x,y:axes.y,quit:controls.jump||firing});
         if(carEntry.active&&(sim.player.health<=0||law.arrested))carEntry.abandon();
         for(const pl of fleet?.planes??[])if(pl.entry&&(sim.player.health<=0||law.arrested))pl.cancelEntry();
-        const entryMotion=carEntry.step(step,{pedal:input.down('KeyW')||input.down('KeyS'),moving:Math.hypot(axes.x,axes.y)>0||input.down('MouseAim')});
+        const entryMotion=carEntry.step(step,{pedal:input.down('KeyW')||input.down('KeyS'),moving:Math.hypot(axes.x,axes.y)>0||input.down('MouseAim'),steer:{x:axes.x,y:axes.y,cameraYaw:controls.cameraYaw},fire:firing});
         carEntry.stepPassengers(step);
         surfaceSprintBlocked=false;
         if(importedScene&&sim.player.grounded&&lastGround){

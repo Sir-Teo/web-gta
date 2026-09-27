@@ -224,7 +224,7 @@ export class CarEntry {
   if(clear(preferred))this.side=preferred;
   else if(clear(other))this.side=other;
   else{this.car=undefined;this.message='The way to the door is blocked.';return false;}
-  this.phase='approach';this.time=this.approachTime=0;this.bestDistance=Infinity;this.stall=0;this.message=undefined;return true;
+  this.phase='approach';this.time=this.approachTime=0;this.bestDistance=Infinity;this.stall=0;this.message=undefined;this.quitAfterDoor=false;return true;
  }
  /** CTaskComplexLeaveCar for the seated player: step out, jump out, or hold the handbrake until one is possible. */
  exit(){
@@ -359,8 +359,23 @@ export class CarEntry {
   const car=this.car!;
   if(car.speed2D()>PLAYER_ENTER_SPEED){this.quitOutside();return;}
   if(this.side==='left'&&this.jackRequired(car)&&this.sideSlot(VEHICLE_ANIM.pulloutLHS,VEHICLE_ANIM.pulloutRHS)){this.begin('pullout');this.startNpc(car,'jacked');return;}
+  if(this.quitAfterDoor){this.quit();return;}
   this.beginGetIn();
  }
+ /** CTaskComplexEnterCar::ControlSubTask asks CCarEnterExit::IsPlayerToQuitCarEnter each frame and latches the answer
+  * (m_bQuitAfterDraggingPedOut); the subtask after the door opens, or after the driver is dragged out, then finishes
+  * the entry with the door left open ("To stop Carl from entering a car once he has opened the door or dragged out a
+  * driver or passenger, use the movement controls or press PED_FIREWEAPON"). The test itself is unreversed: as on the
+  * way to the door, the stick pushed away from the car, or the fire button. */
+ private quitAfterDoor=false;
+ private playerQuits(car:WorldCar,input:{steer?:{x:number;y:number;cameraYaw:number};fire?:boolean}){
+  if(input.fire)return true;
+  const steer=input.steer;if(!steer)return false;
+  const c=Math.cos(steer.cameraYaw),s=Math.sin(steer.cameraYaw),x=steer.x*c-steer.y*s,z=-steer.x*s-steer.y*c;
+  const center=car.car.body.translation(),p=this.sim.player.position;
+  return Math.hypot(x,z)>.1&&x*(center.x-p.x)+z*(center.z-p.z)<0;
+ }
+ private quit(){this.cancelReason='quit';this.cancel();}
  private beginGetIn(){if(this.sideSlot(VEHICLE_ANIM.getinLHS,VEHICLE_ANIM.getinRHS))this.begin('getIn',4);else this.afterGetIn(false);}
  private afterGetIn(pedal:boolean){
   const car=this.car!,door=this.door;
@@ -472,13 +487,14 @@ export class CarEntry {
  }
  get npcClip(){return this.npcPoses()[0]?.clip;}
  /** One fixed step. Returns world displacement for the jump-out roll once the player is out of the car. */
- step(dt:number,input:{pedal:boolean;moving:boolean}):{x:number;z:number}|undefined{
+ step(dt:number,input:{pedal:boolean;moving:boolean;steer?:{x:number;y:number;cameraYaw:number};fire?:boolean}):{x:number;z:number}|undefined{
   this.stepNpc(dt);
 
   if(this.npcs.some(n=>n.done))this.npcs=this.npcs.filter(n=>!n.done);
   const car=this.car;if(!this.phase||!car)return;
   if(car.wrecked&&!this.rolling&&this.phase!=='jumpOut'){this.cancel();return;}
   if(this.phase==='approach')return;
+  if((this.phase==='align'||this.phase==='open'||this.phase==='pullout')&&this.playerQuits(car,input))this.quitAfterDoor=true;
   if(this.lineUp)this.lineUp.time+=dt;
   const clip=this.clipFor(),previous=this.time;this.time+=dt;
   const finished=this.time>=(clip?.clip.duration??0),group=clip?.group??0;
@@ -486,7 +502,7 @@ export class CarEntry {
    case 'align':if(finished)this.afterAlign();break;
    case 'locked':if(finished){this.message='This car is locked.';this.cancel();}break;
    case 'open':this.openDoor(car,this.door,'open',this.time,group);if(finished){car.openDoor(this.door,1);this.afterOpen();}break;
-   case 'pullout':this.openDoor(car,this.door,'pullout',this.time,group);if(finished)this.beginGetIn();break;
+   case 'pullout':this.openDoor(car,this.door,'pullout',this.time,group);if(finished){if(this.quitAfterDoor)this.quit();else this.beginGetIn();}break;
    case 'getIn':if(finished)this.afterGetIn(input.pedal);break;
    case 'closeInside':this.openDoor(car,this.door,'closeInside',this.time,group);if(finished){if(!car.doors[this.door].closed)car.openDoor(this.door,0);this.afterCloseInside();}break;
    // CTaskComplexEnterCar orders the driver out and starts CTaskSimpleCarShuffle at once: CJ slides across while the
