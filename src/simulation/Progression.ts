@@ -31,6 +31,8 @@ export class Progression {
  hadSave=false;
  /** The save's revision this tab last read or wrote; a write bumps it. */
  private revision=0;
+ /** The text the next save would write if nothing has changed since the last one. */
+ private lastWritten?:string;
  /** Another tab saved newer progress, so this one stopped saving. */
  conflict=false;
  /** `fresh`: a New Game whose old save could not be cleared: what is stored is not read, and the next save replaces it. */
@@ -84,9 +86,11 @@ export class Progression {
  }
  /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
  save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save(),revision:this.revision+1});if(text.length>MAX_SAVE_LENGTH)return false;
+  // Nothing changed since the last write: the stored save is already this one.
+  if(text===this.lastWritten)return true;
   // Another tab that has saved since this one loaded (a higher revision) is not overwritten with this tab's older state.
   if(storedRevision(this.storage.getItem(KEY))>this.revision){this.conflict=true;return false;}
-  this.storage.setItem(KEY,text);this.revision++;return true;}catch{return false;}}
+  this.storage.setItem(KEY,text);this.revision++;this.lastWritten=JSON.stringify({...JSON.parse(text),revision:this.revision+1});return true;}catch{return false;}}
  /** The front end's New Game: the progress is gone, and nothing more is saved until the page loads the new game. */
  /** Whether the old save is gone; when it could not be cleared the caller starts the new game without reading it. */
  startNewGame(){let cleared=!this.storage;try{this.storage?.setItem(KEY,'');cleared=this.storage?.getItem(KEY)==='';}catch{cleared=false;}this.storage=undefined;return cleared;}
