@@ -580,6 +580,8 @@ async function boot() {
   let scriptGameTimeExact=0,scriptClockMission:unknown;
   /** The script stop last reported to the player. */
   let scriptStopReported:unknown;
+  /** Seconds of free play the key hints have been up. */
+  let hintPlaySeconds=0;
   /** The script messages last handed to the HUD, by label and creation time. */
   const shownScript={brief:'',big:['','','','','','',''],help:'',helpRevision:0};
   // CHud::DrawScriptText's two passes: the script's DISPLAY_TEXT lines and boxes under and over the screen fade.
@@ -2009,7 +2011,7 @@ async function boot() {
   }
   function play() {
     terrainHold(false);
-    if (!started) { started = true; setTimeout(() => hud.element.classList.add('playing-long'), 20000); }
+    if (!started) started = true;
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
     // Terrain loading that gave up after failures in a row tries again from where the player stands.
     follower?.retry();
@@ -2390,6 +2392,8 @@ async function boot() {
       if(input.consume('KeyT')&&fleet?.occupiedPlane)fleet.occupiedPlane.toggleVtol();
       if(input.consume('KeyG')&&fleet?.occupiedPlane)fleet.occupiedPlane.toggleGear();
       elapsed += dt;
+      // The key hints fade after 20 s of play: paused, map and cutscene time do not count.
+      if(!mission?.runtime.game.widescreenOn)hintPlaySeconds+=dt;if(hintPlaySeconds>=20)hud.element.classList.add('playing-long');
       const cycleCamera = input.consume('KeyV'), alternateCamera = input.consume('Home');
       // The original switches camera modes without any text.
       if (cycleCamera || alternateCamera) render.cycleCameraDistance();
