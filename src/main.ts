@@ -504,6 +504,9 @@ async function boot() {
  void import('./assets/gxt').then(m=>m.loadNativeText(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(t=>{theText=t;}).catch(e=>console.error('AMERICAN.GXT failed to load',e));
   let wasRiding=false;
   let tankTurret:TankTurret=initialTankTurret(),tankLastFire=-Infinity,tankGunWasDown=false;
+  // m_fDoomHorizontalRotation / m_fDoomVerticalRotation are each CAutomobile's own: every Rhino, fire truck and S.W.A.T.
+  // van keeps its turret or nozzle where it was left.
+  const turretAims=new WeakMap<object,TankTurret>(),cannonAims=new WeakMap<object,CannonAim>();
   let cannonAim:CannonAim=initialCannonAim(),cannonFrame=0,cannonClock=0,cannonFiring=false;const waterCannon=new WaterCannon();
   let gangWars:GangWars|undefined,gangWarBlip:{position:{x:number;y:number;z:number};gang:number;visible:boolean}|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
@@ -2540,7 +2543,7 @@ async function boot() {
         if(tank&&!law.arrested){
          tank.onCrushCar=other=>law.crime(CRIME.explosion,`car:${other.car.body.handle}`);
          const q=tank.car.body.rotation(),tq=new Quaternion(q.x,q.y,q.z,q.w),front=render.camera.getWorldDirection(scratchAim).clone().applyQuaternion(tq.clone().invert());
-         tankTurret=stepTankTurret(tankTurret,{x:front.x,y:-front.z,z:front.y},step*50);
+         tankTurret=stepTankTurret(turretAims.get(tank)??initialTankTurret(),{x:front.x,y:-front.z,z:front.y},step*50);turretAims.set(tank,tankTurret);
          tank.setTurret(tankTurret.yaw,tankTurret.pitch);
          const nowMs=elapsed*1000;
          // CarGunJustDown: a fresh press fires, once the last shot is 800 ms old; holding the button fires no more.
@@ -2565,7 +2568,7 @@ async function boot() {
         const cannonCar=fleet?.occupied&&CANNON_MODELS.has(fleet.occupied.modelId)?fleet.occupied:undefined;
         if(cannonCar&&!law.arrested){
          const swat=cannonCar.modelId===601,q=cannonCar.car.body.rotation(),cq=new Quaternion(q.x,q.y,q.z,q.w),front=render.camera.getWorldDirection(scratchAim).clone().applyQuaternion(cq.clone().invert());
-         cannonAim=stepFireTruckAim(cannonAim,{x:front.x,y:-front.z,z:front.y},step*50,swat);
+         cannonAim=stepFireTruckAim(cannonAims.get(cannonCar)??initialCannonAim(),{x:front.x,y:-front.z,z:front.y},step*50,swat);cannonAims.set(cannonCar,cannonAim);
          cannonCar.setCannon(cannonAim.yaw);
          cannonFiring=!carGunOff&&(input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'));
          if(cannonFiring&&cannonFrameDue){
