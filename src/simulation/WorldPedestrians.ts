@@ -581,6 +581,9 @@ export class WorldPedestrians {
   * modelled, so DUCK answers nothing here. */
  private damageResponse(p:Pedestrian,weapon:number){
   if(p.officer||p.health<=0)return true;
+  // ComputeDamageResponse keeps the running CTaskComplexKillPedOnFoot for a repeat of the damage event, and that task
+  // never times out: every blow the player lands while the ped fights him renews the authored fight window.
+  if(p.event?.type===EVENT.damage&&p.retaliate>0&&!p.foe){p.retaliate=Math.max(p.retaliate,KILL_PED_ON_FOOT_SECONDS);return true;}
   if(!this.takesPriority(p,EVENT.damage))return true;
   const task=this.decide(p,EVENT.damage,this.relationshipTo(p));if(task===undefined)return false;
   p.event={type:EVENT.damage,weapon};

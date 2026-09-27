@@ -45,8 +45,9 @@ test('street peds answer the player from their decision makers',async({page})=>{
   }finally{crowd.dispose();sim.dispose?.();}
  },texts);
  expect(result.toughPunched).toMatchObject({fight:true,flee:false,event:9});
- // Damage while answering damage keeps the answer: no new decision, no reset of the fight.
- expect(result.repeat).toBe(3);
+ // Damage while answering damage keeps the answer: no new decision, and the kill task, which never times out, runs on
+ // (the authored fight window renews).
+ expect(result.repeat).toBe(10);
  expect(result.toughShot).toMatchObject({fight:false,flee:true,event:9});
  expect(result.weakPunched).toMatchObject({fight:false,flee:true});
  expect(result.bystander).toMatchObject({fight:false,flee:false});
