@@ -1991,6 +1991,8 @@ async function boot() {
     terrainHold(false);
     if (!started) { started = true; setTimeout(() => hud.element.classList.add('playing-long'), 20000); }
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
+    // Terrain loading that gave up after failures in a row tries again from where the player stands.
+    follower?.retry();
   }
   hud.button('play').disabled = false; hud.button('play').textContent = 'Begin game'; hud.button('play').onclick = play;
   const onVisibility = () => { if (document.hidden) pause(); };
@@ -3254,7 +3256,7 @@ async function boot() {
     // player at the safety boundary meanwhile. Only a run of failures stops following and shows the menu.
     if(follower.snapshot().enabled){console.warn(`Terrain window ${id} failed; retrying. ${message}`);return;}
     followBoundaryPaused=false;pause();menuBusy(false);
-    hud.menuMessage(`${message} Automatic terrain loading stopped; the current area is still available.`);
+    hud.menuMessage(`${message} Automatic terrain loading stopped; the current area is still available. Resume to try loading again.`);
   }
   function requestFollowingTerrain(){
     if((!sceneChannel&&!staticWorld)||!importedScene)return;

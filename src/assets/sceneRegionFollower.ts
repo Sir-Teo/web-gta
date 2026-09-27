@@ -18,6 +18,8 @@ export class SceneRegionFollower {
  private requests=0;
  private failures=0;
  private retryAt=0;
+ /** Following stopped because REGION_FAILURE_LIMIT windows failed in a row, not because it was stopped. */
+ private gaveUp=false;
  private requestedRadius?:number;
  private requestedLodRadius?:number;
  setRadius(radius:number,lodRadius?:number){requireAsset(Number.isFinite(radius)&&radius>=32&&radius<=1000,'Invalid following radius.');requireAsset(lodRadius===undefined||Number.isFinite(lodRadius)&&lodRadius>=radius&&lodRadius<=3000,'Invalid distant following radius.');this.requestedRadius=radius;this.requestedLodRadius=lodRadius;}
@@ -67,10 +69,13 @@ export class SceneRegionFollower {
  finish(id:number,success:boolean,now=clock()){
   if(!this.matches(id))return false;
   if(success){this.region=this.pending!.region;this.failures=0;this.retryAt=0;}
-  else if(++this.failures>=REGION_FAILURE_LIMIT)this.enabled=false;
+  else if(++this.failures>=REGION_FAILURE_LIMIT){this.enabled=false;this.gaveUp=true;}
   else this.retryAt=now+REGION_RETRY_MS[this.failures-1];
   this.pending=undefined;return true;
  }
- stop(){this.enabled=false;this.pending=undefined;}
+ stop(){this.enabled=false;this.pending=undefined;this.gaveUp=false;}
+ /** Following that stopped after a run of failures starts again from a clean slate (the player resuming from the
+  * menu); a follower stopped on purpose stays stopped. Returns whether it restarted. */
+ retry(){if(!this.gaveUp)return false;this.gaveUp=false;this.enabled=true;this.failures=0;this.retryAt=0;this.primeNext=true;return true;}
  snapshot(){return {enabled:this.enabled,requests:this.requests,pending:this.pending?.id??null,failures:this.failures,retryAt:this.retryAt,region:{...this.region}};}
 }
