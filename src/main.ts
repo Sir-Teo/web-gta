@@ -1738,6 +1738,9 @@ async function boot() {
         continue;
       }
       if(sim.knockdown>0)continue;
+      // CTaskComplexEnterCar (and the leave and the seat) aborts only at ABORT_PRIORITY_IMMEDIATE once past the walk to the
+      // door: a damage response cannot floor or flinch CJ pinned to a door or seated (the hurt still counts).
+      if(carEntry.pinned||carEntry.seated||bikeMount.pinned)continue;
       // A cop's nightstick finisher (melee.dat FALL_3) floors CJ only from the front: ComputeDamageAnim's combo branch,
       // FIGHT_HIT_1 + move from the bat group with the fall (that group's Bat_Hit clips are not on CJ; the knockout
       // stands in). From another side it is an ordinary hit.
