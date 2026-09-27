@@ -35,6 +35,7 @@ export class GameRenderer {
   private sourceFov=GAME_CAMERA_FOV;
   get fov(){return this.sourceFov;}
   private wasFirstPerson=false;
+  private wasAiming=false;
   private head=new THREE.Vector3();
   /** Player car entry, exit or driving pose; replaces on-foot animation while set. */
   /** The player's camera follow point (feet position) when a task moves it off the ped, as CTaskSimpleClimb::GetCameraTargetPos. */
@@ -145,7 +146,9 @@ export class GameRenderer {
     // CCamera::StartTransition into a first-person weapon mode: the ped's heading, level, and Process_Sniper's reset zoom.
     if(fp&&!this.wasFirstPerson){this.yaw=p.heading+Math.PI;this.pitch=0;this.zoom.reset();}
     else if(!fp&&this.wasFirstPerson)this.pitch=clamp(this.pitch,this.aiming?-1.1:-.18,1.05);
-    this.wasFirstPerson=!!fp;
+    // Leaving the aimed view puts the follow camera back within its own pitch range, as leaving first person does.
+    else if(!fp&&!this.aiming&&this.wasAiming)this.pitch=clamp(this.pitch,-.18,1.05);
+    this.wasFirstPerson=!!fp;this.wasAiming=this.aiming;
     const previousGlance = this.glance;
     // Looking behind is a third-person control (AffectControllerStateOn_ButtonDown_ThirdPersonOnly).
     // In a road vehicle Q and E look left and right and both together look behind (m_bLookingLeft/Right).
