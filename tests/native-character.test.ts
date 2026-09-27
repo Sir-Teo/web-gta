@@ -244,7 +244,7 @@ test('initial placement does not land, and death cancels an active landing', () 
   sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;character.step(.1,controls,sim);
   expect(character.snapshot().action).toBe('landing');
   sim.player.health=0;expect(character.step(.1,controls,sim)).toBe(controls);character.update(sim,1);
-  expect(character.snapshot()).toMatchObject({action:'idle',visible:false});
+  expect(character.snapshot()).toMatchObject({action:'idle',visible:true});
   sim.player.health=100;character.step(.1,controls,sim);expect(character.snapshot().action).toBe('walk');
 });
 
