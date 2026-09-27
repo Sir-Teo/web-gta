@@ -381,6 +381,10 @@ export class WeaponSystem {
   * handing over to WEAPON_throw or WEAPON_throwu, and the projectile at the throw clip's fire frame. */
  private stepThrow(dt:number,camera?:{origin:Vec3;direction:Vec3}){
   const s=this.throwState;if(!s)return;
+  // ProcessPed ends the task with nothing thrown once the active weapon is not a thrown one, and MakeAbortable ends it
+  // on a fall-down or fatal damage event; otherwise CWeapon::Fire throws whichever thrown weapon is active.
+  if(!THROWN_KINDS.has(this.inventory.weapon.kind)||this.sim.knockdown>0||this.sim.player.health<=0){this.throwState=undefined;this.attackButtonCounter=0;return;}
+  s.weapon=this.inventory.weapon;
   if(camera)s.camera={origin:{...camera.origin},direction:{...camera.direction}};
   if(!s.released){if(this.throwHeld)s.heldMs+=dt*1000;else s.released=true;}
   s.elapsed+=dt;

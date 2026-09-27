@@ -145,6 +145,15 @@ test('a grenade press winds up 0.2 s, throws at anim loop 2 fire and counts the 
  }finally{f.dispose();}
 });
 
+test('a throw ends with nothing thrown once the weapon is switched away or CJ is knocked down (CTaskSimpleThrowProjectile)',()=>{
+ const f=setup();try{
+  f.weapons.inventory.select(16);const grenades=f.weapons.inventory.ammo.get(16)!.clip;
+  expect(f.weapons.fire(camera)).toBe(true);f.tick(.1);f.weapons.inventory.select(0);f.tick(1);
+  expect(f.weapons.throwing).toBeNull();expect(f.weapons.projectiles).toHaveLength(0);expect(f.weapons.inventory.ammo.get(16)!.clip).toBe(grenades);
+  f.weapons.inventory.select(16);f.weapons.inventory.cooldown=0;expect(f.weapons.fire(camera)).toBe(true);f.tick(.1);f.sim.knockdown=1;f.tick(.5);
+  expect(f.weapons.throwing).toBeNull();expect(f.weapons.projectiles).toHaveLength(0);expect(f.weapons.inventory.ammo.get(16)!.clip).toBe(grenades);
+ }finally{f.dispose();}
+});
 test('a thrown satchel gives the detonator one charge, the last one hands it over, and the detonator spends it (CWeapon::Fire)',()=>{
  const f=setup();try{
   const inv=f.weapons.inventory;inv.ammo.set(39,{clip:1,reserve:0});inv.ammo.set(40,{clip:0,reserve:0});
