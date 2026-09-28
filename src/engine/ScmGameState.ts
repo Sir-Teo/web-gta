@@ -181,8 +181,11 @@ export class ScmClock {
  /** One clock for the scripts and the world, as CClock is: the world's minutes of the day and weekday are the
   * clock's, a weekday change carrying the day and month as CClock::Update does at midnight. */
  follow(totalMinutes:number,weekDay:number){
-  if(weekDay!==this.currentDay){this.currentDay=weekDay;this.days++;if(this.days>=ScmClock.daysInMonth[this.month-1]){this.days=1;if(++this.month>12)this.month=1;}}
+  let passed=0;
+  if(weekDay!==this.currentDay){this.currentDay=weekDay;this.days++;passed=1;if(this.days>=ScmClock.daysInMonth[this.month-1]){this.days=1;if(++this.month>12)this.month=1;}}
   const whole=Math.floor(totalMinutes);this.hours=Math.floor(whole/60)%24;this.minutes=whole%60;this.seconds=Math.floor((totalMinutes-whole)*60);
+  // CClock::Update's midnight: STAT_DAYS_PASSED_IN_GAME up one, which the caller books (SetGameClock's own day is not it).
+  return passed;
  }
  /** CClock::RestoreClock (0x52D070): copies the stored statics, which are zero until STORE_CLOCK. */
  restore(){Object.assign(this,this.stored??{hours:0,minutes:0,seconds:0,days:0,month:0});}
