@@ -634,6 +634,10 @@ async function boot() {
   // CHud::DrawScriptText's two passes: the script's DISPLAY_TEXT lines and boxes under and over the screen fade.
   const scriptText=new ScriptTextLayer(hud.element.querySelector('.screen-fade')!,hud.element.querySelector('.screen-fade')!);
   hud.messageClock=()=>gameTimeMs;
+  // CGarages::TriggerMessage for 5 s (the garages' own line; a world without a script gets the prompt line instead).
+  const GARAGE_MESSAGE_FALLBACK:Record<string,string>={TAG_ONE:'Tags sprayed~n~~1~ out of ~1~',TAG_ALL:'All tags sprayed!',HO_ONE:'Horseshoes ~1~ out of ~1~',HO_ALL:'All horseshoes found!',OY_ONE:'Oysters ~1~ out of ~1~',OY_ALL:'All oysters found!',SN_ONE:'Snapshots ~1~ out of ~1~',SN_ALL:'All snapshots found!'};
+  const garageMessageText=(id:string,n1:number,n2:number)=>{const raw=gxtText(id,GARAGE_MESSAGE_FALLBACK[id]??id);return gxtHudText(n1<0?(n2<0?raw:insertNumbers(raw,n2)):insertNumbers(raw,n1,n2));};
+  const triggerGarageMessage=(id:string,n1:number,n2:number)=>{const g=mission?.runtime.game.garageMessage;if(g)g.trigger(id,n1,5000,n2,gameTimeMs);else hud.message(garageMessageText(id,n1,n2),5000);};
   /** The player's CTaskSimpleDuck move command. */
   const duck=new NativeDuckMove();
   /** Cars that struck CJ on foot, for the dev state. */
@@ -726,9 +730,9 @@ async function boot() {
       // A pickup the script made is collected for the script too, which is what it asks after; PICKUP_ASSET_REVENUE
       // only pays out and never sets bPickupCollected.
       if(pickup.section==='script'&&pickup.category!=='revenue'&&mission){const handle=Number(pickup.id.slice('script:'.length));if(Number.isInteger(handle))mission.collectScriptPickup(handle);}if(!paused)sound.nativeEngine?.pickup(pickup.category,pickup.type);if(message){
-        // CGarages::TriggerMessage of HO_, OY_ and SN_ONE with the counts in its ~1~s, or the _ALL line.
+        // CGarages::TriggerMessage of HO_, OY_ and SN_ONE with the counts in its ~1~s, or the _ALL line, for 5 s.
         const [code,count]=message.split(' '),name=/^(HO|OY|SN)_(ONE|ALL)$/.test(code)?PICKUP_TEXT[code.slice(0,2)]:undefined;
-        hud.message(!name?message:gxtHudText(code.endsWith('_ALL')?gxtText(code,`All ${name.toLowerCase()} found!`):insertNumbers(gxtText(code,`${name} ~1~ out of ~1~`),...count.split('/').map(Number))),5000);}progression.save();},
+        if(!name)hud.message(message,5000);else{const [n1,n2]=code.endsWith('_ALL')?[-1,-1]:count.split('/').map(Number);triggerGarageMessage(code,n1,n2);}}progression.save();},
     onNotice:(_pickup,text)=>hud.help(text),
     onMission:()=>!!mission?.playerOnAMission(),
   },progression.pickups);
@@ -1683,7 +1687,7 @@ async function boot() {
   weapons.onSprayPaint=(point,radius)=>{if(!tagManager)return undefined;const state=tagManager.sprayPaint(point,radius,(key,alpha,message)=>{
     importedScene?.setTagAlpha(key,alpha);progression.tags=tagManager!.saved();
     // CGarages::TriggerMessage("TAG_ONE"/"TAG_ALL") for 5 s, not in widescreen, with the counts put in its ~1~s.
-    if(message&&!mission?.runtime.game.widescreenOn)hud.message(gxtHudText(message.message==='TAG_ALL'?gxtText('TAG_ALL','All tags sprayed!'):insertNumbers(gxtText('TAG_ONE','Tags sprayed~n~~1~ out of ~1~'),message.tagged,message.total)),5000);
+    if(message&&!mission?.runtime.game.widescreenOn){if(message.message==='TAG_ALL')triggerGarageMessage('TAG_ALL',-1,-1);else triggerGarageMessage('TAG_ONE',message.tagged,message.total);}
   });return {state,direction:tagManager.sprayDirection};};
   weapons.onSprayPainted=()=>sound.frontend(AE_FRONTEND.partMissionComplete);
   weapons.onTrace=(from,to,source)=>{
@@ -3310,6 +3314,8 @@ async function boot() {
     });
     hud.audioStatus(sound.status());
     hud.update(sim, render.viewYaw, {maxHealth:mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:mission?.runtime.game.playerInfo.maxArmour??100});
+    // CGarages::PrintMessages, drawn by CHud::Draw each frame while its time runs.
+    {const m=mission?.runtime.game.garageMessage.current(gameTimeMs);hud.garageMessage(m&&garageMessageText(m.id,m.number,m.number2));}
     // CHud::DrawVehicleName: TheText.Get of the model's game name (vehicles.ide's GXT key); the model name until the
     // text has loaded.
     const occupiedVehicle=[...(fleet?.cars??[])].find(car=>car.occupied)??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;

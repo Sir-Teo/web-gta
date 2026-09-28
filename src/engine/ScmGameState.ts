@@ -22,7 +22,7 @@ import {ScmCutsceneTrack} from './ScmCutsceneTrack';
 import type {CarRecordingPlaybackHost} from './carRecordingPlayback';
 import {ScmAnimBlocks} from './ScmAnimBlocks';
 import {ScmPickups} from './ScmPickups';
-import {ScmGarages} from './ScmGarages';
+import {ScmGarageMessage,ScmGarages} from './ScmGarages';
 import {ScmShopping} from './ScmShopping';
 import {ScmScriptBrains} from './ScmScriptBrains';
 import {ScmCheats} from './ScmCheats';
@@ -345,6 +345,8 @@ export class ScmGameState {
  readonly scriptBrains=new ScmScriptBrains();
  /** CGarages as the script addresses them, once a host has loaded the world's own. */
  readonly garages=new ScmGarages();
+ /** CGarages' message line, which blocks the help box while it shows. */
+ readonly garageMessage=new ScmGarageMessage();
  /** CPopulation's random-creation switches: m_bDontCreateRandomGangMembers (SET_CREATE_RANDOM_GANG_MEMBERS) and
   * m_bDontCreateRandomCops (SET_CREATE_RANDOM_COPS), which CPopCycle::FindNewPedType reads, and
   * m_bOnlyCreateRandomGangMembers (SET_ONLY_CREATE_GANG_MEMBERS). */
@@ -429,7 +431,7 @@ export class ScmGameState {
  constructor(){
   // SetHelpMessage bails while a mission title (STYLE_MIDDLE_SMALLER_HIGHER)
   // is queued, a garage message shows, a replay plays or a cutscene runs.
-  this.help.blocked=()=>!!this.messages.big[STYLE_MIDDLE_SMALLER_HIGHER][0]||!!this.helpMessageBlocked?.();
+  this.help.blocked=()=>!!this.messages.big[STYLE_MIDDLE_SMALLER_HIGHER][0]||this.garageMessage.showing||!!this.helpMessageBlocked?.();
  }
  /** CTheScripts::ReinitialiseSwitchStatementData (0x470370). */
  reinitialiseSwitch(){this.switchEntriesToRead=0;this.switchValue=0;this.switchDefaultExists=false;this.switchDefaultAddress=0;this.switchCases.length=0;}

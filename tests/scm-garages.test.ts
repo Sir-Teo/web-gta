@@ -55,3 +55,24 @@ test('a point inside a safehouse garage is within a hideout; other garages and p
  expect(g.isPointWithinHideOut([105,105,1])).toBe(false);
  expect(ScmGarages.pointInside(g.garages[2],[0,0,0])).toBe(false);
 });
+test('the garage message restarts for a new tag, holds a repeat for 500 ms and then restarts 500 ms back (CGarages::TriggerMessage / PrintMessages)',async()=>{
+ const {ScmGarageMessage}=await import('../src/engine/ScmGarages');
+ const m=new ScmGarageMessage();
+ m.trigger('TAG_ONE',1,5000,50,1000);expect(m.current(1000)).toEqual({id:'TAG_ONE',number:1,number2:50});expect(m.end).toBe(6000);
+ // A repeat inside the first 500 ms is ignored: the counts stay.
+ m.trigger('TAG_ONE',2,5000,50,1400);expect(m.current(1400)).toEqual({id:'TAG_ONE',number:1,number2:50});
+ // After that it restarts 500 ms back, so it ends 4.5 s from now with the new counts.
+ m.trigger('TAG_ONE',2,5000,50,2000);expect(m.start).toBe(1500);expect(m.end).toBe(6500);expect(m.current(2000)!.number).toBe(2);
+ // A different tag restarts at once.
+ m.trigger('TAG_ALL',-1,5000,-1,2100);expect(m.start).toBe(2100);expect(m.end).toBe(7100);
+ // The tag is dropped by the draw that finds its time over, and stays set until then.
+ expect(m.showing).toBe(true);expect(m.current(7099)).toBeTruthy();expect(m.current(7100)).toBeUndefined();expect(m.showing).toBe(false);
+ // A finished message triggered again restarts.
+ m.trigger('TAG_ALL',-1,5000,-1,9000);expect(m.start).toBe(9000);
+});
+test('the help box is blocked while a garage message shows (CHud::SetHelpMessage)',async()=>{
+ const {ScmGameState}=await import('../src/engine/ScmGameState');
+ const g=new ScmGameState();expect(g.help.blocked!()).toBe(false);
+ g.garageMessage.trigger('OY_ONE',3,5000,50,0);expect(g.help.blocked!()).toBe(true);
+ g.garageMessage.current(5000);expect(g.help.blocked!()).toBe(false);
+});

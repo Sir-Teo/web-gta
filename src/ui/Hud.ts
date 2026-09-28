@@ -71,6 +71,7 @@ export class Hud {
       <div class="vehicle-name" hidden></div>
       <div class="radio-name" hidden></div>
       <div class="prompt" role="status" aria-live="polite"></div>
+      <div class="garage-message" role="status" aria-live="polite" hidden></div>
       <div class="script-menus" role="menu" aria-label="Menu" hidden></div>
       <div class="help-box" role="status" aria-live="polite" hidden></div>
       <div class="mission-timers" hidden></div>
@@ -157,6 +158,9 @@ export class Hud {
     const opening = open && this.menu.hidden;this.menu.hidden = !open; this.element.classList.toggle('paused', open);
     if (opening && !this.menu.contains(document.activeElement)) this.menu.querySelector<HTMLElement>('button:not([disabled]):not([hidden])')?.focus({ preventScroll: true });
   }
+  /** CGarages::PrintMessages: the garage message line (pickup and tag tallies) for this frame, or none. */
+  garageMessage(text?:string){const el=this.garageEl??=this.element.querySelector<HTMLElement>('.garage-message')!;if(text){if(el.textContent!==text)el.textContent=text;el.hidden=false;}else if(!el.hidden){el.hidden=true;el.textContent='';}}
+  private garageEl?:HTMLElement;
   /** A prompt line, timed on the game clock like CMessages' messages, so it does not run out while the game is paused. */
   message(text: string, milliseconds = 3000) { this.prompt.textContent = text; this.messageUntil = this.messageClock() + milliseconds; }
   /** CHud::SetHelpMessage: the top-left help box. DrawHelpText is not reversed; the box shows for `milliseconds`. */

@@ -105,3 +105,23 @@ export class ScmGarages {
  allRespraysCloseOrOpen(open:boolean){for(const garage of this.garages)if(garage.type===GARAGE_TYPE.paynspray)garage.doorState=open?GARAGE_DOOR_OPEN:GARAGE_DOOR_CLOSED;}
  setResprayFree(name:string,free:boolean){const garage=this.at(name);if(garage)garage.resprayFree=free;}
 }
+/** CGarages' one message line (MessageIDString, MessageStartTime/EndTime, MessageNumberInString/2): the pickup and
+ * tag tallies. TriggerMessage (0x447B80) restarts a different or finished message, ignores a repeat within its first
+ * 500 ms and otherwise restarts it 500 ms back; PrintMessages (0x447790) clears the tag once its time is over. While
+ * the tag is set, CHud::SetHelpMessage and its kin do nothing. */
+export class ScmGarageMessage {
+ id='';start=0;end=0;number=-1;number2=-1;
+ trigger(tag:string,number:number,timeMs:number,number2:number,nowMs:number){
+  if(tag!==this.id||nowMs<this.start||nowMs>=this.end){this.id=tag;this.start=nowMs;}
+  else{if(nowMs-this.start<=500)return;this.start=nowMs-500;}
+  this.end=this.start+timeMs;this.number=number;this.number2=number2;
+ }
+ /** PrintMessages' draw: the tag and its numbers while the message runs, and nothing (the tag dropped) after. */
+ current(nowMs:number){
+  if(!this.id)return undefined;
+  if(nowMs<this.start||nowMs>=this.end){this.id='';return undefined;}
+  return {id:this.id,number:this.number,number2:this.number2};
+ }
+ /** CGarages::MessageIDString[0]: a message tag is set until a draw finds its time over. */
+ get showing(){return !!this.id;}
+}
