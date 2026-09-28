@@ -341,11 +341,20 @@ export class Simulation {
   private carrySpeed() {
     const p = this.player.position, feet = { x: p.x, y: p.y, z: p.z };
     const floor = this.groundCarry?.(feet); if (floor) return floor;
-    const hit = this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y + .3, z: p.z }, { x: 0, y: -1, z: 0 }), .6, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS | RAPIER.QueryFilterFlags.EXCLUDE_FIXED, undefined, this.playerCollider, this.playerBody);
-    const body = hit?.collider.parent(); if (!body || !body.isDynamic()) return undefined;
-    const v = body.velocityAtPoint({ x: p.x, y: p.y + .3 - hit!.timeOfImpact, z: p.z });
+    const under = this.standingOnBody(); if (!under) return undefined;
+    const { body, hit } = under;
+    const v = body.velocityAtPoint({ x: p.x, y: p.y + .3 - hit.timeOfImpact, z: p.z });
     return Math.hypot(v.x, v.y, v.z) > .05 ? { x: v.x, y: v.y, z: v.z } : undefined;
   }
+  /** CPed::m_standingOnEntity: the dynamic body (a vehicle, a physical prop) right under the player's feet. */
+  standingOnBody() {
+    const p = this.player.position;
+    const hit = this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y + .3, z: p.z }, { x: 0, y: -1, z: 0 }), .6, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS | RAPIER.QueryFilterFlags.EXCLUDE_FIXED, undefined, this.playerCollider, this.playerBody);
+    const body = hit?.collider.parent(); if (!hit || !body || !body.isDynamic()) return undefined;
+    return { body, hit };
+  }
+  /** The player stands on a vehicle or a physical prop (m_standingOnEntity set). */
+  get playerStandingOnEntity() { return this.player.grounded && !!this.standingOnBody(); }
   /** The last collision push was blocked, as CEntity::m_bIsStuck. */
   playerStuck = false;
   /** CEventHandler::ComputeVehicleDiedResponse (0x4BA8B0) assigns zero

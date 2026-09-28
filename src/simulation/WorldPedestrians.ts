@@ -3337,7 +3337,8 @@ export class WorldPedestrians {
     const law=this.law!,target=this.sim.player.position,onFoot=this.sim.playerCollider.isEnabled()&&this.sim.playerBody.isEnabled();
     const {eye,aim,offset,distance,visible}=this.spotTarget(p,target,cars);
     // CTaskComplexPolicePursuit::ControlSubTask re-runs SetWeapon while its subtask is the arrest.
-    if(law.level&&this.pursuers.has(p))p.copWeapon=policePursuitWeapon({current:p.copWeapon,wantedLevel:law.level,playerHoldsGun:this.playerArmed(),arresting:p.arrest>0});
+    // At one star a suspect standing on a vehicle or a prop (m_standingOnEntity) leaves the cop's weapon as it is.
+    if(law.level&&this.pursuers.has(p))p.copWeapon=policePursuitWeapon({current:p.copWeapon,wantedLevel:law.level,playerHoldsGun:this.playerArmed(),playerOnEntity:this.sim.playerStandingOnEntity,arresting:p.arrest>0});
     // m_IsRoadBlockCop: CTaskComplexPolicePursuit keeps him bStayInSamePlace with the pistol, shooting from his post.
     const roadblockCop=!!p.crew?.roadblock&&law.level>0;if(roadblockCop&&this.pursuers.has(p))p.copWeapon='pistol';
     const gunAllowed=p.copWeapon==='pistol'&&!law.arrested;
