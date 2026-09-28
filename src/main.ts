@@ -368,7 +368,7 @@ async function boot() {
   };
   /** Sets the player out of his passenger seat; with `needRoom`, only where IsRoomForPedToLeaveCar finds a standing
    * capsule's room at his side of the car, else the other side, and false (still seated) when neither has it. */
-  const leavePassengerSeat=(inPlace=false,needRoom=false)=>{
+  const leavePassengerSeat=(inPlace=false,needRoom=false,jump=false)=>{
    const ride=playerPassenger;if(!ride)return true;
    // A car deleted under him (CVehicle's destructor flags its passengers, and CPed::FlagToDestroyWhenNextProcessed
    // clears the player's vehicle and leaves him where he sat): he drops from where the car was.
@@ -386,9 +386,18 @@ async function boot() {
     const room=at.y<w.y-.2&&!sim.world.intersectionWithShape({x:at.x,y:at.y+.95,z:at.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.55,.3),RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,sim.playerCollider,ride.car.car.body);
     return {at,room};
    };
-   const first=spot(own),out=!needRoom||first.room?first:(o=>o.room?o:undefined)(spot(-own));
+   const first={...spot(own),side:own},out=!needRoom||first.room?first:(o=>o.room?o:undefined)({...spot(-own),side:-own});
    if(!out)return false;
-   playerPassenger=undefined;ride.car.setPlayerOutAsPassenger(out.at,ride.car.heading());return true;
+   const v=ride.car.car.body.linvel();
+   playerPassenger=undefined;ride.car.setPlayerOutAsPassenger(out.at,ride.car.heading());
+   if(jump){
+    // CTaskSimpleCarJumpOut from a passenger seat: out of the moving car with its speed, the car ignored until he is
+    // clear of it, rolling on CAR_rollout_LHS or _RHS for the door's side, then up from the front.
+    sim.collisionPush={x:v.x,z:v.z};sim.ignoreVehicleOnExit(ride.car.car.body);
+    const view=render.nativeCharacter,clip=out.side>0?'car_rollout_rhs':'car_rollout_lhs';
+    if(view?.hasReaction(clip)){const fall=view.reactionDuration(clip)??1,getUp=playerFall(view,clip);sim.knockdown=fall+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall);}
+   }
+   return true;
   };
   let scriptObjectViews:ScriptObjectViews|undefined;
   let scriptFixedCamera:typeof render.fixedCamera,stuntCamera:typeof render.fixedCamera;
@@ -2407,13 +2416,13 @@ async function boot() {
       // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
       if(planeExitReady)fleet!.occupiedPlane!.exitPending=false;
-      if(passengerExitPending){const ride=playerPassenger;if(!ride)passengerExitPending=false;else if(ride.car.disposed){passengerExitPending=false;leavePassengerSeat();}else if(ride.car.canStepOut()&&leavePassengerSeat(false,true))passengerExitPending=false;}
+      if(passengerExitPending){const ride=playerPassenger;if(!ride)passengerExitPending=false;else if(ride.car.disposed){passengerExitPending=false;leavePassengerSeat();}else if(ride.car.canStepOut()?leavePassengerSeat(false,true):ride.car.canJumpOut()&&leavePassengerSeat(false,true,true))passengerExitPending=false;}
       // CPad::DisablePlayerControls (SET_PLAYER_CONTROL off): every pad query answers 0, the exit button included.
       if(!sim.climbing&&(input.consume('KeyF')&&!playerControlsDisabled()&&!padSwitchedOff('enterCar')||planeExitReady)&&!law.arrested){
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.
         if(sim.jetPack){/* the jetpack task owns the button */}
-        // A passenger leaves through CTaskComplexLeaveCar too: CTaskSimpleCarWaitToSlowDown holds him in the seat until
-        // the car is slow enough to step out of (the passenger's roll-out is not ported, so he waits for that).
+        // A passenger leaves through CTaskComplexLeaveCar too: CTaskSimpleCarWaitToSlowDown (SLOW_ENOUGH_TO_STEP_OR_JUMP,
+        // TaskSimpleCarWaitToSlowDown.cpp:66-71) holds him in the seat until the car can be stepped or jumped out of.
         else if(playerPassenger)passengerExitPending=true;
         // The original gives no text for any of the vehicle refusals and notices below; the calls keep their effects.
         else if(sim.player.swimming){}

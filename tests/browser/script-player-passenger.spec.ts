@@ -81,3 +81,25 @@ test('a passenger walled in on his side gets out on the other',async({page})=>{
  expect(Math.hypot(p.x-blocked.x,p.z-blocked.z)).toBeGreaterThan(2.5);
  expect(errors).toEqual([]);
 });
+
+/** CTaskSimpleCarWaitToSlowDown's SLOW_ENOUGH_TO_STEP_OR_JUMP for the player: a passenger in a car fast enough to jump
+ * from rolls out of it (CTaskSimpleCarJumpOut) rather than riding on until it stops. */
+test('the player bails out of a fast car from a passenger seat',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const car=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;return g.missionForProfiling().vehicles.create(596,{x:p.x+6,y:-p.z+7,z:-100},0);});
+ await page.waitForFunction(c=>!!(window as any).__game.missionForProfiling().vehicles.entity(c),car,{timeout:60000});
+ await page.waitForFunction(c=>(window as any).__game.missionForProfiling().vehicles.positionOf(c).z>-50,car,{timeout:30000});
+ await page.evaluate(c=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCarAsPassenger(1,c,0),car);
+ await page.waitForTimeout(1000);
+ await page.evaluate(c=>{const v=(window as any).__game.missionForProfiling().vehicles.entity(c);const h=v.heading();v.car.body.setLinvel({x:Math.sin(h)*24,y:0,z:Math.cos(h)*24},true);},car);
+ await page.keyboard.press('KeyF');
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1)??null),{timeout:3000}).toBeNull();
+ const out=await page.evaluate(()=>{const g=(window as any).__game;return {reaction:g.render().nativeCharacter?.reactionName??null,knockdown:g.state().knockdown};});
+ expect(out.reaction).toMatch(/car_rollout_(lhs|rhs)/);
+ expect(out.knockdown).toBeGreaterThan(0);
+ expect(errors).toEqual([]);
+});
