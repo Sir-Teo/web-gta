@@ -102,6 +102,8 @@ export interface ScmMissionWorld {
  setPlayerAmmo?(weaponType:number,ammo:number):void;
  /** ENSURE_PLAYER_HAS_DRIVE_BY_WEAPON: the SMG slot topped up to `ammo`, or a Micro-SMG given and taken up, in a vehicle only. */
  ensurePlayerHasDriveByWeapon?(ammo:number):void;
+ /** SET_WEATHER_TO_APPROPRIATE_TYPE_NOW: CWeather::SetWeatherToAppropriateTypeNow on the world's weather. */
+ setWeatherToAppropriateTypeNow?():void;
  addPlayerAmmo?(weaponType:number,ammo:number):void;
  hidePlayerWeapon?(hidden:boolean):void;
  markRoadNodeAsDontWander?(point:{x:number;y:number;z:number}):void;
@@ -1402,6 +1404,7 @@ export class ScmMission {
    setUpSkip:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP')([x,y,z],heading,false,undefined,false);},
    setUpSkipAfterMission:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP_AFTER_MISSION')([x,y,z],heading,true,undefined,false);},
    ensurePlayerHasDriveByWeapon:(_handle,ammo)=>{this.host('ensurePlayerHasDriveByWeapon','ENSURE_PLAYER_HAS_DRIVE_BY_WEAPON')(ammo);},
+   setWeatherToAppropriateTypeNow:()=>{this.host('setWeatherToAppropriateTypeNow','SET_WEATHER_TO_APPROPRIATE_TYPE_NOW')();},
    setUpSkipForSpecificVehicle:(x,y,z,heading,car)=>{this.host('setUpScriptSkip','SET_UP_SKIP_FOR_SPECIFIC_VEHICLE')([x,y,z],heading,false,this.liveVehicle(car),false);},
    setUpSkipForVehicleFinishedByScript:(x,y,z,heading,car)=>{this.host('setUpScriptSkip','SET_UP_SKIP_FOR_VEHICLE_FINISHED_BY_SCRIPT')([x,y,z],heading,false,this.liveVehicle(car),true);},
    clearSkip:()=>{this.host('clearScriptSkip','CLEAR_SKIP')();},

@@ -4794,6 +4794,8 @@ async function boot() {
                  },
                  setScriptVehicleCanBeVisiblyDamaged:(car,state)=>{(car as ScriptCar).canBeVisiblyDamaged=state;},
                  setTimeScale:scale=>{cheatTimeScale=scale;},
+                 // CWeather::SetWeatherToAppropriateTypeNow: the player's region's first list entry, the forcing released.
+                 setWeatherToAppropriateTypeNow:()=>{weather.setAppropriateNow(sim.player.position.x,-sim.player.position.z);},
                  // The one ped the browser holds. CTheScripts::IsPedStopped asks a vehicle whether its moving
                  // speed is under a step's worth, and a ped on foot whether it is standing in place, on the
                  // ground and not shifting; the browser's own speed and grounded flag answer both.
