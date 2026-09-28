@@ -2673,12 +2673,18 @@ export class ScmMission {
  /** Script fires the world put out, by their table index. */
  scriptFiresWentOut(keys:readonly number[]){for(const key of keys)this.runtime.game.fires.putOut(key);}
  scriptFires(){
-  const out:{key:number;position:{x:number;y:number;z:number};strength:number;generations:number}[]=[];
+  const out:{key:number;position:{x:number;y:number;z:number};strength:number;generations:number;player?:boolean}[]=[];
   this.runtime.game.fires.fires.forEach((fire,index)=>{
    if(!fire.active||!fire.createdByScript)return;
+   // CFire::ProcessFire keeps a fire on its ped at the ped's position; a ped that is gone takes it with him.
+   if(fire.ped!==undefined){
+    if(fire.ped!==PLAYER_PED_HANDLE&&!this.peds.exists(fire.ped)){this.runtime.game.fires.putOut(index);return;}
+    const at=fire.ped===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(fire.ped)??this.peds.positionOf(fire.ped);
+    fire.position={x:at.x,y:at.y,z:at.z};
+   }
    // Native axes, as the weapon system's fire pool keeps every other fire.
    out.push({key:index,position:{x:fire.position.x,y:fire.position.y,z:fire.position.z},
-    strength:fire.strength,generations:fire.generationsAllowed});
+    strength:fire.strength,generations:fire.generationsAllowed,...fire.ped===PLAYER_PED_HANDLE?{player:true}:{}});
   });
   return out;
  }

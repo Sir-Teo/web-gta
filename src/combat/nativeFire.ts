@@ -70,15 +70,19 @@ export class NativeFireManager {
   * fire takes a slot the streamer will not reclaim, which is what the script flag is for. Script fires share the one
   * pool: water or an extinguisher puts them out like any other (CFire::ExtinguishWithWater), and the keys of those that
   * went out are returned so the script's own record goes out too (IS_SCRIPT_FIRE_EXTINGUISHED). */
- syncScriptFires(records:readonly {key:number;position:V3;strength:number;generations:number}[]){
+ syncScriptFires(records:readonly {key:number;position:V3;strength:number;generations:number;player?:boolean}[]){
   const wanted=new Map(records.map(record=>[record.key,record])),out:number[]=[];
   for(const [key,fire] of this.scripted)if(!wanted.has(key)){fire.script=false;fire.extinguish();this.scripted.delete(key);this.scriptStrength.delete(key);}
   for(const record of records){
    let fire=this.scripted.get(record.key);
    if(fire&&!fire.active){this.scripted.delete(record.key);this.scriptStrength.delete(record.key);out.push(record.key);continue;}
    if(!fire){
+    // A script fire on the player (START_CHAR_FIRE) is his fire: it takes the place of one he had, burns him and
+    // follows him.
+    const target:FireTarget|undefined=record.player?{kind:'player',key:'player'}:undefined;
+    if(target)this.fireOn(target.key)?.extinguish();
     const free=this.fires.find(f=>!f.active);if(!free)continue;
-    Object.assign(free,{active:true,script:true,beingExtinguished:false,firstGeneration:true,target:undefined,
+    Object.assign(free,{active:true,script:true,beingExtinguished:false,firstGeneration:true,target,
      creator:undefined,timeToBurn:Number.POSITIVE_INFINITY});
     free.fxSerial++;this.scripted.set(record.key,free);fire=free;
    }

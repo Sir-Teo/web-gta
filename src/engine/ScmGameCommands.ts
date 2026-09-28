@@ -929,10 +929,11 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'warpPedIntoCarAsPassenger')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));
  },
  REMOVE_STUCK_CAR_CHECK:(t,p,i)=>{game(t,i).stuckCars.remove(t.readInt(p[0]));},
- // CFireManager::StartScriptFire at the ped, at eight tenths strength and one generation, as the command asks.
+ // StartCharFire: CFireManager::StartScriptFire(pos, ped, 0.8f, true, 0, 1). The 0.8 and true are unused; the fire
+ // burns on the ped at strength 1 with no generations to spread.
  START_CHAR_FIRE:(t,p,i)=>{
-  const position=world(t,i,'pedPosition')(t.readInt(p[0]));
-  t.writeInt(p[1],game(t,i).fires.startScriptFire(position,0.8,1));
+  const ped=t.readInt(p[0]),position=world(t,i,'pedPosition')(ped);
+  t.writeInt(p[1],game(t,i).fires.startScriptFire(position,1,0,ped));
  },
  /* --- The last of the reversed character, player, camera and object commands with a body of their own. */
  IS_CHAR_HEALTH_GREATER:(t,p,i)=>{

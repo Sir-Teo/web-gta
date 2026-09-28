@@ -58,3 +58,18 @@ test('script fires reach the fire pool in native axes, as every other fire does'
  const self={runtime:{game:{fires:{fires:[{active:true,createdByScript:true,position:{x:2490,y:-1680,z:13},strength:1,generationsAllowed:0}]}}}};
  expect((ScmMission.prototype as any).scriptFires.call(self)).toEqual([{key:0,position:{x:2490,y:-1680,z:13},strength:1,generations:0}]);
 });
+
+// START_CHAR_FIRE on the player: the fire is his (m_pFire), takes the place of one he had, and follows him.
+test('a script fire on the player becomes his fire and follows him',async()=>{
+ const fires=new NativeFireManager();
+ fires.startFireOn({kind:'player',key:'player'},at(0),7000,100,{nowMs:0,random:()=>.5});
+ const own=fires.fireOn('player')!;
+ fires.syncScriptFires([{key:3,position:at(5),strength:1,generations:0,player:true}]);
+ expect(own.active&&!own.script).toBe(false);
+ expect(fires.fireOn('player')!.script).toBe(true);
+ const {ScmMission}=await import('../src/simulation/ScmMission');
+ const fire={active:true,createdByScript:true,position:{x:0,y:0,z:0},strength:1,generationsAllowed:0,ped:1};
+ const self={runtime:{game:{fires:{fires:[fire]}}},world:{playerPed:()=>({position:{x:7,y:8,z:9}})}};
+ expect((ScmMission.prototype as any).scriptFires.call(self)).toEqual([{key:0,position:{x:7,y:8,z:9},strength:1,generations:0,player:true}]);
+ expect(fire.position).toEqual({x:7,y:8,z:9});
+});
