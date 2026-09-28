@@ -384,7 +384,9 @@ export class Simulation {
     const walking = !!controls.walk;
     // The launch frame is still CTaskSimpleJump's: StartLaunchAnim fixed m_fAimingRotation.
     const held = !!controls.holdMove || controls.jump && this.player.grounded;
-    if (held) { /* CTaskComplexJump / CTaskSimpleLand own the ped */ }
+    // In the air (bIsInTheAir) CTaskComplexJump or CTaskComplexInAirAndLand owns the ped, so PlayerControlZelda does
+    // not run: the ratio stays as the jump or the drop left it, and the landing clip is picked from that.
+    if (held || this.playerInAir && !this.player.grounded) { /* CTaskComplexJump / CTaskSimpleLand own the ped */ }
     else if (this.player.crouched) this.player.moveBlend = stepMoveBlend(this.player.moveBlend, length > 0 ? 0.9 : 0, dt);
     // PlayerControlZelda sets the ratio straight to 0 when the stick is released; only a push slews.
     else if (length === 0 && !this.player.swimming) this.player.moveBlend = 0;

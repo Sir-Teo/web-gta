@@ -494,9 +494,9 @@ export class NativeCharacter {
     const landed = this.wasAirborne && sim.player.grounded;
     const footState = sim.player.health > 0;
     if (!footState) this.lastGroundAction = 'idle';
-    // PlayerControlZelda does not run under the jump and land tasks, so the ratio holds through their clips.
+    // PlayerControlZelda does not run under the jump, in-air and land tasks, so the ratio holds through their clips.
     if (!footState) this.moveBlend = 0;
-    else if (!launchAction(this.action) && !landingAction(this.action)) this.moveBlend = playerMoveBlend(this.moveBlend,controls.x,controls.y,!!controls.walk,dt);
+    else if (!launchAction(this.action) && !landingAction(this.action) && this.action !== 'airborne') this.moveBlend = playerMoveBlend(this.moveBlend,controls.x,controls.y,!!controls.walk,dt);
     this.observedGround = footState && (this.observedGround || sim.player.grounded);
     // Off the ground only counts once the ped is in the air (bIsInTheAir): a step down a curb neither shows the fall
     // pose nor ends in a landing.
