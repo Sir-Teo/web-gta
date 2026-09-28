@@ -150,3 +150,14 @@ export function gangToCreateMembersOf(gangStrengths:readonly number[]|undefined,
  });
  return best;
 }
+/** CPopulation::PedDensityMultiplier (SET_PED_DENSITY_MULTIPLIER), 1 at Initialise: FindNumberOfPedsWeCanPlaceOnBenches
+ * scales the peds the street may hold by it (AddToPopulation's own use is unreversed), so the targets and the caps
+ * scale together. */
+export function scalePedTargets<T extends PopulationTargets>(targets:T,multiplier:number):T{
+ if(multiplier===1)return targets;
+ return {...targets,dealers:targets.dealers*multiplier,gangs:targets.gangs*multiplier,cops:targets.cops*multiplier,other:targets.other*multiplier};
+}
+export function scalePedLimits<T extends {civilians:number;total:number}>(limits:T|undefined,multiplier:number){
+ if(!limits||multiplier===1)return limits;
+ return {...limits,civilians:Math.floor(limits.civilians*multiplier),total:Math.floor(limits.total*multiplier)};
+}
