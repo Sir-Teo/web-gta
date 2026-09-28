@@ -558,6 +558,7 @@ async function boot() {
   let gunFiring=false;
   /** The weapon whose CTaskSimpleUseGun the fire button started without the target button, while that task runs. */
   let hipGun:number|undefined;
+  let climbsSeen=0;
   let surfaceAudio: ReturnType<typeof readSurfaceAudio> | undefined;
   let roadSurfaces:Awaited<ReturnType<typeof import('./assets/worldRoadMaterials').loadWorldRoadMaterials>>|undefined;
   const render = new GameRenderer(canvas, sim);
@@ -2838,6 +2839,9 @@ async function boot() {
         else {if(sim.climbing)render.nativeCharacter?.resetAirborne();// CTaskComplexFallAndGetUp and CTaskSimpleHitHead stand in for PlayerControlZelda: the stick that the sim ignores
           // under them does not drive the move clips' blend ratio either, so CJ gets up from standing.
           const held=sim.knockdown>0||sim.hitHead>0,stepped=held?{...controls,x:0,y:0,jump:false,sprint:false}:controls;
+          // CTaskSimpleClimb's finish blends IDLE in at 1000 and zeroes the move ratio: the run or sprint from before the
+          // jump does not carry over the ledge.
+          if(sim.climbsFinished!==climbsSeen){climbsSeen=sim.climbsFinished;render.nativeCharacter?.resetLocomotion();}
           const animated=sim.climbing?controls:render.nativeCharacter?.step(step, stepped, sim)??controls;sim.step(step,(weapons.aiming||hipGun!==undefined)&&(controls.gunMove||controls.fightMove)&&!animated.animationMotion?controls:animated);}
         frameProfile.stepPlayer+=performance.now()-tPlayer;
         if(render.nativeCharacter?.duckRollDone)duck.rollFinished();

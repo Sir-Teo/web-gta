@@ -363,6 +363,8 @@ export class Simulation {
     if(this.player.health<=0)return;
     this.player.health=0;this.player.speed=0;this.deathRemaining=DEATH_RECOVERY_SECONDS;
   }
+  /** Climbs that reached CLIMB_FINISHED or CLIMB_FINISHED_V. */
+  climbsFinished = 0;
   /** m_fAimingRotation while a turn from the stick is still under way, and the heading it last left the player at. */
   private turnTarget?: number;
   private turnFrom?: number;
@@ -627,6 +629,9 @@ export class Simulation {
     this.lastMove = { hits: [], velocity: { x: 0, z: 0 } };
     if (!done) return;
     this.climb = undefined;
+    // CTaskSimpleClimb::StartAnim's CLIMB_FINISHED / FINISHED_V: IDLE at 1000 wipes the move anims (the renderer resets
+    // its own on this count), not an abort that drops back to the in-air task.
+    if (task.heightForAnim === CLIMB.FINISHED || task.heightForAnim === CLIMB.FINISHED_V) this.climbsFinished++;
     if (task.standing) { this.player.grounded = true; this.player.verticalSpeed = -0.4; this.jumpGlide = undefined; return; }
     this.player.verticalSpeed = ped.moveSpeed.z * 50;
     this.player.jumpMomentum = { x: ped.moveSpeed.x * 50, z: -ped.moveSpeed.y * 50 };
