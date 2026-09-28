@@ -878,7 +878,7 @@ export class WeaponSystem {
     const n=this.toNative(w);n.z+=.15;return n;
    },
    // The effect leads a burning vehicle by 2 × timeStep of its move speed (units a frame).
-   targetMoveSpeed:(t:FireTarget)=>{if(t.kind!=='vehicle')return undefined;const entry=this.burnableVehicles().find(e=>e.v===t.key);if(!entry)return undefined;const v=entry.body.linvel();return this.toNative({x:v.x/50,y:v.y/50,z:v.z/50});},
+   targetMoveSpeed:(t:FireTarget)=>{if(t.kind!=='vehicle')return undefined;const entry=this.burnableVehicles().find(e=>e.v===t.key);const v=entry?.body.linvel?.();return v?this.toNative({x:v.x/50,y:v.y/50,z:v.z/50}):undefined;},
    // StartFire on the player needs CPed::IsPedInControl: not in the air or landing.
    ignitablePlayer:()=>playerOnFoot&&this.sim.player.grounded&&!this.sim.player.swimming&&!this.fires.fireOn(playerKey)&&!this.sim.playerProofs?.fire?{key:playerKey,position:this.toNative(this.sim.player.position)}:undefined,
    bmx:(t:FireTarget)=>(t.key as {motorbike?:boolean}).motorbike===false,
