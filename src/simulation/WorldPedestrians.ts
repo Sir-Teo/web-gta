@@ -521,7 +521,8 @@ export class WorldPedestrians {
   * nearest the crosshair ray stands in for it (the nearest one without a ray). */
  stealthTarget(origin:{x:number;y:number;z:number},aim?:{origin:{x:number;y:number;z:number};direction:{x:number;y:number;z:number}}){
   if(!this.catalog?.stealth.kill_knife_ped_die)return undefined;
-  const candidates=this.people.filter(p=>p.health>=1&&p.down===0&&p.stealth===undefined&&this.moveState(p)<PEDMOVE.run&&!this.attackingPlayer(p)).map(p=>{const q=p.actor.player.position,dx=q.x-origin.x,dz=q.z-origin.z,dy=q.y-origin.y;return {p,dx,dz,d2:dx*dx+dy*dy+dz*dz};})
+  // TestForStealthKill refuses a ducking target (bIsDucking).
+  const candidates=this.people.filter(p=>p.health>=1&&p.down===0&&p.stealth===undefined&&!p.actor.player.crouched&&this.moveState(p)<PEDMOVE.run&&!this.attackingPlayer(p)).map(p=>{const q=p.actor.player.position,dx=q.x-origin.x,dz=q.z-origin.z,dy=q.y-origin.y;return {p,dx,dz,d2:dx*dx+dy*dy+dz*dz};})
    .filter(t=>t.d2<=2.5*2.5&&t.dx*Math.sin(t.p.actor.player.heading)+t.dz*Math.cos(t.p.actor.player.heading)>0);
   const off=(p:Pedestrian)=>{if(!aim)return 0;const q=p.actor.player.position,v={x:q.x-aim.origin.x,y:q.y+1-aim.origin.y,z:q.z-aim.origin.z},l=Math.hypot(v.x,v.y,v.z)||1,dl=Math.hypot(aim.direction.x,aim.direction.y,aim.direction.z)||1;return -(v.x*aim.direction.x+v.y*aim.direction.y+v.z*aim.direction.z)/(l*dl);};
   const t=candidates.sort((a,b)=>off(a.p)-off(b.p)||a.d2-b.d2)[0];
