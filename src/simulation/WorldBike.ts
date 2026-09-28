@@ -385,6 +385,25 @@ export class WorldBike {
   WorldBike.onKnockedOff?.((['ko_skid_back','kd_right','ko_skid_front','kd_left'] as const)[direction]);
   this.message='Knocked off the bike!';
  }
+ /** CEventKnockOffBike with KNOCK_OFF_TYPE_EXPLOSION, which CWorld::TriggerExplosionSectorList gives a BMX's rider.
+  * Its knock-off direction is 0: BIKE_FALLR, and on a bike moving under 0.3 units a frame a push of 6 back along the
+  * bike and 5 up it over his 70 kg (ApplyMoveForce); faster, he keeps the ride's speed. It is not forced, so a rider
+  * the script keeps on stays on. Returns whether he came off. */
+ explosionKnockOff(){
+  if(!this.occupied||WorldBike.riderStaysOn?.())return false;
+  const spot=this.knockOffSpot();if(!spot)return false;
+  const v={...this.body.linvel()};this.leave(spot);
+  if(Math.hypot(v.x,v.y,v.z)/50<.3){
+   const q=this.body.rotation(),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0}),k=50/70;
+   v.x+=(forward.x*-6+up.x*5)*k;v.y+=(forward.y*-6+up.y*5)*k;v.z+=(forward.z*-6+up.z*5)*k;
+  }
+  const player=this.sim.player;
+  this.sim.collisionPush={x:v.x,z:v.z};player.verticalSpeed=v.y;player.grounded=false;player.speed=0;this.sim.exitCarriesSpeed=true;
+  this.sim.ignoreVehicleOnExit(this.body);
+  WorldBike.onKnockedOff?.('bike_fallr');
+  this.message='Knocked off the bike!';
+  return true;
+ }
  /** CEventKnockOffBike::SetPedSafePosition: the seat, lifted half a unit when that is clear too, else 0.6 up or
   * down, else a clear spot beside the bike (PositionPedOutOfCollision); each must leave the ped clear of the world
   * and in sight of the bike past buildings and objects. */

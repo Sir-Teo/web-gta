@@ -324,7 +324,13 @@ export class WeaponSystem {
    body.setAngvel({x:ang.x+torque.x/tm*50,y:ang.y+torque.y/tm*50,z:ang.z+torque.z/tm*50},true);
   }
   // CWorld::TriggerExplosionSectorList's vehicle loop reaches bikes too.
-  for(const bike of this.fleet()?.bikes??[]){if(bike.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,bike.body.translation()));if(falloff&&bike.damage(1100*falloff*params.damagePercentage))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);}
+  for(const bike of this.fleet()?.bikes??[]){
+   if(bike.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,bike.body.translation()));if(!falloff)continue;
+   // A BMX's rider is knocked off (KNOCK_OFF_TYPE_EXPLOSION) and takes the bike's own WEAPON_EXPLOSION damage: the
+   // bike never shields him, as a motorbike's frame does.
+   if(bike.motorbike===false&&bike.occupied){bike.explosionKnockOff?.();this.sim.damagePlayer(Math.trunc(1100*falloff*params.damagePercentage),false,{weapon:51,from:{x:position.x,z:position.z}});}
+   if(bike.damage(1100*falloff*params.damagePercentage))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);
+  }
   for(const boat of this.fleet()?.boats??[]){if(boat.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,boat.body.translation()));if(falloff&&boat.damage(1100*falloff*params.damagePercentage))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);}
   for(const plane of this.fleet()?.planes??[]){if(plane.health<=0)continue;const falloff=explosionFalloff(params.radius,distance(position,plane.body.translation()));if(falloff&&plane.damage(1100*falloff*params.damagePercentage)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);}}
   this.onExplosion?.(position,params,byPlayer);
