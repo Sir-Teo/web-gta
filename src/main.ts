@@ -1933,6 +1933,8 @@ async function boot() {
   /** CWorld::TriggerExplosionSectorList's object pass over OBJECT.DAT props: TryToExplode,
    * unfreezing when the blast force beats the uproot limit, ObjectDamage and the push. */
   weapons.onScorch=point=>{scorches.add(explosionScorch([point.x,-point.z,point.y]),gameTimeMs);};
+  weapons.onCamShake=(strength,from)=>{const cam=mission?.runtime.game.camera;if(!cam)return;if(from){const c=render.camera.position;cam.camShake(strength,Math.hypot(from.x-c.x,from.y-c.y,from.z-c.z),gameTimeMs);}else cam.camShakeNoPos(strength,gameTimeMs);};
+  render.shake=()=>mission?.runtime.game.camera.shakeLeft(gameTimeMs)??0;
   weapons.onExplosion=(point,params,byPlayer)=>{
     // The script's objects in the blast: ObjectDamage(WEAPON_EXPLOSION) from whoever set it off, 300 x falloff for
     // one the blast frees and the falloff alone for one it leaves static. The record keeps the object in place.

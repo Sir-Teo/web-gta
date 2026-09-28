@@ -144,6 +144,8 @@ export class WeaponSystem {
  waterLevel?:(x:number,y:number)=>number|undefined;
  /** TriggerExplosion's object pass, for the scene's OBJECT.DAT props. Renderer-frame point. */
  onExplosion?:(point:Vec3,params:ExplosionParams,byPlayer:boolean)=>void;
+ /** CCamera::CamShake from an explosion (0.6, a molotov 0.2, at its point) and CamShakeNoPos from a sniper shot (0.2). */
+ onCamShake?:(strength:number,from?:Vec3)=>void;
  /** CExplosion::AddExplosion's CShadows::AddPermanentShadow scorch, for every explosion. */
  onScorch?:(point:Vec3)=>void;
  /** CWeapon::DoBulletImpact's object branch for a bullet hitting a non-ped, non-vehicle collider. `incremental` marks a shotgun pellet. */
@@ -275,6 +277,7 @@ export class WeaponSystem {
   // AddExplosion makes nothing when every slot is taken.
   if(!this.explosionSlots.add(type,this.toNative(position),this.nowMs))return;
   const params=explosionParams(type);
+  this.onCamShake?.(type===EXPLOSION_TYPE.molotov?.2:.6,position);
   // CExplosion::AddExplosion tests the ground under a molotov for water: there it makes no FX and no fires, but the
   // explosion itself stays, centred where it burst, and keeps setting peds and cars alight.
   let underwater=false;
@@ -644,6 +647,8 @@ export class WeaponSystem {
   const source={...camera.origin},direction=normalize(camera.direction);
   this.pedestrians()?.gunShot?.(source,false);
   this.onCrime?.(CRIME.fireWeapon,'player');
+  // CWeapon::FireSniper: CamShakeNoPos(0.2) with the pad's shake.
+  this.onCamShake?.(.2);
   // CBulletInfo::AddBullet takes the first free slot; with none free the shot is lost.
   if(this.bullets.length<8)this.bullets.push({weapon:w.id,damage:info.damage,position:source,direction,destroyAt:this.nowMs+1000,passed:new Set()});
   return true;

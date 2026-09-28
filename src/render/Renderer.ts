@@ -52,6 +52,8 @@ export class GameRenderer {
   playerShadowAllowed=true;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
   fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3};
+  /** CCamera::m_fCamShakeForce left this frame, for the shake below. */
+  shake?:()=>number;
   /** CCamera::m_fNearClipScript while m_bUseNearClipScript holds (SET_NEAR_CLIP, until a restore). */
   scriptNearClip?:number;
   /** CCamera::m_bCamDirectlyBehind, which SET_CAMERA_BEHIND_PLAYER sets: the string camera swings straight
@@ -216,6 +218,10 @@ export class GameRenderer {
       this.camera.position.set(head.x+sin*o.forward-cos*o.right,head.y+o.up,head.z+cos*o.forward+sin*o.right);
       this.camera.lookAt(this.camera.position.x-direction.x,this.camera.position.y-direction.y,this.camera.position.z-direction.z);
     }
+    // CCamera::Process's shake (a stub here; re3's, GTA III's, is the port): the force left moves the source by
+    // force x 0.1 x (a random 0..15 less 7) on each axis.
+    const shake=Math.min(2,Math.max(0,this.shake?.()??0));
+    if(shake>0){const r=Math.floor(Math.random()*4096),o=shake*.1;this.camera.position.x+=o*((r&15)-7);this.camera.position.y+=o*(((r>>4)&15)-7);this.camera.position.z+=o*(((r>>8)&15)-7);}
     // The aimed third-person camera's 52 is authored (Process_AimWeapon and Process_FollowPedWithMouse are stubs).
     // CCam::Process_Fixed sets FOV 70 whatever mode the player was in.
     const fov=this.fixedCamera?70:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
