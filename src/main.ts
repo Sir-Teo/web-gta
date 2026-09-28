@@ -3029,7 +3029,8 @@ async function boot() {
          }else{
           const p=sim.player.position;
           // CPlayerPed::CanPlayerStartMission: in control, no attack task, alive. Vehicles are not teleported yet.
-          const canStart=onFoot&&sim.player.health>0&&!law.arrested&&!sim.climbing&&sim.player.grounded&&!weapons.aiming&&!sim.player.swimming&&sim.knockdown===0&&sim.deathRemaining===0;
+          // CPlayerPed::CanPlayerStartMission also wants GAME_STATE_PLAYING and no script-given primary task.
+          const canStart=onFoot&&sim.player.health>0&&!law.arrested&&!sim.climbing&&sim.player.grounded&&!weapons.aiming&&!sim.player.swimming&&sim.knockdown===0&&sim.deathRemaining===0&&gameLogic.state===0&&!playerTasks.active;
           entryExits.update({position:[p.x,-p.z,p.y+1],vehicle:onFoot?undefined:{type:'other',big:false},canStartMission:canStart},Math.floor(sim.timeMinutes/60)%24,playerControlsDisabled());
          }
         }
