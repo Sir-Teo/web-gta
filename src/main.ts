@@ -842,7 +842,10 @@ async function boot() {
   const gameLogicWorld:GameLogicWorld={
    setPadCamera:held=>{skipPadCamera=held;},
     playerOnAMission:()=>!!mission?.playerOnAMission(),
-   isPlayerDead:()=>sim.player.health<=0,
+   // CGameLogic::Update waits for PEDSTATE_DEAD: CTaskSimpleDie raises CEventDeath once the death clip has finished and
+   // the ped stands, is in water or has no collision (a seat). bIsDyingStuck, the fallback for a body that never comes to
+   // rest, is set by unreversed code; the four-second death timer running out stands in for it.
+   isPlayerDead:()=>{const view=render.nativeCharacter;return sim.player.health<=0&&(!view||view.reactionName!==undefined&&view.reactionPlayedOut&&(sim.player.grounded||sim.player.swimming||!sim.playerCollider.isEnabled())||sim.deathRemaining<=0);},
    isPlayerArrested:()=>arrested,
    // CGameLogic::Update takes the restart query from outside the door CJ came in by (GetPositionRelativeToOutsideWorld).
    playerPosition:()=>entryExits?entryExits.positionRelativeToOutsideWorld(nativePlayerPosition()):nativePlayerPosition(),

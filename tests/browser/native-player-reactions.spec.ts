@@ -27,7 +27,8 @@ test('a nearby blast that throws CJ plays no flinch, and one that kills him drop
  await expect.poll(async()=>(await state()).nativeCharacter?.reaction??null).not.toBeNull();
  // CPlayerInfo::KillPlayer: "wasted" in light grey gothic above the centre, the zone name hidden, gone after 4 s.
  const wasted=page.locator('.white-middle-message');
- await expect(wasted).toHaveText('wasted');await expect(wasted).toBeVisible();
+ // CGameLogic waits for PEDSTATE_DEAD: the death clip plays out and the thrown body lands first.
+ await expect(wasted).toHaveText('wasted',{timeout:60000});await expect(wasted).toBeVisible();
  expect(await wasted.evaluate(e=>getComputedStyle(e).color)).toBe('rgb(225, 225, 225)');
  await expect(page.locator('.location')).toBeHidden();
  // Four seconds of game time: a frame advances the clock by 100 ms at most, and under a software renderer the page

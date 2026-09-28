@@ -249,6 +249,8 @@ export class NativeCharacter {
   clearReaction(){if(this.reaction){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
   /** The reaction clip playing, if any. */
   get reactionName(){return this.reaction?.name;}
+  /** The current reaction's clip has played to its end (true with none playing): CTaskSimpleDie's m_dieAnimFinished. */
+  get reactionPlayedOut(){const r=this.reaction;if(!r)return true;return r.time>=(this.reactions.get(r.name)?.duration??0);}
   /** How far through the clip the reaction is, from nothing to one (m_fCurrentTime over the hierarchy's total time):
    * a looped clip wraps, and one held past its end stays at one. */
   get reactionProgress(){
