@@ -425,8 +425,8 @@ export class WorldBike {
   WorldBike.onKnockedOff?.((['ko_skid_back','kd_right','ko_skid_front','kd_left'] as const)[direction]);
   this.message='Knocked off the bike!';
  }
- /** CTaskSimpleBikeJacked on the rider: BIKE_FALL_OFF (the jacker is at a front door; the bike group's BIKE_HIT before
-  * it is left out), and a forced CEventKnockOffBike of type 55 (KNOCK_OFF_TYPE_NONE_1): he leaves with the bike's move
+ /** CTaskSimpleBikeJacked on the rider, after its BIKE_HIT (BikeMount.jacked): BIKE_FALL_OFF (the jacker is at a
+  * front door) and a forced CEventKnockOffBike of type 55 (KNOCK_OFF_TYPE_NONE_1): he leaves with the bike's move
   * speed and no push of his own. */
  pulledOff(){
   if(!this.occupied)return false;

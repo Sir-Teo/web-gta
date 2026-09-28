@@ -30,3 +30,18 @@ test('a tipped, just-crashed quad lets the rider roll off at any speed from 0.1 
  expect(bikeCanJumpOut(v(Math.sqrt(.6)),false,true,true)).toBe(true);
  expect(bikeCanJumpOut(v(Math.sqrt(.05)),false,true,true)).toBe(false);
 });
+import {BikeMount} from '../src/simulation/BikeMount';
+// CTaskSimpleBikeJacked: the ride group's BIKE_HIT plays on the saddle first; FinishAnimBikeHitCB then hands over to
+// the fall-off clip and the forced knock-off.
+test('a rider pulled off a bike takes the hit clip on the saddle before he falls',()=>{
+ const hit={duration:.8,tracks:[]} as any;let pulled=0;
+ const bike:any={occupied:true,disposed:false,wrecked:false,brake:false,throttle:1,assets:{vehicle:{animation:'BIKEs'}},seat:()=>({x:0,y:0,z:.5}),pulledOff(){pulled++;return true;}};
+ const mount=new BikeMount({player:{position:{x:0,y:0,z:0}}} as any,{peek:(file:string,name:string)=>file==='BIKEs'&&name==='bikes_hit'?hit:undefined} as any);
+ expect(mount.jacked(bike)).toBe(true);expect(mount.phase).toBe('jacked');expect(mount.pinned).toBe(false);
+ expect(mount.pose()).toMatchObject({clip:'bikes_hit',seconds:0,local:{x:0,y:0,z:.5}});
+ mount.step(.5);expect(pulled).toBe(0);expect(bike.brake).toBe(true);expect(bike.throttle).toBe(0);
+ mount.step(.4);expect(pulled).toBe(1);expect(mount.active).toBe(false);
+ // Without the clip loaded the pull-off is immediate (the caller's fallback).
+ const bare=new BikeMount({player:{position:{x:0,y:0,z:0}}} as any,{peek:()=>undefined} as any);
+ expect(bare.jacked(bike)).toBe(false);
+});

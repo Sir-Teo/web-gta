@@ -10,7 +10,7 @@ import type {WorldBike} from './WorldBike';
 const rotate=(q:{x:number;y:number;z:number;w:number},v:V3)=>new Vector3(v.x,v.y,v.z).applyQuaternion(q as never);
 type V3={x:number;y:number;z:number};
 export type BikeSide='left'|'right';
-export type BikeMountPhase='pickUp'|'mount'|'getOff'|'waitSlow'|'jumpOff';
+export type BikeMountPhase='pickUp'|'mount'|'getOff'|'waitSlow'|'jumpOff'|'jacked';
 /** CTaskSimpleCarJumpOut for bikes: the ped is set out at 0.35 s and carried by the bike's speed until 0.7333 s. */
 export const BIKE_JUMP_SET_OUT=.35,BIKE_JUMP_CARRY=.7333;
 /** CVehicle::CanPedStepOutCar (0x6D1F30), the base rule bikes use: |v2D| ≤ 0.01, |vz| ≤ 0.05 units/frame, |ω|² ≤ 0.0004. */
@@ -80,6 +80,17 @@ export class BikeMount {
   this.sim.playerCollider.setEnabled(false);this.pinTo(bike,pick.at!.local);
   return true;
  }
+ /** CTaskSimpleBikeJacked on the rider: the ride group's BIKE_HIT plays on the saddle first; at its end the second
+  * clip and the forced knock-off follow (WorldBike.pulledOff). False, for the instant pull-off, until the clip is
+  * loaded. */
+ jacked(bike:WorldBike){
+  if(this.phase||!bike.occupied||!this.hitClip(bike))return false;
+  this.bike=bike;this.begin('jacked');return true;
+ }
+ private hitClip(bike:WorldBike):ClipUse|undefined{
+  const prefix=bike.assets.vehicle.animation;if(!prefix)return undefined;
+  const key=`${prefix}_hit`.toLowerCase(),clip=this.clips.peek(prefix,key);return clip?{key,clip}:undefined;
+ }
  /** CTaskComplexLeaveCar for the rider: step off, tumble off the back at speed, or brake until one is possible. */
  dismount(bike:WorldBike){
   if(this.phase||!bike.occupied||!this.ready(bike))return false;
@@ -113,6 +124,7 @@ export class BikeMount {
    case 'mount':return this.sideClip(bike,VEHICLE_ANIM.getinLHS,VEHICLE_ANIM.getinRHS);
    case 'getOff':return this.sideClip(bike,VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS);
    case 'jumpOff':return this.slot(bike,VEHICLE_ANIM.rolloutLHS);
+   case 'jacked':return this.hitClip(bike);
    case 'waitSlow':return undefined;
   }
  }
@@ -121,6 +133,7 @@ export class BikeMount {
   const bike=this.bike;if(!bike)return {};
   const out:Record<string,NativeAnimation>={};
   for(const slot of [VEHICLE_ANIM.alignLHS,VEHICLE_ANIM.alignRHS,VEHICLE_ANIM.alignHiLHS,VEHICLE_ANIM.alignHiRHS,VEHICLE_ANIM.getinLHS,VEHICLE_ANIM.getinRHS,VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS,VEHICLE_ANIM.rolloutLHS]){const c=this.slot(bike,slot);if(c)out[c.key]=c.clip;}
+  const hit=this.hitClip(bike);if(hit)out[hit.key]=hit.clip;
   return out;
  }
  private pinTo(bike:WorldBike,local:V3){
@@ -151,6 +164,13 @@ export class BikeMount {
     if(bikeTooFastToBoard(bike)){this.abandon();return;}
     const local=this.sidePoint(bike,this.side);if(local)this.pinTo(bike,local);
     if(finished||!clip){this.finish();bike.finishEnter();}
+    return;
+   }
+   case 'jacked':{
+    // The rider stays on the saddle through BIKE_HIT (the bike's controls are his jacker's); FinishAnimBikeHitCB
+    // then sets the fall-off clip and the forced knock-off.
+    bike.brake=true;bike.throttle=0;
+    if(finished||!clip){this.finish();bike.pulledOff();}
     return;
    }
    case 'waitSlow':{
@@ -190,7 +210,7 @@ export class BikeMount {
  pose():{bike?:WorldBike;local?:V3;world?:boolean;heading?:number;clip:string;seconds:number}|undefined{
   const bike=this.bike,clip=this.clipFor();if(!bike||!clip)return;
   if(this.rolling||this.phase==='pickUp')return {world:true,heading:this.sim.player.heading,clip:clip.key,seconds:this.time};
-  if(this.phase==='jumpOff'){const seat=bike.seat();return seat?{bike,local:seat,clip:clip.key,seconds:this.time}:undefined;}
+  if(this.phase==='jumpOff'||this.phase==='jacked'){const seat=bike.seat();return seat?{bike,local:seat,clip:clip.key,seconds:this.time}:undefined;}
   const local=this.sidePoint(bike,this.side);return local?{bike,local,clip:clip.key,seconds:this.time}:undefined;
  }
 }

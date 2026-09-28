@@ -3960,7 +3960,7 @@ async function boot() {
             police.onUnitDropped=unit=>pedestrians?.releaseCrew(unit);
             police.crew={list:unit=>pedestrians?.footCrew(unit)??[],goTo:(id,point,walk)=>pedestrians?.sendOfficer(id,point,walk),board:id=>pedestrians?.boardOfficer(id)??false};
             // CTaskComplexArrestPed opens the door and waits for the suspect to be out; the arrest itself follows on foot.
-            police.onPullFromCar=()=>{if(carEntry.seated)carEntry.dragOut();};police.onPullFromBike=bike=>{if(!bikeMount.active)bike.pulledOff();};
+            police.onPullFromCar=()=>{if(carEntry.seated)carEntry.dragOut();};police.onPullFromBike=bike=>{if(!bikeMount.active&&!bikeMount.jacked(bike))bike.pulledOff();};
             void import('./simulation/GangDriveBy').then(({GangDriveBy})=>{
              if(!alive||!fleet||driveby)return;driveby=new GangDriveBy(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
              driveby.gangTurf=turfAt;driveby.gangResident=gang=>pedestrians?.gangResident(gang)??[];driveby.gangHatesPlayer=gang=>!!pedestrians?.gangHatesPlayer(gang);driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
