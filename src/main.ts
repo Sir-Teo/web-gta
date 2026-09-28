@@ -5025,7 +5025,9 @@ async function boot() {
                 attackWaveOvercome:()=>pedestrians?.attackWaveOvercome()??true,
                 releasePedsInAttackWave:(endOfWar,restore)=>{const n=pedestrians?.releaseAttackWave(restore)??0;if(endOfWar&&pedestrians)pedestrians.clearStreets=false;return n;},
                 releaseCarsInAttackWave:()=>{},tellGangMembersTo:w=>pedestrians?.tellGangMembersTo(w),clearTheStreets:()=>{if(pedestrians)pedestrians.clearStreets=true;},
-                message:t=>hud.message(t,4500),help:t=>hud.help(t),respect:d=>addRespect(d),blip:b=>{gangWarBlip=b;},zoneColours:()=>{},streamGangs:()=>{},random:Math.random});
+                message:t=>hud.message(t,4500),help:t=>hud.help(t),// CStats::IncrementStat(STAT_RESPECT, 45) on a win and DecrementStat(30) on a defensive loss: the stat itself, on its
+                // total-respect scale; the recruit counter (FindMaxNumberOfGroupMembers reads that scale over ten) follows.
+                respect:d=>{const s=mission?.runtime.game.stats;if(s){if(d>0)s.increment(68,d);else s.decrement(68,-d);}addRespect(d/10);},blip:b=>{gangWarBlip=b;},zoneColours:()=>{},streamGangs:()=>{},random:Math.random});
                gangWars.updateTerritoryUnderControlPercentage();
               }}
             if(data.type==='terrain'&&data.followId===-1&&savedTransfer&&!flightTransfer){
