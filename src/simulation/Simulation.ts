@@ -385,7 +385,10 @@ export class Simulation {
     if (this.player.adrenaline > 0) this.player.adrenaline = Math.max(0, this.player.adrenaline - dt);
     // HandleSprintEnergy: sprinting costs nothing with adrenaline or while the player never gets tired
     // (SET_PLAYER_NEVER_GETS_TIRED); running is PEDMOVE_RUN, past the walk blend and not walking.
-    const running = length > 0 && !walking && this.player.moveBlend > NATIVE_BLEND_WALK;
+    // PlayerControlZeldaWeapon (a gun not aimed with the arm, strafing on the GunMove clips) never changes the move state
+    // ProcessPed reset to PEDMOVE_STILL (TaskSimplePlayerOnFoot.cpp:112, 767-837).
+    const zeldaWeapon = !!controls.gunMove && !controls.gunMove.aimWithArm;
+    const running = length > 0 && !walking && !zeldaWeapon && this.player.moveBlend > NATIVE_BLEND_WALK;
     this.footMove = this.player.swimming ? 'still' : sprinting ? 'sprint' : running ? 'run' : 'still';
     if (!this.player.swimming && !(sprinting && (this.player.adrenaline > 0 || this.neverTired?.()))) this.player.stamina = stepStamina(this.player.stamina, sprinting, running, dt);
     if (this.player.stamina === 0) this.player.sprintExhausted = true;

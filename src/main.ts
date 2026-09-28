@@ -2477,7 +2477,8 @@ async function boot() {
       if (cycleCamera || alternateCamera) render.cycleCameraDistance();
        // CTaskSimpleDuck::CanPedDuck: never from a run or sprint, and only with a melee or "use" weapon, the spray can or
        // one flagged for crouch-fire; PlayerControlDucked stands the player up once it fails.
-       const duckable=()=>{const info=weapons.inventory.info(),w=weapons.inventory.weapon;const moving=sim.player.moveBlend>1&&!sim.player.crouched;
+       // CTaskSimpleDuck::CanPedDuck refuses only PEDMOVE_RUN and PEDMOVE_SPRINT (TaskSimpleDuck.cpp:96-99).
+       const duckable=()=>{const info=weapons.inventory.info(),w=weapons.inventory.weapon;const moving=(sim.footMove==='run'||sim.footMove==='sprint')&&!sim.player.crouched;
         return !moving&&(w.kind==='melee'||w.id===41||!info||info.fire==='melee'||info.fire==='use'||!!(info.flags&WEAPON_FLAG.crouchFire));};
        // PlayerControlZelda starts the duck, so only while CTaskSimplePlayerOnFoot runs: not in the air, swimming,
        // climbing, knocked down or dying.
