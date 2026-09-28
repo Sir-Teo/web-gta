@@ -1834,8 +1834,6 @@ async function boot() {
       // A cop's nightstick finisher (melee.dat FALL_3) floors CJ only from the front: ComputeDamageAnim's combo branch,
       // FIGHT_HIT_1 + move from the bat group with the fall (that group's Bat_Hit clips are not on CJ; the knockout
       // stands in). From another side it is an ordinary hit.
-      // WEAPON_EXPLOSION (51) takes ComputeDamageAnim's ordinary branch (no fall: it is past WEAPON_CHAINSAW, no fight):
-      // HIT_FRONT + direction, or HIT_WALK over 20 damage; the blast's own push throws CJ.
       if(event.fall&&(event.weapon!==WEAPON.nightstick||direction===0)){
         // TriggerExplosionSectorList lifts a standing ped (bIsStanding false, 4 up): it falls with the
         // blast's knockout clip for the direction and gets up.
@@ -1848,6 +1846,10 @@ async function boot() {
         sim.knockdown=fall+lie+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+lie);
         continue;
       }
+      // CEventHandler::ComputeDamageResponse: past CWeaponInfo::TypeIsWeapon (type < WEAPON_LAST_WEAPON, 47) only a car's
+      // ram or run-over and a fall get a response (the fall task above); a blast that leaves CJ standing plays no flinch
+      // and starts no hit-animation wait, so a gunshot just after it still flinches him.
+      if(event.weapon>=47)continue;
       // A street ped's fist combo hands its move to CEventDamage::ComputeAnim: the player plays HitA_1..3.
       const fight=event.fight&&{comboSet:4,currentMove:event.fight.move,comboActive:event.fight.move===2,hitComboActive:false,hitClip:(move:number)=>`hita_${move+1}`,group:'melee_1'};
       const hit=computeDamageEventAnim({weapon:event.weapon,pedPiece:event.piece??PED_PIECE.torso,direction,health:sim.player.health,damageArmour:event.armour,damageHealth:event.health,victim,source:{ped:true,fight},previousAnimId:playerDamageAnimId,nextRandom:()=>playerDamageRandom.next(),nowMs:Math.floor(elapsed*1000)});
