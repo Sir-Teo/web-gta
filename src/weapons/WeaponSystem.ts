@@ -863,7 +863,8 @@ export class WeaponSystem {
     // A ped under water has it put out (CTaskComplexOnFire, bSubmergedInWater), as the player's goes out swimming.
     if(t.kind==='ped'){const p=this.pedestrians()?.pedPosition?.(t.key as number)??people.find(q=>q.handle===t.key);return p&&!(p as {submerged?:boolean}).submerged?this.toNative(p.position):undefined;}
     if(t.kind==='player')return playerOnFoot&&!this.sim.player.swimming?this.toNative(this.sim.player.position):playerRide&&this.sim.player.health>0?this.toNative(playerRide.translation()):undefined;
-    if(t.kind==='vehicle'){const entry=this.burnableVehicles().find(e=>e.v===t.key);return !entry||entry.v.wrecked?undefined:this.toNative(entry.body.translation());}
+    // A vehicle's fire ends only with its time to burn, ExtinguishCarFire or the vehicle's removal: a wreck burns on.
+    if(t.kind==='vehicle'){const entry=this.burnableVehicles().find(e=>e.v===t.key);return entry?this.toNative(entry.body.translation()):undefined;}
     return undefined;
    },
    targetDead:(t:FireTarget)=>t.kind==='ped'&&!!this.pedestrians()?.pedPosition?.(t.key as number)?.dead,
