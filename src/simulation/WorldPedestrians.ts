@@ -329,7 +329,7 @@ export interface Pedestrian {
   look?:LookAtTask;
     /** CTaskComplexUseAttractor: the ped stands at a 2dfx ped attractor (ATM, seat, bus stop, shop window) and runs
    * its use task; `heading` faces the effect's use direction, `phase` is the sub task, `until` its end. */
-  attract?:{key:string;type:number;phase:'go'|'wait'|'use'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number;
+  attract?:{key:string;type:number;phase:'go'|'wait'|'use'|'presit'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number;
    /** CTaskComplexGoToAttractor: the slot's point (browser space) to walk to, after `startAt` seconds of standing. */
    goal?:{x:number;z:number};slot:number;startAt:number;};
   /** A corner dealer (PED_TYPE_DEALER) for the popcycle's dealer count. */
@@ -1162,9 +1162,9 @@ export class WorldPedestrians {
    private beginAttractor(p:Pedestrian,key:string,type:number,heading:number){
     const seconds=(a:number,b:number)=>a+Math.random()*(b-a);
     if(type===PED_ATTRACTOR.seat||type===PED_ATTRACTOR.step){
-     const clips=this.sitClips(type);
-     p.attract={key,type,phase:'sit',time:0,until:p.view.reactionDuration(clips.down)??1,heading,slot:0,startAt:0};
-     if(p.view.hasReaction(clips.down))p.view.playReaction(clips.down);
+     // CTaskComplexSitDownThenIdleThenStandUp's first subtask is CTaskSimpleStandStill(100): a tenth of a second before
+     // the sit-down clip starts.
+     p.attract={key,type,phase:'presit',time:0,until:.1,heading,slot:0,startAt:0};
     }else if(type===PED_ATTRACTOR.atm){
      p.attract={key,type,phase:'use',time:0,until:p.view.reactionDuration('atm')??4,heading,slot:0,startAt:0};
      if(p.view.hasReaction('atm'))p.view.playReaction('atm');
@@ -1188,6 +1188,7 @@ export class WorldPedestrians {
     const a=p.attract!;a.time+=dt;
     if(a.time<a.until)return;
     switch(a.phase){
+     case 'presit':{const clips=this.sitClips(a.type);a.phase='sit';a.time=0;a.until=p.view.reactionDuration(clips.down)??1;if(p.view.hasReaction(clips.down))p.view.playReaction(clips.down);return;}
      case 'sit':{
       // CTaskComplexUseAttractor: 40% of sitters idle 15 to 60 s, the rest until something interrupts.
       const idle=Math.random()<.4?15+Math.random()*45:Infinity;
@@ -1195,7 +1196,7 @@ export class WorldPedestrians {
       const clips=this.sitClips(a.type);if(p.view.hasReaction(clips.idle))p.view.playReaction(clips.idle,Number.isFinite(idle)?idle:1e6);
       return;
      }
-     case 'idle':{const clips=this.sitClips(a.type);a.phase='up';a.time=0;a.until=p.view.reactionDuration(clips.up)??1;if(p.view.hasReaction(clips.up))p.view.playReaction(clips.up);return;}
+     case 'idle':this.standUpFromSeat(p);return;
      case 'use':p.money+=20+20*Math.floor(Math.random()*50);this.leaveAttractor(p);return;
      case 'stand':if(a.type===PED_ATTRACTOR.shelter&&(this.rain?.()??0)>=.2){a.time=0;a.until=1;return;}
       // A pizza counter takes 10 from the customer when he is done (CTaskComplexUseAttractor::CreateNextSubTask).
@@ -1204,6 +1205,8 @@ export class WorldPedestrians {
      default:this.leaveAttractor(p);
     }
    }
+   /** CTaskSimpleStandUp: SEAT_up or Stepsit_out, after which the sit task ends. */
+   private standUpFromSeat(p:Pedestrian){const a=p.attract!,clips=this.sitClips(a.type);a.phase='up';a.time=0;a.until=p.view.reactionDuration(clips.up)??1;if(p.view.hasReaction(clips.up))p.view.playReaction(clips.up);}
    /** CPedAttractorManager::BroadcastDeparture: the slot frees, the peds behind walk up a slot (2 s a slot) and the
     * ped wanders on. */
    private leaveAttractor(p:Pedestrian){
