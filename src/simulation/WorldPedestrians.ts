@@ -983,19 +983,28 @@ export class WorldPedestrians {
     if(officer){if(!this.canSpawn({x,y:node.position[2]+1,z},2))continue;}
     else{const d=Math.hypot(x-center.x,z-center.z),band=this.canSpawn({x,y:node.position[2]+1,z},2)?off:on;if(d<band.min||d>band.max)continue;}
     // CPopCycle::FindNewPedType: the type whose popcycle target exceeds its living count by the most (the fleet
-    // provides the targets; without them the turf rolls below stand in). Cops are refused: reinforcements arrive
-    // with their cars (footOfficerLimit).
+    // provides the targets; without them the turf rolls below stand in). Cops come from the popcycle's cop column
+    // less the living cops, refused during a gang war, under SET_CREATE_RANDOM_COPS off, or in a no-cops zone.
     const targets=officer?undefined:this.pedTargets?.();
     if(targets){
      const living={civilians:0,cops:0,dealers:0,gangs:0},byGang=Array(10).fill(0);
      for(const p of this.people){if(p.health<=0)continue;if(p.officer)living.cops++;else if(p.dealer)living.dealers++;else if(p.gang!==undefined){living.gangs++;byGang[p.gang]++;}else living.civilians++;}
-     const order=newPedTypeOrder(targets,living,Math.random,{cops:true,gangs:!this.gangTurf||!!this.dontCreateRandomGangMembers?.(),dealers:!this.dealerTurf,onlyGangs:!!this.onlyCreateRandomGangMembers?.()});
+     const order=newPedTypeOrder(targets,living,Math.random,{cops:!!targets.noCops||!!this.gangWarFighting?.()||!!this.dontCreateRandomCops?.(),gangs:!this.gangTurf||!!this.dontCreateRandomGangMembers?.(),dealers:!this.dealerTurf,onlyGangs:!!this.onlyCreateRandomGangMembers?.()});
      if(!order.length)break;
      let produced=false;
      for(const type of order){
+      if(type==='cop'){
+       // ChoosePolicePedOccupation: the city's cop (COP_TYPE_CITYCOP), on foot with the pistol, wandering his beat.
+       const model=this.copModel?.();
+       if(!model||!catalog.hasModel(model))continue;
+       if(this.people.length<cap.total){const top=node.position[2]+3,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+        if(hit&&!this.people.some(p=>Math.hypot(p.actor.player.position.x-x,p.actor.player.position.z-z)<5))await this.spawnOfficer(model,22,{x,y:top-hit.timeOfImpact+.03,z},this.sim.player.heading);if(this.disposed)return;}
+       produced=true;break;
+      }
       if(type==='gang'){
        const gang=gangToCreateMembersOf(targets.gangStrengths,byGang,targets.gangs);
-       if(gang<0||!this.gangResident(gang).length&&!this.catalog?.gangs[gang]?.length)continue;
+       // CGangs::ChooseGangPedModel: only a resident (streamed) member model; none loaded gives no ped of the type.
+       if(gang<0||!this.gangResident(gang).length)continue;
        const size=gangPartySize(Math.floor(Math.random()*100));
        if(size>0&&this.people.length+size<=cap.total)await this.spawnGangParty(gang,size,node,center,targets.gangStrengths?.[gang]??255);
        produced=true;break;
@@ -1203,6 +1212,13 @@ export class WorldPedestrians {
    }
    /** CPopCycle::Update's ped targets for the player's zone (fleet provider); without them the turf rolls decide. */
    pedTargets?:()=>(PopulationTargets&{gangStrengths?:readonly number[];noCops?:boolean})|undefined;
+   /** CPopulation::m_bDontCreateRandomCops (SET_CREATE_RANDOM_COPS off), which FindNewPedType reads. */
+   dontCreateRandomCops?:()=>boolean;
+   /** The city's cop model for CPopulation::ChoosePolicePedOccupation (COP_TYPE_CITYCOP by the zone's level). */
+   copModel?:()=>string|undefined;
+   /** CPopulation::ManagePed keeps every ped while the active camera is in MODE_SNIPER, MODE_SNIPER_RUNABOUT or
+    * MODE_CAMERA, or looking left, right or behind. */
+   cameraKeepsPeds?:()=>boolean;
    /** Bit mask of the gangs with INITIAL strength in the zone at a point (fleet/zone provider). */
    gangsNeeded?:(x:number,z:number)=>number;
    private gangRoster?:GangPedRoster;
