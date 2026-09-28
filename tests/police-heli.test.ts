@@ -64,3 +64,14 @@ test('the pursuit controller closes to a stable hover', () => {
   expect(Math.abs(pos.y - (suspect.y + HELI_HOVER_HEIGHT))).toBeLessThan(6);
   expect(vel.length()).toBeLessThan(6);
 });
+test('a police helicopter freed by a vehicle clear-out is never read again', async () => {
+  await RAPIER.init();
+  const sim = { player: { position: { x: 0, y: 0, z: 0 } }, world: { castRay: () => null }, playerCollider: {} } as any;
+  // A freed Rapier body panics when read.
+  const freed = { disposed: true, health: 1000, occupied: false, body: { translation: () => { throw new Error('freed body'); } } } as any;
+  const fleet = { planes: new Set(), spawnPlane: async () => { throw new Error('no pad'); } } as any;
+  const police = new WorldPolice(sim, fleet, { level: 4, native: { helisRequired: 2 } } as any, {} as any, 'http://invalid/', () => 0);
+  police.helis.push(freed);
+  expect(police.heliActive).toBe(false);
+  expect(police.presence({ x: 0, y: 0, z: 0 }, 1000)).toBe(0);
+});

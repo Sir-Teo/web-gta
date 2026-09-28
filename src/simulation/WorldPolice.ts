@@ -187,9 +187,9 @@ export class WorldPolice {
  private level(){const p=this.sim.player.position;return this.zones?worldLevelAt(this.zones,[p.x,-p.z,p.y]):1;}
  /** CWanted::WorkOutPolicePresence contribution: law vehicles that still have a driver or crew, and police
   * helicopters, each by its 3D distance. */
- presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length;}
+ presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.disposed||h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length;}
  /** Airborne observers keep the pursuit alive (CWanted::NumOfHelisRequired). */
- get heliActive(){return this.helis.some(h=>h.health>0&&!h.occupied);}
+ get heliActive(){return this.helis.some(h=>!h.disposed&&h.health>0&&!h.occupied);}
  /** Cops still inside their cars, which count against CWanted::m_MaxCopsInPursuit. */
  get seatedCrew(){return this.units.reduce((n,u)=>n+u.seats.filter(Boolean).length,0);}
  update(now:number){
@@ -441,7 +441,7 @@ export class WorldPolice {
   const need=this.policeHelisAllowed?this.law.native.helisRequired:0;
   for(let i=this.helis.length-1;i>=0;i--){
    const h=this.helis[i];
-   if(h.health<=0||!this.fleet.planes.has(h)){if(this.fleet.planes.has(h)){this.fleet.planes.delete(h);h.dispose();}this.helis.splice(i,1);}
+   if(h.disposed||h.health<=0||!this.fleet.planes.has(h)){if(this.fleet.planes.has(h)){this.fleet.planes.delete(h);h.dispose();}this.helis.splice(i,1);}
   }
   while(this.helis.length>need){const h=this.helis.pop()!;this.fleet.planes.delete(h);h.dispose();}
   if(this.helis.length<need&&!this.heliBusy&&!this.disposed){

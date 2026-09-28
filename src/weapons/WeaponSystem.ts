@@ -648,7 +648,7 @@ export class WeaponSystem {
   const d={x:to.x-from.x,y:to.y-from.y,z:to.z-from.z},length=Math.hypot(d.x,d.y,d.z);
   if(d.y>=length/2||length<1e-6)return;
   for(const heli of this.policeHelis?.()??[]){
-   if(heli.health<=0)continue;
+   if(heli.disposed||heli.health<=0)continue;
    const q=heli.body.rotation(),p=heli.body.translation(),seat=new Vector3(-.43,1.5,-1.49).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)).add(new Vector3(p.x,p.y,p.z));
    // CCollision::DistToLine: to the nearest point of the segment.
    const t=Math.max(0,Math.min(1,((seat.x-from.x)*d.x+(seat.y-from.y)*d.y+(seat.z-from.z)*d.z)/(length*length)));
