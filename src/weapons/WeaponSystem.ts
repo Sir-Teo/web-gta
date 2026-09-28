@@ -387,15 +387,21 @@ export class WeaponSystem {
    if(!boat.occupied||boat.wrecked)return false;
    return this.drivebyShot({half:boat.assets.collision!.bounds.max[0],body:boat.body,position:boat.body.translation()},camera);
   }
-  private drivebyShot(vehicle:{half:number;body:RAPIER.RigidBody;position:Vec3},camera:{origin:Vec3;direction:Vec3}){
+  /** A rider's drive-by (the same SMG set): from the rider ahead of the bike, or out of the side he looks to. */
+  fireDrivebyBike(bike:import('../simulation/WorldBike').WorldBike,camera:{origin:Vec3;direction:Vec3},look:'forward'|'left'|'right'){
+   if(!bike.occupied||bike.wrecked)return false;
+   return this.drivebyShot({half:bike.assets.collision?.bounds.max[0]??.4,body:bike.body,position:bike.body.translation(),look},camera);
+  }
+  private drivebyShot(vehicle:{half:number;body:RAPIER.RigidBody;position:Vec3;look?:'forward'|'left'|'right'},camera:{origin:Vec3;direction:Vec3}){
    const w=this.inventory.weapon;
    if(this.sim.player.health<=0||!DRIVEBY_WEAPONS.has(w.id))return false;
    if(!this.inventory.fire())return false;
    this.onUse?.(w);
    const p=vehicle.position,q=vehicle.body.rotation(),quat=new Quaternion(q.x,q.y,q.z,q.w);
    const right=new Vector3(1,0,0).applyQuaternion(quat),dir=normalize(camera.direction);
-   const side=dir.x*right.x+dir.y*right.y+dir.z*right.z>=0?1:-1;
-   const source={x:p.x+right.x*side*(vehicle.half+.5),y:p.y+1.2,z:p.z+right.z*side*(vehicle.half+.5)};
+   const side=vehicle.look==='left'?-1:vehicle.look==='right'?1:dir.x*right.x+dir.y*right.y+dir.z*right.z>=0?1:-1;
+   const ahead=new Vector3(0,0,-1).applyQuaternion(quat);
+   const source=vehicle.look==='forward'?{x:p.x+ahead.x*.4,y:p.y+1.1,z:p.z+ahead.z*.4}:{x:p.x+right.x*side*(vehicle.half+.5),y:p.y+1.2,z:p.z+right.z*side*(vehicle.half+.5)};
    this.onSound?.('fire',w.id,{...p});
    const range=w.range,sight=this.ray(camera.origin,dir,range,vehicle.body),target=add(camera.origin,dir,sight?.timeOfImpact??range);
    const resolved=normalize(add(target,source,-1));

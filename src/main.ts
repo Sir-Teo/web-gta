@@ -2716,6 +2716,12 @@ async function boot() {
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}
         }
 
+        // A rider's drive-by: ahead of the bike (eDrivebyStyle FIXED_FWD) unless VEHICLE_LOOKLEFT or LOOKRIGHT (Q, E)
+        // is held, which shoots out of that side (CVehicle::DoDriveByShootings is unreversed; the styles are its own).
+        if(fleet?.occupiedBike&&!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
+         const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
+         if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBike(fleet.occupiedBike,{origin:render.camera.position,direction},input.down('KeyQ')?'left':input.down('KeyE')?'right':'forward');}
+        }
         const rocket=input.consume('KeyB')||input.down('KeyB');
         // The guns and the ordnance are separate buttons with separate clocks: both can fire together.
         if(fleet?.occupiedPlane&&!carGunOff){if(firing||input.down('ControlLeft')||input.down('ControlRight'))weapons.fireAircraft(fleet.occupiedPlane,false);if(rocket)weapons.fireAircraft(fleet.occupiedPlane,true);}
