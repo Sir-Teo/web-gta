@@ -2126,6 +2126,9 @@ async function boot() {
         const info=mission?.runtime.game.playerInfo;sim.money+=250000;player.armour=info?.maxArmour??100;player.health=info?.maxHealth??100;
         const car=worldCar?.occupied?worldCar:fleet?.occupied;if(car){car.health=1000;car.burnTimer=0;car.fix();}
         const bike=fleet?.occupiedBike;if(bike){bike.health=1000;bike.burnTimer=0;}
+        // FindPlayerVehicle() of any type takes 1000 health: aircraft (CAutomobiles, their burn timer cleared) and boats too.
+        const plane=fleet?.occupiedPlane;if(plane&&plane.health>0){plane.health=1000;plane.burnTimer=0;}
+        const boat=fleet?.occupiedBoat;if(boat&&!boat.wrecked){boat.health=1000;boat.burnTimer=0;}
         break;
       }
       // CWanted::CheatWantedLevel: past the script's maximum it first raises the maximum.
