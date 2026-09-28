@@ -16,9 +16,11 @@ export class NativeFire {
  position:V3={x:0,y:0,z:0};timeToBurn=0;target?:FireTarget;creator?:unknown;strength=1;generations=100;removalDistance=60;
  /** Bumped whenever CreateFxSysForStrength would recreate the effect. */
  fxSerial=0;
+ /** Where the effect sits: the fire's position led by 2 × timeStep × the burning entity's move speed (SetOffsetPos). */
+ fxPosition?:V3;
  /** GetFireParticleNameForStrength. */
  get fxName(){return this.strength>1?this.strength>2?'fire_large':'fire_med':'fire';}
- extinguish(){if(!this.active)return;this.timeToBurn=0;this.active=false;this.beingExtinguished=false;this.firstGeneration=true;this.target=undefined;}
+ extinguish(){if(!this.active)return;this.timeToBurn=0;this.active=false;this.beingExtinguished=false;this.firstGeneration=true;this.target=undefined;this.fxPosition=undefined;}
 }
 
 /** What CFire::ProcessFire reads from and does to the world. */
@@ -36,6 +38,8 @@ export interface FireWorld {
  vehicleFireOptions?:(target:FireTarget)=>{fireproof?:boolean;engineDamaged?:boolean};
  /** A vehicle fire's position: the main front light dummy, 0.15 up. */
  vehicleFirePosition?:(target:FireTarget)=>V3|undefined;
+ /** A burning entity's move speed (units a frame): the effect is set 2 × timeStep of it ahead of the fire. */
+ targetMoveSpeed?:(target:FireTarget)=>V3|undefined;
  /** The player when it can catch fire: on foot, not burning, not fireproof. */
  ignitablePlayer?:()=>{key:unknown;position:V3}|undefined;
  /** CVehicle::IsSubBMX: the one-in-32 spread sets the player alight instead of the bike. */
@@ -147,6 +151,8 @@ export class NativeFireManager {
     if(!fire.script)world.damageVehicle?.(target,world.timeStep*1.2,fire.creator);
     const light=world.vehicleFirePosition?.(target);if(light)fire.position={...light};
    }
+   const move=world.targetMoveSpeed?.(target),lead=world.timeStep*2;
+   fire.fxPosition=move?{x:fire.position.x+move.x*lead,y:fire.position.y+move.y*lead,z:fire.position.z+move.z*lead}:undefined;
   }
   if(!target||target.kind!=='vehicle'){
    const player=world.ignitablePlayer?.();

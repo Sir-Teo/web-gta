@@ -155,12 +155,12 @@ export class WorldFx implements WeaponFxHost {
  /** CFire::CreateFxSysForStrength per active fire: fire, fire_med or fire_large by strength,
   * recreated when the strength's integer part changes, and moved along with a burning target. */
  private fireSystems=new Map<object,{serial:number;system:NativeFxSystem}>();
- syncFires(fires:readonly {fxSerial:number;fxName:string;position:{x:number;y:number;z:number}}[]){
+ syncFires(fires:readonly {fxSerial:number;fxName:string;position:{x:number;y:number;z:number};fxPosition?:{x:number;y:number;z:number}}[]){
   const effects=this.effects;if(!effects)return;
   const live=new Set<object>(fires);
   for(const [fire,entry] of this.fireSystems)if(!live.has(fire)){entry.system.kill();this.fireSystems.delete(fire);}
   for(const fire of fires){
-   const at:FxVec=[fire.position.x,fire.position.y,fire.position.z];
+   const p=fire.fxPosition??fire.position,at:FxVec=[p.x,p.y,p.z];
    let entry=this.fireSystems.get(fire);
    if(entry&&entry.serial!==fire.fxSerial){entry.system.kill();this.fireSystems.delete(fire);entry=undefined;}
    if(!entry){const system=effects.fx.create(fire.fxName,at,undefined,true)?.play();if(system){entry={serial:fire.fxSerial,system};this.fireSystems.set(fire,entry);}continue;}

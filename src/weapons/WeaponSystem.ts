@@ -870,6 +870,15 @@ export class WeaponSystem {
    targetDead:(t:FireTarget)=>t.kind==='ped'&&!!this.pedestrians()?.pedPosition?.(t.key as number)?.dead,
    damageVehicle:(t:FireTarget,amount:number,creator?:unknown)=>{const entry=this.burnableVehicles().find(e=>e.v===t.key);if(entry&&(entry.v as {damage(amount:number,collider?:number,explosive?:boolean,shotDir?:undefined,options?:{kind?:'fire';byPlayer?:boolean}):boolean}).damage(amount,undefined,false,undefined,{kind:'fire',byPlayer:creator==='player'}))this.onCrime?.(CRIME.destroyVehicle,entry.crime);},
    vehicleFireOptions:(t:FireTarget)=>{const v=t.key as {proofs?:{fire?:boolean};onFire?:boolean};return {fireproof:!!v.proofs?.fire,engineDamaged:!!v.onFire};},
+   // An automobile's fire sits at its DUMMY_LIGHT_FRONT_MAIN (the headlights frame), 0.15 up.
+   vehicleFirePosition:(t:FireTarget)=>{
+    const car=(t.key as {car?:{nativeFramePosition?(name:string):{x:number;y:number;z:number}|undefined;body:RAPIER.RigidBody}}).car;
+    const dummy=car?.nativeFramePosition?.('headlights');if(!dummy)return undefined;
+    const p=car!.body.translation(),w=new Vector3(dummy.x,dummy.z,-dummy.y).applyQuaternion(new Quaternion().copy(car!.body.rotation())).add(new Vector3(p.x,p.y,p.z));
+    const n=this.toNative(w);n.z+=.15;return n;
+   },
+   // The effect leads a burning vehicle by 2 × timeStep of its move speed (units a frame).
+   targetMoveSpeed:(t:FireTarget)=>{if(t.kind!=='vehicle')return undefined;const entry=this.burnableVehicles().find(e=>e.v===t.key);if(!entry)return undefined;const v=entry.body.linvel();return this.toNative({x:v.x/50,y:v.y/50,z:v.z/50});},
    // StartFire on the player needs CPed::IsPedInControl: not in the air or landing.
    ignitablePlayer:()=>playerOnFoot&&this.sim.player.grounded&&!this.sim.player.swimming&&!this.fires.fireOn(playerKey)&&!this.sim.playerProofs?.fire?{key:playerKey,position:this.toNative(this.sim.player.position)}:undefined,
    bmx:(t:FireTarget)=>(t.key as {motorbike?:boolean}).motorbike===false,
