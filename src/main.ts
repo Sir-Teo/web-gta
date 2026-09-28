@@ -365,19 +365,29 @@ async function boot() {
    for(const car of fleet?.cars??[])if(car.onFire){const p=car.car.body.translation();if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_FIRE_HEALTH);}
    weapons.removeAllProjectiles();
   };
-  const leavePassengerSeat=(inPlace=false)=>{
-   const ride=playerPassenger;if(!ride)return;playerPassenger=undefined;
+  /** Sets the player out of his passenger seat; with `needRoom`, only where IsRoomForPedToLeaveCar finds a standing
+   * capsule's room at his side of the car, else the other side, and false (still seated) when neither has it. */
+  const leavePassengerSeat=(inPlace=false,needRoom=false)=>{
+   const ride=playerPassenger;if(!ride)return true;
    // A car deleted under him (CVehicle's destructor flags its passengers, and CPed::FlagToDestroyWhenNextProcessed
    // clears the player's vehicle and leaves him where he sat): he drops from where the car was.
    if(inPlace||ride.car.disposed){
     const at=sim.player.position,hit=sim.world.castRay(new RAPIER.Ray({x:at.x,y:at.y+2,z:at.z},{x:0,y:-1,z:0}),8,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-    ride.car.setPlayerOutAsPassenger({x:at.x,y:hit?at.y+2-hit.timeOfImpact+.03:at.y,z:at.z});return;
+    playerPassenger=undefined;ride.car.setPlayerOutAsPassenger({x:at.x,y:hit?at.y+2-hit.timeOfImpact+.03:at.y,z:at.z});return true;
    }
-   const local=carEntry.passengerSeat(ride.car,ride.seat),side=ride.seat===2?-1:1;
-   const bounds=ride.car.assets.collision.bounds,x=side*(Math.max(Math.abs(bounds.min[0]),Math.abs(bounds.max[0]))+.6);
-   const w=ride.car.worldPoint({x,y:local?.y??0,z:local?.z??0}),top=w.y+2;
-   const hit=sim.world.castRay(new RAPIER.Ray({x:w.x,y:top,z:w.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   ride.car.setPlayerOutAsPassenger({x:w.x,y:hit?top-hit.timeOfImpact+.03:w.y-.5,z:w.z},ride.car.heading());
+   const local=carEntry.passengerSeat(ride.car,ride.seat),own=ride.seat===2?-1:1;
+   const bounds=ride.car.assets.collision.bounds,half=Math.max(Math.abs(bounds.min[0]),Math.abs(bounds.max[0]))+.6;
+   const spot=(side:number)=>{
+    const w=ride.car.worldPoint({x:side*half,y:local?.y??0,z:local?.z??0}),top=w.y+2;
+    const hit=sim.world.castRay(new RAPIER.Ray({x:w.x,y:top,z:w.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+    const at={x:w.x,y:hit?top-hit.timeOfImpact+.03:w.y-.5,z:w.z};
+    // Ground found at the seat's height or above is the top of whatever stands there (a wall, another car).
+    const room=at.y<w.y-.2&&!sim.world.intersectionWithShape({x:at.x,y:at.y+.95,z:at.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.55,.3),RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,sim.playerCollider,ride.car.car.body);
+    return {at,room};
+   };
+   const first=spot(own),out=!needRoom||first.room?first:(o=>o.room?o:undefined)(spot(-own));
+   if(!out)return false;
+   playerPassenger=undefined;ride.car.setPlayerOutAsPassenger(out.at,ride.car.heading());return true;
   };
   let scriptObjectViews:ScriptObjectViews|undefined;
   let scriptFixedCamera:typeof render.fixedCamera,stuntCamera:typeof render.fixedCamera;
@@ -453,7 +463,7 @@ async function boot() {
    if(ride&&!carEntry.seated){
     if(vehicle!==undefined&&mission?.vehicles.entity(vehicle)!==ride.car)return 'none';
     if(!immediately&&!ride.car.disposed&&!ride.car.canStepOut())return 'wait';
-    leavePassengerSeat();return 'none';
+    return leavePassengerSeat(false,!immediately)?'none':'wait';
    }
    const car=carEntry.car;
    if(!carEntry.seated||!car)return 'none';
@@ -2396,7 +2406,7 @@ async function boot() {
       // CTaskComplexLeaveCar keeps asking CanPedJumpOutCar each frame, slowing the aircraft, until the pilot can go.
       const planeExitReady=!!fleet?.occupiedPlane?.exitPending&&fleet.occupiedPlane.leaveMode()!=='wait';
       if(planeExitReady)fleet!.occupiedPlane!.exitPending=false;
-      if(passengerExitPending){const ride=playerPassenger;if(!ride)passengerExitPending=false;else if(ride.car.disposed||ride.car.canStepOut()){passengerExitPending=false;leavePassengerSeat();}}
+      if(passengerExitPending){const ride=playerPassenger;if(!ride)passengerExitPending=false;else if(ride.car.disposed){passengerExitPending=false;leavePassengerSeat();}else if(ride.car.canStepOut()&&leavePassengerSeat(false,true))passengerExitPending=false;}
       // CPad::DisablePlayerControls (SET_PLAYER_CONTROL off): every pad query answers 0, the exit button included.
       if(!sim.climbing&&(input.consume('KeyF')&&!playerControlsDisabled()&&!padSwitchedOff('enterCar')||planeExitReady)&&!law.arrested){
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.

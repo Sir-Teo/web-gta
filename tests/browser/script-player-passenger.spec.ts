@@ -53,3 +53,31 @@ test('the leave task and a deleted car both put the passenger on foot',async({pa
  expect(Math.hypot(after.position.x-before.x,after.position.z-before.z)).toBeLessThan(2);
  expect(errors).toEqual([]);
 });
+
+/** IsRoomForPedToLeaveCar: a passenger whose own side of the car is walled off gets out on the other side. */
+test('a passenger walled in on his side gets out on the other',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const car=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;return g.missionForProfiling().vehicles.create(596,{x:p.x+6,y:-p.z+7,z:-100},0);});
+ await page.waitForFunction(c=>!!(window as any).__game.missionForProfiling().vehicles.entity(c),car,{timeout:60000});
+ await page.waitForFunction(c=>(window as any).__game.missionForProfiling().vehicles.positionOf(c).z>-50,car,{timeout:30000});
+ // Rear left seat; a block stands where he would step out on the left.
+ await page.evaluate(c=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCarAsPassenger(1,c,1),car);
+ await page.waitForTimeout(1500);
+ const blocked=await page.evaluate(async c=>{
+  const dependencies='/tests/fixtures/native-render-dependencies.ts',{RAPIER}=await import(/* @vite-ignore */ dependencies);
+  const g=(window as any).__game,v=g.missionForProfiling().vehicles.entity(c),b=v.assets.collision.bounds,half=Math.max(Math.abs(b.min[0]),Math.abs(b.max[0]))+.6;
+  // Balls along the car's left flank (y runs along the car in its own frame), clear of its body.
+  for(const y of [-1.5,-.75,0,.75,1.5]){const w=v.worldPoint({x:-half,y,z:0});g.sim.world.createCollider(RAPIER.ColliderDesc.ball(.5).setTranslation(w.x,w.y+.5,w.z));}
+  const w=v.worldPoint({x:-half,y:0,z:0});return {x:w.x,z:w.z};
+ },car);
+ await page.keyboard.press('KeyF');
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1)??null),{timeout:20000}).toBeNull();
+ const p=await page.evaluate(()=>(window as any).__game.state().player.position);
+ // Out on the far side: well clear of the block.
+ expect(Math.hypot(p.x-blocked.x,p.z-blocked.z)).toBeGreaterThan(2.5);
+ expect(errors).toEqual([]);
+});
