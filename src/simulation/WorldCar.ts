@@ -443,7 +443,13 @@ export class WorldCar {
   // bRenderScorched: the wreck is lit by a dim grey ambient alone.
   this.car.setScorched(true);
   const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
+  this.killPlayerAboard();
+ }
+ /** KillPedsInVehicle: CEventVehicleDied reaches the driver and every passenger alike, and ComputeVehicleDiedResponse
+  * sets their health to 0; the player dies in either seat. */
+ private killPlayerAboard(){
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
+  else if(this.playerPassengerSeat)this.sim.vehicleOccupantDied();
  }
  /** CAutomobile::Fix (0x6A3440): every damage status back to OK, damaged atomics hidden, doors shut and bouncing panels
   * reset. The cheat that calls it sets health to 1000 and the burn timer to 0. */
