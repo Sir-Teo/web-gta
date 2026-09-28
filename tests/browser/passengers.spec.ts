@@ -31,6 +31,8 @@ test('a recruited homie boards, rides and climbs back out',async({page})=>{
    sim.playerBody.setTranslation({x:2492,y:13.45,z:1680},true);
    sim.playerBody.setNextKinematicTranslation({x:2492,y:13.45,z:1680});
    sim.world.step();
+   // The front-right door shot off: its seat still takes a rider (the door just does not open).
+   car.damageState.doors[3]=4;out.maxPassengers=car.maximumPassengers;
    entry.warpIn(car);
    for(let i=0;i<600&&!entry.snapshot().passengers.length;i++){tick();if(i%50===0)await new Promise(r=>setTimeout(r,0));}
    out.boarded=entry.snapshot().passengers.length;
@@ -56,7 +58,7 @@ test('a recruited homie boards, rides and climbs back out',async({page})=>{
   }finally{entry.crowd=undefined;occupants.dispose();crowd.dispose();car.dispose();sim.dispose();}
  });
  expect(result.recruited).toBe('joined');
- expect(result.boarded).toBe(1);
+ expect(result.maxPassengers).toBe(3);expect(result.boarded).toBe(1);
  expect({ready:result.occReady,error:result.occError,views:result.views}).toEqual({ready:true,error:null,views:1});
  expect(result.pose).toEqual([{clip:'car_sitp',seat:1}]);
  expect(result.kept).toBe(1);

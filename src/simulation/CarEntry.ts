@@ -143,7 +143,9 @@ export class CarEntry {
    this.prevSeated=inside;this.passengerCar=car;
    // CTaskComplexEnterCar gives a non-player ped up (a fall) once the car moves over 0.1 units a frame.
    if(!car||car.wrecked||!this.seated||car.speed2D()>.1||!this.crowd)return;
-   const free=PASSENGER_SEATS.filter(s=>!this.passengers.some(p=>p.seat===s.seat)&&!car.doorMissing(s.door));
+   // CVehicle::m_nMaxPassengers (GetMaximumNumberOfPassengersFromNumberOfDoors) bounds the seats; a door knocked off
+   // keeps nobody out of its seat (the door just does not open).
+   const free=PASSENGER_SEATS.slice(0,car.maximumPassengers).filter(s=>!this.passengers.some(p=>p.seat===s.seat));
    if(!free.length)return;
    const crew=this.crowd.followers().filter(p=>p.health>0&&p.down<=0);
    if(!crew.length)return;
