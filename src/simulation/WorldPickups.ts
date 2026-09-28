@@ -31,6 +31,8 @@ export interface PickupHost {
  onJetPack?():boolean;
  /** CPickups::PlayerCanPickUpThisWeaponTypeAtThisMoment: a weapon not aimed with the arm is refused on the jetpack. */
  canPickUpWeapon?(weapon:number):boolean;
+ /** CTheScripts::IsPlayerOnAMission: a property is not for sale while a mission runs. */
+ onMission?():boolean;
 }
 /** CPickups::aPickUps holds 620 slots. */
 export const PICKUP_SLOTS=620;
@@ -203,6 +205,11 @@ export class WorldPickups {
     case 'propertyForSale':{
      if(this.collected.has(pickup.id))return;
      const price=pickup.price??0;
+     // CPickup::Update: PROP_2 while the player is on a mission, PROP_1 when he is short of the price.
+     if(host.onMission?.()){
+      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,gxtHudText(gxtText('PROP_2',"You can't buy property while on a mission.")));}
+      return;
+     }
      if(this.sim.money<price){
       if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,gxtHudText(gxtText('PROP_1',`Not enough cash · $${price}`)));}
       return;

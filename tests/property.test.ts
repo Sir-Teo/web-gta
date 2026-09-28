@@ -13,11 +13,11 @@ const disc=(over:Partial<ScmPickup>&{position:[number,number,number]}):ScmPickup
 });
 const at=(pickup:ScmPickup)=>({x:pickup.position[0],y:pickup.position[2],z:-pickup.position[1]});
 
-function setup(collected=new Set<string>()){
+function setup(collected=new Set<string>(),onMission=()=>false){
  const sim=new Simulation(),scene=new Scene(),messages:string[]=[];
  const pickups=new WorldPickups(sim,scene,'property-test:',{
   weaponForModel:()=>undefined,giveWeapon:()=>false,wantedLevel:()=>0,setWantedLevel:()=>{},
-  armour:()=>0,setArmour:()=>{},onSave:()=>{},onCollect:(_p,message)=>{if(message)messages.push(message);},onNotice:(_p,text)=>messages.push(text),
+  armour:()=>0,setArmour:()=>{},onSave:()=>{},onCollect:(_p,message)=>{if(message)messages.push(message);},onNotice:(_p,text)=>messages.push(text),onMission,
  },collected);
  return {sim,pickups,messages};
 }
@@ -46,6 +46,23 @@ test('properties buy with cash, refuse without, and persist as owned',()=>{
    second.pickups.setPickups([sale]);
    expect(second.pickups.snapshot().active).toBe(0);
   }finally{second.pickups.dispose();second.sim.dispose();}
+ }finally{pickups.dispose();sim.dispose();}
+});
+
+// CPickup::Update's PICKUP_PROPERTY_FORSALE: on a mission the player is told PROP_2 and nothing is bought, however
+// much cash he has.
+test('a property is not for sale during a mission',()=>{
+ const sale=disc({position:[10,20,5],price:30000});
+ let onMission=true;
+ const {sim,pickups,messages}=setup(new Set(),()=>onMission);
+ try{
+  pickups.setPickups([sale]);
+  sim.money=50000;sim.player.position=at(sale);sim.player.health=100;
+  pickups.step(1/60);
+  expect(sim.money).toBe(50000);expect(messages).toHaveLength(1);expect(messages[0]).not.toContain('purchased');
+  expect(pickups.snapshot().active).toBe(1);
+  onMission=false;pickups.passTime(4);pickups.step(1/60);
+  expect(sim.money).toBe(20000);
  }finally{pickups.dispose();sim.dispose();}
 });
 
