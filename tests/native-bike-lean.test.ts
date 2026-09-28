@@ -50,3 +50,12 @@ test('CQuadBike::ProcessAI eases the rider toward the full anim lean on the stee
  // Hands off, it decays by 0.88 a frame.
  expect(quadRiderLean(.5,0,43,.88,1/50)).toBeCloseTo(.44,9);
 });
+test('a head-on impact coming steeply from above weights the forward axis by its world z (CBike::DamageKnockOffRider)',()=>{
+ // A nose-down bike meeting the ground: the impact runs along the bike's forward axis but points nearly straight up.
+ const steep={intensity:16,mass:100,player:true,skill:0,dir:{fwd:-.95,up:.3,right:0},upZ:.3,sanchez:false,quad:false};
+ // 96 × (0.95 × 0.6 + 0.3 × 0.05) against 96 × (0.95 × (7 × 0.95² + 0.6) + 0.3 × 0.05).
+ expect(knockOffForce(steep)).toBeCloseTo(96*(.95*.6+.3*.05),6);
+ expect(knockOffForce({...steep,worldZ:.95})).toBeCloseTo(96*(.95*(7*.95*.95+.6)+.3*.05),6);
+ expect(knocksOffRider(knockOffForce(steep))).toBe(false);
+ expect(knocksOffRider(knockOffForce({...steep,worldZ:.95}))).toBe(true);
+});

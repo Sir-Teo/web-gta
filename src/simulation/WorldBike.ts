@@ -351,7 +351,7 @@ export class WorldBike {
   // m_fDamageIntensity is the collision impulse, mass times the velocity change in units a frame (CPhysical's
   // ApplyCollision family); the contact solver's change for the whole step stands in for the strongest contact.
   const mass=this.assets.handling.values.mass;
-  const force=knockOffForce({intensity:mass*change/50,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
+  const force=knockOffForce({intensity:mass*change/50,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,worldZ:dy/change,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
   if(knocksOffRider(force))this.knockOff(v,{x:dx,y:dy,z:dz},change);
  }
  /** CEventKnockOffBike with KNOCK_OFF_TYPE_SKIDBACKFRONT (the only type CBike::DamageKnockOffRider raises). The rider
