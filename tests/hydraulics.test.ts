@@ -75,3 +75,20 @@ test('a mission car an AI drives takes its corners from the script, and a car wi
  const half=h.step({...ai,scripted:{frontLeft:.5,rearLeft:0,frontRight:0,rearRight:0}});
  expect(half.lines!.frontLeft.upper).toBeCloseTo((limits.extendedUpper+limits.normalUpper)/2,6);
 });
+import {WorldCar} from '../src/simulation/WorldCar';
+// CAutomobile::ProcessControl's hydraulic settle: under 0.2 units a frame with the stick held sideways, the roll rate
+// about the forward axis is damped to tsf × (0.985^ts / (5 tsf² + 1))^ts.
+test('a slow lowrider with the stick held sideways has its roll rate damped each frame',()=>{
+ const make=(stick:{leftRight:number;upDown:number}|undefined,speed=0)=>{
+  let w={x:0,y:0,z:-2};// browser: forward is −z, so this is roll about the car's forward axis at 0.04 a frame
+  const self:any={hydraulics:{},occupied:true,missionCar:false,driverless:false,pad:{stick},hydraulicWheels:{frontLeft:0,rearLeft:0,frontRight:0,rearRight:0},
+   car:{body:{linvel:()=>({x:speed,y:0,z:0}),angvel:()=>w,rotation:()=>({x:0,y:0,z:0,w:1}),setAngvel:(v:any)=>{w=v;}}}};
+  (WorldCar.prototype as any).hydraulicSettle.call(self,1/50);
+  return w.z;
+ };
+ const tsf=.04,expected=(Math.pow(.985,1)/(tsf*tsf*5+1)*tsf-tsf)*50;// the frame's change of the forward turn speed
+ expect(make({leftRight:128,upDown:0})).toBeCloseTo(-2+(-expected),6);
+ expect(Math.abs(make({leftRight:128,upDown:0}))).toBeLessThan(2);
+ // Stick centred, stick up, or moving at speed: nothing.
+ expect(make({leftRight:0,upDown:0})).toBe(-2);expect(make({leftRight:128,upDown:128})).toBe(-2);expect(make({leftRight:128,upDown:0},15)).toBe(-2);
+});

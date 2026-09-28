@@ -659,7 +659,7 @@ export class WorldCar {
    if(speed>=.28){const k=.28/speed;this.car.body.setLinvel({x:v.x*k,y:v.y*k,z:v.z*k},true);}
   }
   // ProcessControl's default branch: hydraulics take the horn and the stick, and otherwise the boost jump may.
-  if(this.hydraulics)this.hydraulicControl(seconds);else this.boostJumpControl();
+  if(this.hydraulics){this.hydraulicSettle(seconds);this.hydraulicControl(seconds);}else this.boostJumpControl();
   this.airControl(seconds,axes.x,handbrake);
   // CAutomobile::ProcessControl: the all-cars-nitro cheat fits every car with endless nitro each step, and a car
   // with nitro runs NitrousControl (STATUS_PHYSICS, a car the game drives, fires it without a pad).
@@ -740,6 +740,22 @@ export class WorldCar {
   if(wheels)requireAsset(Object.values(wheels).every(Number.isFinite),'Invalid hydraulic levels.');
   this.hydraulicWheels=wheels?{...wheels}:{frontLeft:0,rearLeft:0,frontRight:0,rearRight:0};
   if(!wheels&&this.hydraulics)this.hydraulics.angle=0;
+ }
+ /** CAutomobile::ProcessControl for a car with hydraulics moving under 0.2 units a frame: while the player holds the
+  * stick sideways (|left-right| > 50, |up-down| < 50), or a scripted car has both corners of one side raised past
+  * 0.5, the roll rate about the car's forward axis is damped each frame, tsf × (0.985^ts / (5 tsf² + 1))^ts − tsf,
+  * as a turn force of −that × up × turn mass at a unit to the right (the centre of mass cancels). */
+ private hydraulicSettle(dt:number){
+  const v=this.car.body.linvel();if(Math.hypot(v.x,v.y,v.z)/50>=.2)return;
+  let settle=false;
+  if(this.occupied){const s=this.pad.stick;settle=!!s&&Math.abs(s.leftRight)>50&&Math.abs(s.upDown)<50;}
+  else if(this.missionCar&&!this.driverless){const w=this.hydraulicWheels;settle=w.frontLeft>.5&&w.rearLeft>.5||w.frontRight>.5&&w.rearRight>.5;}
+  if(!settle)return;
+  const q=this.car.body.rotation(),forward=new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)),w=this.car.body.angvel();
+  const ts=dt*50,tsf=(w.x*forward.x+w.y*forward.y+w.z*forward.z)/50;
+  const speed=Math.pow(Math.pow(.985,ts)/(tsf*tsf*5+1),ts)*tsf-tsf;
+  // ApplyTurnForce(−speed × up × turnMass, right + com): right × up is −forward, so the turn gains speed × forward.
+  this.car.body.setAngvel({x:w.x+forward.x*speed*50,y:w.y+forward.y*speed*50,z:w.z+forward.z*speed*50},true);
  }
  /** HydraulicControl runs once a 30 fps game frame (its counter steps per frame); a horn press is taken on its step. */
  private hydraulicClock=0;
