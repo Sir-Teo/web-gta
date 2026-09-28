@@ -2155,13 +2155,16 @@ async function boot() {
       case 'suicide':sim.damagePlayer(1000,false,{weapon:0});break;
       case 'parachute':inventory.give(46,0);inventory.select(46);break;
       // GivePlayerGoodiesWithPickUpMI(adrenaline) when turned on; ClearAdrenaline when turned off.
-      case 'adrenaline':cheats.toggle(cheat);if(cheats.isActive(cheat)){player.adrenaline=20;player.stamina=100;player.sprintExhausted=false;}else player.adrenaline=0;break;
-      // A Micro Uzi with 150 rounds when the SMG slot is empty.
-      case 'driveby':cheats.toggle(cheat);if(cheats.isActive(cheat)&&![28,29,32].some(owned)){inventory.give(28,150);inventory.select(28);}break;
+      // GivePlayerGoodiesWithPickUpMI reports AE_FRONTEND_PICKUP_ADRENALINE; ClearAdrenaline resets the time scale too.
+      case 'adrenaline':cheats.toggle(cheat);if(cheats.isActive(cheat)){player.adrenaline=20;player.stamina=100;player.sprintExhausted=false;sound.frontend(AE_FRONTEND.pickupAdrenaline);}else{player.adrenaline=0;cheatTimeScale=1;}break;
+      // A Micro Uzi with 150 rounds when the SMG slot's weapon is WEAPON_UNARMED (an emptied SMG still fills it).
+      case 'driveby':cheats.toggle(cheat);if(cheats.isActive(cheat)&&![28,29,32].some(id=>inventory.owned.has(id))){inventory.give(28,150);inventory.select(28);}break;
       case 'weaponSkills':for(let id=22;id<=31;id++)inventory.practice.set(id,1000);break;
       // VehicleSkillsCheat: driving, flying, bike and cycling skill all to 1000.
       case 'vehicleSkills':progression.drivingSkill=1000;carEntry.drivingSkill=1000;for(const stat of [160,223,229,230])mission?.runtime.game.stats.set(stat,1000);break;
       case 'blowUpCars':
+        // Every valid vehicle of the pool: the script's own car with the fleet's.
+        if(worldCar&&!worldCar.wrecked)worldCar.blowUp();
         for(const car of fleet?.cars??[])car.blowUp();for(const bike of fleet?.bikes??[])bike.blowUp();for(const boat of fleet?.boats??[])boat.blowUp();
         for(const plane of fleet?.planes??[])plane.damage(plane.health);
         break;
