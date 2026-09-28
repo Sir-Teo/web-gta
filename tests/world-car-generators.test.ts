@@ -24,3 +24,16 @@ test('external IPL overrides preserve stable generator identities without duplic
  await expect(readWorldCarGenerators(archive,entries,[{path:'a/test.ipl',file:car(402)},{path:'b/TEST.ipl',file:car(421)}])).rejects.toThrow('Ambiguous');
  expect(()=>carGeneratorsInRegion(records,{x:0,y:0,radius:NaN})).toThrow('region');
 });
+import {generatorInRange,GENERATOR_PROCESS_MS} from '../src/assets/worldCarGenerators';
+// CCarGenerator::CheckIfWithinRangeOfAnyPlayers: a boat generator the camera sees is in range out to 240 units; any
+// other generator idles past 160. CTheCarGenerators::Process visits every generator every fourth 30 fps frame.
+test('a visible boat generator counts as in range out to 240 units',()=>{
+ const toward={x:-1,y:0};// heading toward a generator 200 units off along +x
+ expect(generatorInRange({x:200,y:0},0,toward,false,false,0).eligible).toBe(false);
+ expect(generatorInRange({x:200,y:0},0,toward,false,false,0,1,true).eligible).toBe(true);
+ expect(generatorInRange({x:250,y:0},0,toward,false,false,0,1,true).eligible).toBe(false);
+ // Heading away, or held to wait until far: still not eligible.
+ expect(generatorInRange({x:200,y:0},0,{x:1,y:0},false,false,0,1,true).eligible).toBe(false);
+ expect(generatorInRange({x:200,y:0},0,toward,true,false,0,1,true).eligible).toBe(false);
+ expect(GENERATOR_PROCESS_MS).toBeCloseTo(133.33,1);
+});

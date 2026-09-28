@@ -38,15 +38,20 @@ export function generatorFlags(flags:number){return {forceSpawn:(flags&1)!==0,ig
 /** CCarGenerator::DoInternalProcessing: at most 5 parked cars by day and 10 between 21:00 and 7:00 (CClock::ClockHoursInRange(21, 7)). */
 export function parkedCarLimit(hour:number){return hour>=21||hour<7?10:5;}
 export const GENERATOR_RANGE=160,GENERATOR_NEAR_BAND=20,GENERATOR_HEIGHT=50,GENERATE_EVEN_IF_CLOSE_FRAMES=20,GENERATOR_TAKEN_WAIT_MS=60000;
+/** A boat generator on camera (IsSphereVisible and not occluded) counts as in range out to 240 units. */
+export const GENERATOR_BOAT_VISIBLE_RANGE=240;
+/** CTheCarGenerators::Process visits every generator every fourth frame (ProcessCounter over 4), at the game's 30 fps. */
+export const GENERATOR_PROCESS_MS=4*1000/30;
 /** CCarGenerator::CheckIfWithinRangeOfAnyPlayers for one generator: `rel` is the player's position less the
  * generator's on the plane (native x, y) with `dz` the height difference, `speed` the player's planar velocity.
  * Out of 160 units (or 50 high) the generator is idle and its wait-until-far flag clears; within it the start
  * window (GenerateEvenIfPlayerIsCloseCounter) allows any spawn, a waiting generator none, and otherwise only the
- * 140 to 160 band (any distance for a force-spawn record) while the player heads toward it. */
-export function generatorInRange(rel:{x:number;y:number},dz:number,speed:{x:number;y:number},waitFar:boolean,forceSpawn:boolean,closeCounter:number,generationMult=1):{eligible:boolean;waitFar:boolean}{
+ * 140 to 160 band (any distance for a force-spawn record) while the player heads toward it. A boat generator the
+ * camera sees (`boatVisible`, tested by the caller under 240 units) is not idled by the 160-unit cut. */
+export function generatorInRange(rel:{x:number;y:number},dz:number,speed:{x:number;y:number},waitFar:boolean,forceSpawn:boolean,closeCounter:number,generationMult=1,boatVisible=false):{eligible:boolean;waitFar:boolean}{
  if(Math.abs(dz)>GENERATOR_HEIGHT)return {eligible:false,waitFar};
  const d=Math.hypot(rel.x,rel.y);
- if(d>=generationMult*GENERATOR_RANGE)return {eligible:false,waitFar:false};
+ if(d>=generationMult*GENERATOR_RANGE&&!(boatVisible&&d<generationMult*GENERATOR_BOAT_VISIBLE_RANGE))return {eligible:false,waitFar:false};
  if(closeCounter>0)return {eligible:true,waitFar};
  if(waitFar)return {eligible:false,waitFar};
  const approaching=speed.x*rel.x+speed.y*rel.y<=0;
