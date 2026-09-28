@@ -2703,9 +2703,12 @@ async function boot() {
          else if(hipGun!==weapons.inventory.selected||Math.hypot(axes.x,axes.y)>50/128||weapons.inventory.cooldown<=0&&!weapons.inventory.reloading)hipGun=undefined;}
         // Hip-fire in the follow camera sets only m_fAimingRotation (TaskSimplePlayerOnFoot.cpp:505-507): CJ turns to it at
         // his heading change rate, where the aim camera turns him at once.
+        // The target button turns CJ to the camera only for a weapon it aims (MODE_AIMWEAPON) and the standing fight
+        // stance: with a thrown or used weapon, or a melee one ducked, PlayerControlZelda and PlayerControlDucked steer
+        // him by the stick (TaskSimplePlayerOnFoot.cpp:615-619, 893-903).
         // PlayerControlZelda jumps only while the target button is up; PlayerControlZeldaWeapon, which moves CJ while a
         // hip-fired rifle's use-gun task runs, never does.
-        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim')&&hipGun===undefined,jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:hipGun!==undefined?turnToward(sim.player.heading,render.yaw+Math.PI,step):undefined };
+        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim')&&hipGun===undefined,jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming&&(render.aiming||weapons.inventory.weapon.kind==='melee'&&!sim.player.crouched)?render.yaw+Math.PI:hipGun!==undefined?turnToward(sim.player.heading,render.yaw+Math.PI,step):undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl while there is energy for
         // it (ControlButtonSprint's HandleSprintEnergy fails once spent, as the on-foot sprint does).
         if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
@@ -2817,7 +2820,7 @@ async function boot() {
         else {if(sim.climbing)render.nativeCharacter?.resetAirborne();// CTaskComplexFallAndGetUp and CTaskSimpleHitHead stand in for PlayerControlZelda: the stick that the sim ignores
           // under them does not drive the move clips' blend ratio either, so CJ gets up from standing.
           const held=sim.knockdown>0||sim.hitHead>0,stepped=held?{...controls,x:0,y:0,jump:false,sprint:false}:controls;
-          const animated=sim.climbing?controls:render.nativeCharacter?.step(step, stepped, sim)??controls;sim.step(step,(weapons.aiming||hipGun!==undefined)&&!((controls.gunMove||controls.fightMove)&&animated.animationMotion)?controls:animated);}
+          const animated=sim.climbing?controls:render.nativeCharacter?.step(step, stepped, sim)??controls;sim.step(step,(weapons.aiming||hipGun!==undefined)&&(controls.gunMove||controls.fightMove)&&!animated.animationMotion?controls:animated);}
         frameProfile.stepPlayer+=performance.now()-tPlayer;
         if(render.nativeCharacter?.duckRollDone)duck.rollFinished();
         kickSweptProps();releaseSortedOutCollisions();
