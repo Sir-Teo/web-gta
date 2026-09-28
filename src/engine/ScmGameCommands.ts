@@ -33,6 +33,8 @@ function world<K extends keyof ScmWorldCommands>(thread:ScmThread,i:ScmInstructi
  return adapter as NonNullable<ScmWorldCommands[K]>;
 }
 const negated=(i:ScmInstruction)=>!!(i.opcode&0x8000);
+/** The conversations of peds deleted since (CPed::~CPed's RemoveConversationForPed), where the host can tell. */
+const releaseGoneConversations=(t:ScmThread,i:ScmInstruction)=>{const exists=t.host?.world?.pedExists;if(exists)game(t,i).conversations.releaseGone(handle=>exists(handle));};
 /** One bit of a script variable: the bit the variable-bit commands name, masked as a shift count is. */
 const varBit=(bit:number)=>1<<(bit&31);
 const varBitSet=(t:ScmThread,p:ScmParameter,bit:number)=>(t.readInt(p)&varBit(bit))!==0;
@@ -1087,9 +1089,10 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_UP_CONVERSATION_END_NODE_WITH_SCRIPTED_SPEECH:(t,p,i)=>{
   game(t,i).conversations.setUpNode(t.text(p[0]),undefined,undefined,-t.readInt(p[1]),0,0);
  },
- FINISH_SETTING_UP_CONVERSATION:(t,_p,i)=>{game(t,i).conversations.finishSettingUp(false);},
- FINISH_SETTING_UP_CONVERSATION_NO_SUBTITLES:(t,_p,i)=>{game(t,i).conversations.finishSettingUp(true);},
+ FINISH_SETTING_UP_CONVERSATION:(t,_p,i)=>{releaseGoneConversations(t,i);game(t,i).conversations.finishSettingUp(false);},
+ FINISH_SETTING_UP_CONVERSATION_NO_SUBTITLES:(t,_p,i)=>{releaseGoneConversations(t,i);game(t,i).conversations.finishSettingUp(true);},
  IS_CONVERSATION_AT_NODE:(t,p,i)=>{
+  releaseGoneConversations(t,i);
   t.updateCompareFlag(game(t,i).conversations.isAtNode(t.readInt(p[0]),t.text(p[1])),negated(i));
  },
  ENABLE_CONVERSATION:(t,p,i)=>{game(t,i).conversations.enable(t.readInt(p[0]),bool(t,p[1]));},
