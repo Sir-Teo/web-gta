@@ -38,6 +38,11 @@ export interface FireWorld {
  vehicleFirePosition?:(target:FireTarget)=>V3|undefined;
  /** The player when it can catch fire: on foot, not burning, not fireproof. */
  ignitablePlayer?:()=>{key:unknown;position:V3}|undefined;
+ /** CVehicle::IsSubBMX: the one-in-32 spread sets the player alight instead of the bike. */
+ bmx?:(target:FireTarget)=>boolean;
+ /** The player when CFireManager::StartFire would take him wherever he is: in control (alive, not in the air),
+  * not burning, not fireproof; at his position, in a vehicle or not. */
+ playerInControl?:()=>{key:unknown;position:V3}|undefined;
  /** Vehicles whose position is within `radius`, for the one-in-32 spread. */
  vehiclesNear?:(position:V3,radius:number)=>FireTarget[];
  cameraPosition:V3;
@@ -148,6 +153,13 @@ export class NativeFireManager {
   }
   if(Math.trunc(world.random()*32)===0){
    for(const vehicle of world.vehiclesNear?.(fire.position,2)??[]){
+    // A fire by a BMX sets the player on fire, wherever he is, and bursts the bike's nearest tyre (the clone's
+    // bikes carry no tyre state).
+    if(world.bmx?.(vehicle)){
+     const player=world.playerInControl?.();
+     if(player&&this.startFireOn({kind:'player',key:player.key},player.position,7000,100,world,fire.creator))ignited.push({target:{kind:'player',key:player.key},creator:fire.creator});
+     continue;
+    }
     const at=world.targetPosition(vehicle);if(!at)continue;
     if(this.startFireOn(vehicle,at,7000,100,world,fire.creator,world.vehicleFireOptions?.(vehicle)))ignited.push({target:vehicle,creator:fire.creator});
    }

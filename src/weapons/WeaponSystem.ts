@@ -817,6 +817,13 @@ export class WeaponSystem {
    damageVehicle:(t:FireTarget,amount:number,creator?:unknown)=>{const entry=this.burnableVehicles().find(e=>e.v===t.key);if(entry&&(entry.v as {damage(amount:number,collider?:number,explosive?:boolean,shotDir?:undefined,options?:{kind?:'fire';byPlayer?:boolean}):boolean}).damage(amount,undefined,false,undefined,{kind:'fire',byPlayer:creator==='player'}))this.onCrime?.(CRIME.destroyVehicle,entry.crime);},
    vehicleFireOptions:(t:FireTarget)=>{const v=t.key as {proofs?:{fire?:boolean};onFire?:boolean};return {fireproof:!!v.proofs?.fire,engineDamaged:!!v.onFire};},
    ignitablePlayer:()=>playerOnFoot&&!this.sim.player.swimming&&!this.fires.fireOn(playerKey)&&!this.sim.playerProofs?.fire?{key:playerKey,position:this.toNative(this.sim.player.position)}:undefined,
+   bmx:(t:FireTarget)=>(t.key as {motorbike?:boolean}).motorbike===false,
+   playerInControl:()=>{
+    if(this.sim.player.health<=0||this.fires.fireOn(playerKey)||this.sim.playerProofs?.fire)return undefined;
+    // CPed::IsPedInControl: not in the air (a seated player never is).
+    if(playerOnFoot)return this.sim.player.grounded||this.sim.player.swimming?{key:playerKey,position:this.toNative(this.sim.player.position)}:undefined;
+    return {key:playerKey,position:this.toNative(playerRide?.translation()??this.sim.player.position)};
+   },
    vehiclesNear:(point,radius)=>this.burnableVehicles().filter(({v,body})=>{if(v.wrecked)return false;const c=this.toNative(body.translation());return Math.hypot(c.x-point.x,c.y-point.y,c.z-point.z)<radius;}).map(({v})=>({kind:'vehicle' as const,key:v}))};
   // CFireManager::Update runs once per game frame (the frame limiter's 30 fps, CTimer's 50/30 step): its spread and
   // merge rolls are per call.

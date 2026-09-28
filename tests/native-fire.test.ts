@@ -51,6 +51,14 @@ describe('CFire::ProcessFire',()=>{
   expect(m.update(world(10,{...w,random:()=>.5}))).toEqual([]);
   expect(m.update(world(20,{...w,random:()=>0}))).toEqual([{target:car,creator:undefined}]);
  });
+ // CFire::ProcessFire's spread: a BMX by the fire does not catch; the player does, wherever he is.
+ it('a fire by a BMX sets the player alight instead of the bike',()=>{
+  const m=new NativeFireManager();m.startFire({x:0,y:0,z:0},7000,0,clock(0,0));
+  const bmx={kind:'vehicle' as const,key:'bmx'},cj={key:'cj',position:{x:30,y:0,z:0}};
+  const lit=m.update(world(10,{vehiclesNear:()=>[bmx],bmx:t=>t===bmx,playerInControl:()=>cj,targetPosition:t=>t.kind==='player'?cj.position:{x:1,y:0,z:0},random:()=>0}));
+  expect(lit).toEqual([{target:{kind:'player',key:'cj'},creator:undefined}]);
+  expect(m.fireOn('bmx')).toBeUndefined();expect(m.fireOn('cj')!.position).toEqual(cj.position);
+ });
  it('follows a burning target, damages burning vehicles 1.2 per frame and goes out with the target',()=>{
   const m=new NativeFireManager(),hurt:number[]=[];
   const f=m.startFireOn({kind:'vehicle',key:'car'},{x:0,y:0,z:0},7000,100,clock(0))!;
