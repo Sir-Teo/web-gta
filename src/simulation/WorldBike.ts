@@ -1,4 +1,5 @@
 import {CHEATS} from './nativeCheats';
+import {collisionHealthLoss} from './nativeCarDamage';
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
@@ -342,10 +343,17 @@ export class WorldBike {
  /** Knock-off from the velocity change the contact solver applied during the world step. */
  private collisionKnockOff(){
   const before=this.stepVelocity;this.stepVelocity=undefined;
-  // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown.
-  if(!before||!this.occupied||!this.body.isEnabled()||WorldBike.riderStaysOn?.())return;
+  if(!before||!this.body.isEnabled())return;
   const v=this.body.linvel(),dx=v.x-before.x,dy=v.y-before.y,dz=v.z-before.z,change=Math.hypot(dx,dy,dz);
   if(change<.5)return;
+  // CQuadBike is a CAutomobile: CAutomobile::VehicleDamage takes the collision out of its health, ridden or not (half
+  // of it with CJ aboard, a quarter otherwise), and the hit that would empty it leaves 1.
+  if(this.quad&&!this.wrecked){
+   const h=this.assets.handling.values,loss=collisionHealthLoss({intensity:h.mass*change/50,mass:h.mass,collisionDamageMultiplier:h.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:false,modelId:this.modelId});
+   if(loss>0){const previous=this.health;this.health-=loss;if(this.health<=0&&previous>0)this.health=1;}
+  }
+  // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown.
+  if(!this.occupied||WorldBike.riderStaysOn?.())return;
   const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0});
   const dir={fwd:(dx*forward.x+dy*forward.y+dz*forward.z)/change,up:(dx*up.x+dy*up.y+dz*up.z)/change,right:(dx*right.x+dy*right.y+dz*right.z)/change};
   // m_fDamageIntensity is the collision impulse, mass times the velocity change in units a frame (CPhysical's
