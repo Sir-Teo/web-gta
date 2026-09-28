@@ -23,3 +23,12 @@ test('the shot leaves along (sin −yaw, cos yaw, sin pitch); the default muzzle
  const m=tankDefaultMuzzle({yaw:0,pitch:0});expect(m).toEqual({x:0,y:2.95,z:2.97-1});
  const r=tankDefaultMuzzle({yaw:Math.PI/2,pitch:0});expect(r.x).toBeCloseTo(-(2.95+1.394),3);expect(r.y).toBeCloseTo(-1.394,3);
 });
+import {stepTankTurretPad} from '../src/simulation/nativeTankControl';
+// Off the camera's string (any mode but MODE_CAM_ON_A_STRING) the car-gun stick turns the turret at the same rates.
+test('off the camera string the stick turns the turret: yaw −0.015 and pitch +0.005 a step at full deflection',()=>{
+ let t=initialTankTurret();
+ t=stepTankTurretPad(t,{leftRight:128,upDown:0},1);expect(t.yaw).toBeCloseTo(-0.015,6);
+ t=stepTankTurretPad(t,{leftRight:-64,upDown:128},2);expect(t.yaw).toBeCloseTo(0,6);expect(t.pitch).toBeCloseTo(0.06,6);
+ // The same limits: pitch caps at 35°.
+ for(let i=0;i<400;i++)t=stepTankTurretPad(t,{leftRight:0,upDown:128},1);expect(t.pitch).toBeCloseTo(TANK_PITCH_MAX,6);
+});

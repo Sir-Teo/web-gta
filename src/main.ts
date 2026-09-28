@@ -104,7 +104,7 @@ import {HeadlightBeams} from './render/HeadlightBeams';
 import {FRAME_LIMITER_FPS,MENU_FPS,frameDue,readDisplaySettings,saveDisplaySettings,type FramePacer} from './core/frameLimiter';
 import {getUpClip,getUpBlockedBy,isFrontClip,stuckUnderCarDamage,GET_UP_CLEAR_RADIUS} from './ped/nativeGetUp';
 import {WaterCannon,initialCannonAim,stepFireTruckAim,cannonDirection,cannonEmission,CANNON_MODELS,CANNON_DEFAULT_NOZZLE,type CannonAim} from './simulation/nativeWaterCannon';
-import {initialTankTurret,stepTankTurret,tankShotDirection,tankDefaultMuzzle,TANK_FIRE_INTERVAL_MS,TANK_SHOT_RANGE,TANK_RECOIL,type TankTurret} from './simulation/nativeTankControl';
+import {initialTankTurret,stepTankTurret,stepTankTurretPad,tankShotDirection,tankDefaultMuzzle,TANK_FIRE_INTERVAL_MS,TANK_SHOT_RANGE,TANK_RECOIL,type TankTurret} from './simulation/nativeTankControl';
 import {EXPLOSION} from './combat/nativeExplosion';
 import {carLightPools} from './render/carLightPools';
 import {pedTypeAtLeastDealer,playerKilledADealer} from './simulation/nativePopCycleEvents';
