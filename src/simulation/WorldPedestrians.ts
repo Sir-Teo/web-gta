@@ -236,6 +236,8 @@ export interface Pedestrian {
  /** The player came into this gang member's view (it rolls its group's answer once a sighting), and the group set on
   * him (CTaskAllocatorKillThreatsBasic). */
  turfSighted?:boolean;turfFoe?:boolean;
+ /** CGangWars::TellGangMembersTo(false)'s CTaskComplexKillPedOnFoot at the player, handed to the gangsters there at the time. */
+ warFoe?:boolean;
   /** A cop who left a police car seat (CPed::m_pVehicle), and the door point it is heading back to. */
   crew?:{unit:object;seat:number;roadblock?:boolean};goTo?:{x:number;z:number;walk:boolean;arrive?:number};
   /** CTaskComplexWanderCop::LookForCriminals' answer: the cop seeks the criminal (CTaskComplexSeekEntity, 30 s). */
@@ -1205,8 +1207,6 @@ export class WorldPedestrians {
    footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
   /** The dead-ped decision draw (CDecision::MakeDecision's random), overridable by probes. */
   deadPedRandom:()=>number=()=>this.damageRandom.next()/32768;
-  /** CGangWars::TellGangMembersTo(false): every gangster but the Families is on CTaskComplexKillPedOnFoot at the player. */
-  gangWar=false;
   /** CGangWars::ClearTheStreets: wandering civilians sprint. */
   clearStreets=false;
   /** CGangWars::DontCreateCivilians: no civilian spawns while a war runs. */
@@ -1379,11 +1379,16 @@ export class WorldPedestrians {
  }
  /** Living attackers' browser positions, for the radar. */
  attackWavePositions(){return this.people.filter(p=>p.attackWave&&p.health>0).map(p=>({x:p.actor.player.position.x,z:p.actor.player.position.z,gang:p.gang}));}
- /** CGangWars::TellGangMembersTo: at a war's start every gangster but the Families turns on the player; at its end
+ /** CGangWars::TellGangMembersTo: at a war's start every gangster then in the pool but the Families is given
+  * CTaskComplexKillPedOnFoot at the player (GangWars.cpp:677-693), once; gangsters made later are not. At its end
   * they wander again. */
  tellGangMembersTo(warEnding:boolean){
-  this.gangWar=!warEnding;
-  if(warEnding){this.clearStreets=false;for(const p of this.people)if(p.gang!==undefined&&p.gang!==1&&!p.attackWave){p.retaliate=0;p.foe=undefined;}}
+  for(const p of this.people){
+   if(p.gang===undefined||p.gang===1)continue;
+   if(!warEnding){p.warFoe=true;continue;}
+   p.warFoe=false;if(!p.attackWave){p.retaliate=0;p.foe=undefined;}
+  }
+  if(warEnding)this.clearStreets=false;
  }
  /** CEventHandler::ComputeVehicleDiedResponse: the occupant of a car that blew up dies where he sat (health 0,
   * CTaskComplexDie by WEAPON_EXPLOSION with KO_shot_front). The ped stands in as the body at the seat and takes the
@@ -3184,7 +3189,7 @@ export class WorldPedestrians {
     }
     // CTaskComplexKillPedOnFoot holds until the player gets clear of it.
     if(p.turfFoe&&d>PED_SEEING_RANGE*4)p.turfFoe=false;
-    if(p.attackWave||this.gangWar&&p.gang!==undefined&&p.gang!==1||p.turfFoe||gangHostile(p.gang,d)){p.retaliate=Math.max(p.retaliate,2);p.flee=0;}
+    if(p.attackWave||p.warFoe||p.turfFoe||gangHostile(p.gang,d)){p.retaliate=Math.max(p.retaliate,2);p.flee=0;}
    }
    // Armed turf gangs stand and shoot instead of brawling (escalated pursuit).
    let gunHold:number|undefined,gunEngaged=false;
