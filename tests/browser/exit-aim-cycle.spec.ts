@@ -62,7 +62,12 @@ test('car exits, aim-walking and entry spam leave the player state clean',async(
  await page.keyboard.down('KeyW');await gameWait(1.5);const walk=await probe();await page.keyboard.up('KeyW');
  expect(dist(walk,out)).toBeGreaterThan(1);expect(['walk','run','sprint','walkStart']).toContain(walk.action);
  await clean('A stopped');
+ // A clear stretch of the street for the aim-walks: where the Greenwood came to rest depends on the drive, and a
+ // strafe into its side measures the car, not the walk.
+ const clearStreet=async()=>{await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2470,g.groundAt(2470,1700,300)+.05,1700);g.turnPlayer(Math.PI/2);});
+  await expect.poll(async()=>{const s=await state();return !s.terrainHold&&s.player.grounded;},{timeout:30000}).toBe(true);await gameWait(.5);};
  // B. Aim-walk, pistol then rifle.
+ await clearStreet();
  await aimWalk(22,'B pistol');
  await aimWalk(30,'B rifle');
  // C. Bail out at speed: CanPedJumpOutCar needs 0.316 units a frame, more than the cul-de-sac's run-up gives, so the
@@ -79,7 +84,7 @@ test('car exits, aim-walking and entry spam leave the player state clean',async(
  await expect.poll(async()=>(await state()).carEntry.phase??null,{timeout:20000}).toBeNull();
  await expect.poll(async()=>{const s=await state();return s.knockdown===0&&s.player.grounded;},{timeout:20000}).toBe(true);
  await clean('C bailed');
- await page.evaluate(()=>(window as any).__game.turnPlayer(Math.PI/2));
+ await clearStreet();
  await aimWalk(22,'C pistol after the bail-out');
  // D. Enter with the button pressed three times in a row: the second press quits the approach, the third restarts it.
  await page.evaluate(()=>(window as any).__game.placeCar(2491,13.3,1680,0));await gameWait(.5);
