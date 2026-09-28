@@ -67,6 +67,16 @@ export class WorldBoat {
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  get onFire(){return !this.wrecked&&this.health<250;}
+ /** CBoat::ProcessControl's fire section: the blow-up timer is cleared only above 460 health or once wrecked; below
+  * that it holds, and under 250 health, with the hull within 200 units of the camera along each ground axis (the
+  * player stands in for the camera), it runs (TimeStep × 20 ms a frame) until past 5000 ms the hull blows up. */
+ private processFire(dt:number){
+  if(this.health>460||this.wrecked){this.burnTimer=0;return;}
+  if(this.health>=250)return;
+  const p=this.body.translation(),c=this.sim.player.position;
+  if(Math.abs(p.x-c.x)>=200||Math.abs(p.z-c.z)>=200)return;
+  this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();
+ }
  /** Burn anchor (per-model fire dummy): the engine/exhaust frame, else the stern deck. */
  fireDummy():{x:number;y:number;z:number}{
   const dummy=this.assets.model?.frames.find(f=>/^(engine|exhaust)/i.test(f.name));
@@ -178,8 +188,7 @@ export class WorldBoat {
   // CBoat::ProcessControl: a scorched hull loses buoyancy each frame until it is down to 80% of its weight and sinks.
   // The loss is per game frame (30 fps), not scaled by the timestep.
   if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy=Math.max(floor,this.water.buoyancy-mass*.001*.008*dt*30);}
-  // CBoat::ProcessControl fire section: below 250 health the hull burns out after 5 s.
-  if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
+  this.processFire(dt);
   this.floatOnWater(dt);
   this.holdAnchor();
   this.stepVelocity={...this.body.linvel()};
