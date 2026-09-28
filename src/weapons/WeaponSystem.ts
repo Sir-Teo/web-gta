@@ -747,7 +747,13 @@ export class WeaponSystem {
  private readonly fromNative=(v:Vec3)=>({x:v.x,y:v.z,z:-v.y});
  private fireClock(){return {nowMs:this.nowMs,random:Math.random};}
  /** CFireManager::StartFire on a ped (CShotInfo and CWorld::SetPedsOnFire). */
- private ignitePed(handle:number,position:Vec3,generations:number){this.fires.startFireOn({kind:'ped',key:handle},this.toNative(position),7000,generations,this.fireClock(),'player');}
+ private ignitePed(handle:number,position:Vec3,generations:number){if(this.fires.startFireOn({kind:'ped',key:handle},this.toNative(position),7000,generations,this.fireClock(),'player'))this.reportFireCrime({kind:'ped',key:handle});}
+ /** CFire::Start on an entity reports CRIME_SET_COP_PED_ON_FIRE or CRIME_SET_PED_ON_FIRE for a ped, CRIME_SET_CAR_ON_FIRE
+  * for a vehicle, with the fire's creator as the offender (here only the player's fires are reported). */
+ private reportFireCrime(target:FireTarget){
+  if(target.kind==='ped'){const t=this.pedestrians()?.targets(true).find(p=>p.handle===target.key);if(t)this.onCrime?.(t.officer?CRIME.setCopPedOnFire:CRIME.setPedOnFire,`ped:${(t as {id?:number}).id??t.handle}`);}
+  else if(target.kind==='vehicle'){const e=this.burnableVehicles().find(e=>e.v===target.key);if(e)this.onCrime?.(CRIME.setCarOnFire,e.crime);}
+ }
  /** Every vehicle of the pool, as CWorld's vehicle loops see it: cars, bikes and boats with their bodies. */
  private burnableVehicles(){const f=this.fleet();return [...[...(f?.cars??[])].map(v=>({v:v as {wrecked:boolean;damage(amount:number):boolean},body:v.car.body,crime:`car:${v.car.body.handle}`})),...[...(f?.bikes??[])].map(v=>({v,body:v.body,crime:`bike:${v.body.handle}`})),...[...(f?.boats??[])].map(v=>({v,body:v.body,crime:`boat:${v.body.handle}`}))];}
  /** CWorld::SetCarsOnFire: vehicles inside the box of half-size `radius` (and 5 up or down). */
@@ -755,7 +761,7 @@ export class WeaponSystem {
   const p=this.toNative(position);
   for(const {v,body} of this.burnableVehicles()){if(v.wrecked)continue;const c=this.toNative(body.translation());
    // CWorld::SetCarsOnFire skips a fire-proof car; StartFire refuses one whose engine already burns.
-   if(Math.abs(c.x-p.x)<=radius&&Math.abs(c.y-p.y)<=radius&&Math.abs(c.z-p.z)<=5)this.fires.startFireOn({kind:'vehicle',key:v},c,7000,100,this.fireClock(),'player',{fireproof:!!(v as {proofs?:{fire?:boolean}}).proofs?.fire,engineDamaged:!!(v as {onFire?:boolean}).onFire});}
+   if(Math.abs(c.x-p.x)<=radius&&Math.abs(c.y-p.y)<=radius&&Math.abs(c.z-p.z)<=5&&this.fires.startFireOn({kind:'vehicle',key:v},c,7000,100,this.fireClock(),'player',{fireproof:!!(v as {proofs?:{fire?:boolean}}).proofs?.fire,engineDamaged:!!(v as {onFire?:boolean}).onFire}))this.reportFireCrime({kind:'vehicle',key:v});}
  }
  /** CWorld::SetPedsOnFire: peds inside the box of half-size `radius`, set alight by the player. */
  private setPedsOnFire(position:Vec3,radius:number){
@@ -810,7 +816,7 @@ export class WeaponSystem {
    vehiclesNear:(point,radius)=>this.burnableVehicles().filter(({v,body})=>{if(v.wrecked)return false;const c=this.toNative(body.translation());return Math.hypot(c.x-point.x,c.y-point.y,c.z-point.z)<radius;}).map(({v})=>({kind:'vehicle' as const,key:v}))};
   // CFireManager::Update runs once per game frame (the frame limiter's 30 fps, CTimer's 50/30 step): its spread and
   // merge rolls are per call.
-  for(this.fireFrameClock+=dt;this.fireFrameClock>=1/30;this.fireFrameClock-=1/30)this.fires.update(fireWorld);
+  for(this.fireFrameClock+=dt;this.fireFrameClock>=1/30;this.fireFrameClock-=1/30)for(const lit of this.fires.update(fireWorld))if(lit.creator==='player')this.reportFireCrime(lit.target);
   // CTaskSimplePlayerOnFire::ProcessPed: the player's fire goes out five seconds after the task starts, whatever the
   // fire's own burn time (a merge with nearby fires would otherwise keep it going).
   const playerFire=this.fires.fireOn(playerKey);

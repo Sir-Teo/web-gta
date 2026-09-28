@@ -8,7 +8,7 @@ import {Simulation} from '../src/simulation/Simulation';
 beforeAll(async()=>{await RAPIER.init();});
 const camera={origin:{x:0,y:1.3,z:3},direction:{x:0,y:0,z:-1}};
 function setup(){const sim=new Simulation();sim.world.createCollider(RAPIER.ColliderDesc.cuboid(100,.5,100).setTranslation(0,-.5,0));const body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0,1,-10));const target=sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.4),body);sim.world.step();let damage=0;
- const weapons=new WeaponSystem(sim,()=>({damageCollider:(handle,amount)=>{if(handle!==target.handle)return false;damage+=amount;return true;},targets:()=>[{handle:target.handle,position:{...body.translation()},officer:false,armed:false,attacking:false,down:false,noCriticalHits:false}],frighten:()=>{}}),()=>undefined);
+ const weapons=new WeaponSystem(sim,()=>({damageCollider:(handle,amount)=>{if(handle!==target.handle)return false;damage+=amount;return true;},targets:()=>[{handle:target.handle,id:1,position:{...body.translation()},officer:false,armed:false,attacking:false,down:false,noCriticalHits:false}],frighten:()=>{}}),()=>undefined);
  return {sim,weapons,target,damage:()=>damage,tick:(seconds:number)=>{for(let t=0;t<seconds;t+=1/60){weapons.tick(1/60);sim.world.step();}},dispose:()=>{weapons.dispose();sim.dispose();}};
 }
 test('all 44 handheld IDs are selectable and ammo is isolated by weapon',()=>{
