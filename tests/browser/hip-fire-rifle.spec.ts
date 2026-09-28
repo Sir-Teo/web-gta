@@ -14,7 +14,12 @@ test('firing a rifle without aiming strafes facing the camera',async({page})=>{
  await expect.poll(async()=>(await state()).action,{timeout:30000}).toBe('gunMove');
  await page.waitForTimeout(1200);
  const now=await state(),off=Math.abs(Math.atan2(Math.sin(now.heading-now.yaw-Math.PI),Math.cos(now.heading-now.yaw-Math.PI)));
+ // PlayerControlZeldaWeapon has no jump: Space mid-burst leaves him on the ground.
+ await page.keyboard.press('Space');
+ let jumped=false;
+ for(let i=0;i<20;i++){const s=await page.evaluate(()=>{const s=(window as any).__game.state();return {grounded:s.player.grounded,action:s.nativeCharacter?.action as string};});if(!s.grounded||/launch|airborne/.test(s.action))jumped=true;await page.waitForTimeout(40);}
  await page.keyboard.up('KeyA');await page.keyboard.up('Control');
+ expect(jumped).toBe(false);
  expect(off).toBeLessThan(.3);
  // Once the burst's clip is over, the use-gun task finishes: CJ no longer turns with the camera.
  await page.waitForTimeout(1200);
