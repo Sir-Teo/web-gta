@@ -31,12 +31,15 @@ export function eulerDegToQuat(e:EulerDeg,out=new Quaternion()){
 export interface BoneLimits {x:[number,number];y:[number,number];z:[number,number]}
 /** Authored stand-ins for ms_boneInfos along the arm chain. The measured rigs bend the elbow about the forearm's local
  * Z only (idle −7°, the aim clips' ready frame −107°), so the forearm is a Z hinge between straight and fully bent;
- * the clavicle only shrugs a little; the upper arm and wrist are free enough to point the gun. */
+ * the clavicle only shrugs a little; the upper arm is free enough to point the gun. The wrist keeps the fire clip's
+ * hold: MoveBonesToTarget turns the hand first, to swing its (0, 0.05, 0) effector offset at the target, and a free
+ * wrist bends the gun (along the hand's X) some 50° off the aim, where SA's straight-armed aim has it along the
+ * forearm. */
 export const ARM_LIMITS:Readonly<Record<'clavicle'|'upperArm'|'foreArm'|'hand',BoneLimits>>={
  clavicle:{x:[10,10],y:[10,10],z:[10,10]},
  upperArm:{x:[180,180],y:[90,90],z:[180,180]},
  foreArm:{x:[0,0],y:[0,0],z:[160,160]},
- hand:{x:[45,45],y:[45,45],z:[45,45]},
+ hand:{x:[0,0],y:[0,0],z:[0,0]},
 };
 const FOREARM_Z_RANGE:[number,number]=[-160,0];
 
