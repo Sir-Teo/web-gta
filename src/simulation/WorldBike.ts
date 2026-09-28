@@ -174,6 +174,12 @@ export class WorldBike {
   if(this.wrecked||!this.motorbike)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;vehicleDestroyed.report?.('road',this.modelId);
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
+ /** Set upright at its heading, still, just clear of the ground: the end of a pick-up (CBike's bGettingPickedUp). */
+ standUpright(){
+  const h=this.heading(),p=this.body.translation();
+  this.body.setRotation({x:0,y:Math.sin(h/2),z:0,w:Math.cos(h/2)},true);this.body.setTranslation({x:p.x,y:p.y+.3,z:p.z},true);
+  this.body.setLinvel({x:0,y:0,z:0},true);this.body.setAngvel({x:0,y:0,z:0},true);this.lean=0;
+ }
  /** A burning motorbike blows up after 5 s; a pedal bike has no engine to catch. */
  get onFire(){return !this.wrecked&&this.motorbike&&this.health<250;}
  /** '' when the player may board, otherwise the refusal reason. */
