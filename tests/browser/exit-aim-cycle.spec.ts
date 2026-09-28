@@ -34,6 +34,8 @@ test('car exits, aim-walking and entry spam leave the player state clean',async(
  // CTaskSimpleUseGun's GunMove clips carry CJ facing the aim: forward, strafing (firing on the move where the weapon
  // allows) and back; the released aim leaves him idle with the gun down.
  const aimWalk=async(weapon:number,tag:string)=>{
+  // A passer-by standing against CJ blocks the strafe; the walk distances need an empty pavement.
+  await page.evaluate(()=>(window as any).__game.pedestrians()?.removeAllRandomPeds());
   await page.keyboard.press('Backquote');await page.locator(`[data-weapon="${weapon}"]`).click();await expect.poll(async()=>(await state()).weapons.ready,{timeout:30000}).toBe(true);
   await page.mouse.move(720,450);await page.mouse.down({button:'right'});await gameWait(.4);
   const aimed=await probe();expect(aimed.action,tag).toBe('gunMove');
