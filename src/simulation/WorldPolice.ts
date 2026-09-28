@@ -43,9 +43,9 @@ export function policeCrew(modelId:number,level:number,wanted:number,random:()=>
   case 427:return {seats:4,member:{model:'swat',weapon:28,accuracy:68}};
   case 490:return {seats:4,member:{model:'fbi',weapon:29,accuracy:76}};
   case 432:return {seats:1,member:{model:'army',weapon:31,accuracy:84}};
-  case 433:return {seats:wanted>=2?2:1,member:{model:'army',weapon:31,accuracy:84}};
-  // CCarAI::AddPoliceCarOccupants: above two stars the driver carries a shotgun one time in four, or else the partner.
-  default:{const seats=wanted>=2||random()<.5?2:1,shotgunSeat=wanted>2?random()<.25?0:seats>1&&random()<.25?1:undefined:undefined;return {seats,member:city,shotgunSeat};}
+  // CCarAI::AddPoliceCarOccupants: the Barracks shares the city cars' case. A partner rides above one star, else one
+  // time in two; above two stars the driver carries a shotgun one time in four, or else the partner.
+  case 433:default:{const seats=wanted>=2||random()<.5?2:1,shotgunSeat=wanted>2?random()<.25?0:seats>1&&random()<.25?1:undefined:undefined;return {seats,member:modelId===433?{model:'army',weapon:31,accuracy:84}:city,shotgunSeat};}
  }
 }
 /** CCarAI::FindPoliceCarSpeedForWantedLevel in car AI speed units (60 × units per frame). */
