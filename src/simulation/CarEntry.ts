@@ -151,7 +151,8 @@ export class CarEntry {
    if(!crew.length)return;
    const boarded=new Set<number>();
    for(const s of free){
-    const local=this.doorPoint(car,s.side);
+    // CCarEnterExit::GetPositionToOpenCarDoor for the seat's own door (a rear seat from ped_backseat).
+    const local=this.seatDoorPoint(car,s.seat-1);
     if(!local)continue;
     const door=car.worldPoint(local);
     const near=crew.filter(p=>!boarded.has(p.id)&&Math.hypot(p.position.x-door.x,p.position.z-door.z)<3.5).sort((a,b)=>Math.hypot(a.position.x-door.x,a.position.z-door.z)-Math.hypot(b.position.x-door.x,b.position.z-door.z))[0];
@@ -175,7 +176,8 @@ export class CarEntry {
   private passengerOut(car:WorldCar,rider:CarEntry['passengers'][number]){
    if(!this.crowd||car.disposed)return;
    {
-    const seat=PASSENGER_SEATS.find(s=>s.seat===rider.seat),local=seat&&this.doorPoint(car,seat.side);
+    // ComputeTargetDoorToExit: each passenger leaves by his own seat's door.
+    const local=this.seatDoorPoint(car,rider.seat-1);
     const door=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);
     const hit=this.sim.world.castRay(new RAPIER.Ray({x:door.x,y:door.y+1.5,z:door.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
     const spot={x:door.x,y:(hit?door.y+1.5-hit.timeOfImpact:door.y-1)+.03,z:door.z};
