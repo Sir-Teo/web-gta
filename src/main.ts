@@ -365,7 +365,8 @@ async function boot() {
    // The fleet's pass already took the police helicopters (they are planes nobody rides): the police let go of them.
    police?.dropLostHelis();
    weapons.fires.extinguishPoint({x:at.x,y:-at.z,z:at.y},radius);
-   for(const car of fleet?.cars??[])if(car.onFire){const p=car.car.body.translation();if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_EXTINGUISHED_HEALTH);}
+   // CWorld::ExtinguishAllCarFiresInArea: CVehicle::ExtinguishCarFire lifts every car but a wreck within the sphere to 300 health.
+   for(const car of fleet?.cars??[])if(!car.wrecked){const p=car.car.body.translation();if(Math.hypot(p.x-at.x,p.y-at.y,p.z-at.z)<=radius&&car.health<=CAR_EXTINGUISHED_HEALTH)car.health=CAR_EXTINGUISHED_HEALTH;}
    weapons.removeAllProjectiles();
    // CPickups::RemoveUnnecessaryPickups: dropped weapons and cash in the sphere.
    drops.removeInSphere(at,radius);moneyDrops.removeInSphere(at,radius);pickups.removeUnnecessary(at,radius);
@@ -4165,10 +4166,11 @@ async function boot() {
                   fleet?.clearCarsInArea({x:at.x,z:at.z},radius);
                   // CFireManager::ExtinguishPoint works in the fire pool's native axes (the script's own point).
                   weapons.fires.extinguishPoint({x:point.x,y:point.y,z:point.z},radius);
-                  // CWorld::ExtinguishAllCarFiresInArea: CVehicle::ExtinguishCarFire lifts a burning car to 300 health.
-                  for(const car of fleet?.cars??[])if(car.onFire){
+                  // CWorld::ExtinguishAllCarFiresInArea: CVehicle::ExtinguishCarFire lifts every car but a wreck within the
+                  // sphere to 300 health, burning or not.
+                  for(const car of fleet?.cars??[])if(!car.wrecked){
                    const p=car.car.body.translation();
-                   if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_EXTINGUISHED_HEALTH);
+                   if(Math.hypot(p.x-at.x,p.y-at.y,p.z-at.z)<=radius&&car.health<=CAR_EXTINGUISHED_HEALTH)car.health=CAR_EXTINGUISHED_HEALTH;
                   }
                  },
                  giveScriptPedWeapon:(ped,weaponType,ammo)=>{const p=onFoot(ped);if(p)pedestrians?.giveWeapon(p,weaponType,ammo);},
