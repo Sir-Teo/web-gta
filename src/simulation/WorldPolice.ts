@@ -616,8 +616,11 @@ export class WorldPolice {
     continue;
    }
    // CCarAI::UpdateCarAI resets a ram or block mission's cruise to FindPoliceCarSpeedForWantedLevel every frame;
-   // MellowOutChaseSpeed only runs on the frame the car falls back to far, so it never holds.
-   const cruise=u.mission==='cruise'?12:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,()=>.5);
+   // MellowOutChaseSpeed only runs on the frame the car falls back to far, so it never holds there. A suspect on
+   // foot is MISSION_APPROACHPLAYER_CLOSE (CTaskComplexCopInCar), which runs MellowOutChaseSpeed every frame: at one
+   // or two stars the car creeps up at 5 within 20 units, 13 or 18 within 40, and 10 near a suspect standing still.
+   let cruise=u.mission==='cruise'?12:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,()=>.5);
+   if(!playerCar&&u.mission==='close'){const pp=this.sim.player.position;cruise=mellowChaseSpeed(this.law.level,Math.hypot(pp.x-p.x,pp.y-p.y,pp.z-p.z),false,playerSpeed,cruise);}
    // CCarCtrl::SteerAICarWithPhysics_OnlyMission (VC; see nativeCarCtrl.ts), in native space.
    const nq=new Quaternion(q.x,q.y,q.z,q.w),f3=toNative(new Vector3(0,0,-1).applyQuaternion(nq)),fl=Math.hypot(f3.x,f3.y)||1;
    const state={position:{x:p.x,y:-p.z},forward:{x:f3.x/fl,y:f3.y/fl},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:f3};
