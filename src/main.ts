@@ -869,6 +869,8 @@ async function boot() {
    endGangWar:()=>{gangWars?.endGangWar(false);},
    resurrect(result){
     arrested=false;law.clear();
+    // RestorePlayerStuffDuringResurrection's MakePlayerSafe(false): no proofs, damageable again, cars too.
+    sim.playerProofs=undefined;sim.playerCanBeDamaged=true;law.native.everybodyBackOff=false;for(const car of fleet?.cars??[])car.canBeDamaged=true;
     // ResetForResurrectionAndFadeOut: CWorld::ClearExcitingStuffFromArea(player, 4000, true) where he fell, and again at
     // the restart point after the teleport: every deletable ped and vehicle (police crews, cars and helicopters of the
     // chase included) goes, with the fires and projectiles; recruits, mission entities and locked cars stay.
@@ -4714,7 +4716,8 @@ async function boot() {
                  // projectile; the pad shake, the replay and the law enforcers (the adapter above) have nothing to
                  // reach here, and the port's explosions do not linger to be removed.
                  makePlayerSafe:(safe,radius)=>{
-                  sim.playerCanBeDamaged=!safe;law.native.everybodyBackOff=safe;
+                  // MakePlayerSafe sets or clears every proof SET_CHAR_PROOFS writes, so a mission's proofs end with it.
+                  sim.playerCanBeDamaged=!safe;law.native.everybodyBackOff=safe;sim.playerProofs={bullet:safe,fire:safe,explosion:safe,collision:safe,melee:safe};
                   for(const car of fleet?.cars??[])car.canBeDamaged=!safe;
                   if(!safe)return;
                   sim.player.adrenaline=0;sim.player.stamina=Math.max(sim.player.stamina,0);
