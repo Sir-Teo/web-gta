@@ -91,7 +91,8 @@ import {vehicleLightsStatus} from './simulation/nativeVehicleLights';
 /** aDriveAnimIdsBoat: the standing boat driver's idle, steering and look back. */
 const BOAT_RIDE={idle:'DRIVE_BOAT',left:'DRIVE_BOAT_L',right:'DRIVE_BOAT_R',back:'DRIVE_BOAT_back'};
 import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
-import {WorldPolice,DEFAULT_COP_MODEL} from './simulation/WorldPolice';
+import {WorldPolice,DEFAULT_COP_MODEL,DEFAULT_COP_CAR} from './simulation/WorldPolice';
+import {waitingCopSpot,waitingCoppers} from './police/waitingCoppers';
 import {scalePedLimits,scalePedTargets} from './assets/populationCycle';
 import {WEAPONS} from './weapons/catalog';
 import {WeaponDrops} from './simulation/WeaponDrops';
@@ -853,6 +854,32 @@ async function boot() {
   /** Native axes: x east, y north, z up. */
   const nativePlayerPosition=():[number,number,number]=>[sim.player.position.x,-sim.player.position.z,sim.player.position.y];
   const nativeLevelAt=(p:readonly [number,number,number])=>worldZones?worldLevelAt(worldZones,[p[0],p[1],p[2]]):LEVEL_COUNTRYSIDE;
+  /** CPopulation::CreateWaitingCoppers: NUM_CARS_FOR_WANTED_LEVEL empty cop cars (STATUS_ABANDONED) on the nearest
+   * three road nodes within 30 units, facing the door, then NUM_COPS_FOR_WANTED_LEVEL cops 8-10 units out along the
+   * exit heading over twenty tries, each needing a clear line of sight from the door, nothing within a unit and
+   * ground under it; they face the door, carry the pistol above one star, and go for the player. Native `at`. */
+  async function createWaitingCoppers(at:{x:number;y:number;z:number},exitAngle:number){
+   const {cops,cars}=waitingCoppers(law.level),level=fleet?.zoneLevel()??0,createAt={x:at.x,y:at.z+1,z:-at.y};
+   if(cars&&traffic&&fleet){
+    let left=cars;
+    for(const node of traffic.roadNodesNear({x:createAt.x,z:createAt.z},30).slice(0,3)){
+     const car=await fleet.spawnTrafficCar(DEFAULT_COP_CAR[level],{x:node.x,y:node.y,z:node.z},Math.atan2(-(createAt.x-node.x),-(createAt.z-node.z)));
+     if(!car)continue;car.driverless=true;if(!--left)break;
+    }
+   }
+   if(!cops||!pedestrians)return;
+   let left=cops;
+   for(let i=0;i<20&&left>0;i++){
+    const spot=waitingCopSpot({x:at.x,y:at.y},exitAngle,i,Math.random),x=spot.x,z=-spot.y;
+    const top=createAt.y+2,hit=sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),8,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+    if(!hit)continue;
+    const y=top-hit.timeOfImpact,eye={x:createAt.x,y:createAt.y,z:createAt.z},d={x:x-eye.x,y:y+1-eye.y,z:z-eye.z},length=Math.hypot(d.x,d.y,d.z)||1;
+    if(sim.world.castRay(new RAPIER.Ray(eye,{x:d.x/length,y:d.y/length,z:d.z/length}),length,true,RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC,undefined,sim.playerCollider))continue;
+    if(pedestrians.targets(true).some(t=>Math.hypot(t.position.x-x,t.position.z-z)<1))continue;
+    const id=await pedestrians.spawnOfficer(DEFAULT_COP_MODEL[level],law.level>1?22:3,{x,y,z},Math.atan2(createAt.x-x,createAt.z-z));
+    if(id!==false)left--;
+   }
+  }
   const gameLogicWorld:GameLogicWorld={
    setPadCamera:held=>{skipPadCamera=held;},
     playerOnAMission:()=>!!mission?.playerOnAMission(),
@@ -3681,6 +3708,8 @@ async function boot() {
     render.yaw=heading+Math.PI;
     // CPopulation::RemoveAllRandomPeds; the interior's own peds (PopulateInterior) are not generated.
     pedestrians?.removeAllRandomPeds();
+    // CEntryExit::GenerateAmbientPeds on an exit to the outside world: CPopulation::CreateWaitingCoppers.
+    if(spawn.area===0&&law.level>0)void createWaitingCoppers({x:point[0],y:point[1],z:point[2]},spawn.exitAngle*Math.PI/180);
     // TransitionFinished: a spawn point that accepts the player's group warps his followers in with him
     // (IsTeleportPointValid: a clear 0.35 sphere in sight of him).
     if(spawn.flags&ENEX.ACCEPT_NPC_GROUP){
