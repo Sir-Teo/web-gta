@@ -24,7 +24,7 @@ import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARG
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
-import {NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
+import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
 import {PED_ORIGIN_HEIGHT,pedFloatDepth} from './nativeSwim';
 import {PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
@@ -748,9 +748,16 @@ export class WorldPedestrians {
   const sourceFight=fight&&{comboSet:4,currentMove:fight.move,comboActive:fight.move===2,hitComboActive:false,hitClip:(move:number)=>fight.hits?.[move]?.name.toLowerCase()??`hita_${move+1}`,group:fight.group??'melee_1'};
   const result=computeDamageEventAnim({weapon,pedPiece:point?this.hitPiece(p,point):fight?PED_PIECE.torso:this.hitPiece(p,point),direction:weapon===WEAPON.explosion?browserLocalDirection(p.actor.player.heading,q.x-from.x,q.z-from.z):browserLocalDirection(p.actor.player.heading,from.x-q.x,from.z-q.z),
    health:p.health,damageArmour:0,damageHealth:damage,
-   victim:{player:false,inVehicle:false,moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:p.down>0,headBelowRoot:this.headBelowRoot(p),lyingOnFront:isFrontClip(p.fallClip)},
+   victim:{player:false,inVehicle:false,taskRefusesAbort:this.fallRefusesDamage(p),moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:p.down>0,headBelowRoot:this.headBelowRoot(p),lyingOnFront:isFrontClip(p.fallClip)},
    source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'melee_1',clip:'hita_2'}:undefined},megaPunch:megaPunchBlow(weapon),previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
   p.damageAnimId=result.id;return result;
+ }
+ /** CTaskSimpleFall::MakeAbortable(ABORT_PRIORITY_URGENT): through the fall and the time lying down, damage that
+  * leaves the ped alive does not abort the fall (only CTaskSimpleGetUp gives way). The hit lands but plays nothing,
+  * and he gets up on his first timer. Health is already reduced by the hit here, as ComputeDamageResponse has run. */
+ private fallRefusesDamage(p:Pedestrian){
+  if(!(p.health>=1)||!(p.down>0)||!Number.isFinite(p.down)||p.landing!==undefined||p.air)return false;
+  return p.down>(p.view.reactionDuration(getUpClip(p.fallClip??'ko_skid_front'))??1.37);
  }
  /** The ped's root is over its head bone: down and not yet half way through its get-up clip (CTaskSimpleGetUp's
   * time progress under 0.5, past which EventHandler gives a normal death clip). */
@@ -771,8 +778,10 @@ export class WorldPedestrians {
    this.hit(p,away.x,away.z,WorldPedestrians.nativeImpulse(result.force),result.clip??'ko_shot_front');
    p.down=Infinity;p.view.playReaction(result.clip??'ko_shot_front',Infinity);return true;
   }
-  // A new CTaskComplexFallAndGetUp replaces the one a floored ped is in: the KO_SKID clip plays and its time down
-  // starts again. A landing's own fall damage leaves the landing's knockdown alone.
+  // The fall refused the hit (fallRefusesDamage): EventHandler drops the response, so nothing plays.
+  if(result.id===ANIM_ID.doorLHingeO)return false;
+  // Once he is getting up, a new CTaskComplexFallAndGetUp replaces the one he is in: the KO_SKID clip plays and his
+  // time down starts again. A landing's own fall damage leaves the landing's knockdown alone.
   if(result.fallDown){if(p.down>0&&Number.isFinite(p.down)&&p.landing===undefined&&!p.air)p.down=0;this.hit(p,away.x,away.z,WorldPedestrians.nativeImpulse(result.force),result.clip??'ko_skid_front');return true;}
   this.hits++;if(result.clip)p.view.playReaction(result.clip);
   // CTaskSimpleBeHit holds the victim until its hit clip ends.
