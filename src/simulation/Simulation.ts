@@ -6,7 +6,7 @@ import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
 import { PED_ORIGIN_HEIGHT, pedFloatDepth, swimResistance, swimRotationTowardSurface, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
-import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
+import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE, NATIVE_BLEND_RUN_FULL } from './nativePlayerLocomotion';
 import { stepStamina, STAMINA_DRAIN, STAMINA_REGEN_IDLE } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PED_SOLVER_GROUPS } from './solverGroups';
@@ -403,7 +403,7 @@ export class Simulation {
     // PlayerControlZelda sets the ratio straight to 0 when the stick is released; only a push slews.
     else if (length === 0 && !this.player.swimming) this.player.moveBlend = 0;
     else this.player.moveBlend = stepMoveBlend(this.player.moveBlend, this.player.swimming ? 0 : targetMoveBlend(length, walking, sprinting), dt);
-    const blendSpeed = this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : blendToSpeed(this.player.moveBlend);
+    const blendSpeed = this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : blendToSpeed(this.player.moveBlend, sprinting);
     const speed = this.player.swimming ? 0 : length > 0 ? blendSpeed : 0;
     // Preserve the damped display speed for HUD/animation while the blend owns acceleration.
     this.player.speed += (speed - this.player.speed) * (1 - Math.exp(-18 * dt));
@@ -667,8 +667,8 @@ export class Simulation {
   private moveAssociations(sprinting: boolean): { run?: number; sprint?: number } {
     const blend = this.player.moveBlend;
     if (!(blend > 0)) return {};
-    if (sprinting && blend > NATIVE_BLEND_RUN) return { sprint: clamp((blend - NATIVE_BLEND_RUN) / (NATIVE_BLEND_SPRINT - NATIVE_BLEND_RUN), 0, 1) };
-    return { run: clamp((blend - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN - NATIVE_BLEND_WALK), 0, 1) };
+    if (sprinting && blend >= NATIVE_BLEND_RUN_FULL) return { sprint: 1 };
+    return { run: clamp((blend - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN_FULL - NATIVE_BLEND_WALK), 0, 1) };
   }
   /** CTaskSimpleInAir's fastest fall and whether it went into FALL_FALL. */
   fall = { minVz: 0, falling: false };

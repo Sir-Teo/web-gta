@@ -2,11 +2,15 @@ import { expect, test } from 'vitest';
 import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK } from '../src/simulation/nativePlayerLocomotion';
 import { NATIVE_RUN_SPEED, NATIVE_SPRINT_SPEED, NATIVE_WALK_SPEED } from '../src/simulation/Simulation';
 
-test('native blend targets match SetPlayerMoveBlendRatio stops', () => {
+test('PlayerControlZelda targets the stick over 60, walk capped at 1, sprint no larger', () => {
   expect(targetMoveBlend(0, false, false)).toBe(0);
   expect(targetMoveBlend(1, true, false)).toBe(NATIVE_BLEND_WALK);
-  expect(targetMoveBlend(1, false, false)).toBe(NATIVE_BLEND_RUN);
-  expect(targetMoveBlend(1, false, true)).toBe(NATIVE_BLEND_SPRINT);
+  expect(targetMoveBlend(1, false, false)).toBeCloseTo(128 / 60, 6);
+  expect(targetMoveBlend(1, false, true)).toBeCloseTo(128 / 60, 6);
+  expect(targetMoveBlend(.25, false, false)).toBeCloseTo(32 / 60, 6);
+  expect(targetMoveBlend(.25, true, false)).toBeCloseTo(32 / 60, 6);
+  // The script's own stops stay where SetPlayerMoveBlendRatio has them.
+  expect([NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT]).toEqual([1.8, 2.5]);
 });
 
 test('blend slews at the native 0.07 per 1/50 s TimeStep', () => {
@@ -16,11 +20,14 @@ test('blend slews at the native 0.07 per 1/50 s TimeStep', () => {
   expect(stepMoveBlend(2.5, 0, 1)).toBe(0);
 });
 
-test('blend maps through ped.ifp root-motion speeds', () => {
+test('blend maps through ped.ifp root-motion speeds: walk to 1, run from 2, sprint as a state', () => {
   expect(blendToSpeed(0)).toBe(0);
   expect(blendToSpeed(NATIVE_BLEND_WALK)).toBeCloseTo(NATIVE_WALK_SPEED, 6);
-  expect(blendToSpeed(NATIVE_BLEND_RUN)).toBeCloseTo(NATIVE_RUN_SPEED, 6);
-  expect(blendToSpeed(NATIVE_BLEND_SPRINT)).toBeCloseTo(NATIVE_SPRINT_SPEED, 6);
+  expect(blendToSpeed(1.5)).toBeCloseTo((NATIVE_WALK_SPEED + NATIVE_RUN_SPEED) / 2, 6);
+  expect(blendToSpeed(2)).toBeCloseTo(NATIVE_RUN_SPEED, 6);
+  expect(blendToSpeed(128 / 60)).toBeCloseTo(NATIVE_RUN_SPEED, 6);
+  expect(blendToSpeed(128 / 60, true)).toBeCloseTo(NATIVE_SPRINT_SPEED, 6);
+  expect(blendToSpeed(1.5, true)).toBeCloseTo((NATIVE_WALK_SPEED + NATIVE_RUN_SPEED) / 2, 6);
 });
 
 test('the player turns at STAT_PLAYER\'s heading change rate', () => {
