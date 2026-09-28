@@ -797,8 +797,9 @@ export class WeaponSystem {
  private readonly toNative=(v:Vec3)=>({x:v.x,y:-v.z,z:v.y});
  private readonly fromNative=(v:Vec3)=>({x:v.x,y:v.z,z:-v.y});
  private fireClock(){return {nowMs:this.nowMs,random:Math.random};}
- /** CFireManager::StartFire on a ped (CShotInfo and CWorld::SetPedsOnFire). */
- private ignitePed(handle:number,position:Vec3,generations:number,fireproof=false){if(this.fires.startFireOn({kind:'ped',key:handle},this.toNative(position),7000,generations,this.fireClock(),'player',{fireproof}))this.reportFireCrime({kind:'ped',key:handle});}
+ /** CFireManager::StartFire on a ped (CShotInfo and CWorld::SetPedsOnFire): refused unless CPed::IsPedInControl, so a ped
+  * in the air or landing never catches fire. */
+ private ignitePed(handle:number,position:Vec3,generations:number,fireproof=false,inAir=false){if(this.fires.startFireOn({kind:'ped',key:handle},this.toNative(position),7000,generations,this.fireClock(),'player',{fireproof,inControl:!inAir}))this.reportFireCrime({kind:'ped',key:handle});}
  /** CFire::Start on an entity reports CRIME_SET_COP_PED_ON_FIRE or CRIME_SET_PED_ON_FIRE for a ped, CRIME_SET_CAR_ON_FIRE
   * for a vehicle, with the fire's creator as the offender (here only the player's fires are reported). */
  private reportFireCrime(target:FireTarget){
@@ -817,11 +818,12 @@ export class WeaponSystem {
  /** CWorld::SetPedsOnFire: peds inside the box of half-size `radius`, set alight by the player. */
  private setPedsOnFire(position:Vec3,radius:number){
   const p=this.toNative(position);
-  for(const person of this.pedestrians()?.targets()??[]){const c=this.toNative(person.position);if(Math.abs(c.x-p.x)<=radius&&Math.abs(c.y-p.y)<=radius&&Math.abs(c.z-p.z)<=5)this.ignitePed(person.handle,person.position,2,!!person.fireProof);}
+  for(const person of this.pedestrians()?.targets()??[]){const c=this.toNative(person.position);if(Math.abs(c.x-p.x)<=radius&&Math.abs(c.y-p.y)<=radius&&Math.abs(c.z-p.z)<=5)this.ignitePed(person.handle,person.position,2,!!person.fireProof,person.inAir);}
   // The player is one of the pool's peds; as the fire's creator his box is half the size.
   const onFoot=this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0;
-  // A fire-proof ped (physicalFlags.bFireProof, SET_CHAR_PROOFS or MakePlayerSafe) never catches fire.
-  if(onFoot&&!this.fires.fireOn('player')&&!this.sim.playerProofs?.fire){const c=this.toNative(this.sim.player.position),half=radius/2;
+  // A fire-proof ped (physicalFlags.bFireProof, SET_CHAR_PROOFS or MakePlayerSafe) never catches fire, and StartFire
+  // refuses a ped not in control (IsPedInControl: in the air or landing).
+  if(onFoot&&(this.sim.player.grounded||this.sim.player.swimming)&&!this.fires.fireOn('player')&&!this.sim.playerProofs?.fire){const c=this.toNative(this.sim.player.position),half=radius/2;
    if(Math.abs(c.x-p.x)<=half&&Math.abs(c.y-p.y)<=half&&Math.abs(c.z-p.z)<=5)this.fires.startFireOn({kind:'player',key:'player'},c,7000,2,this.fireClock(),'player');}
  }
  /** CWorld::SetWorldOnFire: a fire where a sphere of `radius` touches world geometry, unless one burns within 2. */
@@ -867,7 +869,8 @@ export class WeaponSystem {
    targetDead:(t:FireTarget)=>t.kind==='ped'&&!!this.pedestrians()?.pedPosition?.(t.key as number)?.dead,
    damageVehicle:(t:FireTarget,amount:number,creator?:unknown)=>{const entry=this.burnableVehicles().find(e=>e.v===t.key);if(entry&&(entry.v as {damage(amount:number,collider?:number,explosive?:boolean,shotDir?:undefined,options?:{kind?:'fire';byPlayer?:boolean}):boolean}).damage(amount,undefined,false,undefined,{kind:'fire',byPlayer:creator==='player'}))this.onCrime?.(CRIME.destroyVehicle,entry.crime);},
    vehicleFireOptions:(t:FireTarget)=>{const v=t.key as {proofs?:{fire?:boolean};onFire?:boolean};return {fireproof:!!v.proofs?.fire,engineDamaged:!!v.onFire};},
-   ignitablePlayer:()=>playerOnFoot&&!this.sim.player.swimming&&!this.fires.fireOn(playerKey)&&!this.sim.playerProofs?.fire?{key:playerKey,position:this.toNative(this.sim.player.position)}:undefined,
+   // StartFire on the player needs CPed::IsPedInControl: not in the air or landing.
+   ignitablePlayer:()=>playerOnFoot&&this.sim.player.grounded&&!this.sim.player.swimming&&!this.fires.fireOn(playerKey)&&!this.sim.playerProofs?.fire?{key:playerKey,position:this.toNative(this.sim.player.position)}:undefined,
    bmx:(t:FireTarget)=>(t.key as {motorbike?:boolean}).motorbike===false,
    playerInControl:()=>{
     if(this.sim.player.health<=0||this.fires.fireOn(playerKey)||this.sim.playerProofs?.fire)return undefined;
@@ -915,7 +918,7 @@ export class WeaponSystem {
    const reach=Math.max(shot.range,1);
    for(const person of people){
     const d2=(person.position.x-shot.origin.x)**2+(person.position.y-shot.origin.y)**2+(person.position.z-shot.origin.z)**2;if(d2>=reach)continue;
-    if(shot.weapon===37){this.ignitePed(person.handle,person.position,100,!!person.fireProof);continue;}
+    if(shot.weapon===37){this.ignitePed(person.handle,person.position,100,!!person.fireProof,person.inAir);continue;}
     if(shot.executed)continue;
     // The damage response that lets an extinguisher douse a burning ped is a retail stub: a water shot reaching one puts its fire out.
     if(shot.weapon===42)this.fires.fireOn(person.handle)?.extinguish();
