@@ -1825,6 +1825,10 @@ async function boot() {
       // CTaskComplexEnterCar (and the leave and the seat) aborts only at ABORT_PRIORITY_IMMEDIATE once past the walk to the
       // door: a damage response cannot floor or flinch CJ pinned to a door or seated (the hurt still counts).
       if(carEntry.pinned||carEntry.seated||bikeMount.pinned)continue;
+      // CEventDamage::ComputeDamageAnim for a ped in any vehicle (bInVehicle) sets no animation: riding a bike, a boat, a
+      // plane or a passenger seat, a hit neither flinches nor floors CJ on foot (the bike's knock-off response,
+      // ComputeKnockOffBikeResponse, is unreversed).
+      if(fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger||worldCar?.occupied||fleet?.occupied)continue;
       // CTaskSimpleClimb::MakeAbortable refuses any event under priority 71 while the ped lives: damage (65) cannot
       // floor or flinch a climbing CJ.
       if(sim.climb)continue;
