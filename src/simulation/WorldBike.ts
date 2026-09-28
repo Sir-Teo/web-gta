@@ -275,6 +275,7 @@ export class WorldBike {
   const horizontal={x:forward.x*want,y:forward.y*want,z:forward.z*want};
   this.body.setLinvel({x:horizontal.x,y:v.y-9.81*dt,z:horizontal.z},true);
   this.body.setAngvel({x:0,y:yaw,z:0},true);
+  this.lastCollisionSeconds+=dt;
   // Native lean caps with an authored rate; quads stay level.
   const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
   this.lean=approachBikeLean(this.lean,target,this.assets.bike.desLean,dt);
@@ -377,23 +378,29 @@ export class WorldBike {
   if(!before||!this.body.isEnabled())return;
   const v=this.body.linvel(),dx=v.x-before.x,dy=v.y-before.y,dz=v.z-before.z,change=Math.hypot(dx,dy,dz);
   if(change<.5)return;
-  // CQuadBike is a CAutomobile: CAutomobile::VehicleDamage takes the collision out of its health, ridden or not (half
-  // of it with CJ aboard, a quarter otherwise), and the hit that would empty it leaves 1.
-  if(this.quad&&!this.wrecked){
+  this.lastCollisionSeconds=0;
+  // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown, and the
+  // force is zeroed for the player on stairs (CamStairsForPlayer and a stairs zone holding him).
+  const mass=this.assets.handling.values.mass;let knocked=false;
+  if(this.occupied&&!WorldBike.riderStaysOn?.()&&!WorldBike.playerOnStairs?.()){
+   const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0});
+   const dir={fwd:(dx*forward.x+dy*forward.y+dz*forward.z)/change,up:(dx*up.x+dy*up.y+dz*up.z)/change,right:(dx*right.x+dy*right.y+dz*right.z)/change};
+   // m_fDamageIntensity is the collision impulse, mass times the velocity change in units a frame (CPhysical's
+   // ApplyCollision family); the contact solver's change for the whole step stands in for the strongest contact.
+   const force=knockOffForce({intensity:mass*change/50,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,worldZ:dy/change,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
+   knocked=knocksOffRider(force);
+  }
+  // CQuadBike is a CAutomobile: CAutomobile::VehicleDamage returns as soon as DamageKnockOffRider throws the rider,
+  // before the health loss; otherwise the collision comes out of its health, ridden or not (half of it with CJ
+  // aboard, a quarter otherwise), and the hit that would empty it leaves 1.
+  if(this.quad&&!this.wrecked&&!knocked){
    const h=this.assets.handling.values,loss=collisionHealthLoss({intensity:h.mass*change/50,mass:h.mass,collisionDamageMultiplier:h.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:false,modelId:this.modelId});
    if(loss>0){const previous=this.health;this.health-=loss;if(this.health<=0&&previous>0)this.health=1;}
   }
-  // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown, and the
-  // force is zeroed for the player on stairs (CamStairsForPlayer and a stairs zone holding him).
-  if(!this.occupied||WorldBike.riderStaysOn?.()||WorldBike.playerOnStairs?.())return;
-  const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0});
-  const dir={fwd:(dx*forward.x+dy*forward.y+dz*forward.z)/change,up:(dx*up.x+dy*up.y+dz*up.z)/change,right:(dx*right.x+dy*right.y+dz*right.z)/change};
-  // m_fDamageIntensity is the collision impulse, mass times the velocity change in units a frame (CPhysical's
-  // ApplyCollision family); the contact solver's change for the whole step stands in for the strongest contact.
-  const mass=this.assets.handling.values.mass;
-  const force=knockOffForce({intensity:mass*change/50,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,worldZ:dy/change,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
-  if(knocksOffRider(force))this.knockOff(v,{x:dx,y:dy,z:dz},change);
+  if(knocked)this.knockOff(v,{x:dx,y:dy,z:dz},change);
  }
+ /** Seconds since the last collision the contact solver registered (m_nLastCollisionTime). */
+ lastCollisionSeconds=Infinity;
  /** CEventKnockOffBike with KNOCK_OFF_TYPE_SKIDBACKFRONT (the only type CBike::DamageKnockOffRider raises). The rider
   * keeps the bike's move speed and takes -0.3 (a BMX -0.2) of the collision's velocity change flat, plus 3 to 5 (a
   * BMX 6) / 70 units a frame up; the clip is the one for the side the hit came from (GetLocalDirection of the
