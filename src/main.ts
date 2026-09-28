@@ -359,7 +359,9 @@ async function boot() {
   const clearExcitingStuff=(at:{x:number;y:number;z:number},radius:number)=>{
    pedestrians?.clearPedsInArea({x:at.x,z:at.z},radius,true);
    fleet?.clearCarsInArea({x:at.x,z:at.z},radius);
-   if(police&&fleet)for(const heli of police.helis){if(heli.occupied)continue;const h=heli.body.translation();if(Math.hypot(h.x-at.x,h.z-at.z)<radius){fleet.planes.delete(heli);heli.dispose();}}
+   // The fleet's pass already took the police helicopters (they are planes nobody rides): drop the ones it freed from
+   // the police's list before anything reads their bodies.
+   if(police)for(let i=police.helis.length-1;i>=0;i--)if(police.helis[i].disposed)police.helis.splice(i,1);
    weapons.fires.extinguishPoint(at,radius);
    for(const car of fleet?.cars??[])if(car.onFire){const p=car.car.body.translation();if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_FIRE_HEALTH);}
    weapons.removeAllProjectiles();
