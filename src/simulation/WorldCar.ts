@@ -942,7 +942,10 @@ export class WorldCar {
  /** STATUS_ABANDONED: nobody drives it. CCarGenerator, CCheat::VehicleCheat and CCarCtrl::CreateCarForScript create cars
   * so, and CVehicle::RemoveDriver sets it whenever a driver gets out (driverless for the player's exits, driverOut for
   * a ped's). */
- get abandoned(){return this.driverless||this.driverOut;}
+ get abandoned(){return this.driverless||this.driverOut&&!this.driverLeaving;}
+ /** An NPC driver is still playing his get-out clip: CVehicle::RemoveDriver runs at CTaskSimpleCarSetPedOut, when he
+  * is out, so until then the car is not abandoned. */
+ driverLeaving=false;
  /** The AI driver in the seat has died there (CTaskComplexDieInCar's dead-in-seat branch): pulled out, he is a corpse. */
  driverDead=false;
  /** PrepareVehicleForPedEnter: the NPC driver stops while someone lines up with the car. */
