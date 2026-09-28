@@ -928,6 +928,9 @@ export class WorldCar {
   /** autoFlags.bWaterTight (SET_CAR_WATERTIGHT): the peds sat in it do not drown when it goes under; the player still does. */
   waterTight=false;
   /** cBuoyancy::AddSplashParticles spray waiting for the FX system, and the move speed of the last splash reported to the audio engine. */
+  /** dmgDrawCarCollidingParticles' request from the last crash (browser frame): where it hit and how hard; WorldFx
+   * drains it once. */
+  collisionFx?:{position:V3;force:number};
   readonly splashes:{position:NativeVec;velocity:NativeVec}[]=[];splashReport?:NativeVec;private splashClock=0;
  /** CVehicle::m_nVehicleFlags.bEngineOn for a car a driver has sat in: RemoveDriver switches it off only for a
   * non-player driver, so a car the player steps out of keeps idling; a jump-out's CTaskSimpleCarSetPedOut is built
@@ -1016,6 +1019,9 @@ export class WorldCar {
   // Hits from below by buildings (ground) do not damage: DotProduct(direction, up) > 0.6.
   const direction={x:dv.x/change,y:dv.y/change,z:dv.z/change};
   if(building&&direction.x*up.x+direction.y*up.y+direction.z*up.z>.6)return;
+  // dmgDrawCarCollidingParticles: sparks, a puff of smoke and paint chips at the hit when the car moves faster than
+  // √(0.02/50) units a frame.
+  if((v.x**2+v.y**2+v.z**2)/2500>.02/50)this.collisionFx={position:{...point},force:intensity};
   const p=this.car.body.translation(),localDir=((point.x-p.x)*right.x+(point.y-p.y)*right.y+(point.z-p.z)*right.z)/this.boundsMaxX,dirDotRight=direction.x*right.x+direction.y*right.y+direction.z*right.z;
   // A cop car the player's car rams while going at least as fast, and faster than 0.1 units a frame, gives him a star.
   if(rammedByPlayer&&player&&LAW_ENFORCEMENT_MODELS.has(this.modelId)&&!this.abandoned){

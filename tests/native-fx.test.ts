@@ -103,3 +103,15 @@ test('fast hulls throw two stern spray particles, slow or distant hulls none',as
  effects.boatSplash(hull({cameraDist:90}));
  expect(spray()).toBe(2);
 });
+// CAutomobile::dmgDrawCarCollidingParticles: sparks against the car's motion, one huge smoke puff per 4 units a
+// frame of movement (at least one), and paint chips only below 0.25 units a frame, a chip per 100 of force plus one.
+test('a car crash throws sparks and smoke, and paint chips only at low speed',async()=>{
+ const fx=new NativeFxManager(await blueprints(),{random:seeded(21)}),effects=new NativeFxEffects(fx,()=>[0,-5,0]);
+ const count=(name:string)=>Math.max(0,...fx.prims.filter(p=>p.system.name===name).map(p=>p.particles.length));// per prim: a system's prims each take the particle
+ effects.carCollision([1,0,.5],[0,0,0],[.3,0,0],500,[200,50,50],1,1);
+ expect(count('prt_smoke_huge')).toBe(1);expect(count('prt_cardebris')).toBe(0);
+ expect(fx.prims.some(p=>/spark/i.test(p.system.name)&&p.particles.length>0)).toBe(true);
+ effects.carCollision([1,0,.5],[0,0,0],[.1,0,0],500,[200,50,50],1,1);
+ expect(count('prt_smoke_huge')).toBe(2);expect(count('prt_cardebris')).toBe(6);
+ const chip=fx.prims.find(p=>p.system.name==='prt_cardebris')!.particles[0];expect(chip.multColor.slice(0,3)).toEqual([200,50,50]);
+});

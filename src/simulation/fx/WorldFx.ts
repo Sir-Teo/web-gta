@@ -175,7 +175,7 @@ export class WorldFx implements WeaponFxHost {
   for(const hazard of hazards)if(!this.hazards.has(hazard)){const system=hazard.kind==='flame'?effects.fire(toNative(hazard.position)):effects.fx.create('teargas',toNative(hazard.position),undefined,true)?.play();if(system)this.hazards.set(hazard,system);}
  }
  /** CVehicle::AddDamagedVehicleParticles and CAutomobile::ProcessCarOnFireAndExplode for every car. */
- private updateCars(cars:Iterable<WorldCar>){
+ private updateCars(cars:Iterable<WorldCar>,dt:number){
   const effects=this.effects!,live=new Set<WorldCar>();
   for(const car of cars){
    live.add(car);let state=this.cars.get(car);if(!state){state={matrix:new Float64Array(12)};this.cars.set(car,state);}
@@ -184,6 +184,9 @@ export class WorldFx implements WeaponFxHost {
    const r=axis(1,0,0),f=axis(0,1,0),u=axis(0,0,1);
    state.matrix.set([r.x,-r.z,r.y,f.x,-f.z,f.y,u.x,-u.z,u.y,p.x,-p.z,p.y]);
    const v=body.linvel(),velocity:FxVec=[v.x,-v.z,v.y],engine=car.car.nativeFramePosition('engine'),dummy:FxVec=engine?[engine.x,engine.y,engine.z]:[0,1.5,.3];
+   // CAutomobile::dmgDrawCarCollidingParticles at the last crash, for a car on screen (GetIsOnScreen).
+   const crash=car.collisionFx;car.collisionFx=undefined;
+   if(crash&&this.visible(p.x,p.y,p.z,3)){const paint=car.assets.colors?.[0];effects.carCollision([crash.position.x,-crash.position.z,crash.position.y],[p.x,-p.z,p.y],[velocity[0]/50,velocity[1]/50,velocity[2]/50],crash.force,paint?[paint[0],paint[1],paint[2]]:[128,128,128],car.contactBrightness(this.dayNight),dt*50);}
     state.overheat=effects.overheat(state.overheat,car.wrecked?0:car.health,car.assets.handling.values.engineType==='E',dummy,state.matrix,velocity,false);
     state.fire=effects.carFire(state.fire,car.onFire,dummy,state.matrix,velocity);
     // cBuoyancy::AddSplashParticles for cars in water (same prt_watersplash path as aircraft).
@@ -284,7 +287,7 @@ export class WorldFx implements WeaponFxHost {
   /** Fx_c::Update for one rendered frame (FX run on frame time, not the fixed simulation step). */
   step(dt:number,cars:Iterable<WorldCar>,hazards:readonly {kind:'flame'|'gas';position:Vec3}[],planes:Iterable<WorldPlane>=[],walkers:readonly {key?:object;position:Vec3;speed:number;grounded:boolean}[]=[],boats:Iterable<WorldBoat>=[]){
    const manager=this.manager;if(!manager||!(dt>0))return;
-   this.frame++;this.syncHazards(hazards);this.updateCars(cars);this.updateAircraft(planes);this.updateBoats(boats);this.updateWade(walkers,dt);
+   this.frame++;this.syncHazards(hazards);this.updateCars(cars,dt);this.updateAircraft(planes);this.updateBoats(boats);this.updateWade(walkers,dt);
   if(this.area){this.area.seconds+=dt;if(this.area.seconds>.2){this.area.system.kill();this.area=undefined;}}
   for(const burst of this.fuel){burst.timer+=dt*1000;if(burst.timer<=200)for(const b of burst.bursts)this.effects!.stepFuelBurst(b,burst.timer);}
   this.fuel=this.fuel.filter(b=>b.timer<=200);
