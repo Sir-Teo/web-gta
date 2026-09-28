@@ -2655,7 +2655,7 @@ async function boot() {
           // CBike counts four wheel contact points.
           if(statFrameDue&&bike?.motorbike){const v=bike.body.linvel();statReactions.onMotorBike(1000/30,Math.hypot(v.x,v.y,v.z)/50,bike.airborne?0:4);}
          }
-         if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),playerControlsDisabled()||game.widescreenOn||!!navigation?.open||arsenal.open,{
+         if(game&&sim.player.health>0)hunger.update(Math.floor(sim.timeMinutes/60)%24,cheats.isActive('neverHungry'),playerControlsDisabled()||game.widescreenOn||!!navigation?.open||arsenal.open||game.cutscene.running||!!playerAttached,{
           fat:()=>game.stats.get(21),muscle:()=>game.stats.get(23),decrementFat:v=>{game.stats.decrement(21,v);displayStatUpdate(false,21,v);},decrementMuscle:v=>{game.stats.decrement(23,v);displayStatUpdate(false,23,v);},
           hurt:v=>{sim.player.health-=v;},rumble:()=>{game.pads.startShake(0,400,110,0,gameTimeMs);},helpMessage:()=>hud.help(gxtHudText(gxtText('NOTEAT',"You're hungry. Eat something to keep your strength up."))),
          });}
