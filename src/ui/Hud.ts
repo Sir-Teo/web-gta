@@ -25,6 +25,8 @@ export class Hud {
    * during either. */
   radioName(name:string|undefined){const el=this.element.querySelector<HTMLElement>('.radio-name')!;if(!name){el.hidden=true;this.radioLeftMs=0;this.radioPending=false;return;}el.textContent=name;this.radioPending=true;}
   private nameEls?:{radio:HTMLElement;zone:HTMLElement;vehicle:HTMLElement};
+  /** CHud::DrawAreaName: with gang wars active the zone name takes the current zone's gang colour (all channels non-zero). */
+  zoneNameColour?:readonly [number,number,number];
   drawNames(dtMs:number,paused=false,inVehicle=false,areaNameOff=false,widescreen=false,vehicleNameOff=false){
     this.inVehicle=inVehicle;
     const radio=this.nameEls?.radio??this.element.querySelector<HTMLElement>('.radio-name')!;
@@ -36,7 +38,8 @@ export class Hud {
     const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle')||this.missionTitleShowing,areaNameOff,vehicleNameOff});
     for(const [key,el,name] of [['zone',els.zone,out.zone],['vehicle',els.vehicle,out.vehicle]] as const){
       if(el.hidden!==!name)el.hidden=!name;
-      if(name){if(el.textContent!==name.text)el.textContent=name.text;this.put(`${key}.alpha`,String(name.alpha/255),v=>{el.style.opacity=v;});}
+      if(name){if(el.textContent!==name.text)el.textContent=name.text;this.put(`${key}.alpha`,String(name.alpha/255),v=>{el.style.opacity=v;});
+       if(key==='zone'){const c=this.zoneNameColour;this.put('zone.colour',c?`rgb(${c[0]},${c[1]},${c[2]})`:'',v=>{el.style.color=v;});}}
     }
   }
   /** CHud::DrawAmmo's text, or undefined when it draws nothing. */

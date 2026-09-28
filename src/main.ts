@@ -3408,6 +3408,7 @@ async function boot() {
     hud.names.setVehicleName(vehicleName);
     if(!paused&&walkDemo){const zoneName=placeName.process(worldZones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y],render.lighting.area!==0);if(zoneName)hud.names.setZoneName(zoneName);}
     // CHud::DrawAfterFade skips DrawAreaName in a plane and while the script has DISPLAY_ZONE_NAMES off.
+    hud.zoneNameColour=gangWars?.zoneNameColour();
     hud.drawNames(dt*1000,paused,radioVehicle,!!fleet?.occupiedPlane||mission?.runtime.game.displayAreaName===false,!!mission?.runtime.game.widescreenOn,mission?.runtime.game.displayVehicleName===false);
     hud.widescreen(!!mission?.runtime.game.widescreenOn);
     // The widescreen borders hide the HUD and the map with it: a map left open would hold the game unseen.

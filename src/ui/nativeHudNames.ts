@@ -9,7 +9,7 @@
 export const NAME_DONT_SHOW=0,NAME_SHOW=1,NAME_FADE_IN=2,NAME_FADE_OUT=3,NAME_SWITCH=4;
 interface NameSlot {state:number;nameTimer:number;fadeTimer:number;toPrint?:string;last?:string}
 const slot=():NameSlot=>({state:NAME_DONT_SHOW,nameTimer:0,fadeTimer:0});
-export interface DrawnName {text:string;alpha:number}
+export interface DrawnName {text:string;alpha:number;/** CHud::DrawAreaName's gang colour while gang wars are active, else the light blue. */colour?:readonly [number,number,number]}
 
 export class NativeHudNames {
  readonly zone=slot();readonly vehicle=slot();
