@@ -2508,6 +2508,10 @@ async function boot() {
     if (!paused&&!terrainPause&&!navigation?.open&&!arsenal.open) {
       const tPopulation=performance.now();
       guard('traffic.update',()=>traffic?.update(now));guard('police.update',()=>police?.update(now));guard('driveby.update',()=>driveby?.update(now));
+      // CAutomobile::ScanForCrimes: an AI law-enforcement car within 20 units of the player's automobile whose alarm is
+      // sounding gives him a star (SetWantedLevelNoDrop(WANTED_LEVEL_1)).
+      guard('scanForCrimes',()=>{const own=fleet?.occupied;if(!own||own.wrecked||own.alarm<=0)return;const p=own.car.body.translation();
+       for(const car of fleet!.cars){if(car===own||car.wrecked||car.occupied||!car.autopilot||!LAW_ENFORCEMENT_MODELS.has(car.modelId))continue;const c=car.car.body.translation();if((c.x-p.x)**2+(c.y-p.y)**2+(c.z-p.z)**2<400){law.setLevelNoDrop(1);break;}}});
       guard('pedestrians.update',()=>pedestrians?.update(now));
       // CTimer::m_FrameCounter's 30 fps game frames, from game time, so frame-counted waits (the car generators' 20-frame
       // start window, CAudioZones' 16-frame cadence) keep their length whatever the display rate.
