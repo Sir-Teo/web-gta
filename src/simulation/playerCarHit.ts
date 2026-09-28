@@ -24,10 +24,14 @@ export interface PlayerCarHitHooks {
  /** A car the player is getting into or out of. */
  excluded?:WorldCar;
 }
-export interface PlayerCarHit {car:WorldCar;response:PlayerCarResponse;hurt:boolean}
+/** A train carriage as the player's striker: no driver, and ProcessCollisionSectorList's train branch decides the hurt. */
+export interface TrainStriker {car:{body:RAPIER.RigidBody};nativeBody:WorldCar['nativeBody'];boundRadius:number;occupied:boolean;train:true}
+type Striker=WorldCar|TrainStriker;
+const isTrain=(v:Striker):v is TrainStriker=>'train' in v&&v.train===true;
+export interface PlayerCarHit {car:Striker;response:PlayerCarResponse;hurt:boolean}
 
 /** One fixed step, before the world step: every enabled car touching the player. */
-export function carsStrikePlayer(sim:Simulation,cars:Iterable<WorldCar>,hooks:PlayerCarHitHooks){
+export function carsStrikePlayer(sim:Simulation,cars:Iterable<Striker>,hooks:PlayerCarHitHooks){
  const hits:PlayerCarHit[]=[];
  if(!sim.playerBody.isEnabled()||!sim.playerCollider.isEnabled()||sim.player.health<=0||sim.player.swimming)return hits;
  const at=sim.playerBody.translation(),rotation=sim.playerBody.rotation();
@@ -43,7 +47,7 @@ export function carsStrikePlayer(sim:Simulation,cars:Iterable<WorldCar>,hooks:Pl
  return hits;
 }
 
-function strike(sim:Simulation,car:WorldCar,at:V,hooks:PlayerCarHitHooks):PlayerCarHit|undefined{
+function strike(sim:Simulation,car:Striker,at:V,hooks:PlayerCarHitHooks):PlayerCarHit|undefined{
  const body=car.car.body,com=body.worldCom(),linvel=body.linvel(),angvel=body.angvel(),physics=car.nativeBody;
  const flat={x:com.x-at.x,z:com.z-at.z},reach=Math.hypot(flat.x,flat.z);if(reach<1e-4)return undefined;
  // As for pedestrians: the normal runs from the player's centre to the car's centre of mass.
@@ -73,14 +77,18 @@ function strike(sim:Simulation,car:WorldCar,at:V,hooks:PlayerCarHitHooks):Player
   standing:sim.player.grounded,inAir:!sim.player.grounded,
   // The impact normal faces away from the car; the animation's forward shift is the run speed per frame.
   forwardImpactDot:-(forward.x*normal.x+forward.z*normal.z)*sim.player.speed/50,
-  moveBlendRatio:sim.player.moveBlend,hasDriver:!!car.autopilot&&!car.driverless,fistWeapon:hooks.fistWeapon(),
+  moveBlendRatio:sim.player.moveBlend,hasDriver:isTrain(car)||!!car.autopilot&&!car.driverless,fistWeapon:hooks.fistWeapon(),
  });
  const intensity=response.event.kind==='hit'?response.event.intensity:0;
- const hurt=sim.knockdown===0&&(Math.max(response.killWithCar??0,intensity)>PLAYER_CAR_HURT_INTENSITY);
+ // ProcessCollisionSectorList's train branch: a train moving along the impact velocity past 0.2 a frame (or over the
+ // fallen player at 0.0224) runs KillPedWithCar with twice the intensity, whatever the ped response found.
+ const trainMove={x:linvel.x/50,y:linvel.y/50,z:linvel.z/50},impactVelocity=fromNative({x:impact.pedForce.x/PED_MASS,y:impact.pedForce.y/PED_MASS,z:impact.pedForce.z/PED_MASS});
+ const trainKills=isTrain(car)&&(trainMove.x*impactVelocity.x+trainMove.y*impactVelocity.y+trainMove.z*impactVelocity.z>.2||sim.knockdown>0&&trainMove.x**2+trainMove.y**2+trainMove.z**2>.0005);
+ const hurt=(sim.knockdown===0||trainKills)&&(trainKills||Math.max(response.killWithCar??0,intensity)>PLAYER_CAR_HURT_INTENSITY);
  if(hurt){
   const from={x:at.x-linvel.x,z:at.z-linvel.z};
   sim.damagePlayer(PLAYER_CAR_DAMAGE,false,{weapon:WEAPON.rammedByCar,from,fall:true});
-  if(response.killWithCar!==undefined&&response.killWithCar>PLAYER_CAR_HURT_INTENSITY){
+  if(trainKills||response.killWithCar!==undefined&&response.killWithCar>PLAYER_CAR_HURT_INTENSITY){
    // KillPedWithCar's non-lethal branch: the ped takes 0.75 of the car's speed unless it hit a
    // wall, and the car is pushed back along the line between them.
    if(!sim.playerStuck){sim.collisionPush.x=linvel.x*.75;sim.collisionPush.z=linvel.z*.75;}
