@@ -2677,7 +2677,8 @@ export class WorldPedestrians {
    return this.stepFight(p,'BBALLBAT',['cop_bat_1','cop_bat_2','cop_bat_3'],this.sim.player.position,visible&&this.sim.knockdown===0&&this.playerOnFoot(),dt,(stage,damage)=>{
     const from={x:p.actor.player.position.x,z:p.actor.player.position.z};
     // The group answers only a CEventDamage the player took (MakeGroupRespondToPlayerTakingDamage).
-    if(this.damagesPlayer(p,WEAPON.nightstick)){this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage)});this.defendPlayer(p);}
+    // The cop's fight task is the source (CEventDamage::ComputeDamageAnim's combo branch), as a street ped's fists are.
+    if(this.damagesPlayer(p,WEAPON.nightstick)){this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage),fight:{move:stage}});this.defendPlayer(p);}
     this.onMeleeHit?.({...this.sim.player.position},false);
    });
   }
