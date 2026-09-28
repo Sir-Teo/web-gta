@@ -1,3 +1,4 @@
+import {CHEATS} from './nativeCheats';
 import {bindNativeCarDirt} from '../render/nativeCarDirt';
 import {NativeCarReflection} from '../assets/nativeCarEnvMap';
 import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
@@ -268,7 +269,8 @@ export class WorldBike {
   if(this.hopLaunch!==undefined){
    this.hopLaunch-=dt;
    if(this.hopLaunch<=0){
-    const power=Math.min(this.controlJump/25,1)+1;this.controlJump=0;this.hopLaunch=undefined;
+    // CBmx::LaunchBunnyHopCB: the Huge Bunny Hop cheat multiplies the hop's power by 5.
+    const power=(Math.min(this.controlJump/25,1)+1)*(CHEATS.isActive('hugeBunnyHop')?5:1);this.controlJump=0;this.hopLaunch=undefined;
     if(this.wheelsDown()){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
    }
   }else if(held)this.controlJump=Math.min(25,this.controlJump+dt*50);
