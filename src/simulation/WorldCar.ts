@@ -154,6 +154,8 @@ export class WorldCar {
  readonly audio={states:['normal','normal','normal','normal'] as ('normal'|'spinning'|'skidding'|'fixed')[],counts:[0,0,0,0],contactWheels:0,driveOnGround:0,driveOnGroundLastFrame:0,spinForAudio:0,burst:[false,false,false,false],contactSurface:0,brakePedal:0,handbrake:false,accelerate:0,brake:0};
  /** CAutomobile::ProcessControlInputs: the exit button holds the handbrake until the driver's exit starts. */
  exitHandbrake=false;
+ /** ProcessControlInputs' automaticallyHandBrake while the exit button is held or the driver is arrested. */
+ exitHeld=false;
  /** Seated driving input; cleared while a driver transition runs. */
  driverInput=true;
  /** A driving task a script gave the player (CTaskSimpleCarDrive as STATUS_PHYSICS): the car's autopilot drives with
@@ -620,10 +622,10 @@ export class WorldCar {
   // drives it): a driver still aboard brakes and holds; one dragged out drives no more.
   const holding=!this.occupied&&!this.driverOut&&this.holdForEntry&&!!this.autopilot?(()=>{const v=this.car.body.linvel();return {steering:0,throttle:0,brake:1,handbrake:Math.hypot(v.x,v.z)<.3} as TrafficControls;})():undefined;
   const p=this.input.pedals,ai=this.occupied&&!this.scriptDriven?undefined:!this.occupied&&this.driverOut?undefined:holding??this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
-  p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.abandoned;
+  p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake||this.exitHeld:ai?.handbrake??!this.abandoned;
   // ProcessControlInputs' automaticallyHandBrake: while the driver waits to slow down, is dragged out or holds exit,
   // the gas is 0 and the brake full, not the handbrake alone.
-  p.automaticallyHandbrake=this.occupied&&this.exitHandbrake;
+  p.automaticallyHandbrake=this.occupied&&(this.exitHandbrake||this.exitHeld);
   // CAutomobile::ProcessControl's STATUS_ABANDONED branch: no handbrake, gas or steering, and a 0.2 brake once
   // |v|² < 0.01 units/frame (0.5 on a physical object is not modelled), else none: a car left on a slope settles.
   // These are the native pedals themselves (the S key's brake-then-reverse must not drive an empty car backwards).
