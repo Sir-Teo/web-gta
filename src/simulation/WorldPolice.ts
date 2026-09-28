@@ -448,7 +448,8 @@ export class WorldPolice {
   // CWanted::NumOfHelisRequired (none with the law backed off), and none while SWITCH_POLICE_HELIS has them off.
   const need=this.policeHelisAllowed?this.law.native.helisRequired:0;
   this.dropLostHelis();
-  while(this.helis.length>need){const h=this.helis.pop()!;this.fleet.planes.delete(h);h.dispose();this.searchlights.delete(h);}
+  // A spare helicopter is dismissed only while nobody is aboard or climbing in or out of it.
+  while(this.helis.length>need){let i=this.helis.length-1;while(i>=0&&(this.helis[i].occupied||this.helis[i].entryBusy))i--;if(i<0)break;const h=this.helis.splice(i,1)[0];this.fleet.removePlane(h);this.searchlights.delete(h);}
   if(this.helis.length<need&&!this.heliBusy&&!this.disposed){
    this.heliBusy=true;
    const p=this.sim.player.position;

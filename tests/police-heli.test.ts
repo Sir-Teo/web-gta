@@ -86,3 +86,16 @@ test('a helicopter the police let go of takes its searchlight with it', async ()
   expect(police.helis).toHaveLength(0);
   expect(police.searchlights.size).toBe(0);
 });
+test('a spare police helicopter the player flies is not dismissed under him', async () => {
+  await RAPIER.init();
+  const sim = { player: { position: { x: 0, y: 0, z: 0 } }, world: { castRay: () => null }, playerCollider: {} } as any;
+  const body = { translation: () => ({ x: 0, y: 30, z: 0 }), linvel: () => ({ x: 0, y: 0, z: 0 }), rotation: () => ({ x: 0, y: 0, z: 0, w: 1 }) };
+  const flown = { disposed: false, health: 1000, occupied: true, entryBusy: false, body, dispose() { this.disposed = true; } } as any;
+  const spare = { disposed: false, health: 1000, occupied: false, entryBusy: false, body, cancelEntry() {}, dispose() { this.disposed = true; } } as any;
+  const fleet = { planes: new Set([flown, spare]), spawnPlane: async () => { throw new Error('no pad'); }, removePlane(p: any) { p.dispose(); this.planes.delete(p); } } as any;
+  const police = new WorldPolice(sim, fleet, { level: 0, native: { helisRequired: 0 } } as any, {} as any, 'http://invalid/', () => 0);
+  police.helis.push(flown, spare);
+  (police as any).updateHelis(undefined);
+  expect(flown.disposed).toBe(false);
+  expect(spare.disposed).toBe(true);
+});
