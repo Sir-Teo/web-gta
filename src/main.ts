@@ -2764,7 +2764,9 @@ async function boot() {
           const move=playerDuckMove(controls.x,-controls.y,weapons.aiming&&weapons.inventory.weapon.kind!=='melee');
           duck.control(move.x,move.y,step*50);
           // CTaskSimpleUseGun::SetMoveAnim, ducked, with its last command FIRE, FIREBURST or RELOAD: ForceStopMove.
-          if(weapons.aiming&&weapons.inventory.weapon.kind!=='melee'&&(gunFiring||weapons.inventory.reloading))duck.forceStopMove();
+          // The fire button alone starts the use-gun task too, so a hip-fired gun stops the crouch-walk the same way.
+          {const fire=weapons.inventory.info()?.fire,gun=fire==='instant'||fire==='area';
+           if(weapons.aiming&&weapons.inventory.weapon.kind!=='melee'&&(gunFiring||weapons.inventory.reloading)||!weapons.aiming&&gun&&gunFiring)duck.forceStopMove();}
           controls={...controls,duck:{clip:duck.clip,speed:duck.speed}};
         }else duck.reset();
         // The player's pad for NitrousControl and BoostJumpControl: the car-gun button, the look keys and a fresh horn press.
