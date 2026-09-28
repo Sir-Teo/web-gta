@@ -211,3 +211,41 @@ test('FireInstantHit fires 15 pellets from a shotgun and 4 from the SPAS-12',()=
   expect(shotgunHits).toBeGreaterThan(4);expect(shotgunHits).toBeLessThanOrEqual(15);expect(spasHits).toBeGreaterThanOrEqual(1);expect(spasHits).toBeLessThanOrEqual(4);
  }finally{f.dispose();}
 });
+
+// FirePlaneGuns and FireUnguidedMissile (CVehicle, 0x6D4D30 and 0x6D5110) for the player's aircraft.
+function aircraft(sim:Simulation,modelId:number){
+ const body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,30,0).setLinvel(0,0,-20));sim.world.createCollider(RAPIER.ColliderDesc.cuboid(2,1,4),body);
+ const plane:any={body,modelId,occupied:true,health:1000,assets:{collision:{bounds:{radius:6}}},
+  get armed(){return [425,447,476,520].includes(modelId);},get rocketsArmed(){return modelId===425||modelId===520;},ordnancePosition:()=>modelId===425?[2.17,1,-.8]:[3.7,.98,-1.02]};
+ return plane;
+}
+function aircraftSetup(modelId:number){
+ const sim=new Simulation(),plane=aircraft(sim,modelId);sim.world.step();sim.player.health=100;
+ const weapons=new WeaponSystem(sim,()=>undefined,()=>({cars:[],planes:new Set([plane])}) as any);
+ return {sim,plane,weapons,dispose:()=>{weapons.dispose();sim.dispose();}};
+}
+test('an aircraft\'s guns never run dry and a rocket press launches two rockets from the ordnance pod',()=>{
+ const f=aircraftSetup(520);
+ try{
+  for(let i=0;i<2500;i++){expect(f.weapons.fireAircraft(f.plane)).toBe(true);f.weapons.tick(.02);}
+  expect(f.weapons.fireAircraft(f.plane,true)).toBe(true);
+  const rockets=f.weapons.projectiles.filter(p=>p.weapon===35);expect(rockets).toHaveLength(2);
+  // The Hydra's first pod is 3.7 right, 0.98 forward, 1.02 below its centre; the origin moves ahead by the frame's travel (20 m/s over a 50 Hz step is 0.4).
+  const p=f.plane.body.translation();
+  for(const r of rockets){expect(r.position.x-p.x).toBeCloseTo(3.7,5);expect(r.position.y-p.y).toBeCloseTo(-1.02,5);expect(r.position.z-p.z).toBeCloseTo(-.98-.4,5);}
+  // GetPlaneOrdnanceRateOfFire holds the next press for 500 ms.
+  expect(f.weapons.fireAircraft(f.plane,true)).toBe(false);
+  for(let i=0;i<30;i++)f.weapons.tick(.02);
+  expect(f.weapons.fireAircraft(f.plane,true)).toBe(true);
+ }finally{f.dispose();}
+});
+test('the Seasparrow fires its gun; only the Hunter and the Hydra launch rockets',()=>{
+ const sparrow=aircraftSetup(447);
+ try{expect(sparrow.weapons.fireAircraft(sparrow.plane)).toBe(true);expect(sparrow.weapons.fireAircraft(sparrow.plane,true)).toBe(false);}finally{sparrow.dispose();}
+ const rustler=aircraftSetup(476);
+ try{expect(rustler.weapons.fireAircraft(rustler.plane)).toBe(true);expect(rustler.weapons.fireAircraft(rustler.plane,true)).toBe(false);}finally{rustler.dispose();}
+ const hunter=aircraftSetup(425);
+ try{expect(hunter.weapons.fireAircraft(hunter.plane,true)).toBe(true);expect(hunter.weapons.projectiles.filter(p=>p.weapon===35)).toHaveLength(2);}finally{hunter.dispose();}
+ const maverick=aircraftSetup(487);
+ try{expect(maverick.weapons.fireAircraft(maverick.plane)).toBe(false);}finally{maverick.dispose();}
+});

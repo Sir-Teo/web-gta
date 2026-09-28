@@ -66,7 +66,7 @@ export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
- health=800;gunAmmo=2000;rockets=20;vtol=true;
+ health=800;vtol=true;
  /** CAutomobile::m_fBurnTimer in milliseconds, which ProcessCarOnFireAndExplode runs for planes and helicopters too. */
  burnTimer=0;
  /** EXPLOSION_ROCKET at the aircraft: a burning aircraft nobody flies goes off like this 1.2% of frames. */
@@ -75,7 +75,12 @@ export class WorldPlane {
  /** Below 250 health and not sinking: on fire. */
  get burning(){return this.health>0&&this.health<250&&!this.drowning;}
  get helicopter(){return this.assets.vehicle.type==='heli';}
- get armed(){return [425,476,520].includes(this.modelId);}
+ /** GetPlaneNumGuns for the flyable models: the Hunter, Seasparrow, Rustler and Hydra carry guns. */
+ get armed(){return [425,447,476,520].includes(this.modelId);}
+ /** FireUnguidedMissile: only the Hunter and the Hydra launch rockets. */
+ get rocketsArmed(){return this.modelId===425||this.modelId===520;}
+ /** GetPlaneOrdnancePosition in native model space (right, forward, up): the Hunter's and the Hydra's first rocket pod. */
+ ordnancePosition():[number,number,number]{return this.modelId===425?[2.17,1,-.8]:[3.7,.98,-1.02];}
  damage(amount:number){if(this.health<=0)return false;this.health=Math.max(0,this.health-amount);if(this.health===0){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}return true;}return false;}
  toggleVtol(){if(this.modelId!==520)return '';this.vtol=!this.vtol;return this.vtol?'Hydra: vertical lift':'Hydra: forward flight';}
  /** physicalFlags.bMakeMassTwiceAsBig (SET_CAR_HEAVY): the water's drag ×1.5. */
@@ -339,7 +344,7 @@ export class WorldPlane {
   this.reflection.update(Math.min(1.05,(mean+.5)*.95+.05),this.body.translation(),this.body.rotation());
  }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.reflection)this.updateReflection(rgb);if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual.setNight(night);}
- snapshot(){return {inWater:this.inWater,drowning:this.drowning,health:this.health,gunAmmo:this.gunAmmo,rockets:this.rockets,vtol:this.modelId===520?this.vtol:null,helicopter:this.helicopter,modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
+ snapshot(){return {inWater:this.inWater,drowning:this.drowning,health:this.health,vtol:this.modelId===520?this.vtol:null,helicopter:this.helicopter,modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
  /** What the script's vehicle host reads of any vehicle: the body under `car`, the heading as WorldCar's (the
   * body's yaw turned half round), and whether it has gone. */
  readonly car:{body:RAPIER.RigidBody};disposed=false;
