@@ -55,7 +55,7 @@ export interface PassengerCrowd {
   followers():readonly {id:number;position:{x:number;y:number;z:number};health:number;down:number}[];
   /** `keep`: what the ped takes into the car and out again (his weapon, health and gang), opaque to the car. */
   boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number;keep?:unknown}|undefined;
-  spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean,keep?:unknown):Promise<boolean>|boolean;
+  spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean,keep?:unknown,rollout?:{velocity:{x:number;z:number};clip:'car_rollout_lhs'|'car_rollout_rhs'}):Promise<boolean>|boolean;
   /** A rider of a car that blew up: CAutomobile::BlowUpCar's KillPedsInVehicle leaves him dead. */
   spawnDead?(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,recruit?:boolean):unknown;
 }
@@ -185,7 +185,11 @@ export class CarEntry {
     const spot={x:door.x,y:(hit?door.y+1.5-hit.timeOfImpact:door.y-1)+.03,z:door.z};
     // A car that blew up killed everyone aboard (CVehicle::KillPedsInVehicle, CEventVehicleDied for each rider).
     if(car.wrecked&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang,!!rider.follow)).catch(()=>{});return;}
-    void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow,rider.keep)).catch(()=>{});
+    // ComputeResponseLeaderExitedCar gives followers CTaskComplexLeaveCar with bSensibleLeaveCar off: nobody waits for
+    // the car to slow (GroupEventHandler.cpp:344-349). One still too fast to step out of is rolled out of
+    // (CTaskSimpleCarJumpOut) with its move speed, by the seat's side.
+    const v=car.car.body.linvel(),rollout=car.canStepOut()?undefined:{velocity:{x:v.x,z:v.z},clip:(rider.seat===2?'car_rollout_lhs':'car_rollout_rhs') as 'car_rollout_lhs'|'car_rollout_rhs'};
+    void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow,rider.keep,rollout)).catch(()=>{});
    }
   }
   private passengerCar?:WorldCar;

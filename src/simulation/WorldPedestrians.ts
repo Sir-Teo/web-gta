@@ -510,7 +510,7 @@ export class WorldPedestrians {
  constructor(private sim:Simulation,private scene:Scene,base:string,private playerView:()=>NativeCharacter|undefined,private law?:WantedSystem){
   this.catalogLoad=openWorldPedestrians(base,!!law).then(c=>{if(this.disposed)return undefined;this.catalog=c;this.installPlayerReactions();return c;}).catch(e=>{this.error=String(e);return undefined;});
  }
-  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['xpressscratch','gas_cwr','atm','seat_down','seat_idle','seat_up','drown','fall_glide','fall_fall','fall_land','fall_collapse','ko_skid_back','fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','getup','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front','gun_butt','gun_butt_crouch','hit_gun_butt',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]])),...c.attractorClips};}
+  private reactions(c:Catalog){return {...Object.fromEntries([...new Set(['xpressscratch','gas_cwr','atm','seat_down','seat_idle','seat_up','drown','fall_glide','fall_fall','fall_land','fall_collapse','ko_skid_back','fighta_1','fighta_2','fighta_3','hita_1','hita_2','hita_3','ko_skid_front','getup_front','getup','hit_front','hit_back','hit_l','hit_r','fucku','arrestgun','handsup','handscower','ev_step','ev_dive','getup_front','gun_butt','gun_butt_crouch','hit_gun_butt','car_rollout_lhs','car_rollout_rhs',...NATIVE_DAMAGE_CLIPS])].filter(n=>c.animations[n]).map(n=>[n,c.animations[n]])),...Object.fromEntries(['kill_knife_ped_damage','kill_knife_ped_die','kill_knife_player'].filter(n=>c.stealth[n]).map(n=>[n,c.stealth[n]])),...c.attractorClips};}
  private reactionOwner?:NativeCharacter;
  /** The player uses KILL_Partial as an upper-body partial and KILL_Knife_Player as a full-body clip. */
  installPlayerReactions(){const view=this.playerView(),c=this.catalog;if(!view||!c||view===this.reactionOwner)return;this.reactionOwner=view;view.installReactions(this.reactions(c));if(c.stealth.kill_partial)view.installReactions({kill_partial:c.stealth.kill_partial},true);}
@@ -1971,7 +1971,15 @@ export class WorldPedestrians {
  /** Whether the world still holds this ped, which a handle the streamer reclaimed no longer names. */
  holdsScripted(ped:Pedestrian){return this.people.includes(ped);}
  /** A passenger climbs out at a door point and rejoins the street. */
- async spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean,keepValue?:unknown){
+ /** CTaskSimpleCarJumpOut for a ped leaving a moving car: CAR_rollout_LHS or _RHS carries it on with the car's move
+  * speed (m_initialVehSpeed), and it gets up from the front. Unlike a knockdown, nothing frightens it. */
+ private rollOut(p:Pedestrian,velocity:{x:number;z:number},clip:'car_rollout_lhs'|'car_rollout_rhs'){
+  const fall=p.view.reactionDuration(clip);if(fall===undefined)return;
+  const getUp=p.view.reactionDuration(getUpClip(clip))??1.37;
+  p.down=fall+getUp;p.fallClip=clip;p.stuckUnderCar=false;p.impulse={x:velocity.x,z:velocity.z};
+  p.view.playReaction(clip,fall);p.collider.setShape(new RAPIER.Ball(.3));
+ }
+ async spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean,keepValue?:unknown,rollout?:{velocity:{x:number;z:number};clip:'car_rollout_lhs'|'car_rollout_rhs'}){
   const keep=keepValue as PassengerKeep|undefined;
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const node=this.nearestNode(position);if(!node)return false;
@@ -1988,6 +1996,7 @@ export class WorldPedestrians {
   const p=this.people[this.people.length-1];
   p.follow=follow;p.flee=0;
   if(keep){p.health=keep.health;if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);}
+  if(rollout)this.rollOut(p,rollout.velocity,rollout.clip);
   return true;
  }
  private allowed(n:PathNode){return n.kind==='pedestrian'&&!n.water&&!n.switchedOff&&!n.dontWander&&n.linkCount>0;}

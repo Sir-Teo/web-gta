@@ -102,6 +102,29 @@ test('a jump-out takes the passenger door when a wall blocks the driver\'s, and 
  expect(result.one).toEqual({phase:'jumpOut',side:'right'});
  await page.evaluate(()=>(window as any).__entry.dispose());expect(errors).toEqual([]);
 });
+test('a recruit riding with CJ rolls out with the car\'s speed when he jumps out',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
+ await page.evaluate(`(${harness.toString()})().then(h=>{window.__entry=h;})`);await page.waitForFunction(()=>!!(window as any).__entry,undefined,{timeout:120000});
+ const result=await page.evaluate(()=>{
+  const h=(window as any).__entry,spawned:any[]=[];
+  h.entry.crowd={followers:()=>[],boardPassenger:()=>undefined,spawnPassenger:(_m:unknown,_p:unknown,_h:unknown,_f:unknown,_k:unknown,rollout:any)=>{spawned.push(rollout??null);return true;}};
+  const ride=(fast:boolean)=>{
+   h.reset(-4,1);h.entry.enter(h.car);
+   for(let i=0;i<60*12&&!h.entry.seated;i++){h.step();h.entry.stepPassengers(1/60);}
+   h.entry.passengers.push({modelRef:0,seat:1,follow:true});
+   for(let i=0;i<60*(fast?6:0);i++){h.step({pedal:true});h.entry.stepPassengers(1/60);}
+   for(let i=0;i<60*(fast?0:3);i++){h.step({handbrake:true});h.entry.stepPassengers(1/60);}
+   h.entry.exit();
+   for(let i=0;i<60*4&&(h.entry.active||spawned.length<(fast?1:2));i++){h.step();h.entry.stepPassengers(1/60);}
+  };
+  ride(true);
+  return spawned.map(r=>r&&{clip:r.clip,speed:Math.hypot(r.velocity.x,r.velocity.z)});
+ });
+ console.log(JSON.stringify(result));
+ // GroupEventHandler: the follower leaves without waiting (bSensibleLeaveCar off), rolling out of the right front seat.
+ expect(result[0]?.clip).toBe('car_rollout_rhs');expect(result[0]?.speed).toBeGreaterThan(8);
+ await page.evaluate(()=>(window as any).__entry.dispose());expect(errors).toEqual([]);
+});
 test('entering an NPC-driven car drags the driver out with CAR_pullout and CAR_jacked, or evicts him through the driver door',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
  await page.evaluate(`(${harness.toString()})().then(h=>{window.__entry=h;})`);await page.waitForFunction(()=>!!(window as any).__entry,undefined,{timeout:120000});
