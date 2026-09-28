@@ -766,6 +766,13 @@ async function boot() {
   // Uzi or Tec-9 with ammo, else its MP5, is taken up; that is the one weapon a driver's drive-by fires. With none the
   // weapon stays put and there is no drive-by. ReplaceWeaponWhenExitingVehicle gives the saved weapon back.
   let driverSavedWeapon:number|undefined;
+  // CPad::GetLookLeft / GetLookRight: one shoulder held and not the other, refused on the frame it is pressed and on the
+  // frame the other is released; both held is the look-behind, which fires ahead.
+  let lookQ=false,lookE=false;
+  const bikeLookSide=():'left'|'right'|'forward'=>{
+   const q=input.down('KeyQ'),e=input.down('KeyE'),side=q&&!e&&!(q&&!lookQ)&&!(lookE&&!e)?'left':e&&!q&&!(e&&!lookE)&&!(lookQ&&!q)?'right':'forward';
+   lookQ=q;lookE=e;return side;
+  };
   const DRIVER_DRIVEBY_WEAPONS=[28,32,29];
   const stepDriverWeapon=(driving:boolean)=>{
     const inv=weapons.inventory,loaded=(id:number)=>{const a=inv.ammo.get(id);return inv.owned.has(id)&&!!a&&a.clip+a.reserve>0;};
@@ -2768,7 +2775,7 @@ async function boot() {
         // is held, which shoots out of that side (CVehicle::DoDriveByShootings is unreversed; the styles are its own).
         if(fleet?.occupiedBike&&!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
-         if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBike(fleet.occupiedBike,{origin:render.camera.position,direction},input.down('KeyQ')?'left':input.down('KeyE')?'right':'forward');}
+         if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBike(fleet.occupiedBike,{origin:render.camera.position,direction},bikeLookSide());}
         }
         const rocket=input.consume('KeyB')||input.down('KeyB');
         // The guns and the ordnance are separate buttons with separate clocks: both can fire together.
