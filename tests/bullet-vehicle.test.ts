@@ -26,3 +26,13 @@ test('DoBulletImpact pushes a car along the hit normal, harder for the Desert Ea
  // Light vehicles scale the force by mass / 1000.
  expect(push(22,500)).toBeCloseTo(10*.5*50/500,6);
 });
+
+// CWeapon::FireInstantHit takes a wheel piece as the hit only when BurstTyre would take it: a burst or missing tyre, a
+// Rhino's or a bTyresDontBurst car's wheel is no hit, so the shot goes on to the body or past the car.
+test('a burst tyre, a Rhino and a car whose tyres do not burst are passed by',()=>{
+ const spheres=[{x:10,y:0,z:0,radius:.35,wheel:0}],source={x:0,y:0,z:0},direction={x:1,y:0,z:0};
+ const fresh=car(10,spheres);expect(bulletTyreHit([fresh.car],source,direction,50)?.wheel).toBe(0);
+ const burst=car(10,spheres);(burst.car as any).damageState={wheels:[1,0,0,0]};expect(bulletTyreHit([burst.car],source,direction,50)).toBeUndefined();
+ const rhino=car(10,spheres);(rhino.car as any).modelId=432;expect(bulletTyreHit([rhino.car],source,direction,50)).toBeUndefined();
+ const solid=car(10,spheres);(solid.car as any).tyresDontBurst=true;expect(bulletTyreHit([solid.car],source,direction,50)).toBeUndefined();
+});
