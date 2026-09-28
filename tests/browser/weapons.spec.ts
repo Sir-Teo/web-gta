@@ -17,11 +17,11 @@ test('arsenal equips every weapon and guns aim, fire, reload when empty, and pau
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
- await page.keyboard.press('Tab');await expect(page.locator('.arsenal')).toBeVisible();
+ await page.keyboard.press('Backquote');await expect(page.locator('.arsenal')).toBeVisible();
  expect(await page.locator('[data-weapon]').count()).toBe(44);await page.screenshot({path:'artifacts/arsenal.png'});
  const ids=await page.locator('[data-weapon]').evaluateAll(nodes=>nodes.map(n=>Number((n as HTMLElement).dataset.weapon)));
- for(const id of ids){if(!(await state()).weapons.arsenal)await page.keyboard.press('Tab');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.error).toBeNull();await expect.poll(async()=>{const s=(await state()).weapons;return s.id===id&&s.ready;},{timeout:10000}).toBe(true);}
- await page.keyboard.press('Tab');await page.locator('[data-weapon="31"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ for(const id of ids){if(!(await state()).weapons.arsenal)await page.keyboard.press('Backquote');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.error).toBeNull();await expect.poll(async()=>{const s=(await state()).weapons;return s.id===id&&s.ready;},{timeout:10000}).toBe(true);}
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="31"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  await page.mouse.move(750,420);await page.mouse.down({button:'right'});await page.mouse.down();
  await expect.poll(async()=>(await state()).weapons.clip).toBeLessThan(49);await page.screenshot({path:'artifacts/weapons-m4.png'});
  // SA has no reload control: CWeapon::Fire reloads when the clip runs out.
@@ -38,7 +38,7 @@ test('camera downloads a photo in its first-person mode, vision toggles and snip
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);
- const equip=async(id:number)=>{await page.keyboard.press('Tab');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);};
+ const equip=async(id:number)=>{await page.keyboard.press('Backquote');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);};
  // The camera fires only in MODE_CAMERA, entered by holding the target button.
  await equip(43);await page.mouse.move(720,450);await page.mouse.down({button:'right'});await expect.poll(async()=>(await state()).camera.firstPerson).toBe('camera');
  const download=page.waitForEvent('download');await page.keyboard.press('ControlLeft');expect((await download).suggestedFilename()).toMatch(/^San-Andreas-.*\.png$/);

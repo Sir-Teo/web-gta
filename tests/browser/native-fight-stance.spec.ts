@@ -5,7 +5,7 @@ test('a targeted melee weapon holds the fight stance and shuffles sideways on th
  test.setTimeout(120000);await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:45000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="5"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="5"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  const probe=()=>page.evaluate(()=>{const g=(window as any).__game,st=g.state(),nc=g.render().nativeCharacter;
   return {action:nc.action,poses:nc.fightAnims?nc.fightAnims.poses().map((a:any)=>a.clip):[],heading:st.player.heading,position:{...st.player.position}};});

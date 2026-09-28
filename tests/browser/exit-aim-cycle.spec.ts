@@ -22,7 +22,7 @@ test('car exits, aim-walking and entry spam leave the player state clean',async(
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).nativeCar!=null,{timeout:30000}).toBe(true);
  await page.locator('canvas.world').click({position:{x:400,y:300}});await gameWait(.5);
- for(const weapon of [22,30]){await page.keyboard.press('Tab');await page.locator(`[data-weapon="${weapon}"]`).click();await expect.poll(async()=>(await state()).weapons.ready,{timeout:30000}).toBe(true);}
+ for(const weapon of [22,30]){await page.keyboard.press('Backquote');await page.locator(`[data-weapon="${weapon}"]`).click();await expect.poll(async()=>(await state()).weapons.ready,{timeout:30000}).toBe(true);}
  const enter=async()=>{
   await page.evaluate(()=>(window as any).__game.placeCar(2491,13.3,1680,0));await gameWait(.5);
   await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2491,g.groundAt(2491,1684,300)+.05,1684);g.turnPlayer(0);});
@@ -34,7 +34,7 @@ test('car exits, aim-walking and entry spam leave the player state clean',async(
  // CTaskSimpleUseGun's GunMove clips carry CJ facing the aim: forward, strafing (firing on the move where the weapon
  // allows) and back; the released aim leaves him idle with the gun down.
  const aimWalk=async(weapon:number,tag:string)=>{
-  await page.keyboard.press('Tab');await page.locator(`[data-weapon="${weapon}"]`).click();await expect.poll(async()=>(await state()).weapons.ready,{timeout:30000}).toBe(true);
+  await page.keyboard.press('Backquote');await page.locator(`[data-weapon="${weapon}"]`).click();await expect.poll(async()=>(await state()).weapons.ready,{timeout:30000}).toBe(true);
   await page.mouse.move(720,450);await page.mouse.down({button:'right'});await gameWait(.4);
   const aimed=await probe();expect(aimed.action,tag).toBe('gunMove');
   await page.keyboard.down('KeyW');await gameWait(1);const fwd=await probe();await page.keyboard.up('KeyW');

@@ -8,7 +8,7 @@ test('the heat seeker marks a car ahead, locks after 1.5 s and fires at it',asyn
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1668));await page.waitForTimeout(300);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="36"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="36"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  await page.mouse.move(720,450);await page.mouse.down({button:'right'});
  await expect.poll(async()=>(await state()).camera.firstPerson).toBe('rocketHs');
  // The car parks 14 units along the heat-seeker camera's own line. Every other vehicle is made untargetable, as

@@ -9,7 +9,7 @@ test('firing a pistol at a ped in reach pistol-whips it with GUN_BUTT and spends
  await expect.poll(async()=>{const s=await state();return !!s.weapons?.ready&&!!s.nativeCharacter&&(s.pedestrians?.people?.length??0)>0;},{timeout:60000}).toBe(true);
  // INTRO takes CJ into the police car a few seconds in and holds his controls; this plays on in free roam.
  await endStoryMission(page);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  // Face CJ and the camera one way.
  await page.evaluate(()=>(window as any).__game.turnPlayer(Math.PI));
  const s0=await state(),h=s0.player.heading,at={x:s0.player.position.x+Math.sin(h)*.8,y:s0.player.position.y,z:s0.player.position.z+Math.cos(h)*.8};

@@ -7,7 +7,7 @@ test('an aimed pistol points its barrel at the aim, standing and moving',async({
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();
  await page.waitForFunction(()=>(window as any).__game.state().weapons.ready,undefined,{timeout:30000});
  const offDegrees=()=>page.evaluate(()=>{const nc=(window as any).__game.render().nativeCharacter,V=nc.root.position.constructor,hand=nc.hand(24);
   const barrel=new V(1,0,0).transformDirection(hand.matrixWorld),to=nc.weaponAimPoint.clone().sub(new V().setFromMatrixPosition(hand.matrixWorld)).normalize();

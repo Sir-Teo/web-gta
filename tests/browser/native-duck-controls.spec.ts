@@ -37,7 +37,7 @@ test('a crouched CJ aiming a pistol rolls sideways and steps back',async({page})
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1668));await page.waitForTimeout(300);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  await page.keyboard.press('KeyC');await expect.poll(async()=>(await state()).player.crouched).toBe(true);
  await page.mouse.move(720,450);await page.mouse.down({button:'right'});await page.waitForTimeout(500);
  const before=await state(),h=before.player.heading,forward={x:Math.sin(h),z:Math.cos(h)};

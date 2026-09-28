@@ -6,7 +6,7 @@ test('peds that hear the player fire flee him to 60 units, then stop fleeing',as
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  await page.waitForFunction(()=>(window as any).__game?.state().weapons?.ready&&(window as any).__game.state().nativeCharacter&&((window as any).__game.state().pedestrians?.people??[]).length>0,undefined,{timeout:60000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  // MAIN turns CJ to its own start heading once the script runs; read his heading after that.
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);

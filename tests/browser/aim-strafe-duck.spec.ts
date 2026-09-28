@@ -7,7 +7,7 @@ test('the duck button crouches CJ while he strafes with a rifle aimed',async({pa
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const crouched=()=>page.evaluate(()=>(window as any).__game.state().player.crouched as boolean);
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
- await page.keyboard.press('Tab');await page.locator('[data-weapon="31"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="31"]').click();
  await page.waitForFunction(()=>(window as any).__game.state().weapons.ready,undefined,{timeout:30000});
  await page.mouse.move(700,450);await page.mouse.down({button:'right'});await page.keyboard.down('KeyA');
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().nativeCharacter?.action),{timeout:30000}).toBe('gunMove');

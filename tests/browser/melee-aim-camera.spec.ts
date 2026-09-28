@@ -9,7 +9,7 @@ test('the target button pulls the gun camera in for a gun only',async({page})=>{
  const state=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {fov:s.camera.fov as number,aiming:s.weapons.aiming,ready:s.weapons.ready,grounded:s.player.grounded};});
  await expect.poll(async()=>(await state()).grounded,{timeout:60000}).toBe(true);
  const fovAiming=async(id:number)=>{
-  await page.keyboard.press('Tab');await page.locator(`[data-weapon="${id}"]`).click();
+  await page.keyboard.press('Backquote');await page.locator(`[data-weapon="${id}"]`).click();
   await expect.poll(async()=>(await state()).ready).toBe(true);
   const idle=(await state()).fov;
   await page.mouse.move(700,450);await page.mouse.down({button:'right'});await page.waitForTimeout(600);

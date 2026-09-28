@@ -6,7 +6,7 @@ test('a photo spends film and marks the ped in frame as photographed',async({pag
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="43"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="43"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  const film=(await state()).weapons.clip;
  await page.mouse.move(720,450);await page.mouse.down({button:'right'});await page.waitForTimeout(1200);

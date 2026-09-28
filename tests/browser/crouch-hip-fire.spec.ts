@@ -7,7 +7,7 @@ test('hip-firing crouched stops the crouch-walk',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {p:{...s.player.position},crouched:s.player.crouched,grounded:s.player.grounded};});
  await expect.poll(async()=>(await state()).grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="31"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="31"]').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().weapons.ready)).toBe(true);
  await page.keyboard.press('KeyC');
  await expect.poll(async()=>(await state()).crouched,{timeout:5000}).toBe(true);

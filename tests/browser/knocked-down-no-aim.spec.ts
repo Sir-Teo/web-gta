@@ -8,7 +8,7 @@ test('a knocked-down CJ neither aims, fires, ducks nor jumps, and aims again onc
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {knockdown:s.knockdown,action:s.nativeCharacter?.action,shots:s.weapons.shots,grounded:s.player.grounded,crouched:s.player.crouched};});
  await expect.poll(async()=>(await state()).grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().weapons.ready)).toBe(true);
  await page.evaluate(()=>{(window as any).__game.sim.knockdown=3;});
  await page.keyboard.press('KeyC');await page.keyboard.press('Space');

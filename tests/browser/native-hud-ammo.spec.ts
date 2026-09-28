@@ -9,7 +9,7 @@ test('the HUD shows CHud::DrawAmmo under the weapon icon and no weapon name line
  await expect(page.locator('.native-weapon-icon')).toBeVisible();await expect(page.locator('svg.weapon')).toBeHidden();
  expect(await page.locator('.native-weapon-icon').getAttribute('src')).toMatch(/^data:image\/png/);
  await expect(page.locator('.weapon-ammo')).toBeHidden();
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  const ammo=page.locator('.weapon-ammo');
  await expect(ammo).toBeVisible();await expect(ammo).toHaveText(/^\d+-\d+$/);

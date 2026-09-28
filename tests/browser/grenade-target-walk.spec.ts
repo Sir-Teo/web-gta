@@ -8,7 +8,7 @@ test('the target button with a grenade leaves CJ steering by the stick',async({p
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {heading:s.player.heading as number,yaw:s.camera.yaw as number,grounded:s.player.grounded};});
  await expect.poll(async()=>(await state()).grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="16"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="16"]').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().weapons.ready)).toBe(true);
  await page.mouse.move(700,450);await page.mouse.down({button:'right'});await page.keyboard.down('KeyA');
  await page.waitForTimeout(1500);

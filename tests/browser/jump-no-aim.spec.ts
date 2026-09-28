@@ -7,7 +7,7 @@ test('aiming and firing wait for the jump to land',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {grounded:s.player.grounded,action:s.nativeCharacter?.action,shots:s.weapons.shots};});
  await expect.poll(async()=>(await state()).grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().weapons.ready)).toBe(true);
  await page.mouse.move(700,450);
  await page.keyboard.press('Space');

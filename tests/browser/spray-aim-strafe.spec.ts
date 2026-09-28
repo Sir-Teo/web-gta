@@ -8,7 +8,7 @@ test('aiming the spray can or extinguisher strafes on the gun-move clips',async(
  const state=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {action:s.nativeCharacter?.action,speed:s.player.speed,grounded:s.player.grounded};});
  await expect.poll(async()=>(await state()).grounded,{timeout:60000}).toBe(true);
  for(const id of [41,42]){
-  await page.keyboard.press('Tab');await page.locator(`[data-weapon="${id}"]`).click();
+  await page.keyboard.press('Backquote');await page.locator(`[data-weapon="${id}"]`).click();
   await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().weapons.ready)).toBe(true);
   await page.mouse.move(700,450);await page.mouse.down({button:'right'});await page.keyboard.down('KeyA');
   await expect.poll(async()=>(await state()).action,{timeout:30000}).toBe('gunMove');

@@ -5,7 +5,7 @@ test('aiming a pistol turns CJ\'s head to the aim point and releases it after, a
  test.setTimeout(120000);await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:45000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  const probe=()=>page.evaluate(()=>{
   const nc=(window as any).__game.render().nativeCharacter,THREE={Vector3:nc.root.position.constructor,Quaternion:nc.root.quaternion.constructor};

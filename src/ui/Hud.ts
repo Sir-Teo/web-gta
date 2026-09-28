@@ -76,7 +76,7 @@ export class Hud {
       <div class="mission-timers" hidden></div>
       <div class="trip-skip" hidden><img alt=""><span></span></div>
       <div class="stat-update" hidden><span class="stat-name"></span> <b class="stat-sign"></b><div class="stat-bar"><i></i></div></div>
-      <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>TAB</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
+      <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>&#96;</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">San Andreas</p><h1>San Andreas</h1><p class="menu-location">San Andreas</p>
         <div class="menu-actions"><button id="play" disabled>Loading the native world…</button><button id="new-game" hidden>New Game</button><button id="controls">Controls</button><button id="audio">Audio</button><button id="lighting">Lighting</button></div>

@@ -7,7 +7,7 @@ test('birds fly past the camera by day and a gunshot drops one',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  // Frame 6 of 512 tries a flock; a building in its path can refuse one, so try from a few headings.
  for(let i=0;i<24&&(await state()).birds.count===0;i++){
   await page.evaluate(h=>{const g=(window as any).__game;g.turnPlayer(h);g.birdFrame(5);},i*Math.PI/4);

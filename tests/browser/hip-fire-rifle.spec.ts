@@ -8,7 +8,7 @@ test('firing a rifle without aiming strafes facing the camera',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {action:s.nativeCharacter?.action,heading:s.player.heading as number,yaw:s.camera.yaw as number,grounded:s.player.grounded};});
  await expect.poll(async()=>(await state()).grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="31"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="31"]').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().weapons.ready)).toBe(true);
  await page.keyboard.down('Control');await page.keyboard.down('KeyA');
  await expect.poll(async()=>(await state()).action,{timeout:30000}).toBe('gunMove');
