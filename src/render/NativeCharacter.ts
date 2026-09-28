@@ -278,6 +278,8 @@ export class NativeCharacter {
   }
   /** Keeps the current reaction on its last frame until cleared, as a ped held down. */
   holdReaction(){if(this.reaction)this.reaction.end=Infinity;}
+  /** The reaction's clock stands still (a fall's lie waiting for the ground under CTaskSimpleFall). */
+  reactionPaused=false;
   hasReaction(name:string){return this.reactions.has(name);}
   reactionDuration(name:string){return this.reactions.get(name)?.duration;}
   /** `loop` wraps the clip (an ANIMATION_LOOPED association); otherwise it stops on its last frame. */
@@ -484,7 +486,7 @@ export class NativeCharacter {
     this.ikClockMs+=dt*1000;this.ikFrameMs+=dt*1000;this.stepHeading=sim.player.heading;
     this.stepAimLook(dt*1000);
     this.aimBlend=this.weaponPose&&!lowered?Math.min(1,this.aimBlend+8*dt):Math.max(0,this.aimBlend-(this.weaponPose&&lowered?4:8)*dt);
-    if(this.reaction){this.reaction.time+=dt*this.reaction.speed;if(this.reaction.time>=this.reaction.end){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
+    if(this.reaction){if(!this.reactionPaused)this.reaction.time+=dt*this.reaction.speed;if(this.reaction.time>=this.reaction.end){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;
     // CTaskComplexInAirAndLand makes no land task after a climb or into water: the swim (and the climb, resetAirborne)
     // ends the air time.

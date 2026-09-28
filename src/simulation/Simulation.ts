@@ -167,7 +167,15 @@ export class Simulation {
     this.animationMovement = null;
     this.advancePlayerDeath(dt);
     // A knocked-down player lies still until the get-up finishes.
-    if (this.knockdown > 0) { this.knockdown = Math.max(0, this.knockdown - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
+    if (this.knockdown <= 0) this.knockdownStalled = false;
+    if (this.knockdown > 0) {
+      // CTaskSimpleFall counts its down time only once the clip has finished and the ped is standing or drowning: lofted
+      // by a blast, the lie waits on the last frame until he lands.
+      const inLie = this.knockdown <= this.knockdownLie + this.knockdownGetUp && this.knockdown > this.knockdownGetUp;
+      this.knockdownStalled = inLie && !this.player.grounded && !this.player.swimming;
+      if (!this.knockdownStalled) this.knockdown = Math.max(0, this.knockdown - dt);
+      controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined };
+    }
     // CTaskSimpleHitHead stands the player still until HIT_WALL ends.
     else if (this.hitHead > 0) { this.hitHead = Math.max(0, this.hitHead - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
     this.advanceClock(dt * this.clockRate());
@@ -289,6 +297,9 @@ export class Simulation {
   knockdown = 0;
   /** The get-up at the end of `knockdown`; while more than this remains the player is still in the fall. */
   knockdownGetUp = 0;
+  /** The lie between the fall clip's end and the get-up (CTaskSimpleFall's m_nCurrentDownTime), and whether it is
+   * waiting for the player to be supported. */
+  knockdownLie = 0; knockdownStalled = false;
   /** Seconds of CTaskSimpleHitHead left after a blocked jump. */
   hitHead = 0;
   /** CTaskSimpleHitHead::ProcessPed: blends HIT_WALL (delta 8) on the player and returns its length in seconds. */

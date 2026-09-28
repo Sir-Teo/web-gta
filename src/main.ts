@@ -400,7 +400,7 @@ async function boot() {
     // clear of it, rolling on CAR_rollout_LHS or _RHS for the door's side, then up from the front.
     sim.collisionPush={x:v.x,z:v.z};sim.ignoreVehicleOnExit(ride.car.car.body);
     const view=render.nativeCharacter,clip=out.side>0?'car_rollout_rhs':'car_rollout_lhs';
-    if(view?.hasReaction(clip)){const fall=view.reactionDuration(clip)??1,getUp=playerFall(view,clip);sim.knockdown=fall+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall);}
+    if(view?.hasReaction(clip)){const fall=view.reactionDuration(clip)??1,getUp=playerFall(view,clip);sim.knockdown=fall+getUp;sim.knockdownLie=0;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall);}
    }
    return true;
   };
@@ -493,7 +493,7 @@ async function boot() {
   dive:(yaw,lie)=>{
    const view=render.nativeCharacter;if(!view?.hasReaction('ev_dive')||carEntry.seated||playerPassenger)return false;
    sim.player.heading=yaw;const fall=view.reactionDuration('ev_dive')??2.33,getUp=playerFall(view,'ev_dive');
-   sim.knockdown=fall+lie+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ev_dive',fall+lie);return true;
+   sim.knockdown=fall+lie+getUp;sim.knockdownLie=lie;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ev_dive',fall+lie);return true;
   },
   diving:()=>sim.knockdown>0,
   // The player's driving tasks: the car he sits in, the one the script names, drives on its autopilot.
@@ -1797,7 +1797,7 @@ async function boot() {
   carEntry.onPlayerDraggedOut=clip=>{
     const view=render.nativeCharacter,getUp=playerFall(view,clip.key);
     view?.holdClipEnd(`dragged:${clip.key}`,clip.clip,1);
-    sim.knockdown=1+getUp;sim.knockdownGetUp=playerGetUp=getUp;
+    sim.knockdown=1+getUp;sim.knockdownLie=1;sim.knockdownGetUp=playerGetUp=getUp;
   };
   /** CEventDamage on the player: ComputeDamageAnim flinches, knockdowns through CTaskComplexFallAndGetUp
    * (fall, a second on the ground, get up), and ComputeDeathAnim when the hit kills. */
@@ -1820,6 +1820,7 @@ async function boot() {
   };
   const playerDamageReactions=(dt:number)=>{
     const view=render.nativeCharacter;
+    if(view)view.reactionPaused=sim.knockdownStalled;
     if(sim.player.health>0&&playerDied){playerDied=false;view?.clearReaction();}
     // CTaskSimpleInAir's FALL_FALL while CJ drops, then CTaskComplexInAirAndLand's landing of it: FALL_COLLAPSE, or
     // after the fastest falls CTaskSimpleFall's KO_SKID_BACK for 700 ms and the get-up.
@@ -1828,8 +1829,8 @@ async function boot() {
       else if(view.reactionName==='fall_fall'&&(sim.player.grounded||sim.player.swimming)&&!sim.fallLanding)view.clearReaction();
       const landing=sim.fallLanding;sim.fallLanding=undefined;
       // CTaskSimpleFall counts its 700 ms down only once the clip has finished.
-      if(landing==='knockdown'&&view.hasReaction('ko_skid_back')){const fall=view.reactionDuration('ko_skid_back')??1,getUp=playerFall(view,'ko_skid_back');sim.knockdown=fall+.7+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ko_skid_back',fall+.7);}
-      else if(landing==='collapse'&&view.hasReaction('fall_collapse')){const d=view.reactionDuration('fall_collapse')??1;view.playReaction('fall_collapse',d);sim.knockdown=d;sim.knockdownGetUp=0;}
+      if(landing==='knockdown'&&view.hasReaction('ko_skid_back')){const fall=view.reactionDuration('ko_skid_back')??1,getUp=playerFall(view,'ko_skid_back');sim.knockdown=fall+.7+getUp;sim.knockdownLie=.7;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ko_skid_back',fall+.7);}
+      else if(landing==='collapse'&&view.hasReaction('fall_collapse')){const d=view.reactionDuration('fall_collapse')??1;view.playReaction('fall_collapse',d);sim.knockdown=d;sim.knockdownLie=0;sim.knockdownGetUp=0;}
     }
     // A CJ killed while he lies stays down: the death sequence owns him, not the get-up.
     if(playerGetUp&&sim.knockdown<=playerGetUp&&view&&sim.player.health>0){
@@ -1838,7 +1839,7 @@ async function boot() {
       if(sim.player.health>0&&getUpBlockedBy(carOverPlayer()?{bike:false,standingOn:false,attached:false}:undefined)){
         // CTaskSimpleGetUp does not start while bStuckUnderCar: the fall clip stays on its last frame. Its reaction has
         // usually just ended as the lie ran out, so it is put back held on that frame.
-        playerStuckUnderCar=true;sim.knockdown=playerGetUp;
+        playerStuckUnderCar=true;sim.knockdown=playerGetUp;sim.knockdownLie=0;
         if(playerFallClip&&view.reactionName!==playerFallClip&&view.hasReaction(playerFallClip))view.playReaction(playerFallClip,Infinity,false,view.reactionDuration(playerFallClip)??0);else view.holdReaction();if(dt>0)sim.damagePlayer(stuckUnderCarDamage(dt*50,true),false,{weapon:WEAPON.runOverByCar});
       }else{playerStuckUnderCar=false;view.playReaction(getUpClip(playerFallClip),playerGetUp,true);playerGetUp=0;}
     }
@@ -1897,7 +1898,7 @@ async function boot() {
         // CTaskComplexFallAndGetUp's lie: 500 ms for the player after a car or a fall (1000 for a street ped), else
         // 1000 / (shooting rate / 40).
         const lie=event.weapon===WEAPON.rammedByCar||event.weapon===WEAPON.runOverByCar||event.weapon===WEAPON.fall?.5:1;
-        endGetUp();sim.knockdown=fall+lie+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+lie);
+        endGetUp();sim.knockdown=fall+lie+getUp;sim.knockdownLie=lie;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+lie);
         continue;
       }
       // CEventHandler::ComputeDamageResponse: past CWeaponInfo::TypeIsWeapon (type < WEAPON_LAST_WEAPON, 47) only a car's
@@ -1914,7 +1915,7 @@ async function boot() {
       if(hit.fallDown){
         // Fall, lie a second, then get up; input waits for all of it.
         const fall=view.reactionDuration(hit.clip)??1,getUp=playerFall(view,hit.clip);
-        sim.knockdown=fall+1+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(hit.clip,fall+1);
+        sim.knockdown=fall+1+getUp;sim.knockdownLie=1;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(hit.clip,fall+1);
       }else view.playReaction(hit.clip);
       knockPlayer(hit.force,event.from);
     }
