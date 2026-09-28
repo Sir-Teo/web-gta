@@ -1,4 +1,5 @@
 import {deadPedWeaponDrops} from './WeaponDrops';
+import {weaponAtStartOfFight} from '../ped/nativeFightWeapon';
 import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
 import { CHEATS, megaPunchBlow } from './nativeCheats';
 import {GangPedRoster,ZonePedRoster,type PedZoneGroups} from './nativePedRoster';
@@ -587,7 +588,11 @@ export class WorldPedestrians {
  private takesPriority(p:Pedestrian,type:number,source?:Pedestrian){return takesPriorityOverCurrentEvent(p.event&&this.answering(p)?p.event:undefined,type,source);}
  /** A kill task on `source` (the player when undefined): CTaskComplexKillPedOnFoot's ControlSubTask is a stub, so the
   * ped fights for KILL_PED_ON_FOOT_SECONDS (authored). */
- private killPedOnFoot(p:Pedestrian,source?:Pedestrian){p.retaliate=Math.max(p.retaliate,KILL_PED_ON_FOOT_SECONDS);p.flee=0;p.fleePlayer=undefined;p.foe=source;}
+ private killPedOnFoot(p:Pedestrian,source?:Pedestrian){
+  // CPed::GiveWeaponAtStartOfFight (its caller is unreversed; the fight's start is where its name puts it): an
+  // unarmed street ped may draw a weapon by his random seed, with 50 rounds.
+  if(p.retaliate<=0&&!p.mission&&!p.weapon&&p.weaponType===undefined){const w=weaponAtStartOfFight(p.pedType,p.seed);if(w!==undefined)this.giveWeapon(p,w,50);}
+  p.retaliate=Math.max(p.retaliate,KILL_PED_ON_FOOT_SECONDS);p.flee=0;p.fleePlayer=undefined;p.foe=source;}
  /** CEventHandler::ComputePersonalityResponseToDamage (0x4BF9B0) for weapon damage from the player. Returns false when
   * the decision files are missing. A ped still answering damage (or a higher event) keeps its answer. Ducking is not
   * modelled, so DUCK answers nothing here. */
