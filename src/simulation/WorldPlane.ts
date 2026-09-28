@@ -70,6 +70,8 @@ export class WorldPlane {
  health=1000;vtol=true;
  /** CAutomobile::m_fBurnTimer in milliseconds, which ProcessCarOnFireAndExplode runs for planes and helicopters too. */
  burnTimer=0;
+ /** Set by a BlowUpCar the flight step reached (the water dive) until afterStep hands the explosion on. */
+ private pendingExplosion=false;
  /** EXPLOSION_ROCKET at the aircraft: a burning aircraft nobody flies goes off like this 1.2% of frames. */
  onBurnExplosion?:(position:{x:number;y:number;z:number})=>void;
  random:()=>number=Math.random;
@@ -303,7 +305,8 @@ export class WorldPlane {
   this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
   if(this.helicopter)this.rotorSpeed=rotor.rotorSpeed;
   if(result.rotorKilled||result.engineOff)this.throttle=0;
-  if(result.blowUp&&this.health>0)this.damage(this.health);
+  // CAutomobile::ProcessBuoyancy's BlowUpCar for a plane diving into the water: the explosion follows.
+  if(result.blowUp&&this.health>0&&this.damage(this.health))this.pendingExplosion=true;
  }
  private stepDt=1/60;
  /** CAutomobile::ProcessCarOnFireAndExplode for a plane or helicopter: the burn timer runs at the full time step (the
@@ -317,7 +320,7 @@ export class WorldPlane {
   if(!this.occupied&&!rc&&this.random()<1-Math.pow(1-.012,dt*30))this.onBurnExplosion?.({...this.body.translation()});
   return false;
  }
- afterStep(){let destroyed=false;
+ afterStep(){let destroyed=this.pendingExplosion;this.pendingExplosion=false;
   if(!this.occupied)this.exitPending=false;
   else if(this.exitPending&&this.leaveMode()==='wait')this.slowForExit(this.stepDt);
   const change=new Vector3().copy(this.body.linvel()).sub(this.impactVelocity).length();
