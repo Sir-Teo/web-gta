@@ -3797,7 +3797,7 @@ async function boot() {
             if(!hit)throw new Error('No native road surface for the Greenwood.');
             // CAutomobile::VehicleDamage: ramming a manned law car gives the player a star.
             WorldCar.onPlayerRammedLaw=()=>law.setLevelNoDrop(1);
-            worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);
+            worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);worldCar.driverless=true;
             worldCar.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
             fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.outside=()=>render.lighting.area===0;fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
             // ClearSpaceForMissionEntity's ped removals reach the crowd once it exists.

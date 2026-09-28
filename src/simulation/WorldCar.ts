@@ -617,14 +617,14 @@ export class WorldCar {
   // drives it): a driver still aboard brakes and holds; one dragged out drives no more.
   const holding=!this.occupied&&!this.driverOut&&this.holdForEntry&&!!this.autopilot?(()=>{const v=this.car.body.linvel();return {steering:0,throttle:0,brake:1,handbrake:Math.hypot(v.x,v.z)<.3} as TrafficControls;})():undefined;
   const p=this.input.pedals,ai=this.occupied&&!this.scriptDriven?undefined:!this.occupied&&this.driverOut?undefined:holding??this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
-  p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.driverless;
+  p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.abandoned;
   // ProcessControlInputs' automaticallyHandBrake: while the driver waits to slow down, is dragged out or holds exit,
   // the gas is 0 and the brake full, not the handbrake alone.
   p.automaticallyHandbrake=this.occupied&&this.exitHandbrake;
   // CAutomobile::ProcessControl's STATUS_ABANDONED branch: no handbrake, gas or steering, and a 0.2 brake once
   // |v|² < 0.01 units/frame (0.5 on a physical object is not modelled), else none: a car left on a slope settles.
   // These are the native pedals themselves (the S key's brake-then-reverse must not drive an empty car backwards).
-  const abandoned=!this.occupied&&!ai&&this.driverless?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
+  const abandoned=!this.occupied&&!ai&&this.abandoned?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
   if(abandoned){p.accelerate=0;p.brake=0;p.handbrake=false;}// CPad::GetSteeringLeftRight answers 0 while player controls are disabled.
   this.input.steering.steeringAxis=driving?(this.controlsDisabled?0:axes.x*128):Math.round((ai?.steering??0)*128);
   if(this.wrecked){p.accelerate=0;p.brake=255;p.handbrake=true;}
@@ -939,6 +939,10 @@ export class WorldCar {
  }
  /** CVehicle::RemoveDriver's STATUS_ABANDONED: a car its driver left (stepped, jumped, crawled or was dragged out). */
  driverless=false;
+ /** STATUS_ABANDONED: nobody drives it. CCarGenerator, CCheat::VehicleCheat and CCarCtrl::CreateCarForScript create cars
+  * so, and CVehicle::RemoveDriver sets it whenever a driver gets out (driverless for the player's exits, driverOut for
+  * a ped's). */
+ get abandoned(){return this.driverless||this.driverOut;}
  /** The AI driver in the seat has died there (CTaskComplexDieInCar's dead-in-seat branch): pulled out, he is a corpse. */
  driverDead=false;
  /** PrepareVehicleForPedEnter: the NPC driver stops while someone lines up with the car. */
@@ -978,7 +982,7 @@ export class WorldCar {
   if(building&&direction.x*up.x+direction.y*up.y+direction.z*up.z>.6)return;
   const p=this.car.body.translation(),localDir=((point.x-p.x)*right.x+(point.y-p.y)*right.y+(point.z-p.z)*right.z)/this.boundsMaxX,dirDotRight=direction.x*right.x+direction.y*right.y+direction.z*right.z;
   // A cop car the player's car rams while going at least as fast, and faster than 0.1 units a frame, gives him a star.
-  if(rammedByPlayer&&player&&LAW_ENFORCEMENT_MODELS.has(this.modelId)&&!this.driverless){
+  if(rammedByPlayer&&player&&LAW_ENFORCEMENT_MODELS.has(this.modelId)&&!this.abandoned){
    const pv=player.car.body.linvel(),mine=v,theirs=(pv.x**2+pv.y**2+pv.z**2)/2500;
    if(theirs>=(mine.x**2+mine.y**2+mine.z**2)/2500&&theirs>.01)WorldCar.onPlayerRammedLaw?.();
   }
