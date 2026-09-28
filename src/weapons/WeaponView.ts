@@ -75,10 +75,12 @@ export class WeaponView {
    if(assets.icon)this.icon=url(assets.icon);
    if(assets.crosshair)this.crosshair=url(assets.crosshair);
    this.owner=this.character();if(!this.owner){this.weapons.ready=true;return;}
-   const upper=upperBodyKind(w.kind);
+   // The held aim clips of the guns and the thrown weapons are partial in the game (the legs keep walking under them).
+   const upper=upperBodyKind(w.kind)||w.kind==='grenade'||w.kind==='molotov'||w.kind==='satchel';
    for(const clip of [assets.clip,assets.crouchClip])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip},upper);
    for(const clip of [assets.reloadClip,assets.crouchReloadClip])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip},true);
-   for(const clip of [assets.throwStart,assets.throwUp])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip});
+   // The throw clips are partial in the game (the ped walks on while WEAPON_start_throw and WEAPON_throwu play): arms only.
+   for(const clip of [assets.throwStart,assets.throwUp])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip},true);
    // The combo's swings (the style's own block for the fists): each attack, the ground and the moving one.
    const melee=assets.melee;if(melee)for(const clip of [...melee.attacks,melee.ground,melee.moving])if(clip)this.owner.installReactions({[clip.name.toLowerCase()]:clip});
    const hand=this.owner.hand();
