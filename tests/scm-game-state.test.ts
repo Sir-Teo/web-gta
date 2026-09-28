@@ -127,3 +127,15 @@ test('stat reactions: stamina or lung capacity gained on negative energy burns 2
  stats.set(ENERGY,-5);stats.set(FAT,50);stats.decrement(ENERGY,1);expect(stats.get(ENERGY)).toBe(0);expect(stats.get(FAT)).toBe(50);
  stats.set(ENERGY,-40);stats.set(FAT,50);stats.decrement(ENERGY,10);expect(stats.get(FAT)).toBe(50);
 });
+// The script's weather forcing reaches the world's CWeather through the host, and CClock::Update's midnight counts a
+// day for STAT_DAYS_PASSED_IN_GAME (follow reports it; SetGameClock's day is not one).
+test('script weather forcing reaches the world weather and a followed midnight reports a day passed',()=>{
+ const game=new ScmGameState(),calls:string[]=[];
+ game.weatherHost={forceWeather:w=>calls.push(`force:${w}`),forceWeatherNow:w=>calls.push(`now:${w}`),releaseWeather:()=>calls.push('release')};
+ game.forceWeather(16);game.forceWeatherNow(8);game.releaseWeather();
+ expect(calls).toEqual(['force:16','now:8','release']);expect(game.forcedWeather).toBe(-1);
+ const clock=new ScmClock();clock.setGameClock(23,59,4,0);
+ expect(clock.follow(23*60+59.5,4)).toBe(0);
+ expect(clock.follow(0.25,5)).toBe(1);
+ expect(clock.follow(1,5)).toBe(0);
+});

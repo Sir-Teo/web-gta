@@ -460,12 +460,14 @@ export class ScmGameState {
   requireAsset(Number.isInteger(level)&&level>=0&&level<=6,'SET_MAX_WANTED_LEVEL outside 0..6 is unreachable in the source.');
   this.maximumWantedLevel=level;this.maximumChaosLevel=MAXIMUM_CHAOS[level];this.wanted.setMaximumWantedLevel(level);
  }
+ /** The one CWeather: the world's weather, which the script's forcing and releasing reach as the cheats' do. */
+ weatherHost?:{forceWeather(type:number):void;forceWeatherNow(type:number):void;releaseWeather():void};
  /** CWeather::ForceWeatherNow (0x72A4F0). */
- forceWeatherNow(type:number){this.forcedWeather=type;this.oldWeather=type;this.newWeather=type;}
+ forceWeatherNow(type:number){this.forcedWeather=type;this.oldWeather=type;this.newWeather=type;this.weatherHost?.forceWeatherNow(type);}
  /** CWeather::ForceWeather (0x72A4E0 region): only the forced type changes. */
- forceWeather(type:number){this.forcedWeather=type;}
+ forceWeather(type:number){this.forcedWeather=type;this.weatherHost?.forceWeather(type);}
  /** CWeather::ReleaseWeather (0x72A510). */
- releaseWeather(){this.forcedWeather=-1;}
+ releaseWeather(){this.forcedWeather=-1;this.weatherHost?.releaseWeather();}
  setFadeColour(red:number,green:number,blue:number){
   this.fadeTargetIsSplashScreen=red===2&&green===2&&blue===2;
   this.fadeColour={red:red&255,green:green&255,blue:blue&255};
