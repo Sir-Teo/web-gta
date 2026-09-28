@@ -920,8 +920,7 @@ export class WorldPedestrians {
   * or with one member. */
  private remove(p:Pedestrian){this.leaveParty(p);this.bodyHandles.delete(p.body.handle);if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
   update(now:number){
-   if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;
-   this.nextCheck=now+1500;
+   if(this.disposed||!this.catalog)return;
    const player=this.sim.player.position;
    // Native ManagePed bands (re3/CPopulation): live peds survive to 51 m
    // (65 m far-cull), dead peds fade after 30 s. Visible peds are never
@@ -953,7 +952,9 @@ export class WorldPedestrians {
     if(removal<=25||visible)return true;
     return clock<=p.neededUntil||cameraKeeps;
    })();if(!keep)this.remove(p);return keep;});
-
+   // CPopulation::ManagePopulation runs every frame (above); the creation pass waits on the streamer and the timer.
+   if(this.busy||now<this.nextCheck)return;
+   this.nextCheck=now+1500;
    const catalog=this.catalog;this.busy=true;
    // The check runs every 1.5 s: 45 game frames of CStreaming::StreamZoneModels at the frame limiter's 30 fps.
    this.roster??=new ZonePedRoster(catalog.popcycleGroups);this.roster.update(this.pedZone?.(),45,name=>this.wearing(name));
