@@ -245,16 +245,28 @@ export class WeaponSystem {
   for(const plane of this.fleet()?.planes??[])for(let i=0;i<plane.body.numColliders();i++)if(plane.body.collider(i).handle===handle&&plane.health>0){this.hits++;this.hitTrains=true;if(plane.damage(amount)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane);}return true;}
   return false;
  }
- private radial(position:Vec3,radius:number,damage:number,ignitePeople=false){
+ private radial(position:Vec3,radius:number,damage:number,ignitePeople=false,gas=false){
   const people=this.pedestrians()?.targets()??[];
   // CFire spreads to nearby peds as a 7000 ms burn instead of direct blast damage.
   if(ignitePeople&&this.native)for(const person of people)if(distance(position,person.position)<radius&&!this.burning.has(person.handle))this.burning.set(person.handle,7);
-   const targets=[...(ignitePeople&&this.native?[]:people),...[...(this.fleet()?.planes??[])].filter(p=>p.health>0).map(p=>({handle:p.body.collider(0).handle,position:{...p.body.translation()}})),...[...(this.fleet()?.cars??[])].filter(c=>!c.wrecked).map(c=>({handle:c.car.body.collider(0).handle,position:{...c.car.body.translation()}})),...[...(this.fleet()?.boats??[])].filter(b=>!b.wrecked).map(b=>({handle:b.body.collider(0).handle,position:{...b.body.translation()}}))];
+   // CWorld::SetPedsChoking walks the ped pool only: gas never hurts a vehicle.
+   const targets=gas?people:[...(ignitePeople&&this.native?[]:people),...[...(this.fleet()?.planes??[])].filter(p=>p.health>0).map(p=>({handle:p.body.collider(0).handle,position:{...p.body.translation()}})),...[...(this.fleet()?.cars??[])].filter(c=>!c.wrecked).map(c=>({handle:c.car.body.collider(0).handle,position:{...c.car.body.translation()}})),...[...(this.fleet()?.boats??[])].filter(b=>!b.wrecked).map(b=>({handle:b.body.collider(0).handle,position:{...b.body.translation()}}))];
   for(const target of targets){const d=distance(position,target.position);if(d>=radius)continue;const dir=normalize(add(target.position,position,-1));
    const wall=this.sim.world.castRay(new RAPIER.Ray(position,dir),Math.max(0,d-.1),true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(wall)continue;
    this.damage(target.handle,damage*(1-d/radius),dir,true);
   }
+  if(gas){this.chokePlayer(position,radius,damage);return;}
   if(this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0){const center=this.sim.playerBody.translation(),d=distance(position,center);if(d<radius&&!this.sim.world.castRay(new RAPIER.Ray(position,normalize(add(center,position,-1))),Math.max(0,d-.1),true,RAPIER.QueryFilterFlags.ONLY_FIXED))this.sim.damagePlayer(damage*(1-d/radius));}
+ }
+ /** CWorld::SetPedsChoking on the player: a box 2r across and 10 high about the gas, no falloff and no wall test; a
+  * ped in a vehicle, fire-proof (physicalFlags.bFireProof) or already burning is passed over. The hit is a
+  * WEAPON_TEARGAS damage event, so CEventDamage::AffectsPed and the weapon-proof cheat judge it. */
+ private chokePlayer(position:Vec3,radius:number,damage:number){
+  if(!this.sim.playerBody.isEnabled()||!this.sim.playerCollider.isEnabled()||this.sim.player.health<=0)return;
+  if(this.sim.playerProofs?.fire||this.fires.fireOn('player'))return;
+  const p=this.sim.player.position,center={x:p.x,y:p.y+1,z:p.z};
+  if(Math.abs(center.x-position.x)>radius||Math.abs(center.z-position.z)>radius||Math.abs(center.y-position.y)>5)return;
+  this.sim.damagePlayer(damage,false,{weapon:17,from:{x:position.x,z:position.z}});
  }
  /** CExplosion::aExplosions, for the slot each blast takes and the script's TestForExplosionInArea. */
  readonly explosionSlots=new NativeExplosionSlots();
@@ -1016,7 +1028,7 @@ export class WeaponSystem {
   }
   if(this.strike){this.strike.remaining-=dt;if(this.strike.remaining<=0){const strike=this.strike;this.strike=undefined;this.resolveStrike(strike);}}
   this.updateAreaShots(dt);this.updateBullets(dt);this.nowMs+=dt*1000;this.explosionSlots.expire(this.nowMs);this.updateFires(dt);this.releaseExplosions();
-  for(const h of this.hazards){h.remaining-=dt;h.tick-=dt;if(h.tick<=0){h.tick=.5;this.effect(h.kind,h.position,h.position,.7,h.radius);this.radial(h.position,h.radius,h.kind==='flame'?12:4,h.kind==='flame');this.pedestrians()?.frighten(h.position,15);}}
+  for(const h of this.hazards){h.remaining-=dt;h.tick-=dt;if(h.tick<=0){h.tick=.5;this.effect(h.kind,h.position,h.position,.7,h.radius);this.radial(h.position,h.radius,h.kind==='flame'?12:4,h.kind==='flame',h.kind==='gas');this.pedestrians()?.frighten(h.position,15);}}
   this.hazards=this.hazards.filter(h=>h.remaining>0);
   const survivors:Projectile[]=[];
   for(const p of this.projectiles){
