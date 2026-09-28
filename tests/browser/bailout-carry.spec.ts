@@ -12,9 +12,8 @@ test('bailing out of a moving helicopter keeps its speed',async({page})=>{
  await page.waitForTimeout(1500);
  const start=await page.evaluate(()=>{const g=(window as any).__game,heli=[...g.fleet().planes].find((p:any)=>p.occupied);
   heli.body.setLinvel({x:25,y:0,z:0},true);heli.exitAir();return {...g.state().player.position};});
- await page.waitForTimeout(600);
- const after=await page.evaluate(()=>({...(window as any).__game.state().player.position}));
- // Half a second at 25 m/s is several metres east; with the speed dropped he falls straight.
- expect(after.x-start.x).toBeGreaterThan(5);
+ // Still in the air (150 m up), he drifts east at the helicopter's 25 m/s; with the speed dropped he falls straight
+ // and never does. Polled, since the headless frame rate sets how much game time a wall-clock wait covers.
+ await expect.poll(()=>page.evaluate(x=>{const s=(window as any).__game.state().player;return s.grounded?-1:s.position.x-x;},start.x),{timeout:20000}).toBeGreaterThan(5);
  expect(errors).toEqual([]);
 });

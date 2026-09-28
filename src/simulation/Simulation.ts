@@ -296,6 +296,14 @@ export class Simulation {
   collisionPush = { x: 0, z: 0 };
   /** CPed::bIsInTheAir for the player: set by a jump's launch or a drop with no ground near below, cleared on the ground. */
   playerInAir = false;
+  /** CPed::CheckIfInTheAir's probe: ground within 1.54 below the origin, 0.54 below the feet. */
+  private groundNearBelow() {
+    const p = this.playerBody.translation();
+    return !!this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y - this.playerCenterHeight + 1, z: p.z }, { x: 0, y: -1, z: 0 }), 1.54, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody);
+  }
+  /** A ride ending off the ground: set out beside the vehicle he stands, bailed out above nothing he is in the air
+   * from the first step, so the clip chosen for that step does not take the speed the exit handed him. */
+  checkInAirAfterRide() { this.playerInAir = !this.player.grounded && !this.groundNearBelow(); }
   /** An exit that hands the player the vehicle's move speed (CTaskSimpleCarJumpOut, a bail-out, a knock-off) set it:
    * the ride ending keeps that speed instead of standing him still. */
   exitCarriesSpeed = false;
@@ -539,10 +547,7 @@ export class Simulation {
     // CPedGeometryAnalyser::IsInAir behind CEventInAir is not reversed). A curb is stepped down, not fallen from.
     if (this.player.grounded) this.playerInAir = false;
     else if (launched) this.playerInAir = true;
-    else if (!this.playerInAir) {
-      const p = this.playerBody.translation();
-      this.playerInAir = !this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y - this.playerCenterHeight + 1, z: p.z }, { x: 0, y: -1, z: 0 }), 1.54, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody);
-    }
+    else if (!this.playerInAir) this.playerInAir = !this.groundNearBelow();
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     if (this.player.grounded) { this.player.jumpMomentum = { x: 0, z: 0 }; this.jumpGlide = undefined; }
     else if (dt > 0 && !controls.parachute) {

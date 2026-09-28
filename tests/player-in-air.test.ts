@@ -20,3 +20,18 @@ test('a curb drop is not in the air, a ledge drop is',()=>{
   expect(curb.grounded).toBe(false);expect(curb.inAir).toBe(false);
   expect(ledge.grounded).toBe(false);expect(ledge.inAir).toBe(true);
 });
+
+// A bail-out high above the ground is in the air from its first step, so the step keeps the speed the exit handed on;
+// a set-out beside the vehicle stands.
+test('a ride ending above nothing is in the air at once',()=>{
+  const at=(height:number)=>{
+    const sim=new Simulation();
+    try{
+      sim.world.createCollider(RAPIER.ColliderDesc.cuboid(20,.5,20).setTranslation(0,-.5,0));
+      sim.respawn={x:0,y:height,z:0};sim.resetPlayer();sim.world.step();
+      sim.player.grounded=false;sim.checkInAirAfterRide();return sim.playerInAir;
+    }finally{sim.dispose();}
+  };
+  expect(at(.1)).toBe(false);
+  expect(at(40)).toBe(true);
+});
