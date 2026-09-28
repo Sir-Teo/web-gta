@@ -1887,6 +1887,8 @@ async function boot() {
       // flinches CJ (the jetpack is no jump). The tasks as they stood when the event was raised count: a blast's own lift
       // has not started the in-air task yet.
       if(event.inAirTask)continue;
+      // CTaskSimpleJetPack::MakeAbortable refuses a damage event while the flier lives: no fall, no flinch on the pack.
+      if(sim.jetPack&&sim.player.health>0)continue;
       // A cop's nightstick finisher (melee.dat FALL_3) floors CJ only from the front: ComputeDamageAnim's combo branch,
       // FIGHT_HIT_1 + move from the bat group with the fall (that group's Bat_Hit clips are not on CJ; the knockout
       // stands in). From another side it is an ordinary hit.
