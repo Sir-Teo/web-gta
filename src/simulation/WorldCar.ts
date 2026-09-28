@@ -313,9 +313,10 @@ export class WorldCar {
   const kind:CarDamageKind=explosive?'explosion':options.kind??'bullet';
   if(this.wrecked||carRefusesDamage(this,kind))return false;
   // CVehicle::CanVehicleBeDamaged: a car only the player may damage (bInvulnerable) refuses anyone else's harm, and the
-  // player's own car, once under 250 and burning, takes no more from blasts (the VehicleDamage path they use).
+  // player's own car, once under 250 and burning, takes no more from blasts, bullets or the molotov (the weapons
+  // CPhysical::CanPhysicalBeDamaged flags as fire, explosion or bullet; the flamethrower is not flagged).
   if(this.onlyDamagedByPlayer&&!this.occupied&&options.byPlayer===false)return false;
-  if(explosive&&this.occupied&&this.health<250)return false;
+  if(this.occupied&&this.health<250&&(explosive||kind==='bullet'||options.weapon===18))return false;
   // CVehicle::InflictDamage: a car with health left keeps the weapon and whoever used it. A blast is WEAPON_EXPLOSION
   // (51) and a fire WEAPON_FLAMETHROWER (37); the player's harm is his own ped's.
   if(this.health>0){
