@@ -17,6 +17,7 @@ import {WorldCar} from './WorldCar';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {openStaticWorldVehicles} from '../assets/staticWorldVehicles';
 import {loadFixedWorldCar,isBuildableCar} from '../assets/fixedWorldCar';
+import {bikeRestBottom} from '../vehicle/nativeBikeWheels';
 import {loadFixedWorldBike} from '../assets/fixedWorldBike';
 import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
 import {WEATHER_REGION,nativeWeatherRegion} from '../world/weatherRegion';
@@ -327,7 +328,7 @@ export class WorldFleet {
    ground=hit?top-hit.timeOfImpact:0;
   }
   const at={x:position.x,y:ground-bounds.min[2],z:position.z};
-  if(PLAYABLE_BIKES[modelId]){const bike=new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,heading);bike.missionCar=true;bike.waterLevel=this.waterLevel;this.bikes.add(bike);return bike;}
+  if(PLAYABLE_BIKES[modelId]){const b=assets as Awaited<ReturnType<typeof loadFixedWorldBike>>;at.y=ground-bikeRestBottom(b.model,b.wheelFrames,bounds.min[2],b.vehicle.frontWheelSize,b.vehicle.rearWheelSize);const bike=new WorldBike(this.sim,this.scene,b,at,heading);bike.missionCar=true;bike.waterLevel=this.waterLevel;this.bikes.add(bike);return bike;}
   if(PLAYABLE_BOATS[modelId]){const boat=new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));boat.waterLevel=this.waterLevel;boat.missionCar=true;this.boats.add(boat);return boat;}
   const plane=new WorldPlane(this.sim,this.scene,assets as ConstructorParameters<typeof WorldPlane>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));plane.waterLevel=this.waterLevel;plane.missionCar=true;this.planes.add(plane);return plane;
  }
@@ -527,7 +528,9 @@ export class WorldFleet {
   let base:number;
   if(boat&&nativeZ>-100)base=nativeZ;
   else{const hit=groundAt(record);if(!hit)return;base=(nativeZ>-100?nativeZ+1:1000)-hit.timeOfImpact;}
-  const at={x,y:base-bounds.min[2],z};
+  // A bike stands on its tyres (CBike::PlaceOnRoadProperly), a boat on its collision bottom.
+  const b=boat?undefined:assets as Awaited<ReturnType<typeof loadFixedWorldBike>>;
+  const at={x,y:base-(b?bikeRestBottom(b.model,b.wheelFrames,bounds.min[2],b.vehicle.frontWheelSize,b.vehicle.rearWheelSize):bounds.min[2]),z};
   const vehicle=boat?new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,angle,rotatedColours(catalog,assets.vehicle.model)):new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,angle);
   vehicle.waterLevel=this.waterLevel;if(vehicle instanceof WorldBoat)this.boats.add(vehicle);else this.bikes.add(vehicle);
   this.generatedOther.set(vehicle,record.id);
@@ -539,7 +542,7 @@ export class WorldFleet {
   const catalog=await this.catalogReady,assets=await loadFixedWorldBike(catalog,{modelId,primaryColor:-1,secondaryColor:-1});if(this.disposed)throw new Error('World fleet disposed.');
   const ground=this.groundNear(x,z,height);
   if(ground===undefined)throw new Error('No bike terrain beneath the spawn.');
-  const at={x,y:ground-assets.collision.bounds.min[2]+.1,z};
+  const at={x,y:ground-bikeRestBottom(assets.model,assets.wheelFrames,assets.collision.bounds.min[2],assets.vehicle.frontWheelSize,assets.vehicle.rearWheelSize)+.1,z};
   this.clearSpaceFor(at,heading,assets.collision.bounds);
   const bike=new WorldBike(this.sim,this.scene,assets,at,heading);bike.waterLevel=this.waterLevel;this.bikes.add(bike);return bike;
  }

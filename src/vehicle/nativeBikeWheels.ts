@@ -25,3 +25,12 @@ export function bikeWheelSupports(model:Pick<DffModel,'frames'>,frames:BikeWheel
  return [...frames.front.map(i=>({center:frameModelPosition(model,i),radius:front})),...frames.rear.map(i=>({center:frameModelPosition(model,i),radius:rear}))]
   .filter(s=>s.radius>0&&[s.center.x,s.center.y,s.center.z].every(Number.isFinite));
 }
+/** CBike::PlaceOnRoadProperly rests the bike on its wheels: the lowest point under the origin is the bottom of the
+ * lowest tyre (centre less radius) where that reaches below the collision model's bottom, so a bike set down at
+ * `ground - bikeRestBottom(...)` stands on its tyres rather than sinking them into the road until the solver pushes
+ * it out. Native Z-up. */
+export function bikeRestBottom(model:Pick<DffModel,'frames'>,frames:BikeWheelFrames,boundsMinZ:number,frontSize?:number,rearSize?:number){
+ let lowest=boundsMinZ;
+ for(const w of bikeWheelSupports(model,frames,frontSize,rearSize))lowest=Math.min(lowest,w.center.z-w.radius);
+ return lowest;
+}
