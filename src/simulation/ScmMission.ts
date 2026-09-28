@@ -560,6 +560,8 @@ export interface ScmMissionWorld {
  scriptVehicleSeatDoor?(car:unknown,seat:'driver'|number):{x:number;y:number;z:number}|undefined;
  /** CVehicle::CanPedStepOutCar(false): the car is still enough to step out of. */
  scriptVehicleStill?(car:unknown):boolean;
+ /** CTaskSimpleCarJumpOut for a ped set out of a moving car: CAR_rollout_LHS or _RHS with the car's speed. */
+ rollOutScriptPed?(ped:unknown,velocity:{x:number;z:number},clip:'car_rollout_lhs'|'car_rollout_rhs'):void;
  /** CCarAI's coordinate missions on a script car (ScriptCarMissions), in the script's coordinates, and
   * m_nStraightLineDistance. */
  driveScriptVehicleTo?(car:unknown,goal:{x:number;y:number;z:number},o:{cruise:number;style:number;accurate:boolean;straight:boolean}):void;
@@ -1965,7 +1967,7 @@ export class ScmMission {
   * down at its seat's door, on foot. The get-out clips are not played. A ped on foot, or in another car than the one
   * named, has nothing to do and the task is over at once. */
  /** The ped out of its car at its seat's door, rebuilt on foot; false when it rides no car (or not the one named). */
- private leaveCarNow(handle:number,vehicle:number|undefined,opcode:number){
+ private leaveCarNow(handle:number,vehicle:number|undefined,opcode:number,jump=false){
   const ride=this.peds.rideOf(handle);
   if(!ride||ride.offset||vehicle!==undefined&&vehicle!==ride.vehicle)return false;
   // A car deleted with the ped still in it leaves the ped where it sat.
@@ -1974,7 +1976,10 @@ export class ScmMission {
   const at=this.host('scriptVehicleSeatDoor','TASK_LEAVE_CAR')(car,ride.seat);
   if(!at)throw new UnsupportedScmCommand(opcode,0,'A_SEAT_WITHOUT_A_DOOR',String(ride.seat));
   this.stopDriving(handle);
-  this.peds.detachFromCar(handle,at);
+  // CTaskSimpleCarJumpOut: out of a car that is still moving the ped rolls, by its seat's side, with the car's speed.
+  const native=jump&&!this.vehicleStill(ride.vehicle)?this.world.scriptVehicleVelocity?.(car):undefined,velocity=native&&{x:native.x,z:-native.y};
+  const clip=ride.seat==='driver'||ride.seat===1?'car_rollout_lhs':'car_rollout_rhs';
+  this.peds.detachFromCar(handle,at,velocity?ped=>this.world.rollOutScriptPed?.(ped,velocity,clip):undefined);
   return true;
  }
  /** A driving task on the car the ped is at the wheel of: CCarAI's mission, a temporary action, or the wander. */
@@ -2051,8 +2056,9 @@ export class ScmMission {
     if(!riding||vehicle!==undefined&&vehicle!==ride.vehicle)return undefined;
     // CTaskSimpleCarWaitToSlowDown first (not for the Immediately form): a script driver stops its car's mission,
     // and the ped waits in its seat until the car is still enough to step out of.
-    if(task.kind!=='leaveCarImmediately'&&!this.vehicleStill(ride.vehicle)){this.stopDriving(handle);return {kind:'slowing',then:task};}
-    return this.leaveCarNow(handle,vehicle,opcode)?{kind:'settle'}:undefined;
+    const jump=this.groupLeaving.delete(handle);
+    if(!jump&&task.kind!=='leaveCarImmediately'&&!this.vehicleStill(ride.vehicle)){this.stopDriving(handle);return {kind:'slowing',then:task};}
+    return this.leaveCarNow(handle,vehicle,opcode,jump)?{kind:'settle'}:undefined;
    }
    case 'carDriveToCoord':case 'carTempAction':case 'carDriveWander':case 'carMission':{
     // CTaskComplexCarDrive::CreateFirstSubTask with no car (-1): the one the ped is in. On foot it would enter any
@@ -2719,6 +2725,9 @@ export class ScmMission {
  private groupExits:{handle:number;vehicle:number;at:number}[]=[];
  /** When each follower was last sent to get in the leader's car (CTaskComplexFollowLeaderAnyMeans). */
  private groupBoarding=new Map<number,number>();
+ /** Followers the leader's exit sent out: ComputeResponseLeaderExitedCar's CTaskComplexLeaveCar has bSensibleLeaveCar
+  * off, so they do not wait for the car to slow (GroupEventHandler.cpp:344-349) and jump from one still moving. */
+ private groupLeaving=new Set<number>();
  /** CGroupEventHandler::ComputeResponseLeaderEnteredCar and ComputeResponseLeaderExitedCar for the player's group, for
   * the script's peds in it. As he gets in, each follower on foot with no script task of its own takes
   * CTaskComplexEnterCarAsPassenger into a free seat, while the group's members enter the leader's vehicle. As he gets
@@ -2758,7 +2767,7 @@ export class ScmMission {
   if(!this.groupExits.length)return;
   const due=this.groupExits.filter(exit=>exit.at<=nowMs);if(!due.length)return;
   this.groupExits=this.groupExits.filter(exit=>exit.at>nowMs);
-  for(const exit of due)if(this.peds.exists(exit.handle)&&this.peds.rideOf(exit.handle)?.vehicle===exit.vehicle&&!this.taskRecords.has(exit.handle))groupTask(exit.handle,{kind:'leaveCar',vehicle:exit.vehicle});
+  for(const exit of due)if(this.peds.exists(exit.handle)&&this.peds.rideOf(exit.handle)?.vehicle===exit.vehicle&&!this.taskRecords.has(exit.handle)){this.groupLeaving.add(exit.handle);groupTask(exit.handle,{kind:'leaveCar',vehicle:exit.vehicle});}
  }
  /** The player's group's script peds last set following him. */
  private followingPlayer=new Set<number>();

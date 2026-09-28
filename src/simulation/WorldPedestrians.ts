@@ -1973,7 +1973,7 @@ export class WorldPedestrians {
  /** A passenger climbs out at a door point and rejoins the street. */
  /** CTaskSimpleCarJumpOut for a ped leaving a moving car: CAR_rollout_LHS or _RHS carries it on with the car's move
   * speed (m_initialVehSpeed), and it gets up from the front. Unlike a knockdown, nothing frightens it. */
- private rollOut(p:Pedestrian,velocity:{x:number;z:number},clip:'car_rollout_lhs'|'car_rollout_rhs'){
+ rollOut(p:Pedestrian,velocity:{x:number;z:number},clip:'car_rollout_lhs'|'car_rollout_rhs'){
   const fall=p.view.reactionDuration(clip);if(fall===undefined)return;
   const getUp=p.view.reactionDuration(getUpClip(clip))??1.37;
   p.down=fall+getUp;p.fallClip=clip;p.stuckUnderCar=false;p.impulse={x:velocity.x,z:velocity.z};

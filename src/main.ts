@@ -4557,6 +4557,7 @@ async function boot() {
                  scriptVehicleAutopilotFields:car=>({...(car as Partial<ScriptCar>).autopilotFields}),
                  setScriptVehicleStrong:(car,strong)=>{const c=car as Partial<ScriptCar>;if(c.takeLessDamage!==undefined)c.takeLessDamage=strong;},
                  scriptVehicleWheelsOnGround:car=>(car as Partial<ScriptCar>).wheelsOnGround??0,
+                 rollOutScriptPed:(ped,velocity,clip)=>{const p=onFoot(ped);if(p)pedestrians?.rollOut(p,velocity,clip);},
                  scriptVehicleStill:car=>{
                   const body=(car as Partial<ScriptCar>).car?.body;if(!body)return true;
                   const v=body.linvel(),w=body.angvel();
