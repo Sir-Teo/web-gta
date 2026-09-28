@@ -72,3 +72,9 @@ export const NATIVE_PLAYER_HEADING_CHANGE_RATE = 9;
 export function playerTurnStep(dt: number, rate = NATIVE_PLAYER_HEADING_CHANGE_RATE): number {
   return rate * Math.PI / 180 * dt * 50;
 }
+/** The heading one step turns toward `target` at the player's heading change rate (m_fAimingRotation followed by
+ * m_fCurrentRotation). */
+export function turnToward(heading: number, target: number, dt: number): number {
+  const d = Math.atan2(Math.sin(target - heading), Math.cos(target - heading)), turn = playerTurnStep(dt);
+  return heading + Math.max(-turn, Math.min(turn, d));
+}
