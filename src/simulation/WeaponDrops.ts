@@ -5,6 +5,8 @@ export interface DropAsset { model: Parameters<typeof modelObject>[0]; textures:
 interface Drop { weapon: number; rounds: number; position: { x: number; y: number; z: number }; root?: Group; owner?: ReturnType<typeof modelObject>; age: number;
   /** PICKUP_ONCE_FOR_MISSION (bDeathPickupsPersist): never times out and takes no merge. */
   persist?: boolean }
+/** re3's CPickups::GenerateNewOne gives PICKUP_ONCE_TIMEOUT 20 s (SA's is unreversed). */
+export const DROP_TIMEOUT_SECONDS = 20;
 /** AmmoForWeapon_OnStreet (0x8A5F50), by eWeaponType. */
 export const AMMO_FOR_WEAPON_ON_STREET = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8, 8, 8, 4, 4, 30, 10, 10, 15, 10, 10, 60, 60, 80, 80, 60, 20, 10, 4, 3, 100, 500, 5, 1, 500, 500, 36, 0, 0, 1] as const;
 /** WEAPON_CANE, the last melee weapon type. */
@@ -61,7 +63,7 @@ export class WeaponDrops {
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const drop = this.drops[i];
       drop.age += dt;
-      if (drop.age > 120 && !drop.persist) { this.retire(drop); this.drops.splice(i, 1); continue; }
+      if (drop.age > DROP_TIMEOUT_SECONDS && !drop.persist) { this.retire(drop); this.drops.splice(i, 1); continue; }
       if (!drop.root || !player.alive || !player.onFoot) continue;
       if (Math.hypot(drop.position.x - player.position.x, drop.position.z - player.position.z) >= Math.sqrt(1.8) || Math.abs(drop.position.y - player.position.y) >= 2) continue;
       const name = collect(drop.weapon, drop.rounds);

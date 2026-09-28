@@ -40,7 +40,7 @@ test('a same-weapon drop within 5 units takes the ammo instead of a new pickup (
   expect(drops.snapshot().map(d => [d.weapon, d.rounds])).toEqual([[22, 120], [31, 160], [22, 60]]);
 });
 
-test('drops stay while the player is away, time out, and are taken on foot within √1.8 across and 2 up', async () => {
+test('drops stay while the player is away, time out after 20 s, and are taken on foot within √1.8 across and 2 up', async () => {
   const { drops } = setup();
   await drops.report({ x: 0, y: 0, z: 0 }, 22, 5);
   drops.step(1, { ...player, position: { x: 500, y: 0, z: 0 } }, () => 'Pistol');
@@ -53,7 +53,7 @@ test('drops stay while the player is away, time out, and are taken on foot withi
   drops.step(1, { ...player, position: { x: 1, y: 1.8, z: .5 } }, () => { calls++; return 'Pistol'; });
   expect(calls).toBe(1);
   await drops.report({ x: 0, y: 0, z: 0 }, 22, 5);
-  drops.step(121, { ...player, position: { x: 500, y: 0, z: 0 } }, () => 'Pistol');
+  drops.step(21, { ...player, position: { x: 500, y: 0, z: 0 } }, () => 'Pistol');
   expect(drops.snapshot()).toEqual([]);
   drops.dispose();
 });
