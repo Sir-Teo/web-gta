@@ -308,6 +308,8 @@ export class Simulation {
   collisionPush = { x: 0, z: 0 };
   /** CPed::bIsInTheAir for the player: set by a jump's launch or a drop with no ground near below, cleared on the ground. */
   playerInAir = false;
+  /** CTaskComplexJump's flight (m_bUsingJumpGlide): the airborne pose is JUMP_glide; a drop's is FALL_glide. */
+  get jumpLaunched() { return !!this.jumpGlide; }
   /** CPed::CheckIfInTheAir's probe: ground within 1.54 below the origin, 0.54 below the feet. */
   private groundNearBelow() {
     const p = this.playerBody.translation();
@@ -657,7 +659,10 @@ export class Simulation {
     this.player.verticalSpeed = ped.moveSpeed.z * 50;
     this.player.jumpMomentum = { x: ped.moveSpeed.x * 50, z: -ped.moveSpeed.y * 50 };
     this.airSpeed = Math.hypot(ped.moveSpeed.x, ped.moveSpeed.y) * 50;
-    // A vault ends the jump; an abort returns to CTaskComplexInAirAndLand carrying the climb's validity.
+    // A vault ends the jump and clears bIsInTheAir (CTaskSimpleClimb's CLIMB_FINISHED_V): the ped is in control for the
+    // drop, which only a deep one turns back into a fall. An abort returns to CTaskComplexInAirAndLand carrying the
+    // climb's validity.
+    if (task.heightForPos === CLIMB.FINISHED_V) this.playerInAir = false;
     this.jumpGlide = task.heightForPos === CLIMB.FINISHED_V ? undefined : { invalidClimb: task.invalid, pushMs: 0, climbJump: 0 };
   }
   /** CTaskSimpleJump::CheckIfJumpBlocked (0x67D590). The ped position is one unit above the feet and ms_colModelPed1's
