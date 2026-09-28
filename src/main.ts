@@ -1582,6 +1582,7 @@ async function boot() {
     // CPhysical::ApplyAirResistance above 0.1 scales speed by airResistance per 1/50 s frame.
     const air=values.airResistance??.99,damping=air>.1&&air<1?-50*Math.log(air):0;
     const physics={mass,turnMass:values.turnMass??mass,elasticity:values.elasticity??0,damping};
+    const colBounds=scene.placementInfo(other.handle)?.part.collision?.bounds,boundsSize=colBounds?[colBounds.max[0]-colBounds.min[0],colBounds.max[1]-colBounds.min[1],colBounds.max[2]-colBounds.min[2]] as const:undefined;
     /* CObject::TryToExplode and Explode (0x5A1340): the blast half a unit above the prop; a breakable prop then takes
      * ObjectDamage(10000) from a unit below it, and any other that takes collision force (mass under 99998) jumps 0.5
      * units a frame upward (25 m/s) and up to 0.0256 either way across, coming loose if it was fixed. From then on
@@ -1608,7 +1609,7 @@ async function boot() {
       return true;
     };
     const prop:NonNullable<ReturnType<NonNullable<ScriptCar['propFor']>>>={tryToExplode,effect,colDamageMultiplier:values.collisionDamageMultiplier??1,uprootLimit,mass,
-      lampPost:isLampPost(source.modelName,scene.placementInfo(other.handle)?.part.definition?.flags??0),turnMass:physics.turnMass,elasticity:physics.elasticity,state,
+      lampPost:isLampPost(source.modelName,scene.placementInfo(other.handle)?.part.definition?.flags??0),boundsSize,turnMass:physics.turnMass,elasticity:physics.elasticity,state,
     uproot:(linvel,angvel,cause='collision')=>{
       if(!source.placement||!scene.uprootPlacement(other.handle,{...physics,linvel,angvel}))return false;
       // CPhysical::ApplyCollision's static-object branch and CWorld::TriggerExplosionSectorList as a prop comes loose:
