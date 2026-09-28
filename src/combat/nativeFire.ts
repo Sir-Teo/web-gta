@@ -62,13 +62,15 @@ export class NativeFireManager {
  }
  /* CFireManager::StartScriptFire (0x53A300) as the mirror of a script's own table: the browser keeps one fire
   * for each of the script's, at the place its record says, and lets it go when that record does. A script's
-  * fire takes a slot the streamer will not reclaim, which is what the script flag is for. */
+  * fire takes a slot the streamer will not reclaim, which is what the script flag is for. Script fires share the one
+  * pool: water or an extinguisher puts them out like any other (CFire::ExtinguishWithWater), and the keys of those that
+  * went out are returned so the script's own record goes out too (IS_SCRIPT_FIRE_EXTINGUISHED). */
  syncScriptFires(records:readonly {key:number;position:V3;strength:number;generations:number}[]){
-  const wanted=new Map(records.map(record=>[record.key,record]));
-  for(const [key,fire] of this.scripted)if(!wanted.has(key)){fire.script=false;fire.extinguish();this.scripted.delete(key);}
+  const wanted=new Map(records.map(record=>[record.key,record])),out:number[]=[];
+  for(const [key,fire] of this.scripted)if(!wanted.has(key)){fire.script=false;fire.extinguish();this.scripted.delete(key);this.scriptStrength.delete(key);}
   for(const record of records){
    let fire=this.scripted.get(record.key);
-   if(fire&&!fire.active){this.scripted.delete(record.key);fire=undefined;}
+   if(fire&&!fire.active){this.scripted.delete(record.key);this.scriptStrength.delete(record.key);out.push(record.key);continue;}
    if(!fire){
     const free=this.fires.find(f=>!f.active);if(!free)continue;
     Object.assign(free,{active:true,script:true,beingExtinguished:false,firstGeneration:true,target:undefined,
@@ -76,11 +78,17 @@ export class NativeFireManager {
     free.fxSerial++;this.scripted.set(record.key,free);fire=free;
    }
    fire.position={...record.position};
-   if(Math.trunc(fire.strength)!==Math.trunc(record.strength))fire.fxSerial++;
-   fire.strength=record.strength;fire.generations=record.generations;
+   // The strength follows the record only when the script's changes: water weakens the fire in between.
+   if(this.scriptStrength.get(record.key)!==record.strength){
+    if(Math.trunc(fire.strength)!==Math.trunc(record.strength))fire.fxSerial++;
+    fire.strength=record.strength;this.scriptStrength.set(record.key,record.strength);
+   }
+   fire.generations=record.generations;
   }
+  return out;
  }
  private readonly scripted=new Map<number,NativeFire>();
+ private readonly scriptStrength=new Map<number,number>();
  /** CFireManager::StartFire on an entity (0x53A050). */
  startFireOn(target:FireTarget,position:V3,lifetimeMs:number,generations:number,world:{nowMs:number;random:()=>number},creator?:unknown,options:{fireproof?:boolean;inControl?:boolean;engineDamaged?:boolean}={}){
   if(this.fireOn(target.key)||options.fireproof)return undefined;

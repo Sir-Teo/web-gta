@@ -51,6 +51,8 @@ export class ScmFires {
   if(!taken)return undefined;
   taken.createdByScript=false;this.extinguish(taken);return taken;
  }
+ /** The world put a script fire out (water, an extinguisher): it stays the script's, extinguished. */
+ putOut(index:number){const fire=this.fires[index];if(fire)this.extinguish(fire);}
  /** CFire::Extinguish (0x53A0C0 region): the fire goes out and its burn clock clears. */
  private extinguish(fire:ScmFire){
   if(!fire.active)return;

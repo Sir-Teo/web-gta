@@ -2670,12 +2670,14 @@ export class ScmMission {
  /* The fires the script has started, for a host to burn where CFireManager's own table says. A fresh array
   * each time, because two callers comparing two results is worth more than the one allocation it saves: the
   * records inside it are built anyway, and a shared array quietly makes those two results the same one. */
+ /** Script fires the world put out, by their table index. */
+ scriptFiresWentOut(keys:readonly number[]){for(const key of keys)this.runtime.game.fires.putOut(key);}
  scriptFires(){
   const out:{key:number;position:{x:number;y:number;z:number};strength:number;generations:number}[]=[];
   this.runtime.game.fires.fires.forEach((fire,index)=>{
    if(!fire.active||!fire.createdByScript)return;
-   // Renderer axes: the script's z is up here and its y runs the other way.
-   out.push({key:index,position:{x:fire.position.x,y:fire.position.z,z:-fire.position.y},
+   // Native axes, as the weapon system's fire pool keeps every other fire.
+   out.push({key:index,position:{x:fire.position.x,y:fire.position.y,z:fire.position.z},
     strength:fire.strength,generations:fire.generationsAllowed});
   });
   return out;

@@ -32,13 +32,29 @@ test('the browser keeps one fire for each of the script’s and lets it go with 
  expect(fires.active.length).toBe(0);
 });
 
-test('a script fire the world put out is made again rather than left as a hole',()=>{
+test('a script fire the world put out stays out and is reported, so the script sees it extinguished',()=>{
  const fires=new NativeFireManager();
  fires.syncScriptFires([{key:1,position:at(5),strength:1,generations:2}]);
- // A water jet puts it out; the record still says it should burn.
+ // A water jet puts it out (CFire::ExtinguishWithWater on the one pool the script's fires share).
  fires.extinguishPoint(at(5),2);
  expect(fires.active.length).toBe(0);
- fires.syncScriptFires([{key:1,position:at(5),strength:1,generations:2}]);
- expect(fires.active.length).toBe(1);
- expect(fires.active[0].script).toBe(true);
+ // The record still burning this frame: the key comes back for IS_SCRIPT_FIRE_EXTINGUISHED, and nothing relights.
+ expect(fires.syncScriptFires([{key:1,position:at(5),strength:1,generations:2}])).toEqual([1]);
+ expect(fires.active.length).toBe(0);
+});
+
+test('water weakens a script fire: the record’s strength is applied only when the script changes it',()=>{
+ const fires=new NativeFireManager();
+ fires.syncScriptFires([{key:2,position:at(5),strength:3,generations:2}]);
+ fires.active[0].strength=1.5;
+ fires.syncScriptFires([{key:2,position:at(5),strength:3,generations:2}]);
+ expect(fires.active[0].strength).toBe(1.5);
+ fires.syncScriptFires([{key:2,position:at(5),strength:2,generations:2}]);
+ expect(fires.active[0].strength).toBe(2);
+});
+
+test('script fires reach the fire pool in native axes, as every other fire does',async()=>{
+ const {ScmMission}=await import('../src/simulation/ScmMission');
+ const self={runtime:{game:{fires:{fires:[{active:true,createdByScript:true,position:{x:2490,y:-1680,z:13},strength:1,generationsAllowed:0}]}}}};
+ expect((ScmMission.prototype as any).scriptFires.call(self)).toEqual([{key:0,position:{x:2490,y:-1680,z:13},strength:1,generations:0}]);
 });
