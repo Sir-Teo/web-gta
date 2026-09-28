@@ -176,7 +176,8 @@ export class WeaponSystem {
  stealthTarget(){
   const info=this.inventory.info();if(!this.aiming||this.stealth||!info||info.animGroup!=='stealth_kn'||this.sim.player.health<=0||!this.sim.player.grounded)return undefined;
   const move=this.playerMove?.();if(move?move.blendRatio>=1.9||move.sprinting:this.sim.player.speed>=3)return undefined;
-  if(this.strike||this.inventory.cooldown>0)return undefined;
+  // No attack task running: CTaskSimpleFight lives 2000 ms after a swing (fightStance), not just the swing itself.
+  if(this.strike||this.inventory.cooldown>0||this.fightStance)return undefined;
   return this.pedestrians()?.stealthTarget?.(this.sim.player.position,this.lockCamera);
  }
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.tracer(from,to,'ped',.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
@@ -536,10 +537,11 @@ export class WeaponSystem {
   const mode=info?firstPersonMode(w.id,info):undefined;
   if(mode&&this.firstPerson!==mode)return false;
   if(w.kind==='melee'&&this.stealthReady>=1/16){
+   // The victim is the one KILL_Partial was readied on (m_pTargetedObject), not a fresh pick at the press.
    const target=this.stealthTarget();
    // Pressing attack with KILL_Partial blended past 0.5 starts the stealth kill instead of a melee swing.
    // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon reports CRIME_STAB_PED whoever the victim is.
-   if(target&&this.pedestrians()?.stealthKill?.(target.id,this.sim.player.position)){this.stealth={id:target.id,remaining:this.stealthClipSeconds,target:target.position};this.stealthReady=0;this.onSound?.('impact',w.id,this.sim.player.position,'stealth');this.onCrime?.(CRIME.stabPed,`ped:${target.id}`);this.onStealth?.(this.stealthClipSeconds);this.onHit?.(w.id);return true;}
+   if(target&&target.id===this.stealthCandidate&&this.pedestrians()?.stealthKill?.(target.id,this.sim.player.position)){this.stealth={id:target.id,remaining:this.stealthClipSeconds,target:target.position};this.stealthReady=0;this.onSound?.('impact',w.id,this.sim.player.position,'stealth');this.onCrime?.(CRIME.stabPed,`ped:${target.id}`);this.onStealth?.(this.stealthClipSeconds);this.onHit?.(w.id);return true;}
   }
   // ProcessPlayerWeapon: an instant-hit or area gun fired at a ped in reach swings the butt instead (PISTOLWHIP).
   if(info&&(info.fire==='instant'||info.fire==='area')&&this.inventory.cooldown<=0){
