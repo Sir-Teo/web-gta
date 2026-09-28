@@ -253,9 +253,9 @@ export class Simulation {
     // CEventDamage::AffectsPed: MAKE_PLAYER_FIRE_PROOF turns molotov and flamethrower damage away; ComputeWillKillPed:
     // with CHEAT_NO_ONE_CAN_STOP_US the player takes nothing from a weapon (types below WEAPON_LAST_WEAPON, 47).
     if(event&&(event.weapon===18||event.weapon===37)&&this.playerFireProof?.())return;
-    // SET_CHAR_PROOFS on the player: CPhysical::CanPhysicalBeDamaged turns the weapon's class away (a fall is
-    // WEAPON_FALL, collision-proofed).
-    if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.fall?54:event.weapon))return;
+    // SET_CHAR_PROOFS on the player: CEventDamage::AffectsPed asks CPhysical::CanPhysicalBeDamaged by the weapon type
+    // alone (a landing is WEAPON_FALL, collision-proofed); a knockdown blow is still its fist or nightstick.
+    if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.weapon))return;
     if(event&&event.weapon<47&&this.playerWeaponProof?.())return;
     // Compatibility gap: per-damage-kind stat scaling is not yet established.
     amount *= NATIVE_PLAYER_DEFEND_MULT;
@@ -263,8 +263,9 @@ export class Simulation {
     if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
     if (event && megaPunchBlow(event.weapon)) amount = this.player.health;
     // ComputeWillKillPed's ordinary branch kills below 1 HP, not just at zero.
-    // CPed::m_nLastWeaponDamage: the weapon of a hit that took health (a fall is WEAPON_FALL), not one armour soaked up.
-    if (event && amount > 0) this.lastWeaponDamage = event.fall ? 54 : event.weapon;
+    // CPed::m_nLastWeaponDamage: the weapon of a hit that took health (a landing is WEAPON_FALL, a car's knockdown
+    // WEAPON_RAMMEDBYCAR), not one armour soaked up.
+    if (event && amount > 0) this.lastWeaponDamage = event.weapon;
     const before=this.player.health,remaining=before-amount;
     this.player.health = remaining<1?0:remaining;
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
