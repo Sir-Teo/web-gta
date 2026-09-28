@@ -910,6 +910,9 @@ export class WorldPedestrians {
    // a cop), and an off-screen ped past that time goes. Dead peds fade after 30 s.
    const pcdm=this.pcdm(),clock=now/1000;this.clock=Math.max(this.clock,clock);
    this.people=this.people.filter(p=>{const keep=(()=>{
+    // CPedGroupMembership::Process drops a dead member from the group at once (PedGroupMembership.cpp:126-136), and a
+    // body is no police car's crew: the dead fade like anyone else.
+    if(p.health<=0){p.follow=false;p.crew=undefined;}
     // CPed::CanBeDeleted: a recruited crew member or a police car's crew is never removed by the population manager.
     if(p.follow||p.crew||p.attackWave||p.mission)return true;
     const visible=!this.canSpawn(p.actor.player.position,2),d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);
