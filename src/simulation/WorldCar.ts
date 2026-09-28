@@ -279,6 +279,7 @@ export class WorldCar {
  constructor(private sim:Simulation,scene:Scene,readonly assets:NativeCarAssets,position:{x:number;y:number;z:number},road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>,heading=0){
   this.modelId=assets.vehicle.id;this.name=assets.vehicle.id===492?'Greenwood':assets.vehicle.model;this.surfaces=road.records;
   this.car=installNativeCar(sim.world,scene,assets,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.4,restitution:0});
+  const self=this;
   const h=assets.handling.values;this.mass=h.mass;this.turnMass=h.turnMass;this.collisionDamageMultiplier=h.collisionDamageMultiplier;this.boundsMaxX=Math.max(.5,assets.collision.bounds.max[0]);
   this.groupColliders();
   // CAutomobile's constructor fits a car with hydraulic geometry with hydraulics one time in four.
@@ -292,7 +293,7 @@ export class WorldCar {
    steeringControl:{playerStatus:true,tarmacAdhesion:surfaceAdhesiveLimit(road.rows,road.records.get(NATIVE_WHEELBASE_SURFACE)!,road.records.get(1)!)},
    // ProcessSuspension: the Vortex (and the unused CARS_ON_WATER cheat) springs along the car's down axis (ApplySpringCollision), other cars along the contact normal (Alt).
    suspension:{mode:assets.vehicle.id===MODEL_VORTEX?'direction':'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2},
-   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,get perfectHandling(){return CHEATS.isActive('perfectHandling');},extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},wheelParameters:{coastBrake:nativeCoastBrake(WHEEL_FRICTION,h.mass,assets.vehicle.id===MODEL_RC_BANDIT?'rcBandit':'car'),wheelDamageEffect:.5,playerCollisions:false}},
+   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,get perfectHandling(){return CHEATS.isActive('perfectHandling');},extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:assets.vehicle.id===MODEL_VORTEX,/* m_fAccelerationBreakStatus: the pedals' difference (its setter, CPlane::ProcessControlInputs, is unreversed). */get vortexAccelerationBrakeStatus(){return Math.abs(self.input.pedals.accelerate-self.input.pedals.brake)/255;}},wheelParameters:{coastBrake:nativeCoastBrake(WHEEL_FRICTION,h.mass,assets.vehicle.id===MODEL_RC_BANDIT?'rcBandit':'car'),wheelDamageEffect:.5,playerCollisions:false}},
    // Exact native collision material and adhesion matrix. DoBurstAndSoftGroundRatios sinks non-Rhino wheels on SAND surfaces
    // (less as CWeather::WetRoads rises), and the player's wet multiplier comes from the road's SURFINFO.DAT wet grip.
    resolveWheel:(wheel,contact)=>{
