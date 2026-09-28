@@ -401,6 +401,9 @@ export class WorldBike {
  }
  /** Seconds since the last collision the contact solver registered (m_nLastCollisionTime). */
  lastCollisionSeconds=Infinity;
+ /** CVehicle::CanPedJumpOutCar's automobile branch for the quad: tipped past up.z 0.3 and hit within the last second,
+  * the plain speed window gives way to a roll-off at any speed from 0.1 units a frame. */
+ get tippedAfterCrash(){return this.quad&&rotate(this.body.rotation(),{x:0,y:1,z:0}).y<.3&&this.lastCollisionSeconds<1;}
  /** CEventKnockOffBike with KNOCK_OFF_TYPE_SKIDBACKFRONT (the only type CBike::DamageKnockOffRider raises). The rider
   * keeps the bike's move speed and takes -0.3 (a BMX -0.2) of the collision's velocity change flat, plus 3 to 5 (a
   * BMX 6) / 70 units a frame up; the clip is the one for the side the hit came from (GetLocalDirection of the

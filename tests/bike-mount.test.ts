@@ -20,3 +20,13 @@ test('the quad (a CAutomobile) is jumped off only between v2D² 0.1 and 0.5 unit
  expect(bikeCanJumpOut({x:low+.01,y:0,z:0},true,true)).toBe(true);
  expect(bikeCanJumpOut({x:high+.1,y:0,z:0},false,true)).toBe(false);
 });
+
+// CVehicle::CanPedJumpOutCar's automobile branch for the quad: the 0.1..0.5 window, unless it is tipped past up.z 0.3
+// and was hit within the last second, when any 0.1 or more lets the rider roll off.
+test('a tipped, just-crashed quad lets the rider roll off at any speed from 0.1 units a frame',()=>{
+ const v=(unitsPerFrame:number)=>({x:0,y:0,z:unitsPerFrame*50});
+ expect(bikeCanJumpOut(v(Math.sqrt(.3)),false,true)).toBe(true);
+ expect(bikeCanJumpOut(v(Math.sqrt(.6)),false,true)).toBe(false);
+ expect(bikeCanJumpOut(v(Math.sqrt(.6)),false,true,true)).toBe(true);
+ expect(bikeCanJumpOut(v(Math.sqrt(.05)),false,true,true)).toBe(false);
+});
