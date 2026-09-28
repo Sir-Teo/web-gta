@@ -601,7 +601,7 @@ export class WorldPedestrians {
   switch(task){
    case TASK.killPedOnFoot:
     // IsKillTaskAppropriate: melee against melee, or a gun against anything.
-    if(isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:weapon>WEAPON_LAST_MELEE}))this.killPedOnFoot(p);else this.fleeFromPlayer(p,60);break;
+    if(isKillTaskAppropriate({createdByMission:!!p.mission,holdsGun:this.holdsGun(p),attackerHoldsGun:weapon>WEAPON_LAST_MELEE}))this.killPedOnFoot(p);else this.fleeFromPlayer(p,60);break;
    // ComputePersonalityResponseToDamage (0x4BFDD7): on foot this is KillPedOnFoot outright, with no appropriateness test.
    case TASK.carDriveMissionKillPed:this.killPedOnFoot(p);break;
    case TASK.killPedOnFootStealth:this.killPedOnFoot(p);break;
@@ -618,7 +618,7 @@ export class WorldPedestrians {
    case TASK.killPedOnFoot:
     if(shooter&&shooter.pedType===p.pedType)break;
     p.event={type:EVENT.shotFired,source:shooter};
-    if(isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:true}))this.killPedOnFoot(p,shooter);else this.fleeFromPlayer(p,60,shooter);break;
+    if(isKillTaskAppropriate({createdByMission:!!p.mission,holdsGun:this.holdsGun(p),attackerHoldsGun:true}))this.killPedOnFoot(p,shooter);else this.fleeFromPlayer(p,60,shooter);break;
    // ComputeShotFiredResponse (0x4BCB16): the stealth kill goes for whoever fired, a street ped too.
    case TASK.killPedOnFootStealth:p.event={type:EVENT.shotFired,source:shooter};this.killPedOnFoot(p,shooter);break;
    // 0x4BCA16: a criminal of another ped type who fired is hunted, or fled when the kill is not appropriate; the
@@ -626,7 +626,7 @@ export class WorldPedestrians {
    case TASK.killCriminal:
     if(!shooter||shooter.pedType===p.pedType)break;
     p.event={type:EVENT.shotFired,source:shooter};
-    if(isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:true}))this.killPedOnFoot(p,shooter);else this.fleeFromPlayer(p,60,shooter);break;
+    if(isKillTaskAppropriate({createdByMission:!!p.mission,holdsGun:this.holdsGun(p),attackerHoldsGun:true}))this.killPedOnFoot(p,shooter);else this.fleeFromPlayer(p,60,shooter);break;
    case TASK.smartFleeEntity:p.event={type:EVENT.shotFired,source:shooter};this.fleeFromPlayer(p,60,shooter);break;
   }
   return true;
@@ -752,6 +752,8 @@ export class WorldPedestrians {
    source:{ped:true,player:attackerIsPlayer,adrenaline:attackerIsPlayer&&this.sim.player.adrenaline>0,fight:sourceFight,pistolWhip:pistolWhip?{group:'melee_1',clip:'hita_2'}:undefined},megaPunch:megaPunchBlow(weapon),previousAnimId:p.damageAnimId,nextRandom:()=>this.damageRandom.next()});
   p.damageAnimId=result.id;return result;
  }
+ /** CEventHandler::IsKillTaskAppropriate's `!GetActiveWeapon().IsTypeMelee()`: a knife or a bat is no gun. */
+ private holdsGun(p:Pedestrian){return !!p.weapon&&p.weapon.info.type>WEAPON_LAST_MELEE;}
  /** CTaskSimpleFall::MakeAbortable(ABORT_PRIORITY_URGENT): through the fall and the time lying down, damage that
   * leaves the ped alive does not abort the fall (only CTaskSimpleGetUp gives way). The hit lands but plays nothing,
   * and he gets up on his first timer. Health is already reduced by the hit here, as ComputeDamageResponse has run. */
@@ -1432,7 +1434,7 @@ export class WorldPedestrians {
    if(coach){this.fleeFromPlayer(p,100000);return;}
    const task=this.decide(p,EVENT.draggedOutCar,this.relationshipTo(p),this.jackedRandom)??draggedOutDecisionTask(this.decisionMakerOf(modelRef)??p.decisionMaker,this.relationshipTo(p),this.jackedRandom);
    if(task!==TASK.killPedOnFoot)return;
-   if(!isKillTaskAppropriate({holdsGun:!!p.weapon,attackerHoldsGun:this.playerArmed()})){this.fleeFromPlayer(p,100000);return;}
+   if(!isKillTaskAppropriate({createdByMission:!!p.mission,holdsGun:this.holdsGun(p),attackerHoldsGun:this.playerArmed()})){this.fleeFromPlayer(p,100000);return;}
    p.loiter=false;p.stealBack=this.jackedRandom()<.5?{phase:'pause',time:.5+this.jackedRandom(),car}:{phase:'face',time:0,car};
   });
  }
