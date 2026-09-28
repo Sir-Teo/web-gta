@@ -1814,7 +1814,12 @@ async function boot() {
         knockPlayer(death.force,event.from);
         continue;
       }
-      if(sim.knockdown>0)continue;
+      // CTaskSimpleFall refuses damage that leaves CJ alive, through the fall and the time lying (and the get-up waits
+      // while he is stuck under a car). CTaskSimpleGetUp::MakeAbortable gives way once its clip plays: the get-up ends and
+      // the hit gets its own response, so a blow as he rises flinches or floors him again.
+      if(sim.knockdown>0&&(playerGetUp>0||playerStuckUnderCar))continue;
+      // The get-up gives way only to a response that replaces it (HandleEvents aborts the task for one).
+      const endGetUp=()=>{if(sim.knockdown>0){sim.knockdown=0;sim.knockdownGetUp=0;view.clearReaction();}};
       // WEAPON_DROWNING short of death animates nothing: the swim task or the seat refuses the event.
       if(event.weapon===WEAPON.drowning)continue;
       // CTaskComplexEnterCar (and the leave and the seat) aborts only at ABORT_PRIORITY_IMMEDIATE once past the walk to the
@@ -1843,7 +1848,7 @@ async function boot() {
         // CTaskComplexFallAndGetUp's lie: 500 ms for the player after a car or a fall (1000 for a street ped), else
         // 1000 / (shooting rate / 40).
         const lie=event.weapon===WEAPON.rammedByCar||event.weapon===WEAPON.runOverByCar||event.weapon===WEAPON.fall?.5:1;
-        sim.knockdown=fall+lie+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+lie);
+        endGetUp();sim.knockdown=fall+lie+getUp;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction(clip,fall+lie);
         continue;
       }
       // CEventHandler::ComputeDamageResponse: past CWeaponInfo::TypeIsWeapon (type < WEAPON_LAST_WEAPON, 47) only a car's
@@ -1856,6 +1861,7 @@ async function boot() {
       if(hit.hitAnimDelayUntil!==undefined)playerHitAnimDelay=hit.hitAnimDelayUntil;
       playerDamageAnimId=hit.id;
       if(!hit.clip||!view.hasReaction(hit.clip))continue;
+      endGetUp();
       if(hit.fallDown){
         // Fall, lie a second, then get up; input waits for all of it.
         const fall=view.reactionDuration(hit.clip)??1,getUp=playerFall(view,hit.clip);
