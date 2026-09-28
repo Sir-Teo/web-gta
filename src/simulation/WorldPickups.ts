@@ -57,7 +57,11 @@ export class WorldPickups {
   private takings=new Map<string,number>();
  readonly totals={horseshoe:0,oyster:0,snapshot:0};
  error?:string;
- constructor(private sim:Simulation,private scene:Scene,private base:string,private host:PickupHost,collected=new Set<string>()){this.collected=collected;}
+ constructor(private sim:Simulation,private scene:Scene,private base:string,private host:PickupHost,collected=new Set<string>()){
+  // Saves from before generated pickups were kept out of the set.
+  for(const id of collected)if(/^(script|jetpack|gangwar):/.test(id))collected.delete(id);
+  this.collected=collected;
+ }
  setPickups(pickups:readonly ScmPickup[]){
   for(const state of this.states)state.object?.removeFromParent();
   // Exterior plus interior discs: interiors stream by 3D distance like exteriors.
@@ -214,7 +218,7 @@ export class WorldPickups {
       if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,gxtHudText(gxtText('PROP_1',`Not enough cash · $${price}`)));}
       return;
      }
-     this.sim.money-=price;state.disabled=true;this.collected.add(pickup.id);this.despawn(state);
+     this.sim.money-=price;this.take(state);this.despawn(state);
      host.onCollect?.(pickup,`Property purchased · -$${price}`);return;
     }
     case 'revenue':{
@@ -236,12 +240,19 @@ export class WorldPickups {
   }
   const regen=regenerationSeconds(pickup.type,pickup.category);
   if(regen!==undefined){state.regenerateAt=this.seconds+regen;state.disabled=true;}
-  else{state.disabled=true;this.collected.add(pickup.id);}
+  else this.take(state);
   this.despawn(state);host.onCollect?.(pickup,message);
  }
   /** Whether a revenue pickup earns: one the script made (CREATE_PROTECTION_PICKUP, only once the asset is bought) always
    * does, as every PICKUP_ASSET_REVENUE does in CPickup::Update; a new-game one stands in for its asset and needs the
    * nearest for-sale property owned. */
+  /** CPickup::SetRemoved for a pickup that does not come back. A new-game pickup is remembered by its id in the save;
+   * one made during play (a script's, a dropped jetpack, a gang war's) leaves the list, so its id, which a later
+   * session can hand to a different pickup, is never saved. */
+  private take(state:State){
+   if(state.expiresAt!==undefined){this.remove(state);return;}
+   state.disabled=true;this.collected.add(state.pickup.id);
+  }
   private owned(pickup:ScmPickup,link:ScmPickup|undefined){return pickup.section==='script'||!!link&&this.collected.has(link.id);}
   /** CPickups::PassTime: regeneration timers move forward with the clock. */
   passTime(seconds:number){this.seconds+=Math.max(0,seconds);}

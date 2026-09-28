@@ -106,6 +106,24 @@ test('a script revenue pickup earns without a new-game property beside it',()=>{
  }finally{pickups.dispose();sim.dispose();}
 });
 
+// CPickup::SetRemoved: a script's ONCE pickup leaves the list once taken; its id (a recycled script handle) never
+// reaches the save, and an old save's generated ids are dropped.
+test('a generated pickup taken once is removed and never saved',()=>{
+ const {sim,pickups}=setup(new Set(['script:4','test:kept']));
+ try{
+  expect([...pickups.collected]).toEqual(['test:kept']);
+  pickups.setPickups([]);
+  const card=disc({id:'script:9',section:'script',category:'keycard',model:'keycard',dictionary:'keycard',type:3,position:[50,0,5]});
+  pickups.generate(card,Number.POSITIVE_INFINITY);
+  sim.player.health=100;sim.player.position=at(card);pickups.step(1/60);
+  expect(pickups.collected.has('script:9')).toBe(false);
+  // Standing off and coming back: it does not come back.
+  sim.player.position={x:at(card).x+40,y:at(card).y,z:at(card).z};pickups.step(1/60);
+  sim.player.position=at(card);pickups.step(1/60);
+  expect(pickups.snapshot().active).toBe(0);
+ }finally{pickups.dispose();sim.dispose();}
+});
+
 test('a money pickup pays its amount, a keycard is simply taken, and health fills to the raised maximum (CPickup::Update)',()=>{
  const cash=disc({id:'test:cash',category:'money',model:'money',dictionary:'money',type:3,ammo:250,position:[50,0,5]});
  const card=disc({id:'test:card',category:'keycard',model:'keycard',dictionary:'keycard',type:3,position:[80,0,5]});
