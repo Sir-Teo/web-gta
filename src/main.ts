@@ -94,7 +94,6 @@ import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice,DEFAULT_COP_MODEL,DEFAULT_COP_CAR} from './simulation/WorldPolice';
 import {waitingCopSpot,waitingCoppers} from './police/waitingCoppers';
 import {scalePedLimits,scalePedTargets} from './assets/populationCycle';
-import {handlePlayerBreath} from './simulation/playerBreath';
 import {WEAPONS} from './weapons/catalog';
 import {WeaponDrops} from './simulation/WeaponDrops';
 import {MoneyDrops} from './simulation/MoneyDrops';
@@ -2641,7 +2640,7 @@ async function boot() {
         // ProcessBuoyancy's tail for a player outside the swim task: his head bone (plus 0.1) under the surface loses
         // breath at x1 (HandlePlayerBreath) and drowns him, floored in a channel or wading a steep bank.
         if(onFoot&&!sim.player.swimming&&swimWater!==undefined&&sim.player.health>0){const head=render.nativeCharacter?.headPosition();
-         if(head&&head.y+.1<swimWater){const breath=handlePlayerBreath(sim.player,true,1,step*50,undefined,undefined,sim.playerDrownsInWater);if(breath.damage>0&&sim.playerDrownsInWater)sim.damagePlayer(breath.damage,true,{weapon:WEAPON.drowning});}}
+         if(head&&head.y+.1<swimWater)sim.handlePlayerBreath(step,true,1);}
         const stopSwim=()=>{sim.player.swimming=false;sim.player.swimState=0;sim.player.swimBlend=0;sim.player.swimStopTime=0;sim.player.swimDiveTime=0;sim.player.swimVel={x:0,z:0};};
         // PED_CYCLE_WEAPON_LEFT and _RIGHT: the PC defaults Q and E, and the mouse wheel. (In a vehicle Q and E look aside.)
         const cycleLeft=input.consume('KeyQ'),cycleRight=input.consume('KeyE');
