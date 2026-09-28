@@ -570,8 +570,16 @@ export class WorldPedestrians {
  /** CPedGroupMembership::RemoveMember only frees the slot: a member fighting an enemy keeps that kill task (it never
   * turns on the player), and one with no enemy left stops fighting. */
  private leaveGroup(p:Pedestrian){
-  p.follow=false;p.holdPosition=undefined;
+  p.follow=false;p.holdPosition=undefined;this.rejoinWander(p);
   if(!(p.retaliate>0&&p.foe&&p.foe.health>0&&this.people.includes(p.foe))){p.foe=undefined;p.retaliate=0;p.fight=undefined;}
+ }
+ /** A fresh CTaskComplexWander resets its nodes and picks the next from where the ped stands (TaskComplexWander.cpp:
+  * 124-131, 223-227): a ped let go after following, a script's task or a warp walks on from the nearest node, not
+  * toward one left wherever it was taken from. */
+ private rejoinWander(p:Pedestrian){
+  const q=p.actor.player.position;
+  if(Math.hypot(p.target.position[0]-q.x,-p.target.position[1]-q.z)<=20)return;
+  const n=this.nearestNode(q);if(n){p.target=n;p.previousNode=undefined;}
  }
  private answering(p:Pedestrian){return p.retaliate>0||p.flee>0||!!p.gunReact||!!p.evade||!!p.carReact;}
  /** Whether an event of `type` from `source` (the player when undefined) displaces the one the ped answers. */
@@ -1864,6 +1872,7 @@ export class WorldPedestrians {
   const state=ped.actor.player;
   state.position={...position};state.previous={...position};
   ped.body.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);
+  this.rejoinWander(ped);
  }
  /** SET_CHAR_RELATIONSHIP and its clearing forms, through CAcquaintance's own routines. */
  setRelationship(ped:Pedestrian,acquaintance:number,pedType:number){
@@ -1950,7 +1959,7 @@ export class WorldPedestrians {
   // bKeepTasksAfterCleanUp: the ped carries on with what it was doing.
   if(keepTask)return;
   // CleanUpThisPed on foot: a ped already wandering keeps it; any other primary task gives way to the wander.
-  if(!ped.scriptWanders){ped.sequence=undefined;ped.order=undefined;ped.scriptWanders=true;this.chooseTarget(ped);}
+  if(!ped.scriptWanders){ped.sequence=undefined;ped.order=undefined;ped.scriptWanders=true;this.rejoinWander(ped);this.chooseTarget(ped);}
  }
  /** CPopulation::RemovePed through a script's DELETE_CHAR. */
  removeScripted(ped:Pedestrian){
