@@ -275,6 +275,10 @@ export class WorldBike {
   const horizontal={x:forward.x*want,y:forward.y*want,z:forward.z*want};
   this.body.setLinvel({x:horizontal.x,y:v.y-9.81*dt,z:horizontal.z},true);
   this.body.setAngvel({x:0,y:yaw,z:0},true);
+  // CPhysical::ApplySpeed: an abandoned bike lying on its side (|up.z| < 0.707) that is all but still (move speed
+  // under 0.05, turn speed under 0.01 a frame) has its move speed halved every frame.
+  if(!this.occupied&&!this.quad){const up=rotate(q,{x:0,y:1,z:0}),m=this.body.linvel(),w=this.body.angvel();
+   if(Math.abs(up.y)<.707&&(m.x*m.x+m.y*m.y+m.z*m.z)/2500<.0025&&(w.x*w.x+w.y*w.y+w.z*w.z)/2500<.0001){const k=Math.pow(.5,dt*50);this.body.setLinvel({x:m.x*k,y:m.y*k,z:m.z*k},true);}}
   this.lastCollisionSeconds+=dt;
   // Native lean caps with an authored rate; quads stay level.
   const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
