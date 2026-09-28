@@ -122,11 +122,14 @@ test('knife stealth kills follow the native stealth_kn sequence from behind',asy
    weapons.inventory.select(4);weapons.aiming=true;const front={...behind,z:behind.z+.1};
    const inFront=crowd.stealthTarget({x:victim.position.x+Math.sin(victim.heading)*1.6,y:victim.position.y,z:victim.position.z+Math.cos(victim.heading)*1.6});
    for(let i=0;i<6;i++)weapons.tick(1/60);const ready=weapons.stealthReady;
+   const kills:any[]=[];crowd.onKill=(k:any)=>kills.push(k);
    const started=weapons.fire({origin:front,direction:{x:0,y:0,z:1}});const during=crowd.snapshot().people.find((p:any)=>p.id===victim.id).state;
    let states:string[]=[];for(let i=0;i<200;i++){weapons.tick(1/60);crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();states.push(crowd.snapshot().people.find((p:any)=>p.id===victim.id).state);}
    const gap=Math.hypot(sim.player.position.x-victim.position.x,sim.player.position.z-victim.position.z);
-   return {inFront:!!inFront,ready,started,during,final:states.at(-1),stealthCleared:!weapons.stealth,gap};
+   return {inFront:!!inFront,ready,started,during,final:states.at(-1),stealthCleared:!weapons.stealth,gap,kills:kills.filter(k=>k.id===victim.id).map(k=>k.byPlayer)};
   }finally{weapons.dispose();crowd.dispose();sim.dispose();}
  });
  expect(result.inFront).toBe(false);expect(result.ready).toBeGreaterThan(1/16);expect(result.started).toBe(true);expect(result.during).toBe('stealth');expect(result.final).toBe('dead');expect(result.gap).toBeLessThan(1.4);
+ // CTaskSimpleStealthKill kills through a CEventDamage from the attacker: the player's kill, reported once.
+ expect(result.kills).toEqual([true]);
 });

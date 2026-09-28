@@ -2805,7 +2805,9 @@ export class WorldPedestrians {
     if(p.health<=0)this.deadPedMakesTyresBloody(state.position,cars);
    if(p.stealth!==undefined&&p.health>0){
     const damage=this.catalog?.stealth.kill_knife_ped_damage?.duration??2.23;p.stealth+=dt;
-    if(p.stealth>=damage){p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);this.deadPedEvent(p);}
+    // CTaskSimpleStealthKill::ManageAnim kills through a CEventDamage from the attacker: the kill is the player's, by
+    // the knife, like any other he makes.
+    if(p.stealth>=damage){const recruit=!!p.follow;p.lastDamagedBy={player:true};p.lastWeaponDamage=WEAPON.knife;p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);this.deadPedEvent(p);this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit,byPlayer:true});}
     else{p.view.step(dt,{x:0,y:0,cameraYaw:state.heading,walk:true,sprint:false,jump:false},p.actor);continue;}
    }
    const at=p.body.translation();
