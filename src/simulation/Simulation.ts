@@ -363,6 +363,9 @@ export class Simulation {
     if(this.player.health<=0)return;
     this.player.health=0;this.player.speed=0;this.deathRemaining=DEATH_RECOVERY_SECONDS;
   }
+  /** m_fAimingRotation while a turn from the stick is still under way, and the heading it last left the player at. */
+  private turnTarget?: number;
+  private turnFrom?: number;
   /** What the player's legs did on foot this step, for CStats::UpdateStatsWhenSprinting and UpdateStatsWhenRunning. */
   footMove: 'still' | 'run' | 'sprint' = 'still';
   private moveCharacter(dt: number, controls: Controls) {
@@ -403,14 +406,27 @@ export class Simulation {
     if (!this.player.swimming && !(sprinting && (this.player.adrenaline > 0 || this.neverTired?.()))) this.player.stamina = stepStamina(this.player.stamina, sprinting, running, dt);
     if (this.player.stamina === 0) this.player.sprintExhausted = true;
     let dx = 0, dz = 0;
+    // m_fAimingRotation: anything else that turned the player (an aimed facing, a teleport, a scripted heading, a car
+    // exit) set it along with the heading, so a turn still pending from the stick is dropped.
+    if (this.turnTarget !== undefined && this.player.heading !== this.turnFrom) this.turnTarget = undefined;
     if (length) {
       const x = controls.x / length, y = controls.y / length;
       dx = x * Math.cos(controls.cameraYaw) - y * Math.sin(controls.cameraYaw);
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
-      // The heading turns toward m_fAimingRotation at the player's heading change rate. In the air no on-foot task steers.
-      if (!held && (this.player.grounded || controls.parachute)) this.player.heading += clamp(angleDelta(this.player.heading, Math.atan2(dx, dz)), -playerTurnStep(dt), playerTurnStep(dt));
+      // PlayerControlZelda sets m_fAimingRotation only while the stick is pushed.
+      this.turnTarget = Math.atan2(dx, dz);
     }
-    if(controls.facing!==undefined)this.player.heading=controls.facing;
+    // CPed::CalculateNewVelocity (reVC Ped.cpp; SA's is unreversed) turns the ped toward it at the heading change
+    // rate every frame it is in control, stick or no stick: a tap sideways swings CJ all the way round. In the air no
+    // on-foot task steers.
+    if (this.turnTarget !== undefined && !held && this.player.health > 0 && (this.player.grounded || controls.parachute)) {
+      const remaining = angleDelta(this.player.heading, this.turnTarget);
+      this.player.heading += clamp(remaining, -playerTurnStep(dt), playerTurnStep(dt));
+      if (Math.abs(remaining) <= playerTurnStep(dt)) this.turnTarget = undefined;
+    }
+    // PlayerControlZeldaWeapon and the aimed tasks set m_fAimingRotation from the camera, not the stick.
+    if(controls.facing!==undefined){this.player.heading=controls.facing;this.turnTarget=undefined;}
+    this.turnFrom = this.player.heading;
     if (this.jetPack && !this.jetPack.finished) return this.moveJetPack(dt, controls);
     if (this.player.swimming && this.player.health > 0) return this.moveSwimming(dt, controls);
     // CTaskSimpleJump::ProcessPed once the launch clip ends: a climb, else CheckIfJumpBlocked, then Launch.
@@ -422,6 +438,8 @@ export class Simulation {
       if (blocked === 'blocked') this.hitHead = this.onHitHead?.() ?? 0;
       else {
         launched = true;
+        // CTaskSimpleJump::StartLaunchAnim: m_fAimingRotation = m_fCurrentRotation, so no turn carries on after landing.
+        this.turnTarget = undefined;
         // CTaskSimpleJump::Launch: the mega jump cheat multiplies the player's jump force by 10.
         this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY * (CHEATS.isActive('megaJump') ? 10 : 1);
         // The ground speed goes along the heading; a climb jump goes straight up.
@@ -855,7 +873,7 @@ export class Simulation {
     // A wasted or busted player loses the pack.
     this.abortJetPack();
     this.animationMovement = null;
-    this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0; this.playerInAir = false;
+    this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0; this.playerInAir = false; this.turnTarget = undefined;
     this.flushPlayerTasks(); this.collisionShift = { x: 0, z: 0 };
 
     this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.player.adrenaline = 0; this.deathRemaining = 0;
