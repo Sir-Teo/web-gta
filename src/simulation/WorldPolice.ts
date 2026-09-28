@@ -606,6 +606,8 @@ export class WorldPolice {
    const crewMayLeave=car.modelId!==432||u.seed%32768>10000;
    if(u.mission==='close'&&distance<=10&&crewMayLeave&&(!playerCar||upsideDown||playerStopped&&u.slowTimer>2500)){
     u.mission='stopped';for(let seat=1;seat<4;seat++)this.beginExit(u,seat);
+    // The siren goes off with the crew at one star or none.
+    if(this.law.level<=1)u.siren=false;
     // CTaskComplexCopInCar: the driver waits 3000–5000 ms the first time.
     u.driverExitAt=u.seconds+3+this.random()*2;
    }
