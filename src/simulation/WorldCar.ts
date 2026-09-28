@@ -581,6 +581,8 @@ export class WorldCar {
  /** The player's passenger seat (CarEntry's numbering: 1 front right, 2 rear left, 3 rear right), 0 while he is not
   * a passenger here. The car goes on under whoever drives it; the player rides along. */
  playerPassengerSeat=0;
+ /** FindPlayerVehicle: the car CJ is in, a passenger seat included (player->m_pVehicle whenever bInVehicle). */
+ get playersVehicle(){return this.occupied||this.playerPassengerSeat>0;}
  /** CTaskSimpleCarSetPedInAsPassenger for the player: he takes the seat and loses his on-foot collision. */
  setPlayerInAsPassenger(seat:number){
   this.sim.setCrouched(false);this.playerPassengerSeat=seat;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);
@@ -999,7 +1001,7 @@ export class WorldCar {
   const previous=this.health;
   const models={modelId:this.modelId,damagerModelId:damager?.modelId};
   if(this.onCollisionDamage){const raw=collisionHealthLossRaw({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,...models,damagerIsPlayer:rammedByPlayer});if(raw>0)this.onCollisionDamage(raw,rammedByPlayer);}
-  this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:rammedByPlayer,...models,takeLessDamage:this.takeLessDamage}));
+  this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.playersVehicle,hitByPlayerVehicle:rammedByPlayer,...models,takeLessDamage:this.takeLessDamage}));
   // CAutomobile::VehicleDamage: the smash n boom cheat blows up whatever the player's vehicle hits. Otherwise a
   // crash-killed car stays at 1 health to burn, unless any Rhino killed it and it is not the player's own car.
   if(CHEATS.isActive('smashNBoom')&&rammedByPlayer){this.blowUp();return;}
@@ -1018,7 +1020,7 @@ export class WorldCar {
  private upsideDownDamage(seconds:number){
   if(this.wrecked||!this.car.body.isEnabled()||!this.canBeDamaged)return;
   const q=this.car.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
-  if(!this.occupied){this.upsideDownCounter=0;this.upsideDownClock=0;if(upY<0&&!this.noUpsideDownDamage)this.health=Math.max(0,this.health-4*seconds*50);return;}
+  if(!this.playersVehicle){this.upsideDownCounter=0;this.upsideDownClock=0;if(upY<0&&!this.noUpsideDownDamage)this.health=Math.max(0,this.health-4*seconds*50);return;}
   this.upsideDownClock+=seconds;if(this.upsideDownClock<32/30)return;this.upsideDownClock-=32/30;
   const v=this.car.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
   if(upY<0&&speed<.05&&!this.inWater)this.upsideDownCounter+=upY<-.5?2:1;else this.upsideDownCounter=0;

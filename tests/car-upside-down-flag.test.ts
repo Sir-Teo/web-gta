@@ -10,3 +10,11 @@ test('a flipped car loses 4 health a frame unless SET_UPSIDEDOWN_CAR_NOT_DAMAGED
  const plain=flipped();step(plain,1);expect(plain.health).toBe(400);
  const kept=flipped({noUpsideDownDamage:true});step(kept,1);expect(kept.health).toBe(600);
 });
+
+// FindPlayerVehicle includes a passenger seat: VehicleDamage's flipped-car drain skips the car CJ rides in, and only
+// the player's counter (reVC PlayerInfo) caps its health at 249 once it has sat on its roof a while.
+test('a flipped car carrying CJ as a passenger is not drained like an empty one',()=>{
+ const ride=Object.assign(Object.create(WorldCar.prototype),flipped({playerPassengerSeat:1}));
+ step(ride,1);expect(ride.health).toBe(600);
+ for(let i=0;i<10;i++)step(ride,32/30);expect(ride.health).toBe(249);
+});
