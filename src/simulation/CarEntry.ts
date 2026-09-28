@@ -214,9 +214,10 @@ export class CarEntry {
   return hit?point.y+1.5-hit.timeOfImpact:undefined;
  }
  /** CCarEnterExit::IsRoomForPedToLeaveCar port: a standing capsule fits at the door point (with door-ajar clearance). */
- private room(car:WorldCar,side:Side){
-  const local=this.doorPoint(car,side);if(!local)return false;const world=car.worldPoint(local),ground=this.ground(world,car);if(ground===undefined)return false;
-  return !this.sim.world.intersectionWithShape({x:world.x,y:ground+.95,z:world.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.55,.3),undefined,undefined,this.sim.playerCollider,car.car.body);
+ private room(car:WorldCar,side:Side,overAir=false){
+  const local=this.doorPoint(car,side);if(!local)return false;const world=car.worldPoint(local),ground=this.ground(world,car);if(ground===undefined&&!overAir)return false;
+  // A roll-out at speed may leave over open air (a car off a ramp or a pier): the capsule stands at the door point.
+  return !this.sim.world.intersectionWithShape({x:world.x,y:(ground??world.y-1)+.95,z:world.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.55,.3),undefined,undefined,this.sim.playerCollider,car.car.body);
  }
  private jackRequired(car:WorldCar){return !!car.autopilot&&!car.occupied&&!car.driverOut;}
  /** CTaskComplexEnterCarAsDriver from on foot. */
@@ -244,7 +245,7 @@ export class CarEntry {
   if(this.phase!=='seated'||!this.car)return false;
   const car=this.car;
   if(car.canStepOut())return this.beginGetOut();
-  if(car.canJumpOut())return this.beginJumpOut();
+  if(car.canJumpOut()&&this.beginJumpOut())return true;
   this.phase='waitSlow';this.time=0;car.exitHandbrake=true;car.driverInput=false;return true;
  }
  /** CTaskComplexCarSlowBeDraggedOut on the seated player (a cop holding the driver's door): CAR_jackedLHS
@@ -471,7 +472,10 @@ export class CarEntry {
  }
  private finishOnFoot(){this.sim.playerCollider.setEnabled(true);this.phase=undefined;this.car=undefined;this.lineUp=undefined;}
  private beginJumpOut(){
-  const car=this.car!;this.side='left';
+  // IsRoomForPedToLeaveCar gates the roll-out as it does the get-out: the driver's door, else the passenger's, else
+  // CTaskSimpleCarWaitToSlowDown keeps him in until a door clears or the car can be stepped out of.
+  const car=this.car!,side:Side|undefined=this.room(car,'left',true)?'left':this.room(car,'right',true)?'right':undefined;
+  if(!side)return false;this.side=side;
   if(!this.sideSlot(VEHICLE_ANIM.rolloutLHS,VEHICLE_ANIM.rolloutRHS))return false;
   car.driverInput=false;car.exitHandbrake=false;
   const v=car.car.body.linvel();this.jumpSpeed=Math.hypot(v.x,v.y,v.z)/50;this.setOut=false;this.doorExisted=!car.doorMissing(this.door);

@@ -77,6 +77,31 @@ test('holding accelerate while getting in leaves the door swinging, jumping out 
  expect(result.phases[0]).toBe('jumpOut');expect(result.phases).toContain('getUp');expect(result.driverless).toBe(true);expect(result.occupied).toBe(false);
  await page.evaluate(()=>(window as any).__entry.dispose());expect(errors).toEqual([]);
 });
+test('a jump-out takes the passenger door when a wall blocks the driver\'s, and waits when both are blocked',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
+ await page.evaluate(`(${harness.toString()})().then(h=>{window.__entry=h;})`);await page.waitForFunction(()=>!!(window as any).__entry,undefined,{timeout:120000});
+ const result=await page.evaluate(async()=>{
+  const {RAPIER}=await import(/* @vite-ignore */ '/tests/fixtures/native-render-dependencies.ts');
+  const h=(window as any).__entry;h.reset(-4,1);h.entry.enter(h.car);
+  for(let i=0;i<60*12&&!h.entry.seated;i++)h.step();
+  for(let i=0;i<60*6;i++)h.step({pedal:true});
+  // IsRoomForPedToLeaveCar: a block standing where the ped would come out of each door.
+  const wall=(side:'left'|'right')=>{const w=h.car.worldPoint(h.entry.doorPoint(h.car,side,1));return h.sim.world.createCollider(RAPIER.ColliderDesc.ball(1).setSensor(true).setTranslation(w.x,w.y+.5,w.z));};
+  // A world step brings the new colliders into the scene queries (the car moves on half a metre meanwhile).
+  const left=wall('left'),right=wall('right');h.sim.world.step();
+  const speed=h.car.speed2D()*50;h.entry.exit();const both=h.entry.phase;
+  h.sim.world.removeCollider(right,false);h.sim.world.step();h.entry.backToSeat(h.car);
+  h.entry.exit();const one={phase:h.entry.phase,side:h.entry.side};
+  h.sim.world.removeCollider(left,false);
+  for(let i=0;i<60*4&&h.entry.active;i++)h.step({pedal:false});
+  return {speed,both,one};
+ });
+ console.log(JSON.stringify(result));
+ expect(result.speed).toBeGreaterThan(15.8);
+ expect(result.both).toBe('waitSlow');
+ expect(result.one).toEqual({phase:'jumpOut',side:'right'});
+ await page.evaluate(()=>(window as any).__entry.dispose());expect(errors).toEqual([]);
+});
 test('entering an NPC-driven car drags the driver out with CAR_pullout and CAR_jacked, or evicts him through the driver door',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
  await page.evaluate(`(${harness.toString()})().then(h=>{window.__entry=h;})`);await page.waitForFunction(()=>!!(window as any).__entry,undefined,{timeout:120000});
