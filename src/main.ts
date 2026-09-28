@@ -3855,7 +3855,12 @@ async function boot() {
           pedestrians.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
           pedestrians.onShot=(from,to,weapon,hit,shooter)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc',shooter);};
           pedestrians.onMeleeHit=(position,byPlayer)=>sound.combat('impact',0,position,byPlayer?'player':'npc');
-          pedestrians.onDropWeapon=(position,weapon,rounds,persist)=>{void drops.report(position,weapon,rounds,persist);};
+          // CPed::CreateDeadPedWeaponPickups: each gun lands at CreateDeadPedPickupCoors round the body, 0.3 higher.
+          pedestrians.onDropWeapon=(position,weapon,rounds,persist)=>{
+           const spot=mission?.deadPedPickupCoordsAt({x:position.x,y:-position.z,z:position.y});
+           if(spot)void drops.report({x:spot.x,y:spot.z+.3,z:-spot.y},weapon,rounds,persist,true);
+           else void drops.report(position,weapon,rounds,persist);
+          };
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
           pedestrians.resolveScriptPed=handle=>{const ped=mission?.pedByHandle(handle);return ped==='player'?ped:onFoot(ped);};
           pedestrians.resolveScriptVehicle=handle=>{

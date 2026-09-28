@@ -725,6 +725,14 @@ export class ScmMission {
   * leaves the script its own. */
  private readonly ownFade=new ScmCameraFade();
  get fade(){return this.world.cameraFade??this.ownFade;}
+ /** CPed::CreateDeadPedPickupCoors round a point (native axes): where a dead ped's weapons land, for the street
+  * population as for GET_DEAD_CHAR_PICKUP_COORDS. */
+ deadPedPickupCoordsAt(at:{x:number;y:number;z:number},command='CreateDeadPedWeaponPickups'){
+  const bubble=this.host('pickupsInBubble',command),vehicles=this.host('vehicleInSphere',command);
+  const flags=(both:boolean)=>({buildings:true,vehicles:both,peds:false,objects:both});
+  return deadPedPickupCoors(at,this.world.playerPed().position,{groundZ:(x,y,z)=>this.world.groundLevel(x,y,z),pickupsInBubble:bubble,
+   lineOfSightClear:(a,b,both)=>this.world.lineOfSightClear(a,b,flags(both)),vehicleInSphere:vehicles,random256:()=>Math.floor(Math.random()*256)});
+ }
  /** Between START_CUTSCENE and CLEAR_CUTSCENE: the browser has no cutscene to show, so the screen stays faded out
   * through it rather than fading in on the world the cutscene would have covered. The hold goes with the thread that
   * started the cutscene, so a mission ended mid-cutscene does not leave the screen black. */
@@ -1766,10 +1774,7 @@ export class ScmMission {
    // GET_DEAD_CHAR_PICKUP_COORDS: CPed::CreateDeadPedPickupCoors round the ped.
    deadPedPickupCoordinates:handle=>{
     const at=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:(this.livePed(handle),this.peds.positionOf(handle));
-    const bubble=this.host('pickupsInBubble','GET_DEAD_CHAR_PICKUP_COORDS'),vehicles=this.host('vehicleInSphere','GET_DEAD_CHAR_PICKUP_COORDS');
-    const flags=(both:boolean)=>({buildings:true,vehicles:both,peds:false,objects:both});
-    return deadPedPickupCoors(at,this.world.playerPed().position,{groundZ:(x,y,z)=>this.world.groundLevel(x,y,z),pickupsInBubble:bubble,
-     lineOfSightClear:(a,b,both)=>this.world.lineOfSightClear(a,b,flags(both)),vehicleInSphere:vehicles,random256:()=>Math.floor(Math.random()*256)});
+    return this.deadPedPickupCoordsAt(at,'GET_DEAD_CHAR_PICKUP_COORDS');
    },
    deadPedCoordinates:handle=>{
     const ride=handle===PLAYER_PED_HANDLE?undefined:this.peds.rideOf(handle);

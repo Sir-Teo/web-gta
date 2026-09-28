@@ -38,8 +38,10 @@ export class WeaponDrops {
   private drops: Drop[] = [];
   private loading = new Map<number, Promise<DropAsset | undefined>>();
   constructor(private scene: { add(o: Group): void }, private assets: { load: (weapon: number) => Promise<{ asset?: { model: DropAsset['model']; textures: DropAsset['textures'] } }> }, private ground: (point: { x: number; y: number; z: number }) => number | undefined) {}
-  /** Queue a dropped weapon, or add its ammo to a same-weapon drop within 5 units (TryToMerge_WeaponType). */
-  async report(position: { x: number; y: number; z: number }, weapon: number, rounds: number, persist = false) {
+  /** Queue a dropped weapon, or add its ammo to a same-weapon drop within 5 units (TryToMerge_WeaponType). A `placed`
+   * position is CreateDeadPedPickupCoors' own (already over ground, 0.3 up) and is kept; otherwise the drop is put
+   * on the ground under the point. */
+  async report(position: { x: number; y: number; z: number }, weapon: number, rounds: number, persist = false, placed = false) {
    if (!Number.isFinite(position.x + position.y + position.z) || !Number.isInteger(weapon) || !(rounds >= 0)) return false;
    // CPed::CreateDeadPedWeaponPickups tries TryToMerge_WeaponType into a PICKUP_ONCE_TIMEOUT pickup first whether or
    // not the ped's own drops persist; only a new pickup takes PICKUP_ONCE_FOR_MISSION.
@@ -55,10 +57,11 @@ export class WeaponDrops {
       this.loading.set(weapon, pending);
     }
     const resolved = await pending;
-    const ground = resolved && this.drops.includes(drop) ? this.ground(position) : undefined;
+    const ground = resolved && this.drops.includes(drop) ? (placed ? position.y - 0.15 : this.ground(position)) : undefined;
     if (!resolved || ground === undefined) { const i = this.drops.indexOf(drop); if (i >= 0) this.drops.splice(i, 1); return false; }
     const owner = modelObject(resolved.model, resolved.textures);
-    owner.root.position.set(position.x, ground + 0.15, position.z);
+    // GiveUsAPickUpObject sets every pickup's heading to -π/2.
+    owner.root.position.set(position.x, ground + 0.15, position.z); owner.root.rotation.y = -Math.PI / 2;
     this.scene.add(owner.root);
     drop.position.y = ground + 0.15; drop.root = owner.root; drop.owner = owner;
     return true;

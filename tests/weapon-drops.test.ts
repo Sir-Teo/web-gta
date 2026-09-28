@@ -70,6 +70,14 @@ test('a script ped whose death weapons persist drops PICKUP_ONCE_FOR_MISSION: no
   expect(drops.snapshot()).toMatchObject([{ weapon: 22, rounds: 60 }]);
   drops.dispose();
 });
+// CreateDeadPedWeaponPickups hands over CreateDeadPedPickupCoors' own point (ground + 0.5, then + 0.3): kept as given,
+// and every pickup faces -π/2 (GiveUsAPickUpObject).
+test('a placed drop keeps its height and faces -π/2', async () => {
+  const { drops, added } = setup();
+  await drops.report({ x: 0, y: 3.8, z: 0 }, 22, 9, false, true);
+  expect(added[0].position.y).toBeCloseTo(3.8);expect(added[0].rotation.y).toBeCloseTo(-Math.PI / 2);
+  expect(drops.snapshot()[0].position.y).toBeCloseTo(3.8);
+});
 
 // CWorld::ClearExcitingStuffFromArea's CPickups::RemoveUnnecessaryPickups takes the PICKUP_ONCE_TIMEOUT drops in the
 // sphere; CPickups::PassTime runs their timeouts on (a passed minute is a second), so a long wait clears them.
