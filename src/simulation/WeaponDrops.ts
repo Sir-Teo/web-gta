@@ -3,7 +3,7 @@ import {modelObject} from '../assets/ModelObjects';
 
 export interface DropAsset { model: Parameters<typeof modelObject>[0]; textures: Parameters<typeof modelObject>[1] }
 interface Drop { weapon: number; rounds: number; position: { x: number; y: number; z: number }; root?: Group; owner?: ReturnType<typeof modelObject>; age: number;
-  /** PICKUP_ONCE_FOR_MISSION (bDeathPickupsPersist): never times out and takes no merge. */
+  /** PICKUP_ONCE_FOR_MISSION (bDeathPickupsPersist): never times out and is never merged into. */
   persist?: boolean }
 /** re3's CPickups::GenerateNewOne gives PICKUP_ONCE_TIMEOUT 20 s (SA's is unreversed). */
 export const DROP_TIMEOUT_SECONDS = 20;
@@ -36,8 +36,9 @@ export class WeaponDrops {
   /** Queue a dropped weapon, or add its ammo to a same-weapon drop within 5 units (TryToMerge_WeaponType). */
   async report(position: { x: number; y: number; z: number }, weapon: number, rounds: number, persist = false) {
    if (!Number.isFinite(position.x + position.y + position.z) || !Number.isInteger(weapon) || !(rounds >= 0)) return false;
-   // TryToMerge_WeaponType only looks for PICKUP_ONCE_TIMEOUT pickups, and a persisting drop is never merged into one.
-   const merge = persist ? undefined : this.drops.find(d => !d.persist && d.weapon === weapon && Math.hypot(d.position.x - position.x, d.position.y - position.y, d.position.z - position.z) < MERGE_RADIUS);
+   // CPed::CreateDeadPedWeaponPickups tries TryToMerge_WeaponType into a PICKUP_ONCE_TIMEOUT pickup first whether or
+   // not the ped's own drops persist; only a new pickup takes PICKUP_ONCE_FOR_MISSION.
+   const merge = this.drops.find(d => !d.persist && d.weapon === weapon && Math.hypot(d.position.x - position.x, d.position.y - position.y, d.position.z - position.z) < MERGE_RADIUS);
    if (merge) { merge.rounds += Math.floor(rounds); return true; }
    while (this.drops.length >= MAX_DROPS) { const i = Math.max(0, this.drops.findIndex(d => !d.persist)); this.retire(this.drops.splice(i, 1)[0]); }
    // Listed at once, so a second body dropping the same weapon this frame merges into it.

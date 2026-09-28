@@ -58,11 +58,14 @@ test('drops stay while the player is away, time out after 20 s, and are taken on
   drops.dispose();
 });
 
-test('a script ped whose death weapons persist drops PICKUP_ONCE_FOR_MISSION: no timeout and no merging',async()=>{
+test('a script ped whose death weapons persist drops PICKUP_ONCE_FOR_MISSION: no timeout, never merged into, but merged into a timed drop',async()=>{
   const { drops } = setup();
   await drops.report({ x: 0, y: 0, z: 0 }, 22, 60, true);
   await drops.report({ x: 1, y: 0, z: 0 }, 22, 60);
   expect(drops.snapshot().map(d => d.rounds)).toEqual([60, 60]);
+  // CreateDeadPedWeaponPickups tries TryToMerge_WeaponType (PICKUP_ONCE_TIMEOUT) first whatever the ped's flag.
+  await drops.report({ x: 2, y: 0, z: 0 }, 22, 60, true);
+  expect(drops.snapshot().map(d => d.rounds)).toEqual([60, 120]);
   drops.step(500, { ...player, position: { x: 500, y: 0, z: 0 } }, () => 'Pistol');
   expect(drops.snapshot()).toMatchObject([{ weapon: 22, rounds: 60 }]);
   drops.dispose();
