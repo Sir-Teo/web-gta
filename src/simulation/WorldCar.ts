@@ -73,6 +73,7 @@ export const carRefusesDamage=(car:{canBeDamaged:boolean;proofs?:{bullet:boolean
 };
 /** Who hurt a car: the player's ped, another ped, or a vehicle. */
 export type CarDamager={player?:true;ped?:unknown;car?:WorldCar};
+const WRECKED_CONTROLS={steerAngle:0,gas:0,brake:.05,handbrake:true} as const;
 export class WorldCar {
  readonly car:ReturnType<typeof installNativeCar>;
  readonly modelId:number;
@@ -627,11 +628,15 @@ export class WorldCar {
   const abandoned=!this.occupied&&!ai&&this.abandoned?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
   if(abandoned){p.accelerate=0;p.brake=0;p.handbrake=false;}// CPad::GetSteeringLeftRight answers 0 while player controls are disabled.
   this.input.steering.steeringAxis=driving?(this.controlsDisabled?0:axes.x*128):Math.round((ai?.steering??0)*128);
-  if(this.wrecked){p.accelerate=0;p.brake=255;p.handbrake=true;}
+  if(this.wrecked){p.accelerate=0;p.brake=0;p.handbrake=true;}
+  // BlowUpCar turns the engine off, and CalculateDriveAcceleration only runs with it on.
+  p.engineOn=!this.wrecked;
   // CAutomobile::ProcessCarOnFireAndExplode for ordinary cars.
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;
   this.crushCarsInPath();
-  this.input.ai=this.wrecked?undefined:this.recordingSlot>=0&&this.recordingControls?this.recordingControls:ai?.native??abandoned;
+  // CAutomobile::ProcessAI's STATUS_WRECKED branch sets the controls outright: a 0.05 brake, the handbrake, no gas and
+  // the steering straight; the player's pedal logic (brake-then-reverse) never runs for a wreck.
+  this.input.ai=this.wrecked?WRECKED_CONTROLS:this.recordingSlot>=0&&this.recordingControls?this.recordingControls:ai?.native??abandoned;
   // CAutomobile::DoHoverSuspensionRatios: the Vortex rides its wheel lines on the water surface.
   const hover=this.modelId===MODEL_VORTEX&&this.waterLevel&&hoverActive(this.axes().up[2],this.drowning)
    ?(wheel:CarWheel,line:{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}},groundContactZ:number|undefined)=>hoverWheelContact({start:line.start,end:line.end,groundContactZ,waterLevel:this.waterLevel!(line.end.x,line.end.y)}):undefined;
