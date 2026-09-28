@@ -3728,7 +3728,7 @@ async function boot() {
             fleet.clearPed=handle=>pedestrians?.removeDeletableCollider(handle)??false;
             fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
-            police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;
+            police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;police.noPoliceZone=()=>cullZones.noPolice;
             traffic.spawnPatrol=(position,heading)=>police!.spawnPatrol(position,heading);
             traffic.noSpawn=()=>gangWars?.dontCreateCivilians()??false;
             // CEventVehicleOnFire: the random driver's decision is TASK_COMPLEX_LEAVE_CAR_AND_FLEE (R_Norm/R_Tough/R_Weak.ped),

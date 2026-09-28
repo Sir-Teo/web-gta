@@ -76,3 +76,27 @@ test('cops who climbed out run back to their car and drive off when the suspect 
  expect(result.doorOpened).toBeGreaterThan(.9);expect(result.doorClosed).toBe(0);expect(errors).toEqual([]);
 });
 
+test('a chasing cop car goes back to cruising when the police back off, though the wanted level stays',async({page})=>{
+ test.setTimeout(180000);await page.goto('/models.html');
+ const result=await page.evaluate(async()=>{
+  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldCar},{loadWorldRoadMaterials},{WorldCar},{Simulation},{WantedSystem},{WorldPolice},{VehicleAnimationLibrary},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldCar.ts','/src/assets/worldRoadMaterials.ts','/src/simulation/WorldCar.ts','/src/simulation/Simulation.ts','/src/simulation/WantedSystem.ts','/src/simulation/WorldPolice.ts','/src/assets/vehicleAnimations.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+  await RAPIER.init();const base=new URL('/play/world/',location.href).href,catalog=await openStaticWorldVehicles(await openStaticWorld(base)),road=await loadWorldRoadMaterials(base);
+  const sim=new Simulation(),scene=new THREE.Scene();sim.world.createCollider(RAPIER.ColliderDesc.cuboid(300,.5,300).setTranslation(0,-.5,0));sim.world.step();
+  sim.respawn={x:0,y:0,z:0};sim.resetPlayer();
+  const assets=await loadFixedWorldCar(catalog,{modelId:596,primaryColor:-1,secondaryColor:-1}),car=new WorldCar(sim,scene,assets,{x:0,y:1.2,z:80},road,0);
+  const cars=new Set([car]),fleet={cars,removeTrafficCar:()=>{},spawnTrafficCar:async()=>undefined} as any;
+  const law=new WantedSystem();law.setLevel(2);
+  const clips=new VehicleAnimationLibrary(base);await clips.load(car.animGroup);
+  const police=new WorldPolice(sim,fleet,law,clips,base);const officers:any[]=[];police.spawnOfficer=(model:string,weapon:number,position:any)=>officers.push({model,weapon,position});
+  police.units.push({car,wanted:2,member:{model:'lapd1',weapon:22},seats:[true,true,false,false],mission:'far',siren:false,cruise:34,slowTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,route:[],routeAt:-Infinity,seconds:0,seatHealth:[100,100,100,100],deadSeats:[false,false,false,false]});
+  for(let i=0;i<30;i++){police.beforeStep(1/60);car.beforeStep(1/60,{x:0,y:0},false);sim.world.step();car.afterStep(1/60);}
+  const chasing=police.units[0].mission;
+  law.native.policeBackOff=true;police.beforeStep(1/60);
+  const backedOff={mission:police.units[0].mission,level:law.level};
+  law.native.policeBackOff=false;police.noPoliceZone=()=>true;police.beforeStep(1/60);
+  return {chasing,backedOff,noPolice:police.units[0].mission,brake:car.autopilot?.brake};
+ });
+ expect(result.chasing).not.toBe('cruise');
+ expect(result.backedOff).toEqual({mission:'cruise',level:2});
+ expect(result.noPolice).toBe('cruise');expect(result.brake).toBe(1);
+});

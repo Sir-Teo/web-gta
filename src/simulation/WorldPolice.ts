@@ -480,6 +480,8 @@ export class WorldPolice {
    }
   }
  }
+ /** CCullZones::NoPolice for the player's position (the host's cull zones). */
+ noPoliceZone?:()=>boolean;
  beforeStep(dt:number,playerCar?:WorldCar){
   this.seconds+=dt;
   // A car the fleet or a script let go since the last dispatch update (which prunes once a second) is gone: its
@@ -494,6 +496,9 @@ export class WorldPolice {
   this.updateAlarms(dt);
   const player=this.sim.player.position,target=playerCar?playerCar.car.body.translation():player,targetVelocity=playerCar?playerCar.car.body.linvel():{x:0,y:0,z:0};
   const playerSpeed=playerCar?Math.hypot(targetVelocity.x,targetVelocity.z)/50:this.sim.player.speed/50;
+  // CCarAI's chase gates: the level is clean, or PoliceBackOff() (SET_POLICE_IGNORE_PLAYER, the garage, everybody's
+  // back-off), or the player stands in a no-police cull zone.
+  const chaseOff=!this.law.level||this.law.native.backOff||!!this.noPoliceZone?.();
   for(const u of this.units){
    const car=u.car;u.seconds+=dt;
    if(car.occupied||car.wrecked){car.autopilot=undefined;continue;}
@@ -515,7 +520,7 @@ export class WorldPolice {
    // Bust pull: a stopped unit's crew at the suspect's door drags the driver
    // out so the foot arrest (CTaskSimpleArrestPed) can proceed. Roadblock
    // crews hold their block the same way when the suspect stops at it.
-   if(this.law.level>0&&(u.mission==='stopped'||u.mission==='roadblock')&&playerCar&&!playerCar.wrecked){
+   if(!chaseOff&&(u.mission==='stopped'||u.mission==='roadblock')&&playerCar&&!playerCar.wrecked){
     const pv=playerCar.car.body.linvel(),pp=playerCar.car.body.translation();
     const carStopped=Math.hypot(pv.x,pv.z)<2;
     const atDoor=(this.crew?.list(u)??[]).some(c=>!c.down&&Math.hypot(c.position.x-pp.x,c.position.z-pp.z)<BUST_PULL_RANGE);
@@ -547,11 +552,13 @@ export class WorldPolice {
    // CSetPiece cars: MISSION_SLOWLY_DRIVE_TOWARDS_PLAYER_1 heads for its destination; within 1.5 it becomes _2, whose
    // crew leaves the car and stops for good once the player is within 13 or beyond 70, or no longer wanted.
    if(u.mission==='slowly1'&&u.goal&&Math.hypot(u.goal.x-p.x,u.goal.y+p.z)<=1.5)u.mission='slowly2';
-   if(u.mission==='slowly2'&&(distance<=13||distance>=70||!this.law.level)){
+   if(u.mission==='slowly2'&&(distance<=13||distance>=70||chaseOff)){
     u.mission='stopped';u.goal=undefined;for(let seat=0;seat<4;seat++)this.beginExit(u,seat);
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};continue;
    }
-   if(!this.law.level&&u.mission!=='slowly1'&&u.mission!=='slowly2'){u.mission='cruise';u.siren=false;}
+   // CCarAI::BackToCruisingIfNoWantedLevel: back to cruising in a no-police zone too, where the car takes no mission
+   // at all (MISSION_NONE: it stops where it is).
+   if(chaseOff&&u.mission!=='slowly1'&&u.mission!=='slowly2'){u.mission='cruise';u.siren=false;if(this.noPoliceZone?.()){car.autopilot={throttle:0,brake:1,steering:0,handbrake:speed<.5};continue;}}
    else if(u.mission==='cruise')u.mission='far';
    // CCarAI::UpdateCarAI switch distances: close within the straight-line distance 20, or head-on within 40; far beyond 50.
    // CCarAI::EntitiesGoHeadOn(player, car): the player (his ped, which faces as his car does) faces the car and the

@@ -58,6 +58,8 @@ export class NativeCullZones {
  }
  get camNoRain(){return !!(this.camera&ZONE.noRain);}
  get playerNoRain(){return !!(this.player&ZONE.noRain);}
+ /** CCullZones::NoPolice: the player stands in a zone the police do not go into (POLICES_DONT_GO). */
+ get noPolice(){return !!(this.player&ZONE.noPolice);}
  /** FewerPeds (0x72DD90): CPopulation::FindPedDensityMultiplierCullZone gives 0.6 in these zones. */
  get fewerPeds(){return !!(this.player&ZONE.fewerPeds);}
  /** DoExtraAirResistanceForPlayer (0x72DDD0): CPhysical::ApplyAirResistance multiplies every automobile's and
