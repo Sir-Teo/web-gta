@@ -13,7 +13,8 @@ import { WorldLighting } from './WorldLighting';
 import type { Simulation } from '../simulation/Simulation';
 import type { Input } from '../input/Input';
 import { angleDelta, clamp, damp } from '../core/math';
-import {FirstPersonZoom,firstPersonAlphaRange,firstPersonLookScale,firstPersonSourceOffset,isRocketMode,type FirstPersonMode} from '../weapons/nativeFirstPerson';
+import {FirstPersonZoom,firstPersonAlphaRange,firstPersonSourceOffset,isRocketMode,type FirstPersonMode} from '../weapons/nativeFirstPerson';
+import {MOUSE_ACCEL_DEFAULT} from '../input/mouseSettings';
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -166,10 +167,12 @@ export class GameRenderer {
       input.lookX = input.lookY = 0;
     } else if (input.lookX || input.lookY) {
       if(fp){
-        // The browser pitch is minus the camera's vertical angle.
-        const scale=firstPersonLookScale(this.zoom.fov),range=firstPersonAlphaRange(fp);
-        this.yaw -= input.lookX * .003 * scale.yaw * this.mouseYawScale;
-        this.pitch = clamp(this.pitch + input.lookY * this.mouseYSign * .002 * scale.pitch, -range.max, -range.min);
+        // CCam::Process_Rocket and Process_1rstPersonPedOnPC: the horizontal angle moves by -3 x dx x (FOV / 80) x
+        // m_fMouseAccelHorzntl (the sensitivity slider, 0.0025 by default) and the vertical by 4 x dy x (FOV / 80) x
+        // m_fMouseAccelVertical (0.0015). The browser pitch is minus the camera's vertical angle.
+        const fovScale=this.zoom.fov/80,range=firstPersonAlphaRange(fp);
+        this.yaw -= input.lookX * 3 * fovScale * MOUSE_ACCEL_DEFAULT * this.mouseYawScale;
+        this.pitch = clamp(this.pitch + input.lookY * this.mouseYSign * 4 * fovScale * .0015, -range.max, -range.min);
       }else{
         this.yaw -= input.lookX * .003 * this.mouseYawScale;
         this.pitch = clamp(this.pitch + input.lookY * this.mouseYSign * .002, this.aiming?-1.1:-.18, 1.05);

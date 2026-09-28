@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {expect,test} from 'vitest';
 import {readWeaponData,nativeWeaponInfo} from '../src/weapons/weaponData';
-import {FirstPersonZoom,firstPersonAlphaRange,firstPersonLookScale,firstPersonMode,firstPersonSourceOffset,wellBufferMe} from '../src/weapons/nativeFirstPerson';
+import {FirstPersonZoom,firstPersonAlphaRange,firstPersonMode,firstPersonSourceOffset,wellBufferMe} from '../src/weapons/nativeFirstPerson';
 
 const data=readWeaponData(new TextDecoder('windows-1252').decode(readFileSync('public/play/world/files/data/weapon.dat')));
 const mode=(type:number)=>firstPersonMode(type,nativeWeaponInfo(data,type,1));
@@ -44,7 +44,4 @@ test('first-person camera sources, angle limits and mouse rates follow Process_R
  expect(firstPersonAlphaRange('rocketHs').min).toBeCloseTo(-85.5*Math.PI/180,9);
  expect(firstPersonAlphaRange('sniper').min).toBeCloseTo(-89.5*Math.PI/180,9);
  expect(firstPersonAlphaRange('sniper').max).toBeCloseTo(60*Math.PI/180,9);
- const scale=firstPersonLookScale(35);expect(scale.yaw).toBeCloseTo(.6,9);expect(scale.pitch).toBeCloseTo(.72,9);
- // Process_Rocket's vertical rate is 0.8 of its horizontal one.
- expect(scale.pitch*.002/(scale.yaw*.003)).toBeCloseTo(.8,9);
 });
