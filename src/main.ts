@@ -2868,7 +2868,7 @@ async function boot() {
         if(walkIn&&onFoot){const p=sim.player.position,dx=walkIn[0]-p.x,dz=-walkIn[1]-p.z;controls={...controls,x:0,y:Math.hypot(dx,dz)>.5?-1:0,cameraYaw:Math.atan2(dx,dz),walk:true,sprint:false,jump:false,facing:undefined};}
         // A warp with no walk-in (UNKNOWN_PAIRING, FOOD_DATE_FLAG) sets bPlayerOnInteriorTransition, one of
         // DisablePlayerControls' reasons, and on foot adds CTaskSimpleUninterruptable: CJ stands still through the fade.
-        else if(entryExits?.active&&onFoot)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:undefined};
+        else if(entryExits?.active&&onFoot&&entryExits.active.freeze!==false)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:undefined};
         // physicalFlags.bDontApplySpeed: a player the script froze does not move on the pad.
         else if(onFoot&&playerFrozenByScript)controls={...controls,x:0,y:0,walk:false,sprint:false,jump:false,facing:undefined};
         // A task the script gave CJ's ped speaks for the pad while it runs on foot; getting into or out of a car, CarEntry
