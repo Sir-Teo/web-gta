@@ -66,16 +66,23 @@ test('leaving a drifting helicopter slows it until the pilot can step out (CanPe
  }finally{plane.dispose();sim.dispose();}
  });expect(result).toEqual({before:'wait',after:'step'});
 });
-test('a burning helicopter the player sets down blows up at once (crash and burn)',async({page})=>{
+test('a burning helicopter the player sets down blows up at once only when its fire started in the air (crash and burn)',async({page})=>{
  test.setTimeout(120000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
  const [{openStaticWorld},{openStaticWorldVehicles},{WorldPlane},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/simulation/WorldPlane.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
- await RAPIER.init();const c=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),sim=new Simulation(),plane=new WorldPlane(sim,new THREE.Scene(),await c.load(487),{x:0,y:3,z:0});
- sim.world.createCollider(RAPIER.ColliderDesc.cuboid(100,1,100).setTranslation(0,-1,0));sim.player.position={x:0,y:3,z:0};plane.interact();
- try{
-  let destroyed=false;for(let i=0;i<60&&!destroyed;i++){plane.beforeStep(1/60,{throttle:0,pitch:0,roll:0,rudder:0,brake:false});sim.world.step();destroyed=plane.afterStep();}
-  const intact=!destroyed;plane.health=200;
-  for(let i=0;i<60&&!destroyed;i++){plane.beforeStep(1/60,{throttle:0,pitch:0,roll:0,rudder:0,brake:false});sim.world.step();destroyed=plane.afterStep();}
-  return {intact,destroyed};
- }finally{plane.dispose();sim.dispose();}
- });expect(result).toEqual({intact:true,destroyed:true});
+ await RAPIER.init();const c=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),idle={throttle:0,pitch:0,roll:0,rudder:0,brake:false};
+ const run=async(fireInAir:boolean)=>{const sim=new Simulation(),plane=new WorldPlane(sim,new THREE.Scene(),await c.load(487),{x:0,y:3,z:0});
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(100,1,100).setTranslation(0,-1,0));sim.player.position={x:0,y:3,z:0};plane.interact();
+  try{
+   let destroyed=false;const step=()=>{plane.beforeStep(1/60,idle);sim.world.step();destroyed=plane.afterStep();};
+   // The fire starts either one step in (falling, no wheel down: m_fireParticleCounter 2) or once the helicopter has settled (1).
+   for(let i=0;i<(fireInAir?1:60)&&!destroyed;i++)step();
+   const intact=!destroyed;plane.health=200;
+   for(let i=0;i<120&&!destroyed;i++)step();
+   return {intact,destroyed,counter:plane.fireCounter};
+  }finally{plane.dispose();sim.dispose();}};
+ return {inAir:await run(true),onGround:await run(false)};
+ });
+ expect(result.inAir).toEqual({intact:true,destroyed:true,counter:2});
+ // Lit on the ground it burns its five seconds instead (two seconds in, still whole).
+ expect(result.onGround).toEqual({intact:true,destroyed:false,counter:1});
 });
