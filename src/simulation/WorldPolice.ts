@@ -189,6 +189,14 @@ export class WorldPolice {
   * helicopters, each by its 3D distance. */
  presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.disposed||h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length;}
  /** Airborne observers keep the pursuit alive (CWanted::NumOfHelisRequired). */
+ /** Lets go of the helicopters that crashed or that something else took out of the fleet (the script's clears), with
+  * their searchlights. */
+ dropLostHelis(){
+  for(let i=this.helis.length-1;i>=0;i--){
+   const h=this.helis[i];
+   if(h.disposed||h.health<=0||!this.fleet.planes.has(h)){if(this.fleet.planes.has(h)){this.fleet.planes.delete(h);h.dispose();}this.helis.splice(i,1);this.searchlights.delete(h);}
+  }
+ }
  get heliActive(){return this.helis.some(h=>!h.disposed&&h.health>0&&!h.occupied);}
  /** Cops still inside their cars, which count against CWanted::m_MaxCopsInPursuit. */
  get seatedCrew(){return this.units.reduce((n,u)=>n+u.seats.filter(Boolean).length,0);}
@@ -439,11 +447,8 @@ export class WorldPolice {
  private updateHelis(playerCar?:WorldCar){
   // CWanted::NumOfHelisRequired (none with the law backed off), and none while SWITCH_POLICE_HELIS has them off.
   const need=this.policeHelisAllowed?this.law.native.helisRequired:0;
-  for(let i=this.helis.length-1;i>=0;i--){
-   const h=this.helis[i];
-   if(h.disposed||h.health<=0||!this.fleet.planes.has(h)){if(this.fleet.planes.has(h)){this.fleet.planes.delete(h);h.dispose();}this.helis.splice(i,1);}
-  }
-  while(this.helis.length>need){const h=this.helis.pop()!;this.fleet.planes.delete(h);h.dispose();}
+  this.dropLostHelis();
+  while(this.helis.length>need){const h=this.helis.pop()!;this.fleet.planes.delete(h);h.dispose();this.searchlights.delete(h);}
   if(this.helis.length<need&&!this.heliBusy&&!this.disposed){
    this.heliBusy=true;
    const p=this.sim.player.position;
@@ -682,5 +687,5 @@ export class WorldPolice {
   return out;
  }
  snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,lastRappel:this.lastRappel,helis:this.helis.map(h=>({modelId:h.modelId,position:{...h.body.translation()},speed:Math.hypot(h.body.linvel().x,h.body.linvel().z),occupied:h.occupied,searchlight:this.searchlights.get(h)??{locked:false,illuminated:false,distance:0}})),units:this.units.map(u=>({handle:u.car.car.body.handle,modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,health:[...u.seatHealth],dead:[...u.deadSeats],dying:!!u.driverDying,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,routeEnd:u.route.at(-1)?.to.position??null,routeGoal:u.routeGoal??null,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
- dispose(){this.disposed=true;for(const u of this.units)this.fleet.removeTrafficCar(u.car);this.units.length=0;for(const h of this.helis){this.fleet.planes.delete(h);h.dispose();}this.helis.length=0;}
+ dispose(){this.disposed=true;for(const u of this.units)this.fleet.removeTrafficCar(u.car);this.units.length=0;for(const h of this.helis){this.fleet.planes.delete(h);h.dispose();}this.helis.length=0;this.searchlights.clear();}
 }

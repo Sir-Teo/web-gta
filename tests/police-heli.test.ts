@@ -75,3 +75,14 @@ test('a police helicopter freed by a vehicle clear-out is never read again', asy
   expect(police.heliActive).toBe(false);
   expect(police.presence({ x: 0, y: 0, z: 0 }, 1000)).toBe(0);
 });
+test('a helicopter the police let go of takes its searchlight with it', async () => {
+  await RAPIER.init();
+  const sim = { player: { position: { x: 0, y: 0, z: 0 } }, world: { castRay: () => null }, playerCollider: {} } as any;
+  const freed = { disposed: true, health: 1000, occupied: false } as any;
+  const fleet = { planes: new Set(), spawnPlane: async () => { throw new Error('no pad'); } } as any;
+  const police = new WorldPolice(sim, fleet, { level: 4, native: { helisRequired: 2 } } as any, {} as any, 'http://invalid/', () => 0);
+  police.helis.push(freed);police.searchlights.set(freed, { locked: true, illuminated: true, distance: 10 });
+  police.dropLostHelis();
+  expect(police.helis).toHaveLength(0);
+  expect(police.searchlights.size).toBe(0);
+});
