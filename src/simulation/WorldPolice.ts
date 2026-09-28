@@ -56,6 +56,13 @@ export function policeCruiseSpeed(wanted:number,maxFlatVelocity:number,random:()
 export const BUST_PULL_RANGE = 3.5;
 export const BUST_PULL_SECONDS = 1.5;
 /** Accumulate door-hold progress; any gap resets the drag-out. */
+/** CTaskComplexArrestPed::CreateFirstSubTask for a suspect in a car: TASK_COMPLEX_CAR_OPEN_DRIVER_DOOR, unless the car
+ * IsUpsideDown (up.z <= -0.9) or IsOnItsSide (|right.z| >= 0.8), which gets TASK_COMPLEX_DESTROY_CAR. `rotation` is
+ * the browser body's quaternion (y up). */
+export function arrestOpensDriverDoor(q:{x:number;y:number;z:number;w:number}){
+ const upZ=1-2*(q.x*q.x+q.z*q.z),rightZ=2*(q.x*q.y+q.w*q.z);
+ return upZ>-.9&&Math.abs(rightZ)<.8;
+}
 export function bustPullProgress(progress:number,dt:number,ready:boolean){return ready?progress+dt:0;}
 /** CRoadBlocks::GenerateRoadBlockPedsForCar's PLACEMENTS (city cops) and SPECIAL_COP_PLACEMENTS (SWAT, army, FBI and
  * the SF cop car), in native car space (x right, y forward), indexed 2 × positions type + ped, scaled by the car's
@@ -528,7 +535,7 @@ export class WorldPolice {
    // Bust pull: a stopped unit's crew at the suspect's door drags the driver
    // out so the foot arrest (CTaskSimpleArrestPed) can proceed. Roadblock
    // crews hold their block the same way when the suspect stops at it.
-   if(!chaseOff&&(u.mission==='stopped'||u.mission==='roadblock')&&playerCar&&!playerCar.wrecked){
+   if(!chaseOff&&(u.mission==='stopped'||u.mission==='roadblock')&&playerCar&&!playerCar.wrecked&&arrestOpensDriverDoor(playerCar.car.body.rotation())){
     const pv=playerCar.car.body.linvel(),pp=playerCar.car.body.translation();
     const carStopped=Math.hypot(pv.x,pv.z)<2;
     const atDoor=(this.crew?.list(u)??[]).some(c=>!c.down&&Math.hypot(c.position.x-pp.x,c.position.z-pp.z)<BUST_PULL_RANGE);
