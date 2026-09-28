@@ -3232,7 +3232,9 @@ async function boot() {
     // CTaskSimplePlayerOnFoot::PlayIdleAnimations on CPad's untouched time (game time: it stops while paused). Ducking,
     // aiming, moving, disabled control or a vehicle count as touching.
     {const view=render.nativeCharacter,onFoot=sim.playerBody.isEnabled()&&sim.playerCollider.isEnabled()&&!sim.player.swimming;
-     if(input.touches!==playerIdleTouches||!onFoot||sim.player.crouched||sim.player.speed>.1||weapons.aiming||law.arrested||sim.knockdown>0||sim.climbing||sim.player.health<=0){playerIdleTouches=input.touches;playerUntouchedMs=0;}
+     // SetTouched too in widescreen and under DisablePlayerControls (a scripted scene never idles). Aiming is not a
+     // touch in the original, but the browser's reaction clips take the whole body, so the aim keeps counting from zero.
+     if(input.touches!==playerIdleTouches||!onFoot||sim.player.crouched||sim.player.speed>.1||weapons.aiming||law.arrested||sim.knockdown>0||sim.climbing||sim.player.health<=0||!!mission?.runtime.game.widescreenOn||playerControlsDisabled()){playerIdleTouches=input.touches;playerUntouchedMs=0;}
      else if(!paused)playerUntouchedMs+=dt*1000;
      if(view&&playerIdleClips&&view!==playerIdleRefused){
       // A rig without the native skeleton (a test or local character) cannot bind the clips; it just gets no idles.
