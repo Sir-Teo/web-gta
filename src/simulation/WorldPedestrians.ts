@@ -902,7 +902,9 @@ export class WorldPedestrians {
  removeDeletableCollider(handle:number){const p=this.people.find(p=>p.collider.handle===handle);if(!p||p.mission||p.follow)return false;return this.removeCollider(handle);}
  /** The peds' rigid body handles (the camera's cone cast never tests peds). */
  readonly bodyHandles=new Set<number>();
- private remove(p:Pedestrian){this.bodyHandles.delete(p.body.handle);if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
+ /** CPopulation::RemovePed; CPedGroupMembership drops a deleted member, which breaks up a party left without its leader
+  * or with one member. */
+ private remove(p:Pedestrian){this.leaveParty(p);this.bodyHandles.delete(p.body.handle);if(p.attract)this.departAttractor(p);p.gun?.dispose();p.stick?.dispose();p.view.dispose();this.sim.world.removeCharacterController(p.controller);this.sim.world.removeRigidBody(p.body);}
   update(now:number){
    if(this.disposed||!this.catalog||this.busy||now<this.nextCheck)return;
    this.nextCheck=now+1500;
