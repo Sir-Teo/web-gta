@@ -143,6 +143,8 @@ export class WorldPolice {
  zones?:WorldZones;
  camera:()=>{position:V3;forward:V3}=()=>({position:this.sim.player.position,forward:{x:0,y:0,z:-1}});
  canSpawn:(point:V3,radius:number)=>boolean=()=>true;
+ /** A unit the police stop tracking (its car taken, gone or culled): its crew on foot are ordinary peds from then on. */
+ onUnitDropped?:(unit:object)=>void;
  spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy?:number)=>void;
  /** The street population's cops on foot: list a unit's crew, send one toward a door point (undefined resumes the pursuit), or take one into the car. */
  crew?:{list:(unit:object)=>FootCrew[];goTo:(id:number,point?:{x:number;z:number},walk?:boolean)=>void;board:(id:number)=>boolean};
@@ -205,10 +207,10 @@ export class WorldPolice {
   const player=this.sim.player.position;
   for(let i=this.units.length-1;i>=0;i--){
    const u=this.units[i];
-   if(u.car.disposed||!this.fleet.cars.has(u.car)){this.units.splice(i,1);continue;}
+   if(u.car.disposed||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.onUnitDropped?.(u);continue;}
    const p=u.car.car.body.translation(),far=Math.hypot(p.x-player.x,p.z-player.z);
-   if(u.car.occupied){this.units.splice(i,1);continue;}
-   if(far>(this.law.level?220:120)&&this.canSpawn(p,6)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);}
+   if(u.car.occupied){this.units.splice(i,1);this.onUnitDropped?.(u);continue;}
+   if(far>(this.law.level?220:120)&&this.canSpawn(p,6)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);this.onUnitDropped?.(u);}
   }
   // ThePaths keeps the areas around the player loaded, which the roadblock nodes are looked up in whatever the
   // pursuit's car count.

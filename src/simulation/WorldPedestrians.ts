@@ -1470,6 +1470,8 @@ export class WorldPedestrians {
   cop.shootingRate=({60:30,68:70,76:60,84:80} as Record<number,number>)[accuracy]??30;cop.cullExtraFarAway=cullExtraFarAway;return cop.id;
  }
  /** A police unit's living crew on foot. */
+ /** The police dropped this unit: its crew on foot lose the car's protection from the population manager. */
+ releaseCrew(unit:object){for(const p of this.people)if(p.crew?.unit===unit)p.crew=undefined;}
  footCrew(unit:object){return this.people.filter(p=>p.crew?.unit===unit&&p.health>0).map(p=>({id:p.id,seat:p.crew!.seat,position:{...p.actor.player.position},down:p.down>0||p.stealth!==undefined}));}
  /** CTaskComplexGoToCarDoorAndStandStill: run to a car door point, walking within 4 units; undefined resumes the pursuit. */
  /** An officer's go-to; with `arrive` (CTaskComplexGoToPointAndStandStill's radius) the task ends on arrival. */
