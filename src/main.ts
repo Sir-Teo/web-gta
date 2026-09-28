@@ -878,7 +878,11 @@ async function boot() {
     if(playerPassenger)leavePassengerSeat(true);
     if(playerAttached){playerAttached.savedWeapon=undefined;detachPlayer();}
     playerGetUp=0;playerStuckUnderCar=false;playerFallClip=undefined;render.nativeCharacter?.clearReaction();render.nativeCharacter?.resetLocomotion();
-    sim.respawn={x:result.position[0],y:result.position[2]+1,z:-result.position[1]};
+    // RestorePlayerStuffDuringResurrection teleports the ped's origin, a unit above its feet, to the restart point plus
+    // one (GameLogic.cpp:397): the feet stand on the point itself, where the ped's collision settles him. The browser
+    // starts him a tenth up (the points sit a few centimetres under their ground here), inside the snap to the ground,
+    // so he stands rather than dropping a metre into a landing.
+    sim.respawn={x:result.position[0],y:result.position[2]+.1,z:-result.position[1]};
     sim.resetPlayer();
     // RestorePlayerStuffDuringResurrection: health back to CPlayerInfo::m_nMaxHealth.
     sim.player.health=mission?.runtime.game.playerInfo.maxHealth??100;
@@ -890,9 +894,13 @@ async function boot() {
     sim.player.heading=(result.heading*Math.PI/180+Math.PI)%(Math.PI*2);
     render.yaw=sim.player.heading+Math.PI;input.clear();
     clearExcitingStuff(sim.respawn,4000);
+    // CStreaming loads the collision under a teleported player before he falls (m_bIsStaticWaitingForCollision): the
+    // restart point's window is asked for at once and the hold keeps him there until it is in, as for a script's
+    // teleport.
+    if(!inside){scriptTeleported=true;requestFollowingTerrain();}
     if(inside&&staticWorld&&!savedTransfer){
      follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;
-     savedTransfer={x:result.position[0],y:result.position[1],z:result.position[2]+1,heading:sim.player.heading,quiet:true};
+     savedTransfer={x:result.position[0],y:result.position[1],z:result.position[2],heading:sim.player.heading,quiet:true};
      staticWorld.request(-1,{x:result.position[0],y:result.position[1],radius:180,lodRadius:1000,includeCollisionBounds:true});
     }
    },
