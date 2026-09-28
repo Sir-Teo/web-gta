@@ -945,11 +945,13 @@ export class WorldPedestrians {
     if(p.health<=0&&(p.deadTime>30||this.gangWarFighting?.()&&p.deadTime>8))p.fadeOut=true;
     if(p.fadeOut&&p.alpha<=0)return false;
     if(p.actor.player.position.y<=player.y-25&&!visible)return false;
+    // ManagePed's last step is skipped in the sniper and camera modes and while the camera looks aside or behind.
+    const cameraKeeps=!!this.cameraKeepsPeds?.();
     const removal=(p.gang!==undefined?d-30:d)/pcdm;
     // bCullExtraFarAway (set-piece cops and the criminals they chase) stretches the far cull from 54.5 to 65.
-    if(removal>=(p.cullExtraFarAway?65:54.5)){if(visible){p.fadeOut=true;return true;}return false;}
+    if(removal>=(p.cullExtraFarAway?65:54.5)){if(visible){p.fadeOut=true;return true;}return cameraKeeps;}
     if(removal<=25||visible)return true;
-    return clock<=p.neededUntil;
+    return clock<=p.neededUntil||cameraKeeps;
    })();if(!keep)this.remove(p);return keep;});
 
    const catalog=this.catalog;this.busy=true;
