@@ -34,3 +34,24 @@ test('a new target car shuts a garage that dropped its last one, and SET_NO_RESP
  g.allRespraysCloseOrOpen(true);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPEN);expect(m.doorState).toBe(GARAGE_DOOR_CLOSED);
  g.allRespraysCloseOrOpen(false);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSED);
 });
+
+test('an opened or closed door travels to its settled state over the frames (CGarage::Update), which IS_GARAGE_OPEN/CLOSED wait on',()=>{
+ const g=garages();g.open('misn');expect(g.isOpen('misn')).toBe(false);
+ let frames=0;while(!g.isOpen('misn')&&frames<1000){g.update(20);frames++;}
+ expect(g.isOpen('misn')).toBe(true);expect(g.garages[2].doorPosition).toBe(1);expect(frames).toBeGreaterThan(10);expect(frames).toBeLessThan(200);
+ g.close('misn');expect(g.isClosed('misn')).toBe(false);g.update(20);expect(g.garages[2].doorPosition).toBeLessThan(1);
+ frames=0;while(!g.isClosed('misn')&&frames<1000){g.update(20);frames++;}
+ expect(g.isClosed('misn')).toBe(true);expect(g.garages[2].doorPosition).toBe(0);
+ // A settled door is left alone.
+ g.update(20);expect(g.garages[2].doorState).toBe(GARAGE_DOOR_CLOSED);
+});
+test('a point inside a safehouse garage is within a hideout; other garages and points outside are not',()=>{
+ const g=new ScmGarages();
+ // Ganton's garage (type 16): the corner, a point along the door front, the far corner and top.
+ g.load([{name:'gant',type:16,corner:[2500,-1690,12],front:[2510,-1690],far:[2500,-1680,16],flags:0},{name:'spray',type:GARAGE_TYPE.paynspray,corner:[100,100,0],front:[110,100],far:[100,110,5],flags:0},{name:'bare',type:16}]);
+ expect(g.isPointWithinHideOut([2505,-1685,13])).toBe(true);
+ expect(g.isPointWithinHideOut([2505,-1685,17])).toBe(false);
+ expect(g.isPointWithinHideOut([2511,-1685,13])).toBe(false);
+ expect(g.isPointWithinHideOut([105,105,1])).toBe(false);
+ expect(ScmGarages.pointInside(g.garages[2],[0,0,0])).toBe(false);
+});

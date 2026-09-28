@@ -8,17 +8,61 @@ import {requireAsset} from '../assets/binary';
 export const GARAGE_DOOR_CLOSED=0,GARAGE_DOOR_OPEN=1,GARAGE_DOOR_CLOSING=2,GARAGE_DOOR_OPENING=3,GARAGE_DOOR_WAITING_PLAYER_TO_EXIT=4,GARAGE_DOOR_CLOSED_DROPPED_CAR=5;
 /** eGarageType values the script-facing routines test (Garage.h). */
 export const GARAGE_TYPE={bombshopTimed:2,paynspray:5,closesOnTouch:11,burglary:43} as const;
+/** The grge row's box as CGarage keeps it: m_vPosn (the first corner), m_vDirectionA along the door's front for
+ * m_fWidth, m_vDirectionB to the far corner for m_fHeight (the depth), and m_fTopZ. */
+export interface ScmGarageBox {base:readonly [number,number,number];dirA:readonly [number,number];dirB:readonly [number,number];width:number;depth:number;topZ:number}
 export interface ScmGarage {name:string;type:number;doorState:number;inactive:boolean;resprayFree:boolean;
  /** m_fDoorPosition, 0 shut to 1 open. */
  doorPosition:number;
  /** m_pTargetCar, by script handle. */
- targetCar?:number}
+ targetCar?:number;
+ /** m_nFlags as the row gives them (0x1 the door opens up, 0x2 it goes in). */
+ flags:number;
+ box?:ScmGarageBox}
+/** What a host loads a garage from: the grge row, or a bare name and type for a world without geometry. */
+export interface ScmGarageRow {name:string;type:number;corner?:readonly [number,number,number];front?:readonly [number,number];far?:readonly [number,number,number];flags?:number}
+/** The door's travel a 50 Hz step. CGarage::Update is unreversed; these are re3's DEFAULT_DOOR_OPEN_SPEED and
+ * DEFAULT_DOOR_CLOSE_SPEED (0.035 and 0.04 units a step) over a three-unit door, as a fraction of its height. */
+export const GARAGE_DOOR_OPEN_SPEED=.035/3,GARAGE_DOOR_CLOSE_SPEED=.04/3;
+/** CGarage::IsHideOut: the safehouse garages and the abandoned airport's hangar. */
+const HIDEOUT_TYPES=new Set([16,17,18,24,25,26,27,28,29,30,31,32,39,40,41,42,45]);
+export const isHideOutGarageType=(type:number)=>HIDEOUT_TYPES.has(type);
 export class ScmGarages {
  readonly garages:ScmGarage[]=[];
  /** What a host calls with the world's own garages. */
- load(garages:readonly {name:string;type:number}[]){
+ load(garages:readonly ScmGarageRow[]){
   this.garages.length=0;
-  for(const garage of garages)this.garages.push({name:garage.name,type:garage.type,doorState:GARAGE_DOOR_CLOSED,inactive:false,resprayFree:false,doorPosition:0});
+  for(const garage of garages){
+   let box:ScmGarageBox|undefined;
+   if(garage.corner&&garage.front&&garage.far){
+    // CGarages::AddOne's box (unreversed; the fields of CGarage above): the front direction and its length as the
+    // width, the far corner's direction and its length as the depth, the far corner's height as the top.
+    const [x1,y1,z1]=garage.corner,ax=garage.front[0]-x1,ay=garage.front[1]-y1,width=Math.hypot(ax,ay)||1,bx=garage.far[0]-x1,by=garage.far[1]-y1,depth=Math.hypot(bx,by)||1;
+    box={base:[x1,y1,z1],dirA:[ax/width,ay/width],dirB:[bx/depth,by/depth],width,depth,topZ:garage.far[2]};
+   }
+   this.garages.push({name:garage.name,type:garage.type,doorState:GARAGE_DOOR_CLOSED,inactive:false,resprayFree:false,doorPosition:0,flags:garage.flags??0,box});
+  }
+ }
+ /** CGarage::IsPointInsideGarage (unreversed, from the box CGarage keeps): between the floor and the top, and within
+  * the width along the front and the depth towards the far corner. */
+ static pointInside(garage:ScmGarage,p:readonly [number,number,number]){
+  const b=garage.box;if(!b)return false;
+  if(p[2]<b.base[2]||p[2]>b.topZ)return false;
+  const dx=p[0]-b.base[0],dy=p[1]-b.base[1],a=dx*b.dirA[0]+dy*b.dirA[1],d=dx*b.dirB[0]+dy*b.dirB[1];
+  return a>=0&&a<=b.width&&d>=0&&d<=b.depth;
+ }
+ /** CGarages::IsPointWithinHideOutGarage: a point inside a safehouse garage. CWorld::ClearExcitingStuffFromArea
+  * leaves the vehicles there alone; in the game CloseHideOutGaragesBeforeSave has already stored them for the
+  * door's next opening (CStoredCar, unreversed), so what the player sees is his cars still in his garage. */
+ isPointWithinHideOut(p:readonly [number,number,number]){return this.garages.some(garage=>isHideOutGarageType(garage.type)&&ScmGarages.pointInside(garage,p));}
+ /** CGarage::Update's door travel (the routine is unreversed; the speeds are re3's): an opening door slides up to
+  * 1 and is then open, a closing one down to 0 and shut. IS_GARAGE_OPEN and IS_GARAGE_CLOSED wait on these. */
+ update(timeStepMs:number){
+  const step=timeStepMs/20;
+  for(const garage of this.garages){
+   if(garage.doorState===GARAGE_DOOR_OPENING){garage.doorPosition=Math.min(1,garage.doorPosition+GARAGE_DOOR_OPEN_SPEED*step);if(garage.doorPosition>=1)garage.doorState=GARAGE_DOOR_OPEN;}
+   else if(garage.doorState===GARAGE_DOOR_CLOSING){garage.doorPosition=Math.max(0,garage.doorPosition-GARAGE_DOOR_CLOSE_SPEED*step);if(garage.doorPosition<=0)garage.doorState=GARAGE_DOOR_CLOSED;}
+  }
  }
  /** CGarages::GetGarageNumberByName (0x447680): by name, ignoring case, or -1. */
  numberByName(name:string){const wanted=name.toLowerCase();return this.garages.findIndex(garage=>garage.name.toLowerCase()===wanted);}

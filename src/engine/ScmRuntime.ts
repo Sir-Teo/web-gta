@@ -146,6 +146,8 @@ export class ScmRuntime {
   try{
    // CTheScripts::Process: the two car watches, fail countdown, text-line reset, mission timers, then threads.
    if(this.world){this.game.upsideDownCars.updateTimers(delta,this.world);this.game.stuckCars.process(nowMs,this.world);}
+   // CGarages::Update's door travel, so a script waiting on a door it opened or closed sees it settle.
+   this.game.garages.update(delta);
    if(this.game.failCurrentMission)this.game.failCurrentMission--;
    this.game.introRectangles.beginFrame(this.game.introText.useTextCommands);
    this.game.introText.beginFrame();
