@@ -2189,6 +2189,9 @@ export class WorldPedestrians {
    * CPlayerPed::MakeGroupRespondToPlayerTakingDamage sends the whole group, however far each member is. */
   private defendPlayer(attacker:Pedestrian){
    if(attacker.follow)return;
+   // CPlayerPed::MakeGroupRespondToPlayerTakingDamage returns while m_bMembersEnterLeadersVehicle is off, which
+   // TellGroupToStartFollowingPlayer(false) clears: a group told to wait (H) stays where it was put.
+   if(this.people.some(m=>m.follow&&m.holdPosition))return;
    for(const m of this.people){
     if(m===attacker||m.officer||!m.follow||m.health<=0||m.down>0)continue;
     m.foe=attacker;m.retaliate=Math.max(m.retaliate,4);m.flee=0;
@@ -2597,8 +2600,9 @@ export class WorldPedestrians {
    if(p.stagger>0){p.fight=undefined;return true;}
    return this.stepFight(p,'BBALLBAT',['cop_bat_1','cop_bat_2','cop_bat_3'],this.sim.player.position,visible&&this.sim.knockdown===0,dt,(stage,damage)=>{
     const from={x:p.actor.player.position.x,z:p.actor.player.position.z};
-    if(this.damagesPlayer(p,WEAPON.nightstick))this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage)});
-    this.onMeleeHit?.({...this.sim.player.position},false);this.defendPlayer(p);
+    // The group answers only a CEventDamage the player took (MakeGroupRespondToPlayerTakingDamage).
+    if(this.damagesPlayer(p,WEAPON.nightstick)){this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage)});this.defendPlayer(p);}
+    this.onMeleeHit?.({...this.sim.player.position},false);
    });
   }
   /** A street ped's fist combo (UNARMED_1) on the player or another ped: melee.dat damage times its pedstats attack
@@ -2610,9 +2614,8 @@ export class WorldPedestrians {
    return this.stepFight(p,fists.combo,fists.clips,target,canReach,dt,(stage,damage)=>{
     const q=p.actor.player.position,from={x:q.x,z:q.z};this.onThreat?.(p,{...q});
     if(foe){this.strikeFoe(p,foe,stage,damage);return;}
-    if(this.damagesPlayer(p,WEAPON.unarmed))this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.unarmed,from,fall:meleeAttackFalls(fists.combo,stage),fight:{move:stage}});
+    if(this.damagesPlayer(p,WEAPON.unarmed)){this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.unarmed,from,fall:meleeAttackFalls(fists.combo,stage),fight:{move:stage}});this.defendPlayer(p);}
     this.onMeleeHit?.({...this.sim.player.position},false);
-    this.defendPlayer(p);
    });
   }
   /** The fist combo on a car. CTaskSimpleFight::FightHitCar is unreversed, so a strike that lands does the move's
@@ -2699,7 +2702,7 @@ export class WorldPedestrians {
     const shotDamage=weapon.info.damage*pellets;
     this.onShot?.(muzzle,end,weapon.info.type,!!shot||!!tyre,{id:`ped:${p.id}`,position:()=>p.health>0||this.people.includes(p)?{...p.actor.player.position,y:p.actor.player.position.y+1}:undefined});this.gunShot({...state.position,y:state.position.y+1},false,p.id);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');
-    else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type))this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end)});this.defendPlayer(p);}
+    else if(riderHit||shot?.collider.handle===this.sim.playerCollider.handle){if(this.damagesPlayer(p,weapon.info.type)){this.sim.damagePlayer(shotDamage,false,{weapon:weapon.info.type,from:{x:state.position.x,z:state.position.z},piece:pedPieceAt(this.sim.player.position,this.sim.player.heading,end)});this.defendPlayer(p);}}
     else if(shot){const car=[...cars].find(c=>shot.collider.parent()?.handle===c.car.body.handle);if(car){pushShotVehicle(car,shot.normal,end,weapon.info.type);if(!car.onlyDamagedByPlayer)car.damage(shotDamage,undefined,false,undefined,{weapon:weapon.info.type,by:{ped:p}});}else {const victim=this.people.find(other=>other.collider.handle===shot.collider.handle);if(victim&&!pedProofedAgainst(victim,'bullet')&&npcDamageReaches(victim,p,weapon.info.type,true)){victim.lastDamagedBy={ped:p};victim.health=healthAfter(victim.health,shotDamage);if(shotDamage>0)victim.lastWeaponDamage=weapon.info.type;if(!victim.health)this.onKill?.({id:victim.id,officer:victim.officer,gang:victim.gang,pedType:victim.pedType,recruit:!!victim.follow,byPlayer:false});const vq=victim.actor.player.position,vfrom={x:vq.x-direction.x,z:vq.z-direction.z};this.applyReaction(victim,this.damageReaction(victim,weapon.info.type,shotDamage,vfrom,end,false),vfrom);}}}
    }
    if(gun.active&&gun.time<oldTime){p.aimPoint={...aim};p.view.playReaction('police_fire',weapon.info.loop.end,false,weapon.info.loop.start);}
