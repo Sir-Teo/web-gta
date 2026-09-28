@@ -12,9 +12,14 @@ test('an aimed pistol points its barrel at the aim, standing and moving',async({
  const offDegrees=()=>page.evaluate(()=>{const nc=(window as any).__game.render().nativeCharacter,V=nc.root.position.constructor,hand=nc.hand(24);
   const barrel=new V(1,0,0).transformDirection(hand.matrixWorld),to=nc.weaponAimPoint.clone().sub(new V().setFromMatrixPosition(hand.matrixWorld)).normalize();
   return Math.acos(Math.max(-1,Math.min(1,barrel.dot(to))))*180/Math.PI;});
- await page.mouse.move(700,450);await page.mouse.down({button:'right'});await page.waitForTimeout(1500);
+ // PointArm blends in over 250 ms of game time: measured once the chain has settled, not after a wall-clock wait that
+ // a loaded headless frame rate can cut short.
+ const settled=()=>page.waitForFunction(()=>{const arm=(window as any).__game.render().nativeCharacter.pointArm;return !!arm&&arm.chains.every((c:any)=>c.blend>.97);},undefined,{timeout:30000});
+ await page.mouse.move(700,450);await page.mouse.down({button:'right'});await settled();
  const standing=await offDegrees();
- await page.keyboard.down('KeyA');await page.waitForTimeout(1500);
+ const from=await page.evaluate(()=>({...(window as any).__game.state().player.position}));
+ await page.keyboard.down('KeyA');
+ await page.waitForFunction(p=>{const q=(window as any).__game.state().player.position;return Math.hypot(q.x-p.x,q.z-p.z)>1;},from,{timeout:30000});await settled();
  const strafing=await offDegrees();
  await page.keyboard.up('KeyA');await page.mouse.up({button:'right'});
  expect(standing).toBeLessThan(15);
