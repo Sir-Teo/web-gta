@@ -845,6 +845,8 @@ export class Simulation {
     const position={x:this.player.position.x,y:-this.player.position.z,z:this.player.position.y};
     if(!wasGrounded)velocity.z-=NATIVE_GRAVITY*timeStep;
     else if(velocity.z<0)velocity.z=0;
+    // CPhysical::ProcessControl's ApplyAirResistance runs on the flier before the task: the ped's 1/175 of its speed.
+    {const speed=Math.hypot(velocity.x,velocity.y,velocity.z),k=Math.pow(Math.max(0,1-speed*NATIVE_PED_AIR_RESISTANCE),timeStep);velocity.x*=k;velocity.y*=k;velocity.z*=k;}
     const ground=this.jetGroundHeight?.(position)??position.z;
     pack.processThrust(velocity,position,ground,wasGrounded,wasStanding,timeStep);
     pack.updateEffect(dt*30);
