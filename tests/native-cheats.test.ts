@@ -71,3 +71,18 @@ test('CGameLogic::PassTime carries minutes into the next day and rolls the weekd
  sim.weekDay=6;sim.passTime(72*60);expect(sim.weekDay).toBe(1);
  sim.dispose();
 });
+// CCheat::DoCheats feeds every standard key just pressed to AddToCheatString: a digit or a space in the middle of a
+// code shifts into the buffer and breaks it.
+test('a digit or a space typed inside a code breaks it',()=>{
+ const cheats=new NativeCheats();
+ expect(type(cheats,'HESO YAM')).toBeUndefined();
+ expect(type(cheats,'HESO1YAM')).toBeUndefined();
+ expect(type(cheats,'HESOYAM')).toBe('moneyArmourHealth');
+});
+// CPed::GiveWeapon never changes the active slot: the weapon-set cheats leave the fists in hand, while a pickup's
+// GiveWeapon(bLikeUnused) takes the weapon up when unarmed.
+test('a weapon given without the take-up flag leaves the fists in hand',()=>{
+ const inv=new WeaponInventory();
+ expect(inv.give(4,0,false)).toBe(true);expect(inv.selected).toBe(0);
+ expect(inv.give(22,100)).toBe(true);expect(inv.selected).toBe(22);
+});

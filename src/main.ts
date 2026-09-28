@@ -2110,14 +2110,14 @@ async function boot() {
    * do nothing yet. */
   const applyCheat=(cheat:CheatName)=>{
     const player=sim.player,inventory=weapons.inventory,before=inventory.selected;
-    const owned=(id:number)=>{const a=inventory.ammo.get(id);return !!a&&a.clip+a.reserve>0;};
     const vehicle=(model:number)=>{if(render.lighting.area===0&&fleet)void fleet.spawnCheatVehicle(model,player.position,player.heading);};
     const vehicles:Partial<Record<CheatName,number>>={rhino:432,bloodringBanger:504,rancher:505,hotringA:502,hotringB:503,romero:442,stretch:409,trashmaster:408,caddy:457,
       hydra:520,vortex:539,hunter:425,quad:471,tanker:514,dozer:486,stuntPlane:513,monsterTruck:556};
     // CPed::GiveWeaponSet1 (sets 2 and 3 are the gta-reversed reconstructions).
     const sets:Partial<Record<CheatName,readonly (readonly [number,number])[]>>={weaponSet1:[[1,1],[5,1],[18,10],[22,100],[25,50],[28,150],[30,120],[33,25],[35,200],[41,200]],
       weaponSet2:[[4,0],[16,10],[24,40],[26,40],[32,150],[31,150],[34,21],[37,500],[42,200]],weaponSet3:[[9,0],[39,5],[23,40],[27,30],[29,100],[31,150],[36,200]]};
-    if(sets[cheat])for(const [weapon,ammo] of sets[cheat]!)inventory.give(weapon,ammo);
+    // CPed::GiveWeaponSet1/2/3 call GiveWeapon, which never changes the active slot: the fists stay in hand.
+    if(sets[cheat])for(const [weapon,ammo] of sets[cheat]!)inventory.give(weapon,ammo,false);
     else if(vehicles[cheat])vehicle(vehicles[cheat]!);
     else switch(cheat){
       // MoneyArmourHealthCheat, then HealthCheat: full health, and the player's vehicle at 1000 with its fire out and fixed.

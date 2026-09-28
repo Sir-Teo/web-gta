@@ -104,7 +104,7 @@ export class WeaponInventory {
   * carried over for the shotgun, SMG and rifle slots, and CWeapon::Initialise loads the clip from the new total. The
   * weapon already held gains the ammo and CWeapon::Reload refills its clip at once (a gift has no ammo). An unarmed
   * player then switches to it. */
- give(id:number,ammo:number){
+ give(id:number,ammo:number,equipWhenUnarmed=true){
   const w=weaponById(id);if(!w)return false;const a=this.ammo.get(id)!,magazine=this.magazine(id),slot=this.slotOf(id);
   let total=a.clip+a.reserve;
   if(!this.owned.has(id)){
@@ -122,7 +122,9 @@ export class WeaponInventory {
   // CPed::GiveWeapon reloads the weapon it gives and leaves it WEAPONSTATE_READY: a reload that was running (on it, or
   // on the weapon it replaced in the slot) is over.
   this.stashedReloads.delete(id);if(this.selected===id){this.reloading=0;this.duration=0;}
-  if(this.selected===0&&id!==0)this.select(id);return true;
+  // A pickup's GiveWeapon(bLikeUnused=true) takes the weapon up when unarmed; CPed::GiveWeapon itself never changes the
+  // active slot (the weapon-set cheats leave the fists in hand).
+  if(equipWhenUnarmed&&this.selected===0&&id!==0)this.select(id);return true;
  }
  select(id:number){
   if(!weaponById(id))return false;
