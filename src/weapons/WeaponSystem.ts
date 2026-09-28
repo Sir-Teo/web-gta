@@ -63,7 +63,7 @@ const normalize=(a:Vec3):Vec3=>{const l=Math.hypot(a.x,a.y,a.z)||1;return {x:a.x
 /** Native simulation steps are 1/50 s; CShotInfo speeds are per step. */
 const NATIVE_STEP=1/50;
 /** SetUpPelletCol accepts at most 15 pellet lines. */
-const PELLETS=15;
+const PELLETS=15,SPAS_PELLETS=4;
 /** CShotInfo::ms_afRandTable: -0.05 to 0.045 in 0.005 steps. */
 const randTable=()=>-.05+.005*Math.floor(Math.random()*20);
 export class WeaponSystem {
@@ -746,8 +746,10 @@ export class WeaponSystem {
   }
   // SetUpPelletCol: pellet lines spread with distance to the first victim; hits on that victim accumulate.
   const spreadRate=.05/info.accuracy,depth=Math.max(.05,(hit?.timeOfImpact??info.weaponRange)*spreadRate*1.3),right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
+  // FireInstantHit: SHOTGUN_NUM_PELLETS 15, SPAS_NUM_PELLETS 4.
+  const count=w.id===27?SPAS_PELLETS:PELLETS;
   let pellets=0;
-  for(let i=0;i<PELLETS;i++){
+  for(let i=0;i<count;i++){
    const angle=(Math.random()*2-1)*Math.PI,spread=i===0?0:Math.random()*depth*.8,target=add(add(end,right,Math.cos(angle)*spread),up,Math.sin(angle)*spread),dir=normalize(add(target,source,-1)),reach=distance(target,source)+depth*2;
    const pellet=this.ray(source,dir,reach,exclude),stop=add(source,dir,pellet?.timeOfImpact??Math.min(reach,info.weaponRange));
    if(i<8)this.tracer(source,stop,'player',.065);
