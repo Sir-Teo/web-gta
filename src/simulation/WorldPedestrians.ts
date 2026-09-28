@@ -44,7 +44,7 @@ import {EVENT,RELATIONSHIP,TASK,isKillTaskAppropriate,makeDecision,sourceRelatio
 import {potentialGetRunOver,vehiclePotentialCollisionResponse,type GetRunOverVehicle} from '../ped/nativeGetRunOver';
 import {deadPedTyreBlood} from './nativeTyreBlood';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
-import {findNextNodeWandering,wanderStep,wanderTargetOffset} from '../ped/nativeWander';
+import {findNextNodeWandering,wanderSector,wanderStep,wanderTargetOffset} from '../ped/nativeWander';
 import {TRAFFIC_LIGHT,nativeTrafficLights} from '../world/nativeTrafficLights';
 import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, separationPush, maxGroupMembers, PED_SEEING_RANGE, TURF_KILL_THREATS_CHANCE, gangPedType } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
@@ -2593,8 +2593,16 @@ export class WorldPedestrians {
     case 'handsUp':if(before!=='handsUp')p.view.playReaction('handsup',task.handsUpSeconds);return 0;
     case 'cower':if(before!=='cower')p.view.playReaction('handscower');return 0;
     case 'flee':p.gunReact=undefined;this.fleeFromPlayer(p,60);return undefined;
-    // CTaskComplexWanderStandard at a walk, heading away from the aimer.
-    case 'wander':steer(state.position.x-task.aimer.x,state.position.z-task.aimer.z);return p.walkSpeed;
+    // CTaskComplexWanderStandard(PEDMOVE_WALK, NodeHeading of the aimer to the ped), TaskComplexReactToGunAimedAt.cpp:
+    // 65-70: a fresh wander along the path network from the nearest node, setting off the way away from the aimer.
+    // The walk is the ordinary wander's; steering straight away ground the ped along whatever wall stood behind it.
+    case 'wander':{
+     if(before!=='wander'){
+      p.wanderDir=wanderSector(state.position.x-task.aimer.x,-(state.position.z-task.aimer.z));
+      const n=this.nearestNode(state.position);if(n){p.target=n;p.previousNode=undefined;this.chooseTarget(p,true);}
+     }
+     return undefined;
+    }
     default:p.gunReact=undefined;return undefined;
    }
   }
