@@ -354,6 +354,16 @@ async function boot() {
   };
   const boneScratch=new Matrix4();
   /** The passenger steps out on his own side: his seat's point carried out past the body, set down on the ground. */
+  /** CWorld::ClearExcitingStuffFromArea (0x56A0D0) in browser space: deletable peds (police crews too) and vehicles
+   * (police helicopters with them) within `radius`, fires, and every projectile. */
+  const clearExcitingStuff=(at:{x:number;y:number;z:number},radius:number)=>{
+   pedestrians?.clearPedsInArea({x:at.x,z:at.z},radius,true);
+   fleet?.clearCarsInArea({x:at.x,z:at.z},radius);
+   if(police&&fleet)for(const heli of police.helis){if(heli.occupied)continue;const h=heli.body.translation();if(Math.hypot(h.x-at.x,h.z-at.z)<radius){fleet.planes.delete(heli);heli.dispose();}}
+   weapons.fires.extinguishPoint(at,radius);
+   for(const car of fleet?.cars??[])if(car.onFire){const p=car.car.body.translation();if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_FIRE_HEALTH);}
+   weapons.removeAllProjectiles();
+  };
   const leavePassengerSeat=(inPlace=false)=>{
    const ride=playerPassenger;if(!ride)return;playerPassenger=undefined;
    // A car deleted under him (CVehicle's destructor flags its passengers, and CPed::FlagToDestroyWhenNextProcessed
@@ -831,6 +841,10 @@ async function boot() {
    endGangWar:()=>{gangWars?.endGangWar(false);},
    resurrect(result){
     arrested=false;law.clear();
+    // ResetForResurrectionAndFadeOut: CWorld::ClearExcitingStuffFromArea(player, 4000, true) where he fell, and again at
+    // the restart point after the teleport: every deletable ped and vehicle (police crews, cars and helicopters of the
+    // chase included) goes, with the fires and projectiles; recruits, mission entities and locked cars stay.
+    clearExcitingStuff(sim.player.position,4000);
     // RestorePlayerStuffDuringResurrection: back to the normal world (area 0) with an empty door stack. From an
     // interior the outside world at the restart point has to stream in first, as a save point's does.
     const inside=render.lighting.area!==0;entryExits?.clearStack();
@@ -850,6 +864,7 @@ async function boot() {
     rebuildPlayerIfNeeded();
     sim.player.heading=(result.heading*Math.PI/180+Math.PI)%(Math.PI*2);
     render.yaw=sim.player.heading+Math.PI;input.clear();
+    clearExcitingStuff(sim.respawn,4000);
     if(inside&&staticWorld&&!savedTransfer){
      follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;
      savedTransfer={x:result.position[0],y:result.position[1],z:result.position[2]+1,heading:sim.player.heading,quiet:true};

@@ -3441,10 +3441,11 @@ export class WorldPedestrians {
   });
   return removed;
  }
- clearPedsInArea(point:{x:number;z:number},radius:number){
+ clearPedsInArea(point:{x:number;z:number},radius:number,crews=false){
   let removed=0;
   this.people=this.people.filter(p=>{
-   if(p.mission||p.follow||p.crew)return true;
+   // A police crew on foot is kept unless its car goes too (`crews`, CWorld::ClearExcitingStuffFromArea's sweep).
+   if(p.mission||p.follow||p.crew&&!crews)return true;
    const q=p.actor.player.position;
    if(Math.hypot(q.x-point.x,q.z-point.z)>=radius)return true;
    this.remove(p);removed++;return false;
