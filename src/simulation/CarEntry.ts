@@ -57,7 +57,7 @@ export interface PassengerCrowd {
   boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number;keep?:unknown}|undefined;
   spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean,keep?:unknown):Promise<boolean>|boolean;
   /** A rider of a car that blew up: CAutomobile::BlowUpCar's KillPedsInVehicle leaves him dead. */
-  spawnDead?(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number):unknown;
+  spawnDead?(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,recruit?:boolean):unknown;
 }
 /** CTaskSimpleCarGetOut's upside-down clip, ANIM_ID_DEFAULT_CAR_CRAWLOUTRHS_0 and _1. */
 const CRAWL_OUT='CAR_crawloutRHS';
@@ -171,7 +171,9 @@ export class CarEntry {
    if(!car||!this.crowd)return;
    const riders=this.passengers.splice(0);
    this.doorCloses=this.doorCloses.filter(pending=>pending.car!==car);
-   riders.forEach((rider,i)=>this.leaving.push({rider,car,at:this.passengerClock+Math.max(0,(Math.random()*500-250+i*500)/1000)}));
+   // CVehicle::KillPedsInVehicle kills everyone aboard a car that blew up at once; only living riders leave one by one
+   // (ComputeResponseLeaderExitedCar).
+   riders.forEach((rider,i)=>this.leaving.push({rider,car,at:this.passengerClock+(car.wrecked?0:Math.max(0,(Math.random()*500-250+i*500)/1000))}));
   }
   private passengerOut(car:WorldCar,rider:CarEntry['passengers'][number]){
    if(!this.crowd||car.disposed)return;
@@ -182,7 +184,7 @@ export class CarEntry {
     const hit=this.sim.world.castRay(new RAPIER.Ray({x:door.x,y:door.y+1.5,z:door.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
     const spot={x:door.x,y:(hit?door.y+1.5-hit.timeOfImpact:door.y-1)+.03,z:door.z};
     // A car that blew up killed everyone aboard (CVehicle::KillPedsInVehicle, CEventVehicleDied for each rider).
-    if(car.wrecked&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang)).catch(()=>{});return;}
+    if(car.wrecked&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang,!!rider.follow)).catch(()=>{});return;}
     void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow,rider.keep)).catch(()=>{});
    }
   }
