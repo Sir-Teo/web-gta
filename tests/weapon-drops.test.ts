@@ -67,3 +67,14 @@ test('a script ped whose death weapons persist drops PICKUP_ONCE_FOR_MISSION: no
   expect(drops.snapshot()).toMatchObject([{ weapon: 22, rounds: 60 }]);
   drops.dispose();
 });
+
+// CWorld::ClearExcitingStuffFromArea's CPickups::RemoveUnnecessaryPickups takes the PICKUP_ONCE_TIMEOUT drops in the
+// sphere; CPickups::PassTime runs their timeouts on (a passed minute is a second), so a long wait clears them.
+test('clearing an area removes the dropped guns in it, and passed time ages them out', async () => {
+  const { drops } = setup();
+  await drops.report({ x: 0, y: 0, z: 0 }, 22, 9);await drops.report({ x: 50, y: 0, z: 0 }, 31, 60);
+  drops.removeInSphere({ x: 0, y: 0, z: 0 }, 10);
+  expect(drops.snapshot().map(d => d.weapon)).toEqual([31]);
+  drops.passTime(360);drops.step(0, { ...player, position: { x: 0, y: 0, z: 100 } }, () => undefined);
+  expect(drops.snapshot()).toEqual([]);
+});

@@ -29,3 +29,13 @@ test.skipIf(!process.env.GTA_CONTENT_DIR)('pedgrp.dat marks the business and cas
  const groups=readPedGroups(readFileSync(`${process.env.GTA_CONTENT_DIR}/data/pedgrp.dat`,'latin1'));
  expect(groups.rich.has('bmyri')).toBe(true);expect(groups.rich.has('wmybu')).toBe(true);expect(groups.rich.has('bmydj')).toBe(false);
 });
+test('clearing an area removes the cash in it, and passed time ages the rest out',async()=>{
+ const {MoneyDrops}=await import('../src/simulation/MoneyDrops');
+ const money=new MoneyDrops({add(){}},'money-test:',()=>0,sequence(.25,0,0));
+ money.drop({x:0,y:0,z:0},40);money.drop({x:60,y:0,z:0},40);
+ const far=money.snapshot().filter(w=>w.position.x>30).length;
+ money.removeInSphere({x:0,y:0,z:0},10);
+ expect(money.snapshot()).toHaveLength(far);
+ money.passTime(360);money.step(0,{position:{x:0,y:0,z:100},alive:true,onFoot:true});
+ expect(money.snapshot()).toEqual([]);
+});

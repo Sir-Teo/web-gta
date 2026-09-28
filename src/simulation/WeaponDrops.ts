@@ -69,6 +69,16 @@ export class WeaponDrops {
       this.retire(drop); this.drops.splice(i, 1);
     }
   }
+  /** CPickups::PassTime moves the drops' timeouts on: a minute of passed game time is a second. */
+  passTime(minutes: number) { for (const drop of this.drops) drop.age += Math.max(0, minutes); }
+  /** CPickups::RemoveUnnecessaryPickups: the PICKUP_ONCE_TIMEOUT drops inside the sphere go. */
+  removeInSphere(at: { x: number; y: number; z: number }, radius: number) {
+    for (let i = this.drops.length - 1; i >= 0; i--) {
+      const drop = this.drops[i];
+      if (drop.persist || Math.hypot(drop.position.x - at.x, drop.position.y - at.y, drop.position.z - at.z) > radius) continue;
+      this.retire(drop); this.drops.splice(i, 1);
+    }
+  }
   private retire(drop: Drop) { drop.root?.removeFromParent(); drop.owner?.dispose(); }
   snapshot() { return this.drops.filter(d => d.root).map(d => ({ weapon: d.weapon, rounds: d.rounds, position: { ...d.position }, age: d.age })); }
   dispose() { for (const drop of this.drops) this.retire(drop); this.drops.length = 0; this.loading.clear(); }

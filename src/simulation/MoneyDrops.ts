@@ -80,6 +80,12 @@ export class MoneyDrops{
   }
   return collected;
  }
+ /** CPickups::PassTime moves the wads' timeouts on: a minute of passed game time is a second. */
+ passTime(minutes:number){for(const wad of this.wads)wad.age+=Math.max(0,minutes);}
+ /** CPickups::RemoveUnnecessaryPickups: the PICKUP_MONEY wads inside the sphere go. */
+ removeInSphere(at:V3,radius:number){
+  for(let i=this.wads.length-1;i>=0;i--){const wad=this.wads[i];if(Math.hypot(wad.position.x-at.x,wad.position.y-at.y,wad.position.z-at.z)<=radius){this.retire(wad);this.wads.splice(i,1);}}
+ }
  private retire(wad:Wad){wad.root?.removeFromParent();wad.owner?.dispose();}
  snapshot(){return this.wads.map(w=>({value:w.value,position:{...w.position},age:w.age}));}
  dispose(){for(const wad of this.wads)this.retire(wad);this.wads.length=0;}

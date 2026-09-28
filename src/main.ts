@@ -365,6 +365,8 @@ async function boot() {
    weapons.fires.extinguishPoint({x:at.x,y:-at.z,z:at.y},radius);
    for(const car of fleet?.cars??[])if(car.onFire){const p=car.car.body.translation();if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_EXTINGUISHED_HEALTH);}
    weapons.removeAllProjectiles();
+   // CPickups::RemoveUnnecessaryPickups: dropped weapons and cash in the sphere.
+   drops.removeInSphere(at,radius);moneyDrops.removeInSphere(at,radius);pickups.removeUnnecessary(at,radius);
   };
   /** Sets the player out of his passenger seat; with `needRoom`, only where IsRoomForPedToLeaveCar finds a standing
    * capsule's room at his side of the car, else the other side, and false (still seated) when neither has it. */
@@ -869,7 +871,7 @@ async function boot() {
     const days=sim.passTime(minutes),game=mission?.runtime.game;
     if(days>0)game?.stats.increment(STAT_DAYS_PASSED_IN_GAME,days);
     const whole=Math.floor(sim.timeMinutes);game?.clock.setGameClock(Math.floor(whole/60),whole%60,sim.weekDay,gameTimeMs);
-    pickups.passTime(minutes);
+    pickups.passTime(minutes);drops.passTime(minutes);moneyDrops.passTime(minutes);
    },
    incrementStat:(stat,value)=>{mission?.runtime.game.stats.increment(stat,value);},
    endGangWar:()=>{gangWars?.endGangWar(false);},

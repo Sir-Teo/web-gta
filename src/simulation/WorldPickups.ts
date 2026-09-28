@@ -109,6 +109,15 @@ export class WorldPickups {
  }
  /** Changes what a generated pickup carries, as a script's UPDATE_PICKUP_MONEY_PER_DAY does. */
  patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state){state.pickup={...state.pickup,...patch};this.revenueLinks=undefined;}}
+ /** CPickups::RemoveUnnecessaryPickups: every PICKUP_ONCE_TIMEOUT and PICKUP_MONEY pickup inside the sphere (browser
+  * axes) is removed; CPickup::Remove leaves its slot empty for the rest of the session. */
+ removeUnnecessary(at:{x:number;y:number;z:number},radius:number){
+  for(const state of this.states.slice()){
+   const type=state.pickup.type;if(type!==PICKUP_TYPE.onceTimeout&&type!==PICKUP_TYPE.money)continue;
+   const w=this.world(state.pickup);if(Math.hypot(w.x-at.x,w.y-at.y,w.z-at.z)>radius)continue;
+   this.remove(state);
+  }
+ }
  /** Takes a generated pickup back out of the world by the id it was made with, which is how a script's own
   * removal reaches it. */
  /** CPickups::TestForPickupsInBubble: any pickup within the radius of the native point (active or not, as the
