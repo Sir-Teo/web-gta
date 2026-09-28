@@ -165,7 +165,10 @@ export class WeaponInventory {
  /** Weapon cycling over the weapons held, in slot order (CPlayerPed::ProcessWeaponSwitch is unreversed; the slot
   * model is CPed's). */
  cycle(delta:number){
-  const held=WEAPONS.filter(w=>this.owned.has(w.id)).map(w=>w.id).sort((a,b)=>(this.slotOf(a)??0)-(this.slotOf(b)??0)||a-b);
+  // CPed keeps one CWeapon per slot: brass knuckles take slot 0 in place of bare fists (CPed::GiveWeapon initialises the
+  // slot's weapon as the new type), so the fists are not a stop of their own while the knuckles are held.
+  const fistSlot=this.slotOf(0),knuckles=[...this.owned].some(o=>o!==0&&this.slotOf(o)===fistSlot);
+  const held=WEAPONS.filter(w=>this.owned.has(w.id)&&!(w.id===0&&knuckles)).map(w=>w.id).sort((a,b)=>(this.slotOf(a)??0)-(this.slotOf(b)??0)||a-b);
   if(!held.length)return;const i=held.indexOf(this.selected);
   this.select(held[((i<0?0:i)+delta%held.length+held.length)%held.length]);
  }

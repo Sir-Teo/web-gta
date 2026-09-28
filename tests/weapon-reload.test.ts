@@ -63,3 +63,8 @@ test('at 100% completion the camera still uses up its film (isPlayerFiring exclu
  i.fullCompletion=()=>true;i.fire();
  expect(a.clip+a.reserve).toBe(total-1);
 });
+test('brass knuckles take the fists\' slot: the cycle stops on one or the other, not both',()=>{
+ const i=inventory();i.strip();i.give(1,1);i.give(22,17);i.select(22);
+ const seen=new Set<number>();for(let n=0;n<4;n++){i.cycle(1);seen.add(i.selected);}
+ expect([...seen].sort((a,b)=>a-b)).toEqual([1,22]);
+});
