@@ -24,3 +24,12 @@ test('no crime when no fire starts (fire-proof, or already burning)',()=>{
   (WeaponSystem.prototype as any).ignitePed.call(self,5,{x:0,y:0,z:0},2);
   expect(crimes).toEqual([]);
 });
+// CFireManager::StartFire refuses a ped with physicalFlags.bFireProof: no fire, no crime.
+test('a fire-proof ped does not catch fire from the player\'s flames',()=>{
+  const {self,crimes}=system(true);let asked:any;
+  self.fires={startFireOn:(_t:any,_p:any,_l:any,_g:any,_c:any,_cr:any,o:any)=>{asked=o;return o?.fireproof?undefined:{};}};
+  self.pedestrians=()=>({targets:()=>[{handle:5,id:9,officer:false,fireProof:true,position:{x:0,y:0,z:0}}]});
+  (WeaponSystem.prototype as any).setPedsOnFire.call(Object.assign(self,{sim:{playerBody:{isEnabled:()=>false},playerCollider:{isEnabled:()=>false},player:{health:100}}}),{x:0,y:0,z:0},6);
+  expect(asked).toEqual({fireproof:true});
+  expect(crimes).toEqual([]);
+});
