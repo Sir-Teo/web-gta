@@ -789,7 +789,9 @@ export class NativeCharacter {
     else if (this.action === 'gunMove' || this.action === 'fightMove') this.sampleGunMoves(fraction);
     else this.active.binding.sample(seconds, !oneShot(this.action), false);
     this.transition.apply(transitionTime / this.transitionDuration);
-    const aimPose=this.aimPose&&this.aimBlend>0&&!this.reaction?this.reactions.get(this.aimPose.name):undefined;
+    // CTaskSimpleFight owns the whole body while it shuffles (FIGHTIDLE, FightSh_*): no held weapon pose is laid over it,
+    // which froze the legs under the melee clip's first frame while CJ slid along.
+    const aimPose=this.aimPose&&this.aimBlend>0&&!this.reaction&&this.action!=='fightMove'?this.reactions.get(this.aimPose.name):undefined;
     if(aimPose){
       if(this.aimBlend>=1)aimPose.sample(this.aimPose!.time,false,false);
       else{this.aimTransition??=new PoseTransition(this.transitionTargets());this.aimTransition.capture();aimPose.sample(this.aimPose!.time,false,false);this.aimTransition.apply(this.aimBlend);}
