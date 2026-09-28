@@ -294,6 +294,8 @@ export class Simulation {
   onHitHead?: () => number | undefined;
   /** Horizontal move speed a vehicle collision left on the player, in m/s. */
   collisionPush = { x: 0, z: 0 };
+  /** CPed::bIsInTheAir for the player: set by a jump's launch or a drop with no ground near below, cleared on the ground. */
+  playerInAir = false;
   /** An exit that hands the player the vehicle's move speed (CTaskSimpleCarJumpOut, a bail-out, a knock-off) set it:
    * the ride ending keeps that speed instead of standing him still. */
   exitCarriesSpeed = false;
@@ -532,6 +534,15 @@ export class Simulation {
       { const hurt = landingDamage(this.player.verticalSpeed); if (hurt > 0) this.damagePlayer(hurt, true, { weapon: 54 }); }
     }
     if (this.player.grounded) this.fall = { minVz: 0, falling: false };
+    // bIsInTheAir: a jump's launch puts him in the air at once; walking off an edge only when there is no ground within
+    // 1.54 below his origin, 0.54 below his feet (CPed::CheckIfInTheAir, reVC Ped.cpp; SA's
+    // CPedGeometryAnalyser::IsInAir behind CEventInAir is not reversed). A curb is stepped down, not fallen from.
+    if (this.player.grounded) this.playerInAir = false;
+    else if (launched) this.playerInAir = true;
+    else if (!this.playerInAir) {
+      const p = this.playerBody.translation();
+      this.playerInAir = !this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y - this.playerCenterHeight + 1, z: p.z }, { x: 0, y: -1, z: 0 }), 1.54, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody);
+    }
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     if (this.player.grounded) { this.player.jumpMomentum = { x: 0, z: 0 }; this.jumpGlide = undefined; }
     else if (dt > 0 && !controls.parachute) {
@@ -839,7 +850,7 @@ export class Simulation {
     // A wasted or busted player loses the pack.
     this.abortJetPack();
     this.animationMovement = null;
-    this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0;
+    this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0; this.playerInAir = false;
     this.flushPlayerTasks(); this.collisionShift = { x: 0, z: 0 };
 
     this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.player.adrenaline = 0; this.deathRemaining = 0;

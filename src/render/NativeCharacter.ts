@@ -498,7 +498,10 @@ export class NativeCharacter {
     if (!footState) this.moveBlend = 0;
     else if (!launchAction(this.action) && !landingAction(this.action)) this.moveBlend = playerMoveBlend(this.moveBlend,controls.x,controls.y,!!controls.walk,dt);
     this.observedGround = footState && (this.observedGround || sim.player.grounded);
-    this.wasAirborne = this.observedGround && footState && !sim.player.grounded;
+    // Off the ground only counts once the ped is in the air (bIsInTheAir): a step down a curb neither shows the fall
+    // pose nor ends in a landing.
+    const inAir = !sim.player.grounded && ((sim as Partial<Pick<Simulation,'playerInAir'>>).playerInAir ?? true);
+    this.wasAirborne = this.observedGround && footState && inAir;
     const landing = !!this.clips.landing && !sim.player.crouched && (landed || landingAction(this.action) && this.seconds < this.active.duration);
     const selectedLanding = landingAction(this.action) && !landed ? this.action : this.clips.landingMoving && moving && this.moveBlend > 1.5 ? 'landingMoving' : 'landing';
     const canLaunch = this.supported(sim) && sim.player.grounded && !sim.player.crouched && !landing;
@@ -509,7 +512,7 @@ export class NativeCharacter {
     const rightFoot = !!this.clips.launchRight && (this.action === 'move' ? this.launchPhase() >= .5 : (this.action === 'walk' || this.action === 'run' || this.action === 'sprint') && (launchPhase > 1 ? launchPhase - 1 : launchPhase) >= .5);
     const selectedLaunch = launchAction(this.action) ? this.action : rightFoot ? 'launchRight' : 'launch';
     // CTaskSimpleJetPack::ProcessAnims blends the idle animation while the pack carries the ped.
-    const selected: Action = !this.supported(sim) ? 'idle' : controls.jetPack && !sim.player.grounded ? 'idle' : sim.player.grounded && landing ? selectedLanding : launch ? selectedLaunch : this.clips.airborne && (!sim.player.grounded || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? this.duckAction(controls, moving) : !moving ? 'idle' : controls.sprint && runnable ? this.clips.sprint ? 'sprint' : 'run' : this.clips.sprint && !controls.walk ? 'run' : 'walk';
+    const selected: Action = !this.supported(sim) ? 'idle' : controls.jetPack && !sim.player.grounded ? 'idle' : sim.player.grounded && landing ? selectedLanding : launch ? selectedLaunch : this.clips.airborne && (inAir || (controls.jump || launchFinished) && !sim.player.crouched) ? 'airborne' : sim.player.crouched ? this.duckAction(controls, moving) : !moving ? 'idle' : controls.sprint && runnable ? this.clips.sprint ? 'sprint' : 'run' : this.clips.sprint && !controls.walk ? 'run' : 'walk';
     const locomotion = selected === 'idle' || selected === 'walk' || selected === 'run' || selected === 'sprint';
     const action: Action = controls.fightMove && this.fightAnims && locomotion && sim.player.grounded ? 'fightMove' : controls.gunMove && this.gunAnims && locomotion && sim.player.grounded ? 'gunMove' : this.moveAnims && locomotion && !(controls.jetPack && !sim.player.grounded) ? 'move' : selected;
     // Aiming starts CTaskSimpleUseGun standing; putting the gun down leaves SetRealMoveAnim to rebuild the move clips.
