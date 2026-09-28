@@ -294,6 +294,9 @@ export class Simulation {
   onHitHead?: () => number | undefined;
   /** Horizontal move speed a vehicle collision left on the player, in m/s. */
   collisionPush = { x: 0, z: 0 };
+  /** An exit that hands the player the vehicle's move speed (CTaskSimpleCarJumpOut, a bail-out, a knock-off) set it:
+   * the ride ending keeps that speed instead of standing him still. */
+  exitCarriesSpeed = false;
   /** The bodies of the vehicles that struck the player this step: the sweep that carries out their push leaves them out,
    * as the ped's collision response moves it clear of the car rather than stopping against it. */
   pushingBodies = new Set<number>();

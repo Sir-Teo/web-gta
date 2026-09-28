@@ -556,7 +556,7 @@ export class CarEntry {
      const world=car.worldPoint(this.doorPoint(car,this.side,1)!),ground=this.ground(world,car),heading=car.heading()+(this.upright(car)?0:Math.PI);
      car.setPedOut({x:world.x,y:Math.max(ground??world.y-1,world.y-1)+.03,z:world.z},heading);car.driverless=true;car.engineRunning=false;if(!car.doorMissing(this.door))car.setDoorOpen(this.door);
      // CTaskSimpleCarJumpOut::ProcessPed hands the ped the car's whole move speed, the vertical part included.
-     this.sim.player.grounded=false;this.sim.player.verticalSpeed=car.car.body.linvel().y;
+     this.sim.player.grounded=false;this.sim.player.verticalSpeed=car.car.body.linvel().y;this.sim.exitCarriesSpeed=true;
     }
     // m_initialVehSpeed decays by 0.96^ts and shifts the ped forward until 0.45 s; the clip's own root X/Y is extracted.
     let forward=0;

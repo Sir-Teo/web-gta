@@ -146,7 +146,7 @@ export class WorldPlane {
   /** Leaving at speed on the ground: out at the door with the aircraft's velocity (CTaskSimpleCarJumpOut). */
   jumpOutOnGround(foot:{x:number;y:number;z:number}){
    const v=this.body.linvel(),message=this.finishExit(foot);
-   this.sim.player.speed=Math.hypot(v.x,v.z);this.sim.player.jumpMomentum={x:v.x,z:v.z};this.sim.player.grounded=false;
+   this.sim.player.speed=Math.hypot(v.x,v.z);this.sim.player.jumpMomentum={x:v.x,z:v.z};this.sim.player.grounded=false;this.sim.exitCarriesSpeed=true;
    return message;
   }
   cancelEntry(){const e=this.entry;if(!e)return;this.entry=undefined;if(e.phase==='getout')this.finishExit(e.foot);}
@@ -163,7 +163,7 @@ export class WorldPlane {
   const spot={x:p.x,y:p.y+this.assets.collision!.bounds.min[2]-2.5,z:p.z};
   this.sim.player.position={...spot};this.sim.player.previous={...spot};
   this.sim.player.speed=Math.hypot(v.x,v.z);this.sim.player.verticalSpeed=Math.min(0,v.y);this.sim.player.grounded=false;
-  this.sim.player.jumpMomentum={x:v.x,z:v.z};
+  this.sim.player.jumpMomentum={x:v.x,z:v.z};this.sim.exitCarriesSpeed=true;
   this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);
   this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
   this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});

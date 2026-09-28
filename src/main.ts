@@ -2779,7 +2779,8 @@ async function boot() {
         // A ride or entry sequence ending leaves CJ standing: neither move blend ratio carries over from before it.
         // The car clips blend over every other full-body clip as the ride starts: a hit, a fist-shake or a script clip
         // playing then does not freeze through the ride and come back after it.
-        if(wasRiding!==riding){wasRiding=riding;sim.player.moveBlend=0;sim.player.speed=0;sim.player.jumpMomentum={x:0,z:0};sim.player.verticalSpeed=0;sim.fall={minVz:0,falling:false};render.nativeCharacter?.resetLocomotion();if(riding&&!playerAttached&&sim.player.health>0)render.nativeCharacter?.clearReaction();}
+        // An exit that hands CJ the vehicle's move speed keeps it.
+        if(wasRiding!==riding){wasRiding=riding;sim.player.moveBlend=0;if(riding||!sim.exitCarriesSpeed){sim.player.speed=0;sim.player.jumpMomentum={x:0,z:0};sim.player.verticalSpeed=0;}sim.exitCarriesSpeed=false;sim.fall={minVz:0,falling:false};render.nativeCharacter?.resetLocomotion();if(riding&&!playerAttached&&sim.player.health>0)render.nativeCharacter?.clearReaction();}
         if(riding){
           // CPlayerPed::ProcessControl: in any vehicle but a CBmx (the BMX, Chopper and Mountain Bike), sprint energy
           // recovers as standing still.
