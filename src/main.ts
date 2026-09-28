@@ -4845,7 +4845,7 @@ async function boot() {
                 if(!installed)throw new Error('Airfield terrain could not be installed.');
                 if(!fleet||!alive)throw new Error('Aircraft fleet is unavailable.');
                 // Selecting a new hangar aircraft replaces any unoccupied aircraft on its departure spot.
-                for(const previous of fleet.planes){const p=previous.body.translation();if(!previous.occupied&&Math.hypot(p.x-150,p.z+2500)<40){previous.dispose();fleet.planes.delete(previous);}}
+                for(const previous of fleet.planes){const p=previous.body.translation();if(!previous.occupied&&Math.hypot(p.x-150,p.z+2500)<40)fleet.removePlane(previous);}
                 // The hangar is a browser convenience on the original continuous airfield.
                 const plane=await fleet.spawnPlane(transfer.modelId,150,-2500,-Math.PI/2);
                 sim.player.position={...plane.body.translation()};plane.interact();render.yaw=sim.player.heading-Math.PI;

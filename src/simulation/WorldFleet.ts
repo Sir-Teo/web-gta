@@ -349,8 +349,15 @@ export class WorldFleet {
  /** The same for a script's bike, boat or aircraft. */
  removeScriptVehicle(vehicle:WorldCar|WorldBike|WorldBoat|WorldPlane){
   if(vehicle instanceof WorldCar)return this.removeScriptCar(vehicle);
-  const removed=vehicle instanceof WorldBike?this.bikes.delete(vehicle):vehicle instanceof WorldBoat?this.boats.delete(vehicle):this.planes.delete(vehicle);
+  if(vehicle instanceof WorldPlane){if(this.planes.has(vehicle))this.removePlane(vehicle);return;}
+  const removed=vehicle instanceof WorldBike?this.bikes.delete(vehicle):this.boats.delete(vehicle);
   if(removed)vehicle.dispose();
+ }
+ /** Takes an aircraft out of the world. A generator's own aircraft frees its generator to make another (CCarGenerator
+  * finds its vehicle handle gone from the pool). */
+ removePlane(plane:WorldPlane){
+  plane.dispose();this.planes.delete(plane);
+  const id=this.generatedPlanes.get(plane);if(id!==undefined){this.generatedPlanes.delete(plane);this.attempted.delete(id);}
  }
  /** CCheat::VehicleCheat (0x43A0B0): the model loaded and set down its bounding radius + 2 ahead of the player (renderer
   * position, heading), turned to face across the player's path (m_fCurrentRotation + π/2), abandoned and unlocked.
@@ -422,7 +429,7 @@ export class WorldFleet {
   const near=(v:{car:{body:RAPIER.RigidBody}})=>{const at=v.car.body.translation();return Math.hypot(at.x-point.x,at.z-point.z)<radius;};
   for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&near(bike)){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
   for(const boat of [...this.boats])if(!boat.occupied&&!boat.missionCar&&!boat.disposed&&near(boat)){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);others++;}
-  for(const plane of [...this.planes])if(!plane.occupied&&!plane.missionCar&&!plane.disposed&&near(plane)){plane.dispose();this.planes.delete(plane);others++;}
+  for(const plane of [...this.planes])if(!plane.occupied&&!plane.missionCar&&!plane.disposed&&near(plane)){this.removePlane(plane);others++;}
   return doomed.length+others;
  }
  /** CWorld::ClearCarsFromArea (CLEAR_AREA_OF_CARS): every car inside the box (renderer corners) that is not the
@@ -443,7 +450,7 @@ export class WorldFleet {
   const inBox=(v:{car:{body:RAPIER.RigidBody}})=>{const at=v.car.body.translation();return at.x>=lo.x&&at.x<=hi.x&&at.y>=lo.y&&at.y<=hi.y&&at.z>=lo.z&&at.z<=hi.z;};
   for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&inBox(bike)){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
   for(const boat of [...this.boats])if(!boat.occupied&&!boat.missionCar&&!boat.disposed&&inBox(boat)){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);others++;}
-  for(const plane of [...this.planes])if(!plane.occupied&&!plane.missionCar&&!plane.disposed&&inBox(plane)){plane.dispose();this.planes.delete(plane);others++;}
+  for(const plane of [...this.planes])if(!plane.occupied&&!plane.missionCar&&!plane.disposed&&inBox(plane)){this.removePlane(plane);others++;}
   return doomed.length+others;
  }
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
@@ -575,7 +582,7 @@ export class WorldFleet {
   }
   // A script's vehicles stay, however far off, until the script deletes them or lets them go (INTRO1 parks a homie's
   // BMX out of the way and uses it again; it used to be culled from under the script).
-  for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&!plane.missionCar&&plane.distance()>350){plane.dispose();this.planes.delete(plane);const id=this.generatedPlanes.get(plane);if(id!==undefined){this.generatedPlanes.delete(plane);this.attempted.delete(id);}}
+  for(const plane of [...this.planes])if(!plane.occupied&&!plane.policeHeli&&!plane.missionCar&&plane.distance()>350)this.removePlane(plane);
   for(const boat of this.boats)if(!boat.occupied&&!boat.missionCar&&boat.distance()>350){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);}
   for(const bike of this.bikes)if(!bike.occupied&&!bike.missionCar&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);}
   if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
