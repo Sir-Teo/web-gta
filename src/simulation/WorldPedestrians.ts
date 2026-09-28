@@ -1184,6 +1184,12 @@ export class WorldPedestrians {
     if(queue.atHead(slot))this.beginAttractor(p,a.key,a.type,heading);
     else{a.phase='wait';a.goal=undefined;a.slot=slot;a.heading=heading;a.time=0;a.until=Infinity;}
    }
+   /** Another ped, or the player, standing within `radius` of a point on the ground plane. */
+   private someoneAt(point:{x:number;z:number},radius:number,except:Pedestrian){
+    const pp=this.sim.player.position;if(Math.hypot(pp.x-point.x,pp.z-point.z)<radius&&this.sim.playerCollider.isEnabled())return true;
+    for(const q of this.people){if(q===except||q.health<=0)continue;const t=q.body.translation();if(Math.hypot(t.x-point.x,t.z-point.z)<radius)return true;}
+    return false;
+   }
    private stepAttractor(p:Pedestrian,dt:number){
     const a=p.attract!;a.time+=dt;
     if(a.time<a.until)return;
@@ -3147,6 +3153,8 @@ export class WorldPedestrians {
      const goal=p.attract.goal,gx=goal.x-state.position.x,gz=goal.z-state.position.z;
      if(p.attract.time<p.attract.startAt){dx=0;dz=0;}
      else if(Math.hypot(gx,gz)<=(this.attractorQueues.get(p.attract.key)?.params.arriveRange??.2)){dx=0;dz=0;this.arriveAttractor(p);}
+     // CTaskComplexUseEffect: within 1.5 of the slot with someone else standing within 1.5 of it, the ped gives up.
+     else if(Math.hypot(gx,gz)<1.5&&this.someoneAt(goal,1.5,p)){this.leaveAttractor(p);}
      else{dx=gx;dz=gz;}
     }
     else{dx=0;dz=0;state.heading=p.attract.heading;if(p.attract.phase!=='wait')this.stepAttractor(p,dt);}

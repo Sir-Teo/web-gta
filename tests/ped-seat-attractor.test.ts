@@ -34,3 +34,14 @@ test('a sitter marked leaving stands up out of the sit-down rather than idling',
  step(.2);p.attract.leaving=true;p.attract.until=Math.min(p.attract.until,p.attract.time);
  step(0);expect(p.attract.phase).toBe('up');expect(played.map(a=>a[0])).toEqual(['seat_down','seat_up']);
 });
+// CTaskComplexUseEffect: within 1.5 of the slot with someone else already standing within 1.5 of it, the ped gives up.
+test('someoneAt sees a live ped or the enabled player near a point',()=>{
+ const me:any={id:1};
+ const other=(x:number,z:number,health=100)=>({id:2,health,body:{translation:()=>({x,y:0,z})}});
+ const self={sim:{player:{position:{x:50,y:0,z:50}},playerCollider:{isEnabled:()=>true}},people:[me,other(1,0)]};
+ expect(proto.someoneAt.call(self,{x:0,z:0},1.5,me)).toBe(true);
+ expect(proto.someoneAt.call({...self,people:[me,other(3,0)]},{x:0,z:0},1.5,me)).toBe(false);
+ expect(proto.someoneAt.call({...self,people:[me,other(1,0,0)]},{x:0,z:0},1.5,me)).toBe(false);
+ expect(proto.someoneAt.call({...self,people:[me]},{x:50,z:49},1.5,me)).toBe(true);
+ expect(proto.someoneAt.call({...self,sim:{...self.sim,playerCollider:{isEnabled:()=>false}},people:[me]},{x:50,z:49},1.5,me)).toBe(false);
+});
