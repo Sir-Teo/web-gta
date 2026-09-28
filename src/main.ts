@@ -859,7 +859,7 @@ async function boot() {
    playerPosition:()=>entryExits?entryExits.positionRelativeToOutsideWorld(nativePlayerPosition()):nativePlayerPosition(),
    wantedLevel:()=>law.level,
    isFading:()=>cameraFade.fading,
-   fade(direction,seconds){cameraFade.fade(seconds*1000,direction,gameTimeMs);hud.fade(direction===0,seconds*1000);},
+   fade(direction,seconds){cameraFade.fade(seconds*1000,direction,gameTimeMs,!!mission?.runtime.game.camera.ignoreFadingStuffForMusic);hud.fade(direction===0,seconds*1000);},
    // The browser crosshair follows the aiming state, so there is none to clear.
    clearCrossHairs(){},
    clearMessages(){hud.message('');},
@@ -2586,7 +2586,7 @@ async function boot() {
         previousGameTimeMs=gameTimeMs;gameTimeExact+=step*1000;gameTimeMs=Math.floor(gameTimeExact);
         // CEntity::PreRender: every animated material adds this step's seconds (MaterialUpdateUVAnimCB).
         importedScene?.advanceUvAnimations(step);
-        cameraFade.process(step);
+        cameraFade.process(step);sound.setFaderScalingFactor(cameraFade.faderScalingFactor);
         gameLogic.update(gameTimeMs,previousGameTimeMs,gameLogicWorld,CITY_UNLOCKED,nativeLevelAt);
         // CGameLogic::Update then UpdateSkip, with the D-pad right's edge for this frame; CHud::DrawTripSkip while a skip
         // can be taken (SKIP_1's help the first time it shows).
@@ -2948,7 +2948,7 @@ async function boot() {
          if(active){
           const next=entryExits.finishStep(cameraFade.fading);
           if(next==='teleport')startInteriorTransfer(active);
-          else if(next){cameraFade.fade(next.fade*1000,0,gameTimeMs);hud.fade(true,next.fade*1000);}
+          else if(next){cameraFade.fade(next.fade*1000,0,gameTimeMs,!!mission?.runtime.game.camera.ignoreFadingStuffForMusic);hud.fade(true,next.fade*1000);}
          }else{
           const p=sim.player.position;
           // CPlayerPed::CanPlayerStartMission: in control, no attack task, alive. Vehicles are not teleported yet.
