@@ -1398,7 +1398,8 @@ export class WorldPedestrians {
   * explosion at once. Authored: bRenderScorched (no scorched ped shader). */
  spawnDead(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,recruit=false){
   // A recruit dies still a member of the group: CDarkel::RegisterKillByPlayer asks IsMember and counts him as one.
-  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{if(recruit)p.follow=true;this.damageCollider(p.collider.handle,1000,{x:Math.sin(heading),z:Math.cos(heading)},'explosion');});
+  // CPed::CreateDeadPedMoney returns at once for a ped that died bInVehicle (Ped.cpp:590-592): the body leaves no cash.
+  return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{if(recruit)p.follow=true;p.money=0;this.damageCollider(p.collider.handle,1000,{x:Math.sin(heading),z:Math.cos(heading)},'explosion');});
  }
  /** A driver the player dragged out (CEventDraggedOutCar answered by his decision maker, event 7; the car is the
   * one he lost). Only KILL_PED_ON_FOOT acts in the reversed handler: when the kill is appropriate (an unarmed victim
