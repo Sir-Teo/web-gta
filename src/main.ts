@@ -531,6 +531,8 @@ async function boot() {
   let importedScene: ReturnType<typeof import('./simulation/nativeScene').installNativeScene> | undefined;
   let surfaceSprint:Map<number,boolean>|undefined,surfaceClimbable:Map<number,boolean>|undefined,surfaceSteep:Map<number,boolean>|undefined;
   let surfaceSprintBlocked=false;
+  /** CPlayerPedData::m_bPlayerSprintDisabled: the script's DISABLE_PLAYER_SPRINT, or CTaskComplexUseGoggles running. */
+  const playerSprintDisabled=()=>!!mission?.runtime.game.playerInfo.sprintDisabled||!!weapons.goggles;
   /** The fire button got through to an aimed gun this step (m_LastCmd FIRE for CTaskSimpleUseGun::SetMoveAnim). */
   let gunFiring=false;
   let surfaceAudio: ReturnType<typeof readSurfaceAudio> | undefined;
@@ -2353,7 +2355,8 @@ async function boot() {
     // button while he moves; that sprint (PEDMOVE_SPRINT with m_nWeaponFire) ends the use-gun task. The aimed walk never
     // reports a sprint itself, so the button is read here; ZeldaWeapon's two-handed guns never sprint.
     const armAimInfo=weapons.inventory.info(),armAimed=!!armAimInfo&&!!(armAimInfo.flags&WEAPON_FLAG.aimWithArm);
-    const armSprint=armAimed&&(input.down('ShiftLeft')||input.down('ShiftRight'))&&!sim.player.sprintExhausted&&(()=>{const a=input.axes();return Math.hypot(a.x,a.y)>0;})();
+    // Only a real PEDMOVE_SPRINT drops the arm's aim: sprint disabled or a surface that cannot be sprinted on leaves a run.
+    const armSprint=armAimed&&(input.down('ShiftLeft')||input.down('ShiftRight'))&&!sim.player.sprintExhausted&&!playerSprintDisabled()&&!surfaceSprintBlocked&&(()=>{const a=input.axes();return Math.hypot(a.x,a.y)>0;})();
     const playerSprinting=(!!render.nativeCharacter?.sprinting||armSprint)&&weapons.inventory.weapon.kind!=='melee';
     // CTaskSimplePlayerOnFoot, whose ProcessPlayerWeapon aims and fires, is not the task running while a knockdown's fall
     // and get-up (the event-response slot) or the death sequence owns the player, nor while a jump's launch or the
@@ -2695,6 +2698,9 @@ async function boot() {
           if(controls.jump&&steepSlopeRefusesJump(surfaceSteep,lastGround?.material,{x:Math.sin(sim.player.heading),z:Math.cos(sim.player.heading)},lastGround?.normal))controls.jump=false;
           if(surfaceSprintBlocked)controls.sprint=false;
         }
+        // PlayerControlZelda: m_bPlayerSprintDisabled (DISABLE_PLAYER_SPRINT, and the goggles going on or off) turns the
+        // sprint button into a run.
+        if(playerSprintDisabled())controls.sprint=false;
         // CTaskComplexGotoDoorAndOpen under CTaskSimpleUninterruptable: a walk-in entrance walks CJ 4 units on, out of the pad's hands.
         const walkIn=entryExits?.active?.walk;
         if(walkIn&&onFoot){const p=sim.player.position,dx=walkIn[0]-p.x,dz=-walkIn[1]-p.z;controls={...controls,x:0,y:Math.hypot(dx,dz)>.5?-1:0,cameraYaw:Math.atan2(dx,dz),walk:true,sprint:false,jump:false,facing:undefined};}
