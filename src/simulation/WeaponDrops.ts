@@ -4,7 +4,12 @@ import {modelObject} from '../assets/ModelObjects';
 export interface DropAsset { model: Parameters<typeof modelObject>[0]; textures: Parameters<typeof modelObject>[1] }
 interface Drop { weapon: number; rounds: number; position: { x: number; y: number; z: number }; root?: Group; owner?: ReturnType<typeof modelObject>; age: number;
   /** PICKUP_ONCE_FOR_MISSION (bDeathPickupsPersist): never times out and is never merged into. */
-  persist?: boolean }
+  persist?: boolean;
+  /** CPickup's bEmpty (ExtractAmmoFromPickup took the rounds) and bHelpMessageDisplayed. */
+  empty?: boolean; helpShown?: boolean }
+/** What the player's collect callback sees of a drop: the rounds it holds, whether it was emptied, whether it showed
+ * its help. The callback may empty it (an exchangeable slot's weapon takes the ammo) and leave it lying. */
+export type DropAmmo = { rounds: number; empty?: boolean; helpShown?: boolean };
 /** re3's CPickups::GenerateNewOne gives PICKUP_ONCE_TIMEOUT 20 s (SA's is unreversed). */
 export const DROP_TIMEOUT_SECONDS = 20;
 /** AmmoForWeapon_OnStreet (0x8A5F50), by eWeaponType. */
@@ -60,14 +65,14 @@ export class WeaponDrops {
   }
   /** Age out old drops and hand nearby ones to the player on foot: CPickup::Update's reach is under √1.8 across and
    * under 2 in height. */
-  step(dt: number, player: { position: { x: number; y: number; z: number }; alive: boolean; onFoot: boolean }, collect: (weapon: number, rounds: number) => string | undefined) {
+  step(dt: number, player: { position: { x: number; y: number; z: number }; alive: boolean; onFoot: boolean }, collect: (weapon: number, drop: DropAmmo) => string | undefined) {
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const drop = this.drops[i];
       drop.age += dt;
       if (drop.age > DROP_TIMEOUT_SECONDS && !drop.persist) { this.retire(drop); this.drops.splice(i, 1); continue; }
       if (!drop.root || !player.alive || !player.onFoot) continue;
       if (Math.hypot(drop.position.x - player.position.x, drop.position.z - player.position.z) >= Math.sqrt(1.8) || Math.abs(drop.position.y - player.position.y) >= 2) continue;
-      const name = collect(drop.weapon, drop.rounds);
+      const name = collect(drop.weapon, drop);
       if (name === undefined) continue;
       this.retire(drop); this.drops.splice(i, 1);
     }

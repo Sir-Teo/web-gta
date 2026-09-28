@@ -85,3 +85,30 @@ test('a horseshoe counts STAT_HORSESHOES_COLLECTED and 1000 over the total as lu
   expect(stats[2]).toEqual([STAT.policeBribes,1]);expect(wanted).toBe(1);
  }finally{pickups.dispose();sim.dispose();}
 });
+// CPickup::Update's weapon rules shared with a dead ped's dropped gun (PICKUP_ONCE_TIMEOUT kept by WeaponDrops).
+test('a dropped gun over another loaded weapon of its slot waits for the collect press; an exchangeable slot takes its ammo; DoesPlayerWantNewWeapon refused empties it',()=>{
+ const sim=new Simulation(),scene=new Scene(),granted:[number,number][]=[],notices:string[]=[];let held={weapon:24,ammo:7},wants=true;
+ const pickups=new WorldPickups(sim,scene,'gate-test:',{
+  weaponForModel:()=>undefined,giveWeapon:()=>true,wantedLevel:()=>0,setWantedLevel(){},armour:()=>0,setArmour(){},
+  heldInSlot:w=>({...held,slot:w===26?3:2}),grantAmmo:(w,a)=>{granted.push([w,a]);},targeting:()=>false,wantsNewWeapon:()=>wants,
+ });
+ try{
+  const notice=(t:string)=>notices.push(t);
+  // A loaded Desert Eagle in slot 2: the pistol lies there, PU_CF1 once, until the press.
+  const pistol={ammo:9};
+  expect(pickups.gateWeapon(22,pistol,notice)).toBe('wait');expect(pickups.gateWeapon(22,pistol,notice)).toBe('wait');
+  expect(notices).toEqual(['Press TAB to collect the weapon.']);expect(pickups.playerOnWeaponPickup).toBe(6);expect(pistol).toEqual({ammo:9,helpShown:true});
+  pickups.collectJustDown();expect(pickups.gateWeapon(22,pistol,notice)).toBe('take');expect(pistol.ammo).toBe(9);
+  // Unarmed in the slot: taken at once, the street amount for a drop holding nothing.
+  held={weapon:0,ammo:0};const empty={ammo:0};expect(pickups.gateWeapon(22,empty,notice)).toBe('take');expect(empty.ammo).toBe(AMMO(22));
+  // The press ran out (six frames). A shotgun slot (exchangeable): the sawn-off's rounds go into the held shotgun
+  // at once and the drop lies emptied.
+  for(let i=0;i<7;i++)pickups.step(1/60);
+  held={weapon:25,ammo:0};const sawnoff={ammo:10};
+  expect(pickups.gateWeapon(26,sawnoff,notice)).toBe('wait');expect(granted).toEqual([[26,10]]);expect(sawnoff).toMatchObject({ammo:0,empty:true});
+  expect(pickups.gateWeapon(26,sawnoff,notice)).toBe('wait');expect(granted).toHaveLength(1);
+  // Aiming the same slot's weapon (DoesPlayerWantNewWeapon false): a fresh drop's rounds go over and it stays.
+  held={weapon:22,ammo:0};wants=false;const other={ammo:5};
+  expect(pickups.gateWeapon(24,other,notice)).toBe('wait');expect(granted[1]).toEqual([24,5]);expect(other).toMatchObject({ammo:0,empty:true});
+ }finally{pickups.dispose();sim.dispose();}
+});

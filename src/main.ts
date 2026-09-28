@@ -3062,8 +3062,13 @@ async function boot() {
         const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!playerPassenger&&!pickupsBusy;
         const cash=moneyDrops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops});
         if(cash){sim.money+=cash;sound.frontend(AE_FRONTEND.pickupMoney);}
-        drops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops},(weapon,rounds)=>{
-         const before=weapons.inventory.selected,given=weapons.inventory.give(weapon,rounds);
+        // A dead ped's gun is a PICKUP_ONCE_TIMEOUT pickup: CPickup::Update's weapon rules apply (stand on it over
+        // another loaded weapon of the slot, ammo into an exchangeable slot, the collect press takes it).
+        drops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops},(weapon,drop)=>{
+         const gate={ammo:drop.rounds,empty:drop.empty,helpShown:drop.helpShown},verdict=pickups.gateWeapon(weapon,gate,text=>hud.help(text));
+         drop.rounds=gate.ammo;drop.empty=gate.empty;drop.helpShown=gate.helpShown;
+         if(verdict!=='take')return undefined;
+         const before=weapons.inventory.selected,given=weapons.inventory.give(weapon,gate.ammo);
          if(!given)return undefined;
          if(weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);
          const name=WEAPONS.find(w=>w.id===weapon)?.name??'Weapon';

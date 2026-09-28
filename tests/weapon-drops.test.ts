@@ -17,7 +17,7 @@ test('dropped guns ground themselves, hand over rounds once, then retire', async
   expect(drops.snapshot()).toMatchObject([{ weapon: 22, rounds: 9 }]);
   let collected: [number, number][] = [];
   drops.step(1, { ...player, position: { x: 0, y: 0, z: 10 } }, () => { throw new Error('out of reach'); });
-  drops.step(1, player, (w, r) => { collected.push([w, r]); return 'Pistol'; });
+  drops.step(1, player, (w, r) => { collected.push([w, r.rounds]); return 'Pistol'; });
   expect(collected).toEqual([[22, 9]]);
   expect(drops.snapshot()).toEqual([]);
 });

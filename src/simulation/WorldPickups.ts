@@ -322,6 +322,28 @@ export class WorldPickups {
    else this.host.grantAmmo?.(weapon,AMMO_ON_STREET[weapon]);
    state.empty=true;state.pickup={...pickup,ammo:0};
   }
+  /** CPickup::Update's weapon gate for a PICKUP_ONCE_TIMEOUT pickup kept elsewhere (a dead ped's dropped gun): the same
+   * stand-on-it, extract-into-an-exchangeable-slot, PU_CF1-once and collect-press rules as a script pickup, sharing
+   * the collect buffer and PlayerOnWeaponPickup. 'take' hands the weapon over with `drop.ammo` (the street amount when
+   * that is 0 and the drop was never emptied); 'wait' leaves it lying, emptied into the slot's weapon where the rules
+   * say so. */
+  gateWeapon(weapon:number,drop:{ammo:number;empty?:boolean;helpShown?:boolean},notice?:(text:string)=>void):'take'|'wait'{
+   const host=this.host,held=host.heldInSlot?.(weapon);
+   const extract=()=>{if(drop.ammo)host.grantAmmo?.(weapon,drop.ammo);else if(drop.empty)return;else host.grantAmmo?.(weapon,AMMO_ON_STREET[weapon]);drop.ammo=0;drop.empty=true;};
+   if(held&&held.weapon!==weapon){
+    const exchangeable=held.slot>=3&&held.slot<=5;
+    if(held.weapon!==0&&(held.ammo!==0||exchangeable)){
+     this.playerOnWeaponPickup=6;
+     if(exchangeable)extract();
+     if(host.canPickUpWeapon?.(weapon)===false)return 'wait';
+     if(!host.targeting?.()&&!drop.helpShown){drop.helpShown=true;notice?.(gxtHudText(gxtText('PU_CF1','Press ~k~~PED_ANSWER_PHONE~ to collect the weapon.')));}
+     if(!this.collectBuffer)return 'wait';
+    }else if(host.canPickUpWeapon?.(weapon)===false){this.playerOnWeaponPickup=6;return 'wait';}
+   }else if(host.canPickUpWeapon?.(weapon)===false)return 'wait';
+   if(host.wantsNewWeapon?.(weapon)===false){extract();return 'wait';}
+   if(!drop.ammo&&!drop.empty)drop.ammo=AMMO_ON_STREET[weapon]??0;
+   return 'take';
+  }
   /** CPickups::PassTime: regeneration timers move forward with the clock. */
   passTime(seconds:number){this.seconds+=Math.max(0,seconds);}
  /** CPickups::PictureTaken: the nearest snapshot within 90/FOV × 20 units whose 0.2-unit sphere is on screen. `fov` is
