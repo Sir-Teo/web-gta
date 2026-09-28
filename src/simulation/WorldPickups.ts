@@ -33,10 +33,19 @@ export interface PickupHost {
  canPickUpWeapon?(weapon:number):boolean;
  /** CTheScripts::IsPlayerOnAMission: a property is not for sale while a mission runs. */
  onMission?():boolean;
+ /** CPed::GetWeaponInSlot for the slot a weapon type takes: what the player holds there (0 for nothing), its total
+  * ammo and the slot. */
+ heldInSlot?(weapon:number):{weapon:number;ammo:number;slot:number}|undefined;
+ /** CPed::GrantAmmo to whatever the player holds in the weapon type's slot, and CWeapon::Reload. */
+ grantAmmo?(weapon:number,ammo:number):void;
+ /** CPad::GetTarget: aiming clears the collect buffer and hides the collect help. */
+ targeting?():boolean;
 }
 /** CPickups::aPickUps holds 620 slots. */
 export const PICKUP_SLOTS=620;
 interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean;quietUntil?:number;helpShown?:boolean;
+ /** m_nFlags.bEmpty: the ammo was taken out of a weapon pickup (ExtractAmmoFromPickup); the weapon then comes with none. */
+ empty?:boolean;
  /** The pickup's aPickUps slot, which picks the frames CPickups::Update reaches it on. */
  slot:number;
  /** CPickup::m_nFlags.bVisible: within 100 units of the camera when its streaming slice last ran. */
@@ -134,8 +143,17 @@ export class WorldPickups {
    * With `frame` (the 30 fps game frame counter) it runs as the original does, once a game frame: the streaming pass
    * covers a thirty-second of the 620 slots (IsVisible: within 100 units of the camera in 2D) and the collection pass a
    * sixth, over the visible pickups. Without it every pickup is checked on every call. */
+  /** CPickups::CollectPickupBuffer: CollectPickupJustDown (PED_ANSWER_PHONE, Tab) arms six game frames of collecting. */
+  collectJustDown(){this.collectBuffer=6;this.armedThisFrame=true;}
+  private collectBuffer=0;private collectFrame?:number;private armedThisFrame=false;
+  /** CPickups::PlayerOnWeaponPickup: frames left of standing on a weapon pickup he cannot simply take. */
+  playerOnWeaponPickup=0;
   step(dt:number,vehicle?:(point:Vector3,radius:number)=>boolean,frame?:number){
    this.seconds+=dt;const player=this.sim.player,p=player.position;
+   // CPickups::Update once a game frame: the collect buffer and the weapon-pickup counter run down, and aiming
+   // (GetTarget) empties the buffer.
+   if(frame===undefined||frame!==this.collectFrame){this.collectFrame=frame;if(this.collectBuffer>0&&!this.armedThisFrame)this.collectBuffer--;this.armedThisFrame=false;if(this.playerOnWeaponPickup>0)this.playerOnWeaponPickup--;}
+   if(this.host.targeting?.())this.collectBuffer=0;
    // CPickup::Update for PICKUP_ASSET_REVENUE: by the frame's own milliseconds, a day's takings every 1,440,000 ms (one
    // game day), and only while the player is more than 10 units off; PassTime does not touch it.
    if(dt>0){
@@ -208,8 +226,24 @@ export class WorldPickups {
     if(done>=total){this.sim.money+=100000;message=`${COLLECTABLE[pickup.category]}_ALL`;}else message=`${COLLECTABLE[pickup.category]}_ONE ${done}/${total}`;break;
    }
    case 'weapon':{
-    const weapon=host.weaponForModel(pickup.model,pickup.modelId);if(weapon===undefined||host.canPickUpWeapon?.(weapon)===false)return;
-    if(!host.giveWeapon(weapon,pickup.ammo||AMMO_ON_STREET[weapon]))return;break;
+    const weapon=host.weaponForModel(pickup.model,pickup.modelId);if(weapon===undefined)return;
+    // CPickup::Update: a weapon of a slot that holds another one (with ammo, or a shotgun, SMG or rifle slot, which
+    // are exchangeable) is not simply taken: the player stands on it (PlayerOnWeaponPickup), an exchangeable slot's
+    // weapon takes the pickup's ammo (ExtractAmmoFromPickup) at once, the PU_CF1 help shows once unless he aims, and
+    // the collect press (CollectPickupBuffer) is what takes the weapon. Unarmed, or over an empty weapon of another
+    // slot, it is taken as any pickup.
+    const held=host.heldInSlot?.(weapon);
+    if(held&&held.weapon!==weapon){
+     const exchangeable=held.slot>=3&&held.slot<=5;
+     if(held.weapon!==0&&(held.ammo!==0||exchangeable)){
+      this.playerOnWeaponPickup=6;
+      if(exchangeable&&[PICKUP_TYPE.onceTimeout,PICKUP_TYPE.once,PICKUP_TYPE.onStreet,PICKUP_TYPE.onceForMission].includes(pickup.type as 3|4|2|22))this.extractAmmo(state,weapon);
+      if(host.canPickUpWeapon?.(weapon)===false)return;
+      if(!host.targeting?.()&&!state.helpShown){state.helpShown=true;host.onNotice?.(pickup,gxtHudText(gxtText('PU_CF1','Press ~k~~PED_ANSWER_PHONE~ to collect the weapon.')));}
+      if(!this.collectBuffer)return;
+     }else if(host.canPickUpWeapon?.(weapon)===false){this.playerOnWeaponPickup=6;return;}
+    }else if(host.canPickUpWeapon?.(weapon)===false)return;
+    if(!host.giveWeapon(weapon,pickup.ammo||(state.empty?0:AMMO_ON_STREET[weapon])))return;break;
    }
     // PSAVE1 removes and immediately recreates the disc, so it stays where it is.
     case 'save':host.onSave?.(pickup);return;
@@ -263,6 +297,15 @@ export class WorldPickups {
    state.disabled=true;this.collected.add(state.pickup.id);
   }
   private owned(pickup:ScmPickup,link:ScmPickup|undefined){return pickup.section==='script'||!!link&&this.collected.has(link.id);}
+  /** CPickup::ExtractAmmoFromPickup: the pickup's ammo (the street amount for one with none, unless it was emptied
+   * before) goes to the weapon held in its slot, and the pickup is left empty. Never from a shop. */
+  private extractAmmo(state:State,weapon:number){
+   const pickup=state.pickup;if(pickup.type===PICKUP_TYPE.inShop)return;
+   if(pickup.ammo)this.host.grantAmmo?.(weapon,pickup.ammo);
+   else if(state.empty)return;
+   else this.host.grantAmmo?.(weapon,AMMO_ON_STREET[weapon]);
+   state.empty=true;state.pickup={...pickup,ammo:0};
+  }
   /** CPickups::PassTime: regeneration timers move forward with the clock. */
   passTime(seconds:number){this.seconds+=Math.max(0,seconds);}
  /** CPickups::PictureTaken: the nearest snapshot within 90/FOV × 20 units whose 0.2-unit sphere is on screen. `fov` is

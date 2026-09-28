@@ -679,6 +679,9 @@ async function boot() {
     weaponForModel:model=>WEAPONS.find(w=>w.model?.toLowerCase()===model.toLowerCase())?.id,
     giveWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected,given=weapons.inventory.give(weapon,ammo);if(given&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);return given;},
     canPickUpWeapon:weapon=>{const info=weapons.inventory.info(weapon);return !sim.jetPack||!!info&&!!(info.flags&WEAPON_FLAG.aimWithArm);},
+    heldInSlot:weapon=>{const slot=weapons.inventory.slotOf(weapon);if(slot===undefined)return undefined;const held=weapons.inventory.inSlot(slot)??0,a=held?weapons.inventory.ammo.get(held):undefined;return {weapon:held,ammo:a?a.clip+a.reserve:0,slot};},
+    grantAmmo:(weapon,ammo)=>{const held=weapons.inventory.inSlot(weapons.inventory.slotOf(weapon));if(held)weapons.inventory.give(held,ammo);},
+    targeting:()=>input.down('MouseAim'),
     wantedLevel:()=>law.level,setWantedLevel:level=>law.setLevel(level),armour:()=>sim.player.armour,setArmour:value=>{sim.player.armour=value;},
     maxHealth:()=>mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:()=>mission?.runtime.game.playerInfo.maxArmour??100,
     // CPickups::GivePlayerGoodiesWithPickUpMI: the jetpack hands the player its task, unless he already wears one.
@@ -2383,7 +2386,9 @@ async function boot() {
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
-    if(input.consume('Tab')&&!paused&&!navigation?.open)arsenal.toggle();
+    if(input.consume('Backquote')&&!paused&&!navigation?.open)arsenal.toggle();
+    // CPad::CollectPickupJustDown is PED_ANSWER_PHONE (Tab), and false while DisablePlayerControls.
+    if(input.consume('Tab')&&!paused&&!navigation?.open&&!arsenal.open&&!playerControlsDisabled())pickups.collectJustDown();
     // The group buttons, GROUP_CONTROL_FWD (G) and GROUP_CONTROL_BWD (H), on foot: a targeted Families member joins,
     // otherwise the group follows (G) or stays in position (H); holding either disbands it.
     {
