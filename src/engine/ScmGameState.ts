@@ -54,7 +54,7 @@ const CAPPED_STATS=new Set([65,66,67,21,22,23,24,25,69,70,71,72,73,74,75,76,77,7
 export interface ScmStatsPlayer {health():number;maxHealth():number;addHealth(value:number):void;
  /** m_nNumHoursDidntEat = 0. */
  ateEnough():void}
-const STAT_FAT=21;
+const STAT_FAT=21,STAT_ENERGY=165,STAT_LUNG_CAPACITY=225;
 export class ScmStats {
  player?:ScmStatsPlayer;
  /** CStats::DisplayScriptStatUpdateMessage, drawn by the host. */
@@ -102,11 +102,19 @@ export class ScmStats {
   if(ScmStats.isFloat(stat)){
    let next=this.float(stat)+value;
    if(ScmStats.isCapped(stat))next=Math.min(next,1000);
-   this.setFloat(stat,next);return;
+   this.setFloat(stat,next);this.reactOnIncrement(stat);return;
   }
   let next=this.int(stat)+Math.trunc(value);
   if(ScmStats.isCapped(stat))next=Math.min(next,1000);
-  this.setInt(stat,next);
+  this.setInt(stat,next);this.reactOnIncrement(stat);
+ }
+ /** CStats::ProcessReactionStatsOnIncrement: stamina or lung capacity gained on a negative energy burns 23 fat;
+  * energy raised past a thousand puts the rest on as fat. */
+ private reactOnIncrement(stat:number){
+  if(stat!==STAT_STAMINA&&stat!==STAT_ENERGY&&stat!==STAT_LUNG_CAPACITY)return;
+  const energy=this.get(STAT_ENERGY);
+  if(stat===STAT_STAMINA||stat===STAT_LUNG_CAPACITY){if(energy<0)this.set(STAT_FAT,Math.max(this.get(STAT_FAT)-23,0));return;}
+  if(energy>1000)this.increment(STAT_FAT,energy-1000);
  }
  /** CStats::DecrementStat (0x55C2E0): nothing happens for a value at or below zero, and a stat never goes
   * below nothing. */
@@ -114,6 +122,8 @@ export class ScmStats {
   requireAsset(Number.isFinite(value),'Stat decrements must be finite.');
   if(value<=0)return;
   this.set(stat,Math.max(this.get(stat)-value,0));
+  // CStats::ProcessReactionStatsOnDecrement: energy lowered while negative burns 23 fat.
+  if(stat===STAT_ENERGY&&this.get(STAT_ENERGY)<0)this.decrement(STAT_FAT,23);
  }
  /** CStats::SetNewRecordStat (0x55C410): only raises the stored value. */
  setNewRecord(stat:number,value:number){if(this.get(stat)<value)this.set(stat,value);}

@@ -650,7 +650,8 @@ async function boot() {
   sim.indoors=()=>render.lighting.area!==0;
   // CPlayerInfo::m_bFastReload, which SET_PLAYER_FAST_RELOAD sets on the script's player info.
   weapons.inventory.fastReload=()=>!!mission?.runtime.game.playerInfo.fastReload;
-  weapons.inventory.fullCompletion=()=>{const g=mission?.runtime.game;return !!g&&g.progressTotal>0&&g.stats.get(STAT_PROGRESS_MADE)/g.progressTotal>=1;};
+  // CStats::GetPercentageProgress: STAT_PROGRESS_MADE over a constant 187, whatever SET_PROGRESS_TOTAL said.
+  weapons.inventory.fullCompletion=()=>{const g=mission?.runtime.game;return !!g&&g.stats.get(STAT_PROGRESS_MADE)/187*100>=100;};
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
   // A New Game whose old save could not be cleared comes back with ?new-game: the old progress is not read, and the
   // flag leaves the address so a later reload loads what the new game has saved since.
