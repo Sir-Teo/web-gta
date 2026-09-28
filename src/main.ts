@@ -755,7 +755,9 @@ async function boot() {
      const loaded=(id:number)=>{const a=inv.ammo.get(id);return inv.owned.has(id)&&!!a&&a.clip+a.reserve>0;};
      const smg=[28,32].find(loaded);
      if(smg!==undefined)inv.select(smg);
-     else if(loaded(22)||loaded(26)){const handgun=[...inv.owned].find(id=>id!==0&&inv.slotOf(id)===inv.slotOf(22));if(handgun!==undefined)inv.select(handgun);else jetWeaponHidden=true;}
+     // SaveCurrentWeaponAndEquipInSlot(HANDGUN): with a loaded sawn-off and an empty handgun slot that slot's weapon is
+     // the fists.
+     else if(loaded(22)||loaded(26)){const handgun=[...inv.owned].find(id=>id!==0&&inv.slotOf(id)===inv.slotOf(22));inv.select(handgun??0);}
      else jetWeaponHidden=true;
      void weaponView.equip(inv.selected);
     }else if(!sim.jetPack&&jetSavedWeapon!==undefined){if(inv.owned.has(jetSavedWeapon))inv.select(jetSavedWeapon);jetSavedWeapon=undefined;jetWeaponHidden=false;void weaponView.equip(inv.selected);}
