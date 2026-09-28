@@ -466,7 +466,8 @@ export class WorldPolice {
    this.heliBusy=true;
    const p=this.sim.player.position;
    void this.fleet.spawnPlane(POLICE_HELI_MODEL,p.x+80,p.z+80,0).then(heli=>{
-    if(this.disposed||helisRequired(this.law.level)<=this.helis.length){this.fleet.planes.delete(heli);heli.dispose();return;}
+    // Asked again on arrival: the law may have backed off or SWITCH_POLICE_HELIS gone off meanwhile.
+    if(this.disposed||(this.policeHelisAllowed?this.law.native.helisRequired:0)<=this.helis.length){this.fleet.planes.delete(heli);heli.dispose();return;}
     heli.policeHeli=true;this.helis.push(heli);
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.heliBusy=false;});
   }
