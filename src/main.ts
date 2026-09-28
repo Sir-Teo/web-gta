@@ -1480,7 +1480,7 @@ async function boot() {
     for(const handle of propStates.keys())if(!scene.sources.has(handle))propStates.delete(handle);
     for(const handle of glassStates.keys())if(!scene.sources.has(handle))glassStates.delete(handle);
   };
-  /** Props removed by collisions, newest last, for the dev probe. */
+  /** The last props removed by collisions, newest last, for the dev probe. */
   const smashedProps:{model:string;position:number[]}[]=[];
   /** OBJECT.DAT props a car can damage through CPhysical::ApplyCollision's static-object branch. */
   const scenePropFor:NonNullable<ScriptCar['propFor']>=other=>{
@@ -1543,7 +1543,7 @@ async function boot() {
         // CObject::ObjectDamage hands breakable objects to g_breakMan before turning their collision off.
         const breakable=effect===COL_DAMAGE_EFFECT.breakable||effect===COL_DAMAGE_EFFECT.breakableRemoved;
         const removed=scene.removePlacement(other.handle);if(!removed)return;
-        smashedProps.push({model:source.modelName,position:[x,y,z]});smashedPlacements.add(placementKey(source.modelName,[x,y,z]));movedPlacements.delete(placementKey(source.modelName,[x,y,z]));
+        smashedProps.push({model:source.modelName,position:[x,y,z]});if(smashedProps.length>64)smashedProps.shift();smashedPlacements.add(placementKey(source.modelName,[x,y,z]));movedPlacements.delete(placementKey(source.modelName,[x,y,z]));
         if(breakable&&source.placement)breakPlacement(source.placement,removed.part,damage*(values.collisionDamageMultiplier??1)>(values.smashMultiplier??0)*150,values);
         // CAudioEngine::ReportObjectDestruction reads the first sphere, box or triangle surface.
         const parts=removed.sources,first=parts.find(p=>p.kind==='sphere')??parts.find(p=>p.kind==='box')??parts.find(p=>p.kind==='mesh');
