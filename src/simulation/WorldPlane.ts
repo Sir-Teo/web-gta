@@ -66,7 +66,8 @@ export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
- health=800;vtol=true;
+ /** CVehicle's constructor: every vehicle starts at 1000 health. */
+ health=1000;vtol=true;
  /** CAutomobile::m_fBurnTimer in milliseconds, which ProcessCarOnFireAndExplode runs for planes and helicopters too. */
  burnTimer=0;
  /** EXPLOSION_ROCKET at the aircraft: a burning aircraft nobody flies goes off like this 1.2% of frames. */

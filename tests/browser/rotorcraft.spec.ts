@@ -7,7 +7,7 @@ test('Hydra switches VTOL and its mounted weapons fire, two rockets a press, wit
  const [{openStaticWorld},{openStaticWorldVehicles},{WorldPlane},{Simulation},{WeaponSystem},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/simulation/WorldPlane.ts','/src/simulation/Simulation.ts','/src/weapons/WeaponSystem.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
  await RAPIER.init();const c=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),sim=new Simulation(),scene=new THREE.Scene(),plane=new WorldPlane(sim,scene,await c.load(520),{x:0,y:100,z:0});sim.player.position={x:0,y:100,z:0};plane.interact();sim.world.step();const weapons=new WeaponSystem(sim,()=>undefined,()=>({cars:[],planes:new Set([plane])}));
  try{const start=plane.vtol;plane.toggleVtol();const forward=plane.vtol;plane.toggleVtol();const gun=weapons.fireAircraft(plane);weapons.tick(.2);const rocket=weapons.fireAircraft(plane,true);for(let i=0;i<60;i++)weapons.tick(1/60);return {start,forward,gun,rocket,health:plane.health,projectiles:weapons.projectiles.length};}finally{weapons.dispose();plane.dispose();sim.dispose();}
- });expect(result).toEqual({start:true,forward:false,gun:true,rocket:true,health:800,projectiles:2});
+ });expect(result).toEqual({start:true,forward:false,gun:true,rocket:true,health:1000,projectiles:2});
 });
 test('bailing out mid-flight with the parachute glides down softly',async({page})=>{
  await page.goto('/models.html');const result=await page.evaluate(async()=>{
