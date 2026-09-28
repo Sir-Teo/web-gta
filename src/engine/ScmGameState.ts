@@ -55,6 +55,8 @@ export interface ScmStatsPlayer {health():number;maxHealth():number;addHealth(va
  /** m_nNumHoursDidntEat = 0. */
  ateEnough():void}
 const STAT_FAT=21,STAT_ENERGY=165,STAT_LUNG_CAPACITY=225;
+/** STAT_COST_OF_PROPERTY_DAMAGED: the dollars of property the player wrecked. */
+export const STAT_COST_OF_PROPERTY_DAMAGED=125;
 export class ScmStats {
  player?:ScmStatsPlayer;
  /** CStats::DisplayScriptStatUpdateMessage, drawn by the host. */

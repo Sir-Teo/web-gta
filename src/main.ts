@@ -11,7 +11,7 @@ import {turnToward} from './simulation/nativePlayerLocomotion';
 import {NativeParachuteTimer,WEAPON_PARACHUTE} from './simulation/nativeParachuteTimer';
 import {sphereTouchingVehicle} from './vehicle/sphereTouchingVehicle';
 import {NativeStatReactions,readActionReactionStats,STAT_BIKE_SKILL} from './simulation/nativeStatReactions';
-import {STAT_CALORIES,STAT_PROGRESS_MADE,ScmStats} from './engine/ScmGameState';
+import {STAT_CALORIES,STAT_COST_OF_PROPERTY_DAMAGED,STAT_PROGRESS_MADE,ScmStats} from './engine/ScmGameState';
 import {NativeShinyTexts} from './render/NativeShinyTexts';
 import {pedSignalQuad,type ShinyQuad} from './world/nativeShinyTexts';
 import {nativeWeaponMovement} from './weapons/nativeWeaponMovement';
@@ -1991,6 +1991,8 @@ async function boot() {
       n.x/=l;n.z/=l;
       const ov=body.linvel(),out=pedHitsObject({closing:(velocity.x*n.x+velocity.z*n.z)/50,objectSpeed:body.isDynamic()?(ov.x*n.x+ov.z*n.z)/50:0,mass:prop.mass,elasticity:prop.elasticity,uprootLimit:prop.uprootLimit,isStatic:!body.isDynamic()});
       if(out.unfreeze&&!prop.uproot({x:0,y:0,z:0},{x:0,y:0,z:0}))continue;
+      // ApplyCollision's ped branch: an unfrozen prop adds 30 to 60 to STAT_COST_OF_PROPERTY_DAMAGED.
+      if(out.unfreeze)mission?.runtime.game.stats.increment(STAT_COST_OF_PROPERTY_DAMAGED,30+Math.floor(Math.random()*31));
       if(out.push&&body.isDynamic()){const dv=out.push*50,v=body.linvel();body.setLinvel({x:v.x-n.x*dv,y:v.y,z:v.z-n.z*dv},true);}
     }
   };
