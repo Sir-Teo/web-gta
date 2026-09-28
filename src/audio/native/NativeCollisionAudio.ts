@@ -133,7 +133,8 @@ export class NativeCollisionAudio implements NativeAudioEntity {
    this.manager.playSound({slot:SLOT.collisions,sound:67,entity:this,position,volume,rollOff:2.5,speed:.94,flags:SOUND.requestUpdates,event:1});
    this.manager.playSound({slot:SLOT.collisions,sound:66,entity:this,position,volume,rollOff:2.5,speed:.94,flags:SOUND.requestUpdates|SOUND.lifespanTiedToEntity,physical,event:3,clientVariable:this.time+248});
   }
-  private waveLast=new Map<object,number>();
+  /** Keyed weakly: a hull the streamer drops takes its entry with it. */
+  private waveLast=new WeakMap<object,number>();
   /** AE_BOAT_HIT_WAVE (event 99) for hulls: the collisions-bank splash end (66)
    * at clamp(volume/800), at most every 1500 ms per hull. Volumes below 450 stay
    * silent; the underwater and frequency-variation branches are omitted. */
