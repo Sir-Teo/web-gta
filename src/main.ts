@@ -132,7 +132,7 @@ import {decodeNamedTextures} from './assets/modelTextures';
 import {NativeMovingFog} from './render/NativeMovingFog';
 import {playHornIfNecessary} from './simulation/nativeCarHorn';
 import {GANG_RIVALS,addRespect,maxGroupMembers} from './simulation/nativePopulation';
-import {Frustum,Matrix4,Quaternion,Sphere,Vector2,Vector3} from 'three';
+import {Frustum,Matrix4,Object3D,Quaternion,Sphere,Vector2,Vector3} from 'three';
 import {StuntJumps} from './simulation/StuntJumps';
 /** Reused aim-direction scratch: WeaponSystem.tick copies it, fire/driveby read it synchronously. */
 const scratchAim = new Vector3();
@@ -3013,6 +3013,19 @@ async function boot() {
     }
     installSwimClips();if(!builtBody)rebuildPlayerIfNeeded();applyPlayerMotionGroup();
     render.vehicleDistance=fleet?.occupiedPlane?Math.max(22,fleet.occupiedPlane.assets.collision!.bounds.radius*2.5):9;render.vehicleLooks=!fleet?.occupiedPlane;
+    // CCam::Process_1stPerson's source: the front-seat dummy with its x ignored plus (0, 0.08, 0.62) in the vehicle's
+    // frame; a bike's height is the rider's neck plus 0.15; a boat's is its front light dummy half a unit higher (the
+    // port's boats keep no light dummies, so the bounds' front top stands in). The vehicle's render root gives the
+    // frame the mesh is drawn at.
+    render.bumperAllowed=!mission?.runtime.game.camera.disableFirstPersonInCar;
+    {
+      const car=worldCar?.occupied?worldCar:fleet?.occupied,bike=fleet?.occupiedBike,boat=fleet?.occupiedBoat;
+      const frameOf=(root:Object3D,local:{x:number;y:number;z:number})=>{const q=root.quaternion,w=new Vector3(local.x,local.z,-local.y).applyQuaternion(q);return {source:{x:root.position.x+w.x,y:root.position.y+w.y,z:root.position.z+w.z},quaternion:{x:q.x,y:q.y,z:q.z,w:q.w}};};
+      if(car){const seat=car.car.nativeFramePosition('ped_frontseat');render.bumper=frameOf(car.car.root,{x:0,y:(seat?.y??0)+.08,z:(seat?.z??0)+.62});}
+      else if(bike){const b=frameOf(bike.root,{x:0,y:.08,z:.62}),neck=render.nativeCharacter?.bonePosition(4,scratchSpine);if(neck)b.source.y=neck.y+.15;render.bumper=b;}
+      else if(boat){const bounds=boat.assets.collision?.bounds;render.bumper=frameOf(boat.root,{x:0,y:(bounds?.max[1]??0)+.08,z:(bounds?.max[2]??0)+.62+.5});}
+      else render.bumper=undefined;
+    }
     guard('pedestrians.render',()=>pedestrians?.render(alpha,render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes),weapons.vision==='infrared'));
     for(const plane of fleet?.planes??[])plane.update(alpha);
     for(const boat of fleet?.boats??[])boat.update(alpha);

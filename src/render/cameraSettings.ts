@@ -1,6 +1,9 @@
 export type CameraDistanceMode = 'near' | 'medium' | 'far';
-export interface CameraSettings { foot: CameraDistanceMode; vehicle: CameraDistanceMode }
+/** A vehicle's zooms end in the bumper view (CCam::Process_1stPerson, MODE_1STPERSON in a car). */
+export type VehicleCameraMode = CameraDistanceMode | 'bumper';
+export interface CameraSettings { foot: CameraDistanceMode; vehicle: VehicleCameraMode }
 export const CAMERA_MODES: readonly CameraDistanceMode[] = ['near', 'medium', 'far'];
+export const VEHICLE_CAMERA_MODES: readonly VehicleCameraMode[] = ['near', 'medium', 'far', 'bumper'];
 export const DEFAULT_CAMERA: CameraSettings = { foot: 'medium', vehicle: 'medium' };
 // Native-informed framing from gta-reversed Camera.cpp Init + SetZoomValueFollowPedScript:
 // CCamera::Init sets TargetZoomGroundOne -0.55 / Two 1.5 / Three 3.6 with
@@ -12,14 +15,21 @@ const FOOT_DISTANCES = { near: 1.5, medium: 2.9, far: 3.6 };
 export function cameraNominalDistance(mode: CameraDistanceMode) { return FOOT_DISTANCES[mode]; }
 /** The three car zooms (camVehicleZoom). Their distances live in the unreversed Process_FollowCar_SA; the scale on the
  * port's per-vehicle chase distance is AUTHORED, with the medium zoom the distance it always had. */
-export function vehicleZoomScale(mode: CameraDistanceMode) { return mode === 'near' ? .75 : mode === 'far' ? 1.35 : 1; }
+export function vehicleZoomScale(mode: VehicleCameraMode) { return mode === 'near' ? .75 : mode === 'far' ? 1.35 : 1; }
 export function parseCameraSettings(value: unknown): CameraSettings {
   const data = value && typeof value === 'object' ? value as Partial<CameraSettings> : {};
-  const mode = (key: keyof CameraSettings) => CAMERA_MODES.includes(data[key]!) ? data[key]! : DEFAULT_CAMERA[key];
-  return { foot: mode('foot'), vehicle: mode('vehicle') };
+  const foot = CAMERA_MODES.includes(data.foot as CameraDistanceMode) ? data.foot as CameraDistanceMode : DEFAULT_CAMERA.foot;
+  const vehicle = VEHICLE_CAMERA_MODES.includes(data.vehicle as VehicleCameraMode) ? data.vehicle as VehicleCameraMode : DEFAULT_CAMERA.vehicle;
+  return { foot, vehicle };
 }
-export function nextCameraMode(mode: CameraDistanceMode): CameraDistanceMode {
-  return CAMERA_MODES[(CAMERA_MODES.indexOf(mode) + 1) % CAMERA_MODES.length];
+export function nextCameraMode(mode: CameraDistanceMode): CameraDistanceMode;
+export function nextCameraMode(mode: VehicleCameraMode, vehicle: boolean, bumperAllowed?: boolean): VehicleCameraMode;
+/** The next zoom: on foot the three, in a vehicle the three then the bumper view, unless the script disabled it
+ * (SET_FIRST_PERSON_IN_CAR_CAMERA_MODE off). */
+export function nextCameraMode(mode: VehicleCameraMode, vehicle = false, bumperAllowed = true): VehicleCameraMode {
+  const modes = vehicle && bumperAllowed ? VEHICLE_CAMERA_MODES : CAMERA_MODES;
+  const at = modes.indexOf(mode);
+  return modes[(at + 1) % modes.length];
 }
 export function readCameraSettings(): CameraSettings {
   try { return parseCameraSettings(JSON.parse(localStorage.getItem('grove-camera-v1') ?? 'null')); }

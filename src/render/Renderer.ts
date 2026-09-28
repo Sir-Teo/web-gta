@@ -52,6 +52,11 @@ export class GameRenderer {
   playerShadowAllowed=true;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
   fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3};
+  /** CCam::Process_1stPerson's source and the vehicle's frame for the bumper view, from the host each frame. */
+  bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number}};
+  /** TheCamera.m_bDisableFirstPersonInCar off. */
+  bumperAllowed=true;
+  get bumperView(){return this.vehicleView&&this.cameraSettings.vehicle==='bumper'&&!!this.bumper&&this.bumperAllowed;}
   /** CCamera::m_fCamShakeForce left this frame, for the shake below. */
   shake?:()=>number;
   /** CCamera::m_fNearClipScript while m_bUseNearClipScript holds (SET_NEAR_CLIP, until a restore). */
@@ -122,8 +127,9 @@ export class GameRenderer {
   get followDistance() { return this.distance; }
   cycleCameraDistance() {
     // In a vehicle the V key steps CCamera's car zoom, not the on-foot one.
+    if (this.vehicleView) this.cameraSettings.vehicle = nextCameraMode(this.cameraSettings.vehicle, true, this.bumperAllowed);
+    else this.cameraSettings.foot = nextCameraMode(this.cameraSettings.foot);
     const key = this.vehicleView ? 'vehicle' : 'foot';
-    this.cameraSettings[key] = nextCameraMode(this.cameraSettings[key]);
     saveCameraSettings(this.cameraSettings);
     return this.cameraSettings[key];
   }
@@ -211,6 +217,8 @@ export class GameRenderer {
     this.camera.lookAt(this.target);
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
     if(this.fixedCamera){this.camera.position.copy(this.fixedCamera.position);this.camera.lookAt(this.fixedCamera.target());}
+    // CCam::Process_1stPerson: the source the host worked out, looking along the vehicle's own forward and up.
+    else if(this.bumperView){const b=this.bumper!;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}
     else if(fp){
       // Process_Rocket and the Vice City Process_Sniper: the head bone plus the mode's offset, looking along the angles.
       const head=this.nativeCharacter?.headPosition(this.head)??this.head.set(p.position.x,p.position.y+1.6-.5*this.crouchAmount,p.position.z);
@@ -224,7 +232,8 @@ export class GameRenderer {
     if(shake>0){const r=Math.floor(Math.random()*4096),o=shake*.1;this.camera.position.x+=o*((r&15)-7);this.camera.position.y+=o*(((r>>4)&15)-7);this.camera.position.z+=o*(((r>>8)&15)-7);}
     // The aimed third-person camera's 52 is authored (Process_AimWeapon and Process_FollowPedWithMouse are stubs).
     // CCam::Process_Fixed sets FOV 70 whatever mode the player was in.
-    const fov=this.fixedCamera?70:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
+    // Process_1stPerson in a vehicle sets FOV 60.
+    const fov=this.fixedCamera?70:this.bumperView?60:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
     // Process_Rocket's near clip plane is 0.15.
     const near=this.scriptNearClip??(fp&&isRocketMode(fp)?.15:.08);
     if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}
