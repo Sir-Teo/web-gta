@@ -149,7 +149,7 @@ import {PlayerPhone} from './simulation/PlayerPhone';
 import {ScriptCarMissions} from './simulation/ScriptCarMissions';
 import {ScriptObjectViews} from './simulation/ScriptObjectViews';
 import {weaponById} from './weapons/catalog';
-import {CAR_FIRE_HEALTH} from './simulation/nativeCarDamage';
+import {CAR_EXTINGUISHED_HEALTH} from './simulation/nativeCarDamage';
 import {fxIdentity} from './simulation/fx/NativeFx';
 import type {WorldCar as ScriptCar} from './simulation/WorldCar';
 type WorldCarPad=ScriptCar['pad'];
@@ -362,8 +362,8 @@ async function boot() {
    fleet?.clearCarsInArea({x:at.x,z:at.z},radius);
    // The fleet's pass already took the police helicopters (they are planes nobody rides): the police let go of them.
    police?.dropLostHelis();
-   weapons.fires.extinguishPoint(at,radius);
-   for(const car of fleet?.cars??[])if(car.onFire){const p=car.car.body.translation();if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_FIRE_HEALTH);}
+   weapons.fires.extinguishPoint({x:at.x,y:-at.z,z:at.y},radius);
+   for(const car of fleet?.cars??[])if(car.onFire){const p=car.car.body.translation();if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_EXTINGUISHED_HEALTH);}
    weapons.removeAllProjectiles();
   };
   /** Sets the player out of his passenger seat; with `needRoom`, only where IsRoomForPedToLeaveCar finds a standing
@@ -4072,10 +4072,12 @@ async function boot() {
                   const at={x:point.x,y:point.z,z:-point.y};
                   pedestrians?.clearPedsInArea({x:at.x,z:at.z},radius);
                   fleet?.clearCarsInArea({x:at.x,z:at.z},radius);
-                  weapons.fires.extinguishPoint(at,radius);
+                  // CFireManager::ExtinguishPoint works in the fire pool's native axes (the script's own point).
+                  weapons.fires.extinguishPoint({x:point.x,y:point.y,z:point.z},radius);
+                  // CWorld::ExtinguishAllCarFiresInArea: CVehicle::ExtinguishCarFire lifts a burning car to 300 health.
                   for(const car of fleet?.cars??[])if(car.onFire){
                    const p=car.car.body.translation();
-                   if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_FIRE_HEALTH);
+                   if(Math.hypot(p.x-at.x,p.z-at.z)<radius)car.health=Math.max(car.health,CAR_EXTINGUISHED_HEALTH);
                   }
                  },
                  giveScriptPedWeapon:(ped,weaponType,ammo)=>{const p=onFoot(ped);if(p)pedestrians?.giveWeapon(p,weaponType,ammo);},
