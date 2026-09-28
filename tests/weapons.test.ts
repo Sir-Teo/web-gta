@@ -47,7 +47,7 @@ test('gas leaves a hazard, molotovs light native fires, and extinguishers put fi
 test('vision toggles, camera captures and parachute deployment do not consume ammunition',()=>{const f=setup();try{for(const id of [44,45]){f.weapons.inventory.select(id);f.weapons.fire(camera);expect(f.weapons.vision).toBeNull();f.tick(1);expect(f.weapons.vision).not.toBeNull();f.weapons.fire(camera);f.tick(1);expect(f.weapons.vision).toBeNull();}f.weapons.inventory.select(43);f.weapons.fire(camera);expect(f.weapons.photoRequested).toBe(true);f.tick(1);f.weapons.inventory.select(46);f.sim.player.grounded=true;expect(f.weapons.fire(camera)).toBe(false);f.sim.player.grounded=false;f.weapons.fire(camera);expect(f.weapons.parachute).toBe(true);f.sim.player.grounded=true;f.tick(.1);expect(f.weapons.parachute).toBe(false);}finally{f.dispose();}});
 test('dead and seated players cannot spend ammunition or fire',()=>{const f=setup();try{f.weapons.inventory.select(22);f.sim.player.health=0;expect(f.weapons.fire(camera)).toBe(false);f.sim.player.health=100;f.sim.playerBody.setEnabled(false);expect(f.weapons.fire(camera)).toBe(false);expect(f.weapons.inventory.ammo.get(22)!.clip).toBe(17);}finally{f.dispose();}});
 import {readFileSync} from 'node:fs';
-import {readWeaponData} from '../src/weapons/weaponData';
+import {readWeaponData,nativeWeaponInfo,nativeWeaponReloadMs} from '../src/weapons/weaponData';
 const nativeData=readWeaponData(new TextDecoder('windows-1252').decode(readFileSync('public/play/world/files/data/weapon.dat')));
 test('native WEAPON.DAT skill levels select clips, fire loops, twin pistols and automatic reloads',()=>{
  const inv=new WeaponInventory();inv.installNative(nativeData);inv.select(22);
@@ -57,7 +57,9 @@ test('native WEAPON.DAT skill levels select clips, fire loops, twin pistols and 
  inv.practice.set(22,500);expect(inv.snapshot().skill).toBe('standard');expect(inv.interval).toBeCloseTo(.294,4);
  inv.practice.set(22,999);expect(inv.snapshot()).toMatchObject({skill:'hitman',magazine:34,twin:true,animGroup:'colt45pro'});expect(inv.reloadDuration).toBe(2);
  inv.practice.set(28,999);inv.select(32);expect(inv.snapshot()).toMatchObject({skill:'hitman',twin:true,magazine:100});
- inv.select(25);expect(inv.magazine()).toBe(1);inv.fire();expect(inv.reloading).toBeCloseTo(inv.interval,5);expect(inv.interval).toBeGreaterThan(1);
+ // An emptied clip reloads for exactly GetWeaponReloadTime, max(400, aim offsets + 100) for the shotgun; the fire anim's
+ // loop (over a second) still gates the next shot.
+ inv.select(25);expect(inv.magazine()).toBe(1);inv.fire();expect(inv.reloading).toBeCloseTo(nativeWeaponReloadMs(nativeData,nativeWeaponInfo(nativeData,25,0)!)/1000,5);expect(inv.reloading).toBeLessThan(inv.interval);expect(inv.interval).toBeGreaterThan(1);expect(inv.cooldown).toBeCloseTo(inv.interval,5);
  inv.select(37);expect(inv.interval).toBeCloseTo(1/30,6);inv.select(33);expect(inv.reloadDuration).toBe(1);
 });
 test('native instant hits apply WEAPON.DAT damage, point-blank shots and accumulated shotgun pellets',()=>{
@@ -69,10 +71,14 @@ test('native instant hits apply WEAPON.DAT damage, point-blank shots and accumul
   f.sim.player.heading=Math.PI*1.25;f.weapons.fire({origin:{x:0,y:1.3,z:-8.2},direction:{x:0,y:0,z:-1}});expect(f.damage()-close).toBe(150);
  }finally{f.dispose();}
 });
-test('twin pistols alternate hands and native reload sounds follow aim offset timings',()=>{
+test('twin pistols fire both hands on a press, right then left, and native reload sounds follow aim offset timings',()=>{
  const f=setup();try{f.weapons.installNative(nativeData);const sounds:string[]=[];f.weapons.onSound=event=>sounds.push(event);f.weapons.inventory.practice.set(22,999);f.weapons.inventory.select(22);
-  const hands:string[]=[];for(let i=0;i<4;i++){f.weapons.fire(camera);hands.push(f.weapons.snapshot().hand);f.tick(.4);}expect(hands).toEqual(['right','left','right','left']);
-  const a=f.weapons.inventory.ammo.get(22)!;a.clip=1;f.weapons.fire(camera);expect(f.weapons.inventory.reloading).toBe(2);sounds.length=0;
+  // CTaskSimpleUseGun::SetPedPosition: FireGun for the right hand, then the left, in the one frame; two rounds leave.
+  const a=f.weapons.inventory.ammo.get(22)!;a.clip=34;a.reserve=100;const hands:string[]=[],clips:number[]=[];
+  for(let i=0;i<3;i++){f.weapons.effects.length=0;f.weapons.fire(camera);hands.push(f.weapons.snapshot().hand);clips.push(a.clip);expect(f.weapons.effects.filter(e=>e.kind==='tracer')).toHaveLength(2);f.tick(.4);}
+  expect(hands).toEqual(['left','left','left']);expect(clips).toEqual([32,30,28]);
+  // One round left: the right hand fires it, the left has nothing, and the reload starts at once.
+  a.clip=1;f.weapons.effects.length=0;f.weapons.fire(camera);expect(f.weapons.effects.filter(e=>e.kind==='tracer')).toHaveLength(1);expect(f.weapons.snapshot().hand).toBe('right');expect(f.weapons.inventory.reloading).toBe(2);sounds.length=0;
   f.tick(.2);expect(sounds).toEqual([]);f.tick(.1);expect(sounds).toEqual(['reloadA']);f.tick(.4);expect(sounds).toEqual(['reloadA','reloadB']);
  }finally{f.dispose();}
 });

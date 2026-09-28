@@ -176,16 +176,27 @@ export class WeaponInventory {
  reload(){const a=this.ammo.get(this.selected)!;if(this.reloading||!this.reloadable(this.selected)||a.clip>=this.magazine()||a.reserve<=0)return false;this.duration=this.reloadDuration;this.reloading=this.duration;return true;}
  tick(dt:number){this.clock+=dt;for(const [id,seconds] of this.cooldowns){if(seconds<=dt)this.cooldowns.delete(id);else this.cooldowns.set(id,seconds-dt);}if(this.reloading){this.reloading=Math.max(0,this.reloading-dt);if(!this.reloading)this.finishReload();}}
  fire(){
-  const w=this.weapon,a=this.ammo.get(w.id)!,magazine=this.magazine();if(this.cooldown>0||this.reloading)return false;
+  if(this.cooldown>0||this.reloading)return false;
+  if(!this.spend())return false;
+  // The fire anim's loop still gates the next FireGun, reloading or not.
+  this.cooldown=this.interval;return true;
+ }
+ /** CTaskSimpleUseGun::SetPedPosition's second FireGun of a frame: twin pistols' left hand fires its own round straight
+  * after the right one, with no shot delay between them. */
+ fireAgain(){return !this.reloading&&this.twin&&this.spend();}
+ /** CWeapon::Fire's ammunition: the round leaves the clip, an empty clip is filled from the total and fired on the same
+  * press, and one emptied with rounds left enters WEAPONSTATE_RELOADING for exactly GetWeaponReloadTime. */
+ private spend(){
+  const w=this.weapon,a=this.ammo.get(w.id)!,magazine=this.magazine();
   // CWeapon::Fire: the infinite ammo cheat leaves the clip and total untouched.
   // CWeapon::Fire fills an empty clip from the total and fires on the same press.
   if(magazine&&a.clip<=0){if(a.reserve<=0)return false;const n=Math.min(magazine,a.reserve);a.clip=n;a.reserve-=n;}if(magazine&&!CHEATS.isActive('infiniteAmmo')){a.clip--;
    // The player's m_TotalAmmo falls only for the detonator or below 100% (CStats::GetPercentageProgress): at full
    // completion the clip still empties and reloads, but the total stays where it was. The camera is not counted as
    // the player firing (isPlayerFiring excludes WEAPON_CAMERA), so its film runs out as for anyone else.
-   if(w.id!==40&&w.id!==43&&this.fullCompletion())a.reserve++;}this.cooldown=this.interval;this.shots++;
+   if(w.id!==40&&w.id!==43&&this.fullCompletion())a.reserve++;}this.shots++;
   // CWeapon::Fire enters WEAPONSTATE_RELOADING as soon as the clip empties.
-  if(this.native&&magazine&&a.clip===0&&a.reserve>0&&this.reloadable(w.id)){this.duration=Math.max(this.reloadDuration,this.cooldown);this.reloading=this.duration;}
+  if(this.native&&magazine&&a.clip===0&&a.reserve>0&&this.reloadable(w.id)){this.duration=this.reloadDuration;this.reloading=this.duration;}
   return true;
  }
  snapshot(){const info=this.info();return {id:this.selected,name:this.weapon.name,kind:this.weapon.kind,...this.ammo.get(this.selected)!,magazine:this.magazine(),cooldown:+this.cooldown.toFixed(3),practice:this.practice.get(skillStatWeapon(this.selected))??0,skill:this.native&&weaponHasSkills(this.selected)?(['poor','standard','hitman','cop'] as const)[this.skill()]:null,twin:this.twin,animGroup:info?info.animGroup??null:null,reloading:this.reloading,shots:this.shots};}

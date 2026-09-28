@@ -561,10 +561,12 @@ export class WeaponSystem {
   // and the shot's decrement leaves the detonator empty, however many satchels were thrown.
   if(w.kind==='detonator'){const ammo=this.inventory.ammo.get(w.id);if(ammo){ammo.clip=0;ammo.reserve=0;}const bombs=this.projectiles.filter(p=>p.weapon===39);this.projectiles=this.projectiles.filter(p=>p.weapon!==39);for(const b of bombs)this.explode(b.position,EXPLOSION_TYPE.grenade,undefined,true);return true;}
   if(mode==='sniper'&&info)return this.fireSniper(w,info,camera);
-  const left=twin&&this.leftHand;this.lastHand=left?'left':'right';if(twin)this.leftHand=!this.leftHand;else this.leftHand=false;
-  let source={...this.sim.player.position,y:this.sim.player.position.y+(this.sim.player.crouched?.9:1.3)};
-  const muzzle=w.kind==='bullet'||w.kind==='shotgun'||info?.fire==='area'?this.muzzle?.(left):undefined;
-  if(muzzle&&distance(source,muzzle)<3&&!this.ray(source,normalize(add(muzzle,source,-1)),distance(source,muzzle)))source={...muzzle};
+  // CTaskSimpleUseGun::SetPedPosition fires the right hand first, and twin pistols' left hand straight after it.
+  const left=false;this.lastHand='right';this.leftHand=false;
+  const handSource=(leftHand:boolean)=>{let at={...this.sim.player.position,y:this.sim.player.position.y+(this.sim.player.crouched?.9:1.3)};
+   const m=w.kind==='bullet'||w.kind==='shotgun'||info?.fire==='area'?this.muzzle?.(leftHand):undefined;
+   if(m&&distance(at,m)<3&&!this.ray(at,normalize(add(m,at,-1)),distance(at,m)))at={...m};return at;};
+  let source=handSource(left);
   const range=info&&info.fire!=='melee'?info.weaponRange:w.range;
   let direction=normalize(camera.direction);
   if(w.kind==='melee')direction={x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)};
@@ -618,7 +620,11 @@ export class WeaponSystem {
   // FIRE_WEAPON for each shot (FireSniper, DoBulletImpact) and EXPLOSION for CWeapon::FireProjectile; FireAreaEffect
   // (flamethrower, spray can, extinguisher) reports with no victim, which CCrime::ReportCrime ignores.
   if(!['flame','spray','extinguisher'].includes(w.kind))this.onCrime?.(['rocket','guided','grenade','molotov','satchel'].includes(w.kind)?CRIME.explosion:CRIME.fireWeapon,'player');
-  if(info&&(w.kind==='bullet'||w.kind==='shotgun'))return this.fireInstantHit(w,info,source,direction);
+  if(info&&(w.kind==='bullet'||w.kind==='shotgun')){
+   const fired=this.fireInstantHit(w,info,source,direction);
+   if(fired&&twin&&this.inventory.fireAgain()){this.lastHand='left';this.leftHand=true;this.fireInstantHit(w,info,handSource(true),direction);}
+   return fired;
+  }
   if(['bullet','shotgun'].includes(w.kind)){
    const right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
    for(let i=0;i<w.pellets;i++){const angle=i*2.399963+(this.inventory.shots%11)*.3,r=w.spread*(1-this.inventory.proficiency*.25)*(w.pellets>1?Math.sqrt((i+.5)/w.pellets):this.aiming?.2:1),dir=normalize(add(add(direction,right,Math.cos(angle)*r),up,Math.sin(angle)*r));const hit=this.ray(source,dir,w.range),end=add(source,dir,hit?.timeOfImpact??w.range);this.tracer(source,end,'player',.065);if(hit){this.effect('impact',end);if(this.damage(hit.collider.handle,w.damage,dir,false,'bullet',{weapon:w.id,point:end})&&this.hitTrains)this.onHit?.(w.id);}}
