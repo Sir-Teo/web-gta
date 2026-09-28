@@ -47,7 +47,7 @@ export async function openStaticWorldSource(base:string){
  const pickups=readInitialPickups(scriptBytes,ideRecords).pickups,stuntJumps=readInitialStuntJumps(scriptBytes),savePoints=readInitialSavePoints(scriptBytes),radarBlips=readInitialRadarBlips(scriptBytes),restartPoints=readInitialRestartPoints(scriptBytes);
  const iplBytes=new Map(await Promise.all(activeFiles.filter(f=>f.path.toLowerCase().endsWith('.ipl')).map(async f=>[f.path.slice(6).toLowerCase(),new Uint8Array(await f.file.arrayBuffer())] as const)));
  const entryExits={rows:readWorldEntryExits(iplLoadList,iplBytes),script:readInitialEntryExitSwitches(scriptBytes)};
- const garages=readWorldGarages(iplLoadList,iplBytes).map(g=>({name:g.name,type:g.type}));
+ const garages=readWorldGarages(iplLoadList,iplBytes).map(g=>({name:g.name,type:g.type,corner:g.corner,front:g.front,far:g.far,flags:g.flags}));
  const audioZones=readWorldAudioZones(iplLoadList,iplBytes),cullZones=readWorldCullZones(iplLoadList,iplBytes);
  const tags=readWorldTags(iplLoadList,iplBytes,ideRecords),setPieces=readInitialSetPieces(scriptBytes);
  return {source,planner,carGenerators,occluders,worldZones,zoneInitialization,pickups,stuntJumps,savePoints,radarBlips,restartPoints,entryExits,garages,audioZones,cullZones,tags,setPieces,scriptBytes,ideRecords,geometryCache:new ModelGeometryCache(source.file,64*1024*1024),modelCache:undefined as ModelReadCache|undefined,

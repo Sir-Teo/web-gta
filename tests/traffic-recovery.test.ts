@@ -53,3 +53,15 @@ test('an aircraft the player is still climbing out of is left to him, and removi
     expect(finished).toBe(1);expect(plane.disposed).toBe(true);
   }finally{fleet.dispose();sim.dispose();}
 });
+
+test('a car inside a safehouse garage is left alone by the clear (CGarages::IsPointWithinHideOutGarage)',()=>{
+  const sim=new Simulation(),scene=new Scene();
+  const fleet=new WorldFleet(sim,scene,{} as never,undefined,'hideout-clear-test:');
+  try{
+    const car=(x:number)=>({occupied:false,locked:false,missionCar:false,disposed:false,car:{body:{translation:()=>({x,y:0,z:0})}},cancelEntry(){},dispose(){this.disposed=true;}} as any);
+    const kept=car(5),gone=car(-5);fleet.cars.add(kept);fleet.cars.add(gone);
+    fleet.insideHideOutGarage=at=>at.x>0;
+    expect(fleet.clearCarsInArea({x:0,z:0},50)).toBe(1);
+    expect(kept.disposed).toBe(false);expect(gone.disposed).toBe(true);expect(fleet.cars.has(kept)).toBe(true);
+  }finally{fleet.dispose();sim.dispose();}
+});
