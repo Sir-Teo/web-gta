@@ -7,9 +7,11 @@ test('the jetpack cheat flies the player',async({page})=>{
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  expect((await state()).jetPack).toBeNull();
- // The cheat string carries an M, which this port's map overlay also answers; close it again.
+ // The cheat string carries an M, which this port's map overlay also answers; close it again. Its E is the next-weapon
+ // key too (typing a cheat presses the keys), so the weapon the pack saves is the one held after the last letter but one.
+ await page.keyboard.type('ROCKETMA',{delay:30});await page.waitForTimeout(200);
  const held=(await state()).weapons.id;
- await page.keyboard.type('ROCKETMAN',{delay:30});await page.keyboard.press('KeyM');
+ await page.keyboard.type('N',{delay:30});await page.keyboard.press('KeyM');
  await expect.poll(async()=>(await state()).jetPack!==null,{timeout:10000}).toBe(true);
  // RemoveWeaponWhenEnteringVehicle(true): the Uzi with ammo is taken up (Explore holds the whole arsenal).
  await expect.poll(async()=>(await state()).weapons.id).toBe(28);
@@ -23,7 +25,8 @@ test('the jetpack cheat flies the player',async({page})=>{
  let flying:Awaited<ReturnType<typeof state>>|undefined;
  for(let i=0;i<16;i++){
   await page.keyboard.down('KeyW');await page.waitForTimeout(350);
-  if(i>=3&&!flying)flying=await state();
+  // The flame's key time climbs 0.1 a game frame under thrust: give it the frames before the snapshot.
+  if(i>=3&&!flying){await expect.poll(async()=>(await state()).jetPack?.fx??0,{timeout:4000}).toBe(1).catch(()=>{});flying=await state();}
   await page.keyboard.up('KeyW');await page.waitForTimeout(250);
   const now=await state();
   if(now.player.position.y-start.y>2.5&&Math.hypot(now.player.position.x-start.x,now.player.position.z-start.z)>20)break;
