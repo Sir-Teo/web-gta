@@ -67,6 +67,8 @@ export class WorldBoat {
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  get onFire(){return !this.wrecked&&this.health<250;}
+ /** The crime victim key the wanted system knows this boat by. */
+ get crimeKey(){return `boat:${this.body.handle}`;}
  /** CBoat::ProcessControl's fire section: the blow-up timer is cleared only above 460 health or once wrecked; below
   * that it holds, and under 250 health, with the hull within 200 units of the camera along each ground axis (the
   * player stands in for the camera), it runs (TimeStep × 20 ms a frame) until past 5000 ms the hull blows up. */

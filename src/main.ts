@@ -2695,9 +2695,11 @@ async function boot() {
         // CAutomobile::TankControl: the Rhino's turret follows the camera and Ctrl fires the cannon every 800 ms.
         const tank=fleet?.occupied?.modelId===432?fleet.occupied:undefined;
         if(tank&&!law.arrested){
-         tank.onCrushCar=other=>law.crime(CRIME.explosion,`car:${other.car.body.handle}`);
+         tank.onCrushCar=other=>law.crime(CRIME.explosion,other.crimeKey);
          const q=tank.car.body.rotation(),tq=new Quaternion(q.x,q.y,q.z,q.w),front=render.camera.getWorldDirection(scratchAim).clone().applyQuaternion(tq.clone().invert());
-         tankTurret=stepTankTurret(turretAims.get(tank)??initialTankTurret(),{x:front.x,y:-front.z,z:front.y},step*50);turretAims.set(tank,tankTurret);
+         // Off the camera's string (first person here) the turret takes the car-gun stick at its rates instead.
+         const turretStick={leftRight:(Number(input.down('Numpad6'))-Number(input.down('Numpad4')))*128,upDown:(Number(input.down('Numpad2'))-Number(input.down('Numpad8')))*128};
+         tankTurret=render.firstPerson?stepTankTurretPad(turretAims.get(tank)??initialTankTurret(),turretStick,step*50):stepTankTurret(turretAims.get(tank)??initialTankTurret(),{x:front.x,y:-front.z,z:front.y},step*50);turretAims.set(tank,tankTurret);
          tank.setTurret(tankTurret.yaw,tankTurret.pitch);
          const nowMs=elapsed*1000;
          // CarGunJustDown: a fresh press fires, once the last shot is 800 ms old; holding the button fires no more.

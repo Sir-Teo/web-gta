@@ -191,6 +191,8 @@ export class WorldBike {
  }
  /** A burning motorbike blows up after 5 s; a pedal bike has no engine to catch. */
  get onFire(){return !this.wrecked&&this.motorbike&&this.health<250;}
+ /** The crime victim key the wanted system knows this bike by. */
+ get crimeKey(){return `bike:${this.body.handle}`;}
  /** '' when the player may board, otherwise the refusal reason. */
  enterCheck(){
   if(this.sim.player.health<=0)return '';

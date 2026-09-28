@@ -29,6 +29,8 @@ import {softGroundResistance} from './nativeSoftGround';
 import {hoverWheelContact,hoverActive} from './nativeHoverSuspension';
 import type {CarWheel} from './nativeDriveContacts';
 const MODEL_VORTEX=539;
+/** What CAutomobile::BlowUpCarsInPath needs of a vehicle it touches. */
+export interface CrushableVehicle {modelId:number;wrecked:boolean;blowUp():void;crimeKey:string}
 /** eCarWheel indices of the native wheel names. */
 const CAR_WHEEL_INDEX={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
 /** CVehicle::ProcessWheel's fBurstTyreMod (0x8D34B4). */
@@ -413,14 +415,18 @@ export class WorldCar {
  onBlowUp?:(driverAboard:boolean)=>void;
  /** CAutomobile::BlowUpCarsInPath: the Rhino (432) at 0.1 units a step or more blows up every car it touches
   * (not another Rhino, not a scorched wreck); the player's Rhino reports CRIME_EXPLOSION for each. */
- onCrushCar?:(other:WorldCar)=>void;
+ onCrushCar?:(other:CrushableVehicle)=>void;
+ /** The crime victim key the wanted system knows this car by. */
+ get crimeKey(){return `car:${this.car.body.handle}`;}
+ /** Any other vehicle of the pool by body handle (bikes and boats), for the Rhino's path. */
+ otherVehicle?:(bodyHandle:number)=>CrushableVehicle|undefined;
  private crushCarsInPath(){
   if(this.modelId!==432||this.wrecked||!this.car.body.isEnabled())return;
   const v=this.car.body.linvel();if(Math.hypot(v.x,v.y,v.z)<5)return;
   for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
    const parent=other.parent();if(!parent||parent.isFixed())return;
    let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});if(!touching)return;
-   const hit=this.otherCar?.(parent.handle);if(!hit||hit===this||hit.modelId===432||hit.wrecked)return;
+   const hit:CrushableVehicle|undefined=this.otherCar?.(parent.handle)??this.otherVehicle?.(parent.handle);if(!hit||hit===this||hit.modelId===432||hit.wrecked)return;
    hit.blowUp();this.onCrushCar?.(hit);
   });}
  }
