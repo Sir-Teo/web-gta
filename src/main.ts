@@ -2108,6 +2108,7 @@ async function boot() {
   /** CCheat::ApplyCheat (0x438370): the cheat functions of Cheat.cpp for the systems this port has. Cheats without a
    * function, or whose effect is not ported, only toggle (CCheat::Toggle); fat, muscle, skinny, jetpack and max stamina
    * do nothing yet. */
+  const rebuildPlayerUnlessDriving=()=>{if(!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||carEntry.seated))rebuildPlayerIfNeeded();};
   const applyCheat=(cheat:CheatName)=>{
     const player=sim.player,inventory=weapons.inventory,before=inventory.selected;
     const vehicle=(model:number)=>{if(render.lighting.area===0&&fleet)void fleet.spawnCheatVehicle(model,player.position,player.heading);};
@@ -2170,11 +2171,12 @@ async function boot() {
         break;
       // CCheat::JetpackCheat: the player is given CTaskSimpleJetPack unless he already has one. It is not a toggle.
       case 'jetpack':sim.startJetPack();break;
-      // CCheat::FatCheat, MuscleCheat, SkinnyCheat and StaminaCheat set the body stats; CClothes::RebuildPlayer, which
-      // would reshape the body from them, has no port yet.
-      case 'fat':mission?.runtime.game.stats.set(21,1000);break;
-      case 'muscle':mission?.runtime.game.stats.set(23,1000);break;
-      case 'skinny':mission?.runtime.game.stats.set(21,0);mission?.runtime.game.stats.set(23,0);break;
+      // CCheat::FatCheat, MuscleCheat and SkinnyCheat set the body stats and, unless the player is driving
+      // (PEDSTATE_DRIVING), CClothes::RebuildPlayer him at once: the fat, muscular or plain motion group takes over on the
+      // spot. The body shape itself has no port; StaminaCheat only sets its stat.
+      case 'fat':mission?.runtime.game.stats.set(21,1000);rebuildPlayerUnlessDriving();break;
+      case 'muscle':mission?.runtime.game.stats.set(23,1000);rebuildPlayerUnlessDriving();break;
+      case 'skinny':mission?.runtime.game.stats.set(21,0);mission?.runtime.game.stats.set(23,0);rebuildPlayerUnlessDriving();break;
       case 'maxStamina':mission?.runtime.game.stats.set(22,1000);break;
       default:cheats.toggle(cheat);
     }
