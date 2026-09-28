@@ -58,3 +58,8 @@ test('at 100% completion a shot empties the clip but not the total (CWeapon::Fir
  i.fullCompletion=()=>false;(i as any).cooldown=0;i.fire();
  expect(a.clip+a.reserve).toBe(total-1);
 });
+test('at 100% completion the camera still uses up its film (isPlayerFiring excludes WEAPON_CAMERA)',()=>{
+ const i=inventory();i.give(43,36);i.select(43);const a=i.ammo.get(43)!,total=a.clip+a.reserve;
+ i.fullCompletion=()=>true;i.fire();
+ expect(a.clip+a.reserve).toBe(total-1);
+});

@@ -178,8 +178,9 @@ export class WeaponInventory {
   // CWeapon::Fire fills an empty clip from the total and fires on the same press.
   if(magazine&&a.clip<=0){if(a.reserve<=0)return false;const n=Math.min(magazine,a.reserve);a.clip=n;a.reserve-=n;}if(magazine&&!CHEATS.isActive('infiniteAmmo')){a.clip--;
    // The player's m_TotalAmmo falls only for the detonator or below 100% (CStats::GetPercentageProgress): at full
-   // completion the clip still empties and reloads, but the total stays where it was.
-   if(w.id!==40&&this.fullCompletion())a.reserve++;}this.cooldown=this.interval;this.shots++;
+   // completion the clip still empties and reloads, but the total stays where it was. The camera is not counted as
+   // the player firing (isPlayerFiring excludes WEAPON_CAMERA), so its film runs out as for anyone else.
+   if(w.id!==40&&w.id!==43&&this.fullCompletion())a.reserve++;}this.cooldown=this.interval;this.shots++;
   // CWeapon::Fire enters WEAPONSTATE_RELOADING as soon as the clip empties.
   if(this.native&&magazine&&a.clip===0&&a.reserve>0&&this.reloadable(w.id)){this.duration=Math.max(this.reloadDuration,this.cooldown);this.reloading=this.duration;}
   return true;
