@@ -2372,7 +2372,11 @@ async function boot() {
     weapons.aiming=!paused&&!arsenal.open&&!navigation?.open&&!playerControlsDisabled()&&!law.arrested&&!playerPassenger&&!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!sim.player.swimming&&!sim.climbing&&!playerSprinting&&!carEntry.active&&!bikeMount.active&&!playerDown&&!playerJumping&&input.down('MouseAim');
     // ProcessPlayerWeapon: aiming a b1stPerson weapon puts the camera in its weapon mode; releasing the button leaves it.
     const firstPerson=weapons.aiming?firstPersonMode(weapons.inventory.selected,weapons.inventory.info()):undefined;
-    render.aiming=weapons.aiming;render.firstPerson=firstPerson;weapons.firstPerson=firstPerson;
+    // ProcessPlayerWeapon puts the camera in MODE_AIMWEAPON only for a weapon it aims: with nothing locked (the mouse camera
+    // clears the lock) a melee weapon, a thrown one or a used one (goggles, detonator, parachute) sets lookAtTarget and the
+    // follow camera stays.
+    const aimCamera=weapons.aiming&&(!!firstPerson||(f=>f==='instant'||f==='area')(weapons.inventory.info()?.fire));
+    render.aiming=aimCamera;render.firstPerson=firstPerson;weapons.firstPerson=firstPerson;
     // PED_SNIPER_ZOOM_IN and ZOOM_OUT held: PgUp and PgDn, with the optional X and Z.
     render.zoomInput.held=input.down('PageUp')||input.down('KeyX')?1:input.down('PageDown')||input.down('KeyZ')?-1:0;
     if (!paused&&!terrainPause&&!navigation?.open&&!arsenal.open) {
