@@ -33,6 +33,15 @@ describe('the ped state a script reads and writes',()=>{
   expect(float(40)).toBeCloseTo(271.5,4);
  });
 
+ // CFireManager::ExtinguishPoint walks the whole pool: the world's own fires (burning peds, cars) go out too.
+ test('EXTINGUISH_FIRE_AT_POINT puts out the world’s fires as well as the script’s',()=>{
+  const asked:unknown[]=[];const game=new ScmGameState();
+  game.fires.startScriptFire({x:1,y:2,z:3},1,0);
+  run({extinguishFiresAtPoint:(point,radius)=>{asked.push([point,radius]);}},game,
+   instruction(scmOpcode('EXTINGUISH_FIRE_AT_POINT'),[[6,1],[6,2],[6,3],[6,5]]));
+  expect(game.fires.active).toBe(0);expect(asked).toEqual([[{x:1,y:2,z:3},5]]);
+ });
+
  test('the three simple flags are stored exactly as the command gives them',()=>{
   const set:[string,boolean][]=[];
   run({setPedSimpleFlag:(_h:number,flag:string,value:boolean)=>{set.push([flag,value]);}},undefined,

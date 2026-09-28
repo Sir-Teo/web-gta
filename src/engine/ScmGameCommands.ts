@@ -2764,7 +2764,8 @@ const handlers:Record<string,ScmCommandHandler>={
   const position=game(t,i).fires.coords(t.readInt(p[0]));
   t.writeFloat(p[1],position.x);t.writeFloat(p[2],position.y);t.writeFloat(p[3],position.z);
  },
- EXTINGUISH_FIRE_AT_POINT:(t,p,i)=>{game(t,i).fires.extinguishPoint(vec(t,p,0),t.readFloat(p[3]));},
+ // CFireManager::ExtinguishPoint walks the whole fire pool: the world's fires go out as well as the script's.
+ EXTINGUISH_FIRE_AT_POINT:(t,p,i)=>{const point=vec(t,p,0),radius=t.readFloat(p[3]);game(t,i).fires.extinguishPoint(point,radius);t.host?.world?.extinguishFiresAtPoint?.(point,radius);},
  GET_NUMBER_OF_FIRES_IN_RANGE:(t,p,i)=>{const v=vec(t,p,0);t.writeInt(p[4],game(t,i).fires.numFiresInRange({x:v.x,y:v.y},t.readFloat(p[3])));},
  GET_NUMBER_OF_FIRES_IN_AREA:(t,p,i)=>{t.writeInt(p[6],game(t,i).fires.numFiresInArea(vec(t,p,0),vec(t,p,3)));},
  // --- Small engine statics (GameCommands.cpp and ScriptCommands.cpp are reversed; each command sets or reads

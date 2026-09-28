@@ -295,6 +295,8 @@ export interface ScmMissionWorld {
  playerHasScriptTask?():boolean;
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
  clearArea(point:{x:number;y:number;z:number},radius:number):void;
+ /** CFireManager::ExtinguishPoint over the host's own fires, in the script's coordinates. */
+ extinguishFiresAtPoint?(point:{x:number;y:number;z:number},radius:number):void;
  /** Whether nothing solid stands between two points in the script's own coordinates. */
  lineOfSightClear(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},
   flags?:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean}):boolean;
@@ -1496,6 +1498,7 @@ export class ScmMission {
    // CWorld::ClearCarsFromArea and ClearPedsFromArea over the script's box.
    clearAreaOfVehicles:(min,max)=>{this.host('clearVehiclesInBox','CLEAR_AREA_OF_CARS')(min,max);},
    clearAreaOfPeds:(min,max)=>{this.host('clearPedsInBox','CLEAR_AREA_OF_CHARS')(min,max);},
+   extinguishFiresAtPoint:(point,radius)=>{this.world.extinguishFiresAtPoint?.(point,radius);},
    // SET_CAR_TEMP_ACTION on a script car: CAutoPilot::SetTempAction for the time.
    setVehicleTempAction:(handle,action,time)=>{this.host('scriptVehicleTempAction','SET_CAR_TEMP_ACTION')(this.liveVehicle(handle),action,time/1000);},
    // CPed::OurPedCanSeeThisEntity: in front, inside forty units, and nothing solid between the two of them.

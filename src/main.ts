@@ -4075,6 +4075,8 @@ async function boot() {
                  scriptPedHasOrder:ped=>{const p=onFoot(ped);if(p)return pedestrians?.hasScriptTask(p)??false;const r=asRider(ped);return !!r&&r.seat==='driver'&&(scriptCars.driving(r.car)||scriptCars.inTempAction(r.car));},
                  // CWorld::ClearExcitingStuffFromArea: the deletable peds and cars in the radius go, and the
                  // fires in it are put out, which is CFireManager::ExtinguishPoint and the car-fire pass.
+                 // Native axes, as the fire pool keeps them.
+                 extinguishFiresAtPoint:(point,radius)=>weapons.fires.extinguishPoint({x:point.x,y:point.y,z:point.z},radius),
                  clearArea:(point,radius)=>{
                   const at={x:point.x,y:point.z,z:-point.y};
                   pedestrians?.clearPedsInArea({x:at.x,z:at.z},radius);

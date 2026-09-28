@@ -654,6 +654,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  playerIsUsingJetpack?(playerId:number):boolean;
  setGroupSeparationRange?(group:number,range:number):void;
  clearAreaOfPeds?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
+ /** CFireManager::ExtinguishPoint over the fires the world burns itself (peds, cars, spread), not only the script's. */
+ extinguishFiresAtPoint?(point:{x:number;y:number;z:number},radius:number):void;
  setGangWarsActive?(state:boolean):void;
  /** The searchlight aimed at a ped, and the line of sight the script tests. */
  pointSearchlightAtPed?(searchlight:number,handle:number,speed:number):void;
