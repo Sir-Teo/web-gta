@@ -2276,6 +2276,8 @@ export class WorldPedestrians {
    const q=p.actor.player.position,from={x:q.x,z:q.z};
    const reaction=this.damageReaction(foe,WEAPON.unarmed,applied,from,undefined,false,{move:stage});
    if(!this.applyReaction(foe,reaction,from)&&foe.health>0)foe.stagger=.5;
+   // CTaskSimpleBeHit: hit from the front by a ped that is not the player, the victim turns to face the attacker.
+   if(foe.health>0){const fq=foe.actor.player.position,ax=q.x-fq.x,az=q.z-fq.z,facing=Math.atan2(ax,az),diff=Math.atan2(Math.sin(facing-foe.actor.player.heading),Math.cos(facing-foe.actor.player.heading));if(Math.abs(diff)<=Math.PI/4)foe.actor.player.heading=facing;}
    if(!foe.health){p.foe=undefined;p.retaliate=0;p.fight=undefined;this.onKill?.({id:foe.id,officer:foe.officer,gang:foe.gang,pedType:foe.pedType,recruit:!!foe.follow,byPlayer:false});return;}
    if(!foe.officer){foe.foe=p;foe.retaliate=Math.max(foe.retaliate,4);foe.flee=0;}
   }
