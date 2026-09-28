@@ -559,6 +559,8 @@ async function boot() {
   /** The weapon whose CTaskSimpleUseGun the fire button started without the target button, while that task runs. */
   let hipGun:number|undefined;
   let climbsSeen=0;
+  /** CPad::ExitVehicleJustDown this frame. */
+  let exitJustDown=false;
   let surfaceAudio: ReturnType<typeof readSurfaceAudio> | undefined;
   let roadSurfaces:Awaited<ReturnType<typeof import('./assets/worldRoadMaterials').loadWorldRoadMaterials>>|undefined;
   const render = new GameRenderer(canvas, sim);
@@ -2407,6 +2409,7 @@ async function boot() {
     render.aiming=aimCamera;render.firstPerson=firstPerson;weapons.firstPerson=firstPerson;
     // PED_SNIPER_ZOOM_IN and ZOOM_OUT held: PgUp and PgDn, with the optional X and Z.
     render.zoomInput.held=input.down('PageUp')||input.down('KeyX')?1:input.down('PageDown')||input.down('KeyZ')?-1:0;
+    exitJustDown=false;
     if (!paused&&!terrainPause&&!navigation?.open&&!arsenal.open) {
       const tPopulation=performance.now();
       guard('traffic.update',()=>traffic?.update(now));guard('police.update',()=>police?.update(now));guard('driveby.update',()=>driveby?.update(now));
@@ -2427,7 +2430,8 @@ async function boot() {
       if(planeExitReady)fleet!.occupiedPlane!.exitPending=false;
       if(passengerExitPending){const ride=playerPassenger;if(!ride)passengerExitPending=false;else if(ride.car.disposed){passengerExitPending=false;leavePassengerSeat();}else if(ride.car.canStepOut()?leavePassengerSeat(false,true):ride.car.canJumpOut()&&leavePassengerSeat(false,true,true))passengerExitPending=false;}
       // CPad::DisablePlayerControls (SET_PLAYER_CONTROL off): every pad query answers 0, the exit button included.
-      if(!sim.climbing&&(input.consume('KeyF')&&!playerControlsDisabled()&&!padSwitchedOff('enterCar')||planeExitReady)&&!law.arrested){
+      exitJustDown=!sim.climbing&&input.consume('KeyF')&&!playerControlsDisabled()&&!padSwitchedOff('enterCar');
+      if(!sim.climbing&&(exitJustDown||planeExitReady)&&!law.arrested){
         // CTaskSimpleJetPack reads the exit-vehicle button itself, to drop the pack.
         if(sim.jetPack){/* the jetpack task owns the button */}
         // A passenger leaves through CTaskComplexLeaveCar too: CTaskSimpleCarWaitToSlowDown (SLOW_ENOUGH_TO_STEP_OR_JUMP,
@@ -2707,9 +2711,9 @@ async function boot() {
         const controlsOff=playerControlsDisabled();
         const axes = law.arrested||weapons.stealth||entryBusy||controlsOff?{x:0,y:0}:input.axes();
         let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy&&!controlsOff&&!padSwitchedOff('jump')&&!playerDown;
-        // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint or a jump press stands a crouched CJ up
-        // (ClearTaskDuckSecondary). Only the ducked control runs that frame, so the press does not also jump.
-        if(sim.player.crouched&&sim.player.grounded&&!law.arrested&&(jumpPressed||input.down('ShiftLeft')||input.down('ShiftRight'))&&(duck.rolling||sim.setCrouched(false)))jumpPressed=false;
+        // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint, a jump press or an exit-vehicle press stands a
+        // crouched CJ up (ClearTaskDuckSecondary). Only the ducked control runs that frame, so the press does not also jump.
+        if(sim.player.crouched&&sim.player.grounded&&!law.arrested&&(jumpPressed||exitJustDown||input.down('ShiftLeft')||input.down('ShiftRight'))&&(duck.rolling||sim.setCrouched(false)))jumpPressed=false;
         // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon: the fire button without the target button starts CTaskSimpleUseGun too.
         // With a gun not aimed with the arm, ProcessPed moves CJ through PlayerControlZeldaWeapon (the GunMove strafe) and turns
         // him to the follow camera's heading (m_fAimingRotation) for as long as that task runs; with the button up, a push on
