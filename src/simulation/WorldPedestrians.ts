@@ -1193,7 +1193,8 @@ export class WorldPedestrians {
       // CTaskComplexUseAttractor: 40% of sitters idle 15 to 60 s, the rest until something interrupts.
       const idle=Math.random()<.4?15+Math.random()*45:Infinity;
       a.phase='idle';a.time=0;a.until=idle;
-      const clips=this.sitClips(a.type);if(p.view.hasReaction(clips.idle))p.view.playReaction(clips.idle,Number.isFinite(idle)?idle:1e6);
+      // CTaskSimpleSitIdle plays its clip at a random 0.9 to 1.5 speed, so two on one bench do not fidget in step.
+      const clips=this.sitClips(a.type);if(p.view.hasReaction(clips.idle))p.view.playReaction(clips.idle,Number.isFinite(idle)?idle:1e6,false,0,false,.9+Math.random()*.6);
       return;
      }
      case 'idle':this.standUpFromSeat(p);return;

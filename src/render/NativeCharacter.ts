@@ -284,9 +284,10 @@ export class NativeCharacter {
   hasReaction(name:string){return this.reactions.has(name);}
   reactionDuration(name:string){return this.reactions.get(name)?.duration;}
   /** `loop` wraps the clip (an ANIMATION_LOOPED association); otherwise it stops on its last frame. */
-  playReaction(name:string,duration?:number,fitDuration=false,startSeconds=0,loop=false) {
+  playReaction(name:string,duration?:number,fitDuration=false,startSeconds=0,loop=false,rate=1) {
     const binding=this.reactions.get(name);if(!binding)return;
-    const speed=fitDuration&&duration?binding.duration/duration:1;
+    // `rate` is the association's m_Speed (CTaskSimpleSitIdle plays its clip at 0.9 to 1.5).
+    const speed=(fitDuration&&duration?binding.duration/duration:1)*rate;
     this.reaction={name,time:startSeconds*speed,end:(duration??binding.duration)*speed,speed,loop};
   }
   private action: Action = 'idle';

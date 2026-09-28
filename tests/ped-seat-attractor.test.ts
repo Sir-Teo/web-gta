@@ -15,13 +15,13 @@ function seated(){
  proto.beginAttractor.call(self,p,'bench',PED_ATTRACTOR.seat,0);
  return {p,played,left,step:(dt:number)=>self.stepAttractor.call(self,p,dt)};
 }
-test('a tenth of a second standing still, then the sit-down clip, then the idle',()=>{
+test('a tenth of a second standing still, then the sit-down clip, then the idle at 0.9 to 1.5 speed',()=>{
  const {p,played,step}=seated();
  expect(p.attract).toMatchObject({phase:'presit',until:.1});expect(played).toEqual([]);
  step(.05);expect(p.attract.phase).toBe('presit');
  step(.06);expect(p.attract).toMatchObject({phase:'sit',until:1.2});expect(played).toEqual([['seat_down']]);
  step(1.3);expect(p.attract.phase).toBe('idle');
- expect(played[1][0]).toBe('seat_idle');
+ expect(played[1][0]).toBe('seat_idle');const rate=played[1][5];expect(rate).toBeGreaterThanOrEqual(.9);expect(rate).toBeLessThanOrEqual(1.5);
 });
 test('the idle ends with the stand-up clip, after which the ped leaves',()=>{
  const {p,played,left,step}=seated();
