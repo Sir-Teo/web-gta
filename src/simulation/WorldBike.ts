@@ -45,6 +45,8 @@ export class WorldBike {
  static ridingSkill?:()=>number;
  /** The player's CantBeKnockedOffBike, which the script sets (the host reads it). */
  static riderStaysOn?:()=>boolean;
+ /** CCullZones::CamStairsForPlayer and FindZoneWithStairsAttributeForPlayer: the player stands in a stairs zone. */
+ static playerOnStairs?:()=>boolean;
  /** CEventKnockOffBike's response for the player: the host plays the fall clip CalcForcesAndAnims picked and the
   * get-up after it (CTaskComplexFallAndGetUp). */
  static onKnockedOff?:(clip:string)=>void;
@@ -358,8 +360,9 @@ export class WorldBike {
    const h=this.assets.handling.values,loss=collisionHealthLoss({intensity:h.mass*change/50,mass:h.mass,collisionDamageMultiplier:h.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:false,modelId:this.modelId});
    if(loss>0){const previous=this.health;this.health-=loss;if(this.health<=0&&previous>0)this.health=1;}
   }
-  // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown.
-  if(!this.occupied||WorldBike.riderStaysOn?.())return;
+  // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown, and the
+  // force is zeroed for the player on stairs (CamStairsForPlayer and a stairs zone holding him).
+  if(!this.occupied||WorldBike.riderStaysOn?.()||WorldBike.playerOnStairs?.())return;
   const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0});
   const dir={fwd:(dx*forward.x+dy*forward.y+dz*forward.z)/change,up:(dx*up.x+dy*up.y+dz*up.z)/change,right:(dx*right.x+dy*right.y+dz*right.z)/change};
   // m_fDamageIntensity is the collision impulse, mass times the velocity change in units a frame (CPhysical's
