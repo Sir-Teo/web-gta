@@ -2818,6 +2818,10 @@ async function boot() {
         // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon: the target button with a melee weapon starts CTaskSimpleFight, whose
         // stance shuffles CJ about on the FightSh clips (PlayerControlFighter) instead of walking him.
         else if(weapons.aiming&&onFoot&&weapons.inventory.weapon.kind==='melee'&&!sim.player.crouched)controls={...controls,fightMove:true};
+        // The fight task made by an untargeted press lives 2000 ms: a standing player (m_nMoveState below PEDMOVE_WALK)
+        // is under PlayerControlFighter for that long; a push of the stick is PlayerControlZelda as usual. A chainsaw's
+        // FIGHTIDLE counts as moving, so it never holds him.
+        else if(onFoot&&weapons.inventory.weapon.kind==='melee'&&weapons.inventory.weapon.id!==9&&!sim.player.crouched&&weapons.fightStance&&controls.x===0&&controls.y===0)controls={...controls,fightMove:true};
         // CTaskSimplePlayerOnFoot::PlayerControlDucked feeds CTaskSimpleDuck::ControlDuckMove: aiming a gun walks forward and
         // back on the stick and rolls on a sideways push; otherwise CJ turns to the stick and crouch-walks forward.
         if(sim.player.crouched&&sim.player.grounded&&onFoot&&!sim.player.swimming&&sim.player.health>0){

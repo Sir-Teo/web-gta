@@ -72,6 +72,10 @@ export class WeaponSystem {
  vision:'nightvision'|'infrared'|null=null;parachute=false;photoRequested=false;ready=true;aiming=false;
  /** Melee combo chain (melee.dat hit/chain frames): stage and last landed hit. */
  private meleeStage=0;private meleeAt=-10;private meleeWeapon=-1;
+ /** CTaskSimpleFight's idle time: a melee press with no target makes the fight task with 2000 ms to live, and
+  * CTaskSimplePlayerOnFoot::ProcessPed hands a standing player to PlayerControlFighter while it lives. */
+ private fightStanceUntilMs=-1;
+ get fightStance(){return this.nowMs<this.fightStanceUntilMs;}
  /** CTaskSimpleFight's pending strike: it lands on the move's melee.dat hit frame, from where the player stands then. */
  private strike?:{remaining:number;weapon:number;damage:number;move:number;range:number;target?:number;whip?:boolean};
  /** CTaskSimpleUseGun's m_LastCmd was PISTOLWHIP: the next whip waits for another command. */
@@ -572,6 +576,8 @@ export class WeaponSystem {
    direction=normalize(add(target,source,-1));
   }
   if(w.kind==='melee'){
+   // The press makes (or drives) the fight task, with 2000 ms of idle life from here.
+   this.fightStanceUntilMs=this.nowMs+2000;
    // Native melee.dat combo resolved through the weapon.dat baseCombo row:
    // stage damage with the 1.6 m strike reach; only landed swings chain.
    // Sprinting swings use the AMOVING row instead of the staged damage.
