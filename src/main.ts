@@ -537,6 +537,8 @@ async function boot() {
   const playerSprintDisabled=()=>!!mission?.runtime.game.playerInfo.sprintDisabled||!!weapons.goggles;
   /** The fire button got through to an aimed gun this step (m_LastCmd FIRE for CTaskSimpleUseGun::SetMoveAnim). */
   let gunFiring=false;
+  /** The weapon whose CTaskSimpleUseGun the fire button started without the target button, while that task runs. */
+  let hipGun:number|undefined;
   let surfaceAudio: ReturnType<typeof readSurfaceAudio> | undefined;
   let roadSurfaces:Awaited<ReturnType<typeof import('./assets/worldRoadMaterials').loadWorldRoadMaterials>>|undefined;
   const render = new GameRenderer(canvas, sim);
@@ -2675,8 +2677,16 @@ async function boot() {
         // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint or a jump press stands a crouched CJ up
         // (ClearTaskDuckSecondary). Only the ducked control runs that frame, so the press does not also jump.
         if(sim.player.crouched&&sim.player.grounded&&!law.arrested&&(jumpPressed||input.down('ShiftLeft')||input.down('ShiftRight'))&&(duck.rolling||sim.setCrouched(false)))jumpPressed=false;
+        // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon: the fire button without the target button starts CTaskSimpleUseGun too.
+        // With a gun not aimed with the arm, ProcessPed moves CJ through PlayerControlZeldaWeapon (the GunMove strafe) and turns
+        // him to the follow camera's heading (m_fAimingRotation) for as long as that task runs; with the button up, a push on
+        // the stick past 50 ends it (END_NOW). No use-gun task starts while sprinting.
+        {const info=weapons.inventory.info();
+         if(!onFoot||weapons.aiming||render.firstPerson||sim.jetPack||sim.player.swimming||sim.climbing||playerDown||sim.player.health<=0||law.arrested||!info||(info.fire!=='instant'&&info.fire!=='area')||info.flags&(WEAPON_FLAG.aimWithArm|WEAPON_FLAG.firstPerson))hipGun=undefined;
+         else if(firing&&!render.nativeCharacter?.sprinting)hipGun=weapons.inventory.selected;
+         else if(hipGun!==weapons.inventory.selected||Math.hypot(axes.x,axes.y)>50/128)hipGun=undefined;}
         // PlayerControlZelda jumps only while the target button is up (PlayerControlZeldaWeapon never does).
-        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim'),jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming?render.yaw+Math.PI:undefined };
+        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim'),jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming||hipGun!==undefined?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl while there is energy for
         // it (ControlButtonSprint's HandleSprintEnergy fails once spent, as the on-foot sprint does).
         if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
@@ -2723,7 +2733,7 @@ async function boot() {
         // CTaskSimpleUseGun moves an aimed gun's holder on the GunMove clips at the skill row's move speed. The spray can
         // and extinguisher are area-effect weapons without bAimWithArm, which CTaskSimplePlayerOnFoot::ProcessPed moves
         // through PlayerControlZeldaWeapon like the rifles.
-        const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame','spray','extinguisher'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)?weapons.inventory.info():undefined;
+        const aimedGun=weapons.aiming&&(['bullet','shotgun','rocket','guided','flame','spray','extinguisher'].includes(weapons.inventory.weapon.kind)||!!render.firstPerson)||hipGun!==undefined?weapons.inventory.info():undefined;
         if(aimedGun)controls={...controls,gunMove:{aimWithArm:!!(aimedGun.flags&WEAPON_FLAG.aimWithArm),moveAim:!!(aimedGun.flags&WEAPON_FLAG.moveAim),moveFire:!!(aimedGun.flags&WEAPON_FLAG.moveFire),firing:gunFiring&&!weapons.inventory.reloading,moveSpeed:aimedGun.moveSpeed}};
         // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon: the target button with a melee weapon starts CTaskSimpleFight, whose
         // stance shuffles CJ about on the FightSh clips (PlayerControlFighter) instead of walking him.
@@ -2785,7 +2795,7 @@ async function boot() {
         else {if(sim.climbing)render.nativeCharacter?.resetAirborne();// CTaskComplexFallAndGetUp and CTaskSimpleHitHead stand in for PlayerControlZelda: the stick that the sim ignores
           // under them does not drive the move clips' blend ratio either, so CJ gets up from standing.
           const held=sim.knockdown>0||sim.hitHead>0,stepped=held?{...controls,x:0,y:0,jump:false,sprint:false}:controls;
-          const animated=sim.climbing?controls:render.nativeCharacter?.step(step, stepped, sim)??controls;sim.step(step,weapons.aiming&&!((controls.gunMove||controls.fightMove)&&animated.animationMotion)?controls:animated);}
+          const animated=sim.climbing?controls:render.nativeCharacter?.step(step, stepped, sim)??controls;sim.step(step,(weapons.aiming||hipGun!==undefined)&&!((controls.gunMove||controls.fightMove)&&animated.animationMotion)?controls:animated);}
         frameProfile.stepPlayer+=performance.now()-tPlayer;
         if(render.nativeCharacter?.duckRollDone)duck.rollFinished();
         kickSweptProps();releaseSortedOutCollisions();
