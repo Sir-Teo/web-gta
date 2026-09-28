@@ -40,7 +40,12 @@ export interface PickupHost {
  grantAmmo?(weapon:number,ammo:number):void;
  /** CPad::GetTarget: aiming clears the collect buffer and hides the collect help. */
  targeting?():boolean;
+ /** CStats::IncrementStat and GetStatValue: the collectable tallies, luck and the bribe count. */
+ incrementStat?(stat:number,value:number):void;statValue?(stat:number):number;
 }
+/** eStats: STAT_NUMBER_OF_POLICE_BRIBES, STAT_SNAPSHOTS_TAKEN, STAT_TOTAL_SNAPSHOTS, STAT_LUCK, STAT_HORSESHOES_COLLECTED,
+ * STAT_TOTAL_HORSESHOES, STAT_OYSTERS_COLLECTED and STAT_TOTAL_OYSTERS. */
+export const STAT={policeBribes:182,snapshotsTaken:231,totalSnapshots:232,luck:233,horseshoesCollected:241,totalHorseshoes:242,oystersCollected:243,totalOysters:244} as const;
 /** CPickups::aPickUps holds 620 slots. */
 export const PICKUP_SLOTS=620;
 interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean;quietUntil?:number;helpShown?:boolean;
@@ -219,10 +224,14 @@ export class WorldPickups {
    case 'health':{const max=host.maxHealth?.()??100;if(this.sim.player.health>max-.2)return;this.sim.player.health=max;break;}
    // PICKUP_MONEY and MONEY_DOESNTDISAPPEAR pay the pickup's amount.
    case 'money':this.sim.money+=pickup.ammo;break;
-   case 'bribe':if(host.wantedLevel()===0)return;host.setWantedLevel(host.wantedLevel()-1);break;
+   // GivePlayerGoodiesWithPickUpMI's bribe: one star off and STAT_NUMBER_OF_POLICE_BRIBES up one.
+   case 'bribe':if(host.wantedLevel()===0)return;host.setWantedLevel(host.wantedLevel()-1);host.incrementStat?.(STAT.policeBribes,1);break;
    case 'horseshoe':case 'oyster':{
-    // CPickups::PickedUpHorseShoe / PickedUpOyster: $100 each, $100,000 for the full set.
+    // CPickups::PickedUpHorseShoe / PickedUpOyster: the collected stat up one (a horseshoe also adds 1000 over the
+    // total to STAT_LUCK), $100 each, $100,000 for the full set.
     this.sim.money+=100;this.collected.add(pickup.id);const done=this.counts()[pickup.category],total=this.totals[pickup.category];
+    if(pickup.category==='horseshoe'){host.incrementStat?.(STAT.horseshoesCollected,1);const stat=host.statValue?.(STAT.totalHorseshoes)||total;if(stat>0)host.incrementStat?.(STAT.luck,1000/stat);}
+    else host.incrementStat?.(STAT.oystersCollected,1);
     if(done>=total){this.sim.money+=100000;message=`${COLLECTABLE[pickup.category]}_ALL`;}else message=`${COLLECTABLE[pickup.category]}_ONE ${done}/${total}`;break;
    }
    case 'weapon':{
@@ -319,8 +328,8 @@ export class WorldPickups {
    if(distance<range&&distance<bestDistance&&frustum.intersectsSphere(new Sphere(world,.2))){best=state;bestDistance=distance;}
   }
   if(!best)return false;
-  // CPickups::PictureTaken pays $100,000 a photograph, and as much again for the last one.
-  best.disabled=true;this.collected.add(best.pickup.id);this.despawn(best);this.sim.money+=100000;
+  // CPickups::PictureTaken pays $100,000 a photograph, counts STAT_SNAPSHOTS_TAKEN, and pays as much again for the last one.
+  best.disabled=true;this.collected.add(best.pickup.id);this.despawn(best);this.sim.money+=100000;this.host.incrementStat?.(STAT.snapshotsTaken,1);
   const done=this.counts().snapshot,total=this.totals.snapshot;if(done>=total)this.sim.money+=100000;
   this.host.onCollect?.(best.pickup,done>=total?'SN_ALL':`SN_ONE ${done}/${total}`);return true;
  }

@@ -692,6 +692,7 @@ async function boot() {
     targeting:()=>input.down('MouseAim'),
     wantedLevel:()=>law.level,setWantedLevel:level=>law.setLevel(level),armour:()=>sim.player.armour,setArmour:value=>{sim.player.armour=value;},
     maxHealth:()=>mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:()=>mission?.runtime.game.playerInfo.maxArmour??100,
+    incrementStat:(stat,value)=>{mission?.runtime.game.stats.increment(stat,value);},statValue:stat=>{try{return mission?.runtime.game.stats.get(stat)??0;}catch{return 0;}},
     // CPickups::GivePlayerGoodiesWithPickUpMI: the jetpack hands the player its task, unless he already wears one.
     // CPickup::Update leaves the jetpack where it is while ArePlayerControlsDisabled.
     onJetPack:()=>{if(sim.jetPack||playerControlsDisabled())return false;sim.startJetPack();sound.frontend(AE_FRONTEND.pickupInfo);return true;},

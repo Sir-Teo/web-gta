@@ -2,7 +2,7 @@ import {beforeAll,expect,test} from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Scene} from 'three';
 import {Simulation} from '../src/simulation/Simulation';
-import {WorldPickups} from '../src/simulation/WorldPickups';
+import {STAT,WorldPickups} from '../src/simulation/WorldPickups';
 import type {ScmPickup} from '../src/assets/scmPickups';
 
 // CPickup::Update's weapon branch: a weapon whose slot holds another one (with ammo, or a shotgun, SMG or rifle slot)
@@ -58,3 +58,19 @@ test('an exchangeable slot takes the ammo out of the pickup at once and the weap
  }finally{pickups.dispose();sim.dispose();}
 });
 function AMMO(weapon:number){return [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,8,8,8,8,4,4,30,10,10,15,10,10,60,60,80,80,60,20,10,4,3,100,500,5,1,500,500,36,0,0,1][weapon];}
+// CPickups::PickedUpHorseShoe and GivePlayerGoodiesWithPickUpMI's bribe: the stats they count.
+test('a horseshoe counts STAT_HORSESHOES_COLLECTED and 1000 over the total as luck; a bribe counts STAT_NUMBER_OF_POLICE_BRIBES',()=>{
+ const sim=new Simulation(),scene=new Scene(),stats:[number,number][]=[];let wanted=2;
+ const pickups=new WorldPickups(sim,scene,'stat-test:',{
+  weaponForModel:()=>undefined,giveWeapon:()=>true,wantedLevel:()=>wanted,setWantedLevel(level){wanted=level;},armour:()=>0,setArmour(){},
+  incrementStat:(stat,value)=>{stats.push([stat,+value.toFixed(4)]);},statValue:stat=>stat===STAT.totalHorseshoes?50:0,
+ });
+ const shoe=gun({id:'shoe',model:'horseshoe',dictionary:'horseshoe',modelId:954,category:'horseshoe',type:1,position:[10,20,5]});
+ const bribe=gun({id:'bribe',model:'bribe',dictionary:'bribe',modelId:1240,category:'bribe',type:1,position:[40,20,5]});
+ try{pickups.setPickups([shoe,bribe]);sim.player.health=100;
+  sim.player.position=at(shoe);pickups.step(1/60);
+  expect(stats).toEqual([[STAT.horseshoesCollected,1],[STAT.luck,20]]);expect(sim.money).toBe(100100);// the lone shoe is the whole set
+  sim.player.position=at(bribe);pickups.step(1/60);
+  expect(stats[2]).toEqual([STAT.policeBribes,1]);expect(wanted).toBe(1);
+ }finally{pickups.dispose();sim.dispose();}
+});
