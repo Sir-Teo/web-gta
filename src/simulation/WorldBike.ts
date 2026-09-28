@@ -17,6 +17,8 @@ import {composeVehicleRoot,interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
 import {bikeLeanTarget,approachBikeLean} from '../flight/aero';
 import {bikeLeanDrop,bikeRiderLean,quadRiderLean} from './nativeBikeLean';
+import {nativePedals} from './nativePedals';
+import {controlsOffSpeedScale,rawSteerTowards,steerFraction} from './nativeQuadSteer';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import {browserLocalDirection} from '../combat/nativeDamageAnim';
 import {CAR_SOLVER_GROUPS} from './solverGroups';
@@ -103,6 +105,9 @@ export class WorldBike {
  /** CQuadBike's m_sRideAnimData.LeanAngle, in radians (positive leans right): the quad's body stays level, so only
   * the rider leans. */
  riderLean=0;
+ /** The quad's CAutomobile::m_fRawSteerAngle (right positive) and m_GasPedal, kept between frames for the smoothing
+  * and the brake-before-reverse rule. */
+ rawSteer=0;gasPedal=0;
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
  /** The hop button's state last frame: CBmx::ProcessBunnyHop starts a charge on a press (IsLeftShoulder1Pressed), not on a hold. */
@@ -236,19 +241,31 @@ export class WorldBike {
   const nearby=this.distance()<250,active=nearby&&!this.frozen&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
+  // CAutomobile::ProcessControlInputs for the quad: the raw steer follows the pad a fifth of the way a frame, and the
+  // steer angle is the lock times its square.
+  if(this.quad){this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=steerFraction(this.rawSteer);}
   if(this.wrecked){this.throttle=0;}
   this.bunnyHop(dt,!!input.hop,input.disabled);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   const h=this.assets.handling.values,q=this.body.rotation(),v=this.body.linvel();
+  // CAutomobile::ProcessControl: the player's quad with the controls disabled is held to 0.28 units a frame.
+  if(this.quad&&input.disabled){const f=controlsOffSpeedScale(Math.hypot(v.x,v.y,v.z));if(f<1){v.x*=f;v.y*=f;v.z*=f;}}
   const forward=rotate(q,{x:0,y:0,z:-1}),speed=v.x*forward.x+v.y*forward.y+v.z*forward.z;
   // Prepared native per-step magnitudes become browser per-second rates at 50 Hz (×50 units × 50 steps).
   const top=this.assets.handling.maxFlatVelocity*50,reverse=this.assets.handling.maxReverseVelocity*50;
   const accelRate=h.engineAcceleration*2500,brakeRate=h.brakeDeceleration*2500;
-  let want=speed;
-  if(this.throttle>.05)want=Math.min(top,speed+accelRate*dt*this.throttle);
-  else if(this.throttle<-.05)want=Math.max(reverse,speed+accelRate*dt*this.throttle);
+  let want=speed,gas=this.throttle,braking=this.brake?1:0;
+  // The quad's pedals are CAutomobile::ProcessControlInputs's: the reverse button brakes a quad still rolling
+  // forward and only reverses it once it has all but stopped (nativePedals); the handbrake is the brake button.
+  if(this.quad){
+   const pedals=nativePedals({accelerate:Math.round(Math.max(0,Math.min(1,this.throttle))*255),brake:Math.round(Math.max(0,Math.min(1,-this.throttle))*255),forwardSpeed:speed/50,previousGas:this.gasPedal,
+    automaticallyHandbrake:!!input.disabled,handbrake:this.brake,engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true});
+   this.gasPedal=gas=pedals.gas;braking=Math.max(pedals.brake,pedals.handbrake?1:0);
+  }
+  if(gas>.05)want=Math.min(top,speed+accelRate*dt*gas);
+  else if(gas<-.05)want=Math.max(reverse,speed+accelRate*dt*gas);
   else want=speed>0?Math.max(0,speed-COAST_DECEL*dt):Math.min(0,speed+COAST_DECEL*dt);
-  if(this.brake)want=speed>0?Math.max(0,speed-brakeRate*dt):Math.min(0,speed+brakeRate*dt);
+  if(braking>0)want=speed>0?Math.max(0,speed-brakeRate*dt*braking):Math.min(0,speed+brakeRate*dt*braking);
   // Authored variable-ratio steering: SpeedSteer scales the handling lock with speed.
   const lock=h.steeringLock*Math.PI/180,speedF=Math.min(1,Math.abs(speed)/15);
   const effLock=lock*(1+(this.assets.bike.speedSteer-1)*speedF);
