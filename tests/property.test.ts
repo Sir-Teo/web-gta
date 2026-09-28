@@ -91,6 +91,21 @@ test('revenue accrues only for owned assets and pays out on touch',()=>{
  }finally{pickups.dispose();sim.dispose();}
 });
 
+// CREATE_PROTECTION_PICKUP makes its PICKUP_ASSET_REVENUE once the script has sold the asset, and CPickup::Update
+// accrues and pays every such pickup, whatever for-sale discs are about. UPDATE_PICKUP_MONEY_PER_DAY takes effect.
+test('a script revenue pickup earns without a new-game property beside it',()=>{
+ const {sim,pickups}=setup();
+ try{
+  pickups.setPickups([]);
+  const till:ScmPickup=disc({id:'script:7',section:'script',category:'revenue',model:'bigdollar',dictionary:'bigdollar',position:[11,21,5],revenueLimit:500,revenueRate:100});
+  pickups.generate(till,Number.POSITIVE_INFINITY);
+  pickups.patchGenerated('script:7',{revenueRate:200});
+  sim.money=0;sim.player.health=100;sim.player.position={x:at(till).x+40,y:at(till).y,z:at(till).z};pickups.step(720);
+  sim.player.position=at(till);pickups.step(1/60);
+  expect(sim.money).toBe(100);
+ }finally{pickups.dispose();sim.dispose();}
+});
+
 test('a money pickup pays its amount, a keycard is simply taken, and health fills to the raised maximum (CPickup::Update)',()=>{
  const cash=disc({id:'test:cash',category:'money',model:'money',dictionary:'money',type:3,ammo:250,position:[50,0,5]});
  const card=disc({id:'test:card',category:'keycard',model:'keycard',dictionary:'keycard',type:3,position:[80,0,5]});

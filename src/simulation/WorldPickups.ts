@@ -104,7 +104,7 @@ export class WorldPickups {
   this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds,slot,visible:false});this.revenueLinks=undefined;this.bySlot=undefined;
  }
  /** Changes what a generated pickup carries, as a script's UPDATE_PICKUP_MONEY_PER_DAY does. */
- patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state)state.pickup={...state.pickup,...patch};}
+ patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state){state.pickup={...state.pickup,...patch};this.revenueLinks=undefined;}}
  /** Takes a generated pickup back out of the world by the id it was made with, which is how a script's own
   * removal reaches it. */
  /** CPickups::TestForPickupsInBubble: any pickup within the radius of the native point (active or not, as the
@@ -131,7 +131,7 @@ export class WorldPickups {
      this.revenueLinks=new Map(this.states.filter(s=>s.pickup.category==='revenue'&&s.pickup.revenueLimit!==undefined).map(s=>[s.pickup,linkRevenue(s.pickup,forSale)]));
     }
     for(const [pickup,link] of this.revenueLinks){
-     if(!link||!this.collected.has(link.id)){this.takings.delete(pickup.id);continue;}
+     if(!this.owned(pickup,link)){this.takings.delete(pickup.id);continue;}
      const w=this.world(pickup);if(Math.hypot(w.x-p.x,w.y-(p.y+1),w.z-p.z)<=10)continue;
      this.takings.set(pickup.id,Math.min(pickup.revenueLimit??0,(this.takings.get(pickup.id)??0)+dt*1000*(pickup.revenueRate??0)/1440000));
     }
@@ -218,8 +218,7 @@ export class WorldPickups {
      host.onCollect?.(pickup,`Property purchased · -$${price}`);return;
     }
     case 'revenue':{
-     const link=linkRevenue(pickup,this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale'));
-     if(!link||!this.collected.has(link.id))return;
+     if(!this.owned(pickup,linkRevenue(pickup,this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale'))))return;
      const amount=Math.floor(this.takings.get(pickup.id)??0);
      // CPickup::Update refuses the pickup under $10, silently; collecting pays with the money sound and no text.
      if(amount<10)return;
@@ -240,6 +239,10 @@ export class WorldPickups {
   else{state.disabled=true;this.collected.add(pickup.id);}
   this.despawn(state);host.onCollect?.(pickup,message);
  }
+  /** Whether a revenue pickup earns: one the script made (CREATE_PROTECTION_PICKUP, only once the asset is bought) always
+   * does, as every PICKUP_ASSET_REVENUE does in CPickup::Update; a new-game one stands in for its asset and needs the
+   * nearest for-sale property owned. */
+  private owned(pickup:ScmPickup,link:ScmPickup|undefined){return pickup.section==='script'||!!link&&this.collected.has(link.id);}
   /** CPickups::PassTime: regeneration timers move forward with the clock. */
   passTime(seconds:number){this.seconds+=Math.max(0,seconds);}
  /** CPickups::PictureTaken: the nearest snapshot within 90/FOV × 20 units whose 0.2-unit sphere is on screen. `fov` is
