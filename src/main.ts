@@ -4890,7 +4890,9 @@ async function boot() {
                   sim.playerCanBeDamaged=!safe;law.native.everybodyBackOff=safe;sim.playerProofs={bullet:safe,fire:safe,explosion:safe,collision:safe,melee:safe};
                   for(const car of fleet?.cars??[])car.canBeDamaged=!safe;
                   if(!safe)return;
-                  sim.player.adrenaline=0;sim.player.stamina=Math.max(sim.player.stamina,0);
+                  // CPlayerInfo::MakePlayerSafe lifts m_fTimeCanRun out of its spent range (max(x, 0)): a winded player can
+                  // sprint again as soon as the script hands control back.
+                  sim.player.adrenaline=0;sim.player.stamina=Math.max(sim.player.stamina,0);sim.player.sprintExhausted=false;
                   const p=sim.player.position,at={x:p.x,y:-p.z,z:p.y};
                   weapons.fires.extinguishPoint(at,radius);
                   weapons.projectilesInBox({x:-Infinity,y:-Infinity,z:-Infinity},{x:Infinity,y:Infinity,z:Infinity},true);
