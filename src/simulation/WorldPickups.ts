@@ -31,6 +31,9 @@ export interface PickupHost {
  onJetPack?():boolean;
  /** CPickups::PlayerCanPickUpThisWeaponTypeAtThisMoment: a weapon not aimed with the arm is refused on the jetpack. */
  canPickUpWeapon?(weapon:number):boolean;
+ /** CPlayerPed::DoesPlayerWantNewWeapon(type, false): false with a jetpack on, or attacking or aiming with the slot's
+  * current weapon; the pickup then only hands its ammo over (a timed or mission one) and stays. */
+ wantsNewWeapon?(weapon:number):boolean;
  /** CTheScripts::IsPlayerOnAMission: a property is not for sale while a mission runs. */
  onMission?():boolean;
  /** CPed::GetWeaponInSlot for the slot a weapon type takes: what the player holds there (0 for nothing), its total
@@ -252,6 +255,10 @@ export class WorldPickups {
       if(!this.collectBuffer)return;
      }else if(host.canPickUpWeapon?.(weapon)===false){this.playerOnWeaponPickup=6;return;}
     }else if(host.canPickUpWeapon?.(weapon)===false)return;
+    // The type branches then ask DoesPlayerWantNewWeapon(type, false): refused, a street pickup stays as it is and a
+    // timed or mission one is emptied into the slot's weapon (ExtractAmmoFromPickup) and stays.
+    if(host.wantsNewWeapon?.(weapon)===false&&[PICKUP_TYPE.onStreet,PICKUP_TYPE.onStreetSlow,PICKUP_TYPE.onceTimeout,PICKUP_TYPE.onceTimeoutSlow,PICKUP_TYPE.onceForMission].includes(pickup.type as 2|15|4|5|22)){
+     if(pickup.type!==PICKUP_TYPE.onStreet&&pickup.type!==PICKUP_TYPE.onStreetSlow)this.extractAmmo(state,weapon);return;}
     if(!host.giveWeapon(weapon,pickup.ammo||(state.empty?0:AMMO_ON_STREET[weapon])))return;break;
    }
     // PSAVE1 removes and immediately recreates the disc, so it stays where it is.

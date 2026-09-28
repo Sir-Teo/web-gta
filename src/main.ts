@@ -691,6 +691,10 @@ async function boot() {
     heldInSlot:weapon=>{const slot=weapons.inventory.slotOf(weapon);if(slot===undefined)return undefined;const held=weapons.inventory.inSlot(slot)??0,a=held?weapons.inventory.ammo.get(held):undefined;return {weapon:held,ammo:a?a.clip+a.reserve:0,slot};},
     grantAmmo:(weapon,ammo)=>{const held=weapons.inventory.inSlot(weapons.inventory.slotOf(weapon));if(held)weapons.inventory.give(held,ammo);},
     targeting:()=>input.down('MouseAim'),
+    // DoesPlayerWantNewWeapon(type, false): not with a jetpack on, nor attacking or aiming with the slot's own weapon.
+    wantsNewWeapon:weapon=>{const slot=weapons.inventory.slotOf(weapon),held=slot===undefined?0:weapons.inventory.inSlot(slot)??0;
+     if(held===weapon||held===0)return true;if(sim.jetPack)return false;
+     return !(weapons.inventory.selected===held&&(weapons.aiming||input.down('MouseFire')));},
     wantedLevel:()=>law.level,setWantedLevel:level=>law.setLevel(level),armour:()=>sim.player.armour,setArmour:value=>{sim.player.armour=value;},
     maxHealth:()=>mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:()=>mission?.runtime.game.playerInfo.maxArmour??100,
     incrementStat:(stat,value)=>{mission?.runtime.game.stats.increment(stat,value);},statValue:stat=>{try{return mission?.runtime.game.stats.get(stat)??0;}catch{return 0;}},

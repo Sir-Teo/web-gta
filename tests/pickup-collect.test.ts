@@ -57,6 +57,17 @@ test('an exchangeable slot takes the ammo out of the pickup at once and the weap
   expect(given).toEqual([[26,0]]);
  }finally{pickups.dispose();sim.dispose();}
 });
+// CPickup::Update's PICKUP_ONCE_TIMEOUT and ON_STREET branches ask DoesPlayerWantNewWeapon(type, false).
+test('a pickup the player does not want (aiming the slot, a jetpack) stays: a timed one emptied into the slot, a street one as it is',()=>{
+ const timed=gun({ammo:5,type:4}),street=gun({id:'street',position:[40,20,5],ammo:5,type:2});const {sim,pickups,given,granted}=setup({weapon:24,ammo:0});
+ (pickups as any).host.wantsNewWeapon=()=>false;
+ try{pickups.setPickups([timed,street]);sim.player.health=100;
+  sim.player.position=at(timed);pickups.collectJustDown();pickups.step(1/60);
+  expect(given).toEqual([]);expect(granted).toEqual([[22,5]]);
+  sim.player.position=at(street);pickups.collectJustDown();pickups.step(1/60);
+  expect(given).toEqual([]);expect(granted).toEqual([[22,5]]);
+ }finally{pickups.dispose();sim.dispose();}
+});
 function AMMO(weapon:number){return [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,8,8,8,8,4,4,30,10,10,15,10,10,60,60,80,80,60,20,10,4,3,100,500,5,1,500,500,36,0,0,1][weapon];}
 // CPickups::PickedUpHorseShoe and GivePlayerGoodiesWithPickUpMI's bribe: the stats they count.
 test('a horseshoe counts STAT_HORSESHOES_COLLECTED and 1000 over the total as luck; a bribe counts STAT_NUMBER_OF_POLICE_BRIBES',()=>{
