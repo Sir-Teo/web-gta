@@ -385,6 +385,19 @@ export class WorldBike {
   WorldBike.onKnockedOff?.((['ko_skid_back','kd_right','ko_skid_front','kd_left'] as const)[direction]);
   this.message='Knocked off the bike!';
  }
+ /** CTaskSimpleBikeJacked on the rider: BIKE_FALL_OFF (the jacker is at a front door; the bike group's BIKE_HIT before
+  * it is left out), and a forced CEventKnockOffBike of type 55 (KNOCK_OFF_TYPE_NONE_1): he leaves with the bike's move
+  * speed and no push of his own. */
+ pulledOff(){
+  if(!this.occupied)return false;
+  const spot=this.knockOffSpot();if(!spot)return false;
+  const v={...this.body.linvel()};this.leave(spot);
+  const player=this.sim.player;
+  this.sim.collisionPush={x:v.x,z:v.z};player.verticalSpeed=v.y;player.grounded=false;player.speed=0;this.sim.exitCarriesSpeed=true;
+  this.sim.ignoreVehicleOnExit(this.body);
+  WorldBike.onKnockedOff?.('bike_fall_off');
+  return true;
+ }
  /** CEventKnockOffBike with KNOCK_OFF_TYPE_EXPLOSION, which CWorld::TriggerExplosionSectorList gives a BMX's rider.
   * Its knock-off direction is 0: BIKE_FALLR, and on a bike moving under 0.3 units a frame a push of 6 back along the
   * bike and 5 up it over his 70 kg (ApplyMoveForce); faster, he keeps the ride's speed. It is not forced, so a rider

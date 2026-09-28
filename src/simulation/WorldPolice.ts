@@ -22,6 +22,7 @@ import type {WorldPlane} from './WorldPlane';
 import {POLICE_HELI_MODEL,helisRequired,heliHeading,heliOrbitPoint,policeHeliInputs,rappelWindow,searchlightTarget} from './policeHeli';
 import { roadblockAllowed } from '../police/pursuit';
 import type {WorldFleet} from './WorldFleet';
+import type {WorldBike} from './WorldBike';
 import type {WantedSystem} from './WantedSystem';
 type V3={x:number;y:number;z:number};
 /** CStreaming::ms_aDefaultCopCarModel by m_CurrLevel: countryside, Los Santos, San Fierro, Las Venturas. */
@@ -184,6 +185,8 @@ export class WorldPolice {
  }
  /** A stopped unit's crew holds the suspect's door: the host drags the player out so the foot arrest can proceed. */
  onPullFromCar?:(car:WorldCar)=>void;
+ /** A crew cop pulls the player off his stopped bike. */
+ onPullFromBike?:(bike:WorldBike)=>void;
  error?:string;
  constructor(private sim:Simulation,private fleet:WorldFleet,private law:WantedSystem,private clips:VehicleAnimationLibrary,base:string,private random:()=>number=Math.random){
   void openStaticWorld(base).then(async source=>{
@@ -541,6 +544,13 @@ export class WorldPolice {
     const atDoor=(this.crew?.list(u)??[]).some(c=>!c.down&&Math.hypot(c.position.x-pp.x,c.position.z-pp.z)<BUST_PULL_RANGE);
     u.pullTimer=bustPullProgress(u.pullTimer,dt,carStopped&&atDoor);
     if(u.pullTimer>=BUST_PULL_SECONDS){u.pullTimer=0;this.onPullFromCar?.(playerCar);}
+   }else if(!chaseOff&&(u.mission==='stopped'||u.mission==='roadblock')&&!playerCar&&this.fleet.occupiedBike&&!this.fleet.occupiedBike.wrecked){
+    // CTaskComplexArrestPed::CreateFirstSubTask: a suspect on a bike or quad gets TASK_COMPLEX_DRAG_PED_FROM_CAR, the
+    // crew cop at the stopped bike pulling him off (CTaskSimpleBikeJacked) for the foot arrest.
+    const bike=this.fleet.occupiedBike,bv=bike.body.linvel(),bp=bike.body.translation();
+    const atBike=(this.crew?.list(u)??[]).some(c=>!c.down&&Math.hypot(c.position.x-bp.x,c.position.z-bp.z)<BUST_PULL_RANGE);
+    u.pullTimer=bustPullProgress(u.pullTimer,dt,Math.hypot(bv.x,bv.z)<2&&atBike);
+    if(u.pullTimer>=BUST_PULL_SECONDS){u.pullTimer=0;this.onPullFromBike?.(bike);}
    }else u.pullTimer=0;
    // Roadblock units hold across the road with their crew out; the block dissolves once the level
    // is clean or the player leaves, and the crew then reboards through recallCrew.
