@@ -801,12 +801,15 @@ export class WeaponSystem {
   this.aircraftExplosions=this.aircraftExplosions.filter(e=>e.remainingMs>0);
   this.molotovs=this.molotovs.filter(m=>m.remaining>0);
   const playerKey='player',playerOnFoot=this.sim.playerBody.isEnabled()&&this.sim.playerCollider.isEnabled()&&this.sim.player.health>0;
+  // The vehicle the player sits in: CFire::ProcessFire keeps his fire on him there, at his position.
+  const fleet=this.fleet(),playerCar=[...(fleet?.cars??[])].find(c=>c.playersVehicle&&!c.wrecked);
+  const playerRide=playerCar?.car.body??[...(fleet?.bikes??[]),...(fleet?.boats??[]),...(fleet?.planes??[])].find(v=>v.occupied)?.body;
   const fireWorld:Parameters<NativeFireManager['update']>[0]={nowMs:this.nowMs,timeStep:50/30,random:Math.random,cameraPosition:this.toNative(this.sim.player.position),
    targetPosition:(t:FireTarget)=>{
     // A ped's fire burns on after it dies, a unit lower (targetDead), until the body is removed.
     // A ped under water has it put out (CTaskComplexOnFire, bSubmergedInWater), as the player's goes out swimming.
     if(t.kind==='ped'){const p=this.pedestrians()?.pedPosition?.(t.key as number)??people.find(q=>q.handle===t.key);return p&&!(p as {submerged?:boolean}).submerged?this.toNative(p.position):undefined;}
-    if(t.kind==='player')return playerOnFoot&&!this.sim.player.swimming?this.toNative(this.sim.player.position):undefined;
+    if(t.kind==='player')return playerOnFoot&&!this.sim.player.swimming?this.toNative(this.sim.player.position):playerRide&&this.sim.player.health>0?this.toNative(playerRide.translation()):undefined;
     if(t.kind==='vehicle'){const entry=this.burnableVehicles().find(e=>e.v===t.key);return !entry||entry.v.wrecked?undefined:this.toNative(entry.body.translation());}
     return undefined;
    },
@@ -824,6 +827,9 @@ export class WeaponSystem {
   if(!playerFire)this.playerFireSince=undefined;
   else if(this.playerFireSince===undefined)this.playerFireSince=this.nowMs;
   else if(this.nowMs-this.playerFireSince>=5000){playerFire.extinguish();this.playerFireSince=undefined;}
+  // CFire::ProcessFire: a burning ped in an automobile other than a fire truck (FIRETRUK, FIRELA) holds it at 75
+  // health, below where its engine catches fire, for as long as he burns.
+  if(playerCar&&this.fires.fireOn(playerKey)&&playerCar.modelId!==407&&playerCar.modelId!==544)playerCar.health=75;
   for(const fire of this.fires.active){
    const t=fire.target;if(!t)continue;
    // 0.5 x timeStep x m_fireDmgMult per frame.
