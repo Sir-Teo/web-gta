@@ -329,7 +329,7 @@ export interface Pedestrian {
   look?:LookAtTask;
     /** CTaskComplexUseAttractor: the ped stands at a 2dfx ped attractor (ATM, seat, bus stop, shop window) and runs
    * its use task; `heading` faces the effect's use direction, `phase` is the sub task, `until` its end. */
-  attract?:{key:string;type:number;phase:'go'|'wait'|'use'|'presit'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number;
+  attract?:{key:string;type:number;phase:'go'|'wait'|'use'|'presit'|'sit'|'idle'|'up'|'stand';time:number;until:number;heading:number;/** A disturbance ends the sit: the stand-up plays out before the ped leaves (MakeAbortable below IMMEDIATE). */leaving?:boolean;
    /** CTaskComplexGoToAttractor: the slot's point (browser space) to walk to, after `startAt` seconds of standing. */
    goal?:{x:number;z:number};slot:number;startAt:number;};
   /** A corner dealer (PED_TYPE_DEALER) for the popcycle's dealer count. */
@@ -1190,6 +1190,7 @@ export class WorldPedestrians {
     switch(a.phase){
      case 'presit':{const clips=this.sitClips(a.type);a.phase='sit';a.time=0;a.until=p.view.reactionDuration(clips.down)??1;if(p.view.hasReaction(clips.down))p.view.playReaction(clips.down);return;}
      case 'sit':{
+      if(a.leaving){this.standUpFromSeat(p);return;}
       // CTaskComplexUseAttractor: 40% of sitters idle 15 to 60 s, the rest until something interrupts.
       const idle=Math.random()<.4?15+Math.random()*45:Infinity;
       a.phase='idle';a.time=0;a.until=idle;
@@ -3134,7 +3135,12 @@ export class WorldPedestrians {
    if(!p.order&&!p.loiter&&!fleeing&&!p.attract&&!p.crossing&&p.health>0&&p.down===0&&(dx||dz)){const step=this.avoidOtherPeds(p,dt,{x:dx,z:dz},to);if(step){dx=step.x;dz=step.z;}}
    if(p.attract&&!p.order){
     const calm=p.flee<=0&&p.down===0&&p.retaliate<=0&&p.stagger<=0&&!p.evade&&!p.gunReact&&!p.carReact&&!p.fight&&p.health>0;
-    if(!calm)this.leaveAttractor(p);
+    // CTaskComplexSitDownThenIdleThenStandUp::MakeAbortable refuses any abort below IMMEDIATE and zeroes the idle: a
+    // sitter disturbed alive and on his feet stands up first (SEAT_up), then answers; only death or a knockdown cuts the pose.
+    const a=p.attract,seated=(a.type===PED_ATTRACTOR.seat||a.type===PED_ATTRACTOR.step)&&(a.phase==='sit'||a.phase==='idle'||a.phase==='up');
+    const standsFirst=!calm&&seated&&p.health>0&&p.down===0;
+    if(!calm&&!standsFirst)this.leaveAttractor(p);
+    else if(standsFirst){if(!a.leaving){a.leaving=true;if(a.phase!=='up')a.until=Math.min(a.until,a.time);}dx=0;dz=0;state.heading=a.heading;this.stepAttractor(p,dt);}
     else if(p.attract.phase==='go'&&p.attract.goal){
      // CTaskComplexGoToAttractor: stand for the shuffle delay, then walk to the slot; arrive within its range.
      p.attract.time+=dt;

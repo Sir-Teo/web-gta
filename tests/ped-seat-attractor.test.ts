@@ -29,3 +29,8 @@ test('the idle ends with the stand-up clip, after which the ped leaves',()=>{
  step(1.1);expect(p.attract).toMatchObject({phase:'up',until:.9});expect(played[2]).toEqual(['seat_up']);
  step(1);expect(left).toHaveLength(1);
 });
+test('a sitter marked leaving stands up out of the sit-down rather than idling',()=>{
+ const {p,played,step}=seated();
+ step(.2);p.attract.leaving=true;p.attract.until=Math.min(p.attract.until,p.attract.time);
+ step(0);expect(p.attract.phase).toBe('up');expect(played.map(a=>a[0])).toEqual(['seat_down','seat_up']);
+});
