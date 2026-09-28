@@ -327,6 +327,8 @@ export class WeaponSystem {
    }
   }
   for(const car of this.fleet()?.cars??[]){
+   // TriggerExplosionSectorList passes an explosion-proof vehicle by before any damage or force.
+   if(car.proofs?.explosion)continue;
    const body=car.car.body,at=body.translation(),falloff=explosionFalloff(params.radius,distance(position,at));if(!falloff)continue;
    const r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),inv=q.clone().invert(),native=car.nativeBody;
    const localBrowser=new Vector3(position.x-at.x,position.y-at.y,position.z-at.z).applyQuaternion(inv);
