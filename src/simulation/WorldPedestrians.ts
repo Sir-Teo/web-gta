@@ -1241,12 +1241,12 @@ export class WorldPedestrians {
    /** Living civilians wearing a model, for the roster's slot reuse and spawn choice. */
    private wearing(name:string){return this.people.filter(p=>!p.officer&&p.health>0&&p.modelRef===name).length;}
    /** CPopulation::ChooseCivilianOccupationForVehicle: a resident model that may drive the vehicle's class, the one
-    * with the fewest living peds first; failing that any resident model; undefined while the roster is empty. */
+    * with the fewest living peds first; failing that MODEL_MALE01; undefined while the roster is empty. */
    rosterDriver(vehicleClass:string|undefined){
     const catalog=this.catalog,roster=this.roster;if(!catalog||!roster)return undefined;
     const rank=(names:string[])=>names.map(name=>({name,n:this.wearing(name)})).sort((a,b)=>a.n-b.n)[0]?.name;
     const admitted=roster.loaded.filter(name=>roster.acceptable(name));
-    return rank(admitted.filter(name=>catalog.canDrive(name,vehicleClass)))??rank(admitted);
+    return rank(admitted.filter(name=>catalog.canDrive(name,vehicleClass)))??(admitted.length&&catalog.hasModel('male01')?'male01':undefined);
    }
    /** Officers the street spawner may add: the native pursuit cap (CWanted::m_MaxCopsInPursuit) less cops already committed elsewhere. */
    footOfficerLimit:()=>number=()=>this.law?.native.maxCopsInPursuit??0;
@@ -1314,7 +1314,7 @@ export class WorldPedestrians {
    let leader:Pedestrian|undefined;void strength;const party:Pedestrian[]=[];
    for(let i=0;i<size;i++){
     if(this.disposed)return;
-    const model=this.gangRoster?.choose(gang)??members[Math.floor(Math.random()*members.length)];
+    const model=this.gangRoster?.choose(gang);if(!model)break;
     const offset=i===0?{x:0,z:0}:gangFormationOffset(i);
     const x=node.position[0]+offset.x,z=-node.position[1]+offset.z;
     if(Math.hypot(x-center.x,z-center.z)>65)continue;
