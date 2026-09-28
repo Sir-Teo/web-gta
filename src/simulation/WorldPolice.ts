@@ -87,6 +87,26 @@ export function lawVehicleWaits(o:{wanted:number;unitBoat:boolean;player:'land'|
  if(o.wanted<=0||o.player==='aircraft')return false;
  return o.player==='land'?o.unitBoat:!o.unitBoat;
 }
+/** CCarAI::FindPoliceCarMissionForWantedLevel: MISSION_BLOCKPLAYER_FARAWAY at one star or none; above that
+ * BLOCKPLAYER_HANDBRAKESTOP instead one time in four at two stars, one in two at three, three in four from four. */
+export function blockHandbrakeStop(wanted:number,random:()=>number){
+ if(wanted<=1)return false;
+ const chance=wanted===2?.75:wanted===3?.5:.25;
+ return random()>=chance;
+}
+/** The cars whose crews get CTaskComplexCopInCar (CCarAI::AddPoliceCarOccupants): the city cop cars and the Barracks,
+ * crewed above one star. An Enforcer, FBI Rancher or Rhino, or any car crewed at one star or none, has no such task. */
+export const COP_IN_CAR_MODELS:ReadonlySet<number>=new Set([596,597,598,599,433]);
+export function hasCopInCarTask(modelId:number,wantedWhenCrewed:number){return wantedWhenCrewed>1&&COP_IN_CAR_MODELS.has(modelId);}
+/** CTaskComplexCopInCar's driver told to leave beside the stopped suspect waits 3000–5000 ms the first time and
+ * 250–1500 ms after a chase resumed; a driver without the task leaves at once (CTaskComplexLeaveCar). Seconds. */
+export function copDriverExitDelay(o:{copInCar:boolean;firstStop:boolean;random:()=>number}){
+ if(!o.copInCar)return 0;
+ return o.firstStop?3+o.random()*2:.25+o.random()*1.25;
+}
+/** The stopped suspect car CTaskComplexCopInCar's waiting driver stays for: |moveSpeed|² × TimeStep × 50 at or under
+ * 1 (5.48 m/s at 30 fps) within 10 units of him. Speed in units a frame. */
+export function suspectCarCrawling(speed:number,distance:number){return speed*speed*(50/30)*50<=1&&distance<=10;}
 export function mellowChaseSpeed(wanted:number,distance:number,playerInCar:boolean,playerSpeed:number,cruise:number){
  let speed=cruise;
  if(wanted===1)speed=playerInCar?distance<10?15:distance<20?22:25:distance<20?5:distance<40?13:25;
@@ -122,6 +142,10 @@ interface Unit {
  /** A set piece's MISSION_SLOWLY_DRIVE_TOWARDS_PLAYER destination (native) and its TEMPACT_GOFORWARD end. */
  goal?:{x:number;y:number};goForwardUntil?:number;
  slowTimer:number;pullTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
+ /** CTaskComplexCopInCar's m_flag0x4: no chase resumed yet, so the driver's first stop waits the long time. */
+ firstStop?:boolean;
+ /** MISSION_BLOCKPLAYER_HANDBRAKESTOP rather than BLOCKPLAYER_CLOSE, from the mission roll and the block distances. */
+ blockStop?:boolean;
  stuck:number;recovery?:{kind:number;remaining:number};recoveryMode:number;lastRecovery:number;
  /** When JoinCarWithRoadSystem last put the unit back on a link. */
  joinedAt?:number;
@@ -609,11 +633,14 @@ export class WorldPolice {
     u.mission='stopped';for(let seat=1;seat<4;seat++)this.beginExit(u,seat);
     // The siren goes off with the crew at one star or none.
     if(this.law.level<=1)u.siren=false;
-    // CTaskComplexCopInCar: the driver waits 3000–5000 ms the first time.
-    u.driverExitAt=u.seconds+3+this.random()*2;
+    // CTaskComplexCopInCar's driver waits before leaving; one without the task leaves with the passengers.
+    u.driverExitAt=u.seconds+copDriverExitDelay({copInCar:hasCopInCarTask(car.modelId,u.wanted),firstStop:u.firstStop!==false,random:this.random});
    }
    if(u.mission==='stopped'){
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:speed<.5};
+    // CTaskComplexCopInCar's waiting driver: the suspect driving off in another car (not crawling within 10 units)
+    // resumes the drive mission at once, and the next stop waits the short time.
+    if(u.driverExitAt!==undefined&&u.seats[0]&&hasCopInCarTask(car.modelId,u.wanted)&&playerCar&&playerCar!==car&&!suspectCarCrawling(playerSpeed,distance)){u.mission='far';u.driverExitAt=undefined;u.firstStop=false;continue;}
     if(u.driverExitAt!==undefined&&u.seconds>=u.driverExitAt){u.driverExitAt=undefined;this.beginExit(u,0);}
     if(distance>50&&u.seats[0]&&!u.leaving.length){u.mission='far';u.driverExitAt=undefined;}
     continue;
