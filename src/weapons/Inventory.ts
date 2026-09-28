@@ -80,7 +80,10 @@ export class WeaponInventory {
  get twin(){const info=this.info();return !!info&&hasWeaponFlag(info,WEAPON_FLAG.twinPistol);}
  /** Native fire interval: the use-gun animation loop, CWeapon::Fire shot delay and one 30 Hz frame. */
  get interval(){
-  const w=this.weapon,info=this.info();if(!info||w.kind==='melee'||hasWeaponFlag(info,WEAPON_FLAG.throw)||info.fire==='use'||w.kind==='parachute')return w.interval;
+  const w=this.weapon,info=this.info();if(!info||w.kind==='melee'||info.fire==='use'||w.kind==='parachute')return w.interval;
+  // A thrown weapon's clip of one empties on every throw: GetWeaponReloadTime, max(400, its aim offsets + 100), which
+  // are all zero, so 400 ms from the fire frame.
+  if(hasWeaponFlag(info,WEAPON_FLAG.throw))return .4;
   if(info.fire==='area')return 1/30;
   if(info.fire==='camera')return nativeShotDelayMs(info)/1000;
   return Math.max(info.loop.end-info.loop.start,nativeShotDelayMs(info)/1000,1/30);

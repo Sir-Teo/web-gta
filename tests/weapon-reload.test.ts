@@ -68,3 +68,9 @@ test('brass knuckles take the fists\' slot: the cycle stops on one or the other,
  const seen=new Set<number>();for(let n=0;n<4;n++){i.cycle(1);seen.add(i.selected);}
  expect([...seen].sort((a,b)=>a-b)).toEqual([1,22]);
 });
+test('an emptied clip reloads for GetWeaponReloadTime alone; a thrown weapon\'s clip of one takes its 400 ms (CWeapon::Fire)',()=>{
+ const i=inventory();i.select(25);i.fire();
+ // max(400, the largest aim-offset reload time + 100), no shot delay on top; the fire loop keeps its own cooldown.
+ expect(i.reloading).toBeCloseTo(nativeWeaponReloadMs(data,nativeWeaponInfo(data,25,i.skill())!)/1000,6);expect(i.cooldown).toBeCloseTo(i.interval,6);
+ i.select(16);expect(i.interval).toBeCloseTo(.4,6);i.select(18);expect(i.interval).toBeCloseTo(.4,6);
+});
