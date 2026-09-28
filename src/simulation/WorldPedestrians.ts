@@ -237,7 +237,7 @@ export interface Pedestrian {
   * him (CTaskAllocatorKillThreatsBasic). */
  turfSighted?:boolean;turfFoe?:boolean;
   /** A cop who left a police car seat (CPed::m_pVehicle), and the door point it is heading back to. */
-  crew?:{unit:object;seat:number};goTo?:{x:number;z:number;walk:boolean;arrive?:number};
+  crew?:{unit:object;seat:number;roadblock?:boolean};goTo?:{x:number;z:number;walk:boolean;arrive?:number};
   /** CTaskComplexWanderCop::LookForCriminals' answer: the cop seeks the criminal (CTaskComplexSeekEntity, 30 s). */
   chase?:{target:Pedestrian;seconds:number};
   /** The cop wander's 50 ms ScanForStuff timer, the 30 s wait after a criminal was found, and that criminal. */
@@ -1455,7 +1455,7 @@ export class WorldPedestrians {
   }
  }
  /** A police crew member stepping out of a cop car (CCopPed type model and weapon). */
- async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number},accuracy=60,cullExtraFarAway=false){
+ async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy=60,cullExtraFarAway=false){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon,true)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
@@ -3279,6 +3279,8 @@ export class WorldPedestrians {
     const {eye,aim,offset,distance,visible}=this.spotTarget(p,target,cars);
     // CTaskComplexPolicePursuit::ControlSubTask re-runs SetWeapon while its subtask is the arrest.
     if(law.level&&this.pursuers.has(p))p.copWeapon=policePursuitWeapon({current:p.copWeapon,wantedLevel:law.level,playerHoldsGun:this.playerArmed(),arresting:p.arrest>0});
+    // m_IsRoadBlockCop: CTaskComplexPolicePursuit keeps him bStayInSamePlace with the pistol, shooting from his post.
+    const roadblockCop=!!p.crew?.roadblock&&law.level>0;if(roadblockCop&&this.pursuers.has(p))p.copWeapon='pistol';
     const gunAllowed=p.copWeapon==='pistol'&&!law.arrested;
     // CTaskComplexWanderCop::ScanForStuff every 50 ms while the cop wanders (no pursuit, no crew errand): car alarms
     // and stolen cop cars every scan, criminals in sight at most every 30 s.
@@ -3313,6 +3315,7 @@ export class WorldPedestrians {
         p.fight=undefined;
         const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)||!visible&&Math.hypot(dx,dz)<2?0:p.runSpeed;
        }
+     if(roadblockCop&&!p.goTo&&policeSpeed!==undefined&&!law.arrested)policeSpeed=0;
      if(gunAllowed&&visible&&p.weapon&&distance<p.weapon.info.weaponRange&&policeSpeed===0){
       engaged=true;p.view.setWeaponPose('police_fire');p.view.setWeaponAim(offset.clone().normalize());
      }

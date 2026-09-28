@@ -143,7 +143,7 @@ export class WorldPolice {
  zones?:WorldZones;
  camera:()=>{position:V3;forward:V3}=()=>({position:this.sim.player.position,forward:{x:0,y:0,z:-1}});
  canSpawn:(point:V3,radius:number)=>boolean=()=>true;
- spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number},accuracy?:number)=>void;
+ spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy?:number)=>void;
  /** The street population's cops on foot: list a unit's crew, send one toward a door point (undefined resumes the pursuit), or take one into the car. */
  crew?:{list:(unit:object)=>FootCrew[];goTo:(id:number,point?:{x:number;z:number},walk?:boolean)=>void;board:(id:number)=>boolean};
  /** CTaskComplexLeaveCarAndDie for a unit's shot driver once the car rests: the host plays his exit and lays him dead. */
@@ -333,7 +333,7 @@ export class WorldPolice {
    if(!u.seats[seat])return;u.seats[seat]=false;
    const local=new RAPIER.Vector3(spot.x,0,-spot.y),world=car.worldPoint(local);
    const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat},u.member.accuracy);
+   this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat,roadblock:true},u.member.accuracy);
   });
  }
  private beginExit(u:Unit,seat:number){
@@ -527,12 +527,14 @@ export class WorldPolice {
     u.pullTimer=bustPullProgress(u.pullTimer,dt,carStopped&&atDoor);
     if(u.pullTimer>=BUST_PULL_SECONDS){u.pullTimer=0;this.onPullFromCar?.(playerCar);}
    }else u.pullTimer=0;
-   // Roadblock units hold across the road with their crew out; the block dissolves below
-   // three stars or once the player leaves, and the crew then reboards through recallCrew.
+   // Roadblock units hold across the road with their crew out; the block dissolves once the level
+   // is clean or the player leaves, and the crew then reboards through recallCrew.
    if(u.mission==='roadblock'){
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};
     const p0=car.car.body.translation();
-    if(this.law.level<3||Math.hypot(target.x-p0.x,target.z-p0.z)>120){u.mission='far';u.siren=false;}
+    // CTaskComplexPolicePursuit gives a roadblock cop up only once the level is clean; the block stands while any stars
+    // remain (and is left once the player is far off, the browser's removal).
+    if(!this.law.level||Math.hypot(target.x-p0.x,target.z-p0.z)>120){u.mission='far';u.siren=false;}
     continue;
    }
    // CTaskComplexDieInCar: the shot driver coasts for 2000 ms, then leaves and dies if the car is still, else dies in his seat.
