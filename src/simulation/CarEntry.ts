@@ -219,6 +219,8 @@ export class CarEntry {
   // A roll-out at speed may leave over open air (a car off a ramp or a pier): the capsule stands at the door point.
   return !this.sim.world.intersectionWithShape({x:world.x,y:(ground??world.y-1)+.95,z:world.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.55,.3),undefined,undefined,this.sim.playerCollider,car.car.body);
  }
+ /** The driver leaves by the passenger's door only across an empty front passenger seat. */
+ private rightDoorFree(car:WorldCar){return !(car===this.car&&this.passengers.some(p=>p.seat===1));}
  private jackRequired(car:WorldCar){return !!car.autopilot&&!car.occupied&&!car.driverOut;}
  /** CTaskComplexEnterCarAsDriver from on foot. */
   enter(car:WorldCar){
@@ -442,7 +444,7 @@ export class CarEntry {
  }
  private beginGetOut(){
   if(this.upsideDown(this.car!)&&this.beginCrawlOut(this.car!))return true;
-  const car=this.car!,side:Side|undefined=this.room(car,'left')?'left':this.room(car,'right')?'right':undefined;
+  const car=this.car!,side:Side|undefined=this.room(car,'left')?'left':this.rightDoorFree(car)&&this.room(car,'right')?'right':undefined;
   if(!side){
    // No ground at either door because the car floats or has sunk: out into the water, where swimming takes over
    // (EVENT_IN_WATER in the original; WorldBoat sets its skipper over the side the same way).
@@ -474,7 +476,7 @@ export class CarEntry {
  private beginJumpOut(){
   // IsRoomForPedToLeaveCar gates the roll-out as it does the get-out: the driver's door, else the passenger's, else
   // CTaskSimpleCarWaitToSlowDown keeps him in until a door clears or the car can be stepped out of.
-  const car=this.car!,side:Side|undefined=this.room(car,'left',true)?'left':this.room(car,'right',true)?'right':undefined;
+  const car=this.car!,side:Side|undefined=this.room(car,'left',true)?'left':this.rightDoorFree(car)&&this.room(car,'right',true)?'right':undefined;
   if(!side)return false;this.side=side;
   if(!this.sideSlot(VEHICLE_ANIM.rolloutLHS,VEHICLE_ANIM.rolloutRHS))return false;
   car.driverInput=false;car.exitHandbrake=false;
