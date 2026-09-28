@@ -680,7 +680,8 @@ async function boot() {
     wantedLevel:()=>law.level,setWantedLevel:level=>law.setLevel(level),armour:()=>sim.player.armour,setArmour:value=>{sim.player.armour=value;},
     maxHealth:()=>mission?.runtime.game.playerInfo.maxHealth??100,maxArmour:()=>mission?.runtime.game.playerInfo.maxArmour??100,
     // CPickups::GivePlayerGoodiesWithPickUpMI: the jetpack hands the player its task, unless he already wears one.
-    onJetPack:()=>{if(sim.jetPack)return false;sim.startJetPack();sound.frontend(AE_FRONTEND.pickupInfo);return true;},
+    // CPickup::Update leaves the jetpack where it is while ArePlayerControlsDisabled.
+    onJetPack:()=>{if(sim.jetPack||playerControlsDisabled())return false;sim.startJetPack();sound.frontend(AE_FRONTEND.pickupInfo);return true;},
     // PSAVE1: the save menu runs, the screen fades and the player is put back beside the disc facing its heading.
     onSave:pickup=>{
       if(saving||paused)return;
