@@ -212,6 +212,8 @@ export class WeaponSystem {
   }
   return null;
  }
+ /** CTaskSimplePlayerOnFire's timer: when the player's current fire started, in game milliseconds. */
+ private playerFireSince?:number;
  /** Whether the last damage() hit trains the weapon skill (see DoBulletImpact). */
  private hitTrains=false;
  private damage(handle:number,amount:number,direction:Vec3,explosive=false,kind:DamageKind=explosive?'explosion':'bullet',hit?:{weapon?:number;point?:Vec3;fight?:import('../simulation/WorldPedestrians').MeleeFight;pistolWhip?:boolean;push?:{x:number;z:number};byPlayer?:boolean}){
@@ -809,6 +811,12 @@ export class WeaponSystem {
   // CFireManager::Update runs once per game frame (the frame limiter's 30 fps, CTimer's 50/30 step): its spread and
   // merge rolls are per call.
   for(this.fireFrameClock+=dt;this.fireFrameClock>=1/30;this.fireFrameClock-=1/30)this.fires.update(fireWorld);
+  // CTaskSimplePlayerOnFire::ProcessPed: the player's fire goes out five seconds after the task starts, whatever the
+  // fire's own burn time (a merge with nearby fires would otherwise keep it going).
+  const playerFire=this.fires.fireOn(playerKey);
+  if(!playerFire)this.playerFireSince=undefined;
+  else if(this.playerFireSince===undefined)this.playerFireSince=this.nowMs;
+  else if(this.nowMs-this.playerFireSince>=5000){playerFire.extinguish();this.playerFireSince=undefined;}
   for(const fire of this.fires.active){
    const t=fire.target;if(!t)continue;
    // 0.5 x timeStep x m_fireDmgMult per frame.
