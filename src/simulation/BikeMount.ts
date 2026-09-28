@@ -149,6 +149,8 @@ export class BikeMount {
      const seat=bike.seat(),w=seat?this.worldPoint(bike,seat):new Vector3().copy(bike.body.translation() as V3),ground=this.ground(w,bike),v=bike.body.linvel();
      bike.finishExit({x:w.x,y:Math.max(ground??w.y-1,w.y-1),z:w.z});
      this.sim.player.heading=bike.heading();this.sim.player.grounded=false;this.sim.player.verticalSpeed=v.y;this.sim.exitCarriesSpeed=true;
+     // CTaskSimpleCarJumpOut::ProcessPed: m_pEntityIgnoredCollision = the vehicle, as he leaves from its saddle.
+     this.sim.ignoreVehicleOnExit(bike.body);
     }
     let forward=0;
     if(previous<BIKE_JUMP_CARRY){const to=Math.min(this.time,BIKE_JUMP_CARRY),from=Math.max(previous,BIKE_JUMP_SET_OUT),frames=Math.max(0,to-from)*50;this.jumpSpeed*=Math.pow(.96,frames);forward=this.jumpSpeed*frames;}

@@ -300,6 +300,25 @@ export class Simulation {
   /** The bodies of the vehicles that struck the player this step: the sweep that carries out their push leaves them out,
    * as the ped's collision response moves it clear of the car rather than stopping against it. */
   pushingBodies = new Set<number>();
+  /** CPed::m_pEntityIgnoredCollision on the player: the vehicle he just jumped or was knocked off, which neither his
+   * sweep nor the solver meets until his capsule is clear of it. */
+  private exitIgnored?: { body: RAPIER.RigidBody; key: string };
+  ignoreVehicleOnExit(body: RAPIER.RigidBody) {
+    this.releaseExitIgnored(true);
+    const a = this.playerBody.handle, b = body.handle, key = a < b ? `${a}:${b}` : `${b}:${a}`;
+    const had = this.ignoredBodyPairs.has(key);this.ignoredBodyPairs.add(key);this.exitIgnored = { body, key: had ? '' : key };
+    // The contact filter runs only for colliders that ask for it.
+    this.playerCollider.setActiveHooks(RAPIER.ActiveHooks.FILTER_CONTACT_PAIRS);
+  }
+  /** Lets go of the ignored vehicle once the capsule no longer overlaps it (or it is gone). */
+  private releaseExitIgnored(force = false) {
+    const ignored = this.exitIgnored;if (!ignored) return;
+    let touching = false;
+    if (!force && ignored.body.isValid()) this.world.intersectionsWithShape(this.playerCollider.translation(), this.playerCollider.rotation(), this.playerCollider.shape, collider => { if (collider.parent()?.handle === ignored.body.handle) { touching = true; return false; } return true; }, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider);
+    if (touching) return;
+    if (ignored.key) this.ignoredBodyPairs.delete(ignored.key);
+    this.exitIgnored = undefined;this.playerCollider.setActiveHooks(RAPIER.ActiveHooks.NONE);
+  }
   /** How far the player must move this step to leave the cars that struck him (see playerCarHit). */
   collisionShift = { x: 0, z: 0 };
   /** The move speed (units a second) of a moving object the grounded player stands on: an escalator step. CPhysical
@@ -463,7 +482,9 @@ export class Simulation {
     const shift = this.collisionShift; requested.x += shift.x; requested.z += shift.z; shift.x = 0; shift.z = 0;
     let carryY = 0;
     if (wasGrounded) { const carry = this.carrySpeed(); if (carry) { requested.x += carry.x * dt; requested.z += carry.z * dt; carryY = Math.max(0, carry.y) * dt; } }
-    const pushing = this.pushingBodies, filter = pushing.size ? (collider: RAPIER.Collider) => { const parent = collider.parent(); return !parent || !pushing.has(parent.handle); } : undefined;
+    this.releaseExitIgnored();
+    const ignoredBody = this.exitIgnored?.body.handle;
+    const pushing = this.pushingBodies, filter = pushing.size || ignoredBody !== undefined ? (collider: RAPIER.Collider) => { const parent = collider.parent(); return !parent || !pushing.has(parent.handle) && parent.handle !== ignoredBody; } : undefined;
     const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt + carryY, z: requested.z }, filter);
     pushing.clear();
     this.lastMove = { hits: [...resolved.hits], velocity: { x: dt > 0 ? requested.x / dt : 0, z: dt > 0 ? requested.z / dt : 0 } };

@@ -363,6 +363,8 @@ export class WorldBike {
   const factor=this.motorbike?-.3:-.2,up=(3+Math.random()*((this.motorbike?5:6)-3))/70*50,player=this.sim.player;
   this.sim.collisionPush={x:velocity.x+factor*impact.x,z:velocity.z+factor*impact.z};
   player.verticalSpeed=velocity.y+up;player.grounded=false;player.speed=0;this.sim.exitCarriesSpeed=true;
+  // Thrown from where he sat: the bike is not met until he is clear of it (m_pEntityIgnoredCollision).
+  this.sim.ignoreVehicleOnExit(this.body);
   const direction=change>0?browserLocalDirection(player.heading,-impact.x,-impact.z):0;
   WorldBike.onKnockedOff?.((['ko_skid_back','kd_right','ko_skid_front','kd_left'] as const)[direction]);
   this.message='Knocked off the bike!';
