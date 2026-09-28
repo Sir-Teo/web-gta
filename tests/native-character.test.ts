@@ -5,7 +5,7 @@ import { NativeCharacter, type CharacterSource } from '../src/render/NativeChara
 import { readDff } from '../src/assets/dff';
 import { readIfp } from '../src/assets/ifp';
 import {Mesh} from 'three';
-import {Matrix4,Object3D} from 'three';
+import {Matrix4,Object3D,Vector3} from 'three';
 import {readPlayerBaseBody,PLAYER_CLASSIC_FILES} from '../src/assets/readPlayerBaseBody';
 import {playerShoulderMatrix} from '../src/animation/playerShoulders';
 import { Simulation } from '../src/simulation/Simulation';
@@ -473,4 +473,13 @@ test('stepping down a curb is not a fall: no fall pose and no landing', () => {
   expect(character.snapshot().action).toBe('walk');
   sim.player.grounded=true;character.step(.1,controls,sim);
   expect(character.snapshot().action).toBe('walk');
+});
+test('on foot the root keeps only its heading after a car frame facing past ±90° (no upside-down CJ)',()=>{
+ setup();sim.player.heading=.4;sim.player.previous={...sim.player.position};
+ // updateSeated / updateVehicle copy the car's quaternion; a yaw past ±90° reads back as Euler (π, π−yaw, π).
+ character.root.quaternion.setFromAxisAngle(new Vector3(0,1,0),3);
+ expect(Math.abs(character.root.rotation.x)).toBeCloseTo(Math.PI,5);
+ character.update(sim,1);
+ expect(character.root.rotation.x).toBe(0);expect(character.root.rotation.z).toBe(0);
+ const up=new Vector3(0,1,0).applyQuaternion(character.root.quaternion);expect(up.y).toBeCloseTo(1,6);
 });

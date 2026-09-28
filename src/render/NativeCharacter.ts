@@ -781,7 +781,10 @@ export class NativeCharacter {
     this.root.position.set(p.previous.x+(p.position.x-p.previous.x)*alpha,p.previous.y+(p.position.y-p.previous.y)*alpha+this.originHeight,p.previous.z+(p.position.z-p.previous.z)*alpha);
     // Heading is interpolated between fixed steps as the position is; a wrapped difference turns the short way.
     const from=this.stepHeading??p.heading,turn=Math.atan2(Math.sin(p.heading-from),Math.cos(p.heading-from)),heading=from+turn*alpha;
-    this.root.rotation.y = heading + this.headingOffset;this.renderedHeading=heading;
+    // The whole rotation, not just the yaw: a seated or vehicle-clip frame copied the car's quaternion into the root,
+    // and a quaternion of a car facing past ±90° reads back as the Euler triple (π, π−yaw, π); writing only the yaw
+    // onto that left CJ standing on his head after getting out of a car facing that way.
+    this.root.rotation.set(0, heading + this.headingOffset, 0);this.renderedHeading=heading;
     this.samplePose(this.previous + (this.seconds-this.previous)*alpha, this.previousTransitionTime + (this.transitionTime-this.previousTransitionTime)*alpha);
   }
   private samplePose(seconds: number, transitionTime: number) {
