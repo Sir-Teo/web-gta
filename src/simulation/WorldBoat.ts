@@ -84,6 +84,9 @@ export class WorldBoat {
   this.modelId=assets.vehicle.id;this.name=PLAYABLE_BOATS[this.modelId];
   // The table index only feeds unused gear/speed outputs for hulls (no drivetrain).
   this.handling=prepareHandling(assets.handling,0);this.water.buoyancy=this.handling.buoyancy;
+  // CBoat's constructor: m_fTurnMass is half the handling's turn mass (0x6F2940), so the hull rolls and yaws twice as
+  // readily as the rigid body its handling line describes.
+  this.handling.values.turnMass=Math.fround(this.handling.values.turnMass*.5);
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body};
   if(assets.model&&!assets.missingTextures.length){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}catch{this.visual=undefined;}
