@@ -2609,18 +2609,21 @@ export class WorldPedestrians {
    // CTaskSimpleBeHit runs in the physical-response slot above the kill task: while the ped flinches it does not
    // fight, and the fight task it comes back to starts its combo afresh (he stands meanwhile).
    if(p.stagger>0){p.fight=undefined;return true;}
-   return this.stepFight(p,'BBALLBAT',['cop_bat_1','cop_bat_2','cop_bat_3'],this.sim.player.position,visible&&this.sim.knockdown===0,dt,(stage,damage)=>{
+   return this.stepFight(p,'BBALLBAT',['cop_bat_1','cop_bat_2','cop_bat_3'],this.sim.player.position,visible&&this.sim.knockdown===0&&this.playerOnFoot(),dt,(stage,damage)=>{
     const from={x:p.actor.player.position.x,z:p.actor.player.position.z};
     // The group answers only a CEventDamage the player took (MakeGroupRespondToPlayerTakingDamage).
     if(this.damagesPlayer(p,WEAPON.nightstick)){this.sim.damagePlayer(npcPunchDamage(damage,p.attackMult),false,{weapon:WEAPON.nightstick,from,fall:meleeAttackFalls('BBALLBAT',stage)});this.defendPlayer(p);}
     this.onMeleeHit?.({...this.sim.player.position},false);
    });
   }
+  /** A fist or a nightstick lands only on the ped's collision: a player shut inside a car, boat or aircraft has none
+   * to reach (his capsule is off from the entry until he is set out). A bike's rider stays exposed. */
+  private playerOnFoot(){return this.sim.playerCollider.isEnabled()&&this.sim.playerBody.isEnabled()||!!this.playerRide?.()?.bike;}
   /** A street ped's fist combo (UNARMED_1) on the player or another ped: melee.dat damage times its pedstats attack
    * strength, with the victim's HitA reaction for the move. */
   private stepBrawl(p:Pedestrian,foe:Pedestrian|undefined,dt:number){
    if(p.stagger>0){p.fight=undefined;return false;}
-   const target=foe?foe.actor.player.position:this.sim.player.position,canReach=foe?foe.health>0:this.sim.knockdown===0&&this.sim.player.health>0;
+   const target=foe?foe.actor.player.position:this.sim.player.position,canReach=foe?foe.health>0:this.sim.knockdown===0&&this.sim.player.health>0&&this.playerOnFoot();
    const fists=this.fists(p);
    return this.stepFight(p,fists.combo,fists.clips,target,canReach,dt,(stage,damage)=>{
     const q=p.actor.player.position,from={x:q.x,z:q.z};this.onThreat?.(p,{...q});
