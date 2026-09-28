@@ -2228,7 +2228,7 @@ async function boot() {
     /** Dev: the renderer (scene, camera, three.js renderer). */
     render:()=>render,
     /** Dev: the fleet and the car entry task. */
-    fleet:()=>fleet,carEntry:()=>carEntry,hud:()=>hud,weather:()=>weather,cullZones:()=>cullZones,bikeMount:()=>bikeMount,
+    fleet:()=>fleet,carEntry:()=>carEntry,moneyDrops:()=>moneyDrops,hud:()=>hud,weather:()=>weather,cullZones:()=>cullZones,bikeMount:()=>bikeMount,
     /** Dev: spawn a vehicle model beside the player the way the vehicle cheats do. */
     spawnVehicle:(model:number)=>{if(!fleet)return false;void fleet.spawnCheatVehicle(model,sim.player.position,sim.player.heading);return true;},
     /** Put a fleet car (by its snapshot id, e.g. 'starter') at a renderer-frame position at rest. */
@@ -2941,9 +2941,12 @@ async function boot() {
         }
         // CPickup::Update: only a bribe can be taken from a vehicle, any vehicle (IsSphereTouchingVehicle); the rest need
         // the player on foot.
-        const driven=worldCar?.occupied?worldCar:fleet?.occupied,ridden=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
-        pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):ridden?(point,radius)=>!!ridden.assets.collision&&sphereTouchingVehicle(ridden.body,ridden.assets.collision.bounds,point,radius):carEntry.active&&carEntry.phase!=='approach'?()=>false:undefined,Math.floor(gameTimeExact*30/1000));
-        const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');
+        // FindPlayerVehicle counts a passenger seat. CPickups::Update skips the player's pickups while he runs
+        // CTaskComplexEnterCarAsDriver (the walk to the door included, and a bike's mount) or the mobile phone.
+        const driven=worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car,ridden=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+        const pickupsBusy=carEntry.active||bikeMount.active||!!phones.get('player')?.active;
+        pickups.step(step,driven?(point,radius)=>driven.sphereTouches(point,radius):ridden?(point,radius)=>!!ridden.assets.collision&&sphereTouchingVehicle(ridden.body,ridden.assets.collision.bounds,point,radius):pickupsBusy?()=>false:undefined,Math.floor(gameTimeExact*30/1000));
+        const onFootDrops=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!playerPassenger&&!pickupsBusy;
         const cash=moneyDrops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops});
         if(cash){sim.money+=cash;sound.frontend(AE_FRONTEND.pickupMoney);}
         drops.step(step,{position:sim.player.position,alive:sim.player.health>0,onFoot:onFootDrops},(weapon,rounds)=>{
