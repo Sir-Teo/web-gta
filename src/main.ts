@@ -2,6 +2,7 @@ import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
+import {carRollsOverProp} from './simulation/vehiclePropContacts';
 import {gxtHudText,gxtText,insertNumbers} from './assets/gxt';
 import {ScriptTextLayer} from './ui/ScriptTextLayer';
 import {populationOutsideView} from './render/populationVisibility';
@@ -1557,9 +1558,24 @@ async function boot() {
         fallenLampPosts.add(pose.handle);
         const body=sim.world.getCollider(pose.handle)?.parent();if(body)for(let i=0;i<body.numColliders();i++)body.collider(i).setSolverGroups(FALLEN_LAMPPOST_SOLVER_GROUPS);
       }
+      // CVehicle::SpecialEntityPreCollisionStuff: a car over a loose prop it cannot smash, under a unit on every axis of
+      // its bounds, ignores the collision (the prop is under it); the pair is filtered for as long as that holds.
+      const record=(localObjectDefs??resolvedObjectDefs)?.get(source.modelName.toLowerCase()),bounds=scene.placementInfo(pose.handle)?.part.collision?.bounds,propBody=sim.world.getCollider(pose.handle)?.parent();
+      if(record&&bounds&&propBody&&fleet){
+       const effect=record.values.collisionDamageEffect??0,size=[bounds.max[0]-bounds.min[0],bounds.max[1]-bounds.min[1],bounds.max[2]-bounds.min[2]] as const;
+       for(const car of fleet.cars){
+        if(car.disposed)continue;const b=car.car.body,cp=b.translation();
+        const key=b.handle<propBody.handle?`${b.handle}:${propBody.handle}`:`${propBody.handle}:${b.handle}`;
+        const near=Math.hypot(cp.x-pose.translation.x,cp.y-pose.translation.y,cp.z-pose.translation.z)<car.boundRadius+2;
+        if(near&&carRollsOverProp({position:cp,rotation:b.rotation()},{position:pose.translation,rotation:pose.rotation,effect,boundsMax:bounds.max,boundsSize:size})){sim.ignoredBodyPairs.add(key);rolledOverPairs.add(key);}
+        else if(rolledOverPairs.delete(key))sim.ignoredBodyPairs.delete(key);
+       }
+      }
     }
   };
   const fallenLampPosts=new Set<number>();
+  /** The car and prop body pairs SpecialEntityPreCollisionStuff has filtered this frame. */
+  const rolledOverPairs=new Set<string>();
   const LAMP_POST_MODELS=new Set(['mtraffic1','vgsstriptlights1','mtraffic2','lamppost1','lamppost2','lamppost3','doublestreetlght1','mlamppost']);
   const isLampPost=(model:string,flags:number)=>LAMP_POST_MODELS.has(model.toLowerCase())||(flags&0x1800)!==0;
   /** Collider handles are never reused (Rapier encodes a generation), so the states of colliders a window swap
