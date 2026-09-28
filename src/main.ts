@@ -2697,7 +2697,9 @@ async function boot() {
         {const info=weapons.inventory.info();
          if(!onFoot||weapons.aiming||render.firstPerson||sim.jetPack||sim.player.swimming||sim.climbing||playerDown||sim.player.health<=0||law.arrested||!info||(info.fire!=='instant'&&info.fire!=='area')||info.flags&(WEAPON_FLAG.aimWithArm|WEAPON_FLAG.firstPerson))hipGun=undefined;
          else if(firing&&!render.nativeCharacter?.sprinting)hipGun=weapons.inventory.selected;
-         else if(hipGun!==weapons.inventory.selected||Math.hypot(axes.x,axes.y)>50/128)hipGun=undefined;}
+         // With the button up the task runs on only through the fire clip (FinishGunAnimCB, then StartAnim with no command
+         // left finishes it): once the shot's interval and any reload are over, CJ lets the gun down.
+         else if(hipGun!==weapons.inventory.selected||Math.hypot(axes.x,axes.y)>50/128||weapons.inventory.cooldown<=0&&!weapons.inventory.reloading)hipGun=undefined;}
         // PlayerControlZelda jumps only while the target button is up (PlayerControlZeldaWeapon never does).
         let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim'),jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming||hipGun!==undefined?render.yaw+Math.PI:undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl while there is energy for

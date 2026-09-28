@@ -16,5 +16,12 @@ test('firing a rifle without aiming strafes facing the camera',async({page})=>{
  const now=await state(),off=Math.abs(Math.atan2(Math.sin(now.heading-now.yaw-Math.PI),Math.cos(now.heading-now.yaw-Math.PI)));
  await page.keyboard.up('KeyA');await page.keyboard.up('Control');
  expect(off).toBeLessThan(.3);
+ // Once the burst's clip is over, the use-gun task finishes: CJ no longer turns with the camera.
+ await page.waitForTimeout(1200);
+ const settled=(await state()).heading;
+ await page.evaluate(()=>{(window as any).__game.render().yaw+=1.5;});
+ await page.waitForTimeout(600);
+ const later=(await state()).heading;
+ expect(Math.abs(Math.atan2(Math.sin(later-settled),Math.cos(later-settled)))).toBeLessThan(.1);
  expect(errors).toEqual([]);
 });
