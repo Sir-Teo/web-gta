@@ -881,6 +881,8 @@ export class Simulation {
     this.abortJetPack();
     this.animationMovement = null;
     this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0; this.playerInAir = false; this.turnTarget = undefined;
+    // RestorePlayerStuffDuringResurrection's SetInitialState: a landing the death replaced is not played after it.
+    this.fallLanding = undefined; this.fallLandingSound = false;
     this.flushPlayerTasks(); this.collisionShift = { x: 0, z: 0 };
 
     this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.player.adrenaline = 0; this.deathRemaining = 0;
