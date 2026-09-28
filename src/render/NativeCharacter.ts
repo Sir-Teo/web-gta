@@ -525,6 +525,9 @@ export class NativeCharacter {
     if (sim.player.grounded && !oneShot(action)) this.lastGroundAction = action === 'move' ? this.moveAnims!.moveState === 'sprint' ? 'sprint' : 'run' : action;
     // A roll asked for again once its clip ended starts over (DeleteDuckAnimCB cleared m_MoveAnim).
     if (rollAction(action) && action === this.action && this.duckRollDone) { this.seconds = this.previous = 0; this.duckRollDone = false; }
+    // CTaskSimpleLand::ProcessPed, once its clip is done: WALK, RUN and SPRINT (partial jump clips never faded them)
+    // start their cycles again from frame 0, so the stride after a landing always begins at the top.
+    if (landingAction(this.action) && !landingAction(action) && this.moveAnims) for (const clip of ['walk', 'run', 'sprint'] as const) { const a = this.moveAnims.assocs.get(clip); if (a) a.time = 0; }
     if (action !== this.action) {
       this.landingSpeed = landingAction(action) && this.motionSpace === 'actor' && this.lastGroundAction === 'sprint' && controls.sprint ? 2 : 1;
       this.samplePose(this.seconds, this.transitionTime);
