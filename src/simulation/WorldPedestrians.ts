@@ -679,6 +679,9 @@ export class WorldPedestrians {
      if(p.view.hasReaction(clip))p.view.playReaction(clip,Infinity);
      return true;
     }
+    // CTaskSimpleStealthKill::MakeAbortable refuses ordinary (URGENT) damage on the victim: only the knife's own hit,
+    // once KILL_KNIFE_PED_DIE plays, gets through, and that is the kill timer's.
+    if(p.stealth!==undefined)return false;
     // CPhysical::CanPhysicalBeDamaged: drowning always gets through, a fall only past collision proofing.
     const proofed=hit?.weapon===WEAPON.drowning?false:hit?.weapon===WEAPON.fall?!!p.proofs?.collision:pedProofedAgainst(p,kind);
     if(!ignoreProofs&&proofed)return false;
