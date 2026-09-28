@@ -81,7 +81,7 @@ test('a jump-out takes the passenger door when a wall blocks the driver\'s, and 
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
  await page.evaluate(`(${harness.toString()})().then(h=>{window.__entry=h;})`);await page.waitForFunction(()=>!!(window as any).__entry,undefined,{timeout:120000});
  const result=await page.evaluate(async()=>{
-  const {RAPIER}=await import(/* @vite-ignore */ '/tests/fixtures/native-render-dependencies.ts');
+  const dependencies='/tests/fixtures/native-render-dependencies.ts',{RAPIER}=await import(/* @vite-ignore */ dependencies);
   const h=(window as any).__entry;h.reset(-4,1);h.entry.enter(h.car);
   for(let i=0;i<60*12&&!h.entry.seated;i++)h.step();
   for(let i=0;i<60*6;i++)h.step({pedal:true});
