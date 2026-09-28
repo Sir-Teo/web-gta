@@ -2,7 +2,7 @@ import {expect,test} from 'vitest';
 import {WorldPlane} from '../src/simulation/WorldPlane';
 
 const plane=(extra:object={})=>{
- const p:any={health:200,drowning:false,burnTimer:0,occupied:false,modelId:487,random:()=>.5,blasts:0,destroyed:false,
+ const p:any={health:200,drowning:false,burnTimer:0,fireCounter:0,occupied:false,modelId:487,random:()=>.5,blasts:0,destroyed:false,
   body:{translation:()=>({x:1,y:2,z:3})},onBurnExplosion(){p.blasts++;},damage(n:number){p.health-=n;p.destroyed=true;return true;},...extra};
  Object.defineProperty(p,'burning',{get:()=>p.health>0&&p.health<250&&!p.drowning});
  return p;
@@ -25,4 +25,13 @@ test('a burning aircraft nobody flies goes off with a rocket blast 1.2% of frame
  const unlucky=plane({random:()=>.013});burn(unlucky,1/30);expect(unlucky.blasts).toBe(0);
  const flown=plane({random:()=>0,occupied:true});burn(flown,1/50);expect(flown.blasts).toBe(0);
  const toy=plane({random:()=>0,modelId:465});burn(toy,1/50);expect(toy.blasts).toBe(0);
+});
+
+test('the fire counter latches once when the fire starts: 2 in the air, 1 on the ground or in the water, never cleared',()=>{
+ const flying=plane({inAir:true});burn(flying,1/50);expect(flying.fireCounter).toBe(2);
+ // Landing later does not change it.
+ flying.inAir=false;burn(flying,1/50);expect(flying.fireCounter).toBe(2);
+ const landed=plane({inAir:false});burn(landed,1/50);expect(landed.fireCounter).toBe(1);
+ // Not burning: nothing is latched.
+ const healthy=plane({health:600,inAir:true});burn(healthy,1/50);expect(healthy.fireCounter).toBe(0);
 });

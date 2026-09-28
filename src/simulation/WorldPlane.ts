@@ -70,6 +70,8 @@ export class WorldPlane {
  health=1000;vtol=true;
  /** CAutomobile::m_fBurnTimer in milliseconds, which ProcessCarOnFireAndExplode runs for planes and helicopters too. */
  burnTimer=0;
+ /** CAutomobile::m_fireParticleCounter: set once when the fire starts, 2 for an aircraft in the air, 1 otherwise, and never cleared. */
+ fireCounter=0;
  /** Set by a BlowUpCar the flight step reached (the water dive) until afterStep hands the explosion on. */
  private pendingExplosion=false;
  /** EXPLOSION_ROCKET at the aircraft: a burning aircraft nobody flies goes off like this 1.2% of frames. */
@@ -314,21 +316,25 @@ export class WorldPlane {
   * has a 1.2% chance a frame of an EXPLOSION_ROCKET where it is. Out of the fire, the timer is cleared. */
  private burn(dt:number){
   if(!this.burning){this.burnTimer=0;return false;}
+  if(!this.fireCounter)this.fireCounter=this.inAir?2:1;
   this.burnTimer+=dt*1000;
   if(this.burnTimer>5000)return this.damage(this.health);
   const rc=this.modelId===464||this.modelId===465||this.modelId===501;
   if(!this.occupied&&!rc&&this.random()<1-Math.pow(1-.012,dt*30))this.onBurnExplosion?.({...this.body.translation()});
   return false;
  }
+ /** CAutomobile::IsInAir: not in the water, no wheel on the ground and moving. */
+ get inAir(){if(this.inWater)return false;const v=this.body.linvel();return !this.grounded&&(v.x!==0||v.y!==0||v.z!==0);}
  afterStep(){let destroyed=this.pendingExplosion;this.pendingExplosion=false;
   if(!this.occupied)this.exitPending=false;
   else if(this.exitPending&&this.leaveMode()==='wait')this.slowForExit(this.stepDt);
   const change=new Vector3().copy(this.body.linvel()).sub(this.impactVelocity).length();
   if(this.health>0&&change>12){let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});if(contact)destroyed=this.damage((change-10)*45);}
   // CAutomobile::ProcessControl's crash-and-burn: the player's plane or helicopter burning (under 250 health, where its
-  // fire starts) blows up at once when it strikes something rising or is down, unless it is still sinking.
+  // fire starts) whose fire started in the air (m_fireParticleCounter 2) blows up at once when it strikes something
+  // rising or is down, unless it is still sinking.
   if(!destroyed)destroyed=this.burn(this.stepDt);
-  if(!destroyed&&this.occupied&&this.health>0&&this.health<250){
+  if(!destroyed&&this.occupied&&this.health>0&&this.health<250&&this.fireCounter===2){
    let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});
    const v=this.body.linvel(),rising=contact&&v.y-this.impactVelocity.y>0;
    if((rising||this.grounded)&&(v.y>=0||this.inWater))destroyed=this.damage(this.health);
