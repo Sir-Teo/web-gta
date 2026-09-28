@@ -15,8 +15,8 @@ export const BIKE_JUMP_SET_OUT=.35,BIKE_JUMP_CARRY=.7333;
 /** CVehicle::CanPedStepOutCar (0x6D1F30), the base rule bikes use: |v2D| ≤ 0.01, |vz| ≤ 0.05 units/frame, |ω|² ≤ 0.0004. */
 export function bikeCanStepOut(v:V3,w:V3){const s=1/50;return Math.hypot(v.x,v.z)*s<=.01&&Math.abs(v.y)*s<=.05&&(w.x*w.x+w.y*w.y+w.z*w.z)*s*s<=.0004;}
 /** CVehicle::CanPedJumpOutCar (0x6D2030) for bikes: v2D² ≥ 0.07 units/frame (13.2 m/s), for the rider only while no
- * pillion sits behind him. */
-export function bikeCanJumpOut(v:V3,pillion:boolean){const s=1/50;return !pillion&&(v.x*v.x+v.z*v.z)*s*s>=.07;}
+ * pillion sits behind him. CQuadBike is a CAutomobile, not a bike, so it takes the car rule: 0.1 ≤ v2D² ≤ 0.5. */
+export function bikeCanJumpOut(v:V3,pillion:boolean,quad=false){const s=1/50,v2=(v.x*v.x+v.z*v.z)*s*s;return quad?v2>=.1&&v2<=.5:!pillion&&v2>=.07;}
 interface ClipUse{key:string;clip:NativeAnimation}
 /** The player's bike mount and dismount (CTaskComplexEnterCarAsDriver and CTaskComplexLeaveCar through the bike's
  * animation group): the side's jump-on clip onto the saddle, the get-off clip down beside it, or, at speed, the
@@ -74,7 +74,7 @@ export class BikeMount {
   this.bike=bike;
   const v=bike.body.linvel(),w=bike.body.angvel();
   if(bikeCanStepOut(v,w))return this.beginGetOff(bike);
-  if(bikeCanJumpOut(v,!!bike.pillion))return this.beginJumpOff(bike);
+  if(bikeCanJumpOut(v,!!bike.pillion,bike.quad))return this.beginJumpOff(bike);
   this.begin('waitSlow');return true;
  }
  private begin(phase:BikeMountPhase){this.phase=phase;this.time=0;this.setOut=false;this.message=undefined;}
@@ -131,7 +131,7 @@ export class BikeMount {
    case 'waitSlow':{
     bike.brake=true;bike.throttle=0;
     const v=bike.body.linvel(),w=bike.body.angvel();
-    if(bikeCanStepOut(v,w))this.beginGetOff(bike);else if(bikeCanJumpOut(v,!!bike.pillion))this.beginJumpOff(bike);
+    if(bikeCanStepOut(v,w))this.beginGetOff(bike);else if(bikeCanJumpOut(v,!!bike.pillion,bike.quad))this.beginJumpOff(bike);
     return;
    }
    case 'getOff':{
