@@ -100,6 +100,8 @@ export interface ScmMissionWorld {
   * for a cut, physicalFlags.bDontApplySpeed (FREEZE_CHAR_POSITION), the swimming and falling questions, the clip
   * playing, and m_nAreaCode. */
  setPlayerAmmo?(weaponType:number,ammo:number):void;
+ /** ENSURE_PLAYER_HAS_DRIVE_BY_WEAPON: the SMG slot topped up to `ammo`, or a Micro-SMG given and taken up, in a vehicle only. */
+ ensurePlayerHasDriveByWeapon?(ammo:number):void;
  addPlayerAmmo?(weaponType:number,ammo:number):void;
  hidePlayerWeapon?(hidden:boolean):void;
  markRoadNodeAsDontWander?(point:{x:number;y:number;z:number}):void;
@@ -1399,6 +1401,7 @@ export class ScmMission {
    // The trip skip's four set-ups: after a mission, or for a named vehicle, or for one the script finishes off.
    setUpSkip:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP')([x,y,z],heading,false,undefined,false);},
    setUpSkipAfterMission:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP_AFTER_MISSION')([x,y,z],heading,true,undefined,false);},
+   ensurePlayerHasDriveByWeapon:(_handle,ammo)=>{this.host('ensurePlayerHasDriveByWeapon','ENSURE_PLAYER_HAS_DRIVE_BY_WEAPON')(ammo);},
    setUpSkipForSpecificVehicle:(x,y,z,heading,car)=>{this.host('setUpScriptSkip','SET_UP_SKIP_FOR_SPECIFIC_VEHICLE')([x,y,z],heading,false,this.liveVehicle(car),false);},
    setUpSkipForVehicleFinishedByScript:(x,y,z,heading,car)=>{this.host('setUpScriptSkip','SET_UP_SKIP_FOR_VEHICLE_FINISHED_BY_SCRIPT')([x,y,z],heading,false,this.liveVehicle(car),true);},
    clearSkip:()=>{this.host('clearScriptSkip','CLEAR_SKIP')();},

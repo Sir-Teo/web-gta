@@ -4576,6 +4576,14 @@ async function boot() {
                  // The script's (x, y, z) is the renderer's (x, z, -y), the player's feet on z. In a car, the car goes with
                  // him, its centre of mass GetDistanceFromCentreOfMassToBaseOfModel above the point.
                  setPlayerAmmo:(weapon,ammo)=>{weapons.inventory.setTotalAmmo(weapon,ammo);},
+                 // ENSURE_PLAYER_HAS_DRIVE_BY_WEAPON: nothing on foot; the SMG slot's weapon is topped up to `ammo`, or, empty, a
+                 // Micro-SMG is given, the current weapon saved for the exit, and the SMG taken up.
+                 ensurePlayerHasDriveByWeapon:ammo=>{
+                  const inv=weapons.inventory;if(!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger))return;
+                  const smg=[28,29,32].find(id=>inv.owned.has(id));
+                  if(smg!==undefined){const a=inv.ammo.get(smg);if(!a||a.clip+a.reserve<ammo)inv.setTotalAmmo(smg,ammo);return;}
+                  inv.give(28,ammo);driverSavedWeapon??=inv.selected;inv.select(28);void weaponView.equip(28);
+                 },
                  addPlayerAmmo:(weapon,ammo)=>{weapons.inventory.grantAmmo(weapon,ammo);},
                  hidePlayerWeapon:hidden=>{playerWeaponHiddenByScript=hidden;},
                  clearPlayerLookAt:()=>{pedestrians?.clearPlayerLookAt();},
