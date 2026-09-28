@@ -105,6 +105,8 @@ export class WorldBike {
  riderLean=0;
  /** CBmx::m_fControlJump (0 to 25 steps of charge) and the time left before the hop launches. */
  controlJump=0;hopLaunch?:number;pillion?:{modelRef:number|string};
+ /** The hop button's state last frame: CBmx::ProcessBunnyHop starts a charge on a press (IsLeftShoulder1Pressed), not on a hold. */
+ private hopHeld=false;
  /** Engine speed for audio (pedal cadence on bicycles, rpm on motorbikes). */
  engine01=0;
  /** Head/tail lamp glows (bike lamp pass): additive sprites at the hull ends, lit at night. */
@@ -273,6 +275,7 @@ export class WorldBike {
  static hopClipSeconds?:(modelId:number)=>number|undefined;
  /** CBmx::ProcessBunnyHop. Under DisablePlayerControls the press is refused and the charge dropped. */
  private bunnyHop(dt:number,held:boolean,disabled=false){
+  const pressed=held&&!this.hopHeld;this.hopHeld=held;
   if(disabled&&this.hopLaunch===undefined)this.controlJump=0;
   if(!BMX_MODELS.has(this.modelId)||!this.occupied){this.controlJump=0;this.hopLaunch=undefined;return;}
   if(this.hopLaunch!==undefined){
@@ -280,9 +283,11 @@ export class WorldBike {
    if(this.hopLaunch<=0){
     // CBmx::LaunchBunnyHopCB: the Huge Bunny Hop cheat multiplies the hop's power by 5.
     const power=(Math.min(this.controlJump/25,1)+1)*(CHEATS.isActive('hugeBunnyHop')?5:1);this.controlJump=0;this.hopLaunch=undefined;
-    if(this.wheelsDown()){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
+    // A front wheel and a rear wheel must both be touching (m_WheelCounts); GetFatAndMuscleModifier(STAT_MOD_6) is a
+    // retail stub, taken as 1.
+    if(this.wheelsDown(.5)&&this.wheelsDown(-.5)){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
    }
-  }else if(held)this.controlJump=Math.min(25,this.controlJump+dt*50);
+  }else if(held&&(this.controlJump>0||pressed&&!disabled))this.controlJump=Math.min(25,this.controlJump+dt*50);
   // On release the bunny-hop clip jumps to (0.2 − t)/0.2 × (T − 0.2) + 0.2, t being the charge's 0..0.2 hold time, and
   // plays out at speed 1.5, so the launch comes (T − 0.2) × charge/25 / 1.5 later: a tap hops at once.
   else if(this.controlJump>0){const clip=WorldBike.hopClipSeconds?.(this.modelId);this.hopLaunch=clip!==undefined?Math.max(0,clip-.2)*(this.controlJump/25)/1.5:HOP_RELEASE_SECONDS;}
@@ -298,9 +303,10 @@ export class WorldBike {
   g.loaded=!!this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+2,z:p.z},{x:0,y:-1,z:0}),500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   return g.loaded;
  }
- /** Whether the ground is under the bike's wheels (a short ray down from the body). */
- private wheelsDown(){
-  const p=this.body.translation(),hit=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+.2,z:p.z},{x:0,y:-1,z:0}),1.4,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.body);
+ /** Whether the ground is under the bike (a short ray down from the body), `along` units ahead of its centre. */
+ private wheelsDown(along=0){
+  const p=this.body.translation(),f=rotate(this.body.rotation(),{x:0,y:0,z:-1});
+  const hit=this.sim.world.castRay(new RAPIER.Ray({x:p.x+f.x*along,y:p.y+.2+f.y*along,z:p.z+f.z*along},{x:0,y:-1,z:0}),1.4,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.body);
   return !!hit;
  }
  /** Pin the embarked player to the bike; knock-offs eject through the reversed force formula. */
