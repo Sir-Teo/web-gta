@@ -15,11 +15,11 @@ import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel
 import {Quaternion,Vector3} from 'three';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {lanePoint,nextLaneOnLink,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
+import {BLOCK_TO_STOP_DISTANCE,STOP_TO_BLOCK_DISTANCE,blockPlayerTarget,lanePoint,nextLaneOnLink,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,type Pedals} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 import type {WorldPlane} from './WorldPlane';
-import {POLICE_HELI_MODEL,helisRequired,heliHeading,heliOrbitPoint,policeHeliInputs,rappelWindow,searchlightTarget} from './policeHeli';
+import {POLICE_HELI_MODEL,heliHeading,heliOrbitPoint,policeHeliInputs,rappelWindow,searchlightTarget} from './policeHeli';
 import { roadblockAllowed } from '../police/pursuit';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldBike} from './WorldBike';
@@ -265,7 +265,7 @@ export class WorldPolice {
     if(!car)continue;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
-    this.units.push({car,wanted:this.law.level,member:crew.member,shotgunSeat:(crew as {shotgunSeat?:number}).shotgunSeat,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
+    this.units.push({car,wanted:this.law.level,blockStop:blockHandbrakeStop(this.law.level,this.random),member:crew.member,shotgunSeat:(crew as {shotgunSeat?:number}).shotgunSeat,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
     break;
    }
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -621,9 +621,10 @@ export class WorldPolice {
    if(u.mission==='far'&&(distance<=20||headOn)){u.mission='close';u.siren=true;}
    else if(u.mission==='close'&&distance>50){u.mission='far';u.siren=false;}
    // RAM/BLOCK close: the crew gets out beside a player on foot, flipped, or stopped in a car for 2500 ms.
-   // RAMPLAYER_CLOSE: the player's car counts as stopped under 0.05 units a frame, and m_nCopsInCarTimer, run only in
-   // the close mission, adds TimeStep x 1000/60 a frame towards its 2500.
-   const playerStopped=!playerCar||playerSpeed*playerSpeed<.05*.05;
+   // Police cars run BLOCKPLAYER (FindPoliceCarMissionForWantedLevel), whose UpdateCarAI branch counts the player's
+   // car as stopped under 0.04 units a frame (RAMPLAYER's 0.05 is for other rammers), and m_nCopsInCarTimer, run only
+   // in the close mission, adds TimeStep x 1000/60 a frame towards its 2500.
+   const playerStopped=!playerCar||playerSpeed*playerSpeed<.04*.04;
    u.slowTimer=u.mission==='close'&&playerStopped?u.slowTimer+dt*50*1000/60:0;
    const upsideDown=!!playerCar&&(()=>{const r=playerCar.car.body.rotation();return 1-2*(r.x*r.x+r.z*r.z)<0;})();
    // A Rhino's crew gets out only when its random seed is over 10000 (of 32768).
@@ -667,15 +668,16 @@ export class WorldPolice {
     // The set-piece mission's steering is in the unreversed SteerAICarWithPhysics: straight at the destination, then
     // at the player, at the set piece's cruise speed.
     pedals=steerHeadingForTarget(state,u.mission==='slowly1'&&u.goal?u.goal:goal,u.cruise);
+   }else if(u.mission==='close'&&playerCar){
+    // MISSION_BLOCKPLAYER_CLOSE and BLOCKPLAYER_HANDBRAKESTOP (re3's steering; SA's is unreversed): head for the
+    // player's spot a second of his speed ahead, and within 5 of it stop on the handbrake until he is 10 away.
+    const blockTarget=blockPlayerTarget(goal,{x:targetVelocity.x/50,y:-targetVelocity.z/50});
+    if(u.blockStop){if(distance>STOP_TO_BLOCK_DISTANCE)u.blockStop=false;pedals={swerve:0,accel:0,brake:1,handbrake:true};}
+    else{if(Math.hypot(blockTarget.x-state.position.x,blockTarget.y-state.position.y)<BLOCK_TO_STOP_DISTANCE)u.blockStop=true;pedals=steerHeadingForTarget(state,blockTarget,cruise);}
+    aim={x:blockTarget.x-p.x,z:-blockTarget.y-p.z};
    }else if(u.mission==='close'){
-    // MISSION_RAMPLAYER_CLOSE.
-    const pr=playerCar?.car.body.rotation(),pf=pr&&toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(pr.x,pr.y,pr.z,pr.w))),pright=pr&&toNative(new Vector3(1,0,0).applyQuaternion(new Quaternion(pr.x,pr.y,pr.z,pr.w)));
-    const pp=playerCar?.car.body.translation();
-    const ram=ramPlayerCloseTarget({seed:u.seed,player:goal,car:{position:state.position,forward:state.forward,halfWidth:car.nativeBody.boundsMax.x},
-     playerVehicle:playerCar&&pp&&pf&&pright?{position:{x:pp.x,y:-pp.z},forward:{x:pf.x,y:pf.y},right:{x:pright.x,y:pright.y},halfWidth:playerCar.nativeBody.boundsMax.x,speed:Math.hypot(targetVelocity.x,targetVelocity.z)/50}:undefined});
-    if(ram.turn&&!(u.turn&&this.seconds<u.turn.until))u.turn={dir:ram.turn,until:this.seconds+.25};
-    aim={x:ram.target.x-p.x,z:-ram.target.y-p.z};
-    pedals=u.turn&&this.seconds<u.turn.until?turnPedals(u.turn.dir):steerHeadingForTarget(state,ram.target,cruise);
+    // MISSION_APPROACHPLAYER_CLOSE for the suspect on foot: straight at him (the steering is unreversed).
+    pedals=steerHeadingForTarget(state,goal,cruise);
    }else if(this.paths&&u.link){
     // FARAWAY missions route over the car path network to the node nearest the player, refreshed every 3 s or when the player moves 20 units.
     if(u.mission==='far'&&(this.seconds-u.routeAt>3||!u.routeGoal||Math.hypot(u.routeGoal.x-target.x,u.routeGoal.z-target.z)>20)){u.routeAt=this.seconds;u.routeGoal={x:target.x,y:target.y,z:target.z};u.route=findTrafficRoute(this.paths.areas,u.link.to,u.routeGoal)??[];}
