@@ -295,6 +295,8 @@ export interface ScmMissionWorld {
  playerHasScriptTask?():boolean;
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
  clearArea(point:{x:number;y:number;z:number},radius:number):void;
+ /** CPlayerInfo::m_nPlayerState: PLAYERSTATE_PLAYING, HAS_DIED or HAS_BEEN_ARRESTED. */
+ playerState?():'playing'|'dead'|'arrested';
  /** CFireManager::ExtinguishPoint over the host's own fires, in the script's coordinates. */
  extinguishFiresAtPoint?(point:{x:number;y:number;z:number},radius:number):void;
  /** Whether nothing solid stands between two points in the script's own coordinates. */
@@ -1878,9 +1880,11 @@ export class ScmMission {
    switchEntryExit:(name,on)=>{this.entryExitFlags++;this.world.switchEntryExit(name,on);},
    enableBurglaryHouses:on=>{this.world.enableBurglaryHouses(on);},
    disableAllEntryExits:disabled=>{this.world.disableAllEntryExits(disabled);},
-   isPlayerRestarting:()=>false,
-   isPlayerPlaying:()=>true,
-   isPlayerDead:()=>false,
+   // CPlayerInfo::IsRestartingAfterDeath / IsRestartingAfterArrest (DoDeathArrestCheck), IS_PLAYER_PLAYING and
+   // IS_PLAYER_DEAD, all on m_nPlayerState: a mission is failed and cleaned up by the wasted or busted it sees.
+   isPlayerRestarting:()=>{const state=this.world.playerState?.();return state==='dead'||state==='arrested';},
+   isPlayerPlaying:()=>(this.world.playerState?.()??'playing')==='playing',
+   isPlayerDead:()=>this.world.playerState?.()==='dead',
    clearSmallMessages:()=>{},
    isDrawingMap:()=>false,
   };
