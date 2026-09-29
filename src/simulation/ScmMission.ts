@@ -2617,8 +2617,10 @@ export class ScmMission {
   if(camera.lookingAtPlayer)return undefined;
   const entity=camera.lookingAtVector?undefined:camera.targetEntity,at=entity&&this.cameraEntityPosition(entity);
   if(camera.modeToGoTo===MODE_FIXED){
-   // The fixed camera looks at its vector, or at the entity TakeControl gave it, where that entity is now.
-   const source=camera.fixedModeSource,target=at??camera.fixedModeVector;
+   // The fixed camera looks at its vector, or at the entity TakeControl gave it, where that entity is now; the
+   // script's linear move and track (CAMERA_SET_VECTOR_MOVE/TRACK) carry the source and the look-at point while
+   // they run.
+   const source=camera.moveLinearPoint(this.clockMs)??camera.fixedModeSource,target=camera.trackLinearPoint(this.clockMs)??at??camera.fixedModeVector;
    return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
   }
   // MODE_CAM_ON_A_STRING and the follow camera on an entity the script names (two missions): a chase point behind
@@ -2839,7 +2841,10 @@ export class ScmMission {
   // Cars with no playback left are forgotten.
   if(this.recordedCars.size){const recordings=this.runtime.game.vehicleRecordings;for(const handle of this.recordedCars.keys())if(recordings.findVehicleRecordingIndex(handle)===-1)this.recordedCars.delete(handle);}
  }
+ /** The game clock the script last ran at. */
+ private clockMs=0;
  step(nowMs:number,timeStepMs:number){
+  this.clockMs=nowMs;
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;

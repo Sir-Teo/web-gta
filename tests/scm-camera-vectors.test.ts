@@ -116,3 +116,26 @@ describe('the locate commands that name a vehicle',()=>{
   expect(ask('LOCATE_CHAR_ANY_MEANS_CAR_3D',{x:2,y:2,z:1},false,high)).toBe(true);
  });
 });
+
+describe('where the linear runs put the camera (authored ProcessVectorMoveLinear/TrackLinear)',()=>{
+ test('a plain move runs straight from end to end over its window and then lets go',()=>{
+  const game=new ScmGameState(),camera=game.camera;
+  camera.vectorMoveLinear({x:0,y:0,z:0},{x:10,y:20,z:30},1000,false,5000);
+  expect(camera.moveLinearPoint(4999)).toBeUndefined();
+  expect(camera.moveLinearPoint(5000)).toEqual({x:0,y:0,z:0});
+  expect(camera.moveLinearPoint(5250)).toEqual({x:2.5,y:5,z:7.5});
+  expect(camera.moveLinearPoint(6000)).toEqual({x:10,y:20,z:30});
+  expect(camera.moveLinearPoint(6001)).toBeUndefined();
+ });
+ test('an eased run starts and ends at rest, and a persisted one holds its far end until the scriptables reset',()=>{
+  const game=new ScmGameState(),camera=game.camera;
+  camera.cameraPersistTrack=true;
+  camera.vectorTrackLinear({x:0,y:0,z:0},{x:100,y:0,z:0},1000,true,0);
+  expect(camera.trackLinearPoint(500)!.x).toBeCloseTo(50,6);
+  expect(camera.trackLinearPoint(100)!.x).toBeLessThan(10);
+  expect(camera.trackLinearPoint(900)!.x).toBeGreaterThan(90);
+  expect(camera.trackLinearPoint(60000)).toEqual({x:100,y:0,z:0});
+  camera.initialiseScriptableComponents();
+  expect(camera.trackLinearPoint(60000)).toBeUndefined();
+ });
+});

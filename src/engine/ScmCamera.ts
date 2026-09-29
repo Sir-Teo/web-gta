@@ -195,7 +195,23 @@ export class ScmCamera {
   this.moveLinearStartTime=nowMs;this.moveLinearEndTime=nowMs+duration;
   this.moveLinearWithEase=ease;this.vecMoveLinearProcessed=false;
  }
+ /** Where the script's linear move has the camera and where its linear track has it look, at `nowMs`, or nothing
+  * where none applies. AUTHORED: ProcessVectorMoveLinear and ProcessVectorTrackLinear (0x5164A0/0x50D430,
+  * 0x516440/0x50D350) still call into the executable. They are shaped as the reversed ProcessFOVLerp beside them:
+  * the ratio runs from the start time to the end time, eased as a sine from rest to rest when the script asks, and
+  * once the time is up the point holds at the far end only while the matching persist flag (CAMERA_PERSIST_POS,
+  * CAMERA_PERSIST_TRACK) is set; InitialiseScriptableComponents ends both. */
+ moveLinearPoint(nowMs:number){return linearPoint(this.moveLinearStartTime,this.moveLinearEndTime,this.moveLinearFrom,this.moveLinearTo,this.moveLinearWithEase,this.cameraPersistPosition,nowMs);}
+ trackLinearPoint(nowMs:number){return linearPoint(this.trackLinearStartTime,this.trackLinearEndTime,this.trackLinearFrom,this.trackLinearTo,this.trackLinearWithEase,this.cameraPersistTrack,nowMs);}
  snapshot(){return {mode:this.modeToGoTo,switch:this.typeOfSwitch,control:this.whoIsInControlOfTheCamera,target:this.target,
   lookingAtPlayer:this.lookingAtPlayer,lookingAtVector:this.lookingAtVector,
   source:{...this.fixedModeSource},offset:{...this.fixedModeUpOffset},at:{...this.fixedModeVector}};}
+}
+
+function linearPoint(start:number,end:number,from:Vec3,to:Vec3,ease:boolean,persist:boolean,nowMs:number):Vec3|undefined{
+ if(start<0||nowMs<start)return undefined;
+ if(nowMs>end&&!persist)return undefined;
+ let ratio=end>start?Math.min(1,(nowMs-start)/(end-start)):1;
+ if(ease)ratio=(Math.sin((ratio-.5)*Math.PI)+1)/2;
+ return {x:from.x+(to.x-from.x)*ratio,y:from.y+(to.y-from.y)*ratio,z:from.z+(to.z-from.z)*ratio};
 }
