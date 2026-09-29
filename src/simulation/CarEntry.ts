@@ -15,6 +15,10 @@ export type EntryPhase='approach'|'align'|'locked'|'open'|'pullout'|'getIn'|'clo
 import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, approachStall, nextEntryPhase } from '../vehicle/entry';
 /** CCarEnterExit: the player keeps entering or jacking while the car's 2D speed is at most 0.2 units/frame. */
 const PLAYER_ENTER_SPEED=ENTRY_SPEED_SHARED;
+/** An AI car at or below this 2D speed (units a frame: 5 m/s) waits for the player from his press of the enter button. */
+const HOLD_FROM_PRESS_SPEED=.1;
+/** How fast a car being got into loses its ground speed, per second (authored). */
+const ENTRY_SETTLE_RATE=10;
 /** CTaskUtilityLineUpPedWithCar(offset, 600, ...): the ped's offset from the door point is removed over 600 ms. */
 const LINE_UP_SECONDS=LINE_UP_SHARED;
 /** CTaskSimpleCarJumpOut for automobiles: door until 0.07 s, carried car speed until 0.45 s. */
@@ -91,7 +95,9 @@ export class CarEntry {
   /** A failure the player is told about: the entry clips never loaded. (The refusals in `message` are silent, as in
    * the original: a locked door, a blocked way, a car moving too fast or no room to get out show no text.) */
   error?:string;
-  onDriverOut?:(car:WorldCar,position:V3,heading:number)=>void;
+  onDriverOut?:(car:WorldCar,position:V3,heading:number,lying?:{key:string;clip:NativeAnimation})=>void;
+  /** A driver starts being dragged out of `car` (his clip runs for the next second or two). */
+  onJackStart?:(car:WorldCar)=>void;
   /** The player landed after CTaskComplexCarSlowBeDraggedOut, lying in the jacked clip's last frame. */
   onPlayerDraggedOut?:(clip:{key:string;clip:NativeAnimation})=>void;
  constructor(private sim:Simulation,readonly clips:VehicleAnimationLibrary){}
@@ -242,6 +248,11 @@ export class CarEntry {
   if(clear(preferred))this.side=preferred;
   else if(clear(other))this.side=other;
   else{this.car=undefined;this.message='The way to the door is blocked.';return false;}
+  // PrepareVehicleForPedEnter stops an AI driver only once the player has reached the door. A car that has stopped
+  // for him in the road (or at a light) then pulls away as soon as he steps out of its path to go round to the door,
+  // and the entry fails as "moving too fast". A driver nearly at rest is therefore held from the button press on
+  // (authored); a car still going faster than that is left to drive on, as before.
+  if(!car.occupied&&!car.driverOut&&car.autopilot&&car.speed2D()<=HOLD_FROM_PRESS_SPEED)car.holdForEntry=true;
   this.phase='approach';this.time=this.approachTime=0;this.bestDistance=Infinity;this.stall=0;this.message=undefined;this.quitAfterDoor=false;return true;
  }
  /** CTaskComplexLeaveCar for the seated player: step out, jump out, or hold the handbrake until one is possible. */
@@ -490,7 +501,7 @@ export class CarEntry {
   const clip=this.slotFor(car,kind==='jacked'?VEHICLE_ANIM.jackedLHS:VEHICLE_ANIM.getoutLHS);if(!clip)return false;
   // CTaskComplexCarSlowBeDraggedOut: the victim's car is abandoned (FORCED_STOP for a player victim).
   car.driverOut=true;car.autopilot=undefined;car.holdForEntry=true;car.driverLeaving=kind==='getOut';
-  this.npcs.push({car,clip,time:0,kind,done:false,onOut});return true;
+  this.npcs.push({car,clip,time:0,kind,done:false,onOut});if(kind==='jacked')this.onJackStart?.(car);return true;
  }
  /** CTaskComplexLeaveAnyCar for an NPC driver (a CEventVehicleOnFire response): the car stops, the driver plays his
   * get-out clip and `onOut` places him at the door. False when the car has no exit clip. */
@@ -512,10 +523,11 @@ export class CarEntry {
   if(npc.kind==='jacked'&&!(this.car===npc.car&&this.phase==='pullout'))this.openDoor(npc.car,DOOR.leftFront,'jacked',npc.time,npc.clip.group);
   if(npc.kind==='getOut')this.openDoor(npc.car,DOOR.leftFront,'getOut',npc.time,npc.clip.group);
   if(npc.time<npc.clip.clip.duration)return;
-  npc.done=true;npc.car.holdForEntry=false;npc.car.driverLeaving=false;
+  // The car stays held while the player who dragged the driver out is still climbing in.
+  npc.done=true;if(this.car!==npc.car||!this.phase)npc.car.holdForEntry=false;npc.car.driverLeaving=false;
   const local=this.doorPoint(npc.car,'left');if(!local)return;
   const end=clipRootEnd(npc.clip.clip),base=npc.car.worldPoint(npc.kind==='jacked'?{x:local.x+end.x,y:local.y+end.y,z:local.z}:local),ground=this.ground(base,npc.car)??base.y-1;
-  if(npc.onOut)npc.onOut({x:base.x,y:ground+.03,z:base.z},npc.car.heading());else this.onDriverOut?.(npc.car,{x:base.x,y:ground+.03,z:base.z},npc.car.heading());
+  if(npc.onOut)npc.onOut({x:base.x,y:ground+.03,z:base.z},npc.car.heading());else this.onDriverOut?.(npc.car,{x:base.x,y:ground+.03,z:base.z},npc.car.heading(),npc.kind==='jacked'?{key:npc.clip.key,clip:npc.clip.clip}:undefined);
  }
  npcPose():NpcPose|undefined{return this.npcPoses()[0]?.pose;}
  /** Every NPC still leaving a car, with its clip. */
@@ -533,6 +545,13 @@ export class CarEntry {
   const car=this.car;if(!this.phase||!car)return;
   // m_Car is a registered reference: a car deleted under the task (a script's DELETE_CAR) ends it.
   if(car.disposed){this.cancel();return;}
+  // From the door on, the car settles under the player. Its brakes alone left a car that had been rolling at a few
+  // metres a second creeping on through the line-up, the door and the pull-out, dragging CJ along its side
+  // (authored: the brakes plus a firm damping of its ground speed).
+  if(!car.occupied&&car.holdForEntry&&this.phase!=='approach'){
+   const b=car.car.body;
+   if(b.isDynamic()){const k=Math.max(0,1-dt*ENTRY_SETTLE_RATE),v=b.linvel(),w=b.angvel();b.setLinvel({x:v.x*k,y:v.y,z:v.z*k},true);b.setAngvel({x:w.x,y:w.y*k,z:w.z},true);}
+  }
   if(car.wrecked&&!this.rolling&&this.phase!=='jumpOut'){this.cancel();return;}
   if(this.phase==='approach')return;
   if((this.phase==='align'||this.phase==='open'||this.phase==='pullout')&&this.playerQuits(car,input))this.quitAfterDoor=true;

@@ -82,7 +82,7 @@ import {SirenLights} from './render/SirenLights';
 import {Skidmarks} from './render/Skidmarks';
 import {BoatWakes} from './render/BoatWakes';
 import {CarEntry,nativeRideAnims,nativeSteerOverlay} from './simulation/CarEntry';
-import {BikeMount} from './simulation/BikeMount';
+import {BikeMount,bikeTooFastToBoard} from './simulation/BikeMount';
 import {MODEL_FLAG,sitClip} from './simulation/nativeDoor';
 import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
@@ -551,6 +551,8 @@ async function boot() {
   let savedTransfer:{x:number;y:number;z:number;heading:number;quiet?:boolean;area?:number;enexStack?:number[]}|undefined;
   /** Whether a loaded game has had the new game's INTRO ended for it. */
   let introSkipped=false;
+  /** When the new game's opening black was put up (play pressed with no save), until INTRO or a failure takes it over. */
+  let openingHoldAt:number|undefined;
   /** CEntryExitManager and the teleport CEntryExit::TransitionFinished waits on while the spawn point's area streams. */
   let entryExits:EntryExitManager|undefined,interiorTransfer:EntryExitTransition|undefined;
   /** How long CJ has been in SWIM_BACK_TO_SURFACE, for its SWIM_JUMPOUT and CLIMB_jump. */
@@ -571,7 +573,7 @@ async function boot() {
   let roadSurfaces:Awaited<ReturnType<typeof import('./assets/worldRoadMaterials').loadWorldRoadMaterials>>|undefined;
   const render = new GameRenderer(canvas, sim);
   const occupants=new VehicleOccupants(render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
-  const sirens=new SirenLights(render.scene);
+  const sirens=new SirenLights();
   const skids=new Skidmarks(render.scene);
   const wakes=new BoatWakes(render.scene);
   /** Swim roles from the packaged swim.ifp once loaded (idempotent). */
@@ -619,8 +621,24 @@ async function boot() {
   const carEntry=new CarEntry(sim,new VehicleAnimationLibrary(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
   /** The player's bike mount and dismount through the bike's animation group (shares the clip library). */
   const bikeMount=new BikeMount(sim,carEntry.clips);
+  /** How near a bike CJ must stand to board it (WorldBike.enterCheck's reach). */
+  const bikeReach=(bike:import('./simulation/WorldBike').WorldBike)=>Math.max(4,bike.assets.collision?.bounds.radius??0);
+  /** The walk to a bike chosen from further off than that: its clock, the nearest CJ has come and how long he has not
+   * come nearer. */
+  let bikeApproach:{bike:import('./simulation/WorldBike').WorldBike;time:number;best:number;stall:number}|undefined;
+  /** How near the walk brings CJ before he boards. */
+  const BIKE_APPROACH_BOARD=1.6;
+  /** Board a bike within reach: through its jump-on clip once the animation group has loaded, the instant mount
+   * before that. With no standing room at either side (a wall on one, a kerb or a prop on the other) the clip cannot
+   * start, and CJ still gets on at once rather than the button doing nothing. */
+  const boardBike=(bike:import('./simulation/WorldBike').WorldBike)=>{
+    if(bike.enterCheck())return;
+    if(!bikeMount.ready(bike)){bike.interact();return;}
+    if(!bikeMount.mount(bike)){bikeMount.message=undefined;bike.interact();}
+  };
   // CEventDraggedOutCar::AffectsPed needs a living ped: a driver who died in his seat is dragged out a corpse.
-  carEntry.onDriverOut=(car,position,heading)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);if(car.driverDead){car.driverDead=false;pedestrians?.spawnDead(occupants.driverModel(car),position,heading,car.gang);return;}pedestrians?.spawnJacked(occupants.driverModel(car),position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach');};
+  carEntry.onDriverOut=(car,position,heading,lying)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);if(car.driverDead){car.driverDead=false;pedestrians?.spawnDead(occupants.driverModel(car),position,heading,car.gang);return;}pedestrians?.spawnJacked(occupants.driverModel(car),position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach',lying);};
+  carEntry.onJackStart=car=>pedestrians?.prefetchModel(occupants.driverModel(car));
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
   // CGameLogic::Update drives the wasted and busted sequences over the native
   // CRestart tables; the simulation's own timer only releases the seat.
@@ -1147,6 +1165,9 @@ async function boot() {
           const p=projectile.position,missile=missileGlow(projectile.id,[p.x,-p.z,p.y]);glow.pools.push(missile.pool);glow.coronas.push(missile.corona);
         }
         for(const corona of glow.coronas)coronas.register(corona,cam);
+        // The sounding sirens' light bars: coronas, and the flashes' pools on the ground.
+        const siren=sirens.update(fleet?.cars??[],Math.floor(elapsed*1000));
+        for(const corona of siren.coronas)coronas.register(corona,cam);glow.pools.push(...siren.pools);
         // DRAW_CORONA: 450 units of range, reflected in wet roads, no obstacle check (reVC's RegisterCorona call). Only
         // the star raster is drawn here, whatever type the script names.
         for(const c of mission?.takeScriptCoronas()??[])coronas.register({id:c.id,color:c.color,intensity:255,position:c.position,size:c.size,range:450,flareType:c.flareType,reflection:true},cam);
@@ -2207,7 +2228,13 @@ async function boot() {
   }
   function play() {
     terrainHold(false);
-    if (!started) started = true;
+    if (!started) {
+      started = true;
+      // A new game opens on MAIN's DO_FADE 0 0, but the script is only built once the world is there, a few seconds
+      // after the button: until then the screen is held black, so Grove Street and the HUD do not flash up before the
+      // opening's title card. Loading a save point (which skips INTRO) fades straight in.
+      if (!progression.savedLocation && !mission) { openingHoldAt = performance.now(); cameraFade.alpha = 255; cameraFade.value = 255; cameraFade.fading = false; hud.fade(true, 0); }
+    }
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
     // Terrain loading that gave up after failures in a row tries again from where the player stands.
     follower?.retry();
@@ -2315,7 +2342,10 @@ async function boot() {
     /** Dev: the renderer (scene, camera, three.js renderer). */
     render:()=>render,
     /** Dev: the fleet and the car entry task. */
-    fleet:()=>fleet,carEntry:()=>carEntry,moneyDrops:()=>moneyDrops,hud:()=>hud,weather:()=>weather,cullZones:()=>cullZones,bikeMount:()=>bikeMount,
+    fleet:()=>fleet,carEntry:()=>carEntry,
+    /** Dev: the walk up to a bike the enter button chose from further off than boarding reach. */
+    bikeApproach:()=>bikeApproach?{time:bikeApproach.time,best:bikeApproach.best,stall:bikeApproach.stall}:null,
+    moneyDrops:()=>moneyDrops,hud:()=>hud,weather:()=>weather,cullZones:()=>cullZones,bikeMount:()=>bikeMount,
     /** Dev: spawn a vehicle model beside the player the way the vehicle cheats do. */
     spawnVehicle:(model:number)=>{if(!fleet)return false;void fleet.spawnCheatVehicle(model,sim.player.position,sim.player.heading);return true;},
     /** Put a fleet car (by its snapshot id, e.g. 'starter') at a renderer-frame position at rest. */
@@ -2456,6 +2486,8 @@ async function boot() {
   const GROUP_DISBAND_HOLD_SECONDS=2;
   /** weapon.dat UNARMED's target range, for a target with no weapon row. */
   const GROUP_RECRUIT_MELEE_RANGE=10;
+  /** How near a ped must be to hear CJ's Y or N without the aim button (authored). */
+  const CONVERSE_RANGE=4;
   function animate(now: number) {
     if (!alive) return;
     frame = requestAnimationFrame(animate);
@@ -2488,6 +2520,15 @@ async function boot() {
       // Recruiting shows no text in the original; the recruit answers with a line.
       if(result==='joined'){const p=sim.player.position;sound.nativeEngine?.speech('greet',{x:p.x,y:-p.z,z:p.y});}
      }
+     // CPad::ConversationYesJustDown and ConversationNoJustDown (Y and N here): CJ says something positive or negative
+     // to the ped he targets (with the aim button, the crosshair's ped or the nearest ahead; without it, the nearest
+     // ahead within a few steps), and the ped answers (WorldPedestrians.converse).
+     const yes=onFoot&&input.consume('KeyY'),no=onFoot&&input.consume('KeyN');
+     if((yes||no)&&!playerControlsDisabled()&&sim.player.health>0&&sim.knockdown===0&&pedestrians){
+      const info=weapons.inventory.info(),crosshair=['bullet','shotgun','rocket'].includes(weapons.inventory.weapon.kind);
+      const target=input.down('MouseAim')?{handle:crosshair?weapons.lock?.handle??undefined:undefined,range:info?.targetRange??GROUP_RECRUIT_MELEE_RANGE}:{range:CONVERSE_RANGE};
+      if(pedestrians.converse(yes?'yes':'no',target)!=='none'){const p=sim.player.position;sound.nativeEngine?.speech(yes?'greet':'threat',{x:p.x,y:-p.z,z:p.y},Math.abs(Math.floor(p.x*13-p.z*7)));}
+     }
     }
     // Vehicle radio tuning (N cycles the 11 stations while driving).
     if(input.consume('KeyN')&&!paused&&radioModel!==undefined){const station=sound.nativeEngine?.tuneRadio(input.down('ShiftLeft')||input.down('ShiftRight')?-1:1);if(station)hud.radioName(station);}
@@ -2496,9 +2537,12 @@ async function boot() {
     // button while he moves; that sprint (PEDMOVE_SPRINT with m_nWeaponFire) ends the use-gun task. The aimed walk never
     // reports a sprint itself, so the button is read here; ZeldaWeapon's two-handed guns never sprint.
     const armAimInfo=weapons.inventory.info(),armAimed=!!armAimInfo&&!!(armAimInfo.flags&WEAPON_FLAG.aimWithArm);
+    // The aim button held with a gun wins over the sprint button: CJ drops out of the sprint into the aimed walk, so
+    // aiming works from a sprint as it does from a run (the sprint button is released for the step below too).
+    const aimOverridesSprint=input.down('MouseAim')&&weapons.inventory.weapon.kind!=='melee'&&!!armAimInfo&&armAimInfo.fire!=='melee'&&armAimInfo.fire!=='use';
     // Only a real PEDMOVE_SPRINT drops the arm's aim: sprint disabled or a surface that cannot be sprinted on leaves a run.
-    const armSprint=armAimed&&(input.down('ShiftLeft')||input.down('ShiftRight'))&&!sim.player.sprintExhausted&&!playerSprintDisabled()&&!surfaceSprintBlocked&&(()=>{const a=input.axes();return Math.hypot(a.x,a.y)>0;})();
-    const playerSprinting=(!!render.nativeCharacter?.sprinting||armSprint)&&weapons.inventory.weapon.kind!=='melee';
+    const armSprint=armAimed&&!aimOverridesSprint&&(input.down('ShiftLeft')||input.down('ShiftRight'))&&!sim.player.sprintExhausted&&!playerSprintDisabled()&&!surfaceSprintBlocked&&(()=>{const a=input.axes();return Math.hypot(a.x,a.y)>0;})();
+    const playerSprinting=(!!render.nativeCharacter?.sprinting||armSprint)&&weapons.inventory.weapon.kind!=='melee'&&!aimOverridesSprint;
     // CTaskSimplePlayerOnFoot, whose ProcessPlayerWeapon aims and fires, is not the task running while a knockdown's fall
     // and get-up (the event-response slot) or the death sequence owns the player, nor while a jump's launch or the
     // in-air task does (CTaskComplexJump replaces it as the primary task until the landing).
@@ -2583,7 +2627,10 @@ async function boot() {
           const p=sim.player.position,carScore=(c:{car:{body:{translation():{x:number;z:number}}};distance():number})=>{const q=c.car.body.translation();return evaluateCarPosition(sim.player.heading,Math.atan2(q.x-p.x,q.z-p.z),c.distance());};
           const car=[...(fleet?.cars??[])].filter(c=>{const q=c.car.body.translation();return c.consideredByPlayer!==false&&Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;}).sort((a,b)=>carScore(b)-carScore(a))[0];
           const boat=fleet?.nearestBoat(true);
-          const bike=fleet?.nearestBike(true);
+          // A bike a script ped rides (INTRO1's homies' BMXs, parked 2.5 units from CJ's) has its driver seat taken; the
+          // nearest free one is the one to board.
+          const scriptRidden=(b:import('./simulation/WorldBike').WorldBike)=>{const handle=mission?.vehicles.handleOf(b);return handle!==undefined&&!!mission?.peds.seatTaken(handle,'driver');};
+          const bike=fleet?.nearestBike(true,scriptRidden);
           if(plane&&(!car||plane.distance()<car.distance())&&(!boat||plane.distance()<boat.distance())&&(!bike||plane.distance()<bike.distance())&&plane.distance()<10){
            // Planes, boats and bikes board without an approach to hold, so a press while the knockdown's fall and get-up
            // own CJ boards nothing (a car's approach waits for the get-up instead).
@@ -2591,15 +2638,16 @@ async function boot() {
           }
           else if(boat&&(!car||boat.distance()<car.distance())&&(!bike||boat.distance()<bike.distance())&&boat.distance()<10){if(sim.knockdown===0)boat.interact();}
           else if(bike&&(!car||bike.distance()<car.distance())&&bike.distance()<10){
-            // Board through the bike's jump-on clip once its animation group has loaded; before that, the instant mount.
-            // A bike a script ped rides (INTRO1's homies' BMXs) has its driver seat taken: nothing to board.
-            const bikeHandle=mission?.vehicles.handleOf(bike),scriptRidden=bikeHandle!==undefined&&!!mission?.peds.seatTaken(bikeHandle,'driver');
-            if(sim.knockdown>0||scriptRidden||bike.enterCheck()||bikeMount.active){}else if(!bikeMount.ready(bike))bike.interact();else if(!bikeMount.mount(bike))bikeMount.message=undefined;
+            // Out of boarding reach, CJ walks up to it first; within it, on he gets.
+            if(sim.knockdown>0||bikeMount.active){}
+            else if(bike.distance()>bikeReach(bike)){if(!bikeTooFastToBoard(bike)&&!bike.wrecked)bikeApproach={bike,time:0,best:Infinity,stall:0};}
+            else boardBike(bike);
           }
           else if(car)carEntry.enter(car);
         }
         }
       }
+      if(openingHoldAt!==undefined&&!mission&&performance.now()-openingHoldAt>45000){openingHoldAt=undefined;cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);}
       if(input.consume('KeyT')&&fleet?.occupiedPlane)fleet.occupiedPlane.toggleVtol();
       if(input.consume('KeyG')&&fleet?.occupiedPlane)fleet.occupiedPlane.toggleGear();
       elapsed += dt;
@@ -2723,7 +2771,7 @@ async function boot() {
         // CTaskSimpleCarGetOut gives the weapon back (ReplaceWeaponWhenExitingVehicle) as its clip starts, not once he is out.
         stepDriverWeapon(!!(worldCar?.occupied&&!leavingCar||fleet?.occupied&&!(leavingCar&&carEntry.car===fleet.occupied)||fleet?.occupiedBoat||fleet?.occupiedBike||fleet?.occupiedPlane));
         const jetFireAllowed=!sim.jetPack||!jetWeaponHidden&&(()=>{const info=weapons.inventory.info();return !!info&&info.fire==='instant'&&!!(info.flags&WEAPON_FLAG.aimWithArm);})();
-        if(onFoot&&jetFireAllowed&&!playerDown&&!playerJumping&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee')&&firing){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
+        if(onFoot&&jetFireAllowed&&!playerDown&&!playerJumping&&!sim.climbing&&!law.arrested&&!weapons.stealth&&!duck.rolling&&!(render.nativeCharacter?.sprinting&&weapons.inventory.weapon.kind!=='melee'&&!weapons.aiming)&&firing){const direction=aimDirection();weapons.fire({origin:render.camera.position,direction});}
         // CPad::GetWeapon for the throw task's button counter: the fire button while it stays down.
         weapons.throwHeld=onFoot&&!playerDown&&(mouseFires&&input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'));
         // Drive-by: Ctrl fires the selected one-handed weapon from the driven car or boat (CTaskSimpleGangDriveBy port).
@@ -2870,6 +2918,17 @@ async function boot() {
         else if(onFoot&&sim.player.health<=0)controls={...controls,swimWater};else if(sim.player.swimming)stopSwim();
         if(carEntry.active&&sim.player.swimming)carEntry.cancel();
         if(carEntry.phase==='approach')controls=carEntry.approach(step,controls,{x:axes.x,y:axes.y,quit:controls.jump||firing});
+        // The walk up to a bike the enter button chose from further off than the boarding reach, as the go-to-door
+        // part of CTaskComplexEnterCar brings CJ to a car. Steering away, jumping or firing gives it up.
+        if(bikeApproach){
+          const a=bikeApproach,b=a.bike,p=sim.player.position,t=b.body.translation(),dx=t.x-p.x,dz=t.z-p.z,d=Math.hypot(dx,dz);
+          const c=Math.cos(controls.cameraYaw),s=Math.sin(controls.cameraYaw),inX=axes.x*c-axes.y*s,inZ=-axes.x*s-axes.y*c;
+          a.time+=step;if(d<a.best-.05){a.best=d;a.stall=0;}else a.stall+=step;
+          if(b.disposed||b.occupied||!onFoot||carEntry.active||bikeMount.active||sim.knockdown>0||sim.player.health<=0||law.arrested||a.time>10||d>12||controls.jump||firing||Math.hypot(inX,inZ)>.1&&inX*dx+inZ*dz<0)bikeApproach=undefined;
+          // Beside it, or held up against it (a wall, the bike's own frame) within reach: on.
+          else if(d<=BIKE_APPROACH_BOARD||a.stall>.8&&d<=bikeReach(b)){bikeApproach=undefined;boardBike(b);}
+          else{const ax=dx/d,az=dz/d;controls={...controls,x:ax*c-az*s,y:-ax*s-az*c,walk:d<2.5,sprint:false,jump:false,facing:undefined};}
+        }
         if(carEntry.active&&(sim.player.health<=0||law.arrested))carEntry.abandon();
         for(const pl of fleet?.planes??[])if(pl.entry&&(sim.player.health<=0||law.arrested))pl.cancelEntry();
         const entryMotion=carEntry.step(step,{pedal:input.down('KeyW')||input.down('KeyS'),moving:Math.hypot(axes.x,axes.y)>0||input.down('MouseAim'),steer:{x:axes.x,y:axes.y,cameraYaw:controls.cameraYaw},fire:firing});
@@ -2883,6 +2942,7 @@ async function boot() {
         // PlayerControlZelda: m_bPlayerSprintDisabled (DISABLE_PLAYER_SPRINT, and the goggles going on or off) turns the
         // sprint button into a run.
         if(playerSprintDisabled())controls.sprint=false;
+        if(aimOverridesSprint&&weapons.aiming)controls.sprint=false;
         // CTaskComplexGotoDoorAndOpen under CTaskSimpleUninterruptable: a walk-in entrance walks CJ 4 units on, out of the pad's hands.
         const walkIn=entryExits?.active?.walk;
         if(walkIn&&onFoot){const p=sim.player.position,dx=walkIn[0]-p.x,dz=-walkIn[1]-p.z;controls={...controls,x:0,y:Math.hypot(dx,dz)>.5?-1:0,cameraYaw:Math.atan2(dx,dz),walk:true,sprint:false,jump:false,facing:undefined};}
@@ -3131,7 +3191,6 @@ async function boot() {
     hud.element.classList.toggle('in-vehicle',!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns [Ctrl]${aircraft.rocketsArmed?` · Rockets [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(nativeDayNightBalance(sim.timeMinutes));}
-    sirens.update(fleet?.cars??[],Math.floor(elapsed*1000));
     // CSkidmarks::Update in the game frame, then each car's PreRender registers its wheels, then Render.
     if(!paused&&!navigation?.open&&!arsenal.open&&roadSurfaces){const surfaces=roadSurfaces,now=Math.floor(elapsed*1000);skids.update(now);
       for(const car of fleet?.cars??[])skids.lay(car,now,{skidMark:material=>surfaces.records.get(material)?.skidMark,water:material=>!!surfaces.records.get(material)?.values.water},render.camera);}
@@ -3337,6 +3396,11 @@ async function boot() {
       // Loading a game the player saved does not play the new game's opening again: once INITIAL has set the world up
       // and MAIN launches INTRO, the story mission is ended (as leaving it for free roam does), the screen fades in
       // and the save point's clock and place are put back.
+      // The opening black is INTRO's from its first frame; a script that stops first, or never gets to INTRO, fades in.
+      if(openingHoldAt!==undefined&&(mission.runtime.active.some(slot=>slot.thread.base>0&&slot.thread.name==='INTRO')||mission.stopped||performance.now()-openingHoldAt>45000)){
+        if(!mission.runtime.active.some(slot=>slot.thread.base>0&&slot.thread.name==='INTRO')){cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);}
+        openingHoldAt=undefined;
+      }
       if(!introSkipped&&progression.savedLocation&&mission.runtime.active.some(slot=>slot.thread.base>0&&slot.thread.name==='INTRO')){
         introSkipped=true;const runtime=mission.runtime;
         for(const slot of [...runtime.active])if(slot.thread.base>0)runtime.terminateAllWithName(slot.thread.name);
@@ -3912,6 +3976,7 @@ async function boot() {
           pedestrians.onPain=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'pain',speechSeed(position));};
           pedestrians.onFlee=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'flee',speechSeed(position));};
           pedestrians.onThreat=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'threat',speechSeed(position));};
+          pedestrians.onGreet=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'greet',speechSeed(position));};
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           pedestrians.onCrunch=(ped,position)=>sound.nativeEngine?.pedCrunch(ped,{x:position.x,y:-position.z,z:position.y});
           pedestrians.onCarCrunch=car=>sound.nativeEngine?.vehicle(car,car.modelId)?.addAudioEvent(AE.pedCrunch);

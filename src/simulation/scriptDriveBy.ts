@@ -1,6 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3} from 'three';
-import {stepNpcGun,npcAimSpread,type NpcGunState} from './npcGun';
+import {stepNpcGun,npcAimSpread,npcInaccurateAim,type NpcGunState} from './npcGun';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import type {NativeWeaponInfo} from '../weapons/weaponData';
 import type {Simulation} from './Simulation';
@@ -52,7 +52,7 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
  const oldTime=d.gun.time;
  const fire=stepNpcGun(d.gun,info,reloadSeconds,dt,engaged);
  if(fire){
-  const direction=new Vector3().copy(d.aimPoint??aim).sub(muzzle).normalize();
+  const aimed=npcInaccurateAim(d.aimPoint??aim,60),direction=new Vector3(aimed.x,aimed.y,aimed.z).sub(muzzle).normalize();
   const scattered=npcAimSpread(direction,info,60);direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
   const shot=world.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
   const cars=[...world.cars()].filter(c=>c!==car);

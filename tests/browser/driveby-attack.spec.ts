@@ -24,6 +24,8 @@ test('a hating gang\'s attack car cruises in with a posed drive-by crew',async({
    const end=driveby.snapshot().units[0];
    // The attack run opens fire: tracers leave the window and the mark bleeds.
    for(let i=0;i<900&&shots===0;i++){tick();if(i%50===0)await new Promise(r=>setTimeout(r,0));}
+   // A round goes astray by the shooter's inaccuracy, so the first hit can take a few.
+   for(let i=0;i<900&&sim.player.health>=100;i++){tick();if(i%50===0)await new Promise(r=>setTimeout(r,0));}
    const hp=sim.player.health;
    // Crew views load asynchronously (cold caches take a while); give them their fetches before counting.
    for(let i=0;i<300&&occupants.snapshot().drivers<2;i++){tick();await new Promise(r=>setTimeout(r,20));}

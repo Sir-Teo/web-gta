@@ -163,3 +163,27 @@ test('the driver\'s steering clip plays from its first frame and the reverse loo
  expect(reversing.at(-1).overlays.map((o:any)=>o.clip)).toEqual([expect.stringMatching(/^car_lb/)]);
  expect(errors).toEqual([]);
 });
+test('a creeping NPC car CJ jacks stops at the door and stays put through the pull-out and his climb in',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/models.html');
+ await page.evaluate(`(${harness.toString()})().then(h=>{window.__entry=h;})`);await page.waitForFunction(()=>!!(window as any).__entry,undefined,{timeout:120000});
+ const result=await page.evaluate(()=>{
+  const h=(window as any).__entry,b=h.car.car.body;
+  // The driver creeps on at part throttle.
+  h.car.driverOut=false;h.car.autopilot={throttle:.3,brake:0,steering:0,handbrake:false};
+  // CJ stands at the driver's door as the car rolls up to him at 5 m/s: he reaches it at once.
+  const door=h.car.worldPoint(h.entry.doorPoint(h.car,'left'));h.reset(door.x,door.z);
+  const q=b.rotation(),fw={x:-2*(q.x*q.z+q.w*q.y),z:-(1-2*(q.x*q.x+q.y*q.y))};b.setLinvel({x:fw.x*5,y:0,z:fw.z*5},true);
+  h.entry.enter(h.car);
+  const at:Record<string,{x:number;z:number;speed:number}>={};let last:string|undefined;
+  for(let i=0;i<60*14&&!h.entry.seated;i++){h.step();const phase=h.entry.phase;if(phase!==last){const p=b.translation(),v=b.linvel();at[phase]={x:p.x,z:p.z,speed:Math.hypot(v.x,v.z)};last=phase;}}
+  const p=b.translation();at.end={x:p.x,z:p.z,speed:Math.hypot(b.linvel().x,b.linvel().z)};
+  return {at,seated:!!h.entry.seated};
+ });
+ const moved=(a:any,b:any)=>Math.hypot(b.x-a.x,b.z-a.z);
+ expect(result.seated).toBe(true);
+ expect(Object.keys(result.at)).toContain('pullout');
+ // From the door on the car stands: under half a unit from the align to CJ seated, at rest by the pull-out.
+ expect(moved(result.at.align,result.at.end)).toBeLessThan(.5);
+ expect(result.at.pullout.speed).toBeLessThan(.5);
+ await page.evaluate(()=>(window as any).__entry.dispose());expect(errors).toEqual([]);
+});

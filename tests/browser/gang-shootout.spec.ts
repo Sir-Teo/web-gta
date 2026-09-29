@@ -21,7 +21,8 @@ async function shootout(page:import('@playwright/test').Page,hate:boolean){
    // Stand eight metres south of the shooter, in the open.
    sim.player.position={x:armed.position.x,y:armed.position.y,z:armed.position.z+8};sim.playerBody.setTranslation({...sim.player.position,y:armed.position.y+.9},true);sim.world.step();
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();};
-   for(let i=0;i<60;i++)tick();
+   // Rounds go astray by the shooter's inaccuracy, so the first hit can take a few bursts; ten seconds is ample.
+   for(let i=0;i<(hate?600:60)&&(i<60||sim.player.health>=100);i++)tick();
    const health=sim.player.health;
    const snap=crowd.snapshot();const resident=snap.gangs[0];const worn=[...new Set(snap.people.filter((p:any)=>p.gang===0).map((p:any)=>p.model))];
    return {armed:armed.id,shots,health,resident,worn};

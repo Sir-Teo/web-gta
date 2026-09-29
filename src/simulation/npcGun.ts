@@ -49,6 +49,16 @@ export function npcWeaponSpread(type:number){
  if(type===28||type===29||type===32)return 1.2;
  return 1;
 }
+/** Where an AI shooter's round is sent: the point it aims at, moved by its inaccuracy (100 − CPed::m_nWeaponAccuracy).
+ * AUTHORED in the shape of the earlier games' CWeapon::FireInstantHit, which moves an AI's target point by a random
+ * amount in proportion to its inaccuracy (SA's FireInstantHit is unreversed): up to ±0.02 × it across the ground and
+ * ±0.01 × it up. A street cop (accuracy 60) lands roughly a third of his rounds on a standing man, SWAT (68) and the
+ * FBI (76) more, the army (84) most; before, every shooter struck with the weapon cone alone and a single cop's pistol
+ * burst took the player's health in a couple of seconds. */
+export function npcInaccurateAim(aim:{x:number;y:number;z:number},accuracy=60,random:()=>number=Math.random){
+ const k=Math.max(0,100-accuracy);
+ return {x:aim.x+(random()*2-1)*.02*k,y:aim.y+(random()*2-1)*.01*k,z:aim.z+(random()*2-1)*.02*k};
+}
 /** NPC dispersion from the same native weapon radius as the player crosshair:
  * officers no longer land perfect muzzle rays (CTaskSimpleUseGun spread).
  * CCopPed shooting accuracy (street 60, SWAT 68, FBI 76, army 84) scales the

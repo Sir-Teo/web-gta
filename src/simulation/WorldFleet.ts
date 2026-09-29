@@ -504,13 +504,14 @@ export class WorldFleet {
     return best;
   }
   get occupiedBike(){for(const bike of this.bikes)if(bike.occupied)return bike;return undefined;}
-  /** The nearest bike; `forEntry` passes over one a script took out of the player's consideration. */
-  nearestBike(forEntry=false){
+  /** The nearest bike; `forEntry` passes over one a script took out of the player's consideration, and `skip` over
+   * any other the caller cannot board (a script ped's saddle), so a free bike parked beside a ridden one is found. */
+  nearestBike(forEntry=false,skip?:(bike:WorldBike)=>boolean){
     const occupied=this.occupiedBike;
     if(occupied)return occupied;
     let best:WorldBike|undefined;
     let bestDist=Infinity;
-    for(const bike of this.bikes){if(forEntry&&bike.consideredByPlayer===false)continue;const d=bike.distance();if(d<bestDist){bestDist=d;best=bike;}}
+    for(const bike of this.bikes){if(forEntry&&bike.consideredByPlayer===false||skip?.(bike))continue;const d=bike.distance();if(d<bestDist){bestDist=d;best=bike;}}
     return best;
   }
  /** Bikes and boats a generator made, by generator id. */

@@ -628,8 +628,11 @@ export class WorldCar {
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
   // PrepareVehicleForPedEnter stops the car's own autopilot while someone gets in (every mission, whichever system
   // drives it): a driver still aboard brakes and holds; one dragged out drives no more.
-  const holding=!this.occupied&&!this.driverOut&&this.holdForEntry&&!!this.autopilot?(()=>{const v=this.car.body.linvel();return {steering:0,throttle:0,brake:1,handbrake:Math.hypot(v.x,v.z)<.3} as TrafficControls;})():undefined;
-  const p=this.input.pedals,ai=this.occupied&&!this.scriptDriven?undefined:!this.occupied&&this.driverOut?undefined:holding??this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
+  // A car the player is getting into stands still under him: a driver still aboard brakes and holds, and one being
+  // dragged out (or a parked car) is held on its brakes too, rather than coasting on as an abandoned car would while
+  // CJ is pinned at its door.
+  const holding=!this.occupied&&this.holdForEntry?{steering:0,throttle:0,brake:1,handbrake:true} as TrafficControls:undefined;
+  const p=this.input.pedals,ai=this.occupied&&!this.scriptDriven?undefined:!this.occupied&&this.driverOut?holding:holding??this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
   p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake||this.exitHeld:ai?.handbrake??!this.abandoned;
   // ProcessControlInputs' automaticallyHandBrake: while the driver waits to slow down, is dragged out or holds exit,
   // the gas is 0 and the brake full, not the handbrake alone.

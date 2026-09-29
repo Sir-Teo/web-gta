@@ -41,3 +41,38 @@ test('a jacked driver draws his decision: a kill answer becomes the steal-the-ca
  expect(result.noTask.flee).toEqual({stealBack:null,flee:0,fleePlayer:false});expect(result.noTask.steal).toEqual({stealBack:null,flee:0,fleePlayer:false});
  expect(result.armed.stealBack).toBeNull();expect(result.armed.flee).toBeGreaterThan(100);expect(result.armed.safe).toBe(100000);
 });
+
+test('a dragged-out driver lies where the jacked clip leaves him, gets up from the front, and only then answers',async({page})=>{
+ test.setTimeout(180000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
+  const [{WorldPedestrians},{WantedSystem},{WorldFleet},{loadWorldRoadMaterials},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/WorldFleet.ts','/src/assets/worldRoadMaterials.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(/* @vite-ignore */ p)));
+  await RAPIER.init();const sim=new Simulation(),scene=new THREE.Scene(),base=new URL('/play/world/',location.href).href;
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(300,.5,300).setTranslation(2490,12,1680));
+  sim.respawn={x:2500,y:12.55,z:1690};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
+  const fleet=new WorldFleet(sim,scene,await loadWorldRoadMaterials(base),undefined,base) as any;
+  const crowd=new WorldPedestrians(sim,scene,base,()=>undefined,new WantedSystem()) as any;
+  crowd.pedTargets=()=>({dealers:0,gangs:0,cops:0,other:0,gangStrengths:Array(10).fill(0)});
+  try{
+   for(let i=0;i<300&&(!fleet.catalog||!crowd.snapshot().ready);i++){fleet.update(i*100);crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
+   const car=await fleet.spawnTrafficCar(492,{x:2490,y:12.5,z:1680},0);
+   const carPos=()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};};
+   const tick=()=>{crowd.update(performance.now());crowd.beforeStep(1/60,[car]);car.beforeStep(1/60,{x:0,y:0},false);sim.world.step();car.afterStep(1/60);crowd.afterStep();for(const p of crowd.people)p.view.update(p.actor,1);};
+   for(let i=0;i<30;i++){tick();if(i%10===0)await new Promise(r=>setTimeout(r,30));}
+   crowd.decisionMakerOf=()=>2;crowd.playerArmed=()=>false;
+   let seq=[.05,.7];crowd.jackedRandom=()=>seq.shift()??.5;
+   const clip=crowd.catalog.animations['car_jackedlhs'];if(!clip)throw new Error('no CAR_jackedLHS');
+   const before=crowd.people.length;crowd.spawnJacked(0,{x:2490,y:12.55,z:1688},0,undefined,{position:carPos},false,{key:'car_jackedlhs',clip});
+   for(let i=0;i<20&&crowd.people.length===before;i++){tick();await new Promise(r=>setTimeout(r,30));}
+   const p=crowd.people[crowd.people.length-1];
+   const first={down:p.down,reaction:p.view.reactionName??null,stealBack:p.stealBack?.phase??null};
+   const reactions:string[]=[],phases:string[]=[];
+   for(let i=0;i<1200;i++){tick();const r=p.view.reactionName??'none';if(reactions[reactions.length-1]!==r)reactions.push(r);const ph=p.stealBack?.phase??'none';if(phases[phases.length-1]!==ph)phases.push(ph);if(ph==='none'&&phases.length>2)break;}
+   return {first,reactions,phases};
+  }finally{crowd.dispose();fleet.dispose();sim.dispose();}
+ });
+ // On the ground in the jacked clip's last frame, with no response yet.
+ expect(result.first.down).toBeGreaterThan(1);expect(result.first.reaction).toBe('dragged:car_jackedlhs');expect(result.first.stealBack).toBeNull();
+ // The jacked clips are ANIMATION_IS_FRONT: GETUP_FRONT stands him up, and the steal-back follows.
+ expect(result.reactions).toContain('getup_front');
+ expect(result.reactions.indexOf('getup_front')).toBeLessThan(result.reactions.indexOf('fucku'));
+ expect(result.phases).toEqual(['none','face','shake','go','none']);
+});

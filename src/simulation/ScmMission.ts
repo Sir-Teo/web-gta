@@ -1939,7 +1939,16 @@ export class ScmMission {
   recordings.onRequest=fileNumber=>{this.world.requestCarRecording?.(fileNumber,loaded=>{recordings.loadRecordingFile(loaded);});};
   if(this.world.carRecordingVehicle)runtime.game.carRecordingVehicles={
    frames:fileNumber=>this.world.carRecordingFrames?.(fileNumber),
-   vehicle:handle=>{const car=this.vehicleByHandle(handle);return car===undefined?undefined:this.world.carRecordingVehicle?.(car);},
+   // A car the script lets go of (MARK_CAR_AS_NO_LONGER_NEEDED, or a death or arrest's cleanup) is still in the world
+   // with its playback running, as the pool handle still names it in the original: the playback keeps its car to the
+   // end and gives it its collision force back. Losing it there left a car on a velocity-driven body gliding on for
+   // ever at the recording's last speed, through the ground, with whoever rode in it.
+   vehicle:handle=>{
+    let car=this.vehicleByHandle(handle);
+    if(car!==undefined)this.recordedCars.set(handle,car);
+    else{car=this.recordedCars.get(handle);if(car!==undefined&&(car as {disposed?:boolean}).disposed){this.recordedCars.delete(handle);car=undefined;}}
+    return car===undefined?undefined:this.world.carRecordingVehicle?.(car);
+   },
   };
   // CShopping's reach outside the script: the model table, the level's price and the player's weapons and armour.
   runtime.game.shopping.host={
@@ -2804,11 +2813,15 @@ export class ScmMission {
  private readonly frameTimes:number[]=[];
  /** CVehicleRecording::SaveOrRetrieveDataForThisFrame, after the frame's collisions (CWorld::Process): each playback
   * puts its car on the recording. `nowMs` is the game clock. */
+ /** The car each playback started on, by the handle it was started with, for as long as the playback runs. */
+ private readonly recordedCars=new Map<number,unknown>();
  processCarRecordings(nowMs:number){
   const times=this.frameTimes,host=this.runtime.game.carRecordingHost;
   const previous=times.length<4?times[0]??nowMs:times[times.length-4];
   times.push(nowMs);if(times.length>4)times.shift();
   if(host&&!this.stopped)saveOrRetrieveDataForThisFrame(host,Math.max(0,nowMs-previous));
+  // Cars with no playback left are forgotten.
+  if(this.recordedCars.size){const recordings=this.runtime.game.vehicleRecordings;for(const handle of this.recordedCars.keys())if(recordings.findVehicleRecordingIndex(handle)===-1)this.recordedCars.delete(handle);}
  }
  step(nowMs:number,timeStepMs:number){
   if(this.stopped)return;

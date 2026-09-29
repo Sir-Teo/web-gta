@@ -17,7 +17,7 @@ import {draggedOutDecisionTask} from '../ped/nativeJackedDecision';
 const ATTRACTOR_TYPES=new Set<number>([PED_ATTRACTOR.atm,PED_ATTRACTOR.seat,PED_ATTRACTOR.stop,PED_ATTRACTOR.pizza,PED_ATTRACTOR.shelter,PED_ATTRACTOR.lookAt,PED_ATTRACTOR.step]);
 import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
-import {stepNpcGun,npcAimSpread,type NpcGunState} from '../weapons/gunnery';
+import {stepNpcGun,npcAimSpread,npcInaccurateAim,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
 import {followersToRemove} from '../ped/nativePedGroup';
@@ -304,6 +304,10 @@ export interface Pedestrian {
   /** CTaskComplexRoadRage after the driver left his car: turn to face the rammer, then shake a fist (its clip's
    * remaining seconds) before CTaskComplexSeekEntity and the fight. */
   rage?:{phase:'face'|'shake';time:number};
+  /** An answer to the player's Y or N: the ped stands facing him for `time`, and answers after `delay`. */
+  chat?:{time:number;delay:number;reply:'greet'|'threat';fist:boolean};
+  /** What the ped goes on to do once a fall's get-up has stood him up. */
+  onStood?:()=>void;
   /** CTaskComplexInvestigateDeadPed: stand a second, run to 2 units from the body, face it, look at it 5 to 7 s,
    * the ROADCROSS gesture, then walk back to where the ped started. */
   investigate?:{phase:'stand'|'go'|'face'|'look'|'shocked'|'back';time:number;body:Pedestrian;start:{x:number;z:number};lookMs:number};
@@ -352,6 +356,8 @@ export const NATIVE_PED_SPRINT_SPEED = 5.903;
  * damage taken so brawls match the native stat table instead of flat values. */
 export const NATIVE_PLAYER_ATTACK_MULT = 3.0;
 export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
+/** How long a dragged-out driver stays on the ground before his get-up (authored: the stand-up task is unreversed). */
+const JACKED_LIE_SECONDS=.6;
 /** melee.dat UNARMED range re-exported from the native table (targetRange 10.0
  * is the AI acquisition range). The browser punch uses the 1.6 m strike reach. */
 export { NATIVE_UNARMED_RANGE } from './nativeMelee';
@@ -483,6 +489,8 @@ export class WorldPedestrians {
  onPain?:(ped:object,position:{x:number;y:number;z:number})=>void;
  onFlee?:(ped:object,position:{x:number;y:number;z:number})=>void;
  onThreat?:(ped:object,position:{x:number;y:number;z:number})=>void;
+ /** A ped's friendly line (a reply to the player's Y). */
+ onGreet?:(ped:object,position:{x:number;y:number;z:number})=>void;
  /** CPed::PlayFootSteps for a walking, running or sprinting pedestrian (browser position one unit above the feet, like the player's). */
  onFootstep?:(ped:object,position:{x:number;y:number;z:number},move:'walk'|'run'|'sprint',foot:'left'|'right')=>void;
  playerArmed:()=>boolean=()=>false;
@@ -1471,15 +1479,30 @@ export class WorldPedestrians {
   * then CTaskComplexStealCar runs at the car for 10 s; otherwise CTaskComplexSmartFleeEntity from the jacker for
   * good. A drawn flee or steal leaves no task: the victim walks off. Authored: re-entering and driving the car away.
   */
- spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false){
+ /** Start streaming a driver's model while he is still being pulled out, so the ped he becomes is there the frame
+  * the clip ends. */
+ prefetchModel(modelRef:number|string){if(typeof modelRef==='string')void this.catalog?.character(modelRef).catch(()=>{});}
+ spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation}){
   return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
+   // CTaskComplexCarSlowBeDraggedOutAndStandUp: the victim lies where CAR_jackedLHS leaves him, on the clip's last
+   // frame, then CTaskSimpleGetUp (GETUP_FRONT, the jacked clips being ANIMATION_IS_FRONT) stands him up before his
+   // response (flee, or come back for the car). Before, he stood up at once as a fresh ped.
+   const respond=()=>this.jackedResponse(p,modelRef,car,coach);
+   if(lying&&p.view.holdClipEnd(`dragged:${lying.key}`,lying.clip,JACKED_LIE_SECONDS)){
+    const getUp=p.view.reactionDuration(getUpClip(lying.key))??1.37;
+    p.down=JACKED_LIE_SECONDS+getUp;p.fallClip=lying.key;p.stuckUnderCar=false;p.collider.setShape(new RAPIER.Ball(.3));
+    p.onStood=respond;
+   }else respond();
+  });
+ }
+ /** ComputeDraggedOutCarResponse for a driver the player pulled out, once he is on his feet. */
+ private jackedResponse(p:Pedestrian,modelRef:number|string,car:{position:()=>{x:number;y:number;z:number}},coach:boolean){
    // ComputeDraggedOutCarResponse (0x4BCC7E): a driver pulled out of a COACHCARANIMS vehicle always flees.
    if(coach){this.fleeFromPlayer(p,100000);return;}
    const task=this.decide(p,EVENT.draggedOutCar,this.relationshipTo(p),this.jackedRandom)??draggedOutDecisionTask(this.decisionMakerOf(modelRef)??p.decisionMaker,this.relationshipTo(p),this.jackedRandom);
    if(task!==TASK.killPedOnFoot)return;
    if(!isKillTaskAppropriate({createdByMission:!!p.mission,holdsGun:this.holdsGun(p),attackerHoldsGun:this.playerArmed()})){this.fleeFromPlayer(p,100000);return;}
    p.loiter=false;p.stealBack=this.jackedRandom()<.5?{phase:'pause',time:.5+this.jackedRandom(),car}:{phase:'face',time:0,car};
-  });
  }
  /** CTaskComplexRoadRage after the driver's CTaskComplexLeaveCar: the ped turns to face the player, shakes a fist and
   * comes for him (CTaskComplexKillPedOnFoot after a 20 s seek). Authored: the bat, golf club or shovel half the
@@ -2308,6 +2331,34 @@ export class WorldPedestrians {
    * to stay in position or GROUP_CONTROL_FWD to instruct them to follow you"; holding either for a few seconds disbands
    * the group (see `disbandGroup`). `target` is what the player targets while holding the target button: the ped under
    * a gun's crosshair (`handle`, -1 for none), else the nearest ped ahead within the weapon's target range. */
+  /** Y and N at a ped the player targets (CPad::ConversationYesJustDown and ConversationNoJustDown, the d-pad's right
+   * and left, with PED_LOCK_TARGET held). What the player's line sets off belongs to CPedToPlayerConversations::Update
+   * and CPlayerPed code the reference leaves unreversed, so the answers are AUTHORED after the retail game:
+   * - Y: the ped stops, turns to him and answers in kind.
+   * - N: a member of a rival gang, or a tough ped (decision maker 3), squares up and comes for him (road rage's turn,
+   *   fist shake and kill-on-foot); a weak ped (4) runs; a Families member, a cop or anyone else answers with a threat
+   *   and the finger, then goes on.
+   * Returns what the ped does, or 'none' with nobody targeted. */
+  converse(kind:'yes'|'no',target:{handle?:number;range:number}):'reply'|'fight'|'flee'|'none'{
+   if(this.sim.player.health<=0)return 'none';
+   const candidates=this.people.filter(p=>p.health>0&&p.down===0&&p.stealth===undefined&&!p.mission);
+   let p:Pedestrian|undefined;
+   if(target.handle!==undefined)p=candidates.find(q=>q.collider.handle===target.handle);
+   else{
+    const origin=this.sim.player.position,h=this.sim.player.heading,ahead={x:Math.sin(h),z:Math.cos(h)};
+    p=candidates.map(q=>{const dx=q.actor.player.position.x-origin.x,dz=q.actor.player.position.z-origin.z,d=Math.hypot(dx,dz);return {q,d,along:d?(dx*ahead.x+dz*ahead.z)/d:1};})
+     .filter(t=>t.d<=target.range&&t.along>Math.SQRT1_2).sort((a,b)=>a.d-b.d)[0]?.q;
+   }
+   if(!p)return 'none';
+   // Someone already running from him or fighting him does not stop to talk.
+   if(p.flee>0||p.retaliate>0||p.rage||p.fight)return 'none';
+   const delay=.6+Math.random()*.4;
+   if(kind==='yes'){p.chat={time:delay+2.2,delay,reply:'greet',fist:false};return 'reply';}
+   const rival=p.gang!==undefined&&p.gang!==1&&!p.follow,tough=!p.officer&&p.gang===undefined&&p.decisionMaker===3,weak=!p.officer&&p.gang===undefined&&p.decisionMaker===4;
+   if(rival||tough){p.loiter=true;p.rage={phase:'face',time:0};this.onThreat?.(p,{...p.actor.player.position});return 'fight';}
+   if(weak){this.fleeFromPlayer(p,30);return 'flee';}
+   p.chat={time:delay+2.2,delay,reply:'threat',fist:!p.officer};return 'reply';
+  }
   groupControl(button:'forward'|'back',target?:{handle?:number;range:number}):'joined'|'full'|'follow'|'stay'|'none'{
    if(this.sim.player.health<=0)return 'none';
    const crew=this.people.filter(p=>p.follow&&p.health>0);
@@ -2777,7 +2828,7 @@ export class WorldPedestrians {
     if(p.order?.kind!=='goToPointShooting')state.heading=Math.atan2(aimOffset.x,aimOffset.z);
     p.view.update(p.actor,1);
     const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
-    const direction=new Vector3().copy(p.aimPoint??aim).sub(muzzle).normalize();
+    const aimed=npcInaccurateAim(p.aimPoint??aim,p.gunAccuracy),direction=new Vector3(aimed.x,aimed.y,aimed.z).sub(muzzle).normalize();
     // Native weapon dispersion: the muzzle ray scatters inside the
     // weapon.dat radius instead of striking the aim point every shot.
     const scattered=npcAimSpread(direction,weapon.info,p.gunAccuracy);
@@ -2923,7 +2974,7 @@ export class WorldPedestrians {
     if(p.down===0){
       const position=p.body.translation(),standing={...position,y:position.y+.6};
       if(this.sim.world.intersectionWithShape(standing,p.body.rotation(),PED_STAND_PROBE,undefined,undefined,p.collider,p.body)){p.down=.8;p.view.playReaction('ko_skid_front',.8);}
-     else {p.collider.setShape(PED_STAND_PROBE);p.body.setTranslation(standing,true);p.collider.setTranslation(standing);}
+     else {p.collider.setShape(PED_STAND_PROBE);p.body.setTranslation(standing,true);p.collider.setTranslation(standing);const stood=p.onStood;p.onStood=undefined;stood?.();}
     }
    }else p.flee=Math.max(0,p.flee-dt);
    // CTaskComplexSmartFleeEntity::ControlSubTask: a ped fled from is followed, dead or alive, while it exists; once it
@@ -2968,6 +3019,18 @@ export class WorldPedestrians {
     const turn=p.headingChange*Math.PI/180*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));dx=0;dz=0;
     if(p.rage.phase==='face'){if(Math.abs(delta)<=.2){const shake=p.view.hasReaction('fucku')?p.view.reactionDuration('fucku')??1.3:1.3;if(p.view.hasReaction('fucku'))p.view.playReaction('fucku');p.rage={phase:'shake',time:shake};}}
     else{p.rage.time-=dt;if(p.rage.time<=0){p.rage=undefined;p.loiter=false;this.killPedOnFoot(p);p.retaliate=Math.max(p.retaliate,ROAD_RAGE_SEEK_SECONDS);}}
+   }
+   // The answer to the player's Y or N: face him, say the line (and give him the finger for an N), then walk on.
+   if(p.chat&&(p.health<=0||p.down>0||p.flee>0||p.retaliate>0||p.rage))p.chat=undefined;
+   if(p.chat){
+    const pp=this.sim.player.position;let delta=Math.atan2(pp.x-state.position.x,pp.z-state.position.z)-state.heading;delta=Math.atan2(Math.sin(delta),Math.cos(delta));
+    const turn=p.headingChange*Math.PI/180*50*dt;state.heading+=Math.max(-turn,Math.min(turn,delta));dx=0;dz=0;
+    const before=p.chat.delay;p.chat.delay-=dt;p.chat.time-=dt;
+    if(before>0&&p.chat.delay<=0){
+     const at={...state.position};if(p.chat.reply==='greet')this.onGreet?.(p,at);else this.onThreat?.(p,at);
+     if(p.chat.fist&&p.view.hasReaction('fucku'))p.view.playReaction('fucku');
+    }
+    if(p.chat.time<=0)p.chat=undefined;
    }
    // A script's task outranks the wander it replaced, and lasts until its own time or tolerance says it is
    // done. The wander's own arrival and crossing are held off while it does, because the ped is not wandering.
@@ -3451,7 +3514,7 @@ export class WorldPedestrians {
     if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&(!p.follow||(p.foe?.health??0)>0)&&p.taunt===undefined;
      const retaliateDist=retaliating?Math.hypot((p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).x-state.position.x,(p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.loiter&&p.flee<=0&&p.retaliate<=0?0:(fleeing||retaliating?undefined:orderSpeed)??policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??stealSpeed??hangoutSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0||this.clearStreets&&p.gang===undefined&&!p.dealer?p.sprintSpeed:p.walkSpeed));
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.chat||p.loiter&&p.flee<=0&&p.retaliate<=0?0:(fleeing||retaliating?undefined:orderSpeed)??policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??stealSpeed??hangoutSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0||this.clearStreets&&p.gang===undefined&&!p.dealer?p.sprintSpeed:p.walkSpeed));
     // Eased gait: peds burst from their current pace instead of teleporting
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));
