@@ -2254,6 +2254,9 @@ async function boot() {
   const onContextLost = (event: Event) => { event.preventDefault(); pause(); hud.menuMessage('Graphics paused. Waiting for the display to recover…'); };
   const onContextRestored = () => { render.nativeShadow.invalidateCapture(); hud.menuMessage('Display recovered. Resume when ready.'); render.resize(); };
   canvas.addEventListener('webglcontextlost', onContextLost); canvas.addEventListener('webglcontextrestored', onContextRestored);
+  // Development only: the world streams from the dev server, so with the server gone the terrain hold waits for
+  // windows that never come and the game looks frozen, Resume or not. Say so; Vite reloads the page once it is back.
+  import.meta.hot?.on('vite:ws:disconnect', () => { pause(); hud.menuMessage('The local game server stopped, so the world cannot load. Start it again (npm run dev); this page reloads by itself once it is back.'); });
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {
     /** Dev diagnostic: what each collider of the occupied native car is touching. */
