@@ -4,7 +4,7 @@ import {ScmVehiclePool,type ScmVehiclePoolHost} from '../src/simulation/ScmVehic
 /** A car the fake browser holds, with the place it was last put. */
 interface FakeCar {id:number;position:{x:number;y:number;z:number};heading:number;alive:boolean}
 /** A host whose spawning finishes only when the test says so, which is what the browser's really does. */
-function pool(options:{fails?:boolean}={}){
+function pool(options:{fails?:boolean;lift?:number}={}){
  let nextId=1;
  const spawned:FakeCar[]=[];
  const pending:(()=>void)[]=[];
@@ -12,7 +12,7 @@ function pool(options:{fails?:boolean}={}){
   spawn:(_model,position,heading)=>new Promise(resolve=>{
    pending.push(()=>{
     if(options.fails){resolve(undefined);return;}
-    const car:FakeCar={id:nextId++,position:{...position},heading,alive:true};
+    const car:FakeCar={id:nextId++,position:{...position,z:position.z+(options.lift??0)},heading,alive:true};
     spawned.push(car);resolve(car);
    });
   }),
@@ -113,6 +113,21 @@ describe('the cars a script creates before the browser can build them',()=>{
 });
 
 describe('turning or moving a car that has driven off',()=>{
+ test('a heading given before the car arrives turns it where its spawning set it down',async()=>{
+  const {pool:cars,settle,spawned}=pool({lift:.6});
+  // CREATE_CAR names a point on the ground; the spawn lifts the car off the base of its model.
+  const handle=cars.create(481,{x:10,y:20,z:3},0);
+  cars.setHeading(handle,283);
+  expect(cars.headingOf(handle)).toBe(283);
+  await settle();
+  expect(spawned[0].position).toEqual({x:10,y:20,z:3.6});expect(spawned[0].heading).toBe(283);
+  // A move before arrival still wins, with the heading given since.
+  const other=cars.create(481,{x:0,y:0,z:0},0);
+  cars.setHeading(other,90);cars.setPosition(other,{x:5,y:6,z:7});
+  await settle();
+  expect(spawned[1].position).toEqual({x:5,y:6,z:7});expect(spawned[1].heading).toBe(90);
+ });
+
  test('a heading turns the car where it is now, and a move keeps the heading it has now',async()=>{
   const {pool:cars,settle,spawned}=pool();
   const handle=cars.create(411,{x:0,y:0,z:1},0);

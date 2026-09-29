@@ -73,7 +73,13 @@ export class ScmVehiclePool<Car>{
  setHeading(handle:number,heading:number){
   const said=this.said.get(handle);if(!said)return;
   requireAsset(Number.isFinite(heading),'Invalid script car heading.');
-  said.position=this.positionOf(handle);said.heading=heading;said.moved=true;this.replace(handle,said);
+  said.heading=heading;
+  // A car still being built that the script has not moved turns, on arrival, where its spawning set it down. The
+  // point CREATE_CAR named is on the ground, not lifted off the base of the model: putting the car back there
+  // sank its wheels into the road, and INTRO1's BMX, turned the instruction after it was made, was thrown on its
+  // end against the alley's ledge and could not be ridden.
+  if(!said.moved&&!this.pool.entity(handle)){this.pool.apply(handle,car=>{this.host.place(car,this.host.positionOf(car),heading);});return;}
+  said.position=this.positionOf(handle);said.moved=true;this.replace(handle,said);
  }
  /* A car nobody has touched keeps the placement its own spawning chose, which is the one settled on the ground
   * and lifted off the base of the model, as CCarCtrl::CreateCarForScript leaves it; the raw point the script
