@@ -9,7 +9,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:browser": "node scripts/test-browser.mjs",
-    "test:production": "BASE_PATH=/web-gta/ npm run build && node scripts/verify-pages.mjs"
+    "test:production": "BASE_PATH=/web-gta/ npm run build && node scripts/verify-pages.mjs",
+    "port": "node scripts/port/pipeline.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.20.0",

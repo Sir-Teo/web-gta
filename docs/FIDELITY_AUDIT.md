@@ -8554,3 +8554,28 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   within 4 units) now have CJ say something positive or negative; the ped stops, turns and answers. AUTHORED
   (`CPedToPlayerConversations::Update` is unreversed): an insulted rival gang member or tough ped squares up and fights,
   a weak one runs, anyone else answers with a threat and the finger. Spec: `ped-converse`.
+
+## Bike kerbs, the starting loadout, story characters, the intro's pans and a porting pipeline
+
+- **Bikes threw CJ off at kerbs.** CBike rides on suspension lines, which raise no collision, so only its collision
+  model feeds `DamageKnockOffRider`. The tyre balls that stand in for the lines counted every contact of the step: a
+  0.15-unit kerb or speed bump at scooter speed passed the 75 threshold. The knock-off (and the quad's crash health
+  loss) now takes CPhysical's strongest single collision, the largest contact impulse and its normal, from the
+  frame's colliders, and a tyre contact only when it meets the tyre side-on (a wall, a car). Spec: `bike-kerb`.
+- **Starting loadout (AUTHORED, not the original).** A new game hands CJ every weapon with full clips and full body
+  armour; INTRO's closing `REMOVE_ALL_CHAR_WEAPONS` is followed by the loadout again. Spec: `starting-loadout`.
+- **Story characters were street civilians.** CREATE_CHAR's model id indexed the five-model civilian roster, so
+  Tenpenny, Sweet, Smoke, Ryder and the Ballas came out as bmydj, wfyri and the rest. Ids from MODEL_SPECIAL01 (290)
+  now name the special-character slot (`CStreaming::RequestSpecialChar`: script slot n is model 289 + n) and any
+  other id its peds.ide row. Spec: `script-special-characters`.
+- **INTRO's title pans were still shots.** CAMERA_SET_VECTOR_MOVE/TRACK now carry the fixed camera while they run,
+  eased as a sine when asked, held at the far end under the persist flags. AUTHORED: `ProcessVectorMoveLinear` and
+  `ProcessVectorTrackLinear` still call into the executable; they follow the reversed `ProcessFOVLerp`'s shape.
+- **Mission dialogue drifted.** A line is sized from its subtitle; INTRO1 prints three of its four after the PLAY, so
+  each ran for the previous line's length. A line is now sized once, at the next script pass, from the brief its
+  frame left up.
+- **Blocked by data.** Cutscenes (anim/cuts.img, and the unreversed spline camera), spoken dialogue (AUDIO/SFX/SCRIPT)
+  and the mission-passed tune and beat tracks (AUDIO/STREAMS) are not in the published depot.
+- **Porting pipeline.** `npm run port -- census|sweep|report|all` (docs/port/README.md): a static census of every
+  command against this port and gta-reversed's registrations with a ranked work queue, a headless mission sweep with
+  a locate-following autopilot, and a joined status page.

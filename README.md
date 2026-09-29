@@ -27,6 +27,8 @@ Production files are generated with `npm run build` and served by static hosting
 
 The [content starting point](docs/research/CONTENT_START_HERE.md) and [scene provenance](public/play/README.md) document content acquisition and packaging. [Design](docs/DESIGN.md), [implementation plan](docs/IMPLEMENTATION.md), and [research register](docs/research/SOURCES.md) track the larger objective. Older progress records describe historical prototypes and are not claims about current shipped behavior.
 
+`npm run port -- census` inventories every command of the original script against this port and gta-reversed and ranks what to port next; `npm run port -- sweep 2,11` runs missions headless and reports where each stops (see the [porting pipeline](docs/port/README.md) and its [status](docs/port/STATUS.md)).
+
 The native texture/model workshops remain at `assets.html` and `models.html`. They support local native assets, character assembly, animation inspection, scene assembly and temporary playable scene sessions. The game pause menu links to the character workshop. Files are processed locally in the browser.
 
 ## Verification
