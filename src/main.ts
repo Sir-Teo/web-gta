@@ -199,6 +199,7 @@ import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
+import { TouchControls, wantsTouchControls } from './input/TouchControls';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
 import {bindLocalObjectData} from './ui/localObjectData';
@@ -2112,6 +2113,9 @@ async function boot() {
     else if(paused&&started&&!resume.hidden&&!resume.disabled&&performance.now()-lockLostAt>300)play();
     else pause();
   });
+  // Phones and tablets: a stick, a camera drag and buttons over the game, feeding the same Input.
+  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),map:()=>input.tap('KeyM'),arsenal:()=>input.tap('Backquote')}):undefined;
+  if(touch)document.documentElement.classList.add('touch');
   const cheats=CHEATS;
   /** CTimer::ms_fTimeScale as the gameplay cheats set it; a unique stunt jump's 0.3 overrides it and ResetTimeScale
    * afterwards puts it back to 1. */
@@ -3194,6 +3198,7 @@ async function boot() {
     for(const train of fleet?.trains??[])train.update();
     // The on-foot key hints (jump, crouch, enter car) do not apply in a vehicle.
     hud.element.classList.toggle('in-vehicle',!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
+    touch?.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch?.setMode(hud.element.classList.contains('in-vehicle'));
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns [Ctrl]${aircraft.rocketsArmed?` · Rockets [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(nativeDayNightBalance(sim.timeMinutes));}
     // CSkidmarks::Update in the game frame, then each car's PreRender registers its wheels, then Render.
@@ -3704,8 +3709,10 @@ async function boot() {
     // A window that failed at the safety boundary is asked for again from the pause, once its backoff passes.
     if(paused||installingScene)return;
     // Directional lookahead for the next window: vehicles report Rapier
-    // velocity, on-foot motion uses heading and blend speed.
-    const motion=fleet?.occupiedPlane?.body.linvel()??(worldCar?.occupied?worldCar.car.body.linvel():undefined)??fleet?.occupiedBoat?.body.linvel()??fleet?.occupiedBike?.body.linvel();
+    // velocity, on-foot motion uses heading and blend speed. A passenger seat counts too: riding in the back of
+    // INTRO's police car (a recording at 11 m/s) with no lookahead ran the car off the streamed window, and the game
+    // held for terrain again and again with the world half drawn.
+    const motion=fleet?.occupiedPlane?.body.linvel()??(worldCar?.occupied?worldCar.car.body.linvel():undefined)??fleet?.occupiedBoat?.body.linvel()??fleet?.occupiedBike?.body.linvel()??(playerPassenger&&!playerPassenger.car.disposed?playerPassenger.car.car.body.linvel():undefined);
     const followVelocity=motion?{x:motion.x,z:motion.z}:{x:Math.sin(sim.player.heading)*sim.player.speed,z:Math.cos(sim.player.heading)*sim.player.speed};
     const request=follower?.request(sim.player.position,eligible,followVelocity);
     if(!request)return;
