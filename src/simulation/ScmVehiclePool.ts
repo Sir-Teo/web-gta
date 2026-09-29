@@ -19,10 +19,12 @@ export interface ScmVehiclePoolHost<Car>{
  remove(car:Car):void;
 }
 /** What the script said about a car, which answers for it until the browser has built one. */
-interface ScriptCar{model:number|string;position:{x:number;y:number;z:number};heading:number;moved:boolean}
+interface ScriptCar<Car>{model:number|string;position:{x:number;y:number;z:number};heading:number;moved:boolean;
+ /** For a move made before the car was built: how far its own model lifts it off the point, known on arrival. */
+ lift?:(car:Car)=>number}
 export class ScmVehiclePool<Car>{
  private readonly pool:ScmEntityPool<Car>;
- private readonly said=new Map<number,ScriptCar>();
+ private readonly said=new Map<number,ScriptCar<Car>>();
  constructor(private readonly host:ScmVehiclePoolHost<Car>,first=1){this.pool=new ScmEntityPool(host,first);}
  get count(){return this.pool.count;}
  /** The handles the script holds, in the order it was given them. */
@@ -30,7 +32,7 @@ export class ScmVehiclePool<Car>{
  /** CREATE_CAR: the handle comes back at once and the car follows. */
  create(model:number|string,position:{x:number;y:number;z:number},heading=0,spawn?:()=>Promise<Car|undefined>){
   requireAsset([position.x,position.y,position.z,heading].every(Number.isFinite),'Invalid script car placement.');
-  const said:ScriptCar={model,position:{...position},heading,moved:false};
+  const said:ScriptCar<Car>={model,position:{...position},heading,moved:false};
   const handle=this.pool.create(spawn??(()=>this.host.spawn(model,{...said.position},said.heading)));
   this.said.set(handle,said);
   return handle;
@@ -63,11 +65,13 @@ export class ScmVehiclePool<Car>{
  /** Where the car is: its own place once it exists, and what the script last set until then. */
  positionOf(handle:number){const said=this.word(handle);return this.pool.read(handle,car=>this.host.positionOf(car),()=>({...said.position}));}
  headingOf(handle:number){const said=this.word(handle);return this.pool.read(handle,car=>this.host.headingOf(car),()=>said.heading);}
- /** SET_CAR_COORDINATES: the car moves and keeps the heading it has now, not the one the script last gave it. */
- setPosition(handle:number,position:{x:number;y:number;z:number}){
+ /** SET_CAR_COORDINATES: the car moves and keeps the heading it has now, not the one the script last gave it.
+  * `lift`, for a car not built yet, is the rise off the point that only the arrived car's model can say
+  * (GetDistanceFromCentreOfMassToBaseOfModel); without it the car went down with its wheels in the road. */
+ setPosition(handle:number,position:{x:number;y:number;z:number},lift?:(car:Car)=>number){
   const said=this.said.get(handle);if(!said)return;
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid script car position.');
-  said.heading=this.headingOf(handle);said.position={...position};said.moved=true;this.replace(handle,said);
+  said.heading=this.headingOf(handle);said.position={...position};said.moved=true;said.lift=this.pool.entity(handle)?undefined:lift;this.replace(handle,said);
  }
  /** SET_CAR_HEADING (CPlaceable::SetHeading): the car turns where it stands now, not where the script last put it. */
  setHeading(handle:number,heading:number){
@@ -84,8 +88,8 @@ export class ScmVehiclePool<Car>{
  /* A car nobody has touched keeps the placement its own spawning chose, which is the one settled on the ground
   * and lifted off the base of the model, as CCarCtrl::CreateCarForScript leaves it; the raw point the script
   * named is not that placement, so it is not re-applied. */
- private replace(handle:number,said:ScriptCar){
-  if(said.moved)this.pool.apply(handle,car=>{this.host.place(car,said.position,said.heading);});
+ private replace(handle:number,said:ScriptCar<Car>){
+  if(said.moved)this.pool.apply(handle,car=>{const up=said.lift?.(car)??0;this.host.place(car,{...said.position,z:said.position.z+up},said.heading);});
  }
  /** DELETE_CAR: the car goes now if it is here, and is refused on arrival if it is not. */
  delete(handle:number){this.pool.delete(handle);this.said.delete(handle);}

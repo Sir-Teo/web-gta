@@ -128,6 +128,18 @@ describe('turning or moving a car that has driven off',()=>{
   expect(spawned[1].position).toEqual({x:5,y:6,z:7});expect(spawned[1].heading).toBe(90);
  });
 
+ test('a move before the car arrives is lifted off the point by the arrived car\'s own model',async()=>{
+  const {pool:cars,settle,spawned}=pool();
+  const handle=cars.create(411,{x:0,y:0,z:0},0);
+  // SET_CAR_COORDINATES names a point on the road; only the built car knows its base-of-model height.
+  cars.setPosition(handle,{x:5,y:6,z:2},()=>.8);cars.setHeading(handle,45);
+  await settle();
+  expect(spawned[0].position).toEqual({x:5,y:6,z:2.8});expect(spawned[0].heading).toBe(45);
+  // Once it is there the script's command lifts the point itself, and no second rise is added.
+  cars.setPosition(handle,{x:9,y:9,z:3.5},()=>.8);
+  expect(spawned[0].position).toEqual({x:9,y:9,z:3.5});
+ });
+
  test('a heading turns the car where it is now, and a move keeps the heading it has now',async()=>{
   const {pool:cars,settle,spawned}=pool();
   const handle=cars.create(411,{x:0,y:0,z:1},0);

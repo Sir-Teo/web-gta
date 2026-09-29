@@ -1729,7 +1729,7 @@ export class ScmMission {
    setVehicleCoordinates:(handle,x,y,z)=>{
     const car=this.vehicleByHandle(handle),at={x,y,z:z+(car!==undefined?this.world.scriptVehicleBaseOffset?.(car)??0:0)};
     if(handle===PLAYER_VEHICLE_HANDLE)this.world.placeScriptVehicle(this.liveVehicle(handle),at,this.playerPose(handle).heading);
-    else this.vehicles.setPosition(handle,at);
+    else this.vehicles.setPosition(handle,at,car===undefined?arrived=>this.world.scriptVehicleBaseOffset?.(arrived)??0:undefined);
     if(car!==undefined){this.world.clearSpaceForScriptVehicle?.(car);this.world.rejoinScriptVehicleRoads?.(car);}
    },
    vehicleHeading:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).heading:this.vehicles.headingOf(handle),
