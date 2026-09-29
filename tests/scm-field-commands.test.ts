@@ -1,4 +1,5 @@
 import {describe,expect,test} from 'vitest';
+import {playerLockedOut} from '../src/simulation/ScmMission';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
 import {scmOpcode} from '../src/engine/scmOpcodes';
@@ -94,4 +95,7 @@ describe('the one-field commands',()=>{
   const off=run(build(scmOpcode('SWITCH_EMERGENCY_SERVICES'),[byte(0)]),h.world,area.game);
   expect(off.game.allowEmergencyServices).toBe(false);
  });
+});
+test('LOCK_CAR_DOORS keeps the player out only for the eCarLock states CanPedOpenLocks refuses him',()=>{
+ expect([0,1,2,3,4,5,6,7].map(playerLockedOut)).toEqual([false,false,true,true,true,true,false,true]);
 });

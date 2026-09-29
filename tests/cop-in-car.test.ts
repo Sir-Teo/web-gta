@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {copReturnsToCar} from '../src/simulation/WorldPolice';
+import {copReturnsToCar,lawVehicleWaits} from '../src/simulation/WorldPolice';
 
 test('cops get back in beside their car while the suspect drives off in another vehicle',()=>{
  const base={wanted:2,carUsable:true,copToCar:3};
@@ -17,4 +17,14 @@ test('a clear wanted level sends cops back to cars within the go-to-door range',
  expect(copReturnsToCar({wanted:0,carUsable:true,copToCar:30})).toBe(true);
  expect(copReturnsToCar({wanted:0,carUsable:true,copToCar:50})).toBe(false);
  expect(copReturnsToCar({wanted:0,carUsable:false,copToCar:5})).toBe(false);
+});
+
+test('law vehicles wait at the water\'s edge (CCarAI::UpdateCarAI TEMPACT_WAIT)',()=>{
+ expect(lawVehicleWaits({wanted:2,unitBoat:false,player:'swimming'})).toBe(true);
+ expect(lawVehicleWaits({wanted:2,unitBoat:false,player:'boat'})).toBe(true);
+ expect(lawVehicleWaits({wanted:2,unitBoat:false,player:'land'})).toBe(false);
+ expect(lawVehicleWaits({wanted:2,unitBoat:true,player:'land'})).toBe(true);
+ expect(lawVehicleWaits({wanted:2,unitBoat:true,player:'swimming'})).toBe(false);
+ expect(lawVehicleWaits({wanted:2,unitBoat:false,player:'aircraft'})).toBe(false);
+ expect(lawVehicleWaits({wanted:0,unitBoat:false,player:'swimming'})).toBe(false);
 });

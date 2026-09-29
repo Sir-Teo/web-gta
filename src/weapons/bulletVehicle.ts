@@ -7,8 +7,12 @@ export function bulletTyreHit(cars:Iterable<WorldCar>,source:Vec3,direction:Vec3
  let best:{car:WorldCar;wheel:number;t:number}|undefined;
  for(const car of cars){
   if(car.wrecked||!car.car.body.isEnabled())continue;
+  // FireInstantHit: a wheel piece is a hit only when BurstTyre would take it, so a burst or missing tyre, a Rhino's
+  // and bTyresDontBurst leave the vehicle to the ordinary ray (or let the shot pass).
+  if(car.modelId===432||car.tyresDontBurst)continue;
   const c=car.car.body.translation();if(Math.hypot(c.x-source.x,c.y-source.y,c.z-source.z)>reach+4)continue;
   for(const sphere of car.wheelSpheres()){
+   if((car.damageState?.wheels[sphere.wheel]??0)!==0)continue;
    const oc={x:source.x-sphere.center.x,y:source.y-sphere.center.y,z:source.z-sphere.center.z};
    const b=oc.x*direction.x+oc.y*direction.y+oc.z*direction.z,k=oc.x*oc.x+oc.y*oc.y+oc.z*oc.z-sphere.radius*sphere.radius,disc=b*b-k;
    if(disc<0)continue;

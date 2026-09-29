@@ -15,13 +15,14 @@ import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel
 import {Quaternion,Vector3} from 'three';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {lanePoint,nextLaneOnLink,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
+import {BLOCK_TO_STOP_DISTANCE,STOP_TO_BLOCK_DISTANCE,blockPlayerTarget,lanePoint,nextLaneOnLink,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,type Pedals} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 import type {WorldPlane} from './WorldPlane';
-import {POLICE_HELI_MODEL,helisRequired,heliHeading,heliOrbitPoint,policeHeliInputs,rappelWindow,searchlightTarget} from './policeHeli';
+import {POLICE_HELI_MODEL,heliHeading,heliOrbitPoint,policeHeliInputs,rappelWindow,searchlightTarget} from './policeHeli';
 import { roadblockAllowed } from '../police/pursuit';
 import type {WorldFleet} from './WorldFleet';
+import type {WorldBike} from './WorldBike';
 import type {WantedSystem} from './WantedSystem';
 type V3={x:number;y:number;z:number};
 /** CStreaming::ms_aDefaultCopCarModel by m_CurrLevel: countryside, Los Santos, San Fierro, Las Venturas. */
@@ -42,9 +43,9 @@ export function policeCrew(modelId:number,level:number,wanted:number,random:()=>
   case 427:return {seats:4,member:{model:'swat',weapon:28,accuracy:68}};
   case 490:return {seats:4,member:{model:'fbi',weapon:29,accuracy:76}};
   case 432:return {seats:1,member:{model:'army',weapon:31,accuracy:84}};
-  case 433:return {seats:wanted>=2?2:1,member:{model:'army',weapon:31,accuracy:84}};
-  // CCarAI::AddPoliceCarOccupants: above two stars the driver carries a shotgun one time in four, or else the partner.
-  default:{const seats=wanted>=2||random()<.5?2:1,shotgunSeat=wanted>2?random()<.25?0:seats>1&&random()<.25?1:undefined:undefined;return {seats,member:city,shotgunSeat};}
+  // CCarAI::AddPoliceCarOccupants: the Barracks shares the city cars' case. A partner rides above one star, else one
+  // time in two; above two stars the driver carries a shotgun one time in four, or else the partner.
+  case 433:default:{const seats=wanted>=2||random()<.5?2:1,shotgunSeat=wanted>2?random()<.25?0:seats>1&&random()<.25?1:undefined:undefined;return {seats,member:modelId===433?{model:'army',weapon:31,accuracy:84}:city,shotgunSeat};}
  }
 }
 /** CCarAI::FindPoliceCarSpeedForWantedLevel in car AI speed units (60 × units per frame). */
@@ -56,6 +57,13 @@ export function policeCruiseSpeed(wanted:number,maxFlatVelocity:number,random:()
 export const BUST_PULL_RANGE = 3.5;
 export const BUST_PULL_SECONDS = 1.5;
 /** Accumulate door-hold progress; any gap resets the drag-out. */
+/** CTaskComplexArrestPed::CreateFirstSubTask for a suspect in a car: TASK_COMPLEX_CAR_OPEN_DRIVER_DOOR, unless the car
+ * IsUpsideDown (up.z <= -0.9) or IsOnItsSide (|right.z| >= 0.8), which gets TASK_COMPLEX_DESTROY_CAR. `rotation` is
+ * the browser body's quaternion (y up). */
+export function arrestOpensDriverDoor(q:{x:number;y:number;z:number;w:number}){
+ const upZ=1-2*(q.x*q.x+q.z*q.z),rightZ=2*(q.x*q.y+q.w*q.z);
+ return upZ>-.9&&Math.abs(rightZ)<.8;
+}
 export function bustPullProgress(progress:number,dt:number,ready:boolean){return ready?progress+dt:0;}
 /** CRoadBlocks::GenerateRoadBlockPedsForCar's PLACEMENTS (city cops) and SPECIAL_COP_PLACEMENTS (SWAT, army, FBI and
  * the SF cop car), in native car space (x right, y forward), indexed 2 × positions type + ped, scaled by the car's
@@ -72,6 +80,33 @@ export function roadblockCrewPlacements(positionsType:0|1|2,count:number,radiusR
  return out;
 }
 /** CCarAI::MellowOutChaseSpeed for one and two stars. */
+/** CCarAI::UpdateCarAI's hand-over between land and water (0x420445): whether a law vehicle after the wanted player
+ * takes TEMPACT_WAIT (a second at a time). A land unit waits while he swims or is in a boat; a boat waits while he is
+ * on foot out of the water or in a car or bike. An aircraft of his changes nothing. */
+export function lawVehicleWaits(o:{wanted:number;unitBoat:boolean;player:'land'|'swimming'|'boat'|'aircraft'}){
+ if(o.wanted<=0||o.player==='aircraft')return false;
+ return o.player==='land'?o.unitBoat:!o.unitBoat;
+}
+/** CCarAI::FindPoliceCarMissionForWantedLevel: MISSION_BLOCKPLAYER_FARAWAY at one star or none; above that
+ * BLOCKPLAYER_HANDBRAKESTOP instead one time in four at two stars, one in two at three, three in four from four. */
+export function blockHandbrakeStop(wanted:number,random:()=>number){
+ if(wanted<=1)return false;
+ const chance=wanted===2?.75:wanted===3?.5:.25;
+ return random()>=chance;
+}
+/** The cars whose crews get CTaskComplexCopInCar (CCarAI::AddPoliceCarOccupants): the city cop cars and the Barracks,
+ * crewed above one star. An Enforcer, FBI Rancher or Rhino, or any car crewed at one star or none, has no such task. */
+export const COP_IN_CAR_MODELS:ReadonlySet<number>=new Set([596,597,598,599,433]);
+export function hasCopInCarTask(modelId:number,wantedWhenCrewed:number){return wantedWhenCrewed>1&&COP_IN_CAR_MODELS.has(modelId);}
+/** CTaskComplexCopInCar's driver told to leave beside the stopped suspect waits 3000–5000 ms the first time and
+ * 250–1500 ms after a chase resumed; a driver without the task leaves at once (CTaskComplexLeaveCar). Seconds. */
+export function copDriverExitDelay(o:{copInCar:boolean;firstStop:boolean;random:()=>number}){
+ if(!o.copInCar)return 0;
+ return o.firstStop?3+o.random()*2:.25+o.random()*1.25;
+}
+/** The stopped suspect car CTaskComplexCopInCar's waiting driver stays for: |moveSpeed|² × TimeStep × 50 at or under
+ * 1 (5.48 m/s at 30 fps) within 10 units of him. Speed in units a frame. */
+export function suspectCarCrawling(speed:number,distance:number){return speed*speed*(50/30)*50<=1&&distance<=10;}
 export function mellowChaseSpeed(wanted:number,distance:number,playerInCar:boolean,playerSpeed:number,cruise:number){
  let speed=cruise;
  if(wanted===1)speed=playerInCar?distance<10?15:distance<20?22:25:distance<20?5:distance<40?13:25;
@@ -107,6 +142,10 @@ interface Unit {
  /** A set piece's MISSION_SLOWLY_DRIVE_TOWARDS_PLAYER destination (native) and its TEMPACT_GOFORWARD end. */
  goal?:{x:number;y:number};goForwardUntil?:number;
  slowTimer:number;pullTimer:number;driverExitAt?:number;leaving:Leaving[];entering:Entering[];returning:Map<number,Returning>;
+ /** CTaskComplexCopInCar's m_flag0x4: no chase resumed yet, so the driver's first stop waits the long time. */
+ firstStop?:boolean;
+ /** MISSION_BLOCKPLAYER_HANDBRAKESTOP rather than BLOCKPLAYER_CLOSE, from the mission roll and the block distances. */
+ blockStop?:boolean;
  stuck:number;recovery?:{kind:number;remaining:number};recoveryMode:number;lastRecovery:number;
  /** When JoinCarWithRoadSystem last put the unit back on a link. */
  joinedAt?:number;
@@ -136,7 +175,9 @@ export class WorldPolice {
  zones?:WorldZones;
  camera:()=>{position:V3;forward:V3}=()=>({position:this.sim.player.position,forward:{x:0,y:0,z:-1}});
  canSpawn:(point:V3,radius:number)=>boolean=()=>true;
- spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number},accuracy?:number)=>void;
+ /** A unit the police stop tracking (its car taken, gone or culled): its crew on foot are ordinary peds from then on. */
+ onUnitDropped?:(unit:object)=>void;
+ spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy?:number)=>void;
  /** The street population's cops on foot: list a unit's crew, send one toward a door point (undefined resumes the pursuit), or take one into the car. */
  crew?:{list:(unit:object)=>FootCrew[];goTo:(id:number,point?:{x:number;z:number},walk?:boolean)=>void;board:(id:number)=>boolean};
  /** CTaskComplexLeaveCarAndDie for a unit's shot driver once the car rests: the host plays his exit and lays him dead. */
@@ -168,6 +209,8 @@ export class WorldPolice {
  }
  /** A stopped unit's crew holds the suspect's door: the host drags the player out so the foot arrest can proceed. */
  onPullFromCar?:(car:WorldCar)=>void;
+ /** A crew cop pulls the player off his stopped bike. */
+ onPullFromBike?:(bike:WorldBike)=>void;
  error?:string;
  constructor(private sim:Simulation,private fleet:WorldFleet,private law:WantedSystem,private clips:VehicleAnimationLibrary,base:string,private random:()=>number=Math.random){
   void openStaticWorld(base).then(async source=>{
@@ -180,9 +223,17 @@ export class WorldPolice {
  private level(){const p=this.sim.player.position;return this.zones?worldLevelAt(this.zones,[p.x,-p.z,p.y]):1;}
  /** CWanted::WorkOutPolicePresence contribution: law vehicles that still have a driver or crew, and police
   * helicopters, each by its 3D distance. */
- presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length;}
+ presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.disposed||h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length;}
  /** Airborne observers keep the pursuit alive (CWanted::NumOfHelisRequired). */
- get heliActive(){return this.helis.some(h=>h.health>0&&!h.occupied);}
+ /** Lets go of the helicopters that crashed or that something else took out of the fleet (the script's clears), with
+  * their searchlights. */
+ dropLostHelis(){
+  for(let i=this.helis.length-1;i>=0;i--){
+   const h=this.helis[i];
+   if(h.disposed||h.health<=0||!this.fleet.planes.has(h)){if(this.fleet.planes.has(h)){this.fleet.planes.delete(h);h.dispose();}this.helis.splice(i,1);this.searchlights.delete(h);}
+  }
+ }
+ get heliActive(){return this.helis.some(h=>!h.disposed&&h.health>0&&!h.occupied);}
  /** Cops still inside their cars, which count against CWanted::m_MaxCopsInPursuit. */
  get seatedCrew(){return this.units.reduce((n,u)=>n+u.seats.filter(Boolean).length,0);}
  update(now:number){
@@ -190,10 +241,10 @@ export class WorldPolice {
   const player=this.sim.player.position;
   for(let i=this.units.length-1;i>=0;i--){
    const u=this.units[i];
-   if(u.car.disposed||!this.fleet.cars.has(u.car)){this.units.splice(i,1);continue;}
+   if(u.car.disposed||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.onUnitDropped?.(u);continue;}
    const p=u.car.car.body.translation(),far=Math.hypot(p.x-player.x,p.z-player.z);
-   if(u.car.occupied){this.units.splice(i,1);continue;}
-   if(far>(this.law.level?220:120)&&this.canSpawn(p,6)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);}
+   if(u.car.occupied){this.units.splice(i,1);this.onUnitDropped?.(u);continue;}
+   if(far>(this.law.level?220:120)&&this.canSpawn(p,6)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);this.onUnitDropped?.(u);}
   }
   // ThePaths keeps the areas around the player loaded, which the roadblock nodes are looked up in whatever the
   // pursuit's car count.
@@ -214,7 +265,7 @@ export class WorldPolice {
     if(!car)continue;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
     const crew=policeCrew(modelId,level,this.law.level,this.random);
     car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};void this.clips.load(car.animGroup).catch(()=>{});
-    this.units.push({car,wanted:this.law.level,member:crew.member,shotgunSeat:(crew as {shotgunSeat?:number}).shotgunSeat,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
+    this.units.push({car,wanted:this.law.level,blockStop:blockHandbrakeStop(this.law.level,this.random),member:crew.member,shotgunSeat:(crew as {shotgunSeat?:number}).shotgunSeat,seats:Array.from({length:4},(_,i)=>i<crew.seats),seatHealth:[100,100,100,100],deadSeats:[false,false,false,false],mission:'far',siren:false,cruise:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,this.random),slowTimer:0,pullTimer:0,leaving:[],entering:[],returning:new Map(),stuck:0,recoveryMode:0,lastRecovery:-Infinity,link,route:[],routeAt:-Infinity,seconds:0});car.activeRadius=250;
     break;
    }
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -326,7 +377,7 @@ export class WorldPolice {
    if(!u.seats[seat])return;u.seats[seat]=false;
    const local=new RAPIER.Vector3(spot.x,0,-spot.y),world=car.worldPoint(local);
    const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat},u.member.accuracy);
+   this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat,roadblock:true},u.member.accuracy);
   });
  }
  private beginExit(u:Unit,seat:number){
@@ -432,16 +483,15 @@ export class WorldPolice {
  private updateHelis(playerCar?:WorldCar){
   // CWanted::NumOfHelisRequired (none with the law backed off), and none while SWITCH_POLICE_HELIS has them off.
   const need=this.policeHelisAllowed?this.law.native.helisRequired:0;
-  for(let i=this.helis.length-1;i>=0;i--){
-   const h=this.helis[i];
-   if(h.health<=0||!this.fleet.planes.has(h)){if(this.fleet.planes.has(h)){this.fleet.planes.delete(h);h.dispose();}this.helis.splice(i,1);}
-  }
-  while(this.helis.length>need){const h=this.helis.pop()!;this.fleet.planes.delete(h);h.dispose();}
+  this.dropLostHelis();
+  // A spare helicopter is dismissed only while nobody is aboard or climbing in or out of it.
+  while(this.helis.length>need){let i=this.helis.length-1;while(i>=0&&(this.helis[i].occupied||this.helis[i].entryBusy))i--;if(i<0)break;const h=this.helis.splice(i,1)[0];this.fleet.removePlane(h);this.searchlights.delete(h);}
   if(this.helis.length<need&&!this.heliBusy&&!this.disposed){
    this.heliBusy=true;
    const p=this.sim.player.position;
    void this.fleet.spawnPlane(POLICE_HELI_MODEL,p.x+80,p.z+80,0).then(heli=>{
-    if(this.disposed||helisRequired(this.law.level)<=this.helis.length){this.fleet.planes.delete(heli);heli.dispose();return;}
+    // Asked again on arrival: the law may have backed off or SWITCH_POLICE_HELIS gone off meanwhile.
+    if(this.disposed||(this.policeHelisAllowed?this.law.native.helisRequired:0)<=this.helis.length){this.fleet.planes.delete(heli);heli.dispose();return;}
     heli.policeHeli=true;this.helis.push(heli);
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.heliBusy=false;});
   }
@@ -473,6 +523,8 @@ export class WorldPolice {
    }
   }
  }
+ /** CCullZones::NoPolice for the player's position (the host's cull zones). */
+ noPoliceZone?:()=>boolean;
  beforeStep(dt:number,playerCar?:WorldCar){
   this.seconds+=dt;
   // A car the fleet or a script let go since the last dispatch update (which prunes once a second) is gone: its
@@ -487,9 +539,14 @@ export class WorldPolice {
   this.updateAlarms(dt);
   const player=this.sim.player.position,target=playerCar?playerCar.car.body.translation():player,targetVelocity=playerCar?playerCar.car.body.linvel():{x:0,y:0,z:0};
   const playerSpeed=playerCar?Math.hypot(targetVelocity.x,targetVelocity.z)/50:this.sim.player.speed/50;
+  // CCarAI's chase gates: the level is clean, or PoliceBackOff() (SET_POLICE_IGNORE_PLAYER, the garage, everybody's
+  // back-off), or the player stands in a no-police cull zone.
+  const chaseOff=!this.law.level||this.law.native.backOff||!!this.noPoliceZone?.();
   for(const u of this.units){
    const car=u.car;u.seconds+=dt;
    if(car.occupied||car.wrecked){car.autopilot=undefined;continue;}
+   // The player dragged the driver out (CreateDragPedOutSubTask): his seat is empty from then on.
+   if(car.driverOut&&(u.seats[0]||u.deadSeats[0])&&!u.leaving.some(l=>l.seat===0)){u.seats[0]=false;u.deadSeats[0]=false;}
    // Crew exiting: CTaskSimpleCarGetOut clips at the door, then CTaskSimpleCarSetPedOut.
    for(let i=u.leaving.length-1;i>=0;i--){
     const l=u.leaving[i];l.time+=dt;
@@ -506,19 +563,28 @@ export class WorldPolice {
    // Bust pull: a stopped unit's crew at the suspect's door drags the driver
    // out so the foot arrest (CTaskSimpleArrestPed) can proceed. Roadblock
    // crews hold their block the same way when the suspect stops at it.
-   if(this.law.level>0&&(u.mission==='stopped'||u.mission==='roadblock')&&playerCar&&!playerCar.wrecked){
+   if(!chaseOff&&(u.mission==='stopped'||u.mission==='roadblock')&&playerCar&&!playerCar.wrecked&&arrestOpensDriverDoor(playerCar.car.body.rotation())){
     const pv=playerCar.car.body.linvel(),pp=playerCar.car.body.translation();
     const carStopped=Math.hypot(pv.x,pv.z)<2;
     const atDoor=(this.crew?.list(u)??[]).some(c=>!c.down&&Math.hypot(c.position.x-pp.x,c.position.z-pp.z)<BUST_PULL_RANGE);
     u.pullTimer=bustPullProgress(u.pullTimer,dt,carStopped&&atDoor);
     if(u.pullTimer>=BUST_PULL_SECONDS){u.pullTimer=0;this.onPullFromCar?.(playerCar);}
+   }else if(!chaseOff&&(u.mission==='stopped'||u.mission==='roadblock')&&!playerCar&&this.fleet.occupiedBike&&!this.fleet.occupiedBike.wrecked){
+    // CTaskComplexArrestPed::CreateFirstSubTask: a suspect on a bike or quad gets TASK_COMPLEX_DRAG_PED_FROM_CAR, the
+    // crew cop at the stopped bike pulling him off (CTaskSimpleBikeJacked) for the foot arrest.
+    const bike=this.fleet.occupiedBike,bv=bike.body.linvel(),bp=bike.body.translation();
+    const atBike=(this.crew?.list(u)??[]).some(c=>!c.down&&Math.hypot(c.position.x-bp.x,c.position.z-bp.z)<BUST_PULL_RANGE);
+    u.pullTimer=bustPullProgress(u.pullTimer,dt,Math.hypot(bv.x,bv.z)<2&&atBike);
+    if(u.pullTimer>=BUST_PULL_SECONDS){u.pullTimer=0;this.onPullFromBike?.(bike);}
    }else u.pullTimer=0;
-   // Roadblock units hold across the road with their crew out; the block dissolves below
-   // three stars or once the player leaves, and the crew then reboards through recallCrew.
+   // Roadblock units hold across the road with their crew out; the block dissolves once the level
+   // is clean or the player leaves, and the crew then reboards through recallCrew.
    if(u.mission==='roadblock'){
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};
     const p0=car.car.body.translation();
-    if(this.law.level<3||Math.hypot(target.x-p0.x,target.z-p0.z)>120){u.mission='far';u.siren=false;}
+    // CTaskComplexPolicePursuit gives a roadblock cop up only once the level is clean; the block stands while any stars
+    // remain (and is left once the player is far off, the browser's removal).
+    if(!this.law.level||Math.hypot(target.x-p0.x,target.z-p0.z)>120){u.mission='far';u.siren=false;}
     continue;
    }
    // CTaskComplexDieInCar: the shot driver coasts for 2000 ms, then leaves and dies if the car is still, else dies in his seat.
@@ -527,7 +593,7 @@ export class WorldPolice {
      u.driverDying=undefined;
      const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
      if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){u.seats[0]=false;this.onCrewDiesOut?.(car,u.member.model);car.driverOut=true;}
-     else u.deadSeats[0]=true;
+     else{u.deadSeats[0]=true;car.driverDead=true;}
     }
     car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};continue;
    }
@@ -538,11 +604,13 @@ export class WorldPolice {
    // CSetPiece cars: MISSION_SLOWLY_DRIVE_TOWARDS_PLAYER_1 heads for its destination; within 1.5 it becomes _2, whose
    // crew leaves the car and stops for good once the player is within 13 or beyond 70, or no longer wanted.
    if(u.mission==='slowly1'&&u.goal&&Math.hypot(u.goal.x-p.x,u.goal.y+p.z)<=1.5)u.mission='slowly2';
-   if(u.mission==='slowly2'&&(distance<=13||distance>=70||!this.law.level)){
+   if(u.mission==='slowly2'&&(distance<=13||distance>=70||chaseOff)){
     u.mission='stopped';u.goal=undefined;for(let seat=0;seat<4;seat++)this.beginExit(u,seat);
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:true};continue;
    }
-   if(!this.law.level&&u.mission!=='slowly1'&&u.mission!=='slowly2'){u.mission='cruise';u.siren=false;}
+   // CCarAI::BackToCruisingIfNoWantedLevel: back to cruising in a no-police zone too, where the car takes no mission
+   // at all (MISSION_NONE: it stops where it is).
+   if(chaseOff&&u.mission!=='slowly1'&&u.mission!=='slowly2'){u.mission='cruise';u.siren=false;if(this.noPoliceZone?.()){car.autopilot={throttle:0,brake:1,steering:0,handbrake:speed<.5};continue;}}
    else if(u.mission==='cruise')u.mission='far';
    // CCarAI::UpdateCarAI switch distances: close within the straight-line distance 20, or head-on within 40; far beyond 50.
    // CCarAI::EntitiesGoHeadOn(player, car): the player (his ped, which faces as his car does) faces the car and the
@@ -553,9 +621,10 @@ export class WorldPolice {
    if(u.mission==='far'&&(distance<=20||headOn)){u.mission='close';u.siren=true;}
    else if(u.mission==='close'&&distance>50){u.mission='far';u.siren=false;}
    // RAM/BLOCK close: the crew gets out beside a player on foot, flipped, or stopped in a car for 2500 ms.
-   // RAMPLAYER_CLOSE: the player's car counts as stopped under 0.05 units a frame, and m_nCopsInCarTimer, run only in
-   // the close mission, adds TimeStep x 1000/60 a frame towards its 2500.
-   const playerStopped=!playerCar||playerSpeed*playerSpeed<.05*.05;
+   // Police cars run BLOCKPLAYER (FindPoliceCarMissionForWantedLevel), whose UpdateCarAI branch counts the player's
+   // car as stopped under 0.04 units a frame (RAMPLAYER's 0.05 is for other rammers), and m_nCopsInCarTimer, run only
+   // in the close mission, adds TimeStep x 1000/60 a frame towards its 2500.
+   const playerStopped=!playerCar||playerSpeed*playerSpeed<.04*.04;
    u.slowTimer=u.mission==='close'&&playerStopped?u.slowTimer+dt*50*1000/60:0;
    const upsideDown=!!playerCar&&(()=>{const r=playerCar.car.body.rotation();return 1-2*(r.x*r.x+r.z*r.z)<0;})();
    // A Rhino's crew gets out only when its random seed is over 10000 (of 32768).
@@ -563,23 +632,33 @@ export class WorldPolice {
    const crewMayLeave=car.modelId!==432||u.seed%32768>10000;
    if(u.mission==='close'&&distance<=10&&crewMayLeave&&(!playerCar||upsideDown||playerStopped&&u.slowTimer>2500)){
     u.mission='stopped';for(let seat=1;seat<4;seat++)this.beginExit(u,seat);
-    // CTaskComplexCopInCar: the driver waits 3000–5000 ms the first time.
-    u.driverExitAt=u.seconds+3+this.random()*2;
+    // The siren goes off with the crew at one star or none.
+    if(this.law.level<=1)u.siren=false;
+    // CTaskComplexCopInCar's driver waits before leaving; one without the task leaves with the passengers.
+    u.driverExitAt=u.seconds+copDriverExitDelay({copInCar:hasCopInCarTask(car.modelId,u.wanted),firstStop:u.firstStop!==false,random:this.random});
    }
    if(u.mission==='stopped'){
     car.autopilot={throttle:0,brake:1,steering:0,handbrake:speed<.5};
+    // CTaskComplexCopInCar's waiting driver: the suspect driving off in another car (not crawling within 10 units)
+    // resumes the drive mission at once, and the next stop waits the short time.
+    if(u.driverExitAt!==undefined&&u.seats[0]&&hasCopInCarTask(car.modelId,u.wanted)&&playerCar&&playerCar!==car&&!suspectCarCrawling(playerSpeed,distance)){u.mission='far';u.driverExitAt=undefined;u.firstStop=false;continue;}
     if(u.driverExitAt!==undefined&&u.seconds>=u.driverExitAt){u.driverExitAt=undefined;this.beginExit(u,0);}
     if(distance>50&&u.seats[0]&&!u.leaving.length){u.mission='far';u.driverExitAt=undefined;}
     continue;
    }
    // CCarAI::UpdateCarAI resets a ram or block mission's cruise to FindPoliceCarSpeedForWantedLevel every frame;
-   // MellowOutChaseSpeed only runs on the frame the car falls back to far, so it never holds.
-   const cruise=u.mission==='cruise'?12:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,()=>.5);
+   // MellowOutChaseSpeed only runs on the frame the car falls back to far, so it never holds there. A suspect on
+   // foot is MISSION_APPROACHPLAYER_CLOSE (CTaskComplexCopInCar), which runs MellowOutChaseSpeed every frame: at one
+   // or two stars the car creeps up at 5 within 20 units, 13 or 18 within 40, and 10 near a suspect standing still.
+   let cruise=u.mission==='cruise'?12:policeCruiseSpeed(this.law.level,car.assets.handling.maxFlatVelocity,()=>.5);
+   if(!playerCar&&u.mission==='close'){const pp=this.sim.player.position;cruise=mellowChaseSpeed(this.law.level,Math.hypot(pp.x-p.x,pp.y-p.y,pp.z-p.z),false,playerSpeed,cruise);}
    // CCarCtrl::SteerAICarWithPhysics_OnlyMission (VC; see nativeCarCtrl.ts), in native space.
    const nq=new Quaternion(q.x,q.y,q.z,q.w),f3=toNative(new Vector3(0,0,-1).applyQuaternion(nq)),fl=Math.hypot(f3.x,f3.y)||1;
    const state={position:{x:p.x,y:-p.z},forward:{x:f3.x/fl,y:f3.y/fl},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:f3};
    const goal={x:target.x,y:-target.z};u.seed??=Math.floor(this.random()*65536);
    let pedals:Pedals|undefined,aim:{x:number;z:number}={x:target.x-p.x,z:target.z-p.z};
+   // A land law car halts at the water's edge rather than driving in after a swimming or boating suspect.
+   if(lawVehicleWaits({wanted:this.law.level,unitBoat:false,player:this.fleet.occupiedBoat?'boat':this.fleet.occupiedPlane?'aircraft':this.sim.player.swimming?'swimming':'land'})){car.autopilot={throttle:0,brake:1,steering:0,handbrake:speed<.5};continue;}
    if(u.goForwardUntil!==undefined){
     // SetupQuickCar's TEMPACT_GOFORWARD for 100 ms.
     u.goForwardUntil-=dt;if(u.goForwardUntil<=0)u.goForwardUntil=undefined;
@@ -589,15 +668,16 @@ export class WorldPolice {
     // The set-piece mission's steering is in the unreversed SteerAICarWithPhysics: straight at the destination, then
     // at the player, at the set piece's cruise speed.
     pedals=steerHeadingForTarget(state,u.mission==='slowly1'&&u.goal?u.goal:goal,u.cruise);
+   }else if(u.mission==='close'&&playerCar){
+    // MISSION_BLOCKPLAYER_CLOSE and BLOCKPLAYER_HANDBRAKESTOP (re3's steering; SA's is unreversed): head for the
+    // player's spot a second of his speed ahead, and within 5 of it stop on the handbrake until he is 10 away.
+    const blockTarget=blockPlayerTarget(goal,{x:targetVelocity.x/50,y:-targetVelocity.z/50});
+    if(u.blockStop){if(distance>STOP_TO_BLOCK_DISTANCE)u.blockStop=false;pedals={swerve:0,accel:0,brake:1,handbrake:true};}
+    else{if(Math.hypot(blockTarget.x-state.position.x,blockTarget.y-state.position.y)<BLOCK_TO_STOP_DISTANCE)u.blockStop=true;pedals=steerHeadingForTarget(state,blockTarget,cruise);}
+    aim={x:blockTarget.x-p.x,z:-blockTarget.y-p.z};
    }else if(u.mission==='close'){
-    // MISSION_RAMPLAYER_CLOSE.
-    const pr=playerCar?.car.body.rotation(),pf=pr&&toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(pr.x,pr.y,pr.z,pr.w))),pright=pr&&toNative(new Vector3(1,0,0).applyQuaternion(new Quaternion(pr.x,pr.y,pr.z,pr.w)));
-    const pp=playerCar?.car.body.translation();
-    const ram=ramPlayerCloseTarget({seed:u.seed,player:goal,car:{position:state.position,forward:state.forward,halfWidth:car.nativeBody.boundsMax.x},
-     playerVehicle:playerCar&&pp&&pf&&pright?{position:{x:pp.x,y:-pp.z},forward:{x:pf.x,y:pf.y},right:{x:pright.x,y:pright.y},halfWidth:playerCar.nativeBody.boundsMax.x,speed:Math.hypot(targetVelocity.x,targetVelocity.z)/50}:undefined});
-    if(ram.turn&&!(u.turn&&this.seconds<u.turn.until))u.turn={dir:ram.turn,until:this.seconds+.25};
-    aim={x:ram.target.x-p.x,z:-ram.target.y-p.z};
-    pedals=u.turn&&this.seconds<u.turn.until?turnPedals(u.turn.dir):steerHeadingForTarget(state,ram.target,cruise);
+    // MISSION_APPROACHPLAYER_CLOSE for the suspect on foot: straight at him (the steering is unreversed).
+    pedals=steerHeadingForTarget(state,goal,cruise);
    }else if(this.paths&&u.link){
     // FARAWAY missions route over the car path network to the node nearest the player, refreshed every 3 s or when the player moves 20 units.
     if(u.mission==='far'&&(this.seconds-u.routeAt>3||!u.routeGoal||Math.hypot(u.routeGoal.x-target.x,u.routeGoal.z-target.z)>20)){u.routeAt=this.seconds;u.routeGoal={x:target.x,y:target.y,z:target.z};u.route=findTrafficRoute(this.paths.areas,u.link.to,u.routeGoal)??[];}
@@ -662,5 +742,5 @@ export class WorldPolice {
   return out;
  }
  snapshot(){return {ready:!!this.paths,pending:this.busy,error:this.error??null,lastRappel:this.lastRappel,helis:this.helis.map(h=>({modelId:h.modelId,position:{...h.body.translation()},speed:Math.hypot(h.body.linvel().x,h.body.linvel().z),occupied:h.occupied,searchlight:this.searchlights.get(h)??{locked:false,illuminated:false,distance:0}})),units:this.units.map(u=>({handle:u.car.car.body.handle,modelId:u.car.modelId,mission:u.mission,siren:u.siren,crew:u.seats.filter(Boolean).length,health:[...u.seatHealth],dead:[...u.deadSeats],dying:!!u.driverDying,leaving:u.leaving.length,entering:u.entering.map(e=>({seat:e.seat,phase:e.phase})),returning:u.returning.size,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z),recovery:u.recovery?.kind??null,route:u.route.length,routeEnd:u.route.at(-1)?.to.position??null,routeGoal:u.routeGoal??null,link:u.link?{from:u.link.from.position,to:u.link.to.position}:null,aim:u.aim??null}))};}
- dispose(){this.disposed=true;for(const u of this.units)this.fleet.removeTrafficCar(u.car);this.units.length=0;for(const h of this.helis){this.fleet.planes.delete(h);h.dispose();}this.helis.length=0;}
+ dispose(){this.disposed=true;for(const u of this.units)this.fleet.removeTrafficCar(u.car);this.units.length=0;for(const h of this.helis){this.fleet.planes.delete(h);h.dispose();}this.helis.length=0;this.searchlights.clear();}
 }

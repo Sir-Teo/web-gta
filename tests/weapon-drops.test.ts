@@ -17,7 +17,7 @@ test('dropped guns ground themselves, hand over rounds once, then retire', async
   expect(drops.snapshot()).toMatchObject([{ weapon: 22, rounds: 9 }]);
   let collected: [number, number][] = [];
   drops.step(1, { ...player, position: { x: 0, y: 0, z: 10 } }, () => { throw new Error('out of reach'); });
-  drops.step(1, player, (w, r) => { collected.push([w, r]); return 'Pistol'; });
+  drops.step(1, player, (w, r) => { collected.push([w, r.rounds]); return 'Pistol'; });
   expect(collected).toEqual([[22, 9]]);
   expect(drops.snapshot()).toEqual([]);
 });
@@ -40,7 +40,7 @@ test('a same-weapon drop within 5 units takes the ammo instead of a new pickup (
   expect(drops.snapshot().map(d => [d.weapon, d.rounds])).toEqual([[22, 120], [31, 160], [22, 60]]);
 });
 
-test('drops stay while the player is away, time out, and are taken on foot within √1.8 across and 2 up', async () => {
+test('drops stay while the player is away, time out after 20 s, and are taken on foot within √1.8 across and 2 up', async () => {
   const { drops } = setup();
   await drops.report({ x: 0, y: 0, z: 0 }, 22, 5);
   drops.step(1, { ...player, position: { x: 500, y: 0, z: 0 } }, () => 'Pistol');
@@ -53,17 +53,39 @@ test('drops stay while the player is away, time out, and are taken on foot withi
   drops.step(1, { ...player, position: { x: 1, y: 1.8, z: .5 } }, () => { calls++; return 'Pistol'; });
   expect(calls).toBe(1);
   await drops.report({ x: 0, y: 0, z: 0 }, 22, 5);
-  drops.step(121, { ...player, position: { x: 500, y: 0, z: 0 } }, () => 'Pistol');
+  drops.step(21, { ...player, position: { x: 500, y: 0, z: 0 } }, () => 'Pistol');
   expect(drops.snapshot()).toEqual([]);
   drops.dispose();
 });
 
-test('a script ped whose death weapons persist drops PICKUP_ONCE_FOR_MISSION: no timeout and no merging',async()=>{
+test('a script ped whose death weapons persist drops PICKUP_ONCE_FOR_MISSION: no timeout, never merged into, but merged into a timed drop',async()=>{
   const { drops } = setup();
   await drops.report({ x: 0, y: 0, z: 0 }, 22, 60, true);
   await drops.report({ x: 1, y: 0, z: 0 }, 22, 60);
   expect(drops.snapshot().map(d => d.rounds)).toEqual([60, 60]);
+  // CreateDeadPedWeaponPickups tries TryToMerge_WeaponType (PICKUP_ONCE_TIMEOUT) first whatever the ped's flag.
+  await drops.report({ x: 2, y: 0, z: 0 }, 22, 60, true);
+  expect(drops.snapshot().map(d => d.rounds)).toEqual([60, 120]);
   drops.step(500, { ...player, position: { x: 500, y: 0, z: 0 } }, () => 'Pistol');
   expect(drops.snapshot()).toMatchObject([{ weapon: 22, rounds: 60 }]);
   drops.dispose();
+});
+// CreateDeadPedWeaponPickups hands over CreateDeadPedPickupCoors' own point (ground + 0.5, then + 0.3): kept as given,
+// and every pickup faces -π/2 (GiveUsAPickUpObject).
+test('a placed drop keeps its height and faces -π/2', async () => {
+  const { drops, added } = setup();
+  await drops.report({ x: 0, y: 3.8, z: 0 }, 22, 9, false, true);
+  expect(added[0].position.y).toBeCloseTo(3.8);expect(added[0].rotation.y).toBeCloseTo(-Math.PI / 2);
+  expect(drops.snapshot()[0].position.y).toBeCloseTo(3.8);
+});
+
+// CWorld::ClearExcitingStuffFromArea's CPickups::RemoveUnnecessaryPickups takes the PICKUP_ONCE_TIMEOUT drops in the
+// sphere; CPickups::PassTime runs their timeouts on (a passed minute is a second), so a long wait clears them.
+test('clearing an area removes the dropped guns in it, and passed time ages them out', async () => {
+  const { drops } = setup();
+  await drops.report({ x: 0, y: 0, z: 0 }, 22, 9);await drops.report({ x: 50, y: 0, z: 0 }, 31, 60);
+  drops.removeInSphere({ x: 0, y: 0, z: 0 }, 10);
+  expect(drops.snapshot().map(d => d.weapon)).toEqual([31]);
+  drops.passTime(360);drops.step(0, { ...player, position: { x: 0, y: 0, z: 100 } }, () => undefined);
+  expect(drops.snapshot()).toEqual([]);
 });

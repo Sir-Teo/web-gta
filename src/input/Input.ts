@@ -25,10 +25,13 @@ export class Input {
     for (const type of ['keydown', 'keyup', 'mousedown', 'mouseup', 'mousemove', 'wheel'] as const) window.addEventListener(type, () => { this.touches++; }, { ...options, passive: true });
     window.addEventListener('keydown', e => {
       // Escape works from the menu's buttons too (a clicked button keeps the focus); a text field or list keeps its own.
-      if (e.code === 'Escape') { if (!e.repeat && !(e.target as HTMLElement).closest('input, select, textarea')) onPause(); return; }
+      // A text field or an open list keeps its own Escape; a slider, checkbox or button does not use it.
+      if (e.code === 'Escape') { if (!e.repeat && !(e.target as HTMLElement).closest('input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=button]), select, textarea')) onPause(); return; }
       if ((e.target as HTMLElement).closest('input, select, button')) return;
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home'].includes(e.code) || takesBrowserShortcut(e)) e.preventDefault();
-      if (!this.held.has(e.code)) { this.pressed.add(e.code); if (/^Key[A-Z]$/.test(e.code)) this.onLetter?.(e.code.slice(3)); }
+      // CCheat::DoCheats feeds every standard key just pressed to the cheat string: a digit, the space or a punctuation
+      // key breaks a code being typed (it can match nothing itself).
+      if (!this.held.has(e.code)) { this.pressed.add(e.code); if (/^Key[A-Z]$/.test(e.code)) this.onLetter?.(e.code.slice(3)); else if (/^Digit[0-9]$/.test(e.code)) this.onLetter?.(e.code.slice(5)); else if (e.code === 'Space' || /^(Minus|Equal|Comma|Period|Slash|Semicolon|Quote|Backquote|BracketLeft|BracketRight|Backslash)$/.test(e.code)) this.onLetter?.(' '); }
       this.held.add(e.code);
     }, options);
     window.addEventListener('keyup', e => {
@@ -62,7 +65,8 @@ export class Input {
         this.lookX += e.movementX; this.lookY += e.movementY;
       }
     }, options);
-    canvas.addEventListener('wheel',e=>{e.preventDefault();this.pressed.add(e.deltaY>0?'WheelNext':'WheelPrevious');},{...options,passive:false});
+    // Only a vertical turn of the wheel is a weapon step; a sideways scroll (a trackpad, a tilt wheel) is not.
+    canvas.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY!==0)this.pressed.add(e.deltaY>0?'WheelNext':'WheelPrevious');},{...options,passive:false});
     canvas.addEventListener('contextmenu', e => e.preventDefault(), options);
   }
   down(code: string) { return this.held.has(code); }

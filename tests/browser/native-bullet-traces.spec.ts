@@ -5,7 +5,7 @@ test('gunfire leaves fading bullet traces',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="31"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="31"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  await page.evaluate(()=>(window as any).__game.turnPlayer(Math.PI));await page.waitForTimeout(300);
  const p=(await state()).player.position;
  let peak=0;

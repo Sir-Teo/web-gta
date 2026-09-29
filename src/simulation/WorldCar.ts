@@ -29,6 +29,8 @@ import {softGroundResistance} from './nativeSoftGround';
 import {hoverWheelContact,hoverActive} from './nativeHoverSuspension';
 import type {CarWheel} from './nativeDriveContacts';
 const MODEL_VORTEX=539;
+/** What CAutomobile::BlowUpCarsInPath needs of a vehicle it touches. */
+export interface CrushableVehicle {modelId:number;wrecked:boolean;blowUp():void;crimeKey:string}
 /** eCarWheel indices of the native wheel names. */
 const CAR_WHEEL_INDEX={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
 /** CVehicle::ProcessWheel's fBurstTyreMod (0x8D34B4). */
@@ -73,6 +75,7 @@ export const carRefusesDamage=(car:{canBeDamaged:boolean;proofs?:{bullet:boolean
 };
 /** Who hurt a car: the player's ped, another ped, or a vehicle. */
 export type CarDamager={player?:true;ped?:unknown;car?:WorldCar};
+const WRECKED_CONTROLS={steerAngle:0,gas:0,brake:.05,handbrake:true} as const;
 export class WorldCar {
  readonly car:ReturnType<typeof installNativeCar>;
  readonly modelId:number;
@@ -153,6 +156,8 @@ export class WorldCar {
  readonly audio={states:['normal','normal','normal','normal'] as ('normal'|'spinning'|'skidding'|'fixed')[],counts:[0,0,0,0],contactWheels:0,driveOnGround:0,driveOnGroundLastFrame:0,spinForAudio:0,burst:[false,false,false,false],contactSurface:0,brakePedal:0,handbrake:false,accelerate:0,brake:0};
  /** CAutomobile::ProcessControlInputs: the exit button holds the handbrake until the driver's exit starts. */
  exitHandbrake=false;
+ /** ProcessControlInputs' automaticallyHandBrake while the exit button is held or the driver is arrested. */
+ exitHeld=false;
  /** Seated driving input; cleared while a driver transition runs. */
  driverInput=true;
  /** A driving task a script gave the player (CTaskSimpleCarDrive as STATUS_PHYSICS): the car's autopilot drives with
@@ -181,6 +186,9 @@ export class WorldCar {
  private visual:Record<string,number>={};
  /** The player's car, used for native rammed-by-player damage divisors. */
  playerVehicle?:()=>WorldCar|undefined;
+ /** The body handle of the bike or quad the player rides: CAutomobile::VehicleDamage raises CEventVehicleDamageCollision
+  * for any driven damager, so a ram from it is the player's as a car's is. */
+ playerBikeBody?:()=>number|undefined;
   occupied=false;
   trafficOrigin=false;
   /** The clump alpha (0 to 255): a generated car starts at 0 and CVehicle::UpdateClumpAlpha raises it 16 a frame. */
@@ -273,6 +281,7 @@ export class WorldCar {
  constructor(private sim:Simulation,scene:Scene,readonly assets:NativeCarAssets,position:{x:number;y:number;z:number},road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>,heading=0){
   this.modelId=assets.vehicle.id;this.name=assets.vehicle.id===492?'Greenwood':assets.vehicle.model;this.surfaces=road.records;
   this.car=installNativeCar(sim.world,scene,assets,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.4,restitution:0});
+  const self=this;
   const h=assets.handling.values;this.mass=h.mass;this.turnMass=h.turnMass;this.collisionDamageMultiplier=h.collisionDamageMultiplier;this.boundsMaxX=Math.max(.5,assets.collision.bounds.max[0]);
   this.groupColliders();
   // CAutomobile's constructor fits a car with hydraulic geometry with hydraulics one time in four.
@@ -286,7 +295,7 @@ export class WorldCar {
    steeringControl:{playerStatus:true,tarmacAdhesion:surfaceAdhesiveLimit(road.rows,road.records.get(NATIVE_WHEELBASE_SURFACE)!,road.records.get(1)!)},
    // ProcessSuspension: the Vortex (and the unused CARS_ON_WATER cheat) springs along the car's down axis (ApplySpringCollision), other cars along the contact normal (Alt).
    suspension:{mode:assets.vehicle.id===MODEL_VORTEX?'direction':'normal',makeMassTwiceAsBig:false,frameLimit:1,springLimitMultiplier:2},
-   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,get perfectHandling(){return CHEATS.isActive('perfectHandling');},extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:false,vortexAccelerationBrakeStatus:0},wheelParameters:{coastBrake:nativeCoastBrake(WHEEL_FRICTION,h.mass,assets.vehicle.id===MODEL_RC_BANDIT?'rcBandit':'car'),wheelDamageEffect:.5,playerCollisions:false}},
+   tires:{velocityFrequency:1,playerControlled:true,vehicleGrip:{physicsStatus:false,get perfectHandling(){return CHEATS.isActive('perfectHandling');},extraPerfectHandling:false,extraHandlingNitros:false,isPlayerVehicle:true,vortex:assets.vehicle.id===MODEL_VORTEX,/* m_fAccelerationBreakStatus: the pedals' difference (its setter, CPlane::ProcessControlInputs, is unreversed). */get vortexAccelerationBrakeStatus(){return Math.abs(self.input.pedals.accelerate-self.input.pedals.brake)/255;}},wheelParameters:{coastBrake:nativeCoastBrake(WHEEL_FRICTION,h.mass,assets.vehicle.id===MODEL_RC_BANDIT?'rcBandit':'car'),wheelDamageEffect:.5,playerCollisions:false}},
    // Exact native collision material and adhesion matrix. DoBurstAndSoftGroundRatios sinks non-Rhino wheels on SAND surfaces
    // (less as CWeather::WetRoads rises), and the player's wet multiplier comes from the road's SURFINFO.DAT wet grip.
    resolveWheel:(wheel,contact)=>{
@@ -307,9 +316,10 @@ export class WorldCar {
   const kind:CarDamageKind=explosive?'explosion':options.kind??'bullet';
   if(this.wrecked||carRefusesDamage(this,kind))return false;
   // CVehicle::CanVehicleBeDamaged: a car only the player may damage (bInvulnerable) refuses anyone else's harm, and the
-  // player's own car, once under 250 and burning, takes no more from blasts (the VehicleDamage path they use).
+  // player's own car, once under 250 and burning, takes no more from blasts, bullets or the molotov (the weapons
+  // CPhysical::CanPhysicalBeDamaged flags as fire, explosion or bullet; the flamethrower is not flagged).
   if(this.onlyDamagedByPlayer&&!this.occupied&&options.byPlayer===false)return false;
-  if(explosive&&this.occupied&&this.health<250)return false;
+  if(this.occupied&&this.health<250&&(explosive||kind==='bullet'||options.weapon===18))return false;
   // CVehicle::InflictDamage: a car with health left keeps the weapon and whoever used it. A blast is WEAPON_EXPLOSION
   // (51) and a fire WEAPON_FLAMETHROWER (37); the player's harm is his own ped's.
   if(this.health>0){
@@ -405,14 +415,18 @@ export class WorldCar {
  onBlowUp?:(driverAboard:boolean)=>void;
  /** CAutomobile::BlowUpCarsInPath: the Rhino (432) at 0.1 units a step or more blows up every car it touches
   * (not another Rhino, not a scorched wreck); the player's Rhino reports CRIME_EXPLOSION for each. */
- onCrushCar?:(other:WorldCar)=>void;
+ onCrushCar?:(other:CrushableVehicle)=>void;
+ /** The crime victim key the wanted system knows this car by. */
+ get crimeKey(){return `car:${this.car.body.handle}`;}
+ /** Any other vehicle of the pool by body handle (bikes and boats), for the Rhino's path. */
+ otherVehicle?:(bodyHandle:number)=>CrushableVehicle|undefined;
  private crushCarsInPath(){
   if(this.modelId!==432||this.wrecked||!this.car.body.isEnabled())return;
   const v=this.car.body.linvel();if(Math.hypot(v.x,v.y,v.z)<5)return;
   for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
    const parent=other.parent();if(!parent||parent.isFixed())return;
    let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});if(!touching)return;
-   const hit=this.otherCar?.(parent.handle);if(!hit||hit===this||hit.modelId===432||hit.wrecked)return;
+   const hit:CrushableVehicle|undefined=this.otherCar?.(parent.handle)??this.otherVehicle?.(parent.handle);if(!hit||hit===this||hit.modelId===432||hit.wrecked)return;
    hit.blowUp();this.onCrushCar?.(hit);
   });}
  }
@@ -440,7 +454,13 @@ export class WorldCar {
   // bRenderScorched: the wreck is lit by a dim grey ambient alone.
   this.car.setScorched(true);
   const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
+  this.killPlayerAboard();
+ }
+ /** KillPedsInVehicle: CEventVehicleDied reaches the driver and every passenger alike, and ComputeVehicleDiedResponse
+  * sets their health to 0; the player dies in either seat. */
+ private killPlayerAboard(){
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
+  else if(this.playerPassengerSeat)this.sim.vehicleOccupantDied();
  }
  /** CAutomobile::Fix (0x6A3440): every damage status back to OK, damaged atomics hidden, doors shut and bouncing panels
   * reset. The cheat that calls it sets health to 1000 and the burn timer to 0. */
@@ -571,6 +591,8 @@ export class WorldCar {
  /** The player's passenger seat (CarEntry's numbering: 1 front right, 2 rear left, 3 rear right), 0 while he is not
   * a passenger here. The car goes on under whoever drives it; the player rides along. */
  playerPassengerSeat=0;
+ /** FindPlayerVehicle: the car CJ is in, a passenger seat included (player->m_pVehicle whenever bInVehicle). */
+ get playersVehicle(){return this.occupied||this.playerPassengerSeat>0;}
  /** CTaskSimpleCarSetPedInAsPassenger for the player: he takes the seat and loses his on-foot collision. */
  setPlayerInAsPassenger(seat:number){
   this.sim.setCrouched(false);this.playerPassengerSeat=seat;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);
@@ -604,22 +626,29 @@ export class WorldCar {
   const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
   this.input.tires.wheelParameters.playerCollisions=this.occupied;
-  const p=this.input.pedals,ai=this.occupied&&!this.scriptDriven?undefined:this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
-  p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake:ai?.handbrake??!this.driverless;
+  // PrepareVehicleForPedEnter stops the car's own autopilot while someone gets in (every mission, whichever system
+  // drives it): a driver still aboard brakes and holds; one dragged out drives no more.
+  const holding=!this.occupied&&!this.driverOut&&this.holdForEntry&&!!this.autopilot?(()=>{const v=this.car.body.linvel();return {steering:0,throttle:0,brake:1,handbrake:Math.hypot(v.x,v.z)<.3} as TrafficControls;})():undefined;
+  const p=this.input.pedals,ai=this.occupied&&!this.scriptDriven?undefined:!this.occupied&&this.driverOut?undefined:holding??this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
+  p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake||this.exitHeld:ai?.handbrake??!this.abandoned;
   // ProcessControlInputs' automaticallyHandBrake: while the driver waits to slow down, is dragged out or holds exit,
   // the gas is 0 and the brake full, not the handbrake alone.
-  p.automaticallyHandbrake=this.occupied&&this.exitHandbrake;
+  p.automaticallyHandbrake=this.occupied&&(this.exitHandbrake||this.exitHeld);
   // CAutomobile::ProcessControl's STATUS_ABANDONED branch: no handbrake, gas or steering, and a 0.2 brake once
   // |v|² < 0.01 units/frame (0.5 on a physical object is not modelled), else none: a car left on a slope settles.
   // These are the native pedals themselves (the S key's brake-then-reverse must not drive an empty car backwards).
-  const abandoned=!this.occupied&&!ai&&this.driverless?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
+  const abandoned=!this.occupied&&!ai&&this.abandoned?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
   if(abandoned){p.accelerate=0;p.brake=0;p.handbrake=false;}// CPad::GetSteeringLeftRight answers 0 while player controls are disabled.
   this.input.steering.steeringAxis=driving?(this.controlsDisabled?0:axes.x*128):Math.round((ai?.steering??0)*128);
-  if(this.wrecked){p.accelerate=0;p.brake=255;p.handbrake=true;}
+  if(this.wrecked){p.accelerate=0;p.brake=0;p.handbrake=true;}
+  // BlowUpCar turns the engine off, and CalculateDriveAcceleration only runs with it on.
+  p.engineOn=!this.wrecked;
   // CAutomobile::ProcessCarOnFireAndExplode for ordinary cars.
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;
   this.crushCarsInPath();
-  this.input.ai=this.wrecked?undefined:this.recordingSlot>=0&&this.recordingControls?this.recordingControls:ai?.native??abandoned;
+  // CAutomobile::ProcessAI's STATUS_WRECKED branch sets the controls outright: a 0.05 brake, the handbrake, no gas and
+  // the steering straight; the player's pedal logic (brake-then-reverse) never runs for a wreck.
+  this.input.ai=this.wrecked?WRECKED_CONTROLS:this.recordingSlot>=0&&this.recordingControls?this.recordingControls:ai?.native??abandoned;
   // CAutomobile::DoHoverSuspensionRatios: the Vortex rides its wheel lines on the water surface.
   const hover=this.modelId===MODEL_VORTEX&&this.waterLevel&&hoverActive(this.axes().up[2],this.drowning)
    ?(wheel:CarWheel,line:{start:{x:number;y:number;z:number};end:{x:number;y:number;z:number}},groundContactZ:number|undefined)=>hoverWheelContact({start:line.start,end:line.end,groundContactZ,waterLevel:this.waterLevel!(line.end.x,line.end.y)}):undefined;
@@ -636,7 +665,7 @@ export class WorldCar {
    if(speed>=.28){const k=.28/speed;this.car.body.setLinvel({x:v.x*k,y:v.y*k,z:v.z*k},true);}
   }
   // ProcessControl's default branch: hydraulics take the horn and the stick, and otherwise the boost jump may.
-  if(this.hydraulics)this.hydraulicControl(seconds);else this.boostJumpControl();
+  if(this.hydraulics){this.hydraulicSettle(seconds);this.hydraulicControl(seconds);}else this.boostJumpControl();
   this.airControl(seconds,axes.x,handbrake);
   // CAutomobile::ProcessControl: the all-cars-nitro cheat fits every car with endless nitro each step, and a car
   // with nitro runs NitrousControl (STATUS_PHYSICS, a car the game drives, fires it without a pad).
@@ -717,6 +746,22 @@ export class WorldCar {
   if(wheels)requireAsset(Object.values(wheels).every(Number.isFinite),'Invalid hydraulic levels.');
   this.hydraulicWheels=wheels?{...wheels}:{frontLeft:0,rearLeft:0,frontRight:0,rearRight:0};
   if(!wheels&&this.hydraulics)this.hydraulics.angle=0;
+ }
+ /** CAutomobile::ProcessControl for a car with hydraulics moving under 0.2 units a frame: while the player holds the
+  * stick sideways (|left-right| > 50, |up-down| < 50), or a scripted car has both corners of one side raised past
+  * 0.5, the roll rate about the car's forward axis is damped each frame, tsf × (0.985^ts / (5 tsf² + 1))^ts − tsf,
+  * as a turn force of −that × up × turn mass at a unit to the right (the centre of mass cancels). */
+ private hydraulicSettle(dt:number){
+  const v=this.car.body.linvel();if(Math.hypot(v.x,v.y,v.z)/50>=.2)return;
+  let settle=false;
+  if(this.occupied){const s=this.pad.stick;settle=!!s&&Math.abs(s.leftRight)>50&&Math.abs(s.upDown)<50;}
+  else if(this.missionCar&&!this.driverless){const w=this.hydraulicWheels;settle=w.frontLeft>.5&&w.rearLeft>.5||w.frontRight>.5&&w.rearRight>.5;}
+  if(!settle)return;
+  const q=this.car.body.rotation(),forward=new Vector3(0,0,-1).applyQuaternion(new Quaternion(q.x,q.y,q.z,q.w)),w=this.car.body.angvel();
+  const ts=dt*50,tsf=(w.x*forward.x+w.y*forward.y+w.z*forward.z)/50;
+  const speed=Math.pow(Math.pow(.985,ts)/(tsf*tsf*5+1),ts)*tsf-tsf;
+  // ApplyTurnForce(−speed × up × turnMass, right + com): right × up is −forward, so the turn gains speed × forward.
+  this.car.body.setAngvel({x:w.x+forward.x*speed*50,y:w.y+forward.y*speed*50,z:w.z+forward.z*speed*50},true);
  }
  /** HydraulicControl runs once a 30 fps game frame (its counter steps per frame); a horn press is taken on its step. */
  private hydraulicClock=0;
@@ -883,6 +928,9 @@ export class WorldCar {
   /** autoFlags.bWaterTight (SET_CAR_WATERTIGHT): the peds sat in it do not drown when it goes under; the player still does. */
   waterTight=false;
   /** cBuoyancy::AddSplashParticles spray waiting for the FX system, and the move speed of the last splash reported to the audio engine. */
+  /** dmgDrawCarCollidingParticles' request from the last crash (browser frame): where it hit and how hard; WorldFx
+   * drains it once. */
+  collisionFx?:{position:V3;force:number};
   readonly splashes:{position:NativeVec;velocity:NativeVec}[]=[];splashReport?:NativeVec;private splashClock=0;
  /** CVehicle::m_nVehicleFlags.bEngineOn for a car a driver has sat in: RemoveDriver switches it off only for a
   * non-player driver, so a car the player steps out of keeps idling; a jump-out's CTaskSimpleCarSetPedOut is built
@@ -927,6 +975,15 @@ export class WorldCar {
  }
  /** CVehicle::RemoveDriver's STATUS_ABANDONED: a car its driver left (stepped, jumped, crawled or was dragged out). */
  driverless=false;
+ /** STATUS_ABANDONED: nobody drives it. CCarGenerator, CCheat::VehicleCheat and CCarCtrl::CreateCarForScript create cars
+  * so, and CVehicle::RemoveDriver sets it whenever a driver gets out (driverless for the player's exits, driverOut for
+  * a ped's). */
+ get abandoned(){return this.driverless||this.driverOut&&!this.driverLeaving;}
+ /** An NPC driver is still playing his get-out clip: CVehicle::RemoveDriver runs at CTaskSimpleCarSetPedOut, when he
+  * is out, so until then the car is not abandoned. */
+ driverLeaving=false;
+ /** The AI driver in the seat has died there (CTaskComplexDieInCar's dead-in-seat branch): pulled out, he is a corpse. */
+ driverDead=false;
  /** PrepareVehicleForPedEnter: the NPC driver stops while someone lines up with the car. */
  holdForEntry=false;
  /** The NPC driver was dragged out or left; the car keeps no autopilot. */
@@ -946,11 +1003,11 @@ export class WorldCar {
   if(intensity<=this.mass/1500*25)return;
   const up={x:2*(q.x*q.y-q.w*q.z),y:1-2*(q.x*q.x+q.z*q.z),z:2*(q.y*q.z+q.w*q.x)},right={x:1-2*(q.y*q.y+q.z*q.z),y:2*(q.x*q.y+q.w*q.z),z:2*(q.x*q.z-q.w*q.y)};
   let piece:number=COLLISION_COMPONENT.default,point:{x:number;y:number;z:number}|undefined,building=true,rammedByPlayer=false,damager:WorldCar|undefined;
-  const player=this.playerVehicle?.();
+  const player=this.playerVehicle?.(),playerBike=this.playerBikeBody?.();
   for(let i=0;i<this.car.body.numColliders();i++){const collider=this.car.body.collider(i);this.sim.world.contactPairsWith(collider,other=>{
    if(other.isSensor()||other.handle===this.sim.playerCollider.handle)return;const parent=other.parent();
    let touching=false;this.sim.world.contactPair(collider,other,manifold=>{if(manifold.numContacts()>0)touching=true;});if(!touching)return;
-   if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle)rammedByPlayer=true;const hit=this.otherCar?.(parent.handle);if(hit&&hit!==this){this.recordVehicleCollision(hit);damager=hit;}}
+   if(parent&&!parent.isFixed()){building=false;if(player&&player!==this&&parent.handle===player.car.body.handle||playerBike!==undefined&&parent.handle===playerBike)rammedByPlayer=true;const hit=this.otherCar?.(parent.handle);if(hit&&hit!==this){this.recordVehicleCollision(hit);damager=hit;}}
    const flags=this.pieceOf(collider.handle);if(flags!==undefined&&flags!==COLLISION_COMPONENT.default||!point){piece=flags??piece;point={...collider.translation()};}
   });}
   // A crash with another vehicle leaves it as the damager, by WEAPON_RAMMEDBYCAR (49).
@@ -962,9 +1019,12 @@ export class WorldCar {
   // Hits from below by buildings (ground) do not damage: DotProduct(direction, up) > 0.6.
   const direction={x:dv.x/change,y:dv.y/change,z:dv.z/change};
   if(building&&direction.x*up.x+direction.y*up.y+direction.z*up.z>.6)return;
+  // dmgDrawCarCollidingParticles: sparks, a puff of smoke and paint chips at the hit when the car moves faster than
+  // √(0.02/50) units a frame.
+  if((v.x**2+v.y**2+v.z**2)/2500>.02/50)this.collisionFx={position:{...point},force:intensity};
   const p=this.car.body.translation(),localDir=((point.x-p.x)*right.x+(point.y-p.y)*right.y+(point.z-p.z)*right.z)/this.boundsMaxX,dirDotRight=direction.x*right.x+direction.y*right.y+direction.z*right.z;
   // A cop car the player's car rams while going at least as fast, and faster than 0.1 units a frame, gives him a star.
-  if(rammedByPlayer&&player&&LAW_ENFORCEMENT_MODELS.has(this.modelId)&&!this.driverless){
+  if(rammedByPlayer&&player&&LAW_ENFORCEMENT_MODELS.has(this.modelId)&&!this.abandoned){
    const pv=player.car.body.linvel(),mine=v,theirs=(pv.x**2+pv.y**2+pv.z**2)/2500;
    if(theirs>=(mine.x**2+mine.y**2+mine.z**2)/2500&&theirs>.01)WorldCar.onPlayerRammedLaw?.();
   }
@@ -973,7 +1033,7 @@ export class WorldCar {
   const previous=this.health;
   const models={modelId:this.modelId,damagerModelId:damager?.modelId};
   if(this.onCollisionDamage){const raw=collisionHealthLossRaw({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,...models,damagerIsPlayer:rammedByPlayer});if(raw>0)this.onCollisionDamage(raw,rammedByPlayer);}
-  this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:rammedByPlayer,...models,takeLessDamage:this.takeLessDamage}));
+  this.health=Math.max(0,this.health-collisionHealthLoss({intensity,mass:this.mass,collisionDamageMultiplier:this.collisionDamageMultiplier,playerVehicle:this.playersVehicle,hitByPlayerVehicle:rammedByPlayer,...models,takeLessDamage:this.takeLessDamage}));
   // CAutomobile::VehicleDamage: the smash n boom cheat blows up whatever the player's vehicle hits. Otherwise a
   // crash-killed car stays at 1 health to burn, unless any Rhino killed it and it is not the player's own car.
   if(CHEATS.isActive('smashNBoom')&&rammedByPlayer){this.blowUp();return;}
@@ -992,7 +1052,7 @@ export class WorldCar {
  private upsideDownDamage(seconds:number){
   if(this.wrecked||!this.car.body.isEnabled()||!this.canBeDamaged)return;
   const q=this.car.body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
-  if(!this.occupied){this.upsideDownCounter=0;this.upsideDownClock=0;if(upY<0&&!this.noUpsideDownDamage)this.health=Math.max(0,this.health-4*seconds*50);return;}
+  if(!this.playersVehicle){this.upsideDownCounter=0;this.upsideDownClock=0;if(upY<0&&!this.noUpsideDownDamage)this.health=Math.max(0,this.health-4*seconds*50);return;}
   this.upsideDownClock+=seconds;if(this.upsideDownClock<32/30)return;this.upsideDownClock-=32/30;
   const v=this.car.body.linvel(),speed=Math.hypot(v.x,v.y,v.z)/50;
   if(upY<0&&speed<.05&&!this.inWater)this.upsideDownCounter+=upY<-.5?2:1;else this.upsideDownCounter=0;

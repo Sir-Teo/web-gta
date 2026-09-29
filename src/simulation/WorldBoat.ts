@@ -67,6 +67,18 @@ export class WorldBoat {
   if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}
  }
  get onFire(){return !this.wrecked&&this.health<250;}
+ /** The crime victim key the wanted system knows this boat by. */
+ get crimeKey(){return `boat:${this.body.handle}`;}
+ /** CBoat::ProcessControl's fire section: the blow-up timer is cleared only above 460 health or once wrecked; below
+  * that it holds, and under 250 health, with the hull within 200 units of the camera along each ground axis (the
+  * player stands in for the camera), it runs (TimeStep × 20 ms a frame) until past 5000 ms the hull blows up. */
+ private processFire(dt:number){
+  if(this.health>460||this.wrecked){this.burnTimer=0;return;}
+  if(this.health>=250)return;
+  const p=this.body.translation(),c=this.sim.player.position;
+  if(Math.abs(p.x-c.x)>=200||Math.abs(p.z-c.z)>=200)return;
+  this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();
+ }
  /** Burn anchor (per-model fire dummy): the engine/exhaust frame, else the stern deck. */
  fireDummy():{x:number;y:number;z:number}{
   const dummy=this.assets.model?.frames.find(f=>/^(engine|exhaust)/i.test(f.name));
@@ -84,6 +96,9 @@ export class WorldBoat {
   this.modelId=assets.vehicle.id;this.name=PLAYABLE_BOATS[this.modelId];
   // The table index only feeds unused gear/speed outputs for hulls (no drivetrain).
   this.handling=prepareHandling(assets.handling,0);this.water.buoyancy=this.handling.buoyancy;
+  // CBoat's constructor: m_fTurnMass is half the handling's turn mass (0x6F2940), so the hull rolls and yaws twice as
+  // readily as the rigid body its handling line describes.
+  this.handling.values.turnMass=Math.fround(this.handling.values.turnMass*.5);
   this.physical=installNativeVehicleBody(sim.world,assets.collision!,this.handling,{position,rotation:{x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)}},{friction:.05,restitution:0});this.body=this.physical.body;this.car={body:this.body};
   if(assets.model&&!assets.missingTextures.length){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);if(colors)bindNativeCarPaint(this.visual.materialBindings,assets.textures.find(t=>t.name==='vehiclelights128')).setColors(colors);this.root.add(this.visual.root);}catch{this.visual=undefined;}
@@ -97,7 +112,19 @@ export class WorldBoat {
   if(this.sim.player.health<=0)return '';
   if(this.wrecked)return 'This boat is destroyed.';
   if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
+  // CTaskComplexEnterBoatAsDriver::CreateFirstSubTask: only a ped standing on the boat or touching it
+  // (m_standingOnEntity, m_pContactEntity) goes to the wheel; from the dock beside it he must get aboard first.
+  if(!this.playerAboardOrTouching())return `Get onto the ${this.name} first.`;
   return '';
+ }
+ private playerAboardOrTouching(){
+  const p=this.sim.player.position,handle=this.body.handle;
+  const under=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+.3,z:p.z},{x:0,y:-1,z:0}),.8,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
+  if(under?.collider.parent()?.handle===handle)return true;
+  // Touching: the ped's capsule grown by a few centimetres meets the hull.
+  let touching=false;
+  this.sim.world.intersectionsWithShape({x:p.x,y:p.y+.9,z:p.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.6,.36),collider=>{if(collider.parent()?.handle===handle){touching=true;return false;}return true;},RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.sim.playerBody);
+  return touching;
  }
  /** '' when the player may disembark, otherwise the refusal reason. Deep-water
   * exits put the player overboard swimming (CTaskComplexInWater engages). */
@@ -116,6 +143,8 @@ export class WorldBoat {
    const out=new Vector3(side*(this.assets.collision!.bounds.max[0]+1.5),2,0).applyQuaternion(q).add(new Vector3().copy(p));
    const hit=this.sim.world.castRay(new RAPIER.Ray(out,{x:0,y:-1,z:0}),12,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)continue;
    const foot={x:out.x,y:out.y-hit.timeOfImpact+.04,z:out.z},center={...foot,y:foot.y+.9};
+   // The seabed under deep water is no footing: that side is left to the overboard swim, as a car's door is.
+   const level=this.waterLevel?.(foot.x,-foot.z);if(level!==undefined&&level>foot.y+.5)continue;
    if(this.sim.world.intersectionWithShape(center,{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.6,.3),undefined,undefined,this.sim.playerCollider,this.body))continue;
    return foot;
   }
@@ -127,6 +156,8 @@ export class WorldBoat {
  }
  finishExit(foot?:{x:number;y:number;z:number}){
   const spot=foot??this.exitFoot();
+  // Neither ground beside the hull nor water to go over into (a boat on land, both sides blocked): he stays aboard.
+  if(!spot&&this.waterLevel?.(this.body.translation().x,-this.body.translation().z)===undefined)return 'No clear ground beside the boat.';
   this.occupied=false;this.throttle=0;this.steer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);
   if(spot){this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});return 'On foot';}
   // No ground beside the hull: overboard into the water (swim engages on the next step).
@@ -159,8 +190,7 @@ export class WorldBoat {
   // CBoat::ProcessControl: a scorched hull loses buoyancy each frame until it is down to 80% of its weight and sinks.
   // The loss is per game frame (30 fps), not scaled by the timestep.
   if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy=Math.max(floor,this.water.buoyancy-mass*.001*.008*dt*30);}
-  // CBoat::ProcessControl fire section: below 250 health the hull burns out after 5 s.
-  if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
+  this.processFire(dt);
   this.floatOnWater(dt);
   this.holdAnchor();
   this.stepVelocity={...this.body.linvel()};

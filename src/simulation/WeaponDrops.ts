@@ -3,8 +3,15 @@ import {modelObject} from '../assets/ModelObjects';
 
 export interface DropAsset { model: Parameters<typeof modelObject>[0]; textures: Parameters<typeof modelObject>[1] }
 interface Drop { weapon: number; rounds: number; position: { x: number; y: number; z: number }; root?: Group; owner?: ReturnType<typeof modelObject>; age: number;
-  /** PICKUP_ONCE_FOR_MISSION (bDeathPickupsPersist): never times out and takes no merge. */
-  persist?: boolean }
+  /** PICKUP_ONCE_FOR_MISSION (bDeathPickupsPersist): never times out and is never merged into. */
+  persist?: boolean;
+  /** CPickup's bEmpty (ExtractAmmoFromPickup took the rounds) and bHelpMessageDisplayed. */
+  empty?: boolean; helpShown?: boolean }
+/** What the player's collect callback sees of a drop: the rounds it holds, whether it was emptied, whether it showed
+ * its help. The callback may empty it (an exchangeable slot's weapon takes the ammo) and leave it lying. */
+export type DropAmmo = { rounds: number; empty?: boolean; helpShown?: boolean };
+/** re3's CPickups::GenerateNewOne gives PICKUP_ONCE_TIMEOUT 20 s (SA's is unreversed). */
+export const DROP_TIMEOUT_SECONDS = 20;
 /** AmmoForWeapon_OnStreet (0x8A5F50), by eWeaponType. */
 export const AMMO_FOR_WEAPON_ON_STREET = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8, 8, 8, 4, 4, 30, 10, 10, 15, 10, 10, 60, 60, 80, 80, 60, 20, 10, 4, 3, 100, 500, 5, 1, 500, 500, 36, 0, 0, 1] as const;
 /** WEAPON_CANE, the last melee weapon type. */
@@ -31,11 +38,14 @@ export class WeaponDrops {
   private drops: Drop[] = [];
   private loading = new Map<number, Promise<DropAsset | undefined>>();
   constructor(private scene: { add(o: Group): void }, private assets: { load: (weapon: number) => Promise<{ asset?: { model: DropAsset['model']; textures: DropAsset['textures'] } }> }, private ground: (point: { x: number; y: number; z: number }) => number | undefined) {}
-  /** Queue a dropped weapon, or add its ammo to a same-weapon drop within 5 units (TryToMerge_WeaponType). */
-  async report(position: { x: number; y: number; z: number }, weapon: number, rounds: number, persist = false) {
+  /** Queue a dropped weapon, or add its ammo to a same-weapon drop within 5 units (TryToMerge_WeaponType). A `placed`
+   * position is CreateDeadPedPickupCoors' own (already over ground, 0.3 up) and is kept; otherwise the drop is put
+   * on the ground under the point. */
+  async report(position: { x: number; y: number; z: number }, weapon: number, rounds: number, persist = false, placed = false) {
    if (!Number.isFinite(position.x + position.y + position.z) || !Number.isInteger(weapon) || !(rounds >= 0)) return false;
-   // TryToMerge_WeaponType only looks for PICKUP_ONCE_TIMEOUT pickups, and a persisting drop is never merged into one.
-   const merge = persist ? undefined : this.drops.find(d => !d.persist && d.weapon === weapon && Math.hypot(d.position.x - position.x, d.position.y - position.y, d.position.z - position.z) < MERGE_RADIUS);
+   // CPed::CreateDeadPedWeaponPickups tries TryToMerge_WeaponType into a PICKUP_ONCE_TIMEOUT pickup first whether or
+   // not the ped's own drops persist; only a new pickup takes PICKUP_ONCE_FOR_MISSION.
+   const merge = this.drops.find(d => !d.persist && d.weapon === weapon && Math.hypot(d.position.x - position.x, d.position.y - position.y, d.position.z - position.z) < MERGE_RADIUS);
    if (merge) { merge.rounds += Math.floor(rounds); return true; }
    while (this.drops.length >= MAX_DROPS) { const i = Math.max(0, this.drops.findIndex(d => !d.persist)); this.retire(this.drops.splice(i, 1)[0]); }
    // Listed at once, so a second body dropping the same weapon this frame merges into it.
@@ -47,25 +57,36 @@ export class WeaponDrops {
       this.loading.set(weapon, pending);
     }
     const resolved = await pending;
-    const ground = resolved && this.drops.includes(drop) ? this.ground(position) : undefined;
+    const ground = resolved && this.drops.includes(drop) ? (placed ? position.y - 0.15 : this.ground(position)) : undefined;
     if (!resolved || ground === undefined) { const i = this.drops.indexOf(drop); if (i >= 0) this.drops.splice(i, 1); return false; }
     const owner = modelObject(resolved.model, resolved.textures);
-    owner.root.position.set(position.x, ground + 0.15, position.z);
+    // GiveUsAPickUpObject sets every pickup's heading to -π/2.
+    owner.root.position.set(position.x, ground + 0.15, position.z); owner.root.rotation.y = -Math.PI / 2;
     this.scene.add(owner.root);
     drop.position.y = ground + 0.15; drop.root = owner.root; drop.owner = owner;
     return true;
   }
   /** Age out old drops and hand nearby ones to the player on foot: CPickup::Update's reach is under √1.8 across and
    * under 2 in height. */
-  step(dt: number, player: { position: { x: number; y: number; z: number }; alive: boolean; onFoot: boolean }, collect: (weapon: number, rounds: number) => string | undefined) {
+  step(dt: number, player: { position: { x: number; y: number; z: number }; alive: boolean; onFoot: boolean }, collect: (weapon: number, drop: DropAmmo) => string | undefined) {
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const drop = this.drops[i];
       drop.age += dt;
-      if (drop.age > 120 && !drop.persist) { this.retire(drop); this.drops.splice(i, 1); continue; }
+      if (drop.age > DROP_TIMEOUT_SECONDS && !drop.persist) { this.retire(drop); this.drops.splice(i, 1); continue; }
       if (!drop.root || !player.alive || !player.onFoot) continue;
       if (Math.hypot(drop.position.x - player.position.x, drop.position.z - player.position.z) >= Math.sqrt(1.8) || Math.abs(drop.position.y - player.position.y) >= 2) continue;
-      const name = collect(drop.weapon, drop.rounds);
+      const name = collect(drop.weapon, drop);
       if (name === undefined) continue;
+      this.retire(drop); this.drops.splice(i, 1);
+    }
+  }
+  /** CPickups::PassTime moves the drops' timeouts on: a minute of passed game time is a second. */
+  passTime(minutes: number) { for (const drop of this.drops) drop.age += Math.max(0, minutes); }
+  /** CPickups::RemoveUnnecessaryPickups: the PICKUP_ONCE_TIMEOUT drops inside the sphere go. */
+  removeInSphere(at: { x: number; y: number; z: number }, radius: number) {
+    for (let i = this.drops.length - 1; i >= 0; i--) {
+      const drop = this.drops[i];
+      if (drop.persist || Math.hypot(drop.position.x - at.x, drop.position.y - at.y, drop.position.z - at.z) > radius) continue;
       this.retire(drop); this.drops.splice(i, 1);
     }
   }

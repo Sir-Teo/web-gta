@@ -8,8 +8,8 @@ export const VEHICLE_DAMAGE_COLLISION_EVENT=73;
 export const COLLISION_DECISION_ROWS:readonly (readonly DecisionChoice[])[]=[
  [row(TASK.informGroup,[0,100,100,100])],
  [row(TASK.none,[0,0,50,0]),row(TASK.killCriminal,[0,100,0,100])],
- [row(TASK.none,[100,50,50,50]),row(TASK.carDriveMissionFleeScene,[0,25,25,25]),row(TASK.roadRage,[0,25,25,25]),row(TASK.carDriveMissionKillPed,[0,25,0,0])],
- [row(TASK.none,[100,50,50,50]),row(TASK.roadRage,[0,50,50,50]),row(TASK.carDriveMissionKillPed,[0,150,0,0])],
+ [row(TASK.none,[100,50,50,50]),row(TASK.carDriveMissionFleeScene,[0,25,25,25]),row(TASK.roadRage,[0,25,25,25]),row(TASK.carDriveMissionKillPed,[0,0,25,0])],
+ [row(TASK.none,[100,50,50,50]),row(TASK.roadRage,[0,50,50,50]),row(TASK.carDriveMissionKillPed,[0,0,150,0])],
  [row(TASK.none,[100,0,50,90]),row(TASK.carDriveMissionFleeScene,[0,100,50,10])],
 ];
 const makers:DecisionMaker[]=COLLISION_DECISION_ROWS.map(choices=>new Map([[VEHICLE_DAMAGE_COLLISION_EVENT,choices]]));
@@ -36,6 +36,47 @@ export function weaponDamageResponse(decisionMaker:number|undefined,relationship
   case TASK.leaveCarAndFlee:return 'leaveCarAndFlee';
   case TASK.carDriveMissionKillPed:return 'killPed';
   case TASK.killCriminal:return 'killCriminal';
+  default:return 'none';
+ }
+}
+/* CEventGunShot (event 15) as a driver hears it: the in-vehicle rows of the same files. Gang members and cops have
+ * none; normal and weak drivers flee the scene or not at even odds, tough ones always take the kill task. */
+export const GUN_SHOT_EVENT=15;
+export const GUN_SHOT_DRIVER_ROWS:readonly (readonly DecisionChoice[])[]=[
+ [],
+ [],
+ [row(TASK.carDriveMissionFleeScene,[0,100,100,0]),row(TASK.none,[0,100,100,0])],
+ [{task:TASK.killPedOnFoot,chances:[0,30,30,30],inVehicle:true,onFoot:true}],
+ [row(TASK.carDriveMissionFleeScene,[0,100,100,0]),row(TASK.none,[0,100,100,0])],
+];
+const gunShotMakers:DecisionMaker[]=GUN_SHOT_DRIVER_ROWS.map(choices=>new Map([[GUN_SHOT_EVENT,choices]]));
+/** A driver's answer to a gunshot (CEventHandler::ComputeShotFiredResponse): the flee-scene drive, or the kill task,
+ * which a driver without a gun against a gunman does not take (IsKillTaskAppropriate): he flees the scene instead. */
+export function gunShotDriverResponse(decisionMaker:number|undefined,relationship:Relationship,random:()=>number):'none'|'fleeScene'{
+ const dm=gunShotMakers[decisionMaker??2]??gunShotMakers[2];
+ const task=makeDecision(dm,GUN_SHOT_EVENT,relationship,true,random);
+ return task===TASK.carDriveMissionFleeScene||task===TASK.killPedOnFoot?'fleeScene':'none';
+}
+/* CEventDamage (event 9) on a driver shot by the player: the in-vehicle rows, answered by
+ * ComputePersonalityResponseToDamage (CEventHandler 0x4BF9B0). */
+export const DAMAGE_EVENT=9;
+export const DAMAGE_DRIVER_ROWS:readonly (readonly DecisionChoice[])[]=[
+ [],
+ [{task:TASK.informRespectedFriends,chances:[0,100,0,100],inVehicle:true,onFoot:true}],
+ [{task:TASK.smartFleeEntity,chances:[20,40,40,40],inVehicle:true,onFoot:true},row(TASK.carDriveMissionFleeScene,[0,100,100,0])],
+ [{task:TASK.killPedOnFoot,chances:[20,100,100,100],inVehicle:true,onFoot:true},row(TASK.carDriveMissionFleeScene,[0,0,50,50])],
+ [row(TASK.carDriveMissionFleeScene,[0,100,100,100])],
+];
+const damageMakers:DecisionMaker[]=DAMAGE_DRIVER_ROWS.map(choices=>new Map([[DAMAGE_EVENT,choices]]));
+/** The wounded driver's answer. ComputePersonalityResponseToDamage turns CAR_DRIVE_MISSION_FLEE_SCENE into
+ * CTaskComplexCarDriveMissionKillPed for a ped in a vehicle (0x4BF9DD), and KILL_PED_ON_FOOT that is not appropriate
+ * (no gun against a gunman) into the flee-scene drive for a driver. SMART_FLEE_ENTITY's in-car course is not reversed
+ * and is left as no answer. */
+export function damageDriverResponse(decisionMaker:number|undefined,relationship:Relationship,random:()=>number):'none'|'fleeScene'|'killPed'{
+ const dm=damageMakers[decisionMaker??2]??damageMakers[2];
+ switch(makeDecision(dm,DAMAGE_EVENT,relationship,true,random)){
+  case TASK.carDriveMissionFleeScene:return 'killPed';
+  case TASK.killPedOnFoot:return 'fleeScene';
   default:return 'none';
  }
 }

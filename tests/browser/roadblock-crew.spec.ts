@@ -31,5 +31,12 @@ test('a three-star roadblock stands its crew beside the cars at once instead of 
  expect(unit.leaving).toBe(0);
  await expect.poll(async()=>((await state()).police.units as any[]).find(u=>u.mission==='roadblock')?.crew??-1,{timeout:5000}).toBe(0);
  await expect.poll(async()=>((await state()).pedestrians.people as any[]).filter(p=>p.officer).length,{timeout:8000}).toBeGreaterThanOrEqual(officersBefore+2);
+ // Down to two stars the block still stands (roadblock cops give up only at a clean level), its crew at their posts.
+ const crewAt=await page.evaluate(()=>(window as any).__game.pedestrians().people.filter((p:any)=>p.crew?.roadblock).map((p:any)=>({x:p.actor.player.position.x,z:p.actor.player.position.z})));
+ expect(crewAt.length).toBeGreaterThan(0);
+ await page.evaluate(()=>(window as any).__game.setWantedLevel(2));await page.waitForTimeout(2000);
+ expect(((await state()).police.units as any[]).some(u=>u.mission==='roadblock')).toBe(true);
+ const moved=await page.evaluate(start=>(window as any).__game.pedestrians().people.filter((p:any)=>p.crew?.roadblock).map((p:any,i:number)=>Math.hypot(p.actor.player.position.x-start[i].x,p.actor.player.position.z-start[i].z)),crewAt);
+ expect(Math.max(...moved)).toBeLessThan(1.5);
  expect(errors).toEqual([]);
 });

@@ -89,3 +89,12 @@ test('a primed follower asks for the window it stands in once, ignoring the pref
  follower.finish(primed.id,true);
  expect(follower.primeNext).toBe(false);expect(follower.request({x:6,z:0},true,{x:0,z:0})).toBeUndefined();
 });
+test('following that gave up after repeated failures restarts on retry; a stopped follower does not',()=>{
+ const follower=new SceneRegionFollower({x:0,y:0,radius:100});let now=0;
+ for(let i=0;i<REGION_FAILURE_LIMIT;i++){now+=10000;const r=follower.request({x:60,z:0},true,undefined,now)!;expect(follower.finish(r.id,false,now)).toBe(true);}
+ expect(follower.snapshot().enabled).toBe(false);
+ expect(follower.retry()).toBe(true);expect(follower.snapshot()).toMatchObject({enabled:true,failures:0,retryAt:0});
+ // The retry asks at once, even where the player has not moved past the prefetch distance.
+ expect(follower.request({x:0,z:0},true,undefined,now)).toBeDefined();
+ follower.stop();expect(follower.retry()).toBe(false);expect(follower.snapshot().enabled).toBe(false);
+});

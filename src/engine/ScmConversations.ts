@@ -93,6 +93,9 @@ export class ScmConversations {
  clearForPed(ped:number){
   for(const conversation of this.conversations)if(conversation.ped===ped){conversation.nodes=[];conversation.currentNode=undefined;conversation.ped=undefined;}
  }
+ /** CPed::~CPed calls RemoveConversationForPed (Ped.cpp:334): a slot whose ped no longer exists is freed as it would
+  * have been when the ped was deleted. */
+ releaseGone(exists:(ped:number)=>boolean){for(const conversation of this.conversations)if(conversation.ped!==undefined&&!exists(conversation.ped))this.clearForPed(conversation.ped);}
  /** CLEAR_ALL_CONVERSATIONS. */
  clearAll(){this.conversations.length=0;this.temp=[];this.settingUpFor=undefined;}
  /** CConversations::IsConversationGoingOn, which GET_CONVERSATION_STATUS reads. */

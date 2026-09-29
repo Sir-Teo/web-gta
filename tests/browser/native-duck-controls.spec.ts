@@ -1,8 +1,8 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
-// CTaskSimplePlayerOnFoot::PlayerControlDucked: a jump press or sprint stands a crouched CJ up; the jump press does not
-// also jump.
-test('jump and sprint stand a crouched CJ up',async({page})=>{
+// CTaskSimplePlayerOnFoot::PlayerControlDucked: a jump press, sprint or an exit-vehicle press stands a crouched CJ up;
+// the jump press does not also jump.
+test('jump, sprint and the exit button stand a crouched CJ up',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
@@ -18,6 +18,14 @@ test('jump and sprint stand a crouched CJ up',async({page})=>{
  await expect.poll(async()=>(await state()).player.crouched).toBe(false);
  await expect.poll(async()=>(await state()).player.speed).toBeGreaterThan(4);
  await page.keyboard.up('KeyW');await page.keyboard.up('ShiftLeft');
+ // ExitVehicleJustDown stands him up too; away from any car it does nothing else.
+ await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position;g.placePlayer(p.x+40,g.groundAt(p.x+40,p.z,p.y+20)+.05,p.z);});
+ await expect.poll(async()=>(await state()).player.grounded,{timeout:30000}).toBe(true);
+ await expect.poll(async()=>(await state()).player.speed).toBeLessThan(.1);
+ await page.keyboard.press('KeyC');await expect.poll(async()=>(await state()).player.crouched).toBe(true);
+ await page.keyboard.press('KeyF');
+ await expect.poll(async()=>(await state()).player.crouched).toBe(false);
+ expect((await state()).carEntry.phase).toBeNull();
  expect(errors).toEqual([]);
 });
 
@@ -29,7 +37,7 @@ test('a crouched CJ aiming a pistol rolls sideways and steps back',async({page})
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1668));await page.waitForTimeout(300);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  await page.keyboard.press('KeyC');await expect.poll(async()=>(await state()).player.crouched).toBe(true);
  await page.mouse.move(720,450);await page.mouse.down({button:'right'});await page.waitForTimeout(500);
  const before=await state(),h=before.player.heading,forward={x:Math.sin(h),z:Math.cos(h)};

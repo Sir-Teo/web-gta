@@ -65,3 +65,8 @@ test('hurting a ped the police are chasing while clean pays the good citizen bon
  // With stars, the chased ped is a victim like any other.
  law.crime(CRIME.damagedPed,'ped:7');expect(bonus).toBe(1);
 });
+test('setLevelNoDrop on parole gives back the level held before it (CWanted::SetWantedLevelNoDrop)',()=>{
+ const law=new WantedSystem();law.position=()=>({x:0,y:0,z:0});
+ law.setLevel(4);law.native.goOnParole();expect(law.level).toBe(0);
+ law.setLevelNoDrop(1);expect(law.level).toBe(4);
+});

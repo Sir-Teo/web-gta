@@ -32,7 +32,12 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
    out.hopVy=hopVy;
    // A wall stop at speed knocks the rider off through the force formula.
    sim.world.createCollider(RAPIER.ColliderDesc.cuboid(5,3,.5).setTranslation(0,3,-40));
+   // A rider the script keeps on (SET_CHAR_CAN_BE_KNOCKED_OFF_BIKE) rides the same crash out.
+   WorldBike.riderStaysOn=()=>true;
    bike.body.setTranslation({x:0,y:1.5,z:-20},true);bike.body.setRotation({x:0,y:0,z:0,w:1},true);bike.body.setLinvel({x:0,y:0,z:-30},true);
+   for(let i=0;i<120&&bike.snapshot().occupied;i++)tick({throttle:0,steer:0,brake:false});
+   out.keptOn=bike.snapshot().occupied;WorldBike.riderStaysOn=undefined;WorldBike.onKnockedOff=(clip:string)=>{out.clip=clip;out.thrown=Math.hypot(sim.collisionPush.x,sim.collisionPush.z);out.rising=sim.player.verticalSpeed;out.airborne=!sim.player.grounded;};
+   bike.body.setTranslation({x:0,y:1.5,z:-20},true);bike.body.setRotation({x:0,y:0,z:0,w:1},true);bike.body.setLinvel({x:0,y:0,z:-30},true);bike.body.setAngvel({x:0,y:0,z:0},true);
    for(let i=0;i<120&&bike.snapshot().occupied;i++)tick({throttle:0,steer:0,brake:false});
    out.knocked=!bike.snapshot().occupied;
    out.knockMessage=bike.message;
@@ -52,8 +57,14 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
  expect(Math.abs((result.heading as number)-(result.headingBefore as number))).toBeGreaterThan(.05);
  expect(result.lean).toBeGreaterThan(.02);
  expect(result.overlay).toMatchObject({clip:'bmx_right'});
+ expect(result.keptOn).toBe(true);
  expect(result.knocked).toBe(true);
  expect(result.knockMessage).toBe('Knocked off the bike!');
+ // CEventKnockOffBike (SKIDBACKFRONT): a head-on stop throws the rider forward, lifted, with KO_SKID_BACK.
+ expect(result.clip).toBe('ko_skid_back');
+ expect(result.thrown).toBeGreaterThan(2);
+ expect(result.rising).toBeGreaterThan(2);
+ expect(result.airborne).toBe(true);
  expect(errors).toEqual([]);
 });
 
@@ -79,4 +90,52 @@ test('a quad keeps its body level and leans only the rider into the turn',async(
  expect(result.rider).toBeGreaterThan(.7);
  expect(result.overlay?.clip).toBe('quad_right');expect(result.overlay?.amount).toBeGreaterThan(.95);
  expect(errors).toEqual([]);
+});
+
+test('a bike under water drowns: CJ loses breath on the bottom and falls off once no wheel touches it',async({page})=>{
+ test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/models.html');const result=await page.evaluate(async()=>{
+  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(/* @vite-ignore */ p)));
+  await RAPIER.init();const base=new URL('/play/world/',location.href).href;
+  const catalog=await openStaticWorldVehicles(await openStaticWorld(base));
+  const sim=new Simulation(),scene=new THREE.Scene();
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(0,-.5,0));
+  sim.respawn={x:1.5,y:.55,z:2};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
+  const bike=new WorldBike(sim,scene,await loadFixedWorldBike(catalog,{modelId:481,primaryColor:-1,secondaryColor:-1}),{x:0,y:1.5,z:0},0);
+  try{
+   const tick=()=>{bike.beforeStep(1/60,{throttle:0,steer:0,brake:false});sim.world.step();bike.afterStep();bike.update(1);};
+   for(let i=0;i<30;i++)tick();bike.interact();
+   // Three units of water over the floor: the bike drowns with its wheels down, and CJ holds his breath on it.
+   bike.waterLevel=()=>3;
+   for(let i=0;i<60;i++)tick();
+   const bottom={drowning:bike.drowning,occupied:bike.snapshot().occupied,breath:sim.player.breath};
+   // Off the floor's edge in open water: no wheel touches, and he drops off (KNOCK_OFF_TYPE_FALL).
+   bike.body.setTranslation({x:400,y:5,z:0},true);bike.body.setLinvel({x:0,y:0,z:0},true);bike.waterLevel=()=>8;
+   for(let i=0;i<5&&bike.snapshot().occupied;i++)tick();
+   return {bottom,thrown:!bike.snapshot().occupied,airborne:!sim.player.grounded};
+  }finally{bike.dispose();sim.dispose();}
+ });
+ expect(result.bottom.drowning).toBe(true);
+ expect(result.bottom.occupied).toBe(true);
+ expect(result.bottom.breath).toBeLessThan(100);
+ expect(result.thrown).toBe(true);
+ expect(result.airborne).toBe(true);
+ expect(errors).toEqual([]);
+});
+
+test('a bike rolling over 0.2 units a frame cannot be boarded (CTaskComplexEnterCar gives up)',async({page})=>{
+ test.setTimeout(180000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
+  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(/* @vite-ignore */ p)));
+  await RAPIER.init();const base=new URL('/play/world/',location.href).href;
+  const catalog=await openStaticWorldVehicles(await openStaticWorld(base));
+  const sim=new Simulation(),scene=new THREE.Scene();
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(0,-.5,0));
+  sim.respawn={x:1.5,y:.55,z:2};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
+  const bike=new WorldBike(sim,scene,await loadFixedWorldBike(catalog,{modelId:481,primaryColor:-1,secondaryColor:-1}),{x:0,y:1.5,z:0},0);
+  try{
+   const still=bike.enterCheck();bike.body.setLinvel({x:0,y:0,z:-12},true);const rolling=bike.enterCheck();
+   return {still,rolling};
+  }finally{bike.dispose();sim.dispose();}
+ });
+ expect(result.still).toBe('');expect(result.rolling).toMatch(/too fast/);
 });

@@ -45,3 +45,32 @@ test('after Busted only fists are held; GiveWeapon fills slots, carries shotgun 
  i.select(22);i.cooldown=0;i.fire();i.cooldown=0;i.fire();const before=i.ammo.get(22)!.clip;
  i.give(22,5);const after=i.ammo.get(22)!;expect(after.clip).toBe(i.magazine(22));expect(after.clip).toBeGreaterThan(before);expect(after.clip+after.reserve).toBe(34-2+5);
 });
+test('CPed::GetWeaponInSlot names the weapon held in a slot, fists never',()=>{
+ const i=inventory();i.strip();i.give(27,20);
+ expect(i.inSlot(i.slotOf(25))).toBe(27);
+ expect(i.inSlot(i.slotOf(2))).toBeUndefined();
+ expect(i.inSlot(i.slotOf(0))).toBeUndefined();
+});
+test('at 100% completion a shot empties the clip but not the total (CWeapon::Fire)',()=>{
+ const i=inventory();i.select(30);const a=i.ammo.get(30)!,total=a.clip+a.reserve;
+ i.fullCompletion=()=>true;i.fire();
+ expect(a.clip+a.reserve).toBe(total);expect(a.clip).toBe(i.magazine(30)-1);
+ i.fullCompletion=()=>false;(i as any).cooldown=0;i.fire();
+ expect(a.clip+a.reserve).toBe(total-1);
+});
+test('at 100% completion the camera still uses up its film (isPlayerFiring excludes WEAPON_CAMERA)',()=>{
+ const i=inventory();i.give(43,36);i.select(43);const a=i.ammo.get(43)!,total=a.clip+a.reserve;
+ i.fullCompletion=()=>true;i.fire();
+ expect(a.clip+a.reserve).toBe(total-1);
+});
+test('brass knuckles take the fists\' slot: the cycle stops on one or the other, not both',()=>{
+ const i=inventory();i.strip();i.give(1,1);i.give(22,17);i.select(22);
+ const seen=new Set<number>();for(let n=0;n<4;n++){i.cycle(1);seen.add(i.selected);}
+ expect([...seen].sort((a,b)=>a-b)).toEqual([1,22]);
+});
+test('an emptied clip reloads for GetWeaponReloadTime alone; a thrown weapon\'s clip of one takes its 400 ms (CWeapon::Fire)',()=>{
+ const i=inventory();i.select(25);i.fire();
+ // max(400, the largest aim-offset reload time + 100), no shot delay on top; the fire loop keeps its own cooldown.
+ expect(i.reloading).toBeCloseTo(nativeWeaponReloadMs(data,nativeWeaponInfo(data,25,i.skill())!)/1000,6);expect(i.cooldown).toBeCloseTo(i.interval,6);
+ i.select(16);expect(i.interval).toBeCloseTo(.4,6);i.select(18);expect(i.interval).toBeCloseTo(.4,6);
+});

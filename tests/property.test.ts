@@ -13,11 +13,11 @@ const disc=(over:Partial<ScmPickup>&{position:[number,number,number]}):ScmPickup
 });
 const at=(pickup:ScmPickup)=>({x:pickup.position[0],y:pickup.position[2],z:-pickup.position[1]});
 
-function setup(collected=new Set<string>()){
+function setup(collected=new Set<string>(),onMission=()=>false){
  const sim=new Simulation(),scene=new Scene(),messages:string[]=[];
  const pickups=new WorldPickups(sim,scene,'property-test:',{
   weaponForModel:()=>undefined,giveWeapon:()=>false,wantedLevel:()=>0,setWantedLevel:()=>{},
-  armour:()=>0,setArmour:()=>{},onSave:()=>{},onCollect:(_p,message)=>{if(message)messages.push(message);},onNotice:(_p,text)=>messages.push(text),
+  armour:()=>0,setArmour:()=>{},onSave:()=>{},onCollect:(_p,message)=>{if(message)messages.push(message);},onNotice:(_p,text)=>messages.push(text),onMission,
  },collected);
  return {sim,pickups,messages};
 }
@@ -49,6 +49,23 @@ test('properties buy with cash, refuse without, and persist as owned',()=>{
  }finally{pickups.dispose();sim.dispose();}
 });
 
+// CPickup::Update's PICKUP_PROPERTY_FORSALE: on a mission the player is told PROP_2 and nothing is bought, however
+// much cash he has.
+test('a property is not for sale during a mission',()=>{
+ const sale=disc({position:[10,20,5],price:30000});
+ let onMission=true;
+ const {sim,pickups,messages}=setup(new Set(),()=>onMission);
+ try{
+  pickups.setPickups([sale]);
+  sim.money=50000;sim.player.position=at(sale);sim.player.health=100;
+  pickups.step(1/60);
+  expect(sim.money).toBe(50000);expect(messages).toHaveLength(1);expect(messages[0]).not.toContain('purchased');
+  expect(pickups.snapshot().active).toBe(1);
+  onMission=false;pickups.passTime(4);pickups.step(1/60);
+  expect(sim.money).toBe(20000);
+ }finally{pickups.dispose();sim.dispose();}
+});
+
 test('revenue accrues only for owned assets and pays out on touch',()=>{
  const sale=disc({id:'test:prop',position:[10,20,5],price:10000});
  const till:ScmPickup=disc({id:'test:till',category:'revenue',model:'bigdollar',dictionary:'bigdollar',position:[11,21,5],revenueLimit:500,revenueRate:100});
@@ -71,6 +88,39 @@ test('revenue accrues only for owned assets and pays out on touch',()=>{
   expect(sim.money).toBe(40000+50);
   pickups.step(1/60);pickups.step(1/60);pickups.step(1/60);
   expect(sim.money).toBe(40000+50);expect(messages.slice(shown).filter(m=>/revenue/i.test(m))).toEqual([]);
+ }finally{pickups.dispose();sim.dispose();}
+});
+
+// CREATE_PROTECTION_PICKUP makes its PICKUP_ASSET_REVENUE once the script has sold the asset, and CPickup::Update
+// accrues and pays every such pickup, whatever for-sale discs are about. UPDATE_PICKUP_MONEY_PER_DAY takes effect.
+test('a script revenue pickup earns without a new-game property beside it',()=>{
+ const {sim,pickups}=setup();
+ try{
+  pickups.setPickups([]);
+  const till:ScmPickup=disc({id:'script:7',section:'script',category:'revenue',model:'bigdollar',dictionary:'bigdollar',position:[11,21,5],revenueLimit:500,revenueRate:100});
+  pickups.generate(till,Number.POSITIVE_INFINITY);
+  pickups.patchGenerated('script:7',{revenueRate:200});
+  sim.money=0;sim.player.health=100;sim.player.position={x:at(till).x+40,y:at(till).y,z:at(till).z};pickups.step(720);
+  sim.player.position=at(till);pickups.step(1/60);
+  expect(sim.money).toBe(100);
+ }finally{pickups.dispose();sim.dispose();}
+});
+
+// CPickup::SetRemoved: a script's ONCE pickup leaves the list once taken; its id (a recycled script handle) never
+// reaches the save, and an old save's generated ids are dropped.
+test('a generated pickup taken once is removed and never saved',()=>{
+ const {sim,pickups}=setup(new Set(['script:4','test:kept']));
+ try{
+  expect([...pickups.collected]).toEqual(['test:kept']);
+  pickups.setPickups([]);
+  const card=disc({id:'script:9',section:'script',category:'keycard',model:'keycard',dictionary:'keycard',type:3,position:[50,0,5]});
+  pickups.generate(card,Number.POSITIVE_INFINITY);
+  sim.player.health=100;sim.player.position=at(card);pickups.step(1/60);
+  expect(pickups.collected.has('script:9')).toBe(false);
+  // Standing off and coming back: it does not come back.
+  sim.player.position={x:at(card).x+40,y:at(card).y,z:at(card).z};pickups.step(1/60);
+  sim.player.position=at(card);pickups.step(1/60);
+  expect(pickups.snapshot().active).toBe(0);
  }finally{pickups.dispose();sim.dispose();}
 });
 

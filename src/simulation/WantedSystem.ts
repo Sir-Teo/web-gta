@@ -45,8 +45,10 @@ export class WantedSystem {
  arrest(){if(!this.level||this.arrested)return;this.arrested=true;this.onArrest?.();}
  /** CWanted::SetWantedLevel, as bribes (level − 1) use it. */
  setLevel(level:number){this.native.setWantedLevel(level);if(!this.level){this.unseen=0;this.lastKnown=undefined;}}
- /** CWanted::SetWantedLevelNoDrop: only ever raises the level; a rise is a fresh sighting. */
- setLevelNoDrop(level:number){if(level<=this.level)return;this.setLevel(level);this.unseen=0;this.lastKnown=this.position();}
- clear(){this.native.setWantedLevel(0);this.unseen=0;this.sighted=false;this.lastKnown=undefined;this.arrested=false;}
+ /** CWanted::SetWantedLevelNoDrop: a player on parole below the level he had first gets it back, then the level only ever
+  * rises; a rise is a fresh sighting. */
+ setLevelNoDrop(level:number){const before=this.level;this.native.setWantedLevelNoDrop(level);if(this.level>before){this.unseen=0;this.lastKnown=this.position();}}
+ /** RestorePlayerStuffDuringResurrection: CWanted::Reset, the whole wanted state as a new game's. */
+ clear(){this.native.reset();this.unseen=0;this.sighted=false;this.lastKnown=undefined;this.arrested=false;}
  snapshot(){return {level:this.level,chaos:this.native.chaos,searching:this.level>0&&this.unseen>2,unseen:this.unseen,arrested:this.arrested,maxCops:this.native.maxCopsInPursuit,maxCopCars:this.native.maxCopCarsInPursuit,roadBlockChance:this.native.chanceOnRoadBlock};}
 }

@@ -13,7 +13,7 @@ test('spraying a rival tag paints the Grove tag over it',async({page})=>{
  await page.evaluate(()=>{const g=(window as any).__game,x=2420.3,z=1682.3;g.placePlayer(x,g.groundAt(x,z,16),z);g.turnPlayer(Math.PI/2);});
  await page.waitForTimeout(1500);
  await page.screenshot({path:'artifacts/native-tags-before.png'});
- await page.keyboard.press('Tab');await page.locator('[data-weapon="41"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="41"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  for(let i=0;i<400&&(await state()).tags.tagged===0;i++){await page.evaluate(()=>(window as any).__game.fireAt(2422.9,14.0,1682.3));await page.waitForTimeout(40);}
  const s=await state();expect(s.tags.tagged).toBe(1);expect(s.tags.sprayed).toBe(1);
  await page.waitForTimeout(1500);

@@ -28,8 +28,9 @@ test('a locked car is still walked to: the rattle at its door is CTaskSimpleCarO
     const locked=fake(true);
     expect(entry.enter(locked)).toBe(true);expect(entry.snapshot().phase).toBe('approach');expect(locked.alarm).toBe(0);
     entry.cancel();
+    // The engine fire under 250 health is no CFire (m_pFire): CTaskComplexEnterCar still starts.
     const burning={...fake(false),onFire:true} as unknown as WorldCar;
-    expect(entry.enter(burning)).toBe(false);
+    expect(entry.enter(burning)).toBe(true);
   }finally{entry.cancel();sim.dispose();}
 });
 

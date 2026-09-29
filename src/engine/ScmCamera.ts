@@ -141,6 +141,16 @@ export class ScmCamera {
   const left=this.camShakeForce-(nowMs-this.camShakeStart)/1000;
   if(strength>Math.min(2,Math.max(0,left))){this.camShakeForce=strength;this.camShakeStart=nowMs;}
  }
+ /** CCamera::CamShake (0x50A790): the strength, 0.35 of it and less by the point's distance from the camera (nothing
+  * from 100 units), takes over when it beats what is left of the current shake at that distance. */
+ camShake(strength:number,distance:number,nowMs:number){
+  requireAsset(Number.isFinite(strength)&&Number.isFinite(distance),'Invalid camera shake.');
+  const percent=1-Math.min(100,Math.max(0,distance))/100;
+  const left=(this.camShakeForce-(nowMs-this.camShakeStart)/1000)*percent,force=percent*strength*.35;
+  if(force>Math.min(2,Math.max(0,left))){this.camShakeForce=force;this.camShakeStart=nowMs;}
+ }
+ /** What is left of the shake: the force less a unit a second, read between nothing and two. */
+ shakeLeft(nowMs:number){return Math.min(2,Math.max(0,this.camShakeForce-(nowMs-this.camShakeStart)/1000));}
  /** CCamera::AddShakeSimple (0x50D2A0 region): a shake of its own intensity and type over a span. */
  addShakeSimple(durationMs:number,type:number,intensity:number,nowMs:number){
   requireAsset(Number.isFinite(durationMs),'Invalid camera shake duration.');

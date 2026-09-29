@@ -11,11 +11,39 @@ export type VehicleProp={effect:number;colDamageMultiplier:number;uprootLimit:nu
   /** CObject::TryToExplode: a causes-explosion prop blows up once; false when it cannot or already has. */
   tryToExplode?:()=>boolean;
   /** CObject's bIsLampPost: a vehicle's collision normal against it is flattened. */
-  lampPost?:boolean};
+  lampPost?:boolean;
+  /** The collision model's bounding-box size (max − min, native model space), which the crush test transforms as a point. */
+  boundsSize?:readonly [number,number,number]};
 /** The vehicle side of a step's prop contacts: its body, the motion it had before the step (m/s, rad/s), OBJECT.DAT
  * lookups and whether it is a bike (CVehicle::IsSubBike: triple object damage). */
 export interface VehiclePropContacts {world:RAPIER.World;body:RAPIER.RigidBody;playerColliderHandle:number;pre?:{x:number;y:number;z:number};preTurn?:{x:number;y:number;z:number};
  mass:number;turnMass:number;occupied:boolean;wrecked:boolean;bike?:boolean;propFor?:(other:RAPIER.Collider)=>VehicleProp|undefined}
+type V3={x:number;y:number;z:number};
+const rotateV=(q:{x:number;y:number;z:number;w:number},v:V3):V3=>{const {x,y,z,w}=q;const ix=w*v.x+y*v.z-z*v.y,iy=w*v.y+z*v.x-x*v.z,iz=w*v.z+x*v.y-y*v.x,iw=-x*v.x-y*v.y-z*v.z;
+ return {x:ix*w+iw*-x+iy*-z-iz*-y,y:iy*w+iw*-y+iz*-x-ix*-z,z:iz*w+iw*-z+ix*-y-iy*-x};};
+/** COL_DAMAGE_EFFECT_SMASH_COMPLETELY: from here up CObject::CanBeSmashed. */
+export const COL_DAMAGE_EFFECT_SMASH_COMPLETELY=20;
+/** The point the original tests a prop by: its matrix applied to the bounding box's size (max − min), a size taken as
+ * a point. Browser frame; `size` is native model space. */
+export function propSizePoint(propPosition:V3,propRotation:{x:number;y:number;z:number;w:number},size:readonly [number,number,number]):V3{
+ const r=rotateV(propRotation,{x:size[0],y:size[2],z:-size[1]});return {x:propPosition.x+r.x,y:propPosition.y+r.y,z:propPosition.z+r.z};
+}
+/** Whether a vehicle is over a prop's size point: the vehicle's origin is above it, or the point lies below the
+ * vehicle's plane in the vehicle's own frame (CPhysical::ProcessCollisionSectorList's bObjectDamage and
+ * CVehicle::SpecialEntityPreCollisionStuff's bCollidedEntityCollisionIgnored share the test). */
+export function vehicleOverPoint(vehiclePosition:V3,vehicleRotation:{x:number;y:number;z:number;w:number},point:V3){
+ if(vehiclePosition.y>point.y)return true;
+ const q=vehicleRotation,local=rotateV({x:-q.x,y:-q.y,z:-q.z,w:q.w},{x:point.x-vehiclePosition.x,y:point.y-vehiclePosition.y,z:point.z-vehiclePosition.z});
+ return local.y<0;
+}
+/** CVehicle::SpecialEntityPreCollisionStuff for a loose object (not static, temporary or exploded) that cannot be
+ * smashed and whose bounds max is under a unit on every axis: a car (not a bike) over its size point ignores the
+ * collision. `boundsMax` and `boundsSize` are native model space. */
+export function carRollsOverProp(car:{position:V3;rotation:{x:number;y:number;z:number;w:number};bike?:boolean},prop:{position:V3;rotation:{x:number;y:number;z:number;w:number};effect:number;boundsMax:readonly [number,number,number];boundsSize:readonly [number,number,number]}){
+ if(car.bike||prop.effect>=COL_DAMAGE_EFFECT_SMASH_COMPLETELY)return false;
+ if(!(prop.boundsMax[0]<1&&prop.boundsMax[1]<1&&prop.boundsMax[2]<1))return false;
+ return vehicleOverPoint(car.position,car.rotation,propSizePoint(prop.position,prop.rotation,prop.boundsSize));
+}
 /** CPhysical::ApplyCollision's static-object branch for OBJECT.DAT props. The
  * browser resolves the prop as a fixed body during the step. When the impact
  * destroys it, the native response is only intensity / (2 x multiplier) along
@@ -34,6 +62,14 @@ export function resolveVehicleProps(o:VehiclePropContacts){
   let move={x:pre.x/50,y:pre.y/50,z:pre.z/50},turn={x:preTurn.x/50,y:preTurn.y/50,z:preTurn.z/50},changed=0,otherImpact=false;
   type V={x:number;y:number;z:number};
   const toNative=(v:V):V=>({x:v.x,y:-v.z,z:v.y}),fromNative=(v:V):V=>({x:v.x,y:v.z,z:-v.y});
+  // ProcessCollisionSectorList's flat 50 for a smashable prop the vehicle is over (its origin above the prop's size
+  // point, or that point under the vehicle's plane) when the impact itself did not pass the 20 gate.
+  const rotation=body.rotation();
+  const crush=(prop:VehicleProp,owner:RAPIER.RigidBody,point:{x:number;y:number;z:number},normal:V)=>{
+   if(prop.effect<COL_DAMAGE_EFFECT_SMASH_COMPLETELY||!prop.boundsSize||prop.state.destroyed)return;
+   if(!vehicleOverPoint(position,rotation,propSizePoint(owner.translation(),owner.rotation(),prop.boundsSize)))return;
+   prop.damaged({result:objectDamage(prop.state,50,prop.effect,prop.colDamageMultiplier),damage:50,point:{x:point.x,y:point.y,z:point.z},normal});
+  };
   for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);o.world.contactPairsWith(collider,other=>{
    const owner=other.parent();if(!owner||other.isSensor()||owner.handle===body.handle||other.handle===o.playerColliderHandle)return;
    o.world.contactPair(collider,other,(manifold,flipped)=>{
@@ -58,6 +94,7 @@ export function resolveVehicleProps(o:VehiclePropContacts){
       let impulse=0;for(let c=0;c<manifold.numContacts();c++)impulse+=manifold.contactImpulse(c);
       const intensity=impulse/50;
       if(intensity>OBJECT_DAMAGE_GATE)prop.damaged({result:objectDamage(prop.state,intensity,prop.effect,prop.colDamageMultiplier),damage:intensity,point:{x:point.x,y:point.y,z:point.z},normal});
+      else crush(prop,owner,point,normal);
      }
      return;
     }
@@ -71,6 +108,7 @@ export function resolveVehicleProps(o:VehiclePropContacts){
     if(prop.mass>=99998){
      const held=vehicleHitsObject({mass:o.mass,turnMass:o.turnMass,offset:{x:point.x-com.x,y:point.y-com.y,z:point.z-com.z},normal,moveSpeed:move,turnSpeed:turn},prop.state,{...prop,effect:0});
      if(!held.separating&&prop.effect&&held.intensity>OBJECT_DAMAGE_GATE)prop.damaged({result:objectDamage(prop.state,held.intensity,prop.effect,prop.colDamageMultiplier),damage:held.intensity,point:{x:point.x,y:point.y,z:point.z},normal});
+     else if(!held.separating)crush(prop,owner,point,normal);
      if(closing)otherImpact=true;return;
     }
     const offset={x:point.x-com.x,y:point.y-com.y,z:point.z-com.z};
@@ -82,6 +120,7 @@ export function resolveVehicleProps(o:VehiclePropContacts){
     // again with the entity's intensity over 20.
     if(!outcome.damage?.removed&&prop.effect&&!prop.state.destroyed&&outcome.intensity>OBJECT_DAMAGE_GATE)
      prop.damaged({result:objectDamage(prop.state,outcome.intensity,prop.effect,prop.colDamageMultiplier),damage:outcome.intensity,point:{x:point.x,y:point.y,z:point.z},normal});
+    else if(!outcome.damage?.removed)crush(prop,owner,point,normal);
     if(outcome.damage?.removed){
      changed++;smashed++;
      const dv=impulseVelocityChange(outcome.impulse!,offset,o.mass,o.turnMass);

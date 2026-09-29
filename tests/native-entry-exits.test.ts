@@ -88,6 +88,8 @@ test('TransitionStarted warps a far spawn point and links the interior back to t
  expect(enex.update(ped(door,{canStartMission:false}),12)).toBeUndefined();
  const started=enex.update(ped(door),12)!;
  expect(started.spawn).toBe(inside);expect(started.warping).toBe(true);expect(started.walk).toBeUndefined();
+ // The first far use of a door returns before bPlayerOnInteriorTransition and CTaskSimpleUninterruptable: no freeze.
+ expect(started.freeze).toBe(false);
  expect(inside.link).toBe(motel);expect(motel.flags&ENEX.UNKNOWN_PAIRING).toBeTruthy();
  // TransitionFinished: 0.5 s to black, then the teleport once the fade ends.
  expect(enex.finishStep(false)).toEqual({fade:.5});
@@ -101,6 +103,8 @@ test('TransitionStarted warps a far spawn point and links the interior back to t
  // Leaving through the interior door returns to the outside exit.
  const out=enex.update(ped(entryExitPosition(inside)),12)!;
  expect(out.spawn).toBe(motel);expect(out.warping).toBe(true);
+ // The interior door's own first far use: it too returns before the freeze (each door side carries its own flag).
+ expect(out.freeze).toBe(false);expect(inside.flags&ENEX.UNKNOWN_PAIRING).toBeTruthy();
  enex.finishStep(false);enex.finishStep(false);enex.arrived();expect(enex.stack).toEqual([]);
 });
 

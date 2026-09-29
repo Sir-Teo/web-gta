@@ -274,6 +274,15 @@ export function steerHeadingForTarget(car:{position:V2;forward:V2;moveSpeed:{x:n
  if(difference<=0)return {swerve:steer,accel:0,brake:Math.min(.5,-difference/20),handbrake};
  return {swerve:steer,accel:current<25?Math.min(1,difference*.1):1,brake:0,handbrake};
 }
+/** MISSION_BLOCKPLAYER_CLOSE's target, SteerAICarWithPhysicsTryingToBlockTarget (re3; SA's own steering is unreversed):
+ * the player's spot a CARAI second of his speed ahead, the speed capped at MAX_SPEED_TO_ACCOUNT_IN_INTERCEPTING (0.13 a
+ * frame). Within DISTANCE_TO_SWITCH_FROM_BLOCK_TO_STOP (5) of it the car goes to BLOCKPLAYER_HANDBRAKESTOP, which
+ * brakes with the handbrake on and goes back to blocking beyond DISTANCE_TO_SWITCH_FROM_STOP_TO_BLOCK (10) of the player. */
+export const BLOCK_TO_STOP_DISTANCE=5,STOP_TO_BLOCK_DISTANCE=10;
+export function blockPlayerTarget(player:V2,playerSpeed:V2):V2{
+ const l=Math.hypot(playerSpeed.x,playerSpeed.y),f=l>.13?.13/l:1;
+ return {x:player.x+playerSpeed.x*f*GAME_SPEED_TO_CARAI_SPEED,y:player.y+playerSpeed.y*f*GAME_SPEED_TO_CARAI_SPEED};
+}
 /** MISSION_RAMPLAYER_CLOSE's target in SteerAICarWithPhysics_OnlyMission (VC): a car on an odd seed that runs with the
  * player's car (forward dot above 0.5) lines up beside it, on the side seed bit 2 picks, and turns into it
  * (TEMPACT_TURNLEFT or TURNRIGHT for 250 ms) once within 12 × its speed + 2; other cars aim at a point up to 0.8 of a

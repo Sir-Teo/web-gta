@@ -148,3 +148,46 @@ test('the game weekday starts on Thursday and rolls over at midnight like CClock
   clock.advanceClock(1440 * 7);
   expect(clock.weekDay).toBe(1);
 });
+test('a dead CJ in the water floats just under the surface instead of sinking (CPed::ProcessBuoyancy)', () => {
+  setup('box');
+  // A deep pool: water at 10 over the floor at 0, the body put in at 5.
+  sim.player.position = { x: 0, y: 5, z: 0 }; sim.playerBody.setTranslation({ x: 0, y: 5.9, z: 0 }, true); sim.player.health = 0;
+  for (let i = 0; i < 240; i++) sim.step(1/60, { ...controls, swimWater: 10 });
+  const origin = sim.player.position.y + 1;
+  // pedFloatDepth(false) = 1.9 / 1.8 - 1: the origin rests 0.056 under the surface.
+  expect(origin).toBeGreaterThan(9.8); expect(origin).toBeLessThan(10);
+});
+test('a canopy opened after a long freefall lands with no FALL_COLLAPSE or knockdown', () => {
+  setup('box');
+  // Dropped from 200 units: past the knockdown speed within a couple of seconds.
+  sim.player.position = { x: 0, y: 200, z: 0 }; sim.playerBody.setTranslation({ x: 0, y: 200.9, z: 0 }, true); sim.player.grounded = false;
+  for (let i = 0; i < 150; i++) sim.step(1/60, { ...controls });
+  expect(sim.fall.falling).toBe(true); expect(sim.fall.minVz).toBeLessThan(-.4 * 50);
+  let landing: string | undefined;
+  for (let i = 0; i < 6000 && !sim.player.grounded; i++) { sim.step(1/60, { ...controls, parachute: true }); landing ??= sim.fallLanding; }
+  expect(sim.player.grounded).toBe(true); expect(landing).toBeUndefined();
+});
+test('a teleport lands no fall speed, jump momentum or knockdown with CJ (CPed::Teleport)', () => {
+  setup('box');
+  sim.player.verticalSpeed = -40; sim.player.jumpMomentum = { x: 5, z: 3 }; sim.collisionPush = { x: 2, z: 0 }; sim.knockdown = 2; sim.knockdownGetUp = 1;
+  let flushed = 0; sim.onFlushPlayerTasks = () => flushed++;
+  sim.flushPlayerTasks();
+  sim.player.position = { x: 0, y: .03, z: 0 }; sim.playerBody.setTranslation({ x: 0, y: .93, z: 0 }, true);
+  for (let i = 0; i < 10; i++) sim.step(1/60, { ...controls });
+  expect(sim.player.health).toBe(100); expect(sim.knockdown).toBe(0); expect(flushed).toBe(1);
+  expect(Math.abs(sim.player.position.x) + Math.abs(sim.player.position.z)).toBeLessThan(.05);
+});
+test('CJ rides a moving body he stands on, and a jump from it keeps its speed (CTaskSimpleJump::Launch)', () => {
+  setup('box');
+  // A floating deck (a truck bed) moving at 5 m/s along +x, its top at 1.
+  const deck = sim.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0, .75, 0).setGravityScale(0).setLinvel(5, 0, 0).lockRotations());
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(6, .25, 3).setDensity(1000), deck);
+  sim.player.position = { x: 0, y: 1.02, z: 0 }; sim.playerBody.setTranslation({ x: 0, y: 1.92, z: 0 }, true);
+  for (let i = 0; i < 10; i++) { deck.setLinvel({ x: 5, y: 0, z: 0 }, true); sim.step(1/60, { ...controls }); }
+  const x0 = sim.player.position.x, d0 = deck.translation().x;
+  for (let i = 0; i < 30; i++) { deck.setLinvel({ x: 5, y: 0, z: 0 }, true); sim.step(1/60, { ...controls }); }
+  // Half a second at 5 m/s: he keeps his place on the deck.
+  expect(sim.player.position.x - x0).toBeGreaterThan(2); expect(Math.abs((sim.player.position.x - x0) - (deck.translation().x - d0))).toBeLessThan(.3);
+  deck.setLinvel({ x: 5, y: 0, z: 0 }, true); sim.step(1/60, { ...controls, jump: true });
+  expect(sim.player.jumpMomentum.x).toBeGreaterThan(4);
+});

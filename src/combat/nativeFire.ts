@@ -16,9 +16,11 @@ export class NativeFire {
  position:V3={x:0,y:0,z:0};timeToBurn=0;target?:FireTarget;creator?:unknown;strength=1;generations=100;removalDistance=60;
  /** Bumped whenever CreateFxSysForStrength would recreate the effect. */
  fxSerial=0;
+ /** Where the effect sits: the fire's position led by 2 × timeStep × the burning entity's move speed (SetOffsetPos). */
+ fxPosition?:V3;
  /** GetFireParticleNameForStrength. */
  get fxName(){return this.strength>1?this.strength>2?'fire_large':'fire_med':'fire';}
- extinguish(){if(!this.active)return;this.timeToBurn=0;this.active=false;this.beingExtinguished=false;this.firstGeneration=true;this.target=undefined;}
+ extinguish(){if(!this.active)return;this.timeToBurn=0;this.active=false;this.beingExtinguished=false;this.firstGeneration=true;this.target=undefined;this.fxPosition=undefined;}
 }
 
 /** What CFire::ProcessFire reads from and does to the world. */
@@ -36,8 +38,15 @@ export interface FireWorld {
  vehicleFireOptions?:(target:FireTarget)=>{fireproof?:boolean;engineDamaged?:boolean};
  /** A vehicle fire's position: the main front light dummy, 0.15 up. */
  vehicleFirePosition?:(target:FireTarget)=>V3|undefined;
+ /** A burning entity's move speed (units a frame): the effect is set 2 × timeStep of it ahead of the fire. */
+ targetMoveSpeed?:(target:FireTarget)=>V3|undefined;
  /** The player when it can catch fire: on foot, not burning, not fireproof. */
  ignitablePlayer?:()=>{key:unknown;position:V3}|undefined;
+ /** CVehicle::IsSubBMX: the one-in-32 spread sets the player alight instead of the bike. */
+ bmx?:(target:FireTarget)=>boolean;
+ /** The player when CFireManager::StartFire would take him wherever he is: in control (alive, not in the air),
+  * not burning, not fireproof; at his position, in a vehicle or not. */
+ playerInControl?:()=>{key:unknown;position:V3}|undefined;
  /** Vehicles whose position is within `radius`, for the one-in-32 spread. */
  vehiclesNear?:(position:V3,radius:number)=>FireTarget[];
  cameraPosition:V3;
@@ -62,25 +71,37 @@ export class NativeFireManager {
  }
  /* CFireManager::StartScriptFire (0x53A300) as the mirror of a script's own table: the browser keeps one fire
   * for each of the script's, at the place its record says, and lets it go when that record does. A script's
-  * fire takes a slot the streamer will not reclaim, which is what the script flag is for. */
- syncScriptFires(records:readonly {key:number;position:V3;strength:number;generations:number}[]){
-  const wanted=new Map(records.map(record=>[record.key,record]));
-  for(const [key,fire] of this.scripted)if(!wanted.has(key)){fire.script=false;fire.extinguish();this.scripted.delete(key);}
+  * fire takes a slot the streamer will not reclaim, which is what the script flag is for. Script fires share the one
+  * pool: water or an extinguisher puts them out like any other (CFire::ExtinguishWithWater), and the keys of those that
+  * went out are returned so the script's own record goes out too (IS_SCRIPT_FIRE_EXTINGUISHED). */
+ syncScriptFires(records:readonly {key:number;position:V3;strength:number;generations:number;player?:boolean}[]){
+  const wanted=new Map(records.map(record=>[record.key,record])),out:number[]=[];
+  for(const [key,fire] of this.scripted)if(!wanted.has(key)){fire.script=false;fire.extinguish();this.scripted.delete(key);this.scriptStrength.delete(key);}
   for(const record of records){
    let fire=this.scripted.get(record.key);
-   if(fire&&!fire.active){this.scripted.delete(record.key);fire=undefined;}
+   if(fire&&!fire.active){this.scripted.delete(record.key);this.scriptStrength.delete(record.key);out.push(record.key);continue;}
    if(!fire){
+    // A script fire on the player (START_CHAR_FIRE) is his fire: it takes the place of one he had, burns him and
+    // follows him.
+    const target:FireTarget|undefined=record.player?{kind:'player',key:'player'}:undefined;
+    if(target)this.fireOn(target.key)?.extinguish();
     const free=this.fires.find(f=>!f.active);if(!free)continue;
-    Object.assign(free,{active:true,script:true,beingExtinguished:false,firstGeneration:true,target:undefined,
+    Object.assign(free,{active:true,script:true,beingExtinguished:false,firstGeneration:true,target,
      creator:undefined,timeToBurn:Number.POSITIVE_INFINITY});
     free.fxSerial++;this.scripted.set(record.key,free);fire=free;
    }
    fire.position={...record.position};
-   if(Math.trunc(fire.strength)!==Math.trunc(record.strength))fire.fxSerial++;
-   fire.strength=record.strength;fire.generations=record.generations;
+   // The strength follows the record only when the script's changes: water weakens the fire in between.
+   if(this.scriptStrength.get(record.key)!==record.strength){
+    if(Math.trunc(fire.strength)!==Math.trunc(record.strength))fire.fxSerial++;
+    fire.strength=record.strength;this.scriptStrength.set(record.key,record.strength);
+   }
+   fire.generations=record.generations;
   }
+  return out;
  }
  private readonly scripted=new Map<number,NativeFire>();
+ private readonly scriptStrength=new Map<number,number>();
  /** CFireManager::StartFire on an entity (0x53A050). */
  startFireOn(target:FireTarget,position:V3,lifetimeMs:number,generations:number,world:{nowMs:number;random:()=>number},creator?:unknown,options:{fireproof?:boolean;inControl?:boolean;engineDamaged?:boolean}={}){
   if(this.fireOn(target.key)||options.fireproof)return undefined;
@@ -130,6 +151,8 @@ export class NativeFireManager {
     if(!fire.script)world.damageVehicle?.(target,world.timeStep*1.2,fire.creator);
     const light=world.vehicleFirePosition?.(target);if(light)fire.position={...light};
    }
+   const move=world.targetMoveSpeed?.(target),lead=world.timeStep*2;
+   fire.fxPosition=move?{x:fire.position.x+move.x*lead,y:fire.position.y+move.y*lead,z:fire.position.z+move.z*lead}:undefined;
   }
   if(!target||target.kind!=='vehicle'){
    const player=world.ignitablePlayer?.();
@@ -140,6 +163,13 @@ export class NativeFireManager {
   }
   if(Math.trunc(world.random()*32)===0){
    for(const vehicle of world.vehiclesNear?.(fire.position,2)??[]){
+    // A fire by a BMX sets the player on fire, wherever he is, and bursts the bike's nearest tyre (the clone's
+    // bikes carry no tyre state).
+    if(world.bmx?.(vehicle)){
+     const player=world.playerInControl?.();
+     if(player&&this.startFireOn({kind:'player',key:player.key},player.position,7000,100,world,fire.creator))ignited.push({target:{kind:'player',key:player.key},creator:fire.creator});
+     continue;
+    }
     const at=world.targetPosition(vehicle);if(!at)continue;
     if(this.startFireOn(vehicle,at,7000,100,world,fire.creator,world.vehicleFireOptions?.(vehicle)))ignited.push({target:vehicle,creator:fire.creator});
    }

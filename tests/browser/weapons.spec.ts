@@ -17,11 +17,11 @@ test('arsenal equips every weapon and guns aim, fire, reload when empty, and pau
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
- await page.keyboard.press('Tab');await expect(page.locator('.arsenal')).toBeVisible();
+ await page.keyboard.press('Backquote');await expect(page.locator('.arsenal')).toBeVisible();
  expect(await page.locator('[data-weapon]').count()).toBe(44);await page.screenshot({path:'artifacts/arsenal.png'});
  const ids=await page.locator('[data-weapon]').evaluateAll(nodes=>nodes.map(n=>Number((n as HTMLElement).dataset.weapon)));
- for(const id of ids){if(!(await state()).weapons.arsenal)await page.keyboard.press('Tab');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.error).toBeNull();await expect.poll(async()=>{const s=(await state()).weapons;return s.id===id&&s.ready;},{timeout:10000}).toBe(true);}
- await page.keyboard.press('Tab');await page.locator('[data-weapon="31"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ for(const id of ids){if(!(await state()).weapons.arsenal)await page.keyboard.press('Backquote');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.error).toBeNull();await expect.poll(async()=>{const s=(await state()).weapons;return s.id===id&&s.ready;},{timeout:10000}).toBe(true);}
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="31"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  await page.mouse.move(750,420);await page.mouse.down({button:'right'});await page.mouse.down();
  await expect.poll(async()=>(await state()).weapons.clip).toBeLessThan(49);await page.screenshot({path:'artifacts/weapons-m4.png'});
  // SA has no reload control: CWeapon::Fire reloads when the clip runs out.
@@ -38,7 +38,7 @@ test('camera downloads a photo in its first-person mode, vision toggles and snip
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);
- const equip=async(id:number)=>{await page.keyboard.press('Tab');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);};
+ const equip=async(id:number)=>{await page.keyboard.press('Backquote');await page.locator(`[data-weapon="${id}"]`).click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);};
  // The camera fires only in MODE_CAMERA, entered by holding the target button.
  await equip(43);await page.mouse.move(720,450);await page.mouse.down({button:'right'});await expect.poll(async()=>(await state()).camera.firstPerson).toBe('camera');
  const download=page.waitForEvent('download');await page.keyboard.press('ControlLeft');expect((await download).suggestedFilename()).toMatch(/^San-Andreas-.*\.png$/);
@@ -122,11 +122,14 @@ test('knife stealth kills follow the native stealth_kn sequence from behind',asy
    weapons.inventory.select(4);weapons.aiming=true;const front={...behind,z:behind.z+.1};
    const inFront=crowd.stealthTarget({x:victim.position.x+Math.sin(victim.heading)*1.6,y:victim.position.y,z:victim.position.z+Math.cos(victim.heading)*1.6});
    for(let i=0;i<6;i++)weapons.tick(1/60);const ready=weapons.stealthReady;
+   const kills:any[]=[];crowd.onKill=(k:any)=>kills.push(k);
    const started=weapons.fire({origin:front,direction:{x:0,y:0,z:1}});const during=crowd.snapshot().people.find((p:any)=>p.id===victim.id).state;
    let states:string[]=[];for(let i=0;i<200;i++){weapons.tick(1/60);crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();states.push(crowd.snapshot().people.find((p:any)=>p.id===victim.id).state);}
    const gap=Math.hypot(sim.player.position.x-victim.position.x,sim.player.position.z-victim.position.z);
-   return {inFront:!!inFront,ready,started,during,final:states.at(-1),stealthCleared:!weapons.stealth,gap};
+   return {inFront:!!inFront,ready,started,during,final:states.at(-1),stealthCleared:!weapons.stealth,gap,kills:kills.filter(k=>k.id===victim.id).map(k=>k.byPlayer)};
   }finally{weapons.dispose();crowd.dispose();sim.dispose();}
  });
  expect(result.inFront).toBe(false);expect(result.ready).toBeGreaterThan(1/16);expect(result.started).toBe(true);expect(result.during).toBe('stealth');expect(result.final).toBe('dead');expect(result.gap).toBeLessThan(1.4);
+ // CTaskSimpleStealthKill kills through a CEventDamage from the attacker: the player's kill, reported once.
+ expect(result.kills).toEqual([true]);
 });

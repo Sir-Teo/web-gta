@@ -99,10 +99,10 @@ export class ScmPedPool<Ped>{
   this.rebuild(handle,said,()=>this.host.spawnOnCar(said.pedType,said.model??PED_TYPE_CIVMALE,vehicle,{...offset}));
  }
  /** DETACH_PED_FROM_CAR: the ped is back on the ground where the car had it, and walks again. */
- detachFromCar(handle:number,at:{x:number;y:number;z:number}){
+ detachFromCar(handle:number,at:{x:number;y:number;z:number},then?:(ped:Ped)=>void){
   const said=this.said.get(handle);if(!said||!said.ride)return;
   said.ride=undefined;said.position={...at};
-  this.rebuild(handle,said,()=>this.host.spawn(said.pedType,said.model??PED_TYPE_CIVMALE,{...at}));
+  this.rebuild(handle,said,()=>this.host.spawn(said.pedType,said.model??PED_TYPE_CIVMALE,{...at}),then);
  }
  /** The car a ped rides in, or nothing while it is on foot. */
  rideOf(handle:number){return this.said.get(handle)?.ride;}
@@ -195,7 +195,7 @@ export class ScmPedPool<Ped>{
  }
  /** The ped's body built again (into a car, onto one, or out on foot), with the health it has now and what the
   * script set on it. */
- private rebuild(handle:number,said:ScriptPed,spawn:()=>Promise<Ped|undefined>){
+ private rebuild(handle:number,said:ScriptPed,spawn:()=>Promise<Ped|undefined>,then?:(ped:Ped)=>void){
   const health=this.pool.read(handle,ped=>this.host.healthOf(ped),()=>said.health);
   if(health>0)said.health=health;
   this.pool.replace(handle,()=>spawn().then(ped=>{
@@ -206,6 +206,7 @@ export class ScmPedPool<Ped>{
    if(said.invulnerable!==undefined)this.host.setInvulnerable(ped,said.invulnerable);
    if(said.proofs)this.host.setProofs(ped,said.proofs);
    if(said.animGroup)this.host.setAnimGroup?.(ped,said.animGroup);
+   then?.(ped);
    return ped;
   }));
  }

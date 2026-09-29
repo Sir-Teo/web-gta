@@ -32,10 +32,16 @@ export class WorldTrain {
   * yaw turned half round), health and the burning and wrecked flags, which nothing here changes. */
  readonly car:{body:RAPIER.RigidBody};
  health=1000;wrecked=false;onFire=false;missionCar=true;
+ /** No one rides the clone's trains: the strike rules read the striker as driverless. */
+ readonly occupied=false;readonly train=true;
+ private nativeBodyCache?:{mass:number;turnMass:number;boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
+ /** Handling mass and turn mass with the collision model's bounds (native units), as WorldCar gives the strike rules. */
+ get nativeBody(){if(!this.nativeBodyCache){const b=this.asset.collision!.bounds,h=this.asset.handling.values;this.nativeBodyCache={mass:h.mass,turnMass:h.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}return this.nativeBodyCache;}
+ get boundRadius(){const b=this.asset.collision!.bounds;return Math.hypot(Math.max(-b.min[0],b.max[0]),Math.max(-b.min[1],b.max[1]),Math.max(-b.min[2],b.max[2]));}
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
  /** `colors`: CVehicleModelInfo::ChooseVehicleColour's paint for the carriage's colour-coded materials (the engine's
   * livery; unpainted, those materials keep carcols' placeholder magenta and green). */
- constructor(world:RAPIER.World,scene:Scene,asset:Asset,readonly carriage:NativeTrainCarriage,colors?:NativeCarColors){
+ constructor(world:RAPIER.World,scene:Scene,readonly asset:Asset,readonly carriage:NativeTrainCarriage,colors?:NativeCarColors){
   this.modelId=asset.vehicle.id;
   const id=TRAIN_HANDLING_IDS[asset.vehicle.handling]??98;
   const handling=prepareHandling(asset.handling,id);

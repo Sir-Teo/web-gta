@@ -25,6 +25,8 @@ export class Hud {
    * during either. */
   radioName(name:string|undefined){const el=this.element.querySelector<HTMLElement>('.radio-name')!;if(!name){el.hidden=true;this.radioLeftMs=0;this.radioPending=false;return;}el.textContent=name;this.radioPending=true;}
   private nameEls?:{radio:HTMLElement;zone:HTMLElement;vehicle:HTMLElement};
+  /** CHud::DrawAreaName: with gang wars active the zone name takes the current zone's gang colour (all channels non-zero). */
+  zoneNameColour?:readonly [number,number,number];
   drawNames(dtMs:number,paused=false,inVehicle=false,areaNameOff=false,widescreen=false,vehicleNameOff=false){
     this.inVehicle=inVehicle;
     const radio=this.nameEls?.radio??this.element.querySelector<HTMLElement>('.radio-name')!;
@@ -36,7 +38,8 @@ export class Hud {
     const out=this.names.update(dtMs,{message:!!this.prompt.textContent,bigMessage:this.element.classList.contains('white-middle')||this.missionTitleShowing,areaNameOff,vehicleNameOff});
     for(const [key,el,name] of [['zone',els.zone,out.zone],['vehicle',els.vehicle,out.vehicle]] as const){
       if(el.hidden!==!name)el.hidden=!name;
-      if(name){if(el.textContent!==name.text)el.textContent=name.text;this.put(`${key}.alpha`,String(name.alpha/255),v=>{el.style.opacity=v;});}
+      if(name){if(el.textContent!==name.text)el.textContent=name.text;this.put(`${key}.alpha`,String(name.alpha/255),v=>{el.style.opacity=v;});
+       if(key==='zone'){const c=this.zoneNameColour;this.put('zone.colour',c?`rgb(${c[0]},${c[1]},${c[2]})`:'',v=>{el.style.color=v;});}}
     }
   }
   /** CHud::DrawAmmo's text, or undefined when it draws nothing. */
@@ -71,16 +74,17 @@ export class Hud {
       <div class="vehicle-name" hidden></div>
       <div class="radio-name" hidden></div>
       <div class="prompt" role="status" aria-live="polite"></div>
+      <div class="garage-message" role="status" aria-live="polite" hidden></div>
       <div class="script-menus" role="menu" aria-label="Menu" hidden></div>
       <div class="help-box" role="status" aria-live="polite" hidden></div>
       <div class="mission-timers" hidden></div>
       <div class="trip-skip" hidden><img alt=""><span></span></div>
       <div class="stat-update" hidden><span class="stat-name"></span> <b class="stat-sign"></b><div class="stat-bar"><i></i></div></div>
-      <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>TAB</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
+      <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>&#96;</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">San Andreas</p><h1>San Andreas</h1><p class="menu-location">San Andreas</p>
         <div class="menu-actions"><button id="play" disabled>Loading the native world…</button><button id="new-game" hidden>New Game</button><button id="controls">Controls</button><button id="audio">Audio</button><button id="lighting">Lighting</button></div>
-        <div class="controls-panel" hidden><p><b>On foot</b> W A S D · Move &nbsp; Shift · Sprint &nbsp; Space · Jump &nbsp; C · Crouch / Stand &nbsp; R · Reload &nbsp; Ctrl · Fire / Use &nbsp; Right mouse · Aim &nbsp; Left mouse while aiming · Fire &nbsp; Wheel · Switch weapon &nbsp; Tab · Arsenal</p><p><b>Vehicles</b> F · Enter / Exit nearest car &nbsp; W/S · Accelerate / Brake / Reverse &nbsp; A/D · Steer &nbsp; Space · Handbrake</p><p><b>Boats</b> F · Board / Leave nearest runabout (leaving needs shallow water) &nbsp; W/S · Throttle / Reverse &nbsp; A/D · Steer &nbsp; Space · Brake &nbsp; Ctrl · Drive-by</p><p><b>Aircraft</b> W/S · Throttle &nbsp; ↓/↑ · Nose up/down &nbsp; A/D · Bank &nbsp; Q/E · Rudder &nbsp; G · Retractable gear &nbsp; T · Hydra hover/forward mode &nbsp; Ctrl · Mounted guns &nbsp; B · Rockets &nbsp; Space · Helicopter hover &nbsp; Space · Ground brake &nbsp; F · Exit after landing and stopping. Choose an aircraft from the full map to fly from Verdant Meadows.</p><p><b>Map</b> M · Full map &nbsp; Click map · Waypoint</p><p><b>Camera</b> V / Home · Camera distance &nbsp; Drag mouse · Look &nbsp; Middle mouse / Numpad 1 · Look behind &nbsp; L · Lock pointer &nbsp; Escape · Pause</p></div>
+        <div class="controls-panel" hidden><p><b>On foot</b> W A S D · Move &nbsp; Shift · Sprint &nbsp; Space · Jump &nbsp; C · Crouch / Stand &nbsp; R · Reload &nbsp; Ctrl · Fire / Use &nbsp; Right mouse · Aim &nbsp; Left mouse while aiming · Fire &nbsp; Wheel · Switch weapon &nbsp; Tab · Arsenal</p><p><b>Vehicles</b> F · Enter / Exit nearest car &nbsp; W/S · Accelerate / Brake / Reverse &nbsp; A/D · Steer &nbsp; Space · Handbrake</p><p><b>Boats</b> F · Board / Leave nearest runabout (leaving needs shallow water) &nbsp; W/S · Throttle / Reverse &nbsp; A/D · Steer &nbsp; Space · Brake &nbsp; Ctrl · Drive-by</p><p><b>Aircraft</b> W/S · Throttle &nbsp; ↓/↑ · Nose up/down &nbsp; A/D · Bank &nbsp; Q/E · Rudder &nbsp; G · Retractable gear &nbsp; T · Hydra hover/forward mode &nbsp; Ctrl · Mounted guns &nbsp; B · Rockets &nbsp; Space · Helicopter hover &nbsp; Space · Ground brake &nbsp; F · Exit after landing and stopping. Choose an aircraft from the full map to fly from Verdant Meadows.</p><p><b>Map</b> M · Full map &nbsp; Click map · Waypoint &nbsp; Wheel / PgUp / PgDn · Zoom &nbsp; Arrows · Pan &nbsp; Home · Find CJ</p><p><b>Camera</b> V / Home · Camera distance &nbsp; Drag mouse · Look &nbsp; Middle mouse / Numpad 1 · Look behind &nbsp; L · Lock pointer &nbsp; Escape · Pause</p><p class="mouse-settings"><label>Mouse sensitivity <input type="range" id="mouse-sens" aria-label="Mouse sensitivity"></label> &nbsp; <label><input type="checkbox" id="mouse-invert"> Invert mouse vertically</label></p></div>
         <div class="audio-panel" hidden aria-label="Audio settings">
           <label for="audio-master">Master volume <output id="value-master"></output></label><input id="audio-master" type="range" min="0" max="100" step="1">
           <label for="audio-effects">Sound effects <output id="value-effects"></output></label><input id="audio-effects" type="range" min="0" max="100" step="1">
@@ -117,6 +121,13 @@ export class Hud {
     const fist=this.element.querySelector('.status svg.weapon')!,slot=document.createElement('div');slot.className='weapon-slot';
     fist.replaceWith(slot);this.ammoText.className='weapon-ammo';this.ammoText.hidden=true;slot.append(fist,this.weaponIcon,this.ammoText);
     this.menu = this.element.querySelector('.menu-backdrop')!;
+    // Tab and Shift+Tab walk the open menu's controls and wrap round, so the keyboard never falls back to the game.
+    this.menu.addEventListener('keydown', e => {
+      if (e.code !== 'Tab') return;
+      const controls = [...this.menu.querySelectorAll<HTMLElement>('button,input,select,a[href]')].filter(c => !(c as HTMLButtonElement).disabled && !c.hidden && c.offsetParent !== null), at = controls.indexOf(document.activeElement as HTMLElement);
+      if (!controls.length) return;
+      if (e.shiftKey && at <= 0) { e.preventDefault(); controls[controls.length - 1].focus(); } else if (!e.shiftKey && (at < 0 || at === controls.length - 1)) { e.preventDefault(); controls[0].focus(); }
+    });
     this.prompt = this.element.querySelector('.prompt')!;
     this.clock = this.element.querySelector('.game-time')!;
     this.money = this.element.querySelector('.cash')!;
@@ -141,10 +152,18 @@ export class Hud {
     limiter.checked = settings.frameLimiter; limiter.onchange = () => update({ frameLimiter: limiter.checked });
   }
   audioStatus(state: { unavailable: boolean; failed: number; loaded: boolean }) {
-    this.element.querySelector('#audio-status')!.textContent = state.unavailable ? 'Sound is unavailable in this browser.' : state.failed ? 'Some sounds could not load. Gameplay remains available.' : state.loaded ? '' : 'Sounds load when you begin playing.';
+    const text = state.unavailable ? 'Sound is unavailable in this browser.' : state.failed ? 'Some sounds could not load. Gameplay remains available.' : state.loaded ? '' : 'Sounds load when you begin playing.';
+    this.put('audio.status', text, v => { this.element.querySelector('#audio-status')!.textContent = v; });
   }
   button(id: string) { return this.element.querySelector<HTMLButtonElement>(`#${id}`)!; }
-  setMenu(open: boolean) { this.menu.hidden = !open; this.element.classList.toggle('paused', open); }
+  /** Opening the menu moves the keyboard into it (its first control), so Tab reaches its buttons from the game. */
+  setMenu(open: boolean) {
+    const opening = open && this.menu.hidden;this.menu.hidden = !open; this.element.classList.toggle('paused', open);
+    if (opening && !this.menu.contains(document.activeElement)) this.menu.querySelector<HTMLElement>('button:not([disabled]):not([hidden])')?.focus({ preventScroll: true });
+  }
+  /** CGarages::PrintMessages: the garage message line (pickup and tag tallies) for this frame, or none. */
+  garageMessage(text?:string){const el=this.garageEl??=this.element.querySelector<HTMLElement>('.garage-message')!;if(text){if(el.textContent!==text)el.textContent=text;el.hidden=false;}else if(!el.hidden){el.hidden=true;el.textContent='';}}
+  private garageEl?:HTMLElement;
   /** A prompt line, timed on the game clock like CMessages' messages, so it does not run out while the game is paused. */
   message(text: string, milliseconds = 3000) { this.prompt.textContent = text; this.messageUntil = this.messageClock() + milliseconds; }
   /** CHud::SetHelpMessage: the top-left help box. DrawHelpText is not reversed; the box shows for `milliseconds`. */
@@ -352,12 +371,14 @@ export class Hud {
     // game's 30 fps frames (and stops while paused).
     const frame=Math.floor(now*30/1000)>>>0;
     this.put('health.now',String(Math.ceil(sim.player.health)),v=>e.health.setAttribute('aria-valuenow',v));
+    this.put('health.max',String(Math.ceil(limits.maxHealth)),v=>e.health.setAttribute('aria-valuemax',v));
     this.put('health.width',`${healthBarWidth(limits.maxHealth)*78}px`,v=>{e.health.style.width=v;});
     this.put('health.fill',`${barFill(sim.player.health,limits.maxHealth)}%`,v=>{e.healthFill.style.width=v;});
     this.put('health.blink',healthBarHidden(sim.player.health,frame)?'hidden':'',v=>{e.healthFill.style.visibility=v;});
     // CHud::RenderArmorBar shows armour only above 1.
     this.put('armour.hidden',String(armourBarHidden(sim.player.armour)),v=>{e.armour.hidden=v==='true';});
     this.put('armour.now',String(Math.ceil(sim.player.armour)),v=>e.armour.setAttribute('aria-valuenow',v));
+    this.put('armour.max',String(Math.ceil(limits.maxArmour)),v=>e.armour.setAttribute('aria-valuemax',v));
     this.put('armour.fill',`${barFill(sim.player.armour,limits.maxArmour)}%`,v=>{e.armourFill.style.width=v;});
     // CHud::RenderBreathBar: light blue, the armour bar's width, breath over lung capacity. Its caller is unreversed; the bar
     // shows while CJ is under the water or short of air.

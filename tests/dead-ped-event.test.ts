@@ -4,7 +4,7 @@ import {TASK} from '../src/ped/nativeDecisionMaker';
 
 const ped=(x:number,y:number,z:number,heading:number,extra:object={})=>({actor:{player:{position:{x,y,z},heading}},health:100,down:0,decisionMaker:2,...extra} as any);
 const event=(dead:any,people:any[],decide:(p:any)=>number|undefined=()=>TASK.investigateDeadPed)=>
- (WorldPedestrians.prototype as any).deadPedEvent.call({people,decide,relationshipTo:()=>3,deadPedRandom:()=>.5},dead);
+ (WorldPedestrians.prototype as any).deadPedEvent.call({people,decide,relationshipTo:()=>3,deadPedRandom:()=>.5,takesPriority:(o:any)=>!o.busy},dead);
 
 test('CEventDeadPed reaches a ped within 8 units in 3D with the body ahead, cops too, but not a body under water',()=>{
  const body=ped(0,0,0,0),level=ped(0,0,-5,0),above=ped(0,7,-5,0),cop=ped(0,0,5,Math.PI,{officer:true});
@@ -20,4 +20,10 @@ test('CEventDeadPed reaches a ped within 8 units in 3D with the body ahead, cops
  const drowned=ped(0,0,0,0,{drowned:true}),near=ped(0,0,-3,0);
  event(drowned,[drowned,near]);
  expect(near.investigate).toBeUndefined();
+});
+
+test('a ped answering a stronger event than CEventDeadPed (priority 15) ignores the body',()=>{
+ const body=ped(0,0,0,0),fighting=ped(0,0,-5,0,{busy:true}),idle=ped(1,0,-5,0);
+ event(body,[body,fighting,idle]);
+ expect(fighting.investigate).toBeUndefined();expect(idle.investigate).toBeDefined();
 });

@@ -95,7 +95,10 @@ export interface EntryExitPed {
 }
 /** A started transition: `warping` is ms_bWarping; `walk` is the CTaskComplexGotoDoorAndOpen target for the short walk-in
  * (no door objects stream, so FindNearestDoor finds none). */
-export interface EntryExitTransition {enex:EntryExit;spawn:EntryExit;warping:boolean;walk?:[number,number,number]}
+export interface EntryExitTransition {enex:EntryExit;spawn:EntryExit;warping:boolean;walk?:[number,number,number];
+ /** False for the first far use of a door (the UNKNOWN_PAIRING early return): TransitionStarted never reaches
+  * bPlayerOnInteriorTransition or CTaskSimpleUninterruptable, so the player keeps moving through the fade. */
+ freeze?:boolean}
 
 /** CEntryExitManager (EntryExitManager.cpp): the pool, links, script switches, marker choice and the transition
  * start. TransitionFinished (0x4404A0, unreversed) is sequenced by the caller through `finishStep`. */
@@ -203,7 +206,7 @@ export class EntryExitManager {
   set(e,ENEX.ENTERED_WITHOUT_EXIT,true);
   if(has(e,ENEX.UNKNOWN_PAIRING)||has(e,ENEX.FOOD_DATE)||ped.vehicle)return {enex:e,spawn,warping:far};
   // No swing or lock door objects: FindNearestDoor(*this, 10) finds none.
-  if(far){set(e,ENEX.UNKNOWN_PAIRING,true);return {enex:e,spawn,warping:true};}
+  if(far){set(e,ENEX.UNKNOWN_PAIRING,true);return {enex:e,spawn,warping:true,freeze:false};}
   const length=Math.hypot(...d)||1;
   return {enex:e,spawn,warping:false,walk:[p[0]+d[0]/length*4,p[1]+d[1]/length*4,p[2]+d[2]/length*4]};
  }

@@ -39,7 +39,7 @@ export function planeEntrySlots(group:VehicleAnimGroupData|undefined,phase:'geti
  return steps;
 }
 export interface PlaneEntryStep {clip:NativeAnimation;clipName:string}
-export interface PlaneEntry {phase:'getin'|'getout';steps:PlaneEntryStep[];index:number;time:number}
+export interface PlaneEntry {phase:'getin'|'getout';steps:PlaneEntryStep[];index:number;time:number;foot?:{x:number;y:number;z:number}}
 /** Advance a choreographed entry/exit sequence; true when its final clip completes. */
 export function advancePlaneEntry(entry:PlaneEntry,dt:number){
  entry.time+=dt;
@@ -66,16 +66,26 @@ export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
- health=800;gunAmmo=2000;rockets=20;vtol=true;
+ /** CVehicle's constructor: every vehicle starts at 1000 health. */
+ health=1000;vtol=true;
  /** CAutomobile::m_fBurnTimer in milliseconds, which ProcessCarOnFireAndExplode runs for planes and helicopters too. */
  burnTimer=0;
+ /** CAutomobile::m_fireParticleCounter: set once when the fire starts, 2 for an aircraft in the air, 1 otherwise, and never cleared. */
+ fireCounter=0;
+ /** Set by a BlowUpCar the flight step reached (the water dive) until afterStep hands the explosion on. */
+ private pendingExplosion=false;
  /** EXPLOSION_ROCKET at the aircraft: a burning aircraft nobody flies goes off like this 1.2% of frames. */
  onBurnExplosion?:(position:{x:number;y:number;z:number})=>void;
  random:()=>number=Math.random;
  /** Below 250 health and not sinking: on fire. */
  get burning(){return this.health>0&&this.health<250&&!this.drowning;}
  get helicopter(){return this.assets.vehicle.type==='heli';}
- get armed(){return [425,476,520].includes(this.modelId);}
+ /** GetPlaneNumGuns for the flyable models: the Hunter, Seasparrow, Rustler and Hydra carry guns. */
+ get armed(){return [425,447,476,520].includes(this.modelId);}
+ /** FireUnguidedMissile: only the Hunter and the Hydra launch rockets. */
+ get rocketsArmed(){return this.modelId===425||this.modelId===520;}
+ /** GetPlaneOrdnancePosition in native model space (right, forward, up): the Hunter's and the Hydra's first rocket pod. */
+ ordnancePosition():[number,number,number]{return this.modelId===425?[2.17,1,-.8]:[3.7,.98,-1.02];}
  damage(amount:number){if(this.health<=0)return false;this.health=Math.max(0,this.health-amount);if(this.health===0){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}return true;}return false;}
  toggleVtol(){if(this.modelId!==520)return '';this.vtol=!this.vtol;return this.vtol?'Hydra: vertical lift':'Hydra: forward flight';}
  /** physicalFlags.bMakeMassTwiceAsBig (SET_CAR_HEAVY): the water's drag ×1.5. */
@@ -146,10 +156,10 @@ export class WorldPlane {
   /** Leaving at speed on the ground: out at the door with the aircraft's velocity (CTaskSimpleCarJumpOut). */
   jumpOutOnGround(foot:{x:number;y:number;z:number}){
    const v=this.body.linvel(),message=this.finishExit(foot);
-   this.sim.player.speed=Math.hypot(v.x,v.z);this.sim.player.jumpMomentum={x:v.x,z:v.z};this.sim.player.grounded=false;
+   this.sim.player.speed=Math.hypot(v.x,v.z);this.sim.player.jumpMomentum={x:v.x,z:v.z};this.sim.player.grounded=false;this.sim.exitCarriesSpeed=true;
    return message;
   }
-  cancelEntry(){const e=this.entry;if(!e)return;this.entry=undefined;if(e.phase==='getout')this.finishExit();}
+  cancelEntry(){const e=this.entry;if(!e)return;this.entry=undefined;if(e.phase==='getout')this.finishExit(e.foot);}
   /** Bailing out mid-flight with the parachute: the fall starts with the
   * aircraft's velocity and the canopy glide takes over (native skydive).
   * The jumper leaves below the belly with room for the full standing
@@ -163,7 +173,7 @@ export class WorldPlane {
   const spot={x:p.x,y:p.y+this.assets.collision!.bounds.min[2]-2.5,z:p.z};
   this.sim.player.position={...spot};this.sim.player.previous={...spot};
   this.sim.player.speed=Math.hypot(v.x,v.z);this.sim.player.verticalSpeed=Math.min(0,v.y);this.sim.player.grounded=false;
-  this.sim.player.jumpMomentum={x:v.x,z:v.z};
+  this.sim.player.jumpMomentum={x:v.x,z:v.z};this.sim.exitCarriesSpeed=true;
   this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);
   this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
   this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
@@ -174,6 +184,8 @@ export class WorldPlane {
    if(this.sim.player.health<=0)return '';
    if(this.health<=0)return 'This aircraft is destroyed.';
    if(this.distance()>Math.max(5,this.assets.collision!.bounds.radius))return `Move closer to the ${this.name}.`;
+   // CTaskComplexEnterCar (0x63EDAB): the player gives up at the door of a vehicle moving over 0.2 units a frame.
+   {const v=this.body.linvel();if(Math.hypot(v.x,v.z)/50>.2)return `The ${this.name} is moving too fast.`;}
    return '';
   }
   /** CVehicle::CanPedStepOutCar (0x6D1F30) and CanPedJumpOutCar (0x6D2030) for planes and helicopters, in units per
@@ -225,7 +237,8 @@ export class WorldPlane {
    this.occupied=false;this.throttle=0;this.sim.cameraExcludedBody=undefined;
    this.sim.player.position={...foot};this.sim.player.previous={...foot};this.sim.player.speed=0;this.sim.player.verticalSpeed=0;this.sim.player.grounded=true;
    this.sim.playerBody.setTranslation({x:foot.x,y:foot.y+.9,z:foot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:foot.x,y:foot.y+.9,z:foot.z});
-   this.entry={phase:'getout',steps,index:0,time:0};
+   // CTaskSimpleCarSetPedOut has already placed him: the getout clip ends where it started.
+   this.entry={phase:'getout',steps,index:0,time:0,foot:{...foot}};
   }
   finishExit(foot?:{x:number;y:number;z:number}){
    const spot=foot??this.exitFoot();if(!spot)return 'No clear ground beside the plane.';
@@ -294,7 +307,8 @@ export class WorldPlane {
   this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
   if(this.helicopter)this.rotorSpeed=rotor.rotorSpeed;
   if(result.rotorKilled||result.engineOff)this.throttle=0;
-  if(result.blowUp&&this.health>0)this.damage(this.health);
+  // CAutomobile::ProcessBuoyancy's BlowUpCar for a plane diving into the water: the explosion follows.
+  if(result.blowUp&&this.health>0&&this.damage(this.health))this.pendingExplosion=true;
  }
  private stepDt=1/60;
  /** CAutomobile::ProcessCarOnFireAndExplode for a plane or helicopter: the burn timer runs at the full time step (the
@@ -302,21 +316,25 @@ export class WorldPlane {
   * has a 1.2% chance a frame of an EXPLOSION_ROCKET where it is. Out of the fire, the timer is cleared. */
  private burn(dt:number){
   if(!this.burning){this.burnTimer=0;return false;}
+  if(!this.fireCounter)this.fireCounter=this.inAir?2:1;
   this.burnTimer+=dt*1000;
   if(this.burnTimer>5000)return this.damage(this.health);
   const rc=this.modelId===464||this.modelId===465||this.modelId===501;
   if(!this.occupied&&!rc&&this.random()<1-Math.pow(1-.012,dt*30))this.onBurnExplosion?.({...this.body.translation()});
   return false;
  }
- afterStep(){let destroyed=false;
+ /** CAutomobile::IsInAir: not in the water, no wheel on the ground and moving. */
+ get inAir(){if(this.inWater)return false;const v=this.body.linvel();return !this.grounded&&(v.x!==0||v.y!==0||v.z!==0);}
+ afterStep(){let destroyed=this.pendingExplosion;this.pendingExplosion=false;
   if(!this.occupied)this.exitPending=false;
   else if(this.exitPending&&this.leaveMode()==='wait')this.slowForExit(this.stepDt);
   const change=new Vector3().copy(this.body.linvel()).sub(this.impactVelocity).length();
   if(this.health>0&&change>12){let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});if(contact)destroyed=this.damage((change-10)*45);}
   // CAutomobile::ProcessControl's crash-and-burn: the player's plane or helicopter burning (under 250 health, where its
-  // fire starts) blows up at once when it strikes something rising or is down, unless it is still sinking.
+  // fire starts) whose fire started in the air (m_fireParticleCounter 2) blows up at once when it strikes something
+  // rising or is down, unless it is still sinking.
   if(!destroyed)destroyed=this.burn(this.stepDt);
-  if(!destroyed&&this.occupied&&this.health>0&&this.health<250){
+  if(!destroyed&&this.occupied&&this.health>0&&this.health<250&&this.fireCounter===2){
    let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});
    const v=this.body.linvel(),rising=contact&&v.y-this.impactVelocity.y>0;
    if((rising||this.grounded)&&(v.y>=0||this.inWater))destroyed=this.damage(this.health);
@@ -336,7 +354,7 @@ export class WorldPlane {
   this.reflection.update(Math.min(1.05,(mean+.5)*.95+.05),this.body.translation(),this.body.rotation());
  }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.reflection)this.updateReflection(rgb);if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual.setNight(night);}
- snapshot(){return {inWater:this.inWater,drowning:this.drowning,health:this.health,gunAmmo:this.gunAmmo,rockets:this.rockets,vtol:this.modelId===520?this.vtol:null,helicopter:this.helicopter,modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
+ snapshot(){return {inWater:this.inWater,drowning:this.drowning,health:this.health,vtol:this.modelId===520?this.vtol:null,helicopter:this.helicopter,modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
  /** What the script's vehicle host reads of any vehicle: the body under `car`, the heading as WorldCar's (the
   * body's yaw turned half round), and whether it has gone. */
  readonly car:{body:RAPIER.RigidBody};disposed=false;

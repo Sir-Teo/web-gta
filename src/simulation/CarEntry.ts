@@ -12,7 +12,7 @@ type V3={x:number;y:number;z:number};
 export type Side='left'|'right';
 export type EntryPhase='approach'|'align'|'locked'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp'|'draggedOut'|'crawlOut';
 /** Shared entry timing (src/vehicle/entry.ts): 0.2 speed gate, 600 ms line-up. */
-import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, nextEntryPhase } from '../vehicle/entry';
+import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, approachStall, nextEntryPhase } from '../vehicle/entry';
 /** CCarEnterExit: the player keeps entering or jacking while the car's 2D speed is at most 0.2 units/frame. */
 const PLAYER_ENTER_SPEED=ENTRY_SPEED_SHARED;
 /** CTaskUtilityLineUpPedWithCar(offset, 600, ...): the ped's offset from the door point is removed over 600 ms. */
@@ -53,8 +53,11 @@ export function nativeDoorPoint(seat:V3,getInEnd:V3,seatOffset:number,side:Side,
 export interface PassengerCrowd {
   /** The player's group members still standing: the only peds that can take a seat. */
   followers():readonly {id:number;position:{x:number;y:number;z:number};health:number;down:number}[];
-  boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number}|undefined;
-  spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean):Promise<boolean>|boolean;
+  /** `keep`: what the ped takes into the car and out again (his weapon, health and gang), opaque to the car. */
+  boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number;keep?:unknown}|undefined;
+  spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean,keep?:unknown,rollout?:{velocity:{x:number;z:number};clip:'car_rollout_lhs'|'car_rollout_rhs'}):Promise<boolean>|boolean;
+  /** A rider of a car that blew up: CAutomobile::BlowUpCar's KillPedsInVehicle leaves him dead. */
+  spawnDead?(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang?:number,recruit?:boolean):unknown;
 }
 /** CTaskSimpleCarGetOut's upside-down clip, ANIM_ID_DEFAULT_CAR_CRAWLOUTRHS_0 and _1. */
 const CRAWL_OUT='CAR_crawloutRHS';
@@ -65,7 +68,7 @@ const PASSENGER_SEATS=[{seat:1,door:DOOR.rightFront,side:'right'},{seat:2,door:D
 export class CarEntry {
   car?:WorldCar;phase?:EntryPhase;side:Side='left';time=0;
   /** Crew riding along: model refs with seats, ejected when the driver leaves. */
-  passengers:{modelRef:number|string;seat:1|2|3;follow:boolean;gang?:number}[]=[];
+  passengers:{modelRef:number|string;seat:1|2|3;follow:boolean;gang?:number;keep?:unknown}[]=[];
   /** Street population for boarding and ejection (wired by the host). */
   crowd?:PassengerCrowd;
   private prevSeated=false;
@@ -138,14 +141,18 @@ export class CarEntry {
     this.ejectPassengers();
    }
    this.prevSeated=inside;this.passengerCar=car;
-   if(!car||car.wrecked||!this.seated||car.speed2D()>2||!this.crowd)return;
-   const free=PASSENGER_SEATS.filter(s=>!this.passengers.some(p=>p.seat===s.seat)&&!car.doorMissing(s.door));
+   // CTaskComplexEnterCar gives a non-player ped up (a fall) once the car moves over 0.1 units a frame.
+   if(!car||car.wrecked||!this.seated||car.speed2D()>.1||!this.crowd)return;
+   // CVehicle::m_nMaxPassengers (GetMaximumNumberOfPassengersFromNumberOfDoors) bounds the seats; a door knocked off
+   // keeps nobody out of its seat (the door just does not open).
+   const free=PASSENGER_SEATS.slice(0,car.maximumPassengers).filter(s=>!this.passengers.some(p=>p.seat===s.seat));
    if(!free.length)return;
    const crew=this.crowd.followers().filter(p=>p.health>0&&p.down<=0);
    if(!crew.length)return;
    const boarded=new Set<number>();
    for(const s of free){
-    const local=this.doorPoint(car,s.side);
+    // CCarEnterExit::GetPositionToOpenCarDoor for the seat's own door (a rear seat from ped_backseat).
+    const local=this.seatDoorPoint(car,s.seat-1);
     if(!local)continue;
     const door=car.worldPoint(local);
     const near=crew.filter(p=>!boarded.has(p.id)&&Math.hypot(p.position.x-door.x,p.position.z-door.z)<3.5).sort((a,b)=>Math.hypot(a.position.x-door.x,a.position.z-door.z)-Math.hypot(b.position.x-door.x,b.position.z-door.z))[0];
@@ -154,7 +161,7 @@ export class CarEntry {
     if(!taken)continue;
     boarded.add(near.id);
     if(!car.doorMissing(s.door)){car.openDoor(s.door,1);this.doorCloses.push({car,door:s.door,at:this.passengerClock+0.8});}
-    this.passengers.push({modelRef:taken.modelRef,seat:s.seat,follow:taken.follow,gang:taken.gang});
+    this.passengers.push({modelRef:taken.modelRef,seat:s.seat,follow:taken.follow,gang:taken.gang,keep:taken.keep});
    }
   }
   /** CGroupEventHandler::ComputeResponseLeaderExitedCar: follower i leaves its seat rand(-250, 250) + 500 i ms after
@@ -164,16 +171,25 @@ export class CarEntry {
    if(!car||!this.crowd)return;
    const riders=this.passengers.splice(0);
    this.doorCloses=this.doorCloses.filter(pending=>pending.car!==car);
-   riders.forEach((rider,i)=>this.leaving.push({rider,car,at:this.passengerClock+Math.max(0,(Math.random()*500-250+i*500)/1000)}));
+   // CVehicle::KillPedsInVehicle kills everyone aboard a car that blew up at once; only living riders leave one by one
+   // (ComputeResponseLeaderExitedCar).
+   riders.forEach((rider,i)=>this.leaving.push({rider,car,at:this.passengerClock+(car.wrecked?0:Math.max(0,(Math.random()*500-250+i*500)/1000))}));
   }
   private passengerOut(car:WorldCar,rider:CarEntry['passengers'][number]){
    if(!this.crowd||car.disposed)return;
    {
-    const seat=PASSENGER_SEATS.find(s=>s.seat===rider.seat),local=seat&&this.doorPoint(car,seat.side);
+    // ComputeTargetDoorToExit: each passenger leaves by his own seat's door.
+    const local=this.seatDoorPoint(car,rider.seat-1);
     const door=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);
     const hit=this.sim.world.castRay(new RAPIER.Ray({x:door.x,y:door.y+1.5,z:door.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
     const spot={x:door.x,y:(hit?door.y+1.5-hit.timeOfImpact:door.y-1)+.03,z:door.z};
-    void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow)).catch(()=>{});
+    // A car that blew up killed everyone aboard (CVehicle::KillPedsInVehicle, CEventVehicleDied for each rider).
+    if(car.wrecked&&this.crowd.spawnDead){void Promise.resolve(this.crowd.spawnDead(rider.modelRef,spot,car.heading(),rider.gang,!!rider.follow)).catch(()=>{});return;}
+    // ComputeResponseLeaderExitedCar gives followers CTaskComplexLeaveCar with bSensibleLeaveCar off: nobody waits for
+    // the car to slow (GroupEventHandler.cpp:344-349). One still too fast to step out of is rolled out of
+    // (CTaskSimpleCarJumpOut) with its move speed, by the seat's side.
+    const v=car.car.body.linvel(),rollout=car.canStepOut()?undefined:{velocity:{x:v.x,z:v.z},clip:(rider.seat===2?'car_rollout_lhs':'car_rollout_rhs') as 'car_rollout_lhs'|'car_rollout_rhs'};
+    void Promise.resolve(this.crowd.spawnPassenger(rider.modelRef,spot,car.heading(),rider.follow,rider.keep,rollout)).catch(()=>{});
    }
   }
   private passengerCar?:WorldCar;
@@ -202,17 +218,19 @@ export class CarEntry {
   return hit?point.y+1.5-hit.timeOfImpact:undefined;
  }
  /** CCarEnterExit::IsRoomForPedToLeaveCar port: a standing capsule fits at the door point (with door-ajar clearance). */
- private room(car:WorldCar,side:Side){
-  const local=this.doorPoint(car,side);if(!local)return false;const world=car.worldPoint(local),ground=this.ground(world,car);if(ground===undefined)return false;
-  return !this.sim.world.intersectionWithShape({x:world.x,y:ground+.95,z:world.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.55,.3),undefined,undefined,this.sim.playerCollider,car.car.body);
+ private room(car:WorldCar,side:Side,overAir=false){
+  const local=this.doorPoint(car,side);if(!local)return false;const world=car.worldPoint(local),ground=this.ground(world,car);if(ground===undefined&&!overAir)return false;
+  // A roll-out at speed may leave over open air (a car off a ramp or a pier): the capsule stands at the door point.
+  return !this.sim.world.intersectionWithShape({x:world.x,y:(ground??world.y-1)+.95,z:world.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.55,.3),undefined,undefined,this.sim.playerCollider,car.car.body);
  }
  private jackRequired(car:WorldCar){return !!car.autopilot&&!car.occupied&&!car.driverOut;}
  /** CTaskComplexEnterCarAsDriver from on foot. */
   enter(car:WorldCar){
    if(this.active)return false;
    if(car.wrecked){this.message='This vehicle is destroyed.';return false;}
-   // CTaskComplexEnterCar ends at once for a car on fire (m_pFire).
-   if(car.onFire)return false;
+   // CTaskComplexEnterCar ends at once for a car with a CFire on it (m_pFire: a molotov's, a flamethrower's or a
+   // script's). The engine fire under 250 health (ProcessCarOnFireAndExplode) is only a particle and bars nothing:
+   // CJ may get into a burning car before it blows. No entity fire is kept on the browser's cars.
   this.car=car;void this.clips.load(car.animGroup).catch(()=>{});
   // CCarEnterExit::GetNearestCarDoor: the driver's door unless the passenger door is nearer (buses always use the
   // driver's), each only with room at it (IsRoomForPedToLeaveCar), else the other; with room at neither, no entry.
@@ -231,7 +249,7 @@ export class CarEntry {
   if(this.phase!=='seated'||!this.car)return false;
   const car=this.car;
   if(car.canStepOut())return this.beginGetOut();
-  if(car.canJumpOut())return this.beginJumpOut();
+  if(car.canJumpOut()&&this.beginJumpOut())return true;
   this.phase='waitSlow';this.time=0;car.exitHandbrake=true;car.driverInput=false;return true;
  }
  /** CTaskComplexCarSlowBeDraggedOut on the seated player (a cop holding the driver's door): CAR_jackedLHS
@@ -246,10 +264,11 @@ export class CarEntry {
  /** CTaskSimpleCarSetPedInAsDriver without its entry tasks. */
  warpIn(car:WorldCar){this.car=car;this.side='left';void this.clips.load(car.animGroup).catch(()=>{});car.setPedInAsDriver();this.begin('seated');}
  cancel(){if(this.car){this.car.holdForEntry=false;if(!this.car.occupied)this.sim.playerCollider.setEnabled(true);}this.phase=undefined;this.car=undefined;this.lineUp=undefined;}
- /** The player died or was removed mid-sequence: leave the car at its driver door and stop every task. */
+ /** The player died or was removed mid-sequence: leave the car at its driver door and stop every task. The car is
+  * abandoned however fast it is going, as CVehicle::RemoveDriver sets STATUS_ABANDONED unconditionally. */
  abandon(){
   const car=this.car;
-  if(car?.occupied){const local=this.doorPoint(car,'left'),world=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);car.setPedOut({x:world.x,y:(this.ground(world,car)??world.y-1)+.03,z:world.z},car.heading());car.driverless=car.speed2D()>.01;}
+  if(car?.occupied){const local=this.doorPoint(car,'left'),world=local?car.worldPoint(local):new Vector3(car.car.body.translation().x,car.car.body.translation().y,car.car.body.translation().z);car.setPedOut({x:world.x,y:(this.ground(world,car)??world.y-1)+.03,z:world.z},car.heading());}
   this.cancel();
  }
  private begin(phase:EntryPhase,blendDelta=1000){
@@ -301,6 +320,7 @@ export class CarEntry {
  /** Controls that run the player to the chosen door (CTaskComplexGoToCarDoorAndStandStill: PEDMOVE_RUN, radius 0.5, 50 m, 30 s). */
  approach(dt:number,controls:Controls,input:{x:number;y:number;quit:boolean}):Controls{
   const car=this.car;if(this.phase!=='approach'||!car)return controls;
+  if(car.disposed){this.cancel();return controls;}
   // A knockdown's fall and get-up runs in the event-response slot, above the primary enter-car task, which waits
   // unprocessed (no steering check, no clock) and goes to the door once the player is back on his feet.
   if(this.sim.knockdown>0)return {...controls,x:0,y:0,jump:false,sprint:false};
@@ -314,10 +334,14 @@ export class CarEntry {
   const c=Math.cos(controls.cameraYaw),s=Math.sin(controls.cameraYaw),inputX=input.x*c-input.y*s,inputZ=-input.x*s-input.y*c;
   const centre=car.car.body.translation(),awayFromCar=inputX*(centre.x-p.x)+inputZ*(centre.z-p.z)<0;
   if(input.quit||Math.hypot(inputX,inputZ)>.1&&inputX*dx+inputZ*dz<0&&awayFromCar||this.approachTime>30||distance>50||car.wrecked){this.cancelReason=input.quit?'quit':this.approachTime>30?'time':distance>50?'far':car.wrecked?'wrecked':'steer';this.cancel();return controls;}
-  if(distance<=.5){this.doorReached();return {...controls,x:0,y:0,jump:false,sprint:false};}
+  // CTaskComplexEnterCar: a door another ped is using (a driver still climbing out) is waited for at the door
+  // (TASK_SIMPLE_CAR_WAIT_FOR_DOOR_NOT_TO_BE_IN_USE). The NPC drivers here use the driver's door.
+  const doorBusy=this.side==='left'&&this.npcs.some(n=>n.car===car&&!n.done);
+  if(distance<=.5){if(!doorBusy)this.doorReached();return {...controls,x:0,y:0,jump:false,sprint:false};}
   // A door drifting away with its car (a hovercraft sliding on land) is chased, not counted as a blocked way.
   if(distance<this.bestDistance-.05||car.speed2D()>.001){this.bestDistance=distance;this.stall=0;}
-  else if((this.stall+=dt)>1.2){if(distance<1.2)this.doorReached();else{this.message='The way to the door is blocked.';this.cancelReason='blocked';this.cancel();}return {...controls,x:0,y:0,jump:false};}
+  // The stall clock waits while CJ is off the ground: a press that came mid-jump, or a kerb on the way, is not a blocked door.
+  else if(!doorBusy&&(this.stall=approachStall(this.stall,dt,this.sim.player.grounded))>1.2){if(distance<1.2)this.doorReached();else{this.message='The way to the door is blocked.';this.cancelReason='blocked';this.cancel();}return {...controls,x:0,y:0,jump:false};}
   let aim={x:dx,z:dz};
   // ComputeRouteToDoor: walk around the car's collision bounds instead of into them.
   const b=car.assets.collision.bounds,center=car.car.body.translation(),h=car.heading(),sin=Math.sin(h),cos=Math.cos(h);
@@ -435,7 +459,9 @@ export class CarEntry {
    }
    this.message='Both doors are blocked.';return false;
   }
-  this.side=side;car.driverInput=false;car.exitHandbrake=false;this.doorExisted=!car.doorMissing(this.door);
+  // The exit press left ProcessControlInputs' automatic handbrake on (gas 0, full brake), and the driver's
+  // PEDSTATE_EXIT_CAR stops the inputs being read again until he is out: the car holds still through the getout.
+  this.side=side;car.driverInput=false;car.exitHandbrake=true;this.doorExisted=!car.doorMissing(this.door);
   if(this.sideSlot(VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS))this.begin('getOut');else this.afterGetOut();
   return true;
  }
@@ -451,7 +477,10 @@ export class CarEntry {
  }
  private finishOnFoot(){this.sim.playerCollider.setEnabled(true);this.phase=undefined;this.car=undefined;this.lineUp=undefined;}
  private beginJumpOut(){
-  const car=this.car!;this.side='left';
+  // IsRoomForPedToLeaveCar gates the roll-out as it does the get-out: the driver's door, else the passenger's, else
+  // CTaskSimpleCarWaitToSlowDown keeps him in until a door clears or the car can be stepped out of.
+  const car=this.car!,side:Side|undefined=this.room(car,'left',true)?'left':this.room(car,'right',true)?'right':undefined;
+  if(!side)return false;this.side=side;
   if(!this.sideSlot(VEHICLE_ANIM.rolloutLHS,VEHICLE_ANIM.rolloutRHS))return false;
   car.driverInput=false;car.exitHandbrake=false;
   const v=car.car.body.linvel();this.jumpSpeed=Math.hypot(v.x,v.y,v.z)/50;this.setOut=false;this.doorExisted=!car.doorMissing(this.door);
@@ -460,23 +489,30 @@ export class CarEntry {
  private startNpc(car:WorldCar,kind:'jacked'|'getOut',onOut?:(position:V3,heading:number)=>void){
   const clip=this.slotFor(car,kind==='jacked'?VEHICLE_ANIM.jackedLHS:VEHICLE_ANIM.getoutLHS);if(!clip)return false;
   // CTaskComplexCarSlowBeDraggedOut: the victim's car is abandoned (FORCED_STOP for a player victim).
-  car.driverOut=true;car.autopilot=undefined;car.holdForEntry=true;
+  car.driverOut=true;car.autopilot=undefined;car.holdForEntry=true;car.driverLeaving=kind==='getOut';
   this.npcs.push({car,clip,time:0,kind,done:false,onOut});return true;
  }
  /** CTaskComplexLeaveAnyCar for an NPC driver (a CEventVehicleOnFire response): the car stops, the driver plays his
   * get-out clip and `onOut` places him at the door. False when the car has no exit clip. */
  evictDriver(car:WorldCar,onOut:(position:V3,heading:number)=>void){
   if(car.driverOut||this.npcs.some(n=>n.car===car&&!n.done))return false;
-  return this.startNpc(car,'getOut',onOut);
+  if(this.startNpc(car,'getOut',onOut))return true;
+  // The car's exit clips have not been read yet (a van or bus group nobody has used): ask for them, and set the driver
+  // out at his door now rather than leave him in a seat his decision (fire, road rage, flight) has already left.
+  void this.clips.load(car.animGroup).catch(()=>{});
+  const local=this.doorPoint(car,'left'),bounds=car.assets.collision.bounds;
+  const base=car.worldPoint(local??{x:-(Math.max(Math.abs(bounds.min[0]),Math.abs(bounds.max[0]))+.6),y:0,z:0}),ground=this.ground(base,car)??base.y-1;
+  car.driverOut=true;car.autopilot=undefined;car.holdForEntry=false;
+  onOut({x:base.x,y:ground+.03,z:base.z},car.heading());return true;
  }
  /** CTaskSimpleCarSetPedSlowDraggedOut: the victim lands at the jacked clip's end offset (2D) with its Z on the ground. */
- private stepNpc(dt:number){for(const npc of this.npcs)if(!npc.done)this.stepOneNpc(npc,dt);}
+ private stepNpc(dt:number){for(const npc of this.npcs){if(npc.car.disposed)npc.done=true;if(!npc.done)this.stepOneNpc(npc,dt);}}
  private stepOneNpc(npc:NonNullable<CarEntry['npc']>,dt:number){
   npc.time+=dt;
   if(npc.kind==='jacked'&&!(this.car===npc.car&&this.phase==='pullout'))this.openDoor(npc.car,DOOR.leftFront,'jacked',npc.time,npc.clip.group);
   if(npc.kind==='getOut')this.openDoor(npc.car,DOOR.leftFront,'getOut',npc.time,npc.clip.group);
   if(npc.time<npc.clip.clip.duration)return;
-  npc.done=true;npc.car.holdForEntry=false;
+  npc.done=true;npc.car.holdForEntry=false;npc.car.driverLeaving=false;
   const local=this.doorPoint(npc.car,'left');if(!local)return;
   const end=clipRootEnd(npc.clip.clip),base=npc.car.worldPoint(npc.kind==='jacked'?{x:local.x+end.x,y:local.y+end.y,z:local.z}:local),ground=this.ground(base,npc.car)??base.y-1;
   if(npc.onOut)npc.onOut({x:base.x,y:ground+.03,z:base.z},npc.car.heading());else this.onDriverOut?.(npc.car,{x:base.x,y:ground+.03,z:base.z},npc.car.heading());
@@ -495,6 +531,8 @@ export class CarEntry {
 
   if(this.npcs.some(n=>n.done))this.npcs=this.npcs.filter(n=>!n.done);
   const car=this.car;if(!this.phase||!car)return;
+  // m_Car is a registered reference: a car deleted under the task (a script's DELETE_CAR) ends it.
+  if(car.disposed){this.cancel();return;}
   if(car.wrecked&&!this.rolling&&this.phase!=='jumpOut'){this.cancel();return;}
   if(this.phase==='approach')return;
   if((this.phase==='align'||this.phase==='open'||this.phase==='pullout')&&this.playerQuits(car,input))this.quitAfterDoor=true;
@@ -527,7 +565,9 @@ export class CarEntry {
      const world=car.worldPoint(this.doorPoint(car,this.side,1)!),ground=this.ground(world,car),heading=car.heading()+(this.upright(car)?0:Math.PI);
      car.setPedOut({x:world.x,y:Math.max(ground??world.y-1,world.y-1)+.03,z:world.z},heading);car.driverless=true;car.engineRunning=false;if(!car.doorMissing(this.door))car.setDoorOpen(this.door);
      // CTaskSimpleCarJumpOut::ProcessPed hands the ped the car's whole move speed, the vertical part included.
-     this.sim.player.grounded=false;this.sim.player.verticalSpeed=car.car.body.linvel().y;
+     this.sim.player.grounded=false;this.sim.player.verticalSpeed=car.car.body.linvel().y;this.sim.exitCarriesSpeed=true;
+     // CTaskSimpleCarJumpOut::ProcessPed: m_pEntityIgnoredCollision = the vehicle.
+     this.sim.ignoreVehicleOnExit(car.car.body);
     }
     // m_initialVehSpeed decays by 0.96^ts and shifts the ped forward until 0.45 s; the clip's own root X/Y is extracted.
     let forward=0;

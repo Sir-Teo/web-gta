@@ -56,8 +56,13 @@ export class NativeCullZones {
   if((frame&7)===2){this.camera=this.attributesAt(camera);return;}
   if((frame&7)===6){this.player=this.attributesAt(player);if(!militaryZonesDisabled&&this.player&ZONE.militaryZone)militaryZone?.();}
  }
+ /** CCullZones::CamStairsForPlayer, and FindZoneWithStairsAttributeForPlayer as CBike::DamageKnockOffRider pairs them:
+  * the player's flags (refreshed every eighth frame) say stairs, and a stairs zone holds him now. */
+ playerOnStairs(p:V3){return !!(this.player&ZONE.stairs)&&this.attributeZones.some(z=>(z.flags&ZONE.stairs)!==0&&z.def.contains(p));}
  get camNoRain(){return !!(this.camera&ZONE.noRain);}
  get playerNoRain(){return !!(this.player&ZONE.noRain);}
+ /** CCullZones::NoPolice: the player stands in a zone the police do not go into (POLICES_DONT_GO). */
+ get noPolice(){return !!(this.player&ZONE.noPolice);}
  /** FewerPeds (0x72DD90): CPopulation::FindPedDensityMultiplierCullZone gives 0.6 in these zones. */
  get fewerPeds(){return !!(this.player&ZONE.fewerPeds);}
  /** DoExtraAirResistanceForPlayer (0x72DDD0): CPhysical::ApplyAirResistance multiplies every automobile's and

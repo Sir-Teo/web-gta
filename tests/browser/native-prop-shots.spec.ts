@@ -6,7 +6,7 @@ test('a pistol round knocks a cardboard box loose through DoBulletImpact',async(
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await expect.poll(async()=>(await state()).objectKinds.includes('dummy'),{timeout:30000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  // The cardboard box on the kerb at native (2492.27, -1653.99, 12.90): uproot limit 0, mass 10.
  const box={x:2492.27,y:12.9+.25,z:1653.99};

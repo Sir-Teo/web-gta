@@ -22,7 +22,7 @@ import {ScmCutsceneTrack} from './ScmCutsceneTrack';
 import type {CarRecordingPlaybackHost} from './carRecordingPlayback';
 import {ScmAnimBlocks} from './ScmAnimBlocks';
 import {ScmPickups} from './ScmPickups';
-import {ScmGarages} from './ScmGarages';
+import {ScmGarageMessage,ScmGarages} from './ScmGarages';
 import {ScmShopping} from './ScmShopping';
 import {ScmScriptBrains} from './ScmScriptBrains';
 import {ScmCheats} from './ScmCheats';
@@ -54,7 +54,9 @@ const CAPPED_STATS=new Set([65,66,67,21,22,23,24,25,69,70,71,72,73,74,75,76,77,7
 export interface ScmStatsPlayer {health():number;maxHealth():number;addHealth(value:number):void;
  /** m_nNumHoursDidntEat = 0. */
  ateEnough():void}
-const STAT_FAT=21;
+const STAT_FAT=21,STAT_ENERGY=165,STAT_LUNG_CAPACITY=225;
+/** STAT_COST_OF_PROPERTY_DAMAGED: the dollars of property the player wrecked. */
+export const STAT_COST_OF_PROPERTY_DAMAGED=125;
 export class ScmStats {
  player?:ScmStatsPlayer;
  /** CStats::DisplayScriptStatUpdateMessage, drawn by the host. */
@@ -102,11 +104,19 @@ export class ScmStats {
   if(ScmStats.isFloat(stat)){
    let next=this.float(stat)+value;
    if(ScmStats.isCapped(stat))next=Math.min(next,1000);
-   this.setFloat(stat,next);return;
+   this.setFloat(stat,next);this.reactOnIncrement(stat);return;
   }
   let next=this.int(stat)+Math.trunc(value);
   if(ScmStats.isCapped(stat))next=Math.min(next,1000);
-  this.setInt(stat,next);
+  this.setInt(stat,next);this.reactOnIncrement(stat);
+ }
+ /** CStats::ProcessReactionStatsOnIncrement: stamina or lung capacity gained on a negative energy burns 23 fat;
+  * energy raised past a thousand puts the rest on as fat. */
+ private reactOnIncrement(stat:number){
+  if(stat!==STAT_STAMINA&&stat!==STAT_ENERGY&&stat!==STAT_LUNG_CAPACITY)return;
+  const energy=this.get(STAT_ENERGY);
+  if(stat===STAT_STAMINA||stat===STAT_LUNG_CAPACITY){if(energy<0)this.set(STAT_FAT,Math.max(this.get(STAT_FAT)-23,0));return;}
+  if(energy>1000)this.increment(STAT_FAT,energy-1000);
  }
  /** CStats::DecrementStat (0x55C2E0): nothing happens for a value at or below zero, and a stat never goes
   * below nothing. */
@@ -114,6 +124,8 @@ export class ScmStats {
   requireAsset(Number.isFinite(value),'Stat decrements must be finite.');
   if(value<=0)return;
   this.set(stat,Math.max(this.get(stat)-value,0));
+  // CStats::ProcessReactionStatsOnDecrement: energy lowered while negative burns 23 fat.
+  if(stat===STAT_ENERGY&&this.get(STAT_ENERGY)<0)this.decrement(STAT_FAT,23);
  }
  /** CStats::SetNewRecordStat (0x55C410): only raises the stored value. */
  setNewRecord(stat:number,value:number){if(this.get(stat)<value)this.set(stat,value);}
@@ -169,8 +181,11 @@ export class ScmClock {
  /** One clock for the scripts and the world, as CClock is: the world's minutes of the day and weekday are the
   * clock's, a weekday change carrying the day and month as CClock::Update does at midnight. */
  follow(totalMinutes:number,weekDay:number){
-  if(weekDay!==this.currentDay){this.currentDay=weekDay;this.days++;if(this.days>=ScmClock.daysInMonth[this.month-1]){this.days=1;if(++this.month>12)this.month=1;}}
+  let passed=0;
+  if(weekDay!==this.currentDay){this.currentDay=weekDay;this.days++;passed=1;if(this.days>=ScmClock.daysInMonth[this.month-1]){this.days=1;if(++this.month>12)this.month=1;}}
   const whole=Math.floor(totalMinutes);this.hours=Math.floor(whole/60)%24;this.minutes=whole%60;this.seconds=Math.floor((totalMinutes-whole)*60);
+  // CClock::Update's midnight: STAT_DAYS_PASSED_IN_GAME up one, which the caller books (SetGameClock's own day is not it).
+  return passed;
  }
  /** CClock::RestoreClock (0x52D070): copies the stored statics, which are zero until STORE_CLOCK. */
  restore(){Object.assign(this,this.stored??{hours:0,minutes:0,seconds:0,days:0,month:0});}
@@ -335,6 +350,8 @@ export class ScmGameState {
  readonly scriptBrains=new ScmScriptBrains();
  /** CGarages as the script addresses them, once a host has loaded the world's own. */
  readonly garages=new ScmGarages();
+ /** CGarages' message line, which blocks the help box while it shows. */
+ readonly garageMessage=new ScmGarageMessage();
  /** CPopulation's random-creation switches: m_bDontCreateRandomGangMembers (SET_CREATE_RANDOM_GANG_MEMBERS) and
   * m_bDontCreateRandomCops (SET_CREATE_RANDOM_COPS), which CPopCycle::FindNewPedType reads, and
   * m_bOnlyCreateRandomGangMembers (SET_ONLY_CREATE_GANG_MEMBERS). */
@@ -419,7 +436,7 @@ export class ScmGameState {
  constructor(){
   // SetHelpMessage bails while a mission title (STYLE_MIDDLE_SMALLER_HIGHER)
   // is queued, a garage message shows, a replay plays or a cutscene runs.
-  this.help.blocked=()=>!!this.messages.big[STYLE_MIDDLE_SMALLER_HIGHER][0]||!!this.helpMessageBlocked?.();
+  this.help.blocked=()=>!!this.messages.big[STYLE_MIDDLE_SMALLER_HIGHER][0]||this.garageMessage.showing||!!this.helpMessageBlocked?.();
  }
  /** CTheScripts::ReinitialiseSwitchStatementData (0x470370). */
  reinitialiseSwitch(){this.switchEntriesToRead=0;this.switchValue=0;this.switchDefaultExists=false;this.switchDefaultAddress=0;this.switchCases.length=0;}
@@ -446,12 +463,14 @@ export class ScmGameState {
   requireAsset(Number.isInteger(level)&&level>=0&&level<=6,'SET_MAX_WANTED_LEVEL outside 0..6 is unreachable in the source.');
   this.maximumWantedLevel=level;this.maximumChaosLevel=MAXIMUM_CHAOS[level];this.wanted.setMaximumWantedLevel(level);
  }
+ /** The one CWeather: the world's weather, which the script's forcing and releasing reach as the cheats' do. */
+ weatherHost?:{forceWeather(type:number):void;forceWeatherNow(type:number):void;releaseWeather():void};
  /** CWeather::ForceWeatherNow (0x72A4F0). */
- forceWeatherNow(type:number){this.forcedWeather=type;this.oldWeather=type;this.newWeather=type;}
+ forceWeatherNow(type:number){this.forcedWeather=type;this.oldWeather=type;this.newWeather=type;this.weatherHost?.forceWeatherNow(type);}
  /** CWeather::ForceWeather (0x72A4E0 region): only the forced type changes. */
- forceWeather(type:number){this.forcedWeather=type;}
+ forceWeather(type:number){this.forcedWeather=type;this.weatherHost?.forceWeather(type);}
  /** CWeather::ReleaseWeather (0x72A510). */
- releaseWeather(){this.forcedWeather=-1;}
+ releaseWeather(){this.forcedWeather=-1;this.weatherHost?.releaseWeather();}
  setFadeColour(red:number,green:number,blue:number){
   this.fadeTargetIsSplashScreen=red===2&&green===2&&blue===2;
   this.fadeColour={red:red&255,green:green&255,blue:blue&255};

@@ -31,3 +31,23 @@ test('original MAIN invokes its fade, runs the game-state prologue and stops at 
  expect(fade.direction).toBe(0);expect(fade.startedAt).toBe(100);
  fade.process(0.02);expect(fade.value).toBe(255);
 });
+
+// CCamera::Fade and ProcessMusicFade: a fade to black (direction 0) holds the sound until the last three tenths (less
+// a tenth of a second), then takes the fader scaling factor to nothing; a fade back up (direction 1) brings it back
+// over the first three tenths. SET_MUSIC_DOES_FADE off leaves a fade to black alone but never a fade up.
+test('the screen fade ducks the sound over its last three tenths and brings it back over the first',()=>{
+ const fade=new ScmCameraFade();
+ fade.fade(2000,0,0);
+ expect(fade.timeToWaitToFadeMusic).toBeCloseTo(1.4,6);expect(fade.timeToFadeMusic).toBeCloseTo(.5,6);
+ fade.process(1);expect(fade.faderScalingFactor).toBe(1);
+ fade.process(.4);expect(fade.faderScalingFactor).toBe(1);
+ fade.process(.25);expect(fade.faderScalingFactor).toBeCloseTo(.5,6);
+ fade.process(.25);expect(fade.faderScalingFactor).toBeCloseTo(0,6);
+ fade.process(.1);expect(fade.musicFading).toBe(false);expect(fade.faderScalingFactor).toBe(0);
+ fade.fade(1000,1,3000);
+ expect(fade.timeToWaitToFadeMusic).toBe(0);expect(fade.timeToFadeMusic).toBeCloseTo(.3,6);
+ fade.process(.15);expect(fade.faderScalingFactor).toBeCloseTo(.5,6);
+ fade.process(.2);expect(fade.faderScalingFactor).toBe(1);expect(fade.musicFading).toBe(false);
+ const quiet=new ScmCameraFade();quiet.fade(1000,0,0,true);expect(quiet.musicFading).toBe(false);
+ quiet.faderScalingFactor=0;quiet.fade(1000,1,0,true);expect(quiet.musicFading).toBe(true);
+});

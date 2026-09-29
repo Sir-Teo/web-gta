@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {bikeWheelSupports,frameModelPosition} from '../src/vehicle/nativeBikeWheels';
+import {bikeRestBottom,bikeWheelSupports,frameModelPosition} from '../src/vehicle/nativeBikeWheels';
 
 const translate=(x:number,y:number,z:number)=>[1,0,0,0,0,1,0,0,0,0,1,0,x,y,z,1];
 /** A clump root, a fork turned a quarter round Z holding the front wheel, and the rear wheel off the root. */
@@ -24,4 +24,12 @@ test('each wheel holds the bike up with a ball of its vehicles.ide size',()=>{
  // Without a size for one end the other end's stands in; without either, 0.6.
  expect(bikeWheelSupports(model,{front:[2],rear:[3]},undefined,.5).map(s=>s.radius)).toEqual([.25,.25]);
  expect(bikeWheelSupports(model,{front:[2],rear:[3]}).map(s=>s.radius)).toEqual([.3,.3]);
+});
+
+// CBike::PlaceOnRoadProperly sets the bike down on its wheels: the rest height comes from the lowest tyre bottom when
+// that reaches below the collision model, so the tyres are not sunk into the road at spawn.
+test('the rest bottom is the lowest tyre bottom, or the collision bottom when that is lower',()=>{
+ // Front tyre centre z -0.3 radius 0.33 → -0.63; rear -0.1 - 0.35 → -0.45.
+ expect(bikeRestBottom(model,{front:[2],rear:[3]},-.3,.66,.7)).toBeCloseTo(-.63,6);
+ expect(bikeRestBottom(model,{front:[2],rear:[3]},-.9,.66,.7)).toBe(-.9);
 });

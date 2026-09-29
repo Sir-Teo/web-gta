@@ -18,6 +18,6 @@ test('lit headlights draw their beam fans at night and none by day',async({page}
  expect((await state()).headlightBeams%24).toBe(0);
  // CVehicle::DoHeadLightReflection: the twin road pool under the Greenwood's lamps.
  await expect.poll(async()=>(await state()).carLightPools,{timeout:10000}).toBeGreaterThan(0);
- await page.screenshot({path:'scratch/beams/night-side.png'});
+ await page.screenshot({path:test.info().outputPath('night-side.png')});
  expect(errors).toEqual([]);
 });

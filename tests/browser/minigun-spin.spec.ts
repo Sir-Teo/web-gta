@@ -6,7 +6,7 @@ test('the minigun barrel spins up while aimed and winds down after',async({page}
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="38"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="38"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  const canvas=page.locator('canvas').first(),box=(await canvas.boundingBox())!;
  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down({button:'right'});
  await expect.poll(async()=>(await state()).weapons.gunSpin,{timeout:5000}).toBeGreaterThan(.44);

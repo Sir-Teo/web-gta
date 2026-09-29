@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {SWIM} from '../src/simulation/nativeSwim';
+import {SWIM,swimJumpoutPose} from '../src/simulation/nativeSwim';
 import {updatePlayerSwim,type SwimPlayer} from '../src/simulation/playerSwim';
 
 const player=(over:Partial<SwimPlayer>={}):SwimPlayer=>({position:{x:0,y:0,z:0},health:100,grounded:false,swimming:false,swimState:0,swimBlend:0,breath:100,swimStopTime:0,swimDiveTime:0,swimDiveDuration:1,swimVel:{x:0,z:0},...over});
@@ -96,4 +96,14 @@ test('underwater, a swimmer pitched up past 45 degrees within 0.65 of the surfac
  // Origin 0.5 under, pitched level: still under.
  p.position.y=8.5;p.swimPitch=0;updatePlayerSwim(p,input,10,1/60,undefined);expect(p.swimState).toBe(SWIM.underwaterSprinting);
  p.swimPitch=1;updatePlayerSwim(p,input,10,1/60,undefined);expect(p.swimState).toBe(SWIM.tread);
+});
+test('a swimmer who does not drown (SET_CHAR_DROWNS_IN_WATER off) keeps his breath under water',()=>{
+ const under=()=>player({swimming:true,swimState:SWIM.underwaterSprinting,position:{x:0,y:5,z:0}});
+ const drowner=under(),holder=under();
+ for(let i=0;i<50;i++){updatePlayerSwim(drowner,input,10,1/50,undefined);updatePlayerSwim(holder,{...input,drownsInWater:false},10,1/50,undefined);}
+ expect(drowner.breath).toBeLessThan(100);expect(holder.breath).toBe(100);
+});
+test('the jump-out plays SWIM_JUMPOUT for a quarter of its length, then CLIMB_jump',()=>{
+ expect(swimJumpoutPose(.1,.8)).toEqual({clip:'swim_jumpout',seconds:.1});
+ expect(swimJumpoutPose(.3,.8)).toEqual({clip:'climb_jump',seconds:.3-.2});
 });

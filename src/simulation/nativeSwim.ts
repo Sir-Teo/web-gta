@@ -65,3 +65,30 @@ export function swimBreath(breath:number,decrease:boolean,multiplier:number,time
  if(breath>0&&drownsInWater)return {breath:Math.max(0,breath-amount),damage:0};
  return {breath,damage:Math.trunc(amount*3)};
 }
+
+/** CTaskSimpleSwim::ProcessSwimmingResistance's m_fRotationX update while SWIM_UNDERWATER_SPRINTING (gta-reversed
+ * 0x68A8E0): with the ped origin within 0.65 of the surface, m_fStateChanger ramps up by a tenth of the frame's
+ * seconds (to 0.025 pitched up, 0.05 pitched down, easing by 0.95 a frame above those) and turns the swimmer up by
+ * it a frame, so he tips toward the surface until past 45 degrees, where the task treads; deeper, it dies away.
+ * `origin` is the ped origin height, `timeStep` 1/50 s frames. The dive-in's negative changer is not modelled. */
+export function swimRotationTowardSurface(pitch:number,changer:number,origin:number,water:number|undefined,timeStep:number,seconds:number){
+ if(water===undefined||changer<0)return {pitch,changer};
+ const decay=()=>changer>.001?changer*Math.pow(.95,timeStep):0;
+ if(pitch>=0){
+  if(origin+.65<=water)return {pitch,changer:changer<=.001?0:changer*Math.pow(.95,timeStep)};
+  const min=.05*.5;
+  if(changer>min)changer*=Math.pow(.95,timeStep);
+  if(changer<min)changer=Math.min(min,changer+seconds/10);
+  return {pitch:pitch+timeStep*changer,changer};
+ }
+ if(origin-Math.sin(pitch)+.65<=water)return {pitch,changer:decay()};
+ changer=Math.min(changer+seconds/10,.05);
+ return {pitch:pitch+timeStep*changer,changer};
+}
+
+/** CTaskSimpleSwim::ProcessSwimAnims in SWIM_BACK_TO_SURFACE: SWIM_JUMPOUT, handed over to CLIMB_jump once a quarter of
+ * it has played (m_fTotalTime / 4). `seconds` counts from the jump-out's start. */
+export function swimJumpoutPose(seconds:number,jumpoutDuration:number){
+ const quarter=jumpoutDuration/4;
+ return seconds<quarter?{clip:'swim_jumpout' as const,seconds}:{clip:'climb_jump' as const,seconds:seconds-quarter};
+}

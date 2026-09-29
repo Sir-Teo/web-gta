@@ -313,6 +313,16 @@ export class GangWars {
   return out;
  }
  /** The zone the player stands in and its gang strengths (native eGangID order), for the dev state. */
+ /** CHud::DrawAreaName's colour for the zone the player stands in: FillZonesWithGangColours' strength-weighted gang
+  * colour while gang wars are active and every channel is non-zero, else undefined (the light blue). */
+ zoneNameColour():readonly [number,number,number]|undefined{
+  if(!this.active)return undefined;
+  const zones=this.host.zones();if(!zones)return undefined;
+  const zone=this.zoneAt(zones,this.host.player());const info=zone?zones.population?.[zone.zoneInfoIndex]:undefined;if(!info)return undefined;
+  const g=info.gangStrength,sum=g[GANG.ballas]+g[GANG.grove]+g[GANG.vagos];if(!sum)return undefined;
+  const c=[0,1,2].map(i=>Math.trunc((GANG_COLOURS[GANG.ballas][i]*g[GANG.ballas]+GANG_COLOURS[GANG.grove][i]*g[GANG.grove]+GANG_COLOURS[GANG.vagos][i]*g[GANG.vagos])/sum)) as [number,number,number];
+  return c[0]&&c[1]&&c[2]?c:undefined;
+ }
  here(){
   const zones=this.host.zones();if(!zones)return null;
   const player=this.host.player(),zone=this.zoneAt(zones,player);if(!zone)return null;

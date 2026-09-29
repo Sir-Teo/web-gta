@@ -64,3 +64,38 @@ test('the pursuit controller closes to a stable hover', () => {
   expect(Math.abs(pos.y - (suspect.y + HELI_HOVER_HEIGHT))).toBeLessThan(6);
   expect(vel.length()).toBeLessThan(6);
 });
+test('a police helicopter freed by a vehicle clear-out is never read again', async () => {
+  await RAPIER.init();
+  const sim = { player: { position: { x: 0, y: 0, z: 0 } }, world: { castRay: () => null }, playerCollider: {} } as any;
+  // A freed Rapier body panics when read.
+  const freed = { disposed: true, health: 1000, occupied: false, body: { translation: () => { throw new Error('freed body'); } } } as any;
+  const fleet = { planes: new Set(), spawnPlane: async () => { throw new Error('no pad'); } } as any;
+  const police = new WorldPolice(sim, fleet, { level: 4, native: { helisRequired: 2 } } as any, {} as any, 'http://invalid/', () => 0);
+  police.helis.push(freed);
+  expect(police.heliActive).toBe(false);
+  expect(police.presence({ x: 0, y: 0, z: 0 }, 1000)).toBe(0);
+});
+test('a helicopter the police let go of takes its searchlight with it', async () => {
+  await RAPIER.init();
+  const sim = { player: { position: { x: 0, y: 0, z: 0 } }, world: { castRay: () => null }, playerCollider: {} } as any;
+  const freed = { disposed: true, health: 1000, occupied: false } as any;
+  const fleet = { planes: new Set(), spawnPlane: async () => { throw new Error('no pad'); } } as any;
+  const police = new WorldPolice(sim, fleet, { level: 4, native: { helisRequired: 2 } } as any, {} as any, 'http://invalid/', () => 0);
+  police.helis.push(freed);police.searchlights.set(freed, { locked: true, illuminated: true, distance: 10 });
+  police.dropLostHelis();
+  expect(police.helis).toHaveLength(0);
+  expect(police.searchlights.size).toBe(0);
+});
+test('a spare police helicopter the player flies is not dismissed under him', async () => {
+  await RAPIER.init();
+  const sim = { player: { position: { x: 0, y: 0, z: 0 } }, world: { castRay: () => null }, playerCollider: {} } as any;
+  const body = { translation: () => ({ x: 0, y: 30, z: 0 }), linvel: () => ({ x: 0, y: 0, z: 0 }), rotation: () => ({ x: 0, y: 0, z: 0, w: 1 }) };
+  const flown = { disposed: false, health: 1000, occupied: true, entryBusy: false, body, dispose() { this.disposed = true; } } as any;
+  const spare = { disposed: false, health: 1000, occupied: false, entryBusy: false, body, cancelEntry() {}, dispose() { this.disposed = true; } } as any;
+  const fleet = { planes: new Set([flown, spare]), spawnPlane: async () => { throw new Error('no pad'); }, removePlane(p: any) { p.dispose(); this.planes.delete(p); } } as any;
+  const police = new WorldPolice(sim, fleet, { level: 0, native: { helisRequired: 0 } } as any, {} as any, 'http://invalid/', () => 0);
+  police.helis.push(flown, spare);
+  (police as any).updateHelis(undefined);
+  expect(flown.disposed).toBe(false);
+  expect(spare.disposed).toBe(true);
+});

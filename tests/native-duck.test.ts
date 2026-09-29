@@ -24,3 +24,8 @@ test('PlayerControlDucked walks forward unless a gun is aimed', () => {
  expect(playerDuckMove(.3,.4,false)).toEqual({x:0,y:-.5});
  expect(playerDuckMove(1,0,true)).toEqual({x:1,y:0});
 });
+test('ForceStopMove zeroes the crouch walk and it eases back in at 0.07 a frame',()=>{
+ const d=new NativeDuckMove();d.control(0,-1,20);expect(d.y).toBe(-1);
+ d.forceStopMove();expect(d.y).toBe(0);expect(d.clip).toBe('stop');
+ d.control(0,-1,1);expect(d.y).toBeCloseTo(-.07);
+});

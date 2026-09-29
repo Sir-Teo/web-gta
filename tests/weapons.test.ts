@@ -8,7 +8,7 @@ import {Simulation} from '../src/simulation/Simulation';
 beforeAll(async()=>{await RAPIER.init();});
 const camera={origin:{x:0,y:1.3,z:3},direction:{x:0,y:0,z:-1}};
 function setup(){const sim=new Simulation();sim.world.createCollider(RAPIER.ColliderDesc.cuboid(100,.5,100).setTranslation(0,-.5,0));const body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0,1,-10));const target=sim.world.createCollider(RAPIER.ColliderDesc.capsule(.6,.4),body);sim.world.step();let damage=0;
- const weapons=new WeaponSystem(sim,()=>({damageCollider:(handle,amount)=>{if(handle!==target.handle)return false;damage+=amount;return true;},targets:()=>[{handle:target.handle,position:{...body.translation()},officer:false,armed:false,attacking:false,down:false,noCriticalHits:false}],frighten:()=>{}}),()=>undefined);
+ const weapons=new WeaponSystem(sim,()=>({damageCollider:(handle,amount)=>{if(handle!==target.handle)return false;damage+=amount;return true;},targets:()=>[{handle:target.handle,id:1,fireProof:false,position:{...body.translation()},inAir:false,officer:false,armed:false,attacking:false,down:false,noCriticalHits:false}],frighten:()=>{}}),()=>undefined);
  return {sim,weapons,target,damage:()=>damage,tick:(seconds:number)=>{for(let t=0;t<seconds;t+=1/60){weapons.tick(1/60);sim.world.step();}},dispose:()=>{weapons.dispose();sim.dispose();}};
 }
 test('all 44 handheld IDs are selectable and ammo is isolated by weapon',()=>{
@@ -47,7 +47,7 @@ test('gas leaves a hazard, molotovs light native fires, and extinguishers put fi
 test('vision toggles, camera captures and parachute deployment do not consume ammunition',()=>{const f=setup();try{for(const id of [44,45]){f.weapons.inventory.select(id);f.weapons.fire(camera);expect(f.weapons.vision).toBeNull();f.tick(1);expect(f.weapons.vision).not.toBeNull();f.weapons.fire(camera);f.tick(1);expect(f.weapons.vision).toBeNull();}f.weapons.inventory.select(43);f.weapons.fire(camera);expect(f.weapons.photoRequested).toBe(true);f.tick(1);f.weapons.inventory.select(46);f.sim.player.grounded=true;expect(f.weapons.fire(camera)).toBe(false);f.sim.player.grounded=false;f.weapons.fire(camera);expect(f.weapons.parachute).toBe(true);f.sim.player.grounded=true;f.tick(.1);expect(f.weapons.parachute).toBe(false);}finally{f.dispose();}});
 test('dead and seated players cannot spend ammunition or fire',()=>{const f=setup();try{f.weapons.inventory.select(22);f.sim.player.health=0;expect(f.weapons.fire(camera)).toBe(false);f.sim.player.health=100;f.sim.playerBody.setEnabled(false);expect(f.weapons.fire(camera)).toBe(false);expect(f.weapons.inventory.ammo.get(22)!.clip).toBe(17);}finally{f.dispose();}});
 import {readFileSync} from 'node:fs';
-import {readWeaponData} from '../src/weapons/weaponData';
+import {readWeaponData,nativeWeaponInfo,nativeWeaponReloadMs} from '../src/weapons/weaponData';
 const nativeData=readWeaponData(new TextDecoder('windows-1252').decode(readFileSync('public/play/world/files/data/weapon.dat')));
 test('native WEAPON.DAT skill levels select clips, fire loops, twin pistols and automatic reloads',()=>{
  const inv=new WeaponInventory();inv.installNative(nativeData);inv.select(22);
@@ -57,7 +57,9 @@ test('native WEAPON.DAT skill levels select clips, fire loops, twin pistols and 
  inv.practice.set(22,500);expect(inv.snapshot().skill).toBe('standard');expect(inv.interval).toBeCloseTo(.294,4);
  inv.practice.set(22,999);expect(inv.snapshot()).toMatchObject({skill:'hitman',magazine:34,twin:true,animGroup:'colt45pro'});expect(inv.reloadDuration).toBe(2);
  inv.practice.set(28,999);inv.select(32);expect(inv.snapshot()).toMatchObject({skill:'hitman',twin:true,magazine:100});
- inv.select(25);expect(inv.magazine()).toBe(1);inv.fire();expect(inv.reloading).toBeCloseTo(inv.interval,5);expect(inv.interval).toBeGreaterThan(1);
+ // An emptied clip reloads for exactly GetWeaponReloadTime, max(400, aim offsets + 100) for the shotgun; the fire anim's
+ // loop (over a second) still gates the next shot.
+ inv.select(25);expect(inv.magazine()).toBe(1);inv.fire();expect(inv.reloading).toBeCloseTo(nativeWeaponReloadMs(nativeData,nativeWeaponInfo(nativeData,25,0)!)/1000,5);expect(inv.reloading).toBeLessThan(inv.interval);expect(inv.interval).toBeGreaterThan(1);expect(inv.cooldown).toBeCloseTo(inv.interval,5);
  inv.select(37);expect(inv.interval).toBeCloseTo(1/30,6);inv.select(33);expect(inv.reloadDuration).toBe(1);
 });
 test('native instant hits apply WEAPON.DAT damage, point-blank shots and accumulated shotgun pellets',()=>{
@@ -69,10 +71,14 @@ test('native instant hits apply WEAPON.DAT damage, point-blank shots and accumul
   f.sim.player.heading=Math.PI*1.25;f.weapons.fire({origin:{x:0,y:1.3,z:-8.2},direction:{x:0,y:0,z:-1}});expect(f.damage()-close).toBe(150);
  }finally{f.dispose();}
 });
-test('twin pistols alternate hands and native reload sounds follow aim offset timings',()=>{
+test('twin pistols fire both hands on a press, right then left, and native reload sounds follow aim offset timings',()=>{
  const f=setup();try{f.weapons.installNative(nativeData);const sounds:string[]=[];f.weapons.onSound=event=>sounds.push(event);f.weapons.inventory.practice.set(22,999);f.weapons.inventory.select(22);
-  const hands:string[]=[];for(let i=0;i<4;i++){f.weapons.fire(camera);hands.push(f.weapons.snapshot().hand);f.tick(.4);}expect(hands).toEqual(['right','left','right','left']);
-  const a=f.weapons.inventory.ammo.get(22)!;a.clip=1;f.weapons.fire(camera);expect(f.weapons.inventory.reloading).toBe(2);sounds.length=0;
+  // CTaskSimpleUseGun::SetPedPosition: FireGun for the right hand, then the left, in the one frame; two rounds leave.
+  const a=f.weapons.inventory.ammo.get(22)!;a.clip=34;a.reserve=100;const hands:string[]=[],clips:number[]=[];
+  for(let i=0;i<3;i++){f.weapons.effects.length=0;f.weapons.fire(camera);hands.push(f.weapons.snapshot().hand);clips.push(a.clip);expect(f.weapons.effects.filter(e=>e.kind==='tracer')).toHaveLength(2);f.tick(.4);}
+  expect(hands).toEqual(['left','left','left']);expect(clips).toEqual([32,30,28]);
+  // One round left: the right hand fires it, the left has nothing, and the reload starts at once.
+  a.clip=1;f.weapons.effects.length=0;f.weapons.fire(camera);expect(f.weapons.effects.filter(e=>e.kind==='tracer')).toHaveLength(1);expect(f.weapons.snapshot().hand).toBe('right');expect(f.weapons.inventory.reloading).toBe(2);sounds.length=0;
   f.tick(.2);expect(sounds).toEqual([]);f.tick(.1);expect(sounds).toEqual(['reloadA']);f.tick(.4);expect(sounds).toEqual(['reloadA','reloadB']);
  }finally{f.dispose();}
 });
@@ -145,6 +151,15 @@ test('a grenade press winds up 0.2 s, throws at anim loop 2 fire and counts the 
  }finally{f.dispose();}
 });
 
+test('a throw ends with nothing thrown once the weapon is switched away or CJ is knocked down (CTaskSimpleThrowProjectile)',()=>{
+ const f=setup();try{
+  f.weapons.inventory.select(16);const grenades=f.weapons.inventory.ammo.get(16)!.clip;
+  expect(f.weapons.fire(camera)).toBe(true);f.tick(.1);f.weapons.inventory.select(0);f.tick(1);
+  expect(f.weapons.throwing).toBeNull();expect(f.weapons.projectiles).toHaveLength(0);expect(f.weapons.inventory.ammo.get(16)!.clip).toBe(grenades);
+  f.weapons.inventory.select(16);f.weapons.inventory.cooldown=0;expect(f.weapons.fire(camera)).toBe(true);f.tick(.1);f.sim.knockdown=1;f.tick(.5);
+  expect(f.weapons.throwing).toBeNull();expect(f.weapons.projectiles).toHaveLength(0);expect(f.weapons.inventory.ammo.get(16)!.clip).toBe(grenades);
+ }finally{f.dispose();}
+});
 test('a thrown satchel gives the detonator one charge, the last one hands it over, and the detonator spends it (CWeapon::Fire)',()=>{
  const f=setup();try{
   const inv=f.weapons.inventory;inv.ammo.set(39,{clip:1,reserve:0});inv.ammo.set(40,{clip:0,reserve:0});
@@ -177,4 +192,60 @@ test('CEventDamage::ReportCriminalEvent queues a crime by the weapon that did th
  expect(criminalEventCrime(22,false)).toBe(CRIME.damageCar);expect(criminalEventCrime(41,false)).toBe(CRIME.damageCar);
  // The extinguisher and the parachute queue nothing.
  expect(criminalEventCrime(42,false)).toBe(CRIME.none);expect(criminalEventCrime(46,false)).toBe(CRIME.none);
+});
+test('a weapon given mid-reload is loaded and ready at once (CPed::GiveWeapon)',()=>{
+ const inv=new WeaponInventory();inv.give(22,40);inv.select(22);inv.ammo.set(22,{clip:0,reserve:20});expect(inv.reload()).toBe(true);expect(inv.reloading).toBeGreaterThan(0);
+ inv.give(22,17);expect(inv.reloading).toBe(0);expect(inv.fire()).toBe(true);
+});
+test('switching to a weapon loads its clip from the total (CPlayerPed::MakeChangesForNewWeapon)',()=>{
+ const inv=new WeaponInventory();inv.give(30,90);inv.ammo.set(30,{clip:10,reserve:50});
+ inv.loadClipForNewWeapon(30);const size=inv.magazine(30);expect(inv.ammo.get(30)).toEqual({clip:Math.min(size,60),reserve:60-Math.min(size,60)});
+ inv.ammo.set(30,{clip:3,reserve:2});inv.loadClipForNewWeapon(30);expect(inv.ammo.get(30)).toEqual({clip:5,reserve:0});
+});
+test('FireInstantHit fires 15 pellets from a shotgun and 4 from the SPAS-12',()=>{
+ const f=setup();try{f.weapons.installNative(nativeData);
+  // Only the first eight pellets draw a tracer; the damage counts every pellet that lands on the capsule.
+  f.weapons.inventory.select(25);const s0=f.damage();f.weapons.fire(camera);const shotgun=f.weapons.effects.filter(e=>e.kind==='tracer').length,shotgunHits=(f.damage()-s0)/nativeWeaponInfo(nativeData,25,0)!.damage;
+  f.tick(2);f.weapons.effects.length=0;f.weapons.inventory.select(27);const p0=f.damage();f.weapons.fire(camera);const spas=f.weapons.effects.filter(e=>e.kind==='tracer').length,spasHits=(f.damage()-p0)/nativeWeaponInfo(nativeData,27,0)!.damage;
+  expect(shotgun).toBe(8);expect(spas).toBe(4);
+  expect(shotgunHits).toBeGreaterThan(4);expect(shotgunHits).toBeLessThanOrEqual(15);expect(spasHits).toBeGreaterThanOrEqual(1);expect(spasHits).toBeLessThanOrEqual(4);
+ }finally{f.dispose();}
+});
+
+// FirePlaneGuns and FireUnguidedMissile (CVehicle, 0x6D4D30 and 0x6D5110) for the player's aircraft.
+function aircraft(sim:Simulation,modelId:number){
+ const body=sim.world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,30,0).setLinvel(0,0,-20));sim.world.createCollider(RAPIER.ColliderDesc.cuboid(2,1,4),body);
+ const plane:any={body,modelId,occupied:true,health:1000,assets:{collision:{bounds:{radius:6}}},
+  get armed(){return [425,447,476,520].includes(modelId);},get rocketsArmed(){return modelId===425||modelId===520;},ordnancePosition:()=>modelId===425?[2.17,1,-.8]:[3.7,.98,-1.02]};
+ return plane;
+}
+function aircraftSetup(modelId:number){
+ const sim=new Simulation(),plane=aircraft(sim,modelId);sim.world.step();sim.player.health=100;
+ const weapons=new WeaponSystem(sim,()=>undefined,()=>({cars:[],planes:new Set([plane])}) as any);
+ return {sim,plane,weapons,dispose:()=>{weapons.dispose();sim.dispose();}};
+}
+test('an aircraft\'s guns never run dry and a rocket press launches two rockets from the ordnance pod',()=>{
+ const f=aircraftSetup(520);
+ try{
+  for(let i=0;i<2500;i++){expect(f.weapons.fireAircraft(f.plane)).toBe(true);f.weapons.tick(.02);}
+  expect(f.weapons.fireAircraft(f.plane,true)).toBe(true);
+  const rockets=f.weapons.projectiles.filter(p=>p.weapon===35);expect(rockets).toHaveLength(2);
+  // The Hydra's first pod is 3.7 right, 0.98 forward, 1.02 below its centre; the origin moves ahead by the frame's travel (20 m/s over a 50 Hz step is 0.4).
+  const p=f.plane.body.translation();
+  for(const r of rockets){expect(r.position.x-p.x).toBeCloseTo(3.7,5);expect(r.position.y-p.y).toBeCloseTo(-1.02,5);expect(r.position.z-p.z).toBeCloseTo(-.98-.4,5);}
+  // GetPlaneOrdnanceRateOfFire holds the next press for 500 ms.
+  expect(f.weapons.fireAircraft(f.plane,true)).toBe(false);
+  for(let i=0;i<30;i++)f.weapons.tick(.02);
+  expect(f.weapons.fireAircraft(f.plane,true)).toBe(true);
+ }finally{f.dispose();}
+});
+test('the Seasparrow fires its gun; only the Hunter and the Hydra launch rockets',()=>{
+ const sparrow=aircraftSetup(447);
+ try{expect(sparrow.weapons.fireAircraft(sparrow.plane)).toBe(true);expect(sparrow.weapons.fireAircraft(sparrow.plane,true)).toBe(false);}finally{sparrow.dispose();}
+ const rustler=aircraftSetup(476);
+ try{expect(rustler.weapons.fireAircraft(rustler.plane)).toBe(true);expect(rustler.weapons.fireAircraft(rustler.plane,true)).toBe(false);}finally{rustler.dispose();}
+ const hunter=aircraftSetup(425);
+ try{expect(hunter.weapons.fireAircraft(hunter.plane,true)).toBe(true);expect(hunter.weapons.projectiles.filter(p=>p.weapon===35)).toHaveLength(2);}finally{hunter.dispose();}
+ const maverick=aircraftSetup(487);
+ try{expect(maverick.weapons.fireAircraft(maverick.plane)).toBe(false);}finally{maverick.dispose();}
 });

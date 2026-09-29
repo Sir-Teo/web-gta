@@ -100,3 +100,5 @@ export function collisionHealthLoss(input:{intensity:number;mass:number;collisio
 }
 /** Native burn-out: below 250 health a car burns and blows up after 5000 ms. */
 export const CAR_FIRE_HEALTH=250,CAR_BURN_SECONDS=5;
+/** CVehicle::ExtinguishCarFire: a car put out is lifted to 300 health (unless wrecked). */
+export const CAR_EXTINGUISHED_HEALTH=300;

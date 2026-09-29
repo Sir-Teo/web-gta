@@ -17,10 +17,11 @@ import {WorldCar} from './WorldCar';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {openStaticWorldVehicles} from '../assets/staticWorldVehicles';
 import {loadFixedWorldCar,isBuildableCar} from '../assets/fixedWorldCar';
+import {bikeRestBottom} from '../vehicle/nativeBikeWheels';
 import {loadFixedWorldBike} from '../assets/fixedWorldBike';
 import {WorldBike,PLAYABLE_BIKES} from './WorldBike';
 import {WEATHER_REGION,nativeWeatherRegion} from '../world/weatherRegion';
-import {rollDoorLock,rollAlarm,generatorFlags,parkedCarLimit,generatorInRange,GENERATOR_RANGE,GENERATE_EVEN_IF_CLOSE_FRAMES,GENERATOR_TAKEN_WAIT_MS} from '../assets/worldCarGenerators';
+import {rollDoorLock,rollAlarm,generatorFlags,parkedCarLimit,generatorInRange,GENERATOR_RANGE,GENERATE_EVEN_IF_CLOSE_FRAMES,GENERATOR_TAKEN_WAIT_MS,GENERATOR_PROCESS_MS} from '../assets/worldCarGenerators';
 import {populationCycleAt,pickPopulationCarModel,gangCarShare,dominantGang,copCarShare,populationTargets} from '../assets/populationCycle';
 import {GangCarRoster} from './nativePedRoster';
 import { trafficDriverBudget, clampBudget } from '../world/popcycle';
@@ -29,6 +30,8 @@ import {WorldTrain,trainCarriageModel} from './WorldTrain';
 import {TRAIN_TYPES,TRAIN_TRACK_FILES,readTrainTrack,type TrainTrack} from './nativeTrainTracks';
 import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
+/** CCarCtrl::PruneVehiclesOfInterest drops a vehicle of interest 180000 ms after it was last registered. */
+const VEHICLE_OF_INTEREST_MS=180000;
 /** Resolve one random-model generator against a membership pool (CCarGenerator
  * model -1): uniform pick, keeping the record identity for once-per-session
  * ownership. Empty pools leave the generator for a later window. */
@@ -138,6 +141,8 @@ export class WorldFleet {
   private trafficCursor=0;
   /** The fleet car whose rigid body has the handle, for vehicle collision records. */
   carByBody(handle:number){for(const c of this.cars)if(!c.disposed&&c.car.body.handle===handle)return c;return undefined;}
+  /** A bike or boat by body handle (BlowUpCarsInPath touches every vehicle type). */
+  vehicleByBody(handle:number){for(const b of this.bikes)if(!b.disposed&&b.body.handle===handle)return b;for(const b of this.boats)if(b.body.handle===handle)return b;return undefined;}
   /** VEHICLES.IDE class of a model (normal, poorfamily, executive, big, ...), once the catalog has loaded. */
   vehicleClass(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.vehicleClass;}
   /** VEHICLES.IDE model name of a model id, once the catalog has loaded. */
@@ -227,7 +232,12 @@ export class WorldFleet {
  private records:readonly WorldCarGenerator[]=[];
  /** Records mid-spawn (their asset load is pending). */
  private attempted=new Set<string>();
+ /** Aircraft made by a generator, by the generator's id: culling one frees its generator. */
+ private generatedPlanes=new Map<WorldPlane,string>();
  private generated=new Map<WorldCar,string>();
+ /** CCarCtrl's vehicles of interest: a car the player has driven, with the last time he sat in it. RegisterVehicleOfInterest
+  * keeps it for three minutes (PruneVehiclesOfInterest); after that it is an ordinary abandoned car, removed far off. */
+ private driven=new Map<WorldCar,number>();
  /** CCarGenerator's m_nNextGenTime and bWaitUntilFarFromPlayer per record. */
  private generatorState=new Map<string,{nextGen:number;waitFar:boolean}>();
  /** CTheCarGenerators::GenerateEvenIfPlayerIsCloseCounter: the start window lets nearby generators fill at once. */
@@ -240,12 +250,13 @@ export class WorldFleet {
  /** Reopen the start window (a teleport or a fresh spawn), as CCarCtrl::GenerateRandomCars does at the start. */
  generateEvenIfClose(){this.closeCounter=GENERATE_EVEN_IF_CLOSE_FRAMES;}
  private failures=new Map<string,string>();
- private busy=false;
+ /** Generators whose spawn is still loading. */
+ private get busy(){return this.attempted.size>0;}
  private disposed=false;
  private nextCheck=0;
  private catalog?:Awaited<ReturnType<typeof openStaticWorldVehicles>>;
  constructor(private sim:Simulation,private scene:Scene,private road:Awaited<ReturnType<typeof loadWorldRoadMaterials>>,starter:WorldCar|undefined,private readonly base:string){
-  if(starter){starter.playerVehicle=()=>this.occupied;this.cars.add(starter);}
+  if(starter){starter.playerVehicle=()=>this.occupied;starter.playerBikeBody=()=>this.occupiedBike?.body.handle;this.cars.add(starter);}
   this.catalogReady=openStaticWorld(base).then(openStaticWorldVehicles);
   void this.catalogReady.then(catalog=>{if(!this.disposed)this.catalog=catalog;}).catch(error=>this.failures.set('catalog',String(error)));
  }
@@ -278,8 +289,8 @@ export class WorldFleet {
   if(!hit||hit.normal.y<.8)return;
   const ground=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)};
   if(this.sim.world.intersectionWithShape({...position,y:ground+1},rotation,new RAPIER.Cuboid(1,.8,2.5)))return;
-   const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,heading);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
-   car.trafficOrigin=true;car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
+   const car=new WorldCar(this.sim,this.scene,assets,{...position,y:ground-assets.collision.bounds.min[2]+.1},this.road,heading);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
+   car.trafficOrigin=true;car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
  }
  /** CCarCtrl::CreateCarForScript (0x431F80): the model loaded and the car set down where the script says, with
   * a z at or below the map's low limit dropped to the ground first, lifted off the base of its model, kept from
@@ -297,8 +308,8 @@ export class WorldFleet {
    ground=hit?top-hit.timeOfImpact:20;fellBack=!hit;
   }
   const car=new WorldCar(this.sim,this.scene,assets,{x:position.x,y:ground-assets.collision.bounds.min[2],z:position.z},this.road,heading);
-  car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
-  car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;
+  car.fadeIn();car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
+  car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;
   // vehicleFlags.bIsLocked, which keeps the car from being removed (missionCar), and STATUS_ABANDONED: nobody drives
   // it. Its doors (m_nDoorLock) are left as they are, CARLOCK_UNLOCKED, for LOCK_CAR_DOORS to change.
   car.missionCar=true;car.waitForCollision(fellBack);
@@ -320,7 +331,7 @@ export class WorldFleet {
    ground=hit?top-hit.timeOfImpact:0;
   }
   const at={x:position.x,y:ground-bounds.min[2],z:position.z};
-  if(PLAYABLE_BIKES[modelId]){const bike=new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,heading);bike.missionCar=true;this.bikes.add(bike);return bike;}
+  if(PLAYABLE_BIKES[modelId]){const b=assets as Awaited<ReturnType<typeof loadFixedWorldBike>>;at.y=ground-bikeRestBottom(b.model,b.wheelFrames,bounds.min[2],b.vehicle.frontWheelSize,b.vehicle.rearWheelSize);const bike=new WorldBike(this.sim,this.scene,b,at,heading);bike.missionCar=true;bike.waterLevel=this.waterLevel;this.bikes.add(bike);return bike;}
   if(PLAYABLE_BOATS[modelId]){const boat=new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));boat.waterLevel=this.waterLevel;boat.missionCar=true;this.boats.add(boat);return boat;}
   const plane=new WorldPlane(this.sim,this.scene,assets as ConstructorParameters<typeof WorldPlane>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));plane.waterLevel=this.waterLevel;plane.missionCar=true;this.planes.add(plane);return plane;
  }
@@ -342,8 +353,16 @@ export class WorldFleet {
  /** The same for a script's bike, boat or aircraft. */
  removeScriptVehicle(vehicle:WorldCar|WorldBike|WorldBoat|WorldPlane){
   if(vehicle instanceof WorldCar)return this.removeScriptCar(vehicle);
-  const removed=vehicle instanceof WorldBike?this.bikes.delete(vehicle):vehicle instanceof WorldBoat?this.boats.delete(vehicle):this.planes.delete(vehicle);
+  if(vehicle instanceof WorldPlane){if(this.planes.has(vehicle))this.removePlane(vehicle);return;}
+  const removed=vehicle instanceof WorldBike?this.bikes.delete(vehicle):this.boats.delete(vehicle);
   if(removed)vehicle.dispose();
+ }
+ /** Takes an aircraft out of the world. A generator's own aircraft frees its generator to make another (CCarGenerator
+  * finds its vehicle handle gone from the pool). */
+ removePlane(plane:WorldPlane){
+  // The player still in the getout is set down where it ends (his collider back on) before the aircraft goes.
+  plane.cancelEntry();plane.dispose();this.planes.delete(plane);
+  const id=this.generatedPlanes.get(plane);if(id!==undefined){this.generatedPlanes.delete(plane);this.attempted.delete(id);}
  }
  /** CCheat::VehicleCheat (0x43A0B0): the model loaded and set down its bounding radius + 2 ahead of the player (renderer
   * position, heading), turned to face across the player's path (m_fCurrentRotation + π/2), abandoned and unlocked.
@@ -371,8 +390,9 @@ export class WorldFleet {
   const ground=top-hit.timeOfImpact;
   const at={...position,y:ground-assets.collision.bounds.min[2]+.1};
   this.clearSpaceFor(at,rotZ,assets.collision.bounds);
-  const car=new WorldCar(this.sim,this.scene,assets,at,this.road,rotZ);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
-  car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
+  const car=new WorldCar(this.sim,this.scene,assets,at,this.road,rotZ);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
+  // CCheat::VehicleCheat leaves it STATUS_ABANDONED, as CCarGenerator does its parked cars.
+  car.driverless=true;car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
  }
  /** Removes a street ped by its collider handle (CPopulation::RemovePed for ClearSpaceForMissionEntity). */
  clearPed?:(colliderHandle:number)=>boolean;
@@ -398,13 +418,16 @@ export class WorldFleet {
   this.lastClear={cars:cars.size,peds:peds.length,center,half};
   return this.lastClear;
  }
+ /** CGarages::IsPointWithinHideOutGarage for a car's spot, in browser coordinates. */
+ insideHideOutGarage?:(at:{x:number;y:number;z:number})=>boolean;
  /** CWorld::ClearExcitingStuffFromArea's vehicle pass: every car within the radius on the plane that is not
-  * the player's, not locked and not a script's own goes, with whoever is in it. The garage and boat exemptions
-  * the routine also makes have nothing here to exempt. */
+  * the player's, not locked, not a script's own and not in a safehouse garage goes, with whoever is in it. The
+  * boat exemption the routine also makes has nothing here to exempt. */
  clearCarsInArea(point:{x:number;z:number},radius:number){
   const doomed:WorldCar[]=[];
   for(const car of this.cars){
    if(car.occupied||car.locked||car.disposed||car.missionCar)continue;
+   if(this.insideHideOutGarage?.(car.car.body.translation()))continue;
    const at=car.car.body.translation();
    if(Math.hypot(at.x-point.x,at.z-point.z)>=radius)continue;
    doomed.push(car);
@@ -415,7 +438,7 @@ export class WorldFleet {
   const near=(v:{car:{body:RAPIER.RigidBody}})=>{const at=v.car.body.translation();return Math.hypot(at.x-point.x,at.z-point.z)<radius;};
   for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&near(bike)){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
   for(const boat of [...this.boats])if(!boat.occupied&&!boat.missionCar&&!boat.disposed&&near(boat)){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);others++;}
-  for(const plane of [...this.planes])if(!plane.occupied&&!plane.missionCar&&!plane.disposed&&near(plane)){plane.dispose();this.planes.delete(plane);others++;}
+  for(const plane of [...this.planes])if(!plane.occupied&&!plane.entryBusy&&!plane.missionCar&&!plane.disposed&&near(plane)){this.removePlane(plane);others++;}
   return doomed.length+others;
  }
  /** CWorld::ClearCarsFromArea (CLEAR_AREA_OF_CARS): every car inside the box (renderer corners) that is not the
@@ -436,7 +459,7 @@ export class WorldFleet {
   const inBox=(v:{car:{body:RAPIER.RigidBody}})=>{const at=v.car.body.translation();return at.x>=lo.x&&at.x<=hi.x&&at.y>=lo.y&&at.y<=hi.y&&at.z>=lo.z&&at.z<=hi.z;};
   for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&inBox(bike)){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
   for(const boat of [...this.boats])if(!boat.occupied&&!boat.missionCar&&!boat.disposed&&inBox(boat)){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);others++;}
-  for(const plane of [...this.planes])if(!plane.occupied&&!plane.missionCar&&!plane.disposed&&inBox(plane)){plane.dispose();this.planes.delete(plane);others++;}
+  for(const plane of [...this.planes])if(!plane.occupied&&!plane.entryBusy&&!plane.missionCar&&!plane.disposed&&inBox(plane)){this.removePlane(plane);others++;}
   return doomed.length+others;
  }
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
@@ -508,9 +531,11 @@ export class WorldFleet {
   let base:number;
   if(boat&&nativeZ>-100)base=nativeZ;
   else{const hit=groundAt(record);if(!hit)return;base=(nativeZ>-100?nativeZ+1:1000)-hit.timeOfImpact;}
-  const at={x,y:base-bounds.min[2],z};
+  // A bike stands on its tyres (CBike::PlaceOnRoadProperly), a boat on its collision bottom.
+  const b=boat?undefined:assets as Awaited<ReturnType<typeof loadFixedWorldBike>>;
+  const at={x,y:base-(b?bikeRestBottom(b.model,b.wheelFrames,bounds.min[2],b.vehicle.frontWheelSize,b.vehicle.rearWheelSize):bounds.min[2]),z};
   const vehicle=boat?new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,angle,rotatedColours(catalog,assets.vehicle.model)):new WorldBike(this.sim,this.scene,assets as Awaited<ReturnType<typeof loadFixedWorldBike>>,at,angle);
-  if(vehicle instanceof WorldBoat){vehicle.waterLevel=this.waterLevel;this.boats.add(vehicle);}else this.bikes.add(vehicle);
+  vehicle.waterLevel=this.waterLevel;if(vehicle instanceof WorldBoat)this.boats.add(vehicle);else this.bikes.add(vehicle);
   this.generatedOther.set(vehicle,record.id);
  }
  /** The cheat's bike: CCheat::VehicleCheat never refuses the spot. It clears the space with
@@ -520,9 +545,9 @@ export class WorldFleet {
   const catalog=await this.catalogReady,assets=await loadFixedWorldBike(catalog,{modelId,primaryColor:-1,secondaryColor:-1});if(this.disposed)throw new Error('World fleet disposed.');
   const ground=this.groundNear(x,z,height);
   if(ground===undefined)throw new Error('No bike terrain beneath the spawn.');
-  const at={x,y:ground-assets.collision.bounds.min[2]+.1,z};
+  const at={x,y:ground-bikeRestBottom(assets.model,assets.wheelFrames,assets.collision.bounds.min[2],assets.vehicle.frontWheelSize,assets.vehicle.rearWheelSize)+.1,z};
   this.clearSpaceFor(at,heading,assets.collision.bounds);
-  const bike=new WorldBike(this.sim,this.scene,assets,at,heading);this.bikes.add(bike);return bike;
+  const bike=new WorldBike(this.sim,this.scene,assets,at,heading);bike.waterLevel=this.waterLevel;this.bikes.add(bike);return bike;
  }
  /** The fixed ground under (x, z): with a reference height, the surface nearest it within 5 units up or down (the
   * pair of vertical lines PlaceOnRoadProperly casts), otherwise the highest. */
@@ -541,8 +566,10 @@ export class WorldFleet {
   snapshot(){return {lastClear:this.lastClear??null,gangCars:this.gangCars?.loaded??[],planes:[...this.planes].map(p=>p.snapshot()),boats:[...this.boats].map(b=>b.snapshot()),bikes:[...this.bikes].map(b=>b.snapshot()),zone:this.currentZone??null,records:this.records.length,pending:this.busy,failures:[...this.failures].map(([id,message])=>({id,message})),closeCounter:this.closeCounter,parkedLimit:parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),cars:[...this.cars].map(car=>({handle:car.car.body.handle,plate:car.assets.plate??null,alarm:+car.alarm.toFixed(2),alarmArmed:car.alarmArmed,id:this.generated.get(car)??(car.trafficOrigin?`traffic:${car.car.body.handle}`:'starter'),modelId:car.modelId,name:car.name,health:car.health,wrecked:car.wrecked,locked:car.locked,onFire:car.onFire,damage:{panels:[...car.damageState.panels],doors:[...car.damageState.doors]},autopilot:!!car.autopilot,occupied:car.occupied,position:{...car.car.body.translation()},heading:+(q=>Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.y*q.y+q.z*q.z)))(car.car.body.rotation()).toFixed(3)}))};}
  /** CGame::CanSeeOutSideFromCurrArea: nothing generates inside an interior. */
  outside:()=>boolean=()=>true;
+ /** TheCamera.IsSphereVisible for a boat generator's origin (browser coordinates), for the 240-unit visible range. */
+ sphereVisible?:(x:number,y:number,z:number)=>boolean;
  update(now:number){
-  if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+500;
+  if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+GENERATOR_PROCESS_MS;
   if(this.zones){
    const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);
    const live=this.scriptZoneInfo?.(zone.zoneInfoIndex),stored=this.zones.population?.[zone.zoneInfoIndex];
@@ -561,12 +588,17 @@ export class WorldFleet {
    if(car.occupied||car.disposed){this.generated.delete(car);if(car.occupied){this.generatorState.set(id,{nextGen:(this.generatorState.get(id)?.nextGen??now)+GENERATOR_TAKEN_WAIT_MS,waitFar:true});this.randomModels.delete(id);}continue;}
    if(car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.generated.delete(car);car.dispose();}
   }
+  for(const car of this.cars)if(car.occupied&&!car.missionCar&&!car.trafficOrigin&&!this.generated.has(car))this.driven.set(car,now);
+  for(const [car,last] of this.driven){
+   if(car.disposed||!this.cars.has(car)||car.missionCar){this.driven.delete(car);continue;}
+   if(!car.occupied&&now-last>VEHICLE_OF_INTEREST_MS&&car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.driven.delete(car);car.dispose();}
+  }
   // A script's vehicles stay, however far off, until the script deletes them or lets them go (INTRO1 parks a homie's
   // BMX out of the way and uses it again; it used to be culled from under the script).
-  for(const plane of this.planes)if(!plane.occupied&&!plane.policeHeli&&!plane.missionCar&&plane.distance()>350){plane.dispose();this.planes.delete(plane);}
+  for(const plane of [...this.planes])if(!plane.occupied&&!plane.policeHeli&&!plane.missionCar&&plane.distance()>350)this.removePlane(plane);
   for(const boat of this.boats)if(!boat.occupied&&!boat.missionCar&&boat.distance()>350){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);}
   for(const bike of this.bikes)if(!bike.occupied&&!bike.missionCar&&bike.distance()>350){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);}
-  if(this.busy||!this.catalog||this.cars.size+this.planes.size+this.boats.size+this.bikes.size>=14)return;
+  if(!this.catalog)return;
   // CCarGenerator::Process: generators under 950 work while the player is outside, those at 950 or higher (the
   // interiors) while he is inside.
   const outside=this.outside();
@@ -574,8 +606,9 @@ export class WorldFleet {
   // FindPlayerSpeed: the occupied car's velocity, or the on-foot displacement (only its direction matters).
   const occ=this.occupied,vel=occ&&!occ.disposed?occ.car.body.linvel():{x:p.x-this.sim.player.previous.x,z:p.z-this.sim.player.previous.z};
   const live=new Set([...this.generated.values(),...this.generatedOther.values()]),speed={x:vel.x,y:-vel.z};
-  // CCarCtrl::NumParkedCars counts every vehicle a generator made, bikes and boats too.
-  const parkedLimit=parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24),parked=this.generated.size+this.generatedOther.size;
+  // CCarCtrl::NumParkedCars counts every vehicle a generator made, bikes, boats and aircraft too, and the spawns
+  // still loading stand for the cars they will be.
+  const parkedLimit=parkedCarLimit(Math.floor(this.sim.timeMinutes/60)%24);let parked=this.generated.size+this.generatedOther.size+this.generatedPlanes.size+this.attempted.size;
   const candidates=this.records.filter(record=>{
    if(this.attempted.has(record.id)||live.has(record.id))return false;
    if((record.position[2]<950)!==outside)return false;
@@ -585,48 +618,58 @@ export class WorldFleet {
    // The start window lets a generator spawn whatever its timer says.
    if(state.nextGen>now&&this.closeCounter===0)return false;
    const flags=generatorFlags(record.flags);
-   const range=generatorInRange({x:p.x-record.position[0],y:-p.z-record.position[1]},p.y-record.position[2],speed,state.waitFar,flags.forceSpawn,this.closeCounter);
+   // A boat generator the camera sees is in range out to 240 units (CheckIfWithinRangeOfAnyPlayers' bVisible).
+   const boatVisible=!!PLAYABLE_BOATS[record.modelId]&&!!this.sphereVisible?.(record.position[0],record.position[2],-record.position[1]);
+   const range=generatorInRange({x:p.x-record.position[0],y:-p.z-record.position[1]},p.y-record.position[2],speed,state.waitFar,flags.forceSpawn,this.closeCounter,1,boatVisible);
    if(range.waitFar!==state.waitFar)this.generatorState.set(record.id,{...state,waitFar:range.waitFar});
-   if(!range.eligible)return false;
-   return flags.ignorePopulationLimit||parked<parkedLimit;
+   return range.eligible;
   }).sort((a,b)=>Math.hypot(a.position[0]-p.x,-a.position[1]-p.z)-Math.hypot(b.position[0]-p.x,-b.position[1]-p.z));
   const groundAt=(record:WorldCarGenerator)=>{
    const [x,y,z]=record.position,top=z>-100?z+1:1000;
    return this.sim.world.castRay(new RAPIER.Ray({x,y:top,z:-y},{x:0,y:-1,z:0}),top+1000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   };
-  const planeRecord=candidates.find(record=>PLAYABLE_PLANES[record.modelId]&&groundAt(record));
-  if(planeRecord&&this.planes.size<3){this.busy=true;this.attempted.add(planeRecord.id);void this.spawnPlane(planeRecord.modelId,planeRecord.position[0],-planeRecord.position[1],planeRecord.angle).catch(error=>this.failures.set(planeRecord.id,String(error))).finally(()=>{this.busy=false;});return;}
-  // CCarGenerator::DoInternalProcessing makes a bike (on its side stand) or a boat from its record like any car.
-  const otherRecord=candidates.find(record=>PLAYABLE_BIKES[record.modelId]||PLAYABLE_BOATS[record.modelId]);
-  if(otherRecord&&this.bikes.size+this.boats.size<6){this.busy=true;this.attempted.add(otherRecord.id);void this.generateBikeOrBoat(otherRecord,groundAt).catch(error=>{if(!this.disposed)this.failures.set(otherRecord.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(otherRecord.id);});return;}
-  if(this.cars.size>=9)return;
-  const record=candidates.find(record=>isBuildableCar(catalog,catalog.definitions.find(v=>v.id===record.modelId))&&groundAt(record))
-   ??this.randomParkedRecord(candidates,groundAt);
-  if(!record)return;
-  // A random generator's motorbike parks as a bike.
-  if(PLAYABLE_BIKES[record.modelId]){
-   if(this.bikes.size+this.boats.size>=6)return;
-   this.busy=true;this.attempted.add(record.id);
-   void this.generateBikeOrBoat(record,groundAt).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(record.id);});
-   return;
+  // CTheCarGenerators::Process runs every generator in range this pass: each spawns unless the parked cap holds it
+  // (DoInternalProcessing's 5 by day, 10 by night, which an ignore-population-limit record passes).
+  for(const candidate of candidates){
+   if(!generatorFlags(candidate.flags).ignorePopulationLimit&&parked>=parkedLimit)continue;
+   if(PLAYABLE_PLANES[candidate.modelId]){
+    if(!groundAt(candidate))continue;
+    this.attempted.add(candidate.id);parked++;
+    // The aircraft stands for its generator until it is culled; a spawn that fails frees the generator to try again after
+    // the generator's wait, instead of keeping it blocked for the session.
+    void this.spawnPlane(candidate.modelId,candidate.position[0],-candidate.position[1],candidate.angle).then(plane=>{this.generatedPlanes.set(plane,candidate.id);})
+     .catch(error=>{this.failures.set(candidate.id,String(error));this.attempted.delete(candidate.id);this.generatorState.set(candidate.id,{nextGen:now+GENERATOR_TAKEN_WAIT_MS,waitFar:false});});
+    continue;
+   }
+   // CCarGenerator::DoInternalProcessing makes a bike (on its side stand) or a boat from its record like any car; a
+   // random generator's motorbike parks as a bike.
+   let record:WorldCarGenerator|undefined=candidate;
+   if(candidate.modelId===-1){record=this.randomParkedRecord([candidate],groundAt);if(!record)continue;}
+   else if(!PLAYABLE_BIKES[record.modelId]&&!PLAYABLE_BOATS[record.modelId]&&!(isBuildableCar(catalog,catalog.definitions.find(v=>v.id===record!.modelId))&&groundAt(record)))continue;
+   const chosen=record;
+   if(PLAYABLE_BIKES[chosen.modelId]||PLAYABLE_BOATS[chosen.modelId]){
+    this.attempted.add(chosen.id);parked++;
+    void this.generateBikeOrBoat(chosen,groundAt).catch(error=>{if(!this.disposed)this.failures.set(chosen.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.attempted.delete(chosen.id);});
+    continue;
+   }
+   // Query around the native elevation so bridges/garages keep their own floor.
+   const [x,nativeY,nativeZ]=chosen.position,z=-nativeY,top=nativeZ>-100?nativeZ+1:1000;
+   const ground=()=>groundAt(chosen);
+   this.attempted.add(chosen.id);parked++;
+   void loadFixedWorldCar(catalog,chosen).then(assets=>{
+    if(this.disposed)return;
+    // A fresh random pick longer than 8 units (its bounding box's y extent) is dropped, to be picked again.
+    const random=this.randomModels.get(chosen.id);
+    if(random&&!random.colours){const b=assets.collision.bounds;if(b.max[1]-b.min[1]>8){this.randomModels.delete(chosen.id);return;}}
+    if(Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>=GENERATOR_RANGE+5)return;
+    const hit=ground();if(!hit)return;
+    // Something stands where the car would go: try again 4 ms on, once the player has been far away.
+    if(this.blocked(chosen.position,assets.collision.bounds)){const state=this.generatorState.get(chosen.id)??{nextGen:0,waitFar:false};this.generatorState.set(chosen.id,{nextGen:state.nextGen+4,waitFar:true});return;}
+    const angle=Math.trunc(chosen.angle*256/(Math.PI*2))*Math.PI*2/256;
+    const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
+   car.driverless=true;car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(chosen.doorLockChance);car.alarmArmed=rollAlarm(chosen.alarmChance);{const c=assets.colourIndices;if(random&&!random.colours&&c)random.colours=[c[0],c[1]];}this.cars.add(car);this.generated.set(car,chosen.id);this.generatorState.set(chosen.id,{nextGen:now+4,waitFar:this.generatorState.get(chosen.id)?.waitFar??false});chosen.spent?.();
+   }).catch(error=>{if(!this.disposed)this.failures.set(chosen.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.attempted.delete(chosen.id);});
   }
-  // Query around the native elevation so bridges/garages keep their own floor.
-  const [x,nativeY,nativeZ]=record.position,z=-nativeY,top=nativeZ>-100?nativeZ+1:1000;
-  const ground=()=>groundAt(record);
-  this.busy=true;this.attempted.add(record.id);
-  void loadFixedWorldCar(catalog,record).then(assets=>{
-   if(this.disposed)return;
-   // A fresh random pick longer than 8 units (its bounding box's y extent) is dropped, to be picked again.
-   const random=this.randomModels.get(record.id);
-   if(random&&!random.colours){const b=assets.collision.bounds;if(b.max[1]-b.min[1]>8){this.randomModels.delete(record.id);return;}}
-   if(Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>=GENERATOR_RANGE+5){this.attempted.delete(record.id);return;}
-   const hit=ground();if(!hit){this.attempted.delete(record.id);return;}
-   // Something stands where the car would go: try again 4 ms on, once the player has been far away.
-   if(this.blocked(record.position,assets.collision.bounds)){const state=this.generatorState.get(record.id)??{nextGen:0,waitFar:false};this.generatorState.set(record.id,{nextGen:state.nextGen+4,waitFar:true});return;}
-   const angle=Math.trunc(record.angle*256/(Math.PI*2))*Math.PI*2/256;
-   const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);
-   car.playerVehicle=()=>this.occupied;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(record.doorLockChance);car.alarmArmed=rollAlarm(record.alarmChance);{const c=assets.colourIndices;if(random&&!random.colours&&c)random.colours=[c[0],c[1]];}this.cars.add(car);this.generated.set(car,record.id);this.generatorState.set(record.id,{nextGen:now+4,waitFar:this.generatorState.get(record.id)?.waitFar??false});record.spent?.();
-  }).catch(error=>{if(!this.disposed)this.failures.set(record.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.busy=false;this.attempted.delete(record.id);});
  }
  /** CTrain::InitTrains' four track files, read once. */
  trainTracks(){

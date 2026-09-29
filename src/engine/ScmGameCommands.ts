@@ -33,6 +33,8 @@ function world<K extends keyof ScmWorldCommands>(thread:ScmThread,i:ScmInstructi
  return adapter as NonNullable<ScmWorldCommands[K]>;
 }
 const negated=(i:ScmInstruction)=>!!(i.opcode&0x8000);
+/** The conversations of peds deleted since (CPed::~CPed's RemoveConversationForPed), where the host can tell. */
+const releaseGoneConversations=(t:ScmThread,i:ScmInstruction)=>{const exists=t.host?.world?.pedExists;if(exists)game(t,i).conversations.releaseGone(handle=>exists(handle));};
 /** One bit of a script variable: the bit the variable-bit commands name, masked as a shift count is. */
 const varBit=(bit:number)=>1<<(bit&31);
 const varBitSet=(t:ScmThread,p:ScmParameter,bit:number)=>(t.readInt(p)&varBit(bit))!==0;
@@ -927,10 +929,11 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'warpPedIntoCarAsPassenger')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));
  },
  REMOVE_STUCK_CAR_CHECK:(t,p,i)=>{game(t,i).stuckCars.remove(t.readInt(p[0]));},
- // CFireManager::StartScriptFire at the ped, at eight tenths strength and one generation, as the command asks.
+ // StartCharFire: CFireManager::StartScriptFire(pos, ped, 0.8f, true, 0, 1). The 0.8 and true are unused; the fire
+ // burns on the ped at strength 1 with no generations to spread.
  START_CHAR_FIRE:(t,p,i)=>{
-  const position=world(t,i,'pedPosition')(t.readInt(p[0]));
-  t.writeInt(p[1],game(t,i).fires.startScriptFire(position,0.8,1));
+  const ped=t.readInt(p[0]),position=world(t,i,'pedPosition')(ped);
+  t.writeInt(p[1],game(t,i).fires.startScriptFire(position,1,0,ped));
  },
  /* --- The last of the reversed character, player, camera and object commands with a body of their own. */
  IS_CHAR_HEALTH_GREATER:(t,p,i)=>{
@@ -1087,9 +1090,10 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_UP_CONVERSATION_END_NODE_WITH_SCRIPTED_SPEECH:(t,p,i)=>{
   game(t,i).conversations.setUpNode(t.text(p[0]),undefined,undefined,-t.readInt(p[1]),0,0);
  },
- FINISH_SETTING_UP_CONVERSATION:(t,_p,i)=>{game(t,i).conversations.finishSettingUp(false);},
- FINISH_SETTING_UP_CONVERSATION_NO_SUBTITLES:(t,_p,i)=>{game(t,i).conversations.finishSettingUp(true);},
+ FINISH_SETTING_UP_CONVERSATION:(t,_p,i)=>{releaseGoneConversations(t,i);game(t,i).conversations.finishSettingUp(false);},
+ FINISH_SETTING_UP_CONVERSATION_NO_SUBTITLES:(t,_p,i)=>{releaseGoneConversations(t,i);game(t,i).conversations.finishSettingUp(true);},
  IS_CONVERSATION_AT_NODE:(t,p,i)=>{
+  releaseGoneConversations(t,i);
   t.updateCompareFlag(game(t,i).conversations.isAtNode(t.readInt(p[0]),t.text(p[1])),negated(i));
  },
  ENABLE_CONVERSATION:(t,p,i)=>{game(t,i).conversations.enable(t.readInt(p[0]),bool(t,p[1]));},
@@ -2760,7 +2764,8 @@ const handlers:Record<string,ScmCommandHandler>={
   const position=game(t,i).fires.coords(t.readInt(p[0]));
   t.writeFloat(p[1],position.x);t.writeFloat(p[2],position.y);t.writeFloat(p[3],position.z);
  },
- EXTINGUISH_FIRE_AT_POINT:(t,p,i)=>{game(t,i).fires.extinguishPoint(vec(t,p,0),t.readFloat(p[3]));},
+ // CFireManager::ExtinguishPoint walks the whole fire pool: the world's fires go out as well as the script's.
+ EXTINGUISH_FIRE_AT_POINT:(t,p,i)=>{const point=vec(t,p,0),radius=t.readFloat(p[3]);game(t,i).fires.extinguishPoint(point,radius);t.host?.world?.extinguishFiresAtPoint?.(point,radius);},
  GET_NUMBER_OF_FIRES_IN_RANGE:(t,p,i)=>{const v=vec(t,p,0);t.writeInt(p[4],game(t,i).fires.numFiresInRange({x:v.x,y:v.y},t.readFloat(p[3])));},
  GET_NUMBER_OF_FIRES_IN_AREA:(t,p,i)=>{t.writeInt(p[6],game(t,i).fires.numFiresInArea(vec(t,p,0),vec(t,p,3)));},
  // --- Small engine statics (GameCommands.cpp and ScriptCommands.cpp are reversed; each command sets or reads

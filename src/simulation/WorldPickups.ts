@@ -31,10 +31,29 @@ export interface PickupHost {
  onJetPack?():boolean;
  /** CPickups::PlayerCanPickUpThisWeaponTypeAtThisMoment: a weapon not aimed with the arm is refused on the jetpack. */
  canPickUpWeapon?(weapon:number):boolean;
+ /** CPlayerPed::DoesPlayerWantNewWeapon(type, false): false with a jetpack on, or attacking or aiming with the slot's
+  * current weapon; the pickup then only hands its ammo over (a timed or mission one) and stays. */
+ wantsNewWeapon?(weapon:number):boolean;
+ /** CTheScripts::IsPlayerOnAMission: a property is not for sale while a mission runs. */
+ onMission?():boolean;
+ /** CPed::GetWeaponInSlot for the slot a weapon type takes: what the player holds there (0 for nothing), its total
+  * ammo and the slot. */
+ heldInSlot?(weapon:number):{weapon:number;ammo:number;slot:number}|undefined;
+ /** CPed::GrantAmmo to whatever the player holds in the weapon type's slot, and CWeapon::Reload. */
+ grantAmmo?(weapon:number,ammo:number):void;
+ /** CPad::GetTarget: aiming clears the collect buffer and hides the collect help. */
+ targeting?():boolean;
+ /** CStats::IncrementStat and GetStatValue: the collectable tallies, luck and the bribe count. */
+ incrementStat?(stat:number,value:number):void;statValue?(stat:number):number;
 }
+/** eStats: STAT_NUMBER_OF_POLICE_BRIBES, STAT_SNAPSHOTS_TAKEN, STAT_TOTAL_SNAPSHOTS, STAT_LUCK, STAT_HORSESHOES_COLLECTED,
+ * STAT_TOTAL_HORSESHOES, STAT_OYSTERS_COLLECTED and STAT_TOTAL_OYSTERS. */
+export const STAT={policeBribes:182,snapshotsTaken:231,totalSnapshots:232,luck:233,horseshoesCollected:241,totalHorseshoes:242,oystersCollected:243,totalOysters:244} as const;
 /** CPickups::aPickUps holds 620 slots. */
 export const PICKUP_SLOTS=620;
 interface State {pickup:ScmPickup;disabled:boolean;regenerateAt:number;object?:Object3D;loading:boolean;quietUntil?:number;helpShown?:boolean;
+ /** m_nFlags.bEmpty: the ammo was taken out of a weapon pickup (ExtractAmmoFromPickup); the weapon then comes with none. */
+ empty?:boolean;
  /** The pickup's aPickUps slot, which picks the frames CPickups::Update reaches it on. */
  slot:number;
  /** CPickup::m_nFlags.bVisible: within 100 units of the camera when its streaming slice last ran. */
@@ -55,7 +74,11 @@ export class WorldPickups {
   private takings=new Map<string,number>();
  readonly totals={horseshoe:0,oyster:0,snapshot:0};
  error?:string;
- constructor(private sim:Simulation,private scene:Scene,private base:string,private host:PickupHost,collected=new Set<string>()){this.collected=collected;}
+ constructor(private sim:Simulation,private scene:Scene,private base:string,private host:PickupHost,collected=new Set<string>()){
+  // Saves from before generated pickups were kept out of the set.
+  for(const id of collected)if(/^(script|jetpack|gangwar):/.test(id))collected.delete(id);
+  this.collected=collected;
+ }
  setPickups(pickups:readonly ScmPickup[]){
   for(const state of this.states)state.object?.removeFromParent();
   // Exterior plus interior discs: interiors stream by 3D distance like exteriors.
@@ -102,7 +125,16 @@ export class WorldPickups {
   this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds,slot,visible:false});this.revenueLinks=undefined;this.bySlot=undefined;
  }
  /** Changes what a generated pickup carries, as a script's UPDATE_PICKUP_MONEY_PER_DAY does. */
- patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state)state.pickup={...state.pickup,...patch};}
+ patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state){state.pickup={...state.pickup,...patch};this.revenueLinks=undefined;}}
+ /** CPickups::RemoveUnnecessaryPickups: every PICKUP_ONCE_TIMEOUT and PICKUP_MONEY pickup inside the sphere (browser
+  * axes) is removed; CPickup::Remove leaves its slot empty for the rest of the session. */
+ removeUnnecessary(at:{x:number;y:number;z:number},radius:number){
+  for(const state of this.states.slice()){
+   const type=state.pickup.type;if(type!==PICKUP_TYPE.onceTimeout&&type!==PICKUP_TYPE.money)continue;
+   const w=this.world(state.pickup);if(Math.hypot(w.x-at.x,w.y-at.y,w.z-at.z)>radius)continue;
+   this.remove(state);
+  }
+ }
  /** Takes a generated pickup back out of the world by the id it was made with, which is how a script's own
   * removal reaches it. */
  /** CPickups::TestForPickupsInBubble: any pickup within the radius of the native point (active or not, as the
@@ -119,8 +151,17 @@ export class WorldPickups {
    * With `frame` (the 30 fps game frame counter) it runs as the original does, once a game frame: the streaming pass
    * covers a thirty-second of the 620 slots (IsVisible: within 100 units of the camera in 2D) and the collection pass a
    * sixth, over the visible pickups. Without it every pickup is checked on every call. */
+  /** CPickups::CollectPickupBuffer: CollectPickupJustDown (PED_ANSWER_PHONE, Tab) arms six game frames of collecting. */
+  collectJustDown(){this.collectBuffer=6;this.armedThisFrame=true;}
+  private collectBuffer=0;private collectFrame?:number;private armedThisFrame=false;
+  /** CPickups::PlayerOnWeaponPickup: frames left of standing on a weapon pickup he cannot simply take. */
+  playerOnWeaponPickup=0;
   step(dt:number,vehicle?:(point:Vector3,radius:number)=>boolean,frame?:number){
    this.seconds+=dt;const player=this.sim.player,p=player.position;
+   // CPickups::Update once a game frame: the collect buffer and the weapon-pickup counter run down, and aiming
+   // (GetTarget) empties the buffer.
+   if(frame===undefined||frame!==this.collectFrame){this.collectFrame=frame;if(this.collectBuffer>0&&!this.armedThisFrame)this.collectBuffer--;this.armedThisFrame=false;if(this.playerOnWeaponPickup>0)this.playerOnWeaponPickup--;}
+   if(this.host.targeting?.())this.collectBuffer=0;
    // CPickup::Update for PICKUP_ASSET_REVENUE: by the frame's own milliseconds, a day's takings every 1,440,000 ms (one
    // game day), and only while the player is more than 10 units off; PassTime does not touch it.
    if(dt>0){
@@ -129,7 +170,7 @@ export class WorldPickups {
      this.revenueLinks=new Map(this.states.filter(s=>s.pickup.category==='revenue'&&s.pickup.revenueLimit!==undefined).map(s=>[s.pickup,linkRevenue(s.pickup,forSale)]));
     }
     for(const [pickup,link] of this.revenueLinks){
-     if(!link||!this.collected.has(link.id)){this.takings.delete(pickup.id);continue;}
+     if(!this.owned(pickup,link)){this.takings.delete(pickup.id);continue;}
      const w=this.world(pickup);if(Math.hypot(w.x-p.x,w.y-(p.y+1),w.z-p.z)<=10)continue;
      this.takings.set(pickup.id,Math.min(pickup.revenueLimit??0,(this.takings.get(pickup.id)??0)+dt*1000*(pickup.revenueRate??0)/1440000));
     }
@@ -186,15 +227,39 @@ export class WorldPickups {
    case 'health':{const max=host.maxHealth?.()??100;if(this.sim.player.health>max-.2)return;this.sim.player.health=max;break;}
    // PICKUP_MONEY and MONEY_DOESNTDISAPPEAR pay the pickup's amount.
    case 'money':this.sim.money+=pickup.ammo;break;
-   case 'bribe':if(host.wantedLevel()===0)return;host.setWantedLevel(host.wantedLevel()-1);break;
+   // GivePlayerGoodiesWithPickUpMI's bribe: one star off and STAT_NUMBER_OF_POLICE_BRIBES up one.
+   case 'bribe':if(host.wantedLevel()===0)return;host.setWantedLevel(host.wantedLevel()-1);host.incrementStat?.(STAT.policeBribes,1);break;
    case 'horseshoe':case 'oyster':{
-    // CPickups::PickedUpHorseShoe / PickedUpOyster: $100 each, $100,000 for the full set.
+    // CPickups::PickedUpHorseShoe / PickedUpOyster: the collected stat up one (a horseshoe also adds 1000 over the
+    // total to STAT_LUCK), $100 each, $100,000 for the full set.
     this.sim.money+=100;this.collected.add(pickup.id);const done=this.counts()[pickup.category],total=this.totals[pickup.category];
+    if(pickup.category==='horseshoe'){host.incrementStat?.(STAT.horseshoesCollected,1);const stat=host.statValue?.(STAT.totalHorseshoes)||total;if(stat>0)host.incrementStat?.(STAT.luck,1000/stat);}
+    else host.incrementStat?.(STAT.oystersCollected,1);
     if(done>=total){this.sim.money+=100000;message=`${COLLECTABLE[pickup.category]}_ALL`;}else message=`${COLLECTABLE[pickup.category]}_ONE ${done}/${total}`;break;
    }
    case 'weapon':{
-    const weapon=host.weaponForModel(pickup.model,pickup.modelId);if(weapon===undefined||host.canPickUpWeapon?.(weapon)===false)return;
-    if(!host.giveWeapon(weapon,pickup.ammo||AMMO_ON_STREET[weapon]))return;break;
+    const weapon=host.weaponForModel(pickup.model,pickup.modelId);if(weapon===undefined)return;
+    // CPickup::Update: a weapon of a slot that holds another one (with ammo, or a shotgun, SMG or rifle slot, which
+    // are exchangeable) is not simply taken: the player stands on it (PlayerOnWeaponPickup), an exchangeable slot's
+    // weapon takes the pickup's ammo (ExtractAmmoFromPickup) at once, the PU_CF1 help shows once unless he aims, and
+    // the collect press (CollectPickupBuffer) is what takes the weapon. Unarmed, or over an empty weapon of another
+    // slot, it is taken as any pickup.
+    const held=host.heldInSlot?.(weapon);
+    if(held&&held.weapon!==weapon){
+     const exchangeable=held.slot>=3&&held.slot<=5;
+     if(held.weapon!==0&&(held.ammo!==0||exchangeable)){
+      this.playerOnWeaponPickup=6;
+      if(exchangeable&&[PICKUP_TYPE.onceTimeout,PICKUP_TYPE.once,PICKUP_TYPE.onStreet,PICKUP_TYPE.onceForMission].includes(pickup.type as 3|4|2|22))this.extractAmmo(state,weapon);
+      if(host.canPickUpWeapon?.(weapon)===false)return;
+      if(!host.targeting?.()&&!state.helpShown){state.helpShown=true;host.onNotice?.(pickup,gxtHudText(gxtText('PU_CF1','Press ~k~~PED_ANSWER_PHONE~ to collect the weapon.')));}
+      if(!this.collectBuffer)return;
+     }else if(host.canPickUpWeapon?.(weapon)===false){this.playerOnWeaponPickup=6;return;}
+    }else if(host.canPickUpWeapon?.(weapon)===false)return;
+    // The type branches then ask DoesPlayerWantNewWeapon(type, false): refused, a street pickup stays as it is and a
+    // timed or mission one is emptied into the slot's weapon (ExtractAmmoFromPickup) and stays.
+    if(host.wantsNewWeapon?.(weapon)===false&&[PICKUP_TYPE.onStreet,PICKUP_TYPE.onStreetSlow,PICKUP_TYPE.onceTimeout,PICKUP_TYPE.onceTimeoutSlow,PICKUP_TYPE.onceForMission].includes(pickup.type as 2|15|4|5|22)){
+     if(pickup.type!==PICKUP_TYPE.onStreet&&pickup.type!==PICKUP_TYPE.onStreetSlow)this.extractAmmo(state,weapon);return;}
+    if(!host.giveWeapon(weapon,pickup.ammo||(state.empty?0:AMMO_ON_STREET[weapon])))return;break;
    }
     // PSAVE1 removes and immediately recreates the disc, so it stays where it is.
     case 'save':host.onSave?.(pickup);return;
@@ -203,16 +268,20 @@ export class WorldPickups {
     case 'propertyForSale':{
      if(this.collected.has(pickup.id))return;
      const price=pickup.price??0;
+     // CPickup::Update: PROP_2 while the player is on a mission, PROP_1 when he is short of the price.
+     if(host.onMission?.()){
+      if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,gxtHudText(gxtText('PROP_2',"You can't buy property while on a mission.")));}
+      return;
+     }
      if(this.sim.money<price){
       if(this.seconds>=(state.quietUntil??-Infinity)){state.quietUntil=this.seconds+3;host.onNotice?.(pickup,gxtHudText(gxtText('PROP_1',`Not enough cash · $${price}`)));}
       return;
      }
-     this.sim.money-=price;state.disabled=true;this.collected.add(pickup.id);this.despawn(state);
+     this.sim.money-=price;this.take(state);this.despawn(state);
      host.onCollect?.(pickup,`Property purchased · -$${price}`);return;
     }
     case 'revenue':{
-     const link=linkRevenue(pickup,this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale'));
-     if(!link||!this.collected.has(link.id))return;
+     if(!this.owned(pickup,linkRevenue(pickup,this.states.map(s=>s.pickup).filter(q=>q.category==='propertyForSale'))))return;
      const amount=Math.floor(this.takings.get(pickup.id)??0);
      // CPickup::Update refuses the pickup under $10, silently; collecting pays with the money sound and no text.
      if(amount<10)return;
@@ -230,9 +299,51 @@ export class WorldPickups {
   }
   const regen=regenerationSeconds(pickup.type,pickup.category);
   if(regen!==undefined){state.regenerateAt=this.seconds+regen;state.disabled=true;}
-  else{state.disabled=true;this.collected.add(pickup.id);}
+  else this.take(state);
   this.despawn(state);host.onCollect?.(pickup,message);
  }
+  /** Whether a revenue pickup earns: one the script made (CREATE_PROTECTION_PICKUP, only once the asset is bought) always
+   * does, as every PICKUP_ASSET_REVENUE does in CPickup::Update; a new-game one stands in for its asset and needs the
+   * nearest for-sale property owned. */
+  /** CPickup::SetRemoved for a pickup that does not come back. A new-game pickup is remembered by its id in the save;
+   * one made during play (a script's, a dropped jetpack, a gang war's) leaves the list, so its id, which a later
+   * session can hand to a different pickup, is never saved. */
+  private take(state:State){
+   if(state.expiresAt!==undefined){this.remove(state);return;}
+   state.disabled=true;this.collected.add(state.pickup.id);
+  }
+  private owned(pickup:ScmPickup,link:ScmPickup|undefined){return pickup.section==='script'||!!link&&this.collected.has(link.id);}
+  /** CPickup::ExtractAmmoFromPickup: the pickup's ammo (the street amount for one with none, unless it was emptied
+   * before) goes to the weapon held in its slot, and the pickup is left empty. Never from a shop. */
+  private extractAmmo(state:State,weapon:number){
+   const pickup=state.pickup;if(pickup.type===PICKUP_TYPE.inShop)return;
+   if(pickup.ammo)this.host.grantAmmo?.(weapon,pickup.ammo);
+   else if(state.empty)return;
+   else this.host.grantAmmo?.(weapon,AMMO_ON_STREET[weapon]);
+   state.empty=true;state.pickup={...pickup,ammo:0};
+  }
+  /** CPickup::Update's weapon gate for a PICKUP_ONCE_TIMEOUT pickup kept elsewhere (a dead ped's dropped gun): the same
+   * stand-on-it, extract-into-an-exchangeable-slot, PU_CF1-once and collect-press rules as a script pickup, sharing
+   * the collect buffer and PlayerOnWeaponPickup. 'take' hands the weapon over with `drop.ammo` (the street amount when
+   * that is 0 and the drop was never emptied); 'wait' leaves it lying, emptied into the slot's weapon where the rules
+   * say so. */
+  gateWeapon(weapon:number,drop:{ammo:number;empty?:boolean;helpShown?:boolean},notice?:(text:string)=>void):'take'|'wait'{
+   const host=this.host,held=host.heldInSlot?.(weapon);
+   const extract=()=>{if(drop.ammo)host.grantAmmo?.(weapon,drop.ammo);else if(drop.empty)return;else host.grantAmmo?.(weapon,AMMO_ON_STREET[weapon]);drop.ammo=0;drop.empty=true;};
+   if(held&&held.weapon!==weapon){
+    const exchangeable=held.slot>=3&&held.slot<=5;
+    if(held.weapon!==0&&(held.ammo!==0||exchangeable)){
+     this.playerOnWeaponPickup=6;
+     if(exchangeable)extract();
+     if(host.canPickUpWeapon?.(weapon)===false)return 'wait';
+     if(!host.targeting?.()&&!drop.helpShown){drop.helpShown=true;notice?.(gxtHudText(gxtText('PU_CF1','Press ~k~~PED_ANSWER_PHONE~ to collect the weapon.')));}
+     if(!this.collectBuffer)return 'wait';
+    }else if(host.canPickUpWeapon?.(weapon)===false){this.playerOnWeaponPickup=6;return 'wait';}
+   }else if(host.canPickUpWeapon?.(weapon)===false)return 'wait';
+   if(host.wantsNewWeapon?.(weapon)===false){extract();return 'wait';}
+   if(!drop.ammo&&!drop.empty)drop.ammo=AMMO_ON_STREET[weapon]??0;
+   return 'take';
+  }
   /** CPickups::PassTime: regeneration timers move forward with the clock. */
   passTime(seconds:number){this.seconds+=Math.max(0,seconds);}
  /** CPickups::PictureTaken: the nearest snapshot within 90/FOV × 20 units whose 0.2-unit sphere is on screen. `fov` is
@@ -246,8 +357,8 @@ export class WorldPickups {
    if(distance<range&&distance<bestDistance&&frustum.intersectsSphere(new Sphere(world,.2))){best=state;bestDistance=distance;}
   }
   if(!best)return false;
-  // CPickups::PictureTaken pays $100,000 a photograph, and as much again for the last one.
-  best.disabled=true;this.collected.add(best.pickup.id);this.despawn(best);this.sim.money+=100000;
+  // CPickups::PictureTaken pays $100,000 a photograph, counts STAT_SNAPSHOTS_TAKEN, and pays as much again for the last one.
+  best.disabled=true;this.collected.add(best.pickup.id);this.despawn(best);this.sim.money+=100000;this.host.incrementStat?.(STAT.snapshotsTaken,1);
   const done=this.counts().snapshot,total=this.totals.snapshot;if(done>=total)this.sim.money+=100000;
   this.host.onCollect?.(best.pickup,done>=total?'SN_ALL':`SN_ONE ${done}/${total}`);return true;
  }

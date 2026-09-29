@@ -2,12 +2,12 @@ import {test,expect} from '@playwright/test';
 test('Maverick takes off vertically, hovers, and pauses through real controls',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});await page.keyboard.press('KeyM');await page.getByLabel('Aircraft',{exact:true}).selectOption('487');await page.getByRole('button',{name:'Fly from Verdant Meadows',exact:true}).click();const state=()=>page.evaluate(()=>(window as any).__game.state());await expect.poll(async()=>(await state()).aircraft?.occupied,{timeout:30000}).toBe(true);const start=(await state()).aircraft.position.y;await page.keyboard.down('KeyW');await page.waitForTimeout(4000);await page.keyboard.up('KeyW');await expect.poll(async()=>(await state()).aircraft.position.y).toBeGreaterThan(start+3);await page.keyboard.down('Space');await page.waitForTimeout(1500);expect(Math.abs((await state()).aircraft.velocity.y)).toBeLessThan(1);await page.screenshot({path:'artifacts/helicopter-hover.png'});await page.keyboard.up('Space');await page.keyboard.press('Escape');const p=(await state()).aircraft.position;await page.waitForTimeout(250);expect((await state()).aircraft.position).toEqual(p);expect(errors).toEqual([]);
 });
-test('Hydra switches VTOL and mounted weapons consume ammo without hitting their own aircraft',async({page})=>{
+test('Hydra switches VTOL and its mounted weapons fire, two rockets a press, without hitting their own aircraft',async({page})=>{
  test.setTimeout(120000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
  const [{openStaticWorld},{openStaticWorldVehicles},{WorldPlane},{Simulation},{WeaponSystem},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/simulation/WorldPlane.ts','/src/simulation/Simulation.ts','/src/weapons/WeaponSystem.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
  await RAPIER.init();const c=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),sim=new Simulation(),scene=new THREE.Scene(),plane=new WorldPlane(sim,scene,await c.load(520),{x:0,y:100,z:0});sim.player.position={x:0,y:100,z:0};plane.interact();sim.world.step();const weapons=new WeaponSystem(sim,()=>undefined,()=>({cars:[],planes:new Set([plane])}));
- try{const start=plane.vtol;plane.toggleVtol();const forward=plane.vtol;plane.toggleVtol();const gun=weapons.fireAircraft(plane);weapons.tick(.2);const rocket=weapons.fireAircraft(plane,true);for(let i=0;i<60;i++)weapons.tick(1/60);return {start,forward,gun,rocket,health:plane.health,ammo:plane.gunAmmo,rockets:plane.rockets,projectiles:weapons.projectiles.length};}finally{weapons.dispose();plane.dispose();sim.dispose();}
- });expect(result).toEqual({start:true,forward:false,gun:true,rocket:true,health:800,ammo:1999,rockets:19,projectiles:1});
+ try{const start=plane.vtol;plane.toggleVtol();const forward=plane.vtol;plane.toggleVtol();const gun=weapons.fireAircraft(plane);weapons.tick(.2);const rocket=weapons.fireAircraft(plane,true);for(let i=0;i<60;i++)weapons.tick(1/60);return {start,forward,gun,rocket,health:plane.health,projectiles:weapons.projectiles.length};}finally{weapons.dispose();plane.dispose();sim.dispose();}
+ });expect(result).toEqual({start:true,forward:false,gun:true,rocket:true,health:1000,projectiles:2});
 });
 test('bailing out mid-flight with the parachute glides down softly',async({page})=>{
  await page.goto('/models.html');const result=await page.evaluate(async()=>{
@@ -66,16 +66,23 @@ test('leaving a drifting helicopter slows it until the pilot can step out (CanPe
  }finally{plane.dispose();sim.dispose();}
  });expect(result).toEqual({before:'wait',after:'step'});
 });
-test('a burning helicopter the player sets down blows up at once (crash and burn)',async({page})=>{
+test('a burning helicopter the player sets down blows up at once only when its fire started in the air (crash and burn)',async({page})=>{
  test.setTimeout(120000);await page.goto('/models.html');const result=await page.evaluate(async()=>{
  const [{openStaticWorld},{openStaticWorldVehicles},{WorldPlane},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/simulation/WorldPlane.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
- await RAPIER.init();const c=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),sim=new Simulation(),plane=new WorldPlane(sim,new THREE.Scene(),await c.load(487),{x:0,y:3,z:0});
- sim.world.createCollider(RAPIER.ColliderDesc.cuboid(100,1,100).setTranslation(0,-1,0));sim.player.position={x:0,y:3,z:0};plane.interact();
- try{
-  let destroyed=false;for(let i=0;i<60&&!destroyed;i++){plane.beforeStep(1/60,{throttle:0,pitch:0,roll:0,rudder:0,brake:false});sim.world.step();destroyed=plane.afterStep();}
-  const intact=!destroyed;plane.health=200;
-  for(let i=0;i<60&&!destroyed;i++){plane.beforeStep(1/60,{throttle:0,pitch:0,roll:0,rudder:0,brake:false});sim.world.step();destroyed=plane.afterStep();}
-  return {intact,destroyed};
- }finally{plane.dispose();sim.dispose();}
- });expect(result).toEqual({intact:true,destroyed:true});
+ await RAPIER.init();const c=await openStaticWorldVehicles(await openStaticWorld(new URL('/play/world/',location.href).href)),idle={throttle:0,pitch:0,roll:0,rudder:0,brake:false};
+ const run=async(fireInAir:boolean)=>{const sim=new Simulation(),plane=new WorldPlane(sim,new THREE.Scene(),await c.load(487),{x:0,y:3,z:0});
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(100,1,100).setTranslation(0,-1,0));sim.player.position={x:0,y:3,z:0};plane.interact();
+  try{
+   let destroyed=false;const step=()=>{plane.beforeStep(1/60,idle);sim.world.step();destroyed=plane.afterStep();};
+   // The fire starts either one step in (falling, no wheel down: m_fireParticleCounter 2) or once the helicopter has settled (1).
+   for(let i=0;i<(fireInAir?1:60)&&!destroyed;i++)step();
+   const intact=!destroyed;plane.health=200;
+   for(let i=0;i<120&&!destroyed;i++)step();
+   return {intact,destroyed,counter:plane.fireCounter};
+  }finally{plane.dispose();sim.dispose();}};
+ return {inAir:await run(true),onGround:await run(false)};
+ });
+ expect(result.inAir).toEqual({intact:true,destroyed:true,counter:2});
+ // Lit on the ground it burns its five seconds instead (two seconds in, still whole).
+ expect(result.onGround).toEqual({intact:true,destroyed:false,counter:1});
 });

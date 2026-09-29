@@ -129,6 +129,29 @@ export function nativeSplashParticles(body:Pick<NativeBuoyancyBody,'position'|'r
  }
  return {inWater:true,drowning:false,blowUp,rotorKilled,engineOff:false,ratio};
 }
+/** Applies one variable native timestep of CBike::ProcessBuoyancy. Unlike CAutomobile's, the force goes on before
+ * the drag, the bike drowns past a ratio of 0.8 (0.4 with a wheel off the ground), and its buoyancy constant never
+ * shrinks. */
+export function applyNativeBikeBuoyancy(body:NativeBuoyancyBody,level:(x:number,y:number)=>number|undefined,timeStep:number,state:{sample?:ReturnType<typeof processNativeBuoyancy>},forceScale=1){
+ const result=processNativeBuoyancy(body,level);
+ if(!result){body.touchingWater=false;return {inWater:false,drowning:false,ratio:0};}
+ state.sample=result;body.touchingWater=true;
+ // CalcBuoyancyForce, then ApplyMoveForce and ApplyTurnForce.
+ const current=result.immersion*body.buoyancyConstant*timeStep;let force=current;
+ const moveForceZ=body.mass*body.moveSpeed[2];if(moveForceZ>current*4)force=Math.max(0,current-moveForceZ);
+ body.moveSpeed[2]+=force*forceScale/body.mass;
+ const com=transform(body,body.centerOfMass),arm:NativeVec=[result.turnPoint[0]-com[0],result.turnPoint[1]-com[1],result.turnPoint[2]-com[2]],torque=cross(arm,[0,0,force*forceScale]);
+ body.turnSpeed=body.turnSpeed.map((v,i)=>v+torque[i]/body.turnMass) as NativeVec;
+ const step=Math.max(.01,timeStep),usedMass=body.mass/125;let ratio=force/(step*usedMass);
+ if(usedMass>body.buoyancyConstant)ratio*=1.05*usedMass/body.buoyancyConstant;
+ if(body.heavy)ratio*=1.5;
+ const speedMult=Math.pow(Math.max(.5,1-ratio/20),timeStep);
+ body.moveSpeed=body.moveSpeed.map(v=>v*speedMult) as NativeVec;body.turnSpeed=body.turnSpeed.map(v=>v*speedMult) as NativeVec;
+ // 0x6B6443.
+ const drowning=ratio>.8||ratio>.4&&(body.anyWheelOffGround??true);
+ if(drowning)body.moveSpeed[2]=Math.max(-.1,body.moveSpeed[2]);
+ return {inWater:true,drowning,ratio};
+}
 /** CBoat wake trail (PruneWakeTrail/AddWakePoint): stern points living 150 native
  * frames, spaced at least 2 units apart, at most 32 kept (31 player, 20 mission, 15 else). */
 export const WAKE={lifetime:150,interval:2,max:32} as const;

@@ -8,7 +8,7 @@ test('Tab stays inside the open arsenal and map',async({page})=>{
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  const focused=()=>page.evaluate(()=>{const a=document.activeElement as HTMLElement;return a.getAttribute('aria-label')??a.className??a.tagName;});
  await page.locator('canvas.world').click({position:{x:400,y:300}});
- await page.keyboard.press('Tab');await expect.poll(async()=>(await state()).weapons.arsenal).toBe(true);
+ await page.keyboard.press('Backquote');await expect.poll(async()=>(await state()).weapons.arsenal).toBe(true);
  expect(await focused()).toBe('Find a weapon');
  const stops=await page.locator('.arsenal button:visible, .arsenal input:visible').count();
  for(let i=0;i<stops;i++)await page.keyboard.press('Tab');

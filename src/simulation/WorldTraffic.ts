@@ -7,16 +7,19 @@ import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
 import {trafficLinks,travelLink,type TrafficLink} from './trafficRoute';
 import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,carAIJam,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,pickNextNodeRandomly,randomCruiseSpeed,
- shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,tempActionPedals,type NextCandidate,type TempAction} from '../vehicle/nativeCarCtrl';
+ shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,steerHeadingForTarget,tempActionPedals,type NextCandidate,type TempAction} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
 import {playCarHorn} from './nativeCarHorn';
-import {collisionDamageResponse,weaponDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
+import {collisionDamageResponse,damageDriverResponse,gunShotDriverResponse,weaponDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
 import {isKillTaskAppropriate} from '../ped/nativeDecisionMaker';
 import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 /** A cruising car's CAutoPilot: the link it is heading for, the one after, a lane on each, and its cruise speed. */
-interface Driver {car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
+/** How long a rammed driver's CTaskComplexCarDriveMissionKillPed chase lasts, and how far off the player ends it (authored:
+ * the task is not reversed). */
+const CHASE_SECONDS=30,CHASE_GIVE_UP_DISTANCE=120;
+interface Driver {/** The chase CTaskComplexCarDriveMissionKillPed runs after the player. */chase?:{until:number};/** Road rage waiting for the car to slow before he gets out. */rageWait?:boolean;car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
  temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'|'death'|'flipped'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
  seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
@@ -79,9 +82,21 @@ export class WorldTraffic {
    if(!driver||car.occupied||car.driverOut||car.wrecked||!car.autopilot||driver.dead||driver.fled||driver.raged)return undefined;
    if(driver.dying)return 'hit';
    driver.health=Math.max(0,driver.health-damage);
-   if(driver.health>0)return 'hit';
+   if(driver.health>0){
+    // CEventDamage in the car: ComputeDamageResponse sends a weapon hit on a ped in a vehicle straight to the personality
+    // response. A driver already answering an event keeps to it.
+    if(!driver.fleeScene&&!driver.chase){
+     const answer=damageDriverResponse(this.driverDecisionMaker?.(car),RELATIONSHIP.player,this.random);
+     if(answer==='fleeScene'){driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;}
+     else if(answer==='killPed'){driver.chase={until:this.elapsed+CHASE_SECONDS};driver.avoidCars=true;}
+    }
+    return 'hit';
+   }
    // PreparePedVehicleForPedDeath: real physics, cruise speed zero, no mission, and TEMPACT_HANDBRAKESTRAIGHT for 2000 ms.
    driver.dying={at:this.elapsed*1000};driver.cruiseSpeed=0;driver.temp={action:'handbrakeStraight',until:this.elapsed*1000+2000,from:'death'};
+   // His health is gone from the shot on: dragged out before CTaskComplexDieInCar has run its 2000 ms, he comes out a
+   // corpse, not a live ped who runs or comes back for the car.
+   car.driverDead=true;
    return 'killed';
   }
   /** The driver's pedstats decision maker (0 gang member, 1 cop, 2 normal, 3 tough, 4 weak) for the collision decision. */
@@ -230,10 +245,16 @@ export class WorldTraffic {
    // CTaskComplexDieInCar: 2000 ms after the fatal shot, out of the door and dead if the car can be stepped out of, else dead in the seat.
    if(driver.dying&&now>=driver.dying.at+DIE_IN_CAR_OFFSET_MS){
     const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
-    driver.dead=true;driver.dying=undefined;
+    driver.dead=true;driver.dying=undefined;car.driverDead=true;
     if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50}))this.onDriverDiesOut?.(car);
     else{driver.deadInSeat=true;this.onDriverDeadInSeat?.(car);}
     car.autopilot={steering:0,throttle:0,brake:1,handbrake:true};continue;
+   }
+   if(driver.rageWait){
+    const v=car.car.body.linvel(),w=car.car.body.angvel(),r=car.car.body.rotation(),upZ=1-2*(r.x*r.x+r.z*r.z);
+    if(canPedStepOutCar(upZ,{x:v.x/50,y:-v.z/50,z:v.y/50},{x:w.x/50,y:-w.z/50,z:w.y/50})){driver.rageWait=false;this.onRoadRage?.(car);}
+    else car.autopilot={steering:0,throttle:0,brake:1,handbrake:Math.hypot(v.x,v.z)<.3};
+    continue;
    }
    if(car.holdForEntry){const v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z);car.autopilot={steering:0,throttle:0,brake:1,handbrake:speed<.3};continue;}
    const body=car.car.body,p=body.translation(),r=body.rotation(),v=body.linvel(),speed=Math.hypot(v.x,v.z);
@@ -241,6 +262,15 @@ export class WorldTraffic {
    const q=new Quaternion(r.x,r.y,r.z,r.w),f3=toNative(new Vector3(0,0,-1).applyQuaternion(q)),right3=toNative(new Vector3(1,0,0).applyQuaternion(q));
    const position=toNative(p),move=toNative({x:v.x/50,y:v.y/50,z:v.z/50}),flat=Math.hypot(f3.x,f3.y)||1,forward={x:f3.x/flat,y:f3.y/flat};
    const state={position,forward,moveSpeed:move,forward3:f3};
+   if(driver.chase){
+    const target=toNative(this.sim.player.position);
+    if(this.elapsed>driver.chase.until||this.sim.player.health<=0||Math.hypot(target.x-position.x,target.y-position.y)>CHASE_GIVE_UP_DISTANCE){driver.chase=undefined;driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;}
+    else{
+     if(driver.rails)this.leaveRails(driver,now);
+     const pedals=steerHeadingForTarget(state,{x:target.x,y:target.y},FLEE_SCENE_CRUISE_SPEED);
+     car.autopilot={steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};driver.stopped=null;continue;
+    }
+   }
    // Beyond the car's active radius its body sleeps: it drives on rails (STATUS_SIMPLE) instead of freezing. A car
    // told to make way for a siren is put under physics (MakeWayForCarWithSiren sets STATUS_PHYSICS) while it does.
    const onRails=!car.inActiveRange()&&!(driver.temp?.from==='siren'&&now<driver.temp.until);
@@ -320,9 +350,30 @@ export class WorldTraffic {
   const car=driver.car;
   if(!byPlayer||rawLoss<=5||car.occupied||!car.autopilot||car.driverOut||car.wrecked||driver.raged)return;
   const response=collisionDamageResponse(this.driverDecisionMaker?.(car),RELATIONSHIP.player,this.random);
-  if(response==='fleeScene'){driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;}
-  else if(response==='roadRage'){driver.raged=true;this.onRoadRage?.(car);}
+  const fleeScene=()=>{driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;};
+  if(response==='fleeScene')fleeScene();
+  // CTaskComplexRoadRage leaves the car through CTaskComplexLeaveCar with sensible set: CTaskSimpleCarWaitToSlowDown
+  // holds him in the seat, braking, until the car can be stepped out of.
+  else if(response==='roadRage'){driver.raged=true;driver.rageWait=true;}
+  // TASK_COMPLEX_CAR_DRIVE_MISSION_KILL_PED (0x4C3111): a game driver the player rams during a mission flees the scene;
+  // otherwise CTaskComplexCarDriveMissionKillPed goes after the player. That task is not reversed: the chase drives at
+  // him, avoiding cars, for CHASE_SECONDS (authored) or until he is CHASE_GIVE_UP_DISTANCE away.
+  else if(response==='killPed'){if(this.playerOnMission?.())fleeScene();else{driver.chase={until:this.elapsed+CHASE_SECONDS};driver.avoidCars=true;}}
  }
+ /** CEventGunShot on the traffic drivers: CEventGunShot::AffectsPed excludes only a passenger whose car has a driver,
+  * so a driver within 45 units of the shooter hears the shot (a silenced one only where it could see it: not
+  * modelled, so none) and answers from his decision maker. A driver already answering an event keeps to it. */
+ gunShot(from:{x:number;y:number;z:number},silent:boolean,byPlayer:boolean){
+  if(silent)return;
+  for(const driver of this.drivers){
+   const car=driver.car;
+   if(driver.gone||car.disposed||car.occupied||!car.autopilot||car.driverOut||car.wrecked||driver.dead||driver.dying||driver.raged||driver.fled||driver.fleeScene||driver.chase)continue;
+   const p=car.car.body.translation();if(Math.hypot(p.x-from.x,p.y-from.y,p.z-from.z)>45)continue;
+   if(gunShotDriverResponse(this.driverDecisionMaker?.(car),byPlayer?RELATIONSHIP.player:RELATIONSHIP.neutral,this.random)==='fleeScene'){driver.fleeScene=true;driver.cruiseSpeed=FLEE_SCENE_CRUISE_SPEED;driver.avoidCars=true;}
+  }
+ }
+ /** CTheScripts::IsPlayerOnAMission, for the kill-ped answer to a ram. */
+ playerOnMission?:()=>boolean;
  /** CEventVehicleDamageWeapon: a ped's bullet burst the car's tyre (CWeapon::DoBulletImpact). The driver's decision
   * maker draws nothing, the flee-scene drive, a kill on foot (IsKillTaskAppropriate: an unarmed driver never takes on a
   * gunman, so the driver flees the scene instead) or CTaskComplexLeaveCarAndFlee. Cops and gang members answer with

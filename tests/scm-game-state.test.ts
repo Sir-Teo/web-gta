@@ -112,3 +112,30 @@ test('a bound float stat reads and writes the host store: set, capped increment 
  let pistol=0;stats.bind(69,{get:()=>pistol,set:v=>{pistol=v;}});stats.increment(69,2.5);expect(pistol).toBe(2.5);
  expect(()=>stats.bind(1000,{get:()=>0,set:()=>{}})).toThrow();
 });
+test('stat reactions: stamina or lung capacity gained on negative energy burns 23 fat, energy past 1000 becomes fat, and a decrement never leaves energy negative',()=>{
+ const stats=new ScmStats();const FAT=21,STAMINA=22,ENERGY=165,LUNG=225;
+ // CStats::ProcessReactionStatsOnIncrement.
+ stats.set(FAT,100);stats.set(ENERGY,-5);stats.increment(STAMINA,1);expect(stats.get(FAT)).toBe(77);
+ stats.increment(LUNG,1);expect(stats.get(FAT)).toBe(54);
+ stats.set(FAT,10);stats.increment(STAMINA,1);expect(stats.get(FAT)).toBe(0);
+ stats.set(ENERGY,900);stats.set(FAT,100);stats.increment(ENERGY,150);expect(stats.get(ENERGY)).toBe(1000);
+ // IncrementStat caps energy at a thousand before the reaction reads it: nothing over is left to become fat, even
+ // from a value the script set higher.
+ expect(stats.get(FAT)).toBe(100);
+ stats.set(ENERGY,1100);stats.increment(ENERGY,1);expect(stats.get(ENERGY)).toBe(1000);expect(stats.get(FAT)).toBe(100);
+ // CStats::ProcessReactionStatsOnDecrement: a decrement never takes energy below zero, so only a negative value set by the script reacts.
+ stats.set(ENERGY,-5);stats.set(FAT,50);stats.decrement(ENERGY,1);expect(stats.get(ENERGY)).toBe(0);expect(stats.get(FAT)).toBe(50);
+ stats.set(ENERGY,-40);stats.set(FAT,50);stats.decrement(ENERGY,10);expect(stats.get(FAT)).toBe(50);
+});
+// The script's weather forcing reaches the world's CWeather through the host, and CClock::Update's midnight counts a
+// day for STAT_DAYS_PASSED_IN_GAME (follow reports it; SetGameClock's day is not one).
+test('script weather forcing reaches the world weather and a followed midnight reports a day passed',()=>{
+ const game=new ScmGameState(),calls:string[]=[];
+ game.weatherHost={forceWeather:w=>calls.push(`force:${w}`),forceWeatherNow:w=>calls.push(`now:${w}`),releaseWeather:()=>calls.push('release')};
+ game.forceWeather(16);game.forceWeatherNow(8);game.releaseWeather();
+ expect(calls).toEqual(['force:16','now:8','release']);expect(game.forcedWeather).toBe(-1);
+ const clock=new ScmClock();clock.setGameClock(23,59,4,0);
+ expect(clock.follow(23*60+59.5,4)).toBe(0);
+ expect(clock.follow(0.25,5)).toBe(1);
+ expect(clock.follow(1,5)).toBe(0);
+});

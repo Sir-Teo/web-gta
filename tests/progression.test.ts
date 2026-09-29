@@ -89,11 +89,20 @@ test('a new game clears the saved progress and saves nothing more',()=>{
  const sim=new Simulation();let raw=JSON.stringify({version:1,money:1234,savedLocation:{x:1,y:2,z:3,heading:0,timeMinutes:600}});const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
  try{
   const p=new Progression(new WeaponInventory(),sim,storage);expect(p.savedLocation).toBeDefined();
-  p.startNewGame();expect(raw).toBe('');expect(p.save()).toBe(false);expect(raw).toBe('');
+  expect(p.startNewGame()).toBe(true);expect(raw).toBe('');expect(p.save()).toBe(false);expect(raw).toBe('');
   sim.money=0;const fresh=new Progression(new WeaponInventory(),sim,storage);expect(fresh.savedLocation).toBeUndefined();expect(sim.money).toBe(0);
  }finally{sim.dispose();}
 });
 
+test('a New Game whose save cannot be cleared says so, and a fresh start does not read the old save',()=>{
+ const sim=new Simulation();const raw=JSON.stringify({version:1,money:1234,savedLocation:{x:1,y:2,z:3,heading:0,timeMinutes:600}});
+ const storage={getItem:()=>raw,setItem:()=>{throw new Error('QuotaExceededError');}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);expect(p.savedLocation).toBeDefined();
+  expect(p.startNewGame()).toBe(false);
+  sim.money=0;const fresh=new Progression(new WeaponInventory(),sim,storage,true);expect(fresh.savedLocation).toBeUndefined();expect(sim.money).toBe(0);
+ }finally{sim.dispose();}
+});
 test('an interior save keeps its area and door stack; bad ones are dropped',()=>{
  const sim=new Simulation();const at={x:2495.9,y:-1707.4,z:1013.3,heading:0,timeMinutes:600};
  let raw=JSON.stringify({version:1,savedLocation:{...at,area:3,enexStack:[12,-1,'x',400,7]}});const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
@@ -101,5 +110,32 @@ test('an interior save keeps its area and door stack; bad ones are dropped',()=>
   const p=new Progression(new WeaponInventory(),sim,storage);expect(p.savedLocation).toMatchObject({area:3,enexStack:[12,7]});
   p.save();expect(new Progression(new WeaponInventory(),sim,storage).savedLocation).toMatchObject({area:3,enexStack:[12,7]});
   for(const area of [0,19,2.5,'3']){raw=JSON.stringify({version:1,savedLocation:{...at,area,enexStack:[1]}});const q=new Progression(new WeaponInventory(),sim,storage);expect(q.savedLocation).toBeDefined();expect(q.savedLocation!.area).toBeUndefined();expect(q.savedLocation!.enexStack).toBeUndefined();}
+ }finally{sim.dispose();}
+});
+test('the periodic save reports a failure once, and again only after a save has worked',()=>{
+ const sim=new Simulation();let fail=true,raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{if(fail)throw new Error('QuotaExceededError');raw=v;}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);let told=0;p.onSaveFailed=()=>{told++;};
+  p.tick(5,false,false);p.tick(5,false,false);expect(told).toBe(1);
+  fail=false;p.tick(5,false,false);expect(raw).not.toBe('');fail=true;sim.money+=1;p.tick(5,false,false);expect(told).toBe(2);
+ }finally{sim.dispose();}
+});
+test('a tab does not save over newer progress another tab has saved since it loaded',()=>{
+ const sim=new Simulation();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};
+ try{
+  const a=new Progression(new WeaponInventory(),sim,storage),b=new Progression(new WeaponInventory(),sim,storage);
+  expect(a.save()).toBe(true);expect(a.save()).toBe(true);
+  // B loaded before A's saves: it stops rather than put its older state back, and says why.
+  let reason='';b.onSaveFailed=r=>{reason=r;};const before=raw;b.tick(5,false,false);expect(raw).toBe(before);expect(reason).toBe('conflict');
+  // A tab that loads the newer save goes on saving.
+  const c=new Progression(new WeaponInventory(),sim,storage);expect(c.save()).toBe(true);
+ }finally{sim.dispose();}
+});
+test('a save with nothing changed since the last is not written again',()=>{
+ const sim=new Simulation();let raw='',writes=0;const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;writes++;}};
+ try{
+  const p=new Progression(new WeaponInventory(),sim,storage);
+  expect(p.save()).toBe(true);expect(p.save()).toBe(true);expect(writes).toBe(1);
+  sim.money+=10;expect(p.save()).toBe(true);expect(writes).toBe(2);expect(JSON.parse(raw).money).toBe(sim.money);
  }finally{sim.dispose();}
 });

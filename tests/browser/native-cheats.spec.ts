@@ -23,8 +23,10 @@ test('typed cheat codes apply their effects',async({page})=>{
  await page.keyboard.type('AIWPRTON',{delay:30});
  await expect.poll(async()=>(await state()).fleet?.cars.some((c:any)=>c.modelId===432),{timeout:20000}).toBe(true);
  const s=await state(),rhino=s.fleet.cars.find((c:any)=>c.modelId===432),p=s.player.position;
- // In front of CJ (heading π/2, +x), its bounding radius and 2 units out.
- expect(rhino.position.x-p.x).toBeGreaterThan(4);expect(Math.abs(rhino.position.z-p.z)).toBeLessThan(rhino.position.x-p.x);
+ // In front of CJ, its bounding radius and 2 units out. Typing taps the movement keys (the codes carry A, S, W and D), so
+ // his heading when the last letter fires is whatever the taps left: the tank is measured along that heading.
+ const fx=Math.sin(s.player.heading),fz=Math.cos(s.player.heading),along=(rhino.position.x-p.x)*fx+(rhino.position.z-p.z)*fz,across=Math.abs((rhino.position.x-p.x)*fz-(rhino.position.z-p.z)*fx);
+ expect(along).toBeGreaterThan(4);expect(across).toBeLessThan(along);
  await page.keyboard.type('ZEIIVG',{delay:30});await expect.poll(async()=>(await state()).cheats.active).toContain('greenLights');
  await page.keyboard.type('ZEIIVG',{delay:30});await expect.poll(async()=>(await state()).cheats.active).not.toContain('greenLights');
  // Mega jump: ten times the 8.5 launch force.

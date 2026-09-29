@@ -7,28 +7,34 @@ import type {VehicleAnimationLibrary} from '../assets/vehicleAnimations';
 import {clipRootEnd} from './CarEntry';
 import type {Simulation} from './Simulation';
 import type {WorldBike} from './WorldBike';
+const rotate=(q:{x:number;y:number;z:number;w:number},v:V3)=>new Vector3(v.x,v.y,v.z).applyQuaternion(q as never);
 type V3={x:number;y:number;z:number};
 export type BikeSide='left'|'right';
-export type BikeMountPhase='mount'|'getOff'|'waitSlow'|'jumpOff';
+export type BikeMountPhase='pickUp'|'mount'|'getOff'|'waitSlow'|'jumpOff'|'jacked';
 /** CTaskSimpleCarJumpOut for bikes: the ped is set out at 0.35 s and carried by the bike's speed until 0.7333 s. */
 export const BIKE_JUMP_SET_OUT=.35,BIKE_JUMP_CARRY=.7333;
 /** CVehicle::CanPedStepOutCar (0x6D1F30), the base rule bikes use: |v2D| ≤ 0.01, |vz| ≤ 0.05 units/frame, |ω|² ≤ 0.0004. */
 export function bikeCanStepOut(v:V3,w:V3){const s=1/50;return Math.hypot(v.x,v.z)*s<=.01&&Math.abs(v.y)*s<=.05&&(w.x*w.x+w.y*w.y+w.z*w.z)*s*s<=.0004;}
 /** CVehicle::CanPedJumpOutCar (0x6D2030) for bikes: v2D² ≥ 0.07 units/frame (13.2 m/s), for the rider only while no
- * pillion sits behind him. */
-export function bikeCanJumpOut(v:V3,pillion:boolean){const s=1/50;return !pillion&&(v.x*v.x+v.z*v.z)*s*s>=.07;}
+ * pillion sits behind him. CQuadBike is a CAutomobile, not a bike, so it takes the car rule: 0.1 ≤ v2D² ≤ 0.5, unless
+ * it is tipped past up.z 0.3 and was hit within the last second, when any v2D² ≥ 0.1 lets the rider roll off. */
+export function bikeCanJumpOut(v:V3,pillion:boolean,quad=false,tippedAfterCrash=false){const s=1/50,v2=(v.x*v.x+v.z*v.z)*s*s;return quad?tippedAfterCrash?v2>=.1:v2>=.1&&v2<=.5:!pillion&&v2>=.07;}
 interface ClipUse{key:string;clip:NativeAnimation}
 /** The player's bike mount and dismount (CTaskComplexEnterCarAsDriver and CTaskComplexLeaveCar through the bike's
  * animation group): the side's jump-on clip onto the saddle, the get-off clip down beside it, or, at speed, the
  * get-off-back tumble. Like the car clips, jump-on starts at its origin (the side point) and ends at the seat, and
  * get-off runs the other way, so the entity is pinned at the side point while the clip's root carries the body. */
+/** TaskComplexEnterCar's give-up speed for the player: the vehicle's 2D move speed over 0.2 units a frame. */
+export function bikeTooFastToBoard(bike:{body:{linvel():{x:number;y:number;z:number}}}){const v=bike.body.linvel();return Math.hypot(v.x,v.z)/50>.2;}
+/** Lying past 30° either way (|right.z| ≥ 0.5) or upside down (up.z ≤ 0), as TaskComplexEnterCar tests a bike. */
+export function bikeLying(bike:{body:{rotation():{x:number;y:number;z:number;w:number}}}){const q=bike.body.rotation();return Math.abs(rotate(q,{x:1,y:0,z:0}).y)>=.5||rotate(q,{x:0,y:1,z:0}).y<=0;}
 export class BikeMount {
  bike?:WorldBike;phase?:BikeMountPhase;side:BikeSide='left';time=0;message?:string;
  private setOut=false;private jumpSpeed=0;
  constructor(private sim:Simulation,readonly clips:VehicleAnimationLibrary){}
  get active(){return this.phase!==undefined;}
  /** The mount task owns the entity: the on-foot controller does not move it. */
- get pinned(){return this.phase==='mount'||this.phase==='getOff'||this.phase==='jumpOff'&&!this.setOut;}
+ get pinned(){return this.phase==='pickUp'||this.phase==='mount'||this.phase==='getOff'||this.phase==='jumpOff'&&!this.setOut;}
  get rolling(){return this.phase==='jumpOff'&&this.setOut;}
  /** Loads the bike's clips; false (and the old instant boarding) until they are there. */
  ready(bike:WorldBike){const group=bike.assets.animGroup;if(!group)return false;if(this.clips.loaded(group))return true;void this.clips.load(group).catch(()=>{});return false;}
@@ -57,12 +63,33 @@ export class BikeMount {
  /** Boards from the side nearer the player, or false when neither side has room or the clips are not loaded. */
  mount(bike:WorldBike){
   if(this.phase||!this.ready(bike))return false;
+  // CTaskComplexEnterCar gives the player up once the vehicle's 2D speed passes 0.2 units a frame.
+  if(bikeTooFastToBoard(bike))return false;
   const p=this.sim.player.position,sides=(['left','right'] as BikeSide[]).map(side=>({side,at:this.room(bike,side)})).filter(s=>s.at&&this.sideClip(bike,VEHICLE_ANIM.getinLHS,VEHICLE_ANIM.getinRHS,s.side))
    .sort((a,b)=>Math.hypot(a.at!.foot.x-p.x,a.at!.foot.z-p.z)-Math.hypot(b.at!.foot.x-p.x,b.at!.foot.z-p.z));
+  // CTaskComplexEnterCar on an abandoned bike lying past 30° (|right.z| ≥ 0.5) or upside down runs
+  // CTaskSimplePickUpBike first: CAR_ALIGN(HI)_LHS/RHS by the bike's lean, from the side nearer CJ.
+  if(!bike.occupied&&bikeLying(bike)){
+   const near=(['left','right'] as BikeSide[]).map(side=>{const local=this.sidePoint(bike,side),w=local&&this.worldPoint(bike,local);return {side,d:w?Math.hypot(w.x-p.x,w.z-p.z):Infinity};}).sort((a,b)=>a.d-b.d)[0];
+   this.bike=bike;this.side=near.side;
+   if(this.pickUpClip(bike)){this.begin('pickUp');this.pickUpHeading=this.sim.player.heading;return true;}
+   this.bike=undefined;
+  }
   const pick=sides[0];if(!pick){this.message='No room beside the bike.';return false;}
   this.bike=bike;this.side=pick.side;this.begin('mount');
   this.sim.playerCollider.setEnabled(false);this.pinTo(bike,pick.at!.local);
   return true;
+ }
+ /** CTaskSimpleBikeJacked on the rider: the ride group's BIKE_HIT plays on the saddle first; at its end the second
+  * clip and the forced knock-off follow (WorldBike.pulledOff). False, for the instant pull-off, until the clip is
+  * loaded. */
+ jacked(bike:WorldBike){
+  if(this.phase||!bike.occupied||!this.hitClip(bike))return false;
+  this.bike=bike;this.begin('jacked');return true;
+ }
+ private hitClip(bike:WorldBike):ClipUse|undefined{
+  const prefix=bike.assets.vehicle.animation;if(!prefix)return undefined;
+  const key=`${prefix}_hit`.toLowerCase(),clip=this.clips.peek(prefix,key);return clip?{key,clip}:undefined;
  }
  /** CTaskComplexLeaveCar for the rider: step off, tumble off the back at speed, or brake until one is possible. */
  dismount(bike:WorldBike){
@@ -70,9 +97,13 @@ export class BikeMount {
   this.bike=bike;
   const v=bike.body.linvel(),w=bike.body.angvel();
   if(bikeCanStepOut(v,w))return this.beginGetOff(bike);
-  if(bikeCanJumpOut(v,!!bike.pillion))return this.beginJumpOff(bike);
+  if(bikeCanJumpOut(v,!!bike.pillion,bike.quad,bike.tippedAfterCrash))return this.beginJumpOff(bike);
   this.begin('waitSlow');return true;
  }
+ /** CTaskSimplePickUpBike::StartAnim: ALIGNHI on the side the bike leans away from, ALIGN on the side it lies toward. */
+ private pickUpClip(bike:WorldBike){const rightZ=rotate(bike.body.rotation(),{x:1,y:0,z:0}).y;
+  return this.side==='left'?this.slot(bike,rightZ<=0?VEHICLE_ANIM.alignHiLHS:VEHICLE_ANIM.alignLHS):this.slot(bike,rightZ>=0?VEHICLE_ANIM.alignHiRHS:VEHICLE_ANIM.alignRHS);}
+ private pickUpHeading=0;private pickUpClipUse?:ClipUse;
  private begin(phase:BikeMountPhase){this.phase=phase;this.time=0;this.setOut=false;this.message=undefined;}
  private beginGetOff(bike:WorldBike){
   const side=(['left','right'] as BikeSide[]).find(s=>this.room(bike,s)&&this.sideClip(bike,VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS,s));
@@ -83,15 +114,17 @@ export class BikeMount {
   if(!this.slot(bike,VEHICLE_ANIM.rolloutLHS))return this.beginGetOff(bike);
   const v=bike.body.linvel();this.jumpSpeed=Math.hypot(v.x,v.y,v.z)/50;this.side='left';this.begin('jumpOff');return true;
  }
- private finish(){this.phase=undefined;this.bike=undefined;this.time=0;this.setOut=false;}
+ private finish(){this.phase=undefined;this.bike=undefined;this.time=0;this.setOut=false;this.pickUpClipUse=undefined;}
  /** Cancels whatever is running (a death, an arrest): the rider stays wherever the sequence left him. */
  abandon(){if(this.phase==='mount')this.sim.playerCollider.setEnabled(true);this.finish();}
  clipFor():ClipUse|undefined{
   const bike=this.bike;if(!bike||!this.phase)return;
   switch(this.phase){
+   case 'pickUp':return this.pickUpClipUse??=this.pickUpClip(bike);
    case 'mount':return this.sideClip(bike,VEHICLE_ANIM.getinLHS,VEHICLE_ANIM.getinRHS);
    case 'getOff':return this.sideClip(bike,VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS);
    case 'jumpOff':return this.slot(bike,VEHICLE_ANIM.rolloutLHS);
+   case 'jacked':return this.hitClip(bike);
    case 'waitSlow':return undefined;
   }
  }
@@ -99,7 +132,8 @@ export class BikeMount {
  requiredClips(){
   const bike=this.bike;if(!bike)return {};
   const out:Record<string,NativeAnimation>={};
-  for(const slot of [VEHICLE_ANIM.getinLHS,VEHICLE_ANIM.getinRHS,VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS,VEHICLE_ANIM.rolloutLHS]){const c=this.slot(bike,slot);if(c)out[c.key]=c.clip;}
+  for(const slot of [VEHICLE_ANIM.alignLHS,VEHICLE_ANIM.alignRHS,VEHICLE_ANIM.alignHiLHS,VEHICLE_ANIM.alignHiRHS,VEHICLE_ANIM.getinLHS,VEHICLE_ANIM.getinRHS,VEHICLE_ANIM.getoutLHS,VEHICLE_ANIM.getoutRHS,VEHICLE_ANIM.rolloutLHS]){const c=this.slot(bike,slot);if(c)out[c.key]=c.clip;}
+  const hit=this.hitClip(bike);if(hit)out[hit.key]=hit.clip;
   return out;
  }
  private pinTo(bike:WorldBike,local:V3){
@@ -110,19 +144,39 @@ export class BikeMount {
  /** One fixed step. Returns the jump-off tumble's world motion once the rider is set out. */
  step(dt:number):{x:number;z:number}|undefined{
   const bike=this.bike;if(!this.phase||!bike)return;
+  // A bike deleted or cleared away under the mount or dismount ends it (its body is gone).
+  if(bike.disposed){this.abandon();return;}
   if(bike.wrecked&&this.phase!=='jumpOff'){this.abandon();return;}
+  // CTaskComplexLeaveCar::ControlSubTask winds the leave up once the rider is already out (a tip-over or knock-off).
+  if(this.phase!=='mount'&&this.phase!=='pickUp'&&!this.setOut&&!bike.occupied){this.finish();return;}
   const clip=this.clipFor(),previous=this.time;this.time+=dt;
   const finished=!!clip&&this.time>=clip.clip.duration;
   switch(this.phase){
+   case 'pickUp':{
+    // CTaskSimplePickUpBike sets bGettingPickedUp once its clip passes 0.47 s; CBike::ProcessControl, which then stands
+    // the bike up, is unreversed: it is set upright at its heading there. At the clip's end the entry carries on.
+    this.sim.player.heading=this.pickUpHeading;this.sim.player.speed=0;
+    if(previous<.47&&this.time>=.47&&bikeLying(bike))bike.standUpright();
+    if(finished||!clip){if(bikeLying(bike))bike.standUpright();this.pickUpClipUse=undefined;this.phase=undefined;this.bike=undefined;if(!this.mount(bike))this.finish();}
+    return;
+   }
    case 'mount':{
+    if(bikeTooFastToBoard(bike)){this.abandon();return;}
     const local=this.sidePoint(bike,this.side);if(local)this.pinTo(bike,local);
     if(finished||!clip){this.finish();bike.finishEnter();}
+    return;
+   }
+   case 'jacked':{
+    // The rider stays on the saddle through BIKE_HIT (the bike's controls are his jacker's); FinishAnimBikeHitCB
+    // then sets the fall-off clip and the forced knock-off.
+    bike.brake=true;bike.throttle=0;
+    if(finished||!clip){this.finish();bike.pulledOff();}
     return;
    }
    case 'waitSlow':{
     bike.brake=true;bike.throttle=0;
     const v=bike.body.linvel(),w=bike.body.angvel();
-    if(bikeCanStepOut(v,w))this.beginGetOff(bike);else if(bikeCanJumpOut(v,!!bike.pillion))this.beginJumpOff(bike);
+    if(bikeCanStepOut(v,w))this.beginGetOff(bike);else if(bikeCanJumpOut(v,!!bike.pillion,bike.quad,bike.tippedAfterCrash))this.beginJumpOff(bike);
     return;
    }
    case 'getOff':{
@@ -139,7 +193,9 @@ export class BikeMount {
      this.setOut=true;
      const seat=bike.seat(),w=seat?this.worldPoint(bike,seat):new Vector3().copy(bike.body.translation() as V3),ground=this.ground(w,bike),v=bike.body.linvel();
      bike.finishExit({x:w.x,y:Math.max(ground??w.y-1,w.y-1),z:w.z});
-     this.sim.player.heading=bike.heading();this.sim.player.grounded=false;this.sim.player.verticalSpeed=v.y;
+     this.sim.player.heading=bike.heading();this.sim.player.grounded=false;this.sim.player.verticalSpeed=v.y;this.sim.exitCarriesSpeed=true;
+     // CTaskSimpleCarJumpOut::ProcessPed: m_pEntityIgnoredCollision = the vehicle, as he leaves from its saddle.
+     this.sim.ignoreVehicleOnExit(bike.body);
     }
     let forward=0;
     if(previous<BIKE_JUMP_CARRY){const to=Math.min(this.time,BIKE_JUMP_CARRY),from=Math.max(previous,BIKE_JUMP_SET_OUT),frames=Math.max(0,to-from)*50;this.jumpSpeed*=Math.pow(.96,frames);forward=this.jumpSpeed*frames;}
@@ -153,8 +209,8 @@ export class BikeMount {
  /** Render pose: bike space at the side point (the clip carries the body), or the world after the jump-off. */
  pose():{bike?:WorldBike;local?:V3;world?:boolean;heading?:number;clip:string;seconds:number}|undefined{
   const bike=this.bike,clip=this.clipFor();if(!bike||!clip)return;
-  if(this.rolling)return {world:true,heading:this.sim.player.heading,clip:clip.key,seconds:this.time};
-  if(this.phase==='jumpOff'){const seat=bike.seat();return seat?{bike,local:seat,clip:clip.key,seconds:this.time}:undefined;}
+  if(this.rolling||this.phase==='pickUp')return {world:true,heading:this.sim.player.heading,clip:clip.key,seconds:this.time};
+  if(this.phase==='jumpOff'||this.phase==='jacked'){const seat=bike.seat();return seat?{bike,local:seat,clip:clip.key,seconds:this.time}:undefined;}
   const local=this.sidePoint(bike,this.side);return local?{bike,local,clip:clip.key,seconds:this.time}:undefined;
  }
 }

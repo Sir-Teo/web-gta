@@ -6,9 +6,10 @@ import { NATIVE_WALK_SPEED, NATIVE_RUN_SPEED, NATIVE_SPRINT_SPEED } from './Simu
  *   `pedMoveBlendRatio` from the stick deflection and slews
  *   `m_fMoveBlendRatio` toward it by at most `0.07 * TimeStep` per frame.
  *   TimeStep counts 1/50 s, so the slew is 3.5 blend units per second.
- * - `CPlayerPed::SetPlayerMoveBlendRatio` (0x60C520) uses the discrete
- *   targets WALK 1.0 / RUN 1.8 / SPRINT 2.5. The browser maps partial stick
- *   deflection proportionally onto those targets.
+ * - PlayerControlZelda's target is the stick's deflection over 60 (a full pad
+ *   of 128 gives 2.133), capped at 1 with the walk button; sprinting is a move
+ *   state (PEDMOVE_SPRINT), not a larger ratio. `CPlayerPed::SetPlayerMoveBlendRatio`
+ *   (0x60C520)'s WALK 1.0 / RUN 1.8 / SPRINT 2.5 are the scripted moves' stops.
  * - `CTaskSimpleJump::Launch` (0x679B80) applies the player's 8.5 upward
  *   force to the 70-unit ped mass and sets the ground speed along the heading:
  *   0.1 units per frame, 0.1-0.17 over the RUN association's blend, or
@@ -18,8 +19,13 @@ import { NATIVE_WALK_SPEED, NATIVE_RUN_SPEED, NATIVE_SPRINT_SPEED } from './Simu
  *   steep slopes or against a blocked forward direction.
  */
 export const NATIVE_BLEND_WALK = 1.0;
+/** SetPlayerMoveBlendRatio's RUN and SPRINT stops (scripted moves). */
 export const NATIVE_BLEND_RUN = 1.8;
 export const NATIVE_BLEND_SPRINT = 2.5;
+/** PlayerControlZelda: a full pad deflection of 128 over 60. */
+export const NATIVE_BLEND_FULL_STICK = 128 / 60;
+/** SetRealMoveAnim (reVC): RUN is fully in from ratio 2. */
+export const NATIVE_BLEND_RUN_FULL = 2;
 /** 0.07 blend units per 1/50 s TimeStep. */
 export const NATIVE_BLEND_SLEW_PER_SECOND = 0.07 * 50;
 /** CTaskSimpleJump::Launch: ApplyMoveForce(0, 0, 8.5) on the 70-unit ped mass, 0.121 units per frame, in m/s. */
@@ -39,11 +45,12 @@ export function nativeJumpGroundSpeed(associations: { run?: number; sprint?: num
 /** Crouch root-motion parity: GunCrouchFwd 3.74 m/s drives the crouch gait. */
 export const NATIVE_CROUCH_SPEED = 3.74;
 
-/** Discrete native blend target for the current input state. */
-export function targetMoveBlend(length: number, walking: boolean, sprinting: boolean): number {
+/** PlayerControlZelda's pedMoveBlendRatio: the stick's deflection (0-1 here, 0-128 on the pad) over 60, and no more
+ * than 1 with the walk button held. Sprinting does not change it. */
+export function targetMoveBlend(length: number, walking: boolean, _sprinting = false): number {
   if (length <= 0) return 0;
-  const full = walking ? NATIVE_BLEND_WALK : sprinting ? NATIVE_BLEND_SPRINT : NATIVE_BLEND_RUN;
-  return Math.min(length, 1) * full;
+  const target = Math.min(length, 1) * NATIVE_BLEND_FULL_STICK;
+  return walking ? Math.min(NATIVE_BLEND_WALK, target) : target;
 }
 
 /** Slew-rate limited integrator matching PlayerControlZelda's 0.07*TimeStep clamp. */
@@ -54,15 +61,15 @@ export function stepMoveBlend(current: number, target: number, dt: number): numb
   return current + Math.sign(diff) * maxDelta;
 }
 
-/** Piecewise native blend -> ground speed (m/s) through the ped.ifp root-motion stops. */
-export function blendToSpeed(blend: number): number {
+/** The ground speed (m/s) SetRealMoveAnim's blends give through the ped.ifp root-motion stops (reVC: WALK below 1,
+ * WALK into RUN from 1 to 2, RUN from 2, SPRINT in the sprint state). The rig's own root motion is what moves the
+ * player; this is the speed without one. */
+export function blendToSpeed(blend: number, sprinting = false): number {
   const b = Math.max(0, blend);
   if (b <= NATIVE_BLEND_WALK) return (b / NATIVE_BLEND_WALK) * NATIVE_WALK_SPEED;
-  if (b <= NATIVE_BLEND_RUN)
-    return NATIVE_WALK_SPEED + ((b - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN - NATIVE_BLEND_WALK)) * (NATIVE_RUN_SPEED - NATIVE_WALK_SPEED);
-  if (b <= NATIVE_BLEND_SPRINT)
-    return NATIVE_RUN_SPEED + ((b - NATIVE_BLEND_RUN) / (NATIVE_BLEND_SPRINT - NATIVE_BLEND_RUN)) * (NATIVE_SPRINT_SPEED - NATIVE_RUN_SPEED);
-  return NATIVE_SPRINT_SPEED;
+  if (b < NATIVE_BLEND_RUN_FULL)
+    return NATIVE_WALK_SPEED + (b - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN_FULL - NATIVE_BLEND_WALK) * (NATIVE_RUN_SPEED - NATIVE_WALK_SPEED);
+  return sprinting ? NATIVE_SPRINT_SPEED : NATIVE_RUN_SPEED;
 }
 
 /** pedstats.dat STAT_PLAYER's heading change rate: 9 degrees per 1/50 s TimeStep. CPed::CalculateNewVelocity is a retail
@@ -71,4 +78,10 @@ export const NATIVE_PLAYER_HEADING_CHANGE_RATE = 9;
 /** The largest turn toward the aimed heading this step (radians). */
 export function playerTurnStep(dt: number, rate = NATIVE_PLAYER_HEADING_CHANGE_RATE): number {
   return rate * Math.PI / 180 * dt * 50;
+}
+/** The heading one step turns toward `target` at the player's heading change rate (m_fAimingRotation followed by
+ * m_fCurrentRotation). */
+export function turnToward(heading: number, target: number, dt: number): number {
+  const d = Math.atan2(Math.sin(target - heading), Math.cos(target - heading)), turn = playerTurnStep(dt);
+  return heading + Math.max(-turn, Math.min(turn, d));
 }

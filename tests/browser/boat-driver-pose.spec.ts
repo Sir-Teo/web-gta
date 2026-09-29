@@ -12,7 +12,8 @@ test('the boat\'s driver sits in DRIVE_BOAT, and a standing boat\'s steers with 
   g.placePlayer(2600,3,2600);
   const boat=await fleet.spawnBoat(453,2600,2601,0);
   for(let i=0;i<40&&!boat.seat();i++)await new Promise(r=>setTimeout(r,100));
-  boat.interact();
+  // Seated directly: boarding itself needs CJ aboard or touching the hull (CTaskComplexEnterBoatAsDriver).
+  boat.finishEnter();
   return {occupied:boat.occupied,sit:!!(boat.modelFlags&0x400),seat:boat.seat()};
  });
  expect(boarded.occupied,JSON.stringify(boarded)).toBe(true);

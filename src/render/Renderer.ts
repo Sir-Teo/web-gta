@@ -13,7 +13,8 @@ import { WorldLighting } from './WorldLighting';
 import type { Simulation } from '../simulation/Simulation';
 import type { Input } from '../input/Input';
 import { angleDelta, clamp, damp } from '../core/math';
-import {FirstPersonZoom,firstPersonAlphaRange,firstPersonLookScale,firstPersonSourceOffset,isRocketMode,type FirstPersonMode} from '../weapons/nativeFirstPerson';
+import {FirstPersonZoom,firstPersonAlphaRange,firstPersonSourceOffset,isRocketMode,type FirstPersonMode} from '../weapons/nativeFirstPerson';
+import {MOUSE_ACCEL_DEFAULT} from '../input/mouseSettings';
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -35,6 +36,10 @@ export class GameRenderer {
   private sourceFov=GAME_CAMERA_FOV;
   get fov(){return this.sourceFov;}
   private wasFirstPerson=false;
+  private wasAiming=false;
+  /** The frontend's mouse options: the sensitivity slider turns the sideways look only (the retail camera's vertical
+   * rate stays 0.0015), and CPad::UpdateMouse inverts the vertical movement in play with bInvertMouseY. */
+  mouseYawScale=1;mouseYSign=1;
   private head=new THREE.Vector3();
   /** Player car entry, exit or driving pose; replaces on-foot animation while set. */
   /** The player's camera follow point (feet position) when a task moves it off the ped, as CTaskSimpleClimb::GetCameraTargetPos. */
@@ -47,6 +52,13 @@ export class GameRenderer {
   playerShadowAllowed=true;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
   fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3};
+  /** CCam::Process_1stPerson's source and the vehicle's frame for the bumper view, from the host each frame. */
+  bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number}};
+  /** TheCamera.m_bDisableFirstPersonInCar off. */
+  bumperAllowed=true;
+  get bumperView(){return this.vehicleView&&this.cameraSettings.vehicle==='bumper'&&!!this.bumper&&this.bumperAllowed;}
+  /** CCamera::m_fCamShakeForce left this frame, for the shake below. */
+  shake?:()=>number;
   /** CCamera::m_fNearClipScript while m_bUseNearClipScript holds (SET_NEAR_CLIP, until a restore). */
   scriptNearClip?:number;
   /** CCamera::m_bCamDirectlyBehind, which SET_CAMERA_BEHIND_PLAYER sets: the string camera swings straight
@@ -115,8 +127,9 @@ export class GameRenderer {
   get followDistance() { return this.distance; }
   cycleCameraDistance() {
     // In a vehicle the V key steps CCamera's car zoom, not the on-foot one.
+    if (this.vehicleView) this.cameraSettings.vehicle = nextCameraMode(this.cameraSettings.vehicle, true, this.bumperAllowed);
+    else this.cameraSettings.foot = nextCameraMode(this.cameraSettings.foot);
     const key = this.vehicleView ? 'vehicle' : 'foot';
-    this.cameraSettings[key] = nextCameraMode(this.cameraSettings[key]);
     saveCameraSettings(this.cameraSettings);
     return this.cameraSettings[key];
   }
@@ -145,25 +158,32 @@ export class GameRenderer {
     // CCamera::StartTransition into a first-person weapon mode: the ped's heading, level, and Process_Sniper's reset zoom.
     if(fp&&!this.wasFirstPerson){this.yaw=p.heading+Math.PI;this.pitch=0;this.zoom.reset();}
     else if(!fp&&this.wasFirstPerson)this.pitch=clamp(this.pitch,this.aiming?-1.1:-.18,1.05);
-    this.wasFirstPerson=!!fp;
+    // Leaving the aimed view puts the follow camera back within its own pitch range, as leaving first person does.
+    else if(!fp&&!this.aiming&&this.wasAiming)this.pitch=clamp(this.pitch,-.18,1.05);
+    this.wasFirstPerson=!!fp;this.wasAiming=this.aiming;
     const previousGlance = this.glance;
     // Looking behind is a third-person control (AffectControllerStateOn_ButtonDown_ThirdPersonOnly).
     // In a road vehicle Q and E look left and right and both together look behind (m_bLookingLeft/Right).
     const carLooks=this.vehicleView&&this.vehicleLooks;
-    this.glance = cameraGlance(carLooks, !fp&&input.down('KeyQ'), !fp&&input.down('KeyE'),
+    // A held game (the pause menu, the map, the arsenal) takes no camera input: the view stays as it was left.
+    if (!paused) this.glance = cameraGlance(carLooks, !fp&&input.down('KeyQ'), !fp&&input.down('KeyE'),
       !fp&&(input.down('MouseMiddle') || !this.vehicleView&&input.down('Numpad1')));
     if (this.glance !== 'none' || previousGlance !== 'none') this.lastLook = elapsed;
-    if (this.glance !== 'none') {
+    if (paused) {
+      input.lookX = input.lookY = 0;
+    } else if (this.glance !== 'none') {
       input.lookX = input.lookY = 0;
     } else if (input.lookX || input.lookY) {
       if(fp){
-        // The browser pitch is minus the camera's vertical angle.
-        const scale=firstPersonLookScale(this.zoom.fov),range=firstPersonAlphaRange(fp);
-        this.yaw -= input.lookX * .003 * scale.yaw;
-        this.pitch = clamp(this.pitch + input.lookY * .002 * scale.pitch, -range.max, -range.min);
+        // CCam::Process_Rocket and Process_1rstPersonPedOnPC: the horizontal angle moves by -3 x dx x (FOV / 80) x
+        // m_fMouseAccelHorzntl (the sensitivity slider, 0.0025 by default) and the vertical by 4 x dy x (FOV / 80) x
+        // m_fMouseAccelVertical (0.0015). The browser pitch is minus the camera's vertical angle.
+        const fovScale=this.zoom.fov/80,range=firstPersonAlphaRange(fp);
+        this.yaw -= input.lookX * 3 * fovScale * MOUSE_ACCEL_DEFAULT * this.mouseYawScale;
+        this.pitch = clamp(this.pitch + input.lookY * this.mouseYSign * 4 * fovScale * .0015, -range.max, -range.min);
       }else{
-        this.yaw -= input.lookX * .003;
-        this.pitch = clamp(this.pitch + input.lookY * .002, this.aiming?-1.1:-.18, 1.05);
+        this.yaw -= input.lookX * .003 * this.mouseYawScale;
+        this.pitch = clamp(this.pitch + input.lookY * this.mouseYSign * .002, this.aiming?-1.1:-.18, 1.05);
       }
       this.lastLook = elapsed;
       input.lookX = input.lookY = 0;
@@ -197,6 +217,8 @@ export class GameRenderer {
     this.camera.lookAt(this.target);
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
     if(this.fixedCamera){this.camera.position.copy(this.fixedCamera.position);this.camera.lookAt(this.fixedCamera.target());}
+    // CCam::Process_1stPerson: the source the host worked out, looking along the vehicle's own forward and up.
+    else if(this.bumperView){const b=this.bumper!;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}
     else if(fp){
       // Process_Rocket and the Vice City Process_Sniper: the head bone plus the mode's offset, looking along the angles.
       const head=this.nativeCharacter?.headPosition(this.head)??this.head.set(p.position.x,p.position.y+1.6-.5*this.crouchAmount,p.position.z);
@@ -204,9 +226,14 @@ export class GameRenderer {
       this.camera.position.set(head.x+sin*o.forward-cos*o.right,head.y+o.up,head.z+cos*o.forward+sin*o.right);
       this.camera.lookAt(this.camera.position.x-direction.x,this.camera.position.y-direction.y,this.camera.position.z-direction.z);
     }
+    // CCamera::Process's shake (a stub here; re3's, GTA III's, is the port): the force left moves the source by
+    // force x 0.1 x (a random 0..15 less 7) on each axis.
+    const shake=Math.min(2,Math.max(0,this.shake?.()??0));
+    if(shake>0){const r=Math.floor(Math.random()*4096),o=shake*.1;this.camera.position.x+=o*((r&15)-7);this.camera.position.y+=o*(((r>>4)&15)-7);this.camera.position.z+=o*(((r>>8)&15)-7);}
     // The aimed third-person camera's 52 is authored (Process_AimWeapon and Process_FollowPedWithMouse are stubs).
     // CCam::Process_Fixed sets FOV 70 whatever mode the player was in.
-    const fov=this.fixedCamera?70:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
+    // Process_1stPerson in a vehicle sets FOV 60.
+    const fov=this.fixedCamera?70:this.bumperView?60:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
     // Process_Rocket's near clip plane is 0.15.
     const near=this.scriptNearClip??(fp&&isRocketMode(fp)?.15:.08);
     if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}

@@ -119,13 +119,16 @@ export class AudioSystem {
     if(this.settings.muted||this.settings.master===0||this.settings.effects===0)this.stopShots();
     this.applySettings();
   }
+  /** CAEAudioHardware::SetEffectsFaderScalingFactor: the screen fade's factor every channel's gain is scaled by. */
+  private fader=1;
+  setFaderScalingFactor(factor:number){const f=Math.min(1,Math.max(0,factor));if(f===this.fader)return;this.fader=f;this.applySettings();}
   private applySettings() {
     if (!this.context) return;
     const t = this.context.currentTime;
     this.master.gain.cancelScheduledValues(t);
-    this.master.gain.setTargetAtTime(this.playing && !this.settings.muted ? this.settings.master : 0, t, 0.015);
+    this.master.gain.setTargetAtTime(this.playing && !this.settings.muted ? this.settings.master*this.fader : 0, t, 0.015);
     this.effects.gain.setTargetAtTime(this.settings.effects, t, 0.015);
-    this.nativeOut?.gain.setTargetAtTime(this.playing && !this.settings.muted ? this.settings.master*this.settings.effects : 0, t, 0.015);
+    this.nativeOut?.gain.setTargetAtTime(this.playing && !this.settings.muted ? this.settings.master*this.settings.effects*this.fader : 0, t, 0.015);
   }
   private panner(ctx: AudioContext, position: Vec3) {
     const panner = ctx.createPanner(); panner.panningModel = 'HRTF'; panner.distanceModel = 'inverse';
@@ -173,6 +176,8 @@ export class AudioSystem {
     listener.forwardX.value = -Math.sin(yaw) * Math.cos(pitch); listener.forwardY.value = -Math.sin(pitch); listener.forwardZ.value = -Math.cos(yaw) * Math.cos(pitch);
     listener.upX.value = 0; listener.upY.value = 1; listener.upZ.value = 0;
   }
+  /** What the menu's audio line needs, without the meter or the voice snapshots. */
+  status() { return { unavailable: this.unavailable, failed: this.failed, loaded: this.loaded }; }
   state() {
     let rms = 0;
     if (this.context?.state === 'running') {

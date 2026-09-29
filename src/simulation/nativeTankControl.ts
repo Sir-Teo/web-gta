@@ -11,6 +11,22 @@ export const TANK_SHOT_DOOM_POS={x:0,y:-1.394,z:2.296},TANK_SHOT_DOOM_DEFAULT_TA
 export interface TankTurret {yaw:number;pitch:number}
 export function initialTankTurret():TankTurret{return {yaw:0,pitch:0.05};}
 const wrap=(a:number)=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a;};
+/** The wrap and the pitch limits every aim ends with. */
+function limitTurret(yaw:number,pitch:number):TankTurret{
+ yaw=wrap(yaw);
+ if(pitch>TANK_PITCH_MAX)pitch=TANK_PITCH_MAX;
+ else if(yaw>Math.PI/2||yaw<-Math.PI/2){
+  const cosYaw=Math.cos(yaw)*1.3;let floor=-3*Math.PI/180;
+  if(cosYaw>=-1)floor=TANK_PITCH_MIN-cosYaw*(floor-TANK_PITCH_MIN);
+  if(floor>pitch)pitch=floor;
+ }else if(pitch<TANK_PITCH_MIN)pitch=TANK_PITCH_MIN;
+ return {yaw,pitch};
+}
+/** One frame off the camera's string (any mode but MODE_CAM_ON_A_STRING): the car-gun stick (−128..128) turns the
+ * turret, yaw −0.015 and pitch +0.005 a step at full deflection. */
+export function stepTankTurretPad(t:TankTurret,stick:{leftRight:number;upDown:number},steps:number):TankTurret{
+ return limitTurret(t.yaw-stick.leftRight*steps*TANK_YAW_RATE/128,t.pitch+stick.upDown*steps*TANK_PITCH_RATE/128);
+}
 /** One frame of the camera-following aim; `steps` is the frame in native time steps (fiftieths of a second). */
 export function stepTankTurret(t:TankTurret,front:{x:number;y:number;z:number},steps:number):TankTurret{
  let yawTarget=Math.atan2(-front.x,front.y);
@@ -21,14 +37,7 @@ export function stepTankTurret(t:TankTurret,front:{x:number;y:number;z:number},s
  if(yawDiff<-yawStep)yaw-=yawStep;else if(yawDiff>yawStep)yaw+=yawStep;
  const pitchDiff=pitchTarget-pitch,pitchStep=steps*TANK_PITCH_RATE;
  if(pitchDiff>pitchStep)pitch+=pitchStep;else if(pitchDiff>=-pitchStep)pitch=pitchTarget;else pitch-=pitchStep;
- yaw=wrap(yaw);
- if(pitch>TANK_PITCH_MAX)pitch=TANK_PITCH_MAX;
- else if(yaw>Math.PI/2||yaw<-Math.PI/2){
-  const cosYaw=Math.cos(yaw)*1.3;let floor=-3*Math.PI/180;
-  if(cosYaw>=-1)floor=TANK_PITCH_MIN-cosYaw*(floor-TANK_PITCH_MIN);
-  if(floor>pitch)pitch=floor;
- }else if(pitch<TANK_PITCH_MIN)pitch=TANK_PITCH_MIN;
- return {yaw,pitch};
+ return limitTurret(yaw,pitch);
 }
 /** The shot's direction in native car space (not normalised, as the native `point`). */
 export function tankShotDirection(t:TankTurret){return {x:Math.sin(-t.yaw),y:Math.cos(t.yaw),z:Math.sin(t.pitch)};}

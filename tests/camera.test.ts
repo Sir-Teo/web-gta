@@ -23,7 +23,10 @@ test('temporary viewpoints use vehicle heading and preserve the stored orbit on 
 test('distance modes cycle and isolate walking and vehicle preferences', async () => {
   const { nextCameraMode, parseCameraSettings, cameraNominalDistance, vehicleZoomScale } = await import('../src/render/cameraSettings');
   expect(nextCameraMode('near')).toBe('medium'); expect(nextCameraMode('medium')).toBe('far'); expect(nextCameraMode('far')).toBe('near');
+  // A vehicle's zooms end in the bumper view (CCam::Process_1stPerson), unless the script turned it off.
+  expect(nextCameraMode('far', true)).toBe('bumper'); expect(nextCameraMode('bumper', true)).toBe('near'); expect(nextCameraMode('far', true, false)).toBe('near');
   expect(parseCameraSettings({ foot: 'far', vehicle: 'bad' })).toEqual({ foot: 'far', vehicle: 'medium' });
+  expect(parseCameraSettings({ foot: 'bumper', vehicle: 'bumper' })).toEqual({ foot: 'medium', vehicle: 'bumper' });
   expect(parseCameraSettings(null)).toEqual({ foot: 'medium', vehicle: 'medium' });
   expect(cameraNominalDistance('near')).toBeLessThan(cameraNominalDistance('medium'));
   expect(cameraNominalDistance('medium')).toBeLessThan(cameraNominalDistance('far'));

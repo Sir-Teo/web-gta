@@ -82,7 +82,7 @@ export function gxtText(key:string,fallback:string){return current?.get(key)||fa
 /** CMessages::InsertNumberInString: each ~1~ in turn takes the next number (-1 past the ones given). */
 export function insertNumbers(text:string,...numbers:number[]){let i=0;return text.replace(/~1~/g,()=>String(numbers[i++]??-1));}
 /** The controls a ~k~ token names, as the browser binds them; any other shows its action name. */
-const BROWSER_CONTROLS:Readonly<Record<string,string>>={VEHICLE_ENTER_EXIT:'F',PED_SPRINT:'SHIFT',PED_JUMPING:'SPACE',PED_DUCK:'C',
+const BROWSER_CONTROLS:Readonly<Record<string,string>>={VEHICLE_ENTER_EXIT:'F',PED_ANSWER_PHONE:'TAB',PED_SPRINT:'SHIFT',PED_JUMPING:'SPACE',PED_DUCK:'C',
  VEHICLE_RADIO_STATION_UP:'N',PED_FIREWEAPON:'LEFT MOUSE',PED_LOCK_TARGET:'RIGHT MOUSE',CAMERA_CHANGE_VIEW_ALL_SITUATIONS:'V',GROUP_CONTROL_FWD:'G',
  GROUP_CONTROL_BWD:'H',CONVERSATION_YES:'Y',CONVERSATION_NO:'N',TOGGLE_SUBMISSIONS:'2',GO_FORWARD:'W',GO_BACK:'S',GO_LEFT:'A',GO_RIGHT:'D',
  VEHICLE_ACCELERATE:'W',VEHICLE_BRAKE:'S',VEHICLE_STEERLEFT:'A',VEHICLE_STEERRIGHT:'D',VEHICLE_STEERUP:'UP',VEHICLE_STEERDOWN:'DOWN',

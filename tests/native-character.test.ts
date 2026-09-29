@@ -5,7 +5,7 @@ import { NativeCharacter, type CharacterSource } from '../src/render/NativeChara
 import { readDff } from '../src/assets/dff';
 import { readIfp } from '../src/assets/ifp';
 import {Mesh} from 'three';
-import {Matrix4,Object3D} from 'three';
+import {Matrix4,Object3D,Vector3} from 'three';
 import {readPlayerBaseBody,PLAYER_CLASSIC_FILES} from '../src/assets/readPlayerBaseBody';
 import {playerShoulderMatrix} from '../src/animation/playerShoulders';
 import { Simulation } from '../src/simulation/Simulation';
@@ -92,7 +92,7 @@ test('loop crossing and opposite input produce continuous transformed displaceme
 test('unsupported actions return ordinary controls and hide the native rig', () => {
   setup(); sim.player.crouched=true; expect(character.step(.1,controls,sim)).toBe(controls); character.update(sim,1); expect(character.root.visible).toBe(false);
   sim.player.crouched=false; sim.player.health=0; expect(character.step(.1,controls,sim)).toBe(controls);
-  sim.player.health=100; sim.player.grounded=false; expect(character.step(.1,controls,sim)).toBe(controls);
+  sim.player.health=100; sim.player.grounded=false;sim.playerInAir=true; expect(character.step(.1,controls,sim)).toBe(controls);
 });
 test('installs at the interpolated actor position and releases GPU resources once', () => {
   setup(); sim.player.previous={x:0,y:1,z:2};sim.player.position={x:2,y:3,z:4};character.update(sim,.5);expect(character.root.position.toArray()).toEqual([1,2,3]);
@@ -209,7 +209,7 @@ test('partial crouch assignments fail before allocating a replacement character'
 test('airborne clip starts at takeoff, clamps at its end and does not add root translation', () => {
   setup();character.dispose();const data=source();character=new NativeCharacter({...data,airborne:{clip:data.clip,track:0}});
   const jump={...controls,jump:true};expect(character.step(.1,jump,sim)).toBe(jump);expect(character.snapshot().action).toBe('airborne');
-  sim.player.grounded=false;character.step(3,controls,sim);character.update(sim,1);expect(character.snapshot()).toMatchObject({action:'airborne',seconds:2,visible:true});
+  sim.player.grounded=false;sim.playerInAir=true;character.step(3,controls,sim);character.update(sim,1);expect(character.snapshot()).toMatchObject({action:'airborne',seconds:2,visible:true});
   let root:any;character.root.traverse(o=>{if(o.name==='Root')root=o;});expect(root.matrix.elements.slice(12,15)).toEqual([0,0,0]);
   const end=[...root.matrix.elements];character.step(1,controls,sim);character.update(sim,1);expect(root.matrix.elements).toEqual(end);
   sim.player.grounded=true;character.step(.2,{...controls,y:0},sim);expect(character.snapshot()).toMatchObject({action:'idle',seconds:0});
@@ -226,7 +226,7 @@ test('airborne animation leaves the physical jump trajectory under simulation co
 
 test('landing plays once after flight, blocks a repeat jump and resumes movement at phase zero', () => {
   setup();character.dispose();const data=source();character=new NativeCharacter({...data,landing:{clip:data.clip,track:0}});
-  character.step(.1,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);
+  character.step(.1,controls,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,controls,sim);
   sim.player.grounded=true;
   const input=character.step(.2,{...controls,jump:true,sprint:true},sim);
   expect(input).toMatchObject({x:0,y:0,jump:false,sprint:false,animationMotion:{x:0,z:0}});
@@ -239,12 +239,12 @@ test('landing plays once after flight, blocks a repeat jump and resumes movement
 });
 test('initial placement does not land, and death cancels an active landing', () => {
   setup();character.dispose();const data=source();character=new NativeCharacter({...data,landing:{clip:data.clip,track:0}});
-  sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;character.step(.1,controls,sim);
+  sim.player.grounded=false;sim.playerInAir=true;character.step(.1,controls,sim);sim.player.grounded=true;character.step(.1,controls,sim);
   expect(character.snapshot().action).toBe('walk');
-  sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;character.step(.1,controls,sim);
+  sim.player.grounded=false;sim.playerInAir=true;character.step(.1,controls,sim);sim.player.grounded=true;character.step(.1,controls,sim);
   expect(character.snapshot().action).toBe('landing');
   sim.player.health=0;expect(character.step(.1,controls,sim)).toBe(controls);character.update(sim,1);
-  expect(character.snapshot()).toMatchObject({action:'idle',visible:false});
+  expect(character.snapshot()).toMatchObject({action:'idle',visible:true});
   sim.player.health=100;character.step(.1,controls,sim);expect(character.snapshot().action).toBe('walk');
 });
 
@@ -257,12 +257,12 @@ test('launch completes before emitting exactly one physical jump request', () =>
   expect(character.step(1.5,controls,sim).jump).toBe(false);
   expect(character.snapshot()).toMatchObject({action:'launch',seconds:2});
   expect(character.step(.1,controls,sim).jump).toBe(true);expect(character.snapshot().action).toBe('airborne');
-  sim.player.grounded=false;expect(character.step(.1,controls,sim).jump).toBe(false);
+  sim.player.grounded=false;sim.playerInAir=true;expect(character.step(.1,controls,sim).jump).toBe(false);
 });
 test.each(['death','crouch','lost ground'] as const)('interrupted launch cannot issue a delayed jump after %s', reason => {
   setup();character.dispose();const data=source();character=new NativeCharacter({...data,launch:{clip:data.clip,track:0}});
   character.step(.2,{...controls,jump:true},sim);
-  if(reason==='death')sim.player.health=0;else if(reason==='crouch')sim.player.crouched=true;else sim.player.grounded=false;
+  if(reason==='death')sim.player.health=0;else if(reason==='crouch')sim.player.crouched=true;else sim.player.grounded=false;sim.playerInAir=true;
   expect(character.step(3,controls,sim).jump).toBe(false);expect(character.snapshot().action).not.toBe('launch');
   sim.player.health=100;sim.player.crouched=false;sim.player.grounded=true;
   expect(character.step(3,controls,sim).jump).toBe(false);
@@ -354,7 +354,7 @@ for(const mode of ['running','walking','released'] as const)test(`moving landing
  setup();character.dispose();const data=source();
  character=new NativeCharacter({...data,airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0},landingMoving:{clip:data.clip,track:0}});
  const input={...controls,walk:mode==='walking'};
- character.step(.7,input,sim);sim.player.grounded=false;character.step(.1,input,sim);
+ character.step(.7,input,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,input,sim);
  sim.player.grounded=true;character.step(.01,mode==='released'?{...input,y:0}:input,sim);
  const expected=mode==='running'?'landingMoving':'landing';
  expect(character.snapshot().action).toBe(expected);
@@ -367,7 +367,7 @@ test('native landing extracts forward displacement once, preserving lateral and 
  setup();character.dispose();const data=source(),landing=structuredClone(data.clip);
  const root=landing.tracks[0];root.translations!.forEach((_,i,a)=>{const time=root.times[Math.floor(i/3)];a[i]=time*(i%3===0?2:i%3===1?.5:1);});
  character=new NativeCharacter({...data,convention:'san-andreas-ped',landing:{clip:landing,track:0,forwardMotion:true}});
- character.step(.1,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;
+ character.step(.1,controls,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,controls,sim);sim.player.grounded=true;
  const result=character.step(3,{...controls,y:0},sim);
  expect(result.animationMotion!.x).toBeCloseTo(0);expect(Math.abs(result.animationMotion!.z)).toBeCloseTo(1);
  expect(result).toMatchObject({x:0,y:0,jump:false,sprint:false});
@@ -382,7 +382,7 @@ for(const mode of ['run','sprint','released'] as const)test(`native landing spee
  const root=landing.tracks[0];root.translations!.forEach((_,i,a)=>{a[i]=i%3===1?root.times[Math.floor(i/3)]*.5:0;});
  character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:landing,track:0,forwardMotion:true}});
  const moving={...controls,sprint:mode!=='run'};
- character.step(.7,moving,sim);sim.player.grounded=false;character.step(.1,moving,sim);sim.player.grounded=true;
+ character.step(.7,moving,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,moving,sim);sim.player.grounded=true;
  const contact={...moving,sprint:mode==='sprint'};
  const result=character.step(.1,contact,sim),speed=mode==='sprint'?2:1;
  expect(character.snapshot()).toMatchObject({action:'landing',playbackSpeed:speed,seconds:.1*speed});
@@ -395,7 +395,7 @@ for(const mode of ['run','sprint','released'] as const)test(`native landing spee
 
 test('native landing uses the source blend-in rate instead of the ordinary movement transition',()=>{
  setup();character.dispose();const data=source();character=new NativeCharacter({...data,convention:'san-andreas-ped',landing:{clip:data.clip,track:0}});
- character.step(.2,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;
+ character.step(.2,controls,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,controls,sim);sim.player.grounded=true;
  character.step(.005,controls,sim);expect(character.snapshot()).toMatchObject({action:'landing',transition:.5});
  character.step(.005,controls,sim);expect(character.snapshot().transition).toBe(1);
 });
@@ -437,7 +437,7 @@ for(const heading of [0,Math.PI/2])for(const wall of ['none','box','mesh'] as co
 for(const gait of ['walk','run','sprint'] as const)test(`native moving landing exits quickly and restarts ${gait} from its beginning`,()=>{
  setup();character.dispose();const data=source();
  character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0},landingMoving:{clip:data.clip,track:0}});
- character.step(.7,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;
+ character.step(.7,controls,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,controls,sim);sim.player.grounded=true;
  character.step(2,controls,sim);expect(character.snapshot()).toMatchObject({action:'landingMoving',seconds:2});
  const input={...controls,walk:gait==='walk',sprint:gait==='sprint'};
  character.step(.005,input,sim);expect(character.snapshot()).toMatchObject({action:gait,seconds:.005,transition:.5});
@@ -449,7 +449,7 @@ for(const sprint of [false,true])test(`native landing foot contacts follow sourc
  setup();character.dispose();const data=source();
  character=new NativeCharacter({...data,convention:'san-andreas-ped',run:{clip:data.clip,track:0},sprint:{clip:data.clip,track:0},airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0}});
  const input={...controls,sprint};character.step(.7,input,sim);
- sim.player.grounded=false;character.step(.01,input,sim);expect(character.landingFootContacts).toEqual([]);
+ sim.player.grounded=false;sim.playerInAir=true;character.step(.01,input,sim);expect(character.landingFootContacts).toEqual([]);
  sim.player.grounded=true;const speed=sprint?2:1;
  character.step(.099/speed,input,sim);expect(character.landingFootContacts).toEqual([]);
  character.step(.002/speed,input,sim);expect(character.landingFootContacts).toEqual(['right']);
@@ -460,8 +460,26 @@ for(const sprint of [false,true])test(`native landing foot contacts follow sourc
 });
 test('a long landing tick preserves both contacts and does not repeat them',()=>{
  setup();character.dispose();const data=source();character=new NativeCharacter({...data,convention:'san-andreas-ped',landing:{clip:data.clip,track:0}});
- character.step(.1,controls,sim);sim.player.grounded=false;character.step(.1,controls,sim);sim.player.grounded=true;
+ character.step(.1,controls,sim);sim.player.grounded=false;sim.playerInAir=true;character.step(.1,controls,sim);sim.player.grounded=true;
  character.step(.3,controls,sim);expect(character.landingFootContacts).toEqual(['right','left']);
  character.step(.3,controls,sim);expect(character.landingFootContacts).toEqual([]);
  sim.player.health=0;character.step(.1,controls,sim);expect(character.landingFootContacts).toBeUndefined();
+});
+test('stepping down a curb is not a fall: no fall pose and no landing', () => {
+  setup();character.dispose();const data=source();character=new NativeCharacter({...data,airborne:{clip:data.clip,track:0},landing:{clip:data.clip,track:0}});
+  character.step(.1,controls,sim);
+  // Off the ground for a moment with ground just below (CPed::CheckIfInTheAir false): the walk carries on.
+  sim.player.grounded=false;sim.playerInAir=false;character.step(.05,controls,sim);
+  expect(character.snapshot().action).toBe('walk');
+  sim.player.grounded=true;character.step(.1,controls,sim);
+  expect(character.snapshot().action).toBe('walk');
+});
+test('on foot the root keeps only its heading after a car frame facing past ±90° (no upside-down CJ)',()=>{
+ setup();sim.player.heading=.4;sim.player.previous={...sim.player.position};
+ // updateSeated / updateVehicle copy the car's quaternion; a yaw past ±90° reads back as Euler (π, π−yaw, π).
+ character.root.quaternion.setFromAxisAngle(new Vector3(0,1,0),3);
+ expect(Math.abs(character.root.rotation.x)).toBeCloseTo(Math.PI,5);
+ character.update(sim,1);
+ expect(character.root.rotation.x).toBe(0);expect(character.root.rotation.z).toBe(0);
+ const up=new Vector3(0,1,0).applyQuaternion(character.root.quaternion);expect(up.y).toBeCloseTo(1,6);
 });

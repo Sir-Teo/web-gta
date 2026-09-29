@@ -115,3 +115,16 @@ test('a training mission holds the defensive attack\'s countdown',()=>{
  expect(g.timeTillNextAttack).toBe(100);expect(g.state2).toBe(ATTACK_STATE.none);
  training=false;run(g,state,200);expect(g.state2).toBe(ATTACK_STATE.notified);
 });
+// CHud::DrawAreaName: with gang wars active the zone name takes FillZonesWithGangColours' strength-weighted colour of
+// the zone the player stands in, when every channel is non-zero; otherwise (or with wars off) the light blue.
+test('the zone name colour is the gang colour of the zone under the player while wars are active',()=>{
+ const zones=world();const {h,state}=host(zones);const g=new GangWars(h);
+ // Ganton, Families only: (70, 200, 0) has a zero channel, so no tint.
+ state.player={x:2500,y:-1700,z:10};expect(g.zoneNameColour()).toBeUndefined();
+ // Idlewood, Ballas only: (200, 0, 200) has a zero channel too, so the original keeps the light blue there as well.
+ state.player={x:2200,y:-1700,z:10};expect(g.zoneNameColour()).toBeUndefined();
+ // A shared zone weights the colours by strength: Jefferson set half Families, half Ballas.
+ zones.population![4].gangStrength[GANG.ballas]=30;state.player={x:2200,y:-1550,z:10};
+ expect(g.zoneNameColour()).toEqual([135,100,100]);
+ g.active=false;expect(g.zoneNameColour()).toBeUndefined();
+});

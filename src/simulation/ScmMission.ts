@@ -1,4 +1,5 @@
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
+import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
 import type {CarRecordingFrame} from '../assets/carRecordings';
 import {saveOrRetrieveDataForThisFrame,type CarRecordingVehicle} from '../engine/carRecordingPlayback';
 import {TRAIN_TYPES} from './nativeTrainTracks';
@@ -99,6 +100,10 @@ export interface ScmMissionWorld {
   * for a cut, physicalFlags.bDontApplySpeed (FREEZE_CHAR_POSITION), the swimming and falling questions, the clip
   * playing, and m_nAreaCode. */
  setPlayerAmmo?(weaponType:number,ammo:number):void;
+ /** ENSURE_PLAYER_HAS_DRIVE_BY_WEAPON: the SMG slot topped up to `ammo`, or a Micro-SMG given and taken up, in a vehicle only. */
+ ensurePlayerHasDriveByWeapon?(ammo:number):void;
+ /** SET_WEATHER_TO_APPROPRIATE_TYPE_NOW: CWeather::SetWeatherToAppropriateTypeNow on the world's weather. */
+ setWeatherToAppropriateTypeNow?():void;
  addPlayerAmmo?(weaponType:number,ammo:number):void;
  hidePlayerWeapon?(hidden:boolean):void;
  markRoadNodeAsDontWander?(point:{x:number;y:number;z:number}):void;
@@ -294,6 +299,10 @@ export interface ScmMissionWorld {
  playerHasScriptTask?():boolean;
  /** CWorld::ClearExcitingStuffFromArea round a point in the script's own coordinates. */
  clearArea(point:{x:number;y:number;z:number},radius:number):void;
+ /** CPlayerInfo::m_nPlayerState: PLAYERSTATE_PLAYING, HAS_DIED or HAS_BEEN_ARRESTED. */
+ playerState?():'playing'|'dead'|'arrested';
+ /** CFireManager::ExtinguishPoint over the host's own fires, in the script's coordinates. */
+ extinguishFiresAtPoint?(point:{x:number;y:number;z:number},radius:number):void;
  /** Whether nothing solid stands between two points in the script's own coordinates. */
  lineOfSightClear(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},
   flags?:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean}):boolean;
@@ -559,6 +568,8 @@ export interface ScmMissionWorld {
  scriptVehicleSeatDoor?(car:unknown,seat:'driver'|number):{x:number;y:number;z:number}|undefined;
  /** CVehicle::CanPedStepOutCar(false): the car is still enough to step out of. */
  scriptVehicleStill?(car:unknown):boolean;
+ /** CTaskSimpleCarJumpOut for a ped set out of a moving car: CAR_rollout_LHS or _RHS with the car's speed. */
+ rollOutScriptPed?(ped:unknown,velocity:{x:number;z:number},clip:'car_rollout_lhs'|'car_rollout_rhs'):void;
  /** CCarAI's coordinate missions on a script car (ScriptCarMissions), in the script's coordinates, and
   * m_nStraightLineDistance. */
  driveScriptVehicleTo?(car:unknown,goal:{x:number;y:number;z:number},o:{cruise:number;style:number;accurate:boolean;straight:boolean}):void;
@@ -610,6 +621,8 @@ export interface ScmMissionWorld {
  attachPlayerToObject?(object:number,offset:{x:number;y:number;z:number},side:number,limit:number,weapon:number):boolean;playerAttachedObject?():number|undefined;
  /** The player's health (SET_CHAR_HEALTH), and his death at none. */
  setPlayerHealth?(health:number):void;killPlayer?():void;
+ /** CPlayerInfo::m_bFreeHealthCare (SET_FREE_HEALTH_CARE): the next hospital trip costs nothing and keeps the weapons. */
+ setFreeHealthCare?(on:boolean):void;
  /** CPhysical::SetVelocity on the player, native units per 50th of a second. */
  setPlayerVelocity?(velocity:{x:number;y:number;z:number}):void;
  setPlayerMaxArmour(maxArmour:number):void;
@@ -621,10 +634,8 @@ export interface ScmMissionWorld {
 }
 /** CTheScripts' player slot: the script always addresses player zero, whose ped it creates first. */
 export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
-/** Where CPedGroup::Teleport puts each follower from the point, native world axes: CTaskComplexFollowLeaderInFormation's
- * ms_offsets are static data the reversed sources do not carry, so these stand in for them, a unit apart in a wedge
- * behind and to the sides. */
-const GROUP_TELEPORT_OFFSETS:readonly (readonly [number,number])[]=[[-1,-1],[1,-1],[-2,-2],[2,-2],[0,-2],[-3,-3],[3,-3]];
+/** CVehicle::CanPedOpenLocks answered for the player by eCarLock. */
+export const playerLockedOut=(lock:number)=>lock===2||lock===3||lock===4||lock===5||lock===7;
 /** The browser holds one vehicle for the player at a time, so the script's questions about the car it is in are
  * answered by a single handle rather than a pool the browser does not have. */
 export const PLAYER_VEHICLE_HANDLE=1;
@@ -714,6 +725,14 @@ export class ScmMission {
   * leaves the script its own. */
  private readonly ownFade=new ScmCameraFade();
  get fade(){return this.world.cameraFade??this.ownFade;}
+ /** CPed::CreateDeadPedPickupCoors round a point (native axes): where a dead ped's weapons land, for the street
+  * population as for GET_DEAD_CHAR_PICKUP_COORDS. */
+ deadPedPickupCoordsAt(at:{x:number;y:number;z:number},command='CreateDeadPedWeaponPickups'){
+  const bubble=this.host('pickupsInBubble',command),vehicles=this.host('vehicleInSphere',command);
+  const flags=(both:boolean)=>({buildings:true,vehicles:both,peds:false,objects:both});
+  return deadPedPickupCoors(at,this.world.playerPed().position,{groundZ:(x,y,z)=>this.world.groundLevel(x,y,z),pickupsInBubble:bubble,
+   lineOfSightClear:(a,b,both)=>this.world.lineOfSightClear(a,b,flags(both)),vehicleInSphere:vehicles,random256:()=>Math.floor(Math.random()*256)});
+ }
  /** Between START_CUTSCENE and CLEAR_CUTSCENE: the browser has no cutscene to show, so the screen stays faded out
   * through it rather than fading in on the world the cutscene would have covered. The hold goes with the thread that
   * started the cutscene, so a mission ended mid-cutscene does not leave the screen black. */
@@ -1392,6 +1411,8 @@ export class ScmMission {
    // The trip skip's four set-ups: after a mission, or for a named vehicle, or for one the script finishes off.
    setUpSkip:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP')([x,y,z],heading,false,undefined,false);},
    setUpSkipAfterMission:(x,y,z,heading)=>{this.host('setUpScriptSkip','SET_UP_SKIP_AFTER_MISSION')([x,y,z],heading,true,undefined,false);},
+   ensurePlayerHasDriveByWeapon:(_handle,ammo)=>{this.host('ensurePlayerHasDriveByWeapon','ENSURE_PLAYER_HAS_DRIVE_BY_WEAPON')(ammo);},
+   setWeatherToAppropriateTypeNow:()=>{this.host('setWeatherToAppropriateTypeNow','SET_WEATHER_TO_APPROPRIATE_TYPE_NOW')();},
    setUpSkipForSpecificVehicle:(x,y,z,heading,car)=>{this.host('setUpScriptSkip','SET_UP_SKIP_FOR_SPECIFIC_VEHICLE')([x,y,z],heading,false,this.liveVehicle(car),false);},
    setUpSkipForVehicleFinishedByScript:(x,y,z,heading,car)=>{this.host('setUpScriptSkip','SET_UP_SKIP_FOR_VEHICLE_FINISHED_BY_SCRIPT')([x,y,z],heading,false,this.liveVehicle(car),true);},
    clearSkip:()=>{this.host('clearScriptSkip','CLEAR_SKIP')();},
@@ -1493,6 +1514,7 @@ export class ScmMission {
    // CWorld::ClearCarsFromArea and ClearPedsFromArea over the script's box.
    clearAreaOfVehicles:(min,max)=>{this.host('clearVehiclesInBox','CLEAR_AREA_OF_CARS')(min,max);},
    clearAreaOfPeds:(min,max)=>{this.host('clearPedsInBox','CLEAR_AREA_OF_CHARS')(min,max);},
+   extinguishFiresAtPoint:(point,radius)=>{this.world.extinguishFiresAtPoint?.(point,radius);},
    // SET_CAR_TEMP_ACTION on a script car: CAutoPilot::SetTempAction for the time.
    setVehicleTempAction:(handle,action,time)=>{this.host('scriptVehicleTempAction','SET_CAR_TEMP_ACTION')(this.liveVehicle(handle),action,time/1000);},
    // CPed::OurPedCanSeeThisEntity: in front, inside forty units, and nothing solid between the two of them.
@@ -1752,10 +1774,7 @@ export class ScmMission {
    // GET_DEAD_CHAR_PICKUP_COORDS: CPed::CreateDeadPedPickupCoors round the ped.
    deadPedPickupCoordinates:handle=>{
     const at=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:(this.livePed(handle),this.peds.positionOf(handle));
-    const bubble=this.host('pickupsInBubble','GET_DEAD_CHAR_PICKUP_COORDS'),vehicles=this.host('vehicleInSphere','GET_DEAD_CHAR_PICKUP_COORDS');
-    const flags=(both:boolean)=>({buildings:true,vehicles:both,peds:false,objects:both});
-    return deadPedPickupCoors(at,this.world.playerPed().position,{groundZ:(x,y,z)=>this.world.groundLevel(x,y,z),pickupsInBubble:bubble,
-     lineOfSightClear:(a,b,both)=>this.world.lineOfSightClear(a,b,flags(both)),vehicleInSphere:vehicles,random256:()=>Math.floor(Math.random()*256)});
+    return this.deadPedPickupCoordsAt(at,'GET_DEAD_CHAR_PICKUP_COORDS');
    },
    deadPedCoordinates:handle=>{
     const ride=handle===PLAYER_PED_HANDLE?undefined:this.peds.rideOf(handle);
@@ -1766,7 +1785,8 @@ export class ScmMission {
    },
    // CPed::bIsTargetPriority and bStayInCarOnJack's bike twin (m_nPedFlags): the ped's flags, kept on it.
    setPedIsTargetPriority:(handle,state)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'targetPriority',state);},
-   setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
+   setFreeHealthCare:(_player,on)=>{this.host('setFreeHealthCare','SET_FREE_HEALTH_CARE')(on);},
+   setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle===PLAYER_PED_HANDLE)this.runtime.game.playerInfo.stayOnBike=stayOnBike;else this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
    // The car's own fields the script sets that the browser's cars keep but do not act on: the heli's rotor speed,
    // CVehicle's status, and CAutomobile::m_fCarTraction.
    setHeliBladesFullSpeed:handle=>{(this.liveVehicle(handle) as {rotorFullSpeed?:boolean}).rotorFullSpeed=true;},
@@ -1809,9 +1829,10 @@ export class ScmMission {
    setVehicleAreaVisible:(handle,area)=>{this.host('setScriptVehicleArea','SET_VEHICLE_AREA_VISIBLE')(this.liveVehicle(handle),area);},
    setVehicleProofs:(handle,proofs)=>{this.world.setScriptVehicleProofs(this.liveVehicle(handle),proofs);},
    setVehicleCanBeDamaged:(handle,canBeDamaged)=>{this.world.setScriptVehicleCanBeDamaged(this.liveVehicle(handle),canBeDamaged);},
-   // CVehicle::m_nDoorLock: the script's lock states above unlocked all refuse entry, which is all the browser
-   // keeps of the field.
-   setVehicleDoorLock:(handle,lock)=>{this.world.setScriptVehicleDoorLock(this.liveVehicle(handle),lock!==0);},
+   // CVehicle::m_nDoorLock and CanPedOpenLocks for the player: CARLOCK_LOCKED (2), LOCKOUT_PLAYER_ONLY (3),
+   // LOCKED_PLAYER_INSIDE (4), COP_CAR (5) and SKIP_SHUT_DOORS (7) keep him out; NOT_USED (0), UNLOCKED (1) and
+   // FORCE_SHUT_DOORS (6) let him open the door. Whether he may get in is all the browser keeps of the field.
+   setVehicleDoorLock:(handle,lock)=>{this.world.setScriptVehicleDoorLock(this.liveVehicle(handle),playerLockedOut(lock));},
    // SWITCH_CAR_SIREN and SET_CAR_CAN_BE_VISIBLY_DAMAGED set the flags on the car; SET_TIME_SCALE sets
    // CTimer::ms_fTimeScale, the one the speed cheats and the stunt slow motion also write.
    switchVehicleSiren:(handle,on)=>{this.host('setScriptVehicleSiren','SWITCH_CAR_SIREN')(this.liveVehicle(handle),on);},
@@ -1870,9 +1891,11 @@ export class ScmMission {
    switchEntryExit:(name,on)=>{this.entryExitFlags++;this.world.switchEntryExit(name,on);},
    enableBurglaryHouses:on=>{this.world.enableBurglaryHouses(on);},
    disableAllEntryExits:disabled=>{this.world.disableAllEntryExits(disabled);},
-   isPlayerRestarting:()=>false,
-   isPlayerPlaying:()=>true,
-   isPlayerDead:()=>false,
+   // CPlayerInfo::IsRestartingAfterDeath / IsRestartingAfterArrest (DoDeathArrestCheck), IS_PLAYER_PLAYING and
+   // IS_PLAYER_DEAD, all on m_nPlayerState: a mission is failed and cleaned up by the wasted or busted it sees.
+   isPlayerRestarting:()=>{const state=this.world.playerState?.();return state==='dead'||state==='arrested';},
+   isPlayerPlaying:()=>(this.world.playerState?.()??'playing')==='playing',
+   isPlayerDead:()=>this.world.playerState?.()==='dead',
    clearSmallMessages:()=>{},
    isDrawingMap:()=>false,
   };
@@ -1962,7 +1985,7 @@ export class ScmMission {
   * down at its seat's door, on foot. The get-out clips are not played. A ped on foot, or in another car than the one
   * named, has nothing to do and the task is over at once. */
  /** The ped out of its car at its seat's door, rebuilt on foot; false when it rides no car (or not the one named). */
- private leaveCarNow(handle:number,vehicle:number|undefined,opcode:number){
+ private leaveCarNow(handle:number,vehicle:number|undefined,opcode:number,jump=false){
   const ride=this.peds.rideOf(handle);
   if(!ride||ride.offset||vehicle!==undefined&&vehicle!==ride.vehicle)return false;
   // A car deleted with the ped still in it leaves the ped where it sat.
@@ -1971,7 +1994,10 @@ export class ScmMission {
   const at=this.host('scriptVehicleSeatDoor','TASK_LEAVE_CAR')(car,ride.seat);
   if(!at)throw new UnsupportedScmCommand(opcode,0,'A_SEAT_WITHOUT_A_DOOR',String(ride.seat));
   this.stopDriving(handle);
-  this.peds.detachFromCar(handle,at);
+  // CTaskSimpleCarJumpOut: out of a car that is still moving the ped rolls, by its seat's side, with the car's speed.
+  const native=jump&&!this.vehicleStill(ride.vehicle)?this.world.scriptVehicleVelocity?.(car):undefined,velocity=native&&{x:native.x,z:-native.y};
+  const clip=ride.seat==='driver'||ride.seat===1?'car_rollout_lhs':'car_rollout_rhs';
+  this.peds.detachFromCar(handle,at,velocity?ped=>this.world.rollOutScriptPed?.(ped,velocity,clip):undefined);
   return true;
  }
  /** A driving task on the car the ped is at the wheel of: CCarAI's mission, a temporary action, or the wander. */
@@ -2048,8 +2074,9 @@ export class ScmMission {
     if(!riding||vehicle!==undefined&&vehicle!==ride.vehicle)return undefined;
     // CTaskSimpleCarWaitToSlowDown first (not for the Immediately form): a script driver stops its car's mission,
     // and the ped waits in its seat until the car is still enough to step out of.
-    if(task.kind!=='leaveCarImmediately'&&!this.vehicleStill(ride.vehicle)){this.stopDriving(handle);return {kind:'slowing',then:task};}
-    return this.leaveCarNow(handle,vehicle,opcode)?{kind:'settle'}:undefined;
+    const jump=this.groupLeaving.delete(handle);
+    if(!jump&&task.kind!=='leaveCarImmediately'&&!this.vehicleStill(ride.vehicle)){this.stopDriving(handle);return {kind:'slowing',then:task};}
+    return this.leaveCarNow(handle,vehicle,opcode,jump)?{kind:'settle'}:undefined;
    }
    case 'carDriveToCoord':case 'carTempAction':case 'carDriveWander':case 'carMission':{
     // CTaskComplexCarDrive::CreateFirstSubTask with no car (-1): the one the ped is in. On foot it would enter any
@@ -2661,13 +2688,21 @@ export class ScmMission {
  /* The fires the script has started, for a host to burn where CFireManager's own table says. A fresh array
   * each time, because two callers comparing two results is worth more than the one allocation it saves: the
   * records inside it are built anyway, and a shared array quietly makes those two results the same one. */
+ /** Script fires the world put out, by their table index. */
+ scriptFiresWentOut(keys:readonly number[]){for(const key of keys)this.runtime.game.fires.putOut(key);}
  scriptFires(){
-  const out:{key:number;position:{x:number;y:number;z:number};strength:number;generations:number}[]=[];
+  const out:{key:number;position:{x:number;y:number;z:number};strength:number;generations:number;player?:boolean}[]=[];
   this.runtime.game.fires.fires.forEach((fire,index)=>{
    if(!fire.active||!fire.createdByScript)return;
-   // Renderer axes: the script's z is up here and its y runs the other way.
-   out.push({key:index,position:{x:fire.position.x,y:fire.position.z,z:-fire.position.y},
-    strength:fire.strength,generations:fire.generationsAllowed});
+   // CFire::ProcessFire keeps a fire on its ped at the ped's position; a ped that is gone takes it with him.
+   if(fire.ped!==undefined){
+    if(fire.ped!==PLAYER_PED_HANDLE&&!this.peds.exists(fire.ped)){this.runtime.game.fires.putOut(index);return;}
+    const at=fire.ped===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(fire.ped)??this.peds.positionOf(fire.ped);
+    fire.position={x:at.x,y:at.y,z:at.z};
+   }
+   // Native axes, as the weapon system's fire pool keeps every other fire.
+   out.push({key:index,position:{x:fire.position.x,y:fire.position.y,z:fire.position.z},
+    strength:fire.strength,generations:fire.generationsAllowed,...fire.ped===PLAYER_PED_HANDLE?{player:true}:{}});
   });
   return out;
  }
@@ -2716,6 +2751,9 @@ export class ScmMission {
  private groupExits:{handle:number;vehicle:number;at:number}[]=[];
  /** When each follower was last sent to get in the leader's car (CTaskComplexFollowLeaderAnyMeans). */
  private groupBoarding=new Map<number,number>();
+ /** Followers the leader's exit sent out: ComputeResponseLeaderExitedCar's CTaskComplexLeaveCar has bSensibleLeaveCar
+  * off, so they do not wait for the car to slow (GroupEventHandler.cpp:344-349) and jump from one still moving. */
+ private groupLeaving=new Set<number>();
  /** CGroupEventHandler::ComputeResponseLeaderEnteredCar and ComputeResponseLeaderExitedCar for the player's group, for
   * the script's peds in it. As he gets in, each follower on foot with no script task of its own takes
   * CTaskComplexEnterCarAsPassenger into a free seat, while the group's members enter the leader's vehicle. As he gets
@@ -2755,7 +2793,7 @@ export class ScmMission {
   if(!this.groupExits.length)return;
   const due=this.groupExits.filter(exit=>exit.at<=nowMs);if(!due.length)return;
   this.groupExits=this.groupExits.filter(exit=>exit.at>nowMs);
-  for(const exit of due)if(this.peds.exists(exit.handle)&&this.peds.rideOf(exit.handle)?.vehicle===exit.vehicle&&!this.taskRecords.has(exit.handle))groupTask(exit.handle,{kind:'leaveCar',vehicle:exit.vehicle});
+  for(const exit of due)if(this.peds.exists(exit.handle)&&this.peds.rideOf(exit.handle)?.vehicle===exit.vehicle&&!this.taskRecords.has(exit.handle)){this.groupLeaving.add(exit.handle);groupTask(exit.handle,{kind:'leaveCar',vehicle:exit.vehicle});}
  }
  /** The player's group's script peds last set following him. */
  private followingPlayer=new Set<number>();

@@ -37,6 +37,21 @@ describe('camera shake, the running queries and the directional scene load',()=>
   expect(camera.camShakeStart).toBe(2000);
  });
 
+ // CCamera::CamShake: 0.35 of the strength, less by the distance (nothing from 100 units), against what is left
+ // of the current shake at that distance; shakeLeft reads the force less a unit a second, between nothing and two.
+ test('a positioned shake is scaled by 0.35 and fades with distance',()=>{
+  const camera=new ScmCamera();
+  camera.camShake(2,0,1000);
+  expect(camera.camShakeForce).toBeCloseTo(.7,9);expect(camera.shakeLeft(1200)).toBeCloseTo(.5,9);
+  // Fifty units off: half the force, against half of what is left of the last (0.5 x 0.5), which it beats.
+  camera.camShake(2,50,1200);expect(camera.camShakeForce).toBeCloseTo(.35,9);expect(camera.camShakeStart).toBe(1200);
+  camera.camShake(1,50,1200);expect(camera.camShakeForce).toBeCloseTo(.35,9);
+  camera.camShake(6,50,1200);expect(camera.camShakeForce).toBeCloseTo(1.05,9);
+  // A hundred units off: nothing.
+  camera.camShake(9,100,1300);expect(camera.camShakeForce).toBeCloseTo(1.05,9);
+  expect(camera.shakeLeft(5000)).toBe(0);
+ });
+
  test('the script’s own SHAKE_CAM divides its strength by a thousand',()=>{
   const {bytes,instruction}=find('SHAKE_CAM'),game=new ScmGameState();
   const {thread}=threadAt(bytes,instruction.offset,game);

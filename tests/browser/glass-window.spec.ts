@@ -7,7 +7,7 @@ test('bullets crack and then shatter the showroom windows of Otto\'s Autos into 
  await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
- await page.keyboard.press('Tab');await page.locator('[data-weapon="22"]').click();
+ await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();
  await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  // Otto's Autos, San Fierro (native -1650, 1215): drop in from above and let the window stream.
  await page.evaluate(()=>(window as any).__game.placePlayer(-1650,120,-1215));

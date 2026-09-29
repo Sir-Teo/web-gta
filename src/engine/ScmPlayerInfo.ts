@@ -8,6 +8,10 @@ export const CRANE_NONE=0,CRANE_MAGNO=1,CRANE_WRECKING_BALL=2,CRANE_LAS_VEGAS=3,
 export class ScmPlayerInfo {
  /** m_bDoesNotGetTired, m_bFastReload and m_bFireProof, all off after a clear. */
  doesNotGetTired=false;fastReload=false;fireProof=false;
+ /** The player ped's CantBeKnockedOffBike, which SET_CHAR_CAN_BE_KNOCKED_OFF_BIKE sets: the ped keeps it through
+  * death and arrest (only CGameLogic::Remove2ndPlayerIfPresent clears it), so it lives here with the player's other
+  * script switches. */
+ stayOnBike=false;
  /** m_bCanDoDriveBy, which a clear leaves on. */
  canDoDriveBy=true;
  /** m_nMaxHealth and m_nMaxArmour, a hundred each. */

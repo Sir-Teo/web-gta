@@ -143,3 +143,17 @@ describe('the conversations a script builds',()=>{
   expect(thread.condition).toBe(true);
  });
 });
+
+describe('conversations of deleted peds',()=>{
+ test('a ped deleted without CLEAR_CONVERSATION_FOR_CHAR frees its slot (CPed::~CPed), so a fifteenth set-up fits',()=>{
+  const game=new ScmGameState(),alive=new Set<number>();
+  const setUp=(ped:number)=>run(game,{pedExists:h=>alive.has(h)},instruction(op('START_SETTING_UP_CONVERSATION'),[int(ped)]),
+   instruction(op('SET_UP_CONVERSATION_END_NODE_WITH_SPEECH'),['hi',int(1)]),instruction(op('FINISH_SETTING_UP_CONVERSATION'),[]));
+  for(let ped=1;ped<=MAX_NUM_CONVERSATIONS;ped++){alive.add(ped);setUp(ped);}
+  expect(game.conversations.count).toBe(MAX_NUM_CONVERSATIONS);
+  // The first ped is culled; a new one's conversation takes its slot.
+  alive.delete(1);alive.add(100);setUp(100);
+  expect(game.conversations.forPed(100)?.nodes[0].name).toBe('HI');
+  expect(game.conversations.forPed(1)).toBeUndefined();
+ });
+});

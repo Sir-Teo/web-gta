@@ -3,10 +3,10 @@ import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
 import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
 import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
-import { PED_ORIGIN_HEIGHT, swimResistance, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
+import { PED_ORIGIN_HEIGHT, pedFloatDepth, swimResistance, swimRotationTowardSurface, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';
-import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_RUN, NATIVE_BLEND_SPRINT, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE } from './nativePlayerLocomotion';
+import { stepMoveBlend, targetMoveBlend, blendToSpeed, playerTurnStep, nativeJumpGroundSpeed, NATIVE_BLEND_WALK, NATIVE_JUMP_VERTICAL_VELOCITY, NATIVE_JUMP_GRAVITY, NATIVE_JUMP_MIN_FORWARD_SPEED, NATIVE_PED_AIR_RESISTANCE, NATIVE_BLEND_RUN_FULL } from './nativePlayerLocomotion';
 import { stepStamina, STAMINA_DRAIN, STAMINA_REGEN_IDLE } from '../locomotion/player';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { PED_SOLVER_GROUPS } from './solverGroups';
@@ -69,7 +69,7 @@ export class Simulation {
   player = { position: { ...SPAWN }, previous: { ...SPAWN }, heading: Math.PI, speed: 0, verticalSpeed: 0, grounded: false, stamina: 100, sprintExhausted: false, phase: 0, crouched: false, health: 100, armour: 0,
     /** CPlayerPedData::m_bAdrenaline: seconds left of an adrenaline pill (m_nAdrenalineEndTime), 0 when none. */
     adrenaline: 0,
-   swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
+   swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimStateChanger: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
    /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
    moveBlend: 0, jumpMomentum: { x: 0, z: 0 } };
   deathRemaining = 0;
@@ -157,7 +157,7 @@ export class Simulation {
   handlePlayerBreath(dt:number,decrease=true,multiplier=1){
     const result=handlePlayerBreath(this.player,decrease,multiplier,dt*50,undefined,undefined,this.playerDrownsInWater);
     // CEventDamage drops WEAPON_DROWNING damage to a ped that does not drown.
-    if(result.damage>0&&this.playerDrownsInWater)this.damagePlayer(result.damage,true);
+    if(result.damage>0&&this.playerDrownsInWater)this.damagePlayer(result.damage,true,{weapon:53});// WEAPON_DROWNING
     return result;
   }
   step(dt: number, controls: Controls) {
@@ -167,12 +167,23 @@ export class Simulation {
     this.animationMovement = null;
     this.advancePlayerDeath(dt);
     // A knocked-down player lies still until the get-up finishes.
-    if (this.knockdown > 0) { this.knockdown = Math.max(0, this.knockdown - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
+    if (this.knockdown <= 0) this.knockdownStalled = false;
+    if (this.knockdown > 0) {
+      // CTaskSimpleFall counts its down time only once the clip has finished and the ped is standing or drowning: lofted
+      // by a blast, the lie waits on the last frame until he lands.
+      const inLie = this.knockdown <= this.knockdownLie + this.knockdownGetUp && this.knockdown > this.knockdownGetUp;
+      this.knockdownStalled = inLie && !this.player.grounded && !this.player.swimming;
+      if (!this.knockdownStalled) this.knockdown = Math.max(0, this.knockdown - dt);
+      controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined };
+    }
     // CTaskSimpleHitHead stands the player still until HIT_WALL ends.
     else if (this.hitHead > 0) { this.hitHead = Math.max(0, this.hitHead - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
     this.advanceClock(dt * this.clockRate());
     this.player.previous = { ...this.player.position };
-    if (this.climb) this.stepClimb(dt, controls);
+    // The climb places the ped itself: pushes and shifts from blows or cars are not stored up to be released after it.
+    // CTaskComplexInWater replaces the in-air task too: what the drop into the water measured is not carried out of it.
+    if (this.player.swimming && this.fall.falling) this.fall = { minVz: 0, falling: false };
+    if (this.climb) { this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 }; this.stepClimb(dt, controls); }
     else this.moveCharacter(dt, controls);
     this.stepWorld();
     const center = this.playerBody.translation();
@@ -250,9 +261,9 @@ export class Simulation {
     // CEventDamage::AffectsPed: MAKE_PLAYER_FIRE_PROOF turns molotov and flamethrower damage away; ComputeWillKillPed:
     // with CHEAT_NO_ONE_CAN_STOP_US the player takes nothing from a weapon (types below WEAPON_LAST_WEAPON, 47).
     if(event&&(event.weapon===18||event.weapon===37)&&this.playerFireProof?.())return;
-    // SET_CHAR_PROOFS on the player: CPhysical::CanPhysicalBeDamaged turns the weapon's class away (a fall is
-    // WEAPON_FALL, collision-proofed).
-    if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.fall?54:event.weapon))return;
+    // SET_CHAR_PROOFS on the player: CEventDamage::AffectsPed asks CPhysical::CanPhysicalBeDamaged by the weapon type
+    // alone (a landing is WEAPON_FALL, collision-proofed); a knockdown blow is still its fist or nightstick.
+    if(event&&this.playerProofs&&!physicalCanBeDamaged(this.playerProofs,event.weapon))return;
     if(event&&event.weapon<47&&this.playerWeaponProof?.())return;
     // Compatibility gap: per-damage-kind stat scaling is not yet established.
     amount *= NATIVE_PLAYER_DEFEND_MULT;
@@ -260,12 +271,13 @@ export class Simulation {
     if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
     if (event && megaPunchBlow(event.weapon)) amount = this.player.health;
     // ComputeWillKillPed's ordinary branch kills below 1 HP, not just at zero.
-    // CPed::m_nLastWeaponDamage: the weapon of a hit that took health (a fall is WEAPON_FALL), not one armour soaked up.
-    if (event && amount > 0) this.lastWeaponDamage = event.fall ? 54 : event.weapon;
+    // CPed::m_nLastWeaponDamage: the weapon of a hit that took health (a landing is WEAPON_FALL, a car's knockdown
+    // WEAPON_RAMMEDBYCAR), not one armour soaked up.
+    if (event && amount > 0) this.lastWeaponDamage = event.weapon;
     const before=this.player.health,remaining=before-amount;
     this.player.health = remaining<1?0:remaining;
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
-    if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0 });
+    if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0, inAirTask: !!this.playerInAirTask?.() });
   }
   /** CPed::m_nLastWeaponDamage for the player: -1 until a weapon has taken his health, and after CLEAR_CHAR_LAST_WEAPON_DAMAGE. */
   lastWeaponDamage = -1;
@@ -277,25 +289,85 @@ export class Simulation {
     this.damageEvents.push({ weapon: 0, armour: 0, health: before, died: true });
   }
   /** CEventDamage for the player, for the reaction the renderer plays (ComputeDamageAnim / ComputeDeathAnim). */
-  damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number; armour: number; health: number; died: boolean }[] = [];
+  damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number; armour: number; health: number; died: boolean; inAirTask?: boolean }[] = [];
+  /** Whether the player's active task is CTaskSimpleJump, CTaskSimpleInAir or CTaskSimpleLand as a damage event is
+   * raised (the host reads it from the character), since the reaction is played a frame or more later. */
+  playerInAirTask?: () => boolean;
   /** Seconds left of a fall and get-up (CTaskComplexFallAndGetUp), during which input is ignored. */
   knockdown = 0;
   /** The get-up at the end of `knockdown`; while more than this remains the player is still in the fall. */
   knockdownGetUp = 0;
+  /** The lie between the fall clip's end and the get-up (CTaskSimpleFall's m_nCurrentDownTime), and whether it is
+   * waiting for the player to be supported. */
+  knockdownLie = 0; knockdownStalled = false;
   /** Seconds of CTaskSimpleHitHead left after a blocked jump. */
   hitHead = 0;
   /** CTaskSimpleHitHead::ProcessPed: blends HIT_WALL (delta 8) on the player and returns its length in seconds. */
   onHitHead?: () => number | undefined;
   /** Horizontal move speed a vehicle collision left on the player, in m/s. */
   collisionPush = { x: 0, z: 0 };
+  /** CPed::bIsInTheAir for the player: set by a jump's launch or a drop with no ground near below, cleared on the ground. */
+  playerInAir = false;
+  /** CTaskComplexJump's flight (m_bUsingJumpGlide): the airborne pose is JUMP_glide; a drop's is FALL_glide. */
+  get jumpLaunched() { return !!this.jumpGlide; }
+  /** CPed::CheckIfInTheAir's probe: ground within 1.54 below the origin, 0.54 below the feet. */
+  private groundNearBelow() {
+    const p = this.playerBody.translation();
+    return !!this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y - this.playerCenterHeight + 1, z: p.z }, { x: 0, y: -1, z: 0 }), 1.54, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody);
+  }
+  /** A ride ending off the ground: set out beside the vehicle he stands, bailed out above nothing he is in the air
+   * from the first step, so the clip chosen for that step does not take the speed the exit handed him. */
+  checkInAirAfterRide() { this.playerInAir = !this.player.grounded && !this.groundNearBelow(); }
+  /** An exit that hands the player the vehicle's move speed (CTaskSimpleCarJumpOut, a bail-out, a knock-off) set it:
+   * the ride ending keeps that speed instead of standing him still. */
+  exitCarriesSpeed = false;
   /** The bodies of the vehicles that struck the player this step: the sweep that carries out their push leaves them out,
    * as the ped's collision response moves it clear of the car rather than stopping against it. */
   pushingBodies = new Set<number>();
+  /** CPed::m_pEntityIgnoredCollision on the player: the vehicle he just jumped or was knocked off, which neither his
+   * sweep nor the solver meets until his capsule is clear of it. */
+  private exitIgnored?: { body: RAPIER.RigidBody; key: string };
+  ignoreVehicleOnExit(body: RAPIER.RigidBody) {
+    this.releaseExitIgnored(true);
+    const a = this.playerBody.handle, b = body.handle, key = a < b ? `${a}:${b}` : `${b}:${a}`;
+    const had = this.ignoredBodyPairs.has(key);this.ignoredBodyPairs.add(key);this.exitIgnored = { body, key: had ? '' : key };
+    // The contact filter runs only for colliders that ask for it.
+    this.playerCollider.setActiveHooks(RAPIER.ActiveHooks.FILTER_CONTACT_PAIRS);
+  }
+  /** Lets go of the ignored vehicle once the capsule no longer overlaps it (or it is gone). */
+  private releaseExitIgnored(force = false) {
+    const ignored = this.exitIgnored;if (!ignored) return;
+    let touching = false;
+    if (!force && ignored.body.isValid()) this.world.intersectionsWithShape(this.playerCollider.translation(), this.playerCollider.rotation(), this.playerCollider.shape, collider => { if (collider.parent()?.handle === ignored.body.handle) { touching = true; return false; } return true; }, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider);
+    if (touching) return;
+    if (ignored.key) this.ignoredBodyPairs.delete(ignored.key);
+    this.exitIgnored = undefined;this.playerCollider.setActiveHooks(RAPIER.ActiveHooks.NONE);
+  }
   /** How far the player must move this step to leave the cars that struck him (see playerCarHit). */
   collisionShift = { x: 0, z: 0 };
   /** The move speed (units a second) of a moving object the grounded player stands on: an escalator step. CPhysical
    * carries a ped by its ground physical's speed; the escalator's ramp is what the player really stands on here. */
   groundCarry?: (feet: { x: number; y: number; z: number }) => { x: number; y: number; z: number } | undefined;
+  /** The speed of what the player stands on: the host's moving floors (escalators), else m_standingOnEntity, a moving
+   * body (a vehicle, a physical prop) under his feet, whose velocity at the contact carries him (CPhysical's standing
+   * ride). */
+  private carrySpeed() {
+    const p = this.player.position, feet = { x: p.x, y: p.y, z: p.z };
+    const floor = this.groundCarry?.(feet); if (floor) return floor;
+    const under = this.standingOnBody(); if (!under) return undefined;
+    const { body, hit } = under;
+    const v = body.velocityAtPoint({ x: p.x, y: p.y + .3 - hit.timeOfImpact, z: p.z });
+    return Math.hypot(v.x, v.y, v.z) > .05 ? { x: v.x, y: v.y, z: v.z } : undefined;
+  }
+  /** CPed::m_standingOnEntity: the dynamic body (a vehicle, a physical prop) right under the player's feet. */
+  standingOnBody() {
+    const p = this.player.position;
+    const hit = this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y + .3, z: p.z }, { x: 0, y: -1, z: 0 }), .6, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS | RAPIER.QueryFilterFlags.EXCLUDE_FIXED, undefined, this.playerCollider, this.playerBody);
+    const body = hit?.collider.parent(); if (!hit || !body || !body.isDynamic()) return undefined;
+    return { body, hit };
+  }
+  /** The player stands on a vehicle or a physical prop (m_standingOnEntity set). */
+  get playerStandingOnEntity() { return this.player.grounded && !!this.standingOnBody(); }
   /** The last collision push was blocked, as CEntity::m_bIsStuck. */
   playerStuck = false;
   /** CEventHandler::ComputeVehicleDiedResponse (0x4BA8B0) assigns zero
@@ -314,6 +386,11 @@ export class Simulation {
     if(this.player.health<=0)return;
     this.player.health=0;this.player.speed=0;this.deathRemaining=DEATH_RECOVERY_SECONDS;
   }
+  /** Climbs that reached CLIMB_FINISHED or CLIMB_FINISHED_V. */
+  climbsFinished = 0;
+  /** m_fAimingRotation while a turn from the stick is still under way, and the heading it last left the player at. */
+  private turnTarget?: number;
+  private turnFrom?: number;
   /** What the player's legs did on foot this step, for CStats::UpdateStatsWhenSprinting and UpdateStatsWhenRunning. */
   footMove: 'still' | 'run' | 'sprint' = 'still';
   private moveCharacter(dt: number, controls: Controls) {
@@ -332,12 +409,14 @@ export class Simulation {
     const walking = !!controls.walk;
     // The launch frame is still CTaskSimpleJump's: StartLaunchAnim fixed m_fAimingRotation.
     const held = !!controls.holdMove || controls.jump && this.player.grounded;
-    if (held) { /* CTaskComplexJump / CTaskSimpleLand own the ped */ }
+    // In the air (bIsInTheAir) CTaskComplexJump or CTaskComplexInAirAndLand owns the ped, so PlayerControlZelda does
+    // not run: the ratio stays as the jump or the drop left it, and the landing clip is picked from that.
+    if (held || this.playerInAir && !this.player.grounded) { /* CTaskComplexJump / CTaskSimpleLand own the ped */ }
     else if (this.player.crouched) this.player.moveBlend = stepMoveBlend(this.player.moveBlend, length > 0 ? 0.9 : 0, dt);
     // PlayerControlZelda sets the ratio straight to 0 when the stick is released; only a push slews.
     else if (length === 0 && !this.player.swimming) this.player.moveBlend = 0;
     else this.player.moveBlend = stepMoveBlend(this.player.moveBlend, this.player.swimming ? 0 : targetMoveBlend(length, walking, sprinting), dt);
-    const blendSpeed = this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : blendToSpeed(this.player.moveBlend);
+    const blendSpeed = this.player.crouched ? NATIVE_CROUCH_WALK_SPEED : blendToSpeed(this.player.moveBlend, sprinting);
     const speed = this.player.swimming ? 0 : length > 0 ? blendSpeed : 0;
     // Preserve the damped display speed for HUD/animation while the blend owns acceleration.
     this.player.speed += (speed - this.player.speed) * (1 - Math.exp(-18 * dt));
@@ -346,19 +425,35 @@ export class Simulation {
     if (this.player.adrenaline > 0) this.player.adrenaline = Math.max(0, this.player.adrenaline - dt);
     // HandleSprintEnergy: sprinting costs nothing with adrenaline or while the player never gets tired
     // (SET_PLAYER_NEVER_GETS_TIRED); running is PEDMOVE_RUN, past the walk blend and not walking.
-    const running = length > 0 && !walking && this.player.moveBlend > NATIVE_BLEND_WALK;
+    // PlayerControlZeldaWeapon (a gun not aimed with the arm, strafing on the GunMove clips) never changes the move state
+    // ProcessPed reset to PEDMOVE_STILL (TaskSimplePlayerOnFoot.cpp:112, 767-837).
+    const zeldaWeapon = !!controls.gunMove && !controls.gunMove.aimWithArm;
+    const running = length > 0 && !walking && !zeldaWeapon && this.player.moveBlend > NATIVE_BLEND_WALK;
     this.footMove = this.player.swimming ? 'still' : sprinting ? 'sprint' : running ? 'run' : 'still';
     if (!this.player.swimming && !(sprinting && (this.player.adrenaline > 0 || this.neverTired?.()))) this.player.stamina = stepStamina(this.player.stamina, sprinting, running, dt);
     if (this.player.stamina === 0) this.player.sprintExhausted = true;
     let dx = 0, dz = 0;
+    // m_fAimingRotation: anything else that turned the player (an aimed facing, a teleport, a scripted heading, a car
+    // exit) set it along with the heading, so a turn still pending from the stick is dropped.
+    if (this.turnTarget !== undefined && this.player.heading !== this.turnFrom) this.turnTarget = undefined;
     if (length) {
       const x = controls.x / length, y = controls.y / length;
       dx = x * Math.cos(controls.cameraYaw) - y * Math.sin(controls.cameraYaw);
       dz = -x * Math.sin(controls.cameraYaw) - y * Math.cos(controls.cameraYaw);
-      // The heading turns toward m_fAimingRotation at the player's heading change rate. In the air no on-foot task steers.
-      if (!held && (this.player.grounded || controls.parachute)) this.player.heading += clamp(angleDelta(this.player.heading, Math.atan2(dx, dz)), -playerTurnStep(dt), playerTurnStep(dt));
+      // PlayerControlZelda sets m_fAimingRotation only while the stick is pushed.
+      this.turnTarget = Math.atan2(dx, dz);
     }
-    if(controls.facing!==undefined)this.player.heading=controls.facing;
+    // CPed::CalculateNewVelocity (reVC Ped.cpp; SA's is unreversed) turns the ped toward it at the heading change
+    // rate every frame it is in control, stick or no stick: a tap sideways swings CJ all the way round. In the air no
+    // on-foot task steers.
+    if (this.turnTarget !== undefined && !held && this.player.health > 0 && (this.player.grounded || controls.parachute)) {
+      const remaining = angleDelta(this.player.heading, this.turnTarget);
+      this.player.heading += clamp(remaining, -playerTurnStep(dt), playerTurnStep(dt));
+      if (Math.abs(remaining) <= playerTurnStep(dt)) this.turnTarget = undefined;
+    }
+    // PlayerControlZeldaWeapon and the aimed tasks set m_fAimingRotation from the camera, not the stick.
+    if(controls.facing!==undefined){this.player.heading=controls.facing;this.turnTarget=undefined;}
+    this.turnFrom = this.player.heading;
     if (this.jetPack && !this.jetPack.finished) return this.moveJetPack(dt, controls);
     if (this.player.swimming && this.player.health > 0) return this.moveSwimming(dt, controls);
     // CTaskSimpleJump::ProcessPed once the launch clip ends: a climb, else CheckIfJumpBlocked, then Launch.
@@ -370,11 +465,16 @@ export class Simulation {
       if (blocked === 'blocked') this.hitHead = this.onHitHead?.() ?? 0;
       else {
         launched = true;
+        // CTaskSimpleJump::StartLaunchAnim: m_fAimingRotation = m_fCurrentRotation, so no turn carries on after landing.
+        this.turnTarget = undefined;
         // CTaskSimpleJump::Launch: the mega jump cheat multiplies the player's jump force by 10.
         this.player.verticalSpeed = NATIVE_JUMP_VERTICAL_VELOCITY * (CHEATS.isActive('megaJump') ? 10 : 1);
         // The ground speed goes along the heading; a climb jump goes straight up.
         const speed = blocked === 'climbJump' ? 0 : nativeJumpGroundSpeed(controls.moveAssociations ?? this.moveAssociations(sprinting)) * 50;
         this.player.jumpMomentum = { x: Math.sin(this.player.heading) * speed, z: Math.cos(this.player.heading) * speed };
+        // Off m_standingOnEntity the jump keeps that entity's move speed on top (not a climb jump's straight rise).
+        const carry = blocked === 'climbJump' ? undefined : this.carrySpeed();
+        if (carry) { this.player.jumpMomentum.x += carry.x; this.player.jumpMomentum.z += carry.z; }
         this.jumpGlide = { invalidClimb: false, pushMs: 0, climbJump: blocked === 'climbJump' ? this.climbDurations?.CLIMB_jump ?? .567 : 0 };
       }
     } else if (!this.player.grounded && this.jumpGlide && !this.jumpGlide.invalidClimb && this.player.health > 0 &&
@@ -384,6 +484,13 @@ export class Simulation {
     const climbJump = !!glide && glide.climbJump > 0;
     if (glide && climbJump) glide.climbJump = Math.max(0, glide.climbJump - dt);
     this.player.verticalSpeed -= NATIVE_JUMP_GRAVITY * (climbJump ? .65 : 1) * dt;
+    // CPed::ProcessBuoyancy runs on for a dead ped, at 1.8 times the buoyancy: a body in the water rises or settles to
+    // float with its origin pedFloatDepth(false) under the surface (at the street peds' 5 units a second either way).
+    const deadIn = controls.swimWater;
+    if (this.player.health <= 0 && deadIn !== undefined && this.player.position.y + PED_ORIGIN_HEIGHT < deadIn) {
+      const rest = deadIn - pedFloatDepth(false) - PED_ORIGIN_HEIGHT;
+      this.player.verticalSpeed = Math.max(-5, Math.min(5, (rest - this.player.position.y) / Math.max(dt, 1e-3)));
+    }
     if (!this.player.grounded && !controls.parachute) {
       const momentum = this.player.jumpMomentum, forward = { x: Math.sin(this.player.heading), z: Math.cos(this.player.heading) };
       // CTaskSimpleInAir under CTaskComplexJump: a rising jump keeps 0.05 units per frame forward for 1000 ms of pushing.
@@ -432,8 +539,10 @@ export class Simulation {
     if (pushSpeed > 1e-3) { requested.x += push.x * dt; requested.z += push.z * dt; }
     const shift = this.collisionShift; requested.x += shift.x; requested.z += shift.z; shift.x = 0; shift.z = 0;
     let carryY = 0;
-    if (wasGrounded && this.groundCarry) { const p = this.player.position, carry = this.groundCarry({ x: p.x, y: p.y, z: p.z }); if (carry) { requested.x += carry.x * dt; requested.z += carry.z * dt; carryY = Math.max(0, carry.y) * dt; } }
-    const pushing = this.pushingBodies, filter = pushing.size ? (collider: RAPIER.Collider) => { const parent = collider.parent(); return !parent || !pushing.has(parent.handle); } : undefined;
+    if (wasGrounded) { const carry = this.carrySpeed(); if (carry) { requested.x += carry.x * dt; requested.z += carry.z * dt; carryY = Math.max(0, carry.y) * dt; } }
+    this.releaseExitIgnored();
+    const ignoredBody = this.exitIgnored?.body.handle;
+    const pushing = this.pushingBodies, filter = pushing.size || ignoredBody !== undefined ? (collider: RAPIER.Collider) => { const parent = collider.parent(); return !parent || !pushing.has(parent.handle) && parent.handle !== ignoredBody; } : undefined;
     const resolved = characterMovement(this.character, this.playerCollider, { x: requested.x, y: this.player.verticalSpeed * dt + carryY, z: requested.z }, filter);
     pushing.clear();
     this.lastMove = { hits: [...resolved.hits], velocity: { x: dt > 0 ? requested.x / dt : 0, z: dt > 0 ? requested.z / dt : 0 } };
@@ -456,12 +565,17 @@ export class Simulation {
       const lifted = this.liftOutOfWorld(position);
       if (lifted !== undefined) { this.playerBody.setTranslation({ x: position.x, y: lifted, z: position.z }, true); this.playerBody.setNextKinematicTranslation({ x: position.x, y: lifted, z: position.z }); this.player.position = { ...this.player.position, y: lifted - this.playerCenterHeight }; this.player.verticalSpeed = 0; this.player.grounded = false; return; }
     }
+    // The same rule rising: a jump into a ceiling loses the speed the ceiling stopped, instead of pressing along under
+    // it until gravity cancels the rise.
+    else if (this.player.verticalSpeed > 0 && dt > 0 && movement.y < this.player.verticalSpeed * dt * .5) this.player.verticalSpeed = Math.max(0, movement.y / dt);
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = resolved.grounded;
     // CTaskSimpleInAir: m_fMinZSpeed keeps the fastest fall; past 0.1 units a frame down with nothing within 4 units
     // below, the ped goes into FALL_FALL. CTaskComplexInAirAndLand then lands a FALL_FALL with FALL_COLLAPSE, or, if the
     // fall ever passed 0.4 units a frame, knocks the ped flat (CTaskSimpleFall, KO_SKID_BACK, 700 ms).
-    if (!this.player.grounded && !controls.parachute && !controls.jetPack) {
+    // The canopy replaces CTaskComplexInAirAndLand: the freefall before it opened lands no FALL_COLLAPSE or knockdown.
+    if (controls.parachute) this.fall = { minVz: 0, falling: false };
+    else if (!this.player.grounded && !controls.jetPack) {
       this.fall.minVz = Math.min(this.fall.minVz, this.player.verticalSpeed);
       if (!this.fall.falling && this.player.verticalSpeed < -.1 * 50) {
         const p = this.playerBody.translation();
@@ -470,9 +584,15 @@ export class Simulation {
     }
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
       if (this.fall.falling) { this.fallLanding = this.fall.minVz < -.4 * 50 ? 'knockdown' : 'collapse'; this.fallLandingSound = true; }
-      this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
+      { const hurt = landingDamage(this.player.verticalSpeed); if (hurt > 0) this.damagePlayer(hurt, true, { weapon: 54 }); }
     }
     if (this.player.grounded) this.fall = { minVz: 0, falling: false };
+    // bIsInTheAir: a jump's launch puts him in the air at once; walking off an edge only when there is no ground within
+    // 1.54 below his origin, 0.54 below his feet (CPed::CheckIfInTheAir, reVC Ped.cpp; SA's
+    // CPedGeometryAnalyser::IsInAir behind CEventInAir is not reversed). A curb is stepped down, not fallen from.
+    if (this.player.grounded) this.playerInAir = false;
+    else if (launched) this.playerInAir = true;
+    else if (!this.playerInAir) this.playerInAir = !this.groundNearBelow();
     if (this.player.grounded && this.player.verticalSpeed < 0) this.player.verticalSpeed = -0.4;
     if (this.player.grounded) { this.player.jumpMomentum = { x: 0, z: 0 }; this.jumpGlide = undefined; }
     else if (dt > 0 && !controls.parachute) {
@@ -490,6 +610,17 @@ export class Simulation {
   }
   /** CTaskSimpleClimb::TestForClimb from CTaskSimpleJump::ProcessPed (the launch) or CTaskSimpleInAir::ProcessPed, then
    * the climb CTaskComplexJump or CTaskComplexInAirAndLand::ControlSubTask starts on the hold. */
+  /** CPed::Teleport for the player: FlushImmediately ends the climb, the jump's glide, the hit-head stop, the fall
+   * (CTaskSimpleInAir's minimum speed) and a knockdown's CTaskComplexFallAndGetUp, so none of them carries on from where
+   * he was; m_vecMoveSpeed is reset, so no fall speed, jump momentum or push lands with him (the next step finds the
+   * ground, bIsStanding's part, without a landing).
+   * `onFlushPlayerTasks` lets the host drop the fall and get-up clips with the task. */
+  flushPlayerTasks() {
+    this.climb = undefined; this.jumpGlide = undefined; this.hitHead = 0; this.fall = { minVz: 0, falling: false };
+    this.player.verticalSpeed = 0; this.player.jumpMomentum = { x: 0, z: 0 }; this.collisionPush = { x: 0, z: 0 }; this.collisionShift = { x: 0, z: 0 };
+    if (this.player.health > 0 && this.knockdown > 0) { this.knockdown = 0; this.knockdownGetUp = 0; this.onFlushPlayerTasks?.(); }
+  }
+  onFlushPlayerTasks?: () => void;
   private startClimb(launch: boolean, dt: number, controls: Controls) {
     const world = this.climbWorld, durations = this.climbDurations;
     // Both the launch and the in-air test need CGame::CanSeeOutSideFromCurrArea: no climbing inside interiors.
@@ -499,6 +630,8 @@ export class Simulation {
     if (found === 'invalid') { if (!launch && this.jumpGlide) this.jumpGlide.invalidClimb = true; return false; }
     if (!found) return false;
     this.climb = new NativeClimbTask(found.entity, found.hold, initialClimbHeight(found.hold.position, ped.position, !launch), false, durations);
+    // The climb replaces the in-air task, and a new one starts its fall afresh (TaskSimpleInAir's m_fMinZSpeed = 0).
+    this.fall = { minVz: 0, falling: false };
     this.player.jumpMomentum = { x: 0, z: 0 }; this.player.verticalSpeed = 0; this.player.grounded = false;
     this.stepClimb(dt, controls);
     return true;
@@ -519,11 +652,17 @@ export class Simulation {
     this.lastMove = { hits: [], velocity: { x: 0, z: 0 } };
     if (!done) return;
     this.climb = undefined;
+    // CTaskSimpleClimb::StartAnim's CLIMB_FINISHED / FINISHED_V: IDLE at 1000 wipes the move anims (the renderer resets
+    // its own on this count), not an abort that drops back to the in-air task.
+    if (task.heightForAnim === CLIMB.FINISHED || task.heightForAnim === CLIMB.FINISHED_V) this.climbsFinished++;
     if (task.standing) { this.player.grounded = true; this.player.verticalSpeed = -0.4; this.jumpGlide = undefined; return; }
     this.player.verticalSpeed = ped.moveSpeed.z * 50;
     this.player.jumpMomentum = { x: ped.moveSpeed.x * 50, z: -ped.moveSpeed.y * 50 };
     this.airSpeed = Math.hypot(ped.moveSpeed.x, ped.moveSpeed.y) * 50;
-    // A vault ends the jump; an abort returns to CTaskComplexInAirAndLand carrying the climb's validity.
+    // A vault ends the jump and clears bIsInTheAir (CTaskSimpleClimb's CLIMB_FINISHED_V): the ped is in control for the
+    // drop, which only a deep one turns back into a fall. An abort returns to CTaskComplexInAirAndLand carrying the
+    // climb's validity.
+    if (task.heightForPos === CLIMB.FINISHED_V) this.playerInAir = false;
     this.jumpGlide = task.heightForPos === CLIMB.FINISHED_V ? undefined : { invalidClimb: task.invalid, pushMs: 0, climbJump: 0 };
   }
   /** CTaskSimpleJump::CheckIfJumpBlocked (0x67D590). The ped position is one unit above the feet and ms_colModelPed1's
@@ -544,8 +683,8 @@ export class Simulation {
   private moveAssociations(sprinting: boolean): { run?: number; sprint?: number } {
     const blend = this.player.moveBlend;
     if (!(blend > 0)) return {};
-    if (sprinting && blend > NATIVE_BLEND_RUN) return { sprint: clamp((blend - NATIVE_BLEND_RUN) / (NATIVE_BLEND_SPRINT - NATIVE_BLEND_RUN), 0, 1) };
-    return { run: clamp((blend - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN - NATIVE_BLEND_WALK), 0, 1) };
+    if (sprinting && blend >= NATIVE_BLEND_RUN_FULL) return { sprint: 1 };
+    return { run: clamp((blend - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN_FULL - NATIVE_BLEND_WALK), 0, 1) };
   }
   /** CTaskSimpleInAir's fastest fall and whether it went into FALL_FALL. */
   fall = { minVz: 0, falling: false };
@@ -608,9 +747,14 @@ export class Simulation {
     // split along it, with 0.01 units a frame of rise, all through the same 0.9 resistance. Elsewhere the pitch decays.
     const underwater = this.player.swimState === 4;
     if (underwater) {
+      // The camera turns the pitch only while m_fStateChanger is 0, or upward.
       const turn = clamp(((controls.cameraPitch ?? 0) - this.player.swimPitch) * 10, -1, 1);
-      this.player.swimPitch = clamp(this.player.swimPitch + dt * turn + timeStep / 1000, -80 * Math.PI / 180, 80 * Math.PI / 180);
-    } else this.player.swimPitch = Math.abs(this.player.swimPitch) > .01 ? this.player.swimPitch * Math.pow(.95, timeStep) : 0;
+      const steered = this.player.swimStateChanger === 0 || turn > 0 ? dt * turn : 0;
+      const pitch = clamp(this.player.swimPitch + steered + timeStep / 1000, -80 * Math.PI / 180, 80 * Math.PI / 180);
+      // ProcessSwimmingResistance: near the surface the swimmer tips up on his own until he treads.
+      const surfacing = swimRotationTowardSurface(pitch, this.player.swimStateChanger, this.player.position.y + PED_ORIGIN_HEIGHT, controls.swimWater, timeStep, dt);
+      this.player.swimPitch = clamp(surfacing.pitch, -80 * Math.PI / 180, 80 * Math.PI / 180); this.player.swimStateChanger = surfacing.changer;
+    } else { this.player.swimPitch = Math.abs(this.player.swimPitch) > .01 ? this.player.swimPitch * Math.pow(.95, timeStep) : 0; this.player.swimStateChanger = 0; }
     // ProcessSwimmingResistance takes the stroke's shift over a 30 fps frame as a move speed in units per 1/50 s, so at
     // the game's frame rate CJ swims 50/30 of the clip's own speed (the "slower swimming at high frame rates" quirk).
     const shift = animationMotion ?? { x: 0, z: 0 };
@@ -653,7 +797,7 @@ export class Simulation {
     this.playerBody.setNextKinematicTranslation({ x: position.x + movement.x, y: position.y + movement.y, z: position.z + movement.z });
     this.player.grounded = resolved.grounded;
     if (this.player.grounded && !wasGrounded && this.player.health > 0) {
-      this.damagePlayer(landingDamage(this.player.verticalSpeed), true);
+      { const hurt = landingDamage(this.player.verticalSpeed); if (hurt > 0) this.damagePlayer(hurt, true, { weapon: 54 }); }
     }
     this.player.phase += this.player.speed * dt * 2.8;
   }
@@ -706,6 +850,8 @@ export class Simulation {
     const position={x:this.player.position.x,y:-this.player.position.z,z:this.player.position.y};
     if(!wasGrounded)velocity.z-=NATIVE_GRAVITY*timeStep;
     else if(velocity.z<0)velocity.z=0;
+    // CPhysical::ProcessControl's ApplyAirResistance runs on the flier before the task: the ped's 1/175 of its speed.
+    {const speed=Math.hypot(velocity.x,velocity.y,velocity.z),k=Math.pow(Math.max(0,1-speed*NATIVE_PED_AIR_RESISTANCE),timeStep);velocity.x*=k;velocity.y*=k;velocity.z*=k;}
     const ground=this.jetGroundHeight?.(position)??position.z;
     pack.processThrust(velocity,position,ground,wasGrounded,wasStanding,timeStep);
     pack.updateEffect(dt*30);
@@ -762,8 +908,10 @@ export class Simulation {
     // A wasted or busted player loses the pack.
     this.abortJetPack();
     this.animationMovement = null;
-    this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0;
-    this.climb = undefined; this.jumpGlide = undefined;
+    this.collisionPush = { x: 0, z: 0 }; this.playerStuck = false; this.knockdown = 0; this.knockdownGetUp = 0; this.playerInAir = false; this.turnTarget = undefined;
+    // RestorePlayerStuffDuringResurrection's SetInitialState: a landing the death replaced is not played after it.
+    this.fallLanding = undefined; this.fallLandingSound = false;
+    this.flushPlayerTasks(); this.collisionShift = { x: 0, z: 0 };
 
     this.player.health = 100; this.player.armour = 0; this.player.stamina = 100; this.player.sprintExhausted = false; this.player.adrenaline = 0; this.deathRemaining = 0;
     this.player.crouched = false; this.playerCollider.setShape(new RAPIER.Capsule(0.6, 0.3));

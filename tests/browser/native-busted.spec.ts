@@ -21,5 +21,7 @@ test('at one star a cop clubs unarmed CJ down with the nightstick and busts him 
  expect(s.wanted.level).toBe(1);
  await expect.poll(async()=>(await state()).wanted.arrested,{timeout:20000}).toBe(false);
  expect((await state()).wanted.level).toBe(0);
+ // ClearExcitingStuffFromArea (4000 units) at the arrest and the restart point: the arresting cop is gone.
+ expect((await state()).pedestrians.people.filter((p:any)=>p.officer).length).toBe(0);
  expect(errors).toEqual([]);
 });

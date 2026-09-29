@@ -33,6 +33,15 @@ describe('the ped state a script reads and writes',()=>{
   expect(float(40)).toBeCloseTo(271.5,4);
  });
 
+ // CFireManager::ExtinguishPoint walks the whole pool: the world's own fires (burning peds, cars) go out too.
+ test('EXTINGUISH_FIRE_AT_POINT puts out the world’s fires as well as the script’s',()=>{
+  const asked:unknown[]=[];const game=new ScmGameState();
+  game.fires.startScriptFire({x:1,y:2,z:3},1,0);
+  run({extinguishFiresAtPoint:(point,radius)=>{asked.push([point,radius]);}},game,
+   instruction(scmOpcode('EXTINGUISH_FIRE_AT_POINT'),[[6,1],[6,2],[6,3],[6,5]]));
+  expect(game.fires.active).toBe(0);expect(asked).toEqual([[{x:1,y:2,z:3},5]]);
+ });
+
  test('the three simple flags are stored exactly as the command gives them',()=>{
   const set:[string,boolean][]=[];
   run({setPedSimpleFlag:(_h:number,flag:string,value:boolean)=>{set.push([flag,value]);}},undefined,
@@ -87,13 +96,17 @@ describe('the ped state a script reads and writes',()=>{
   expect(free.int(40)).toBe(-1);
  });
 
- test('setting a ped alight starts a script fire where it stands',()=>{
+ // StartCharFire: StartScriptFire(pos, ped, 0.8f, true, 0, 1), strength 1 and no generations, on the ped.
+ test('setting a ped alight starts a script fire on it where it stands',()=>{
   const started=run({pedPosition:()=>({x:10,y:20,z:3})},undefined,
    instruction(scmOpcode('START_CHAR_FIRE'),[int(PED),gvar(40)]));
   const {game}=started,handle=started.int(40);
   expect(handle).toBeGreaterThan(0);
   const fire=game.fires.fires.find(entry=>entry.active);
-  expect(fire).toMatchObject({position:{x:10,y:20,z:3},strength:0.8,createdByScript:true,generationsAllowed:1});
+  expect(fire).toMatchObject({position:{x:10,y:20,z:3},strength:1,createdByScript:true,generationsAllowed:0,ped:PED});
+  // A second fire on the same ped puts the first out and lets go of it.
+  const again=game.fires.startScriptFire({x:10,y:20,z:3},1,0,PED);
+  expect(again).not.toBe(handle);expect(game.fires.fires.filter(entry=>entry.active)).toHaveLength(1);
  });
 
  test('the remaining commands reach the host with what the script named',()=>{

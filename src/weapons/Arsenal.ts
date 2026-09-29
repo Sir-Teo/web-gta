@@ -22,7 +22,16 @@ export class Arsenal {
   });
   this.element.querySelector('.arsenal-close')!.addEventListener('click',()=>this.toggle(false));
   this.element.querySelector('.refill-ammo')!.addEventListener('click',()=>{weapons.inventory.refill();this.update();});
-  this.element.querySelector('input')!.addEventListener('input',e=>{const query=(e.target as HTMLInputElement).value.toLowerCase();for(const button of this.element.querySelectorAll<HTMLButtonElement>('[data-weapon]'))button.hidden=!button.textContent!.toLowerCase().includes(query);});
+  // A search hides the weapons that do not match, the groups left with none, and says so when nothing matches.
+  const empty=document.createElement('p');empty.className='arsenal-empty';empty.textContent='No weapons found.';empty.hidden=true;grid.after(empty);
+  this.element.querySelector('input')!.addEventListener('input',e=>{
+   const query=(e.target as HTMLInputElement).value.trim().toLowerCase();let shown=0;
+   for(const section of grid.querySelectorAll<HTMLElement>(':scope > section')){
+    let any=false;for(const button of section.querySelectorAll<HTMLButtonElement>('[data-weapon]')){button.hidden=!button.textContent!.toLowerCase().includes(query);if(!button.hidden){any=true;shown++;}}
+    section.hidden=!any;
+   }
+   empty.hidden=shown>0;
+  });
   this.readout.className='weapon-readout';this.readout.setAttribute('aria-label','Equipped weapon');this.crosshair.className='weapon-crosshair';this.crosshair.hidden=true;
   // CHud::DrawCrossHairs draws a first-person crosshair raster four times, mirrored into each quarter.
   for(let i=0;i<4;i++)this.crosshair.append(document.createElement('i'));
@@ -35,7 +44,9 @@ export class Arsenal {
  hudSprites:Record<string,string>={};
  /** What update() last wrote, so a frame that changes nothing writes nothing to the document. */
  private pressedId?:number;private shownRadius?:number;
- update(error?:string,scope?:string){const s=this.weapons.snapshot(),w=this.weapons.inventory.weapon;
+ update(error?:string,scope?:string){
+  // Read only what the HUD shows: the full weapon snapshot (projectiles, shots, fires) is for the dev API, not every frame.
+  const s={ready:this.weapons.ready,id:this.weapons.inventory.selected},w=this.weapons.inventory.weapon;
   // The original HUD has no weapon name, skill or state line; CHud::DrawAmmo draws the ammo under the icon.
   // Only a failed weapon asset is reported here.
   {const text=!s.ready&&error?`${w.name} · Asset unavailable`:'';if(this.readout.textContent!==text)this.readout.textContent=text;}

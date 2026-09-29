@@ -19,6 +19,9 @@ export class NativeDuckMove {
  get rolling(){return this.x!==0;}
  /** DeleteDuckAnimCB when a roll clip ends. */
  rollFinished(){this.x=0;}
+ /** CTaskSimpleDuck::ForceStopMove (0x6924B0): CTaskSimpleUseGun::SetMoveAnim stops the crouch walk while it fires or
+  * reloads. */
+ forceStopMove(){this.y=0;}
  reset(){this.x=0;this.y=0;}
 }
 
