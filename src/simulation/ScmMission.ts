@@ -754,6 +754,8 @@ export class ScmMission {
  playerModelsBuilt=0;
  /** Whether the script has left the player in control of themselves. */
  playerControl=true;
+ /** A mission thread gave up this pass (see handBack). */
+ private handBackPending=false;
  /** The player's CPed::bDontDragMeOutCar (SET_CHAR_CANT_BE_DRAGGED_OUT). */
  playerCantBeDraggedOut=false;
  /** For a ped running a sequence with nested ones, each flattened task's step and nested step. */
@@ -1963,8 +1965,9 @@ export class ScmMission {
    // An adapter that cannot answer (offset -1) names what it lacked; the command is the one the thread was running.
    const at=thread.currentInstruction;
    this.gaveUp.push(error.offset<0?{thread:thread.name,command:at.name,offset:at.offset,detail:error.command}:{thread:thread.name,command:error.command,offset:error.offset});
+   if(thread.usesMissionCleanup)this.handBackPending=true;
   };
-  this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});};
+  this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});if(thread.usesMissionCleanup)this.handBackPending=true;};
   this.runtime.game.zones.load(zones.infoLabels);
   this.entry=header.entry;
  }
@@ -2827,7 +2830,7 @@ export class ScmMission {
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);
@@ -2840,6 +2843,15 @@ export class ScmMission {
    else this.stopped={command:'error',offset:-1,detail:String(error)};
   }
   if(this.fade===this.ownFade)this.ownFade.process(timeStepMs/1000);
+ }
+ /** A mission that gives up on a command the port lacks never reaches its own ending, which is what would hand the
+  * player back: its cleanup has run (the camera is his again), but SET_PLAYER_CONTROL off and a fade to black would
+  * stand for good, leaving a game that looks frozen. The original has no such stop; the port gives the player his
+  * controls back and fades in, so free roam goes on. */
+ private handBack(nowMs:number){
+  this.handBackPending=false;
+  if(!this.playerControl){this.playerControl=true;this.world.setPlayerControl(true);}
+  if(this.fade.value>0)this.runtime.world?.fade(1000,1,nowMs);
  }
  /** What the script has done so far, for the dev API and the browser tests. */
  /** CPedScriptedTaskRecord's records, one per ped here (the port holds one scripted order at a time). A wander
