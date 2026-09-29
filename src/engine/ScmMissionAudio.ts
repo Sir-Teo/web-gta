@@ -24,8 +24,10 @@ export interface ScmMissionAudioSlot {
  loadingStatus:number;playing:boolean;finished:boolean;
  /** How much of the playing sample is left, in ms. */
  remainingMs:number;
+ /** Played this frame and not yet sized from the subtitle the frame left up (settleLengths). */
+ sizing:boolean;
 }
-const emptySlot=():ScmMissionAudioSlot=>({audioEvent:-1,bankId:-1,bankSlotId:-1,loadingStatus:AUDIO_NOT_LOADED,playing:false,finished:false,remainingMs:0});
+const emptySlot=():ScmMissionAudioSlot=>({audioEvent:-1,bankId:-1,bankSlotId:-1,loadingStatus:AUDIO_NOT_LOADED,playing:false,finished:false,remainingMs:0,sizing:false});
 /** A sample's length when nothing better is known: the bank headers that hold the real ones are in the SCRIPT pack. */
 export const DEFAULT_SAMPLE_MS=2000;
 /** Conversational speech runs at about fifteen characters a second, with a short breath before the line. */
@@ -67,7 +69,17 @@ export class ScmMissionAudio {
   const slot=this.slot(scriptSlot);
   if(slot.loadingStatus!==AUDIO_LOADED)return false;
   requireAsset(Number.isFinite(lengthMs)&&lengthMs>=0,'Invalid mission audio length.');
-  slot.playing=true;slot.finished=false;slot.remainingMs=lengthMs;return true;
+  slot.playing=true;slot.finished=false;slot.remainingMs=lengthMs;slot.sizing=true;return true;
+ }
+ /** The lengths of the samples played last frame, from what a host can tell of them now. The browser has no
+  * sample to measure and sizes a line from its subtitle, which the script prints beside the PLAY in either order
+  * (INTRO1 prints three of its four after it): the brief the whole frame left up is the one that belongs to it. */
+ settleLengths(lengthOf:(audioEvent:number)=>number|undefined){
+  for(const slot of this.slots){
+   if(!slot.sizing)continue;slot.sizing=false;
+   const ms=lengthOf(slot.audioEvent);
+   if(ms!==undefined&&slot.playing){requireAsset(Number.isFinite(ms)&&ms>=0,'Invalid mission audio length.');slot.remainingMs=ms;}
+  }
  }
  /** CAudioEngine::Service's part in the slots, once a frame: a sample the script asked for has streamed in by the
   * next frame, and a playing one runs out after its length. */
