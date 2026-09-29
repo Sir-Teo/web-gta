@@ -1,13 +1,15 @@
 import type {Vec3} from '../core/math';
 /** CProjectileInfo physics (gta-reversed ProjectileInfo): per-kind gravity,
- * drag, bounce and fuse. Rockets fly flat with a short motor, thrown
- * grenades/molotovs arc under gravity with ground bounce, satchels stick. */
+ * drag, bounce and fuse. Rockets fly a straight line at a constant speed (the rocket keeps its motor lit for its
+ * whole life; a per-frame drag stalled it to walking pace within two seconds and dropped it short of its target),
+ * thrown grenades/molotovs arc under gravity with ground bounce, satchels stick. AUTHORED: CProjectileInfo's
+ * AddProjectile and Update are unreversed. */
 export type ProjectileKind='rocket'|'guided'|'grenade'|'molotov'|'satchel'|'tear'|'mine';
 export interface ProjectileTuning {gravity:number;drag:number;bounce:number;fuse:number;speed:number;up:number}
 export function projectileTuning(kind:string):ProjectileTuning{
  switch(kind){
-  case 'rocket':return {gravity:0,drag:0.02,fuse:8,speed:38,bounce:0,up:0};
-  case 'guided':return {gravity:0,drag:0.01,fuse:8,speed:38,bounce:0,up:0};
+  case 'rocket':return {gravity:0,drag:0,fuse:8,speed:38,bounce:0,up:0};
+  case 'guided':return {gravity:0,drag:0,fuse:8,speed:38,bounce:0,up:0};
   case 'satchel':return {gravity:9.81,drag:0.05,fuse:Infinity,speed:15,bounce:0.2,up:5};
   case 'molotov':return {gravity:9.81,drag:0.03,fuse:3,speed:15,bounce:0.3,up:5};
   case 'grenade':return {gravity:9.81,drag:0.03,fuse:3,speed:15,bounce:0.4,up:5};
