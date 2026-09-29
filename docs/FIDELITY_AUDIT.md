@@ -8514,3 +8514,43 @@ mission table came out as its key: the opening's Tenpenny dialogue read "PRO@24"
 named table into TheText (`CText::LoadMissionText`: it replaces the one loaded; a request made while the GXT is still
 loading waits for it). Trains were built without `ChooseVehicleColour`'s paint, so their colour-coded materials kept
 carcols' placeholder magenta and green; carriages now take their model's colours as boats and aircraft do.
+
+## Play-testing the opening: the fade, the ride, the bike, cops, sirens, entry and talking
+
+A headless play-through of a new game and of INTRO1 turned up these, each now fixed.
+
+- **The opening flashed free roam.** The script is built only once the world is there, a few seconds after the play
+  button, so Grove Street and the HUD showed before MAIN's `DO_FADE 0 0`. A new game (no save point) now holds the
+  screen black from the button until INTRO runs; a script that stops first, or none after 45 s, fades in.
+- **The intro could derail.** A playback without car AI moves its car on a velocity-driven kinematic body. When the
+  script let go of the car mid-recording (a death or arrest's mission cleanup, or `MARK_CAR_AS_NO_LONGER_NEEDED`), the
+  playback could no longer find it through the released handle, so it was never given its collision force back: the
+  police car glided on at its last recorded speed for ever, through the ground, with CJ in the back. The playback now
+  keeps the car it started on (the pool handle still names it in the original) and ends properly. A stray star picked
+  up during the ride, which is what brought the cleanup on in the observed run, is not yet traced.
+- **CJ could not get on his BMX.** Three causes: the enter button took only the nearest bike and did nothing when a
+  script ped rode it (INTRO1 parks CJ's BMX 2.5 units from the homies'); a bike beyond 4 units was refused, with no walk
+  up to it as cars have; and with no standing room on either side the jump-on clip refused silently. The button now
+  passes over a script-ridden bike, walks CJ up to a bike chosen from up to 10 units, and mounts at once when there is no
+  room for the clip. Spec: `bike-beside-ridden`.
+- **Cops were deadly.** Every AI round went down the weapon's own cone, so a street cop landed nearly every pistol
+  round and a single burst took most of CJ's health. AUTHORED (SA's `CWeapon::FireInstantHit` is unreversed): the aim
+  point moves by up to ±0.02 × (100 − accuracy) units across and ±0.01 × it up, the shape of the earlier games' rule, so
+  street cops (60) miss more often than SWAT (68), the FBI (76) or the army (84). Foot peds and drive-bys alike.
+- **Siren lights were flat squares.** Untextured sprites floated over the collision box. AUTHORED (`CAutomobile::
+  PreRender` is unreversed): the light bar is read off the chassis geometry, its two ends flash red and blue through
+  `CCoronas`, and each flash throws a coloured pool on the ground. Spec: `siren-lights` (unit).
+- **The car moved while CJ got in.** A car whose driver was being dragged out fell into the abandoned-car branch (no
+  handbrake, no brake above a crawl) and coasted with CJ pinned at its door; the hold was also dropped when the victim
+  landed, while CJ still climbed in. The car is now held on its brakes, and its ground speed firmly damped, from the
+  door until CJ is seated (authored), and a nearly stopped AI car (5 m/s or less) waits from the button press, so one
+  that stopped for CJ in the road does not pull away as he goes round to the door. Spec: `car-entry`.
+- **The jacked driver popped up.** He became a fresh standing ped the moment the pull-out ended.
+  `CTaskComplexCarSlowBeDraggedOutAndStandUp` (unreversed) is now followed in its shape: he lies in `CAR_jackedLHS`'s last
+  frame for 0.6 s, gets up with `GETUP_FRONT` (the jacked clips are `ANIMATION_IS_FRONT`) and only then answers. Spec:
+  `jacked-driver`.
+- **Aiming from a sprint did nothing.** The aim button with a gun now drops CJ out of the sprint into the aimed walk.
+- **Y and N did nothing.** `CPad::ConversationYesJustDown` / `NoJustDown` with a ped targeted (or the nearest ahead
+  within 4 units) now have CJ say something positive or negative; the ped stops, turns and answers. AUTHORED
+  (`CPedToPlayerConversations::Update` is unreversed): an insulted rival gang member or tough ped squares up and fights,
+  a weak one runs, anyone else answers with a threat and the finger. Spec: `ped-converse`.
