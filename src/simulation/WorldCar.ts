@@ -858,8 +858,9 @@ export class WorldCar {
    if(this.damageIntensity>0||this.inWater||!this.wheelTouchedGround||this.modelId===MODEL_VORTEX)return;
    const w=this.car.body.angvel();this.car.body.setLinvel({x:0,y:0,z:0},true);this.car.body.setAngvel({x:w.x,y:0,z:w.z},true);
   }
-  /** CAutomobile::ProcessBuoyancy for cars over WATER.DAT surfaces. Force scale matches the aircraft path:
-   * browser gravity is 9.81 m/s² against native 0.008 per 50 Hz step (20 m/s²). */
+  /** CAutomobile::ProcessBuoyancy for cars over WATER.DAT surfaces. A car falls at native gravity (ApplyGravity's 0.008
+   * a step, NativeVehicleForces), so the buoyancy is native too: scaled for 9.81 it held a car at half its lift and
+   * sank it. */
   private floatOnWater(dt:number){
    const level=this.waterLevel;if(!level){this.inWater=this.drowning=false;return;}
    if(!this.assets.handling||!this.assets.collision)return;
@@ -870,7 +871,7 @@ export class WorldCar {
    const state:NativeBuoyancyBody={position:native(p),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:false,anyWheelOffGround:this.wheelGround.some(g=>!g),touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],heavy:this.heavy,buoyancyConstant:this.water.buoyancy,moveSpeed:native({x:v.x/50,y:v.y/50,z:v.z/50}),turnSpeed:native({x:w.x/50,y:w.y/50,z:w.z/50})};
    state.drowning=this.drowning;state.hovers=this.modelId===MODEL_VORTEX&&this.occupied;
    const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:0,initialBuoyancy:this.assets.handling.buoyancy??0},moveSpeed=[...state.moveSpeed] as NativeVec;
-   const result=applyNativeBuoyancy(state,level,dt*50,rotor,9.81/20);
+   const result=applyNativeBuoyancy(state,level,dt*50,rotor,1);
    this.splashClock+=dt;
    if(rotor.sample&&this.splashClock>=1/30){
     this.splashClock%=1/30;

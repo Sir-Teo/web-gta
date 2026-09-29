@@ -18,6 +18,7 @@ import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
 import {addWakePoint,applyNativeBoatBuoyancy,createWakeTrail,pruneWakeTrail,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBoatBody,type NativeVec} from './nativeBuoyancy';
+import {NATIVE_GRAVITY_MS2} from './nativeGravity';
 import {nativeBoatDrive} from '../flight/aero';
 export const PLAYABLE_BOATS:Readonly<Record<number,string>>={430:'Predator',446:'Squalo',452:'Speeder',453:'Reefer',454:'Tropic',472:'Coastguard',473:'Dinghy',484:'Marquis',493:'Jetmax',595:'Launch'};
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
@@ -228,7 +229,7 @@ export class WorldBoat {
   const sample:{sample?:{points:NativeVec[][];min:NativeVec;max:NativeVec}}={},moveSpeed=[...state.moveSpeed] as NativeVec;
   // ProcessBoatControl hands GetHasHitWall to ProcessBuoyancyBoat's last argument: against the world, the hull points'
   // turn forces are held back, and the drive turns 0.4 of the whole force at the turn point instead.
-  const result=applyNativeBoatBuoyancy(state,level,dt*50,sample,9.81/20,this.hitWall);
+  const result=applyNativeBoatBuoyancy(state,level,dt*50,sample,1,this.hitWall);
   if(this.occupied&&this.sim.player.health>0&&result.inWater&&boatDriverNeedsBreath(result.force,state.mass,dt*50,state.up[2],moveSpeed[0],moveSpeed[1]))this.sim.handlePlayerBreath(dt);
   // Bow spray from partly submerged edges once per native 30 fps frame.
   this.splashClock+=dt;
@@ -240,16 +241,16 @@ export class WorldBoat {
   // cBuoyancy::ProcessBuoyancyBoat answers for a boat whenever the water level is known, with no force when no hull
   // point is under, so the drive still runs in the air (thrust while the propeller is near the surface, the turn
   // damping, the handbrake). With no water polygon under it at all, ProcessBoatControl stops there. bOnWater needs more
-  // lift than 0.0008 x mass a step: the force is the native one (only its application is scaled to browser gravity).
+  // lift than 0.0008 x mass a step: the force is the native one, and so is the gravity it works against.
   if('noWater' in result&&result.noWater){
    this.lastImmersion=this.immersion;const [mx,my,mz]=state.moveSpeed,[tx,ty,tz]=state.turnSpeed;
-   this.body.setLinvel({x:mx*50,y:mz*50-9.81*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);return;
+   this.body.setLinvel({x:mx*50,y:mz*50-NATIVE_GRAVITY_MS2*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);return;
   }
   const onWater=result.inWater&&result.force>dt*50*state.mass*.0008;this.onWater=onWater;
   // ProcessBoatControl drive forces over the post-buoyancy state (engine-speed ramp and Skimmer branches omitted).
   const drive=nativeBoatDrive({
    gasPedal:this.gasPedal,steerAngle:this.steerAngle,handbrake:this.brake,player:this.occupied,
-   collidedWithWorld:this.hitWall,postCollision:this.postCollision,onWater,gravityScale:9.81/20,
+   collidedWithWorld:this.hitWall,postCollision:this.postCollision,onWater,gravityScale:1,
    upZ:state.up[2],immersionDepth:this.immersion,lastImmersionDepth:this.lastImmersion,
    buoyancyForceZ:result.inWater?result.force:0,buoyancyTurn:(result.inWater&&result.turnPoint?result.turnPoint:[0,0,0]) as NativeVec,
    move:[...state.moveSpeed] as NativeVec,turn:[...state.turnSpeed] as NativeVec,
@@ -262,7 +263,7 @@ export class WorldBoat {
   // Vehicle.cpp stores the immersion every step, 0 in the air, so a landing is measured against it.
   this.lastImmersion=this.immersion;this.waveVolume=drive.waveVolume;
   const [mx,my,mz]=drive.move,[tx,ty,tz]=drive.turn;
-  this.body.setLinvel({x:mx*50,y:mz*50-9.81*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
+  this.body.setLinvel({x:mx*50,y:mz*50-NATIVE_GRAVITY_MS2*dt,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
  }
  private lastImmersion=0;
  /** m_nBoatFlags.bLockedToXY: set by the constructor and ANCHOR_BOAT, cleared once the player drives (STATUS_PLAYER). */
