@@ -12,7 +12,7 @@ type V3={x:number;y:number;z:number};
 export type Side='left'|'right';
 export type EntryPhase='approach'|'align'|'locked'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp'|'draggedOut'|'crawlOut';
 /** Shared entry timing (src/vehicle/entry.ts): 0.2 speed gate, 600 ms line-up. */
-import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, nextEntryPhase } from '../vehicle/entry';
+import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, approachStall, nextEntryPhase } from '../vehicle/entry';
 /** CCarEnterExit: the player keeps entering or jacking while the car's 2D speed is at most 0.2 units/frame. */
 const PLAYER_ENTER_SPEED=ENTRY_SPEED_SHARED;
 /** CTaskUtilityLineUpPedWithCar(offset, 600, ...): the ped's offset from the door point is removed over 600 ms. */
@@ -340,7 +340,8 @@ export class CarEntry {
   if(distance<=.5){if(!doorBusy)this.doorReached();return {...controls,x:0,y:0,jump:false,sprint:false};}
   // A door drifting away with its car (a hovercraft sliding on land) is chased, not counted as a blocked way.
   if(distance<this.bestDistance-.05||car.speed2D()>.001){this.bestDistance=distance;this.stall=0;}
-  else if(!doorBusy&&(this.stall+=dt)>1.2){if(distance<1.2)this.doorReached();else{this.message='The way to the door is blocked.';this.cancelReason='blocked';this.cancel();}return {...controls,x:0,y:0,jump:false};}
+  // The stall clock waits while CJ is off the ground: a press that came mid-jump, or a kerb on the way, is not a blocked door.
+  else if(!doorBusy&&(this.stall=approachStall(this.stall,dt,this.sim.player.grounded))>1.2){if(distance<1.2)this.doorReached();else{this.message='The way to the door is blocked.';this.cancelReason='blocked';this.cancel();}return {...controls,x:0,y:0,jump:false};}
   let aim={x:dx,z:dz};
   // ComputeRouteToDoor: walk around the car's collision bounds instead of into them.
   const b=car.assets.collision.bounds,center=car.car.body.translation(),h=car.heading(),sin=Math.sin(h),cos=Math.cos(h);

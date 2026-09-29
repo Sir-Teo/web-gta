@@ -64,6 +64,13 @@ export function nextEntryPhase(phase: EntryPhase, victimInside: boolean): EntryP
 }
 
 /** Exit variant: slow cars step out, fast cars jump out and roll. */
+/** The approach's stall clock (CTaskComplexEnterCar's walk to the door judged blocked after 1.2 s without progress): it
+ * runs only with CJ on the ground. Off the ground (the press came mid-jump, a kerb, a fall) no progress can be made and
+ * none is held against him, as a knockdown holds the approach without ending it. */
+export function approachStall(stall: number, dt: number, grounded: boolean): number {
+  return grounded ? stall + dt : stall;
+}
+
 export function exitPhaseForSpeed(carSpeed2D: number): 'getOut' | 'jumpOut' {
   return carSpeed2D > PLAYER_ENTER_SPEED_LIMIT ? 'jumpOut' : 'getOut';
 }
