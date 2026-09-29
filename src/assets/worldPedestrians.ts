@@ -105,6 +105,9 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const characterSpeeds=(name:string)=>loadCharacter(name).then(built=>built.speeds);
  const characterStats=(name:string)=>loadCharacter(name).then(built=>built.stats);
  /** Native anim group for a model (peds.ide), defaulting to `man`. */
+ /** CModelInfo by id: the peds.ide model a ped model id names. */
+ const modelNamesById=new Map([...pedIde.values()].map(def=>[def.id,def.model]));
+ const pedModelName=(id:number)=>modelNamesById.get(id);
  const animGroupOf=(name:string)=>pedIde.get(name.toLowerCase())?.animGroup??'man';
  /** CPedModelInfo::CanPedDriveVehicleClass for a model and a vehicles.ide class name. */
  const canDrive=(name:string,vehicleClass:string|undefined)=>pedCanDriveClass(pedIde.get(name.toLowerCase()),vehicleClass);
@@ -137,5 +140,5 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  };
  // CPopulation::IsSunbather: the BEACH_GUY and BEACH_GIRL pedstats.
  const sunbather=(name:string)=>/^STAT_BEACH_(GUY|GIRL)$/i.test(pedIde.get(name.toLowerCase())?.stat??'');
- return {sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,walkcycleLocomotion,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,scriptAnimation,stealth,gangClips,attractorClips,...worldPaths(source)};
+ return {pedModelName,sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,walkcycleLocomotion,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,scriptAnimation,stealth,gangClips,attractorClips,...worldPaths(source)};
 }

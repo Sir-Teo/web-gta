@@ -4236,7 +4236,8 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPedOnCar:async(_pedType,model,car,offset)=>{
+                 spawnScriptPedOnCar:async(_pedType,id,car,offset)=>{
+                  const model=await pedestrians?.scriptPedModel(id)??id;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
                   const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},health:100,
@@ -4244,7 +4245,8 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPedInCar:async(_pedType,model,car,seat)=>{
+                 spawnScriptPedInCar:async(_pedType,id,car,seat)=>{
+                  const model=await pedestrians?.scriptPedModel(id)??id;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
                   const rider:ScriptRider={rider:true,model,car:target,seat,health:100,heading:target.heading(),
@@ -4252,8 +4254,8 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPed:async(_pedType,model,position)=>
-                  await pedestrians?.spawnScripted(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(0))??undefined,
+                 spawnScriptPed:async(_pedType,id,position)=>
+                  await pedestrians?.spawnScripted(await pedestrians.scriptPedModel(id),{x:position.x,y:position.z,z:-position.y},scriptYaw(0))??undefined,
                  // A ped riding in a car goes where the car goes, so nothing a script says about where it
                  // stands, how it walks or what it looks at reaches it; onFoot answers nothing for one, and
                  // each of those falls away rather than being applied to a ped that is not there.

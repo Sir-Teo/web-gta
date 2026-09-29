@@ -400,8 +400,8 @@ export class WorldBike {
   // CQuadBike is a CAutomobile: CAutomobile::VehicleDamage returns as soon as DamageKnockOffRider throws the rider,
   // before the health loss; otherwise the collision comes out of its health, ridden or not (half of it with CJ
   // aboard, a quarter otherwise), and the hit that would empty it leaves 1.
-  if(this.quad&&!this.wrecked&&!knocked){
-   const h=this.assets.handling.values,loss=collisionHealthLoss({intensity:h.mass*change/50,mass:h.mass,collisionDamageMultiplier:h.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:false,modelId:this.modelId});
+  if(hit&&this.quad&&!this.wrecked&&!knocked){
+   const h=this.assets.handling.values,loss=collisionHealthLoss({intensity:hit.intensity,mass:h.mass,collisionDamageMultiplier:h.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:false,modelId:this.modelId});
    if(loss>0){const previous=this.health;this.health-=loss;if(this.health<=0&&previous>0)this.health=1;}
   }
   if(knocked)this.knockOff(v,{x:dx,y:dy,z:dz},change);

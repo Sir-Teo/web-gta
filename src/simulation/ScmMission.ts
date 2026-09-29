@@ -1,3 +1,4 @@
+import {SPECIAL_MODELS_RESOURCE_ID,SPECIAL_PED_MODELS} from '../engine/ScmCutscene';
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
 import type {CarRecordingFrame} from '../assets/carRecordings';
@@ -736,6 +737,18 @@ export class ScmMission {
  /** Between START_CUTSCENE and CLEAR_CUTSCENE: the browser has no cutscene to show, so the screen stays faded out
   * through it rather than fading in on the world the cutscene would have covered. The hold goes with the thread that
   * started the cutscene, so a mission ended mid-cutscene does not leave the screen black. */
+ /** The model a script ped is built from. Model ids from MODEL_SPECIAL01 (290) are CStreaming's special-character
+  * slots (MODEL_SPECIAL01 to 10), which LOAD_SPECIAL_CHARACTER fills by name (RequestSpecialChar: script slot n is
+  * model 289 + n); the host is handed that name, and any other id as it stands (its peds.ide row). The script keeps
+  * the id it gave. */
+ private pedModel(model:number|string){
+  if(typeof model!=='number')return model;
+  if(model>=SPECIAL_MODELS_RESOURCE_ID&&model<SPECIAL_MODELS_RESOURCE_ID+SPECIAL_PED_MODELS){
+   const name=this.runtime.game.specialCharacters.at(model-SPECIAL_MODELS_RESOURCE_ID+1);
+   if(name)return name.toLowerCase();
+  }
+  return model;
+ }
  private cutsceneThread?:unknown;
  private get cutsceneOpen(){const thread=this.cutsceneThread;return !!thread&&this.runtime.active.some(slot=>slot.thread===thread);}
  readonly runtime:ScmRuntime;
@@ -1903,11 +1916,11 @@ export class ScmMission {
   };
   // Script handles start clear of the player's own, which is 1 for him and for the car he drives.
   this.peds=new ScmPedPool<unknown>({
-   spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,model,position),
+   spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,this.pedModel(model),position),
    // A ped made in a car the browser is still building waits for the car.
-   spawnInCar:async(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,model,await this.vehicleOrPlayer(vehicle),seat),
+   spawnInCar:async(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,this.pedModel(model),await this.vehicleOrPlayer(vehicle),seat),
    spawnRandomInCar:async(vehicle,seat)=>this.world.spawnScriptRandomPedInCar(await this.vehicleOrPlayer(vehicle),seat),
-   spawnOnCar:async(pedType,model,vehicle,offset)=>this.world.spawnScriptPedOnCar(pedType,model,await this.vehicleOrPlayer(vehicle),offset),
+   spawnOnCar:async(pedType,model,vehicle,offset)=>this.world.spawnScriptPedOnCar(pedType,this.pedModel(model),await this.vehicleOrPlayer(vehicle),offset),
    place:(ped,position)=>{this.world.placeScriptPed(ped,position);},
    setHeading:(ped,degrees)=>{this.world.setScriptPedHeading(ped,degrees);},
    positionOf:ped=>this.world.scriptPedPosition(ped),

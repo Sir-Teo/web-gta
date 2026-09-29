@@ -6,7 +6,8 @@ import {WorldBike} from '../src/simulation/WorldBike';
 const crash=(o:{type:string;health?:number;occupied?:boolean;change:number})=>{
   const bike=Object.assign(Object.create(WorldBike.prototype),{assets:{vehicle:{type:o.type},handling:{values:{mass:300,collisionDamageMultiplier:1}}},
     modelId:471,wrecked:false,health:o.health??1000,occupied:!!o.occupied,stepVelocity:{x:o.change,y:0,z:0},
-    body:{isEnabled:()=>true,linvel:()=>({x:0,y:0,z:0}),rotation:()=>({x:0,y:0,z:0,w:1})}});
+    body:{isEnabled:()=>true,linvel:()=>({x:0,y:0,z:0}),rotation:()=>({x:0,y:0,z:0,w:1})},
+    strongestCollision:()=>({intensity:300*o.change/50,normal:{x:-1,y:0,z:0}})});
   (WorldBike.prototype as any).collisionKnockOff.call(bike);
   return bike.health;
 };
