@@ -1577,6 +1577,14 @@ export class WorldPedestrians {
   const keep:PassengerKeep={weapon:p.weapon,health:p.health,gang:p.gang,gangClips:p.gang!==undefined};
   return {modelRef:p.modelRef,follow:p.follow,gang:p.gang,keep};
  }
+ /** The model a script ped id stands for: its peds.ide row's name where the depot carries that model, so the
+  * story's Ballas, Families and the rest are built as themselves rather than from the civilian roster (which a
+  * number otherwise indexes). An id with no model in the depot, or a name, is handed back as it came. */
+ async scriptPedModel(modelRef:number|string):Promise<number|string>{
+  if(typeof modelRef!=='number')return modelRef;
+  const catalog=this.catalog??await this.catalogLoad;const name=catalog?.pedModelName(modelRef);
+  return name&&catalog!.hasModel(name)?name:modelRef;
+ }
  /** CPopulation::AddPed (0x612710) through a script's CREATE_CHAR: the model loaded, the ped stood where the
   * script says and flagged PED_MISSION, so the population manager leaves it alone until the script lets go.
   * Resolves to nothing when the model cannot be loaded, which is the handle the script then finds empty. */

@@ -1,3 +1,4 @@
+import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/startingLoadout';
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
@@ -2234,6 +2235,7 @@ async function boot() {
       // after the button: until then the screen is held black, so Grove Street and the HUD do not flash up before the
       // opening's title card. Loading a save point (which skips INTRO) fades straight in.
       if (!progression.savedLocation && !mission) { openingHoldAt = performance.now(); cameraFade.alpha = 255; cameraFade.value = 255; cameraFade.fading = false; hud.fade(true, 0); }
+      if (!progression.savedLocation && STARTING_LOADOUT) { grantStartingLoadout(weapons.inventory, sim.player, mission?.runtime.game.playerInfo.maxArmour ?? 100); progression.save(); }
     }
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
     // Terrain loading that gave up after failures in a row tries again from where the player stands.
@@ -4234,7 +4236,8 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPedOnCar:async(_pedType,model,car,offset)=>{
+                 spawnScriptPedOnCar:async(_pedType,id,car,offset)=>{
+                  const model=await pedestrians?.scriptPedModel(id)??id;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
                   const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},health:100,
@@ -4242,7 +4245,8 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPedInCar:async(_pedType,model,car,seat)=>{
+                 spawnScriptPedInCar:async(_pedType,id,car,seat)=>{
+                  const model=await pedestrians?.scriptPedModel(id)??id;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
                   const rider:ScriptRider={rider:true,model,car:target,seat,health:100,heading:target.heading(),
@@ -4250,8 +4254,8 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPed:async(_pedType,model,position)=>
-                  await pedestrians?.spawnScripted(model,{x:position.x,y:position.z,z:-position.y},scriptYaw(0))??undefined,
+                 spawnScriptPed:async(_pedType,id,position)=>
+                  await pedestrians?.spawnScripted(await pedestrians.scriptPedModel(id),{x:position.x,y:position.z,z:-position.y},scriptYaw(0))??undefined,
                  // A ped riding in a car goes where the car goes, so nothing a script says about where it
                  // stands, how it walks or what it looks at reaches it; onFoot answers nothing for one, and
                  // each of those falls away rather than being applied to a ped that is not there.
@@ -4315,7 +4319,8 @@ async function boot() {
                   if(weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);},
                  clearPedWeapons:ped=>{
                   if(ped!==undefined){const p=onFoot(ped);const held=p?.weapon?.info.type??p?.weaponType;if(p&&held!==undefined)pedestrians?.clearWeapon(p,held);return;}
-                  weapons.inventory.strip();weapons.vision=null;weapons.goggles=undefined;void weaponView.equip(0);},
+                  weapons.inventory.strip();weapons.vision=null;weapons.goggles=undefined;void weaponView.equip(0);
+                  if(STARTING_LOADOUT&&mission?.runtime.currentThread?.name===OPENING_MISSION)grantStartingLoadout(weapons.inventory,sim.player,mission.runtime.game.playerInfo.maxArmour);},
                  scriptPedWeapon:ped=>{
                   const held=onFoot(ped);
                   return held?.weaponType===undefined?undefined:{type:held.weaponType,ammo:held.totalAmmo??0};

@@ -10,7 +10,8 @@ const crash=()=>{
  let knocked=0;
  const self=Object.assign(Object.create(WorldBike.prototype),{stepVelocity:{x:0,y:0,z:-30},occupied:true,wrecked:false,modelId:461,health:1000,
   body:{isEnabled:()=>true,linvel:()=>({x:0,y:0,z:0}),rotation:()=>({x:0,y:0,z:0,w:1})},assets:{handling:{values:{mass:500,collisionDamageMultiplier:1}},vehicle:{type:'bike'}},
-  knockOff(){knocked++;}});
+  // The solver's strongest contact: the wall's impulse, 30 m/s of the bike's 500 kg, pushing it back along +z.
+  strongestCollision:()=>({intensity:500*30/50,normal:{x:0,y:0,z:1}}),knockOff(){knocked++;}});
  (WorldBike.prototype as any).collisionKnockOff.call(self);
  return knocked;
 };
@@ -30,7 +31,7 @@ const quadCrash=(dz:number)=>{
  let knocked=0;
  const self=Object.assign(Object.create(WorldBike.prototype),{stepVelocity:{x:0,y:0,z:dz},occupied:true,wrecked:false,modelId:471,health:1000,lastCollisionSeconds:Infinity,
   body:{isEnabled:()=>true,linvel:()=>({x:0,y:0,z:0}),rotation:()=>({x:0,y:0,z:0,w:1})},assets:{handling:{values:{mass:400,collisionDamageMultiplier:1}},vehicle:{type:'quad'}},
-  knockOff(){knocked++;}});
+  strongestCollision:()=>({intensity:400*Math.abs(dz)/50,normal:{x:0,y:0,z:-Math.sign(dz)}}),knockOff(){knocked++;}});
  (WorldBike.prototype as any).collisionKnockOff.call(self);
  return {knocked,health:self.health,since:self.lastCollisionSeconds};
 };

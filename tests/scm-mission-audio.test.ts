@@ -141,3 +141,25 @@ test('PLAY_MISSION_AUDIO asks the host for the line\'s length with the brief on 
  run(game,{missionAudioLengthMs:(sample:number,subtitle:string|undefined)=>{asked.push([sample,subtitle]);return 1500;}},instruction(op('PLAY_MISSION_AUDIO'),[1]));
  expect(asked).toEqual([[20015,'INT1_AQ']]);expect(game.missionAudio.slots[0].remainingMs).toBe(1500);
 });
+
+test('a line is sized from the subtitle its frame left up, which the script may print after the PLAY',async()=>{
+ const {ScmRuntime}=await import('../src/engine/ScmRuntime');
+ const space=new Uint8Array(1024);
+ // PLAY_MISSION_AUDIO 1, then WAIT 0 and back round the WAIT.
+ const play=instruction(op('PLAY_MISSION_AUDIO'),[1]),wait=instruction(op('WAIT'),[0]),back=instruction(op('GOTO'),[128+play.length]);
+ space.set([...play,...wait,...back],128);
+ const asked:unknown[]=[];
+ const runtime=new ScmRuntime(space,{fade(){},missionAudioLengthMs:(sample:number,subtitle:string|undefined)=>{asked.push([sample,subtitle]);return subtitle==='INT1_AP'?3200:900;}} as unknown as ScmWorldCommands);
+ const audio=runtime.game.missionAudio;audio.preload(1,20015);audio.service(0);
+ runtime.game.messages.addMessageJump('INT1_AQ',4000,1,false,0);
+ runtime.start(128);runtime.process(0,20);
+ // The PLAY saw the old subtitle; INT1_AP goes up after it in the same frame.
+ expect(asked).toEqual([[20015,'INT1_AQ']]);
+ runtime.game.messages.addMessageJump('INT1_AP',4000,1,false,0);
+ runtime.process(20,20);
+ expect(asked.at(-1)).toEqual([20015,'INT1_AP']);
+ expect(audio.slots[0].remainingMs).toBe(3200-20);
+ // Sized once: a later subtitle does not stretch it.
+ runtime.game.messages.addMessageJump('INT1_EA',4000,1,false,0);runtime.process(40,20);
+ expect(audio.slots[0].remainingMs).toBe(3200-40);
+});

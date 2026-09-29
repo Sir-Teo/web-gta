@@ -151,7 +151,10 @@ export class ScmRuntime {
    if(this.game.failCurrentMission)this.game.failCurrentMission--;
    this.game.introRectangles.beginFrame(this.game.introText.useTextCommands);
    this.game.introText.beginFrame();
-   // The audio engine's service of the last frame: a sample asked for is in, a playing one may have run out.
+   // The audio engine's service of the last frame: a sample asked for is in, a playing one may have run out. A
+   // line played last frame is first sized from the subtitle that frame left up.
+   const world=this.world;
+   if(world?.missionAudioLengthMs)this.game.missionAudio.settleLengths(sample=>world.missionAudioLengthMs!(sample,this.game.messages.briefs[0]?.key));
    this.game.missionAudio.service(delta);
    // The streamer's pass: the animation blocks requested last frame are in.
    this.game.animBlocks.service();

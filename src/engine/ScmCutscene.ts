@@ -7,6 +7,10 @@ import {requireAsset} from '../assets/binary';
 export const CUTSCENE_NONE=0,CUTSCENE_LOADING=1,CUTSCENE_LOADED=2,CUTSCENE_RUNNING=3,CUTSCENE_FINISHED=4;
 /** CStreaming's special-character slots, which LOAD_SPECIAL_CHARACTER fills by number. */
 export const TOTAL_SPECIAL_CHARACTERS=21;
+/** constants.h: the model id of the first special-character slot (MODEL_SPECIAL01). */
+export const SPECIAL_MODELS_RESOURCE_ID=290;
+/** eModelID: the ped models the slots stand behind, MODEL_SPECIAL01 to MODEL_SPECIAL10 (300 on is MODEL_CUTOBJ01). */
+export const SPECIAL_PED_MODELS=10;
 export class ScmCutscene {
  /** The name the script asked for, and where that request has got to. */
  name?:string;status=CUTSCENE_NONE;

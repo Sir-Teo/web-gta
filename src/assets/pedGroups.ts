@@ -1,7 +1,9 @@
 import {requireAsset} from './binary';
 
 /** One peds.ide row: native ped type, stats and anim-group assignment. */
-export interface PedModelDef {model:string;pedType:string;stat:string;animGroup:string;
+export interface PedModelDef {
+ /** The model id (the row's first column). */
+ id:number;model:string;pedType:string;stat:string;animGroup:string;
  /** CPedModelInfo::m_nCarsCanDriveMask: one bit per vehicle class (VEHICLE_CLASS_NORMAL first); 0x1000 is on foot. */
  drives:number}
 /** vehicles.ide class names in eVehicleClass order, the bit each occupies in a ped's cars-can-drive mask. */
@@ -31,7 +33,7 @@ export function readPedsIde(text:string):Map<string,PedModelDef>{
   requireAsset(Number.isInteger(Number(id))&&model.length>0&&pedType.length>0&&stat.length>0&&animGroup.length>0,`Ped definition line ${line+1}: invalid row.`);
   const key=model.toLowerCase();
   requireAsset(!defs.has(key),`Duplicate ped definition: ${model}.`);
-  defs.set(key,{model:key,pedType:pedType.toUpperCase(),stat:stat.toUpperCase(),animGroup:animGroup.toLowerCase(),drives:Number.isFinite(drives)?drives:0});
+  defs.set(key,{id:Number(id),model:key,pedType:pedType.toUpperCase(),stat:stat.toUpperCase(),animGroup:animGroup.toLowerCase(),drives:Number.isFinite(drives)?drives:0});
  }
  requireAsset(section==='done'&&defs.size>=200,'Expected a complete peds.ide table.');
  return defs;

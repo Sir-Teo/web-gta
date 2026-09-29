@@ -1,3 +1,4 @@
+import {SPECIAL_MODELS_RESOURCE_ID,SPECIAL_PED_MODELS} from '../engine/ScmCutscene';
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
 import type {CarRecordingFrame} from '../assets/carRecordings';
@@ -736,6 +737,18 @@ export class ScmMission {
  /** Between START_CUTSCENE and CLEAR_CUTSCENE: the browser has no cutscene to show, so the screen stays faded out
   * through it rather than fading in on the world the cutscene would have covered. The hold goes with the thread that
   * started the cutscene, so a mission ended mid-cutscene does not leave the screen black. */
+ /** The model a script ped is built from. Model ids from MODEL_SPECIAL01 (290) are CStreaming's special-character
+  * slots (MODEL_SPECIAL01 to 10), which LOAD_SPECIAL_CHARACTER fills by name (RequestSpecialChar: script slot n is
+  * model 289 + n); the host is handed that name, and any other id as it stands (its peds.ide row). The script keeps
+  * the id it gave. */
+ private pedModel(model:number|string){
+  if(typeof model!=='number')return model;
+  if(model>=SPECIAL_MODELS_RESOURCE_ID&&model<SPECIAL_MODELS_RESOURCE_ID+SPECIAL_PED_MODELS){
+   const name=this.runtime.game.specialCharacters.at(model-SPECIAL_MODELS_RESOURCE_ID+1);
+   if(name)return name.toLowerCase();
+  }
+  return model;
+ }
  private cutsceneThread?:unknown;
  private get cutsceneOpen(){const thread=this.cutsceneThread;return !!thread&&this.runtime.active.some(slot=>slot.thread===thread);}
  readonly runtime:ScmRuntime;
@@ -1903,11 +1916,11 @@ export class ScmMission {
   };
   // Script handles start clear of the player's own, which is 1 for him and for the car he drives.
   this.peds=new ScmPedPool<unknown>({
-   spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,model,position),
+   spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,this.pedModel(model),position),
    // A ped made in a car the browser is still building waits for the car.
-   spawnInCar:async(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,model,await this.vehicleOrPlayer(vehicle),seat),
+   spawnInCar:async(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,this.pedModel(model),await this.vehicleOrPlayer(vehicle),seat),
    spawnRandomInCar:async(vehicle,seat)=>this.world.spawnScriptRandomPedInCar(await this.vehicleOrPlayer(vehicle),seat),
-   spawnOnCar:async(pedType,model,vehicle,offset)=>this.world.spawnScriptPedOnCar(pedType,model,await this.vehicleOrPlayer(vehicle),offset),
+   spawnOnCar:async(pedType,model,vehicle,offset)=>this.world.spawnScriptPedOnCar(pedType,this.pedModel(model),await this.vehicleOrPlayer(vehicle),offset),
    place:(ped,position)=>{this.world.placeScriptPed(ped,position);},
    setHeading:(ped,degrees)=>{this.world.setScriptPedHeading(ped,degrees);},
    positionOf:ped=>this.world.scriptPedPosition(ped),
@@ -2604,8 +2617,10 @@ export class ScmMission {
   if(camera.lookingAtPlayer)return undefined;
   const entity=camera.lookingAtVector?undefined:camera.targetEntity,at=entity&&this.cameraEntityPosition(entity);
   if(camera.modeToGoTo===MODE_FIXED){
-   // The fixed camera looks at its vector, or at the entity TakeControl gave it, where that entity is now.
-   const source=camera.fixedModeSource,target=at??camera.fixedModeVector;
+   // The fixed camera looks at its vector, or at the entity TakeControl gave it, where that entity is now; the
+   // script's linear move and track (CAMERA_SET_VECTOR_MOVE/TRACK) carry the source and the look-at point while
+   // they run.
+   const source=camera.moveLinearPoint(this.clockMs)??camera.fixedModeSource,target=camera.trackLinearPoint(this.clockMs)??at??camera.fixedModeVector;
    return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
   }
   // MODE_CAM_ON_A_STRING and the follow camera on an entity the script names (two missions): a chase point behind
@@ -2826,7 +2841,10 @@ export class ScmMission {
   // Cars with no playback left are forgotten.
   if(this.recordedCars.size){const recordings=this.runtime.game.vehicleRecordings;for(const handle of this.recordedCars.keys())if(recordings.findVehicleRecordingIndex(handle)===-1)this.recordedCars.delete(handle);}
  }
+ /** The game clock the script last ran at. */
+ private clockMs=0;
  step(nowMs:number,timeStepMs:number){
+  this.clockMs=nowMs;
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
