@@ -117,6 +117,8 @@ export class WorldBike {
  /** Head/tail lamp glows (bike lamp pass): additive sprites at the hull ends, lit at night. */
  private lamp?:Sprite;private tailLamp?:Sprite;private night=0;
  private stepVelocity?:{x:number;y:number;z:number};
+ /** The tyre balls, which stand in for CBike's suspension lines rather than its collision model. */
+ private readonly wheelColliders=new Set<number>();
  private stepTurn?:{x:number;y:number;z:number};
  /** OBJECT.DAT props the bike can damage and uproot (CPhysical::ApplyCollision's static-object branch, triple
   * damage for a bike), as the fleet's cars have. */
@@ -142,7 +144,7 @@ export class WorldBike {
    {friction:0,restitution:.05,frictionCombineRule:RAPIER.CoefficientCombineRule.Min});this.body=this.physical.body;this.car={body:this.body,root:this.root};
   // The tyres carry it (nativeBikeWheels): a ball per wheel on the same frictionless contact.
   for(const w of bikeWheelSupports(assets.model,assets.wheelFrames,assets.vehicle.frontWheelSize,assets.vehicle.rearWheelSize))
-   sim.world.createCollider(RAPIER.ColliderDesc.ball(w.radius).setTranslation(w.center.x,w.center.z,-w.center.y).setDensity(0).setFriction(0).setRestitution(.05).setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min),this.body);
+   this.wheelColliders.add(sim.world.createCollider(RAPIER.ColliderDesc.ball(w.radius).setTranslation(w.center.x,w.center.z,-w.center.y).setDensity(0).setFriction(0).setRestitution(.05).setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min),this.body).handle);
   // A car's solver group: peds are kinematic capsules that would stop the bike dead, so, as for cars, the ped strike
   // pass (CPhysical::ApplyCollision between the two) settles a bike meeting a ped instead of the solver.
   for(let i=0;i<this.body.numColliders();i++)this.body.collider(i).setSolverGroups(CAR_SOLVER_GROUPS);
@@ -385,15 +387,14 @@ export class WorldBike {
   const v=this.body.linvel(),dx=v.x-before.x,dy=v.y-before.y,dz=v.z-before.z,change=Math.hypot(dx,dy,dz);
   if(change<.5)return;
   this.lastCollisionSeconds=0;
+  const hit=this.strongestCollision();
   // CBike::DamageKnockOffRider: a rider the script keeps on (CANT_BE_KNOCKED_OFF_NEVER) is never thrown, and the
   // force is zeroed for the player on stairs (CamStairsForPlayer and a stairs zone holding him).
   const mass=this.assets.handling.values.mass;let knocked=false;
-  if(this.occupied&&!WorldBike.riderStaysOn?.()&&!WorldBike.playerOnStairs?.()){
-   const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0});
-   const dir={fwd:(dx*forward.x+dy*forward.y+dz*forward.z)/change,up:(dx*up.x+dy*up.y+dz*up.z)/change,right:(dx*right.x+dy*right.y+dz*right.z)/change};
-   // m_fDamageIntensity is the collision impulse, mass times the velocity change in units a frame (CPhysical's
-   // ApplyCollision family); the contact solver's change for the whole step stands in for the strongest contact.
-   const force=knockOffForce({intensity:mass*change/50,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,worldZ:dy/change,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
+  if(hit&&this.occupied&&!WorldBike.riderStaysOn?.()&&!WorldBike.playerOnStairs?.()){
+   const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1}),up=rotate(q,{x:0,y:1,z:0}),n=hit.normal;
+   const dir={fwd:n.x*forward.x+n.y*forward.y+n.z*forward.z,up:n.x*up.x+n.y*up.y+n.z*up.z,right:n.x*right.x+n.y*right.y+n.z*right.z};
+   const force=knockOffForce({intensity:hit.intensity,mass,player:true,skill:WorldBike.ridingSkill?.()??0,dir,worldZ:n.y,upZ:up.y,sanchez:this.modelId===468,quad:this.quad});
    knocked=knocksOffRider(force);
   }
   // CQuadBike is a CAutomobile: CAutomobile::VehicleDamage returns as soon as DamageKnockOffRider throws the rider,
@@ -404,6 +405,29 @@ export class WorldBike {
    if(loss>0){const previous=this.health;this.health-=loss;if(this.health<=0&&previous>0)this.health=1;}
   }
   if(knocked)this.knockOff(v,{x:dx,y:dy,z:dz},change);
+ }
+ /** CPhysical's m_fDamageIntensity and m_vecLastCollisionImpactVelocity: of the step's contacts, the one with the
+  * largest impulse (mass times units a frame: the solver's kg·m/s over 50) and its normal into the bike. Only the
+  * collision model counts. CBike's wheels are suspension lines, which raise no collision, so a tyre ball's contact
+  * is ground the suspension takes (a kerb or bump it climbs) unless it meets the tyre side-on, below 0.3 of the
+  * bike's up (an obstacle as tall as the axle: a wall, a car), where the frame's spheres would have struck. */
+ private strongestCollision(){
+  const up=rotate(this.body.rotation(),{x:0,y:1,z:0});let best:{intensity:number;normal:{x:number;y:number;z:number}}|undefined;
+  for(let i=0;i<this.body.numColliders();i++){
+   const collider=this.body.collider(i),wheel=this.wheelColliders.has(collider.handle);
+   this.sim.world.contactPairsWith(collider,other=>{
+    if(other.isSensor()||other.handle===this.sim.playerCollider.handle||other.parent()?.handle===this.body.handle)return;
+    this.sim.world.contactPair(collider,other,(manifold,flipped)=>{
+     if(!manifold.numContacts())return;
+     const m=manifold.normal(),normal=flipped?{x:m.x,y:m.y,z:m.z}:{x:-m.x,y:-m.y,z:-m.z};
+     if(wheel&&normal.x*up.x+normal.y*up.y+normal.z*up.z>=.3)return;
+     let impulse=0;for(let c=0;c<manifold.numContacts();c++)impulse+=manifold.contactImpulse(c);
+     const intensity=impulse/50;
+     if(intensity>0&&(!best||intensity>best.intensity))best={intensity,normal};
+    });
+   });
+  }
+  return best;
  }
  /** Seconds since the last collision the contact solver registered (m_nLastCollisionTime). */
  lastCollisionSeconds=Infinity;
