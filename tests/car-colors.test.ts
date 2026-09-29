@@ -10,10 +10,18 @@ test('two and four slot definitions preserve order, duplicate definitions and ex
  expect(data.palette[0].rgb).toEqual([0,0,0]);expect(data.definitions[1].variants[0]).toEqual([0,1,2,3]);
  expect(()=>resolveCarColors(data,'missing',0)).toThrow(/No car colors/);expect(chooseVehicleColors(data,'missing',0)).toMatchObject({indices:[0,0,0,0],colors:[[0,0,0],[0,0,0],[0,0,0],[0,0,0]]});expect(chooseVehicleColors(data,'car_b',0).indices).toEqual([0,1,2,3]);expect(()=>resolveCarColors(data,'car_b',.5)).toThrow(/variation/);
 });
-test('malformed palette rows retain indices and cannot be silently repaired or selected',()=>{
- const data=readCarColors('col\n0 0 0\n77.93,96\n40 50 60\nend\ncar\na 2 0\nb 1 0\nend');
- expect(data.palette).toHaveLength(3);expect(data.palette[1].rgb).toBeUndefined();expect(data.palette[1].raw).toBe('77.93,96');
- expect(resolveCarColors(data,'a',0).colors[0]).toEqual([40,50,60]);expect(()=>resolveCarColors(data,'b',0)).toThrow(/palette index 1/);
+test('a malformed palette row keeps its index and reads as LoadVehicleColours scans it',()=>{
+ // sscanf "%d %d %d" into zeroed fields stops at the stock typo's '.', so malachite poly is (77, 0, 0).
+ const data=readCarColors('col\n0 0 0\n77.93,96\n40 50 60\n300 -1 x\nend\ncar\na 2 0\nb 1 0\nend');
+ expect(data.palette).toHaveLength(4);expect(data.palette[1].raw).toBe('77.93,96');expect(data.palette[1].issues).toHaveLength(1);
+ expect(data.palette[1].rgb).toEqual([77,0,0]);expect(data.palette[3].rgb).toEqual([44,255,0]);
+ expect(resolveCarColors(data,'a',0).colors[0]).toEqual([40,50,60]);expect(resolveCarColors(data,'b',0).colors[0]).toEqual([77,0,0]);
+});
+test('an index past the 128-entry colour table paints as entry 0 instead of failing the car',()=>{
+ // As the stock Moonbeam's `117,227`, against this test's short palette.
+ const data=readCarColors(palette+'car\nmoonbeam 3 227 3 1\nend');
+ expect(resolveCarColors(data,'moonbeam',0)).toMatchObject({indices:[3,227,0,0]});
+ expect(resolveCarColors(data,'moonbeam',0).colors[1]).toEqual([0,0,0]);expect(resolveCarColors(data,'moonbeam',1).colors).toEqual([[70,80,90],[10,20,30],[0,0,0],[0,0,0]]);
 });
 test('invalid combinations and byte ranges stay explicit; structural and resource limits reject',()=>{
  for(const row of ['a 1','a 1 256','a -1 0','a 1.0 0','a '+Array(17).fill(0).join(' ')]){

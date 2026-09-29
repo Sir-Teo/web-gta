@@ -20,7 +20,10 @@ export function readCarColors(text:string):CarColorData {
    requireAsset(palette.length<128,'Car palette exceeds 128 entries.');
    const valid=tokens.length===3&&integers(tokens)&&tokens.every(v=>Number(v)>=0&&Number(v)<=255);
    if(!valid)issues.push('Unresolved palette entry: expected three byte RGB integers.');
-   palette.push({line:index+1,raw,issues,...(valid?{rgb:tokens.map(Number) as [number,number,number]}:{})});
+   // CVehicleModelInfo::LoadVehicleColours (0x5B6890): sscanf "%d %d %d" into zeroed red, green and blue, then
+   // CRGBA::Set keeps each low byte. A scan stops at the first field that is not an integer, so the stock row
+   // `77.93,96` (98, malachite poly) is (77, 0, 0), not a missing colour.
+   palette.push({line:index+1,raw,issues,rgb:valid?tokens.map(Number) as [number,number,number]:scanPaletteRow(line)});
   }else{
    const [model,...values]=tokens,slots=section==='car'?2:4;
    requireAsset(/^[a-z0-9_]{1,63}$/i.test(model),`Car colors line ${index+1}: invalid model name.`);
@@ -35,6 +38,12 @@ export function readCarColors(text:string):CarColorData {
  requireAsset(!section,'Unterminated car colors section.');
  return {palette,definitions};
 }
+/** sscanf(line, "%d %d %d") as CRGBA::Set stores it: fields in order until one fails, the rest 0, each one byte. */
+function scanPaletteRow(line:string):[number,number,number]{
+ const rgb:[number,number,number]=[0,0,0],field=/\s*([+-]?\d+)/y;
+ for(let i=0;i<3;i++){const match=field.exec(line);if(!match)break;rgb[i]=Number(BigInt.asUintN(8,BigInt(match[1])));}
+ return rgb;
+}
 /** Explicit variation selection; does not emulate traffic RNG or mission overrides.
  * Later definitions replace earlier ones for the same normalized model name. */
 export function resolveCarColors(data:CarColorData,model:string,variation:number){
@@ -44,7 +53,12 @@ export function resolveCarColors(data:CarColorData,model:string,variation:number
  requireAsset(definition.variants.length>0,`Unresolved car colors for ${model} at line ${definition.line}.`);
  requireAsset(Number.isInteger(variation)&&variation>=0&&variation<Math.min(8,definition.variants.length),'Invalid car color variation.');
  const indices=definition.variants[variation],colors=indices.map(index=>{
-  const entry=data.palette[index];requireAsset(entry?.rgb,`Unresolved car palette index ${index}.`);return [...entry.rgb] as [number,number,number];
+  // The stock CARCOLS gives the Moonbeam a 227 (`117,227`), past the 128-entry ms_vehicleColourTable, where the
+  // original reads whatever follows the table. Such a slot paints as entry 0, as a model without variations does,
+  // so the van is still made: throwing here cancelled the car, and INTRO, which asks for a random one, gave up
+  // with the player's controls off.
+  const entry=index>=128?data.palette[0]:data.palette[index];
+  requireAsset(entry?.rgb,`Unresolved car palette index ${index}.`);return [...entry.rgb] as [number,number,number];
  }) as unknown as NativeCarColors;
  return {colors,indices:[...indices] as [number,number,number,number],line:definition.line};
 }
