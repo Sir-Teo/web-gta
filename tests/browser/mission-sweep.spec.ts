@@ -9,7 +9,8 @@ import {endStoryMission} from './freeRoam';
  *
  * Each mission is started as MAIN would start it (LOAD_AND_LAUNCH_MISSION_INTERNAL) from free roam at Grove Street.
  * An autopilot stands in for the player where it can: while the mission thread waits in a loop on a locate or
- * area test with literal coordinates, CJ is put at the point; he is kept alive and unwanted; cutscenes end at once
+ * area test with literal coordinates, CJ is put at the point, and while it waits for him in a car it names he is
+ * put in it; he is kept alive and unwanted; cutscenes end at once
  * already. It cannot drive a chase, win a fight or pick a menu item, so a mission it cannot finish is reported with
  * the instruction it was waiting on. What the report proves is where the port stops a mission (a command it gave up
  * on, a thread error, a page error), not that a mission plays as the original does. */
@@ -38,6 +39,18 @@ test('mission sweep',async({page})=>{
  const results:unknown[]=[];
  for(const id of ids){
   const before=errors.length;
+  // Each mission starts from the same place: CJ on foot at Grove Street, whatever the last one left him in.
+  for(let tries=0;tries<10;tries++){
+   const seated=await page.evaluate(()=>{const r=(window as any).__game.missionForProfiling().runtime;
+    for(const slot of [...r.active])if(slot.thread.base>0)r.terminateAllWithName(slot.thread.name);
+    if(!((r.world.pedVehicle(1)??0)>0))return false;
+    try{r.world.warpPedFromCarToCoord(1,2495,-1687,13.4);}catch{}
+    return (r.world.pedVehicle(1)??0)>0;});
+   if(!seated)break;
+   await page.keyboard.press('KeyF');await page.waitForTimeout(1500);
+  }
+  await page.evaluate(()=>{const r=(window as any).__game.missionForProfiling().runtime;try{r.world.setPedCoordinates(1,2495,-1687,13.4);}catch{}});
+  await page.waitForTimeout(2000);
   const start=await page.evaluate(id=>{
    const g=(window as any).__game,m=g.missionForProfiling(),r=m.runtime;
    for(const slot of [...r.active])if(slot.thread.base>0)r.terminateAllWithName(slot.thread.name);
@@ -68,6 +81,11 @@ test('mission sweep',async({page})=>{
     else if(now-state.since>15000){state.since=now;state.turn++;}
     const ahead=near.length?near[state.turn%near.length]:undefined;
     let moved=false;
+    // A loop that waits for CJ in a car or on a bike the script named (the BMX, Sweet's Greenwood) puts him in it.
+    const ride=block.instructions.find((x:any)=>x.offset>=fileOffset-40&&x.offset<fileOffset+200&&/^IS_CHAR_(SITTING_)?IN_CAR$/.test(x.name));
+    if(ride&&!((r.world.pedVehicle(1)??0)>0)){
+     try{if(t.readInt(ride.parameters[0])===1){const car=t.readInt(ride.parameters[1]);if(m.vehicles.exists(car)&&now-state.lastAt>8000){r.world.warpPedIntoCar(1,car);state.lastAt=now;moved=true;}}}catch{}
+    }
     if(ahead){
      const floats=ahead.parameters.filter((p:any)=>p.type===6).map((p:any)=>p.value);
      const area=/IN_AREA/.test(ahead.name),[x,y]=area?[(floats[0]+floats[2])/2,(floats[1]+floats[3])/2]:[floats[0],floats[1]];

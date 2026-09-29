@@ -44,7 +44,7 @@ A Playwright spec, skipped unless `SWEEP` is set. It boots the game, ends the op
 MAIN would (`LOAD_AND_LAUNCH_MISSION_INTERNAL`) from free roam. An autopilot stands in for the player where a static
 reading allows: while the mission thread waits in a loop, CJ (and the characters the same condition group tests,
 with the bike or car they ride) is put at the literal coordinates of the locate or area tests round the wait,
-rotating through the candidates every fifteen seconds while the thread stays put; CJ is kept alive and unwanted.
+rotating through the candidates every fifteen seconds while the thread stays put; a loop waiting for CJ in a car or bike it names puts him in it; CJ is kept alive and unwanted.
 It records, per mission: how far into its block the thread was seen, whether it ended, any command the port gave up
 on, page errors, and the loop it was left waiting in.
 
