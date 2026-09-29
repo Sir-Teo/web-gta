@@ -21,13 +21,16 @@ export class VehicleOccupants {
  constructor(private scene:Scene,base:string){void openWorldPedestrians(base).then(c=>{if(this.disposed)return;if(!c.animations.car_sit)throw new Error('Missing native driving pose.');this.catalog=c;}).catch(e=>this.error=String(e));}
  /** A zone roster's driver for a car (CPopulation::ChooseCivilianOccupationForVehicle), asked once per car. */
  pickDriver?:(car:WorldCar)=>string|undefined;
- private assigned=new Map<number,number|string>();
+ /** Kept for as long as the car itself lives: a map pruned to the cars with a pose this frame let a car whose driver
+  * was between his seat and the street (the frame his jacked clip ended) choose a new driver, so the man CJ pulled
+  * out stood up as someone else. */
+ private assigned=new WeakMap<WorldCar,number|string>();
  /** The pedestrian model a car's driver uses, shared with the ped that leaves it: chosen from the zone roster when
   * the car first shows a driver, the packaged roster index by car model otherwise. */
  driverModel(car:WorldCar){
-  const handle=car.car.body.handle,known=this.assigned.get(handle);if(known!==undefined)return known;
+  const known=this.assigned.get(car);if(known!==undefined)return known;
   const model=this.pickDriver?.(car)??(this.catalog?car.modelId%this.catalog.models.length:0);
-  this.assigned.set(handle,model);return model;
+  this.assigned.set(car,model);return model;
  }
  /** CAR_sit (CAR_Lsit in a low car) in the driver's seat of every NPC-driven car not handled elsewhere. */
  /** Drivers dead in their seats (CTaskSimpleDieInCar): CAR_dead_LHS held on its last frame. */
@@ -48,7 +51,6 @@ export class VehicleOccupants {
   const catalog=this.catalog;if(!catalog)return;
   const keys=new Set(poses.map(p=>p.key));
   for(const [key,entry] of this.views)if(!keys.has(key)){entry.gun?.dispose();entry.view.dispose();this.views.delete(key);}
-  if(this.assigned.size>64){const live=new Set(poses.map(p=>p.car.car.body.handle));for(const handle of [...this.assigned.keys()])if(!live.has(handle))this.assigned.delete(handle);}
   for(const pose of poses){
    let entry=this.views.get(pose.key);
    if(entry&&(entry.model!==pose.model||(entry.gun?.model??null)!==(pose.gun?.model??null))){entry.gun?.dispose();entry.view.dispose();this.views.delete(pose.key);entry=undefined;}

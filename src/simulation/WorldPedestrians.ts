@@ -1523,10 +1523,9 @@ export class WorldPedestrians {
  private decisionMakers=new Map<string,number|undefined>();
  private spawnFromCar(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,flee:number,after:(p:Pedestrian)=>void){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
-  // A driver drawn from the packaged roster before the zone roster streamed (the occupants' fallback) steps out as a
-  // resident of the zone instead: native drivers are zone residents (ChooseCivilianOccupationForVehicle), so the
-  // zone's race mask holds for the ped on the street.
-  if(typeof modelRef==='number'&&this.roster?.loaded.length)modelRef=this.roster.loaded[modelRef%this.roster.loaded.length];
+  // The ped who leaves a car is the one who sat in it, whichever roster his model came from: a packaged-roster driver
+  // (the occupants' fallback before the zone roster streamed) swapped for a zone resident here turned the man CJ
+  // dragged out into somebody else as he landed.
   const node=this.nearestNode(position);if(!node)return false;
   if(typeof modelRef==='string'){
    // A zone roster driver keeps his model when dragged out (the ped catalog has it resident already).
@@ -2815,6 +2814,13 @@ export class WorldPedestrians {
    const visible=foe?!hit||hit.timeOfImpact>=distance:ride?!hit||hit.timeOfImpact>=distance||hit.collider.parent()?.handle===ride.handle:!!hit&&(hit.collider.handle===this.sim.playerCollider.handle||!!occupied&&hit.collider.parent()?.handle===occupied.car.body.handle);
    return {eye,aim,offset,distance,visible};
   }
+  /** Whether the point a shooter aims at is the player on the move (running, or in a moving vehicle). */
+  private targetMoving(aim:{x:number;y:number;z:number}){
+   const p=this.sim.player.position;
+   if(Math.hypot(aim.x-p.x,aim.z-p.z)>3)return false;
+   const v=this.playerVehicleVelocity?.();
+   return v?Math.hypot(v.x,v.z)>2:this.sim.player.speed>1.5;
+  }
   /** The player's capsule, for a bullet line to try while he rides a bike. */
   private riderShape?:RAPIER.Capsule;
   /** Muzzle-ray firing sequence with reloads, flashes and dispersion. */
@@ -2836,7 +2842,7 @@ export class WorldPedestrians {
     if(p.order?.kind!=='goToPointShooting')state.heading=Math.atan2(aimOffset.x,aimOffset.z);
     p.view.update(p.actor,1);
     const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
-    const aimed=npcInaccurateAim(p.aimPoint??aim,p.gunAccuracy),direction=new Vector3(aimed.x,aimed.y,aimed.z).sub(muzzle).normalize();
+    const aimed=npcInaccurateAim(p.aimPoint??aim,p.gunAccuracy,Math.random,muzzle,this.targetMoving(aim)),direction=new Vector3(aimed.x,aimed.y,aimed.z).sub(muzzle).normalize();
     // Native weapon dispersion: the muzzle ray scatters inside the
     // weapon.dat radius instead of striking the aim point every shot.
     const scattered=npcAimSpread(direction,weapon.info,p.gunAccuracy);

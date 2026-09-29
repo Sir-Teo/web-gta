@@ -173,7 +173,7 @@ export class GangDriveBy {
    const oldTime=s.gunState.time;
    const fire=stepNpcGun(s.gunState,info,this.gunCache!.reloadSeconds,dt,engaged);
    if(fire){
-    const aimed=npcInaccurateAim(s.aimPoint??aim,60),direction=new Vector3(aimed.x,aimed.y,aimed.z).sub(muzzle).normalize();
+    const aimed=npcInaccurateAim(s.aimPoint??aim,60,Math.random,muzzle,true),direction=new Vector3(aimed.x,aimed.y,aimed.z).sub(muzzle).normalize();
     const scattered=npcAimSpread(direction,info,60);
     direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
     const shot=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
