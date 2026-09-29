@@ -2649,7 +2649,9 @@ async function boot() {
         // by cars or pedestrians, and sirens chirp when (seed ^ rand) & 0xFF is 0xAD (CCarAI::UpdateCarAI).
         if(statFrameDue)for(const car of fleet?.cars??[])if(!car.occupied){if(car.horn.counter)car.horn.counter--;playHornIfNecessary(car);if(car.siren&&Math.random()*256<1)car.horn.counter=45;}
         {const plane=fleet?.occupiedPlane;if(statFrameDue)parachuteTimer.step(1000/30,plane?{heightOverGround:plane.altitude}:undefined);
-         if(inAircraft&&!plane&&parachuteTimer.wantsParachute&&sim.player.health>0&&weapons.inventory.give(WEAPON_PARACHUTE,1)){weapons.inventory.select(WEAPON_PARACHUTE);void weaponView.equip(WEAPON_PARACHUTE);}
+         // GivePlayerParachute: GiveWeapon(PARACHUTE, 1, true) and SetSavedWeapon(PARACHUTE), so ReplaceWeaponWhenExitingVehicle
+         // hands the parachute back rather than whatever was held before boarding.
+         if(inAircraft&&!plane&&parachuteTimer.wantsParachute&&sim.player.health>0&&weapons.inventory.give(WEAPON_PARACHUTE,1)){weapons.inventory.select(WEAPON_PARACHUTE);if(driverSavedWeapon!==undefined)driverSavedWeapon=WEAPON_PARACHUTE;void weaponView.equip(WEAPON_PARACHUTE);}
          inAircraft=!!plane;}
         {const game=mission?.runtime.game;
          if(game&&statReactions&&sim.player.health>0){
