@@ -145,11 +145,22 @@ test('mission sweep',async({page})=>{
       return `${local}@ ${p.x.toFixed(0)},${p.y.toFixed(0)},${p.z.toFixed(0)} ${v>0?`veh ${v} ${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mission?`${mission.kind}->${mission.goal.x.toFixed(0)},${(-mission.goal.z).toFixed(0)} r${mission.route?.length??0}${mission.recovery?` rec${mission.recovery.kind}`:''}`:'no mission'} ${(car.car?.body??car.body)?.isEnabled?.()===false?'DISABLED':''} ${car.autopilot?.native?`g${car.autopilot.native.gas.toFixed(1)} s${car.autopilot.native.steerAngle.toFixed(2)} b${car.autopilot.native.brake.toFixed(1)}`:''}`:'on foot'}`;}
      catch(e){return `${local}@ ${handle} ${String(e).slice(0,40)}`;}
     })];
-    return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said(),bot:botAction,watched};
+    // A watched ped losing health, with what hurt him: the first sign of a homie about to fail the mission.
+    const hurt:string[]=[],hp=(window as any).__watchHp??={};
+    for(const local of watch as number[]){
+     const handle=t.locals.getInt32(local*4,true);let health:number;try{health=r.world.pedHealth(handle);}catch{continue;}
+     if(hp[local]!==undefined&&health<hp[local]){
+      const by=m.peds.entity(handle)?.lastDamagedBy,car=by?.car,ped=by?.ped;
+      hurt.push(`${local}@ ${hp[local]}->${health} by ${by?.player?'CJ':car?`car ${car.model?.name??car.modelId??'?'}${car===g.sim?.playerCar?' (CJ)':''}`:ped?`ped ${ped.model??ped.modelName??'?'}`:'?'} weapon ${m.peds.entity(handle)?.lastWeaponDamage??'?'}`);
+     }
+     hp[local]=health;
+    }
+    return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said(),bot:botAction,watched,hurt};
    },[id,playerOnly,bot,watch] as const);
    samples++;previous=last;last=s;
    // The bot's decisions as they change, and a progress line every twenty samples.
    const decision=s.bot?JSON.stringify(s.bot):null;if(decision&&decision!==timeline.at(-1)?.decision)timeline.push({at:samples,offset:s.offset??-1,decision});
+   for(const h of s.hurt??[])console.log(`sweep ${id} sample ${samples} HURT ${h}`);
    if(samples%20===0)console.log(`sweep ${id} sample ${samples} offset ${s.offset} ${s.name} ${decision??''} ${(s.said??[]).join(',')} ${(s.watched??[]).join(' | ')}`);
    if(s.ended){ended=true;break;}
    if(s.moved)teleports++;

@@ -40,7 +40,8 @@ export function gameInvariantsCheck(pushing:boolean){
   const q=p.actor.player.position;
   if(!finite(q)){found.push({kind:'ped-nan',detail:String(p.modelRef)});continue;}
   if(p.health>0&&under(q,3))found.push({kind:'ped-under-world',detail:`${p.modelRef} at ${where(q)}`});
-  const view=p.view.root.position;if(p.view.root.visible&&Math.hypot(view.x-q.x,view.z-q.z)>3)found.push({kind:'ped-view-detached',detail:`${p.modelRef} ${Math.hypot(view.x-q.x,view.z-q.z).toFixed(1)} units from its body at ${where(q)}`});
+  // A view still at the origin was spawned between frames and has not been placed yet.
+  const view=p.view.root.position;if(p.view.root.visible&&Math.hypot(view.x,view.z)>1&&Math.hypot(view.x-q.x,view.z-q.z)>3)found.push({kind:'ped-view-detached',detail:`${p.modelRef} ${Math.hypot(view.x-q.x,view.z-q.z).toFixed(1)} units from its body at ${where(q)}`});
  }
  return found;
 }
