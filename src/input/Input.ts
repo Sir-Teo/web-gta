@@ -77,6 +77,8 @@ export class Input {
   /** A single press, as a key tapped and let go within the frame. */
   tap(code: string) { this.pressed.add(code); this.touches++; }
   down(code: string) { return this.held.has(code); }
+  /** The left button held without dragging the camera (under 6 pixels moved): without pointer lock, the fire button. */
+  stillHold() { const p = this.press; return this.held.has('MouseFire') && !!p && p.moved < 6; }
   consume(code: string) { const value = this.pressed.has(code); this.pressed.delete(code); return value; }
   axes() {
     const stick = this.stick;

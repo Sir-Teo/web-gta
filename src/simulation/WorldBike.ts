@@ -250,7 +250,11 @@ export class WorldBike {
   if(Math.abs(input.throttle)>.05)this.rideTime+=dt;
   // CAutomobile::ProcessControlInputs for the quad: the raw steer follows the pad a fifth of the way a frame, and the
   // steer angle is the lock times its square.
-  if(this.quad){this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=steerFraction(this.rawSteer);}
+  // CAutomobile::ProcessControlInputs for the quad, and CBike::ProcessControlInputs (0x6BE310, unreversed; its VC
+  // ancestor steers the same way) for every other bike: the raw steer follows the pad a fifth of the way a frame and
+  // the steer angle is the lock times its square. A key press is not full lock at once: taken raw, each tap threw the
+  // bike into its full turn and its full 48 degree lean, and it would not ride straight.
+  this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=steerFraction(this.rawSteer);
   if(this.wrecked){this.throttle=0;}
   this.bunnyHop(dt,!!input.hop,input.disabled);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
@@ -535,7 +539,7 @@ export class WorldBike {
  }
  /** CTaskSimpleCarSetPedOut: the rider is off the bike at `spot`. */
  private leave(spot:{x:number;y:number;z:number}){
-  this.occupied=false;this.throttle=0;this.steer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
+  this.occupied=false;this.throttle=0;this.steer=0;this.rawSteer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
  }
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);

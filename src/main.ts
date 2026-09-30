@@ -2802,7 +2802,9 @@ async function boot() {
         // The drive-by is the SMG slot's weapon (CTaskSimpleGangDriveBy takes it whatever is in hand), so it is put in
         // hand when the trigger is pulled with another selected.
         const drivebyReady=()=>{const inv=weapons.inventory,smg=[28,29,32].includes(inv.selected)?inv.selected:inv.inSlot(inv.slotOf(28));if(smg===undefined)return false;if(inv.selected!==smg)inv.select(smg);return true;};
-        const drivebyPulled=()=>(weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||mouseFires&&input.down('MouseFire')||key||mouseFires&&mouse):key||mouseFires&&mouse||click)&&drivebyReady();
+        // Without pointer lock the left button also drags the camera round the vehicle: held still it is the trigger (an
+        // automatic keeps firing), and a click fires one round.
+        const drivebyPulled=()=>(weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||mouseFires&&input.down('MouseFire')||input.stillHold()||key||mouseFires&&mouse||click):key||mouseFires&&mouse||click||mouse)&&drivebyReady();
         if(worldCar?.occupied&&!leavingCar&&worldCar.modelId!==432&&worldCar.modelId!==601&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
          const drivebyTrigger=drivebyPulled();
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
