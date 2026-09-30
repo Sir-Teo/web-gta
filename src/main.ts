@@ -2794,8 +2794,13 @@ async function boot() {
         // CAutomobile::ProcessControl skips DoDriveByShootings in the S.W.A.T. van and the Rhino (their gun is the car's),
         // and SET_PLAYER_CAN_DO_DRIVE_BY off leaves the driver no drive-by weapon.
         const driveByAllowed=mission?.runtime.game.playerInfo.canDoDriveBy!==false;
+        // CPad::GetCarGunFired: the fire button (the mouse, or Ctrl) fires a vehicle's gun and the rider's drive-by.
+        // The drive-by is the SMG slot's weapon (CTaskSimpleGangDriveBy takes it whatever is in hand), so it is put in
+        // hand when the trigger is pulled with another selected.
+        const drivebyReady=()=>{const inv=weapons.inventory,smg=[28,29,32].includes(inv.selected)?inv.selected:inv.inSlot(inv.slotOf(28));if(smg===undefined)return false;if(inv.selected!==smg)inv.select(smg);return true;};
+        const drivebyPulled=()=>(weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||mouseFires&&input.down('MouseFire')||key||mouseFires&&mouse):key||mouseFires&&mouse||click)&&drivebyReady();
         if(worldCar?.occupied&&!leavingCar&&worldCar.modelId!==432&&worldCar.modelId!==601&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
-         const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
+         const drivebyTrigger=drivebyPulled();
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
         }
         // CAutomobile::TankControl: the Rhino's turret follows the camera and Ctrl fires the cannon every 800 ms.
@@ -2866,14 +2871,14 @@ async function boot() {
          }}
         // SET_PLAYER_CAN_DO_DRIVE_BY off leaves the boat's helmsman no drive-by weapon, as it does a car's driver.
         if(fleet?.occupiedBoat&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
-         const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
+         const drivebyTrigger=drivebyPulled();
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}
         }
 
         // A rider's drive-by: ahead of the bike (eDrivebyStyle FIXED_FWD) unless VEHICLE_LOOKLEFT or LOOKRIGHT (Q, E)
         // is held, which shoots out of that side (CVehicle::DoDriveByShootings is unreversed; the styles are its own).
         if(fleet?.occupiedBike&&!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
-         const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
+         const drivebyTrigger=drivebyPulled();
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBike(fleet.occupiedBike,{origin:render.camera.position,direction},bikeLookSide());}
         }
         const rocket=input.consume('KeyB')||input.down('KeyB');
