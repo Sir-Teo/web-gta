@@ -104,7 +104,13 @@ export function missionBotTick(dtSeconds:number){
   if(v>.2){
    const ahead=(me.x-f.position.x)*vx+(me.y-f.position.y)*vy>0;if(ahead)return {action:'let him pass',target:f.handle};
    glide({x:f.position.x-vx/v*10,y:f.position.y-vy/v*10,z:f.position.z},1.5);
-  }else glide(f.position,8);
+  }else{
+   // A homie still on foot is getting to his own ride: CJ in a vehicle waits clear of him rather than ride into the
+   // bikes they are climbing onto. One stopped in the saddle is followed to fifteen units.
+   let onFoot=false;try{onFoot=!(world.pedVehicle?.(f.handle)>0);}catch{}
+   if(vehicle&&onFoot){if(distance(f.position)<25)glide({x:me.x+(me.x-f.position.x),y:me.y+(me.y-f.position.y),z:me.z},0);return {action:'wait for friend to mount',target:f.handle};}
+   glide(f.position,vehicle?15:8);
+  }
   return {action:'follow',target:f.handle};
  }
  return null;
