@@ -39,6 +39,16 @@ export function missionBotTick(dtSeconds:number){
   if(vehicle){
    const now=performance.now(),last=mem.drive;
    if(d<=stopAt){if(last){mem.drive=undefined;try{world.clearPedTasks?.(1);}catch{}}return false;}
+   // Wedged (against a homie's bike, a post): back up for a second and a half, as a player would, with the game's
+   // own TASK_CAR_TEMP_ACTION (TEMPACT_REVERSE, 3), then drive on.
+   const moved=mem.lastPos?Math.hypot(me.x-mem.lastPos.x,me.y-mem.lastPos.y):1;mem.lastPos={x:me.x,y:me.y};
+   mem.stuckFor=moved<.05*Math.max(1,dtSeconds*20)?(mem.stuckFor??0)+dtSeconds:0;
+   if(mem.reversingUntil&&now<mem.reversingUntil)return true;
+   if(mem.stuckFor>5){
+    mem.stuckFor=0;mem.reversingUntil=now+1800;mem.drive=undefined;
+    try{world.givePedScriptedTask(1,{kind:'carTempAction',vehicle,actionId:3,time:1500},0x0822);}catch{}
+    return true;
+   }
    if(!last||last.vehicle!==vehicle||Math.hypot(last.x-to.x,last.y-to.y)>8||now-last.at>4000){
     mem.drive={vehicle,x:to.x,y:to.y,at:now};
     try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:d>40?22:12,driveStyle:0,model:-1,drivingStyle:2},0x05d1);}catch{}

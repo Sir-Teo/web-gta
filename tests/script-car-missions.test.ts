@@ -141,4 +141,12 @@ test('a car that makes no headway through every recovery is set down on its rout
  player.position={x:0,y:0,z:-5};at={x:0,y:0,z:0};
  for(let i=0;i<50*10;i++)missions.step(1/50);
  expect((missions as any).unstuck).toBe(1);
+ // Out of sight but with no collision streamed in under the lane point, it waits too; with some, it is set on it.
+ player.position={x:0,y:0,z:200};at={x:0,y:0,z:0};m.link=link;m.route=[];
+ const asked:number[]=[];missions.ground=(_x,_z,from)=>{asked.push(from);return undefined;};
+ for(let i=0;i<50*10;i++)missions.step(1/50);
+ expect((missions as any).unstuck).toBe(1);expect(asked[0]).toBe(9);
+ missions.ground=()=>7.5;
+ for(let i=0;i<50*10;i++)missions.step(1/50);
+ expect((missions as any).unstuck).toBe(2);expect(at.y).toBe(8.5);
 });

@@ -534,6 +534,7 @@ async function boot() {
   return scriptCarPathsReady;
  });
  // The player the missions against him chase: where he is, the car he drives, and how fast he goes.
+ scriptCars.ground=(x,z,from)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:from,z},{x:0,y:-1,z:0}),40,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?from-hit.timeOfImpact:undefined;};
  scriptCars.player=()=>({position:sim.player.position,vehicle:worldCar?.occupied?worldCar:undefined,velocity:{x:sim.lastMove.velocity.x,y:0,z:sim.lastMove.velocity.z}});
  // HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE and FREEZE_CHAR_POSITION on the player.
  let playerWeaponHiddenByScript=false,playerFrozenByScript=false,playerAreaCode=0;

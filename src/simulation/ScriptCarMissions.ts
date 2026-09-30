@@ -126,6 +126,9 @@ export class ScriptCarMissions{
  private seconds=0;private frame=0;private lastLoad=-Infinity;
  /** The player, for the missions against him; with none, those missions hold the car still. */
  player?:()=>ScriptCarPlayer;
+ /** The loaded collision under a renderer (x, z), looking down from height `from`, or undefined where none is
+  * streamed in. */
+ ground?:(x:number,z:number,from:number)=>number|undefined;
  constructor(private paths:()=>Paths|undefined,private random:()=>number=Math.random){}
  /** TASK_CAR_MISSION: CTaskComplexCarDriveMission sets the autopilot's mission, target, cruise speed and style.
   * Missions the browser does not drive give nothing back. */
@@ -332,7 +335,11 @@ export class ScriptCarMissions{
   const p=car.car.body.translation(),player=this.player?.();
   if(player&&Math.hypot(player.position.x-p.x,player.position.z-p.z)<UNSTICK_NEAR)return false;
   const next=m.route[0]??m.link;if(!next)return false;
-  const t=travel(next),at=lanePoint(t,m.lane),z=Math.max(next.from.position[2],next.to.position[2])+1;
+  const t=travel(next),at=lanePoint(t,m.lane);
+  // Only onto collision that is there: a car set down past the streamed window fell through the world.
+  const road=Math.max(next.from.position[2],next.to.position[2]),ground=this.ground?this.ground(at.x,-at.y,road+4):road;
+  if(ground===undefined){m.jammed=0;return false;}
+  const z=ground+1;
   const yaw=Math.atan2(-t.forward.x,t.forward.y);
   car.car.body.setTranslation({x:at.x,y:z,z:-at.y},true);car.car.body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
   car.car.body.setLinvel({x:0,y:0,z:0},true);car.car.body.setAngvel({x:0,y:0,z:0},true);
