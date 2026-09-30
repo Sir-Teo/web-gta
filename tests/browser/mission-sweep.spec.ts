@@ -156,6 +156,13 @@ test('mission sweep',async({page})=>{
     })];
     // A watched ped losing health, with what hurt him: the first sign of a homie about to fail the mission.
     const hurt:string[]=[],hp=(window as any).__watchHp??={};
+    // CJ's last vehicle: a line whenever it loses over 50 health, is wrecked or drowning, or is gone, with where it is
+    // (a mission failing on IS_CAR_DEAD for a car that was fine a few seconds before).
+    {const w=window as any,now=r.world.pedVehicle?.(1)??0;if(now>0)w.__sweepCar=now;const h=w.__sweepCar;
+     if(h){const e=m.vehicles.entity(h),state=!m.vehicles.exists(h)?'gone':!e?'building':e.disposed?'disposed':e.wrecked?'wrecked':e.drowning?'drowning':'ok';
+      const health=e&&!e.disposed?Math.round(e.health):-1,t=e&&!e.disposed?(e.car?.body??e.body).translation():undefined,last=w.__sweepCarLast;
+      if(!last||state!==last.state||last.health-health>50)hurt.push(`CAR ${h} ${state} hp ${health}${t?` at ${t.x.toFixed(0)},${(-t.z).toFixed(0)},${t.y.toFixed(1)}`:''} fire ${!!e?.onFire} ${new Error().stack?.split('\n').slice(0,1).join('')}`);
+      w.__sweepCarLast={state,health};}}
     for(const local of watch as string[]){
      const handle=String(local).startsWith('g')?(t as any).globals.getInt32(Number(String(local).slice(1))*4,true):t.locals.getInt32(Number(local)*4,true);
      let health:number;try{health=r.world.pedHealth(handle);}catch{continue;}
