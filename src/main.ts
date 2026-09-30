@@ -200,6 +200,7 @@ import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
 import { TouchControls, wantsTouchControls } from './input/TouchControls';
+import { installRapierTombstones } from './simulation/rapierTombstones';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
 import {bindLocalObjectData} from './ui/localObjectData';
@@ -305,6 +306,8 @@ async function boot() {
     import('./simulation/Simulation'), import('./render/Renderer'), import('@dimforge/rapier3d-compat'), import('./simulation/nativeContactLighting'),
   ]);
   await RAPIER.init();
+  // A removed body or collider answers as a tombstone instead of trapping Rapier for the rest of the session.
+  installRapierTombstones(RAPIER);
   const navigation=walkDemo?new NativeMap(hud.element):undefined;
   const importedMode = true;
   const sim = new Simulation();

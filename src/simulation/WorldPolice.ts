@@ -223,7 +223,7 @@ export class WorldPolice {
  private level(){const p=this.sim.player.position;return this.zones?worldLevelAt(this.zones,[p.x,-p.z,p.y]):1;}
  /** CWanted::WorkOutPolicePresence contribution: law vehicles that still have a driver or crew, and police
   * helicopters, each by its 3D distance. */
- presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.disposed||h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length;}
+ presence(point:V3,radius:number){return this.units.filter(u=>{if(u.car.disposed||u.car.wrecked||u.car.occupied||!u.seats.some(Boolean))return false;const p=u.car.car.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length+this.helis.filter(h=>{if(h.disposed||h.health<=0||h.occupied)return false;const p=h.body.translation();return Math.hypot(p.x-point.x,p.y-point.y,p.z-point.z)<radius;}).length;}
  /** Airborne observers keep the pursuit alive (CWanted::NumOfHelisRequired). */
  /** Lets go of the helicopters that crashed or that something else took out of the fleet (the script's clears), with
   * their searchlights. */

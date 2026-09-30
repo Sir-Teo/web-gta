@@ -37,6 +37,8 @@ test('mission sweep',async({page})=>{
  }else ids=list.split(',').map(Number).filter(Number.isInteger);
  test.setTimeout(180000+ids.length*(seconds+30)*1000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ // A removed Rapier body used again (rapierTombstones.ts): no longer fatal, still a bug to fix.
+ page.on('console',m=>{if(m.type()==='warning'&&m.text().startsWith('Removed Rapier'))errors.push(m.text().slice(0,300));});
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);

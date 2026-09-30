@@ -22,7 +22,7 @@ test('gameplay fuzz',async({page})=>{
  const rand=()=>{seed=seed*1664525+1013904223>>>0;return seed/4294967296;};
  const pick=<T,>(list:readonly T[])=>list[Math.floor(rand()*list.length)];
  const errors:string[]=[],faults:string[]=[];
- page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/Subsystem fault/.test(m.text()))faults.push(m.text().slice(0,300));});
+ page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/Subsystem fault/.test(m.text())||m.type()==='warning'&&m.text().startsWith('Removed Rapier'))faults.push(m.text().slice(0,300));});
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await endStoryMission(page);
