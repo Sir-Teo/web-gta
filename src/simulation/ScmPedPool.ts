@@ -34,6 +34,8 @@ export interface ScmPedPoolHost<Ped>{
   * browser has no walkcycle for. */
  setAnimGroup?(ped:Ped,group:string):boolean;
  setProofs(ped:Ped,proofs:ScmPedProofs):void;
+ /** CPed::GiveWeapon on a body built again (in or out of a car): the weapon the ped held. */
+ giveWeapon?(ped:Ped,weaponType:number,ammo:number):void;
  /** Whether the browser still holds it, and how to let it go. */
  aliveOf(ped:Ped):boolean;
  remove(ped:Ped):void;
@@ -52,7 +54,9 @@ interface ScriptPed{pedType:number;model?:number|string;position:{x:number;y:num
  keepTask?:boolean;
  /** What the script set on the ped that the browser keeps on its body, so that the body built when the ped gets in or
   * out of a car carries it on: CPed is one object in SA, in its car or out of it. */
- accuracy?:number;shootingRate?:number;invulnerable?:boolean;proofs?:ScmPedProofs}
+ accuracy?:number;shootingRate?:number;invulnerable?:boolean;proofs?:ScmPedProofs;
+ /** The weapon GIVE_WEAPON_TO_CHAR gave it (a browser ped carries one), which it still holds out of the car. */
+ weapon?:{type:number;ammo:number}}
 /** ePedType, of which only these two are female. */
 const PED_TYPE_CIVMALE=4,PED_TYPE_CIVFEMALE=5,PED_TYPE_PROSTITUTE=22;
 /** CPed's starting health, which SET_CHAR_HEALTH raises the maximum along with. */
@@ -206,10 +210,16 @@ export class ScmPedPool<Ped>{
    if(said.invulnerable!==undefined)this.host.setInvulnerable(ped,said.invulnerable);
    if(said.proofs)this.host.setProofs(ped,said.proofs);
    if(said.animGroup)this.host.setAnimGroup?.(ped,said.animGroup);
+   if(said.weapon)this.host.giveWeapon?.(ped,said.weapon.type,said.weapon.ammo);
    then?.(ped);
    return ped;
   }));
  }
+ /** GIVE_WEAPON_TO_CHAR, kept for the body built when the ped gets in or out of a car (SWEET1's Sweet takes his spray
+  * can into the car and sprays with it once out). */
+ setWeapon(handle:number,weaponType:number,ammo:number){const said=this.said.get(handle);if(said)said.weapon={type:weaponType,ammo};}
+ /** REMOVE_WEAPON_FROM_CHAR (that weapon only) and REMOVE_ALL_CHAR_WEAPONS (none given). */
+ clearWeapon(handle:number,weaponType?:number){const said=this.said.get(handle);if(said?.weapon&&(weaponType===undefined||said.weapon.type===weaponType))said.weapon=undefined;}
  setAccuracy(handle:number,accuracy:number){const said=this.said.get(handle);if(said)said.accuracy=accuracy;this.pool.apply(handle,ped=>{this.host.setAccuracy(ped,accuracy);});}
  /** SET_CHAR_SHOOT_RATE: the rate is a byte (m_nWeaponShootingRate is a uint8). */
  setShootingRate(handle:number,rate:number){const said=this.said.get(handle);if(said)said.shootingRate=rate&0xff;this.pool.apply(handle,ped=>{this.host.setShootingRate?.(ped,rate&0xff);});}

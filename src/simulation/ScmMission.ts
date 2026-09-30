@@ -913,7 +913,7 @@ export class ScmMission {
    // CPed::GiveWeapon and the ammo commands. A browser ped carries the one weapon a script gave it, so the
    // slot search CWeapon does is a single comparison, and choosing a weapon it already holds changes nothing.
    givePedWeapon:(handle,weaponType,ammo)=>{
-    if(handle!==PLAYER_PED_HANDLE){this.world.giveScriptPedWeapon(this.livePed(handle),weaponType,ammo);return;}
+    if(handle!==PLAYER_PED_HANDLE){this.world.giveScriptPedWeapon(this.livePed(handle),weaponType,ammo);this.peds.setWeapon(handle,weaponType,ammo);return;}
     if(!this.world.givePlayerWeapon)throw new UnsupportedScmCommand(-1,0,'GIVE_WEAPON_TO_CHAR','the player');
     this.world.givePlayerWeapon(weaponType,ammo);
    },
@@ -921,10 +921,12 @@ export class ScmMission {
    removeWeaponFromPed:(handle,weaponType)=>{
     if(!this.world.clearPedWeapon)throw new UnsupportedScmCommand(-1,0,'REMOVE_WEAPON_FROM_CHAR','no host');
     this.world.clearPedWeapon(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),weaponType);
+    if(handle!==PLAYER_PED_HANDLE)this.peds.clearWeapon(handle,weaponType);
    },
    removeAllPedWeapons:handle=>{
     if(!this.world.clearPedWeapons)throw new UnsupportedScmCommand(-1,0,'REMOVE_ALL_CHAR_WEAPONS','no host');
     this.world.clearPedWeapons(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle));
+    if(handle!==PLAYER_PED_HANDLE)this.peds.clearWeapon(handle);
    },
    setPedCurrentWeapon:(handle,weaponType)=>{if(handle===PLAYER_PED_HANDLE)this.world.setPlayerCurrentWeapon?.(weaponType);},
    setPedAmmo:(handle,weaponType,ammo)=>{
@@ -1940,6 +1942,7 @@ export class ScmMission {
    setInvulnerable:(ped,enabled)=>{this.world.setScriptPedInvulnerable(ped,enabled);},
    setAnimGroup:(ped,group)=>this.world.setScriptPedAnimGroup?.(ped,group)??false,
    setProofs:(ped,proofs)=>{this.world.setScriptPedProofs(ped,proofs);},
+   giveWeapon:(ped,weaponType,ammo)=>{this.world.giveScriptPedWeapon(ped,weaponType,ammo);},
    aliveOf:ped=>this.world.scriptPedAlive(ped),
    remove:ped=>{this.world.removeScriptPed(ped);},
    release:(ped,keepTask)=>{this.world.releaseScriptPed(ped,keepTask);},

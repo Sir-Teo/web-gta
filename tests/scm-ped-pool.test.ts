@@ -3,7 +3,7 @@ import {ScmPedPool,type ScmPedPoolHost} from '../src/simulation/ScmPedPool';
 
 /** A ped the fake browser holds, with everything the script can say about one. */
 interface FakePed {id:number;position:{x:number;y:number;z:number};heading:number;health:number;accuracy:number;shootingRate?:number;
- invulnerable:boolean;proofs:string[];alive:boolean;scripted:boolean;animGroup?:string}
+ invulnerable:boolean;proofs:string[];alive:boolean;scripted:boolean;animGroup?:string;weapon?:{type:number;ammo:number}}
 /** A host whose spawning finishes only when the test says so, which is what the browser's really does. */
 function pool(options:{fails?:boolean}={}){
  let nextId=1;
@@ -39,6 +39,7 @@ function pool(options:{fails?:boolean}={}){
   setShootingRate:(ped,rate)=>{ped.shootingRate=rate;},
   setInvulnerable:(ped,enabled)=>{ped.invulnerable=enabled;},
   setAnimGroup:(ped,group)=>{ped.animGroup=group;return true;},
+  giveWeapon:(ped,type,ammo)=>{ped.weapon={type,ammo};},
   setProofs:(ped,proofs)=>{ped.proofs=Object.entries(proofs).filter(([,on])=>on).map(([name])=>name);},
   aliveOf:ped=>ped.alive,
   remove:ped=>{ped.alive=false;},
@@ -274,4 +275,18 @@ test('a ped keeps its health and what the script set on it through getting in an
  rider.health=1200;
  peds.detachFromCar(handle,{x:5,y:5,z:0});await settle();
  expect(spawned[2]).toMatchObject({health:1200,accuracy:90,shootingRate:70,invulnerable:true,proofs:['bullet','explosion']});
+});
+test('a ped keeps the weapon a script gave it through getting in and out of a car, until the script takes it',async()=>{
+ // SWEET1: Sweet is given the spray can on foot, rides to the wall and sprays with it once out.
+ const {pool:peds,settle,spawned}=pool();
+ const handle=peds.create(4,'MALE01',{x:0,y:0,z:0});await settle();
+ peds.setWeapon(handle,41,30000);
+ peds.warpIntoCar(handle,1024,'driver');await settle();
+ expect(spawned[1].weapon).toEqual({type:41,ammo:30000});
+ peds.detachFromCar(handle,{x:5,y:5,z:0});await settle();
+ expect(spawned[2].weapon).toEqual({type:41,ammo:30000});
+ peds.clearWeapon(handle,22);peds.warpIntoCar(handle,1024,'driver');await settle();
+ expect(spawned[3].weapon).toEqual({type:41,ammo:30000});
+ peds.clearWeapon(handle);peds.detachFromCar(handle,{x:5,y:5,z:0});await settle();
+ expect(spawned[4].weapon).toBeUndefined();
 });
