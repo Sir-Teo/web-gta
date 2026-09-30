@@ -2273,6 +2273,8 @@ async function boot() {
     /** Dev diagnostic: what each collider of the occupied native car is touching. */
     /** An entry-exit's entrance, native (x, y, z), by pool index: where a blip SET_BLIP_ENTRY_EXIT tied to it leads from outside. */
     entryExitEntrance:(index:number)=>{const e=entryExits?.pool[index];if(!e)return null;const [x,y,z]=entryExitPosition(e);return {x,y,z};},
+    /** The tags within `radius` of a native (x, y): position, the way the wall faces, and how far painted (255 done). */
+    tagsNear:(x:number,y:number,radius:number)=>((tagManager as unknown as {tags?:{position:number[];forward:readonly number[];alpha:number}[]})?.tags??[]).filter(t=>Math.hypot(t.position[0]-x,t.position[1]-y)<radius).map(t=>({x:t.position[0],y:t.position[1],z:t.position[2],forward:[...t.forward],alpha:t.alpha})),
     smashedProps:()=>smashedProps.slice(),
     /** The scene's OBJECT.DAT placements whose model matches, for specs. */
     propsNamed:(pattern:string)=>{const re=new RegExp(pattern,'i'),out:{handle:number;model:string;position:number[];present:boolean;solid:boolean}[]=[];for(const [handle,source] of importedScene?.sources??[])if(source.placement&&re.test(source.modelName))out.push({handle,model:source.modelName,position:[...source.placement.position],present:!!sim.world.getCollider(handle)?.parent()?.isEnabled(),solid:!!sim.world.getCollider(handle)?.isEnabled()});return out;},

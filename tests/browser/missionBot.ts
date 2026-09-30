@@ -83,6 +83,19 @@ export function missionBotTick(dtSeconds:number){
   if(now-mem.lastEnter>3000){mem.lastEnter=now;try{if(vehicle)world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);world.warpPedIntoCar(1,c.handle);}catch{}}
   return {action:'get in car',target:c.handle};
  }
+ // A tag to spray (SWEET1's walls): with the spray can in hand CJ stands a little out from the wall, in front of
+ // the tag, and sprays at it until it is his. Tags carry no blip; the script counts them by area.
+ let canSpray=false;try{canSpray=!vehicle&&!!world.pedHasWeapon?.(1,41);}catch{}
+ if(canSpray){
+  const tag=(g.tagsNear?.(me.x,me.y,20)??[]).filter((t:any)=>t.alpha<255).sort((a:any,b:any)=>distance(a)-distance(b))[0];
+  if(tag){
+   const f=tag.forward,stand={x:tag.x+f[0]*1.2,y:tag.y+f[1]*1.2,z:tag.z};
+   if(glide(stand,.3))return {action:'go to tag'};
+   try{world.setPedCurrentWeapon?.(1,41);}catch{}
+   const now=performance.now();if(now-mem.lastShot>=60){mem.lastShot=now;g.fireAt(tag.x,tag.z,-tag.y);}
+   return {action:'spray tag',alpha:tag.alpha};
+  }
+ }
  if(places.length){
   const p=nearest(places);
   // A place inside an interior tied to its door (SET_BLIP_ENTRY_EXIT) is reached through the door: CJ drives to it,
