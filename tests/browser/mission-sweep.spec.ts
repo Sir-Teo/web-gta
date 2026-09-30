@@ -98,7 +98,10 @@ test('mission sweep',async({page})=>{
     let moved=false,botAction:unknown=null;
     // The objective bot first: while a blip asks something, it plays and the locate autopilot waits.
     if(bot){try{botAction=(window as any).__missionBotTick(.5);}catch(error){botAction={error:String(error)};}if(botAction)moved=true;}
-    const ahead=botAction?undefined:near.length?near[state.turn%near.length]:undefined;
+    // With the bot playing, the locate teleport is a last resort: only after a minute with no blip asking anything
+    // (a tick between a cutscene clearing the blips and the next objective adding them sent CJ ahead of his homies).
+    if(botAction||!bot)state.botIdleSince=now;
+    const ahead=botAction||bot&&now-(state.botIdleSince??now)<60000?undefined:near.length?near[state.turn%near.length]:undefined;
     // A loop that waits for CJ in a car or on a bike the script named (the BMX, Sweet's Greenwood) puts him in it.
     const ride=block.instructions.find((x:any)=>x.offset>=fileOffset-40&&x.offset<fileOffset+200&&/^IS_CHAR_(SITTING_)?IN_CAR$/.test(x.name));
     if(ride&&!((r.world.pedVehicle(1)??0)>0)){
