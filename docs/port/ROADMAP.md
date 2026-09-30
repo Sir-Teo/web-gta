@@ -83,3 +83,27 @@ Three tools came out of taking INTRO1 from "passes with teleports" to playable.
 
 The loop for each mission: run the bot, and when it stalls, read the watch line. Fix the engine fault it points at,
 never the bot, then add a spec for the fault and run the bot again.
+
+### INTRO1, played through
+
+INTRO1 now **passes** under the bot (`M_PASSR`, twenty-five minutes headless) with no teleports of anyone but by the
+script itself. The bot drives CJ with the game's own `TASK_CAR_DRIVE_TO_COORD`, the task INTRO1 gives the homies,
+and backs up with `TASK_CAR_TEMP_ACTION` when wedged. Every stall on the way was an engine fault, fixed where it
+lived:
+
+| What the bot saw | The fault | Fix |
+|---|---|---|
+| A homie dead at the cemetery, health 2000 to 0 at once | A car strike set health to 0 past the kill intensity; `CTaskSimpleKillPedWithCar` deals 1000 | `carStrikesPed` applies the damage; a ped with more gets up |
+| CJ never moved on his BMX | The player's scripted drive tasks only looked for a car | `startCarTask` takes the bike he rides |
+| Homies' bikes stuck for good, full throttle | A knock left the body rolled; bikes rode on their side | A ridden bike's roll is taken out (`uprightRollRate`) |
+| Every bike stopped east of Market Station | A 0.15-0.2 sliver where two collision meshes meet; ball wheels cannot climb what suspension lines ride over | `WorldBike.stepUp` lifts a ridden bike onto a step up to 0.35 |
+| Ryder's bike under the world | The collision check under a bike looked 500 units down and found a structure below an unstreamed road | Forty units, every tenth of a second while moving |
+| A homie's bike set down into the void | The unstick put cars on lane points outside the streamed window | Only onto loaded collision, looked for from just over the road |
+| CJ fell through the hills after a teleport | `SET_CHAR_COORDINATES` to the ground found no collision yet (FindGroundZForCoord's 20) | The ground is found again when the window arrives |
+| (fuzzer) The script's teleport gave up with CJ on a bike | Only cars and on foot were handled | Bikes, boats and aircraft move with him |
+| (script) `EXPLODE_CAR_IN_CUTSCENE` | Ran the full `BlowUpCar` blast | `BlowUpCarCutSceneNoExtras`: a molotov's fire, no blast |
+
+Three things made these findable: the sweep's watch line (position, vehicle, drive mission, route, recovery,
+pedals and tilt of each mission character), the **HURT** trace (a watched ped's health field records the call
+stack of every drop, so a death names the code that dealt it), and `SWEEP_SHOTS=1` screenshots. The status table
+now has an **Outcome** column read from the mission's own M_PASS/M_FAIL message.
