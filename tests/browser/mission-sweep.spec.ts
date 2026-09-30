@@ -142,7 +142,7 @@ test('mission sweep',async({page})=>{
     const me=r.world.pedPosition(1),watched=[`CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?'riding':'on foot'}`,...(watch as number[]).map(local=>{
      const handle=t.locals.getInt32(local*4,true);
      try{const p=r.world.pedPosition(handle),v=r.world.pedVehicle?.(handle)??0,car=v>0?m.vehicles.entity(v):undefined,mission=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();
-      return `${local}@ ${p.x.toFixed(0)},${p.y.toFixed(0)},${p.z.toFixed(0)} ${v>0?`veh ${v} ${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mission?`${mission.kind}->${mission.goal.x.toFixed(0)},${(-mission.goal.z).toFixed(0)}`:'no mission'}`:'on foot'}`;}
+      return `${local}@ ${p.x.toFixed(0)},${p.y.toFixed(0)},${p.z.toFixed(0)} ${v>0?`veh ${v} ${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mission?`${mission.kind}->${mission.goal.x.toFixed(0)},${(-mission.goal.z).toFixed(0)} r${mission.route?.length??0}${mission.recovery?` rec${mission.recovery.kind}`:''}`:'no mission'} ${(car.car?.body??car.body)?.isEnabled?.()===false?'DISABLED':''} ${car.autopilot?.native?`g${car.autopilot.native.gas.toFixed(1)} s${car.autopilot.native.steerAngle.toFixed(2)} b${car.autopilot.native.brake.toFixed(1)}`:''}`:'on foot'}`;}
      catch(e){return `${local}@ ${handle} ${String(e).slice(0,40)}`;}
     })];
     return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said(),bot:botAction,watched};
