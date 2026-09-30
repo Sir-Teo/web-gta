@@ -2,7 +2,7 @@
  * the radar: a friendly car blip is a car to get into, a friendly char blip a homie to follow, a hostile char blip
  * someone to kill, a hostile car blip a car to chase down, a coordinate blip a place to go. This reads the script's
  * own blip table each tick and does what the blips ask, as a player would: it walks or drives CJ toward the target
- * at a player's pace (never teleporting past the people he follows), gets into the blipped car, and shoots at what
+ * with the game's own driving AI in a vehicle and at walking pace on foot (never past the people he follows), gets into the blipped car, and shoots at what
  * it is told to kill. Nobody but CJ is ever moved; the mission's characters play their own parts.
  *
  * It runs inside the page: missionBotTick.toString() is evaluated there. It returns what it did, or null when no
@@ -31,12 +31,25 @@ export function missionBotTick(dtSeconds:number){
  const places=blips.filter((b:any)=>b.type===BLIP_COORD||b.type===BLIP_PICKUP||b.type===BLIP_OBJECT);
  const chases=blips.filter((b:any)=>b.type===BLIP_CAR&&!b.friendly);
  const friends=blips.filter((b:any)=>b.type===BLIP_CHAR&&b.friendly);
- // Moves CJ, or the vehicle he is in, toward a point at a player's pace, stopping `stopAt` short of it.
+ // Moves CJ toward a point, stopping `stopAt` short of it. In a vehicle he drives there with the game's own driving
+ // AI (TASK_CAR_DRIVE_TO_COORD, 0x05d1, the task INTRO1 itself gives him), re-aimed as the target moves: setting a
+ // vehicle down step by step knocked CJ off his bike and wrecked it. On foot he is set down at walking pace.
  const glide=(to:any,stopAt:number)=>{
-  const d=distance(to);if(d<=stopAt)return false;
-  const speed=vehicle?20:7,step=Math.min(d-stopAt,speed*dtSeconds),x=me.x+(to.x-me.x)/d*step,y=me.y+(to.y-me.y)/d*step;
+  const d=distance(to);
+  if(vehicle){
+   const now=performance.now(),last=mem.drive;
+   if(d<=stopAt){if(last){mem.drive=undefined;try{world.clearPedTasks?.(1);}catch{}}return false;}
+   if(!last||last.vehicle!==vehicle||Math.hypot(last.x-to.x,last.y-to.y)>8||now-last.at>4000){
+    mem.drive={vehicle,x:to.x,y:to.y,at:now};
+    try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:d>40?22:12,driveStyle:0,model:-1,drivingStyle:2},0x05d1);}catch{}
+   }
+   return true;
+  }
+  mem.drive=undefined;
+  if(d<=stopAt)return false;
+  const step=Math.min(d-stopAt,7*dtSeconds),x=me.x+(to.x-me.x)/d*step,y=me.y+(to.y-me.y)/d*step;
   const z=world.groundZFor3DCoord?.(x,y,Math.max(me.z,to.z)+4)??to.z;
-  if(vehicle)world.setVehicleCoordinates(vehicle,x,y,z+.5);else world.setPedCoordinates(1,x,y,z+1);
+  world.setPedCoordinates(1,x,y,z+1);
   return true;
  };
  const shoot=(target:any)=>{
