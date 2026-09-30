@@ -44,7 +44,9 @@ export function missionBotTick(dtSeconds:number){
    // Wedged (against a homie's bike, a post): back up for a second and a half, as a player would, with the game's
    // own TASK_CAR_TEMP_ACTION (TEMPACT_REVERSE, 3), then drive on.
    const moved=mem.lastPos?Math.hypot(me.x-mem.lastPos.x,me.y-mem.lastPos.y):1;mem.lastPos={x:me.x,y:me.y};
-   mem.stuckFor=moved<.05*Math.max(1,dtSeconds*20)?(mem.stuckFor??0)+dtSeconds:0;
+   // Held on its brake by its own drive (a red light, the car ahead) it is waiting, not wedged.
+   const own=m.vehicles.entity?.(vehicle)?.autopilot?.native,waiting=!!own&&own.gas<=.05&&own.brake>.05;
+   mem.stuckFor=moved<.05*Math.max(1,dtSeconds*20)&&!waiting?(mem.stuckFor??0)+dtSeconds:0;
    if(mem.reversingUntil&&now<mem.reversingUntil)return true;
    if(mem.stuckFor>5){
     mem.stuckFor=0;mem.reversingUntil=now+1800;mem.drive=undefined;

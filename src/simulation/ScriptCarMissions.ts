@@ -452,7 +452,10 @@ export class ScriptCarMissions{
    m.recovery.remaining-=dt;const r=m.recovery;if(r.remaining<=0)m.recovery=undefined;
    return {throttle:0,brake:1,steering:r.kind===2?-1:r.kind===3?1:0,handbrake:false};
   }
-  if(Math.hypot(v.x,v.z)/50<=.012){m.stuck+=dt;if(m.stuck>1){m.stuck=0;m.recoveryMode=this.seconds-m.lastRecovery>=10?0:(m.recoveryMode+1)%4;m.lastRecovery=this.seconds;m.recovery={kind:m.recoveryMode,remaining:[1.5,4,2.5,2.5][m.recoveryMode]};}}
+  // Only a car that is trying to go can be stuck: one held at a red light or behind the car ahead (its pedals the brake,
+  // no gas) is waiting, and the recovery's reverse took it back up the road from the lights.
+  const trying=pedals.accel>.05&&pedals.brake<.05;
+  if(trying&&Math.hypot(v.x,v.z)/50<=.012){m.stuck+=dt;if(m.stuck>1){m.stuck=0;m.recoveryMode=this.seconds-m.lastRecovery>=10?0:(m.recoveryMode+1)%4;m.lastRecovery=this.seconds;m.recovery={kind:m.recoveryMode,remaining:[1.5,4,2.5,2.5][m.recoveryMode]};}}
   else m.stuck=0;
   return {steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
  }
