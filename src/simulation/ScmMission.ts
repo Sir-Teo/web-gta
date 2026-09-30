@@ -537,6 +537,8 @@ export interface ScmMissionWorld {
  scriptVehicleOnFire(car:unknown):boolean;
  scriptVehicleOnScreen(car:unknown):boolean;
  explodeScriptVehicle(car:unknown):void;
+ /** CAutomobile::BlowUpCarCutSceneNoExtras on a car (a bike, boat or plane blows up as usual). */
+ explodeScriptVehicleInCutscene?(car:unknown,o:{shake:boolean;bits:boolean;explosion:boolean;sound:boolean}):void;
  fixScriptVehicle(car:unknown):void;
  setScriptVehicleVisible(car:unknown,visible:boolean):void;
  setScriptVehicleProofs(car:unknown,proofs:ScmPedProofs):void;
@@ -1041,7 +1043,9 @@ export class ScmMission {
    taskWarpCharIntoCarAsPassenger:(handle,vehicle,seat)=>{this.runners.delete(handle);this.warpIntoCarAsPassenger(handle,vehicle,seat,'TASK_WARP_CHAR_INTO_CAR_AS_PASSENGER');},
    // CAutomobile::BlowUpCarCutSceneNoExtras: the blow-up without the havoc and property-damage stat an ordinary
    // one counts for the player (which the host's blow-up does not count either).
-   explodeVehicleInCutscene:handle=>{this.world.explodeScriptVehicle(this.liveVehicle(handle));},
+   // CAutomobile::BlowUpCarCutSceneNoExtras: "without affecting its surroundings" (a molotov's fire, no blast).
+   explodeVehicleInCutscene:handle=>{const car=this.liveVehicle(handle);if(this.world.explodeScriptVehicleInCutscene)this.world.explodeScriptVehicleInCutscene(car,{shake:true,bits:true,explosion:true,sound:true});else this.world.explodeScriptVehicle(car);},
+   explodeCarInCutsceneShakeAndBits:(handle,shake,effect,sound)=>{const car=this.liveVehicle(handle);if(this.world.explodeScriptVehicleInCutscene)this.world.explodeScriptVehicleInCutscene(car,{shake,bits:effect,explosion:effect,sound});else this.world.explodeScriptVehicle(car);},
    // CPed::AttachPedToEntity and DettachPedFromEntity. The angle limit and the weapon belong to a ped that can
    // aim from where it hangs, which this browser's riders do not do yet, so they are not taken.
    // ATTACH_CHAR_TO_CAR on the player: CPed::AttachPedToEntity's player branch (the host pins him, turns him to his

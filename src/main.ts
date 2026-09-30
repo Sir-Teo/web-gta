@@ -4857,6 +4857,7 @@ async function boot() {
                  waterLevelAt:(x,y,waves)=>{const levels=render.lighting.water.levels;return waves?levels?.level(x,y):levels?.levelNoWaves(x,y);},
                  scriptVehicleOnScreen:car=>{const p=(car as ScriptCar).car.body.translation();return !populationOutsideView(render.camera,p,2);},
                  explodeScriptVehicle:car=>{(car as {blowUp?:()=>void}).blowUp?.();},
+                 explodeScriptVehicleInCutscene:(car,o)=>{if(isScriptCar(car))car.blowUpInCutscene(o);else (car as {blowUp?:()=>void}).blowUp?.();},
                  fixScriptVehicle:car=>{if(isScriptCar(car))car.fix();else (car as {health:number}).health=1000;},
                  setScriptVehicleVisible:(car,visible)=>{if(!isScriptCar(car))return;car.scriptVisible=visible;car.showForArea(render.lighting.area);},
                  setScriptVehicleArea:(car,area)=>{if(!isScriptCar(car))return;car.areaCode=area;car.showForArea(render.lighting.area);},

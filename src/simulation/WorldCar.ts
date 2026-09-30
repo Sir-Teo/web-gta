@@ -440,8 +440,18 @@ export class WorldCar {
  muzzleWorld(){return this.car.frameWorldPosition('misc_c');}
  /** The Fire Truck / S.W.A.T. water cannon node (misc_a) turned to the aim's yaw. */
  setCannon(yaw:number){const c=Math.cos(yaw),s=Math.sin(yaw);this.car.setFrameBasis('misc_a',[[0,0,c],[0,1,s],[0,2,0],[1,0,-s],[1,1,c],[1,2,0],[2,0,0],[2,1,0],[2,2,1]]);}
+ /** CAutomobile::BlowUpCarCutSceneNoExtras (0x6B3BB0), for EXPLODE_CAR_IN_CUTSCENE(_SHAKE_AND_BITS): wrecked and
+  * scorched as BlowUpCar, with the peds inside killed, but its blast is EXPLOSION_MOLOTOV at the car (no push, no blast
+  * damage: fire within six units), none at all without `explosion`, and no flying wheel without `bits`. */
+ blowUpInCutscene(o:{shake:boolean;bits:boolean;explosion:boolean;sound:boolean}){
+  if(this.wrecked||!this.canBeDamaged)return;
+  this.cutsceneExplosion=o;this.blowUp();
+ }
+ /** Set while blowUp runs for a cutscene: what BlowUpCarCutSceneNoExtras was asked for. */
+ cutsceneExplosion?:{shake:boolean;bits:boolean;explosion:boolean;sound:boolean};
  blowUp(){
-  if(this.wrecked||!this.canBeDamaged)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);vehicleDestroyed.report?.('road',this.modelId);
+  if(this.wrecked||!this.canBeDamaged)return;const cutscene=this.cutsceneExplosion;
+  const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=!cutscene||cutscene.explosion;this.onBlowUp?.(driverAboard);vehicleDestroyed.report?.('road',this.modelId);
   const doors:ComponentChange[]=[];
   for(let i=0;i<this.damageState.doors.length;i++){if(this.damageState.doors[i]!==DAMSTATE.notPresent){this.damageState.doors[i]=DAMSTATE.notPresent;doors.push({kind:'door',index:i,state:DAMSTATE.notPresent});}}
   // FuckCarCompletely resets every panel status to OK afterwards, so bumper and panel atomics keep their earlier damage.
@@ -450,11 +460,13 @@ export class WorldCar {
   // CDamageManager::FuckCarCompletely detaches a random wheel (its corner drops), and BlowUpCar throws the left
   // front wheel off and stops drawing it.
   this.damageState.wheels[Math.floor(Math.random()*4)]=2;
-  this.spawnFlying('wheel_lf_dummy',FLYING.wheel);this.car.setWheelHidden('frontLeft',true);
+  if(!cutscene||cutscene.bits)this.spawnFlying('wheel_lf_dummy',FLYING.wheel);
+  if(!cutscene||cutscene.explosion)this.car.setWheelHidden('frontLeft',true);
   // bRenderScorched: the wreck is lit by a dim grey ambient alone.
   this.car.setScorched(true);
-  const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
+  if(!cutscene||cutscene.explosion){const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);}
   this.killPlayerAboard();
+  if(cutscene&&!cutscene.explosion)this.cutsceneExplosion=undefined;
  }
  /** KillPedsInVehicle: CEventVehicleDied reaches the driver and every passenger alike, and ComputeVehicleDiedResponse
   * sets their health to 0; the player dies in either seat. */

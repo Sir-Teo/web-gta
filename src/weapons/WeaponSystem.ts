@@ -384,6 +384,9 @@ export class WeaponSystem {
  private releaseExplosions(){
   for(const car of this.fleet()?.cars??[]){
    if(!car.pendingExplosion)continue;car.pendingExplosion=false;
+   // BlowUpCarCutSceneNoExtras: EXPLOSION_MOLOTOV at the car's own position.
+   const cutscene=car.cutsceneExplosion;
+   if(cutscene){car.cutsceneExplosion=undefined;const p=car.car.body.translation();this.explode({x:p.x,y:p.y,z:p.z},EXPLOSION_TYPE.molotov,car,false,cutscene.sound);continue;}
    const body=car.car.body,p=body.translation(),r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),max=car.assets.collision?.bounds.max??[0,0,0];
    const ox=(Math.random()*2-1)*.75*max[0],oy=(Math.random()*2-1)*.75*max[1],oz=1.25*max[2];
    const right=new Vector3(1,0,0).applyQuaternion(q),forward=new Vector3(0,0,1).applyQuaternion(q);
