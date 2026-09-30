@@ -15,7 +15,7 @@ import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel
 import {Quaternion,Vector3} from 'three';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {BLOCK_TO_STOP_DISTANCE,STOP_TO_BLOCK_DISTANCE,blockPlayerTarget,lanePoint,nextLaneOnLink,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,type Pedals} from '../vehicle/nativeCarCtrl';
+import {BLOCK_TO_STOP_DISTANCE,DISTANCE_TO_SCAN_FOR_DANGER,STOP_TO_BLOCK_DISTANCE,blockPlayerTarget,lanePoint,slowCarDownForOtherCar,nextLaneOnLink,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,type Pedals} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 import type {WorldPlane} from './WorldPlane';
@@ -531,6 +531,8 @@ export class WorldPolice {
    }
   }
  }
+ /** When a patrol last asked for the path areas round it. */
+ private patrolAreasAt=-Infinity;
  /** CCullZones::NoPolice for the player's position (the host's cull zones). */
  noPoliceZone?:()=>boolean;
  beforeStep(dt:number,playerCar?:WorldCar){
@@ -672,6 +674,18 @@ export class WorldPolice {
     u.goForwardUntil-=dt;if(u.goForwardUntil<=0)u.goForwardUntil=undefined;
     car.autopilot={throttle:1,brake:0,steering:0,handbrake:false};continue;
    }
+   // JoinCarWithRoadSystem for a unit on no link yet: an ambient patrol is made on the road with no route of its own,
+   // and without a link fell through to heading straight for the player, wanted or not (patrol cars drove into
+   // SWEET1's Greenwood at the tags and pinned it).
+   // The path areas are loaded round the player only when a dispatch runs (wanted), so a patrol asks for its own.
+   if(this.paths&&!u.link){
+    const joined=joinCarWithRoadSystem(this.paths.areas,{x:p.x,y:-p.z,z:p.y},state.forward);
+    if(joined){u.link=joined;u.lane=u.nextLane=0;u.route=[];u.routeAt=-Infinity;}
+    else if(this.seconds-this.patrolAreasAt>2){this.patrolAreasAt=this.seconds;void this.paths.loadAround(p.x,p.z).catch(e=>{this.error=String(e);});}
+   }
+   // A cruising unit with no road to follow yet waits where it is (full brake and the handbrake: the brake pedal alone
+   // reverses a car at a standstill) rather than drive at the player.
+   if(u.mission==='cruise'&&!u.link){car.autopilot={throttle:0,brake:0,steering:0,handbrake:false,native:{steerAngle:0,gas:0,brake:1,handbrake:true}};continue;}
    if(u.mission==='slowly1'||u.mission==='slowly2'){
     // The set-piece mission's steering is in the unreversed SteerAICarWithPhysics: straight at the destination, then
     // at the player, at the set piece's cruise speed.
@@ -689,7 +703,10 @@ export class WorldPolice {
    }else if(this.paths&&u.link){
     // FARAWAY missions route over the car path network to the node nearest the player, refreshed every 3 s or when the player moves 20 units.
     if(u.mission==='far'&&(this.seconds-u.routeAt>3||!u.routeGoal||Math.hypot(u.routeGoal.x-target.x,u.routeGoal.z-target.z)>20)){u.routeAt=this.seconds;u.routeGoal={x:target.x,y:target.y,z:target.z};u.route=findTrafficRoute(this.paths.areas,u.link.to,u.routeGoal)??[];}
-    const continuation=(link:TrafficLink)=>{const options=trafficLinks(this.paths!.areas,link.to,u.mission==='far').filter(n=>n.to!==link.from);return options.length?options[Math.floor(this.random()*options.length)]:undefined;};
+    // PickNextNodeRandomly keeps a car already on switched-off or no-wander road (Grove Street's) able to go on over
+    // it; with only the open roads allowed there, a patrol made there had nowhere to go.
+    const closedRoad=(link:TrafficLink)=>link.from.switchedOff||link.from.dontWander||link.to.switchedOff||link.to.dontWander;
+    const continuation=(link:TrafficLink)=>{const options=trafficLinks(this.paths!.areas,link.to,u.mission==='far'||closedRoad(link)).filter(n=>n.to!==link.from);return options.length?options[Math.floor(this.random()*options.length)]:undefined;};
     // PickNextNodeRandomly picks the cruising continuation once per node change, not every step: keep it per link.
     const cruiseNext=(link:TrafficLink)=>{if(!u.cruiseNext||u.cruiseNext.from!==link.to)u.cruiseNext=continuation(link);return u.cruiseNext;};
     let link=u.link,next=u.mission==='far'&&u.route.length?u.route[0]:cruiseNext(link);
@@ -710,13 +727,17 @@ export class WorldPolice {
      const joined=joinCarWithRoadSystem(this.paths.areas,{x:p.x,y:-p.z,z:p.y},state.forward);
      if(joined){u.joinedAt=this.seconds;u.link=link=joined;u.lane=u.nextLane=0;u.routeAt=-Infinity;u.route=[];next=continuation(link);here=lanePoint(travel(link),0);t=travel(link);}
     }
-    // With no road left toward the player, drive straight at him.
-    if(!next||next.from!==link.to)pedals=steerHeadingForTarget(state,goal,cruise);
+    // With no road left toward the player, drive straight at him; a cruising unit at a dead end drives to its end.
+    if(!next||next.from!==link.to)pedals=steerHeadingForTarget(state,u.mission==='cruise'?{x:link.to.position[0],y:link.to.position[1]}:goal,cruise);
     else{
      // Police drive under DRIVINGSTYLE_AVOID_CARS in pursuit (no traffic or lights); a cruising unit stops for lights.
      const stop=u.mission==='cruise'&&nativeShouldStopForLight({position:[state.position.x,state.position.y],appearance:'car',physicsStatus:true,
       current:{navigation:link.navigation,routeAddress:link.to.address,travelSign:link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1}},Math.floor(this.seconds*1000)>>>0);
-     pedals=steerFollowPath(state,t,u.lane,travel(next),{cruiseSpeed:cruise,trafficSpeed:cruise,stop});
+     // A cruising unit drives DRIVINGSTYLE_STOP_FOR_CARS like the traffic it is part of: FindMaximumSpeedForThisCarInTraffic
+     // slows it for the cars ahead. Taking its cruise speed as the traffic speed, a patrol car drove into a car
+     // stopped in its lane and kept pushing it (SWEET1's Greenwood pinned against a wall at a tag).
+     const trafficSpeed=u.mission==='cruise'?this.cruiseTrafficSpeed(car,state.position,state.forward,cruise):cruise;
+     pedals=steerFollowPath(state,t,u.lane,travel(next),{cruiseSpeed:cruise,trafficSpeed,stop});
      aim={x:here.x-p.x,z:-here.y-p.z};
     }
    }
@@ -731,6 +752,21 @@ export class WorldPolice {
    else u.stuck=0;
    car.autopilot={steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
   }
+ }
+ /** CCarCtrl::FindMaximumSpeedForThisCarInTraffic under STOP_FOR_CARS (SlowCarDownForCarsSectorList): the lowest speed
+  * any car ahead within DISTANCE_TO_SCAN_FOR_DANGER allows, as WorldTraffic works it out for random traffic. */
+ private cruiseTrafficSpeed(car:WorldCar,position:{x:number;y:number},forward:{x:number;y:number},cruise:number){
+  const b=car.nativeBody,height=car.car.body.translation().y,rect={position,front:b.boundsMax.y,back:-b.boundsMin.y,halfWidth:b.boundsMax.x,forward};
+  let speed=cruise;
+  for(const other of this.fleet.cars){
+   if(other===car||other.disposed)continue;
+   const t=other.car.body.translation(),o={x:t.x,y:-t.z};
+   if(Math.abs(o.x-position.x)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(o.y-position.y)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(t.y-height)>=5)continue;
+   const ob=other.nativeBody,r=other.car.body.rotation(),f=new Vector3(0,0,-1).applyQuaternion(new Quaternion(r.x,r.y,r.z,r.w)),v=other.car.body.linvel();
+   const allowed=slowCarDownForOtherCar(rect,{position:o,front:ob.boundsMax.y,back:-ob.boundsMin.y,halfWidth:ob.boundsMax.x,forward:{x:f.x,y:-f.z},moveSpeed:{x:v.x/50,y:-v.z/50}},cruise);
+   if(allowed!==undefined)speed=Math.min(speed,allowed);
+  }
+  return speed;
  }
  /** Seated and leaving crews for the occupant renderer. */
  poses():PolicePose[]{
