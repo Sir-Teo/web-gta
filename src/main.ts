@@ -55,7 +55,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   const bike=rider.car as unknown as Partial<import('./simulation/WorldBike').WorldBike>;
   if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&bike.car&&!rider.offset&&rider.seat==='driver'){
    const pose=bike.riderPose(),clip=pose.seat&&bikeClip?.(pose.block,pose.idle);
-   if(pose.seat&&(clip||played))poses.push({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,...(played??{clip:pose.idle,seconds:clip!.duration,animation:clip!})});
+   if(pose.seat&&(clip||played))poses.push({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,...(played??{clip:pose.idle,seconds:clip!.duration>0?pose.time%clip!.duration:0,animation:clip!})});
    continue;
   }
   // The occupant renderer seats peds in cars; a rider on a script boat or aircraft rides unseen for now.
@@ -3350,7 +3350,7 @@ async function boot() {
       const idle=carEntry.clips.peek(pose.block,pose.idle),lean=pose.overlay?carEntry.clips.peek(pose.block,pose.overlay.clip):undefined;
       if(seat&&idle){
         render.nativeCharacter.installVehicleClips(Object.fromEntries([[pose.idle,idle],...(lean&&pose.overlay?[[pose.overlay.clip,lean]]:[])]));
-        render.vehiclePose={frame:{vehicle:bike.root,local:seat},pose:{clip:pose.idle,seconds:idle.duration,blend:1,overlay:lean&&pose.overlay?{...pose.overlay}:undefined}};
+        render.vehiclePose={frame:{vehicle:bike.root,local:seat},pose:{clip:pose.idle,seconds:idle.duration>0?pose.time%idle.duration:0,blend:1,overlay:lean&&pose.overlay?{...pose.overlay}:undefined}};
       }else render.vehiclePose=undefined;
     }else render.vehiclePose=undefined;
     if(carEntry.error){hud.message(carEntry.error);carEntry.error=undefined;}

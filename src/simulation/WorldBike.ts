@@ -246,6 +246,8 @@ export class WorldBike {
   const nearby=this.distance()<250,active=nearby&&!this.frozen&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
+  // The ride clip's clock: the pedal cycle turns while the rider pedals and holds while he coasts.
+  if(Math.abs(input.throttle)>.05)this.rideTime+=dt;
   // CAutomobile::ProcessControlInputs for the quad: the raw steer follows the pad a fifth of the way a frame, and the
   // steer angle is the lock times its square.
   if(this.quad){this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=steerFraction(this.rawSteer);}
@@ -548,11 +550,14 @@ export class WorldBike {
   composeVehicleRoot(this.root);
  }
  /** Rider animation selection for the player model (IFP block + clip names). */
+ /** Seconds into the ride clip (BIKE_PEDAL, BIKE_RIDE): it runs while the rider is on the pedals. Held on one frame, a
+  * BMX rider sat frozen mid-stroke with one knee up, leaning to the side. */
+ rideTime=0;
  riderPose(){
   const prefix=this.assets.vehicle.animation,bicycle=BICYCLES.has(prefix),speed=Math.abs(this.speed());
   const idle=speed>.5?(bicycle?`${prefix}_pedal`:`${prefix}_ride`):`${prefix}_still`;
   const lean=this.quad?this.riderLean:this.lean,amount=bikeRiderLean(lean,this.assets.bike.fullAnimLean),right=this.quad?lean>0:this.steer>0;
-  return {block:prefix,seat:this.seat(),idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
+  return {block:prefix,seat:this.seat(),time:this.rideTime,idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
  }
  /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
   * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */
