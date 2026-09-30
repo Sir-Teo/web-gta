@@ -65,6 +65,8 @@ export function escortStation(side:EscortSide,target:{position:{x:number;y:numbe
  * space, units a second. */
 export interface ScriptCarPlayer{position:{x:number;y:number;z:number};vehicle?:WorldCar;velocity:{x:number;y:number;z:number}}
 /** SteerAICarWithPhysics_OnlyMission's MISSION_NONE (VC): no swerve or gas, half brake, the handbrake on. */
+/** The last-resort unstick: seconds without headway, and how near the player it never happens. */
+export const UNSTICK_SECONDS=8,UNSTICK_NEAR=15;
 export const HOLD:Pedals={swerve:0,accel:0,brake:.5,handbrake:true};
 /** eCarDrivingStyle. */
 export const DRIVINGSTYLE={stopForCars:0,slowDownForCars:1,avoidCars:2,ploughThrough:3,stopForCarsIgnoreLights:4} as const;
@@ -76,6 +78,8 @@ interface Mission{
  cruise:number;style:number;straightLineDistance:number;
  link?:TrafficLink;lane:number;nextLane:number;route:TrafficLink[];cruiseNext?:TrafficLink;joinedAt:number;
  stuck:number;recoveryMode:number;lastRecovery:number;recovery?:{kind:number;remaining:number};
+ /** Seconds without headway, for the last-resort unstick. */
+ jammed?:number;
  /** m_nTempAction and the time left of it (m_nTempActionTime). */
  temp?:{action:number;remaining:number};
  /** m_TargetEntity for the car missions; nothing for the player's. */
@@ -315,6 +319,30 @@ export class ScriptCarMissions{
    if(this.seconds-(m.routeAt??-Infinity)>3||!m.routeGoal||Math.hypot(m.routeGoal.x-target.x,m.routeGoal.z-target.z)>20){m.routeAt=this.seconds;m.routeGoal={...target};this.route(car,m);}
   }
  }
+ /** AUTHORED last resort: a car or bike a script drives that has made no headway for UNSTICK_SECONDS, through every
+  * recovery mode, is set down on its route a few units on, facing along it. The recovery above backs and turns out
+  * of most jams, but a bike wedged on a kerb or against another rider stays put, and a homie who never arrives leaves
+  * the mission waiting for good (INTRO1's ride to Grove Street: Smoke on the slope at 1345,-1227, Sweet and Ryder
+  * against each other). The original never shows this happen; it is kept out of sight of the player, beyond
+  * UNSTICK_NEAR units of him. */
+ private unstick(car:ScriptDrivable,m:Mission,dt:number,speed:number){
+  const moving=ROAD_KINDS.has(m.kind)||m.kind.startsWith('gotoCoords')||m.kind==='cruise';
+  if(!moving||speed>.5){m.jammed=0;return false;}
+  m.jammed=(m.jammed??0)+dt;if(m.jammed<UNSTICK_SECONDS)return false;
+  const p=car.car.body.translation(),player=this.player?.();
+  if(player&&Math.hypot(player.position.x-p.x,player.position.z-p.z)<UNSTICK_NEAR)return false;
+  const next=m.route[0]??m.link;if(!next)return false;
+  const t=travel(next),at=lanePoint(t,m.lane),z=Math.max(next.from.position[2],next.to.position[2])+1;
+  const yaw=Math.atan2(-t.forward.x,t.forward.y);
+  car.car.body.setTranslation({x:at.x,y:z,z:-at.y},true);car.car.body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
+  car.car.body.setLinvel({x:0,y:0,z:0},true);car.car.body.setAngvel({x:0,y:0,z:0},true);
+  m.jammed=0;m.stuck=0;m.recovery=undefined;m.recoveryMode=0;
+  if(m.route[0]===next){m.route.shift();m.link=next;}
+  this.unstuck++;
+  return true;
+ }
+ /** How many times unstick has set a car down (a dev count). */
+ unstuck=0;
  /** CCarAI::EntitiesGoHeadOn(player, car). */
  private headOn(car:ScriptDrivable,player?:ScriptCarPlayer){
   if(!player)return false;
@@ -390,6 +418,7 @@ export class ScriptCarMissions{
    }
   }
   pedals??=steerHeadingForTarget(state,goal,m.cruise);
+  if(this.unstick(car,m,dt,Math.hypot(v.x,v.z)))return native(HOLD);
   // CCarAI's stuck recovery, as the police units run it: under 0.012 units a frame for a second.
   if(m.recovery){
    m.recovery.remaining-=dt;const r=m.recovery;if(r.remaining<=0)m.recovery=undefined;

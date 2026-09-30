@@ -9,7 +9,7 @@
  * blip asks anything, so the sweep falls back to its locate-following autopilot. */
 export function missionBotTick(dtSeconds:number){
  const w=window as any,g=w.__game,m=g.missionForProfiling(),r=m.runtime,world=r.world,radar=r.game.radar;
- const mem=w.__missionBot??={lastShot:0,lastEnter:0,armed:false};
+ const mem=w.__missionBot??={lastShot:0,lastEnter:0,armed:false,friendLast:undefined as any};
  const BLIP_CAR=1,BLIP_CHAR=2,BLIP_OBJECT=3,BLIP_COORD=4,BLIP_PICKUP=7;
  const me=world.pedPosition(1),vehicle=world.pedVehicle?.(1)??0;
  const alive=(h:number)=>{try{return world.pedExists?.(h)!==false&&(world.pedHealth?.(h)??1)>0;}catch{return false;}};
@@ -64,6 +64,16 @@ export function missionBotTick(dtSeconds:number){
   if(glide(c.position,15))return {action:'chase car',target:c.handle};
   shoot(c.position);return {action:'shoot car',target:c.handle};
  }
- if(friends.length){const f=nearest(friends);glide(f.position,6);return {action:'follow',target:f.handle};}
+ if(friends.length){
+  // Follow from behind: the point ten units back along the way he is going, never ahead of him or in his path
+  // (a CJ set down in front of a riding homie wedged the two bikes together).
+  const f=nearest(friends),last=mem.friendLast?.[f.handle];mem.friendLast={...(mem.friendLast??{}),[f.handle]:{...f.position}};
+  const vx=last?f.position.x-last.x:0,vy=last?f.position.y-last.y:0,v=Math.hypot(vx,vy);
+  if(v>.2){
+   const ahead=(me.x-f.position.x)*vx+(me.y-f.position.y)*vy>0;if(ahead)return {action:'let him pass',target:f.handle};
+   glide({x:f.position.x-vx/v*10,y:f.position.y-vy/v*10,z:f.position.z},1.5);
+  }else glide(f.position,8);
+  return {action:'follow',target:f.handle};
+ }
  return null;
 }

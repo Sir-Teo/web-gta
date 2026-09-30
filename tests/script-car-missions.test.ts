@@ -120,3 +120,25 @@ test('an escort holds the escorted car’s speed and closes the gap to its stati
  escort.at.z=-19;missions.step(1/50);
  expect((escort.raw.autopilot as {native:{gas:number;brake:number}}).native.gas).toBe(0);
 });
+
+test('a car that makes no headway through every recovery is set down on its route, out of the player\'s sight',()=>{
+ const player={position:{x:0,y:0,z:200},velocity:{x:0,y:0,z:0}};
+ const missions=new ScriptCarMissions(()=>undefined),{car:c,raw}=car(0,0);missions.player=()=>player as never;
+ let at={x:0,y:0,z:0},rotation={x:0,y:0,z:0,w:1};
+ raw.car.body={translation:()=>at,rotation:()=>rotation,linvel:()=>({x:0,y:0,z:0}),setTranslation:(p:any)=>{at={...p};},setRotation:(q:any)=>{rotation={...q};},setLinvel(){},setAngvel(){}} as never;
+ missions.gotoCoords(c,{x:0,y:0,z:-500},{cruise:20,style:0});
+ const m=(missions as any).missions.get(c);
+ // A route link running native north from (0,20) to (0,40).
+ const link={from:{position:[0,20,5]},to:{position:[0,40,5]},navigation:{position:[0,30],direction:[0,1],sameLanes:1,oppositeLanes:1},start:{x:0,z:-20},end:{x:0,z:-40},length:20,dx:0,dz:-20};
+ m.kind='gotoCoords';m.link=link;m.route=[];
+ for(let i=0;i<50*7;i++)missions.step(1/50);
+ expect(at).toEqual({x:0,y:0,z:0});
+ for(let i=0;i<50*2;i++)missions.step(1/50);
+ // On the link's lane point, a unit over the road, facing along it.
+ expect(at.y).toBe(6);expect(Math.abs(at.z+30)).toBeLessThan(.01);
+ expect((missions as any).unstuck).toBe(1);
+ // Within sight of the player it waits.
+ player.position={x:0,y:0,z:-5};at={x:0,y:0,z:0};
+ for(let i=0;i<50*10;i++)missions.step(1/50);
+ expect((missions as any).unstuck).toBe(1);
+});
