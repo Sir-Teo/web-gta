@@ -22,7 +22,7 @@ export function missionBotTick(dtSeconds:number){
   return t.position;
  };
  const blips=radar.traces.filter((t:any)=>t.tracking&&t.sprite===0&&t.display!==0&&!t.shortRange)
-  .map((t:any)=>({type:t.type,handle:t.entityHandle,friendly:!!t.friendly,position:at(t)})).filter((b:any)=>b.position&&(b.position.x||b.position.y));
+  .map((t:any)=>({type:t.type,handle:t.entityHandle,friendly:!!t.friendly,position:at(t),entryExit:t.entryExit})).filter((b:any)=>b.position&&(b.position.x||b.position.y));
  if(!blips.length)return null;
  const distance=(p:any)=>Math.hypot(p.x-me.x,p.y-me.y);
  const nearest=(list:any[])=>list.sort((a,b)=>distance(a.position)-distance(b.position))[0];
@@ -56,9 +56,11 @@ export function missionBotTick(dtSeconds:number){
    return true;
   }
   mem.drive=undefined;
-  if(d<=stopAt)return false;
+  if(d<=stopAt+.05)return false;
   const step=Math.min(d-stopAt,7*dtSeconds),x=me.x+(to.x-me.x)/d*step,y=me.y+(to.y-me.y)/d*step;
-  const z=world.groundZFor3DCoord?.(x,y,Math.max(me.z,to.z)+4)??to.z;
+  // The ground is looked for from a little over the line between the two points, not over the higher one: from
+  // above a roof it finds the roof (CJ walking to the barber's door stood on the shop).
+  const z=world.groundZFor3DCoord?.(x,y,me.z+(to.z-me.z)*step/d+2.5)??to.z;
   world.setPedCoordinates(1,x,y,z+1);
   return true;
  };
@@ -81,7 +83,17 @@ export function missionBotTick(dtSeconds:number){
   if(now-mem.lastEnter>3000){mem.lastEnter=now;try{if(vehicle)world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);world.warpPedIntoCar(1,c.handle);}catch{}}
   return {action:'get in car',target:c.handle};
  }
- if(places.length){const p=nearest(places);if(glide(p.position,1))return {action:'go to place'};return {action:'at place'};}
+ if(places.length){
+  const p=nearest(places);
+  // A place inside an interior tied to its door (SET_BLIP_ENTRY_EXIT) is reached through the door: CJ drives to it,
+  // gets out and walks into the marker, as the radar shows it from outside.
+  const door=p.entryExit!=null&&p.position.z>500&&me.z<500?g.entryExitEntrance?.(p.entryExit):null;
+  if(door){
+   if(vehicle&&distance(door)<12){try{world.warpPedFromCarToCoord(1,me.x,me.y,me.z);}catch{}return {action:'leave car at door'};}
+   if(glide(door,0))return {action:'go to door'};return {action:'at door'};
+  }
+  if(glide(p.position,1))return {action:'go to place'};return {action:'at place'};
+ }
  if(chases.length){
   const c=nearest(chases);
   if(glide(c.position,15))return {action:'chase car',target:c.handle};

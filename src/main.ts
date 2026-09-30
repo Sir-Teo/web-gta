@@ -2271,6 +2271,8 @@ async function boot() {
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {
     /** Dev diagnostic: what each collider of the occupied native car is touching. */
+    /** An entry-exit's entrance, native (x, y, z), by pool index: where a blip SET_BLIP_ENTRY_EXIT tied to it leads from outside. */
+    entryExitEntrance:(index:number)=>{const e=entryExits?.pool[index];if(!e)return null;const [x,y,z]=entryExitPosition(e);return {x,y,z};},
     smashedProps:()=>smashedProps.slice(),
     /** The scene's OBJECT.DAT placements whose model matches, for specs. */
     propsNamed:(pattern:string)=>{const re=new RegExp(pattern,'i'),out:{handle:number;model:string;position:number[];present:boolean;solid:boolean}[]=[];for(const [handle,source] of importedScene?.sources??[])if(source.placement&&re.test(source.modelName))out.push({handle,model:source.modelName,position:[...source.placement.position],present:!!sim.world.getCollider(handle)?.parent()?.isEnabled(),solid:!!sim.world.getCollider(handle)?.isEnabled()});return out;},
