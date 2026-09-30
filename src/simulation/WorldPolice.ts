@@ -257,7 +257,15 @@ export class WorldPolice {
    const camera=this.camera(),p=this.sim.player.position;
    const links=[...paths.areas.values()].flatMap(a=>a.nodes).filter(n=>{const d=Math.hypot(n.position[0]-p.x,-n.position[1]-p.z);return d>60&&d<110;}).flatMap(n=>trafficLinks(paths.areas,n));
    const scored=links.map(link=>{const dx=link.start.x-camera.position.x,dz=link.start.z-camera.position.z,l=Math.hypot(dx,dz)||1,ahead=(dx*camera.forward.x+dz*camera.forward.z)/l,toward=((p.x-link.start.x)*link.dx+(p.z-link.start.z)*link.dz)/Math.max(1,Math.hypot(p.x-link.start.x,p.z-link.start.z));return {link,score:(ahead>.3?1:0)-toward*.5+this.random()*.2};}).sort((a,b)=>a.score-b.score);
-   for(const {link} of scored.filter(({link})=>this.canSpawn({x:link.start.x,y:link.from.position[2]+1,z:link.start.z},6)).slice(0,12)){
+   // Browser policy (the unreversed generator picks its node by other means): of the spawnable links, those the car can
+   // reach the suspect from by a road route under twice and a half their straight distance (and 40) go first. A car put
+   // 55 units from a cul-de-sac's only entrance by road but 450 by the route there drove off round the block at the
+   // one-star cruise, and was gone before it came back.
+   const road=(link:TrafficLink)=>{const route=findTrafficRoute(paths.areas,link.to,{x:p.x,y:p.y,z:p.z},1500);return route?route.reduce((n,l)=>n+l.length,link.length):Infinity;};
+   const direct=(link:TrafficLink)=>Math.hypot(link.start.x-p.x,link.start.z-p.z);
+   const candidates=scored.filter(({link})=>this.canSpawn({x:link.start.x,y:link.from.position[2]+1,z:link.start.z},6)).slice(0,40)
+    .map(c=>({...c,detour:road(c.link)>direct(c.link)*2.5+40})).sort((a,b)=>Number(a.detour)-Number(b.detour)||a.score-b.score).slice(0,12);
+   for(const {link} of candidates){
     const {x,z}=link.start;if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-x,c.car.body.translation().z-z)<12))continue;
     const level=this.level();let modelId=choosePoliceCarModel(level,this.law.level,this.random);
     let car=await this.fleet.spawnTrafficCar(modelId,{x,y:link.from.position[2],z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.law.level>0&&Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>45&&this.canSpawn({x,y:link.from.position[2]+1,z},6)).catch(()=>undefined);

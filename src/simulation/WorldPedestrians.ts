@@ -220,6 +220,9 @@ export interface Pedestrian {
  shootingRate?:number;
  /** CTaskComplexKillPedOnFootArmed: whether the gun-control subtask runs, and the clock of its last attack. */
  gunFight?:{shooting:boolean;lastAttack:number};
+ /** CTaskComplexSeekEntity's TASK_COMPLEX_FOLLOW_NODE_ROUTE while it chases something on foot: the planned points, the
+  * one it walks to, the target it was planned for and how long ago. */
+ seekRoute?:{points:{x:number;y:number;z:number}[];lastIsTarget:boolean;at:number;target:{x:number;y:number;z:number};age:number};
  down:number; flee:number;fleeFrom?:{x:number;z:number};
  /** The clock at which this ped last started a stare, so one approach does not restart it every frame. */
  staredAt?:number;
@@ -2847,6 +2850,20 @@ export class WorldPedestrians {
    const info=p.weapon?.info,arm=!!info&&hasWeaponFlag(info,WEAPON_FLAG.aimWithArm)&&!p.actor.player.crouched;
    p.view.setWeaponAim(offset.clone().normalize(),false,arm,new Vector3(aim.x,aim.y,aim.z));
   }
+  /** CTaskComplexSeekEntity on foot beyond its go-straight distance: CTaskComplexFollowNodeRoute toward `target`, round
+   * what is in between by the pedestrian nodes (planNodeRoute). SetTarget replans when the target moves (here past
+   * two units, or each second, the seek's scan), and the last point reached short of the target plans the next stretch.
+   * The step's direction is the route's and its length the distance to the target itself, so the chase's stop
+   * distances still measure to what it seeks. */
+  private seekStep(p:Pedestrian,target:{x:number;y:number;z:number},dt:number){
+   const q=p.actor.player.position,distance=Math.hypot(target.x-q.x,target.z-q.z);
+   let r=p.seekRoute;
+   if(!r||Math.hypot(r.target.x-target.x,r.target.z-target.z)>2||(r.age+=dt)>1){r=p.seekRoute={...this.planNodeRoute(p,target),at:0,target:{...target},age:0};}
+   while(r.at<r.points.length-1&&Math.hypot(r.points[r.at].x-q.x,r.points[r.at].z-q.z)<1)r.at++;
+   if(r.at===r.points.length-1&&!r.lastIsTarget&&Math.hypot(r.points[r.at].x-q.x,r.points[r.at].z-q.z)<1){r=p.seekRoute={...this.planNodeRoute(p,target),at:0,target:{...target},age:0};}
+   const w=r.points[r.at]??target,dx=w.x-q.x,dz=w.z-q.z,l=Math.hypot(dx,dz);
+   return l>1e-3?{dx:dx/l*distance,dz:dz/l*distance}:{dx:target.x-q.x,dz:target.z-q.z};
+  }
   /** Muzzle-ray firing sequence with reloads, flashes and dispersion. */
   private stepPedGun(p:Pedestrian,weapon:NonNullable<Pedestrian['weapon']>,eye:{x:number;y:number;z:number},aim:{x:number;y:number;z:number},aimOffset:Vector3,cars:Iterable<WorldCar>,dt:number,engaged:boolean){
    const state=p.actor.player,gun=p.gunState!;
@@ -3513,22 +3530,22 @@ export class WorldPedestrians {
         // 4 units; the arresting cop stays on its ARRESTgun clip.
         p.fight=undefined;
         if(p.arrest>0){policeSpeed=0;state.heading=Math.atan2(offset.x,offset.z);}
-        else{dx=target.x-state.position.x;dz=target.z-state.position.z;policeSpeed=Math.hypot(dx,dz)>4?p.runSpeed:0;}
+        else{({dx,dz}=this.seekStep(p,target,dt));policeSpeed=Math.hypot(dx,dz)>4?p.runSpeed:0;}
        }else if(onFoot&&visible&&copCanArrest({cop:state.position,suspect:target,suspectFalling:this.sim.knockdown>this.sim.knockdownGetUp,up:'y'})){
         policeSpeed=0;state.heading=Math.atan2(offset.x,offset.z);this.arrestPlayer(p);
        }else if(onFoot&&visible&&this.sim.knockdown>this.sim.knockdownGetUp){
         // The suspect is falling but out of reach: ControlSubTask swaps the attack for
         // CTaskComplexSeekEntity, so the cop runs in to arrest rather than shoot.
-        p.fight=undefined;dx=target.x-state.position.x;dz=target.z-state.position.z;policeSpeed=Math.hypot(dx,dz)>2?p.runSpeed:0;
+        p.fight=undefined;({dx,dz}=this.seekStep(p,target,dt));policeSpeed=Math.hypot(dx,dz)>2?p.runSpeed:0;
        }else if(p.copWeapon==='nightstick'){
         // CTaskComplexKillPedOnFoot with the nightstick: close to the combo's range, then swing.
         const chase=visible?target:law.lastKnown??target;
-        dx=chase.x-state.position.x;dz=chase.z-state.position.z;
+        ({dx,dz}=this.seekStep(p,chase,dt));
         policeSpeed=Math.hypot(dx,dz)>NATIVE_MELEE_COMBOS.BBALLBAT.range?p.runSpeed:0;
         if(onFoot&&this.stepNightstick(p,visible,dt))policeSpeed=0;
        }else{
         p.fight=undefined;
-        const chase=law.lastKnown??target;dx=chase.x-state.position.x;dz=chase.z-state.position.z;policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)||!visible&&Math.hypot(dx,dz)<2?0:p.runSpeed;
+        const chase=law.lastKnown??target;({dx,dz}=this.seekStep(p,chase,dt));policeSpeed=gunAllowed&&visible&&distance<(p.weapon?.info.targetRange??12)||!visible&&Math.hypot(dx,dz)<2?0:p.runSpeed;
        }
      if(roadblockCop&&!p.goTo&&policeSpeed!==undefined&&!law.arrested)policeSpeed=0;
      if(gunAllowed&&visible&&p.weapon&&distance<p.weapon.info.weaponRange&&policeSpeed===0){
