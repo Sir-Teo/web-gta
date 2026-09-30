@@ -99,7 +99,7 @@ test('mission sweep',async({page})=>{
     const ahead=botAction?undefined:near.length?near[state.turn%near.length]:undefined;
     // A loop that waits for CJ in a car or on a bike the script named (the BMX, Sweet's Greenwood) puts him in it.
     const ride=block.instructions.find((x:any)=>x.offset>=fileOffset-40&&x.offset<fileOffset+200&&/^IS_CHAR_(SITTING_)?IN_CAR$/.test(x.name));
-    if(!botAction&&ride&&!((r.world.pedVehicle(1)??0)>0)){
+    if(ride&&!((r.world.pedVehicle(1)??0)>0)){
      try{if(t.readInt(ride.parameters[0])===1){const car=t.readInt(ride.parameters[1]);if(m.vehicles.exists(car)&&now-state.lastAt>8000){r.world.warpPedIntoCar(1,car);state.lastAt=now;moved=true;}}}catch{}
     }
     if(ahead){
@@ -137,12 +137,12 @@ test('mission sweep',async({page})=>{
     // What the loop it sits in asks: the instructions just after where it waits.
     const loop=block.instructions.filter((x:any)=>x.offset>=fileOffset&&x.offset<fileOffset+160).map((x:any)=>x.name).filter((n:string)=>!/^(IF|GOTO|GOTO_IF_FALSE|WAIT|GOSUB)$/.test(n)).slice(0,8);
     // The watched peds: position, vehicle, speed and the drive mission CAutoPilot runs for it.
-    const watched=(watch as number[]).map(local=>{
+    const me=r.world.pedPosition(1),watched=[`CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?'riding':'on foot'}`,...(watch as number[]).map(local=>{
      const handle=t.locals.getInt32(local*4,true);
      try{const p=r.world.pedPosition(handle),v=r.world.pedVehicle?.(handle)??0,car=v>0?m.vehicles.entity(v):undefined,mission=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();
       return `${local}@ ${p.x.toFixed(0)},${p.y.toFixed(0)},${p.z.toFixed(0)} ${v>0?`veh ${v} ${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mission?`${mission.kind}->${mission.goal.x.toFixed(0)},${(-mission.goal.z).toFixed(0)}`:'no mission'}`:'on foot'}`;}
      catch(e){return `${local}@ ${handle} ${String(e).slice(0,40)}`;}
-    });
+    })];
     return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said(),bot:botAction,watched};
    },[id,playerOnly,bot,watch] as const);
    samples++;previous=last;last=s;
