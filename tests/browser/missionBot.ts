@@ -47,15 +47,20 @@ export function missionBotTick(dtSeconds:number){
    // Held on its brake by its own drive (a red light, the car ahead) it is waiting, not wedged.
    const own=m.vehicles.entity?.(vehicle)?.autopilot?.native,waiting=!!own&&own.gas<=.05&&own.brake>.05;
    mem.stuckFor=moved<.05*Math.max(1,dtSeconds*20)&&!waiting?(mem.stuckFor??0)+dtSeconds:0;
+   // Held that long (a car left in the lane ahead: STOP_FOR_CARS waits behind it for good), a player goes round it:
+   // DRIVINGSTYLE_AVOID_CARS for a few seconds.
+   mem.waitingFor=waiting&&moved<.05*Math.max(1,dtSeconds*20)?(mem.waitingFor??0)+dtSeconds:0;
+   if(mem.waitingFor>8){mem.waitingFor=0;mem.aroundUntil=now+6000;mem.drive=undefined;}
+   const style=mem.aroundUntil&&now<mem.aroundUntil?2:0;
    if(mem.reversingUntil&&now<mem.reversingUntil)return true;
    if(mem.stuckFor>5){
     mem.stuckFor=0;mem.reversingUntil=now+1800;mem.drive=undefined;
     try{world.givePedScriptedTask(1,{kind:'carTempAction',vehicle,actionId:3,time:1500},0x0822);}catch{}
     return true;
    }
-   if(!last||last.vehicle!==vehicle||Math.hypot(last.x-to.x,last.y-to.y)>8||now-last.at>4000){
-    mem.drive={vehicle,x:to.x,y:to.y,at:now};
-    try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:d>40?22:12,driveStyle:0,model:-1,drivingStyle:0},0x05d1);}catch{}
+   if(!last||last.vehicle!==vehicle||last.style!==style||Math.hypot(last.x-to.x,last.y-to.y)>8||now-last.at>4000){
+    mem.drive={vehicle,x:to.x,y:to.y,at:now,style};
+    try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:d>40?22:12,driveStyle:0,model:-1,drivingStyle:style},0x05d1);}catch{}
    }
    return true;
   }
