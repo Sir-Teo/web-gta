@@ -309,7 +309,12 @@ export class WorldFleet {
    const top=1000,hit=this.sim.world.castRay(new RAPIER.Ray({x:position.x,y:top,z:position.z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    ground=hit?top-hit.timeOfImpact:20;fellBack=!hit;
   }
-  const car=new WorldCar(this.sim,this.scene,assets,{x:position.x,y:ground-assets.collision.bounds.min[2],z:position.z},this.road,heading);
+  const at={x:position.x,y:ground-assets.collision.bounds.min[2],z:position.z};
+  // CreateCarForScript's CTheScripts::ClearSpaceForMissionEntity: SWEET1 makes Sweet's Greenwood where his switched-off
+  // generator's own Greenwood stands, 10.2 units from the centre of its CLEAR_AREA of 10, and the two were forced apart
+  // into the side yard.
+  this.clearSpaceFor(at,heading,assets.collision.bounds);
+  const car=new WorldCar(this.sim,this.scene,assets,at,this.road,heading);
   car.fadeIn();car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
   car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;
   // vehicleFlags.bIsLocked, which keeps the car from being removed (missionCar), and STATUS_ABANDONED: nobody drives
@@ -333,6 +338,8 @@ export class WorldFleet {
    ground=hit?top-hit.timeOfImpact:0;
   }
   const at={x:position.x,y:ground-bounds.min[2],z:position.z};
+  // CreateCarForScript: ClearSpaceForMissionEntity for a bike, boat or aircraft too.
+  this.clearSpaceFor(at,heading,bounds);
   if(PLAYABLE_BIKES[modelId]){const b=assets as Awaited<ReturnType<typeof loadFixedWorldBike>>;at.y=ground-bikeRestBottom(b.model,b.wheelFrames,bounds.min[2],b.vehicle.frontWheelSize,b.vehicle.rearWheelSize);const bike=new WorldBike(this.sim,this.scene,b,at,heading);bike.missionCar=true;bike.waterLevel=this.waterLevel;this.bikes.add(bike);return bike;}
   if(PLAYABLE_BOATS[modelId]){const boat=new WorldBoat(this.sim,this.scene,assets as ConstructorParameters<typeof WorldBoat>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));boat.waterLevel=this.waterLevel;boat.missionCar=true;this.boats.add(boat);return boat;}
   const plane=new WorldPlane(this.sim,this.scene,assets as ConstructorParameters<typeof WorldPlane>[2],at,heading,rotatedColours(catalog,assets.vehicle.model));plane.waterLevel=this.waterLevel;plane.missionCar=true;this.planes.add(plane);return plane;
@@ -417,6 +424,9 @@ export class WorldFleet {
   });
   for(const car of cars){this.cars.delete(car);this.generated.delete(car);car.dispose();}
   for(const handle of peds)this.clearPed?.(handle);
+  // A generator car still loading onto the spot would have been there, and removed, in the original.
+  const reach=Math.hypot(half.x,half.z);
+  for(const record of this.records)if(this.attempted.has(record.id)&&Math.hypot(record.position[0]-center.x,-record.position[1]-center.z)<reach+2)this.cleared.add(record.id);
   this.lastClear={cars:cars.size,peds:peds.length,center,half};
   return this.lastClear;
  }
