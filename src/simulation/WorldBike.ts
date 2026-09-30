@@ -21,7 +21,7 @@ import {nativePedals} from './nativePedals';
 import {controlsOffSpeedScale,rawSteerTowards,steerFraction} from './nativeQuadSteer';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import {browserLocalDirection} from '../combat/nativeDamageAnim';
-import {CAR_SOLVER_GROUPS} from './solverGroups';
+import {vehicleSolverGroups} from './solverGroups';
 import {bikeTooFastToBoard} from './BikeMount';
 import {applyNativeBikeBuoyancy,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import {NATIVE_GRAVITY_MS2} from './nativeGravity';
@@ -148,7 +148,7 @@ export class WorldBike {
    this.wheelColliders.add(sim.world.createCollider(RAPIER.ColliderDesc.ball(w.radius).setTranslation(w.center.x,w.center.z,-w.center.y).setDensity(0).setFriction(0).setRestitution(.05).setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min),this.body).handle);
   // A car's solver group: peds are kinematic capsules that would stop the bike dead, so, as for cars, the ped strike
   // pass (CPhysical::ApplyCollision between the two) settles a bike meeting a ped instead of the solver.
-  for(let i=0;i<this.body.numColliders();i++)this.body.collider(i).setSolverGroups(CAR_SOLVER_GROUPS);
+  for(let i=0;i<this.body.numColliders();i++){const c=this.body.collider(i);c.setSolverGroups(vehicleSolverGroups(c));}
   if(assets.model&&assets.textures){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);try{this.lod=bindNativeCarLod(this.visual.root,assets.model,[...assets.wheelFrames.front,...assets.wheelFrames.rear]);}catch{this.lod=undefined;}this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }

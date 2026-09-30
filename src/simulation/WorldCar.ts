@@ -23,7 +23,7 @@ import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
-import {CAR_SOLVER_GROUPS} from './solverGroups';
+import {vehicleSolverGroups} from './solverGroups';
 import {burstCompressionRandomUpper} from './nativeGroundCompression';
 import {softGroundResistance} from './nativeSoftGround';
 import {hoverWheelContact,hoverActive} from './nativeHoverSuspension';
@@ -1149,7 +1149,7 @@ export class WorldCar {
  private groupedColliders=0;
  private groupColliders(){
   const body=this.car.body,n=body.numColliders();if(n===this.groupedColliders)return;
-  for(let i=0;i<n;i++)body.collider(i).setSolverGroups(CAR_SOLVER_GROUPS);
+  for(let i=0;i<n;i++){const c=body.collider(i);c.setSolverGroups(vehicleSolverGroups(c));}
   this.groupedColliders=n;
  }
  /** Handling mass and turn mass with the collision model's bounds (native units). */
