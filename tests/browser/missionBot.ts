@@ -92,15 +92,11 @@ export function missionBotTick(dtSeconds:number){
   // (a CJ set down in front of a riding homie wedged the two bikes together).
   const f=nearest(friends),last=mem.friendLast?.[f.handle];mem.friendLast={...(mem.friendLast??{}),[f.handle]:{...f.position}};
   const vx=last?f.position.x-last.x:0,vy=last?f.position.y-last.y:0,v=Math.hypot(vx,vy);
-  // A homie who has not moved for fifteen seconds while riding is wedged: a player rides on ahead rather than park
-  // beside him, and the game sets a stuck mission car back on its route only out of the player's sight.
-  // Still means within three units of where he was fifteen seconds ago (his recovery rocks him back and forth).
+  // A homie who has stopped (where the script sent him, most often) is joined: CJ rides up beside him, as a player
+  // would. Still means within three units of where he was five seconds ago (a recovery rocks him back and forth).
   const anchors=mem.friendAnchor??={},a=anchors[f.handle];
   if(!a||Math.hypot(f.position.x-a.x,f.position.y-a.y)>3)anchors[f.handle]={x:f.position.x,y:f.position.y,for:0};else a.for+=dtSeconds;
-  if(vehicle&&anchors[f.handle].for>15&&distance(f.position)<30){
-   const d=distance(f.position)||1;glide({x:me.x+(me.x-f.position.x)/d*40,y:me.y+(me.y-f.position.y)/d*40,z:me.z},3);
-   return {action:'ride clear of stuck friend',target:f.handle};
-  }
+  if(anchors[f.handle].for>5){glide(f.position,5);return {action:'join stopped friend',target:f.handle};}
   if(v>.2){
    const ahead=(me.x-f.position.x)*vx+(me.y-f.position.y)*vy>0;if(ahead)return {action:'let him pass',target:f.handle};
    glide({x:f.position.x-vx/v*10,y:f.position.y-vy/v*10,z:f.position.z},1.5);
