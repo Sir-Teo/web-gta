@@ -330,9 +330,13 @@ export class WorldBike {
   * ground under the bike, anywhere below it. */
  private groundCheck={seconds:0,loaded:true};
  private collisionLoaded(dt:number){
-  const g=this.groundCheck;g.seconds-=dt;if(g.seconds>0)return g.loaded;g.seconds=.5;
+  // Looked at every tenth of a second while it moves (a ridden bike covers six units in half a second), and only forty
+  // units down: a ray five hundred long found a structure far under a road not yet streamed in, and a homie's BMX
+  // rode off the window's edge and fell to it. Water under it counts as somewhere to be. The player's own bike is
+  // always inside the window (the terrain hold sees to that) and may fall far off a roof, so it looks all the way.
+  const g=this.groundCheck,v=this.body.linvel();g.seconds-=dt;if(g.seconds>0)return g.loaded;g.seconds=Math.hypot(v.x,v.z)>1?.1:.5;
   const p=this.body.translation();
-  g.loaded=!!this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+2,z:p.z},{x:0,y:-1,z:0}),500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  g.loaded=!!this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+2,z:p.z},{x:0,y:-1,z:0}),this.occupied?500:40,true,RAPIER.QueryFilterFlags.ONLY_FIXED)||this.waterLevel?.(p.x,-p.z)!==undefined;
   return g.loaded;
  }
  /** Whether the ground is under the bike (a short ray down from the body), `along` units ahead of its centre. */

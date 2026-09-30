@@ -94,8 +94,10 @@ export function missionBotTick(dtSeconds:number){
   const vx=last?f.position.x-last.x:0,vy=last?f.position.y-last.y:0,v=Math.hypot(vx,vy);
   // A homie who has not moved for fifteen seconds while riding is wedged: a player rides on ahead rather than park
   // beside him, and the game sets a stuck mission car back on its route only out of the player's sight.
-  const still=mem.friendStill??={};still[f.handle]=v<.05?(still[f.handle]??0)+dtSeconds:0;
-  if(vehicle&&still[f.handle]>15&&distance(f.position)<30){
+  // Still means within three units of where he was fifteen seconds ago (his recovery rocks him back and forth).
+  const anchors=mem.friendAnchor??={},a=anchors[f.handle];
+  if(!a||Math.hypot(f.position.x-a.x,f.position.y-a.y)>3)anchors[f.handle]={x:f.position.x,y:f.position.y,for:0};else a.for+=dtSeconds;
+  if(vehicle&&anchors[f.handle].for>15&&distance(f.position)<30){
    const d=distance(f.position)||1;glide({x:me.x+(me.x-f.position.x)/d*40,y:me.y+(me.y-f.position.y)/d*40,z:me.z},3);
    return {action:'ride clear of stuck friend',target:f.handle};
   }
