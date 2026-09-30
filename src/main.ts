@@ -3744,12 +3744,13 @@ async function boot() {
   let groundAfterStream:{x:number;z:number}|undefined;
   const settleGroundAfterStream=()=>{
    const at=groundAfterStream;if(!at)return;
-   const car=worldCar?.occupied?worldCar:fleet?.occupied,p=car?car.car.body.translation():sim.player.position;
+   const car=worldCar?.occupied?worldCar:fleet?.occupied,other=car?undefined:fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+   const p=car?car.car.body.translation():other?other.body.translation():sim.player.position;
    if(Math.hypot(p.x-at.x,p.z-at.z)>1.5){groundAfterStream=undefined;return;}
    const hit=sim.world.castRay(new RAPIER.Ray({x:at.x,y:1000,z:at.z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    if(!hit)return;
    groundAfterStream=undefined;const y=1000-hit.timeOfImpact;
-   if(car){const body=car.car.body,lift=-car.nativeBody.boundsMin.z;body.setTranslation({x:p.x,y:y+lift,z:p.z},true);body.setLinvel({x:0,y:0,z:0},true);return;}
+   if(car||other){const body=car?car.car.body:other!.body,lift=car?-car.nativeBody.boundsMin.z:-other!.assets.collision.bounds.min[2];body.setTranslation({x:p.x,y:y+lift,z:p.z},true);body.setLinvel({x:0,y:0,z:0},true);return;}
    sim.player.position={x:p.x,y,z:p.z};sim.player.previous={...sim.player.position};sim.player.verticalSpeed=0;
    sim.playerBody.setTranslation({x:p.x,y:y+.9,z:p.z},true);sim.playerBody.setNextKinematicTranslation({x:p.x,y:y+.9,z:p.z});sim.playerCollider.setTranslation({x:p.x,y:y+.9,z:p.z});
   };
@@ -4766,11 +4767,13 @@ async function boot() {
                  releaseScriptVehicle:car=>{const c=car as ScriptCar;if(c.disposed)return;c.missionCar=false;if(scriptCars.mission(c)!==undefined){scriptCars.forget(c);c.autopilot=undefined;}},
                  teleportPlayer:position=>{
                   const x=position.x,z=-position.y,y=position.z,car=worldCar?.occupied?worldCar:fleet?.occupied;
-                  if(car){
-                   const body=car.car.body,lift=-car.nativeBody.boundsMin.z;
+                  // CPed::Teleport on a ped in a vehicle moves the vehicle, its base on the point
+                  // (GetDistanceFromCentreOfMassToBaseOfModel), with him in it.
+                  const other=car?undefined:fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+                  if(car||other){
+                   const body=car?car.car.body:other!.body,lift=car?-car.nativeBody.boundsMin.z:-other!.assets.collision.bounds.min[2];
                    body.setTranslation({x,y:y+lift,z},true);body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
-                  }else if(fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane)return false;
-                  else{
+                  }else{
                    carEntry.cancel();sim.flushPlayerTasks();
                    sim.player.position={x,y,z};sim.player.previous={x,y,z};sim.player.speed=0;sim.player.verticalSpeed=0;sim.player.jumpMomentum={x:0,z:0};
                    sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});

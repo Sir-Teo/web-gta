@@ -149,9 +149,15 @@ test('mission sweep',async({page})=>{
     const hurt:string[]=[],hp=(window as any).__watchHp??={};
     for(const local of watch as number[]){
      const handle=t.locals.getInt32(local*4,true);let health:number;try{health=r.world.pedHealth(handle);}catch{continue;}
+     // The ped's health field records the call stack of each drop, so a loss nothing else accounts for names its code.
+     const entity=m.peds.entity(handle);
+     if(entity&&!entity.__healthWatched){
+      let value=entity.health;entity.__healthWatched=true;
+      Object.defineProperty(entity,'health',{configurable:true,get:()=>value,set:(v:number)=>{if(v<value)entity.__healthDrop=`${value}->${v} at ${(new Error().stack??'').split('\n').slice(2,6).map((l:string)=>l.trim().replace(/https?:\/\/[^/]+\//,'').replace(/\?[^:]*/,'')).join(' < ')}`;value=v;}});
+     }
      if(hp[local]!==undefined&&health<hp[local]){
       const by=m.peds.entity(handle)?.lastDamagedBy,car=by?.car,ped=by?.ped;
-      hurt.push(`${local}@ ${hp[local]}->${health} by ${by?.player?'CJ':car?`car ${car.model?.name??car.modelId??'?'}${car===g.sim?.playerCar?' (CJ)':''}`:ped?`ped ${ped.model??ped.modelName??'?'}`:'?'} weapon ${m.peds.entity(handle)?.lastWeaponDamage??'?'}`);
+      hurt.push(`${local}@ ${hp[local]}->${health} by ${by?.player?'CJ':car?`car ${car.model?.name??car.modelId??'?'}${car===g.sim?.playerCar?' (CJ)':''}`:ped?`ped ${ped.model??ped.modelName??'?'}`:'?'} weapon ${m.peds.entity(handle)?.lastWeaponDamage??'?'} ${m.peds.entity(handle)?.__healthDrop??''}`);
      }
      hp[local]=health;
     }

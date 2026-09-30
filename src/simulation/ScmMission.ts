@@ -93,7 +93,7 @@ export interface ScmMissionWorld {
  playerCreatedAt(x:number,y:number,z:number):void;
  setPlayerHeading(degrees:number):void;
  /** CRunningScript::SetCharCoordinates for the player (script coordinates, already put to the ground if too low):
-  * his vehicle is teleported with him in it, or he is. `groundPending`: the ground was asked for where no collision
+  * his vehicle (car, bike, boat or aircraft) is teleported with him in it, or he is. `groundPending`: the ground was asked for where no collision
   * is loaded yet (z is FindGroundZForCoord's 20), so it is found again once the streamed window under him is in. */
  teleportPlayer?(position:{x:number;y:number;z:number;groundPending?:boolean}):boolean;
  /** WARP_CHAR_INTO_CAR on the player (CTaskSimpleCarSetPedInAsDriver without the entry tasks), and
