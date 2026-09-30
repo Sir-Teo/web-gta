@@ -10,6 +10,8 @@ import type {Controls,Simulation} from './Simulation';
 import {CAR_ALARM_SECONDS,type WorldCar} from './WorldCar';
 type V3={x:number;y:number;z:number};
 export type Side='left'|'right';
+/** The longest a dragged-out driver is drawn waiting for his ped. */
+const HELD_SECONDS=2;
 export type EntryPhase='approach'|'align'|'locked'|'open'|'pullout'|'getIn'|'closeInside'|'shuffle'|'seated'|'waitSlow'|'getOut'|'closeOutside'|'jumpOut'|'getUp'|'draggedOut'|'crawlOut';
 /** Shared entry timing (src/vehicle/entry.ts): 0.2 speed gate, 600 ms line-up. */
 import { PLAYER_ENTER_SPEED_LIMIT as ENTRY_SPEED_SHARED, LINE_UP_SECONDS as LINE_UP_SHARED, JUMP_OUT_SET_OUT as JUMP_SET_SHARED, JUMP_OUT_CARRY as JUMP_CARRY_SHARED, approachStall, nextEntryPhase } from '../vehicle/entry';
@@ -85,7 +87,12 @@ export class CarEntry {
  cancelReason?:string;
  private jumpSpeed=0;private setOut=false;private doorExisted=true;
  /** NPC drivers leaving their cars: the jacked victim, and drivers evicted by events (a burning car). */
- private npcs:{car:WorldCar;clip:ClipUse;time:number;kind:'jacked'|'getOut';done:boolean;onOut?:(position:V3,heading:number)=>void}[]=[];
+ private npcs:{car:WorldCar;clip:ClipUse;time:number;kind:'jacked'|'getOut';done:boolean;onOut?:(position:V3,heading:number)=>void;
+  /** A dragged-out driver drawn on his clip's last frame until the ped who replaces him exists (releaseDragged), so a
+   * model still loading leaves no gap where he vanishes; at most HELD_SECONDS. */
+  held?:number}[]=[];
+ /** Lets go of the drawn victim of `car` once his ped is on the street. */
+ releaseDragged(car:WorldCar){for(const npc of this.npcs)if(npc.car===car)npc.held=undefined;}
  private get npc(){return this.npcs.find(n=>!n.done);}
  /** The steering and look-back clips' blends (ProcessDrivingAnims). */
  private readonly driving=new NativeDrivingAnims();
@@ -517,14 +524,15 @@ export class CarEntry {
   onOut({x:base.x,y:ground+.03,z:base.z},car.heading());return true;
  }
  /** CTaskSimpleCarSetPedSlowDraggedOut: the victim lands at the jacked clip's end offset (2D) with its Z on the ground. */
- private stepNpc(dt:number){for(const npc of this.npcs){if(npc.car.disposed)npc.done=true;if(!npc.done)this.stepOneNpc(npc,dt);}}
+ private stepNpc(dt:number){for(const npc of this.npcs){if(npc.car.disposed){npc.done=true;npc.held=undefined;}if(npc.held!==undefined&&(npc.held-=dt)<=0)npc.held=undefined;if(!npc.done)this.stepOneNpc(npc,dt);}
+  this.npcs=this.npcs.filter(npc=>!npc.done||npc.held!==undefined);}
  private stepOneNpc(npc:NonNullable<CarEntry['npc']>,dt:number){
   npc.time+=dt;
   if(npc.kind==='jacked'&&!(this.car===npc.car&&this.phase==='pullout'))this.openDoor(npc.car,DOOR.leftFront,'jacked',npc.time,npc.clip.group);
   if(npc.kind==='getOut')this.openDoor(npc.car,DOOR.leftFront,'getOut',npc.time,npc.clip.group);
   if(npc.time<npc.clip.clip.duration)return;
   // The car stays held while the player who dragged the driver out is still climbing in.
-  npc.done=true;if(this.car!==npc.car||!this.phase)npc.car.holdForEntry=false;npc.car.driverLeaving=false;
+  npc.done=true;if(npc.kind==='jacked'&&!npc.onOut)npc.held=HELD_SECONDS;if(this.car!==npc.car||!this.phase)npc.car.holdForEntry=false;npc.car.driverLeaving=false;
   const local=this.doorPoint(npc.car,'left');if(!local)return;
   const end=clipRootEnd(npc.clip.clip),base=npc.car.worldPoint(npc.kind==='jacked'?{x:local.x+end.x,y:local.y+end.y,z:local.z}:local),ground=this.ground(base,npc.car)??base.y-1;
   if(npc.onOut)npc.onOut({x:base.x,y:ground+.03,z:base.z},npc.car.heading());else this.onDriverOut?.(npc.car,{x:base.x,y:ground+.03,z:base.z},npc.car.heading(),npc.kind==='jacked'?{key:npc.clip.key,clip:npc.clip.clip}:undefined);
@@ -533,15 +541,13 @@ export class CarEntry {
  /** Every NPC still leaving a car, with its clip. */
  npcPoses():{pose:NpcPose;clip:{key:string;clip:NativeAnimation}}[]{
   const out:{pose:NpcPose;clip:{key:string;clip:NativeAnimation}}[]=[];
-  for(const npc of this.npcs){if(npc.done)continue;const local=this.doorPoint(npc.car,'left');if(local)out.push({pose:{car:npc.car,local,clip:npc.clip.key,seconds:npc.time},clip:{key:npc.clip.key,clip:npc.clip.clip}});}
+  for(const npc of this.npcs){if(npc.done&&npc.held===undefined)continue;const local=this.doorPoint(npc.car,'left');if(local)out.push({pose:{car:npc.car,local,clip:npc.clip.key,seconds:Math.min(npc.time,npc.clip.clip.duration)},clip:{key:npc.clip.key,clip:npc.clip.clip}});}
   return out;
  }
  get npcClip(){return this.npcPoses()[0]?.clip;}
  /** One fixed step. Returns world displacement for the jump-out roll once the player is out of the car. */
  step(dt:number,input:{pedal:boolean;moving:boolean;steer?:{x:number;y:number;cameraYaw:number};fire?:boolean}):{x:number;z:number}|undefined{
   this.stepNpc(dt);
-
-  if(this.npcs.some(n=>n.done))this.npcs=this.npcs.filter(n=>!n.done);
   const car=this.car;if(!this.phase||!car)return;
   // m_Car is a registered reference: a car deleted under the task (a script's DELETE_CAR) ends it.
   if(car.disposed){this.cancel();return;}

@@ -1482,8 +1482,9 @@ export class WorldPedestrians {
  /** Start streaming a driver's model while he is still being pulled out, so the ped he becomes is there the frame
   * the clip ends. */
  prefetchModel(modelRef:number|string){if(typeof modelRef==='string')void this.catalog?.character(modelRef).catch(()=>{});}
- spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation}){
+ spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation},onCreated?:()=>void){
   return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
+   onCreated?.();
    // CTaskComplexCarSlowBeDraggedOutAndStandUp: the victim lies where CAR_jackedLHS leaves him, on the clip's last
    // frame, then CTaskSimpleGetUp (GETUP_FRONT, the jacked clips being ANIMATION_IS_FRONT) stands him up before his
    // response (flee, or come back for the car). Before, he stood up at once as a fresh ped.
