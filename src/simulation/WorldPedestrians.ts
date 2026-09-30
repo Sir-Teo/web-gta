@@ -2446,7 +2446,14 @@ export class WorldPedestrians {
     const kill=killPedWithCarTask({carPosition:toNative(t),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:physics.boundsMin,boundsMax:physics.boundsMax,
      carMoveSpeed:toNative({x:linvel.x/50,y:linvel.y/50,z:linvel.z/50}),carMass:physics.mass,pedPosition:toNative(at),pedHitSide:side});
     if(p.onlyDamagedByPlayer||p.proofs?.collision){addCarForce(impact.vehicleForce);return;}
-    p.health=0;
+    // CEventDamage with the task's 1000: a ped with more health than that (a mission's 2000-health homie) lives,
+    // knocked flat, and gets up.
+    p.lastDamagedBy=car?{car}:{};p.lastWeaponDamage=kill.weapon;p.health=healthAfter(p.health,kill.damage);
+    if(p.health>0){
+     addCarForce({x:impact.vehicleForce.x+kill.vehicleForce.x,y:impact.vehicleForce.y+kill.vehicleForce.y,z:impact.vehicleForce.z+kill.vehicleForce.z});
+     const thrown=fromNative(kill.pedMoveSpeed);this.hit(p,thrown.x||pos.x-t.x,thrown.z||pos.z-t.z,Math.min(10,speed*.6),'ko_skid_front',1000);crime();
+     return;
+    }
     const death=computeDeathAnim({weapon:kill.weapon,pedPiece:kill.pedPiece,direction:kill.direction,health:0,damageArmour:0,damageHealth:kill.damage,
      victim:{player:false,inVehicle:false,moveState:this.moveState(p),upperBodyOnly:!!p.flags?.upperBodyDamageAnimsOnly,fallingOrGettingUp:false,headBelowRoot:false},source:{ped:false,player:striker.occupied},nextRandom:()=>this.damageRandom.next()});
     const thrown=fromNative(kill.pedMoveSpeed),clip=death.clip??'ko_skid_front';
