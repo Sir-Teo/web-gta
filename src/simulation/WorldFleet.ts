@@ -240,6 +240,8 @@ export class WorldFleet {
  private driven=new Map<WorldCar,number>();
  /** CCarGenerator's m_nNextGenTime and bWaitUntilFarFromPlayer per record. */
  private generatorState=new Map<string,{nextGen:number;waitFar:boolean}>();
+ /** Generators whose loading car a clear of its area has removed before it arrived. */
+ private cleared=new Set<string>();
  /** CTheCarGenerators::GenerateEvenIfPlayerIsCloseCounter: the start window lets nearby generators fill at once. */
  private closeCounter=GENERATE_EVEN_IF_CLOSE_FRAMES;
  /** The start window's frames, counted down once a frame (CTheCarGenerators::Process), not per 500 ms update. */
@@ -433,6 +435,8 @@ export class WorldFleet {
    doomed.push(car);
   }
   for(const car of doomed){this.cars.delete(car);this.generated.delete(car);car.dispose();}
+  // A generator's car still loading within the area counts as one cleared.
+  for(const record of this.records)if(this.attempted.has(record.id)&&Math.hypot(record.position[0]-point.x,-record.position[1]-point.z)<radius)this.cleared.add(record.id);
   // The pass walks the whole vehicle pool: bikes, boats and aircraft nobody rides and no script holds go too.
   let others=0;
   const near=(v:{car:{body:RAPIER.RigidBody}})=>{const at=v.car.body.translation();return Math.hypot(at.x-point.x,at.z-point.z)<radius;};
@@ -659,6 +663,11 @@ export class WorldFleet {
    this.attempted.add(chosen.id);parked++;
    void loadFixedWorldCar(catalog,chosen).then(assets=>{
     if(this.disposed)return;
+    // CCarGenerator::DoInternalProcessing makes its car there and then, so a SWITCH_CAR_GENERATOR off or a clear of
+    // the area after the pick finds a car it can remove. Here the car is still loading then: a load that lands
+    // after either is dropped (INTRO2 switches Ryder's generator off and clears his driveway for the Picador it
+    // creates there, and the late one landed in the mission car).
+    if(this.cleared.delete(chosen.id)||chosen.generateCount&&chosen.generateCount()===0){this.generatorState.set(chosen.id,{nextGen:now+GENERATOR_TAKEN_WAIT_MS,waitFar:true});return;}
     // A fresh random pick longer than 8 units (its bounding box's y extent) is dropped, to be picked again.
     const random=this.randomModels.get(chosen.id);
     if(random&&!random.colours){const b=assets.collision.bounds;if(b.max[1]-b.min[1]>8){this.randomModels.delete(chosen.id);return;}}
@@ -669,7 +678,7 @@ export class WorldFleet {
     const angle=Math.trunc(chosen.angle*256/(Math.PI*2))*Math.PI*2/256;
     const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
    car.driverless=true;car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(chosen.doorLockChance);car.alarmArmed=rollAlarm(chosen.alarmChance);{const c=assets.colourIndices;if(random&&!random.colours&&c)random.colours=[c[0],c[1]];}this.cars.add(car);this.generated.set(car,chosen.id);this.generatorState.set(chosen.id,{nextGen:now+4,waitFar:this.generatorState.get(chosen.id)?.waitFar??false});chosen.spent?.();
-   }).catch(error=>{if(!this.disposed)this.failures.set(chosen.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.attempted.delete(chosen.id);});
+   }).catch(error=>{if(!this.disposed)this.failures.set(chosen.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.attempted.delete(chosen.id);this.cleared.delete(chosen.id);});
   }
  }
  /** CTrain::InitTrains' four track files, read once. */
