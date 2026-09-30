@@ -17,6 +17,7 @@ import {HeatSeekLock,pickHeatSeekTarget,type HeatSeekCandidate} from './nativeHe
 import {CRIME} from '../simulation/nativeWanted';
 import {meleeComboFor} from '../weapons/gunnery';
 import {NativeFireManager,explosionFireCount,type FireTarget} from '../combat/nativeFire';
+import {bulletLine} from './bulletLine';
 import {EXPLOSION,NativeExplosionSlots,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
 import type {MeleeSwing} from '../simulation/nativeMelee';
 import {launchVelocity,projectileTuning} from '../weapons/gunnery';
@@ -218,13 +219,7 @@ export class WeaponSystem {
  lineOfFire(from:Vec3,direction:Vec3,range:number){return this.ray(from,direction,range)?.timeOfImpact;}
  /** CWeapon's line tests pass doShootThroughCheck, so a shoot-through face (a chain-link fence) is flown through. */
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody,filter?:(c:RAPIER.Collider)=>boolean){
-  let start=from,left=range,travelled=0;
-  for(let i=0;i<8;i++){
-   const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(start,direction),left,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body,filter);
-   if(!hit||!this.fx?.isShootThrough?.(hit)){if(hit)hit.timeOfImpact+=travelled;return hit;}
-   const step=hit.timeOfImpact+.01;travelled+=step;left-=step;if(left<=0)return null;start=add(start,direction,step);
-  }
-  return null;
+  return bulletLine(this.sim.world,from,direction,range,{isShootThrough:hit=>!!this.fx?.isShootThrough?.(hit),excludeCollider:this.sim.playerCollider,excludeBody:body,filter});
  }
  /** CTaskSimplePlayerOnFire's timer: when the player's current fire started, in game milliseconds. */
  private playerFireSince?:number;

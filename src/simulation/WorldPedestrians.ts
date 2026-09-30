@@ -28,6 +28,7 @@ import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
 import {PED_ORIGIN_HEIGHT,pedFloatDepth} from './nativeSwim';
+import {bulletLine} from '../weapons/bulletLine';
 import {PED_BIKE_KILL_INTENSITY,PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
 import {PED_SOLVER_GROUPS} from './solverGroups';
@@ -1305,6 +1306,8 @@ export class WorldPedestrians {
   onGunShot?:(from:{x:number;y:number;z:number},silent:boolean,byPlayer:boolean)=>void;
   /** The bikes the ped strike pass tests with the cars. */
   bikes?:()=>Iterable<PedStriker>;
+ /** SurfaceInfos_c::IsShootThrough for a bullet line's face (the host's surface table). */
+ isShootThrough?:(hit:RAPIER.RayColliderIntersection)=>boolean;
   /** The train carriages, which strike peds as the train branch of ProcessCollisionSectorList does. */
   trains?:()=>Iterable<PedStriker>;
   /** The body of the bike, boat or aircraft the player rides (his own collider is off while he does), and whether it
@@ -2860,7 +2863,7 @@ export class WorldPedestrians {
     // weapon.dat radius instead of striking the aim point every shot.
     const scattered=npcAimSpread(direction,weapon.info,p.gunAccuracy);
     direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
-    const shot=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),weapon.info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
+    const shot=bulletLine(this.sim.world,muzzle,direction,weapon.info.weaponRange,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
     // CWorld::bIncludeBikers, which FireInstantHit sets: the line meets a biker's own collision too. CJ's is off while
     // he rides, so his capsule on the bike is tried here, short of whatever else the line struck.
     let riderAt=-1;
