@@ -93,8 +93,9 @@ export interface ScmMissionWorld {
  playerCreatedAt(x:number,y:number,z:number):void;
  setPlayerHeading(degrees:number):void;
  /** CRunningScript::SetCharCoordinates for the player (script coordinates, already put to the ground if too low):
-  * his vehicle is teleported with him in it, or he is. */
- teleportPlayer?(position:{x:number;y:number;z:number}):boolean;
+  * his vehicle is teleported with him in it, or he is. `groundPending`: the ground was asked for where no collision
+  * is loaded yet (z is FindGroundZForCoord's 20), so it is found again once the streamed window under him is in. */
+ teleportPlayer?(position:{x:number;y:number;z:number;groundPending?:boolean}):boolean;
  /** WARP_CHAR_INTO_CAR on the player (CTaskSimpleCarSetPedInAsDriver without the entry tasks), and
   * WARP_CHAR_FROM_CAR_TO_COORD (out of the vehicle and teleported). */
  /** The player's side of the ped commands a script also gives him: CPed::SetAmmo and GrantAmmo, the weapon hidden
@@ -2217,9 +2218,11 @@ export class ScmMission {
  private findGroundZForCoord(x:number,y:number){return this.world.groundLevel(x,y,1000)??20;}
  private teleportPlayer(x:number,y:number,z:number,command:string){
   // CWorld::PutToGroundIfTooLow.
-  const ground=z<=-100?this.findGroundZForCoord(x,y):undefined;
+  const found=z<=-100?this.world.groundLevel(x,y,1000):undefined,ground=z<=-100?found??20:undefined;
   const onFoot=!this.world.playerPed().vehicle;
-  if(!this.host('teleportPlayer',command)({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,command,'a player on a bike, boat or plane');
+  // A script puts CJ somewhere far after LOAD_SCENE has loaded its collision; the browser streams it in after the
+  // teleport, so a ground not found yet is looked for again when it arrives.
+  if(!this.host('teleportPlayer',command)({x,y,z:ground??z,...(z<=-100&&found===undefined?{groundPending:true}:{})}))throw new UnsupportedScmCommand(-1,0,command,'a player on a bike, boat or plane');
   // CRunningScript::SetCharCoordinates with warpGang (the plain command; not _NO_OFFSET or _DONT_WARP_GANG): a leader
   // on foot is moved by CPedGroup::Teleport, which takes his living followers along to the formation's offsets from
   // the point. A follower still sits in its car here, as a mission ped the game does not set out of one.

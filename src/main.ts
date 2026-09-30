@@ -3712,6 +3712,7 @@ async function boot() {
     if(pendingFollowingData&&eligible&&!installingScene&&(pendingFollowingData.retryAt===undefined||performance.now()>=pendingFollowingData.retryAt)){const data=pendingFollowingData;pendingFollowingData=undefined;void replaceWalkTerrain(data);return;}
     // A window that failed at the safety boundary is asked for again from the pause, once its backoff passes.
     if(paused||installingScene)return;
+    if(!terrainPause)settleGroundAfterStream();
     // Directional lookahead for the next window: vehicles report Rapier
     // velocity, on-foot motion uses heading and blend speed. A passenger seat counts too: riding in the back of
     // INTRO's police car (a recording at 11 m/s) with no lookahead ran the car off the streamed window, and the game
@@ -3737,6 +3738,21 @@ async function boot() {
    * he falls (m_bIsStaticWaitingForCollision). Waiting out the jump allowance let him drop through the unloaded ground
    * first and land below it once the window came in. */
   let scriptTeleported=false;
+  /** A script teleport's PutToGroundIfTooLow that found no collision yet (renderer x, z): once the streamed window
+   * under the point is in, the player (or his vehicle) is set on the highest ground there, as he would have been had
+   * the collision been loaded when the script asked. He keeps it only while he has not moved off the point. */
+  let groundAfterStream:{x:number;z:number}|undefined;
+  const settleGroundAfterStream=()=>{
+   const at=groundAfterStream;if(!at)return;
+   const car=worldCar?.occupied?worldCar:fleet?.occupied,p=car?car.car.body.translation():sim.player.position;
+   if(Math.hypot(p.x-at.x,p.z-at.z)>1.5){groundAfterStream=undefined;return;}
+   const hit=sim.world.castRay(new RAPIER.Ray({x:at.x,y:1000,z:at.z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   if(!hit)return;
+   groundAfterStream=undefined;const y=1000-hit.timeOfImpact;
+   if(car){const body=car.car.body,lift=-car.nativeBody.boundsMin.z;body.setTranslation({x:p.x,y:y+lift,z:p.z},true);body.setLinvel({x:0,y:0,z:0},true);return;}
+   sim.player.position={x:p.x,y,z:p.z};sim.player.previous={...sim.player.position};sim.player.verticalSpeed=0;
+   sim.playerBody.setTranslation({x:p.x,y:y+.9,z:p.z},true);sim.playerBody.setNextKinematicTranslation({x:p.x,y:y+.9,z:p.z});sim.playerCollider.setTranslation({x:p.x,y:y+.9,z:p.z});
+  };
   const playerMayTakeTerrain=()=>{
     const now=performance.now();
     if(sim.player.grounded||!!fleet?.occupiedPlane){airborneSince=0;scriptTeleported=false;return true;}
@@ -4760,6 +4776,7 @@ async function boot() {
                    sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});
                   }
                   fleet?.generateEvenIfClose();
+                  groundAfterStream=position.groundPending?{x,z}:undefined;
                   scriptTeleported=true;requestFollowingTerrain();return true;
                  },
                  // CTaskSimpleCarSetPedInAsPassenger for the player: SA's seat 0 is the front right, 1 and 2 the rear; -1 the
