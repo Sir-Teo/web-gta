@@ -54,3 +54,32 @@ numbers come from the census (`npm run port -- census`, [CENSUS.md](CENSUS.md)) 
 gta-reversed is a DLL that hooks the retail executable, and 715 script commands and many engine routines are still
 calls into that executable. There is no complete source to translate mechanically. Steps 1 to 3 are how the missing
 pieces get filled in: step 1 stops them from blocking, and step 3 replaces them one family at a time.
+
+## Tools for playing and checking like a player
+
+Three tools came out of taking INTRO1 from "passes with teleports" to playable.
+
+- **The objective bot** (`SWEEP_BOT=1`, `npm run port -- sweep 11 --bot`, `tests/browser/missionBot.ts`). SA tells the
+  player what to do through the radar. A friendly car blip means get in, a friendly char blip means follow, a
+  hostile char blip means kill, and a coordinate blip means go there. The bot reads the script's own blip table each
+  tick and does that at a player's pace, moving nobody but CJ. A mission it cannot finish is one a player cannot
+  finish either. `SWEEP_WATCH=65,66,67` logs the mission's characters (where they are, what they ride, their drive
+  mission, route, recovery and pedals) to show which NPC is not doing its part.
+  - First result: with the homies left to ride for themselves, INTRO1 stalled at 32%. The old sweep's "passed" had
+    come from teleporting them. The bot runs then found three real faults: a disposed police car read through a
+    freed physics body (which froze the whole game; see `rapierTombstones.ts`), homies' BMXs wedging at kerbs and
+    against each other through every recovery mode, and bikes beyond the streamed world freezing.
+- **The engine census** (`npm run port -- engine`, [ENGINE_CENSUS.md](ENGINE_CENSUS.md)). It is the script census
+  for engine code: every function gta-reversed hooks, class by class, how many are reversed there, and which ones
+  this port cites by address or `Class::Function`. It is the ranked list for making basic play faithful. The
+  gameplay classes (CPed, CTask*, CAutomobile, CPhysical, CWeapon, CCamera, CPad) come first.
+- **The gameplay fuzzer** (`FUZZ=1`, `tests/browser/gameplay-fuzz.spec.ts`). It plays random but plausible
+  episodes at places across Los Santos: walking, sprint-jumps, crouching, shooting, punching, spawning and driving,
+  jacking, falls, grenades and a wanted level. Every second it checks the game's invariants
+  (`gameInvariants.ts`): finite positions, nothing under the world, no physics blow-ups, CJ not stuck under a push,
+  ped views on their bodies. It also records page errors, subsystem faults and stale physics bodies. Each finding
+  comes with its actions and a screenshot, ready to become a spec. This is how edge cases get found without waiting
+  for a bug report.
+
+The loop for each mission: run the bot, and when it stalls, read the watch line. Fix the engine fault it points at,
+never the bot, then add a spec for the fault and run the bot again.
