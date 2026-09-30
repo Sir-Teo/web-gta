@@ -3,6 +3,7 @@ import type {PathArea} from '../assets/pathNodes';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
 import {lanePoint,nextLaneOnLink,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,tempActionPedals,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
+import {DISTANCE_TO_SCAN_FOR_DANGER as SCAN_FOR_DANGER,slowCarDownForOtherCar as slowForOtherCar} from '../vehicle/nativeCarCtrl';
 import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
 import type {WorldCar} from './WorldCar';
 /** What CAutoPilot drives: a car, or a bike, whose rider takes the same pedals (CBike::ProcessControlInputs). */
@@ -129,6 +130,9 @@ export class ScriptCarMissions{
  /** The loaded collision under a renderer (x, z), looking down from height `from`, or undefined where none is
   * streamed in. */
  ground?:(x:number,z:number,from:number)=>number|undefined;
+ /** The other vehicles on the road, native: position, the rect CCarCtrl tests (front and back of the centre, half
+  * width), forward and move speed in units a frame, and the vehicle itself so a car does not slow for itself. */
+ traffic?:()=>Iterable<{vehicle:unknown;position:{x:number;y:number;z:number};front:number;back:number;halfWidth:number;forward:{x:number;y:number};moveSpeed:{x:number;y:number}}>;
  constructor(private paths:()=>Paths|undefined,private random:()=>number=Math.random){}
  /** TASK_CAR_MISSION: CTaskComplexCarDriveMission sets the autopilot's mission, target, cruise speed and style.
   * Missions the browser does not drive give nothing back. */
@@ -359,6 +363,19 @@ export class ScriptCarMissions{
   if(!theirs)return false;
   return theirs.x*d.x+theirs.y*d.y<=-.8&&own.x*d.x+own.y*d.y>=.8;
  }
+ private trafficSpeed(car:ScriptDrivable,state:{position:{x:number;y:number};forward:{x:number;y:number}},cruise:number){
+  const others=this.traffic?.();if(!others)return cruise;
+  const p=car.car.body.translation(),height=p.y,own=[...others].find(o=>o.vehicle===car);if(!own)return cruise;
+  const rect={position:state.position,front:own.front,back:own.back,halfWidth:own.halfWidth,forward:state.forward};
+  let speed=cruise;
+  for(const o of others){
+   if(o.vehicle===car)continue;
+   if(Math.abs(o.position.x-state.position.x)>SCAN_FOR_DANGER||Math.abs(o.position.y-state.position.y)>SCAN_FOR_DANGER||Math.abs(o.position.z-height)>=5)continue;
+   const allowed=slowForOtherCar(rect,{position:{x:o.position.x,y:o.position.y},front:o.front,back:o.back,halfWidth:o.halfWidth,forward:o.forward,moveSpeed:o.moveSpeed},cruise);
+   if(allowed!==undefined)speed=Math.min(speed,allowed);
+  }
+  return speed;
+ }
  private drive(car:ScriptDrivable,m:Mission,dt:number):WorldCar['autopilot']{
   const p=car.car.body.translation(),v=car.car.body.linvel(),f=this.forward(car);
   const state={position:{x:p.x,y:-p.z},forward:f,moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:this.forward3(car)};
@@ -368,6 +385,10 @@ export class ScriptCarMissions{
    const pedals=scriptTempActionPedals(t.action,Math.max(0,t.remaining)*1000,{forwardSpeed});
    if(pedals)return {steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};
   }
+  // CCarCtrl::FindMaximumSpeedForThisCarInTraffic (SlowCarDownForCarsSectorList) under the stop-for-cars styles: the
+  // lowest speed any car ahead allows; AVOID_CARS and PLOUGH_THROUGH keep the cruise speed. A script car took its
+  // cruise speed as the traffic speed whatever its style, and drove into the cars stopped ahead of it.
+  const trafficSpeed=m.style===DRIVINGSTYLE.stopForCars||m.style===DRIVINGSTYLE.slowDownForCars||m.style===DRIVINGSTYLE.stopForCarsIgnoreLights?this.trafficSpeed(car,state,m.cruise):m.cruise;
   const native=(pedals:Pedals):WorldCar['autopilot']=>({steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}});
   // MISSION_NONE: no gas, half brake and the handbrake, as the car's own pedals (the pad's brake at a standstill
   // would put it in reverse).
@@ -396,7 +417,7 @@ export class ScriptCarMissions{
     const lights=m.style===DRIVINGSTYLE.stopForCars||m.style===DRIVINGSTYLE.slowDownForCars;
     const stop=lights&&nativeShouldStopForLight({position:[state.position.x,state.position.y],appearance:'car',physicsStatus:true,
      current:{navigation:at.navigation,routeAddress:at.to.address,travelSign:at.dx*at.navigation.direction[0]-at.dz*at.navigation.direction[1]>=0?1:-1}},Math.floor(this.seconds*1000)>>>0);
-    pedals=steerFollowPath(state,travel(at),m.lane,travel(next),{cruiseSpeed:m.cruise,trafficSpeed:m.cruise,stop});
+    pedals=steerFollowPath(state,travel(at),m.lane,travel(next),{cruiseSpeed:m.cruise,trafficSpeed,stop});
    }else if(at){const end=travel(at).position;pedals=steerHeadingForTarget(state,end,m.cruise);}
   }
   if(ROAD_KINDS.has(m.kind)&&paths&&m.link){
@@ -412,7 +433,7 @@ export class ScriptCarMissions{
     const lights=m.style===DRIVINGSTYLE.stopForCars||m.style===DRIVINGSTYLE.slowDownForCars;
     const stop=lights&&nativeShouldStopForLight({position:[state.position.x,state.position.y],appearance:'car',physicsStatus:true,
      current:{navigation:link.navigation,routeAddress:link.to.address,travelSign:link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1}},Math.floor(this.seconds*1000)>>>0);
-    pedals=steerFollowPath(state,travel(link),m.lane,travel(next),{cruiseSpeed:m.cruise,trafficSpeed:m.cruise,stop});
+    pedals=steerFollowPath(state,travel(link),m.lane,travel(next),{cruiseSpeed:m.cruise,trafficSpeed,stop});
    }else if(!next&&(m.kind==='gotoCoords'||m.kind==='gotoCoordsAccurate')){
     // SteerAICarWithPhysicsFollowPath (VC): with the path search spent (PickNextNodeToFollowPath finds under two
     // nodes), the go-to missions turn straight for the point, the accurate one staying accurate.
@@ -421,7 +442,7 @@ export class ScriptCarMissions{
    }else if(!next){
     // The route is spent before the switch distance: carry on along the road's continuation.
     const options=trafficLinks(paths.areas,link.to,true).filter(n=>n.to!==link.from);
-    if(options.length){m.cruiseNext??=options[Math.floor(this.random()*options.length)];if(m.cruiseNext.from===link.to)pedals=steerFollowPath(state,travel(link),m.lane,travel(m.cruiseNext),{cruiseSpeed:m.cruise,trafficSpeed:m.cruise,stop:false});}
+    if(options.length){m.cruiseNext??=options[Math.floor(this.random()*options.length)];if(m.cruiseNext.from===link.to)pedals=steerFollowPath(state,travel(link),m.lane,travel(m.cruiseNext),{cruiseSpeed:m.cruise,trafficSpeed,stop:false});}
    }
   }
   pedals??=steerHeadingForTarget(state,goal,m.cruise);

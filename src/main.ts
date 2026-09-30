@@ -535,6 +535,10 @@ async function boot() {
  });
  // The player the missions against him chase: where he is, the car he drives, and how fast he goes.
  scriptCars.ground=(x,z,from)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:from,z},{x:0,y:-1,z:0}),40,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?from-hit.timeOfImpact:undefined;};
+ // The cars on the road for FindMaximumSpeedForThisCarInTraffic, in native axes.
+ scriptCars.traffic=()=>[...(fleet?.cars??[])].filter(c=>!c.disposed).map(c=>{const t=c.car.body.translation(),r=c.car.body.rotation(),v=c.car.body.linvel(),b=c.nativeBody;
+  const fx=-2*(r.x*r.z+r.y*r.w),fz=-(1-2*(r.x*r.x+r.y*r.y));
+  return {vehicle:c,position:{x:t.x,y:-t.z,z:t.y},front:b.boundsMax.y,back:-b.boundsMin.y,halfWidth:b.boundsMax.x,forward:{x:fx,y:-fz},moveSpeed:{x:v.x/50,y:-v.z/50}};});
  scriptCars.player=()=>({position:sim.player.position,vehicle:worldCar?.occupied?worldCar:undefined,velocity:{x:sim.lastMove.velocity.x,y:0,z:sim.lastMove.velocity.z}});
  // HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE and FREEZE_CHAR_POSITION on the player.
  let playerWeaponHiddenByScript=false,playerFrozenByScript=false,playerAreaCode=0;

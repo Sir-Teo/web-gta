@@ -150,3 +150,16 @@ test('a car that makes no headway through every recovery is set down on its rout
  for(let i=0;i<50*10;i++)missions.step(1/50);
  expect((missions as any).unstuck).toBe(2);expect(at.y).toBe(8.5);
 });
+
+test('under the stop-for-cars styles a script car slows for a car stopped ahead; avoiding cars it does not',()=>{
+ const missions=new ScriptCarMissions(()=>undefined),{car:c}=car(0,0),rect={front:2.4,back:2.4,halfWidth:1,forward:{x:0,y:1},moveSpeed:{x:0,y:0}};
+ const stopped={vehicle:{},position:{x:0,y:8,z:0},...rect};
+ missions.traffic=()=>[{vehicle:c,position:{x:0,y:0,z:0},...rect},stopped];
+ const speed=(missions as unknown as {trafficSpeed(car:unknown,state:unknown,cruise:number):number}).trafficSpeed.bind(missions);
+ const state={position:{x:0,y:0},forward:{x:0,y:1}};
+ expect(speed(c,state,20)).toBeLessThan(20);
+ // Behind it, or with no traffic list, the cruise speed stands.
+ missions.traffic=()=>[{vehicle:c,position:{x:0,y:0,z:0},...rect},{...stopped,position:{x:0,y:-8,z:0}}];
+ expect(speed(c,state,20)).toBe(20);
+ missions.traffic=undefined;expect(speed(c,state,20)).toBe(20);
+});

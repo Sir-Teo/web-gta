@@ -32,7 +32,9 @@ export function missionBotTick(dtSeconds:number){
  const chases=blips.filter((b:any)=>b.type===BLIP_CAR&&!b.friendly);
  const friends=blips.filter((b:any)=>b.type===BLIP_CHAR&&b.friendly);
  // Moves CJ toward a point, stopping `stopAt` short of it. In a vehicle he drives there with the game's own driving
- // AI (TASK_CAR_DRIVE_TO_COORD, 0x05d1, the task INTRO1 itself gives him), re-aimed as the target moves: setting a
+ // AI (TASK_CAR_DRIVE_TO_COORD, 0x05d1, the task INTRO1 itself gives him) under DRIVINGSTYLE_STOP_FOR_CARS, as a player
+ // keeps out of the cars ahead (AVOID_CARS ploughed SWEET1's Greenwood into the traffic at a crossing), re-aimed as the
+ // target moves: setting a
  // vehicle down step by step knocked CJ off his bike and wrecked it. On foot he is set down at walking pace.
  const glide=(to:any,stopAt:number)=>{
   const d=distance(to);
@@ -51,7 +53,7 @@ export function missionBotTick(dtSeconds:number){
    }
    if(!last||last.vehicle!==vehicle||Math.hypot(last.x-to.x,last.y-to.y)>8||now-last.at>4000){
     mem.drive={vehicle,x:to.x,y:to.y,at:now};
-    try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:d>40?22:12,driveStyle:0,model:-1,drivingStyle:2},0x05d1);}catch{}
+    try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:d>40?22:12,driveStyle:0,model:-1,drivingStyle:0},0x05d1);}catch{}
    }
    return true;
   }
