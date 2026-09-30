@@ -756,6 +756,8 @@ export class ScmMission {
  stopped?:{command:string;offset:number;detail:string};
  /** Threads that gave up on a command this runtime has not ported, in the order they did. */
  readonly gaveUp:{thread:string;command:string;offset:number;detail?:string}[]=[];
+ /** The commands skipped because their world member is not ported, by thread and command, with how often. */
+ readonly skipped=new Map<string,{thread:string;command:string;offset:number;count:number}>();
  /** Commands the world was asked for, for a host that wants to follow along. */
  readonly relationships:{relationship:number;pedType:number;otherPedType:number}[]=[];
  laRiots=false;
@@ -1973,6 +1975,14 @@ export class ScmMission {
    setCurrentWeapon:type=>{this.world.setPlayerCurrentWeapon?.(type);},
    setArmour:armour=>{this.world.setPlayerArmour?.(armour);},
   };
+  // A command whose world member is not ported yet is skipped, and the mission runs on without it (AUTHORED: the
+  // original has them all). Before, the thread gave up there and the mission hung or ended half way, so every
+  // mission past the first few could not be finished. Each skip is counted for the census and sweep.
+  this.runtime.onMissingAdapter=(error,thread)=>{
+   const key=`${thread.name}:${error.command}`,entry=this.skipped.get(key);
+   if(entry)entry.count++;else this.skipped.set(key,{thread:thread.name,command:error.command,offset:error.offset,count:1});
+   return true;
+  };
   // A thread that meets an unported command gives up; the others, MAIN among them, keep running.
   this.runtime.onUnsupported=(error,thread)=>{
    // An adapter that cannot answer (offset -1) names what it lacked; the command is the one the thread was running.
@@ -2909,6 +2919,7 @@ export class ScmMission {
    started:this.started,
    stopped:this.stopped?{...this.stopped}:null,
    gaveUp:this.gaveUp.map(entry=>({...entry})),
+   skipped:[...this.skipped.values()].map(entry=>({...entry})),
    threads:this.runtime.active.map(slot=>({id:slot.id,name:slot.thread.name,ip:slot.thread.ip})),
    clock:{hours:game.clock.hours,minutes:game.clock.minutes},
    fade:{alpha:this.fade.value,fading:this.fade.fading},

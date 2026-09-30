@@ -13,7 +13,12 @@ import {endStoryMission} from './freeRoam';
  * put in it; he is kept alive and unwanted; cutscenes end at once
  * already. It cannot drive a chase, win a fight or pick a menu item, so a mission it cannot finish is reported with
  * the instruction it was waiting on. What the report proves is where the port stops a mission (a command it gave up
- * on, a thread error, a page error), not that a mission plays as the original does. */
+ * on, a thread error, a page error), not that a mission plays as the original does.
+ *
+ * SWEEP_PLAYER_ONLY=1 moves nobody but CJ (and what he rides): the mission's own characters have to get where the
+ * script sends them by themselves, as they must for a player. Moving them along with CJ hides a homie who never
+ * rides or drives to the point, which is what leaves a mission unfinishable in play. */
+const playerOnly=!!process.env.SWEEP_PLAYER_ONLY;
 const list=process.env.SWEEP??'';
 test.skip(!list,'set SWEEP to a mission list to run the mission sweep');
 test('mission sweep',async({page})=>{
@@ -62,7 +67,7 @@ test('mission sweep',async({page})=>{
   const deadline=Date.now()+seconds*1000;
   while(Date.now()<deadline){
    await page.waitForTimeout(500);
-   const s=await page.evaluate(id=>{
+   const s=await page.evaluate(([id,playerOnly])=>{
     const g=(window as any).__game,m=g.missionForProfiling(),r=m.runtime,sweep=(window as any).__sweep;
     const slot=r.active.find((a:any)=>a.thread.base>0&&a.thread.thisMustBeTheOnlyMissionRunning);
     const gaveUp=m.snapshot().gaveUp.slice((window as any).__sweepGaveUp);
@@ -96,6 +101,7 @@ test('mission sweep',async({page})=>{
      const handles=new Set<number>([1]);
      for(const x of group){
       try{
+       if(playerOnly)continue;
        if(x.name===ahead.name)handles.add(t.readInt(x.parameters[0]));
        else if(/_CHAR_[23]D$/.test(x.name)&&t.readInt(x.parameters[0])===1)handles.add(t.readInt(x.parameters[1]));
       }catch{}
@@ -120,7 +126,7 @@ test('mission sweep',async({page})=>{
     // What the loop it sits in asks: the instructions just after where it waits.
     const loop=block.instructions.filter((x:any)=>x.offset>=fileOffset&&x.offset<fileOffset+160).map((x:any)=>x.name).filter((n:string)=>!/^(IF|GOTO|GOTO_IF_FALSE|WAIT|GOSUB)$/.test(n)).slice(0,8);
     return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said()};
-   },id);
+   },[id,playerOnly] as const);
    samples++;previous=last;last=s;
    if(s.ended){ended=true;break;}
    if(s.moved)teleports++;
@@ -129,7 +135,9 @@ test('mission sweep',async({page})=>{
   }
   const size=await page.evaluate(id=>{const b=(window as any).__sweep.missions[id];return b.end-b.start;},id);
   const name=await page.evaluate(id=>{const b=(window as any).__sweep.missions[id];const i=b.instructions.find((x:any)=>x.name==='SCRIPT_NAME');return i?.parameters[0]?.value??String(id);},id);
-  const result={id,name,started:start.threads>0,ended,gaveUp:last?.gaveUp??[],pageErrors:errors.slice(before),
+  // The commands the game skipped in this mission (no world member yet), with how often.
+  const skipped=await page.evaluate(name=>(window as any).__game.missionForProfiling().snapshot().skipped.filter((e:any)=>e.thread===name).map((e:any)=>`${e.command}×${e.count}`),name);
+  const result={id,name,started:start.threads>0,ended,gaveUp:last?.gaveUp??[],skipped,pageErrors:errors.slice(before),
    said:last?.said??[],saidBefore:previous?.said??[],
    reached:+(maxOffset/size*100).toFixed(1),waitingOn:last?.ended?null:last?.name??null,waitingAt:last?.ended?null:last?.offset??null,loop:last?.loop??[],teleports,samples,
    topWaits:[...waits].sort((a,b)=>b[1]-a[1]).slice(0,5)};
