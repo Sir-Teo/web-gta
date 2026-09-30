@@ -314,8 +314,10 @@ export class WorldFleet {
   // generator's own Greenwood stands, 10.2 units from the centre of its CLEAR_AREA of 10, and the two were forced apart
   // into the side yard.
   this.clearSpaceFor(at,heading,assets.collision.bounds);
+  // CreateCarForScript sets no clump alpha: only CCarGenerator starts its car at 0 and fades it in. Faded, INTRO's
+  // police car stood half-seen while its collision streamed in and then snapped solid.
   const car=new WorldCar(this.sim,this.scene,assets,at,this.road,heading);
-  car.fadeIn();car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
+  car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
   car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;
   // vehicleFlags.bIsLocked, which keeps the car from being removed (missionCar), and STATUS_ABANDONED: nobody drives
   // it. Its doors (m_nDoorLock) are left as they are, CARLOCK_UNLOCKED, for LOCK_CAR_DOORS to change.
@@ -399,7 +401,8 @@ export class WorldFleet {
   const ground=top-hit.timeOfImpact;
   const at={...position,y:ground-assets.collision.bounds.min[2]+.1};
   this.clearSpaceFor(at,rotZ,assets.collision.bounds);
-  const car=new WorldCar(this.sim,this.scene,assets,at,this.road,rotZ);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
+  // CCheat::VehicleCheat sets no clump alpha either.
+  const car=new WorldCar(this.sim,this.scene,assets,at,this.road,rotZ);car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
   // CCheat::VehicleCheat leaves it STATUS_ABANDONED, as CCarGenerator does its parked cars.
   car.driverless=true;car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;this.cars.add(car);return car;
  }
