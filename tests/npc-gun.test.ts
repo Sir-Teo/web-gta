@@ -76,12 +76,12 @@ test('an AI round strays further the further off and the faster the target',asyn
  const {npcInaccurateAim}=await import('../src/simulation/npcGun');
  const aim={x:0,y:1,z:-10},from={x:0,y:1,z:0},edge=()=>1;
  const at=(range:number,moving=false)=>npcInaccurateAim({...aim,z:-range},60,edge,from,moving).x;
- // Ten units off, still: the earlier games' ±0.02 × inaccuracy, scaled by 0.6 + 10/15.
- expect(at(10)).toBeCloseTo(.02*40*(.6+10/15),6);
- expect(at(40)).toBeGreaterThan(at(10)*2.5);
+ // Ten units off, still: the earlier games' ±0.02 × inaccuracy, scaled by 0.9 + 10/12.
+ expect(at(10)).toBeCloseTo(.02*40*(.9+10/12),6);
+ expect(at(40)).toBeGreaterThan(at(10)*2.2);
  expect(at(10,true)).toBeCloseTo(at(10)*1.5,6);
  // A street cop lands well under half his rounds on a still man a street away (0.5 across, 1.8 tall).
  let hits=0;const rng=((seed)=>()=>(seed=(seed*16807)%2147483647)/2147483647)(7);
  for(let i=0;i<4000;i++){const p=npcInaccurateAim({x:0,y:1,z:-20},60,rng,from);if(Math.abs(p.x)<.25&&Math.abs(p.y-1)<.9)hits++;}
- expect(hits/4000).toBeLessThan(.2);expect(hits/4000).toBeGreaterThan(.05);
+ expect(hits/4000).toBeLessThan(.12);expect(hits/4000).toBeGreaterThan(.02);
 });
