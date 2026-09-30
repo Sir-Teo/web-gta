@@ -29,6 +29,7 @@ import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirecti
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
 import {PED_ORIGIN_HEIGHT,pedFloatDepth} from './nativeSwim';
 import {bulletLine} from '../weapons/bulletLine';
+import {WEAPON_FLAG,hasWeaponFlag} from '../weapons/weaponData';
 import {PED_BIKE_KILL_INTENSITY,PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
 import {PED_SOLVER_GROUPS} from './solverGroups';
@@ -2839,6 +2840,13 @@ export class WorldPedestrians {
   }
   /** The player's capsule, for a bullet line to try while he rides a bike. */
   private riderShape?:RAPIER.Capsule;
+  /** CTaskSimpleUseGun::AimGun for a ped: an AIMWITHARM weapon (the pistols, the Uzi, the Tec-9) points the arm at the
+   * target by IK (PointArm), the fire clip giving only the recoil; the rest turn the torso (PointGunInDirection).
+   * Without the arm the one-handed guns were held as their clip leaves them, straight up beside the head. */
+  private aimGun(p:Pedestrian,offset:Vector3,aim:{x:number;y:number;z:number}){
+   const info=p.weapon?.info,arm=!!info&&hasWeaponFlag(info,WEAPON_FLAG.aimWithArm)&&!p.actor.player.crouched;
+   p.view.setWeaponAim(offset.clone().normalize(),false,arm,new Vector3(aim.x,aim.y,aim.z));
+  }
   /** Muzzle-ray firing sequence with reloads, flashes and dispersion. */
   private stepPedGun(p:Pedestrian,weapon:NonNullable<Pedestrian['weapon']>,eye:{x:number;y:number;z:number},aim:{x:number;y:number;z:number},aimOffset:Vector3,cars:Iterable<WorldCar>,dt:number,engaged:boolean){
    const state=p.actor.player,gun=p.gunState!;
@@ -3403,7 +3411,7 @@ export class WorldPedestrians {
     // CTaskSimpleGunControl on the car: face it and fire at its middle (spotTarget aims a unit above what it is given).
     const c=carToShoot.car.body.translation();spot=this.spotTarget(p,{x:c.x,y:c.y-1,z:c.z},cars);
     state.heading=Math.atan2(spot.offset.x,spot.offset.z);
-    p.view.setWeaponPose('police_fire');p.view.setWeaponAim(spot.offset.clone().normalize());gunHold=0;
+    p.view.setWeaponPose('police_fire');this.aimGun(p,spot.offset,spot.aim);gunHold=0;
     gunEngaged=spot.distance<p.weapon.info.weaponRange;
    }else if(gunOrder&&p.weapon&&p.health>0&&p.down===0&&!p.officer){
     // A script's gun task: the point itself (spotTarget aims a unit above what it is given), or the ped's body.
@@ -3412,7 +3420,7 @@ export class WorldPedestrians {
     spot=this.spotTarget(p,at,cars,gunOrder.target);
     // Standing, the ped turns to what it aims at; on the move it keeps its heading and aims the gun.
     if(gunOrder.kind==='gunAt')state.heading=Math.atan2(spot.offset.x,spot.offset.z);
-    p.view.setWeaponPose('police_fire');p.view.setWeaponAim(spot.offset.clone().normalize());gunHold=0;
+    p.view.setWeaponPose('police_fire');this.aimGun(p,spot.offset,spot.aim);gunHold=0;
     const alive=gunOrder.target?gunOrder.target.health>0:gunOrder.kind==='gunAt'&&gunOrder.point?true:this.sim.player.health>0;
     gunEngaged=(gunOrder.kind==='goToPointShooting'||gunOrder.fire)&&alive&&spot.distance<p.weapon.info.weaponRange;
    }else if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0&&(gunFoe||!p.follow)){
@@ -3430,7 +3438,7 @@ export class WorldPedestrians {
      fight.shooting=d<=range/4||d<=range/2&&(this.clock-fight.lastAttack>=2||coming);
     }else if(d>=range||d>=range/2&&this.clock-fight.lastAttack>=2)fight.shooting=false;
     gunEngaged=fight.shooting&&d<p.weapon.info.weaponRange;
-    if(gunEngaged){p.view.setWeaponPose('police_fire');p.view.setWeaponAim(spot.offset.clone().normalize());gunHold=0;}
+    if(gunEngaged){p.view.setWeaponPose('police_fire');this.aimGun(p,spot.offset,spot.aim);gunHold=0;}
     // Out of shooting reach, TASK_COMPLEX_SEEK_ENTITY closes on the player, unless the ped keeps its place.
     else if(hostile&&spot.visible&&p.retaliate<=0&&!p.loiter){dx=this.sim.player.position.x-state.position.x;dz=this.sim.player.position.z-state.position.z;gunHold=p.runSpeed;}
    }
@@ -3524,7 +3532,7 @@ export class WorldPedestrians {
        }
      if(roadblockCop&&!p.goTo&&policeSpeed!==undefined&&!law.arrested)policeSpeed=0;
      if(gunAllowed&&visible&&p.weapon&&distance<p.weapon.info.weaponRange&&policeSpeed===0){
-      engaged=true;p.view.setWeaponPose('police_fire');p.view.setWeaponAim(offset.clone().normalize());
+      engaged=true;p.view.setWeaponPose('police_fire');this.aimGun(p,offset,aim);
      }
     }else{
      p.arrest=0;p.fight=undefined;
