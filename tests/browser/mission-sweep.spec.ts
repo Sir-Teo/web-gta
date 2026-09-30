@@ -167,6 +167,8 @@ test('mission sweep',async({page})=>{
    // The bot's decisions as they change, and a progress line every twenty samples.
    const decision=s.bot?JSON.stringify(s.bot):null;if(decision&&decision!==timeline.at(-1)?.decision)timeline.push({at:samples,offset:s.offset??-1,decision});
    for(const h of s.hurt??[])console.log(`sweep ${id} sample ${samples} HURT ${h}`);
+   // SWEEP_SHOTS=1: a screenshot every hundred samples, to see what a stall looks like.
+   if(process.env.SWEEP_SHOTS&&samples%100===0){mkdirSync('artifacts/port/shots',{recursive:true});await page.screenshot({path:`artifacts/port/shots/${id}-${samples}.png`}).catch(()=>{});}
    if(samples%20===0)console.log(`sweep ${id} sample ${samples} offset ${s.offset} ${s.name} ${decision??''} ${(s.said??[]).join(',')} ${(s.watched??[]).join(' | ')}`);
    if(s.ended){ended=true;break;}
    if(s.moved)teleports++;

@@ -282,6 +282,7 @@ export class WorldBike {
   // A ridden bike's body stays upright about its forward axis (the lean is the render matrix's, CalculateLeanMatrix):
   // the rider balances it. Zeroing the roll rate alone kept whatever roll a knock gave it, and a bike tipped onto its
   // side rode on lying there, full throttle and going nowhere. The roll is taken out at a rate; pitch (a hill) stays.
+  if(gas>.05&&speed>-.5&&!this.quad&&(this.occupied||!!this.autopilot))this.stepUp(forward,Math.max(0,speed)*dt);
   let roll=0;
   if(!this.quad&&!(this as {wrecked?:boolean}).wrecked&&(this.occupied||!!this.autopilot))roll=uprightRollRate(q,forward);
   this.body.setAngvel({x:forward.x*roll,y:yaw+forward.y*roll,z:forward.z*roll},true);
@@ -338,6 +339,28 @@ export class WorldBike {
   const p=this.body.translation();
   g.loaded=!!this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+2,z:p.z},{x:0,y:-1,z:0}),this.occupied?500:40,true,RAPIER.QueryFilterFlags.ONLY_FIXED)||this.waterLevel?.(p.x,-p.z)!==undefined;
   return g.loaded;
+ }
+ /** CBike's wheels ride on suspension lines, which climb a step as the line shortens; this bike's wheels are balls,
+  * and a sheer step a sixth of a unit high (a sliver where two of the map's collision meshes meet, across a lane
+  * near Market Station) stopped a ridden bike dead. Pushing forward into static world no higher than MAX_STEP over
+  * the bottom of the bike, it is lifted onto the top of it. */
+ private stepUp(forward:{x:number;y:number;z:number},ahead:number){
+  // The road it stands on, straight down from the body (the collision bounds reach below the tyres).
+  const MAX_STEP=.35,p=this.body.translation(),b=this.assets.collision.bounds;
+  const under=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y,z:p.z},{x:0,y:-1,z:0}),1.5,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!under)return;
+  const bottom=p.y-under.timeOfImpact;
+  // From the tail of the bike to just past its nose: the rear wheel catches on a step the front has climbed.
+  const h=Math.hypot(forward.x,forward.z);if(h<.5)return;const fx=forward.x/h,fz=forward.z/h,reach=b.max[1]-b.min[1]+ahead+.15;
+  const o={x:p.x+fx*b.min[1],z:p.z+fz*b.min[1]};
+  const ray=(y:number)=>this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x:o.x,y,z:o.z},{x:fx,y:0,z:fz}),reach,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  // A face near vertical is a step; a hill's road is not.
+  const low=ray(bottom+.05);if(!low||Math.abs(low.normal.y)>.5)return;
+  // How high it reaches: the forward ray raised five hundredths at a time until it passes over (a sliver has no top
+  // face to find from above); still blocked at MAX_STEP, it is a wall.
+  let lift=0;
+  for(let rise=.1;rise<=MAX_STEP+1e-6;rise+=.05){const r=ray(bottom+rise);if(!r||r.timeOfImpact>low.timeOfImpact+.2){lift=rise;break;}}
+  if(!lift)return;
+  this.body.setTranslation({x:p.x,y:p.y+lift+.02,z:p.z},true);
  }
  /** Whether the ground is under the bike (a short ray down from the body), `along` units ahead of its centre. */
  private wheelsDown(along=0){
