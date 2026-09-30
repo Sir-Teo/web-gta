@@ -28,7 +28,7 @@ import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
 import {CANNON_PUSH_RANGE2,waterCannonPedSpeed} from './nativeWaterCannon';
 import {PED_ORIGIN_HEIGHT,pedFloatDepth} from './nativeSwim';
-import {PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
+import {PED_BIKE_KILL_INTENSITY,PED_CAR_KILL_INTENSITY,PED_MASS,carHitsPed,killPedWithCarTask} from '../combat/nativeCarPedHit';
 import {VEHICLE_ELASTICITY} from './nativeObjectDamage';
 import {PED_SOLVER_GROUPS} from './solverGroups';
 import {getUpClip,getUpBlockedBy,isFrontClip,GET_UP_CLEAR_RADIUS} from '../ped/nativeGetUp';
@@ -59,7 +59,7 @@ import type {PathNode} from '../assets/pathNodes';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 /** A vehicle the ped strike pass tests: a car, or a bike, which CPhysical::ApplyCollision treats alike. */
-type PedStriker={body:RAPIER.RigidBody;nativeBody:WorldCar['nativeBody'];occupied:boolean;boundRadius?:number;car?:WorldCar;/** A train carriage: CPhysical::ProcessCollisionSectorList's train branch decides the kill. */train?:boolean};
+type PedStriker={body:RAPIER.RigidBody;nativeBody:WorldCar['nativeBody'];occupied:boolean;boundRadius?:number;car?:WorldCar;/** A train carriage: CPhysical::ProcessCollisionSectorList's train branch decides the kill. */train?:boolean;/** A two-wheeler (PED_BIKE_KILL_INTENSITY). */bike?:boolean};
 
 type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
 /** The weapons that choke (WEAPON_SPRAYCAN, WEAPON_EXTINGUISHER, WEAPON_TEARGAS). */
@@ -2438,7 +2438,7 @@ export class WorldPedestrians {
    // already down and it moves over 0.0224 a frame), whatever the intensity: KillPedWithCar with twice the intensity.
    const trainMove=toNative({x:linvel.x/50,y:linvel.y/50,z:linvel.z/50}),impactVelocity={x:impact.pedForce.x/PED_MASS,y:impact.pedForce.y/PED_MASS,z:impact.pedForce.z/PED_MASS};
    const trainKills=!!striker.train&&(trainMove.x*impactVelocity.x+trainMove.y*impactVelocity.y+trainMove.z*impactVelocity.z>.2||p.down>0&&trainMove.x**2+trainMove.y**2+trainMove.z**2>.0005);
-   if(striker.train?trainKills:impact.pedIntensity>PED_CAR_KILL_INTENSITY){
+   if(striker.train?trainKills:impact.pedIntensity>(striker.bike?PED_BIKE_KILL_INTENSITY:PED_CAR_KILL_INTENSITY)){
     const r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),axis=(x:number,y:number,z:number)=>toNative(new Vector3(x,y,z).applyQuaternion(q));
     // CPedGeometryAnalyser::ComputePedHitSide(ped, car) is a retail stub: the side facing the car's approach.
     const pos=p.actor.player.position,side=browserLocalDirection(heading,-linvel.x,-linvel.z) as 0|1|2|3;
@@ -2950,7 +2950,7 @@ export class WorldPedestrians {
      if(alpha!==p.alpha){p.alpha=alpha;p.view.setAlpha(alpha/255);}}}
    this.frame++;this.elapsed+=dt;this.cooldown=Math.max(0,this.cooldown-dt);
    this.runOverVehicles.clear();for(const car of cars){const v=this.runOverVehicle(car);if(v)this.runOverVehicles.set(car,v);}
-   const strikers:PedStriker[]=[...[...cars].map(car=>({body:car.car.body,nativeBody:car.nativeBody,occupied:car.occupied,boundRadius:car.boundRadius,car})),...(this.bikes?.()??[]),...(this.trains?.()??[])];
+   const strikers:PedStriker[]=[...[...cars].map(car=>({body:car.car.body,nativeBody:car.nativeBody,occupied:car.occupied,boundRadius:car.boundRadius,car})),...[...(this.bikes?.()??[])].map(b=>({...b,bike:true})),...(this.trains?.()??[])];
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
    this.installPlayerReactions();
    const bodies=this.people.filter(p=>p.health>0&&p.down===0).map(p=>p.actor.player.position);
