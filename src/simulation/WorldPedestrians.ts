@@ -400,6 +400,8 @@ export function npcDamageReaches(victim:{onlyDamagedByPlayer?:boolean;health:num
 }
 /** Browser stand-in for the CPedModelInfo hit spheres a bullet meets (the table is retail data): height above the feet
  * picks head, torso, midsection or legs and the side of the ped picks the limb, for a ped at `feet` facing `heading`. */
+/** The guns whose bullets are instant hits (WEAPON_FIRE_INSTANT_HIT): pistols through sniper rifles, and the minigun. */
+export const isInstantHitGun=(weapon:number|undefined)=>weapon!==undefined&&(weapon>=22&&weapon<=34||weapon===38);
 export function pedPieceAt(feet:{x:number;y:number;z:number},heading:number,point?:{x:number;y:number;z:number}){
  if(!point)return PED_PIECE.torso;
  const height=point.y-feet.y;
@@ -708,7 +710,10 @@ export class WorldPedestrians {
     // CPedDamageResponseCalculator::ComputeWillKillPed: the mega punch cheat makes fists, knuckles and the parachute
     // deal the victim's whole health.
     const megaPunch=kind==='melee'&&megaPunchBlow(hit?.weapon??WEAPON.unarmed);
-    const applied=megaPunch?p.health:base*(kind==='melee'?playerPunchDamage(1,p.defendMult):1);
+    // CPedDamageResponseCalculator::ComputeWillForceDeath (0x4AD610, not reversed): an instant-hit bullet in the head
+    // kills outright, unless the ped is spared critical hits (bNoCriticalHits, SET_CHAR_SUFFERS_CRITICAL_HITS off).
+    const headshot=kind==='bullet'&&!!hit?.point&&!p.noCriticalHits&&isInstantHitGun(hit.weapon)&&this.hitPiece(p,hit.point)===PED_PIECE.head;
+    const applied=megaPunch||headshot?p.health:base*(kind==='melee'?playerPunchDamage(1,p.defendMult):1);
     p.health=healthAfter(p.health,applied);
     const q=p.actor.player.position,from={x:q.x-direction.x,z:q.z-direction.z};
     const weapon=hit?.weapon??(kind==='melee'?WEAPON.unarmed:kind==='explosion'?WEAPON.explosion:kind==='spray'?WEAPON.spraycan:WEAPON.pistol);
