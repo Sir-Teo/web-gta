@@ -633,7 +633,7 @@ export class WorldCar {
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
    // A frozen car (FREEZE_CAR_POSITION) keeps its body out of the world while its other logic goes on.
    if(this.waitingForCollision&&(this.occupied||this.collisionArrived(seconds)))this.waitingForCollision=false;
-   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision)return;
+   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision){this.car.markStepStart();return;}
    this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
   const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
@@ -687,10 +687,10 @@ export class WorldCar {
   if(CHEATS.isActive('allCarsNitro'))this.car.fitEndlessNitro();
   if(this.car.nitro.installed)this.car.nitrousControl(0,seconds*50,this.gasPedal,this.occupied?{fire:this.pad.carGun,looking:this.pad.looking}:undefined,!this.occupied&&!!this.autopilot);
   // SkipPhysics stops only the physics: damage, fire and the controls above still run.
-  if(this.skipPhysics(seconds))return;
+  if(this.skipPhysics(seconds)){this.car.markStepStart();return;}
   // A car a recording holds (collision force off, a kinematic body here) is put on the recording after the step;
   // its own suspension and drive have nothing to move, and the recording's pedals show in its lamps.
-  if(!this.car.body.isDynamic()){this.steerAngle=this.recordingControls?.steerAngle??this.steerAngle;this.gasPedal=this.recordingControls?.gas??this.gasPedal;return;}
+  if(!this.car.body.isDynamic()){this.car.markStepStart();this.steerAngle=this.recordingControls?.steerAngle??this.steerAngle;this.gasPedal=this.recordingControls?.gas??this.gasPedal;return;}
   {const v=this.car.body.linvel();this.prevSpeed=Math.hypot(v.x,v.y,v.z)/50;}
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;this.lastCompression=result.sampled.compression;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;

@@ -173,6 +173,10 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     restoreSuspensionLines(){for(const wheel of NATIVE_CAR_WHEELS){const r=restLines[wheel];this.setSuspensionLine(wheel,r.startZ,r.spring,r.lineLength);}},
     fitEndlessNitro(){requireAsset(!disposed,'Native car is disposed.');controller!.fitEndlessNitro();},
     wheelSnapshot(){return structuredClone(wheelCurrent);},
+    /** The pose the render interpolates from, taken now: a step that moves the car by other means than stepPlayer (a
+     * recording, which holds the body kinematic) must still mark where the step began, or the car is drawn part way
+     * back to wherever it last stepped. */
+    markStepStart(){requireAsset(!disposed,'Native car is disposed.');previous={...physical.body.translation()};previousRotation={...physical.body.rotation()};wheelPrevious=wheelCurrent;},
     /** A car on rails (STATUS_SIMPLE) is placed rather than simulated: the render interpolates from where it was. */
     placeOnRails(position:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number},velocity:{x:number;y:number;z:number}){
       requireAsset(!disposed,'Native car is disposed.');
