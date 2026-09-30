@@ -6,6 +6,9 @@
 //   node scripts/port/pipeline.mjs sweep story       every mission in launch order (hours headless)
 //   node scripts/port/pipeline.mjs report            docs/port/STATUS.md from the census and the last sweep
 //   node scripts/port/pipeline.mjs all 2,11,12       all three
+//   node scripts/port/pipeline.mjs engine            engine census (docs/port/ENGINE_CENSUS.md): reversed engine
+//                                                    functions, class by class, and which the port follows
+//   node scripts/port/pipeline.mjs sweep 11 --bot    the objective bot plays from the radar (SWEEP_BOT)
 //
 // The reference checkout (gta-reversed) is cloned shallow beside the repository on first use unless --ref or
 // $GTA_REVERSED names one.
@@ -27,11 +30,12 @@ function ensureReference(){
  const r=spawnSync('git',['clone','--depth','1','https://github.com/gta-reversed/gta-reversed',ref],{stdio:'inherit',env:{...process.env,GIT_LFS_SKIP_SMUDGE:'1'}});
  if(r.status!==0)console.warn('pipeline: no reference checkout; the census reference columns will read unknown');
 }
+function engine(){ensureReference();run('node',['scripts/port/engine-census.mjs','--ref',ref]);}
 function census(){ensureReference();run('node',['scripts/port/census.mjs','--ref',ref,...(args.includes('--offline')?['--offline']:[])]);}
 function sweep(){
  if(!missions){console.error('pipeline: name the missions to sweep (e.g. 2,11 or story)');process.exit(2);}
  // The sweep is a browser spec: it owns the dev server Playwright starts, so nothing else may hold its port.
- run('npx',['playwright','test','tests/browser/mission-sweep.spec.ts','--project=parallel','--retries=0','--reporter=line'],{SWEEP:missions,SWEEP_SECONDS:seconds});
+ run('npx',['playwright','test','tests/browser/mission-sweep.spec.ts','--project=parallel','--retries=0','--reporter=line'],{SWEEP:missions,SWEEP_SECONDS:seconds,...(args.includes('--bot')?{SWEEP_BOT:'1'}:{})});
 }
 function report(){
  const censusFile=join(root,'docs','port','census.json'),sweepFile=join(root,'artifacts','port','sweep.json');
@@ -53,7 +57,7 @@ function report(){
  writeFileSync(join(root,'docs','port','STATUS.md'),md.join('\n')+'\n');
  console.log('pipeline: docs/port/STATUS.md');
 }
-const stages={census,sweep,report,all:()=>{census();if(missions)sweep();report();}};
+const stages={census,engine,sweep,report,all:()=>{census();engine();if(missions)sweep();report();}};
 const chosen=stages[stage];
-if(!chosen){console.error(`pipeline: unknown stage ${stage}; use census, sweep, report or all`);process.exit(2);}
+if(!chosen){console.error(`pipeline: unknown stage ${stage}; use census, engine, sweep, report or all`);process.exit(2);}
 chosen();
