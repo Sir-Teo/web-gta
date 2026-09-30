@@ -25,7 +25,7 @@ const playerOnly=!!process.env.SWEEP_PLAYER_ONLY||!!process.env.SWEEP_BOT;
 const bot=!!process.env.SWEEP_BOT;
 /** SWEEP_WATCH=65,66,67: mission locals holding ped handles, logged with the progress line (where each is, what it
  * rides and the drive mission its vehicle runs), to see which NPC is not doing its part. */
-const watch=(process.env.SWEEP_WATCH??'').split(',').filter(Boolean).map(Number);
+const watch=(process.env.SWEEP_WATCH??'').split(',').filter(Boolean);
 const list=process.env.SWEEP??'';
 test.skip(!list,'set SWEEP to a mission list to run the mission sweep');
 test('mission sweep',async({page})=>{
@@ -143,16 +143,19 @@ test('mission sweep',async({page})=>{
     // What the loop it sits in asks: the instructions just after where it waits.
     const loop=block.instructions.filter((x:any)=>x.offset>=fileOffset&&x.offset<fileOffset+160).map((x:any)=>x.name).filter((n:string)=>!/^(IF|GOTO|GOTO_IF_FALSE|WAIT|GOSUB)$/.test(n)).slice(0,8);
     // The watched peds: position, vehicle, speed and the drive mission CAutoPilot runs for it.
-    const me=r.world.pedPosition(1),watched=[`CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?`riding ${r.world.pedVehicle(1)} hp ${(()=>{try{return Math.round(r.world.vehicleHealth?.(r.world.pedVehicle(1)));}catch{return '?';}})()} ${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1)),mi=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();return `${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mi?`${mi.kind}->${mi.goal.x.toFixed(0)},${(-mi.goal.z).toFixed(0)}${mi.recovery?` rec${mi.recovery.kind}`:''}`:'no mission'}`;})()}`:'on foot'}`,...(watch as number[]).map(local=>{
-     const handle=t.locals.getInt32(local*4,true);
+    const me=r.world.pedPosition(1),watched=[`CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?`riding ${r.world.pedVehicle(1)} hp ${(()=>{try{return Math.round(r.world.vehicleHealth?.(r.world.pedVehicle(1)));}catch{return '?';}})()} ${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1)),mi=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();return `${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mi?`${mi.kind}->${mi.goal.x.toFixed(0)},${(-mi.goal.z).toFixed(0)}${mi.recovery?` rec${mi.recovery.kind}`:''}`:'no mission'}`;})()}`:'on foot'}`,...(watch as string[]).map(local=>{
+     // A `g` prefix names a global ($131, Sweet in SWEET1) rather than a mission local.
+     const handle=String(local).startsWith('g')?(t as any).globals.getInt32(Number(String(local).slice(1))*4,true):t.locals.getInt32(Number(local)*4,true);
+     const seq=(()=>{try{const n=r.world.pedSequenceProgress?.(handle);return n===undefined||n<0?'':` seq${n}`;}catch{return '';}})();
      try{const p=r.world.pedPosition(handle),v=r.world.pedVehicle?.(handle)??0,car=v>0?m.vehicles.entity(v):undefined,mission=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();
-      return `${local}@ ${p.x.toFixed(0)},${p.y.toFixed(0)},${p.z.toFixed(0)} ${v>0?`veh ${v} ${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mission?`${mission.kind}->${mission.goal.x.toFixed(0)},${(-mission.goal.z).toFixed(0)} r${mission.route?.length??0}${mission.recovery?` rec${mission.recovery.kind}`:''}`:'no mission'} ${(()=>{const q=(car.car?.body??car.body)?.rotation?.();return q?`up${(1-2*(q.x*q.x+q.z*q.z)).toFixed(2)}`:'';})()} ${(car.car?.body??car.body)?.isEnabled?.()===false?'DISABLED':''} ${car.autopilot?.native?`g${car.autopilot.native.gas.toFixed(1)} s${car.autopilot.native.steerAngle.toFixed(2)} b${car.autopilot.native.brake.toFixed(1)}`:''}`:'on foot'}`;}
+      return `${local}@ ${p.x.toFixed(0)},${p.y.toFixed(0)},${p.z.toFixed(0)}${seq} ${v>0?`veh ${v} ${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mission?`${mission.kind}->${mission.goal.x.toFixed(0)},${(-mission.goal.z).toFixed(0)} r${mission.route?.length??0}${mission.recovery?` rec${mission.recovery.kind}`:''}`:'no mission'} ${(()=>{const q=(car.car?.body??car.body)?.rotation?.();return q?`up${(1-2*(q.x*q.x+q.z*q.z)).toFixed(2)}`:'';})()} ${(car.car?.body??car.body)?.isEnabled?.()===false?'DISABLED':''} ${car.autopilot?.native?`g${car.autopilot.native.gas.toFixed(1)} s${car.autopilot.native.steerAngle.toFixed(2)} b${car.autopilot.native.brake.toFixed(1)}`:''}`:'on foot'}`;}
      catch(e){return `${local}@ ${handle} ${String(e).slice(0,40)}`;}
     })];
     // A watched ped losing health, with what hurt him: the first sign of a homie about to fail the mission.
     const hurt:string[]=[],hp=(window as any).__watchHp??={};
-    for(const local of watch as number[]){
-     const handle=t.locals.getInt32(local*4,true);let health:number;try{health=r.world.pedHealth(handle);}catch{continue;}
+    for(const local of watch as string[]){
+     const handle=String(local).startsWith('g')?(t as any).globals.getInt32(Number(String(local).slice(1))*4,true):t.locals.getInt32(Number(local)*4,true);
+     let health:number;try{health=r.world.pedHealth(handle);}catch{continue;}
      // The ped's health field records the call stack of each drop, so a loss nothing else accounts for names its code.
      const entity=m.peds.entity(handle);
      if(entity&&!entity.__healthWatched){
