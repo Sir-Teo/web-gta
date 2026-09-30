@@ -468,7 +468,7 @@ async function boot() {
  /** The cutscene skip button this frame, and the keys it reads as they were last frame. */
  let cutsceneSkipNow=false,skipKeysLast={enter:false,space:false};
  /** The player's car while a script's driving task has it. */
- let scriptDrivenCar:ScriptCar|undefined;
+ let scriptDrivenCar:ScriptCar|import("./simulation/WorldBike").WorldBike|undefined;
  const playerTasks=new PlayerScriptTasks({
   animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
   duck:crouch=>{sim.setCrouched(crouch);},
@@ -502,13 +502,14 @@ async function boot() {
    sim.knockdown=fall+lie+getUp;sim.knockdownLie=lie;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ev_dive',fall+lie);return true;
   },
   diving:()=>sim.knockdown>0,
-  // The player's driving tasks: the car he sits in, the one the script names, drives on its autopilot.
+  // The player's driving tasks: the car he sits in, or the bike he rides, the one the script names, drives on its
+  // autopilot.
   startCarTask:order=>{
-   const car=carEntry.seated?carEntry.car:undefined;
+   const car=carEntry.seated?carEntry.car:fleet?.occupiedBike;
    if(!car||mission?.vehicleByHandle(order.vehicle)!==car)return false;
    car.scriptDriven=true;scriptDrivenCar=car;
    if(order.kind==='carTempAction')scriptCars.tempAction(car,order.action,order.seconds);
-   else scriptCars.gotoCoords(car,{x:order.x,y:order.z>-100?order.z:car.car.body.translation().y,z:-order.y},{cruise:order.cruise,style:order.style,accurate:order.accurate,straight:order.straight});
+   else scriptCars.gotoCoords(car,{x:order.x,y:order.z>-100?order.z:('setPedInAsDriver' in car?car.car.body:car.body).translation().y,z:-order.y},{cruise:order.cruise,style:order.style,accurate:order.accurate,straight:order.straight});
    return true;
   },
   carTaskRunning:()=>!!scriptDrivenCar&&!scriptDrivenCar.disposed&&scriptDrivenCar.occupied&&(scriptCars.driving(scriptDrivenCar)||scriptCars.inTempAction(scriptDrivenCar)),
