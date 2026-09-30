@@ -279,7 +279,12 @@ export class WorldBike {
   yaw=Math.max(-2.5,Math.min(2.5,yaw));
   const horizontal={x:forward.x*want,y:forward.y*want,z:forward.z*want};
   this.body.setLinvel({x:horizontal.x,y:v.y-NATIVE_GRAVITY_MS2*dt,z:horizontal.z},true);
-  this.body.setAngvel({x:0,y:yaw,z:0},true);
+  // A ridden bike's body stays upright about its forward axis (the lean is the render matrix's, CalculateLeanMatrix):
+  // the rider balances it. Zeroing the roll rate alone kept whatever roll a knock gave it, and a bike tipped onto its
+  // side rode on lying there, full throttle and going nowhere. The roll is taken out at a rate; pitch (a hill) stays.
+  let roll=0;
+  if(!this.quad&&!(this as {wrecked?:boolean}).wrecked&&(this.occupied||!!this.autopilot))roll=uprightRollRate(q,forward);
+  this.body.setAngvel({x:forward.x*roll,y:yaw+forward.y*roll,z:forward.z*roll},true);
   // CPhysical::ApplySpeed: an abandoned bike lying on its side (|up.z| < 0.707) that is all but still (move speed
   // under 0.05, turn speed under 0.01 a frame) has its move speed halved every frame.
   if(!this.occupied&&!this.quad){const up=rotate(q,{x:0,y:1,z:0}),m=this.body.linvel(),w=this.body.angvel();
@@ -540,6 +545,17 @@ export class WorldBike {
  /** CVehicle::bConsideredByPlayer, which SET_VEHICLE_IS_CONSIDERED_BY_PLAYER clears: the player's enter search passes it over. */
  consideredByPlayer=true;
  dispose(){this.disposed=true;this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
+}
+/** The roll rate (rad/s, about the forward axis) that brings a body's up axis back to the vertical plane through its
+ * forward axis within about a fifth of a second: the signed angle from its up to world up with the forward part taken
+ * out, times five a second. */
+export function uprightRollRate(q:{x:number;y:number;z:number;w:number},forward:{x:number;y:number;z:number}){
+ const up=rotate(q as RAPIER.Rotation,{x:0,y:1,z:0});
+ let ux=-forward.x*forward.y,uy=1-forward.y*forward.y,uz=-forward.z*forward.y;const l=Math.hypot(ux,uy,uz);if(l<1e-6)return 0;ux/=l;uy/=l;uz/=l;
+ // sin: forward · (up × wanted); cos: up · wanted.
+ const cx=up.y*uz-up.z*uy,cy=up.z*ux-up.x*uz,cz=up.x*uy-up.y*ux;
+ const angle=Math.atan2(forward.x*cx+forward.y*cy+forward.z*cz,up.x*ux+up.y*uy+up.z*uz);
+ return Math.abs(angle)<.002?0:angle*5;
 }
 function rotate(q:RAPIER.Rotation,v:{x:number;y:number;z:number}){
  const {x,y,z}=v,qx=q.x,qy=q.y,qz=q.z,qw=q.w;
