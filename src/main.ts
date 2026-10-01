@@ -4946,6 +4946,10 @@ async function boot() {
                   body.setTranslation({x:position.x,y:position.z,z:-position.y},true);
                   body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
                   body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
+                  // A car set down where the world's collision is not streamed in yet (INTRO2 puts Sweet's car back
+                  // outside the pizza place before its LOAD_SCENE) stands static until the collision is under it, as
+                  // the game's synchronous scene load would have it; with the ground there it goes on at once.
+                  if(typeof (target as {waitForCollision?:unknown}).waitForCollision==='function'&&!target.occupied)target.waitForCollision(false);
                  },
                  scriptVehiclePosition:car=>{const p=(car as ScriptCar).car.body.translation();return {x:p.x,y:-p.z,z:p.y};},
                  scriptVehicleBoxTop:car=>(car as ScriptCar).assets.collision.bounds.max[2],

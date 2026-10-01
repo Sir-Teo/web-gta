@@ -632,8 +632,13 @@ export class WorldCar {
    this.groupColliders();
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
    // A frozen car (FREEZE_CAR_POSITION) keeps its body out of the world while its other logic goes on.
-   if(this.waitingForCollision&&(this.occupied||this.collisionArrived(seconds)))this.waitingForCollision=false;
-   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision){this.car.markStepStart();return;}
+   const nearby=this.inActiveRange();
+   // A car coming back into the active range (CJ out of an interior, a long way back) was asleep where it stood, as a
+   // car at rest is (CPhysical's IsStatic) until something moves it: it waits for the world's collision under it
+   // before its body joins the world again, rather than falling through a spot whose collision is still streaming in.
+   if(nearby&&!this.wasNearby&&!this.occupied)this.waitForCollision(false);
+   this.wasNearby=nearby;
+   if(this.waitingForCollision&&(this.occupied||this.collisionArrived(seconds)))this.waitingForCollision=false;this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision){this.car.markStepStart();return;}
    this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
   const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
@@ -914,6 +919,8 @@ export class WorldCar {
   /** Physics and rendering stay active within this distance of the player. */
   activeRadius=100;
   private beyondRange=false;
+  /** Whether the last step found the car within its active range. */
+  private wasNearby=true;
   /** Within the active radius, with 5 units of hysteresis so a car at its edge does not flap between physics and rails. */
   inActiveRange(){
    const d=this.distance();
