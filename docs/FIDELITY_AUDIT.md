@@ -9023,4 +9023,4 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   the command event reaches `CTaskSimpleAnim::MakeAbortable` (reversed), which blends to the idle unless the clip holds
   its last frame or the new task is itself a named clip. The browser swapped the order but left the clip on the
   ped, so SWEET1B's couch dealer sat in `BJ_COUCH_LOOP_P` under `TASK_KILL_CHAR_ON_FOOT`, too low for CJ's shots, and
-  the den was never cleared.
+  the den was never cleared. CJ's own script tasks had the same gap and close it the same way.

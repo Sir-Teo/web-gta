@@ -58,6 +58,10 @@ test('a clip plays once and the task ends with it; clearing drops it',async()=>{
  tasks.give({kind:'playAnim',file:'PED',name:'IDLE_chat',loop:true,keepLastFrame:false,seconds:Infinity},b);
  tasks.step(1/30,b);expect(reaction).toBe('idle_chat');
  tasks.clear(b);expect(reaction).toBeUndefined();expect(tasks.active).toBe(false);
+ // A looped clip goes when the script gives him his next task (CTaskSimpleAnim::MakeAbortable on the command event).
+ tasks.give({kind:'playAnim',file:'PED',name:'IDLE_chat',loop:true,keepLastFrame:false,seconds:Infinity},b);
+ tasks.step(1/30,b);expect(reaction).toBe('idle_chat');
+ tasks.give({kind:'standStill',seconds:1},b);expect(reaction).toBeUndefined();expect(tasks.active).toBe(true);
 });
 
 test('the look-at trigger starts the head look and is over at once, letting a sequence go on',()=>{

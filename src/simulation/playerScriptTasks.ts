@@ -99,6 +99,8 @@ export class PlayerScriptTasks{
  /** CTaskComplexSequence on the player: the tasks one after another, from `start` on the first pass (nested
   * sequences arrive run inline, so there can be more than the eight one sequence holds). */
  giveSequence(orders:readonly ScriptedPedOrder[],repeat:boolean,body:PlayerTaskBody,sequence=true,start=0){
+  // CTaskSimpleAnim::MakeAbortable on the command event: the clip the old task plays blends out, a looped one too.
+  if(this.running?.kind==='playAnim'&&body.view?.reactionName===this.running.clip)body.view.clearReaction();
   this.sequence={orders:[...orders],at:Math.min(Math.max(0,start),orders.length),repeat,sequence};
   this.next(body);
  }
