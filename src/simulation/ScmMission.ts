@@ -1626,6 +1626,8 @@ export class ScmMission {
    vehicleIsTrain:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).train:!!this.world.scriptVehicleIsTrain?.(this.liveVehicle(handle)),
    playerMissionGates:()=>this.world.playerMissionGates(),
    pedIsStopped:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().stopped:this.world.scriptPedStanding(this.livePed(handle)),
+   // CTheScripts::HighlightImportantArea: kept for this script pass, drawn by the marker pass after it.
+   highlightArea:(id,centre,halfX)=>{this.highlights.set(id,{id,x:centre.x,y:centre.y,z:centre.z,halfX});},
    pedIsDeadForScript:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().dead:this.peds.isDead(handle),
    pedHealth:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().health:this.peds.healthOf(handle),
    setPlayerControl:(_player,control)=>{this.playerControl=control;this.world.setPlayerControl(control);},
@@ -3185,9 +3187,16 @@ export class ScmMission {
  }
  /** The game clock the script last ran at. */
  private clockMs=0;
+ /** The areas the last script pass asked HighlightImportantArea for, by marker id. */
+ private readonly highlights=new Map<number,{id:number;x:number;y:number;z?:number;halfX:number}>();
+ /** CShadows::RenderIndicatorShadow (0x70CCB0) for each area the last script pass highlighted: three red cylinders
+  * (C3dMarkers::PlaceMarkerSet, MARKER3D_CYLINDER, 255 0 0 255, pulse 2048 and 0.2) at 0.8, 0.9 and the full size, all
+  * under the script's id. A 2D area's centre has no height: FindGroundZForCoord finds it. */
+ highlightedAreas(){return [...this.highlights.values()];}
  step(nowMs:number,timeStepMs:number){
   this.clockMs=nowMs;
   if(this.stopped)return;
+  this.highlights.clear();
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
   try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);

@@ -181,6 +181,8 @@ test('mission sweep',async({page})=>{
     return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said(),bot:botAction,watched,hurt};
    },[id,playerOnly,bot,watch] as const);
    samples++;previous=last;last=s;
+   // The bot picks a shop menu's item with the cross button (sprint), as the interior-shops spec does.
+   if((s.bot as {action?:string}|null)?.action==='menu accept'){await page.keyboard.down('ShiftLeft');await page.waitForTimeout(150);await page.keyboard.up('ShiftLeft');}
    // The bot's decisions as they change, and a progress line every twenty samples.
    const decision=s.bot?JSON.stringify(s.bot):null;if(decision&&decision!==timeline.at(-1)?.decision)timeline.push({at:samples,offset:s.offset??-1,decision});
    for(const h of s.hurt??[])console.log(`sweep ${id} sample ${samples} HURT ${h}`);

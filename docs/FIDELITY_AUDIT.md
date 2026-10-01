@@ -8731,3 +8731,25 @@ that did anything.
 - **Touch controls** for phones and tablets (`src/input/TouchControls.ts`). Spec: `touch-controls`.
 - **Skipped, not stopped.** A command whose world member is not ported is skipped (outputs read as nothing found, a
   condition false) instead of ending the mission thread; see [the porting roadmap](port/ROADMAP.md).
+
+## The red marker a locate highlights
+
+- **The locate and area commands' highlight flag drew nothing.** Every `LOCATE_*`, `IS_CHAR_IN_AREA_*`,
+  `LOCATE_OBJECT_3D` and angled-area command that passes 1 as its last operand calls `CTheScripts::
+  HighlightImportantArea` (0x485E00) or `HighlightImportantAngledArea` (0x485EF0); the host member they reached had no
+  implementation. Both are reversed: the box's centre (on the ground through `FindGroundZForCoord` for a 2D command,
+  the corners' mean height for a 3D one; an angled area's box is the one round its four edge midpoints) goes to
+  `CShadows::RenderIndicatorShadow` (0x70CCB0), which places three `MARKER3D_CYLINDER` markers through
+  `C3dMarkers::PlaceMarkerSet` at 0.8, 0.9 and the full size, red, alpha 255 (a third once placed), pulse 2048 and
+  0.2, all under the script's `this + m_IP`. The size is `max(frontX, -sideX)` with `sideX` passed as 0: the box's
+  half width along x alone, which the port keeps. This is the pulsing red marker at every shop counter, the barber's
+  chair, the gyms and the mission spots a script waits for CJ to stand in. The mission keeps the areas the last
+  script pass asked for (`ScmMission.highlightedAreas`); the marker pass places them each frame. Spec
+  `interior-shops` ("the Ammu-Nation counter shows the red marker its locate highlights").
+- The id is the thread and the instruction's end offset (the script's pointer and its IP in the original); the
+  notsa `AngledRect::HighlightWithMarkers` gta-reversed registers for the angled commands (four magenta corner posts)
+  is not the original's and is not used.
+- **The mission bot follows the marker.** With CJ on foot within eight units of a highlighted area, the bot walks into
+  it and stands still, and while a shop menu is up it presses the cross button: INTRO2 waits for the barber's chair
+  (`barber.scm`'s `LOCATE_STOPPED_CHAR_ON_FOOT_3D` 1 × 1 round (414.3, −19.9)), which the radar blip, 0.7 off it,
+  does not lead into.

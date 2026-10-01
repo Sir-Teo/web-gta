@@ -5,12 +5,12 @@ import {scmOpcode} from '../src/engine/scmOpcodes';
 
 function locateHost(){
  const peds=new Map<number,{position:{x:number;y:number;z:number};vehicle?:number}>();
- const highlights:{point:{x:number;y:number;z:number};radius:{x:number;y:number;z:number}}[]=[];
+ const highlights:{id:number;point:{x:number;y:number;z?:number};halfX:number}[]=[];
  const world:ScmWorldCommands={
   fade(){},
   pedPosition:handle=>peds.get(handle)!.position,
   pedVehicle:handle=>peds.get(handle)?.vehicle,
-  highlightArea:(point,radius)=>{highlights.push({point:{...point},radius:{...radius}});},
+  highlightArea:(id,point,halfX)=>{highlights.push({id,point:{...point},halfX});},
  };
  return {peds,highlights,world};
 }
@@ -74,9 +74,22 @@ describe('locating a ped',()=>{
   host.peds.set(1,{position:{x:100,y:100,z:0}});
   run(locate(scmOpcode('LOCATE_CHAR_ANY_MEANS_2D'),1,[0,0,1,1],1),host.world);
   expect(host.highlights).toHaveLength(1);
-  expect(host.highlights[0].point).toEqual({x:0,y:0,z:0});
+  // A flat locate's box is centred on the ground (CTheScripts::HighlightImportantArea's MAP_Z_LOW_LIMIT).
+  expect(host.highlights[0].point).toEqual({x:0,y:0,z:undefined});
   run(locate(scmOpcode('LOCATE_CHAR_ANY_MEANS_2D'),1,[0,0,1,1],0),host.world);
   expect(host.highlights).toHaveLength(1);
+ });
+
+ test('a 3D locate highlights at the box’s mean height, sized by its half width along x',()=>{
+  const host=locateHost();
+  host.peds.set(1,{position:{x:100,y:100,z:0}});
+  run(locate(scmOpcode('LOCATE_CHAR_ANY_MEANS_3D'),1,[414.3,-19.9,1000.8,2,1,4],1),host.world);
+  expect(host.highlights).toHaveLength(1);
+  const [h]=host.highlights;
+  expect(h.point.x).toBeCloseTo(414.3,3);expect(h.point.y).toBeCloseTo(-19.9,3);expect(h.point.z).toBeCloseTo(1000.8,3);
+  // RenderIndicatorShadow takes max(frontX, -sideX) with sideX 0: the half width along x alone.
+  expect(h.halfX).toBeCloseTo(2,5);
+  expect(h.id).not.toBe(0);
  });
 });
 

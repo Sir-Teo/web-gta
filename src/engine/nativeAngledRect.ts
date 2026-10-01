@@ -25,7 +25,8 @@ export class NativeAngledRect {
    :{x:this.dirBtoA.y,y:-this.dirBtoA.x};
   this.width=Math.abs(widthAndDirection);
  }
- /** The other two corners, which follow from A and the two directions. */
+ /** The other corners, which follow from A and the two directions. */
+ get cornerB(){return {x:this.a.x+this.dirBtoA.x*this.height,y:this.a.y+this.dirBtoA.y*this.height};}
  get cornerC(){return {x:this.a.x+this.dirBtoA.x*this.height+this.dirDtoA.x*this.width,y:this.a.y+this.dirBtoA.y*this.height+this.dirDtoA.y*this.width};}
  get cornerD(){return {x:this.a.x+this.dirDtoA.x*this.width,y:this.a.y+this.dirDtoA.y*this.width};}
  /** AngledRect::IsPointWithin: the point projects inside both directions. */

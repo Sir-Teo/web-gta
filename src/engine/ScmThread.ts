@@ -1142,10 +1142,11 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  detachPedFromCar?(handle:number):void;
  /** CTheScripts::IsPedStopped, which the stopped forms of the locate commands ask for. */
  pedIsStopped?(handle:number):boolean;
- /** AngledRect::HighlightWithMarkers, the four corner markers an angled-area command draws when asked. */
- highlightAngledArea?(area:{a:{x:number;y:number};cornerC:{x:number;y:number};cornerD:{x:number;y:number};width:number;height:number}):void;
- /** CRunningScript::HighlightImportantArea, the debug box a locate command draws when it is asked to. */
- highlightArea?(point:{x:number;y:number;z:number},radius:{x:number;y:number;z:number}):void;
+ /** CTheScripts::HighlightImportantArea (0x485E00) and HighlightImportantAngledArea (0x485EF0), which the area and
+  * locate commands call when asked to: the area's centre (on the ground, FindGroundZForCoord, when `z` is undefined, the
+  * MAP_Z_LOW_LIMIT a 2D command passes), where CShadows::RenderIndicatorShadow places its three red cylinders.
+  * `halfX` is the half width along x, the size RenderIndicatorShadow takes; `id` stands for the script's this + m_IP. */
+ highlightArea?(id:number,centre:{x:number;y:number;z?:number},halfX:number):void;
  /** CPedIntelligence::FlushImmediately. */
  clearPedTasksImmediately?(handle:number):void;
  /** TheCamera::IsSphereVisible for IS_POINT_ON_SCREEN. */

@@ -23,8 +23,13 @@ export function missionBotTick(dtSeconds:number){
  };
  const blips=radar.traces.filter((t:any)=>t.tracking&&t.sprite===0&&t.display!==0&&!t.shortRange)
   .map((t:any)=>({type:t.type,handle:t.entityHandle,friendly:!!t.friendly,position:at(t),entryExit:t.entryExit})).filter((b:any)=>b.position&&(b.position.x||b.position.y));
- if(!blips.length)return null;
  const distance=(p:any)=>Math.hypot(p.x-me.x,p.y-me.y);
+ // A shop's menu is up (the barber's chair, a counter): a player picks with the cross button, which the sweep presses.
+ if(r.game.menus?.inUse?.some((used:boolean)=>used))return {action:'menu accept'};
+ // The red marker a locate highlights (HighlightImportantArea: a shop counter, the barber's chair) is where the script
+ // waits for CJ to stand still; on foot within eight units of one he walks into it and stops, as a player does.
+ const marker=vehicle?undefined:m.highlightedAreas?.().filter((h:any)=>distance(h)<8).sort((a:any,b:any)=>distance(a)-distance(b))[0];
+ if(!blips.length&&!marker)return null;
  const nearest=(list:any[])=>list.sort((a,b)=>distance(a.position)-distance(b.position))[0];
  const enemies=blips.filter((b:any)=>b.type===BLIP_CHAR&&!b.friendly);
  const cars=blips.filter((b:any)=>b.type===BLIP_CAR&&b.friendly&&b.handle!==vehicle);
@@ -79,6 +84,8 @@ export function missionBotTick(dtSeconds:number){
   // __game.fireAt takes renderer coordinates: x, height, -y.
   g.fireAt(target.x,target.z+.6,-target.y);
  };
+ if(marker&&distance(marker)>.15&&!enemies.length&&glide({x:marker.x,y:marker.y,z:marker.z??me.z-1},.1))return {action:'go to marker'};
+ if(!blips.length)return {action:'in marker'};
  if(enemies.length){
   const e=nearest(enemies);
   if(vehicle&&distance(e.position)<25){try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car to fight',target:e.handle};}
@@ -119,7 +126,7 @@ export function missionBotTick(dtSeconds:number){
   if(vehicle&&distance(p.position)<10){mem.parkedAtPlace=(mem.parkedAtPlace??0)+dtSeconds;
    if(mem.parkedAtPlace>4){mem.parkedAtPlace=0;mem.drive=undefined;try{world.clearPedTasks?.(1);world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car at place'};}}
   else mem.parkedAtPlace=0;
-  if(glide(p.position,1))return {action:'go to place'};return {action:'at place'};
+  if(glide(p.position,1))return {action:'go to place'};return {action:marker?'in marker':'at place'};
  }
  if(chases.length){
   const c=nearest(chases);

@@ -90,11 +90,14 @@ describe('the angled-area commands',()=>{
  });
 
  test('the area is highlighted whether the ped is in it or not',()=>{
-  const drawn:unknown[]=[];
-  const world={...at(50,50),highlightAngledArea:(area:unknown)=>{drawn.push(area);}};
+  const drawn:{centre:{x:number;y:number;z?:number};halfX:number}[]=[];
+  const world={...at(50,50),highlightArea:(_id:number,centre:{x:number;y:number;z?:number},halfX:number)=>{drawn.push({centre,halfX});}};
   run(world,instruction(scmOpcode('IS_CHAR_IN_ANGLED_AREA_2D'),
    [int(PED),float(0),float(0),float(10),float(0),float(4),int(1)]));
   expect(drawn.length).toBe(1);
+  // HighlightImportantAngledArea: the box round the edges' midpoints (0..10 by 0..4 here), on the ground.
+  expect(drawn[0].centre.x).toBeCloseTo(5,5);expect(drawn[0].centre.y).toBeCloseTo(2,5);expect(drawn[0].centre.z).toBeUndefined();
+  expect(drawn[0].halfX).toBeCloseTo(5,5);
  });
 });
 

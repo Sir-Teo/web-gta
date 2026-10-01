@@ -56,13 +56,37 @@ const storeCarCharIsIn:ScmCommandHandler=(t,p,i)=>{
  requireAsset(vehicle!==undefined,'STORE_CAR_CHAR_IS_IN with a ped that is not in a vehicle throws in the source.');
  t.writeInt(p[1],vehicle!);
 };
+/** CRunningScript::HighlightImportantArea and CTheScripts::HighlightImportantArea (0x485E00): the box from `a` to `b`, its
+ * centre at the corners' mean height for a 3D command and on the ground (MAP_Z_LOW_LIMIT) for a 2D one, with the half
+ * width along x RenderIndicatorShadow sizes its cylinders by. The marker id is the script's this + m_IP, which is the
+ * thread and the end of the instruction here. */
+const highlightThreads=new WeakMap<ScmThread,number>();let highlightSerial=0;
+function highlightId(t:ScmThread,i:ScmInstruction){
+ let serial=highlightThreads.get(t);if(serial===undefined){serial=++highlightSerial&0xfff;highlightThreads.set(t,serial);}
+ return ((serial<<20|i.end&0xfffff)>>>0)||1;
+}
+function highlightImportantArea(t:ScmThread,i:ScmInstruction,a:{x:number;y:number;z?:number},b:{x:number;y:number;z?:number}){
+ const z=a.z!==undefined&&b.z!==undefined?(a.z+b.z)/2:undefined;
+ t.host?.world?.highlightArea?.(highlightId(t,i),{x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:z!==undefined&&z>-100?z:undefined},Math.abs(b.x-a.x)/2);
+}
+/** A locate's box: the point less and plus the radius. */
+function highlightLocate(t:ScmThread,i:ScmInstruction,point:{x:number;y:number;z:number},radius:{x:number;y:number;z:number},threeDimensional:boolean){
+ highlightImportantArea(t,i,{x:point.x-radius.x,y:point.y-radius.y,z:threeDimensional?point.z-radius.z:undefined},{x:point.x+radius.x,y:point.y+radius.y,z:threeDimensional?point.z+radius.z:undefined});
+}
+/** CTheScripts::HighlightImportantAngledArea (0x485EF0): the box round the midpoints of the four edges, centred on the
+ * ground. */
+function highlightImportantAngledArea(t:ScmThread,i:ScmInstruction,corners:readonly {x:number;y:number}[]){
+ const mids=corners.map((c,k)=>{const n=corners[(k+1)%4];return {x:(c.x+n.x)/2,y:(c.y+n.y)/2};});
+ const xs=mids.map(m=>m.x),ys=mids.map(m=>m.y);
+ highlightImportantArea(t,i,{x:Math.min(...xs),y:Math.min(...ys)},{x:Math.max(...xs),y:Math.max(...ys)});
+}
 /** IsCharInArea2D and IsCharInArea3D: two corners, and the ped read at its vehicle while it rides in one. */
 function charInArea(threeDimensional:boolean):ScmCommandHandler{
  return (t,p,i)=>{
   const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
   const a={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:threeDimensional?t.readFloat(p[3]):0};
   const b={x:t.readFloat(p[1+axes]),y:t.readFloat(p[2+axes]),z:threeDimensional?t.readFloat(p[3+axes]):0};
-  if(bool(t,p[1+axes*2]))t.host?.world?.highlightArea?.({x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:(a.z+b.z)/2},{x:Math.abs(b.x-a.x)/2,y:Math.abs(b.y-a.y)/2,z:Math.abs(b.z-a.z)/2});
+  if(bool(t,p[1+axes*2]))highlightImportantArea(t,i,threeDimensional?a:{x:a.x,y:a.y},threeDimensional?b:{x:b.x,y:b.y});
   const position=world(t,i,'pedPosition')(handle);
   const within=(value:number,low:number,high:number)=>value>=Math.min(low,high)&&value<=Math.max(low,high);
   const inside=within(position.x,a.x,b.x)&&within(position.y,a.y,b.y)&&(!threeDimensional||within(position.z,a.z,b.z));
@@ -88,7 +112,7 @@ function locateVehicle(threeDimensional:boolean,stopped=false):ScmCommandHandler
   const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
   const point={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:threeDimensional?t.readFloat(p[3]):0};
   const radius={x:t.readFloat(p[1+axes]),y:t.readFloat(p[2+axes]),z:threeDimensional?t.readFloat(p[3+axes]):0};
-  if(bool(t,p[1+axes*2]))t.host?.world?.highlightArea?.(point,radius);
+  if(bool(t,p[1+axes*2]))highlightLocate(t,i,point,radius,threeDimensional);
   // The stopped forms ask CTheScripts::IsVehicleStopped as well.
   const stoppedAsked=!stopped||world(t,i,'vehicleIsStopped')(handle);
   t.updateCompareFlag(stoppedAsked&&insideBox(world(t,i,'vehiclePosition')(handle),point,radius,threeDimensional),negated(i));
@@ -101,7 +125,7 @@ function locateCharPoint(threeDimensional:boolean,gates:{car:boolean;foot:boolea
   const axes=threeDimensional?3:2;
   const point={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:threeDimensional?t.readFloat(p[3]):0};
   const radius={x:t.readFloat(p[1+axes]),y:t.readFloat(p[2+axes]),z:threeDimensional?t.readFloat(p[3+axes]):0};
-  if(bool(t,p[1+axes*2]))t.host?.world?.highlightArea?.(point,radius);
+  if(bool(t,p[1+axes*2]))highlightLocate(t,i,point,radius,threeDimensional);
   const inside=locateCharChecks(t,i,handle,gates)&&insideBox(world(t,i,'pedPosition')(handle),point,radius,threeDimensional);
   t.updateCompareFlag(inside,negated(i));
  };
@@ -113,7 +137,7 @@ function locateCharChar(threeDimensional:boolean,gates:{car:boolean;foot:boolean
   const axes=threeDimensional?3:2;
   const radius={x:t.readFloat(p[2]),y:t.readFloat(p[3]),z:threeDimensional?t.readFloat(p[4]):0};
   const point=world(t,i,'pedPosition')(other);
-  if(bool(t,p[2+axes]))t.host?.world?.highlightArea?.(point,radius);
+  if(bool(t,p[2+axes]))highlightLocate(t,i,point,radius,threeDimensional);
   const inside=locateCharChecks(t,i,handle,gates)&&insideBox(world(t,i,'pedPosition')(handle),point,radius,threeDimensional);
   t.updateCompareFlag(inside,negated(i));
  };
@@ -126,7 +150,7 @@ function locateCharObject(threeDimensional:boolean,gates:{car:boolean;foot:boole
   const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
   const radius={x:t.readFloat(p[2]),y:t.readFloat(p[3]),z:threeDimensional?t.readFloat(p[4]):0};
   const point=game(t,i).objects.at(t.readInt(p[1])).position;
-  if(bool(t,p[2+axes]))t.host?.world?.highlightArea?.(point,radius);
+  if(bool(t,p[2+axes]))highlightLocate(t,i,point,radius,threeDimensional);
   const inside=locateCharChecks(t,i,handle,gates)&&insideBox(world(t,i,'pedPosition')(handle),point,radius,threeDimensional);
   t.updateCompareFlag(inside,negated(i));
  };
@@ -146,7 +170,7 @@ function charInAngledArea(threeDimensional:boolean,gates:{car:boolean;foot:boole
   const position=world(t,i,'pedPosition')(handle);
   const area=new NativeAngledRect(a,b,widthAndDirection);
   // The source highlights the area whether the ped is in it or not, and whether the checks passed or not.
-  if(bool(t,p[threeDimensional?8:6]))t.host?.world?.highlightAngledArea?.(area);
+  if(bool(t,p[threeDimensional?8:6]))highlightImportantAngledArea(t,i,[area.a,area.cornerB,area.cornerC,area.cornerD]);
   const insideHeight=!threeDimensional||position.z>=Math.min(aZ,bZ)&&position.z<=Math.max(aZ,bZ);
   const inside=insideHeight&&locateCharChecks(t,i,handle,gates)&&area.contains(position);
   t.updateCompareFlag(inside,negated(i));
@@ -159,7 +183,7 @@ function locateCharVehicle(threeDimensional:boolean,gates:{car:boolean;foot:bool
   const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
   const radius={x:t.readFloat(p[2]),y:t.readFloat(p[3]),z:threeDimensional?t.readFloat(p[4]):0};
   const point=world(t,i,'vehiclePosition')(t.readInt(p[1]));
-  if(bool(t,p[2+axes]))t.host?.world?.highlightArea?.(point,radius);
+  if(bool(t,p[2+axes]))highlightLocate(t,i,point,radius,threeDimensional);
   const inside=locateCharChecks(t,i,handle,gates)&&insideBox(world(t,i,'pedPosition')(handle),point,radius,threeDimensional);
   t.updateCompareFlag(inside,negated(i));
  };
@@ -1496,7 +1520,7 @@ const handlers:Record<string,ScmCommandHandler>={
  LOCATE_OBJECT_3D:(t,p,i)=>{
   const position=game(t,i).objects.at(t.readInt(p[0])).position;
   const point=vec(t,p,1),radius={x:t.readFloat(p[4]),y:t.readFloat(p[5]),z:t.readFloat(p[6])};
-  if(bool(t,p[7]))t.host?.world?.highlightArea?.(point,radius);
+  if(bool(t,p[7]))highlightLocate(t,i,point,radius,true);
   t.updateCompareFlag(insideBox(position,point,radius,true),negated(i));
  },
  CREATE_FX_SYSTEM:(t,p,i)=>{

@@ -48,6 +48,25 @@ test('CJ buys a pistol over the Ammu-Nation counter',async({page})=>{
  expect(errors).toEqual([]);
 });
 
+// CTheScripts::HighlightImportantArea: the counter's LOCATE_STOPPED_CHAR_ON_FOOT_3D asks for its area to be highlighted,
+// and CShadows::RenderIndicatorShadow puts three red cylinders there (0.8, 0.9 and the full half width of 1).
+test('the Ammu-Nation counter shows the red marker its locate highlights',async({page})=>{
+ test.skip(!interiorsPublished,'Requires gta_int.img published with the world.');test.setTimeout(300000);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await inside(page,'AMMUN1');
+ await expect.poll(async()=>(await shop(page)).threads,{timeout:30000}).toContain('AMUNAT');
+ await standAt(page,294.5,-36.5);
+ const near=async()=>((await state(page)).markers3d.list as {type:number;position:number[];size:number;colour:number[]}[])
+  .filter(m=>m.type===1&&Math.hypot(m.position[0]-296.5,m.position[1]+38.17)<.5);
+ await expect.poll(async()=>(await near()).length,{timeout:30000}).toBe(3);
+ const cylinders=await near();
+ expect(cylinders.map(m=>m.size).sort()).toEqual([.8,.9,1]);
+ // Red, at a third of PlaceMarkerSet's 255 before the distance fade.
+ for(const m of cylinders){expect(m.colour.slice(0,3)).toEqual([255,0,0]);expect(m.colour[3]).toBeLessThanOrEqual(85);}
+ await page.screenshot({path:'artifacts/interior-shops-marker.png'});
+ expect(errors).toEqual([]);
+});
+
 // junkfud.scm and foodbrains.scm in a Cluckin' Bell: the clerk at his scripted attractor, the meal menu, BUY_ITEM.
 test('CJ buys a meal at Cluckin\' Bell',async({page})=>{
  test.skip(!interiorsPublished,'Requires gta_int.img published with the world.');test.setTimeout(300000);
