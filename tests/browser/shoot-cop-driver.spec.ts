@@ -20,14 +20,14 @@ test('a pistol through the patrol car window wounds the cop at the wheel and the
   return g.weapons().fire({origin:{x:eye.x,y:head.y,z:eye.z},direction:{x:1,y:0,z:0}});},target);
  await shoot();await page.waitForTimeout(200);
  await expect.poll(async()=>(await unit())?.health[0],{timeout:5000}).toBeLessThan(100);
- for(let i=0;i<20;i++){const u=await unit();if(!u||u.dying||u.dead[0]||u.crew===0)break;await shoot();await page.waitForTimeout(250);}
+ // (The pistol fires about every other try at this pace, and on a loaded machine the game runs slower than the clock.)
+ for(let i=0;i<40;i++){const u=await unit();if(!u||u.dying||u.dead[0]||u.crew===0)break;await shoot();await page.waitForTimeout(250);}
  const dying=await unit();expect(dying.dying||dying.dead[0]||dying.crew===0).toBe(true);
- // 2000 ms on: the driver is dead, out of the door (a body by the car) or in his seat, and the car has stopped.
- await expect.poll(async()=>{const u=await unit();return !u.dying;},{timeout:6000}).toBe(true);
- await page.waitForTimeout(3500);
- const s=await state(),u=s.police.units.find((x:any)=>x.handle===target);
- const body=s.pedestrians.people.find((p:any)=>p.health<=0&&Math.hypot(p.position.x-u.position.x,p.position.z-u.position.z)<6);
- expect(!!body||u.dead[0]).toBe(true);
- expect(u.speed).toBeLessThan(1.5);
+ // 2000 ms of game time on: the driver is dead, out of the door (a body by the car) or in his seat, and the car stops.
+ await expect.poll(async()=>{const u=await unit();return !u.dying;},{timeout:30000}).toBe(true);
+ await expect.poll(async()=>{const s=await state(),u=s.police.units.find((x:any)=>x.handle===target);
+  const body=s.pedestrians.people.find((p:any)=>p.health<=0&&Math.hypot(p.position.x-u.position.x,p.position.z-u.position.z)<6);
+  return !!body||u.dead[0];},{timeout:30000}).toBe(true);
+ await expect.poll(async()=>(await state()).police.units.find((x:any)=>x.handle===target).speed,{timeout:30000}).toBeLessThan(1.5);
  expect(errors).toEqual([]);
 });

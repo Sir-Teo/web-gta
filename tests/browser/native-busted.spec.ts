@@ -7,7 +7,9 @@ test('at one star a cop clubs unarmed CJ down with the nightstick and busts him 
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await expect.poll(async()=>(await state()).pedestrians?.ready,{timeout:30000}).toBe(true);
- await page.evaluate(()=>(window as any).__game.placePlayer(2491,12.6,1668));await page.waitForTimeout(300);
+ // CJ faces up the street, toward where the cop comes from: ComputeDamageAnim floors him with the finisher only from
+ // the front.
+ await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2491,12.6,1668);g.sim.player.heading=0;});await page.waitForTimeout(300);
  await page.evaluate(()=>(window as any).__game.setWantedLevel(1));
  expect(await page.evaluate(()=>(window as any).__game.placeCop(2491,12.6,1674))).toBe(true);
  // SetWeapon: one star and an unarmed suspect, so the cop draws the nightstick.
