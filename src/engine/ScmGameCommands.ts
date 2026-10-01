@@ -2240,6 +2240,21 @@ const handlers:Record<string,ScmCommandHandler>={
   const point=vec(t,p,0);
   t.writeTextLabel(p[3],world(t,i,'getNameOfZone')(point.x,point.y,point.z));
  },
+ // The handler is disabled in the reference (ZoneCommands.cpp:93); the info zone's label the dealers write back their
+ // strength under (SET_ZONE_DEALER_STRENGTH) is CTheZones::FindSmallestZoneForPosition's, over every zone type.
+ GET_NAME_OF_INFO_ZONE:(t,p,i)=>{
+  const point=vec(t,p,0);
+  t.writeTextLabel(p[3],world(t,i,'getNameOfInfoZone')(point.x,point.y,point.z));
+ },
+ // SetCharWantedByPolice (CharacterCommands.cpp:3238) sets bWantedByPolice; SET_CHAR_DRUGGED_UP's is disabled there and
+ // sets bDruggedUp the same way.
+ SET_CHAR_WANTED_BY_POLICE:(t,p,i)=>{t.host?.world?.setPedWantedByPolice?.(t.readInt(p[0]),bool(t,p[1]));},
+ SET_CHAR_DRUGGED_UP:(t,p,i)=>{t.host?.world?.setPedDruggedUp?.(t.readInt(p[0]),bool(t,p[1]));},
+ // The handler is disabled in the reference (CharacterCommands.cpp:4294): a street ped in the sphere who buys drugs.
+ GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS:(t,p,i)=>{
+  const point=vec(t,p,0);
+  t.writeInt(p[4],t.host?.world?.randomDrugsBuyerInSphere?.(point.x,point.y,point.z,t.readFloat(p[3]))??-1);
+ },
  GET_NAME_OF_ENTRY_EXIT_CHAR_USED:(t,p,i)=>{
   t.writeTextLabel(p[1],world(t,i,'getNameOfEntryExitCharUsed')(t.readInt(p[0])));
  },

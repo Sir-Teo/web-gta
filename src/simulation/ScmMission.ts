@@ -12,7 +12,7 @@ import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
 import {resetGangWeapons,setGangWeapons} from './nativeGangWeapons';
 import {VEHICLE_CLASSES} from '../assets/pedGroups';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from '../engine/ScmThread';
-import {BRAIN_OBJECT} from '../engine/ScmScriptBrains';
+import {BRAIN_OBJECT,BRAIN_RANDOM_PED} from '../engine/ScmScriptBrains';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findZone,worldZoneAt,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
@@ -688,6 +688,8 @@ export function validRandomPedType(pedType:number,civilian:boolean,gang:boolean,
 /** CRunningScript::m_nExternalType of a script started on an object by its brain (ShutdownThisScript's cases 0, 2, 3
  * and 5 are the ped brains). */
 const EXTERNAL_OBJECT_BRAIN=1;
+/** CRunningScript::m_nExternalType of a random ped's brain (ShutdownThisScript's case 0). */
+const EXTERNAL_PED_BRAIN=0;
 /** COMMAND_TASK_USE_ATTRACTOR and COMMAND_TASK_PLAY_ANIM_SECONDARY, the task records those commands leave. */
 const TASK_USE_ATTRACTOR_COMMAND=0x74C,TASK_PLAY_ANIM_SECONDARY_COMMAND=0xA1A;
 /** ePedType::PED_TYPE_CIVMALE, which is what the random civilian forms create. */
@@ -1568,6 +1570,14 @@ export class ScmMission {
    startVehicleFire:handle=>this.runtime.game.fires.startScriptFire(this.vehicles.positionOf(handle),1,0,undefined,handle),
    // GET_NAME_OF_ZONE (the reference leaves it a todo): the text label of the smallest navigation zone at the point.
    getNameOfZone:(x,y,z)=>worldZoneAt(this.zones,[x,y,z],true).textLabel,
+   getNameOfInfoZone:(x,y,z)=>worldZoneAt(this.zones,[x,y,z],false).infoLabel,
+   // bWantedByPolice and bDruggedUp are kept on the handle. AUTHORED: nothing reads them yet (the cops' kill-criminal
+   // task that would chase a ped wanted by the police is not the browser's).
+   setPedWantedByPolice:(handle,state)=>{this.pedFlag(handle).wantedByPolice=state;},
+   setPedDruggedUp:(handle,state)=>{this.pedFlag(handle).druggedUp=state;},
+   // AUTHORED: the street makes no drug buyers (the handler and whatever marks a buyer are unreversed), so a dealer's
+   // look for one finds nobody.
+   randomDrugsBuyerInSphere:()=>-1,
    getClosestStraightRoad:(x,y,z,minDist,maxDist)=>{
     const areas=this.world.carPathAreas?.(),found=areas&&findClosestStraightRoad(areas,{x,y,z},minDist,maxDist);
     return found??{node1X:0,node1Y:0,node1Z:0,node2X:0,node2Y:0,node2Z:0,angle:0};
@@ -2193,7 +2203,7 @@ export class ScmMission {
  }
  /** Flags a script set on its cars and peds that nothing in the port reads yet (see the vigilante's adapters). */
  private readonly carFlags=new Map<number,{convoy?:boolean;routeSeed?:number;avoidLevelTransitions?:boolean}>();
- private readonly pedFlags=new Map<number,{chrisCriminal?:boolean;forceDieInCar?:boolean}>();
+ private readonly pedFlags=new Map<number,{chrisCriminal?:boolean;forceDieInCar?:boolean;wantedByPolice?:boolean;druggedUp?:boolean}>();
  private carFlag(handle:number){let f=this.carFlags.get(handle);if(!f){f={};this.carFlags.set(handle,f);}return f;}
  private pedFlag(handle:number){let f=this.pedFlags.get(handle);if(!f){f={};this.pedFlags.set(handle,f);}return f;}
  /** CTheScripts::LastRandomPedId: the street ped GET_RANDOM_CHAR_IN_ZONE handed out last, which it passes over. */
@@ -2264,6 +2274,32 @@ export class ScmMission {
    game.objects.remove(record.handle);this.brainObjects.delete(key);
    // The map has its own copy back, where it always stood.
    if(record.taken)this.world.takeWorldObject?.(key,false);
+  }
+ }
+ /** Street peds the random-ped brains have weighed already. */
+ private readonly brainPeds=new WeakSet<object>();
+ private nextPedBrainScan=0;
+ /** CScriptsForBrains' random-ped brains (ALLOCATE_STREAMED_SCRIPT_TO_RANDOM_PED). CheckIfNewEntityNeedsScript and
+  * StartOrRequestNewStreamedScriptBrain are unreversed, so this is AUTHORED from the allocation's operands and what the
+  * brain scripts do: a street ped of a brain's model is weighed once, the first time it is seen, against the brain's
+  * chance; a chosen one gets a handle (it stays a random ped, bHasAScriptBrain rather than PED_MISSION) and the
+  * streamed script starts with it as 0@. The script runs while the ped lives; one the population removes is dead to it
+  * (IS_CHAR_DEAD on a handle with no ped), and the script ends itself. MAIN gives dealer.scm to the four dealer models
+  * and hotdog.scm to the hot-dog vendor. */
+ private processPedBrains(nowMs:number){
+  if(nowMs<this.nextPedBrainScan)return;this.nextPedBrainScan=nowMs+500;
+  const game=this.runtime.game,scripts=game.streamedScripts;if(!scripts.count)return;
+  const brains=game.scriptBrains.brains.filter(b=>b.typeOfBrain===BRAIN_RANDOM_PED&&b.active&&typeof b.model==='number');if(!brains.length)return;
+  const candidates=this.world.randomStreetPeds?.();if(!candidates)return;
+  for(const c of candidates){
+   const key=c.ped as object;if(this.brainPeds.has(key))continue;
+   const brain=brains.find(b=>b.model===c.model);if(!brain)continue;
+   this.brainPeds.add(key);
+   if(this.random.next()%100>=brain.percentageChance)continue;
+   const index=scripts.properIndexFromScriptIndex(brain.streamedScriptIndex);if(index<0)continue;
+   this.adapterRef.requestStreamedScript?.(index);
+   const handle=this.peds.adopt(c.ped,c.pedType,c.model,c.position,c.heading,c.health);
+   this.runtime.startNewStreamedScript(index,[handle],EXTERNAL_PED_BRAIN);
   }
  }
  /** Peds CREATE_CHAR_AT_ATTRACTOR made that have not yet been set at their attractor. */
@@ -3199,7 +3235,7 @@ export class ScmMission {
   this.highlights.clear();
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);

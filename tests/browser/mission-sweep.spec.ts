@@ -186,6 +186,8 @@ test('mission sweep',async({page})=>{
    samples++;previous=last;last=s;
    // The bot picks a shop menu's item with the cross button (sprint), as the interior-shops spec does.
    if((s.bot as {action?:string}|null)?.action==='menu accept'){await page.keyboard.down('ShiftLeft');await page.waitForTimeout(150);await page.keyboard.up('ShiftLeft');}
+   // Triangle is the enter-car key.
+   if((s.bot as {action?:string}|null)?.action==='menu back'){await page.keyboard.down('KeyF');await page.waitForTimeout(150);await page.keyboard.up('KeyF');}
    // The bot's decisions as they change, and a progress line every twenty samples.
    const decision=s.bot?JSON.stringify(s.bot):null;if(decision&&decision!==timeline.at(-1)?.decision)timeline.push({at:samples,offset:s.offset??-1,decision});
    for(const h of s.hurt??[])console.log(`sweep ${id} sample ${samples} HURT ${h}`);

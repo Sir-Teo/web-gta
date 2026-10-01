@@ -31,17 +31,23 @@ export function missionBotTick(dtSeconds:number){
  if(menus?.inUse?.some((used:boolean)=>used)){
   const said=r.game.messages?.briefs?.[0]?.key,now=performance.now();
   if((said==='SHOPNO'||said==='BARBNO')&&now-(mem.menuMovedAt??0)>3000){
-   mem.menuMovedAt=now;
+   mem.menuMovedAt=now;mem.menuRefusals=(mem.menuRefusals??0)+1;
    const id=menus.inUse.findIndex((used:boolean,i:number)=>used&&menus.menus[i]?.numRows>1);
    const menu=id>=0?menus.menus[id]:undefined;
+   // Every row refused (bought already, or too dear): a player is done here and backs out with triangle.
+   if(mem.menuRefusals>(menu?.numRows??1)+1){mem.menuRefusals=0;mem.leftMenuAt=now;return {action:'menu back'};}
    if(menu){do{menu.selectedRow=(menu.selectedRow+1)%menu.numRows;}while(!menu.selectable[menu.selectedRow]&&menu.selectedRow!==0);}
    return {action:'menu next',row:menu?.selectedRow};
   }
+  // Backed out of one level of the menu: keep backing out until it is gone.
+  if(mem.leftMenuAt&&now-mem.leftMenuAt<20000){mem.leftMenuAt=now;return {action:'menu back'};}
   return {action:'menu accept'};
  }
+ mem.leftMenuAt=undefined;
  // The red marker a locate highlights (HighlightImportantArea: a shop counter, the barber's chair) is where the script
  // waits for CJ to stand still; on foot within eight units of one he walks into it and stops, as a player does.
- const marker=vehicle?undefined:m.highlightedAreas?.().filter((h:any)=>distance(h)<8).sort((a:any,b:any)=>distance(a)-distance(b))[0];
+ // (Not once he has given up on the place and is walking out.)
+ const marker=vehicle||(mem.idleIndoors??0)>20?undefined:m.highlightedAreas?.().filter((h:any)=>distance(h)<8).sort((a:any,b:any)=>distance(a)-distance(b))[0];
  if(!blips.length&&!marker)return null;
  const nearest=(list:any[])=>list.sort((a,b)=>distance(a.position)-distance(b.position))[0];
  const enemies=blips.filter((b:any)=>b.type===BLIP_CHAR&&!b.friendly);
@@ -139,7 +145,17 @@ export function missionBotTick(dtSeconds:number){
   if(vehicle&&distance(p.position)<10){mem.parkedAtPlace=(mem.parkedAtPlace??0)+dtSeconds;
    if(mem.parkedAtPlace>4){mem.parkedAtPlace=0;mem.drive=undefined;try{world.clearPedTasks?.(1);world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car at place'};}}
   else mem.parkedAtPlace=0;
-  if(glide(p.position,1))return {action:'go to place'};return {action:marker?'in marker':'at place'};
+  if(glide(p.position,1))return {action:'go to place'};
+  // Indoors with nothing left to do at the place for twenty seconds (the haircut bought, the counter served), a player
+  // walks out through the interior's exit marker: INTRO2 waits for CJ back at the barber's door.
+  if(!vehicle&&me.z>500){
+   mem.idleIndoors=(mem.idleIndoors??0)+dtSeconds;
+   if(mem.idleIndoors>20){
+    const exit=g.interiorExitNear?.(me.x,me.y,me.z);
+    if(exit){if(glide(exit,0))return {action:'leave interior'};return {action:'at exit'};}
+   }
+  }else mem.idleIndoors=0;
+  return {action:marker?'in marker':'at place'};
  }
  if(chases.length){
   const c=nearest(chases);

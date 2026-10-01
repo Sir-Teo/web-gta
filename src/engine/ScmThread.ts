@@ -1030,7 +1030,14 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** The three names the game hands back as text labels: the zone at a point, the entry-exit a ped last used,
   * and the shop that is loaded. */
  getNameOfZone?(x:number,y:number,z:number):string;
+ /** GET_NAME_OF_INFO_ZONE: the info label of the smallest zone at a point, whichever its type. */
+ getNameOfInfoZone?(x:number,y:number,z:number):string;
  getNameOfEntryExitCharUsed?(handle:number):string;
+ /** CPed::bWantedByPolice (SET_CHAR_WANTED_BY_POLICE) and bDruggedUp (SET_CHAR_DRUGGED_UP). */
+ setPedWantedByPolice?(handle:number,state:boolean):void;
+ setPedDruggedUp?(handle:number,state:boolean):void;
+ /** GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS: a street ped in the sphere who buys drugs, as a handle, or -1. */
+ randomDrugsBuyerInSphere?(x:number,y:number,z:number,radius:number):number;
  /** The ped's own matrix, whose rows the offset command transforms through. */
  pedMatrix?(handle:number):{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};position:{x:number;y:number;z:number}};
  /** CPed::OurPedCanSeeThisEntity with the flag that counts a ped behind this one. */
