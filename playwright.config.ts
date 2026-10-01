@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
-const port = 5189;
+// PW_PORT lets a second checkout (a worktree running the whole suite) keep its own server beside this one.
+const port = Number(process.env.PW_PORT ?? 5189);
 // Specs that miss their window under parallel load and pass with the machine to themselves. The first eight
 // were found when this list was made; the rest were measured on 2026-09-21 by running the parallel project at
 // three, four and five workers — the failure count tracked the worker count (7, 9, 10) and the same specs kept
