@@ -101,10 +101,12 @@ export function missionBotTick(dtSeconds:number){
   // A step of under half a metre that finds the ground six or more under him found something below the street (a
   // storm drain where the street's own collision had not streamed in): he keeps his height and lets physics decide.
   const found=world.groundZFor3DCoord?.(x,y,over?to.z+1.5:me.z+(to.z-me.z)*step/d+1.5);
-  // No ground within six units under the step (FindGroundZFor3DCoord's 0 through an interior's wall into the void round
-  // its rooms, or a storm drain under the street): a player cannot walk there, so the bot goes no nearer.
-  if(found===undefined||found===null||!over&&me.z-1-found>6)return false;
-  const z=found;
+  // No ground within six units under the step: inside, that is FindGroundZFor3DCoord's 0 through a wall into the void
+  // round the rooms (CJ fell for ever under SWEET1B's crack den), where a player cannot walk, so the bot goes no nearer;
+  // outside it is a storm drain or a spot not streamed in yet, and he keeps his height for physics to settle.
+  const sheer=found===undefined||found===null||!over&&me.z-1-found>6;
+  if(sheer&&me.z>500)return false;
+  const z=sheer?me.z-1:found;
   world.setPedCoordinates(1,x,y,z+1);
   return true;
  };
