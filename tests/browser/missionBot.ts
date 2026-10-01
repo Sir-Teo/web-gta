@@ -118,7 +118,10 @@ export function missionBotTick(dtSeconds:number){
   // storm drain where the street's own collision had not streamed in): he keeps his height and lets physics decide.
   // A seam between two floor meshes (Binco's shop floor) lets one ray through to nothing, which the adapter answers
   // with 0: a capsule walks over it, so the probe is tried a quarter unit about before the step counts as a drop.
-  const from=over?to.z+1.5:me.z+(to.z-me.z)*step/d+1.5;
+  // Indoors the probe starts just over the walking line (from 1.5 up it caught the lintel over Binco's door and
+  // lifted CJ onto it step by step), and from just over the destination's floor when he is above that.
+  const indoors=me.z>500&&!over,line=me.z+(to.z-me.z)*step/d;
+  const from=over?to.z+1.5:indoors?(me.z-to.z>1.2?to.z+.3:line+.3):line+1.5;
   const probe=(px:number,py:number)=>{const v=world.groundZFor3DCoord?.(px,py,from);return typeof v==='number'&&v!==0?v:undefined;};
   const found=probe(x,y)??probe(x+.25,y)??probe(x-.25,y)??probe(x,y+.25)??probe(x,y-.25);
   // No ground within six units under the step: inside, that is FindGroundZFor3DCoord's 0 through a wall into the void
