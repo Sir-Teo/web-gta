@@ -95,7 +95,10 @@ export function missionBotTick(dtSeconds:number){
   const step=Math.min(d-stopAt,7*dtSeconds),x=me.x+(to.x-me.x)/d*step,y=me.y+(to.y-me.y)/d*step;
   // The ground is looked for from a little over the line between the two points, not over the higher one: from
   // above a roof it finds the roof (CJ walking to the barber's door stood on the shop).
-  const z=world.groundZFor3DCoord?.(x,y,me.z+(to.z-me.z)*step/d+1.5)??to.z;
+  // Over the point already but above it (on a porch roof over SWEET1B's crack house door), the ground is looked for
+  // from the point's own height, so he steps down rather than walking the roof for ever.
+  const over=Math.hypot(to.x-x,to.y-y)<1.5&&me.z-to.z>1.5;
+  const z=world.groundZFor3DCoord?.(x,y,over?to.z+1.5:me.z+(to.z-me.z)*step/d+1.5)??to.z;
   world.setPedCoordinates(1,x,y,z+1);
   return true;
  };
