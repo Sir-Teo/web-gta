@@ -503,7 +503,12 @@ async function boot() {
      continue;
     }
     const p=onFoot(e);if(!p||p.health<=0||p.follow)continue;
-    const killing=p.order?.kind==='killPed'&&(!p.order.foe||memberEntities.has(p.order.foe))||p.retaliate>0&&(!p.foe||memberEntities.has(p.foe));
+    // A kill task or a retaliation on CJ or a member, a gun fired at them (TASK_SHOOT_AT_CHAR, SWEET4's Ballas running
+    // in shooting), or TASK_DESTROY_CAR on the car they ride.
+    const o=p.order;
+    const killing=o?.kind==='killPed'&&(!o.foe||memberEntities.has(o.foe))||p.retaliate>0&&(!p.foe||memberEntities.has(p.foe))||
+     (o?.kind==='gunAt'&&o.fire||o?.kind==='goToPointShooting')&&(o.player||!!o.target&&memberEntities.has(o.target))||
+     o?.kind==='destroyCar'&&(o.vehicle===1||m.vehicles.exists(o.vehicle)&&m.vehicles.entity(o.vehicle)===leaderCar);
     if(killing)threats.push({key:`ped:${h}`,position:()=>p.health>0&&pedestrians?.hasPed(p)?p.actor.player.position:undefined});
    }
    for(const p of pedestrians?.attackersOf(memberEntities)??[]){

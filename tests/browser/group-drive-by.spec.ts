@@ -37,5 +37,12 @@ test('a homie riding in CJ\'s car shoots at the ped attacking CJ',async({page})=
  await page.evaluate(s=>{(window as any).__game.missionForProfiling().adapterRef.deletePed(s.foe);},setup);
  await expect.poll(async()=>(await rider()).group,{timeout:10000}).toBeNull();
  await expect.poll(async()=>(await crew()).group,{timeout:10000}).toBeNull();
+ // SWEET4's Ballas go for the car instead (TASK_DESTROY_CAR): that is a threat too.
+ const wrecker=await page.evaluate(()=>(window as any).__game.missionForProfiling().peds.create(8,'BALLAS1',{x:2470,y:-1648,z:-100}));
+ await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().peds.entity(h),wrecker,{timeout:60000});
+ await page.waitForTimeout(1500);
+ expect((await rider()).group).toBeNull();
+ await page.evaluate(({wrecker,car})=>{(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(wrecker,{kind:'destroyCar',vehicle:car},0x0672);},{wrecker,car:setup.car});
+ await expect.poll(async()=>(await rider()).group,{timeout:10000}).toBe(`ped:${wrecker}`);
  expect(errors).toEqual([]);
 });

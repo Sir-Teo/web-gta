@@ -9089,8 +9089,9 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **`CTaskAllocatorKillThreatsDriveby`** (reversed): while CJ drives, every member of his group riding his car (not
   driving it) gets `CTaskSimpleGangDriveBy` on the threat, abort range 60, frequency 90, all directions, through the
   port's TASK_DRIVE_BY rider. Which ped is the threat is `CPedGroupIntelligence`'s event handling, unreversed
-  (AUTHORED): the nearest within 60 attacking CJ or a member (a kill task or a retaliation on them, a rider's drive-by
-  at them or at CJ's car), looked for twice a second; the drive-by ends when none is left, and one the script gave
+  (AUTHORED): the nearest within 60 attacking CJ or a member (a kill task or a retaliation on them, a gun fired at
+  them, TASK_DESTROY_CAR on CJ's car as SWEET4's Ballas do, a rider's drive-by at them or at CJ's car), looked for twice
+  a second; the drive-by ends when none is left, and one the script gave
   is left alone. The crew recruited off the street rides along the same way when it carries a gun. SWEET3 teaches it
   ("Gang members in your car will open fire on threats if you're close enough").
 
