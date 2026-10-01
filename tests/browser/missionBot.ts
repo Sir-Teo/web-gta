@@ -114,6 +114,11 @@ export function missionBotTick(dtSeconds:number){
    if(vehicle&&distance(door)<12){try{world.warpPedFromCarToCoord(1,me.x,me.y,me.z);}catch{}return {action:'leave car at door'};}
    if(glide(door,0))return {action:'go to door'};return {action:'at door'};
   }
+  // Parked at the place for a few seconds and the objective has not moved on: the script wants CJ out of the car
+  // (SWEET1 waits for him to leave Sweet's Greenwood at each wall), as a player would get out at the marker.
+  if(vehicle&&distance(p.position)<10){mem.parkedAtPlace=(mem.parkedAtPlace??0)+dtSeconds;
+   if(mem.parkedAtPlace>4){mem.parkedAtPlace=0;mem.drive=undefined;try{world.clearPedTasks?.(1);world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car at place'};}}
+  else mem.parkedAtPlace=0;
   if(glide(p.position,1))return {action:'go to place'};return {action:'at place'};
  }
  if(chases.length){
