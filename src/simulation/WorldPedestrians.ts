@@ -2176,9 +2176,12 @@ export class WorldPedestrians {
  };
  /** A ped's or the player's origin, native. */
  private nativeOrigin(who:Pedestrian|'player'){const q=who==='player'?this.sim.player.position:who.actor.player.position;return {x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT};}
- /** What ComputeBuildingCollisionResponse walks a ped round a wall toward: the target of its kill task (the foe it
-  * fights, or the player), or the point of the script's go-to. Nothing for any other task. */
+ /** What ComputeBuildingCollisionResponse walks a ped round a wall toward: the player for a cop in the pursuit, the
+  * target of a kill task (the foe it fights, or the player), or the point of the script's go-to. Nothing for any other
+  * task. */
  private walkRoundGoal(p:Pedestrian):{point:NativeV3;target?:Pedestrian|'player';moveState:number;kill:boolean}|undefined{
+  // A cop in the pursuit on foot seeks the player (CTaskComplexSeekEntity or its kill task), unless he is being arrested.
+  if(p.officer&&this.law?.level&&this.pursuers.has(p)&&!this.law.arrested&&!p.goTo&&this.sim.player.health>0)return {point:this.nativeOrigin('player'),target:'player',moveState:6,kill:true};
   if(!p.officer&&p.retaliate>0&&!p.fight&&p.taunt===undefined&&p.flee<=0){
    const target=p.foe&&p.foe.health>0&&this.people.includes(p.foe)?p.foe:p.follow?undefined:'player';
    if(target)return {point:this.nativeOrigin(target),target,moveState:6,kill:true};
@@ -2189,7 +2192,8 @@ export class WorldPedestrians {
  }
  /** CEventBuildingCollision on a ped whose step a fixed surface ahead stopped: AffectsPed's walking-into test, then
   * ComputeBuildingCollisionResponse (reversed). A kill task walks round toward its target unless, head on, the ped can
-  * see it over the wall (CPedGeometryAnalyser::CanPedTargetPed); a go-to point walks round only head on (the jump over
+  * see it over the wall (CPedGeometryAnalyser::CanPedTargetPed), and so does a cop seeking the player; a go-to point
+  * walks round only head on (the jump over
   * a low obstacle is not taken). The building treated as an object, the climb for the player's group and the hit
   * head of a ped with neither task are not here. */
  private buildingCollision(p:Pedestrian,along:{x:number;z:number}){

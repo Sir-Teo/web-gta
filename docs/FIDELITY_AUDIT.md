@@ -9071,7 +9071,8 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   through `ComputeBuildingCollisionResponse`: a ped on a kill task that cannot see its target over the wall, or on a
   script go-to that walks into it head on, scratches its head (walking) or hits the wall (running) while it computes
   a route an attempt a frame (the target's side, both head on, at growing reach, 0.35 off the wall; two points round
-  the wall's end; a random step back off it past twenty attempts), then follows it and goes back to its task. It
+  the wall's end; a random step back off it past twenty attempts), then follows it and goes back to its task. A cop in
+  the pursuit on foot seeks the player the same way. It
   gives up after a second without progress, or when the target moves four units. The browser's authored ±65°
   sidestep still serves every other ped. Not here: the building treated as an object, the jump over a low
   obstacle, the climb for the player's group and the hit head of a ped with neither task.
