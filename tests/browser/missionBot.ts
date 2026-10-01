@@ -98,7 +98,10 @@ export function missionBotTick(dtSeconds:number){
   // Over the point already but above it (on a porch roof over SWEET1B's crack house door), the ground is looked for
   // from the point's own height, so he steps down rather than walking the roof for ever.
   const over=Math.hypot(to.x-x,to.y-y)<1.5&&me.z-to.z>1.5;
-  const z=world.groundZFor3DCoord?.(x,y,over?to.z+1.5:me.z+(to.z-me.z)*step/d+1.5)??to.z;
+  // A step of under half a metre that finds the ground six or more under him found something below the street (a
+  // storm drain where the street's own collision had not streamed in): he keeps his height and lets physics decide.
+  const found=world.groundZFor3DCoord?.(x,y,over?to.z+1.5:me.z+(to.z-me.z)*step/d+1.5);
+  const z=found!==undefined&&!over&&me.z-1-found>6?me.z-1:found??to.z;
   world.setPedCoordinates(1,x,y,z+1);
   return true;
  };
@@ -125,7 +128,9 @@ export function missionBotTick(dtSeconds:number){
  }
  // A tag to spray (SWEET1's walls): with the spray can in hand CJ stands a little out from the wall, in front of
  // the tag, and sprays at it until it is his. Tags carry no blip; the script counts them by area.
- let canSpray=false;try{canSpray=!vehicle&&!!world.pedHasWeapon?.(1,41);}catch{}
+ // A homie left behind comes first: SWEET1B's CJ still has SWEET1's can, and went spraying the street's tags while the
+ // mission waited for him to fetch Sweet.
+ let canSpray=false;try{canSpray=!vehicle&&!!world.pedHasWeapon?.(1,41)&&!(friends.length&&distance(nearest(friends).position)>10);}catch{}
  if(canSpray){
   const tag=(g.tagsNear?.(me.x,me.y,20)??[]).filter((t:any)=>t.alpha<255).sort((a:any,b:any)=>distance(a)-distance(b))[0];
   if(tag){
