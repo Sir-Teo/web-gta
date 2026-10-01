@@ -904,6 +904,8 @@ const handlers:Record<string,ScmCommandHandler>={
  SHUT_ALL_CHARS_UP:(t,p,i)=>{world(t,i,'setAllPedSpeechDisabled')(bool(t,p[0]));},
  SET_CHAR_ANIM_SPEED:(t,p,i)=>{world(t,i,'setPedAnimSpeed')(t.readInt(p[0]),t.text(p[1]),t.readFloat(p[2]));},
  // An animation the ped is not playing leaves the variable at nothing, which the source returns.
+ // GetCharAnimTotalTime (CharacterCommands.cpp:2922): the association's m_BlendHier->m_fTotalTime in ms, 0 without it.
+ GET_CHAR_ANIM_TOTAL_TIME:(t,p,i)=>{t.writeFloat(p[2],world(t,i,'pedAnimTotalTime')(t.readInt(p[0]),t.text(p[1])));},
  GET_CHAR_ANIM_CURRENT_TIME:(t,p,i)=>{
   t.writeFloat(p[2],world(t,i,'pedAnimProgress')(t.readInt(p[0]),t.text(p[1]))??0);
  },

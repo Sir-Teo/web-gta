@@ -395,6 +395,17 @@ export interface ScmMissionWorld {
  addExplosion(position:{x:number;y:number;z:number},type:number,options?:{sound?:boolean}):void;
  /** The CAutomobile a car handle stands for, for the component commands; nothing for a bike, boat or aircraft. */
  scriptCarComponents?(car:unknown):ScmCarComponents|undefined;
+ /** The named clip's total time in ms while the player or a script ped plays it (GET_CHAR_ANIM_TOTAL_TIME). */
+ playerAnimTotalTime?(animation:string):number|undefined;
+ scriptPedAnimTotalTime?(ped:unknown,animation:string):number|undefined;
+ /** CPed::bIsDucking of the player and of a script ped. */
+ playerDucking?():boolean;
+ scriptPedDucking?(ped:unknown):boolean;
+ /** The player climbs (CTaskSimpleClimb), and holds the horn while driving. */
+ playerClimbing?():boolean;
+ playerPressingHorn?():boolean;
+ /** CPopCycle::m_nCurrentZoneType. */
+ populationZoneType?():number;
  /** GET_CAR_COLOURS and GET_EXTRA_CAR_COLOURS: the four paint slots' palette entries (CVehicle::m_nPrimaryColor to
   * m_nQuaternaryColor). */
  scriptVehicleColours?(car:unknown):{primary:number;secondary:number;tertiary:number;quaternary:number};
@@ -1102,6 +1113,17 @@ export class ScmMission {
     if(flag==='neverLeavesGroup'){if(value)this.neverLeavesGroup.add(handle);else this.neverLeavesGroup.delete(handle);}
    },
    setPedSuffersCriticalHits:(handle,suffers)=>{this.world.setScriptPedCriticalHits(this.livePed(handle),suffers);},
+   pedAnimTotalTime:(handle,animation)=>(handle===PLAYER_PED_HANDLE?this.host('playerAnimTotalTime','GET_CHAR_ANIM_TOTAL_TIME')(animation):this.world.scriptPedAnimTotalTime?.(this.livePed(handle),animation))??0,
+   // IsCharDucking (CharacterCommands.cpp:293): CPed::bIsDucking.
+   pedIsDucking:handle=>handle===PLAYER_PED_HANDLE?this.host('playerDucking','IS_CHAR_DUCKING')():!!this.world.scriptPedDucking?.(this.livePed(handle)),
+   // IsPlayerClimbing (PlayerCommands.cpp:90): a CTaskSimpleClimb in the player's intelligence.
+   isPlayerClimbing:()=>this.host('playerClimbing','IS_PLAYER_CLIMBING')(),
+   // IsPlayerPressingHorn (PlayerCommands.cpp:172): PEDSTATE_DRIVING and CPad::GetHorn.
+   isPlayerPressingHorn:()=>this.host('playerPressingHorn','IS_PLAYER_PRESSING_HORN')(),
+   // GetCurrentPopulationZoneType (ZoneCommands.cpp:87): CPopCycle::m_nCurrentZoneType.
+   currentPopulationZoneType:()=>this.host('populationZoneType','GET_CURRENT_POPULATION_ZONE_TYPE')(),
+   // CTaskComplexProstituteSolicit::GetRidOfPlayerProstitute: the browser has no prostitute's solicit task to end.
+   getRidOfPlayerProstitute:()=>{},
    pedAnimProgress:(handle,animation)=>handle===PLAYER_PED_HANDLE?this.host('playerAnimProgress','GET_CHAR_ANIM_CURRENT_TIME')(animation):this.world.scriptPedAnimProgress(this.livePed(handle),animation),
    setPedAnimSpeed:(handle,animation,speed)=>{this.host('setScriptPedAnim','SET_CHAR_ANIM_SPEED')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),animation,{speed});},
    setPedAnimProgress:(handle,animation,progress)=>{this.host('setScriptPedAnim','SET_CHAR_ANIM_CURRENT_TIME')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),animation,{progress});},

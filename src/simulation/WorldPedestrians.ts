@@ -2075,6 +2075,8 @@ export class WorldPedestrians {
  isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
  /** How far through that animation the ped is, or nothing when it is playing something else. */
  animProgress(ped:Pedestrian,animation:string){return this.isPlayingAnim(ped,animation)?ped.view.reactionProgress:undefined;}
+ /** The named clip's total time in ms while the ped plays it. */
+ animTotalTime(ped:Pedestrian,animation:string){if(!this.isPlayingAnim(ped,animation))return undefined;const name=ped.view.reactionName;return name?(ped.view.reactionDuration(name)??0)*1000:undefined;}
  /** A clip from a script's animation block, for a ped the host draws in a seat rather than on foot. */
  loadScriptAnimation(file:string,name:string){return this.catalog?.scriptAnimation(file,name)??Promise.resolve(undefined);}
  /** The combo a ped's fists swing: its fighting style's, once that style's clips are on its body, else UNARMED_1. */

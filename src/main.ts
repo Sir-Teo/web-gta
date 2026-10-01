@@ -4620,6 +4620,13 @@ async function boot() {
                  setScriptPickupMoneyPerDay:(handle,money)=>{pickups.patchGenerated(`script:${handle}`,{revenueRate:money});},
                  // bNoCriticalHits is the command's own value inverted.
                  setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},
+                 playerAnimTotalTime:animation=>{const view=render.nativeCharacter;return view&&(view.reactionName??'').toLowerCase()===animation.toLowerCase()?(view.reactionDuration(view.reactionName!)??0)*1000:undefined;},
+                 scriptPedAnimTotalTime:(ped,animation)=>{const p=onFoot(ped);return p?pedestrians?.animTotalTime(p,animation):undefined;},
+                 playerDucking:()=>!!sim.player.crouched,
+                 scriptPedDucking:ped=>!!onFoot(ped)?.actor.player.crouched,
+                 playerClimbing:()=>!!sim.climb,
+                 playerPressingHorn:()=>!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike)&&(input.down('CapsLock')||input.down('KeyH')),
+                 populationZoneType:()=>fleet?.pedZone()?.zoneType??0,
                  scriptPedAnimProgress:(ped,animation)=>{const p=onFoot(ped);return p?pedestrians?.animProgress(p,animation):undefined;},
                  setScriptPedAnim:(ped,animation,change)=>{if(ped===undefined){if(render.nativeCharacter)setCharacterAnim(render.nativeCharacter,animation,change);return;}const p=onFoot(ped);if(p)pedestrians?.setAnim(p,animation,change);},
                  playerAnimProgress:animation=>{const view=render.nativeCharacter;return view&&(view.reactionName??'').toLowerCase()===animation.toLowerCase()?view.reactionProgress:undefined;},
