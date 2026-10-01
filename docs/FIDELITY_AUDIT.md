@@ -8972,3 +8972,12 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   (dealer.scm does that in English); the player's answer takes 1.2 s. The speech itself is in the unpublished banks.
   A dealer now asks CJ "You want some stuff?" and takes his answer (spec `ped-brains`); gf_meeting, HEIST1 and MUSIC1
   use the same machinery.
+
+## Fallen through the map
+
+- **`CWorld::RemoveFallenPeds` and `RemoveFallenCars` (World.cpp:1312, 1341).** A ped under `MAP_Z_LOW_LIMIT` that a
+  script made is set two units over the nearest pedestrian node with its speed gone; one the game made is removed. A car
+  under it that a script made (not burnt out) or that the player is in goes three units over the nearest pedestrian
+  node; a random or parked one is removed. The player already had his. In a SWEEP of SWEET1B Sweet dropped through the
+  ramp at Grove's west end while following CJ and fell for ever (z −2600 and falling), and the mission waited for him to
+  catch up.

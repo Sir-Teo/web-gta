@@ -627,6 +627,17 @@ export class WorldFleet {
    if(car.disposed||!this.cars.has(car)||car.missionCar){this.driven.delete(car);continue;}
    if(!car.occupied&&now-last>VEHICLE_OF_INTEREST_MS&&car.distance()>140&&this.canChangePopulation(car.car.body.translation(),6)){this.cars.delete(car);this.driven.delete(car);car.dispose();}
   }
+  // CWorld::RemoveFallenCars (World.cpp:1341): a car through the map (MAP_Z_LOW_LIMIT) that a script made (and is not
+  // burnt out) or that the player is in goes three units over the nearest pedestrian node (to 0 where there is none)
+  // with its speed gone; a random or parked one is removed.
+  for(const car of [...this.cars]){
+   if(car.disposed)continue;
+   const body=car.car.body,t=body.translation();if(t.y>MAP_Z_LOW_LIMIT)continue;
+   if(car.missionCar&&!car.wrecked||car.occupied){
+    const node=this.sim.nearestPedNode?.({x:t.x,y:t.y,z:t.z}),to=node?{x:node.x,y:node.y+3,z:node.z}:{x:t.x,y:0,z:t.z};
+    body.setTranslation(to,true);body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
+   }else if(!car.missionCar){this.cars.delete(car);this.generated.delete(car);this.driven.delete(car);car.dispose();}
+  }
   // A script's vehicles stay, however far off, until the script deletes them or lets them go (INTRO1 parks a homie's
   // BMX out of the way and uses it again; it used to be culled from under the script).
   for(const plane of [...this.planes])if(!plane.occupied&&!plane.policeHeli&&!plane.missionCar&&plane.distance()>350)this.removePlane(plane);

@@ -968,6 +968,10 @@ export class WorldPedestrians {
     // CPedGroupMembership::Process drops a dead member from the group at once (PedGroupMembership.cpp:126-136), and a
     // body is no police car's crew: the dead fade like anyone else.
     if(p.health<=0){p.follow=false;p.crew=undefined;}
+    // CWorld::RemoveFallenPeds (World.cpp:1312): a ped through the map (MAP_Z_LOW_LIMIT) the script made is set two
+    // units over the nearest pedestrian node with its speed gone, and one the game made is removed. Left to fall,
+    // Sweet dropped through the ramp at Grove's west end in SWEET1B and fell for ever, and the mission waited for him.
+    if(p.actor.player.position.y<=MAP_Z_LOW_LIMIT){if(!p.mission)return false;this.recoverFallen(p);return true;}
     // CPed::CanBeDeleted: a recruited crew member or a police car's crew is never removed by the population manager.
     if(p.follow||p.crew||p.attackWave||p.mission)return true;
     const visible=!this.canSpawn(p.actor.player.position,2),d=Math.hypot(p.actor.player.position.x-player.x,p.actor.player.position.z-player.z);
@@ -1413,6 +1417,13 @@ export class WorldPedestrians {
    if(e<d2){d2=e;best={x,y,z};}
   }
   return best;
+ }
+ /** RemoveFallenPeds' teleport: two units over the nearest pedestrian node (-95 where there is none), not moving. */
+ private recoverFallen(p:Pedestrian){
+  const state=p.actor.player,q=state.position,node=this.nearestPedNode(q);
+  const to=node?{x:node.x,y:node.y+2,z:node.z}:{x:q.x,y:-95,z:q.z};
+  state.position={...to};state.previous={...to};state.speed=0;p.air=undefined;p.impulse={x:0,z:0};
+  p.body.setTranslation({x:to.x,y:to.y+(p.down>0?.3:.9),z:to.z},true);
  }
  /** The allowed path node nearest a point, however far: one scan rather than a sort of every node. */
  private nearestNode(position:{x:number;z:number}){return this.closestNode(position,Number.POSITIVE_INFINITY);}
