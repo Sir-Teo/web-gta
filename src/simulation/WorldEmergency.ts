@@ -106,9 +106,10 @@ export function fireTruckAim(aim:{yaw:number;pitch:number},o:{fire:{x:number;y:n
 }
 interface Truck {
  car:WorldCar;model:string;
- /** CTaskComplexDriveFireTruck's subtask: driving to a fire, its cannon on it, or wandering. */
- mission:'toFire'|'cannon'|'wander';
- fire?:EmergencyFire;aim:{yaw:number;pitch:number};
+ /** CTaskComplexDriveFireTruck's subtask: driving to a fire, its cannon on it, or wandering; or, made for a script,
+  * driving to the script's point first. */
+ mission:'toFire'|'cannon'|'wander'|'toPoint';
+ fire?:EmergencyFire;aim:{yaw:number;pitch:number};goal?:V3;
 }
 
 type V3={x:number;y:number;z:number};
@@ -153,7 +154,7 @@ interface Medic {
 }
 interface Unit {
  car:WorldCar;model:string;medics:Medic[];
- mission:'toAccident'|'stop'|'crewOut'|'wander';
+ mission:'toAccident'|'stop'|'crewOut'|'wander'|'toPoint';
  /** The driver's accident while he drives to it. */
  accident?:Accident<Casualty>;goal?:V3;
 }
@@ -272,6 +273,7 @@ export class WorldEmergency {
   const car=t.car;if(car.wrecked){car.siren=false;return;}
   const fires=this.fires?.fires??[],c=toNative(car.car.body.translation());
   if(t.mission==='wander'){if(findNearestFire(fires,c))this.truckFindsFire(t);return;}
+  if(t.mission==='toPoint'){const g=toNative(t.goal!);if(Math.hypot(g.x-c.x,g.y-c.y)<FIRETRUCK_TARGET_RADIUS||!this.driving.driving(car))this.truckFindsFire(t);return;}
   const fire=t.fire;
   if(!fire?.active){this.truckFindsFire(t);return;}
   if(t.mission==='toFire'){
@@ -316,6 +318,33 @@ export class WorldEmergency {
    this.driverFindsAccident(unit);
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
  }
+ /** CCarCtrl::ScriptGenerateOneEmergencyServicesCar (0x42FBC0, reversed) over GenerateOneEmergencyServicesCar, which
+  * is unreversed and made here as the dispatch makes its own: a fire engine or an ambulance, crewed, on a road out of
+  * sight from which the road reaches the script's point (native axes), driving there with its siren on
+  * (MISSION_GOTOCOORDINATES). There it takes up its own work: the fires about, or the accidents. Any other model
+  * (the police cars DECON asks for as it raises the wanted level) is left to the wanted level's own dispatch. */
+ scriptGenerate(modelId:number,goalNative:V3){
+  const paths=this.paths;if(!paths||modelId!==MODEL_FIRETRUK&&modelId!==MODEL_AMBULAN)return false;
+  const goal=toRenderer(goalNative),player=this.sim.player.position;
+  void paths.loadAround(player.x,player.z).then(async()=>{
+   if(this.disposed)return;
+   const link=this.spawnLink(paths.areas,goal);if(!link)return;
+   const {x,z}=link.start,y=link.from.position[2];
+   const car=await this.fleet.spawnTrafficCar(modelId,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
+   if(!car)return;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
+   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;car.siren=true;
+   const level=Math.max(0,Math.min(3,this.level()));
+   if(modelId===MODEL_FIRETRUK){
+    this.trucks.push({car,model:DEFAULT_FIREMAN_MODEL[level],mission:'toPoint',aim:{yaw:0,pitch:0},goal});
+    this.driving.gotoCoords(car,goal,{cruise:FIRETRUCK_CRUISE,style:DRIVINGSTYLE.avoidCars});
+   }else{
+    void this.clips.load(car.animGroup).catch(()=>{});
+    this.units.push({car,model:DEFAULT_MEDIC_MODEL[level],mission:'toPoint',goal,medics:[0,2].map(seat=>({seat,state:'seated',time:0,best:Infinity,stall:0,leftOnce:false}))});
+    this.driving.gotoCoords(car,goal,{cruise:MEDIC_CRUISE,style:DRIVINGSTYLE.avoidCars});
+   }
+  }).catch(e=>{this.error=String(e);});
+  return true;
+ }
  /** NewGenerateCarCreationCoors' stand-in: a road link 60 to 120 units from the player, out of sight, with no car on
   * it, from which the road reaches the accident; the shortest such route first. */
  private spawnLink(areas:ReadonlyMap<number,import('../assets/pathNodes').PathArea>,goal:V3){
@@ -343,6 +372,7 @@ export class WorldEmergency {
   const car=u.car,c=car.car.body.translation();
   if(car.wrecked){car.siren=false;return;}
   const aboard=u.medics.every(m=>m.state==='seated'||m.state==='gone');
+  if(u.mission==='toPoint'&&(Math.hypot(u.goal!.x-c.x,u.goal!.z-c.z)<MEDIC_LEAVE_CAR_DISTANCE||!this.driving.driving(car))){u.mission='wander';car.siren=false;}
   if(u.mission==='wander'&&aboard)this.driverFindsAccident(u);
   if(u.mission==='toAccident'){
    const goal=u.goal!;

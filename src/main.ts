@@ -1311,8 +1311,12 @@ async function boot() {
         // CTheScripts::HighlightImportantArea's CShadows::RenderIndicatorShadow: three red cylinders at the area's centre.
         if(mission)for(const h of mission.highlightedAreas()){
           const z=h.z??markerGround(h.x,h.y,1000);if(z===undefined)continue;
+          // DRAW_SPHERE: one cylinder, as DrawScriptSpheres places its own.
+          if(h.sphere){markers3d.placeMarkerSet(h.id,MARKER3D.cylinder,[h.x,h.y,z],h.halfX,255,0,0,228,2048,.1,ctx);continue;}
           for(const mult of [.8,.9,1])markers3d.placeMarkerSet(h.id,MARKER3D.cylinder,[h.x,h.y,z],h.halfX*mult,255,0,0,255,2048,.2,ctx);
         }
+        // CTheScripts::DrawScriptSpheres (0x4810E0): every sphere ADD_SPHERE made, a red cylinder of its radius.
+        if(mission)for(const s of mission.runtime.game.scriptSpheres.active)markers3d.placeMarkerSet(s.id,MARKER3D.cylinder,[s.position.x,s.position.y,s.position.z],s.radius,255,0,0,228,2048,.1,ctx);
         debugMarkers.forEach((q,i)=>markers3d.placeMarkerCone(0x10000+i,q,2,255,255,0,255,1024,1,5,false,cam,ctx));
         // CCheckpoints::Render: the script's race tubes and rings, placed as markers each frame.
         mission?.runtime.game.checkpoints.markers.render(markers3d,ctx,(x,y)=>render.lighting.water.levels?.levelNoWaves(x,y));
@@ -4689,6 +4693,9 @@ async function boot() {
                  cameraFront:()=>{const d=render.camera.getWorldDirection(new Vector3());return {x:d.x,y:-d.z,z:d.y};},
                  cameraFov:()=>render.camera.fov,
                  setCameraInFrontOfPlayer:()=>{render.camDirectlyInFront=sim.player.heading;},
+                 setCameraInFrontOfHeading:degrees=>{render.camDirectlyInFront=scriptYaw(degrees);},
+                 scriptEmergencyServicesCar:(model,point)=>{emergency?.scriptGenerate(model,point);},
+                 addBlood:(position,direction,amount)=>{worldFx.effects?.blood([position.x,position.y,position.z],[direction.x,direction.y,direction.z],amount,1);},
                  // CHud::HelpMessageDisplayed: the help box (or the stat box, which is the same one) is up.
                  helpMessageShowing:()=>hud.helpShowing(),
                  // IS_THIS_HELP_MESSAGE_BEING_DISPLAYED: the box is up with the script's own text for that key.

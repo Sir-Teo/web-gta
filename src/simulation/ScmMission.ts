@@ -255,6 +255,12 @@ export interface ScmMissionWorld {
  takeWorldObject?(key:string,taken:boolean):boolean;
  /** The models whose IDE flags mark a garage door (0x800, CBaseModelInfo::IsGarageDoor), lower case. */
  garageDoorModels?():ReadonlySet<string>|undefined;
+ /** The follow camera turned to face along a heading (degrees, native), from in front. */
+ setCameraInFrontOfHeading?(degrees:number):void;
+ /** CCarCtrl::ScriptGenerateOneEmergencyServicesCar: a crewed emergency vehicle sent to the point. */
+ scriptEmergencyServicesCar?(model:number,point:{x:number;y:number;z:number}):void;
+ /** Fx_c::AddBlood (native axes). */
+ addBlood?(position:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},amount:number):void;
  /** A model's EFFECT_TRIGGER_POINT of that index, in the model's space. */
  modelTriggerPoint?(model:string,index:number):[number,number,number]|undefined;
  /** CWeaponInfo::GetWeaponInfo(type): m_nSlot and m_nModelId1, or nothing before weapon.dat is in. */
@@ -1584,6 +1590,23 @@ export class ScmMission {
    // bWantedByPolice and bDruggedUp are kept on the handle. AUTHORED: nothing reads them yet (the cops' kill-criminal
    // task that would chase a ped wanted by the police is not the browser's).
    setPedWantedByPolice:(handle,state)=>{this.pedFlag(handle).wantedByPolice=state;},
+   // bIgnoreHeightDifferenceFollowingNodes (PedCommands.cpp, reversed): kept on the ped; the browser's route
+   // following does not test the height difference it waives.
+   setPedIgnoreHeightDifferenceFollowingNodes:(handle,ignore)=>{if(handle!==PLAYER_PED_HANDLE)this.pedFlag(handle).ignoreHeightDifferenceFollowingNodes=ignore;},
+   // SetCameraDirectlyInFrontForFollowPed_ForAPed_CamOnAString (CameraCommands.cpp, reversed): the follow camera
+   // turned to look at the ped from in front; the player's camera is the one that follows.
+   setCameraInFrontOfPed:handle=>{if(handle===PLAYER_PED_HANDLE)this.world.setCameraInFrontOfPlayer();else this.world.setCameraInFrontOfHeading?.(this.peds.headingOf(handle));},
+   // CPlayerInfo's m_bCanShowVitalStats: whether the stats button shows the vital stats.
+   setPlayerDisplayVitalStatsButton:(_player,enabled)=>{this.displayVitalStatsButton=enabled;},
+   // CCarCtrl::ScriptGenerateOneEmergencyServicesCar (reversed) over the host's own emergency services.
+   createEmergencyServicesVehicle:(model,x,y,z)=>{if(typeof model==='number')this.world.scriptEmergencyServicesCar?.(model,{x,y,z});},
+   // Fx_c::AddBlood at the point, along the direction, for the density the script gives.
+   addBlood:(x,y,z,vx,vy,vz,density)=>{this.world.addBlood?.({x,y,z},{x:vx,y:vy,z:vz},density);},
+   // vehicleFlags.bAlwaysSkidMarks (SET_CAR_ALWAYS_CREATE_SKIDS, reversed): CRenderer keeps an off-screen car with
+   // it pre-rendered further out, so its wheels go on laying marks; the browser lays every stepped car's marks on or off
+   // screen, so the flag is kept and needs nothing more. And VEHICLE_DOES_PROVIDE_COVER's flag.
+   setVehicleAlwaysCreateSkids:(handle,enable)=>{this.carFlag(handle).alwaysSkidMarks=enable;},
+   vehicleDoesProvideCover:(handle,state)=>{this.carFlag(handle).providesCover=state;},
    setPedDruggedUp:(handle,state)=>{this.pedFlag(handle).druggedUp=state;},
    // AUTHORED: the street makes no drug buyers (the handler and whatever marks a buyer are unreversed), so a dealer's
    // look for one finds nobody.
@@ -1648,6 +1671,7 @@ export class ScmMission {
    pedIsStopped:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().stopped:this.world.scriptPedStanding(this.livePed(handle)),
    // CTheScripts::HighlightImportantArea: kept for this script pass, drawn by the marker pass after it.
    highlightArea:(id,centre,halfX)=>{this.highlights.set(id,{id,x:centre.x,y:centre.y,z:centre.z,halfX});},
+   drawSphere:(id,x,y,z,radius)=>{this.highlights.set(id,{id,x,y,z,halfX:radius,sphere:true});},
    pedIsDeadForScript:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().dead:this.peds.isDead(handle),
    pedHealth:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().health:this.peds.healthOf(handle),
    setPlayerControl:(_player,control)=>{this.playerControl=control;this.world.setPlayerControl(control);},
@@ -2213,8 +2237,10 @@ export class ScmMission {
   this.entry=header.entry;this.streamedTable=header.streamed;this.largestStreamedSize=header.largestStreamedSize;
  }
  /** Flags a script set on its cars and peds that nothing in the port reads yet (see the vigilante's adapters). */
- private readonly carFlags=new Map<number,{convoy?:boolean;routeSeed?:number;avoidLevelTransitions?:boolean}>();
- private readonly pedFlags=new Map<number,{chrisCriminal?:boolean;forceDieInCar?:boolean;wantedByPolice?:boolean;druggedUp?:boolean}>();
+ private readonly carFlags=new Map<number,{convoy?:boolean;routeSeed?:number;avoidLevelTransitions?:boolean;alwaysSkidMarks?:boolean;providesCover?:boolean}>();
+ /** CPlayerInfo's m_bCanShowVitalStats, which SET_PLAYER_DISPLAY_VITAL_STATS_BUTTON sets. */
+ displayVitalStatsButton=true;
+ private readonly pedFlags=new Map<number,{chrisCriminal?:boolean;forceDieInCar?:boolean;wantedByPolice?:boolean;druggedUp?:boolean;ignoreHeightDifferenceFollowingNodes?:boolean}>();
  private carFlag(handle:number){let f=this.carFlags.get(handle);if(!f){f={};this.carFlags.set(handle,f);}return f;}
  private pedFlag(handle:number){let f=this.pedFlags.get(handle);if(!f){f={};this.pedFlags.set(handle,f);}return f;}
  /** CTheScripts::LastRandomPedId: the street ped GET_RANDOM_CHAR_IN_ZONE handed out last, which it passes over. */
@@ -3308,7 +3334,9 @@ export class ScmMission {
  /** The game clock the script last ran at. */
  private clockMs=0;
  /** The areas the last script pass asked HighlightImportantArea for, by marker id. */
- private readonly highlights=new Map<number,{id:number;x:number;y:number;z?:number;halfX:number}>();
+ private readonly highlights=new Map<number,{id:number;x:number;y:number;z?:number;halfX:number;
+  /** DRAW_SPHERE's marker: one cylinder as DrawScriptSpheres places them, not the highlight's three. */
+  sphere?:boolean}>();
  /** CShadows::RenderIndicatorShadow (0x70CCB0) for each area the last script pass highlighted: three red cylinders
   * (C3dMarkers::PlaceMarkerSet, MARKER3D_CYLINDER, 255 0 0 255, pulse 2048 and 0.2) at 0.8, 0.9 and the full size, all
   * under the script's id. A 2D area's centre has no height: FindGroundZForCoord finds it. */

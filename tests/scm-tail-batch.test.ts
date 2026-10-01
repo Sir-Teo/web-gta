@@ -118,7 +118,7 @@ describe('the tail of vehicle, object and world commands',()=>{
   expect(calls).toEqual([
    ['carriage',CAR,1],['attachCar',CAR,10,{x:0,y:1,z:2},{x:0,y:0,z:90}],['door',CAR,2,1,0.5],
    ['velocity',OBJECT,1,0,0],['attachObject',OBJECT,12,{x:0,y:0,z:1},{x:0,y:0,z:0}],
-   ['light',4,PED,2],['sphere',1,2,3,5],['skip',10,20,3,90],['fastest',12,4500],
+   ['light',4,PED,2],['sphere',expect.any(Number),1,2,3,5],['skip',10,20,3,90],['fastest',12,4500],
    ['speed',OBJECT],
   ]);
  });

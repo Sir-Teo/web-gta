@@ -1969,8 +1969,9 @@ const handlers:Record<string,ScmCommandHandler>={
  // CPlane::SwitchAmbientPlanes (unreversed): whether ambient planes are generated. The browser generates none.
  SWITCH_AMBIENT_PLANES:(t,p,i)=>{game(t,i).ambientPlanes=bool(t,p[0]);},
  SYNC_WATER:(t,_p,i)=>{world(t,i,'syncWater')();},
+ // A red marker for this frame, keyed by the thread and the instruction as the highlights are.
  DRAW_SPHERE:(t,p,i)=>{
-  const point=vec(t,p,0);world(t,i,'drawSphere')(point.x,point.y,point.z,t.readFloat(p[3]));
+  const point=vec(t,p,0);world(t,i,'drawSphere')(highlightId(t,i),point.x,point.y,point.z,t.readFloat(p[3]));
  },
  REMOVE_USER_3D_MARKER:(t,p,i)=>{world(t,i,'removeUser3dMarker')(t.readInt(p[0]));},
  REGISTER_FASTEST_TIME:(t,p,i)=>{world(t,i,'registerFastestTime')(t.readInt(p[0]),t.readInt(p[1]));},
@@ -2105,7 +2106,7 @@ const handlers:Record<string,ScmCommandHandler>={
  // The wanted ceiling the script set, read back from the runtime's own field.
  GET_MAX_WANTED_LEVEL:(t,p,i)=>{t.writeInt(p[0],game(t,i).maximumWantedLevel);},
  /* --- The remaining tail. */
- REMOVE_SPHERE:(t,p,i)=>{world(t,i,'removeSphere')(t.readInt(p[0]));},
+ REMOVE_SPHERE:(t,p,i)=>{game(t,i).scriptSpheres.remove(t.readInt(p[0]));},
  START_CAR_FIRE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'startVehicleFire')(t.readInt(p[0])));},
  FIND_MAX_NUMBER_OF_GROUP_MEMBERS:(t,p,i)=>{t.writeInt(p[0],world(t,i,'maxGroupMembers')());},
  ARE_MEASUREMENTS_IN_METRES:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'measurementsAreInMetres')(),negated(i));},
@@ -2379,7 +2380,7 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_PLANE_UNDERCARRIAGE_POSITION:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getPlaneUndercarriagePosition')(t.readInt(p[0])));},
  SET_UP_SKIP_AFTER_MISSION:(t,p,i)=>{world(t,i,'setUpSkipAfterMission')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  IS_CHAR_IN_AREA_ON_FOOT_3D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharInAreaOnFoot3d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),bool(t,p[7])),negated(i));},
- ADD_SPHERE:(t,p,i)=>{t.writeInt(p[4],world(t,i,'addSphere')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3])));},
+ ADD_SPHERE:(t,p,i)=>{const point=vec(t,p,0);t.writeInt(p[4],game(t,i).scriptSpheres.add(highlightId(t,i),point,t.readFloat(p[3])));},
  PLANE_FOLLOW_ENTITY:(t,p,i)=>{world(t,i,'planeFollowEntity')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]));},
  SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2:(t,p,i)=>{world(t,i,'setGunshotSenseRangeForRiot2')(t.readFloat(p[0]));},
  CLEAR_ALL_SCRIPT_ROADBLOCKS:(t,p,i)=>{world(t,i,'clearAllScriptRoadblocks')();},

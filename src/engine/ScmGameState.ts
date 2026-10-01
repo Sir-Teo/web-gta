@@ -11,6 +11,7 @@ import {ScmObjects} from './ScmObjects';
 import {ScmZones} from './ScmZones';
 import {ScmCamera} from './ScmCamera';
 import {ScmFires} from './ScmFires';
+import {ScmScriptSpheres} from './ScmScriptSpheres';
 import {ScmSetPieces} from './ScmSetPieces';
 import {ScmPads} from './ScmPads';
 import {ScmMenus} from './ScmMenus';
@@ -426,6 +427,8 @@ export class ScmGameState {
  set wantedMultiplier(value:number){this.wanted.multiplier=value;}
  /** CFireManager's sixty slots, the ones a script starts among them. */
  readonly fires=new ScmFires();
+ /** CTheScripts::ScriptSphereArray (ADD_SPHERE, REMOVE_SPHERE). */
+ readonly scriptSpheres=new ScmScriptSpheres();
  /** TheCamera's script-facing state, which a host applies to the camera it draws with. */
  readonly camera=new ScmCamera();
  /** CTheZones' info zones, once a host has loaded the world's labels. */

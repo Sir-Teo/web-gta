@@ -668,7 +668,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
   flags:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean;particles:boolean}):boolean;
  /** The audio, markers and remaining world settings of the tail. */
  syncWater?():void;
- drawSphere?(x:number,y:number,z:number,radius:number):void;
+ drawSphere?(id:number,x:number,y:number,z:number,radius:number):void;
  removeUser3dMarker?(handle:number):void;
  registerFastestTime?(stat:number,time:number):void;
  setUpSkip?(x:number,y:number,z:number,heading:number):void;

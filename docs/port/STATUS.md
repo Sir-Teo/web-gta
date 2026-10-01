@@ -6,7 +6,7 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 
 | # | Mission | Authored | Silent | Skipped | Stops | Swept | Reached | Ended | Outcome | Stopped | Waiting on |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| MAIN | MAIN | 22 | 35 | 22 | 0 |  |  |  |  |  |  |
+| MAIN | MAIN | 22 | 33 | 22 | 0 |  |  |  |  |  |  |
 | player_parachute.scm | player_parachute.scm | 0 | 0 | 6 | 6 |  |  |  |  |  |  |
 | parachute.scm | parachute.scm | 0 | 0 | 9 | 5 |  |  |  |  |  |  |
 | bcesar2.scm | bcesar2.scm | 2 | 8 | 0 | 0 |  |  |  |  |  |  |
@@ -17,7 +17,7 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | arcade.scm | arcade.scm | 1 | 0 | 0 | 0 |  |  |  |  |  |  |
 | vending_machine.scm | vending_machine.scm | 2 | 7 | 0 | 0 |  |  |  |  |  |  |
 | food_vendor.scm | food_vendor.scm | 2 | 1 | 0 | 0 |  |  |  |  |  |  |
-| gates_script.scm | gates_script.scm | 1 | 4 | 0 | 0 |  |  |  |  |  |  |
+| gates_script.scm | gates_script.scm | 1 | 2 | 0 | 0 |  |  |  |  |  |  |
 | gymbike.scm | gymbike.scm | 2 | 3 | 0 | 0 |  |  |  |  |  |  |
 | gymbench.scm | gymbench.scm | 1 | 4 | 0 | 0 |  |  |  |  |  |  |
 | gymtread.scm | gymtread.scm | 0 | 4 | 0 | 0 |  |  |  |  |  |  |
@@ -26,13 +26,13 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | vidpok.scm | vidpok.scm | 0 | 2 | 0 | 11 |  |  |  |  |  |  |
 | blackj.scm | blackj.scm | 3 | 0 | 14 | 127 |  |  |  |  |  |  |
 | wheelo.scm | wheelo.scm | 3 | 0 | 0 | 28 |  |  |  |  |  |  |
-| dealer.scm | dealer.scm | 0 | 0 | 3 | 6 |  |  |  |  |  |  |
+| dealer.scm | dealer.scm | 4 | 0 | 3 | 0 |  |  |  |  |  |  |
 | home_brains.scm | home_brains.scm | 0 | 0 | 0 | 1 |  |  |  |  |  |  |
 | pool_script.scm | pool_script.scm | 0 | 0 | 0 | 0 |  |  |  |  |  |  |
 | lowr_cont.scm | lowr_cont.scm | 1 | 0 | 0 | 0 |  |  |  |  |  |  |
 | burg_brains.scm | burg_brains.scm | 0 | 0 | 0 | 0 |  |  |  |  |  |  |
 | gf_meeting.scm | gf_meeting.scm | 0 | 0 | 3 | 0 |  |  |  |  |  |  |
-| gf_date.scm | gf_date.scm | 1 | 0 | 13 | 57 |  |  |  |  |  |  |
+| gf_date.scm | gf_date.scm | 1 | 0 | 13 | 56 |  |  |  |  |  |  |
 | gf_sex.scm | gf_sex.scm | 0 | 0 | 0 | 0 |  |  |  |  |  |  |
 | casino_ambience.scm | casino_ambience.scm | 28 | 0 | 0 | 1 |  |  |  |  |  |  |
 | bar_ambience.scm | bar_ambience.scm | 13 | 0 | 0 | 0 |  |  |  |  |  |  |
@@ -84,7 +84,7 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | prisonr.scm | prisonr.scm | 0 | 0 | 0 | 1 |  |  |  |  |  |  |
 | camera.scm | camera.scm | 0 | 0 | 0 | 15 |  |  |  |  |  |  |
 | debt.scm | debt.scm | 0 | 0 | 0 | 0 |  |  |  |  |  |  |
-| hotdog.scm | hotdog.scm | 1 | 0 | 0 | 1 |  |  |  |  |  |  |
+| hotdog.scm | hotdog.scm | 1 | 0 | 0 | 0 |  |  |  |  |  |  |
 | 0 | INITIAL | 28 | 0 | 0 | 0 |  |  |  |  |  |  |
 | 1 | INITIL2 | 0 | 0 | 0 | 0 |  |  |  |  |  |  |
 | 2 | INTRO | 22 | 6 | 0 | 0 |  |  |  |  |  |  |
@@ -107,14 +107,14 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | 19 | SWEET6 | 6 | 22 | 0 | 0 |  |  |  |  |  |  |
 | 20 | SWEET7 | 0 | 9 | 0 | 0 |  |  |  |  |  |  |
 | 21 | CRASH4 | 7 | 8 | 0 | 0 |  |  |  |  |  |  |
-| 22 | CRASH1 | 5 | 14 | 1 | 0 |  |  |  |  |  |  |
+| 22 | CRASH1 | 5 | 14 | 0 | 0 |  |  |  |  |  |  |
 | 23 | DRUGS3 | 3 | 12 | 0 | 0 |  |  |  |  |  |  |
 | 24 | GUNS1 | 12 | 96 | 5 | 0 |  |  |  |  |  |  |
-| 25 | RYDER3 | 14 | 33 | 3 | 0 |  |  |  |  |  |  |
-| 26 | RYDER2 | 26 | 86 | 2 | 0 |  |  |  |  |  |  |
-| 27 | TWAR7 | 5 | 64 | 12 | 0 |  |  |  |  |  |  |
+| 25 | RYDER3 | 14 | 32 | 0 | 0 |  |  |  |  |  |  |
+| 26 | RYDER2 | 26 | 85 | 0 | 0 |  |  |  |  |  |  |
+| 27 | TWAR7 | 5 | 64 | 1 | 0 |  |  |  |  |  |  |
 | 28 | SMOKE2 | 2 | 24 | 0 | 0 |  |  |  |  |  |  |
-| 29 | SMOKE3 | 5 | 68 | 2 | 0 |  |  |  |  |  |  |
+| 29 | SMOKE3 | 5 | 68 | 0 | 0 |  |  |  |  |  |  |
 | 30 | DRUGS1 | 4 | 67 | 26 | 0 |  |  |  |  |  |  |
 | 31 | MUSIC1 | 7 | 6 | 8 | 0 |  |  |  |  |  |  |
 | 32 | MUSIC2 | 4 | 25 | 3 | 0 |  |  |  |  |  |  |
@@ -126,7 +126,7 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | 38 | LA1FIN2 | 4 | 13 | 0 | 0 |  |  |  |  |  |  |
 | 39 | BCRASH1 | 0 | 1 | 1 | 0 |  |  |  |  |  |  |
 | 40 | CATALIN | 0 | 4 | 0 | 0 |  |  |  |  |  |  |
-| 41 | CAT1 | 1 | 138 | 1 | 0 |  |  |  |  |  |  |
+| 41 | CAT1 | 1 | 138 | 0 | 0 |  |  |  |  |  |  |
 | 42 | CAT2 | 10 | 14 | 1 | 0 |  |  |  |  |  |  |
 | 43 | CAT3 | 4 | 13 | 5 | 0 |  |  |  |  |  |  |
 | 44 | CAT4 | 2 | 87 | 1 | 0 |  |  |  |  |  |  |
@@ -135,14 +135,14 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | 47 | TRUTH2 | 2 | 31 | 16 | 0 |  |  |  |  |  |  |
 | 48 | BCESAR4 | 1 | 0 | 2 | 0 |  |  |  |  |  |  |
 | 49 | GARAG1 | 11 | 26 | 5 | 0 |  |  |  |  |  |  |
-| 50 | DECON | 5 | 32 | 13 | 0 |  |  |  |  |  |  |
+| 50 | DECON | 5 | 29 | 9 | 0 |  |  |  |  |  |  |
 | 51 | SCRASH3 | 5 | 17 | 11 | 0 |  |  |  |  |  |  |
 | 52 | SCRASH2 | 0 | 4 | 2 | 0 |  |  |  |  |  |  |
 | 53 | WUZI1 | 2 | 18 | 1 | 0 |  |  |  |  |  |  |
 | 54 | FARLIE4 | 3 | 8 | 1 | 0 |  |  |  |  |  |  |
 | 55 | DRIV6 | 2 | 9 | 8 | 0 |  |  |  |  |  |  |
 | 56 | WUZI2 | 9 | 1 | 29 | 0 |  |  |  |  |  |  |
-| 57 | WUZI5 | 10 | 45 | 7 | 0 |  |  |  |  |  |  |
+| 57 | WUZI5 | 10 | 45 | 4 | 0 |  |  |  |  |  |  |
 | 58 | SYN1 | 1 | 9 | 1 | 0 |  |  |  |  |  |  |
 | 59 | SYN2 | 2 | 90 | 0 | 0 |  |  |  |  |  |  |
 | 60 | SYN3 | 3 | 17 | 1 | 0 |  |  |  |  |  |  |
@@ -154,12 +154,12 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | 66 | DRIV3 | 2 | 56 | 2 | 0 |  |  |  |  |  |  |
 | 67 | STEAL1 | 13 | 8 | 1 | 0 |  |  |  |  |  |  |
 | 68 | STEAL2 | 12 | 25 | 14 | 0 |  |  |  |  |  |  |
-| 69 | STEAL4 | 9 | 36 | 66 | 0 |  |  |  |  |  |  |
+| 69 | STEAL4 | 9 | 30 | 65 | 0 |  |  |  |  |  |  |
 | 70 | STEAL5 | 12 | 20 | 1 | 0 |  |  |  |  |  |  |
 | 71 | DSKOOL | 15 | 11 | 2 | 0 |  |  |  |  |  |  |
-| 72 | ZERO1 | 7 | 75 | 21 | 0 |  |  |  |  |  |  |
+| 72 | ZERO1 | 7 | 71 | 21 | 0 |  |  |  |  |  |  |
 | 73 | ZERO2 | 4 | 53 | 13 | 0 |  |  |  |  |  |  |
-| 74 | ZERO4 | 18 | 34 | 22 | 0 |  |  |  |  |  |  |
+| 74 | ZERO4 | 18 | 24 | 22 | 0 |  |  |  |  |  |  |
 | 75 | TORENO1 | 3 | 13 | 0 | 0 |  |  |  |  |  |  |
 | 76 | TORENO2 | 7 | 37 | 18 | 0 |  |  |  |  |  |  |
 | 77 | DES3 | 10 | 41 | 25 | 0 |  |  |  |  |  |  |
@@ -180,13 +180,13 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | 92 | CASIN10 | 8 | 46 | 8 | 0 |  |  |  |  |  |  |
 | 93 | VCRASH1 | 0 | 1 | 2 | 0 |  |  |  |  |  |  |
 | 94 | VCR2 | 2 | 13 | 0 | 0 |  |  |  |  |  |  |
-| 95 | DOC2 | 2 | 48 | 3 | 0 |  |  |  |  |  |  |
+| 95 | DOC2 | 2 | 48 | 0 | 0 |  |  |  |  |  |  |
 | 96 | HEIST1 | 1 | 54 | 3 | 0 |  |  |  |  |  |  |
 | 97 | HEIST3 | 7 | 42 | 0 | 0 |  |  |  |  |  |  |
 | 98 | HEIST2 | 5 | 22 | 3 | 0 |  |  |  |  |  |  |
 | 99 | HEIST4 | 1 | 13 | 5 | 0 |  |  |  |  |  |  |
-| 100 | HEIST5 | 2 | 51 | 20 | 0 |  |  |  |  |  |  |
-| 101 | HEIST9 | 10 | 126 | 15 | 0 |  |  |  |  |  |  |
+| 100 | HEIST5 | 2 | 51 | 14 | 0 |  |  |  |  |  |  |
+| 101 | HEIST9 | 10 | 126 | 14 | 0 |  |  |  |  |  |  |
 | 102 | MANSIO1 | 14 | 2 | 3 | 0 |  |  |  |  |  |  |
 | 103 | MANSIO2 | 4 | 17 | 26 | 0 |  |  |  |  |  |  |
 | 104 | MANSIO3 | 5 | 20 | 0 | 0 |  |  |  |  |  |  |
@@ -203,7 +203,7 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | 115 | GYMSF | 0 | 32 | 0 | 0 |  |  |  |  |  |  |
 | 116 | GYMLV | 0 | 32 | 0 | 0 |  |  |  |  |  |  |
 | 117 | TRUCK | 1 | 1 | 5 | 0 |  |  |  |  |  |  |
-| 118 | QUARRY | 12 | 20 | 19 | 0 |  |  |  |  |  |  |
+| 118 | QUARRY | 12 | 1 | 19 | 0 |  |  |  |  |  |  |
 | 119 | BOAT | 9 | 15 | 17 | 0 |  |  |  |  |  |  |
 | 120 | BSKOOL | 10 | 6 | 2 | 0 |  |  |  |  |  |  |
 | 121 | TAXIODD | 7 | 3 | 0 | 0 |  |  |  |  |  |  |
@@ -214,9 +214,9 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | 126 | FREIGHT | 0 | 3 | 0 | 0 |  |  |  |  |  |  |
 | 127 | PIMP | 0 | 5 | 0 | 0 |  |  |  |  |  |  |
 | 128 | BLOOD | 5 | 5 | 3 | 0 |  |  |  |  |  |  |
-| 129 | KICKSTA | 2 | 20 | 5 | 0 |  |  |  |  |  |  |
+| 129 | KICKSTA | 2 | 20 | 1 | 0 |  |  |  |  |  |  |
 | 130 | TRIA | 0 | 1 | 8 | 0 |  |  |  |  |  |  |
-| 131 | BCOUR | 9 | 11 | 0 | 0 |  |  |  |  |  |  |
+| 131 | BCOUR | 9 | 8 | 0 | 0 |  |  |  |  |  |  |
 | 132 | MTBIKER | 0 | 4 | 4 | 0 |  |  |  |  |  |  |
 | 133 | STUNT | 0 | 3 | 3 | 0 |  |  |  |  |  |  |
 | 134 | BUYPRO1 | 15 | 1 | 0 | 0 |  |  |  |  |  |  |
@@ -237,14 +237,13 @@ The first commands of the census queue that gta-reversed has a reversed handler 
 - **GET_DEBUG_CAMERA_COORDINATES** (authored, 6 sites, first in basketb.scm): `CameraCommands.cpp:107` GetDebugCameraCoordinates. adapter comments name an authored stand-in (debugCameraSource)
 - **GET_DEBUG_CAMERA_POINT_AT** (authored, 5 sites, first in basketb.scm): `CameraCommands.cpp:112` GetDebugCameraPointAt. adapter comments name an authored stand-in (debugCameraSource)
 - **IS_PLAYER_IN_POSITION_FOR_CONVERSATION** (skipped, 6 sites, first in dealer.scm): `ConversationCommands.cpp:31` IsPlayerInPositionForConversation. adapter lacks isPlayerInPositionForConversation (skipped: outputs read as none)
-- **SET_CHAR_WANTED_BY_POLICE** (stops, 3 sites, first in dealer.scm): `CharacterCommands.cpp:3238` SetCharWantedByPolice. no handler (the thread gives up)
+- **SET_CHAR_WANTED_BY_POLICE** (authored, 3 sites, first in dealer.scm): `CharacterCommands.cpp:3238` SetCharWantedByPolice. adapter comments name an authored stand-in (setPedWantedByPolice)
 - **CAMERA_SET_VECTOR_MOVE** (authored, 190 sites, first in lowr_cont.scm): `CameraCommands.cpp:237` CameraSetVectorMove. handler comments name an authored stand-in
 - **POINT_CAMERA_AT_CAR** (authored, 48 sites, first in gf_date.scm): `CameraCommands.cpp:50` PointCameraAtCar. handler comments name an authored stand-in
 
 - CLEAR_MISSION_AUDIO (silent, 1442 sites, first in MAIN; reference absent). adapter lacks clearMissionAudio
 - PLAY_MISSION_PASSED_TUNE (silent, 144 sites, first in MAIN; reference absent). dispatch unreversed; follows the routines it reaches; adapter lacks playMissionPassedTune
 - SLIDE_OBJECT (silent, 75 sites, first in MAIN; reference absent). dispatch unreversed; follows the routines it reaches; adapter lacks objectBlockedAt
-- LOCATE_OBJECT_3D (silent, 51 sites, first in MAIN; reference absent). adapter lacks highlightArea
 - ACTIVATE_GARAGE (authored, 27 sites, first in MAIN; reference absent). handler comments name an authored stand-in
 - CLOSE_GARAGE (authored, 24 sites, first in MAIN; reference absent). handler comments name an authored stand-in
 - CHANGE_GARAGE_TYPE (authored, 20 sites, first in MAIN; reference absent). handler comments name an authored stand-in
@@ -256,3 +255,4 @@ The first commands of the census queue that gta-reversed has a reversed handler 
 - RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT (skipped, 7 sites, first in MAIN; reference absent). adapter lacks releaseEntityFromRopeForObject (skipped: outputs read as none)
 - ARE_MEASUREMENTS_IN_METRES (authored, 6 sites, first in MAIN; reference absent). adapter comments name an authored stand-in (measurementsAreInMetres)
 - GET_CAR_MODEL_VALUE (skipped, 4 sites, first in MAIN; reference absent). adapter lacks getCarModelValue (skipped: outputs read as none)
+- GET_CURRENT_CAR_MOD (skipped, 2 sites, first in MAIN; reference absent). adapter lacks getCurrentCarMod (skipped: outputs read as none)

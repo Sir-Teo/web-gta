@@ -30,3 +30,26 @@ test('three fires in Grove Street bring a fire engine whose cannon puts them out
  await expect.poll(async()=>page.evaluate(()=>(window as any).__game.weapons().fires.active.length),{timeout:90000,intervals:[1000]}).toBeLessThan(3);
  expect(errors).toEqual([]);
 });
+
+// CREATE_EMERGENCY_SERVICES_CAR (CRASH1's fire engine, ScriptGenerateOneEmergencyServicesCar): one is made on a road out
+// of sight and drives with its siren to the script's point; with no fire there it goes back to its rounds.
+test('a script\'s fire engine drives with its siren to the point it was sent to',async({page})=>{
+ test.setTimeout(420000);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await endStoryMission(page);
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
+ await expect.poll(async()=>(await emergency(page))?.ready,{timeout:60000}).toBe(true);
+ // The point: the street twenty units west of CJ (native axes).
+ const goal=await page.evaluate(()=>{const g=(window as any).__game,p=g.sim.player.position,goal={x:p.x-20,y:-p.z,z:p.y};
+  g.missionForProfiling().adapterRef.createEmergencyServicesVehicle(407,goal.x,goal.y,goal.z);return goal;});
+ await expect.poll(async()=>(await emergency(page)).trucks.length,{timeout:60000}).toBeGreaterThan(0);
+ const first=(await emergency(page)).trucks[0];
+ expect(first.mission).toBe('toPoint');expect(first.siren).toBe(true);
+ const away=(t:any)=>Math.hypot(t.position.x-goal.x,-t.position.z-goal.y);
+ // It arrives (within the 25 units FIRETRUCK_TARGET_RADIUS) and, finding no fire, wanders with the siren off.
+ await expect.poll(async()=>(await emergency(page)).trucks[0]?.mission,{timeout:180000,intervals:[1000]}).toBe('wander');
+ expect(away((await emergency(page)).trucks[0])).toBeLessThan(away(first));
+ expect((await emergency(page)).trucks[0].siren).toBe(false);
+ expect(errors).toEqual([]);
+});

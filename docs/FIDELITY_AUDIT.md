@@ -8862,3 +8862,20 @@ that did anything.
   turns it a quarter turn about its forward axis; any other door slides up its height. Doors that a script opens or
   shuts (`OPEN_GARAGE`, `CLOSE_GARAGE`) now move as well. Not done: the row's 0x2 flag (the door goes in), the camera
   `CGarages::Update` puts outside a shut garage, and the garage and spray sounds (`AE_FRONTEND_CAR_RESPRAY`).
+
+## The early missions' skipped commands
+
+- **`CREATE_EMERGENCY_SERVICES_CAR`.** `CCarCtrl::ScriptGenerateOneEmergencyServicesCar` (0x42FBC0) is reversed:
+  `GenerateOneEmergencyServicesCar`, which is not, makes the vehicle, and the autopilot is sent to the point
+  (`MISSION_GOTOCOORDINATES`). The fire engine (CRASH1) and the ambulance are made as the dispatch makes its own (on a
+  road 60 to 120 units out, crewed), drive there with the siren on and then take up their own work, the fires about
+  or the accidents. The police cars DECON asks for as it raises the wanted level are left to that level's dispatch.
+- **Script spheres.** `AddScriptSphere`, `RemoveScriptSphere` and `DrawScriptSpheres` are reversed: sixteen slots,
+  handles carrying the slot's unique id, and a red `MARKER3D_CYLINDER` (alpha 228, pulse 0.1) for each sphere every
+  frame (`ADD_SPHERE`, `REMOVE_SPHERE`: HEIST5, KICKSTA). `DRAW_SPHERE` (TWAR7, WUZI5), which the scripts call every
+  frame in their loops, places the same cylinder for that frame (AUTHORED: its handler is not reversed).
+- **Flags and small effects.** `SET_CAR_ALWAYS_CREATE_SKIDS` (reversed) keeps `bAlwaysSkidMarks`, which in the game only
+  keeps an off-screen car pre-rendered, and so laying marks, further out; the browser lays every stepped car's marks on
+  or off screen. `IGNORE_HEIGHT_DIFFERENCE_FOLLOWING_NODES` (reversed) and `VEHICLE_DOES_PROVIDE_COVER` are kept on the
+  handle. `SET_CAMERA_IN_FRONT_OF_CHAR` (reversed) turns the follow camera to face the ped from in front.
+  `SET_PLAYER_DISPLAY_VITAL_STATS_BUTTON` keeps `m_bCanShowVitalStats`. `ADD_BLOOD` is `Fx_c::AddBlood`.
