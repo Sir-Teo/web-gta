@@ -228,7 +228,13 @@ export function missionBotTick(dtSeconds:number){
   // Parked at the place for a few seconds and the objective has not moved on: the script wants CJ out of the car
   // (SWEET1 waits for him to leave Sweet's Greenwood at each wall), as a player would get out at the marker.
   if(vehicle&&distance(p.position)<10){mem.parkedAtPlace=(mem.parkedAtPlace??0)+dtSeconds;
-   if(mem.parkedAtPlace>4){mem.parkedAtPlace=0;mem.drive=undefined;try{world.clearPedTasks?.(1);world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car at place'};}}
+   if(mem.parkedAtPlace>4){
+    // Resting with a wheel off the ground (a kerb at the gate): the script may want the car on all four wheels
+    // (SWEET2's IS_VEHICLE_ON_ALL_WHEELS at Emmet's), so a player shuffles it back a little before getting out.
+    const wheels=m.vehicles.entity?.(vehicle)?.wheelsOnGround;
+    if(wheels!==undefined&&wheels<4&&(mem.shuffledAtPlace??0)<2){mem.parkedAtPlace=0;mem.shuffledAtPlace=(mem.shuffledAtPlace??0)+1;mem.drive=undefined;mem.reversingUntil=performance.now()+1500;
+     try{world.givePedScriptedTask(1,{kind:'carTempAction',vehicle,actionId:3,time:1200},0x0822);}catch{}return {action:'shuffle car onto its wheels'};}
+    mem.parkedAtPlace=0;mem.shuffledAtPlace=0;mem.drive=undefined;try{world.clearPedTasks?.(1);world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car at place'};}}
   else mem.parkedAtPlace=0;
   // Over the blip on a step above the street it marks (SWEET1B's porch), a player is there.
   const over=Math.hypot(p.position.x-me.x,p.position.y-me.y)<1.5&&Math.abs(p.position.z-me.z)<4;
