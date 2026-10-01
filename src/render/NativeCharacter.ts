@@ -236,6 +236,10 @@ export class NativeCharacter {
   /** Native BONE_R_HAND (24) by default; BONE_L_HAND is 34. */
   hand(boneId=24){return this.bone(boneId);}
   setWeaponPose(name?:string,time=.05){this.weaponPose=name;if(name)this.aimPose={name,time};}
+  /** CTaskSimpleHoldEntity's partial clip (CRRY_PRTIAL): the arms round what he carries, over his walk. */
+  private carryPose?:string;
+  setCarryPose(name?:string){this.carryPose=name;}
+  get carryPoseName(){return this.carryPose;}
   /** The script or reaction clip on top of the move: CAnimBlendAssociation's m_fCurrentTime and m_fSpeed, with the
    * clip time it is let go at (Infinity while held). */
   private reaction?: {name:string;time:number;end:number;speed:number;loop:boolean};
@@ -803,6 +807,7 @@ export class NativeCharacter {
       if(this.aimBlend>=1)aimPose.sample(this.aimPose!.time,false,false);
       else{this.aimTransition??=new PoseTransition(this.transitionTargets());this.aimTransition.capture();aimPose.sample(this.aimPose!.time,false,false);this.aimTransition.apply(this.aimBlend);}
     }
+    if(this.carryPose&&!this.reaction)this.reactions.get(this.carryPose)?.sample(seconds,true,false);
     if(this.reaction)this.reactions.get(this.reaction.name)?.sample(this.reaction.time,this.reaction.loop,false);
     if(this.weaponReload){const binding=this.reactions.get(this.weaponReload.name);binding?.sample(this.weaponReload.progress*binding.duration,false,false);}
     if(!this.weaponReload)this.aimUpperBody();

@@ -68,6 +68,12 @@ const HOLD_ENTITY_UPDATE_TRANSLATION_ONLY=0x10;
 /** The stealable objects' reach (AUTHORED, see playerStealKey): within 1.5 units across and 1.5 up or down, the carry
  * held at the upper torso (PED_NODE_UPPER_TORSO) half a unit before it, and set down 0.6 ahead. */
 const STEAL_REACH=1.5,STEAL_HEIGHT=1.5,STEAL_HOLD_NODE=1,STEAL_HOLD_OFFSET={x:0,y:.45,z:0},STEAL_PUT_DOWN_AHEAD=.6;
+/** CTaskSimpleHoldEntity's carry groups (ChoosePutDownHeight, TaskSimpleHoldEntity.cpp:476): CARRY105 for a surface
+ * within 0.2 under the ped's origin, CARRY05 within 0.7, CARRY lower down; each with its LIFTUP and PUTDWN clips in
+ * carry.ifp and m_fPutDownHeightZ, the put-down clip's time at which the object leaves the hands. CRRY_PRTIAL, the
+ * arms round the load, is CTaskSimpleHoldEntity's partial clip in all three. */
+const CARRY_GROUPS=[{below:.2,suffix:'105',putDownAt:.433333},{below:.7,suffix:'05',putDownAt:.366667},{below:Infinity,suffix:'',putDownAt:.6}] as const;
+const carryGroupFor=(origin:number,surface:number|undefined)=>surface===undefined?CARRY_GROUPS[2]:CARRY_GROUPS.find(g=>origin-g.below<=surface)!;
 export interface ScmCarComponents {
  popDoor(door:number,visible:boolean):void;popPanel(panel:number,visible:boolean):void;popBoot():void;
  fixDoor(door:number):void;fixPanel(panel:number):void;fixTyre(wheel:number):void;
@@ -406,6 +412,10 @@ export interface ScmMissionWorld {
  playerPressingHorn?():boolean;
  /** CPopCycle::m_nCurrentZoneType. */
  populationZoneType?():number;
+ /** Streams an animation block (an .ifp of the archive) in ahead of its first clip. */
+ preloadAnimationBlock?(block:string):void;
+ /** CTaskSimpleHoldEntity's partial clip on the player (a CARRY clip name), or none. */
+ setPlayerCarryPose?(clip:string|undefined):void;
  /** Any ped of the pool (the player too) other than the one named within the radius of a native point. */
  anyPedNear?(at:{x:number;y:number;z:number},radius:number,except:unknown,exceptPlayer:boolean):boolean;
  /** GET_CAR_COLOURS and GET_EXTRA_CAR_COLOURS: the four paint slots' palette entries (CVehicle::m_nPrimaryColor to
@@ -1328,7 +1338,8 @@ export class ScmMission {
    objectHasBeenDamaged:handle=>this.runtime.game.objects.hasBeenDamaged(handle),
    // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.
    setPedDropsObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly);},
-   setObjectAsStealable:(handle,state)=>{this.runtime.game.objects.at(handle).stealable=state;},
+   // The carry clips (carry.ifp) are streamed in with the first stealable object, as the hold task needs them at once.
+   setObjectAsStealable:(handle,state)=>{this.runtime.game.objects.at(handle).stealable=state;if(state)this.world.preloadAnimationBlock?.('CARRY');},
    // CEventGlobalGroup::GetSoundLevel (reversed) over the last frame's quiet sounds: every source's for -1, else the
    // ped's own (only CJ's footsteps are reported yet).
    getSoundLevelAtCoords:(handle,x,y,z)=>globalSoundLevel(this.soundEvents,handle===-1?undefined:handle===PLAYER_PED_HANDLE?'player':this.livePed(handle),{x,y,z}),
@@ -3039,8 +3050,15 @@ export class ScmMission {
   const held=this.heldObjectOf(PLAYER_PED_HANDLE),me=this.world.playerPed(),h=(me.heading??0)*Math.PI/180,forward={x:-Math.sin(h),y:Math.cos(h)};
   if(held){
    if(!held.stealable)return false;
-   this.dropHeldObject(PLAYER_PED_HANDLE,true);
-   held.position={x:held.position.x+forward.x*STEAL_PUT_DOWN_AHEAD,y:held.position.y+forward.y*STEAL_PUT_DOWN_AHEAD,z:held.position.z};
+   if(this.puttingDown)return true;
+   // CTaskSimplePutDownEntity: ChoosePutDownHeight looks 0.65 ahead from 0.2 over the origin, 1.5 down; the PUTDWN
+   // clip of the group plays and the object leaves the hands at m_fPutDownHeightZ into it.
+   const ahead={x:me.position.x+forward.x*.65,y:me.position.y+forward.y*.65},top=me.position.z+.2;
+   const found=this.world.groundLevel(ahead.x,ahead.y,top),surface=found!==undefined&&found>=top-1.5?found:undefined;
+   const group=carryGroupFor(me.position.z,surface);
+   this.world.setPlayerCarryPose?.(undefined);
+   this.world.givePlayerOrders?.([{kind:'playAnim',file:'CARRY',name:`PUTDWN${group.suffix}`,loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY}],false,false);
+   this.puttingDown={object:held.handle,at:this.clockMs+group.putDownAt*1000,forward};
    return true;
   }
   let best:import('../engine/ScmObjects').ScmObject|undefined,bestDistance=STEAL_REACH;
@@ -3051,7 +3069,11 @@ export class ScmMission {
    best=object;bestDistance=distance;
   }
   if(!best)return false;
+  // CTaskSimplePickUpEntity's LIFTUP clip of the group the object stands at, then CRRY_PRTIAL over his walk.
+  const group=carryGroupFor(me.position.z,best.position.z);
   this.pickUpObject(PLAYER_PED_HANDLE,{kind:'pickUpObject',object:best.handle,offset:{...STEAL_HOLD_OFFSET},bone:STEAL_HOLD_NODE,orientation:0,animationName:'',animationFile:'',time:0});
+  this.world.givePlayerOrders?.([{kind:'playAnim',file:'CARRY',name:`LIFTUP${group.suffix}`,loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY}],false,false);
+  this.world.setPlayerCarryPose?.('CRRY_PRTIAL');
   return true;
  }
  private heldObjectOf(handle:number,second=false){return this.runtime.game.objects.all.find(object=>object.heldBy?.ped===handle&&!!object.heldBy.second===second);}
@@ -3063,6 +3085,16 @@ export class ScmMission {
   * object stays where the hand left it; dropped on, a heavy one (99998 or more, so collision force off) is set down
   * static under the ped, and a light one gets a push and falls, which here, with no fall to run, ends on the ground
   * under the ped too. */
+ /** The player's put-down under way: the object, when it leaves his hands, and the way he faced. */
+ private puttingDown?:{object:number;at:number;forward:{x:number;y:number}};
+ /** CTaskSimplePutDownEntity reaching m_fPutDownHeightZ: the object is let go and set down ahead of the player. */
+ private settlePutDown(){
+  const p=this.puttingDown;if(!p||this.clockMs<p.at)return;
+  this.puttingDown=undefined;
+  const held=this.heldObjectOf(PLAYER_PED_HANDLE);if(!held||held.handle!==p.object)return;
+  this.dropHeldObject(PLAYER_PED_HANDLE,true);
+  held.position={x:held.position.x+p.forward.x*STEAL_PUT_DOWN_AHEAD,y:held.position.y+p.forward.y*STEAL_PUT_DOWN_AHEAD,z:held.position.z};
+ }
  private dropHeldObject(handle:number,quietly:boolean,second=false){
   const object=this.heldObjectOf(handle,second);if(!object)return;
   object.heldBy=undefined;object.usesCollision=true;
@@ -3457,7 +3489,7 @@ export class ScmMission {
   this.highlights.clear();
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.updateConversations(nowMs);if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);

@@ -8913,8 +8913,12 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   the player ("Press ~k~~VEHICLE_ENTER_EXIT~ to pick up the crate", "... to put the crate in the truck") and waits on
   (`IS_CHAR_HOLDING_OBJECT`, then not): on foot, the button lifts the nearest stealable object within 1.5 units in
   front of CJ and he holds it before his chest (the script's hold machinery, `CTaskSimpleHoldEntity`); carrying one, the
-  button sets it down 0.6 units ahead. The button goes to a car only when neither applies. Not done: the CARRY clips
-  (the pick-up, the carrying walk), and the noise bar GUNS1 shows (`GET_SOUND_LEVEL_AT_COORDS`).
+  button sets it down 0.6 units ahead. The button goes to a car only when neither applies.
+- **The CARRY clips (CTaskSimpleHoldEntity, reversed).** The pick-up plays the LIFTUP clip of the object's height group
+  and the put-down the PUTDWN of `ChoosePutDownHeight`'s (a surface 0.65 ahead within 0.2 under the ped's origin is
+  CARRY105, within 0.7 CARRY05, lower CARRY), the object leaving the hands at `m_fPutDownHeightZ` into it (0.6 s, 0.37,
+  0.43); CRRY_PRTIAL holds the arms round the load over the walk in between. carry.ifp is streamed in with the first
+  stealable object.
 
 ## Quiet sounds and the noise bar
 

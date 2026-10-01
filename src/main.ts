@@ -552,6 +552,8 @@ async function boot() {
  scriptCars.player=()=>({position:sim.player.position,vehicle:worldCar?.occupied?worldCar:undefined,velocity:{x:sim.lastMove.velocity.x,y:0,z:sim.lastMove.velocity.z}});
  // HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE and FREEZE_CHAR_POSITION on the player.
  let playerWeaponHiddenByScript=false,playerFrozenByScript=false,playerAreaCode=0;
+ /** Each CRRY_PRTIAL request, so a clip that loads after the load was put down does not lift the arms again. */
+ let carryPoseGeneration=0;
  // CTaskComplexUseMobilePhone on the player and on the script's peds.
  const phones=new Map<unknown,PlayerPhone>();
  const phoneFor=(key:unknown)=>{let phone=phones.get(key);if(!phone){phone=new PlayerPhone(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined));phones.set(key,phone);}return phone;};
@@ -4627,6 +4629,13 @@ async function boot() {
                  playerClimbing:()=>!!sim.climb,
                  playerPressingHorn:()=>!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike)&&(input.down('CapsLock')||input.down('KeyH')),
                  populationZoneType:()=>fleet?.pedZone()?.zoneType??0,
+                 preloadAnimationBlock:block=>{void pedestrians?.scriptAnimation(block,'');},
+                 setPlayerCarryPose:clip=>{
+                  const view=render.nativeCharacter,generation=++carryPoseGeneration;if(!view)return;
+                  if(!clip){view.setCarryPose(undefined);return;}
+                  const name=clip.toLowerCase();if(view.hasReaction(name)){view.setCarryPose(name);return;}
+                  void pedestrians?.scriptAnimation('CARRY',clip).then(animation=>{if(!animation||generation!==carryPoseGeneration||render.nativeCharacter!==view)return;view.installReactions({[name]:animation});view.setCarryPose(name);});
+                 },
                  anyPedNear:(at,radius,except,exceptPlayer)=>{
                   const me=sim.player.position;if(!exceptPlayer&&Math.hypot(me.x-at.x,-me.z-at.y,me.y-at.z)<radius)return true;
                   return !!pedestrians?.anyNear(at,radius,except?onFoot(except):undefined);
