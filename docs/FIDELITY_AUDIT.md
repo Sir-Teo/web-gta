@@ -8981,3 +8981,12 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   node; a random or parked one is removed. The player already had his. In a SWEEP of SWEET1B Sweet dropped through the
   ramp at Grove's west end while following CJ and fell for ever (z −2600 and falling), and the mission waited for him to
   catch up.
+
+## Car doors, colours and claimed cars
+
+- **`CONTROL_CAR_DOOR` (AUTHORED; unreversed).** `CDamageManager::SetDoorStatus` with the script's status: OK fixes and
+  shuts the door, crumpled and swinging are drawn as such, not present drops it; an angle of 0 or more opens it to that
+  ratio, a negative one leaves it as it hangs (DRIV6 wrecks a door step by step, MUSIC1 opens the rear doors).
+- **`GET_CAR_COLOURS` and `GET_EXTRA_CAR_COLOURS`** read the four paint slots' palette entries.
+- **`SET_CAR_AS_MISSION_CAR` (unreversed)** makes a car the script holds a mission vehicle the population keeps, on the
+  mission's cleanup list (BCESAR4, FARLIE4). **`TASK_SAY`** checks its ped; the ped's line is not played.

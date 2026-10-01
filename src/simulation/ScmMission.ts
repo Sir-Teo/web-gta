@@ -71,7 +71,7 @@ const STEAL_REACH=1.5,STEAL_HEIGHT=1.5,STEAL_HOLD_NODE=1,STEAL_HOLD_OFFSET={x:0,
 export interface ScmCarComponents {
  popDoor(door:number,visible:boolean):void;popPanel(panel:number,visible:boolean):void;popBoot():void;
  fixDoor(door:number):void;fixPanel(panel:number):void;fixTyre(wheel:number):void;
- damageDoor(door:number):void;damagePanel(panel:number):void;
+ damageDoor(door:number):void;damagePanel(panel:number):void;controlDoor(door:number,status:number,ratio:number):void;
  tyreBurst(wheel:number):boolean;doorFullyOpen(door:number):boolean;
  readonly damageState:{readonly doors:readonly number[]};petrolTankIsWeakPoint:boolean;
 }
@@ -395,6 +395,11 @@ export interface ScmMissionWorld {
  addExplosion(position:{x:number;y:number;z:number},type:number,options?:{sound?:boolean}):void;
  /** The CAutomobile a car handle stands for, for the component commands; nothing for a bike, boat or aircraft. */
  scriptCarComponents?(car:unknown):ScmCarComponents|undefined;
+ /** GET_CAR_COLOURS and GET_EXTRA_CAR_COLOURS: the four paint slots' palette entries (CVehicle::m_nPrimaryColor to
+  * m_nQuaternaryColor). */
+ scriptVehicleColours?(car:unknown):{primary:number;secondary:number;tertiary:number;quaternary:number};
+ /** SET_CAR_AS_MISSION_CAR: the vehicle becomes the script's (MISSION_VEHICLE), which the population keeps. */
+ claimScriptVehicle?(car:unknown):void;
  /** A model's vehicles.ide type; undefined for no vehicle, null while the vehicle catalog loads. */
  vehicleModelType?(model:number|string):string|undefined|null;
  /** m_fAirResistance as the handling's drag times the scale; false for a vehicle whose motion here has none. */
@@ -1493,6 +1498,14 @@ export class ScmMission {
    fixCarPanel:(handle,panel)=>{this.carComponents(handle)?.fixPanel(panel);},
    fixCarTyre:(handle,wheel)=>{this.carComponents(handle)?.fixTyre(wheel);},
    damageVehicleDoor:(handle,door)=>{this.carComponents(handle)?.damageDoor(door);},
+   controlVehicleDoor:(handle,door,status,angle)=>{this.carComponents(handle)?.controlDoor(door,status,angle);},
+   vehicleColours:handle=>this.host('scriptVehicleColours','GET_CAR_COLOURS')(this.liveVehicle(handle)),
+   // SET_CAR_AS_MISSION_CAR (unreversed): a random or parked car the script holds becomes a mission vehicle, which the
+   // population keeps and the mission's cleanup lets go again.
+   setCarAsMissionCar:handle=>{this.host('claimScriptVehicle','SET_CAR_AS_MISSION_CAR')(this.liveVehicle(handle));this.forCleanup(this.cleanupVehicles,handle);},
+   // TASK_SAY gives CTaskSimpleSay with a global speech context: the line is the ped's own speech, and the browser has
+   // only the player's (as SET_CHAR_SAY_CONTEXT); the ped still has to exist.
+   taskSay:handle=>{if(handle!==-1&&handle!==PLAYER_PED_HANDLE)this.livePed(handle);},
    damageVehiclePanel:(handle,panel)=>{this.carComponents(handle)?.damagePanel(panel);},
    vehicleTyreIsBurst:(handle,wheel)=>this.carComponents(handle)?.tyreBurst(wheel)??false,
    // Visibly damaged: crumpled, crumpled and open, or gone.

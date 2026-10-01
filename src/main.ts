@@ -4651,6 +4651,8 @@ async function boot() {
                  scriptVehicleMaximumPassengers:car=>(car as ScriptCar).maximumPassengers,
                  burstScriptVehicleTyre:(car,wheel)=>{if(isScriptCar(car))car.burstTyre(wheel,true);},
                  scriptCarComponents:car=>isScriptCar(car)?car:undefined,
+                 scriptVehicleColours:car=>{const indices=(car as {assets?:{colourIndices?:readonly number[]}}).assets?.colourIndices;return {primary:indices?.[0]??0,secondary:indices?.[1]??0,tertiary:indices?.[2]??0,quaternary:indices?.[3]??0};},
+                 claimScriptVehicle:car=>{(car as {missionCar?:boolean}).missionCar=true;},
                  vehicleModelType:model=>fleet?fleet.vehicleIdeType(model):null,
                  scriptVehicleWaitingForCollision:car=>isScriptCar(car)&&car.waitingForCollision,
                  setForceCrosshair:state=>{weapons.forceCrosshair=state;},

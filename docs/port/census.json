@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T11:29:57.450Z",
+ "generated": "2026-10-01T11:41:15.827Z",
  "reference": {
   "path": "../gta-reversed/gta-reversed",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -10,10 +10,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1100,
+   "faithful": 1106,
    "authored": 37,
    "silent": 9,
-   "skipped": 203,
+   "skipped": 197,
    "stops": 42
   }
  },
@@ -2147,10 +2147,10 @@
    "byStatus": {
     "core": 2516,
     "nop": 0,
-    "faithful": 357,
+    "faithful": 365,
     "authored": 0,
     "silent": 0,
-    "skipped": 17,
+    "skipped": 9,
     "stops": 32
    },
    "gaps": [
@@ -2160,17 +2160,7 @@
      "sites": 5
     },
     {
-     "name": "GET_CAR_COLOURS",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
      "name": "GIVE_VEHICLE_PAINTJOB",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "CHANGE_CAR_COLOUR_FROM_MENU",
      "status": "skipped",
      "sites": 4
     },
@@ -2213,6 +2203,16 @@
      "name": "RESTORE_CAR_MOD_STATE",
      "status": "stops",
      "sites": 2
+    },
+    {
+     "name": "GET_CURRENT_CAR_MOD",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "MANAGE_ALL_POPULATION",
+     "status": "stops",
+     "sites": 1
     }
    ]
   },
@@ -4054,10 +4054,10 @@
    "byStatus": {
     "core": 1276,
     "nop": 1,
-    "faithful": 696,
+    "faithful": 698,
     "authored": 7,
     "silent": 6,
-    "skipped": 8,
+    "skipped": 6,
     "stops": 0
    },
    "gaps": [
@@ -4065,11 +4065,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 3
-    },
-    {
-     "name": "CONTROL_CAR_DOOR",
-     "status": "skipped",
-     "sites": 2
     },
     {
      "name": "MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED",
@@ -4118,6 +4113,11 @@
     },
     {
      "name": "CLOSE_GARAGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "IS_GARAGE_CLOSED",
      "status": "authored",
      "sites": 1
     }
@@ -4985,18 +4985,13 @@
    "byStatus": {
     "core": 202,
     "nop": 0,
-    "faithful": 192,
+    "faithful": 194,
     "authored": 1,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_CAR_AS_MISSION_CAR",
-     "status": "skipped",
-     "sites": 2
-    },
     {
      "name": "SKIP_CUTSCENE_END",
      "status": "authored",
@@ -5169,10 +5164,10 @@
    "byStatus": {
     "core": 1481,
     "nop": 8,
-    "faithful": 842,
+    "faithful": 849,
     "authored": 5,
     "silent": 17,
-    "skipped": 11,
+    "skipped": 4,
     "stops": 0
    },
    "gaps": [
@@ -5185,16 +5180,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 5
-    },
-    {
-     "name": "GET_CAR_COLOURS",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "TASK_SAY",
-     "status": "skipped",
-     "sites": 3
     },
     {
      "name": "PLAY_MISSION_AUDIO",
@@ -5234,6 +5219,16 @@
     {
      "name": "IS_GARAGE_CLOSED",
      "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "TASK_GO_TO_COORD_WHILE_AIMING",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "IS_CHAR_IN_AREA_IN_CAR_3D",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -5338,10 +5333,10 @@
    "byStatus": {
     "core": 533,
     "nop": 7,
-    "faithful": 586,
+    "faithful": 587,
     "authored": 3,
     "silent": 8,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -5363,11 +5358,6 @@
     {
      "name": "CHANGE_GARAGE_TYPE",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SET_CAR_AS_MISSION_CAR",
-     "status": "skipped",
      "sites": 1
     },
     {
@@ -5396,18 +5386,13 @@
    "byStatus": {
     "core": 1009,
     "nop": 1,
-    "faithful": 472,
+    "faithful": 480,
     "authored": 2,
     "silent": 9,
-    "skipped": 8,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CONTROL_CAR_DOOR",
-     "status": "skipped",
-     "sites": 8
-    },
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
@@ -7630,10 +7615,10 @@
    "byStatus": {
     "core": 2481,
     "nop": 4,
-    "faithful": 1322,
+    "faithful": 1324,
     "authored": 15,
     "silent": 6,
-    "skipped": 8,
+    "skipped": 6,
     "stops": 0
    },
    "gaps": [
@@ -7678,22 +7663,22 @@
      "sites": 1
     },
     {
-     "name": "GET_CAR_COLOURS",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_EXTRA_CAR_COLOURS",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
      "name": "WAS_CUTSCENE_SKIPPED",
      "status": "authored",
      "sites": 1
     },
     {
      "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "SET_EXTRA_CAR_COLOURS",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
     }
@@ -11227,23 +11212,6 @@
    "portable": false
   },
   {
-   "name": "GET_CAR_COLOURS",
-   "opcode": "03f3",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks vehicleColours (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2232,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Gets the car's primary and secondary colors",
-   "sites": 9,
-   "missions": 3,
-   "firstMission": "carmod1.scm",
-   "portable": false
-  },
-  {
    "name": "GIVE_VEHICLE_PAINTJOB",
    "opcode": "06ed",
    "status": "skipped",
@@ -11340,23 +11308,6 @@
    "doc": "Returns true if the vehicle is an emergency vehicle",
    "sites": 4,
    "missions": 2,
-   "firstMission": "carmod1.scm",
-   "portable": false
-  },
-  {
-   "name": "CHANGE_CAR_COLOUR_FROM_MENU",
-   "opcode": "0a22",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks vehicleColours (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1780,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 4,
-   "missions": 1,
    "firstMission": "carmod1.scm",
    "portable": false
   },
@@ -12351,23 +12302,6 @@
    "portable": false
   },
   {
-   "name": "CONTROL_CAR_DOOR",
-   "opcode": "095e",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks controlVehicleDoor (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1900,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the car's door angle and latch state",
-   "sites": 10,
-   "missions": 2,
-   "firstMission": "MUSIC1",
-   "portable": false
-  },
-  {
    "name": "SET_CAMERA_POSITION_UNFIXED",
    "opcode": "0a25",
    "status": "skipped",
@@ -12903,23 +12837,6 @@
    "portable": false
   },
   {
-   "name": "SET_CAR_AS_MISSION_CAR",
-   "opcode": "0763",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setCarAsMissionCar (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2377,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the script as the owner of the vehicle and adds it to the mission cleanup list",
-   "sites": 3,
-   "missions": 2,
-   "firstMission": "BCESAR4",
-   "portable": false
-  },
-  {
    "name": "SET_CAR_LIGHTS_ON",
    "opcode": "0919",
    "status": "skipped",
@@ -13039,23 +12956,6 @@
    "sites": 1,
    "missions": 1,
    "firstMission": "DECON",
-   "portable": false
-  },
-  {
-   "name": "TASK_SAY",
-   "opcode": "05c1",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks taskSay (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2380,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the character say a phrase from the specified audio table",
-   "sites": 3,
-   "missions": 1,
-   "firstMission": "SCRASH3",
    "portable": false
   },
   {
@@ -14322,26 +14222,6 @@
    },
    "doc": "",
    "sites": 2,
-   "missions": 1,
-   "firstMission": "CASINO6",
-   "portable": true
-  },
-  {
-   "name": "GET_EXTRA_CAR_COLOURS",
-   "opcode": "0a12",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks vehicleColours (skipped: outputs read as none)"
-   ],
-   "handlerLine": 692,
-   "ref": {
-    "kind": "handler",
-    "fn": "GetExtraCarColors",
-    "where": "VehicleCommands.cpp:68",
-    "stub": false
-   },
-   "doc": "Returns the car's tertiary and quaternary colors. See also 03F3",
-   "sites": 1,
    "missions": 1,
    "firstMission": "CASINO6",
    "portable": true

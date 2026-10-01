@@ -531,6 +531,16 @@ export class WorldCar {
   if(this.damageState.panels[panel]!==DAMSTATE.ok)return;
   this.damageState.panels[panel]=DAMSTATE.damaged;this.applyComponents([{kind:'panel',index:panel,state:DAMSTATE.damaged}]);
  }
+ /** CONTROL_CAR_DOOR (unreversed; AUTHORED): CDamageManager::SetDoorStatus with the script's status (DRIV6 takes a
+  * door from whole through crumpled and swinging to gone), whole and shut again for OK, gone for not present; an angle
+  * of 0 or more then sets it open to that ratio (CAutomobile::OpenDoor), a negative one leaves it as it hangs. */
+ controlDoor(door:number,status:number,ratio:number){
+  if(door<0||door>5||status<DAMSTATE.ok||status>DAMSTATE.notPresent)return;
+  if(status===DAMSTATE.notPresent){this.popDoor(door,false);return;}
+  if(status===DAMSTATE.ok)this.fixDoor(door);
+  else if(this.damageState.doors[door]!==DAMSTATE.notPresent){this.damageState.doors[door]=status;this.applyComponents([{kind:'door',index:door,state:status}]);}
+  if(ratio>=0)this.openDoor(door,ratio);
+ }
  /** IS_CAR_TYRE_BURST: WHEEL_STATUS_BURST on the wheel, or on any wheel for 4. */
  tyreBurst(wheel:number){return wheel===4?this.damageState.wheels.some(w=>w===1):this.damageState.wheels[wheel]===1;}
  /** ProcessCarOnFireAndExplode: below 250 health a car burns, unless it is sinking (bIsDrowning). */
