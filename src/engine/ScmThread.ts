@@ -335,6 +335,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  pedIsDucking?(handle:number):boolean;
  /** ARE_ANY_CHARS_NEAR_CHAR: another ped within the radius of this one. */
  anyPedsNearPed?(handle:number,radius:number):boolean;
+ /** CClock::CurrentDay for the world, which a script moved (SET_TIME_ONE_DAY_FORWARD). */
+ setWeekDay?(day:number):void;
  /** GET_RANDOM_CHAR_IN_SPHERE: a street ped of the kinds asked for in the sphere, made the script's; -1 for none. */
  randomPedInSphere?(x:number,y:number,z:number,radius:number,civilian:boolean,gang:boolean,criminal:boolean):number;
  /** GET_CHAR_ANIM_TOTAL_TIME: the named clip's total time in ms while the ped plays it, else 0. */

@@ -175,6 +175,17 @@ export class ScmClock {
   }
   this.seconds=Math.trunc(((nowMs-this.lastTick)>>>0)*60/this.msPerMinute)&0xffff;
  }
+ /** CClock::OffsetClockByADay (0x52D0B0): the day of the month and the weekday one on (or back), across the month and
+  * year by the month table. */
+ offsetByADay(forward:boolean){
+  if(!forward){
+   if(--this.days===0){if(--this.month===0)this.month=12;this.days=ScmClock.daysInMonth[this.month-1];}
+   if(--this.currentDay===0)this.currentDay=7;
+   return;
+  }
+  if(ScmClock.daysInMonth[this.month-1]<++this.days){if(++this.month>12)this.month=1;this.days=1;}
+  if(++this.currentDay>7)this.currentDay=1;
+ }
  /** CClock::GetGameClockMinutesUntil (0x52CEB0). */
  minutesUntil(hours:number,minutes:number){
   const now=this.hours*60+this.minutes;let then=hours*60+minutes;if(then<now)then+=24*60;return (then-now)&0xffff;

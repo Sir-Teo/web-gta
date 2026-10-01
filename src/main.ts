@@ -4632,6 +4632,7 @@ async function boot() {
                  playerClimbing:()=>!!sim.climb,
                  playerPressingHorn:()=>!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike)&&(input.down('CapsLock')||input.down('KeyH')),
                  populationZoneType:()=>fleet?.pedZone()?.zoneType??0,
+                 setWorldWeekDay:day=>{sim.weekDay=day;},
                  preloadAnimationBlock:block=>{void pedestrians?.scriptAnimation(block,'');},
                  // CAutomobile::SetTaxiLight (0x6A3740) on a script's car, or (none named) the one the player drives.
                  setTaxiLight:(car,on)=>{const c=(car!==undefined?car:worldCar?.occupied?worldCar:fleet?.occupied) as {taxiLight?:boolean}|undefined;if(c&&'taxiLight' in c)c.taxiLight=on;},

@@ -299,6 +299,9 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_MAX_WANTED_LEVEL:(t,p,i)=>{game(t,i).setMaximumWantedLevel(t.readInt(p[0]));},
  // --- CClock (ClockCommands.cpp) ----------------------------------------
  SET_TIME_OF_DAY:(t,p,i,now)=>{game(t,i).clock.setGameClock(t.readInt(p[0]),t.readInt(p[1]),0,now);},
+ // The handler is unreversed; by its name CClock::OffsetClockByADay(1) (its twin SET_TIME_ONE_DAY_BACK is a PC 1.0
+ // no-op): the world's weekday moves with the clock's.
+ SET_TIME_ONE_DAY_FORWARD:(t,_p,i)=>{const clock=game(t,i).clock;clock.offsetByADay(true);t.host?.world?.setWeekDay?.(clock.currentDay);},
  GET_TIME_OF_DAY:(t,p,i)=>{const {clock}=game(t,i);t.writeInt(p[0],clock.hours);t.writeInt(p[1],clock.minutes);},
  GET_MINUTES_TO_TIME_OF_DAY:(t,p,i)=>{t.writeInt(p[2],game(t,i).clock.minutesUntil(t.readInt(p[0])&255,t.readInt(p[1])&255));},
  STORE_CLOCK:(t,_p,i)=>{game(t,i).clock.store();},

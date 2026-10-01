@@ -410,6 +410,8 @@ export interface ScmMissionWorld {
  /** The player climbs (CTaskSimpleClimb), and holds the horn while driving. */
  playerClimbing?():boolean;
  playerPressingHorn?():boolean;
+ /** The world's weekday (Simulation.weekDay), which the script clock follows. */
+ setWorldWeekDay?(day:number):void;
  /** CPopCycle::m_nCurrentZoneType. */
  populationZoneType?():number;
  /** Whether a script object's collision moved from `from` to `to` (native) would overlap a body that is not fixed. */
@@ -1128,6 +1130,7 @@ export class ScmMission {
    },
    setPedSuffersCriticalHits:(handle,suffers)=>{this.world.setScriptPedCriticalHits(this.livePed(handle),suffers);},
    pedAnimTotalTime:(handle,animation)=>(handle===PLAYER_PED_HANDLE?this.host('playerAnimTotalTime','GET_CHAR_ANIM_TOTAL_TIME')(animation):this.world.scriptPedAnimTotalTime?.(this.livePed(handle),animation))??0,
+   setWeekDay:day=>{this.world.setWorldWeekDay?.(day);},
    anyPedsNearPed:(handle,radius)=>{
     const at=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.positionOf(handle);
     const self=handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle);
