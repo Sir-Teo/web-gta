@@ -8947,3 +8947,15 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **`ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY` (AUTHORED).** The handler is unreversed: the speed is added in the frame of
   the object's heading of travel on the ground (x to its right, y along it, z up), units a second. POOL2 gives the cue
   ball its side and top spin this way as it strikes a ball.
+
+## The casino's card games
+
+- **The card stack (AUTHORED from re3's III handlers).** `SHUFFLE_CARD_DECKS` and `FETCH_NEXT_CARD` are unreversed in
+  gta-reversed; III's, which re3 has, are followed: a stack with room for six decks, every card (1 to 52, the sprite
+  numbers blackj and vidpok draw, clubs, diamonds, spades, hearts) of every deck put in a free slot the CRT stream
+  picks among those left, and the deal starting over from the top past the last card shuffled in.
+- **`SET_CHAR_SAY_SCRIPT`** is `CPed::SayScript`, `AddScriptSayEvent` with the scripted line; the scripted speech banks
+  are in `AUDIO/SFX`, which is not published, so the dealers deal without their lines (roulette, blackjack, the wheel).
+- **`SET_HELP_MESSAGE_BOX_SIZE`** sets `CHud::m_fHelpMessageBoxWidth` (200 from `CHud::Initialise`); `DrawHelpText` is
+  unreversed, so the box keeps its authored size at 200 and scales with the width a script gives (blackj's 128).
+- **`ENABLE_DISABLED_ATTRACTORS_ON_OBJECT`** sets `objectFlags.bEnableDisabledAttractors` (ObjectCommands.cpp:150).

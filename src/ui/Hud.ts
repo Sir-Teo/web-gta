@@ -174,6 +174,14 @@ export class Hud {
     this.element.querySelector<HTMLElement>('.stat-update')!.hidden = true;this.statUpdateUntil = 0;
   }
   private helpUntil = 0;
+  /** CHud::m_fHelpMessageBoxWidth on its 640-wide screen: the box's width as a share of the default 200 (DrawHelpText
+   * is unreversed, so the default box keeps its authored size and a script's width scales it). */
+  helpBoxWidth(width: number) {
+    if (width === this.helpWidth) return;
+    this.helpWidth = width;
+    this.element.querySelector<HTMLElement>('.help-box')!.style.maxWidth = width === 200 ? '' : `calc(min(380px,60vw) * ${width / 200})`;
+  }
+  private helpWidth = 200;
   /** CHud::HelpMessageDisplayed (m_nHelpMessageState != 0): a help line or stat box that a drawn frame put up. What
    * is set during a frame is not displayed until DrawHelpText runs, so a later message in the frame replaces it. */
   helpShowing() { return this.helpDrawn; }

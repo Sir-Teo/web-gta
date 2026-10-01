@@ -28,6 +28,7 @@ import {ScmShopping} from './ScmShopping';
 import {ScmScriptBrains} from './ScmScriptBrains';
 import {ScmCheats} from './ScmCheats';
 import {ScmClothes} from './ScmClothes';
+import {ScmCardDecks} from './ScmCardDecks';
 import {ScmPlayerInfo} from './ScmPlayerInfo';
 import {ScmMissionAudio} from './ScmMissionAudio';
 import {ScmDecisionMakers} from './ScmDecisionMakers';
@@ -278,6 +279,8 @@ export class ScmGameState {
  carDensityMultiplier=1;
  /** CCarCtrl::bAllowEmergencyServicesToBeCreated, true from CCarCtrl::Init. */
  allowEmergencyServices=true;
+ /** CTheScripts' card stack (SHUFFLE_CARD_DECKS, FETCH_NEXT_CARD). */
+ readonly cards=new ScmCardDecks();
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */
  widescreenOn=false;currentArea=0;
  /** CStats::bShowUpdateStats: whether the HUD draws the messages a stat change makes. */

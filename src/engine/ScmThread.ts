@@ -422,6 +422,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setPedSwimSpeed?(handle:number,speed:number):void;
  /** A line the ped says, with the three switches its documentation names. */
  pedSayContextImportant?(handle:number,phrase:number,overrideSilence:boolean,ignoreMute:boolean,frontEnd:boolean):number;
+ pedSayScript?(handle:number,line:number,overrideSilence:boolean,forceAudible:boolean,frontEnd:boolean):void;
  /** A particle system tied to one of the ped's bones. */
  attachFxSystemToPedBone?(fxSystem:number,handle:number,bone:number):void;
  /** The attachment commands that limit which way an attached ped may face. */
@@ -743,7 +744,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  beatProximity?(track:number):{first:number;second:number;third:number};
  modelDimensions?(model:number|string):{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}};
  deleteMissionTrains?():void;
- setHelpMessageBoxSize?(size:number):void;
  pedHeadIsMissing?(handle:number):boolean;
  groupSize?(group:number):{members:number;leader:number};
  projectileIsInArea?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;

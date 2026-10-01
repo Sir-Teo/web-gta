@@ -1317,6 +1317,9 @@ export class ScmMission {
    // sound comes back as -1.
    pedSayContext:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return -1;},
    pedSayContextImportant:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return -1;},
+   // AddScriptSayEvent plays the line from the scripted speech banks (GetSoundAndBankIDsForScriptedSpeech), which are
+   // in AUDIO/SFX and not published: the casino's dealers deal on without their lines.
+   pedSayScript:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);},
    // FxSystem_c::AttachToBone: the system follows the bone (a bone tag) from here.
    attachFxSystemToPedBone:(fx,handle,bone)=>{
     const record=this.scriptFx.get(fx);if(!record)throw new UnsupportedScmCommand(-1,0,'AN_FX_SYSTEM_THE_BROWSER_DOES_NOT_HOLD',`fx ${fx}`);

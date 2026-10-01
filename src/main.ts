@@ -3643,7 +3643,7 @@ async function boot() {
        hud.names.hideZoneName();game.help.set(undefined,true,false,false,game.messages);}));
       hud.missionTitleShowing=hudBigMessages.missionTitleShowing;hudBigMessagesClock=gameTimeMs;
       // Each set is drawn afresh, the same text included; a stat update's "+" or "-" is drawn by displayStatUpdate itself.
-      const help=game.help.message,revision=game.help.revision;
+      const help=game.help.message,revision=game.help.revision;hud.helpBoxWidth(game.help.boxWidth);
       if(revision!==shownScript.helpRevision&&game.help.statId){shownScript.help=help;shownScript.helpRevision=revision;}
       else if(revision!==shownScript.helpRevision){const [key,number]=help.split('#');hud.help(help?gxtHudText(number!==undefined?insertNumbers(gxtText(key,key),Number(number)):gxtText(key,key)):'',game.help.permanent?1e9:game.help.quick?3000:5000);shownScript.help=help;shownScript.helpRevision=revision;}
      }}

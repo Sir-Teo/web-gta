@@ -1239,6 +1239,8 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_NUMBER_OF_FOLLOWERS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedFollowerCount')(t.readInt(p[0])));},
  GET_PED_TYPE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedType')(t.readInt(p[0])));},
  SET_SWIM_SPEED:(t,p,i)=>{world(t,i,'setPedSwimSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
+ // CPed::SayScript (CharacterCommands.cpp:3343): CAEPedSpeechAudioEntity::AddScriptSayEvent with the scripted line.
+ SET_CHAR_SAY_SCRIPT:(t,p,i)=>{world(t,i,'pedSayScript')(t.readInt(p[0]),t.readInt(p[1]),bool(t,p[2]),bool(t,p[3]),bool(t,p[4]));},
  // The say command gives back the line it started, and carries three switches of its own.
  SET_CHAR_SAY_CONTEXT_IMPORTANT:(t,p,i)=>{
   t.writeInt(p[5],world(t,i,'pedSayContextImportant')(t.readInt(p[0]),t.readInt(p[1]),
@@ -2195,7 +2197,6 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  PRELOAD_BEAT_TRACK:(t,p,i)=>{game(t,i).cutsceneTrack.preloadBeatTrack(t.readInt(p[0]));},
  DELETE_MISSION_TRAINS:(t,_p,i)=>{world(t,i,'deleteMissionTrains')();},
- SET_HELP_MESSAGE_BOX_SIZE:(t,p,i)=>{world(t,i,'setHelpMessageBoxSize')(t.readInt(p[0]));},
  IS_CHAR_HEAD_MISSING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedHeadIsMissing')(t.readInt(p[0])),negated(i));},
  // CStreaming::DisableCopBikes(!state): SWEET4 and HEIST4 keep bike cops out of their chases.
  SWITCH_COPS_ON_BIKES:(t,p,i)=>{game(t,i).disableCopBikes=!bool(t,p[0]);},
@@ -2946,6 +2947,16 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_OBJECT_COLLISION_DAMAGE_EFFECT:(t,p,i)=>{game(t,i).objects.setColDamageEffect(t.readInt(p[0]),t.readInt(p[1]));},
  FREEZE_OBJECT_POSITION:(t,p,i)=>{game(t,i).objects.freezePosition(t.readInt(p[0]),bool(t,p[1]));},
  SET_OBJECT_DYNAMIC:(t,p,i)=>{game(t,i).objects.setDynamic(t.readInt(p[0]),bool(t,p[1]));},
+ // Attractor::EnableDisabledAttractorOnObject (ObjectCommands.cpp:150): objectFlags.bEnableDisabledAttractors.
+ ENABLE_DISABLED_ATTRACTORS_ON_OBJECT:(t,p,i)=>{game(t,i).objects.at(t.readInt(p[0])).enableDisabledAttractors=bool(t,p[1]);},
+ // CTheScripts' card stack (ScmCardDecks, AUTHORED from re3's III handlers): the shuffle draws on the CRT stream the
+ // random commands share.
+ SHUFFLE_CARD_DECKS:(t,p,i)=>{
+  const random=t.host?.nextRandom;if(!random)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,'no random stream');
+  game(t,i).cards.shuffle(t.readInt(p[0]),random);
+ },
+ FETCH_NEXT_CARD:(t,p,i)=>{t.writeInt(p[0],game(t,i).cards.next());},
+ SET_HELP_MESSAGE_BOX_SIZE:(t,p,i)=>{game(t,i).help.boxWidth=t.readInt(p[0]);},
  SET_OBJECT_PROOFS:(t,p,i)=>{game(t,i).objects.setProofs(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  DOES_OBJECT_HAVE_THIS_MODEL:(t,p,i)=>{t.updateCompareFlag(game(t,i).objects.hasModel(t.readInt(p[0]),model(t,i,p[1])),negated(i));},
  // --- CTheCarGenerators (TheCarGenerators.cpp reversed; both command dispatches are not).

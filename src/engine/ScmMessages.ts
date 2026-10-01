@@ -127,6 +127,9 @@ export class ScmMessages {
  * SetHelpMessageWithNumber (0x588E30). Strings hold GXT labels. */
 export class ScmHelpMessage {
  message='';toPrint='';last='';state=0;permanent=false;quick=false;statId=0;maxStatValue=1000;statUpdateValue=0;
+ /** CHud::m_fHelpMessageBoxWidth, 200 from CHud::Initialise, which SET_HELP_MESSAGE_BOX_SIZE changes (blackj narrows
+  * it to 128 for its hand totals). */
+ boxWidth=200;
  /** Counts the sets that got through: each blanks m_pLastHelpMessage, so the same text set again is drawn afresh. */
  revision=0;
  /** Conditions the HUD reads from other systems; each defaults to inactive. */

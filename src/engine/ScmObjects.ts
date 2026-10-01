@@ -56,6 +56,9 @@ export interface ScmObject {
  colDamageMultiplier:number;smashMultiplier:number;mass:number;
  /** CPhysical::m_fTurnMass as SET_OBJECT_TURN_MASS set it; otherwise OBJECT.DAT's (the host's). */
  turnMass?:number;
+ /** objectFlags.bEnableDisabledAttractors (ENABLE_DISABLED_ATTRACTORS_ON_OBJECT): CTaskComplexUseAttractor and
+  * CPopulation use the object's attractors though they are switched off. */
+ enableDisabledAttractors?:boolean;
  /** CEntity::bIsVisible, which SET_OBJECT_VISIBLE clears. */
  visible:boolean;
  /** CEntity::m_pAttachedTo with its offset and rotation: what the object hangs from and where on it. The
