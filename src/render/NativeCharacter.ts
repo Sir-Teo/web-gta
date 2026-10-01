@@ -789,7 +789,10 @@ export class NativeCharacter {
     // The whole rotation, not just the yaw: a seated or vehicle-clip frame copied the car's quaternion into the root,
     // and a quaternion of a car facing past ±90° reads back as the Euler triple (π, π−yaw, π); writing only the yaw
     // onto that left CJ standing on his head after getting out of a car facing that way.
-    this.root.rotation.set(0, heading + this.headingOffset, 0);this.renderedHeading=heading;
+    // SET_CHAR_ROTATION's matrix is CMatrix::SetRotate: the heading, then x about the ped's right and y about its
+    // forward; in these axes native y is -z, so the roll turns the other way about z.
+    const tilt = p.tilt;
+    this.root.rotation.set(tilt ? tilt.x : 0, heading + this.headingOffset, tilt ? -tilt.y : 0, 'YXZ');this.renderedHeading=heading;
     this.samplePose(this.previous + (this.seconds-this.previous)*alpha, this.previousTransitionTime + (this.transitionTime-this.previousTransitionTime)*alpha);
   }
   private samplePose(seconds: number, transitionTime: number) {

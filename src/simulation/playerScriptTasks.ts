@@ -16,7 +16,7 @@ type Running=
  |{kind:'dive';phase:'loading'|'diving'|'done';yaw:number;lie:number}
  |{kind:'achieveHeading';heading:number}
  |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number}
- |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;phase:'loading'|'ready'|'playing';elapsed:number}
+ |{kind:'playAnim';clip:string;loop:boolean;hold:boolean;release:boolean;remaining:number;phase:'loading'|'ready'|'playing';elapsed:number;uninterruptable:boolean}
  |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
  |{kind:'enterCar';vehicle:number;remaining:number;started:boolean}
  |{kind:'leaveCar';vehicle?:number;immediately:boolean;started:boolean}
@@ -95,6 +95,8 @@ export class PlayerScriptTasks{
   order.kind==='lookAtPoint'||order.kind==='die'||order.kind==='diveAndGetUp';}
  /** Whether a task of the script's runs on the player (GET_SCRIPT_TASK_STATUS). */
  get active(){return !!(this.running||this.sequence);}
+ /** A TASK_PLAY_ANIM_NON_INTERRUPTABLE clip runs on him: the in-air event's fall and landing do not take over. */
+ get uninterruptable(){return this.running?.kind==='playAnim'&&this.running.uninterruptable;}
  give(order:ScriptedPedOrder,body:PlayerTaskBody){this.giveSequence([order],false,body,false);}
  /** CTaskComplexSequence on the player: the tasks one after another, from `start` on the first pass (nested
   * sequences arrive run inline, so there can be more than the eight one sequence holds). */
@@ -139,7 +141,7 @@ export class PlayerScriptTasks{
    case 'goToPoint':this.running={kind:'goToPoint',x:order.x,z:-order.y,y:order.z>MAP_Z_LOW_LIMIT?order.z:undefined,moveState:order.moveState,
     radius:order.radius,moveStateRadius:order.moveStateRadius,remaining:order.seconds};break;
    case 'playAnim':{
-    const clip=order.name.toLowerCase(),own:Running={kind:'playAnim',clip,loop:order.loop,hold:order.keepLastFrame,release:!!order.release,remaining:order.seconds,phase:'loading',elapsed:0};
+    const clip=order.name.toLowerCase(),own:Running={kind:'playAnim',clip,loop:order.loop,hold:order.keepLastFrame,release:!!order.release,remaining:order.seconds,phase:'loading',elapsed:0,uninterruptable:!!order.uninterruptable};
     this.running=own;
     const generation=this.generation;
     if(order.file.toLowerCase()==='ped'&&body.view?.hasReaction(clip)){own.phase='ready';break;}

@@ -92,7 +92,8 @@ describe('the groups, vehicles and particles of this batch',()=>{
   expect(readInt(40)).toBe(9);
   expect(calls).toEqual([
    ['stop',3],['playKill',3],['onObject','spark',OBJECT,{x:0,y:0,z:1},false],
-   ['anim',OBJECT,'OPEN','GARAGE',1,false,true],
+   // 0 then 1: a one-shot held on its last frame (lockF true, loop false).
+   ['anim',OBJECT,'OPEN','GARAGE',1,true,false],
   ]);
  });
 

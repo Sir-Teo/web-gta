@@ -1,6 +1,10 @@
 import {requireAsset} from '../assets/binary';
 /** eWeaponType order from CWeaponInfo::FindWeaponType (index is the native type ID). */
 export const WEAPON_TYPE_NAMES=['UNARMED','BRASSKNUCKLE','GOLFCLUB','NIGHTSTICK','KNIFE','BASEBALLBAT','SHOVEL','POOLCUE','KATANA','CHAINSAW','DILDO1','DILDO2','VIBE1','VIBE2','FLOWERS','CANE','GRENADE','TEARGAS','MOLOTOV','ROCKET','ROCKET_HS','FREEFALL_BOMB','PISTOL','PISTOL_SILENCED','DESERT_EAGLE','SHOTGUN','SAWNOFF','SPAS12','MICRO_UZI','MP5','AK47','M4','TEC9','COUNTRYRIFLE','SNIPERRIFLE','RLAUNCHER','RLAUNCHER_HS','FTHROWER','MINIGUN','SATCHEL_CHARGE','DETONATOR','SPRAYCAN','EXTINGUISHER','CAMERA','NIGHTVISION','INFRARED','PARACHUTE','','ARMOUR'] as const;
+/** CWeapon::HasWeaponAmmoToBeUsed (0x73B2A0): the types that are used without ammo. The shovel, the pool cue and the
+ * cane are not among them. */
+const USED_WITHOUT_AMMO:ReadonlySet<number>=new Set([0,1,2,3,4,5,8,9,10,11,12,13,14,46]);
+export const weaponUsedWithoutAmmo=(type:number)=>USED_WITHOUT_AMMO.has(type);
 export type WeaponFire='melee'|'instant'|'projectile'|'area'|'camera'|'use';
 /** CWeaponInfo::flags bit layout. */
 export const WEAPON_FLAG={canAim:0x1,aimWithArm:0x2,firstPerson:0x4,onlyFreeAim:0x8,moveAim:0x10,moveFire:0x20,throw:0x100,heavy:0x200,continuousFire:0x400,twinPistol:0x800,reload:0x1000,crouchFire:0x2000,reload2Start:0x4000,longReload:0x8000,slowdown:0x10000,randSpeed:0x20000,expands:0x40000} as const;

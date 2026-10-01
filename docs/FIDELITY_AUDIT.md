@@ -8664,8 +8664,8 @@ that did anything.
   `GET_CITY_FROM_COORDS`, `FORCE_BIG_MESSAGE_AND_COUNTER` (the flag is kept; the HUD draws both anyway).
 - **Clothes queries.** `GET_HASH_KEY` and `GET_CLOTHES_ITEM` read CPedClothesDesc's keys. Drawing bought clothes
   still needs `player.img`.
-- **Scripts that are not streamed in.** `player_parachute` and `camera` (the port's own parachute and photographs
-  stand in; the originals would run beside them), and any streamed script that stopped once on a command the port
+- **Scripts that are not streamed in.** `camera` (the port's own photographs stand in; the original would run
+  beside them; `player_parachute` runs now), and any streamed script that stopped once on a command the port
   lacks: MAIN asks for the pounds', the valet's and the cranes' again whenever none runs, and each would stop at
   the same command every pass.
 - **A give-up hands back only what a shop took.** A streamed script that stops restores the player's controls and
@@ -9100,3 +9100,34 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   CreateFirstSubTask` (reversed) gives it `CTaskSimpleCarDriveTimed`, so it sits on in the seat it has and the task is
   over. The browser took the rider out to walk round to the named seat: SWEET3 makes Smoke and Ryder in Sweet's
   Greenwood and then names each the other's seat, and Smoke was left standing at the drive-thru.
+
+## The parachute is the original script
+
+- **`player_parachute.scm` runs** (MAIN starts it while CJ carries the parachute; it was held back for the browser's
+  own canopy). Past ten units a second down with twenty under him the free fall starts: FALL_SKYDIVE and the
+  PARACHUTE block's skydive clips, the fall eased to and held at 30 a second, the stick turning, pitching and banking
+  him; the fire button opens the canopy object (PARACHUTE, 3131) hung from him, whose PARA_OPEN_O progress eases the
+  fall to 5; the canopy steers, flares and floats on its own clips; on the ground the script lands him (PARA_LAND,
+  or FALL_FRONT and the get-up from a harder one), takes the canopy and the parachute away and ends. A free fall that
+  hits something faster than 20 is FALL_SKYDIVE_DIE. The browser's authored canopy (forward glide, capped descent,
+  the S flare) is kept only for a world with no script. The script's mission audio (the opening and closing sounds)
+  is silent with the rest.
+- **`SET_CHAR_ROTATION`** (`CPlaceable::SetOrientation` from degrees, `CMatrix::SetRotate`): the heading, then x about
+  the ped's right and y about its forward, drawn on CJ and on a script ped; `SET_CHAR_HEADING` (SetRotateZOnly) drops
+  the tilt. `m_fCurrentRotation` is not touched by the original; the browser keeps one heading, which takes the z.
+- **`TASK_PLAY_ANIM_NON_INTERRUPTABLE` on the player** holds off CEventInAir's response: no FALL_FALL and no
+  FALL_COLLAPSE or knockdown landing while the script's clip runs, as the clip's task refuses the abort.
+- **`HAS_CHAR_GOT_WEAPON` on the player** (any slot holding the type) counts a weapon with no ammo while he holds it if
+  `CWeapon::HasWeaponAmmoToBeUsed` (0x73B2A0) says it needs none: the fists, the melee slots but the shovel, pool cue
+  and cane, and the parachute. The parachute keeps no ammo here, so MAIN never saw it.
+- **`PLAY_OBJECT_ANIM`'s last two operands are loop, then lockF** (the handler is unreversed; the usual listing names
+  them the other way round). Every loop the scripts play passes 1 first (BBALL_WALK_O, PARA_RIP_LOOP_O, the canopy's
+  steering) and every one-shot that waits at its end 0 then 1 (PARA_OPEN_O, CAT_SAFE_OPEN_O, the pool cue's shots).
+  Read the other way, the canopy's opening looped, its progress fell back to nothing and the fall went back to 30.
+- **An object or FX system attached to the player** follows him (the attachment frame only knew the script's peds),
+  and the attachments are placed again just before the frame is drawn, as `CPhysical::PositionAttachedEntity` runs
+  in the world's process: the script steps after the physics, and the canopy trailed him by a frame.
+- **`REMOVE_OBJECT_ELEGANTLY`** fades an object out of existence; the browser draws script objects opaque, so it goes
+  at once (AUTHORED).
+- Spec: `player-parachute` (the drop from 150 units, the free fall and its tilt, the canopy drawn over him, the eased
+  fall and the landing with the script ended).

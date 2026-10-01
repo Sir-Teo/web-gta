@@ -1088,6 +1088,9 @@ const handlers:Record<string,ScmCommandHandler>={
   const velocity=vec(t,p,1);
   world(t,i,'setPedVelocity')(t.readInt(p[0]),{x:velocity.x/50,y:velocity.y/50,z:velocity.z/50});
  },
+ // CPlaceable::SetOrientation from degrees: CMatrix::SetRotate turns the ped by z, then tilts it by x about its right
+ // and by y about its forward. It leaves m_fCurrentRotation alone and lasts until SetHeading's SetRotateZOnly.
+ SET_CHAR_ROTATION:(t,p,i)=>{world(t,i,'setPedRotation')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  CLEAR_CHAR_LAST_WEAPON_DAMAGE:(t,p,i)=>{world(t,i,'clearPedLastWeaponDamage')(t.readInt(p[0]));},
  CLEAR_CHAR_LAST_DAMAGE_ENTITY:(t,p,i)=>{world(t,i,'clearPedLastDamageEntity')(t.readInt(p[0]));},
  // The script counts weapon slots from one and the ped from nothing, so the command subtracts one; it gives
@@ -1718,8 +1721,12 @@ const handlers:Record<string,ScmCommandHandler>={
  CREATE_FX_SYSTEM_ON_OBJECT:(t,p,i)=>{
   t.writeInt(p[6],world(t,i,'createFxSystemOnObject')(t.text(p[0]),t.readInt(p[1]),vec(t,p,2),bool(t,p[5])));
  },
+ // The fifth operand loops the clip and the sixth holds it on its last frame (the handler is not reversed, and the
+ // usual listing names them the other way round): every loop the scripts play passes 1 first (BBALL_WALK_O,
+ // PARA_RIP_LOOP_O, the canopy's steering), and every one-shot that waits at its end 0 then 1 (PARA_OPEN_O, whose
+ // progress player_parachute eases the fall by and waits to reach 1, CAT_SAFE_OPEN_O, the pool cue's shots).
  PLAY_OBJECT_ANIM:(t,p,i)=>{
-  world(t,i,'playObjectAnim')(t.readInt(p[0]),t.text(p[1]),t.text(p[2]),t.readFloat(p[3]),bool(t,p[4]),bool(t,p[5]));
+  world(t,i,'playObjectAnim')(t.readInt(p[0]),t.text(p[1]),t.text(p[2]),t.readFloat(p[3]),bool(t,p[5]),bool(t,p[4]));
  },
  /* --- The world settings and the two remaining questions. */
  DISABLE_ALL_ENTRY_EXITS:(t,p,i)=>{world(t,i,'disableAllEntryExits')(bool(t,p[0]));},
@@ -2996,6 +3003,10 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_HELP_MESSAGE_BOX_SIZE:(t,p,i)=>{game(t,i).help.boxWidth=t.readInt(p[0]);},
  SET_OBJECT_PROOFS:(t,p,i)=>{game(t,i).objects.setProofs(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  DOES_OBJECT_HAVE_THIS_MODEL:(t,p,i)=>{t.updateCompareFlag(game(t,i).objects.hasModel(t.readInt(p[0]),model(t,i,p[1])),negated(i));},
+ // AUTHORED: the command fades the object out of existence and takes it off the mission's cleanup (its handler is
+ // not in the reversed source; REMOVE_CHAR_ELEGANTLY's does that for a ped). The browser draws script objects
+ // opaque, so it goes at once. An object already gone is left alone.
+ REMOVE_OBJECT_ELEGANTLY:(t,p,i)=>{const handle=t.readInt(p[0]);if(game(t,i).objects.exists(handle))game(t,i).objects.remove(handle);},
  // --- CTheCarGenerators (TheCarGenerators.cpp reversed; both command dispatches are not).
  CREATE_CAR_GENERATOR:(t,p,i,now)=>{
   const v=vec(t,p,0);

@@ -71,7 +71,9 @@ export class Simulation {
     adrenaline: 0,
    swimming: false, swimState: 0, swimBlend: 0, breath: 100, requireHandleBreath:false, swimStopTime: 0, swimDiveTime: 0, swimDiveDuration: 1, swimPitch: 0, swimStateChanger: 0, swimVelY: 0, swimVel: { x: 0, z: 0 },
    /** Native m_fMoveBlendRatio (PlayerControlZelda) plus preserved jump momentum (CTaskSimpleJump::Launch). */
-   moveBlend: 0, jumpMomentum: { x: 0, z: 0 } };
+   moveBlend: 0, jumpMomentum: { x: 0, z: 0 },
+   /** SET_CHAR_ROTATION's tilt under the heading (CMatrix::SetRotate's x and y, radians), until SetHeading clears it. */
+   tilt: undefined as { x: number; y: number } | undefined };
   deathRemaining = 0;
   /** ScanToGrab's view of the world and the CLIMB_* clip lengths; climbing needs both. */
   climbWorld?: ClimbWorld<ClimbEntity>;
@@ -300,6 +302,9 @@ export class Simulation {
   /** Whether the player's active task is CTaskSimpleJump, CTaskSimpleInAir or CTaskSimpleLand as a damage event is
    * raised (the host reads it from the character), since the reaction is played a frame or more later. */
   playerInAirTask?: () => boolean;
+  /** A script task the in-air event cannot abort holds the player (TASK_PLAY_ANIM_NON_INTERRUPTABLE): no FALL_FALL and
+   * no landing of it, as player_parachute's free fall and canopy land him themselves. */
+  playerFallHeld?: () => boolean;
   /** Seconds left of a fall and get-up (CTaskComplexFallAndGetUp), during which input is ignored. */
   knockdown = 0;
   /** The get-up at the end of `knockdown`; while more than this remains the player is still in the fall. */
@@ -581,7 +586,7 @@ export class Simulation {
     // below, the ped goes into FALL_FALL. CTaskComplexInAirAndLand then lands a FALL_FALL with FALL_COLLAPSE, or, if the
     // fall ever passed 0.4 units a frame, knocks the ped flat (CTaskSimpleFall, KO_SKID_BACK, 700 ms).
     // The canopy replaces CTaskComplexInAirAndLand: the freefall before it opened lands no FALL_COLLAPSE or knockdown.
-    if (controls.parachute) this.fall = { minVz: 0, falling: false };
+    if (controls.parachute || this.playerFallHeld?.()) this.fall = { minVz: 0, falling: false };
     else if (!this.player.grounded && !controls.jetPack) {
       this.fall.minVz = Math.min(this.fall.minVz, this.player.verticalSpeed);
       if (!this.fall.falling && this.player.verticalSpeed < -.1 * 50) {

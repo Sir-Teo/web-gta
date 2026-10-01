@@ -8,6 +8,7 @@ import {TRAIN_TYPES} from './nativeTrainTracks';
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {speechLengthMs} from '../engine/ScmMissionAudio';
+import {requireAsset} from '../assets/binary';
 import {gxtText} from '../assets/gxt';
 import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
 import {resetGangWeapons,setGangWeapons} from './nativeGangWeapons';
@@ -707,6 +708,10 @@ export interface ScmMissionWorld {
  setFreeHealthCare?(on:boolean):void;
  /** CPhysical::SetVelocity on the player, native units per 50th of a second. */
  setPlayerVelocity?(velocity:{x:number;y:number;z:number}):void;
+ /** CPlaceable::SetOrientation (SET_CHAR_ROTATION) on the player and on a script ped: degrees, the heading z with the
+  * tilt x about the ped's right and y about its forward. */
+ setPlayerRotation?(x:number,y:number,z:number):void;
+ setScriptPedRotation?(ped:unknown,x:number,y:number,z:number):void;
  /** GET_CHAR_VELOCITY on the player: his m_vecMoveSpeed (his vehicle's in one) in native axes, units a second. */
  playerVelocity?():{x:number;y:number;z:number};
  setPlayerMaxArmour(maxArmour:number):void;
@@ -734,12 +739,11 @@ const RADIO_OFF=13;
 /** eVehicleAppearance::VEHICLE_APPEARANCE_AUTOMOBILE. */
 const VEHICLE_APPEARANCE_AUTOMOBILE=1;
 /** Streamed scripts that are never streamed in, so MAIN's HAS_STREAMED_SCRIPT_LOADED stays false and it never starts
- * them: `player_parachute` (MAIN starts it whenever CJ holds a parachute) would run the original free fall and canopy
- * beside the port's own parachute, which stands in for it; `camera` (started whenever he holds the camera) stops at
- * its first command, SET_PHOTO_CAMERA_EFFECT, and the port takes its photographs itself; `impound` (the police
- * pounds; MAIN starts it again whenever none runs near one) stops at IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE and would be
- * started again every pass. */
-const HELD_BACK_STREAMED_SCRIPTS:ReadonlySet<string>=new Set(['player_parachute','camera','impound']);
+ * them: `camera` (started whenever he holds the camera) stops at its first command, SET_PHOTO_CAMERA_EFFECT, and the
+ * port takes its photographs itself; `impound` (the police pounds; MAIN starts it again whenever none runs near one)
+ * stops at IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE and would be started again every pass. `player_parachute` runs: it flies
+ * the free fall and the canopy, and the browser's own canopy stays shut while a script runs. */
+const HELD_BACK_STREAMED_SCRIPTS:ReadonlySet<string>=new Set(['camera','impound']);
 /** CRunningScript::ThisIsAValidRandomPed (0x489490): civilians, the nine gang types, or criminals and prostitutes. */
 export function validRandomPedType(pedType:number,civilian:boolean,gang:boolean,criminal:boolean){
  if(pedType===4||pedType===5)return civilian;
@@ -1230,6 +1234,13 @@ export class ScmMission {
    setPedVelocity:(handle,velocity)=>{
     if(handle!==PLAYER_PED_HANDLE){this.livePed(handle);throw new UnsupportedScmCommand(-1,0,'SET_CHAR_VELOCITY','a script ped');}
     this.host('setPlayerVelocity','SET_CHAR_VELOCITY')(velocity);
+   },
+   // A ped in a car sits where the car puts it, so only one on foot is turned.
+   setPedRotation:(handle,x,y,z)=>{
+    requireAsset([x,y,z].every(Number.isFinite),'Invalid ped rotation.');
+    if(handle===PLAYER_PED_HANDLE){if(!this.world.playerPed().vehicle)this.host('setPlayerRotation','SET_CHAR_ROTATION')(x,y,z);return;}
+    const ped=this.livePed(handle);
+    if(this.peds.rideOf(handle)===undefined)this.host('setScriptPedRotation','SET_CHAR_ROTATION')(ped,x,y,z);
    },
    hasLanguageChanged:()=>false,
    // IS_GERMAN_GAME: these are the English-language data files, not the German release's.
@@ -2988,6 +2999,10 @@ export class ScmMission {
   * axes, so the world point is the host's position plus its right, forward and up scaled by the offset; a car
   * gives all three through its matrix, and a ped, which only turns about the up axis, gives them from its
   * heading. A host that has gone leaves the object where it last was rather than dragging it to nowhere. */
+ /** The same again just before the frame is drawn: the script steps after the world's physics, and an object hung from
+  * the moving player (player_parachute's canopy) would otherwise be drawn where he was a frame before, as CPhysical's
+  * PositionAttachedEntity has it follow its host within the world's own process. */
+ refreshAttachments(){this.followAttachments();}
  private followAttachments(){
   for(const object of this.runtime.game.objects.all){
    const attached=object.attachedTo;if(!attached)continue;
@@ -3021,6 +3036,11 @@ export class ScmMission {
    const host=this.runtime.game.objects.exists(attached.handle)?this.runtime.game.objects.at(attached.handle):undefined;
    if(!host)return undefined;
    return {...headingFrame(host.heading),position:host.position,heading:host.heading};
+  }
+  // The player is no script ped of the pool, and is the ped player_parachute hangs its canopy from.
+  if(attached.handle===PLAYER_PED_HANDLE){
+   const player=this.world.playerPed(),heading=(player.heading??0)*Math.PI/180;
+   return {...headingFrame(heading),position:{...player.position},heading};
   }
   if(!this.peds.exists(attached.handle))return undefined;
   const position=this.peds.positionOf(attached.handle),heading=this.peds.headingOf(attached.handle)*Math.PI/180;

@@ -47,6 +47,22 @@ describe('the last of the ped questions',()=>{
   expect(readFloat(48)).toBeCloseTo(-20,5);
  });
 
+ test('SET_CHAR_ROTATION hands the world the Euler degrees as the script gives them',()=>{
+  // player_parachute pitches CJ by 3@ and banks him by 2@ under the heading 1@ every frame of the fall.
+  const calls:number[][]=[];
+  run({setPedRotation:(handle,x,y,z)=>{calls.push([handle,x,y,z]);}},undefined,
+   instruction(scmOpcode('SET_CHAR_ROTATION'),[int(PED),float(-12.5),float(20),float(270)]));
+  expect(calls).toEqual([[PED,-12.5,20,270]]);
+ });
+
+ test('REMOVE_OBJECT_ELEGANTLY takes the object away and leaves a handle already gone alone',()=>{
+  const game=new ScmGameState(),handle=game.objects.create(3131,{x:0,y:0,z:0},{external:false,missionCleanup:true}).handle;
+  run({},game,instruction(scmOpcode('REMOVE_OBJECT_ELEGANTLY'),[int(handle)]));
+  expect(game.objects.exists(handle)).toBe(false);
+  const {thread}=run({},game,instruction(scmOpcode('REMOVE_OBJECT_ELEGANTLY'),[int(handle)]));
+  expect(thread.ip).toBeGreaterThan(CODE);
+ });
+
  test('ALLOW_PAUSE_IN_WIDESCREEN sets and clears CTheScripts::bAllowPauseInWidescreen',()=>{
   const {game}=run({},undefined,instruction(scmOpcode('ALLOW_PAUSE_IN_WIDESCREEN'),[int(1)]));
   expect(game.allowPauseInWidescreen).toBe(true);

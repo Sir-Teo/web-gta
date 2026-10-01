@@ -28,7 +28,10 @@ export type ScriptedPedOrder=
   * or let go), for `seconds` when the script gives a time. */
  |{kind:'playAnim';file:string;name:string;loop:boolean;keepLastFrame:boolean;seconds:number;
   /** A held last frame is let go when the time runs out rather than kept (CTaskSimpleHandsUp). */
-  release?:boolean}
+  release?:boolean;
+  /** TASK_PLAY_ANIM_NON_INTERRUPTABLE: the clip's task refuses an abort short of an immediate one, so an event
+   * response (CEventInAir's fall and landing among them) cannot take the ped off it. */
+  uninterruptable?:boolean}
  /** CTaskSimpleTriggerLookAt: the head turns to a ped (a script handle, the player's included) for `seconds`; the
   * task itself is over as soon as it has started the look. */
  |{kind:'lookAt';target:number;seconds:number}
@@ -155,10 +158,10 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // The attack style flags, the action delay and chance, and the must-be-on-foot bit are not modelled: the ped
   // fights with the browser's own armed and melee combat.
   case 'killPedOnFoot':return world.ped(task.target)?{kind:'killPed',target:task.target,seconds:seconds(task.time)}:undefined;
-  // The blend delta, the X and Y root locks and the interruptable bit are not modelled: the clip replaces the pose at
-  // once and the ped stays where it stands.
+  // The blend delta and the X and Y root locks are not modelled: the clip replaces the pose at once and the ped stays
+  // where it stands. The interruptable bit is kept for the player, whose fall it holds off.
   case 'playAnim':return {kind:'playAnim',file:task.animationFile,name:task.animationName,loop:task.loop,keepLastFrame:task.keepLastFrame,
-   seconds:task.time>0?task.time/1000:Number.POSITIVE_INFINITY};
+   seconds:task.time>0?task.time/1000:Number.POSITIVE_INFINITY,...task.interruptable?{}:{uninterruptable:true}};
   case 'lookAtPed':return world.ped(task.target)?{kind:'lookAt',target:task.target,seconds:seconds(task.time)}:undefined;
   case 'clearLookAt':return {kind:'clearLookAt'};
   case 'enterCarAsDriver':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:'driver',seconds:seconds(task.time),...moveStateOf(task)}:undefined;

@@ -344,6 +344,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  pedAnimTotalTime?(handle:number,animation:string):number;
  pedSpeed?(handle:number):number;
  setPedVelocity?(handle:number,velocity:{x:number;y:number;z:number}):void;
+ /** SET_CHAR_ROTATION: the ped's matrix from Euler angles in degrees. */
+ setPedRotation?(handle:number,x:number,y:number,z:number):void;
  /** m_nLastWeaponDamage and m_pLastEntityDamage, which the script can clear. */
  clearPedLastWeaponDamage?(handle:number):void;
  clearPedLastDamageEntity?(handle:number):void;

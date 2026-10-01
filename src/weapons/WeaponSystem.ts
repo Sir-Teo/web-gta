@@ -77,7 +77,9 @@ const randTable=()=>-.05+.005*Math.floor(Math.random()*20);
 export class WeaponSystem {
  readonly inventory=new WeaponInventory();
  effects:WeaponEffect[]=[];projectiles:Projectile[]=[];hazards:Hazard[]=[];shots:AreaShot[]=[];
- vision:'nightvision'|'infrared'|null=null;parachute=false;photoRequested=false;ready=true;aiming=false;
+ vision:'nightvision'|'infrared'|null=null;parachute=false;
+ /** Whether player_parachute.scm flies the parachute (MAIN runs it while CJ carries one). */
+ scriptParachute:()=>boolean=()=>false;photoRequested=false;ready=true;aiming=false;
  /** Melee combo chain (melee.dat hit/chain frames): stage and last landed hit. */
  private meleeStage=0;private meleeAt=-10;private meleeWeapon=-1;
  /** CTaskSimpleFight's idle time: a melee press with no target makes the fight task with 2000 ms to live, and
@@ -531,7 +533,9 @@ export class WeaponSystem {
   /** Camera selects a target; a separate muzzle ray prevents firing through nearby walls. */
   fire(camera:{origin:Vec3;direction:Vec3}){
    const w=this.inventory.weapon;if(!this.ready||this.sim.player.health<=0||this.sim.player.swimming||!this.sim.playerBody.isEnabled()||!this.sim.playerCollider.isEnabled())return false;
-  if(w.kind==='parachute'&&this.sim.player.grounded)return false;
+  // CWeapon::Fire does nothing with the parachute: player_parachute.scm opens it on the button the fire reads, and
+  // without the script the browser's own canopy stands in for it.
+  if(w.kind==='parachute'&&(this.sim.player.grounded||this.scriptParachute()))return false;
   if(['grenade','gas','molotov','rocket','guided','satchel'].includes(w.kind)&&this.projectiles.length>=MAX_PROJECTILES)return false;
   // CTaskSimpleThrowProjectile: a throwable's press starts WEAPON_start_throw; the projectile leaves at the throw
   // clip's fire frame (stepThrow), where the ammunition is spent.

@@ -22,6 +22,8 @@ import {nativeWeaponMovement} from './weapons/nativeWeaponMovement';
 import {Progression} from './simulation/Progression';
 /** A script heading, degrees clockwise from north, as the yaw the browser turns bodies by. */
 const scriptYaw=(degrees:number)=>degrees*Math.PI/180+Math.PI;
+/** SET_CHAR_ROTATION's x and y in degrees as a tilt in radians, none when both are nought. */
+const scriptTilt=(x:number,y:number)=>x||y?{x:x*Math.PI/180,y:y*Math.PI/180}:undefined;
 /** A script car heading (degrees, 0 facing north) as the body's rotation about the up axis. A car's front is its body's
  * -z, which a rotation of nothing already points north, so the angle is the heading itself; scriptYaw's half turn is for
  * the ped headings, which measure the facing from the renderer's +z. */
@@ -172,7 +174,7 @@ import {includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceMovementFlags,steepSlopeRefusesJump,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {rapierClimbWorld} from './simulation/climbProbe';
-import {WEAPON_FLAG,nativeWeaponInfo} from './weapons/weaponData';
+import {WEAPON_FLAG,nativeWeaponInfo,weaponUsedWithoutAmmo} from './weapons/weaponData';
 import {nativePedType} from './ped/nativeAcquaintance';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
 import {loadHudSprites} from './ui/nativeHudSprites';
@@ -750,6 +752,7 @@ async function boot() {
   /** No mission unlocks a city in this build, so every restart point qualifies. */
   const CITY_UNLOCKED=2;
   const weapons=new WeaponSystem(sim,()=>pedestrians,()=>fleet);
+  weapons.scriptParachute=()=>!!mission;
   sim.neverTired=()=>!!mission?.runtime.game.playerInfo.doesNotGetTired;
   sim.indoors=()=>render.lighting.area!==0;
   // CPlayerInfo::m_bFastReload, which SET_PLAYER_FAST_RELOAD sets on the script's player info.
@@ -1972,6 +1975,7 @@ async function boot() {
   const playerFall=(view:import('./render/NativeCharacter').NativeCharacter|undefined,clip:string)=>{playerFallClip=clip;return view?.reactionDuration(getUpClip(clip))??1.2;};
   // A teleport flushes the knockdown's fall and get-up: CJ stands at the destination rather than lying there.
   sim.playerInAirTask=()=>!sim.jetPack&&!!render.nativeCharacter?.jumping;
+  sim.playerFallHeld=()=>playerTasks.uninterruptable;
   sim.onFlushPlayerTasks=()=>{playerGetUp=0;playerStuckUnderCar=false;playerFallClip=undefined;render.nativeCharacter?.clearReaction();};
   /** CPedPlacement::IsPositionClearOfCars at the player's origin (a unit above the feet). */
   const carOverPlayer=()=>{
@@ -3397,6 +3401,7 @@ async function boot() {
         if(source)breakModel(source.model,source.textures,source.bounds,source.matrix,justFaces,objectDefValues(source.id)??{});
       }
       broken.length=0;
+      mission.refreshAttachments();
       scriptObjectViews.update(mission.scriptObjects(),paused?0:dt*timeScale());
     }
     // CPickups' own array holds the script's pickups beside the world's, so the browser's pickup world takes
@@ -4467,7 +4472,10 @@ async function boot() {
                  // not applied. Turning him from the script would fight the placement rather than add to it:
                  // the opening's own call is the new game's facing, and honouring it moved the spawn.
                  // CPed::SetHeading on foot: m_fCurrentRotation and m_fAimingRotation both, so he stays facing it.
-                 setPlayerHeading:degrees=>{sim.player.heading=scriptYaw(degrees);},
+                 // CPlaceable::SetHeading's SetRotateZOnly drops SET_CHAR_ROTATION's tilt.
+                 setPlayerHeading:degrees=>{sim.player.heading=scriptYaw(degrees);sim.player.tilt=undefined;},
+                 // SetOrientation turns the matrix only; the browser keeps one heading, which the matrix's is drawn from.
+                 setPlayerRotation:(x,y,z)=>{sim.player.heading=scriptYaw(z);sim.player.tilt=scriptTilt(x,y);},
                  // CCamera::SetCameraDirectlyBehindForFollowPed_CamOnAString.
                  setCameraBehindPlayer:()=>{render.camDirectlyBehind=sim.player.heading;},
                  loadScene:()=>{},
@@ -4521,7 +4529,8 @@ async function boot() {
                   target.actor.player.position={...place};target.actor.player.previous={...place};
                   target.body.setTranslation({x:place.x,y:place.y+.9,z:place.z},true);
                  },
-                 setScriptPedHeading:(ped,degrees)=>{const p=onFoot(ped);if(p)p.actor.player.heading=scriptYaw(degrees);else{const r=asRider(ped);if(r)r.heading=scriptYaw(degrees);}},
+                 setScriptPedHeading:(ped,degrees)=>{const p=onFoot(ped);if(p){p.actor.player.heading=scriptYaw(degrees);p.actor.player.tilt=undefined;}else{const r=asRider(ped);if(r)r.heading=scriptYaw(degrees);}},
+                 setScriptPedRotation:(ped,x,y,z)=>{const p=onFoot(ped);if(p){p.actor.player.heading=scriptYaw(z);p.actor.player.tilt=scriptTilt(x,y);}},
                  scriptPedPosition:ped=>{const r=asRider(ped);if(r){const q=r.car.car.body.translation();return {x:q.x,y:-q.z,z:q.y};}const q=onFoot(ped)!.actor.player.position;return {x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT};},
                  scriptPedHeading:ped=>{const r=asRider(ped);const yaw=r?r.car.heading():onFoot(ped)!.actor.player.heading;const degrees=(yaw-Math.PI)*180/Math.PI;return ((degrees%360)+360)%360;},
                  scriptPedHealth:ped=>asRider(ped)?.health??onFoot(ped)?.health??0,
@@ -5221,9 +5230,11 @@ async function boot() {
                    heading:((((sim.player.heading-Math.PI)*180/Math.PI)%360)+360)%360,
                    areaCode:render.lighting.area,
                    // The inventory holds one of each weapon the player has picked up, and the catalog says
-                   // which of them are melee.
+                   // which of them are melee. A weapon with no ammo counts while he holds it if it is used without
+                   // any (CWeapon::HasWeaponAmmoToBeUsed: the fists' and the melee slots', and the parachute, which
+                   // MAIN starts player_parachute for).
                    weapons:{
-                    carried:[...weapons.inventory.ammo].filter(([id,ammo])=>id===0||ammo.clip>0||ammo.reserve>0).map(([id])=>id),
+                    carried:[...weapons.inventory.ammo].filter(([id,ammo])=>id===0||ammo.clip>0||ammo.reserve>0||weapons.inventory.owned.has(id)&&weaponUsedWithoutAmmo(id)).map(([id])=>id),
                     active:{type:weapons.inventory.selected,melee:weapons.inventory.weapon.kind==='melee'},
                     ammo:Object.fromEntries([...weapons.inventory.ammo].map(([id,a])=>[id,a.clip+a.reserve])),
                    },
