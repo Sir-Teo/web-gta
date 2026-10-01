@@ -898,6 +898,15 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isCarDoorDamaged?(handle:number,door:number):boolean;
  setVehicleToFadeIn?(handle:number,alpha:number):void;
  addAttractor?(x:number,y:number,z:number,angle:number,p5:number,sequence:number):number;
+ /** CScriptsForBrains::IsObjectWithinBrainActivationRange: the player is within the radius its brain was given. */
+ isObjectWithinBrainActivationRange?(handle:number):boolean;
+ /** CREATE_CHAR_AT_ATTRACTOR: a ped made standing at a scripted attractor, performing its sequence. */
+ createCharAtAttractor?(pedType:number,model:number|string,attractor:number,taskCommand:number):number;
+ /** CWeaponInfo::GetWeaponInfo(type)'s slot and first model. */
+ weaponTypeSlot?(weaponType:number):number;
+ weaponTypeModel?(weaponType:number):number;
+ /** CPed::m_fArmour. */
+ pedArmour?(handle:number):number;
  addPedtypeAsAttractorUser?(handle:number,pedType:number):void;
  taskUseAttractor?(char:number,attractor:number):void;
  planeFlyInDirection?(handle:number,heading:number,minAltitude:number,maxAltitude:number):void;
@@ -1177,13 +1186,18 @@ export class ScmThread {
  readonly stack:number[]=[];
  readonly locals:DataView;
  private readonly globals:DataView;
+ /** The bytes the thread's instructions are decoded from: the script space, or a streamed script's own file. */
+ private readonly code:DataView;
  private readonly strings:ScmStrings;
  /** The instruction record this thread refills as it runs, so stepping one allocates nothing. */
  private readonly decoded=createScmDecodeBuffer();
  /** The instruction the thread last decoded: the one running when a command fails. */
  get currentInstruction(){return {name:this.decoded.name,offset:this.decoded.offset};}
- constructor(readonly scriptSpace:Uint8Array,entry:number,readonly base=0,locals=new DataView(new ArrayBuffer(34*4)),readonly host?:ScmThreadHost){
-  this.globals=new DataView(scriptSpace.buffer,scriptSpace.byteOffset,scriptSpace.byteLength);
+ /** `globalSpace` is CTheScripts::ScriptSpace, where every thread's global variables live. A streamed script runs over
+  * its own file's bytes (`scriptSpace`) but reads and writes the same globals as MAIN. */
+ constructor(readonly scriptSpace:Uint8Array,entry:number,readonly base=0,locals=new DataView(new ArrayBuffer(34*4)),readonly host?:ScmThreadHost,globalSpace:Uint8Array=scriptSpace){
+  this.globals=new DataView(globalSpace.buffer,globalSpace.byteOffset,globalSpace.byteLength);
+  this.code=globalSpace===scriptSpace?this.globals:new DataView(scriptSpace.buffer,scriptSpace.byteOffset,scriptSpace.byteLength);
   this.locals=locals;this.strings=new ScmStrings(this.globals,locals);this.ip=this.address(entry);
  }
  private address(offset:number){
@@ -1266,7 +1280,7 @@ export class ScmThread {
   }
   if(nowMs<this.wakeTime)return 'waiting';
   for(let count=0;count<budget;count++){
-   decodeScmInstructionInto(this.scriptSpace,this.globals,this.ip,this.scriptSpace.length,this.decoded);
+   decodeScmInstructionInto(this.scriptSpace,this.code,this.ip,this.scriptSpace.length,this.decoded);
    const i:ScmInstruction=this.decoded,op=i.opcode&0x7fff,p=i.parameters;
    let next=i.end;
    if(op===0){/* NOP */}

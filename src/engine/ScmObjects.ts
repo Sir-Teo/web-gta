@@ -84,6 +84,9 @@ export interface ScmObject {
  recordsCollisions?:boolean;
  /** The CAnimBlendAssociation PLAY_OBJECT_ANIM put on the object's clump, if any. */
  anim?:ScmObjectAnim;
+ /** Set on an object that stands for a placement of the map (a dummy the game turns into a CObject as the player
+  * nears it), which a script brain was started on: the map draws and collides it, so a host makes it no view. */
+ worldPlacement?:string;
 }
 /** A clump's animation association as the object commands reach it: the hierarchy's name and block, m_CurrentTime
  * and m_Speed (seconds), ANIMATION_LOOPED and ANIMATION_STARTED, whether it fades out once done, and the hierarchy's
@@ -137,6 +140,13 @@ export class ScmObjects {
    }else object.proofs.explosion=true;
   }
   this.objects.set(handle,object);
+  return object;
+ }
+ /** A CObject made from a placement of the map, which a script brain runs on: the handle the brain's script holds it
+  * by. It is OBJECT_MAP-like: no mission cleanup and no view of its own. `heading` is degrees. */
+ adoptWorld(model:number|string,position:{x:number;y:number;z:number},heading:number,placement:string){
+  const object=this.create(model,position,{external:true,missionCleanup:false});
+  object.objectType=OBJECT_TEMPORARY;object.heading=fixAngleDegrees(heading<0?heading+360:heading)*DEG;object.worldPlacement=placement;
   return object;
  }
  /** DoesObjectExists: a handle the script still holds after its object went is simply not there. */

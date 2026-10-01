@@ -158,10 +158,15 @@ await withSources(async load=>{
   if(missing.length){status='stops';notes.push(`adapter lacks ${missing.join(', ')} (the thread gives up)`);}
   ours.set(name,{status,line:h.line,members,notes});
  }
+ /** The opcodes ScmThread runs itself (tests/scm-coverage.test.ts keeps the same list). */
+ const isCore=op=>[0,1,2,197,198,1198,1199,1449,1450,1745,1746,1453,1454,2297,2298,153,520,521,0x4a3,0x4a4,0x871,0x872,0x4d,0x4e,0x4f,0x50,0x51,0xd6,0x16a,0xd7,0x417,0x459,0x3a4].includes(op)
+  ||[[4,23],[88,119],[120,131],[132,139],[140,147],[148,151],[24,60],[66,70],[0x4b0,0x4b7],[2116,2119]].some(([low,high])=>op>=low&&op<=high);
  const oursFor=op=>{
   const name=nameOf(op);
   if(NATIVE_NOP_OPCODES.has(op))return {status:'nop'};
-  if(!SCM_GAME_COMMANDS.has(op))return {status:'core'};
+  // Neither the interpreter's own nor a game command: nothing dispatches it, so the thread gives up there. MAIN and
+  // the missions have none left; the streamed scripts still use a few.
+  if(!SCM_GAME_COMMANDS.has(op))return isCore(op)?{status:'core'}:{status:'stops',notes:['no handler (the thread gives up)']};
   return ours.get(name)??{status:'faithful'};
  };
 
@@ -178,6 +183,18 @@ await withSources(async load=>{
  const header=readScmHeader(bytes);
  const blocks=[{id:'MAIN',index:-1,instructions:decodeScmInstructions(bytes,header.entry,header.mainSize)}];
  for(const m of header.missions)blocks.push({id:m.index,index:m.index,instructions:decodeScmInstructions(bytes,m.start,m.end)});
+ // The streamed scripts beside MAIN.SCM in script.img (shops, gyms, vending machines, casino games): each file is its
+ // own block, read to the size MAIN's header gives it. They run in free roam, so they sit right after MAIN.
+ const {readImgIndex,readImgEntry}=await load('/src/assets/img.ts');
+ const scriptImg=readFileSync(join(root,'public/play/world/files/scripts/script.img'));
+ const imgBlob=new Blob([scriptImg]),imgEntries=await readImgIndex(imgBlob);
+ const streamedIds=new Set();
+ for(const [i,s] of header.streamed.entries()){
+  const entry=imgEntries.find(e=>e.name.toLowerCase()===`${s.name.toLowerCase()}.scm`);if(!entry)continue;
+  const file=await readImgEntry(imgBlob,entry),id=`${s.name.toLowerCase()}.scm`;
+  let instructions;try{instructions=decodeScmInstructions(file,0,s.size);}catch(error){console.warn(`census: ${id} does not decode (${error.message}); left out`);continue;}
+  blocks.push({id,index:-1,streamed:i,instructions});streamedIds.add(id);
+ }
  // Mission names from their SCRIPT_NAME; story order from where MAIN (and the missions) launch them.
  const launchOrder=new Map();
  for(const block of blocks)for(const ins of block.instructions){
@@ -201,7 +218,7 @@ await withSources(async load=>{
    if(o.status==='authored'||o.status==='silent'||o.status==='stops')gaps.push({name,status:o.status,sites:n});
   }
   gaps.sort((a,b)=>b.sites-a.sites);
-  missionRows.push({id:block.id,name:block.id==='MAIN'?'MAIN':scriptName(block)??`mission ${block.id}`,order:block.id==='MAIN'?-1:launchOrder.get(block.id)??9999,
+  missionRows.push({id:block.id,name:block.id==='MAIN'?'MAIN':block.streamed!==undefined?block.id:scriptName(block)??`mission ${block.id}`,order:block.id==='MAIN'?-1:block.streamed!==undefined?-1+(block.streamed+1)/1000:launchOrder.get(block.id)??9999,
    instructions:block.instructions.length,distinct:counts.size,byStatus,gaps:gaps.slice(0,12)});
  }
  missionRows.sort((a,b)=>a.order-b.order);

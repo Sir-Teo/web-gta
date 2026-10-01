@@ -165,7 +165,7 @@ import {includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceMovementFlags,steepSlopeRefusesJump,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {rapierClimbWorld} from './simulation/climbProbe';
-import {WEAPON_FLAG} from './weapons/weaponData';
+import {WEAPON_FLAG,nativeWeaponInfo} from './weapons/weaponData';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
 import {loadHudSprites} from './ui/nativeHudSprites';
 import {PLAYER_IDLE_CLIPS,PlayerIdles,loadPlayerIdles} from './assets/playerIdles';
@@ -870,6 +870,11 @@ async function boot() {
   // data/shopping.dat for CShopping, handed to each mission runtime as it starts.
   let shoppingText:string|undefined;
   void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/shopping.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`shopping.dat ${r.status}`))).then(text=>{shoppingText=text;mission?.runtime.game.shopping.load(text);}).catch(error=>{console.error('shopping.dat failed to load',error);});
+  // data/script/script.img: the streamed scripts (shops, gyms, vending machines), registered with each mission runtime
+  // as it starts or as the archive arrives, whichever is later.
+  let scriptImg:Uint8Array|undefined;
+  const registerStreamedScripts=()=>{if(scriptImg&&mission)try{mission.loadStreamedScripts(scriptImg);}catch(error){console.error('script.img could not be registered',error);}};
+  void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/scripts/script.img`,location.href)).then(r=>r.ok?r.arrayBuffer():Promise.reject(new Error(`script.img ${r.status}`))).then(buffer=>{scriptImg=new Uint8Array(buffer);registerStreamedScripts();}).catch(error=>{console.error('script.img failed to load',error);});
   // CPlayerInfo::m_nNumHoursDidntEat and WorkOutEnergyFromHunger.
   const hunger=new NativeHunger();
   const parachuteTimer=new NativeParachuteTimer();let inAircraft=false;
@@ -4479,6 +4484,7 @@ async function boot() {
                   sortedOutCollisions.set(object,{car,pairs,colliders});return true;
                  },
                  vehicleModelBounds:model=>fleet?fleet.modelBounds(model):undefined,
+                 objectModelBounds:model=>scriptObjectViews?scriptObjectViews.modelBounds(model):undefined,
                  scriptVehicleDrownsOccupants:car=>isScriptCar(car)&&car.drowning&&!car.waterTight,
                  setScriptVehicleWatertight:(car,state)=>{(car as {waterTight?:boolean}).waterTight=state;},
                  scriptVehicleVisiblyDamaged:car=>isScriptCar(car)&&car.visiblyDamaged,
@@ -4957,6 +4963,8 @@ async function boot() {
                  // SetCurrentCharWeapon only picks among the weapons the ped holds: a type he does not have changes nothing.
                  setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.owned.has(weapon)&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
                  setPlayerArmour:armour=>{sim.player.armour=armour;},playerArmour:()=>sim.player.armour,
+                 worldObjectsNear:(models,x,y,radius)=>importedScene?.modelPlacementsNear(models,x,y,radius)??[],
+                 weaponTypeInfo:type=>{const info=weapons.native&&nativeWeaponInfo(weapons.native,type);return info?{slot:info.slot,model:info.models[0]}:undefined;},
                  // CText::LoadMissionText: the mission's table replaces the loaded one, so its subtitles and briefs read as
                  // text rather than keys. The GXT may still be loading at the mission's start; the request waits for it.
                  loadMissionText:name=>{const load=(t:import('./assets/gxt').NativeText)=>{try{t.loadMissionText(name);}catch(e){console.warn(`Mission text ${name}: ${(e as Error).message}`);}};
@@ -5074,7 +5082,7 @@ async function boot() {
                 {const game=mission.runtime.game;game.stats.onUpdateMessage=displayStatUpdate;
                  // CPlayerInfo::m_nMoney is the one purse the HUD shows and the score commands move.
                  game.bindMoney({get:()=>sim.money,set:v=>{sim.money=v;}});
-                 if(shoppingText)game.shopping.load(shoppingText);game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};
+                 if(shoppingText)game.shopping.load(shoppingText);registerStreamedScripts();game.stats.player={health:()=>sim.player.health,maxHealth:()=>game.playerInfo.maxHealth,addHealth:addPlayerHealth,ateEnough:()=>{hunger.hoursDidntEat=0;}};
                  // STAT_DRIVING_SKILL and the weapon skills (GetSkillStatIndex: pistol 22 to M4 31 on stats 69-78, the
                  // Tec-9 sharing the machine pistol's) are the saved skills the ride sets and aiming read.
                  game.stats.bind(160,{get:()=>progression.drivingSkill,set:v=>{progression.drivingSkill=v;}});

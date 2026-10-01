@@ -98,6 +98,18 @@ export class ScriptObjectViews{
  baseOffset(handle:number){const b=this.views.get(handle)?.col?.bounds;return b?-b.min[2]:undefined;}
  /** The COL bounding sphere's radius, once the collision is in. */
  boundsRadius(handle:number){return this.views.get(handle)?.col?.bounds.radius;}
+ private readonly boxes=new Map<string,{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}}|null>();
+ /** GET_MODEL_DIMENSIONS for an object model: its COL bounding box. Undefined while the collision is being read,
+  * null for a model the IDEs do not name or that has no collision. */
+ modelBounds(model:number|string){
+  const record=this.association(model);if(!record)return null;
+  const key=record.model.toLowerCase(),known=this.boxes.get(key);
+  if(known!==undefined)return known;
+  if(!this.collisions.has(key))void this.collision(record.model).then(col=>{
+   const b=col?.bounds;this.boxes.set(key,b?{min:{x:b.min[0],y:b.min[1],z:b.min[2]},max:{x:b.max[0],y:b.max[1],z:b.max[2]}}:null);
+  },()=>{this.boxes.set(key,null);});
+  return undefined;
+ }
  /** An object's body, once its collision is in. */
  bodyOf(handle:number){return this.views.get(handle)?.physical?.body;}
  /** The model's COL: its chunk alone, decoded from the collection the index names (the first holding the name). */
@@ -170,6 +182,8 @@ export class ScriptObjectViews{
   if(this.disposed)return;
   const live=new Set<number>();
   for(const object of objects){
+   // An object standing for a placement of the map is drawn and collided by the map.
+   if(object.worldPlacement)continue;
    live.add(object.handle);
    const view=this.views.get(object.handle);
    if(view&&view.model!==object.model){this.remove(object.handle);}
@@ -207,6 +221,9 @@ export class ScriptObjectViews{
    this.loading.delete(object.handle);
    if(!asset||this.disposed||this.views.has(object.handle))return;
    const built=modelObject(asset.model,asset.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient});
+   // A weapon model (the guns an Ammu-Nation lays on its counter) carries its muzzle-flash atomic, which only renders
+   // while firing.
+   for(const binding of built.materialBindings)if(binding.source.texture?.toLowerCase().startsWith('muzzle'))binding.material.visible=false;
    let physical:ReturnType<typeof installNativeCollisionMatrix>|undefined;
    if(this.world&&col&&(col.spheres.length||col.boxes.length||col.mesh.indices.length)){
     try{

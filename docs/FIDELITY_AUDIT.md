@@ -8597,3 +8597,48 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   outdoor ambient on its walls. `RestorePlayerStuffDuringResurrection` stops the extra colour; a save loaded indoors
   takes the colour of the last door on its stack.
 
+## The streamed scripts run: shops, machines and their clerks
+
+`script.img` (79 files beside MAIN.SCM) was published and registered nowhere: MAIN's `STREAM_SCRIPT` asked a host
+that did not exist, `HAS_STREAMED_SCRIPT_LOADED` never came true, and no interior had a clerk, a menu or a machine
+that did anything.
+
+- **The host.** `ScmMission.loadStreamedScripts` registers the archive's files in its own order
+  (`CStreamedScripts::RegisterScript`) and reads MAIN's streamed table (`ReadStreamedScriptData`); `STREAM_SCRIPT`
+  hands a slot its file at once; `START_NEW_STREAMED_SCRIPT` starts a thread over the file's own bytes with the
+  command's arguments in its locals (`StartNewStreamedScript`), and a thread that ends gives its user count back
+  (`ShutdownThisScript`'s sketch). A streamed thread decodes its own file but reads and writes MAIN's globals: the
+  thread took its globals from whatever bytes it ran over, so every `$PLAYER_CHAR` would have been the script's own
+  code.
+- **What now runs.** INTMAN starts `ammu`, `junkfud`, `foodbrains`, `clothes`, `barber`, `tattoo`, `wardrobe` and the
+  ambience scripts by the door CJ came through. Checked end to end (spec `interior-shops`): the Ammu-Nation clerk, the
+  counter camera, the native menus and `BUY_ITEM` ($200 for a 9mm); a Cluckin' Bell meal off the tray; a Sprunk
+  machine's dollar drink for thirty health.
+- **Commands added** (none had a handler; the census counted them as the interpreter's own): `SET_MINIGAME_IN_PROGRESS`,
+  `GET_WEAPONTYPE_SLOT`, `GET_WEAPONTYPE_MODEL`, `GET_CHAR_ARMOUR`, `SET_CHAR_COORDINATES_DONT_WARP_GANG_NO_OFFSET`
+  (the point is the ped's centre, a unit above the feet), `CREATE_CHAR_AT_ATTRACTOR`, `IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE`.
+  `ADD_ATTRACTOR`, `CLEAR_ATTRACTOR`, `TASK_USE_ATTRACTOR` and `TASK_PLAY_ANIM_SECONDARY` have adapters.
+  `GET_MODEL_DIMENSIONS` answers for object models from their COL box. `KILL_FX_SYSTEM` on a handle that names no
+  system is left alone.
+- **AUTHORED** (the reference has only stubs for them):
+  - *Object brains.* `CScriptsForBrains::CheckIfNewEntityNeedsScript`, `StartOrRequestNewStreamedScriptBrain` and
+    `IsObjectWithinBrainActivationRange` call into the executable. From what `ALLOCATE_STREAMED_SCRIPT_TO_OBJECT` records
+    and the brain scripts do: a placement of a brain's model near the player is a CObject the script can hold (it has
+    no view of its own; the map draws it), the percentage chance is drawn for it once, and while the player is within
+    the brain's radius and no script runs on it the script is started with the object's handle as its first local.
+  - *Scripted attractors.* A user walks straight to the point, turns to the heading and performs the sequence.
+  - *Map attractor users.* `GET_USER_OF_CLOSEST_MAP_ATTRACTOR`, `IS_CHAR_USING_MAP_ATTRACTOR` and
+    `GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN` answer that there is none: interiors have no ambient peds yet
+    (`InteriorManager_c` is unreversed), so shops have a clerk and no customers.
+  - *Two sequence steps.* `TASK_CHAR_SLIDE_TO_COORD_AND_PLAY_ANIM` walks to the point, turns and plays the clip;
+    `TASK_PICK_UP_OBJECT` inside a sequence puts the object in the hand when the sequence is given.
+  - *Mission audio.* A sample a slot already holds is not loaded again (the vending machine's script asks every frame
+    and then waits for it).
+- **A streamed script that gives up** hands the player his controls and the camera back, as a mission that gives up
+  does.
+- **The census** (`npm run port -- census`) now reads the 78 streamed scripts as blocks of their own and flags a
+  command with no handler at all as `stops` rather than as the interpreter's own. Sixty such commands remain, in the
+  casino games, the gyms' date check, the car mod garage, the camera and the girlfriend scripts.
+- **Smaller things.** A weapon laid on the counter no longer shows its muzzle flash; the help box takes upper-case
+  `~N~` as a new line; `SET_CHAR_COORDINATES_DONT_WARP_GANG_NO_OFFSET` takes the ped's centre.
+

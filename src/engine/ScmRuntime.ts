@@ -55,10 +55,11 @@ export class ScmRuntime {
   const host={startScript:(address:number,args:readonly number[])=>{this.start(address,args);},world:this.world,game:this.game,
    nextRandom:this.random?()=>this.random!.next():undefined,
    loadMission:(id:number)=>this.loadAndLaunchMission(id),launchMission:(label:number)=>{this.start(label);},
-   terminateAllWithName:(name:string)=>this.terminateAllWithName(name),objectNames:this.missionSource?.objectNames};
+   terminateAllWithName:(name:string)=>this.terminateAllWithName(name),objectNames:this.missionSource?.objectNames,
+   startStreamedScript:(index:number,args:readonly number[])=>{this.startNewStreamedScript(index,args);}};
   // Mission threads address LocalVariablesForCurrentMission; their own
   // m_LocalVars still receive the per-thread timer updates.
-  const thread=new ScmThread(options.space??this.scriptSpace,entry,options.base??0,options.mission?this.missionLocals:own,host);
+  const thread=new ScmThread(options.space??this.scriptSpace,entry,options.base??0,options.mission?this.missionLocals:own,host,this.scriptSpace);
   if(options.mission){thread.usesMissionCleanup=true;thread.thisMustBeTheOnlyMissionRunning=true;}
   const slot:Slot={id:this.idle.shift()!,thread,timers:own,next:this.head};
   if(this.head)this.head.previous=slot;
@@ -67,11 +68,21 @@ export class ScmRuntime {
  }
  /** CStreamedScripts::StartNewStreamedScript's thread: it runs over the file's own bytes rather than the
   * script space, with the external flags CRunningScript::SetExternal sets. */
- startStreamed(bytes:Uint8Array,externalType=-1){
-  const {id,thread}=this.start(0,[],{space:bytes});
+ startStreamed(bytes:Uint8Array,externalType=-1,argumentBits:readonly number[]=[]){
+  const {id,thread}=this.start(0,argumentBits,{space:bytes});
   thread.isExternal=true;thread.externalType=externalType;
   return {id,thread};
  }
+ /** CStreamedScripts::StartNewStreamedScript (0x470890) for START_NEW_STREAMED_SCRIPT and the script brains: a loaded
+  * file starts a thread over its own bytes, with the command's arguments in its locals, and counts one more user; a
+  * file that has not streamed in starts nothing. */
+ startNewStreamedScript(index:number,argumentBits:readonly number[]=[],externalType=-1){
+  const started=this.game.streamedScripts.startNewStreamedScript(index);
+  return started?this.startStreamed(started.bytes,externalType,argumentBits):undefined;
+ }
+ /** Told when an external thread ends, with its brain type (CRunningScript::ShutdownThisScript's m_nExternalType
+  * switch): the host clears the ped's or object's has-a-brain flag. */
+ onExternalEnded?:(thread:ScmThread)=>void;
  /** LoadAndLaunchMissionInternal (MissionCommands.cpp). The mission block is
   * read over the previous one without clearing, mission locals are wiped and
   * the new thread runs on the next pass. CTimer suspension and
@@ -113,6 +124,12 @@ export class ScmRuntime {
   if(slot.retired)return;slot.retired=true;
   // TERMINATE_THIS_SCRIPT on a mission script processes the mission's cleanup list.
   if(slot.thread.usesMissionCleanup)this.missionCleanUp();
+  // ShutdownThisScript's sketch: an external thread gives its file's user count back.
+  if(slot.thread.isExternal){
+   const scripts=this.game.streamedScripts,index=scripts.indexOfMemory(slot.thread.scriptSpace);
+   if(index>=0)scripts.at(index).users=Math.max(0,scripts.at(index).users-1);
+   this.onExternalEnded?.(slot.thread);
+  }
   if(slot.previous)slot.previous.next=slot.next;else this.head=slot.next;
   if(slot.next)slot.next.previous=slot.previous;
   this.idle.unshift(slot.id);

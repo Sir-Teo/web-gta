@@ -54,6 +54,10 @@ export class ScmMissionAudio {
  preload(scriptSlot:number,sampleId:number){
   requireAsset(Number.isInteger(sampleId),'Invalid mission audio sample.');
   const slot=this.slot(scriptSlot);
+  // A sample the slot already holds (or is loading) is not loaded again: the vending machine's script asks for its
+  // sample every frame it waits for the button, and then waits for HAS_MISSION_AUDIO_LOADED, which a reload each
+  // frame would never let come true. (PreloadMissionAudio is unreversed; the scripts need it this way.)
+  if(slot.audioEvent===sampleId&&slot.loadingStatus!==AUDIO_NOT_LOADED&&!slot.playing&&!slot.finished)return slot;
   Object.assign(slot,emptySlot(),{audioEvent:sampleId,loadingStatus:AUDIO_LOADING});
   return slot;
  }

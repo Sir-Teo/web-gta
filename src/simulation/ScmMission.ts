@@ -11,7 +11,8 @@ import {gxtText} from '../assets/gxt';
 import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
 import {resetGangWeapons,setGangWeapons} from './nativeGangWeapons';
 import {VEHICLE_CLASSES} from '../assets/pedGroups';
-import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmWorldCommands} from '../engine/ScmThread';
+import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from '../engine/ScmThread';
+import {BRAIN_OBJECT} from '../engine/ScmScriptBrains';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findZone,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
@@ -233,6 +234,11 @@ export interface ScmMissionWorld {
  setPlayerArmour?(armour:number):void;
  /** CPed::m_fArmour on the player. */
  playerArmour?():number;
+ /** The streamed-in placements of the named models (lower case) within `radius` of a native point, for the script
+  * brains allocated to object models. */
+ worldObjectsNear?(models:ReadonlySet<string>,x:number,y:number,radius:number):{key:string;model:string;position:[number,number,number];heading:number}[];
+ /** CWeaponInfo::GetWeaponInfo(type): m_nSlot and m_nModelId1, or nothing before weapon.dat is in. */
+ weaponTypeInfo?(weaponType:number):{slot:number;model:number}|undefined;
  /** The cutscene data the script asks for. The browser plays none yet, so a host records the request and the
   * mission moves the state on itself, which keeps the script's own loop running rather than stalling it. */
  loadCutscene(name:string):void;
@@ -369,6 +375,8 @@ export interface ScmMissionWorld {
  sortOutScriptObjectCollisionWithCar?(object:number,car:unknown):boolean|undefined;
  /** A vehicle model's collision bounding box; undefined while it loads, null for a model that is no vehicle. */
  vehicleModelBounds?(model:number):{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}}|null|undefined;
+ /** An object model's COL bounding box: undefined while it is read, null when there is none. */
+ objectModelBounds?(model:number|string):{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}}|null|undefined;
  /** Whether a vehicle drowns the peds sat in it: bIsDrowning, and not bWaterTight. */
  scriptVehicleDrownsOccupants?(car:unknown):boolean;
  /** SET_CAR_WATERTIGHT: bWaterTight on a car or a bike. */
@@ -644,6 +652,11 @@ export const PLAYER_VEHICLE_HANDLE=1;
 export const SCRIPT_PED_FIRST_HANDLE=1024,SCRIPT_VEHICLE_FIRST_HANDLE=1024;
 /** eVehicleAppearance::VEHICLE_APPEARANCE_AUTOMOBILE. */
 const VEHICLE_APPEARANCE_AUTOMOBILE=1;
+/** CRunningScript::m_nExternalType of a script started on an object by its brain (ShutdownThisScript's cases 0, 2, 3
+ * and 5 are the ped brains). */
+const EXTERNAL_OBJECT_BRAIN=1;
+/** COMMAND_TASK_USE_ATTRACTOR and COMMAND_TASK_PLAY_ANIM_SECONDARY, the task records those commands leave. */
+const TASK_USE_ATTRACTOR_COMMAND=0x74C,TASK_PLAY_ANIM_SECONDARY_COMMAND=0xA1A;
 /** ePedType::PED_TYPE_CIVMALE, which is what the random civilian forms create. */
 const PED_TYPE_CIVMALE=4;
 /* The original MAIN.SCM running inside the browser. CTheScripts::Process is driven a frame at a time; a
@@ -769,6 +782,8 @@ export class ScmMission {
  playerControl=true;
  /** A mission thread gave up this pass (see handBack). */
  private handBackPending=false;
+ /** The adapter the runtime calls, for the mission's own helpers that reuse its members. */
+ private adapterRef!:ScmWorldCommands;
  /** The player's CPed::bDontDragMeOutCar (SET_CHAR_CANT_BE_DRAGGED_OUT). */
  playerCantBeDraggedOut=false;
  /** For a ped running a sequence with nested ones, each flattened task's step and nested step. */
@@ -797,6 +812,11 @@ export class ScmMission {
    setExtraColours:(colour,fade)=>{this.world.startExtraColour?.(colour,fade);},
    clearExtraColours:fade=>{this.world.stopExtraColour?.(fade);},
    requestCollision:()=>{},
+   // CStreaming::RequestModel on a streamed script: script.img is held whole, so the file is in at once.
+   requestStreamedScript:index=>{
+    const scripts=this.runtime.game.streamedScripts,slot=scripts.at(index),bytes=this.streamedFiles.get(slot.filename.toLowerCase());
+    if(bytes&&!slot.memory)scripts.loadStreamedScript(index,bytes);
+   },
    loadScene:(x,y,z)=>{this.world.loadScene(x,y,z);},
    createPlayer:(_playerId,x,y,z)=>{this.playerStart={x,y,z};this.world.playerCreatedAt(x,y,z);},
    getPlayerChar:()=>PLAYER_PED_HANDLE,
@@ -1264,8 +1284,10 @@ export class ScmMission {
    playFxSystem:handle=>{this.world.playScriptFx(this.fxOf(handle),false);},
    playAndKillFxSystem:handle=>{this.world.playScriptFx(this.fxOf(handle),true);},
    stopFxSystem:handle=>{this.world.stopScriptFx(this.fxOf(handle));},
-   killFxSystem:handle=>{this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
-   killFxSystemNow:handle=>{this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
+   // A handle that names no system (a shop script kills the one it may never have made) is left alone, as
+   // GetActualScriptThingIndex answers -1 for it.
+   killFxSystem:handle=>{if(!this.scriptFx.has(handle))return;this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
+   killFxSystemNow:handle=>{if(!this.scriptFx.has(handle))return;this.world.killScriptFx(this.fxOf(handle));this.scriptFx.delete(handle);},
    // CWorld::FindGroundZFor3DCoord looks down from the point itself rather than from a thousand above, and answers
    // 0 where it meets nothing.
    groundZFor3DCoord:(x,y,z)=>this.world.groundLevel(x,y,z)??0,
@@ -1330,7 +1352,9 @@ export class ScmMission {
    // GET_MODEL_DIMENSIONS: the model's CColModel bounding box. A vehicle's is read from its collision (the thread waits
    // the frames the model takes to load); an object's is not held here yet.
    modelDimensions:model=>{
-    const bounds=typeof model==='number'?this.host('vehicleModelBounds','GET_MODEL_DIMENSIONS')(model):null;
+    let bounds=typeof model==='number'?this.host('vehicleModelBounds','GET_MODEL_DIMENSIONS')(model):null;
+    // An object model's box comes from its COL, read on the first request.
+    if(bounds===null&&this.world.objectModelBounds)bounds=this.world.objectModelBounds(model);
     if(bounds===undefined)throw new ScmEntityPending(`model ${model}`);
     if(bounds===null)throw new UnsupportedScmCommand(-1,0,'GET_MODEL_DIMENSIONS',`an object model (${model})`);
     return bounds;
@@ -1610,6 +1634,37 @@ export class ScmMission {
    // car and to the ped's group, neither of which the browser's scripted peds have yet.
    setPedCoordinatesNoOffset:(handle,x,y,z)=>{if(handle===PLAYER_PED_HANDLE)this.teleportPlayer(x,y,z,'SET_CHAR_COORDINATES_NO_OFFSET');else this.peds.setPosition(handle,{x,y,z});},
    setPedCoordinatesDontWarpGang:(handle,x,y,z)=>{if(handle===PLAYER_PED_HANDLE)this.teleportPlayer(x,y,z,'SET_CHAR_COORDINATES_DONT_WARP_GANG');else this.peds.setPosition(handle,{x,y,z});},
+   // GetCharArmour: the player's m_fArmour; a script ped wears none here.
+   pedArmour:handle=>handle===PLAYER_PED_HANDLE?this.world.playerArmour?.()??0:0,
+   weaponTypeSlot:type=>{const info=this.world.weaponTypeInfo?.(type);if(!info)throw new UnsupportedScmCommand(-1,0,'GET_WEAPONTYPE_SLOT','weapon.dat');return info.slot;},
+   weaponTypeModel:type=>{const info=this.world.weaponTypeInfo?.(type);if(!info)throw new UnsupportedScmCommand(-1,0,'GET_WEAPONTYPE_MODEL','weapon.dat');return info.model;},
+   // CScripted2dEffects (ADD_ATTRACTOR; unreversed): a scripted ped attractor is a point, the heading its user takes
+   // there and the sequence the user performs. AUTHORED: the user walks straight to the point, turns to the heading and
+   // runs the sequence, which stands in for CTaskComplexUseAttractor's queueing.
+   addAttractor:(x,y,z,angle,_arc,sequence)=>{const handle=++this.attractorSerial;this.scriptAttractors.set(handle,{x,y,z,heading:angle,sequence});return handle;},
+   clearAttractor:handle=>{this.scriptAttractors.delete(handle);},
+   taskUseAttractor:(char,attractor)=>{this.useAttractor(char,attractor,true,TASK_USE_ATTRACTOR_COMMAND);},
+   isObjectWithinBrainActivationRange:handle=>{
+    const objects=this.runtime.game.objects;if(!objects.exists(handle))return false;
+    const object=objects.at(handle),brain=this.runtime.game.scriptBrains.brains.find(b=>b.typeOfBrain===BRAIN_OBJECT&&b.model===object.model);
+    if(!brain)return false;
+    const player=this.world.playerPed().position;
+    return Math.hypot(player.x-object.position.x,player.y-object.position.y,player.z-object.position.z)<=brain.activationRadius;
+   },
+   // CREATE_CHAR_AT_ATTRACTOR: the ped is made at the attractor, facing its heading, already performing its sequence.
+   createCharAtAttractor:(pedType,model,attractor,taskCommand)=>{
+    const point=this.scriptAttractors.get(attractor);if(!point)throw new UnsupportedScmCommand(-1,0,'CREATE_CHAR_AT_ATTRACTOR',`attractor ${attractor}`);
+    const ped=this.forCleanup(this.cleanupPeds,this.peds.create(pedType,model,{x:point.x,y:point.y,z:point.z}));
+    // The ped's model is still coming in: its heading and its sequence are given once it stands there (a command
+    // that waited on it here would run again and make another ped).
+    this.attractorArrivals.set(ped,{attractor,opcode:taskCommand});
+    return ped;
+   },
+   // TASK_PLAY_ANIM_SECONDARY plays the clip on the ped's secondary (partial) task slot beside whatever it is doing.
+   // AUTHORED: the port's peds hold one scripted order, so the clip is played as TASK_PLAY_ANIM plays it.
+   taskPlayAnimSecondary:(handle,animationName,animationFile,blendSpeed,loop,lockX,lockY,keepLastFrame,time)=>{
+    adapter.givePedScriptedTask!(handle,{kind:'playAnim',animationName,animationFile,blendSpeed,loop,lockX,lockY,keepLastFrame,time,interruptable:true},TASK_PLAY_ANIM_SECONDARY_COMMAND);
+   },
    // SetCharHealth on the player: the health capped at CPlayerInfo::m_nMaxHealth, which a script ped's is not.
    setPedHealth:(handle,health)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerHealth','SET_CHAR_HEALTH')(Math.min(health,this.runtime.game.playerInfo.maxHealth));else this.peds.setHealth(handle,health);},
    // SET_CHAR_HEALTH 0 (CTaskComplexDie through a script command event): the player dies as any ped does.
@@ -1682,7 +1737,13 @@ export class ScmMission {
      return;
     }
     const order=scriptedPedOrder(task,this.taskWorld(handle));
-    if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+    if(!order){
+     // A task run as several orders (see standInOrders) goes as a sequence of them.
+     const several=this.standInOrders(handle,task,this.taskWorld(handle));
+     if(!several)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+     if(handle===PLAYER_PED_HANDLE){this.givePlayer(several,false,opcode,true);return;}
+     this.world.giveScriptPedSequence(this.livePed(handle),several,false,0);this.recordTask(handle,opcode,false);return;
+    }
     if(handle===PLAYER_PED_HANDLE){this.givePlayer([order],false,opcode);return;}
     // A ped in a car runs an on-foot task from here: out of the car first, or in its seat.
     const ride=this.peds.rideOf(handle);
@@ -1696,15 +1757,19 @@ export class ScmMission {
     const {tasks,steps,start}=this.expandSequence(sequenceTasks,from);
     if(steps)this.sequenceSteps.set(handle,steps);else this.sequenceSteps.delete(handle);
     const world=this.taskWorld(handle);
-    const orders=[];
+    const orders:ScriptedPedOrder[]=[],orderSteps:{outer:number;inner:number}[]=[];let standIns=false,orderStart=start;
     const carTasks=handle!==PLAYER_PED_HANDLE&&tasks.some(task=>CAR_TASKS.has(task.kind));
-    for(const task of tasks){
-     if(carTasks&&CAR_TASKS.has(task.kind))continue;
-     const order=scriptedPedOrder(task,world);
-     if(!order)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
-     orders.push(order);
-    }
-    if(handle===PLAYER_PED_HANDLE){this.givePlayer(orders,repeat,opcode,true,start);return;}
+    tasks.forEach((task,index)=>{
+     if(carTasks&&CAR_TASKS.has(task.kind))return;
+     if(index===start)orderStart=orders.length;
+     const order=scriptedPedOrder(task,world),several=order?[order]:this.standInOrders(handle,task,world);
+     if(!several)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+     if(!order)standIns=true;
+     for(const one of several){orders.push(one);orderSteps.push(steps?.[index]??{outer:index,inner:-1});}
+    });
+    // A step run as several orders keeps the sequence's own numbering for GET_SEQUENCE_PROGRESS.
+    if(standIns)this.sequenceSteps.set(handle,orderSteps);
+    if(handle===PLAYER_PED_HANDLE){this.givePlayer(orders,repeat,opcode,true,standIns?orderStart:start);return;}
     this.dropRunner(handle);
     const ride=this.peds.rideOf(handle);
     // With a car task in it, or for a ped in a car, the sequence runs from here a task at a time.
@@ -1945,6 +2010,7 @@ export class ScmMission {
    aliveOf:car=>this.world.scriptVehicleAlive(car),
    remove:car=>{this.world.removeScriptVehicle(car);},
   },SCRIPT_VEHICLE_FIRST_HANDLE);
+  this.adapterRef=adapter;
   const {runtime,header}=ScmRuntime.load(script,adapter,this.random);
   this.runtime=runtime;
   // CVehicleRecording's host side: files streamed from carrec.img, and the cars playbacks move.
@@ -1978,11 +2044,95 @@ export class ScmMission {
    // An adapter that cannot answer (offset -1) names what it lacked; the command is the one the thread was running.
    const at=thread.currentInstruction;
    this.gaveUp.push(error.offset<0?{thread:thread.name,command:at.name,offset:at.offset,detail:error.command}:{thread:thread.name,command:error.command,offset:error.offset});
-   if(thread.usesMissionCleanup)this.handBackPending=true;
+   if(thread.usesMissionCleanup||thread.isExternal)this.handBackPending=true;
   };
-  this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});if(thread.usesMissionCleanup)this.handBackPending=true;};
+  this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});if(thread.usesMissionCleanup||thread.isExternal)this.handBackPending=true;};
   this.runtime.game.zones.load(zones.infoLabels);
-  this.entry=header.entry;
+  this.entry=header.entry;this.streamedTable=header.streamed;this.largestStreamedSize=header.largestStreamedSize;
+ }
+ /** ADD_ATTRACTOR's scripted attractors by handle: the point, the heading (degrees) and the sequence handle. */
+ private readonly scriptAttractors=new Map<number,{x:number;y:number;z:number;heading:number;sequence:number}>();
+ private attractorSerial=0;
+ /** The map's objects a brain has been allocated to, by placement: the CObject handle the brain's script is given,
+  * whether the brain's percentage chance came up for it, and the thread running on it. */
+ private readonly brainObjects=new Map<string,{handle:number;wanted:boolean;brain:number;thread?:ScmThread}>();
+ private nextBrainScan=0;
+ /** The map objects brains are allocated to near the player, for the dev API and the browser tests. */
+ brainObjectsSnapshot(){
+  const objects=this.runtime.game.objects;
+  return [...this.brainObjects].map(([key,r])=>({key,handle:r.handle,wanted:r.wanted,running:!!r.thread&&!r.thread.terminated,script:r.thread?.name,
+   model:String(objects.exists(r.handle)?objects.at(r.handle).model:''),position:objects.exists(r.handle)?{...objects.at(r.handle).position}:undefined,heading:objects.exists(r.handle)?objects.getHeading(r.handle):undefined}));
+ }
+ /** CScriptsForBrains' object brains. CheckIfNewEntityNeedsScript, StartOrRequestNewStreamedScriptBrain and
+  * IsObjectWithinBrainActivationRange are unreversed, so this is AUTHORED from what ALLOCATE_STREAMED_SCRIPT_TO_OBJECT
+  * records and the brain scripts themselves do: a placement of a brain's model near the player is a CObject the
+  * script can hold; the brain's chance is drawn for it once; while the player is within the brain's radius and no
+  * script runs on it, the streamed script is asked for and started with the object's handle as its first local. The
+  * script ends itself once the player leaves the radius, and may be started again when he comes back. */
+ private processObjectBrains(nowMs:number){
+  if(nowMs<this.nextBrainScan)return;this.nextBrainScan=nowMs+500;
+  const game=this.runtime.game,scripts=game.streamedScripts,near=this.world.worldObjectsNear;
+  if(!near||!scripts.count)return;
+  const brains=game.scriptBrains.brains,models=new Set<string>();let reach=0;
+  for(const brain of brains)if(brain.typeOfBrain===BRAIN_OBJECT&&brain.active&&typeof brain.model==='string'){models.add(brain.model.toLowerCase());reach=Math.max(reach,brain.activationRadius);}
+  const player=this.world.playerPed().position,seen=new Set<string>();
+  if(models.size)for(const found of near(models,player.x,player.y,reach+40)){
+   seen.add(found.key);
+   let record=this.brainObjects.get(found.key);
+   if(!record){
+    const index=brains.findIndex(b=>b.typeOfBrain===BRAIN_OBJECT&&typeof b.model==='string'&&b.model.toLowerCase()===found.model.toLowerCase());if(index<0)continue;
+    const brain=brains[index],[x,y,z]=found.position;
+    record={handle:game.objects.adoptWorld(brain.model!,{x,y,z},found.heading,found.key).handle,wanted:this.random.next()%100<brain.percentageChance,brain:index};
+    this.brainObjects.set(found.key,record);
+   }
+   const brain=brains[record.brain];
+   if(!record.wanted||!brain?.active||record.thread&&!record.thread.terminated)continue;
+   const [x,y,z]=found.position;
+   if(Math.hypot(player.x-x,player.y-y,player.z-z)>brain.activationRadius)continue;
+   const index=scripts.properIndexFromScriptIndex(brain.streamedScriptIndex);if(index<0)continue;
+   this.adapterRef.requestStreamedScript?.(index);
+   record.thread=this.runtime.startNewStreamedScript(index,[record.handle],EXTERNAL_OBJECT_BRAIN)?.thread;
+  }
+  // A placement that streamed out takes its object with it: the script holding the handle finds it gone and ends.
+  for(const [key,record] of this.brainObjects)if(!seen.has(key)){game.objects.remove(record.handle);this.brainObjects.delete(key);}
+ }
+ /** Peds CREATE_CHAR_AT_ATTRACTOR made that have not yet been set at their attractor. */
+ private readonly attractorArrivals=new Map<number,{attractor:number;opcode:number}>();
+ private settleAttractorArrivals(){
+  for(const [ped,use] of this.attractorArrivals){
+   if(!this.peds.exists(ped)){this.attractorArrivals.delete(ped);continue;}
+   const point=this.scriptAttractors.get(use.attractor);
+   try{if(point){this.livePed(ped);this.peds.setHeading(ped,point.heading);this.useAttractor(ped,use.attractor,false,use.opcode);}}
+   catch(error){if(error instanceof ScmEntityPending)continue;}
+   this.attractorArrivals.delete(ped);
+  }
+ }
+ private useAttractor(ped:number,attractor:number,walk:boolean,opcode:number){
+  const point=this.scriptAttractors.get(attractor);if(!point)return;
+  const found=this.runtime.game.sequences.sequenceFor(point.sequence);
+  const tasks:ScmScriptedTask[]=[...(walk?[{kind:'goStraightToCoord' as const,x:point.x,y:point.y,z:point.z,speed:4,time:-1}]:[]),
+   {kind:'achieveHeading',heading:point.heading},...(found?.sequence.tasks??[])];
+  this.adapterRef.givePedSequence!(ped,tasks,false,opcode,undefined);
+ }
+ /** script.img's files by name (lower case, no extension). */
+ private readonly streamedFiles=new Map<string,Uint8Array>();
+ private streamedTable:readonly {name:string;size:number}[]=[];private largestStreamedSize=0;
+ /** CTheScripts::Init's streamed scripts: CStreaming registers every file of data\script\script.img in the order the
+  * archive lists them (CStreamedScripts::RegisterScript), then ReadStreamedScriptData gives each the size and the
+  * index MAIN.SCM's header names it by. `img` is the VER2 archive whole. */
+ loadStreamedScripts(img:Uint8Array){
+  const scripts=this.runtime.game.streamedScripts;if(scripts.count)return;
+  const view=new DataView(img.buffer,img.byteOffset,img.byteLength);
+  if(img.length<8||view.getUint32(0,true)!==0x32524556)throw new Error('script.img is not a VER2 archive.');
+  const count=view.getUint32(4,true);
+  for(let i=0;i<count;i++){
+   const at=8+i*32,offset=view.getUint32(at,true)*2048,length=view.getUint16(at+4,true)*2048;
+   let name='';for(let c=0;c<24;c++){const code=img[at+8+c];if(!code)break;name+=String.fromCharCode(code);}
+   if(!/\.scm$/i.test(name)||offset+length>img.length)continue;
+   const base=name.slice(0,-4);
+   this.streamedFiles.set(base.toLowerCase(),img.subarray(offset,offset+length));scripts.registerScript(base);
+  }
+  scripts.readStreamedScriptData(this.streamedTable,this.largestStreamedSize);
  }
  /** The browser answers for the player's ped alone; a handle it does not hold retires that thread, which the
   * snapshot reports with no instruction offset, since it is the world rather than the command that is short. */
@@ -2436,6 +2586,23 @@ export class ScmMission {
   if(flat<0)return {outer:-1,inner:-1};
   return this.sequenceSteps.get(handle)?.[flat]??{outer:flat,inner:-1};
  }
+ /** AUTHORED stand-ins for tasks the browser has no order of its own for, as the orders it does run:
+  * - TASK_CHAR_SLIDE_TO_COORD_AND_PLAY_ANIM (CTaskComplexSlideToCoord then the named clip): the ped walks to the
+  *   point, turns to the heading and plays the clip.
+  * - TASK_PICK_UP_OBJECT as a step of a sequence: the object is in the hand from when the sequence is given, and the
+  *   step plays the clip the command names. */
+ private standInOrders(handle:number,task:ScmScriptedTask,world:Parameters<typeof scriptedPedOrder>[1]):ScriptedPedOrder[]|undefined{
+  const built=(tasks:ScmScriptedTask[])=>{const orders=tasks.map(t=>scriptedPedOrder(t,world));return orders.every(o=>!!o)?orders as ScriptedPedOrder[]:undefined;};
+  if(task.kind==='slideToCoordAndPlayAnim')return built([
+   {kind:'goStraightToCoord',x:task.x,y:task.y,z:task.z,speed:4,time:3000},{kind:'achieveHeading',heading:task.heading},
+   {kind:'playAnim',animationName:task.animationName,animationFile:task.animationFile,blendSpeed:task.blendSpeed,loop:task.loop,lockX:task.lockX,lockY:task.lockY,keepLastFrame:task.keepLastFrame,time:task.time,interruptable:false}]);
+  if(task.kind==='pickUpObject'){
+   this.pickUpObject(handle,task);
+   const named=task.animationName&&task.animationName.toUpperCase()!=='NULL';
+   return named?built([{kind:'playAnim',animationName:task.animationName,animationFile:task.animationFile,blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:false}]):[];
+  }
+  return undefined;
+ }
  private expandSequence(tasks:readonly ScmScriptedTask[],from?:{task:number;subTask:number}){
   return expandScriptSequence(tasks,index=>this.runtime.game.sequences.at(index).tasks,from);
  }
@@ -2848,7 +3015,7 @@ export class ScmMission {
   if(this.stopped)return;
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);
@@ -2870,6 +3037,11 @@ export class ScmMission {
   this.handBackPending=false;
   if(!this.playerControl){this.playerControl=true;this.world.setPlayerControl(true);}
   if(this.fade.value>0)this.runtime.world?.fade(1000,1,nowMs);
+  // A shop script that gave up at its counter leaves its fixed camera and its menus up: the camera goes back behind
+  // the player and the menus close.
+  const game=this.runtime.game,state=this.world.playerCameraState?.();
+  if(state)game.camera.restoreWithJumpCut(state);
+  game.miniGameInProgress=false;
  }
  /** What the script has done so far, for the dev API and the browser tests. */
  /** CPedScriptedTaskRecord's records, one per ped here (the port holds one scripted order at a time). A wander

@@ -1,19 +1,19 @@
 {
- "generated": "2026-09-29T19:45:33.146Z",
+ "generated": "2026-10-01T01:46:27.037Z",
  "reference": {
-  "path": "../gta-reversed/gta-reversed",
-  "commit": "4b38d8a486cca5201ee0f1d32b0698c3904abdbd"
+  "path": "../../../../private/tmp/claude-501/-Users-teodev-Developer-web-gta/637ad138-27fe-486a-a164-c033aa17951b/scratchpad/gr",
+  "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
  },
  "totals": {
-  "instructions": 360439,
-  "commands": 1455,
+  "instructions": 416669,
+  "commands": 1570,
   "byStatus": {
-   "core": 145,
-   "nop": 25,
-   "faithful": 1010,
-   "authored": 23,
+   "core": 153,
+   "nop": 26,
+   "faithful": 1053,
+   "authored": 29,
    "silent": 8,
-   "stops": 244
+   "stops": 301
   }
  },
  "missions": [
@@ -26,17 +26,12 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3707,
+    "faithful": 3757,
     "authored": 22,
-    "silent": 85,
+    "silent": 35,
     "stops": 27
    },
    "gaps": [
-    {
-     "name": "STREAM_SCRIPT",
-     "status": "silent",
-     "sites": 50
-    },
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
@@ -91,6 +86,2602 @@
      "name": "GET_CAR_MODEL_VALUE",
      "status": "stops",
      "sites": 4
+    },
+    {
+     "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
+     "status": "stops",
+     "sites": 2
+    }
+   ]
+  },
+  {
+   "id": "player_parachute.scm",
+   "name": "player_parachute.scm",
+   "order": -0.999,
+   "instructions": 626,
+   "distinct": 109,
+   "byStatus": {
+    "core": 501,
+    "nop": 0,
+    "faithful": 113,
+    "authored": 0,
+    "silent": 0,
+    "stops": 12
+   },
+   "gaps": [
+    {
+     "name": "SET_CHAR_ROTATION",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "GET_CHAR_VELOCITY",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_2PLAYER_GAME_GOING_ON",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "REMOVE_OBJECT_ELEGANTLY",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "parachute.scm",
+   "name": "parachute.scm",
+   "order": -0.998,
+   "instructions": 817,
+   "distinct": 107,
+   "byStatus": {
+    "core": 665,
+    "nop": 0,
+    "faithful": 138,
+    "authored": 0,
+    "silent": 0,
+    "stops": 14
+   },
+   "gaps": [
+    {
+     "name": "GET_CHAR_VELOCITY",
+     "status": "stops",
+     "sites": 7
+    },
+    {
+     "name": "SET_CHAR_ROTATION",
+     "status": "stops",
+     "sites": 5
+    },
+    {
+     "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
+     "status": "stops",
+     "sites": 2
+    }
+   ]
+  },
+  {
+   "id": "bcesar2.scm",
+   "name": "bcesar2.scm",
+   "order": -0.997,
+   "instructions": 823,
+   "distinct": 118,
+   "byStatus": {
+    "core": 617,
+    "nop": 1,
+    "faithful": 195,
+    "authored": 2,
+    "silent": 8,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 3
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 3
+    },
+    {
+     "name": "SET_OBJECT_COLLISION",
+     "status": "authored",
+     "sites": 2
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 2
+    }
+   ]
+  },
+  {
+   "id": "bcesar3.scm",
+   "name": "bcesar3.scm",
+   "order": -0.996,
+   "instructions": 923,
+   "distinct": 168,
+   "byStatus": {
+    "core": 631,
+    "nop": 42,
+    "faithful": 240,
+    "authored": 0,
+    "silent": 8,
+    "stops": 2
+   },
+   "gaps": [
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 5
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "CAR_GOTO_COORDINATES_RACING",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "CREATE_FX_SYSTEM_ON_OBJECT_WITH_DIRECTION",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "slot_machine.scm",
+   "name": "slot_machine.scm",
+   "order": -0.995,
+   "instructions": 417,
+   "distinct": 94,
+   "byStatus": {
+    "core": 305,
+    "nop": 0,
+    "faithful": 98,
+    "authored": 3,
+    "silent": 7,
+    "stops": 4
+   },
+   "gaps": [
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 7
+    },
+    {
+     "name": "GET_LEVEL_DESIGN_COORDS_FOR_OBJECT",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 2
+    },
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_RANDOM_CHAR_IN_AREA_OFFSET_NO_SAVE",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "roulette.scm",
+   "name": "roulette.scm",
+   "order": -0.994,
+   "instructions": 2400,
+   "distinct": 134,
+   "byStatus": {
+    "core": 2150,
+    "nop": 1,
+    "faithful": 212,
+    "authored": 1,
+    "silent": 5,
+    "stops": 31
+   },
+   "gaps": [
+    {
+     "name": "SET_CHAR_SAY_SCRIPT",
+     "status": "stops",
+     "sites": 28
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 5
+    },
+    {
+     "name": "IS_CHAR_IN_AREA_ON_FOOT_3D",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "ENABLE_DISABLED_ATTRACTORS_ON_OBJECT",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "otb_script.scm",
+   "name": "otb_script.scm",
+   "order": -0.993,
+   "instructions": 96,
+   "distinct": 27,
+   "byStatus": {
+    "core": 72,
+    "nop": 0,
+    "faithful": 23,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "arcade.scm",
+   "name": "arcade.scm",
+   "order": -0.992,
+   "instructions": 121,
+   "distinct": 28,
+   "byStatus": {
+    "core": 90,
+    "nop": 0,
+    "faithful": 30,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "vending_machine.scm",
+   "name": "vending_machine.scm",
+   "order": -0.991,
+   "instructions": 201,
+   "distinct": 55,
+   "byStatus": {
+    "core": 117,
+    "nop": 0,
+    "faithful": 75,
+    "authored": 2,
+    "silent": 7,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 6
+    },
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "TASK_PLAY_ANIM_SECONDARY",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "food_vendor.scm",
+   "name": "food_vendor.scm",
+   "order": -0.99,
+   "instructions": 145,
+   "distinct": 46,
+   "byStatus": {
+    "core": 101,
+    "nop": 0,
+    "faithful": 41,
+    "authored": 2,
+    "silent": 0,
+    "stops": 1
+   },
+   "gaps": [
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "HAS_OBJECT_BEEN_UPROOTED",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "TASK_PLAY_ANIM_SECONDARY",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "gates_script.scm",
+   "name": "gates_script.scm",
+   "order": -0.989,
+   "instructions": 114,
+   "distinct": 29,
+   "byStatus": {
+    "core": 76,
+    "nop": 0,
+    "faithful": 26,
+    "authored": 1,
+    "silent": 4,
+    "stops": 7
+   },
+   "gaps": [
+    {
+     "name": "GET_LEVEL_DESIGN_COORDS_FOR_OBJECT",
+     "status": "stops",
+     "sites": 7
+    },
+    {
+     "name": "SLIDE_OBJECT",
+     "status": "silent",
+     "sites": 2
+    },
+    {
+     "name": "LOCATE_OBJECT_3D",
+     "status": "silent",
+     "sites": 2
+    },
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "gymbike.scm",
+   "name": "gymbike.scm",
+   "order": -0.988,
+   "instructions": 741,
+   "distinct": 111,
+   "byStatus": {
+    "core": 585,
+    "nop": 0,
+    "faithful": 147,
+    "authored": 2,
+    "silent": 3,
+    "stops": 4
+   },
+   "gaps": [
+    {
+     "name": "GET_CURRENT_DATE",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 2
+    },
+    {
+     "name": "SET_CHAR_ANIM_PLAYING_FLAG",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "SET_OBJECT_COLLISION",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "gymbench.scm",
+   "name": "gymbench.scm",
+   "order": -0.987,
+   "instructions": 977,
+   "distinct": 107,
+   "byStatus": {
+    "core": 784,
+    "nop": 0,
+    "faithful": 186,
+    "authored": 1,
+    "silent": 4,
+    "stops": 2
+   },
+   "gaps": [
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 3
+    },
+    {
+     "name": "GET_CURRENT_DATE",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "gymtread.scm",
+   "name": "gymtread.scm",
+   "order": -0.986,
+   "instructions": 718,
+   "distinct": 102,
+   "byStatus": {
+    "core": 576,
+    "nop": 0,
+    "faithful": 136,
+    "authored": 0,
+    "silent": 4,
+    "stops": 2
+   },
+   "gaps": [
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 3
+    },
+    {
+     "name": "GET_CURRENT_DATE",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "gymdumb.scm",
+   "name": "gymdumb.scm",
+   "order": -0.985,
+   "instructions": 927,
+   "distinct": 102,
+   "byStatus": {
+    "core": 757,
+    "nop": 0,
+    "faithful": 162,
+    "authored": 1,
+    "silent": 3,
+    "stops": 4
+   },
+   "gaps": [
+    {
+     "name": "GET_CURRENT_DATE",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 2
+    },
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "TASK_PICK_UP_SECOND_OBJECT",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "DROP_SECOND_OBJECT",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "basketb.scm",
+   "name": "basketb.scm",
+   "order": -0.984,
+   "instructions": 2298,
+   "distinct": 170,
+   "byStatus": {
+    "core": 1636,
+    "nop": 13,
+    "faithful": 601,
+    "authored": 12,
+    "silent": 2,
+    "stops": 34
+   },
+   "gaps": [
+    {
+     "name": "GET_LEVEL_DESIGN_COORDS_FOR_OBJECT",
+     "status": "stops",
+     "sites": 24
+    },
+    {
+     "name": "GET_OBJECT_ROTATION_VELOCITY",
+     "status": "stops",
+     "sites": 10
+    },
+    {
+     "name": "SET_OBJECT_COLLISION",
+     "status": "authored",
+     "sites": 9
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "ATTACH_CHAR_TO_OBJECT",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_DEBUG_CAMERA_COORDINATES",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_DEBUG_CAMERA_POINT_AT",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "vidpok.scm",
+   "name": "vidpok.scm",
+   "order": -0.983,
+   "instructions": 3250,
+   "distinct": 119,
+   "byStatus": {
+    "core": 2404,
+    "nop": 356,
+    "faithful": 477,
+    "authored": 0,
+    "silent": 2,
+    "stops": 11
+   },
+   "gaps": [
+    {
+     "name": "FETCH_NEXT_CARD",
+     "status": "stops",
+     "sites": 10
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "SHUFFLE_CARD_DECKS",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "blackj.scm",
+   "name": "blackj.scm",
+   "order": -0.982,
+   "instructions": 3884,
+   "distinct": 174,
+   "byStatus": {
+    "core": 2998,
+    "nop": 177,
+    "faithful": 565,
+    "authored": 3,
+    "silent": 0,
+    "stops": 141
+   },
+   "gaps": [
+    {
+     "name": "SET_CHAR_SAY_SCRIPT",
+     "status": "stops",
+     "sites": 123
+    },
+    {
+     "name": "SET_HELP_MESSAGE_BOX_SIZE",
+     "status": "stops",
+     "sites": 14
+    },
+    {
+     "name": "ENABLE_DISABLED_ATTRACTORS_ON_OBJECT",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "SHUFFLE_CARD_DECKS",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "FETCH_NEXT_CARD",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "GET_DEBUG_CAMERA_COORDINATES",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_DEBUG_CAMERA_POINT_AT",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "wheelo.scm",
+   "name": "wheelo.scm",
+   "order": -0.981,
+   "instructions": 1918,
+   "distinct": 150,
+   "byStatus": {
+    "core": 1539,
+    "nop": 14,
+    "faithful": 334,
+    "authored": 3,
+    "silent": 0,
+    "stops": 28
+   },
+   "gaps": [
+    {
+     "name": "SET_CHAR_SAY_SCRIPT",
+     "status": "stops",
+     "sites": 28
+    },
+    {
+     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_DEBUG_CAMERA_COORDINATES",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_DEBUG_CAMERA_POINT_AT",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "dealer.scm",
+   "name": "dealer.scm",
+   "order": -0.98,
+   "instructions": 492,
+   "distinct": 79,
+   "byStatus": {
+    "core": 342,
+    "nop": 4,
+    "faithful": 137,
+    "authored": 0,
+    "silent": 0,
+    "stops": 9
+   },
+   "gaps": [
+    {
+     "name": "IS_PLAYER_IN_POSITION_FOR_CONVERSATION",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "SET_CHAR_WANTED_BY_POLICE",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "GET_NAME_OF_INFO_ZONE",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "SET_CHAR_DRUGGED_UP",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "home_brains.scm",
+   "name": "home_brains.scm",
+   "order": -0.979,
+   "instructions": 432,
+   "distinct": 61,
+   "byStatus": {
+    "core": 306,
+    "nop": 0,
+    "faithful": 125,
+    "authored": 0,
+    "silent": 0,
+    "stops": 1
+   },
+   "gaps": [
+    {
+     "name": "TASK_WALK_ALONGSIDE_CHAR",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "pool_script.scm",
+   "name": "pool_script.scm",
+   "order": -0.978,
+   "instructions": 303,
+   "distinct": 62,
+   "byStatus": {
+    "core": 208,
+    "nop": 0,
+    "faithful": 95,
+    "authored": 0,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": []
+  },
+  {
+   "id": "lowr_cont.scm",
+   "name": "lowr_cont.scm",
+   "order": -0.977,
+   "instructions": 222,
+   "distinct": 63,
+   "byStatus": {
+    "core": 153,
+    "nop": 0,
+    "faithful": 68,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "CAMERA_SET_VECTOR_MOVE",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "burg_brains.scm",
+   "name": "burg_brains.scm",
+   "order": -0.976,
+   "instructions": 477,
+   "distinct": 44,
+   "byStatus": {
+    "core": 262,
+    "nop": 0,
+    "faithful": 215,
+    "authored": 0,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": []
+  },
+  {
+   "id": "gf_meeting.scm",
+   "name": "gf_meeting.scm",
+   "order": -0.975,
+   "instructions": 720,
+   "distinct": 102,
+   "byStatus": {
+    "core": 496,
+    "nop": 15,
+    "faithful": 206,
+    "authored": 0,
+    "silent": 0,
+    "stops": 3
+   },
+   "gaps": [
+    {
+     "name": "IS_PLAYER_IN_POSITION_FOR_CONVERSATION",
+     "status": "stops",
+     "sites": 3
+    }
+   ]
+  },
+  {
+   "id": "gf_date.scm",
+   "name": "gf_date.scm",
+   "order": -0.974,
+   "instructions": 3967,
+   "distinct": 262,
+   "byStatus": {
+    "core": 2622,
+    "nop": 23,
+    "faithful": 1250,
+    "authored": 1,
+    "silent": 0,
+    "stops": 71
+   },
+   "gaps": [
+    {
+     "name": "SET_NAMED_ENTRY_EXIT_FLAG",
+     "status": "stops",
+     "sites": 36
+    },
+    {
+     "name": "APPEND_TO_NEXT_CUTSCENE",
+     "status": "stops",
+     "sites": 14
+    },
+    {
+     "name": "GET_CURRENT_POPULATION_ZONE_TYPE",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "GET_RADIO_CHANNEL",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "ARE_ANY_CHARS_NEAR_CHAR",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "ATTACH_CAMERA_TO_VEHICLE",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "LOCK_DOOR",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "GET_RANDOM_CHAR_IN_SPHERE",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "GET_NAME_OF_INFO_ZONE",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "GET_CLOSEST_CHAR_NODE",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "POINT_CAMERA_AT_CAR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_CHAR",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "gf_sex.scm",
+   "name": "gf_sex.scm",
+   "order": -0.973,
+   "instructions": 682,
+   "distinct": 86,
+   "byStatus": {
+    "core": 492,
+    "nop": 15,
+    "faithful": 175,
+    "authored": 0,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": []
+  },
+  {
+   "id": "casino_ambience.scm",
+   "name": "casino_ambience.scm",
+   "order": -0.972,
+   "instructions": 294,
+   "distinct": 45,
+   "byStatus": {
+    "core": 165,
+    "nop": 0,
+    "faithful": 100,
+    "authored": 28,
+    "silent": 0,
+    "stops": 1
+   },
+   "gaps": [
+    {
+     "name": "ADD_ATTRACTOR",
+     "status": "authored",
+     "sites": 27
+    },
+    {
+     "name": "GET_TOTAL_NUMBER_OF_PEDS_KILLED_BY_PLAYER",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "bar_ambience.scm",
+   "name": "bar_ambience.scm",
+   "order": -0.971,
+   "instructions": 237,
+   "distinct": 56,
+   "byStatus": {
+    "core": 161,
+    "nop": 0,
+    "faithful": 63,
+    "authored": 13,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "ADD_ATTRACTOR",
+     "status": "authored",
+     "sites": 12
+    },
+    {
+     "name": "GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "foodbrains.scm",
+   "name": "foodbrains.scm",
+   "order": -0.97,
+   "instructions": 138,
+   "distinct": 37,
+   "byStatus": {
+    "core": 91,
+    "nop": 0,
+    "faithful": 45,
+    "authored": 2,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "ADD_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "otb_ambience.scm",
+   "name": "otb_ambience.scm",
+   "order": -0.969,
+   "instructions": 90,
+   "distinct": 36,
+   "byStatus": {
+    "core": 52,
+    "nop": 0,
+    "faithful": 33,
+    "authored": 5,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "ADD_ATTRACTOR",
+     "status": "authored",
+     "sites": 4
+    },
+    {
+     "name": "GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "strip_ambience.scm",
+   "name": "strip_ambience.scm",
+   "order": -0.968,
+   "instructions": 646,
+   "distinct": 102,
+   "byStatus": {
+    "core": 453,
+    "nop": 0,
+    "faithful": 179,
+    "authored": 11,
+    "silent": 0,
+    "stops": 3
+   },
+   "gaps": [
+    {
+     "name": "ADD_ATTRACTOR",
+     "status": "authored",
+     "sites": 9
+    },
+    {
+     "name": "GET_TOTAL_NUMBER_OF_PEDS_KILLED_BY_PLAYER",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_CHAR_ANIM_TOTAL_TIME",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "GET_CHAR_MODEL",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "SET_OBJECT_COLLISION",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "planes.scm",
+   "name": "planes.scm",
+   "order": -0.967,
+   "instructions": 995,
+   "distinct": 105,
+   "byStatus": {
+    "core": 675,
+    "nop": 0,
+    "faithful": 308,
+    "authored": 6,
+    "silent": 0,
+    "stops": 6
+   },
+   "gaps": [
+    {
+     "name": "SET_PLANE_UNDERCARRIAGE_UP",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "POINT_CAMERA_AT_CAR",
+     "status": "authored",
+     "sites": 3
+    },
+    {
+     "name": "LOAD_SCENE_IN_DIRECTION",
+     "status": "authored",
+     "sites": 3
+    },
+    {
+     "name": "ALLOW_PAUSE_IN_WIDESCREEN",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "SET_TIME_ONE_DAY_FORWARD",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "trains.scm",
+   "name": "trains.scm",
+   "order": -0.966,
+   "instructions": 131,
+   "distinct": 24,
+   "byStatus": {
+    "core": 95,
+    "nop": 0,
+    "faithful": 33,
+    "authored": 0,
+    "silent": 0,
+    "stops": 3
+   },
+   "gaps": [
+    {
+     "name": "SKIP_TO_NEXT_ALLOWED_STATION",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_NEXT_STATION_ALLOWED",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "zero_ambience.scm",
+   "name": "zero_ambience.scm",
+   "order": -0.965,
+   "instructions": 76,
+   "distinct": 39,
+   "byStatus": {
+    "core": 50,
+    "nop": 0,
+    "faithful": 24,
+    "authored": 2,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "ADD_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "dance.scm",
+   "name": "dance.scm",
+   "order": -0.964,
+   "instructions": 2002,
+   "distinct": 127,
+   "byStatus": {
+    "core": 1562,
+    "nop": 2,
+    "faithful": 183,
+    "authored": 0,
+    "silent": 234,
+    "stops": 21
+   },
+   "gaps": [
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 228
+    },
+    {
+     "name": "IS_CHAR_MODEL",
+     "status": "stops",
+     "sites": 6
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 5
+    },
+    {
+     "name": "SET_CHAR_ANIM_PLAYING_FLAG",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "GET_BEAT_PROXIMITY",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "FORCE_BIG_MESSAGE_AND_COUNTER",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "PAUSE_CURRENT_BEAT_TRACK",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "GET_CHAR_ANIM_TOTAL_TIME",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "GET_CHAR_MODEL",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "shopkeeper.scm",
+   "name": "shopkeeper.scm",
+   "order": -0.963,
+   "instructions": 186,
+   "distinct": 45,
+   "byStatus": {
+    "core": 136,
+    "nop": 4,
+    "faithful": 43,
+    "authored": 3,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 2
+    },
+    {
+     "name": "ADD_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "customer_panic.scm",
+   "name": "customer_panic.scm",
+   "order": -0.962,
+   "instructions": 51,
+   "distinct": 26,
+   "byStatus": {
+    "core": 39,
+    "nop": 0,
+    "faithful": 12,
+    "authored": 0,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": []
+  },
+  {
+   "id": "bar_staff.scm",
+   "name": "bar_staff.scm",
+   "order": -0.961,
+   "instructions": 252,
+   "distinct": 38,
+   "byStatus": {
+    "core": 192,
+    "nop": 4,
+    "faithful": 49,
+    "authored": 7,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "ADD_ATTRACTOR",
+     "status": "authored",
+     "sites": 4
+    },
+    {
+     "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 3
+    }
+   ]
+  },
+  {
+   "id": "bouncer.scm",
+   "name": "bouncer.scm",
+   "order": -0.96,
+   "instructions": 120,
+   "distinct": 39,
+   "byStatus": {
+    "core": 84,
+    "nop": 4,
+    "faithful": 32,
+    "authored": 0,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": []
+  },
+  {
+   "id": "otb_staff.scm",
+   "name": "otb_staff.scm",
+   "order": -0.959,
+   "instructions": 93,
+   "distinct": 32,
+   "byStatus": {
+    "core": 71,
+    "nop": 4,
+    "faithful": 15,
+    "authored": 3,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 2
+    },
+    {
+     "name": "ADD_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "pchair.scm",
+   "name": "pchair.scm",
+   "order": -0.958,
+   "instructions": 316,
+   "distinct": 56,
+   "byStatus": {
+    "core": 232,
+    "nop": 4,
+    "faithful": 72,
+    "authored": 1,
+    "silent": 0,
+    "stops": 7
+   },
+   "gaps": [
+    {
+     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "ARE_ANY_CHARS_NEAR_CHAR",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "pcustom.scm",
+   "name": "pcustom.scm",
+   "order": -0.957,
+   "instructions": 99,
+   "distinct": 32,
+   "byStatus": {
+    "core": 74,
+    "nop": 4,
+    "faithful": 19,
+    "authored": 1,
+    "silent": 0,
+    "stops": 1
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "otbwtch.scm",
+   "name": "otbwtch.scm",
+   "order": -0.956,
+   "instructions": 124,
+   "distinct": 28,
+   "byStatus": {
+    "core": 94,
+    "nop": 4,
+    "faithful": 24,
+    "authored": 1,
+    "silent": 0,
+    "stops": 1
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "otbslp.scm",
+   "name": "otbslp.scm",
+   "order": -0.955,
+   "instructions": 107,
+   "distinct": 27,
+   "byStatus": {
+    "core": 82,
+    "nop": 4,
+    "faithful": 20,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "otbtill.scm",
+   "name": "otbtill.scm",
+   "order": -0.954,
+   "instructions": 85,
+   "distinct": 26,
+   "byStatus": {
+    "core": 65,
+    "nop": 4,
+    "faithful": 14,
+    "authored": 1,
+    "silent": 0,
+    "stops": 1
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "fboothr.scm",
+   "name": "fboothr.scm",
+   "order": -0.953,
+   "instructions": 315,
+   "distinct": 58,
+   "byStatus": {
+    "core": 227,
+    "nop": 9,
+    "faithful": 74,
+    "authored": 1,
+    "silent": 0,
+    "stops": 4
+   },
+   "gaps": [
+    {
+     "name": "ARE_ANY_CHARS_NEAR_CHAR",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "fboothl.scm",
+   "name": "fboothl.scm",
+   "order": -0.952,
+   "instructions": 315,
+   "distinct": 58,
+   "byStatus": {
+    "core": 227,
+    "nop": 9,
+    "faithful": 74,
+    "authored": 1,
+    "silent": 0,
+    "stops": 4
+   },
+   "gaps": [
+    {
+     "name": "ARE_ANY_CHARS_NEAR_CHAR",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "barguy.scm",
+   "name": "barguy.scm",
+   "order": -0.951,
+   "instructions": 132,
+   "distinct": 35,
+   "byStatus": {
+    "core": 97,
+    "nop": 4,
+    "faithful": 30,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "pedroul.scm",
+   "name": "pedroul.scm",
+   "order": -0.95,
+   "instructions": 115,
+   "distinct": 28,
+   "byStatus": {
+    "core": 87,
+    "nop": 4,
+    "faithful": 23,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "pedcard.scm",
+   "name": "pedcard.scm",
+   "order": -0.949,
+   "instructions": 140,
+   "distinct": 29,
+   "byStatus": {
+    "core": 104,
+    "nop": 4,
+    "faithful": 31,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "pedslot.scm",
+   "name": "pedslot.scm",
+   "order": -0.948,
+   "instructions": 119,
+   "distinct": 28,
+   "byStatus": {
+    "core": 92,
+    "nop": 4,
+    "faithful": 22,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "dancer.scm",
+   "name": "dancer.scm",
+   "order": -0.947,
+   "instructions": 167,
+   "distinct": 36,
+   "byStatus": {
+    "core": 133,
+    "nop": 4,
+    "faithful": 27,
+    "authored": 1,
+    "silent": 0,
+    "stops": 2
+   },
+   "gaps": [
+    {
+     "name": "GET_CHAR_MODEL",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "stripw.scm",
+   "name": "stripw.scm",
+   "order": -0.946,
+   "instructions": 319,
+   "distinct": 54,
+   "byStatus": {
+    "core": 217,
+    "nop": 4,
+    "faithful": 94,
+    "authored": 1,
+    "silent": 0,
+    "stops": 3
+   },
+   "gaps": [
+    {
+     "name": "IS_MONEY_PICKUP_AT_COORDS",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "stripm.scm",
+   "name": "stripm.scm",
+   "order": -0.945,
+   "instructions": 126,
+   "distinct": 35,
+   "byStatus": {
+    "core": 94,
+    "nop": 4,
+    "faithful": 25,
+    "authored": 3,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 2
+    },
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "browse.scm",
+   "name": "browse.scm",
+   "order": -0.944,
+   "instructions": 120,
+   "distinct": 28,
+   "byStatus": {
+    "core": 91,
+    "nop": 4,
+    "faithful": 24,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "copsit.scm",
+   "name": "copsit.scm",
+   "order": -0.943,
+   "instructions": 239,
+   "distinct": 47,
+   "byStatus": {
+    "core": 183,
+    "nop": 4,
+    "faithful": 49,
+    "authored": 1,
+    "silent": 0,
+    "stops": 2
+   },
+   "gaps": [
+    {
+     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "coplook.scm",
+   "name": "coplook.scm",
+   "order": -0.942,
+   "instructions": 129,
+   "distinct": 29,
+   "byStatus": {
+    "core": 98,
+    "nop": 4,
+    "faithful": 26,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "ticket.scm",
+   "name": "ticket.scm",
+   "order": -0.9410000000000001,
+   "instructions": 88,
+   "distinct": 23,
+   "byStatus": {
+    "core": 66,
+    "nop": 4,
+    "faithful": 17,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "shopper.scm",
+   "name": "shopper.scm",
+   "order": -0.94,
+   "instructions": 128,
+   "distinct": 34,
+   "byStatus": {
+    "core": 99,
+    "nop": 4,
+    "faithful": 24,
+    "authored": 1,
+    "silent": 0,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "ammu.scm",
+   "name": "ammu.scm",
+   "order": -0.9390000000000001,
+   "instructions": 1485,
+   "distinct": 111,
+   "byStatus": {
+    "core": 1164,
+    "nop": 1,
+    "faithful": 319,
+    "authored": 0,
+    "silent": 1,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "GET_CHAR_ARMOUR",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "tattoo.scm",
+   "name": "tattoo.scm",
+   "order": -0.938,
+   "instructions": 1606,
+   "distinct": 121,
+   "byStatus": {
+    "core": 1270,
+    "nop": 0,
+    "faithful": 318,
+    "authored": 1,
+    "silent": 3,
+    "stops": 14
+   },
+   "gaps": [
+    {
+     "name": "GET_CLOTHES_ITEM",
+     "status": "stops",
+     "sites": 13
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "ATTACH_CHAR_TO_OBJECT",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "barber.scm",
+   "name": "barber.scm",
+   "order": -0.937,
+   "instructions": 1076,
+   "distinct": 114,
+   "byStatus": {
+    "core": 824,
+    "nop": 0,
+    "faithful": 244,
+    "authored": 0,
+    "silent": 4,
+    "stops": 4
+   },
+   "gaps": [
+    {
+     "name": "GET_CLOTHES_ITEM",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 2
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "wardrobe.scm",
+   "name": "wardrobe.scm",
+   "order": -0.9359999999999999,
+   "instructions": 1486,
+   "distinct": 98,
+   "byStatus": {
+    "core": 1213,
+    "nop": 0,
+    "faithful": 257,
+    "authored": 0,
+    "silent": 3,
+    "stops": 13
+   },
+   "gaps": [
+    {
+     "name": "GET_CLOTHES_ITEM",
+     "status": "stops",
+     "sites": 13
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "clothes.scm",
+   "name": "clothes.scm",
+   "order": -0.935,
+   "instructions": 1255,
+   "distinct": 112,
+   "byStatus": {
+    "core": 982,
+    "nop": 0,
+    "faithful": 258,
+    "authored": 0,
+    "silent": 3,
+    "stops": 12
+   },
+   "gaps": [
+    {
+     "name": "GET_CLOTHES_ITEM",
+     "status": "stops",
+     "sites": 8
+    },
+    {
+     "name": "GET_HASH_KEY",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "junkfud.scm",
+   "name": "junkfud.scm",
+   "order": -0.9339999999999999,
+   "instructions": 1580,
+   "distinct": 116,
+   "byStatus": {
+    "core": 1185,
+    "nop": 0,
+    "faithful": 393,
+    "authored": 0,
+    "silent": 2,
+    "stops": 0
+   },
+   "gaps": [
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "carmod1.scm",
+   "name": "carmod1.scm",
+   "order": -0.933,
+   "instructions": 2922,
+   "distinct": 120,
+   "byStatus": {
+    "core": 2516,
+    "nop": 0,
+    "faithful": 357,
+    "authored": 0,
+    "silent": 0,
+    "stops": 49
+   },
+   "gaps": [
+    {
+     "name": "STORE_CAR_MOD_STATE",
+     "status": "stops",
+     "sites": 5
+    },
+    {
+     "name": "GET_CAR_COLOURS",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "GIVE_VEHICLE_PAINTJOB",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "CHANGE_CAR_COLOUR_FROM_MENU",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "IS_BIG_VEHICLE",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "IS_EMERGENCY_SERVICES_VEHICLE",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "IS_CAR_STREET_RACER",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "SET_RADIO_TO_PLAYERS_FAVOURITE_STATION",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "GET_CAR_DOOR_LOCK_STATUS",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "CLEAR_WANTED_LEVEL_IN_GARAGE",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "GET_CURRENT_VEHICLE_PAINTJOB",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "RESTORE_CAR_MOD_STATE",
+     "status": "stops",
+     "sites": 2
+    }
+   ]
+  },
+  {
+   "id": "crane1.scm",
+   "name": "crane1.scm",
+   "order": -0.9319999999999999,
+   "instructions": 406,
+   "distinct": 76,
+   "byStatus": {
+    "core": 284,
+    "nop": 6,
+    "faithful": 109,
+    "authored": 1,
+    "silent": 0,
+    "stops": 6
+   },
+   "gaps": [
+    {
+     "name": "LOCATE_OBJECT_2D",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "ATTACH_CHAR_TO_OBJECT",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "crane2.scm",
+   "name": "crane2.scm",
+   "order": -0.931,
+   "instructions": 730,
+   "distinct": 106,
+   "byStatus": {
+    "core": 587,
+    "nop": 2,
+    "faithful": 135,
+    "authored": 1,
+    "silent": 0,
+    "stops": 5
+   },
+   "gaps": [
+    {
+     "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "ATTACH_CHAR_TO_OBJECT",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "crane3.scm",
+   "name": "crane3.scm",
+   "order": -0.9299999999999999,
+   "instructions": 237,
+   "distinct": 59,
+   "byStatus": {
+    "core": 161,
+    "nop": 0,
+    "faithful": 74,
+    "authored": 0,
+    "silent": 0,
+    "stops": 2
+   },
+   "gaps": [
+    {
+     "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "carpark1.scm",
+   "name": "carpark1.scm",
+   "order": -0.929,
+   "instructions": 209,
+   "distinct": 14,
+   "byStatus": {
+    "core": 129,
+    "nop": 0,
+    "faithful": 23,
+    "authored": 0,
+    "silent": 0,
+    "stops": 57
+   },
+   "gaps": [
+    {
+     "name": "CREATE_RANDOM_CAR_FOR_CAR_PARK",
+     "status": "stops",
+     "sites": 57
+    }
+   ]
+  },
+  {
+   "id": "impound.scm",
+   "name": "impound.scm",
+   "order": -0.928,
+   "instructions": 2365,
+   "distinct": 131,
+   "byStatus": {
+    "core": 1731,
+    "nop": 0,
+    "faithful": 599,
+    "authored": 0,
+    "silent": 26,
+    "stops": 9
+   },
+   "gaps": [
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 12
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 8
+    },
+    {
+     "name": "CLEAR_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 6
+    },
+    {
+     "name": "IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE",
+     "status": "stops",
+     "sites": 5
+    },
+    {
+     "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "TASK_GOTO_CHAR_AIMING",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "TASK_GO_TO_COORD_WHILE_AIMING",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "TASK_COWER",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "valet.scm",
+   "name": "valet.scm",
+   "order": -0.927,
+   "instructions": 2130,
+   "distinct": 192,
+   "byStatus": {
+    "core": 1566,
+    "nop": 0,
+    "faithful": 550,
+    "authored": 0,
+    "silent": 2,
+    "stops": 12
+   },
+   "gaps": [
+    {
+     "name": "GET_RANDOM_CAR_OF_TYPE_IN_AREA_NO_SAVE",
+     "status": "stops",
+     "sites": 3
+    },
+    {
+     "name": "GET_CAR_BLOCKING_CAR",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "GET_PARKING_NODE_IN_AREA",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
+     "sites": 2
+    },
+    {
+     "name": "SET_CAR_ENGINE_BROKEN",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "IS_CHAR_STUCK_UNDER_CAR",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "IS_VEHICLE_ATTACHED",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "DETACH_CAR",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "IS_EMERGENCY_SERVICES_VEHICLE",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "photo.scm",
+   "name": "photo.scm",
+   "order": -0.926,
+   "instructions": 236,
+   "distinct": 42,
+   "byStatus": {
+    "core": 172,
+    "nop": 4,
+    "faithful": 57,
+    "authored": 1,
+    "silent": 0,
+    "stops": 2
+   },
+   "gaps": [
+    {
+     "name": "DRAW_LIGHT_WITH_RANGE",
+     "status": "stops",
+     "sites": 2
+    },
+    {
+     "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+     "status": "authored",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "prisonr.scm",
+   "name": "prisonr.scm",
+   "order": -0.925,
+   "instructions": 156,
+   "distinct": 49,
+   "byStatus": {
+    "core": 107,
+    "nop": 4,
+    "faithful": 44,
+    "authored": 0,
+    "silent": 0,
+    "stops": 1
+   },
+   "gaps": [
+    {
+     "name": "GET_RANDOM_CHAR_IN_SPHERE",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "camera.scm",
+   "name": "camera.scm",
+   "order": -0.924,
+   "instructions": 517,
+   "distinct": 79,
+   "byStatus": {
+    "core": 348,
+    "nop": 0,
+    "faithful": 148,
+    "authored": 0,
+    "silent": 0,
+    "stops": 21
+   },
+   "gaps": [
+    {
+     "name": "SET_PHOTO_CAMERA_EFFECT",
+     "status": "stops",
+     "sites": 9
+    },
+    {
+     "name": "IS_CHAR_MODEL",
+     "status": "stops",
+     "sites": 6
+    },
+    {
+     "name": "GET_GROUP_MEMBER",
+     "status": "stops",
+     "sites": 4
+    },
+    {
+     "name": "IS_FLAME_IN_ANGLED_AREA_2D",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "TASK_HAND_GESTURE",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "debt.scm",
+   "name": "debt.scm",
+   "order": -0.923,
+   "instructions": 562,
+   "distinct": 93,
+   "byStatus": {
+    "core": 399,
+    "nop": 0,
+    "faithful": 162,
+    "authored": 0,
+    "silent": 0,
+    "stops": 1
+   },
+   "gaps": [
+    {
+     "name": "COPY_GROUP_DECISION_MAKER",
+     "status": "stops",
+     "sites": 1
+    }
+   ]
+  },
+  {
+   "id": "hotdog.scm",
+   "name": "hotdog.scm",
+   "order": -0.922,
+   "instructions": 87,
+   "distinct": 34,
+   "byStatus": {
+    "core": 57,
+    "nop": 0,
+    "faithful": 28,
+    "authored": 1,
+    "silent": 0,
+    "stops": 1
+   },
+   "gaps": [
+    {
+     "name": "STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE",
+     "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "TASK_PLAY_ANIM_SECONDARY",
+     "status": "authored",
+     "sites": 1
     }
    ]
   },
@@ -1594,9 +4185,9 @@
    "byStatus": {
     "core": 1276,
     "nop": 1,
-    "faithful": 694,
+    "faithful": 696,
     "authored": 7,
-    "silent": 8,
+    "silent": 6,
     "stops": 8
    },
    "gaps": [
@@ -1604,11 +4195,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 3
-    },
-    {
-     "name": "STREAM_SCRIPT",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "CONTROL_CAR_DOOR",
@@ -1657,6 +4243,11 @@
     },
     {
      "name": "IS_GARAGE_OPEN",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "CLOSE_GARAGE",
      "status": "authored",
      "sites": 1
     }
@@ -2704,9 +5295,9 @@
    "byStatus": {
     "core": 1481,
     "nop": 8,
-    "faithful": 841,
+    "faithful": 842,
     "authored": 5,
-    "silent": 18,
+    "silent": 17,
     "stops": 11
    },
    "gaps": [
@@ -2741,11 +5332,6 @@
      "sites": 1
     },
     {
-     "name": "STREAM_SCRIPT",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "GET_PARKING_NODE_IN_AREA",
      "status": "stops",
      "sites": 1
@@ -2767,6 +5353,11 @@
     },
     {
      "name": "CLOSE_GARAGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "IS_GARAGE_CLOSED",
      "status": "authored",
      "sites": 1
     }
@@ -4757,9 +7348,9 @@
    "byStatus": {
     "core": 2961,
     "nop": 2,
-    "faithful": 929,
+    "faithful": 931,
     "authored": 11,
-    "silent": 15,
+    "silent": 13,
     "stops": 16
    },
    "gaps": [
@@ -4794,11 +7385,6 @@
      "sites": 3
     },
     {
-     "name": "STREAM_SCRIPT",
-     "status": "silent",
-     "sites": 2
-    },
-    {
      "name": "SET_ALWAYS_DRAW_3D_MARKERS",
      "status": "stops",
      "sites": 2
@@ -4821,6 +7407,11 @@
     {
      "name": "SKIP_CUTSCENE_END",
      "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_CAR_UPRIGHT_VALUE",
+     "status": "stops",
      "sites": 1
     }
    ]
@@ -5146,10 +7737,10 @@
    "byStatus": {
     "core": 2481,
     "nop": 4,
-    "faithful": 1316,
-    "authored": 10,
+    "faithful": 1322,
+    "authored": 12,
     "silent": 6,
-    "stops": 19
+    "stops": 11
    },
    "gaps": [
     {
@@ -5160,11 +7751,6 @@
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "CLEAR_ATTRACTOR",
-     "status": "stops",
      "sites": 4
     },
     {
@@ -5179,16 +7765,11 @@
     },
     {
      "name": "ADD_ATTRACTOR",
-     "status": "stops",
+     "status": "authored",
      "sites": 2
     },
     {
      "name": "ADD_PEDTYPE_AS_ATTRACTOR_USER",
-     "status": "stops",
-     "sites": 2
-    },
-    {
-     "name": "TASK_USE_ATTRACTOR",
      "status": "stops",
      "sites": 2
     },
@@ -5210,6 +7791,16 @@
     {
      "name": "GET_EXTRA_CAR_COLOURS",
      "status": "stops",
+     "sites": 1
+    },
+    {
+     "name": "WAS_CUTSCENE_SKIPPED",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
      "sites": 1
     }
    ]
@@ -5555,9 +8146,9 @@
    "byStatus": {
     "core": 1964,
     "nop": 4,
-    "faithful": 1058,
+    "faithful": 1059,
     "authored": 7,
-    "silent": 43,
+    "silent": 42,
     "stops": 0
    },
    "gaps": [
@@ -5584,11 +8175,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "STREAM_SCRIPT",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -5890,17 +8476,12 @@
    "byStatus": {
     "core": 2824,
     "nop": 1,
-    "faithful": 1543,
+    "faithful": 1555,
     "authored": 14,
-    "silent": 14,
+    "silent": 2,
     "stops": 3
    },
    "gaps": [
-    {
-     "name": "STREAM_SCRIPT",
-     "status": "silent",
-     "sites": 12
-    },
     {
      "name": "SKIP_CUTSCENE_END",
      "status": "authored",
@@ -6039,9 +8620,9 @@
    "byStatus": {
     "core": 537,
     "nop": 8,
-    "faithful": 468,
+    "faithful": 469,
     "authored": 5,
-    "silent": 21,
+    "silent": 20,
     "stops": 0
    },
    "gaps": [
@@ -6064,11 +8645,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 5
-    },
-    {
-     "name": "STREAM_SCRIPT",
-     "status": "silent",
-     "sites": 1
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -6914,9 +9490,9 @@
     "core": 1685,
     "nop": 40,
     "faithful": 381,
-    "authored": 4,
+    "authored": 7,
     "silent": 1,
-    "stops": 7
+    "stops": 4
    },
    "gaps": [
     {
@@ -6926,7 +9502,7 @@
     },
     {
      "name": "TASK_PLAY_ANIM_SECONDARY",
-     "status": "stops",
+     "status": "authored",
      "sites": 3
     },
     {
@@ -7561,13 +10137,13 @@
    "notes": [
     "adapter lacks clearMissionAudio"
    ],
-   "handlerLine": 636,
+   "handlerLine": 639,
    "ref": {
     "kind": "absent"
    },
    "doc": "Unloads the mission audio (03CF), freeing game memory",
-   "sites": 1406,
-   "missions": 106,
+   "sites": 1442,
+   "missions": 121,
    "firstMission": "MAIN",
    "portable": false
   },
@@ -7578,7 +10154,7 @@
    "notes": [
     "adapter lacks loadMissionAudio"
    ],
-   "handlerLine": 622,
+   "handlerLine": 625,
    "ref": {
     "kind": "handler",
     "fn": "LoadMissionAudio",
@@ -7586,8 +10162,8 @@
     "stub": false
    },
    "doc": "Loads the file from the audio directory",
-   "sites": 951,
-   "missions": 109,
+   "sites": 1220,
+   "missions": 127,
    "firstMission": "MAIN",
    "portable": true
   },
@@ -7598,7 +10174,7 @@
    "notes": [
     "adapter lacks playMissionAudio"
    ],
-   "handlerLine": 628,
+   "handlerLine": 631,
    "ref": {
     "kind": "handler",
     "fn": "PlayMissionAudio",
@@ -7606,8 +10182,8 @@
     "stub": false
    },
    "doc": "Plays the loaded sound (03CF)",
-   "sites": 637,
-   "missions": 93,
+   "sites": 659,
+   "missions": 102,
    "firstMission": "MAIN",
    "portable": true
   },
@@ -7618,7 +10194,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 2884,
+   "handlerLine": 2887,
    "ref": {
     "kind": "handler",
     "fn": "SetObjectCollision",
@@ -7626,8 +10202,8 @@
     "stub": false
    },
    "doc": "Sets the object's collision detection",
-   "sites": 198,
-   "missions": 36,
+   "sites": 211,
+   "missions": 40,
    "firstMission": "MAIN",
    "portable": true
   },
@@ -7639,13 +10215,13 @@
     "dispatch unreversed; follows the routines it reaches",
     "adapter lacks playMissionPassedTune"
    ],
-   "handlerLine": 1345,
+   "handlerLine": 1348,
    "ref": {
     "kind": "absent"
    },
    "doc": "Plays an audio file with the specified ID from the Audio directory",
-   "sites": 141,
-   "missions": 117,
+   "sites": 144,
+   "missions": 119,
    "firstMission": "MAIN",
    "portable": false
   },
@@ -7657,30 +10233,13 @@
     "dispatch unreversed; follows the routines it reaches",
     "adapter lacks objectBlockedAt"
    ],
-   "handlerLine": 1401,
+   "handlerLine": 1404,
    "ref": {
     "kind": "absent"
    },
    "doc": "Animates object movement toward specified coordinates. Returns true if the object has finished moving",
-   "sites": 73,
-   "missions": 14,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "STREAM_SCRIPT",
-   "opcode": "08a9",
-   "status": "silent",
-   "notes": [
-    "adapter lacks requestStreamedScript"
-   ],
-   "handlerLine": 1956,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Loads the ambient script with the specified ID from the script.img file",
-   "sites": 69,
-   "missions": 7,
+   "sites": 75,
+   "missions": 15,
    "firstMission": "MAIN",
    "portable": false
   },
@@ -7691,13 +10250,30 @@
    "notes": [
     "adapter lacks highlightArea"
    ],
-   "handlerLine": 1492,
+   "handlerLine": 1495,
    "ref": {
     "kind": "absent"
    },
    "doc": "Returns true if the object is near the specified point",
-   "sites": 49,
-   "missions": 9,
+   "sites": 51,
+   "missions": 10,
+   "firstMission": "MAIN",
+   "portable": false
+  },
+  {
+   "name": "GET_LEVEL_DESIGN_COORDS_FOR_OBJECT",
+   "opcode": "080a",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getLevelDesignCoordsForObject (the thread gives up)"
+   ],
+   "handlerLine": 2251,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 38,
+   "missions": 4,
    "firstMission": "MAIN",
    "portable": false
   },
@@ -7708,7 +10284,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 533,
+   "handlerLine": 536,
    "ref": {
     "kind": "absent"
    },
@@ -7725,7 +10301,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 536,
+   "handlerLine": 539,
    "ref": {
     "kind": "absent"
    },
@@ -7742,7 +10318,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 539,
+   "handlerLine": 542,
    "ref": {
     "kind": "absent"
    },
@@ -7759,7 +10335,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 537,
+   "handlerLine": 540,
    "ref": {
     "kind": "absent"
    },
@@ -7770,13 +10346,30 @@
    "portable": false
   },
   {
+   "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
+   "opcode": "0815",
+   "status": "stops",
+   "notes": [
+    "adapter lacks setObjectCoordinatesAndVelocity (the thread gives up)"
+   ],
+   "handlerLine": 2004,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Sets the object's coordinates without affecting the rotation",
+   "sites": 18,
+   "missions": 8,
+   "firstMission": "MAIN",
+   "portable": false
+  },
+  {
    "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
    "opcode": "0798",
    "status": "stops",
    "notes": [
     "adapter lacks grabEntityOnRopeForObject (the thread gives up)"
    ],
-   "handlerLine": 1765,
+   "handlerLine": 1768,
    "ref": {
     "kind": "absent"
    },
@@ -7787,52 +10380,18 @@
    "portable": false
   },
   {
-   "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
-   "opcode": "0815",
+   "name": "GET_BEAT_PROXIMITY",
+   "opcode": "07b1",
    "status": "stops",
    "notes": [
-    "adapter lacks setObjectCoordinatesAndVelocity (the thread gives up)"
+    "adapter lacks beatProximity (the thread gives up)"
    ],
-   "handlerLine": 2001,
+   "handlerLine": 2157,
    "ref": {
     "kind": "absent"
    },
-   "doc": "Sets the object's coordinates without affecting the rotation",
-   "sites": 12,
-   "missions": 4,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
-   "opcode": "0797",
-   "status": "stops",
-   "notes": [
-    "adapter lacks setRopeHeightForObject (the thread gives up)"
-   ],
-   "handlerLine": 1909,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 8,
-   "missions": 3,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "ARE_MEASUREMENTS_IN_METRES",
-   "opcode": "0424",
-   "status": "authored",
-   "notes": [
-    "adapter comments name an authored stand-in (measurementsAreInMetres)"
-   ],
-   "handlerLine": 2082,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the game uses metric measurements (meters instead of feet)",
-   "sites": 6,
+   "doc": "Returns information about a beat offset from the current playback position of the active beat track (0954)",
+   "sites": 9,
    "missions": 2,
    "firstMission": "MAIN",
    "portable": false
@@ -7844,12 +10403,29 @@
    "notes": [
     "adapter lacks forceBigMessageAndCounter (the thread gives up)"
    ],
-   "handlerLine": 2084,
+   "handlerLine": 2087,
    "ref": {
     "kind": "absent"
    },
    "doc": "Prevents timers and big texts from being hidden if there is another conflicting type of text on screen",
-   "sites": 6,
+   "sites": 8,
+   "missions": 4,
+   "firstMission": "MAIN",
+   "portable": false
+  },
+  {
+   "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
+   "opcode": "0797",
+   "status": "stops",
+   "notes": [
+    "adapter lacks setRopeHeightForObject (the thread gives up)"
+   ],
+   "handlerLine": 1912,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 8,
    "missions": 3,
    "firstMission": "MAIN",
    "portable": false
@@ -7861,47 +10437,30 @@
    "notes": [
     "adapter lacks releaseEntityFromRopeForObject (the thread gives up)"
    ],
+   "handlerLine": 2088,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 7,
+   "missions": 3,
+   "firstMission": "MAIN",
+   "portable": false
+  },
+  {
+   "name": "ARE_MEASUREMENTS_IN_METRES",
+   "opcode": "0424",
+   "status": "authored",
+   "notes": [
+    "adapter comments name an authored stand-in (measurementsAreInMetres)"
+   ],
    "handlerLine": 2085,
    "ref": {
     "kind": "absent"
    },
-   "doc": "",
+   "doc": "Returns true if the game uses metric measurements (meters instead of feet)",
    "sites": 6,
    "missions": 2,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "GET_BEAT_PROXIMITY",
-   "opcode": "07b1",
-   "status": "stops",
-   "notes": [
-    "adapter lacks beatProximity (the thread gives up)"
-   ],
-   "handlerLine": 2154,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns information about a beat offset from the current playback position of the active beat track (0954)",
-   "sites": 5,
-   "missions": 1,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "GET_LEVEL_DESIGN_COORDS_FOR_OBJECT",
-   "opcode": "080a",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getLevelDesignCoordsForObject (the thread gives up)"
-   ],
-   "handlerLine": 2248,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 4,
-   "missions": 1,
    "firstMission": "MAIN",
    "portable": false
   },
@@ -7912,7 +10471,7 @@
    "notes": [
     "adapter lacks getCarModelValue (the thread gives up)"
    ],
-   "handlerLine": 2251,
+   "handlerLine": 2254,
    "ref": {
     "kind": "absent"
    },
@@ -7923,13 +10482,30 @@
    "portable": false
   },
   {
+   "name": "GET_CURRENT_CAR_MOD",
+   "opcode": "096d",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getCurrentCarMod (the thread gives up)"
+   ],
+   "handlerLine": 2441,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns the model of the component installed on the specified slot of the vehicle, or -1 otherwise",
+   "sites": 2,
+   "missions": 2,
+   "firstMission": "MAIN",
+   "portable": false
+  },
+  {
    "name": "GET_RANDOM_CAR_IN_SPHERE_NO_SAVE",
    "opcode": "073e",
    "status": "stops",
    "notes": [
     "adapter lacks getRandomCarInSphereNoSave (the thread gives up)"
    ],
-   "handlerLine": 2345,
+   "handlerLine": 2348,
    "ref": {
     "kind": "absent"
    },
@@ -7946,7 +10522,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 540,
+   "handlerLine": 543,
    "ref": {
     "kind": "absent"
    },
@@ -7963,7 +10539,7 @@
    "notes": [
     "adapter lacks activateSaveMenu (the thread gives up)"
    ],
-   "handlerLine": 2428,
+   "handlerLine": 2431,
    "ref": {
     "kind": "absent"
    },
@@ -7980,28 +10556,11 @@
    "notes": [
     "adapter lacks hasSaveGameFinished (the thread gives up)"
    ],
-   "handlerLine": 2429,
+   "handlerLine": 2432,
    "ref": {
     "kind": "absent"
    },
    "doc": "Returns false if save game menu was requested with activate_save_menu command, but not displayed yet",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "GET_CURRENT_CAR_MOD",
-   "opcode": "096d",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getCurrentCarMod (the thread gives up)"
-   ],
-   "handlerLine": 2438,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns the model of the component installed on the specified slot of the vehicle, or -1 otherwise",
    "sites": 1,
    "missions": 1,
    "firstMission": "MAIN",
@@ -8014,7 +10573,7 @@
    "notes": [
     "adapter lacks getRidOfPlayerProstitute (the thread gives up)"
    ],
-   "handlerLine": 1145,
+   "handlerLine": 1148,
    "ref": {
     "kind": "handler",
     "fn": "GetRidOfPlayerProstitute",
@@ -8028,13 +10587,1894 @@
    "portable": true
   },
   {
+   "name": "GET_CHAR_VELOCITY",
+   "opcode": "083d",
+   "status": "stops",
+   "notes": [
+    "adapter lacks pedVelocity (the thread gives up)"
+   ],
+   "handlerLine": 1116,
+   "ref": {
+    "kind": "handler",
+    "fn": "GetCharVelocity",
+    "where": "CharacterCommands.cpp:309",
+    "stub": false
+   },
+   "doc": "Gets the characters velocity",
+   "sites": 11,
+   "missions": 3,
+   "firstMission": "player_parachute.scm",
+   "portable": true
+  },
+  {
+   "name": "SET_CHAR_ROTATION",
+   "opcode": "083e",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler",
+    "fn": "SetCharRotation",
+    "where": "CharacterCommands.cpp:339",
+    "stub": false
+   },
+   "doc": "Sets the characters rotation",
+   "sites": 9,
+   "missions": 2,
+   "firstMission": "player_parachute.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
+   "opcode": "0819",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getCharHeightAboveGround (the thread gives up)"
+   ],
+   "handlerLine": 2287,
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "GetCharHeightAboveGround",
+    "where": "CharacterCommands.cpp:4292",
+    "stub": false
+   },
+   "doc": "Returns the char's distance from ground",
+   "sites": 8,
+   "missions": 5,
+   "firstMission": "player_parachute.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_2PLAYER_GAME_GOING_ON",
+   "opcode": "0800",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if the game is in 2-player mode",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "player_parachute.scm",
+   "portable": false
+  },
+  {
+   "name": "REMOVE_OBJECT_ELEGANTLY",
+   "opcode": "09a2",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Fades the object out of existence, freeing game memory",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "player_parachute.scm",
+   "portable": false
+  },
+  {
+   "name": "CAR_GOTO_COORDINATES_RACING",
+   "opcode": "0704",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Makes the AI drive to the destination as fast as possible, trying to overtake other vehicles",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "bcesar3.scm",
+   "portable": false
+  },
+  {
+   "name": "CREATE_FX_SYSTEM_ON_OBJECT_WITH_DIRECTION",
+   "opcode": "066e",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Creates particle effect on an object",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "bcesar3.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
+   "opcode": "0977",
+   "status": "authored",
+   "notes": [
+    "handler comments name an authored stand-in"
+   ],
+   "handlerLine": 2939,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if the object is within the external script trigger radius",
+   "sites": 12,
+   "missions": 12,
+   "firstMission": "slot_machine.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
+   "opcode": "091c",
+   "status": "authored",
+   "notes": [
+    "handler comments name an authored stand-in"
+   ],
+   "handlerLine": 2943,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns the character using a map attractor with the specified model in the specified area",
+   "sites": 11,
+   "missions": 5,
+   "firstMission": "slot_machine.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_RANDOM_CHAR_IN_AREA_OFFSET_NO_SAVE",
+   "opcode": "0a3e",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "GetRandomCharInAreaOffsetNoSave",
+    "where": "CharacterCommands.cpp:4320",
+    "stub": false
+   },
+   "doc": "Returns the first char in the ped pool within radius of the specified point",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "slot_machine.scm",
+   "portable": false
+  },
+  {
+   "name": "SET_CHAR_SAY_SCRIPT",
+   "opcode": "09d6",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler",
+    "fn": "SetCharSayScript",
+    "where": "CharacterCommands.cpp:3343",
+    "stub": false
+   },
+   "doc": "",
+   "sites": 179,
+   "missions": 3,
+   "firstMission": "roulette.scm",
+   "portable": true
+  },
+  {
+   "name": "IS_CHAR_IN_AREA_ON_FOOT_3D",
+   "opcode": "01a6",
+   "status": "stops",
+   "notes": [
+    "adapter lacks isCharInAreaOnFoot3d (the thread gives up)"
+   ],
+   "handlerLine": 2333,
+   "ref": {
+    "kind": "unimplemented",
+    "where": "CharacterCommands.cpp:4356",
+    "stub": false
+   },
+   "doc": "Returns true if the character is within the specified 3D area on foot",
+   "sites": 5,
+   "missions": 3,
+   "firstMission": "roulette.scm",
+   "portable": false
+  },
+  {
+   "name": "ENABLE_DISABLED_ATTRACTORS_ON_OBJECT",
+   "opcode": "0a0a",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler",
+    "fn": "EnableDisabledAttractorOnObject",
+    "where": "ObjectCommands.cpp:150",
+    "stub": false
+   },
+   "doc": "Sets whether the object attracts spawned peds to interact with it",
+   "sites": 3,
+   "missions": 2,
+   "firstMission": "roulette.scm",
+   "portable": true
+  },
+  {
+   "name": "TASK_PLAY_ANIM_SECONDARY",
+   "opcode": "0a1a",
+   "status": "authored",
+   "notes": [
+    "adapter comments name an authored stand-in (taskPlayAnimSecondary)"
+   ],
+   "handlerLine": 2339,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Makes a character play an animation that affects only the upper half of their body",
+   "sites": 6,
+   "missions": 4,
+   "firstMission": "vending_machine.scm",
+   "portable": false
+  },
+  {
+   "name": "HAS_OBJECT_BEEN_UPROOTED",
+   "opcode": "095b",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if the object has been made moveable by the 0392",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "food_vendor.scm",
+   "portable": false
+  },
+  {
+   "name": "SET_CHAR_ANIM_PLAYING_FLAG",
+   "opcode": "0612",
+   "status": "stops",
+   "notes": [
+    "adapter lacks setPedAnimPlayingFlag (the thread gives up)"
+   ],
+   "handlerLine": 1133,
+   "ref": {
+    "kind": "handler",
+    "fn": "SetCharAnimPlayingFlag",
+    "where": "CharacterCommands.cpp:2864",
+    "stub": false
+   },
+   "doc": "Sets whether the animation is playing",
+   "sites": 10,
+   "missions": 3,
+   "firstMission": "gymbike.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_CURRENT_DATE",
+   "opcode": "0835",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns the in-game day of the month and month of the year",
+   "sites": 8,
+   "missions": 4,
+   "firstMission": "gymbike.scm",
+   "portable": false
+  },
+  {
+   "name": "TASK_PICK_UP_SECOND_OBJECT",
+   "opcode": "09a0",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "gymdumb.scm",
+   "portable": false
+  },
+  {
+   "name": "DROP_SECOND_OBJECT",
+   "opcode": "09a1",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "DropSecondObject",
+    "where": "CharacterCommands.cpp:4060",
+    "stub": false
+   },
+   "doc": "",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "gymdumb.scm",
+   "portable": false
+  },
+  {
+   "name": "ATTACH_CHAR_TO_OBJECT",
+   "opcode": "04f4",
+   "status": "authored",
+   "notes": [
+    "adapter comments name an authored stand-in (attachPedToObject)"
+   ],
+   "handlerLine": 957,
+   "ref": {
+    "kind": "handler",
+    "fn": "AttachCharToObject",
+    "where": "CharacterCommands.cpp:2542",
+    "stub": false
+   },
+   "doc": "Attaches the character to the specified object, in turret mode",
+   "sites": 19,
+   "missions": 11,
+   "firstMission": "basketb.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_OBJECT_ROTATION_VELOCITY",
+   "opcode": "05a6",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getObjectRotationVelocity (the thread gives up)"
+   ],
+   "handlerLine": 2360,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 12,
+   "missions": 2,
+   "firstMission": "basketb.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_DEBUG_CAMERA_COORDINATES",
+   "opcode": "0454",
+   "status": "authored",
+   "notes": [
+    "adapter comments name an authored stand-in (debugCameraSource)"
+   ],
+   "handlerLine": 1168,
+   "ref": {
+    "kind": "handler",
+    "fn": "GetDebugCameraCoordinates",
+    "where": "CameraCommands.cpp:107",
+    "stub": false
+   },
+   "doc": "Returns the debug camera position",
+   "sites": 6,
+   "missions": 5,
+   "firstMission": "basketb.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_DEBUG_CAMERA_POINT_AT",
+   "opcode": "0463",
+   "status": "authored",
+   "notes": [
+    "adapter comments name an authored stand-in (debugCameraSource)"
+   ],
+   "handlerLine": 1172,
+   "ref": {
+    "kind": "handler",
+    "fn": "GetDebugCameraPointAt",
+    "where": "CameraCommands.cpp:112",
+    "stub": false
+   },
+   "doc": "Stores the location the debug camera is pointing to",
+   "sites": 5,
+   "missions": 4,
+   "firstMission": "basketb.scm",
+   "portable": true
+  },
+  {
+   "name": "FETCH_NEXT_CARD",
+   "opcode": "059e",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns a random number between 1 and 52, inclusive",
+   "sites": 11,
+   "missions": 2,
+   "firstMission": "vidpok.scm",
+   "portable": false
+  },
+  {
+   "name": "SHUFFLE_CARD_DECKS",
+   "opcode": "059d",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 2,
+   "missions": 2,
+   "firstMission": "vidpok.scm",
+   "portable": false
+  },
+  {
+   "name": "SET_HELP_MESSAGE_BOX_SIZE",
+   "opcode": "0989",
+   "status": "stops",
+   "notes": [
+    "adapter lacks setHelpMessageBoxSize (the thread gives up)"
+   ],
+   "handlerLine": 2169,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Sets the global width of text boxes displayed on screen",
+   "sites": 19,
+   "missions": 3,
+   "firstMission": "blackj.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_PLAYER_IN_POSITION_FOR_CONVERSATION",
+   "opcode": "089b",
+   "status": "stops",
+   "notes": [
+    "adapter lacks isPlayerInPositionForConversation (the thread gives up)"
+   ],
+   "handlerLine": 1108,
+   "ref": {
+    "kind": "handler",
+    "fn": "IsPlayerInPositionForConversation",
+    "where": "ConversationCommands.cpp:31",
+    "stub": false
+   },
+   "doc": "Returns true if there is a conversation going on between the character and the player and both the character and the player are able to communicate with one another",
+   "sites": 6,
+   "missions": 2,
+   "firstMission": "dealer.scm",
+   "portable": true
+  },
+  {
+   "name": "SET_CHAR_WANTED_BY_POLICE",
+   "opcode": "09b6",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler",
+    "fn": "SetCharWantedByPolice",
+    "where": "CharacterCommands.cpp:3238",
+    "stub": false
+   },
+   "doc": "Sets whether police should chase the character",
+   "sites": 3,
+   "missions": 1,
+   "firstMission": "dealer.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_NAME_OF_INFO_ZONE",
+   "opcode": "08f1",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "GetNameOfInfoZone",
+    "where": "ZoneCommands.cpp:142",
+    "stub": false
+   },
+   "doc": "Returns the name of the zone at the specified coordinates",
+   "sites": 2,
+   "missions": 2,
+   "firstMission": "dealer.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS",
+   "opcode": "089e",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "GetRandomCharInSphereOnlyDrugsBuyers",
+    "where": "CharacterCommands.cpp:4294",
+    "stub": false
+   },
+   "doc": "Loops through the ped pool and returns the first character that is within the specified radius and has the \"buys drugs\" flag set in peds",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "dealer.scm",
+   "portable": false
+  },
+  {
+   "name": "SET_CHAR_DRUGGED_UP",
+   "opcode": "09a7",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "SetCharDruggedUp",
+    "where": "CharacterCommands.cpp:4317",
+    "stub": false
+   },
+   "doc": "",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "dealer.scm",
+   "portable": false
+  },
+  {
+   "name": "TASK_WALK_ALONGSIDE_CHAR",
+   "opcode": "0859",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Makes the character walk alongside the specified character",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "home_brains.scm",
+   "portable": false
+  },
+  {
+   "name": "CAMERA_SET_VECTOR_MOVE",
+   "opcode": "0936",
+   "status": "authored",
+   "notes": [
+    "handler comments name an authored stand-in"
+   ],
+   "handlerLine": 890,
+   "ref": {
+    "kind": "handler",
+    "fn": "CameraSetVectorMove",
+    "where": "CameraCommands.cpp:237",
+    "stub": false
+   },
+   "doc": "Puts the camera at the position of the first passed coordinates and moves it to the second passed coordinates",
+   "sites": 190,
+   "missions": 26,
+   "firstMission": "lowr_cont.scm",
+   "portable": true
+  },
+  {
+   "name": "POINT_CAMERA_AT_CAR",
+   "opcode": "0158",
+   "status": "authored",
+   "notes": [
+    "handler comments name an authored stand-in"
+   ],
+   "handlerLine": 894,
+   "ref": {
+    "kind": "handler",
+    "fn": "PointCameraAtCar",
+    "where": "CameraCommands.cpp:50",
+    "stub": false
+   },
+   "doc": "Attaches the camera to the specified vehicle",
+   "sites": 48,
+   "missions": 20,
+   "firstMission": "gf_date.scm",
+   "portable": true
+  },
+  {
+   "name": "SET_NAMED_ENTRY_EXIT_FLAG",
+   "opcode": "098e",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Sets the specified enex flag",
+   "sites": 36,
+   "missions": 1,
+   "firstMission": "gf_date.scm",
+   "portable": false
+  },
+  {
+   "name": "APPEND_TO_NEXT_CUTSCENE",
+   "opcode": "08f0",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 14,
+   "missions": 1,
+   "firstMission": "gf_date.scm",
+   "portable": false
+  },
+  {
+   "name": "ATTACH_CAMERA_TO_VEHICLE",
+   "opcode": "0679",
+   "status": "stops",
+   "notes": [
+    "adapter lacks attachCameraToVehicle (the thread gives up)"
+   ],
+   "handlerLine": 2046,
+   "ref": {
+    "kind": "handler",
+    "fn": "AttachCameraToVehicle",
+    "where": "CameraCommands.cpp:122",
+    "stub": false
+   },
+   "doc": "Keeps the camera relative to the car with the specified offset",
+   "sites": 11,
+   "missions": 4,
+   "firstMission": "gf_date.scm",
+   "portable": true
+  },
+  {
+   "name": "ARE_ANY_CHARS_NEAR_CHAR",
+   "opcode": "06ff",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "AreAnyCharsNearChar",
+    "where": "CharacterCommands.cpp:4050",
+    "stub": false
+   },
+   "doc": "Returns true if any characters are within range of the character",
+   "sites": 9,
+   "missions": 4,
+   "firstMission": "gf_date.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_RADIO_CHANNEL",
+   "opcode": "051e",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getRadioChannel (the thread gives up)"
+   ],
+   "handlerLine": 2395,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns the current radio station that is being played",
+   "sites": 6,
+   "missions": 3,
+   "firstMission": "gf_date.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_CLOSEST_CHAR_NODE",
+   "opcode": "02c0",
+   "status": "stops",
+   "notes": [
+    "adapter lacks closestPedNode (the thread gives up)"
+   ],
+   "handlerLine": 1237,
+   "ref": {
+    "kind": "handler",
+    "fn": "GetClosestCharNode",
+    "where": "CharacterCommands.cpp:1704",
+    "stub": false
+   },
+   "doc": "Returns the nearest path node from the specified coordinates that a pedestrian can walk on",
+   "sites": 4,
+   "missions": 4,
+   "firstMission": "gf_date.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_CURRENT_POPULATION_ZONE_TYPE",
+   "opcode": "08d3",
+   "status": "stops",
+   "notes": [
+    "adapter lacks currentPopulationZoneType (the thread gives up)"
+   ],
+   "handlerLine": 2839,
+   "ref": {
+    "kind": "handler",
+    "fn": "GetCurrentPopulationZoneType",
+    "where": "ZoneCommands.cpp:87",
+    "stub": false
+   },
+   "doc": "Returns the population type in the zone the player is currently in",
+   "sites": 4,
+   "missions": 1,
+   "firstMission": "gf_date.scm",
+   "portable": true
+  },
+  {
+   "name": "LOCK_DOOR",
+   "opcode": "0905",
+   "status": "stops",
+   "notes": [
+    "adapter lacks lockDoor (the thread gives up)"
+   ],
+   "handlerLine": 2518,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Sets whether the door object is locked at its current rotation and allows it to be pushed open by entities once",
+   "sites": 3,
+   "missions": 2,
+   "firstMission": "gf_date.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_RANDOM_CHAR_IN_SPHERE",
+   "opcode": "073f",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "GetRandomCharInSphere",
+    "where": "CharacterCommands.cpp:4272",
+    "stub": false
+   },
+   "doc": "",
+   "sites": 3,
+   "missions": 2,
+   "firstMission": "gf_date.scm",
+   "portable": false
+  },
+  {
+   "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_CHAR",
+   "opcode": "067b",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler",
+    "fn": "AttachCameraToVehicleLookAtChar",
+    "where": "CameraCommands.cpp:135",
+    "stub": false
+   },
+   "doc": "Attaches the camera to the vehicle and points it at the specified character",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "gf_date.scm",
+   "portable": true
+  },
+  {
+   "name": "ADD_ATTRACTOR",
+   "opcode": "061d",
+   "status": "authored",
+   "notes": [
+    "adapter comments name an authored stand-in (addAttractor)"
+   ],
+   "handlerLine": 2406,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Adds a ped attractor",
+   "sites": 62,
+   "missions": 10,
+   "firstMission": "casino_ambience.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN",
+   "opcode": "08e5",
+   "status": "authored",
+   "notes": [
+    "handler comments name an authored stand-in"
+   ],
+   "handlerLine": 2945,
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "GetRandomCharInSphereNoBrain",
+    "where": "CharacterCommands.cpp:4299",
+    "stub": false
+   },
+   "doc": "Finds the nearest character to the specified point, in the specified radius",
+   "sites": 6,
+   "missions": 6,
+   "firstMission": "casino_ambience.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_TOTAL_NUMBER_OF_PEDS_KILLED_BY_PLAYER",
+   "opcode": "0806",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns the number of peds killed by the player since the last reset (0297)",
+   "sites": 2,
+   "missions": 2,
+   "firstMission": "casino_ambience.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_CHAR_MODEL",
+   "opcode": "0665",
+   "status": "stops",
+   "notes": [
+    "adapter lacks pedModelId (the thread gives up)"
+   ],
+   "handlerLine": 1114,
+   "ref": {
+    "kind": "handler",
+    "fn": "GetCharModel",
+    "where": "CharacterCommands.cpp:3057",
+    "stub": false
+   },
+   "doc": "Returns the characters model",
+   "sites": 4,
+   "missions": 4,
+   "firstMission": "strip_ambience.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_CHAR_ANIM_TOTAL_TIME",
+   "opcode": "061a",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler",
+    "fn": "GetCharAnimTotalTime",
+    "where": "CharacterCommands.cpp:2922",
+    "stub": false
+   },
+   "doc": "Returns a float of the length of the animation in milliseconds",
+   "sites": 3,
+   "missions": 2,
+   "firstMission": "strip_ambience.scm",
+   "portable": true
+  },
+  {
+   "name": "LOAD_SCENE_IN_DIRECTION",
+   "opcode": "0a0b",
+   "status": "authored",
+   "notes": [
+    "adapter comments name an authored stand-in (loadSceneInDirection)"
+   ],
+   "handlerLine": 2706,
+   "ref": {
+    "kind": "handler",
+    "fn": "LoadSceneInDirection",
+    "where": "ScriptCommands.cpp:41",
+    "stub": false
+   },
+   "doc": "",
+   "sites": 122,
+   "missions": 62,
+   "firstMission": "planes.scm",
+   "portable": true
+  },
+  {
+   "name": "SET_PLANE_UNDERCARRIAGE_UP",
+   "opcode": "08e6",
+   "status": "stops",
+   "notes": [
+    "adapter lacks setPlaneUndercarriageUp (the thread gives up)"
+   ],
+   "handlerLine": 1892,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Sets whether the plane's landing wheels are up",
+   "sites": 12,
+   "missions": 5,
+   "firstMission": "planes.scm",
+   "portable": false
+  },
+  {
+   "name": "ALLOW_PAUSE_IN_WIDESCREEN",
+   "opcode": "0a48",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Enables the player to access the pause menu while widescreen is enabled",
+   "sites": 2,
+   "missions": 1,
+   "firstMission": "planes.scm",
+   "portable": false
+  },
+  {
+   "name": "SET_TIME_ONE_DAY_FORWARD",
+   "opcode": "088e",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Progresses the game to the next day",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "planes.scm",
+   "portable": false
+  },
+  {
+   "name": "SKIP_TO_NEXT_ALLOWED_STATION",
+   "opcode": "0a07",
+   "status": "stops",
+   "notes": [
+    "adapter lacks skipTrainToNextStation (the thread gives up)"
+   ],
+   "handlerLine": 670,
+   "ref": {
+    "kind": "handler",
+    "fn": "SkipToNextAllowedStation",
+    "where": "VehicleCommands.cpp:76",
+    "stub": false
+   },
+   "doc": "Puts the script created train at the next allowed station",
+   "sites": 2,
+   "missions": 1,
+   "firstMission": "trains.scm",
+   "portable": true
+  },
+  {
+   "name": "IS_NEXT_STATION_ALLOWED",
+   "opcode": "0a06",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if the next station is accessible (at the start of the game, railroad blocks prevent the player from travelling to stations whose area is not unlocked)",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "trains.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_CHAR_MODEL",
+   "opcode": "02f2",
+   "status": "stops",
+   "notes": [
+    "adapter lacks pedModelId (the thread gives up)"
+   ],
+   "handlerLine": 1113,
+   "ref": {
+    "kind": "handler",
+    "fn": "IsCharModel",
+    "where": "CharacterCommands.cpp:1835",
+    "stub": false
+   },
+   "doc": "Returns true if the character's model ID is equivalent to the model ID passed",
+   "sites": 13,
+   "missions": 3,
+   "firstMission": "dance.scm",
+   "portable": true
+  },
+  {
+   "name": "PAUSE_CURRENT_BEAT_TRACK",
+   "opcode": "0991",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Sets whether the loaded soundtrack is paused",
+   "sites": 2,
+   "missions": 1,
+   "firstMission": "dance.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_CHAR_USING_MAP_ATTRACTOR",
+   "opcode": "09c5",
+   "status": "authored",
+   "notes": [
+    "handler comments name an authored stand-in"
+   ],
+   "handlerLine": 2944,
+   "ref": {
+    "kind": "handler",
+    "fn": "IsCharUsingMapAttractor",
+    "where": "CharacterCommands.cpp:3282",
+    "stub": false
+   },
+   "doc": "Returns true if the character is using a map attractor",
+   "sites": 20,
+   "missions": 20,
+   "firstMission": "pchair.scm",
+   "portable": true
+  },
+  {
+   "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
+   "opcode": "0985",
+   "status": "stops",
+   "notes": [
+    "adapter lacks setCharUsesCollisionClosestObjectOfType (the thread gives up)"
+   ],
+   "handlerLine": 2458,
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "SetCharUsesCollisionClosestObjectOfType",
+    "where": "CharacterCommands.cpp:4316",
+    "stub": false
+   },
+   "doc": "Sets whether collision of the object closest to the given coordinates and matching the model applies to the target character",
+   "sites": 10,
+   "missions": 6,
+   "firstMission": "pchair.scm",
+   "portable": false
+  },
+  {
+   "name": "TASK_USE_CLOSEST_MAP_ATTRACTOR",
+   "opcode": "08a0",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 7,
+   "missions": 7,
+   "firstMission": "pchair.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_MONEY_PICKUP_AT_COORDS",
+   "opcode": "09da",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if a money pickup exists near the specified coordinates",
+   "sites": 3,
+   "missions": 1,
+   "firstMission": "stripw.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_CHAR_ARMOUR",
+   "opcode": "04dd",
+   "status": "silent",
+   "notes": [
+    "host lacks playerArmour"
+   ],
+   "handlerLine": 2930,
+   "ref": {
+    "kind": "handler",
+    "fn": "GetCharArmour",
+    "where": "CharacterCommands.cpp:2514",
+    "stub": false
+   },
+   "doc": "Returns the character's armor amount",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "ammu.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_CLOTHES_ITEM",
+   "opcode": "08f7",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 38,
+   "missions": 4,
+   "firstMission": "tattoo.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_HASH_KEY",
+   "opcode": "09a9",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns the CRC hash of the input string",
+   "sites": 4,
+   "missions": 1,
+   "firstMission": "clothes.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_CAR_COLOURS",
+   "opcode": "03f3",
+   "status": "stops",
+   "notes": [
+    "adapter lacks vehicleColours (the thread gives up)"
+   ],
+   "handlerLine": 2196,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Gets the car's primary and secondary colors",
+   "sites": 9,
+   "missions": 3,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "GIVE_VEHICLE_PAINTJOB",
+   "opcode": "06ed",
+   "status": "stops",
+   "notes": [
+    "adapter lacks giveVehiclePaintjob (the thread gives up)"
+   ],
+   "handlerLine": 2274,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Sets the car's paintjob",
+   "sites": 8,
+   "missions": 4,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "REQUEST_VEHICLE_MOD",
+   "opcode": "06e9",
+   "status": "stops",
+   "notes": [
+    "adapter lacks requestVehicleMod (the thread gives up)"
+   ],
+   "handlerLine": 2269,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Loads the upgrade model and any associated models",
+   "sites": 5,
+   "missions": 4,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "ADD_VEHICLE_MOD",
+   "opcode": "06e7",
+   "status": "stops",
+   "notes": [
+    "adapter lacks addVehicleMod (the thread gives up)"
+   ],
+   "handlerLine": 2270,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Adds a new mod with the model to the vehicle",
+   "sites": 5,
+   "missions": 4,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "STORE_CAR_MOD_STATE",
+   "opcode": "096b",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 5,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED",
+   "opcode": "06eb",
+   "status": "stops",
+   "notes": [
+    "adapter lacks markVehicleModAsNoLongerNeeded (the thread gives up)"
+   ],
+   "handlerLine": 2316,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Marks the vehicle upgrade model as no longer needed, allowing it to be unloaded by the streamer",
+   "sites": 4,
+   "missions": 3,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_EMERGENCY_SERVICES_VEHICLE",
+   "opcode": "0975",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if the vehicle is an emergency vehicle",
+   "sites": 4,
+   "missions": 2,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "CHANGE_CAR_COLOUR_FROM_MENU",
+   "opcode": "0a22",
+   "status": "stops",
+   "notes": [
+    "adapter lacks vehicleColours (the thread gives up)"
+   ],
+   "handlerLine": 1750,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 4,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "HAS_VEHICLE_MOD_LOADED",
+   "opcode": "06ea",
+   "status": "stops",
+   "notes": [
+    "adapter lacks hasVehicleModLoaded (the thread gives up)"
+   ],
+   "handlerLine": 2372,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if the vehicle upgrade model has loaded",
+   "sites": 3,
+   "missions": 3,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_BIG_VEHICLE",
+   "opcode": "0969",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if the specified vehicle has the 'is big' flag set in vehicles",
+   "sites": 3,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_CAR_STREET_RACER",
+   "opcode": "096f",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if the vehicle is a street racer",
+   "sites": 3,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "SET_RADIO_TO_PLAYERS_FAVOURITE_STATION",
+   "opcode": "0a26",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler",
+    "fn": "SetRadioToPlayersFavorite",
+    "where": "GameCommands.cpp:71",
+    "stub": false
+   },
+   "doc": "Sets the radio station of the vehicle the player is currently in to the favourite station, retrieved from the stats (ID 326)",
+   "sites": 3,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_CAR_DOOR_LOCK_STATUS",
+   "opcode": "09b3",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns the door lock mode of the vehicle",
+   "sites": 3,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "CLEAR_WANTED_LEVEL_IN_GARAGE",
+   "opcode": "09d4",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Suspends the current players wanted level",
+   "sites": 3,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_CURRENT_VEHICLE_PAINTJOB",
+   "opcode": "0988",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Gets the car's paintjob",
+   "sites": 2,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "RESTORE_CAR_MOD_STATE",
+   "opcode": "096c",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 2,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "MANAGE_ALL_POPULATION",
+   "opcode": "0a13",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Deletes distant, no longer needed, objects and world dummy objects",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_NUM_AVAILABLE_PAINTJOBS",
+   "opcode": "06ec",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Gets the number of possible paintjobs that can be applied to the car",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_NUM_CAR_COLOURS",
+   "opcode": "097d",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns number of color variations defined for the model of this car in carcols.dat",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_VEHICLE_MOD_TYPE",
+   "opcode": "06e6",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns a slot the upgrade model is for",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_AVAILABLE_VEHICLE_MOD",
+   "opcode": "06e5",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns a model id available for the vehicle's mod slot, or -1 otherwise",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "carmod1.scm",
+   "portable": false
+  },
+  {
+   "name": "LOCATE_OBJECT_2D",
+   "opcode": "04e5",
+   "status": "stops",
+   "notes": [
+    "adapter lacks locateObject2d (the thread gives up)"
+   ],
+   "handlerLine": 2278,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if the object is near the specified coordinates",
+   "sites": 6,
+   "missions": 3,
+   "firstMission": "crane1.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
+   "opcode": "0796",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getRopeHeightForObject (the thread gives up)"
+   ],
+   "handlerLine": 2499,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 6,
+   "missions": 4,
+   "firstMission": "crane1.scm",
+   "portable": false
+  },
+  {
+   "name": "CREATE_RANDOM_CAR_FOR_CAR_PARK",
+   "opcode": "03c5",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Starts spawning random cars at the specified location",
+   "sites": 57,
+   "missions": 1,
+   "firstMission": "carpark1.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
+   "opcode": "080e",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getCharHighestPriorityEvent (the thread gives up)"
+   ],
+   "handlerLine": 2277,
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "GetCharHighestPriorityEvent",
+    "where": "CharacterCommands.cpp:4289",
+    "stub": false
+   },
+   "doc": "Gets the characters active ped event",
+   "sites": 5,
+   "missions": 4,
+   "firstMission": "impound.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE",
+   "opcode": "09c3",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if there's any kind of police vehicle in the specified 3D area",
+   "sites": 5,
+   "missions": 1,
+   "firstMission": "impound.scm",
+   "portable": false
+  },
+  {
+   "name": "TASK_GO_TO_COORD_WHILE_AIMING",
+   "opcode": "06c2",
+   "status": "stops",
+   "notes": [
+    "adapter lacks taskGoToCoordWhileAiming (the thread gives up)"
+   ],
+   "handlerLine": 2384,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 3,
+   "missions": 3,
+   "firstMission": "impound.scm",
+   "portable": false
+  },
+  {
+   "name": "TASK_COWER",
+   "opcode": "05c3",
+   "status": "stops",
+   "notes": [
+    "adapter lacks taskCower (the thread gives up)"
+   ],
+   "handlerLine": 2481,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Makes the char stumble backwards with their arms in front of their face as if he is backing away from something in fear",
+   "sites": 2,
+   "missions": 2,
+   "firstMission": "impound.scm",
+   "portable": false
+  },
+  {
+   "name": "TASK_GOTO_CHAR_AIMING",
+   "opcode": "07a3",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "TaskGotoCharAiming",
+    "where": "CharacterCommands.cpp:4281",
+    "stub": false
+   },
+   "doc": "",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "impound.scm",
+   "portable": false
+  },
+  {
+   "name": "DETACH_CAR",
+   "opcode": "0684",
+   "status": "stops",
+   "notes": [
+    "adapter lacks detachVehicle (the thread gives up)"
+   ],
+   "handlerLine": 1866,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Detaches the car with optional rotation and force",
+   "sites": 12,
+   "missions": 6,
+   "firstMission": "valet.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_VEHICLE_ATTACHED",
+   "opcode": "0686",
+   "status": "stops",
+   "notes": [
+    "adapter lacks isVehicleAttached (the thread gives up)"
+   ],
+   "handlerLine": 2240,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "",
+   "sites": 6,
+   "missions": 3,
+   "firstMission": "valet.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_RANDOM_CAR_OF_TYPE_IN_AREA_NO_SAVE",
+   "opcode": "053e",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getRandomCarOfTypeInAreaNoSave (the thread gives up)"
+   ],
+   "handlerLine": 2394,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Loops through the pool of vehicles to retrieve one that matches the specified model in the specified 2D area",
+   "sites": 5,
+   "missions": 3,
+   "firstMission": "valet.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_CAR_BLOCKING_CAR",
+   "opcode": "0987",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getCarBlockingCar (the thread gives up)"
+   ],
+   "handlerLine": 2478,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns a handle of the vehicle preventing this car from getting to its destination",
+   "sites": 3,
+   "missions": 2,
+   "firstMission": "valet.scm",
+   "portable": false
+  },
+  {
+   "name": "GET_PARKING_NODE_IN_AREA",
+   "opcode": "0810",
+   "status": "stops",
+   "notes": [
+    "adapter lacks getParkingNodeInArea (the thread gives up)"
+   ],
+   "handlerLine": 2479,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Stores the coordinates of the nearest car park node in the specified area",
+   "sites": 3,
+   "missions": 2,
+   "firstMission": "valet.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_CHAR_STUCK_UNDER_CAR",
+   "opcode": "095d",
+   "status": "stops",
+   "notes": [
+    "adapter lacks isCharStuckUnderCar (the thread gives up)"
+   ],
+   "handlerLine": 2489,
+   "ref": {
+    "kind": "handler-disabled",
+    "fn": "IsCharStuckUnderCar",
+    "where": "CharacterCommands.cpp:4307",
+    "stub": false
+   },
+   "doc": "Returns true if the char is stuck under a car",
+   "sites": 2,
+   "missions": 2,
+   "firstMission": "valet.scm",
+   "portable": false
+  },
+  {
+   "name": "SET_CAR_ENGINE_BROKEN",
+   "opcode": "081d",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Sets whether the car's engine is broken",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "valet.scm",
+   "portable": false
+  },
+  {
+   "name": "DRAW_LIGHT_WITH_RANGE",
+   "opcode": "09e5",
+   "status": "stops",
+   "notes": [
+    "adapter lacks drawLightWithRange (the thread gives up)"
+   ],
+   "handlerLine": 2374,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Draws colored light in radius of the specified point",
+   "sites": 4,
+   "missions": 2,
+   "firstMission": "photo.scm",
+   "portable": false
+  },
+  {
+   "name": "SET_PHOTO_CAMERA_EFFECT",
+   "opcode": "0a2f",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler",
+    "fn": "SetPhotoCameraEffect",
+    "where": "ScriptCommands.cpp:68",
+    "stub": false
+   },
+   "doc": "Puts the camera in first-person mode if the player is holding a weapon with a first-person shooting mode (such as a sniper rifle or camera)",
+   "sites": 9,
+   "missions": 1,
+   "firstMission": "camera.scm",
+   "portable": true
+  },
+  {
+   "name": "GET_GROUP_MEMBER",
+   "opcode": "092b",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns the nth group member",
+   "sites": 4,
+   "missions": 1,
+   "firstMission": "camera.scm",
+   "portable": false
+  },
+  {
+   "name": "IS_FLAME_IN_ANGLED_AREA_2D",
+   "opcode": "072d",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Returns true if there's any fire particles within the specified area",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "camera.scm",
+   "portable": false
+  },
+  {
+   "name": "TASK_HAND_GESTURE",
+   "opcode": "0a1d",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Makes a character face the other character and make a gesture",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "camera.scm",
+   "portable": false
+  },
+  {
+   "name": "COPY_GROUP_DECISION_MAKER",
+   "opcode": "07e6",
+   "status": "stops",
+   "notes": [
+    "adapter lacks copyGroupDecisionMaker (the thread gives up)"
+   ],
+   "handlerLine": 2531,
+   "ref": {
+    "kind": "absent"
+   },
+   "doc": "Creates copy of group decision maker and adds it to mission cleanup list. Otherwise should be released with REMOVE_DECISION_MAKER",
+   "sites": 2,
+   "missions": 2,
+   "firstMission": "debt.scm",
+   "portable": false
+  },
+  {
+   "name": "STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE",
+   "opcode": "0a33",
+   "status": "stops",
+   "notes": [
+    "no handler (the thread gives up)"
+   ],
+   "ref": {
+    "kind": "handler",
+    "fn": "StoreCarCharIsAttachedToNoSave",
+    "where": "CharacterCommands.cpp:3461",
+    "stub": false
+   },
+   "doc": "Returns the vehicle the character is attached to",
+   "sites": 1,
+   "missions": 1,
+   "firstMission": "hotdog.scm",
+   "portable": true
+  },
+  {
    "name": "DEACTIVATE_GARAGE",
    "opcode": "02b9",
    "status": "authored",
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 534,
+   "handlerLine": 537,
    "ref": {
     "kind": "absent"
    },
@@ -8051,7 +12491,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 2886,
+   "handlerLine": 2889,
    "ref": {
     "kind": "absent"
    },
@@ -8062,33 +12502,13 @@
    "portable": false
   },
   {
-   "name": "CAMERA_SET_VECTOR_MOVE",
-   "opcode": "0936",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 887,
-   "ref": {
-    "kind": "handler",
-    "fn": "CameraSetVectorMove",
-    "where": "CameraCommands.cpp:237",
-    "stub": false
-   },
-   "doc": "Puts the camera at the position of the first passed coordinates and moves it to the second passed coordinates",
-   "sites": 189,
-   "missions": 25,
-   "firstMission": "INTRO",
-   "portable": true
-  },
-  {
    "name": "SKIP_CUTSCENE_END",
    "opcode": "0701",
    "status": "authored",
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 1259,
+   "handlerLine": 1262,
    "ref": {
     "kind": "absent"
    },
@@ -8099,33 +12519,13 @@
    "portable": false
   },
   {
-   "name": "LOAD_SCENE_IN_DIRECTION",
-   "opcode": "0a0b",
-   "status": "authored",
-   "notes": [
-    "adapter comments name an authored stand-in (loadSceneInDirection)"
-   ],
-   "handlerLine": 2703,
-   "ref": {
-    "kind": "handler",
-    "fn": "LoadSceneInDirection",
-    "where": "ScriptCommands.cpp:41",
-    "stub": false
-   },
-   "doc": "",
-   "sites": 119,
-   "missions": 61,
-   "firstMission": "INTRO",
-   "portable": true
-  },
-  {
    "name": "WAS_CUTSCENE_SKIPPED",
    "opcode": "056a",
    "status": "authored",
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 1263,
+   "handlerLine": 1266,
    "ref": {
     "kind": "absent"
    },
@@ -8142,7 +12542,7 @@
    "notes": [
     "adapter lacks getStringWidth (the thread gives up)"
    ],
-   "handlerLine": 2295,
+   "handlerLine": 2298,
    "ref": {
     "kind": "absent"
    },
@@ -8153,30 +12553,13 @@
    "portable": false
   },
   {
-   "name": "SET_HELP_MESSAGE_BOX_SIZE",
-   "opcode": "0989",
-   "status": "stops",
-   "notes": [
-    "adapter lacks setHelpMessageBoxSize (the thread gives up)"
-   ],
-   "handlerLine": 2166,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the global width of text boxes displayed on screen",
-   "sites": 5,
-   "missions": 2,
-   "firstMission": "POOL2",
-   "portable": false
-  },
-  {
    "name": "SET_OBJECT_ROTATION_VELOCITY",
    "opcode": "05a2",
    "status": "stops",
    "notes": [
     "adapter lacks setObjectRotationVelocity (the thread gives up)"
    ],
-   "handlerLine": 2254,
+   "handlerLine": 2257,
    "ref": {
     "kind": "absent"
    },
@@ -8193,7 +12576,7 @@
    "notes": [
     "adapter lacks setScriptCoopGame (the thread gives up)"
    ],
-   "handlerLine": 2296,
+   "handlerLine": 2299,
    "ref": {
     "kind": "absent"
    },
@@ -8204,33 +12587,13 @@
    "portable": false
   },
   {
-   "name": "GET_DEBUG_CAMERA_COORDINATES",
-   "opcode": "0454",
-   "status": "authored",
-   "notes": [
-    "adapter comments name an authored stand-in (debugCameraSource)"
-   ],
-   "handlerLine": 1165,
-   "ref": {
-    "kind": "handler",
-    "fn": "GetDebugCameraCoordinates",
-    "where": "CameraCommands.cpp:107",
-    "stub": false
-   },
-   "doc": "Returns the debug camera position",
-   "sites": 3,
-   "missions": 2,
-   "firstMission": "POOL2",
-   "portable": true
-  },
-  {
    "name": "SET_POOL_TABLE_COORDS",
    "opcode": "0830",
    "status": "stops",
    "notes": [
     "adapter lacks setPoolTableCoords (the thread gives up)"
    ],
-   "handlerLine": 2355,
+   "handlerLine": 2358,
    "ref": {
     "kind": "absent"
    },
@@ -8247,28 +12610,11 @@
    "notes": [
     "adapter lacks setObjectDrawLast (the thread gives up)"
    ],
-   "handlerLine": 2356,
+   "handlerLine": 2359,
    "ref": {
     "kind": "absent"
    },
    "doc": "Sets the specified object to always draw on top of other objects",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "POOL2",
-   "portable": false
-  },
-  {
-   "name": "GET_OBJECT_ROTATION_VELOCITY",
-   "opcode": "05a6",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getObjectRotationVelocity (the thread gives up)"
-   ],
-   "handlerLine": 2357,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
    "sites": 2,
    "missions": 1,
    "firstMission": "POOL2",
@@ -8281,7 +12627,7 @@
    "notes": [
     "adapter lacks addVelocityRelativeToObjectVelocity (the thread gives up)"
    ],
-   "handlerLine": 2358,
+   "handlerLine": 2361,
    "ref": {
     "kind": "absent"
    },
@@ -8292,53 +12638,13 @@
    "portable": false
   },
   {
-   "name": "GET_DEBUG_CAMERA_POINT_AT",
-   "opcode": "0463",
-   "status": "authored",
-   "notes": [
-    "adapter comments name an authored stand-in (debugCameraSource)"
-   ],
-   "handlerLine": 1169,
-   "ref": {
-    "kind": "handler",
-    "fn": "GetDebugCameraPointAt",
-    "where": "CameraCommands.cpp:112",
-    "stub": false
-   },
-   "doc": "Stores the location the debug camera is pointing to",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "POOL2",
-   "portable": true
-  },
-  {
-   "name": "IS_CHAR_MODEL",
-   "opcode": "02f2",
-   "status": "stops",
-   "notes": [
-    "adapter lacks pedModelId (the thread gives up)"
-   ],
-   "handlerLine": 1110,
-   "ref": {
-    "kind": "handler",
-    "fn": "IsCharModel",
-    "where": "CharacterCommands.cpp:1835",
-    "stub": false
-   },
-   "doc": "Returns true if the character's model ID is equivalent to the model ID passed",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "POOL2",
-   "portable": true
-  },
-  {
    "name": "GET_STRING_WIDTH_WITH_NUMBER",
    "opcode": "0a08",
    "status": "stops",
    "notes": [
     "adapter lacks getStringWidthWithNumber (the thread gives up)"
    ],
-   "handlerLine": 2445,
+   "handlerLine": 2448,
    "ref": {
     "kind": "absent"
    },
@@ -8355,7 +12661,7 @@
    "notes": [
     "adapter lacks dontSuppressVehicleModel"
    ],
-   "handlerLine": 1878,
+   "handlerLine": 1881,
    "ref": {
     "kind": "absent"
    },
@@ -8366,33 +12672,13 @@
    "portable": false
   },
   {
-   "name": "POINT_CAMERA_AT_CAR",
-   "opcode": "0158",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 891,
-   "ref": {
-    "kind": "handler",
-    "fn": "PointCameraAtCar",
-    "where": "CameraCommands.cpp:50",
-    "stub": false
-   },
-   "doc": "Attaches the camera to the specified vehicle",
-   "sites": 44,
-   "missions": 18,
-   "firstMission": "ZERO5",
-   "portable": true
-  },
-  {
    "name": "REMOVE_RC_BUGGY",
    "opcode": "04db",
    "status": "stops",
    "notes": [
     "adapter lacks removeRCBuggy (the thread gives up)"
    ],
-   "handlerLine": 670,
+   "handlerLine": 673,
    "ref": {
     "kind": "handler",
     "fn": "RemoveRCBuggy",
@@ -8412,7 +12698,7 @@
    "notes": [
     "adapter lacks setEnableRcDetonateOnContact (the thread gives up)"
    ],
-   "handlerLine": 2299,
+   "handlerLine": 2302,
    "ref": {
     "kind": "absent"
    },
@@ -8429,7 +12715,7 @@
    "notes": [
     "adapter lacks setEnableRcDetonate (the thread gives up)"
    ],
-   "handlerLine": 2300,
+   "handlerLine": 2303,
    "ref": {
     "kind": "absent"
    },
@@ -8446,7 +12732,7 @@
    "notes": [
     "adapter lacks giveRemoteControlledModelToPlayer (the thread gives up)"
    ],
-   "handlerLine": 2360,
+   "handlerLine": 2363,
    "ref": {
     "kind": "handler",
     "fn": "GiveRemoteControlledModelToPlayer",
@@ -8466,7 +12752,7 @@
    "notes": [
     "adapter lacks getRemoteControlledCar (the thread gives up)"
    ],
-   "handlerLine": 2361,
+   "handlerLine": 2364,
    "ref": {
     "kind": "absent"
    },
@@ -8483,7 +12769,7 @@
    "notes": [
     "adapter lacks setForceRandomCarModel (the thread gives up)"
    ],
-   "handlerLine": 2447,
+   "handlerLine": 2450,
    "ref": {
     "kind": "absent"
    },
@@ -8500,7 +12786,7 @@
    "notes": [
     "adapter lacks isPlayerInRemoteMode (the thread gives up)"
    ],
-   "handlerLine": 2448,
+   "handlerLine": 2451,
    "ref": {
     "kind": "handler",
     "fn": "IsPlayerInRemoteMode",
@@ -8520,7 +12806,7 @@
    "notes": [
     "adapter lacks createEmergencyServicesVehicle (the thread gives up)"
    ],
-   "handlerLine": 2179,
+   "handlerLine": 2182,
    "ref": {
     "kind": "absent"
    },
@@ -8537,7 +12823,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 538,
+   "handlerLine": 541,
    "ref": {
     "kind": "absent"
    },
@@ -8554,7 +12840,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 535,
+   "handlerLine": 538,
    "ref": {
     "kind": "absent"
    },
@@ -8571,7 +12857,7 @@
    "notes": [
     "adapter lacks setObjectAsStealable (the thread gives up)"
    ],
-   "handlerLine": 2305,
+   "handlerLine": 2308,
    "ref": {
     "kind": "absent"
    },
@@ -8588,7 +12874,7 @@
    "notes": [
     "adapter lacks getSoundLevelAtCoords (the thread gives up)"
    ],
-   "handlerLine": 2363,
+   "handlerLine": 2366,
    "ref": {
     "kind": "absent"
    },
@@ -8599,33 +12885,13 @@
    "portable": false
   },
   {
-   "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-   "opcode": "0985",
-   "status": "stops",
-   "notes": [
-    "adapter lacks setCharUsesCollisionClosestObjectOfType (the thread gives up)"
-   ],
-   "handlerLine": 2455,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "SetCharUsesCollisionClosestObjectOfType",
-    "where": "CharacterCommands.cpp:4316",
-    "stub": false
-   },
-   "doc": "Sets whether collision of the object closest to the given coordinates and matching the model applies to the target character",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "GUNS1",
-   "portable": false
-  },
-  {
    "name": "TASK_EVERYONE_LEAVE_CAR",
    "opcode": "068b",
    "status": "authored",
    "notes": [
     "adapter comments name an authored stand-in (givePedScriptedTask)"
    ],
-   "handlerLine": 1846,
+   "handlerLine": 1849,
    "ref": {
     "kind": "absent"
    },
@@ -8642,7 +12908,7 @@
    "notes": [
     "adapter lacks setPlayerDisplayVitalStatsButton (the thread gives up)"
    ],
-   "handlerLine": 2306,
+   "handlerLine": 2309,
    "ref": {
     "kind": "absent"
    },
@@ -8659,7 +12925,7 @@
    "notes": [
     "adapter comments name an authored stand-in (setVehicleIsConsideredByPlayer)"
    ],
-   "handlerLine": 2116,
+   "handlerLine": 2119,
    "ref": {
     "kind": "absent"
    },
@@ -8676,7 +12942,7 @@
    "notes": [
     "adapter lacks addBlood (the thread gives up)"
    ],
-   "handlerLine": 2263,
+   "handlerLine": 2266,
    "ref": {
     "kind": "absent"
    },
@@ -8693,7 +12959,7 @@
    "notes": [
     "adapter lacks vehicleDoesProvideCover (the thread gives up)"
    ],
-   "handlerLine": 2365,
+   "handlerLine": 2368,
    "ref": {
     "kind": "absent"
    },
@@ -8711,7 +12977,7 @@
     "dispatch unreversed; follows the routines it reaches",
     "adapter lacks drawSphere (the thread gives up)"
    ],
-   "handlerLine": 1943,
+   "handlerLine": 1946,
    "ref": {
     "kind": "absent"
    },
@@ -8728,7 +12994,7 @@
    "notes": [
     "adapter lacks setVehicleAlwaysCreateSkids (the thread gives up)"
    ],
-   "handlerLine": 1129,
+   "handlerLine": 1132,
    "ref": {
     "kind": "handler",
     "fn": "SetCarAlwaysCreateSkids",
@@ -8742,33 +13008,13 @@
    "portable": true
   },
   {
-   "name": "GET_CLOSEST_CHAR_NODE",
-   "opcode": "02c0",
-   "status": "stops",
-   "notes": [
-    "adapter lacks closestPedNode (the thread gives up)"
-   ],
-   "handlerLine": 1234,
-   "ref": {
-    "kind": "handler",
-    "fn": "GetClosestCharNode",
-    "where": "CharacterCommands.cpp:1704",
-    "stub": false
-   },
-   "doc": "Returns the nearest path node from the specified coordinates that a pedestrian can walk on",
-   "sites": 3,
-   "missions": 3,
-   "firstMission": "TWAR7",
-   "portable": true
-  },
-  {
    "name": "SET_GROUP_SEQUENCE",
    "opcode": "087d",
    "status": "stops",
    "notes": [
     "adapter lacks setGroupSequence (the thread gives up)"
    ],
-   "handlerLine": 2463,
+   "handlerLine": 2466,
    "ref": {
     "kind": "absent"
    },
@@ -8785,7 +13031,7 @@
    "notes": [
     "adapter lacks setPedIgnoreHeightDifferenceFollowingNodes (the thread gives up)"
    ],
-   "handlerLine": 1126,
+   "handlerLine": 1129,
    "ref": {
     "kind": "handler",
     "fn": "IgnoreHeightDifferenceFollowingNodes",
@@ -8799,33 +13045,13 @@
    "portable": true
   },
   {
-   "name": "ATTACH_CHAR_TO_OBJECT",
-   "opcode": "04f4",
-   "status": "authored",
-   "notes": [
-    "adapter comments name an authored stand-in (attachPedToObject)"
-   ],
-   "handlerLine": 954,
-   "ref": {
-    "kind": "handler",
-    "fn": "AttachCharToObject",
-    "where": "CharacterCommands.cpp:2542",
-    "stub": false
-   },
-   "doc": "Attaches the character to the specified object, in turret mode",
-   "sites": 15,
-   "missions": 7,
-   "firstMission": "SMOKE3",
-   "portable": true
-  },
-  {
    "name": "SET_CAMERA_IN_FRONT_OF_CHAR",
    "opcode": "0944",
    "status": "stops",
    "notes": [
     "adapter lacks setCameraInFrontOfPed (the thread gives up)"
    ],
-   "handlerLine": 1158,
+   "handlerLine": 1161,
    "ref": {
     "kind": "handler",
     "fn": "SetCameraInFrontOfChar",
@@ -8845,7 +13071,7 @@
    "notes": [
     "adapter lacks addSparks (the thread gives up)"
    ],
-   "handlerLine": 1807,
+   "handlerLine": 1810,
    "ref": {
     "kind": "absent"
    },
@@ -8856,30 +13082,13 @@
    "portable": false
   },
   {
-   "name": "DETACH_CAR",
-   "opcode": "0684",
-   "status": "stops",
-   "notes": [
-    "adapter lacks detachVehicle (the thread gives up)"
-   ],
-   "handlerLine": 1863,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Detaches the car with optional rotation and force",
-   "sites": 11,
-   "missions": 5,
-   "firstMission": "DRUGS1",
-   "portable": false
-  },
-  {
    "name": "ATTACH_CAR_TO_CAR",
    "opcode": "0683",
    "status": "stops",
    "notes": [
     "adapter lacks attachVehicleToVehicle (the thread gives up)"
    ],
-   "handlerLine": 1872,
+   "handlerLine": 1875,
    "ref": {
     "kind": "absent"
    },
@@ -8890,33 +13099,13 @@
    "portable": false
   },
   {
-   "name": "ATTACH_CAMERA_TO_VEHICLE",
-   "opcode": "0679",
-   "status": "stops",
-   "notes": [
-    "adapter lacks attachCameraToVehicle (the thread gives up)"
-   ],
-   "handlerLine": 2043,
-   "ref": {
-    "kind": "handler",
-    "fn": "AttachCameraToVehicle",
-    "where": "CameraCommands.cpp:122",
-    "stub": false
-   },
-   "doc": "Keeps the camera relative to the car with the specified offset",
-   "sites": 8,
-   "missions": 3,
-   "firstMission": "DRUGS1",
-   "portable": true
-  },
-  {
    "name": "HAS_OBJECT_OF_TYPE_BEEN_SMASHED",
    "opcode": "07f0",
    "status": "stops",
    "notes": [
     "adapter lacks hasObjectOfTypeBeenSmashed (the thread gives up)"
    ],
-   "handlerLine": 2312,
+   "handlerLine": 2315,
    "ref": {
     "kind": "absent"
    },
@@ -8933,80 +13122,12 @@
    "notes": [
     "adapter lacks controlVehicleDoor (the thread gives up)"
    ],
-   "handlerLine": 1867,
+   "handlerLine": 1870,
    "ref": {
     "kind": "absent"
    },
    "doc": "Sets the car's door angle and latch state",
    "sites": 10,
-   "missions": 2,
-   "firstMission": "MUSIC1",
-   "portable": false
-  },
-  {
-   "name": "REQUEST_VEHICLE_MOD",
-   "opcode": "06e9",
-   "status": "stops",
-   "notes": [
-    "adapter lacks requestVehicleMod (the thread gives up)"
-   ],
-   "handlerLine": 2266,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Loads the upgrade model and any associated models",
-   "sites": 4,
-   "missions": 3,
-   "firstMission": "MUSIC1",
-   "portable": false
-  },
-  {
-   "name": "ADD_VEHICLE_MOD",
-   "opcode": "06e7",
-   "status": "stops",
-   "notes": [
-    "adapter lacks addVehicleMod (the thread gives up)"
-   ],
-   "handlerLine": 2267,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Adds a new mod with the model to the vehicle",
-   "sites": 4,
-   "missions": 3,
-   "firstMission": "MUSIC1",
-   "portable": false
-  },
-  {
-   "name": "MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED",
-   "opcode": "06eb",
-   "status": "stops",
-   "notes": [
-    "adapter lacks markVehicleModAsNoLongerNeeded (the thread gives up)"
-   ],
-   "handlerLine": 2313,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Marks the vehicle upgrade model as no longer needed, allowing it to be unloaded by the streamer",
-   "sites": 3,
-   "missions": 2,
-   "firstMission": "MUSIC1",
-   "portable": false
-  },
-  {
-   "name": "HAS_VEHICLE_MOD_LOADED",
-   "opcode": "06ea",
-   "status": "stops",
-   "notes": [
-    "adapter lacks hasVehicleModLoaded (the thread gives up)"
-   ],
-   "handlerLine": 2369,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the vehicle upgrade model has loaded",
-   "sites": 2,
    "missions": 2,
    "firstMission": "MUSIC1",
    "portable": false
@@ -9018,7 +13139,7 @@
    "notes": [
     "adapter lacks setActiveCameraAngles (the thread gives up)"
    ],
-   "handlerLine": 1161,
+   "handlerLine": 1164,
    "ref": {
     "kind": "handler",
     "fn": "SetCameraPositionUnfixed",
@@ -9038,7 +13159,7 @@
    "notes": [
     "adapter lacks pedIsDucking (the thread gives up)"
    ],
-   "handlerLine": 1036,
+   "handlerLine": 1039,
    "ref": {
     "kind": "handler",
     "fn": "IsCharDucking",
@@ -9058,7 +13179,7 @@
    "notes": [
     "adapter lacks markVehicleAsConvoyCar (the thread gives up)"
    ],
-   "handlerLine": 1784,
+   "handlerLine": 1787,
    "ref": {
     "kind": "absent"
    },
@@ -9075,7 +13196,7 @@
    "notes": [
     "adapter lacks improveVehicleByCheating (the thread gives up)"
    ],
-   "handlerLine": 2123,
+   "handlerLine": 2126,
    "ref": {
     "kind": "absent"
    },
@@ -9092,7 +13213,7 @@
    "notes": [
     "adapter lacks setVehicleFollowVehicle (the thread gives up)"
    ],
-   "handlerLine": 2188,
+   "handlerLine": 2191,
    "ref": {
     "kind": "absent"
    },
@@ -9109,7 +13230,7 @@
    "notes": [
     "adapter lacks setCharForceDieInCar (the thread gives up)"
    ],
-   "handlerLine": 2268,
+   "handlerLine": 2271,
    "ref": {
     "kind": "handler-disabled",
     "fn": "SetCharForceDieInCar",
@@ -9129,7 +13250,7 @@
    "notes": [
     "adapter lacks taskCharArrestChar (the thread gives up)"
    ],
-   "handlerLine": 2370,
+   "handlerLine": 2373,
    "ref": {
     "kind": "handler-disabled",
     "fn": "TaskCharArrestChar",
@@ -9143,30 +13264,13 @@
    "portable": false
   },
   {
-   "name": "DRAW_LIGHT_WITH_RANGE",
-   "opcode": "09e5",
-   "status": "stops",
-   "notes": [
-    "adapter lacks drawLightWithRange (the thread gives up)"
-   ],
-   "handlerLine": 2371,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Draws colored light in radius of the specified point",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "MUSIC3",
-   "portable": false
-  },
-  {
    "name": "HELI_GOTO_COORDS",
    "opcode": "04a2",
    "status": "stops",
    "notes": [
     "adapter lacks heliGotoCoords (the thread gives up)"
    ],
-   "handlerLine": 1538,
+   "handlerLine": 1541,
    "ref": {
     "kind": "absent"
    },
@@ -9183,7 +13287,7 @@
    "notes": [
     "adapter lacks planeGotoCoords (the thread gives up)"
    ],
-   "handlerLine": 1790,
+   "handlerLine": 1793,
    "ref": {
     "kind": "absent"
    },
@@ -9200,7 +13304,7 @@
    "notes": [
     "adapter lacks registerFastestTime (the thread gives up)"
    ],
-   "handlerLine": 1947,
+   "handlerLine": 1950,
    "ref": {
     "kind": "absent"
    },
@@ -9217,7 +13321,7 @@
    "notes": [
     "adapter lacks setBoatCruiseSpeed (the thread gives up)"
    ],
-   "handlerLine": 2124,
+   "handlerLine": 2127,
    "ref": {
     "kind": "absent"
    },
@@ -9234,7 +13338,7 @@
    "notes": [
     "adapter lacks registerBestPosition (the thread gives up)"
    ],
-   "handlerLine": 2465,
+   "handlerLine": 2468,
    "ref": {
     "kind": "handler",
     "fn": "RegisterBestPosition",
@@ -9254,7 +13358,7 @@
    "notes": [
     "adapter lacks searchlightExists (the thread gives up)"
    ],
-   "handlerLine": 1719,
+   "handlerLine": 1722,
    "ref": {
     "kind": "absent"
    },
@@ -9271,7 +13375,7 @@
    "notes": [
     "adapter lacks deleteSearchlight (the thread gives up)"
    ],
-   "handlerLine": 1718,
+   "handlerLine": 1721,
    "ref": {
     "kind": "absent"
    },
@@ -9288,7 +13392,7 @@
    "notes": [
     "adapter lacks createSwatRope (the thread gives up)"
    ],
-   "handlerLine": 1243,
+   "handlerLine": 1246,
    "ref": {
     "kind": "handler-disabled",
     "fn": "CreateSwatRope",
@@ -9308,7 +13412,7 @@
    "notes": [
     "adapter lacks pointSearchlightAtPed (the thread gives up)"
    ],
-   "handlerLine": 1927,
+   "handlerLine": 1930,
    "ref": {
     "kind": "absent"
    },
@@ -9325,7 +13429,7 @@
    "notes": [
     "adapter lacks createSearchlightOnVehicle (the thread gives up)"
    ],
-   "handlerLine": 2036,
+   "handlerLine": 2039,
    "ref": {
     "kind": "absent"
    },
@@ -9342,7 +13446,7 @@
    "notes": [
     "adapter lacks moveSearchlightBetweenCoords (the thread gives up)"
    ],
-   "handlerLine": 2040,
+   "handlerLine": 2043,
    "ref": {
     "kind": "absent"
    },
@@ -9359,7 +13463,7 @@
    "notes": [
     "adapter lacks heliFollowEntity (the thread gives up)"
    ],
-   "handlerLine": 2129,
+   "handlerLine": 2132,
    "ref": {
     "kind": "absent"
    },
@@ -9376,7 +13480,7 @@
    "notes": [
     "adapter lacks setSearchlightClipIfColliding (the thread gives up)"
    ],
-   "handlerLine": 2132,
+   "handlerLine": 2135,
    "ref": {
     "kind": "absent"
    },
@@ -9393,7 +13497,7 @@
    "notes": [
     "adapter lacks fireSingleBullet (the thread gives up)"
    ],
-   "handlerLine": 2270,
+   "handlerLine": 2273,
    "ref": {
     "kind": "absent"
    },
@@ -9410,7 +13514,7 @@
    "notes": [
     "adapter lacks setHeliReachedTargetDistance (the thread gives up)"
    ],
-   "handlerLine": 2315,
+   "handlerLine": 2318,
    "ref": {
     "kind": "absent"
    },
@@ -9427,7 +13531,7 @@
    "notes": [
     "adapter lacks doCameraBump (the thread gives up)"
    ],
-   "handlerLine": 1162,
+   "handlerLine": 1165,
    "ref": {
     "kind": "handler",
     "fn": "DoCameraBump",
@@ -9447,7 +13551,7 @@
    "notes": [
     "adapter lacks addBigGunFlash (the thread gives up)"
    ],
-   "handlerLine": 2372,
+   "handlerLine": 2375,
    "ref": {
     "kind": "handler",
     "fn": "AddBigGunFlash",
@@ -9467,7 +13571,7 @@
    "notes": [
     "adapter lacks taskPlayAnimWithFlags (the thread gives up)"
    ],
-   "handlerLine": 2466,
+   "handlerLine": 2469,
    "ref": {
     "kind": "absent"
    },
@@ -9484,7 +13588,7 @@
    "notes": [
     "adapter lacks isAttachedPlayerHeadingAchieved (the thread gives up)"
    ],
-   "handlerLine": 2467,
+   "handlerLine": 2470,
    "ref": {
     "kind": "absent"
    },
@@ -9501,7 +13605,7 @@
    "notes": [
     "adapter lacks setHeadingLimitForAttachedPed (the thread gives up)"
    ],
-   "handlerLine": 1219,
+   "handlerLine": 1222,
    "ref": {
     "kind": "handler-disabled",
     "fn": "SetHeadingLimitForAttachedChar",
@@ -9521,7 +13625,7 @@
    "notes": [
     "adapter lacks addBlipForDeadChar (the thread gives up)"
    ],
-   "handlerLine": 2470,
+   "handlerLine": 2473,
    "ref": {
     "kind": "absent"
    },
@@ -9532,33 +13636,13 @@
    "portable": false
   },
   {
-   "name": "SET_CHAR_ANIM_PLAYING_FLAG",
-   "opcode": "0612",
-   "status": "stops",
-   "notes": [
-    "adapter lacks setPedAnimPlayingFlag (the thread gives up)"
-   ],
-   "handlerLine": 1130,
-   "ref": {
-    "kind": "handler",
-    "fn": "SetCharAnimPlayingFlag",
-    "where": "CharacterCommands.cpp:2864",
-    "stub": false
-   },
-   "doc": "Sets whether the animation is playing",
-   "sites": 4,
-   "missions": 1,
-   "firstMission": "CAT2",
-   "portable": true
-  },
-  {
    "name": "IS_TRAILER_ATTACHED_TO_CAB",
    "opcode": "07ab",
    "status": "stops",
    "notes": [
     "adapter lacks trailerIsAttachedToCab (the thread gives up)"
    ],
-   "handlerLine": 1998,
+   "handlerLine": 2001,
    "ref": {
     "kind": "absent"
    },
@@ -9575,7 +13659,7 @@
    "notes": [
     "adapter lacks addBlipForCarOld (the thread gives up)"
    ],
-   "handlerLine": 2373,
+   "handlerLine": 2376,
    "ref": {
     "kind": "absent"
    },
@@ -9586,30 +13670,13 @@
    "portable": false
   },
   {
-   "name": "GIVE_VEHICLE_PAINTJOB",
-   "opcode": "06ed",
-   "status": "stops",
-   "notes": [
-    "adapter lacks giveVehiclePaintjob (the thread gives up)"
-   ],
-   "handlerLine": 2271,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the car's paintjob",
-   "sites": 4,
-   "missions": 3,
-   "firstMission": "TRUTH2",
-   "portable": false
-  },
-  {
    "name": "SET_DRUNK_INPUT_DELAY",
    "opcode": "03fd",
    "status": "stops",
    "notes": [
     "adapter lacks setDrunkInputDelay (the thread gives up)"
    ],
-   "handlerLine": 2272,
+   "handlerLine": 2275,
    "ref": {
     "kind": "absent"
    },
@@ -9626,7 +13693,7 @@
    "notes": [
     "adapter lacks setCarAsMissionCar (the thread gives up)"
    ],
-   "handlerLine": 2316,
+   "handlerLine": 2319,
    "ref": {
     "kind": "absent"
    },
@@ -9643,7 +13710,7 @@
    "notes": [
     "adapter lacks setCarLightsOn (the thread gives up)"
    ],
-   "handlerLine": 2317,
+   "handlerLine": 2320,
    "ref": {
     "kind": "absent"
    },
@@ -9660,7 +13727,7 @@
    "notes": [
     "adapter lacks heliLandAtCoords (the thread gives up)"
    ],
-   "handlerLine": 2471,
+   "handlerLine": 2474,
    "ref": {
     "kind": "absent"
    },
@@ -9677,7 +13744,7 @@
    "notes": [
     "adapter lacks isPlayerPressingHorn (the thread gives up)"
    ],
-   "handlerLine": 2472,
+   "handlerLine": 2475,
    "ref": {
     "kind": "handler",
     "fn": "IsPlayerPressingHorn",
@@ -9697,7 +13764,7 @@
    "notes": [
     "adapter lacks controlMovableVehiclePart (the thread gives up)"
    ],
-   "handlerLine": 2144,
+   "handlerLine": 2147,
    "ref": {
     "kind": "absent"
    },
@@ -9714,7 +13781,7 @@
    "notes": [
     "adapter lacks swapNearestBuildingModel (the thread gives up)"
    ],
-   "handlerLine": 2318,
+   "handlerLine": 2321,
    "ref": {
     "kind": "absent"
    },
@@ -9731,7 +13798,7 @@
    "notes": [
     "adapter lacks setVehicleQuaternion (the thread gives up)"
    ],
-   "handlerLine": 2473,
+   "handlerLine": 2476,
    "ref": {
     "kind": "absent"
    },
@@ -9748,7 +13815,7 @@
    "notes": [
     "adapter lacks getCarMass (the thread gives up)"
    ],
-   "handlerLine": 2474,
+   "handlerLine": 2477,
    "ref": {
     "kind": "absent"
    },
@@ -9759,86 +13826,18 @@
    "portable": false
   },
   {
-   "name": "GET_CAR_COLOURS",
-   "opcode": "03f3",
-   "status": "stops",
-   "notes": [
-    "adapter lacks vehicleColours (the thread gives up)"
-   ],
-   "handlerLine": 2193,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Gets the car's primary and secondary colors",
-   "sites": 5,
-   "missions": 2,
-   "firstMission": "SCRASH3",
-   "portable": false
-  },
-  {
    "name": "TASK_SAY",
    "opcode": "05c1",
    "status": "stops",
    "notes": [
     "adapter lacks taskSay (the thread gives up)"
    ],
-   "handlerLine": 2319,
+   "handlerLine": 2322,
    "ref": {
     "kind": "absent"
    },
    "doc": "Makes the character say a phrase from the specified audio table",
    "sites": 3,
-   "missions": 1,
-   "firstMission": "SCRASH3",
-   "portable": false
-  },
-  {
-   "name": "TASK_GO_TO_COORD_WHILE_AIMING",
-   "opcode": "06c2",
-   "status": "stops",
-   "notes": [
-    "adapter lacks taskGoToCoordWhileAiming (the thread gives up)"
-   ],
-   "handlerLine": 2381,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 2,
-   "missions": 2,
-   "firstMission": "SCRASH3",
-   "portable": false
-  },
-  {
-   "name": "GET_CAR_BLOCKING_CAR",
-   "opcode": "0987",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getCarBlockingCar (the thread gives up)"
-   ],
-   "handlerLine": 2475,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns a handle of the vehicle preventing this car from getting to its destination",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "SCRASH3",
-   "portable": false
-  },
-  {
-   "name": "GET_PARKING_NODE_IN_AREA",
-   "opcode": "0810",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getParkingNodeInArea (the thread gives up)"
-   ],
-   "handlerLine": 2476,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Stores the coordinates of the nearest car park node in the specified area",
-   "sites": 1,
    "missions": 1,
    "firstMission": "SCRASH3",
    "portable": false
@@ -9850,7 +13849,7 @@
    "notes": [
     "adapter lacks isCharInAreaInCar3d (the thread gives up)"
    ],
-   "handlerLine": 2477,
+   "handlerLine": 2480,
    "ref": {
     "kind": "unimplemented",
     "where": "CharacterCommands.cpp:4357",
@@ -9869,7 +13868,7 @@
    "notes": [
     "adapter lacks setTaxiLights (the thread gives up)"
    ],
-   "handlerLine": 2197,
+   "handlerLine": 2200,
    "ref": {
     "kind": "absent"
    },
@@ -9886,7 +13885,7 @@
    "notes": [
     "adapter lacks taskCharSlideToCoord (the thread gives up)"
    ],
-   "handlerLine": 2273,
+   "handlerLine": 2276,
    "ref": {
     "kind": "handler-disabled",
     "fn": "TaskCharSlideToCoord",
@@ -9906,7 +13905,7 @@
    "notes": [
     "adapter lacks explodeCarInCutsceneShakeAndBits (the thread gives up)"
    ],
-   "handlerLine": 2320,
+   "handlerLine": 2323,
    "ref": {
     "kind": "absent"
    },
@@ -9917,30 +13916,13 @@
    "portable": false
   },
   {
-   "name": "TASK_COWER",
-   "opcode": "05c3",
-   "status": "stops",
-   "notes": [
-    "adapter lacks taskCower (the thread gives up)"
-   ],
-   "handlerLine": 2478,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes the char stumble backwards with their arms in front of their face as if he is backing away from something in fear",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "WUZI1",
-   "portable": false
-  },
-  {
    "name": "CREATE_SEARCHLIGHT",
    "opcode": "06b1",
    "status": "stops",
    "notes": [
     "adapter lacks createSearchlight (the thread gives up)"
    ],
-   "handlerLine": 1715,
+   "handlerLine": 1718,
    "ref": {
     "kind": "absent"
    },
@@ -9957,7 +13939,7 @@
    "notes": [
     "adapter lacks attachSearchlightToObject (the thread gives up)"
    ],
-   "handlerLine": 1721,
+   "handlerLine": 1724,
    "ref": {
     "kind": "absent"
    },
@@ -9974,7 +13956,7 @@
    "notes": [
     "adapter lacks setAlwaysDraw3dMarkers (the thread gives up)"
    ],
-   "handlerLine": 2145,
+   "handlerLine": 2148,
    "ref": {
     "kind": "absent"
    },
@@ -9991,7 +13973,7 @@
    "notes": [
     "adapter lacks addBlipForSearchlight (the thread gives up)"
    ],
-   "handlerLine": 2198,
+   "handlerLine": 2201,
    "ref": {
     "kind": "absent"
    },
@@ -10008,7 +13990,7 @@
    "notes": [
     "adapter lacks boatStop (the thread gives up)"
    ],
-   "handlerLine": 2321,
+   "handlerLine": 2324,
    "ref": {
     "kind": "absent"
    },
@@ -10025,7 +14007,7 @@
    "notes": [
     "adapter lacks getCharSwimState (the thread gives up)"
    ],
-   "handlerLine": 2481,
+   "handlerLine": 2484,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetCharSwimState",
@@ -10045,7 +14027,7 @@
    "notes": [
     "adapter lacks boatGotoCoords (the thread gives up)"
    ],
-   "handlerLine": 2482,
+   "handlerLine": 2485,
    "ref": {
     "kind": "absent"
    },
@@ -10062,7 +14044,7 @@
    "notes": [
     "adapter lacks isCharInAnySearchlight (the thread gives up)"
    ],
-   "handlerLine": 2483,
+   "handlerLine": 2486,
    "ref": {
     "kind": "handler-disabled",
     "fn": "IsCharInAnySearchlight",
@@ -10082,7 +14064,7 @@
    "notes": [
     "adapter lacks makeHeliComeCrashingDown (the thread gives up)"
    ],
-   "handlerLine": 2025,
+   "handlerLine": 2028,
    "ref": {
     "kind": "absent"
    },
@@ -10099,7 +14081,7 @@
    "notes": [
     "adapter lacks addSmokeParticle (the thread gives up)"
    ],
-   "handlerLine": 2484,
+   "handlerLine": 2487,
    "ref": {
     "kind": "absent"
    },
@@ -10116,7 +14098,7 @@
    "notes": [
     "adapter lacks isPlayerClimbing (the thread gives up)"
    ],
-   "handlerLine": 2485,
+   "handlerLine": 2488,
    "ref": {
     "kind": "handler",
     "fn": "IsPlayerClimbing",
@@ -10136,7 +14118,7 @@
    "notes": [
     "adapter lacks attachPedToBike (the thread gives up)"
    ],
-   "handlerLine": 1223,
+   "handlerLine": 1226,
    "ref": {
     "kind": "handler",
     "fn": "AttachCharToBike",
@@ -10150,58 +14132,18 @@
    "portable": true
   },
   {
-   "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-   "opcode": "080e",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getCharHighestPriorityEvent (the thread gives up)"
-   ],
-   "handlerLine": 2274,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "GetCharHighestPriorityEvent",
-    "where": "CharacterCommands.cpp:4289",
-    "stub": false
-   },
-   "doc": "Gets the characters active ped event",
-   "sites": 4,
-   "missions": 3,
-   "firstMission": "SYN3",
-   "portable": false
-  },
-  {
    "name": "CREATE_BIRDS",
    "opcode": "0876",
    "status": "stops",
    "notes": [
     "adapter lacks createBirds (the thread gives up)"
    ],
-   "handlerLine": 2385,
+   "handlerLine": 2388,
    "ref": {
     "kind": "absent"
    },
    "doc": "Creates a flock of birds flying in the specified direction",
    "sites": 2,
-   "missions": 1,
-   "firstMission": "SYND4",
-   "portable": false
-  },
-  {
-   "name": "IS_CHAR_STUCK_UNDER_CAR",
-   "opcode": "095d",
-   "status": "stops",
-   "notes": [
-    "adapter lacks isCharStuckUnderCar (the thread gives up)"
-   ],
-   "handlerLine": 2486,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "IsCharStuckUnderCar",
-    "where": "CharacterCommands.cpp:4307",
-    "stub": false
-   },
-   "doc": "Returns true if the char is stuck under a car",
-   "sites": 1,
    "missions": 1,
    "firstMission": "SYND4",
    "portable": false
@@ -10213,7 +14155,7 @@
    "notes": [
     "adapter lacks setVehicleCanBeTargetted (the thread gives up)"
    ],
-   "handlerLine": 2487,
+   "handlerLine": 2490,
    "ref": {
     "kind": "absent"
    },
@@ -10230,7 +14172,7 @@
    "notes": [
     "adapter lacks hasCharBeenArrested (the thread gives up)"
    ],
-   "handlerLine": 2488,
+   "handlerLine": 2491,
    "ref": {
     "kind": "handler-disabled",
     "fn": "HasCharBeenArrested",
@@ -10250,7 +14192,7 @@
    "notes": [
     "adapter lacks setPedSwimSpeed (the thread gives up)"
    ],
-   "handlerLine": 1210,
+   "handlerLine": 1213,
    "ref": {
     "kind": "handler",
     "fn": "SetSwimSpeed",
@@ -10270,7 +14212,7 @@
    "notes": [
     "adapter lacks taskGreetPartner (the thread gives up)"
    ],
-   "handlerLine": 2489,
+   "handlerLine": 2492,
    "ref": {
     "kind": "absent"
    },
@@ -10287,7 +14229,7 @@
    "notes": [
     "adapter lacks setHeliOrientation (the thread gives up)"
    ],
-   "handlerLine": 2490,
+   "handlerLine": 2493,
    "ref": {
     "kind": "absent"
    },
@@ -10298,30 +14240,13 @@
    "portable": false
   },
   {
-   "name": "LOCATE_OBJECT_2D",
-   "opcode": "04e5",
-   "status": "stops",
-   "notes": [
-    "adapter lacks locateObject2d (the thread gives up)"
-   ],
-   "handlerLine": 2275,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the object is near the specified coordinates",
-   "sites": 4,
-   "missions": 2,
-   "firstMission": "DRIV2",
-   "portable": false
-  },
-  {
    "name": "IS_OBJECT_IN_ANGLED_AREA_2D",
    "opcode": "08e3",
    "status": "stops",
    "notes": [
     "adapter lacks isObjectInAngledArea2d (the thread gives up)"
    ],
-   "handlerLine": 2491,
+   "handlerLine": 2494,
    "ref": {
     "kind": "absent"
    },
@@ -10338,7 +14263,7 @@
    "notes": [
     "adapter lacks taskGoToObject (the thread gives up)"
    ],
-   "handlerLine": 2492,
+   "handlerLine": 2495,
    "ref": {
     "kind": "absent"
    },
@@ -10355,7 +14280,7 @@
    "notes": [
     "adapter lacks setCarEscortCarRight (the thread gives up)"
    ],
-   "handlerLine": 2493,
+   "handlerLine": 2496,
    "ref": {
     "kind": "absent"
    },
@@ -10372,7 +14297,7 @@
    "notes": [
     "adapter lacks setCarEscortCarLeft (the thread gives up)"
    ],
-   "handlerLine": 2494,
+   "handlerLine": 2497,
    "ref": {
     "kind": "absent"
    },
@@ -10389,7 +14314,7 @@
    "notes": [
     "adapter lacks setCarStayInFastLane (the thread gives up)"
    ],
-   "handlerLine": 2236,
+   "handlerLine": 2239,
    "ref": {
     "kind": "absent"
    },
@@ -10406,7 +14331,7 @@
    "notes": [
     "adapter lacks dontSuppressAnyCarModels (the thread gives up)"
    ],
-   "handlerLine": 2386,
+   "handlerLine": 2389,
    "ref": {
     "kind": "absent"
    },
@@ -10423,7 +14348,7 @@
    "notes": [
     "adapter lacks giveNonPlayerCarNitro (the thread gives up)"
    ],
-   "handlerLine": 2495,
+   "handlerLine": 2498,
    "ref": {
     "kind": "absent"
    },
@@ -10440,29 +14365,12 @@
    "notes": [
     "adapter lacks enableCraneControls (the thread gives up)"
    ],
-   "handlerLine": 1679,
+   "handlerLine": 1682,
    "ref": {
     "kind": "absent"
    },
    "doc": "Enables/disables individual crane controls",
    "sites": 26,
-   "missions": 2,
-   "firstMission": "STEAL4",
-   "portable": false
-  },
-  {
-   "name": "IS_VEHICLE_ATTACHED",
-   "opcode": "0686",
-   "status": "stops",
-   "notes": [
-    "adapter lacks isVehicleAttached (the thread gives up)"
-   ],
-   "handlerLine": 2237,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 5,
    "missions": 2,
    "firstMission": "STEAL4",
    "portable": false
@@ -10474,29 +14382,12 @@
    "notes": [
     "adapter lacks attachCarToObject (the thread gives up)"
    ],
-   "handlerLine": 2276,
+   "handlerLine": 2279,
    "ref": {
     "kind": "absent"
    },
    "doc": "Attaches the car to object with offset and rotation",
    "sites": 4,
-   "missions": 1,
-   "firstMission": "STEAL4",
-   "portable": false
-  },
-  {
-   "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
-   "opcode": "0796",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getRopeHeightForObject (the thread gives up)"
-   ],
-   "handlerLine": 2496,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 1,
    "missions": 1,
    "firstMission": "STEAL4",
    "portable": false
@@ -10508,7 +14399,7 @@
    "notes": [
     "adapter lacks getRandomCarOfTypeInAngledAreaNoSave (the thread gives up)"
    ],
-   "handlerLine": 2497,
+   "handlerLine": 2500,
    "ref": {
     "kind": "absent"
    },
@@ -10525,7 +14416,7 @@
    "notes": [
     "adapter lacks setFreebiesInVehicle (the thread gives up)"
    ],
-   "handlerLine": 2387,
+   "handlerLine": 2390,
    "ref": {
     "kind": "absent"
    },
@@ -10542,7 +14433,7 @@
    "notes": [
     "adapter lacks setPlaneThrottle (the thread gives up)"
    ],
-   "handlerLine": 1887,
+   "handlerLine": 1890,
    "ref": {
     "kind": "absent"
    },
@@ -10559,7 +14450,7 @@
    "notes": [
     "adapter lacks planeStartsInAir (the thread gives up)"
    ],
-   "handlerLine": 1888,
+   "handlerLine": 1891,
    "ref": {
     "kind": "absent"
    },
@@ -10576,7 +14467,7 @@
    "notes": [
     "adapter lacks getCityFromCoords (the thread gives up)"
    ],
-   "handlerLine": 2282,
+   "handlerLine": 2285,
    "ref": {
     "kind": "absent"
    },
@@ -10593,7 +14484,7 @@
    "notes": [
     "adapter lacks setHeliStabiliser (the thread gives up)"
    ],
-   "handlerLine": 2283,
+   "handlerLine": 2286,
    "ref": {
     "kind": "absent"
    },
@@ -10610,7 +14501,7 @@
    "notes": [
     "adapter lacks isObjectIntersectingWorld (the thread gives up)"
    ],
-   "handlerLine": 2323,
+   "handlerLine": 2326,
    "ref": {
     "kind": "absent"
    },
@@ -10627,7 +14518,7 @@
    "notes": [
     "adapter lacks takeRemoteControlOfCar (the thread gives up)"
    ],
-   "handlerLine": 2388,
+   "handlerLine": 2391,
    "ref": {
     "kind": "absent"
    },
@@ -10644,7 +14535,7 @@
    "notes": [
     "adapter lacks removeOilPuddlesInArea (the thread gives up)"
    ],
-   "handlerLine": 2498,
+   "handlerLine": 2501,
    "ref": {
     "kind": "absent"
    },
@@ -10661,7 +14552,7 @@
    "notes": [
     "adapter lacks attachTrailerToCab (the thread gives up)"
    ],
-   "handlerLine": 2239,
+   "handlerLine": 2242,
    "ref": {
     "kind": "absent"
    },
@@ -10678,7 +14569,7 @@
    "notes": [
     "adapter lacks releasePathNodes (the thread gives up)"
    ],
-   "handlerLine": 2390,
+   "handlerLine": 2393,
    "ref": {
     "kind": "absent"
    },
@@ -10689,30 +14580,13 @@
    "portable": false
   },
   {
-   "name": "GET_RANDOM_CAR_OF_TYPE_IN_AREA_NO_SAVE",
-   "opcode": "053e",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getRandomCarOfTypeInAreaNoSave (the thread gives up)"
-   ],
-   "handlerLine": 2391,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Loops through the pool of vehicles to retrieve one that matches the specified model in the specified 2D area",
-   "sites": 2,
-   "missions": 2,
-   "firstMission": "TORENO2",
-   "portable": false
-  },
-  {
    "name": "REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION",
    "opcode": "09c9",
    "status": "stops",
    "notes": [
     "adapter lacks removePedFromCarMaintainPosition (the thread gives up)"
    ],
-   "handlerLine": 1142,
+   "handlerLine": 1145,
    "ref": {
     "kind": "handler",
     "fn": "RemoveCharFromCarMaintainPosition",
@@ -10732,7 +14606,7 @@
    "notes": [
     "adapter lacks detachTrailerFromCab (the thread gives up)"
    ],
-   "handlerLine": 2501,
+   "handlerLine": 2504,
    "ref": {
     "kind": "absent"
    },
@@ -10743,30 +14617,13 @@
    "portable": false
   },
   {
-   "name": "GET_RADIO_CHANNEL",
-   "opcode": "051e",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getRadioChannel (the thread gives up)"
-   ],
-   "handlerLine": 2392,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns the current radio station that is being played",
-   "sites": 2,
-   "missions": 2,
-   "firstMission": "DES3",
-   "portable": false
-  },
-  {
    "name": "ACTIVATE_HELI_SPEED_CHEAT",
    "opcode": "07bb",
    "status": "stops",
    "notes": [
     "adapter lacks activateHeliSpeedCheat (the thread gives up)"
    ],
-   "handlerLine": 2393,
+   "handlerLine": 2396,
    "ref": {
     "kind": "absent"
    },
@@ -10783,7 +14640,7 @@
    "notes": [
     "adapter lacks heliKeepEntityInView (the thread gives up)"
    ],
-   "handlerLine": 2394,
+   "handlerLine": 2397,
    "ref": {
     "kind": "absent"
    },
@@ -10800,7 +14657,7 @@
    "notes": [
     "adapter lacks setHeliAudio (the thread gives up)"
    ],
-   "handlerLine": 668,
+   "handlerLine": 671,
    "ref": {
     "kind": "handler",
     "fn": "DisableHeliAudio",
@@ -10814,33 +14671,13 @@
    "portable": true
   },
   {
-   "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
-   "opcode": "0819",
-   "status": "stops",
-   "notes": [
-    "adapter lacks getCharHeightAboveGround (the thread gives up)"
-   ],
-   "handlerLine": 2284,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "GetCharHeightAboveGround",
-    "where": "CharacterCommands.cpp:4292",
-    "stub": false
-   },
-   "doc": "Returns the char's distance from ground",
-   "sites": 4,
-   "missions": 3,
-   "firstMission": "DESERT6",
-   "portable": false
-  },
-  {
    "name": "PLANE_ATTACK_PLAYER",
    "opcode": "070e",
    "status": "stops",
    "notes": [
     "adapter lacks planeAttackPlayer (the thread gives up)"
    ],
-   "handlerLine": 2502,
+   "handlerLine": 2505,
    "ref": {
     "kind": "absent"
    },
@@ -10857,7 +14694,7 @@
    "notes": [
     "adapter lacks attachCameraToVehicleLookAtVehicle (the thread gives up)"
    ],
-   "handlerLine": 2046,
+   "handlerLine": 2049,
    "ref": {
     "kind": "handler",
     "fn": "AttachCameraToVehicleLookAtVehicle",
@@ -10877,7 +14714,7 @@
    "notes": [
     "adapter lacks taskComplexPickupObject (the thread gives up)"
    ],
-   "handlerLine": 2324,
+   "handlerLine": 2327,
    "ref": {
     "kind": "absent"
    },
@@ -10894,7 +14731,7 @@
    "notes": [
     "adapter lacks isLastBuildingModelShotByPlayer (the thread gives up)"
    ],
-   "handlerLine": 2325,
+   "handlerLine": 2328,
    "ref": {
     "kind": "absent"
    },
@@ -10911,7 +14748,7 @@
    "notes": [
     "adapter lacks forceDeathRestart (the thread gives up)"
    ],
-   "handlerLine": 2326,
+   "handlerLine": 2329,
    "ref": {
     "kind": "absent"
    },
@@ -10928,7 +14765,7 @@
    "notes": [
     "adapter lacks setCarCoordinatesNoOffset (the thread gives up)"
    ],
-   "handlerLine": 2395,
+   "handlerLine": 2398,
    "ref": {
     "kind": "absent"
    },
@@ -10945,7 +14782,7 @@
    "notes": [
     "adapter lacks attachCameraToChar (the thread gives up)"
    ],
-   "handlerLine": 2396,
+   "handlerLine": 2399,
    "ref": {
     "kind": "handler",
     "fn": "AttachCameraToChar",
@@ -10965,7 +14802,7 @@
    "notes": [
     "adapter lacks clearLastBuildingModelShotByPlayer (the thread gives up)"
    ],
-   "handlerLine": 2503,
+   "handlerLine": 2506,
    "ref": {
     "kind": "absent"
    },
@@ -10982,7 +14819,7 @@
    "notes": [
     "adapter lacks useDetonator (the thread gives up)"
    ],
-   "handlerLine": 2504,
+   "handlerLine": 2507,
    "ref": {
     "kind": "absent"
    },
@@ -10993,33 +14830,13 @@
    "portable": false
   },
   {
-   "name": "GET_CHAR_VELOCITY",
-   "opcode": "083d",
-   "status": "stops",
-   "notes": [
-    "adapter lacks pedVelocity (the thread gives up)"
-   ],
-   "handlerLine": 1113,
-   "ref": {
-    "kind": "handler",
-    "fn": "GetCharVelocity",
-    "where": "CharacterCommands.cpp:309",
-    "stub": false
-   },
-   "doc": "Gets the characters velocity",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DESERT9",
-   "portable": true
-  },
-  {
    "name": "ADD_TO_OBJECT_ROTATION_VELOCITY",
    "opcode": "05a1",
    "status": "stops",
    "notes": [
     "adapter lacks addToObjectRotationVelocity (the thread gives up)"
    ],
-   "handlerLine": 2505,
+   "handlerLine": 2508,
    "ref": {
     "kind": "absent"
    },
@@ -11036,7 +14853,7 @@
    "notes": [
     "adapter lacks forceInteriorLightingForPlayer (the thread gives up)"
    ],
-   "handlerLine": 2285,
+   "handlerLine": 2288,
    "ref": {
     "kind": "absent"
    },
@@ -11053,7 +14870,7 @@
    "notes": [
     "adapter lacks playerTakeOffGoggles (the thread gives up)"
    ],
-   "handlerLine": 2286,
+   "handlerLine": 2289,
    "ref": {
     "kind": "absent"
    },
@@ -11070,7 +14887,7 @@
    "notes": [
     "adapter lacks switchOnGroundSearchlight (the thread gives up)"
    ],
-   "handlerLine": 2398,
+   "handlerLine": 2401,
    "ref": {
     "kind": "absent"
    },
@@ -11087,7 +14904,7 @@
    "notes": [
     "adapter lacks pedIsInSearchlight (the thread gives up)"
    ],
-   "handlerLine": 1228,
+   "handlerLine": 1231,
    "ref": {
     "kind": "handler",
     "fn": "IsCharInSearchlight",
@@ -11107,7 +14924,7 @@
    "notes": [
     "adapter lacks taskJetpack (the thread gives up)"
    ],
-   "handlerLine": 2399,
+   "handlerLine": 2402,
    "ref": {
     "kind": "absent"
    },
@@ -11124,7 +14941,7 @@
    "notes": [
     "adapter lacks drawWeaponshopCorona (the thread gives up)"
    ],
-   "handlerLine": 2506,
+   "handlerLine": 2509,
    "ref": {
     "kind": "absent"
    },
@@ -11135,30 +14952,13 @@
    "portable": false
   },
   {
-   "name": "SET_PLANE_UNDERCARRIAGE_UP",
-   "opcode": "08e6",
-   "status": "stops",
-   "notes": [
-    "adapter lacks setPlaneUndercarriageUp (the thread gives up)"
-   ],
-   "handlerLine": 1889,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets whether the plane's landing wheels are up",
-   "sites": 9,
-   "missions": 4,
-   "firstMission": "DESERT5",
-   "portable": false
-  },
-  {
    "name": "IS_CAR_STOPPED_IN_AREA_2D",
    "opcode": "01ab",
    "status": "stops",
    "notes": [
     "adapter lacks isCarStoppedInArea2d (the thread gives up)"
    ],
-   "handlerLine": 2287,
+   "handlerLine": 2290,
    "ref": {
     "kind": "absent"
    },
@@ -11175,7 +14975,7 @@
    "notes": [
     "adapter lacks getCarUprightValue (the thread gives up)"
    ],
-   "handlerLine": 2288,
+   "handlerLine": 2291,
    "ref": {
     "kind": "absent"
    },
@@ -11192,7 +14992,7 @@
    "notes": [
     "adapter lacks getPlaneUndercarriagePosition (the thread gives up)"
    ],
-   "handlerLine": 2328,
+   "handlerLine": 2331,
    "ref": {
     "kind": "absent"
    },
@@ -11209,7 +15009,7 @@
    "notes": [
     "adapter lacks taskDrivePointRoute (the thread gives up)"
    ],
-   "handlerLine": 2400,
+   "handlerLine": 2403,
    "ref": {
     "kind": "absent"
    },
@@ -11226,7 +15026,7 @@
    "notes": [
     "adapter lacks attachCameraToCharLookAtChar (the thread gives up)"
    ],
-   "handlerLine": 2507,
+   "handlerLine": 2510,
    "ref": {
     "kind": "handler-disabled",
     "fn": "AttachCameraToCharLookAtChar",
@@ -11246,7 +15046,7 @@
    "notes": [
     "adapter lacks fireHunterGun (the thread gives up)"
    ],
-   "handlerLine": 2508,
+   "handlerLine": 2511,
    "ref": {
     "kind": "absent"
    },
@@ -11263,7 +15063,7 @@
    "notes": [
     "adapter lacks taskDiveFromAttachmentAndGetUp (the thread gives up)"
    ],
-   "handlerLine": 2509,
+   "handlerLine": 2512,
    "ref": {
     "kind": "absent"
    },
@@ -11280,7 +15080,7 @@
    "notes": [
     "adapter comments name an authored stand-in (addExplosionVariableShake)"
    ],
-   "handlerLine": 1593,
+   "handlerLine": 1596,
    "ref": {
     "kind": "absent"
    },
@@ -11297,7 +15097,7 @@
    "notes": [
     "adapter lacks taskTired (the thread gives up)"
    ],
-   "handlerLine": 2240,
+   "handlerLine": 2243,
    "ref": {
     "kind": "absent"
    },
@@ -11314,7 +15114,7 @@
    "notes": [
     "adapter lacks setVehicleToFadeIn (the thread gives up)"
    ],
-   "handlerLine": 2402,
+   "handlerLine": 2405,
    "ref": {
     "kind": "absent"
    },
@@ -11325,64 +15125,13 @@
    "portable": false
   },
   {
-   "name": "CLEAR_ATTRACTOR",
-   "opcode": "061e",
-   "status": "stops",
-   "notes": [
-    "adapter lacks clearAttractor (the thread gives up)"
-   ],
-   "handlerLine": 2290,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 4,
-   "missions": 1,
-   "firstMission": "CASINO6",
-   "portable": false
-  },
-  {
-   "name": "ADD_ATTRACTOR",
-   "opcode": "061d",
-   "status": "stops",
-   "notes": [
-    "adapter lacks addAttractor (the thread gives up)"
-   ],
-   "handlerLine": 2403,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Adds a ped attractor",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "CASINO6",
-   "portable": false
-  },
-  {
    "name": "ADD_PEDTYPE_AS_ATTRACTOR_USER",
    "opcode": "0680",
    "status": "stops",
    "notes": [
     "adapter lacks addPedtypeAsAttractorUser (the thread gives up)"
    ],
-   "handlerLine": 2404,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "CASINO6",
-   "portable": false
-  },
-  {
-   "name": "TASK_USE_ATTRACTOR",
-   "opcode": "074c",
-   "status": "stops",
-   "notes": [
-    "adapter lacks taskUseAttractor (the thread gives up)"
-   ],
-   "handlerLine": 2405,
+   "handlerLine": 2407,
    "ref": {
     "kind": "absent"
    },
@@ -11399,7 +15148,7 @@
    "notes": [
     "adapter lacks pedIsAtScriptedAttractor (the thread gives up)"
    ],
-   "handlerLine": 1231,
+   "handlerLine": 1234,
    "ref": {
     "kind": "handler",
     "fn": "IsCharAtScriptedAttractor",
@@ -11419,7 +15168,7 @@
    "notes": [
     "adapter lacks vehicleColours (the thread gives up)"
    ],
-   "handlerLine": 663,
+   "handlerLine": 666,
    "ref": {
     "kind": "handler",
     "fn": "GetExtraCarColors",
@@ -11439,7 +15188,7 @@
    "notes": [
     "adapter lacks setExtraCarColours (the thread gives up)"
    ],
-   "handlerLine": 2512,
+   "handlerLine": 2515,
    "ref": {
     "kind": "absent"
    },
@@ -11456,7 +15205,7 @@
    "notes": [
     "adapter lacks resetStuffUponResurrection (the thread gives up)"
    ],
-   "handlerLine": 2513,
+   "handlerLine": 2516,
    "ref": {
     "kind": "absent"
    },
@@ -11473,7 +15222,7 @@
    "notes": [
     "adapter lacks planeFlyInDirection (the thread gives up)"
    ],
-   "handlerLine": 2407,
+   "handlerLine": 2410,
    "ref": {
     "kind": "absent"
    },
@@ -11490,7 +15239,7 @@
    "notes": [
     "adapter lacks setCarRoll (the thread gives up)"
    ],
-   "handlerLine": 2514,
+   "handlerLine": 2517,
    "ref": {
     "kind": "absent"
    },
@@ -11501,49 +15250,13 @@
    "portable": false
   },
   {
-   "name": "IS_CHAR_IN_AREA_ON_FOOT_3D",
-   "opcode": "01a6",
-   "status": "stops",
-   "notes": [
-    "adapter lacks isCharInAreaOnFoot3d (the thread gives up)"
-   ],
-   "handlerLine": 2330,
-   "ref": {
-    "kind": "unimplemented",
-    "where": "CharacterCommands.cpp:4356",
-    "stub": false
-   },
-   "doc": "Returns true if the character is within the specified 3D area on foot",
-   "sites": 3,
-   "missions": 2,
-   "firstMission": "CASIN10",
-   "portable": false
-  },
-  {
-   "name": "LOCK_DOOR",
-   "opcode": "0905",
-   "status": "stops",
-   "notes": [
-    "adapter lacks lockDoor (the thread gives up)"
-   ],
-   "handlerLine": 2515,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets whether the door object is locked at its current rotation and allows it to be pushed open by entities once",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "HEIST1",
-   "portable": false
-  },
-  {
    "name": "GET_OBJECT_MASS",
    "opcode": "0907",
    "status": "stops",
    "notes": [
     "adapter lacks getObjectMass (the thread gives up)"
    ],
-   "handlerLine": 2516,
+   "handlerLine": 2519,
    "ref": {
     "kind": "absent"
    },
@@ -11560,7 +15273,7 @@
    "notes": [
     "adapter lacks taskUseAtm (the thread gives up)"
    ],
-   "handlerLine": 2517,
+   "handlerLine": 2520,
    "ref": {
     "kind": "absent"
    },
@@ -11577,7 +15290,7 @@
    "notes": [
     "adapter lacks removeSphere (the thread gives up)"
    ],
-   "handlerLine": 2079,
+   "handlerLine": 2082,
    "ref": {
     "kind": "absent"
    },
@@ -11594,7 +15307,7 @@
    "notes": [
     "adapter lacks winchCanPickVehicleUp (the thread gives up)"
    ],
-   "handlerLine": 2241,
+   "handlerLine": 2244,
    "ref": {
     "kind": "absent"
    },
@@ -11611,7 +15324,7 @@
    "notes": [
     "adapter lacks addSphere (the thread gives up)"
    ],
-   "handlerLine": 2331,
+   "handlerLine": 2334,
    "ref": {
     "kind": "absent"
    },
@@ -11628,7 +15341,7 @@
    "notes": [
     "adapter lacks selectWeaponsForVehicle (the thread gives up)"
    ],
-   "handlerLine": 2409,
+   "handlerLine": 2412,
    "ref": {
     "kind": "absent"
    },
@@ -11645,7 +15358,7 @@
    "notes": [
     "adapter lacks heliAttackPlayer (the thread gives up)"
    ],
-   "handlerLine": 2410,
+   "handlerLine": 2413,
    "ref": {
     "kind": "absent"
    },
@@ -11662,7 +15375,7 @@
    "notes": [
     "adapter lacks grabEntityOnWinch (the thread gives up)"
    ],
-   "handlerLine": 2411,
+   "handlerLine": 2414,
    "ref": {
     "kind": "absent"
    },
@@ -11679,7 +15392,7 @@
    "notes": [
     "adapter lacks attachWinchToHeli (the thread gives up)"
    ],
-   "handlerLine": 2518,
+   "handlerLine": 2521,
    "ref": {
     "kind": "absent"
    },
@@ -11696,7 +15409,7 @@
    "notes": [
     "adapter lacks releaseEntityFromWinch (the thread gives up)"
    ],
-   "handlerLine": 2519,
+   "handlerLine": 2522,
    "ref": {
     "kind": "absent"
    },
@@ -11713,7 +15426,7 @@
    "notes": [
     "adapter lacks setNightVision (the thread gives up)"
    ],
-   "handlerLine": 2242,
+   "handlerLine": 2245,
    "ref": {
     "kind": "absent"
    },
@@ -11730,7 +15443,7 @@
    "notes": [
     "adapter lacks getCarMovingComponentOffset (the thread gives up)"
    ],
-   "handlerLine": 2291,
+   "handlerLine": 2294,
    "ref": {
     "kind": "absent"
    },
@@ -11747,7 +15460,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 531,
+   "handlerLine": 534,
    "ref": {
     "kind": "absent"
    },
@@ -11764,7 +15477,7 @@
    "notes": [
     "adapter lacks isNightVisionActive (the thread gives up)"
    ],
-   "handlerLine": 2520,
+   "handlerLine": 2523,
    "ref": {
     "kind": "absent"
    },
@@ -11781,7 +15494,7 @@
    "notes": [
     "adapter lacks policeHeliChaseEntity (the thread gives up)"
    ],
-   "handlerLine": 2521,
+   "handlerLine": 2524,
    "ref": {
     "kind": "absent"
    },
@@ -11798,7 +15511,7 @@
    "notes": [
     "adapter lacks setAircraftCarrierSamSite (the thread gives up)"
    ],
-   "handlerLine": 2243,
+   "handlerLine": 2246,
    "ref": {
     "kind": "absent"
    },
@@ -11815,7 +15528,7 @@
    "notes": [
     "adapter lacks planeFollowEntity (the thread gives up)"
    ],
-   "handlerLine": 2332,
+   "handlerLine": 2335,
    "ref": {
     "kind": "absent"
    },
@@ -11832,7 +15545,7 @@
    "notes": [
     "adapter lacks pedCanSeeDeadPed (the thread gives up)"
    ],
-   "handlerLine": 1124,
+   "handlerLine": 1127,
    "ref": {
     "kind": "handler",
     "fn": "CanCharSeeDeadChar",
@@ -11852,7 +15565,7 @@
    "notes": [
     "adapter lacks planeAttackPlayerUsingDogFight (the thread gives up)"
    ],
-   "handlerLine": 2522,
+   "handlerLine": 2525,
    "ref": {
     "kind": "handler",
     "fn": "PlaneAttackPlayerUsingDogFight",
@@ -11872,7 +15585,7 @@
    "notes": [
     "adapter lacks setGunshotSenseRangeForRiot2 (the thread gives up)"
    ],
-   "handlerLine": 2333,
+   "handlerLine": 2336,
    "ref": {
     "kind": "absent"
    },
@@ -11889,7 +15602,7 @@
    "notes": [
     "adapter lacks setPlayerMood (the thread gives up)"
    ],
-   "handlerLine": 2413,
+   "handlerLine": 2416,
    "ref": {
     "kind": "handler",
     "fn": "SetPlayerMood",
@@ -11909,7 +15622,7 @@
    "notes": [
     "adapter lacks setInfraredVision (the thread gives up)"
    ],
-   "handlerLine": 2414,
+   "handlerLine": 2417,
    "ref": {
     "kind": "absent"
    },
@@ -11926,7 +15639,7 @@
    "notes": [
     "adapter lacks setCharBulletproofVest (the thread gives up)"
    ],
-   "handlerLine": 2524,
+   "handlerLine": 2527,
    "ref": {
     "kind": "handler-disabled",
     "fn": "SetCharBulletproofVest",
@@ -11946,7 +15659,7 @@
    "notes": [
     "adapter lacks stopCredits (the thread gives up)"
    ],
-   "handlerLine": 2415,
+   "handlerLine": 2418,
    "ref": {
     "kind": "absent"
    },
@@ -11963,7 +15676,7 @@
    "notes": [
     "adapter lacks getDoorAngleRatio (the thread gives up)"
    ],
-   "handlerLine": 2525,
+   "handlerLine": 2528,
    "ref": {
     "kind": "absent"
    },
@@ -11980,7 +15693,7 @@
    "notes": [
     "adapter lacks startCredits (the thread gives up)"
    ],
-   "handlerLine": 2526,
+   "handlerLine": 2529,
    "ref": {
     "kind": "absent"
    },
@@ -11997,7 +15710,7 @@
    "notes": [
     "adapter lacks areCreditsFinished (the thread gives up)"
    ],
-   "handlerLine": 2527,
+   "handlerLine": 2530,
    "ref": {
     "kind": "absent"
    },
@@ -12014,7 +15727,7 @@
    "notes": [
     "adapter lacks printStringInStringNow (the thread gives up)"
    ],
-   "handlerLine": 2245,
+   "handlerLine": 2248,
    "ref": {
     "kind": "unimplemented",
     "where": "TextCommands.cpp:378",
@@ -12033,7 +15746,7 @@
    "notes": [
     "adapter lacks winchCanPickObjectUp (the thread gives up)"
    ],
-   "handlerLine": 2416,
+   "handlerLine": 2419,
    "ref": {
     "kind": "absent"
    },
@@ -12050,7 +15763,7 @@
    "notes": [
     "adapter lacks setObjectRenderScorched (the thread gives up)"
    ],
-   "handlerLine": 2417,
+   "handlerLine": 2420,
    "ref": {
     "kind": "absent"
    },
@@ -12067,7 +15780,7 @@
    "notes": [
     "adapter lacks isPlayerPerformingStoppie (the thread gives up)"
    ],
-   "handlerLine": 2419,
+   "handlerLine": 2422,
    "ref": {
     "kind": "handler",
     "fn": "IsPlayerPerformingStoppie",
@@ -12087,7 +15800,7 @@
    "notes": [
     "adapter lacks randomPedInZone (the thread gives up)"
    ],
-   "handlerLine": 1240,
+   "handlerLine": 1243,
    "ref": {
     "kind": "handler",
     "fn": "GetRandomCharInZone",
@@ -12101,50 +15814,13 @@
    "portable": true
   },
   {
-   "name": "TASK_PLAY_ANIM_SECONDARY",
-   "opcode": "0a1a",
-   "status": "stops",
-   "notes": [
-    "adapter lacks taskPlayAnimSecondary (the thread gives up)"
-   ],
-   "handlerLine": 2336,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Makes a character play an animation that affects only the upper half of their body",
-   "sites": 3,
-   "missions": 1,
-   "firstMission": "TAXIODD",
-   "portable": false
-  },
-  {
-   "name": "GET_CHAR_MODEL",
-   "opcode": "0665",
-   "status": "stops",
-   "notes": [
-    "adapter lacks pedModelId (the thread gives up)"
-   ],
-   "handlerLine": 1111,
-   "ref": {
-    "kind": "handler",
-    "fn": "GetCharModel",
-    "where": "CharacterCommands.cpp:3057",
-    "stub": false
-   },
-   "doc": "Returns the characters model",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "TAXIODD",
-   "portable": true
-  },
-  {
    "name": "START_CAR_FIRE",
    "opcode": "0325",
    "status": "stops",
    "notes": [
     "adapter lacks startVehicleFire (the thread gives up)"
    ],
-   "handlerLine": 2080,
+   "handlerLine": 2083,
    "ref": {
     "kind": "absent"
    },
@@ -12161,7 +15837,7 @@
    "notes": [
     "adapter lacks getNameOfZone (the thread gives up)"
    ],
-   "handlerLine": 2211,
+   "handlerLine": 2214,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetNameOfZone",
@@ -12181,7 +15857,7 @@
    "notes": [
     "adapter lacks getClosestStraightRoad (the thread gives up)"
    ],
-   "handlerLine": 2337,
+   "handlerLine": 2340,
    "ref": {
     "kind": "absent"
    },
@@ -12198,7 +15874,7 @@
    "notes": [
     "adapter lacks setCarRandomRouteSeed (the thread gives up)"
    ],
-   "handlerLine": 2338,
+   "handlerLine": 2341,
    "ref": {
     "kind": "absent"
    },
@@ -12215,29 +15891,12 @@
    "notes": [
     "adapter lacks setCarAvoidLevelTransitions (the thread gives up)"
    ],
-   "handlerLine": 2339,
+   "handlerLine": 2342,
    "ref": {
     "kind": "absent"
    },
    "doc": "Sets whether the vehicle will avoid paths between levels (0426)",
    "sites": 3,
-   "missions": 1,
-   "firstMission": "COPCAR",
-   "portable": false
-  },
-  {
-   "name": "COPY_GROUP_DECISION_MAKER",
-   "opcode": "07e6",
-   "status": "stops",
-   "notes": [
-    "adapter lacks copyGroupDecisionMaker (the thread gives up)"
-   ],
-   "handlerLine": 2528,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Creates copy of group decision maker and adds it to mission cleanup list. Otherwise should be released with REMOVE_DECISION_MAKER",
-   "sites": 1,
    "missions": 1,
    "firstMission": "COPCAR",
    "portable": false
@@ -12249,7 +15908,7 @@
    "notes": [
     "adapter lacks isModelInCdimage (the thread gives up)"
    ],
-   "handlerLine": 2529,
+   "handlerLine": 2532,
    "ref": {
     "kind": "absent"
    },
@@ -12266,7 +15925,7 @@
    "notes": [
     "adapter lacks getRandomCarOfTypeInArea (the thread gives up)"
    ],
-   "handlerLine": 2530,
+   "handlerLine": 2533,
    "ref": {
     "kind": "absent"
    },
@@ -12283,7 +15942,7 @@
    "notes": [
     "adapter lacks setPedChrisCriminal (the thread gives up)"
    ],
-   "handlerLine": 1125,
+   "handlerLine": 1128,
    "ref": {
     "kind": "handler",
     "fn": "SetCharIsChrisCriminal",
@@ -12303,7 +15962,7 @@
    "notes": [
     "adapter lacks getClosestStealableObject (the thread gives up)"
    ],
-   "handlerLine": 2423,
+   "handlerLine": 2426,
    "ref": {
     "kind": "absent"
    },
@@ -12320,7 +15979,7 @@
    "notes": [
     "adapter lacks isProceduralInteriorActive (the thread gives up)"
    ],
-   "handlerLine": 2531,
+   "handlerLine": 2534,
    "ref": {
     "kind": "absent"
    },
@@ -12337,7 +15996,7 @@
    "notes": [
     "adapter lacks forceAllVehicleLightsOff (the thread gives up)"
    ],
-   "handlerLine": 2424,
+   "handlerLine": 2427,
    "ref": {
     "kind": "absent"
    },
@@ -12354,7 +16013,7 @@
    "notes": [
     "adapter lacks addBlipForCoordOld (the thread gives up)"
    ],
-   "handlerLine": 2534,
+   "handlerLine": 2537,
    "ref": {
     "kind": "absent"
    },
@@ -12371,7 +16030,7 @@
    "notes": [
     "adapter lacks pedWasDamagedByVehicle (the thread gives up)"
    ],
-   "handlerLine": 1119,
+   "handlerLine": 1122,
    "ref": {
     "kind": "handler",
     "fn": "HasCharBeenDamagedByCar",
@@ -12391,7 +16050,7 @@
    "notes": [
     "adapter lacks taskFollowPathNodesToCoordWithRadius (the thread gives up)"
    ],
-   "handlerLine": 2535,
+   "handlerLine": 2538,
    "ref": {
     "kind": "absent"
    },
@@ -12408,7 +16067,7 @@
    "notes": [
     "adapter lacks drawShadow (the thread gives up)"
    ],
-   "handlerLine": 2537,
+   "handlerLine": 2540,
    "ref": {
     "kind": "handler",
     "fn": "DrawShadow",

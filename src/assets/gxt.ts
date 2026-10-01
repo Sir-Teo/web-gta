@@ -91,7 +91,7 @@ const BROWSER_CONTROLS:Readonly<Record<string,string>>={VEHICLE_ENTER_EXIT:'F',P
  VEHICLE_TURRETUP:'NUM 2',VEHICLE_TURRETDOWN:'NUM 8',VEHICLE_TURRETLEFT:'NUM 4',VEHICLE_TURRETRIGHT:'NUM 6',SNEAK_ABOUT:'ALT'};
 /** The browser HUD draws plain text: ~n~ breaks the line, a ~k~ control names its key, and colour and style tokens
  * (~w~, ~r~, ~h~, ~z~ and the rest) drop. */
-export function gxtHudText(text:string){return text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>BROWSER_CONTROLS[action]??action.replace(/_/g,' ')).replace(/~n~/g,'\n').replace(/~[a-z]~/g,'');}
+export function gxtHudText(text:string){return text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>BROWSER_CONTROLS[action]??action.replace(/_/g,' ')).replace(/~n~/gi,'\n').replace(/~[a-z]~/gi,'');}
 /** TheText from the published text/american.gxt, loaded once. */
 export function loadNativeText(base:string){
  loading??=import('./staticWorldArchive').then(async({openStaticWorld})=>{

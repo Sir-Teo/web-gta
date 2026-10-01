@@ -207,6 +207,9 @@ function scriptedTask(thread:ScmThread,i:ScmInstruction,pedHandle:number,task:Sc
  world(thread,i,'givePedScriptedTask')(pedHandle,task,i.opcode&0x7fff);
 }
 const vec=(t:ScmThread,p:ScmParameter[],at:number)=>({x:t.readFloat(p[at]),y:t.readFloat(p[at+1]),z:t.readFloat(p[at+2])});
+/** CPed::GetDistanceFromCentreOfMassToBaseOfModel for a standing ped: a script point given without the offset is the
+ * ped's centre, a unit above the feet the adapters place. */
+const PED_CENTRE_ABOVE_FEET=1;
 /** Blip command dispatch is unreversed. The display flag defaults follow the
  * conventional handler behaviour: plain adds show blip and marker, sprite
  * adds show the blip only. CRadar itself ignores the colour argument. */
@@ -2916,6 +2919,32 @@ const handlers:Record<string,ScmCommandHandler>={
   const at=(k:number)=>[t.readFloat(p[k]),t.readFloat(p[k+1]),t.readFloat(p[k+2])];
   game(t,i).addStuntJump(i.offset,{centre:at(0),radius:at(3)},{centre:at(6),radius:at(9)},at(12),t.readInt(p[15]));
  },
+ /* --- The commands script.img's streamed scripts (the shops, gyms and machines) use beyond MAIN and the missions. */
+ // CTheScripts::bMiniGameInProgress (the dispatch is unreversed; the flag is the one IS_MINIGAME_IN_PROGRESS and the
+ // help-message gate read).
+ SET_MINIGAME_IN_PROGRESS:(t,p,i)=>{game(t,i).miniGameInProgress=bool(t,p[0]);},
+ // CWeaponInfo::GetWeaponInfo(type)'s m_nSlot and m_nModelId1 (dispatches unreversed).
+ GET_WEAPONTYPE_SLOT:(t,p,i)=>{t.writeInt(p[1],world(t,i,'weaponTypeSlot')(t.readInt(p[0])));},
+ GET_WEAPONTYPE_MODEL:(t,p,i)=>{t.writeInt(p[1],world(t,i,'weaponTypeModel')(t.readInt(p[0])));},
+ // GetCharArmour (CharacterCommands.cpp:2514): m_fArmour, which the script stores as an integer.
+ GET_CHAR_ARMOUR:(t,p,i)=>{t.writeInt(p[1],Math.trunc(world(t,i,'pedArmour')(t.readInt(p[0]))));},
+ // SetCharCoordinatesDontWarpGangNoOffset (CharacterCommands.cpp:3268): SetCharCoordinates(ped, posn, false, false),
+ // the point being the ped's centre rather than its feet.
+ SET_CHAR_COORDINATES_DONT_WARP_GANG_NO_OFFSET:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'setPedCoordinatesDontWarpGang')(t.readInt(p[0]),point.x,point.y,point.z-PED_CENTRE_ABOVE_FEET);
+ },
+ // CScriptsForBrains::IsObjectWithinBrainActivationRange (unreversed): an object brain's script ends itself once this
+ // fails.
+ IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isObjectWithinBrainActivationRange')(t.readInt(p[0])),negated(i));},
+ // CPedAttractorManager's users of the map's attractors. AUTHORED: the port puts no peds on an interior's attractors
+ // (InteriorManager_c is unreversed), so the closest attractor has no user, no ped is using one, and there is no
+ // brainless random ped to hand a script.
+ GET_USER_OF_CLOSEST_MAP_ATTRACTOR:(t,p)=>{t.writeInt(p[6],-1);},
+ IS_CHAR_USING_MAP_ATTRACTOR:(t,_p,i)=>{t.updateCompareFlag(false,negated(i));},
+ GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN:(t,p)=>{t.writeInt(p[4],-1);},
+ // CREATE_CHAR_AT_ATTRACTOR (registration disabled in the reference): the ped, standing at the scripted attractor.
+ CREATE_CHAR_AT_ATTRACTOR:(t,p,i)=>{t.writeInt(p[4],world(t,i,'createCharAtAttractor')(t.readInt(p[0]),model(t,i,p[1]),t.readInt(p[2]),t.readInt(p[3])));},
  // --- CStreaming (ObjectCommands.cpp). CScriptResourceManager bookkeeping is unreversed.
  REQUEST_MODEL:(t,p,i)=>{world(t,i,'requestModel')(model(t,i,p[0]));},
  HAS_MODEL_LOADED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasModelLoaded')(model(t,i,p[0])),negated(i));},

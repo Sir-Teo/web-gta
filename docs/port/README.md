@@ -15,7 +15,8 @@ npm run port -- all 2,11               # all three
 
 ## Stage 1: census (`scripts/port/census.mjs`)
 
-It decodes every instruction of MAIN and the 135 mission blocks with the game's own decoder (loaded from `src/`
+It decodes every instruction of MAIN, the 135 mission blocks and the 78 streamed scripts of `script.img` (the shops,
+gyms, machines and casino games, listed right after MAIN) with the game's own decoder (loaded from `src/`
 through Vite, so it can never disagree with what the game runs) and classifies each command two ways.
 
 **How the port answers it**, read from the source:
@@ -26,7 +27,7 @@ through Vite, so it can never disagree with what the game runs) and classifies e
 | `faithful` | dispatches, and nothing in its handler or its `ScmMission` adapter says otherwise |
 | `authored` | the handler's or adapter's comments say it is an authored stand-in (`AUTHORED`, "stands in for", "approximation", "the browser has no …") |
 | `silent` | it calls an optional host member that no layer implements, so it does nothing |
-| `stops` | a required `ScmWorldCommands` member is missing, so the thread gives up there |
+| `stops` | a required `ScmWorldCommands` member is missing, or the command has no handler at all, so the thread gives up there |
 
 **What the reference offers**, from a gta-reversed checkout (`source/game_sa/Scripts/Commands/*.cpp`):
 `handler` (reversed, with the function's file and line, and whether its body still calls into the executable),
