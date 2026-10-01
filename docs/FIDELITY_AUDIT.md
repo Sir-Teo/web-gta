@@ -8994,3 +8994,10 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **`GET_CAR_COLOURS` and `GET_EXTRA_CAR_COLOURS`** read the four paint slots' palette entries.
 - **`SET_CAR_AS_MISSION_CAR` (unreversed)** makes a car the script holds a mission vehicle the population keeps, on the
   mission's cleanup list (BCESAR4, FARLIE4). **`TASK_SAY`** checks its ped; the ped's line is not played.
+
+## Sliding objects meet what stands in their way
+
+- **`SLIDE_OBJECT`'s collision check** (Vice City's handler; SA's is unreversed) now has its question answered: the
+  object's collision at the next point is tested against every body that is not fixed (the player, peds, vehicles,
+  other script objects), and a blocked step is not taken. MAIN's gates and 15 missions' sliding doors stop at CJ rather
+  than pass through him.

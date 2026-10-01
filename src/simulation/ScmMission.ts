@@ -412,6 +412,8 @@ export interface ScmMissionWorld {
  playerPressingHorn?():boolean;
  /** CPopCycle::m_nCurrentZoneType. */
  populationZoneType?():number;
+ /** Whether a script object's collision moved from `from` to `to` (native) would overlap a body that is not fixed. */
+ scriptObjectBlockedAt?(handle:number,from:{x:number;y:number;z:number},to:{x:number;y:number;z:number}):boolean;
  /** Streams an animation block (an .ifp of the archive) in ahead of its first clip. */
  preloadAnimationBlock?(block:string):void;
  /** CTaskSimpleHoldEntity's partial clip on the player (a CARRY clip name), or none. */
@@ -1338,6 +1340,9 @@ export class ScmMission {
    objectHasBeenDamaged:handle=>this.runtime.game.objects.hasBeenDamaged(handle),
    // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.
    setPedDropsObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly);},
+   // SLIDE_OBJECT's collision check (Vice City's handler, the move undone when the object meets something): whether the
+   // object at the next point would overlap a movable thing, the player, a ped or a vehicle.
+   objectBlockedAt:(handle,position)=>{const object=this.runtime.game.objects.at(handle);return object.usesCollision&&!!this.world.scriptObjectBlockedAt?.(handle,object.position,position);},
    // The carry clips (carry.ifp) are streamed in with the first stealable object, as the hold task needs them at once.
    setObjectAsStealable:(handle,state)=>{this.runtime.game.objects.at(handle).stealable=state;if(state)this.world.preloadAnimationBlock?.('CARRY');},
    // CEventGlobalGroup::GetSoundLevel (reversed) over the last frame's quiet sounds: every source's for -1, else the

@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T11:53:06.462Z",
+ "generated": "2026-10-01T12:19:35.432Z",
  "reference": {
   "path": "../gta-reversed/gta-reversed",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -10,9 +10,9 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1120,
+   "faithful": 1121,
    "authored": 31,
-   "silent": 9,
+   "silent": 8,
    "skipped": 192,
    "stops": 39
   }
@@ -27,9 +27,9 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3770,
+    "faithful": 3772,
     "authored": 19,
-    "silent": 33,
+    "silent": 31,
     "skipped": 19,
     "stops": 0
    },
@@ -85,12 +85,12 @@
      "sites": 2
     },
     {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
+     "name": "CHANGE_GARAGE_TYPE",
+     "status": "authored",
      "sites": 2
     },
     {
-     "name": "CHANGE_GARAGE_TYPE",
+     "name": "SET_GARAGE_RESPRAY_FREE",
      "status": "authored",
      "sites": 2
     }
@@ -423,19 +423,13 @@
    "byStatus": {
     "core": 76,
     "nop": 0,
-    "faithful": 36,
+    "faithful": 38,
     "authored": 0,
-    "silent": 2,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "gymbike.scm",
@@ -3337,18 +3331,13 @@
    "byStatus": {
     "core": 1373,
     "nop": 2,
-    "faithful": 1104,
+    "faithful": 1107,
     "authored": 1,
-    "silent": 12,
+    "silent": 9,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
@@ -3506,9 +3495,9 @@
    "byStatus": {
     "core": 3536,
     "nop": 38,
-    "faithful": 1344,
+    "faithful": 1351,
     "authored": 3,
-    "silent": 85,
+    "silent": 78,
     "skipped": 0,
     "stops": 0
    },
@@ -3522,11 +3511,6 @@
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 33
-    },
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 7
     },
     {
      "name": "SET_VEHICLE_IS_CONSIDERED_BY_PLAYER",
@@ -4722,9 +4706,9 @@
    "byStatus": {
     "core": 1666,
     "nop": 49,
-    "faithful": 809,
+    "faithful": 810,
     "authored": 4,
-    "silent": 29,
+    "silent": 28,
     "skipped": 8,
     "stops": 0
    },
@@ -4772,11 +4756,6 @@
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -4911,9 +4890,9 @@
    "byStatus": {
     "core": 2127,
     "nop": 3,
-    "faithful": 1284,
+    "faithful": 1286,
     "authored": 2,
-    "silent": 18,
+    "silent": 16,
     "skipped": 1,
     "stops": 0
    },
@@ -4927,11 +4906,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 5
-    },
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "PLAY_MISSION_AUDIO",
@@ -5456,9 +5430,9 @@
    "byStatus": {
     "core": 926,
     "nop": 6,
-    "faithful": 887,
+    "faithful": 889,
     "authored": 4,
-    "silent": 46,
+    "silent": 44,
     "skipped": 2,
     "stops": 0
    },
@@ -5482,11 +5456,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 4
-    },
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "SET_CAR_LIGHTS_ON",
@@ -6561,18 +6530,13 @@
    "byStatus": {
     "core": 1843,
     "nop": 9,
-    "faithful": 921,
+    "faithful": 928,
     "authored": 2,
-    "silent": 19,
+    "silent": 12,
     "skipped": 17,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 7
-    },
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
@@ -6627,6 +6591,11 @@
      "name": "CLEAR_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
      "status": "skipped",
      "sites": 1
+    },
+    {
+     "name": "USE_DETONATOR",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -6639,9 +6608,9 @@
    "byStatus": {
     "core": 1409,
     "nop": 1,
-    "faithful": 1636,
+    "faithful": 1644,
     "authored": 7,
-    "silent": 39,
+    "silent": 31,
     "skipped": 50,
     "stops": 0
    },
@@ -6672,11 +6641,6 @@
      "sites": 9
     },
     {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 8
-    },
-    {
      "name": "DOES_SEARCHLIGHT_EXIST",
      "status": "skipped",
      "sites": 7
@@ -6703,6 +6667,11 @@
     },
     {
      "name": "SWITCH_ON_GROUND_SEARCHLIGHT",
+     "status": "skipped",
+     "sites": 2
+    },
+    {
+     "name": "IS_CHAR_IN_SEARCHLIGHT",
      "status": "skipped",
      "sites": 2
     }
@@ -6848,18 +6817,13 @@
    "byStatus": {
     "core": 2109,
     "nop": 2,
-    "faithful": 498,
+    "faithful": 505,
     "authored": 1,
-    "silent": 16,
+    "silent": 9,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 7
-    },
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
@@ -6974,18 +6938,13 @@
    "byStatus": {
     "core": 979,
     "nop": 2,
-    "faithful": 812,
+    "faithful": 822,
     "authored": 1,
-    "silent": 15,
+    "silent": 5,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 10
-    },
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
@@ -7214,18 +7173,13 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 475,
+    "faithful": 482,
     "authored": 4,
-    "silent": 10,
+    "silent": 3,
     "skipped": 10,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 7
-    },
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE",
      "status": "skipped",
@@ -7469,9 +7423,9 @@
    "byStatus": {
     "core": 1750,
     "nop": 4,
-    "faithful": 1372,
+    "faithful": 1378,
     "authored": 0,
-    "silent": 54,
+    "silent": 48,
     "skipped": 3,
     "stops": 0
    },
@@ -7480,11 +7434,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 40
-    },
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 6
     },
     {
      "name": "LOAD_MISSION_AUDIO",
@@ -7900,18 +7849,13 @@
    "byStatus": {
     "core": 4564,
     "nop": 54,
-    "faithful": 1235,
+    "faithful": 1245,
     "authored": 4,
-    "silent": 17,
+    "silent": 7,
     "skipped": 26,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
-     "sites": 10
-    },
     {
      "name": "SET_PLANE_THROTTLE",
      "status": "skipped",
@@ -7964,6 +7908,11 @@
     },
     {
      "name": "GET_PLANE_UNDERCARRIAGE_POSITION",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "PLANE_FLY_IN_DIRECTION",
      "status": "skipped",
      "sites": 1
     }
@@ -8241,9 +8190,9 @@
    "byStatus": {
     "core": 2295,
     "nop": 1,
-    "faithful": 1830,
+    "faithful": 1831,
     "authored": 1,
-    "silent": 14,
+    "silent": 13,
     "skipped": 5,
     "stops": 0
    },
@@ -8276,11 +8225,6 @@
     {
      "name": "SET_PLAYER_MOOD",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SLIDE_OBJECT",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -9376,24 +9320,6 @@
    "doc": "Plays an audio file with the specified ID from the Audio directory",
    "sites": 144,
    "missions": 119,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "SLIDE_OBJECT",
-   "opcode": "034e",
-   "status": "silent",
-   "notes": [
-    "dispatch unreversed; follows the routines it reaches",
-    "adapter lacks objectBlockedAt"
-   ],
-   "handlerLine": 1436,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Animates object movement toward specified coordinates. Returns true if the object has finished moving",
-   "sites": 75,
-   "missions": 15,
    "firstMission": "MAIN",
    "portable": false
   },

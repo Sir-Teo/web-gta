@@ -4630,6 +4630,15 @@ async function boot() {
                  playerPressingHorn:()=>!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike)&&(input.down('CapsLock')||input.down('KeyH')),
                  populationZoneType:()=>fleet?.pedZone()?.zoneType??0,
                  preloadAnimationBlock:block=>{void pedestrians?.scriptAnimation(block,'');},
+                 scriptObjectBlockedAt:(handle,from,to)=>{
+                  const body=scriptObjectViews?.bodyOf(handle);if(!body)return false;
+                  const offset={x:to.x-from.x,y:to.z-from.z,z:-(to.y-from.y)};
+                  for(let i=0;i<body.numColliders();i++){
+                   const c=body.collider(i);if(!c.isEnabled())continue;const t=c.translation();
+                   if(sim.world.intersectionWithShape({x:t.x+offset.x,y:t.y+offset.y,z:t.z+offset.z},c.rotation(),c.shape,RAPIER.QueryFilterFlags.EXCLUDE_FIXED,undefined,undefined,body))return true;
+                  }
+                  return false;
+                 },
                  setPlayerCarryPose:clip=>{
                   const view=render.nativeCharacter,generation=++carryPoseGeneration;if(!view)return;
                   if(!clip){view.setCarryPose(undefined);return;}
