@@ -157,7 +157,9 @@ export function missionBotTick(dtSeconds:number){
   else mem.parkedAtPlace=0;
   // Over the blip on a step above the street it marks (SWEET1B's porch), a player is there.
   const over=Math.hypot(p.position.x-me.x,p.position.y-me.y)<1.5&&Math.abs(p.position.z-me.z)<4;
-  if(!over&&glide(p.position,1)){mem.idleAtPlace=0;return {action:'go to place'};}
+  // The time spent about the place (within six units of it) counts toward walking into a door beside it.
+  if(Math.hypot(p.position.x-me.x,p.position.y-me.y)>6)mem.idleAtPlace=0;
+  if(!over&&glide(p.position,1))return {action:'go to place'};
   // Indoors with nothing left to do at the place for twenty seconds (the haircut bought, the counter served), a player
   // walks out through the interior's exit marker: INTRO2 waits for CJ back at the barber's door.
   if(!vehicle&&me.z>500){
