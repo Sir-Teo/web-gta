@@ -58,9 +58,13 @@ export function missionBotTick(dtSeconds:number){
  const marks=vehicle?[]:(r.game.objects?.all??[]).filter((o:any)=>o.targetable&&!o.damaged&&o.visible!==false&&distance(o.position)<40);
  // The objective says to shoot a car's gas tank (SWEET2's Tampa at Emmet's, no blip on it): the script's nearest car
  // that nobody rides.
+ // One car an objective: once the car shot at is wrecked the brief can stay up for its ten seconds while the script
+ // moves on, and the car CJ came in (Smoke's, which SWEET2 fails on losing) is never the one.
+ if(vehicle)mem.rodeIn=vehicle;
  const brief=r.game.messages?.briefs?.[0]?.key,objective=brief?String(g.text?.(brief)??''):'';
- const tankCar=!vehicle&&/gas tank/i.test(objective)?(m.vehicles?.handles??[]).map((h:number)=>({h,car:m.vehicles.entity(h)}))
-  .filter((c:any)=>c.car?.car?.body&&!c.car.wrecked&&!c.car.occupied&&c.car.car.nativeFramePosition?.('petrolcap'))
+ if(mem.tankTarget!==undefined&&m.vehicles.entity?.(mem.tankTarget)?.wrecked){mem.tankDone=mem.tankBrief;mem.tankTarget=undefined;}
+ const tankCar=!vehicle&&brief!==mem.tankDone&&/gas tank/i.test(objective)?(m.vehicles?.handles??[]).map((h:number)=>({h,car:m.vehicles.entity(h)}))
+  .filter((c:any)=>c.h!==mem.rodeIn&&c.car?.car?.body&&!c.car.wrecked&&!c.car.occupied&&c.car.car.nativeFramePosition?.('petrolcap'))
   .map((c:any)=>{const t=c.car.car.body.translation();return {...c,d:Math.hypot(t.x-me.x,-t.z-me.y)};}).filter((c:any)=>c.d<40).sort((a:any,b:any)=>a.d-b.d)[0]:undefined;
  if(!blips.length&&!marker&&!marks.length&&!tankCar)return null;
  const nearest=(list:any[])=>list.sort((a,b)=>distance(a.position)-distance(b.position))[0];
@@ -152,6 +156,7 @@ export function missionBotTick(dtSeconds:number){
    return {x:ix*q.w+iw*-q.x+iy*-q.z-iz*-q.y,y:iy*q.w+iw*-q.y+iz*-q.x-ix*-q.z,z:iz*q.w+iw*-q.z+ix*-q.y-iy*-q.x};};
   const o=rot({x:cap.x,y:cap.z,z:-cap.y}),at={x:t.x+o.x,y:t.y+o.y,z:t.z+o.z},out=rot({x:Math.sign(cap.x)||1,y:0,z:0});
   const stand={x:at.x+out.x*4,y:-(at.z+out.z*4),z:me.z};
+  mem.tankTarget=tankCar.h;mem.tankBrief=brief;
   if(glide(stand,.3))return {action:'go to gas tank',target:tankCar.h};
   const now=performance.now();if(now-(mem.lastShot??0)>300){mem.lastShot=now;g.fireAt(at.x,at.y,at.z);}
   return {action:'shoot gas tank',target:tankCar.h};
