@@ -2006,6 +2006,9 @@ export class WorldPedestrians {
  }
  /** Whether a ped is still in the world. */
  hasPed(ped:Pedestrian){return this.people.includes(ped);}
+ /** Street peds (not a script's, the player's crew or cops) attacking the player or one of `members`: what the
+  * player's group answers as a threat. */
+ attackersOf(members:ReadonlySet<unknown>){return this.people.filter(p=>!p.mission&&p.health>0&&!p.follow&&!p.officer&&p.retaliate>0&&(!p.foe||members.has(p.foe)));}
  /** A clip from a script's animation block, for the player's own tasks too. */
  scriptAnimation(file:string,name:string){return this.catalog?.scriptAnimation(file,name)??Promise.resolve(undefined);}
  /** CPedPlacement::FindZCoorForPed for any point: the highest ground under two probes from half a unit above it. */

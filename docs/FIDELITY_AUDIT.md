@@ -9083,3 +9083,12 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   bullet that lands within 0.35 of the model's `petrolcap` dummy (DUMMY_GAS_CAP) blows the car up at once.
   `CVehicle::InflictDamage` is unreversed, so the reach is AUTHORED; the instant explosion is the retail behaviour
   SWEET2 teaches ("Use manual aim to shoot the car's gas tank").
+
+## Homies in CJ's car fire at threats
+
+- **`CTaskAllocatorKillThreatsDriveby`** (reversed): while CJ drives, every member of his group riding his car (not
+  driving it) gets `CTaskSimpleGangDriveBy` on the threat, abort range 60, frequency 90, all directions, through the
+  port's TASK_DRIVE_BY rider. Which ped is the threat is `CPedGroupIntelligence`'s event handling, unreversed
+  (AUTHORED): the nearest within 60 attacking CJ or a member (a kill task or a retaliation on them, a rider's drive-by
+  at them or at CJ's car), looked for twice a second; the drive-by ends when none is left, and one the script gave
+  is left alone. SWEET3 teaches it ("Gang members in your car will open fire on threats if you're close enough").

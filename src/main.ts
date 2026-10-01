@@ -32,6 +32,8 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
  /** TASK_DRIVE_BY: the rider leans out and fires (scriptDriveBy). */
  driveBy?:import('./simulation/scriptDriveBy').ScriptDriveBy;
  seat:number|'driver';health:number;heading:number;accuracy:number;invulnerable:boolean;gone:boolean;
+ /** The drive-by is the group's answer to a threat (CTaskAllocatorKillThreatsDriveby), not the script's, and on whom. */
+ groupDriveBy?:string;
  /** Where on the car the ped hangs, in the car's own axes, for one attached rather than seated. */
  offset?:{x:number;y:number;z:number};
  /** An attached ped that stands (the hot-dog vendor) and the quarter turn he faces off the car's front. */
@@ -463,11 +465,57 @@ async function boot() {
   const scriptDriveByWorld:ScriptDriveByWorld={sim,cars:()=>fleet?.cars??[],random:Math.random,
    targetPosition:target=>{
     if(target.kind==='point')return {x:target.x,y:target.y,z:target.z};
+    if(target.kind==='live')return target.position();
     const at=target.kind==='ped'?mission?.runtime.world?.pedPosition?.(target.handle):mission&&mission.vehicles.exists(target.handle)?mission.vehicles.positionOf(target.handle):undefined;
     return at&&{x:at.x,y:at.z-(target.kind==='ped'?PED_ORIGIN_HEIGHT:0),z:-at.y};
    },
    hitPed:(collider,damage,weapon,direction,end)=>!!pedestrians?.bulletHit(collider,damage,weapon,direction,end),
    onShot:(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');}};
+  /** CTaskAllocatorKillThreatsDriveby (reversed) for CJ's group while he drives: every member riding his car (not
+   * driving it) gets CTaskSimpleGangDriveBy on the threat, abort range 60, frequency 90, all directions. Which ped is
+   * the threat is CPedGroupIntelligence's, unreversed (AUTHORED): the nearest one within the range attacking CJ or a
+   * member (a kill task or a retaliation on them, a rider's drive-by at them or at CJ's car), looked for twice a
+   * second. A drive-by the script gave a rider is left alone; the group's ends when no threat is left. */
+  let groupThreatScan=0;
+  const groupThreatDriveBys=(dt:number)=>{
+   const leaderCar=worldCar?.occupied?worldCar:fleet?.occupied;
+   const clearAll=()=>{for(const rider of scriptRiders)if(rider.groupDriveBy){rider.driveBy=undefined;rider.groupDriveBy=undefined;}};
+   const m=mission;if(!leaderCar||!m||sim.player.health<=0){clearAll();return;}
+   if((groupThreatScan-=dt)>0)return;groupThreatScan=.5;
+   const group=m.groups?.get?.(0),members=group?group.all().filter((h:number)=>h!==1&&group.isFollower(h)):[];
+   const entityOf=(h:number)=>{try{return m.peds.exists(h)?m.peds.entity(h):undefined;}catch{return undefined;}};
+   const riders=members.map((h:number)=>asRider(entityOf(h))).filter((r):r is ScriptRider=>!!r&&r.car===leaderCar&&r.seat!=='driver'&&!r.gone&&r.health>0);
+   if(!riders.length){clearAll();return;}
+   const memberEntities=new Set(members.map(entityOf).filter(Boolean));
+   const isUs=(handle:number)=>handle===1||members.includes(handle);
+   const c=leaderCar.car.body.translation(),threats:{key:string;position:()=>{x:number;y:number;z:number}|undefined}[]=[];
+   for(const h of m.peds.handles){
+    if(isUs(h))continue;const e=entityOf(h);if(!e)continue;
+    const rider=asRider(e);
+    if(rider){
+     const t=rider.driveBy?.target;if(rider.gone||rider.health<=0||rider.car.wrecked||!t)continue;
+     const atUs=t.kind==='ped'&&isUs(t.handle)||t.kind==='vehicle'&&(t.handle===1||m.vehicles.exists(t.handle)&&m.vehicles.entity(t.handle)===leaderCar);
+     if(atUs)threats.push({key:`ped:${h}`,position:()=>rider.gone||rider.car.wrecked||rider.health<=0?undefined:rider.car.car.body.translation()});
+     continue;
+    }
+    const p=onFoot(e);if(!p||p.health<=0||p.follow)continue;
+    const killing=p.order?.kind==='killPed'&&(!p.order.foe||memberEntities.has(p.order.foe))||p.retaliate>0&&(!p.foe||memberEntities.has(p.foe));
+    if(killing)threats.push({key:`ped:${h}`,position:()=>p.health>0&&pedestrians?.hasPed(p)?p.actor.player.position:undefined});
+   }
+   for(const p of pedestrians?.attackersOf(memberEntities)??[]){
+    threats.push({key:`street:${p.id}`,position:()=>p.health>0&&pedestrians?.hasPed(p)?p.actor.player.position:undefined});
+   }
+   let best:typeof threats[number]|undefined,bestD=60;
+   for(const t of threats){const at=t.position();if(!at)continue;const d=Math.hypot(at.x-c.x,at.y-c.y,at.z-c.z);if(d<bestD){bestD=d;best=t;}}
+   const q=leaderCar.car.body.rotation(),heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
+   for(const rider of riders){
+    if(rider.driveBy&&!rider.groupDriveBy)continue;
+    if(!best){if(rider.groupDriveBy){rider.driveBy=undefined;rider.groupDriveBy=undefined;}continue;}
+    if(rider.groupDriveBy===best.key)continue;
+    const at=best.position()!,rightSide=(at.x-c.x)*Math.cos(heading)+(at.z-c.z)*-Math.sin(heading)>0;
+    rider.driveBy=newScriptDriveBy({kind:'live',position:best.position},60,90,rightSide);rider.groupDriveBy=best.key;
+   }
+  };
   let pedestrians:WorldPedestrians|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
   let worldZones:import('./assets/worldZones').WorldZones|undefined;
@@ -2983,6 +3031,7 @@ async function boot() {
          phone.step(view);if(!phone.active&&key!=='player')phones.delete(key);
         }});
         guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>{scriptCars.step(step,sim.player.position);if(mission)scriptCars.pathAreas(sim.player.position);});guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied&&!worldCar.disposed?worldCar:undefined));guard('emergency.update',()=>emergency?.update(step));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
+        guard('groupDriveBys',()=>groupThreatDriveBys(step));
         guard('scriptDriveBys',()=>{const gun=driveby?.gun;if(!gun)return;for(const rider of scriptRiders)if(rider.driveBy&&!rider.gone&&rider.health>0&&!rider.car.wrecked)stepScriptDriveBy(rider.driveBy,rider.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);});
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
         guard('pedestrians.beforeStep',()=>pedestrians?.beforeStep(step,fleet?.cars??[]));

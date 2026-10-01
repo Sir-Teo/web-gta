@@ -13,7 +13,9 @@ import type {WorldCar} from './WorldCar';
  * - `fireRate` (the command's percentage) is taken as the chance each burst is fired.
  * - The rider fires the Micro SMG, which the gang drive-bys carry, whatever weapon the script gave it.
  * Renderer coordinates throughout. */
-export type DriveByTarget={kind:'point';x:number;y:number;z:number}|{kind:'ped';handle:number}|{kind:'vehicle';handle:number};
+export type DriveByTarget={kind:'point';x:number;y:number;z:number}|{kind:'ped';handle:number}|{kind:'vehicle';handle:number}
+ /** A threat the group picked (a street ped, a rider in another car): its feet where it is now, renderer coordinates. */
+ |{kind:'live';position:()=>{x:number;y:number;z:number}|undefined};
 export interface ScriptDriveBy {
  target:DriveByTarget;radius:number;fireRate:number;
  /** The window it fires from: the task's right-hand-seat flag, or the side facing the target. */
