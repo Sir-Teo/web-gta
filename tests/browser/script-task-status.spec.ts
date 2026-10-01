@@ -24,6 +24,8 @@ test('a script ped’s task reports its status until it finishes',async({page})=
  // Another task's opcode is not this one's.
  expect(await status(0x05d3)).toBe(7);
  await expect.poll(()=>status(),{timeout:10000}).toBe(1);
+ // CTaskSimpleStandStill has no move state: the ped stops, rather than walking on the spot.
+ await expect.poll(()=>page.evaluate((handle:number)=>(window as any).__game.missionForProfiling().peds.entity(handle).gait,ped),{timeout:1500}).toBeLessThan(.05);
  await expect.poll(()=>status(),{timeout:30000}).toBe(7);
  // A cleared task is finished at once.
  await page.evaluate(({handle,opcode})=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.givePedScriptedTask(handle,{kind:'standStill',time:60000},opcode);w.clearPedTasks(handle);},{handle:ped,opcode:STAND_STILL});

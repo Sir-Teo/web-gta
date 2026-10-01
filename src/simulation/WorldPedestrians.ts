@@ -3194,7 +3194,9 @@ export class WorldPedestrians {
    if(p.order&&p.health>0&&p.down===0){
     if(p.order.kind==='dive'){dx=0;dz=0;if(!p.evade)this.startNextOrder(p);}
     else if(p.order.kind==='standStill'){
-     dx=0;dz=0;p.order.remaining-=dt;if(p.order.remaining<=0)this.startNextOrder(p);
+     // CTaskSimpleStandStill: no move state, so the ped stops rather than walking on the spot (a group's follower,
+     // whose default stand sits under the group's task, still moves with the group).
+     dx=0;dz=0;if(!(p.order.isDefault&&p.follow))orderSpeed=0;p.order.remaining-=dt;if(p.order.remaining<=0)this.startNextOrder(p);
     }else if(p.order.kind==='killPed'){
      // Over once the target is dead or gone (or the player dead), or when the task's own time runs out; the
      // retaliation it holds up ends with it. Until then the combat below moves and fights.

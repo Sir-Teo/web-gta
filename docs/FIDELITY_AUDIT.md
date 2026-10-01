@@ -9035,3 +9035,10 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   a script ped's likewise.
 - **`GET_CHAR_HEIGHT_ABOVE_GROUND`** (unreversed; AUTHORED) is the ped's origin less the ground under it, and
   **`IS_2PLAYER_GAME_GOING_ON`** is `CGameLogic::IsCoopGameGoingOn`, false with no second player.
+
+## A ped told to stand still stops
+
+- **`TASK_STAND_STILL`** (and the stand a script ped falls back to between tasks) has no move state
+  (`CTaskSimpleStandStill`), so the ped's pace eases to nothing. The browser left a stood ped at its walking pace:
+  it walked on the spot, counted itself blocked, and the authored sidestep slid it about (SWEET1B's couch dealer
+  drifted into the corner behind the den's wall). A follower's default stand still moves with the group.
