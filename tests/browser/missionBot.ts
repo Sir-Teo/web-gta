@@ -46,7 +46,9 @@ export function missionBotTick(dtSeconds:number){
  mem.leftMenuAt=undefined;
  // The red marker a locate highlights (HighlightImportantArea: a shop counter, the barber's chair) is where the script
  // waits for CJ to stand still; on foot within eight units of one he walks into it and stops, as a player does.
- // (Not once he has given up on the place and is walking out.)
+ // (Not once he has given up on the place and is walking out.) The idle time indoors starts over each time he is out
+ // of doors or in a car, so the wait at one shop does not carry into the next.
+ if(vehicle||me.z<500)mem.idleIndoors=0;
  const marker=vehicle||(mem.idleIndoors??0)>20?undefined:m.highlightedAreas?.().filter((h:any)=>distance(h)<8).sort((a:any,b:any)=>distance(a)-distance(b))[0];
  if(!blips.length&&!marker)return null;
  const nearest=(list:any[])=>list.sort((a,b)=>distance(a.position)-distance(b.position))[0];
