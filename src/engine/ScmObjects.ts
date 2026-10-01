@@ -36,6 +36,8 @@ export interface ScmObject {
  heading:number;rotation:{x:number;y:number;z:number};
  /** CPhysical::m_vecMoveSpeed, native units per frame. */
  velocity:{x:number;y:number;z:number};
+ /** CPhysical::m_vecTurnSpeed, radians per frame about the native axes. */
+ turnSpeed:{x:number;y:number;z:number};
  scale:number;usesCollision:boolean;objectType:number;
  /** CObject::m_fHealth, which CObject::Init sets to a thousand, and whether anything has taken any of it. */
  health:number;damaged:boolean;
@@ -129,7 +131,7 @@ export class ScmObjects {
   requireAsset(this.objects.size<MAX_SCRIPT_OBJECTS,'Script object pool is full.');
   requireAsset(Number.isFinite(position.x)&&Number.isFinite(position.y)&&Number.isFinite(position.z),'Invalid script object position.');
   const handle=this.nextHandle++;
-  const object:ScmObject={handle,model,position:{...position},heading:0,rotation:{x:0,y:0,z:0},velocity:{x:0,y:0,z:0},scale:1,usesCollision:true,
+  const object:ScmObject={handle,model,position:{...position},heading:0,rotation:{x:0,y:0,z:0},velocity:{x:0,y:0,z:0},turnSpeed:{x:0,y:0,z:0},scale:1,usesCollision:true,
    objectType:options.external?OBJECT_MISSION2:OBJECT_MISSION,areaCode:0,colDamageEffect:COL_DAMAGE_EFFECT_NONE,dontApplySpeed:false,isStatic:true,
    health:DEFAULT_OBJECT_HEALTH,damaged:false,visible:true,lastWeaponDamage:-1,renderDamaged:false,broken:false,targetable:false,onlyDamagedByPlayer:false,
    colDamageMultiplier:1,smashMultiplier:1,mass:99999,
@@ -183,7 +185,7 @@ export class ScmObjects {
   if(!object.colDamageEffect||object.onlyDamagedByPlayer&&damager!=='player'&&damager!=='playerVehicle')return out;
   object.lastWeaponDamage=weaponType;
   if(!(scaled>150||object.health===0))return out;
-  const smash=()=>{object.usesCollision=false;object.visible=false;object.isStatic=true;object.proofs.explosion=true;object.velocity={x:0,y:0,z:0};out.removed=true;out.destroyed=true;};
+  const smash=()=>{object.usesCollision=false;object.visible=false;object.isStatic=true;object.proofs.explosion=true;object.turnSpeed={x:0,y:0,z:0};object.velocity={x:0,y:0,z:0};object.turnSpeed={x:0,y:0,z:0};out.removed=true;out.destroyed=true;};
   switch(object.colDamageEffect){
    case EFFECT_CHANGE_MODEL:if(!object.renderDamaged){out.destroyed=true;out.changedModel=true;}object.renderDamaged=true;break;
    case EFFECT_SMASH_COMPLETELY:smash();break;
@@ -253,6 +255,24 @@ export class ScmObjects {
   const object=this.at(handle),v=object.velocity;object.velocity={x:v.x+velocity.x/50,y:v.y+velocity.y/50,z:v.z+velocity.z/50};
  }
  getVelocity(handle:number){const v=this.at(handle).velocity;return {x:v.x*50,y:v.y*50,z:v.z*50};}
+ /** SET_OBJECT_ROTATION_VELOCITY (CPhysical::SetTurnSpeed, as reVC's handler): radians a second about the native axes,
+  * kept per frame at fifty a second. */
+ setTurnSpeed(handle:number,speed:{x:number;y:number;z:number}){this.at(handle).turnSpeed={x:speed.x/50,y:speed.y/50,z:speed.z/50};}
+ /** ADD_TO_OBJECT_ROTATION_VELOCITY: the same units, added to m_vecTurnSpeed. */
+ addToTurnSpeed(handle:number,speed:{x:number;y:number;z:number}){
+  const object=this.at(handle),w=object.turnSpeed;object.turnSpeed={x:w.x+speed.x/50,y:w.y+speed.y/50,z:w.z+speed.z/50};
+ }
+ /** GET_OBJECT_ROTATION_VELOCITY: m_vecTurnSpeed back in radians a second. */
+ getTurnSpeed(handle:number){const w=this.at(handle).turnSpeed;return {x:w.x*50,y:w.y*50,z:w.z*50};}
+ /** ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY (AUTHORED, the handler is unreversed): the speed given in the frame of the
+  * object's own heading of travel on the ground (x to its right, y along it, z up), units a second, added to
+  * m_vecMoveSpeed. POOL2 gives the cue ball its side and top spin this way the moment it strikes a ball. An object
+  * standing still has no heading of travel and takes the speed in the world's axes. */
+ addVelocityRelativeToVelocity(handle:number,speed:{x:number;y:number;z:number}){
+  const object=this.at(handle),v=object.velocity,flat=Math.hypot(v.x,v.y);
+  const forward=flat>0?{x:v.x/flat,y:v.y/flat}:{x:0,y:1},right={x:forward.y,y:-forward.x};
+  object.velocity={x:v.x+(right.x*speed.x+forward.x*speed.y)/50,y:v.y+(right.y*speed.x+forward.y*speed.y)/50,z:v.z+speed.z/50};
+ }
  setPosition(handle:number,position:{x:number;y:number;z:number}){this.at(handle).position={...position};}
  setScale(handle:number,scale:number){requireAsset(Number.isFinite(scale),'Invalid object scale.');this.at(handle).scale=scale;}
  /** The object's own rows, which the object-space transform needs: CMatrix::SetRotate (Core/Matrix.cpp 0x59AD20 region,

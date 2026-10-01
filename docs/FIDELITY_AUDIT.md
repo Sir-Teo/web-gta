@@ -8925,3 +8925,25 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   (Ped.cpp:2407): a sprint 55, a full run 45, a jog (ratio − 1) × 15 + 30 past a ratio of 1.5, walking and sneaking
   nothing (CJ wears no balaclava). The script reads the frame before's, as the group lives until `CWorld::Process`
   flushes it. Not yet: the car doors' (`CAutomobile::ProcessOpenDoor`) and the other sources' events.
+
+## A script's interiors without a door
+
+- **The scene follows a script's area and teleport.** The original's world is one, its interiors standing high over the
+  map, and `CStreaming` loads what `CGame::currArea` names round the player wherever a script puts him; the browser's
+  scene is one window, the street or one interior's neighbourhood. A script that sets the area visible and teleports CJ
+  now swaps the window as a save point's is swapped, the step held until it is in (as `LOAD_SCENE` waits). INTRO2 takes
+  CJ out of the pizza place to Sweet's car this way; the window stayed the interior's and the car waited for its
+  collision for ever. An interior is taken only for a point near one of that area's own doors (within 100 units across
+  and 50 up or down), since a mission often sets a house's area for its opening cutscene while CJ waits outside
+  (SWEET1B), and the street must stay under him.
+- **`SET_CHAR_AREA_VISIBLE` on the player to area 0** empties the door stack (`ms_entryExitStackPosn = 0`) and stops the
+  extra colour, as reversed; a restart sets `CGame::currArea` back to 0 (GameLogic.cpp:407).
+
+## Object turn speed
+
+- **`SET_`, `ADD_TO_` and `GET_OBJECT_ROTATION_VELOCITY`** keep `m_vecTurnSpeed` per frame (the command's radians a second
+  over fifty, as reVC's handler) and a moving object's body turns at it, its turn read back as it lasts (DRUGS4's props,
+  POOL2's balls; basketb asks for its ball's).
+- **`ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY` (AUTHORED).** The handler is unreversed: the speed is added in the frame of
+  the object's heading of travel on the ground (x to its right, y along it, z up), units a second. POOL2 gives the cue
+  ball its side and top spin this way as it strikes a ball.

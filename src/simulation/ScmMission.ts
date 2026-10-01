@@ -1259,6 +1259,10 @@ export class ScmMission {
    // The handler is unreversed; off the water nothing writes its height, which reads here as 0.
    waterHeightAtCoords:(x,y,waves)=>this.host('waterLevelAt','GET_WATER_HEIGHT_AT_COORDS')(x,y,waves)??0,
    addToObjectVelocity:(handle,x,y,z)=>{this.runtime.game.objects.addToVelocity(handle,{x,y,z});},
+   setObjectRotationVelocity:(handle,x,y,z)=>{this.runtime.game.objects.setTurnSpeed(handle,{x,y,z});},
+   addToObjectRotationVelocity:(handle,x,y,z)=>{this.runtime.game.objects.addToTurnSpeed(handle,{x,y,z});},
+   getObjectRotationVelocity:handle=>this.runtime.game.objects.getTurnSpeed(handle),
+   addVelocityRelativeToObjectVelocity:(handle,x,y,z)=>{this.runtime.game.objects.addVelocityRelativeToVelocity(handle,{x,y,z});},
    breakObject:(handle,intensity)=>{this.runtime.game.objects.breakObject(handle,intensity!==0);},
    // IS_CHAR_TOUCHING_OBJECT, _VEHICLE and _CHAR: GetPedOrItsVehicle(ped)->GetHasCollidedWith(other), the other ped
    // also by its vehicle when it sits in one; IS_VEHICLE_TOUCHING_OBJECT and IS_CAR_TOUCHING_CAR ask the car's.

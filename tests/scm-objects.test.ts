@@ -133,6 +133,34 @@ describe('script objects',()=>{
  });
 });
 
+describe('an object\'s turn speed',()=>{
+ test('SET, ADD_TO and GET_OBJECT_ROTATION_VELOCITY keep m_vecTurnSpeed per frame and answer per second',()=>{
+  const game=new ScmGameState();
+  const object=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  game.objects.setTurnSpeed(object.handle,{x:0,y:.6,z:0});
+  expect(object.turnSpeed.y).toBeCloseTo(.012,9);
+  game.objects.addToTurnSpeed(object.handle,{x:0,y:.4,z:5});
+  const w=game.objects.getTurnSpeed(object.handle);
+  expect(w.x).toBe(0);expect(w.y).toBeCloseTo(1,9);expect(w.z).toBeCloseTo(5,9);
+  // A new object (basketb's ball made again in place) turns not at all.
+  expect(game.objects.getTurnSpeed(game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false}).handle)).toEqual({x:0,y:0,z:0});
+ });
+ test('ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY adds across and along the way the object travels',()=>{
+  const game=new ScmGameState();
+  const object=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  // Travelling east at 2 units a second: along it is east, to its right is south.
+  game.objects.setVelocity(object.handle,{x:2,y:0,z:0});
+  game.objects.addVelocityRelativeToVelocity(object.handle,{x:1,y:.5,z:0});
+  const v=game.objects.getVelocity(object.handle);
+  expect(v.x).toBeCloseTo(2.5,9);expect(v.y).toBeCloseTo(-1,9);expect(v.z).toBe(0);
+  // Standing still: the world's own axes.
+  const still=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  game.objects.addVelocityRelativeToVelocity(still.handle,{x:1,y:2,z:3});
+  const u=game.objects.getVelocity(still.handle);
+  expect(u.x).toBeCloseTo(1,9);expect(u.y).toBeCloseTo(2,9);expect(u.z).toBeCloseTo(3,9);
+ });
+});
+
 describe('object rotation',()=>{
  test('the tilts are kept in radians, and the turn about the vertical axis is the heading',()=>{
   const game=new ScmGameState();

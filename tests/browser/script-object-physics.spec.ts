@@ -31,3 +31,28 @@ test('a dynamic script object falls, settles and flies off at the speed the scri
  await expect.poll(async()=>(await o(made.box)).x-rest.x,{timeout:20000}).toBeGreaterThan(1.5);
  expect(errors).toEqual([]);
 });
+
+// SET_OBJECT_ROTATION_VELOCITY gives a moving object m_vecTurnSpeed (DRUGS4's spinning props, POOL2's balls): it turns,
+// and GET_OBJECT_ROTATION_VELOCITY reads the turn back while it lasts.
+test('a dynamic script object spins at the turn speed the script gives it',async({page})=>{
+ test.setTimeout(300000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await endStoryMission(page);
+ const box=await page.evaluate(()=>{
+  const g=(window as any).__game,p=g.state().player.position,x=p.x+5,y=-p.z+3,ground=g.groundAt(x,-y,p.y+20)??p.y;
+  return g.missionForProfiling().runtime.game.objects.create('cardboardbox',{x,y,z:ground+6},{external:false,missionCleanup:false}).handle;
+ });
+ await page.waitForFunction(h=>!!(window as any).__game.scriptObjectViews()?.bodyOf(h),box,{timeout:60000});
+ const heading=()=>page.evaluate(h=>(window as any).__game.missionForProfiling().runtime.game.objects.at(h).heading,box);
+ const before=await heading();
+ // A turn about the up axis, set as it starts to fall: in the air nothing slows it but its own damping.
+ const read=await page.evaluate(h=>{const m=(window as any).__game.missionForProfiling(),objects=m.runtime.game.objects;
+  objects.setDynamic(h,true);m.adapterRef.setObjectRotationVelocity(h,0,0,6);return m.adapterRef.getObjectRotationVelocity(h);},box);
+ expect(read.z).toBeCloseTo(6,5);
+ await page.waitForTimeout(250);
+ const spinning=await page.evaluate(h=>(window as any).__game.missionForProfiling().adapterRef.getObjectRotationVelocity(h),box);
+ expect(spinning.z).toBeGreaterThan(3);
+ expect(Math.abs(Math.atan2(Math.sin(await heading()-before),Math.cos(await heading()-before)))).toBeGreaterThan(.3);
+ expect(errors).toEqual([]);
+});

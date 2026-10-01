@@ -62,7 +62,7 @@ export class ScriptObjectViews{
   anim?:{name:string;binding?:ReturnType<typeof bindObjectAnimation>;time:number};
   /** While the object is a moving CPhysical: what was last written into its record from the body (to tell the
    * script's own writes apart) and CObject::ProcessControl's settling state. */
-  dyn?:{pos:{x:number;y:number;z:number};vel:{x:number;y:number;z:number};heading:number;rot:{x:number;y:number;z:number};
+  dyn?:{pos:{x:number;y:number;z:number};vel:{x:number;y:number;z:number};turn:{x:number;y:number;z:number};heading:number;rot:{x:number;y:number;z:number};
    force:{x:number;y:number;z:number};torque:{x:number;y:number;z:number};still:number;clock:number}}>();
  /** OBJECT.DAT's turn mass, elasticity and air resistance (as damping) for a model; the mass is the record's. */
  physicsOf?:(model:number|string)=>{turnMass?:number;elasticity:number;damping:number}|undefined;
@@ -271,15 +271,15 @@ export class ScriptObjectViews{
   body.setBodyType(RAPIER.RigidBodyType.Dynamic,true);
   body.setAdditionalMassProperties(mass,{x:0,y:0,z:0},{x:turn,y:turn,z:turn},{x:0,y:0,z:0,w:1},true);
   body.setLinearDamping(info?.damping??0);body.setAngularDamping(info?.damping??0);
-  const v=object.velocity;body.setLinvel({x:v.x*50,y:v.z*50,z:-v.y*50},true);body.setAngvel({x:0,y:0,z:0},true);
-  view.dyn={pos:{...object.position},vel:{...v},heading:object.heading,rot:{...object.rotation},force:{x:0,y:0,z:0},torque:{x:0,y:0,z:0},still:0,clock:0};
+  const v=object.velocity,w=object.turnSpeed;body.setLinvel({x:v.x*50,y:v.z*50,z:-v.y*50},true);body.setAngvel({x:w.x*50,y:w.z*50,z:-w.y*50},true);
+  view.dyn={pos:{...object.position},vel:{...v},turn:{...w},heading:object.heading,rot:{...object.rotation},force:{x:0,y:0,z:0},torque:{x:0,y:0,z:0},still:0,clock:0};
  }
  /** Back to a body the record places: the object keeps the pose it came to rest in. */
  private stopMoving(object:ScmObject,view:NonNullable<ReturnType<ScriptObjectViews['views']['get']>>){
   const body=view.physical!.body;
   body.setLinvel({x:0,y:0,z:0},false);body.setAngvel({x:0,y:0,z:0},false);
   body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased,true);
-  object.velocity={x:0,y:0,z:0};view.dyn=undefined;
+  object.velocity={x:0,y:0,z:0};object.turnSpeed={x:0,y:0,z:0};view.dyn=undefined;
  }
  /** A moving object's frame: the script's own writes since the last frame go to the body (a new place, speed or
   * turn), CObject::ProcessControl's settling runs once a 30 fps game frame (move and turn speed averaged into
@@ -291,6 +291,8 @@ export class ScriptObjectViews{
   if(p.x!==d.pos.x||p.y!==d.pos.y||p.z!==d.pos.z)body.setTranslation({x:p.x,y:p.z,z:-p.y},true);
   if(object.heading!==d.heading||r.x!==d.rot.x||r.y!==d.rot.y||r.z!==d.rot.z){object.matrix=undefined;body.setRotation(ScriptObjectViews.orientation(object,POSE),true);}
   if(v.x!==d.vel.x||v.y!==d.vel.y||v.z!==d.vel.z)body.setLinvel({x:v.x*50,y:v.z*50,z:-v.y*50},true);
+  // The turn speed is an axial vector; the native-to-renderer swap of axes is a proper rotation, so it maps as a point.
+  const w=object.turnSpeed;if(w.x!==d.turn.x||w.y!==d.turn.y||w.z!==d.turn.z)body.setAngvel({x:w.x*50,y:w.z*50,z:-w.y*50},true);
   d.clock+=seconds;
   for(;d.clock>=1/30;d.clock-=1/30){
    const lv=body.linvel(),av=body.angvel(),limit=50/30*.003;
@@ -300,13 +302,14 @@ export class ScriptObjectViews{
    d.still=still?d.still+1:0;
    if(d.still>10){object.isStatic=true;break;}
   }
-  const t=body.translation(),q=body.rotation(),lv=body.linvel();
+  const t=body.translation(),q=body.rotation(),lv=body.linvel(),av=body.angvel();
   object.position={x:t.x,y:-t.z,z:t.y};
   object.velocity=object.isStatic?{x:0,y:0,z:0}:{x:lv.x/50,y:-lv.z/50,z:lv.y/50};
+  object.turnSpeed=object.isStatic?{x:0,y:0,z:0}:{x:av.x/50,y:-av.z/50,z:av.y/50};
   const quat=POSE.set(q.x,q.y,q.z,q.w),right=EAST.clone().applyQuaternion(quat),forward=NORTH.clone().negate().applyQuaternion(quat),up=UP.clone().applyQuaternion(quat);
   object.matrix={right:{x:right.x,y:-right.z,z:right.y},forward:{x:forward.x,y:-forward.z,z:forward.y},up:{x:up.x,y:-up.z,z:up.y}};
   object.heading=Math.atan2(-object.matrix.forward.x,object.matrix.forward.y);
-  d.pos={...object.position};d.vel={...object.velocity};d.heading=object.heading;d.rot={...object.rotation};
+  d.pos={...object.position};d.vel={...object.velocity};d.turn={...object.turnSpeed};d.heading=object.heading;d.rot={...object.rotation};
   if(object.isStatic)this.stopMoving(object,view);
  }
  /* Native axes to the renderer's: x stays, the script's z is up here and its y runs the other way. CEntity's
