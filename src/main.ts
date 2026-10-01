@@ -571,7 +571,9 @@ async function boot() {
   let gangWars:GangWars|undefined,gangWarBlip:{position:{x:number;y:number;z:number};gang:number;visible:boolean}|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let stuntJumps:StuntJumps|undefined,savePoints:ScmSavePoint[]=[],saving=false;
-  let savedTransfer:{x:number;y:number;z:number;heading:number;quiet?:boolean;area?:number;enexStack?:number[]}|undefined;
+  /** A window the step waits for: a save point's, a restart's from indoors, or (`script`) the scene a script's teleport or
+   * SET_AREA_VISIBLE took the player into, where he stays as the script put him. */
+  let savedTransfer:{x:number;y:number;z:number;heading:number;quiet?:boolean;area?:number;enexStack?:number[];script?:boolean}|undefined,savedTransferInstalling=false;
   /** Whether a loaded game has had the new game's INTRO ended for it. */
   let introSkipped=false;
   /** When the new game's opening black was put up (play pressed with no save), until INTRO or a failure takes it over. */
@@ -984,6 +986,8 @@ async function boot() {
     // RestorePlayerStuffDuringResurrection: back to the normal world (area 0) with an empty door stack. From an
     // interior the outside world at the restart point has to stream in first, as a save point's does.
     const inside=render.lighting.area!==0;entryExits?.clearStack();
+    // CGame::currArea = AREA_CODE_NORMAL_WORLD (GameLogic.cpp:407), which GET_AREA_VISIBLE reads.
+    if(mission)mission.runtime.game.currentArea=0;
     // RestorePlayerStuffDuringResurrection: CTimeCycle::StopExtraColour(0).
     localLighting.stopExtraColour(false);
     // ResetForResurrectionAndFadeOut takes him out of a vehicle he sits in as a passenger, and the Teleport's
@@ -2742,7 +2746,7 @@ async function boot() {
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
       const tSteps=performance.now();
       stepSnapShot(dt);
-      alpha = clock.advance(interiorTransfer||savedTransfer?0:dt*timeScale(), step => {
+      alpha = clock.advance(interiorTransfer||savedTransfer||savedTransferInstalling?0:dt*timeScale(), step => {
         sim.beginPlayerBreathFrame(step);
         if(walkDemo&&importedScene){
           if(!weatherStarted){weatherStarted=true;weather.setAppropriateNow(sim.player.position.x,-sim.player.position.z);}
@@ -3254,7 +3258,7 @@ async function boot() {
     if(input.consume('KeyM'))navigation?.toggle();
     if(paused||terrainPause||navigation?.open||arsenal.open)input.dropPresses();
     const tBetween=performance.now();
-    if(!paused&&!navigation?.open&&!arsenal.open){stepPrebuild();requestFollowingTerrain();}
+    if(!paused&&!navigation?.open&&!arsenal.open){stepPrebuild();scriptSceneTransfer();requestFollowingTerrain();}
     // A passenger whose car has gone or burnt out is set down beside it.
     if(playerPassenger&&(playerPassenger.car.disposed||playerPassenger.car.wrecked))leavePassengerSeat();
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike||!!playerPassenger;
@@ -3780,6 +3784,34 @@ async function boot() {
     if(render.lighting.area!==0)return Math.hypot(x-sim.player.position.x,z-sim.player.position.z)<INTERIOR_COLLISION_REACH;
     return true;
   };
+  /** The interior window's centre (native x, y), where its door or save put the player; none outside. */
+  let interiorCentre:{x:number;y:number}|undefined;
+  /** CGame::currArea as last seen, and a script teleport of the player since the scene was last checked. */
+  let lastScriptArea=0,scriptSceneDirty=false;
+  /** How near one of the area's doors (across, and up or down) a script's point counts as inside that interior. */
+  const SCRIPT_INTERIOR_DOOR_REACH=100,SCRIPT_INTERIOR_DOOR_HEIGHT=50;
+  // The original's world is one, its interiors standing high over the map, and CStreaming loads what CGame::currArea
+  // names round the player wherever a script puts him (its LOAD_SCENE waits for that). The browser's scene is one
+  // window, the outside world or one interior's neighbourhood: a script that sets the area visible and teleports CJ out
+  // of an interior (INTRO2 taking him out of the pizza place to Sweet's car) or into one swaps the window as a save
+  // point's is swapped, the step held until it is in. Left in the interior's window, the street had no collision and
+  // Sweet's car waited for it for ever.
+  //   An interior is only taken for a point by one of its own doors: the area is often set for a cutscene in a house
+  // while CJ waits outside (SWEET1B's opening), and there the street stays under him.
+  function scriptSceneTransfer(){
+    const game=mission?.runtime.game;if(!game)return;
+    if(game.currentArea!==lastScriptArea){lastScriptArea=game.currentArea;scriptSceneDirty=true;}
+    if(!scriptSceneDirty||!staticWorld||!importedScene||interiorTransfer||savedTransfer||flightTransfer||installingScene||sim.deathRemaining>0)return;
+    scriptSceneDirty=false;
+    const want=game.currentArea,p=sim.player.position,here={x:p.x,y:-p.z},height=p.y;
+    const elsewhere=importedScene.area!==0&&(!interiorCentre||Math.hypot(here.x-interiorCentre.x,here.y-interiorCentre.y)>INTERIOR_COLLISION_REACH);
+    const byDoor=want!==0&&!!entryExits?.pool.some(e=>{if(e.area!==want)return false;const [x,y,z]=entryExitPosition(e);return Math.hypot(x-here.x,y-here.y)<SCRIPT_INTERIOR_DOOR_REACH&&Math.abs(z-height)<SCRIPT_INTERIOR_DOOR_HEIGHT;});
+    const area=byDoor&&(importedScene.area!==want||elsewhere)?want:!byDoor&&elsewhere?0:undefined;
+    if(area===undefined)return;
+    follower?.stop();clearTimeout(followTimer);pendingFollowingData=undefined;
+    savedTransfer={x:here.x,y:here.y,z:height,heading:sim.player.heading,quiet:true,script:true,...(area?{area}:{})};
+    staticWorld.request(-1,area?{x:here.x,y:here.y,radius:100,includeCollisionBounds:true,interior:area}:{x:here.x,y:here.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
+  }
   function failFollowing(id:number,message:string){
     if(!follower?.finish(id,false))return;
     clearTimeout(followTimer);pendingFollowingData=undefined;
@@ -3995,6 +4027,7 @@ async function boot() {
     {const shopping=mission?.runtime.game.shopping,door=t.enex;
      if(shopping){if(door.flags&ENEX.REWARD_INTERIOR)shopping.removeLoadedShop();else{try{shopping.loadShop(door.name);}catch(error){console.warn('LoadShop',door.name,error);}if(door.link)door.link.flags|=ENEX.REWARD_INTERIOR;}}}
     follower=spawn.area===0?new SceneRegionFollower({x:point[0],y:point[1],radius:180,lodRadius:1000,includeCollisionBounds:true}):undefined;
+    interiorCentre=spawn.area===0?undefined:{x:point[0],y:point[1]};
     interiorTransfer=undefined;
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);
   }
@@ -4895,7 +4928,9 @@ async function boot() {
                  playerInAir:()=>!sim.player.grounded&&!sim.player.swimming,
                  playerIsPlayingAnim:animation=>(render.nativeCharacter?.reactionName??'').toLowerCase()===animation.toLowerCase(),
                  // The player's m_nAreaCode: the browser draws him wherever the camera is, so it is kept, not acted on.
-                 setPlayerArea:area=>{playerAreaCode=area;},
+                 // SetCharAreaVisible on the player to the normal world: the door stack is emptied (CEntryExitManager's
+                 // ms_entryExitStackPosn = 0) and CTimeCycle::StopExtraColour(0).
+                 setPlayerArea:area=>{playerAreaCode=area;if(area===0){entryExits?.clearStack();localLighting.stopExtraColour(false);}},
                  setPlayerProofs:proofs=>{sim.playerProofs={...proofs};},
                  usePedMobilePhone:(ped,start)=>{if(ped==='player'||onFoot(ped))phoneFor(ped).use(start);},
                  explodeScriptPedHead:ped=>{const p=onFoot(ped);if(!p)return;const q=p.actor.player.position;
@@ -4919,7 +4954,7 @@ async function boot() {
                   }
                   fleet?.generateEvenIfClose();
                   groundAfterStream=position.groundPending?{x,z}:undefined;
-                  scriptTeleported=true;requestFollowingTerrain();return true;
+                  scriptTeleported=true;scriptSceneDirty=true;requestFollowingTerrain();return true;
                  },
                  // CTaskSimpleCarSetPedInAsPassenger for the player: SA's seat 0 is the front right, 1 and 2 the rear; -1 the
                  // first free one.
@@ -5390,15 +5425,25 @@ async function boot() {
               // A game already under way takes the window as a door's is taken, behind the frozen step: the menu
               // opened over it and stayed up, so a save loaded indoors or a death indoors left the game paused.
               const running=started&&!paused;
+              // The step stays held until the window is in: run over the old one meanwhile, a player the script had put
+              // in an interior fell through the street's empty sky beneath it.
+              savedTransferInstalling=true;
               void (async()=>{
-                const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,preferredSpawn:{x:target.x,z:-target.y},...(running?{keepPlayer:true}:{})}).catch(()=>false);
+                const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,preferredSpawn:{x:target.x,z:-target.y},...(running||target.script?{keepPlayer:true}:{})}).catch(()=>false).finally(()=>{savedTransferInstalling=false;});
                 if(!installed||!alive){if(!target.quiet)hud.message('Your save point could not be loaded.');return;}
-                const position={x:target.x,y:target.z,z:-target.y};
-                sim.flushPlayerTasks();sim.player.position={...position};sim.player.previous={...position};sim.player.heading=target.heading;
-                sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
-                render.yaw=target.heading+Math.PI;if(running)sim.respawn={...position};
-                // Inside, nothing follows (as after a door) and the way back out is the doors the save kept.
-                if(target.area){follower=undefined;pedestrians?.removeAllRandomPeds();if(entryExits){entryExits.clearStack();for(const i of target.enexStack??[]){const e=entryExits.pool[i];if(e)entryExits.stack.push(e);}
+                if(!target.script){
+                  const position={x:target.x,y:target.z,z:-target.y};
+                  sim.flushPlayerTasks();sim.player.position={...position};sim.player.previous={...position};sim.player.heading=target.heading;
+                  sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
+                  render.yaw=target.heading+Math.PI;if(running)sim.respawn={...position};
+                }
+                // CGame::currArea is the window's: a save's own (SimpleVariablesSaveStructure), 0 after a restart; a
+                // script's stays what it set.
+                if(mission&&!target.script)mission.runtime.game.currentArea=target.area??0;
+                interiorCentre=target.area?{x:target.x,y:target.y}:undefined;
+                // Inside, nothing follows (as after a door) and the way back out is the doors the save kept; a script's
+                // teleport leaves the door stack as it was.
+                if(target.area){follower=undefined;pedestrians?.removeAllRandomPeds();if(entryExits&&!target.script){entryExits.clearStack();for(const i of target.enexStack??[]){const e=entryExits.pool[i];if(e)entryExits.stack.push(e);}
                   // The save keeps CTimeCycle's extra colour; here it is the one the last door in gave.
                   const door=entryExits.stack.at(-1);if(door){spawnPointSky(door);entryExits.enteredBy=door.link??door;}}}
                 else follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
@@ -5427,7 +5472,10 @@ async function boot() {
               if(interiorTransfer&&data.followId===-2){failInteriorTransfer(data.message);return;}
               // A save point's or a restart's window that failed lets the frozen step go; outdoors the follower asks again.
               if(savedTransfer&&data.followId===-1){const target=savedTransfer;savedTransfer=undefined;if(!target.quiet)hud.message('Your save point could not be loaded.');
-                if(!target.area&&target.quiet){follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,lodRadius:1000,includeCollisionBounds:true});scriptTeleported=true;}return;}
+                if(!target.area&&target.quiet){follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,lodRadius:1000,includeCollisionBounds:true});scriptTeleported=true;}
+                // A script's interior that would not load leaves the outside window it was asked from following again.
+                else if(target.script&&importedScene?.area===0)follower=new SceneRegionFollower({x:sim.player.position.x,y:-sim.player.position.z,radius:180,lodRadius:1000,includeCollisionBounds:true});
+                return;}
               if(flightTransfer){clearTimeout(transferTimer);flightTransfer.reject(new Error(data.message));flightTransfer=undefined;menuBusy(false);hud.menuMessage(data.message);return;}
               const pending=follower?.snapshot().pending;
               if(pending)failFollowing(pending,data.message);
