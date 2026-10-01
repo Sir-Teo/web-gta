@@ -3764,10 +3764,17 @@ async function boot() {
   /** The models the installed window holds, which the next request lets the worker leave out of its message. */
   let residentModels=new Map<string,ResidentModel>();
   let pendingFollowingData:TerrainUpdate|undefined,followBoundaryPaused=false;
+  /** How far round CJ an interior's scene counts as having its collision in. */
+  const INTERIOR_COLLISION_REACH=150;
   let follower:SceneRegionFollower|undefined,followTimer:ReturnType<typeof setTimeout>|undefined,followResume=0;
-  // CColStore::HasCollisionLoaded: inside the installed window's safety boundary (an interior's own window covers
-  // only the interior), or anywhere while no window follows the player. A script's waiting car or ped asks it.
-  sim.collisionLoaded=(x,z)=>!follower||!follower.snapshot().enabled||follower.covers({x,z});
+  // CColStore::HasCollisionLoaded: inside the installed window's safety boundary. In an interior nothing follows and
+  // the scene is the interior alone, so only its own neighbourhood is in (Sweet's car outside the pizza place is not);
+  // with no window following outside, everything counts. A script's waiting car or ped asks it.
+  sim.collisionLoaded=(x,z)=>{
+    if(follower?.snapshot().enabled)return follower.covers({x,z});
+    if(render.lighting.area!==0)return Math.hypot(x-sim.player.position.x,z-sim.player.position.z)<INTERIOR_COLLISION_REACH;
+    return true;
+  };
   function failFollowing(id:number,message:string){
     if(!follower?.finish(id,false))return;
     clearTimeout(followTimer);pendingFollowingData=undefined;
