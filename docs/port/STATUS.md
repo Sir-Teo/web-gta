@@ -1,6 +1,6 @@
 # Port status
 
-Census 2026-10-01 (gta-reversed `9e9444d734`); sweep 2026-09-30, 2400 s a mission (INTRO2 swept again 2026-10-01 with the bot).
+Census 2026-10-01 (gta-reversed `9e9444d734`); sweep 2026-09-30, 2400 s a mission (INTRO2 swept again 2026-10-01 with the bot; SWEET1B swept with the bot 2026-10-01 and passed).
 
 Per mission: what the static census flags, and what the headless sweep saw. **Reached** is the furthest instruction the mission thread was seen at, as a share of its block; **Skipped** counts the commands the census finds with no world member yet, which the game skips (a mission runs on without them); **Stops** counts those with no handler at all, where the thread would give up; **Stopped** names a command a mission thread gave up on or a page error; **Outcome** is the big message the mission printed (M_PASS* passed, M_FAIL failed); **Waiting** is where the autopilot could not take it further (a chase, a fight, a menu). See [the census](CENSUS.md) for every command and [README](README.md) for the pipeline.
 
@@ -99,7 +99,7 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | 11 | INTRO1 | 12 | 30 | 0 | 0 | yes | 98.2% | yes | **passed** |  |  |
 | 12 | INTRO2 | 6 | 29 | 0 | 0 | yes | 81.4% | yes | **passed** |  |  |
 | 13 | SWEET1 | 7 | 32 | 0 | 0 | yes | 90% | yes | **passed** |  |  |
-| 14 | SWEET1B | 2 | 38 | 0 | 0 |  |  |  |  |  |  |
+| 14 | SWEET1B | 2 | 38 | 0 | 0 | yes | 99.6% | yes | **passed** |  |  |
 | 15 | SWEET3 | 8 | 47 | 0 | 0 |  |  |  |  |  |  |
 | 16 | SWEET2 | 3 | 43 | 0 | 0 |  |  |  |  |  |  |
 | 17 | SWEET4 | 1 | 6 | 0 | 0 |  |  |  |  |  |  |
