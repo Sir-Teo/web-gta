@@ -2947,7 +2947,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_OBJECT_VELOCITY:(t,p,i)=>{game(t,i).objects.setVelocity(t.readInt(p[0]),vec(t,p,1));},
  SET_OBJECT_SCALE:(t,p,i)=>{game(t,i).objects.setScale(t.readInt(p[0]),t.readFloat(p[1]));},
  SET_OBJECT_COLLISION:(t,p,i)=>{game(t,i).objects.setUsesCollision(t.readInt(p[0]),bool(t,p[1]));},
- // CONNECT_LODS: CEntity::SetLod, pointing the detailed object at the one that stands in for it far away.
+ // CONNECT_LODS: CEntity::SetLod, pointing the detailed object at its far-away LOD.
  CONNECT_LODS:(t,p,i)=>{game(t,i).objects.connectLods(t.readInt(p[0]),t.readInt(p[1]));},
  // SET_OBJECT_AREA_VISIBLE: CEntity::SetAreaCode, which the reversed char command sets for a ped.
  SET_OBJECT_AREA_VISIBLE:(t,p,i)=>{game(t,i).objects.setAreaVisible(t.readInt(p[0]),t.readInt(p[1]));},

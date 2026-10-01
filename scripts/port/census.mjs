@@ -45,7 +45,9 @@ function parseHandlers(text){
  for(let i=0;i<lines.length;i++){const m=/^ ([A-Z][A-Z0-9_]*):/.exec(lines[i]);if(m)starts.push([m[1],i]);}
  for(let k=0;k<starts.length;k++){
   const [name,line]=starts[k],end=k+1<starts.length?starts[k+1][1]:Math.min(lines.length,line+40);
-  let body=lines.slice(line,end).join('\n');
+  // Comment lines at the body's end lead the next handler, and are its, not this one's.
+  let last=end;while(last>line+1&&/^\s*(\/\/|\/\*|\*)/.test(lines[last-1]))last--;
+  let body=lines.slice(line,last).join('\n');
   // The comment block above: contiguous comment lines, walking past sibling handlers up to the group's header.
   const comment=[];
   for(let j=line-1,seen=0;j>=0&&seen<60;j--,seen++){

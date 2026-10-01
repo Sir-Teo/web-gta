@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T11:45:22.745Z",
+ "generated": "2026-10-01T11:47:32.983Z",
  "reference": {
   "path": "../gta-reversed/gta-reversed",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -10,8 +10,8 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1111,
-   "authored": 38,
+   "faithful": 1119,
+   "authored": 30,
    "silent": 9,
    "skipped": 192,
    "stops": 41
@@ -27,8 +27,8 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3764,
-    "authored": 25,
+    "faithful": 3770,
+    "authored": 19,
     "silent": 33,
     "skipped": 19,
     "stops": 0
@@ -52,11 +52,6 @@
     {
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
-     "sites": 6
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
      "sites": 6
     },
     {
@@ -92,6 +87,11 @@
     {
      "name": "SLIDE_OBJECT",
      "status": "silent",
+     "sites": 2
+    },
+    {
+     "name": "CHANGE_GARAGE_TYPE",
+     "status": "authored",
      "sites": 2
     }
    ]
@@ -186,8 +186,8 @@
    "byStatus": {
     "core": 617,
     "nop": 1,
-    "faithful": 195,
-    "authored": 2,
+    "faithful": 197,
+    "authored": 0,
     "silent": 8,
     "skipped": 0,
     "stops": 0
@@ -202,11 +202,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 3
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "PLAY_MISSION_AUDIO",
@@ -272,8 +267,8 @@
    "byStatus": {
     "core": 305,
     "nop": 0,
-    "faithful": 101,
-    "authored": 3,
+    "faithful": 102,
+    "authored": 2,
     "silent": 7,
     "skipped": 0,
     "stops": 1
@@ -288,11 +283,6 @@
      "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
      "status": "authored",
      "sites": 2
-    },
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "GET_RANDOM_CHAR_IN_AREA_OFFSET_NO_SAVE",
@@ -310,8 +300,8 @@
    "byStatus": {
     "core": 2150,
     "nop": 1,
-    "faithful": 240,
-    "authored": 2,
+    "faithful": 242,
+    "authored": 0,
     "silent": 5,
     "skipped": 2,
     "stops": 0
@@ -326,16 +316,6 @@
      "name": "IS_CHAR_IN_AREA_ON_FOOT_3D",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "ENABLE_DISABLED_ATTRACTORS_ON_OBJECT",
-     "status": "authored",
-     "sites": 1
     }
    ]
   },
@@ -348,19 +328,13 @@
    "byStatus": {
     "core": 72,
     "nop": 0,
-    "faithful": 23,
-    "authored": 1,
+    "faithful": 24,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "arcade.scm",
@@ -371,19 +345,13 @@
    "byStatus": {
     "core": 90,
     "nop": 0,
-    "faithful": 30,
-    "authored": 1,
+    "faithful": 31,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "vending_machine.scm",
@@ -394,8 +362,8 @@
    "byStatus": {
     "core": 117,
     "nop": 0,
-    "faithful": 75,
-    "authored": 2,
+    "faithful": 76,
+    "authored": 1,
     "silent": 7,
     "skipped": 0,
     "stops": 0
@@ -405,11 +373,6 @@
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 6
-    },
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "TASK_PLAY_ANIM_SECONDARY",
@@ -432,18 +395,13 @@
    "byStatus": {
     "core": 101,
     "nop": 0,
-    "faithful": 41,
-    "authored": 2,
+    "faithful": 42,
+    "authored": 1,
     "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "HAS_OBJECT_BEEN_UPROOTED",
      "status": "silent",
@@ -465,8 +423,8 @@
    "byStatus": {
     "core": 76,
     "nop": 0,
-    "faithful": 35,
-    "authored": 1,
+    "faithful": 36,
+    "authored": 0,
     "silent": 2,
     "skipped": 0,
     "stops": 0
@@ -476,11 +434,6 @@
      "name": "SLIDE_OBJECT",
      "status": "silent",
      "sites": 2
-    },
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
     }
    ]
   },
@@ -493,8 +446,8 @@
    "byStatus": {
     "core": 585,
     "nop": 0,
-    "faithful": 151,
-    "authored": 2,
+    "faithful": 153,
+    "authored": 0,
     "silent": 3,
     "skipped": 0,
     "stops": 0
@@ -506,18 +459,8 @@
      "sites": 2
     },
     {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
      "sites": 1
     }
    ]
@@ -531,8 +474,8 @@
    "byStatus": {
     "core": 784,
     "nop": 0,
-    "faithful": 188,
-    "authored": 1,
+    "faithful": 189,
+    "authored": 0,
     "silent": 4,
     "skipped": 0,
     "stops": 0
@@ -542,11 +485,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 3
-    },
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "LOAD_MISSION_AUDIO",
@@ -592,8 +530,8 @@
    "byStatus": {
     "core": 757,
     "nop": 0,
-    "faithful": 166,
-    "authored": 1,
+    "faithful": 167,
+    "authored": 0,
     "silent": 3,
     "skipped": 0,
     "stops": 0
@@ -603,11 +541,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 2
-    },
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "LOAD_MISSION_AUDIO",
@@ -625,18 +558,13 @@
    "byStatus": {
     "core": 1636,
     "nop": 13,
-    "faithful": 635,
-    "authored": 12,
+    "faithful": 644,
+    "authored": 3,
     "silent": 2,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 9
-    },
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
@@ -706,23 +634,13 @@
    "byStatus": {
     "core": 2998,
     "nop": 177,
-    "faithful": 703,
-    "authored": 6,
+    "faithful": 706,
+    "authored": 3,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "ENABLE_DISABLED_ATTRACTORS_ON_OBJECT",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "SHUFFLE_CARD_DECKS",
      "status": "authored",
@@ -749,18 +667,13 @@
    "byStatus": {
     "core": 1539,
     "nop": 14,
-    "faithful": 362,
-    "authored": 3,
+    "faithful": 363,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "GET_DEBUG_CAMERA_COORDINATES",
      "status": "authored",
@@ -850,19 +763,13 @@
    "byStatus": {
     "core": 153,
     "nop": 0,
-    "faithful": 68,
-    "authored": 1,
+    "faithful": 69,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "burg_brains.scm",
@@ -1104,8 +1011,8 @@
    "byStatus": {
     "core": 453,
     "nop": 0,
-    "faithful": 181,
-    "authored": 11,
+    "faithful": 182,
+    "authored": 10,
     "silent": 0,
     "skipped": 0,
     "stops": 1
@@ -1123,11 +1030,6 @@
     },
     {
      "name": "GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
      "status": "authored",
      "sites": 1
     }
@@ -1942,18 +1844,13 @@
    "byStatus": {
     "core": 1270,
     "nop": 0,
-    "faithful": 318,
-    "authored": 14,
+    "faithful": 331,
+    "authored": 1,
     "silent": 3,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "GET_CLOTHES_ITEM",
-     "status": "authored",
-     "sites": 13
-    },
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
@@ -1990,18 +1887,13 @@
    "byStatus": {
     "core": 824,
     "nop": 0,
-    "faithful": 244,
-    "authored": 4,
+    "faithful": 248,
+    "authored": 0,
     "silent": 4,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "GET_CLOTHES_ITEM",
-     "status": "authored",
-     "sites": 4
-    },
     {
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
@@ -2028,18 +1920,13 @@
    "byStatus": {
     "core": 1213,
     "nop": 0,
-    "faithful": 257,
-    "authored": 13,
+    "faithful": 270,
+    "authored": 0,
     "silent": 3,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "GET_CLOTHES_ITEM",
-     "status": "authored",
-     "sites": 13
-    },
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
@@ -2066,18 +1953,13 @@
    "byStatus": {
     "core": 982,
     "nop": 0,
-    "faithful": 262,
-    "authored": 8,
+    "faithful": 270,
+    "authored": 0,
     "silent": 3,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "GET_CLOTHES_ITEM",
-     "status": "authored",
-     "sites": 8
-    },
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
@@ -2587,8 +2469,8 @@
    "byStatus": {
     "core": 1098,
     "nop": 0,
-    "faithful": 1854,
-    "authored": 28,
+    "faithful": 1861,
+    "authored": 21,
     "silent": 0,
     "skipped": 0,
     "stops": 0
@@ -2601,11 +2483,6 @@
     },
     {
      "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 7
-    },
-    {
-     "name": "CONNECT_LODS",
      "status": "authored",
      "sites": 7
     }
@@ -2637,18 +2514,13 @@
    "byStatus": {
     "core": 663,
     "nop": 1,
-    "faithful": 408,
-    "authored": 22,
+    "faithful": 420,
+    "authored": 10,
     "silent": 6,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 10
-    },
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
@@ -2666,11 +2538,6 @@
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
      "status": "authored",
      "sites": 2
     }
@@ -2815,18 +2682,13 @@
    "byStatus": {
     "core": 5047,
     "nop": 321,
-    "faithful": 1062,
-    "authored": 14,
+    "faithful": 1072,
+    "authored": 4,
     "silent": 3,
     "skipped": 8,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 10
-    },
     {
      "name": "SET_SCRIPT_COOP_GAME",
      "status": "skipped",
@@ -2979,8 +2841,8 @@
    "byStatus": {
     "core": 1747,
     "nop": 1,
-    "faithful": 1071,
-    "authored": 12,
+    "faithful": 1078,
+    "authored": 5,
     "silent": 30,
     "skipped": 0,
     "stops": 0
@@ -3002,19 +2864,9 @@
      "sites": 5
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 4
-    },
-    {
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 4
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 3
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -3037,8 +2889,8 @@
    "byStatus": {
     "core": 1242,
     "nop": 1,
-    "faithful": 770,
-    "authored": 6,
+    "faithful": 775,
+    "authored": 1,
     "silent": 29,
     "skipped": 0,
     "stops": 0
@@ -3058,16 +2910,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 6
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -3090,8 +2932,8 @@
    "byStatus": {
     "core": 1199,
     "nop": 1,
-    "faithful": 813,
-    "authored": 7,
+    "faithful": 819,
+    "authored": 1,
     "silent": 32,
     "skipped": 0,
     "stops": 0
@@ -3111,16 +2953,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 6
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 3
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -3143,8 +2975,8 @@
    "byStatus": {
     "core": 1280,
     "nop": 2,
-    "faithful": 903,
-    "authored": 2,
+    "faithful": 905,
+    "authored": 0,
     "silent": 38,
     "skipped": 0,
     "stops": 0
@@ -3166,11 +2998,6 @@
      "sites": 10
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -3186,8 +3013,8 @@
    "byStatus": {
     "core": 1294,
     "nop": 1,
-    "faithful": 768,
-    "authored": 8,
+    "faithful": 772,
+    "authored": 4,
     "silent": 47,
     "skipped": 0,
     "stops": 0
@@ -3214,16 +3041,6 @@
      "sites": 4
     },
     {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -3239,8 +3056,8 @@
    "byStatus": {
     "core": 1600,
     "nop": 1,
-    "faithful": 1187,
-    "authored": 3,
+    "faithful": 1189,
+    "authored": 1,
     "silent": 43,
     "skipped": 0,
     "stops": 0
@@ -3262,17 +3079,7 @@
      "sites": 6
     },
     {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
      "status": "authored",
      "sites": 1
     },
@@ -3292,8 +3099,8 @@
    "byStatus": {
     "core": 2252,
     "nop": 1,
-    "faithful": 1119,
-    "authored": 1,
+    "faithful": 1120,
+    "authored": 0,
     "silent": 6,
     "skipped": 0,
     "stops": 0
@@ -3312,11 +3119,6 @@
     {
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -3464,18 +3266,13 @@
    "byStatus": {
     "core": 439,
     "nop": 1,
-    "faithful": 387,
-    "authored": 7,
+    "faithful": 391,
+    "authored": 3,
     "silent": 8,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 4
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -3512,8 +3309,8 @@
    "byStatus": {
     "core": 3672,
     "nop": 30,
-    "faithful": 1112,
-    "authored": 5,
+    "faithful": 1117,
+    "authored": 0,
     "silent": 14,
     "skipped": 0,
     "stops": 0
@@ -3527,11 +3324,6 @@
     {
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
      "sites": 5
     },
     {
@@ -3555,8 +3347,8 @@
    "byStatus": {
     "core": 1373,
     "nop": 2,
-    "faithful": 1102,
-    "authored": 3,
+    "faithful": 1104,
+    "authored": 1,
     "silent": 12,
     "skipped": 0,
     "stops": 0
@@ -3588,16 +3380,6 @@
      "sites": 1
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -3613,8 +3395,8 @@
    "byStatus": {
     "core": 3798,
     "nop": 8,
-    "faithful": 1636,
-    "authored": 12,
+    "faithful": 1641,
+    "authored": 7,
     "silent": 96,
     "skipped": 1,
     "stops": 0
@@ -3636,11 +3418,6 @@
      "sites": 21
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 4
-    },
-    {
      "name": "CLOSE_GARAGE",
      "status": "authored",
      "sites": 2
@@ -3652,11 +3429,6 @@
     },
     {
      "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
      "status": "authored",
      "sites": 1
     },
@@ -3691,8 +3463,8 @@
    "byStatus": {
     "core": 1294,
     "nop": 9,
-    "faithful": 1066,
-    "authored": 14,
+    "faithful": 1073,
+    "authored": 7,
     "silent": 32,
     "skipped": 0,
     "stops": 0
@@ -3712,11 +3484,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 10
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 7
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -3749,8 +3516,8 @@
    "byStatus": {
     "core": 3536,
     "nop": 38,
-    "faithful": 1321,
-    "authored": 26,
+    "faithful": 1344,
+    "authored": 3,
     "silent": 85,
     "skipped": 0,
     "stops": 0
@@ -3765,11 +3532,6 @@
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 33
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 23
     },
     {
      "name": "SLIDE_OBJECT",
@@ -3802,8 +3564,8 @@
    "byStatus": {
     "core": 2466,
     "nop": 3,
-    "faithful": 1362,
-    "authored": 5,
+    "faithful": 1366,
+    "authored": 1,
     "silent": 64,
     "skipped": 1,
     "stops": 0
@@ -3813,11 +3575,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 58
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 4
     },
     {
      "name": "LOAD_MISSION_AUDIO",
@@ -3855,8 +3612,8 @@
    "byStatus": {
     "core": 795,
     "nop": 1,
-    "faithful": 557,
-    "authored": 2,
+    "faithful": 559,
+    "authored": 0,
     "silent": 24,
     "skipped": 0,
     "stops": 0
@@ -3878,11 +3635,6 @@
      "sites": 4
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -3898,8 +3650,8 @@
    "byStatus": {
     "core": 1468,
     "nop": 1,
-    "faithful": 1082,
-    "authored": 5,
+    "faithful": 1084,
+    "authored": 3,
     "silent": 68,
     "skipped": 0,
     "stops": 0
@@ -3922,16 +3674,6 @@
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
      "status": "authored",
      "sites": 1
     },
@@ -3961,8 +3703,8 @@
    "byStatus": {
     "core": 3840,
     "nop": 2,
-    "faithful": 2946,
-    "authored": 4,
+    "faithful": 2947,
+    "authored": 3,
     "silent": 67,
     "skipped": 26,
     "stops": 0
@@ -4009,11 +3751,6 @@
      "sites": 2
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "POINT_CAMERA_AT_CAR",
      "status": "authored",
      "sites": 1
@@ -4039,8 +3776,8 @@
    "byStatus": {
     "core": 1276,
     "nop": 1,
-    "faithful": 698,
-    "authored": 7,
+    "faithful": 700,
+    "authored": 5,
     "silent": 6,
     "skipped": 6,
     "stops": 0
@@ -4054,11 +3791,6 @@
     {
      "name": "MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED",
      "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
      "sites": 2
     },
     {
@@ -4105,6 +3837,11 @@
      "name": "IS_GARAGE_CLOSED",
      "status": "authored",
      "sites": 1
+    },
+    {
+     "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
     }
    ]
   },
@@ -4117,8 +3854,8 @@
    "byStatus": {
     "core": 478,
     "nop": 1,
-    "faithful": 708,
-    "authored": 4,
+    "faithful": 712,
+    "authored": 0,
     "silent": 25,
     "skipped": 0,
     "stops": 0
@@ -4140,11 +3877,6 @@
      "sites": 7
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 4
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -4160,8 +3892,8 @@
    "byStatus": {
     "core": 2023,
     "nop": 3,
-    "faithful": 1255,
-    "authored": 37,
+    "faithful": 1282,
+    "authored": 10,
     "silent": 39,
     "skipped": 8,
     "stops": 0
@@ -4171,11 +3903,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 32
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 24
     },
     {
      "name": "MARK_CAR_AS_CONVOY_CAR",
@@ -4190,11 +3917,6 @@
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
      "sites": 3
     },
     {
@@ -4233,8 +3955,8 @@
    "byStatus": {
     "core": 1044,
     "nop": 1,
-    "faithful": 1261,
-    "authored": 6,
+    "faithful": 1265,
+    "authored": 2,
     "silent": 21,
     "skipped": 0,
     "stops": 0
@@ -4256,17 +3978,7 @@
      "sites": 3
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 3
-    },
-    {
      "name": "WAS_CUTSCENE_SKIPPED",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
      "status": "authored",
      "sites": 1
     },
@@ -4402,8 +4114,8 @@
    "byStatus": {
     "core": 4680,
     "nop": 1,
-    "faithful": 3567,
-    "authored": 8,
+    "faithful": 3572,
+    "authored": 3,
     "silent": 121,
     "skipped": 57,
     "stops": 0
@@ -4455,11 +4167,6 @@
      "sites": 5
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 3
-    },
-    {
      "name": "DO_CAMERA_BUMP",
      "status": "skipped",
      "sites": 3
@@ -4467,6 +4174,11 @@
     {
      "name": "POINT_CAMERA_AT_CAR",
      "status": "authored",
+     "sites": 2
+    },
+    {
+     "name": "MOVE_SEARCHLIGHT_BETWEEN_COORDS",
+     "status": "skipped",
      "sites": 2
     }
    ]
@@ -4480,8 +4192,8 @@
    "byStatus": {
     "core": 1618,
     "nop": 6,
-    "faithful": 967,
-    "authored": 4,
+    "faithful": 969,
+    "authored": 2,
     "silent": 13,
     "skipped": 0,
     "stops": 0
@@ -4496,11 +4208,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 5
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -4584,8 +4291,8 @@
    "byStatus": {
     "core": 2644,
     "nop": 61,
-    "faithful": 964,
-    "authored": 1,
+    "faithful": 965,
+    "authored": 0,
     "silent": 138,
     "skipped": 0,
     "stops": 0
@@ -4607,11 +4314,6 @@
      "sites": 2
     },
     {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -4627,8 +4329,8 @@
    "byStatus": {
     "core": 2649,
     "nop": 5,
-    "faithful": 1553,
-    "authored": 10,
+    "faithful": 1560,
+    "authored": 3,
     "silent": 14,
     "skipped": 0,
     "stops": 0
@@ -4638,11 +4340,6 @@
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 8
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 7
     },
     {
      "name": "CLEAR_MISSION_AUDIO",
@@ -4743,8 +4440,8 @@
    "byStatus": {
     "core": 1628,
     "nop": 3,
-    "faithful": 883,
-    "authored": 2,
+    "faithful": 884,
+    "authored": 1,
     "silent": 87,
     "skipped": 1,
     "stops": 0
@@ -4764,11 +4461,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 3
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -4829,8 +4521,8 @@
    "byStatus": {
     "core": 1132,
     "nop": 1,
-    "faithful": 930,
-    "authored": 3,
+    "faithful": 931,
+    "authored": 2,
     "silent": 41,
     "skipped": 0,
     "stops": 0
@@ -4862,11 +4554,6 @@
      "sites": 1
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -4882,8 +4569,8 @@
    "byStatus": {
     "core": 1417,
     "nop": 4,
-    "faithful": 782,
-    "authored": 2,
+    "faithful": 783,
+    "authored": 1,
     "silent": 31,
     "skipped": 16,
     "stops": 0
@@ -4940,13 +4627,13 @@
      "sites": 1
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
+     "name": "TASK_CHAR_ARREST_CHAR",
+     "status": "skipped",
      "sites": 1
     },
     {
-     "name": "TASK_CHAR_ARREST_CHAR",
-     "status": "skipped",
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
      "sites": 1
     }
    ]
@@ -4960,19 +4647,13 @@
    "byStatus": {
     "core": 202,
     "nop": 0,
-    "faithful": 194,
-    "authored": 1,
+    "faithful": 195,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 49,
@@ -4983,8 +4664,8 @@
    "byStatus": {
     "core": 2052,
     "nop": 1,
-    "faithful": 967,
-    "authored": 11,
+    "faithful": 975,
+    "authored": 3,
     "silent": 26,
     "skipped": 4,
     "stops": 0
@@ -4996,11 +4677,6 @@
      "sites": 16
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 6
-    },
-    {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 5
@@ -5009,11 +4685,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 4
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "SET_CAR_LIGHTS_ON",
@@ -5061,8 +4732,8 @@
    "byStatus": {
     "core": 1666,
     "nop": 49,
-    "faithful": 807,
-    "authored": 6,
+    "faithful": 809,
+    "authored": 4,
     "silent": 29,
     "skipped": 8,
     "stops": 0
@@ -5099,11 +4770,6 @@
      "sites": 2
     },
     {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
      "status": "authored",
      "sites": 1
@@ -5127,6 +4793,11 @@
      "name": "GET_CAR_MASS",
      "status": "skipped",
      "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
+     "sites": 1
     }
    ]
   },
@@ -5139,8 +4810,8 @@
    "byStatus": {
     "core": 1481,
     "nop": 8,
-    "faithful": 849,
-    "authored": 5,
+    "faithful": 850,
+    "authored": 4,
     "silent": 17,
     "skipped": 4,
     "stops": 0
@@ -5177,11 +4848,6 @@
      "sites": 1
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "OPEN_GARAGE",
      "status": "authored",
      "sites": 1
@@ -5204,6 +4870,11 @@
     {
      "name": "IS_CHAR_IN_AREA_IN_CAR_3D",
      "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
      "sites": 1
     }
    ]
@@ -5361,8 +5032,8 @@
    "byStatus": {
     "core": 1009,
     "nop": 1,
-    "faithful": 480,
-    "authored": 2,
+    "faithful": 482,
+    "authored": 0,
     "silent": 9,
     "skipped": 0,
     "stops": 0
@@ -5372,11 +5043,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 4
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "LOAD_MISSION_AUDIO",
@@ -5404,8 +5070,8 @@
    "byStatus": {
     "core": 2332,
     "nop": 4,
-    "faithful": 779,
-    "authored": 9,
+    "faithful": 788,
+    "authored": 0,
     "silent": 1,
     "skipped": 29,
     "stops": 0
@@ -5417,19 +5083,9 @@
      "sites": 5
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 5
-    },
-    {
      "name": "ADD_BLIP_FOR_SEARCHLIGHT",
      "status": "skipped",
      "sites": 5
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 4
     },
     {
      "name": "ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT",
@@ -5470,6 +5126,16 @@
      "name": "BOAT_STOP",
      "status": "skipped",
      "sites": 1
+    },
+    {
+     "name": "IS_CHAR_IN_ANY_SEARCHLIGHT",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "DELETE_SEARCHLIGHT",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -5482,8 +5148,8 @@
    "byStatus": {
     "core": 1805,
     "nop": 5,
-    "faithful": 1502,
-    "authored": 10,
+    "faithful": 1510,
+    "authored": 2,
     "silent": 45,
     "skipped": 3,
     "stops": 0
@@ -5495,22 +5161,12 @@
      "sites": 39
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 6
-    },
-    {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 3
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
      "status": "authored",
      "sites": 2
     },
@@ -5550,8 +5206,8 @@
    "byStatus": {
     "core": 1556,
     "nop": 3,
-    "faithful": 652,
-    "authored": 1,
+    "faithful": 653,
+    "authored": 0,
     "silent": 9,
     "skipped": 1,
     "stops": 0
@@ -5575,11 +5231,6 @@
     {
      "name": "ATTACH_CHAR_TO_BIKE",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -5651,8 +5302,8 @@
    "byStatus": {
     "core": 1680,
     "nop": 1,
-    "faithful": 758,
-    "authored": 3,
+    "faithful": 760,
+    "authored": 1,
     "silent": 17,
     "skipped": 1,
     "stops": 0
@@ -5667,11 +5318,6 @@
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 6
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "PLAY_MISSION_AUDIO",
@@ -5762,8 +5408,8 @@
    "byStatus": {
     "core": 774,
     "nop": 4,
-    "faithful": 451,
-    "authored": 4,
+    "faithful": 453,
+    "authored": 2,
     "silent": 8,
     "skipped": 5,
     "stops": 0
@@ -5787,11 +5433,6 @@
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
      "sites": 2
     },
     {
@@ -5883,8 +5524,8 @@
    "byStatus": {
     "core": 2216,
     "nop": 4,
-    "faithful": 1820,
-    "authored": 5,
+    "faithful": 1825,
+    "authored": 0,
     "silent": 35,
     "skipped": 14,
     "stops": 0
@@ -5894,11 +5535,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 30
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 4
     },
     {
      "name": "SET_BOAT_CRUISE_SPEED",
@@ -5931,11 +5567,6 @@
      "sites": 1
     },
     {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "SET_HELI_ORIENTATION",
      "status": "skipped",
      "sites": 1
@@ -5949,6 +5580,11 @@
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
+    },
+    {
+     "name": "SET_HELI_REACHED_TARGET_DISTANCE",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -5961,18 +5597,13 @@
    "byStatus": {
     "core": 998,
     "nop": 1,
-    "faithful": 519,
-    "authored": 13,
+    "faithful": 523,
+    "authored": 9,
     "silent": 1,
     "skipped": 4,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 3
-    },
     {
      "name": "IS_GARAGE_CLOSED",
      "status": "authored",
@@ -5996,11 +5627,6 @@
     {
      "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -6175,8 +5801,8 @@
    "byStatus": {
     "core": 2236,
     "nop": 2,
-    "faithful": 1802,
-    "authored": 12,
+    "faithful": 1808,
+    "authored": 6,
     "silent": 25,
     "skipped": 14,
     "stops": 0
@@ -6186,11 +5812,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 20
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 5
     },
     {
      "name": "SET_CAR_STAY_IN_FAST_LANE",
@@ -6228,17 +5849,22 @@
      "sites": 1
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "GIVE_NON_PLAYER_CAR_NITRO",
      "status": "skipped",
      "sites": 1
     },
     {
      "name": "OPEN_GARAGE",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "IS_GARAGE_OPEN",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "CLOSE_GARAGE",
      "status": "authored",
      "sites": 1
     }
@@ -6331,8 +5957,8 @@
    "byStatus": {
     "core": 752,
     "nop": 3,
-    "faithful": 426,
-    "authored": 12,
+    "faithful": 427,
+    "authored": 11,
     "silent": 20,
     "skipped": 1,
     "stops": 0
@@ -6389,11 +6015,6 @@
      "sites": 1
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "GET_RANDOM_CAR_OF_TYPE_IN_ANGLED_AREA_NO_SAVE",
      "status": "skipped",
      "sites": 1
@@ -6409,8 +6030,8 @@
    "byStatus": {
     "core": 4181,
     "nop": 2,
-    "faithful": 1361,
-    "authored": 15,
+    "faithful": 1362,
+    "authored": 14,
     "silent": 11,
     "skipped": 2,
     "stops": 0
@@ -6452,11 +6073,6 @@
      "sites": 2
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -6472,8 +6088,8 @@
    "byStatus": {
     "core": 1449,
     "nop": 1,
-    "faithful": 732,
-    "authored": 7,
+    "faithful": 737,
+    "authored": 2,
     "silent": 71,
     "skipped": 21,
     "stops": 0
@@ -6505,19 +6121,9 @@
      "sites": 5
     },
     {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 4
-    },
-    {
      "name": "PLANE_STARTS_IN_AIR",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -6550,8 +6156,8 @@
    "byStatus": {
     "core": 851,
     "nop": 1,
-    "faithful": 430,
-    "authored": 4,
+    "faithful": 432,
+    "authored": 2,
     "silent": 53,
     "skipped": 13,
     "stops": 0
@@ -6598,23 +6204,18 @@
      "sites": 1
     },
     {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
      "status": "authored",
      "sites": 1
     },
     {
      "name": "POINT_CAMERA_AT_CAR",
      "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
      "sites": 1
     }
    ]
@@ -6628,18 +6229,13 @@
    "byStatus": {
     "core": 2395,
     "nop": 68,
-    "faithful": 593,
-    "authored": 18,
+    "faithful": 611,
+    "authored": 0,
     "silent": 24,
     "skipped": 22,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 18
-    },
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
@@ -6694,6 +6290,11 @@
      "name": "REMOVE_OIL_PUDDLES_IN_AREA",
      "status": "skipped",
      "sites": 1
+    },
+    {
+     "name": "SET_HELI_STABILISER",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -6706,8 +6307,8 @@
    "byStatus": {
     "core": 1060,
     "nop": 4,
-    "faithful": 420,
-    "authored": 3,
+    "faithful": 423,
+    "authored": 0,
     "silent": 13,
     "skipped": 0,
     "stops": 0
@@ -6729,11 +6330,6 @@
      "sites": 3
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 3
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -6749,8 +6345,8 @@
    "byStatus": {
     "core": 1501,
     "nop": 3,
-    "faithful": 585,
-    "authored": 7,
+    "faithful": 587,
+    "authored": 5,
     "silent": 37,
     "skipped": 18,
     "stops": 0
@@ -6782,11 +6378,6 @@
      "sites": 3
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "RELEASE_PATH_NODES",
      "status": "skipped",
      "sites": 2
@@ -6815,6 +6406,11 @@
      "name": "IS_GARAGE_OPEN",
      "status": "authored",
      "sites": 1
+    },
+    {
+     "name": "LOAD_SCENE_IN_DIRECTION",
+     "status": "authored",
+     "sites": 1
     }
    ]
   },
@@ -6827,8 +6423,8 @@
    "byStatus": {
     "core": 2251,
     "nop": 55,
-    "faithful": 1025,
-    "authored": 10,
+    "faithful": 1027,
+    "authored": 8,
     "silent": 41,
     "skipped": 25,
     "stops": 0
@@ -6890,8 +6486,8 @@
      "sites": 2
     },
     {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
+     "name": "HELI_KEEP_ENTITY_IN_VIEW",
+     "status": "skipped",
      "sites": 2
     }
    ]
@@ -6922,8 +6518,8 @@
    "byStatus": {
     "core": 1112,
     "nop": 22,
-    "faithful": 221,
-    "authored": 1,
+    "faithful": 222,
+    "authored": 0,
     "silent": 11,
     "skipped": 4,
     "stops": 0
@@ -6960,11 +6556,6 @@
      "sites": 1
     },
     {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -6980,8 +6571,8 @@
    "byStatus": {
     "core": 1843,
     "nop": 9,
-    "faithful": 916,
-    "authored": 7,
+    "faithful": 921,
+    "authored": 2,
     "silent": 19,
     "skipped": 17,
     "stops": 0
@@ -6996,11 +6587,6 @@
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 7
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 3
     },
     {
      "name": "IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
@@ -7023,11 +6609,6 @@
      "sites": 2
     },
     {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "ATTACH_CAMERA_TO_CHAR",
      "status": "skipped",
      "sites": 2
@@ -7046,6 +6627,16 @@
      "name": "SET_CAR_COORDINATES_NO_OFFSET",
      "status": "skipped",
      "sites": 1
+    },
+    {
+     "name": "TASK_COMPLEX_PICKUP_OBJECT",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "CLEAR_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -7058,8 +6649,8 @@
    "byStatus": {
     "core": 1409,
     "nop": 1,
-    "faithful": 1633,
-    "authored": 10,
+    "faithful": 1636,
+    "authored": 7,
     "silent": 39,
     "skipped": 50,
     "stops": 0
@@ -7121,8 +6712,8 @@
      "sites": 2
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
+     "name": "SWITCH_ON_GROUND_SEARCHLIGHT",
+     "status": "skipped",
      "sites": 2
     }
    ]
@@ -7136,8 +6727,8 @@
    "byStatus": {
     "core": 207,
     "nop": 1,
-    "faithful": 219,
-    "authored": 1,
+    "faithful": 220,
+    "authored": 0,
     "silent": 7,
     "skipped": 3,
     "stops": 0
@@ -7169,11 +6760,6 @@
      "sites": 1
     },
     {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 1
@@ -7194,8 +6780,8 @@
    "byStatus": {
     "core": 2961,
     "nop": 2,
-    "faithful": 931,
-    "authored": 11,
+    "faithful": 932,
+    "authored": 10,
     "silent": 13,
     "skipped": 16,
     "stops": 0
@@ -7252,12 +6838,12 @@
      "sites": 2
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
+     "name": "GET_CAR_UPRIGHT_VALUE",
+     "status": "skipped",
      "sites": 1
     },
     {
-     "name": "GET_CAR_UPRIGHT_VALUE",
+     "name": "ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR",
      "status": "skipped",
      "sites": 1
     }
@@ -7325,18 +6911,13 @@
    "byStatus": {
     "core": 1254,
     "nop": 12,
-    "faithful": 1019,
-    "authored": 22,
+    "faithful": 1034,
+    "authored": 7,
     "silent": 19,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 15
-    },
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
@@ -7403,18 +6984,13 @@
    "byStatus": {
     "core": 979,
     "nop": 2,
-    "faithful": 802,
-    "authored": 11,
+    "faithful": 812,
+    "authored": 1,
     "silent": 15,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 10
-    },
     {
      "name": "SLIDE_OBJECT",
      "status": "silent",
@@ -7484,8 +7060,8 @@
    "byStatus": {
     "core": 4212,
     "nop": 8,
-    "faithful": 1834,
-    "authored": 5,
+    "faithful": 1837,
+    "authored": 2,
     "silent": 78,
     "skipped": 7,
     "stops": 0
@@ -7510,11 +7086,6 @@
      "name": "TASK_TIRED",
      "status": "skipped",
      "sites": 4
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 3
     },
     {
      "name": "SET_VEHICLE_TO_FADE_IN",
@@ -7547,18 +7118,13 @@
    "byStatus": {
     "core": 938,
     "nop": 1,
-    "faithful": 579,
-    "authored": 2,
+    "faithful": 580,
+    "authored": 1,
     "silent": 2,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
@@ -7585,18 +7151,13 @@
    "byStatus": {
     "core": 2481,
     "nop": 4,
-    "faithful": 1324,
-    "authored": 15,
+    "faithful": 1332,
+    "authored": 7,
     "silent": 6,
     "skipped": 6,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 6
-    },
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
@@ -7606,11 +7167,6 @@
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
      "status": "authored",
      "sites": 3
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "ADD_ATTRACTOR",
@@ -7651,6 +7207,11 @@
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
+    },
+    {
+     "name": "RESET_STUFF_UPON_RESURRECTION",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -7663,8 +7224,8 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 472,
-    "authored": 7,
+    "faithful": 475,
+    "authored": 4,
     "silent": 10,
     "skipped": 10,
     "stops": 0
@@ -7684,11 +7245,6 @@
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "ATTACH_CHAR_TO_OBJECT",
@@ -7729,6 +7285,11 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
+     "sites": 1
     }
    ]
   },
@@ -7741,8 +7302,8 @@
    "byStatus": {
     "core": 1479,
     "nop": 1,
-    "faithful": 1177,
-    "authored": 8,
+    "faithful": 1183,
+    "authored": 2,
     "silent": 46,
     "skipped": 8,
     "stops": 0
@@ -7764,19 +7325,9 @@
      "sites": 7
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 4
-    },
-    {
      "name": "SET_ALWAYS_DRAW_3D_MARKERS",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -7890,8 +7441,8 @@
    "byStatus": {
     "core": 998,
     "nop": 14,
-    "faithful": 633,
-    "authored": 2,
+    "faithful": 635,
+    "authored": 0,
     "silent": 48,
     "skipped": 0,
     "stops": 0
@@ -7913,11 +7464,6 @@
      "sites": 15
     },
     {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -7933,8 +7479,8 @@
    "byStatus": {
     "core": 1750,
     "nop": 4,
-    "faithful": 1371,
-    "authored": 1,
+    "faithful": 1372,
+    "authored": 0,
     "silent": 54,
     "skipped": 3,
     "stops": 0
@@ -7959,11 +7505,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 3
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "LOCK_DOOR",
@@ -7996,8 +7537,8 @@
    "byStatus": {
     "core": 1964,
     "nop": 4,
-    "faithful": 1059,
-    "authored": 7,
+    "faithful": 1065,
+    "authored": 1,
     "silent": 42,
     "skipped": 0,
     "stops": 0
@@ -8017,11 +7558,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 11
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 6
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -8044,8 +7580,8 @@
    "byStatus": {
     "core": 1449,
     "nop": 8,
-    "faithful": 885,
-    "authored": 5,
+    "faithful": 889,
+    "authored": 1,
     "silent": 22,
     "skipped": 2,
     "stops": 0
@@ -8065,11 +7601,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 6
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 4
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -8170,8 +7701,8 @@
    "byStatus": {
     "core": 1731,
     "nop": 1,
-    "faithful": 1044,
-    "authored": 2,
+    "faithful": 1045,
+    "authored": 1,
     "silent": 51,
     "skipped": 14,
     "stops": 0
@@ -8248,8 +7779,8 @@
    "byStatus": {
     "core": 3088,
     "nop": 18,
-    "faithful": 3035,
-    "authored": 10,
+    "faithful": 3043,
+    "authored": 2,
     "silent": 126,
     "skipped": 14,
     "stops": 0
@@ -8271,19 +7802,9 @@
      "sites": 41
     },
     {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 6
-    },
-    {
      "name": "SET_NIGHT_VISION",
      "status": "skipped",
      "sites": 4
-    },
-    {
-     "name": "SWITCH_OBJECT_BRAINS",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "PLAYER_TAKE_OFF_GOGGLES",
@@ -8314,6 +7835,16 @@
      "name": "POINT_SEARCHLIGHT_AT_CHAR",
      "status": "skipped",
      "sites": 1
+    },
+    {
+     "name": "DOES_SEARCHLIGHT_EXIST",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "DELETE_SEARCHLIGHT",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -8326,27 +7857,17 @@
    "byStatus": {
     "core": 2824,
     "nop": 1,
-    "faithful": 1555,
-    "authored": 14,
+    "faithful": 1564,
+    "authored": 5,
     "silent": 2,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 6
-    },
-    {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 4
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
@@ -8356,11 +7877,6 @@
     {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -8515,8 +8031,8 @@
    "byStatus": {
     "core": 993,
     "nop": 2,
-    "faithful": 657,
-    "authored": 3,
+    "faithful": 660,
+    "authored": 0,
     "silent": 6,
     "skipped": 0,
     "stops": 0
@@ -8526,11 +8042,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 5
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 3
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -8548,8 +8059,8 @@
    "byStatus": {
     "core": 1683,
     "nop": 1,
-    "faithful": 1191,
-    "authored": 3,
+    "faithful": 1193,
+    "authored": 1,
     "silent": 104,
     "skipped": 0,
     "stops": 0
@@ -8569,11 +8080,6 @@
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 7
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -8634,8 +8140,8 @@
    "byStatus": {
     "core": 587,
     "nop": 2,
-    "faithful": 207,
-    "authored": 2,
+    "faithful": 208,
+    "authored": 1,
     "silent": 23,
     "skipped": 1,
     "stops": 0
@@ -8667,11 +8173,6 @@
      "sites": 1
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -8687,8 +8188,8 @@
    "byStatus": {
     "core": 2527,
     "nop": 2,
-    "faithful": 2579,
-    "authored": 10,
+    "faithful": 2584,
+    "authored": 5,
     "silent": 43,
     "skipped": 3,
     "stops": 0
@@ -8698,11 +8199,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 38
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 5
     },
     {
      "name": "SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2",
@@ -8755,8 +8251,8 @@
    "byStatus": {
     "core": 2295,
     "nop": 1,
-    "faithful": 1829,
-    "authored": 2,
+    "faithful": 1830,
+    "authored": 1,
     "silent": 14,
     "skipped": 5,
     "stops": 0
@@ -8781,11 +8277,6 @@
      "name": "SET_INFRARED_VISION",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "HAS_OBJECT_OF_TYPE_BEEN_SMASHED",
@@ -8823,8 +8314,8 @@
    "byStatus": {
     "core": 1066,
     "nop": 1,
-    "faithful": 955,
-    "authored": 32,
+    "faithful": 956,
+    "authored": 31,
     "silent": 3,
     "skipped": 3,
     "stops": 0
@@ -8843,11 +8334,6 @@
     {
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -8881,18 +8367,13 @@
    "byStatus": {
     "core": 3644,
     "nop": 1,
-    "faithful": 2587,
-    "authored": 146,
+    "faithful": 2729,
+    "authored": 4,
     "silent": 12,
     "skipped": 7,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 141
-    },
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
@@ -8934,17 +8415,17 @@
      "sites": 1
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "ARE_CREDITS_FINISHED",
      "status": "skipped",
      "sites": 1
     },
     {
      "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
     }
@@ -8959,8 +8440,8 @@
    "byStatus": {
     "core": 1793,
     "nop": 1,
-    "faithful": 383,
-    "authored": 11,
+    "faithful": 386,
+    "authored": 8,
     "silent": 3,
     "skipped": 0,
     "stops": 0
@@ -8970,11 +8451,6 @@
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
      "sites": 8
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 3
     },
     {
      "name": "LOAD_MISSION_AUDIO",
@@ -9154,18 +8630,13 @@
    "byStatus": {
     "core": 2246,
     "nop": 28,
-    "faithful": 809,
-    "authored": 12,
+    "faithful": 820,
+    "authored": 1,
     "silent": 1,
     "skipped": 19,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 11
-    },
     {
      "name": "WINCH_CAN_PICK_VEHICLE_UP",
      "status": "skipped",
@@ -9227,8 +8698,8 @@
    "byStatus": {
     "core": 2630,
     "nop": 2,
-    "faithful": 1681,
-    "authored": 9,
+    "faithful": 1686,
+    "authored": 4,
     "silent": 15,
     "skipped": 17,
     "stops": 0
@@ -9247,11 +8718,6 @@
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE",
      "status": "skipped",
-     "sites": 5
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
      "sites": 5
     },
     {
@@ -9295,8 +8761,8 @@
    "byStatus": {
     "core": 2337,
     "nop": 2,
-    "faithful": 657,
-    "authored": 10,
+    "faithful": 658,
+    "authored": 9,
     "silent": 6,
     "skipped": 2,
     "stops": 0
@@ -9331,11 +8797,6 @@
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 1
     }
    ]
   },
@@ -9348,18 +8809,13 @@
    "byStatus": {
     "core": 1685,
     "nop": 40,
-    "faithful": 383,
-    "authored": 7,
+    "faithful": 387,
+    "authored": 3,
     "silent": 3,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 4
-    },
     {
      "name": "TASK_PLAY_ANIM_SECONDARY",
      "status": "authored",
@@ -9584,8 +9040,8 @@
    "byStatus": {
     "core": 1430,
     "nop": 3,
-    "faithful": 645,
-    "authored": 5,
+    "faithful": 647,
+    "authored": 3,
     "silent": 5,
     "skipped": 3,
     "stops": 0
@@ -9612,18 +9068,8 @@
      "sites": 2
     },
     {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "DONT_SUPPRESS_ANY_CAR_MODELS",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -9642,8 +9088,8 @@
    "byStatus": {
     "core": 692,
     "nop": 0,
-    "faithful": 361,
-    "authored": 2,
+    "faithful": 363,
+    "authored": 0,
     "silent": 20,
     "skipped": 1,
     "stops": 0
@@ -9672,16 +9118,6 @@
     {
      "name": "ADD_BLIP_FOR_COORD_OLD",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "CAMERA_SET_VECTOR_MOVE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SKIP_CUTSCENE_END",
-     "status": "authored",
      "sites": 1
     }
    ]
@@ -9743,18 +9179,13 @@
    "byStatus": {
     "core": 1498,
     "nop": 6,
-    "faithful": 423,
-    "authored": 9,
+    "faithful": 429,
+    "authored": 3,
     "silent": 8,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_OBJECT_COLLISION",
-     "status": "authored",
-     "sites": 6
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -9937,26 +9368,6 @@
    "doc": "Plays the loaded sound (03CF)",
    "sites": 659,
    "missions": 102,
-   "firstMission": "MAIN",
-   "portable": true
-  },
-  {
-   "name": "SET_OBJECT_COLLISION",
-   "opcode": "0382",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 2949,
-   "ref": {
-    "kind": "handler",
-    "fn": "SetObjectCollision",
-    "where": "ObjectCommands.cpp:101",
-    "stub": false
-   },
-   "doc": "Sets the object's collision detection",
-   "sites": 211,
-   "missions": 40,
    "firstMission": "MAIN",
    "portable": true
   },
@@ -10412,23 +9823,6 @@
    "portable": false
   },
   {
-   "name": "IS_OBJECT_WITHIN_BRAIN_ACTIVATION_RANGE",
-   "opcode": "0977",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 3011,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the object is within the external script trigger radius",
-   "sites": 12,
-   "missions": 12,
-   "firstMission": "slot_machine.scm",
-   "portable": false
-  },
-  {
    "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
    "opcode": "091c",
    "status": "authored",
@@ -10482,26 +9876,6 @@
    "missions": 3,
    "firstMission": "roulette.scm",
    "portable": false
-  },
-  {
-   "name": "ENABLE_DISABLED_ATTRACTORS_ON_OBJECT",
-   "opcode": "0a0a",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 2959,
-   "ref": {
-    "kind": "handler",
-    "fn": "EnableDisabledAttractorOnObject",
-    "where": "ObjectCommands.cpp:150",
-    "stub": false
-   },
-   "doc": "Sets whether the object attracts spawned peds to interact with it",
-   "sites": 3,
-   "missions": 2,
-   "firstMission": "roulette.scm",
-   "portable": true
   },
   {
    "name": "TASK_PLAY_ANIM_SECONDARY",
@@ -10670,26 +10044,6 @@
    "missions": 1,
    "firstMission": "home_brains.scm",
    "portable": false
-  },
-  {
-   "name": "CAMERA_SET_VECTOR_MOVE",
-   "opcode": "0936",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 920,
-   "ref": {
-    "kind": "handler",
-    "fn": "CameraSetVectorMove",
-    "where": "CameraCommands.cpp:237",
-    "stub": false
-   },
-   "doc": "Puts the camera at the position of the first passed coordinates and moves it to the second passed coordinates",
-   "sites": 190,
-   "missions": 26,
-   "firstMission": "lowr_cont.scm",
-   "portable": true
   },
   {
    "name": "POINT_CAMERA_AT_CAR",
@@ -11119,23 +10473,6 @@
    "missions": 1,
    "firstMission": "ammu.scm",
    "portable": true
-  },
-  {
-   "name": "GET_CLOTHES_ITEM",
-   "opcode": "08f7",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 3030,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 38,
-   "missions": 4,
-   "firstMission": "tattoo.scm",
-   "portable": false
   },
   {
    "name": "GIVE_VEHICLE_PAINTJOB",
@@ -11808,40 +11145,6 @@
    "sites": 27,
    "missions": 4,
    "firstMission": "INITIAL",
-   "portable": false
-  },
-  {
-   "name": "CONNECT_LODS",
-   "opcode": "0827",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 2951,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets which LOD object should show when the object is being viewed from far away",
-   "sites": 7,
-   "missions": 1,
-   "firstMission": "INITIAL",
-   "portable": false
-  },
-  {
-   "name": "SKIP_CUTSCENE_END",
-   "opcode": "0701",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 1294,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 138,
-   "missions": 56,
-   "firstMission": "INTRO",
    "portable": false
   },
   {
@@ -12695,7 +11998,6 @@
    "opcode": "07ab",
    "status": "skipped",
    "notes": [
-    "handler comments name an authored stand-in",
     "adapter lacks trailerIsAttachedToCab (skipped: outputs read as none)"
    ],
    "handlerLine": 2034,
@@ -14327,23 +13629,6 @@
    "doc": "Sets the angle of a vehicle's extra",
    "sites": 4,
    "missions": 2,
-   "firstMission": "HEIST9",
-   "portable": false
-  },
-  {
-   "name": "SWITCH_OBJECT_BRAINS",
-   "opcode": "0a46",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 560,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Enables or disables all object triggers with the specified grouping id (set with 0929)",
-   "sites": 2,
-   "missions": 1,
    "firstMission": "HEIST9",
    "portable": false
   },
