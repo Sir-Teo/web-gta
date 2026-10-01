@@ -339,6 +339,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setWeekDay?(day:number):void;
  /** GET_RANDOM_CHAR_IN_SPHERE: a street ped of the kinds asked for in the sphere, made the script's; -1 for none. */
  randomPedInSphere?(x:number,y:number,z:number,radius:number,civilian:boolean,gang:boolean,criminal:boolean):number;
+ randomPedInBox?(x:number,y:number,z:number,dx:number,dy:number,dz:number):number;
  /** GET_CHAR_ANIM_TOTAL_TIME: the named clip's total time in ms while the ped plays it, else 0. */
  pedAnimTotalTime?(handle:number,animation:string):number;
  pedSpeed?(handle:number):number;

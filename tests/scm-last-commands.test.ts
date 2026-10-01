@@ -54,6 +54,13 @@ describe('the last of the ped questions',()=>{
   expect(game.allowPauseInWidescreen).toBe(false);
  });
 
+ test('GET_RANDOM_CHAR_IN_AREA_OFFSET_NO_SAVE asks for a ped in the box of the point and its half-extents',()=>{
+  const calls:unknown[]=[];
+  const {readInt}=run({randomPedInBox:(...a:number[])=>{calls.push(a);return 1030;}},undefined,
+   instruction(scmOpcode('GET_RANDOM_CHAR_IN_AREA_OFFSET_NO_SAVE'),[float(10),float(20),float(30),float(.6),float(.6),float(1),gvar(40)]));
+  expect(calls).toHaveLength(1);(calls[0] as number[]).forEach((v,k)=>expect(v).toBeCloseTo([10,20,30,.6,.6,1][k],5));expect(readInt(40)).toBe(1030);
+ });
+
  test('no second player is ever in the game',()=>{
   expect(run({},undefined,instruction(scmOpcode('IS_2PLAYER_GAME_GOING_ON'),[])).thread.condition).toBe(false);
  });

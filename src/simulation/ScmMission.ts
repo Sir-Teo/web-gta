@@ -1892,6 +1892,17 @@ export class ScmMission {
     }
     return -1;
    },
+   randomPedInBox:(x,y,z,dx,dy,dz)=>{
+    const inside=(q:{x:number;y:number;z:number})=>Math.abs(q.x-x)<=dx&&Math.abs(q.y-y)<=dy&&Math.abs(q.z-z)<=dz;
+    // The script's own peds first, then the street's (taken under a handle, as the NO_SAVE forms hand one back).
+    for(const h of this.peds.handles){try{if(this.peds.exists(h)&&inside(this.ridingIn(h)??this.peds.positionOf(h)))return h;}catch{}}
+    for(const c of this.world.randomStreetPeds?.()??[]){
+     if(!inside(c.position))continue;
+     this.world.adoptStreetPed?.(c.ped);
+     return this.peds.adopt(c.ped,c.pedType,c.model,c.position,c.heading,c.health);
+    }
+    return -1;
+   },
    randomPedInZone:(zone,civilian,gang,criminal)=>{
     const candidates=this.world.randomStreetPeds?.();
     if(!candidates)throw new UnsupportedScmCommand(-1,0,'GET_RANDOM_CHAR_IN_ZONE','no host');

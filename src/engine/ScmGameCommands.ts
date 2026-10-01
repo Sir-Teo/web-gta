@@ -3044,6 +3044,11 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_USER_OF_CLOSEST_MAP_ATTRACTOR:(t,p)=>{t.writeInt(p[6],-1);},
  IS_CHAR_USING_MAP_ATTRACTOR:(t,_p,i)=>{t.updateCompareFlag(false,negated(i));},
  GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN:(t,p)=>{t.writeInt(p[4],-1);},
+ // Handler unregistered in the reference (AUTHORED): a ped, not the player, inside the box the point and its
+ // half-extents make; slot_machine.scm asks it whether anyone stands at the machine.
+ GET_RANDOM_CHAR_IN_AREA_OFFSET_NO_SAVE:(t,p,i)=>{
+  const v=vec(t,p,0),d=vec(t,p,3);t.writeInt(p[6],world(t,i,'randomPedInBox')(v.x,v.y,v.z,d.x,d.y,d.z));
+ },
  GET_RANDOM_CHAR_IN_SPHERE:(t,p,i)=>{
   const v=vec(t,p,0);t.writeInt(p[7],world(t,i,'randomPedInSphere')(v.x,v.y,v.z,t.readFloat(p[3]),bool(t,p[4]),bool(t,p[5]),bool(t,p[6])));
  },
