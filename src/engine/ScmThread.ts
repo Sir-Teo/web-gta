@@ -47,6 +47,7 @@ export type ScmScriptedTask=
  |{kind:'pause';time:number}
  |{kind:'leaveAnyCar'}
  |{kind:'lookAtPed';target:number;time:number}
+ |{kind:'clearLookAt'}
  |{kind:'carDriveToCoord';vehicle:number;x:number;y:number;z:number;speed:number;driveStyle:number;model:number|string;drivingStyle:number}
  |{kind:'driveBy';targetPed:number;targetVehicle:number;x:number;y:number;z:number;radius:number;type:number;rightHandCarSeat:boolean;fireRate:number}
  |{kind:'followPointRoute';speed:number;mode:number;

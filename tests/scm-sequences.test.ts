@@ -54,6 +54,15 @@ describe('the sequences a script records',()=>{
   expect(handles.map(h=>game.sequences.sequenceFor(h)!.sequence.tasks)).toEqual([[task(0)],[task(1)],[task(2)]]);
  });
 
+ test('CLEAR_LOOK_AT on -1 records CTaskSimpleClearLookAt in the open sequence, and touches no ped',()=>{
+  // INTRO2 records it for CJ between his walk and the look at Sweet; the browser took -1 as a ped it does not hold.
+  const game=new ScmGameState();game.sequences.open();
+  const cleared:number[]=[];
+  run(build(scmOpcode('CLEAR_LOOK_AT'),[int(-1)]),game,{clearPedLookAt:handle=>{cleared.push(handle);}});
+  expect(game.sequences.at(0).tasks).toEqual([{kind:'clearLookAt'}]);
+  expect(cleared).toEqual([]);
+ });
+
  test('closing leaves nothing active, and recording then fails',()=>{
   const game=new ScmGameState();
   const {global}=run(build(scmOpcode('OPEN_SEQUENCE_TASK'),[gvar(VAR)]),game);

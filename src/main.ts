@@ -522,6 +522,7 @@ async function boot() {
   lookAtPoint:(x,y,z,seconds)=>{pedestrians?.playerLookAtPoint({x,y:z,z:-y},seconds);},
   die:()=>{sim.killPlayer();},
   lookAt:(target,seconds)=>{const ped=onFoot(mission?.pedByHandle(target));if(ped&&typeof ped==='object')pedestrians?.playerLookAtPed(ped,seconds);},
+  clearLookAt:()=>{pedestrians?.clearPlayerLookAt();},
   placeOnGround:(x,z,originY)=>{
    const ground=pedestrians?.groundUnder(x,z,(originY??sim.player.position.y+1+50)+.5);if(ground===undefined)return;
    sim.flushPlayerTasks();sim.player.position={x,y:ground,z};sim.player.previous={x,y:ground,z};

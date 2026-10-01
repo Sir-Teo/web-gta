@@ -496,7 +496,8 @@ const handlers:Record<string,ScmCommandHandler>={
   const point=vec(t,p,0);
   t.writeInt(p[3],world(t,i,'createRandomChar')(point.x,point.y,point.z));
  },
- CLEAR_LOOK_AT:(t,p,i)=>{world(t,i,'clearPedLookAt')(t.readInt(p[0]));},
+ // In a sequence (-1) CTaskSimpleClearLookAt is one of its tasks, for the ped that later performs it.
+ CLEAR_LOOK_AT:(t,p,i)=>{const ped=t.readInt(p[0]);if(ped===-1)game(t,i).sequences.addTaskToActiveSequence({kind:'clearLookAt'});else world(t,i,'clearPedLookAt')(ped);},
  IS_GROUP_MEMBER:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'pedIsInGroup')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
  },

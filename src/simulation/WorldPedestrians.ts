@@ -1766,6 +1766,7 @@ export class WorldPedestrians {
     ped.look=startLookAt(this.clock*1000,order.seconds*1000);
     break;
    }
+   case 'clearLookAt':this.clearLookAt(ped);break;
    // CTaskComplexEvasiveDiveAndGetUp with its heading first (the dive's way, script x and y): the evasive dive the
    // ped already makes from cars, with the script's time lying down.
    case 'diveAndGetUp':

@@ -32,6 +32,8 @@ export type ScriptedPedOrder=
  /** CTaskSimpleTriggerLookAt: the head turns to a ped (a script handle, the player's included) for `seconds`; the
   * task itself is over as soon as it has started the look. */
  |{kind:'lookAt';target:number;seconds:number}
+ /** CTaskSimpleClearLookAt: the look the ped has is stopped, and the task is over. */
+ |{kind:'clearLookAt'}
  /** CTaskComplexEnterCarAsDriverTimed and CTaskComplexEnterCarAsPassengerTimed: run to the seat's door and get in,
   * or be set in the seat when `seconds` run out. A passenger seat of -1 is any free one. */
  |{kind:'enterCar';vehicle:number;seat:'driver'|number;seconds:number;
@@ -158,6 +160,7 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'playAnim':return {kind:'playAnim',file:task.animationFile,name:task.animationName,loop:task.loop,keepLastFrame:task.keepLastFrame,
    seconds:task.time>0?task.time/1000:Number.POSITIVE_INFINITY};
   case 'lookAtPed':return world.ped(task.target)?{kind:'lookAt',target:task.target,seconds:seconds(task.time)}:undefined;
+  case 'clearLookAt':return {kind:'clearLookAt'};
   case 'enterCarAsDriver':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:'driver',seconds:seconds(task.time),...moveStateOf(task)}:undefined;
   case 'enterCarAsPassenger':return world.vehicle?.(task.vehicle)?{kind:'enterCar',vehicle:task.vehicle,seat:task.seat,seconds:seconds(task.time),...moveStateOf(task)}:undefined;
   case 'followPointRoute':return task.route&&task.route.length?{kind:'followRoute',points:task.route.map(p=>({...p})),moveState:task.speed,mode:task.mode}:undefined;
