@@ -3210,7 +3210,8 @@ export class WorldPedestrians {
      if(over||o.remaining<=0){p.retaliate=0;p.foe=undefined;p.fight=undefined;this.startNextOrder(p);}
      else{p.foe=o.foe;p.retaliate=Math.max(p.retaliate,1);}
     }else if(p.order.kind==='playAnim'){
-     const o=p.order;dx=0;dz=0;
+     // CTaskSimpleRunAnim gives the ped no move state of its own: its pace stops while the clip plays.
+     const o=p.order;dx=0;dz=0;orderSpeed=0;
      // elapsed -1 marks a clip still being read.
      if(!o.started){p.view.playReaction(o.clip,o.loop||o.hold?Number.POSITIVE_INFINITY:undefined,false,0,o.loop);o.started=true;o.elapsed=0;}
      else if(o.elapsed>=0){

@@ -33,6 +33,8 @@ test('a script ped plays a named clip from ped.ifp and from a script animation b
  // Looped for ever, until the script's next task: TASK_GO_STRAIGHT_TO_COORD takes him out of it and away.
  await play('ATTRACTORS','Stepsit_loop',true,false,-1);
  await expect.poll(()=>playing('Stepsit_loop'),{timeout:20000}).toBe(true);
+ // The clip gives him no pace of his own: he does not walk on the spot under it.
+ await expect.poll(()=>page.evaluate((handle:number)=>(window as any).__game.missionForProfiling().peds.entity(handle).gait,ped),{timeout:3000}).toBeLessThan(.05);
  const from=await page.evaluate((handle:number)=>(window as any).__game.missionForProfiling().runtime.world.pedPosition(handle),ped);
  await page.evaluate(({handle,x,y,z})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(handle,{kind:'goStraightToCoord',x,y,z,speed:4,time:-1},0x05d3),{handle:ped,x:from.x+5,y:from.y,z:from.z});
  await expect.poll(()=>playing('Stepsit_loop'),{timeout:5000}).toBe(false);
