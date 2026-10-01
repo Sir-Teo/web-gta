@@ -155,7 +155,7 @@ export function missionBotTick(dtSeconds:number){
   if(vehicle&&distance(p.position)<10){mem.parkedAtPlace=(mem.parkedAtPlace??0)+dtSeconds;
    if(mem.parkedAtPlace>4){mem.parkedAtPlace=0;mem.drive=undefined;try{world.clearPedTasks?.(1);world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car at place'};}}
   else mem.parkedAtPlace=0;
-  if(glide(p.position,1))return {action:'go to place'};
+  if(glide(p.position,1)){mem.idleAtPlace=0;return {action:'go to place'};}
   // Indoors with nothing left to do at the place for twenty seconds (the haircut bought, the counter served), a player
   // walks out through the interior's exit marker: INTRO2 waits for CJ back at the barber's door.
   if(!vehicle&&me.z>500){
@@ -165,6 +165,13 @@ export function missionBotTick(dtSeconds:number){
     if(exit){if(glide(exit,0))return {action:'leave interior'};return {action:'at exit'};}
    }
   }else mem.idleIndoors=0;
+  // Outside with nothing happening at the place for eight seconds and a door's marker a few steps off, a player walks
+  // into it: SWEET1B's blip is the street in front of the crack house, its LACRAK door up on the porch.
+  if(!vehicle&&me.z<500){
+   mem.idleAtPlace=(mem.idleAtPlace??0)+dtSeconds;
+   const door=mem.idleAtPlace>8?g.interiorExitNear?.(me.x,me.y,me.z):null;
+   if(door&&distance(door)<8){if(glide({x:door.x,y:door.y,z:door.z-1},0))return {action:'go to door near place'};return {action:'at door near place'};}
+  }
   return {action:marker?'in marker':'at place'};
  }
  if(chases.length){
