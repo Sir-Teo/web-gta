@@ -114,6 +114,23 @@ export function missionBotTick(dtSeconds:number){
   world.setPedCoordinates(1,x,y,z+1);
   return true;
  };
+ // Whether nothing fixed (a wall, the room's own mesh) stands between CJ's eye and a ped's chest, in script coordinates.
+ const clearShot=(from:any,to:any)=>{
+  const R=g.RAPIER,o={x:from.x,y:from.z+.6,z:-from.y},d={x:to.x-from.x,y:to.z-from.z,z:-(to.y-from.y)},l=Math.hypot(d.x,d.y,d.z);
+  if(!R||l<.01)return true;
+  return !g.sim.world.castRay(new R.Ray(o,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,R.QueryFilterFlags.ONLY_FIXED);
+ };
+ // The nearest point round a target, at one to four units, with a floor at its own level and a clear shot at it.
+ const vantageOn=(to:any)=>{
+  let best:any,bestD=Infinity;
+  for(const radius of [1.5,2.5,3.5])for(let k=0;k<16;k++){
+   const a=k/16*Math.PI*2,x=to.x+Math.cos(a)*radius,y=to.y+Math.sin(a)*radius,floor=world.groundZFor3DCoord?.(x,y,to.z+.5);
+   if(typeof floor!=='number'||Math.abs(floor-(to.z-1))>1)continue;
+   const p={x,y,z:floor+1};if(!clearShot(p,to))continue;
+   const dist=Math.hypot(x-me.x,y-me.y);if(dist<bestD){bestD=dist;best=p;}
+  }
+  return best;
+ };
  const shoot=(target:any)=>{
   if(!mem.armed){try{world.givePedWeapon?.(1,31,2000);world.setPedCurrentWeapon?.(1,31);mem.armed=true;}catch{}}
   const now=performance.now();if(now-mem.lastShot<120)return;mem.lastShot=now;
@@ -126,9 +143,13 @@ export function missionBotTick(dtSeconds:number){
   const e=nearest(enemies);
   if(vehicle&&distance(e.position)<25){try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car to fight',target:e.handle};}
   // Six seconds at the same target and it still stands (behind a wall in SWEET1B's crack den): a player walks up to it.
-  if(mem.shootTarget!==e.handle){mem.shootTarget=e.handle;mem.shootFor=0;}
+  if(mem.shootTarget!==e.handle){mem.shootTarget=e.handle;mem.shootFor=0;mem.vantage=undefined;}
+  // Still standing after that with a wall between them (the den's back room, its door a few units along): a player
+  // goes round to where he can see it, the nearest spot near it with a floor under it and nothing fixed in the way.
+  if(mem.shootFor>6&&!mem.vantage&&!clearShot(me,e.position))mem.vantage=vantageOn(e.position);
+  if(mem.vantage&&glide(mem.vantage,.2))return {action:'go round to enemy',target:e.handle};
   const reach=mem.shootFor>6?3:12;
-  if(glide(e.position,reach))return {action:'close on enemy',target:e.handle};
+  if(!mem.vantage&&glide(e.position,reach))return {action:'close on enemy',target:e.handle};
   mem.shootFor+=dtSeconds;
   shoot(e.position);return {action:'shoot',target:e.handle};
  }
