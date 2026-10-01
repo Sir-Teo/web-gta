@@ -69,9 +69,22 @@ export class Input {
     canvas.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY!==0)this.pressed.add(e.deltaY>0?'WheelNext':'WheelPrevious');},{...options,passive:false});
     canvas.addEventListener('contextmenu', e => e.preventDefault(), options);
   }
+  /** A touch screen's analog stick, x right and y forward in -1..1; undefined while no thumb is on it. */
+  stick?: { x: number; y: number };
+  /** Holds a key or button from somewhere other than the keyboard and mouse (the touch controls), with its press. */
+  hold(code: string) { if (!this.held.has(code)) this.pressed.add(code); this.held.add(code); this.touches++; }
+  release(code: string) { this.held.delete(code); }
+  /** A single press, as a key tapped and let go within the frame. */
+  tap(code: string) { this.pressed.add(code); this.touches++; }
   down(code: string) { return this.held.has(code); }
+  /** The left button held without dragging the camera (under 6 pixels moved): without pointer lock, the fire button. */
+  stillHold() { const p = this.press; return this.held.has('MouseFire') && !!p && p.moved < 6; }
   consume(code: string) { const value = this.pressed.has(code); this.pressed.delete(code); return value; }
   axes() {
+    const stick = this.stick;
+    // The touch stick reads like CPad's left stick: its deflection is the walk-to-run ratio, and a vehicle's
+    // accelerate and brake buttons are the stick pushed forward or back.
+    if (stick && Math.hypot(stick.x, stick.y) > .12) return { x: stick.x, y: stick.y, forward: stick.y > .3, back: stick.y < -.3 };
     const forward = this.down('KeyW') || this.down('ArrowUp'), back = this.down('KeyS') || this.down('ArrowDown');
     return {
       x: Number(this.down('KeyD') || this.down('ArrowRight')) - Number(this.down('KeyA') || this.down('ArrowLeft')),
@@ -83,6 +96,6 @@ export class Input {
   /** Forget presses nobody consumed (CPad's "just down" lasts one frame): a key pressed during a pause or menu does
    * not act when play resumes. Held keys stay held. */
   dropPresses() { this.pressed.clear(); }
-  clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.drag = false; this.press = undefined; }
+  clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.drag = false; this.press = undefined; this.stick = undefined; }
   dispose() { this.abort.abort(); }
 }

@@ -17,12 +17,12 @@ test('the census inventories every command of the original script and ranks the 
  expect(census.totals.commands).toBe(1570);
  expect(census.reference).toBeNull();
  const byName=new Map(census.missions.map((m:any)=>[m.name,m]));
- // The opening and the first story mission reach no command that stops their thread.
- for(const name of ['INTRO','INTRO1'])expect((byName.get(name) as any).byStatus.stops).toBe(0);
- // Nor do the streamed scripts of the Ammu-Nation counter and the restaurants.
+ // The opening and the first story mission reach no command the game has to skip, nor one that stops their thread.
+ for(const name of ['INTRO','INTRO1']){expect((byName.get(name) as any).byStatus.skipped).toBe(0);expect((byName.get(name) as any).byStatus.stops).toBe(0);}
+ // Nor do the streamed scripts of the Ammu-Nation counter and the restaurants stop.
  for(const name of ['ammu.scm','junkfud.scm'])expect((byName.get(name) as any).byStatus.stops).toBe(0);
  // Every queued command is one the census flagged, and each names where it is first used.
  expect(census.queue.length).toBeGreaterThan(0);
- for(const q of census.queue){expect(['authored','silent','stops']).toContain(q.status);expect(q.firstMission).toBeTruthy();}
+ for(const q of census.queue){expect(['authored','silent','skipped','stops']).toContain(q.status);expect(q.firstMission).toBeTruthy();}
  expect(census.queue.find((q:any)=>q.name==='PLAY_MISSION_AUDIO')?.status).toBe('silent');
 },130000);

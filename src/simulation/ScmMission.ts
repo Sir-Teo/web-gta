@@ -94,8 +94,9 @@ export interface ScmMissionWorld {
  playerCreatedAt(x:number,y:number,z:number):void;
  setPlayerHeading(degrees:number):void;
  /** CRunningScript::SetCharCoordinates for the player (script coordinates, already put to the ground if too low):
-  * his vehicle is teleported with him in it, or he is. */
- teleportPlayer?(position:{x:number;y:number;z:number}):boolean;
+  * his vehicle (car, bike, boat or aircraft) is teleported with him in it, or he is. `groundPending`: the ground was asked for where no collision
+  * is loaded yet (z is FindGroundZForCoord's 20), so it is found again once the streamed window under him is in. */
+ teleportPlayer?(position:{x:number;y:number;z:number;groundPending?:boolean}):boolean;
  /** WARP_CHAR_INTO_CAR on the player (CTaskSimpleCarSetPedInAsDriver without the entry tasks), and
   * WARP_CHAR_FROM_CAR_TO_COORD (out of the vehicle and teleported). */
  /** The player's side of the ped commands a script also gives him: CPed::SetAmmo and GrantAmmo, the weapon hidden
@@ -560,6 +561,8 @@ export interface ScmMissionWorld {
  scriptVehicleOnFire(car:unknown):boolean;
  scriptVehicleOnScreen(car:unknown):boolean;
  explodeScriptVehicle(car:unknown):void;
+ /** CAutomobile::BlowUpCarCutSceneNoExtras on a car (a bike, boat or plane blows up as usual). */
+ explodeScriptVehicleInCutscene?(car:unknown,o:{shake:boolean;bits:boolean;explosion:boolean;sound:boolean}):void;
  fixScriptVehicle(car:unknown):void;
  setScriptVehicleVisible(car:unknown,visible:boolean):void;
  setScriptVehicleProofs(car:unknown,proofs:ScmPedProofs):void;
@@ -799,6 +802,8 @@ export class ScmMission {
  stopped?:{command:string;offset:number;detail:string};
  /** Threads that gave up on a command this runtime has not ported, in the order they did. */
  readonly gaveUp:{thread:string;command:string;offset:number;detail?:string}[]=[];
+ /** The commands skipped because their world member is not ported, by thread and command, with how often. */
+ readonly skipped=new Map<string,{thread:string;command:string;offset:number;count:number}>();
  /** Commands the world was asked for, for a host that wants to follow along. */
  readonly relationships:{relationship:number;pedType:number;otherPedType:number}[]=[];
  laRiots=false;
@@ -976,7 +981,7 @@ export class ScmMission {
    // CPed::GiveWeapon and the ammo commands. A browser ped carries the one weapon a script gave it, so the
    // slot search CWeapon does is a single comparison, and choosing a weapon it already holds changes nothing.
    givePedWeapon:(handle,weaponType,ammo)=>{
-    if(handle!==PLAYER_PED_HANDLE){this.world.giveScriptPedWeapon(this.livePed(handle),weaponType,ammo);return;}
+    if(handle!==PLAYER_PED_HANDLE){this.world.giveScriptPedWeapon(this.livePed(handle),weaponType,ammo);this.peds.setWeapon(handle,weaponType,ammo);return;}
     if(!this.world.givePlayerWeapon)throw new UnsupportedScmCommand(-1,0,'GIVE_WEAPON_TO_CHAR','the player');
     this.world.givePlayerWeapon(weaponType,ammo);
    },
@@ -984,10 +989,12 @@ export class ScmMission {
    removeWeaponFromPed:(handle,weaponType)=>{
     if(!this.world.clearPedWeapon)throw new UnsupportedScmCommand(-1,0,'REMOVE_WEAPON_FROM_CHAR','no host');
     this.world.clearPedWeapon(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),weaponType);
+    if(handle!==PLAYER_PED_HANDLE)this.peds.clearWeapon(handle,weaponType);
    },
    removeAllPedWeapons:handle=>{
     if(!this.world.clearPedWeapons)throw new UnsupportedScmCommand(-1,0,'REMOVE_ALL_CHAR_WEAPONS','no host');
     this.world.clearPedWeapons(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle));
+    if(handle!==PLAYER_PED_HANDLE)this.peds.clearWeapon(handle);
    },
    setPedCurrentWeapon:(handle,weaponType)=>{if(handle===PLAYER_PED_HANDLE)this.world.setPlayerCurrentWeapon?.(weaponType);},
    setPedAmmo:(handle,weaponType,ammo)=>{
@@ -1106,7 +1113,9 @@ export class ScmMission {
    taskWarpCharIntoCarAsPassenger:(handle,vehicle,seat)=>{this.runners.delete(handle);this.warpIntoCarAsPassenger(handle,vehicle,seat,'TASK_WARP_CHAR_INTO_CAR_AS_PASSENGER');},
    // CAutomobile::BlowUpCarCutSceneNoExtras: the blow-up without the havoc and property-damage stat an ordinary
    // one counts for the player (which the host's blow-up does not count either).
-   explodeVehicleInCutscene:handle=>{this.world.explodeScriptVehicle(this.liveVehicle(handle));},
+   // CAutomobile::BlowUpCarCutSceneNoExtras: "without affecting its surroundings" (a molotov's fire, no blast).
+   explodeVehicleInCutscene:handle=>{const car=this.liveVehicle(handle);if(this.world.explodeScriptVehicleInCutscene)this.world.explodeScriptVehicleInCutscene(car,{shake:true,bits:true,explosion:true,sound:true});else this.world.explodeScriptVehicle(car);},
+   explodeCarInCutsceneShakeAndBits:(handle,shake,effect,sound)=>{const car=this.liveVehicle(handle);if(this.world.explodeScriptVehicleInCutscene)this.world.explodeScriptVehicleInCutscene(car,{shake,bits:effect,explosion:effect,sound});else this.world.explodeScriptVehicle(car);},
    // CPed::AttachPedToEntity and DettachPedFromEntity. The angle limit and the weapon belong to a ped that can
    // aim from where it hangs, which this browser's riders do not do yet, so they are not taken.
    // ATTACH_CHAR_TO_CAR on the player: CPed::AttachPedToEntity's player branch (the host pins him, turns him to his
@@ -2117,6 +2126,7 @@ export class ScmMission {
    setInvulnerable:(ped,enabled)=>{this.world.setScriptPedInvulnerable(ped,enabled);},
    setAnimGroup:(ped,group)=>this.world.setScriptPedAnimGroup?.(ped,group)??false,
    setProofs:(ped,proofs)=>{this.world.setScriptPedProofs(ped,proofs);},
+   giveWeapon:(ped,weaponType,ammo)=>{this.world.giveScriptPedWeapon(ped,weaponType,ammo);},
    aliveOf:ped=>this.world.scriptPedAlive(ped),
    remove:ped=>{this.world.removeScriptPed(ped);},
    release:(ped,keepTask)=>{this.world.releaseScriptPed(ped,keepTask);},
@@ -2157,6 +2167,14 @@ export class ScmMission {
    giveWeapon:(type,ammo)=>{this.world.givePlayerWeapon?.(type,ammo);},
    setCurrentWeapon:type=>{this.world.setPlayerCurrentWeapon?.(type);},
    setArmour:armour=>{this.world.setPlayerArmour?.(armour);},
+  };
+  // A command whose world member is not ported yet is skipped, and the mission runs on without it (AUTHORED: the
+  // original has them all). Before, the thread gave up there and the mission hung or ended half way, so every
+  // mission past the first few could not be finished. Each skip is counted for the census and sweep.
+  this.runtime.onMissingAdapter=(error,thread)=>{
+   const key=`${thread.name}:${error.command}`,entry=this.skipped.get(key);
+   if(entry)entry.count++;else this.skipped.set(key,{thread:thread.name,command:error.command,offset:error.offset,count:1});
+   return true;
   };
   // A thread that meets an unported command gives up; the others, MAIN among them, keep running.
   this.runtime.onUnsupported=(error,thread)=>{
@@ -2507,9 +2525,11 @@ export class ScmMission {
  private findGroundZForCoord(x:number,y:number){return this.world.groundLevel(x,y,1000)??20;}
  private teleportPlayer(x:number,y:number,z:number,command:string){
   // CWorld::PutToGroundIfTooLow.
-  const ground=z<=-100?this.findGroundZForCoord(x,y):undefined;
+  const found=z<=-100?this.world.groundLevel(x,y,1000):undefined,ground=z<=-100?found??20:undefined;
   const onFoot=!this.world.playerPed().vehicle;
-  if(!this.host('teleportPlayer',command)({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,command,'a player on a bike, boat or plane');
+  // A script puts CJ somewhere far after LOAD_SCENE has loaded its collision; the browser streams it in after the
+  // teleport, so a ground not found yet is looked for again when it arrives.
+  if(!this.host('teleportPlayer',command)({x,y,z:ground??z,...(z<=-100&&found===undefined?{groundPending:true}:{})}))throw new UnsupportedScmCommand(-1,0,command,'a player on a bike, boat or plane');
   // CRunningScript::SetCharCoordinates with warpGang (the plain command; not _NO_OFFSET or _DONT_WARP_GANG): a leader
   // on foot is moved by CPedGroup::Teleport, which takes his living followers along to the formation's offsets from
   // the point. A follower still sits in its car here, as a mission ped the game does not set out of one.
@@ -3240,6 +3260,7 @@ export class ScmMission {
    started:this.started,
    stopped:this.stopped?{...this.stopped}:null,
    gaveUp:this.gaveUp.map(entry=>({...entry})),
+   skipped:[...this.skipped.values()].map(entry=>({...entry})),
    threads:this.runtime.active.map(slot=>({id:slot.id,name:slot.thread.name,ip:slot.thread.ip})),
    clock:{hours:game.clock.hours,minutes:game.clock.minutes},
    fade:{alpha:this.fade.value,fading:this.fade.fading},

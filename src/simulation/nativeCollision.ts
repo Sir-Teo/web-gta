@@ -4,6 +4,7 @@ import {requireAsset} from '../assets/binary';
 import type { ColModel, ColSurface, ColMesh } from '../assets/col';
 import type { IplInstance } from '../assets/ipl';
 import { placementMatrix } from '../assets/placement';
+import { WORLD_MESH_SOLVER_GROUPS } from './solverGroups';
 export type NativeCollisionSource = { kind: 'sphere' | 'box'; index: number; surface: ColSurface } | { kind: 'mesh'; mesh: ColMesh };
 /** World-space bounding spheres [x, y, z, radius] of installed native colliders, per physics world (an isolated query
  * world numbers its handles independently). A window's colliders are not in Rapier's broad phase until the next step,
@@ -57,7 +58,7 @@ export function installNativeCollisionMatrix(world:RAPIER.World,model:ColModel,m
       // Z-up plane otherwise introduces unstable capsule sweep normals.
       const vertices = new Float32Array(model.mesh.positions.length);
       for (let i = 0; i < vertices.length; i += 3) rotated(model.mesh.positions.subarray(i, i + 3)).toArray(vertices, i);
-      add(RAPIER.ColliderDesc.trimesh(vertices, model.mesh.indices), { kind: 'mesh', mesh: model.mesh });
+      add(RAPIER.ColliderDesc.trimesh(vertices, model.mesh.indices).setSolverGroups(WORLD_MESH_SOLVER_GROUPS), { kind: 'mesh', mesh: model.mesh });
     }
   } catch (error) { dispose(); throw error; }
   // Shadow mesh and enclosing bounds are deliberately not physical colliders.

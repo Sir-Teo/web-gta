@@ -28,6 +28,10 @@ export const VEHICLE_MASS_FACTOR_AGAINST_PED=10;
  * kill task runs. KillPedWithCar is a retail stub, so the retail gate is unknown.
  * 12 is about 8 m/s of closing speed on a 70 kg ped. */
 export const PED_CAR_KILL_INTENSITY=12;
+/** Authored: the gate for a two-wheeler. With the same 12 a BMX near its top speed (11 m/s) and a motorbike at 9 m/s
+ * killed every ped they touched; SA's riders knock peds flat, and only a fast motorbike kills. Twice the car's gate,
+ * about 17 m/s of closing speed: a BMX never reaches it. */
+export const PED_BIKE_KILL_INTENSITY=24;
 
 export interface VehicleAtContact {mass:number;turnMass:number;elasticity:number;
  /** Contact point relative to the vehicle's centre of mass. */

@@ -4,6 +4,7 @@ import {ScmStrings} from './ScmStrings';
 import {NATIVE_NOP_OPCODES} from './ScmNativeNops';
 import {RANDOM_SAMPLE_MAX,randomFloatInRange,randomIntInRange} from './nativeRandomRange';
 import {SCM_GAME_COMMANDS} from './ScmGameCommands';
+import {SCM_COMMAND_OUTPUTS,SCM_CONDITION_COMMANDS} from './scmCommandSignatures';
 import type {ScmGameState} from './ScmGameState';
 import type {ScmCarCheckWorld} from './ScmCarChecks';
 
@@ -15,6 +16,9 @@ export class UnsupportedScmCommand extends Error {
 /** A command naming a ped or car the browser is still building. The original has the entity the moment the creating
  * command returns; here the thread waits at the command and runs it again the next frame, once the entity is there.
  * Anything outside a thread that meets one treats it as the command it cannot run. */
+/** A command whose handler needs a world member the host has not ported. Unlike an opcode with no handler at all,
+ * the command is known and its operands are read, so a host may choose to skip it (ScmThreadHost.skipUnported). */
+export class MissingWorldAdapter extends UnsupportedScmCommand {}
 export class ScmEntityPending extends UnsupportedScmCommand {
  constructor(what:string){super(-1,0,'AN_ENTITY_THE_BROWSER_IS_STILL_BUILDING',what);}
 }
@@ -1164,6 +1168,9 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
 }
 export interface ScmThreadHost {
  startScript(entry:number,argumentBits:readonly number[]):void;
+ /** Asked when a command meets a world member the host lacks: true skips the command (its outputs written as
+  * nothing found, a condition answered false) and the thread runs on; false or no answer gives the thread up. */
+ skipUnported?(thread:ScmThread,error:MissingWorldAdapter):boolean;
  world?:ScmWorldCommands;nextRandom?:()=>number;game?:ScmGameState;
  loadMission?(missionId:number):void;launchMission?(label:number):void;
  terminateAllWithName?(name:string):void;
@@ -1251,6 +1258,18 @@ export class ScmThread {
  /** Byte offset of a global variable operand, as native handlers read it. */
  globalOffset(p:ScmParameter){
   requireAsset(p.type===2&&typeof p.value==='number','Expected an SCM global variable operand.');this.variable(p);return p.value as number;
+ }
+ /** A command the host skips: its trailing output parameters (per the Sanny Builder signatures) read as nothing
+  * found, -1 for a handle and 0 for a number, and a condition answers false, the NOT bit applied as usual. AUTHORED:
+  * the original has every command; this keeps a mission going past one the port has not built yet. */
+ private skipCommand(i:ScmInstruction){
+  const op=i.opcode&0x7fff,outputs=SCM_COMMAND_OUTPUTS.get(op),p=i.parameters;
+  if(outputs)for(let k=0;k<outputs.length;k++){
+   const parameter=p[p.length-outputs.length+k],kind=outputs[k];
+   if(!parameter||kind==='s'||!(parameter.type===2||parameter.type===3||parameter.type===7||parameter.type===8))continue;
+   if(kind==='f')this.write(parameter,0,'float');else this.write(parameter,kind==='h'?-1:0,'int');
+  }
+  if(SCM_CONDITION_COMMANDS.has(op))this.compare(false,!!(i.opcode&0x8000));
  }
  /** CRunningScript::UpdateCompareFlag (0x4859D0) with the opcode NOT bit. */
  updateCompareFlag(value:boolean,negated:boolean){this.compare(value,negated);}
@@ -1398,7 +1417,10 @@ export class ScmThread {
     const handler=SCM_GAME_COMMANDS.get(op);
     if(!handler)throw new UnsupportedScmCommand(i.offset,op,i.name);
     try{handler(this,p,i,nowMs);}
-    catch(error){if(!(error instanceof ScmEntityPending))throw error;this.wakeTime=nowMs>>>0;return 'waiting';}
+    catch(error){
+     if(error instanceof MissingWorldAdapter&&this.host?.skipUnported?.(this,error))this.skipCommand(i);
+     else{if(!(error instanceof ScmEntityPending))throw error;this.wakeTime=nowMs>>>0;return 'waiting';}
+    }
    }
    this.ip=next;
   }

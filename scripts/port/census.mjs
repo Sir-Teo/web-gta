@@ -3,9 +3,11 @@
 // Every instruction of MAIN and of each mission block in the packaged main.scm is decoded with the game's own
 // decoder. Each command is then placed by how the browser answers it and by what the reference offers:
 //
-//   ours      core | faithful | authored | silent | stops
+//   ours      core | faithful | authored | silent | skipped | stops
 //             `silent` is a command whose handler calls an optional host member that no layer implements, so it
-//             does nothing; `stops` is one whose required host member is missing, so the thread gives up there.
+//             does nothing; `skipped` is one whose required host member is missing: the game skips it (its outputs
+//             read as nothing found, a condition as false) and the mission runs on without it; `stops` is one with
+//             no handler at all, where the thread gives up.
 //             `authored` is a handler (or the ScmMission adapter behind it) whose comments say it is an authored
 //             stand-in or rests on unreversed code. Everything else that dispatches is `faithful` as far as a
 //             static read can tell: the census cannot see behaviour, only what the source claims.
@@ -155,7 +157,7 @@ await withSources(async load=>{
   else if(DISPATCH.test(h.comment)||DISPATCH.test(h.body))notes.push('dispatch unreversed; follows the routines it reaches');
   if(hostCalls.length){status='silent';notes.push(`host lacks ${[...new Set(hostCalls)].join(', ')}`);}
   if(silent.length){status='silent';notes.push(`adapter lacks ${silent.join(', ')}`);}
-  if(missing.length){status='stops';notes.push(`adapter lacks ${missing.join(', ')} (the thread gives up)`);}
+  if(missing.length){status='skipped';notes.push(`adapter lacks ${missing.join(', ')} (skipped: outputs read as none)`);}
   ours.set(name,{status,line:h.line,members,notes});
  }
  /** The opcodes ScmThread runs itself (tests/scm-coverage.test.ts keeps the same list). */
@@ -207,7 +209,7 @@ await withSources(async load=>{
  for(const block of blocks){
   const counts=new Map();
   for(const ins of block.instructions){const op=ins.opcode&0x7fff;counts.set(op,(counts.get(op)??0)+1);}
-  const byStatus={core:0,nop:0,faithful:0,authored:0,silent:0,stops:0},gaps=[];
+  const byStatus={core:0,nop:0,faithful:0,authored:0,silent:0,skipped:0,stops:0},gaps=[];
   let sites=0;
   for(const [op,n] of counts){
    const o=oursFor(op);byStatus[o.status]+=n;sites+=n;
@@ -215,7 +217,7 @@ await withSources(async load=>{
    let row=commandRows.get(name);
    if(!row){row={name,opcode:op.toString(16).padStart(4,'0'),ours:o,ref:refFor(name),doc:library.get(name)?.desc??'',sites:0,missions:[]};commandRows.set(name,row);}
    row.sites+=n;row.missions.push(block.id);
-   if(o.status==='authored'||o.status==='silent'||o.status==='stops')gaps.push({name,status:o.status,sites:n});
+   if(o.status==='authored'||o.status==='silent'||o.status==='skipped'||o.status==='stops')gaps.push({name,status:o.status,sites:n});
   }
   gaps.sort((a,b)=>b.sites-a.sites);
   missionRows.push({id:block.id,name:block.id==='MAIN'?'MAIN':block.streamed!==undefined?block.id:scriptName(block)??`mission ${block.id}`,order:block.id==='MAIN'?-1:block.streamed!==undefined?-1+(block.streamed+1)/1000:launchOrder.get(block.id)??9999,
@@ -225,7 +227,7 @@ await withSources(async load=>{
  const order=new Map(missionRows.map((m,i)=>[m.id,i]));
 
  // --- The work queue: every command the census flags, earliest story use first, then by how much it runs.
- const queue=[...commandRows.values()].filter(r=>['authored','silent','stops'].includes(r.ours.status)).map(r=>{
+ const queue=[...commandRows.values()].filter(r=>['authored','silent','skipped','stops'].includes(r.ours.status)).map(r=>{
   const first=Math.min(...r.missions.map(id=>order.get(id)??9999));
   const portable=r.ref.kind==='handler'&&!r.ref.stub;
   return {...r,firstMission:missionRows[first]?.name,firstIndex:first,portable,missions:r.missions.length};
@@ -234,19 +236,19 @@ await withSources(async load=>{
  mkdirSync(outDir,{recursive:true});
  const summary={generated:new Date().toISOString(),reference:reference?{path:relative(root,refRoot),commit:reference.commit}:null,
   totals:{instructions:missionRows.reduce((n,m)=>n+m.instructions,0),commands:commandRows.size,
-   byStatus:Object.fromEntries(['core','nop','faithful','authored','silent','stops'].map(s=>[s,[...commandRows.values()].filter(r=>r.ours.status===s).length]))},
+   byStatus:Object.fromEntries(['core','nop','faithful','authored','silent','skipped','stops'].map(s=>[s,[...commandRows.values()].filter(r=>r.ours.status===s).length]))},
   missions:missionRows,queue:queue.map(({name,opcode,ours,ref,doc,sites,missions,firstMission,portable})=>({name,opcode,status:ours.status,notes:ours.notes??[],handlerLine:ours.line,ref,doc,sites,missions,firstMission,portable}))};
  writeFileSync(join(outDir,'census.json'),JSON.stringify(summary,null,1)+'\n');
 
  const pct=(n,d)=>d?`${Math.round(n/d*1000)/10}%`:'–';
  const md=[];
  md.push('# Script census','',`Generated by \`node scripts/port/census.mjs\` on ${summary.generated.slice(0,10)}${reference?` against gta-reversed \`${reference.commit.slice(0,10)}\``:' (no gta-reversed checkout: reference columns unknown)'}.`,'',
-  'A static read of the original `main.scm` against this port. **ours**: `core`/`nop`/`faithful` dispatch as the source claims; `authored` handlers say in their comments that they stand in for unreversed code; `silent` ones call a host member nothing implements, so they do nothing; `stops` ones lack a required member, so the thread gives up there. The census reads source, not behaviour: `faithful` is a claim to check in play, not a proof.','',
+  'A static read of the original `main.scm` against this port. **ours**: `core`/`nop`/`faithful` dispatch as the source claims; `authored` handlers say in their comments that they stand in for unreversed code; `silent` ones call a host member nothing implements, so they do nothing; `skipped` ones lack a required member, so the game skips them (outputs read as nothing found, conditions as false) and the mission runs on without them; `stops` ones have no handler at all, so the thread gives up there. The census reads source, not behaviour: `faithful` is a claim to check in play, not a proof.','',
   `Commands: ${summary.totals.commands} distinct, ${summary.totals.instructions} instruction sites. `+Object.entries(summary.totals.byStatus).map(([k,v])=>`${k} ${v}`).join(', ')+'.','',
-  '## Missions','','In the order the script first launches them (where MAIN and the missions start each block), which is close to but not the story order.','','| # | Mission | Sites | Faithful or core | Authored | Silent | Stops | Largest gaps |','|---|---|---|---|---|---|---|---|');
+  '## Missions','','In the order the script first launches them (where MAIN and the missions start each block), which is close to but not the story order.','','| # | Mission | Sites | Faithful or core | Authored | Silent | Skipped | Stops | Largest gaps |','|---|---|---|---|---|---|---|---|---|');
  for(const m of missionRows){
   const s=m.byStatus,ok=s.core+s.nop+s.faithful;
-  md.push(`| ${m.id} | ${m.name} | ${m.instructions} | ${pct(ok,m.instructions)} | ${s.authored} | ${s.silent} | ${s.stops} | ${m.gaps.slice(0,4).map(g=>`${g.name} (${g.status}, ${g.sites})`).join('; ')} |`);
+  md.push(`| ${m.id} | ${m.name} | ${m.instructions} | ${pct(ok,m.instructions)} | ${s.authored} | ${s.silent} | ${s.skipped} | ${s.stops} | ${m.gaps.slice(0,4).map(g=>`${g.name} (${g.status}, ${g.sites})`).join('; ')} |`);
  }
  md.push('','## Work queue','','Earliest story use first. **Portable** means gta-reversed registers a handler for the command whose own body does not call into the executable: port that function (the engine routines it calls may still, as the mission audio ones do). Otherwise the reference offers no handler (research the engine routines it reaches, or keep the authored stand-in).','',
   '| Command | Ours | Why | Sites | Missions | First in | Reference | Portable |','|---|---|---|---|---|---|---|---|');

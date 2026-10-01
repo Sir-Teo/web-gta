@@ -23,7 +23,7 @@ import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
-import {CAR_SOLVER_GROUPS} from './solverGroups';
+import {vehicleSolverGroups} from './solverGroups';
 import {burstCompressionRandomUpper} from './nativeGroundCompression';
 import {softGroundResistance} from './nativeSoftGround';
 import {hoverWheelContact,hoverActive} from './nativeHoverSuspension';
@@ -440,8 +440,18 @@ export class WorldCar {
  muzzleWorld(){return this.car.frameWorldPosition('misc_c');}
  /** The Fire Truck / S.W.A.T. water cannon node (misc_a) turned to the aim's yaw. */
  setCannon(yaw:number){const c=Math.cos(yaw),s=Math.sin(yaw);this.car.setFrameBasis('misc_a',[[0,0,c],[0,1,s],[0,2,0],[1,0,-s],[1,1,c],[1,2,0],[2,0,0],[2,1,0],[2,2,1]]);}
+ /** CAutomobile::BlowUpCarCutSceneNoExtras (0x6B3BB0), for EXPLODE_CAR_IN_CUTSCENE(_SHAKE_AND_BITS): wrecked and
+  * scorched as BlowUpCar, with the peds inside killed, but its blast is EXPLOSION_MOLOTOV at the car (no push, no blast
+  * damage: fire within six units), none at all without `explosion`, and no flying wheel without `bits`. */
+ blowUpInCutscene(o:{shake:boolean;bits:boolean;explosion:boolean;sound:boolean}){
+  if(this.wrecked||!this.canBeDamaged)return;
+  this.cutsceneExplosion=o;this.blowUp();
+ }
+ /** Set while blowUp runs for a cutscene: what BlowUpCarCutSceneNoExtras was asked for. */
+ cutsceneExplosion?:{shake:boolean;bits:boolean;explosion:boolean;sound:boolean};
  blowUp(){
-  if(this.wrecked||!this.canBeDamaged)return;const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=true;this.onBlowUp?.(driverAboard);vehicleDestroyed.report?.('road',this.modelId);
+  if(this.wrecked||!this.canBeDamaged)return;const cutscene=this.cutsceneExplosion;
+  const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=!cutscene||cutscene.explosion;this.onBlowUp?.(driverAboard);vehicleDestroyed.report?.('road',this.modelId);
   const doors:ComponentChange[]=[];
   for(let i=0;i<this.damageState.doors.length;i++){if(this.damageState.doors[i]!==DAMSTATE.notPresent){this.damageState.doors[i]=DAMSTATE.notPresent;doors.push({kind:'door',index:i,state:DAMSTATE.notPresent});}}
   // FuckCarCompletely resets every panel status to OK afterwards, so bumper and panel atomics keep their earlier damage.
@@ -450,11 +460,13 @@ export class WorldCar {
   // CDamageManager::FuckCarCompletely detaches a random wheel (its corner drops), and BlowUpCar throws the left
   // front wheel off and stops drawing it.
   this.damageState.wheels[Math.floor(Math.random()*4)]=2;
-  this.spawnFlying('wheel_lf_dummy',FLYING.wheel);this.car.setWheelHidden('frontLeft',true);
+  if(!cutscene||cutscene.bits)this.spawnFlying('wheel_lf_dummy',FLYING.wheel);
+  if(!cutscene||cutscene.explosion)this.car.setWheelHidden('frontLeft',true);
   // bRenderScorched: the wreck is lit by a dim grey ambient alone.
   this.car.setScorched(true);
-  const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);
+  if(!cutscene||cutscene.explosion){const v=this.car.body.linvel();this.car.body.setLinvel({x:v.x,y:v.y+.13*50,z:v.z},true);}
   this.killPlayerAboard();
+  if(cutscene&&!cutscene.explosion)this.cutsceneExplosion=undefined;
  }
  /** KillPedsInVehicle: CEventVehicleDied reaches the driver and every passenger alike, and ComputeVehicleDiedResponse
   * sets their health to 0; the player dies in either seat. */
@@ -621,7 +633,7 @@ export class WorldCar {
    if(this.alarm>0)this.alarm=tickAlarm(this.alarm,seconds);
    // A frozen car (FREEZE_CAR_POSITION) keeps its body out of the world while its other logic goes on.
    if(this.waitingForCollision&&(this.occupied||this.collisionArrived(seconds)))this.waitingForCollision=false;
-   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision)return;
+   const nearby=this.inActiveRange();this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision){this.car.markStepStart();return;}
    this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
   const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
@@ -675,10 +687,10 @@ export class WorldCar {
   if(CHEATS.isActive('allCarsNitro'))this.car.fitEndlessNitro();
   if(this.car.nitro.installed)this.car.nitrousControl(0,seconds*50,this.gasPedal,this.occupied?{fire:this.pad.carGun,looking:this.pad.looking}:undefined,!this.occupied&&!!this.autopilot);
   // SkipPhysics stops only the physics: damage, fire and the controls above still run.
-  if(this.skipPhysics(seconds))return;
+  if(this.skipPhysics(seconds)){this.car.markStepStart();return;}
   // A car a recording holds (collision force off, a kinematic body here) is put on the recording after the step;
   // its own suspension and drive have nothing to move, and the recording's pedals show in its lamps.
-  if(!this.car.body.isDynamic()){this.steerAngle=this.recordingControls?.steerAngle??this.steerAngle;this.gasPedal=this.recordingControls?.gas??this.gasPedal;return;}
+  if(!this.car.body.isDynamic()){this.car.markStepStart();this.steerAngle=this.recordingControls?.steerAngle??this.steerAngle;this.gasPedal=this.recordingControls?.gas??this.gasPedal;return;}
   {const v=this.car.body.linvel();this.prevSpeed=Math.hypot(v.x,v.y,v.z)/50;}
   const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;this.lastCompression=result.sampled.compression;
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
@@ -858,8 +870,9 @@ export class WorldCar {
    if(this.damageIntensity>0||this.inWater||!this.wheelTouchedGround||this.modelId===MODEL_VORTEX)return;
    const w=this.car.body.angvel();this.car.body.setLinvel({x:0,y:0,z:0},true);this.car.body.setAngvel({x:w.x,y:0,z:w.z},true);
   }
-  /** CAutomobile::ProcessBuoyancy for cars over WATER.DAT surfaces. Force scale matches the aircraft path:
-   * browser gravity is 9.81 m/s² against native 0.008 per 50 Hz step (20 m/s²). */
+  /** CAutomobile::ProcessBuoyancy for cars over WATER.DAT surfaces. A car falls at native gravity (ApplyGravity's 0.008
+   * a step, NativeVehicleForces), so the buoyancy is native too: scaled for 9.81 it held a car at half its lift and
+   * sank it. */
   private floatOnWater(dt:number){
    const level=this.waterLevel;if(!level){this.inWater=this.drowning=false;return;}
    if(!this.assets.handling||!this.assets.collision)return;
@@ -870,7 +883,7 @@ export class WorldCar {
    const state:NativeBuoyancyBody={position:native(p),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:false,anyWheelOffGround:this.wheelGround.some(g=>!g),touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],heavy:this.heavy,buoyancyConstant:this.water.buoyancy,moveSpeed:native({x:v.x/50,y:v.y/50,z:v.z/50}),turnSpeed:native({x:w.x/50,y:w.y/50,z:w.z/50})};
    state.drowning=this.drowning;state.hovers=this.modelId===MODEL_VORTEX&&this.occupied;
    const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:0,initialBuoyancy:this.assets.handling.buoyancy??0},moveSpeed=[...state.moveSpeed] as NativeVec;
-   const result=applyNativeBuoyancy(state,level,dt*50,rotor,9.81/20);
+   const result=applyNativeBuoyancy(state,level,dt*50,rotor,1);
    this.splashClock+=dt;
    if(rotor.sample&&this.splashClock>=1/30){
     this.splashClock%=1/30;
@@ -1136,7 +1149,7 @@ export class WorldCar {
  private groupedColliders=0;
  private groupColliders(){
   const body=this.car.body,n=body.numColliders();if(n===this.groupedColliders)return;
-  for(let i=0;i<n;i++)body.collider(i).setSolverGroups(CAR_SOLVER_GROUPS);
+  for(let i=0;i<n;i++){const c=body.collider(i);c.setSolverGroups(vehicleSolverGroups(c));}
   this.groupedColliders=n;
  }
  /** Handling mass and turn mass with the collision model's bounds (native units). */

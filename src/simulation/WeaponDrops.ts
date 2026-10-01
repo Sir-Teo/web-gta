@@ -60,6 +60,9 @@ export class WeaponDrops {
     const ground = resolved && this.drops.includes(drop) ? (placed ? position.y - 0.15 : this.ground(position)) : undefined;
     if (!resolved || ground === undefined) { const i = this.drops.indexOf(drop); if (i >= 0) this.drops.splice(i, 1); return false; }
     const owner = modelObject(resolved.model, resolved.textures);
+    // Weapon models carry their muzzle-flash atomic, which only renders while the gun fires: a dropped gun lay on
+    // the ground with its flash lit.
+    for (const binding of owner.materialBindings) if (binding.source.texture?.toLowerCase().startsWith('muzzle')) binding.material.visible = false;
     // GiveUsAPickUpObject sets every pickup's heading to -π/2.
     owner.root.position.set(position.x, ground + 0.15, position.z); owner.root.rotation.y = -Math.PI / 2;
     this.scene.add(owner.root);

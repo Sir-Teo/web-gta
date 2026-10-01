@@ -120,3 +120,46 @@ test('an escort holds the escorted car’s speed and closes the gap to its stati
  escort.at.z=-19;missions.step(1/50);
  expect((escort.raw.autopilot as {native:{gas:number;brake:number}}).native.gas).toBe(0);
 });
+
+test('a car that makes no headway through every recovery is set down on its route, out of the player\'s sight',()=>{
+ const player={position:{x:0,y:0,z:200},velocity:{x:0,y:0,z:0}};
+ const missions=new ScriptCarMissions(()=>undefined),{car:c,raw}=car(0,0);missions.player=()=>player as never;
+ let at={x:0,y:0,z:0},rotation={x:0,y:0,z:0,w:1};
+ raw.car.body={translation:()=>at,rotation:()=>rotation,linvel:()=>({x:0,y:0,z:0}),setTranslation:(p:any)=>{at={...p};},setRotation:(q:any)=>{rotation={...q};},setLinvel(){},setAngvel(){}} as never;
+ missions.gotoCoords(c,{x:0,y:0,z:-500},{cruise:20,style:0});
+ const m=(missions as any).missions.get(c);
+ // A route link running native north from (0,20) to (0,40).
+ const link={from:{position:[0,20,5]},to:{position:[0,40,5]},navigation:{position:[0,30],direction:[0,1],sameLanes:1,oppositeLanes:1},start:{x:0,z:-20},end:{x:0,z:-40},length:20,dx:0,dz:-20};
+ m.kind='gotoCoords';m.link=link;m.route=[];
+ for(let i=0;i<50*7;i++)missions.step(1/50);
+ expect(at).toEqual({x:0,y:0,z:0});
+ for(let i=0;i<50*2;i++)missions.step(1/50);
+ // On the link's lane point, a unit over the road, facing along it.
+ expect(at.y).toBe(6);expect(Math.abs(at.z+30)).toBeLessThan(.01);
+ expect((missions as any).unstuck).toBe(1);
+ // Within sight of the player it waits.
+ player.position={x:0,y:0,z:-5};at={x:0,y:0,z:0};
+ for(let i=0;i<50*10;i++)missions.step(1/50);
+ expect((missions as any).unstuck).toBe(1);
+ // Out of sight but with no collision streamed in under the lane point, it waits too; with some, it is set on it.
+ player.position={x:0,y:0,z:200};at={x:0,y:0,z:0};m.link=link;m.route=[];
+ const asked:number[]=[];missions.ground=(_x,_z,from)=>{asked.push(from);return undefined;};
+ for(let i=0;i<50*10;i++)missions.step(1/50);
+ expect((missions as any).unstuck).toBe(1);expect(asked[0]).toBe(9);
+ missions.ground=()=>7.5;
+ for(let i=0;i<50*10;i++)missions.step(1/50);
+ expect((missions as any).unstuck).toBe(2);expect(at.y).toBe(8.5);
+});
+
+test('under the stop-for-cars styles a script car slows for a car stopped ahead; avoiding cars it does not',()=>{
+ const missions=new ScriptCarMissions(()=>undefined),{car:c}=car(0,0),rect={front:2.4,back:2.4,halfWidth:1,forward:{x:0,y:1},moveSpeed:{x:0,y:0}};
+ const stopped={vehicle:{},position:{x:0,y:8,z:0},...rect};
+ missions.traffic=()=>[{vehicle:c,position:{x:0,y:0,z:0},...rect},stopped];
+ const speed=(missions as unknown as {trafficSpeed(car:unknown,state:unknown,cruise:number):number}).trafficSpeed.bind(missions);
+ const state={position:{x:0,y:0},forward:{x:0,y:1}};
+ expect(speed(c,state,20)).toBeLessThan(20);
+ // Behind it, or with no traffic list, the cruise speed stands.
+ missions.traffic=()=>[{vehicle:c,position:{x:0,y:0,z:0},...rect},{...stopped,position:{x:0,y:-8,z:0}}];
+ expect(speed(c,state,20)).toBe(20);
+ missions.traffic=undefined;expect(speed(c,state,20)).toBe(20);
+});

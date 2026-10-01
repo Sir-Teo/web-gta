@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {endStoryMission} from './freeRoam';
+import {missionBotTick} from './missionBot';
 /* Stage 2 of the porting pipeline (scripts/port/pipeline.mjs): launch missions headless, one after another, and
  * record how far each gets and why it stops. Skipped unless SWEEP is set:
  *
@@ -13,7 +14,18 @@ import {endStoryMission} from './freeRoam';
  * put in it; he is kept alive and unwanted; cutscenes end at once
  * already. It cannot drive a chase, win a fight or pick a menu item, so a mission it cannot finish is reported with
  * the instruction it was waiting on. What the report proves is where the port stops a mission (a command it gave up
- * on, a thread error, a page error), not that a mission plays as the original does. */
+ * on, a thread error, a page error), not that a mission plays as the original does.
+ *
+ * SWEEP_PLAYER_ONLY=1 moves nobody but CJ (and what he rides): the mission's own characters have to get where the
+ * script sends them by themselves, as they must for a player. Moving them along with CJ hides a homie who never
+ * rides or drives to the point, which is what leaves a mission unfinishable in play. */
+const playerOnly=!!process.env.SWEEP_PLAYER_ONLY||!!process.env.SWEEP_BOT;
+/** SWEEP_BOT=1: the objective bot (missionBot.ts) plays from the radar's blips, and the locate autopilot only steps in
+ * while no blip asks anything. Implies SWEEP_PLAYER_ONLY. */
+const bot=!!process.env.SWEEP_BOT;
+/** SWEEP_WATCH=65,66,67: mission locals holding ped handles, logged with the progress line (where each is, what it
+ * rides and the drive mission its vehicle runs), to see which NPC is not doing its part. */
+const watch=(process.env.SWEEP_WATCH??'').split(',').filter(Boolean);
 const list=process.env.SWEEP??'';
 test.skip(!list,'set SWEEP to a mission list to run the mission sweep');
 test('mission sweep',async({page})=>{
@@ -25,6 +37,8 @@ test('mission sweep',async({page})=>{
  }else ids=list.split(',').map(Number).filter(Number.isInteger);
  test.setTimeout(180000+ids.length*(seconds+30)*1000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ // A removed Rapier body used again (rapierTombstones.ts): no longer fatal, still a bug to fix.
+ page.on('console',m=>{if(m.type()==='warning'&&m.text().startsWith('Removed Rapier'))errors.push(m.text().slice(0,300));});
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
@@ -36,6 +50,7 @@ test('mission sweep',async({page})=>{
   const header=readScmHeader(bytes);
   (window as any).__sweep={missions:header.missions.map((m:any)=>({...m,instructions:decodeScmInstructions(bytes,m.start,m.end)}))};
  });
+ if(bot)await page.evaluate(`window.__missionBotTick=${missionBotTick.toString()}`);
  const results:unknown[]=[];
  for(const id of ids){
   const before=errors.length;
@@ -58,11 +73,12 @@ test('mission sweep',async({page})=>{
    (window as any).__sweepGaveUp=m.snapshot().gaveUp.length;(window as any).__sweep.pilot=undefined;
    r.loadAndLaunchMission(id);return {threads:r.active.length};
   },id);
+  const timeline:{at:number;offset:number;decision:string}[]=[];
   let last:any,previous:any,teleports=0,samples=0,maxOffset=0,ended=false;const waits=new Map<string,number>();
   const deadline=Date.now()+seconds*1000;
   while(Date.now()<deadline){
    await page.waitForTimeout(500);
-   const s=await page.evaluate(id=>{
+   const s=await page.evaluate(([id,playerOnly,bot,watch])=>{
     const g=(window as any).__game,m=g.missionForProfiling(),r=m.runtime,sweep=(window as any).__sweep;
     const slot=r.active.find((a:any)=>a.thread.base>0&&a.thread.thisMustBeTheOnlyMissionRunning);
     const gaveUp=m.snapshot().gaveUp.slice((window as any).__sweepGaveUp);
@@ -79,11 +95,17 @@ test('mission sweep',async({page})=>{
     const state=sweep.pilot??={offset:-1,since:performance.now(),turn:0,lastKey:'',lastAt:0},now=performance.now();
     if(Math.abs(state.offset-offset)>40){state.offset=offset;state.since=now;state.turn=0;}
     else if(now-state.since>15000){state.since=now;state.turn++;}
-    const ahead=near.length?near[state.turn%near.length]:undefined;
-    let moved=false;
+    let moved=false,botAction:unknown=null;
+    // The objective bot first: while a blip asks something, it plays and the locate autopilot waits.
+    if(bot){try{botAction=(window as any).__missionBotTick(.5);}catch(error){botAction={error:String(error)};}if(botAction)moved=true;}
+    // With the bot playing, the locate teleport is a last resort: only after a minute with no blip asking anything
+    // (a tick between a cutscene clearing the blips and the next objective adding them sent CJ ahead of his homies).
+    if(botAction||!bot)state.botIdleSince=now;
+    const ahead=botAction||bot&&now-(state.botIdleSince??now)<60000?undefined:near.length?near[state.turn%near.length]:undefined;
     // A loop that waits for CJ in a car or on a bike the script named (the BMX, Sweet's Greenwood) puts him in it.
+    // Not while the bot is playing: it gets into what the blips ask, and a check nearby may only be a fail test.
     const ride=block.instructions.find((x:any)=>x.offset>=fileOffset-40&&x.offset<fileOffset+200&&/^IS_CHAR_(SITTING_)?IN_CAR$/.test(x.name));
-    if(ride&&!((r.world.pedVehicle(1)??0)>0)){
+    if(ride&&!botAction&&!((r.world.pedVehicle(1)??0)>0)){
      try{if(t.readInt(ride.parameters[0])===1){const car=t.readInt(ride.parameters[1]);if(m.vehicles.exists(car)&&now-state.lastAt>8000){r.world.warpPedIntoCar(1,car);state.lastAt=now;moved=true;}}}catch{}
     }
     if(ahead){
@@ -96,6 +118,7 @@ test('mission sweep',async({page})=>{
      const handles=new Set<number>([1]);
      for(const x of group){
       try{
+       if(playerOnly)continue;
        if(x.name===ahead.name)handles.add(t.readInt(x.parameters[0]));
        else if(/_CHAR_[23]D$/.test(x.name)&&t.readInt(x.parameters[0])===1)handles.add(t.readInt(x.parameters[1]));
       }catch{}
@@ -119,9 +142,51 @@ test('mission sweep',async({page})=>{
     }
     // What the loop it sits in asks: the instructions just after where it waits.
     const loop=block.instructions.filter((x:any)=>x.offset>=fileOffset&&x.offset<fileOffset+160).map((x:any)=>x.name).filter((n:string)=>!/^(IF|GOTO|GOTO_IF_FALSE|WAIT|GOSUB)$/.test(n)).slice(0,8);
-    return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said()};
-   },id);
+    // The watched peds: position, vehicle, speed and the drive mission CAutoPilot runs for it.
+    // The wanted level and the police units within 40 units, with their CCarAI mission: cops pinning CJ or trying to bust
+    // him out of a mission car stall the objective.
+    const pol=g.police?.(),cops=(pol?.units??[]).filter((u:any)=>{if(u.car.disposed||!u.car.car.body.isValid())return false;const c=u.car.car.body.translation();const q=r.world.pedPosition(1);return Math.hypot(c.x-q.x,-c.z-q.y)<40;}).map((u:any)=>u.mission).join('/');
+    const me=r.world.pedPosition(1),watched=[`W${pol?.law?.level??'?'}${cops?` cops ${cops}`:''} CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?`riding ${r.world.pedVehicle(1)} hp ${(()=>{try{return Math.round(r.world.vehicleHealth?.(r.world.pedVehicle(1)));}catch{return '?';}})()} ${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1)),mi=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();return `${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mi?`${mi.kind}->${mi.goal.x.toFixed(0)},${(-mi.goal.z).toFixed(0)}${mi.recovery?` rec${mi.recovery.kind}`:''}`:'no mission'}`;})()}`:'on foot'}`,...(watch as string[]).map(local=>{
+     // A `g` prefix names a global ($131, Sweet in SWEET1) rather than a mission local.
+     const handle=String(local).startsWith('g')?(t as any).globals.getInt32(Number(String(local).slice(1))*4,true):t.locals.getInt32(Number(local)*4,true);
+     const seq=(()=>{try{const n=r.world.pedSequenceProgress?.(handle);return n===undefined||n<0?'':` seq${n}`;}catch{return '';}})();
+     try{const p=r.world.pedPosition(handle),v=r.world.pedVehicle?.(handle)??0,car=v>0?m.vehicles.entity(v):undefined,mission=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();
+      return `${local}@ ${p.x.toFixed(0)},${p.y.toFixed(0)},${p.z.toFixed(0)}${seq} ${v>0?`veh ${v} ${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mission?`${mission.kind}->${mission.goal.x.toFixed(0)},${(-mission.goal.z).toFixed(0)} r${mission.route?.length??0}${mission.recovery?` rec${mission.recovery.kind}`:''}`:'no mission'} ${(()=>{const q=(car.car?.body??car.body)?.rotation?.();return q?`up${(1-2*(q.x*q.x+q.z*q.z)).toFixed(2)}`:'';})()} ${(car.car?.body??car.body)?.isEnabled?.()===false?'DISABLED':''} ${car.autopilot?.native?`g${car.autopilot.native.gas.toFixed(1)} s${car.autopilot.native.steerAngle.toFixed(2)} b${car.autopilot.native.brake.toFixed(1)}`:''}`:'on foot'}`;}
+     catch(e){return `${local}@ ${handle} ${String(e).slice(0,40)}`;}
+    })];
+    // A watched ped losing health, with what hurt him: the first sign of a homie about to fail the mission.
+    const hurt:string[]=[],hp=(window as any).__watchHp??={};
+    // CJ's last vehicle: a line whenever it loses over 50 health, is wrecked or drowning, or is gone, with where it is
+    // (a mission failing on IS_CAR_DEAD for a car that was fine a few seconds before).
+    {const w=window as any,now=r.world.pedVehicle?.(1)??0;if(now>0)w.__sweepCar=now;const h=w.__sweepCar;
+     if(h){const e=m.vehicles.entity(h),state=!m.vehicles.exists(h)?'gone':!e?'building':e.disposed?'disposed':e.wrecked?'wrecked':e.drowning?'drowning':'ok';
+      const health=e&&!e.disposed?Math.round(e.health):-1,t=e&&!e.disposed?(e.car?.body??e.body).translation():undefined,last=w.__sweepCarLast;
+      if(!last||state!==last.state||last.health-health>50)hurt.push(`CAR ${h} ${state} hp ${health}${t?` at ${t.x.toFixed(0)},${(-t.z).toFixed(0)},${t.y.toFixed(1)}`:''} fire ${!!e?.onFire} ${new Error().stack?.split('\n').slice(0,1).join('')}`);
+      w.__sweepCarLast={state,health};}}
+    for(const local of watch as string[]){
+     const handle=String(local).startsWith('g')?(t as any).globals.getInt32(Number(String(local).slice(1))*4,true):t.locals.getInt32(Number(local)*4,true);
+     let health:number;try{health=r.world.pedHealth(handle);}catch{continue;}
+     // The ped's health field records the call stack of each drop, so a loss nothing else accounts for names its code.
+     const entity=m.peds.entity(handle);
+     if(entity&&!entity.__healthWatched){
+      let value=entity.health;entity.__healthWatched=true;
+      Object.defineProperty(entity,'health',{configurable:true,get:()=>value,set:(v:number)=>{if(v<value)entity.__healthDrop=`${value}->${v} at ${(new Error().stack??'').split('\n').slice(2,6).map((l:string)=>l.trim().replace(/https?:\/\/[^/]+\//,'').replace(/\?[^:]*/,'')).join(' < ')}`;value=v;}});
+     }
+     if(hp[local]!==undefined&&health<hp[local]){
+      const by=m.peds.entity(handle)?.lastDamagedBy,car=by?.car,ped=by?.ped;
+      hurt.push(`${local}@ ${hp[local]}->${health} by ${by?.player?'CJ':car?`car ${car.model?.name??car.modelId??'?'}${car===g.sim?.playerCar?' (CJ)':''}`:ped?`ped ${ped.model??ped.modelName??'?'}`:'?'} weapon ${m.peds.entity(handle)?.lastWeaponDamage??'?'} ${m.peds.entity(handle)?.__healthDrop??''}`);
+     }
+     hp[local]=health;
+    }
+    return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said(),bot:botAction,watched,hurt};
+   },[id,playerOnly,bot,watch] as const);
    samples++;previous=last;last=s;
+   // The bot's decisions as they change, and a progress line every twenty samples.
+   const decision=s.bot?JSON.stringify(s.bot):null;if(decision&&decision!==timeline.at(-1)?.decision)timeline.push({at:samples,offset:s.offset??-1,decision});
+   for(const h of s.hurt??[])console.log(`sweep ${id} sample ${samples} HURT ${h}`);
+   // SWEEP_SHOTS=1: a screenshot every hundred samples, to see what a stall looks like.
+   if(process.env.SWEEP_SHOTS&&samples%100===0){mkdirSync('artifacts/port/shots',{recursive:true});await page.screenshot({path:`artifacts/port/shots/${id}-${samples}.png`}).catch(()=>{});}
+   if(samples%20===0)console.log(`sweep ${id} sample ${samples} offset ${s.offset} ${s.name} ${decision??''} ${(s.said??[]).join(',')} ${(s.watched??[]).join(' | ')}`);
    if(s.ended){ended=true;break;}
    if(s.moved)teleports++;
    maxOffset=Math.max(maxOffset,s.offset??0);if(s.name)waits.set(s.name,(waits.get(s.name)??0)+1);
@@ -129,10 +194,12 @@ test('mission sweep',async({page})=>{
   }
   const size=await page.evaluate(id=>{const b=(window as any).__sweep.missions[id];return b.end-b.start;},id);
   const name=await page.evaluate(id=>{const b=(window as any).__sweep.missions[id];const i=b.instructions.find((x:any)=>x.name==='SCRIPT_NAME');return i?.parameters[0]?.value??String(id);},id);
-  const result={id,name,started:start.threads>0,ended,gaveUp:last?.gaveUp??[],pageErrors:errors.slice(before),
+  // The commands the game skipped in this mission (no world member yet), with how often.
+  const skipped=await page.evaluate(name=>(window as any).__game.missionForProfiling().snapshot().skipped.filter((e:any)=>e.thread===name).map((e:any)=>`${e.command}×${e.count}`),name);
+  const result={id,name,started:start.threads>0,ended,gaveUp:last?.gaveUp??[],skipped,pageErrors:errors.slice(before),
    said:last?.said??[],saidBefore:previous?.said??[],
    reached:+(maxOffset/size*100).toFixed(1),waitingOn:last?.ended?null:last?.name??null,waitingAt:last?.ended?null:last?.offset??null,loop:last?.loop??[],teleports,samples,
-   topWaits:[...waits].sort((a,b)=>b[1]-a[1]).slice(0,5)};
+   topWaits:[...waits].sort((a,b)=>b[1]-a[1]).slice(0,5),timeline:timeline.slice(0,80)};
   results.push(result);console.log(JSON.stringify(result));
   mkdirSync('artifacts/port',{recursive:true});writeFileSync('artifacts/port/sweep.json',JSON.stringify({generated:new Date().toISOString(),seconds,results},null,1)+'\n');
  }

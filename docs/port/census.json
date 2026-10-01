@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T03:04:27.021Z",
+ "generated": "2026-10-01T04:56:43.600Z",
  "reference": {
   "path": "../../../../private/tmp/claude-501/-Users-teodev-Developer-web-gta/637ad138-27fe-486a-a164-c033aa17951b/scratchpad/gr",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -10,10 +10,11 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1075,
+   "faithful": 1076,
    "authored": 32,
    "silent": 10,
-   "stops": 274
+   "skipped": 222,
+   "stops": 51
   }
  },
  "missions": [
@@ -29,7 +30,8 @@
     "faithful": 3762,
     "authored": 22,
     "silent": 35,
-    "stops": 22
+    "skipped": 22,
+    "stops": 0
    },
    "gaps": [
     {
@@ -69,22 +71,22 @@
     },
     {
      "name": "GET_BEAT_PROXIMITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
      "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "GET_CAR_MODEL_VALUE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -106,7 +108,8 @@
     "faithful": 113,
     "authored": 0,
     "silent": 0,
-    "stops": 12
+    "skipped": 6,
+    "stops": 6
    },
    "gaps": [
     {
@@ -116,12 +119,12 @@
     },
     {
      "name": "GET_CHAR_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -131,7 +134,7 @@
     },
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -153,12 +156,13 @@
     "faithful": 138,
     "authored": 0,
     "silent": 0,
-    "stops": 14
+    "skipped": 9,
+    "stops": 5
    },
    "gaps": [
     {
      "name": "GET_CHAR_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 7
     },
     {
@@ -168,7 +172,7 @@
     },
     {
      "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     }
    ]
@@ -185,6 +189,7 @@
     "faithful": 195,
     "authored": 2,
     "silent": 8,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -222,6 +227,7 @@
     "faithful": 240,
     "authored": 0,
     "silent": 8,
+    "skipped": 0,
     "stops": 2
    },
    "gaps": [
@@ -269,6 +275,7 @@
     "faithful": 101,
     "authored": 3,
     "silent": 7,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
@@ -306,7 +313,8 @@
     "faithful": 212,
     "authored": 1,
     "silent": 5,
-    "stops": 31
+    "skipped": 2,
+    "stops": 29
    },
    "gaps": [
     {
@@ -321,7 +329,7 @@
     },
     {
      "name": "IS_CHAR_IN_AREA_ON_FOOT_3D",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -348,6 +356,7 @@
     "faithful": 23,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -370,6 +379,7 @@
     "faithful": 30,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -392,6 +402,7 @@
     "faithful": 75,
     "authored": 2,
     "silent": 7,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -429,6 +440,7 @@
     "faithful": 41,
     "authored": 2,
     "silent": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -461,6 +473,7 @@
     "faithful": 33,
     "authored": 1,
     "silent": 4,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -493,6 +506,7 @@
     "faithful": 151,
     "authored": 2,
     "silent": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -530,6 +544,7 @@
     "faithful": 188,
     "authored": 1,
     "silent": 4,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -562,6 +577,7 @@
     "faithful": 138,
     "authored": 0,
     "silent": 4,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -589,6 +605,7 @@
     "faithful": 166,
     "authored": 1,
     "silent": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -621,12 +638,13 @@
     "faithful": 625,
     "authored": 12,
     "silent": 2,
-    "stops": 10
+    "skipped": 10,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "GET_OBJECT_ROTATION_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 10
     },
     {
@@ -673,6 +691,7 @@
     "faithful": 477,
     "authored": 0,
     "silent": 2,
+    "skipped": 0,
     "stops": 11
    },
    "gaps": [
@@ -710,7 +729,8 @@
     "faithful": 565,
     "authored": 3,
     "silent": 0,
-    "stops": 141
+    "skipped": 14,
+    "stops": 127
    },
    "gaps": [
     {
@@ -720,7 +740,7 @@
     },
     {
      "name": "SET_HELP_MESSAGE_BOX_SIZE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 14
     },
     {
@@ -767,6 +787,7 @@
     "faithful": 334,
     "authored": 3,
     "silent": 0,
+    "skipped": 0,
     "stops": 28
    },
    "gaps": [
@@ -804,12 +825,13 @@
     "faithful": 137,
     "authored": 0,
     "silent": 0,
-    "stops": 9
+    "skipped": 3,
+    "stops": 6
    },
    "gaps": [
     {
      "name": "IS_PLAYER_IN_POSITION_FOR_CONVERSATION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -846,6 +868,7 @@
     "faithful": 125,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
@@ -868,6 +891,7 @@
     "faithful": 95,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": []
@@ -884,6 +908,7 @@
     "faithful": 68,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -906,6 +931,7 @@
     "faithful": 215,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": []
@@ -922,12 +948,13 @@
     "faithful": 206,
     "authored": 0,
     "silent": 0,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "IS_PLAYER_IN_POSITION_FOR_CONVERSATION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     }
    ]
@@ -944,7 +971,8 @@
     "faithful": 1251,
     "authored": 1,
     "silent": 0,
-    "stops": 70
+    "skipped": 13,
+    "stops": 57
    },
    "gaps": [
     {
@@ -959,12 +987,12 @@
     },
     {
      "name": "GET_CURRENT_POPULATION_ZONE_TYPE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "GET_RADIO_CHANNEL",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -974,12 +1002,12 @@
     },
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "LOCK_DOOR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -1016,6 +1044,7 @@
     "faithful": 175,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": []
@@ -1032,6 +1061,7 @@
     "faithful": 100,
     "authored": 28,
     "silent": 0,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
@@ -1064,6 +1094,7 @@
     "faithful": 63,
     "authored": 13,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1091,6 +1122,7 @@
     "faithful": 45,
     "authored": 2,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1118,6 +1150,7 @@
     "faithful": 33,
     "authored": 5,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1145,6 +1178,7 @@
     "faithful": 180,
     "authored": 11,
     "silent": 0,
+    "skipped": 0,
     "stops": 2
    },
    "gaps": [
@@ -1187,12 +1221,13 @@
     "faithful": 308,
     "authored": 6,
     "silent": 0,
-    "stops": 6
+    "skipped": 3,
+    "stops": 3
    },
    "gaps": [
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -1229,12 +1264,13 @@
     "faithful": 33,
     "authored": 0,
     "silent": 0,
-    "stops": 3
+    "skipped": 2,
+    "stops": 1
    },
    "gaps": [
     {
      "name": "SKIP_TO_NEXT_ALLOWED_STATION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -1256,6 +1292,7 @@
     "faithful": 24,
     "authored": 2,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1283,7 +1320,8 @@
     "faithful": 196,
     "authored": 0,
     "silent": 234,
-    "stops": 8
+    "skipped": 4,
+    "stops": 4
    },
    "gaps": [
     {
@@ -1298,7 +1336,7 @@
     },
     {
      "name": "GET_BEAT_PROXIMITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -1330,6 +1368,7 @@
     "faithful": 43,
     "authored": 3,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1357,6 +1396,7 @@
     "faithful": 12,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": []
@@ -1373,6 +1413,7 @@
     "faithful": 49,
     "authored": 7,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1400,6 +1441,7 @@
     "faithful": 32,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": []
@@ -1416,6 +1458,7 @@
     "faithful": 15,
     "authored": 3,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1443,12 +1486,13 @@
     "faithful": 72,
     "authored": 1,
     "silent": 0,
-    "stops": 7
+    "skipped": 4,
+    "stops": 3
    },
    "gaps": [
     {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -1480,6 +1524,7 @@
     "faithful": 19,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
@@ -1507,6 +1552,7 @@
     "faithful": 24,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
@@ -1534,6 +1580,7 @@
     "faithful": 20,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1556,6 +1603,7 @@
     "faithful": 14,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
@@ -1583,7 +1631,8 @@
     "faithful": 74,
     "authored": 1,
     "silent": 0,
-    "stops": 4
+    "skipped": 1,
+    "stops": 3
    },
    "gaps": [
     {
@@ -1598,7 +1647,7 @@
     },
     {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -1620,7 +1669,8 @@
     "faithful": 74,
     "authored": 1,
     "silent": 0,
-    "stops": 4
+    "skipped": 1,
+    "stops": 3
    },
    "gaps": [
     {
@@ -1635,7 +1685,7 @@
     },
     {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -1657,6 +1707,7 @@
     "faithful": 30,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1679,6 +1730,7 @@
     "faithful": 23,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1701,6 +1753,7 @@
     "faithful": 31,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1723,6 +1776,7 @@
     "faithful": 22,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1745,6 +1799,7 @@
     "faithful": 28,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
@@ -1772,6 +1827,7 @@
     "faithful": 94,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 3
    },
    "gaps": [
@@ -1799,6 +1855,7 @@
     "faithful": 25,
     "authored": 3,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1826,6 +1883,7 @@
     "faithful": 24,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1848,12 +1906,13 @@
     "faithful": 49,
     "authored": 1,
     "silent": 0,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -1875,6 +1934,7 @@
     "faithful": 26,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1897,6 +1957,7 @@
     "faithful": 17,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1919,6 +1980,7 @@
     "faithful": 24,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1941,6 +2003,7 @@
     "faithful": 319,
     "authored": 0,
     "silent": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -1963,7 +2026,8 @@
     "faithful": 318,
     "authored": 14,
     "silent": 3,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -1978,7 +2042,7 @@
     },
     {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -2010,6 +2074,7 @@
     "faithful": 244,
     "authored": 4,
     "silent": 4,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2047,6 +2112,7 @@
     "faithful": 257,
     "authored": 13,
     "silent": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2084,6 +2150,7 @@
     "faithful": 262,
     "authored": 8,
     "silent": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2121,6 +2188,7 @@
     "faithful": 393,
     "authored": 0,
     "silent": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2148,7 +2216,8 @@
     "faithful": 357,
     "authored": 0,
     "silent": 0,
-    "stops": 49
+    "skipped": 17,
+    "stops": 32
    },
    "gaps": [
     {
@@ -2158,17 +2227,17 @@
     },
     {
      "name": "GET_CAR_COLOURS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "GIVE_VEHICLE_PAINTJOB",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "CHANGE_CAR_COLOUR_FROM_MENU",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -2225,17 +2294,18 @@
     "faithful": 109,
     "authored": 1,
     "silent": 0,
-    "stops": 6
+    "skipped": 6,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "LOCATE_OBJECT_2D",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -2245,12 +2315,12 @@
     },
     {
      "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -2267,17 +2337,18 @@
     "faithful": 135,
     "authored": 1,
     "silent": 0,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -2299,17 +2370,18 @@
     "faithful": 74,
     "authored": 0,
     "silent": 0,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -2326,6 +2398,7 @@
     "faithful": 23,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 57
    },
    "gaps": [
@@ -2348,7 +2421,8 @@
     "faithful": 599,
     "authored": 0,
     "silent": 26,
-    "stops": 9
+    "skipped": 3,
+    "stops": 6
    },
    "gaps": [
     {
@@ -2373,7 +2447,7 @@
     },
     {
      "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -2383,12 +2457,12 @@
     },
     {
      "name": "TASK_GO_TO_COORD_WHILE_AIMING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "TASK_COWER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -2405,22 +2479,23 @@
     "faithful": 550,
     "authored": 0,
     "silent": 2,
-    "stops": 12
+    "skipped": 10,
+    "stops": 2
    },
    "gaps": [
     {
      "name": "GET_RANDOM_CAR_OF_TYPE_IN_AREA_NO_SAVE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "GET_CAR_BLOCKING_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "GET_PARKING_NODE_IN_AREA",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -2435,17 +2510,17 @@
     },
     {
      "name": "IS_CHAR_STUCK_UNDER_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "IS_VEHICLE_ATTACHED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "DETACH_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -2467,12 +2542,13 @@
     "faithful": 57,
     "authored": 1,
     "silent": 0,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "DRAW_LIGHT_WITH_RANGE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -2494,6 +2570,7 @@
     "faithful": 44,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
@@ -2516,6 +2593,7 @@
     "faithful": 154,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 15
    },
    "gaps": [
@@ -2553,6 +2631,7 @@
     "faithful": 163,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": []
@@ -2569,6 +2648,7 @@
     "faithful": 28,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
@@ -2596,6 +2676,7 @@
     "faithful": 1854,
     "authored": 28,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2628,6 +2709,7 @@
     "faithful": 208,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": []
@@ -2644,6 +2726,7 @@
     "faithful": 408,
     "authored": 22,
     "silent": 6,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2691,6 +2774,7 @@
     "faithful": 201,
     "authored": 0,
     "silent": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2713,6 +2797,7 @@
     "faithful": 228,
     "authored": 0,
     "silent": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2735,6 +2820,7 @@
     "faithful": 267,
     "authored": 0,
     "silent": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2762,6 +2848,7 @@
     "faithful": 257,
     "authored": 0,
     "silent": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2789,12 +2876,13 @@
     "faithful": 222,
     "authored": 0,
     "silent": 1,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "GET_STRING_WIDTH",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -2816,7 +2904,8 @@
     "faithful": 1055,
     "authored": 14,
     "silent": 3,
-    "stops": 15
+    "skipped": 15,
+    "stops": 0
    },
    "gaps": [
     {
@@ -2826,12 +2915,12 @@
     },
     {
      "name": "SET_SCRIPT_COOP_GAME",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "SET_POOL_TABLE_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -2841,22 +2930,22 @@
     },
     {
      "name": "SET_OBJECT_DRAW_LAST",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "SET_OBJECT_ROTATION_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "GET_OBJECT_ROTATION_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -2876,7 +2965,7 @@
     },
     {
      "name": "SET_HELP_MESSAGE_BOX_SIZE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -2893,6 +2982,7 @@
     "faithful": 1096,
     "authored": 2,
     "silent": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -2925,32 +3015,33 @@
     "faithful": 114,
     "authored": 1,
     "silent": 1,
-    "stops": 10
+    "skipped": 10,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "REMOVE_RC_BUGGY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "GIVE_REMOTE_CONTROLLED_MODEL_TO_PLAYER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_REMOTE_CONTROLLED_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_ENABLE_RC_DETONATE_ON_CONTACT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_ENABLE_RC_DETONATE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -2960,7 +3051,7 @@
     },
     {
      "name": "SET_FORCE_RANDOM_CAR_MODEL",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -2970,12 +3061,12 @@
     },
     {
      "name": "IS_PLAYER_IN_REMOTE_MODE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_RANDOM_CAR_IN_SPHERE_NO_SAVE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -2992,6 +3083,7 @@
     "faithful": 1071,
     "authored": 12,
     "silent": 30,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3049,6 +3141,7 @@
     "faithful": 770,
     "authored": 6,
     "silent": 29,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3101,6 +3194,7 @@
     "faithful": 813,
     "authored": 7,
     "silent": 32,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3153,6 +3247,7 @@
     "faithful": 903,
     "authored": 2,
     "silent": 38,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3195,6 +3290,7 @@
     "faithful": 768,
     "authored": 8,
     "silent": 47,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3247,6 +3343,7 @@
     "faithful": 1187,
     "authored": 3,
     "silent": 43,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3299,6 +3396,7 @@
     "faithful": 1119,
     "authored": 1,
     "silent": 6,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3346,6 +3444,7 @@
     "faithful": 645,
     "authored": 0,
     "silent": 12,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3383,6 +3482,7 @@
     "faithful": 1505,
     "authored": 6,
     "silent": 22,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3430,6 +3530,7 @@
     "faithful": 1566,
     "authored": 0,
     "silent": 9,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3467,6 +3568,7 @@
     "faithful": 387,
     "authored": 7,
     "silent": 8,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3514,7 +3616,8 @@
     "faithful": 1111,
     "authored": 5,
     "silent": 14,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -3534,7 +3637,7 @@
     },
     {
      "name": "CREATE_EMERGENCY_SERVICES_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -3561,6 +3664,7 @@
     "faithful": 1102,
     "authored": 3,
     "silent": 12,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3618,7 +3722,8 @@
     "faithful": 1632,
     "authored": 12,
     "silent": 96,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
@@ -3643,7 +3748,7 @@
     },
     {
      "name": "SET_OBJECT_AS_STEALABLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -3668,12 +3773,12 @@
     },
     {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_SOUND_LEVEL_AT_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -3695,7 +3800,8 @@
     "faithful": 1062,
     "authored": 14,
     "silent": 33,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -3730,7 +3836,7 @@
     },
     {
      "name": "SET_PLAYER_DISPLAY_VITAL_STATS_BUTTON",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -3762,7 +3868,8 @@
     "faithful": 1318,
     "authored": 26,
     "silent": 86,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
@@ -3792,7 +3899,7 @@
     },
     {
      "name": "VEHICLE_DOES_PROVIDE_COVER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -3802,7 +3909,7 @@
     },
     {
      "name": "ADD_BLOOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -3829,7 +3936,8 @@
     "faithful": 1351,
     "authored": 5,
     "silent": 64,
-    "stops": 12
+    "skipped": 12,
+    "stops": 0
    },
    "gaps": [
     {
@@ -3839,7 +3947,7 @@
     },
     {
      "name": "DRAW_SPHERE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 7
     },
     {
@@ -3854,7 +3962,7 @@
     },
     {
      "name": "SET_CAR_ALWAYS_CREATE_SKIDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -3864,12 +3972,12 @@
     },
     {
      "name": "SET_GROUP_SEQUENCE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "IGNORE_HEIGHT_DIFFERENCE_FOLLOWING_NODES",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -3896,6 +4004,7 @@
     "faithful": 557,
     "authored": 2,
     "silent": 24,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -3938,7 +4047,8 @@
     "faithful": 1080,
     "authored": 5,
     "silent": 68,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
@@ -3958,7 +4068,7 @@
     },
     {
      "name": "SET_CAMERA_IN_FRONT_OF_CHAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -4005,7 +4115,8 @@
     "faithful": 2946,
     "authored": 4,
     "silent": 67,
-    "stops": 26
+    "skipped": 26,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4025,12 +4136,12 @@
     },
     {
      "name": "ADD_SPARKS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 17
     },
     {
      "name": "ATTACH_CAR_TO_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -4040,12 +4151,12 @@
     },
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "DETACH_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -4060,7 +4171,7 @@
     },
     {
      "name": "HAS_OBJECT_OF_TYPE_BEEN_SMASHED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4082,7 +4193,8 @@
     "faithful": 696,
     "authored": 7,
     "silent": 6,
-    "stops": 8
+    "skipped": 8,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4092,12 +4204,12 @@
     },
     {
      "name": "CONTROL_CAR_DOOR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -4107,12 +4219,12 @@
     },
     {
      "name": "REQUEST_VEHICLE_MOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "HAS_VEHICLE_MOD_LOADED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4122,12 +4234,12 @@
     },
     {
      "name": "SET_CAMERA_POSITION_UNFIXED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "ADD_VEHICLE_MOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4159,7 +4271,8 @@
     "faithful": 705,
     "authored": 4,
     "silent": 25,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4184,7 +4297,7 @@
     },
     {
      "name": "IS_CHAR_DUCKING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -4206,7 +4319,8 @@
     "faithful": 1255,
     "authored": 37,
     "silent": 39,
-    "stops": 8
+    "skipped": 8,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4226,7 +4340,7 @@
     },
     {
      "name": "IMPROVE_CAR_BY_CHEATING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -4246,12 +4360,12 @@
     },
     {
      "name": "DRAW_LIGHT_WITH_RANGE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "SET_CAR_FOLLOW_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4261,7 +4375,7 @@
     },
     {
      "name": "TASK_CHAR_ARREST_CHAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -4278,6 +4392,7 @@
     "faithful": 1261,
     "authored": 6,
     "silent": 21,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -4335,17 +4450,18 @@
     "faithful": 695,
     "authored": 2,
     "silent": 7,
-    "stops": 21
+    "skipped": 21,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "REGISTER_FASTEST_TIME",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
      "name": "SET_HELP_MESSAGE_BOX_SIZE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -4355,22 +4471,22 @@
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "PLANE_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "REQUEST_VEHICLE_MOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "SET_BOAT_CRUISE_SPEED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4385,17 +4501,17 @@
     },
     {
      "name": "HAS_VEHICLE_MOD_LOADED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "ADD_VEHICLE_MOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "REGISTER_BEST_POSITION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -4412,6 +4528,7 @@
     "faithful": 266,
     "authored": 0,
     "silent": 4,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -4444,7 +4561,8 @@
     "faithful": 3565,
     "authored": 8,
     "silent": 121,
-    "stops": 59
+    "skipped": 59,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4464,32 +4582,32 @@
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 9
     },
     {
      "name": "DELETE_SEARCHLIGHT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 8
     },
     {
      "name": "POINT_SEARCHLIGHT_AT_CHAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 7
     },
     {
      "name": "CREATE_SWAT_ROPE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 6
     },
     {
      "name": "DOES_SEARCHLIGHT_EXIST",
-     "status": "stops",
+     "status": "skipped",
      "sites": 6
     },
     {
      "name": "CREATE_SEARCHLIGHT_ON_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
@@ -4499,7 +4617,7 @@
     },
     {
      "name": "DO_CAMERA_BUMP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -4521,6 +4639,7 @@
     "faithful": 967,
     "authored": 4,
     "silent": 13,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -4568,12 +4687,13 @@
     "faithful": 566,
     "authored": 0,
     "silent": 1,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "ADD_BLIP_FOR_DEAD_CHAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4595,6 +4715,7 @@
     "faithful": 197,
     "authored": 0,
     "silent": 4,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -4622,7 +4743,8 @@
     "faithful": 963,
     "authored": 1,
     "silent": 138,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4647,7 +4769,7 @@
     },
     {
      "name": "SET_CAMERA_IN_FRONT_OF_CHAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4669,7 +4791,8 @@
     "faithful": 1552,
     "authored": 10,
     "silent": 14,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4699,7 +4822,7 @@
     },
     {
      "name": "IS_CHAR_DUCKING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4726,7 +4849,8 @@
     "faithful": 782,
     "authored": 4,
     "silent": 13,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4751,12 +4875,12 @@
     },
     {
      "name": "IS_TRAILER_ATTACHED_TO_CAB",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -4766,7 +4890,7 @@
     },
     {
      "name": "ADD_BLIP_FOR_CAR_OLD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4788,7 +4912,8 @@
     "faithful": 883,
     "authored": 2,
     "silent": 87,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4818,7 +4943,7 @@
     },
     {
      "name": "HAS_OBJECT_OF_TYPE_BEEN_SMASHED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4840,6 +4965,7 @@
     "faithful": 42,
     "authored": 0,
     "silent": 6,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -4872,6 +4998,7 @@
     "faithful": 930,
     "authored": 3,
     "silent": 41,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -4924,7 +5051,8 @@
     "faithful": 782,
     "authored": 2,
     "silent": 31,
-    "stops": 16
+    "skipped": 16,
+    "stops": 0
    },
    "gaps": [
     {
@@ -4934,17 +5062,17 @@
     },
     {
      "name": "SET_DRUNK_INPUT_DELAY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "DOES_SEARCHLIGHT_EXIST",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "DELETE_SEARCHLIGHT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -4959,22 +5087,22 @@
     },
     {
      "name": "GIVE_VEHICLE_PAINTJOB",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "CREATE_SEARCHLIGHT_ON_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "POINT_SEARCHLIGHT_AT_CHAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "HELI_FOLLOW_ENTITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -4984,7 +5112,7 @@
     },
     {
      "name": "TASK_CHAR_ARREST_CHAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -5001,12 +5129,13 @@
     "faithful": 192,
     "authored": 1,
     "silent": 0,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "SET_CAR_AS_MISSION_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -5028,7 +5157,8 @@
     "faithful": 966,
     "authored": 11,
     "silent": 26,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5058,22 +5188,22 @@
     },
     {
      "name": "SET_CAR_LIGHTS_ON",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "HELI_LAND_AT_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "IS_PLAYER_PRESSING_HORN",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5105,7 +5235,8 @@
     "faithful": 800,
     "authored": 5,
     "silent": 32,
-    "stops": 13
+    "skipped": 13,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5120,12 +5251,12 @@
     },
     {
      "name": "CREATE_EMERGENCY_SERVICES_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "SWAP_NEAREST_BUILDING_MODEL",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -5145,7 +5276,7 @@
     },
     {
      "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -5155,17 +5286,17 @@
     },
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_VEHICLE_QUATERNION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -5182,7 +5313,8 @@
     "faithful": 842,
     "authored": 5,
     "silent": 17,
-    "stops": 11
+    "skipped": 11,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5197,12 +5329,12 @@
     },
     {
      "name": "GET_CAR_COLOURS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "TASK_SAY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -5212,12 +5344,12 @@
     },
     {
      "name": "GET_CAR_BLOCKING_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_PARKING_NODE_IN_AREA",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5259,7 +5391,8 @@
     "faithful": 566,
     "authored": 0,
     "silent": 4,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5269,7 +5402,7 @@
     },
     {
      "name": "TASK_CHAR_SLIDE_TO_COORD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -5288,10 +5421,11 @@
    "byStatus": {
     "core": 2127,
     "nop": 3,
-    "faithful": 1282,
+    "faithful": 1284,
     "authored": 2,
     "silent": 18,
-    "stops": 3
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5303,11 +5437,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 5
-    },
-    {
-     "name": "EXPLODE_CAR_IN_CUTSCENE_SHAKE_AND_BITS",
-     "status": "stops",
-     "sites": 2
     },
     {
      "name": "SLIDE_OBJECT",
@@ -5331,7 +5460,7 @@
     },
     {
      "name": "TASK_COWER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5353,7 +5482,8 @@
     "faithful": 586,
     "authored": 3,
     "silent": 8,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5378,7 +5508,7 @@
     },
     {
      "name": "SET_CAR_AS_MISSION_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5410,12 +5540,13 @@
     "faithful": 472,
     "authored": 2,
     "silent": 9,
-    "stops": 8
+    "skipped": 8,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "CONTROL_CAR_DOOR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 8
     },
     {
@@ -5457,12 +5588,13 @@
     "faithful": 779,
     "authored": 9,
     "silent": 1,
-    "stops": 29
+    "skipped": 29,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "CREATE_SEARCHLIGHT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
@@ -5472,7 +5604,7 @@
     },
     {
      "name": "ADD_BLIP_FOR_SEARCHLIGHT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
@@ -5482,42 +5614,42 @@
     },
     {
      "name": "ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "MOVE_SEARCHLIGHT_BETWEEN_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "SET_SEARCHLIGHT_CLIP_IF_COLLIDING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "SET_ALWAYS_DRAW_3D_MARKERS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_CHAR_SWIM_STATE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "BOAT_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_BOAT_CRUISE_SPEED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "BOAT_STOP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -5534,7 +5666,8 @@
     "faithful": 1498,
     "authored": 10,
     "silent": 45,
-    "stops": 7
+    "skipped": 7,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5549,7 +5682,7 @@
     },
     {
      "name": "DRAW_SPHERE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -5574,22 +5707,22 @@
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "MAKE_HELI_COME_CRASHING_DOWN",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "ADD_SMOKE_PARTICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "IS_PLAYER_CLIMBING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5611,7 +5744,8 @@
     "faithful": 652,
     "authored": 1,
     "silent": 9,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5631,7 +5765,7 @@
     },
     {
      "name": "ATTACH_CHAR_TO_BIKE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5658,6 +5792,7 @@
     "faithful": 1154,
     "authored": 2,
     "silent": 90,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -5710,7 +5845,8 @@
     "faithful": 758,
     "authored": 3,
     "silent": 17,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5735,7 +5871,7 @@
     },
     {
      "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5762,7 +5898,8 @@
     "faithful": 872,
     "authored": 1,
     "silent": 14,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5782,12 +5919,12 @@
     },
     {
      "name": "CREATE_BIRDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -5797,7 +5934,7 @@
     },
     {
      "name": "IS_CHAR_STUCK_UNDER_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5819,7 +5956,8 @@
     "faithful": 451,
     "authored": 4,
     "silent": 8,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5849,17 +5987,17 @@
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "MAKE_HELI_COME_CRASHING_DOWN",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "SET_VEHICLE_CAN_BE_TARGETTED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5878,10 +6016,11 @@
    "byStatus": {
     "core": 926,
     "nop": 6,
-    "faithful": 886,
+    "faithful": 887,
     "authored": 4,
     "silent": 46,
-    "stops": 3
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5911,12 +6050,7 @@
     },
     {
      "name": "SET_CAR_LIGHTS_ON",
-     "status": "stops",
-     "sites": 1
-    },
-    {
-     "name": "EXPLODE_CAR_IN_CUTSCENE_SHAKE_AND_BITS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5926,7 +6060,7 @@
     },
     {
      "name": "HAS_CHAR_BEEN_ARRESTED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -5943,7 +6077,8 @@
     "faithful": 1820,
     "authored": 5,
     "silent": 35,
-    "stops": 14
+    "skipped": 14,
+    "stops": 0
    },
    "gaps": [
     {
@@ -5958,17 +6093,17 @@
     },
     {
      "name": "SET_BOAT_CRUISE_SPEED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "SET_SWIM_SPEED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -5983,7 +6118,7 @@
     },
     {
      "name": "TASK_GREET_PARTNER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -5993,12 +6128,12 @@
     },
     {
      "name": "SET_HELI_ORIENTATION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "TASK_CHAR_SLIDE_TO_COORD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -6020,7 +6155,8 @@
     "faithful": 519,
     "authored": 13,
     "silent": 1,
-    "stops": 4
+    "skipped": 4,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6050,7 +6186,7 @@
     },
     {
      "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -6060,17 +6196,17 @@
     },
     {
      "name": "IS_OBJECT_IN_ANGLED_AREA_2D",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "TASK_GO_TO_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "LOCATE_OBJECT_2D",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -6097,7 +6233,8 @@
     "faithful": 738,
     "authored": 2,
     "silent": 56,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6122,12 +6259,12 @@
     },
     {
      "name": "SET_CAR_ESCORT_CAR_RIGHT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_CAR_ESCORT_CAR_LEFT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -6154,7 +6291,8 @@
     "faithful": 293,
     "authored": 13,
     "silent": 8,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6189,7 +6327,7 @@
     },
     {
      "name": "ADD_BLIP_FOR_CAR_OLD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -6231,7 +6369,8 @@
     "faithful": 1802,
     "authored": 12,
     "silent": 25,
-    "stops": 14
+    "skipped": 14,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6246,17 +6385,17 @@
     },
     {
      "name": "SET_CAR_STAY_IN_FAST_LANE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "SET_CAR_FOLLOW_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "ADD_VEHICLE_MOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -6276,7 +6415,7 @@
     },
     {
      "name": "REQUEST_VEHICLE_MOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -6286,7 +6425,7 @@
     },
     {
      "name": "GIVE_NON_PLAYER_CAR_NITRO",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -6308,12 +6447,13 @@
     "faithful": 1507,
     "authored": 9,
     "silent": 36,
-    "stops": 66
+    "skipped": 66,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "ENABLE_CRANE_CONTROLS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 25
     },
     {
@@ -6323,7 +6463,7 @@
     },
     {
      "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 10
     },
     {
@@ -6343,22 +6483,22 @@
     },
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 6
     },
     {
      "name": "DETACH_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
      "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
      "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
@@ -6368,7 +6508,7 @@
     },
     {
      "name": "ATTACH_CAR_TO_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     }
    ]
@@ -6385,7 +6525,8 @@
     "faithful": 426,
     "authored": 12,
     "silent": 20,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6445,7 +6586,7 @@
     },
     {
      "name": "GET_RANDOM_CAR_OF_TYPE_IN_ANGLED_AREA_NO_SAVE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -6462,7 +6603,8 @@
     "faithful": 1361,
     "authored": 15,
     "silent": 11,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6497,7 +6639,7 @@
     },
     {
      "name": "SET_FREEBIES_IN_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -6524,7 +6666,8 @@
     "faithful": 728,
     "authored": 7,
     "silent": 75,
-    "stops": 21
+    "skipped": 21,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6539,7 +6682,7 @@
     },
     {
      "name": "PLANE_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 13
     },
     {
@@ -6549,7 +6692,7 @@
     },
     {
      "name": "SET_PLANE_THROTTLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
@@ -6564,7 +6707,7 @@
     },
     {
      "name": "PLANE_STARTS_IN_AIR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -6601,7 +6744,8 @@
     "faithful": 430,
     "authored": 4,
     "silent": 53,
-    "stops": 13
+    "skipped": 13,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6616,7 +6760,7 @@
     },
     {
      "name": "REMOVE_RC_BUGGY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 9
     },
     {
@@ -6626,22 +6770,22 @@
     },
     {
      "name": "GIVE_REMOTE_CONTROLLED_MODEL_TO_PLAYER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_REMOTE_CONTROLLED_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_ENABLE_RC_DETONATE_ON_CONTACT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_ENABLE_RC_DETONATE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -6678,7 +6822,8 @@
     "faithful": 583,
     "authored": 18,
     "silent": 34,
-    "stops": 22
+    "skipped": 22,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6698,7 +6843,7 @@
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 7
     },
     {
@@ -6708,17 +6853,17 @@
     },
     {
      "name": "IS_OBJECT_INTERSECTING_WORLD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "TAKE_REMOTE_CONTROL_OF_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "DETACH_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -6728,17 +6873,17 @@
     },
     {
      "name": "ENABLE_CRANE_CONTROLS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_ENABLE_RC_DETONATE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_ENABLE_RC_DETONATE_ON_CONTACT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -6755,6 +6900,7 @@
     "faithful": 420,
     "authored": 3,
     "silent": 13,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -6797,7 +6943,8 @@
     "faithful": 585,
     "authored": 7,
     "silent": 37,
-    "stops": 18
+    "skipped": 18,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6807,12 +6954,12 @@
     },
     {
      "name": "IS_TRAILER_ATTACHED_TO_CAB",
-     "status": "stops",
+     "status": "skipped",
      "sites": 7
     },
     {
      "name": "ATTACH_TRAILER_TO_CAB",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -6832,22 +6979,22 @@
     },
     {
      "name": "RELEASE_PATH_NODES",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "ATTACH_CAR_TO_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "DETACH_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -6874,7 +7021,8 @@
     "faithful": 1025,
     "authored": 10,
     "silent": 41,
-    "stops": 25
+    "skipped": 25,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6889,17 +7037,17 @@
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
      "name": "HELI_FOLLOW_ENTITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "CREATE_SWAT_ROPE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -6909,12 +7057,12 @@
     },
     {
      "name": "SET_HELI_STABILISER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "MAKE_HELI_COME_CRASHING_DOWN",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -6929,7 +7077,7 @@
     },
     {
      "name": "ACTIVATE_HELI_SPEED_CHEAT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -6951,6 +7099,7 @@
     "faithful": 34,
     "authored": 0,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": []
@@ -6967,7 +7116,8 @@
     "faithful": 221,
     "authored": 1,
     "silent": 11,
-    "stops": 4
+    "skipped": 4,
+    "stops": 0
    },
    "gaps": [
     {
@@ -6982,7 +7132,7 @@
     },
     {
      "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -6992,12 +7142,12 @@
     },
     {
      "name": "PLANE_STARTS_IN_AIR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "PLANE_ATTACK_PLAYER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7024,7 +7174,8 @@
     "faithful": 915,
     "authored": 7,
     "silent": 19,
-    "stops": 18
+    "skipped": 18,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7044,7 +7195,7 @@
     },
     {
      "name": "IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -7059,7 +7210,7 @@
     },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -7069,22 +7220,22 @@
     },
     {
      "name": "ATTACH_CAMERA_TO_CHAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "FORCE_DEATH_RESTART",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "SET_CAR_COORDINATES_NO_OFFSET",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -7101,17 +7252,18 @@
     "faithful": 1633,
     "authored": 10,
     "silent": 39,
-    "stops": 50
+    "skipped": 50,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "CREATE_SEARCHLIGHT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 14
     },
     {
      "name": "ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 14
     },
     {
@@ -7136,7 +7288,7 @@
     },
     {
      "name": "DOES_SEARCHLIGHT_EXIST",
-     "status": "stops",
+     "status": "skipped",
      "sites": 7
     },
     {
@@ -7146,17 +7298,17 @@
     },
     {
      "name": "DELETE_SEARCHLIGHT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "GIVE_VEHICLE_PAINTJOB",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "FORCE_INTERIOR_LIGHTING_FOR_PLAYER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -7178,7 +7330,8 @@
     "faithful": 219,
     "authored": 1,
     "silent": 7,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7198,12 +7351,12 @@
     },
     {
      "name": "TASK_JETPACK",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "ATTACH_CAR_TO_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7218,7 +7371,7 @@
     },
     {
      "name": "DRAW_WEAPONSHOP_CORONA",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -7235,7 +7388,8 @@
     "faithful": 931,
     "authored": 11,
     "silent": 13,
-    "stops": 16
+    "skipped": 16,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7250,7 +7404,7 @@
     },
     {
      "name": "IS_CAR_STOPPED_IN_AREA_2D",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -7265,22 +7419,22 @@
     },
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "SET_ALWAYS_DRAW_3D_MARKERS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "GET_PLANE_UNDERCARRIAGE_POSITION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "TASK_DRIVE_POINT_ROUTE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -7295,7 +7449,7 @@
     },
     {
      "name": "GET_CAR_UPRIGHT_VALUE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -7312,7 +7466,8 @@
     "faithful": 498,
     "authored": 1,
     "silent": 16,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7347,7 +7502,7 @@
     },
     {
      "name": "TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -7364,7 +7519,8 @@
     "faithful": 1019,
     "authored": 22,
     "silent": 19,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7399,7 +7555,7 @@
     },
     {
      "name": "TASK_COMPLEX_PICKUP_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -7409,7 +7565,7 @@
     },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7441,7 +7597,8 @@
     "faithful": 802,
     "authored": 11,
     "silent": 15,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7471,7 +7628,7 @@
     },
     {
      "name": "TASK_GO_TO_COORD_WHILE_AIMING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7498,6 +7655,7 @@
     "faithful": 27,
     "authored": 1,
     "silent": 0,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -7520,7 +7678,8 @@
     "faithful": 1834,
     "authored": 5,
     "silent": 78,
-    "stops": 7
+    "skipped": 7,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7540,7 +7699,7 @@
     },
     {
      "name": "TASK_TIRED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -7550,7 +7709,7 @@
     },
     {
      "name": "SET_VEHICLE_TO_FADE_IN",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -7560,7 +7719,7 @@
     },
     {
      "name": "TASK_CHAR_SLIDE_TO_COORD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7582,6 +7741,7 @@
     "faithful": 579,
     "authored": 2,
     "silent": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -7619,7 +7779,8 @@
     "faithful": 1322,
     "authored": 12,
     "silent": 6,
-    "stops": 11
+    "skipped": 11,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7634,7 +7795,7 @@
     },
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -7649,12 +7810,12 @@
     },
     {
      "name": "ADD_PEDTYPE_AS_ATTRACTOR_USER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "IS_CHAR_AT_SCRIPTED_ATTRACTOR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -7664,12 +7825,12 @@
     },
     {
      "name": "GET_CAR_COLOURS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_EXTRA_CAR_COLOURS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7696,7 +7857,8 @@
     "faithful": 472,
     "authored": 7,
     "silent": 10,
-    "stops": 10
+    "skipped": 10,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7706,12 +7868,12 @@
     },
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -7731,12 +7893,12 @@
     },
     {
      "name": "SET_CAR_COORDINATES_NO_OFFSET",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "PLANE_FLY_IN_DIRECTION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7751,7 +7913,7 @@
     },
     {
      "name": "SET_CAR_ROLL",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7773,7 +7935,8 @@
     "faithful": 1177,
     "authored": 8,
     "silent": 46,
-    "stops": 8
+    "skipped": 8,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7798,7 +7961,7 @@
     },
     {
      "name": "SET_ALWAYS_DRAW_3D_MARKERS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -7813,17 +7976,17 @@
     },
     {
      "name": "PLANE_STARTS_IN_AIR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "IS_CHAR_IN_AREA_ON_FOOT_3D",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7845,17 +8008,18 @@
     "faithful": 405,
     "authored": 0,
     "silent": 1,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "MAKE_HELI_COME_CRASHING_DOWN",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -7877,6 +8041,7 @@
     "faithful": 216,
     "authored": 2,
     "silent": 13,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -7919,7 +8084,8 @@
     "faithful": 630,
     "authored": 2,
     "silent": 48,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7939,7 +8105,7 @@
     },
     {
      "name": "ADD_BLOOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -7966,7 +8132,8 @@
     "faithful": 1371,
     "authored": 1,
     "silent": 54,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -7996,12 +8163,12 @@
     },
     {
      "name": "LOCK_DOOR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_OBJECT_MASS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8011,7 +8178,7 @@
     },
     {
      "name": "FORCE_DEATH_RESTART",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -8028,6 +8195,7 @@
     "faithful": 1059,
     "authored": 7,
     "silent": 42,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -8075,7 +8243,8 @@
     "faithful": 884,
     "authored": 5,
     "silent": 22,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8105,17 +8274,17 @@
     },
     {
      "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "TASK_USE_ATM",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "IS_CHAR_DUCKING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8137,7 +8306,8 @@
     "faithful": 677,
     "authored": 1,
     "silent": 13,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8157,22 +8327,22 @@
     },
     {
      "name": "SET_CAR_STAY_IN_FAST_LANE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_RANDOM_CAR_OF_TYPE_IN_AREA_NO_SAVE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "ATTACH_CAR_TO_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8182,7 +8352,7 @@
     },
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8204,7 +8374,8 @@
     "faithful": 1038,
     "authored": 2,
     "silent": 51,
-    "stops": 20
+    "skipped": 20,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8224,42 +8395,42 @@
     },
     {
      "name": "REMOVE_SPHERE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "GET_CAR_UPRIGHT_VALUE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "IS_CHAR_IN_AREA_ON_FOOT_3D",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "SELECT_WEAPONS_FOR_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "HELI_ATTACK_PLAYER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "ADD_SPHERE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "GRAB_ENTITY_ON_WINCH",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "ATTACH_WINCH_TO_HELI",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8281,7 +8452,8 @@
     "faithful": 3034,
     "authored": 10,
     "silent": 126,
-    "stops": 15
+    "skipped": 15,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8306,7 +8478,7 @@
     },
     {
      "name": "SET_NIGHT_VISION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -8316,7 +8488,7 @@
     },
     {
      "name": "PLAYER_TAKE_OFF_GOGGLES",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -8326,22 +8498,22 @@
     },
     {
      "name": "SET_CAR_ALWAYS_CREATE_SKIDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "IS_NIGHT_VISION_ACTIVE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "CREATE_SEARCHLIGHT_ON_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -8358,7 +8530,8 @@
     "faithful": 1555,
     "authored": 14,
     "silent": 2,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8378,7 +8551,7 @@
     },
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8398,12 +8571,12 @@
     },
     {
      "name": "FIRE_SINGLE_BULLET",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_RADIO_CHANNEL",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8425,7 +8598,8 @@
     "faithful": 1235,
     "authored": 4,
     "silent": 17,
-    "stops": 26
+    "skipped": 26,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8435,12 +8609,12 @@
     },
     {
      "name": "SET_PLANE_THROTTLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 6
     },
     {
      "name": "SET_AIRCRAFT_CARRIER_SAM_SITE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
@@ -8450,7 +8624,7 @@
     },
     {
      "name": "PLANE_STARTS_IN_AIR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -8460,17 +8634,17 @@
     },
     {
      "name": "PLANE_FOLLOW_ENTITY",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "CAN_CHAR_SEE_DEAD_CHAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "FORCE_INTERIOR_LIGHTING_FOR_PLAYER",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -8480,12 +8654,12 @@
     },
     {
      "name": "PLANE_ATTACK_PLAYER_USING_DOG_FIGHT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_PLANE_UNDERCARRIAGE_POSITION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -8502,6 +8676,7 @@
     "faithful": 469,
     "authored": 5,
     "silent": 20,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -8544,6 +8719,7 @@
     "faithful": 657,
     "authored": 3,
     "silent": 6,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -8576,6 +8752,7 @@
     "faithful": 1191,
     "authored": 3,
     "silent": 104,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -8623,6 +8800,7 @@
     "faithful": 245,
     "authored": 0,
     "silent": 20,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -8660,7 +8838,8 @@
     "faithful": 207,
     "authored": 2,
     "silent": 23,
-    "stops": 1
+    "skipped": 1,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8685,7 +8864,7 @@
     },
     {
      "name": "GIVE_VEHICLE_PAINTJOB",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8712,7 +8891,8 @@
     "faithful": 2579,
     "authored": 10,
     "silent": 43,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8727,7 +8907,7 @@
     },
     {
      "name": "SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -8779,7 +8959,8 @@
     "faithful": 1829,
     "authored": 2,
     "silent": 14,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8799,7 +8980,7 @@
     },
     {
      "name": "SET_INFRARED_VISION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -8809,12 +8990,12 @@
     },
     {
      "name": "HAS_OBJECT_OF_TYPE_BEEN_SMASHED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_PLAYER_MOOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8824,7 +9005,7 @@
     },
     {
      "name": "SET_CHAR_BULLETPROOF_VEST",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8846,7 +9027,8 @@
     "faithful": 955,
     "authored": 32,
     "silent": 3,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8876,17 +9058,17 @@
     },
     {
      "name": "SET_PLAYER_MOOD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "SET_NIGHT_VISION",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "PLAYER_TAKE_OFF_GOGGLES",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -8903,7 +9085,8 @@
     "faithful": 2587,
     "authored": 146,
     "silent": 12,
-    "stops": 7
+    "skipped": 7,
+    "stops": 0
    },
    "gaps": [
     {
@@ -8928,17 +9111,17 @@
     },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "STOP_CREDITS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "GET_DOOR_ANGLE_RATIO",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8948,7 +9131,7 @@
     },
     {
      "name": "START_CREDITS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8958,7 +9141,7 @@
     },
     {
      "name": "ARE_CREDITS_FINISHED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -8980,6 +9163,7 @@
     "faithful": 383,
     "authored": 11,
     "silent": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9022,6 +9206,7 @@
     "faithful": 355,
     "authored": 0,
     "silent": 32,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9059,6 +9244,7 @@
     "faithful": 318,
     "authored": 0,
     "silent": 32,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9096,6 +9282,7 @@
     "faithful": 317,
     "authored": 0,
     "silent": 32,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9133,12 +9320,13 @@
     "faithful": 242,
     "authored": 1,
     "silent": 1,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "IS_TRAILER_ATTACHED_TO_CAB",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
@@ -9148,7 +9336,7 @@
     },
     {
      "name": "ATTACH_TRAILER_TO_CAB",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -9170,7 +9358,8 @@
     "faithful": 790,
     "authored": 12,
     "silent": 20,
-    "stops": 19
+    "skipped": 19,
+    "stops": 0
    },
    "gaps": [
     {
@@ -9185,32 +9374,32 @@
     },
     {
      "name": "WINCH_CAN_PICK_VEHICLE_UP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "IS_VEHICLE_ATTACHED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
      "name": "WINCH_CAN_PICK_OBJECT_UP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "ATTACH_CAR_TO_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "SET_OBJECT_RENDER_SCORCHED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -9220,12 +9409,12 @@
     },
     {
      "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "DETACH_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -9247,12 +9436,13 @@
     "faithful": 1681,
     "authored": 9,
     "silent": 15,
-    "stops": 17
+    "skipped": 17,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "HELI_GOTO_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 10
     },
     {
@@ -9262,7 +9452,7 @@
     },
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 5
     },
     {
@@ -9287,7 +9477,7 @@
     },
     {
      "name": "BOAT_STOP",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -9314,7 +9504,8 @@
     "faithful": 657,
     "authored": 10,
     "silent": 6,
-    "stops": 2
+    "skipped": 2,
+    "stops": 0
    },
    "gaps": [
     {
@@ -9329,7 +9520,7 @@
     },
     {
      "name": "IS_PLAYER_PERFORMING_STOPPIE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -9366,6 +9557,7 @@
     "faithful": 383,
     "authored": 7,
     "silent": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9403,6 +9595,7 @@
     "faithful": 446,
     "authored": 0,
     "silent": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9425,6 +9618,7 @@
     "faithful": 463,
     "authored": 3,
     "silent": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9452,6 +9646,7 @@
     "faithful": 696,
     "authored": 6,
     "silent": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9484,7 +9679,8 @@
     "faithful": 293,
     "authored": 14,
     "silent": 1,
-    "stops": 4
+    "skipped": 4,
+    "stops": 0
    },
    "gaps": [
     {
@@ -9514,17 +9710,17 @@
     },
     {
      "name": "GET_CLOSEST_STEALABLE_OBJECT",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "IS_PROCEDURAL_INTERIOR_ACTIVE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "GET_SOUND_LEVEL_AT_COORDS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -9546,6 +9742,7 @@
     "faithful": 149,
     "authored": 0,
     "silent": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9568,6 +9765,7 @@
     "faithful": 1303,
     "authored": 0,
     "silent": 5,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9600,7 +9798,8 @@
     "faithful": 645,
     "authored": 5,
     "silent": 5,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -9615,7 +9814,7 @@
     },
     {
      "name": "FORCE_ALL_VEHICLE_LIGHTS_OFF",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
@@ -9630,7 +9829,7 @@
     },
     {
      "name": "DONT_SUPPRESS_ANY_CAR_MODELS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -9657,7 +9856,8 @@
     "faithful": 357,
     "authored": 2,
     "silent": 20,
-    "stops": 5
+    "skipped": 5,
+    "stops": 0
    },
    "gaps": [
     {
@@ -9677,7 +9877,7 @@
     },
     {
      "name": "REMOVE_SPHERE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 3
     },
     {
@@ -9687,12 +9887,12 @@
     },
     {
      "name": "ADD_SPHERE",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "ADD_BLIP_FOR_COORD_OLD",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -9719,32 +9919,33 @@
     "faithful": 506,
     "authored": 0,
     "silent": 1,
-    "stops": 8
+    "skipped": 8,
+    "stops": 0
    },
    "gaps": [
     {
      "name": "SET_SWIM_SPEED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 4
     },
     {
      "name": "IMPROVE_CAR_BY_CHEATING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "HAS_CHAR_BEEN_DAMAGED_BY_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "TASK_TIRED",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "TASK_FOLLOW_PATH_NODES_TO_COORD_WITH_RADIUS",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
@@ -9766,6 +9967,7 @@
     "faithful": 420,
     "authored": 9,
     "silent": 11,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -9818,7 +10020,8 @@
     "faithful": 409,
     "authored": 0,
     "silent": 4,
-    "stops": 4
+    "skipped": 4,
+    "stops": 0
    },
    "gaps": [
     {
@@ -9828,17 +10031,17 @@
     },
     {
      "name": "REGISTER_FASTEST_TIME",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "IMPROVE_CAR_BY_CHEATING",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     },
     {
      "name": "HAS_CHAR_BEEN_DAMAGED_BY_CAR",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -9855,7 +10058,8 @@
     "faithful": 76,
     "authored": 0,
     "silent": 3,
-    "stops": 3
+    "skipped": 3,
+    "stops": 0
    },
    "gaps": [
     {
@@ -9865,12 +10069,12 @@
     },
     {
      "name": "REGISTER_FASTEST_TIME",
-     "status": "stops",
+     "status": "skipped",
      "sites": 2
     },
     {
      "name": "DRAW_SHADOW",
-     "status": "stops",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -9887,6 +10091,7 @@
     "faithful": 272,
     "authored": 15,
     "silent": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -10105,9 +10310,9 @@
   {
    "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
    "opcode": "0815",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setObjectCoordinatesAndVelocity (the thread gives up)"
+    "adapter lacks setObjectCoordinatesAndVelocity (skipped: outputs read as none)"
    ],
    "handlerLine": 2005,
    "ref": {
@@ -10122,9 +10327,9 @@
   {
    "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
    "opcode": "0798",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks grabEntityOnRopeForObject (the thread gives up)"
+    "adapter lacks grabEntityOnRopeForObject (skipped: outputs read as none)"
    ],
    "handlerLine": 1769,
    "ref": {
@@ -10139,9 +10344,9 @@
   {
    "name": "GET_BEAT_PROXIMITY",
    "opcode": "07b1",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks beatProximity (the thread gives up)"
+    "adapter lacks beatProximity (skipped: outputs read as none)"
    ],
    "handlerLine": 2158,
    "ref": {
@@ -10156,9 +10361,9 @@
   {
    "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
    "opcode": "0797",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setRopeHeightForObject (the thread gives up)"
+    "adapter lacks setRopeHeightForObject (skipped: outputs read as none)"
    ],
    "handlerLine": 1913,
    "ref": {
@@ -10173,9 +10378,9 @@
   {
    "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
    "opcode": "0799",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks releaseEntityFromRopeForObject (the thread gives up)"
+    "adapter lacks releaseEntityFromRopeForObject (skipped: outputs read as none)"
    ],
    "handlerLine": 2089,
    "ref": {
@@ -10207,9 +10412,9 @@
   {
    "name": "GET_CAR_MODEL_VALUE",
    "opcode": "09e1",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getCarModelValue (the thread gives up)"
+    "adapter lacks getCarModelValue (skipped: outputs read as none)"
    ],
    "handlerLine": 2260,
    "ref": {
@@ -10224,9 +10429,9 @@
   {
    "name": "GET_CURRENT_CAR_MOD",
    "opcode": "096d",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getCurrentCarMod (the thread gives up)"
+    "adapter lacks getCurrentCarMod (skipped: outputs read as none)"
    ],
    "handlerLine": 2447,
    "ref": {
@@ -10241,9 +10446,9 @@
   {
    "name": "GET_RANDOM_CAR_IN_SPHERE_NO_SAVE",
    "opcode": "073e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getRandomCarInSphereNoSave (the thread gives up)"
+    "adapter lacks getRandomCarInSphereNoSave (skipped: outputs read as none)"
    ],
    "handlerLine": 2354,
    "ref": {
@@ -10275,9 +10480,9 @@
   {
    "name": "ACTIVATE_SAVE_MENU",
    "opcode": "03d8",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks activateSaveMenu (the thread gives up)"
+    "adapter lacks activateSaveMenu (skipped: outputs read as none)"
    ],
    "handlerLine": 2437,
    "ref": {
@@ -10292,9 +10497,9 @@
   {
    "name": "HAS_SAVE_GAME_FINISHED",
    "opcode": "03d9",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks hasSaveGameFinished (the thread gives up)"
+    "adapter lacks hasSaveGameFinished (skipped: outputs read as none)"
    ],
    "handlerLine": 2438,
    "ref": {
@@ -10309,9 +10514,9 @@
   {
    "name": "GET_RID_OF_PLAYER_PROSTITUTE",
    "opcode": "0a43",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getRidOfPlayerProstitute (the thread gives up)"
+    "adapter lacks getRidOfPlayerProstitute (skipped: outputs read as none)"
    ],
    "handlerLine": 1149,
    "ref": {
@@ -10329,9 +10534,9 @@
   {
    "name": "GET_CHAR_VELOCITY",
    "opcode": "083d",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks pedVelocity (the thread gives up)"
+    "adapter lacks pedVelocity (skipped: outputs read as none)"
    ],
    "handlerLine": 1117,
    "ref": {
@@ -10368,9 +10573,9 @@
   {
    "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
    "opcode": "0819",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getCharHeightAboveGround (the thread gives up)"
+    "adapter lacks getCharHeightAboveGround (skipped: outputs read as none)"
    ],
    "handlerLine": 2293,
    "ref": {
@@ -10524,9 +10729,9 @@
   {
    "name": "IS_CHAR_IN_AREA_ON_FOOT_3D",
    "opcode": "01a6",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isCharInAreaOnFoot3d (the thread gives up)"
+    "adapter lacks isCharInAreaOnFoot3d (skipped: outputs read as none)"
    ],
    "handlerLine": 2339,
    "ref": {
@@ -10617,9 +10822,9 @@
   {
    "name": "GET_OBJECT_ROTATION_VELOCITY",
    "opcode": "05a6",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getObjectRotationVelocity (the thread gives up)"
+    "adapter lacks getObjectRotationVelocity (skipped: outputs read as none)"
    ],
    "handlerLine": 2366,
    "ref": {
@@ -10706,9 +10911,9 @@
   {
    "name": "SET_HELP_MESSAGE_BOX_SIZE",
    "opcode": "0989",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setHelpMessageBoxSize (the thread gives up)"
+    "adapter lacks setHelpMessageBoxSize (skipped: outputs read as none)"
    ],
    "handlerLine": 2170,
    "ref": {
@@ -10723,9 +10928,9 @@
   {
    "name": "IS_PLAYER_IN_POSITION_FOR_CONVERSATION",
    "opcode": "089b",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isPlayerInPositionForConversation (the thread gives up)"
+    "adapter lacks isPlayerInPositionForConversation (skipped: outputs read as none)"
    ],
    "handlerLine": 1109,
    "ref": {
@@ -10907,9 +11112,9 @@
   {
    "name": "ATTACH_CAMERA_TO_VEHICLE",
    "opcode": "0679",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachCameraToVehicle (the thread gives up)"
+    "adapter lacks attachCameraToVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 2047,
    "ref": {
@@ -10946,9 +11151,9 @@
   {
    "name": "GET_RADIO_CHANNEL",
    "opcode": "051e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getRadioChannel (the thread gives up)"
+    "adapter lacks getRadioChannel (skipped: outputs read as none)"
    ],
    "handlerLine": 2401,
    "ref": {
@@ -10963,9 +11168,9 @@
   {
    "name": "GET_CURRENT_POPULATION_ZONE_TYPE",
    "opcode": "08d3",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks currentPopulationZoneType (the thread gives up)"
+    "adapter lacks currentPopulationZoneType (skipped: outputs read as none)"
    ],
    "handlerLine": 2846,
    "ref": {
@@ -10983,9 +11188,9 @@
   {
    "name": "LOCK_DOOR",
    "opcode": "0905",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks lockDoor (the thread gives up)"
+    "adapter lacks lockDoor (skipped: outputs read as none)"
    ],
    "handlerLine": 2524,
    "ref": {
@@ -11130,9 +11335,9 @@
   {
    "name": "SET_PLANE_UNDERCARRIAGE_UP",
    "opcode": "08e6",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setPlaneUndercarriageUp (the thread gives up)"
+    "adapter lacks setPlaneUndercarriageUp (skipped: outputs read as none)"
    ],
    "handlerLine": 1893,
    "ref": {
@@ -11179,9 +11384,9 @@
   {
    "name": "SKIP_TO_NEXT_ALLOWED_STATION",
    "opcode": "0a07",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks skipTrainToNextStation (the thread gives up)"
+    "adapter lacks skipTrainToNextStation (skipped: outputs read as none)"
    ],
    "handlerLine": 671,
    "ref": {
@@ -11251,9 +11456,9 @@
   {
    "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
    "opcode": "0985",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCharUsesCollisionClosestObjectOfType (the thread gives up)"
+    "adapter lacks setCharUsesCollisionClosestObjectOfType (skipped: outputs read as none)"
    ],
    "handlerLine": 2464,
    "ref": {
@@ -11340,9 +11545,9 @@
   {
    "name": "GET_CAR_COLOURS",
    "opcode": "03f3",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks vehicleColours (the thread gives up)"
+    "adapter lacks vehicleColours (skipped: outputs read as none)"
    ],
    "handlerLine": 2197,
    "ref": {
@@ -11357,9 +11562,9 @@
   {
    "name": "GIVE_VEHICLE_PAINTJOB",
    "opcode": "06ed",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks giveVehiclePaintjob (the thread gives up)"
+    "adapter lacks giveVehiclePaintjob (skipped: outputs read as none)"
    ],
    "handlerLine": 2280,
    "ref": {
@@ -11374,9 +11579,9 @@
   {
    "name": "REQUEST_VEHICLE_MOD",
    "opcode": "06e9",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks requestVehicleMod (the thread gives up)"
+    "adapter lacks requestVehicleMod (skipped: outputs read as none)"
    ],
    "handlerLine": 2275,
    "ref": {
@@ -11391,9 +11596,9 @@
   {
    "name": "ADD_VEHICLE_MOD",
    "opcode": "06e7",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addVehicleMod (the thread gives up)"
+    "adapter lacks addVehicleMod (skipped: outputs read as none)"
    ],
    "handlerLine": 2276,
    "ref": {
@@ -11424,9 +11629,9 @@
   {
    "name": "MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED",
    "opcode": "06eb",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks markVehicleModAsNoLongerNeeded (the thread gives up)"
+    "adapter lacks markVehicleModAsNoLongerNeeded (skipped: outputs read as none)"
    ],
    "handlerLine": 2322,
    "ref": {
@@ -11457,9 +11662,9 @@
   {
    "name": "CHANGE_CAR_COLOUR_FROM_MENU",
    "opcode": "0a22",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks vehicleColours (the thread gives up)"
+    "adapter lacks vehicleColours (skipped: outputs read as none)"
    ],
    "handlerLine": 1751,
    "ref": {
@@ -11474,9 +11679,9 @@
   {
    "name": "HAS_VEHICLE_MOD_LOADED",
    "opcode": "06ea",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks hasVehicleModLoaded (the thread gives up)"
+    "adapter lacks hasVehicleModLoaded (skipped: outputs read as none)"
    ],
    "handlerLine": 2378,
    "ref": {
@@ -11686,9 +11891,9 @@
   {
    "name": "LOCATE_OBJECT_2D",
    "opcode": "04e5",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks locateObject2d (the thread gives up)"
+    "adapter lacks locateObject2d (skipped: outputs read as none)"
    ],
    "handlerLine": 2284,
    "ref": {
@@ -11703,9 +11908,9 @@
   {
    "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
    "opcode": "0796",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getRopeHeightForObject (the thread gives up)"
+    "adapter lacks getRopeHeightForObject (skipped: outputs read as none)"
    ],
    "handlerLine": 2505,
    "ref": {
@@ -11736,9 +11941,9 @@
   {
    "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
    "opcode": "080e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getCharHighestPriorityEvent (the thread gives up)"
+    "adapter lacks getCharHighestPriorityEvent (skipped: outputs read as none)"
    ],
    "handlerLine": 2283,
    "ref": {
@@ -11772,9 +11977,9 @@
   {
    "name": "TASK_GO_TO_COORD_WHILE_AIMING",
    "opcode": "06c2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskGoToCoordWhileAiming (the thread gives up)"
+    "adapter lacks taskGoToCoordWhileAiming (skipped: outputs read as none)"
    ],
    "handlerLine": 2390,
    "ref": {
@@ -11789,9 +11994,9 @@
   {
    "name": "TASK_COWER",
    "opcode": "05c3",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskCower (the thread gives up)"
+    "adapter lacks taskCower (skipped: outputs read as none)"
    ],
    "handlerLine": 2487,
    "ref": {
@@ -11825,9 +12030,9 @@
   {
    "name": "DETACH_CAR",
    "opcode": "0684",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks detachVehicle (the thread gives up)"
+    "adapter lacks detachVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 1867,
    "ref": {
@@ -11842,9 +12047,9 @@
   {
    "name": "IS_VEHICLE_ATTACHED",
    "opcode": "0686",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isVehicleAttached (the thread gives up)"
+    "adapter lacks isVehicleAttached (skipped: outputs read as none)"
    ],
    "handlerLine": 2241,
    "ref": {
@@ -11859,9 +12064,9 @@
   {
    "name": "GET_RANDOM_CAR_OF_TYPE_IN_AREA_NO_SAVE",
    "opcode": "053e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getRandomCarOfTypeInAreaNoSave (the thread gives up)"
+    "adapter lacks getRandomCarOfTypeInAreaNoSave (skipped: outputs read as none)"
    ],
    "handlerLine": 2400,
    "ref": {
@@ -11876,9 +12081,9 @@
   {
    "name": "GET_CAR_BLOCKING_CAR",
    "opcode": "0987",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getCarBlockingCar (the thread gives up)"
+    "adapter lacks getCarBlockingCar (skipped: outputs read as none)"
    ],
    "handlerLine": 2484,
    "ref": {
@@ -11893,9 +12098,9 @@
   {
    "name": "GET_PARKING_NODE_IN_AREA",
    "opcode": "0810",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getParkingNodeInArea (the thread gives up)"
+    "adapter lacks getParkingNodeInArea (skipped: outputs read as none)"
    ],
    "handlerLine": 2485,
    "ref": {
@@ -11910,9 +12115,9 @@
   {
    "name": "IS_CHAR_STUCK_UNDER_CAR",
    "opcode": "095d",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isCharStuckUnderCar (the thread gives up)"
+    "adapter lacks isCharStuckUnderCar (skipped: outputs read as none)"
    ],
    "handlerLine": 2495,
    "ref": {
@@ -11946,9 +12151,9 @@
   {
    "name": "DRAW_LIGHT_WITH_RANGE",
    "opcode": "09e5",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks drawLightWithRange (the thread gives up)"
+    "adapter lacks drawLightWithRange (skipped: outputs read as none)"
    ],
    "handlerLine": 2380,
    "ref": {
@@ -12117,9 +12322,9 @@
   {
    "name": "GET_STRING_WIDTH",
    "opcode": "09fd",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getStringWidth (the thread gives up)"
+    "adapter lacks getStringWidth (skipped: outputs read as none)"
    ],
    "handlerLine": 2304,
    "ref": {
@@ -12134,9 +12339,9 @@
   {
    "name": "SET_OBJECT_ROTATION_VELOCITY",
    "opcode": "05a2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setObjectRotationVelocity (the thread gives up)"
+    "adapter lacks setObjectRotationVelocity (skipped: outputs read as none)"
    ],
    "handlerLine": 2263,
    "ref": {
@@ -12151,9 +12356,9 @@
   {
    "name": "SET_SCRIPT_COOP_GAME",
    "opcode": "0a3f",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setScriptCoopGame (the thread gives up)"
+    "adapter lacks setScriptCoopGame (skipped: outputs read as none)"
    ],
    "handlerLine": 2305,
    "ref": {
@@ -12168,9 +12373,9 @@
   {
    "name": "SET_POOL_TABLE_COORDS",
    "opcode": "0830",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setPoolTableCoords (the thread gives up)"
+    "adapter lacks setPoolTableCoords (skipped: outputs read as none)"
    ],
    "handlerLine": 2364,
    "ref": {
@@ -12185,9 +12390,9 @@
   {
    "name": "SET_OBJECT_DRAW_LAST",
    "opcode": "0418",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setObjectDrawLast (the thread gives up)"
+    "adapter lacks setObjectDrawLast (skipped: outputs read as none)"
    ],
    "handlerLine": 2365,
    "ref": {
@@ -12202,9 +12407,9 @@
   {
    "name": "ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY",
    "opcode": "05a7",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addVelocityRelativeToObjectVelocity (the thread gives up)"
+    "adapter lacks addVelocityRelativeToObjectVelocity (skipped: outputs read as none)"
    ],
    "handlerLine": 2367,
    "ref": {
@@ -12219,9 +12424,9 @@
   {
    "name": "GET_STRING_WIDTH_WITH_NUMBER",
    "opcode": "0a08",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getStringWidthWithNumber (the thread gives up)"
+    "adapter lacks getStringWidthWithNumber (skipped: outputs read as none)"
    ],
    "handlerLine": 2454,
    "ref": {
@@ -12253,9 +12458,9 @@
   {
    "name": "REMOVE_RC_BUGGY",
    "opcode": "04db",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks removeRCBuggy (the thread gives up)"
+    "adapter lacks removeRCBuggy (skipped: outputs read as none)"
    ],
    "handlerLine": 674,
    "ref": {
@@ -12273,9 +12478,9 @@
   {
    "name": "SET_ENABLE_RC_DETONATE_ON_CONTACT",
    "opcode": "04d6",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setEnableRcDetonateOnContact (the thread gives up)"
+    "adapter lacks setEnableRcDetonateOnContact (skipped: outputs read as none)"
    ],
    "handlerLine": 2308,
    "ref": {
@@ -12290,9 +12495,9 @@
   {
    "name": "SET_ENABLE_RC_DETONATE",
    "opcode": "048a",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setEnableRcDetonate (the thread gives up)"
+    "adapter lacks setEnableRcDetonate (skipped: outputs read as none)"
    ],
    "handlerLine": 2309,
    "ref": {
@@ -12307,9 +12512,9 @@
   {
    "name": "GIVE_REMOTE_CONTROLLED_MODEL_TO_PLAYER",
    "opcode": "046e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks giveRemoteControlledModelToPlayer (the thread gives up)"
+    "adapter lacks giveRemoteControlledModelToPlayer (skipped: outputs read as none)"
    ],
    "handlerLine": 2369,
    "ref": {
@@ -12327,9 +12532,9 @@
   {
    "name": "GET_REMOTE_CONTROLLED_CAR",
    "opcode": "0484",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getRemoteControlledCar (the thread gives up)"
+    "adapter lacks getRemoteControlledCar (skipped: outputs read as none)"
    ],
    "handlerLine": 2370,
    "ref": {
@@ -12344,9 +12549,9 @@
   {
    "name": "SET_FORCE_RANDOM_CAR_MODEL",
    "opcode": "09bf",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setForceRandomCarModel (the thread gives up)"
+    "adapter lacks setForceRandomCarModel (skipped: outputs read as none)"
    ],
    "handlerLine": 2456,
    "ref": {
@@ -12361,9 +12566,9 @@
   {
    "name": "IS_PLAYER_IN_REMOTE_MODE",
    "opcode": "0241",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isPlayerInRemoteMode (the thread gives up)"
+    "adapter lacks isPlayerInRemoteMode (skipped: outputs read as none)"
    ],
    "handlerLine": 2457,
    "ref": {
@@ -12381,9 +12586,9 @@
   {
    "name": "CREATE_EMERGENCY_SERVICES_CAR",
    "opcode": "085a",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks createEmergencyServicesVehicle (the thread gives up)"
+    "adapter lacks createEmergencyServicesVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 2183,
    "ref": {
@@ -12432,9 +12637,9 @@
   {
    "name": "SET_OBJECT_AS_STEALABLE",
    "opcode": "08e9",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setObjectAsStealable (the thread gives up)"
+    "adapter lacks setObjectAsStealable (skipped: outputs read as none)"
    ],
    "handlerLine": 2314,
    "ref": {
@@ -12449,9 +12654,9 @@
   {
    "name": "GET_SOUND_LEVEL_AT_COORDS",
    "opcode": "0855",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getSoundLevelAtCoords (the thread gives up)"
+    "adapter lacks getSoundLevelAtCoords (skipped: outputs read as none)"
    ],
    "handlerLine": 2372,
    "ref": {
@@ -12483,9 +12688,9 @@
   {
    "name": "SET_PLAYER_DISPLAY_VITAL_STATS_BUTTON",
    "opcode": "0960",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setPlayerDisplayVitalStatsButton (the thread gives up)"
+    "adapter lacks setPlayerDisplayVitalStatsButton (skipped: outputs read as none)"
    ],
    "handlerLine": 2315,
    "ref": {
@@ -12517,9 +12722,9 @@
   {
    "name": "ADD_BLOOD",
    "opcode": "09b8",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addBlood (the thread gives up)"
+    "adapter lacks addBlood (skipped: outputs read as none)"
    ],
    "handlerLine": 2272,
    "ref": {
@@ -12534,9 +12739,9 @@
   {
    "name": "VEHICLE_DOES_PROVIDE_COVER",
    "opcode": "0957",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks vehicleDoesProvideCover (the thread gives up)"
+    "adapter lacks vehicleDoesProvideCover (skipped: outputs read as none)"
    ],
    "handlerLine": 2374,
    "ref": {
@@ -12551,10 +12756,10 @@
   {
    "name": "DRAW_SPHERE",
    "opcode": "03a1",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
     "dispatch unreversed; follows the routines it reaches",
-    "adapter lacks drawSphere (the thread gives up)"
+    "adapter lacks drawSphere (skipped: outputs read as none)"
    ],
    "handlerLine": 1947,
    "ref": {
@@ -12569,9 +12774,9 @@
   {
    "name": "SET_CAR_ALWAYS_CREATE_SKIDS",
    "opcode": "07ee",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setVehicleAlwaysCreateSkids (the thread gives up)"
+    "adapter lacks setVehicleAlwaysCreateSkids (skipped: outputs read as none)"
    ],
    "handlerLine": 1133,
    "ref": {
@@ -12589,9 +12794,9 @@
   {
    "name": "SET_GROUP_SEQUENCE",
    "opcode": "087d",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setGroupSequence (the thread gives up)"
+    "adapter lacks setGroupSequence (skipped: outputs read as none)"
    ],
    "handlerLine": 2472,
    "ref": {
@@ -12606,9 +12811,9 @@
   {
    "name": "IGNORE_HEIGHT_DIFFERENCE_FOLLOWING_NODES",
    "opcode": "09f4",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setPedIgnoreHeightDifferenceFollowingNodes (the thread gives up)"
+    "adapter lacks setPedIgnoreHeightDifferenceFollowingNodes (skipped: outputs read as none)"
    ],
    "handlerLine": 1130,
    "ref": {
@@ -12626,9 +12831,9 @@
   {
    "name": "SET_CAMERA_IN_FRONT_OF_CHAR",
    "opcode": "0944",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCameraInFrontOfPed (the thread gives up)"
+    "adapter lacks setCameraInFrontOfPed (skipped: outputs read as none)"
    ],
    "handlerLine": 1162,
    "ref": {
@@ -12646,9 +12851,9 @@
   {
    "name": "ADD_SPARKS",
    "opcode": "08eb",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addSparks (the thread gives up)"
+    "adapter lacks addSparks (skipped: outputs read as none)"
    ],
    "handlerLine": 1811,
    "ref": {
@@ -12663,9 +12868,9 @@
   {
    "name": "ATTACH_CAR_TO_CAR",
    "opcode": "0683",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachVehicleToVehicle (the thread gives up)"
+    "adapter lacks attachVehicleToVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 1876,
    "ref": {
@@ -12680,9 +12885,9 @@
   {
    "name": "HAS_OBJECT_OF_TYPE_BEEN_SMASHED",
    "opcode": "07f0",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks hasObjectOfTypeBeenSmashed (the thread gives up)"
+    "adapter lacks hasObjectOfTypeBeenSmashed (skipped: outputs read as none)"
    ],
    "handlerLine": 2321,
    "ref": {
@@ -12697,9 +12902,9 @@
   {
    "name": "CONTROL_CAR_DOOR",
    "opcode": "095e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks controlVehicleDoor (the thread gives up)"
+    "adapter lacks controlVehicleDoor (skipped: outputs read as none)"
    ],
    "handlerLine": 1871,
    "ref": {
@@ -12714,9 +12919,9 @@
   {
    "name": "SET_CAMERA_POSITION_UNFIXED",
    "opcode": "0a25",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setActiveCameraAngles (the thread gives up)"
+    "adapter lacks setActiveCameraAngles (skipped: outputs read as none)"
    ],
    "handlerLine": 1165,
    "ref": {
@@ -12734,9 +12939,9 @@
   {
    "name": "IS_CHAR_DUCKING",
    "opcode": "0597",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks pedIsDucking (the thread gives up)"
+    "adapter lacks pedIsDucking (skipped: outputs read as none)"
    ],
    "handlerLine": 1040,
    "ref": {
@@ -12771,9 +12976,9 @@
   {
    "name": "IMPROVE_CAR_BY_CHEATING",
    "opcode": "0a21",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks improveVehicleByCheating (the thread gives up)"
+    "adapter lacks improveVehicleByCheating (skipped: outputs read as none)"
    ],
    "handlerLine": 2127,
    "ref": {
@@ -12788,9 +12993,9 @@
   {
    "name": "SET_CAR_FOLLOW_CAR",
    "opcode": "07f8",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setVehicleFollowVehicle (the thread gives up)"
+    "adapter lacks setVehicleFollowVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 2192,
    "ref": {
@@ -12805,9 +13010,9 @@
   {
    "name": "TASK_CHAR_ARREST_CHAR",
    "opcode": "06e4",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskCharArrestChar (the thread gives up)"
+    "adapter lacks taskCharArrestChar (skipped: outputs read as none)"
    ],
    "handlerLine": 2379,
    "ref": {
@@ -12825,9 +13030,9 @@
   {
    "name": "HELI_GOTO_COORDS",
    "opcode": "04a2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks heliGotoCoords (the thread gives up)"
+    "adapter lacks heliGotoCoords (skipped: outputs read as none)"
    ],
    "handlerLine": 1542,
    "ref": {
@@ -12842,9 +13047,9 @@
   {
    "name": "PLANE_GOTO_COORDS",
    "opcode": "04d2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks planeGotoCoords (the thread gives up)"
+    "adapter lacks planeGotoCoords (skipped: outputs read as none)"
    ],
    "handlerLine": 1794,
    "ref": {
@@ -12859,9 +13064,9 @@
   {
    "name": "REGISTER_FASTEST_TIME",
    "opcode": "042e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks registerFastestTime (the thread gives up)"
+    "adapter lacks registerFastestTime (skipped: outputs read as none)"
    ],
    "handlerLine": 1951,
    "ref": {
@@ -12876,9 +13081,9 @@
   {
    "name": "SET_BOAT_CRUISE_SPEED",
    "opcode": "02db",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setBoatCruiseSpeed (the thread gives up)"
+    "adapter lacks setBoatCruiseSpeed (skipped: outputs read as none)"
    ],
    "handlerLine": 2128,
    "ref": {
@@ -12893,9 +13098,9 @@
   {
    "name": "REGISTER_BEST_POSITION",
    "opcode": "0582",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks registerBestPosition (the thread gives up)"
+    "adapter lacks registerBestPosition (skipped: outputs read as none)"
    ],
    "handlerLine": 2474,
    "ref": {
@@ -12913,9 +13118,9 @@
   {
    "name": "DOES_SEARCHLIGHT_EXIST",
    "opcode": "06b3",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks searchlightExists (the thread gives up)"
+    "adapter lacks searchlightExists (skipped: outputs read as none)"
    ],
    "handlerLine": 1723,
    "ref": {
@@ -12930,9 +13135,9 @@
   {
    "name": "DELETE_SEARCHLIGHT",
    "opcode": "06b2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks deleteSearchlight (the thread gives up)"
+    "adapter lacks deleteSearchlight (skipped: outputs read as none)"
    ],
    "handlerLine": 1722,
    "ref": {
@@ -12947,9 +13152,9 @@
   {
    "name": "CREATE_SWAT_ROPE",
    "opcode": "0503",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks createSwatRope (the thread gives up)"
+    "adapter lacks createSwatRope (skipped: outputs read as none)"
    ],
    "handlerLine": 1247,
    "ref": {
@@ -12967,9 +13172,9 @@
   {
    "name": "POINT_SEARCHLIGHT_AT_CHAR",
    "opcode": "06b6",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks pointSearchlightAtPed (the thread gives up)"
+    "adapter lacks pointSearchlightAtPed (skipped: outputs read as none)"
    ],
    "handlerLine": 1931,
    "ref": {
@@ -12984,9 +13189,9 @@
   {
    "name": "CREATE_SEARCHLIGHT_ON_VEHICLE",
    "opcode": "06c1",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks createSearchlightOnVehicle (the thread gives up)"
+    "adapter lacks createSearchlightOnVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 2040,
    "ref": {
@@ -13001,9 +13206,9 @@
   {
    "name": "MOVE_SEARCHLIGHT_BETWEEN_COORDS",
    "opcode": "06b4",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks moveSearchlightBetweenCoords (the thread gives up)"
+    "adapter lacks moveSearchlightBetweenCoords (skipped: outputs read as none)"
    ],
    "handlerLine": 2044,
    "ref": {
@@ -13018,9 +13223,9 @@
   {
    "name": "HELI_FOLLOW_ENTITY",
    "opcode": "0726",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks heliFollowEntity (the thread gives up)"
+    "adapter lacks heliFollowEntity (skipped: outputs read as none)"
    ],
    "handlerLine": 2133,
    "ref": {
@@ -13035,9 +13240,9 @@
   {
    "name": "SET_SEARCHLIGHT_CLIP_IF_COLLIDING",
    "opcode": "0941",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setSearchlightClipIfColliding (the thread gives up)"
+    "adapter lacks setSearchlightClipIfColliding (skipped: outputs read as none)"
    ],
    "handlerLine": 2136,
    "ref": {
@@ -13052,9 +13257,9 @@
   {
    "name": "FIRE_SINGLE_BULLET",
    "opcode": "06bc",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks fireSingleBullet (the thread gives up)"
+    "adapter lacks fireSingleBullet (skipped: outputs read as none)"
    ],
    "handlerLine": 2279,
    "ref": {
@@ -13069,9 +13274,9 @@
   {
    "name": "SET_HELI_REACHED_TARGET_DISTANCE",
    "opcode": "0853",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setHeliReachedTargetDistance (the thread gives up)"
+    "adapter lacks setHeliReachedTargetDistance (skipped: outputs read as none)"
    ],
    "handlerLine": 2324,
    "ref": {
@@ -13086,9 +13291,9 @@
   {
    "name": "DO_CAMERA_BUMP",
    "opcode": "0834",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks doCameraBump (the thread gives up)"
+    "adapter lacks doCameraBump (skipped: outputs read as none)"
    ],
    "handlerLine": 1166,
    "ref": {
@@ -13106,9 +13311,9 @@
   {
    "name": "ADD_BIG_GUN_FLASH",
    "opcode": "058a",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addBigGunFlash (the thread gives up)"
+    "adapter lacks addBigGunFlash (skipped: outputs read as none)"
    ],
    "handlerLine": 2381,
    "ref": {
@@ -13126,9 +13331,9 @@
   {
    "name": "TASK_PLAY_ANIM_WITH_FLAGS",
    "opcode": "088a",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskPlayAnimWithFlags (the thread gives up)"
+    "adapter lacks taskPlayAnimWithFlags (skipped: outputs read as none)"
    ],
    "handlerLine": 2475,
    "ref": {
@@ -13143,9 +13348,9 @@
   {
    "name": "IS_ATTACHED_PLAYER_HEADING_ACHIEVED",
    "opcode": "0861",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isAttachedPlayerHeadingAchieved (the thread gives up)"
+    "adapter lacks isAttachedPlayerHeadingAchieved (skipped: outputs read as none)"
    ],
    "handlerLine": 2476,
    "ref": {
@@ -13160,9 +13365,9 @@
   {
    "name": "SET_HEADING_LIMIT_FOR_ATTACHED_CHAR",
    "opcode": "0887",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setHeadingLimitForAttachedPed (the thread gives up)"
+    "adapter lacks setHeadingLimitForAttachedPed (skipped: outputs read as none)"
    ],
    "handlerLine": 1223,
    "ref": {
@@ -13180,9 +13385,9 @@
   {
    "name": "ADD_BLIP_FOR_DEAD_CHAR",
    "opcode": "0888",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addBlipForDeadChar (the thread gives up)"
+    "adapter lacks addBlipForDeadChar (skipped: outputs read as none)"
    ],
    "handlerLine": 2479,
    "ref": {
@@ -13197,9 +13402,9 @@
   {
    "name": "IS_TRAILER_ATTACHED_TO_CAB",
    "opcode": "07ab",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks trailerIsAttachedToCab (the thread gives up)"
+    "adapter lacks trailerIsAttachedToCab (skipped: outputs read as none)"
    ],
    "handlerLine": 2002,
    "ref": {
@@ -13214,9 +13419,9 @@
   {
    "name": "ADD_BLIP_FOR_CAR_OLD",
    "opcode": "0161",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addBlipForCarOld (the thread gives up)"
+    "adapter lacks addBlipForCarOld (skipped: outputs read as none)"
    ],
    "handlerLine": 2382,
    "ref": {
@@ -13231,9 +13436,9 @@
   {
    "name": "SET_DRUNK_INPUT_DELAY",
    "opcode": "03fd",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setDrunkInputDelay (the thread gives up)"
+    "adapter lacks setDrunkInputDelay (skipped: outputs read as none)"
    ],
    "handlerLine": 2281,
    "ref": {
@@ -13248,9 +13453,9 @@
   {
    "name": "SET_CAR_AS_MISSION_CAR",
    "opcode": "0763",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCarAsMissionCar (the thread gives up)"
+    "adapter lacks setCarAsMissionCar (skipped: outputs read as none)"
    ],
    "handlerLine": 2325,
    "ref": {
@@ -13265,9 +13470,9 @@
   {
    "name": "SET_CAR_LIGHTS_ON",
    "opcode": "0919",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCarLightsOn (the thread gives up)"
+    "adapter lacks setCarLightsOn (skipped: outputs read as none)"
    ],
    "handlerLine": 2326,
    "ref": {
@@ -13282,9 +13487,9 @@
   {
    "name": "HELI_LAND_AT_COORDS",
    "opcode": "0743",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks heliLandAtCoords (the thread gives up)"
+    "adapter lacks heliLandAtCoords (skipped: outputs read as none)"
    ],
    "handlerLine": 2480,
    "ref": {
@@ -13299,9 +13504,9 @@
   {
    "name": "IS_PLAYER_PRESSING_HORN",
    "opcode": "0122",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isPlayerPressingHorn (the thread gives up)"
+    "adapter lacks isPlayerPressingHorn (skipped: outputs read as none)"
    ],
    "handlerLine": 2481,
    "ref": {
@@ -13319,9 +13524,9 @@
   {
    "name": "CONTROL_MOVABLE_VEHICLE_PART",
    "opcode": "08a4",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks controlMovableVehiclePart (the thread gives up)"
+    "adapter lacks controlMovableVehiclePart (skipped: outputs read as none)"
    ],
    "handlerLine": 2148,
    "ref": {
@@ -13336,9 +13541,9 @@
   {
    "name": "SWAP_NEAREST_BUILDING_MODEL",
    "opcode": "03b6",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks swapNearestBuildingModel (the thread gives up)"
+    "adapter lacks swapNearestBuildingModel (skipped: outputs read as none)"
    ],
    "handlerLine": 2327,
    "ref": {
@@ -13353,9 +13558,9 @@
   {
    "name": "SET_VEHICLE_QUATERNION",
    "opcode": "07c6",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setVehicleQuaternion (the thread gives up)"
+    "adapter lacks setVehicleQuaternion (skipped: outputs read as none)"
    ],
    "handlerLine": 2482,
    "ref": {
@@ -13370,9 +13575,9 @@
   {
    "name": "GET_CAR_MASS",
    "opcode": "06a3",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getCarMass (the thread gives up)"
+    "adapter lacks getCarMass (skipped: outputs read as none)"
    ],
    "handlerLine": 2483,
    "ref": {
@@ -13387,9 +13592,9 @@
   {
    "name": "TASK_SAY",
    "opcode": "05c1",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskSay (the thread gives up)"
+    "adapter lacks taskSay (skipped: outputs read as none)"
    ],
    "handlerLine": 2328,
    "ref": {
@@ -13404,9 +13609,9 @@
   {
    "name": "IS_CHAR_IN_AREA_IN_CAR_3D",
    "opcode": "01a7",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isCharInAreaInCar3d (the thread gives up)"
+    "adapter lacks isCharInAreaInCar3d (skipped: outputs read as none)"
    ],
    "handlerLine": 2486,
    "ref": {
@@ -13440,9 +13645,9 @@
   {
    "name": "TASK_CHAR_SLIDE_TO_COORD",
    "opcode": "07cd",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskCharSlideToCoord (the thread gives up)"
+    "adapter lacks taskCharSlideToCoord (skipped: outputs read as none)"
    ],
    "handlerLine": 2282,
    "ref": {
@@ -13458,28 +13663,11 @@
    "portable": false
   },
   {
-   "name": "EXPLODE_CAR_IN_CUTSCENE_SHAKE_AND_BITS",
-   "opcode": "08cb",
-   "status": "stops",
-   "notes": [
-    "adapter lacks explodeCarInCutsceneShakeAndBits (the thread gives up)"
-   ],
-   "handlerLine": 2329,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Causes the vehicle to explode, without damage to surrounding entities",
-   "sites": 3,
-   "missions": 2,
-   "firstMission": "WUZI1",
-   "portable": false
-  },
-  {
    "name": "CREATE_SEARCHLIGHT",
    "opcode": "06b1",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks createSearchlight (the thread gives up)"
+    "adapter lacks createSearchlight (skipped: outputs read as none)"
    ],
    "handlerLine": 1719,
    "ref": {
@@ -13494,9 +13682,9 @@
   {
    "name": "ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT",
    "opcode": "06ca",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachSearchlightToObject (the thread gives up)"
+    "adapter lacks attachSearchlightToObject (skipped: outputs read as none)"
    ],
    "handlerLine": 1725,
    "ref": {
@@ -13511,9 +13699,9 @@
   {
    "name": "SET_ALWAYS_DRAW_3D_MARKERS",
    "opcode": "08a8",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setAlwaysDraw3dMarkers (the thread gives up)"
+    "adapter lacks setAlwaysDraw3dMarkers (skipped: outputs read as none)"
    ],
    "handlerLine": 2149,
    "ref": {
@@ -13528,9 +13716,9 @@
   {
    "name": "ADD_BLIP_FOR_SEARCHLIGHT",
    "opcode": "06c4",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addBlipForSearchlight (the thread gives up)"
+    "adapter lacks addBlipForSearchlight (skipped: outputs read as none)"
    ],
    "handlerLine": 2202,
    "ref": {
@@ -13545,9 +13733,9 @@
   {
    "name": "BOAT_STOP",
    "opcode": "02d4",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks boatStop (the thread gives up)"
+    "adapter lacks boatStop (skipped: outputs read as none)"
    ],
    "handlerLine": 2330,
    "ref": {
@@ -13562,9 +13750,9 @@
   {
    "name": "GET_CHAR_SWIM_STATE",
    "opcode": "0966",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getCharSwimState (the thread gives up)"
+    "adapter lacks getCharSwimState (skipped: outputs read as none)"
    ],
    "handlerLine": 2490,
    "ref": {
@@ -13582,9 +13770,9 @@
   {
    "name": "BOAT_GOTO_COORDS",
    "opcode": "02d3",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks boatGotoCoords (the thread gives up)"
+    "adapter lacks boatGotoCoords (skipped: outputs read as none)"
    ],
    "handlerLine": 2491,
    "ref": {
@@ -13599,9 +13787,9 @@
   {
    "name": "IS_CHAR_IN_ANY_SEARCHLIGHT",
    "opcode": "07a9",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isCharInAnySearchlight (the thread gives up)"
+    "adapter lacks isCharInAnySearchlight (skipped: outputs read as none)"
    ],
    "handlerLine": 2492,
    "ref": {
@@ -13619,9 +13807,9 @@
   {
    "name": "MAKE_HELI_COME_CRASHING_DOWN",
    "opcode": "0564",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks makeHeliComeCrashingDown (the thread gives up)"
+    "adapter lacks makeHeliComeCrashingDown (skipped: outputs read as none)"
    ],
    "handlerLine": 2029,
    "ref": {
@@ -13636,9 +13824,9 @@
   {
    "name": "ADD_SMOKE_PARTICLE",
    "opcode": "095c",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addSmokeParticle (the thread gives up)"
+    "adapter lacks addSmokeParticle (skipped: outputs read as none)"
    ],
    "handlerLine": 2493,
    "ref": {
@@ -13653,9 +13841,9 @@
   {
    "name": "IS_PLAYER_CLIMBING",
    "opcode": "0a29",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isPlayerClimbing (the thread gives up)"
+    "adapter lacks isPlayerClimbing (skipped: outputs read as none)"
    ],
    "handlerLine": 2494,
    "ref": {
@@ -13673,9 +13861,9 @@
   {
    "name": "ATTACH_CHAR_TO_BIKE",
    "opcode": "06a7",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachPedToBike (the thread gives up)"
+    "adapter lacks attachPedToBike (skipped: outputs read as none)"
    ],
    "handlerLine": 1227,
    "ref": {
@@ -13693,9 +13881,9 @@
   {
    "name": "CREATE_BIRDS",
    "opcode": "0876",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks createBirds (the thread gives up)"
+    "adapter lacks createBirds (skipped: outputs read as none)"
    ],
    "handlerLine": 2394,
    "ref": {
@@ -13710,9 +13898,9 @@
   {
    "name": "SET_VEHICLE_CAN_BE_TARGETTED",
    "opcode": "084e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setVehicleCanBeTargetted (the thread gives up)"
+    "adapter lacks setVehicleCanBeTargetted (skipped: outputs read as none)"
    ],
    "handlerLine": 2496,
    "ref": {
@@ -13727,9 +13915,9 @@
   {
    "name": "HAS_CHAR_BEEN_ARRESTED",
    "opcode": "0741",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks hasCharBeenArrested (the thread gives up)"
+    "adapter lacks hasCharBeenArrested (skipped: outputs read as none)"
    ],
    "handlerLine": 2497,
    "ref": {
@@ -13747,9 +13935,9 @@
   {
    "name": "SET_SWIM_SPEED",
    "opcode": "0a28",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setPedSwimSpeed (the thread gives up)"
+    "adapter lacks setPedSwimSpeed (skipped: outputs read as none)"
    ],
    "handlerLine": 1214,
    "ref": {
@@ -13767,9 +13955,9 @@
   {
    "name": "TASK_GREET_PARTNER",
    "opcode": "0823",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskGreetPartner (the thread gives up)"
+    "adapter lacks taskGreetPartner (skipped: outputs read as none)"
    ],
    "handlerLine": 2498,
    "ref": {
@@ -13784,9 +13972,9 @@
   {
    "name": "SET_HELI_ORIENTATION",
    "opcode": "04d0",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setHeliOrientation (the thread gives up)"
+    "adapter lacks setHeliOrientation (skipped: outputs read as none)"
    ],
    "handlerLine": 2499,
    "ref": {
@@ -13801,9 +13989,9 @@
   {
    "name": "IS_OBJECT_IN_ANGLED_AREA_2D",
    "opcode": "08e3",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isObjectInAngledArea2d (the thread gives up)"
+    "adapter lacks isObjectInAngledArea2d (skipped: outputs read as none)"
    ],
    "handlerLine": 2500,
    "ref": {
@@ -13818,9 +14006,9 @@
   {
    "name": "TASK_GO_TO_OBJECT",
    "opcode": "06e2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskGoToObject (the thread gives up)"
+    "adapter lacks taskGoToObject (skipped: outputs read as none)"
    ],
    "handlerLine": 2501,
    "ref": {
@@ -13835,9 +14023,9 @@
   {
    "name": "SET_CAR_ESCORT_CAR_RIGHT",
    "opcode": "05f2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCarEscortCarRight (the thread gives up)"
+    "adapter lacks setCarEscortCarRight (skipped: outputs read as none)"
    ],
    "handlerLine": 2502,
    "ref": {
@@ -13852,9 +14040,9 @@
   {
    "name": "SET_CAR_ESCORT_CAR_LEFT",
    "opcode": "05f1",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCarEscortCarLeft (the thread gives up)"
+    "adapter lacks setCarEscortCarLeft (skipped: outputs read as none)"
    ],
    "handlerLine": 2503,
    "ref": {
@@ -13869,9 +14057,9 @@
   {
    "name": "SET_CAR_STAY_IN_FAST_LANE",
    "opcode": "0466",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCarStayInFastLane (the thread gives up)"
+    "adapter lacks setCarStayInFastLane (skipped: outputs read as none)"
    ],
    "handlerLine": 2240,
    "ref": {
@@ -13886,9 +14074,9 @@
   {
    "name": "DONT_SUPPRESS_ANY_CAR_MODELS",
    "opcode": "0734",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks dontSuppressAnyCarModels (the thread gives up)"
+    "adapter lacks dontSuppressAnyCarModels (skipped: outputs read as none)"
    ],
    "handlerLine": 2395,
    "ref": {
@@ -13903,9 +14091,9 @@
   {
    "name": "GIVE_NON_PLAYER_CAR_NITRO",
    "opcode": "09e9",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks giveNonPlayerCarNitro (the thread gives up)"
+    "adapter lacks giveNonPlayerCarNitro (skipped: outputs read as none)"
    ],
    "handlerLine": 2504,
    "ref": {
@@ -13920,9 +14108,9 @@
   {
    "name": "ENABLE_CRANE_CONTROLS",
    "opcode": "0898",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks enableCraneControls (the thread gives up)"
+    "adapter lacks enableCraneControls (skipped: outputs read as none)"
    ],
    "handlerLine": 1683,
    "ref": {
@@ -13937,9 +14125,9 @@
   {
    "name": "ATTACH_CAR_TO_OBJECT",
    "opcode": "0939",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachCarToObject (the thread gives up)"
+    "adapter lacks attachCarToObject (skipped: outputs read as none)"
    ],
    "handlerLine": 2285,
    "ref": {
@@ -13954,9 +14142,9 @@
   {
    "name": "GET_RANDOM_CAR_OF_TYPE_IN_ANGLED_AREA_NO_SAVE",
    "opcode": "09c0",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getRandomCarOfTypeInAngledAreaNoSave (the thread gives up)"
+    "adapter lacks getRandomCarOfTypeInAngledAreaNoSave (skipped: outputs read as none)"
    ],
    "handlerLine": 2506,
    "ref": {
@@ -13971,9 +14159,9 @@
   {
    "name": "SET_FREEBIES_IN_VEHICLE",
    "opcode": "08f3",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setFreebiesInVehicle (the thread gives up)"
+    "adapter lacks setFreebiesInVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 2396,
    "ref": {
@@ -13988,9 +14176,9 @@
   {
    "name": "SET_PLANE_THROTTLE",
    "opcode": "0742",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setPlaneThrottle (the thread gives up)"
+    "adapter lacks setPlaneThrottle (skipped: outputs read as none)"
    ],
    "handlerLine": 1891,
    "ref": {
@@ -14005,9 +14193,9 @@
   {
    "name": "PLANE_STARTS_IN_AIR",
    "opcode": "0745",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks planeStartsInAir (the thread gives up)"
+    "adapter lacks planeStartsInAir (skipped: outputs read as none)"
    ],
    "handlerLine": 1892,
    "ref": {
@@ -14022,9 +14210,9 @@
   {
    "name": "SET_HELI_STABILISER",
    "opcode": "04df",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setHeliStabiliser (the thread gives up)"
+    "adapter lacks setHeliStabiliser (skipped: outputs read as none)"
    ],
    "handlerLine": 2292,
    "ref": {
@@ -14039,9 +14227,9 @@
   {
    "name": "IS_OBJECT_INTERSECTING_WORLD",
    "opcode": "09fc",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isObjectIntersectingWorld (the thread gives up)"
+    "adapter lacks isObjectIntersectingWorld (skipped: outputs read as none)"
    ],
    "handlerLine": 2332,
    "ref": {
@@ -14056,9 +14244,9 @@
   {
    "name": "TAKE_REMOTE_CONTROL_OF_CAR",
    "opcode": "0715",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks takeRemoteControlOfCar (the thread gives up)"
+    "adapter lacks takeRemoteControlOfCar (skipped: outputs read as none)"
    ],
    "handlerLine": 2397,
    "ref": {
@@ -14073,9 +14261,9 @@
   {
    "name": "REMOVE_OIL_PUDDLES_IN_AREA",
    "opcode": "07df",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks removeOilPuddlesInArea (the thread gives up)"
+    "adapter lacks removeOilPuddlesInArea (skipped: outputs read as none)"
    ],
    "handlerLine": 2507,
    "ref": {
@@ -14090,9 +14278,9 @@
   {
    "name": "ATTACH_TRAILER_TO_CAB",
    "opcode": "0893",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachTrailerToCab (the thread gives up)"
+    "adapter lacks attachTrailerToCab (skipped: outputs read as none)"
    ],
    "handlerLine": 2243,
    "ref": {
@@ -14107,9 +14295,9 @@
   {
    "name": "RELEASE_PATH_NODES",
    "opcode": "0607",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks releasePathNodes (the thread gives up)"
+    "adapter lacks releasePathNodes (skipped: outputs read as none)"
    ],
    "handlerLine": 2399,
    "ref": {
@@ -14124,9 +14312,9 @@
   {
    "name": "REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION",
    "opcode": "09c9",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks removePedFromCarMaintainPosition (the thread gives up)"
+    "adapter lacks removePedFromCarMaintainPosition (skipped: outputs read as none)"
    ],
    "handlerLine": 1146,
    "ref": {
@@ -14144,9 +14332,9 @@
   {
    "name": "DETACH_TRAILER_FROM_CAB",
    "opcode": "07ac",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks detachTrailerFromCab (the thread gives up)"
+    "adapter lacks detachTrailerFromCab (skipped: outputs read as none)"
    ],
    "handlerLine": 2510,
    "ref": {
@@ -14161,9 +14349,9 @@
   {
    "name": "ACTIVATE_HELI_SPEED_CHEAT",
    "opcode": "07bb",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks activateHeliSpeedCheat (the thread gives up)"
+    "adapter lacks activateHeliSpeedCheat (skipped: outputs read as none)"
    ],
    "handlerLine": 2402,
    "ref": {
@@ -14178,9 +14366,9 @@
   {
    "name": "HELI_KEEP_ENTITY_IN_VIEW",
    "opcode": "0780",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks heliKeepEntityInView (the thread gives up)"
+    "adapter lacks heliKeepEntityInView (skipped: outputs read as none)"
    ],
    "handlerLine": 2403,
    "ref": {
@@ -14195,9 +14383,9 @@
   {
    "name": "DISABLE_HELI_AUDIO",
    "opcode": "0a1c",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setHeliAudio (the thread gives up)"
+    "adapter lacks setHeliAudio (skipped: outputs read as none)"
    ],
    "handlerLine": 672,
    "ref": {
@@ -14215,9 +14403,9 @@
   {
    "name": "PLANE_ATTACK_PLAYER",
    "opcode": "070e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks planeAttackPlayer (the thread gives up)"
+    "adapter lacks planeAttackPlayer (skipped: outputs read as none)"
    ],
    "handlerLine": 2511,
    "ref": {
@@ -14232,9 +14420,9 @@
   {
    "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE",
    "opcode": "067a",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachCameraToVehicleLookAtVehicle (the thread gives up)"
+    "adapter lacks attachCameraToVehicleLookAtVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 2050,
    "ref": {
@@ -14252,9 +14440,9 @@
   {
    "name": "TASK_COMPLEX_PICKUP_OBJECT",
    "opcode": "07c9",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskComplexPickupObject (the thread gives up)"
+    "adapter lacks taskComplexPickupObject (skipped: outputs read as none)"
    ],
    "handlerLine": 2333,
    "ref": {
@@ -14269,9 +14457,9 @@
   {
    "name": "IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
    "opcode": "0a3a",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isLastBuildingModelShotByPlayer (the thread gives up)"
+    "adapter lacks isLastBuildingModelShotByPlayer (skipped: outputs read as none)"
    ],
    "handlerLine": 2334,
    "ref": {
@@ -14286,9 +14474,9 @@
   {
    "name": "FORCE_DEATH_RESTART",
    "opcode": "0970",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks forceDeathRestart (the thread gives up)"
+    "adapter lacks forceDeathRestart (skipped: outputs read as none)"
    ],
    "handlerLine": 2335,
    "ref": {
@@ -14303,9 +14491,9 @@
   {
    "name": "SET_CAR_COORDINATES_NO_OFFSET",
    "opcode": "088c",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCarCoordinatesNoOffset (the thread gives up)"
+    "adapter lacks setCarCoordinatesNoOffset (skipped: outputs read as none)"
    ],
    "handlerLine": 2404,
    "ref": {
@@ -14320,9 +14508,9 @@
   {
    "name": "ATTACH_CAMERA_TO_CHAR",
    "opcode": "067c",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachCameraToChar (the thread gives up)"
+    "adapter lacks attachCameraToChar (skipped: outputs read as none)"
    ],
    "handlerLine": 2405,
    "ref": {
@@ -14340,9 +14528,9 @@
   {
    "name": "CLEAR_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
    "opcode": "0a3b",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks clearLastBuildingModelShotByPlayer (the thread gives up)"
+    "adapter lacks clearLastBuildingModelShotByPlayer (skipped: outputs read as none)"
    ],
    "handlerLine": 2512,
    "ref": {
@@ -14357,9 +14545,9 @@
   {
    "name": "USE_DETONATOR",
    "opcode": "09d9",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks useDetonator (the thread gives up)"
+    "adapter lacks useDetonator (skipped: outputs read as none)"
    ],
    "handlerLine": 2513,
    "ref": {
@@ -14374,9 +14562,9 @@
   {
    "name": "ADD_TO_OBJECT_ROTATION_VELOCITY",
    "opcode": "05a1",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addToObjectRotationVelocity (the thread gives up)"
+    "adapter lacks addToObjectRotationVelocity (skipped: outputs read as none)"
    ],
    "handlerLine": 2514,
    "ref": {
@@ -14391,9 +14579,9 @@
   {
    "name": "FORCE_INTERIOR_LIGHTING_FOR_PLAYER",
    "opcode": "09d7",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks forceInteriorLightingForPlayer (the thread gives up)"
+    "adapter lacks forceInteriorLightingForPlayer (skipped: outputs read as none)"
    ],
    "handlerLine": 2294,
    "ref": {
@@ -14408,9 +14596,9 @@
   {
    "name": "PLAYER_TAKE_OFF_GOGGLES",
    "opcode": "09eb",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks playerTakeOffGoggles (the thread gives up)"
+    "adapter lacks playerTakeOffGoggles (skipped: outputs read as none)"
    ],
    "handlerLine": 2295,
    "ref": {
@@ -14425,9 +14613,9 @@
   {
    "name": "SWITCH_ON_GROUND_SEARCHLIGHT",
    "opcode": "0a02",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks switchOnGroundSearchlight (the thread gives up)"
+    "adapter lacks switchOnGroundSearchlight (skipped: outputs read as none)"
    ],
    "handlerLine": 2407,
    "ref": {
@@ -14442,9 +14630,9 @@
   {
    "name": "IS_CHAR_IN_SEARCHLIGHT",
    "opcode": "06b7",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks pedIsInSearchlight (the thread gives up)"
+    "adapter lacks pedIsInSearchlight (skipped: outputs read as none)"
    ],
    "handlerLine": 1232,
    "ref": {
@@ -14462,9 +14650,9 @@
   {
    "name": "TASK_JETPACK",
    "opcode": "07a7",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskJetpack (the thread gives up)"
+    "adapter lacks taskJetpack (skipped: outputs read as none)"
    ],
    "handlerLine": 2408,
    "ref": {
@@ -14479,9 +14667,9 @@
   {
    "name": "DRAW_WEAPONSHOP_CORONA",
    "opcode": "04d5",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks drawWeaponshopCorona (the thread gives up)"
+    "adapter lacks drawWeaponshopCorona (skipped: outputs read as none)"
    ],
    "handlerLine": 2515,
    "ref": {
@@ -14496,9 +14684,9 @@
   {
    "name": "IS_CAR_STOPPED_IN_AREA_2D",
    "opcode": "01ab",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isCarStoppedInArea2d (the thread gives up)"
+    "adapter lacks isCarStoppedInArea2d (skipped: outputs read as none)"
    ],
    "handlerLine": 2296,
    "ref": {
@@ -14513,9 +14701,9 @@
   {
    "name": "GET_CAR_UPRIGHT_VALUE",
    "opcode": "083f",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getCarUprightValue (the thread gives up)"
+    "adapter lacks getCarUprightValue (skipped: outputs read as none)"
    ],
    "handlerLine": 2297,
    "ref": {
@@ -14530,9 +14718,9 @@
   {
    "name": "GET_PLANE_UNDERCARRIAGE_POSITION",
    "opcode": "091f",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getPlaneUndercarriagePosition (the thread gives up)"
+    "adapter lacks getPlaneUndercarriagePosition (skipped: outputs read as none)"
    ],
    "handlerLine": 2337,
    "ref": {
@@ -14547,9 +14735,9 @@
   {
    "name": "TASK_DRIVE_POINT_ROUTE",
    "opcode": "06bb",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskDrivePointRoute (the thread gives up)"
+    "adapter lacks taskDrivePointRoute (skipped: outputs read as none)"
    ],
    "handlerLine": 2409,
    "ref": {
@@ -14564,9 +14752,9 @@
   {
    "name": "ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR",
    "opcode": "067e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachCameraToCharLookAtChar (the thread gives up)"
+    "adapter lacks attachCameraToCharLookAtChar (skipped: outputs read as none)"
    ],
    "handlerLine": 2516,
    "ref": {
@@ -14584,9 +14772,9 @@
   {
    "name": "FIRE_HUNTER_GUN",
    "opcode": "0541",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks fireHunterGun (the thread gives up)"
+    "adapter lacks fireHunterGun (skipped: outputs read as none)"
    ],
    "handlerLine": 2517,
    "ref": {
@@ -14601,9 +14789,9 @@
   {
    "name": "TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP",
    "opcode": "06a5",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskDiveFromAttachmentAndGetUp (the thread gives up)"
+    "adapter lacks taskDiveFromAttachmentAndGetUp (skipped: outputs read as none)"
    ],
    "handlerLine": 2518,
    "ref": {
@@ -14635,9 +14823,9 @@
   {
    "name": "TASK_TIRED",
    "opcode": "05bd",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskTired (the thread gives up)"
+    "adapter lacks taskTired (skipped: outputs read as none)"
    ],
    "handlerLine": 2244,
    "ref": {
@@ -14652,9 +14840,9 @@
   {
    "name": "SET_VEHICLE_TO_FADE_IN",
    "opcode": "0594",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setVehicleToFadeIn (the thread gives up)"
+    "adapter lacks setVehicleToFadeIn (skipped: outputs read as none)"
    ],
    "handlerLine": 2411,
    "ref": {
@@ -14669,9 +14857,9 @@
   {
    "name": "ADD_PEDTYPE_AS_ATTRACTOR_USER",
    "opcode": "0680",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addPedtypeAsAttractorUser (the thread gives up)"
+    "adapter lacks addPedtypeAsAttractorUser (skipped: outputs read as none)"
    ],
    "handlerLine": 2413,
    "ref": {
@@ -14686,9 +14874,9 @@
   {
    "name": "IS_CHAR_AT_SCRIPTED_ATTRACTOR",
    "opcode": "0642",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks pedIsAtScriptedAttractor (the thread gives up)"
+    "adapter lacks pedIsAtScriptedAttractor (skipped: outputs read as none)"
    ],
    "handlerLine": 1235,
    "ref": {
@@ -14706,9 +14894,9 @@
   {
    "name": "GET_EXTRA_CAR_COLOURS",
    "opcode": "0a12",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks vehicleColours (the thread gives up)"
+    "adapter lacks vehicleColours (skipped: outputs read as none)"
    ],
    "handlerLine": 667,
    "ref": {
@@ -14726,9 +14914,9 @@
   {
    "name": "SET_EXTRA_CAR_COLOURS",
    "opcode": "0a11",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setExtraCarColours (the thread gives up)"
+    "adapter lacks setExtraCarColours (skipped: outputs read as none)"
    ],
    "handlerLine": 2521,
    "ref": {
@@ -14743,9 +14931,9 @@
   {
    "name": "RESET_STUFF_UPON_RESURRECTION",
    "opcode": "0974",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks resetStuffUponResurrection (the thread gives up)"
+    "adapter lacks resetStuffUponResurrection (skipped: outputs read as none)"
    ],
    "handlerLine": 2522,
    "ref": {
@@ -14760,9 +14948,9 @@
   {
    "name": "PLANE_FLY_IN_DIRECTION",
    "opcode": "070f",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks planeFlyInDirection (the thread gives up)"
+    "adapter lacks planeFlyInDirection (skipped: outputs read as none)"
    ],
    "handlerLine": 2416,
    "ref": {
@@ -14777,9 +14965,9 @@
   {
    "name": "SET_CAR_ROLL",
    "opcode": "0731",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCarRoll (the thread gives up)"
+    "adapter lacks setCarRoll (skipped: outputs read as none)"
    ],
    "handlerLine": 2523,
    "ref": {
@@ -14794,9 +14982,9 @@
   {
    "name": "GET_OBJECT_MASS",
    "opcode": "0907",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getObjectMass (the thread gives up)"
+    "adapter lacks getObjectMass (skipped: outputs read as none)"
    ],
    "handlerLine": 2525,
    "ref": {
@@ -14811,9 +14999,9 @@
   {
    "name": "TASK_USE_ATM",
    "opcode": "05c7",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskUseAtm (the thread gives up)"
+    "adapter lacks taskUseAtm (skipped: outputs read as none)"
    ],
    "handlerLine": 2526,
    "ref": {
@@ -14828,9 +15016,9 @@
   {
    "name": "REMOVE_SPHERE",
    "opcode": "03bd",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks removeSphere (the thread gives up)"
+    "adapter lacks removeSphere (skipped: outputs read as none)"
    ],
    "handlerLine": 2083,
    "ref": {
@@ -14845,9 +15033,9 @@
   {
    "name": "WINCH_CAN_PICK_VEHICLE_UP",
    "opcode": "08a5",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks winchCanPickVehicleUp (the thread gives up)"
+    "adapter lacks winchCanPickVehicleUp (skipped: outputs read as none)"
    ],
    "handlerLine": 2245,
    "ref": {
@@ -14862,9 +15050,9 @@
   {
    "name": "ADD_SPHERE",
    "opcode": "03bc",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addSphere (the thread gives up)"
+    "adapter lacks addSphere (skipped: outputs read as none)"
    ],
    "handlerLine": 2340,
    "ref": {
@@ -14879,9 +15067,9 @@
   {
    "name": "SELECT_WEAPONS_FOR_VEHICLE",
    "opcode": "0841",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks selectWeaponsForVehicle (the thread gives up)"
+    "adapter lacks selectWeaponsForVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 2418,
    "ref": {
@@ -14896,9 +15084,9 @@
   {
    "name": "HELI_ATTACK_PLAYER",
    "opcode": "0724",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks heliAttackPlayer (the thread gives up)"
+    "adapter lacks heliAttackPlayer (skipped: outputs read as none)"
    ],
    "handlerLine": 2419,
    "ref": {
@@ -14913,9 +15101,9 @@
   {
    "name": "GRAB_ENTITY_ON_WINCH",
    "opcode": "078b",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks grabEntityOnWinch (the thread gives up)"
+    "adapter lacks grabEntityOnWinch (skipped: outputs read as none)"
    ],
    "handlerLine": 2420,
    "ref": {
@@ -14930,9 +15118,9 @@
   {
    "name": "ATTACH_WINCH_TO_HELI",
    "opcode": "0788",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks attachWinchToHeli (the thread gives up)"
+    "adapter lacks attachWinchToHeli (skipped: outputs read as none)"
    ],
    "handlerLine": 2527,
    "ref": {
@@ -14947,9 +15135,9 @@
   {
    "name": "RELEASE_ENTITY_FROM_WINCH",
    "opcode": "0789",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks releaseEntityFromWinch (the thread gives up)"
+    "adapter lacks releaseEntityFromWinch (skipped: outputs read as none)"
    ],
    "handlerLine": 2528,
    "ref": {
@@ -14964,9 +15152,9 @@
   {
    "name": "SET_NIGHT_VISION",
    "opcode": "08b1",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setNightVision (the thread gives up)"
+    "adapter lacks setNightVision (skipped: outputs read as none)"
    ],
    "handlerLine": 2246,
    "ref": {
@@ -14981,9 +15169,9 @@
   {
    "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
    "opcode": "098d",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getCarMovingComponentOffset (the thread gives up)"
+    "adapter lacks getCarMovingComponentOffset (skipped: outputs read as none)"
    ],
    "handlerLine": 2300,
    "ref": {
@@ -15015,9 +15203,9 @@
   {
    "name": "IS_NIGHT_VISION_ACTIVE",
    "opcode": "099d",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isNightVisionActive (the thread gives up)"
+    "adapter lacks isNightVisionActive (skipped: outputs read as none)"
    ],
    "handlerLine": 2529,
    "ref": {
@@ -15032,9 +15220,9 @@
   {
    "name": "POLICE_HELI_CHASE_ENTITY",
    "opcode": "0727",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks policeHeliChaseEntity (the thread gives up)"
+    "adapter lacks policeHeliChaseEntity (skipped: outputs read as none)"
    ],
    "handlerLine": 2530,
    "ref": {
@@ -15049,9 +15237,9 @@
   {
    "name": "SET_AIRCRAFT_CARRIER_SAM_SITE",
    "opcode": "09e4",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setAircraftCarrierSamSite (the thread gives up)"
+    "adapter lacks setAircraftCarrierSamSite (skipped: outputs read as none)"
    ],
    "handlerLine": 2247,
    "ref": {
@@ -15066,9 +15254,9 @@
   {
    "name": "PLANE_FOLLOW_ENTITY",
    "opcode": "0710",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks planeFollowEntity (the thread gives up)"
+    "adapter lacks planeFollowEntity (skipped: outputs read as none)"
    ],
    "handlerLine": 2341,
    "ref": {
@@ -15083,9 +15271,9 @@
   {
    "name": "CAN_CHAR_SEE_DEAD_CHAR",
    "opcode": "0480",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks pedCanSeeDeadPed (the thread gives up)"
+    "adapter lacks pedCanSeeDeadPed (skipped: outputs read as none)"
    ],
    "handlerLine": 1128,
    "ref": {
@@ -15103,9 +15291,9 @@
   {
    "name": "PLANE_ATTACK_PLAYER_USING_DOG_FIGHT",
    "opcode": "08a2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks planeAttackPlayerUsingDogFight (the thread gives up)"
+    "adapter lacks planeAttackPlayerUsingDogFight (skipped: outputs read as none)"
    ],
    "handlerLine": 2531,
    "ref": {
@@ -15123,9 +15311,9 @@
   {
    "name": "SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2",
    "opcode": "098a",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setGunshotSenseRangeForRiot2 (the thread gives up)"
+    "adapter lacks setGunshotSenseRangeForRiot2 (skipped: outputs read as none)"
    ],
    "handlerLine": 2342,
    "ref": {
@@ -15140,9 +15328,9 @@
   {
    "name": "SET_PLAYER_MOOD",
    "opcode": "04e3",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setPlayerMood (the thread gives up)"
+    "adapter lacks setPlayerMood (skipped: outputs read as none)"
    ],
    "handlerLine": 2422,
    "ref": {
@@ -15160,9 +15348,9 @@
   {
    "name": "SET_INFRARED_VISION",
    "opcode": "08b2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setInfraredVision (the thread gives up)"
+    "adapter lacks setInfraredVision (skipped: outputs read as none)"
    ],
    "handlerLine": 2423,
    "ref": {
@@ -15177,9 +15365,9 @@
   {
    "name": "SET_CHAR_BULLETPROOF_VEST",
    "opcode": "093b",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setCharBulletproofVest (the thread gives up)"
+    "adapter lacks setCharBulletproofVest (skipped: outputs read as none)"
    ],
    "handlerLine": 2533,
    "ref": {
@@ -15197,9 +15385,9 @@
   {
    "name": "STOP_CREDITS",
    "opcode": "0435",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks stopCredits (the thread gives up)"
+    "adapter lacks stopCredits (skipped: outputs read as none)"
    ],
    "handlerLine": 2424,
    "ref": {
@@ -15214,9 +15402,9 @@
   {
    "name": "GET_DOOR_ANGLE_RATIO",
    "opcode": "095f",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getDoorAngleRatio (the thread gives up)"
+    "adapter lacks getDoorAngleRatio (skipped: outputs read as none)"
    ],
    "handlerLine": 2534,
    "ref": {
@@ -15231,9 +15419,9 @@
   {
    "name": "START_CREDITS",
    "opcode": "0434",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks startCredits (the thread gives up)"
+    "adapter lacks startCredits (skipped: outputs read as none)"
    ],
    "handlerLine": 2535,
    "ref": {
@@ -15248,9 +15436,9 @@
   {
    "name": "ARE_CREDITS_FINISHED",
    "opcode": "0436",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks areCreditsFinished (the thread gives up)"
+    "adapter lacks areCreditsFinished (skipped: outputs read as none)"
    ],
    "handlerLine": 2536,
    "ref": {
@@ -15265,9 +15453,9 @@
   {
    "name": "WINCH_CAN_PICK_OBJECT_UP",
    "opcode": "0916",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks winchCanPickObjectUp (the thread gives up)"
+    "adapter lacks winchCanPickObjectUp (skipped: outputs read as none)"
    ],
    "handlerLine": 2425,
    "ref": {
@@ -15282,9 +15470,9 @@
   {
    "name": "SET_OBJECT_RENDER_SCORCHED",
    "opcode": "0654",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks setObjectRenderScorched (the thread gives up)"
+    "adapter lacks setObjectRenderScorched (skipped: outputs read as none)"
    ],
    "handlerLine": 2426,
    "ref": {
@@ -15299,9 +15487,9 @@
   {
    "name": "IS_PLAYER_PERFORMING_STOPPIE",
    "opcode": "07f2",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isPlayerPerformingStoppie (the thread gives up)"
+    "adapter lacks isPlayerPerformingStoppie (skipped: outputs read as none)"
    ],
    "handlerLine": 2428,
    "ref": {
@@ -15336,9 +15524,9 @@
   {
    "name": "GET_CLOSEST_STEALABLE_OBJECT",
    "opcode": "0866",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks getClosestStealableObject (the thread gives up)"
+    "adapter lacks getClosestStealableObject (skipped: outputs read as none)"
    ],
    "handlerLine": 2432,
    "ref": {
@@ -15353,9 +15541,9 @@
   {
    "name": "IS_PROCEDURAL_INTERIOR_ACTIVE",
    "opcode": "0867",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks isProceduralInteriorActive (the thread gives up)"
+    "adapter lacks isProceduralInteriorActive (skipped: outputs read as none)"
    ],
    "handlerLine": 2541,
    "ref": {
@@ -15370,9 +15558,9 @@
   {
    "name": "FORCE_ALL_VEHICLE_LIGHTS_OFF",
    "opcode": "0a37",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks forceAllVehicleLightsOff (the thread gives up)"
+    "adapter lacks forceAllVehicleLightsOff (skipped: outputs read as none)"
    ],
    "handlerLine": 2433,
    "ref": {
@@ -15387,9 +15575,9 @@
   {
    "name": "ADD_BLIP_FOR_COORD_OLD",
    "opcode": "0167",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks addBlipForCoordOld (the thread gives up)"
+    "adapter lacks addBlipForCoordOld (skipped: outputs read as none)"
    ],
    "handlerLine": 2544,
    "ref": {
@@ -15404,9 +15592,9 @@
   {
    "name": "HAS_CHAR_BEEN_DAMAGED_BY_CAR",
    "opcode": "051b",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks pedWasDamagedByVehicle (the thread gives up)"
+    "adapter lacks pedWasDamagedByVehicle (skipped: outputs read as none)"
    ],
    "handlerLine": 1123,
    "ref": {
@@ -15424,9 +15612,9 @@
   {
    "name": "TASK_FOLLOW_PATH_NODES_TO_COORD_WITH_RADIUS",
    "opcode": "0a2e",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks taskFollowPathNodesToCoordWithRadius (the thread gives up)"
+    "adapter lacks taskFollowPathNodesToCoordWithRadius (skipped: outputs read as none)"
    ],
    "handlerLine": 2545,
    "ref": {
@@ -15441,9 +15629,9 @@
   {
    "name": "DRAW_SHADOW",
    "opcode": "016f",
-   "status": "stops",
+   "status": "skipped",
    "notes": [
-    "adapter lacks drawShadow (the thread gives up)"
+    "adapter lacks drawShadow (skipped: outputs read as none)"
    ],
    "handlerLine": 2547,
    "ref": {

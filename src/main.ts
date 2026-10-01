@@ -55,7 +55,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   const bike=rider.car as unknown as Partial<import('./simulation/WorldBike').WorldBike>;
   if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&bike.car&&!rider.offset&&rider.seat==='driver'){
    const pose=bike.riderPose(),clip=pose.seat&&bikeClip?.(pose.block,pose.idle);
-   if(pose.seat&&(clip||played))poses.push({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,...(played??{clip:pose.idle,seconds:clip!.duration,animation:clip!})});
+   if(pose.seat&&(clip||played))poses.push({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,...(played??{clip:pose.idle,seconds:clip!.duration>0?pose.time%clip!.duration:0,animation:clip!})});
    continue;
   }
   // The occupant renderer seats peds in cars; a rider on a script boat or aircraft rides unseen for now.
@@ -200,6 +200,8 @@ import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
+import { TouchControls, wantsTouchControls } from './input/TouchControls';
+import { installRapierTombstones } from './simulation/rapierTombstones';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
 import {bindLocalObjectData} from './ui/localObjectData';
@@ -305,6 +307,8 @@ async function boot() {
     import('./simulation/Simulation'), import('./render/Renderer'), import('@dimforge/rapier3d-compat'), import('./simulation/nativeContactLighting'),
   ]);
   await RAPIER.init();
+  // A removed body or collider answers as a tombstone instead of trapping Rapier for the rest of the session.
+  installRapierTombstones(RAPIER);
   const navigation=walkDemo?new NativeMap(hud.element):undefined;
   const importedMode = true;
   const sim = new Simulation();
@@ -465,7 +469,7 @@ async function boot() {
  /** The cutscene skip button this frame, and the keys it reads as they were last frame. */
  let cutsceneSkipNow=false,skipKeysLast={enter:false,space:false};
  /** The player's car while a script's driving task has it. */
- let scriptDrivenCar:ScriptCar|undefined;
+ let scriptDrivenCar:ScriptCar|import("./simulation/WorldBike").WorldBike|undefined;
  const playerTasks=new PlayerScriptTasks({
   animation:(file,name)=>pedestrians?.scriptAnimation(file,name)??Promise.resolve(undefined),
   duck:crouch=>{sim.setCrouched(crouch);},
@@ -499,13 +503,14 @@ async function boot() {
    sim.knockdown=fall+lie+getUp;sim.knockdownLie=lie;sim.knockdownGetUp=playerGetUp=getUp;view.playReaction('ev_dive',fall+lie);return true;
   },
   diving:()=>sim.knockdown>0,
-  // The player's driving tasks: the car he sits in, the one the script names, drives on its autopilot.
+  // The player's driving tasks: the car he sits in, or the bike he rides, the one the script names, drives on its
+  // autopilot.
   startCarTask:order=>{
-   const car=carEntry.seated?carEntry.car:undefined;
+   const car=carEntry.seated?carEntry.car:fleet?.occupiedBike;
    if(!car||mission?.vehicleByHandle(order.vehicle)!==car)return false;
    car.scriptDriven=true;scriptDrivenCar=car;
    if(order.kind==='carTempAction')scriptCars.tempAction(car,order.action,order.seconds);
-   else scriptCars.gotoCoords(car,{x:order.x,y:order.z>-100?order.z:car.car.body.translation().y,z:-order.y},{cruise:order.cruise,style:order.style,accurate:order.accurate,straight:order.straight});
+   else scriptCars.gotoCoords(car,{x:order.x,y:order.z>-100?order.z:('setPedInAsDriver' in car?car.car.body:car.body).translation().y,z:-order.y},{cruise:order.cruise,style:order.style,accurate:order.accurate,straight:order.straight});
    return true;
   },
   carTaskRunning:()=>!!scriptDrivenCar&&!scriptDrivenCar.disposed&&scriptDrivenCar.occupied&&(scriptCars.driving(scriptDrivenCar)||scriptCars.inTempAction(scriptDrivenCar)),
@@ -530,6 +535,11 @@ async function boot() {
   return scriptCarPathsReady;
  });
  // The player the missions against him chase: where he is, the car he drives, and how fast he goes.
+ scriptCars.ground=(x,z,from)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:from,z},{x:0,y:-1,z:0}),40,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?from-hit.timeOfImpact:undefined;};
+ // The cars on the road for FindMaximumSpeedForThisCarInTraffic, in native axes.
+ scriptCars.traffic=()=>[...(fleet?.cars??[])].filter(c=>!c.disposed).map(c=>{const t=c.car.body.translation(),r=c.car.body.rotation(),v=c.car.body.linvel(),b=c.nativeBody;
+  const fx=-2*(r.x*r.z+r.y*r.w),fz=-(1-2*(r.x*r.x+r.y*r.y));
+  return {vehicle:c,position:{x:t.x,y:-t.z,z:t.y},front:b.boundsMax.y,back:-b.boundsMin.y,halfWidth:b.boundsMax.x,forward:{x:fx,y:-fz},moveSpeed:{x:v.x/50,y:-v.z/50}};});
  scriptCars.player=()=>({position:sim.player.position,vehicle:worldCar?.occupied?worldCar:undefined,velocity:{x:sim.lastMove.velocity.x,y:0,z:sim.lastMove.velocity.z}});
  // HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE and FREEZE_CHAR_POSITION on the player.
  let playerWeaponHiddenByScript=false,playerFrozenByScript=false,playerAreaCode=0;
@@ -639,7 +649,7 @@ async function boot() {
     if(!bikeMount.mount(bike)){bikeMount.message=undefined;bike.interact();}
   };
   // CEventDraggedOutCar::AffectsPed needs a living ped: a driver who died in his seat is dragged out a corpse.
-  carEntry.onDriverOut=(car,position,heading,lying)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);if(car.driverDead){car.driverDead=false;pedestrians?.spawnDead(occupants.driverModel(car),position,heading,car.gang);return;}pedestrians?.spawnJacked(occupants.driverModel(car),position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach',lying);};
+  carEntry.onDriverOut=(car,position,heading,lying)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);if(car.driverDead){car.driverDead=false;pedestrians?.spawnDead(occupants.driverModel(car),position,heading,car.gang);return;}pedestrians?.spawnJacked(occupants.driverModel(car),position,heading,car.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}},VEHICLE_ANIM_GROUP_TABLES[car.animGroup.id]?.file==='coach',lying,()=>carEntry.releaseDragged(car))||carEntry.releaseDragged(car);};
   carEntry.onJackStart=car=>pedestrians?.prefetchModel(occupants.driverModel(car));
   const law=new WantedSystem(),wantedHud=new WantedHud(hud.element);
   // CGameLogic::Update drives the wasted and busted sequences over the native
@@ -2120,6 +2130,9 @@ async function boot() {
     else if(paused&&started&&!resume.hidden&&!resume.disabled&&performance.now()-lockLostAt>300)play();
     else pause();
   });
+  // Phones and tablets: a stick, a camera drag and buttons over the game, feeding the same Input.
+  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),map:()=>input.tap('KeyM'),arsenal:()=>input.tap('Backquote')}):undefined;
+  if(touch)document.documentElement.classList.add('touch');
   const cheats=CHEATS;
   /** CTimer::ms_fTimeScale as the gameplay cheats set it; a unique stunt jump's 0.3 overrides it and ResetTimeScale
    * afterwards puts it back to 1. */
@@ -2270,6 +2283,10 @@ async function boot() {
   // Development-only observation hook: useful for browser verification, never an alternate input path.
   if (import.meta.env.DEV) Object.assign(window, { __game: {
     /** Dev diagnostic: what each collider of the occupied native car is touching. */
+    /** An entry-exit's entrance, native (x, y, z), by pool index: where a blip SET_BLIP_ENTRY_EXIT tied to it leads from outside. */
+    entryExitEntrance:(index:number)=>{const e=entryExits?.pool[index];if(!e)return null;const [x,y,z]=entryExitPosition(e);return {x,y,z};},
+    /** The tags within `radius` of a native (x, y): position, the way the wall faces, and how far painted (255 done). */
+    tagsNear:(x:number,y:number,radius:number)=>((tagManager as unknown as {tags?:{position:number[];forward:readonly number[];alpha:number}[]})?.tags??[]).filter(t=>Math.hypot(t.position[0]-x,t.position[1]-y)<radius).map(t=>({x:t.position[0],y:t.position[1],z:t.position[2],forward:[...t.forward],alpha:t.alpha})),
     smashedProps:()=>smashedProps.slice(),
     /** The scene's OBJECT.DAT placements whose model matches, for specs. */
     propsNamed:(pattern:string)=>{const re=new RegExp(pattern,'i'),out:{handle:number;model:string;position:number[];present:boolean;solid:boolean}[]=[];for(const [handle,source] of importedScene?.sources??[])if(source.placement&&re.test(source.modelName))out.push({handle,model:source.modelName,position:[...source.placement.position],present:!!sim.world.getCollider(handle)?.parent()?.isEnabled(),solid:!!sim.world.getCollider(handle)?.isEnabled()});return out;},
@@ -2793,8 +2810,15 @@ async function boot() {
         // CAutomobile::ProcessControl skips DoDriveByShootings in the S.W.A.T. van and the Rhino (their gun is the car's),
         // and SET_PLAYER_CAN_DO_DRIVE_BY off leaves the driver no drive-by weapon.
         const driveByAllowed=mission?.runtime.game.playerInfo.canDoDriveBy!==false;
+        // CPad::GetCarGunFired: the fire button (the mouse, or Ctrl) fires a vehicle's gun and the rider's drive-by.
+        // The drive-by is the SMG slot's weapon (CTaskSimpleGangDriveBy takes it whatever is in hand), so it is put in
+        // hand when the trigger is pulled with another selected.
+        const drivebyReady=()=>{const inv=weapons.inventory,smg=[28,29,32].includes(inv.selected)?inv.selected:inv.inSlot(inv.slotOf(28));if(smg===undefined)return false;if(inv.selected!==smg)inv.select(smg);return true;};
+        // Without pointer lock the left button also drags the camera round the vehicle: held still it is the trigger (an
+        // automatic keeps firing), and a click fires one round.
+        const drivebyPulled=()=>(weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||mouseFires&&input.down('MouseFire')||input.stillHold()||key||mouseFires&&mouse||click):key||mouseFires&&mouse||click||mouse)&&drivebyReady();
         if(worldCar?.occupied&&!leavingCar&&worldCar.modelId!==432&&worldCar.modelId!==601&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
-         const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
+         const drivebyTrigger=drivebyPulled();
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDriveby(worldCar,{origin:render.camera.position,direction});}
         }
         // CAutomobile::TankControl: the Rhino's turret follows the camera and Ctrl fires the cannon every 800 ms.
@@ -2865,14 +2889,14 @@ async function boot() {
          }}
         // SET_PLAYER_CAN_DO_DRIVE_BY off leaves the boat's helmsman no drive-by weapon, as it does a car's driver.
         if(fleet?.occupiedBoat&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
-         const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
+         const drivebyTrigger=drivebyPulled();
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBoat(fleet.occupiedBoat,{origin:render.camera.position,direction});}
         }
 
         // A rider's drive-by: ahead of the bike (eDrivebyStyle FIXED_FWD) unless VEHICLE_LOOKLEFT or LOOKRIGHT (Q, E)
         // is held, which shoots out of that side (CVehicle::DoDriveByShootings is unreversed; the styles are its own).
         if(fleet?.occupiedBike&&!bikeMount.active&&driveByAllowed&&!carGunOff&&!law.arrested&&!weapons.stealth){
-         const drivebyTrigger=weapons.inventory.weapon.automatic?(input.down('ControlLeft')||input.down('ControlRight')||key):key;
+         const drivebyTrigger=drivebyPulled();
          if(drivebyTrigger){const direction=render.camera.getWorldDirection(scratchAim);weapons.fireDrivebyBike(fleet.occupiedBike,{origin:render.camera.position,direction},bikeLookSide());}
         }
         const rocket=input.consume('KeyB')||input.down('KeyB');
@@ -3202,6 +3226,7 @@ async function boot() {
     for(const train of fleet?.trains??[])train.update();
     // The on-foot key hints (jump, crouch, enter car) do not apply in a vehicle.
     hud.element.classList.toggle('in-vehicle',!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
+    touch?.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch?.setMode(hud.element.classList.contains('in-vehicle'));
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns [Ctrl]${aircraft.rocketsArmed?` · Rockets [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(nativeDayNightBalance(sim.timeMinutes));}
     // CSkidmarks::Update in the game frame, then each car's PreRender registers its wheels, then Render.
@@ -3348,7 +3373,7 @@ async function boot() {
       const idle=carEntry.clips.peek(pose.block,pose.idle),lean=pose.overlay?carEntry.clips.peek(pose.block,pose.overlay.clip):undefined;
       if(seat&&idle){
         render.nativeCharacter.installVehicleClips(Object.fromEntries([[pose.idle,idle],...(lean&&pose.overlay?[[pose.overlay.clip,lean]]:[])]));
-        render.vehiclePose={frame:{vehicle:bike.root,local:seat},pose:{clip:pose.idle,seconds:idle.duration,blend:1,overlay:lean&&pose.overlay?{...pose.overlay}:undefined}};
+        render.vehiclePose={frame:{vehicle:bike.root,local:seat},pose:{clip:pose.idle,seconds:idle.duration>0?pose.time%idle.duration:0,blend:1,overlay:lean&&pose.overlay?{...pose.overlay}:undefined}};
       }else render.vehiclePose=undefined;
     }else render.vehiclePose=undefined;
     if(carEntry.error){hud.message(carEntry.error);carEntry.error=undefined;}
@@ -3711,9 +3736,12 @@ async function boot() {
     if(pendingFollowingData&&eligible&&!installingScene&&(pendingFollowingData.retryAt===undefined||performance.now()>=pendingFollowingData.retryAt)){const data=pendingFollowingData;pendingFollowingData=undefined;void replaceWalkTerrain(data);return;}
     // A window that failed at the safety boundary is asked for again from the pause, once its backoff passes.
     if(paused||installingScene)return;
+    if(!terrainPause)settleGroundAfterStream();
     // Directional lookahead for the next window: vehicles report Rapier
-    // velocity, on-foot motion uses heading and blend speed.
-    const motion=fleet?.occupiedPlane?.body.linvel()??(worldCar?.occupied?worldCar.car.body.linvel():undefined)??fleet?.occupiedBoat?.body.linvel()??fleet?.occupiedBike?.body.linvel();
+    // velocity, on-foot motion uses heading and blend speed. A passenger seat counts too: riding in the back of
+    // INTRO's police car (a recording at 11 m/s) with no lookahead ran the car off the streamed window, and the game
+    // held for terrain again and again with the world half drawn.
+    const motion=fleet?.occupiedPlane?.body.linvel()??(worldCar?.occupied?worldCar.car.body.linvel():undefined)??fleet?.occupiedBoat?.body.linvel()??fleet?.occupiedBike?.body.linvel()??(playerPassenger&&!playerPassenger.car.disposed?playerPassenger.car.car.body.linvel():undefined);
     const followVelocity=motion?{x:motion.x,z:motion.z}:{x:Math.sin(sim.player.heading)*sim.player.speed,z:Math.cos(sim.player.heading)*sim.player.speed};
     const request=follower?.request(sim.player.position,eligible,followVelocity);
     if(!request)return;
@@ -3734,6 +3762,22 @@ async function boot() {
    * he falls (m_bIsStaticWaitingForCollision). Waiting out the jump allowance let him drop through the unloaded ground
    * first and land below it once the window came in. */
   let scriptTeleported=false;
+  /** A script teleport's PutToGroundIfTooLow that found no collision yet (renderer x, z): once the streamed window
+   * under the point is in, the player (or his vehicle) is set on the highest ground there, as he would have been had
+   * the collision been loaded when the script asked. He keeps it only while he has not moved off the point. */
+  let groundAfterStream:{x:number;z:number}|undefined;
+  const settleGroundAfterStream=()=>{
+   const at=groundAfterStream;if(!at)return;
+   const car=worldCar?.occupied?worldCar:fleet?.occupied,other=car?undefined:fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+   const p=car?car.car.body.translation():other?other.body.translation():sim.player.position;
+   if(Math.hypot(p.x-at.x,p.z-at.z)>1.5){groundAfterStream=undefined;return;}
+   const hit=sim.world.castRay(new RAPIER.Ray({x:at.x,y:1000,z:at.z},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   if(!hit)return;
+   groundAfterStream=undefined;const y=1000-hit.timeOfImpact;
+   if(car||other){const body=car?car.car.body:other!.body,lift=car?-car.nativeBody.boundsMin.z:-other!.assets.collision.bounds.min[2];body.setTranslation({x:p.x,y:y+lift,z:p.z},true);body.setLinvel({x:0,y:0,z:0},true);return;}
+   sim.player.position={x:p.x,y,z:p.z};sim.player.previous={...sim.player.position};sim.player.verticalSpeed=0;
+   sim.playerBody.setTranslation({x:p.x,y:y+.9,z:p.z},true);sim.playerBody.setNextKinematicTranslation({x:p.x,y:y+.9,z:p.z});sim.playerCollider.setTranslation({x:p.x,y:y+.9,z:p.z});
+  };
   const playerMayTakeTerrain=()=>{
     const now=performance.now();
     if(sim.player.grounded||!!fleet?.occupiedPlane){airborneSince=0;scriptTeleported=false;return true;}
@@ -4005,6 +4049,7 @@ async function boot() {
            const pos={x:point.x,y:-point.z,z:point.y},n={x:normal.x,y:-normal.z,z:normal.y},ped={key:handle,surface:SURFACE.ped};
            c.reportCollision(carCollider(car),ped,pos,n,carImpulse,1);c.reportCollision(ped,carCollider(car),pos,{x:-n.x,y:-n.y,z:-n.z},pedImpulse,1);};
           pedestrians.onWaterCannonSmoke=(p,v)=>worldFx.waterCannon.pedSmoke([p.x,p.y,p.z],[v.x,v.y,v.z]);
+          pedestrians.isShootThrough=hit=>worldFx.isShootThrough(hit);
           worldFx.onDanger=(plane,radius)=>{const at=()=>{if(!fleet?.planes.has(plane))return undefined;const t=plane.body.translation();return {x:t.x,z:t.z};};pedestrians?.danger(at,radius,plane.occupied?'player':plane.policeHeli?'cop':undefined);};
           pedestrians.rain=()=>weatherStarted?weather.rain:0;
           // Turf gangs from the INITIAL zone population: strongest gang wins the node.
@@ -4760,16 +4805,19 @@ async function boot() {
                  releaseScriptVehicle:car=>{const c=car as ScriptCar;if(c.disposed)return;c.missionCar=false;if(scriptCars.mission(c)!==undefined){scriptCars.forget(c);c.autopilot=undefined;}},
                  teleportPlayer:position=>{
                   const x=position.x,z=-position.y,y=position.z,car=worldCar?.occupied?worldCar:fleet?.occupied;
-                  if(car){
-                   const body=car.car.body,lift=-car.nativeBody.boundsMin.z;
+                  // CPed::Teleport on a ped in a vehicle moves the vehicle, its base on the point
+                  // (GetDistanceFromCentreOfMassToBaseOfModel), with him in it.
+                  const other=car?undefined:fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+                  if(car||other){
+                   const body=car?car.car.body:other!.body,lift=car?-car.nativeBody.boundsMin.z:-other!.assets.collision.bounds.min[2];
                    body.setTranslation({x,y:y+lift,z},true);body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
-                  }else if(fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane)return false;
-                  else{
+                  }else{
                    carEntry.cancel();sim.flushPlayerTasks();
                    sim.player.position={x,y,z};sim.player.previous={x,y,z};sim.player.speed=0;sim.player.verticalSpeed=0;sim.player.jumpMomentum={x:0,z:0};
                    sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});
                   }
                   fleet?.generateEvenIfClose();
+                  groundAfterStream=position.groundPending?{x,z}:undefined;
                   scriptTeleported=true;requestFollowingTerrain();return true;
                  },
                  // CTaskSimpleCarSetPedInAsPassenger for the player: SA's seat 0 is the front right, 1 and 2 the rear; -1 the
@@ -4850,6 +4898,7 @@ async function boot() {
                  waterLevelAt:(x,y,waves)=>{const levels=render.lighting.water.levels;return waves?levels?.level(x,y):levels?.levelNoWaves(x,y);},
                  scriptVehicleOnScreen:car=>{const p=(car as ScriptCar).car.body.translation();return !populationOutsideView(render.camera,p,2);},
                  explodeScriptVehicle:car=>{(car as {blowUp?:()=>void}).blowUp?.();},
+                 explodeScriptVehicleInCutscene:(car,o)=>{if(isScriptCar(car))car.blowUpInCutscene(o);else (car as {blowUp?:()=>void}).blowUp?.();},
                  fixScriptVehicle:car=>{if(isScriptCar(car))car.fix();else (car as {health:number}).health=1000;},
                  setScriptVehicleVisible:(car,visible)=>{if(!isScriptCar(car))return;car.scriptVisible=visible;car.showForArea(render.lighting.area);},
                  setScriptVehicleArea:(car,area)=>{if(!isScriptCar(car))return;car.areaCode=area;car.showForArea(render.lighting.area);},

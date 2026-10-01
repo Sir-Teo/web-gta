@@ -52,11 +52,15 @@ export function npcWeaponSpread(type:number){
 /** Where an AI shooter's round is sent: the point it aims at, moved by its inaccuracy (100 − CPed::m_nWeaponAccuracy).
  * AUTHORED in the shape of the earlier games' CWeapon::FireInstantHit, which moves an AI's target point by a random
  * amount in proportion to its inaccuracy (SA's FireInstantHit is unreversed): up to ±0.02 × it across the ground and
- * ±0.01 × it up. A street cop (accuracy 60) lands roughly a third of his rounds on a standing man, SWAT (68) and the
- * FBI (76) more, the army (84) most; before, every shooter struck with the weapon cone alone and a single cop's pistol
- * burst took the player's health in a couple of seconds. */
-export function npcInaccurateAim(aim:{x:number;y:number;z:number},accuracy=60,random:()=>number=Math.random){
- const k=Math.max(0,100-accuracy);
+ * ±0.01 × it up at ten units. The offset grows with the range (an angular error, not a fixed one: a fixed ±0.8 units
+ * let a street cop land a third of his rounds from forty units as from ten) and by half again on a target that moves
+ * (the shooter aims where it was when the burst began). Tuned to play (0.9 + range/12, widened from 0.6 + range/15 when
+ * a gang pistol at eight units landed over half its rounds): a street cop (accuracy 60) lands roughly a fifth of his
+ * rounds on a man standing ten units off and few from across a street, SWAT (68) and the FBI (76) more, the army (84)
+ * most. */
+export function npcInaccurateAim(aim:{x:number;y:number;z:number},accuracy=60,random:()=>number=Math.random,from?:{x:number;y:number;z:number},moving=false){
+ const range=from?Math.hypot(aim.x-from.x,aim.y-from.y,aim.z-from.z):10;
+ const k=Math.max(0,100-accuracy)*(.9+range/12)*(moving?1.5:1);
  return {x:aim.x+(random()*2-1)*.02*k,y:aim.y+(random()*2-1)*.01*k,z:aim.z+(random()*2-1)*.02*k};
 }
 /** NPC dispersion from the same native weapon radius as the player crosshair:

@@ -2,7 +2,7 @@ import {MISSION_AUDIO_COUNT} from './ScmMissionAudio';
 import {requireAsset} from '../assets/binary';
 import {readScmHeader} from '../assets/scm';
 import {ScmGameState} from './ScmGameState';
-import {ScmThread,UnsupportedScmCommand,type ScmWorldCommands} from './ScmThread';
+import {ScmThread,UnsupportedScmCommand,type MissingWorldAdapter,type ScmWorldCommands} from './ScmThread';
 
 /** CTheScripts::MAIN_SCRIPT_SIZE and MISSION_SCRIPT_SIZE: ScriptSpace holds
  * MAIN.SCM in its lower part and the current mission block above it. */
@@ -39,6 +39,9 @@ export class ScmRuntime {
   const runtime=new ScmRuntime(scriptSpace,world,random,game,{file,offsets:header.missions.map(m=>m.start),exclusiveMissions:header.exclusiveMissions,objectNames:header.objectNames});
   return {runtime,header};
  }
+ /** Told when a thread meets a command whose world member the host lacks. Answering true skips the command and the
+  * thread runs on (ScmThread's skip path); otherwise onUnsupported hears of it and the thread is retired. */
+ onMissingAdapter?:(error:MissingWorldAdapter,thread:ScmThread)=>boolean;
  /** Told when a thread meets a command this runtime has not ported; that thread is retired and the rest run on. */
  onUnsupported?:(error:UnsupportedScmCommand,thread:ScmThread)=>void;
  /** Any other failure inside one thread's command (a handle naming nothing, say). With a host listening, that thread
@@ -56,7 +59,8 @@ export class ScmRuntime {
    nextRandom:this.random?()=>this.random!.next():undefined,
    loadMission:(id:number)=>this.loadAndLaunchMission(id),launchMission:(label:number)=>{this.start(label);},
    terminateAllWithName:(name:string)=>this.terminateAllWithName(name),objectNames:this.missionSource?.objectNames,
-   startStreamedScript:(index:number,args:readonly number[])=>{this.startNewStreamedScript(index,args);}};
+   startStreamedScript:(index:number,args:readonly number[])=>{this.startNewStreamedScript(index,args);},
+   skipUnported:(thread:ScmThread,error:MissingWorldAdapter)=>this.onMissingAdapter?.(error,thread)??false};
   // Mission threads address LocalVariablesForCurrentMission; their own
   // m_LocalVars still receive the per-thread timer updates.
   const thread=new ScmThread(options.space??this.scriptSpace,entry,options.base??0,options.mission?this.missionLocals:own,host,this.scriptSpace);

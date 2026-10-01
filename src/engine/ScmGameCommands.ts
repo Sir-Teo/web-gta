@@ -15,7 +15,7 @@ import {MENU_TYPE_DEFAULT,MENU_TYPE_GRID} from './ScmMenus';
 import {switchArea} from './ScmNodeSwitches';
 import {ScmCamera} from './ScmCamera';
 import {fixAngleDegrees} from './ScmObjects';
-import {UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from './ScmThread';
+import {MissingWorldAdapter,UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from './ScmThread';
 
 export type ScmCommandHandler=(thread:ScmThread,p:ScmParameter[],i:ScmInstruction,nowMs:number)=>void;
 
@@ -30,7 +30,7 @@ function game(thread:ScmThread,i:ScmInstruction){
 }
 function world<K extends keyof ScmWorldCommands>(thread:ScmThread,i:ScmInstruction,method:K):NonNullable<ScmWorldCommands[K]>{
  const adapter=thread.host?.world?.[method];
- if(!adapter)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,`world adapter lacks ${method}`);
+ if(!adapter)throw new MissingWorldAdapter(i.offset,i.opcode&0x7fff,i.name,`world adapter lacks ${method}`);
  return adapter as NonNullable<ScmWorldCommands[K]>;
 }
 const negated=(i:ScmInstruction)=>!!(i.opcode&0x8000);

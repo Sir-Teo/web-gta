@@ -17,12 +17,20 @@ import {HeatSeekLock,pickHeatSeekTarget,type HeatSeekCandidate} from './nativeHe
 import {CRIME} from '../simulation/nativeWanted';
 import {meleeComboFor} from '../weapons/gunnery';
 import {NativeFireManager,explosionFireCount,type FireTarget} from '../combat/nativeFire';
+import {bulletLine} from './bulletLine';
 import {EXPLOSION,NativeExplosionSlots,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
 import type {MeleeSwing} from '../simulation/nativeMelee';
 import {launchVelocity,projectileTuning} from '../weapons/gunnery';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
 import {firstPersonMode,isRocketMode,type FirstPersonMode} from './nativeFirstPerson';
 /** CProjectileInfo launch helpers shared by player and aircraft fire. */
+/** How far the player's aimed rounds carry. AUTHORED: weapon.dat's range (30 to 45 units for the pistols and SMGs)
+ * ended the crosshair's line and the round short of a target across a street, so a man plainly under the crosshair
+ * could not be hit, and the line from the muzzle was drawn to the crosshair's point at that range rather than to the
+ * target, off to one side. The player's bullets and the crosshair's line carry at least PLAYER_AIM_REACH; the shotguns
+ * keep their own short range, and the AI keeps weapon.dat's. */
+export const PLAYER_AIM_REACH=120;
+export function playerAimReach(kind:string,info:{weaponRange:number}){return kind==='bullet'?Math.max(info.weaponRange,PLAYER_AIM_REACH):info.weaponRange;}
 function projectileVelocity(kind:string,direction:Vec3):Vec3{try{return launchVelocity(kind,direction);}catch{return add(direction,{x:0,y:0,z:0});}}
 function projectileFuse(kind:string,rocket:boolean){try{return projectileTuning(kind).fuse;}catch{return rocket?8:kind==='satchel'?Infinity:3;}}
 /** Native handheld IDs usable one-handed from a car (authored set; the gang task is not reversed). */
@@ -211,13 +219,7 @@ export class WeaponSystem {
  lineOfFire(from:Vec3,direction:Vec3,range:number){return this.ray(from,direction,range)?.timeOfImpact;}
  /** CWeapon's line tests pass doShootThroughCheck, so a shoot-through face (a chain-link fence) is flown through. */
  private ray(from:Vec3,direction:Vec3,range:number,body=this.sim.playerBody,filter?:(c:RAPIER.Collider)=>boolean){
-  let start=from,left=range,travelled=0;
-  for(let i=0;i<8;i++){
-   const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(start,direction),left,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,body,filter);
-   if(!hit||!this.fx?.isShootThrough?.(hit)){if(hit)hit.timeOfImpact+=travelled;return hit;}
-   const step=hit.timeOfImpact+.01;travelled+=step;left-=step;if(left<=0)return null;start=add(start,direction,step);
-  }
-  return null;
+  return bulletLine(this.sim.world,from,direction,range,{isShootThrough:hit=>!!this.fx?.isShootThrough?.(hit),excludeCollider:this.sim.playerCollider,excludeBody:body,filter});
  }
  /** CTaskSimplePlayerOnFire's timer: when the player's current fire started, in game milliseconds. */
  private playerFireSince?:number;
@@ -377,6 +379,9 @@ export class WeaponSystem {
  private releaseExplosions(){
   for(const car of this.fleet()?.cars??[]){
    if(!car.pendingExplosion)continue;car.pendingExplosion=false;
+   // BlowUpCarCutSceneNoExtras: EXPLOSION_MOLOTOV at the car's own position.
+   const cutscene=car.cutsceneExplosion;
+   if(cutscene){car.cutsceneExplosion=undefined;const p=car.car.body.translation();this.explode({x:p.x,y:p.y,z:p.z},EXPLOSION_TYPE.molotov,car,false,cutscene.sound);continue;}
    const body=car.car.body,p=body.translation(),r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),max=car.assets.collision?.bounds.max??[0,0,0];
    const ox=(Math.random()*2-1)*.75*max[0],oy=(Math.random()*2-1)*.75*max[1],oz=1.25*max[2];
    const right=new Vector3(1,0,0).applyQuaternion(q),forward=new Vector3(0,0,1).applyQuaternion(q);
@@ -575,7 +580,7 @@ export class WeaponSystem {
    const m=w.kind==='bullet'||w.kind==='shotgun'||info?.fire==='area'?this.muzzle?.(leftHand):undefined;
    if(m&&distance(at,m)<3&&!this.ray(at,normalize(add(m,at,-1)),distance(at,m)))at={...m};return at;};
   let source=handSource(left);
-  const range=info&&info.fire!=='melee'?info.weaponRange:w.range;
+  const range=info&&info.fire!=='melee'?playerAimReach(w.kind,info):w.range;
   let direction=normalize(camera.direction);
   if(w.kind==='melee')direction={x:Math.sin(this.sim.player.heading),y:0,z:Math.cos(this.sim.player.heading)};
   else {
@@ -629,8 +634,8 @@ export class WeaponSystem {
   // (flamethrower, spray can, extinguisher) reports with no victim, which CCrime::ReportCrime ignores.
   if(!['flame','spray','extinguisher'].includes(w.kind))this.onCrime?.(['rocket','guided','grenade','molotov','satchel'].includes(w.kind)?CRIME.explosion:CRIME.fireWeapon,'player');
   if(info&&(w.kind==='bullet'||w.kind==='shotgun')){
-   const fired=this.fireInstantHit(w,info,source,direction);
-   if(fired&&twin&&this.inventory.fireAgain()){this.lastHand='left';this.leftHand=true;this.fireInstantHit(w,info,handSource(true),direction);}
+   const fired=this.fireInstantHit(w,info,source,direction,undefined,range);
+   if(fired&&twin&&this.inventory.fireAgain()){this.lastHand='left';this.leftHand=true;this.fireInstantHit(w,info,handSource(true),direction,undefined,range);}
    return fired;
   }
   if(['bullet','shotgun'].includes(w.kind)){
@@ -726,9 +731,9 @@ export class WeaponSystem {
  }
  /** Instant hits (CWeapon::FireInstantHit port): weapon range, crosshair spread, WEAPON.DAT damage, the 150-point
   * point-blank player shot and SetUpPelletCol pellets counted against the first victim. */
- private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3,exclude?:RAPIER.RigidBody){
-  const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,info.weaponRange,exclude),end=add(source,direction,hit?.timeOfImpact??info.weaponRange);
-  const tyre=this.tyreHit(source,direction,hit?.timeOfImpact??info.weaponRange);
+ private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3,exclude?:RAPIER.RigidBody,reach=info.weaponRange){
+  const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,reach,exclude),end=add(source,direction,hit?.timeOfImpact??reach);
+  const tyre=this.tyreHit(source,direction,hit?.timeOfImpact??reach);
   if(tyre){
    // DoBulletImpact on a wheel piece: BurstTyre instead of vehicle damage.
    const at=add(source,direction,tyre.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
@@ -739,7 +744,7 @@ export class WeaponSystem {
   // open in the collision model); a hit reaches the driver, not the bodywork.
   // The browser's car colliders close the window openings the native COL leaves open, so the seated ped may lie up to
   // a unit past the shell hit (the cabin's width from the door skin to the seat).
-  const seated=this.onSeatedShot?this.seatedHit(source,direction,(hit?.timeOfImpact??info.weaponRange)+1):undefined;
+  const seated=this.onSeatedShot?this.seatedHit(source,direction,(hit?.timeOfImpact??reach)+1):undefined;
   if(seated){
    const at=add(source,direction,seated.t);this.tracer(source,at,'player',.065);this.fx?.gunshot(source,direction,w.id,false);this.effect('impact',at);
    const result=this.onSeatedShot!(seated.target,info.damage,w.id);
@@ -1029,7 +1034,7 @@ export class WeaponSystem {
   const camera=this.lockCamera,w=this.inventory.weapon;
   const aimed=this.aiming&&['bullet','shotgun','rocket'].includes(w.kind)&&this.sim.player.health>0&&this.sim.playerBody.isEnabled();
   if(!aimed||!camera){this.lock=undefined;return;}
-  const info=this.inventory.info(),range=info&&info.fire!=='melee'?info.weaponRange:w.range,hit=this.ray(camera.origin,normalize(camera.direction),range);
+  const info=this.inventory.info(),range=info&&info.fire!=='melee'?playerAimReach(w.kind,info):w.range,hit=this.ray(camera.origin,normalize(camera.direction),range);
   if(!hit){this.lock=undefined;return;}
   const ped=this.pedestrians()?.targets().find(p=>p.handle===hit.collider.handle);
   if(ped){this.lock={handle:ped.handle,position:{...ped.position}};return;}

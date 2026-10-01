@@ -27,14 +27,15 @@ through Vite, so it can never disagree with what the game runs) and classifies e
 | `faithful` | dispatches, and nothing in its handler or its `ScmMission` adapter says otherwise |
 | `authored` | the handler's or adapter's comments say it is an authored stand-in (`AUTHORED`, "stands in for", "approximation", "the browser has no …") |
 | `silent` | it calls an optional host member that no layer implements, so it does nothing |
-| `stops` | a required `ScmWorldCommands` member is missing, or the command has no handler at all, so the thread gives up there |
+| `skipped` | a required `ScmWorldCommands` member is missing: the game skips the command (its output variables read as nothing found, -1 for a handle and 0 for a number, a condition as false) and the mission runs on without it. The outputs come from `src/engine/scmCommandSignatures.ts`, generated from the Sanny Builder library by `node scripts/port/signatures.mjs` |
+| `stops` | the command has no handler at all, so the thread gives up there (the streamed scripts still use a few) |
 
 **What the reference offers**, from a gta-reversed checkout (`source/game_sa/Scripts/Commands/*.cpp`):
 `handler` (reversed, with the function's file and line, and whether its body still calls into the executable),
 `handler-disabled` (written, registration commented out), `nop`, `unimplemented`, or `absent`. The Sanny Builder
 library (fetched once from raw.githubusercontent.com into `scripts/port/.cache`) adds each command's description.
 
-The **work queue** in `CENSUS.md` lists every `authored`, `silent` and `stops` command, earliest launch first, then
+The **work queue** in `CENSUS.md` lists every `authored`, `silent`, `skipped` and `stops` command, earliest launch first, then
 by instruction sites. A row marked *portable* has a reversed handler to translate.
 
 The census reads source, not behaviour: `faithful` is a claim to check in play, not a proof.
@@ -50,7 +51,9 @@ It records, per mission: how far into its block the thread was seen, whether it 
 on, page errors, and the loop it was left waiting in.
 
 The autopilot cannot drive a chase, win a fight or pick a menu item, so a mission it cannot finish is reported with
-where it waited. The headless renderer runs the game several times slower than real time; give each mission
+where it waited. `SWEEP_PLAYER_ONLY=1` moves CJ alone and leaves the mission's own characters to get where the
+script sends them, as they must for a player; a mission that then waits on a homie or a chase car shows where an NPC
+task is not doing its part. Each result also lists the commands the game skipped in that mission. The headless renderer runs the game several times slower than real time; give each mission
 minutes, not seconds.
 
 ## Stage 3: report (`scripts/port/pipeline.mjs report`)

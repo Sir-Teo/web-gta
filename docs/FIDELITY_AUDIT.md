@@ -8706,3 +8706,28 @@ that did anything.
 - **A mission that gives up clears the on-mission flag** (the global `DECLARE_MISSION_FLAG` names), as its own
   ending would have: without that every side mission, gym and trigger after it heard that a mission was still on.
 
+
+## Play-test round: gravity, rockets, aim reach, cop accuracy, the jack, touch controls and skipped commands
+
+- **Vehicle gravity was split.** Cars fell at CPhysical::ApplyGravity's 0.008 units a frame squared (20 m/s²); bikes,
+  quads and boats at 9.81, so they floated off jumps and waves. They share `NATIVE_GRAVITY_MS2` now, and the water
+  buoyancy of cars, bikes and boats, scaled for 9.81 against that native gravity, is native too. The authored
+  aircraft flight keeps its own balance of lift against 9.81.
+- **Rockets stalled.** A per-frame drag took two thirds of a rocket's speed each second. Rockets and heat-seekers fly
+  at a constant 38 units a second (AUTHORED; CProjectileInfo's Update is unreversed). Spec: `rocket-flight` (unit).
+- **Far targets could not be hit.** weapon.dat's 30 to 45 units ended both the crosshair line and the round; the
+  player's aimed rounds now carry at least 120 units (AUTHORED), shotguns and the AI keep weapon.dat's range. Spec:
+  `player-aim-reach` (unit).
+- **Cops were still too good.** The AI's miss offset grows with range and by half again on a moving target
+  (AUTHORED). Spec: `npc-gun` (unit).
+- **A jacked driver became somebody else.** A packaged-roster driver was swapped for a zone resident as he landed,
+  and the occupants' model cache could re-pick the driver the frame his clip ended. The cache lives as long as the
+  car, the ped keeps the model, and the drawn victim holds his last frame until the ped exists.
+- **Aim-walking legs** were checked headless for the pistol, Uzi, AK, sniper and RPG in all four directions: the
+  GunMove clips blend fully and the feet stride 0.6 to 0.7 units. No change was needed.
+- **The intro ride** was played headless with and without a 1.5 s delay on every world request; both recordings play
+  to their ends. The terrain lookahead now counts a passenger's vehicle, which it did not, so the police car could
+  outrun the streamed window on a slow connection.
+- **Touch controls** for phones and tablets (`src/input/TouchControls.ts`). Spec: `touch-controls`.
+- **Skipped, not stopped.** A command whose world member is not ported is skipped (outputs read as nothing found, a
+  condition false) instead of ending the mission thread; see [the porting roadmap](port/ROADMAP.md).

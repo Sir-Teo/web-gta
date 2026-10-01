@@ -21,9 +21,10 @@ import {nativePedals} from './nativePedals';
 import {controlsOffSpeedScale,rawSteerTowards,steerFraction} from './nativeQuadSteer';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import {browserLocalDirection} from '../combat/nativeDamageAnim';
-import {CAR_SOLVER_GROUPS} from './solverGroups';
+import {vehicleSolverGroups} from './solverGroups';
 import {bikeTooFastToBoard} from './BikeMount';
 import {applyNativeBikeBuoyancy,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
+import {NATIVE_GRAVITY_MS2} from './nativeGravity';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
 export const PLAYABLE_BIKES:Readonly<Record<number,string>>={448:'Pizzaboy',461:'PCJ-600',462:'Faggio',463:'Freeway',468:'Sanchez',471:'Quadbike',481:'BMX',509:'Chopper',510:'Mountain Bike',521:'FCR-900',522:'NRG-500',523:'HPV-1000',581:'BF-400',586:'Wayfarer'};
@@ -147,7 +148,7 @@ export class WorldBike {
    this.wheelColliders.add(sim.world.createCollider(RAPIER.ColliderDesc.ball(w.radius).setTranslation(w.center.x,w.center.z,-w.center.y).setDensity(0).setFriction(0).setRestitution(.05).setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min),this.body).handle);
   // A car's solver group: peds are kinematic capsules that would stop the bike dead, so, as for cars, the ped strike
   // pass (CPhysical::ApplyCollision between the two) settles a bike meeting a ped instead of the solver.
-  for(let i=0;i<this.body.numColliders();i++)this.body.collider(i).setSolverGroups(CAR_SOLVER_GROUPS);
+  for(let i=0;i<this.body.numColliders();i++){const c=this.body.collider(i);c.setSolverGroups(vehicleSolverGroups(c));}
   if(assets.model&&assets.textures){
    try{this.visual=modelObject(assets.model,assets.textures,undefined,undefined,{worldLighting:true,ambient:this.ambient,carEnv:this.reflection.state});bindNativeCarDirt(this.visual.materialBindings).setLevel(randomSeed()%15);try{this.lod=bindNativeCarLod(this.visual.root,assets.model,[...assets.wheelFrames.front,...assets.wheelFrames.rear]);}catch{this.lod=undefined;}this.root.add(this.visual.root);}catch{this.visual=undefined;}
   }
@@ -245,9 +246,15 @@ export class WorldBike {
   const nearby=this.distance()<250,active=nearby&&!this.frozen&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
+  // The ride clip's clock: the pedal cycle turns while the rider pedals and holds while he coasts.
+  if(Math.abs(input.throttle)>.05)this.rideTime+=dt;
   // CAutomobile::ProcessControlInputs for the quad: the raw steer follows the pad a fifth of the way a frame, and the
   // steer angle is the lock times its square.
-  if(this.quad){this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=steerFraction(this.rawSteer);}
+  // CAutomobile::ProcessControlInputs for the quad, and CBike::ProcessControlInputs (0x6BE310, unreversed; its VC
+  // ancestor steers the same way) for every other bike: the raw steer follows the pad a fifth of the way a frame and
+  // the steer angle is the lock times its square. A key press is not full lock at once: taken raw, each tap threw the
+  // bike into its full turn and its full 48 degree lean, and it would not ride straight.
+  this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=steerFraction(this.rawSteer);
   if(this.wrecked){this.throttle=0;}
   this.bunnyHop(dt,!!input.hop,input.disabled);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
@@ -277,8 +284,14 @@ export class WorldBike {
   let yaw=-speed*Math.tan(Math.max(-1,Math.min(1,this.steer))*effLock)/WHEELBASE;
   yaw=Math.max(-2.5,Math.min(2.5,yaw));
   const horizontal={x:forward.x*want,y:forward.y*want,z:forward.z*want};
-  this.body.setLinvel({x:horizontal.x,y:v.y-9.81*dt,z:horizontal.z},true);
-  this.body.setAngvel({x:0,y:yaw,z:0},true);
+  this.body.setLinvel({x:horizontal.x,y:v.y-NATIVE_GRAVITY_MS2*dt,z:horizontal.z},true);
+  // A ridden bike's body stays upright about its forward axis (the lean is the render matrix's, CalculateLeanMatrix):
+  // the rider balances it. Zeroing the roll rate alone kept whatever roll a knock gave it, and a bike tipped onto its
+  // side rode on lying there, full throttle and going nowhere. The roll is taken out at a rate; pitch (a hill) stays.
+  if(gas>.05&&speed>-.5&&!this.quad&&(this.occupied||!!this.autopilot))this.stepUp(forward,Math.max(0,speed)*dt);
+  let roll=0;
+  if(!this.quad&&!(this as {wrecked?:boolean}).wrecked&&(this.occupied||!!this.autopilot))roll=uprightRollRate(q,forward);
+  this.body.setAngvel({x:forward.x*roll,y:yaw+forward.y*roll,z:forward.z*roll},true);
   // CPhysical::ApplySpeed: an abandoned bike lying on its side (|up.z| < 0.707) that is all but still (move speed
   // under 0.05, turn speed under 0.01 a frame) has its move speed halved every frame.
   if(!this.occupied&&!this.quad){const up=rotate(q,{x:0,y:1,z:0}),m=this.body.linvel(),w=this.body.angvel();
@@ -324,10 +337,36 @@ export class WorldBike {
   * ground under the bike, anywhere below it. */
  private groundCheck={seconds:0,loaded:true};
  private collisionLoaded(dt:number){
-  const g=this.groundCheck;g.seconds-=dt;if(g.seconds>0)return g.loaded;g.seconds=.5;
+  // Looked at every tenth of a second while it moves (a ridden bike covers six units in half a second), and only forty
+  // units down: a ray five hundred long found a structure far under a road not yet streamed in, and a homie's BMX
+  // rode off the window's edge and fell to it. Water under it counts as somewhere to be. The player's own bike is
+  // always inside the window (the terrain hold sees to that) and may fall far off a roof, so it looks all the way.
+  const g=this.groundCheck,v=this.body.linvel();g.seconds-=dt;if(g.seconds>0)return g.loaded;g.seconds=Math.hypot(v.x,v.z)>1?.1:.5;
   const p=this.body.translation();
-  g.loaded=!!this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+2,z:p.z},{x:0,y:-1,z:0}),500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  g.loaded=!!this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+2,z:p.z},{x:0,y:-1,z:0}),this.occupied?500:40,true,RAPIER.QueryFilterFlags.ONLY_FIXED)||this.waterLevel?.(p.x,-p.z)!==undefined;
   return g.loaded;
+ }
+ /** CBike's wheels ride on suspension lines, which climb a step as the line shortens; this bike's wheels are balls,
+  * and a sheer step a sixth of a unit high (a sliver where two of the map's collision meshes meet, across a lane
+  * near Market Station) stopped a ridden bike dead. Pushing forward into static world no higher than MAX_STEP over
+  * the bottom of the bike, it is lifted onto the top of it. */
+ private stepUp(forward:{x:number;y:number;z:number},ahead:number){
+  // The road it stands on, straight down from the body (the collision bounds reach below the tyres).
+  const MAX_STEP=.35,p=this.body.translation(),b=this.assets.collision.bounds;
+  const under=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y,z:p.z},{x:0,y:-1,z:0}),1.5,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!under)return;
+  const bottom=p.y-under.timeOfImpact;
+  // From the tail of the bike to just past its nose: the rear wheel catches on a step the front has climbed.
+  const h=Math.hypot(forward.x,forward.z);if(h<.5)return;const fx=forward.x/h,fz=forward.z/h,reach=b.max[1]-b.min[1]+ahead+.15;
+  const o={x:p.x+fx*b.min[1],z:p.z+fz*b.min[1]};
+  const ray=(y:number)=>this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x:o.x,y,z:o.z},{x:fx,y:0,z:fz}),reach,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  // A face near vertical is a step; a hill's road is not.
+  const low=ray(bottom+.05);if(!low||Math.abs(low.normal.y)>.5)return;
+  // How high it reaches: the forward ray raised five hundredths at a time until it passes over (a sliver has no top
+  // face to find from above); still blocked at MAX_STEP, it is a wall.
+  let lift=0;
+  for(let rise=.1;rise<=MAX_STEP+1e-6;rise+=.05){const r=ray(bottom+rise);if(!r||r.timeOfImpact>low.timeOfImpact+.2){lift=rise;break;}}
+  if(!lift)return;
+  this.body.setTranslation({x:p.x,y:p.y+lift+.02,z:p.z},true);
  }
  /** Whether the ground is under the bike (a short ray down from the body), `along` units ahead of its centre. */
  private wheelsDown(along=0){
@@ -354,7 +393,7 @@ export class WorldBike {
  /** WATER.DAT's level at a native (x, y), which the fleet hands its bikes. */
  waterLevel?:(x:number,y:number)=>number|undefined;
  private water={touching:false};inWater=false;drowning=false;
- /** CBike::ProcessBuoyancy over WATER.DAT surfaces, in the car path's browser gravity scale. The controller keeps the
+ /** CBike::ProcessBuoyancy over WATER.DAT surfaces, at native gravity (unscaled). The controller keeps the
   * bike from pitching or rolling, so of the turn force only the yaw damping stays. Drowning with CJ on board, he loses
   * breath (HandlePlayerBreath) while a wheel still touches the bottom, and is knocked off (KNOCK_OFF_TYPE_FALL) once
   * none does; a bike with no rider has its engine cut. */
@@ -363,7 +402,7 @@ export class WorldBike {
   const p=this.body.translation(),q=this.body.rotation(),v=this.body.linvel(),w=this.body.angvel(),h=this.assets.handling.values,b=this.assets.collision.bounds;
   const native=(a:{x:number;y:number;z:number}):NativeVec=>[a.x,-a.z,a.y],axis=(x:number,y:number,z:number)=>native(rotate(q,{x,y,z})),offGround=!this.wheelsDown();
   const state:NativeBuoyancyBody={position:native(p),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:false,anyWheelOffGround:offGround,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.assets.handling.buoyancy,moveSpeed:native({x:v.x/50,y:v.y/50,z:v.z/50}),turnSpeed:native({x:w.x/50,y:w.y/50,z:w.z/50})};
-  const result=applyNativeBikeBuoyancy(state,level,dt*50,{},9.81/20);
+  const result=applyNativeBikeBuoyancy(state,level,dt*50,{},1);
   this.water.touching=state.touchingWater;this.inWater=result.inWater;this.drowning=result.drowning;
   if(!result.inWater)return;
   const [mx,my,mz]=state.moveSpeed;this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:w.x,y:state.turnSpeed[2]*50,z:w.z},true);
@@ -500,7 +539,7 @@ export class WorldBike {
  }
  /** CTaskSimpleCarSetPedOut: the rider is off the bike at `spot`. */
  private leave(spot:{x:number;y:number;z:number}){
-  this.occupied=false;this.throttle=0;this.steer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
+  this.occupied=false;this.throttle=0;this.steer=0;this.rawSteer=0;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.player.position=spot;this.sim.player.previous={...spot};this.sim.playerBody.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z},true);this.sim.playerBody.setNextKinematicTranslation({x:spot.x,y:spot.y+.9,z:spot.z});this.sim.playerCollider.setTranslation({x:spot.x,y:spot.y+.9,z:spot.z});
  }
  update(alpha:number){
   interpolateVehiclePose(this.root,{body:this.body,previous:this.previous,previousRotation:this.previousRotation},alpha);
@@ -515,11 +554,14 @@ export class WorldBike {
   composeVehicleRoot(this.root);
  }
  /** Rider animation selection for the player model (IFP block + clip names). */
+ /** Seconds into the ride clip (BIKE_PEDAL, BIKE_RIDE): it runs while the rider is on the pedals. Held on one frame, a
+  * BMX rider sat frozen mid-stroke with one knee up, leaning to the side. */
+ rideTime=0;
  riderPose(){
   const prefix=this.assets.vehicle.animation,bicycle=BICYCLES.has(prefix),speed=Math.abs(this.speed());
   const idle=speed>.5?(bicycle?`${prefix}_pedal`:`${prefix}_ride`):`${prefix}_still`;
   const lean=this.quad?this.riderLean:this.lean,amount=bikeRiderLean(lean,this.assets.bike.fullAnimLean),right=this.quad?lean>0:this.steer>0;
-  return {block:prefix,seat:this.seat(),idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
+  return {block:prefix,seat:this.seat(),time:this.rideTime,idle:prefix?idle.toLowerCase():idle,overlay:amount>.05?{clip:`${prefix}_${right?'right':'left'}`.toLowerCase(),amount}:undefined};
  }
  /** SetupLightingForEntity's multiplier, GetLightingFromCol(true) × 0.95 + 0.05: the object ambient's mean with a
   * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */
@@ -539,6 +581,17 @@ export class WorldBike {
  /** CVehicle::bConsideredByPlayer, which SET_VEHICLE_IS_CONSIDERED_BY_PLAYER clears: the player's enter search passes it over. */
  consideredByPlayer=true;
  dispose(){this.disposed=true;this.root.removeFromParent();this.visual?.dispose();this.physical.dispose();}
+}
+/** The roll rate (rad/s, about the forward axis) that brings a body's up axis back to the vertical plane through its
+ * forward axis within about a fifth of a second: the signed angle from its up to world up with the forward part taken
+ * out, times five a second. */
+export function uprightRollRate(q:{x:number;y:number;z:number;w:number},forward:{x:number;y:number;z:number}){
+ const up=rotate(q as RAPIER.Rotation,{x:0,y:1,z:0});
+ let ux=-forward.x*forward.y,uy=1-forward.y*forward.y,uz=-forward.z*forward.y;const l=Math.hypot(ux,uy,uz);if(l<1e-6)return 0;ux/=l;uy/=l;uz/=l;
+ // sin: forward · (up × wanted); cos: up · wanted.
+ const cx=up.y*uz-up.z*uy,cy=up.z*ux-up.x*uz,cz=up.x*uy-up.y*ux;
+ const angle=Math.atan2(forward.x*cx+forward.y*cy+forward.z*cz,up.x*ux+up.y*uy+up.z*uz);
+ return Math.abs(angle)<.002?0:angle*5;
 }
 function rotate(q:RAPIER.Rotation,v:{x:number;y:number;z:number}){
  const {x,y,z}=v,qx=q.x,qy=q.y,qz=q.z,qw=q.w;

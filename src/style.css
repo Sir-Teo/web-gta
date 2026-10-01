@@ -98,3 +98,20 @@
 .script-menu-text{position:absolute;width:max-content;white-space:nowrap;line-height:1;font-family:'Arial Black',Arial,sans-serif;font-weight:900;text-shadow:2px 2px 0 #000}
 .script-menu-cell{position:absolute}
 .paused .script-menus{visibility:hidden}
+/* Touch controls (src/input/TouchControls.ts): a floating stick on the left, camera drag on the right, buttons round the right thumb. */
+.touch-controls{position:absolute;inset:0;z-index:4;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:none}
+.touch-controls[hidden],.game-ui.paused .touch-controls{display:none}
+.touch-look{position:absolute;top:0;right:0;bottom:0;left:45%;pointer-events:auto;touch-action:none}
+.touch-stick-zone{position:absolute;left:0;top:25%;bottom:0;width:45%;pointer-events:auto;touch-action:none}
+.touch-stick{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;background:#0003;border:2px solid #fff6;pointer-events:none}
+.touch-stick[hidden]{display:none}
+.touch-stick-knob{position:absolute;left:36px;top:36px;width:56px;height:56px;border-radius:50%;background:#fffa;box-shadow:0 1px 4px #0008}
+.touch-buttons{position:absolute;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,64px);gap:10px;pointer-events:none;direction:rtl}
+.touch-button{pointer-events:auto;touch-action:none;width:64px;height:64px;border-radius:50%;border:2px solid #fff8;background:#0006;color:#fff;font:600 12px/1 system-ui,sans-serif;text-shadow:0 1px 2px #000;padding:0;direction:ltr}
+.touch-button[hidden]{display:none}
+.touch-button.on{background:#fffc;color:#111;text-shadow:none}
+.touch-button.fire{width:84px;height:84px;background:#a0202099;grid-row:span 2;align-self:center}
+.touch-button.small{width:auto;min-width:44px;height:36px;border-radius:18px;padding:0 12px}
+.touch-top{position:absolute;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:8px;pointer-events:none}
+/* On a touch screen the key hints and the desktop-only readouts give way to the controls. */
+.touch .onboarding{display:none}
