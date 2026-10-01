@@ -2528,7 +2528,8 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_CHAR_IN_AREA_IN_CAR_3D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharInAreaInCar3d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),bool(t,p[7])),negated(i));},
  TASK_COWER:(t,p,i)=>{world(t,i,'taskCower')(t.readInt(p[0]));},
  // Only a Pay 'n' Spray resprays a car, and none is ported, so none has been.
- HAS_CAR_BEEN_RESPRAYED:(t,p,i)=>{t.updateCompareFlag(false,negated(i));},
+ // vehicleFlags.bHasBeenResprayed, which a Pay 'n' Spray sets: read and cleared.
+ HAS_CAR_BEEN_RESPRAYED:(t,p,i)=>{t.updateCompareFlag(!!t.host?.world?.carBeenResprayed?.(t.readInt(p[0])),negated(i));},
  GET_CHAR_SWIM_STATE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCharSwimState')(t.readInt(p[0])));},
  BOAT_GOTO_COORDS:(t,p,i)=>{world(t,i,'boatGotoCoords')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  IS_CHAR_IN_ANY_SEARCHLIGHT:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharInAnySearchlight')(t.readInt(p[0])),negated(i));},

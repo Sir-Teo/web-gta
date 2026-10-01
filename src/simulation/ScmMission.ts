@@ -13,6 +13,7 @@ import {resetGangWeapons,setGangWeapons} from './nativeGangWeapons';
 import {VEHICLE_CLASSES} from '../assets/pedGroups';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from '../engine/ScmThread';
 import {BRAIN_OBJECT,BRAIN_RANDOM_PED} from '../engine/ScmScriptBrains';
+import {GARAGE_DOOR_REACH,garageCentre,garageDoorHeight,garageDoorPose,type ScmGarage} from '../engine/ScmGarages';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findZone,worldZoneAt,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
@@ -252,6 +253,8 @@ export interface ScmMissionWorld {
  setTaxiLight?(vehicle:unknown,on:boolean):void;
  /** Take a listed placement out of the map (the script now draws and collides its own copy), or put it back. */
  takeWorldObject?(key:string,taken:boolean):boolean;
+ /** The models whose IDE flags mark a garage door (0x800, CBaseModelInfo::IsGarageDoor), lower case. */
+ garageDoorModels?():ReadonlySet<string>|undefined;
  /** A model's EFFECT_TRIGGER_POINT of that index, in the model's space. */
  modelTriggerPoint?(model:string,index:number):[number,number,number]|undefined;
  /** CWeaponInfo::GetWeaponInfo(type): m_nSlot and m_nModelId1, or nothing before weapon.dat is in. */
@@ -691,6 +694,9 @@ export function validRandomPedType(pedType:number,civilian:boolean,gang:boolean,
 const EXTERNAL_OBJECT_BRAIN=1;
 /** CRunningScript::m_nExternalType of a random ped's brain (ShutdownThisScript's case 0). */
 const EXTERNAL_PED_BRAIN=0;
+/** How near the player a garage's doors are made objects of, and the height a door model with no collision gets (re3's
+ * AddOne falls back to 4). The grge row's 0x1 flag: the door opens up and turns. */
+const GARAGE_DOOR_STREAM_RADIUS=150,GARAGE_DOOR_DEFAULT_HEIGHT=4,GARAGE_FLAG_DOOR_TURNS=0x1;
 /** MODEL_BMOCHIL and MODEL_HOTDOG (eModelID). */
 const MODEL_BMOCHIL=168,MODEL_HOTDOG=588;
 /** COMMAND_TASK_USE_ATTRACTOR and COMMAND_TASK_PLAY_ANIM_SECONDARY, the task records those commands leave. */
@@ -2049,6 +2055,7 @@ export class ScmMission {
    vehicleIsOnScreen:handle=>this.world.scriptVehicleOnScreen(this.liveVehicle(handle)),
    explodeVehicle:handle=>{this.world.explodeScriptVehicle(this.liveVehicle(handle));},
    fixCar:handle=>{this.world.fixScriptVehicle(this.liveVehicle(handle));},
+   carBeenResprayed:handle=>{const car=this.liveVehicle(handle);const had=this.resprayedCars.has(car as object);this.resprayedCars.delete(car as object);return had;},
    setVehicleVisible:(handle,state)=>{this.world.setScriptVehicleVisible(this.liveVehicle(handle),state);},
    setVehicleAreaVisible:(handle,area)=>{this.host('setScriptVehicleArea','SET_VEHICLE_AREA_VISIBLE')(this.liveVehicle(handle),area);},
    setVehicleProofs:(handle,proofs)=>{this.world.setScriptVehicleProofs(this.liveVehicle(handle),proofs);},
@@ -2279,6 +2286,63 @@ export class ScmMission {
    // The map has its own copy back, where it always stood.
    if(record.taken)this.world.takeWorldObject?.(key,false);
   }
+ }
+ /** The garages' doors as CObjects made from their map placements, by placement key. CGarage::FindDoorsWithGarage
+  * is unreversed: as re3's FindDoorsEntities, a garage takes up to two garage-door models within GARAGE_DOOR_REACH of
+  * its centre in x and y; a door near two garages goes with the nearer. The map's copy is taken out once the door
+  * leaves where the map has it shut, and the object is drawn and collides in its place. */
+ private readonly garageDoors=new Map<string,{garage:ScmGarage;handle:number;home:{x:number;y:number;z:number};heading:number;height?:number;applied?:number;taken:boolean}>();
+ private nextGarageDoorScan=0;
+ /** vehicleFlags.bHasBeenResprayed, set on a vehicle a Pay 'n' Spray did. */
+ private readonly resprayedCars=new WeakSet<object>();
+ /** What the host calls on the vehicle a Pay 'n' Spray resprays. */
+ markResprayed(car:object){this.resprayedCars.add(car);}
+ private processGarageDoors(nowMs:number){
+  const near=this.world.worldObjectsNear,models=this.world.garageDoorModels?.();
+  if(!near||!models?.size)return;
+  const game=this.runtime.game,objects=game.objects;
+  if(nowMs>=this.nextGarageDoorScan){
+   this.nextGarageDoorScan=nowMs+1000;
+   const player=this.world.playerPed().position,claims=new Map<string,{garage:ScmGarage;distance:number;found:{key:string;model:string;position:[number,number,number];heading:number}}>();
+   for(const garage of game.garages.garages){
+    const centre=garageCentre(garage);if(!centre||Math.hypot(centre.x-player.x,centre.y-player.y)>GARAGE_DOOR_STREAM_RADIUS)continue;
+    for(const found of near(models,centre.x,centre.y,GARAGE_DOOR_REACH*Math.SQRT2)){
+     const dx=found.position[0]-centre.x,dy=found.position[1]-centre.y;if(Math.abs(dx)>=GARAGE_DOOR_REACH||Math.abs(dy)>=GARAGE_DOOR_REACH)continue;
+     const distance=Math.hypot(dx,dy),claim=claims.get(found.key);
+     if(!claim||distance<claim.distance)claims.set(found.key,{garage,distance,found});
+    }
+   }
+   const perGarage=new Map<ScmGarage,number>(),kept=new Set<string>();
+   for(const [key,claim] of [...claims].sort((a,b)=>a[1].distance-b[1].distance)){
+    const count=perGarage.get(claim.garage)??0;if(count>=2)continue;perGarage.set(claim.garage,count+1);kept.add(key);
+    const door=this.garageDoors.get(key);
+    if(door){door.garage=claim.garage;if(door.taken)this.world.takeWorldObject?.(key,true);continue;}
+    const [x,y,z]=claim.found.position,adopted=objects.adoptWorld(claim.found.model,{x,y,z},claim.found.heading,key);
+    this.garageDoors.set(key,{garage:claim.garage,handle:adopted.handle,home:{x,y,z},heading:adopted.heading,taken:false});
+   }
+   for(const [key,door] of this.garageDoors)if(!kept.has(key)){
+    if(objects.exists(door.handle))objects.remove(door.handle);this.garageDoors.delete(key);
+    if(door.taken)this.world.takeWorldObject?.(key,false);
+   }
+  }
+  for(const [key,door] of this.garageDoors){
+   if(!objects.exists(door.handle))continue;
+   const object=objects.at(door.handle),position=door.garage.doorPosition;
+   if(position===door.applied)continue;
+   if(door.height===undefined){
+    const bounds=this.world.objectModelBounds?.(object.model);if(bounds===undefined)continue;
+    door.height=bounds?garageDoorHeight(bounds):GARAGE_DOOR_DEFAULT_HEIGHT;
+   }
+   if(!door.taken){if(position===0)continue;if(!this.world.takeWorldObject?.(key,true))continue;door.taken=true;object.worldPlacement=undefined;}
+   const pose=garageDoorPose(door.home,door.heading,door.height,!!(door.garage.flags&GARAGE_FLAG_DOOR_TURNS),position);
+   object.position=pose.position;object.matrix={right:pose.right,forward:pose.forward,up:pose.up};door.applied=position;
+  }
+ }
+ /** The garage doors held as objects, for the dev API and the browser tests. */
+ garageDoorsSnapshot(){
+  const objects=this.runtime.game.objects;
+  return [...this.garageDoors].map(([key,d])=>({key,garage:d.garage.name,model:objects.exists(d.handle)?String(objects.at(d.handle).model):'',taken:d.taken,height:d.height,
+   position:objects.exists(d.handle)?{...objects.at(d.handle).position}:undefined,up:objects.exists(d.handle)?objects.at(d.handle).matrix?.up:undefined}));
  }
  /** Street peds the random-ped brains have weighed already. */
  private readonly brainPeds=new WeakSet<object>();
@@ -3255,7 +3319,7 @@ export class ScmMission {
   this.highlights.clear();
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);

@@ -76,3 +76,94 @@ test('the help box is blocked while a garage message shows (CHud::SetHelpMessage
  g.garageMessage.trigger('OY_ONE',3,5000,50,0);expect(g.help.blocked!()).toBe(true);
  g.garageMessage.current(5000);expect(g.help.blocked!()).toBe(false);
 });
+
+// CGarage::Update's PAYNSPRAY case (AUTHORED from re3's respray case; see ScmGarages).
+const sprayWorld=(o:Partial<{inside:boolean;sprayable:boolean;outside:boolean;money:number;wanted:number;repaired:boolean;recoloured:boolean;coin:boolean}>={})=>{
+ const log:{messages:string[];paid:number;held:boolean[];cleared:number;resprays:number}={messages:[],paid:0,held:[],cleared:0,resprays:0};
+ const state={inside:true,sprayable:true,outside:false,money:500,wanted:2,repaired:true,recoloured:true,coin:true,...o};
+ const world={nowMs:0,state,log,
+  playerCarParkedInside:()=>state.inside,playerCarSprayable:()=>state.sprayable,playerOutside:()=>state.outside,
+  money:()=>state.money,wantedLevel:()=>state.wanted,
+  respray:()=>{log.resprays++;return {repaired:state.repaired,recoloured:state.recoloured};},
+  pay:(n:number)=>{log.paid+=n;state.money-=n;},clearWanted:()=>{log.cleared++;state.wanted=0;},
+  holdPlayer:(on:boolean)=>{log.held.push(on);},message:(id:string)=>{log.messages.push(id);},coin:()=>state.coin};
+ return world;
+};
+const sprayGarage=()=>{const g=new ScmGarages();g.load([{name:'sprLAe',type:GARAGE_TYPE.paynspray,corner:[2056.6,-1835.9,12.5443],front:[2071.3,-1835.9],far:[2056.6,-1826.97,18.5443],flags:1}]);return g;};
+const runFrames=(g:ScmGarages,world:{nowMs:number},frames:number)=>{for(let i=0;i<frames;i++){world.nowMs+=20;g.update(20);}};
+
+test('a Pay \'n\' Spray stands open with its door up, as re3\'s AddOne leaves it; other garages start shut',()=>{
+ const g=new ScmGarages();g.load([{name:'spray',type:GARAGE_TYPE.paynspray},{name:'bomb',type:GARAGE_TYPE.bombshopTimed},{name:'misn',type:1}]);
+ expect(g.garages.map(x=>[x.doorState,x.doorPosition])).toEqual([[GARAGE_DOOR_OPEN,1],[GARAGE_DOOR_OPEN,1],[GARAGE_DOOR_CLOSED,0]]);
+});
+
+test('a wanted car parked inside: the door shuts on the player, two seconds later the car is done, $100 taken, GA_2, and the door opens',()=>{
+ const g=sprayGarage(),world=sprayWorld(),spray=g.garages[0];g.respray=world;
+ g.update(20);expect(spray.doorState).toBe(GARAGE_DOOR_CLOSING);expect(world.log.held).toEqual([true]);
+ let frames=0;while(spray.doorState===GARAGE_DOOR_CLOSING&&frames<1000){runFrames(g,world,1);frames++;}
+ expect(spray.doorState).toBe(GARAGE_DOOR_CLOSED);expect(spray.doorPosition).toBe(0);expect(world.log.resprays).toBe(0);
+ // TIME_TO_RESPRAY: shut for two seconds.
+ runFrames(g,world,99);expect(spray.doorState).toBe(GARAGE_DOOR_CLOSED);
+ runFrames(g,world,2);expect(spray.doorState).toBe(GARAGE_DOOR_OPENING);
+ expect(world.log).toMatchObject({resprays:1,cleared:1,paid:100,messages:['GA_2'],held:[true,false]});
+ expect(spray.usedRespray).toBe(true);expect(g.hasResprayHappened('SPRLAE')).toBe(true);expect(g.hasResprayHappened('sprlae')).toBe(false);
+ frames=0;while(spray.doorState===GARAGE_DOOR_OPENING&&frames<1000){runFrames(g,world,1);frames++;}
+ // Up again, the garage waits for him to drive out before it will take a car again.
+ expect(spray.doorState).toBe(GARAGE_DOOR_WAITING_PLAYER_TO_EXIT);runFrames(g,world,10);expect(spray.doorState).toBe(GARAGE_DOOR_WAITING_PLAYER_TO_EXIT);
+ world.state.inside=false;world.state.outside=true;runFrames(g,world,1);expect(spray.doorState).toBe(GARAGE_DOOR_OPEN);
+});
+
+test('the lines: GA_XX for a repair alone, a free respray complimentary, and a paint job alone free with one of two lines',()=>{
+ const repairOnly=sprayGarage(),a=sprayWorld({wanted:0});repairOnly.respray=a;runFrames(repairOnly,a,400);
+ expect(a.log).toMatchObject({paid:100,messages:['GA_XX']});
+ const free=sprayGarage(),b=sprayWorld();free.respray=b;free.freeResprays=true;runFrames(free,b,400);
+ expect(b.log).toMatchObject({paid:0,cleared:1,messages:['GA_16']});
+ const paint=sprayGarage(),c=sprayWorld({wanted:0,repaired:false,coin:true});paint.respray=c;runFrames(paint,c,400);
+ expect(c.log).toMatchObject({paid:0,messages:['GA_15']});
+ const garageFree=sprayGarage(),d=sprayWorld();garageFree.respray=d;garageFree.setResprayFree('sprlae',true);runFrames(garageFree,d,400);
+ expect(d.log.paid).toBe(0);
+});
+
+test('short of $100 it is GA_3, and a car it will not touch GA_1: the door stays up and waits for him to leave',()=>{
+ for(const [o,line] of [[{money:99},'GA_3'],[{sprayable:false},'GA_1']] as const){
+  const g=sprayGarage(),world=sprayWorld(o);g.respray=world;runFrames(g,world,5);
+  expect(world.log.messages).toEqual([line]);expect(world.log.held).toEqual([]);
+  expect(g.garages[0].doorState).toBe(GARAGE_DOOR_WAITING_PLAYER_TO_EXIT);expect(g.garages[0].doorPosition).toBe(1);
+ }
+});
+
+test('SET_NO_RESPRAYS shuts every Pay \'n\' Spray and keeps it shut; lifted, the doors come back up',()=>{
+ const g=sprayGarage(),world=sprayWorld({inside:false,outside:true}),spray=g.garages[0];g.respray=world;
+ g.noResprays=true;g.allRespraysCloseOrOpen(true);runFrames(g,world,300);
+ expect([spray.doorState,spray.doorPosition]).toEqual([GARAGE_DOOR_CLOSED,0]);expect(world.log.resprays).toBe(0);
+ g.noResprays=false;g.allRespraysCloseOrOpen(false);runFrames(g,world,300);
+ expect([spray.doorState,spray.doorPosition]).toEqual([GARAGE_DOOR_OPEN,1]);
+});
+
+test('the door\'s pose: a turning door rises by half its height less a tenth and lies flat (BuildRotatedDoorMatrix), a plain one slides up its height',async()=>{
+ const {garageDoorPose,garageCentre,garageDoorHeight}=await import('../src/engine/ScmGarages');
+ const home={x:10,y:20,z:30};
+ const shut=garageDoorPose(home,0,4,true,0);
+ expect(shut.position).toEqual(home);expect(shut.up.z).toBeCloseTo(1,9);expect(shut.right.x).toBeCloseTo(1,9);
+ const open=garageDoorPose(home,0,4,true,1);
+ expect(open.position.z).toBeCloseTo(31.9,9);
+ // A quarter turn about the forward axis: up lies along the old right, right points down.
+ expect([open.up.x,open.up.y,open.up.z].map(v=>+v.toFixed(9)+0)).toEqual([1,0,0]);
+ expect([open.right.x,open.right.y,open.right.z].map(v=>+v.toFixed(9)+0)).toEqual([0,0,-1]);
+ expect(open.forward).toEqual({x:-0,y:1,z:0});
+ const slid=garageDoorPose(home,Math.PI/2,4,false,.5);
+ expect(slid.position.z).toBe(32);expect(slid.forward.x).toBeCloseTo(-1,9);
+ expect(garageDoorHeight({min:{z:-2},max:{z:2.5}})).toBeCloseTo(4.4,9);
+ const g=sprayGarage();expect(garageCentre(g.garages[0])).toEqual({x:2063.95,y:expect.closeTo(-1831.435,6)});
+});
+
+test('IsCarSprayable: not police, not the BMX class, not a bus, coach, trailer, fire truck or ambulance; and the box tests by sphere',async()=>{
+ const {isCarSprayable}=await import('../src/engine/ScmGarages');
+ expect([596,523,432,481,431,437,407,416].map(isCarSprayable)).toEqual(Array(8).fill(false));
+ expect([400,410,522,462].map(isCarSprayable)).toEqual(Array(4).fill(true));
+ const spray=sprayGarage().garages[0];
+ expect(ScmGarages.sphereInside(spray,[2064,-1831,14],1)).toBe(true);
+ expect(ScmGarages.sphereInside(spray,[2057,-1831,14],1)).toBe(false);
+ expect(ScmGarages.sphereTouching(spray,[2056,-1831,14],1)).toBe(true);
+ expect(ScmGarages.sphereTouching(spray,[2054,-1831,14],1)).toBe(false);
+});

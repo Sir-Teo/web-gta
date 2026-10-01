@@ -8833,3 +8833,32 @@ that did anything.
   answered 0 inside any interior the player walked into. INTRO2 asks for the SHOP animations only when it hears area 2
   in the barber's, and after the haircut waited for them for ever. The transfer now sets it (spec `interior-shops`,
   "walking through a door changes the area the script sees").
+
+## Pay 'n' Spray
+
+- **The respray is AUTHORED.** `CGarage::Update` (0x44AA50) is unreversed, so the PAYNSPRAY case follows re3's and
+  reVC's respray case over SA's door states: a car at rest (0.01 units a frame) with every collision sphere inside
+  the garage's box, not getting out and with no other car touching the box (`IsStaticPlayerCarEntirelyInside`,
+  `IsAnyOtherCarTouchingGarage`) shuts the door on the player, his controls held (`PLAYERCONTROL_GARAGE`) and the
+  police backed off (`m_bPoliceBackOffGarage`). Two seconds after the door is down (`TIME_TO_RESPRAY`) the car is
+  fixed, its health back to 1000 and its fire out, `ChooseVehicleColour` is asked again (up to ten times) for two main
+  colours it does not already wear, the wanted level is cleared, and the door opens; it then waits for the player to
+  leave the box before it takes a car again.
+- **What it costs and what it says.** SA's own lines name $100 (`GA_2`, `GA_3`, `GA_XX`). With a wanted level it is
+  `GA_2` and $100; for the repair alone `GA_XX` and $100; with resprays free (`SET_FREE_RESPRAYS`, or the garage's
+  `SET_GARAGE_RESPRAY_FREE`, which Michelle's garage uses) `GA_16`; for paint alone one of `GA_15` and `GA_16` and no
+  money, as re3 does. Under $100 it is `GA_3`, and a vehicle `CGarages::IsCarSprayable` (reversed) refuses — the law
+  enforcement vehicles, the BMX class, the Bus, Coach, articulated trailer, Fire Truck and Ambulance — gets `GA_1`;
+  either way the door stays up. The respray sets `vehicleFlags.bHasBeenResprayed` (`HAS_CAR_BEEN_RESPRAYED`) and
+  `m_bUsedRespray`, and adds one to `STAT_VEHICLE_RESPRAYS`. `SET_NO_RESPRAYS` brings the doors down until it is lifted.
+- **The garages start open.** `CGarages::AddOne` and `InitDoorsAtStart` are unreversed; as re3's `AddOne`, the bomb
+  shops and the Pay 'n' Sprays start open with their doors up, and the other garages shut.
+- **The doors move.** `CGarage::FindDoorsWithGarage` is unreversed: as re3's `FindDoorsEntities`, a garage takes up to
+  two models whose IDE flags mark a garage door (0x800) within 20 units of its centre in x and in y; a door near two
+  garages goes with the nearer. The door becomes an object made from its map placement, which is taken out of the map
+  once the door leaves where the map has it shut. Its height is `CGarages::FindDoorHeightForMI` (reversed: the
+  collision box height less a tenth). A door whose garage row has the 0x1 flag (the door opens up and turns) rises by
+  half that less a tenth, as re3's `SetGarageDoorToRotate` sets it, while `CGarage::BuildRotatedDoorMatrix` (reversed)
+  turns it a quarter turn about its forward axis; any other door slides up its height. Doors that a script opens or
+  shuts (`OPEN_GARAGE`, `CLOSE_GARAGE`) now move as well. Not done: the row's 0x2 flag (the door goes in), the camera
+  `CGarages::Update` puts outside a shut garage, and the garage and spray sounds (`AE_FRONTEND_CAR_RESPRAY`).

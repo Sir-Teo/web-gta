@@ -356,8 +356,22 @@ export class WorldFleet {
   for(const [slot,index] of [primary,secondary].entries()){
    const rgb=palette[index]?.rgb;if(rgb)rows[slot]=[...rgb] as [number,number,number];
   }
-  const next=[rows[0],rows[1],rows[2],rows[3]] as const;
+  const next=[rows[0],rows[1],rows[2],rows[3]] as const,indices=car.assets.colourIndices;
+  if(indices)car.assets.colourIndices=[palette[primary]?primary:indices[0],palette[secondary]?secondary:indices[1],indices[2],indices[3]];
   car.assets.colors=next as unknown as typeof colors;car.car.setColors(car.assets.colors);return true;
+ }
+ /** A Pay 'n' Spray's new paint (CGarage::Update is unreversed; re3's respray case): ChooseVehicleColour again, up
+  * to ten more times while it gives the two main colours the car already has. True when they changed. */
+ resprayCar(car:WorldCar){
+  const catalog=this.catalog;if(!catalog)return false;
+  const model=car.assets.vehicle.model,count=carColorVariationCount(catalog.colors,model),before=car.assets.colourIndices;
+  let variation=0;
+  const choose=()=>{variation=count?catalog.colourRotation.choose(model,count):0;return chooseVehicleColors(catalog.colors,model,variation);};
+  let chosen=choose();
+  for(let attempt=0;attempt<10&&before&&chosen.indices[0]===before[0]&&chosen.indices[1]===before[1];attempt++)chosen=choose();
+  const changed=!before||chosen.indices[0]!==before[0]||chosen.indices[1]!==before[1];
+  car.assets.colors=chosen.colors;car.assets.colourIndices=chosen.indices;car.assets.colourVariation=variation;car.car.setColors(chosen.colors);
+  return changed;
  }
  /** CWorld::Remove through a script's DELETE_CAR, for a car the streamer never owned. */
  removeScriptCar(car:WorldCar){if(this.cars.delete(car))car.dispose();}
