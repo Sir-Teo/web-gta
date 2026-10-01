@@ -145,6 +145,28 @@ export function missionBotTick(dtSeconds:number){
   if(!R||l<.01)return true;
   return !g.sim.world.castRay(new R.Ray(o,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,R.QueryFilterFlags.ONLY_FIXED);
  };
+ // Whether a car's width (its middle and 0.9 to either side) runs clear of anything fixed from one point to another,
+ // level at height z: the bumper's line, not the eye's.
+ const carLineClear=(a:any,b:any,z:number)=>{
+  const R=g.RAPIER,dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy);
+  if(!R||l<.5)return true;
+  const sx=-dy/l*.9,sy=dx/l*.9;
+  for(const k of [-1,0,1])if(g.sim.world.castRay(new R.Ray({x:a.x+sx*k,y:z,z:-(a.y+sy*k)},{x:dx/l,y:0,z:-dy/l}),l,true,R.QueryFilterFlags.ONLY_FIXED))return false;
+  return true;
+ };
+ // Where a car comes at a place it cannot reach straight (SWEET3's stop in Smoke's front yard, behind a low wall the
+ // car ran into from the street): the point round it, six to fifteen out, with a clear run in for the car's width,
+ // nearest by the way there and in; one the car also has a clear run to first if there is one.
+ const approachTo=(to:any)=>{
+  const z=to.z+.6;let best:any,bestD=Infinity,open=false;
+  for(const radius of [6,9,12,15])for(let k=0;k<16;k++){
+   const a=k/16*Math.PI*2,pt={x:to.x+Math.cos(a)*radius,y:to.y+Math.sin(a)*radius,z:to.z};
+   if(!carLineClear(pt,to,z))continue;
+   const seen=carLineClear(me,pt,z),d=Math.hypot(pt.x-me.x,pt.y-me.y)+radius;
+   if(seen&&!open||seen===open&&d<bestD){best=pt;bestD=d;open=seen;}
+  }
+  return best;
+ };
  // The nearest point round a target, at one to four units, with a floor at its own level and a clear shot at it.
  const vantageOn=(to:any)=>{
   let best:any,bestD=Infinity;
@@ -249,6 +271,13 @@ export function missionBotTick(dtSeconds:number){
   const over=Math.hypot(p.position.x-me.x,p.position.y-me.y)<1.5&&Math.abs(p.position.z-me.z)<4;
   // The time spent about the place (within six units of it) counts toward walking into a door beside it.
   if(Math.hypot(p.position.x-me.x,p.position.y-me.y)>6)mem.idleAtPlace=0;
+  // A place the car cannot run at straight is come at round the side, once a place.
+  if(vehicle&&!over){
+   const key=`${p.position.x.toFixed(1)},${p.position.y.toFixed(1)}`;
+   if(mem.approachFor!==key){mem.approachFor=key;mem.approach=undefined;mem.approachTried=false;}
+   if(!mem.approachTried&&distance(p.position)<30&&!carLineClear(me,p.position,p.position.z+.6)){mem.approachTried=true;mem.approach=approachTo(p.position);}
+   if(mem.approach){if(glide(mem.approach,2.5))return {action:'go round to place'};mem.approach=undefined;}
+  }
   if(!over&&glide(p.position,1))return {action:'go to place'};
   // Indoors with nothing left to do at the place for twenty seconds (the haircut bought, the counter served), a player
   // walks out through the interior's exit marker: INTRO2 waits for CJ back at the barber's door.
