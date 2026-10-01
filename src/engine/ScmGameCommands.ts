@@ -1148,10 +1148,12 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_CHAR_MALE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsMale')(t.readInt(p[0])),negated(i));},
  IS_CHAR_MODEL:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedModelId')(t.readInt(p[0]))===t.readInt(p[1]),negated(i));},
  GET_CHAR_MODEL:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedModelId')(t.readInt(p[0])));},
- // A velocity is read in the engine's own units a frame, unlike the speed the script reads in units a second.
+ // The script reads the velocity fifty times the engine's, as SET_CHAR_VELOCITY divides it and GET_OBJECT_VELOCITY
+ // scales it (AUTHORED: gta-reversed's GetCharVelocity returns m_vecMoveSpeed as it is, but the scripts read units a
+ // second: player_parachute's free fall starts under -10, and the Freefall mission hands it back to SET_CHAR_VELOCITY).
  GET_CHAR_VELOCITY:(t,p,i)=>{
   const velocity=world(t,i,'pedVelocity')(t.readInt(p[0]));
-  t.writeFloat(p[1],velocity.x);t.writeFloat(p[2],velocity.y);t.writeFloat(p[3],velocity.z);
+  t.writeFloat(p[1],velocity.x*50);t.writeFloat(p[2],velocity.y*50);t.writeFloat(p[3],velocity.z*50);
  },
  IS_CHAR_GETTING_IN_TO_A_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsGettingIntoCar')(t.readInt(p[0])),negated(i));},
  IS_CHAR_WAITING_FOR_WORLD_COLLISION:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsWaitingForCollision')(t.readInt(p[0])),negated(i));},
@@ -2878,6 +2880,8 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_WIDESCREEN_ON_IN_OPTIONS:(t,_p,i)=>{t.updateCompareFlag(game(t,i).widescreen,negated(i));},
  // The reference answers this one with a flat no.
  IS_JAPANESE_VERSION:(t,_p,i)=>{t.updateCompareFlag(false,negated(i));},
+ // CGameLogic::IsCoopGameGoingOn (reversed): a second player ped beside the first, which the browser never makes.
+ IS_2PLAYER_GAME_GOING_ON:(t,_p,i)=>{t.updateCompareFlag(false,negated(i));},
  GET_GROUND_Z_FOR_3D_COORD:(t,p,i)=>{t.writeFloat(p[3],world(t,i,'groundZFor3DCoord')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2])));},
  // --- The script's sprites and boxes (DrawCommands.cpp is reversed). Coordinates arrive in the 640x448 design
  // space and are stretched to the screen; the texture dictionary itself is the host's to load.

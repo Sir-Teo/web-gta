@@ -3022,8 +3022,11 @@ export class WorldPedestrians {
   playerVehicleVelocity?:()=>{x:number;y:number;z:number}|undefined;
   /** Whether this 60 Hz step starts one of the game's 30 fps frames: the rolls natives make once a frame, unscaled by
    * the timestep (look-ats, gang chatter, stare talk, on-fire screams), only roll then. */
-  private frameClock=0;private frameDue=true;
+  private frameClock=0;private frameDue=true;private stepDt=1/60;
+  /** CPhysical::m_vecMoveSpeed of a ped on foot, from its last step's travel: renderer axes, units a second. */
+  velocityOf(p:Pedestrian){const s=p.actor.player,dt=this.stepDt;return {x:(s.position.x-s.previous.x)/dt,y:(s.position.y-s.previous.y)/dt,z:(s.position.z-s.previous.z)/dt};}
   beforeStep(dt:number,cars:Iterable<WorldCar>){
+   if(dt>0)this.stepDt=dt;
    this.frameClock+=dt;this.frameDue=this.frameClock>=1/30;if(this.frameDue)this.frameClock-=1/30;
    {const law=this.law,pl=this.sim.player.position,chasing=new Set(this.pursuers);this.pursuers.clear();
     if(law?.level&&!law.native.backOff){

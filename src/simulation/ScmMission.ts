@@ -319,6 +319,8 @@ export interface ScmMissionWorld {
  removeScriptPed(ped:unknown):void;
  releaseScriptPed(ped:unknown,keepTask?:boolean):void;
  scriptPedSpeed(ped:unknown):number;
+ /** GET_CHAR_VELOCITY: a script ped's m_vecMoveSpeed in native axes, units a second (its car's when it rides). */
+ scriptPedVelocity?(ped:unknown):{x:number;y:number;z:number};
  scriptPedStanding(ped:unknown):boolean;
  scriptPedSubmerged(ped:unknown):boolean;
  scriptPedOnScreen(ped:unknown):boolean;
@@ -703,6 +705,8 @@ export interface ScmMissionWorld {
  setFreeHealthCare?(on:boolean):void;
  /** CPhysical::SetVelocity on the player, native units per 50th of a second. */
  setPlayerVelocity?(velocity:{x:number;y:number;z:number}):void;
+ /** GET_CHAR_VELOCITY on the player: his m_vecMoveSpeed (his vehicle's in one) in native axes, units a second. */
+ playerVelocity?():{x:number;y:number;z:number};
  setPlayerMaxArmour(maxArmour:number):void;
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
  setClosestEntryExitFlag(x:number,y:number,radius:number,flag:number,on:boolean):void;
@@ -1957,7 +1961,20 @@ export class ScmMission {
    setPedDontRemove:handle=>{this.cleanupPeds.delete(handle);},
    pedType:handle=>this.peds.typeOf(handle),
    pedIsMale:handle=>this.peds.isMale(handle),
-   pedSpeed:handle=>handle===PLAYER_PED_HANDLE?this.world.playerPed().moveSpeed??0:this.world.scriptPedSpeed(this.livePed(handle)),
+   // m_vecMoveSpeed in units a frame, which GET_CHAR_SPEED multiplies by fifty: the browser keeps speeds a second (CJ
+   // read fifty times too fast against the 13.0 SCRASH2 checks him under).
+   // GET_CHAR_VELOCITY: m_vecMoveSpeed in units a frame, as the handler expects.
+   pedVelocity:handle=>{
+    const v=handle===PLAYER_PED_HANDLE?this.host('playerVelocity','GET_CHAR_VELOCITY')():this.host('scriptPedVelocity','GET_CHAR_VELOCITY')(this.livePed(handle));
+    return {x:v.x/50,y:v.y/50,z:v.z/50};
+   },
+   // GET_CHAR_HEIGHT_ABOVE_GROUND (0x0819, unreversed; AUTHORED): the ped's position, its origin a unit over its feet,
+   // less the ground FindGroundZFor3DCoord finds under it. The parachute script lets him open the canopy above 20.
+   getCharHeightAboveGround:handle=>{
+    const p=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(handle)??this.peds.positionOf(handle);
+    return p.z-(this.world.groundLevel(p.x,p.y,p.z)??p.z);
+   },
+   pedSpeed:handle=>(handle===PLAYER_PED_HANDLE?this.world.playerPed().moveSpeed??0:this.world.scriptPedSpeed(this.livePed(handle)))/50,
    pedIsInWater:handle=>handle===PLAYER_PED_HANDLE?this.host('playerInWater','IS_CHAR_IN_WATER')():this.world.scriptPedSubmerged(this.livePed(handle)),
    setPedVisible:(handle,visible)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerVisible','SET_CHAR_VISIBLE')(visible);else this.world.setScriptPedVisible(this.livePed(handle),visible);},
    // CPedIntelligence's task, through the ped the browser built. A task with no browser behaviour yet turns

@@ -38,11 +38,17 @@ describe('the last of the ped questions',()=>{
   expect(run(world,undefined,instruction(scmOpcode('GET_CHAR_MODEL'),[int(PED),gvar(40)])).readInt(40)).toBe(287);
  });
 
- test('a velocity is read in the engine’s own units, unlike the speed',()=>{
-  const {readFloat}=run({pedVelocity:()=>({x:0.2,y:-0.1,z:0})},undefined,
+ test('a velocity is read in units a second, fifty times the engine’s, as SET_CHAR_VELOCITY takes it',()=>{
+  // player_parachute starts the free fall under -10 and Freefall hands the reading back to SET_CHAR_VELOCITY.
+  const {readFloat}=run({pedVelocity:()=>({x:0.2,y:-0.1,z:-0.4})},undefined,
    instruction(scmOpcode('GET_CHAR_VELOCITY'),[int(PED),gvar(40),gvar(44),gvar(48)]));
-  expect(readFloat(40)).toBeCloseTo(0.2,5);
-  expect(readFloat(44)).toBeCloseTo(-0.1,5);
+  expect(readFloat(40)).toBeCloseTo(10,5);
+  expect(readFloat(44)).toBeCloseTo(-5,5);
+  expect(readFloat(48)).toBeCloseTo(-20,5);
+ });
+
+ test('no second player is ever in the game',()=>{
+  expect(run({},undefined,instruction(scmOpcode('IS_2PLAYER_GAME_GOING_ON'),[])).thread.condition).toBe(false);
  });
 
  test('the on-foot touching question does not fall back to the car a ped rides',()=>{

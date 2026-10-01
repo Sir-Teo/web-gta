@@ -4479,6 +4479,8 @@ async function boot() {
                  scriptPedAlive:ped=>{const r=asRider(ped);if(r)return !r.gone&&!r.car.disposed;return !!pedestrians?.holdsScripted(ped as Pedestrian);},
                  removeScriptPed:ped=>{const r=asRider(ped);if(r){r.gone=true;scriptRiders.delete(r);return;}pedestrians?.removeScripted(ped as Pedestrian);},
                  releaseScriptPed:(ped,keepTask)=>{const p=onFoot(ped);if(p)pedestrians?.releaseScripted(p,keepTask);},
+                 // Native axes, units a second: the car's own when the ped rides, its last step's travel on foot.
+                 scriptPedVelocity:ped=>{const r=asRider(ped),v=r?r.car.car.body.linvel():(()=>{const p=onFoot(ped);return p&&pedestrians?pedestrians.velocityOf(p):{x:0,y:0,z:0};})();return {x:v.x,y:-v.z,z:v.y};},
                  scriptPedSpeed:ped=>{const r=asRider(ped);if(r){const v=r.car.car.body.linvel();return Math.hypot(v.x,v.y,v.z);}return onFoot(ped)?.actor.player.speed??0;},
                  scriptPedStanding:ped=>{const p=onFoot(ped);return p?!!pedestrians?.standingStill(p):false;},
                  scriptPedSubmerged:ped=>{const p=onFoot(ped);return p?!!pedestrians?.submerged(p):false;},
@@ -5299,6 +5301,11 @@ async function boot() {
                  },
                  detachPlayerFromVehicle:()=>{detachPlayer();},
                  setPlayerVelocity:velocity=>{sim.setPlayerVelocity(velocity);},
+                 // His vehicle's move speed when he rides, his own last step's travel on foot (native axes, units a second).
+                 playerVelocity:()=>{
+                  const vehicle=worldCar?.occupied?worldCar.car.body:fleet?.occupied?.car.body??playerPassenger?.car.car.body??(fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane)?.body;
+                  const v=vehicle?vehicle.linvel():sim.playerVelocity();return {x:v.x,y:-v.z,z:v.y};
+                 },
                  playerAttachedObject:()=>playerAttached?.object,
                  // SET_HEADING_FOR_ATTACHED_PLAYER: the way he faces on the thing he hangs from (degrees anticlockwise from
                  // its front, as the side's quarter turns are) and the turn allowed either side of it; the view turns there.

@@ -152,6 +152,10 @@ export class Simulation {
   /** CPhysical::SetVelocity on the player (SET_CHAR_VELOCITY), in native units per 50th of a second: the air carries
    * the horizontal part as his jump momentum, and a rise takes him off the ground; standing, the next step's
    * animation drives him again, as CPed's own move speed does. */
+  /** The length of the last step, which the player's travel over it is measured against. */
+  private lastStepDt = 1 / 60;
+  /** CPhysical::m_vecMoveSpeed of the player on foot, from his last step's travel: renderer axes, units a second. */
+  playerVelocity(){const p=this.player.position,q=this.player.previous,dt=this.lastStepDt;return {x:(p.x-q.x)/dt,y:(p.y-q.y)/dt,z:(p.z-q.z)/dt};}
   setPlayerVelocity(v:{x:number;y:number;z:number}){
     if(![v.x,v.y,v.z].every(Number.isFinite))throw new Error('Invalid player velocity.');
     this.player.jumpMomentum={x:v.x*50,z:-v.y*50};this.player.verticalSpeed=v.z*50;
@@ -182,7 +186,7 @@ export class Simulation {
     // CTaskSimpleHitHead stands the player still until HIT_WALL ends.
     else if (this.hitHead > 0) { this.hitHead = Math.max(0, this.hitHead - dt); controls = { ...controls, x: 0, y: 0, jump: false, sprint: false, animationMotion: undefined }; }
     this.advanceClock(dt * this.clockRate());
-    this.player.previous = { ...this.player.position };
+    this.player.previous = { ...this.player.position }; if (dt > 0) this.lastStepDt = dt;
     // The climb places the ped itself: pushes and shifts from blows or cars are not stored up to be released after it.
     // CTaskComplexInWater replaces the in-air task too: what the drop into the water measured is not carried out of it.
     if (this.player.swimming && this.fall.falling) this.fall = { minVz: 0, falling: false };

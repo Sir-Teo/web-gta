@@ -9024,3 +9024,14 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   its last frame or the new task is itself a named clip. The browser swapped the order but left the clip on the
   ped, so SWEET1B's couch dealer sat in `BJ_COUCH_LOOP_P` under `TASK_KILL_CHAR_ON_FOOT`, too low for CJ's shots, and
   the den was never cleared. CJ's own script tasks had the same gap and close it the same way.
+
+## The script reads speeds and velocities in units a second
+
+- **`GET_CHAR_SPEED`** scales m_vecMoveSpeed by fifty (reversed), so the adapter now hands it the engine's units a frame:
+  it handed over units a second and the script read CJ fifty times too fast (SCRASH2 checks him under 13.0).
+- **`GET_CHAR_VELOCITY`** reads fifty times the engine's velocity too (AUTHORED against gta-reversed, whose handler
+  returns m_vecMoveSpeed unscaled): `player_parachute` starts the free fall under -10 and the Freefall mission hands the
+  reading back to `SET_CHAR_VELOCITY`, which divides by fifty. CJ's is his vehicle's, or his last step's travel on foot;
+  a script ped's likewise.
+- **`GET_CHAR_HEIGHT_ABOVE_GROUND`** (unreversed; AUTHORED) is the ped's origin less the ground under it, and
+  **`IS_2PLAYER_GAME_GOING_ON`** is `CGameLogic::IsCoopGameGoingOn`, false with no second player.
