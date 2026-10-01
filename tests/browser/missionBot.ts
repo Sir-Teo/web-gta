@@ -44,6 +44,10 @@ export function missionBotTick(dtSeconds:number){
   return {action:'menu accept'};
  }
  mem.leftMenuAt=undefined;
+ // The homies in CJ's group, remembered: CPedGroupMembership drops a follower left past the separation range (60
+ // units), and a stage that re-adds him only when CJ comes back within ten (SWEET1B after the tag wall) shows no blip.
+ const players=m.groups?.get?.(0),members:number[]=players?players.all().filter((h:number)=>h!==1&&players.isFollower(h)):[];
+ for(const h of members)(mem.homies??=new Set<number>()).add(h);
  // The red marker a locate highlights (HighlightImportantArea: a shop counter, the barber's chair) is where the script
  // waits for CJ to stand still; on foot within eight units of one he walks into it and stops, as a player does.
  // (Not once he has given up on the place and is walking out.) The idle time indoors starts over each time he is out
@@ -178,6 +182,15 @@ export function missionBotTick(dtSeconds:number){
     if(exit){if(glide(exit,0))return {action:'leave interior'};return {action:'at exit'};}
    }
   }else mem.idleIndoors=0;
+  // Ten seconds at the place with nothing happening and a homie no longer following: a player goes back for him.
+  if(!vehicle&&(mem.idleAtPlace??0)>10){
+   for(const h of [...(mem.homies??[])]){
+    if(!alive(h)){mem.homies.delete(h);continue;}
+    if(members.includes(h))continue;
+    let pos:any;try{pos=world.pedPosition(h);}catch{continue;}
+    if(distance(pos)>8){glide(pos,5);return {action:'fetch homie left behind',target:h};}
+   }
+  }
   // Outside with nothing happening at the place for eight seconds and a door's marker a few steps off, a player walks
   // into it: SWEET1B's blip is the street in front of the crack house, its LACRAK door up on the porch.
   if(!vehicle&&me.z<500){
