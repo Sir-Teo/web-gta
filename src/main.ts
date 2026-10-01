@@ -4627,6 +4627,10 @@ async function boot() {
                  playerClimbing:()=>!!sim.climb,
                  playerPressingHorn:()=>!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike)&&(input.down('CapsLock')||input.down('KeyH')),
                  populationZoneType:()=>fleet?.pedZone()?.zoneType??0,
+                 anyPedNear:(at,radius,except,exceptPlayer)=>{
+                  const me=sim.player.position;if(!exceptPlayer&&Math.hypot(me.x-at.x,-me.z-at.y,me.y-at.z)<radius)return true;
+                  return !!pedestrians?.anyNear(at,radius,except?onFoot(except):undefined);
+                 },
                  scriptPedAnimProgress:(ped,animation)=>{const p=onFoot(ped);return p?pedestrians?.animProgress(p,animation):undefined;},
                  setScriptPedAnim:(ped,animation,change)=>{if(ped===undefined){if(render.nativeCharacter)setCharacterAnim(render.nativeCharacter,animation,change);return;}const p=onFoot(ped);if(p)pedestrians?.setAnim(p,animation,change);},
                  playerAnimProgress:animation=>{const view=render.nativeCharacter;return view&&(view.reactionName??'').toLowerCase()===animation.toLowerCase()?view.reactionProgress:undefined;},

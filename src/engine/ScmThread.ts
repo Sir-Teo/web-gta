@@ -333,6 +333,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  pedVehicleIsLawEnforcement?(handle:number):boolean;
  /** CPed::bIsDucking, and CPed::GetMoveSpeed, which the engine keeps in units a frame at fifty frames. */
  pedIsDucking?(handle:number):boolean;
+ /** ARE_ANY_CHARS_NEAR_CHAR: another ped within the radius of this one. */
+ anyPedsNearPed?(handle:number,radius:number):boolean;
  /** GET_CHAR_ANIM_TOTAL_TIME: the named clip's total time in ms while the ped plays it, else 0. */
  pedAnimTotalTime?(handle:number,animation:string):number;
  pedSpeed?(handle:number):number;

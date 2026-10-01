@@ -20,7 +20,10 @@ test('CDarkel counts each model the player kills or blows up, until the script r
  expect(ask(game,459)).toBe(0);
  game.registerKill(459);game.registerKill(459);game.registerKill(400);
  expect(ask(game,459)).toBe(2);expect(ask(game,400)).toBe(1);
+ // CDarkel::FindTotalPedsKilledByPlayer sums every model (GET_TOTAL_NUMBER_OF_PEDS_KILLED_BY_PLAYER).
+ expect(game.totalPedsKilledByPlayer()).toBe(3);
  expect(ask(game,459,true)).toBe(0);
+ expect(game.totalPedsKilledByPlayer()).toBe(0);
 });
 
 test('SWITCH_CAR_GENERATOR on a slot nothing set up changes an unused generator and fails nothing',()=>{

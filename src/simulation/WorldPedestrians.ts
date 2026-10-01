@@ -2075,6 +2075,10 @@ export class WorldPedestrians {
  isPlayingAnim(ped:Pedestrian,animation:string){return (ped.view.reactionName??'').toLowerCase()===animation.toLowerCase();}
  /** How far through that animation the ped is, or nothing when it is playing something else. */
  animProgress(ped:Pedestrian,animation:string){return this.isPlayingAnim(ped,animation)?ped.view.reactionProgress:undefined;}
+ /** Whether any ped other than `except` stands within `radius` of a native point (ARE_ANY_CHARS_NEAR_CHAR). */
+ anyNear(at:{x:number;y:number;z:number},radius:number,except?:Pedestrian){
+  return this.people.some(p=>{if(p===except)return false;const q=p.actor.player.position;return Math.hypot(q.x-at.x,-q.z-at.y,q.y-at.z)<radius;});
+ }
  /** The named clip's total time in ms while the ped plays it. */
  animTotalTime(ped:Pedestrian,animation:string){if(!this.isPlayingAnim(ped,animation))return undefined;const name=ped.view.reactionName;return name?(ped.view.reactionDuration(name)??0)*1000:undefined;}
  /** A clip from a script's animation block, for a ped the host draws in a seat rather than on foot. */

@@ -379,6 +379,8 @@ export class ScmGameState {
  registerKill(modelId:number){this.registeredKills.set(modelId,((this.registeredKills.get(modelId)??0)+1)<<16>>16);}
  /** CDarkel::QueryModelsKilledByPlayer. */
  modelsKilledByPlayer(modelId:number){return this.registeredKills.get(modelId)??0;}
+ /** CDarkel::FindTotalPedsKilledByPlayer (0x43D6E0): every model's count summed. */
+ totalPedsKilledByPlayer(){let sum=0;for(const n of this.registeredKills.values())sum+=n;return sum;}
  /** CDarkel::ResetModelsKilledByPlayer. */
  resetModelsKilledByPlayer(){this.registeredKills.clear();}
  /** CLoadMonitor::m_bEnableAmbientCrime, which ENABLE_AMBIENT_CRIME sets. */

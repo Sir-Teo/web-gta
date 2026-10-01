@@ -406,6 +406,8 @@ export interface ScmMissionWorld {
  playerPressingHorn?():boolean;
  /** CPopCycle::m_nCurrentZoneType. */
  populationZoneType?():number;
+ /** Any ped of the pool (the player too) other than the one named within the radius of a native point. */
+ anyPedNear?(at:{x:number;y:number;z:number},radius:number,except:unknown,exceptPlayer:boolean):boolean;
  /** GET_CAR_COLOURS and GET_EXTRA_CAR_COLOURS: the four paint slots' palette entries (CVehicle::m_nPrimaryColor to
   * m_nQuaternaryColor). */
  scriptVehicleColours?(car:unknown):{primary:number;secondary:number;tertiary:number;quaternary:number};
@@ -1114,6 +1116,11 @@ export class ScmMission {
    },
    setPedSuffersCriticalHits:(handle,suffers)=>{this.world.setScriptPedCriticalHits(this.livePed(handle),suffers);},
    pedAnimTotalTime:(handle,animation)=>(handle===PLAYER_PED_HANDLE?this.host('playerAnimTotalTime','GET_CHAR_ANIM_TOTAL_TIME')(animation):this.world.scriptPedAnimTotalTime?.(this.livePed(handle),animation))??0,
+   anyPedsNearPed:(handle,radius)=>{
+    const at=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.positionOf(handle);
+    const self=handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle);
+    return this.host('anyPedNear','ARE_ANY_CHARS_NEAR_CHAR')(at,radius,self,handle===PLAYER_PED_HANDLE);
+   },
    // IsCharDucking (CharacterCommands.cpp:293): CPed::bIsDucking.
    pedIsDucking:handle=>handle===PLAYER_PED_HANDLE?this.host('playerDucking','IS_CHAR_DUCKING')():!!this.world.scriptPedDucking?.(this.livePed(handle)),
    // IsPlayerClimbing (PlayerCommands.cpp:90): a CTaskSimpleClimb in the player's intelligence.

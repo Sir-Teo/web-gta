@@ -1,8 +1,8 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 
-// IS_CHAR_DUCKING (bIsDucking), IS_PLAYER_CLIMBING, IS_PLAYER_PRESSING_HORN and GET_CURRENT_POPULATION_ZONE_TYPE read
-// the player and the zone as the script asks them.
+// IS_CHAR_DUCKING (bIsDucking), IS_PLAYER_CLIMBING, IS_PLAYER_PRESSING_HORN, GET_CURRENT_POPULATION_ZONE_TYPE and
+// ARE_ANY_CHARS_NEAR_CHAR read the player, the zone and who stands about as the script asks them.
 test('the script reads CJ crouching, the horn and the population zone type',async({page})=>{
  test.setTimeout(300000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -20,5 +20,11 @@ test('the script reads CJ crouching, the horn and the population zone type',asyn
  await page.keyboard.down('KeyH');expect(await ask('isPlayerPressingHorn',0)).toBe(false);await page.keyboard.up('KeyH');
  // Grove Street's popcycle zone type, a number the zone's row gives.
  await expect.poll(async()=>typeof await ask('currentPopulationZoneType'),{timeout:30000}).toBe('number');
+ // ARE_ANY_CHARS_NEAR_CHAR: a ped the script makes two units off is near CJ, and CJ is near him.
+ const ped=await page.evaluate(()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;return m.peds.create(4,'MALE01',{x:p.x+2,y:-p.z,z:p.y});});
+ await page.waitForFunction(h=>!!(window as any).__game.missionForProfiling().peds.entity(h),ped,{timeout:60000});
+ await expect.poll(()=>ask('anyPedsNearPed',1,4),{timeout:10000}).toBe(true);
+ expect(await ask('anyPedsNearPed',ped,4)).toBe(true);
+ expect(await ask('anyPedsNearPed',ped,.2)).toBe(false);
  expect(errors).toEqual([]);
 });

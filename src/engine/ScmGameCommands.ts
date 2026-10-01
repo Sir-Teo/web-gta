@@ -2507,6 +2507,12 @@ const handlers:Record<string,ScmCommandHandler>={
  ARE_SUBTITLES_SWITCHED_ON:(t,_p,i)=>{t.updateCompareFlag(game(t,i).showSubtitles,negated(i));},
  GET_STRING_WIDTH_WITH_NUMBER:(t,p,i)=>{t.writeInt(p[2],world(t,i,'getStringWidthWithNumber')(t.text(p[0]),t.readInt(p[1])));},
  RESET_NUM_OF_MODELS_KILLED_BY_PLAYER:(t,_p,i)=>{game(t,i).resetModelsKilledByPlayer();},
+ // The handler is unreversed; by its name it reads CDarkel::FindTotalPedsKilledByPlayer, the register
+ // RESET_NUM_OF_MODELS_KILLED_BY_PLAYER clears (the casino's and strip clubs' ambience watch it for a killing).
+ GET_TOTAL_NUMBER_OF_PEDS_KILLED_BY_PLAYER:(t,p,i)=>{t.writeInt(p[1],game(t,i).totalPedsKilledByPlayer());},
+ // ARE_ANY_CHARS_NEAR_CHAR (unreversed; AUTHORED from III's handler as re3 has it): any other ped of the pool within the
+ // radius of the ped (the booths and chairs ask before seating someone).
+ ARE_ANY_CHARS_NEAR_CHAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'anyPedsNearPed')(t.readInt(p[0]),t.readFloat(p[1])),negated(i));},
  SET_FORCE_RANDOM_CAR_MODEL:(t,p,i)=>{world(t,i,'setForceRandomCarModel')(model(t,i,p[0]));},
  IS_PLAYER_IN_REMOTE_MODE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerInRemoteMode')(t.readInt(p[0])),negated(i));},
  // The kills are counted by model index; a model the script names by its text is one no kill was counted under.
