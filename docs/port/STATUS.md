@@ -19,8 +19,8 @@ Per mission: what the static census flags, and what the headless sweep saw. **Re
 | 9 | LOWR | 2 | 3 | 0 |  |  |  |  |  |  |
 | 10 | ZERO5 | 1 | 1 | 10 |  |  |  |  |  |  |
 | 11 | INTRO1 | 12 | 30 | 0 | yes | 98.2% | yes | **passed** |  |  |
-| 12 | INTRO2 | 6 | 29 | 0 |  |  |  |  |  |  |
-| 13 | SWEET1 | 7 | 32 | 0 |  |  |  |  |  |  |
+| 12 | INTRO2 | 6 | 29 | 0 | yes | 20% |  |  |  | the barber's interior (`gta_int.img` not published) |
+| 13 | SWEET1 | 7 | 32 | 0 | yes | 90% | yes | **passed** |  |  |
 | 14 | SWEET1B | 2 | 38 | 0 |  |  |  |  |  |  |
 | 15 | SWEET3 | 8 | 47 | 0 |  |  |  |  |  |  |
 | 16 | SWEET2 | 3 | 43 | 0 |  |  |  |  |  |  |

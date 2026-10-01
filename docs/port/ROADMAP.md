@@ -107,3 +107,25 @@ Three things made these findable: the sweep's watch line (position, vehicle, dri
 pedals and tilt of each mission character), the **HURT** trace (a watched ped's health field records the call
 stack of every drop, so a death names the code that dealt it), and `SWEEP_SHOTS=1` screenshots. The status table
 now has an **Outcome** column read from the mission's own M_PASS/M_FAIL message.
+
+### SWEET1, played through
+
+SWEET1 now **passes** under the bot (`M_PASSS`, twenty minutes headless): Sweet sprays the first wall, CJ sprays his
+four, the drive to the Ballas' walls and the drive home. The bot sprays tags (a dev hook lists tags near a point),
+drives `STOP_FOR_CARS`, goes round a car left in its lane, and gets out at a place it has sat at for four seconds.
+
+| What the bot saw | The fault | Fix |
+|---|---|---|
+| Sweet's Greenwood wedged in the side yard at the start | `CREATE_CAR` did not clear its space; the switched-off generator's Greenwood stood where the mission's was made | `CreateCarForScript`'s `ClearSpaceForMissionEntity`; a generator car still loading onto the spot is dropped |
+| Sweet stood at the wall for good | The body built when he got out of the car had no weapon, so `TASK_SHOOT_AT_COORD` ended at once | The ped pool keeps `GIVE_WEAPON_TO_CHAR`'s weapon through getting in and out |
+| The Greenwood pinned against walls by police cars, no stars | Ambient patrols were never joined to the roads (their paths load only for a dispatch) and drove at the player | `JoinCarWithRoadSystem` for a unit with no link; patrols stop for cars ahead; a car on switched-off road may go on over it |
+| The Greenwood ploughed into stopped traffic and burned | Script cars took their cruise speed as the traffic speed in every driving style | `FindMaximumSpeedForThisCarInTraffic` under the stop-for-cars styles |
+| The Greenwood reversed away from a red light | The stuck recovery counted a car held on its brake as stuck | Only a car asking for gas can be stuck |
+
+### INTRO2: blocked on content
+
+INTRO2 drives Ryder to the barber's under the bot (two faults fixed on the way: a vehicle's collision mesh rested on
+the road's mesh, which `CCollision::ProcessColModels` never tests triangle against triangle, and Ryder's generator
+put a second Picador inside the mission one), then stops at the barber's door: `gta_int.img` is not published, so no
+interior entrance can start (`areaAvailable` refuses area 2). The interior models' public source is not reachable from
+this environment.

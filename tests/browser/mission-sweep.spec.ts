@@ -145,7 +145,7 @@ test('mission sweep',async({page})=>{
     // The watched peds: position, vehicle, speed and the drive mission CAutoPilot runs for it.
     // The wanted level and the police units within 40 units, with their CCarAI mission: cops pinning CJ or trying to bust
     // him out of a mission car stall the objective.
-    const pol=g.police?.(),cops=(pol?.units??[]).filter((u:any)=>{const c=u.car.car.body.translation();const q=r.world.pedPosition(1);return Math.hypot(c.x-q.x,-c.z-q.y)<40;}).map((u:any)=>u.mission).join('/');
+    const pol=g.police?.(),cops=(pol?.units??[]).filter((u:any)=>{if(u.car.disposed||!u.car.car.body.isValid())return false;const c=u.car.car.body.translation();const q=r.world.pedPosition(1);return Math.hypot(c.x-q.x,-c.z-q.y)<40;}).map((u:any)=>u.mission).join('/');
     const me=r.world.pedPosition(1),watched=[`W${pol?.law?.level??'?'}${cops?` cops ${cops}`:''} CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?`riding ${r.world.pedVehicle(1)} hp ${(()=>{try{return Math.round(r.world.vehicleHealth?.(r.world.pedVehicle(1)));}catch{return '?';}})()} ${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1)),mi=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();return `${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mi?`${mi.kind}->${mi.goal.x.toFixed(0)},${(-mi.goal.z).toFixed(0)}${mi.recovery?` rec${mi.recovery.kind}`:''}`:'no mission'}`;})()}`:'on foot'}`,...(watch as string[]).map(local=>{
      // A `g` prefix names a global ($131, Sweet in SWEET1) rather than a mission local.
      const handle=String(local).startsWith('g')?(t as any).globals.getInt32(Number(String(local).slice(1))*4,true):t.locals.getInt32(Number(local)*4,true);
