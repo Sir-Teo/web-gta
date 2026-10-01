@@ -35,6 +35,8 @@ export interface CrushableVehicle {modelId:number;wrecked:boolean;blowUp():void;
 const CAR_WHEEL_INDEX={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
 /** CVehicle::ProcessWheel's fBurstTyreMod (0x8D34B4). */
 const BURST_TYRE_MOD=.13;
+/** How near the petrolcap dummy a bullet lands to hit the tank (AUTHORED: InflictDamage is unreversed). */
+const PETROL_TANK_REACH=.35;
 import {VEHICLE_ELASTICITY,impulseVelocityChange,vehicleHitsObject,vehicleUprootsObject,type NativeObjectState,type ObjectDamageResult} from './nativeObjectDamage';
 import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
 import {installNativeCar,type NativeCarAssets} from './installNativeCar';
@@ -314,7 +316,7 @@ export class WorldCar {
  /** Weapon damage: CVehicle::InflictDamage port — health loss scaled by impact
   * angle (grazing shots keep 40%, square hits 100%) plus CAutomobile::VehicleDamage
   * component progression for the hit COL piece. Returns true only when the car is wrecked. */
- damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean;weapon?:number;by?:CarDamager}={}){
+ damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean;weapon?:number;by?:CarDamager;point?:{x:number;y:number;z:number}}={}){
   const kind:CarDamageKind=explosive?'explosion':options.kind??'bullet';
   if(this.wrecked||carRefusesDamage(this,kind))return false;
   // CVehicle::CanVehicleBeDamaged: a car only the player may damage (bInvulnerable) refuses anyone else's harm, and the
@@ -335,12 +337,21 @@ export class WorldCar {
    const face=Math.max(Math.abs(s[0]*right[0]+s[1]*right[1]+s[2]*right[2]),Math.abs(s[0]*forward[0]+s[1]*forward[1]+s[2]*forward[2]),Math.abs(s[0]*up[0]+s[1]*up[1]+s[2]*up[2]));
    amount*=0.4+0.6*Math.min(1,face/Math.max(1e-4,Math.hypot(s[0],s[1],s[2])));
   }
+  // The petrol tank (vehicleFlags.bPetrolTankIsWeakPoint, CVehicle::InflictDamage, unreversed; AUTHORED): a bullet that
+  // lands on the petrolcap dummy blows the car up at once (SWEET2: "shoot the car's gas tank").
+  if(kind==='bullet'&&options.point&&this.petrolTankIsWeakPoint&&this.health>0&&this.hitsPetrolTank(options.point)){this.health=0;this.blowUp();return true;}
   // Bullets leave a destroyed car at 1 health to burn out; blasts that exhaust its health blow it up at once.
   this.health=Math.max(explosive?0:1,this.health-amount);
   const piece=collider===undefined?undefined:this.pieceOf(collider);
   if(piece!==undefined&&amount>25&&this.canBeVisiblyDamaged)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true),true);
   if(this.health===0){this.blowUp();return true;}
   return false;
+ }
+ /** Whether a point (browser world axes) is within PETROL_TANK_REACH of the model's petrolcap dummy (DUMMY_GAS_CAP). */
+ private hitsPetrolTank(point:{x:number;y:number;z:number}){
+  const cap=this.car.nativeFramePosition('petrolcap');if(!cap)return false;
+  const t=this.car.body.translation(),o=this.worldOffset(cap);
+  return Math.hypot(point.x-(t.x+o.x),point.y-(t.y+o.y),point.z-(t.z+o.z))<=PETROL_TANK_REACH;
  }
  /** COL spheres and boxes carry the eVehicleCollisionComponent piece byte; mesh faces do not. */
  private pieceOf(handle:number){const source=this.car.sources.get(handle);return source&&source.kind!=='mesh'?source.surface.flags:undefined;}
@@ -487,8 +498,8 @@ export class WorldCar {
   this.visual={};this.refreshVisuals(true);
   this.visiblyDamaged=false;
  }
- /** vehicleFlags.bPetrolTankIsWeakPoint, which CVehicle's constructor sets and SET_PETROL_TANK_WEAKPOINT clears. The
-  * shot at the petrol tank that reads it is not ported. */
+ /** vehicleFlags.bPetrolTankIsWeakPoint, which CVehicle's constructor sets and SET_PETROL_TANK_WEAKPOINT clears: a
+  * bullet on the petrol cap blows the car up (see damage). */
  petrolTankIsWeakPoint=true;
  /** CAutomobile::autoFlags.bTaxiLight (SET_TAXI_LIGHTS): the roof sign lit; CAutomobile's constructor leaves it off. */
  taxiLight=false;

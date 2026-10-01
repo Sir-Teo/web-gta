@@ -56,7 +56,13 @@ export function missionBotTick(dtSeconds:number){
  const marker=vehicle||(mem.idleIndoors??0)>20?undefined:m.highlightedAreas?.().filter((h:any)=>distance(h)<8).sort((a:any,b:any)=>distance(a)-distance(b))[0];
  // Script objects made targettable (MAKE_OBJECT_TARGETTABLE: the bottles on Emmet's wall in SWEET2) are there to be shot.
  const marks=vehicle?[]:(r.game.objects?.all??[]).filter((o:any)=>o.targetable&&!o.damaged&&o.visible!==false&&distance(o.position)<40);
- if(!blips.length&&!marker&&!marks.length)return null;
+ // The objective says to shoot a car's gas tank (SWEET2's Tampa at Emmet's, no blip on it): the script's nearest car
+ // that nobody rides.
+ const brief=r.game.messages?.briefs?.[0]?.key,objective=brief?String(g.text?.(brief)??''):'';
+ const tankCar=!vehicle&&/gas tank/i.test(objective)?(m.vehicles?.handles??[]).map((h:number)=>({h,car:m.vehicles.entity(h)}))
+  .filter((c:any)=>c.car?.car?.body&&!c.car.wrecked&&!c.car.occupied&&c.car.car.nativeFramePosition?.('petrolcap'))
+  .map((c:any)=>{const t=c.car.car.body.translation();return {...c,d:Math.hypot(t.x-me.x,-t.z-me.y)};}).filter((c:any)=>c.d<40).sort((a:any,b:any)=>a.d-b.d)[0]:undefined;
+ if(!blips.length&&!marker&&!marks.length&&!tankCar)return null;
  const nearest=(list:any[])=>list.sort((a,b)=>distance(a.position)-distance(b.position))[0];
  const enemies=blips.filter((b:any)=>b.type===BLIP_CHAR&&!b.friendly);
  const cars=blips.filter((b:any)=>b.type===BLIP_CAR&&b.friendly&&b.handle!==vehicle);
@@ -139,6 +145,17 @@ export function missionBotTick(dtSeconds:number){
   // __game.fireAt takes renderer coordinates: x, height, -y.
   g.fireAt(target.x,target.z+.6,-target.y);
  };
+ // The gas tank: from four units out on the side the petrol cap is on, a round straight at the cap.
+ if(tankCar&&!blips.some((b:any)=>b.type===BLIP_CHAR&&!b.friendly)){
+  const b=tankCar.car.car.body,t=b.translation(),q=b.rotation(),cap=tankCar.car.car.nativeFramePosition('petrolcap');
+  const rot=(v:any)=>{const ix=q.w*v.x+q.y*v.z-q.z*v.y,iy=q.w*v.y+q.z*v.x-q.x*v.z,iz=q.w*v.z+q.x*v.y-q.y*v.x,iw=-q.x*v.x-q.y*v.y-q.z*v.z;
+   return {x:ix*q.w+iw*-q.x+iy*-q.z-iz*-q.y,y:iy*q.w+iw*-q.y+iz*-q.x-ix*-q.z,z:iz*q.w+iw*-q.z+ix*-q.y-iy*-q.x};};
+  const o=rot({x:cap.x,y:cap.z,z:-cap.y}),at={x:t.x+o.x,y:t.y+o.y,z:t.z+o.z},out=rot({x:Math.sign(cap.x)||1,y:0,z:0});
+  const stand={x:at.x+out.x*4,y:-(at.z+out.z*4),z:me.z};
+  if(glide(stand,.3))return {action:'go to gas tank',target:tankCar.h};
+  const now=performance.now();if(now-(mem.lastShot??0)>300){mem.lastShot=now;g.fireAt(at.x,at.y,at.z);}
+  return {action:'shoot gas tank',target:tankCar.h};
+ }
  // With no one to kill, a player locks on to the nearest targettable object and fires with the gun he was handed
  // (Emmet gives CJ his pistol and counts the bottles HAS_OBJECT_BEEN_DAMAGED finds hit).
  if(marks.length&&!blips.some((b:any)=>b.type===BLIP_CHAR&&!b.friendly)){

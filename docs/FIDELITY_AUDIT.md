@@ -9075,3 +9075,10 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   gives up after a second without progress, or when the target moves four units. The browser's authored ±65°
   sidestep still serves every other ped. Not here: the building treated as an object, the jump over a low
   obstacle, the climb for the player's group and the hit head of a ped with neither task.
+
+## The petrol tank is a car's weak point
+
+- **`vehicleFlags.bPetrolTankIsWeakPoint`** (CVehicle's constructor sets it; SET_PETROL_TANK_WEAKPOINT clears it): a
+  bullet that lands within 0.35 of the model's `petrolcap` dummy (DUMMY_GAS_CAP) blows the car up at once.
+  `CVehicle::InflictDamage` is unreversed, so the reach is AUTHORED; the instant explosion is the retail behaviour
+  SWEET2 teaches ("Use manual aim to shoot the car's gas tank").
