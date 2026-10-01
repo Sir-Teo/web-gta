@@ -10,11 +10,15 @@ test('a script user marker is drawn until it is removed',async({page})=>{
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
  await endStoryMission(page);
+ // CJ's front door has its own cone now that interiors are published: it comes up once the opening has let go of the
+ // controls, so the count is taken after it has.
+ await page.waitForTimeout(2000);
  const drawnBefore=(await state()).markers3d.drawn;
  // HUD_COLOUR_YELLOW (14), in front of CJ at head height.
  const index=await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player,h=p.heading;
   return g.missionForProfiling().runtime.world.createUser3dMarker(p.position.x+Math.sin(h)*6,-(p.position.z+Math.cos(h)*6),p.position.y+1.5,14);});
- expect(index).toBe(0);
+ // Not necessarily the first slot: with the opening ended and no mission on, MAIN puts up markers of its own.
+ expect(index).toBeGreaterThanOrEqual(0);
  await expect.poll(async()=>(await state()).markers3d.drawn,{timeout:10000}).toBe(drawnBefore+1);
  await page.evaluate(i=>(window as any).__game.missionForProfiling().runtime.world.removeUser3dMarker(i),index);
  await expect.poll(async()=>(await state()).markers3d.drawn,{timeout:10000}).toBe(drawnBefore);
