@@ -9008,3 +9008,11 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   player's. What draws it is `CAutomobile::PreRender`, unreversed in SA; reVC's is followed (AUTHORED): a yellow
   (128, 128, 0) corona of 0.8 over the roof sign, 0.95 up and 0.4 back on the taxi, 0.9 up and 0.2 forward on the
   cabbie, seen from 50 units.
+
+## A mission's new ped waits for its ground
+
+- **`CREATE_CHAR` from a mission script** makes the ped stand static until the collision under it is in
+  (`bIsStaticWaitingForCollision` with the mission cleanup, as III's handler does and SA's own `CREATE_CHAR_AT_ATTRACTOR`;
+  SA's `CREATE_CHAR` is unimplemented in the reference). SWEET1B makes the crack den's three dealers in the interior
+  while CJ is still in the street: they fell through the void, were set down at a street path node, and the mission
+  waited for ever for CJ to kill them.

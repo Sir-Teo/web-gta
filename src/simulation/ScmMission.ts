@@ -1841,7 +1841,13 @@ export class ScmMission {
    getNearestTagPosition:(x,y,z)=>this.world.nearestTagPosition?.(x,y,z)??{x,y,z},
    getTerritoryUnderControlPercentage:()=>this.world.territoryUnderControlPercentage(),
    // CPopulation::AddPed through the pool, which hands the script a handle at once.
-   createChar:(pedType,model,x,y,z)=>this.forCleanup(this.cleanupPeds,this.peds.create(pedType,model,{x,y,z})),
+   // CREATE_CHAR from a mission script: the ped stands static until the collision under it is in (III's handler, and
+   // SA's own CREATE_CHAR_AT_ATTRACTOR: bIsStaticWaitingForCollision with the mission cleanup). SWEET1B makes the crack
+   // den's dealers in the interior while CJ is still in the street; without the wait they fell through the void.
+   createChar:(pedType,model,x,y,z)=>{
+    this.nextPedWaitsForCollision=!!this.runtime?.currentThread?.usesMissionCleanup;
+    try{return this.forCleanup(this.cleanupPeds,this.peds.create(pedType,model,{x,y,z}));}finally{this.nextPedWaitsForCollision=false;}
+   },
    pedHeading:handle=>{
     if(handle!==PLAYER_PED_HANDLE)return this.peds.headingOf(handle);
     const heading=this.world.playerPed().heading;if(heading===undefined)throw new UnsupportedScmCommand(-1,0,'GET_CHAR_HEADING','player heading');
@@ -2253,7 +2259,10 @@ export class ScmMission {
   };
   // Script handles start clear of the player's own, which is 1 for him and for the car he drives.
   this.peds=new ScmPedPool<unknown>({
-   spawn:(pedType,model,position)=>this.world.spawnScriptPed(pedType,this.pedModel(model),position),
+   spawn:(pedType,model,position)=>{
+    const wait=this.nextPedWaitsForCollision;
+    return this.world.spawnScriptPed(pedType,this.pedModel(model),position).then(ped=>{if(ped&&wait)this.world.scriptPedWaitForCollision?.(ped);return ped;});
+   },
    // A ped made in a car the browser is still building waits for the car.
    spawnInCar:async(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,this.pedModel(model),await this.vehicleOrPlayer(vehicle),seat),
    spawnRandomInCar:async(vehicle,seat)=>this.world.spawnScriptRandomPedInCar(await this.vehicleOrPlayer(vehicle),seat),
@@ -3107,6 +3116,8 @@ export class ScmMission {
   * object stays where the hand left it; dropped on, a heavy one (99998 or more, so collision force off) is set down
   * static under the ped, and a light one gets a push and falls, which here, with no fall to run, ends on the ground
   * under the ped too. */
+ /** CREATE_CHAR's ped about to be spawned is a mission script's, and waits for its collision. */
+ private nextPedWaitsForCollision=false;
  /** The player's put-down under way: the object, when it leaves his hands, and the way he faced. */
  private puttingDown?:{object:number;at:number;forward:{x:number;y:number}};
  /** CTaskSimplePutDownEntity reaching m_fPutDownHeightZ: the object is let go and set down ahead of the player. */
