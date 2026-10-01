@@ -116,7 +116,11 @@ export function missionBotTick(dtSeconds:number){
   const over=Math.hypot(to.x-x,to.y-y)<1.5&&me.z-to.z>1.5;
   // A step of under half a metre that finds the ground six or more under him found something below the street (a
   // storm drain where the street's own collision had not streamed in): he keeps his height and lets physics decide.
-  const found=world.groundZFor3DCoord?.(x,y,over?to.z+1.5:me.z+(to.z-me.z)*step/d+1.5);
+  // A seam between two floor meshes (Binco's shop floor) lets one ray through to nothing, which the adapter answers
+  // with 0: a capsule walks over it, so the probe is tried a quarter unit about before the step counts as a drop.
+  const from=over?to.z+1.5:me.z+(to.z-me.z)*step/d+1.5;
+  const probe=(px:number,py:number)=>{const v=world.groundZFor3DCoord?.(px,py,from);return typeof v==='number'&&v!==0?v:undefined;};
+  const found=probe(x,y)??probe(x+.25,y)??probe(x-.25,y)??probe(x,y+.25)??probe(x,y-.25);
   // No ground within six units under the step: inside, that is FindGroundZFor3DCoord's 0 through a wall into the void
   // round the rooms (CJ fell for ever under SWEET1B's crack den), where a player cannot walk, so the bot goes no nearer;
   // outside it is a storm drain or a spot not streamed in yet, and he keeps his height for physics to settle.
