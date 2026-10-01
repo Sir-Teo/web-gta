@@ -2036,6 +2036,13 @@ export class ScmMission {
     }
     // A new primary task replaces whatever sequence the ped was running from here.
     if(handle!==PLAYER_PED_HANDLE&&task.kind!=='useMobilePhone')this.dropRunner(handle);
+    // CTaskComplexEnterCar::CreateFirstSubTask (reversed): a ped already in the car it is told to enter sits on
+    // (CTaskSimpleCarDriveTimed) and the task is over, in whatever seat it has. SWEET3 makes its homies in Sweet's car
+    // and then tells them to enter it in other seats: they stay where they were made.
+    if((task.kind==='enterCarAsPassenger'||task.kind==='enterCarAsDriver')&&handle!==PLAYER_PED_HANDLE){
+     const ride=this.peds.rideOf(handle);
+     if(ride&&!ride.offset&&ride.vehicle===task.vehicle)return;
+    }
     if((task.kind==='leaveCar'||task.kind==='leaveAnyCar'||task.kind==='leaveCarImmediately')&&handle!==PLAYER_PED_HANDLE){this.livePed(handle);this.runSequence(handle,[task],false,opcode,false);return;}
     // CTaskComplexUseMobilePhone is a secondary task: it does not take the ped's primary task or its task record.
     if(task.kind==='useMobilePhone'){this.host('usePedMobilePhone','TASK_USE_MOBILE_PHONE')(handle===PLAYER_PED_HANDLE?'player':this.livePed(handle),task.start);return;}

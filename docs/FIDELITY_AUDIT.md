@@ -9093,3 +9093,10 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   at them or at CJ's car), looked for twice a second; the drive-by ends when none is left, and one the script gave
   is left alone. The crew recruited off the street rides along the same way when it carries a gun. SWEET3 teaches it
   ("Gang members in your car will open fire on threats if you're close enough").
+
+## A ped told to enter the car it rides stays in its seat
+
+- **`TASK_ENTER_CAR_AS_PASSENGER` / `…_AS_DRIVER` on a ped already in that car**: `CTaskComplexEnterCar::
+  CreateFirstSubTask` (reversed) gives it `CTaskSimpleCarDriveTimed`, so it sits on in the seat it has and the task is
+  over. The browser took the rider out to walk round to the named seat: SWEET3 makes Smoke and Ryder in Sweet's
+  Greenwood and then names each the other's seat, and Smoke was left standing at the drive-thru.
