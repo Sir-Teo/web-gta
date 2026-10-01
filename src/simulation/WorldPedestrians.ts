@@ -248,6 +248,8 @@ export interface Pedestrian {
  warFoe?:boolean;
   /** A cop who left a police car seat (CPed::m_pVehicle), and the door point it is heading back to. */
   crew?:{unit:object;seat:number;roadblock?:boolean};goTo?:{x:number;z:number;walk:boolean;arrive?:number};
+  /** bAllowMedicsToReviveMe cleared: a ped the script made (CREATE_CHAR and its kin) keeps it after it is let go. */
+  noMedics?:boolean;
   /** CTaskComplexWanderCop::LookForCriminals' answer: the cop seeks the criminal (CTaskComplexSeekEntity, 30 s). */
   chase?:{target:Pedestrian;seconds:number};
   /** The cop wander's 50 ms ScanForStuff timer, the 30 s wait after a criminal was found, and that criminal. */
@@ -1574,6 +1576,34 @@ export class WorldPedestrians {
   // CCopPed's constructor sets the shooting rate with the accuracy: 30/60 city, 70/68 SWAT, 60/76 FBI, 80/84 army.
   cop.shootingRate=({60:30,68:70,76:60,84:80} as Record<number,number>)[accuracy]??30;cop.cullExtraFarAway=cullExtraFarAway;return cop.id;
  }
+ /** An ambulance or fire truck crew member stepping out (CEmergencyPed from CPopulation::AddPedInCar): unarmed, and
+  * kept from the population manager while his unit holds him. */
+ async spawnCrew(model:string,position:{x:number;y:number;z:number},heading:number,crew:{unit:object;seat:number}){
+  const catalog=this.catalog;if(!catalog||this.disposed)return false;
+  const [source,speeds,stats]=await Promise.all([catalog.character(model),catalog.characterSpeeds(model),catalog.characterStats(model)]).catch(()=>[undefined,undefined,undefined] as const);
+  const node=this.nearestNode(position);if(!source||!node||this.disposed)return false;
+  const ped=this.createPed({position,heading,source,officer:false,node,speeds,stats,modelRef:model});ped.crew=crew;ped.loiter=false;
+  return ped.id;
+ }
+ /** The dead the accident manager hears of, by id. Positions are the renderer's. */
+ deadPeds(){return this.people.filter(p=>p.health<=0).map(p=>({id:p.id,position:{...p.actor.player.position},mission:!!p.mission,allowMedics:!p.noMedics,
+  submerged:!!p.drowning||!!p.drowned||this.submerged(p),headless:false,fading:p.fadeOut}));}
+ pedExists(id:number){return this.people.some(p=>p.id===id);}
+ /** A crew member's tasks as a sequence; none leaves him to his own devices. */
+ crewOrders(id:number,orders:ScriptedPedOrder[]){const p=this.people.find(p=>p.id===id);if(p)this.giveSequence(p,orders,false);}
+ crewState(id:number){const p=this.people.find(p=>p.id===id);return p&&{position:{...p.actor.player.position},busy:!!p.sequence||!!p.order,alive:p.health>0,down:p.down>0||p.stealth!==undefined};}
+ /** CTaskComplexTreatAccident's m_nDeathTimeMS = now: the body's 30 s to fading start again. */
+ holdDead(id:number){const p=this.people.find(p=>p.id===id);if(p&&p.health<=0)p.deadTime=0;}
+ /** CTaskSimpleGiveCPR::ReviveDeadPed's CEventRevived, answered by CEventHandler::ComputeReviveResponse: health 100,
+  * the ped's collision back, then CTaskComplexGetUpAndStandStill from the pose he died in (CTaskSimpleGetUp: the front
+  * or back get-up by that clip), and his wander after. CTX_GLOBAL_SAVED is not voiced (no speech banks). */
+ revive(id:number){
+  const p=this.people.find(p=>p.id===id);if(!p||p.health>0||p.fadeOut||p.drowned)return false;
+  p.health=100;p.deadTime=0;p.onFire=0;p.flee=0;p.fleePlayer=undefined;p.event=undefined;p.order=undefined;p.sequence=undefined;
+  const lying=p.view.reactionName??p.fallClip??'ko_shot_front';p.fallClip=lying;
+  p.down=p.view.reactionDuration(getUpClip(lying))??1.37;p.stuckUnderCar=false;
+  return true;
+ }
  /** A police unit's living crew on foot. */
  /** The police dropped this unit: its crew on foot lose the car's protection from the population manager. */
  releaseCrew(unit:object){for(const p of this.people)if(p.crew?.unit===unit)p.crew=undefined;}
@@ -1621,7 +1651,7 @@ export class WorldPedestrians {
    if(this.disposed)return undefined;
    made=this.createPed({position,heading,source:built.source,officer:false,node,speed:0,speeds:built.speeds,stats:built.stats,modelRef});
   }
-  made.mission=true;made.flee=0;made.order=this.defaultOrder(made);
+  made.mission=true;made.noMedics=true;made.flee=0;made.order=this.defaultOrder(made);
   // m_bIsStaticWaitingForCollision: a mission ped made where no collision is streamed in (a patient or a criminal
   // hundreds of units off) stands where it was made until there is ground under it, rather than falling for ever.
   made.collisionWait={seconds:0,reground};

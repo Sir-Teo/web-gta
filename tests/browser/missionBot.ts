@@ -25,7 +25,20 @@ export function missionBotTick(dtSeconds:number){
   .map((t:any)=>({type:t.type,handle:t.entityHandle,friendly:!!t.friendly,position:at(t),entryExit:t.entryExit})).filter((b:any)=>b.position&&(b.position.x||b.position.y));
  const distance=(p:any)=>Math.hypot(p.x-me.x,p.y-me.y);
  // A shop's menu is up (the barber's chair, a counter): a player picks with the cross button, which the sweep presses.
- if(r.game.menus?.inUse?.some((used:boolean)=>used))return {action:'menu accept'};
+ // When the shop refuses the highlighted item (too dear: SHOPNO; already worn: BARBNO), he moves down a row first, as
+ // a player picks one he can have.
+ const menus=r.game.menus;
+ if(menus?.inUse?.some((used:boolean)=>used)){
+  const said=r.game.messages?.briefs?.[0]?.key,now=performance.now();
+  if((said==='SHOPNO'||said==='BARBNO')&&now-(mem.menuMovedAt??0)>3000){
+   mem.menuMovedAt=now;
+   const id=menus.inUse.findIndex((used:boolean,i:number)=>used&&menus.menus[i]?.numRows>1);
+   const menu=id>=0?menus.menus[id]:undefined;
+   if(menu){do{menu.selectedRow=(menu.selectedRow+1)%menu.numRows;}while(!menu.selectable[menu.selectedRow]&&menu.selectedRow!==0);}
+   return {action:'menu next',row:menu?.selectedRow};
+  }
+  return {action:'menu accept'};
+ }
  // The red marker a locate highlights (HighlightImportantArea: a shop counter, the barber's chair) is where the script
  // waits for CJ to stand still; on foot within eight units of one he walks into it and stops, as a player does.
  const marker=vehicle?undefined:m.highlightedAreas?.().filter((h:any)=>distance(h)<8).sort((a:any,b:any)=>distance(a)-distance(b))[0];

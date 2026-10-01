@@ -8753,3 +8753,35 @@ that did anything.
   it and stands still, and while a shop menu is up it presses the cross button: INTRO2 waits for the barber's chair
   (`barber.scm`'s `LOCATE_STOPPED_CHAR_ON_FOOT_3D` 1 × 1 round (414.3, −19.9)), which the radar blip, 0.7 off it,
   does not lead into.
+
+## Ambulances answer the dead
+
+- **CAccidentManager is ported** (`src/ped/nativeAccidents.ts`, reversed in full): sixteen slots; `ReportAccident`
+  takes a dead ped that is not the script's and that medics may revive (`bAllowMedicsToReviveMe`, which every
+  script-made ped loses for good, even once let go); `IsFree` is untreated, unrevived and out of the water;
+  `GetNearestFreeAccident(ExceptThisOne)` by 3D distance, passing over the headless when asked. A revived ped keeps
+  his slot, so dying again does not report him a second time. The reporter itself is a raw call: the port reports a
+  ped the first time it is seen dead.
+- **The dispatch is AUTHORED.** `CCarCtrl::GenerateEmergencyServicesCar` and `GenerateOneEmergencyServicesCar` are raw
+  calls in gta-reversed; III's and Vice City's versions of the same routine give the shape: nothing above three
+  stars or while an ambulance is on duty; one when at least two accidents are free and the nearest lies within 30
+  units of the player, fewer than two ambulances are about and 30 s have passed since the last; made on a road out
+  of sight (60 to 120 units off here, the route to the accident the shortest of a dozen tried), told to go to the
+  accident at 30 under `DRIVINGSTYLE_AVOID_CARS` with its siren on. `CStreaming::ms_aDefaultMedicModel` is exe data:
+  the level's EMT (LAEMT1, SFEMT1, LVEMT1; LAEMT1 for the countryside) stands in.
+- **The medics are the reversed tasks.** `CCarAI::AddAmbulanceOccupants` (driver and passenger seat 1, the rear
+  left), `CTaskComplexMedicTreatInjuredPed`, `CTaskComplexTreatAccident`, `CTaskSimpleGiveCPR` and
+  `CEventHandler::ComputeReviveResponse`: inside 10 units of the accident both get out; each takes the nearest free
+  accident (the driver his own), marks it treated, runs to it and walks inside 5; within 1 unit across and 2 up he
+  turns to the body (`CTaskSimpleAchieveHeading`), its death clock is reset so it does not fade, and MEDIC CPR plays;
+  its end revives the ped (health 100, collision back, `GETUP`/`GETUP_FRONT` by the pose he died in, his wander
+  after). A passenger with nothing to treat stands 10 s; then each goes back to his seat through the door clips the
+  police crews use, and the van wanders on at 30, turning for any new accident. The accident point is the body's
+  origin (the thighs are not read) and, since a body here keeps its collision ball, a medic stops at the treating
+  radius rather than 0.125 from it. `CTX_GLOBAL_VAN`, `CTX_GLOBAL_VICTIM` and `CTX_GLOBAL_SAVED` are not voiced (no
+  speech banks).
+- **Script cars cruise like traffic.** `TASK_CAR_DRIVE_WANDER`'s `MISSION_CRUISE` (`ScriptCarMissions`) picked its next
+  link from the open roads less the way back, so a car that joined the road system on a closed one (Grove Street's)
+  found nothing at its end and circled the last node, running down whoever stood there. It now uses the ported
+  `CCarCtrl::PickNextNodeRandomly` with the closed roads among the candidates (kept to a car already on one) and the
+  U-turn when nothing else is left.
