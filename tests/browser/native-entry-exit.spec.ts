@@ -1,5 +1,6 @@
 import {test,expect,type Page} from '@playwright/test';
 import {readFileSync} from 'node:fs';
+import {endStoryMission} from './freeRoam';
 
 /** Interiors stream from MODELS\GTA_INT.IMG, published beside gta3.img only when the world manifest lists it. */
 const interiorsPublished=(JSON.parse(readFileSync('public/play/world/manifest.json','utf8')).archives??[]).some((a:{name:string})=>a.name==='gta_int.img');
@@ -7,6 +8,8 @@ const state=(page:Page)=>page.evaluate(()=>(window as any).__game.state());
 async function atCarlsDoor(page:Page){
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  await expect.poll(async()=>(await state(page)).entryExits?.count,{timeout:90000}).toBe(376);
+ // INTRO would take CJ off to the alley part way through the walk.
+ await endStoryMission(page);
  await expect.poll(async()=>(await state(page)).player.grounded,{timeout:60000}).toBe(true);
  // The CARLS door: native (2495.33, -1690.75), under the porch roof.
  const ground=await page.evaluate(()=>(window as any).__game.groundAt(2495.33,1690.75,16));

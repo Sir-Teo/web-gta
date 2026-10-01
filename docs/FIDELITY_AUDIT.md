@@ -2226,8 +2226,8 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
 - Interiors stream from `MODELS\GTA_INT.IMG`. It is in the content depot, and
   the world loader can open it after gta3.img as one virtual archive
   (`CStreaming::LoadCdDirectory`: the first IMG keeps a repeated name). It is
-  not yet published with the world, so doors into interiors neither show nor
-  open.
+  published under `public/play/world/int/` since 2026-09-30 (see "Interiors
+  are published" at the end), so the doors show and open.
 - Verification:
   - Unit tests cover parsing, links, script switches, `IsInArea`, the
     transition states and the teleport search against the retail data.
@@ -6506,7 +6506,7 @@ These native steps run once a 30 fps game frame with no timestep. Each 60 Hz ste
   - **Entering a door** loads the shop its name names, as TransitionFinished's reconstruction does, and marks the
     linked door as the reward side, which unloads it on the way out.
   - **Not checkable:** gPriceMultipliers is exe data the reference does not hold; each is taken as 1.
-  - **Not reachable yet:** gta_int.img is not published, so no shop interior can be entered. Car mods need
+  - **Reachable since 2026-09-30:** gta_int.img is published, so the shop interiors can be entered. Car mods need
     AddVehicleUpgrade, which the port lacks, so a mod shop lists nothing.
 - **The purse:** CPlayerInfo::m_nMoney is one value. The score commands (ADD_SCORE, STORE_SCORE, IS_SCORE_GREATER)
   used to move a script-only number the HUD never showed. They now move the player's own money.
@@ -8136,8 +8136,8 @@ the terrain hold then let go for a step between two windows (nothing pending cou
 the ground and fell out of the world. Now a script teleport asks for the window at once, and the hold lets go only
 once the installed window covers the player. Spec: `script-teleport-terrain`.
 
-The interiors archive (`gta_int.img`) is still not published, and its public source host is not reachable from this
-environment, so interior doors (INTRO2's barber's among them) stay shut.
+(The interiors archive, `gta_int.img`, was not published when this was written; it is since 2026-09-30, and interior
+doors open.)
 
 ## The pad switches the player commands set
 
@@ -8579,3 +8579,21 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
 - **Porting pipeline.** `npm run port -- census|sweep|report|all` (docs/port/README.md): a static census of every
   command against this port and gta-reversed's registrations with a ranked work queue, a headless mission sweep with
   a locate-following autopilot, and a joined status page.
+
+## Interiors are published
+
+- **The archive.** `MODELS\GTA_INT.IMG` (150,024,192 bytes, 2,484 entries) is locked in
+  `scripts/content/world-sources.json` (`extraArchives`), fetched by `acquire-world.mjs`, and published by
+  `tests/build-interior-archive.test.ts` as 333 content-addressed chunks (80 MB) under `public/play/world/int/`, with
+  the world manifest's `archives` list naming it. Every door of the 376 now leads somewhere: CJ's house, the
+  Ammu-Nations, the restaurants, barbers, clothes shops, gyms, police stations and safe houses stream in.
+- **A save or a death indoors opened the pause menu.** The save point's and the restart's window was installed as the
+  workshop's terrain picker installs one, which pauses into the menu; with the game under way nothing resumed it. A
+  game already running now takes that window behind the frozen step, as a door's is taken, and a window that fails
+  releases the step. Specs: `interior-save`, `native-entry-exit`.
+- **Interiors kept the street's sky and ambient.** `CEntryExit::TransitionFinished` (EntryExit.cpp:461) starts the
+  spawn point's extra timecycle colour (`m_nSkyColor - 1`, on at once) or stops it when the point has none; the door
+  rows' sky column was read and never used. CJ's house showed the morning sky through its floor shadows and the
+  outdoor ambient on its walls. `RestorePlayerStuffDuringResurrection` stops the extra colour; a save loaded indoors
+  takes the colour of the last door on its stack.
+

@@ -957,6 +957,8 @@ async function boot() {
     // RestorePlayerStuffDuringResurrection: back to the normal world (area 0) with an empty door stack. From an
     // interior the outside world at the restart point has to stream in first, as a save point's does.
     const inside=render.lighting.area!==0;entryExits?.clearStack();
+    // RestorePlayerStuffDuringResurrection: CTimeCycle::StopExtraColour(0).
+    localLighting.stopExtraColour(false);
     // ResetForResurrectionAndFadeOut takes him out of a vehicle he sits in as a passenger, and the Teleport's
     // FlushImmediately drops whatever fall, get-up or arrest hold was running (RestartNonPartialAnims).
     if(playerPassenger)leavePassengerSeat(true);
@@ -2674,7 +2676,7 @@ async function boot() {
       // CTimer::SetTimeScale(0.3) while a unique stunt jump plays.
       const tSteps=performance.now();
       stepSnapShot(dt);
-      alpha = clock.advance(interiorTransfer||savedTransfer?.quiet?0:dt*timeScale(), step => {
+      alpha = clock.advance(interiorTransfer||savedTransfer?0:dt*timeScale(), step => {
         sim.beginPlayerBreathFrame(step);
         if(walkDemo&&importedScene){
           if(!weatherStarted){weatherStarted=true;weather.setAppropriateNow(sim.player.position.x,-sim.player.position.z);}
@@ -3858,6 +3860,7 @@ async function boot() {
       });
     }
     entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);rebuildPlayerIfNeeded();
+    spawnPointSky(spawn);
     // TransitionFinished's shop (reconstructed): a reward interior's door unloads the shop, any other door loads the
     // shop its name names and marks its pair as the reward side.
     {const shopping=mission?.runtime.game.shopping,door=t.enex;
@@ -3865,6 +3868,12 @@ async function boot() {
     follower=spawn.area===0?new SceneRegionFollower({x:point[0],y:point[1],radius:180,lodRadius:1000,includeCollisionBounds:true}):undefined;
     interiorTransfer=undefined;
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);
+  }
+  /** TransitionFinished (EntryExit.cpp:461): the spawn point's sky colour, less one, is its extra timecycle colour, on at
+   * once (CTimeCycle::StartExtraColour); a spawn point without one turns the extra colour off. Without it an interior
+   * kept the street's sky behind its rooms and the street's ambient on its walls. */
+  function spawnPointSky(spawn:{skyColor:number}){
+    if(spawn.skyColor>0&&spawn.skyColor<=16)localLighting.startExtraColour(spawn.skyColor-1,false);else localLighting.stopExtraColour(false);
   }
   function failInteriorTransfer(message:string){
     clearTimeout(transferTimer);interiorTransfer=undefined;entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);
@@ -5140,15 +5149,20 @@ async function boot() {
               }}
             if(data.type==='terrain'&&data.followId===-1&&savedTransfer&&!flightTransfer){
               const target=savedTransfer;savedTransfer=undefined;
+              // A game already under way takes the window as a door's is taken, behind the frozen step: the menu
+              // opened over it and stayed up, so a save loaded indoors or a death indoors left the game paused.
+              const running=started&&!paused;
               void (async()=>{
-                const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,preferredSpawn:{x:target.x,z:-target.y}}).catch(()=>false);
+                const installed=await replaceWalkTerrain({...data,followId:undefined,preservePosition:false,preferredSpawn:{x:target.x,z:-target.y},...(running?{keepPlayer:true}:{})}).catch(()=>false);
                 if(!installed||!alive){if(!target.quiet)hud.message('Your save point could not be loaded.');return;}
                 const position={x:target.x,y:target.z,z:-target.y};
                 sim.flushPlayerTasks();sim.player.position={...position};sim.player.previous={...position};sim.player.heading=target.heading;
                 sim.playerBody.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);sim.playerBody.setNextKinematicTranslation({x:position.x,y:position.y+.9,z:position.z});
-                render.yaw=target.heading+Math.PI;
+                render.yaw=target.heading+Math.PI;if(running)sim.respawn={...position};
                 // Inside, nothing follows (as after a door) and the way back out is the doors the save kept.
-                if(target.area){follower=undefined;pedestrians?.removeAllRandomPeds();if(entryExits){entryExits.clearStack();for(const i of target.enexStack??[]){const e=entryExits.pool[i];if(e)entryExits.stack.push(e);}}}
+                if(target.area){follower=undefined;pedestrians?.removeAllRandomPeds();if(entryExits){entryExits.clearStack();for(const i of target.enexStack??[]){const e=entryExits.pool[i];if(e)entryExits.stack.push(e);}
+                  // The save keeps CTimeCycle's extra colour; here it is the one the last door in gave.
+                  const door=entryExits.stack.at(-1);if(door){spawnPointSky(door);entryExits.enteredBy=door.link??door;}}}
                 else follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,lodRadius:1000,includeCollisionBounds:true});
                 if(!target.quiet)hud.message('Loaded your last save point.');
               })();return;
@@ -5173,6 +5187,9 @@ async function boot() {
             if(data.type==='terrain')scheduleWindow(data);
             if(data.type==='error'){
               if(interiorTransfer&&data.followId===-2){failInteriorTransfer(data.message);return;}
+              // A save point's or a restart's window that failed lets the frozen step go; outdoors the follower asks again.
+              if(savedTransfer&&data.followId===-1){const target=savedTransfer;savedTransfer=undefined;if(!target.quiet)hud.message('Your save point could not be loaded.');
+                if(!target.area&&target.quiet){follower=new SceneRegionFollower({x:target.x,y:target.y,radius:180,lodRadius:1000,includeCollisionBounds:true});scriptTeleported=true;}return;}
               if(flightTransfer){clearTimeout(transferTimer);flightTransfer.reject(new Error(data.message));flightTransfer=undefined;menuBusy(false);hud.menuMessage(data.message);return;}
               const pending=follower?.snapshot().pending;
               if(pending)failFollowing(pending,data.message);
