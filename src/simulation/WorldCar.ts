@@ -76,6 +76,8 @@ export const carRefusesDamage=(car:{canBeDamaged:boolean;proofs?:{bullet:boolean
 /** Who hurt a car: the player's ped, another ped, or a vehicle. */
 export type CarDamager={player?:true;ped?:unknown;car?:WorldCar};
 const WRECKED_CONTROLS={steerAngle:0,gas:0,brake:.05,handbrake:true} as const;
+/** How far under a surface a waiting car's underside may be and still be set on it when its collision comes in. */
+const WAITING_CAR_LIFT_LIMIT=1.5;
 export class WorldCar {
  readonly car:ReturnType<typeof installNativeCar>;
  readonly modelId:number;
@@ -638,7 +640,7 @@ export class WorldCar {
    // before its body joins the world again, rather than falling through a spot whose collision is still streaming in.
    if(nearby&&!this.wasNearby&&!this.occupied)this.waitForCollision(false);
    this.wasNearby=nearby;
-   if(this.waitingForCollision&&(this.occupied||this.collisionArrived(seconds)))this.waitingForCollision=false;this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision){this.car.markStepStart();return;}
+   if(this.waitingForCollision&&(this.occupied&&!this.collisionWait.evenOccupied||this.collisionArrived(seconds)))this.waitingForCollision=false;this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision){this.car.markStepStart();return;}
    this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
   const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.
@@ -981,11 +983,16 @@ export class WorldCar {
   * with no collision in yet): when the ground comes in it is set down on it, as the original's scripts load the
   * scene before they make such a car. */
  waitingForCollision=false;
- private collisionWait={seconds:0,reground:false};
- waitForCollision(reground:boolean){this.waitingForCollision=true;this.collisionWait={seconds:0,reground};}
+ private collisionWait={seconds:0,reground:false,evenOccupied:false};
+ /** `evenOccupied`: the car waits with the player in it too (a script moved it); otherwise the player taking the
+  * wheel ends the wait. */
+ waitForCollision(reground:boolean,evenOccupied=false){this.waitingForCollision=true;this.collisionWait={seconds:0,reground,evenOccupied};}
  private collisionArrived(seconds:number){
   const w=this.collisionWait;w.seconds-=seconds;if(w.seconds>0)return false;w.seconds=.5;
   const p=this.car.body.translation(),top=w.reground?1000:p.y+2;
+  // Its area's collision first (CColStore::HasCollisionLoaded): a fixed collider far under a spot not streamed in yet
+  // (Sweet's car outside while CJ is in the pizza place's interior) is not the ground there.
+  if(!(this.sim.collisionLoaded?.(p.x,p.z)??true))return false;
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:top,z:p.z},{x:0,y:-1,z:0}),w.reground?2000:500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   const water=this.waterLevel?.(p.x,-p.z);
   if(!hit&&water===undefined)return false;
@@ -993,6 +1000,11 @@ export class WorldCar {
    const ground=Math.max(hit?top-hit.timeOfImpact:-Infinity,water??-Infinity);
    this.car.body.setTranslation({x:p.x,y:ground-this.assets.collision.bounds.min[2],z:p.z},true);
    this.car.body.setLinvel({x:0,y:0,z:0},true);this.car.body.setAngvel({x:0,y:0,z:0},true);
+  }else if(hit){
+   // Set down with its underside a little under the surface (a script's point at a kerb), the game's suspension lines,
+   // which start above the wheels, push it up; the browser's would start under the surface, so it is set on it.
+   const ground=top-hit.timeOfImpact,bottom=p.y+this.assets.collision.bounds.min[2];
+   if(ground>bottom&&ground-bottom<WAITING_CAR_LIFT_LIMIT)this.car.body.setTranslation({x:p.x,y:ground-this.assets.collision.bounds.min[2],z:p.z},true);
   }
   return true;
  }

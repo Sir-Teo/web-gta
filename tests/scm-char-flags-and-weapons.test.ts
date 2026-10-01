@@ -140,7 +140,7 @@ describe('the ped flags and questions a script reaches',()=>{
    instruction(scmOpcode('SET_CHAR_ANIM_SPEED'),[int(PED),'RUN',[6,2]]),
    instruction(scmOpcode('IS_CHAR_IN_ZONE'),[int(PED),'LAN']));
   expect(calls).toEqual([
-   ['collision',PED,false],['freeze',PED,true],['ungroup',PED],['remove',PED],['explode',PED],
+   ['collision',PED,false],['freeze',PED,true,false],['ungroup',PED],['remove',PED],['explode',PED],
    ['anim',PED,'RUN',2],['zone',PED,'LAN'],
   ]);
   expect(thread.condition).toBe(true);

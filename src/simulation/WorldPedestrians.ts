@@ -447,6 +447,8 @@ const PED_BOUND_RADIUS=1;
 const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
 /** What a ped carries into a car and out again as CJ's passenger. */
 interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;gang?:number;gangClips:boolean}
+/** How far under a surface a waiting ped's feet may be and still be set on it when its collision comes in. */
+const WAITING_PED_LIFT_LIMIT=1.5;
 export class WorldPedestrians {
  private people:Pedestrian[]=[];
   /** `shooter` is the ped's id and live position (renderer frame), for the ped's own CAEPedWeaponAudioEntity. */
@@ -2109,15 +2111,25 @@ export class WorldPedestrians {
  private collisionArrived(p:Pedestrian,dt:number){
   const w=p.collisionWait!;w.seconds-=dt;if(w.seconds>0)return false;w.seconds=.5;
   const at=p.actor.player.position,top=w.reground?1000:at.y+2;
+  // Its area's collision first (CColStore::HasCollisionLoaded): a fixed collider far under a spot not streamed in yet
+  // is not the ground there.
+  if(!(this.sim.collisionLoaded?.(at.x,at.z)??true))return false;
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:at.x,y:top,z:at.z},{x:0,y:-1,z:0}),w.reground?2000:500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   // Water under it counts as it does for a car: the ped is let go to fall in.
   if(!hit)return this.waterLevel?.(at.x,-at.z)!==undefined&&!w.reground;
-  if(w.reground){
-   const y=top-hit.timeOfImpact;at.y=y;p.actor.player.previous={...at};
+  // A ped made at its path node can stand with its feet a little under the surface there (AMBULAN's patients on a
+  // slope or a raised verge): the game's collision spheres push it out along the surface's normal, the browser's
+  // capsule only finds ground below its feet, so it is set on the surface the ray from above found.
+  const y=top-hit.timeOfImpact;
+  if(w.reground||y>at.y&&y-at.y<WAITING_PED_LIFT_LIMIT){
+   at.y=y;p.actor.player.previous={...at};
    p.body.setTranslation({x:at.x,y:y+.9,z:at.z},true);p.collider.setTranslation({x:at.x,y:y+.9,z:at.z});
   }
   return true;
  }
+ /** m_bIsStaticWaitingForCollision set on a script ped (DoSetPedIsWaitingForCollision): it stands where it is until its
+  * area's collision is in. */
+ waitForCollision(ped:Pedestrian){ped.collisionWait={seconds:0,reground:false};}
  releaseScripted(ped:Pedestrian,keepTask=false){
   ped.mission=false;
   // bKeepTasksAfterCleanUp: the ped carries on with what it was doing.
@@ -3664,7 +3676,9 @@ export class WorldPedestrians {
    // ground the controller's own probe keeps him on slopes and stairs.
    if(p.air){p.air.vz-=NATIVE_JUMP_GRAVITY*dt;p.air.vz*=Math.pow(Math.max(0,1-Math.abs(p.air.vz)/50*NATIVE_PED_AIR_RESISTANCE),dt*50);p.air.minVz=Math.min(p.air.minVz,p.air.vz);p.air.seconds+=dt;}
    // `position` is the collider centre, 0.9 above the feet standing and 0.3 down; the target is the feet under the origin.
-   const vertical=water!==undefined?Math.max(-5*dt,Math.min(5*dt,water-pedFloatDepth(!p.drowned)-PED_ORIGIN_HEIGHT+(p.down>0?.3:.9)-position.y)):p.air?p.air.vz*dt:-5*dt+(state.position.y+center-position.y);
+   // physicalFlags.bDontApplySpeed (FREEZE_CHAR_POSITION): CPhysical::ApplyMoveSpeed moves a frozen ped not at all, so
+   // it does not fall either.
+   const vertical=p.frozen&&water===undefined?0:water!==undefined?Math.max(-5*dt,Math.min(5*dt,water-pedFloatDepth(!p.drowned)-PED_ORIGIN_HEIGHT+(p.down>0?.3:.9)-position.y)):p.air?p.air.vz*dt:-5*dt+(state.position.y+center-position.y);
    const held=(p.drowning&&p.health>0)||!!p.air||p.landing!==undefined;
    // A fallen ped's low collider ignores the cars: the controller would otherwise shove it out of a car parked
    // over it, through the road (the get-up waits for the car instead, CTaskSimpleGetUp).

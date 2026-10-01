@@ -114,6 +114,9 @@ export class Simulation {
   /** CPlayerInfo::m_nMoney starts at 0: the new game's $350 is INTRO's ADD_SCORE. */
   money = 0;
   respawn = { ...SPAWN };
+  /** CColStore::HasCollisionLoaded for a renderer point: whether the installed terrain window's collision covers it.
+   * A host with streamed terrain answers; without one everything counts as loaded. */
+  collisionLoaded?:(x:number,z:number)=>boolean;
   readonly imported = true;
   constructor() {
     this.world.timestep = 1 / 60;

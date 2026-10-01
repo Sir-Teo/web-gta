@@ -260,7 +260,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** The four ped flags these commands set, three of which the source stores inverted. */
  setPedFlag?(handle:number,flag:'notAllowedToDuck'|'stayInCarOnJack'|'doesntDropWeaponsWhenDead'|'getOutUpsideDownCar',value:boolean):void;
  /** physicalFlags.bDontApplySpeed, with the waiting-for-collision mark the freeze also makes. */
- freezePedPositionAndWaitForCollision?(handle:number,freeze:boolean):void;
+ freezePedPositionAndWaitForCollision?(handle:number,freeze:boolean,missionCleanup?:boolean):void;
  /** CPedGroupMembership::RemoveMember, which leaves a leader where it is. */
  removePedFromGroup?(handle:number):void;
  /** CTheScripts' elegant removal: a mission ped in a vehicle goes, and one on foot is handed back to the game. */

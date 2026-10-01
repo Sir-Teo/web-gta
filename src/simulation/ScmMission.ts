@@ -255,6 +255,8 @@ export interface ScmMissionWorld {
  takeWorldObject?(key:string,taken:boolean):boolean;
  /** The models whose IDE flags mark a garage door (0x800, CBaseModelInfo::IsGarageDoor), lower case. */
  garageDoorModels?():ReadonlySet<string>|undefined;
+ /** m_bIsStaticWaitingForCollision on a script ped. */
+ scriptPedWaitForCollision?(ped:unknown):void;
  /** The follow camera turned to face along a heading (degrees, native), from in front. */
  setCameraInFrontOfHeading?(degrees:number):void;
  /** CCarCtrl::ScriptGenerateOneEmergencyServicesCar: a crewed emergency vehicle sent to the point. */
@@ -1381,7 +1383,7 @@ export class ScmMission {
    },
    // The freeze that also waits for collision: a ped the browser built stands on ground it has already
    // loaded, so there is nothing to wait for and it is the plain freeze.
-   freezePedPositionAndWaitForCollision:(handle,freeze)=>{this.world.setScriptPedFrozen(this.livePed(handle),freeze);},
+   freezePedPositionAndWaitForCollision:(handle,freeze,missionCleanup)=>{const ped=this.livePed(handle);this.world.setScriptPedFrozen(ped,freeze);if(freeze&&missionCleanup)this.world.scriptPedWaitForCollision?.(ped);},
    setPedCanBeShotInVehicle:(handle,canBeShot)=>{this.world.setScriptPedFlag(this.livePed(handle),'canBeShotInVehicle',canBeShot);},
    // The player's bDontDragMeOutCar is kept here: nothing in the browser drags the player out yet.
    setPedCantBeDraggedOut:(handle,cannot)=>{if(handle===PLAYER_PED_HANDLE)this.playerCantBeDraggedOut=cannot;else this.world.setScriptPedFlag(this.livePed(handle),'cantBeDraggedOut',cannot);},

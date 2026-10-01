@@ -892,7 +892,9 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CHAR_STAY_IN_CAR_WHEN_JACKED:(t,p,i)=>{world(t,i,'setPedFlag')(t.readInt(p[0]),'stayInCarOnJack',bool(t,p[1]));},
  SET_CHAR_GET_OUT_UPSIDE_DOWN_CAR:(t,p,i)=>{world(t,i,'setPedFlag')(t.readInt(p[0]),'getOutUpsideDownCar',bool(t,p[1]));},
  FREEZE_CHAR_POSITION_AND_DONT_LOAD_COLLISION:(t,p,i)=>{
-  world(t,i,'freezePedPositionAndWaitForCollision')(t.readInt(p[0]),bool(t,p[1]));
+  // FreezeCharPositionAndDontLoadCollision (reversed): bDontApplySpeed, and DoSetPedIsWaitingForCollision when the
+  // freezing script keeps a mission cleanup list.
+  world(t,i,'freezePedPositionAndWaitForCollision')(t.readInt(p[0]),bool(t,p[1]),t.usesMissionCleanup);
  },
  REMOVE_CHAR_FROM_GROUP:(t,p,i)=>{world(t,i,'removePedFromGroup')(t.readInt(p[0]));},
  REMOVE_CHAR_ELEGANTLY:(t,p,i)=>{world(t,i,'removePedElegantly')(t.readInt(p[0]));},

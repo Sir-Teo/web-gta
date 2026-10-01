@@ -3763,6 +3763,9 @@ async function boot() {
   let residentModels=new Map<string,ResidentModel>();
   let pendingFollowingData:TerrainUpdate|undefined,followBoundaryPaused=false;
   let follower:SceneRegionFollower|undefined,followTimer:ReturnType<typeof setTimeout>|undefined,followResume=0;
+  // CColStore::HasCollisionLoaded: inside the installed window's safety boundary (an interior's own window covers
+  // only the interior), or anywhere while no window follows the player. A script's waiting car or ped asks it.
+  sim.collisionLoaded=(x,z)=>!follower||!follower.snapshot().enabled||follower.covers({x,z});
   function failFollowing(id:number,message:string){
     if(!follower?.finish(id,false))return;
     clearTimeout(followTimer);pendingFollowingData=undefined;
@@ -4471,6 +4474,7 @@ async function boot() {
                  },
                  setScriptPedAmmo:(ped,ammo)=>{const p=onFoot(ped);if(p)p.totalAmmo=ammo;},
                  setScriptPedFrozen:(ped,frozen)=>{const p=onFoot(ped);if(p)p.frozen=frozen;},
+                 scriptPedWaitForCollision:ped=>{const p=onFoot(ped);if(p)pedestrians?.waitForCollision(p);},
                  // A ped without collision leaves the query pipeline: nothing touches it and no line of sight meets
                  // it. Its own movement query still finds the ground.
                  setScriptPedCollision:(ped,uses)=>{onFoot(ped)?.collider.setEnabled(uses);},
@@ -4947,9 +4951,14 @@ async function boot() {
                   body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
                   body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
                   // A car set down where the world's collision is not streamed in yet (INTRO2 puts Sweet's car back
-                  // outside the pizza place before its LOAD_SCENE) stands static until the collision is under it, as
-                  // the game's synchronous scene load would have it; with the ground there it goes on at once.
-                  if(typeof (target as {waitForCollision?:unknown}).waitForCollision==='function'&&!target.occupied)target.waitForCollision(false);
+                  // outside the pizza place before its LOAD_SCENE; a job's car sent across the city) stands static until
+                  // the collision is under it, as the game's synchronous scene load would have it, with CJ in it or
+                  // not; with the ground there it goes on at once.
+                  if(typeof (target as {waitForCollision?:unknown}).waitForCollision==='function')target.waitForCollision(false,true);
+                  // CJ in it is where it is (a ped in a car is at the car): the terrain hold looks at his position, which
+                  // otherwise followed the car only on the next stepped frame, and that step ran the car over a spot
+                  // whose window had not been asked for yet.
+                  if(target.occupied||(target as {playerPassengerSeat?:unknown}).playerPassengerSeat){const p=body.translation();sim.player.previous={x:p.x,y:p.y,z:p.z};sim.player.position={x:p.x,y:p.y,z:p.z};}
                  },
                  scriptVehiclePosition:car=>{const p=(car as ScriptCar).car.body.translation();return {x:p.x,y:-p.z,z:p.y};},
                  scriptVehicleBoxTop:car=>(car as ScriptCar).assets.collision.bounds.max[2],

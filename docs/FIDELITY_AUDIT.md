@@ -8879,3 +8879,29 @@ that did anything.
   or off screen. `IGNORE_HEIGHT_DIFFERENCE_FOLLOWING_NODES` (reversed) and `VEHICLE_DOES_PROVIDE_COVER` are kept on the
   handle. `SET_CAMERA_IN_FRONT_OF_CHAR` (reversed) turns the follow camera to face the ped from in front.
   `SET_PLAYER_DISPLAY_VITAL_STATS_BUTTON` keeps `m_bCanShowVitalStats`. `ADD_BLOOD` is `Fx_c::AddBlood`.
+
+## Waiting for collision, and frozen peds
+
+Found driving the paramedic job and INTRO2 past the pizza shop.
+
+- **A waiting car or ped asks for its area's collision.** `m_bIsStaticWaitingForCollision` ends in the game when
+  `CColStore::HasCollisionLoaded` says the spot's collision is in. The browser used to end it as soon as any fixed
+  collider lay within 500 units under the spot, which far from CJ (AMBULAN's patients, Sweet's car outside the pizza
+  place while CJ is in its interior) could be something deep under a spot whose own ground was not streamed: the ped or
+  car was let go and fell out of the world. It now waits while the installed terrain window does not cover the spot
+  (`Simulation.collisionLoaded`; an interior's window covers only the interior).
+- **Set on the surface when the collision comes in.** A ped made at its path node can have its feet a little under the
+  surface there (the node 24.6, the slope 25.8): the game's collision spheres push it out along the surface's normal,
+  the browser's capsule only finds ground under its feet. A waiting ped (or car) whose feet (or underside) are less than
+  1.5 units under the surface found from above is set on it as the wait ends.
+- **A car a script moves waits too.** `SET_CAR_COORDINATES` (and the other placements) leave a car static until its
+  collision is in, CJ in it or not: INTRO2 sets Sweet's car down outside before its `LOAD_SCENE`, which the game loads
+  synchronously. CJ in the car is moved with it at once, so the terrain hold looks at where he now is. A car coming
+  back into the active range waits the same way (a car at rest sleeps until something moves it).
+- **Frozen peds do not fall.** `FREEZE_CHAR_POSITION` and `FREEZE_CHAR_POSITION_AND_DONT_LOAD_COLLISION` set
+  `bDontApplySpeed`, which keeps `CPhysical::ApplyMoveSpeed` from moving the ped at all; the browser still let it fall.
+  The second form also makes a mission script's ped wait for its collision (`DoSetPedIsWaitingForCollision`). AMBULAN
+  makes its patients frozen round the city and lets each go, on his spot, once CJ is within fifty units.
+- **The paramedic job, driven through.** With these, a patient walks to the stopped ambulance and sits in the back, the
+  hospital's marker passes the level (`A_PASS`, `REWARD`), as a drive-through probe showed. A van set down on steps or a
+  planter turns over (health capped at 249 after six seconds upside down, then it burns), as in the game.
