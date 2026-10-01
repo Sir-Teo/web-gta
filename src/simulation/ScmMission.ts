@@ -14,6 +14,7 @@ import {VEHICLE_CLASSES} from '../assets/pedGroups';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from '../engine/ScmThread';
 import {BRAIN_OBJECT,BRAIN_RANDOM_PED} from '../engine/ScmScriptBrains';
 import {GARAGE_DOOR_REACH,garageCentre,garageDoorHeight,garageDoorPose,type ScmGarage} from '../engine/ScmGarages';
+import {globalSoundLevel,type SoundQuietEvent} from '../ped/nativeSoundEvents';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findZone,worldZoneAt,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
@@ -1287,6 +1288,9 @@ export class ScmMission {
    // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.
    setPedDropsObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly);},
    setObjectAsStealable:(handle,state)=>{this.runtime.game.objects.at(handle).stealable=state;},
+   // CEventGlobalGroup::GetSoundLevel (reversed) over the last frame's quiet sounds: every source's for -1, else the
+   // ped's own (only CJ's footsteps are reported yet).
+   getSoundLevelAtCoords:(handle,x,y,z)=>globalSoundLevel(this.soundEvents,handle===-1?undefined:handle===PLAYER_PED_HANDLE?'player':this.livePed(handle),{x,y,z}),
    pedIsHoldingObject:(handle,object)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return this.heldObjectOf(handle)?.handle===object||this.heldObjectOf(handle,true)?.handle===object;},
    // TASK_PICK_UP_SECOND_OBJECT and DROP_SECOND_OBJECT: CTaskSimpleHoldEntity on the ped's second partial slot, so a
    // ped holds one object with each (the gym's two dumbbells).
@@ -2326,6 +2330,8 @@ export class ScmMission {
   * leaves where the map has it shut, and the object is drawn and collides in its place. */
  private readonly garageDoors=new Map<string,{garage:ScmGarage;handle:number;home:{x:number;y:number;z:number};heading:number;height?:number;applied?:number;taken:boolean}>();
  private nextGarageDoorScan=0;
+ /** The global event group's CEventSoundQuiet events from the frame before (native axes), which the host reports. */
+ soundEvents:SoundQuietEvent[]=[];
  /** vehicleFlags.bHasBeenResprayed, set on a vehicle a Pay 'n' Spray did. */
  private readonly resprayedCars=new WeakSet<object>();
  /** What the host calls on the vehicle a Pay 'n' Spray resprays. */

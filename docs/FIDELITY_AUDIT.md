@@ -8915,3 +8915,13 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   front of CJ and he holds it before his chest (the script's hold machinery, `CTaskSimpleHoldEntity`); carrying one, the
   button sets it down 0.6 units ahead. The button goes to a car only when neither applies. Not done: the CARRY clips
   (the pick-up, the carrying walk), and the noise bar GUNS1 shows (`GET_SOUND_LEVEL_AT_COORDS`).
+
+## Quiet sounds and the noise bar
+
+- **`GET_SOUND_LEVEL_AT_COORDS` (GUNS1's noise bar, the burglaries).** The global event group's `CEventSoundQuiet`
+  events are summed as `CEventGlobalGroup::GetSoundLevel` does (reversed): each event's `CEvent::GetSoundLevel` at the
+  point, added in decibels by `CalcSoundLevelIncrement`. `GetSoundLevel` takes the smaller of the distance and 1, so a
+  sound is as loud everywhere beyond a unit away; that is followed as reversed. The player's footsteps make the events
+  (Ped.cpp:2407): a sprint 55, a full run 45, a jog (ratio − 1) × 15 + 30 past a ratio of 1.5, walking and sneaking
+  nothing (CJ wears no balaclava). The script reads the frame before's, as the group lives until `CWorld::Process`
+  flushes it. Not yet: the car doors' (`CAutomobile::ProcessOpenDoor`) and the other sources' events.

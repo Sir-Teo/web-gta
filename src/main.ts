@@ -1,5 +1,6 @@
 import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/startingLoadout';
 import {ScmGarages,isCarSprayable,STAT_VEHICLE_RESPRAYS} from './engine/ScmGarages';
+import {playerFootstepSoundLevel} from './ped/nativeSoundEvents';
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
@@ -3475,6 +3476,10 @@ async function boot() {
       {const pads=mission.runtime.game.pads;pads.invertMouseY=mouseSettings.invertY;const driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
        padStateFromActions(heldPadActions(code=>input.down(code)),driving?'driving':render.firstPerson?'firstPerson':'thirdPerson',false,pads.pads[0]);
        pads.justOutOfFrontEnd=padsAfterPause;padsAfterPause=false;}
+      // CPed's footsteps for the player: the CEventSoundQuiet his last frame's move made, which the script reads before
+      // CWorld::Process flushes the global group (GUNS1's noise bar). Walking and standing make none.
+      {const level=sim.player.grounded?playerFootstepSoundLevel(sim.footMove==='sprint'?'sprint':sim.footMove==='run'?'run':sim.player.moveBlend>0?'walk':'still',sim.player.moveBlend):0,p=sim.player.position;
+       mission.soundEvents=level>0?[{source:'player',level,position:{x:p.x,y:-p.z,z:p.y+1}}]:[];}
       // The script's FORCE_WEATHER, FORCE_WEATHER_NOW and RELEASE_WEATHER reach the one CWeather, as the cheats' do.
       mission.runtime.game.weatherHost??={forceWeather:w=>weather.forceWeather(w),forceWeatherNow:w=>weather.forceWeatherNow(w),releaseWeather:()=>weather.releaseWeather()};
       const clock=mission.runtime.game.clock;if(clock.follow(sim.timeMinutes,sim.weekDay))mission.runtime.game.stats.increment(STAT_DAYS_PASSED_IN_GAME,1);
