@@ -92,6 +92,8 @@ export interface ScmMissionWorld {
  defaultDecisionMaker?(index:number):import('../ped/nativeDecisionMaker').DecisionMaker|undefined;
  /** CAudioEngine::RetuneRadio for SET_RADIO_CHANNEL (an eRadioID). */
  retuneRadio?(station:number):void;
+ /** CAERadioTrackManager::GetCurrentRadioStationID (reversed): the station asked for, RADIO_OFF (13) with none. */
+ radioStationId?():number;
  /** CAEFrontendAudioEntity::AddAudioEvent, for the reports the script's own systems make (the timer count). */
  frontendAudioEvent?(event:number):void;
  /** TheCamera's fade (m_fFadeAlpha, m_bFading), one for the script and the game alike; the host processes it. Without
@@ -727,6 +729,8 @@ export const playerLockedOut=(lock:number)=>lock===2||lock===3||lock===4||lock==
 export const PLAYER_VEHICLE_HANDLE=1;
 /** Where the script's own peds and cars are numbered from, above the player's handle and his car's. */
 export const SCRIPT_PED_FIRST_HANDLE=1024,SCRIPT_VEHICLE_FIRST_HANDLE=1024;
+/** eRadioID::RADIO_OFF. */
+const RADIO_OFF=13;
 /** eVehicleAppearance::VEHICLE_APPEARANCE_AUTOMOBILE. */
 const VEHICLE_APPEARANCE_AUTOMOBILE=1;
 /** Streamed scripts that are never streamed in, so MAIN's HAS_STREAMED_SCRIPT_LOADED stays false and it never starts
@@ -1955,6 +1959,8 @@ export class ScmMission {
    setPedAccuracy:(handle,accuracy)=>{this.peds.setAccuracy(handle,accuracy);},
    setPedShootRate:(handle,rate)=>{this.peds.setShootingRate(handle,rate);},
    setRadioChannel:station=>{this.world.retuneRadio?.(station);},
+   // GET_RADIO_CHANNEL: CAudioEngine::GetCurrentRadioStationID; gf_date steps through the stations from it.
+   getRadioChannel:()=>this.world.radioStationId?.()??RADIO_OFF,
    setPedInvulnerable:(handle,enabled)=>{this.peds.setInvulnerable(handle,enabled);},
    setPedProofs:(handle,proofs)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerProofs','SET_CHAR_PROOFS')(proofs);else this.peds.setProofs(handle,proofs);},
    deletePed:handle=>{this.cleanupPeds.delete(handle);this.peds.delete(handle);},

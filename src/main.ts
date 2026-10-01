@@ -4398,6 +4398,7 @@ async function boot() {
                 mission=new ScmMission(new Uint8Array(data.script),zones,{
                   frontendAudioEvent:event=>sound.frontend(event),
                   retuneRadio:station=>{sound.nativeEngine?.retuneRadio(station);},
+                  radioStationId:()=>sound.nativeEngine?.radioId??13,
                   defaultDecisionMaker:index=>pedestrians?.defaultDecisionMaker(index),
                   // CCamera::IsSphereVisible: the sphere against the camera's frustum.
                   isSphereVisible:(point,radius)=>{const c=render.camera;c.updateMatrixWorld();return new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(c.projectionMatrix,c.matrixWorldInverse)).intersectsSphere(new Sphere(new Vector3(point.x,point.z,-point.y),Math.max(0,radius)));},

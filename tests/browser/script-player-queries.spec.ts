@@ -29,6 +29,9 @@ test('the script reads CJ crouching, the horn and the population zone type',asyn
  await page.keyboard.press('KeyC');
  await expect.poll(()=>ask('pedIsDucking',1),{timeout:5000}).toBe(false);
  expect(await ask('isPlayerClimbing',0)).toBe(false);
+ // SET_RADIO_CHANNEL and GET_RADIO_CHANNEL: the station asked for reads back (gf_date steps through them), off is 13.
+ await ask('setRadioChannel',5);expect(await ask('getRadioChannel')).toBe(5);
+ await ask('setRadioChannel',13);expect(await ask('getRadioChannel')).toBe(13);
  // On foot the horn is nobody's.
  await page.keyboard.down('KeyH');expect(await ask('isPlayerPressingHorn',0)).toBe(false);await page.keyboard.up('KeyH');
  // Grove Street's popcycle zone type, a number the zone's row gives.
