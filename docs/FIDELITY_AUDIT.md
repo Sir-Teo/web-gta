@@ -9063,3 +9063,15 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   floor at or under them: that is a ped buried a little under a slope, which the game's collision spheres push out.
   With floor under its feet the surface above is furniture it overlaps. SWEET1B's couch dealer was lifted onto the
   crack den's couch and slid off behind it into the back room.
+
+## A ped that walks into a wall walks round it
+
+- **`CTaskComplexWalkRoundBuildingAttempt`** (reversed: ComputeMoveDir, ComputeRoute, ComputeCrapRoute,
+  ControlSubTask, CreateNextSubTask) answers `CEventBuildingCollision` (AffectsPed and IsHeadOnCollision reversed)
+  through `ComputeBuildingCollisionResponse`: a ped on a kill task that cannot see its target over the wall, or on a
+  script go-to that walks into it head on, scratches its head (walking) or hits the wall (running) while it computes
+  a route an attempt a frame (the target's side, both head on, at growing reach, 0.35 off the wall; two points round
+  the wall's end; a random step back off it past twenty attempts), then follows it and goes back to its task. It
+  gives up after a second without progress, or when the target moves four units. The browser's authored ±65°
+  sidestep still serves every other ped. Not here: the building treated as an object, the jump over a low
+  obstacle, the climb for the player's group and the hit head of a ped with neither task.

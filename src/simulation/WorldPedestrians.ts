@@ -20,6 +20,7 @@ import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
 import {stepNpcGun,npcAimSpread,npcInaccurateAim,type NpcGunState} from '../weapons/gunnery';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
+import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from '../ped/nativeWalkRoundBuilding';
 import {followersToRemove} from '../ped/nativePedGroup';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,planFollowNodeRoute} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
@@ -230,6 +231,8 @@ export interface Pedestrian {
  staredAt?:number;
  /** The clip the ped fell with (its ANIMATION_IS_FRONT flag picks the get-up) and CPed::bStuckUnderCar. */
  fallClip?:string;stuckUnderCar?:boolean; impulse:{x:number;z:number}; blocked:number;
+ /** CTaskComplexWalkRoundBuildingAttempt while it runs (see stepWalkRound). */
+ walkRound?:WalkRound;
  /** CTaskComplexSmartFleeEntity from the player (or `from`, another ped): the safe distance and the seconds to the next
   * position check. */
  /** CTaskComplexSmartFleeEntity: `from` a ped, `point` a stopped car, else the player; `safe` ends the flight. */
@@ -447,6 +450,16 @@ const PED_BOUND_RADIUS=1;
 const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
 /** What a ped carries into a car and out again as CJ's passenger. */
 interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;gang?:number;gangClips:boolean}
+/** CTaskComplexWalkRoundBuildingAttempt's state: the route, the point it walks round to (m_targetPos, native) and the
+ * ped or player it follows there (m_targetEntity), its move state, and which sub-task runs: the first one (scratch
+ * head walking, hit wall running), look about, following the route, or the stand or hit wall it gives up with. */
+interface WalkRound {route:WalkRoundBuildingRoute;point:NativeV3;target?:Pedestrian|'player';moveState:number;
+ phase:'first'|'look'|'follow'|'abort';clip?:string;time:number;at:number;still:{x:number;z:number;seconds:number}}
+/** CTaskComplexFollowPointRoute's 0.5 target radius, and m_AnotherStaticCounter's 30 frames (at 30 fps) without a
+ * quarter unit of progress, after which the walk round gives up. */
+const WALK_ROUND_POINT_RADIUS=.5,WALK_ROUND_STILL_SECONDS=1;
+/** How far ahead of a ped's centre a step it could not take is checked for the building it walked into. */
+const BUILDING_PROBE_REACH=.9;
 /** How far under a surface a waiting ped's feet may be and still be set on it when its collision comes in. */
 const WAITING_PED_LIFT_LIMIT=1.5;
 export class WorldPedestrians {
@@ -2155,6 +2168,93 @@ export class WorldPedestrians {
  /** m_bIsStaticWaitingForCollision set on a script ped (DoSetPedIsWaitingForCollision): it stands where it is until its
   * area's collision is in. */
  waitForCollision(ped:Pedestrian){ped.collisionWait={seconds:0,reground:false};}
+ /** CWorld::ProcessLineOfSight over buildings, in native axes: the first fixed surface between two points. */
+ private buildingHit=(a:NativeV3,b:NativeV3):NativeV3|undefined=>{
+  const d={x:b.x-a.x,y:b.z-a.z,z:-(b.y-a.y)},l=Math.hypot(d.x,d.y,d.z);if(l<1e-6)return undefined;
+  const hit=this.sim.world.castRay(new RAPIER.Ray({x:a.x,y:a.z,z:-a.y},{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  if(!hit)return undefined;const k=hit.timeOfImpact/l;return {x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k,z:a.z+(b.z-a.z)*k};
+ };
+ /** A ped's or the player's origin, native. */
+ private nativeOrigin(who:Pedestrian|'player'){const q=who==='player'?this.sim.player.position:who.actor.player.position;return {x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT};}
+ /** What ComputeBuildingCollisionResponse walks a ped round a wall toward: the target of its kill task (the foe it
+  * fights, or the player), or the point of the script's go-to. Nothing for any other task. */
+ private walkRoundGoal(p:Pedestrian):{point:NativeV3;target?:Pedestrian|'player';moveState:number;kill:boolean}|undefined{
+  if(!p.officer&&p.retaliate>0&&!p.fight&&p.taunt===undefined&&p.flee<=0){
+   const target=p.foe&&p.foe.health>0&&this.people.includes(p.foe)?p.foe:p.follow?undefined:'player';
+   if(target)return {point:this.nativeOrigin(target),target,moveState:6,kill:true};
+  }
+  const o=p.order;
+  if(o?.kind==='goToPoint')return {point:{x:o.x,y:-o.z,z:o.y??p.actor.player.position.y+PED_ORIGIN_HEIGHT},moveState:o.moveState,kill:false};
+  return undefined;
+ }
+ /** CEventBuildingCollision on a ped whose step a fixed surface ahead stopped: AffectsPed's walking-into test, then
+  * ComputeBuildingCollisionResponse (reversed). A kill task walks round toward its target unless, head on, the ped can
+  * see it over the wall (CPedGeometryAnalyser::CanPedTargetPed); a go-to point walks round only head on (the jump over
+  * a low obstacle is not taken). The building treated as an object, the climb for the player's group and the hit
+  * head of a ped with neither task are not here. */
+ private buildingCollision(p:Pedestrian,along:{x:number;z:number}){
+  const goal=this.walkRoundGoal(p);if(!goal)return;
+  const c=p.body.translation(),l=Math.hypot(along.x,along.z);if(l<1e-6)return;
+  const hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(c,{x:along.x/l,y:0,z:along.z/l}),BUILDING_PROBE_REACH,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  if(!hit||Math.abs(hit.normal.y)>.707)return;
+  const h=p.actor.player.heading,normal={x:hit.normal.x,y:-hit.normal.z,z:0},facing=buildingCollisionFacing(normal,{x:Math.sin(h),y:-Math.cos(h)});
+  if(!facing.affects)return;
+  if(goal.kill){
+   if(facing.headOn&&goal.target){const eye=this.nativeOrigin(p),to=this.nativeOrigin(goal.target);eye.z+=.6;if(!this.buildingHit(eye,to))return;}
+  }else if(!facing.headOn)return;
+  const impact={x:c.x+along.x/l*hit.timeOfImpact,y:-(c.z+along.z/l*hit.timeOfImpact),z:c.y};
+  // CreateFirstSubTask: a walk (or slower) scratches its head, a run or sprint hits the wall.
+  const clip=goal.moveState<=4?'xpressscratch':'hit_wall',playing=p.view.hasReaction(clip);
+  if(playing)p.view.playReaction(clip);
+  p.walkRound={route:new WalkRoundBuildingRoute(impact,normal,facing.headOn),point:goal.point,target:goal.target,moveState:goal.moveState,
+   phase:'first',clip:playing?clip:undefined,time:playing?p.view.reactionDuration(clip)??1:0,at:0,still:{x:c.x,z:c.z,seconds:0}};
+ }
+ /** CTaskComplexWalkRoundBuildingAttempt::ControlSubTask and CreateNextSubTask (reversed): the direction and pace
+  * the ped takes this step, or nothing once the task is over. The route is computed an attempt a step until it has
+  * points; the first sub-task gives way to following it at once (the clips abort when asked), and with none when its
+  * clip ends the ped looks about for a second. Following, it gives up (hit wall) after a second without progress, and
+  * a target that has moved four units from where it was ends it with a second's stand. */
+ private stepWalkRound(p:Pedestrian,dt:number):{dx:number;dz:number;speed:number}|undefined{
+  const w=p.walkRound!,q=p.actor.player.position;
+  const end=()=>{if(w.clip&&p.view.reactionName===w.clip)p.view.clearReaction();p.walkRound=undefined;return undefined;};
+  if(p.health<=0||p.down>0||p.flee>0||!this.walkRoundGoal(p))return end();
+  if(w.phase!=='abort'&&w.target){
+   const now=this.nativeOrigin(w.target);
+   if(w.target!=='player'&&(w.target.health<=0||!this.people.includes(w.target))||Math.hypot(now.x-w.point.x,now.y-w.point.y,now.z-w.point.z)>=4){
+    if(w.clip&&p.view.reactionName===w.clip)p.view.clearReaction();
+    w.phase='abort';w.clip=undefined;w.time=1;
+   }
+  }
+  const speedOf=(moveState:number)=>moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;
+  switch(w.phase){
+   case 'first':case 'look':{
+    if(!w.route.routeHasPoints)w.route.compute(this.nativeOrigin(p),w.point,this.buildingHit);
+    if(w.route.routeHasPoints){
+     if(w.clip&&p.view.reactionName===w.clip)p.view.clearReaction();
+     w.clip=undefined;w.phase='follow';w.at=0;w.still={x:q.x,z:q.z,seconds:0};
+     break;
+    }
+    w.time-=dt;
+    if(w.time<=0){w.phase='look';w.time=1;}
+    return {dx:0,dz:0,speed:0};
+   }
+   case 'abort':{
+    w.time-=dt;if(w.time<=0||w.clip&&p.view.reactionName!==w.clip)return end();
+    return {dx:0,dz:0,speed:0};
+   }
+  }
+  // Following the route, one point after another at the move state, a point within half a unit reached.
+  let point=w.route.route[w.at];
+  while(point&&Math.hypot(point.x-q.x,-point.y-q.z)<WALK_ROUND_POINT_RADIUS)point=w.route.route[++w.at];
+  if(!point)return end();
+  if(Math.hypot(q.x-w.still.x,q.z-w.still.z)>=.25)w.still={x:q.x,z:q.z,seconds:0};
+  else if((w.still.seconds+=dt)>WALK_ROUND_STILL_SECONDS){
+   const playing=p.view.hasReaction('hit_wall');if(playing)p.view.playReaction('hit_wall');
+   w.phase='abort';w.clip=playing?'hit_wall':undefined;w.time=playing?p.view.reactionDuration('hit_wall')??1:0;
+   return {dx:0,dz:0,speed:0};
+  }
+  return {dx:point.x-q.x,dz:-point.y-q.z,speed:speedOf(w.moveState)};
+ }
  releaseScripted(ped:Pedestrian,keepTask=false){
   ped.mission=false;
   // bKeepTasksAfterCleanUp: the ped carries on with what it was doing.
@@ -3676,11 +3776,14 @@ export class WorldPedestrians {
     this.stepPedGun(p,p.weapon,spot.eye,spot.aim,spot.offset,cars,dt,gunEngaged);
     if(p.gun)for(const binding of p.gun.materialBindings)if(binding.source.texture.toLowerCase().startsWith('muzzle'))binding.material.visible=p.flash>0;
    }
+    // CTaskComplexWalkRoundBuildingAttempt, while it runs, steers the ped round the wall it walked into.
+    let walkRoundSpeed:number|undefined;
+    if(p.walkRound){const steer=this.stepWalkRound(p,dt);if(steer){dx=steer.dx;dz=steer.dz;walkRoundSpeed=steer.speed;}}
     const length0=Math.hypot(dx,dz);
-    if(p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
+    if(!p.walkRound&&p.blocked>.3&&p.down===0&&length0>.01){const slide=sidestepDirection(dx/length0,dz/length0,p.id%2?1:-1);dx=slide.x*length0;dz=slide.z*length0;}
      const retaliating=!p.officer&&p.retaliate>0&&p.health>0&&p.down===0&&(!p.follow||(p.foe?.health??0)>0)&&p.taunt===undefined;
      const retaliateDist=retaliating?Math.hypot((p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).x-state.position.x,(p.foe&&p.foe.health>0?p.foe.actor.player.position:this.sim.player.position).z-state.position.z):Infinity;
-     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.chat||p.loiter&&p.flee<=0&&p.retaliate<=0?0:(fleeing||retaliating?undefined:orderSpeed)??policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??stealSpeed??hangoutSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0||this.clearStreets&&p.gang===undefined&&!p.dealer?p.sprintSpeed:p.walkSpeed));
+     const length=Math.hypot(dx,dz),target=p.down>0||p.stagger>0||p.scratch>0||p.taunt!==undefined||p.drowning||p.landing!==undefined||p.air||p.rage||p.chat||p.loiter&&p.flee<=0&&p.retaliate<=0?0:walkRoundSpeed??(fleeing||retaliating?undefined:orderSpeed)??policeSpeed??gunHold??followSpeed??reactSpeed??investigateSpeed??stealSpeed??hangoutSpeed??(retaliating?(retaliateDist>NATIVE_MELEE_COMBOS.UNARMED.range&&!p.fight?p.runSpeed:0):(p.flee>0||this.clearStreets&&p.gang===undefined&&!p.dealer?p.sprintSpeed:p.walkSpeed));
     // Eased gait: peds burst from their current pace instead of teleporting
     // to full sprint, so hit-frame strikes still connect mid-exchange.
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));
@@ -3741,6 +3844,9 @@ export class WorldPedestrians {
    if(speed&&Math.hypot(movement.x,movement.z)<speed*dt*.2)p.blocked+=dt;else p.blocked=0;
    // CPedIntelligence::ProcessStaticCounter: m_AnotherStaticCounter counts while a walker stays within a quarter unit.
    if(wanderWalk){const s=p.stuck;if(!s||(position.x-s.x)**2+(position.z-s.z)**2>=1/16)p.stuck={x:position.x,z:position.z,seconds:0};else s.seconds+=dt;}else p.stuck=undefined;
+   // CEventBuildingCollision: a step mostly stopped by something fixed ahead, on a ped seeking someone or going to a
+   // point, gets ComputeBuildingCollisionResponse's answer.
+   if(!p.walkRound&&!held&&speed>.05&&p.down===0&&p.health>0&&!p.air&&Math.hypot(movement.x,movement.z)<speed*dt*.5)this.buildingCollision(p,along);
    p.body.setNextKinematicTranslation({x:position.x+movement.x,y:position.y+movement.y,z:position.z+movement.z});
    p.impulse.x*=Math.exp(-5*dt);p.impulse.z*=Math.exp(-5*dt);
   }
