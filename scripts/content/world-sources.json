@@ -980,5 +980,14 @@
       "bytes": 18347,
       "sha256": "e8decea200f701498cf1414a4d6accb1dc6fdeb147ac30cd3500e0ae27cdcd69"
     }
+  ],
+  "extraArchives": [
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/models/gta_int.img",
+      "path": "gta_int.img",
+      "bytes": 150024192,
+      "sha256": "b54a61ddbcd3914d309e951ba87534bad569a505f38e7936dd5bfde7266d2591",
+      "base": "int/"
+    }
   ]
 }

@@ -21,7 +21,8 @@ const pathFor = name => {
   }
   return path;
 };
-const all = [lock.archive, ...lock.resources];
+// Further IMGs the game opens after gta3.img (MODELS\\GTA_INT.IMG), hosted uncompressed.
+const all = [lock.archive, ...lock.resources, ...(lock.extraArchives ?? [])];
 const paths = new Set();
 for (const item of [...all, lock.compressedArchive]) {
   const path = pathFor(item.path);
@@ -45,6 +46,7 @@ if (verifyOnly) {
     await installVerified(archivePath, lock.archive, createReadStream(compressed), [createInflate()]);
     console.log('gta3.img: inflated and verified');
   }
+  for (const item of lock.extraArchives ?? []) console.log(`${item.path}: ${await acquireFile(pathFor(item.path), item)}`);
   for (let i = 0; i < lock.resources.length; i += 4) {
     const batch = await Promise.allSettled(lock.resources.slice(i, i + 4).map(async item => {
       const result = await acquireFile(pathFor(item.path), item);
