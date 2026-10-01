@@ -92,7 +92,18 @@ export function missionBotTick(dtSeconds:number){
    // Held that long (a car left in the lane ahead: STOP_FOR_CARS waits behind it for good), a player goes round it:
    // DRIVINGSTYLE_AVOID_CARS for a few seconds.
    mem.waitingFor=waiting&&moved<.05*Math.max(1,dtSeconds*20)?(mem.waitingFor??0)+dtSeconds:0;
-   if(mem.waitingFor>8){mem.waitingFor=0;mem.aroundUntil=now+6000;mem.drive=undefined;}
+   // A go-round that left it where it was (wedged on SWEET3's verge behind a crashed car left in the lane) starts the
+   // next one by backing up first.
+   if(mem.waitingFor>8){
+    mem.waitingFor=0;mem.drive=undefined;
+    const stillThere=!!mem.aroundFrom&&Math.hypot(me.x-mem.aroundFrom.x,me.y-mem.aroundFrom.y)<3;
+    mem.aroundFrom={x:me.x,y:me.y};mem.aroundUntil=now+6000;
+    if(stillThere){
+     mem.reversingUntil=now+1800;mem.aroundUntil=now+1800+6000;
+     try{world.givePedScriptedTask(1,{kind:'carTempAction',vehicle,actionId:3,time:1500},0x0822);}catch{}
+     return true;
+    }
+   }
    const style=mem.aroundUntil&&now<mem.aroundUntil?2:0;
    if(mem.reversingUntil&&now<mem.reversingUntil)return true;
    if(mem.stuckFor>5){
