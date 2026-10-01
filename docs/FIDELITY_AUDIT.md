@@ -9054,3 +9054,10 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   `CCam::Process_AttachedCam` are not, AUTHORED): MODE_ATTACHCAM on the entity, the camera at the offset in its
   space, looking at the target entity or at the look-at point in that space. The tilt (a roll) is kept but not drawn.
   `gf_date` stopped on the look-at-char form.
+
+## A ped made against furniture stays on the floor
+
+- **A waiting script ped** (CREATE_CHAR's collision wait) is set on the surface over its feet only when there is no
+  floor at or under them: that is a ped buried a little under a slope, which the game's collision spheres push out.
+  With floor under its feet the surface above is furniture it overlaps. SWEET1B's couch dealer was lifted onto the
+  crack den's couch and slid off behind it into the back room.

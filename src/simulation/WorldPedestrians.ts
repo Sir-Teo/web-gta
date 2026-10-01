@@ -2141,7 +2141,12 @@ export class WorldPedestrians {
   // slope or a raised verge): the game's collision spheres push it out along the surface's normal, the browser's
   // capsule only finds ground below its feet, so it is set on the surface the ray from above found.
   const y=top-hit.timeOfImpact;
-  if(w.reground||y>at.y&&y-at.y<WAITING_PED_LIFT_LIMIT){
+  // Floor just under its feet already (a ped made on a couch, SWEET1B's crack den): it stands there, and the surface
+  // above is furniture it overlaps, not ground it is buried under.
+  // (Floor at or under the feet only: a slope a little over them is the surface it is buried under.)
+  const under=!w.reground&&y>at.y?this.sim.world.castRay(new RAPIER.Ray({x:at.x,y:at.y+.25,z:at.z},{x:0,y:-1,z:0}),.75,true,RAPIER.QueryFilterFlags.ONLY_FIXED):null;
+  const floor=!!under&&under.timeOfImpact>=.2;
+  if(w.reground||y>at.y&&y-at.y<WAITING_PED_LIFT_LIMIT&&!floor){
    at.y=y;p.actor.player.previous={...at};
    p.body.setTranslation({x:at.x,y:y+.9,z:at.z},true);p.collider.setTranslation({x:at.x,y:y+.9,z:at.z});
   }
