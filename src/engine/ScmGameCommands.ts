@@ -2032,9 +2032,15 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_TRAILER_ATTACHED_TO_CAB:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'trailerIsAttachedToCab')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
  },
+ /* SET_OBJECT_COORDINATES_AND_VELOCITY (AUTHORED; the handler is unreversed): the object is put at the point and
+  * given the move speed that takes it there in this frame, its displacement over CTimer::ms_fTimeStep, as PROJECT moves
+  * an object along its path a frame at a time; SET_OBJECT_COORDINATES leaves the speed alone. */
  SET_OBJECT_COORDINATES_AND_VELOCITY:(t,p,i)=>{
-  const point=vec(t,p,1);
-  world(t,i,'setObjectCoordinatesAndVelocity')(t.readInt(p[0]),point.x,point.y,point.z);
+  const objects=game(t,i).objects,handle=t.readInt(p[0]),to=vec(t,p,1);
+  if(t.timeStep===undefined)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,'no timestep');
+  const from=objects.at(handle).position,step=Math.max(Math.fround(t.timeStep),1e-3);
+  objects.setPosition(handle,to);
+  objects.at(handle).velocity={x:(to.x-from.x)/step,y:(to.y-from.y)/step,z:(to.z-from.z)/step};
  },
  FORCE_CAR_LIGHTS:(t,p,i)=>{world(t,i,'forceVehicleLights')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CAR_CAN_BE_DAMAGED:(t,p,i)=>{world(t,i,'setVehicleCanBeDamaged')(t.readInt(p[0]),bool(t,p[1]));},

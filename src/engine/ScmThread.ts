@@ -679,7 +679,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /* The last of the tail. */
  groupExists?(group:number):boolean;
  trailerIsAttachedToCab?(trailer:number,cab:number):boolean;
- setObjectCoordinatesAndVelocity?(handle:number,x:number,y:number,z:number):void;
  forceVehicleLights?(handle:number,lights:number):void;
  setVehicleCanBeDamaged?(handle:number,state:boolean):void;
  vehicleGotoCoordinatesAccurate?(handle:number,x:number,y:number,z:number):void;

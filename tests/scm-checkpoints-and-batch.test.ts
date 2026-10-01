@@ -120,6 +120,17 @@ describe('the vehicle, ped and object commands of this batch',()=>{
   expect(slide(10)).toBe(true);expect(game.objects.at(handle).position).toEqual({x:1,y:-2,z:0});
  });
 
+ test('SET_OBJECT_COORDINATES_AND_VELOCITY puts the object at the point with the speed that took it there this frame',()=>{
+  const game=new ScmGameState(),handle=game.objects.create(1337,{x:1,y:2,z:3},{external:false,missionCleanup:false}).handle;
+  const space=new Uint8Array(2048);
+  space.set(instruction(op('SET_OBJECT_COORDINATES_AND_VELOCITY'),[int(handle),float(2),float(2),float(2.5)]),CODE);
+  const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game,world:{fade(){}} as unknown as ScmWorldCommands});
+  try{thread.run(0,1,.5);}catch(error){if(!String(error).match(/watchdog|opcode|Unknown/))throw error;}
+  expect(game.objects.at(handle).position).toEqual({x:2,y:2,z:2.5});
+  // A unit east and half down over half a frame: two units and one down a frame.
+  expect(game.objects.at(handle).velocity).toEqual({x:2,y:0,z:-1});
+ });
+
  test('an object’s model is its number, or the script’s own used-object id for a named one',()=>{
   const game=new ScmGameState();
   const numbered=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false}).handle;
