@@ -48,6 +48,18 @@ test('CJ buys a pistol over the Ammu-Nation counter',async({page})=>{
  expect(errors).toEqual([]);
 });
 
+// CEntryExit::TransitionFinished sets CGame::currArea to the spawn point's area, which GET_AREA_VISIBLE reads: through
+// Ammu-Nation's door the script hears the interior's area, and back out it hears the street's.
+test('walking through a door changes the area the script sees',async({page})=>{
+ test.skip(!interiorsPublished,'Requires gta_int.img published with the world.');test.setTimeout(300000);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await inside(page,'AMMUN1');
+ const area=(await state(page)).lighting.area;
+ expect(area).not.toBe(0);
+ expect(await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.currentArea)).toBe(area);
+ expect(errors).toEqual([]);
+});
+
 // CTheScripts::HighlightImportantArea: the counter's LOCATE_STOPPED_CHAR_ON_FOOT_3D asks for its area to be highlighted,
 // and CShadows::RenderIndicatorShadow puts three red cylinders there (0.8, 0.9 and the full half width of 1).
 test('the Ammu-Nation counter shows the red marker its locate highlights',async({page})=>{

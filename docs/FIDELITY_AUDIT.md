@@ -8825,3 +8825,11 @@ that did anything.
   right side, 2 units out, buys a hot dog: 50 health and `VEND_EAT1_P` for a dollar. `CPed::PositionAttachedPed` is
   unreversed, so the vendor's stance is AUTHORED: standing in `IDLE_stance`, facing the turret position a quarter turn
   at a time (0 ahead, 1 left, 2 behind, 3 right), which puts him at the serving window.
+
+## The area a door leads into is the script's area
+
+- **`CGame::currArea` followed only the script.** `CEntryExit::TransitionFinished` (EntryExit.cpp:350, 376) sets it to
+  the spawn point's area as the player arrives; the port wrote it only from `SET_AREA_VISIBLE`, so `GET_AREA_VISIBLE`
+  answered 0 inside any interior the player walked into. INTRO2 asks for the SHOP animations only when it hears area 2
+  in the barber's, and after the haircut waited for them for ever. The transfer now sets it (spec `interior-shops`,
+  "walking through a door changes the area the script sees").

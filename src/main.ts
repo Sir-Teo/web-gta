@@ -3958,6 +3958,10 @@ async function boot() {
       });
     }
     entryExits?.arrived();mission?.runtime.game.pads.setDisabled(0,'enterCar',false);rebuildPlayerIfNeeded();
+    // TransitionFinished (EntryExit.cpp:350, 376): CGame::currArea = ms_spawnPoint->m_nArea, which GET_AREA_VISIBLE reads.
+    // Only SET_AREA_VISIBLE wrote it before, so a script asking which area CJ walked into heard 0 (INTRO2 never asked
+    // for the SHOP animations in the barber's and waited for them for ever after the haircut).
+    if(mission)mission.runtime.game.currentArea=spawn.area;
     spawnPointSky(spawn);
     // TransitionFinished's shop (reconstructed): a reward interior's door unloads the shop, any other door loads the
     // shop its name names and marks its pair as the reward side.
