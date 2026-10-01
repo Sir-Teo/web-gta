@@ -26,6 +26,9 @@ const bot=!!process.env.SWEEP_BOT;
 /** SWEEP_WATCH=65,66,67: mission locals holding ped handles, logged with the progress line (where each is, what it
  * rides and the drive mission its vehicle runs), to see which NPC is not doing its part. */
 const watch=(process.env.SWEEP_WATCH??'').split(',').filter(Boolean);
+/** SWEEP_GLOBALS=169,409,676: globals printed with the progress line, with CJ's money (what a shop or a flag the
+ * mission waits on holds). */
+const globals=(process.env.SWEEP_GLOBALS??'').split(',').filter(Boolean).map(Number);
 const list=process.env.SWEEP??'';
 test.skip(!list,'set SWEEP to a mission list to run the mission sweep');
 test('mission sweep',async({page})=>{
@@ -78,7 +81,7 @@ test('mission sweep',async({page})=>{
   const deadline=Date.now()+seconds*1000;
   while(Date.now()<deadline){
    await page.waitForTimeout(500);
-   const s=await page.evaluate(([id,playerOnly,bot,watch])=>{
+   const s=await page.evaluate(([id,playerOnly,bot,watch,globals])=>{
     const g=(window as any).__game,m=g.missionForProfiling(),r=m.runtime,sweep=(window as any).__sweep;
     const slot=r.active.find((a:any)=>a.thread.base>0&&a.thread.thisMustBeTheOnlyMissionRunning);
     const gaveUp=m.snapshot().gaveUp.slice((window as any).__sweepGaveUp);
@@ -146,7 +149,7 @@ test('mission sweep',async({page})=>{
     // The wanted level and the police units within 40 units, with their CCarAI mission: cops pinning CJ or trying to bust
     // him out of a mission car stall the objective.
     const pol=g.police?.(),cops=(pol?.units??[]).filter((u:any)=>{if(u.car.disposed||!u.car.car.body.isValid())return false;const c=u.car.car.body.translation();const q=r.world.pedPosition(1);return Math.hypot(c.x-q.x,-c.z-q.y)<40;}).map((u:any)=>u.mission).join('/');
-    const me=r.world.pedPosition(1),watched=[`W${pol?.law?.level??'?'}${cops?` cops ${cops}`:''} CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?`riding ${r.world.pedVehicle(1)} hp ${(()=>{try{return Math.round(r.world.vehicleHealth?.(r.world.pedVehicle(1)));}catch{return '?';}})()} ${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1)),mi=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();return `${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mi?`${mi.kind}->${mi.goal.x.toFixed(0)},${(-mi.goal.z).toFixed(0)}${mi.recovery?` rec${mi.recovery.kind}`:''}`:'no mission'}`;})()}`:'on foot'}`,...(watch as string[]).map(local=>{
+    const me=r.world.pedPosition(1),watched=[...((globals as number[]).length?[`$${g.sim.money} ${(globals as number[]).map(n=>`g${n}=${(t as any).globals.getInt32(n*4,true)}`).join(' ')}`]:[]),`W${pol?.law?.level??'?'}${cops?` cops ${cops}`:''} CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?`riding ${r.world.pedVehicle(1)} hp ${(()=>{try{return Math.round(r.world.vehicleHealth?.(r.world.pedVehicle(1)));}catch{return '?';}})()} ${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1)),mi=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();return `${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mi?`${mi.kind}->${mi.goal.x.toFixed(0)},${(-mi.goal.z).toFixed(0)}${mi.recovery?` rec${mi.recovery.kind}`:''}`:'no mission'}`;})()}`:'on foot'}`,...(watch as string[]).map(local=>{
      // A `g` prefix names a global ($131, Sweet in SWEET1) rather than a mission local.
      const handle=String(local).startsWith('g')?(t as any).globals.getInt32(Number(String(local).slice(1))*4,true):t.locals.getInt32(Number(local)*4,true);
      const seq=(()=>{try{const n=r.world.pedSequenceProgress?.(handle);return n===undefined||n<0?'':` seq${n}`;}catch{return '';}})();
@@ -179,7 +182,7 @@ test('mission sweep',async({page})=>{
      hp[local]=health;
     }
     return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said(),bot:botAction,watched,hurt};
-   },[id,playerOnly,bot,watch] as const);
+   },[id,playerOnly,bot,watch,globals] as const);
    samples++;previous=last;last=s;
    // The bot picks a shop menu's item with the cross button (sprint), as the interior-shops spec does.
    if((s.bot as {action?:string}|null)?.action==='menu accept'){await page.keyboard.down('ShiftLeft');await page.waitForTimeout(150);await page.keyboard.up('ShiftLeft');}
