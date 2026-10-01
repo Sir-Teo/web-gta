@@ -4475,6 +4475,7 @@ async function boot() {
                  setScriptPedAmmo:(ped,ammo)=>{const p=onFoot(ped);if(p)p.totalAmmo=ammo;},
                  setScriptPedFrozen:(ped,frozen)=>{const p=onFoot(ped);if(p)p.frozen=frozen;},
                  scriptPedWaitForCollision:ped=>{const p=onFoot(ped);if(p)pedestrians?.waitForCollision(p);},
+                 scriptPedWaitingForCollision:ped=>!!onFoot(ped)?.collisionWait,
                  // A ped without collision leaves the query pipeline: nothing touches it and no line of sight meets
                  // it. Its own movement query still finds the ground.
                  setScriptPedCollision:(ped,uses)=>{onFoot(ped)?.collider.setEnabled(uses);},

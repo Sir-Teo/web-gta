@@ -255,8 +255,9 @@ export interface ScmMissionWorld {
  takeWorldObject?(key:string,taken:boolean):boolean;
  /** The models whose IDE flags mark a garage door (0x800, CBaseModelInfo::IsGarageDoor), lower case. */
  garageDoorModels?():ReadonlySet<string>|undefined;
- /** m_bIsStaticWaitingForCollision on a script ped. */
+ /** m_bIsStaticWaitingForCollision on a script ped: set, and read. */
  scriptPedWaitForCollision?(ped:unknown):void;
+ scriptPedWaitingForCollision?(ped:unknown):boolean;
  /** The follow camera turned to face along a heading (degrees, native), from in front. */
  setCameraInFrontOfHeading?(degrees:number):void;
  /** CCarCtrl::ScriptGenerateOneEmergencyServicesCar: a crewed emergency vehicle sent to the point. */
@@ -1041,10 +1042,10 @@ export class ScmMission {
    scriptTaskStatus:(handle,opcode)=>{const record=this.taskRecords.get(handle);return record&&(opcode===-1||record.opcode===opcode)?record.status:FINISHED_TASK;},
    freezePedPosition:(handle,frozen)=>{if(handle===PLAYER_PED_HANDLE)this.host('setPlayerFrozen','FREEZE_CHAR_POSITION')(frozen);else this.world.setScriptPedFrozen(this.livePed(handle),frozen);},
    pedIsInAir:handle=>handle===PLAYER_PED_HANDLE?this.host('playerInAir','IS_CHAR_IN_AIR')():this.world.scriptPedInAir(this.livePed(handle)),
-   // m_bIsStaticWaitingForCollision: a ped the browser built stands on ground it has already loaded, so it is
-   // never waiting for collision to arrive.
-   // m_bIsStaticWaitingForCollision: the browser streams collision round the player, so the player never waits.
-   pedIsWaitingForCollision:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return false;},
+   // m_bIsStaticWaitingForCollision: a script ped made, or frozen by FREEZE_CHAR_POSITION_AND_DONT_LOAD_COLLISION,
+   // where its area's collision is not in waits for it. The browser streams collision round the player, so the player
+   // never waits.
+   pedIsWaitingForCollision:handle=>handle!==PLAYER_PED_HANDLE&&!!this.world.scriptPedWaitingForCollision?.(this.livePed(handle)),
    // m_bIsStaticWaitingForCollision: a mission car stands static until the world's collision is under it.
    vehicleIsWaitingForWorldCollision:handle=>this.world.scriptVehicleWaitingForCollision?.(this.liveVehicle(handle))??false,
    damagePed:(handle,amount,damageArmour)=>{if(handle===PLAYER_PED_HANDLE)this.host('damagePlayer','DAMAGE_CHAR')(amount,damageArmour);else this.world.damageScriptPed(this.livePed(handle),amount);},
