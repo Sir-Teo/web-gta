@@ -9001,3 +9001,10 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   object's collision at the next point is tested against every body that is not fixed (the player, peds, vehicles,
   other script objects), and a blocked step is not taken. MAIN's gates and 15 missions' sliding doors stop at CJ rather
   than pass through him.
+
+## The taxi's roof light
+
+- **`SET_TAXI_LIGHTS`** sets `CAutomobile::autoFlags.bTaxiLight` (SetTaxiLight, reversed) on the script's car or the
+  player's. What draws it is `CAutomobile::PreRender`, unreversed in SA; reVC's is followed (AUTHORED): a yellow
+  (128, 128, 0) corona of 0.8 over the roof sign, 0.95 up and 0.4 back on the taxi, 0.9 up and 0.2 forward on the
+  cabbie, seen from 50 units.

@@ -1,3 +1,4 @@
+import {taxiLightCoronas} from './render/taxiLights';
 import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/startingLoadout';
 import {ScmGarages,isCarSprayable,STAT_VEHICLE_RESPRAYS} from './engine/ScmGarages';
 import {playerFootstepSoundLevel} from './ped/nativeSoundEvents';
@@ -1206,6 +1207,8 @@ async function boot() {
         // The sounding sirens' light bars: coronas, and the flashes' pools on the ground.
         const siren=sirens.update(fleet?.cars??[],Math.floor(elapsed*1000));
         for(const corona of siren.coronas)coronas.register(corona,cam);glow.pools.push(...siren.pools);
+        // A lit taxi sign (bTaxiLight): its roof corona.
+        for(const corona of taxiLightCoronas([...(fleet?.cars??[]),...(worldCar&&!fleet?.cars.has(worldCar)?[worldCar]:[])]))coronas.register(corona,cam);
         // DRAW_CORONA: 450 units of range, reflected in wet roads, no obstacle check (reVC's RegisterCorona call). Only
         // the star raster is drawn here, whatever type the script names.
         for(const c of mission?.takeScriptCoronas()??[])coronas.register({id:c.id,color:c.color,intensity:255,position:c.position,size:c.size,range:450,flareType:c.flareType,reflection:true},cam);
@@ -4630,6 +4633,8 @@ async function boot() {
                  playerPressingHorn:()=>!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike)&&(input.down('CapsLock')||input.down('KeyH')),
                  populationZoneType:()=>fleet?.pedZone()?.zoneType??0,
                  preloadAnimationBlock:block=>{void pedestrians?.scriptAnimation(block,'');},
+                 // CAutomobile::SetTaxiLight (0x6A3740) on a script's car, or (none named) the one the player drives.
+                 setTaxiLight:(car,on)=>{const c=(car!==undefined?car:worldCar?.occupied?worldCar:fleet?.occupied) as {taxiLight?:boolean}|undefined;if(c&&'taxiLight' in c)c.taxiLight=on;},
                  scriptObjectBlockedAt:(handle,from,to)=>{
                   const body=scriptObjectViews?.bodyOf(handle);if(!body)return false;
                   const offset={x:to.x-from.x,y:to.z-from.z,z:-(to.y-from.y)};

@@ -490,6 +490,8 @@ export class WorldCar {
  /** vehicleFlags.bPetrolTankIsWeakPoint, which CVehicle's constructor sets and SET_PETROL_TANK_WEAKPOINT clears. The
   * shot at the petrol tank that reads it is not ported. */
  petrolTankIsWeakPoint=true;
+ /** CAutomobile::autoFlags.bTaxiLight (SET_TAXI_LIGHTS): the roof sign lit; CAutomobile's constructor leaves it off. */
+ taxiLight=false;
  /** CAutomobile::PopDoor (0x6ADEF0): a door still there goes, thrown clear as a flying door when the effect shows. */
  popDoor(door:number,visible:boolean){
   if(this.damageState.doors[door]===DAMSTATE.notPresent)return;

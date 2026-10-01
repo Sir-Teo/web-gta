@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T12:19:35.432Z",
+ "generated": "2026-10-01T12:25:54.656Z",
  "reference": {
   "path": "../gta-reversed/gta-reversed",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -10,9 +10,9 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1121,
+   "faithful": 1122,
    "authored": 31,
-   "silent": 8,
+   "silent": 7,
    "skipped": 192,
    "stops": 39
   }
@@ -4857,18 +4857,13 @@
    "byStatus": {
     "core": 2080,
     "nop": 22,
-    "faithful": 566,
+    "faithful": 569,
     "authored": 0,
-    "silent": 4,
+    "silent": 1,
     "skipped": 2,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_TAXI_LIGHTS",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "TASK_CHAR_SLIDE_TO_COORD",
      "status": "skipped",
@@ -8743,9 +8738,9 @@
    "byStatus": {
     "core": 1685,
     "nop": 40,
-    "faithful": 387,
+    "faithful": 389,
     "authored": 3,
-    "silent": 3,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
@@ -8754,11 +8749,6 @@
      "name": "TASK_PLAY_ANIM_SECONDARY",
      "status": "authored",
      "sites": 3
-    },
-    {
-     "name": "SET_TAXI_LIGHTS",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -12066,23 +12056,6 @@
    "sites": 1,
    "missions": 1,
    "firstMission": "SCRASH3",
-   "portable": false
-  },
-  {
-   "name": "SET_TAXI_LIGHTS",
-   "opcode": "0216",
-   "status": "silent",
-   "notes": [
-    "host lacks setTaxiLight"
-   ],
-   "handlerLine": 2238,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets whether the taxi's roof light is on",
-   "sites": 5,
-   "missions": 2,
-   "firstMission": "SCRASH2",
    "portable": false
   },
   {
