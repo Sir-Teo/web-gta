@@ -819,7 +819,8 @@ export class ScmMission {
   * that never took them, a gate's or a machine's brain giving up as the player drives by, must not: that would cut
   * a mission's fixed camera and return controls the mission had taken. */
  private heldByShop(thread:ScmThread){return thread.isExternal&&this.runtime.game.miniGameInProgress;}
- /** Streamed scripts that stopped on a command the port lacks. MAIN asks for most of them again whenever none is
+ /** Streamed scripts that stopped on a command the port lacks (not on a passing failure, such as a handle whose
+  * object streamed out mid-command: that would stop every machine of the kind for the session). MAIN asks for most of them again whenever none is
   * running (the pounds, the valet, the cranes), and a brain starts its script on every object of the model, so a
   * file that stopped once is not streamed in again: it would stop at the same command every time. */
  private readonly stoppedStreamedScripts=new Set<string>();
@@ -2166,7 +2167,7 @@ export class ScmMission {
    if(thread.usesMissionCleanup)this.missionGaveUp=true;
    this.streamedScriptStopped(thread);
   };
-  this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});if(thread.usesMissionCleanup||this.heldByShop(thread))this.handBackPending=true;if(thread.usesMissionCleanup)this.missionGaveUp=true;this.streamedScriptStopped(thread);};
+  this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});if(thread.usesMissionCleanup||this.heldByShop(thread))this.handBackPending=true;if(thread.usesMissionCleanup)this.missionGaveUp=true;};
   this.runtime.game.zones.load(zones.infoLabels);
   this.entry=header.entry;this.streamedTable=header.streamed;this.largestStreamedSize=header.largestStreamedSize;
  }

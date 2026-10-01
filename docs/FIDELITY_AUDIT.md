@@ -8684,7 +8684,11 @@ that did anything.
   reset to false stood and the sub-mission key did nothing in any taxi, ambulance, fire truck or police car. The
   retail game starts them, so a cut *question* still answers, and it is false: a no-op whose name is a question (or
   that carries the NOT bit) now reports false through the flag. (gta-reversed registers it as a void no-op, which
-  would leave the retail game unable to start a taxi mission either.)
+  would leave the retail game unable to start a taxi mission either.) Every use in MAIN, the 135 missions and the
+  streamed scripts was checked: under a plain IF or an OR, "left alone" and "false" are the same answer; the nine
+  NOT uses (the taxi test, the debug keyboard, IS_RECORDING_GOING_ON_FOR_CAR) now come out true, as a retail game
+  with no debug keyboard has them; and the only AND chains are two debug-key tests in WUZI2, which used to count as
+  pressed.
 - **Taxi** (spec `side-missions`): the fare is a street ped `GET_RANDOM_CHAR_IN_ZONE` hands the script; he boards,
   the destination is named and blipped, and the drop-off pays. `SET_TAXI_LIGHTS` reaches a host that does not draw
   the roof light yet.
