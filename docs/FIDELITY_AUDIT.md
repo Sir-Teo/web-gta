@@ -8905,3 +8905,13 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **The paramedic job, driven through.** With these, a patient walks to the stopped ambulance and sits in the back, the
   hospital's marker passes the level (`A_PASS`, `REWARD`), as a drive-through probe showed. A van set down on steps or a
   planter turns over (health capped at 249 after six seconds upside down, then it burns), as in the game.
+
+## Stealable objects
+
+- **Picked up and carried by the enter/exit button (AUTHORED).** `SET_OBJECT_AS_STEALABLE` marks an object (GUNS1's
+  crates). `CPlayerInfo::FindObjectToSteal` and the code that calls it are unreversed, so this follows what GUNS1 tells
+  the player ("Press ~k~~VEHICLE_ENTER_EXIT~ to pick up the crate", "... to put the crate in the truck") and waits on
+  (`IS_CHAR_HOLDING_OBJECT`, then not): on foot, the button lifts the nearest stealable object within 1.5 units in
+  front of CJ and he holds it before his chest (the script's hold machinery, `CTaskSimpleHoldEntity`); carrying one, the
+  button sets it down 0.6 units ahead. The button goes to a car only when neither applies. Not done: the CARRY clips
+  (the pick-up, the carrying walk), and the noise bar GUNS1 shows (`GET_SOUND_LEVEL_AT_COORDS`).

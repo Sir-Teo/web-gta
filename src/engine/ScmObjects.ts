@@ -77,6 +77,8 @@ export interface ScmObject {
  dontApplySpeed:boolean;
  /** CEntity::m_bIsStatic, the inverse of what SET_OBJECT_DYNAMIC asks for. */
  isStatic:boolean;
+ /** SET_OBJECT_AS_STEALABLE: the player may pick it up with the enter/exit button and carry it. */
+ stealable?:boolean;
  /** CPhysical::physicalFlags' five proofs, in the order SET_CAR_PROOFS and SET_CHAR_PROOFS take them. */
  proofs:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
  /** CTheScripts::MissionCleanUp holds the object while this is set; DONT_REMOVE_OBJECT takes it off the list. */

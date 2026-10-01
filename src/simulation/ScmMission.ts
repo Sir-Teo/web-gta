@@ -63,6 +63,9 @@ type V3={x:number;y:number;z:number};
 const PED_NODE_BONE_TAG:Readonly<Record<number,number>>={1:3,2:5,3:32,4:22,5:34,6:24,7:41,8:51,9:43,10:53,11:52,12:42,13:33,14:23,15:31,16:21,17:4,18:8};
 /** CTaskSimpleHoldEntity's bone flag. */
 const HOLD_ENTITY_UPDATE_TRANSLATION_ONLY=0x10;
+/** The stealable objects' reach (AUTHORED, see playerStealKey): within 1.5 units across and 1.5 up or down, the carry
+ * held at the upper torso (PED_NODE_UPPER_TORSO) half a unit before it, and set down 0.6 ahead. */
+const STEAL_REACH=1.5,STEAL_HEIGHT=1.5,STEAL_HOLD_NODE=1,STEAL_HOLD_OFFSET={x:0,y:.45,z:0},STEAL_PUT_DOWN_AHEAD=.6;
 export interface ScmCarComponents {
  popDoor(door:number,visible:boolean):void;popPanel(panel:number,visible:boolean):void;popBoot():void;
  fixDoor(door:number):void;fixPanel(panel:number):void;fixTyre(wheel:number):void;
@@ -1283,6 +1286,7 @@ export class ScmMission {
    objectHasBeenDamaged:handle=>this.runtime.game.objects.hasBeenDamaged(handle),
    // CTaskSimpleHoldEntity::DropEntity with the operand as its second argument, and the held entity against the object.
    setPedDropsObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly);},
+   setObjectAsStealable:(handle,state)=>{this.runtime.game.objects.at(handle).stealable=state;},
    pedIsHoldingObject:(handle,object)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);return this.heldObjectOf(handle)?.handle===object||this.heldObjectOf(handle,true)?.handle===object;},
    // TASK_PICK_UP_SECOND_OBJECT and DROP_SECOND_OBJECT: CTaskSimpleHoldEntity on the ped's second partial slot, so a
    // ped holds one object with each (the gym's two dumbbells).
@@ -2946,6 +2950,31 @@ export class ScmMission {
   object.usesCollision=false;object.isStatic=false;
   object.heldBy={ped:handle,offset:{...task.offset},node:task.bone,flags:task.orientation,rotation:object.heading-pedHeading,...(second?{second:true}:{})};
   this.poseHeldObject(object);
+ }
+ /** The enter/exit button on foot near a stealable object. CPlayerInfo::FindObjectToSteal (0x56DBD0) and the code
+  * that calls it are unreversed, so this is AUTHORED from what GUNS1 (Home Invasion) tells the player ("Press
+  * ~k~~VEHICLE_ENTER_EXIT~ to pick up the crate", "... to put the crate in the truck") and waits on
+  * (IS_CHAR_HOLDING_OBJECT, then NOT): carrying a stealable object, the button sets it down in front of CJ; otherwise
+  * the nearest stealable object within STEAL_REACH in front of him is lifted and held before his chest, with no pick-up
+  * clip or carrying walk. True when the button went to it rather than to a car. */
+ playerStealKey(){
+  const held=this.heldObjectOf(PLAYER_PED_HANDLE),me=this.world.playerPed(),h=(me.heading??0)*Math.PI/180,forward={x:-Math.sin(h),y:Math.cos(h)};
+  if(held){
+   if(!held.stealable)return false;
+   this.dropHeldObject(PLAYER_PED_HANDLE,true);
+   held.position={x:held.position.x+forward.x*STEAL_PUT_DOWN_AHEAD,y:held.position.y+forward.y*STEAL_PUT_DOWN_AHEAD,z:held.position.z};
+   return true;
+  }
+  let best:import('../engine/ScmObjects').ScmObject|undefined,bestDistance=STEAL_REACH;
+  for(const object of this.runtime.game.objects.all){
+   if(!object.stealable||object.heldBy||object.attachedTo)continue;
+   const dx=object.position.x-me.position.x,dy=object.position.y-me.position.y,distance=Math.hypot(dx,dy);
+   if(distance>bestDistance||Math.abs(object.position.z-me.position.z)>STEAL_HEIGHT||(dx*forward.x+dy*forward.y)<0)continue;
+   best=object;bestDistance=distance;
+  }
+  if(!best)return false;
+  this.pickUpObject(PLAYER_PED_HANDLE,{kind:'pickUpObject',object:best.handle,offset:{...STEAL_HOLD_OFFSET},bone:STEAL_HOLD_NODE,orientation:0,animationName:'',animationFile:'',time:0});
+  return true;
  }
  private heldObjectOf(handle:number,second=false){return this.runtime.game.objects.all.find(object=>object.heldBy?.ped===handle&&!!object.heldBy.second===second);}
  private pedHeadingRadians(handle:number){

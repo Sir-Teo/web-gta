@@ -2664,6 +2664,8 @@ async function boot() {
         else if(playerPassenger)passengerExitPending=true;
         // The original gives no text for any of the vehicle refusals and notices below; the calls keep their effects.
         else if(sim.player.swimming){}
+        // On foot the button picks a stealable object up or sets it down before it looks for a car.
+        else if(!worldCar?.occupied&&!fleet?.occupied&&!fleet?.occupiedBike&&!fleet?.occupiedBoat&&!fleet?.occupiedPlane&&!carEntry.active&&mission?.playerStealKey()){}
         else{
         const plane=fleet?.nearestPlane(true);
         // Entry/exit clips resolve through the model's handling anim group; a first
