@@ -137,6 +137,13 @@ export function missionBotTick(dtSeconds:number){
   // __game.fireAt takes renderer coordinates: x, height, -y.
   g.fireAt(target.x,target.z+.6,-target.y);
  };
+ // Gone back for a homie the group dropped: a player keeps going until he is beside him and the script has him follow
+ // again, rather than turning back to the marker after a step (the time about the place starts over once he leaves it).
+ if(mem.fetching!==undefined){
+  const h=mem.fetching;let pos:any;try{pos=alive(h)?world.pedPosition(h):undefined;}catch{pos=undefined;}
+  if(!pos||members.includes(h)||vehicle||(mem.fetchFor=(mem.fetchFor??0)+dtSeconds)>90){mem.fetching=undefined;mem.fetchFor=0;}
+  else{if(glide(pos,2))return {action:'fetch homie left behind',target:h};return {action:'beside homie',target:h};}
+ }
  if(marker&&distance(marker)>.15&&!enemies.length&&glide({x:marker.x,y:marker.y,z:marker.z??me.z-1},.1))return {action:'go to marker'};
  if(!blips.length)return {action:'in marker'};
  if(enemies.length){
@@ -209,7 +216,7 @@ export function missionBotTick(dtSeconds:number){
     if(!alive(h)){mem.homies.delete(h);continue;}
     if(members.includes(h))continue;
     let pos:any;try{pos=world.pedPosition(h);}catch{continue;}
-    if(distance(pos)>8){glide(pos,5);return {action:'fetch homie left behind',target:h};}
+    if(distance(pos)>8){mem.fetching=h;mem.fetchFor=0;glide(pos,2);return {action:'fetch homie left behind',target:h};}
    }
   }
   // Outside with nothing happening at the place for eight seconds and a door's marker a few steps off, a player walks
