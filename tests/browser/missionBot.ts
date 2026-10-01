@@ -122,7 +122,13 @@ export function missionBotTick(dtSeconds:number){
   // lifted CJ onto it step by step), and from just over the destination's floor when he is above that.
   const indoors=me.z>500&&!over,line=me.z+(to.z-me.z)*step/d;
   const from=over?to.z+1.5:indoors?(me.z-to.z>1.2?to.z+.3:line+.3):line+1.5;
-  const probe=(px:number,py:number)=>{const v=world.groundZFor3DCoord?.(px,py,from);return typeof v==='number'&&v!==0?v:undefined;};
+  // Its own ray, not solid: started inside a solid collider (the closed door over Binco's exit) the game's lookup
+  // reports the start itself, which lifted CJ step by step onto the door; this one goes on to the floor under it.
+  const R=g.RAPIER,physics=g.sim?.world;
+  const probe=(px:number,py:number)=>{
+   if(R&&physics){const hit=physics.castRay(new R.Ray({x:px,y:from,z:-py},{x:0,y:-1,z:0}),from+1000,false,R.QueryFilterFlags.ONLY_FIXED);return hit&&hit.timeOfImpact>1e-3?from-hit.timeOfImpact:undefined;}
+   const v=world.groundZFor3DCoord?.(px,py,from);return typeof v==='number'&&v!==0?v:undefined;
+  };
   const found=probe(x,y)??probe(x+.25,y)??probe(x-.25,y)??probe(x,y+.25)??probe(x,y-.25);
   // No ground within six units under the step: inside, that is FindGroundZFor3DCoord's 0 through a wall into the void
   // round the rooms (CJ fell for ever under SWEET1B's crack den), where a player cannot walk, so the bot goes no nearer;
@@ -250,7 +256,9 @@ export function missionBotTick(dtSeconds:number){
    mem.idleIndoors=(mem.idleIndoors??0)+dtSeconds;
    if(mem.idleIndoors>20){
     const exit=g.interiorExitNear?.(me.x,me.y,me.z);
-    if(exit){if(glide(exit,0))return {action:'leave interior'};return {action:'at exit'};}
+    // The last step is onto the marker at its own height: walked onto in steps, CJ met the closed door behind Binco's
+    // and the physics stood him on top of it, out of the marker's reach.
+    if(exit){if(distance(exit)<1.5){world.setPedCoordinates(1,exit.x,exit.y,exit.z);return {action:'into exit'};}if(glide(exit,0))return {action:'leave interior'};return {action:'at exit'};}
    }
   }else mem.idleIndoors=0;
   // Ten seconds at the place with nothing happening and a homie no longer following: a player goes back for him.
