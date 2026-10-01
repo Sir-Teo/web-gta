@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T12:28:32.920Z",
+ "generated": "2026-10-01T12:31:34.471Z",
  "reference": {
   "path": "../gta-reversed/gta-reversed",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -11,10 +11,10 @@
    "core": 153,
    "nop": 26,
    "faithful": 1132,
-   "authored": 21,
+   "authored": 22,
    "silent": 7,
    "skipped": 192,
-   "stops": 39
+   "stops": 38
   }
  },
  "missions": [
@@ -809,10 +809,10 @@
     "core": 2622,
     "nop": 23,
     "faithful": 1257,
-    "authored": 3,
+    "authored": 5,
     "silent": 0,
     "skipped": 9,
-    "stops": 53
+    "stops": 51
    },
    "gaps": [
     {
@@ -847,7 +847,7 @@
     },
     {
      "name": "GET_RANDOM_CHAR_IN_SPHERE",
-     "status": "stops",
+     "status": "authored",
      "sites": 2
     },
     {
@@ -2343,15 +2343,15 @@
     "core": 107,
     "nop": 4,
     "faithful": 44,
-    "authored": 0,
+    "authored": 1,
     "silent": 0,
     "skipped": 0,
-    "stops": 1
+    "stops": 0
    },
    "gaps": [
     {
      "name": "GET_RANDOM_CHAR_IN_SPHERE",
-     "status": "stops",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -9362,7 +9362,7 @@
     "handler comments name an authored stand-in",
     "adapter lacks hasObjectBeenUprooted"
    ],
-   "handlerLine": 3044,
+   "handlerLine": 3047,
    "ref": {
     "kind": "absent"
    },
@@ -9614,10 +9614,11 @@
   {
    "name": "GET_RANDOM_CHAR_IN_SPHERE",
    "opcode": "073f",
-   "status": "stops",
+   "status": "authored",
    "notes": [
-    "no handler (the thread gives up)"
+    "handler comments name an authored stand-in"
    ],
+   "handlerLine": 3024,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetRandomCharInSphere",

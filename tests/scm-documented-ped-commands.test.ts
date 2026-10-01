@@ -35,7 +35,7 @@ function recording(extra:Record<string,unknown>={}){
   pedSayContextImportant:method('say',77),attachFxSystemToPedBone:method('fx'),
   setHeadingLimitForAttachedPed:method('headingLimit'),attachPedToBike:method('bike'),
   pedIsInSearchlight:method('searchlight',true),pedIsAtScriptedAttractor:method('attractor',true),
-  closestPedNode:method('node',{x:7,y:8,z:9}),randomPedInZone:method('randomInZone',21),
+  closestPedNode:method('node',{x:7,y:8,z:9}),randomPedInZone:method('randomInZone',21),randomPedInSphere:method('randomInSphere',23),
   createSwatRope:method('swat',22),
   ...extra,
  } as unknown as Partial<ScmWorldCommands>;
@@ -140,8 +140,10 @@ describe('the ped commands the reference documents but does not register',()=>{
   expect(zone.readInt(40)).toBe(21);
   const swat=run(world,instruction(op('CREATE_SWAT_ROPE'),[int(6),int(287),float(10),float(20),float(30),gvar(40)]));
   expect(swat.readInt(40)).toBe(22);
+  const sphere=run(world,instruction(op('GET_RANDOM_CHAR_IN_SPHERE'),[float(1),float(2),float(3),float(9),int(0),int(1),int(0),gvar(40)]));
+  expect(sphere.readInt(40)).toBe(23);
   expect(calls).toEqual([
-   ['node',1,2,3],['randomInZone','LAN',true,false,true],['swat',6,287,10,20,30],
+   ['node',1,2,3],['randomInZone','LAN',true,false,true],['swat',6,287,10,20,30],['randomInSphere',1,2,3,9,false,true,false],
   ]);
  });
 

@@ -3021,6 +3021,9 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_USER_OF_CLOSEST_MAP_ATTRACTOR:(t,p)=>{t.writeInt(p[6],-1);},
  IS_CHAR_USING_MAP_ATTRACTOR:(t,_p,i)=>{t.updateCompareFlag(false,negated(i));},
  GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN:(t,p)=>{t.writeInt(p[4],-1);},
+ GET_RANDOM_CHAR_IN_SPHERE:(t,p,i)=>{
+  const v=vec(t,p,0);t.writeInt(p[7],world(t,i,'randomPedInSphere')(v.x,v.y,v.z,t.readFloat(p[3]),bool(t,p[4]),bool(t,p[5]),bool(t,p[6])));
+ },
  // CClock::ms_nGameClockDays and ms_nGameClockMonth (dispatch unreversed): a gym lets CJ work out again once the day
  // or the month has moved on from his last session's.
  GET_CURRENT_DATE:(t,p,i)=>{const clock=game(t,i).clock;t.writeInt(p[0],clock.days);t.writeInt(p[1],clock.month);},

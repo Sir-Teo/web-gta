@@ -1859,6 +1859,20 @@ export class ScmMission {
    // GetRandomCharInZone (CharacterCommands.cpp:1784): the first street ped of an asked-for kind that stands in the
    // navigation zone, within five units of the player's height and under no roof, and is not the one taken last
    // time. It becomes the script's (PED_MISSION), on the mission's cleanup list when the thread keeps one.
+   // GET_RANDOM_CHAR_IN_SPHERE (the reference disables its handler, CharacterCommands.cpp:4272; AUTHORED after the zone
+   // twin above): the first street ped of an asked-for kind within the sphere, not the one taken last time, becomes the
+   // script's.
+   randomPedInSphere:(x,y,z,radius,civilian,gang,criminal)=>{
+    const candidates=this.world.randomStreetPeds?.();
+    if(!candidates)throw new UnsupportedScmCommand(-1,0,'GET_RANDOM_CHAR_IN_SPHERE','no host');
+    for(const c of candidates){
+     if(c.ped===this.lastRandomPed||!validRandomPedType(c.pedType,civilian,gang,criminal))continue;
+     if(Math.hypot(c.position.x-x,c.position.y-y,c.position.z-z)>radius)continue;
+     this.lastRandomPed=c.ped;this.world.adoptStreetPed?.(c.ped);
+     return this.forCleanup(this.cleanupPeds,this.peds.adopt(c.ped,c.pedType,c.model,c.position,c.heading,c.health));
+    }
+    return -1;
+   },
    randomPedInZone:(zone,civilian,gang,criminal)=>{
     const candidates=this.world.randomStreetPeds?.();
     if(!candidates)throw new UnsupportedScmCommand(-1,0,'GET_RANDOM_CHAR_IN_ZONE','no host');
