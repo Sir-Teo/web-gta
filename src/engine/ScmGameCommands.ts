@@ -558,7 +558,7 @@ const handlers:Record<string,ScmCommandHandler>={
  REGISTER_SCRIPT_BRAIN_FOR_CODE_USE:(t,p,i)=>{game(t,i).scriptBrains.registerForCodeUse(t.readInt(p[0]),t.text(p[1]),false);},
  REGISTER_ATTRACTOR_SCRIPT_BRAIN_FOR_CODE_USE:(t,p,i)=>{game(t,i).scriptBrains.registerForCodeUse(t.readInt(p[0]),t.text(p[1]),true);},
  SWITCH_OBJECT_BRAINS:(t,p,i)=>{game(t,i).scriptBrains.switchObjectBrains(t.readInt(p[0]),bool(t,p[1]));},
- // --- CGarages. A name no garage in this world carries looks up as -1, and the command then does nothing.
+ // --- CGarages. A name no garage in this world carries looks up as -1, and the command then has no effect.
  ACTIVATE_GARAGE:(t,p,i)=>{game(t,i).garages.activate(t.text(p[0]));},
  DEACTIVATE_GARAGE:(t,p,i)=>{game(t,i).garages.deactivate(t.text(p[0]));},
  OPEN_GARAGE:(t,p,i)=>{game(t,i).garages.open(t.text(p[0]));},
@@ -920,7 +920,7 @@ const handlers:Record<string,ScmCommandHandler>={
  CAMERA_SET_VECTOR_MOVE:(t,p,i,nowMs)=>{
   game(t,i).camera.vectorMoveLinear(vec(t,p,0),vec(t,p,3),t.readInt(p[6]),bool(t,p[7]),nowMs);
  },
- // CCamera::TakeControl over a vehicle the script names, which does nothing for a handle naming no car.
+ // CCamera::TakeControl over a vehicle the script names, which has no effect for a handle naming no car.
  POINT_CAMERA_AT_CAR:(t,p,i)=>{
   world(t,i,'pointCameraAtVehicle')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));
  },
@@ -1292,7 +1292,7 @@ const handlers:Record<string,ScmCommandHandler>={
  // (CRunningScript::Process), and back to none.
  SKIP_CUTSCENE_START_INTERNAL:(t,p)=>{t.sceneSkipIp=t.readInt(p[0]);},
  SKIP_CUTSCENE_END:t=>{t.sceneSkipIp=undefined;},
- // SKIP_CUTSCENE_START is already in the native-nop list, which PC 1.0 parses and does nothing with, so only
+ // SKIP_CUTSCENE_START is already in the native-nop list, which PC 1.0 parses and ignores, so only
  // its internal twin carries a body here. The overlap guard in the game-state test caught a handler added for
  // it, which is the second time that list has been right against a new one.
  WAS_CUTSCENE_SKIPPED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cutscene.wasSkipped,negated(i));},

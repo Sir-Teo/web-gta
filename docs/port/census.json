@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T12:25:54.656Z",
+ "generated": "2026-10-01T12:28:32.920Z",
  "reference": {
   "path": "../gta-reversed/gta-reversed",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -10,8 +10,8 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1122,
-   "authored": 31,
+   "faithful": 1132,
+   "authored": 21,
    "silent": 7,
    "skipped": 192,
    "stops": 39
@@ -27,8 +27,8 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3772,
-    "authored": 19,
+    "faithful": 3783,
+    "authored": 8,
     "silent": 31,
     "skipped": 19,
     "stops": 0
@@ -53,11 +53,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 6
-    },
-    {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
-     "sites": 5
     },
     {
      "name": "ARE_MEASUREMENTS_IN_METRES",
@@ -85,14 +80,19 @@
      "sites": 2
     },
     {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 2
+     "name": "ACTIVATE_SAVE_MENU",
+     "status": "skipped",
+     "sites": 1
     },
     {
-     "name": "SET_GARAGE_RESPRAY_FREE",
-     "status": "authored",
-     "sites": 2
+     "name": "HAS_SAVE_GAME_FINISHED",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "GET_CURRENT_CAR_MOD",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -808,8 +808,8 @@
    "byStatus": {
     "core": 2622,
     "nop": 23,
-    "faithful": 1256,
-    "authored": 4,
+    "faithful": 1257,
+    "authored": 3,
     "silent": 0,
     "skipped": 9,
     "stops": 53
@@ -849,11 +849,6 @@
      "name": "GET_RANDOM_CHAR_IN_SPHERE",
      "status": "stops",
      "sites": 2
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_CHAR",
@@ -1028,8 +1023,8 @@
    "byStatus": {
     "core": 675,
     "nop": 0,
-    "faithful": 308,
-    "authored": 6,
+    "faithful": 311,
+    "authored": 3,
     "silent": 0,
     "skipped": 3,
     "stops": 3
@@ -1038,11 +1033,6 @@
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
      "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
      "sites": 3
     },
     {
@@ -2453,24 +2443,13 @@
    "byStatus": {
     "core": 1098,
     "nop": 0,
-    "faithful": 1861,
-    "authored": 21,
+    "faithful": 1882,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "DEACTIVATE_GARAGE",
-     "status": "authored",
-     "sites": 14
-    },
-    {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 7
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 1,
@@ -2498,8 +2477,8 @@
    "byStatus": {
     "core": 663,
     "nop": 1,
-    "faithful": 420,
-    "authored": 10,
+    "faithful": 428,
+    "authored": 2,
     "silent": 6,
     "skipped": 0,
     "stops": 0
@@ -2509,16 +2488,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 6
-    },
-    {
-     "name": "DEACTIVATE_GARAGE",
-     "status": "authored",
-     "sites": 6
-    },
-    {
-     "name": "WAS_CUTSCENE_SKIPPED",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -2757,8 +2726,8 @@
    "byStatus": {
     "core": 154,
     "nop": 1,
-    "faithful": 114,
-    "authored": 1,
+    "faithful": 115,
+    "authored": 0,
     "silent": 1,
     "skipped": 10,
     "stops": 0
@@ -2787,11 +2756,6 @@
     {
      "name": "SET_ENABLE_RC_DETONATE",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -3164,8 +3128,8 @@
    "byStatus": {
     "core": 2703,
     "nop": 41,
-    "faithful": 1505,
-    "authored": 6,
+    "faithful": 1511,
+    "authored": 0,
     "silent": 22,
     "skipped": 0,
     "stops": 0
@@ -3180,16 +3144,6 @@
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 5
-    },
-    {
-     "name": "ACTIVATE_GARAGE",
-     "status": "authored",
-     "sites": 4
-    },
-    {
-     "name": "DEACTIVATE_GARAGE",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -3374,8 +3328,8 @@
    "byStatus": {
     "core": 3798,
     "nop": 8,
-    "faithful": 1641,
-    "authored": 7,
+    "faithful": 1648,
+    "authored": 0,
     "silent": 96,
     "skipped": 1,
     "stops": 0
@@ -3397,33 +3351,8 @@
      "sites": 21
     },
     {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "IS_GARAGE_CLOSED",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -3442,8 +3371,8 @@
    "byStatus": {
     "core": 1294,
     "nop": 9,
-    "faithful": 1073,
-    "authored": 7,
+    "faithful": 1076,
+    "authored": 4,
     "silent": 32,
     "skipped": 0,
     "stops": 0
@@ -3466,11 +3395,6 @@
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
      "status": "authored",
      "sites": 3
     },
@@ -3624,8 +3548,8 @@
    "byStatus": {
     "core": 1468,
     "nop": 1,
-    "faithful": 1084,
-    "authored": 3,
+    "faithful": 1085,
+    "authored": 2,
     "silent": 68,
     "skipped": 0,
     "stops": 0
@@ -3657,11 +3581,6 @@
      "sites": 1
     },
     {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -3677,8 +3596,8 @@
    "byStatus": {
     "core": 3840,
     "nop": 2,
-    "faithful": 2947,
-    "authored": 3,
+    "faithful": 2948,
+    "authored": 2,
     "silent": 67,
     "skipped": 26,
     "stops": 0
@@ -3725,11 +3644,6 @@
      "sites": 2
     },
     {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "HAS_OBJECT_OF_TYPE_BEEN_SMASHED",
      "status": "skipped",
      "sites": 1
@@ -3750,8 +3664,8 @@
    "byStatus": {
     "core": 1276,
     "nop": 1,
-    "faithful": 700,
-    "authored": 5,
+    "faithful": 705,
+    "authored": 0,
     "silent": 6,
     "skipped": 6,
     "stops": 0
@@ -3778,11 +3692,6 @@
      "sites": 1
     },
     {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "SET_CAMERA_POSITION_UNFIXED",
      "status": "skipped",
      "sites": 1
@@ -3793,27 +3702,17 @@
      "sites": 1
     },
     {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_CLOSED",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "LOAD_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
     }
@@ -3929,8 +3828,8 @@
    "byStatus": {
     "core": 1044,
     "nop": 1,
-    "faithful": 1265,
-    "authored": 2,
+    "faithful": 1266,
+    "authored": 1,
     "silent": 21,
     "skipped": 0,
     "stops": 0
@@ -3950,11 +3849,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 3
-    },
-    {
-     "name": "WAS_CUTSCENE_SKIPPED",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -4088,8 +3982,8 @@
    "byStatus": {
     "core": 4680,
     "nop": 1,
-    "faithful": 3572,
-    "authored": 3,
+    "faithful": 3574,
+    "authored": 1,
     "silent": 121,
     "skipped": 57,
     "stops": 0
@@ -4146,12 +4040,12 @@
      "sites": 3
     },
     {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
+     "name": "MOVE_SEARCHLIGHT_BETWEEN_COORDS",
+     "status": "skipped",
      "sites": 2
     },
     {
-     "name": "MOVE_SEARCHLIGHT_BETWEEN_COORDS",
+     "name": "FIRE_SINGLE_BULLET",
      "status": "skipped",
      "sites": 2
     }
@@ -4303,8 +4197,8 @@
    "byStatus": {
     "core": 2649,
     "nop": 5,
-    "faithful": 1560,
-    "authored": 3,
+    "faithful": 1562,
+    "authored": 1,
     "silent": 14,
     "skipped": 0,
     "stops": 0
@@ -4319,11 +4213,6 @@
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 4
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 2
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -4351,8 +4240,8 @@
    "byStatus": {
     "core": 1706,
     "nop": 2,
-    "faithful": 782,
-    "authored": 4,
+    "faithful": 783,
+    "authored": 3,
     "silent": 13,
     "skipped": 5,
     "stops": 0
@@ -4387,11 +4276,6 @@
      "name": "ATTACH_CAMERA_TO_VEHICLE",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "ADD_BLIP_FOR_CAR_OLD",
@@ -4495,8 +4379,8 @@
    "byStatus": {
     "core": 1132,
     "nop": 1,
-    "faithful": 931,
-    "authored": 2,
+    "faithful": 932,
+    "authored": 1,
     "silent": 41,
     "skipped": 0,
     "stops": 0
@@ -4523,11 +4407,6 @@
      "sites": 1
     },
     {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -4543,8 +4422,8 @@
    "byStatus": {
     "core": 1417,
     "nop": 4,
-    "faithful": 783,
-    "authored": 1,
+    "faithful": 784,
+    "authored": 0,
     "silent": 31,
     "skipped": 16,
     "stops": 0
@@ -4638,8 +4517,8 @@
    "byStatus": {
     "core": 2052,
     "nop": 1,
-    "faithful": 975,
-    "authored": 3,
+    "faithful": 978,
+    "authored": 0,
     "silent": 26,
     "skipped": 4,
     "stops": 0
@@ -4676,23 +4555,8 @@
      "sites": 1
     },
     {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
      "sites": 1
     }
    ]
@@ -4779,8 +4643,8 @@
    "byStatus": {
     "core": 1481,
     "nop": 8,
-    "faithful": 850,
-    "authored": 4,
+    "faithful": 853,
+    "authored": 1,
     "silent": 17,
     "skipped": 4,
     "stops": 0
@@ -4817,21 +4681,6 @@
      "sites": 1
     },
     {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_CLOSED",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "TASK_GO_TO_COORD_WHILE_AIMING",
      "status": "skipped",
      "sites": 1
@@ -4843,6 +4692,11 @@
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
+     "sites": 1
+    },
+    {
+     "name": "DONT_SUPPRESS_CAR_MODEL",
      "status": "silent",
      "sites": 1
     }
@@ -4938,8 +4792,8 @@
    "byStatus": {
     "core": 533,
     "nop": 7,
-    "faithful": 587,
-    "authored": 3,
+    "faithful": 590,
+    "authored": 0,
     "silent": 8,
     "skipped": 0,
     "stops": 0
@@ -4961,23 +4815,8 @@
      "sites": 2
     },
     {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
      "sites": 1
     }
    ]
@@ -5208,8 +5047,8 @@
    "byStatus": {
     "core": 2426,
     "nop": 45,
-    "faithful": 1154,
-    "authored": 2,
+    "faithful": 1155,
+    "authored": 1,
     "silent": 90,
     "skipped": 0,
     "stops": 0
@@ -5237,11 +5076,6 @@
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
      "status": "authored",
      "sites": 1
     },
@@ -5551,33 +5385,13 @@
    "byStatus": {
     "core": 998,
     "nop": 1,
-    "faithful": 523,
-    "authored": 9,
+    "faithful": 532,
+    "authored": 0,
     "silent": 1,
     "skipped": 4,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "IS_GARAGE_CLOSED",
-     "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
      "status": "skipped",
@@ -5599,11 +5413,6 @@
      "sites": 1
     },
     {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -5619,8 +5428,8 @@
    "byStatus": {
     "core": 1470,
     "nop": 1,
-    "faithful": 738,
-    "authored": 2,
+    "faithful": 739,
+    "authored": 1,
     "silent": 56,
     "skipped": 2,
     "stops": 0
@@ -5657,11 +5466,6 @@
      "sites": 1
     },
     {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -5677,8 +5481,8 @@
    "byStatus": {
     "core": 880,
     "nop": 2,
-    "faithful": 293,
-    "authored": 13,
+    "faithful": 302,
+    "authored": 4,
     "silent": 8,
     "skipped": 1,
     "stops": 0
@@ -5695,11 +5499,6 @@
      "sites": 3
     },
     {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
-     "sites": 3
-    },
-    {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 2
@@ -5710,33 +5509,8 @@
      "sites": 2
     },
     {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "ADD_BLIP_FOR_CAR_OLD",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "ACTIVATE_GARAGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_CLOSED",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -5755,8 +5529,8 @@
    "byStatus": {
     "core": 2236,
     "nop": 2,
-    "faithful": 1808,
-    "authored": 6,
+    "faithful": 1812,
+    "authored": 2,
     "silent": 25,
     "skipped": 14,
     "stops": 0
@@ -5808,18 +5582,18 @@
      "sites": 1
     },
     {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
      "sites": 1
     },
     {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
+     "name": "MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED",
+     "status": "skipped",
      "sites": 1
     },
     {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
+     "name": "DONT_SUPPRESS_ANY_CAR_MODELS",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -5833,8 +5607,8 @@
    "byStatus": {
     "core": 3112,
     "nop": 31,
-    "faithful": 1514,
-    "authored": 15,
+    "faithful": 1518,
+    "authored": 11,
     "silent": 30,
     "skipped": 59,
     "stops": 0
@@ -5911,8 +5685,8 @@
    "byStatus": {
     "core": 752,
     "nop": 3,
-    "faithful": 427,
-    "authored": 11,
+    "faithful": 436,
+    "authored": 2,
     "silent": 20,
     "skipped": 1,
     "stops": 0
@@ -5939,34 +5713,9 @@
      "sites": 2
     },
     {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "IS_GARAGE_CLOSED",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 2
-    },
-    {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "GET_RANDOM_CAR_OF_TYPE_IN_ANGLED_AREA_NO_SAVE",
@@ -5984,31 +5733,16 @@
    "byStatus": {
     "core": 4181,
     "nop": 2,
-    "faithful": 1362,
-    "authored": 14,
+    "faithful": 1376,
+    "authored": 0,
     "silent": 11,
     "skipped": 2,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "DEACTIVATE_GARAGE",
-     "status": "authored",
-     "sites": 5
-    },
-    {
-     "name": "ACTIVATE_GARAGE",
-     "status": "authored",
-     "sites": 5
-    },
-    {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
      "sites": 4
     },
     {
@@ -6110,8 +5844,8 @@
    "byStatus": {
     "core": 851,
     "nop": 1,
-    "faithful": 432,
-    "authored": 2,
+    "faithful": 433,
+    "authored": 1,
     "silent": 53,
     "skipped": 13,
     "stops": 0
@@ -6159,11 +5893,6 @@
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
      "status": "authored",
      "sites": 1
     },
@@ -6299,8 +6028,8 @@
    "byStatus": {
     "core": 1501,
     "nop": 3,
-    "faithful": 587,
-    "authored": 5,
+    "faithful": 591,
+    "authored": 1,
     "silent": 37,
     "skipped": 18,
     "stops": 0
@@ -6352,18 +6081,18 @@
      "sites": 1
     },
     {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "DETACH_TRAILER_FROM_CAB",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
      "sites": 1
     }
    ]
@@ -6377,8 +6106,8 @@
    "byStatus": {
     "core": 2251,
     "nop": 55,
-    "faithful": 1027,
-    "authored": 8,
+    "faithful": 1033,
+    "authored": 2,
     "silent": 41,
     "skipped": 25,
     "stops": 0
@@ -6410,11 +6139,6 @@
      "sites": 4
     },
     {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
-     "sites": 3
-    },
-    {
      "name": "SET_HELI_STABILISER",
      "status": "skipped",
      "sites": 3
@@ -6430,11 +6154,6 @@
      "sites": 2
     },
     {
-     "name": "IS_GARAGE_CLOSED",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "ACTIVATE_HELI_SPEED_CHEAT",
      "status": "skipped",
      "sites": 2
@@ -6443,6 +6162,16 @@
      "name": "HELI_KEEP_ENTITY_IN_VIEW",
      "status": "skipped",
      "sites": 2
+    },
+    {
+     "name": "GET_RADIO_CHANNEL",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "DISABLE_HELI_AUDIO",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -6734,18 +6463,13 @@
    "byStatus": {
     "core": 2961,
     "nop": 2,
-    "faithful": 932,
-    "authored": 10,
+    "faithful": 940,
+    "authored": 2,
     "silent": 13,
     "skipped": 16,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 8
-    },
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
@@ -6798,6 +6522,11 @@
     },
     {
      "name": "ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "FIRE_HUNTER_GUN",
      "status": "skipped",
      "sites": 1
     }
@@ -6860,8 +6589,8 @@
    "byStatus": {
     "core": 1254,
     "nop": 12,
-    "faithful": 1034,
-    "authored": 7,
+    "faithful": 1036,
+    "authored": 5,
     "silent": 19,
     "skipped": 3,
     "stops": 0
@@ -6895,11 +6624,6 @@
     {
      "name": "TASK_COMPLEX_PICKUP_OBJECT",
      "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
      "sites": 2
     },
     {
@@ -7095,8 +6819,8 @@
    "byStatus": {
     "core": 2481,
     "nop": 4,
-    "faithful": 1332,
-    "authored": 7,
+    "faithful": 1333,
+    "authored": 6,
     "silent": 6,
     "skipped": 6,
     "stops": 0
@@ -7133,11 +6857,6 @@
      "sites": 1
     },
     {
-     "name": "WAS_CUTSCENE_SKIPPED",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 1
@@ -7168,8 +6887,8 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 482,
-    "authored": 4,
+    "faithful": 483,
+    "authored": 3,
     "silent": 3,
     "skipped": 10,
     "stops": 0
@@ -7189,11 +6908,6 @@
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
      "sites": 2
-    },
-    {
-     "name": "WAS_CUTSCENE_SKIPPED",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "SET_CAR_COORDINATES_NO_OFFSET",
@@ -7337,8 +7051,8 @@
    "byStatus": {
     "core": 370,
     "nop": 1,
-    "faithful": 216,
-    "authored": 2,
+    "faithful": 217,
+    "authored": 1,
     "silent": 13,
     "skipped": 0,
     "stops": 0
@@ -7353,11 +7067,6 @@
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 6
-    },
-    {
-     "name": "WAS_CUTSCENE_SKIPPED",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -7844,8 +7553,8 @@
    "byStatus": {
     "core": 4564,
     "nop": 54,
-    "faithful": 1245,
-    "authored": 4,
+    "faithful": 1246,
+    "authored": 3,
     "silent": 7,
     "skipped": 26,
     "stops": 0
@@ -7892,11 +7601,6 @@
      "sites": 2
     },
     {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 1
-    },
-    {
      "name": "PLANE_ATTACK_PLAYER_USING_DOG_FIGHT",
      "status": "skipped",
      "sites": 1
@@ -7909,6 +7613,11 @@
     {
      "name": "PLANE_FLY_IN_DIRECTION",
      "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_AUDIO",
+     "status": "silent",
      "sites": 1
     }
    ]
@@ -8074,8 +7783,8 @@
    "byStatus": {
     "core": 587,
     "nop": 2,
-    "faithful": 208,
-    "authored": 1,
+    "faithful": 209,
+    "authored": 0,
     "silent": 23,
     "skipped": 1,
     "stops": 0
@@ -8095,11 +7804,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 2
-    },
-    {
-     "name": "WAS_CUTSCENE_SKIPPED",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "GIVE_VEHICLE_PAINTJOB",
@@ -8122,8 +7826,8 @@
    "byStatus": {
     "core": 2527,
     "nop": 2,
-    "faithful": 2584,
-    "authored": 5,
+    "faithful": 2589,
+    "authored": 0,
     "silent": 43,
     "skipped": 3,
     "stops": 0
@@ -8140,11 +7844,6 @@
      "sites": 3
     },
     {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
-     "sites": 2
-    },
-    {
      "name": "LOAD_MISSION_AUDIO",
      "status": "silent",
      "sites": 2
@@ -8153,21 +7852,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 2
-    },
-    {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "IS_GARAGE_CLOSED",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -8296,8 +7980,8 @@
    "byStatus": {
     "core": 3644,
     "nop": 1,
-    "faithful": 2729,
-    "authored": 4,
+    "faithful": 2730,
+    "authored": 3,
     "silent": 12,
     "skipped": 7,
     "stops": 0
@@ -8331,11 +8015,6 @@
     {
      "name": "GET_DOOR_ANGLE_RATIO",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "WAS_CUTSCENE_SKIPPED",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -8627,8 +8306,8 @@
    "byStatus": {
     "core": 2630,
     "nop": 2,
-    "faithful": 1686,
-    "authored": 4,
+    "faithful": 1689,
+    "authored": 1,
     "silent": 15,
     "skipped": 17,
     "stops": 0
@@ -8660,11 +8339,6 @@
      "sites": 3
     },
     {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 3
-    },
-    {
      "name": "BOAT_STOP",
      "status": "skipped",
      "sites": 2
@@ -8690,18 +8364,13 @@
    "byStatus": {
     "core": 2337,
     "nop": 2,
-    "faithful": 658,
-    "authored": 9,
+    "faithful": 667,
+    "authored": 0,
     "silent": 6,
     "skipped": 2,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "POINT_CAMERA_AT_CAR",
-     "status": "authored",
-     "sites": 9
-    },
     {
      "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
@@ -8850,38 +8519,13 @@
    "byStatus": {
     "core": 878,
     "nop": 7,
-    "faithful": 294,
-    "authored": 14,
+    "faithful": 308,
+    "authored": 0,
     "silent": 1,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CHANGE_GARAGE_TYPE",
-     "status": "authored",
-     "sites": 4
-    },
-    {
-     "name": "IS_GARAGE_OPEN",
-     "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "IS_GARAGE_CLOSED",
-     "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "OPEN_GARAGE",
-     "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "CLOSE_GARAGE",
-     "status": "authored",
-     "sites": 2
-    },
     {
      "name": "GET_CLOSEST_STEALABLE_OBJECT",
      "status": "skipped",
@@ -9217,18 +8861,13 @@
    "byStatus": {
     "core": 59,
     "nop": 0,
-    "faithful": 272,
-    "authored": 15,
+    "faithful": 287,
+    "authored": 0,
     "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "ACTIVATE_GARAGE",
-     "status": "authored",
-     "sites": 15
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -9310,74 +8949,6 @@
    "doc": "Plays an audio file with the specified ID from the Audio directory",
    "sites": 144,
    "missions": 119,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "ACTIVATE_GARAGE",
-   "opcode": "0299",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 562,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Activates the garage",
-   "sites": 27,
-   "missions": 6,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "CLOSE_GARAGE",
-   "opcode": "0361",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 565,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Closes the garage",
-   "sites": 24,
-   "missions": 15,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "CHANGE_GARAGE_TYPE",
-   "opcode": "02fa",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 568,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the garage's type",
-   "sites": 20,
-   "missions": 10,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "IS_GARAGE_OPEN",
-   "opcode": "03b0",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 566,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the garage's door is open",
-   "sites": 18,
-   "missions": 11,
    "firstMission": "MAIN",
    "portable": false
   },
@@ -9531,23 +9102,6 @@
    "doc": "",
    "sites": 2,
    "missions": 2,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "SET_GARAGE_RESPRAY_FREE",
-   "opcode": "093a",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 569,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 2,
-   "missions": 1,
    "firstMission": "MAIN",
    "portable": false
   },
@@ -9950,26 +9504,6 @@
    "missions": 1,
    "firstMission": "home_brains.scm",
    "portable": false
-  },
-  {
-   "name": "POINT_CAMERA_AT_CAR",
-   "opcode": "0158",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 924,
-   "ref": {
-    "kind": "handler",
-    "fn": "PointCameraAtCar",
-    "where": "CameraCommands.cpp:50",
-    "stub": false
-   },
-   "doc": "Attaches the camera to the specified vehicle",
-   "sites": 48,
-   "missions": 20,
-   "firstMission": "gf_date.scm",
-   "portable": true
   },
   {
    "name": "SET_NAMED_ENTRY_EXIT_FLAG",
@@ -11022,40 +10556,6 @@
    "portable": false
   },
   {
-   "name": "DEACTIVATE_GARAGE",
-   "opcode": "02b9",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 563,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Deactivates the garage",
-   "sites": 27,
-   "missions": 4,
-   "firstMission": "INITIAL",
-   "portable": false
-  },
-  {
-   "name": "WAS_CUTSCENE_SKIPPED",
-   "opcode": "056a",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 1298,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the cutscene was skipped",
-   "sites": 8,
-   "missions": 7,
-   "firstMission": "INTRO",
-   "portable": false
-  },
-  {
    "name": "GET_STRING_WIDTH",
    "opcode": "09fd",
    "status": "skipped",
@@ -11286,40 +10786,6 @@
    "missions": 1,
    "firstMission": "ZERO5",
    "portable": true
-  },
-  {
-   "name": "IS_GARAGE_CLOSED",
-   "opcode": "03b1",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 567,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the garage's door is closed",
-   "sites": 19,
-   "missions": 12,
-   "firstMission": "GUNS1",
-   "portable": false
-  },
-  {
-   "name": "OPEN_GARAGE",
-   "opcode": "0360",
-   "status": "authored",
-   "notes": [
-    "handler comments name an authored stand-in"
-   ],
-   "handlerLine": 564,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Opens the garage",
-   "sites": 16,
-   "missions": 13,
-   "firstMission": "GUNS1",
-   "portable": false
   },
   {
    "name": "TASK_EVERYONE_LEAVE_CAR",
