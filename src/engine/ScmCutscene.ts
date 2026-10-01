@@ -18,7 +18,15 @@ export class ScmCutscene {
  load(name:string){
   requireAsset(name.length>0,'Invalid cutscene name.');
   this.name=name;this.status=CUTSCENE_LOADING;this.wasSkipped=false;this.time=0;
+  // LoadCutsceneData_postload takes the appended objects into this cutscene's load list and empties the list.
+  this.objects=this.appended;this.appended=[];
  }
+ /** CCutsceneMgr::AppendToNextCutscene (APPEND_TO_NEXT_CUTSCENE, reversed): an object and its clip, lower-cased, that
+  * the next cutscene loaded plays besides its own (the girlfriend in a date's cutscene). */
+ appended:{object:string;anim:string}[]=[];
+ /** The appended objects the cutscene now loading or playing took. */
+ objects:readonly {object:string;anim:string}[]=[];
+ append(object:string,anim:string){this.appended.push({object:object.toLowerCase(),anim:anim.toLowerCase()});}
  /** What a host calls once the data is in. */
  loaded(){if(this.status===CUTSCENE_LOADING)this.status=CUTSCENE_LOADED;}
  get hasLoaded(){return this.status===CUTSCENE_LOADED||this.status===CUTSCENE_RUNNING||this.status===CUTSCENE_FINISHED;}
@@ -29,7 +37,7 @@ export class ScmCutscene {
  finish(){if(this.status===CUTSCENE_RUNNING)this.status=CUTSCENE_FINISHED;}
  get hasFinished(){return this.status===CUTSCENE_FINISHED;}
  /** CLEAR_CUTSCENE: everything goes. */
- clear(){this.name=undefined;this.status=CUTSCENE_NONE;this.wasSkipped=false;this.time=0;}
+ clear(){this.name=undefined;this.status=CUTSCENE_NONE;this.wasSkipped=false;this.time=0;this.objects=[];}
  /** Whether this cutscene was skipped, which the script asks after it has finished. A clear forgets it along
   * with everything else, so the question only answers for the cutscene just played. */
  wasSkipped=false;

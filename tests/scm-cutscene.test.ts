@@ -26,6 +26,17 @@ function run(game:ScmGameState,world:Partial<ScmWorldCommands>,...instructions:n
 const op=scmOpcode;
 
 describe('the cutscene a script loads and runs',()=>{
+ test('APPEND_TO_NEXT_CUTSCENE adds an object to the next cutscene loaded, lower-cased, and only to it',()=>{
+  const game=new ScmGameState();
+  run(game,{},instruction(op('APPEND_TO_NEXT_CUTSCENE'),['GFPIZ1','GFPIZ1']),instruction(op('APPEND_TO_NEXT_CUTSCENE'),['GANGRL3','GFRIEND']));
+  expect(game.cutscene.objects).toEqual([]);
+  run(game,{},instruction(op('LOAD_CUTSCENE'),['D8_ALT']));
+  expect(game.cutscene.objects).toEqual([{object:'gfpiz1',anim:'gfpiz1'},{object:'gangrl3',anim:'gfriend'}]);
+  expect(game.cutscene.appended).toEqual([]);
+  run(game,{},instruction(op('CLEAR_CUTSCENE'),[]));
+  run(game,{},instruction(op('LOAD_CUTSCENE'),['D8_ALT']));
+  expect(game.cutscene.objects).toEqual([]);
+ });
  test('the script’s own loop is load, wait, start, wait, clear',()=>{
   const game=new ScmGameState();const calls:string[]=[];
   const world={loadCutscene:(name:string)=>{calls.push('load '+name);},startCutscene:()=>{calls.push('start');},

@@ -9042,3 +9042,15 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   (`CTaskSimpleStandStill`), so the ped's pace eases to nothing. The browser left a stood ped at its walking pace:
   it walked on the spot, counted itself blocked, and the authored sidestep slid it about (SWEET1B's couch dealer
   drifted into the corner behind the den's wall). A follower's default stand still moves with the group.
+
+## The date script's doors, cutscene objects and the camera on its car
+
+- **`SET_NAMED_ENTRY_EXIT_FLAG`** sets or clears flag bits on every entry-exit of that name (handler unreversed;
+  SWITCH_ENTRY_EXIT's lookup). `gf_date` marks the restaurants `FOOD_DATE`, which the door transfer already reads.
+- **`APPEND_TO_NEXT_CUTSCENE`** is `CCutsceneMgr::AppendToNextCutscene` (reversed): the object and clip, lower-cased,
+  join the next cutscene loaded, which takes and empties the list.
+- **`ATTACH_CAMERA_TO_VEHICLE`, `…_LOOK_AT_VEHICLE`, `…_LOOK_AT_CHAR`, `ATTACH_CAMERA_TO_CHAR` and
+  `…_LOOK_AT_CHAR`** call `CCamera::TakeControlAttachToEntity` (handlers reversed; the routine and
+  `CCam::Process_AttachedCam` are not, AUTHORED): MODE_ATTACHCAM on the entity, the camera at the offset in its
+  space, looking at the target entity or at the look-at point in that space. The tilt (a roll) is kept but not drawn.
+  `gf_date` stopped on the look-at-char form.

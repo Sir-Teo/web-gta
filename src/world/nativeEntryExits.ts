@@ -154,6 +154,8 @@ export class EntryExitManager {
  enableBurglaryHouses(on:boolean){this.burglaryHousesEnabled=on;for(const e of this.pool)set(e,ENEX.BURGLARY_ACCESS,on);}
  /** SWITCH_ENTRY_EXIT: every record of that name. */
  switchAccess(name:string,on:boolean){const key=name.toLowerCase();for(const e of this.pool)if(e.name.toLowerCase()===key)set(e,ENEX.ENABLE_ACCESS,on);}
+ /** SET_NAMED_ENTRY_EXIT_FLAG: the flag bits on every record of that name. */
+ setNamedFlag(name:string,flag:number,on:boolean){const key=name.toLowerCase();for(const e of this.pool)if(e.name.toLowerCase()===key)set(e,flag,on);}
  /** SET_CLOSEST_ENTRY_EXIT_FLAG. */
  setClosestFlag(x:number,y:number,radius:number,flag:number,on:boolean){const e=this.findNearest(x,y,radius);if(e)set(e,flag,on);}
  /** The INITIAL mission's switches, in order. */

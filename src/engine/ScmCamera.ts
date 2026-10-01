@@ -4,7 +4,7 @@ import {requireAsset} from '../assets/binary';
  * `TakeControlNoEntity` 0x50C8B0). These routines only set fields; the camera itself reads them on its next
  * update, so a host applies this state rather than the runtime moving anything. Native axes. */
 /** eCamMode values the script's restore and take-control paths use. */
-export const MODE_FOLLOWPED=4,MODE_FIXED=15,MODE_CAM_ON_A_STRING=18;
+export const MODE_FOLLOWPED=4,MODE_FIXED=15,MODE_CAM_ON_A_STRING=18,MODE_ATTACHCAM=47;
 /** eSwitchType. */
 export const SWITCH_INTERPOLATION=0,SWITCH_JUMPCUT=1;
 /** m_nModeObbeCamIsInForCar, which both restores set back to thirty. */
@@ -84,7 +84,22 @@ export class ScmCamera {
   if(!this.cinemaCamera&&whoIsInControl===2&&this.whoIsInControlOfTheCamera===1)return;
   this.whoIsInControlOfTheCamera=whoIsInControl;
   this.modeToGoTo=mode===0?(entity.kind==='ped'?MODE_FOLLOWPED:MODE_CAM_ON_A_STRING):mode;
-  this.targetEntity={...entity};this.typeOfSwitch=switchType;
+  this.targetEntity={...entity};this.typeOfSwitch=switchType;this.attached=undefined;
+  this.lookingAtPlayer=false;this.lookingAtVector=false;this.startInterScript=true;
+ }
+ /** m_pAttachedEntity with m_vecAttachedCamOffset, m_vecAttachedCamLookAt and m_fAttachedCamAngle: the camera
+  * riding an entity (MODE_ATTACHCAM), at an offset in its space and looking at a point in its space or at the
+  * target entity. */
+ attached?:{kind:'ped'|'vehicle';handle:number;offset:Vec3;lookAt?:Vec3;tilt:number};
+ /** CCamera::TakeControlAttachToEntity (0x50C910, unreversed; AUTHORED as TakeControl beside it): the script's
+  * request yields to a cutscene's unless the cinema camera is on, and the camera goes to MODE_ATTACHCAM on the
+  * entity, looking at the target when one is given and at the offset point otherwise. */
+ takeControlAttachToEntity(target:{kind:'ped'|'vehicle';handle:number}|undefined,attached:{kind:'ped'|'vehicle';handle:number},offset:Vec3,lookAt:Vec3|undefined,tilt:number,switchType:number,whoIsInControl:number){
+  requireAsset([offset.x,offset.y,offset.z,tilt].every(Number.isFinite)&&(!lookAt||[lookAt.x,lookAt.y,lookAt.z].every(Number.isFinite)),'Invalid attached camera.');
+  if(!this.cinemaCamera&&whoIsInControl===2&&this.whoIsInControlOfTheCamera===1)return;
+  this.whoIsInControlOfTheCamera=whoIsInControl;this.modeToGoTo=MODE_ATTACHCAM;
+  this.attached={...attached,offset:{...offset},lookAt:lookAt&&{...lookAt},tilt};
+  this.targetEntity=target&&{...target};this.typeOfSwitch=switchType;
   this.lookingAtPlayer=false;this.lookingAtVector=false;this.startInterScript=true;
  }
  /** CCamera::TakeControlNoEntity (0x50C8B0): a request from the script (2) yields to one already in force
@@ -93,7 +108,7 @@ export class ScmCamera {
   requireAsset([target.x,target.y,target.z].every(Number.isFinite),'Invalid camera target.');
   if(whoIsInControl===2&&this.whoIsInControlOfTheCamera===1)return;
   this.whoIsInControlOfTheCamera=whoIsInControl;
-  this.lookingAtVector=true;this.modeToGoTo=MODE_FIXED;this.lookingAtPlayer=false;this.targetEntity=undefined;
+  this.lookingAtVector=true;this.modeToGoTo=MODE_FIXED;this.lookingAtPlayer=false;this.targetEntity=undefined;this.attached=undefined;
   this.fixedModeVector={...target};this.typeOfSwitch=switchType;this.startInterScript=true;
  }
  /** CCamera::SetNearClipScript (0x50BF90). */
@@ -105,7 +120,7 @@ export class ScmCamera {
  /** The body CCamera::Restore and RestoreWithJumpCut share: both hand the camera back to the player, pick the
   * mode from what the player is doing, and reset the script's interpolation fields. */
  private restoreCommon(player:PlayerCameraState){
-  this.lookingAtPlayer=true;this.lookingAtVector=false;this.targetEntity=undefined;
+  this.lookingAtPlayer=true;this.lookingAtVector=false;this.targetEntity=undefined;this.attached=undefined;
   this.whoIsInControlOfTheCamera=0;this.positionAlongSpline=0;this.startingSpline=false;
   this.useNearClipScript=false;this.modeObbeCamIsInForCar=OBBE_MODE_DEFAULT;this.scriptParametersSetForInterp=false;
   this.modeToGoTo=player.inVehicle?MODE_CAM_ON_A_STRING:MODE_FOLLOWPED;

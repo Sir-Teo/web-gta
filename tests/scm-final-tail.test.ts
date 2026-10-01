@@ -105,27 +105,34 @@ describe('the last of the tail',()=>{
   ]);
  });
 
- test('the searchlight on a vehicle and the camera hung on one pass their operands',()=>{
+ test('the searchlight on a vehicle passes its operands, and the camera hung on one takes control attached to it',()=>{
   const calls:unknown[][]=[];
   const method=(name:string,result?:unknown)=>(...args:unknown[])=>{calls.push([name,...args]);return result;};
   const world={createSearchlightOnVehicle:method('light',8),moveSearchlightBetweenCoords:method('move'),
-   attachCameraToVehicle:method('camera'),attachCameraToVehicleLookAtVehicle:method('cameraAt'),
   } as unknown as Partial<ScmWorldCommands>;
-  const {readInt}=run(world,undefined,
+  const {readInt,game}=run(world,undefined,
    instruction(op('CREATE_SEARCHLIGHT_ON_VEHICLE'),
     [int(CAR),float(0),float(1),float(2),float(10),float(20),float(30),float(5),float(9),gvar(40)]),
    instruction(op('MOVE_SEARCHLIGHT_BETWEEN_COORDS'),
     [int(8),float(0),float(0),float(0),float(10),float(10),float(10),float(2)]),
    instruction(op('ATTACH_CAMERA_TO_VEHICLE'),
-    [int(CAR),float(0),float(-5),float(2),float(0),float(0),float(0),float(15),int(1)]),
-   instruction(op('ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE'),
-    [int(CAR),float(0),float(-5),float(2),int(10),float(15),int(1)]));
+    [int(CAR),float(0),float(-5),float(2),float(0),float(0),float(0),float(15),int(1)]));
   expect(readInt(40)).toBe(8);
   expect(calls).toEqual([
    ['light',CAR,{x:0,y:1,z:2},{x:10,y:20,z:30},5,9],
    ['move',8,{x:0,y:0,z:0},{x:10,y:10,z:10},2],
-   ['camera',CAR,{x:0,y:-5,z:2},{x:0,y:0,z:0},15,1],
-   ['cameraAt',CAR,{x:0,y:-5,z:2},10,15,1],
   ]);
+  const camera=game.camera;
+  expect(camera.modeToGoTo).toBe(47);expect(camera.lookingAtPlayer).toBe(false);expect(camera.whoIsInControlOfTheCamera).toBe(2);
+  expect(camera.attached).toEqual({kind:'vehicle',handle:CAR,offset:{x:0,y:-5,z:2},lookAt:{x:0,y:0,z:0},tilt:15});
+  expect(camera.targetEntity).toBeUndefined();expect(camera.typeOfSwitch).toBe(1);
+  // Looking at another vehicle, and from the car at a ped: the target entity, no look-at point.
+  run({},game,instruction(op('ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE'),[int(CAR),float(0),float(-5),float(2),int(10),float(15),int(1)]));
+  expect(camera.targetEntity).toEqual({kind:'vehicle',handle:10});expect(camera.attached?.lookAt).toBeUndefined();
+  run({},game,instruction(op('ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_CHAR'),[int(CAR),float(1),float(-4),float(1),int(PED),float(0),int(2)]));
+  expect(camera.targetEntity).toEqual({kind:'ped',handle:PED});expect(camera.attached?.offset).toEqual({x:1,y:-4,z:1});
+  // The restore hands it back and lets go of the entity.
+  camera.restoreWithJumpCut({inVehicle:false,enteringCar:false,exitingCar:false});
+  expect(camera.attached).toBeUndefined();expect(camera.lookingAtPlayer).toBe(true);
  });
 });

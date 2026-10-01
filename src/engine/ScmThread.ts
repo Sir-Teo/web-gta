@@ -711,8 +711,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  enableEntryExitPlayerGroupWarping?(x:number,y:number,radius:number,state:boolean):void;
  switchPoliceHelis?(state:boolean):void;
  clearExtraColours?(fade:boolean):void;
- attachCameraToVehicle?(handle:number,offset:{x:number;y:number;z:number},pointAt:{x:number;y:number;z:number},tilt:number,switchType:number):void;
- attachCameraToVehicleLookAtVehicle?(handle:number,offset:{x:number;y:number;z:number},target:number,tilt:number,switchType:number):void;
  /* The remaining tail, each named by the schema. */
  removeSphere?(handle:number):void;
  startVehicleFire?(handle:number):number;
@@ -905,7 +903,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  activateHeliSpeedCheat?(handle:number,power:number):void;
  heliKeepEntityInView?(handle:number,char:number,vehicle:number,minAltitude:number,maxAltitude:number):void;
  setCarCoordinatesNoOffset?(handle:number,x:number,y:number,z:number):void;
- attachCameraToChar?(handle:number,xOffset:number,yOffset:number,zOffset:number,xRotation:number,yRotation:number,zRotation:number,tilt:number,switchStyle:number):void;
  addExplosionNoSound?(x:number,y:number,z:number,type:number):void;
  switchOnGroundSearchlight?(handle:number,state:boolean):void;
  taskJetpack?(handle:number):void;
@@ -1007,7 +1004,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  useDetonator?():void;
  addToObjectRotationVelocity?(handle:number,x:number,y:number,z:number):void;
  drawWeaponshopCorona?(x:number,y:number,z:number,size:number,coronaType:number,flareType:number,r:number,g:number,b:number):void;
- attachCameraToCharLookAtChar?(handle:number,xOffset:number,yOffset:number,zOffset:number,char:number,tilt:number,switchStyle:number):void;
  fireHunterGun?(handle:number):void;
  taskDiveFromAttachmentAndGetUp?(handle:number,timeOnGround:number):void;
  createFxSystemOnCharWithDirection?(name:string,char:number,xOffset:number,yOffset:number,zOffset:number,xDirection:number,yDirection:number,zDirection:number,ignoreBoundingChecks:boolean):number;
@@ -1098,6 +1094,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
   * an entry-exit named in the world file is switched on or off by name. */
  setClosestEntryExitFlag?(x:number,y:number,radius:number,flag:number,on:boolean):void;
  switchEntryExit?(name:string,on:boolean):void;
+ setNamedEntryExitFlag?(name:string,flag:number,on:boolean):void;
  /** CWorld::ClearExcitingStuffFromArea (0x56A0D0): the peds, cars and objects in a radius that may be
   * deleted, leaving the player and their group alone. The flag also takes the projectiles and shadows. */
  clearExcitingStuffFromArea?(point:{x:number;y:number;z:number},radius:number,removeProjectilesAndShadows:boolean,fromMission?:boolean):void;

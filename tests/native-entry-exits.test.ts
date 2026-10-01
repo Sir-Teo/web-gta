@@ -190,3 +190,15 @@ test('the world\'s grge rows load as CFileLoader::LoadGarage scans them',()=>{
  expect(garages.filter(g=>g.type===5).length).toBeGreaterThan(3);
  expect(garages.some(g=>g.type===16)).toBe(true);expect(garages.every(g=>g.name.length>0)).toBe(true);
 });
+
+test('SET_NAMED_ENTRY_EXIT_FLAG sets and clears bits on every door of that name and no other',()=>{
+ const enex=new EntryExitManager(worldRows(),()=>.9);
+ const named=enex.pool.filter(e=>e.name.toLowerCase()==='fdpiza'),others=enex.pool.filter(e=>e.name.toLowerCase()!=='fdpiza');
+ expect(named.length).toBeGreaterThan(0);
+ const before=others.map(e=>e.flags);
+ enex.setNamedFlag('FDPIZA',ENEX.FOOD_DATE,true);
+ expect(named.every(e=>(e.flags&ENEX.FOOD_DATE)!==0)).toBe(true);
+ expect(others.map(e=>e.flags)).toEqual(before);
+ enex.setNamedFlag('fdpiza',ENEX.FOOD_DATE,false);
+ expect(named.some(e=>(e.flags&ENEX.FOOD_DATE)!==0)).toBe(false);
+});

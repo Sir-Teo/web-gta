@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T12:39:06.780Z",
+ "generated": "2026-10-01T15:02:19.425Z",
  "reference": {
   "path": "../gta-reversed/gta-reversed",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -10,11 +10,11 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1135,
-   "authored": 22,
+   "faithful": 1143,
+   "authored": 24,
    "silent": 7,
-   "skipped": 190,
-   "stops": 37
+   "skipped": 184,
+   "stops": 33
   }
  },
  "missions": [
@@ -105,11 +105,11 @@
    "byStatus": {
     "core": 501,
     "nop": 0,
-    "faithful": 113,
-    "authored": 1,
+    "faithful": 114,
+    "authored": 6,
     "silent": 0,
-    "skipped": 5,
-    "stops": 6
+    "skipped": 0,
+    "stops": 5
    },
    "gaps": [
     {
@@ -119,18 +119,13 @@
     },
     {
      "name": "GET_CHAR_VELOCITY",
-     "status": "skipped",
+     "status": "authored",
      "sites": 3
     },
     {
      "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
-    },
-    {
-     "name": "IS_2PLAYER_GAME_GOING_ON",
-     "status": "stops",
-     "sites": 1
     },
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
@@ -154,15 +149,15 @@
     "core": 665,
     "nop": 0,
     "faithful": 138,
-    "authored": 0,
+    "authored": 9,
     "silent": 0,
-    "skipped": 9,
+    "skipped": 0,
     "stops": 5
    },
    "gaps": [
     {
      "name": "GET_CHAR_VELOCITY",
-     "status": "skipped",
+     "status": "authored",
      "sites": 7
     },
     {
@@ -172,7 +167,7 @@
     },
     {
      "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
     }
    ]
@@ -803,23 +798,13 @@
    "byStatus": {
     "core": 2622,
     "nop": 23,
-    "faithful": 1257,
+    "faithful": 1311,
     "authored": 5,
     "silent": 0,
-    "skipped": 9,
-    "stops": 51
+    "skipped": 6,
+    "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_NAMED_ENTRY_EXIT_FLAG",
-     "status": "stops",
-     "sites": 36
-    },
-    {
-     "name": "APPEND_TO_NEXT_CUTSCENE",
-     "status": "stops",
-     "sites": 14
-    },
     {
      "name": "GET_RADIO_CHANNEL",
      "status": "skipped",
@@ -831,11 +816,6 @@
      "sites": 3
     },
     {
-     "name": "ATTACH_CAMERA_TO_VEHICLE",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
      "name": "LOCK_DOOR",
      "status": "skipped",
      "sites": 2
@@ -844,11 +824,6 @@
      "name": "GET_RANDOM_CHAR_IN_SPHERE",
      "status": "authored",
      "sites": 2
-    },
-    {
-     "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_CHAR",
-     "status": "stops",
-     "sites": 1
     }
    ]
   },
@@ -3586,10 +3561,10 @@
    "byStatus": {
     "core": 3840,
     "nop": 2,
-    "faithful": 2948,
+    "faithful": 2950,
     "authored": 2,
     "silent": 67,
-    "skipped": 26,
+    "skipped": 24,
     "stops": 0
    },
    "gaps": [
@@ -3621,11 +3596,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "ATTACH_CAMERA_TO_VEHICLE",
-     "status": "skipped",
      "sites": 2
     },
     {
@@ -4230,10 +4200,10 @@
    "byStatus": {
     "core": 1706,
     "nop": 2,
-    "faithful": 783,
+    "faithful": 785,
     "authored": 3,
     "silent": 13,
-    "skipped": 5,
+    "skipped": 3,
     "stops": 0
    },
    "gaps": [
@@ -4259,11 +4229,6 @@
     },
     {
      "name": "IS_TRAILER_ATTACHED_TO_CAB",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "ATTACH_CAMERA_TO_VEHICLE",
      "status": "skipped",
      "sites": 2
     },
@@ -6187,9 +6152,9 @@
     "core": 1112,
     "nop": 22,
     "faithful": 222,
-    "authored": 0,
+    "authored": 2,
     "silent": 11,
-    "skipped": 4,
+    "skipped": 2,
     "stops": 0
    },
    "gaps": [
@@ -6205,7 +6170,7 @@
     },
     {
      "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
-     "status": "skipped",
+     "status": "authored",
      "sites": 2
     },
     {
@@ -6239,10 +6204,10 @@
    "byStatus": {
     "core": 1843,
     "nop": 9,
-    "faithful": 928,
-    "authored": 2,
+    "faithful": 932,
+    "authored": 4,
     "silent": 12,
-    "skipped": 17,
+    "skipped": 11,
     "stops": 0
    },
    "gaps": [
@@ -6272,16 +6237,6 @@
      "sites": 2
     },
     {
-     "name": "ATTACH_CAMERA_TO_CHAR",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
      "name": "FORCE_DEATH_RESTART",
      "status": "skipped",
      "sites": 2
@@ -6304,6 +6259,16 @@
     {
      "name": "USE_DETONATOR",
      "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
+     "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "GET_CHAR_VELOCITY",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -6448,10 +6413,10 @@
    "byStatus": {
     "core": 2961,
     "nop": 2,
-    "faithful": 940,
+    "faithful": 941,
     "authored": 2,
     "silent": 13,
-    "skipped": 16,
+    "skipped": 15,
     "stops": 0
    },
    "gaps": [
@@ -6506,13 +6471,13 @@
      "sites": 1
     },
     {
-     "name": "ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR",
+     "name": "FIRE_HUNTER_GUN",
      "status": "skipped",
      "sites": 1
     },
     {
-     "name": "FIRE_HUNTER_GUN",
-     "status": "skipped",
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
      "sites": 1
     }
    ]
@@ -6872,18 +6837,13 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 483,
+    "faithful": 487,
     "authored": 3,
     "silent": 3,
-    "skipped": 10,
+    "skipped": 6,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "ATTACH_CAMERA_TO_VEHICLE",
-     "status": "skipped",
-     "sites": 4
-    },
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
      "status": "skipped",
@@ -7204,9 +7164,9 @@
     "core": 1449,
     "nop": 8,
     "faithful": 889,
-    "authored": 1,
+    "authored": 2,
     "silent": 22,
-    "skipped": 2,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
@@ -7232,7 +7192,7 @@
     },
     {
      "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
-     "status": "skipped",
+     "status": "authored",
      "sites": 1
     },
     {
@@ -7256,10 +7216,10 @@
    "byStatus": {
     "core": 1018,
     "nop": 5,
-    "faithful": 677,
+    "faithful": 678,
     "authored": 1,
     "silent": 13,
-    "skipped": 5,
+    "skipped": 4,
     "stops": 0
    },
    "gaps": [
@@ -7290,11 +7250,6 @@
     },
     {
      "name": "ATTACH_CAR_TO_CAR",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE",
      "status": "skipped",
      "sites": 1
     },
@@ -8286,10 +8241,10 @@
    "byStatus": {
     "core": 2630,
     "nop": 2,
-    "faithful": 1689,
+    "faithful": 1694,
     "authored": 1,
     "silent": 15,
-    "skipped": 17,
+    "skipped": 12,
     "stops": 0
    },
    "gaps": [
@@ -8302,11 +8257,6 @@
      "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 8
-    },
-    {
-     "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE",
-     "status": "skipped",
-     "sites": 5
     },
     {
      "name": "LOAD_MISSION_AUDIO",
@@ -8864,7 +8814,7 @@
    "notes": [
     "adapter lacks clearMissionAudio"
    ],
-   "handlerLine": 671,
+   "handlerLine": 674,
    "ref": {
     "kind": "absent"
    },
@@ -8881,7 +8831,7 @@
    "notes": [
     "adapter lacks loadMissionAudio"
    ],
-   "handlerLine": 657,
+   "handlerLine": 660,
    "ref": {
     "kind": "handler",
     "fn": "LoadMissionAudio",
@@ -8901,7 +8851,7 @@
    "notes": [
     "adapter lacks playMissionAudio"
    ],
-   "handlerLine": 663,
+   "handlerLine": 666,
    "ref": {
     "kind": "handler",
     "fn": "PlayMissionAudio",
@@ -8922,7 +8872,7 @@
     "dispatch unreversed; follows the routines it reaches",
     "adapter lacks playMissionPassedTune"
    ],
-   "handlerLine": 1386,
+   "handlerLine": 1392,
    "ref": {
     "kind": "absent"
    },
@@ -8939,7 +8889,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 2046,
+   "handlerLine": 2052,
    "ref": {
     "kind": "absent"
    },
@@ -8956,7 +8906,7 @@
    "notes": [
     "adapter lacks grabEntityOnRopeForObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 1806,
+   "handlerLine": 1812,
    "ref": {
     "kind": "absent"
    },
@@ -8973,7 +8923,7 @@
    "notes": [
     "adapter lacks beatProximity (skipped: outputs read as none)"
    ],
-   "handlerLine": 2202,
+   "handlerLine": 2212,
    "ref": {
     "kind": "absent"
    },
@@ -8990,7 +8940,7 @@
    "notes": [
     "adapter lacks setRopeHeightForObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 1950,
+   "handlerLine": 1956,
    "ref": {
     "kind": "absent"
    },
@@ -9007,7 +8957,7 @@
    "notes": [
     "adapter lacks releaseEntityFromRopeForObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 2133,
+   "handlerLine": 2143,
    "ref": {
     "kind": "absent"
    },
@@ -9024,7 +8974,7 @@
    "notes": [
     "adapter comments name an authored stand-in (measurementsAreInMetres)"
    ],
-   "handlerLine": 2130,
+   "handlerLine": 2140,
    "ref": {
     "kind": "absent"
    },
@@ -9041,7 +8991,7 @@
    "notes": [
     "adapter lacks getCarModelValue (skipped: outputs read as none)"
    ],
-   "handlerLine": 2320,
+   "handlerLine": 2330,
    "ref": {
     "kind": "absent"
    },
@@ -9058,7 +9008,7 @@
    "notes": [
     "adapter lacks getCurrentCarMod (skipped: outputs read as none)"
    ],
-   "handlerLine": 2507,
+   "handlerLine": 2519,
    "ref": {
     "kind": "absent"
    },
@@ -9075,7 +9025,7 @@
    "notes": [
     "adapter lacks getRandomCarInSphereNoSave (skipped: outputs read as none)"
    ],
-   "handlerLine": 2414,
+   "handlerLine": 2424,
    "ref": {
     "kind": "absent"
    },
@@ -9092,7 +9042,7 @@
    "notes": [
     "adapter lacks activateSaveMenu (skipped: outputs read as none)"
    ],
-   "handlerLine": 2497,
+   "handlerLine": 2509,
    "ref": {
     "kind": "absent"
    },
@@ -9109,7 +9059,7 @@
    "notes": [
     "adapter lacks hasSaveGameFinished (skipped: outputs read as none)"
    ],
-   "handlerLine": 2498,
+   "handlerLine": 2510,
    "ref": {
     "kind": "absent"
    },
@@ -9126,7 +9076,7 @@
    "notes": [
     "adapter comments name an authored stand-in (getRidOfPlayerProstitute)"
    ],
-   "handlerLine": 1184,
+   "handlerLine": 1189,
    "ref": {
     "kind": "handler",
     "fn": "GetRidOfPlayerProstitute",
@@ -9142,11 +9092,11 @@
   {
    "name": "GET_CHAR_VELOCITY",
    "opcode": "083d",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks pedVelocity (skipped: outputs read as none)"
+    "handler comments name an authored stand-in"
    ],
-   "handlerLine": 1152,
+   "handlerLine": 1157,
    "ref": {
     "kind": "handler",
     "fn": "GetCharVelocity",
@@ -9181,11 +9131,11 @@
   {
    "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
    "opcode": "0819",
-   "status": "skipped",
+   "status": "authored",
    "notes": [
-    "adapter lacks getCharHeightAboveGround (skipped: outputs read as none)"
+    "adapter comments name an authored stand-in (getCharHeightAboveGround)"
    ],
-   "handlerLine": 2353,
+   "handlerLine": 2363,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetCharHeightAboveGround",
@@ -9195,22 +9145,6 @@
    "doc": "Returns the char's distance from ground",
    "sites": 8,
    "missions": 5,
-   "firstMission": "player_parachute.scm",
-   "portable": false
-  },
-  {
-   "name": "IS_2PLAYER_GAME_GOING_ON",
-   "opcode": "0800",
-   "status": "stops",
-   "notes": [
-    "no handler (the thread gives up)"
-   ],
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Returns true if the game is in 2-player mode",
-   "sites": 1,
-   "missions": 1,
    "firstMission": "player_parachute.scm",
    "portable": false
   },
@@ -9269,7 +9203,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3027,
+   "handlerLine": 3043,
    "ref": {
     "kind": "absent"
    },
@@ -9305,7 +9239,7 @@
    "notes": [
     "adapter comments name an authored stand-in (taskPlayAnimSecondary)"
    ],
-   "handlerLine": 2405,
+   "handlerLine": 2415,
    "ref": {
     "kind": "absent"
    },
@@ -9323,7 +9257,7 @@
     "handler comments name an authored stand-in",
     "adapter lacks hasObjectBeenUprooted"
    ],
-   "handlerLine": 3053,
+   "handlerLine": 3069,
    "ref": {
     "kind": "absent"
    },
@@ -9340,7 +9274,7 @@
    "notes": [
     "adapter comments name an authored stand-in (attachPedToObject)"
    ],
-   "handlerLine": 993,
+   "handlerLine": 996,
    "ref": {
     "kind": "handler",
     "fn": "AttachCharToObject",
@@ -9360,7 +9294,7 @@
    "notes": [
     "adapter comments name an authored stand-in (debugCameraSource)"
    ],
-   "handlerLine": 1204,
+   "handlerLine": 1209,
    "ref": {
     "kind": "handler",
     "fn": "GetDebugCameraCoordinates",
@@ -9380,7 +9314,7 @@
    "notes": [
     "adapter comments name an authored stand-in (debugCameraSource)"
    ],
-   "handlerLine": 1208,
+   "handlerLine": 1213,
    "ref": {
     "kind": "handler",
     "fn": "GetDebugCameraPointAt",
@@ -9400,7 +9334,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 2974,
+   "handlerLine": 2990,
    "ref": {
     "kind": "absent"
    },
@@ -9417,7 +9351,7 @@
    "notes": [
     "adapter comments name an authored stand-in (setPedWantedByPolice)"
    ],
-   "handlerLine": 2270,
+   "handlerLine": 2280,
    "ref": {
     "kind": "handler",
     "fn": "SetCharWantedByPolice",
@@ -9437,7 +9371,7 @@
    "notes": [
     "adapter comments name an authored stand-in (randomDrugsBuyerInSphere)"
    ],
-   "handlerLine": 2273,
+   "handlerLine": 2283,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetRandomCharInSphereOnlyDrugsBuyers",
@@ -9467,65 +9401,13 @@
    "portable": false
   },
   {
-   "name": "SET_NAMED_ENTRY_EXIT_FLAG",
-   "opcode": "098e",
-   "status": "stops",
-   "notes": [
-    "no handler (the thread gives up)"
-   ],
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Sets the specified enex flag",
-   "sites": 36,
-   "missions": 1,
-   "firstMission": "gf_date.scm",
-   "portable": false
-  },
-  {
-   "name": "APPEND_TO_NEXT_CUTSCENE",
-   "opcode": "08f0",
-   "status": "stops",
-   "notes": [
-    "no handler (the thread gives up)"
-   ],
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "",
-   "sites": 14,
-   "missions": 1,
-   "firstMission": "gf_date.scm",
-   "portable": false
-  },
-  {
-   "name": "ATTACH_CAMERA_TO_VEHICLE",
-   "opcode": "0679",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks attachCameraToVehicle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2091,
-   "ref": {
-    "kind": "handler",
-    "fn": "AttachCameraToVehicle",
-    "where": "CameraCommands.cpp:122",
-    "stub": false
-   },
-   "doc": "Keeps the camera relative to the car with the specified offset",
-   "sites": 11,
-   "missions": 4,
-   "firstMission": "gf_date.scm",
-   "portable": true
-  },
-  {
    "name": "ARE_ANY_CHARS_NEAR_CHAR",
    "opcode": "06ff",
    "status": "authored",
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 2521,
+   "handlerLine": 2533,
    "ref": {
     "kind": "handler-disabled",
     "fn": "AreAnyCharsNearChar",
@@ -9545,7 +9427,7 @@
    "notes": [
     "adapter lacks getRadioChannel (skipped: outputs read as none)"
    ],
-   "handlerLine": 2461,
+   "handlerLine": 2471,
    "ref": {
     "kind": "absent"
    },
@@ -9562,7 +9444,7 @@
    "notes": [
     "adapter lacks lockDoor (skipped: outputs read as none)"
    ],
-   "handlerLine": 2591,
+   "handlerLine": 2605,
    "ref": {
     "kind": "absent"
    },
@@ -9579,7 +9461,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3030,
+   "handlerLine": 3046,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetRandomCharInSphere",
@@ -9593,32 +9475,13 @@
    "portable": false
   },
   {
-   "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_CHAR",
-   "opcode": "067b",
-   "status": "stops",
-   "notes": [
-    "no handler (the thread gives up)"
-   ],
-   "ref": {
-    "kind": "handler",
-    "fn": "AttachCameraToVehicleLookAtChar",
-    "where": "CameraCommands.cpp:135",
-    "stub": false
-   },
-   "doc": "Attaches the camera to the vehicle and points it at the specified character",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "gf_date.scm",
-   "portable": true
-  },
-  {
    "name": "ADD_ATTRACTOR",
    "opcode": "061d",
    "status": "authored",
    "notes": [
     "adapter comments name an authored stand-in (addAttractor)"
    ],
-   "handlerLine": 2472,
+   "handlerLine": 2484,
    "ref": {
     "kind": "absent"
    },
@@ -9635,7 +9498,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3029,
+   "handlerLine": 3045,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetRandomCharInSphereNoBrain",
@@ -9655,7 +9518,7 @@
    "notes": [
     "adapter comments name an authored stand-in (loadSceneInDirection)"
    ],
-   "handlerLine": 2780,
+   "handlerLine": 2794,
    "ref": {
     "kind": "handler",
     "fn": "LoadSceneInDirection",
@@ -9675,7 +9538,7 @@
    "notes": [
     "adapter lacks setPlaneUndercarriageUp (skipped: outputs read as none)"
    ],
-   "handlerLine": 1930,
+   "handlerLine": 1936,
    "ref": {
     "kind": "absent"
    },
@@ -9708,7 +9571,7 @@
    "notes": [
     "adapter lacks skipTrainToNextStation (skipped: outputs read as none)"
    ],
-   "handlerLine": 702,
+   "handlerLine": 705,
    "ref": {
     "kind": "handler",
     "fn": "SkipToNextAllowedStation",
@@ -9760,7 +9623,7 @@
    "notes": [
     "handler comments name an authored stand-in"
    ],
-   "handlerLine": 3028,
+   "handlerLine": 3044,
    "ref": {
     "kind": "handler",
     "fn": "IsCharUsingMapAttractor",
@@ -9780,7 +9643,7 @@
    "notes": [
     "adapter lacks setCharUsesCollisionClosestObjectOfType (skipped: outputs read as none)"
    ],
-   "handlerLine": 2530,
+   "handlerLine": 2542,
    "ref": {
     "kind": "handler-disabled",
     "fn": "SetCharUsesCollisionClosestObjectOfType",
@@ -9832,7 +9695,7 @@
    "notes": [
     "host lacks playerArmour"
    ],
-   "handlerLine": 3014,
+   "handlerLine": 3030,
    "ref": {
     "kind": "handler",
     "fn": "GetCharArmour",
@@ -9852,7 +9715,7 @@
    "notes": [
     "adapter lacks giveVehiclePaintjob (skipped: outputs read as none)"
    ],
-   "handlerLine": 2340,
+   "handlerLine": 2350,
    "ref": {
     "kind": "absent"
    },
@@ -9869,7 +9732,7 @@
    "notes": [
     "adapter lacks requestVehicleMod (skipped: outputs read as none)"
    ],
-   "handlerLine": 2335,
+   "handlerLine": 2345,
    "ref": {
     "kind": "absent"
    },
@@ -9886,7 +9749,7 @@
    "notes": [
     "adapter lacks addVehicleMod (skipped: outputs read as none)"
    ],
-   "handlerLine": 2336,
+   "handlerLine": 2346,
    "ref": {
     "kind": "absent"
    },
@@ -9919,7 +9782,7 @@
    "notes": [
     "adapter lacks markVehicleModAsNoLongerNeeded (skipped: outputs read as none)"
    ],
-   "handlerLine": 2382,
+   "handlerLine": 2392,
    "ref": {
     "kind": "absent"
    },
@@ -9952,7 +9815,7 @@
    "notes": [
     "adapter lacks hasVehicleModLoaded (skipped: outputs read as none)"
    ],
-   "handlerLine": 2438,
+   "handlerLine": 2448,
    "ref": {
     "kind": "absent"
    },
@@ -10164,7 +10027,7 @@
    "notes": [
     "adapter lacks locateObject2d (skipped: outputs read as none)"
    ],
-   "handlerLine": 2344,
+   "handlerLine": 2354,
    "ref": {
     "kind": "absent"
    },
@@ -10181,7 +10044,7 @@
    "notes": [
     "adapter lacks getRopeHeightForObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 2572,
+   "handlerLine": 2584,
    "ref": {
     "kind": "absent"
    },
@@ -10214,7 +10077,7 @@
    "notes": [
     "adapter lacks getCharHighestPriorityEvent (skipped: outputs read as none)"
    ],
-   "handlerLine": 2343,
+   "handlerLine": 2353,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetCharHighestPriorityEvent",
@@ -10250,7 +10113,7 @@
    "notes": [
     "adapter lacks taskGoToCoordWhileAiming (skipped: outputs read as none)"
    ],
-   "handlerLine": 2450,
+   "handlerLine": 2460,
    "ref": {
     "kind": "absent"
    },
@@ -10267,7 +10130,7 @@
    "notes": [
     "adapter lacks taskCower (skipped: outputs read as none)"
    ],
-   "handlerLine": 2553,
+   "handlerLine": 2565,
    "ref": {
     "kind": "absent"
    },
@@ -10303,7 +10166,7 @@
    "notes": [
     "adapter lacks detachVehicle (skipped: outputs read as none)"
    ],
-   "handlerLine": 1904,
+   "handlerLine": 1910,
    "ref": {
     "kind": "absent"
    },
@@ -10320,7 +10183,7 @@
    "notes": [
     "adapter lacks isVehicleAttached (skipped: outputs read as none)"
    ],
-   "handlerLine": 2299,
+   "handlerLine": 2309,
    "ref": {
     "kind": "absent"
    },
@@ -10337,7 +10200,7 @@
    "notes": [
     "adapter lacks getRandomCarOfTypeInAreaNoSave (skipped: outputs read as none)"
    ],
-   "handlerLine": 2460,
+   "handlerLine": 2470,
    "ref": {
     "kind": "absent"
    },
@@ -10354,7 +10217,7 @@
    "notes": [
     "adapter lacks getCarBlockingCar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2550,
+   "handlerLine": 2562,
    "ref": {
     "kind": "absent"
    },
@@ -10371,7 +10234,7 @@
    "notes": [
     "adapter lacks getParkingNodeInArea (skipped: outputs read as none)"
    ],
-   "handlerLine": 2551,
+   "handlerLine": 2563,
    "ref": {
     "kind": "absent"
    },
@@ -10388,7 +10251,7 @@
    "notes": [
     "adapter lacks isCharStuckUnderCar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2562,
+   "handlerLine": 2574,
    "ref": {
     "kind": "handler-disabled",
     "fn": "IsCharStuckUnderCar",
@@ -10424,7 +10287,7 @@
    "notes": [
     "adapter lacks drawLightWithRange (skipped: outputs read as none)"
    ],
-   "handlerLine": 2440,
+   "handlerLine": 2450,
    "ref": {
     "kind": "absent"
    },
@@ -10508,7 +10371,7 @@
    "notes": [
     "adapter lacks getStringWidth (skipped: outputs read as none)"
    ],
-   "handlerLine": 2364,
+   "handlerLine": 2374,
    "ref": {
     "kind": "absent"
    },
@@ -10525,7 +10388,7 @@
    "notes": [
     "adapter lacks setScriptCoopGame (skipped: outputs read as none)"
    ],
-   "handlerLine": 2365,
+   "handlerLine": 2375,
    "ref": {
     "kind": "absent"
    },
@@ -10542,7 +10405,7 @@
    "notes": [
     "adapter lacks setPoolTableCoords (skipped: outputs read as none)"
    ],
-   "handlerLine": 2424,
+   "handlerLine": 2434,
    "ref": {
     "kind": "absent"
    },
@@ -10559,7 +10422,7 @@
    "notes": [
     "adapter lacks setObjectDrawLast (skipped: outputs read as none)"
    ],
-   "handlerLine": 2425,
+   "handlerLine": 2435,
    "ref": {
     "kind": "absent"
    },
@@ -10576,7 +10439,7 @@
    "notes": [
     "adapter lacks getStringWidthWithNumber (skipped: outputs read as none)"
    ],
-   "handlerLine": 2514,
+   "handlerLine": 2526,
    "ref": {
     "kind": "absent"
    },
@@ -10593,7 +10456,7 @@
    "notes": [
     "adapter lacks dontSuppressVehicleModel"
    ],
-   "handlerLine": 1919,
+   "handlerLine": 1925,
    "ref": {
     "kind": "absent"
    },
@@ -10610,7 +10473,7 @@
    "notes": [
     "adapter lacks removeRCBuggy (skipped: outputs read as none)"
    ],
-   "handlerLine": 705,
+   "handlerLine": 708,
    "ref": {
     "kind": "handler",
     "fn": "RemoveRCBuggy",
@@ -10630,7 +10493,7 @@
    "notes": [
     "adapter lacks setEnableRcDetonateOnContact (skipped: outputs read as none)"
    ],
-   "handlerLine": 2368,
+   "handlerLine": 2378,
    "ref": {
     "kind": "absent"
    },
@@ -10647,7 +10510,7 @@
    "notes": [
     "adapter lacks setEnableRcDetonate (skipped: outputs read as none)"
    ],
-   "handlerLine": 2369,
+   "handlerLine": 2379,
    "ref": {
     "kind": "absent"
    },
@@ -10664,7 +10527,7 @@
    "notes": [
     "adapter lacks giveRemoteControlledModelToPlayer (skipped: outputs read as none)"
    ],
-   "handlerLine": 2429,
+   "handlerLine": 2439,
    "ref": {
     "kind": "handler",
     "fn": "GiveRemoteControlledModelToPlayer",
@@ -10684,7 +10547,7 @@
    "notes": [
     "adapter lacks getRemoteControlledCar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2430,
+   "handlerLine": 2440,
    "ref": {
     "kind": "absent"
    },
@@ -10702,7 +10565,7 @@
     "handler comments name an authored stand-in",
     "adapter lacks setForceRandomCarModel (skipped: outputs read as none)"
    ],
-   "handlerLine": 2522,
+   "handlerLine": 2534,
    "ref": {
     "kind": "absent"
    },
@@ -10720,7 +10583,7 @@
     "handler comments name an authored stand-in",
     "adapter lacks isPlayerInRemoteMode (skipped: outputs read as none)"
    ],
-   "handlerLine": 2523,
+   "handlerLine": 2535,
    "ref": {
     "kind": "handler",
     "fn": "IsPlayerInRemoteMode",
@@ -10740,7 +10603,7 @@
    "notes": [
     "adapter comments name an authored stand-in (givePedScriptedTask)"
    ],
-   "handlerLine": 1887,
+   "handlerLine": 1893,
    "ref": {
     "kind": "absent"
    },
@@ -10757,7 +10620,7 @@
    "notes": [
     "adapter comments name an authored stand-in (setVehicleIsConsideredByPlayer)"
    ],
-   "handlerLine": 2164,
+   "handlerLine": 2174,
    "ref": {
     "kind": "absent"
    },
@@ -10774,7 +10637,7 @@
    "notes": [
     "adapter lacks setGroupSequence (skipped: outputs read as none)"
    ],
-   "handlerLine": 2538,
+   "handlerLine": 2550,
    "ref": {
     "kind": "absent"
    },
@@ -10791,7 +10654,7 @@
    "notes": [
     "adapter lacks addSparks (skipped: outputs read as none)"
    ],
-   "handlerLine": 1848,
+   "handlerLine": 1854,
    "ref": {
     "kind": "absent"
    },
@@ -10808,7 +10671,7 @@
    "notes": [
     "adapter lacks attachVehicleToVehicle (skipped: outputs read as none)"
    ],
-   "handlerLine": 1913,
+   "handlerLine": 1919,
    "ref": {
     "kind": "absent"
    },
@@ -10825,7 +10688,7 @@
    "notes": [
     "adapter lacks hasObjectOfTypeBeenSmashed (skipped: outputs read as none)"
    ],
-   "handlerLine": 2381,
+   "handlerLine": 2391,
    "ref": {
     "kind": "absent"
    },
@@ -10842,7 +10705,7 @@
    "notes": [
     "adapter lacks setActiveCameraAngles (skipped: outputs read as none)"
    ],
-   "handlerLine": 1200,
+   "handlerLine": 1205,
    "ref": {
     "kind": "handler",
     "fn": "SetCameraPositionUnfixed",
@@ -10862,7 +10725,7 @@
    "notes": [
     "adapter comments name an authored stand-in (markVehicleAsConvoyCar)"
    ],
-   "handlerLine": 1825,
+   "handlerLine": 1831,
    "ref": {
     "kind": "absent"
    },
@@ -10879,7 +10742,7 @@
    "notes": [
     "adapter lacks improveVehicleByCheating (skipped: outputs read as none)"
    ],
-   "handlerLine": 2171,
+   "handlerLine": 2181,
    "ref": {
     "kind": "absent"
    },
@@ -10896,7 +10759,7 @@
    "notes": [
     "adapter lacks setVehicleFollowVehicle (skipped: outputs read as none)"
    ],
-   "handlerLine": 2235,
+   "handlerLine": 2245,
    "ref": {
     "kind": "absent"
    },
@@ -10913,7 +10776,7 @@
    "notes": [
     "adapter lacks taskCharArrestChar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2439,
+   "handlerLine": 2449,
    "ref": {
     "kind": "handler-disabled",
     "fn": "TaskCharArrestChar",
@@ -10933,7 +10796,7 @@
    "notes": [
     "adapter lacks heliGotoCoords (skipped: outputs read as none)"
    ],
-   "handlerLine": 1579,
+   "handlerLine": 1585,
    "ref": {
     "kind": "absent"
    },
@@ -10950,7 +10813,7 @@
    "notes": [
     "adapter lacks planeGotoCoords (skipped: outputs read as none)"
    ],
-   "handlerLine": 1831,
+   "handlerLine": 1837,
    "ref": {
     "kind": "absent"
    },
@@ -10967,7 +10830,7 @@
    "notes": [
     "adapter lacks registerFastestTime (skipped: outputs read as none)"
    ],
-   "handlerLine": 1989,
+   "handlerLine": 1995,
    "ref": {
     "kind": "absent"
    },
@@ -10984,7 +10847,7 @@
    "notes": [
     "adapter lacks setBoatCruiseSpeed (skipped: outputs read as none)"
    ],
-   "handlerLine": 2172,
+   "handlerLine": 2182,
    "ref": {
     "kind": "absent"
    },
@@ -11001,7 +10864,7 @@
    "notes": [
     "adapter lacks registerBestPosition (skipped: outputs read as none)"
    ],
-   "handlerLine": 2540,
+   "handlerLine": 2552,
    "ref": {
     "kind": "handler",
     "fn": "RegisterBestPosition",
@@ -11021,7 +10884,7 @@
    "notes": [
     "adapter lacks searchlightExists (skipped: outputs read as none)"
    ],
-   "handlerLine": 1760,
+   "handlerLine": 1766,
    "ref": {
     "kind": "absent"
    },
@@ -11038,7 +10901,7 @@
    "notes": [
     "adapter lacks deleteSearchlight (skipped: outputs read as none)"
    ],
-   "handlerLine": 1759,
+   "handlerLine": 1765,
    "ref": {
     "kind": "absent"
    },
@@ -11055,7 +10918,7 @@
    "notes": [
     "adapter lacks createSwatRope (skipped: outputs read as none)"
    ],
-   "handlerLine": 1284,
+   "handlerLine": 1289,
    "ref": {
     "kind": "handler-disabled",
     "fn": "CreateSwatRope",
@@ -11075,7 +10938,7 @@
    "notes": [
     "adapter lacks pointSearchlightAtPed (skipped: outputs read as none)"
    ],
-   "handlerLine": 1968,
+   "handlerLine": 1974,
    "ref": {
     "kind": "absent"
    },
@@ -11092,7 +10955,7 @@
    "notes": [
     "adapter lacks createSearchlightOnVehicle (skipped: outputs read as none)"
    ],
-   "handlerLine": 2084,
+   "handlerLine": 2090,
    "ref": {
     "kind": "absent"
    },
@@ -11109,7 +10972,7 @@
    "notes": [
     "adapter lacks moveSearchlightBetweenCoords (skipped: outputs read as none)"
    ],
-   "handlerLine": 2088,
+   "handlerLine": 2094,
    "ref": {
     "kind": "absent"
    },
@@ -11126,7 +10989,7 @@
    "notes": [
     "adapter lacks heliFollowEntity (skipped: outputs read as none)"
    ],
-   "handlerLine": 2177,
+   "handlerLine": 2187,
    "ref": {
     "kind": "absent"
    },
@@ -11143,7 +11006,7 @@
    "notes": [
     "adapter lacks setSearchlightClipIfColliding (skipped: outputs read as none)"
    ],
-   "handlerLine": 2180,
+   "handlerLine": 2190,
    "ref": {
     "kind": "absent"
    },
@@ -11160,7 +11023,7 @@
    "notes": [
     "adapter lacks fireSingleBullet (skipped: outputs read as none)"
    ],
-   "handlerLine": 2339,
+   "handlerLine": 2349,
    "ref": {
     "kind": "absent"
    },
@@ -11177,7 +11040,7 @@
    "notes": [
     "adapter lacks setHeliReachedTargetDistance (skipped: outputs read as none)"
    ],
-   "handlerLine": 2384,
+   "handlerLine": 2394,
    "ref": {
     "kind": "absent"
    },
@@ -11194,7 +11057,7 @@
    "notes": [
     "adapter lacks doCameraBump (skipped: outputs read as none)"
    ],
-   "handlerLine": 1201,
+   "handlerLine": 1206,
    "ref": {
     "kind": "handler",
     "fn": "DoCameraBump",
@@ -11214,7 +11077,7 @@
    "notes": [
     "adapter lacks addBigGunFlash (skipped: outputs read as none)"
    ],
-   "handlerLine": 2441,
+   "handlerLine": 2451,
    "ref": {
     "kind": "handler",
     "fn": "AddBigGunFlash",
@@ -11234,7 +11097,7 @@
    "notes": [
     "adapter lacks taskPlayAnimWithFlags (skipped: outputs read as none)"
    ],
-   "handlerLine": 2541,
+   "handlerLine": 2553,
    "ref": {
     "kind": "absent"
    },
@@ -11251,7 +11114,7 @@
    "notes": [
     "adapter lacks isAttachedPlayerHeadingAchieved (skipped: outputs read as none)"
    ],
-   "handlerLine": 2542,
+   "handlerLine": 2554,
    "ref": {
     "kind": "absent"
    },
@@ -11268,7 +11131,7 @@
    "notes": [
     "adapter lacks setHeadingLimitForAttachedPed (skipped: outputs read as none)"
    ],
-   "handlerLine": 1260,
+   "handlerLine": 1265,
    "ref": {
     "kind": "handler-disabled",
     "fn": "SetHeadingLimitForAttachedChar",
@@ -11288,7 +11151,7 @@
    "notes": [
     "adapter lacks addBlipForDeadChar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2545,
+   "handlerLine": 2557,
    "ref": {
     "kind": "absent"
    },
@@ -11305,7 +11168,7 @@
    "notes": [
     "adapter lacks trailerIsAttachedToCab (skipped: outputs read as none)"
    ],
-   "handlerLine": 2040,
+   "handlerLine": 2046,
    "ref": {
     "kind": "absent"
    },
@@ -11322,7 +11185,7 @@
    "notes": [
     "adapter lacks addBlipForCarOld (skipped: outputs read as none)"
    ],
-   "handlerLine": 2442,
+   "handlerLine": 2452,
    "ref": {
     "kind": "absent"
    },
@@ -11339,7 +11202,7 @@
    "notes": [
     "adapter lacks setDrunkInputDelay (skipped: outputs read as none)"
    ],
-   "handlerLine": 2341,
+   "handlerLine": 2351,
    "ref": {
     "kind": "absent"
    },
@@ -11356,7 +11219,7 @@
    "notes": [
     "adapter lacks setCarLightsOn (skipped: outputs read as none)"
    ],
-   "handlerLine": 2386,
+   "handlerLine": 2396,
    "ref": {
     "kind": "absent"
    },
@@ -11373,7 +11236,7 @@
    "notes": [
     "adapter lacks heliLandAtCoords (skipped: outputs read as none)"
    ],
-   "handlerLine": 2546,
+   "handlerLine": 2558,
    "ref": {
     "kind": "absent"
    },
@@ -11390,7 +11253,7 @@
    "notes": [
     "adapter lacks controlMovableVehiclePart (skipped: outputs read as none)"
    ],
-   "handlerLine": 2192,
+   "handlerLine": 2202,
    "ref": {
     "kind": "absent"
    },
@@ -11407,7 +11270,7 @@
    "notes": [
     "adapter lacks swapNearestBuildingModel (skipped: outputs read as none)"
    ],
-   "handlerLine": 2387,
+   "handlerLine": 2397,
    "ref": {
     "kind": "absent"
    },
@@ -11424,7 +11287,7 @@
    "notes": [
     "adapter lacks setVehicleQuaternion (skipped: outputs read as none)"
    ],
-   "handlerLine": 2548,
+   "handlerLine": 2560,
    "ref": {
     "kind": "absent"
    },
@@ -11441,7 +11304,7 @@
    "notes": [
     "adapter lacks getCarMass (skipped: outputs read as none)"
    ],
-   "handlerLine": 2549,
+   "handlerLine": 2561,
    "ref": {
     "kind": "absent"
    },
@@ -11458,7 +11321,7 @@
    "notes": [
     "adapter lacks taskCharSlideToCoord (skipped: outputs read as none)"
    ],
-   "handlerLine": 2342,
+   "handlerLine": 2352,
    "ref": {
     "kind": "handler-disabled",
     "fn": "TaskCharSlideToCoord",
@@ -11478,7 +11341,7 @@
    "notes": [
     "adapter lacks createSearchlight (skipped: outputs read as none)"
    ],
-   "handlerLine": 1756,
+   "handlerLine": 1762,
    "ref": {
     "kind": "absent"
    },
@@ -11495,7 +11358,7 @@
    "notes": [
     "adapter lacks attachSearchlightToObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 1762,
+   "handlerLine": 1768,
    "ref": {
     "kind": "absent"
    },
@@ -11512,7 +11375,7 @@
    "notes": [
     "adapter lacks setAlwaysDraw3dMarkers (skipped: outputs read as none)"
    ],
-   "handlerLine": 2193,
+   "handlerLine": 2203,
    "ref": {
     "kind": "absent"
    },
@@ -11529,7 +11392,7 @@
    "notes": [
     "adapter lacks addBlipForSearchlight (skipped: outputs read as none)"
    ],
-   "handlerLine": 2245,
+   "handlerLine": 2255,
    "ref": {
     "kind": "absent"
    },
@@ -11546,7 +11409,7 @@
    "notes": [
     "adapter lacks boatStop (skipped: outputs read as none)"
    ],
-   "handlerLine": 2390,
+   "handlerLine": 2400,
    "ref": {
     "kind": "absent"
    },
@@ -11563,7 +11426,7 @@
    "notes": [
     "adapter lacks getCharSwimState (skipped: outputs read as none)"
    ],
-   "handlerLine": 2557,
+   "handlerLine": 2569,
    "ref": {
     "kind": "handler-disabled",
     "fn": "GetCharSwimState",
@@ -11583,7 +11446,7 @@
    "notes": [
     "adapter lacks boatGotoCoords (skipped: outputs read as none)"
    ],
-   "handlerLine": 2558,
+   "handlerLine": 2570,
    "ref": {
     "kind": "absent"
    },
@@ -11600,7 +11463,7 @@
    "notes": [
     "adapter lacks isCharInAnySearchlight (skipped: outputs read as none)"
    ],
-   "handlerLine": 2559,
+   "handlerLine": 2571,
    "ref": {
     "kind": "handler-disabled",
     "fn": "IsCharInAnySearchlight",
@@ -11620,7 +11483,7 @@
    "notes": [
     "adapter lacks makeHeliComeCrashingDown (skipped: outputs read as none)"
    ],
-   "handlerLine": 2073,
+   "handlerLine": 2079,
    "ref": {
     "kind": "absent"
    },
@@ -11637,7 +11500,7 @@
    "notes": [
     "adapter lacks addSmokeParticle (skipped: outputs read as none)"
    ],
-   "handlerLine": 2560,
+   "handlerLine": 2572,
    "ref": {
     "kind": "absent"
    },
@@ -11654,7 +11517,7 @@
    "notes": [
     "adapter lacks attachPedToBike (skipped: outputs read as none)"
    ],
-   "handlerLine": 1264,
+   "handlerLine": 1269,
    "ref": {
     "kind": "handler",
     "fn": "AttachCharToBike",
@@ -11674,7 +11537,7 @@
    "notes": [
     "adapter lacks createBirds (skipped: outputs read as none)"
    ],
-   "handlerLine": 2454,
+   "handlerLine": 2464,
    "ref": {
     "kind": "absent"
    },
@@ -11691,7 +11554,7 @@
    "notes": [
     "adapter lacks setVehicleCanBeTargetted (skipped: outputs read as none)"
    ],
-   "handlerLine": 2563,
+   "handlerLine": 2575,
    "ref": {
     "kind": "absent"
    },
@@ -11708,7 +11571,7 @@
    "notes": [
     "adapter lacks hasCharBeenArrested (skipped: outputs read as none)"
    ],
-   "handlerLine": 2564,
+   "handlerLine": 2576,
    "ref": {
     "kind": "handler-disabled",
     "fn": "HasCharBeenArrested",
@@ -11728,7 +11591,7 @@
    "notes": [
     "adapter lacks setPedSwimSpeed (skipped: outputs read as none)"
    ],
-   "handlerLine": 1249,
+   "handlerLine": 1254,
    "ref": {
     "kind": "handler",
     "fn": "SetSwimSpeed",
@@ -11748,7 +11611,7 @@
    "notes": [
     "adapter lacks taskGreetPartner (skipped: outputs read as none)"
    ],
-   "handlerLine": 2565,
+   "handlerLine": 2577,
    "ref": {
     "kind": "absent"
    },
@@ -11765,7 +11628,7 @@
    "notes": [
     "adapter lacks setHeliOrientation (skipped: outputs read as none)"
    ],
-   "handlerLine": 2566,
+   "handlerLine": 2578,
    "ref": {
     "kind": "absent"
    },
@@ -11782,7 +11645,7 @@
    "notes": [
     "adapter lacks isObjectInAngledArea2d (skipped: outputs read as none)"
    ],
-   "handlerLine": 2567,
+   "handlerLine": 2579,
    "ref": {
     "kind": "absent"
    },
@@ -11799,7 +11662,7 @@
    "notes": [
     "adapter lacks taskGoToObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 2568,
+   "handlerLine": 2580,
    "ref": {
     "kind": "absent"
    },
@@ -11816,7 +11679,7 @@
    "notes": [
     "adapter lacks setCarEscortCarRight (skipped: outputs read as none)"
    ],
-   "handlerLine": 2569,
+   "handlerLine": 2581,
    "ref": {
     "kind": "absent"
    },
@@ -11833,7 +11696,7 @@
    "notes": [
     "adapter lacks setCarEscortCarLeft (skipped: outputs read as none)"
    ],
-   "handlerLine": 2570,
+   "handlerLine": 2582,
    "ref": {
     "kind": "absent"
    },
@@ -11850,7 +11713,7 @@
    "notes": [
     "adapter lacks setCarStayInFastLane (skipped: outputs read as none)"
    ],
-   "handlerLine": 2298,
+   "handlerLine": 2308,
    "ref": {
     "kind": "absent"
    },
@@ -11867,7 +11730,7 @@
    "notes": [
     "adapter lacks dontSuppressAnyCarModels (skipped: outputs read as none)"
    ],
-   "handlerLine": 2455,
+   "handlerLine": 2465,
    "ref": {
     "kind": "absent"
    },
@@ -11884,7 +11747,7 @@
    "notes": [
     "adapter lacks giveNonPlayerCarNitro (skipped: outputs read as none)"
    ],
-   "handlerLine": 2571,
+   "handlerLine": 2583,
    "ref": {
     "kind": "absent"
    },
@@ -11901,7 +11764,7 @@
    "notes": [
     "adapter lacks enableCraneControls (skipped: outputs read as none)"
    ],
-   "handlerLine": 1720,
+   "handlerLine": 1726,
    "ref": {
     "kind": "absent"
    },
@@ -11918,7 +11781,7 @@
    "notes": [
     "adapter lacks attachCarToObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 2345,
+   "handlerLine": 2355,
    "ref": {
     "kind": "absent"
    },
@@ -11935,7 +11798,7 @@
    "notes": [
     "adapter lacks getRandomCarOfTypeInAngledAreaNoSave (skipped: outputs read as none)"
    ],
-   "handlerLine": 2573,
+   "handlerLine": 2585,
    "ref": {
     "kind": "absent"
    },
@@ -11952,7 +11815,7 @@
    "notes": [
     "adapter lacks setFreebiesInVehicle (skipped: outputs read as none)"
    ],
-   "handlerLine": 2456,
+   "handlerLine": 2466,
    "ref": {
     "kind": "absent"
    },
@@ -11969,7 +11832,7 @@
    "notes": [
     "adapter lacks setPlaneThrottle (skipped: outputs read as none)"
    ],
-   "handlerLine": 1928,
+   "handlerLine": 1934,
    "ref": {
     "kind": "absent"
    },
@@ -11986,7 +11849,7 @@
    "notes": [
     "adapter lacks planeStartsInAir (skipped: outputs read as none)"
    ],
-   "handlerLine": 1929,
+   "handlerLine": 1935,
    "ref": {
     "kind": "absent"
    },
@@ -12003,7 +11866,7 @@
    "notes": [
     "adapter lacks setHeliStabiliser (skipped: outputs read as none)"
    ],
-   "handlerLine": 2352,
+   "handlerLine": 2362,
    "ref": {
     "kind": "absent"
    },
@@ -12020,7 +11883,7 @@
    "notes": [
     "adapter lacks isObjectIntersectingWorld (skipped: outputs read as none)"
    ],
-   "handlerLine": 2392,
+   "handlerLine": 2402,
    "ref": {
     "kind": "absent"
    },
@@ -12037,7 +11900,7 @@
    "notes": [
     "adapter lacks takeRemoteControlOfCar (skipped: outputs read as none)"
    ],
-   "handlerLine": 2457,
+   "handlerLine": 2467,
    "ref": {
     "kind": "absent"
    },
@@ -12054,7 +11917,7 @@
    "notes": [
     "adapter lacks removeOilPuddlesInArea (skipped: outputs read as none)"
    ],
-   "handlerLine": 2574,
+   "handlerLine": 2586,
    "ref": {
     "kind": "absent"
    },
@@ -12071,7 +11934,7 @@
    "notes": [
     "adapter lacks attachTrailerToCab (skipped: outputs read as none)"
    ],
-   "handlerLine": 2301,
+   "handlerLine": 2311,
    "ref": {
     "kind": "absent"
    },
@@ -12088,7 +11951,7 @@
    "notes": [
     "adapter lacks releasePathNodes (skipped: outputs read as none)"
    ],
-   "handlerLine": 2459,
+   "handlerLine": 2469,
    "ref": {
     "kind": "absent"
    },
@@ -12105,7 +11968,7 @@
    "notes": [
     "adapter lacks removePedFromCarMaintainPosition (skipped: outputs read as none)"
    ],
-   "handlerLine": 1181,
+   "handlerLine": 1186,
    "ref": {
     "kind": "handler",
     "fn": "RemoveCharFromCarMaintainPosition",
@@ -12125,7 +11988,7 @@
    "notes": [
     "adapter lacks detachTrailerFromCab (skipped: outputs read as none)"
    ],
-   "handlerLine": 2577,
+   "handlerLine": 2589,
    "ref": {
     "kind": "absent"
    },
@@ -12142,7 +12005,7 @@
    "notes": [
     "adapter lacks activateHeliSpeedCheat (skipped: outputs read as none)"
    ],
-   "handlerLine": 2462,
+   "handlerLine": 2472,
    "ref": {
     "kind": "absent"
    },
@@ -12159,7 +12022,7 @@
    "notes": [
     "adapter lacks heliKeepEntityInView (skipped: outputs read as none)"
    ],
-   "handlerLine": 2463,
+   "handlerLine": 2473,
    "ref": {
     "kind": "absent"
    },
@@ -12176,7 +12039,7 @@
    "notes": [
     "adapter lacks setHeliAudio (skipped: outputs read as none)"
    ],
-   "handlerLine": 703,
+   "handlerLine": 706,
    "ref": {
     "kind": "handler",
     "fn": "DisableHeliAudio",
@@ -12196,7 +12059,7 @@
    "notes": [
     "adapter lacks planeAttackPlayer (skipped: outputs read as none)"
    ],
-   "handlerLine": 2578,
+   "handlerLine": 2590,
    "ref": {
     "kind": "absent"
    },
@@ -12207,33 +12070,13 @@
    "portable": false
   },
   {
-   "name": "ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE",
-   "opcode": "067a",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks attachCameraToVehicleLookAtVehicle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2094,
-   "ref": {
-    "kind": "handler",
-    "fn": "AttachCameraToVehicleLookAtVehicle",
-    "where": "CameraCommands.cpp:23",
-    "stub": false
-   },
-   "doc": "Puts the camera on the vehicle like in 0679",
-   "sites": 8,
-   "missions": 3,
-   "firstMission": "DESERT9",
-   "portable": true
-  },
-  {
    "name": "TASK_COMPLEX_PICKUP_OBJECT",
    "opcode": "07c9",
    "status": "skipped",
    "notes": [
     "adapter lacks taskComplexPickupObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 2393,
+   "handlerLine": 2403,
    "ref": {
     "kind": "absent"
    },
@@ -12250,7 +12093,7 @@
    "notes": [
     "adapter lacks isLastBuildingModelShotByPlayer (skipped: outputs read as none)"
    ],
-   "handlerLine": 2394,
+   "handlerLine": 2404,
    "ref": {
     "kind": "absent"
    },
@@ -12267,7 +12110,7 @@
    "notes": [
     "adapter lacks forceDeathRestart (skipped: outputs read as none)"
    ],
-   "handlerLine": 2395,
+   "handlerLine": 2405,
    "ref": {
     "kind": "absent"
    },
@@ -12284,7 +12127,7 @@
    "notes": [
     "adapter lacks setCarCoordinatesNoOffset (skipped: outputs read as none)"
    ],
-   "handlerLine": 2464,
+   "handlerLine": 2474,
    "ref": {
     "kind": "absent"
    },
@@ -12295,33 +12138,13 @@
    "portable": false
   },
   {
-   "name": "ATTACH_CAMERA_TO_CHAR",
-   "opcode": "067c",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks attachCameraToChar (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2465,
-   "ref": {
-    "kind": "handler",
-    "fn": "AttachCameraToChar",
-    "where": "CameraCommands.cpp:148",
-    "stub": false
-   },
-   "doc": "Keeps the camera relative to the char with the specified offset",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "DESERT9",
-   "portable": true
-  },
-  {
    "name": "CLEAR_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
    "opcode": "0a3b",
    "status": "skipped",
    "notes": [
     "adapter lacks clearLastBuildingModelShotByPlayer (skipped: outputs read as none)"
    ],
-   "handlerLine": 2579,
+   "handlerLine": 2591,
    "ref": {
     "kind": "absent"
    },
@@ -12338,7 +12161,7 @@
    "notes": [
     "adapter lacks useDetonator (skipped: outputs read as none)"
    ],
-   "handlerLine": 2580,
+   "handlerLine": 2592,
    "ref": {
     "kind": "absent"
    },
@@ -12355,7 +12178,7 @@
    "notes": [
     "adapter lacks forceInteriorLightingForPlayer (skipped: outputs read as none)"
    ],
-   "handlerLine": 2354,
+   "handlerLine": 2364,
    "ref": {
     "kind": "absent"
    },
@@ -12372,7 +12195,7 @@
    "notes": [
     "adapter lacks playerTakeOffGoggles (skipped: outputs read as none)"
    ],
-   "handlerLine": 2355,
+   "handlerLine": 2365,
    "ref": {
     "kind": "absent"
    },
@@ -12389,7 +12212,7 @@
    "notes": [
     "adapter lacks switchOnGroundSearchlight (skipped: outputs read as none)"
    ],
-   "handlerLine": 2467,
+   "handlerLine": 2479,
    "ref": {
     "kind": "absent"
    },
@@ -12406,7 +12229,7 @@
    "notes": [
     "adapter lacks pedIsInSearchlight (skipped: outputs read as none)"
    ],
-   "handlerLine": 1269,
+   "handlerLine": 1274,
    "ref": {
     "kind": "handler",
     "fn": "IsCharInSearchlight",
@@ -12426,7 +12249,7 @@
    "notes": [
     "adapter lacks taskJetpack (skipped: outputs read as none)"
    ],
-   "handlerLine": 2468,
+   "handlerLine": 2480,
    "ref": {
     "kind": "absent"
    },
@@ -12443,7 +12266,7 @@
    "notes": [
     "adapter lacks drawWeaponshopCorona (skipped: outputs read as none)"
    ],
-   "handlerLine": 2582,
+   "handlerLine": 2594,
    "ref": {
     "kind": "absent"
    },
@@ -12460,7 +12283,7 @@
    "notes": [
     "adapter lacks isCarStoppedInArea2d (skipped: outputs read as none)"
    ],
-   "handlerLine": 2356,
+   "handlerLine": 2366,
    "ref": {
     "kind": "absent"
    },
@@ -12477,7 +12300,7 @@
    "notes": [
     "adapter lacks getCarUprightValue (skipped: outputs read as none)"
    ],
-   "handlerLine": 2357,
+   "handlerLine": 2367,
    "ref": {
     "kind": "absent"
    },
@@ -12494,7 +12317,7 @@
    "notes": [
     "adapter lacks getPlaneUndercarriagePosition (skipped: outputs read as none)"
    ],
-   "handlerLine": 2397,
+   "handlerLine": 2407,
    "ref": {
     "kind": "absent"
    },
@@ -12511,32 +12334,12 @@
    "notes": [
     "adapter lacks taskDrivePointRoute (skipped: outputs read as none)"
    ],
-   "handlerLine": 2469,
+   "handlerLine": 2481,
    "ref": {
     "kind": "absent"
    },
    "doc": "",
    "sites": 2,
-   "missions": 1,
-   "firstMission": "DESERT5",
-   "portable": false
-  },
-  {
-   "name": "ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR",
-   "opcode": "067e",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks attachCameraToCharLookAtChar (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2583,
-   "ref": {
-    "kind": "handler-disabled",
-    "fn": "AttachCameraToCharLookAtChar",
-    "where": "CharacterCommands.cpp:161",
-    "stub": false
-   },
-   "doc": "Puts the camera on the character like with 067C",
-   "sites": 1,
    "missions": 1,
    "firstMission": "DESERT5",
    "portable": false
@@ -12548,7 +12351,7 @@
    "notes": [
     "adapter lacks fireHunterGun (skipped: outputs read as none)"
    ],
-   "handlerLine": 2584,
+   "handlerLine": 2598,
    "ref": {
     "kind": "absent"
    },
@@ -12565,7 +12368,7 @@
    "notes": [
     "adapter lacks taskDiveFromAttachmentAndGetUp (skipped: outputs read as none)"
    ],
-   "handlerLine": 2585,
+   "handlerLine": 2599,
    "ref": {
     "kind": "absent"
    },
@@ -12582,7 +12385,7 @@
    "notes": [
     "adapter comments name an authored stand-in (addExplosionVariableShake)"
    ],
-   "handlerLine": 1634,
+   "handlerLine": 1640,
    "ref": {
     "kind": "absent"
    },
@@ -12599,7 +12402,7 @@
    "notes": [
     "adapter lacks taskTired (skipped: outputs read as none)"
    ],
-   "handlerLine": 2302,
+   "handlerLine": 2312,
    "ref": {
     "kind": "absent"
    },
@@ -12616,7 +12419,7 @@
    "notes": [
     "adapter lacks setVehicleToFadeIn (skipped: outputs read as none)"
    ],
-   "handlerLine": 2471,
+   "handlerLine": 2483,
    "ref": {
     "kind": "absent"
    },
@@ -12633,7 +12436,7 @@
    "notes": [
     "adapter lacks addPedtypeAsAttractorUser (skipped: outputs read as none)"
    ],
-   "handlerLine": 2473,
+   "handlerLine": 2485,
    "ref": {
     "kind": "absent"
    },
@@ -12650,7 +12453,7 @@
    "notes": [
     "adapter lacks pedIsAtScriptedAttractor (skipped: outputs read as none)"
    ],
-   "handlerLine": 1272,
+   "handlerLine": 1277,
    "ref": {
     "kind": "handler",
     "fn": "IsCharAtScriptedAttractor",
@@ -12670,7 +12473,7 @@
    "notes": [
     "adapter lacks setExtraCarColours (skipped: outputs read as none)"
    ],
-   "handlerLine": 2588,
+   "handlerLine": 2602,
    "ref": {
     "kind": "absent"
    },
@@ -12687,7 +12490,7 @@
    "notes": [
     "adapter lacks resetStuffUponResurrection (skipped: outputs read as none)"
    ],
-   "handlerLine": 2589,
+   "handlerLine": 2603,
    "ref": {
     "kind": "absent"
    },
@@ -12704,7 +12507,7 @@
    "notes": [
     "adapter lacks planeFlyInDirection (skipped: outputs read as none)"
    ],
-   "handlerLine": 2476,
+   "handlerLine": 2488,
    "ref": {
     "kind": "absent"
    },
@@ -12721,7 +12524,7 @@
    "notes": [
     "adapter lacks setCarRoll (skipped: outputs read as none)"
    ],
-   "handlerLine": 2590,
+   "handlerLine": 2604,
    "ref": {
     "kind": "absent"
    },
@@ -12738,7 +12541,7 @@
    "notes": [
     "adapter lacks getObjectMass (skipped: outputs read as none)"
    ],
-   "handlerLine": 2592,
+   "handlerLine": 2606,
    "ref": {
     "kind": "absent"
    },
@@ -12755,7 +12558,7 @@
    "notes": [
     "adapter lacks taskUseAtm (skipped: outputs read as none)"
    ],
-   "handlerLine": 2593,
+   "handlerLine": 2607,
    "ref": {
     "kind": "absent"
    },
@@ -12772,7 +12575,7 @@
    "notes": [
     "adapter lacks winchCanPickVehicleUp (skipped: outputs read as none)"
    ],
-   "handlerLine": 2303,
+   "handlerLine": 2313,
    "ref": {
     "kind": "absent"
    },
@@ -12789,7 +12592,7 @@
    "notes": [
     "adapter lacks selectWeaponsForVehicle (skipped: outputs read as none)"
    ],
-   "handlerLine": 2478,
+   "handlerLine": 2490,
    "ref": {
     "kind": "absent"
    },
@@ -12806,7 +12609,7 @@
    "notes": [
     "adapter lacks heliAttackPlayer (skipped: outputs read as none)"
    ],
-   "handlerLine": 2479,
+   "handlerLine": 2491,
    "ref": {
     "kind": "absent"
    },
@@ -12823,7 +12626,7 @@
    "notes": [
     "adapter lacks grabEntityOnWinch (skipped: outputs read as none)"
    ],
-   "handlerLine": 2480,
+   "handlerLine": 2492,
    "ref": {
     "kind": "absent"
    },
@@ -12840,7 +12643,7 @@
    "notes": [
     "adapter lacks attachWinchToHeli (skipped: outputs read as none)"
    ],
-   "handlerLine": 2594,
+   "handlerLine": 2608,
    "ref": {
     "kind": "absent"
    },
@@ -12857,7 +12660,7 @@
    "notes": [
     "adapter lacks releaseEntityFromWinch (skipped: outputs read as none)"
    ],
-   "handlerLine": 2595,
+   "handlerLine": 2609,
    "ref": {
     "kind": "absent"
    },
@@ -12874,7 +12677,7 @@
    "notes": [
     "adapter lacks setNightVision (skipped: outputs read as none)"
    ],
-   "handlerLine": 2304,
+   "handlerLine": 2314,
    "ref": {
     "kind": "absent"
    },
@@ -12891,7 +12694,7 @@
    "notes": [
     "adapter lacks getCarMovingComponentOffset (skipped: outputs read as none)"
    ],
-   "handlerLine": 2360,
+   "handlerLine": 2370,
    "ref": {
     "kind": "absent"
    },
@@ -12908,7 +12711,7 @@
    "notes": [
     "adapter lacks isNightVisionActive (skipped: outputs read as none)"
    ],
-   "handlerLine": 2596,
+   "handlerLine": 2610,
    "ref": {
     "kind": "absent"
    },
@@ -12925,7 +12728,7 @@
    "notes": [
     "adapter lacks policeHeliChaseEntity (skipped: outputs read as none)"
    ],
-   "handlerLine": 2597,
+   "handlerLine": 2611,
    "ref": {
     "kind": "absent"
    },
@@ -12942,7 +12745,7 @@
    "notes": [
     "adapter lacks setAircraftCarrierSamSite (skipped: outputs read as none)"
    ],
-   "handlerLine": 2305,
+   "handlerLine": 2315,
    "ref": {
     "kind": "absent"
    },
@@ -12959,7 +12762,7 @@
    "notes": [
     "adapter lacks planeFollowEntity (skipped: outputs read as none)"
    ],
-   "handlerLine": 2401,
+   "handlerLine": 2411,
    "ref": {
     "kind": "absent"
    },
@@ -12976,7 +12779,7 @@
    "notes": [
     "adapter lacks pedCanSeeDeadPed (skipped: outputs read as none)"
    ],
-   "handlerLine": 1163,
+   "handlerLine": 1168,
    "ref": {
     "kind": "handler",
     "fn": "CanCharSeeDeadChar",
@@ -12996,7 +12799,7 @@
    "notes": [
     "adapter lacks planeAttackPlayerUsingDogFight (skipped: outputs read as none)"
    ],
-   "handlerLine": 2598,
+   "handlerLine": 2612,
    "ref": {
     "kind": "handler",
     "fn": "PlaneAttackPlayerUsingDogFight",
@@ -13016,7 +12819,7 @@
    "notes": [
     "adapter lacks setGunshotSenseRangeForRiot2 (skipped: outputs read as none)"
    ],
-   "handlerLine": 2402,
+   "handlerLine": 2412,
    "ref": {
     "kind": "absent"
    },
@@ -13033,7 +12836,7 @@
    "notes": [
     "adapter lacks setPlayerMood (skipped: outputs read as none)"
    ],
-   "handlerLine": 2482,
+   "handlerLine": 2494,
    "ref": {
     "kind": "handler",
     "fn": "SetPlayerMood",
@@ -13053,7 +12856,7 @@
    "notes": [
     "adapter lacks setInfraredVision (skipped: outputs read as none)"
    ],
-   "handlerLine": 2483,
+   "handlerLine": 2495,
    "ref": {
     "kind": "absent"
    },
@@ -13070,7 +12873,7 @@
    "notes": [
     "adapter lacks setCharBulletproofVest (skipped: outputs read as none)"
    ],
-   "handlerLine": 2600,
+   "handlerLine": 2614,
    "ref": {
     "kind": "handler-disabled",
     "fn": "SetCharBulletproofVest",
@@ -13090,7 +12893,7 @@
    "notes": [
     "adapter lacks stopCredits (skipped: outputs read as none)"
    ],
-   "handlerLine": 2484,
+   "handlerLine": 2496,
    "ref": {
     "kind": "absent"
    },
@@ -13107,7 +12910,7 @@
    "notes": [
     "adapter lacks getDoorAngleRatio (skipped: outputs read as none)"
    ],
-   "handlerLine": 2601,
+   "handlerLine": 2615,
    "ref": {
     "kind": "absent"
    },
@@ -13124,7 +12927,7 @@
    "notes": [
     "adapter lacks startCredits (skipped: outputs read as none)"
    ],
-   "handlerLine": 2602,
+   "handlerLine": 2616,
    "ref": {
     "kind": "absent"
    },
@@ -13141,7 +12944,7 @@
    "notes": [
     "adapter lacks areCreditsFinished (skipped: outputs read as none)"
    ],
-   "handlerLine": 2603,
+   "handlerLine": 2617,
    "ref": {
     "kind": "absent"
    },
@@ -13158,7 +12961,7 @@
    "notes": [
     "adapter lacks winchCanPickObjectUp (skipped: outputs read as none)"
    ],
-   "handlerLine": 2485,
+   "handlerLine": 2497,
    "ref": {
     "kind": "absent"
    },
@@ -13175,7 +12978,7 @@
    "notes": [
     "adapter lacks setObjectRenderScorched (skipped: outputs read as none)"
    ],
-   "handlerLine": 2486,
+   "handlerLine": 2498,
    "ref": {
     "kind": "absent"
    },
@@ -13192,7 +12995,7 @@
    "notes": [
     "adapter lacks isPlayerPerformingStoppie (skipped: outputs read as none)"
    ],
-   "handlerLine": 2488,
+   "handlerLine": 2500,
    "ref": {
     "kind": "handler",
     "fn": "IsPlayerPerformingStoppie",
@@ -13212,7 +13015,7 @@
    "notes": [
     "adapter comments name an authored stand-in (getRandomCarOfTypeInArea)"
    ],
-   "handlerLine": 2607,
+   "handlerLine": 2621,
    "ref": {
     "kind": "absent"
    },
@@ -13229,7 +13032,7 @@
    "notes": [
     "adapter lacks getClosestStealableObject (skipped: outputs read as none)"
    ],
-   "handlerLine": 2492,
+   "handlerLine": 2504,
    "ref": {
     "kind": "absent"
    },
@@ -13246,7 +13049,7 @@
    "notes": [
     "adapter lacks isProceduralInteriorActive (skipped: outputs read as none)"
    ],
-   "handlerLine": 2608,
+   "handlerLine": 2622,
    "ref": {
     "kind": "absent"
    },
@@ -13263,7 +13066,7 @@
    "notes": [
     "adapter lacks forceAllVehicleLightsOff (skipped: outputs read as none)"
    ],
-   "handlerLine": 2493,
+   "handlerLine": 2505,
    "ref": {
     "kind": "absent"
    },
@@ -13280,7 +13083,7 @@
    "notes": [
     "adapter lacks addBlipForCoordOld (skipped: outputs read as none)"
    ],
-   "handlerLine": 2611,
+   "handlerLine": 2625,
    "ref": {
     "kind": "absent"
    },
@@ -13297,7 +13100,7 @@
    "notes": [
     "adapter lacks pedWasDamagedByVehicle (skipped: outputs read as none)"
    ],
-   "handlerLine": 1158,
+   "handlerLine": 1163,
    "ref": {
     "kind": "handler",
     "fn": "HasCharBeenDamagedByCar",
@@ -13317,7 +13120,7 @@
    "notes": [
     "adapter lacks taskFollowPathNodesToCoordWithRadius (skipped: outputs read as none)"
    ],
-   "handlerLine": 2612,
+   "handlerLine": 2626,
    "ref": {
     "kind": "absent"
    },
@@ -13334,7 +13137,7 @@
    "notes": [
     "adapter lacks drawShadow (skipped: outputs read as none)"
    ],
-   "handlerLine": 2614,
+   "handlerLine": 2628,
    "ref": {
     "kind": "handler",
     "fn": "DrawShadow",

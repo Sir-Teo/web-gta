@@ -579,6 +579,9 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'setClosestEntryExitFlag')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]),bool(t,p[4]));
  },
  SWITCH_ENTRY_EXIT:(t,p,i)=>{world(t,i,'switchEntryExit')(t.text(p[0]),bool(t,p[1]));},
+ // Handler unreversed; SWITCH_ENTRY_EXIT's lookup by name, setting or clearing the given flag bits instead of
+ // ENABLE_ACCESS (gf_date marks the restaurants FOOD_DATE, 512, which carries the couple in with no door walk).
+ SET_NAMED_ENTRY_EXIT_FLAG:(t,p,i)=>{world(t,i,'setNamedEntryExitFlag')(t.text(p[0]),t.readInt(p[1]),bool(t,p[2]));},
  // --- The script's pickups. CPickups::GenerateNewOne is a raw call in the reference, so the slot allocation
  // behind it is unknown; the operand layouts and the implied models and types are the ones the file reader in
  // src/assets/scmPickups.ts already uses, and these commands place the same records while the script runs.
@@ -1296,6 +1299,7 @@ const handlers:Record<string,ScmCommandHandler>={
  START_CUTSCENE:(t,_p,i)=>{const state=game(t,i);state.cutscene.start();if(state.cutscene.running)t.host?.world?.startCutscene?.();},
  HAS_CUTSCENE_FINISHED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cutscene.hasFinished,negated(i));},
  CLEAR_CUTSCENE:(t,_p,i)=>{game(t,i).cutscene.clear();t.host?.world?.clearCutscene?.();},
+ APPEND_TO_NEXT_CUTSCENE:(t,p,i)=>{game(t,i).cutscene.append(t.text(p[0]),t.text(p[1]));},
  // The skip pair: CRunningScript::m_SceneSkipIP, the label the thread jumps to when the skip button is pressed
  // (CRunningScript::Process), and back to none.
  SKIP_CUTSCENE_START_INTERNAL:(t,p)=>{t.sceneSkipIp=t.readInt(p[0]);},
@@ -2090,12 +2094,16 @@ const handlers:Record<string,ScmCommandHandler>={
  MOVE_SEARCHLIGHT_BETWEEN_COORDS:(t,p,i)=>{
   world(t,i,'moveSearchlightBetweenCoords')(t.readInt(p[0]),vec(t,p,1),vec(t,p,4),t.readFloat(p[7]));
  },
+ // CameraCommands.cpp (reversed): TheCamera.TakeControlAttachToEntity with the script in control (2), the entity's
+ // offset and either a look-at point in its space or a target entity.
  ATTACH_CAMERA_TO_VEHICLE:(t,p,i)=>{
-  world(t,i,'attachCameraToVehicle')(t.readInt(p[0]),vec(t,p,1),vec(t,p,4),t.readFloat(p[7]),t.readInt(p[8]));
+  game(t,i).camera.takeControlAttachToEntity(undefined,{kind:'vehicle',handle:t.readInt(p[0])},vec(t,p,1),vec(t,p,4),t.readFloat(p[7]),t.readInt(p[8]),2);
  },
  ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE:(t,p,i)=>{
-  world(t,i,'attachCameraToVehicleLookAtVehicle')(t.readInt(p[0]),vec(t,p,1),t.readInt(p[4]),
-   t.readFloat(p[5]),t.readInt(p[6]));
+  game(t,i).camera.takeControlAttachToEntity({kind:'vehicle',handle:t.readInt(p[4])},{kind:'vehicle',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),2);
+ },
+ ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_CHAR:(t,p,i)=>{
+  game(t,i).camera.takeControlAttachToEntity({kind:'ped',handle:t.readInt(p[4])},{kind:'vehicle',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),2);
  },
  /* --- The peds, objects and world of the last batch. */
  SET_CHAR_USES_UPPERBODY_DAMAGE_ANIMS_ONLY:(t,p,i)=>{
@@ -2464,7 +2472,9 @@ const handlers:Record<string,ScmCommandHandler>={
  ACTIVATE_HELI_SPEED_CHEAT:(t,p,i)=>{world(t,i,'activateHeliSpeedCheat')(t.readInt(p[0]),t.readInt(p[1]));},
  HELI_KEEP_ENTITY_IN_VIEW:(t,p,i)=>{world(t,i,'heliKeepEntityInView')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]),t.readFloat(p[4]));},
  SET_CAR_COORDINATES_NO_OFFSET:(t,p,i)=>{world(t,i,'setCarCoordinatesNoOffset')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
- ATTACH_CAMERA_TO_CHAR:(t,p,i)=>{world(t,i,'attachCameraToChar')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]),t.readInt(p[8]));},
+ ATTACH_CAMERA_TO_CHAR:(t,p,i)=>{
+  game(t,i).camera.takeControlAttachToEntity(undefined,{kind:'ped',handle:t.readInt(p[0])},vec(t,p,1),vec(t,p,4),t.readFloat(p[7]),t.readInt(p[8]),2);
+ },
  ADD_EXPLOSION_NO_SOUND:(t,p,i)=>{world(t,i,'addExplosionNoSound')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]));},
  SWITCH_ON_GROUND_SEARCHLIGHT:(t,p,i)=>{world(t,i,'switchOnGroundSearchlight')(t.readInt(p[0]),bool(t,p[1]));},
  TASK_JETPACK:(t,p,i)=>{world(t,i,'taskJetpack')(t.readInt(p[0]));},
@@ -2582,7 +2592,9 @@ const handlers:Record<string,ScmCommandHandler>={
  USE_DETONATOR:(t,p,i)=>{world(t,i,'useDetonator')();},
  ADD_TO_OBJECT_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'addToObjectRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  DRAW_WEAPONSHOP_CORONA:(t,p,i)=>{world(t,i,'drawWeaponshopCorona')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]));},
- ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR:(t,p,i)=>{world(t,i,'attachCameraToCharLookAtChar')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readFloat(p[5]),t.readInt(p[6]));},
+ ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR:(t,p,i)=>{
+  game(t,i).camera.takeControlAttachToEntity({kind:'ped',handle:t.readInt(p[4])},{kind:'ped',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),2);
+ },
  FIRE_HUNTER_GUN:(t,p,i)=>{world(t,i,'fireHunterGun')(t.readInt(p[0]));},
  TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP:(t,p,i)=>{world(t,i,'taskDiveFromAttachmentAndGetUp')(t.readInt(p[0]),t.readInt(p[1]));},
  CREATE_FX_SYSTEM_ON_CHAR_WITH_DIRECTION:(t,p,i)=>{t.writeInt(p[9],world(t,i,'createFxSystemOnCharWithDirection')(t.text(p[0]),t.readInt(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]),bool(t,p[8])));},

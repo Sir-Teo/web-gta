@@ -35,6 +35,18 @@ test('the camera goes where the script puts it and comes back when it is restore
  expect(Math.hypot(out.read.x-(out.expected.x),out.read.y+out.expected.z,out.read.z-out.expected.y)).toBeLessThan(.001);
  // A restore hands the camera back, and the browser's own moves it away again.
  expect(out.movedBack).toBeGreaterThan(1);
+ // ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR (gf_date rides the camera on the car and looks at the girlfriend): the camera
+ // stands at the offset in the ped's own space, five behind and two up, and follows him as he is moved.
+ const attached=await page.evaluate(async()=>{
+  const game=(window as any).__game,mission=game.missionForProfiling(),camera=mission.runtime.game.camera,adapter=(mission as any).runtime.world;
+  camera.takeControlAttachToEntity(undefined,{kind:'ped',handle:1},{x:0,y:-5,z:2},{x:0,y:2,z:0},0,1,2);
+  await new Promise(r=>setTimeout(r,500));
+  const m=adapter.pedMatrix(1),expected={x:m.position.x-m.forward.x*5,y:m.position.y-m.forward.y*5,z:m.position.z+2};
+  const at={...game.render().camera.position};
+  camera.restoreWithJumpCut(adapter.playerCameraState());
+  return {at,expected:{x:expected.x,y:expected.z,z:-expected.y}};
+ });
+ expect(Math.hypot(attached.at.x-attached.expected.x,attached.at.y-attached.expected.y,attached.at.z-attached.expected.z)).toBeLessThan(.05);
  // SET_CAMERA_BEHIND_PLAYER swings the string camera straight behind the ped, and its counterpart in front.
  const swung=await page.evaluate(async()=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),adapter=(mission as any).runtime.world;

@@ -27,7 +27,7 @@ import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMak
 import {PED_SIGHT_TARGET_RAISE,pedSightAngleAndRange} from '../ped/nativePedSight';
 import {isMissionObjectType,type ScmObject} from '../engine/ScmObjects';
 import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_DISPLAY_MARKERONLY,BLIP_FLAG_THREAT,BLIP_FLAG_UNK,BLIP_NONE,BLIP_OBJECT,BLIP_PICKUP} from '../engine/ScmRadar';
-import {MODE_FIXED} from '../engine/ScmCamera';
+import {MODE_ATTACHCAM,MODE_FIXED} from '../engine/ScmCamera';
 import {HUD_COLOURS,HUD_COLOUR_BLUE,HUD_COLOUR_RED,radarTraceColour,radarTraceRgb} from '../ui/nativeHudColours';
 /* The axes of something that only turns about the up axis, which is every ped and every object a script
  * places: CVector2D::Heading is atan2(-x, y), so a heading of nothing faces north and its right hand is east. */
@@ -711,6 +711,8 @@ export interface ScmMissionWorld {
  /** CEntryExitManager: the flag the script sets on the entry-exit nearest a point, and the named switch. */
  setClosestEntryExitFlag(x:number,y:number,radius:number,flag:number,on:boolean):void;
  switchEntryExit(name:string,on:boolean):void;
+ /** SET_NAMED_ENTRY_EXIT_FLAG: the flag bits on every entry-exit of that name. */
+ setNamedEntryExitFlag?(name:string,flag:number,on:boolean):void;
  /** CEntryExitManager::EnableBurglaryHouses and ms_bDisabled (DISABLE_ALL_ENTRY_EXITS). */
  enableBurglaryHouses(on:boolean):void;disableAllEntryExits(disabled:boolean):void;
 }
@@ -2264,6 +2266,7 @@ export class ScmMission {
    setUsesCollisionOfClosestObjectOfType:(x,y,z,radius,m,state)=>{this.closestObjectOfTypeFlag(x,y,z,radius,m,'collision',state);},
    setClosestEntryExitFlag:(x,y,radius,flag,on)=>{this.entryExitFlags++;this.world.setClosestEntryExitFlag(x,y,radius,flag,on);},
    switchEntryExit:(name,on)=>{this.entryExitFlags++;this.world.switchEntryExit(name,on);},
+   setNamedEntryExitFlag:(name,flag,on)=>{this.entryExitFlags++;this.host('setNamedEntryExitFlag','SET_NAMED_ENTRY_EXIT_FLAG')(name,flag,on);},
    enableBurglaryHouses:on=>{this.world.enableBurglaryHouses(on);},
    disableAllEntryExits:disabled=>{this.world.disableAllEntryExits(disabled);},
    // CPlayerInfo::IsRestartingAfterDeath / IsRestartingAfterArrest (DoDeathArrestCheck), IS_PLAYER_PLAYING and
@@ -3299,6 +3302,19 @@ export class ScmMission {
    // they run.
    const source=camera.moveLinearPoint(this.clockMs)??camera.fixedModeSource,target=camera.trackLinearPoint(this.clockMs)??at??camera.fixedModeVector;
    return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
+  }
+  // MODE_ATTACHCAM (CCam::Process_AttachedCam, unreversed; AUTHORED): the camera rides the entity at the offset in
+  // its space and looks at the target entity, or at the look-at point in the same space. The tilt (a roll) is not
+  // applied: the browser's camera keeps its up.
+  if(camera.modeToGoTo===MODE_ATTACHCAM&&camera.attached){
+   const a=camera.attached;
+   try{
+    const matrix=a.kind==='vehicle'?this.adapterRef.vehicleMatrix!(a.handle):this.adapterRef.pedMatrix!(a.handle);
+    const place=(o:{x:number;y:number;z:number})=>({x:matrix.right.x*o.x+matrix.forward.x*o.y+matrix.up.x*o.z+matrix.position.x,
+     y:matrix.right.y*o.x+matrix.forward.y*o.y+matrix.up.y*o.z+matrix.position.y,z:matrix.right.z*o.x+matrix.forward.z*o.y+matrix.up.z*o.z+matrix.position.z});
+    const source=place(a.offset),target=camera.targetEntity?this.cameraEntityPosition(camera.targetEntity):place(a.lookAt??{x:0,y:1,z:0});
+    if(target)return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
+   }catch{return undefined;}
   }
   // MODE_CAM_ON_A_STRING and the follow camera on an entity the script names (two missions): a chase point behind
   // and above it stands in for CCam's own follow modes.
