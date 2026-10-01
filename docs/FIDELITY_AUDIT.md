@@ -9041,7 +9041,9 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **`TASK_STAND_STILL`** (and the stand a script ped falls back to between tasks) has no move state
   (`CTaskSimpleStandStill`), so the ped's pace eases to nothing. The browser left a stood ped at its walking pace:
   it walked on the spot, counted itself blocked, and the authored sidestep slid it about (SWEET1B's couch dealer
-  drifted into the corner behind the den's wall). A follower's default stand still moves with the group.
+  drifted into the corner behind the den's wall). A follower's default stand still moves with the group. The same
+  holds for every task that keeps the ped where it is: a clip (`CTaskSimpleRunAnim`), aiming, ducking, a chat and
+  turning to a heading.
 
 ## The date script's doors, cutscene objects and the camera on its car
 

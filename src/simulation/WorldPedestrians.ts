@@ -3199,9 +3199,7 @@ export class WorldPedestrians {
    if(p.order&&p.health>0&&p.down===0){
     if(p.order.kind==='dive'){dx=0;dz=0;if(!p.evade)this.startNextOrder(p);}
     else if(p.order.kind==='standStill'){
-     // CTaskSimpleStandStill: no move state, so the ped stops rather than walking on the spot (a group's follower,
-     // whose default stand sits under the group's task, still moves with the group).
-     dx=0;dz=0;if(!(p.order.isDefault&&p.follow))orderSpeed=0;p.order.remaining-=dt;if(p.order.remaining<=0)this.startNextOrder(p);
+     dx=0;dz=0;p.order.remaining-=dt;if(p.order.remaining<=0)this.startNextOrder(p);
     }else if(p.order.kind==='killPed'){
      // Over once the target is dead or gone (or the player dead), or when the task's own time runs out; the
      // retaliation it holds up ends with it. Until then the combat below moves and fights.
@@ -3210,8 +3208,7 @@ export class WorldPedestrians {
      if(over||o.remaining<=0){p.retaliate=0;p.foe=undefined;p.fight=undefined;this.startNextOrder(p);}
      else{p.foe=o.foe;p.retaliate=Math.max(p.retaliate,1);}
     }else if(p.order.kind==='playAnim'){
-     // CTaskSimpleRunAnim gives the ped no move state of its own: its pace stops while the clip plays.
-     const o=p.order;dx=0;dz=0;orderSpeed=0;
+     const o=p.order;dx=0;dz=0;
      // elapsed -1 marks a clip still being read.
      if(!o.started){p.view.playReaction(o.clip,o.loop||o.hold?Number.POSITIVE_INFINITY:undefined,false,0,o.loop);o.started=true;o.elapsed=0;}
      else if(o.elapsed>=0){
@@ -3348,6 +3345,11 @@ export class WorldPedestrians {
      state.heading=turned.heading;
      if(turned.done)this.startNextOrder(p);
     }
+    // A task that holds the ped where it is (standing, a clip, aiming, ducking, talking, turning) gives it no move state,
+    // so its pace stops rather than walking on the spot; a follower's default stand moves with the group, and a kill
+    // task's own combat sets the pace.
+    const held=p.order;
+    if(orderSpeed===undefined&&dx===0&&dz===0&&held&&held.kind!=='killPed'&&!(held.kind==='standStill'&&held.isDefault&&p.follow))orderSpeed=0;
    }
    // physicalFlags.bDontApplySpeed: a frozen ped keeps its place whatever else it was doing.
    if(p.frozen){dx=0;dz=0;}
