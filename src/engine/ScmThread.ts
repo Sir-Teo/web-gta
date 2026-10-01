@@ -849,7 +849,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  getCarPitch?(handle:number):number;
  getPlaneUndercarriagePosition?(handle:number):number;
  setUpSkipAfterMission?(x:number,y:number,z:number,heading:number):void;
- isCharInAreaOnFoot3d?(handle:number,leftBottomX:number,leftBottomY:number,leftBottomZ:number,rightTopX:number,rightTopY:number,rightTopZ:number,drawSphere:boolean):boolean;
  addSphere?(x:number,y:number,z:number,radius:number):number;
  planeFollowEntity?(handle:number,char:number,vehicle:number,altitude:number):void;
  setGunshotSenseRangeForRiot2?(range:number):void;
@@ -979,7 +978,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  getCarMass?(handle:number):number;
  getCarBlockingCar?(handle:number):number;
  getParkingNodeInArea?(leftBottomX:number,leftBottomY:number,leftBottomZ:number,rightTopX:number,rightTopY:number,rightTopZ:number):{x:number,y:number,z:number};
- isCharInAreaInCar3d?(handle:number,leftBottomX:number,leftBottomY:number,leftBottomZ:number,rightTopX:number,rightTopY:number,rightTopZ:number,drawSphere:boolean):boolean;
  taskCower?(handle:number):void;
  getCharSwimState?(handle:number):number;
  boatGotoCoords?(handle:number,x:number,y:number,z:number):void;

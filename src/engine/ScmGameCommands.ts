@@ -81,9 +81,12 @@ function highlightImportantAngledArea(t:ScmThread,i:ScmInstruction,corners:reado
  highlightImportantArea(t,i,{x:Math.min(...xs),y:Math.min(...ys)},{x:Math.max(...xs),y:Math.max(...ys)});
 }
 /** IsCharInArea2D and IsCharInArea3D: two corners, and the ped read at its vehicle while it rides in one. */
-function charInArea(threeDimensional:boolean):ScmCommandHandler{
+/** The area tests, with the on-foot and in-car forms' gate (III's IS_CHAR_IN_AREA_ON_FOOT_3D tests !bInVehicle first,
+ * the in-car form the reverse; SA's are unimplemented in the reference, the plain ones reversed). */
+function charInArea(threeDimensional:boolean,gate?:'foot'|'car'):ScmCommandHandler{
  return (t,p,i)=>{
   const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
+  if(gate){const riding=(world(t,i,'pedVehicle')(handle)??-1)>0;if(riding!==(gate==='car')){t.updateCompareFlag(false,negated(i));return;}}
   const a={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:threeDimensional?t.readFloat(p[3]):0};
   const b={x:t.readFloat(p[1+axes]),y:t.readFloat(p[2+axes]),z:threeDimensional?t.readFloat(p[3+axes]):0};
   if(bool(t,p[1+axes*2]))highlightImportantArea(t,i,threeDimensional?a:{x:a.x,y:a.y},threeDimensional?b:{x:b.x,y:b.y});
@@ -2390,7 +2393,7 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_CAR_PITCH:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCarPitch')(t.readInt(p[0])));},
  GET_PLANE_UNDERCARRIAGE_POSITION:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getPlaneUndercarriagePosition')(t.readInt(p[0])));},
  SET_UP_SKIP_AFTER_MISSION:(t,p,i)=>{world(t,i,'setUpSkipAfterMission')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
- IS_CHAR_IN_AREA_ON_FOOT_3D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharInAreaOnFoot3d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),bool(t,p[7])),negated(i));},
+ IS_CHAR_IN_AREA_ON_FOOT_3D:charInArea(true,'foot'),
  ADD_SPHERE:(t,p,i)=>{const point=vec(t,p,0);t.writeInt(p[4],game(t,i).scriptSpheres.add(highlightId(t,i),point,t.readFloat(p[3])));},
  PLANE_FOLLOW_ENTITY:(t,p,i)=>{world(t,i,'planeFollowEntity')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]));},
  SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2:(t,p,i)=>{world(t,i,'setGunshotSenseRangeForRiot2')(t.readFloat(p[0]));},
@@ -2543,7 +2546,7 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_CAR_MASS:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCarMass')(t.readInt(p[0])));},
  GET_CAR_BLOCKING_CAR:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCarBlockingCar')(t.readInt(p[0])));},
  GET_PARKING_NODE_IN_AREA:(t,p,i)=>{const result=world(t,i,'getParkingNodeInArea')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]));t.writeFloat(p[6],result.x);t.writeFloat(p[7],result.y);t.writeFloat(p[8],result.z);},
- IS_CHAR_IN_AREA_IN_CAR_3D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharInAreaInCar3d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),bool(t,p[7])),negated(i));},
+ IS_CHAR_IN_AREA_IN_CAR_3D:charInArea(true,'car'),
  TASK_COWER:(t,p,i)=>{world(t,i,'taskCower')(t.readInt(p[0]));},
  // Only a Pay 'n' Spray resprays a car, and none is ported, so none has been.
  // vehicleFlags.bHasBeenResprayed, which a Pay 'n' Spray sets: read and cleared.

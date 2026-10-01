@@ -100,5 +100,12 @@ describe('ped flags, health, attachment and areas',()=>{
   expect(run(build(scmOpcode('IS_CHAR_IN_AREA_2D'),[int(1),flt(0),flt(0),flt(10),flt(10),byte(0)]),h.world).condition).toBe(true);
   expect(run(build(scmOpcode('IS_CHAR_IN_AREA_2D'),[int(1),flt(10),flt(10),flt(0),flt(0),byte(0)]),h.world).condition).toBe(true);
   expect(run(build(scmOpcode('IS_CHAR_IN_AREA_3D'),[int(1),flt(0),flt(0),flt(0),flt(10),flt(10),flt(1),byte(0)]),h.world).condition).toBe(false);
+  // The on-foot and in-car forms gate on the ped's vehicle first.
+  const box=[int(1),flt(0),flt(0),flt(0),flt(10),flt(10),flt(10),byte(0)];
+  expect(run(build(scmOpcode('IS_CHAR_IN_AREA_ON_FOOT_3D'),box),h.world).condition).toBe(true);
+  expect(run(build(scmOpcode('IS_CHAR_IN_AREA_IN_CAR_3D'),box),h.world).condition).toBe(false);
+  h.peds.get(1)!.vehicle=7;
+  expect(run(build(scmOpcode('IS_CHAR_IN_AREA_ON_FOOT_3D'),box),h.world).condition).toBe(false);
+  expect(run(build(scmOpcode('IS_CHAR_IN_AREA_IN_CAR_3D'),box),h.world).condition).toBe(true);
  });
 });
