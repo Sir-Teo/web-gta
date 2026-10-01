@@ -78,7 +78,9 @@ export function missionBotTick(dtSeconds:number){
  // keeps out of the cars ahead (AVOID_CARS ploughed SWEET1's Greenwood into the traffic at a crossing), re-aimed as the
  // target moves: setting a
  // vehicle down step by step knocked CJ off his bike and wrecked it. On foot he is set down at walking pace.
- const glide=(to:any,stopAt:number)=>{
+ // `chase`: a car running from CJ (SWEET3's Ballas, whom the homies' drive-by only reaches within its weapon's range) is
+ // run down as a player would, round the traffic (AVOID_CARS), at 30, re-aimed every second.
+ const glide=(to:any,stopAt:number,chase=false)=>{
   const d=distance(to);
   if(vehicle){
    const now=performance.now(),last=mem.drive;
@@ -104,16 +106,16 @@ export function missionBotTick(dtSeconds:number){
      return true;
     }
    }
-   const style=mem.aroundUntil&&now<mem.aroundUntil?2:0;
+   const style=chase||mem.aroundUntil&&now<mem.aroundUntil?2:0;
    if(mem.reversingUntil&&now<mem.reversingUntil)return true;
    if(mem.stuckFor>5){
     mem.stuckFor=0;mem.reversingUntil=now+1800;mem.drive=undefined;
     try{world.givePedScriptedTask(1,{kind:'carTempAction',vehicle,actionId:3,time:1500},0x0822);}catch{}
     return true;
    }
-   if(!last||last.vehicle!==vehicle||last.style!==style||Math.hypot(last.x-to.x,last.y-to.y)>8||now-last.at>4000){
+   if(!last||last.vehicle!==vehicle||last.style!==style||Math.hypot(last.x-to.x,last.y-to.y)>(chase?3:8)||now-last.at>(chase?1000:4000)){
     mem.drive={vehicle,x:to.x,y:to.y,at:now,style};
-    try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:d>40?22:12,driveStyle:0,model:-1,drivingStyle:style},0x05d1);}catch{}
+    try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:chase?30:d>40?22:12,driveStyle:0,model:-1,drivingStyle:style},0x05d1);}catch{}
    }
    return true;
   }
@@ -322,7 +324,7 @@ export function missionBotTick(dtSeconds:number){
  }
  if(chases.length){
   const c=nearest(chases);
-  if(glide(c.position,15))return {action:'chase car',target:c.handle};
+  if(glide(c.position,15,true))return {action:'chase car',target:c.handle};
   shoot(c.position);return {action:'shoot car',target:c.handle};
  }
  if(friends.length){
