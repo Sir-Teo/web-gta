@@ -4269,8 +4269,13 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPed:async(_pedType,id,position)=>
-                  await pedestrians?.spawnScripted(await pedestrians.scriptPedModel(id),{x:position.x,y:position.z,z:-position.y},scriptYaw(0))??undefined,
+                 spawnScriptPed:async(_pedType,id,position)=>{
+                  // CWorld::PutToGroundIfTooLow: a z at or below the map's low limit is the ground there, or
+                  // FindGroundZForCoord's 20 where none is streamed in; the ped is then set down when it arrives.
+                  const low=position.z<=-100;let y=position.z;
+                  if(low){const hit=sim.world.castRay(new RAPIER.Ray({x:position.x,y:1000,z:-position.y},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);y=hit?1000-hit.timeOfImpact:20;}
+                  return await pedestrians?.spawnScripted(await pedestrians.scriptPedModel(id),{x:position.x,y,z:-position.y},scriptYaw(0),low)??undefined;
+                 },
                  // A ped riding in a car goes where the car goes, so nothing a script says about where it
                  // stands, how it walks or what it looks at reaches it; onFoot answers nothing for one, and
                  // each of those falls away rather than being applied to a ped that is not there.
@@ -4971,6 +4976,7 @@ async function boot() {
                   roofed:()=>!!sim.world.castRay(new RAPIER.Ray({x:at.x,y:at.y+1.2,z:at.z},{x:0,y:1,z:0}),200,true,RAPIER.QueryFilterFlags.ONLY_FIXED)};}),
                  adoptStreetPed:ped=>{const p=onFoot(ped);if(p)pedestrians?.adoptForScript(p);},
                  pedModelId:name=>pedestrians?.modelIdByName(name),
+                 modelInArchive:id=>!!pedestrians?.hasModelId(id),
                  worldObjectsNear:(models,x,y,radius)=>importedScene?.modelPlacementsNear(models,x,y,radius)??[],
                  modelTriggerPoint:(model,index)=>importedScene?.modelTriggerPoint(model,index),
                  takeWorldObject:(key,taken)=>importedScene?.setModelPlacementTaken(key,taken)??false,

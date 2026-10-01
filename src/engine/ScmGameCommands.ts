@@ -2246,7 +2246,12 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_NIGHT_VISION:(t,p,i)=>{world(t,i,'setNightVision')(bool(t,p[0]));},
  SET_AIRCRAFT_CARRIER_SAM_SITE:(t,p,i)=>{world(t,i,'setAircraftCarrierSamSite')(bool(t,p[0]));},
  CREATE_SCRIPT_ROADBLOCK:(t,p,i)=>{world(t,i,'createScriptRoadblock')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]));},
- PRINT_STRING_IN_STRING_NOW:(t,p,i)=>{world(t,i,'printStringInStringNow')(t.text(p[0]),t.text(p[1]),t.readInt(p[2]),t.readInt(p[3]));},
+ // CMessages::AddMessageJumpQWithString: the first key's text with its ~a~ replaced by the second key's (a zone's
+ // name in "There's a fire in ~a~"). The queue keeps the key to insert; the HUD looks both up.
+ PRINT_STRING_IN_STRING_NOW:(t,p,i,now)=>{
+  const g=game(t,i),key=t.text(p[0]);
+  if(subtitleAllowed(t,i,key))g.messages.addMessage2(key,t.readInt(p[2]),t.readInt(p[3]),g.addNextMessageToPreviousBriefs,true,now,t.text(p[1]));
+ },
  IS_GANG_WAR_FIGHTING_GOING_ON:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isGangWarFightingGoingOn')(),negated(i));},
  CONVERT_METRES_TO_FEET:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'convertMetresToFeet')(t.readFloat(p[0])));},
  GET_LEVEL_DESIGN_COORDS_FOR_OBJECT:(t,p,i)=>{const result=world(t,i,'getLevelDesignCoordsForObject')(t.readInt(p[0]),t.readInt(p[1]));t.writeFloat(p[2],result.x);t.writeFloat(p[3],result.y);t.writeFloat(p[4],result.z);},
@@ -2529,7 +2534,8 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_DOOR_ANGLE_RATIO:(t,p,i)=>{t.writeFloat(p[2],world(t,i,'getDoorAngleRatio')(t.readInt(p[0]),t.readInt(p[1])));},
  START_CREDITS:(t,p,i)=>{world(t,i,'startCredits')();},
  ARE_CREDITS_FINISHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'areCreditsFinished')(),negated(i));},
- COPY_GROUP_DECISION_MAKER:(t,p,i)=>{t.writeInt(p[1],world(t,i,'copyGroupDecisionMaker')(t.readInt(p[0])));},
+ // The group form copies a decision maker the same way the char form does (CDecisionMakerTypes::CopyDecisionMaker).
+ COPY_GROUP_DECISION_MAKER:(t,p,i)=>{const {handle,from}=game(t,i).decisionMakers.copy(t.readInt(p[0]),t.usesMissionCleanup);t.writeInt(p[1],handle);t.host?.world?.seedDecisionMaker?.(handle,from);},
  IS_MODEL_IN_CDIMAGE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isModelInCdimage')(model(t,i,p[0])),negated(i));},
  GET_RANDOM_CAR_OF_TYPE_IN_AREA:(t,p,i)=>{t.writeInt(p[5],world(t,i,'getRandomCarOfTypeInArea')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),model(t,i,p[4])));},
  IS_PROCEDURAL_INTERIOR_ACTIVE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isProceduralInteriorActive')(t.readInt(p[0])),negated(i));},

@@ -14,11 +14,11 @@ import {VEHICLE_CLASSES} from '../assets/pedGroups';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from '../engine/ScmThread';
 import {BRAIN_OBJECT} from '../engine/ScmScriptBrains';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
-import {findZone,type WorldZones} from '../assets/worldZones';
+import {findZone,worldZoneAt,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
 import {NativePedGroup} from '../ped/nativePedGroup';
-import {findNodeCoorsForScript,findNodeCoorsForScriptBetween,findNodeOrientationForCarPlacement,findNthNodeClosestToCoors} from './nativeScriptCarNodes';
+import {findClosestStraightRoad,findNodeCoorsForScript,findNodeCoorsForScriptBetween,findNodeOrientationForCarPlacement,findNthNodeClosestToCoors} from './nativeScriptCarNodes';
 import type {PathArea,PathNode} from '../assets/pathNodes';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
 import {PED_SIGHT_TARGET_RAISE,pedSightAngleAndRange} from '../ped/nativePedSight';
@@ -243,6 +243,8 @@ export interface ScmMissionWorld {
  adoptStreetPed?(ped:unknown):void;
  /** CTheZones::GetLevelFromPosition for a native point. */
  cityAt?(x:number,y:number,z:number):number;
+ /** Whether the archive holds the model a ped or vehicle id names (CStreaming's directory). */
+ modelInArchive?(id:number):boolean;
  /** The peds.ide id of a ped model name. */
  pedModelId?(name:string):number|undefined;
  /** The taxi light of a script car, or of the player's own (undefined). */
@@ -810,6 +812,8 @@ export class ScmMission {
  playerControl=true;
  /** A mission thread gave up this pass (see handBack). */
  private handBackPending=false;
+ /** The thread that gave up this pass was a mission's (see handBack). */
+ private missionGaveUp=false;
  /** A streamed script that gives up while it holds the player at a counter (every shop script sets
   * SET_MINIGAME_IN_PROGRESS before it takes his controls and the camera) hands them back as a mission does. One
   * that never took them, a gate's or a machine's brain giving up as the player drives by, must not: that would cut
@@ -1537,6 +1541,27 @@ export class ScmMission {
     return node?findNodeCoorsForScript(areas,node):{x:0,y:0,z:0};
    },
    forceBigMessageAndCounter:state=>{this.runtime.game.forceBigMessageAndCounter=state;},
+   // The vigilante's criminals. CAutoPilot's convoy flag, route seed and level-transition switch and CPed's
+   // bChrisCriminal and bForceDieInCar are kept for the script; AUTHORED in that the port's car AI and police do not
+   // read them yet (the criminals drive as any mission car does, and die as any ped does).
+   markVehicleAsConvoyCar:(handle,on)=>{this.liveVehicle(handle);this.carFlag(handle).convoy=on;},
+   setCarRandomRouteSeed:(handle,seed)=>{this.liveVehicle(handle);this.carFlag(handle).routeSeed=seed;},
+   setCarAvoidLevelTransitions:(handle,on)=>{this.liveVehicle(handle);this.carFlag(handle).avoidLevelTransitions=on;},
+   setPedChrisCriminal:(handle,on)=>{if(handle!==PLAYER_PED_HANDLE&&this.peds.exists(handle))this.pedFlag(handle).chrisCriminal=on;},
+   setCharForceDieInCar:(handle,on)=>{if(handle!==PLAYER_PED_HANDLE&&this.peds.exists(handle))this.pedFlag(handle).forceDieInCar=on;},
+   // IS_MODEL_IN_CDIMAGE: CStreaming's directory has the model. The vigilante draws random ped ids until one exists.
+   isModelInCdimage:model=>typeof model==='number'?this.world.modelInArchive?.(model)??false:(this.world.modelIndex?.(model)??-1)>=0,
+   // GET_RANDOM_CAR_OF_TYPE_IN_AREA hands a script a traffic car. AUTHORED: none is handed over yet (-1).
+   getRandomCarOfTypeInArea:()=>-1,
+   // START_CAR_FIRE (dispatch unreversed; as StartCharFire does for a ped): CFireManager::StartScriptFire on the
+   // vehicle, strength 1, no generations to spread. The fire rides the car until it is put out or the car goes.
+   startVehicleFire:handle=>this.runtime.game.fires.startScriptFire(this.vehicles.positionOf(handle),1,0,undefined,handle),
+   // GET_NAME_OF_ZONE (the reference leaves it a todo): the text label of the smallest navigation zone at the point.
+   getNameOfZone:(x,y,z)=>worldZoneAt(this.zones,[x,y,z],true).textLabel,
+   getClosestStraightRoad:(x,y,z,minDist,maxDist)=>{
+    const areas=this.world.carPathAreas?.(),found=areas&&findClosestStraightRoad(areas,{x,y,z},minDist,maxDist);
+    return found??{node1X:0,node1Y:0,node1Z:0,node2X:0,node2Y:0,node2Z:0,angle:0};
+   },
    // CTheZones::GetLevelFromPosition (dispatch unreversed): the city a point lies in, as the player's own is found.
    getCityFromCoords:(x,y,z)=>{if(!this.world.cityAt)throw new UnsupportedScmCommand(-1,0,'GET_CITY_FROM_COORDS','no host');return this.world.cityAt(x,y,z);},
    nthClosestVehicleNode:(x,y,z,nth)=>{const node=this.scriptCarNode({x,y,z},nth-1,true);return node?{x:node.x,y:node.y,z:node.z}:{x:0,y:0,z:0};},
@@ -2138,12 +2163,18 @@ export class ScmMission {
    const at=thread.currentInstruction;
    this.gaveUp.push(error.offset<0?{thread:thread.name,command:at.name,offset:at.offset,detail:error.command}:{thread:thread.name,command:error.command,offset:error.offset});
    if(thread.usesMissionCleanup||this.heldByShop(thread))this.handBackPending=true;
+   if(thread.usesMissionCleanup)this.missionGaveUp=true;
    this.streamedScriptStopped(thread);
   };
-  this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});if(thread.usesMissionCleanup||this.heldByShop(thread))this.handBackPending=true;this.streamedScriptStopped(thread);};
+  this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});if(thread.usesMissionCleanup||this.heldByShop(thread))this.handBackPending=true;if(thread.usesMissionCleanup)this.missionGaveUp=true;this.streamedScriptStopped(thread);};
   this.runtime.game.zones.load(zones.infoLabels);
   this.entry=header.entry;this.streamedTable=header.streamed;this.largestStreamedSize=header.largestStreamedSize;
  }
+ /** Flags a script set on its cars and peds that nothing in the port reads yet (see the vigilante's adapters). */
+ private readonly carFlags=new Map<number,{convoy?:boolean;routeSeed?:number;avoidLevelTransitions?:boolean}>();
+ private readonly pedFlags=new Map<number,{chrisCriminal?:boolean;forceDieInCar?:boolean}>();
+ private carFlag(handle:number){let f=this.carFlags.get(handle);if(!f){f={};this.carFlags.set(handle,f);}return f;}
+ private pedFlag(handle:number){let f=this.pedFlags.get(handle);if(!f){f={};this.pedFlags.set(handle,f);}return f;}
  /** CTheScripts::LastRandomPedId: the street ped GET_RANDOM_CHAR_IN_ZONE handed out last, which it passes over. */
  private lastRandomPed:unknown;
  /** ADD_ATTRACTOR's scripted attractors by handle: the point, the heading (degrees) and the sequence handle. */
@@ -3007,6 +3038,11 @@ export class ScmMission {
   this.runtime.game.fires.fires.forEach((fire,index)=>{
    if(!fire.active||!fire.createdByScript)return;
    // CFire::ProcessFire keeps a fire on its ped at the ped's position; a ped that is gone takes it with him.
+   // A fire on a vehicle rides it the same way, and goes with it.
+   if(fire.vehicle!==undefined){
+    if(!this.vehicles.exists(fire.vehicle)){this.runtime.game.fires.putOut(index);return;}
+    const at=this.vehicles.positionOf(fire.vehicle);fire.position={x:at.x,y:at.y,z:at.z};
+   }
    if(fire.ped!==undefined){
     if(fire.ped!==PLAYER_PED_HANDLE&&!this.peds.exists(fire.ped)){this.runtime.game.fires.putOut(index);return;}
     const at=fire.ped===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(fire.ped)??this.peds.positionOf(fire.ped);
@@ -3157,6 +3193,12 @@ export class ScmMission {
   if(this.fade.value>0)this.runtime.world?.fade(1000,1,nowMs);
   // A shop script that gave up at its counter leaves its fixed camera up: the camera goes back behind the player.
   const game=this.runtime.game;
+  // A mission's own ending clears the flag DECLARE_MISSION_FLAG names; one that stopped part way never reaches it, and
+  // the side missions, the gyms and the next mission's trigger would all go on hearing that a mission is under way.
+  if(this.missionGaveUp){
+   this.missionGaveUp=false;const flag=game.onAMissionFlag,space=this.runtime.scriptSpace;
+   if(flag&&flag+4<=space.length)new DataView(space.buffer,space.byteOffset,space.byteLength).setUint32(flag,0,true);
+  }
   if(game.miniGameInProgress){const state=this.world.playerCameraState?.();if(state)game.camera.restoreWithJumpCut(state);game.miniGameInProgress=false;}
  }
  /** What the script has done so far, for the dev API and the browser tests. */

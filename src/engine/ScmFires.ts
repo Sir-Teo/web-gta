@@ -17,6 +17,8 @@ export interface ScmFire {
  timeToBurn:number;strength:number;generationsAllowed:number;removalDistance:number;
  /** m_EntityOnFire for a script fire on a ped (START_CHAR_FIRE): the ped's script handle. */
  ped?:number;
+ /** The same for a script fire on a vehicle (START_CAR_FIRE): the vehicle's script handle. */
+ vehicle?:number;
 }
 function initialised():ScmFire{
  return {active:false,createdByScript:false,makesNoise:true,beingExtinguished:false,firstGeneration:true,
@@ -63,7 +65,7 @@ export class ScmFires {
  /** CFireManager::StartScriptFire (0x53A270) with CFire::Start (0x53A150): the script's fire takes a free slot,
   * its strength is the size the command asks for, and its generations are capped by the manager's own limit.
   * The handle is the script thing index, or -1 when every slot is burning. */
- startScriptFire(position:{x:number;y:number;z:number},strength:number,generations:number,ped?:number){
+ startScriptFire(position:{x:number;y:number;z:number},strength:number,generations:number,ped?:number,vehicle?:number){
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid fire position.');
   requireAsset(Number.isFinite(strength),'Invalid fire strength.');
   // A ped already burning has that fire put out and let go of first.
@@ -72,7 +74,7 @@ export class ScmFires {
   if(!fire)return -1;
   fire.active=true;fire.createdByScript=true;fire.makesNoise=true;fire.beingExtinguished=false;fire.firstGeneration=true;
   fire.generationsAllowed=Math.min(this.maxGenerations,generations)&255;
-  fire.strength=strength;fire.position={...position};fire.ped=ped;
+  fire.strength=strength;fire.position={...position};fire.ped=ped;fire.vehicle=vehicle;
   const {handle,referenceIndex}=scriptThingHandle(this.fires.indexOf(fire),fire.referenceIndex);
   fire.referenceIndex=referenceIndex;
   return handle;

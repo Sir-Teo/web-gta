@@ -1178,6 +1178,8 @@ export interface ScmThreadHost {
  * locals plus two timers; mission threads receive the shared mission-local
  * storage instead. Native commands outside the ported families fail
  * explicitly. This is not a campaign-complete VM. */
+/** The cut commands that are questions (IS_PLAYER_IN_SHORTCUT_TAXI, HAS_IMPORT_GARAGE_SLOT_BEEN_FILLED, ...). */
+const NOP_QUESTION=/^(IS|HAS|DOES|ARE|CAN|WAS)_|_ARE_/;
 export class ScmThread {
  ip:number;name='noname';condition=false;logical=0;wakeTime=0;terminated=false;
  /** m_SceneSkipIP: SKIP_CUTSCENE_START's label, which the thread jumps to when the skip button is pressed. */
@@ -1386,7 +1388,12 @@ export class ScmThread {
    }else if(op===0x459){
     if(!this.host?.terminateAllWithName)throw new UnsupportedScmCommand(i.offset,op,i.name);
     this.host.terminateAllWithName(this.strings.text(p[0]));
-   }else if(NATIVE_NOP_OPCODES.has(op)){/* PC 1.0 parses operands and does nothing. */}
+   }else if(NATIVE_NOP_OPCODES.has(op)){
+    // PC 1.0 parses the operands and does nothing, except that a cut question still answers: it is false. MAIN starts
+    // the taxi, ambulance, fire truck and police side missions under `IF NOT IS_PLAYER_IN_SHORTCUT_TAXI`, which IF's
+    // own reset of the flag would leave false for ever if the command did not report; the retail game starts them.
+    if(i.opcode&0x8000||NOP_QUESTION.test(i.name))this.compare(false,(i.opcode&0x8000)!==0);
+   }
    else{
     const handler=SCM_GAME_COMMANDS.get(op);
     if(!handler)throw new UnsupportedScmCommand(i.offset,op,i.name);

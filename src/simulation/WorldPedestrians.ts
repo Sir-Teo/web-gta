@@ -188,6 +188,8 @@ export interface Pedestrian {
  /** ePedCreatedBy::PED_MISSION: a ped a script made, which CPed::CanBeDeleted refuses to let the population
   * manager remove until CTheScripts::CleanUpThisPed hands it back. */
  mission?:boolean;
+ /** Set while a script's ped waits for the collision under it (see collisionArrived). */
+ collisionWait?:{seconds:number;reground:boolean};
  /** CPed::m_nFightingStyle and m_nAllowedAttackMoves, which GIVE_MELEE_ATTACK_TO_CHAR sets on a script's ped. */
  fightingStyle?:number;allowedAttackMoves?:number;
  /** bMoneyHasBeenGivenByScript: SET_CHAR_MONEY set m_nMoneyCount, which a script's ped then drops when it dies. */
@@ -1588,7 +1590,7 @@ export class WorldPedestrians {
  /** CPopulation::AddPed (0x612710) through a script's CREATE_CHAR: the model loaded, the ped stood where the
   * script says and flagged PED_MISSION, so the population manager leaves it alone until the script lets go.
   * Resolves to nothing when the model cannot be loaded, which is the handle the script then finds empty. */
- async spawnScripted(modelRef:number|string,position:{x:number;y:number;z:number},heading:number){
+ async spawnScripted(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,reground=false){
   // CREATE_CHAR never fails for want of the model: the script streamed it first. A script that runs before the
   // browser's ped catalog has finished loading waits for it instead of losing the ped.
   const catalog=this.catalog??await this.catalogLoad;if(!catalog||this.disposed)return undefined;
@@ -1608,6 +1610,9 @@ export class WorldPedestrians {
    made=this.createPed({position,heading,source:built.source,officer:false,node,speed:0,speeds:built.speeds,stats:built.stats,modelRef});
   }
   made.mission=true;made.flee=0;made.order=this.defaultOrder(made);
+  // m_bIsStaticWaitingForCollision: a mission ped made where no collision is streamed in (a patient or a criminal
+  // hundreds of units off) stands where it was made until there is ground under it, rather than falling for ever.
+  made.collisionWait={seconds:0,reground};
   return made;
  }
  /** CPed::ProcessBuoyancy's physicalFlags.bSubmergedInWater: the origin, a unit above the feet, 0.6 under the
@@ -2054,6 +2059,22 @@ export class WorldPedestrians {
   return name===undefined?undefined:c.pedModelId(name);
  }
  modelIdByName(name:string){return this.catalog?.pedModelId(name);}
+ /** Whether peds.ide names the id and the archive holds its model. */
+ hasModelId(id:number){const c=this.catalog,name=c?.pedModelName(id);return !!name&&c!.hasModel(name);}
+ /** Whether fixed ground has come in under a waiting script ped, asked twice a second. A ped put down at
+  * CWorld::FindGroundZForCoord's fallback (`reground`) is set on the ground when it does. */
+ private collisionArrived(p:Pedestrian,dt:number){
+  const w=p.collisionWait!;w.seconds-=dt;if(w.seconds>0)return false;w.seconds=.5;
+  const at=p.actor.player.position,top=w.reground?1000:at.y+2;
+  const hit=this.sim.world.castRay(new RAPIER.Ray({x:at.x,y:top,z:at.z},{x:0,y:-1,z:0}),w.reground?2000:500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  // Water under it counts as it does for a car: the ped is let go to fall in.
+  if(!hit)return this.waterLevel?.(at.x,-at.z)!==undefined&&!w.reground;
+  if(w.reground){
+   const y=top-hit.timeOfImpact;at.y=y;p.actor.player.previous={...at};
+   p.body.setTranslation({x:at.x,y:y+.9,z:at.z},true);p.collider.setTranslation({x:at.x,y:y+.9,z:at.z});
+  }
+  return true;
+ }
  releaseScripted(ped:Pedestrian,keepTask=false){
   ped.mission=false;
   // bKeepTasksAfterCleanUp: the ped carries on with what it was doing.
@@ -2955,6 +2976,7 @@ export class WorldPedestrians {
    const bodies=this.people.filter(p=>p.health>0&&p.down===0).map(p=>p.actor.player.position);
    for(const p of this.people){
     const state=p.actor.player;if(p.health<=0)p.deadTime+=dt;state.previous={...state.position};
+    if(p.collisionWait){if(this.collisionArrived(p,dt))p.collisionWait=undefined;else continue;}
    // Crowd separation: standing bodies push apart before anything steers.
    // Scaled by the impulse decay so overlapping peds part at ~push speed.
    if(p.health>0&&p.down===0){

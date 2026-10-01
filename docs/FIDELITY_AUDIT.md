@@ -8677,3 +8677,28 @@ that did anything.
   failing on both, several of them on the starting loadout's full armour (a hit no longer takes health) and the
   opening's held fade. They are not from this work and are left for their own pass.
 
+## The vehicle side missions start: taxi, firefighter, paramedic, vigilante
+
+- **They could never start.** MAIN's R3 thread launches each under `IF NOT IS_PLAYER_IN_SHORTCUT_TAXI`. The command
+  is one of the cut ones PC 1.0 parses and does nothing with, and the port left the compare flag alone, so IF's own
+  reset to false stood and the sub-mission key did nothing in any taxi, ambulance, fire truck or police car. The
+  retail game starts them, so a cut *question* still answers, and it is false: a no-op whose name is a question (or
+  that carries the NOT bit) now reports false through the flag. (gta-reversed registers it as a void no-op, which
+  would leave the retail game unable to start a taxi mission either.)
+- **Taxi** (spec `side-missions`): the fare is a street ped `GET_RANDOM_CHAR_IN_ZONE` hands the script; he boards,
+  the destination is named and blipped, and the drop-off pays. `SET_TAXI_LIGHTS` reaches a host that does not draw
+  the roof light yet.
+- **Firefighter** (spec `side-missions`): `START_CAR_FIRE` is a script fire that rides its car; `GET_NAME_OF_ZONE` is
+  the smallest navigation zone's label and `PRINT_STRING_IN_STRING_NOW` puts its name into the report
+  (`AddMessageJumpQWithString`); the truck's water cannon puts the fire out and the level pays.
+  `GET_CLOSEST_STRAIGHT_ROAD` is AUTHORED (`FindNodePairClosestToCoors` is unreversed): the nearest pair of linked
+  land car nodes whose link is within the two lengths.
+- **Paramedic and vigilante** start and run without stopping on a command. Their patients and criminals are made
+  hundreds of units from the player: a mission ped made where nothing is streamed in now waits for its collision
+  (`m_bIsStaticWaitingForCollision`) instead of falling for ever, set down on the ground when it arrives if the script
+  asked for the ground (`PutToGroundIfTooLow`). Neither has been driven to its end here. The vigilante's convoy flag,
+  route seed, level-transition switch, `SET_CHAR_IS_CHRIS_CRIMINAL` and `SET_CHAR_FORCE_DIE_IN_CAR` are kept and not
+  yet read (AUTHORED); `GET_RANDOM_CAR_OF_TYPE_IN_AREA` hands over no car.
+- **A mission that gives up clears the on-mission flag** (the global `DECLARE_MISSION_FLAG` names), as its own
+  ending would have: without that every side mission, gym and trigger after it heard that a mission was still on.
+

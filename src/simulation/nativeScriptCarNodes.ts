@@ -75,3 +75,26 @@ export function findNodeCoorsForScriptBetween(a:PathNode,b:PathNode){
  const offset=a.width+2.7;
  return {x:x-dy*offset,y:y+dx*offset,z,heading};
 }
+
+/** GET_CLOSEST_STRAIGHT_ROAD (CPathFind::FindNodePairClosestToCoors is unreversed, so this is AUTHORED from what the
+ * fire truck and police missions do with it): the pair of linked land car nodes nearest the point whose link is at
+ * least `minDist` and at most `maxDist` long, a stretch with no node between its ends, and the heading from the
+ * first to the second (degrees, atan2(-x, y)). Nothing when the loaded areas hold no such pair. */
+export function findClosestStraightRoad(areas:ReadonlyMap<number,PathArea>,point:{x:number;y:number;z:number},minDist:number,maxDist:number){
+ let best:{a:PathNode;b:PathNode}|undefined,bestDistance=Infinity;
+ for(const area of areas.values())for(const node of area.nodes){
+  if(node.kind!=='vehicle'||node.water||node.switchedOff)continue;
+  const d=Math.hypot(node.position[0]-point.x,node.position[1]-point.y,node.position[2]-point.z);
+  if(d>=bestDistance)continue;
+  for(let slot=0;slot<node.linkCount;slot++){
+   const other=linked(areas,node,slot);if(!other||other.kind!=='vehicle'||other.water||other.switchedOff)continue;
+   const length=Math.hypot(other.position[0]-node.position[0],other.position[1]-node.position[1]);
+   if(length<minDist||length>maxDist)continue;
+   best={a:node,b:other};bestDistance=d;break;
+  }
+ }
+ if(!best)return undefined;
+ const [ax,ay,az]=best.a.position,[bx,by,bz]=best.b.position;
+ return {node1X:ax,node1Y:ay,node1Z:az,node2X:bx,node2Y:by,node2Z:bz,angle:((Math.atan2(-(bx-ax),by-ay)*180/Math.PI)%360+360)%360};
+}
+
