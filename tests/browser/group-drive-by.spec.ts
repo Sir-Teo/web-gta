@@ -28,8 +28,14 @@ test('a homie riding in CJ\'s car shoots at the ped attacking CJ',async({page})=
  await page.evaluate(s=>{(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(s.foe,{kind:'killPedOnFoot',target:1,time:-1,flags:0,actionDelay:0,actionChance:0,mustBeOnFoot:true},0x05e2);},setup);
  await expect.poll(async()=>(await rider()).group,{timeout:10000}).not.toBeNull();
  await expect.poll(async()=>(await rider()).shots,{timeout:20000}).toBeGreaterThan(0);
+ // A Grove member recruited off the street rides in the back with his pistol: he takes part too.
+ await page.evaluate(()=>{const e=(window as any).__game.carEntry();e.passengers.push({modelRef:'FAM2',seat:2,follow:true,gang:1,keep:{weapon:{info:{type:22}}}});});
+ const crew=()=>page.evaluate(()=>{const p=(window as any).__game.carEntry().passengers.find((p:any)=>p.seat===2);return {group:p?.groupDriveBy??null,shots:p?.driveBy?.shots??0};});
+ await expect.poll(async()=>(await crew()).group,{timeout:10000}).not.toBeNull();
+ await expect.poll(async()=>(await crew()).shots,{timeout:20000}).toBeGreaterThan(0);
  // The threat gone, the drive-by ends.
  await page.evaluate(s=>{(window as any).__game.missionForProfiling().adapterRef.deletePed(s.foe);},setup);
  await expect.poll(async()=>(await rider()).group,{timeout:10000}).toBeNull();
+ await expect.poll(async()=>(await crew()).group,{timeout:10000}).toBeNull();
  expect(errors).toEqual([]);
 });

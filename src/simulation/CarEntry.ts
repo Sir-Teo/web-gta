@@ -74,7 +74,9 @@ const PASSENGER_SEATS=[{seat:1,door:DOOR.rightFront,side:'right'},{seat:2,door:D
 export class CarEntry {
   car?:WorldCar;phase?:EntryPhase;side:Side='left';time=0;
   /** Crew riding along: model refs with seats, ejected when the driver leaves. */
-  passengers:{modelRef:number|string;seat:1|2|3;follow:boolean;gang?:number;keep?:unknown}[]=[];
+  passengers:{modelRef:number|string;seat:1|2|3;follow:boolean;gang?:number;keep?:unknown;
+   /** The group's drive-by on a threat (CTaskAllocatorKillThreatsDriveby), and on whom. */
+   driveBy?:import('./scriptDriveBy').ScriptDriveBy;groupDriveBy?:string}[]=[];
   /** Street population for boarding and ejection (wired by the host). */
   crowd?:PassengerCrowd;
   private prevSeated=false;
@@ -121,12 +123,14 @@ export class CarEntry {
    return {x:seat===2?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z};
   }
   /** Riding crew poses for the occupant renderer. */
-  passengerPoses():import('../render/VehicleOccupants').OccupantPose[]{
+  passengerPoses(driveByPose?:(d:import('./scriptDriveBy').ScriptDriveBy)=>Partial<import('../render/VehicleOccupants').OccupantPose>|undefined):import('../render/VehicleOccupants').OccupantPose[]{
    const car=this.car;if(!car||!this.seated)return [];
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
    for(const p of this.passengers){
     const local=this.passengerSeat(car,p.seat);if(!local)continue;
-    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,local,clip:sitClip(car.modelFlags,false),seconds:0});
+    // A rider on the group's drive-by leans out with its clip and gun.
+    const leaning=p.driveBy?driveByPose?.(p.driveBy):undefined;
+    out.push({key:`passenger:${car.car.body.handle}:${p.seat}`,car,model:p.modelRef,local,clip:sitClip(car.modelFlags,false),seconds:0,...leaning});
    }
    return out;
   }

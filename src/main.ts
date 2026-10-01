@@ -479,13 +479,15 @@ async function boot() {
   let groupThreatScan=0;
   const groupThreatDriveBys=(dt:number)=>{
    const leaderCar=worldCar?.occupied?worldCar:fleet?.occupied;
-   const clearAll=()=>{for(const rider of scriptRiders)if(rider.groupDriveBy){rider.driveBy=undefined;rider.groupDriveBy=undefined;}};
+   const clearAll=()=>{for(const rider of [...scriptRiders,...carEntry.passengers])if(rider.groupDriveBy){rider.driveBy=undefined;rider.groupDriveBy=undefined;}};
    const m=mission;if(!leaderCar||!m||sim.player.health<=0){clearAll();return;}
    if((groupThreatScan-=dt)>0)return;groupThreatScan=.5;
    const group=m.groups?.get?.(0),members=group?group.all().filter((h:number)=>h!==1&&group.isFollower(h)):[];
    const entityOf=(h:number)=>{try{return m.peds.exists(h)?m.peds.entity(h):undefined;}catch{return undefined;}};
    const riders=members.map((h:number)=>asRider(entityOf(h))).filter((r):r is ScriptRider=>!!r&&r.car===leaderCar&&r.seat!=='driver'&&!r.gone&&r.health>0);
-   if(!riders.length){clearAll();return;}
+   // The crew recruited off the street ride along too; one carrying a gun takes part (the drive-by needs one).
+   const crew=carEntry.seated&&carEntry.car===leaderCar?carEntry.passengers.filter(p=>{const w=(p.keep as {weapon?:{info?:{type?:number}}}|undefined)?.weapon?.info?.type;return w!==undefined&&w>=22&&w<=34;}):[];
+   if(!riders.length&&!crew.length){clearAll();return;}
    const memberEntities=new Set(members.map(entityOf).filter(Boolean));
    const isUs=(handle:number)=>handle===1||members.includes(handle);
    const c=leaderCar.car.body.translation(),threats:{key:string;position:()=>{x:number;y:number;z:number}|undefined}[]=[];
@@ -508,7 +510,7 @@ async function boot() {
    let best:typeof threats[number]|undefined,bestD=60;
    for(const t of threats){const at=t.position();if(!at)continue;const d=Math.hypot(at.x-c.x,at.y-c.y,at.z-c.z);if(d<bestD){bestD=d;best=t;}}
    const q=leaderCar.car.body.rotation(),heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
-   for(const rider of riders){
+   for(const rider of [...riders,...crew]){
     if(rider.driveBy&&!rider.groupDriveBy)continue;
     if(!best){if(rider.groupDriveBy){rider.driveBy=undefined;rider.groupDriveBy=undefined;}continue;}
     if(rider.groupDriveBy===best.key)continue;
@@ -3032,7 +3034,8 @@ async function boot() {
         }});
         guard('traffic.beforeStep',()=>traffic?.beforeStep(step));guard('scriptCars.step',()=>{scriptCars.step(step,sim.player.position);if(mission)scriptCars.pathAreas(sim.player.position);});guard('police.beforeStep',()=>police?.beforeStep(step,worldCar?.occupied&&!worldCar.disposed?worldCar:undefined));guard('emergency.update',()=>emergency?.update(step));guard('driveby.beforeStep',()=>driveby?.beforeStep(step,worldCar?.occupied?worldCar:undefined));
         guard('groupDriveBys',()=>groupThreatDriveBys(step));
-        guard('scriptDriveBys',()=>{const gun=driveby?.gun;if(!gun)return;for(const rider of scriptRiders)if(rider.driveBy&&!rider.gone&&rider.health>0&&!rider.car.wrecked)stepScriptDriveBy(rider.driveBy,rider.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);});
+        guard('scriptDriveBys',()=>{const gun=driveby?.gun;if(!gun)return;for(const rider of scriptRiders)if(rider.driveBy&&!rider.gone&&rider.health>0&&!rider.car.wrecked)stepScriptDriveBy(rider.driveBy,rider.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);
+          if(carEntry.seated&&carEntry.car&&!carEntry.car.wrecked)for(const p of carEntry.passengers)if(p.driveBy)stepScriptDriveBy(p.driveBy,carEntry.car,gun.info,gun.reloadSeconds,step,scriptDriveByWorld);});
         frameProfile.stepTraffic+=performance.now()-tTraffic;const tPeds=performance.now();
         guard('pedestrians.beforeStep',()=>pedestrians?.beforeStep(step,fleet?.cars??[]));
         frameProfile.stepPeds+=performance.now()-tPeds;
@@ -3430,7 +3433,7 @@ async function boot() {
       target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z)};}
      else if(scriptFixedCamera&&render.fixedCamera===scriptFixedCamera){render.fixedCamera=undefined;scriptFixedCamera=undefined;}
     }
-    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)||!!emergency?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(emergency?.poses().map((p,i)=>({...p,key:`emergency:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby,(block,name)=>carEntry.clips.peek(block,name),gameTimeMs)],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
+    occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)||!!emergency?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}`,car:leaving.car,model:occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map((p,i)=>({...p,key:`police:${p.car.car.body.handle}:${i}`}))??[]),...(emergency?.poses().map((p,i)=>({...p,key:`emergency:${p.car.car.body.handle}:${i}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(d=>{const name=`gang_driveby${d.side==='left'?'lhs':'rhs'}`,clip=driveby?.clip(name);return clip&&clip.duration>0?{clip:name,seconds:d.seconds%clip.duration,animation:clip,gun:driveby?.gun?.asset}:undefined;}),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby,(block,name)=>carEntry.clips.peek(block,name),gameTimeMs)],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));
     const entryPose=carEntry.pose(),entryClips=entryPose&&carEntry.requiredClips();
     const entryPlane=[...(fleet?.planes??[])].find(p=>p.entry);
     if(entryClips&&render.nativeCharacter)render.nativeCharacter.installVehicleClips(entryClips,['car_rollout_lhs','car_rollout_rhs']);
