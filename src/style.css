@@ -106,12 +106,21 @@
 .touch-stick{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;background:#0003;border:2px solid #fff6;pointer-events:none}
 .touch-stick[hidden]{display:none}
 .touch-stick-knob{position:absolute;left:36px;top:36px;width:56px;height:56px;border-radius:50%;background:#fffa;box-shadow:0 1px 4px #0008}
-.touch-buttons{position:absolute;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,64px);gap:10px;pointer-events:none;direction:rtl}
-.touch-button{pointer-events:auto;touch-action:none;width:64px;height:64px;border-radius:50%;border:2px solid #fff8;background:#0006;color:#fff;font:600 12px/1 system-ui,sans-serif;text-shadow:0 1px 2px #000;padding:0;direction:ltr}
+/* The buttons arc round Fire in the corner under the right thumb: Sprint, Aim and Jump next to it, the rarer ones past
+ * them. Sized by the screen's short side, so a phone held sideways keeps the game above them. */
+:root{--touch-b:clamp(44px,14.5vmin,64px);--touch-fire:calc(var(--touch-b) * 1.3);--touch-gap:clamp(6px,2vmin,10px);--touch-right:max(12px,env(safe-area-inset-right));
+ --touch-cluster:calc(2 * var(--touch-b) + var(--touch-fire) + 2 * var(--touch-gap) + var(--touch-right))}
+.touch-buttons{position:absolute;right:var(--touch-right);bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:var(--touch-b) var(--touch-b) var(--touch-fire);grid-template-rows:var(--touch-b) var(--touch-b) var(--touch-fire);
+ grid-template-areas:"reload weapon enter" "crouch aim jump" ". sprint fire";gap:var(--touch-gap);place-items:center;pointer-events:none}
+.touch-button{pointer-events:auto;touch-action:none;width:var(--touch-b);height:var(--touch-b);border-radius:50%;border:2px solid #fff8;background:#0006;color:#fff;font:600 clamp(10px,3vmin,12px)/1 system-ui,sans-serif;text-shadow:0 1px 2px #000;padding:0}
 .touch-button[hidden]{display:none}
 .touch-button.on{background:#fffc;color:#111;text-shadow:none}
-.touch-button.fire{width:84px;height:84px;background:#a0202099;grid-row:span 2;align-self:center}
+.touch-button.fire{grid-area:fire;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);background:#a0202099}
+.touch-button.aim{grid-area:aim}.touch-button.jump{grid-area:jump}.touch-button.sprint{grid-area:sprint}.touch-button.enter{grid-area:enter}
+.touch-button.crouch{grid-area:crouch}.touch-button.weapon{grid-area:weapon}.touch-button.reload{grid-area:reload}
 .touch-button.small{width:auto;min-width:44px;height:36px;border-radius:18px;padding:0 12px}
 .touch-top{position:absolute;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:8px;pointer-events:none}
-/* On a touch screen the key hints and the desktop-only readouts give way to the controls. */
+/* On a touch screen the key hints and the desktop-only readouts give way to the controls, and the HUD text the
+ * original sets in the bottom right corner (area and vehicle names, the mission title and timers) moves left of the buttons. */
 .touch .onboarding{display:none}
+.touch .location,.touch .vehicle-name,.touch .mission-title,.touch .mission-timers{right:calc(var(--touch-cluster) + 12px)}
