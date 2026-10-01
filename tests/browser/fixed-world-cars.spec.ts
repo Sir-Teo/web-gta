@@ -20,7 +20,7 @@ test('fixed native car generators assemble their original vehicle resources',asy
   return {success,failures,spawnFailures,checkedSpawns,children:scene.children.length};
  });
  console.log(JSON.stringify(result));expect(result.children).toBe(0);expect(result.success).toHaveLength(65);expect(result.success.every(v=>v.wheels===4)).toBe(true);
- expect(result.failures).toEqual([]);expect(result.checkedSpawns).toBe(129);expect(result.spawnFailures).toEqual([]);
+ expect(result.failures).toEqual([]);/* 129 outdoors and one in an interior of gta_int.img. */expect(result.checkedSpawns).toBe(130);expect(result.spawnFailures).toEqual([]);
 });
 
 test('native fixed spawn becomes a drivable car on its original streamed terrain',async({page})=>{

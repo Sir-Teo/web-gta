@@ -87,3 +87,25 @@ test('a Sprunk machine sells CJ a drink',async({page})=>{
  expect((await shop(page)).gaveUp).toEqual([]);
  expect(errors).toEqual([]);
 });
+
+// gymbench.scm, started by the object brain on GYM_BENCH1: the weight menu, then CJ on the bench with the bar.
+test('the Ganton gym bench takes CJ for a set',async({page})=>{
+ test.skip(!interiorsPublished,'Requires gta_int.img published with the world.');test.setTimeout(300000);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await inside(page,'GYM1');
+ await expect.poll(async()=>(await shop(page)).threads,{timeout:60000}).toContain('GYMBENC');
+ // The script's own use point (its locals 5 to 7), a unit in front of the bench.
+ const at=await page.evaluate(()=>{const t=(window as any).__game.missionForProfiling().runtime.active.find((a:any)=>a.thread.name==='GYMBENC').thread;return [t.locals.getFloat32(20,true),t.locals.getFloat32(24,true)];});
+ await standAt(page,at[0],at[1]);
+ await page.waitForTimeout(2500);
+ // GET_CURRENT_DATE lets the first session of the day through: the weights menu comes up with the controls taken.
+ for(let presses=0;presses<5&&!(await shop(page)).menu;presses++){await page.keyboard.down('KeyF');await page.waitForTimeout(400);await page.keyboard.up('KeyF');await page.waitForTimeout(2500);}
+ expect((await shop(page)).menu).toBe(true);
+ await tap(page,'ShiftLeft');
+ // The menu goes and the set begins: the rep counter is on the screen.
+ await expect.poll(async()=>(await shop(page)).menu,{timeout:20000}).toBe(false);
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.onscreenTimer.counters.some((c:any)=>c.enabled)),{timeout:30000}).toBe(true);
+ await page.screenshot({path:'artifacts/interior-shops-gym.png'});
+ expect((await shop(page)).gaveUp).toEqual([]);
+ expect(errors).toEqual([]);
+});

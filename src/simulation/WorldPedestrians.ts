@@ -2041,6 +2041,19 @@ export class WorldPedestrians {
  private rainSkip(){const catalog=this.catalog;return catalog&&(this.rain?.()??0)>=.1?(name:string)=>catalog.sunbather(name):undefined;}
  rosterCivilian(){return this.roster?.choose(name=>this.wearing(name),this.rainSkip());}
  /** CTheScripts::CleanUpThisPed: the ped becomes the population manager's again. */
+ /** The street peds GET_RANDOM_CHAR_IN_ZONE's pool walk may take (CharacterCommands.cpp:1784): made by the game
+  * rather than a script, alive, on foot, not fading out and in no group. */
+ scriptCandidates(){return this.people.filter(p=>!p.mission&&!p.officer&&p.health>0&&p.down===0&&!p.fadeOut&&!p.party&&!p.follow);}
+ /** SetCharCreatedBy(PED_MISSION) on a street ped a script took: the population manager leaves it alone until the
+  * script lets go of it. */
+ adoptForScript(ped:Pedestrian){ped.mission=true;ped.flee=0;ped.fleePlayer=undefined;}
+ /** The ped's peds.ide model id (CEntity::m_nModelIndex), or nothing while the catalog is not in. */
+ modelIdOf(ped:Pedestrian){
+  const c=this.catalog;if(!c)return undefined;
+  const name=typeof ped.modelRef==='string'?ped.modelRef:c.modelNames[ped.modelRef%Math.max(1,c.modelNames.length)];
+  return name===undefined?undefined:c.pedModelId(name);
+ }
+ modelIdByName(name:string){return this.catalog?.pedModelId(name);}
  releaseScripted(ped:Pedestrian,keepTask=false){
   ped.mission=false;
   // bKeepTasksAfterCleanUp: the ped carries on with what it was doing.

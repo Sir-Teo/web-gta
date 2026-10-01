@@ -902,6 +902,10 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isObjectWithinBrainActivationRange?(handle:number):boolean;
  /** CREATE_CHAR_AT_ATTRACTOR: a ped made standing at a scripted attractor, performing its sequence. */
  createCharAtAttractor?(pedType:number,model:number|string,attractor:number,taskCommand:number):number;
+ /** TASK_PICK_UP_SECOND_OBJECT and DROP_SECOND_OBJECT: the ped's second held object. */
+ taskPickUpSecondObject?(handle:number,task:Extract<ScmScriptedTask,{kind:'pickUpObject'}>):void;
+ setPedDropsSecondObject?(handle:number,quietly:boolean):void;
+ hasObjectBeenUprooted?(handle:number):boolean;
  /** CWeaponInfo::GetWeaponInfo(type)'s slot and first model. */
  weaponTypeSlot?(weaponType:number):number;
  weaponTypeModel?(weaponType:number):number;

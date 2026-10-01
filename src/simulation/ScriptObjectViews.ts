@@ -252,8 +252,10 @@ export class ScriptObjectViews{
    const current:NonNullable<typeof view.anim>={name:anim.name.toUpperCase(),time:NaN};view.anim=state=current;
    void this.animation?.(anim.block,anim.name).then(clip=>{
     if(!clip||view.anim!==current)return;
-    current.binding=bindObjectAnimation(view.root,clip);
-   });
+    // A clip whose tracks name frames the model does not have (the basketball's on the hoop) plays nothing rather than
+    // raising an unhandled rejection.
+    try{current.binding=bindObjectAnimation(view.root,clip);}catch(error){this.error=String(error);}
+   },error=>{this.error=String(error);});
   }
   if(state.binding&&state.time!==anim.time){state.binding.sample(anim.time);state.time=anim.time;}
  }

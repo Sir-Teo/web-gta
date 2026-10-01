@@ -64,7 +64,9 @@ export interface ScmObject {
  matrix?:{right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number}};
  /** CTaskSimpleHoldEntity on the ped holding it: the ped's handle (the player's is 1), the offset, the PED_NODE the
   * object follows, the bone flags and m_fRotation (the object's heading less the ped's when it was taken). */
- heldBy?:{ped:number;offset:{x:number;y:number;z:number};node:number;flags:number;rotation:number};
+ heldBy?:{ped:number;offset:{x:number;y:number;z:number};node:number;flags:number;rotation:number;
+  /** Held by TASK_PICK_UP_SECOND_OBJECT, on the ped's other partial task slot. */
+  second?:boolean};
  /** CEntity::m_nAreaCode, which SET_OBJECT_AREA_VISIBLE sets as the char command sets a ped's. */
  areaCode:number;
  /** CEntity::m_pLod, the object this one is the detailed version of, as a handle. */

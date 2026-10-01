@@ -71,6 +71,15 @@ export class ScmPedPool<Ped>{
   this.said.set(handle,{pedType,model,position:{...position},heading:0,health:DEFAULT_PED_HEALTH,maxHealth:DEFAULT_PED_HEALTH,dead:false});
   return handle;
  }
+ /** A street ped a script took for its own (GET_RANDOM_CHAR_IN_ZONE: the pool hands out a reference to a ped that
+  * already exists, and the ped becomes PED_MISSION). */
+ adopt(ped:Ped,pedType:number,model:number|string|undefined,position:{x:number;y:number;z:number},heading:number,health=DEFAULT_PED_HEALTH){
+  const handle=this.pool.adopt(ped);
+  this.said.set(handle,{pedType,model,position:{...position},heading,health,maxHealth:Math.max(health,DEFAULT_PED_HEALTH),dead:false});
+  return handle;
+ }
+ /** The model the script made the ped with, or the one an adopted ped has. */
+ modelOf(handle:number){return this.word(handle).model;}
  /** CREATE_CHAR_INSIDE_CAR and its random forms: a handle for a ped that starts in a seat. */
  createInCar(pedType:number,model:number|string,vehicle:number,seat:number|'driver'){
   const handle=this.pool.create(()=>this.host.spawnInCar(pedType,model,vehicle,seat));

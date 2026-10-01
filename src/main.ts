@@ -166,6 +166,7 @@ import {SceneRegionFollower} from './assets/sceneRegionFollower';
 import {readSurfaceMovementFlags,steepSlopeRefusesJump,surfaceBlocksSprint} from './simulation/nativeSurfaceMovement';
 import {rapierClimbWorld} from './simulation/climbProbe';
 import {WEAPON_FLAG,nativeWeaponInfo} from './weapons/weaponData';
+import {nativePedType} from './ped/nativeAcquaintance';
 import {firstPersonMode} from './weapons/nativeFirstPerson';
 import {loadHudSprites} from './ui/nativeHudSprites';
 import {PLAYER_IDLE_CLIPS,PlayerIdles,loadPlayerIdles} from './assets/playerIdles';
@@ -4958,12 +4959,21 @@ async function boot() {
                  // script names is recorded rather than swapped in.
                  // CTheZones' map zones carry the level the script asks for.
                  playerCity:()=>worldLevelAt(zones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y]),
+                 cityAt:(x,y,z)=>worldLevelAt(zones,[x,y,z]),
                  modelIndex:name=>scriptPickupModels?.byName.get(name.toLowerCase())?.id??-1,
                  givePlayerWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected;if(weapons.inventory.give(weapon,ammo)&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);},
                  // SetCurrentCharWeapon only picks among the weapons the ped holds: a type he does not have changes nothing.
                  setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.owned.has(weapon)&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
                  setPlayerArmour:armour=>{sim.player.armour=armour;},playerArmour:()=>sim.player.armour,
+                 randomStreetPeds:()=>(pedestrians?.scriptCandidates()??[]).map(p=>{const at=p.actor.player.position;return {ped:p,pedType:nativePedType(p.pedType)??4,model:pedestrians!.modelIdOf(p)??-1,
+                  position:{x:at.x,y:-at.z,z:at.y+1},heading:(((p.actor.player.heading-Math.PI)*180/Math.PI)%360+360)%360,health:p.health,
+                  // CWorld::FindRoofZFor3DCoord: anything fixed straight above the ped.
+                  roofed:()=>!!sim.world.castRay(new RAPIER.Ray({x:at.x,y:at.y+1.2,z:at.z},{x:0,y:1,z:0}),200,true,RAPIER.QueryFilterFlags.ONLY_FIXED)};}),
+                 adoptStreetPed:ped=>{const p=onFoot(ped);if(p)pedestrians?.adoptForScript(p);},
+                 pedModelId:name=>pedestrians?.modelIdByName(name),
                  worldObjectsNear:(models,x,y,radius)=>importedScene?.modelPlacementsNear(models,x,y,radius)??[],
+                 modelTriggerPoint:(model,index)=>importedScene?.modelTriggerPoint(model,index),
+                 takeWorldObject:(key,taken)=>importedScene?.setModelPlacementTaken(key,taken)??false,
                  weaponTypeInfo:type=>{const info=weapons.native&&nativeWeaponInfo(weapons.native,type);return info?{slot:info.slot,model:info.models[0]}:undefined;},
                  // CText::LoadMissionText: the mission's table replaces the loaded one, so its subtitles and briefs read as
                  // text rather than keys. The GXT may still be loading at the mission's start; the request waits for it.

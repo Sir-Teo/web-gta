@@ -317,6 +317,9 @@ export class ScmGameState {
  readonly introRectangles=new ScmIntroRectangles();
  /** CTheScripts::Init text flags. */
  addNextMessageToPreviousBriefs=true;displayNonMiniGameHelpMessages=true;miniGameInProgress=false;drawSubtitlesBeforeFade=true;
+ /** CHud::bScriptForceDisplayWithCounters (FORCE_BIG_MESSAGE_AND_COUNTER): a big message shows while the on-screen
+  * counters are up. The browser's HUD draws both anyway; the flag is kept for the script. */
+ forceBigMessageAndCounter=false;
  /** CHud::m_ItemToFlash raw eHudItem value. */
  hudItemToFlash=0;
  /** CRestart's restart tables and override state, filled by the script's ADD_HOSPITAL_RESTART and

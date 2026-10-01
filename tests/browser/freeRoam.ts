@@ -8,6 +8,9 @@ export async function endStoryMission(page:Page){
   const r=(window as any).__game.missionForProfiling().runtime;
   for(const slot of [...r.active])if(slot.thread.base>0)r.terminateAllWithName(slot.thread.name);
   r.game.alreadyRunningAMissionScript=false;
+  // The mission's own end clears the global DECLARE_MISSION_FLAG names; ended from here, it is cleared by hand, or
+  // everything that asks "is the player on a mission" (the gyms, the shops' triggers) would still hear yes.
+  if(r.game.onAMissionFlag)new DataView(r.scriptSpace.buffer,r.scriptSpace.byteOffset,r.scriptSpace.byteLength).setUint32(r.game.onAMissionFlag,0,true);
   // The story faded the screen out (MAIN's opening DO_FADE 0 0) and turned zone names off until INTRO's end; free
   // roam comes back in at once with names on.
   // (A 0 ms fade-in never ends in CCamera::ProcessFade, so the shortest that does.)

@@ -35,7 +35,7 @@ export function roadsignPalette(flags:number){return flags>>4&3;}
 /** t2dEffectEscalatorStreamData (C2dEffectEscalator): the sloped run's bottom and top and the upper run's end in
  * model space, with the direction (0 down, 1 up). The effect's own position is the lower run's start. */
 export interface ModelEscalatorEffect {bottom:[number,number,number];top:[number,number,number];end:[number,number,number];direction:number}
-export interface Model2dEffect {position:[number,number,number];type:number;light?:ModelLightEffect;particle?:string;attractor?:ModelAttractorEffect;roadsign?:ModelRoadsignEffect;escalator?:ModelEscalatorEffect}
+export interface Model2dEffect {position:[number,number,number];type:number;triggerPoint?:number;light?:ModelLightEffect;particle?:string;attractor?:ModelAttractorEffect;roadsign?:ModelRoadsignEffect;escalator?:ModelEscalatorEffect}
 export const LIGHT_FLAG={checkObstacles:1,withoutCorona:8,onlyLongDistance:16,atDay:32,atNight:64,blinking1:128,onlyFromBelow:256,blinking2:512,updateHeightAboveGround:1024,checkDirection:2048,blinking3:4096} as const;
 
 /** The plugin's entry count, then per entry position, type and data size, as `t2dEffectPluginStreamRead` reads them. */
@@ -79,6 +79,9 @@ export function readTwoDEffects(bytes:Uint8Array):Model2dEffect[]{
    requireAsset([...queueDir,...useDir,...forwardDir].every(Number.isFinite),'Invalid ped attractor directions.');
    effect.attractor={type:attractorType,queueDir,useDir,forwardDir,scriptName,probability};
   }
+  // EFFECT_TRIGGER_POINT: the index CEntity::FindTriggerPointCoors looks a point up by (a gate's sensors, a
+  // basketball hoop's shooting spots, a slot machine's wheels).
+  else if(type===EFFECT.triggerPoint&&size>=4)effect.triggerPoint=data.u32()|0;
   out.push(effect);
  }
  requireAsset(r.position===bytes.length,'Unexpected 2d effect plugin payload.');

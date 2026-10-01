@@ -2,6 +2,7 @@ import type {ScmInstruction,ScmParameter} from '../assets/scm';
 import {CHEAT_ALL_TAXIS_NITRO,CHEAT_PROSTITUTES_PAY_YOU} from './ScmCheats';
 import {CRANE_LAS_VEGAS,CRANE_MAGNO,CRANE_NONE,CRANE_QUARRY,CRANE_WRECKING_BALL} from './ScmPlayerInfo';
 import {nativeUppercaseKey} from './nativeKeyGen';
+import {CLOTHES_MODEL_UNAVAILABLE,CLOTHES_TEXTURE_TOTAL,textureDependency} from './ScmClothes';
 import {NativeAngledRect} from './nativeAngledRect';
 import {requireAsset} from '../assets/binary';
 import {scmOpcode} from './scmOpcodes';
@@ -2943,6 +2944,27 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_USER_OF_CLOSEST_MAP_ATTRACTOR:(t,p)=>{t.writeInt(p[6],-1);},
  IS_CHAR_USING_MAP_ATTRACTOR:(t,_p,i)=>{t.updateCompareFlag(false,negated(i));},
  GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN:(t,p)=>{t.writeInt(p[4],-1);},
+ // CClock::ms_nGameClockDays and ms_nGameClockMonth (dispatch unreversed): a gym lets CJ work out again once the day
+ // or the month has moved on from his last session's.
+ GET_CURRENT_DATE:(t,p,i)=>{const clock=game(t,i).clock;t.writeInt(p[0],clock.days);t.writeInt(p[1],clock.month);},
+ // The second hold task (dispatches unreversed; DROP_SECOND_OBJECT's registration is disabled in the reference).
+ TASK_PICK_UP_SECOND_OBJECT:(t,p,i)=>{
+  world(t,i,'taskPickUpSecondObject')(t.readInt(p[0]),{kind:'pickUpObject',object:t.readInt(p[1]),offset:vec(t,p,2),
+   bone:t.readInt(p[5]),orientation:t.readInt(p[6]),animationName:t.text(p[7]),animationFile:t.text(p[8]),time:t.readInt(p[9])});
+ },
+ DROP_SECOND_OBJECT:(t,p,i)=>{world(t,i,'setPedDropsSecondObject')(t.readInt(p[0]),bool(t,p[1]));},
+ // CKeyGen::GetUppercaseKey of a name, and CPedClothesDesc's keys for a texture part with the model part it dresses
+ // (dispatches unreversed): the clothes shops ask what CJ wears before they change it.
+ GET_HASH_KEY:(t,p)=>{t.writeInt(p[1],nativeUppercaseKey(t.text(p[0]))|0);},
+ GET_CLOTHES_ITEM:(t,p,i)=>{
+  const clothes=game(t,i).clothes,part=t.readInt(p[1]);
+  requireAsset(Number.isInteger(part)&&part>=0&&part<CLOTHES_TEXTURE_TOTAL,'Clothes texture part out of range.');
+  const modelPart=textureDependency(part);
+  t.writeInt(p[2],clothes.textureKeys[part]|0);t.writeInt(p[3],modelPart===CLOTHES_MODEL_UNAVAILABLE?0:clothes.modelKeys[modelPart]|0);
+ },
+ // HAS_OBJECT_BEEN_UPROOTED: whether a street cart or a machine has been knocked off its footing. AUTHORED: the
+ // script's own objects are never uprooted here, and a host that tracks its map props answers for those.
+ HAS_OBJECT_BEEN_UPROOTED:(t,p,i)=>{t.updateCompareFlag(!!t.host?.world?.hasObjectBeenUprooted?.(t.readInt(p[0])),negated(i));},
  // CREATE_CHAR_AT_ATTRACTOR (registration disabled in the reference): the ped, standing at the scripted attractor.
  CREATE_CHAR_AT_ATTRACTOR:(t,p,i)=>{t.writeInt(p[4],world(t,i,'createCharAtAttractor')(t.readInt(p[0]),model(t,i,p[1]),t.readInt(p[2]),t.readInt(p[3])));},
  // --- CStreaming (ObjectCommands.cpp). CScriptResourceManager bookkeeping is unreversed.

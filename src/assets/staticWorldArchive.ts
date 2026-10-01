@@ -127,7 +127,10 @@ export function openStaticWorld(baseUrl:string,signal?:AbortSignal){
  return archive;
 }
 /** One published IMG: original offsets backed by immutable same-origin gzip chunks, with bounded retained decoded data. */
-async function openImg(base:URL,name:string,signal?:AbortSignal){
+/** The decoded chunks every IMG of one world keeps, least recently used first: one budget (LIMIT) for gta3.img and
+ * gta_int.img together, so a second archive does not double what a world retains. */
+interface ChunkBudget {retained:number;order:Map<string,{bytes:number;drop:()=>void}>}
+async function openImg(base:URL,name:string,signal?:AbortSignal,budget:ChunkBudget={retained:0,order:new Map()}){
  const response=await fetchWorldResource(new URL('manifest.json',base),signal,'no-cache');requireAsset(response.ok&&response.body,'World manifest download failed.');
  const manifest=JSON.parse(new TextDecoder().decode(await collect(response.body!,16*1024*1024))) as StaticWorldManifest;
  requireAsset(manifest.version===1&&manifest.archive?.name===name&&Number.isSafeInteger(manifest.archive.bytes)&&manifest.archive.bytes>0&&manifest.archive.bytes<=2*1024*1024*1024,'Invalid static world archive.');
@@ -140,16 +143,19 @@ async function openImg(base:URL,name:string,signal?:AbortSignal){
  const resourceNames=new Set<string>();for(const resource of manifest.resources){validateResource(resource);requireAsset(safePath(resource.path)&&!resourceNames.has(resource.path.toLowerCase()),'Invalid or duplicate world resource path.');if(resource.packed)requireAsset(safePath(resource.packed.file)&&Number.isSafeInteger(resource.packed.bytes)&&resource.packed.bytes>0&&resource.packed.bytes<=LIMIT,'Invalid packed world resource.');resourceNames.add(resource.path.toLowerCase());}
  const directory=await fetchStaticWorldBytes(new URL(directorySpec.file,base),directorySpec,signal);
  const cache=new Map<number,Uint8Array>(),pending=new Map<number,Promise<Uint8Array>>();let retainedBytes=0,downloads=0;
+ const key=(index:number)=>`${name}:${index}`;
  async function chunkBytes(index:number){
-  const cached=cache.get(index);if(cached){cache.delete(index);cache.set(index,cached);return cached;}
+  const cached=cache.get(index);if(cached){const held=budget.order.get(key(index));if(held){budget.order.delete(key(index));budget.order.set(key(index),held);}return cached;}
   const existing=pending.get(index);if(existing)return existing;
   const task=(async()=>{const spec=manifest.chunks[index],packed=await fetchStaticWorldBytes(new URL(spec.file,base),spec,signal);downloads++;
    // Stream the downloaded bytes straight into the inflater: wrapping them in a Blob first copies the chunk into
    // the browser's blob store.
    const source=new ReadableStream<Uint8Array<ArrayBuffer>>({start(controller){controller.enqueue(packed);controller.close();}});
    const bytes=await collect(source.pipeThrough(new DecompressionStream('gzip')),spec.expandedBytes);requireAsset(bytes.length===spec.expandedBytes,'Incomplete expanded world chunk.');
-   while(retainedBytes+bytes.length>LIMIT&&cache.size){const [key,value]=cache.entries().next().value!;retainedBytes-=value.length;cache.delete(key);}
-   cache.set(index,bytes);retainedBytes+=bytes.length;return bytes;
+   while(budget.retained+bytes.length>LIMIT&&budget.order.size)budget.order.values().next().value!.drop();
+   cache.set(index,bytes);retainedBytes+=bytes.length;budget.retained+=bytes.length;
+   budget.order.set(key(index),{bytes:bytes.length,drop:()=>{cache.delete(index);retainedBytes-=bytes.length;budget.retained-=bytes.length;budget.order.delete(key(index));}});
+   return bytes;
   })();pending.set(index,task);try{return await task;}finally{pending.delete(index);}
  }
  const read=async(from:number,to:number)=>{
@@ -191,9 +197,10 @@ export function combineImgs(images:readonly {entries:readonly {name:string;offse
 }
 async function openArchive(baseUrl:string,signal?:AbortSignal){
  const base=new URL(baseUrl,globalThis.location?.href);requireAsset(base.pathname.endsWith('/'),'Static world base URL must end with /.');
- const primary=await openImg(base,'gta3.img',signal),manifest=primary.manifest;
+ const budget:ChunkBudget={retained:0,order:new Map()};
+ const primary=await openImg(base,'gta3.img',signal,budget),manifest=primary.manifest;
  requireAsset(manifest.archives===undefined||Array.isArray(manifest.archives)&&manifest.archives.length<=4&&manifest.archives.every(a=>typeof a.name==='string'&&/^[a-z0-9_]+\.img$/i.test(a.name)&&typeof a.base==='string'&&a.base.endsWith('/')&&safePath(a.base.slice(0,-1))),'Invalid world archive list.');
- const extra:OpenedImg[]=await Promise.all((manifest.archives??[]).map(a=>openImg(new URL(a.base,base),a.name,signal)));
+ const extra:OpenedImg[]=await Promise.all((manifest.archives??[]).map(a=>openImg(new URL(a.base,base),a.name,signal,budget)));
  let file:File=primary.file,entries=primary.entries;
  if(extra.length){
   const combined=combineImgs([primary,...extra].map(image=>({entries:image.entries,bytes:image.manifest.archive.bytes,read:image.read})));

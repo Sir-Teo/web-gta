@@ -60,6 +60,8 @@ export interface InstalledNativeScene {
    * its queue, use and forward directions in native space (CPedAttractorManager::ComputeEffectPos and friends). */
   attractorsNear:(x:number,y:number,radius:number)=>WorldAttractor[];
   modelPlacementsNear:(models:ReadonlySet<string>,x:number,y:number,radius:number)=>{key:string;model:string;position:[number,number,number];heading:number}[];
+  modelTriggerPoint:(model:string,index:number)=>[number,number,number]|undefined;
+  setModelPlacementTaken:(key:string,taken:boolean)=>boolean;
   /** The tag placements' keys (tagKey) and CTagManager::SetAlpha's material alpha for one. */
   tagKeys:()=>string[];setTagAlpha:(key:string,alpha:number)=>void;
   /** Model names, and the 2d effects the scene package left out, supplied per geometry by model name. */
@@ -340,6 +342,22 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     }
     return out;
   };
+  /** A placement modelPlacementsNear listed (by its key) is taken out of the map, or put back: a script that moves the
+   * CObject made from it draws and collides its own copy meanwhile. */
+  const setModelPlacementTaken=(key:string,taken:boolean)=>{
+    if(disposed)return false;
+    const [name,index]=key.split(':'),part=parts.findIndex(p=>p.name===name),placement=Number(index);
+    if(part<0||!Number.isInteger(placement))return false;
+    for(const owner of new Set(placementOf.values()))if(owner.part===part&&owner.placement===placement&&owner.object.body.isValid())owner.object.body.setEnabled(!taken);
+    if(visibility){if(taken)visibility.remove(part,placement);else visibility.restore(part,placement);}
+    return true;
+  };
+  /** CEntity::FindTriggerPointCoors' lookup on a model: its EFFECT_TRIGGER_POINT of that index, in the model's own
+   * space, or nothing. */
+  const modelTriggerPoint=(model:string,index:number)=>{
+    const name=model.toLowerCase(),part=parts.find(p=>p.name.toLowerCase()===name);
+    return part?.model?.geometries.flatMap(g=>g.effects??[]).find(e=>e.triggerPoint===index)?.position;
+  };
   const attractorsNear=(x:number,y:number,radius:number)=>{
     const out:WorldAttractor[]=[],r2=radius*radius;
     if(attractorParts?.version!==effectsVersion){
@@ -531,6 +549,6 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
     for(const h of owner.object.sources.keys())world.getCollider(h)?.setEnabled(on);
     return true;
   };
-  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, occludedCount:()=>visibility?.stats.occluded??0, escalatorPlacements, removePlacement, setPlacementHidden, setPlacementCollision, placementInfo, uprootPlacement, syncMoving, settleMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, attractorsNear, modelPlacementsNear,particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
+  const installed:InstalledNativeScene={ area:area!, root, sources, shadowReceivers, missingCollision, setObjectData, setTime, updateView, occludedCount:()=>visibility?.stats.occluded??0, escalatorPlacements, removePlacement, setPlacementHidden, setPlacementCollision, placementInfo, uprootPlacement, syncMoving, settleMoving, placementRadius:(handle:number)=>{const owner=placementOf.get(handle);return owner&&!disposed?parts[owner.part].collision?.bounds.radius:undefined;}, vegetation:()=>vegetation?.snapshot(), litPlacements, attractorsNear, modelPlacementsNear, modelTriggerPoint, setModelPlacementTaken,particlePlacements, tagKeys:()=>[...tagPlacements.keys()], setTagAlpha, get effectsVersion(){return effectsVersion;}, partNames, supplyEffects, visibleModels: () => disposed ? [] : visibility!.models(), placementsNear:(x:number,z:number,radius:number)=>disposed?[]:visibility!.near(x,z,radius), get visibleInstanceCount() { return disposed ? 0 : visibility!.count; }, instanceCount: instances, colliderCount: colliders, reusedColliderCount,reusedPlacementCount,get pooledModelCount(){return sourcePool.size;},get retiredModelCount(){return sourcePool.retiredCount;},get retiredModelMB(){return sourcePool.retiredMB;},retiredModels:()=>sourcePool.retiredModels(),buildStages:stages,prebuild,previewHandles,advanceUvAnimations,get uvAnimatorCount(){return uvAnimators.size;},setNight, dispose, replace };
   physicsOwnership.set(installed,{owned:physical,active:()=>!disposed});poolOwnership.set(installed,{adopt:()=>{ownsPool=true;}});return installed;
 }

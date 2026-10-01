@@ -8642,3 +8642,38 @@ that did anything.
 - **Smaller things.** A weapon laid on the counter no longer shows its muzzle flash; the help box takes upper-case
   `~N~` as a new line; `SET_CHAR_COORDINATES_DONT_WARP_GANG_NO_OFFSET` takes the ped's centre.
 
+## Gyms, script-moved map objects, street peds for scripts, and the archive's side effects
+
+- **The gyms.** `gymbench`, `gymbike`, `gymtread` and `gymdumb` start on their object brains and ran into
+  `GET_CURRENT_DATE` (now CClock's day and month: one session a day), `TASK_PICK_UP_SECOND_OBJECT` /
+  `DROP_SECOND_OBJECT` (a second held object beside the first, for the two dumbbells) and
+  `SET_CHAR_ANIM_PLAYING_FLAG` (a stopped clip holds its frame; started again it runs at the usual rate, AUTHORED in
+  that the rate it had is not kept). The bench press is checked in `interior-shops`: the weights menu, CJ on the
+  bench with the bar, the power bar and the rep counter.
+- **A map object a script moves.** A brain's object stands for a placement the map draws. Once its script moves,
+  turns or animates it (an automatic gate sliding open), the map's copy is taken out and the object is drawn and
+  collided as the script's own; the map has it back when the object goes.
+- **Trigger points.** `GET_LEVEL_DESIGN_COORDS_FOR_OBJECT` is `CEntity::FindTriggerPointCoors` (0x533380): the
+  model's EFFECT_TRIGGER_POINT of that index under the object's matrix (here its heading about the vertical).
+- **Street peds for scripts.** `GET_RANDOM_CHAR_IN_ZONE` follows `GetRandomCharInZone`
+  (CharacterCommands.cpp:1784): the first game-made ped on foot of an asked-for kind (`ThisIsAValidRandomPed`) in the
+  navigation zone, within five units of the player's height and under no roof, other than the last one handed out;
+  it becomes PED_MISSION under the handle the pool gives it. `GET_CHAR_MODEL` / `IS_CHAR_MODEL` answer with the
+  peds.ide id. The taxi's fares and the pimping mission's girls come from it.
+- **Paramedic lookups.** `GET_CLOSEST_CHAR_NODE` (`GetClosestCharNode`: a ped node, switched-off ones included),
+  `GET_CITY_FROM_COORDS`, `FORCE_BIG_MESSAGE_AND_COUNTER` (the flag is kept; the HUD draws both anyway).
+- **Clothes queries.** `GET_HASH_KEY` and `GET_CLOTHES_ITEM` read CPedClothesDesc's keys. Drawing bought clothes
+  still needs `player.img`.
+- **Scripts that are not streamed in.** `player_parachute` and `camera` (the port's own parachute and photographs
+  stand in; the originals would run beside them), and any streamed script that stopped once on a command the port
+  lacks: MAIN asks for the pounds', the valet's and the cranes' again whenever none runs, and each would stop at
+  the same command every pass.
+- **A give-up hands back only what a shop took.** A streamed script that stops restores the player's controls and
+  the camera only while the minigame flag is up (every counter sets it before it takes them); a gate's or a
+  machine's brain stopping as the player drives by leaves a mission's camera alone.
+- **gta_int.img's side effects.** Two more car generators come with its placements (1,045); the decoded-chunk cache
+  is one 64 MB budget across both archives rather than one each.
+- **Already red on main.** A full browser run of this branch against unmodified main (f10a5789) found 33 specs
+  failing on both, several of them on the starting loadout's full armour (a hit no longer takes health) and the
+  opening's held fade. They are not from this work and are left for their own pass.
+
