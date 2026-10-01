@@ -8802,3 +8802,18 @@ that did anything.
   `CWaterCannon` (the player's is another), which puts fires out and pushes peds as the player's does.
 - `m_IsBeingExtinguished` is set by the water and cleared only when a fire starts or goes out, so a fire the jet
   only grazed is passed over by `FindNearestFire` and left to burn down; the port keeps that.
+
+## Random-ped brains: the dealers
+
+- **The trigger is AUTHORED.** `CScriptsForBrains::CheckIfNewEntityNeedsScript` and
+  `StartOrRequestNewStreamedScriptBrain` are unreversed. From the allocation's operands and the scripts: a street ped
+  whose model has an active `ALLOCATE_STREAMED_SCRIPT_TO_RANDOM_PED` brain is weighed once, the first time it is
+  seen, against the brain's chance; a chosen one gets a script handle without becoming `PED_MISSION`
+  (`bHasAScriptBrain`), and the streamed script starts with it as `0@` (external type 0, `ShutdownThisScript`'s ped
+  case). The script runs while the ped lives; one the population removes reads as dead and the script ends itself.
+  MAIN gives `dealer.scm` to BMYDRUG, WMYDRUG, HMYDRUG and BIKDRUG at 100% and `hotdog.scm` to BMOCHIL.
+- **dealer.scm runs.** `GET_NAME_OF_INFO_ZONE` (disabled in the reference) is the smallest zone's info label, as
+  `FindSmallestZoneForPosition` over every zone type gives it; `SET_CHAR_WANTED_BY_POLICE` and `SET_CHAR_DRUGGED_UP`
+  are kept on the handle and not read yet; `GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS` finds nobody (AUTHORED: the
+  browser makes no drug buyers). A dealer now carries $2000, loops `DEALER_IDLE`, looks about and wanders, and draws
+  the pistol when the player targets or hurts him; his script cleans up when he dies.
