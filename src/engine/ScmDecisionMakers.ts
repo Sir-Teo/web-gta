@@ -26,9 +26,14 @@ export interface ScmDecisionMaker {
  group:boolean;referenceIndex:number;loaded:boolean;
  /** A copy's source: the default decision maker whose decisions it took (-1 for none). */
  copiedFrom?:number;
+ /** Made by COPY_SHARED_CHAR_DECISION_MAKER, and handed again to the next script that asks for its template. */
+ shared?:boolean;
 }
 export class ScmDecisionMakers {
  private readonly slots:(ScmDecisionMaker|undefined)[]=Array(TOTAL_DECISION_MAKERS).fill(undefined);
+ /** Each slot's reference index, which goes on counting as the slot is freed and taken again, so a handle to what it
+  * held before names nothing rather than its new maker. */
+ private readonly references:number[]=Array(TOTAL_DECISION_MAKERS).fill(1);
  /** The slot a handle names: its low half, as every script thing is addressed. */
  static indexOf(handle:number){return handle&0xffff;}
  private at(handle:number){
@@ -56,6 +61,20 @@ export class ScmDecisionMakers {
   const from=source===-1?-1:ScmDecisionMakers.indexOf(source);
   return {handle:this.allocate({type:-1,file:'',forMission,group:false,loaded:true,copiedFrom:from}),from};
  }
+ /** COPY_SHARED_CHAR_DECISION_MAKER (handler unreversed; AUTHORED): the copy of a default decision maker the scripts
+  * share, made once a template and handed again to the next script that asks for that template until it is removed.
+  * dealer.scm, which every street dealer's brain runs, keeps the copy in one global, edits its responses through it,
+  * and frees what the global names when its dealer is done; a copy for each brain filled the ten script slots with
+  * dealers within minutes and the next brain gave up. */
+ copyShared(source:number,forMission:boolean){
+  requireAsset(Number.isInteger(source),'Invalid decision maker source.');
+  const from=source===-1?-1:ScmDecisionMakers.indexOf(source);
+  const shared=this.slots.find(maker=>maker?.shared&&maker.copiedFrom===from);
+  if(shared)return {handle:(shared.referenceIndex<<16|shared.index)|0,from,made:false};
+  const copied=this.copy(source,forMission);
+  this.slots[ScmDecisionMakers.indexOf(copied.handle)]!.shared=true;
+  return {...copied,made:true};
+ }
  /** CTheScripts::GetActualScriptThingIndex for a decision maker: the slot a handle names, or -1 when a script slot's
   * reference no longer matches (freed and reused). The game's own makers below COUNT_GAME_DECISION_MAKERS are always
   * there. */
@@ -70,10 +89,9 @@ export class ScmDecisionMakers {
   let index=COUNT_GAME_DECISION_MAKERS;
   while(index<TOTAL_DECISION_MAKERS&&this.slots[index])index++;
   requireAsset(index<TOTAL_DECISION_MAKERS,'Every decision maker slot is taken.');
-  const maker:ScmDecisionMaker={index,referenceIndex:1,...fields};
-  this.slots[index]=maker;
-  const {handle,referenceIndex}=scriptThingHandle(index,maker.referenceIndex);
-  maker.referenceIndex=referenceIndex;
+  const {handle,referenceIndex}=scriptThingHandle(index,this.references[index]);
+  this.references[index]=referenceIndex;
+  this.slots[index]={index,referenceIndex,...fields};
   return handle;
  }
  /** What a handle names, or nothing once its slot has been freed. */

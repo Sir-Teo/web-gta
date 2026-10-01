@@ -63,6 +63,8 @@ describe('the decision makers a script loads',()=>{
   const second=run(game,false,instruction(scmOpcode('LOAD_CHAR_DECISION_MAKER'),[int(4),gvar(40)])).global(40);
   expect(ScmDecisionMakers.indexOf(second)).toBe(ScmDecisionMakers.indexOf(first));
   expect(game.decisionMakers.get(second)).toMatchObject({type:4,file:'m_steal.ped'});
+  // The slot's reference index has moved on: the old handle names nothing.
+  expect(second).not.toBe(first);expect(game.decisionMakers.actualIndex(first)).toBe(-1);
  });
 
  test('the table holds ten of its own beyond the built-in ones and refuses an eleventh',()=>{
@@ -80,6 +82,24 @@ describe('the decision makers a script loads',()=>{
 });
 
 describe('DOES_DECISION_MAKER_EXIST',()=>{
+ test('every dealer brain shares one copy of a template until it is removed, and a new one is made after',()=>{
+  // dealer.scm: COPY_SHARED_CHAR_DECISION_MAKER 65539 into the global every dealer's brain shares.
+  const game=new ScmGameState(),seeded:number[]=[];
+  const copy=()=>{
+   const space=new Uint8Array(2048);space.set(instruction(scmOpcode('COPY_SHARED_CHAR_DECISION_MAKER'),[int(65539),gvar(40)]),CODE);
+   const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game,world:{fade(){},seedDecisionMaker:(handle:number)=>{seeded.push(handle);}} as unknown as ScmWorldCommands});
+   try{thread.run(0,4);}catch(error){if(!String(error).match(/watchdog|opcode|Unknown/))throw error;}
+   return new DataView(space.buffer).getInt32(40,true);
+  };
+  const first=copy();
+  for(let i=0;i<30;i++)expect(copy()).toBe(first);
+  expect(game.decisionMakers.count).toBe(1);expect(seeded).toEqual([first]);
+  game.decisionMakers.remove(first);
+  const next=copy();expect(next).not.toBe(first);expect(game.decisionMakers.count).toBe(1);expect(seeded).toEqual([first,next]);
+  // Another template has its own.
+  const other=game.decisionMakers.copyShared(65538,false);expect(other.made).toBe(true);expect(game.decisionMakers.count).toBe(2);
+ });
+
  test('the game’s own makers always, a script’s while its slot still holds it, and -1 never',()=>{
   const game=new ScmGameState();
   const handle=run(game,false,instruction(scmOpcode('LOAD_CHAR_DECISION_MAKER'),[int(1),gvar(40)])).global(40);

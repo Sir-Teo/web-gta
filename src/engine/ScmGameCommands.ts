@@ -2336,7 +2336,11 @@ const handlers:Record<string,ScmCommandHandler>={
  STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'carCharIsAttachedTo')(t.readInt(p[0])));},
  SET_ACTIVE_MENU_ITEM:(t,p,i)=>{game(t,i).menus.setActiveMenuItem(t.readInt(p[0]),t.readInt(p[1]));},
  GET_CAR_MODEL_VALUE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCarModelValue')(model(t,i,p[0])));},
- COPY_SHARED_CHAR_DECISION_MAKER:(t,p,i)=>{const {handle,from}=game(t,i).decisionMakers.copy(t.readInt(p[0]),t.usesMissionCleanup);t.writeInt(p[1],handle);t.host?.world?.seedDecisionMaker?.(handle,from);},
+ // The shared copy a template already has keeps the responses the scripts gave it.
+ COPY_SHARED_CHAR_DECISION_MAKER:(t,p,i)=>{
+  const {handle,from,made}=game(t,i).decisionMakers.copyShared(t.readInt(p[0]),t.usesMissionCleanup);
+  t.writeInt(p[1],handle);if(made)t.host?.world?.seedDecisionMaker?.(handle,from);
+ },
  PLAY_BEAT_TRACK:(t,_p,i)=>{game(t,i).cutsceneTrack.play();},
  SET_OBJECT_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'setObjectRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  LOCATE_STOPPED_CAR_2D:locateVehicle(false,true),

@@ -9131,3 +9131,13 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   at once (AUTHORED).
 - Spec: `player-parachute` (the drop from 150 units, the free fall and its tilt, the canopy drawn over him, the eased
   fall and the landing with the script ended).
+
+## The dealers share one decision maker
+
+- **`COPY_SHARED_CHAR_DECISION_MAKER`** (handler unreversed; AUTHORED): one copy of a default decision maker a template,
+  handed again to every script that asks for that template until it is removed, and seeded only when made.
+  `dealer.scm`, which every street dealer's brain runs, copies the template into one global, edits its responses
+  through it and frees what the global names when its dealer is done. A copy for each brain filled the ten script
+  slots with dealers within minutes, and the next brain gave up (SWEET3's sweep stopped on it).
+- **A decision maker slot's reference index goes on counting** as the slot is freed and taken again
+  (`CTheScripts`' script things): a handle to what the slot held before names nothing, rather than its new maker.
