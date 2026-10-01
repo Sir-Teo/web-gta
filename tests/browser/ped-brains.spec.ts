@@ -31,3 +31,35 @@ test('a street dealer runs dealer.scm: his money, his idle, and the script ends 
  expect(await page.evaluate(()=>(window as any).__game.missionForProfiling().snapshot().gaveUp)).toEqual([]);
  expect(errors).toEqual([]);
 });
+
+// CConversationForPed::Update (AUTHORED): CJ stepping up to a dealer starts dealer.scm's conversation ("You want some
+// stuff?", DEAL1, unsubtitled in English as the script asks); the script shows TALK_1's yes-or-no help, and Y answers
+// yes, which takes the conversation to the dealer's DEAL2 that the script waits on.
+test('a dealer asks CJ if he wants some, and Y answers him',async({page})=>{
+ test.setTimeout(300000);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await endStoryMission(page);
+ await expect.poll(async()=>(await state(page)).player.grounded,{timeout:60000}).toBe(true);
+ await expect.poll(async()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.scriptBrains.brains.some((b:any)=>b.typeOfBrain===1)),{timeout:60000}).toBe(true);
+ await expect.poll(async()=>page.evaluate(async()=>{
+  const g=(window as any).__game,p=g.pedestrians(),me=g.sim.player.position,node=p.nearestNode({x:me.x+8,y:me.y,z:me.z});
+  if(!node)return false;await p.spawnDealer(node,{x:me.x,z:me.z});return g.state().pedestrians.people.some((q:any)=>/drug/i.test(String(q.model)));
+ }),{timeout:60000,intervals:[3000]}).toBe(true);
+ await expect.poll(async()=>(await threads(page)).includes('DEALER'),{timeout:30000}).toBe(true);
+ const dealer=await page.evaluate(()=>(window as any).__game.state().pedestrians.people.find((q:any)=>/drug/i.test(String(q.model))).id);
+ await expect.poll(async()=>(await state(page)).pedestrians.people.find((q:any)=>q.id===dealer)?.reaction,{timeout:30000}).toBe('dealer_idle');
+ const handle=await page.evaluate(()=>{const m=(window as any).__game.missionForProfiling();return m.runtime.game.conversations.all.find((c:any)=>c.ped!==undefined)?.ped;});
+ expect(handle).toBeDefined();
+ // CJ steps up beside him.
+ await page.evaluate(id=>{const g=(window as any).__game,q=g.pedestrians().people.find((x:any)=>x.id===id).actor.player.position;g.placePlayer(q.x+1.5,q.y,q.z);},dealer);
+ const conversation=()=>page.evaluate(h=>{const c=(window as any).__game.missionForProfiling().runtime.game.conversations.forPed(h);return {status:c?.status,node:c?.currentNode};},handle);
+ await expect.poll(async()=>(await conversation()).status,{timeout:20000}).toBe(3);
+ expect((await conversation()).node).toBe('DEAL1');
+ await expect.poll(async()=>page.evaluate(()=>(document.querySelector('.help-box') as HTMLElement)?.textContent??''),{timeout:10000}).toContain('reply');
+ await page.screenshot({path:'artifacts/dealer-conversation.png'});
+ await page.keyboard.press('KeyY');
+ await expect.poll(async()=>(await conversation()).node,{timeout:10000}).toBe('DEAL2');
+ expect(await page.evaluate(()=>(window as any).__game.missionForProfiling().snapshot().gaveUp)).toEqual([]);
+ expect(errors).toEqual([]);
+});

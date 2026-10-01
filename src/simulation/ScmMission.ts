@@ -1,3 +1,4 @@
+import {CONVERSATION_PED_LINE_MS} from '../engine/ScmConversations';
 import {SPECIAL_MODELS_RESOURCE_ID,SPECIAL_PED_MODELS} from '../engine/ScmCutscene';
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
@@ -679,6 +680,8 @@ export interface ScmMissionWorld {
 }
 /** CTheScripts' player slot: the script always addresses player zero, whose ped it creates first. */
 export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
+/** How near a ped the player stands for its conversation (AUTHORED; see playerInPositionForConversation). */
+const CONVERSATION_REACH=3,CONVERSATION_HEIGHT=2;
 /** CVehicle::CanPedOpenLocks answered for the player by eCarLock. */
 export const playerLockedOut=(lock:number)=>lock===2||lock===3||lock===4||lock===5||lock===7;
 /** The browser holds one vehicle for the player at a time, so the script's questions about the car it is in are
@@ -1320,6 +1323,7 @@ export class ScmMission {
    // AddScriptSayEvent plays the line from the scripted speech banks (GetSoundAndBankIDsForScriptedSpeech), which are
    // in AUDIO/SFX and not published: the casino's dealers deal on without their lines.
    pedSayScript:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);},
+   isPlayerInPositionForConversation:handle=>{this.livePed(handle);return this.playerInPositionForConversation(handle);},
    // FxSystem_c::AttachToBone: the system follows the bone (a bone tag) from here.
    attachFxSystemToPedBone:(fx,handle,bone)=>{
     const record=this.scriptFx.get(fx);if(!record)throw new UnsupportedScmCommand(-1,0,'AN_FX_SYSTEM_THE_BROWSER_DOES_NOT_HOLD',`fx ${fx}`);
@@ -2343,6 +2347,25 @@ export class ScmMission {
  private readonly resprayedCars=new WeakSet<object>();
  /** What the host calls on the vehicle a Pay 'n' Spray resprays. */
  markResprayed(car:object){this.resprayedCars.add(car);}
+ /** CConversationForPed::IsPlayerInPositionForConversation (0x43AC40, unreversed; AUTHORED): both on foot and alive,
+  * the player within CONVERSATION_REACH of the ped across and CONVERSATION_HEIGHT up or down. */
+ private playerInPositionForConversation(handle:number){
+  const me=this.world.playerPed();
+  if(me.dead||me.health<=0||me.vehicle)return false;
+  if(!this.peds.exists(handle)||(this.peds.healthOf(handle)??0)<=0||this.peds.rideOf(handle))return false;
+  const p=this.peds.positionOf(handle),q=me.position;
+  return Math.hypot(p.x-q.x,p.y-q.y)<CONVERSATION_REACH&&Math.abs(p.z-q.z)<CONVERSATION_HEIGHT;
+ }
+ /** CConversations::Update after the scripts: the ped's line goes up as a subtitle, PRINT_NOW's way, when the
+  * conversation has them (dealer.scm turns them off in English). */
+ private updateConversations(nowMs:number){
+  const conversations=this.runtime.game.conversations;if(!conversations.count)return;
+  conversations.update(nowMs,{
+   inPosition:ped=>this.playerInPositionForConversation(ped),
+   pedSays:(_ped,node,subtitles)=>{if(subtitles)this.runtime.game.messages.addMessageJump(node.name,CONVERSATION_PED_LINE_MS,1,false,nowMs);},
+   playerSays:()=>{},
+  });
+ }
  private processGarageDoors(nowMs:number){
   const near=this.world.worldObjectsNear,models=this.world.garageDoorModels?.();
   if(!near||!models?.size)return;
@@ -3392,7 +3415,7 @@ export class ScmMission {
   this.highlights.clear();
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
-  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
+  try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.updateConversations(nowMs);if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);
    this.drownRiders(timeStepMs);

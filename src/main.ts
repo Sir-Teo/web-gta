@@ -2599,7 +2599,9 @@ async function boot() {
      // to the ped he targets (with the aim button, the crosshair's ped or the nearest ahead; without it, the nearest
      // ahead within a few steps), and the ped answers (WorldPedestrians.converse).
      const yes=onFoot&&input.consume('KeyY'),no=onFoot&&input.consume('KeyN');
-     if((yes||no)&&!playerControlsDisabled()&&sim.player.health>0&&sim.knockdown===0&&pedestrians){
+     // A script's conversation waiting for an answer takes it first (CConversationForPed::Update reads the same pad).
+     const answered=(yes||no)&&!playerControlsDisabled()&&!!mission?.runtime.game.conversations.answer(yes?'yes':'no');
+     if(!answered&&(yes||no)&&!playerControlsDisabled()&&sim.player.health>0&&sim.knockdown===0&&pedestrians){
       const info=weapons.inventory.info(),crosshair=['bullet','shotgun','rocket'].includes(weapons.inventory.weapon.kind);
       const target=input.down('MouseAim')?{handle:crosshair?weapons.lock?.handle??undefined:undefined,range:info?.targetRange??GROUP_RECRUIT_MELEE_RANGE}:{range:CONVERSE_RANGE};
       if(pedestrians.converse(yes?'yes':'no',target)!=='none'){const p=sim.player.position;sound.nativeEngine?.speech(yes?'greet':'threat',{x:p.x,y:-p.z,z:p.y},Math.abs(Math.floor(p.x*13-p.z*7)));}

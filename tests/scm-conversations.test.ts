@@ -1,7 +1,7 @@
 import {describe,expect,test} from 'vitest';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
-import {CONVERSATION_INACTIVE,CONVERSATION_PED_SPEAKING,CONVERSATION_PLAYER_SPEAKING,MAX_NUM_CONVERSATIONS,
+import {CONVERSATION_INACTIVE,CONVERSATION_PED_SPEAKING,CONVERSATION_PLAYER_SPEAKING,MAX_NUM_CONVERSATIONS,ScmConversations,CONVERSATION_PED_LINE_MS,CONVERSATION_PLAYER_LINE_MS,
  MAX_NUM_TEMP_CONVERSATION_NODES,conversationNodeName} from '../src/engine/ScmConversations';
 import {scmOpcode} from '../src/engine/scmOpcodes';
 
@@ -155,5 +155,43 @@ describe('conversations of deleted peds',()=>{
   alive.delete(1);alive.add(100);setUp(100);
   expect(game.conversations.forPed(100)?.nodes[0].name).toBe('HI');
   expect(game.conversations.forPed(1)).toBeUndefined();
+ });
+});
+
+describe('CConversationForPed::Update (AUTHORED)',()=>{
+ const dealer=()=>{
+  const c=new ScmConversations();c.startSettingUp(7);
+  c.setUpNode('DEAL1','DEAL2','DEAL3',192,77,78);c.setUpNode('DEAL2',undefined,undefined,79,0,0);c.setUpNode('DEAL3',undefined,undefined,75,0,0);
+  c.finishSettingUp(false);return c;
+ };
+ const world=(near:{value:boolean})=>{const said:string[]=[];return {said,w:{inPosition:()=>near.value,pedSays:(_p:number,n:{name:string})=>{said.push(n.name);},playerSays:(_p:number,a:string)=>{said.push(`player ${a}`);}}};};
+ test('the player comes near, the ped asks, the answer leads to its node, which ends there',()=>{
+  const c=dealer(),near={value:false},{said,w}=world(near);
+  c.update(0,w);expect(said).toEqual([]);
+  near.value=true;c.update(100,w);
+  expect(said).toEqual(['DEAL1']);expect(c.forPed(7)!.status).toBe(CONVERSATION_PED_SPEAKING);
+  // No answer before the ped has finished; then it waits for one.
+  expect(c.answer('yes')).toBe(false);
+  c.update(100+CONVERSATION_PED_LINE_MS,w);expect(c.waitingForInput).toBe(true);
+  expect(c.answer('yes')).toBe(true);c.update(3000,w);
+  expect(said.at(-1)).toBe('player yes');
+  // While the player speaks the conversation is at no node.
+  expect(c.isAtNode(7,'DEAL1')).toBe(false);
+  c.update(3000+CONVERSATION_PLAYER_LINE_MS,w);
+  expect(said.at(-1)).toBe('DEAL2');expect(c.isAtNode(7,'DEAL2')).toBe(true);
+  c.update(3000+CONVERSATION_PLAYER_LINE_MS+CONVERSATION_PED_LINE_MS,w);
+  expect(c.forPed(7)!.status).toBe(CONVERSATION_INACTIVE);expect(c.isAtNode(7,'DEAL2')).toBe(true);
+  // It does not start again until the player has stepped away.
+  c.update(20000,w);expect(said.filter(x=>x==='DEAL1').length).toBe(1);
+  near.value=false;c.update(21000,w);near.value=true;c.update(22000,w);
+  expect(said.filter(x=>x==='DEAL1').length).toBe(2);
+ });
+ test('walking off while the ped waits drops the conversation; a disabled one never starts',()=>{
+  const c=dealer(),near={value:true},{said,w}=world(near);
+  c.update(0,w);c.update(CONVERSATION_PED_LINE_MS,w);expect(c.waitingForInput).toBe(true);
+  near.value=false;c.update(CONVERSATION_PED_LINE_MS+10,w);
+  expect(c.forPed(7)!.status).toBe(CONVERSATION_INACTIVE);expect(c.isAtNode(7,'DEAL1')).toBe(true);
+  const off=dealer();off.enable(7,false);const x=world({value:true});off.update(0,x.w);expect(x.said).toEqual([]);
+  expect(said).toEqual(['DEAL1']);
  });
 });

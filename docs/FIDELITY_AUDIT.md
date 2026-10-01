@@ -8959,3 +8959,16 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **`SET_HELP_MESSAGE_BOX_SIZE`** sets `CHud::m_fHelpMessageBoxWidth` (200 from `CHud::Initialise`); `DrawHelpText` is
   unreversed, so the box keeps its authored size at 200 and scales with the width a script gives (blackj's 128).
 - **`ENABLE_DISABLED_ATTRACTORS_ON_OBJECT`** sets `objectFlags.bEnableDisabledAttractors` (ObjectCommands.cpp:150).
+
+## Scripted conversations
+
+- **`CConversationForPed::Update` and `IsPlayerInPositionForConversation` (AUTHORED; 0x43C190 and 0x43AC40 are
+  unreversed).** Set-up conversations now run: an enabled one starts when the player, on foot, comes within 3 units
+  across and 2 up or down of its ped (also on foot) and no other is going on; the ped says its first node, then a node
+  with answers waits for `CONVERSATION_YES` or `CONVERSATION_NO` (Y and N, which go to the conversation before the
+  street), the player says his answer, and the ped goes on with the node it leads to; a node with none ends it there,
+  where `IS_CONVERSATION_AT_NODE` finds it, until the player steps away. Walking off while the ped waits drops it back
+  to its start. A ped's line goes up as a subtitle for 2.5 s unless the conversation was finished without subtitles
+  (dealer.scm does that in English); the player's answer takes 1.2 s. The speech itself is in the unpublished banks.
+  A dealer now asks CJ "You want some stuff?" and takes his answer (spec `ped-brains`); gf_meeting, HEIST1 and MUSIC1
+  use the same machinery.

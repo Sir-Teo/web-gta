@@ -28,7 +28,25 @@ export interface ScmConversationForPed {
  currentNode?:string;
  nodes:ScmConversationNode[];
  suppressSubtitles:boolean;
+ /** m_LastChange: when the status last moved, ms. */
+ lastChange?:number;
+ /** The node the player's answer leads to, while he says it. */
+ chosen?:string;
+ /** An ended conversation starts again only once the player has stepped out of position. */
+ finished?:boolean;
 }
+/** What CConversationForPed::Update asks of the world. */
+export interface ScmConversationWorld {
+ /** IsPlayerInPositionForConversation for the ped. */
+ inPosition(ped:number):boolean;
+ /** The ped says a node's line: its GXT key, as a subtitle when the conversation has them. */
+ pedSays(ped:number,node:ScmConversationNode,subtitles:boolean):void;
+ /** The player answers yes or no to the node. */
+ playerSays(ped:number,answer:'yes'|'no',node:ScmConversationNode):void;
+}
+/** How long a ped's line and the player's answer last (AUTHORED: the original waits for the speech sample, which is not
+ * published, to finish). */
+export const CONVERSATION_PED_LINE_MS=2500,CONVERSATION_PLAYER_LINE_MS=1200;
 /** The six-character upper-case name a node is stored under. */
 export const conversationNodeName=(name:string)=>name.slice(0,6).toUpperCase();
 export class ScmConversations {
@@ -100,4 +118,59 @@ export class ScmConversations {
  clearAll(){this.conversations.length=0;this.temp=[];this.settingUpFor=undefined;}
  /** CConversations::IsConversationGoingOn, which GET_CONVERSATION_STATUS reads. */
  get goingOn(){return this.conversations.some(conversation=>conversation.status!==CONVERSATION_INACTIVE);}
+ /** A conversation waits for the player's yes or no. */
+ get waitingForInput(){return this.conversations.some(conversation=>conversation.ped!==undefined&&conversation.status===CONVERSATION_WAITING_FOR_INPUT);}
+ private pendingAnswer?:'yes'|'no';
+ /** CPad::ConversationYesJustDown or ConversationNoJustDown: taken by the conversation waiting for one, at its next
+  * update. Whether one was waiting (the button then says nothing to the street). */
+ answer(kind:'yes'|'no'){if(!this.waitingForInput)return false;this.pendingAnswer=kind;return true;}
+ private node(conversation:ScmConversationForPed,name:string|undefined){return name===undefined?undefined:conversation.nodes.find(node=>node.name===name);}
+ private speak(conversation:ScmConversationForPed,node:ScmConversationNode,nowMs:number,world:ScmConversationWorld){
+  conversation.currentNode=node.name;conversation.status=CONVERSATION_PED_SPEAKING;conversation.lastChange=nowMs;
+  world.pedSays(conversation.ped!,node,!conversation.suppressSubtitles);
+ }
+ private end(conversation:ScmConversationForPed){conversation.status=CONVERSATION_INACTIVE;conversation.finished=true;}
+ /** CConversations::Update, each conversation's CConversationForPed::Update (0x43C190, unreversed; AUTHORED after the
+  * retail game): an enabled conversation starts when the player comes into position and no other is going on, the ped
+  * saying its first node; a node with answers then waits for the player's yes or no, which he says before the ped
+  * goes on with the node it leads to; a node with none ends the conversation there, where IS_CONVERSATION_AT_NODE finds
+  * it, until the player steps away. Walking off while the ped waits for an answer drops the conversation back to its
+  * start. */
+ update(nowMs:number,world:ScmConversationWorld){
+  for(const conversation of this.conversations){
+   const ped=conversation.ped;if(ped===undefined)continue;
+   const inPosition=world.inPosition(ped);
+   switch(conversation.status){
+    case CONVERSATION_INACTIVE:
+     if(!inPosition){conversation.finished=false;break;}
+     if(!conversation.enabled||conversation.finished||!conversation.nodes.length)break;
+     if(this.conversations.some(other=>other!==conversation&&other.ped!==undefined&&other.status!==CONVERSATION_INACTIVE))break;
+     this.speak(conversation,conversation.nodes[0],nowMs,world);break;
+    case CONVERSATION_PED_SPEAKING:{
+     if(nowMs-(conversation.lastChange??nowMs)<CONVERSATION_PED_LINE_MS)break;
+     const node=this.node(conversation,conversation.currentNode);
+     if(node&&(node.yes||node.no)){conversation.status=CONVERSATION_WAITING_FOR_INPUT;conversation.lastChange=nowMs;}
+     else this.end(conversation);
+     break;
+    }
+    case CONVERSATION_WAITING_FOR_INPUT:{
+     if(!inPosition||!conversation.enabled){conversation.status=CONVERSATION_INACTIVE;conversation.currentNode=conversation.nodes[0]?.name;break;}
+     const kind=this.pendingAnswer;if(!kind)break;
+     this.pendingAnswer=undefined;
+     const node=this.node(conversation,conversation.currentNode),next=kind==='yes'?node?.yes:node?.no;
+     if(!node||!next)break;
+     conversation.chosen=next;conversation.status=CONVERSATION_PLAYER_SPEAKING;conversation.lastChange=nowMs;
+     world.playerSays(ped,kind,node);break;
+    }
+    case CONVERSATION_PLAYER_SPEAKING:{
+     if(nowMs-(conversation.lastChange??nowMs)<CONVERSATION_PLAYER_LINE_MS)break;
+     const next=this.node(conversation,conversation.chosen);conversation.chosen=undefined;
+     if(next)this.speak(conversation,next,nowMs,world);
+     else{conversation.currentNode=undefined;this.end(conversation);}
+     break;
+    }
+   }
+  }
+  this.pendingAnswer=undefined;
+ }
 }
