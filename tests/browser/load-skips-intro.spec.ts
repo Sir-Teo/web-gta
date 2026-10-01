@@ -12,6 +12,8 @@ test('a saved game skips INTRO and keeps the save point\'s place and clock',asyn
  for(let i=0;i<10;i++){await page.waitForTimeout(3000);expect(await intro()).toBe(false);}
  const state=await page.evaluate(()=>{const s=(window as any).__game.state();return {fade:s.fadeAlpha,p:s.player.position,minutes:s.timeMinutes,heading:s.player.heading};});
  expect(state.fade).toBe(0);
+ // ONMISSION is clear, as the save held it: the triggers that ask whether CJ is on a mission hear no.
+ expect(await page.evaluate(()=>{const r=(window as any).__game.missionForProfiling().runtime;return new DataView(r.scriptSpace.buffer,r.scriptSpace.byteOffset,r.scriptSpace.byteLength).getUint32(r.game.onAMissionFlag,true);})).toBe(0);
  expect(Math.hypot(state.p.x-2510,state.p.z-1680)).toBeLessThan(3);
  // The saved 10:00 runs on; INTRO's own 6:30 never took.
  expect(state.minutes).toBeGreaterThanOrEqual(600);expect(state.minutes).toBeLessThan(720);

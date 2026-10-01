@@ -9142,3 +9142,21 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   slots with dealers within minutes, and the next brain gave up (SWEET3's sweep stopped on it).
 - **A decision maker slot's reference index goes on counting** as the slot is freed and taken again
   (`CTheScripts`' script things): a handle to what the slot held before names nothing, rather than its new maker.
+
+## The camera script runs, and a loaded game is on no mission
+
+- **`camera.scm` runs** (MAIN starts it while CJ holds the camera; it was held back on its first command). Aiming,
+  it poses his group in front of him; beside a member it offers his picture taken (CAM_001) and, pressed, hands the
+  camera to the homie, who takes it from where he stands. Its commands: **`SET_PHOTO_CAMERA_EFFECT`** (ScriptCommands.cpp,
+  reversed: `CTheScripts::bDrawCrossHair`, the one setting DRAW_CROSSHAIR also writes, set to the held weapon's
+  first-person crosshair at the camera's 256 × 192 or to none; with the fists, which have no model, nothing is drawn),
+  **`GET_GROUP_MEMBER`** (handler unreversed: `CPedGroupMembership::GetMember` of the slot, -1 when empty),
+  **`IS_FLAME_IN_ANGLED_AREA_2D`** (AUTHORED: any burning fire in the angled area) and **`TASK_HAND_GESTURE`**
+  (AUTHORED: `CTaskComplexSignalAtPed` is unreversed; the ped turns to the other and plays one of GHANDS' five gang
+  signs, without the finger models the task swaps in). The spec covers the script starting and the offer; the
+  hand-over after the press is not covered yet.
+- **`PED_ANSWER_PHONE` is on Tab** (`CControllerConfigManager::InitDefaultControlConfiguration`): the pad's L1 on foot,
+  which the camera's offer and the phone read.
+- **A loaded game is on no mission.** Loading a save ends INTRO as it starts; its ONMISSION flag ($409) was left set,
+  so every trigger that asks whether CJ is on a mission heard yes for the session (the story's markers, the gyms, the
+  shops, the camera). It is cleared as the mission's own end would.

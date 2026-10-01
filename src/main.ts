@@ -3583,6 +3583,10 @@ async function boot() {
         introSkipped=true;const runtime=mission.runtime;
         for(const slot of [...runtime.active])if(slot.thread.base>0)runtime.terminateAllWithName(slot.thread.name);
         runtime.game.alreadyRunningAMissionScript=false;runtime.game.displayAreaName=true;
+        // The mission's own end clears the global DECLARE_MISSION_FLAG names; ended from here, it is cleared by hand, as
+        // a saved game holds it clear: left set, every trigger that asks whether CJ is on a mission (the story's
+        // markers, the gyms, the shops, the camera's group photo) heard yes for the rest of the session.
+        if(runtime.game.onAMissionFlag)new DataView(runtime.scriptSpace.buffer,runtime.scriptSpace.byteOffset,runtime.scriptSpace.byteLength).setUint32(runtime.game.onAMissionFlag,0,true);
         // A 0 ms fade-in never finishes in CCamera::ProcessFade, so the shortest that does.
         runtime.world?.fade(1,1,performance.now());
         restoreSavedLocation(progression.savedLocation,!savedTransfer&&!progression.savedLocation.area);
@@ -4761,7 +4765,9 @@ async function boot() {
                  claimScriptVehicle:car=>{(car as {missionCar?:boolean}).missionCar=true;},
                  vehicleModelType:model=>fleet?fleet.vehicleIdeType(model):null,
                  scriptVehicleWaitingForCollision:car=>isScriptCar(car)&&car.waitingForCollision,
-                 setForceCrosshair:state=>{weapons.forceCrosshair=state;},
+                 // CTheScripts::bDrawCrossHair is one setting: the circle and the photo effect each clear the other.
+                 setForceCrosshair:state=>{weapons.forceCrosshair=state;weapons.photoCameraEffect=false;},
+                 setPhotoCameraEffect:on=>{weapons.photoCameraEffect=on;weapons.forceCrosshair=false;},
                  scriptVehicleIsDead:car=>{const v=car as {wrecked?:boolean;drowning?:boolean;disposed?:boolean};return v.disposed===true||v.wrecked===true||v.drowning===true;},
                  pedEnteringCar:ped=>ped===undefined?carEntry.active||bikeMount.active:onFoot(ped)?.order?.kind==='enterCar',
                  vehicleModelClass:model=>fleet?.vehicleClass(model),

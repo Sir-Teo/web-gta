@@ -2697,6 +2697,20 @@ const handlers:Record<string,ScmCommandHandler>={
    flags:t.readInt(p[2]),actionDelay:t.readInt(p[3]),actionChance:t.readInt(p[4]),mustBeOnFoot:true});
  },
  TASK_TURN_CHAR_TO_FACE_CHAR:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'turnToFaceEntity',target:t.readInt(p[1])});},
+ TASK_HAND_GESTURE:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'handGesture',target:t.readInt(p[1])});},
+ // Handler unreversed: CPedGroupMembership::GetMember(slot) of the group, the ped's handle or -1 for an empty slot.
+ GET_GROUP_MEMBER:(t,p,i)=>{t.writeInt(p[2],world(t,i,'groupMember')(t.readInt(p[0]),t.readInt(p[1])));},
+ // ScriptCommands.cpp (reversed): CTheScripts::bDrawCrossHair, the one flag DRAW_CROSSHAIR sets too, to the held
+ // weapon's first-person crosshair or to none.
+ SET_PHOTO_CAMERA_EFFECT:(t,p,i)=>{world(t,i,'setPhotoCameraEffect')(bool(t,p[0]));},
+ // Handler unreversed (AUTHORED): any burning fire, the script's own included, standing in the angled area, which is
+ // highlighted as the char form highlights its. camera.scm asks it of the strip in front of CJ before it poses his
+ // group there.
+ IS_FLAME_IN_ANGLED_AREA_2D:(t,p,i)=>{
+  const area=new NativeAngledRect({x:t.readFloat(p[0]),y:t.readFloat(p[1])},{x:t.readFloat(p[2]),y:t.readFloat(p[3])},t.readFloat(p[4]));
+  if(bool(t,p[5]))highlightImportantAngledArea(t,i,[area.a,area.cornerB,area.cornerC,area.cornerD]);
+  t.updateCompareFlag(game(t,i).fires.fires.some(fire=>fire.active&&area.contains(fire.position)),negated(i));
+ },
  /* The rest of the tasks the script hands its peds. Their operands come from the pinned Sanny Builder schema
   * this project already generates its opcode table from, which names and types each one; the reference reverses
   * none of them and does not name them at all. A handle of -1 still records the task into the open sequence

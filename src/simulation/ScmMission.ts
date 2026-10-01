@@ -708,6 +708,8 @@ export interface ScmMissionWorld {
  setFreeHealthCare?(on:boolean):void;
  /** CPhysical::SetVelocity on the player, native units per 50th of a second. */
  setPlayerVelocity?(velocity:{x:number;y:number;z:number}):void;
+ /** SET_PHOTO_CAMERA_EFFECT on the HUD's crosshair. */
+ setPhotoCameraEffect?(on:boolean):void;
  /** CPlaceable::SetOrientation (SET_CHAR_ROTATION) on the player and on a script ped: degrees, the heading z with the
   * tilt x about the ped's right and y about its forward. */
  setPlayerRotation?(x:number,y:number,z:number):void;
@@ -739,11 +741,12 @@ const RADIO_OFF=13;
 /** eVehicleAppearance::VEHICLE_APPEARANCE_AUTOMOBILE. */
 const VEHICLE_APPEARANCE_AUTOMOBILE=1;
 /** Streamed scripts that are never streamed in, so MAIN's HAS_STREAMED_SCRIPT_LOADED stays false and it never starts
- * them: `camera` (started whenever he holds the camera) stops at its first command, SET_PHOTO_CAMERA_EFFECT, and the
- * port takes its photographs itself; `impound` (the police pounds; MAIN starts it again whenever none runs near one)
- * stops at IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE and would be started again every pass. `player_parachute` runs: it flies
- * the free fall and the canopy, and the browser's own canopy stays shut while a script runs. */
-const HELD_BACK_STREAMED_SCRIPTS:ReadonlySet<string>=new Set(['camera','impound']);
+ * them: `impound` (the police pounds; MAIN starts it again whenever none runs near one) stops at
+ * IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE and would be started again every pass. `player_parachute` runs (it flies the free
+ * fall and the canopy, and the browser's own canopy stays shut while a script runs), and so does `camera` (MAIN starts
+ * it while CJ holds the camera: his group poses for it, and a homie beside him takes his picture); the port's own
+ * shots with the camera are the weapon's, which the script leaves alone. */
+const HELD_BACK_STREAMED_SCRIPTS:ReadonlySet<string>=new Set(['impound']);
 /** CRunningScript::ThisIsAValidRandomPed (0x489490): civilians, the nine gang types, or criminals and prostitutes. */
 export function validRandomPedType(pedType:number,civilian:boolean,gang:boolean,criminal:boolean){
  if(pedType===4||pedType===5)return civilian;
@@ -1024,6 +1027,8 @@ export class ScmMission {
    isRelationshipSet:(relationship,pedType,otherPedType)=>this.host('pedTypeRelationshipSet','IS_RELATIONSHIP_SET')(relationship,pedType,otherPedType),
    // GET_GROUP_SIZE: whether the group has a leader, and its members besides.
    groupSize:group=>{const g=this.groups.get(group);return {leader:g?.leader!==undefined?1:0,members:g?g.countFollowers():0};},
+   groupMember:(group,slot)=>this.groups.get(group)?.memberAt(slot)??-1,
+   setPhotoCameraEffect:on=>{this.host('setPhotoCameraEffect','SET_PHOTO_CAMERA_EFFECT')(on);},
    maxGroupMembers:()=>this.host('maxGroupMembers','FIND_MAX_NUMBER_OF_GROUP_MEMBERS')(),
    // CPed::GetWeaponInSlot(slot): its type, total ammo and CPickups::ModelForWeapon.
    pedWeaponInSlot:(handle,slot)=>this.host('pedWeaponInSlot','GET_CHAR_WEAPON_IN_SLOT')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),slot),
@@ -3099,12 +3104,16 @@ export class ScmMission {
   * - TASK_CHAR_SLIDE_TO_COORD_AND_PLAY_ANIM (CTaskComplexSlideToCoord then the named clip): the ped walks to the
   *   point, turns to the heading and plays the clip.
   * - TASK_PICK_UP_OBJECT as a step of a sequence: the object is in the hand from when the sequence is given, and the
-  *   step plays the clip the command names. */
+  *   step plays the clip the command names.
+  * - TASK_HAND_GESTURE (CTaskComplexSignalAtPed and CTaskComplexPlayHandSignalAnim, unreversed): the ped turns to face
+  *   the other and plays one of GHANDS' five gang signs; the finger models the task swaps in are not drawn. */
  private standInOrders(handle:number,task:ScmScriptedTask,world:Parameters<typeof scriptedPedOrder>[1]):ScriptedPedOrder[]|undefined{
   const built=(tasks:ScmScriptedTask[])=>{const orders=tasks.map(t=>scriptedPedOrder(t,world));return orders.every(o=>!!o)?orders as ScriptedPedOrder[]:undefined;};
   if(task.kind==='slideToCoordAndPlayAnim')return built([
    {kind:'goStraightToCoord',x:task.x,y:task.y,z:task.z,speed:4,time:3000},{kind:'achieveHeading',heading:task.heading},
    {kind:'playAnim',animationName:task.animationName,animationFile:task.animationFile,blendSpeed:task.blendSpeed,loop:task.loop,lockX:task.lockX,lockY:task.lockY,keepLastFrame:task.keepLastFrame,time:task.time,interruptable:false}]);
+  if(task.kind==='handGesture')return built([{kind:'turnToFaceEntity',target:task.target},
+   {kind:'playAnim',animationName:`gsign${1+this.random.next()%5}`,animationFile:'GHANDS',blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:true}]);
   if(task.kind==='pickUpObject'){
    this.pickUpObject(handle,task);
    const named=task.animationName&&task.animationName.toUpperCase()!=='NULL';

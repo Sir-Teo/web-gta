@@ -32,6 +32,8 @@ const UNION_BITS=new DataView(new ArrayBuffer(4));
 export type ScmScriptedTask=
  |{kind:'killPedOnFoot';target:number;time:number;flags:number;actionDelay:number;actionChance:number;mustBeOnFoot:boolean}
  |{kind:'turnToFaceEntity';target:number}
+ /** TASK_HAND_GESTURE: CTaskComplexSignalAtPed at the other ped. */
+ |{kind:'handGesture';target:number}
  /** CTaskComplexUseSequence: PERFORM_SEQUENCE_TASK recorded into a sequence runs another sequence as one step. */
  |{kind:'useSequence';sequence:number;
   /** PERFORM_SEQUENCE_TASK_FROM_PROGRESS recorded into a sequence: m_nCurrentTaskIndex and m_nEndTaskIndex. */
@@ -344,6 +346,10 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  pedAnimTotalTime?(handle:number,animation:string):number;
  pedSpeed?(handle:number):number;
  setPedVelocity?(handle:number,velocity:{x:number;y:number;z:number}):void;
+ /** GET_GROUP_MEMBER: CPedGroupMembership::GetMember(slot), -1 for an empty slot. */
+ groupMember?(group:number,slot:number):number;
+ /** SET_PHOTO_CAMERA_EFFECT: CTheScripts::bDrawCrossHair set to FIXED_DRAW_1STPERSON_WEAPON, or to none. */
+ setPhotoCameraEffect?(on:boolean):void;
  /** SET_CHAR_ROTATION: the ped's matrix from Euler angles in degrees. */
  setPedRotation?(handle:number,x:number,y:number,z:number):void;
  /** m_nLastWeaponDamage and m_pLastEntityDamage, which the script can clear. */

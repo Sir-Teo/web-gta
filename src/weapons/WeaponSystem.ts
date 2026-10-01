@@ -118,6 +118,9 @@ export class WeaponSystem {
  /** CPlayerPed::GetWeaponRadiusOnScreen for the held gun: the crosshair's size and the shot's spread. */
  /** DRAW_CROSSHAIR (RYDER3's crate throwing): the aiming crosshair drawn whether or not the player aims. */
  forceCrosshair=false;
+ /** SET_PHOTO_CAMERA_EFFECT (camera.scm while a homie takes CJ's picture): the held weapon's first-person crosshair,
+  * at the camera's size, whether or not he aims. It is the same CTheScripts::bDrawCrossHair DRAW_CROSSHAIR sets. */
+ photoCameraEffect=false;
  get crosshairRadius(){const info=this.inventory.info();return info&&info.fire!=='melee'?nativeWeaponRadiusOnScreen(info,this.attackButtonCounter,this.sim.player.crouched):.2;}
  hits=0;explosions=0;aircraftShots=0;private serial=0;
  /** CVehicle::m_nGunFiringTime and m_nProjectileWeaponFiringTime: the guns and the ordnance keep their own clocks. */

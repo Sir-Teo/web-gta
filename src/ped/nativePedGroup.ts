@@ -35,6 +35,8 @@ export class NativePedGroup{
  isFollower(handle:number){return this.isMember(handle)&&!this.isLeader(handle);}
  /** CPedGroupMembership::CountMembers and its leaderless form. */
  countMembers(){return this.members.filter(member=>member!==undefined).length;}
+ /** GetMember: what the slot holds (the followers' seven, then the leader's). */
+ memberAt(slot:number){return Number.isInteger(slot)&&slot>=0&&slot<TOTAL_PED_GROUP_MEMBERS?this.members[slot]:undefined;}
  countFollowers(){return this.countMembers()-(this.leader===undefined?0:1);}
  /** Every handle the group holds, the leader last, as the slots order them. */
  all(){return this.members.filter((member):member is number=>member!==undefined);}

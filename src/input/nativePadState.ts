@@ -86,6 +86,9 @@ const BINDINGS:readonly (readonly [PadAction,readonly string[]])[]=[
  ['GO_FORWARD',['KeyW','ArrowUp']],['GO_BACK',['KeyS','ArrowDown']],['GO_LEFT',['KeyA','ArrowLeft']],['GO_RIGHT',['KeyD','ArrowRight']],
  ['PED_FIRE_WEAPON',['MouseFire','ControlLeft','ControlRight']],['PED_LOCK_TARGET',['MouseAim']],['GROUP_CONTROL_FWD',['KeyG']],['GROUP_CONTROL_BWD',['KeyH']],
  ['PED_LOOKBEHIND',['MouseMiddle']],['PED_CYCLE_WEAPON_LEFT',['KeyQ']],['PED_CYCLE_WEAPON_RIGHT',['KeyE']],['PED_JUMPING',['Space']],['PED_SPRINT',['ShiftLeft','ShiftRight']],['PED_DUCK',['KeyC']],
+ // CControllerConfigManager::InitDefaultControlConfiguration: PED_ANSWER_PHONE on Tab (camera.scm's "have your picture
+ // taken", the phone, buying).
+ ['PED_ANSWER_PHONE',['Tab']],
  ['PED_SNIPER_ZOOM_IN',['PageUp','KeyX']],['PED_SNIPER_ZOOM_OUT',['PageDown','KeyZ']],['VEHICLE_ENTER_EXIT',['KeyF']],
  ['CAMERA_CHANGE_VIEW_ALL_SITUATIONS',['KeyV','Home']],
  // The PC defaults for CONVERSATION_YES and CONVERSATION_NO (the D-pad pair): a script's yes-or-no questions, wagers and
