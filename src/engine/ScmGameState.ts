@@ -294,6 +294,9 @@ export class ScmGameState {
  readonly cards=new ScmCardDecks();
  /** TheCamera::m_bWideScreenOn and CGame::currArea, which the script switches. */
  widescreenOn=false;currentArea=0;
+ /** CTheScripts::bAllowPauseInWidescreen (ALLOW_PAUSE_IN_WIDESCREEN): the pause menu opens through a widescreen scene
+  * (planes.scm's flight). */
+ allowPauseInWidescreen=false;
  /** CStats::bShowUpdateStats: whether the HUD draws the messages a stat change makes. */
  showUpdateStats=true;
  /** CTheScripts::bPlayerIsOffTheMap, which the stadium command sets. */

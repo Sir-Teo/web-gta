@@ -47,6 +47,13 @@ describe('the last of the ped questions',()=>{
   expect(readFloat(48)).toBeCloseTo(-20,5);
  });
 
+ test('ALLOW_PAUSE_IN_WIDESCREEN sets and clears CTheScripts::bAllowPauseInWidescreen',()=>{
+  const {game}=run({},undefined,instruction(scmOpcode('ALLOW_PAUSE_IN_WIDESCREEN'),[int(1)]));
+  expect(game.allowPauseInWidescreen).toBe(true);
+  run({},game,instruction(scmOpcode('ALLOW_PAUSE_IN_WIDESCREEN'),[int(0)]));
+  expect(game.allowPauseInWidescreen).toBe(false);
+ });
+
  test('no second player is ever in the game',()=>{
   expect(run({},undefined,instruction(scmOpcode('IS_2PLAYER_GAME_GOING_ON'),[])).thread.condition).toBe(false);
  });

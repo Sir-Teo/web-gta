@@ -653,6 +653,7 @@ const handlers:Record<string,ScmCommandHandler>={
  LOCK_CAR_DOORS:(t,p,i)=>{world(t,i,'setVehicleDoorLock')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CAR_DENSITY_MULTIPLIER:(t,p,i)=>{game(t,i).carDensityMultiplier=t.readFloat(p[0]);},
  SWITCH_WIDESCREEN:(t,p,i)=>{game(t,i).widescreenOn=bool(t,p[0]);},
+ ALLOW_PAUSE_IN_WIDESCREEN:(t,p,i)=>{game(t,i).allowPauseInWidescreen=bool(t,p[0]);},
  SET_AREA_VISIBLE:(t,p,i)=>{game(t,i).currentArea=t.readInt(p[0]);},
  /* --- CAEScriptAudioEntity's four mission-audio slots. Every command's slot operand is one-based and the
   * engine's is not, so each subtracts one; the sample the script names is an audio event. Playing the sound is
