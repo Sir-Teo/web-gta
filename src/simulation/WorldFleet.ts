@@ -479,6 +479,8 @@ export class WorldFleet {
   for(const plane of [...this.planes])if(!plane.occupied&&!plane.entryBusy&&!plane.missionCar&&!plane.disposed&&inBox(plane)){this.removePlane(plane);others++;}
   return doomed.length+others;
  }
+ /** A generator whose own model is the hot-dog van made one (CCarGenerator::DoInternalProcessing adds its vendor). */
+ onHotdogVan?:(car:WorldCar)=>void;
  removeTrafficCar(car:WorldCar){if(car.trafficOrigin&&this.cars.delete(car))car.dispose();}
  setGenerators(records:readonly WorldCarGenerator[]){this.records=records;}
   get occupiedPlane(){for(const plane of this.planes)if(plane.occupied)return plane;return undefined;}
@@ -690,7 +692,7 @@ export class WorldFleet {
     if(this.blocked(chosen.position,assets.collision.bounds)){const state=this.generatorState.get(chosen.id)??{nextGen:0,waitFar:false};this.generatorState.set(chosen.id,{nextGen:state.nextGen+4,waitFar:true});return;}
     const angle=Math.trunc(chosen.angle*256/(Math.PI*2))*Math.PI*2/256;
     const car=new WorldCar(this.sim,this.scene,assets,{x,y:top-hit.timeOfImpact-assets.collision.bounds.min[2],z},this.road,angle);car.fadeIn();car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
-   car.driverless=true;car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(chosen.doorLockChance);car.alarmArmed=rollAlarm(chosen.alarmChance);{const c=assets.colourIndices;if(random&&!random.colours&&c)random.colours=[c[0],c[1]];}this.cars.add(car);this.generated.set(car,chosen.id);this.generatorState.set(chosen.id,{nextGen:now+4,waitFar:this.generatorState.get(chosen.id)?.waitFar??false});chosen.spent?.();
+   car.driverless=true;car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;car.locked=rollDoorLock(chosen.doorLockChance);car.alarmArmed=rollAlarm(chosen.alarmChance);{const c=assets.colourIndices;if(random&&!random.colours&&c)random.colours=[c[0],c[1]];}this.cars.add(car);this.generated.set(car,chosen.id);this.generatorState.set(chosen.id,{nextGen:now+4,waitFar:this.generatorState.get(chosen.id)?.waitFar??false});chosen.spent?.();if(chosen.modelId===588&&car.modelId===588)this.onHotdogVan?.(car);
    }).catch(error=>{if(!this.disposed)this.failures.set(chosen.id,error instanceof Error?error.message:String(error));}).finally(()=>{this.attempted.delete(chosen.id);this.cleared.delete(chosen.id);});
   }
  }

@@ -17,7 +17,7 @@ export interface ScmPedPoolHost<Ped>{
  /** The same, with the occupation the game would have chosen for that car, which is what the random forms ask. */
  spawnRandomInCar(vehicle:number,seat:number|'driver'):Promise<Ped|undefined>;
  /** CPed::AttachPedToEntity: the ped rides on the car at an offset in the car's own axes rather than in a seat. */
- spawnOnCar(pedType:number,model:number|string,vehicle:number,offset:{x:number;y:number;z:number}):Promise<Ped|undefined>;
+ spawnOnCar(pedType:number,model:number|string,vehicle:number,offset:{x:number;y:number;z:number},turret?:number):Promise<Ped|undefined>;
  /** CRunningScript::SetCharCoordinates, which also puts the ped on the ground. */
  place(ped:Ped,position:{x:number;y:number;z:number}):void;
  setHeading(ped:Ped,degrees:number):void;
@@ -89,6 +89,14 @@ export class ScmPedPool<Ped>{
   const handle=this.pool.create(()=>this.host.spawnInCar(pedType,model,vehicle,seat));
   this.said.set(handle,{pedType,model,position:{x:0,y:0,z:0},heading:0,health:DEFAULT_PED_HEALTH,
    maxHealth:DEFAULT_PED_HEALTH,dead:false,ride:{vehicle,seat}});
+  return handle;
+ }
+ /** A ped the game makes attached to a car (CCarGenerator's hot-dog vendor, CPed::AttachPedToEntity): a handle for one
+  * that starts on the car at the offset. */
+ createOnCar(pedType:number,model:number|string,vehicle:number,offset:{x:number;y:number;z:number},turret?:number){
+  const handle=this.pool.create(()=>this.host.spawnOnCar(pedType,model,vehicle,{...offset},turret));
+  this.said.set(handle,{pedType,model,position:{x:0,y:0,z:0},heading:0,health:DEFAULT_PED_HEALTH,
+   maxHealth:DEFAULT_PED_HEALTH,dead:false,ride:{vehicle,seat:0,offset:{...offset}}});
   return handle;
  }
  /** CREATE_RANDOM_CHAR_AS_DRIVER and AS_PASSENGER: the game picks the occupation. */

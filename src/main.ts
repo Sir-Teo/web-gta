@@ -31,6 +31,8 @@ interface ScriptRider{rider:true;model:number|string;car:import('./simulation/Wo
  seat:number|'driver';health:number;heading:number;accuracy:number;invulnerable:boolean;gone:boolean;
  /** Where on the car the ped hangs, in the car's own axes, for one attached rather than seated. */
  offset?:{x:number;y:number;z:number};
+ /** An attached ped that stands (the hot-dog vendor) and the quarter turn he faces off the car's front. */
+ stand?:boolean;facing?:number;
  /** TASK_PLAY_ANIM in the seat: the clip once read, the game time it began at, and how it ends. */
  clip?:{name:string;animation?:import('./assets/ifp').NativeAnimation;started:number;loop:boolean;hold:boolean;seconds:number;failed?:boolean}}
 const scriptRiders=new Set<ScriptRider>();
@@ -71,7 +73,7 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
    continue;
   }
   poses.push({key:`script:${rider.car.car.body.handle}:${rider.offset?'on':rider.seat}`,car:rider.car,
-   model:rider.model,local:seat,...(played??{clip:rider.offset?'car_sit':sitClip(rider.car.modelFlags,rider.seat==='driver'),seconds:0})});
+   model:rider.model,local:seat,headingOffset:rider.facing,...(played??{clip:rider.offset?(rider.stand?'idle_stance':'car_sit'):sitClip(rider.car.modelFlags,rider.seat==='driver'),seconds:0})});
  }
  return poses;
 }
@@ -4154,6 +4156,8 @@ async function boot() {
             fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.outside=()=>render.lighting.area===0;fleet.sphereVisible=(x,y,z)=>new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse)).containsPoint(new Vector3(x,y,z));fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
             // ClearSpaceForMissionEntity's ped removals reach the crowd once it exists.
             fleet.clearPed=handle=>pedestrians?.removeDeletableCollider(handle)??false;
+            // CCarGenerator's hot-dog van brings its vendor, and his brain.
+            fleet.onHotdogVan=car=>{try{mission?.hotdogVan(car);}catch(error){console.warn('Hot-dog vendor',error);}};
             fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;police.noPoliceZone=()=>cullZones.noPolice;
@@ -4352,12 +4356,14 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPedOnCar:async(_pedType,id,car,offset)=>{
+                 spawnScriptPedOnCar:async(_pedType,id,car,offset,turret)=>{
                   const model=await pedestrians?.scriptPedModel(id)??id;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
+                  // AUTHORED (CPed::PositionAttachedPed is unreversed): a ped the game attaches itself stands in its idle,
+                  // facing the turret position (0 ahead, 1 left, 2 behind, 3 right) a quarter turn at a time.
                   const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},health:100,
-                   heading:target.heading(),accuracy:60,invulnerable:false,gone:false};
+                   heading:target.heading(),accuracy:60,invulnerable:false,gone:false,...(turret!==undefined?{stand:true,facing:turret*Math.PI/2}:{})};
                   scriptRiders.add(rider);
                   return rider;
                  },

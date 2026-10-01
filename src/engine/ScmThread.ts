@@ -774,6 +774,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  convertMetresToFeet?(meters:number):number;
  getLevelDesignCoordsForObject?(handle:number,nth:number):{x:number,y:number,z:number};
  isCharAttachedToAnyCar?(handle:number):boolean;
+ /** STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE: the handle of the car a ped is attached to, or -1. */
+ carCharIsAttachedTo?(handle:number):number;
  setActiveMenuItem?(handle:number,row:number):void;
  getCarModelValue?(model:number|string):number;
  setObjectRotationVelocity?(handle:number,x:number,y:number,z:number):void;

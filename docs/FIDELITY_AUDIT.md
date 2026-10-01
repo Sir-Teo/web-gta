@@ -8817,3 +8817,11 @@ that did anything.
   are kept on the handle and not read yet; `GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS` finds nobody (AUTHORED: the
   browser makes no drug buyers). A dealer now carries $2000, loops `DEALER_IDLE`, looks about and wanders, and draws
   the pistol when the player targets or hurts him; his script cleans up when he dies.
+- **The hot-dog vans have their vendor.** `CCarGenerator::DoInternalProcessing` (reversed, CarGenerator.cpp:303): a
+  generator whose own model is the hot-dog van (588), having made it, adds a BMOCHIL and attaches him at (0, 0, 0.6)
+  with turret position 3, then `CheckIfNewEntityNeedsScript`, which is MAIN's random-ped brain for BMOCHIL:
+  `hotdog.scm` (HOTDOGV) starts with him. Six generators make the van (Bone County, the lakes north of Las Venturas
+  and the desert). `STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE` (reversed) hands back the van's handle; CJ on foot at its
+  right side, 2 units out, buys a hot dog: 50 health and `VEND_EAT1_P` for a dollar. `CPed::PositionAttachedPed` is
+  unreversed, so the vendor's stance is AUTHORED: standing in `IDLE_stance`, facing the turret position a quarter turn
+  at a time (0 ahead, 1 left, 2 behind, 3 right), which puts him at the serving window.

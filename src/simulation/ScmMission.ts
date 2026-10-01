@@ -278,7 +278,8 @@ export interface ScmMissionWorld {
  /** The same with the occupation CPopulation::ChooseCivilianOccupationForVehicle would have picked for that car. */
  spawnScriptRandomPedInCar(car:unknown,seat:number|'driver'):Promise<unknown>;
  /** CPed::AttachPedToEntity: the ped rides on the car at an offset in the car's own axes. */
- spawnScriptPedOnCar(pedType:number,model:number|string,car:unknown,offset:{x:number;y:number;z:number}):Promise<unknown>;
+ /** `turret` is AttachPedToEntity's turret position for a ped the game attaches itself (the hot-dog vendor). */
+ spawnScriptPedOnCar(pedType:number,model:number|string,car:unknown,offset:{x:number;y:number;z:number},turret?:number):Promise<unknown>;
  placeScriptPed(ped:unknown,position:{x:number;y:number;z:number}):void;
  setScriptPedHeading(ped:unknown,degrees:number):void;
  scriptPedPosition(ped:unknown):{x:number;y:number;z:number};
@@ -690,6 +691,8 @@ export function validRandomPedType(pedType:number,civilian:boolean,gang:boolean,
 const EXTERNAL_OBJECT_BRAIN=1;
 /** CRunningScript::m_nExternalType of a random ped's brain (ShutdownThisScript's case 0). */
 const EXTERNAL_PED_BRAIN=0;
+/** MODEL_BMOCHIL and MODEL_HOTDOG (eModelID). */
+const MODEL_BMOCHIL=168,MODEL_HOTDOG=588;
 /** COMMAND_TASK_USE_ATTRACTOR and COMMAND_TASK_PLAY_ANIM_SECONDARY, the task records those commands leave. */
 const TASK_USE_ATTRACTOR_COMMAND=0x74C,TASK_PLAY_ANIM_SECONDARY_COMMAND=0xA1A;
 /** ePedType::PED_TYPE_CIVMALE, which is what the random civilian forms create. */
@@ -1140,6 +1143,7 @@ export class ScmMission {
    // itself for being a vehicle, which never holds; its sibling STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE reads
    // m_pAttachedTo, which is what LOWR and SWEET6 ask about before they detach.
    isCharAttachedToAnyCar:handle=>handle===PLAYER_PED_HANDLE?this.world.playerAttachedVehicle?.()!==undefined:!!this.peds.rideOf(handle)?.offset,
+   carCharIsAttachedTo:handle=>{if(handle===PLAYER_PED_HANDLE)return -1;const ride=this.peds.rideOf(handle);return ride?.offset?ride.vehicle:-1;},
    // CMenuManager::m_bLanguageChanged: only the menu's language option sets it, and the language here stays American.
    // SET_CHAR_VELOCITY: the player's; a script ped's walk has no free velocity to take one yet.
    setPedVelocity:(handle,velocity)=>{
@@ -2125,7 +2129,7 @@ export class ScmMission {
    // A ped made in a car the browser is still building waits for the car.
    spawnInCar:async(pedType,model,vehicle,seat)=>this.world.spawnScriptPedInCar(pedType,this.pedModel(model),await this.vehicleOrPlayer(vehicle),seat),
    spawnRandomInCar:async(vehicle,seat)=>this.world.spawnScriptRandomPedInCar(await this.vehicleOrPlayer(vehicle),seat),
-   spawnOnCar:async(pedType,model,vehicle,offset)=>this.world.spawnScriptPedOnCar(pedType,this.pedModel(model),await this.vehicleOrPlayer(vehicle),offset),
+   spawnOnCar:async(pedType,model,vehicle,offset,turret)=>this.world.spawnScriptPedOnCar(pedType,this.pedModel(model),await this.vehicleOrPlayer(vehicle),offset,turret),
    place:(ped,position)=>{this.world.placeScriptPed(ped,position);},
    setHeading:(ped,degrees)=>{this.world.setScriptPedHeading(ped,degrees);},
    positionOf:ped=>this.world.scriptPedPosition(ped),
@@ -2279,6 +2283,22 @@ export class ScmMission {
  /** Street peds the random-ped brains have weighed already. */
  private readonly brainPeds=new WeakSet<object>();
  private nextPedBrainScan=0;
+ /** CCarGenerator::DoInternalProcessing for a hot-dog van (CarGenerator.cpp:303, reversed): a generator whose own model
+  * is the van, having made it, adds a BMOCHIL (PED_TYPE_CIVMALE) and attaches him to it at (0, 0, 0.6) facing its right
+  * side (AttachPedToEntity's turret position 3), then CheckIfNewEntityNeedsScript, which is the random-ped brain MAIN
+  * allocated for that model: hotdog.scm with the vendor as 0@. The van gets a handle the way a car the player takes
+  * does. The vendor goes with the van; the script ends once he does. */
+ hotdogVan(car:unknown){
+  const game=this.runtime.game,scripts=game.streamedScripts;
+  const brain=game.scriptBrains.brains.find(b=>b.typeOfBrain===BRAIN_RANDOM_PED&&b.active&&b.model===MODEL_BMOCHIL);
+  const van=this.vehicles.handleFor(car,MODEL_HOTDOG);
+  const vendor=this.peds.createOnCar(4,MODEL_BMOCHIL,van,{x:0,y:0,z:.6},3);
+  if(!brain||!scripts.count||this.random.next()%100>=brain.percentageChance)return vendor;
+  const index=scripts.properIndexFromScriptIndex(brain.streamedScriptIndex);if(index<0)return vendor;
+  this.adapterRef.requestStreamedScript?.(index);
+  this.runtime.startNewStreamedScript(index,[vendor],EXTERNAL_PED_BRAIN);
+  return vendor;
+ }
  /** CScriptsForBrains' random-ped brains (ALLOCATE_STREAMED_SCRIPT_TO_RANDOM_PED). CheckIfNewEntityNeedsScript and
   * StartOrRequestNewStreamedScriptBrain are unreversed, so this is AUTHORED from the allocation's operands and what the
   * brain scripts do: a street ped of a brain's model is weighed once, the first time it is seen, against the brain's

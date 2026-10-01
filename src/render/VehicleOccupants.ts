@@ -10,7 +10,9 @@ export function driverSeat(car:WorldCar){const dummy=car.car.root.getObjectByNam
 /** One NPC in or leaving a car: a civilian roster index or a named pedestrian model, pinned in native car space. */
 /** What an occupant sits on: the vehicle's root (renderer axes) and its body, a car's or a bike's. */
 export interface OccupantVehicle {car:{root:import('three').Object3D;body:{handle:number}}}
-export interface OccupantPose {key:string;car:OccupantVehicle;model:number|string;local:{x:number;y:number;z:number};clip:string;seconds:number;animation?:NativeAnimation;gun?:{model:Parameters<typeof modelObject>[0];textures:Parameters<typeof modelObject>[1]}}
+export interface OccupantPose {key:string;car:OccupantVehicle;model:number|string;local:{x:number;y:number;z:number};clip:string;seconds:number;animation?:NativeAnimation;
+ /** A turn about the vertical off the vehicle's own heading (an attached ped facing its side). */
+ headingOffset?:number;gun?:{model:Parameters<typeof modelObject>[0];textures:Parameters<typeof modelObject>[1]}}
 /** NPC vehicle occupants: CAR_sit/CAR_sitp in their seats, or their exit clip while leaving. */
 export class VehicleOccupants {
  private catalog?:Awaited<ReturnType<typeof openWorldPedestrians>>;
@@ -64,7 +66,7 @@ export class VehicleOccupants {
     gun.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&pose.gun!.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});
     view.hand()?.add(gun.root);entry.gun={model:pose.gun.model,root:gun.root,dispose:()=>gun.dispose()};
    }else if(!pose.gun&&entry.gun){entry.gun.dispose();entry.gun=undefined;}
-   view.updateVehicle({vehicle:pose.car.car.root,local:pose.local},{clip:pose.clip,seconds:pose.seconds});
+   view.updateVehicle({vehicle:pose.car.car.root,local:pose.local,headingOffset:pose.headingOffset},{clip:pose.clip,seconds:pose.seconds});
   }
  }
  snapshot(){return {drivers:this.views.size,ready:!!this.catalog,error:this.error??null};}

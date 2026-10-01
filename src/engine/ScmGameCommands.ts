@@ -2295,6 +2295,8 @@ const handlers:Record<string,ScmCommandHandler>={
  CONVERT_METRES_TO_FEET:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'convertMetresToFeet')(t.readFloat(p[0])));},
  GET_LEVEL_DESIGN_COORDS_FOR_OBJECT:(t,p,i)=>{const result=world(t,i,'getLevelDesignCoordsForObject')(t.readInt(p[0]),t.readInt(p[1]));t.writeFloat(p[2],result.x);t.writeFloat(p[3],result.y);t.writeFloat(p[4],result.z);},
  IS_CHAR_ATTACHED_TO_ANY_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharAttachedToAnyCar')(t.readInt(p[0])),negated(i));},
+ // StoreCarCharIsAttachedToNoSave (CharacterCommands.cpp:3461): m_pAttachedTo when it is a vehicle, else no car.
+ STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'carCharIsAttachedTo')(t.readInt(p[0])));},
  SET_ACTIVE_MENU_ITEM:(t,p,i)=>{game(t,i).menus.setActiveMenuItem(t.readInt(p[0]),t.readInt(p[1]));},
  GET_CAR_MODEL_VALUE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCarModelValue')(model(t,i,p[0])));},
  COPY_SHARED_CHAR_DECISION_MAKER:(t,p,i)=>{const {handle,from}=game(t,i).decisionMakers.copy(t.readInt(p[0]),t.usesMissionCleanup);t.writeInt(p[1],handle);t.host?.world?.seedDecisionMaker?.(handle,from);},
