@@ -35,7 +35,7 @@ gyms, mod garages, dating). What a player meets first is listed first.
 | Ambulances, fire engines and their crews in traffic | Not spawned. | `CCarCtrl::GenerateEmergencyServicesCar` is a stub: authored dispatch. |
 | Casino games, pool, basketball, dancing, lowrider contest, girlfriends | Scripts start by door or object brain; each stops on a few commands (cards, object rotation velocity, beat tracks, attractors). | Per-script command work; the rhythm games also need the beat tracks. |
 | Drug dealers, hot-dog vendors (ped brains) | `ALLOCATE_STREAMED_SCRIPT_TO_RANDOM_PED` is recorded and nothing starts the scripts. | Authored ped-brain trigger (as the object brains were), plus `dealer.scm`'s eight commands. |
-| Street food carts | `food_vendor.scm` starts on the carts' object brain; untested in play. | A cart located and a spec. |
+| Street food carts | **Closed 2026-09-30** (spec `side-missions`): the vendor stands at his cart and a dollar buys fifty health. | — |
 
 ## Historical verification (not a current fidelity acceptance report)
 
