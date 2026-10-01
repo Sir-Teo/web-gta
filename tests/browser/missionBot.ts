@@ -121,7 +121,11 @@ export function missionBotTick(dtSeconds:number){
  if(enemies.length){
   const e=nearest(enemies);
   if(vehicle&&distance(e.position)<25){try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car to fight',target:e.handle};}
-  if(glide(e.position,12))return {action:'close on enemy',target:e.handle};
+  // Six seconds at the same target and it still stands (behind a wall in SWEET1B's crack den): a player walks up to it.
+  if(mem.shootTarget!==e.handle){mem.shootTarget=e.handle;mem.shootFor=0;}
+  const reach=mem.shootFor>6?3:12;
+  if(glide(e.position,reach))return {action:'close on enemy',target:e.handle};
+  mem.shootFor+=dtSeconds;
   shoot(e.position);return {action:'shoot',target:e.handle};
  }
  if(cars.length){
