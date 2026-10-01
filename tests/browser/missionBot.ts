@@ -182,7 +182,8 @@ export function missionBotTick(dtSeconds:number){
   // into it: SWEET1B's blip is the street in front of the crack house, its LACRAK door up on the porch.
   if(!vehicle&&me.z<500){
    mem.idleAtPlace=(mem.idleAtPlace??0)+dtSeconds;
-   const door=mem.idleAtPlace>8?g.interiorExitNear?.(me.x,me.y,me.z):null;
+   // Only a door the script has switched on (SWITCH_ENTRY_EXIT): SWEET1B keeps LACRAK shut until Sweet has caught up.
+   const door=mem.idleAtPlace>8?g.interiorExitNear?.(me.x,me.y,me.z,true):null;
    if(door&&distance(door)<8){if(glide({x:door.x,y:door.y,z:door.z-1},0))return {action:'go to door near place'};return {action:'at door near place'};}
   }
   return {action:marker?'in marker':'at place'};

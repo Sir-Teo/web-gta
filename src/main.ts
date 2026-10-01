@@ -2331,8 +2331,8 @@ async function boot() {
     /** An entry-exit's entrance, native (x, y, z), by pool index: where a blip SET_BLIP_ENTRY_EXIT tied to it leads from outside. */
     entryExitEntrance:(index:number)=>{const e=entryExits?.pool[index];if(!e)return null;const [x,y,z]=entryExitPosition(e);return {x,y,z};},
     /** The entry-exit marker in the area CJ is in that is nearest him (native), the way out of an interior. */
-    interiorExitNear:(x:number,y:number,z:number)=>{let best:{x:number;y:number;z:number}|null=null,d=Infinity;
-     for(const e of entryExits?.pool??[]){if(e.area!==render.lighting.area)continue;const [ex,ey,ez]=entryExitPosition(e),k=Math.hypot(ex-x,ey-y,ez-z);if(k<d){d=k;best={x:ex,y:ey,z:ez};}}
+    interiorExitNear:(x:number,y:number,z:number,enabledOnly=false)=>{let best:{x:number;y:number;z:number}|null=null,d=Infinity;
+     for(const e of entryExits?.pool??[]){if(e.area!==render.lighting.area||enabledOnly&&!(e.flags&ENEX.ENABLE_ACCESS))continue;const [ex,ey,ez]=entryExitPosition(e),k=Math.hypot(ex-x,ey-y,ez-z);if(k<d){d=k;best={x:ex,y:ey,z:ez};}}
      return best;},
     /** The tags within `radius` of a native (x, y): position, the way the wall faces, and how far painted (255 done). */
     tagsNear:(x:number,y:number,radius:number)=>((tagManager as unknown as {tags?:{position:number[];forward:readonly number[];alpha:number}[]})?.tags??[]).filter(t=>Math.hypot(t.position[0]-x,t.position[1]-y)<radius).map(t=>({x:t.position[0],y:t.position[1],z:t.position[2],forward:[...t.forward],alpha:t.alpha})),
