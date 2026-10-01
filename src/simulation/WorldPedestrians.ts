@@ -1706,6 +1706,9 @@ export class WorldPedestrians {
   // an attractor it had queued for, and a road crossing it had begun.
   if(ped.attract)this.leaveAttractor(ped);
   ped.crossing=undefined;
+  // CTaskSimpleAnim::MakeAbortable on the script's command event: a clip the old task plays blends out with it, a looped
+  // one included (SWEET1B's couch dealer sat in BJ_COUCH_LOOP_P through TASK_KILL_CHAR_ON_FOOT and never got up).
+  if(ped.order?.kind==='playAnim'&&ped.view.reactionName===ped.order.clip)ped.view.clearReaction();
   ped.sequence={orders:[...orders],at:Math.min(Math.max(0,start),orders.length),repeat,sequence};
   this.startNextOrder(ped);
  }

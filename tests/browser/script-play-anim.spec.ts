@@ -1,7 +1,8 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** TASK_PLAY_ANIM: a PED clip plays once and the task ends with it; a clip from another block (ATTRACTORS) is read from
- * the archive, loops, and ends with the script's time. */
+ * the archive, loops, and ends with the script's time. A looped clip with no time ends when the script gives the ped its next
+ * task (CTaskSimpleAnim::MakeAbortable on the command event), as SWEET1B's couch dealer gets up to fight. */
 test('a script ped plays a named clip from ped.ifp and from a script animation block',async({page})=>{
  test.setTimeout(180000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -29,6 +30,13 @@ test('a script ped plays a named clip from ped.ifp and from a script animation b
  await expect.poll(()=>playing('Stepsit_loop'),{timeout:20000}).toBe(true);
  await expect.poll(status,{timeout:20000}).toBe(7);
  expect(await playing('Stepsit_loop')).toBe(false);
+ // Looped for ever, until the script's next task: TASK_GO_STRAIGHT_TO_COORD takes him out of it and away.
+ await play('ATTRACTORS','Stepsit_loop',true,false,-1);
+ await expect.poll(()=>playing('Stepsit_loop'),{timeout:20000}).toBe(true);
+ const from=await page.evaluate((handle:number)=>(window as any).__game.missionForProfiling().runtime.world.pedPosition(handle),ped);
+ await page.evaluate(({handle,x,y,z})=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(handle,{kind:'goStraightToCoord',x,y,z,speed:4,time:-1},0x05d3),{handle:ped,x:from.x+5,y:from.y,z:from.z});
+ await expect.poll(()=>playing('Stepsit_loop'),{timeout:5000}).toBe(false);
+ await expect.poll(async()=>(await page.evaluate((handle:number)=>(window as any).__game.missionForProfiling().runtime.world.pedPosition(handle),ped)).x-from.x,{timeout:20000}).toBeGreaterThan(2);
  // A clip no block has ends the task at once.
  await play('ATTRACTORS','no_such_clip',false,false,-1);
  await expect.poll(status,{timeout:20000}).toBe(7);

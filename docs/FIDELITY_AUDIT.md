@@ -9016,3 +9016,11 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   SA's `CREATE_CHAR` is unimplemented in the reference). SWEET1B makes the crack den's three dealers in the interior
   while CJ is still in the street: they fell through the void, were set down at a street path node, and the mission
   waited for ever for CJ to kill them.
+
+## A script's next task ends its looped clip
+
+- **A new script task on a ped playing `TASK_PLAY_ANIM`** blends the clip out, a looped one with no time included:
+  the command event reaches `CTaskSimpleAnim::MakeAbortable` (reversed), which blends to the idle unless the clip holds
+  its last frame or the new task is itself a named clip. The browser swapped the order but left the clip on the
+  ped, so SWEET1B's couch dealer sat in `BJ_COUCH_LOOP_P` under `TASK_KILL_CHAR_ON_FOOT`, too low for CJ's shots, and
+  the den was never cleared.
