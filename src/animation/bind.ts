@@ -33,6 +33,14 @@ function restFrame(model: DffModel, index: number): RestFrame {
   }
   return rest;
 }
+/** The clip without the tracks that name a frame the model does not have, as RpAnimBlend leaves alone a track with
+ * no matching node: a script's "_P" clips (the vending machine's, the food carts') carry a track for the prop in the
+ * hand beside the ped's bones. */
+export function withoutForeignTracks(model: DffModel, clip: NativeAnimation): NativeAnimation {
+  const frames = frameIndex(model);
+  const known = clip.tracks.filter(track => ((track.boneId >= 0 ? frames.byBone.get(track.boneId) : frames.byName.get(track.name.trim().toLowerCase())) ?? []).length === 1);
+  return known.length === clip.tracks.length ? clip : { ...clip, tracks: known };
+}
 /** Bind a source-space clip to one model instance. Validation never changes the current pose. */
 export function bindAnimation(model: DffModel, root: Object3D, clip: NativeAnimation, motionPolicy?: RootMotionPolicy) {
   const motion = motionPolicy ? rootMotion(clip, motionPolicy) : undefined;

@@ -9,7 +9,7 @@ import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
 import { armChain, stepIkBlend, type NativeIkChain } from '../animation/nativeIkChain';
 import { Group, Quaternion, MeshBasicMaterial, Matrix4, Object3D, Mesh, Vector3 } from 'three';
-import { bindAnimation } from '../animation/bind';
+import { bindAnimation,withoutForeignTracks} from '../animation/bind';
 import { locomotionMotion } from '../animation/locomotion';
 import { swimMotion, swimRootTrack } from '../animation/swimMotion';
 import { modelObject } from '../assets/ModelObjects';
@@ -241,7 +241,8 @@ export class NativeCharacter {
   private reaction?: {name:string;time:number;end:number;speed:number;loop:boolean};
   installReactions(clips:Record<string,NativeAnimation>,upperBody=false) {
     for(const [name,source] of Object.entries(clips)){
-      const clip=upperBody?{...source,tracks:source.tracks.filter(t=>t.boneId>=2&&t.boneId<=5||t.boneId>=21&&t.boneId<=36)}:source;
+      const own=withoutForeignTracks(this.source.model,source);
+      const clip=upperBody?{...own,tracks:own.tracks.filter(t=>t.boneId>=2&&t.boneId<=5||t.boneId>=21&&t.boneId<=36)}:own;
       const track=clip.tracks.findIndex(t=>t.boneId===0&&t.translations);
       this.reactions.set(name,bindAnimation(this.source.model,this.owner.root,clip,track>=0?{track,axes:['x','y']}:undefined));
     }
