@@ -54,7 +54,9 @@ export function missionBotTick(dtSeconds:number){
  // of doors or in a car, so the wait at one shop does not carry into the next.
  if(vehicle||me.z<500)mem.idleIndoors=0;
  const marker=vehicle||(mem.idleIndoors??0)>20?undefined:m.highlightedAreas?.().filter((h:any)=>distance(h)<8).sort((a:any,b:any)=>distance(a)-distance(b))[0];
- if(!blips.length&&!marker)return null;
+ // Script objects made targettable (MAKE_OBJECT_TARGETTABLE: the bottles on Emmet's wall in SWEET2) are there to be shot.
+ const marks=vehicle?[]:(r.game.objects?.all??[]).filter((o:any)=>o.targetable&&!o.damaged&&o.visible!==false&&distance(o.position)<40);
+ if(!blips.length&&!marker&&!marks.length)return null;
  const nearest=(list:any[])=>list.sort((a,b)=>distance(a.position)-distance(b.position))[0];
  const enemies=blips.filter((b:any)=>b.type===BLIP_CHAR&&!b.friendly);
  const cars=blips.filter((b:any)=>b.type===BLIP_CAR&&b.friendly&&b.handle!==vehicle);
@@ -131,12 +133,18 @@ export function missionBotTick(dtSeconds:number){
   }
   return best;
  };
- const shoot=(target:any)=>{
-  if(!mem.armed){try{world.givePedWeapon?.(1,31,2000);world.setPedCurrentWeapon?.(1,31);mem.armed=true;}catch{}}
+ const shoot=(target:any,ownGun=false)=>{
+  if(!mem.armed&&!ownGun){try{world.givePedWeapon?.(1,31,2000);world.setPedCurrentWeapon?.(1,31);mem.armed=true;}catch{}}
   const now=performance.now();if(now-mem.lastShot<120)return;mem.lastShot=now;
   // __game.fireAt takes renderer coordinates: x, height, -y.
   g.fireAt(target.x,target.z+.6,-target.y);
  };
+ // With no one to kill, a player locks on to the nearest targettable object and fires with the gun he was handed
+ // (Emmet gives CJ his pistol and counts the bottles HAS_OBJECT_BEEN_DAMAGED finds hit).
+ if(marks.length&&!blips.some((b:any)=>b.type===BLIP_CHAR&&!b.friendly)){
+  const o=marks.sort((a:any,b:any)=>distance(a.position)-distance(b.position))[0];
+  shoot({x:o.position.x,y:o.position.y,z:o.position.z-.6},true);return {action:'shoot object',target:o.handle};
+ }
  // Gone back for a homie the group dropped: a player keeps going until he is beside him and the script has him follow
  // again, rather than turning back to the marker after a step (the time about the place starts over once he leaves it).
  if(mem.fetching!==undefined){
