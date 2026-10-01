@@ -559,6 +559,8 @@ async function boot() {
   // van keeps its turret or nozzle where it was left.
   const turretAims=new WeakMap<object,TankTurret>(),cannonAims=new WeakMap<object,CannonAim>();
   let cannonAim:CannonAim=initialCannonAim(),cannonFrame=0,cannonClock=0,cannonFiring=false;const waterCannon=new WaterCannon();
+  /** CWaterCannons' other slots: one cannon for each fire engine answering a fire. */
+  const npcCannons=new Map<import('./simulation/WorldCar').WorldCar,WaterCannon>();
   let gangWars:GangWars|undefined,gangWarBlip:{position:{x:number;y:number;z:number};gang:number;visible:boolean}|undefined;
   let worldGenerators:import('./assets/worldCarGenerators').WorldCarGenerator[]=[];
   let stuntJumps:StuntJumps|undefined,savePoints:ScmSavePoint[]=[],saving=false;
@@ -1351,7 +1353,20 @@ async function boot() {
       return {point:{x:P.x,y:-P.z,z:P.y},normal:{x:hit.normal.x,y:-hit.normal.z,z:hit.normal.y}};}});
      const positions:number[]=[];for(let i=0;i<g.positions.length;i+=3)positions.push(g.positions[i],g.positions[i+2],-g.positions[i+1]);
      waterCannonMesh.frame({positions,colors:g.colors});
-     if(g.splash)worldFx.waterCannon.splash([g.splash.point.x,g.splash.point.y,g.splash.point.z],[g.splash.normal.x,g.splash.normal.y,g.splash.normal.z],1000/60,Math.random);}
+     if(g.splash)worldFx.waterCannon.splash([g.splash.point.x,g.splash.point.y,g.splash.point.z],[g.splash.normal.x,g.splash.normal.y,g.splash.normal.z],1000/60,Math.random);
+     // The fire engines' cannons, drawn the same way.
+     const npcPositions:number[]=[],npcColors:number[]=[];
+     for(const cannon of npcCannons.values()){
+      const n=cannon.renderGeometry({cameraForward:{x:f.x,y:-f.z,z:f.y},random:Math.random,lineOfSight:(a,b)=>{
+       const A={x:a.x,y:a.z,z:-a.y},d={x:b.x-a.x,y:b.z-a.z,z:-(b.y-a.y)},len=Math.hypot(d.x,d.y,d.z);if(len<1e-6)return undefined;
+       const hit=sim.world.castRayAndGetNormal(new RAPIER.Ray(A,{x:d.x/len,y:d.y/len,z:d.z/len}),len,true,RAPIER.QueryFilterFlags.EXCLUDE_KINEMATIC|RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);
+       if(!hit)return undefined;const t=hit.timeOfImpact,P={x:A.x+d.x/len*t,y:A.y+d.y/len*t,z:A.z+d.z/len*t};
+       return {point:{x:P.x,y:-P.z,z:P.y},normal:{x:hit.normal.x,y:-hit.normal.z,z:hit.normal.y}};}});
+      for(let i=0;i<n.positions.length;i+=3)npcPositions.push(n.positions[i],n.positions[i+2],-n.positions[i+1]);
+      npcColors.push(...n.colors);
+      if(n.splash)worldFx.waterCannon.splash([n.splash.point.x,n.splash.point.y,n.splash.point.z],[n.splash.normal.x,n.splash.normal.y,n.splash.normal.z],1000/60,Math.random);
+     }
+     npcCannonMesh.frame({positions:npcPositions,colors:npcColors});}
     // CVehicle::DoHeadLightBeam: the lit headlights' fans, for the cars whose lights are on.
     headlightBeams.frame([...(fleet?.cars??[])].some(car=>car.lightsOn)?[...(fleet?.cars??[])].filter(car=>car.lightsOn&&car.car.body.isEnabled()).map(car=>{const p=car.car.body.translation(),r=car.car.body.rotation(),d=car.car.nativeFramePosition('headlights');return {position:{x:p.x,y:p.y,z:p.z},rotation:{x:r.x,y:r.y,z:r.z,w:r.w},dummy:d?{x:d.x,y:d.y,z:d.z}:undefined,broken:[car.damageState.lights[0],car.damageState.lights[1]] as [boolean,boolean],tilt:car.modelId===530?.5:.15};}):[],{x:camera.position.x,y:camera.position.y,z:camera.position.z});
     // CCustomBuildingRenderer::Update steps its counter once a 30 fps game frame (CGame::Process).
@@ -1758,6 +1773,7 @@ async function boot() {
   /** CMotionBlurStreaks behind thrown grenades and molotovs; fogged with the sky's bottom colour. */
   const streaks=new NativeMotionBlurStreaks(),streaksMesh=new NativeImmediateTriangles(render.scene,4*12,'Native motion blur streaks',6.25,true);
   const waterCannonMesh=new NativeImmediateTriangles(render.scene,31*18,'Native water cannon',6.28,true);
+  const npcCannonMesh=new NativeImmediateTriangles(render.scene,2*31*18,'Native fire engine water cannons',6.28,true);
   // CShinyTexts: the pedestrian walk / don't-walk signs on traffic light poles.
   // MAX_SHINYTEXTS: 32 a frame; further registrations are dropped.
   const shinyTexts=new NativeShinyTexts(render.scene,32);
@@ -2879,6 +2895,24 @@ async function boot() {
          const push=waterCannon.update(elapsed*1000,50/30,cannonFrame,0,point=>weapons.fires.extinguishPointWithWater(point,2,.5,1/30));
          if(push)pedestrians?.waterCannonPush(waterCannon.sections());
         }
+        // FireTruckControl for the fire engines answering fires: the AI's aim, and the cannon on every frame (only the
+        // player's waits for the car gun).
+        for(const {car,aim} of emergency?.cannons()??[]){
+         car.setCannon(aim.yaw);
+         if(!cannonFrameDue)continue;
+         let cannon=npcCannons.get(car);if(!cannon){cannon=new WaterCannon();npcCannons.set(car,cannon);}
+         const q=car.car.body.rotation(),cq=new Quaternion(q.x,q.y,q.z,q.w),local=cannonDirection(aim),dir=new Vector3(local.x,local.z,-local.y).applyQuaternion(cq);
+         const node=car.car.frameWorldPosition('misc_a'),p=car.car.body.translation();
+         const nozzle=node??new Vector3(CANNON_DEFAULT_NOZZLE.x,CANNON_DEFAULT_NOZZLE.z,-CANNON_DEFAULT_NOZZLE.y).applyQuaternion(cq).add(new Vector3(p.x,p.y,p.z));
+         const v=car.car.body.linvel(),w=car.car.body.angvel();
+         const e=cannonEmission({direction:{x:dir.x,y:-dir.z,z:dir.y},nozzle:{x:nozzle.x,y:-nozzle.z,z:nozzle.y},fromNode:!!node,carPosition:{x:p.x,y:-p.z,z:p.y},moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},turnSpeed:{x:w.x/50,y:-w.z/50,z:w.y/50},timeStep:50/30,swat:false,randomInt:Math.floor(Math.random()*65536)});
+         cannon.newInput(car.car.body.handle+1,elapsed*1000,e.start,e.end);
+        }
+        {let index=1;for(const [car,cannon] of npcCannons){
+         if(cannonFrameDue&&cannon.id){const push=cannon.update(elapsed*1000,50/30,cannonFrame,index,point=>weapons.fires.extinguishPointWithWater(point,2,.5,1/30));if(push)pedestrians?.waterCannonPush(cannon.sections());}
+         if(!cannon.id&&(car.disposed||!emergency?.covers(car)))npcCannons.delete(car);
+         index++;
+        }}
         if(cannonFrameDue)cannonFrame++;
         // CAEWaterCannonAudioEntity::Service: the jet's voices ride its last section, the splash pair the point the
         // jet last landed on (CWaterCannon::Update's SetSplashInfo).
@@ -4124,7 +4158,7 @@ async function boot() {
              if(!alive||!fleet||emergency)return;
              emergency=new WorldEmergency(sim,fleet,carEntry.clips,scriptCars,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
              if(worldZones)emergency.zones=worldZones;emergency.wanted=()=>law.level;emergency.outside=()=>render.lighting.area===0;
-             emergency.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
+             emergency.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);emergency.fires=weapons.fires;
              emergency.crowd={dead:()=>pedestrians?.deadPeds()??[],exists:id=>!!pedestrians?.pedExists(id),spawnCrew:(model,position,heading,crew)=>pedestrians?pedestrians.spawnCrew(model,position,heading,crew):Promise.resolve(false),
               orders:(id,orders)=>pedestrians?.crewOrders(id,orders),crewState:id=>pedestrians?.crewState(id),holdDead:id=>pedestrians?.holdDead(id),revive:id=>!!pedestrians?.revive(id),
               board:id=>!!pedestrians?.boardOfficer(id),release:unit=>pedestrians?.releaseCrew(unit)};

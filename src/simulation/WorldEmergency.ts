@@ -65,6 +65,52 @@ export function medicCanTreat(medic:{x:number;y:number;z:number},target:{x:numbe
  return Math.hypot(medic.x-target.x,medic.y-target.y)<=MEDIC_TREAT_RADIUS&&Math.abs(medic.z-target.z)<=MEDIC_TREAT_HEIGHT;
 }
 
+export const MODEL_FIRETRUK=407;
+/** CStreaming::ms_aDefaultFiremanModel (0x8A5AE4), exe data like the medics': the level's firefighter stands in. */
+export const DEFAULT_FIREMAN_MODEL=['lafd1','lafd1','sffd1','lvfd1'] as const;
+/** AUTHORED (III and Vice City's GenerateEmergencyServicesCar): a fire engine needs three fires burning, the nearest
+ * within 30 units of the player, and 35 s since the last one. */
+export const FIRETRUCK_MIN_FIRES=3,FIRETRUCK_FIRE_RANGE=30,FIRETRUCK_INTERVAL_MS=35000;
+/** CTaskComplexDriveFireTruck's CTaskComplexDriveToPoint: 30 under AVOID_CARS, done within 25 units, where the cannon
+ * takes over; its wander is 10 under STOP_FOR_CARS. */
+export const FIRETRUCK_CRUISE=30,FIRETRUCK_TARGET_RADIUS=25,FIRETRUCK_WANDER_CRUISE=10;
+export function fireTruckDue(o:{wanted:number;onDuty:number;activeFires:number;nearestDistance:number|undefined;fireTrucks:number;nowMs:number;lastCreatedMs:number}){
+ if(o.wanted>AMBULANCE_MAX_WANTED||o.onDuty>0||o.activeFires<FIRETRUCK_MIN_FIRES)return false;
+ if(o.nearestDistance===undefined||o.nearestDistance>FIRETRUCK_FIRE_RANGE)return false;
+ return o.fireTrucks<2&&o.nowMs>o.lastCreatedMs+FIRETRUCK_INTERVAL_MS;
+}
+/** A fire as the fire engines see it (CFire): native position. */
+export interface EmergencyFire {readonly active:boolean;readonly script:boolean;readonly beingExtinguished:boolean;readonly position:{x:number;y:number;z:number};readonly target?:{kind:string}}
+/** CFireManager::FindNearestFire (0x538F40) with both checks, as CTaskComplexDriveFireTruck asks: active, not the
+ * script's, not being put out, not on a ped; nearest in 2D. */
+export function findNearestFire(fires:readonly EmergencyFire[],point:{x:number;y:number}){
+ let best:EmergencyFire|undefined,min=Number.MAX_VALUE;
+ for(const f of fires){
+  if(!f.active||f.script||f.beingExtinguished||f.target&&(f.target.kind==='ped'||f.target.kind==='player'))continue;
+  const d=(f.position.x-point.x)**2+(f.position.y-point.y)**2;if(d<min){min=d;best=f;}
+ }
+ return best;
+}
+/** CAutomobile::FireTruckControl's branch for a truck the player is not driving (0x729B60, reversed): the nozzle's yaw
+ * (m_fDoomVerticalRotation) turns at a hundredth of a time step toward the fire's bearing less the heading, both kept
+ * within half a turn, and its pitch (m_fDoomHorizontalRotation) sways ±0.15 over 4096 ms. GetHeading is
+ * atan2(−forward.x, forward.y). Native x, y. */
+export function fireTruckAim(aim:{yaw:number;pitch:number},o:{fire:{x:number;y:number};car:{x:number;y:number};heading:number;timeStep:number;timeMs:number}){
+ let shoot=Math.atan2(-(o.fire.x-o.car.x),o.fire.y-o.car.y);
+ if(shoot>o.heading+Math.PI)shoot-=2*Math.PI;else if(shoot<o.heading-Math.PI)shoot+=2*Math.PI;
+ let target=shoot-o.heading;
+ if(target>aim.yaw+Math.PI)target-=2*Math.PI;else if(target<aim.yaw-Math.PI)target+=2*Math.PI;
+ const diff=target-aim.yaw,step=o.timeStep/100;let yaw=aim.yaw;
+ if(Math.abs(diff)>=step)yaw+=diff<=0?-step:step;
+ return {yaw,pitch:Math.sin((o.timeMs%4096)*2*Math.PI/4096)*.15};
+}
+interface Truck {
+ car:WorldCar;model:string;
+ /** CTaskComplexDriveFireTruck's subtask: driving to a fire, its cannon on it, or wandering. */
+ mission:'toFire'|'cannon'|'wander';
+ fire?:EmergencyFire;aim:{yaw:number;pitch:number};
+}
+
 type V3={x:number;y:number;z:number};
 /** A dead ped as the accident manager holds it: the crowd's id and the questions CAccident asks. */
 export interface Casualty extends AccidentPed {readonly id:number}
@@ -117,6 +163,11 @@ const toRenderer=(v:V3)=>({x:v.x,y:v.z,z:-v.y});
 
 export class WorldEmergency {
  readonly units:Unit[]=[];
+ /** The fire engines on duty (AddFiretruckOccupants' two firemen stay in the cab). */
+ readonly trucks:Truck[]=[];
+ /** CFireManager's pool. */
+ fires?:{readonly fires:readonly EmergencyFire[]};
+ private lastFireTruckMs=-Infinity;
  readonly accidents=new NativeAccidentManager<Casualty>();
  private readonly casualties=new Map<number,Casualty>();
  /** This frame's dead, by id. */
@@ -161,6 +212,7 @@ export class WorldEmergency {
   for(let i=this.units.length-1;i>=0;i--){const u=this.units[i];if(u.car.disposed||!u.car.car.body.isValid()){this.drop(i);continue;}}
   this.refreshAccidents();
   for(const u of this.units)this.stepUnit(u,dt);
+  for(let i=this.trucks.length-1;i>=0;i--){const t=this.trucks[i];if(t.car.disposed||!t.car.car.body.isValid()){this.dropTruck(i);continue;}this.stepTruck(t,dt);}
   this.cull();
   if(this.seconds<this.nextCheck)return;this.nextCheck=this.seconds+1;
   this.generate();
@@ -176,10 +228,72 @@ export class WorldEmergency {
    const reach=u.mission==='wander'?120:250;
    if(Math.hypot(c.x-p.x,c.z-p.z)>reach&&this.canSpawn(c,6)){this.fleet.removeTrafficCar(u.car);this.drop(i);}
   }
+  for(let i=this.trucks.length-1;i>=0;i--){
+   const t=this.trucks[i],c=t.car.car.body.translation();
+   if(t.car.occupied){this.dropTruck(i);continue;}
+   const reach=t.mission==='wander'?120:250;
+   if(Math.hypot(c.x-p.x,c.z-p.z)>reach&&this.canSpawn(c,6)){this.fleet.removeTrafficCar(t.car);this.dropTruck(i);}
+  }
  }
+ private dropTruck(i:number){const t=this.trucks[i];this.trucks.splice(i,1);this.driving.forget(t.car);}
  private drop(i:number){const u=this.units[i];this.units.splice(i,1);this.driving.forget(u.car);this.crowd?.release(u);}
+ /** GenerateEmergencyServicesCar's fire engine half (AUTHORED, see fireTruckDue). */
+ private generateFireTruck(){
+  const paths=this.paths,fires=this.fires?.fires;if(!paths||!fires||this.busy||!this.outside()||this.fleet.cars.size>=12)return;
+  const player=this.sim.player.position,at=toNative(player);
+  const nearest=findNearestFire(fires,at),distance=nearest?Math.hypot(nearest.position.x-at.x,nearest.position.y-at.y):undefined;
+  const trucks=[...this.fleet.cars].filter(c=>c.modelId===MODEL_FIRETRUK&&!c.wrecked).length;
+  if(!fireTruckDue({wanted:this.wanted(),onDuty:this.trucks.filter(t=>!t.car.wrecked).length,activeFires:fires.filter(f=>f.active).length,nearestDistance:distance,fireTrucks:trucks,nowMs:this.seconds*1000,lastCreatedMs:this.lastFireTruckMs}))return;
+  const goal=toRenderer(nearest!.position);
+  this.busy=true;
+  void paths.loadAround(player.x,player.z).then(async()=>{
+   if(this.disposed)return;
+   const link=this.spawnLink(paths.areas,goal);if(!link)return;
+   const {x,z}=link.start,y=link.from.position[2];
+   const car=await this.fleet.spawnTrafficCar(MODEL_FIRETRUK,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
+   if(!car)return;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
+   this.lastFireTruckMs=this.seconds*1000;
+   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;
+   const truck:Truck={car,model:DEFAULT_FIREMAN_MODEL[Math.max(0,Math.min(3,this.level()))],mission:'wander',aim:{yaw:0,pitch:0}};
+   this.trucks.push(truck);this.truckFindsFire(truck);
+  }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
+ }
+ /** CTaskComplexDriveFireTruck::CreateFirstSubTask for the driver: the nearest fire, or the wander. */
+ private truckFindsFire(t:Truck){
+  const fires=this.fires?.fires??[],c=t.car.car.body.translation(),fire=findNearestFire(fires,toNative(c));
+  if(!fire){
+   if(t.mission!=='wander'||!this.driving.driving(t.car))this.driving.wander(t.car,{cruise:FIRETRUCK_WANDER_CRUISE,style:DRIVINGSTYLE.stopForCars});
+   t.mission='wander';t.fire=undefined;t.car.siren=false;return;
+  }
+  t.fire=fire;t.mission='toFire';t.car.siren=true;
+  this.driving.gotoCoords(t.car,toRenderer(fire.position),{cruise:FIRETRUCK_CRUISE,style:DRIVINGSTYLE.avoidCars});
+ }
+ private stepTruck(t:Truck,dt:number){
+  const car=t.car;if(car.wrecked){car.siren=false;return;}
+  const fires=this.fires?.fires??[],c=toNative(car.car.body.translation());
+  if(t.mission==='wander'){if(findNearestFire(fires,c))this.truckFindsFire(t);return;}
+  const fire=t.fire;
+  if(!fire?.active){this.truckFindsFire(t);return;}
+  if(t.mission==='toFire'){
+   // ControlSubTask: a fire somebody is already putting out gives way to the nearest one nobody is.
+   if(fire.beingExtinguished){
+    const next=findNearestFire(fires,c);
+    if(!next){this.truckFindsFire(t);return;}
+    if(next!==fire){t.fire=next;this.driving.gotoCoords(car,toRenderer(next.position),{cruise:FIRETRUCK_CRUISE,style:DRIVINGSTYLE.avoidCars});}
+   }
+   const f=t.fire!;
+   if(Math.hypot(f.position.x-c.x,f.position.y-c.y)<FIRETRUCK_TARGET_RADIUS){t.mission='cannon';this.driving.clear(car);}
+   return;
+  }
+  // CTaskComplexUseWaterCannon: FireTruckControl every frame while the fire burns and the truck is under physics.
+  const q=car.car.body.rotation(),fx=-2*(q.x*q.z+q.y*q.w),fz=-(1-2*(q.x*q.x+q.y*q.y)),forward={x:fx,y:-fz};
+  t.aim=fireTruckAim(t.aim,{fire:fire.position,car:c,heading:Math.atan2(-forward.x,forward.y),timeStep:dt*50,timeMs:this.seconds*1000});
+ }
+ /** The fire engines whose cannon is on (CTaskComplexUseWaterCannon), with FireTruckControl's aim. */
+ cannons(){return this.trucks.filter(t=>t.mission==='cannon'&&!t.car.wrecked&&!t.car.disposed&&t.fire?.active).map(t=>({car:t.car,aim:t.aim}));}
  /** GenerateEmergencyServicesCar's ambulance half (AUTHORED, see the module comment). */
  private generate(){
+  this.generateFireTruck();
   const paths=this.paths;if(!paths||this.busy||!this.crowd||!this.outside()||this.fleet.cars.size>=12)return;
   const player=this.sim.player.position,at=toNative(player);
   const nearest=this.accidents.nearestFree(at,false),distance=nearest?Math.hypot(nearest.ped.position().x-at.x,nearest.ped.position().y-at.y,nearest.ped.position().z-at.z):undefined;
@@ -417,14 +531,22 @@ export class WorldEmergency {
     out.push({car:u.car,model:u.model,local:{x:m.seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:sitClip(u.car.modelFlags,m.seat===0),seconds:0});
    }
   }
+  // AddFiretruckOccupants: the driver and the front passenger (seat 0), who stay in the cab.
+  for(const t of this.trucks){
+   if(t.car.wrecked||t.car.occupied)continue;
+   const frame=t.car.car.nativeFramePosition('ped_frontseat');if(!frame)continue;
+   for(const seat of [0,1])out.push({car:t.car,model:t.model,local:{x:seat===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:sitClip(t.car.modelFlags,seat===0),seconds:0});
+  }
   return out;
  }
- covers(car:WorldCar){return this.units.some(u=>u.car===car);}
+ covers(car:WorldCar){return this.units.some(u=>u.car===car)||this.trucks.some(t=>t.car===car);}
  snapshot(){return {ready:!!this.paths,error:this.error??null,lastAmbulanceMs:this.lastAmbulanceMs,
   accidents:this.accidents.accidents.filter(a=>a.ped).map(a=>({id:a.ped!.id,treated:a.treated,revived:a.revived})),
   units:this.units.map(u=>({handle:u.car.car.body.handle,modelId:u.car.modelId,mission:u.mission,siren:u.car.siren,position:{...u.car.car.body.translation()},
    speed:+Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z).toFixed(1),goal:u.goal??null,drive:this.driving.mission(u.car)??null,
    link:(r=>r?[r.starting.position,r.current.position].map(q=>[Math.round(q[0]),Math.round(q[1])]):null)(this.driving.routeNodes(u.car)),
-   medics:u.medics.map(m=>({seat:m.seat,state:m.state,task:m.task??null,id:m.id??null,accident:m.accident?.ped?.id??null}))})),seconds:+this.seconds.toFixed(1)};}
- dispose(){this.disposed=true;for(const u of this.units){this.driving.forget(u.car);this.fleet.removeTrafficCar(u.car);}this.units.length=0;}
+   medics:u.medics.map(m=>({seat:m.seat,state:m.state,task:m.task??null,id:m.id??null,accident:m.accident?.ped?.id??null}))})),
+  trucks:this.trucks.map(t=>({handle:t.car.car.body.handle,mission:t.mission,siren:t.car.siren,position:{...t.car.car.body.translation()},aim:{yaw:+t.aim.yaw.toFixed(3),pitch:+t.aim.pitch.toFixed(3)},fire:t.fire?{...t.fire.position,active:t.fire.active}:null})),
+  seconds:+this.seconds.toFixed(1)};}
+ dispose(){this.disposed=true;for(const u of this.units){this.driving.forget(u.car);this.fleet.removeTrafficCar(u.car);}this.units.length=0;for(const t of this.trucks){this.driving.forget(t.car);this.fleet.removeTrafficCar(t.car);}this.trucks.length=0;}
 }

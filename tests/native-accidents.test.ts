@@ -1,6 +1,6 @@
 import {describe,expect,test} from 'vitest';
 import {NativeAccidentManager,NUM_ACCIDENTS,type AccidentPed} from '../src/ped/nativeAccidents';
-import {ambulanceDue,medicCanTreat} from '../src/simulation/WorldEmergency';
+import {ambulanceDue,findNearestFire,fireTruckAim,fireTruckDue,medicCanTreat} from '../src/simulation/WorldEmergency';
 
 const ped=(x:number,y:number,o:Partial<{mission:boolean;allowMedics:boolean;submerged:boolean;headless:boolean}>={}):AccidentPed=>({
  mission:!!o.mission,allowMedics:o.allowMedics??true,headless:!!o.headless,submerged:()=>!!o.submerged,position:()=>({x,y,z:0})});
@@ -55,5 +55,32 @@ describe('the ambulance dispatch (AUTHORED from III/VC)',()=>{
   expect(medicCanTreat({x:0,y:0,z:0},{x:.9,y:0,z:1.9})).toBe(true);
   expect(medicCanTreat({x:0,y:0,z:0},{x:1.1,y:0,z:0})).toBe(false);
   expect(medicCanTreat({x:0,y:0,z:0},{x:0,y:0,z:2.1})).toBe(false);
+ });
+});
+
+describe('the fire engine (CTaskComplexDriveFireTruck, FireTruckControl)',()=>{
+ test('FindNearestFire: active, not the script\'s, not being put out, not on a ped, nearest in 2D',()=>{
+  const fire=(x:number,o:Partial<{active:boolean;script:boolean;beingExtinguished:boolean;target:{kind:string}}>={})=>({active:o.active??true,script:!!o.script,beingExtinguished:!!o.beingExtinguished,position:{x,y:0,z:x*10},target:o.target});
+  const fires=[fire(1,{script:true}),fire(2,{beingExtinguished:true}),fire(3,{target:{kind:'ped'}}),fire(4,{active:false}),fire(9),fire(7)];
+  expect(findNearestFire(fires,{x:0,y:0})?.position.x).toBe(7);
+  expect(findNearestFire([],{x:0,y:0})).toBeUndefined();
+ });
+ test('the dispatch wants three fires, the nearest within 30 units, and 35 s since the last engine',()=>{
+  const base={wanted:0,onDuty:0,activeFires:3,nearestDistance:10,fireTrucks:0,nowMs:40000,lastCreatedMs:0};
+  expect(fireTruckDue(base)).toBe(true);
+  expect(fireTruckDue({...base,activeFires:2})).toBe(false);
+  expect(fireTruckDue({...base,nearestDistance:31})).toBe(false);
+  expect(fireTruckDue({...base,onDuty:1})).toBe(false);
+  expect(fireTruckDue({...base,nowMs:34000})).toBe(false);
+ });
+ test('the nozzle turns a hundredth of a step at a time toward the fire\'s bearing off the heading, and sways ±0.15',()=>{
+  // Fire straight to the truck's left (−x) with the truck facing +y: bearing atan2(1, 0) = π/2.
+  let aim={yaw:0,pitch:0};
+  for(let i=0;i<10;i++)aim=fireTruckAim(aim,{fire:{x:-10,y:0},car:{x:0,y:0},heading:0,timeStep:1,timeMs:1024});
+  expect(aim.yaw).toBeCloseTo(.1,6);
+  expect(aim.pitch).toBeCloseTo(.15,6);
+  for(let i=0;i<1000;i++)aim=fireTruckAim(aim,{fire:{x:-10,y:0},car:{x:0,y:0},heading:0,timeStep:1,timeMs:0});
+  expect(Math.abs(aim.yaw-Math.PI/2)).toBeLessThan(.01);
+  expect(aim.pitch).toBe(0);
  });
 });

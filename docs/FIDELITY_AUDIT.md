@@ -8785,3 +8785,20 @@ that did anything.
   found nothing at its end and circled the last node, running down whoever stood there. It now uses the ported
   `CCarCtrl::PickNextNodeRandomly` with the closed roads among the candidates (kept to a car already on one) and the
   U-turn when nothing else is left.
+
+## Fire engines answer fires
+
+- **The dispatch is AUTHORED** the same way as the ambulance's (III and Vice City's `GenerateEmergencyServicesCar`): no
+  engine while one is on duty or above three stars; one when three fires burn and the nearest lies within 30 units of
+  the player, fewer than two engines are about, and 35 s have passed since the last. The level's firefighter (LAFD1,
+  SFFD1, LVFD1; LAFD1 in the countryside) stands in for `ms_aDefaultFiremanModel`.
+- **The crew are the reversed tasks.** `CCarAI::AddFiretruckOccupants` seats the driver and the front passenger, who
+  never leave the cab; the driver's `CTaskComplexDriveFireTruck` takes `CFireManager::FindNearestFire` from the truck
+  (active, not the script's, not being put out, not on a ped, nearest in 2D), drives there at 30 under AVOID_CARS
+  until within 25 units, retargets if somebody else is already putting it out, and wanders at 10 under STOP_FOR_CARS
+  when there is none. `CTaskComplexUseWaterCannon` then runs `CAutomobile::FireTruckControl`'s branch for a truck the
+  player is not driving every frame while the fire burns: the nozzle turns at a hundredth of a time step toward the
+  fire's bearing off the heading, sways ±0.15 in pitch over 4096 ms, and fires every frame into its own
+  `CWaterCannon` (the player's is another), which puts fires out and pushes peds as the player's does.
+- `m_IsBeingExtinguished` is set by the water and cleared only when a fire starts or goes out, so a fire the jet
+  only grazed is passed over by `FindNearestFire` and left to burn down; the port keeps that.
