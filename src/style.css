@@ -120,18 +120,21 @@
 :root{--touch-b:clamp(44px,14.5vmin,64px);--touch-fire:calc(var(--touch-b) * 1.3);--touch-gap:clamp(6px,2vmin,10px);--touch-right:max(12px,env(safe-area-inset-right));
  --touch-cluster:calc(2 * var(--touch-b) + var(--touch-fire) + 2 * var(--touch-gap) + var(--touch-right));--touch-cluster-h:calc(2 * var(--touch-b) + var(--touch-fire) + 2 * var(--touch-gap) + max(12px,env(safe-area-inset-bottom)))}
 .touch-buttons{position:absolute;right:var(--touch-right);bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:var(--touch-b) var(--touch-b) var(--touch-fire);grid-template-rows:var(--touch-b) var(--touch-b) var(--touch-fire);
- grid-template-areas:"reload weapon enter" "crouch aim jump" ". sprint fire";gap:var(--touch-gap);place-items:center;pointer-events:none}
+ grid-template-areas:"reload . enter" "crouch aim jump" ". sprint fire";gap:var(--touch-gap);place-items:center;pointer-events:none}
 .touch-button{pointer-events:auto;touch-action:none;width:var(--touch-b);height:var(--touch-b);border-radius:50%;border:2px solid #fff8;background:#0006;color:#fff;font:600 clamp(10px,3vmin,12px)/1 system-ui,sans-serif;text-shadow:0 1px 2px #000;padding:0}
 .touch-button[hidden]{display:none}
 .touch-button.on{background:#fffc;color:#111;text-shadow:none}
 .touch-button.fire{grid-area:fire;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);background:#a0202099}
 .touch-button.aim{grid-area:aim}.touch-button.jump{grid-area:jump}.touch-button.sprint{grid-area:sprint}.touch-button.enter{grid-area:enter}
-.touch-button.crouch{grid-area:crouch}.touch-button.weapon{grid-area:weapon}.touch-button.reload{grid-area:reload}
+.touch-button.crouch{grid-area:crouch}.touch-button.reload{grid-area:reload}
 /* At the wheel the pedals take the thumb's corner: Gas there, Brake beside it, the handbrake above, drive-by fire between. */
-.touch-controls[data-mode=vehicle] .touch-buttons{grid-template-areas:"sprint crouch enter" ". fire jump" ". reverse gas"}
+.touch-controls[data-mode=vehicle] .touch-buttons{grid-template-areas:"sprint crouch enter" "radio fire jump" ". reverse gas"}
 .touch-controls[data-mode=vehicle] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
 .touch-button.gas{grid-area:gas;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);background:#2f7a3c99}
 .touch-button.reverse{grid-area:reverse}
+.touch-button.radio{grid-area:radio}
+/* The HUD's weapon icon takes a tap over the touch layer (TouchControls: next weapon, a swipe left the one before). */
+.touch .status{z-index:5}.touch .weapon-slot{pointer-events:auto;touch-action:none;cursor:pointer}
 .touch-controls[data-mode=aircraft] .touch-buttons{grid-template-areas:"yaw-left yaw-right enter" "rocket fire jump" ". reverse gas"}
 .touch-controls[data-mode=aircraft] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
 .touch-button.yaw-left{grid-area:yaw-left}.touch-button.yaw-right{grid-area:yaw-right}.touch-button.rocket{grid-area:rocket}

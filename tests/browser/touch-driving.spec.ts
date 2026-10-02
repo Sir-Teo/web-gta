@@ -22,6 +22,9 @@ test('a phone drives with the stick at full lock and the Gas pedal',async({page}
  await expect.poll(async()=>(await state()).carEntry.phase,{timeout:60000}).toBe('seated');
  await expect(page.locator('.touch-controls')).toHaveAttribute('data-mode','vehicle');
  await expect(page.locator('.touch-button.gas:not([hidden])')).toBeVisible();await expect(page.locator('.touch-button.aim')).toBeHidden();
+ // Radio tunes the next station, named at the top of the screen.
+ await press('.touch-button.radio',13);await press('.touch-button.radio',13,'pointerup');
+ await expect(page.locator('.radio-name')).toBeVisible({timeout:5000});
  const start=(await state()).nativeCar;
  // The stick hard right, not forward at all, and Gas held.
  const zone=(await page.locator('.touch-stick-zone').boundingBox())!,x=zone.x+zone.width/2,y=zone.y+zone.height/2;

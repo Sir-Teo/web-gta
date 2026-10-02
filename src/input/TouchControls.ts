@@ -39,12 +39,13 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Enter',code:'KeyF',className:'enter',contextual:true},
  {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope']},
  {label:'Look',code:'KeyQ',className:'crouch',modes:['vehicle']},
- {label:'Weapon',code:'KeyE',className:'weapon',modes:['foot','scope']},
  {label:'Reload',code:'KeyR',className:'reload',modes:['foot','scope']},
  // At the wheel the right thumb has the pedals, as the mobile ports give it, so the stick can steer to full lock
  // while the car accelerates (a stick pushed only sideways is no push forward).
  {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle']},
  {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle']},
+ // N tunes the radio (the mobile ports swipe for it).
+ {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle']},
  // Flying, the stick is the yoke (pitch and roll) and the right thumb has the throttle, the rudder, the wheel brake
  // (a helicopter's hover hold) and the rockets: the PC's W/S, Q/E, Space and B.
  // Through a scope (the sniper rifle, the camera, the rocket launchers) Jump and Sprint give way to the zoom: the
@@ -125,6 +126,14 @@ export class TouchControls {
    context.append(button);this.context.push({action,element:button});
   }
   this.element.append(look,stickZone,pad,top,rotate,context);parent.append(this.element);
+  // The HUD's weapon icon is the weapon button, as the mobile ports': a tap takes the next weapon (E) and a swipe to the
+  // left the one before (Q), on foot.
+  const slot=parent.querySelector<HTMLElement>('.weapon-slot');
+  if(slot){let press:{id:number;x:number}|undefined;
+   slot.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(slot,e.pointerId);press={id:e.pointerId,x:e.clientX};},options);
+   slot.addEventListener('pointerup',e=>{if(press?.id!==e.pointerId)return;const dx=e.clientX-press.x;press=undefined;
+    if(this.mode==='foot'||this.mode==='scope')input.tap(dx<-24?'KeyQ':'KeyE');},options);
+   slot.addEventListener('pointercancel',()=>{press=undefined;},options);}
   // The stick floats: it is centred where the thumb lands in the left zone and follows it out to its radius.
   stickZone.addEventListener('pointerdown',e=>{if(this.stickPointer!==undefined)return;e.preventDefault();capture(stickZone,e.pointerId);
    this.stickPointer=e.pointerId;this.stickOrigin={x:e.clientX,y:e.clientY};const r=stickZone.getBoundingClientRect();

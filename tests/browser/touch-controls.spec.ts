@@ -39,6 +39,12 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await finger('.touch-button.jump:not([hidden])','pointerdown',box.x+box.width/2,box.y+box.height/2,11);
  await expect.poll(async()=>(await state()).player.grounded,{timeout:5000}).toBe(false);
  await finger('.touch-button.jump:not([hidden])','pointerup',box.x+box.width/2,box.y+box.height/2,11);
+ // The HUD's weapon icon is the weapon button: a tap takes the next weapon, a swipe to the left the one before.
+ const selected=()=>page.evaluate(()=>(window as any).__game.weapons().inventory.selected as number);
+ const slot=(await page.locator('.weapon-slot').boundingBox())!,sx=slot.x+slot.width/2,sy=slot.y+slot.height/2;
+ const tapIcon=async(id:number,dx=0)=>{const before=await selected();await finger('.weapon-slot','pointerdown',sx,sy,id);await finger('.weapon-slot','pointerup',sx+dx,sy,id);
+  await expect.poll(selected,{timeout:5000}).not.toBe(before);return selected();};
+ const one=await tapIcon(51);await tapIcon(52);expect(await tapIcon(53,-60)).toBe(one);
  // Guns opens the arsenal without raising the on-screen keyboard: the close button has the focus, not the search.
  await page.locator('.touch-top .touch-button').nth(2).dispatchEvent('pointerdown',{pointerType:'touch'});
  await expect(page.locator('.arsenal')).toBeVisible();await expect(controls).toBeHidden();
