@@ -73,5 +73,11 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  // ☰ pauses, and the overlay gives way to the menu.
  await page.locator('.touch-top .touch-button').first().dispatchEvent('pointerdown',{pointerType:'touch'});
  await expect(controls).toBeHidden();
+ // The pause menu's Controls panel holds the touch settings in place of the key list: a bigger button size takes.
+ await page.getByRole('button',{name:'Controls',exact:true}).click();
+ await expect(page.locator('.touch-settings')).toBeVisible();await expect(page.getByLabel('Steering',{exact:true})).toBeVisible();
+ await page.getByLabel('Button size',{exact:true}).fill('1.2');
+ expect(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--touch-scale'))).toBe('1.2');
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).buttonScale)).toBe(1.2);
  expect(errors).toEqual([]);
 });

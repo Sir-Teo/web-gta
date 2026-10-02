@@ -1,4 +1,5 @@
 import type {Input} from './Input';
+import {BUTTON_SCALE_RANGE,LOOK_SPEED_RANGE,tiltSteering,type TouchSettings} from './touchSettings';
 /* Touch-screen controls for phones and tablets, laid over the game the way the mobile ports lay theirs: a floating
  * stick under the left thumb, the camera dragged with the right, and the buttons round the right thumb. Every control
  * feeds the same Input the keyboard and mouse do (the stick as CPad's analog left stick, the buttons as the PC keys
@@ -88,7 +89,7 @@ export class TouchControls {
  private mode?:TouchMode;
  private offered=new Set<string>();
  private abort=new AbortController();
- constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;map:()=>void;arsenal:()=>void}){
+ constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;map:()=>void;arsenal:()=>void},private settings:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1}){
   const options={signal:this.abort.signal};
   this.element.className='touch-controls';this.element.setAttribute('aria-label','Touch controls');
   const look=document.createElement('div');look.className='touch-look';
@@ -143,13 +144,16 @@ export class TouchControls {
   stickZone.addEventListener('pointerup',stickUp,options);stickZone.addEventListener('pointercancel',stickUp,options);
   // The right side drags the camera as the mouse does.
   look.addEventListener('pointerdown',e=>{if(this.lookPointer!==undefined)return;e.preventDefault();capture(look,e.pointerId);this.lookPointer=e.pointerId;this.lookLast={x:e.clientX,y:e.clientY};},options);
-  look.addEventListener('pointermove',e=>{if(e.pointerId!==this.lookPointer)return;input.lookX+=(e.clientX-this.lookLast.x)*LOOK_GAIN;input.lookY+=(e.clientY-this.lookLast.y)*LOOK_GAIN;this.lookLast={x:e.clientX,y:e.clientY};input.touches++;},options);
+  look.addEventListener('pointermove',e=>{if(e.pointerId!==this.lookPointer)return;input.lookX+=(e.clientX-this.lookLast.x)*LOOK_GAIN*this.settings.lookSpeed;input.lookY+=(e.clientY-this.lookLast.y)*LOOK_GAIN*this.settings.lookSpeed;this.lookLast={x:e.clientX,y:e.clientY};input.touches++;},options);
   const lookUp=(e:PointerEvent)=>{if(e.pointerId===this.lookPointer)this.lookPointer=undefined;};
   look.addEventListener('pointerup',lookUp,options);look.addEventListener('pointercancel',lookUp,options);
   // No page scroll, zoom or long-press menu under the thumbs.
   this.element.addEventListener('touchstart',e=>{if(e.cancelable)e.preventDefault();},{...options,passive:false});
   this.element.addEventListener('contextmenu',e=>e.preventDefault(),options);
   this.setMode('foot');
+  // Tilt steering reads the device's orientation (the port's accelerometer option).
+  window.addEventListener('deviceorientation',e=>{this.orientation={beta:e.beta,gamma:e.gamma};this.steer();},options);
+  this.apply(settings);
  }
  private moveStick(x:number,y:number){
   let dx=x-this.stickOrigin.x,dy=y-this.stickOrigin.y;const length=Math.hypot(dx,dy);
@@ -164,7 +168,7 @@ export class TouchControls {
  setMode(mode:TouchMode){
   if(mode===this.mode)return;
   this.mode=mode;this.element.dataset.mode=mode;
-  this.showButtons();
+  this.showButtons();this.steer();
   if(mode!=='foot'&&mode!=='scope')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
   for(const {spec,element} of this.buttons)if(spec.toggle)element.classList.toggle('on',this.latched.has(spec.code));
  }
@@ -191,12 +195,51 @@ export class TouchControls {
    if(hidden){const code=element.dataset.code!;for(const [id,held] of this.held)if(held===code)this.held.delete(id);if(![...this.held.values()].includes(code))this.input.release(code);element.classList.remove('on');}
   }
  }
+ private orientation:{beta:number|null;gamma:number|null}={beta:null,gamma:null};
+ /** The settings now in force: the button size, and tilt steering on or off. */
+ apply(settings:TouchSettings){
+  this.settings=settings;
+  document.documentElement.style.setProperty('--touch-scale',String(settings.buttonScale));
+  this.steer();
+ }
+ /** Feeds the tilt to the input while it steers: in a car, on a bike or in a boat with tilt steering chosen. */
+ private steer(){
+  const angle=globalThis.screen?.orientation?.angle??(globalThis as {orientation?:number}).orientation??0;
+  this.input.tilt=this.settings.steering==='tilt'&&this.mode==='vehicle'&&!this.element.hidden?tiltSteering(this.orientation.beta,this.orientation.gamma,((angle%360)+360)%360):undefined;
+ }
  /** Hidden under the menus: everything held is let go so nothing stays pressed behind them. */
  setVisible(visible:boolean){
   if(this.element.hidden===!visible)return;
   this.element.hidden=!visible;
+  this.steer();
   if(!visible){for(const code of new Set([...this.held.values(),...this.latched]))this.input.release(code);this.held.clear();this.latched.clear();this.input.stick=undefined;this.input.release('AltLeft');this.stickPointer=this.lookPointer=undefined;this.stickBase.hidden=true;
    for(const {element} of this.buttons)element.classList.remove('on');}
  }
  dispose(){this.abort.abort();this.element.remove();}
+}
+
+/** The pause menu's touch settings, the iOS and Android port's own: steering by the stick or by tilting the device,
+ * lock-on aim assist or free aim, the camera drag's speed and the buttons' size. `change` gets each new set. Choosing
+ * tilt asks iOS for the motion sensors (it asks only on a tap), and stays on the stick if refused. */
+export function touchSettingsPanel(settings:TouchSettings,change:(settings:TouchSettings)=>void){
+ const panel=document.createElement('p');panel.className='touch-settings';
+ panel.innerHTML=`<b>Touch</b><label>Steering <select class="touch-steering" aria-label="Steering"><option value="stick">Stick</option><option value="tilt">Tilt the device</option></select></label>
+<label>Aim <select class="touch-aim" aria-label="Aim"><option value="assist">Lock-on assist</option><option value="free">Free aim</option></select></label>
+<label>Look speed <input type="range" class="touch-look-speed" aria-label="Look speed" min="${LOOK_SPEED_RANGE.min}" max="${LOOK_SPEED_RANGE.max}" step="0.1"></label>
+<label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
+<small class="touch-note"></small>`;
+ const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
+ const look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
+ steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);
+ const update=(next:Partial<TouchSettings>)=>{settings={...settings,...next};change(settings);};
+ steering.onchange=async()=>{
+  note.textContent='';
+  if(steering.value!=='tilt'){update({steering:'stick'});return;}
+  const request=(globalThis as {DeviceOrientationEvent?:{requestPermission?:()=>Promise<string>}}).DeviceOrientationEvent?.requestPermission;
+  let granted=true;try{if(request)granted=await request()==='granted';}catch{granted=false;}
+  if(granted)update({steering:'tilt'});else{steering.value='stick';note.textContent='Motion sensors were not allowed, so steering stays on the stick.';}
+ };
+ aim.onchange=()=>update({aimAssist:aim.value==='assist'});
+ look.oninput=()=>update({lookSpeed:Number(look.value)});size.oninput=()=>update({buttonScale:Number(size.value)});
+ return panel;
 }

@@ -210,7 +210,8 @@ import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
-import { TouchControls, goFullscreen, wantsTouchControls } from './input/TouchControls';
+import { TouchControls, goFullscreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
+import { readTouchSettings, saveTouchSettings } from './input/touchSettings';
 import { installRapierTombstones } from './simulation/rapierTombstones';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
@@ -2240,8 +2241,11 @@ async function boot() {
   let touchEnterNear=false,touchEnterTick=0;
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
-  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),map:()=>input.tap('KeyM'),arsenal:()=>input.tap('Backquote')}):undefined;
-  if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true);}
+  let touchSettings=readTouchSettings();
+  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),map:()=>input.tap('KeyM'),arsenal:()=>input.tap('Backquote')},touchSettings):undefined;
+  if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true);
+   // The pause menu's Controls panel holds the touch settings.
+   hud.element.querySelector('.controls-panel')?.prepend(touchSettingsPanel(touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);}));}
   const cheats=CHEATS;
   /** CTimer::ms_fTimeScale as the gameplay cheats set it; a unique stunt jump's 0.3 overrides it and ResetTimeScale
    * afterwards puts it back to 1. */
@@ -2883,7 +2887,7 @@ async function boot() {
         // The touch controls' aim assist (input/aimAssist): an aimed gun in the follow camera eases onto the ped nearest
         // the crosshair that the camera can see.
         {const w=weapons.inventory.weapon,info=weapons.inventory.info();
-         const assist=touch&&weapons.aiming&&!render.firstPerson&&(w.kind==='bullet'||w.kind==='shotgun')&&info&&info.fire!=='melee'&&sim.player.health>0;
+         const assist=touch&&touchSettings.aimAssist&&weapons.aiming&&!render.firstPerson&&(w.kind==='bullet'||w.kind==='shotgun')&&info&&info.fire!=='melee'&&sim.player.health>0;
          if(assist){const origin=render.camera.position,target=pickAimTarget(pedestrians?.targets()??[],{origin,direction:aimDirection()},sim.player.position,playerAimReach(w.kind,info),aimAssistHandle,c=>{
            const to={x:c.position.x-origin.x,y:c.position.y-origin.y,z:c.position.z-origin.z},d=Math.hypot(to.x,to.y,to.z);if(d<.5)return true;
            return !sim.world.castRay(new RAPIER.Ray(origin,{x:to.x/d,y:to.y/d,z:to.z/d}),d-.3,true,RAPIER.QueryFilterFlags.ONLY_FIXED);});

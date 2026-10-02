@@ -69,6 +69,8 @@ export class Input {
     canvas.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY!==0)this.pressed.add(e.deltaY>0?'WheelNext':'WheelPrevious');},{...options,passive:false});
     canvas.addEventListener('contextmenu', e => e.preventDefault(), options);
   }
+  /** The touch controls' tilt steering, -1 (left) to 1 (right), while it steers a vehicle; undefined otherwise. */
+  tilt?: number;
   /** A touch screen's analog stick, x right and y forward in -1..1; undefined while no thumb is on it. */
   stick?: { x: number; y: number };
   /** Holds a key or button from somewhere other than the keyboard and mouse (the touch controls), with its press. */
@@ -86,10 +88,11 @@ export class Input {
     // accelerate and brake buttons are the stick pushed forward or back.
     // The touch pedals (W and S held from the buttons) drive while the stick steers: forward or back whatever the
     // stick's own push, and the full throttle for the boats and bikes that read it from y.
-    if (stick && Math.hypot(stick.x, stick.y) > .12) {
-      const gas = this.down('KeyW'), brake = this.down('KeyS');
+    const gas = this.down('KeyW'), brake = this.down('KeyS');
+    if (stick && Math.hypot(stick.x, stick.y) > .12)
       return { x: stick.x, y: gas && !brake ? 1 : brake && !gas ? -1 : stick.y, forward: gas || stick.y > .3, back: brake || stick.y < -.3 };
-    }
+    // Tilt steering: the device turned like a wheel steers, and the pedals drive (a thumb on the stick takes over).
+    if (this.tilt !== undefined) return { x: this.tilt, y: gas && !brake ? 1 : brake && !gas ? -1 : 0, forward: gas, back: brake };
     const forward = this.down('KeyW') || this.down('ArrowUp'), back = this.down('KeyS') || this.down('ArrowDown');
     return {
       x: Number(this.down('KeyD') || this.down('ArrowRight')) - Number(this.down('KeyA') || this.down('ArrowLeft')),
