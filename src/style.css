@@ -195,7 +195,10 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 .touch .flight-instruments{--free-left:calc(var(--touch-radar-left) + 100px);top:calc(var(--status-bottom,76px) + 6px);left:calc(var(--free-left) + (100vw - var(--touch-cluster) - var(--free-left)) / 2);max-width:calc(100vw - var(--touch-cluster) - var(--free-left) - 12px);padding:4px 10px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* The shortest screens (an iPhone SE sideways) have no room for the context pills' full height and gap between the
  * buttons and the weapon icon's ammo: they come down a little and slimmer. */
-@media(max-height:360px){.touch-context{bottom:calc(var(--touch-cluster-h) + 6px)}.touch-context .touch-button.small{height:34px;border-radius:17px}}
+@media(max-height:360px){.touch-context .touch-button.small{height:34px;border-radius:17px}}
+/* A short screen has no room above the buttons for the pills and the wanted stars (or the flight readout) both: the
+   pills stand beside the buttons' top row instead. */
+@media(max-height:380px){.touch-context{right:calc(var(--touch-cluster) + 8px);bottom:calc(var(--touch-cluster-h) - var(--touch-b))}}
 /* Adjusting the layout (the touch settings' Adjust controls): the held game dimmed and the rest of the HUD gone, a
  * layout's every button outlined to be dragged, and the bar of layouts, Reset and Done at the top. */
 .touch-controls.editing{background:#000000a8}

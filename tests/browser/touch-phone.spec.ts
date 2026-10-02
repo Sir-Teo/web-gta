@@ -65,6 +65,13 @@ test('a phone plays with real touches: two thumbs, three fingers, the weapon ico
   const hit=[...document.querySelectorAll('.touch-controls .touch-button:not([hidden])')].map(b=>b.getBoundingClientRect()).filter(r=>r.width&&r.left<s.right&&r.right>s.left&&r.top<s.bottom&&r.bottom>s.top);
   return {overlaps:hit.length,below:s.top>=status.bottom};});
  expect(stars).toEqual({overlaps:0,below:true});
+ // A yes or no asked with the stars up: its pills stand beside the buttons' top row, clear of the stars and the buttons.
+ await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~CONVERSATION_YES~ or ~k~~CONVERSATION_NO~.'),60000);});
+ await expect(page.locator('.touch-context button',{hasText:'Yes'})).toBeVisible();
+ expect(await page.evaluate(()=>{const rects=(sel:string)=>[...document.querySelectorAll(sel)].filter(e=>(e as HTMLElement).offsetParent).map(e=>e.getBoundingClientRect());
+  const meets=(a:DOMRect,b:DOMRect)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+  return rects('.touch-context button').flatMap(p=>[...rects('.wanted-status'),...rects('.touch-buttons .touch-button:not([hidden])')].filter(o=>meets(p,o))).length;})).toBe(0);
+ await page.evaluate(()=>(window as any).__game.hud().help(''));
  await page.evaluate(()=>(window as any).__game.setWantedLevel(0));
  // A long subtitle wraps in the room left of the buttons rather than running under them.
  await page.evaluate(()=>(window as any).__game.hud().message("It's a good thing we found you and retrieved the murder weapon, Carl. Real good.",20000));
