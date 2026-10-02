@@ -9,7 +9,10 @@ test('a phone keeps its screen on while playing, its buttons buzz, and switching
  await page.addInitScript(()=>{const w=window as any;w.__device=[];
   Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request:async(type:string)=>{w.__device.push(`lock ${type}`);const s={released:false,release:async()=>{s.released=true;w.__device.push('release');}};return s;}}});
   Object.defineProperty(navigator,'vibrate',{configurable:true,value:(ms:number)=>{w.__device.push(`buzz ${ms}`);return true;}});});
- await page.goto('/?touch=1');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.goto('/?touch=1');
+ // The menu's ready line speaks of thumbs, not keys.
+ await expect(page.locator('.menu-message')).toContainText('Your left thumb walks',{timeout:120000});
+ await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await endStoryMission(page);
  const device=()=>page.evaluate(()=>[...(window as any).__device] as string[]);

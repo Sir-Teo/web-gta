@@ -4219,7 +4219,9 @@ async function boot() {
         // The front end's Start Game offers New Game beside the saved game: FESZ_QR asks first, and the page starts over.
         const newGame=hud.button('new-game');newGame.hidden=!(walkDemo&&(progression.savedLocation||progression.hadSave));newGame.textContent=gxtText('FES_NGA','New Game');
         newGame.onclick=()=>{if(!confirm(gxtText('FESZ_QR','Are you sure you want to start a new game? All current game progress will be lost. Proceed?')))return;if(progression.startNewGame())location.reload();else{const u=new URL(location.href);u.searchParams.set('new-game','1');location.replace(u.href);}};
-        hud.menuMessage((walkDemo?`${included.name} is ready. WASD to walk, Shift to sprint, Space to jump.`:'Imported scene ready. WASD to walk; Space to jump. This test scene is not saved.')+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
+        // A phone has no keys to name: the touch controls' own words.
+        const howToWalk=touch?'Your left thumb walks; drag on the right to look.':walkDemo?'WASD to walk, Shift to sprint, Space to jump.':'WASD to walk; Space to jump.';
+        hud.menuMessage((walkDemo?`${included.name} is ready. ${howToWalk}`:`Imported scene ready. ${howToWalk} This test scene is not saved.`)+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
           pedestrians=new WorldPedestrians(sim,render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,()=>render.nativeCharacter,law);
