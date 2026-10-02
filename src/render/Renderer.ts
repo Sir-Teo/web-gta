@@ -109,6 +109,7 @@ export class GameRenderer {
     // are the dominant frame cost; keep them off for both fidelity and speed.
     // Pixel ratio is capped at 1: native raster output is low-res upscaled, and
     // 1.5x on retina multiplies fragment work without matching reference detail.
+    // A phone's touch settings may ask for more (setPixelRatio).
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(1);
     // three.js reads every new program's link status and info logs back when it compiles it, a synchronous wait on the
@@ -136,6 +137,11 @@ export class GameRenderer {
     const key = this.vehicleView ? 'vehicle' : 'foot';
     saveCameraSettings(this.cameraSettings);
     return this.cameraSettings[key];
+  }
+  /** Draws at `ratio` device pixels per CSS pixel (the touch settings' Resolution). */
+  setPixelRatio(ratio: number) {
+    if (this.renderer.getPixelRatio() === ratio) return;
+    this.renderer.setPixelRatio(ratio); this.resize();
   }
   resize() {
     const w = Math.max(1, this.canvas.clientWidth), h = Math.max(1, this.canvas.clientHeight);

@@ -2260,10 +2260,12 @@ async function boot() {
   const touchPopulation=()=>touch?DENSITY_SCALE[touchSettings.density]:1;
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
   const screenAwake=touch?new ScreenAwake():undefined;
-  if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);
+  // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for.
+  function applyResolution(){if(touch)render.setPixelRatio(touchSettings.resolution==='high'?Math.max(1,Math.min(2,devicePixelRatio||1)):1);}
+  if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);applyResolution();
    // The pause menu's Controls panel holds the touch settings.
    // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.
-   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();},
+   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();applyResolution();},
     ()=>{hud.setMenu(false);touch.adjust(()=>{hud.setMenu(true);touchPanel?.refresh();});});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
    // A phone's short screen puts the touch buttons where the PC HUD's wanted stars sit (175 px down): they hang under
    // the clock, money and bars instead, wherever those end.

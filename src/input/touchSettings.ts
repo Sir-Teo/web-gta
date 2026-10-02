@@ -9,12 +9,15 @@ export const DENSITY_SCALE:Readonly<Record<TouchDensity,number>>={full:1,medium:
 export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpeed:number;buttonScale:number;vibration:boolean;density:TouchDensity;
  /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
  invertLook:boolean;
+ /** How sharp the picture is: the renderer's one pixel per CSS pixel, or the screen's own density up to twice it (the
+  * port's Resolution setting; a phone's GPU pays for it in fill). */
+ resolution:'standard'|'high';
  /** Where the player has moved buttons (the port's Adjust Controls): by layout and slot ("foot:jump"), how far from
   * their place, in hundredths of the screen's short side. */
  layout:Readonly<Record<string,readonly [number,number]>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',invertLook:false,layout:{},steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
 /** How far a button may be moved from its place: most of the way across a sideways screen and up it. */
 export const LAYOUT_RANGE={x:{min:-200,max:20},y:{min:-100,max:20}};
 const LAYOUT_KEY=/^(?:foot|vehicle|aircraft):[a-z-]+$/;
@@ -33,7 +36,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   lookSpeed:clamp(data.lookSpeed,LOOK_SPEED_RANGE,DEFAULT_TOUCH.lookSpeed),buttonScale:clamp(data.buttonScale,BUTTON_SCALE_RANGE,DEFAULT_TOUCH.buttonScale),
   vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration,
   density:data.density==='full'||data.density==='low'||data.density==='medium'?data.density:DEFAULT_TOUCH.density,
-  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:parseLayout(data.layout),
+  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:parseLayout(data.layout),resolution:data.resolution==='high'?'high':'standard',
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};
 }

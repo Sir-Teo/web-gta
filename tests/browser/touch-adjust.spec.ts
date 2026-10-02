@@ -2,7 +2,7 @@ import {test,expect,devices,type Page,type CDPSession} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** The touch settings' Adjust controls (the iOS and Android port's own): from the pause menu, a layout's buttons are
  * dragged by a finger (CDP touch events) where the thumbs want them, Done keeps them for play and for the next visit,
- * each layout keeps its own, and Reset puts them back. */
+ * each layout keeps its own, and Reset puts them back; Resolution High sharpens the picture. */
 const {defaultBrowserType,...phone}=devices['Pixel 7 landscape'];
 test.use({...phone});
 /** An element's centre, once it is on screen (the controls come back a frame after a menu closes). */
@@ -48,5 +48,14 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  await tap(cdp,await box(page,'.touch-adjust button:text-is("Reset")'));await tap(cdp,await box(page,'.touch-adjust button:text-is("Done")'));
  await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(async()=>(await box(page,fire)).x,{timeout:10000}).toBeCloseTo(home.x,0);
+ // Resolution High draws at the screen's density (up to twice the CSS pixel), Standard at one pixel per CSS pixel.
+ const buffer=()=>page.evaluate(()=>{const c=document.querySelector('canvas.world')??document.querySelector('canvas')!,gl=(window as any).__game.render().renderer.getContext();return gl.drawingBufferWidth/c.clientWidth;});
+ expect(await buffer()).toBe(1);
+ await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
+ // The Controls panel stays open from the last visit to the menu.
+ if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+ await page.getByLabel('Resolution',{exact:true}).selectOption('high');
+ await expect.poll(buffer).toBeCloseTo(2,1);
+ await page.getByLabel('Resolution',{exact:true}).selectOption('standard');await expect.poll(buffer).toBe(1);
  expect(errors).toEqual([]);
 });
