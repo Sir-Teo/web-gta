@@ -139,7 +139,7 @@
 .touch-button.steer-left{left:calc(max(12px,env(safe-area-inset-left)) + 8px)}.touch-button.steer-right{left:calc(max(12px,env(safe-area-inset-left)) + 24px + var(--touch-fire))}
 .touch-controls[data-mode=vehicle][data-steering=arrows] .touch-stick-zone{display:none}
 /* The HUD's weapon icon takes a tap over the touch layer (TouchControls: next weapon, a swipe left the one before). */
-.touch .status{z-index:5}.touch .weapon-slot{pointer-events:auto;touch-action:none;cursor:pointer}
+.touch .status{z-index:5}.touch .weapon-slot{pointer-events:auto;touch-action:none;cursor:pointer;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 .touch-controls[data-mode=aircraft] .touch-buttons{grid-template-areas:"yaw-left yaw-right enter" "rocket fire jump" ". reverse gas"}
 .touch-controls[data-mode=aircraft] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
 .touch-button.yaw-left{grid-area:yaw-left}.touch-button.yaw-right{grid-area:yaw-right}.touch-button.rocket{grid-area:rocket}

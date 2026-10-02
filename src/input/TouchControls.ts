@@ -148,7 +148,11 @@ export class TouchControls {
     const p={id:e.pointerId,x:e.clientX,held:false,timer:window.setTimeout(()=>{p.held=true;actions.arsenal();},ARSENAL_HOLD_MS)};press=p;},options);
    slot.addEventListener('pointerup',e=>{if(press?.id!==e.pointerId)return;const p=press;press=undefined;window.clearTimeout(p.timer);
     if(!p.held&&(this.mode==='foot'||this.mode==='scope'))input.tap(e.clientX-p.x<-24?'KeyQ':'KeyE');},options);
-   slot.addEventListener('pointercancel',()=>{if(press)window.clearTimeout(press.timer);press=undefined;},options);}
+   slot.addEventListener('pointercancel',()=>{if(press)window.clearTimeout(press.timer);press=undefined;},options);
+   // No click or long-press menu after the finger lifts: held, the icon opens the arsenal, whose close button lies under
+   // the same spot and would take the click the lift makes.
+   slot.addEventListener('touchstart',e=>{if(e.cancelable)e.preventDefault();},{...options,passive:false});
+   slot.addEventListener('contextmenu',e=>e.preventDefault(),options);}
   // The Fire button shows the weapon in hand, as the port's attack button does: the HUD icon's picture, or its fist.
   if(slot){const img=slot.querySelector<HTMLImageElement>('img.native-weapon-icon'),fist=slot.querySelector('svg.weapon');
    const fires=this.buttons.filter(b=>b.spec.code==='ControlLeft'&&!b.spec.icon).map(b=>b.element);
