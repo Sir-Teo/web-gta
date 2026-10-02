@@ -212,7 +212,7 @@ import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
 import { GamepadInput } from './input/GamepadInput';
 import { TouchControls, goFullscreen, offerInstall, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
-import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, saveTouchSettings } from './input/touchSettings';
+import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, resolutionRatio, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake } from './input/screenAwake';
 import { installRapierTombstones } from './simulation/rapierTombstones';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
@@ -2280,7 +2280,7 @@ async function boot() {
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
   const screenAwake=touch?new ScreenAwake():undefined;
   // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for.
-  function applyResolution(){if(touch)render.setPixelRatio(touchSettings.resolution==='high'?Math.max(1,Math.min(2,devicePixelRatio||1)):1);}
+  function applyResolution(){if(touch)render.setPixelRatio(resolutionRatio(touchSettings.resolution,devicePixelRatio));}
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);applyResolution();
    // The pause menu's Controls panel holds the touch settings.
    // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.

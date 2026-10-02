@@ -2,7 +2,7 @@ import {test,expect,devices,type Page,type CDPSession} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** The touch settings' Adjust controls (the iOS and Android port's own): from the pause menu, a layout's buttons are
  * dragged by a finger (CDP touch events) where the thumbs want them and the one touched sized, Done keeps them for play and for the next visit,
- * each layout keeps its own, and Reset puts them back; Resolution High sharpens the picture. */
+ * each layout keeps its own, and Reset puts them back; Resolution High sharpens the picture and Low softens it. */
 const {defaultBrowserType,...phone}=devices['Pixel 7 landscape'];
 test.use({...phone});
 /** An element's centre, once it is on screen (the controls come back a frame after a menu closes). */
@@ -69,6 +69,8 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
  await page.getByLabel('Resolution',{exact:true}).selectOption('high');
  await expect.poll(buffer).toBeCloseTo(2,1);
+ // Low draws three quarters of a pixel per CSS pixel, softer and quicker.
+ await page.getByLabel('Resolution',{exact:true}).selectOption('low');await expect.poll(buffer).toBeCloseTo(.75,1);
  await page.getByLabel('Resolution',{exact:true}).selectOption('standard');await expect.poll(buffer).toBe(1);
  expect(errors).toEqual([]);
 });

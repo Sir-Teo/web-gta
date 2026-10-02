@@ -9,9 +9,9 @@ export const DENSITY_SCALE:Readonly<Record<TouchDensity,number>>={full:1,medium:
 export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpeed:number;buttonScale:number;vibration:boolean;density:TouchDensity;
  /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
  invertLook:boolean;
- /** How sharp the picture is: the renderer's one pixel per CSS pixel, or the screen's own density up to twice it (the
-  * port's Resolution setting; a phone's GPU pays for it in fill). */
- resolution:'standard'|'high';
+ /** How sharp the picture is: the renderer's one pixel per CSS pixel, the screen's own density up to twice it, or
+  * three quarters of one (the port's Resolution setting; a phone's GPU pays for it in fill). */
+ resolution:'low'|'standard'|'high';
  /** Where the player has moved buttons (the port's Adjust Controls): by layout and slot ("foot:jump"), how far from
   * their place, in hundredths of the screen's short side. */
  layout:Readonly<Record<string,LayoutEntry>>;
@@ -41,7 +41,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   lookSpeed:clamp(data.lookSpeed,LOOK_SPEED_RANGE,DEFAULT_TOUCH.lookSpeed),buttonScale:clamp(data.buttonScale,BUTTON_SCALE_RANGE,DEFAULT_TOUCH.buttonScale),
   vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration,
   density:data.density==='full'||data.density==='low'||data.density==='medium'?data.density:DEFAULT_TOUCH.density,
-  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:parseLayout(data.layout),resolution:data.resolution==='high'?'high':'standard',
+  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:parseLayout(data.layout),resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};
 }
@@ -72,3 +72,7 @@ const SCREEN_AXES:readonly (readonly [number,number,number,number])[]=[[1,0,0,1]
 /** The vehicles whose side mission the submission button (the PC's 2) starts and ends, by model: taxi, paramedic,
  * firefighter, vigilante, pimping, burglary and freight. The port shows its mission start and cancel widgets in them. */
 export const SIDE_MISSION_VEHICLES:ReadonlySet<number>=new Set([420,438,416,407,544,596,597,598,599,523,427,490,528,432,425,430,447,575,609,537,538]);
+/** The renderer's pixels per CSS pixel for a Resolution setting: Low three quarters (softer, for a GPU that cannot keep
+ * up or a tablet's large screen), Standard one, High the screen's `density` up to twice. */
+export const LOW_RESOLUTION=.75;
+export function resolutionRatio(resolution:TouchSettings['resolution'],density=1){return resolution==='low'?LOW_RESOLUTION:resolution==='high'?Math.max(1,Math.min(2,density||1)):1;}

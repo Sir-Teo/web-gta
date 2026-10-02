@@ -436,7 +436,7 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
 <label>Vibration <input type="checkbox" class="touch-vibration" aria-label="Vibration"></label>
 <label>Population <select class="touch-density" aria-label="Population"><option value="full">Full</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
-<label>Resolution <select class="touch-resolution" aria-label="Resolution"><option value="standard">Standard</option><option value="high">High (sharper, slower)</option></select></label>
+<label>Resolution <select class="touch-resolution" aria-label="Resolution"><option value="low">Low (softer, faster)</option><option value="standard">Standard</option><option value="high">High (sharper, slower)</option></select></label>
 <button type="button" class="touch-adjust-open">Adjust controls</button>
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
@@ -446,7 +446,7 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
  const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;invert.checked=settings.invertLook;resolution.value=settings.resolution;density.value=settings.density;note.textContent='';};refresh();
  vibration.onchange=()=>update({vibration:vibration.checked});invert.onchange=()=>update({invertLook:invert.checked});
- resolution.onchange=()=>update({resolution:resolution.value==='high'?'high':'standard'});
+ resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard'});
  density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium'});
  const update=(next:Partial<TouchSettings>)=>change({...current(),...next});
  steering.onchange=async()=>{
