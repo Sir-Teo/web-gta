@@ -678,9 +678,11 @@ export class WorldPedestrians {
   p.view.playReaction('kill_knife_ped_damage');return true;
  }
  /** Development: stand a living civilian still at a renderer-frame point. Returns its id. */
- debugPlace(point:{x:number;y:number;z:number},heading=0){
-  // A ped already fading out would vanish under the test; one still solid is preferred and the fade is cleared.
-  const p=this.people.find(p=>!p.officer&&p.health>0&&p.down===0&&!p.fadeOut)??this.people.find(p=>!p.officer&&p.health>0&&p.down===0);if(!p)return undefined;
+ debugPlace(point:{x:number;y:number;z:number},heading=0,except:readonly number[]=[]){
+  // A ped already fading out would vanish under the test; one still solid is preferred and the fade is cleared. The
+  // peds in `except` (placed before) are left where they are.
+  const free=(p:Pedestrian)=>!p.officer&&p.health>0&&p.down===0&&!except.includes(p.id);
+  const p=this.people.find(p=>free(p)&&!p.fadeOut)??this.people.find(free);if(!p)return undefined;
   p.fadeOut=false;p.actor.player.position={...point};p.actor.player.heading=heading;p.actor.player.speed=0;p.impulse={x:0,z:0};p.flee=0;p.loiter=true;
   p.body.setTranslation({x:point.x,y:point.y+.9,z:point.z},true);p.collider.setTranslation({x:point.x,y:point.y+.9,z:point.z});
   return p.id;

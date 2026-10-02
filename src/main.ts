@@ -2547,7 +2547,7 @@ async function boot() {
     attractorsNear:(radius=60)=>importedScene?.attractorsNear(sim.player.position.x,-sim.player.position.z,radius)??[],
     placePlayer:(x:number,y:number,z:number)=>{sim.player.position={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});fleet?.generateEvenIfClose();return true;},
     /** Stand a civilian still at a renderer-frame point. */
-    placePed:(x:number,y:number,z:number)=>pedestrians?.debugPlace({x,y,z})??null,
+    placePed:(x:number,y:number,z:number,except?:number[])=>pedestrians?.debugPlace({x,y,z},0,except)??null,
     /** CPostEffects::m_bColorEnable. */
     setColourFilter:(on:boolean)=>{postEffects.colourFilterEnabled=!!on;return postEffects.colourFilterEnabled;},
     pedestrians:()=>pedestrians,scriptCars:()=>scriptCars,
@@ -2966,10 +2966,11 @@ async function boot() {
          hud.tripSkip(canSkip,canSkip?gxtHudText(gxtText('FEC_TSK','TRIP SKIP')):'');}
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined);
         // The touch controls' aim assist (input/aimAssist): an aimed gun in the follow camera eases onto the ped nearest
-        // the crosshair that the camera can see.
+        // the crosshair that the camera can see. A swipe switches targets, as the mobile ports' lock-on does: while the
+        // finger turns the camera the target held is not favoured, so the ped the swipe ends on is taken.
         {const w=weapons.inventory.weapon,info=weapons.inventory.info();
          const assist=touch&&touchSettings.aimAssist&&weapons.aiming&&!render.firstPerson&&(w.kind==='bullet'||w.kind==='shotgun')&&info&&info.fire!=='melee'&&sim.player.health>0;
-         if(assist){const origin=render.camera.position,target=pickAimTarget(pedestrians?.targets()??[],{origin,direction:aimDirection()},sim.player.position,playerAimReach(w.kind,info),aimAssistHandle,c=>{
+         if(assist){const origin=render.camera.position,target=pickAimTarget(pedestrians?.targets()??[],{origin,direction:aimDirection()},sim.player.position,playerAimReach(w.kind,info),render.lookingAround?undefined:aimAssistHandle,c=>{
            const to={x:c.position.x-origin.x,y:c.position.y-origin.y,z:c.position.z-origin.z},d=Math.hypot(to.x,to.y,to.z);if(d<.5)return true;
            return !sim.world.castRay(new RAPIER.Ray(origin,{x:to.x/d,y:to.y/d,z:to.z/d}),d-.3,true,RAPIER.QueryFilterFlags.ONLY_FIXED);});
           aimAssistHandle=target?.handle;render.aimAssist=target?.position;}

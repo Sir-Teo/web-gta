@@ -10,10 +10,13 @@ export const AIM_CROSSHAIR_NDC={x:.06,y:.2};
 export interface AimCandidate {handle:number;position:Point;crew?:boolean;down?:boolean;attacking?:boolean}
 /** The angle from the aim ray within which a ped is taken, and within which the one already taken is kept. */
 export const AIM_ASSIST_TAKE=.3,AIM_ASSIST_KEEP=.55;
+/** How long after a finger last turned the camera the assist waits before turning it again, in seconds. */
+export const AIM_ASSIST_SETTLE=.3;
 /** The ped to ease the crosshair onto: alive (the list holds only those), not the player's own crew, not lying down,
  * within the gun's reach of the player and within AIM_ASSIST_TAKE of the ray from the camera through the crosshair.
  * The nearest to the ray wins, a ped attacking the player counting as nearer; the current target is kept while it
- * stays within AIM_ASSIST_KEEP, so two peds side by side do not trade the crosshair. `visible` is the line of sight. */
+ * stays within AIM_ASSIST_KEEP, so two peds side by side do not trade the crosshair (the caller drops `current` while a
+ * finger turns the camera, so a swipe onto another ped takes him). `visible` is the line of sight. */
 export function pickAimTarget(candidates:readonly AimCandidate[],ray:{origin:Point;direction:Point},player:Point,reach:number,current?:number,visible:(c:AimCandidate)=>boolean=()=>true){
  const d=ray.direction,length=Math.hypot(d.x,d.y,d.z)||1;
  const angleTo=(p:Point)=>{const x=p.x-ray.origin.x,y=p.y-ray.origin.y,z=p.z-ray.origin.z,l=Math.hypot(x,y,z)||1;return Math.acos(Math.max(-1,Math.min(1,(x*d.x+y*d.y+z*d.z)/(l*length))));};

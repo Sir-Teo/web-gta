@@ -15,7 +15,7 @@ import type { Input } from '../input/Input';
 import { angleDelta, clamp, damp } from '../core/math';
 import {FirstPersonZoom,firstPersonAlphaRange,firstPersonSourceOffset,isRocketMode,type FirstPersonMode} from '../weapons/nativeFirstPerson';
 import {MOUSE_ACCEL_DEFAULT} from '../input/mouseSettings';
-import {aimAssistTurn} from '../input/aimAssist';
+import {AIM_ASSIST_SETTLE as LOOK_SETTLE,aimAssistTurn} from '../input/aimAssist';
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -99,7 +99,9 @@ export class GameRenderer {
   private desired = new THREE.Vector3();
   private camDir = new THREE.Vector3();
   private cameraReady = false;
-  private lastLook = 0;
+  private lastLook = 0;private lastElapsed = 0;
+  /** Whether a look (a drag, the mouse, a glance) turned the camera a moment ago: the aim assist waits it out. */
+  get lookingAround(){return this.lastElapsed-this.lastLook<=LOOK_SETTLE;}
   private wasVehicleView=false;
   readonly lighting: WorldLighting;
   private observer: ResizeObserver;
@@ -150,7 +152,7 @@ export class GameRenderer {
   /** SET_CHAR_VISIBLE off on the player. */
   scriptPlayerHidden = false;
   update(dt: number, alpha: number, input: Input, elapsed: number, paused=false) {
-    const p = this.sim.player;
+    const p = this.sim.player;this.lastElapsed=elapsed;
     const clock=()=>performance.now();let mark=clock();const lap=(key:keyof typeof this.profile)=>{const now=clock();(this.profile as any)[key]+=now-mark;mark=now;};
     this.crouchAmount = damp(this.crouchAmount, p.crouched ? 1 : 0, 14, dt);
     if(this.vehiclePose&&this.nativeCharacter){if(!this.nativeCharacter.updateVehicle(this.vehiclePose.frame,this.vehiclePose.pose))this.nativeCharacter.root.visible=false;}
@@ -200,7 +202,7 @@ export class GameRenderer {
     }
     // The touch aim assist turns the aimed camera toward its target (a fifth of a second to settle), but not while a
     // finger is dragging the view or for a moment after.
-    if(this.aimAssist&&this.aiming&&!fp&&this.glance==='none'&&elapsed-this.lastLook>.3&&this.cameraReady){
+    if(this.aimAssist&&this.aiming&&!fp&&this.glance==='none'&&elapsed-this.lastLook>LOOK_SETTLE&&this.cameraReady){
       const ndc=this.assistPoint.set(this.aimAssist.x,this.aimAssist.y,this.aimAssist.z).project(this.camera);
       if(ndc.z<1&&Math.abs(ndc.x)<1.5&&Math.abs(ndc.y)<1.5){
         const turn=aimAssistTurn(ndc,THREE.MathUtils.degToRad(this.camera.fov),this.camera.aspect,1-Math.exp(-10*dt));
