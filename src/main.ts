@@ -211,7 +211,7 @@ import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
 import { GamepadInput } from './input/GamepadInput';
-import { TouchControls, goFullscreen, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
+import { TouchControls, goFullscreen, offerInstall, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake } from './input/screenAwake';
 import { installRapierTombstones } from './simulation/rapierTombstones';
@@ -281,6 +281,8 @@ import './style.css';
 const app = document.querySelector<HTMLElement>('#app')!;
 const canvas = document.createElement('canvas'); canvas.className = 'world'; canvas.tabIndex = 0; canvas.setAttribute('aria-label', 'San Andreas game world'); app.append(canvas);
 const hud = new Hud(app); hud.setMenu(true);
+// Android's browser offers to install the game; on a touch screen the menu takes the offer (TouchControls.offerInstall).
+if(wantsTouchControls())offerInstall(hud.button('install'));
 let cleanup = () => {};
 
 /** vehicles.ide's bmx class: the BMX, Chopper and Mountain Bike, every CBmx. */

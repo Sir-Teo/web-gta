@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {goFullscreen,suggestHomeScreen,wantsTouchControls} from '../src/input/TouchControls';
+import {goFullscreen,offerInstall,suggestHomeScreen,wantsTouchControls} from '../src/input/TouchControls';
 import {Input} from '../src/input/Input';
 test('touch controls show on a coarse pointer, and the address can force them either way',()=>{
  expect(wantsTouchControls('',true)).toBe(true);expect(wantsTouchControls('',false)).toBe(false);
@@ -50,4 +50,16 @@ test('an iPhone in its browser is told the home screen plays full screen, not on
  // A browser that can take the screen itself, and an Android phone.
  expect(suggestHomeScreen({requestFullscreen:()=>{}},iphone,false)).toBe(false);
  expect(suggestHomeScreen({},{userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36'},false)).toBe(false);
+});
+test('Android\'s install offer is held for the menu\'s button, which takes it once',async()=>{
+ const target=new EventTarget(),button={hidden:true,onclick:null as null|(()=>void)},prompted:string[]=[];
+ const stop=offerInstall(button as unknown as HTMLButtonElement,target);
+ const offer=()=>Object.assign(new Event('beforeinstallprompt',{cancelable:true}),{prompt:async()=>{prompted.push('prompt');},userChoice:Promise.resolve({outcome:'accepted'})});
+ // No offer, no button; the browser's own bar is held back for it.
+ button.onclick!();expect(prompted).toEqual([]);
+ const first=offer();target.dispatchEvent(first);expect(first.defaultPrevented).toBe(true);expect(button.hidden).toBe(false);
+ button.onclick!();button.onclick!();expect(prompted).toEqual(['prompt']);expect(button.hidden).toBe(true);
+ // Offered again (dismissed), then installed: the button goes.
+ target.dispatchEvent(offer());expect(button.hidden).toBe(false);target.dispatchEvent(new Event('appinstalled'));expect(button.hidden).toBe(true);
+ stop();target.dispatchEvent(offer());expect(button.hidden).toBe(true);
 });

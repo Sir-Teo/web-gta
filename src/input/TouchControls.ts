@@ -31,6 +31,19 @@ export function suggestHomeScreen(root:{requestFullscreen?:unknown;webkitRequest
  nav:{userAgent:string;standalone?:boolean}=navigator,fromHomeScreen=globalThis.matchMedia?.('(display-mode: fullscreen), (display-mode: standalone)').matches??false){
  return /iPhone|iPod/.test(nav.userAgent)&&!root.requestFullscreen&&!root.webkitRequestFullscreen&&nav.standalone!==true&&!fromHomeScreen;
 }
+/** The install offer Android's browser makes (BeforeInstallPromptEvent): its prompt and the player's answer. */
+interface InstallOffer extends Event {prompt():Promise<unknown>;readonly userChoice:Promise<{outcome:'accepted'|'dismissed'}>}
+/** Android's browser offers to install a page that has a manifest (beforeinstallprompt), in a bar of its own: on a
+ * touch screen the menu's Add to Home screen button takes the offer instead, and the game then opens from the home
+ * screen full screen and sideways, as the manifest asks. The button shows while an offer stands. */
+export function offerInstall(button:HTMLButtonElement,target:EventTarget=window){
+ let offer:InstallOffer|undefined;
+ const onOffer=(e:Event)=>{e.preventDefault();offer=e as InstallOffer;button.hidden=false;};
+ const onInstalled=()=>{offer=undefined;button.hidden=true;};
+ target.addEventListener('beforeinstallprompt',onOffer);target.addEventListener('appinstalled',onInstalled);
+ button.onclick=()=>{const taken=offer;if(!taken)return;offer=undefined;button.hidden=true;void taken.prompt().catch(()=>{});};
+ return ()=>{target.removeEventListener('beforeinstallprompt',onOffer);target.removeEventListener('appinstalled',onInstalled);};
+}
 /** What the player is doing, which picks the buttons shown. */
 export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft'|'cutscene';
 /** The layouts the buttons are adjusted in: on foot's serves the scope and the water, whose buttons share its slots. */
