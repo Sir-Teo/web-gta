@@ -211,7 +211,7 @@ import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
 import { TouchControls, goFullscreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
-import { readTouchSettings, saveTouchSettings } from './input/touchSettings';
+import { SIDE_MISSION_VEHICLES, readTouchSettings, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake } from './input/screenAwake';
 import { installRapierTombstones } from './simulation/rapierTombstones';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
@@ -2242,13 +2242,13 @@ async function boot() {
   let touchEnterNear=false,touchEnterTick=0;
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
-  let touchSettings=readTouchSettings();
-  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);}},touchSettings):undefined;
+  let touchSettings=readTouchSettings(),touchPanel:{element:HTMLElement;refresh():void}|undefined;
+  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);}):undefined;
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
   const screenAwake=touch?new ScreenAwake():undefined;
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true);
    // The pause menu's Controls panel holds the touch settings.
-   hud.element.querySelector('.controls-panel')?.prepend(touchSettingsPanel(touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);}));}
+   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);}
   const cheats=CHEATS;
   /** CTimer::ms_fTimeScale as the gameplay cheats set it; a unique stunt jump's 0.3 overrides it and ResetTimeScale
    * afterwards puts it back to 1. */
@@ -2361,7 +2361,7 @@ async function boot() {
     if (navigation?.open) navigation.toggle(false);
     if (arsenal.open) arsenal.toggle(false);
     paused = true; sound.setPlaying(false); clock.reset(); input.clear(); hud.setMenu(true);
-    void screenAwake?.hold(false);
+    void screenAwake?.hold(false);touchPanel?.refresh();
     hud.button('play').textContent = 'Resume game';
     if (document.pointerLockElement) document.exitPointerLock();
   }
@@ -3390,6 +3390,9 @@ async function boot() {
     hud.element.classList.toggle('in-vehicle',!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
     if(touch){
      const asked=hud.shownPrompts().flatMap(controlsNamedIn),inVehicle=hud.element.classList.contains('in-vehicle');
+     // A side-mission vehicle (a taxi, an ambulance, a police car...) puts up Mission, the port's mission start and cancel.
+     {const ridden=worldCar?.occupied?worldCar:fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane??[...fleet?.trains??[]].find(t=>t.occupied);
+      if(ridden&&!playerPassenger&&SIDE_MISSION_VEHICLES.has(ridden.modelId))asked.push('TOGGLE_SUBMISSIONS');}
      // An interactive script menu up puts up its arrows, Select and Back (a grid of car colours left and right too).
      {const menus=mission?.runtime.game.menus,current=menus?.numInUse&&menus.inUse[menus.currentMenuInUse]?menus.menus[menus.currentMenuInUse]:undefined;
       if(current?.interactive[0])asked.push('MENU_UP','MENU_DOWN',...current.type===1?['MENU_LEFT','MENU_RIGHT']:[],'MENU_BACK','MENU_SELECT');}

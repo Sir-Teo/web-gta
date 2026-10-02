@@ -3,8 +3,10 @@
  * assist or free aim, how fast a drag turns the camera, how big the buttons are, and whether a press buzzes. Kept in
  * the browser like the other settings. */
 export type TouchSteering='stick'|'arrows'|'tilt';
-export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpeed:number;buttonScale:number;vibration:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true};
+export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpeed:number;buttonScale:number;vibration:boolean;
+ /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
+ steeringChosen:boolean}
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,steeringChosen:false};
 export const LOOK_SPEED_RANGE={min:.5,max:2},BUTTON_SCALE_RANGE={min:.8,max:1.3};
 const KEY='grove-touch-v1';
 const clamp=(value:unknown,range:{min:number;max:number},fallback:number)=>typeof value==='number'&&Number.isFinite(value)?Math.min(range.max,Math.max(range.min,value)):fallback;
@@ -12,7 +14,9 @@ export function parseTouchSettings(value:unknown):TouchSettings{
  const data=value&&typeof value==='object'?value as Partial<TouchSettings>:{};
  return {steering:data.steering==='tilt'||data.steering==='arrows'?data.steering:'stick',aimAssist:typeof data.aimAssist==='boolean'?data.aimAssist:DEFAULT_TOUCH.aimAssist,
   lookSpeed:clamp(data.lookSpeed,LOOK_SPEED_RANGE,DEFAULT_TOUCH.lookSpeed),buttonScale:clamp(data.buttonScale,BUTTON_SCALE_RANGE,DEFAULT_TOUCH.buttonScale),
-  vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration};
+  vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration,
+  // Settings kept before the question was asked chose by keeping a steering method.
+  steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};
 }
 export function readTouchSettings():TouchSettings{
  try{return parseTouchSettings(JSON.parse(localStorage.getItem(KEY)??'null'));}catch{return {...DEFAULT_TOUCH};}
@@ -38,3 +42,6 @@ export function tiltSteering(beta:number|null,gamma:number|null,screenAngle:numb
 }
 /** The screen's right and up in the device's x and y, by quarter turns of the screen angle. */
 const SCREEN_AXES:readonly (readonly [number,number,number,number])[]=[[1,0,0,1],[0,-1,1,0],[-1,0,0,-1],[0,1,-1,0]];
+/** The vehicles whose side mission the submission button (the PC's 2) starts and ends, by model: taxi, paramedic,
+ * firefighter, vigilante, pimping, burglary and freight. The port shows its mission start and cancel widgets in them. */
+export const SIDE_MISSION_VEHICLES:ReadonlySet<number>=new Set([420,438,416,407,544,596,597,598,599,523,427,490,528,432,425,430,447,575,609,537,538]);

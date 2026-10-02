@@ -104,7 +104,7 @@ export class TouchControls {
  private mode?:TouchMode;
  private offered=new Set<string>();
  private abort=new AbortController();
- constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void},private settings:TouchSettings=DEFAULT_TOUCH){
+ constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void},private settings:TouchSettings=DEFAULT_TOUCH,private readonly changeSettings:(settings:TouchSettings)=>void=()=>{}){
   const options={signal:this.abort.signal};
   this.element.className='touch-controls';this.element.setAttribute('aria-label','Touch controls');
   const look=document.createElement('div');look.className='touch-look';
@@ -143,7 +143,20 @@ export class TouchControls {
    button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
    context.append(button);this.context.push({action,element:button});
   }
-  this.element.append(look,stickZone,pad,top,rotate,context);parent.append(this.element);
+  // The port's steering popup: the first time at the wheel it asks how to steer, and keeps the answer (the touch settings
+  // change it later).
+  this.steeringPopup.className='touch-steering-choice';this.steeringPopup.hidden=true;this.steeringPopup.setAttribute('role','dialog');this.steeringPopup.setAttribute('aria-label','Choose steering');
+  this.steeringPopup.innerHTML='<p>How do you want to steer?</p><div></div>';
+  for(const [value,label] of [['stick','Stick'],['arrows','Arrow buttons'],['tilt','Tilt the device']] as const){
+   const button=document.createElement('button');button.type='button';button.className='touch-button small';button.textContent=label;button.dataset.steering=value;
+   // On the lift (pointerup): the touch layer takes the click a tap would make, and a lift still lets iOS ask for the
+   // motion sensors.
+   button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();},options);
+   button.addEventListener('pointerup',async e=>{e.preventDefault();e.stopPropagation();const steering=value==='tilt'&&!await motionAllowed()?'stick':value;
+    const next={...this.settings,steering,steeringChosen:true};this.apply(next);this.changeSettings(next);this.steeringPopup.hidden=true;},options);
+   this.steeringPopup.querySelector('div')!.append(button);
+  }
+  this.element.append(look,stickZone,pad,top,rotate,context,this.steeringPopup);parent.append(this.element);
   // The HUD's weapon icon is the weapon button, as the mobile ports': a tap takes the next weapon (E) and a swipe to the
   // left the one before (Q), on foot.
   const slot=parent.querySelector<HTMLElement>('.weapon-slot');
@@ -199,6 +212,7 @@ export class TouchControls {
   if(mode===this.mode)return;
   this.mode=mode;this.element.dataset.mode=mode;
   this.showButtons();this.steer();
+  this.steeringPopup.hidden=!(mode==='vehicle'&&!this.settings.steeringChosen);
   if(mode!=='foot'&&mode!=='scope')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
   for(const {spec,element} of this.buttons)if(spec.toggle)element.classList.toggle('on',this.latched.has(spec.code));
  }
@@ -248,13 +262,19 @@ export class TouchControls {
    for(const {element} of this.buttons)element.classList.remove('on');}
  }
  private weaponWatch?:MutationObserver;
+ private steeringPopup=document.createElement('section');
  dispose(){this.abort.abort();this.weaponWatch?.disconnect();this.element.remove();}
 }
 
 /** The pause menu's touch settings, the iOS and Android port's own: steering by the stick, the arrows or tilting the
  * device, lock-on aim assist or free aim, the camera drag's speed, the buttons' size and the vibration. `change` gets each new set. Choosing
  * tilt asks iOS for the motion sensors (it asks only on a tap), and stays on the stick if refused. */
-export function touchSettingsPanel(settings:TouchSettings,change:(settings:TouchSettings)=>void){
+/** Choosing tilt asks iOS for the motion sensors, which it asks only on a tap; refused, the choice stays where it was. */
+async function motionAllowed(){
+ const request=(globalThis as {DeviceOrientationEvent?:{requestPermission?:()=>Promise<string>}}).DeviceOrientationEvent?.requestPermission;
+ try{return request?await request()==='granted':true;}catch{return false;}
+}
+export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:TouchSettings)=>void){
  const panel=document.createElement('p');panel.className='touch-settings';
  panel.innerHTML=`<b>Touch</b><label>Steering <select class="touch-steering" aria-label="Steering"><option value="stick">Stick</option><option value="arrows">Arrow buttons</option><option value="tilt">Tilt the device</option></select></label>
 <label>Aim <select class="touch-aim" aria-label="Aim"><option value="assist">Lock-on assist</option><option value="free">Free aim</option></select></label>
@@ -264,17 +284,17 @@ export function touchSettingsPanel(settings:TouchSettings,change:(settings:Touch
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
- steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);
- const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!;vibration.checked=settings.vibration;vibration.onchange=()=>update({vibration:vibration.checked});
- const update=(next:Partial<TouchSettings>)=>{settings={...settings,...next};change(settings);};
+ const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!;
+ // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
+ const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;note.textContent='';};refresh();
+ vibration.onchange=()=>update({vibration:vibration.checked});
+ const update=(next:Partial<TouchSettings>)=>change({...current(),...next});
  steering.onchange=async()=>{
   note.textContent='';
-  if(steering.value!=='tilt'){update({steering:steering.value==='arrows'?'arrows':'stick'});return;}
-  const request=(globalThis as {DeviceOrientationEvent?:{requestPermission?:()=>Promise<string>}}).DeviceOrientationEvent?.requestPermission;
-  let granted=true;try{if(request)granted=await request()==='granted';}catch{granted=false;}
-  if(granted)update({steering:'tilt'});else{steering.value='stick';note.textContent='Motion sensors were not allowed, so steering stays on the stick.';}
+  if(steering.value!=='tilt'){update({steering:steering.value==='arrows'?'arrows':'stick',steeringChosen:true});return;}
+  if(await motionAllowed())update({steering:'tilt',steeringChosen:true});else{steering.value='stick';note.textContent='Motion sensors were not allowed, so steering stays on the stick.';}
  };
  aim.onchange=()=>update({aimAssist:aim.value==='assist'});
  look.oninput=()=>update({lookSpeed:Number(look.value)});size.oninput=()=>update({buttonScale:Number(size.value)});
- return panel;
+ return {element:panel,refresh};
 }

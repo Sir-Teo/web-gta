@@ -2,9 +2,11 @@ import {expect,test} from 'vitest';
 import {DEFAULT_TOUCH,TILT_FULL_LOCK,parseTouchSettings,tiltSteering} from '../src/input/touchSettings';
 test('touch settings read back what was kept, and anything else falls back to the defaults',()=>{
  expect(parseTouchSettings(null)).toEqual(DEFAULT_TOUCH);
- expect(parseTouchSettings({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false})).toEqual({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false});
- expect(parseTouchSettings({steering:'wheel',aimAssist:'yes',lookSpeed:9,buttonScale:.1,vibration:'on'})).toEqual({steering:'stick',aimAssist:true,lookSpeed:2,buttonScale:.8,vibration:true});
+ expect(parseTouchSettings({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false})).toEqual({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false,steeringChosen:true});
+ expect(parseTouchSettings({steering:'wheel',aimAssist:'yes',lookSpeed:9,buttonScale:.1,vibration:'on'})).toEqual({steering:'stick',aimAssist:true,lookSpeed:2,buttonScale:.8,vibration:true,steeringChosen:true});
  expect(parseTouchSettings({steering:'arrows'}).steering).toBe('arrows');
+ // The steering question is asked once: answered, or settings kept with a steering method from before it was asked.
+ expect(parseTouchSettings({aimAssist:false}).steeringChosen).toBe(false);expect(parseTouchSettings({steeringChosen:true}).steeringChosen).toBe(true);
 });
 /** The deviceorientation beta and gamma of a phone held sideways (screen angle 90: its x axis up the screen, its y axis
  * to the left), leaning back `lean` degrees from upright and turned clockwise like a wheel by `wheel` degrees. */

@@ -22,6 +22,14 @@ test('a phone drives with the stick at full lock and the Gas pedal',async({page}
  await expect.poll(async()=>(await state()).carEntry.phase,{timeout:60000}).toBe('seated');
  await expect(page.locator('.touch-controls')).toHaveAttribute('data-mode','vehicle');
  await expect(page.locator('.touch-button.gas:not([hidden])')).toBeVisible();await expect(page.locator('.touch-button.aim')).toBeHidden();
+ // The first time at the wheel the port asks how to steer, once: the stick is chosen here, and kept.
+ const choice=page.getByRole('dialog',{name:'Choose steering',exact:true});await expect(choice).toBeVisible();
+ for(const type of ['pointerdown','pointerup'])await page.evaluate(type=>{const b=document.querySelector('.touch-steering-choice [data-steering=stick]')!,r=b.getBoundingClientRect();
+  b.dispatchEvent(new PointerEvent(type,{pointerId:9,pointerType:'touch',clientX:r.x+5,clientY:r.y+5,bubbles:true,cancelable:true}));},type);
+ await expect(choice).toBeHidden();
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!))).toMatchObject({steering:'stick',steeringChosen:true});
+ // The Greenwood has no side mission: no Mission button.
+ await expect(page.locator('.touch-context button[data-code=Digit2]')).toBeHidden();
  // Nitrous shows only in a car fitted with nitro, as the port's NOS button does.
  const nitro=page.getByRole('button',{name:'Nitrous',exact:true});await expect(nitro).toBeHidden();
  await page.evaluate(()=>{const car=[...(window as any).__game.fleet().cars].find((c:any)=>c.occupied);car.car.fitEndlessNitro();});
@@ -106,5 +114,29 @@ test('a phone steers with the arrow buttons with the Arrows setting',async({page
  const course=(v:{x:number;z:number})=>Math.atan2(v.x,v.z),turned=Math.atan2(Math.sin(course(turning.velocity)-course(early.velocity)),Math.cos(course(turning.velocity)-course(early.velocity)));
  expect(Math.abs(turned),JSON.stringify({early:early.velocity,turning:turning.velocity})).toBeGreaterThan(.3);
  await finger('.touch-button.gas:not([hidden])','pointerup',11);await finger('.touch-button.steer-right','pointerup',5);
+ expect(errors).toEqual([]);
+});
+
+/** A side-mission vehicle (a taxi here) puts up Mission, the port's mission start and cancel, which presses the
+ * submission button (the PC's 2: the driving pad's right stick click). */
+test('a phone gets the Mission button in a taxi',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>localStorage.setItem('grove-touch-v1',JSON.stringify({steering:'stick'})));
+ await page.goto('/?touch=1');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});await endStoryMission(page);
+ const state=()=>page.evaluate(()=>(window as any).__game.state());
+ await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await page.evaluate(()=>(window as any).__game.spawnVehicle(420));
+ const taxi=()=>page.evaluate(()=>{const c=[...(window as any).__game.fleet().cars].find((c:any)=>c.modelId===420);return c?{occupied:c.occupied}:null;});
+ await expect.poll(taxi,{timeout:60000}).not.toBeNull();
+ const finger=(selector:string,type:string,id:number)=>page.evaluate(({selector,type,id})=>{const b=document.querySelector(selector)!.getBoundingClientRect();
+  document.querySelector(selector)!.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',clientX:b.x+b.width/2,clientY:b.y+b.height/2,bubbles:true,cancelable:true}));},{selector,type,id});
+ await expect(page.locator('.touch-button.enter')).toBeVisible({timeout:10000});
+ await finger('.touch-button.enter:not([hidden])','pointerdown',3);await finger('.touch-button.enter:not([hidden])','pointerup',3);
+ await expect.poll(async()=>(await taxi())?.occupied,{timeout:60000}).toBe(true);
+ const mission=page.locator('.touch-context button[data-code=Digit2]');await expect(mission).toBeVisible();
+ // Held, it is the driving pad's submission button.
+ await finger('.touch-context button[data-code=Digit2]','pointerdown',21);
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.pads.pads[0].rightShock),{timeout:5000}).toBe(255);
+ await finger('.touch-context button[data-code=Digit2]','pointerup',21);
  expect(errors).toEqual([]);
 });
