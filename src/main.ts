@@ -2384,7 +2384,7 @@ async function boot() {
     }
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
     // A tap on the menu's button is the gesture a phone needs to go fullscreen.
-    if (touch) { void goFullscreen(); void screenAwake?.hold(true); }
+    if (touch) { void goFullscreen(); void screenAwake?.hold(true); armBackButton(); }
     // Terrain loading that gave up after failures in a row tries again from where the player stands.
     follower?.retry();
   }
@@ -2394,6 +2394,14 @@ async function boot() {
   const onVisibility = () => { if (document.hidden) { pause(); saveProgress(); } };
   document.addEventListener('visibilitychange', onVisibility);
   const onBlur = () => pause(); window.addEventListener('blur', onBlur);
+  // A phone's back button or gesture pauses, as the Android port's opens its pause menu: playing on touch keeps one history
+  // entry of its own for back to take, and from the menu back leaves as it always does. Back in fullscreen first takes
+  // the page out of fullscreen, which pauses too; Resume takes the screen again.
+  let backArmed=false;
+  function armBackButton(){if(backArmed)return;backArmed=true;try{history.pushState({groveStreetPlay:true},'');}catch{backArmed=false;}}
+  const onPopState=()=>{if(!backArmed)return;backArmed=false;if(started&&!paused)pause();};
+  const onFullscreenChange=()=>{if(touch&&started&&!paused&&!document.fullscreenElement)pause();};
+  if(touch){window.addEventListener('popstate',onPopState);document.addEventListener('fullscreenchange',onFullscreenChange);}
   // Losing the pointer lock pauses the game, except when an overlay let it go so its controls can be clicked.
   const onLockChange = () => {
     if (document.pointerLockElement) { overlayReleasedLock = false; return; }
@@ -5714,6 +5722,7 @@ async function boot() {
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
     alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); emergency?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };

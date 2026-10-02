@@ -1,10 +1,10 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** A phone's screen stays on while the game plays (the Screen Wake Lock, let go under the pause menu) and the touch
- * buttons buzz where the browser vibrates, unless the Vibration setting is off; switching apps pauses and saves. The
- * browser APIs are stand-ins that record what the game asks of them. */
+ * buttons buzz where the browser vibrates, unless the Vibration setting is off; the back button and leaving fullscreen
+ * pause, and switching apps pauses and saves. The browser APIs are stand-ins that record what the game asks of them. */
 test.use({hasTouch:true});
-test('a phone keeps its screen on while playing, its buttons buzz, and switching apps saves',async({page})=>{
+test('a phone keeps its screen on while playing, its buttons buzz, back pauses, and switching apps saves',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{const w=window as any;w.__device=[];
   Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request:async(type:string)=>{w.__device.push(`lock ${type}`);const s={released:false,release:async()=>{s.released=true;w.__device.push('release');}};return s;}}});
@@ -30,6 +30,13 @@ test('a phone keeps its screen on while playing, its buttons buzz, and switching
  await expect.poll(async()=>(await device()).at(-1)).toBe('lock screen');
  await press('.touch-button.jump:not([hidden])',12);await page.waitForTimeout(300);
  expect((await device()).filter(e=>e.startsWith('buzz')).length).toBe(1);
+ // The back button pauses rather than leaving the game; Resume plays on, and leaving fullscreen pauses too.
+ const paused=async()=>(await page.evaluate(()=>(window as any).__game.state())).paused as boolean,url=page.url();
+ await page.goBack();await expect.poll(paused).toBe(true);expect(page.url()).toBe(url);
+ await page.getByRole('button',{name:'Resume game',exact:true}).click();await expect.poll(paused).toBe(false);
+ await expect.poll(()=>page.evaluate(()=>!!document.fullscreenElement)).toBe(true);
+ await page.evaluate(()=>document.exitFullscreen());await expect.poll(paused).toBe(true);
+ await page.getByRole('button',{name:'Resume game',exact:true}).click();await expect.poll(paused).toBe(false);
  // Switching apps hides the page: the game pauses and the progress is saved there and then, not at the next autosave
  // (a phone may kill a hidden page without a pagehide).
  const saved=await page.evaluate(()=>{const inventory=(window as any).__game.weapons().inventory,next=[...inventory.owned].find((id:number)=>id!==inventory.selected);
