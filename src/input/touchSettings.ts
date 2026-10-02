@@ -1,15 +1,17 @@
 /* The touch controls' options, as the iOS and Android port's settings give them: the steering method (the stick, the
  * port's own left and right arrow buttons, or tilting the device like a wheel, its accelerometer option), lock-on aim
- * assist or free aim, how fast a drag turns the camera, how big the buttons are, and whether a press buzzes. Kept in
- * the browser like the other settings. */
+ * assist or free aim, how fast a drag turns the camera and whether up looks down, how big the buttons are, and whether
+ * a press buzzes. Kept in the browser like the other settings. */
 export type TouchSteering='stick'|'arrows'|'tilt';
 /** How many peds and cars a phone keeps about (the port's own settings thin its density): a share of the original's. */
 export type TouchDensity='full'|'medium'|'low';
 export const DENSITY_SCALE:Readonly<Record<TouchDensity,number>>={full:1,medium:.65,low:.4};
 export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpeed:number;buttonScale:number;vibration:boolean;density:TouchDensity;
+ /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
+ invertLook:boolean;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',invertLook:false,steeringChosen:false};
 export const LOOK_SPEED_RANGE={min:.5,max:2},BUTTON_SCALE_RANGE={min:.8,max:1.3};
 const KEY='grove-touch-v1';
 const clamp=(value:unknown,range:{min:number;max:number},fallback:number)=>typeof value==='number'&&Number.isFinite(value)?Math.min(range.max,Math.max(range.min,value)):fallback;
@@ -19,6 +21,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   lookSpeed:clamp(data.lookSpeed,LOOK_SPEED_RANGE,DEFAULT_TOUCH.lookSpeed),buttonScale:clamp(data.buttonScale,BUTTON_SCALE_RANGE,DEFAULT_TOUCH.buttonScale),
   vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration,
   density:data.density==='full'||data.density==='low'||data.density==='medium'?data.density:DEFAULT_TOUCH.density,
+  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};
 }

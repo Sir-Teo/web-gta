@@ -318,17 +318,18 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
  panel.innerHTML=`<b>Touch</b><label>Steering <select class="touch-steering" aria-label="Steering"><option value="stick">Stick</option><option value="arrows">Arrow buttons</option><option value="tilt">Tilt the device</option></select></label>
 <label>Aim <select class="touch-aim" aria-label="Aim"><option value="assist">Lock-on assist</option><option value="free">Free aim</option></select></label>
 <label>Look speed <input type="range" class="touch-look-speed" aria-label="Look speed" min="${LOOK_SPEED_RANGE.min}" max="${LOOK_SPEED_RANGE.max}" step="0.1"></label>
+<label>Invert look <input type="checkbox" class="touch-invert" aria-label="Invert look"></label>
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
 <label>Vibration <input type="checkbox" class="touch-vibration" aria-label="Vibration"></label>
 <label>Population <select class="touch-density" aria-label="Population"><option value="full">Full</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
- const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!;
+ const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!,invert=panel.querySelector<HTMLInputElement>('.touch-invert')!;
  const density=panel.querySelector<HTMLSelectElement>('.touch-density')!;
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
- const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;density.value=settings.density;note.textContent='';};refresh();
- vibration.onchange=()=>update({vibration:vibration.checked});
+ const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;invert.checked=settings.invertLook;density.value=settings.density;note.textContent='';};refresh();
+ vibration.onchange=()=>update({vibration:vibration.checked});invert.onchange=()=>update({invertLook:invert.checked});
  density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium'});
  const update=(next:Partial<TouchSettings>)=>change({...current(),...next});
  steering.onchange=async()=>{

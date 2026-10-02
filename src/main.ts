@@ -785,7 +785,10 @@ async function boot() {
   weapons.onHit=id=>progression.hit(id);
   // The frontend's mouse options (Controls): the sensitivity slider and vertical inversion, kept between sessions.
   const mouseSettings=readMouseSettings();
-  const applyMouseSettings=()=>{render.mouseYawScale=mouseYawScale(mouseSettings);render.mouseYSign=mouseSettings.invertY?-1:1;};applyMouseSettings();
+  // On a touch screen the drag's vertical look follows the touch settings' Invert look; the mouse's is hidden there.
+  const touchScreen=wantsTouchControls();let touchSettings=readTouchSettings();
+  const lookInverted=()=>touchScreen?touchSettings.invertLook:mouseSettings.invertY;
+  const applyMouseSettings=()=>{render.mouseYawScale=mouseYawScale(mouseSettings);render.mouseYSign=lookInverted()?-1:1;};applyMouseSettings();
   {const sens=hud.element.querySelector<HTMLInputElement>('#mouse-sens')!,invert=hud.element.querySelector<HTMLInputElement>('#mouse-invert')!;
    sens.min=String(MOUSE_ACCEL_MIN);sens.max=String(MOUSE_ACCEL_MAX);sens.step=String(MOUSE_ACCEL_STEP);sens.value=String(mouseSettings.accel);invert.checked=mouseSettings.invertY;
    sens.oninput=()=>{Object.assign(mouseSettings,parseMouseSettings({...mouseSettings,accel:Number(sens.value)}));applyMouseSettings();saveMouseSettings(mouseSettings);};
@@ -2251,15 +2254,15 @@ async function boot() {
   let touchEnterNear=false,touchEnterTick=0,touchNamesFlying=false;
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
-  let touchSettings=readTouchSettings(),touchPanel:{element:HTMLElement;refresh():void}|undefined;
-  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);useTouchControlNames(true,next.steering);}):undefined;
+  let touchPanel:{element:HTMLElement;refresh():void}|undefined;
+  const touch=touchScreen?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);useTouchControlNames(true,next.steering);}):undefined;
   /** The touch settings' population share (peds through the density multiplier, cars through the fleet's traffic scale). */
   const touchPopulation=()=>touch?DENSITY_SCALE[touchSettings.density]:1;
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
   const screenAwake=touch?new ScreenAwake():undefined;
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);
    // The pause menu's Controls panel holds the touch settings.
-   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
+   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
    // A phone's short screen puts the touch buttons where the PC HUD's wanted stars sit (175 px down): they hang under
    // the clock, money and bars instead, wherever those end.
    {const status=hud.element.querySelector<HTMLElement>('.status');
@@ -3640,7 +3643,7 @@ async function boot() {
     if(mission&&!paused&&!terrainPause&&!navigation?.open&&!arsenal.open){
       // CPad::Update: the script reads the pad the held keys make, through the driving mapping while the player drives
       // with the controls on. JustOutOfFrontEnd holds for the first frame after the menu.
-      {const pads=mission.runtime.game.pads;pads.invertMouseY=mouseSettings.invertY;const driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
+      {const pads=mission.runtime.game.pads;pads.invertMouseY=lookInverted();const driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
        padStateFromActions(heldPadActions(code=>input.down(code)),driving?'driving':render.firstPerson?'firstPerson':'thirdPerson',false,pads.pads[0]);
        // The touch stick is the pad's analog left stick (the script's menus and its stick checks read it), where no key
        // already pushes it: up is −128, as CPad's is.

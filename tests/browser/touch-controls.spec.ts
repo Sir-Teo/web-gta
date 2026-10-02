@@ -103,6 +103,11 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await page.getByLabel('Button size',{exact:true}).fill('1.2');
  expect(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--touch-scale'))).toBe('1.2');
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).buttonScale)).toBe(1.2);
+ // Invert look turns the drag's vertical look over (the mouse's own setting is hidden on a touch screen).
+ expect(await page.evaluate(()=>(window as any).__game.render().mouseYSign)).toBe(1);
+ await page.getByLabel('Invert look',{exact:true}).check();
+ expect(await page.evaluate(()=>(window as any).__game.render().mouseYSign)).toBe(-1);
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).invertLook)).toBe(true);
  // Steering by the arrows: help text names them for a car's left and right.
  await page.getByLabel('Steering',{exact:true}).selectOption('arrows');
  expect(await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);return gxtHudText('~k~~VEHICLE_STEERLEFT~ and ~k~~VEHICLE_STEERRIGHT~ steer.');})).toBe('the ARROWS steer.');
