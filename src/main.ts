@@ -2256,7 +2256,7 @@ async function boot() {
   const onTouchStart=()=>{lastTouchAt=performance.now();};window.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});
   const onKeyOrMouse=()=>{lastKeyAt=performance.now();};for(const type of ['keydown','mousedown'] as const)window.addEventListener(type,onKeyOrMouse,{passive:true,capture:true});
   /** The help's control names: a played controller's buttons until a key, a click or a touch, and an aircraft's flying. */
-  let namingPad:'playstation'|'xbox'|undefined,namingFlying=false;
+  let namingPad:'playstation'|'xbox'|undefined,namingFlying=false,namingMenu=false;
   /** The D-pad moves between the open menu's controls (the arsenal's, the map's, or the pause menu's) and cross presses. */
   const padMenu=(move:number,select:boolean)=>{
    const root=arsenal.open?arsenal.element:navigation?.open?hud.element.querySelector<HTMLElement>('.world-map-panel'):hud.menu;if(!root)return;
@@ -3861,6 +3861,9 @@ async function boot() {
       hud.missionTitleShowing=hudBigMessages.missionTitleShowing;hudBigMessagesClock=gameTimeMs;
       // Each set is drawn afresh, the same text included; a stat update's "+" or "-" is drawn by displayStatUpdate itself.
       const help=game.help.message,revision=game.help.revision;hud.helpBoxWidth(game.help.boxWidth);
+      // On a touch screen a script menu's help names the menu's own buttons: a menu coming or going reads the help
+      // shown again with the names it now has.
+      {const menuUp=!!touch&&game.menus.numInUse>0;if(menuUp!==namingMenu){namingMenu=menuUp;setControlNaming({menu:menuUp});if(hud.helpShowing())shownScript.helpRevision=-1;}}
       if(revision!==shownScript.helpRevision&&game.help.statId){shownScript.help=help;shownScript.helpRevision=revision;}
       else if(revision!==shownScript.helpRevision){const [key,number]=help.split('#');hud.help(help?gxtHudText(number!==undefined?insertNumbers(gxtText(key,key),Number(number)):gxtText(key,key)):'',game.help.permanent?1e9:game.help.quick?3000:5000);shownScript.help=help;shownScript.helpRevision=revision;}
      }}

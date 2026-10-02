@@ -131,14 +131,18 @@ function padControlNames(family:'playstation'|'xbox',flying:boolean){
  for(const [action,place] of Object.entries({...PAD_PLACES,...flying?PAD_FLYING_PLACES:{}}))out[action]=PAD_BUTTON_NAMES[place][column];
  return out;
 }
-/** How the HUD's text names controls: by the keys, the touch buttons (the steering as the settings give it), or a
- * game controller's buttons while one is played; flying, by the buttons an aircraft has. */
-interface ControlNaming{touch:boolean;steering:'stick'|'arrows'|'tilt';flying:boolean;pad?:'playstation'|'xbox'}
+/** A script menu up on a touch screen: its pills (▲ ▼ ◀ ▶, Select and Back) stand where the stick and the buttons were,
+ * and the shop's help names them ("Use ▲ and ▼ to select a haircut. SELECT = View"). */
+const TOUCH_MENU:Readonly<Record<string,string>>={GO_FORWARD:'▲',GO_BACK:'▼',GO_LEFT:'◀',GO_RIGHT:'▶',VEHICLE_STEERUP:'▲',VEHICLE_STEERDOWN:'▼',
+ VEHICLE_STEERLEFT:'◀',VEHICLE_STEERRIGHT:'▶',PED_SPRINT:'SELECT',VEHICLE_ENTER_EXIT:'BACK'};
+/** How the HUD's text names controls: by the keys, the touch buttons (the steering as the settings give it, a script
+ * menu's own while one is up), or a game controller's buttons while one is played; flying, by an aircraft's buttons. */
+interface ControlNaming{touch:boolean;steering:'stick'|'arrows'|'tilt';flying:boolean;menu?:boolean;pad?:'playstation'|'xbox'}
 let naming:ControlNaming={touch:false,steering:'stick',flying:false},controlNames=BROWSER_CONTROLS,touchNames=false;
 function rebuildControlNames(){
  touchNames=naming.touch||!!naming.pad;
  controlNames=naming.pad?{...BROWSER_CONTROLS,...padControlNames(naming.pad,naming.flying)}
-  :naming.touch?{...BROWSER_CONTROLS,...TOUCH_CONTROLS,...TOUCH_STEERING[naming.steering],...naming.flying?TOUCH_FLYING:{}}:BROWSER_CONTROLS;
+  :naming.touch?{...BROWSER_CONTROLS,...TOUCH_CONTROLS,...TOUCH_STEERING[naming.steering],...naming.flying?TOUCH_FLYING:{},...naming.menu?TOUCH_MENU:{}}:BROWSER_CONTROLS;
 }
 /** Name the controls in HUD text by the touch buttons rather than the keys: the steering as the settings give it, and
  * the buttons an aircraft has while flying. Left out, the steering and the flying stay as they were; off, the keys
@@ -147,7 +151,7 @@ export function useTouchControlNames(touch:boolean,steering=naming.steering,flyi
  naming=touch?{...naming,touch,steering,flying}:{touch:false,steering:'stick',flying:false};rebuildControlNames();
 }
 /** Whether the player flies, and which game controller (if any) is being played, for the names. */
-export function setControlNaming(next:{flying?:boolean;pad?:'playstation'|'xbox'|undefined}){
+export function setControlNaming(next:{flying?:boolean;menu?:boolean;pad?:'playstation'|'xbox'|undefined}){
  naming={...naming,...next};rebuildControlNames();
 }
 /** The controls each recent HUD text named, by the text gxtHudText made: the touch controls show a button for a

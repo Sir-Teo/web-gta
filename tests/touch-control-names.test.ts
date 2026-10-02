@@ -62,3 +62,11 @@ test('a played controller names its own buttons, a PlayStation pad by its shapes
  useTouchControlNames(true);expect(gxtHudText(enter)).toBe('Press ENTER to get in.');
  setControlNaming({pad:'playstation'});expect(gxtHudText(enter)).toBe('Press TRIANGLE to get in.');
 });
+test('with a script menu up a touch screen names the menu\'s own buttons',()=>{
+ const shop='Use ~k~~GO_FORWARD~ and ~k~~GO_BACK~ to select a haircut.~n~~k~~PED_SPRINT~ = View~n~~k~~VEHICLE_ENTER_EXIT~ = Quit';
+ useTouchControlNames(true);expect(gxtHudText(shop)).toBe('Use the STICK to select a haircut.\nSPRINT = View\nENTER = Quit');
+ setControlNaming({menu:true});expect(gxtHudText(shop)).toBe('Use ▲ and ▼ to select a haircut.\nSELECT = View\nBACK = Quit');
+ // A controller keeps its own names over the menu's.
+ setControlNaming({pad:'playstation'});expect(gxtHudText(shop)).toBe('Use the LEFT STICK to select a haircut.\nCROSS = View\nTRIANGLE = Quit');
+ setControlNaming({pad:undefined,menu:false});expect(gxtHudText('~k~~PED_SPRINT~')).toBe('SPRINT');
+});
