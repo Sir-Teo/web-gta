@@ -9,6 +9,11 @@ test('help text names the touch buttons on a touch screen and the keys otherwise
  // A control with no touch button keeps its key.
  expect(gxtHudText('~k~~VEHICLE_TURRETUP~ lowers the crate')).toBe('NUM 2 lowers the crate');
  expect(gxtHudText('~k~~CAMERA_CHANGE_VIEW_ALL_SITUATIONS~ changes the view')).toBe('CAMERA changes the view');
+ // Sneaking holds no key on a touch screen or a pad: the stick pushed part way.
+ const sneak='Hold down the ~k~~SNEAK_ABOUT~ key to sneak.';
+ expect(gxtHudText(sneak)).toBe('Push the STICK only part way to sneak.');
+ setControlNaming({pad:'xbox'});expect(gxtHudText(sneak)).toBe('Push the LEFT STICK only part way to sneak.');setControlNaming({pad:undefined});
+ useTouchControlNames(false);expect(gxtHudText(sneak)).toBe('Hold down the ALT key to sneak.');
 });
 test('the stick\'s directions listed one by one are the stick, and steering is named as the settings steer',()=>{
  const move='Use ~k~~GO_FORWARD~, ~k~~GO_BACK~, ~k~~GO_LEFT~ and ~k~~GO_RIGHT~ to move Carl.',steer='Use ~k~~VEHICLE_STEERLEFT~ and ~k~~VEHICLE_STEERRIGHT~ to steer.';

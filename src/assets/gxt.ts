@@ -98,7 +98,9 @@ const TOUCH_CONTROLS:Readonly<Record<string,string>>={VEHICLE_ENTER_EXIT:'ENTER'
  VEHICLE_HORN:'HORN',VEHICLE_LOOKLEFT:'◀ LOOK',VEHICLE_LOOKRIGHT:'LOOK ▶',VEHICLE_LOOKBEHIND:'LOOK BACK',PED_LOOKBEHIND:'LOOK BACK',
  PED_CYCLE_WEAPON_LEFT:'WEAPON',PED_CYCLE_WEAPON_RIGHT:'WEAPON',VEHICLE_RADIO_STATION_UP:'RADIO',VEHICLE_RADIO_STATION_DOWN:'RADIO',
  // The vehicle's fire, and its alternative (a drive-by, the BMX's hop, a gunship's guns), are the Fire button.
- VEHICLE_FIREWEAPON:'FIRE',VEHICLE_FIREWEAPON_ALT:'FIRE',CAMERA_CHANGE_VIEW_ALL_SITUATIONS:'CAMERA',PED_SNIPER_ZOOM_IN:'ZOOM +',PED_SNIPER_ZOOM_OUT:'ZOOM −'};
+ VEHICLE_FIREWEAPON:'FIRE',VEHICLE_FIREWEAPON_ALT:'FIRE',CAMERA_CHANGE_VIEW_ALL_SITUATIONS:'CAMERA',PED_SNIPER_ZOOM_IN:'ZOOM +',PED_SNIPER_ZOOM_OUT:'ZOOM −',
+ // Sneaking is the stick pushed part way (the touch stick holds the walk key under half way): see SNEAK_PHRASE.
+ SNEAK_ABOUT:'STICK'};
 /** Flying, the look keys are the rudder (the touch controls' Yaw buttons) and the on-foot fire the rockets (Rocket). */
 const TOUCH_FLYING:Readonly<Record<string,string>>={VEHICLE_LOOKLEFT:'◀ YAW',VEHICLE_LOOKRIGHT:'YAW ▶',PED_FIREWEAPON:'ROCKET'};
 /** A vehicle's left and right by the steering the touch settings chose: the stick, the arrow buttons or the tilt. */
@@ -111,6 +113,8 @@ const DIRECTION_RUNS:readonly (readonly [RegExp,string])[]=[
  [/(?:LEFT|RIGHT) ARROW(?:(?:,? and |, | or |\/)(?:LEFT|RIGHT) ARROW)+/g,'the ARROWS'],
  [/TILT (?:LEFT|RIGHT)(?:(?:,? and |, | or |\/)TILT (?:LEFT|RIGHT))+/g,'TILT'],
  [/LEFT STICK (?:UP|DOWN|LEFT|RIGHT)(?:(?:,? and |, | or |\/)LEFT STICK (?:UP|DOWN|LEFT|RIGHT))+/g,'the LEFT STICK']];
+/** The PC's sneak help holds a key down ("Hold down the ALT key to sneak."): a stick sneaks pushed only part way. */
+const SNEAK_PHRASE:readonly [RegExp,string]=[/Hold down the ((?:LEFT )?STICK) key to sneak/g,'Push the $1 only part way to sneak'];
 /** A game controller's buttons, by the place each has on the pad (src/input/GamepadInput's PS2 layout): a PlayStation
  * pad's names, and the Xbox letters in the same places that MFi and most other pads print. */
 const PAD_BUTTON_NAMES:Readonly<Record<string,readonly [string,string]>>={cross:['CROSS','A'],circle:['CIRCLE','B'],square:['SQUARE','X'],triangle:['TRIANGLE','Y'],
@@ -125,7 +129,7 @@ const PAD_PLACES:Readonly<Record<string,string>>={PED_SPRINT:'cross',PED_JUMPING
  VEHICLE_RADIO_STATION_UP:'up',VEHICLE_RADIO_STATION_DOWN:'down'};
 const PAD_FLYING_PLACES:Readonly<Record<string,string>>={VEHICLE_FIREWEAPON_ALT:'l1',VEHICLE_HORN:'l3'};
 const PAD_STICKS:Readonly<Record<string,string>>={GO_FORWARD:'LEFT STICK UP',GO_BACK:'LEFT STICK DOWN',GO_LEFT:'LEFT STICK LEFT',GO_RIGHT:'LEFT STICK RIGHT',
- VEHICLE_STEERLEFT:'LEFT STICK LEFT',VEHICLE_STEERRIGHT:'LEFT STICK RIGHT',VEHICLE_STEERUP:'LEFT STICK UP',VEHICLE_STEERDOWN:'LEFT STICK DOWN'};
+ VEHICLE_STEERLEFT:'LEFT STICK LEFT',VEHICLE_STEERRIGHT:'LEFT STICK RIGHT',VEHICLE_STEERUP:'LEFT STICK UP',VEHICLE_STEERDOWN:'LEFT STICK DOWN',SNEAK_ABOUT:'LEFT STICK'};
 function padControlNames(family:'playstation'|'xbox',flying:boolean){
  const out:Record<string,string>={...PAD_STICKS},column=family==='playstation'?0:1;
  for(const [action,place] of Object.entries({...PAD_PLACES,...flying?PAD_FLYING_PLACES:{}}))out[action]=PAD_BUTTON_NAMES[place][column];
@@ -163,7 +167,7 @@ export function controlsNamedIn(text:string):readonly string[]{return NAMED.get(
 export function gxtHudText(text:string){
  const named:string[]=[];
  let out=text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>{named.push(action);return controlNames[action]??action.replace(/_/g,' ');}).replace(/~n~/gi,'\n').replace(/~[a-z]~/gi,'');
- if(touchNames){for(const [run,name] of DIRECTION_RUNS)out=out.replace(run,name);
+ if(touchNames){for(const [run,name] of DIRECTION_RUNS)out=out.replace(run,name);out=out.replace(...SNEAK_PHRASE);
   // Two controls one button stands for ("RADIO and RADIO", "FIRE or FIRE") are named once.
   out=out.replace(/(?<![A-Z0-9+−◀▶-]|[A-Z0-9+−◀▶-] )([A-Z][A-Z0-9 +−◀▶-]*[A-Z0-9+−◀▶])(?:,? (?:and|or) |\/)\1(?![A-Za-z0-9+−◀▶-]| [A-Z0-9+−◀▶-])/g,'$1');}
  if(named.length){NAMED.delete(out);NAMED.set(out,named);if(NAMED.size>64)NAMED.delete(NAMED.keys().next().value!);}
