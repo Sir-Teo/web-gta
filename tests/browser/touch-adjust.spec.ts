@@ -2,7 +2,7 @@ import {test,expect,devices,type Page,type CDPSession} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** The touch settings' Adjust controls (the iOS and Android port's own): from the pause menu, a layout's buttons are
  * dragged by a finger (CDP touch events) where the thumbs want them and the one touched sized, Done keeps them for play and for the next visit,
- * each layout keeps its own, and Reset puts them back; Resolution High sharpens the picture and Low softens it. */
+ * each layout keeps its own, and Reset puts them back; a slider follows a finger; Resolution High sharpens the picture and Low softens it. */
 const {defaultBrowserType,...phone}=devices['Pixel 7 landscape'];
 test.use({...phone});
 /** An element's centre, once it is on screen (the controls come back a frame after a menu closes). */
@@ -67,6 +67,13 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
  // The Controls panel stays open from the last visit to the menu.
  if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+ // A finger drags a setting's slider along (the page's own pinch and double-tap zoom are off; a slider still slides).
+ {const slider=page.locator('.touch-look-speed');await slider.scrollIntoViewIfNeeded();const b=(await slider.boundingBox())!,y=b.y+b.height/2,before=Number(await slider.inputValue());
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:b.x+b.width*.2,y,id:4}]});
+  for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:b.x+b.width*(.2+.65*i/8),y,id:4}]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await expect.poll(async()=>Number(await slider.inputValue())).toBeGreaterThan(before+.3);
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).lookSpeed)).toBeGreaterThan(before+.3);}
  await page.getByLabel('Resolution',{exact:true}).selectOption('high');
  await expect.poll(buffer).toBeCloseTo(2,1);
  // Low draws three quarters of a pixel per CSS pixel, softer and quicker.
