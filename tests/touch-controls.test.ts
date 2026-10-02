@@ -21,6 +21,12 @@ test('the touch stick reads as an analog stick, and held buttons read as their k
  input.stick=undefined;input.hold('KeyF');expect(input.down('KeyF')).toBe(true);expect(input.consume('KeyF')).toBe(true);expect(input.consume('KeyF')).toBe(false);
  input.release('KeyF');expect(input.down('KeyF')).toBe(false);
  input.tap('KeyM');expect(input.down('KeyM')).toBe(false);expect(input.consume('KeyM')).toBe(true);
+ // A tap quicker than a frame stays held through one whole game frame, then goes.
+ input.hold('MenuDown');input.releaseAfterFrame('MenuDown');expect(input.down('MenuDown')).toBe(true);
+ input.frameStart();expect(input.down('MenuDown')).toBe(true);
+ input.frameStart();expect(input.down('MenuDown')).toBe(false);
+ // Held across a frame already, it goes at once.
+ input.hold('KeyW');input.frameStart();input.releaseAfterFrame('KeyW');expect(input.down('KeyW')).toBe(false);
  input.dispose();
 });
 test('starting on a phone takes the screen and holds it sideways, and a refusal leaves the page as it is',async()=>{

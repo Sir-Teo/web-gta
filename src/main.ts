@@ -2647,6 +2647,7 @@ async function boot() {
     // A skipped frame leaves `last` alone so the simulation clock still receives the whole interval.
     // The pause menu, the full map and the arsenal all hold the game: the world behind them draws at the menu's rate.
     if(!frameDue(pacer,now,paused||navigation?.open||arsenal.open?MENU_FPS:display.frameLimiter?FRAME_LIMITER_FPS:undefined))return;
+    input.frameStart();
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     let alpha = 1;
@@ -3385,6 +3386,9 @@ async function boot() {
     hud.element.classList.toggle('in-vehicle',!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
     if(touch){
      const asked=hud.shownPrompts().flatMap(controlsNamedIn),inVehicle=hud.element.classList.contains('in-vehicle');
+     // An interactive script menu up puts up its arrows, Select and Back (a grid of car colours left and right too).
+     {const menus=mission?.runtime.game.menus,current=menus?.numInUse&&menus.inUse[menus.currentMenuInUse]?menus.menus[menus.currentMenuInUse]:undefined;
+      if(current?.interactive[0])asked.push('MENU_UP','MENU_DOWN',...current.type===1?['MENU_LEFT','MENU_RIGHT']:[],'MENU_BACK','MENU_SELECT');}
      touch.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch.setPrompts(asked);
      touch.setMode(fleet?.occupiedPlane?'aircraft':inVehicle?'vehicle':render.firstPerson?'scope':sim.player.swimming?'swim':'foot');
      // Enter shows only when it would do something, as the mobile ports' does: in a vehicle, with a jetpack on, on the
@@ -3588,6 +3592,10 @@ async function boot() {
        {const stick=input.stick,pad=pads.pads[0];if(stick&&Math.hypot(stick.x,stick.y)>.12){
         if(!pad.leftStickX)pad.leftStickX=Math.max(-128,Math.min(127,Math.round(stick.x*128)));
         if(!pad.leftStickY)pad.leftStickY=Math.max(-128,Math.min(127,Math.round(-stick.y*128)));}}
+       // The touch controls' script-menu buttons press the pad's d-pad, cross (accept) and triangle (back).
+       if(input.down('MenuUp'))pads.pads[0].dpadUp=255;if(input.down('MenuDown'))pads.pads[0].dpadDown=255;
+       if(input.down('MenuLeft'))pads.pads[0].dpadLeft=255;if(input.down('MenuRight'))pads.pads[0].dpadRight=255;
+       if(input.down('MenuSelect'))pads.pads[0].cross=255;if(input.down('MenuBack'))pads.pads[0].triangle=255;
        pads.justOutOfFrontEnd=padsAfterPause;padsAfterPause=false;}
       // CPed's footsteps for the player: the CEventSoundQuiet his last frame's move made, which the script reads before
       // CWorld::Process flushes the global group (GUNS1's noise bar). Walking and standing make none.

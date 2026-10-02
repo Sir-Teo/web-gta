@@ -65,6 +65,22 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await expect.poll(async()=>(await pad()).yes,{timeout:5000}).toBe(255);
  await page.evaluate(({x,y})=>document.querySelector('.touch-context button[data-code=KeyY]')!.dispatchEvent(new PointerEvent('pointerup',{pointerId:21,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{x:yesBox.x+5,y:yesBox.y+5});
  await page.evaluate(()=>(window as any).__game.hud().help(''));await expect(yes).toBeHidden();
+ // A script menu (a shop's) puts up the port's arrows with Select and Back, which drive the menu through the pad.
+ const menuId=await page.evaluate(()=>{const m=(window as any).__game.missionForProfiling().runtime.game.menus,id=m.create(0,'SHOP',29,145,180,1,true,true,0);
+  for(const [row,text] of ['ROW_A','ROW_B','ROW_C'].entries())m.insertOneMenuItemWithNumber(id,0,row,text,-1,-1);m.activateItems(id,[true,true,true]);return id;});
+ const menu=()=>page.evaluate(id=>{const m=(window as any).__game.missionForProfiling().runtime.game.menus;return {selected:m.checkForSelected(id),accepted:m.checkForAccept(id)};},menuId);
+ const down=page.locator('.touch-context button[data-code=MenuDown]'),select=page.locator('.touch-context button[data-code=MenuSelect]');
+ await expect(down).toBeVisible();await expect(select).toBeVisible();await expect(page.locator('.touch-context button[data-code=MenuLeft]')).toBeHidden();
+ const tapContext=async(code:string,id:number)=>{for(const type of ['pointerdown','pointerup'])await page.evaluate(({code,type,id})=>{const b=document.querySelector(`.touch-context button[data-code=${code}]`)!,r=b.getBoundingClientRect();
+  b.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',clientX:r.x+5,clientY:r.y+5,bubbles:true,cancelable:true}));},{code,type,id});};
+ const start=(await menu()).selected;
+ await tapContext('MenuDown',61);
+ await expect.poll(async()=>(await menu()).selected,{timeout:5000}).toBe(start+1);
+ // Held, Select accepts the highlighted row.
+ await page.evaluate(()=>{const b=document.querySelector('.touch-context button[data-code=MenuSelect]')!,r=b.getBoundingClientRect();b.dispatchEvent(new PointerEvent('pointerdown',{pointerId:62,pointerType:'touch',clientX:r.x+5,clientY:r.y+5,bubbles:true,cancelable:true}));});
+ await expect.poll(async()=>(await menu()).accepted,{timeout:5000}).toBe(start+1);
+ await page.evaluate(()=>{const b=document.querySelector('.touch-context button[data-code=MenuSelect]')!,r=b.getBoundingClientRect();b.dispatchEvent(new PointerEvent('pointerup',{pointerId:62,pointerType:'touch',clientX:r.x+5,clientY:r.y+5,bubbles:true,cancelable:true}));});
+ await page.evaluate(id=>(window as any).__game.missionForProfiling().runtime.game.menus.switchOff(id),menuId);await expect(down).toBeHidden();
  // Sideways there is no card; a phone turned upright gets one until it turns back or the player plays on anyway.
  const rotate=page.locator('.touch-rotate');await expect(rotate).toBeHidden();
  const viewport=page.viewportSize()!;await page.setViewportSize({width:390,height:844});

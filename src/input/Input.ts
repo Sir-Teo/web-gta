@@ -74,8 +74,19 @@ export class Input {
   /** A touch screen's analog stick, x right and y forward in -1..1; undefined while no thumb is on it. */
   stick?: { x: number; y: number };
   /** Holds a key or button from somewhere other than the keyboard and mouse (the touch controls), with its press. */
-  hold(code: string) { if (!this.held.has(code)) this.pressed.add(code); this.held.add(code); this.touches++; }
-  release(code: string) { this.held.delete(code); }
+  hold(code: string) { if (!this.held.has(code)) this.pressed.add(code); this.held.add(code); this.heldSince.set(code, this.frames); this.pendingRelease.delete(code); this.touches++; }
+  release(code: string) { this.held.delete(code); this.pendingRelease.delete(code); }
+  /** Lets go of a held code once a whole game frame has run with it held: a tap quicker than a frame (a slow device's
+   * frames are long) would otherwise come and go between two of the game's reads of the pad and the keys. */
+  releaseAfterFrame(code: string) { if ((this.heldSince.get(code) ?? -1) < this.frames) this.release(code); else this.pendingRelease.add(code); }
+  /** The start of a game frame (one the limiter draws): codes waiting on releaseAfterFrame whose frame has run go. */
+  frameStart() {
+    this.frames++;
+    for (const code of this.pendingRelease) if ((this.heldSince.get(code) ?? 0) <= this.frames - 2) { this.pendingRelease.delete(code); this.held.delete(code); }
+  }
+  private frames = 0;
+  private heldSince = new Map<string, number>();
+  private pendingRelease = new Set<string>();
   /** A single press, as a key tapped and let go within the frame. */
   tap(code: string) { this.pressed.add(code); this.touches++; }
   down(code: string) { return this.held.has(code); }
