@@ -50,8 +50,9 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],icon:'music'},
  // A car fitted with nitro fires it with the car's weapon button: the port gives it a button of its own, shown only then.
  {label:'Nitrous',code:'ControlLeft',className:'nitro',modes:['vehicle'],contextual:true,icon:'bolt'},
- // A cutscene: the cluster gives way to Skip (CCutsceneMgr's skip is Space or Return just pressed).
- {label:'Skip',code:'Space',className:'skip',modes:['cutscene']},
+ // A cutscene, or a scripted scene in the widescreen bars: the cluster gives way to Skip (CCutsceneMgr's skip is Space or
+ // Return just pressed), offered while the scene can be skipped.
+ {label:'Skip',code:'Space',className:'skip',modes:['cutscene'],contextual:true},
  // The port's default steering: left and right arrows under the left thumb (A and D), in place of the stick.
  {label:'Steer left',code:'KeyA',className:'steer-left',modes:['vehicle'],icon:'left',steering:'arrows'},
  {label:'Steer right',code:'KeyD',className:'steer-right',modes:['vehicle'],icon:'right',steering:'arrows'},
@@ -211,7 +212,7 @@ export class TouchControls {
   // A light push walks (the PC's walk key); past half way CJ runs.
   if(Math.hypot(stick.x,stick.y)<.55)this.input.hold('AltLeft');else this.input.release('AltLeft');
  }
- /** On foot, through a scope, swimming, at the wheel, flying or watching a cutscene: the other modes' buttons are hidden,
+ /** On foot, through a scope, swimming, at the wheel, flying or watching a scene: the other modes' buttons are hidden,
   * and a latched aim is let go anywhere it cannot aim. */
  setMode(mode:TouchMode){
   if(mode===this.mode)return;
