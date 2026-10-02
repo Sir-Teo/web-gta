@@ -294,13 +294,22 @@ async function boot() {
   // installed under, before the physics WASM and the rest of boot, rather than after them. Failures surface where
   // the package is installed, below.
   /** `useEarly`: the first attempt reads the response index.html started (a retry from the menu fetches afresh). */
+  // The start package's download as it goes, in the menu: on a phone's connection it is most of the wait.
+  const startDownload={received:0,total:undefined as number|undefined,done:false,shownAt:0};
+  const showStartDownload=(force=false)=>{
+   const now=performance.now();if(startDownload.done||!force&&now-startDownload.shownAt<100)return;startDownload.shownAt=now;
+   const mb=(n:number)=>(n/1048576).toFixed(1),{received,total}=startDownload;
+   hud.menuMessage(`Downloading ${included.name}…${received?` ${total?`${mb(received)} of ${mb(total)}`:mb(received)} MB.`:''} The first load includes the terrain and character assets.`);
+  };
   const readStartPack=(useEarly:boolean)=>import('./assets/scenePack').then(({readScenePack})=>{
       const url=new URL(`${import.meta.env.BASE_URL}play/${included.file}`,location.href).href,early=(window as {__startScenePack?:{url:string;response:Promise<Response>}}).__startScenePack;
       // A download that fails (a dropped connection, a busy server) is tried twice more, after 1 and 3 s, before the
       // menu reports it: the first attempt reads the response index.html started, the others fetch afresh.
-      const attempt=(tries:number):ReturnType<typeof readScenePack>=>readScenePack(url,useEarly&&tries===0&&early?.url===url?early.response:undefined)
+      const progress=(received:number,total:number|undefined)=>{startDownload.received=received;startDownload.total=total;showStartDownload();};
+      const attempt=(tries:number):ReturnType<typeof readScenePack>=>readScenePack(url,useEarly&&tries===0&&early?.url===url?early.response:undefined,progress)
         .catch(async error=>{if(tries>=2)throw error;await new Promise(resolve=>setTimeout(resolve,1000*3**tries));return attempt(tries+1);});
-      return attempt(0);
+      startDownload.done=false;
+      return attempt(0).finally(()=>{startDownload.done=true;});
     });
   const startScene=walkDemo?{
     pack:readStartPack(true),
@@ -5719,7 +5728,7 @@ async function boot() {
       };
       sceneChannel.postMessage({ type: 'ready' });
     } else {
-      hud.menuMessage(`Downloading ${included.name}… The first load includes the terrain and character assets.`);
+      if(startDownload.done)hud.menuMessage(`Downloading ${included.name}… The first load includes the terrain and character assets.`);else showStartDownload(true);
       // A download that still fails after its own retries offers Retry in the menu: once the connection is back the
       // package is fetched again, without reloading the page.
       const loadStartScene=(pack:NonNullable<typeof startScene>['pack'])=>void Promise.all([pack,startScene!.identity]).then(([data,identity])=>{bundledProceduralAssets=data.proceduralAssets;if(identity)data.datasetIdentity=identity;return installScene(data);}).catch(error=>{

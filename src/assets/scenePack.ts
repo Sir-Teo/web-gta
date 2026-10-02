@@ -38,10 +38,14 @@ function decodeScenePack(bytes:Uint8Array<ArrayBuffer>):{scene:unknown;buffers:U
  return {scene:pack.scene,buffers:(pack.buffers as string[]).map(fromBase64)};
 }
 /** `early`: a request for the same URL already on its way (index.html starts the bundled one with the page). */
-export async function readScenePack(url:string,early?:Promise<Response>){
+/** `onProgress` hears the package's bytes as they arrive, against the download's length when the server gives it. */
+export async function readScenePack(url:string,early?:Promise<Response>,onProgress?:(received:number,total:number|undefined)=>void){
  const response=await (early??fetch(url));if(!response.ok)throw new Error(`Scene download failed (${response.status}).`);
  if(!response.body)throw new Error('Scene download is empty.');
- const reader=response.body.pipeThrough(new DecompressionStream('gzip')).getReader();
+ const length=Number(response.headers.get('content-length')),total=Number.isFinite(length)&&length>0&&!response.headers.get('content-encoding')?length:undefined;
+ let received=0;
+ const counted=onProgress?response.body.pipeThrough(new TransformStream<Uint8Array<ArrayBuffer>,Uint8Array<ArrayBuffer>>({transform(chunk,out){received+=chunk.byteLength;onProgress(received,total);out.enqueue(chunk);}})):response.body;
+ const reader=counted.pipeThrough(new DecompressionStream('gzip')).getReader();
  const chunks:Uint8Array[]=[];let size=0;
  for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>256*1024*1024){await reader.cancel();throw new Error('Scene package exceeds its memory limit.');}chunks.push(value);}
  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}

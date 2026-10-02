@@ -31,3 +31,18 @@ test('a buffer table reaching past the package is refused',async()=>{
  const bytes=encodeScenePack(scene,[new Uint8Array(positions.buffer),file,new Uint8Array(shared.buffer)]);
  await expect(read(bytes.subarray(0,bytes.length-3))).rejects.toThrow('Invalid scene buffer');
 });
+
+test('the download reports its bytes as they arrive, against the length the server gives',async()=>{
+ const gz=gzipSync(encodeScenePack(scene,[new Uint8Array(positions.buffer),file,new Uint8Array(shared.buffer)]));
+ // Sent in small pieces, as a slow connection delivers it.
+ const body=new ReadableStream<Uint8Array>({start(c){for(let at=0;at<gz.length;at+=16)c.enqueue(gz.subarray(at,at+16));c.close();}});
+ const seen:[number,number|undefined][]=[];
+ const pack=await readScenePack('unused',Promise.resolve(new Response(body,{headers:{'content-length':String(gz.length)}})),(received,total)=>seen.push([received,total]));
+ expect(pack.spawn).toEqual({x:2495,z:1687});
+ expect(seen.length).toBeGreaterThan(2);expect(seen.at(-1)).toEqual([gz.length,gz.length]);
+ expect(seen.every(([r],i)=>i===0||r>seen[i-1][0])).toBe(true);
+ // No length from the server: the bytes alone.
+ const unsized:[number,number|undefined][]=[];
+ await readScenePack('unused',Promise.resolve(new Response(gzipSync(encodeScenePack(scene,[new Uint8Array(positions.buffer),file,new Uint8Array(shared.buffer)])))),(r,t)=>unsized.push([r,t]));
+ expect(unsized.at(-1)?.[1]).toBeUndefined();
+});
