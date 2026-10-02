@@ -174,6 +174,15 @@
 /* On a touch screen the key hints and the desktop-only readouts give way to the controls, and the HUD text the
  * original sets in the bottom right corner (area and vehicle names, the mission title and timers) moves left of the buttons. */
 .touch .onboarding{display:none}
+/* Edge to edge on a notched phone (viewport-fit=cover): the HUD's text and the menus keep out of the safe-area insets. */
+.touch .status{right:max(4.6%,calc(env(safe-area-inset-right) + 10px));top:max(4.3%,calc(env(safe-area-inset-top) + 6px))}
+.touch .wanted-status,.touch .weapon-readout{right:calc(28px + env(safe-area-inset-right))}
+.touch .menu-backdrop{padding-left:max(6vw,calc(env(safe-area-inset-left) + 16px));padding-right:max(6vw,calc(env(safe-area-inset-right) + 16px))}
+.touch .arsenal{left:max(4vw,16px,env(safe-area-inset-left));right:max(4vw,16px,env(safe-area-inset-right))}
+/* A phone held sideways is short: the pause menu drops its second title and tightens, so its options and the touch
+ * settings fit. */
+@media(max-height:420px){.menu-location{display:none}.menu h1{font-size:34px}.setting{margin-bottom:6px;font-size:11px;letter-spacing:3px}
+ .menu-backdrop{padding-top:max(14px,env(safe-area-inset-top));padding-bottom:12px}.menu-actions{gap:10px;margin-top:8px}.menu button{font-size:17px}}
 /* The pause menu's Controls panel: on a touch screen the key list gives way to the touch settings. */
 .touch .controls-panel>p:not(.touch-settings){display:none}
 .touch-settings label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0;max-width:360px;font-size:14px}
