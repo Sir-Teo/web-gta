@@ -2394,12 +2394,16 @@ async function boot() {
   const onVisibility = () => { if (document.hidden) { pause(); saveProgress(); } };
   document.addEventListener('visibilitychange', onVisibility);
   const onBlur = () => pause(); window.addEventListener('blur', onBlur);
-  // A phone's back button or gesture pauses, as the Android port's opens its pause menu: playing on touch keeps one history
-  // entry of its own for back to take, and from the menu back leaves as it always does. Back in fullscreen first takes
-  // the page out of fullscreen, which pauses too; Resume takes the screen again.
+  // A phone's back button or gesture closes the map or the arsenal, or else pauses, as the Android port's opens its pause
+  // menu: playing on touch keeps one history entry of its own for back to take, and from the menu back leaves as it
+  // always does. Back in fullscreen first takes the page out of fullscreen, which pauses too; Resume takes the screen
+  // again.
   let backArmed=false;
   function armBackButton(){if(backArmed)return;backArmed=true;try{history.pushState({groveStreetPlay:true},'');}catch{backArmed=false;}}
-  const onPopState=()=>{if(!backArmed)return;backArmed=false;if(started&&!paused)pause();};
+  const onPopState=()=>{if(!backArmed)return;backArmed=false;
+   // Back closes the map or the arsenal first, as it closes a dialog, and play goes on.
+   if(navigation?.open||arsenal.open){if(navigation?.open)navigation.toggle(false);if(arsenal.open)arsenal.toggle(false);armBackButton();return;}
+   if(started&&!paused)pause();};
   const onFullscreenChange=()=>{if(touch&&started&&!paused&&!document.fullscreenElement)pause();};
   if(touch){window.addEventListener('popstate',onPopState);document.addEventListener('fullscreenchange',onFullscreenChange);}
   // Losing the pointer lock pauses the game, except when an overlay let it go so its controls can be clicked.

@@ -53,6 +53,9 @@ test('a phone plays with real touches: two thumbs, three fingers, the weapon ico
  await fingers.lift(b);await fingers.lift(a);
  await fingers.tap(map.x+20,map.y+20);await expect(page.locator('.map-status')).toContainText('Waypoint');
  const close=await centre(page,'.map-close');await fingers.tap(close.x,close.y);await expect(page.locator('.world-map-panel')).toBeHidden();
+ // The back button closes the map, as it closes a dialog, and play goes on.
+ {const again=await centre(page,'.minimap-button');await fingers.tap(again.x,again.y);}await expect(page.locator('.world-map-panel')).toBeVisible();
+ await page.goBack();await expect(page.locator('.world-map-panel')).toBeHidden();expect((await state()).paused).toBe(false);
  // The camera button steps the follow camera's distance (the PC's V).
  const mode=async()=>(await state()).camera.mode,view=await mode(),camera=await centre(page,'.touch-button.camera');
  await fingers.tap(camera.x,camera.y);await expect.poll(mode,{timeout:5000}).not.toBe(view);
