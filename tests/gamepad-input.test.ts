@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {GamepadInput,LOOK_PIXELS_PER_SECOND,PAD,padCodes} from '../src/input/GamepadInput';
+import {GamepadInput,LOOK_PIXELS_PER_SECOND,PAD,padCodes,padFamily} from '../src/input/GamepadInput';
 import {Input} from '../src/input/Input';
 /** A standard-mapping pad whose buttons and sticks the test sets. */
 function fakePad(){
@@ -15,9 +15,12 @@ function setup(){
 }
 test('the PS2 layout holds the keys the PC binds to the same actions, on foot and at the wheel',()=>{
  const pressed=(...names:(keyof typeof PAD)[])=>{const p:boolean[]=[];for(const n of names)p[PAD[n]]=true;return p;};
- expect([...padCodes(pressed('cross','square','triangle','circle','r1'),false)].sort()).toEqual(['ControlLeft','KeyF','MouseAim','ShiftLeft','Space']);
- expect([...padCodes(pressed('cross','square','r1','l2','r2'),true)].sort()).toEqual(['KeyE','KeyQ','KeyS','KeyW','Space']);
- expect([...padCodes(pressed('left','right'),false)].sort()).toEqual(['KeyN','KeyY']);
+ expect([...padCodes(pressed('cross','square','triangle','circle','r1'),'foot')].sort()).toEqual(['ControlLeft','KeyF','MouseAim','ShiftLeft','Space']);
+ expect([...padCodes(pressed('cross','square','r1','l2','r2'),'vehicle')].sort()).toEqual(['KeyE','KeyQ','KeyS','KeyW','Space']);
+ expect([...padCodes(pressed('left','right'),'foot')].sort()).toEqual(['KeyN','KeyY']);
+ // A scope's zoom on square and cross; flying, circle the rockets and L1 the guns.
+ expect([...padCodes(pressed('square','cross'),'scope')].sort()).toEqual(['KeyX','KeyZ']);
+ expect([...padCodes(pressed('circle','l1','l2'),'aircraft')].sort()).toEqual(['ControlLeft','KeyB','KeyQ']);
 });
 test('a pad plays: buttons hold their keys, the left stick walks and steers, the right one looks',()=>{
  const {input,press,pad,gamepad}=setup();
@@ -44,4 +47,9 @@ test('under a menu the pad holds no keys: the D-pad moves, cross selects, Start 
  press('cross',true);expect(gamepad.poll(1/30,'menu').menuSelect).toBe(true);expect(input.down('ShiftLeft')).toBe(false);press('cross',false);
  press('start',true);expect(gamepad.poll(1/30,'foot').start).toBe(true);expect(gamepad.poll(1/30,'foot').start).toBe(false);
  input.dispose();
+});
+test('a pad goes by its own names: a PlayStation pad by its shapes, others by the Xbox letters',()=>{
+ expect(padFamily('054c-0ce6-DualSense Wireless Controller')).toBe('playstation');
+ expect(padFamily('Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)')).toBe('xbox');
+ expect(padFamily('Extended Gamepad')).toBe('xbox');
 });

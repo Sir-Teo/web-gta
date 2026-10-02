@@ -109,13 +109,46 @@ const TOUCH_STEERING:Readonly<Record<'stick'|'arrows'|'tilt',Readonly<Record<str
 const DIRECTION_RUNS:readonly (readonly [RegExp,string])[]=[
  [/STICK (?:UP|DOWN|LEFT|RIGHT)(?:(?:,? and |, | or |\/)STICK (?:UP|DOWN|LEFT|RIGHT))+/g,'the STICK'],
  [/(?:LEFT|RIGHT) ARROW(?:(?:,? and |, | or |\/)(?:LEFT|RIGHT) ARROW)+/g,'the ARROWS'],
- [/TILT (?:LEFT|RIGHT)(?:(?:,? and |, | or |\/)TILT (?:LEFT|RIGHT))+/g,'TILT']];
-let controlNames=BROWSER_CONTROLS,touchNames=false,touchSteering:'stick'|'arrows'|'tilt'='stick',touchFlying=false;
+ [/TILT (?:LEFT|RIGHT)(?:(?:,? and |, | or |\/)TILT (?:LEFT|RIGHT))+/g,'TILT'],
+ [/LEFT STICK (?:UP|DOWN|LEFT|RIGHT)(?:(?:,? and |, | or |\/)LEFT STICK (?:UP|DOWN|LEFT|RIGHT))+/g,'the LEFT STICK']];
+/** A game controller's buttons, by the place each has on the pad (src/input/GamepadInput's PS2 layout): a PlayStation
+ * pad's names, and the Xbox letters in the same places that MFi and most other pads print. */
+const PAD_BUTTON_NAMES:Readonly<Record<string,readonly [string,string]>>={cross:['CROSS','A'],circle:['CIRCLE','B'],square:['SQUARE','X'],triangle:['TRIANGLE','Y'],
+ l1:['L1','LB'],r1:['R1','RB'],l2:['L2','LT'],r2:['R2','RT'],l3:['L3','LS'],r3:['R3','RS'],select:['SELECT','VIEW'],
+ up:['D-PAD UP','D-PAD UP'],down:['D-PAD DOWN','D-PAD DOWN'],left:['D-PAD LEFT','D-PAD LEFT'],right:['D-PAD RIGHT','D-PAD RIGHT']};
+/** The pad button each control is on, on foot and at the wheel (their actions are apart), and what flying moves. */
+const PAD_PLACES:Readonly<Record<string,string>>={PED_SPRINT:'cross',PED_JUMPING:'square',VEHICLE_ENTER_EXIT:'triangle',PED_FIREWEAPON:'circle',
+ PED_LOCK_TARGET:'r1',PED_ANSWER_PHONE:'l1',PED_CYCLE_WEAPON_LEFT:'l2',PED_CYCLE_WEAPON_RIGHT:'r2',PED_DUCK:'l3',PED_LOOKBEHIND:'r3',
+ CAMERA_CHANGE_VIEW_ALL_SITUATIONS:'select',GROUP_CONTROL_FWD:'up',GROUP_CONTROL_BWD:'down',CONVERSATION_NO:'left',CONVERSATION_YES:'right',
+ PED_SNIPER_ZOOM_IN:'square',PED_SNIPER_ZOOM_OUT:'cross',VEHICLE_ACCELERATE:'cross',VEHICLE_BRAKE:'square',VEHICLE_HANDBRAKE:'r1',
+ VEHICLE_FIREWEAPON:'circle',VEHICLE_FIREWEAPON_ALT:'circle',VEHICLE_LOOKLEFT:'l2',VEHICLE_LOOKRIGHT:'r2',VEHICLE_HORN:'l1',TOGGLE_SUBMISSIONS:'r3',
+ VEHICLE_RADIO_STATION_UP:'up',VEHICLE_RADIO_STATION_DOWN:'down'};
+const PAD_FLYING_PLACES:Readonly<Record<string,string>>={VEHICLE_FIREWEAPON_ALT:'l1',VEHICLE_HORN:'l3'};
+const PAD_STICKS:Readonly<Record<string,string>>={GO_FORWARD:'LEFT STICK UP',GO_BACK:'LEFT STICK DOWN',GO_LEFT:'LEFT STICK LEFT',GO_RIGHT:'LEFT STICK RIGHT',
+ VEHICLE_STEERLEFT:'LEFT STICK LEFT',VEHICLE_STEERRIGHT:'LEFT STICK RIGHT',VEHICLE_STEERUP:'LEFT STICK UP',VEHICLE_STEERDOWN:'LEFT STICK DOWN'};
+function padControlNames(family:'playstation'|'xbox',flying:boolean){
+ const out:Record<string,string>={...PAD_STICKS},column=family==='playstation'?0:1;
+ for(const [action,place] of Object.entries({...PAD_PLACES,...flying?PAD_FLYING_PLACES:{}}))out[action]=PAD_BUTTON_NAMES[place][column];
+ return out;
+}
+/** How the HUD's text names controls: by the keys, the touch buttons (the steering as the settings give it), or a
+ * game controller's buttons while one is played; flying, by the buttons an aircraft has. */
+interface ControlNaming{touch:boolean;steering:'stick'|'arrows'|'tilt';flying:boolean;pad?:'playstation'|'xbox'}
+let naming:ControlNaming={touch:false,steering:'stick',flying:false},controlNames=BROWSER_CONTROLS,touchNames=false;
+function rebuildControlNames(){
+ touchNames=naming.touch||!!naming.pad;
+ controlNames=naming.pad?{...BROWSER_CONTROLS,...padControlNames(naming.pad,naming.flying)}
+  :naming.touch?{...BROWSER_CONTROLS,...TOUCH_CONTROLS,...TOUCH_STEERING[naming.steering],...naming.flying?TOUCH_FLYING:{}}:BROWSER_CONTROLS;
+}
 /** Name the controls in HUD text by the touch buttons rather than the keys: the steering as the settings give it, and
- * the buttons an aircraft has while flying. Left out, the steering and the flying stay as they were. */
-export function useTouchControlNames(touch:boolean,steering=touchSteering,flying=touchFlying){
- touchNames=touch;touchSteering=touch?steering:'stick';touchFlying=touch&&flying;
- controlNames=touch?{...BROWSER_CONTROLS,...TOUCH_CONTROLS,...TOUCH_STEERING[touchSteering],...touchFlying?TOUCH_FLYING:{}}:BROWSER_CONTROLS;
+ * the buttons an aircraft has while flying. Left out, the steering and the flying stay as they were; off, the keys
+ * again and everything else forgotten. */
+export function useTouchControlNames(touch:boolean,steering=naming.steering,flying=naming.flying){
+ naming=touch?{...naming,touch,steering,flying}:{touch:false,steering:'stick',flying:false};rebuildControlNames();
+}
+/** Whether the player flies, and which game controller (if any) is being played, for the names. */
+export function setControlNaming(next:{flying?:boolean;pad?:'playstation'|'xbox'|undefined}){
+ naming={...naming,...next};rebuildControlNames();
 }
 /** The controls each recent HUD text named, by the text gxtHudText made: the touch controls show a button for a
  * control the help box asks for that has none of its own (a yes-or-no question, collecting a pickup). */

@@ -7,7 +7,7 @@ import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {carRollsOverProp} from './simulation/vehiclePropContacts';
-import {controlsNamedIn,gxtHudText,gxtText,insertNumbers,useTouchControlNames} from './assets/gxt';
+import {controlsNamedIn,gxtHudText,gxtText,insertNumbers,setControlNaming,useTouchControlNames} from './assets/gxt';
 import {ScriptTextLayer} from './ui/ScriptTextLayer';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
@@ -2252,8 +2252,11 @@ async function boot() {
   });
   // A game controller, as the iOS and Android port takes one: it holds the keys (src/input/GamepadInput), the touch
   // controls stand aside once it is played and come back at a touch, and under a menu its D-pad and cross work the menu.
-  const gamepad=new GamepadInput(input);let lastTouchAt=-Infinity;
+  const gamepad=new GamepadInput(input);let lastTouchAt=-Infinity,lastKeyAt=-Infinity;
   const onTouchStart=()=>{lastTouchAt=performance.now();};window.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});
+  const onKeyOrMouse=()=>{lastKeyAt=performance.now();};for(const type of ['keydown','mousedown'] as const)window.addEventListener(type,onKeyOrMouse,{passive:true,capture:true});
+  /** The help's control names: a played controller's buttons until a key, a click or a touch, and an aircraft's flying. */
+  let namingPad:'playstation'|'xbox'|undefined,namingFlying=false;
   /** The D-pad moves between the open menu's controls (the arsenal's, the map's, or the pause menu's) and cross presses. */
   const padMenu=(move:number,select:boolean)=>{
    const root=arsenal.open?arsenal.element:navigation?.open?hud.element.querySelector<HTMLElement>('.world-map-panel'):hud.menu;if(!root)return;
@@ -2265,7 +2268,7 @@ async function boot() {
   };
   // Phones and tablets: a stick, a camera drag and buttons over the game, feeding the same Input.
   /** Whether the touch controls' Enter has something to do, and the frame count it is looked at by. */
-  let touchEnterNear=false,touchEnterTick=0,touchNamesFlying=false;
+  let touchEnterNear=false,touchEnterTick=0;
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
   let touchPanel:{element:HTMLElement;refresh():void}|undefined;
@@ -2706,7 +2709,9 @@ async function boot() {
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
     {const vehicle=!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger);
-     const pad=gamepad.poll(dt,paused||navigation?.open||arsenal.open?'menu':vehicle?'vehicle':'foot',now);
+     const pad=gamepad.poll(dt,paused||navigation?.open||arsenal.open?'menu':fleet?.occupiedPlane?'aircraft':vehicle?'vehicle':render.firstPerson?'scope':'foot',now);
+     const padNames=gamepad.lastUsed>Math.max(lastTouchAt,lastKeyAt)?gamepad.family:undefined,flying=!!fleet?.occupiedPlane;
+     if(padNames!==namingPad||flying!==namingFlying){namingPad=padNames;namingFlying=flying;setControlNaming({pad:padNames,flying});}
      if(pad.start)input.onPause();else if(pad.menuMove||pad.menuSelect)padMenu(pad.menuMove,pad.menuSelect);}
     let alpha = 1;
     if(input.consume('Backquote')&&!paused&&!navigation?.open)arsenal.toggle();
@@ -3457,7 +3462,7 @@ async function boot() {
      {const flying=!!fleet?.occupiedPlane,inv=weapons.inventory;
       if(flying){for(let i=asked.length-1;i>=0;i--)if(asked[i]==='VEHICLE_LOOKLEFT'||asked[i]==='VEHICLE_LOOKRIGHT')asked.splice(i,1);}
       else if(inVehicle&&mission?.runtime.game.playerInfo.canDoDriveBy!==false&&(playerPassenger||inv.inSlot(inv.slotOf(28))!==undefined))asked.push('VEHICLE_LOOKLEFT','VEHICLE_LOOKRIGHT');
-      if(flying!==touchNamesFlying){touchNamesFlying=flying;useTouchControlNames(true,undefined,flying);}}
+     }
      touch.setVisible(!paused&&!navigation?.open&&!arsenal.open&&!(gamepad.lastUsed>lastTouchAt));touch.setPrompts(asked);
      if(fleet)fleet.trafficScale=touchPopulation();
      // A cutscene, or a scripted scene the widescreen bars frame (the intro's ride, a mission's opening), leaves the
@@ -5767,7 +5772,7 @@ async function boot() {
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
     alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); emergency?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
-    window.removeEventListener('touchstart',onTouchStart,{capture:true});window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
+    window.removeEventListener('touchstart',onTouchStart,{capture:true});for(const type of ['keydown','mousedown'] as const)window.removeEventListener(type,onKeyOrMouse,{capture:true});window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };

@@ -18,24 +18,39 @@ const FOOT:Readonly<Partial<Record<PadButton,string>>>={cross:'ShiftLeft',square
  * changes the view and the D-pad's up and down tune the radio. */
 const VEHICLE:Readonly<Partial<Record<PadButton,string>>>={cross:'KeyW',square:'KeyS',r1:'Space',circle:'ControlLeft',triangle:'KeyF',
  l2:'KeyQ',r2:'KeyE',l1:'KeyH',l3:'KeyH',r3:'Digit2',select:'KeyV',up:'KeyN',down:'KeyN'};
-/** The keys a pad's pressed buttons hold, on foot or at the wheel. */
-export function padCodes(pressed:readonly boolean[],vehicle:boolean):Set<string>{
- const map=vehicle?VEHICLE:FOOT,codes=new Set<string>();
+/** Through a scope square and cross zoom in and out (the PC's X and Z), as the PS2's did. */
+const SCOPE:Readonly<Partial<Record<PadButton,string>>>={...FOOT,square:'KeyX',cross:'KeyZ'};
+/** Flying, circle fires the rockets and L1 the guns (the help's PED_FIREWEAPON and VEHICLE_FIREWEAPON_ALT), L2 and R2
+ * are the rudder, and L3 the horn. */
+const AIRCRAFT:Readonly<Partial<Record<PadButton,string>>>={...VEHICLE,circle:'KeyB',l1:'ControlLeft',up:undefined,down:undefined};
+/** What the pad plays: on foot, through a scope, at the wheel, flying, or a menu. */
+export type PadContext='foot'|'scope'|'vehicle'|'aircraft'|'menu';
+const MAPS:Readonly<Record<Exclude<PadContext,'menu'>,Readonly<Partial<Record<PadButton,string>>>>>={foot:FOOT,scope:SCOPE,vehicle:VEHICLE,aircraft:AIRCRAFT};
+/** The keys a pad's pressed buttons hold in a context. */
+export function padCodes(pressed:readonly boolean[],context:Exclude<PadContext,'menu'>):Set<string>{
+ const map=MAPS[context],codes=new Set<string>();
  for(const [name,index] of Object.entries(PAD) as [PadButton,number][]){const code=map[name];if(code&&pressed[index])codes.add(code);}
  return codes;
 }
 /** A stick's dead zone (a resting stick drifts) and the camera's turn at full deflection, in mouse pixels a second. */
 export const STICK_DEAD_ZONE=.2,LOOK_PIXELS_PER_SECOND=900;
-interface PadState{readonly buttons:readonly {pressed:boolean;value:number}[];readonly axes:readonly number[];readonly mapping:string;readonly connected:boolean}
+interface PadState{readonly id?:string;readonly buttons:readonly {pressed:boolean;value:number}[];readonly axes:readonly number[];readonly mapping:string;readonly connected:boolean}
+/** Whose names the buttons go by: a PlayStation pad's (Sony's vendor id, or its name), else the Xbox layout's letters
+ * that MFi and most other pads print. */
+export type PadFamily='playstation'|'xbox';
+export const padFamily=(id='')=>/054c|playstation|dualshock|dualsense/i.test(id)?'playstation' as const:'xbox' as const;
 export interface PadFrame{start:boolean;menuMove:-1|0|1;menuSelect:boolean}
 export class GamepadInput {
  /** When a pad last moved a stick or pressed a button (performance.now()): the touch controls stand aside after it. */
  lastUsed=-Infinity;
+ /** The family of the pad played last. */
+ family:PadFamily='xbox';
  private held=new Set<string>();private ownsStick=false;private previous:boolean[]=[];
  constructor(private readonly input:Input,private readonly pads:()=>readonly (PadState|null)[]=()=>(navigator.getGamepads?.()??[]) as readonly (PadState|null)[]){}
  /** One frame: `context` is what the pad plays, the menu while the game is held. */
- poll(dt:number,context:'foot'|'vehicle'|'menu',now=performance.now()):PadFrame{
+ poll(dt:number,context:PadContext,now=performance.now()):PadFrame{
   const pad=this.pads().find(p=>!!p&&p.connected&&p.mapping==='standard');
+  if(pad)this.family=padFamily(pad.id);
   const pressed=pad?pad.buttons.map(b=>b.pressed||b.value>.5):[];
   const edge=(index:number)=>!!pressed[index]&&!this.previous[index];
   const frame:PadFrame={start:edge(PAD.start),menuMove:context==='menu'?(edge(PAD.up)?-1:edge(PAD.down)?1:0):0,menuSelect:context==='menu'&&edge(PAD.cross)};
@@ -43,7 +58,7 @@ export class GamepadInput {
   const [lx=0,ly=0,rx=0,ry=0]=pad?.axes??[],dead=(x:number,y:number)=>Math.hypot(x,y)<STICK_DEAD_ZONE;
   if(pressed.some(Boolean)||!dead(lx,ly)||!dead(rx,ry))this.lastUsed=now;
   // The game's keys: the buttons held now, the ones let go released once the frame has seen them.
-  const codes=context==='menu'?new Set<string>():padCodes(pressed,context==='vehicle');
+  const codes=context==='menu'?new Set<string>():padCodes(pressed,context);
   for(const code of this.held)if(!codes.has(code)){this.held.delete(code);this.input.releaseAfterFrame(code);}
   for(const code of codes)if(!this.held.has(code)){this.held.add(code);this.input.hold(code);}
   // The left stick as the touch stick's analog walk (a light push walks, the PC's Alt) and steer.

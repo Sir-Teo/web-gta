@@ -2,7 +2,8 @@ import {test,expect,devices} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** A game controller on a phone (the Gamepad API, a standard-mapping pad stood in for here, its state set by the test):
  * the left stick walks CJ and cross sprints, as on the PS2's pad; the touch buttons stand aside while it plays and come
- * back at a touch; Start pauses, the D-pad and cross work the menu, and Start plays on. */
+ * back at a touch, and help names its buttons meanwhile; Start pauses, the D-pad and cross work the menu, and Start plays
+ * on. */
 const {defaultBrowserType,...phone}=devices['Pixel 7 landscape'];
 test.use({...phone});
 test('a controller plays on a phone and works the pause menu',async({page,context})=>{
@@ -24,6 +25,9 @@ test('a controller plays on a phone and works the pause menu',async({page,contex
  const before=(await state()).player.position;await stick(0,-1);
  await expect.poll(async()=>{const p=(await state()).player.position;return Math.hypot(p.x-before.x,p.z-before.z);},{timeout:20000}).toBeGreaterThan(1.5);
  await expect(page.locator('.touch-controls')).toBeHidden();
+ // Help names the pad's buttons while it plays (the stand-in names no maker, so the Xbox letters).
+ const named=()=>page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);return gxtHudText('Press ~k~~VEHICLE_ENTER_EXIT~ to get in.') as string;});
+ await expect.poll(named).toBe('Press Y to get in.');
  // Cross held sprints.
  await button(0,true);await expect.poll(async()=>(await state()).nativeCharacter?.action,{timeout:10000}).toBe('sprint');
  await button(0,false);await stick(0,0);
@@ -37,6 +41,6 @@ test('a controller plays on a phone and works the pause menu',async({page,contex
  // A touch on the screen brings the touch buttons back.
  const cdp=await context.newCDPSession(page);
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:600,y:150,id:1}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
- await expect(page.locator('.touch-controls')).toBeVisible();
+ await expect(page.locator('.touch-controls')).toBeVisible();await expect.poll(named).toBe('Press ENTER to get in.');
  expect(errors).toEqual([]);
 });

@@ -1,5 +1,5 @@
 import {afterEach,expect,test} from 'vitest';
-import {controlsNamedIn,gxtHudText,useTouchControlNames} from '../src/assets/gxt';
+import {controlsNamedIn,gxtHudText,setControlNaming,useTouchControlNames} from '../src/assets/gxt';
 afterEach(()=>useTouchControlNames(false));
 test('help text names the touch buttons on a touch screen and the keys otherwise',()=>{
  const text='Press ~k~~CONVERSATION_YES~ to accept or ~k~~CONVERSATION_NO~ to decline.~n~~k~~VEHICLE_ENTER_EXIT~ leaves.';
@@ -47,4 +47,18 @@ test('looking and firing are named by the buttons that do them, at the wheel and
  expect(gxtHudText('~k~~VEHICLE_LOOKLEFT~ ~k~~VEHICLE_STEERLEFT~')).toBe('◀ LOOK LEFT ARROW');
  // Off, the keys again, and the touch steering and flying forgotten.
  useTouchControlNames(false);useTouchControlNames(true);expect(gxtHudText('~k~~VEHICLE_STEERLEFT~ ~k~~PED_FIREWEAPON~')).toBe('STICK LEFT FIRE');
+});
+test('a played controller names its own buttons, a PlayStation pad by its shapes and others by the Xbox letters',()=>{
+ const enter='Press ~k~~VEHICLE_ENTER_EXIT~ to get in.',move='Use ~k~~GO_FORWARD~, ~k~~GO_BACK~, ~k~~GO_LEFT~ and ~k~~GO_RIGHT~ to move Carl.';
+ setControlNaming({pad:'playstation'});
+ expect(gxtHudText(enter)).toBe('Press TRIANGLE to get in.');expect(gxtHudText(move)).toBe('Use the LEFT STICK to move Carl.');
+ expect(gxtHudText('Press ~k~~CONVERSATION_YES~ to accept or ~k~~CONVERSATION_NO~ to decline.')).toBe('Press D-PAD RIGHT to accept or D-PAD LEFT to decline.');
+ setControlNaming({pad:'xbox'});expect(gxtHudText(enter)).toBe('Press Y to get in.');
+ // Flying, L1 fires the guns and circle the rockets.
+ setControlNaming({flying:true});
+ expect(gxtHudText('Press ~k~~VEHICLE_FIREWEAPON_ALT~ to fire the guns and ~k~~PED_FIREWEAPON~ to fire rockets.')).toBe('Press LB to fire the guns and B to fire rockets.');
+ // A key, a click or a touch since: the pad's names go, the touch ones (or the keys) come back.
+ setControlNaming({pad:undefined,flying:false});expect(gxtHudText(enter)).toBe('Press F to get in.');
+ useTouchControlNames(true);expect(gxtHudText(enter)).toBe('Press ENTER to get in.');
+ setControlNaming({pad:'playstation'});expect(gxtHudText(enter)).toBe('Press TRIANGLE to get in.');
 });
