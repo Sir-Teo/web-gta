@@ -210,6 +210,7 @@ import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
+import { GamepadInput } from './input/GamepadInput';
 import { TouchControls, goFullscreen, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake } from './input/screenAwake';
@@ -2249,6 +2250,19 @@ async function boot() {
     else if(paused&&started&&!resume.hidden&&!resume.disabled&&performance.now()-lockLostAt>300)play();
     else pause();
   });
+  // A game controller, as the iOS and Android port takes one: it holds the keys (src/input/GamepadInput), the touch
+  // controls stand aside once it is played and come back at a touch, and under a menu its D-pad and cross work the menu.
+  const gamepad=new GamepadInput(input);let lastTouchAt=-Infinity;
+  const onTouchStart=()=>{lastTouchAt=performance.now();};window.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});
+  /** The D-pad moves between the open menu's controls (the arsenal's, the map's, or the pause menu's) and cross presses. */
+  const padMenu=(move:number,select:boolean)=>{
+   const root=arsenal.open?arsenal.element:navigation?.open?hud.element.querySelector<HTMLElement>('.world-map-panel'):hud.menu;if(!root)return;
+   const controls=[...root.querySelectorAll<HTMLElement>('button,select,input,a[href]')].filter(c=>c.offsetParent!==null&&!(c as HTMLButtonElement).disabled);
+   if(!controls.length)return;
+   const at=controls.indexOf(document.activeElement as HTMLElement);
+   if(move){controls[at<0?0:(at+move+controls.length)%controls.length].focus({preventScroll:false});return;}
+   if(select)(at<0?controls[0]:controls[at]).click();
+  };
   // Phones and tablets: a stick, a camera drag and buttons over the game, feeding the same Input.
   /** Whether the touch controls' Enter has something to do, and the frame count it is looked at by. */
   let touchEnterNear=false,touchEnterTick=0,touchNamesFlying=false;
@@ -2691,6 +2705,9 @@ async function boot() {
     input.frameStart();
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
+    {const vehicle=!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger);
+     const pad=gamepad.poll(dt,paused||navigation?.open||arsenal.open?'menu':vehicle?'vehicle':'foot',now);
+     if(pad.start)input.onPause();else if(pad.menuMove||pad.menuSelect)padMenu(pad.menuMove,pad.menuSelect);}
     let alpha = 1;
     if(input.consume('Backquote')&&!paused&&!navigation?.open)arsenal.toggle();
     // CPad::CollectPickupJustDown is PED_ANSWER_PHONE (Tab), and false while DisablePlayerControls.
@@ -3441,7 +3458,7 @@ async function boot() {
       if(flying){for(let i=asked.length-1;i>=0;i--)if(asked[i]==='VEHICLE_LOOKLEFT'||asked[i]==='VEHICLE_LOOKRIGHT')asked.splice(i,1);}
       else if(inVehicle&&mission?.runtime.game.playerInfo.canDoDriveBy!==false&&(playerPassenger||inv.inSlot(inv.slotOf(28))!==undefined))asked.push('VEHICLE_LOOKLEFT','VEHICLE_LOOKRIGHT');
       if(flying!==touchNamesFlying){touchNamesFlying=flying;useTouchControlNames(true,undefined,flying);}}
-     touch.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch.setPrompts(asked);
+     touch.setVisible(!paused&&!navigation?.open&&!arsenal.open&&!(gamepad.lastUsed>lastTouchAt));touch.setPrompts(asked);
      if(fleet)fleet.trafficScale=touchPopulation();
      // A cutscene, or a scripted scene the widescreen bars frame (the intro's ride, a mission's opening), leaves the
      // player nothing to drive or walk: the controls give way to Skip while it can be skipped (a cutscene, or a script
@@ -5750,7 +5767,7 @@ async function boot() {
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
     alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); emergency?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
-    window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
+    window.removeEventListener('touchstart',onTouchStart,{capture:true});window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };
