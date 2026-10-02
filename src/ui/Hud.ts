@@ -83,7 +83,8 @@ export class Hud {
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>&#96;</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">San Andreas</p><h1>San Andreas</h1><p class="menu-location">San Andreas</p>
-        <div class="menu-actions"><button id="play" disabled>Loading the native world…</button><button id="new-game" hidden>New Game</button><button id="controls">Controls</button><button id="audio">Audio</button><button id="lighting">Lighting</button><button id="install" hidden>Add to Home screen</button></div>
+        <div class="menu-actions"><button id="play" disabled>Loading the native world…</button><button id="new-game" hidden>New Game</button><button id="brief" hidden>Brief</button><button id="controls">Controls</button><button id="audio">Audio</button><button id="lighting">Lighting</button><button id="install" hidden>Add to Home screen</button></div>
+        <div class="brief-panel" hidden aria-label="Brief"><ol></ol></div>
         <div class="controls-panel" hidden><p><b>On foot</b> W A S D · Move &nbsp; Shift · Sprint &nbsp; Space · Jump &nbsp; C · Crouch / Stand &nbsp; R · Reload &nbsp; Ctrl · Fire / Use &nbsp; Right mouse · Aim &nbsp; Left mouse while aiming · Fire &nbsp; Wheel · Switch weapon &nbsp; Tab · Arsenal</p><p><b>Vehicles</b> F · Enter / Exit nearest car &nbsp; W/S · Accelerate / Brake / Reverse &nbsp; A/D · Steer &nbsp; Space · Handbrake</p><p><b>Boats</b> F · Board / Leave nearest runabout (leaving needs shallow water) &nbsp; W/S · Throttle / Reverse &nbsp; A/D · Steer &nbsp; Space · Brake &nbsp; Ctrl · Drive-by</p><p><b>Aircraft</b> W/S · Throttle &nbsp; ↓/↑ · Nose up/down &nbsp; A/D · Bank &nbsp; Q/E · Rudder &nbsp; G · Retractable gear &nbsp; T · Hydra hover/forward mode &nbsp; Ctrl · Mounted guns &nbsp; B · Rockets &nbsp; Space · Helicopter hover &nbsp; Space · Ground brake &nbsp; F · Exit after landing and stopping. Choose an aircraft from the full map to fly from Verdant Meadows.</p><p><b>Map</b> M · Full map &nbsp; Click map · Waypoint &nbsp; Wheel / PgUp / PgDn · Zoom &nbsp; Arrows · Pan &nbsp; Home · Find CJ</p><p><b>Camera</b> V / Home · Camera distance &nbsp; Drag mouse · Look &nbsp; Middle mouse / Numpad 1 · Look behind &nbsp; L · Lock pointer &nbsp; Escape · Pause</p><p class="mouse-settings"><label>Mouse sensitivity <input type="range" id="mouse-sens" aria-label="Mouse sensitivity"></label> &nbsp; <label><input type="checkbox" id="mouse-invert"> Invert mouse vertically</label></p></div>
         <div class="audio-panel" hidden aria-label="Audio settings">
           <label for="audio-master">Master volume <output id="value-master"></output></label><input id="audio-master" type="range" min="0" max="100" step="1">
@@ -131,6 +132,8 @@ export class Hud {
     this.prompt = this.element.querySelector('.prompt')!;
     this.clock = this.element.querySelector('.game-time')!;
     this.money = this.element.querySelector('.cash')!;
+    // Opened, the list shows its newest line, and a phone's short menu scrolls the page down to it.
+    this.button('brief').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.brief-panel')!; panel.hidden = !panel.hidden; if (!panel.hidden) { panel.scrollTop = panel.scrollHeight; panel.scrollIntoView({ block: 'nearest' }); } };
     this.button('lighting').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.lighting-panel')!; panel.hidden = !panel.hidden; };
     this.button('audio').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.audio-panel')!; panel.hidden = !panel.hidden; };
     this.button('controls').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.controls-panel')!; panel.hidden = !panel.hidden; };
@@ -361,6 +364,14 @@ export class Hud {
     img.hidden = !this.skipIcon;
     el.querySelector('span')!.textContent = label;
   }
+    /** The front end's Brief page (FEH_BRI): the mission text shown lately, the oldest first and the newest at the
+     * bottom, where the list opens. With none, the page and its button go. */
+    setBriefs(lines: readonly string[], label: string) {
+      const button = this.button('brief'), panel = this.element.querySelector<HTMLElement>('.brief-panel')!;
+      panel.querySelector('ol')!.replaceChildren(...lines.map(line => { const item = document.createElement('li'); item.textContent = line; return item; }));
+      button.textContent = label; button.hidden = !lines.length; if (!lines.length) panel.hidden = true;
+      if (!panel.hidden) panel.scrollTop = panel.scrollHeight;
+    }
     menuMessage(text: string) { this.element.querySelector('.menu-message')!.textContent = text; }
   /** Whether a message the script put up is still on screen, which is what IS_MESSAGE_BEING_DISPLAYED asks:
    * CHud's big message, or the prompt line the text commands write. */

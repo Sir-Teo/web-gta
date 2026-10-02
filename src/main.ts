@@ -7,7 +7,7 @@ import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {carRollsOverProp} from './simulation/vehiclePropContacts';
-import {controlsNamedIn,gxtHudText,gxtText,insertNumbers,setControlNaming,useTouchControlNames} from './assets/gxt';
+import {controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,useTouchControlNames} from './assets/gxt';
 import {ScriptTextLayer} from './ui/ScriptTextLayer';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
@@ -2408,6 +2408,8 @@ async function boot() {
     hud.help(gxtHudText(cheats.wasActive?gxtText('CHEAT8','Cheat deactivated'):gxtText('CHEAT1','Cheat activated')));
     applyCheat(cheat);
   };
+  /** A script message as the HUD prints it: its text, the ~a~ string and the ~1~ numbers put in, the controls named. */
+  const scriptMessageText=(m:{key:string;insert?:string;numbers:readonly number[]})=>gxtHudText(insertNumbers(gxtText(m.key,m.key).replace('~a~',m.insert?gxtText(m.insert,m.insert):''),...m.numbers));
   function pause() {
     loadRequest++;
     if (!started) return;
@@ -2416,6 +2418,9 @@ async function boot() {
     if (arsenal.open) arsenal.toggle(false);
     paused = true; sound.setPlaying(false); clock.reset(); input.clear(); hud.setMenu(true);
     void screenAwake?.hold(false);touchPanel?.refresh();
+    // The front end's Brief: CMessages::PreviousBriefs, newest first in the array, listed oldest first. A brief keeps
+    // its text's key, and a mission's text goes with its table: lines whose text is no longer loaded are left out.
+    hud.setBriefs(mission?[...mission.runtime.game.messages.previousBriefs].filter(b=>!!b&&!!loadedText()?.has(b.key)).reverse().map(b=>scriptMessageText(b!)):[],gxtText('FEH_BRI','Brief'));
     hud.button('play').textContent = 'Resume game';
     if (document.pointerLockElement) document.exitPointerLock();
   }
@@ -3842,7 +3847,7 @@ async function boot() {
     {const game=mission?.runtime.game;
      if(game&&!paused){
       game.messages.process(gameTimeMs);
-      const text=(m:{key:string;insert?:string;numbers:readonly number[]})=>gxtHudText(insertNumbers(gxtText(m.key,m.key).replace('~a~',m.insert?gxtText(m.insert,m.insert):''),...m.numbers));
+      const text=scriptMessageText;
       const brief=game.messages.briefs[0],briefKey=brief?`${brief.key}|${brief.createdAt}`:'';
       if(briefKey!==shownScript.brief){if(brief)hud.message(text(brief),brief.visibleTime);else if(shownScript.brief)hud.message('',0);shownScript.brief=briefKey;}
       for(const [style,show] of [[0,(t:string,ms:number)=>hud.bigMessage(t,'',ms)],[2,(t:string,ms:number)=>hud.whiteMiddleMessage(t,ms)]] as const){
