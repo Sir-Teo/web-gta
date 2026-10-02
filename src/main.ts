@@ -2236,6 +2236,8 @@ async function boot() {
     else pause();
   });
   // Phones and tablets: a stick, a camera drag and buttons over the game, feeding the same Input.
+  /** Whether the touch controls' Enter has something to do, and the frame count it is looked at by. */
+  let touchEnterNear=false,touchEnterTick=0;
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
   const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),map:()=>input.tap('KeyM'),arsenal:()=>input.tap('Backquote')}):undefined;
@@ -3377,7 +3379,18 @@ async function boot() {
     for(const train of fleet?.trains??[])train.update();
     // The on-foot key hints (jump, crouch, enter car) do not apply in a vehicle.
     hud.element.classList.toggle('in-vehicle',!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
-    touch?.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch?.setPrompts(hud.shownPrompts().flatMap(controlsNamedIn));touch?.setMode(fleet?.occupiedPlane?'aircraft':hud.element.classList.contains('in-vehicle')?'vehicle':render.firstPerson?'scope':'foot');
+    if(touch){
+     const asked=hud.shownPrompts().flatMap(controlsNamedIn),inVehicle=hud.element.classList.contains('in-vehicle');
+     touch.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch.setPrompts(asked);
+     touch.setMode(fleet?.occupiedPlane?'aircraft':inVehicle?'vehicle':render.firstPerson?'scope':sim.player.swimming?'swim':'foot');
+     // Enter shows only when it would do something, as the mobile ports' does: in a vehicle, with a jetpack on, on the
+     // way to a car's door, when a prompt asks for it, or beside a vehicle (the box the enter button searches; looked
+     // at a few times a second).
+     if(inVehicle||sim.jetPack||carEntry.active||asked.includes('VEHICLE_ENTER_EXIT'))touchEnterNear=true;
+     else if(++touchEnterTick%8===0){const p=sim.player.position,near=(q:{x:number;y:number;z:number})=>Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;
+      touchEnterNear=[...(fleet?.cars??[])].some(c=>c.consideredByPlayer!==false&&near(c.car.body.translation()))||[fleet?.nearestPlane(true),fleet?.nearestBoat(true),fleet?.nearestBike(true)].some(v=>!!v&&v.distance()<10);}
+     touch.setOffered(touchEnterNear?['enter']:[]);
+    }
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns [Ctrl]${aircraft.rocketsArmed?` · Rockets [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(nativeDayNightBalance(sim.timeMinutes));}
     // CSkidmarks::Update in the game frame, then each car's PreRender registers its wheels, then Render.

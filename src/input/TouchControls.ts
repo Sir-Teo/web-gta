@@ -24,18 +24,19 @@ export async function goFullscreen(root:Element=document.documentElement,doc:Pic
  }catch{/* refused: play on as the page is */}
 }
 /** What the player is doing, which picks the buttons shown. */
-export type TouchMode='foot'|'scope'|'vehicle'|'aircraft';
-/** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, and the
- * modes it shows in (all of them when unset). */
-interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[]}
+export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft';
+/** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the
+ * modes it shows in (all of them when unset), and whether it shows only while the game offers it (setOffered), as the
+ * mobile ports show their enter-vehicle button only beside a vehicle. */
+interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean}
 const BUTTONS:ButtonSpec[]=[
- {label:'Fire',code:'ControlLeft',className:'fire'},
+ {label:'Fire',code:'ControlLeft',className:'fire',modes:['foot','scope','vehicle','aircraft']},
  {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope']},
- {label:'Jump',code:'Space',className:'jump',modes:['foot']},
+ {label:'Jump',code:'Space',className:'jump',modes:['foot','swim']},
  {label:'H-brake',code:'Space',className:'jump',modes:['vehicle']},
  {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot']},
  {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle']},
- {label:'Enter',code:'KeyF',className:'enter'},
+ {label:'Enter',code:'KeyF',className:'enter',contextual:true},
  {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope']},
  {label:'Look',code:'KeyQ',className:'crouch',modes:['vehicle']},
  {label:'Weapon',code:'KeyE',className:'weapon',modes:['foot','scope']},
@@ -50,6 +51,9 @@ const BUTTONS:ButtonSpec[]=[
  // PC's X and Z.
  {label:'Zoom +',code:'KeyX',className:'jump',modes:['scope']},
  {label:'Zoom −',code:'KeyZ',className:'sprint',modes:['scope']},
+ // In the water the fire button dives under and Sprint swims the fast stroke: the mobile ports' Dive and Swim.
+ {label:'Dive',code:'ControlLeft',className:'fire',modes:['swim']},
+ {label:'Swim',code:'ShiftLeft',className:'sprint',modes:['swim']},
  {label:'Thrust',code:'KeyW',className:'gas',modes:['aircraft']},
  {label:'Slow',code:'KeyS',className:'reverse',modes:['aircraft']},
  {label:'Brake',code:'Space',className:'jump',modes:['aircraft']},
@@ -81,6 +85,7 @@ export class TouchControls {
  private latched=new Set<string>();
  private buttons:{spec:ButtonSpec;element:HTMLButtonElement}[]=[];
  private mode?:TouchMode;
+ private offered=new Set<string>();
  private abort=new AbortController();
  constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;map:()=>void;arsenal:()=>void}){
   const options={signal:this.abort.signal};
@@ -145,14 +150,29 @@ export class TouchControls {
   // A light push walks (the PC's walk key); past half way CJ runs.
   if(Math.hypot(stick.x,stick.y)<.55)this.input.hold('AltLeft');else this.input.release('AltLeft');
  }
- /** On foot, through a scope, at the wheel or flying: the other modes' buttons are hidden, and a latched aim is let go
-  * in a vehicle. */
+ /** On foot, through a scope, swimming, at the wheel or flying: the other modes' buttons are hidden, and a latched aim
+  * is let go anywhere it cannot aim. */
  setMode(mode:TouchMode){
   if(mode===this.mode)return;
   this.mode=mode;this.element.dataset.mode=mode;
-  for(const {spec,element} of this.buttons)element.hidden=!!spec.modes&&!spec.modes.includes(mode);
-  if(mode==='vehicle'||mode==='aircraft')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
+  this.showButtons();
+  if(mode!=='foot'&&mode!=='scope')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
   for(const {spec,element} of this.buttons)if(spec.toggle)element.classList.toggle('on',this.latched.has(spec.code));
+ }
+ /** The contextual buttons (by class) the game offers now: Enter beside a vehicle, in one, or when a prompt asks. */
+ setOffered(classNames:Iterable<string>){
+  const next=new Set(classNames);
+  if(next.size===this.offered.size&&[...next].every(c=>this.offered.has(c)))return;
+  this.offered=next;this.showButtons();
+ }
+ private showButtons(){
+  const mode=this.mode??'foot';
+  for(const {spec,element} of this.buttons){
+   const hidden=!!spec.modes&&!spec.modes.includes(mode)||!!spec.contextual&&!this.offered.has(spec.className);
+   if(element.hidden===hidden)continue;element.hidden=hidden;
+   // A button that goes while a finger holds it lets go of its key.
+   if(hidden&&!spec.toggle){for(const [id,code] of this.held)if(code===spec.code&&element.classList.contains('on'))this.held.delete(id);if(![...this.held.values()].includes(spec.code))this.input.release(spec.code);element.classList.remove('on');}
+  }
  }
  /** The pad actions the help box and prompt name now: their context buttons show, the rest hide (let go if held). */
  setPrompts(actions:Iterable<string>){
