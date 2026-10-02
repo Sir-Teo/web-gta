@@ -36,6 +36,11 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await finger('.touch-button.jump:not([hidden])','pointerdown',box.x+box.width/2,box.y+box.height/2,11);
  await expect.poll(async()=>(await state()).player.grounded,{timeout:5000}).toBe(false);
  await finger('.touch-button.jump:not([hidden])','pointerup',box.x+box.width/2,box.y+box.height/2,11);
+ // Sideways there is no card; a phone turned upright gets one until it turns back or the player plays on anyway.
+ const rotate=page.locator('.touch-rotate');await expect(rotate).toBeHidden();
+ const viewport=page.viewportSize()!;await page.setViewportSize({width:390,height:844});
+ await expect(rotate).toBeVisible();await rotate.locator('button').dispatchEvent('pointerdown',{pointerType:'touch'});await expect(rotate).toBeHidden();
+ await page.setViewportSize(viewport);
  // ☰ pauses, and the overlay gives way to the menu.
  await page.locator('.touch-top .touch-button').first().dispatchEvent('pointerdown',{pointerType:'touch'});
  await expect(controls).toBeHidden();

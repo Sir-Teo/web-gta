@@ -77,7 +77,14 @@ export class TouchControls {
    const button=document.createElement('button');button.type='button';button.textContent=label;button.className='touch-button small';
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();action();},options);top.append(button);
   }
-  this.element.append(look,stickZone,pad,top);parent.append(this.element);
+  // A phone held upright squeezes the HUD, which is laid out for a sideways screen: until it is turned, a card asks for
+  // that (the game underneath stays as it is). Play anyway keeps it upright for the rest of the visit.
+  const rotate=document.createElement('div');rotate.className='touch-rotate';rotate.setAttribute('role','status');
+  const rotateText=document.createElement('p');rotateText.textContent='Turn your phone sideways to play';
+  const rotateDismiss=document.createElement('button');rotateDismiss.type='button';rotateDismiss.className='touch-button small';rotateDismiss.textContent='Play anyway';
+  rotateDismiss.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();rotate.classList.add('dismissed');},options);
+  rotate.append(rotateText,rotateDismiss);
+  this.element.append(look,stickZone,pad,top,rotate);parent.append(this.element);
   // The stick floats: it is centred where the thumb lands in the left zone and follows it out to its radius.
   stickZone.addEventListener('pointerdown',e=>{if(this.stickPointer!==undefined)return;e.preventDefault();capture(stickZone,e.pointerId);
    this.stickPointer=e.pointerId;this.stickOrigin={x:e.clientX,y:e.clientY};const r=stickZone.getBoundingClientRect();
