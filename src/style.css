@@ -40,7 +40,8 @@
 .menu a{color:#c0d394}.menu a:visited{color:#a9bd85}
 /* The character workshop opens the model viewer in a second tab beside the game: a desktop's tool, more than a phone
  * holds beside the game. */
-.touch #character-workshop{display:none}.controls-panel{margin-top:22px;font-size:12px;line-height:1.7;color:#c9cdbd}.controls-panel b{display:block;color:#e5e1ca;margin-top:12px}
+/* A phone's menu leaves out the desktop's workshop link and Lighting, whose panel takes local timecycle, water and texture files. */
+.touch #character-workshop,.touch #lighting,.touch .lighting-panel{display:none}.controls-panel{margin-top:22px;font-size:12px;line-height:1.7;color:#c9cdbd}.controls-panel b{display:block;color:#e5e1ca;margin-top:12px}
 .paused .status,.paused .location,.paused .onboarding,.paused .prompt,.paused .big-message{visibility:hidden}
 .loading-cover{position:absolute;inset:0;display:grid;place-items:center;color:#c9ccad;background:#15221d;font:17px Georgia,serif;z-index:5}
 @media(max-width:900px){.big-message b{font-size:26px}.big-message span{font-size:15px}.status{right:5%;top:4%;gap:8px}.game-time{font-size:21px}.cash{font-size:23px}.weapon{width:42px}.prompt{font-size:12px;bottom:28%;width:90%;white-space:pre-line}.onboarding{font-size:9px;bottom:2%;max-width:95%;white-space:normal;text-align:center}.menu-backdrop{padding:8vw}.menu-location{margin-bottom:24px}.menu button{font-size:17px}.controls-panel{font-size:10px}}

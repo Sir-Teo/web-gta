@@ -15,7 +15,10 @@ test('the pause menu\'s Brief lists the mission text shown lately, newest at the
  // No briefs: no Brief.
  await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.messages.previousBriefs.fill(undefined));
  await pauseButton.dispatchEvent('pointerdown',{pointerType:'touch'});await expect(page.getByRole('button',{name:'Resume game',exact:true})).toBeVisible();
- await expect(brief).toBeHidden();await page.getByRole('button',{name:'Resume game',exact:true}).click();
+ await expect(brief).toBeHidden();
+ // A phone's menu has no Lighting (its panel takes local timecycle and texture files).
+ await expect(page.getByRole('button',{name:'Controls',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Lighting',exact:true})).toBeHidden();
+ await page.getByRole('button',{name:'Resume game',exact:true}).click();
  // Twenty lines, the game's own text (MAIN's FEH_MAP "Map", then FEH_STA "Stats" last of all), the oldest a key
  // whose text is not loaded (a mission's table gone), which is left out.
  await page.evaluate(()=>{const m=(window as any).__game.missionForProfiling().runtime.game.messages;m.addToPreviousBriefArray('NOT_LOADED');for(let i=0;i<18;i++)m.addToPreviousBriefArray('FEH_MAP',[i,-1,-1,-1,-1,-1]);m.addToPreviousBriefArray('FEH_STA');});

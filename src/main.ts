@@ -4331,7 +4331,7 @@ async function boot() {
         const howToWalk=touch?'Your left thumb walks; drag on the right to look.':walkDemo?'WASD to walk, Shift to sprint, Space to jump.':'WASD to walk; Space to jump.';
         // An iPhone's browser cannot take the screen: the home screen can.
         const homeScreen=touch&&suggestHomeScreen()?' On an iPhone, Share → Add to Home Screen plays it full screen.':'';
-        hud.menuMessage((walkDemo?`${included.name} is ready. ${howToWalk}${homeScreen}`:`Imported scene ready. ${howToWalk} This test scene is not saved.`)+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
+        hud.menuMessage((walkDemo?`${included.name} is ready. ${howToWalk}${homeScreen}`:`Imported scene ready. ${howToWalk} This test scene is not saved.`)+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}.${touch?'':' See Lighting for details.'}`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
           pedestrians=new WorldPedestrians(sim,render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,()=>render.nativeCharacter,law);
