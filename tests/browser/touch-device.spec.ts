@@ -1,10 +1,10 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** A phone's screen stays on while the game plays (the Screen Wake Lock, let go under the pause menu) and the touch
- * buttons buzz where the browser vibrates, unless the Vibration setting is off. The browser APIs are stand-ins that
- * record what the game asks of them. */
+ * buttons buzz where the browser vibrates, unless the Vibration setting is off; switching apps pauses and saves. The
+ * browser APIs are stand-ins that record what the game asks of them. */
 test.use({hasTouch:true});
-test('a phone keeps its screen on while playing, and its buttons buzz',async({page})=>{
+test('a phone keeps its screen on while playing, its buttons buzz, and switching apps saves',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{const w=window as any;w.__device=[];
   Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request:async(type:string)=>{w.__device.push(`lock ${type}`);const s={released:false,release:async()=>{s.released=true;w.__device.push('release');}};return s;}}});
@@ -27,5 +27,12 @@ test('a phone keeps its screen on while playing, and its buttons buzz',async({pa
  await expect.poll(async()=>(await device()).at(-1)).toBe('lock screen');
  await press('.touch-button.jump:not([hidden])',12);await page.waitForTimeout(300);
  expect((await device()).filter(e=>e.startsWith('buzz')).length).toBe(1);
+ // Switching apps hides the page: the game pauses and the progress is saved there and then, not at the next autosave
+ // (a phone may kill a hidden page without a pagehide).
+ const saved=await page.evaluate(()=>{const inventory=(window as any).__game.weapons().inventory,next=[...inventory.owned].find((id:number)=>id!==inventory.selected);
+  inventory.select(next);Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>'hidden'});
+  document.dispatchEvent(new Event('visibilitychange'));return {next,stored:JSON.parse(localStorage.getItem('web-gta.progress.v1')!).selected};});
+ expect(saved.stored).toBe(saved.next);
+ await expect.poll(async()=>(await page.evaluate(()=>(window as any).__game.state())).paused).toBe(true);
  expect(errors).toEqual([]);
 });

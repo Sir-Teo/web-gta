@@ -2384,7 +2384,9 @@ async function boot() {
     follower?.retry();
   }
   hud.button('play').disabled = false; hud.button('play').textContent = 'Begin game'; hud.button('play').onclick = play;
-  const onVisibility = () => { if (document.hidden) pause(); };
+  // A phone switching apps hides the page, and may kill it later without the pagehide that saves: the progress is
+  // saved as it goes.
+  const onVisibility = () => { if (document.hidden) { pause(); saveProgress(); } };
   document.addEventListener('visibilitychange', onVisibility);
   const onBlur = () => pause(); window.addEventListener('blur', onBlur);
   // Losing the pointer lock pauses the game, except when an overlay let it go so its controls can be clicked.
