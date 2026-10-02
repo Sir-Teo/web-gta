@@ -96,13 +96,14 @@ type PortPlace=readonly [x:number,y:number,size:keyof typeof PORT_SIZE];
  * Enter ENTER_CAR, Sprint (Swim, Zoom −) BUTTON_SPRINT_AND_SWIM, Skip SKIP_CUTSCENE; at the wheel Gas and Brake are
  * ACCELERATE and BRAKE, H-brake HANDBRAKE_AND_AIR_SHOOT, Fire CAR_SHOOT, Horn HORN and the arrows VEHICLE_STEER_LEFT and
  * _RIGHT; flying, Fire is AIR_SHOOT and Rocket CAR_SHOOT's place. The buttons the port has no widget for take free places
- * of its grid: Jump the weapon swap's (the HUD's weapon icon swaps here), Crouch the phone's (Action, a pill here,
- * answers), Reload, Look back and the yaw beside them, Radio the hydraulics', Nitrous left of the drive-by fire. */
+ * of its grid: Jump the weapon swap's (the HUD's weapon icon swaps here), Radio the hydraulics', Crouch, Reload, Look
+ * back and Nitrous a column further in (the phone's row above stays clear, as the port's is but for a call: the wanted
+ * stars hang there under the status), the yaw there too. */
 export const PORT_LAYOUT:Readonly<Record<LayoutGroup,Readonly<Record<string,PortPlace>>>>={
- foot:{fire:[607,310,'medium'],aim:[553,310,'medium'],enter:[607,246,'medium'],sprint:[603,381,'large'],jump:[554,246,'medium'],crouch:[606,182,'medium'],reload:[553,182,'medium'],skip:[611,34,'medium']},
- vehicle:{gas:[602,380,'large'],reverse:[541,381,'large'],jump:[607,310,'medium'],fire:[554,310,'medium'],enter:[607,246,'medium'],sprint:[614,191,'small'],radio:[554,245,'medium'],crouch:[553,182,'medium'],
+ foot:{fire:[607,310,'medium'],aim:[553,310,'medium'],enter:[607,246,'medium'],sprint:[603,381,'large'],jump:[554,246,'medium'],crouch:[500,246,'medium'],reload:[500,310,'medium'],skip:[611,34,'medium']},
+ vehicle:{gas:[602,380,'large'],reverse:[541,381,'large'],jump:[607,310,'medium'],fire:[554,310,'medium'],enter:[607,246,'medium'],sprint:[614,191,'small'],radio:[554,245,'medium'],crouch:[500,246,'medium'],
   nitro:[500,310,'medium'],'steer-left':[36,380,'large'],'steer-right':[99,381,'large']},
- aircraft:{gas:[602,380,'large'],reverse:[541,381,'large'],fire:[607,310,'medium'],rocket:[554,310,'medium'],jump:[554,245,'medium'],enter:[607,246,'medium'],'yaw-left':[553,182,'medium'],'yaw-right':[607,182,'medium']}};
+ aircraft:{gas:[602,380,'large'],reverse:[541,381,'large'],fire:[607,310,'medium'],rocket:[554,310,'medium'],jump:[554,245,'medium'],enter:[607,246,'medium'],'yaw-left':[500,246,'medium'],'yaw-right':[500,310,'medium']}};
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the
  * modes it shows in (all of them when unset), whether it shows only while the game offers it (setOffered), as the
  * mobile ports show their enter-vehicle button only beside a vehicle, and whether only the driver has it (a passenger
