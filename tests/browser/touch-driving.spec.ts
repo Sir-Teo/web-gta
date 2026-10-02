@@ -146,3 +146,23 @@ test('a phone gets the Mission button in a taxi',async({page})=>{
  await finger('.touch-context button[data-code=Digit2]','pointerup',21);
  expect(errors).toEqual([]);
 });
+
+/** A bicycle has no radio (its RadioType is disabled): on the BMX Gas pedals and Radio does not come up. */
+test('a phone rides a BMX with no Radio button',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>localStorage.setItem('grove-touch-v1',JSON.stringify({steering:'stick',steeringChosen:true})));
+ await page.goto('/?touch=1');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});await endStoryMission(page);
+ const state=()=>page.evaluate(()=>(window as any).__game.state());
+ await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2495,g.groundAt(2495,1687,300)+.05,1687);g.turnPlayer(Math.PI);});
+ await expect.poll(async()=>{const s=await state();return !s.terrainHold&&s.player.grounded;},{timeout:30000}).toBe(true);
+ await page.evaluate(async()=>{const g=(window as any).__game,p=g.state().player.position;await g.fleet().spawnBike(481,p.x+1.5,p.z,0,p.y);});
+ await expect(page.locator('.touch-button.enter:not([hidden])')).toBeVisible({timeout:10000});
+ for(const type of ['pointerdown','pointerup'])await page.evaluate(type=>{const b=document.querySelector('.touch-button.enter:not([hidden])')!,r=b.getBoundingClientRect();
+  b.dispatchEvent(new PointerEvent(type,{pointerId:3,pointerType:'touch',clientX:r.x+r.width/2,clientY:r.y+r.height/2,bubbles:true,cancelable:true}));},type);
+ await expect.poll(()=>page.evaluate(()=>!!(window as any).__game.fleet().occupiedBike),{timeout:30000}).toBe(true);
+ await expect(page.locator('.touch-controls')).toHaveAttribute('data-mode','vehicle');
+ await expect(page.locator('.touch-button.gas:not([hidden])')).toBeVisible();
+ await page.waitForTimeout(1000);await expect(page.locator('.touch-button.radio:not([hidden])')).toHaveCount(0);
+ expect(errors).toEqual([]);
+});

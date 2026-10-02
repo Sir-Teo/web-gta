@@ -72,7 +72,7 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle'],icon:'up',driver:true},
  {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down',driver:true},
  // N tunes the radio (the mobile ports swipe for it).
- {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],icon:'music'},
+ {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],contextual:true,icon:'music'},
  // A car fitted with nitro fires it with the car's weapon button: the port gives it a button of its own, shown only then.
  {label:'Nitrous',code:'ControlLeft',className:'nitro',modes:['vehicle'],contextual:true,icon:'bolt'},
  // A cutscene, or a scripted scene in the widescreen bars: the cluster gives way to Skip (CCutsceneMgr's skip is Space or
