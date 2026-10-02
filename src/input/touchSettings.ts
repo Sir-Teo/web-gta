@@ -1,16 +1,18 @@
 /* The touch controls' options, as the iOS and Android port's settings give them: the steering method (the stick, the
- * port's own left and right arrow buttons, or tilting the device like a wheel, its accelerometer option), lock-on aim assist or free aim, how fast a drag turns the
- * camera, and how big the buttons are. Kept in the browser like the other settings. */
+ * port's own left and right arrow buttons, or tilting the device like a wheel, its accelerometer option), lock-on aim
+ * assist or free aim, how fast a drag turns the camera, how big the buttons are, and whether a press buzzes. Kept in
+ * the browser like the other settings. */
 export type TouchSteering='stick'|'arrows'|'tilt';
-export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpeed:number;buttonScale:number}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1};
+export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpeed:number;buttonScale:number;vibration:boolean}
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true};
 export const LOOK_SPEED_RANGE={min:.5,max:2},BUTTON_SCALE_RANGE={min:.8,max:1.3};
 const KEY='grove-touch-v1';
 const clamp=(value:unknown,range:{min:number;max:number},fallback:number)=>typeof value==='number'&&Number.isFinite(value)?Math.min(range.max,Math.max(range.min,value)):fallback;
 export function parseTouchSettings(value:unknown):TouchSettings{
  const data=value&&typeof value==='object'?value as Partial<TouchSettings>:{};
  return {steering:data.steering==='tilt'||data.steering==='arrows'?data.steering:'stick',aimAssist:typeof data.aimAssist==='boolean'?data.aimAssist:DEFAULT_TOUCH.aimAssist,
-  lookSpeed:clamp(data.lookSpeed,LOOK_SPEED_RANGE,DEFAULT_TOUCH.lookSpeed),buttonScale:clamp(data.buttonScale,BUTTON_SCALE_RANGE,DEFAULT_TOUCH.buttonScale)};
+  lookSpeed:clamp(data.lookSpeed,LOOK_SPEED_RANGE,DEFAULT_TOUCH.lookSpeed),buttonScale:clamp(data.buttonScale,BUTTON_SCALE_RANGE,DEFAULT_TOUCH.buttonScale),
+  vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration};
 }
 export function readTouchSettings():TouchSettings{
  try{return parseTouchSettings(JSON.parse(localStorage.getItem(KEY)??'null'));}catch{return {...DEFAULT_TOUCH};}

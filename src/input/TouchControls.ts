@@ -1,5 +1,5 @@
 import type {Input} from './Input';
-import {BUTTON_SCALE_RANGE,LOOK_SPEED_RANGE,tiltSteering,type TouchSettings} from './touchSettings';
+import {BUTTON_SCALE_RANGE,DEFAULT_TOUCH,LOOK_SPEED_RANGE,tiltSteering,type TouchSettings} from './touchSettings';
 import {touchIconSvg,type TouchIcon} from './touchIcons';
 /* Touch-screen controls for phones and tablets, laid over the game the way the mobile ports lay theirs: a floating
  * stick under the left thumb, the camera dragged with the right, and the buttons round the right thumb. Every control
@@ -104,7 +104,7 @@ export class TouchControls {
  private mode?:TouchMode;
  private offered=new Set<string>();
  private abort=new AbortController();
- constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void},private settings:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1}){
+ constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void},private settings:TouchSettings=DEFAULT_TOUCH){
   const options={signal:this.abort.signal};
   this.element.className='touch-controls';this.element.setAttribute('aria-label','Touch controls');
   const look=document.createElement('div');look.className='touch-look';
@@ -116,7 +116,7 @@ export class TouchControls {
    const button=document.createElement('button');button.type='button';button.className=`touch-button ${spec.className}`;button.dataset.code=spec.code;button.setAttribute('aria-label',spec.label);
    if(spec.icon)button.innerHTML=touchIconSvg(spec.icon);else button.textContent=spec.label;
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);
-    if(spec.toggle){if(this.latched.has(spec.code)){this.latched.delete(spec.code);input.release(spec.code);button.classList.remove('on');}else{this.latched.add(spec.code);input.hold(spec.code);button.classList.add('on');}return;}
+    this.buzz();if(spec.toggle){if(this.latched.has(spec.code)){this.latched.delete(spec.code);input.release(spec.code);button.classList.remove('on');}else{this.latched.add(spec.code);input.hold(spec.code);button.classList.add('on');}return;}
     this.held.set(e.pointerId,spec.code);input.hold(spec.code);button.classList.add('on');},options);
    const up=(e:PointerEvent)=>{if(spec.toggle)return;const code=this.held.get(e.pointerId);if(code===undefined)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.releaseAfterFrame(code);button.classList.remove('on');};
    button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
@@ -138,7 +138,7 @@ export class TouchControls {
   const context=document.createElement('div');context.className='touch-context';
   for(const {action,label,code} of CONTEXT){
    const button=document.createElement('button');button.type='button';button.textContent=label;button.className='touch-button small';button.dataset.code=code;button.hidden=true;
-   button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);this.held.set(e.pointerId,code);input.hold(code);button.classList.add('on');},options);
+   button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);this.held.set(e.pointerId,code);input.hold(code);button.classList.add('on');this.buzz();},options);
    const up=(e:PointerEvent)=>{if(this.held.get(e.pointerId)!==code)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.releaseAfterFrame(code);button.classList.remove('on');};
    button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
    context.append(button);this.context.push({action,element:button});
@@ -237,6 +237,8 @@ export class TouchControls {
   const angle=globalThis.screen?.orientation?.angle??(globalThis as {orientation?:number}).orientation??0;
   this.input.tilt=this.settings.steering==='tilt'&&this.mode==='vehicle'&&!this.element.hidden?tiltSteering(this.orientation.beta,this.orientation.gamma,((angle%360)+360)%360):undefined;
  }
+ /** A press's buzz, as a phone game's buttons give: a short one where the browser can vibrate (not iOS Safari). */
+ private buzz(){if(this.settings.vibration)try{navigator.vibrate?.(12);}catch{/* vibration refused */}}
  /** Hidden under the menus: everything held is let go so nothing stays pressed behind them. */
  setVisible(visible:boolean){
   if(this.element.hidden===!visible)return;
@@ -249,8 +251,8 @@ export class TouchControls {
  dispose(){this.abort.abort();this.weaponWatch?.disconnect();this.element.remove();}
 }
 
-/** The pause menu's touch settings, the iOS and Android port's own: steering by the stick or by tilting the device,
- * lock-on aim assist or free aim, the camera drag's speed and the buttons' size. `change` gets each new set. Choosing
+/** The pause menu's touch settings, the iOS and Android port's own: steering by the stick, the arrows or tilting the
+ * device, lock-on aim assist or free aim, the camera drag's speed, the buttons' size and the vibration. `change` gets each new set. Choosing
  * tilt asks iOS for the motion sensors (it asks only on a tap), and stays on the stick if refused. */
 export function touchSettingsPanel(settings:TouchSettings,change:(settings:TouchSettings)=>void){
  const panel=document.createElement('p');panel.className='touch-settings';
@@ -258,10 +260,12 @@ export function touchSettingsPanel(settings:TouchSettings,change:(settings:Touch
 <label>Aim <select class="touch-aim" aria-label="Aim"><option value="assist">Lock-on assist</option><option value="free">Free aim</option></select></label>
 <label>Look speed <input type="range" class="touch-look-speed" aria-label="Look speed" min="${LOOK_SPEED_RANGE.min}" max="${LOOK_SPEED_RANGE.max}" step="0.1"></label>
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
+<label>Vibration <input type="checkbox" class="touch-vibration" aria-label="Vibration"></label>
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
  steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);
+ const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!;vibration.checked=settings.vibration;vibration.onchange=()=>update({vibration:vibration.checked});
  const update=(next:Partial<TouchSettings>)=>{settings={...settings,...next};change(settings);};
  steering.onchange=async()=>{
   note.textContent='';

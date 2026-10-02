@@ -212,6 +212,7 @@ import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
 import { TouchControls, goFullscreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { readTouchSettings, saveTouchSettings } from './input/touchSettings';
+import { ScreenAwake } from './input/screenAwake';
 import { installRapierTombstones } from './simulation/rapierTombstones';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
@@ -2243,6 +2244,8 @@ async function boot() {
   let aimAssistHandle:number|undefined;
   let touchSettings=readTouchSettings();
   const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);}},touchSettings):undefined;
+  /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
+  const screenAwake=touch?new ScreenAwake():undefined;
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true);
    // The pause menu's Controls panel holds the touch settings.
    hud.element.querySelector('.controls-panel')?.prepend(touchSettingsPanel(touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);}));}
@@ -2358,6 +2361,7 @@ async function boot() {
     if (navigation?.open) navigation.toggle(false);
     if (arsenal.open) arsenal.toggle(false);
     paused = true; sound.setPlaying(false); clock.reset(); input.clear(); hud.setMenu(true);
+    void screenAwake?.hold(false);
     hud.button('play').textContent = 'Resume game';
     if (document.pointerLockElement) document.exitPointerLock();
   }
@@ -2373,7 +2377,7 @@ async function boot() {
     }
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
     // A tap on the menu's button is the gesture a phone needs to go fullscreen.
-    if (touch) void goFullscreen();
+    if (touch) { void goFullscreen(); void screenAwake?.hold(true); }
     // Terrain loading that gave up after failures in a row tries again from where the player stands.
     follower?.retry();
   }
