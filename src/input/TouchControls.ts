@@ -28,24 +28,25 @@ export async function goFullscreen(root:Element=document.documentElement,doc:Pic
 /** What the player is doing, which picks the buttons shown. */
 export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft'|'cutscene';
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the
- * modes it shows in (all of them when unset), and whether it shows only while the game offers it (setOffered), as the
- * mobile ports show their enter-vehicle button only beside a vehicle. */
-interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean;icon?:TouchIcon;steering?:TouchSettings['steering']}
+ * modes it shows in (all of them when unset), whether it shows only while the game offers it (setOffered), as the
+ * mobile ports show their enter-vehicle button only beside a vehicle, and whether only the driver has it (a passenger
+ * has no pedals, wheel or horn). */
+interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean;icon?:TouchIcon;steering?:TouchSettings['steering'];driver?:boolean}
 const BUTTONS:ButtonSpec[]=[
  {label:'Fire',code:'ControlLeft',className:'fire',modes:['foot','scope','vehicle','aircraft']},
  {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope'],icon:'target'},
  {label:'Jump',code:'Space',className:'jump',modes:['foot','swim'],icon:'jump'},
- {label:'H-brake',code:'Space',className:'jump',modes:['vehicle'],icon:'parking'},
+ {label:'H-brake',code:'Space',className:'jump',modes:['vehicle'],icon:'parking',driver:true},
  {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot'],icon:'run'},
- {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle'],icon:'horn'},
+ {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle'],icon:'horn',driver:true},
  {label:'Enter',code:'KeyF',className:'enter',contextual:true,icon:'car'},
  {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope'],icon:'crouch'},
  {label:'Look',code:'KeyQ',className:'crouch',modes:['vehicle'],icon:'eye'},
  {label:'Reload',code:'KeyR',className:'reload',modes:['foot','scope'],icon:'reload'},
  // At the wheel the right thumb has the pedals, as the mobile ports give it, so the stick can steer to full lock
  // while the car accelerates (a stick pushed only sideways is no push forward).
- {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle'],icon:'up'},
- {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down'},
+ {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle'],icon:'up',driver:true},
+ {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down',driver:true},
  // N tunes the radio (the mobile ports swipe for it).
  {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],icon:'music'},
  // A car fitted with nitro fires it with the car's weapon button: the port gives it a button of its own, shown only then.
@@ -54,8 +55,8 @@ const BUTTONS:ButtonSpec[]=[
  // Return just pressed), offered while the scene can be skipped.
  {label:'Skip',code:'Space',className:'skip',modes:['cutscene'],contextual:true},
  // The port's default steering: left and right arrows under the left thumb (A and D), in place of the stick.
- {label:'Steer left',code:'KeyA',className:'steer-left',modes:['vehicle'],icon:'left',steering:'arrows'},
- {label:'Steer right',code:'KeyD',className:'steer-right',modes:['vehicle'],icon:'right',steering:'arrows'},
+ {label:'Steer left',code:'KeyA',className:'steer-left',modes:['vehicle'],icon:'left',steering:'arrows',driver:true},
+ {label:'Steer right',code:'KeyD',className:'steer-right',modes:['vehicle'],icon:'right',steering:'arrows',driver:true},
  // Flying, the stick is the yoke (pitch and roll) and the right thumb has the throttle, the rudder, the wheel brake
  // (a helicopter's hover hold) and the rockets: the PC's W/S, Q/E, Space and B.
  // Through a scope (the sniper rifle, the camera, the rocket launchers) Jump and Sprint give way to the zoom: the
@@ -220,9 +221,17 @@ export class TouchControls {
   this.showButtons();this.steer();
   // A cutscene's camera is the script's, and a scope's is the weapon's own.
   this.cameraButton.hidden=mode==='cutscene'||mode==='scope';
-  this.steeringPopup.hidden=!(mode==='vehicle'&&!this.settings.steeringChosen);
+  this.askSteering();
   if(mode!=='foot'&&mode!=='scope')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
   for(const {spec,element} of this.buttons)if(spec.toggle)element.classList.toggle('on',this.latched.has(spec.code));
+ }
+ /** The steering question, the first time at the wheel (not in a passenger seat). */
+ private askSteering(){this.steeringPopup.hidden=!(this.mode==='vehicle'&&!this.passenger&&!this.settings.steeringChosen);}
+ private passenger=false;
+ /** In a passenger seat (a ride in a mission): the driver's pedals, wheel and horn go, and the tilt steers nothing. */
+ setPassenger(passenger:boolean){
+  if(passenger===this.passenger)return;
+  this.passenger=passenger;this.showButtons();this.steer();this.askSteering();
  }
  /** The contextual buttons (by class) the game offers now: Enter beside a vehicle, in one, or when a prompt asks. */
  setOffered(classNames:Iterable<string>){
@@ -233,7 +242,7 @@ export class TouchControls {
  private showButtons(){
   const mode=this.mode??'foot';
   for(const {spec,element} of this.buttons){
-   const hidden=(spec.modes?!spec.modes.includes(mode):mode==='cutscene')||!!spec.contextual&&!this.offered.has(spec.className)||!!spec.steering&&spec.steering!==this.settings.steering;
+   const hidden=(spec.modes?!spec.modes.includes(mode):mode==='cutscene')||!!spec.contextual&&!this.offered.has(spec.className)||!!spec.steering&&spec.steering!==this.settings.steering||!!spec.driver&&this.passenger;
    if(element.hidden===hidden)continue;element.hidden=hidden;
    // A button that goes while a finger holds it lets go of its key.
    if(hidden&&!spec.toggle){for(const [id,code] of this.held)if(code===spec.code&&element.classList.contains('on'))this.held.delete(id);if(![...this.held.values()].includes(spec.code))this.input.release(spec.code);element.classList.remove('on');}
@@ -257,7 +266,7 @@ export class TouchControls {
  /** Feeds the tilt to the input while it steers: in a car, on a bike or in a boat with tilt steering chosen. */
  private steer(){
   const angle=globalThis.screen?.orientation?.angle??(globalThis as {orientation?:number}).orientation??0;
-  this.input.tilt=this.settings.steering==='tilt'&&this.mode==='vehicle'&&!this.element.hidden?tiltSteering(this.orientation.beta,this.orientation.gamma,((angle%360)+360)%360):undefined;
+  this.input.tilt=this.settings.steering==='tilt'&&this.mode==='vehicle'&&!this.passenger&&!this.element.hidden?tiltSteering(this.orientation.beta,this.orientation.gamma,((angle%360)+360)%360):undefined;
  }
  /** A press's buzz, as a phone game's buttons give: a short one where the browser can vibrate (not iOS Safari). */
  private buzz(){if(this.settings.vibration)try{navigator.vibrate?.(12);}catch{/* vibration refused */}}

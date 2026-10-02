@@ -3407,6 +3407,7 @@ async function boot() {
      // with SKIP_CUTSCENE_START's label set).
      const game=mission?.runtime.game,scene=!!game&&(game.cutscene.running||game.widescreenOn);
      const skippable=!!game&&(game.cutscene.running||game.widescreenOn&&mission!.runtime.active.some(slot=>slot.thread.sceneSkipIp!==undefined));
+     touch.setPassenger(!!playerPassenger);
      touch.setMode(scene?'cutscene':fleet?.occupiedPlane?'aircraft':inVehicle?'vehicle':render.firstPerson?'scope':sim.player.swimming?'swim':'foot');
      // Enter shows only when it would do something, as the mobile ports' does: in a vehicle, with a jetpack on, on the
      // way to a car's door, when a prompt asks for it, or beside a vehicle (the box the enter button searches; looked
