@@ -109,10 +109,13 @@ test('a phone steers with the arrow buttons with the Arrows setting',async({page
  await finger('.touch-button.enter:not([hidden])','pointerdown',3);await finger('.touch-button.enter:not([hidden])','pointerup',3);
  await expect.poll(async()=>(await state()).carEntry.phase,{timeout:60000}).toBe('seated');
  await expect(page.getByRole('button',{name:'Steer right',exact:true})).toBeVisible();await expect(page.locator('.touch-stick-zone')).toBeHidden();
- await finger('.touch-button.steer-right','pointerdown',5);await finger('.touch-button.gas:not([hidden])','pointerdown',11);await gameWait(1.2);
- const early=(await state()).nativeCar;await gameWait(1.3);const turning=(await state()).nativeCar;
- const course=(v:{x:number;z:number})=>Math.atan2(v.x,v.z),turned=Math.atan2(Math.sin(course(turning.velocity)-course(early.velocity)),Math.cos(course(turning.velocity)-course(early.velocity)));
- expect(Math.abs(turned),JSON.stringify({early:early.velocity,turning:turning.velocity})).toBeGreaterThan(.3);
+ // The car body's yaw before the arrow and Gas go down and a second and a half on: the turn is read from the car
+ // itself, so a bump into something later in the circle cannot hide it.
+ const yaw=()=>page.evaluate(()=>{const q=[...(window as any).__game.fleet().cars].find((c:any)=>c.occupied).car.body.rotation();return Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));});
+ const before=await yaw();
+ await finger('.touch-button.steer-right','pointerdown',5);await finger('.touch-button.gas:not([hidden])','pointerdown',11);await gameWait(1.5);
+ const after=await yaw(),turned=Math.atan2(Math.sin(after-before),Math.cos(after-before));
+ expect(Math.abs(turned),JSON.stringify({before,after,velocity:(await state()).nativeCar.velocity})).toBeGreaterThan(.3);
  await finger('.touch-button.gas:not([hidden])','pointerup',11);await finger('.touch-button.steer-right','pointerup',5);
  expect(errors).toEqual([]);
 });
