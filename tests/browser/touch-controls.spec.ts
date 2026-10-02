@@ -36,6 +36,11 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await finger('.touch-button.jump:not([hidden])','pointerdown',box.x+box.width/2,box.y+box.height/2,11);
  await expect.poll(async()=>(await state()).player.grounded,{timeout:5000}).toBe(false);
  await finger('.touch-button.jump:not([hidden])','pointerup',box.x+box.width/2,box.y+box.height/2,11);
+ // Guns opens the arsenal without raising the on-screen keyboard: the close button has the focus, not the search.
+ await page.locator('.touch-top .touch-button').nth(2).dispatchEvent('pointerdown',{pointerType:'touch'});
+ await expect(page.locator('.arsenal')).toBeVisible();await expect(controls).toBeHidden();
+ expect(await page.evaluate(()=>document.activeElement?.className)).toBe('arsenal-close');
+ await page.locator('.arsenal-close').click();await expect(controls).toBeVisible();
  // Sideways there is no card; a phone turned upright gets one until it turns back or the player plays on anyway.
  const rotate=page.locator('.touch-rotate');await expect(rotate).toBeHidden();
  const viewport=page.viewportSize()!;await page.setViewportSize({width:390,height:844});

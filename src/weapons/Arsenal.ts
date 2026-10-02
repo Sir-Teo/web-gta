@@ -9,7 +9,7 @@ export class Arsenal {
  onSelect?:(id:number)=>void;
  constructor(container:HTMLElement,private weapons:WeaponSystem){
   this.element.className='arsenal';this.element.hidden=true;this.element.setAttribute('aria-label','Arsenal');
-  this.element.innerHTML='<header><div><small>LOADOUT</small><h2>Arsenal</h2><p>All weapons unlocked · Select to equip</p></div><button class="arsenal-close">Close [Esc]</button></header><div class="arsenal-actions"><input type="search" placeholder="Find a weapon…" aria-label="Find a weapon"><button class="refill-ammo">Refill ammunition</button></div><div class="arsenal-grid"></div><p class="arsenal-help">Right mouse: aim · Left mouse / Ctrl: fire or use · R: melee · Wheel: switch weapons, or zoom a scope</p>';
+  this.element.innerHTML='<header><div><small>LOADOUT</small><h2>Arsenal</h2><p>All weapons unlocked · Select to equip</p></div><button class="arsenal-close">Close <kbd>[Esc]</kbd></button></header><div class="arsenal-actions"><input type="search" placeholder="Find a weapon…" aria-label="Find a weapon"><button class="refill-ammo">Refill ammunition</button></div><div class="arsenal-grid"></div><p class="arsenal-help">Right mouse: aim · Left mouse / Ctrl: fire or use · R: melee · Wheel: switch weapons, or zoom a scope</p>';
   const grid=this.element.querySelector('.arsenal-grid')!;
   for(const group of [...new Set(WEAPONS.map(w=>w.group))]){const section=document.createElement('section');section.innerHTML=`<h3>${group}</h3>`;for(const w of WEAPONS.filter(w=>w.group===group)){const button=document.createElement('button');button.dataset.weapon=String(w.id);button.textContent=w.name;button.onclick=()=>{weapons.inventory.select(w.id);this.onSelect?.(w.id);this.toggle(false);};section.append(button);}grid.append(section);}
   // Escape closes; Tab and Shift+Tab move through the controls and wrap round inside the open arsenal.
@@ -38,7 +38,9 @@ export class Arsenal {
   // CHud::Draw draws the crosshairs before the rest of the HUD, which covers them.
   container.prepend(this.crosshair);container.append(this.element,this.readout);
  }
- toggle(open=!this.open){this.open=open;this.element.hidden=!open;this.onToggle?.(open);this.update();if(open)this.element.querySelector<HTMLInputElement>('input')!.focus();else (document.querySelector('canvas.world') as HTMLCanvasElement)?.focus();}
+ /** Opening puts the keyboard in the search field; on a touch screen that would raise the on-screen keyboard over
+  * the list, so the close button takes the focus instead (Escape still closes). */
+ toggle(open=!this.open){this.open=open;this.element.hidden=!open;this.onToggle?.(open);this.update();if(open)this.element.querySelector<HTMLElement>(document.documentElement.classList.contains('touch')?'.arsenal-close':'input')!.focus();else (document.querySelector('canvas.world') as HTMLCanvasElement)?.focus();}
  /** `scope` is the held weapon's CROSSHAIR raster as an image URL. */
  /** hud.txd's siteM16 and siterocket as image URLs, once loaded. */
  hudSprites:Record<string,string>={};

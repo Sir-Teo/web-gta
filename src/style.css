@@ -131,4 +131,9 @@
 /* On a touch screen the key hints and the desktop-only readouts give way to the controls, and the HUD text the
  * original sets in the bottom right corner (area and vehicle names, the mission title and timers) moves left of the buttons. */
 .touch .onboarding{display:none}
+/* The menus' key and mouse hints mean nothing to a finger; a short screen gives the arsenal's list the room. */
+.touch .arsenal kbd,.touch .world-map-panel kbd,.touch .arsenal-help{display:none}
+kbd{font:inherit}
+@media(max-height:500px){.arsenal{inset:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));padding:12px 18px}
+ .arsenal small,.arsenal header p{display:none}.arsenal h2{font-size:24px;margin:0}.arsenal-actions{margin:10px 0}.arsenal input,.arsenal button{padding:8px 12px}.arsenal-grid h3{margin:6px 0}}
 .touch .location,.touch .vehicle-name,.touch .mission-title,.touch .mission-timers{right:calc(var(--touch-cluster) + 12px)}
