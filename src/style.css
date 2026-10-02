@@ -120,51 +120,42 @@
 html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-webkit-touch-callout:none}
 .touch-controls{position:absolute;inset:0;z-index:4;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:none}
 .touch-controls[hidden],.game-ui.paused .touch-controls{display:none}
-.touch-look{position:absolute;top:0;right:0;bottom:0;left:45%;pointer-events:auto;touch-action:none}
-.touch-stick-zone{position:absolute;left:0;top:calc(var(--touch-radar-top) + var(--touch-radar) + 56px);bottom:0;width:45%;pointer-events:auto;touch-action:none}
+/* The port's LOOK region is the whole screen under the widgets, and its PED_MOVE region (where a thumb takes the stick)
+   the bottom left: x 0 to 240 and y 248 down, on its 640×448 screen. */
+.touch-look{position:absolute;inset:0;pointer-events:auto;touch-action:none}
+.touch-stick-zone{position:absolute;left:0;top:calc(env(safe-area-inset-top,0px) + 248 / 448 * var(--touch-safe-h));bottom:0;width:calc(env(safe-area-inset-left,0px) + 240 / 640 * var(--touch-safe-w));pointer-events:auto;touch-action:none}
 .touch-stick{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;background:#0003;border:2px solid #fff6;pointer-events:none}
 .touch-stick[hidden]{display:none}
 .touch-stick-knob{position:absolute;left:36px;top:36px;width:56px;height:56px;border-radius:50%;background:#fffa;box-shadow:0 1px 4px #0008}
-/* The buttons arc round Fire in the corner under the right thumb: Sprint, Aim and Jump next to it, the rarer ones past
- * them. Sized by the screen's short side, so a phone held sideways keeps the game above them. */
-:root{--touch-b:calc(clamp(44px,14.5vmin,64px) * var(--touch-scale,1));--touch-fire:calc(var(--touch-b) * 1.3);--touch-gap:clamp(6px,2vmin,10px);--touch-right:max(12px,env(safe-area-inset-right));
- --touch-cluster:calc(2 * var(--touch-b) + var(--touch-fire) + 2 * var(--touch-gap) + var(--touch-right));--touch-cluster-h:calc(2 * var(--touch-b) + var(--touch-fire) + 2 * var(--touch-gap) + max(12px,env(safe-area-inset-bottom)))}
-.touch-buttons{position:absolute;right:var(--touch-right);bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:var(--touch-b) var(--touch-b) var(--touch-fire);grid-template-rows:var(--touch-b) var(--touch-b) var(--touch-fire);
- grid-template-areas:"reload . enter" "crouch aim jump" ". sprint fire";gap:var(--touch-gap);place-items:center;pointer-events:none}
+/* The buttons stand where the iOS and Android port's TouchDefaultPhoneWidescreen.cfg puts its widgets (TouchControls'
+ * PORT_LAYOUT): each centred at its place on the port's 640×448 screen laid over the safe area, and as big as its
+ * radius on the 448 (the settings' button size scales it). */
+:root{--touch-b:calc(clamp(44px,14.5vmin,64px) * var(--touch-scale,1));--touch-right:max(12px,env(safe-area-inset-right));
+ --touch-safe-w:calc(100vw - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));--touch-safe-h:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+ /* The buttons' column on the port's screen: right of x 500, from y 150 down. */
+ --touch-cluster:calc(140 / 640 * var(--touch-safe-w) + env(safe-area-inset-right,0px))}
+.touch-buttons{position:absolute;inset:0;pointer-events:none}
+.touch-buttons .touch-button{position:absolute;left:calc(env(safe-area-inset-left,0px) + var(--x,0) / 640 * var(--touch-safe-w));top:calc(env(safe-area-inset-top,0px) + var(--y,0) / 448 * var(--touch-safe-h));
+ --d:max(40px,calc(var(--r,27) * 2 / 448 * var(--touch-safe-h) * var(--touch-scale,1)));width:var(--d);height:var(--d);transform:translate(-50%,-50%)}
 .touch-button{pointer-events:auto;touch-action:none;width:var(--touch-b);height:var(--touch-b);border-radius:50%;border:2px solid #ffffff6e;background:#00000052;color:#fffffff0;font:600 clamp(10px,3vmin,12px)/1 system-ui,sans-serif;text-shadow:0 1px 2px #000;padding:0;display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
 .touch-button>svg{width:56%;height:56%;fill:currentColor;filter:drop-shadow(0 1px 1px #000a)}.touch-button>img{width:74%;height:74%;object-fit:contain;filter:drop-shadow(0 1px 2px #000)}.touch-button.fire>svg.weapon{width:60%;height:60%;margin:0}
 .touch-button[hidden]{display:none}
 .touch-button.on{background:#ffffffc7;color:#111;text-shadow:none}.touch-button.on>svg{filter:none}
-.touch-button.fire{grid-area:fire;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);border-color:#ff8a7ab0}
-.touch-button.aim{grid-area:aim}.touch-button.jump{grid-area:jump}.touch-button.sprint{grid-area:sprint}.touch-button.enter{grid-area:enter}
-.touch-button.crouch{grid-area:crouch}.touch-button.reload{grid-area:reload}
-/* At the wheel the pedals take the thumb's corner: Gas there, Brake beside it, the handbrake above, drive-by fire between. */
-.touch-controls[data-mode=vehicle] .touch-buttons{grid-template-areas:"sprint crouch enter" "radio fire jump" "nitro reverse gas"}
-.touch-controls[data-mode=vehicle] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
-.touch-button.gas{grid-area:gas;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);border-color:#9be0a4c0}
-.touch-button.reverse{grid-area:reverse}
-.touch-button.radio{grid-area:radio}
-.touch-button.nitro{grid-area:nitro;border-color:#7fc8ffc0}
-/* A cutscene: no stick or camera drag, and Skip where Fire was. */
+.touch-button.fire{border-color:#ff8a7ab0}.touch-button.gas{border-color:#9be0a4c0}.touch-button.nitro{border-color:#7fc8ffc0}
+/* A cutscene: no stick or camera drag, and Skip in the top right corner (SKIP_CUTSCENE). */
 .touch-controls[data-mode=cutscene] .touch-stick-zone,.touch-controls[data-mode=cutscene] .touch-look{display:none}
-.touch-controls[data-mode=cutscene] .touch-buttons{grid-template-areas:". . ." ". . ." ". . skip"}
-.touch-button.skip{grid-area:skip;justify-self:end;width:auto;min-width:var(--touch-fire);height:44px;border-radius:22px;padding:0 18px;font-size:15px}
-/* Arrow steering (the port's default): two big arrows under the left thumb at the wheel, where the stick was. */
-.touch-button.steer-left,.touch-button.steer-right{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));width:var(--touch-fire);height:var(--touch-fire)}
-.touch-button.steer-left{left:calc(max(12px,env(safe-area-inset-left)) + 8px)}.touch-button.steer-right{left:calc(max(12px,env(safe-area-inset-left)) + 24px + var(--touch-fire))}
+.touch-buttons .touch-button.skip{width:auto;min-width:72px;height:44px;border-radius:22px;padding:0 18px;font-size:15px}
+/* Arrow steering (the port's default): its two big arrows, VEHICLE_STEER_LEFT and _RIGHT, take the stick's place. */
 .touch-controls[data-mode=vehicle][data-steering=arrows] .touch-stick-zone{display:none}
 /* The HUD's weapon icon takes a tap over the touch layer (TouchControls: next weapon, a swipe left the one before). */
 .touch .status{z-index:5}.touch .weapon-slot{pointer-events:auto;touch-action:none;cursor:pointer;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
-.touch-controls[data-mode=aircraft] .touch-buttons{grid-template-areas:"yaw-left yaw-right enter" "rocket fire jump" ". reverse gas"}
-.touch-controls[data-mode=aircraft] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
-.touch-button.yaw-left{grid-area:yaw-left}.touch-button.yaw-right{grid-area:yaw-right}.touch-button.rocket{grid-area:rocket}
 .touch-button.small{width:auto;min-width:44px;height:36px;border-radius:18px;padding:0 12px}
 .touch-top{position:absolute;top:calc(var(--touch-radar-top) + var(--touch-radar) + 8px);left:var(--touch-radar-left);display:flex;gap:8px;pointer-events:none}
 .touch-button.small.pause,.touch-button.small.camera{min-width:0;width:40px;height:40px;border-radius:50%;padding:0;display:grid;place-items:center}.touch-button svg{width:55%;height:55%;fill:currentColor}
 /* The iOS and Android port's HUD: the radar in the top left corner (the left thumb has the bottom left), bigger than the
  * PC's, a tap on it opening the map; the help and stat boxes sit beside it, the altimeter down its left edge. */
 :root{--touch-radar:clamp(64px,24vmin,116px);--touch-radar-top:max(10px,env(safe-area-inset-top));--touch-radar-left:calc(max(8px,env(safe-area-inset-left)) + 12px)}
-.touch .native-navigation{--radar:var(--touch-radar);left:var(--touch-radar-left);top:var(--touch-radar-top);bottom:auto;touch-action:manipulation}
+.touch .native-navigation{--radar:var(--touch-radar);left:var(--touch-radar-left);top:var(--touch-radar-top);bottom:auto;touch-action:manipulation;z-index:5}
 .help-key{white-space:nowrap}.help-key.pad{display:inline-block;min-width:1.45em;height:1.45em;padding:0 .2em;line-height:1.3em;text-align:center;vertical-align:-.1em;box-sizing:border-box;border:1.5px solid currentColor;border-radius:.75em;background:#000000a6;font-weight:900}.help-key svg{display:inline-block;width:1.5em;height:1.5em;margin:0 .25em 0 0;padding:.2em;vertical-align:-.45em;box-sizing:border-box;border:1.5px solid #ffffff8c;border-radius:50%;background:#0000005c;fill:currentColor}
 .touch .help-box,.touch .stat-update{left:calc(var(--touch-radar-left) + var(--touch-radar) + 14px);top:var(--touch-radar-top);max-width:min(380px,calc(100vw - var(--touch-radar-left) - var(--touch-radar) - 260px))}
 .touch .radar-altimeter{left:max(4px,env(safe-area-inset-left));width:6px;top:var(--touch-radar-top);bottom:auto;height:var(--touch-radar)}
@@ -173,7 +164,7 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 .touch-steering-choice{--free-left:calc(var(--touch-radar-left) + var(--touch-radar) + 12px);--free:calc(100vw - var(--touch-cluster) - var(--free-left) - 12px);position:absolute;left:calc(var(--free-left) + var(--free) / 2);top:50%;transform:translate(-50%,-50%);padding:14px 18px;border-radius:12px;background:#0b110ce6;border:1px solid #ffffff40;text-align:center;pointer-events:auto;width:max-content;max-width:var(--free)}
 .touch-steering-choice[hidden]{display:none}.touch-steering-choice p{margin:0 0 12px;font:600 16px/1.3 system-ui,sans-serif;color:#ede8d3}
 .touch-steering-choice div{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.touch-steering-choice .touch-button.small{height:42px;border-radius:21px;padding:0 16px;font-size:14px}
-.touch-context{position:absolute;right:var(--touch-right);bottom:calc(var(--touch-cluster-h) + 12px);display:flex;gap:8px;pointer-events:none}
+.touch-context{position:absolute;right:calc(var(--touch-cluster) + 8px);top:calc(env(safe-area-inset-top,0px) + 182 / 448 * var(--touch-safe-h) - 17px);display:flex;gap:8px;pointer-events:none}
 .touch-context .touch-button.small{height:40px;border-radius:20px;padding:0 16px;background:#b8902acc;border-color:#ffe9a8;font-size:14px}
 .touch-rotate{display:none;position:absolute;inset:0;z-index:6;place-content:center;justify-items:center;gap:16px;padding:24px;background:#0b110cd9;pointer-events:auto;text-align:center}
 .touch-rotate p{margin:0;font:600 20px/1.3 system-ui,sans-serif;color:#ede8d3;text-shadow:0 1px 2px #000}
@@ -196,9 +187,6 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 /* The shortest screens (an iPhone SE sideways) have no room for the context pills' full height and gap between the
  * buttons and the weapon icon's ammo: they come down a little and slimmer. */
 @media(max-height:360px){.touch-context .touch-button.small{height:34px;border-radius:17px}}
-/* A short screen has no room above the buttons for the pills and the wanted stars (or the flight readout) both: the
-   pills stand beside the buttons' top row instead. */
-@media(max-height:380px){.touch-context{right:calc(var(--touch-cluster) + 8px);bottom:calc(var(--touch-cluster-h) - var(--touch-b))}}
 /* The radio's name stands top centre, where on a phone the help box (moved right of the radar) reaches: while help shows,
    the name drops under the top strip, centred between the radar's column and the buttons. */
 .touch .game-ui:has(.help-box:not([hidden])) .radio-name{--free-left:calc(var(--touch-radar-left) + var(--touch-radar) + 12px);top:calc(var(--status-bottom,76px) + 6px);left:calc(var(--free-left) + (100vw - var(--touch-cluster) - var(--free-left)) / 2)}
@@ -222,7 +210,7 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 /* The touch layer stays over it (later, at the same height): its buttons and the pause keep their taps, and with the
  * stick and the camera drag gone the rest falls through to the menu. */
 .touch .script-menus{z-index:4}.touch .script-menu-box,.touch .script-menu-text,.touch .script-menu-cell{pointer-events:auto;cursor:pointer;touch-action:none}
-.touch-controls[data-menu=on] .touch-context{right:auto;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));flex-wrap:wrap;max-width:45vw}
+.touch-controls[data-menu=on] .touch-context{right:auto;top:auto;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));flex-wrap:wrap;max-width:45vw}
 .touch-controls[data-menu=on] .touch-stick-zone,.touch-controls[data-menu=on] .touch-look,.touch-controls[data-menu=on] .touch-button.camera{display:none}
 .touch .trip-skip{pointer-events:auto;z-index:5;touch-action:none;cursor:pointer;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 /* Subtitles centre in the room left of the buttons rather than running under them; a widescreen scene, with only Skip

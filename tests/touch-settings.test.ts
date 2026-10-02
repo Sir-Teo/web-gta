@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {DEFAULT_TOUCH,LAYOUT_RANGE,LOW_RESOLUTION,TILT_FULL_LOCK,parseTouchSettings,resolutionRatio,tiltSteering} from '../src/input/touchSettings';
+import {DEFAULT_TOUCH,LAYOUT_ON,LAYOUT_RANGE,LOW_RESOLUTION,TILT_FULL_LOCK,parseTouchSettings,resolutionRatio,tiltSteering} from '../src/input/touchSettings';
 test('touch settings read back what was kept, and anything else falls back to the defaults',()=>{
  expect(parseTouchSettings(null)).toEqual(DEFAULT_TOUCH);
  expect(parseTouchSettings({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false})).toEqual({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false,density:'medium',invertLook:false,layout:{},resolution:'standard',steeringChosen:true});
@@ -10,14 +10,16 @@ test('touch settings read back what was kept, and anything else falls back to th
  // Invert look is kept when set, and off otherwise.
  expect(parseTouchSettings({invertLook:true}).invertLook).toBe(true);expect(parseTouchSettings({invertLook:'yes'}).invertLook).toBe(false);
  // Moved buttons come back by layout and slot, within reach of the screen; anything else is dropped.
- expect(parseTouchSettings({layout:{'foot:fire':[-12.5,-4],'vehicle:gas':[-999,999],'cutscene:skip':[1,1],'foot:jump':[1],'foot:aim':['a','b']}}).layout)
+ expect(parseTouchSettings({layoutOn:LAYOUT_ON,layout:{'foot:fire':[-12.5,-4],'vehicle:gas':[-999,999],'cutscene:skip':[1,1],'foot:jump':[1],'foot:aim':['a','b']}}).layout)
   .toEqual({'foot:fire':[-12.5,-4],'vehicle:gas':[LAYOUT_RANGE.x.min,LAYOUT_RANGE.y.max]});
- expect(parseTouchSettings({layout:'moved'}).layout).toEqual({});
+ expect(parseTouchSettings({layoutOn:LAYOUT_ON,layout:'moved'}).layout).toEqual({});
  // Resolution: Low, Standard or High, and the renderer's pixels per CSS pixel for each.
  expect(parseTouchSettings({resolution:'low'}).resolution).toBe('low');expect(parseTouchSettings({resolution:'ultra'}).resolution).toBe('standard');
  expect([resolutionRatio('low',3),resolutionRatio('standard',3),resolutionRatio('high',3),resolutionRatio('high',1.5),resolutionRatio('high',0)]).toEqual([LOW_RESOLUTION,1,2,1.5,1]);
+ // Moves kept against the grid the buttons stood in before the port's own places are dropped.
+ expect(parseTouchSettings({layout:{'foot:fire':[-12.5,-4]}}).layout).toEqual({});
  // A resized button's size comes back with its place, within the sizes the editor offers.
- expect(parseTouchSettings({layout:{'foot:fire':[0,0,1.3],'foot:jump':[2,-3,9],'foot:aim':[0,0,1,1]}}).layout).toEqual({'foot:fire':[0,0,1.3],'foot:jump':[2,-3,LAYOUT_RANGE.scale.max]});
+ expect(parseTouchSettings({layoutOn:LAYOUT_ON,layout:{'foot:fire':[0,0,1.3],'foot:jump':[2,-3,9],'foot:aim':[0,0,1,1]}}).layout).toEqual({'foot:fire':[0,0,1.3],'foot:jump':[2,-3,LAYOUT_RANGE.scale.max]});
  // The steering question is asked once: answered, or settings kept with a steering method from before it was asked.
  expect(parseTouchSettings({aimAssist:false}).steeringChosen).toBe(false);expect(parseTouchSettings({steeringChosen:true}).steeringChosen).toBe(true);
 });

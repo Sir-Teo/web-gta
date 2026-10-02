@@ -21,6 +21,9 @@ export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSp
 /** A moved button: how far across and down, and (when resized) its size against the others'. */
 export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
 /** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
+/** What a kept layout's moves are measured from: the port's own places (TouchDefaultPhoneWidescreen.cfg). Moves kept
+ * from the grid the buttons stood in before are dropped, as they would carry a button off somewhere else. */
+export const LAYOUT_ON='port-widescreen';
 export const LAYOUT_RANGE={x:{min:-200,max:20},y:{min:-100,max:20},scale:{min:.6,max:1.6}};
 const LAYOUT_KEY=/^(?:foot|vehicle|aircraft):[a-z-]+$/;
 const within=(value:number,range:{min:number;max:number})=>Math.min(range.max,Math.max(range.min,value));
@@ -41,7 +44,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   lookSpeed:clamp(data.lookSpeed,LOOK_SPEED_RANGE,DEFAULT_TOUCH.lookSpeed),buttonScale:clamp(data.buttonScale,BUTTON_SCALE_RANGE,DEFAULT_TOUCH.buttonScale),
   vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration,
   density:data.density==='full'||data.density==='low'||data.density==='medium'?data.density:DEFAULT_TOUCH.density,
-  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:parseLayout(data.layout),resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
+  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:(data as {layoutOn?:unknown}).layoutOn===LAYOUT_ON?parseLayout(data.layout):{},resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};
 }
@@ -49,7 +52,7 @@ export function readTouchSettings():TouchSettings{
  try{return parseTouchSettings(JSON.parse(localStorage.getItem(KEY)??'null'));}catch{return {...DEFAULT_TOUCH};}
 }
 export function saveTouchSettings(settings:TouchSettings){
- try{localStorage.setItem(KEY,JSON.stringify(settings));}catch{/* The session keeps its settings. */}
+ try{localStorage.setItem(KEY,JSON.stringify({...settings,layoutOn:LAYOUT_ON}));}catch{/* The session keeps its settings. */}
 }
 /** Degrees of tilt for full lock, and the dead zone a hand holding the phone level wobbles through. */
 export const TILT_FULL_LOCK=25,TILT_DEAD_ZONE=3;

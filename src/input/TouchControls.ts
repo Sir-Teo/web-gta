@@ -86,6 +86,23 @@ export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft'|'cutscene';
 /** The layouts the buttons are adjusted in: on foot's serves the scope and the water, whose buttons share its slots. */
 type LayoutGroup='foot'|'vehicle'|'aircraft';
 const layoutGroup=(mode:TouchMode):LayoutGroup=>mode==='vehicle'||mode==='aircraft'?mode:'foot';
+/** The round widgets' sizes, by the names TouchDefaultPhoneWidescreen.cfg gives them: radii on the port's 448-high
+ * screen. The file names them only; these are the most its own spacing allows (the horn 48 from the camera toggle, a
+ * column's buttons 64 apart, the pedals 61 apart on a widescreen phone). */
+export const PORT_SIZE={small:20,medium:27,large:35} as const;
+type PortPlace=readonly [x:number,y:number,size:keyof typeof PORT_SIZE];
+/** The iOS and Android port's own layout, its TouchDefaultPhoneWidescreen.cfg: each widget's centre on the port's
+ * 640×448 screen, which the touch layer lays over the safe area. On foot: Fire is TARGETING_AND_ATTACK, Aim VC_SHOOT,
+ * Enter ENTER_CAR, Sprint (Swim, Zoom −) BUTTON_SPRINT_AND_SWIM, Skip SKIP_CUTSCENE; at the wheel Gas and Brake are
+ * ACCELERATE and BRAKE, H-brake HANDBRAKE_AND_AIR_SHOOT, Fire CAR_SHOOT, Horn HORN and the arrows VEHICLE_STEER_LEFT and
+ * _RIGHT; flying, Fire is AIR_SHOOT and Rocket CAR_SHOOT's place. The buttons the port has no widget for take free places
+ * of its grid: Jump the weapon swap's (the HUD's weapon icon swaps here), Crouch the phone's (Action, a pill here,
+ * answers), Reload, Look back and the yaw beside them, Radio the hydraulics', Nitrous left of the drive-by fire. */
+export const PORT_LAYOUT:Readonly<Record<LayoutGroup,Readonly<Record<string,PortPlace>>>>={
+ foot:{fire:[607,310,'medium'],aim:[553,310,'medium'],enter:[607,246,'medium'],sprint:[603,381,'large'],jump:[554,246,'medium'],crouch:[606,182,'medium'],reload:[553,182,'medium'],skip:[611,34,'medium']},
+ vehicle:{gas:[602,380,'large'],reverse:[541,381,'large'],jump:[607,310,'medium'],fire:[554,310,'medium'],enter:[607,246,'medium'],sprint:[614,191,'small'],radio:[554,245,'medium'],crouch:[553,182,'medium'],
+  nitro:[500,310,'medium'],'steer-left':[36,380,'large'],'steer-right':[99,381,'large']},
+ aircraft:{gas:[602,380,'large'],reverse:[541,381,'large'],fire:[607,310,'medium'],rocket:[554,310,'medium'],jump:[554,245,'medium'],enter:[607,246,'medium'],'yaw-left':[553,182,'medium'],'yaw-right':[607,182,'medium']}};
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the
  * modes it shows in (all of them when unset), whether it shows only while the game offers it (setOffered), as the
  * mobile ports show their enter-vehicle button only beside a vehicle, and whether only the driver has it (a passenger
@@ -389,7 +406,10 @@ export class TouchControls {
  private place(){
   const layout=this.editing?.layout??this.settings.layout,group=layoutGroup(this.mode??'foot');
   for(const {spec,element} of this.buttons){const o=layout[`${group}:${spec.className}`];const translate=o?`${o[0]}vmin ${o[1]}vmin`:'',scale=o?.[2]?String(o[2]):'';
-   if(element.style.translate!==translate)element.style.translate=translate;if(element.style.scale!==scale)element.style.scale=scale;}
+   if(element.style.translate!==translate)element.style.translate=translate;if(element.style.scale!==scale)element.style.scale=scale;
+   // The port's place for it in this layout (PORT_LAYOUT), which the CSS lays over the safe area.
+   const at=PORT_LAYOUT[group][spec.className];
+   if(at)for(const [name,value] of [['--x',at[0]],['--y',at[1]],['--r',PORT_SIZE[at[2]]]] as const)if(element.style.getPropertyValue(name)!==String(value))element.style.setProperty(name,String(value));}
   this.showSize();
  }
  private editing?:{layout:Record<string,LayoutEntry>;mode:TouchMode;done:()=>void;selected?:ButtonSpec};
