@@ -199,10 +199,12 @@ export class TouchControls {
   // The HUD's weapon icon is the weapon button, as the mobile ports': a tap takes the next weapon (E) and a swipe to the
   // left the one before (Q), on foot.
   const slot=parent.querySelector<HTMLElement>('.weapon-slot');
-  if(slot){let press:{id:number;x:number;timer:number;held:boolean}|undefined;
+  if(slot){let press:{id:number;x:number;at:number;timer:number;held:boolean}|undefined;
    slot.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(slot,e.pointerId);
-    const p={id:e.pointerId,x:e.clientX,held:false,timer:window.setTimeout(()=>{p.held=true;actions.arsenal();},ARSENAL_HOLD_MS)};press=p;},options);
+    const p={id:e.pointerId,x:e.clientX,at:performance.now(),held:false,timer:window.setTimeout(()=>{p.held=true;actions.arsenal();},ARSENAL_HOLD_MS)};press=p;},options);
    slot.addEventListener('pointerup',e=>{if(press?.id!==e.pointerId)return;const p=press;press=undefined;window.clearTimeout(p.timer);
+    // A hold whose timer a long frame kept waiting is still a hold.
+    if(!p.held&&performance.now()-p.at>=ARSENAL_HOLD_MS){p.held=true;actions.arsenal();}
     if(!p.held&&(this.mode==='foot'||this.mode==='scope'))input.tap(e.clientX-p.x<-24?'KeyQ':'KeyE');},options);
    slot.addEventListener('pointercancel',()=>{if(press)window.clearTimeout(press.timer);press=undefined;},options);
    // No click or long-press menu after the finger lifts: held, the icon opens the arsenal, whose close button lies under

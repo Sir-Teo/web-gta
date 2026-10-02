@@ -27,8 +27,9 @@ test('a phone skips a cutscene with the Skip button',async({page})=>{
  await expect(page.getByRole('button',{name:'Camera view',exact:true})).toBeVisible();
  // A scripted scene (SWITCH_WIDESCREEN on): no stick or buttons over the subtitles, and no Skip until the script sets
  // SKIP_CUTSCENE_START's label.
- const scene=(widescreen:boolean,skipLabel:number|undefined)=>page.evaluate(({widescreen,skipLabel})=>{const r=(window as any).__game.missionForProfiling().runtime;
-  r.game.widescreenOn=widescreen;r.active[0].thread.sceneSkipIp=skipLabel;},{widescreen,skipLabel});
+ // The skip label goes on one thread and comes off the same one (the active list may reorder in between).
+ const scene=(widescreen:boolean,skipLabel:number|undefined)=>page.evaluate(({widescreen,skipLabel})=>{const w=window as any,r=w.__game.missionForProfiling().runtime;
+  r.game.widescreenOn=widescreen;w.__skipThread??=r.active[0].thread;w.__skipThread.sceneSkipIp=skipLabel;},{widescreen,skipLabel});
  await scene(true,undefined);
  await expect(controls).toHaveAttribute('data-mode','cutscene');await expect(page.locator('.touch-stick-zone')).toBeHidden();
  await expect(page.locator('.touch-buttons .touch-button:not([hidden])')).toHaveCount(0);
