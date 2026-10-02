@@ -125,6 +125,9 @@ test('a phone gets the Mission button in a taxi',async({page})=>{
  await page.goto('/?touch=1');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ // On open ground, so the taxi set down beside CJ has its door clear (by Grove Street's fences and crates it may not).
+ await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2495,g.groundAt(2495,1687,300)+.05,1687);g.turnPlayer(Math.PI);});
+ await expect.poll(async()=>{const s=await state();return !s.terrainHold&&s.player.grounded;},{timeout:30000}).toBe(true);
  await page.evaluate(()=>(window as any).__game.spawnVehicle(420));
  const taxi=()=>page.evaluate(()=>{const c=[...(window as any).__game.fleet().cars].find((c:any)=>c.modelId===420);return c?{occupied:c.occupied}:null;});
  await expect.poll(taxi,{timeout:60000}).not.toBeNull();
