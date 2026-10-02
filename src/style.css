@@ -150,7 +150,7 @@
 .touch-button.yaw-left{grid-area:yaw-left}.touch-button.yaw-right{grid-area:yaw-right}.touch-button.rocket{grid-area:rocket}
 .touch-button.small{width:auto;min-width:44px;height:36px;border-radius:18px;padding:0 12px}
 .touch-top{position:absolute;top:calc(var(--touch-radar-top) + var(--touch-radar) + 8px);left:var(--touch-radar-left);display:flex;gap:8px;pointer-events:none}
-.touch-button.small.pause{min-width:0;width:40px;height:40px;border-radius:50%;padding:0;display:grid;place-items:center}.touch-button svg{width:55%;height:55%;fill:currentColor}
+.touch-button.small.pause,.touch-button.small.camera{min-width:0;width:40px;height:40px;border-radius:50%;padding:0;display:grid;place-items:center}.touch-button.small.camera[hidden]{display:none}.touch-button svg{width:55%;height:55%;fill:currentColor}
 /* The iOS and Android port's HUD: the radar in the top left corner (the left thumb has the bottom left), bigger than the
  * PC's, a tap on it opening the map; the help and stat boxes sit beside it, the altimeter down its left edge. */
 :root{--touch-radar:clamp(64px,24vmin,116px);--touch-radar-top:max(10px,env(safe-area-inset-top));--touch-radar-left:calc(max(8px,env(safe-area-inset-left)) + 12px)}

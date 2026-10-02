@@ -128,6 +128,11 @@ export class TouchControls {
   {const button=document.createElement('button');button.type='button';button.className='touch-button small pause';button.setAttribute('aria-label','Pause');
    button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();actions.pause();},options);top.append(button);}
+  // Beside it the camera button: the PC's V (CAMERA_CHANGE_VIEW_ALL_SITUATIONS), which a phone has no key for, steps
+  // the follow camera's distance on foot and the car camera's zoom at the wheel.
+  {const button=this.cameraButton;button.type='button';button.className='touch-button small camera';button.setAttribute('aria-label','Camera view');
+   button.innerHTML=touchIconSvg('camera');
+   button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();this.buzz();input.tap('KeyV');},options);top.append(button);}
   // A phone held upright squeezes the HUD, which is laid out for a sideways screen: until it is turned, a card asks for
   // that (the game underneath stays as it is). Play anyway keeps it upright for the rest of the visit.
   const rotate=document.createElement('div');rotate.className='touch-rotate';rotate.setAttribute('role','status');
@@ -212,6 +217,8 @@ export class TouchControls {
   if(mode===this.mode)return;
   this.mode=mode;this.element.dataset.mode=mode;
   this.showButtons();this.steer();
+  // A cutscene's camera is the script's, and a scope's is the weapon's own.
+  this.cameraButton.hidden=mode==='cutscene'||mode==='scope';
   this.steeringPopup.hidden=!(mode==='vehicle'&&!this.settings.steeringChosen);
   if(mode!=='foot'&&mode!=='scope')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
   for(const {spec,element} of this.buttons)if(spec.toggle)element.classList.toggle('on',this.latched.has(spec.code));
@@ -263,6 +270,7 @@ export class TouchControls {
  }
  private weaponWatch?:MutationObserver;
  private steeringPopup=document.createElement('section');
+ private cameraButton=document.createElement('button');
  dispose(){this.abort.abort();this.weaponWatch?.disconnect();this.element.remove();}
 }
 

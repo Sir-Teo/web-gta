@@ -17,7 +17,7 @@ class Fingers {
 }
 /** Where to put a finger on an element, once it is on screen (the controls come back a frame after a menu closes). */
 const centre=async(page:Page,selector:string)=>{const target=page.locator(selector).first();await target.waitFor({state:'visible',timeout:10000});const b=(await target.boundingBox())!;return {x:b.x+b.width/2,y:b.y+b.height/2};};
-test('a phone plays with real touches: two thumbs, three fingers, the weapon icon, the radar and the pause button',async({page,context})=>{
+test('a phone plays with real touches: two thumbs, three fingers, the weapon icon, the radar, the camera and the pause button',async({page,context})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
@@ -53,6 +53,9 @@ test('a phone plays with real touches: two thumbs, three fingers, the weapon ico
  await fingers.lift(b);await fingers.lift(a);
  await fingers.tap(map.x+20,map.y+20);await expect(page.locator('.map-status')).toContainText('Waypoint');
  const close=await centre(page,'.map-close');await fingers.tap(close.x,close.y);await expect(page.locator('.world-map-panel')).toBeHidden();
+ // The camera button steps the follow camera's distance (the PC's V).
+ const mode=async()=>(await state()).camera.mode,view=await mode(),camera=await centre(page,'.touch-button.camera');
+ await fingers.tap(camera.x,camera.y);await expect.poll(mode,{timeout:5000}).not.toBe(view);
  // The pause button pauses, and Resume plays on.
  const pause=await centre(page,'.touch-button.pause');await fingers.tap(pause.x,pause.y);
  await expect.poll(async()=>(await state()).paused).toBe(true);
