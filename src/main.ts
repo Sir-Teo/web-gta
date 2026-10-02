@@ -209,7 +209,7 @@ import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
-import { TouchControls, wantsTouchControls } from './input/TouchControls';
+import { TouchControls, goFullscreen, wantsTouchControls } from './input/TouchControls';
 import { installRapierTombstones } from './simulation/rapierTombstones';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
@@ -2363,6 +2363,8 @@ async function boot() {
       if (!progression.savedLocation && STARTING_LOADOUT) { grantStartingLoadout(weapons.inventory, sim.player, mission?.runtime.game.playerInfo.maxArmour ?? 100); progression.save(); }
     }
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
+    // A tap on the menu's button is the gesture a phone needs to go fullscreen.
+    if (touch) void goFullscreen();
     // Terrain loading that gave up after failures in a row tries again from where the player stands.
     follower?.retry();
   }

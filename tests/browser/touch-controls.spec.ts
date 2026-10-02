@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
-/** A phone's controls: the stick under the left thumb walks CJ, a drag on the right turns the camera, and the Jump
+/** A phone's controls: starting goes fullscreen, the stick under the left thumb walks CJ, a drag on the right turns the camera, and the Jump
  * button jumps; the overlay hides under the pause menu. */
 test.use({hasTouch:true});
 test('touch controls move CJ, turn the camera and press the game\'s buttons',async({page})=>{
@@ -9,6 +9,8 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await endStoryMission(page);
  const controls=page.locator('.touch-controls');await expect(controls).toBeVisible();
+ // The menu's tap took the page fullscreen, out from under the browser's bars.
+ expect(await page.evaluate(()=>!!document.fullscreenElement)).toBe(true);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  // Pointer events as a finger sends them, at an element's point.
  const finger=(selector:string,type:string,x:number,y:number,id=7)=>page.evaluate(({selector,type,x,y,id})=>{

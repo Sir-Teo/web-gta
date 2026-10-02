@@ -10,6 +10,19 @@ export function wantsTouchControls(search=location.search,coarse=typeof matchMed
  if(flag==='1')return true;if(flag==='0')return false;
  return coarse;
 }
+/** A phone's browser keeps its address bar over the game and turns the page with the device. Started from a tap, the
+ * game takes the whole screen and holds it sideways, as the mobile ports run. Either can be refused (an iPhone has no
+ * element fullscreen, and only a fullscreen page may lock its orientation); the game then plays on as the page is. */
+export async function goFullscreen(root:Element=document.documentElement,doc:Pick<Document,'fullscreenElement'>=document,orientation:{lock?:(o:string)=>Promise<void>}|undefined=globalThis.screen?.orientation as any){
+ try{
+  if(!doc.fullscreenElement&&!(doc as any).webkitFullscreenElement){
+   if(root.requestFullscreen)await root.requestFullscreen({navigationUI:'hide'});
+   else if((root as any).webkitRequestFullscreen)(root as any).webkitRequestFullscreen();
+   else return;
+  }
+  await orientation?.lock?.('landscape');
+ }catch{/* refused: play on as the page is */}
+}
 /** A button: its label, the key or mouse button it holds, and whether a tap latches it (aim) rather than holds it. */
 interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;onFoot?:boolean;inVehicle?:boolean}
 const BUTTONS:ButtonSpec[]=[

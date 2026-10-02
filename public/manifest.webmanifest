@@ -1,0 +1,11 @@
+{
+  "name": "San Andreas",
+  "short_name": "San Andreas",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#151d19",
+  "theme_color": "#111b1c",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
