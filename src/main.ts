@@ -210,7 +210,7 @@ import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
-import { TouchControls, goFullscreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
+import { TouchControls, goFullscreen, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake } from './input/screenAwake';
 import { installRapierTombstones } from './simulation/rapierTombstones';
@@ -4249,7 +4249,9 @@ async function boot() {
         newGame.onclick=()=>{if(!confirm(gxtText('FESZ_QR','Are you sure you want to start a new game? All current game progress will be lost. Proceed?')))return;if(progression.startNewGame())location.reload();else{const u=new URL(location.href);u.searchParams.set('new-game','1');location.replace(u.href);}};
         // A phone has no keys to name: the touch controls' own words.
         const howToWalk=touch?'Your left thumb walks; drag on the right to look.':walkDemo?'WASD to walk, Shift to sprint, Space to jump.':'WASD to walk; Space to jump.';
-        hud.menuMessage((walkDemo?`${included.name} is ready. ${howToWalk}`:`Imported scene ready. ${howToWalk} This test scene is not saved.`)+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
+        // An iPhone's browser cannot take the screen: the home screen can.
+        const homeScreen=touch&&suggestHomeScreen()?' On an iPhone, Share → Add to Home Screen plays it full screen.':'';
+        hud.menuMessage((walkDemo?`${included.name} is ready. ${howToWalk}${homeScreen}`:`Imported scene ready. ${howToWalk} This test scene is not saved.`)+(environmentWarnings.length?` Environment files unavailable: ${environmentWarnings.join(', ')}. See Lighting for details.`:''));
         if('followRegion' in data&&data.followRegion)follower=new SceneRegionFollower(data.followRegion as import('./assets/sceneRegion').SceneRegion);
         if(walkDemo){
           pedestrians=new WorldPedestrians(sim,render.scene,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href,()=>render.nativeCharacter,law);

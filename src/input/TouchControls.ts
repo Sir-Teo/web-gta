@@ -25,6 +25,12 @@ export async function goFullscreen(root:Element=document.documentElement,doc:Pic
   await orientation?.lock?.('landscape');
  }catch{/* refused: play on as the page is */}
 }
+/** Whether to suggest the home screen: an iPhone's browser has no element fullscreen to take, but the game added to the
+ * home screen opens without the browser's bars (the manifest's display). Not once it has been opened from there. */
+export function suggestHomeScreen(root:{requestFullscreen?:unknown;webkitRequestFullscreen?:unknown}=document.documentElement,
+ nav:{userAgent:string;standalone?:boolean}=navigator,fromHomeScreen=globalThis.matchMedia?.('(display-mode: fullscreen), (display-mode: standalone)').matches??false){
+ return /iPhone|iPod/.test(nav.userAgent)&&!root.requestFullscreen&&!root.webkitRequestFullscreen&&nav.standalone!==true&&!fromHomeScreen;
+}
 /** What the player is doing, which picks the buttons shown. */
 export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft'|'cutscene';
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the

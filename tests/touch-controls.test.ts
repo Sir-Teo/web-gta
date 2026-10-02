@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {goFullscreen,wantsTouchControls} from '../src/input/TouchControls';
+import {goFullscreen,suggestHomeScreen,wantsTouchControls} from '../src/input/TouchControls';
 import {Input} from '../src/input/Input';
 test('touch controls show on a coarse pointer, and the address can force them either way',()=>{
  expect(wantsTouchControls('',true)).toBe(true);expect(wantsTouchControls('',false)).toBe(false);
@@ -41,4 +41,13 @@ test('starting on a phone takes the screen and holds it sideways, and a refusal 
  // A refused request does not throw out of the menu's button.
  const refused={requestFullscreen:async()=>{throw new TypeError('Permissions check failed');}} as unknown as Element;
  await expect(goFullscreen(refused,{fullscreenElement:null},orientation)).resolves.toBeUndefined();
+});
+test('an iPhone in its browser is told the home screen plays full screen, not once it plays from there or can go fullscreen',()=>{
+ const iphone={userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'};
+ expect(suggestHomeScreen({},iphone,false)).toBe(true);
+ // Opened from the home screen (navigator.standalone, or the manifest's display mode).
+ expect(suggestHomeScreen({},{...iphone,standalone:true},false)).toBe(false);expect(suggestHomeScreen({},iphone,true)).toBe(false);
+ // A browser that can take the screen itself, and an Android phone.
+ expect(suggestHomeScreen({requestFullscreen:()=>{}},iphone,false)).toBe(false);
+ expect(suggestHomeScreen({},{userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36'},false)).toBe(false);
 });
