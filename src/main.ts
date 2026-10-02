@@ -2272,7 +2272,7 @@ async function boot() {
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
   let touchPanel:{element:HTMLElement;refresh():void}|undefined;
-  const touch=touchScreen?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);useTouchControlNames(true,next.steering);}):undefined;
+  const touch=touchScreen?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);},playOn:()=>{if(started&&paused)play();}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);useTouchControlNames(true,next.steering);}):undefined;
   /** The touch settings' population share (peds through the density multiplier, cars through the fleet's traffic scale). */
   const touchPopulation=()=>touch?DENSITY_SCALE[touchSettings.density]:1;
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
@@ -2452,7 +2452,10 @@ async function boot() {
    if(navigation?.open||arsenal.open){if(navigation?.open)navigation.toggle(false);if(arsenal.open)arsenal.toggle(false);armBackButton();return;}
    if(started&&!paused)pause();};
   const onFullscreenChange=()=>{if(touch&&started&&!paused&&!document.fullscreenElement)pause();};
-  if(touch){window.addEventListener('popstate',onPopState);document.addEventListener('fullscreenchange',onFullscreenChange);}
+  // A phone turned upright mid-play holds the game behind the card asking it back sideways, as switching apps does.
+  const upright=touch?matchMedia('(orientation: portrait) and (max-width: 600px)'):undefined;
+  const onUpright=()=>{if(upright?.matches&&started&&!paused&&!touch!.uprightAllowed)pause();};
+  if(touch){window.addEventListener('popstate',onPopState);document.addEventListener('fullscreenchange',onFullscreenChange);upright!.addEventListener('change',onUpright);}
   // Losing the pointer lock pauses the game, except when an overlay let it go so its controls can be clicked.
   const onLockChange = () => {
     if (document.pointerLockElement) { overlayReleasedLock = false; return; }
@@ -5789,7 +5792,7 @@ async function boot() {
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
     alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); emergency?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
-    window.removeEventListener('touchstart',onTouchStart,{capture:true});for(const type of ['keydown','mousedown'] as const)window.removeEventListener(type,onKeyOrMouse,{capture:true});window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
+    window.removeEventListener('touchstart',onTouchStart,{capture:true});for(const type of ['keydown','mousedown'] as const)window.removeEventListener(type,onKeyOrMouse,{capture:true});upright?.removeEventListener('change',onUpright);window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };

@@ -122,7 +122,7 @@ export class TouchControls {
  private mode?:TouchMode;
  private offered=new Set<string>();
  private abort=new AbortController();
- constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void},private settings:TouchSettings=DEFAULT_TOUCH,private readonly changeSettings:(settings:TouchSettings)=>void=()=>{}){
+ constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void;playOn?:()=>void},private settings:TouchSettings=DEFAULT_TOUCH,private readonly changeSettings:(settings:TouchSettings)=>void=()=>{}){
   const options={signal:this.abort.signal};
   this.element.className='touch-controls';this.element.setAttribute('aria-label','Touch controls');
   const look=document.createElement('div');look.className='touch-look';
@@ -153,12 +153,13 @@ export class TouchControls {
    button.innerHTML=touchIconSvg('camera');
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();this.buzz();input.tap('KeyV');},options);top.append(button);}
   // A phone held upright squeezes the HUD, which is laid out for a sideways screen: until it is turned, a card asks for
-  // that (the game underneath stays as it is). Play anyway keeps it upright for the rest of the visit.
+  // that (the game holds underneath, as switching apps holds it). Play anyway keeps it upright for the rest of the visit
+  // and plays on.
   const rotate=document.createElement('div');rotate.className='touch-rotate';rotate.setAttribute('role','status');
   const rotateText=document.createElement('p');rotateText.textContent='Turn your phone sideways to play';
   const rotateDismiss=document.createElement('button');rotateDismiss.type='button';rotateDismiss.className='touch-button small';rotateDismiss.textContent='Play anyway';
-  rotateDismiss.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();rotate.classList.add('dismissed');},options);
-  rotate.append(rotateText,rotateDismiss);
+  rotateDismiss.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();rotate.classList.add('dismissed');actions.playOn?.();},options);
+  rotate.append(rotateText,rotateDismiss);this.rotateCard=rotate;
   const context=document.createElement('div');context.className='touch-context';
   for(const {action,label,code} of CONTEXT){
    const button=document.createElement('button');button.type='button';button.textContent=label;button.className='touch-button small';button.dataset.code=code;button.hidden=true;
@@ -194,7 +195,7 @@ export class TouchControls {
     else this.showLayout(action);},options);
    this.adjustBar.querySelector('div')!.append(button);
   }
-  this.element.append(look,stickZone,pad,top,rotate,context,this.steeringPopup,this.adjustBar);parent.append(this.element);
+  this.element.append(look,stickZone,pad,top,context,this.steeringPopup,this.adjustBar);parent.append(this.element,rotate);
   // The HUD's weapon icon is the weapon button, as the mobile ports': a tap takes the next weapon (E) and a swipe to the
   // left the one before (Q), on foot.
   const slot=parent.querySelector<HTMLElement>('.weapon-slot');
@@ -366,7 +367,11 @@ export class TouchControls {
  private weaponWatch?:MutationObserver;
  private steeringPopup=document.createElement('section');
  private cameraButton=document.createElement('button');
- dispose(){this.abort.abort();this.weaponWatch?.disconnect();this.element.remove();}
+ /** The card asking for the phone sideways: on the HUD itself, so it stands over the pause menu the turn brings up. */
+ private rotateCard?:HTMLElement;
+ /** Whether the player chose to play on upright (the card's Play anyway). */
+ get uprightAllowed(){return !!this.rotateCard?.classList.contains('dismissed');}
+ dispose(){this.abort.abort();this.weaponWatch?.disconnect();this.element.remove();this.rotateCard?.remove();}
 }
 
 /** The pause menu's touch settings, the iOS and Android port's own: steering by the stick, the arrows or tilting the

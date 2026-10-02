@@ -102,10 +102,13 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await expect(page.locator('.touch-controls')).not.toHaveAttribute('data-menu','on');
  await expect(helpBox).toContainText('Use the STICK to select.');
  await page.evaluate(()=>{const g=(window as any).__game.missionForProfiling().runtime.game;g.help.set('',false,false,false,g.messages);});
- // Sideways there is no card; a phone turned upright gets one until it turns back or the player plays on anyway.
+ // Sideways there is no card; a phone turned upright gets one, the game held behind it (over the pause menu), until it
+ // turns back or the player plays on anyway.
  const rotate=page.locator('.touch-rotate');await expect(rotate).toBeHidden();
  const viewport=page.viewportSize()!;await page.setViewportSize({width:390,height:844});
- await expect(rotate).toBeVisible();await rotate.locator('button').dispatchEvent('pointerdown',{pointerType:'touch'});await expect(rotate).toBeHidden();
+ await expect(rotate).toBeVisible();await expect.poll(async()=>(await state()).paused).toBe(true);
+ await rotate.locator('button').dispatchEvent('pointerdown',{pointerType:'touch'});await expect(rotate).toBeHidden();
+ await expect.poll(async()=>(await state()).paused).toBe(false);
  await page.setViewportSize(viewport);
  // ☰ pauses, and the overlay gives way to the menu.
  await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
