@@ -197,11 +197,13 @@ export class WorldFleet {
    const city=(region===WEATHER_REGION.sf?1:region===WEATHER_REGION.lv?2:0) as 0|1|2;
    return {zoneType:row.zoneType,city,groups:row.groups,races:zone.races};
   }
-  /** Ambient traffic driver cap: the popcycle car maximum for the zone and hour, ceiling 14. */
+  /** The browser's own population scale for traffic (the touch controls' Population setting; 1 elsewhere). */
+  trafficScale=1;
+  /** Ambient traffic driver cap: the popcycle car maximum for the zone and hour, ceiling 14, by trafficScale. */
   trafficDrivers(){
    const row=this.popRow();
    if(!row)return undefined;
-   return Math.max(2,trafficDriverBudget(row.maxCars));
+   return Math.max(2,Math.round(trafficDriverBudget(row.maxCars)*this.trafficScale));
   }
   private randomParkedRecord(candidates:readonly WorldCarGenerator[],groundAt:(record:WorldCarGenerator)=>unknown){
   const record=candidates.find(record=>record.modelId===-1&&groundAt(record));

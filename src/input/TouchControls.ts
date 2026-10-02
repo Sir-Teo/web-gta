@@ -281,13 +281,16 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <label>Look speed <input type="range" class="touch-look-speed" aria-label="Look speed" min="${LOOK_SPEED_RANGE.min}" max="${LOOK_SPEED_RANGE.max}" step="0.1"></label>
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
 <label>Vibration <input type="checkbox" class="touch-vibration" aria-label="Vibration"></label>
+<label>Population <select class="touch-density" aria-label="Population"><option value="full">Full</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
  const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!;
+ const density=panel.querySelector<HTMLSelectElement>('.touch-density')!;
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
- const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;note.textContent='';};refresh();
+ const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;density.value=settings.density;note.textContent='';};refresh();
  vibration.onchange=()=>update({vibration:vibration.checked});
+ density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium'});
  const update=(next:Partial<TouchSettings>)=>change({...current(),...next});
  steering.onchange=async()=>{
   note.textContent='';
