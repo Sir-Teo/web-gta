@@ -264,7 +264,7 @@ import {recordingVehicle} from './simulation/recordingBody';
 import {startPlaybackRecordedCar} from './engine/carRecordingPlayback';
 import {WorldTrain} from './simulation/WorldTrain';
 import {WorldBoat} from './simulation/WorldBoat';
-import {layoutMenu} from './ui/nativeHudMenus';
+import {layoutMenu,menuItemAt} from './ui/nativeHudMenus';
 import {newScriptDriveBy,stepScriptDriveBy,type ScriptDriveByWorld} from './simulation/scriptDriveBy';
 import {applyStoredSwitches,markRoadNodeAsDontWander,switchRoadsOffInArea,unmarkAllRoadNodesAsDontWander} from './simulation/nativePathSwitches';
 import {pathAreaLoaded,pathAreaMaps} from './assets/worldPaths';
@@ -2282,6 +2282,18 @@ async function boot() {
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);applyResolution();
    // The pause menu's Controls panel holds the touch settings.
    // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.
+   // A script menu's line takes a tap on a touch screen, as the port's menus do: a tap lights it, and a tap on the lit
+   // one chooses it (Select, the pad's cross, for a frame).
+   {const menusEl=hud.element.querySelector<HTMLElement>('.script-menus')!;
+    menusEl.addEventListener('pointerdown',e=>{
+     const menus=mission?.runtime.game.menus,id=menus?.currentMenuInUse??-1,menu=id>=0&&menus?.inUse[id]?menus.menus[id]:undefined;
+     if(!menu||!menu.interactive[0]||paused)return;
+     const r=menusEl.getBoundingClientRect(),row=menuItemAt(menu,(e.clientX-r.left)/r.width*640,(e.clientY-r.top)/r.height*448);
+     e.preventDefault();e.stopPropagation();
+     if(row===undefined||!menu.selectable[row]||menu.type!==1&&!menu.rowTitles[0][row])return;
+     if(row===menu.selectedRow){input.hold('MenuSelect');input.releaseAfterFrame('MenuSelect');}
+     else{menu.selectedRow=row;menus!.onSound?.('highlight');}
+    });}
    touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();applyResolution();},
     ()=>{hud.setMenu(false);touch.adjust(()=>{hud.setMenu(true);touchPanel?.refresh();});});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
    // A phone's short screen puts the touch buttons where the PC HUD's wanted stars sit (175 px down): they hang under

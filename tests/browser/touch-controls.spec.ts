@@ -87,7 +87,14 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await page.evaluate(()=>{const b=document.querySelector('.touch-context button[data-code=MenuSelect]')!,r=b.getBoundingClientRect();b.dispatchEvent(new PointerEvent('pointerdown',{pointerId:62,pointerType:'touch',clientX:r.x+5,clientY:r.y+5,bubbles:true,cancelable:true}));});
  await expect.poll(async()=>(await menu()).accepted,{timeout:5000}).toBe(start+1);
  await page.evaluate(()=>{const b=document.querySelector('.touch-context button[data-code=MenuSelect]')!,r=b.getBoundingClientRect();b.dispatchEvent(new PointerEvent('pointerup',{pointerId:62,pointerType:'touch',clientX:r.x+5,clientY:r.y+5,bubbles:true,cancelable:true}));});
+ // The menu's own lines take taps: one lights a line, another on it chooses it; and the buttons sit under the left thumb.
+ await expect(page.locator('.touch-controls')).toHaveAttribute('data-menu','on');
+ const tapRow=(text:string,id:number)=>page.evaluate(({text,id})=>{const t=[...document.querySelectorAll<HTMLElement>('.script-menu-text')].find(e=>e.textContent===text)!,r=t.getBoundingClientRect();
+  for(const type of ['pointerdown','pointerup'])t.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',clientX:r.x+r.width/2,clientY:r.y+r.height/2,bubbles:true,cancelable:true}));},{text,id});
+ await page.waitForTimeout(300);await tapRow('ROW_A',63);await expect.poll(async()=>(await menu()).selected,{timeout:5000}).toBe(0);
+ await tapRow('ROW_A',64);await expect.poll(async()=>(await menu()).accepted,{timeout:5000}).toBe(0);
  await page.evaluate(id=>(window as any).__game.missionForProfiling().runtime.game.menus.switchOff(id),menuId);await expect(down).toBeHidden();
+ await expect(page.locator('.touch-controls')).not.toHaveAttribute('data-menu','on');
  // Sideways there is no card; a phone turned upright gets one until it turns back or the player plays on anyway.
  const rotate=page.locator('.touch-rotate');await expect(rotate).toBeHidden();
  const viewport=page.viewportSize()!;await page.setViewportSize({width:390,height:844});

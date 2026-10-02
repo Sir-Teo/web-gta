@@ -294,6 +294,8 @@ export class TouchControls {
  /** The pad actions the help box and prompt name now: their context buttons show, the rest hide (let go if held). */
  setPrompts(actions:Iterable<string>){
   const asked=new Set(actions);
+  // A script menu up (its arrows asked): the menu's own lines take taps, and its buttons move under the left thumb.
+  const menu=asked.has('MENU_SELECT');if((this.element.dataset.menu==='on')!==menu){if(menu)this.element.dataset.menu='on';else delete this.element.dataset.menu;}
   for(const {action,element} of this.context){
    const hidden=!asked.has(action);if(element.hidden===hidden)continue;element.hidden=hidden;
    if(hidden){const code=element.dataset.code!;for(const [id,held] of this.held)if(held===code)this.held.delete(id);if(![...this.held.values()].includes(code))this.input.release(code);element.classList.remove('on');}

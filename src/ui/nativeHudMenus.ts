@@ -61,3 +61,15 @@ export function layoutMenu(menu:ScmMenu,bright:boolean,text:(key:string,first:nu
  }
  return draw;
 }
+/** The row (a grid's cell) under a point on the 640 x 448 screen, as layoutMenu places them, or undefined: a touch
+ * screen's tap on a menu's line. A standard menu's rows are 16 high from 20 below its top (40 under headers), across
+ * its columns and the 10 either side; a grid's cells are its column width square. */
+export function menuItemAt(menu:ScmMenu,x:number,y:number):number|undefined{
+ if(menu.type===MENU_TYPE_GRID){
+  const cell=menu.widths[0],n=menu.numColumns,r=Math.floor((x-menu.x)/cell),c=Math.floor((y-menu.y)/cell);
+  return r>=0&&r<n&&c>=0&&c<n&&c*n+r<menu.numRows?c*n+r:undefined;
+ }
+ let width=20;for(let i=0;i<menu.numColumns;i++)width+=menu.widths[i];
+ const top=menu.y+(menu.background&&menu.headers.slice(0,menu.numColumns).some(Boolean)?40:20),row=Math.floor((y-top)/16);
+ return x>=menu.x&&x<=menu.x+width&&row>=0&&row<menu.numRows?row:undefined;
+}
