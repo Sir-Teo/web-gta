@@ -41,6 +41,11 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await expect(page.locator('.arsenal')).toBeVisible();await expect(controls).toBeHidden();
  expect(await page.evaluate(()=>document.activeElement?.className)).toBe('arsenal-close');
  await page.locator('.arsenal-close').click();await expect(controls).toBeVisible();
+ // Map: the hint speaks to a finger, and a tap sets the waypoint.
+ await page.locator('.touch-top .touch-button').nth(1).dispatchEvent('pointerdown',{pointerType:'touch'});
+ await expect(page.locator('.map-status')).toContainText('Pinch zooms');
+ await page.locator('.world-map-panel canvas').tap({position:{x:100,y:100}});await expect(page.locator('.map-status')).toContainText('Waypoint');
+ await page.locator('.map-close').click();await expect(controls).toBeVisible();
  // Sideways there is no card; a phone turned upright gets one until it turns back or the player plays on anyway.
  const rotate=page.locator('.touch-rotate');await expect(rotate).toBeHidden();
  const viewport=page.viewportSize()!;await page.setViewportSize({width:390,height:844});

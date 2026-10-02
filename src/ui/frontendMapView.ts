@@ -29,6 +29,13 @@ export class FrontendMapView {
  zoom(lines:number){this.half=Math.min(FRONTEND_MAP_ZOOM_MAX,Math.max(FRONTEND_MAP_FIT,this.half+lines));this.clamp();}
  /** Moves the view by frame lines (right and down positive): m_vMapOrigin moves the other way. */
  pan(dx:number,dy:number){const perLine=1/(2*this.half);this.cx+=dx*perLine;this.cy+=dy*perLine;this.clamp();}
+ /** A touch drag or pinch moved from `a` to `b`: the fingers' middle as frame fractions and their spread (0 for one
+  * finger). The map point under the middle stays under it, zoomed by the change in spread. */
+ follow(a:{u:number;v:number;spread:number},b:{u:number;v:number;spread:number}){
+  const m=this.toMap(a.u,a.v);
+  if(a.spread>0&&b.spread>0)this.zoom(this.half*(b.spread/a.spread-1));
+  const f=this.toFrame(m.x,m.y);this.pan((f.x-b.u)*FRONTEND_MAP_FRAME,(f.y-b.v)*FRONTEND_MAP_FRAME);
+ }
  centreOn(x:number,y:number){this.cx=x;this.cy=y;this.clamp();}
  reset(){this.cx=.5;this.cy=.5;this.half=FRONTEND_MAP_FIT;}
  /** The frame never shows past the map's edge (the original's clamp of the origin to the frame). */

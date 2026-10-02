@@ -85,13 +85,34 @@ export class NativeMap {
   this.panel.addEventListener('keyup',e=>{this.mapKeys.delete(e.code);});
   // CPad::IsMouseWheelUp zooms in, down zooms out, 28 lines a notch; a sideways scroll does nothing.
   this.full.addEventListener('wheel',e=>{e.preventDefault();if(e.deltaY===0)return;this.view.zoom(e.deltaY<0?FRONTEND_MAP_WHEEL_STEP:-FRONTEND_MAP_WHEEL_STEP);this.requestDraw();},{passive:false});
+  // On a touch screen one finger drags the map and two pinch it, about the point between them, as the mobile ports'
+  // map does; a tap still sets the waypoint, and the click that ends a drag or pinch does not.
+  const fingers=new Map<number,{x:number;y:number}>();let travel=0,dragged=false;
+  const gesture=()=>{const ps=[...fingers.values()],n=ps.length||1;return {x:ps.reduce((t,p)=>t+p.x,0)/n,y:ps.reduce((t,p)=>t+p.y,0)/n,spread:ps.length>1?Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y):0};};
+  this.full.addEventListener('pointerdown',e=>{
+   if(e.pointerType!=='touch'){dragged=false;return;}
+   try{this.full.setPointerCapture(e.pointerId);}catch{/* the pointer is already gone */}
+   if(!fingers.size){travel=0;dragged=false;}
+   fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(fingers.size>1)dragged=true;
+  });
+  this.full.addEventListener('pointermove',e=>{
+   const last=fingers.get(e.pointerId);if(!last)return;
+   const r=this.full.getBoundingClientRect(),side=Math.min(r.width,r.height);if(!side)return;
+   const u=(x:number)=>(x-r.left-(r.width-side)/2)/side,v=(y:number)=>(y-r.top-(r.height-side)/2)/side;
+   const a=gesture();travel+=Math.hypot(e.clientX-last.x,e.clientY-last.y);fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});const b=gesture();
+   if(travel>10)dragged=true;
+   this.view.follow({u:u(a.x),v:v(a.y),spread:a.spread},{u:u(b.x),v:v(b.y),spread:b.spread});
+   this.requestDraw();
+  });
+  const lift=(e:PointerEvent)=>{fingers.delete(e.pointerId);};
+  this.full.addEventListener('pointerup',lift);this.full.addEventListener('pointercancel',lift);
   this.element.querySelector<HTMLButtonElement>('.map-clear')!.onclick=()=>{this.notice=undefined;this.waypoint=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';this.draw();};
   this.element.querySelector<HTMLSelectElement>('.map-destination')!.onchange=e=>{const places:Record<string,{x:number;z:number}>={grove:{x:2495,z:1687},meadows:{x:400,z:-2500},'ls-airport':{x:1685,z:2420},'sf-airport':{x:-1330,z:240},'lv-airport':{x:1450,z:-1450}};const destination=places[(e.target as HTMLSelectElement).value];if(destination){this.notice=undefined;this.waypoint={...destination};this.draw();}(e.target as HTMLSelectElement).blur();};
   const fly=this.element.querySelector<HTMLButtonElement>('.map-fly')!;
   fly.onclick=async()=>{if(!this.onFly)return;fly.disabled=true;try{await this.onFly(Number(this.element.querySelector<HTMLSelectElement>('.map-aircraft')!.value));}catch(error){this.notice=error instanceof Error?error.message:String(error);this.draw();}finally{fly.disabled=false;}};
   const track=(e:MouseEvent)=>{const r=this.full.getBoundingClientRect(),side=Math.min(r.width,r.height),u=(e.clientX-r.left-(r.width-side)/2)/side,v=(e.clientY-r.top-(r.height-side)/2)/side;this.pointer=u>=0&&u<=1&&v>=0&&v<=1?{x:u,y:v,held:(e.buttons&1)!==0}:undefined;this.requestDraw();};
   this.full.addEventListener('mousemove',track);this.full.addEventListener('mousedown',track);this.full.addEventListener('mouseup',track);this.full.addEventListener('mouseleave',()=>{this.pointer=undefined;this.requestDraw();});
-  this.full.onclick=e=>{this.notice=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';const r=this.full.getBoundingClientRect();
+  this.full.onclick=e=>{if(dragged){dragged=false;return;}this.notice=undefined;this.element.querySelector<HTMLSelectElement>('.map-destination')!.value='';const r=this.full.getBoundingClientRect();
    // The square map is drawn contained (object-fit) in a box the panel may squeeze out of square: measure the click
    // against the drawn square, and leave the bars beside it alone.
    const side=Math.min(r.width,r.height),u=(e.clientX-r.left-(r.width-side)/2)/side,v=(e.clientY-r.top-(r.height-side)/2)/side;
@@ -160,7 +181,7 @@ export class NativeMap {
  private requestDraw(){if(this.drawQueued)return;this.drawQueued=true;requestAnimationFrame(()=>{this.drawQueued=false;this.draw();});}
  private draw(){
   const p=worldToMap(this.position.x,this.position.z),distance=this.waypoint?Math.hypot(this.waypoint.x-this.position.x,this.waypoint.z-this.position.z):undefined;
-  if(this.loaded)this.status.textContent=this.notice??(distance===undefined?'North is up · Wheel or PgUp/PgDn zooms · Arrows pan · Home finds CJ · Click to set a destination.':`Waypoint ${Math.round(distance)} m away · straight-line distance`);
+  if(this.loaded)this.status.textContent=this.notice??(distance===undefined?(document.documentElement.classList.contains('touch')?'North is up · Pinch zooms · Drag pans · Tap to set a destination.':'North is up · Wheel or PgUp/PgDn zooms · Arrows pan · Home finds CJ · Click to set a destination.'):`Waypoint ${Math.round(distance)} m away · straight-line distance`);
   const draw=(canvas:HTMLCanvasElement,full:boolean)=>{
    const win=this.view.window,c=canvas.getContext('2d')!,w=canvas.width,span=full?win.span:700/6000,scale=w/span,ox=full?win.x:p.x-span/2,oy=full?win.y:p.y-span/2;
    c.clearRect(0,0,w,w);c.fillStyle='#79aabd';c.fillRect(0,0,w,w);
