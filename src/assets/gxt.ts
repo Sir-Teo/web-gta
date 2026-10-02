@@ -95,8 +95,12 @@ const TOUCH_CONTROLS:Readonly<Record<string,string>>={VEHICLE_ENTER_EXIT:'ENTER'
  PED_FIREWEAPON:'FIRE',PED_LOCK_TARGET:'AIM',GROUP_CONTROL_FWD:'FOLLOW',GROUP_CONTROL_BWD:'STAY',CONVERSATION_YES:'YES',CONVERSATION_NO:'NO',TOGGLE_SUBMISSIONS:'MISSION',
  GO_FORWARD:'STICK UP',GO_BACK:'STICK DOWN',GO_LEFT:'STICK LEFT',GO_RIGHT:'STICK RIGHT',VEHICLE_ACCELERATE:'GAS',VEHICLE_BRAKE:'BRAKE',
  VEHICLE_STEERLEFT:'STICK LEFT',VEHICLE_STEERRIGHT:'STICK RIGHT',VEHICLE_STEERUP:'STICK UP',VEHICLE_STEERDOWN:'STICK DOWN',VEHICLE_HANDBRAKE:'H-BRAKE',
- VEHICLE_HORN:'HORN',VEHICLE_LOOKLEFT:'LOOK',PED_CYCLE_WEAPON_LEFT:'WEAPON',PED_CYCLE_WEAPON_RIGHT:'WEAPON',
- VEHICLE_RADIO_STATION_UP:'RADIO',VEHICLE_FIREWEAPON:'FIRE',CAMERA_CHANGE_VIEW_ALL_SITUATIONS:'CAMERA',PED_SNIPER_ZOOM_IN:'ZOOM +',PED_SNIPER_ZOOM_OUT:'ZOOM −'};
+ VEHICLE_HORN:'HORN',VEHICLE_LOOKLEFT:'◀ LOOK',VEHICLE_LOOKRIGHT:'LOOK ▶',VEHICLE_LOOKBEHIND:'LOOK BACK',PED_LOOKBEHIND:'LOOK BACK',
+ PED_CYCLE_WEAPON_LEFT:'WEAPON',PED_CYCLE_WEAPON_RIGHT:'WEAPON',VEHICLE_RADIO_STATION_UP:'RADIO',VEHICLE_RADIO_STATION_DOWN:'RADIO',
+ // The vehicle's fire, and its alternative (a drive-by, the BMX's hop, a gunship's guns), are the Fire button.
+ VEHICLE_FIREWEAPON:'FIRE',VEHICLE_FIREWEAPON_ALT:'FIRE',CAMERA_CHANGE_VIEW_ALL_SITUATIONS:'CAMERA',PED_SNIPER_ZOOM_IN:'ZOOM +',PED_SNIPER_ZOOM_OUT:'ZOOM −'};
+/** Flying, the look keys are the rudder (the touch controls' Yaw buttons) and the on-foot fire the rockets (Rocket). */
+const TOUCH_FLYING:Readonly<Record<string,string>>={VEHICLE_LOOKLEFT:'◀ YAW',VEHICLE_LOOKRIGHT:'YAW ▶',PED_FIREWEAPON:'ROCKET'};
 /** A vehicle's left and right by the steering the touch settings chose: the stick, the arrow buttons or the tilt. */
 const TOUCH_STEERING:Readonly<Record<'stick'|'arrows'|'tilt',Readonly<Record<string,string>>>>={
  stick:{},arrows:{VEHICLE_STEERLEFT:'LEFT ARROW',VEHICLE_STEERRIGHT:'RIGHT ARROW'},tilt:{VEHICLE_STEERLEFT:'TILT LEFT',VEHICLE_STEERRIGHT:'TILT RIGHT'}};
@@ -106,10 +110,12 @@ const DIRECTION_RUNS:readonly (readonly [RegExp,string])[]=[
  [/STICK (?:UP|DOWN|LEFT|RIGHT)(?:(?:,? and |, | or |\/)STICK (?:UP|DOWN|LEFT|RIGHT))+/g,'the STICK'],
  [/(?:LEFT|RIGHT) ARROW(?:(?:,? and |, | or |\/)(?:LEFT|RIGHT) ARROW)+/g,'the ARROWS'],
  [/TILT (?:LEFT|RIGHT)(?:(?:,? and |, | or |\/)TILT (?:LEFT|RIGHT))+/g,'TILT']];
-let controlNames=BROWSER_CONTROLS,touchNames=false;
-/** Name the controls in HUD text by the touch buttons rather than the keys, the steering as the settings give it. */
-export function useTouchControlNames(touch:boolean,steering:'stick'|'arrows'|'tilt'='stick'){
- touchNames=touch;controlNames=touch?{...BROWSER_CONTROLS,...TOUCH_CONTROLS,...TOUCH_STEERING[steering]}:BROWSER_CONTROLS;
+let controlNames=BROWSER_CONTROLS,touchNames=false,touchSteering:'stick'|'arrows'|'tilt'='stick',touchFlying=false;
+/** Name the controls in HUD text by the touch buttons rather than the keys: the steering as the settings give it, and
+ * the buttons an aircraft has while flying. Left out, the steering and the flying stay as they were. */
+export function useTouchControlNames(touch:boolean,steering=touchSteering,flying=touchFlying){
+ touchNames=touch;touchSteering=touch?steering:'stick';touchFlying=touch&&flying;
+ controlNames=touch?{...BROWSER_CONTROLS,...TOUCH_CONTROLS,...TOUCH_STEERING[touchSteering],...touchFlying?TOUCH_FLYING:{}}:BROWSER_CONTROLS;
 }
 /** The controls each recent HUD text named, by the text gxtHudText made: the touch controls show a button for a
  * control the help box asks for that has none of its own (a yes-or-no question, collecting a pickup). */
@@ -120,7 +126,9 @@ export function controlsNamedIn(text:string):readonly string[]{return NAMED.get(
 export function gxtHudText(text:string){
  const named:string[]=[];
  let out=text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>{named.push(action);return controlNames[action]??action.replace(/_/g,' ');}).replace(/~n~/gi,'\n').replace(/~[a-z]~/gi,'');
- if(touchNames)for(const [run,name] of DIRECTION_RUNS)out=out.replace(run,name);
+ if(touchNames){for(const [run,name] of DIRECTION_RUNS)out=out.replace(run,name);
+  // Two controls one button stands for ("RADIO and RADIO", "FIRE or FIRE") are named once.
+  out=out.replace(/(?<![A-Z0-9+−◀▶-]|[A-Z0-9+−◀▶-] )([A-Z][A-Z0-9 +−◀▶-]*[A-Z0-9+−◀▶])(?:,? (?:and|or) |\/)\1(?![A-Za-z0-9+−◀▶-]| [A-Z0-9+−◀▶-])/g,'$1');}
  if(named.length){NAMED.delete(out);NAMED.set(out,named);if(NAMED.size>64)NAMED.delete(NAMED.keys().next().value!);}
  return out;
 }

@@ -2239,7 +2239,7 @@ async function boot() {
   });
   // Phones and tablets: a stick, a camera drag and buttons over the game, feeding the same Input.
   /** Whether the touch controls' Enter has something to do, and the frame count it is looked at by. */
-  let touchEnterNear=false,touchEnterTick=0;
+  let touchEnterNear=false,touchEnterTick=0,touchNamesFlying=false;
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
   let touchSettings=readTouchSettings(),touchPanel:{element:HTMLElement;refresh():void}|undefined;
@@ -3419,6 +3419,12 @@ async function boot() {
       if(current?.interactive[0])asked.push('MENU_UP','MENU_DOWN',...current.type===1?['MENU_LEFT','MENU_RIGHT']:[],'MENU_BACK','MENU_SELECT');}
      // A plane with retracting gear puts up Gear in the air, and the Hydra VTOL.
      {const plane=fleet?.occupiedPlane;if(plane?.retractableGear&&!plane.grounded)asked.push('AIRCRAFT_GEAR');if(plane?.modelId===520)asked.push('AIRCRAFT_VTOL');}
+     // Flying, the look keys are the rudder the Yaw buttons already are, and help names them so. In a road vehicle with a
+     // drive-by to fire (the driver's SMG, or a passenger's seat), looking out of either side comes up.
+     {const flying=!!fleet?.occupiedPlane,inv=weapons.inventory;
+      if(flying){for(let i=asked.length-1;i>=0;i--)if(asked[i]==='VEHICLE_LOOKLEFT'||asked[i]==='VEHICLE_LOOKRIGHT')asked.splice(i,1);}
+      else if(inVehicle&&mission?.runtime.game.playerInfo.canDoDriveBy!==false&&(playerPassenger||inv.inSlot(inv.slotOf(28))!==undefined))asked.push('VEHICLE_LOOKLEFT','VEHICLE_LOOKRIGHT');
+      if(flying!==touchNamesFlying){touchNamesFlying=flying;useTouchControlNames(true,undefined,flying);}}
      touch.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch.setPrompts(asked);
      if(fleet)fleet.trafficScale=touchPopulation();
      // A cutscene, or a scripted scene the widescreen bars frame (the intro's ride, a mission's opening), leaves the

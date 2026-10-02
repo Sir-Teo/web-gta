@@ -47,7 +47,9 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle'],icon:'horn',driver:true},
  {label:'Enter',code:'KeyF',className:'enter',contextual:true,icon:'car'},
  {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope'],icon:'crouch'},
- {label:'Look',code:'KeyQ',className:'crouch',modes:['vehicle'],icon:'eye'},
+ // At the wheel the eye looks behind (both look keys together, the PC's middle button); left and right come above the
+ // buttons when a drive-by can be fired or a help text asks.
+ {label:'Look back',code:'MouseMiddle',className:'crouch',modes:['vehicle'],icon:'eye'},
  {label:'Reload',code:'KeyR',className:'reload',modes:['foot','scope'],icon:'reload'},
  // At the wheel the right thumb has the pedals, as the mobile ports give it, so the stick can steer to full lock
  // while the car accelerates (a stick pushed only sideways is no push forward).
@@ -85,6 +87,9 @@ const CONTEXT:readonly {action:string;label:string;code:string}[]=[
  {action:'CONVERSATION_YES',label:'Yes',code:'KeyY'},{action:'CONVERSATION_NO',label:'No',code:'KeyN'},
  {action:'PED_ANSWER_PHONE',label:'Action',code:'Tab'},{action:'TOGGLE_SUBMISSIONS',label:'Mission',code:'Digit2'},
  {action:'GROUP_CONTROL_FWD',label:'Follow',code:'KeyG'},{action:'GROUP_CONTROL_BWD',label:'Stay',code:'KeyH'},
+ // In a vehicle, looking out of either side (the PC's Q and E), for a drive-by; on foot, looking behind.
+ {action:'VEHICLE_LOOKLEFT',label:'◀ Look',code:'KeyQ'},{action:'VEHICLE_LOOKRIGHT',label:'Look ▶',code:'KeyE'},
+ {action:'PED_LOOKBEHIND',label:'Look back',code:'MouseMiddle'},
  // Flying: the landing gear of a plane that retracts it, once in the air, and the Hydra's vertical lift (the PC's G and T).
  {action:'AIRCRAFT_GEAR',label:'Gear',code:'KeyG'},{action:'AIRCRAFT_VTOL',label:'VTOL',code:'KeyT'},
  // A script menu (a shop's, the barber's, a garage's colours): the mobile ports' arrow widgets, Select and Back, which
