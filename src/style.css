@@ -179,6 +179,12 @@
 .touch .wanted-status,.touch .weapon-readout{right:calc(28px + env(safe-area-inset-right))}
 .touch .wanted-status{top:calc(var(--status-bottom,175px) + 6px)}
 /* The trip skip's icon is a button over the touch layer. */
+/* Flying, the instruments' one line hangs under the clock, money and bars, centred in the room between the pause and
+ * camera buttons and the cluster. */
+.touch .flight-instruments{--free-left:calc(var(--touch-radar-left) + 100px);top:calc(var(--status-bottom,76px) + 6px);left:calc(var(--free-left) + (100vw - var(--touch-cluster) - var(--free-left)) / 2);max-width:calc(100vw - var(--touch-cluster) - var(--free-left) - 12px);padding:4px 10px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* The shortest screens (an iPhone SE sideways) have no room for the context pills' full height and gap between the
+ * buttons and the weapon icon's ammo: they come down a little and slimmer. */
+@media(max-height:360px){.touch-context{bottom:calc(var(--touch-cluster-h) + 6px)}.touch-context .touch-button.small{height:34px;border-radius:17px}}
 .touch .trip-skip{pointer-events:auto;z-index:5;touch-action:none;cursor:pointer;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 /* Subtitles centre in the room left of the buttons rather than running under them; a widescreen scene, with only Skip
  * up, keeps them across the screen. */

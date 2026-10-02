@@ -79,6 +79,8 @@ const CONTEXT:readonly {action:string;label:string;code:string}[]=[
  {action:'CONVERSATION_YES',label:'Yes',code:'KeyY'},{action:'CONVERSATION_NO',label:'No',code:'KeyN'},
  {action:'PED_ANSWER_PHONE',label:'Action',code:'Tab'},{action:'TOGGLE_SUBMISSIONS',label:'Mission',code:'Digit2'},
  {action:'GROUP_CONTROL_FWD',label:'Follow',code:'KeyG'},{action:'GROUP_CONTROL_BWD',label:'Stay',code:'KeyH'},
+ // Flying: the landing gear of a plane that retracts it, once in the air, and the Hydra's vertical lift (the PC's G and T).
+ {action:'AIRCRAFT_GEAR',label:'Gear',code:'KeyG'},{action:'AIRCRAFT_VTOL',label:'VTOL',code:'KeyT'},
  // A script menu (a shop's, the barber's, a garage's colours): the mobile ports' arrow widgets, Select and Back, which
  // the host writes straight to the pad's d-pad, cross and triangle.
  {action:'MENU_UP',label:'▲',code:'MenuUp'},{action:'MENU_DOWN',label:'▼',code:'MenuDown'},

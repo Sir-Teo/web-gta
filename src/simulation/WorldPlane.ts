@@ -253,7 +253,10 @@ export class WorldPlane {
    const check=this.enterCheck();if(check)return check;
    return this.finishEnter();
   }
- toggleGear(){if(!this.assets.model.frames.some(f=>f.name.startsWith('gear_')))return 'This aircraft has fixed landing gear.';if(this.grounded)return 'Take off before retracting the landing gear.';this.gearUp=!this.gearUp;for(const c of this.wheels)c.setEnabled(!this.gearUp);return `Landing gear ${this.gearUp?'up':'down'}`;}
+ /** Whether the model has landing gear to retract (gear_ frames). */
+ get retractableGear(){return this.gearFrames??=this.assets.model.frames.some(f=>f.name.startsWith('gear_'));}
+ private gearFrames?:boolean;
+ toggleGear(){if(!this.retractableGear)return 'This aircraft has fixed landing gear.';if(this.grounded)return 'Take off before retracting the landing gear.';this.gearUp=!this.gearUp;for(const c of this.wheels)c.setEnabled(!this.gearUp);return `Landing gear ${this.gearUp?'up':'down'}`;}
  beforeStep(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}){
   const nearby=this.occupied||this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};this.stepDt=dt;

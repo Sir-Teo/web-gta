@@ -40,3 +40,34 @@ test('a phone flies the Maverick: Thrust climbs, the stick pitches and rolls it'
  expect(Math.sign(forward[axis]),JSON.stringify({forward,key})).toBe(Math.sign(key[axis]));
  expect(errors).toEqual([]);
 });
+
+/** The Hydra on a phone: VTOL (the PC's T) above the buttons switches between forward flight and vertical lift, and once it is off the ground
+ * Gear (G) comes up and retracts the landing gear; the readout carries no key hints. */
+test('a phone flies the Hydra: VTOL switches its lift and Gear retracts in the air',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/?touch=1');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await endStoryMission(page);
+ await page.locator('.minimap-button').tap();
+ await page.getByLabel('Aircraft',{exact:true}).selectOption('520');await page.getByRole('button',{name:'Fly from Verdant Meadows',exact:true}).click();
+ const aircraft=async()=>(await page.evaluate(()=>(window as any).__game.state())).aircraft;
+ await expect.poll(async()=>(await aircraft())?.occupied,{timeout:60000}).toBe(true);
+ await expect(page.locator('.touch-controls')).toHaveAttribute('data-mode','aircraft');
+ const vtol=page.locator('.touch-context button',{hasText:/^VTOL$/}),gear=page.locator('.touch-context button',{hasText:/^Gear$/});
+ await expect(vtol).toBeVisible();await expect(gear).toBeHidden();
+ expect(await page.locator('.flight-instruments').textContent()).not.toContain('W/S');
+ const press=async(button:import('@playwright/test').Locator,id:number,ms:number)=>{for(const type of ['pointerdown','pointerup']){
+  await button.evaluate((b,{type,id})=>{const r=b.getBoundingClientRect();b.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',clientX:r.x+r.width/2,clientY:r.y+r.height/2,bubbles:true,cancelable:true}));},{type,id});
+  if(type==='pointerdown')await page.waitForTimeout(ms);}};
+ // It starts in vertical lift: VTOL switches to forward flight and back.
+ expect((await aircraft()).vtol).toBe(true);
+ await press(vtol,21,300);await expect.poll(async()=>(await aircraft()).vtol,{timeout:10000}).toBe(false);
+ await press(vtol,24,300);await expect.poll(async()=>(await aircraft()).vtol,{timeout:10000}).toBe(true);
+ // Thrust lifts it straight up; in the air Gear shows and takes the wheels up.
+ await press(page.locator('.touch-button.gas:not([hidden])'),22,5000);
+ await expect.poll(async()=>(await aircraft()).grounded,{timeout:20000}).toBe(false);
+ await expect(gear).toBeVisible({timeout:10000});
+ await press(gear,23,300);
+ await expect.poll(async()=>(await aircraft()).gearUp,{timeout:10000}).toBe(true);
+ expect(errors).toEqual([]);
+});

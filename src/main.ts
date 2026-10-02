@@ -3405,6 +3405,8 @@ async function boot() {
      // An interactive script menu up puts up its arrows, Select and Back (a grid of car colours left and right too).
      {const menus=mission?.runtime.game.menus,current=menus?.numInUse&&menus.inUse[menus.currentMenuInUse]?menus.menus[menus.currentMenuInUse]:undefined;
       if(current?.interactive[0])asked.push('MENU_UP','MENU_DOWN',...current.type===1?['MENU_LEFT','MENU_RIGHT']:[],'MENU_BACK','MENU_SELECT');}
+     // A plane with retracting gear puts up Gear in the air, and the Hydra VTOL.
+     {const plane=fleet?.occupiedPlane;if(plane?.retractableGear&&!plane.grounded)asked.push('AIRCRAFT_GEAR');if(plane?.modelId===520)asked.push('AIRCRAFT_VTOL');}
      touch.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch.setPrompts(asked);
      if(fleet)fleet.trafficScale=touchPopulation();
      // A cutscene, or a scripted scene the widescreen bars frame (the intro's ride, a mission's opening), leaves the
@@ -3422,7 +3424,10 @@ async function boot() {
       touchEnterNear=[...(fleet?.cars??[])].some(c=>c.consideredByPlayer!==false&&near(c.car.body.translation()))||[fleet?.nearestPlane(true),fleet?.nearestBoat(true),fleet?.nearestBike(true)].some(v=>!!v&&v.distance()<10);}
      touch.setOffered([...touchEnterNear?['enter']:[],...worldCar?.occupied&&worldCar.car.nitro.installed?['nitro']:[],...skippable?['skip']:[]]);
     }
-    const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns [Ctrl]${aircraft.rocketsArmed?` · Rockets [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
+    const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=touch
+     // A phone's short screen gets one line, a stall first: the name shows below and the buttons say what they do.
+     ?`${aircraft.stall?'STALL — lower nose · ':''}${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m${aircraft.retractableGear?` · Gear ${aircraft.gearUp?'UP':'DOWN'}`:''}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'}`:''}`
+     :`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns [Ctrl]${aircraft.rocketsArmed?` · Rockets [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(nativeDayNightBalance(sim.timeMinutes));}
     // CSkidmarks::Update in the game frame, then each car's PreRender registers its wheels, then Render.
     if(!paused&&!navigation?.open&&!arsenal.open&&roadSurfaces){const surfaces=roadSurfaces,now=Math.floor(elapsed*1000);skids.update(now);
