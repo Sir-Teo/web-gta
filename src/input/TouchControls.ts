@@ -30,7 +30,7 @@ export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft';
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the
  * modes it shows in (all of them when unset), and whether it shows only while the game offers it (setOffered), as the
  * mobile ports show their enter-vehicle button only beside a vehicle. */
-interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean;icon?:TouchIcon}
+interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean;icon?:TouchIcon;steering?:TouchSettings['steering']}
 const BUTTONS:ButtonSpec[]=[
  {label:'Fire',code:'ControlLeft',className:'fire',modes:['foot','scope','vehicle','aircraft']},
  {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope'],icon:'target'},
@@ -48,6 +48,9 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down'},
  // N tunes the radio (the mobile ports swipe for it).
  {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],icon:'music'},
+ // The port's default steering: left and right arrows under the left thumb (A and D), in place of the stick.
+ {label:'Steer left',code:'KeyA',className:'steer-left',modes:['vehicle'],icon:'left',steering:'arrows'},
+ {label:'Steer right',code:'KeyD',className:'steer-right',modes:['vehicle'],icon:'right',steering:'arrows'},
  // Flying, the stick is the yoke (pitch and roll) and the right thumb has the throttle, the rudder, the wheel brake
  // (a helicopter's hover hold) and the rockets: the PC's W/S, Q/E, Space and B.
  // Through a scope (the sniper rifle, the camera, the rocket launchers) Jump and Sprint give way to the zoom: the
@@ -200,7 +203,7 @@ export class TouchControls {
  private showButtons(){
   const mode=this.mode??'foot';
   for(const {spec,element} of this.buttons){
-   const hidden=!!spec.modes&&!spec.modes.includes(mode)||!!spec.contextual&&!this.offered.has(spec.className);
+   const hidden=!!spec.modes&&!spec.modes.includes(mode)||!!spec.contextual&&!this.offered.has(spec.className)||!!spec.steering&&spec.steering!==this.settings.steering;
    if(element.hidden===hidden)continue;element.hidden=hidden;
    // A button that goes while a finger holds it lets go of its key.
    if(hidden&&!spec.toggle){for(const [id,code] of this.held)if(code===spec.code&&element.classList.contains('on'))this.held.delete(id);if(![...this.held.values()].includes(spec.code))this.input.release(spec.code);element.classList.remove('on');}
@@ -217,9 +220,9 @@ export class TouchControls {
  private orientation:{beta:number|null;gamma:number|null}={beta:null,gamma:null};
  /** The settings now in force: the button size, and tilt steering on or off. */
  apply(settings:TouchSettings){
-  this.settings=settings;
+  this.settings=settings;this.element.dataset.steering=settings.steering;
   document.documentElement.style.setProperty('--touch-scale',String(settings.buttonScale));
-  this.steer();
+  this.showButtons();this.steer();
  }
  /** Feeds the tilt to the input while it steers: in a car, on a bike or in a boat with tilt steering chosen. */
  private steer(){
@@ -243,7 +246,7 @@ export class TouchControls {
  * tilt asks iOS for the motion sensors (it asks only on a tap), and stays on the stick if refused. */
 export function touchSettingsPanel(settings:TouchSettings,change:(settings:TouchSettings)=>void){
  const panel=document.createElement('p');panel.className='touch-settings';
- panel.innerHTML=`<b>Touch</b><label>Steering <select class="touch-steering" aria-label="Steering"><option value="stick">Stick</option><option value="tilt">Tilt the device</option></select></label>
+ panel.innerHTML=`<b>Touch</b><label>Steering <select class="touch-steering" aria-label="Steering"><option value="stick">Stick</option><option value="arrows">Arrow buttons</option><option value="tilt">Tilt the device</option></select></label>
 <label>Aim <select class="touch-aim" aria-label="Aim"><option value="assist">Lock-on assist</option><option value="free">Free aim</option></select></label>
 <label>Look speed <input type="range" class="touch-look-speed" aria-label="Look speed" min="${LOOK_SPEED_RANGE.min}" max="${LOOK_SPEED_RANGE.max}" step="0.1"></label>
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
@@ -254,7 +257,7 @@ export function touchSettingsPanel(settings:TouchSettings,change:(settings:Touch
  const update=(next:Partial<TouchSettings>)=>{settings={...settings,...next};change(settings);};
  steering.onchange=async()=>{
   note.textContent='';
-  if(steering.value!=='tilt'){update({steering:'stick'});return;}
+  if(steering.value!=='tilt'){update({steering:steering.value==='arrows'?'arrows':'stick'});return;}
   const request=(globalThis as {DeviceOrientationEvent?:{requestPermission?:()=>Promise<string>}}).DeviceOrientationEvent?.requestPermission;
   let granted=true;try{if(request)granted=await request()==='granted';}catch{granted=false;}
   if(granted)update({steering:'tilt'});else{steering.value='stick';note.textContent='Motion sensors were not allowed, so steering stays on the stick.';}

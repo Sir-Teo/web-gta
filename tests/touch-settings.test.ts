@@ -4,6 +4,7 @@ test('touch settings read back what was kept, and anything else falls back to th
  expect(parseTouchSettings(null)).toEqual(DEFAULT_TOUCH);
  expect(parseTouchSettings({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2})).toEqual({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2});
  expect(parseTouchSettings({steering:'wheel',aimAssist:'yes',lookSpeed:9,buttonScale:.1})).toEqual({steering:'stick',aimAssist:true,lookSpeed:2,buttonScale:.8});
+ expect(parseTouchSettings({steering:'arrows'}).steering).toBe('arrows');
 });
 /** The deviceorientation beta and gamma of a phone held sideways (screen angle 90: its x axis up the screen, its y axis
  * to the left), leaning back `lean` degrees from upright and turned clockwise like a wheel by `wheel` degrees. */
