@@ -89,9 +89,28 @@ const BROWSER_CONTROLS:Readonly<Record<string,string>>={VEHICLE_ENTER_EXIT:'F',P
  VEHICLE_HANDBRAKE:'SPACE',VEHICLE_HORN:'H',VEHICLE_LOOKLEFT:'Q',VEHICLE_LOOKRIGHT:'E',PED_LOOKBEHIND:'MIDDLE MOUSE',
  PED_SNIPER_ZOOM_IN:'PGUP',PED_SNIPER_ZOOM_OUT:'PGDN',PED_CYCLE_WEAPON_LEFT:'Q',PED_CYCLE_WEAPON_RIGHT:'E',
  VEHICLE_TURRETUP:'NUM 2',VEHICLE_TURRETDOWN:'NUM 8',VEHICLE_TURRETLEFT:'NUM 4',VEHICLE_TURRETRIGHT:'NUM 6',SNEAK_ABOUT:'ALT'};
+/** The same controls named by the touch controls' buttons (src/input/TouchControls.ts), the stick for the movement
+ * keys; the ones with no button there keep their key. */
+const TOUCH_CONTROLS:Readonly<Record<string,string>>={VEHICLE_ENTER_EXIT:'ENTER',PED_ANSWER_PHONE:'ACTION',PED_SPRINT:'SPRINT',PED_JUMPING:'JUMP',PED_DUCK:'CROUCH',
+ PED_FIREWEAPON:'FIRE',PED_LOCK_TARGET:'AIM',GROUP_CONTROL_FWD:'FOLLOW',GROUP_CONTROL_BWD:'STAY',CONVERSATION_YES:'YES',CONVERSATION_NO:'NO',TOGGLE_SUBMISSIONS:'MISSION',
+ GO_FORWARD:'STICK UP',GO_BACK:'STICK DOWN',GO_LEFT:'STICK LEFT',GO_RIGHT:'STICK RIGHT',VEHICLE_ACCELERATE:'GAS',VEHICLE_BRAKE:'BRAKE',
+ VEHICLE_STEERLEFT:'STICK LEFT',VEHICLE_STEERRIGHT:'STICK RIGHT',VEHICLE_STEERUP:'STICK UP',VEHICLE_STEERDOWN:'STICK DOWN',VEHICLE_HANDBRAKE:'H-BRAKE',
+ VEHICLE_HORN:'HORN',VEHICLE_LOOKLEFT:'LOOK',PED_CYCLE_WEAPON_LEFT:'WEAPON',PED_CYCLE_WEAPON_RIGHT:'WEAPON'};
+let controlNames=BROWSER_CONTROLS;
+/** Name the controls in HUD text by the touch buttons rather than the keys. */
+export function useTouchControlNames(touch:boolean){controlNames=touch?{...BROWSER_CONTROLS,...TOUCH_CONTROLS}:BROWSER_CONTROLS;}
+/** The controls each recent HUD text named, by the text gxtHudText made: the touch controls show a button for a
+ * control the help box asks for that has none of its own (a yes-or-no question, collecting a pickup). */
+const NAMED=new Map<string,readonly string[]>();
+export function controlsNamedIn(text:string):readonly string[]{return NAMED.get(text)??[];}
 /** The browser HUD draws plain text: ~n~ breaks the line, a ~k~ control names its key, and colour and style tokens
  * (~w~, ~r~, ~h~, ~z~ and the rest) drop. */
-export function gxtHudText(text:string){return text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>BROWSER_CONTROLS[action]??action.replace(/_/g,' ')).replace(/~n~/gi,'\n').replace(/~[a-z]~/gi,'');}
+export function gxtHudText(text:string){
+ const named:string[]=[];
+ const out=text.replace(/~k~~([A-Z0-9_]+)~/g,(_,action:string)=>{named.push(action);return controlNames[action]??action.replace(/_/g,' ');}).replace(/~n~/gi,'\n').replace(/~[a-z]~/gi,'');
+ if(named.length){NAMED.delete(out);NAMED.set(out,named);if(NAMED.size>64)NAMED.delete(NAMED.keys().next().value!);}
+ return out;
+}
 /** TheText from the published text/american.gxt, loaded once. */
 export function loadNativeText(base:string){
  loading??=import('./staticWorldArchive').then(async({openStaticWorld})=>{

@@ -7,7 +7,7 @@ import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {carRollsOverProp} from './simulation/vehiclePropContacts';
-import {gxtHudText,gxtText,insertNumbers} from './assets/gxt';
+import {controlsNamedIn,gxtHudText,gxtText,insertNumbers,useTouchControlNames} from './assets/gxt';
 import {ScriptTextLayer} from './ui/ScriptTextLayer';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
@@ -2239,7 +2239,7 @@ async function boot() {
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
   const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),map:()=>input.tap('KeyM'),arsenal:()=>input.tap('Backquote')}):undefined;
-  if(touch)document.documentElement.classList.add('touch');
+  if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true);}
   const cheats=CHEATS;
   /** CTimer::ms_fTimeScale as the gameplay cheats set it; a unique stunt jump's 0.3 overrides it and ResetTimeScale
    * afterwards puts it back to 1. */
@@ -3377,7 +3377,7 @@ async function boot() {
     for(const train of fleet?.trains??[])train.update();
     // The on-foot key hints (jump, crouch, enter car) do not apply in a vehicle.
     hud.element.classList.toggle('in-vehicle',!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
-    touch?.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch?.setMode(fleet?.occupiedPlane?'aircraft':hud.element.classList.contains('in-vehicle')?'vehicle':'foot');
+    touch?.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch?.setPrompts(hud.shownPrompts().flatMap(controlsNamedIn));touch?.setMode(fleet?.occupiedPlane?'aircraft':hud.element.classList.contains('in-vehicle')?'vehicle':'foot');
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns [Ctrl]${aircraft.rocketsArmed?` · Rockets [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(nativeDayNightBalance(sim.timeMinutes));}
     // CSkidmarks::Update in the game frame, then each car's PreRender registers its wheels, then Render.
@@ -3566,6 +3566,11 @@ async function boot() {
       // with the controls on. JustOutOfFrontEnd holds for the first frame after the menu.
       {const pads=mission.runtime.game.pads;pads.invertMouseY=mouseSettings.invertY;const driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
        padStateFromActions(heldPadActions(code=>input.down(code)),driving?'driving':render.firstPerson?'firstPerson':'thirdPerson',false,pads.pads[0]);
+       // The touch stick is the pad's analog left stick (the script's menus and its stick checks read it), where no key
+       // already pushes it: up is −128, as CPad's is.
+       {const stick=input.stick,pad=pads.pads[0];if(stick&&Math.hypot(stick.x,stick.y)>.12){
+        if(!pad.leftStickX)pad.leftStickX=Math.max(-128,Math.min(127,Math.round(stick.x*128)));
+        if(!pad.leftStickY)pad.leftStickY=Math.max(-128,Math.min(127,Math.round(-stick.y*128)));}}
        pads.justOutOfFrontEnd=padsAfterPause;padsAfterPause=false;}
       // CPed's footsteps for the player: the CEventSoundQuiet his last frame's move made, which the script reads before
       // CWorld::Process flushes the global group (GUNS1's noise bar). Walking and standing make none.

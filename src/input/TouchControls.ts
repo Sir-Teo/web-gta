@@ -53,6 +53,13 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Yaw ▶',code:'KeyE',className:'yaw-right',modes:['aircraft']},
  {label:'Rocket',code:'KeyB',className:'rocket',modes:['aircraft']},
 ];
+/** Controls the game asks for only now and then, by the pad action the help text names: a button for each shows above
+ * the others while the help box or prompt asks for it (a yes-or-no question, collecting a pickup, a crew order). */
+const CONTEXT:readonly {action:string;label:string;code:string}[]=[
+ {action:'CONVERSATION_YES',label:'Yes',code:'KeyY'},{action:'CONVERSATION_NO',label:'No',code:'KeyN'},
+ {action:'PED_ANSWER_PHONE',label:'Action',code:'Tab'},{action:'TOGGLE_SUBMISSIONS',label:'Mission',code:'Digit2'},
+ {action:'GROUP_CONTROL_FWD',label:'Follow',code:'KeyG'},{action:'GROUP_CONTROL_BWD',label:'Stay',code:'KeyH'},
+];
 /** How far the stick's knob travels from where the thumb came down, in CSS pixels. */
 const STICK_RADIUS=56;
 /** Keeps a finger's later events on the element it came down on; a pointer the browser no longer tracks throws. */
@@ -66,6 +73,7 @@ export class TouchControls {
  private stickPointer?:number;private stickOrigin={x:0,y:0};
  private lookPointer?:number;private lookLast={x:0,y:0};
  private held=new Map<number,string>();
+ private context:{action:string;element:HTMLButtonElement}[]=[];
  private latched=new Set<string>();
  private buttons:{spec:ButtonSpec;element:HTMLButtonElement}[]=[];
  private mode?:TouchMode;
@@ -99,7 +107,15 @@ export class TouchControls {
   const rotateDismiss=document.createElement('button');rotateDismiss.type='button';rotateDismiss.className='touch-button small';rotateDismiss.textContent='Play anyway';
   rotateDismiss.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();rotate.classList.add('dismissed');},options);
   rotate.append(rotateText,rotateDismiss);
-  this.element.append(look,stickZone,pad,top,rotate);parent.append(this.element);
+  const context=document.createElement('div');context.className='touch-context';
+  for(const {action,label,code} of CONTEXT){
+   const button=document.createElement('button');button.type='button';button.textContent=label;button.className='touch-button small';button.dataset.code=code;button.hidden=true;
+   button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);this.held.set(e.pointerId,code);input.hold(code);button.classList.add('on');},options);
+   const up=(e:PointerEvent)=>{if(this.held.get(e.pointerId)!==code)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.release(code);button.classList.remove('on');};
+   button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
+   context.append(button);this.context.push({action,element:button});
+  }
+  this.element.append(look,stickZone,pad,top,rotate,context);parent.append(this.element);
   // The stick floats: it is centred where the thumb lands in the left zone and follows it out to its radius.
   stickZone.addEventListener('pointerdown',e=>{if(this.stickPointer!==undefined)return;e.preventDefault();capture(stickZone,e.pointerId);
    this.stickPointer=e.pointerId;this.stickOrigin={x:e.clientX,y:e.clientY};const r=stickZone.getBoundingClientRect();
@@ -132,6 +148,14 @@ export class TouchControls {
   for(const {spec,element} of this.buttons)element.hidden=!!spec.modes&&!spec.modes.includes(mode);
   if(mode!=='foot')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
   for(const {spec,element} of this.buttons)if(spec.toggle)element.classList.toggle('on',this.latched.has(spec.code));
+ }
+ /** The pad actions the help box and prompt name now: their context buttons show, the rest hide (let go if held). */
+ setPrompts(actions:Iterable<string>){
+  const asked=new Set(actions);
+  for(const {action,element} of this.context){
+   const hidden=!asked.has(action);if(element.hidden===hidden)continue;element.hidden=hidden;
+   if(hidden){const code=element.dataset.code!;for(const [id,held] of this.held)if(held===code)this.held.delete(id);if(![...this.held.values()].includes(code))this.input.release(code);element.classList.remove('on');}
+  }
  }
  /** Hidden under the menus: everything held is let go so nothing stays pressed behind them. */
  setVisible(visible:boolean){

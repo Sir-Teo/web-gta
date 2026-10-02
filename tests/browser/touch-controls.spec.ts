@@ -21,6 +21,9 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  const x=zone.x+zone.width/2,y=zone.y+zone.height/2;
  await finger('.touch-stick-zone','pointerdown',x,y);await finger('.touch-stick-zone','pointermove',x,y-70);
  await expect(page.locator('.touch-stick')).toBeVisible();
+ // The script reads the stick as the pad's left stick, pushed up.
+ const pad=()=>page.evaluate(()=>{const p=(window as any).__game.missionForProfiling().runtime.game.pads.pads[0];return {x:p.leftStickX,y:p.leftStickY,yes:p.dpadRight};});
+ await expect.poll(async()=>(await pad()).y,{timeout:5000}).toBeLessThan(-100);
  await expect.poll(async()=>{const p=(await state()).player.position;return Math.hypot(p.x-before.x,p.z-before.z);},{timeout:20000}).toBeGreaterThan(1.5);
  await finger('.touch-stick-zone','pointerup',x,y-70);
  await expect(page.locator('.touch-stick')).toBeHidden();
@@ -46,6 +49,16 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await expect(page.locator('.map-status')).toContainText('Pinch zooms');
  await page.locator('.world-map-panel canvas').tap({position:{x:100,y:100}});await expect(page.locator('.map-status')).toContainText('Waypoint');
  await page.locator('.map-close').click();await expect(controls).toBeVisible();
+ // A help line that asks for a control with no button of its own names the touch one and puts a button up for it,
+ // which reaches the script's pad; it goes when the help does.
+ await page.evaluate(async()=>{const {gxtHudText}=await import('/src/assets/gxt.ts');(window as any).__game.hud().help(gxtHudText('Press ~k~~CONVERSATION_YES~ to agree.'),60000);});
+ await expect(page.locator('.help-box')).toHaveText('Press YES to agree.');
+ const yes=page.locator('.touch-context button',{hasText:'Yes'});await expect(yes).toBeVisible();
+ const yesBox=(await yes.boundingBox())!;
+ await page.evaluate(({x,y})=>document.querySelector('.touch-context button[data-code=KeyY]')!.dispatchEvent(new PointerEvent('pointerdown',{pointerId:21,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{x:yesBox.x+5,y:yesBox.y+5});
+ await expect.poll(async()=>(await pad()).yes,{timeout:5000}).toBe(255);
+ await page.evaluate(({x,y})=>document.querySelector('.touch-context button[data-code=KeyY]')!.dispatchEvent(new PointerEvent('pointerup',{pointerId:21,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{x:yesBox.x+5,y:yesBox.y+5});
+ await page.evaluate(()=>(window as any).__game.hud().help(''));await expect(yes).toBeHidden();
  // Sideways there is no card; a phone turned upright gets one until it turns back or the player plays on anyway.
  const rotate=page.locator('.touch-rotate');await expect(rotate).toBeHidden();
  const viewport=page.viewportSize()!;await page.setViewportSize({width:390,height:844});
