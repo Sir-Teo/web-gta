@@ -160,6 +160,8 @@ export function setControlNaming(next:{flying?:boolean;menu?:boolean;pad?:'plays
 }
 /** What HUD text calls a control now (its key, touch button or pad button), or undefined for one with no name. */
 export function controlNameOf(action:string):string|undefined{return controlNames[action];}
+/** Whose names HUD text gives the controls now: the keys, the touch buttons, or a played pad's (by its family). */
+export function controlNaming():'keys'|'touch'|'playstation'|'xbox'{return naming.pad??(naming.touch?'touch':'keys');}
 /** The controls each recent HUD text named, by the text gxtHudText made: the touch controls show a button for a
  * control the help box asks for that has none of its own (a yes-or-no question, collecting a pickup). */
 const NAMED=new Map<string,readonly string[]>();

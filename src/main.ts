@@ -7,7 +7,7 @@ import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {carRollsOverProp} from './simulation/vehiclePropContacts';
-import {controlNameOf,controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,useTouchControlNames} from './assets/gxt';
+import {controlNameOf,controlNaming,controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,useTouchControlNames} from './assets/gxt';
 import {ScriptTextLayer} from './ui/ScriptTextLayer';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
@@ -2281,8 +2281,9 @@ async function boot() {
   const screenAwake=touch?new ScreenAwake():undefined;
   // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for.
   function applyResolution(){if(touch)render.setPixelRatio(resolutionRatio(touchSettings.resolution,devicePixelRatio));}
-  // The help box draws a touch button's glyph beside its name, as the mobile ports' help shows the widget itself.
-  if(touch)hud.decorateHelp=(box,text)=>showHelpIcons(box,text,controlsNamedIn(text),controlNameOf);
+  // The help box draws the buttons it names: a touch button's glyph beside its name, as the mobile ports' help shows the
+  // widget itself, and a played pad's face buttons as their symbols, as the PS2 original's did.
+  hud.decorateHelp=(box,text)=>showHelpIcons(box,text,controlsNamedIn(text),controlNameOf,controlNaming());
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);applyResolution();
    // The pause menu's Controls panel holds the touch settings.
    // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.

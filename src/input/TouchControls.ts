@@ -49,16 +49,25 @@ export function offerInstall(button:HTMLButtonElement,target:EventTarget=window)
 const HELP_ICONS:Readonly<Record<string,TouchIcon>>={ENTER:'car',SPRINT:'run',JUMP:'jump',CROUCH:'crouch',AIM:'target',GAS:'up',BRAKE:'down',
  'H-BRAKE':'parking',HORN:'horn',RADIO:'music','LOOK BACK':'eye',CAMERA:'camera','ZOOM +':'zoomIn','ZOOM −':'zoomOut',ROCKET:'rocket',
  '◀ YAW':'left','YAW ▶':'right','LEFT ARROW':'left','RIGHT ARROW':'right'};
-/** The help box's text with each touch button it names led by the button's glyph: only the names the text's ~k~ tokens
- * put there (`named`, their actions; `nameOf`, what each is called now), so a capitalised word of its own stays. */
-export function showHelpIcons(box:HTMLElement,text:string,named:readonly string[],nameOf:(action:string)=>string|undefined){
- const names=[...new Set(named.map(nameOf).filter((n):n is string=>!!n&&n in HELP_ICONS))].sort((a,b)=>b.length-a.length);
+/** A played pad's face buttons as the PS2 original's help drew them, a symbol in the button's colour: a PlayStation
+ * pad's shapes, and the letters MFi and Xbox pads print in theirs. Shoulder and stick buttons keep their names. */
+const PAD_GLYPHS:Readonly<Record<'playstation'|'xbox',Readonly<Record<string,{glyph:string;colour:string}>>>>={
+ playstation:{CROSS:{glyph:'✕',colour:'#7fb2ff'},CIRCLE:{glyph:'○',colour:'#ff6f6f'},SQUARE:{glyph:'□',colour:'#f39ad7'},TRIANGLE:{glyph:'△',colour:'#5fd9a6'}},
+ xbox:{A:{glyph:'A',colour:'#6cc24a'},B:{glyph:'B',colour:'#e8473d'},X:{glyph:'X',colour:'#3f8fe0'},Y:{glyph:'Y',colour:'#f2c230'}}};
+/** The help box's text with each button it names drawn as the button: with the touch controls a button's glyph before its
+ * name, with a pad its face buttons' symbols in place of their names. Only the names the text's ~k~ tokens put there
+ * (`named`, their actions; `nameOf`, what each is called now) are drawn, so a capitalised word of its own stays. */
+export function showHelpIcons(box:HTMLElement,text:string,named:readonly string[],nameOf:(action:string)=>string|undefined,naming:'keys'|'touch'|'playstation'|'xbox'='touch'){
+ const pad=naming==='playstation'||naming==='xbox'?PAD_GLYPHS[naming]:undefined,drawn=pad??(naming==='touch'?HELP_ICONS:{});
+ const names=[...new Set(named.map(nameOf).filter((n):n is string=>!!n&&n in drawn))].sort((a,b)=>b.length-a.length);
  if(!names.length)return;
- const escape=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),pattern=new RegExp(`(?<![A-Z])(${names.map(escape).join('|')})(?![A-Z])`,'g');
+ const escape=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),pattern=new RegExp(`(?<![A-Za-z])(${names.map(escape).join('|')})(?![A-Za-z])`,'g');
  const parts=text.split(pattern);if(parts.length<2)return;
  box.replaceChildren(...parts.map((part,i)=>{
   if(i%2===0)return document.createTextNode(part);
-  const key=document.createElement('span');key.className='help-key';key.innerHTML=touchIconSvg(HELP_ICONS[part]);key.append(part);return key;
+  const key=document.createElement('span');
+  if(pad){const {glyph,colour}=pad[part];key.className='help-key pad';key.textContent=glyph;key.style.color=colour;key.setAttribute('role','img');key.setAttribute('aria-label',part);return key;}
+  key.className='help-key';key.innerHTML=touchIconSvg(HELP_ICONS[part]);key.append(part);return key;
  }));
 }
 /** What the player is doing, which picks the buttons shown. */
