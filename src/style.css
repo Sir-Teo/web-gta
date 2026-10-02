@@ -113,6 +113,9 @@
 .script-menu-cell{position:absolute}
 .paused .script-menus{visibility:hidden}
 /* Touch controls (src/input/TouchControls.ts): a floating stick on the left, camera drag on the right, buttons round the right thumb. */
+/* A phone's page never zooms: a pinch or a double tap on a menu would scale the whole game (Safari zooms whatever the
+   viewport says), and a long press would select the menu's words or offer to save its pictures. Lists still scroll. */
+html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-webkit-touch-callout:none}
 .touch-controls{position:absolute;inset:0;z-index:4;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:none}
 .touch-controls[hidden],.game-ui.paused .touch-controls{display:none}
 .touch-look{position:absolute;top:0;right:0;bottom:0;left:45%;pointer-events:auto;touch-action:none}
