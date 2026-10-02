@@ -202,6 +202,8 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 /* The radio's name stands top centre, where on a phone the help box (moved right of the radar) reaches: while help shows,
    the name drops under the top strip, centred between the radar's column and the buttons. */
 .touch .game-ui:has(.help-box:not([hidden])) .radio-name{--free-left:calc(var(--touch-radar-left) + var(--touch-radar) + 12px);top:calc(var(--status-bottom,76px) + 6px);left:calc(var(--free-left) + (100vw - var(--touch-cluster) - var(--free-left)) / 2)}
+/* Flying, the readout stands there: the name goes under it. */
+.touch .game-ui.flying:has(.help-box:not([hidden])) .radio-name{top:calc(var(--status-bottom,76px) + 40px)}
 /* Adjusting the layout (the touch settings' Adjust controls): the held game dimmed and the rest of the HUD gone, a
  * layout's every button outlined to be dragged, and the bar of layouts, Reset and Done at the top. */
 .touch-controls.editing{background:#000000a8}
