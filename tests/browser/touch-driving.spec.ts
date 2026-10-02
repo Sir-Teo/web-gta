@@ -37,20 +37,29 @@ test('a phone drives with the stick at full lock and the Gas pedal',async({page}
  // Radio tunes the next station, named at the top of the screen.
  await press('.touch-button.radio',13);await press('.touch-button.radio',13,'pointerup');
  await expect(page.locator('.radio-name')).toBeVisible({timeout:5000});
+ // With a help line up (moved right of the radar on a phone, where the name stands top centre) the name drops under
+ // the top strip, clear of it.
+ await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~VEHICLE_HORN~ to sound the horn and ~k~~VEHICLE_RADIO_STATION_UP~ to change the station.'),60000);});
+ expect(await page.evaluate(()=>{const a=document.querySelector('.help-box')!.getBoundingClientRect(),b=document.querySelector('.radio-name')!.getBoundingClientRect();
+  return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;})).toBe(false);
+ await page.evaluate(()=>(window as any).__game.hud().help(''));
  const start=(await state()).nativeCar;
+ // The car body's yaw, read from the car itself, so a bump into something later in the circle cannot hide the turn.
+ const yaw=()=>page.evaluate(()=>{const q=[...(window as any).__game.fleet().cars].find((c:any)=>c.occupied).car.body.rotation();return Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));});
+ const before=await yaw();
  // The stick hard right, not forward at all, and Gas held.
  const zone=(await page.locator('.touch-stick-zone').boundingBox())!,x=zone.x+zone.width/2,y=zone.y+zone.height/2;
  await finger('.touch-stick-zone','pointerdown',x,y,7);await finger('.touch-stick-zone','pointermove',x+80,y,7);
- await press('.touch-button.gas:not([hidden])',11);await gameWait(1.2);
- const early=(await state()).nativeCar;await gameWait(1.3);const turning=(await state()).nativeCar;
- // It drives off and its course swings round: the direction of travel turns between the two looks.
- const moved=Math.hypot(turning.position.x-start.position.x,turning.position.z-start.position.z);
- const course=(v:{x:number;z:number})=>Math.atan2(v.x,v.z),turned=Math.abs(Math.atan2(Math.sin(course(turning.velocity)-course(early.velocity)),Math.cos(course(turning.velocity)-course(early.velocity))));
- expect(moved,JSON.stringify({start,early,turning})).toBeGreaterThan(3);expect(turned,JSON.stringify({early:early.velocity,turning:turning.velocity})).toBeGreaterThan(.3);
- // Let go of Gas and hold Brake: the car comes to a stop.
+ await press('.touch-button.gas:not([hidden])',11);await gameWait(1.5);
+ const after=await yaw(),turning=(await state()).nativeCar;
+ // It drives off and swings round.
+ const moved=Math.hypot(turning.position.x-start.position.x,turning.position.z-start.position.z),turned=Math.abs(Math.atan2(Math.sin(after-before),Math.cos(after-before)));
+ expect(moved,JSON.stringify({start,turning})).toBeGreaterThan(3);expect(turned,JSON.stringify({before,after,velocity:turning.velocity})).toBeGreaterThan(.3);
+ await gameWait(1);
+ // Let go of Gas and hold Brake: the car comes to a stop (held on, it then reverses, so the stop is looked for often).
  await press('.touch-button.gas:not([hidden])',11,'pointerup');await finger('.touch-stick-zone','pointerup',x+80,y,7);
  await press('.touch-button.reverse:not([hidden])',12);
- await expect.poll(async()=>{const v=(await state()).nativeCar.velocity;return Math.hypot(v.x,v.z);},{timeout:15000}).toBeLessThan(1);
+ await expect.poll(async()=>{const v=(await state()).nativeCar.velocity;return Math.hypot(v.x,v.z);},{timeout:15000,intervals:[100]}).toBeLessThan(1);
  await press('.touch-button.reverse:not([hidden])',12,'pointerup');
  expect(errors).toEqual([]);
 });
