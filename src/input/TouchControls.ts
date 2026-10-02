@@ -1,5 +1,5 @@
 import type {Input} from './Input';
-import {BUTTON_SCALE_RANGE,DEFAULT_TOUCH,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type TouchSettings} from './touchSettings';
+import {BUTTON_SCALE_RANGE,DEFAULT_TOUCH,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type LayoutEntry,type TouchSettings} from './touchSettings';
 import {touchIconSvg,type TouchIcon} from './touchIcons';
 /* Touch-screen controls for phones and tablets, laid over the game the way the mobile ports lay theirs: a floating
  * stick under the left thumb, the camera dragged with the right, and the buttons round the right thumb. Every control
@@ -183,7 +183,7 @@ export class TouchControls {
   }
   // Adjusting the layout: which layout's buttons, Reset and Done, at the top where no button sits.
   this.adjustBar.className='touch-adjust';this.adjustBar.hidden=true;this.adjustBar.setAttribute('aria-label','Adjust controls');
-  this.adjustBar.innerHTML='<p>Drag the buttons where your thumbs want them.</p><div></div>';
+  this.adjustBar.innerHTML='<p>Drag the buttons where your thumbs want them.</p><div></div><div class="touch-adjust-size" hidden><span></span></div>';
   for(const [action,label] of [['foot','On foot'],['vehicle','Driving'],['aircraft','Flying'],['reset','Reset'],['done','Done']] as const){
    const button=document.createElement('button');button.type='button';button.className='touch-button small';button.textContent=label;
    if(action==='foot'||action==='vehicle'||action==='aircraft')button.dataset.layout=action;
@@ -195,6 +195,15 @@ export class TouchControls {
     else this.showLayout(action);},options);
    this.adjustBar.querySelector('div')!.append(button);
   }
+  // The size of the button touched last, a tenth at a time.
+  {const row=this.adjustBar.querySelector<HTMLElement>('.touch-adjust-size')!;
+   for(const [step,label,name] of [[-.1,'−','Smaller'],[.1,'+','Bigger']] as const){
+    const button=document.createElement('button');button.type='button';button.className='touch-button small';button.textContent=label;button.setAttribute('aria-label',name);
+    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();},options);
+    button.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();this.resize(step);},options);
+    if(step>0)row.append(this.sizeReadout);
+    row.append(button);
+   }}
   this.element.append(look,stickZone,pad,top,context,this.steeringPopup,this.adjustBar);parent.append(this.element,rotate);
   // The HUD's weapon icon is the weapon button, as the mobile ports': a tap takes the next weapon (E) and a swipe to the
   // left the one before (Q), on foot.
@@ -329,16 +338,19 @@ export class TouchControls {
  /** Each button moved where the player put it in this layout (the CSS translate, kept apart from the grid's place). */
  private place(){
   const layout=this.editing?.layout??this.settings.layout,group=layoutGroup(this.mode??'foot');
-  for(const {spec,element} of this.buttons){const o=layout[`${group}:${spec.className}`];const translate=o?`${o[0]}vmin ${o[1]}vmin`:'';if(element.style.translate!==translate)element.style.translate=translate;}
+  for(const {spec,element} of this.buttons){const o=layout[`${group}:${spec.className}`];const translate=o?`${o[0]}vmin ${o[1]}vmin`:'',scale=o?.[2]?String(o[2]):'';
+   if(element.style.translate!==translate)element.style.translate=translate;if(element.style.scale!==scale)element.style.scale=scale;}
+  this.showSize();
  }
- private editing?:{layout:Record<string,[number,number]>;mode:TouchMode;done:()=>void};
+ private editing?:{layout:Record<string,LayoutEntry>;mode:TouchMode;done:()=>void;selected?:ButtonSpec};
+ private sizeReadout=document.createElement('output');
  private adjustBar=document.createElement('section');
  /** The port's Adjust Controls: the game held, a layout's buttons are dragged where the thumbs want them (on foot, at
   * the wheel, flying), Reset puts that layout's back, and Done keeps them. */
  adjust(done:()=>void){
   if(this.editing)return;
   this.setVisible(false);
-  this.editing={layout:{...this.settings.layout} as Record<string,[number,number]>,mode:this.mode??'foot',done};
+  this.editing={layout:{...this.settings.layout},mode:this.mode??'foot',done};
   this.element.classList.add('editing');this.element.hidden=false;this.adjustBar.hidden=false;this.showLayout('foot');
  }
  /** Whether the layout is being adjusted. */
@@ -346,13 +358,14 @@ export class TouchControls {
  /** Done, from outside (the phone's back button): the layout as it was left. */
  endAdjusting(){this.finishAdjusting(true);}
  private showLayout(group:LayoutGroup){
+  if(this.editing)this.editing.selected=undefined;
   this.mode=group;this.element.dataset.mode=group;this.showButtons();this.place();
   for(const b of this.adjustBar.querySelectorAll<HTMLElement>('[data-layout]'))b.setAttribute('aria-pressed',String(b.dataset.layout===group));
  }
  private finishAdjusting(keep:boolean){
   const editing=this.editing;if(!editing)return;
   this.editing=undefined;this.element.classList.remove('editing');this.adjustBar.hidden=true;this.element.hidden=true;
-  for(const {element} of this.buttons)element.classList.remove('on');
+  for(const {element} of this.buttons)element.classList.remove('on','selected');
   this.mode=undefined;this.setMode(editing.mode);
   if(keep){const next={...this.settings,layout:editing.layout};this.apply(next);this.changeSettings(next);}else this.place();
   editing.done();
@@ -360,11 +373,28 @@ export class TouchControls {
  /** A finger on a button while adjusting moves it, by hundredths of the screen's short side. */
  private drag(e:PointerEvent,spec:ButtonSpec,button:HTMLElement){
   const editing=this.editing!,key=`${layoutGroup(this.mode??'foot')}:${spec.className}`,start=editing.layout[key]??[0,0],x0=e.clientX,y0=e.clientY,unit=Math.min(innerWidth,innerHeight)/100;
-  button.classList.add('on');
+  button.classList.add('on');editing.selected=spec;this.showSize();
   const move=(m:PointerEvent)=>{if(m.pointerId!==e.pointerId||this.editing!==editing)return;
-   editing.layout[key]=[Math.round(Math.min(LAYOUT_RANGE.x.max,Math.max(LAYOUT_RANGE.x.min,start[0]+(m.clientX-x0)/unit))*10)/10,Math.round(Math.min(LAYOUT_RANGE.y.max,Math.max(LAYOUT_RANGE.y.min,start[1]+(m.clientY-y0)/unit))*10)/10];this.place();};
+   const x=Math.round(Math.min(LAYOUT_RANGE.x.max,Math.max(LAYOUT_RANGE.x.min,start[0]+(m.clientX-x0)/unit))*10)/10,y=Math.round(Math.min(LAYOUT_RANGE.y.max,Math.max(LAYOUT_RANGE.y.min,start[1]+(m.clientY-y0)/unit))*10)/10;
+   editing.layout[key]=start[2]===undefined?[x,y]:[x,y,start[2]];this.place();};
   const end=(m:PointerEvent)=>{if(m.pointerId!==e.pointerId)return;button.classList.remove('on');button.removeEventListener('pointermove',move);button.removeEventListener('pointerup',end);button.removeEventListener('pointercancel',end);};
   button.addEventListener('pointermove',move);button.addEventListener('pointerup',end);button.addEventListener('pointercancel',end);
+ }
+ /** The touched button's size against the others', by `step`: back at its own size, only its place is kept. */
+ private resize(step:number){
+  const editing=this.editing,spec=editing?.selected;if(!editing||!spec)return;
+  const key=`${layoutGroup(this.mode??'foot')}:${spec.className}`,[x=0,y=0,scale=1]=editing.layout[key]??[];
+  const next=Math.round(Math.min(LAYOUT_RANGE.scale.max,Math.max(LAYOUT_RANGE.scale.min,scale+step))*10)/10;
+  if(next!==1)editing.layout[key]=[x,y,next];else if(x||y)editing.layout[key]=[x,y];else delete editing.layout[key];
+  this.place();
+ }
+ /** The size row names the touched button and its size; the button is marked. */
+ private showSize(){
+  const editing=this.editing,spec=editing?.selected,row=this.adjustBar.querySelector<HTMLElement>('.touch-adjust-size');if(!row)return;
+  for(const {spec:s,element} of this.buttons)element.classList.toggle('selected',!!spec&&s===spec);
+  row.hidden=!spec;if(!editing||!spec)return;
+  const scale=editing.layout[`${layoutGroup(this.mode??'foot')}:${spec.className}`]?.[2]??1;
+  row.querySelector('span')!.textContent=spec.label;this.sizeReadout.textContent=`${Math.round(scale*100)}%`;
  }
  private weaponWatch?:MutationObserver;
  private steeringPopup=document.createElement('section');

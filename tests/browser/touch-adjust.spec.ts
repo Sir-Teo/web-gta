@@ -1,7 +1,7 @@
 import {test,expect,devices,type Page,type CDPSession} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** The touch settings' Adjust controls (the iOS and Android port's own): from the pause menu, a layout's buttons are
- * dragged by a finger (CDP touch events) where the thumbs want them, Done keeps them for play and for the next visit,
+ * dragged by a finger (CDP touch events) where the thumbs want them and the one touched sized, Done keeps them for play and for the next visit,
  * each layout keeps its own, and Reset puts them back; Resolution High sharpens the picture. */
 const {defaultBrowserType,...phone}=devices['Pixel 7 landscape'];
 test.use({...phone});
@@ -30,14 +30,20 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  // On foot: Fire dragged up and left by a finger follows it.
  await drag(cdp,await box(page,fire),{x:-120,y:-60});
  const moved=await box(page,fire);expect(moved.x-home.x).toBeCloseTo(-120,-1);expect(moved.y-home.y).toBeCloseTo(-60,-1);
+ // The button touched is the one sized: Bigger twice makes Fire a fifth bigger, about its centre.
+ const width=async()=>(await page.locator(fire).boundingBox())!.width,size=page.locator('.touch-adjust-size');
+ await expect(size).toContainText('Fire');await expect(size.locator('output')).toHaveText('100%');const before=await width();
+ for(let i=0;i<2;i++)await tap(cdp,await box(page,'.touch-adjust [aria-label=Bigger]'));
+ await expect(size.locator('output')).toHaveText('120%');expect(await width()/before).toBeCloseTo(1.2,1);expect((await box(page,fire)).x).toBeCloseTo(moved.x,0);
  // Driving is its own layout: its buttons have not moved.
- await tap(cdp,await box(page,'.touch-adjust [data-layout=vehicle]'));
+ await tap(cdp,await box(page,'.touch-adjust [data-layout=vehicle]'));await expect(size).toBeHidden();
  await expect(page.locator('.touch-button.gas:not([hidden])')).toBeVisible();
  expect(await page.locator('.touch-button.gas:not([hidden])').evaluate(b=>(b as HTMLElement).style.translate)).toBe('');
  // Done: back to the menu, the layout kept; playing, Fire is where it was put, and still fires.
  await tap(cdp,await box(page,'.touch-adjust button:text-is("Done")'));
  await expect(page.locator('.touch-adjust')).toBeHidden();await expect(page.getByRole('button',{name:'Resume game',exact:true})).toBeVisible();
- expect(Object.keys(await page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).layout))).toEqual(['foot:fire']);
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).layout);
+ expect(Object.keys(saved)).toEqual(['foot:fire']);expect(saved['foot:fire'][2]).toBe(1.2);
  await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(async()=>(await box(page,fire)).x,{timeout:10000}).toBeCloseTo(moved.x,0);
  // The next visit keeps it.
@@ -54,6 +60,7 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  await tap(cdp,await box(page,'.touch-adjust button:text-is("Reset")'));await tap(cdp,await box(page,'.touch-adjust button:text-is("Done")'));
  await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(async()=>(await box(page,fire)).x,{timeout:10000}).toBeCloseTo(home.x,0);
+ expect(await page.locator(fire).evaluate(b=>(b as HTMLElement).style.scale)).toBe('');
  // Resolution High draws at the screen's density (up to twice the CSS pixel), Standard at one pixel per CSS pixel.
  const buffer=()=>page.evaluate(()=>{const c=document.querySelector('canvas.world')??document.querySelector('canvas')!,gl=(window as any).__game.render().renderer.getContext();return gl.drawingBufferWidth/c.clientWidth;});
  expect(await buffer()).toBe(1);

@@ -14,17 +14,22 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  resolution:'standard'|'high';
  /** Where the player has moved buttons (the port's Adjust Controls): by layout and slot ("foot:jump"), how far from
   * their place, in hundredths of the screen's short side. */
- layout:Readonly<Record<string,readonly [number,number]>>;
+ layout:Readonly<Record<string,LayoutEntry>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
 export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
-/** How far a button may be moved from its place: most of the way across a sideways screen and up it. */
-export const LAYOUT_RANGE={x:{min:-200,max:20},y:{min:-100,max:20}};
+/** A moved button: how far across and down, and (when resized) its size against the others'. */
+export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
+/** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
+export const LAYOUT_RANGE={x:{min:-200,max:20},y:{min:-100,max:20},scale:{min:.6,max:1.6}};
 const LAYOUT_KEY=/^(?:foot|vehicle|aircraft):[a-z-]+$/;
-function parseLayout(value:unknown):Record<string,[number,number]>{
- const out:Record<string,[number,number]>={};if(!value||typeof value!=='object')return out;
- for(const [key,offset] of Object.entries(value))if(LAYOUT_KEY.test(key)&&Array.isArray(offset)&&offset.length===2&&offset.every(n=>typeof n==='number'&&Number.isFinite(n)))
-  out[key]=[Math.min(LAYOUT_RANGE.x.max,Math.max(LAYOUT_RANGE.x.min,offset[0])),Math.min(LAYOUT_RANGE.y.max,Math.max(LAYOUT_RANGE.y.min,offset[1]))];
+const within=(value:number,range:{min:number;max:number})=>Math.min(range.max,Math.max(range.min,value));
+function parseLayout(value:unknown):Record<string,LayoutEntry>{
+ const out:Record<string,LayoutEntry>={};if(!value||typeof value!=='object')return out;
+ for(const [key,entry] of Object.entries(value))if(LAYOUT_KEY.test(key)&&Array.isArray(entry)&&(entry.length===2||entry.length===3)&&entry.every(n=>typeof n==='number'&&Number.isFinite(n))){
+  const [x,y]=[within(entry[0],LAYOUT_RANGE.x),within(entry[1],LAYOUT_RANGE.y)];
+  out[key]=entry.length===3?[x,y,within(entry[2],LAYOUT_RANGE.scale)]:[x,y];
+ }
  return out;
 }
 export const LOOK_SPEED_RANGE={min:.5,max:2},BUTTON_SCALE_RANGE={min:.8,max:1.3};

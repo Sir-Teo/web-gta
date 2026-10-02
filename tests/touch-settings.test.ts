@@ -13,6 +13,8 @@ test('touch settings read back what was kept, and anything else falls back to th
  expect(parseTouchSettings({layout:{'foot:fire':[-12.5,-4],'vehicle:gas':[-999,999],'cutscene:skip':[1,1],'foot:jump':[1],'foot:aim':['a','b']}}).layout)
   .toEqual({'foot:fire':[-12.5,-4],'vehicle:gas':[LAYOUT_RANGE.x.min,LAYOUT_RANGE.y.max]});
  expect(parseTouchSettings({layout:'moved'}).layout).toEqual({});
+ // A resized button's size comes back with its place, within the sizes the editor offers.
+ expect(parseTouchSettings({layout:{'foot:fire':[0,0,1.3],'foot:jump':[2,-3,9],'foot:aim':[0,0,1,1]}}).layout).toEqual({'foot:fire':[0,0,1.3],'foot:jump':[2,-3,LAYOUT_RANGE.scale.max]});
  // The steering question is asked once: answered, or settings kept with a steering method from before it was asked.
  expect(parseTouchSettings({aimAssist:false}).steeringChosen).toBe(false);expect(parseTouchSettings({steeringChosen:true}).steeringChosen).toBe(true);
 });
