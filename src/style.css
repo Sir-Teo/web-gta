@@ -129,11 +129,16 @@
 .touch-button.aim{grid-area:aim}.touch-button.jump{grid-area:jump}.touch-button.sprint{grid-area:sprint}.touch-button.enter{grid-area:enter}
 .touch-button.crouch{grid-area:crouch}.touch-button.reload{grid-area:reload}
 /* At the wheel the pedals take the thumb's corner: Gas there, Brake beside it, the handbrake above, drive-by fire between. */
-.touch-controls[data-mode=vehicle] .touch-buttons{grid-template-areas:"sprint crouch enter" "radio fire jump" ". reverse gas"}
+.touch-controls[data-mode=vehicle] .touch-buttons{grid-template-areas:"sprint crouch enter" "radio fire jump" "nitro reverse gas"}
 .touch-controls[data-mode=vehicle] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
 .touch-button.gas{grid-area:gas;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);border-color:#9be0a4c0}
 .touch-button.reverse{grid-area:reverse}
 .touch-button.radio{grid-area:radio}
+.touch-button.nitro{grid-area:nitro;border-color:#7fc8ffc0}
+/* A cutscene: no stick or camera drag, and Skip where Fire was. */
+.touch-controls[data-mode=cutscene] .touch-stick-zone,.touch-controls[data-mode=cutscene] .touch-look{display:none}
+.touch-controls[data-mode=cutscene] .touch-buttons{grid-template-areas:". . ." ". . ." ". . skip"}
+.touch-button.skip{grid-area:skip;justify-self:end;width:auto;min-width:var(--touch-fire);height:44px;border-radius:22px;padding:0 18px;font-size:15px}
 /* Arrow steering (the port's default): two big arrows under the left thumb at the wheel, where the stick was. */
 .touch-button.steer-left,.touch-button.steer-right{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));width:var(--touch-fire);height:var(--touch-fire)}
 .touch-button.steer-left{left:calc(max(12px,env(safe-area-inset-left)) + 8px)}.touch-button.steer-right{left:calc(max(12px,env(safe-area-inset-left)) + 24px + var(--touch-fire))}

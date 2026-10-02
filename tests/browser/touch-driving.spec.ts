@@ -22,6 +22,10 @@ test('a phone drives with the stick at full lock and the Gas pedal',async({page}
  await expect.poll(async()=>(await state()).carEntry.phase,{timeout:60000}).toBe('seated');
  await expect(page.locator('.touch-controls')).toHaveAttribute('data-mode','vehicle');
  await expect(page.locator('.touch-button.gas:not([hidden])')).toBeVisible();await expect(page.locator('.touch-button.aim')).toBeHidden();
+ // Nitrous shows only in a car fitted with nitro, as the port's NOS button does.
+ const nitro=page.getByRole('button',{name:'Nitrous',exact:true});await expect(nitro).toBeHidden();
+ await page.evaluate(()=>{const car=[...(window as any).__game.fleet().cars].find((c:any)=>c.occupied);car.car.fitEndlessNitro();});
+ await expect(nitro).toBeVisible();
  // Radio tunes the next station, named at the top of the screen.
  await press('.touch-button.radio',13);await press('.touch-button.radio',13,'pointerup');
  await expect(page.locator('.radio-name')).toBeVisible({timeout:5000});

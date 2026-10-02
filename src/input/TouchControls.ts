@@ -26,7 +26,7 @@ export async function goFullscreen(root:Element=document.documentElement,doc:Pic
  }catch{/* refused: play on as the page is */}
 }
 /** What the player is doing, which picks the buttons shown. */
-export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft';
+export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft'|'cutscene';
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the
  * modes it shows in (all of them when unset), and whether it shows only while the game offers it (setOffered), as the
  * mobile ports show their enter-vehicle button only beside a vehicle. */
@@ -48,6 +48,10 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down'},
  // N tunes the radio (the mobile ports swipe for it).
  {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],icon:'music'},
+ // A car fitted with nitro fires it with the car's weapon button: the port gives it a button of its own, shown only then.
+ {label:'Nitrous',code:'ControlLeft',className:'nitro',modes:['vehicle'],contextual:true,icon:'bolt'},
+ // A cutscene: the cluster gives way to Skip (CCutsceneMgr's skip is Space or Return just pressed).
+ {label:'Skip',code:'Space',className:'skip',modes:['cutscene']},
  // The port's default steering: left and right arrows under the left thumb (A and D), in place of the stick.
  {label:'Steer left',code:'KeyA',className:'steer-left',modes:['vehicle'],icon:'left',steering:'arrows'},
  {label:'Steer right',code:'KeyD',className:'steer-right',modes:['vehicle'],icon:'right',steering:'arrows'},
@@ -189,8 +193,8 @@ export class TouchControls {
   // A light push walks (the PC's walk key); past half way CJ runs.
   if(Math.hypot(stick.x,stick.y)<.55)this.input.hold('AltLeft');else this.input.release('AltLeft');
  }
- /** On foot, through a scope, swimming, at the wheel or flying: the other modes' buttons are hidden, and a latched aim
-  * is let go anywhere it cannot aim. */
+ /** On foot, through a scope, swimming, at the wheel, flying or watching a cutscene: the other modes' buttons are hidden,
+  * and a latched aim is let go anywhere it cannot aim. */
  setMode(mode:TouchMode){
   if(mode===this.mode)return;
   this.mode=mode;this.element.dataset.mode=mode;
@@ -207,7 +211,7 @@ export class TouchControls {
  private showButtons(){
   const mode=this.mode??'foot';
   for(const {spec,element} of this.buttons){
-   const hidden=!!spec.modes&&!spec.modes.includes(mode)||!!spec.contextual&&!this.offered.has(spec.className)||!!spec.steering&&spec.steering!==this.settings.steering;
+   const hidden=(spec.modes?!spec.modes.includes(mode):mode==='cutscene')||!!spec.contextual&&!this.offered.has(spec.className)||!!spec.steering&&spec.steering!==this.settings.steering;
    if(element.hidden===hidden)continue;element.hidden=hidden;
    // A button that goes while a finger holds it lets go of its key.
    if(hidden&&!spec.toggle){for(const [id,code] of this.held)if(code===spec.code&&element.classList.contains('on'))this.held.delete(id);if(![...this.held.values()].includes(spec.code))this.input.release(spec.code);element.classList.remove('on');}
