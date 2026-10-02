@@ -49,11 +49,17 @@ export function offerInstall(button:HTMLButtonElement,target:EventTarget=window)
 const HELP_ICONS:Readonly<Record<string,TouchIcon>>={ENTER:'car',SPRINT:'run',JUMP:'jump',CROUCH:'crouch',AIM:'target',GAS:'up',BRAKE:'down',
  'H-BRAKE':'parking',HORN:'horn',RADIO:'music','LOOK BACK':'eye',CAMERA:'camera','ZOOM +':'zoomIn','ZOOM −':'zoomOut',ROCKET:'rocket',
  '◀ YAW':'left','YAW ▶':'right','LEFT ARROW':'left','RIGHT ARROW':'right'};
-/** A played pad's face buttons as the PS2 original's help drew them, a symbol in the button's colour: a PlayStation
- * pad's shapes, and the letters MFi and Xbox pads print in theirs. Shoulder and stick buttons keep their names. */
+/** A played pad's buttons as the PS2 original's help drew them: the face buttons a symbol in the button's colour (a
+ * PlayStation pad's shapes, the letters MFi and Xbox pads print in theirs), the shoulders, stick clicks and select
+ * grey chips with their names, the D-pad its arrows. */
+const PAD_GREY='#d6d6d6',padChips=(names:readonly string[])=>Object.fromEntries(names.map(name=>[name,{glyph:name,colour:PAD_GREY}]));
+/** The D-pad's directions as its arrows, the same on both families. */
+const DPAD={'D-PAD UP':{glyph:'▲',colour:PAD_GREY},'D-PAD DOWN':{glyph:'▼',colour:PAD_GREY},'D-PAD LEFT':{glyph:'◀',colour:PAD_GREY},'D-PAD RIGHT':{glyph:'▶',colour:PAD_GREY}};
 const PAD_GLYPHS:Readonly<Record<'playstation'|'xbox',Readonly<Record<string,{glyph:string;colour:string}>>>>={
- playstation:{CROSS:{glyph:'✕',colour:'#7fb2ff'},CIRCLE:{glyph:'○',colour:'#ff6f6f'},SQUARE:{glyph:'□',colour:'#f39ad7'},TRIANGLE:{glyph:'△',colour:'#5fd9a6'}},
- xbox:{A:{glyph:'A',colour:'#6cc24a'},B:{glyph:'B',colour:'#e8473d'},X:{glyph:'X',colour:'#3f8fe0'},Y:{glyph:'Y',colour:'#f2c230'}}};
+ playstation:{CROSS:{glyph:'✕',colour:'#7fb2ff'},CIRCLE:{glyph:'○',colour:'#ff6f6f'},SQUARE:{glyph:'□',colour:'#f39ad7'},TRIANGLE:{glyph:'△',colour:'#5fd9a6'},
+  ...padChips(['L1','R1','L2','R2','L3','R3','SELECT']),...DPAD},
+ xbox:{A:{glyph:'A',colour:'#6cc24a'},B:{glyph:'B',colour:'#e8473d'},X:{glyph:'X',colour:'#3f8fe0'},Y:{glyph:'Y',colour:'#f2c230'},
+  ...padChips(['LB','RB','LT','RT','LS','RS','VIEW']),...DPAD}};
 /** The help box's text with each button it names drawn as the button: with the touch controls a button's glyph before its
  * name, with a pad its face buttons' symbols in place of their names. Only the names the text's ~k~ tokens put there
  * (`named`, their actions; `nameOf`, what each is called now) are drawn, so a capitalised word of its own stays. */

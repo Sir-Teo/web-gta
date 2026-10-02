@@ -28,9 +28,10 @@ test('a controller plays on a phone and works the pause menu',async({page,contex
  // Help names the pad's buttons while it plays (the stand-in names no maker, so the Xbox letters).
  const named=()=>page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);return gxtHudText('Press ~k~~VEHICLE_ENTER_EXIT~ to get in.') as string;});
  await expect.poll(named).toBe('Press Y to get in.');
- // The help box draws the face button as the pad's own symbol, in its colour.
- await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~VEHICLE_ENTER_EXIT~ to get in.'),60000);});
- await expect(page.locator('.help-box .help-key.pad')).toHaveText('Y');await expect(page.locator('.help-box')).toHaveText('Press Y to get in.');
+ // The help box draws the pad's buttons: a face button as its own symbol in its colour, a shoulder as a chip, the D-pad
+ // as its arrow.
+ await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~VEHICLE_ENTER_EXIT~ to get in, ~k~~PED_LOCK_TARGET~ to aim and ~k~~GROUP_CONTROL_FWD~ to recruit.'),60000);});
+ await expect(page.locator('.help-box .help-key.pad')).toHaveText(['Y','RB','▲']);await expect(page.locator('.help-box')).toContainText('Press Y to get in, RB to aim and');
  await page.evaluate(()=>(window as any).__game.hud().help(''));
  // Cross held sprints.
  await button(0,true);await expect.poll(async()=>(await state()).nativeCharacter?.action,{timeout:10000}).toBe('sprint');
