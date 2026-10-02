@@ -13,7 +13,7 @@ test('a phone flies the Maverick: Thrust climbs, the stick pitches and rolls it'
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).aircraft?.occupied,{timeout:60000}).toBe(true);
  const controls=page.locator('.touch-controls');await expect(controls).toBeVisible();await expect(controls).toHaveAttribute('data-mode','aircraft');
- await expect(page.locator('.touch-button.gas:not([hidden])')).toHaveText('Thrust');await expect(page.locator('.touch-button.yaw-left:not([hidden])')).toBeVisible();await expect(page.locator('.touch-button.aim')).toBeHidden();
+ await expect(page.locator('.touch-button.gas:not([hidden])')).toHaveAttribute('aria-label','Thrust');await expect(page.locator('.touch-button.yaw-left:not([hidden])')).toBeVisible();await expect(page.locator('.touch-button.aim')).toBeHidden();
  const finger=(selector:string,type:string,x:number,y:number,id:number)=>page.evaluate(({selector,type,x,y,id})=>{
   document.querySelector(selector)!.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true}));
  },{selector,type,x,y,id});

@@ -121,16 +121,17 @@
  --touch-cluster:calc(2 * var(--touch-b) + var(--touch-fire) + 2 * var(--touch-gap) + var(--touch-right));--touch-cluster-h:calc(2 * var(--touch-b) + var(--touch-fire) + 2 * var(--touch-gap) + max(12px,env(safe-area-inset-bottom)))}
 .touch-buttons{position:absolute;right:var(--touch-right);bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:var(--touch-b) var(--touch-b) var(--touch-fire);grid-template-rows:var(--touch-b) var(--touch-b) var(--touch-fire);
  grid-template-areas:"reload . enter" "crouch aim jump" ". sprint fire";gap:var(--touch-gap);place-items:center;pointer-events:none}
-.touch-button{pointer-events:auto;touch-action:none;width:var(--touch-b);height:var(--touch-b);border-radius:50%;border:2px solid #fff8;background:#0006;color:#fff;font:600 clamp(10px,3vmin,12px)/1 system-ui,sans-serif;text-shadow:0 1px 2px #000;padding:0}
+.touch-button{pointer-events:auto;touch-action:none;width:var(--touch-b);height:var(--touch-b);border-radius:50%;border:2px solid #ffffff6e;background:#00000052;color:#fffffff0;font:600 clamp(10px,3vmin,12px)/1 system-ui,sans-serif;text-shadow:0 1px 2px #000;padding:0;display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
+.touch-button>svg{width:56%;height:56%;fill:currentColor;filter:drop-shadow(0 1px 1px #000a)}.touch-button>img{width:74%;height:74%;object-fit:contain;filter:drop-shadow(0 1px 2px #000)}.touch-button.fire>svg.weapon{width:60%;height:60%;margin:0}
 .touch-button[hidden]{display:none}
-.touch-button.on{background:#fffc;color:#111;text-shadow:none}
-.touch-button.fire{grid-area:fire;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);background:#a0202099}
+.touch-button.on{background:#ffffffc7;color:#111;text-shadow:none}.touch-button.on>svg{filter:none}
+.touch-button.fire{grid-area:fire;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);border-color:#ff8a7ab0}
 .touch-button.aim{grid-area:aim}.touch-button.jump{grid-area:jump}.touch-button.sprint{grid-area:sprint}.touch-button.enter{grid-area:enter}
 .touch-button.crouch{grid-area:crouch}.touch-button.reload{grid-area:reload}
 /* At the wheel the pedals take the thumb's corner: Gas there, Brake beside it, the handbrake above, drive-by fire between. */
 .touch-controls[data-mode=vehicle] .touch-buttons{grid-template-areas:"sprint crouch enter" "radio fire jump" ". reverse gas"}
 .touch-controls[data-mode=vehicle] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
-.touch-button.gas{grid-area:gas;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);background:#2f7a3c99}
+.touch-button.gas{grid-area:gas;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);border-color:#9be0a4c0}
 .touch-button.reverse{grid-area:reverse}
 .touch-button.radio{grid-area:radio}
 /* The HUD's weapon icon takes a tap over the touch layer (TouchControls: next weapon, a swipe left the one before). */

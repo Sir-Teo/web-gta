@@ -1,5 +1,6 @@
 import type {Input} from './Input';
 import {BUTTON_SCALE_RANGE,LOOK_SPEED_RANGE,tiltSteering,type TouchSettings} from './touchSettings';
+import {touchIconSvg,type TouchIcon} from './touchIcons';
 /* Touch-screen controls for phones and tablets, laid over the game the way the mobile ports lay theirs: a floating
  * stick under the left thumb, the camera dragged with the right, and the buttons round the right thumb. Every control
  * feeds the same Input the keyboard and mouse do (the stick as CPad's analog left stick, the buttons as the PC keys
@@ -29,39 +30,39 @@ export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft';
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the
  * modes it shows in (all of them when unset), and whether it shows only while the game offers it (setOffered), as the
  * mobile ports show their enter-vehicle button only beside a vehicle. */
-interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean}
+interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean;icon?:TouchIcon}
 const BUTTONS:ButtonSpec[]=[
  {label:'Fire',code:'ControlLeft',className:'fire',modes:['foot','scope','vehicle','aircraft']},
- {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope']},
- {label:'Jump',code:'Space',className:'jump',modes:['foot','swim']},
- {label:'H-brake',code:'Space',className:'jump',modes:['vehicle']},
- {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot']},
- {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle']},
- {label:'Enter',code:'KeyF',className:'enter',contextual:true},
- {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope']},
- {label:'Look',code:'KeyQ',className:'crouch',modes:['vehicle']},
- {label:'Reload',code:'KeyR',className:'reload',modes:['foot','scope']},
+ {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope'],icon:'target'},
+ {label:'Jump',code:'Space',className:'jump',modes:['foot','swim'],icon:'jump'},
+ {label:'H-brake',code:'Space',className:'jump',modes:['vehicle'],icon:'parking'},
+ {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot'],icon:'run'},
+ {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle'],icon:'horn'},
+ {label:'Enter',code:'KeyF',className:'enter',contextual:true,icon:'car'},
+ {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope'],icon:'crouch'},
+ {label:'Look',code:'KeyQ',className:'crouch',modes:['vehicle'],icon:'eye'},
+ {label:'Reload',code:'KeyR',className:'reload',modes:['foot','scope'],icon:'reload'},
  // At the wheel the right thumb has the pedals, as the mobile ports give it, so the stick can steer to full lock
  // while the car accelerates (a stick pushed only sideways is no push forward).
- {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle']},
- {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle']},
+ {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle'],icon:'up'},
+ {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down'},
  // N tunes the radio (the mobile ports swipe for it).
- {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle']},
+ {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],icon:'music'},
  // Flying, the stick is the yoke (pitch and roll) and the right thumb has the throttle, the rudder, the wheel brake
  // (a helicopter's hover hold) and the rockets: the PC's W/S, Q/E, Space and B.
  // Through a scope (the sniper rifle, the camera, the rocket launchers) Jump and Sprint give way to the zoom: the
  // PC's X and Z.
- {label:'Zoom +',code:'KeyX',className:'jump',modes:['scope']},
- {label:'Zoom −',code:'KeyZ',className:'sprint',modes:['scope']},
+ {label:'Zoom +',code:'KeyX',className:'jump',modes:['scope'],icon:'zoomIn'},
+ {label:'Zoom −',code:'KeyZ',className:'sprint',modes:['scope'],icon:'zoomOut'},
  // In the water the fire button dives under and Sprint swims the fast stroke: the mobile ports' Dive and Swim.
- {label:'Dive',code:'ControlLeft',className:'fire',modes:['swim']},
- {label:'Swim',code:'ShiftLeft',className:'sprint',modes:['swim']},
- {label:'Thrust',code:'KeyW',className:'gas',modes:['aircraft']},
- {label:'Slow',code:'KeyS',className:'reverse',modes:['aircraft']},
- {label:'Brake',code:'Space',className:'jump',modes:['aircraft']},
- {label:'◀ Yaw',code:'KeyQ',className:'yaw-left',modes:['aircraft']},
- {label:'Yaw ▶',code:'KeyE',className:'yaw-right',modes:['aircraft']},
- {label:'Rocket',code:'KeyB',className:'rocket',modes:['aircraft']},
+ {label:'Dive',code:'ControlLeft',className:'fire',modes:['swim'],icon:'dive'},
+ {label:'Swim',code:'ShiftLeft',className:'sprint',modes:['swim'],icon:'swim'},
+ {label:'Thrust',code:'KeyW',className:'gas',modes:['aircraft'],icon:'up'},
+ {label:'Slow',code:'KeyS',className:'reverse',modes:['aircraft'],icon:'down'},
+ {label:'Brake',code:'Space',className:'jump',modes:['aircraft'],icon:'parking'},
+ {label:'◀ Yaw',code:'KeyQ',className:'yaw-left',modes:['aircraft'],icon:'left'},
+ {label:'Yaw ▶',code:'KeyE',className:'yaw-right',modes:['aircraft'],icon:'right'},
+ {label:'Rocket',code:'KeyB',className:'rocket',modes:['aircraft'],icon:'rocket'},
 ];
 /** Controls the game asks for only now and then, by the pad action the help text names: a button for each shows above
  * the others while the help box or prompt asks for it (a yes-or-no question, collecting a pickup, a crew order). */
@@ -105,7 +106,8 @@ export class TouchControls {
   stickZone.append(this.stickBase);
   const pad=document.createElement('div');pad.className='touch-buttons';
   for(const spec of BUTTONS){
-   const button=document.createElement('button');button.type='button';button.textContent=spec.label;button.className=`touch-button ${spec.className}`;button.dataset.code=spec.code;
+   const button=document.createElement('button');button.type='button';button.className=`touch-button ${spec.className}`;button.dataset.code=spec.code;button.setAttribute('aria-label',spec.label);
+   if(spec.icon)button.innerHTML=touchIconSvg(spec.icon);else button.textContent=spec.label;
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);
     if(spec.toggle){if(this.latched.has(spec.code)){this.latched.delete(spec.code);input.release(spec.code);button.classList.remove('on');}else{this.latched.add(spec.code);input.hold(spec.code);button.classList.add('on');}return;}
     this.held.set(e.pointerId,spec.code);input.hold(spec.code);button.classList.add('on');},options);
@@ -144,6 +146,14 @@ export class TouchControls {
    slot.addEventListener('pointerup',e=>{if(press?.id!==e.pointerId)return;const p=press;press=undefined;window.clearTimeout(p.timer);
     if(!p.held&&(this.mode==='foot'||this.mode==='scope'))input.tap(e.clientX-p.x<-24?'KeyQ':'KeyE');},options);
    slot.addEventListener('pointercancel',()=>{if(press)window.clearTimeout(press.timer);press=undefined;},options);}
+  // The Fire button shows the weapon in hand, as the port's attack button does: the HUD icon's picture, or its fist.
+  if(slot){const img=slot.querySelector<HTMLImageElement>('img.native-weapon-icon'),fist=slot.querySelector('svg.weapon');
+   const fires=this.buttons.filter(b=>b.spec.code==='ControlLeft'&&!b.spec.icon).map(b=>b.element);
+   const mirror=()=>{const src=img&&!img.hidden&&img.getAttribute('src')?img.src:'';
+    for(const button of fires){if(button.dataset.weapon===src&&button.firstChild)continue;button.dataset.weapon=src;
+     const picture=src?Object.assign(document.createElement('img'),{src,alt:''}):fist?.cloneNode(true) as Element|undefined;
+     if(picture){picture.setAttribute('aria-hidden','true');button.replaceChildren(picture);}}};
+   this.weaponWatch=new MutationObserver(mirror);this.weaponWatch.observe(slot,{subtree:true,attributes:true,attributeFilter:['src','hidden']});mirror();}
   // The stick floats: it is centred where the thumb lands in the left zone and follows it out to its radius.
   stickZone.addEventListener('pointerdown',e=>{if(this.stickPointer!==undefined)return;e.preventDefault();capture(stickZone,e.pointerId);
    this.stickPointer=e.pointerId;this.stickOrigin={x:e.clientX,y:e.clientY};const r=stickZone.getBoundingClientRect();
@@ -224,7 +234,8 @@ export class TouchControls {
   if(!visible){for(const code of new Set([...this.held.values(),...this.latched]))this.input.release(code);this.held.clear();this.latched.clear();this.input.stick=undefined;this.input.release('AltLeft');this.stickPointer=this.lookPointer=undefined;this.stickBase.hidden=true;
    for(const {element} of this.buttons)element.classList.remove('on');}
  }
- dispose(){this.abort.abort();this.element.remove();}
+ private weaponWatch?:MutationObserver;
+ dispose(){this.abort.abort();this.weaponWatch?.disconnect();this.element.remove();}
 }
 
 /** The pause menu's touch settings, the iOS and Android port's own: steering by the stick or by tilting the device,

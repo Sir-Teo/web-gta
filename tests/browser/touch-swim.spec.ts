@@ -20,7 +20,7 @@ test('a phone swims with Dive and Swim, and Enter shows only beside a vehicle',a
  await expect(enter).toBeHidden();
  // Dive takes CJ under.
  const dive=page.getByRole('button',{name:'Dive',exact:true}),box=(await dive.boundingBox())!;
- const send=(type:string)=>page.evaluate(({type,x,y})=>[...document.querySelectorAll<HTMLButtonElement>('.touch-buttons button')].find(b=>b.textContent==='Dive')!.dispatchEvent(new PointerEvent(type,{pointerId:41,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{type,x:box.x+box.width/2,y:box.y+box.height/2});
+ const send=(type:string)=>page.evaluate(({type,x,y})=>[...document.querySelectorAll<HTMLButtonElement>('.touch-buttons button')].find(b=>b.getAttribute('aria-label')==='Dive'&&!b.hidden)!.dispatchEvent(new PointerEvent(type,{pointerId:41,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{type,x:box.x+box.width/2,y:box.y+box.height/2});
  const surface=(await state()).player.position.y;
  await send('pointerdown');await page.waitForTimeout(400);await send('pointerup');
  await expect.poll(async()=>(await state()).player.position.y,{timeout:10000}).toBeLessThan(surface-.5);

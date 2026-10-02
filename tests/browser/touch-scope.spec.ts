@@ -14,9 +14,9 @@ test('a phone zooms the sniper scope in and out',async({page})=>{
  await page.locator('.touch-button.aim').dispatchEvent('pointerdown',{pointerType:'touch'});
  await expect.poll(async()=>(await camera()).firstPerson,{timeout:5000}).toBeTruthy();
  await expect(controls).toHaveAttribute('data-mode','scope');
- await expect(page.locator('.touch-button.aim')).toHaveClass(/\bon\b/);await expect(page.locator('.touch-button.jump:not([hidden])')).toHaveText('Zoom +');
+ await expect(page.locator('.touch-button.aim')).toHaveClass(/\bon\b/);await expect(page.locator('.touch-button.jump:not([hidden])')).toHaveAttribute('aria-label','Zoom +');
  const hold=async(label:string,ms:number)=>{const b=page.getByRole('button',{name:label,exact:true});const box=(await b.boundingBox())!;
-  const send=(type:string)=>page.evaluate(({type,x,y,label})=>[...document.querySelectorAll<HTMLButtonElement>('.touch-buttons button')].find(e=>e.textContent===label&&!e.hidden)!.dispatchEvent(new PointerEvent(type,{pointerId:31,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{type,x:box.x+box.width/2,y:box.y+box.height/2,label});
+  const send=(type:string)=>page.evaluate(({type,x,y,label})=>[...document.querySelectorAll<HTMLButtonElement>('.touch-buttons button')].find(e=>e.getAttribute('aria-label')===label&&!e.hidden)!.dispatchEvent(new PointerEvent(type,{pointerId:31,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{type,x:box.x+box.width/2,y:box.y+box.height/2,label});
   await send('pointerdown');await page.waitForTimeout(ms);await send('pointerup');};
  const wide=(await camera()).fov;
  await hold('Zoom +',1200);const near=(await camera()).fov;expect(near,JSON.stringify({wide,near})).toBeLessThan(wide-5);

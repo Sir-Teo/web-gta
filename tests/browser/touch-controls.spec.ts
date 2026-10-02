@@ -45,6 +45,10 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  const tapIcon=async(id:number,dx=0)=>{const before=await selected();await finger('.weapon-slot','pointerdown',sx,sy,id);await finger('.weapon-slot','pointerup',sx+dx,sy,id);
   await expect.poll(selected,{timeout:5000}).not.toBe(before);return selected();};
  const one=await tapIcon(51);await tapIcon(52);expect(await tapIcon(53,-60)).toBe(one);
+ // The Fire button shows the weapon in hand, the HUD icon's own picture.
+ await page.evaluate(()=>(window as any).__game.weapons().inventory.select(30));
+ await expect.poll(()=>page.evaluate(()=>{const hud=document.querySelector<HTMLImageElement>('.weapon-slot img.native-weapon-icon'),fire=document.querySelector<HTMLImageElement>('.touch-button.fire:not([hidden]) img');
+  return !!hud&&!hud.hidden&&!!fire&&fire.src===hud.src;}),{timeout:10000}).toBe(true);
  // The weapon icon held opens the arsenal (and steps no weapon), without raising the on-screen keyboard: the close
  // button has the focus, not the search.
  const held=await selected();await finger('.weapon-slot','pointerdown',sx,sy,54);await page.waitForTimeout(800);await finger('.weapon-slot','pointerup',sx,sy,54);
