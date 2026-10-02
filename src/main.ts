@@ -2242,7 +2242,7 @@ async function boot() {
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
   let touchSettings=readTouchSettings();
-  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),map:()=>input.tap('KeyM'),arsenal:()=>input.tap('Backquote')},touchSettings):undefined;
+  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>input.tap('Backquote')},touchSettings):undefined;
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true);
    // The pause menu's Controls panel holds the touch settings.
    hud.element.querySelector('.controls-panel')?.prepend(touchSettingsPanel(touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);}));}

@@ -75,6 +75,8 @@ const CONTEXT:readonly {action:string;label:string;code:string}[]=[
  {action:'MENU_LEFT',label:'◀',code:'MenuLeft'},{action:'MENU_RIGHT',label:'▶',code:'MenuRight'},
  {action:'MENU_BACK',label:'Back',code:'MenuBack'},{action:'MENU_SELECT',label:'Select',code:'MenuSelect'},
 ];
+/** How long the weapon icon is held to open the arsenal rather than step the weapon. */
+const ARSENAL_HOLD_MS=500;
 /** How far the stick's knob travels from where the thumb came down, in CSS pixels. */
 const STICK_RADIUS=56;
 /** Keeps a finger's later events on the element it came down on; a pointer the browser no longer tracks throws. */
@@ -94,7 +96,7 @@ export class TouchControls {
  private mode?:TouchMode;
  private offered=new Set<string>();
  private abort=new AbortController();
- constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;map:()=>void;arsenal:()=>void},private settings:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1}){
+ constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void},private settings:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1}){
   const options={signal:this.abort.signal};
   this.element.className='touch-controls';this.element.setAttribute('aria-label','Touch controls');
   const look=document.createElement('div');look.className='touch-look';
@@ -112,10 +114,11 @@ export class TouchControls {
    pad.append(button);this.buttons.push({spec,element:button});
   }
   const top=document.createElement('div');top.className='touch-top';
-  for(const [label,action] of [['☰',actions.pause],['Map',actions.map],['Guns',actions.arsenal]] as const){
-   const button=document.createElement('button');button.type='button';button.textContent=label;button.className='touch-button small';
-   button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();action();},options);top.append(button);
-  }
+  // As in the iOS and Android port the radar (moved to the top left) opens the map and the weapon icon, held, the
+  // arsenal; the one top button left is the pause button, under the radar.
+  {const button=document.createElement('button');button.type='button';button.className='touch-button small pause';button.setAttribute('aria-label','Pause');
+   button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+   button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();actions.pause();},options);top.append(button);}
   // A phone held upright squeezes the HUD, which is laid out for a sideways screen: until it is turned, a card asks for
   // that (the game underneath stays as it is). Play anyway keeps it upright for the rest of the visit.
   const rotate=document.createElement('div');rotate.className='touch-rotate';rotate.setAttribute('role','status');
@@ -135,11 +138,12 @@ export class TouchControls {
   // The HUD's weapon icon is the weapon button, as the mobile ports': a tap takes the next weapon (E) and a swipe to the
   // left the one before (Q), on foot.
   const slot=parent.querySelector<HTMLElement>('.weapon-slot');
-  if(slot){let press:{id:number;x:number}|undefined;
-   slot.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(slot,e.pointerId);press={id:e.pointerId,x:e.clientX};},options);
-   slot.addEventListener('pointerup',e=>{if(press?.id!==e.pointerId)return;const dx=e.clientX-press.x;press=undefined;
-    if(this.mode==='foot'||this.mode==='scope')input.tap(dx<-24?'KeyQ':'KeyE');},options);
-   slot.addEventListener('pointercancel',()=>{press=undefined;},options);}
+  if(slot){let press:{id:number;x:number;timer:number;held:boolean}|undefined;
+   slot.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(slot,e.pointerId);
+    const p={id:e.pointerId,x:e.clientX,held:false,timer:window.setTimeout(()=>{p.held=true;actions.arsenal();},ARSENAL_HOLD_MS)};press=p;},options);
+   slot.addEventListener('pointerup',e=>{if(press?.id!==e.pointerId)return;const p=press;press=undefined;window.clearTimeout(p.timer);
+    if(!p.held&&(this.mode==='foot'||this.mode==='scope'))input.tap(e.clientX-p.x<-24?'KeyQ':'KeyE');},options);
+   slot.addEventListener('pointercancel',()=>{if(press)window.clearTimeout(press.timer);press=undefined;},options);}
   // The stick floats: it is centred where the thumb lands in the left zone and follows it out to its radius.
   stickZone.addEventListener('pointerdown',e=>{if(this.stickPointer!==undefined)return;e.preventDefault();capture(stickZone,e.pointerId);
    this.stickPointer=e.pointerId;this.stickOrigin={x:e.clientX,y:e.clientY};const r=stickZone.getBoundingClientRect();

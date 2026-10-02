@@ -45,13 +45,16 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  const tapIcon=async(id:number,dx=0)=>{const before=await selected();await finger('.weapon-slot','pointerdown',sx,sy,id);await finger('.weapon-slot','pointerup',sx+dx,sy,id);
   await expect.poll(selected,{timeout:5000}).not.toBe(before);return selected();};
  const one=await tapIcon(51);await tapIcon(52);expect(await tapIcon(53,-60)).toBe(one);
- // Guns opens the arsenal without raising the on-screen keyboard: the close button has the focus, not the search.
- await page.locator('.touch-top .touch-button').nth(2).dispatchEvent('pointerdown',{pointerType:'touch'});
- await expect(page.locator('.arsenal')).toBeVisible();await expect(controls).toBeHidden();
+ // The weapon icon held opens the arsenal (and steps no weapon), without raising the on-screen keyboard: the close
+ // button has the focus, not the search.
+ const held=await selected();await finger('.weapon-slot','pointerdown',sx,sy,54);await page.waitForTimeout(800);await finger('.weapon-slot','pointerup',sx,sy,54);
+ await expect(page.locator('.arsenal')).toBeVisible();await expect(controls).toBeHidden();expect(await selected()).toBe(held);
  expect(await page.evaluate(()=>document.activeElement?.className)).toBe('arsenal-close');
  await page.locator('.arsenal-close').click();await expect(controls).toBeVisible();
- // Map: the hint speaks to a finger, and a tap sets the waypoint.
- await page.locator('.touch-top .touch-button').nth(1).dispatchEvent('pointerdown',{pointerType:'touch'});
+ // The radar, in the top left corner as in the mobile ports, opens the map: the hint speaks to a finger, and a tap sets
+ // the waypoint.
+ const radar=(await page.locator('.minimap-button').boundingBox())!;expect(radar.y).toBeLessThan(page.viewportSize()!.height/3);
+ await page.locator('.minimap-button').tap();
  await expect(page.locator('.map-status')).toContainText('Pinch zooms');
  await page.locator('.world-map-panel canvas').tap({position:{x:100,y:100}});await expect(page.locator('.map-status')).toContainText('Waypoint');
  await page.locator('.map-close').click();await expect(controls).toBeVisible();
@@ -87,7 +90,7 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await expect(rotate).toBeVisible();await rotate.locator('button').dispatchEvent('pointerdown',{pointerType:'touch'});await expect(rotate).toBeHidden();
  await page.setViewportSize(viewport);
  // ☰ pauses, and the overlay gives way to the menu.
- await page.locator('.touch-top .touch-button').first().dispatchEvent('pointerdown',{pointerType:'touch'});
+ await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
  await expect(controls).toBeHidden();
  // The pause menu's Controls panel holds the touch settings in place of the key list: a bigger button size takes.
  await page.getByRole('button',{name:'Controls',exact:true}).click();

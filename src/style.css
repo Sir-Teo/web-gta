@@ -111,7 +111,7 @@
 .touch-controls{position:absolute;inset:0;z-index:4;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:none}
 .touch-controls[hidden],.game-ui.paused .touch-controls{display:none}
 .touch-look{position:absolute;top:0;right:0;bottom:0;left:45%;pointer-events:auto;touch-action:none}
-.touch-stick-zone{position:absolute;left:0;top:25%;bottom:0;width:45%;pointer-events:auto;touch-action:none}
+.touch-stick-zone{position:absolute;left:0;top:calc(var(--touch-radar-top) + var(--touch-radar) + 56px);bottom:0;width:45%;pointer-events:auto;touch-action:none}
 .touch-stick{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;background:#0003;border:2px solid #fff6;pointer-events:none}
 .touch-stick[hidden]{display:none}
 .touch-stick-knob{position:absolute;left:36px;top:36px;width:56px;height:56px;border-radius:50%;background:#fffa;box-shadow:0 1px 4px #0008}
@@ -139,7 +139,15 @@
 .touch-controls[data-mode=aircraft] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
 .touch-button.yaw-left{grid-area:yaw-left}.touch-button.yaw-right{grid-area:yaw-right}.touch-button.rocket{grid-area:rocket}
 .touch-button.small{width:auto;min-width:44px;height:36px;border-radius:18px;padding:0 12px}
-.touch-top{position:absolute;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:8px;pointer-events:none}
+.touch-top{position:absolute;top:calc(var(--touch-radar-top) + var(--touch-radar) + 8px);left:var(--touch-radar-left);display:flex;gap:8px;pointer-events:none}
+.touch-button.small.pause{min-width:0;width:40px;height:40px;border-radius:50%;padding:0;display:grid;place-items:center}.touch-button svg{width:55%;height:55%;fill:currentColor}
+/* The iOS and Android port's HUD: the radar in the top left corner (the left thumb has the bottom left), bigger than the
+ * PC's, a tap on it opening the map; the help and stat boxes sit beside it, the altimeter down its left edge. */
+:root{--touch-radar:clamp(64px,24vmin,116px);--touch-radar-top:max(10px,env(safe-area-inset-top));--touch-radar-left:calc(max(8px,env(safe-area-inset-left)) + 12px)}
+.touch .native-navigation{--radar:var(--touch-radar);left:var(--touch-radar-left);top:var(--touch-radar-top);bottom:auto;touch-action:manipulation}
+.touch .help-box,.touch .stat-update{left:calc(var(--touch-radar-left) + var(--touch-radar) + 14px);top:var(--touch-radar-top);max-width:min(380px,calc(100vw - var(--touch-radar-left) - var(--touch-radar) - 260px))}
+.touch .radar-altimeter{left:max(4px,env(safe-area-inset-left));width:6px;top:var(--touch-radar-top);bottom:auto;height:var(--touch-radar)}
+.touch .radar-altimeter-mark{left:max(1px,env(safe-area-inset-left));width:12px;bottom:calc(100vh - var(--touch-radar-top) - var(--touch-radar) + var(--height) / 76 * var(--touch-radar) - 1px)}
 .touch-context{position:absolute;right:var(--touch-right);bottom:calc(var(--touch-cluster-h) + 12px);display:flex;gap:8px;pointer-events:none}
 .touch-context .touch-button.small{height:40px;border-radius:20px;padding:0 16px;background:#b8902acc;border-color:#ffe9a8;font-size:14px}
 .touch-rotate{display:none;position:absolute;inset:0;place-content:center;justify-items:center;gap:16px;padding:24px;background:#0b110cd9;pointer-events:auto;text-align:center}
@@ -147,8 +155,7 @@
 .touch-rotate p::before{content:'';display:block;width:44px;height:72px;margin:0 auto 18px;border:3px solid #ede8d3;border-radius:8px;animation:touch-rotate 2.4s ease-in-out infinite}
 @keyframes touch-rotate{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
 @media(prefers-reduced-motion:reduce){.touch-rotate p::before{animation:none;transform:rotate(-90deg)}}
-/* Upright, the top buttons step down below the clock and money; a phone also gets the card until it turns. */
-@media(orientation:portrait){.touch-top{top:calc(max(8px,env(safe-area-inset-top)) + 4vh + 90px)}}
+/* Upright, a phone gets the card until it turns. */
 @media(orientation:portrait) and (max-width:600px){.touch-rotate:not(.dismissed){display:grid}}
 /* On a touch screen the key hints and the desktop-only readouts give way to the controls, and the HUD text the
  * original sets in the bottom right corner (area and vehicle names, the mission title and timers) moves left of the buttons. */

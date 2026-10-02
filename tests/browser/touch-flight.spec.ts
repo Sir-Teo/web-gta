@@ -8,7 +8,7 @@ test('a phone flies the Maverick: Thrust climbs, the stick pitches and rolls it'
  await page.goto('/?touch=1');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await endStoryMission(page);
- await page.locator('.touch-top .touch-button').nth(1).dispatchEvent('pointerdown',{pointerType:'touch'});
+ await page.locator('.minimap-button').tap();
  await page.getByLabel('Aircraft',{exact:true}).selectOption('487');await page.getByRole('button',{name:'Fly from Verdant Meadows',exact:true}).click();
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).aircraft?.occupied,{timeout:60000}).toBe(true);
