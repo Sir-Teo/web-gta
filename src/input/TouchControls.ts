@@ -29,7 +29,7 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Fire',code:'ControlLeft',className:'fire'},
  {label:'Aim',code:'MouseAim',className:'aim',toggle:true,onFoot:true},
  {label:'Jump',code:'Space',className:'jump',onFoot:true},
- {label:'Brake',code:'Space',className:'jump',inVehicle:true},
+ {label:'H-brake',code:'Space',className:'jump',inVehicle:true},
  {label:'Sprint',code:'ShiftLeft',className:'sprint',onFoot:true},
  {label:'Horn',code:'KeyH',className:'sprint',inVehicle:true},
  {label:'Enter',code:'KeyF',className:'enter'},
@@ -37,6 +37,10 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Look',code:'KeyQ',className:'crouch',inVehicle:true},
  {label:'Weapon',code:'KeyE',className:'weapon',onFoot:true},
  {label:'Reload',code:'KeyR',className:'reload',onFoot:true},
+ // At the wheel the right thumb has the pedals, as the mobile ports give it, so the stick can steer to full lock
+ // while the car accelerates (a stick pushed only sideways is no push forward).
+ {label:'Gas',code:'KeyW',className:'gas',inVehicle:true},
+ {label:'Brake',code:'KeyS',className:'reverse',inVehicle:true},
 ];
 /** How far the stick's knob travels from where the thumb came down, in CSS pixels. */
 const STICK_RADIUS=56;

@@ -84,7 +84,12 @@ export class Input {
     const stick = this.stick;
     // The touch stick reads like CPad's left stick: its deflection is the walk-to-run ratio, and a vehicle's
     // accelerate and brake buttons are the stick pushed forward or back.
-    if (stick && Math.hypot(stick.x, stick.y) > .12) return { x: stick.x, y: stick.y, forward: stick.y > .3, back: stick.y < -.3 };
+    // The touch pedals (W and S held from the buttons) drive while the stick steers: forward or back whatever the
+    // stick's own push, and the full throttle for the boats and bikes that read it from y.
+    if (stick && Math.hypot(stick.x, stick.y) > .12) {
+      const gas = this.down('KeyW'), brake = this.down('KeyS');
+      return { x: stick.x, y: gas && !brake ? 1 : brake && !gas ? -1 : stick.y, forward: gas || stick.y > .3, back: brake || stick.y < -.3 };
+    }
     const forward = this.down('KeyW') || this.down('ArrowUp'), back = this.down('KeyS') || this.down('ArrowDown');
     return {
       x: Number(this.down('KeyD') || this.down('ArrowRight')) - Number(this.down('KeyA') || this.down('ArrowLeft')),
