@@ -44,6 +44,23 @@ export function offerInstall(button:HTMLButtonElement,target:EventTarget=window)
  button.onclick=()=>{const taken=offer;if(!taken)return;offer=undefined;button.hidden=true;void taken.prompt().catch(()=>{});};
  return ()=>{target.removeEventListener('beforeinstallprompt',onOffer);target.removeEventListener('appinstalled',onInstalled);};
 }
+/** The touch buttons' glyphs by the name help text gives them (gxt's touch naming): the mobile ports draw a widget's own
+ * symbol in the help text where the PC prints its key. Fire shows the weapon in hand, so it keeps its word alone. */
+const HELP_ICONS:Readonly<Record<string,TouchIcon>>={ENTER:'car',SPRINT:'run',JUMP:'jump',CROUCH:'crouch',AIM:'target',GAS:'up',BRAKE:'down',
+ 'H-BRAKE':'parking',HORN:'horn',RADIO:'music','LOOK BACK':'eye',CAMERA:'camera','ZOOM +':'zoomIn','ZOOM −':'zoomOut',ROCKET:'rocket',
+ '◀ YAW':'left','YAW ▶':'right','LEFT ARROW':'left','RIGHT ARROW':'right'};
+/** The help box's text with each touch button it names led by the button's glyph: only the names the text's ~k~ tokens
+ * put there (`named`, their actions; `nameOf`, what each is called now), so a capitalised word of its own stays. */
+export function showHelpIcons(box:HTMLElement,text:string,named:readonly string[],nameOf:(action:string)=>string|undefined){
+ const names=[...new Set(named.map(nameOf).filter((n):n is string=>!!n&&n in HELP_ICONS))].sort((a,b)=>b.length-a.length);
+ if(!names.length)return;
+ const escape=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),pattern=new RegExp(`(?<![A-Z])(${names.map(escape).join('|')})(?![A-Z])`,'g');
+ const parts=text.split(pattern);if(parts.length<2)return;
+ box.replaceChildren(...parts.map((part,i)=>{
+  if(i%2===0)return document.createTextNode(part);
+  const key=document.createElement('span');key.className='help-key';key.innerHTML=touchIconSvg(HELP_ICONS[part]);key.append(part);return key;
+ }));
+}
 /** What the player is doing, which picks the buttons shown. */
 export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft'|'cutscene';
 /** The layouts the buttons are adjusted in: on foot's serves the scope and the water, whose buttons share its slots. */

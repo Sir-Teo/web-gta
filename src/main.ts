@@ -7,7 +7,7 @@ import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {carRollsOverProp} from './simulation/vehiclePropContacts';
-import {controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,useTouchControlNames} from './assets/gxt';
+import {controlNameOf,controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,useTouchControlNames} from './assets/gxt';
 import {ScriptTextLayer} from './ui/ScriptTextLayer';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
@@ -211,7 +211,7 @@ import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
 import { GamepadInput } from './input/GamepadInput';
-import { TouchControls, goFullscreen, offerInstall, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
+import { TouchControls, goFullscreen, offerInstall, showHelpIcons, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, resolutionRatio, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake } from './input/screenAwake';
 import { installRapierTombstones } from './simulation/rapierTombstones';
@@ -2281,6 +2281,8 @@ async function boot() {
   const screenAwake=touch?new ScreenAwake():undefined;
   // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for.
   function applyResolution(){if(touch)render.setPixelRatio(resolutionRatio(touchSettings.resolution,devicePixelRatio));}
+  // The help box draws a touch button's glyph beside its name, as the mobile ports' help shows the widget itself.
+  if(touch)hud.decorateHelp=(box,text)=>showHelpIcons(box,text,controlsNamedIn(text),controlNameOf);
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);applyResolution();
    // The pause menu's Controls panel holds the touch settings.
    // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.

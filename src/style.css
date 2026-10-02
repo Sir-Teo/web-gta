@@ -164,6 +164,7 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
  * PC's, a tap on it opening the map; the help and stat boxes sit beside it, the altimeter down its left edge. */
 :root{--touch-radar:clamp(64px,24vmin,116px);--touch-radar-top:max(10px,env(safe-area-inset-top));--touch-radar-left:calc(max(8px,env(safe-area-inset-left)) + 12px)}
 .touch .native-navigation{--radar:var(--touch-radar);left:var(--touch-radar-left);top:var(--touch-radar-top);bottom:auto;touch-action:manipulation}
+.help-key{white-space:nowrap}.help-key svg{display:inline-block;width:1.5em;height:1.5em;margin:0 .25em 0 0;padding:.2em;vertical-align:-.45em;box-sizing:border-box;border:1.5px solid #ffffff8c;border-radius:50%;background:#0000005c;fill:currentColor}
 .touch .help-box,.touch .stat-update{left:calc(var(--touch-radar-left) + var(--touch-radar) + 14px);top:var(--touch-radar-top);max-width:min(380px,calc(100vw - var(--touch-radar-left) - var(--touch-radar) - 260px))}
 .touch .radar-altimeter{left:max(4px,env(safe-area-inset-left));width:6px;top:var(--touch-radar-top);bottom:auto;height:var(--touch-radar)}
 .touch .radar-altimeter-mark{left:max(1px,env(safe-area-inset-left));width:12px;bottom:calc(100vh - var(--touch-radar-top) - var(--touch-radar) + var(--height) / 76 * var(--touch-radar) - 1px)}

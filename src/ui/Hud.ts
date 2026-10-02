@@ -170,8 +170,11 @@ export class Hud {
   /** A prompt line, timed on the game clock like CMessages' messages, so it does not run out while the game is paused. */
   message(text: string, milliseconds = 3000) { this.prompt.textContent = text; this.messageUntil = this.messageClock() + milliseconds; }
   /** CHud::SetHelpMessage: the top-left help box. DrawHelpText is not reversed; the box shows for `milliseconds`. */
+  /** Dresses the help box's text after it is set (the touch controls' glyphs beside the buttons it names). */
+  decorateHelp?: (box: HTMLElement, text: string) => void;
   help(text: string, milliseconds = 5000) {
     const box = this.element.querySelector<HTMLElement>('.help-box')!;box.textContent = text;box.hidden = !text;
+    if (text) this.decorateHelp?.(box, text);
     this.helpUntil = text ? this.messageClock() + milliseconds : 0;
     // The help line and the stat box are one box (m_pHelpMessage): either replaces the other.
     this.element.querySelector<HTMLElement>('.stat-update')!.hidden = true;this.statUpdateUntil = 0;

@@ -72,6 +72,12 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await expect.poll(async()=>(await pad()).yes,{timeout:5000}).toBe(255);
  await page.evaluate(({x,y})=>document.querySelector('.touch-context button[data-code=KeyY]')!.dispatchEvent(new PointerEvent('pointerup',{pointerId:21,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{x:yesBox.x+5,y:yesBox.y+5});
  await page.evaluate(()=>(window as any).__game.hud().help(''));await expect(yes).toBeHidden();
+ // A help line naming the buttons draws each one's glyph before its name, as the mobile ports' help shows the widget:
+ // Enter's car, Jump's chevrons; a capitalised word of the text's own (BMX) and Fire (the weapon in hand) stay words.
+ await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~VEHICLE_ENTER_EXIT~ to get on the BMX, ~k~~PED_JUMPING~ to hop and ~k~~PED_FIREWEAPON~ to shoot.'),60000);});
+ await expect(page.locator('.help-box')).toHaveText('Press ENTER to get on the BMX, JUMP to hop and FIRE to shoot.');
+ await expect(page.locator('.help-box .help-key')).toHaveText(['ENTER','JUMP']);await expect(page.locator('.help-box .help-key svg')).toHaveCount(2);
+ await page.evaluate(()=>(window as any).__game.hud().help(''));
  // A script menu (a shop's) puts up the port's arrows with Select and Back, which drive the menu through the pad, and
  // the shop's help names them while it is up.
  const helpBox=page.locator('.help-box');
