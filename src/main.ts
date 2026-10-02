@@ -3474,6 +3474,12 @@ async function boot() {
     hud.element.classList.toggle('in-vehicle',!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
     if(touch){
      const asked=hud.shownPrompts().flatMap(controlsNamedIn),inVehicle=hud.element.classList.contains('in-vehicle');
+     // A cutscene, or a scripted scene the widescreen bars frame (the intro's ride, a mission's opening), leaves the
+     // player nothing to drive or walk; so does the script holding him (SET_PLAYER_CONTROL off: a scripted ride, a
+     // shop's counter; a trip skip; a Pay 'n' Spray). The controls give way, to Skip while a scene can be skipped (a
+     // cutscene, or a script with SKIP_CUTSCENE_START's label set); what the help itself asks for (a shop menu's arrows,
+     // a yes or no) still comes up.
+     const game=mission?.runtime.game,scene=!!game&&(game.cutscene.running||game.widescreenOn),held=scene||playerControlsDisabled();
      // A side-mission vehicle (a taxi, an ambulance, a police car...) puts up Mission, the port's mission start and cancel.
      {const ridden=worldCar?.occupied?worldCar:fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane??[...fleet?.trains??[]].find(t=>t.occupied);
       if(ridden&&!playerPassenger&&SIDE_MISSION_VEHICLES.has(ridden.modelId))asked.push('TOGGLE_SUBMISSIONS');}
@@ -3486,17 +3492,13 @@ async function boot() {
      // drive-by to fire (the driver's SMG, or a passenger's seat), looking out of either side comes up.
      {const flying=!!fleet?.occupiedPlane,inv=weapons.inventory;
       if(flying){for(let i=asked.length-1;i>=0;i--)if(asked[i]==='VEHICLE_LOOKLEFT'||asked[i]==='VEHICLE_LOOKRIGHT')asked.splice(i,1);}
-      else if(inVehicle&&mission?.runtime.game.playerInfo.canDoDriveBy!==false&&(playerPassenger||inv.inSlot(inv.slotOf(28))!==undefined))asked.push('VEHICLE_LOOKLEFT','VEHICLE_LOOKRIGHT');
+      else if(inVehicle&&!held&&mission?.runtime.game.playerInfo.canDoDriveBy!==false&&(playerPassenger||inv.inSlot(inv.slotOf(28))!==undefined))asked.push('VEHICLE_LOOKLEFT','VEHICLE_LOOKRIGHT');
      }
      touch.setVisible(!paused&&!navigation?.open&&!arsenal.open&&!(gamepad.lastUsed>lastTouchAt));touch.setPrompts(asked);
      if(fleet)fleet.trafficScale=touchPopulation();
-     // A cutscene, or a scripted scene the widescreen bars frame (the intro's ride, a mission's opening), leaves the
-     // player nothing to drive or walk: the controls give way to Skip while it can be skipped (a cutscene, or a script
-     // with SKIP_CUTSCENE_START's label set).
-     const game=mission?.runtime.game,scene=!!game&&(game.cutscene.running||game.widescreenOn);
      const skippable=!!game&&(game.cutscene.running||game.widescreenOn&&mission!.runtime.active.some(slot=>slot.thread.sceneSkipIp!==undefined));
      touch.setPassenger(!!playerPassenger);
-     touch.setMode(scene?'cutscene':fleet?.occupiedPlane?'aircraft':inVehicle?'vehicle':render.firstPerson?'scope':sim.player.swimming?'swim':'foot');
+     touch.setMode(held?'cutscene':fleet?.occupiedPlane?'aircraft':inVehicle?'vehicle':render.firstPerson?'scope':sim.player.swimming?'swim':'foot');
      // Enter shows only when it would do something, as the mobile ports' does: in a vehicle, with a jetpack on, on the
      // way to a car's door, when a prompt asks for it, or beside a vehicle (the box the enter button searches; looked
      // at a few times a second).

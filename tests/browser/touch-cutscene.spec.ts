@@ -2,7 +2,8 @@ import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** While a cutscene runs the touch controls give way to a Skip button, as the iOS and Android port's do, which presses
  * the cutscene skip (Space, CCutsceneMgr::IsCutsceneSkipButtonBeingPressed); the controls come back after it. A scripted
- * scene in the widescreen bars clears them too, with Skip only while the script can skip it. */
+ * scene in the widescreen bars clears them too, with Skip only while the script can skip it, and so does the script
+ * holding the player. */
 test.use({hasTouch:true});
 test('a phone skips a cutscene with the Skip button',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -36,5 +37,14 @@ test('a phone skips a cutscene with the Skip button',async({page})=>{
  await scene(true,0);await expect(skip).toBeVisible();
  await scene(true,undefined);await expect(skip).toBeHidden();
  await scene(false,undefined);await expect(controls).toHaveAttribute('data-mode','foot');
+ // The script holding the player (SET_PLAYER_CONTROL off: a scripted ride, a shop's counter) clears them the same way,
+ // with no Skip; a yes or no the help asks for still comes up. Control back, the controls come back.
+ const setControl=(on:boolean)=>page.evaluate(on=>{const m=(window as any).__game.missionForProfiling();m.playerControl=on;},on);
+ await setControl(false);
+ await expect(controls).toHaveAttribute('data-mode','cutscene');await expect(page.locator('.touch-stick-zone')).toBeHidden();
+ await expect(page.locator('.touch-buttons .touch-button:not([hidden])')).toHaveCount(0);await expect(skip).toBeHidden();
+ await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~CONVERSATION_YES~ or ~k~~CONVERSATION_NO~.'),10000);});
+ await expect(page.getByRole('button',{name:'Yes',exact:true})).toBeVisible();
+ await setControl(true);await expect(controls).toHaveAttribute('data-mode','foot');
  expect(errors).toEqual([]);
 });
