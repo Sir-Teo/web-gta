@@ -338,6 +338,10 @@ export class TouchControls {
   this.editing={layout:{...this.settings.layout} as Record<string,[number,number]>,mode:this.mode??'foot',done};
   this.element.classList.add('editing');this.element.hidden=false;this.adjustBar.hidden=false;this.showLayout('foot');
  }
+ /** Whether the layout is being adjusted. */
+ get adjusting(){return !!this.editing;}
+ /** Done, from outside (the phone's back button): the layout as it was left. */
+ endAdjusting(){this.finishAdjusting(true);}
  private showLayout(group:LayoutGroup){
   this.mode=group;this.element.dataset.mode=group;this.showButtons();this.place();
   for(const b of this.adjustBar.querySelectorAll<HTMLElement>('[data-layout]'))b.setAttribute('aria-pressed',String(b.dataset.layout===group));

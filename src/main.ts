@@ -2295,7 +2295,7 @@ async function boot() {
      else{menu.selectedRow=row;menus!.onSound?.('highlight');}
     });}
    touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();applyResolution();},
-    ()=>{hud.setMenu(false);touch.adjust(()=>{hud.setMenu(true);touchPanel?.refresh();});});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
+    ()=>{hud.setMenu(false);armBackButton();touch.adjust(()=>{hud.setMenu(true);touchPanel?.refresh();});});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
    // A phone's short screen puts the touch buttons where the PC HUD's wanted stars sit (175 px down): they hang under
    // the clock, money and bars instead, wherever those end.
    {const status=hud.element.querySelector<HTMLElement>('.status');
@@ -2446,6 +2446,8 @@ async function boot() {
   let backArmed=false;
   function armBackButton(){if(backArmed)return;backArmed=true;try{history.pushState({groveStreetPlay:true},'');}catch{backArmed=false;}}
   const onPopState=()=>{if(!backArmed)return;backArmed=false;
+   // Adjusting the touch layout, back is Done: the layout is kept and the menu comes back.
+   if(touch?.adjusting){touch.endAdjusting();armBackButton();return;}
    // Back closes the map or the arsenal first, as it closes a dialog, and play goes on.
    if(navigation?.open||arsenal.open){if(navigation?.open)navigation.toggle(false);if(arsenal.open)arsenal.toggle(false);armBackButton();return;}
    if(started&&!paused)pause();};

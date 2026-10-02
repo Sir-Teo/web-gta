@@ -22,7 +22,9 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  const cdp=await context.newCDPSession(page),fire='.touch-button.fire:not([hidden])';
  const home=await box(page,fire);
  const openAdjust=async()=>{await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
-  await page.getByRole('button',{name:'Controls',exact:true}).click();await page.getByRole('button',{name:'Adjust controls',exact:true}).click();
+  // The Controls panel stays open from the last visit to the menu.
+  if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+  await page.getByRole('button',{name:'Adjust controls',exact:true}).click();
   await expect(page.locator('.touch-adjust')).toBeVisible();};
  await openAdjust();
  // On foot: Fire dragged up and left by a finger follows it.
@@ -43,6 +45,10 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
  await endStoryMission(page);
  await expect.poll(async()=>(await box(page,fire)).x,{timeout:30000}).toBeCloseTo(moved.x,0);
+ // The phone's back button is Done: the menu comes back on the same page, the layout kept.
+ await openAdjust();const url=page.url();await page.goBack();
+ await expect(page.locator('.touch-adjust')).toBeHidden();await expect(page.getByRole('button',{name:'Resume game',exact:true})).toBeVisible();expect(page.url()).toBe(url);
+ await page.getByRole('button',{name:'Resume game',exact:true}).click();
  // Reset puts on foot's buttons back.
  await openAdjust();
  await tap(cdp,await box(page,'.touch-adjust button:text-is("Reset")'));await tap(cdp,await box(page,'.touch-adjust button:text-is("Done")'));
