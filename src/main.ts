@@ -2262,7 +2262,9 @@ async function boot() {
   const screenAwake=touch?new ScreenAwake():undefined;
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);
    // The pause menu's Controls panel holds the touch settings.
-   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
+   // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.
+   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();},
+    ()=>{hud.setMenu(false);touch.adjust(()=>{hud.setMenu(true);touchPanel?.refresh();});});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
    // A phone's short screen puts the touch buttons where the PC HUD's wanted stars sit (175 px down): they hang under
    // the clock, money and bars instead, wherever those end.
    {const status=hud.element.querySelector<HTMLElement>('.status');

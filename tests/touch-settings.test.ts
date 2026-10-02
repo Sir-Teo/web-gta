@@ -1,14 +1,18 @@
 import {expect,test} from 'vitest';
-import {DEFAULT_TOUCH,TILT_FULL_LOCK,parseTouchSettings,tiltSteering} from '../src/input/touchSettings';
+import {DEFAULT_TOUCH,LAYOUT_RANGE,TILT_FULL_LOCK,parseTouchSettings,tiltSteering} from '../src/input/touchSettings';
 test('touch settings read back what was kept, and anything else falls back to the defaults',()=>{
  expect(parseTouchSettings(null)).toEqual(DEFAULT_TOUCH);
- expect(parseTouchSettings({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false})).toEqual({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false,density:'medium',invertLook:false,steeringChosen:true});
- expect(parseTouchSettings({steering:'wheel',aimAssist:'yes',lookSpeed:9,buttonScale:.1,vibration:'on'})).toEqual({steering:'stick',aimAssist:true,lookSpeed:2,buttonScale:.8,vibration:true,density:'medium',invertLook:false,steeringChosen:true});
+ expect(parseTouchSettings({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false})).toEqual({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false,density:'medium',invertLook:false,layout:{},steeringChosen:true});
+ expect(parseTouchSettings({steering:'wheel',aimAssist:'yes',lookSpeed:9,buttonScale:.1,vibration:'on'})).toEqual({steering:'stick',aimAssist:true,lookSpeed:2,buttonScale:.8,vibration:true,density:'medium',invertLook:false,layout:{},steeringChosen:true});
  expect(parseTouchSettings({steering:'arrows'}).steering).toBe('arrows');
  // A phone keeps fewer peds and cars about unless told Full (or Low).
  expect(parseTouchSettings({density:'full'}).density).toBe('full');expect(parseTouchSettings({density:'low'}).density).toBe('low');expect(parseTouchSettings({density:'most'}).density).toBe('medium');
  // Invert look is kept when set, and off otherwise.
  expect(parseTouchSettings({invertLook:true}).invertLook).toBe(true);expect(parseTouchSettings({invertLook:'yes'}).invertLook).toBe(false);
+ // Moved buttons come back by layout and slot, within reach of the screen; anything else is dropped.
+ expect(parseTouchSettings({layout:{'foot:fire':[-12.5,-4],'vehicle:gas':[-999,999],'cutscene:skip':[1,1],'foot:jump':[1],'foot:aim':['a','b']}}).layout)
+  .toEqual({'foot:fire':[-12.5,-4],'vehicle:gas':[LAYOUT_RANGE.x.min,LAYOUT_RANGE.y.max]});
+ expect(parseTouchSettings({layout:'moved'}).layout).toEqual({});
  // The steering question is asked once: answered, or settings kept with a steering method from before it was asked.
  expect(parseTouchSettings({aimAssist:false}).steeringChosen).toBe(false);expect(parseTouchSettings({steeringChosen:true}).steeringChosen).toBe(true);
 });

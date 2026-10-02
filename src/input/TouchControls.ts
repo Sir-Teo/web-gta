@@ -1,5 +1,5 @@
 import type {Input} from './Input';
-import {BUTTON_SCALE_RANGE,DEFAULT_TOUCH,LOOK_SPEED_RANGE,tiltSteering,type TouchSettings} from './touchSettings';
+import {BUTTON_SCALE_RANGE,DEFAULT_TOUCH,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type TouchSettings} from './touchSettings';
 import {touchIconSvg,type TouchIcon} from './touchIcons';
 /* Touch-screen controls for phones and tablets, laid over the game the way the mobile ports lay theirs: a floating
  * stick under the left thumb, the camera dragged with the right, and the buttons round the right thumb. Every control
@@ -33,6 +33,9 @@ export function suggestHomeScreen(root:{requestFullscreen?:unknown;webkitRequest
 }
 /** What the player is doing, which picks the buttons shown. */
 export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft'|'cutscene';
+/** The layouts the buttons are adjusted in: on foot's serves the scope and the water, whose buttons share its slots. */
+type LayoutGroup='foot'|'vehicle'|'aircraft';
+const layoutGroup=(mode:TouchMode):LayoutGroup=>mode==='vehicle'||mode==='aircraft'?mode:'foot';
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the
  * modes it shows in (all of them when unset), whether it shows only while the game offers it (setOffered), as the
  * mobile ports show their enter-vehicle button only beside a vehicle, and whether only the driver has it (a passenger
@@ -131,6 +134,7 @@ export class TouchControls {
    const button=document.createElement('button');button.type='button';button.className=`touch-button ${spec.className}`;button.dataset.code=spec.code;button.setAttribute('aria-label',spec.label);
    if(spec.icon)button.innerHTML=touchIconSvg(spec.icon);else button.textContent=spec.label;
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);
+    if(this.editing){this.drag(e,spec,button);return;}
     this.buzz();if(spec.toggle){if(this.latched.has(spec.code)){this.latched.delete(spec.code);input.release(spec.code);button.classList.remove('on');}else{this.latched.add(spec.code);input.hold(spec.code);button.classList.add('on');}return;}
     this.held.set(e.pointerId,spec.code);input.hold(spec.code);button.classList.add('on');},options);
    const up=(e:PointerEvent)=>{if(spec.toggle)return;const code=this.held.get(e.pointerId);if(code===undefined)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.releaseAfterFrame(code);button.classList.remove('on');};
@@ -176,7 +180,21 @@ export class TouchControls {
     const next={...this.settings,steering,steeringChosen:true};this.apply(next);this.changeSettings(next);this.steeringPopup.hidden=true;},options);
    this.steeringPopup.querySelector('div')!.append(button);
   }
-  this.element.append(look,stickZone,pad,top,rotate,context,this.steeringPopup);parent.append(this.element);
+  // Adjusting the layout: which layout's buttons, Reset and Done, at the top where no button sits.
+  this.adjustBar.className='touch-adjust';this.adjustBar.hidden=true;this.adjustBar.setAttribute('aria-label','Adjust controls');
+  this.adjustBar.innerHTML='<p>Drag the buttons where your thumbs want them.</p><div></div>';
+  for(const [action,label] of [['foot','On foot'],['vehicle','Driving'],['aircraft','Flying'],['reset','Reset'],['done','Done']] as const){
+   const button=document.createElement('button');button.type='button';button.className='touch-button small';button.textContent=label;
+   if(action==='foot'||action==='vehicle'||action==='aircraft')button.dataset.layout=action;
+   // On the lift, as the steering question's: the touch layer takes the click a tap would make.
+   button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();},options);
+   button.addEventListener('pointerup',e=>{e.preventDefault();e.stopPropagation();if(!this.editing)return;
+    if(action==='done')this.finishAdjusting(true);
+    else if(action==='reset'){const group=layoutGroup(this.mode??'foot');for(const key of Object.keys(this.editing.layout))if(key.startsWith(`${group}:`))delete this.editing.layout[key];this.place();}
+    else this.showLayout(action);},options);
+   this.adjustBar.querySelector('div')!.append(button);
+  }
+  this.element.append(look,stickZone,pad,top,rotate,context,this.steeringPopup,this.adjustBar);parent.append(this.element);
   // The HUD's weapon icon is the weapon button, as the mobile ports': a tap takes the next weapon (E) and a swipe to the
   // left the one before (Q), on foot.
   const slot=parent.querySelector<HTMLElement>('.weapon-slot');
@@ -237,9 +255,11 @@ export class TouchControls {
  /** On foot, through a scope, swimming, at the wheel, flying or watching a scene: the other modes' buttons are hidden,
   * and a latched aim is let go anywhere it cannot aim. */
  setMode(mode:TouchMode){
+  // Adjusting the layout, the game's mode waits until Done.
+  if(this.editing){this.editing.mode=mode;return;}
   if(mode===this.mode)return;
   this.mode=mode;this.element.dataset.mode=mode;
-  this.showButtons();this.steer();
+  this.showButtons();this.steer();this.place();
   // A cutscene's camera is the script's, and a scope's is the weapon's own.
   this.cameraButton.hidden=mode==='cutscene'||mode==='scope';
   this.askSteering();
@@ -263,6 +283,8 @@ export class TouchControls {
  private showButtons(){
   const mode=this.mode??'foot';
   for(const {spec,element} of this.buttons){
+   // Adjusting, a layout's every button shows, the ones it offers only now and then too.
+   if(this.editing){element.hidden=(spec.modes?!spec.modes.includes(mode):mode==='cutscene')||!!spec.steering&&spec.steering!==this.settings.steering;continue;}
    const hidden=(spec.modes?!spec.modes.includes(mode):mode==='cutscene')||!!spec.contextual&&!this.offered.has(spec.className)||!!spec.steering&&spec.steering!==this.settings.steering||!!spec.driver&&this.passenger;
    if(element.hidden===hidden)continue;element.hidden=hidden;
    // A button that goes while a finger holds it lets go of its key.
@@ -282,7 +304,7 @@ export class TouchControls {
  apply(settings:TouchSettings){
   this.settings=settings;this.element.dataset.steering=settings.steering;
   document.documentElement.style.setProperty('--touch-scale',String(settings.buttonScale));
-  this.showButtons();this.steer();
+  this.showButtons();this.steer();this.place();
  }
  /** Feeds the tilt to the input while it steers: in a car, on a bike or in a boat with tilt steering chosen. */
  private steer(){
@@ -293,11 +315,47 @@ export class TouchControls {
  private buzz(){if(this.settings.vibration)try{navigator.vibrate?.(12);}catch{/* vibration refused */}}
  /** Hidden under the menus: everything held is let go so nothing stays pressed behind them. */
  setVisible(visible:boolean){
-  if(this.element.hidden===!visible)return;
+  if(this.editing||this.element.hidden===!visible)return;
   this.element.hidden=!visible;
   this.steer();
   if(!visible){for(const code of new Set([...this.held.values(),...this.latched]))this.input.release(code);this.held.clear();this.latched.clear();this.input.stick=undefined;this.input.release('AltLeft');this.stickPointer=this.lookPointer=undefined;this.stickBase.hidden=true;
    for(const {element} of this.buttons)element.classList.remove('on');}
+ }
+ /** Each button moved where the player put it in this layout (the CSS translate, kept apart from the grid's place). */
+ private place(){
+  const layout=this.editing?.layout??this.settings.layout,group=layoutGroup(this.mode??'foot');
+  for(const {spec,element} of this.buttons){const o=layout[`${group}:${spec.className}`];const translate=o?`${o[0]}vmin ${o[1]}vmin`:'';if(element.style.translate!==translate)element.style.translate=translate;}
+ }
+ private editing?:{layout:Record<string,[number,number]>;mode:TouchMode;done:()=>void};
+ private adjustBar=document.createElement('section');
+ /** The port's Adjust Controls: the game held, a layout's buttons are dragged where the thumbs want them (on foot, at
+  * the wheel, flying), Reset puts that layout's back, and Done keeps them. */
+ adjust(done:()=>void){
+  if(this.editing)return;
+  this.setVisible(false);
+  this.editing={layout:{...this.settings.layout} as Record<string,[number,number]>,mode:this.mode??'foot',done};
+  this.element.classList.add('editing');this.element.hidden=false;this.adjustBar.hidden=false;this.showLayout('foot');
+ }
+ private showLayout(group:LayoutGroup){
+  this.mode=group;this.element.dataset.mode=group;this.showButtons();this.place();
+  for(const b of this.adjustBar.querySelectorAll<HTMLElement>('[data-layout]'))b.setAttribute('aria-pressed',String(b.dataset.layout===group));
+ }
+ private finishAdjusting(keep:boolean){
+  const editing=this.editing;if(!editing)return;
+  this.editing=undefined;this.element.classList.remove('editing');this.adjustBar.hidden=true;this.element.hidden=true;
+  for(const {element} of this.buttons)element.classList.remove('on');
+  this.mode=undefined;this.setMode(editing.mode);
+  if(keep){const next={...this.settings,layout:editing.layout};this.apply(next);this.changeSettings(next);}else this.place();
+  editing.done();
+ }
+ /** A finger on a button while adjusting moves it, by hundredths of the screen's short side. */
+ private drag(e:PointerEvent,spec:ButtonSpec,button:HTMLElement){
+  const editing=this.editing!,key=`${layoutGroup(this.mode??'foot')}:${spec.className}`,start=editing.layout[key]??[0,0],x0=e.clientX,y0=e.clientY,unit=Math.min(innerWidth,innerHeight)/100;
+  button.classList.add('on');
+  const move=(m:PointerEvent)=>{if(m.pointerId!==e.pointerId||this.editing!==editing)return;
+   editing.layout[key]=[Math.round(Math.min(LAYOUT_RANGE.x.max,Math.max(LAYOUT_RANGE.x.min,start[0]+(m.clientX-x0)/unit))*10)/10,Math.round(Math.min(LAYOUT_RANGE.y.max,Math.max(LAYOUT_RANGE.y.min,start[1]+(m.clientY-y0)/unit))*10)/10];this.place();};
+  const end=(m:PointerEvent)=>{if(m.pointerId!==e.pointerId)return;button.classList.remove('on');button.removeEventListener('pointermove',move);button.removeEventListener('pointerup',end);button.removeEventListener('pointercancel',end);};
+  button.addEventListener('pointermove',move);button.addEventListener('pointerup',end);button.addEventListener('pointercancel',end);
  }
  private weaponWatch?:MutationObserver;
  private steeringPopup=document.createElement('section');
@@ -313,7 +371,7 @@ async function motionAllowed(){
  const request=(globalThis as {DeviceOrientationEvent?:{requestPermission?:()=>Promise<string>}}).DeviceOrientationEvent?.requestPermission;
  try{return request?await request()==='granted':true;}catch{return false;}
 }
-export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:TouchSettings)=>void){
+export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:TouchSettings)=>void,adjust?:()=>void){
  const panel=document.createElement('p');panel.className='touch-settings';
  panel.innerHTML=`<b>Touch</b><label>Steering <select class="touch-steering" aria-label="Steering"><option value="stick">Stick</option><option value="arrows">Arrow buttons</option><option value="tilt">Tilt the device</option></select></label>
 <label>Aim <select class="touch-aim" aria-label="Aim"><option value="assist">Lock-on assist</option><option value="free">Free aim</option></select></label>
@@ -322,6 +380,7 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
 <label>Vibration <input type="checkbox" class="touch-vibration" aria-label="Vibration"></label>
 <label>Population <select class="touch-density" aria-label="Population"><option value="full">Full</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
+<button type="button" class="touch-adjust-open">Adjust controls</button>
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
@@ -338,6 +397,7 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
   if(await motionAllowed())update({steering:'tilt',steeringChosen:true});else{steering.value='stick';note.textContent='Motion sensors were not allowed, so steering stays on the stick.';}
  };
  aim.onchange=()=>update({aimAssist:aim.value==='assist'});
+ const adjustOpen=panel.querySelector<HTMLButtonElement>('.touch-adjust-open')!;adjustOpen.hidden=!adjust;adjustOpen.onclick=()=>adjust?.();
  look.oninput=()=>update({lookSpeed:Number(look.value)});size.oninput=()=>update({buttonScale:Number(size.value)});
  return {element:panel,refresh};
 }

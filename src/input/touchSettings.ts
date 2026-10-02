@@ -9,9 +9,21 @@ export const DENSITY_SCALE:Readonly<Record<TouchDensity,number>>={full:1,medium:
 export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpeed:number;buttonScale:number;vibration:boolean;density:TouchDensity;
  /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
  invertLook:boolean;
+ /** Where the player has moved buttons (the port's Adjust Controls): by layout and slot ("foot:jump"), how far from
+  * their place, in hundredths of the screen's short side. */
+ layout:Readonly<Record<string,readonly [number,number]>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',invertLook:false,steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',invertLook:false,layout:{},steeringChosen:false};
+/** How far a button may be moved from its place: most of the way across a sideways screen and up it. */
+export const LAYOUT_RANGE={x:{min:-200,max:20},y:{min:-100,max:20}};
+const LAYOUT_KEY=/^(?:foot|vehicle|aircraft):[a-z-]+$/;
+function parseLayout(value:unknown):Record<string,[number,number]>{
+ const out:Record<string,[number,number]>={};if(!value||typeof value!=='object')return out;
+ for(const [key,offset] of Object.entries(value))if(LAYOUT_KEY.test(key)&&Array.isArray(offset)&&offset.length===2&&offset.every(n=>typeof n==='number'&&Number.isFinite(n)))
+  out[key]=[Math.min(LAYOUT_RANGE.x.max,Math.max(LAYOUT_RANGE.x.min,offset[0])),Math.min(LAYOUT_RANGE.y.max,Math.max(LAYOUT_RANGE.y.min,offset[1]))];
+ return out;
+}
 export const LOOK_SPEED_RANGE={min:.5,max:2},BUTTON_SCALE_RANGE={min:.8,max:1.3};
 const KEY='grove-touch-v1';
 const clamp=(value:unknown,range:{min:number;max:number},fallback:number)=>typeof value==='number'&&Number.isFinite(value)?Math.min(range.max,Math.max(range.min,value)):fallback;
@@ -21,7 +33,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   lookSpeed:clamp(data.lookSpeed,LOOK_SPEED_RANGE,DEFAULT_TOUCH.lookSpeed),buttonScale:clamp(data.buttonScale,BUTTON_SCALE_RANGE,DEFAULT_TOUCH.buttonScale),
   vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration,
   density:data.density==='full'||data.density==='low'||data.density==='medium'?data.density:DEFAULT_TOUCH.density,
-  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,
+  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:parseLayout(data.layout),
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};
 }

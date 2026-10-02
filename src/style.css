@@ -185,6 +185,16 @@
 /* The shortest screens (an iPhone SE sideways) have no room for the context pills' full height and gap between the
  * buttons and the weapon icon's ammo: they come down a little and slimmer. */
 @media(max-height:360px){.touch-context{bottom:calc(var(--touch-cluster-h) + 6px)}.touch-context .touch-button.small{height:34px;border-radius:17px}}
+/* Adjusting the layout (the touch settings' Adjust controls): the held game dimmed and the rest of the HUD gone, a
+ * layout's every button outlined to be dragged, and the bar of layouts, Reset and Done at the top. */
+.touch-controls.editing{background:#000000a8}
+.game-ui:has(> .touch-controls.editing) > :not(.touch-controls){visibility:hidden}
+.touch-controls.editing .touch-stick-zone,.touch-controls.editing .touch-look,.touch-controls.editing .touch-top,.touch-controls.editing .touch-context,.touch-controls.editing .touch-steering-choice{display:none}
+.touch-controls.editing .touch-buttons .touch-button,.touch-controls.editing .touch-button.steer-left,.touch-controls.editing .touch-button.steer-right{outline:2px dashed #ffffffa0;outline-offset:3px}
+.touch-adjust{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 12px;border-radius:12px;background:#101713e6;color:#eee8d3;pointer-events:auto;font:13px/1.3 system-ui,sans-serif;text-align:center;width:max-content;max-width:calc(100vw - 24px)}
+.touch-adjust p{margin:0}.touch-adjust div{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.touch-adjust .touch-button.small[aria-pressed=true]{background:#ffffffc7;color:#111;text-shadow:none}
+.touch-settings .touch-adjust-open{margin:6px 0 4px;padding:8px 14px;font:14px system-ui,sans-serif;color:#ede8d3;background:#243129;border:1px solid #77836d}
 .touch .trip-skip{pointer-events:auto;z-index:5;touch-action:none;cursor:pointer;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 /* Subtitles centre in the room left of the buttons rather than running under them; a widescreen scene, with only Skip
  * up, keeps them across the screen. */
