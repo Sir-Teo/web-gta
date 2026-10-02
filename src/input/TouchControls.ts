@@ -23,24 +23,35 @@ export async function goFullscreen(root:Element=document.documentElement,doc:Pic
   await orientation?.lock?.('landscape');
  }catch{/* refused: play on as the page is */}
 }
-/** A button: its label, the key or mouse button it holds, and whether a tap latches it (aim) rather than holds it. */
-interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;onFoot?:boolean;inVehicle?:boolean}
+/** What the player is doing, which picks the buttons shown. */
+export type TouchMode='foot'|'vehicle'|'aircraft';
+/** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, and the
+ * modes it shows in (all of them when unset). */
+interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[]}
 const BUTTONS:ButtonSpec[]=[
  {label:'Fire',code:'ControlLeft',className:'fire'},
- {label:'Aim',code:'MouseAim',className:'aim',toggle:true,onFoot:true},
- {label:'Jump',code:'Space',className:'jump',onFoot:true},
- {label:'H-brake',code:'Space',className:'jump',inVehicle:true},
- {label:'Sprint',code:'ShiftLeft',className:'sprint',onFoot:true},
- {label:'Horn',code:'KeyH',className:'sprint',inVehicle:true},
+ {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot']},
+ {label:'Jump',code:'Space',className:'jump',modes:['foot']},
+ {label:'H-brake',code:'Space',className:'jump',modes:['vehicle']},
+ {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot']},
+ {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle']},
  {label:'Enter',code:'KeyF',className:'enter'},
- {label:'Crouch',code:'KeyC',className:'crouch',onFoot:true},
- {label:'Look',code:'KeyQ',className:'crouch',inVehicle:true},
- {label:'Weapon',code:'KeyE',className:'weapon',onFoot:true},
- {label:'Reload',code:'KeyR',className:'reload',onFoot:true},
+ {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot']},
+ {label:'Look',code:'KeyQ',className:'crouch',modes:['vehicle']},
+ {label:'Weapon',code:'KeyE',className:'weapon',modes:['foot']},
+ {label:'Reload',code:'KeyR',className:'reload',modes:['foot']},
  // At the wheel the right thumb has the pedals, as the mobile ports give it, so the stick can steer to full lock
  // while the car accelerates (a stick pushed only sideways is no push forward).
- {label:'Gas',code:'KeyW',className:'gas',inVehicle:true},
- {label:'Brake',code:'KeyS',className:'reverse',inVehicle:true},
+ {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle']},
+ {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle']},
+ // Flying, the stick is the yoke (pitch and roll) and the right thumb has the throttle, the rudder, the wheel brake
+ // (a helicopter's hover hold) and the rockets: the PC's W/S, Q/E, Space and B.
+ {label:'Thrust',code:'KeyW',className:'gas',modes:['aircraft']},
+ {label:'Slow',code:'KeyS',className:'reverse',modes:['aircraft']},
+ {label:'Brake',code:'Space',className:'jump',modes:['aircraft']},
+ {label:'◀ Yaw',code:'KeyQ',className:'yaw-left',modes:['aircraft']},
+ {label:'Yaw ▶',code:'KeyE',className:'yaw-right',modes:['aircraft']},
+ {label:'Rocket',code:'KeyB',className:'rocket',modes:['aircraft']},
 ];
 /** How far the stick's knob travels from where the thumb came down, in CSS pixels. */
 const STICK_RADIUS=56;
@@ -57,7 +68,7 @@ export class TouchControls {
  private held=new Map<number,string>();
  private latched=new Set<string>();
  private buttons:{spec:ButtonSpec;element:HTMLButtonElement}[]=[];
- private inVehicle=false;
+ private mode?:TouchMode;
  private abort=new AbortController();
  constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;map:()=>void;arsenal:()=>void}){
   const options={signal:this.abort.signal};
@@ -104,7 +115,7 @@ export class TouchControls {
   // No page scroll, zoom or long-press menu under the thumbs.
   this.element.addEventListener('touchstart',e=>{if(e.cancelable)e.preventDefault();},{...options,passive:false});
   this.element.addEventListener('contextmenu',e=>e.preventDefault(),options);
-  this.setMode(false);
+  this.setMode('foot');
  }
  private moveStick(x:number,y:number){
   let dx=x-this.stickOrigin.x,dy=y-this.stickOrigin.y;const length=Math.hypot(dx,dy);
@@ -114,12 +125,12 @@ export class TouchControls {
   // A light push walks (the PC's walk key); past half way CJ runs.
   if(Math.hypot(stick.x,stick.y)<.55)this.input.hold('AltLeft');else this.input.release('AltLeft');
  }
- /** On foot or at the wheel: the buttons for the other are hidden, and a latched aim is let go in a vehicle. */
- setMode(inVehicle:boolean){
-  if(inVehicle===this.inVehicle&&this.buttons.length&&this.element.dataset.mode)return;
-  this.inVehicle=inVehicle;this.element.dataset.mode=inVehicle?'vehicle':'foot';
-  for(const {spec,element} of this.buttons)element.hidden=inVehicle?!!spec.onFoot:!!spec.inVehicle;
-  if(inVehicle)for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
+ /** On foot, at the wheel or flying: the other modes' buttons are hidden, and a latched aim is let go off foot. */
+ setMode(mode:TouchMode){
+  if(mode===this.mode)return;
+  this.mode=mode;this.element.dataset.mode=mode;
+  for(const {spec,element} of this.buttons)element.hidden=!!spec.modes&&!spec.modes.includes(mode);
+  if(mode!=='foot')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
   for(const {spec,element} of this.buttons)if(spec.toggle)element.classList.toggle('on',this.latched.has(spec.code));
  }
  /** Hidden under the menus: everything held is let go so nothing stays pressed behind them. */

@@ -132,6 +132,9 @@
 .touch-controls[data-mode=vehicle] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
 .touch-button.gas{grid-area:gas;width:var(--touch-fire);height:var(--touch-fire);font-size:clamp(12px,3.6vmin,15px);background:#2f7a3c99}
 .touch-button.reverse{grid-area:reverse}
+.touch-controls[data-mode=aircraft] .touch-buttons{grid-template-areas:"yaw-left yaw-right enter" "rocket fire jump" ". reverse gas"}
+.touch-controls[data-mode=aircraft] .touch-button.fire{width:var(--touch-b);height:var(--touch-b);font-size:clamp(10px,3vmin,12px)}
+.touch-button.yaw-left{grid-area:yaw-left}.touch-button.yaw-right{grid-area:yaw-right}.touch-button.rocket{grid-area:rocket}
 .touch-button.small{width:auto;min-width:44px;height:36px;border-radius:18px;padding:0 12px}
 .touch-top{position:absolute;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:8px;pointer-events:none}
 .touch-rotate{display:none;position:absolute;inset:0;place-content:center;justify-items:center;gap:16px;padding:24px;background:#0b110cd9;pointer-events:auto;text-align:center}

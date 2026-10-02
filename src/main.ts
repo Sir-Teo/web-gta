@@ -3186,7 +3186,9 @@ async function boot() {
           // ProcessControlInputs' automaticallyHandBrake: the exit button held (not through a jump-out) or the driver under arrest.
           car.exitHeld=car.occupied&&carEntry.phase!=='jumpOut'&&(input.down('KeyF')&&!padSwitchedOff('enterCar')&&!playerControlsDisabled()||law.arrested);
           car.beforeStep(step,axes,input.down('Space'),importedScene?.sources);}
-        for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
+        // The touch stick is the yoke: pushed forward the nose goes down, as a pad's left stick flies; the keys otherwise.
+        const yoke=input.stick&&Math.hypot(input.stick.x,input.stick.y)>.12?input.stick:undefined;
+        for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:yoke?-yoke.y:Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:yoke?yoke.x:Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const {phase,foot}=plane.entry;plane.entry=undefined;if(phase==='getin')plane.finishEnter();else plane.finishExit(foot);}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:axes.x,brake:input.down('Space')}:undefined);
         // ProcessDrivingAnims in a boat: a boat without m_bSitInBoat uses the DRIVE_BOAT set, steering and looking back.
@@ -3375,7 +3377,7 @@ async function boot() {
     for(const train of fleet?.trains??[])train.update();
     // The on-foot key hints (jump, crouch, enter car) do not apply in a vehicle.
     hud.element.classList.toggle('in-vehicle',!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike||playerPassenger));
-    touch?.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch?.setMode(hud.element.classList.contains('in-vehicle'));
+    touch?.setVisible(!paused&&!navigation?.open&&!arsenal.open);touch?.setMode(fleet?.occupiedPlane?'aircraft':hud.element.classList.contains('in-vehicle')?'vehicle':'foot');
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=`${aircraft.name} · ${Math.round(aircraft.airspeed*3.6)} km/h · ${Math.round(aircraft.altitude)} m AGL · Throttle ${Math.round(aircraft.throttle*100)}% · Gear ${aircraft.gearUp?'UP':'DOWN'}${aircraft.modelId===520?` · ${aircraft.vtol?'VERTICAL':'FORWARD'} [T]`:''}${aircraft.armed?` · Guns [Ctrl]${aircraft.rocketsArmed?` · Rockets [B]`:''}`:''}${aircraft.stall?' · STALL — lower nose':''} | W/S throttle · ↓/↑ pitch · A/D bank · Q/E turn · G gear · Space ${aircraft.helicopter||aircraft.modelId===520&&aircraft.vtol?'hover':'brake'} · F exit`;
     for(const car of fleet?.cars??[]){car.car.update(alpha);car.car.setNight(nativeDayNightBalance(sim.timeMinutes));}
     // CSkidmarks::Update in the game frame, then each car's PreRender registers its wheels, then Render.

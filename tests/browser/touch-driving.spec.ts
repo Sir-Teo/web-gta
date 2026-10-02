@@ -21,21 +21,21 @@ test('a phone drives with the stick at full lock and the Gas pedal',async({page}
  await press('.touch-button.enter:not([hidden])',3);await press('.touch-button.enter:not([hidden])',3,'pointerup');
  await expect.poll(async()=>(await state()).carEntry.phase,{timeout:60000}).toBe('seated');
  await expect(page.locator('.touch-controls')).toHaveAttribute('data-mode','vehicle');
- await expect(page.locator('.touch-button.gas')).toBeVisible();await expect(page.locator('.touch-button.aim')).toBeHidden();
+ await expect(page.locator('.touch-button.gas:not([hidden])')).toBeVisible();await expect(page.locator('.touch-button.aim')).toBeHidden();
  const start=(await state()).nativeCar;
  // The stick hard right, not forward at all, and Gas held.
  const zone=(await page.locator('.touch-stick-zone').boundingBox())!,x=zone.x+zone.width/2,y=zone.y+zone.height/2;
  await finger('.touch-stick-zone','pointerdown',x,y,7);await finger('.touch-stick-zone','pointermove',x+80,y,7);
- await press('.touch-button.gas',11);await gameWait(1.2);
+ await press('.touch-button.gas:not([hidden])',11);await gameWait(1.2);
  const early=(await state()).nativeCar;await gameWait(1.3);const turning=(await state()).nativeCar;
  // It drives off and its course swings round: the direction of travel turns between the two looks.
  const moved=Math.hypot(turning.position.x-start.position.x,turning.position.z-start.position.z);
  const course=(v:{x:number;z:number})=>Math.atan2(v.x,v.z),turned=Math.abs(Math.atan2(Math.sin(course(turning.velocity)-course(early.velocity)),Math.cos(course(turning.velocity)-course(early.velocity))));
  expect(moved,JSON.stringify({start,early,turning})).toBeGreaterThan(3);expect(turned,JSON.stringify({early:early.velocity,turning:turning.velocity})).toBeGreaterThan(.3);
  // Let go of Gas and hold Brake: the car comes to a stop.
- await press('.touch-button.gas',11,'pointerup');await finger('.touch-stick-zone','pointerup',x+80,y,7);
- await press('.touch-button.reverse',12);
+ await press('.touch-button.gas:not([hidden])',11,'pointerup');await finger('.touch-stick-zone','pointerup',x+80,y,7);
+ await press('.touch-button.reverse:not([hidden])',12);
  await expect.poll(async()=>{const v=(await state()).nativeCar.velocity;return Math.hypot(v.x,v.z);},{timeout:15000}).toBeLessThan(1);
- await press('.touch-button.reverse',12,'pointerup');
+ await press('.touch-button.reverse:not([hidden])',12,'pointerup');
  expect(errors).toEqual([]);
 });
