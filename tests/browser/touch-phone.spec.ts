@@ -17,7 +17,7 @@ class Fingers {
 }
 /** Where to put a finger on an element, once it is on screen (the controls come back a frame after a menu closes). */
 const centre=async(page:Page,selector:string)=>{const target=page.locator(selector).first();await target.waitFor({state:'visible',timeout:10000});const b=(await target.boundingBox())!;return {x:b.x+b.width/2,y:b.y+b.height/2};};
-test('a phone plays with real touches: two thumbs, three fingers, the weapon icon, the radar, the camera, the stars and the pause button',async({page,context})=>{
+test('a phone plays with real touches: two thumbs, three fingers, the weapon icon, the radar, the camera, the stars, a subtitle and the pause button',async({page,context})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
  await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
@@ -63,6 +63,11 @@ test('a phone plays with real touches: two thumbs, three fingers, the weapon ico
   return {overlaps:hit.length,below:s.top>=status.bottom};});
  expect(stars).toEqual({overlaps:0,below:true});
  await page.evaluate(()=>(window as any).__game.setWantedLevel(0));
+ // A long subtitle wraps in the room left of the buttons rather than running under them.
+ await page.evaluate(()=>(window as any).__game.hud().message("It's a good thing we found you and retrieved the murder weapon, Carl. Real good.",20000));
+ expect(await page.evaluate(()=>{const s=document.querySelector('.prompt')!.getBoundingClientRect();
+  return [...document.querySelectorAll('.touch-controls .touch-button:not([hidden])')].map(b=>b.getBoundingClientRect()).filter(r=>r.width&&r.left<s.right&&r.right>s.left&&r.top<s.bottom&&r.bottom>s.top).length;})).toBe(0);
+ await page.evaluate(()=>(window as any).__game.hud().message('',1));
  // The pause button pauses, and Resume plays on.
  const pause=await centre(page,'.touch-button.pause');await fingers.tap(pause.x,pause.y);
  await expect.poll(async()=>(await state()).paused).toBe(true);
