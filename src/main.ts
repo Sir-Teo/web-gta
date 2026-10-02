@@ -2250,7 +2250,12 @@ async function boot() {
   const screenAwake=touch?new ScreenAwake():undefined;
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);
    // The pause menu's Controls panel holds the touch settings.
-   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);}
+   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
+   // A phone's short screen puts the touch buttons where the PC HUD's wanted stars sit (175 px down): they hang under
+   // the clock, money and bars instead, wherever those end.
+   {const status=hud.element.querySelector<HTMLElement>('.status');
+    if(status){const place=()=>hud.element.style.setProperty('--status-bottom',`${Math.round(status.getBoundingClientRect().bottom-hud.element.getBoundingClientRect().top)}px`);
+     const watch=new ResizeObserver(place);watch.observe(status);watch.observe(hud.element);place();}}}
   const cheats=CHEATS;
   /** CTimer::ms_fTimeScale as the gameplay cheats set it; a unique stunt jump's 0.3 overrides it and ResetTimeScale
    * afterwards puts it back to 1. */

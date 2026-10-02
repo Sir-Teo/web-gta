@@ -177,6 +177,7 @@
 /* Edge to edge on a notched phone (viewport-fit=cover): the HUD's text and the menus keep out of the safe-area insets. */
 .touch .status{right:max(4.6%,calc(env(safe-area-inset-right) + 10px));top:max(4.3%,calc(env(safe-area-inset-top) + 6px))}
 .touch .wanted-status,.touch .weapon-readout{right:calc(28px + env(safe-area-inset-right))}
+.touch .wanted-status{top:calc(var(--status-bottom,175px) + 6px)}
 .touch .menu-backdrop{padding-left:max(6vw,calc(env(safe-area-inset-left) + 16px));padding-right:max(6vw,calc(env(safe-area-inset-right) + 16px))}
 .touch .arsenal{left:max(4vw,16px,env(safe-area-inset-left));right:max(4vw,16px,env(safe-area-inset-right))}
 /* A phone held sideways is short: the pause menu drops its second title and tightens, so its options and the touch
