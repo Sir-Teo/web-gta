@@ -177,6 +177,14 @@ export class TouchControls {
    // the same spot and would take the click the lift makes.
    slot.addEventListener('touchstart',e=>{if(e.cancelable)e.preventDefault();},{...options,passive:false});
    slot.addEventListener('contextmenu',e=>e.preventDefault(),options);}
+  // The trip skip's icon (CHud::DrawTripSkip, up while a skip can be taken) is its own button on a phone: held, it holds
+  // Y, CONVERSATION_YES, the D-pad right the skip waits for; its help says so only the first time.
+  const tripSkip=parent.querySelector<HTMLElement>('.trip-skip');
+  if(tripSkip){tripSkip.setAttribute('role','button');tripSkip.setAttribute('aria-label','Trip skip');
+   tripSkip.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(tripSkip,e.pointerId);this.held.set(e.pointerId,'KeyY');input.hold('KeyY');this.buzz();},options);
+   const lift=(e:PointerEvent)=>{if(this.held.get(e.pointerId)!=='KeyY')return;this.held.delete(e.pointerId);if(![...this.held.values()].includes('KeyY'))input.releaseAfterFrame('KeyY');};
+   tripSkip.addEventListener('pointerup',lift,options);tripSkip.addEventListener('pointercancel',lift,options);
+   tripSkip.addEventListener('touchstart',e=>{if(e.cancelable)e.preventDefault();},{...options,passive:false});}
   // The Fire button shows the weapon in hand, as the port's attack button does: the HUD icon's picture, or its fist.
   if(slot){const img=slot.querySelector<HTMLImageElement>('img.native-weapon-icon'),fist=slot.querySelector('svg.weapon');
    const fires=this.buttons.filter(b=>b.spec.code==='ControlLeft'&&!b.spec.icon).map(b=>b.element);
