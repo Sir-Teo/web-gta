@@ -51,7 +51,7 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await page.locator('.map-close').click();await expect(controls).toBeVisible();
  // A help line that asks for a control with no button of its own names the touch one and puts a button up for it,
  // which reaches the script's pad; it goes when the help does.
- await page.evaluate(async()=>{const {gxtHudText}=await import('/src/assets/gxt.ts');(window as any).__game.hud().help(gxtHudText('Press ~k~~CONVERSATION_YES~ to agree.'),60000);});
+ await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~CONVERSATION_YES~ to agree.'),60000);});
  await expect(page.locator('.help-box')).toHaveText('Press YES to agree.');
  const yes=page.locator('.touch-context button',{hasText:'Yes'});await expect(yes).toBeVisible();
  const yesBox=(await yes.boundingBox())!;
