@@ -24,28 +24,32 @@ export async function goFullscreen(root:Element=document.documentElement,doc:Pic
  }catch{/* refused: play on as the page is */}
 }
 /** What the player is doing, which picks the buttons shown. */
-export type TouchMode='foot'|'vehicle'|'aircraft';
+export type TouchMode='foot'|'scope'|'vehicle'|'aircraft';
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, and the
  * modes it shows in (all of them when unset). */
 interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[]}
 const BUTTONS:ButtonSpec[]=[
  {label:'Fire',code:'ControlLeft',className:'fire'},
- {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot']},
+ {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope']},
  {label:'Jump',code:'Space',className:'jump',modes:['foot']},
  {label:'H-brake',code:'Space',className:'jump',modes:['vehicle']},
  {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot']},
  {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle']},
  {label:'Enter',code:'KeyF',className:'enter'},
- {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot']},
+ {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope']},
  {label:'Look',code:'KeyQ',className:'crouch',modes:['vehicle']},
- {label:'Weapon',code:'KeyE',className:'weapon',modes:['foot']},
- {label:'Reload',code:'KeyR',className:'reload',modes:['foot']},
+ {label:'Weapon',code:'KeyE',className:'weapon',modes:['foot','scope']},
+ {label:'Reload',code:'KeyR',className:'reload',modes:['foot','scope']},
  // At the wheel the right thumb has the pedals, as the mobile ports give it, so the stick can steer to full lock
  // while the car accelerates (a stick pushed only sideways is no push forward).
  {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle']},
  {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle']},
  // Flying, the stick is the yoke (pitch and roll) and the right thumb has the throttle, the rudder, the wheel brake
  // (a helicopter's hover hold) and the rockets: the PC's W/S, Q/E, Space and B.
+ // Through a scope (the sniper rifle, the camera, the rocket launchers) Jump and Sprint give way to the zoom: the
+ // PC's X and Z.
+ {label:'Zoom +',code:'KeyX',className:'jump',modes:['scope']},
+ {label:'Zoom −',code:'KeyZ',className:'sprint',modes:['scope']},
  {label:'Thrust',code:'KeyW',className:'gas',modes:['aircraft']},
  {label:'Slow',code:'KeyS',className:'reverse',modes:['aircraft']},
  {label:'Brake',code:'Space',className:'jump',modes:['aircraft']},
@@ -141,12 +145,13 @@ export class TouchControls {
   // A light push walks (the PC's walk key); past half way CJ runs.
   if(Math.hypot(stick.x,stick.y)<.55)this.input.hold('AltLeft');else this.input.release('AltLeft');
  }
- /** On foot, at the wheel or flying: the other modes' buttons are hidden, and a latched aim is let go off foot. */
+ /** On foot, through a scope, at the wheel or flying: the other modes' buttons are hidden, and a latched aim is let go
+  * in a vehicle. */
  setMode(mode:TouchMode){
   if(mode===this.mode)return;
   this.mode=mode;this.element.dataset.mode=mode;
   for(const {spec,element} of this.buttons)element.hidden=!!spec.modes&&!spec.modes.includes(mode);
-  if(mode!=='foot')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
+  if(mode==='vehicle'||mode==='aircraft')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
   for(const {spec,element} of this.buttons)if(spec.toggle)element.classList.toggle('on',this.latched.has(spec.code));
  }
  /** The pad actions the help box and prompt name now: their context buttons show, the rest hide (let go if held). */
