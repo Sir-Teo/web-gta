@@ -15,6 +15,7 @@ import type { Input } from '../input/Input';
 import { angleDelta, clamp, damp } from '../core/math';
 import {FirstPersonZoom,firstPersonAlphaRange,firstPersonSourceOffset,isRocketMode,type FirstPersonMode} from '../weapons/nativeFirstPerson';
 import {MOUSE_ACCEL_DEFAULT} from '../input/mouseSettings';
+import {aimAssistTurn} from '../input/aimAssist';
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -25,6 +26,9 @@ export class GameRenderer {
   /** Links new objects' shader programs beside the frames instead of in the one they first draw in. */
   readonly programWarmer: ProgramWarmer;
   aiming=false;
+  /** The touch controls' aim assist (input/aimAssist): the point the aimed follow camera eases the crosshair onto. */
+  aimAssist?:{x:number;y:number;z:number};
+  private assistPoint=new THREE.Vector3();
   /** The camera's first-person weapon mode (see nativeFirstPerson), or undefined for the follow camera. */
   firstPerson?:FirstPersonMode;
   get scoped(){return !!this.firstPerson;}
@@ -187,6 +191,15 @@ export class GameRenderer {
       }
       this.lastLook = elapsed;
       input.lookX = input.lookY = 0;
+    }
+    // The touch aim assist turns the aimed camera toward its target (a fifth of a second to settle), but not while a
+    // finger is dragging the view or for a moment after.
+    if(this.aimAssist&&this.aiming&&!fp&&this.glance==='none'&&elapsed-this.lastLook>.3&&this.cameraReady){
+      const ndc=this.assistPoint.set(this.aimAssist.x,this.aimAssist.y,this.aimAssist.z).project(this.camera);
+      if(ndc.z<1&&Math.abs(ndc.x)<1.5&&Math.abs(ndc.y)<1.5){
+        const turn=aimAssistTurn(ndc,THREE.MathUtils.degToRad(this.camera.fov),this.camera.aspect,1-Math.exp(-10*dt));
+        this.yaw+=turn.yaw;this.pitch=clamp(this.pitch+turn.pitch,-1.1,1.05);
+      }
     }
     // Process_FollowCar_SA is a retail stub; authored from play: the car camera swings behind the vehicle as soon as
     // the ped is in (also when it stands still), and returns there two seconds after the last look.

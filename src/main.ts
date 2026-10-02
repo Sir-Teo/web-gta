@@ -128,7 +128,8 @@ import {WantedHud} from './ui/WantedHud';
 import {hudAmmoText} from './ui/nativeAmmoText';
 import {radarRange} from './ui/nativeRadar';
 import {carsStrikePlayer} from './simulation/playerCarHit';
-import {WeaponSystem} from './weapons/WeaponSystem';
+import {WeaponSystem,playerAimReach} from './weapons/WeaponSystem';
+import {AIM_CROSSHAIR_NDC,pickAimTarget} from './input/aimAssist';
 import {WeaponView} from './weapons/WeaponView';
 import {WorldFx} from './simulation/fx/WorldFx';
 import {NativeWeather,WEATHER} from './world/nativeWeather';
@@ -907,7 +908,7 @@ async function boot() {
   void afterStartPackage.then(()=>worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
   // CCamera::Find3rdPersonCamTargetVector: third-person shots go through the crosshair at (0.53, 0.4) of the screen;
   // the sniper scope aims down the middle.
-  const aimDirection=()=>render.scoped?render.camera.getWorldDirection(scratchAim):scratchAim.set(.06,.2,.5).unproject(render.camera).sub(render.camera.position).normalize();
+  const aimDirection=()=>render.scoped?render.camera.getWorldDirection(scratchAim):scratchAim.set(AIM_CROSSHAIR_NDC.x,AIM_CROSSHAIR_NDC.y,.5).unproject(render.camera).sub(render.camera.position).normalize();
   weaponView.aimDirection=aimDirection;
   // CCamera::Find3rdPersonCamTargetVector(20, ped + (0,0,0.7)): the crosshair ray's point nearest the ped's upper body
   // (the entity sits about a metre above the feet), carried 20 units on along the ray.
@@ -2235,6 +2236,8 @@ async function boot() {
     else pause();
   });
   // Phones and tablets: a stick, a camera drag and buttons over the game, feeding the same Input.
+  /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
+  let aimAssistHandle:number|undefined;
   const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),map:()=>input.tap('KeyM'),arsenal:()=>input.tap('Backquote')}):undefined;
   if(touch)document.documentElement.classList.add('touch');
   const cheats=CHEATS;
@@ -2875,6 +2878,15 @@ async function boot() {
          if(canSkip&&!tripSkipHelpShown){tripSkipHelpShown=true;hud.help(gxtHudText(gxtText('SKIP_1','')),5000);}else if(!canSkip)tripSkipHelpShown=false;
          hud.tripSkip(canSkip,canSkip?gxtHudText(gxtText('FEC_TSK','TRIP SKIP')):'');}
         weapons.tick(step,weapons.aiming?{origin:{...render.camera.position},direction:aimDirection()}:undefined);
+        // The touch controls' aim assist (input/aimAssist): an aimed gun in the follow camera eases onto the ped nearest
+        // the crosshair that the camera can see.
+        {const w=weapons.inventory.weapon,info=weapons.inventory.info();
+         const assist=touch&&weapons.aiming&&!render.firstPerson&&(w.kind==='bullet'||w.kind==='shotgun')&&info&&info.fire!=='melee'&&sim.player.health>0;
+         if(assist){const origin=render.camera.position,target=pickAimTarget(pedestrians?.targets()??[],{origin,direction:aimDirection()},sim.player.position,playerAimReach(w.kind,info),aimAssistHandle,c=>{
+           const to={x:c.position.x-origin.x,y:c.position.y-origin.y,z:c.position.z-origin.z},d=Math.hypot(to.x,to.y,to.z);if(d<.5)return true;
+           return !sim.world.castRay(new RAPIER.Ray(origin,{x:to.x/d,y:to.y/d,z:to.z/d}),d-.3,true,RAPIER.QueryFilterFlags.ONLY_FIXED);});
+          aimAssistHandle=target?.handle;render.aimAssist=target?.position;}
+         else{aimAssistHandle=undefined;render.aimAssist=undefined;}}
         const entryBusy=[...(fleet?.planes??[])].some(p=>p.entryBusy);
         const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!playerPassenger&&!entryBusy&&!bikeMount.active&&(!carEntry.active||carEntry.phase==='approach');
         // CTaskSimplePlayerOnFoot raises CEventGunAimedAt on a locked ped. With the mouse there is no lock; the ped under
