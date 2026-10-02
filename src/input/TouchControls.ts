@@ -48,7 +48,9 @@ export function offerInstall(button:HTMLButtonElement,target:EventTarget=window)
  * symbol in the help text where the PC prints its key. Fire shows the weapon in hand, so it keeps its word alone. */
 const HELP_ICONS:Readonly<Record<string,TouchIcon>>={ENTER:'car',SPRINT:'run',JUMP:'jump',CROUCH:'crouch',AIM:'target',GAS:'up',BRAKE:'down',
  'H-BRAKE':'parking',HORN:'horn',RADIO:'music','LOOK BACK':'eye',CAMERA:'camera','ZOOM +':'zoomIn','ZOOM −':'zoomOut',ROCKET:'rocket',
- '◀ YAW':'left','YAW ▶':'right','LEFT ARROW':'left','RIGHT ARROW':'right'};
+ '◀ YAW':'left','YAW ▶':'right','LEFT ARROW':'left','RIGHT ARROW':'right',
+ // The stick, one direction or the whole of it (a run of its directions is "the STICK").
+ STICK:'stick','STICK UP':'stick','STICK DOWN':'stick','STICK LEFT':'stick','STICK RIGHT':'stick'};
 /** A played pad's buttons as the PS2 original's help drew them: the face buttons a symbol in the button's colour (a
  * PlayStation pad's shapes, the letters MFi and Xbox pads print in theirs), the shoulders, stick clicks and select
  * grey chips with their names, the D-pad its arrows. */
@@ -65,7 +67,10 @@ const PAD_GLYPHS:Readonly<Record<'playstation'|'xbox',Readonly<Record<string,{gl
  * (`named`, their actions; `nameOf`, what each is called now) are drawn, so a capitalised word of its own stays. */
 export function showHelpIcons(box:HTMLElement,text:string,named:readonly string[],nameOf:(action:string)=>string|undefined,naming:'keys'|'touch'|'playstation'|'xbox'='touch'){
  const pad=naming==='playstation'||naming==='xbox'?PAD_GLYPHS[naming]:undefined,drawn=pad??(naming==='touch'?HELP_ICONS:{});
- const names=[...new Set(named.map(nameOf).filter((n):n is string=>!!n&&n in drawn))].sort((a,b)=>b.length-a.length);
+ const called=named.map(nameOf).filter((n):n is string=>!!n);
+ // A run of the stick's directions reads "the STICK" (gxt's DIRECTION_RUNS).
+ if(!pad&&called.some(n=>n.startsWith('STICK ')))called.push('STICK');
+ const names=[...new Set(called.filter(n=>n in drawn))].sort((a,b)=>b.length-a.length);
  if(!names.length)return;
  const escape=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),pattern=new RegExp(`(?<![A-Za-z])(${names.map(escape).join('|')})(?![A-Za-z])`,'g');
  const parts=text.split(pattern);if(parts.length<2)return;

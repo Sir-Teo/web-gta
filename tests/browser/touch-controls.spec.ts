@@ -77,6 +77,9 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~VEHICLE_ENTER_EXIT~ to get on the BMX, ~k~~PED_JUMPING~ to hop and ~k~~PED_FIREWEAPON~ to shoot.'),60000);});
  await expect(page.locator('.help-box')).toHaveText('Press ENTER to get on the BMX, JUMP to hop and FIRE to shoot.');
  await expect(page.locator('.help-box .help-key')).toHaveText(['ENTER','JUMP']);await expect(page.locator('.help-box .help-key svg')).toHaveCount(2);
+ // The stick's four directions read as the stick, drawn once.
+ await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Use ~k~~GO_FORWARD~, ~k~~GO_BACK~, ~k~~GO_LEFT~ and ~k~~GO_RIGHT~ to move Carl.'),60000);});
+ await expect(page.locator('.help-box')).toHaveText('Use the STICK to move Carl.');await expect(page.locator('.help-box .help-key')).toHaveText(['STICK']);
  await page.evaluate(()=>(window as any).__game.hud().help(''));
  // A script menu (a shop's) puts up the port's arrows with Select and Back, which drive the menu through the pad, and
  // the shop's help names them while it is up.
