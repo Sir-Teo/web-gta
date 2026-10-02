@@ -185,7 +185,7 @@ export class TouchControls {
   // change it later).
   this.steeringPopup.className='touch-steering-choice';this.steeringPopup.hidden=true;this.steeringPopup.setAttribute('role','dialog');this.steeringPopup.setAttribute('aria-label','Choose steering');
   this.steeringPopup.innerHTML='<p>How do you want to steer?</p><div></div>';
-  for(const [value,label] of [['stick','Stick'],['arrows','Arrow buttons'],['tilt','Tilt the device']] as const){
+  for(const [value,label] of [['stick','Stick'],['arrows','Arrows'],['tilt','Tilt']] as const){
    const button=document.createElement('button');button.type='button';button.className='touch-button small';button.textContent=label;button.dataset.steering=value;
    // On the lift (pointerup): the touch layer takes the click a tap would make, and a lift still lets iOS ask for the
    // motion sensors.
