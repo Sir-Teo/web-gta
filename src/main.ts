@@ -4268,7 +4268,9 @@ async function boot() {
     cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);hud.message(message);
   }
   if (importedMode) {
-    hud.element.querySelector('.menu-location')!.textContent = walkDemo?included.name:'Imported scene';
+    // The area under the title; the whole of San Andreas would only say the title again.
+    {const location=hud.element.querySelector<HTMLElement>('.menu-location')!;location.textContent=walkDemo?included.name:'Imported scene';
+     location.hidden=location.textContent===hud.element.querySelector('.menu h1')?.textContent;}
     // A local imported scene has no zone file of its own, so its label stands in; the world names its zones every frame.
     if(!walkDemo)hud.names.setZoneName('Imported scene',true);
     hud.element.querySelector('.setting')!.textContent = walkDemo?included.location:'Local scene walk test';
