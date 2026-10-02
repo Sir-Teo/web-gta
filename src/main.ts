@@ -2243,12 +2243,12 @@ async function boot() {
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
   let touchSettings=readTouchSettings(),touchPanel:{element:HTMLElement;refresh():void}|undefined;
-  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);}):undefined;
+  const touch=wantsTouchControls()?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);useTouchControlNames(true,next.steering);}):undefined;
   /** The touch settings' population share (peds through the density multiplier, cars through the fleet's traffic scale). */
   const touchPopulation=()=>touch?DENSITY_SCALE[touchSettings.density]:1;
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
   const screenAwake=touch?new ScreenAwake():undefined;
-  if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true);
+  if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);
    // The pause menu's Controls panel holds the touch settings.
    touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);}
   const cheats=CHEATS;
