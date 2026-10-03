@@ -217,7 +217,7 @@ import { registerShell } from './core/serviceWorker';
 import { storagePanel } from './ui/storagePanel';
 import { TouchControls, goFullscreen, offerInstall, showHelpIcons, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, resolutionRatio, saveTouchSettings } from './input/touchSettings';
-import { ScreenAwake } from './input/screenAwake';
+import { ScreenAwake, SCREEN_IDLE_MS, screenIdle } from './input/screenAwake';
 import { installRapierTombstones } from './simulation/rapierTombstones';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
@@ -2305,11 +2305,13 @@ async function boot() {
   /** Keys walking while a finger looks: a drag on the right leaves the buttons away; a tap there, or any touch elsewhere,
    * brings them back. */
   let lookTouch:{id:number;x:number;y:number;moved:boolean}|undefined;
-  const onTouchStart=(e:TouchEvent)=>{const t=e.changedTouches?.[0];
+  /** Fingers on the glass and the last touch, for the screen's idle time (screenIdle). */
+  let fingersDown=0,lastTouchActivityAt=performance.now();
+  const onTouchStart=(e:TouchEvent)=>{fingersDown=e.touches?.length??fingersDown+1;lastTouchActivityAt=performance.now();const t=e.changedTouches?.[0];
    if(keysPlayed&&t&&(e.target as Element|null)?.closest?.('.touch-look')){lookTouch={id:t.identifier,x:t.clientX,y:t.clientY,moved:false};return;}
    lastTouchAt=performance.now();};
-  const onTouchMove=(e:TouchEvent)=>{const look=lookTouch;if(!look)return;for(const t of e.changedTouches)if(t.identifier===look.id&&Math.hypot(t.clientX-look.x,t.clientY-look.y)>12)look.moved=true;};
-  const onTouchEnd=(e:TouchEvent)=>{const look=lookTouch;if(!look)return;for(const t of e.changedTouches)if(t.identifier===look.id){if(!look.moved)lastTouchAt=performance.now();lookTouch=undefined;}};
+  const onTouchMove=(e:TouchEvent)=>{lastTouchActivityAt=performance.now();const look=lookTouch;if(!look)return;for(const t of e.changedTouches)if(t.identifier===look.id&&Math.hypot(t.clientX-look.x,t.clientY-look.y)>12)look.moved=true;};
+  const onTouchEnd=(e:TouchEvent)=>{fingersDown=e.touches?.length??Math.max(0,fingersDown-1);lastTouchActivityAt=performance.now();const look=lookTouch;if(!look)return;for(const t of e.changedTouches)if(t.identifier===look.id){if(!look.moved)lastTouchAt=performance.now();lookTouch=undefined;}};
   window.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});window.addEventListener('touchmove',onTouchMove,{passive:true,capture:true});
   for(const type of ['touchend','touchcancel'] as const)window.addEventListener(type,onTouchEnd,{passive:true,capture:true});
   const onKeyOrMouse=(e:Event)=>{lastKeyAt=performance.now();
@@ -2337,6 +2339,8 @@ async function boot() {
   const touchPopulation=()=>touch?DENSITY_SCALE[touchSettings.density]:1;
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
   const screenAwake=touch?new ScreenAwake():undefined;
+  /** Whether the lock was let go for a phone left untouched mid-game (screenIdle), to be taken again at its next touch. */
+  let screenIdled=false,screenIdleMs=SCREEN_IDLE_MS;
   // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for; under it a
   // step of the adaptive resolution while the game falls behind (not under automation, whose pictures are compared).
   const dynamicResolution=touch&&!navigator.webdriver?new DynamicResolution():undefined;
@@ -2530,7 +2534,7 @@ async function boot() {
     }
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
     // A tap on the menu's button is the gesture a phone needs to go fullscreen.
-    if (touch) { void goFullscreen(); void screenAwake?.hold(true); armBackButton(); }
+    if (touch) { void goFullscreen(); void screenAwake?.hold(true); screenIdled=false; armBackButton(); }
     // Terrain loading that gave up after failures in a row tries again from where the player stands.
     follower?.retry();
   }
@@ -2672,7 +2676,7 @@ async function boot() {
     fleet:()=>fleet,carEntry:()=>carEntry,
     /** Dev: the walk up to a bike the enter button chose from further off than boarding reach. */
     bikeApproach:()=>bikeApproach?{time:bikeApproach.time,best:bikeApproach.best,stall:bikeApproach.stall}:null,
-    moneyDrops:()=>moneyDrops,hud:()=>hud,weather:()=>weather,cullZones:()=>cullZones,bikeMount:()=>bikeMount,
+    moneyDrops:()=>moneyDrops,hud:()=>hud,screenAwake:(idleMs?:number)=>{if(idleMs!==undefined)screenIdleMs=idleMs;return {held:screenAwake?.held??false,idled:screenIdled,fingers:fingersDown};},weather:()=>weather,cullZones:()=>cullZones,bikeMount:()=>bikeMount,
     /** Dev: spawn a vehicle model beside the player the way the vehicle cheats do. */
     spawnVehicle:(model:number)=>{if(!fleet)return false;void fleet.spawnCheatVehicle(model,sim.player.position,sim.player.heading);return true;},
     /** Put a fleet car (by its snapshot id, e.g. 'starter') at a renderer-frame position at rest. */
@@ -2868,6 +2872,10 @@ async function boot() {
      const padNames=gamepad.lastUsed>Math.max(lastTouchAt,lastKeyAt)?gamepad.family:undefined,flying=!!fleet?.occupiedPlane;
      if(padNames!==namingPad||flying!==namingFlying){namingPad=padNames;namingFlying=flying;setControlNaming({pad:padNames,flying});}
      // A keyboard played on a touch screen: the help names its keys, a help up reads again with them, and the buttons step aside.
+     // A phone left untouched mid-game lets its screen go dark on its own time, and a touch keeps it on again.
+     if(screenAwake&&started&&!paused){const scene=!!mission&&(mission.runtime.game.cutscene.running||mission.runtime.game.widescreenOn);
+      const idle=screenIdle({fingers:fingersDown,lastActivity:Math.max(lastTouchActivityAt,lastKeyAt,gamepad.lastUsed),now,scene,idleMs:screenIdleMs});
+      if(idle!==screenIdled){screenIdled=idle;void screenAwake.hold(!idle);}}
      const keys=!!touch&&lastKeyboardAt>Math.max(lastTouchAt,gamepad.lastUsed);
      if(keys!==keysPlayed){keysPlayed=keys;setControlNaming({keys});touch?.setKeyboard(keys);if(hud.helpShowing())shownScript.helpRevision=-1;}
      if(pad.start)input.onPause();else if(pad.menuMove||pad.menuSelect)padMenu(pad.menuMove,pad.menuSelect);}

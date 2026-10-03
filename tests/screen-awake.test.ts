@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {ScreenAwake} from '../src/input/screenAwake';
+import {ScreenAwake,SCREEN_IDLE_MS,screenIdle} from '../src/input/screenAwake';
 /** A stand-in for navigator.wakeLock: its requests answer when told to, and record what was asked and let go. */
 function fakeLock(){
  const log:string[]=[];let answer:(()=>void)|undefined;let refuse=false;
@@ -23,4 +23,15 @@ test('a refusal or a browser without the API leaves the screen to its own settin
  const f=fakeLock();f.refuse();const awake=new ScreenAwake(f.lock);
  const on=awake.hold(true);await f.answer();await expect(on).resolves.toBeUndefined();expect(awake.held).toBe(false);
  const none=new ScreenAwake(undefined);await expect(none.hold(true)).resolves.toBeUndefined();expect(none.held).toBe(false);
+});
+
+test('a phone put down mid-game lets its screen go after five minutes untouched, not with a finger on it or in a scene',()=>{
+ expect(SCREEN_IDLE_MS).toBe(300000);
+ const at=(minutes:number,o:{fingers?:number;scene?:boolean}={})=>screenIdle({fingers:o.fingers??0,lastActivity:0,now:minutes*60000,scene:o.scene??false});
+ expect(at(4.9)).toBe(false);expect(at(5)).toBe(true);
+ // A thumb held on the gas pedal for a long straight is play, however long nothing new is touched.
+ expect(at(20,{fingers:1})).toBe(false);
+ // A cutscene or a scripted scene plays without a touch.
+ expect(at(20,{scene:true})).toBe(false);
+ expect(screenIdle({fingers:0,lastActivity:1000,now:2000,scene:false,idleMs:500})).toBe(true);
 });

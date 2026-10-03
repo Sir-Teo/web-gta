@@ -21,3 +21,11 @@ export class ScreenAwake {
   finally{this.asking=false;}
  }
 }
+/** How long a phone put down mid-game keeps its screen on: with no finger on the glass and nothing touched, keyed or
+ * played on a pad for this long (a cutscene or a scripted scene aside, which play without a touch), the wake lock goes,
+ * so the phone dims and locks on its own time (which hides the page and pauses the game) rather than drawing to an empty
+ * room until its battery runs down. A touch takes the lock again. */
+export const SCREEN_IDLE_MS=5*60*1000;
+export function screenIdle({fingers,lastActivity,now,scene,idleMs=SCREEN_IDLE_MS}:{fingers:number;lastActivity:number;now:number;scene:boolean;idleMs?:number}){
+ return fingers===0&&!scene&&now-lastActivity>=idleMs;
+}
