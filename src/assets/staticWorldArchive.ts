@@ -84,8 +84,52 @@ export async function pruneWorldCache(keep:Iterable<string>){
   return removed;
  }catch{return 0;}
 }
-/** `gzip`: the file at `url` is a gzip stream of the resource. `kept`: whether a copy in Cache Storage may answer. */
-export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha256:string},signal?:AbortSignal,gzip=false,kept=true){
+/** On the page's own thread the world's bytes are fetched, checked, kept and inflated by a worker
+ * (worldBytes.worker), the bytes handed back without a copy: at a first start the page spent some 600 ms of the
+ * thread its frames and touches run on doing it (storing each chunk in Cache Storage a third of that, its hash and
+ * the inflating most of the rest), a phone more. The streaming worker, and anywhere without workers, works in place;
+ * so does the page if the worker cannot start. */
+type BytesJob={resolve:(bytes:Uint8Array<ArrayBuffer>)=>void;reject:(error:unknown)=>void};
+type BytesRequest={url:string;resource:{bytes:number;sha256:string;expandedBytes?:number};chunk?:boolean;gzip?:boolean};
+export type BytesFailure={kind:'download'|'format'|'other';message:string};
+const WORKER_FAILED=Symbol('world bytes worker failed');
+let bytesHelper:{worker:Worker;jobs:Map<number,BytesJob>;next:number}|null|undefined;
+function bytesWorker(){
+ if(bytesHelper!==undefined)return bytesHelper;
+ bytesHelper=null;
+ if(typeof document==='undefined'||typeof Worker==='undefined')return null;
+ try{
+  const worker=new Worker(new URL('./worldBytes.worker.ts',import.meta.url),{type:'module'}),jobs=new Map<number,BytesJob>();
+  worker.onmessage=({data}:MessageEvent<{id:number;bytes?:Uint8Array<ArrayBuffer>;error?:BytesFailure}>)=>{
+   const job=jobs.get(data.id);if(!job)return;jobs.delete(data.id);
+   if(!data.error)job.resolve(data.bytes!);
+   else{const {kind,message}=data.error;job.reject(kind==='download'?new WorldDownloadError(message):kind==='format'?new AssetFormatError(message):new Error(message));}
+  };
+  worker.onerror=()=>{bytesHelper=null;worker.terminate();for(const job of jobs.values())job.reject(WORKER_FAILED);jobs.clear();};
+  bytesHelper={worker,jobs,next:0};
+ }catch{bytesHelper=null;}
+ return bytesHelper;
+}
+async function offThread(request:BytesRequest,signal:AbortSignal|undefined,here:()=>Promise<Uint8Array<ArrayBuffer>>){
+ const helper=bytesWorker();if(!helper)return here();
+ signal?.throwIfAborted();
+ const id=helper.next++;
+ try{
+  return await new Promise<Uint8Array<ArrayBuffer>>((resolve,reject)=>{
+   const abort=()=>{helper.jobs.delete(id);helper.worker.postMessage({id,abort:true});reject(signal!.reason);};
+   signal?.addEventListener('abort',abort,{once:true});
+   const settle=()=>signal?.removeEventListener('abort',abort);
+   helper.jobs.set(id,{resolve:bytes=>{settle();resolve(bytes);},reject:error=>{settle();reject(error);}});
+   helper.worker.postMessage({id,...request});
+  });
+ }catch(error){if(error===WORKER_FAILED)return here();throw error;}
+}
+/** `gzip`: the file at `url` is a gzip stream of the resource. */
+export function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha256:string},signal?:AbortSignal,gzip=false){
+ return offThread({url:url.href,resource:{bytes:resource.bytes,sha256:resource.sha256},gzip},signal,()=>fetchHere(url,resource,signal,gzip));
+}
+/** `kept`: whether a copy in Cache Storage may answer. */
+async function fetchHere(url:URL,resource:{bytes:number;sha256:string},signal?:AbortSignal,gzip=false,kept=true){
  validateResource(resource);
  const cached=kept?await cachedWorldBytes(resource):undefined;if(cached)return cached;
  // Kept here by checksum, a download passes the browser's HTTP cache by: it would hold a second copy of every chunk a
@@ -117,7 +161,10 @@ export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha25
  * CRC-32 and length vouch for it rather than hashing it again on every start, the main thread's largest cost after
  * its shaders as the world comes up (tens of megabytes before the player stands, a phone's CPU without SHA
  * instructions the slowest at it). A kept copy that fails them is dropped and downloaded again. */
-async function worldChunk(url:URL,spec:{bytes:number;sha256:string;expandedBytes:number},signal?:AbortSignal){
+export function worldChunk(url:URL,spec:{bytes:number;sha256:string;expandedBytes:number},signal?:AbortSignal){
+ return offThread({url:url.href,resource:{bytes:spec.bytes,sha256:spec.sha256,expandedBytes:spec.expandedBytes},chunk:true},signal,()=>chunkHere(url,spec,signal));
+}
+async function chunkHere(url:URL,spec:{bytes:number;sha256:string;expandedBytes:number},signal?:AbortSignal){
  const inflate=async(packed:Uint8Array<ArrayBuffer>)=>{
   // Stream the bytes straight into the inflater: wrapping them in a Blob first copies the chunk into the browser's
   // blob store.
@@ -127,7 +174,7 @@ async function worldChunk(url:URL,spec:{bytes:number;sha256:string;expandedBytes
  };
  const kept=await cachedWorldBytes(spec,false);
  if(kept)try{return await inflate(kept);}catch{await forgetWorldBytes(spec);}
- return inflate(await fetchStaticWorldBytes(url,spec,signal,false,false));
+ return inflate(await fetchHere(url,spec,signal,false,false));
 }
 /** Blob views stay lazy. Worker creates this adapter locally; it must not be structured-cloned. */
 class ArchiveSlice extends Blob {
