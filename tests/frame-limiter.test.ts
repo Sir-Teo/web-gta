@@ -18,10 +18,11 @@ test('a stall resynchronises the grid instead of drawing a burst of catch-up fra
  expect(frameDue(pacer,1510,30)).toBe(false);
  expect(frameDue(pacer,1534,30)).toBe(true);
 });
-test('display settings default to the limiter and subtitles on and reject junk',()=>{
- expect(parseDisplaySettings(null)).toEqual({frameLimiter:true,subtitles:true});
- expect(parseDisplaySettings({frameLimiter:false})).toEqual({frameLimiter:false,subtitles:true});
- expect(parseDisplaySettings({frameLimiter:'no',subtitles:'off'})).toEqual({frameLimiter:true,subtitles:true});
- // Subtitles off (the PC's and the mobile ports' option) is kept.
- expect(parseDisplaySettings({subtitles:false})).toEqual({frameLimiter:true,subtitles:false});
+test('display settings default to the limiter and subtitles on and the radar\'s map and blips, and reject junk',()=>{
+ expect(parseDisplaySettings(null)).toEqual({frameLimiter:true,subtitles:true,radarMode:'map'});
+ expect(parseDisplaySettings({frameLimiter:false})).toEqual({frameLimiter:false,subtitles:true,radarMode:'map'});
+ expect(parseDisplaySettings({frameLimiter:'no',subtitles:'off',radarMode:'none'})).toEqual({frameLimiter:true,subtitles:true,radarMode:'map'});
+ // Subtitles off and the Radar Mode (the PC's and the mobile ports' options) are kept.
+ expect(parseDisplaySettings({subtitles:false})).toMatchObject({subtitles:false});
+ expect(parseDisplaySettings({radarMode:'blips'}).radarMode).toBe('blips');expect(parseDisplaySettings({radarMode:'off'}).radarMode).toBe('off');
 });

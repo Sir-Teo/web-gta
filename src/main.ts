@@ -112,7 +112,7 @@ import {nativeWeatherRegion,WEATHER_REGION} from './world/weatherRegion';
 import {CRIME,LAW_ENFORCEMENT_MODELS} from './simulation/nativeWanted';
 import {GangWars,GANG_COLOURS,attackBlipSprite} from './simulation/GangWars';
 import {HeadlightBeams} from './render/HeadlightBeams';
-import {FRAME_LIMITER_FPS,MENU_FPS,frameDue,readDisplaySettings,saveDisplaySettings,type FramePacer} from './core/frameLimiter';
+import {FRAME_LIMITER_FPS,MENU_FPS,frameDue,readDisplaySettings,saveDisplaySettings,type DisplaySettings,type FramePacer} from './core/frameLimiter';
 import {getUpClip,getUpBlockedBy,isFrontClip,stuckUnderCarDamage,GET_UP_CLEAR_RADIUS} from './ped/nativeGetUp';
 import {WaterCannon,initialCannonAim,stepFireTruckAim,cannonDirection,cannonEmission,CANNON_MODELS,CANNON_DEFAULT_NOZZLE,type CannonAim} from './simulation/nativeWaterCannon';
 import {initialTankTurret,stepTankTurret,stepTankTurretPad,tankShotDirection,tankDefaultMuzzle,TANK_FIRE_INTERVAL_MS,TANK_SHOT_RANGE,TANK_RECOIL,type TankTurret} from './simulation/nativeTankControl';
@@ -1617,7 +1617,9 @@ async function boot() {
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   // The PC original's frame limiter (on by default): display frames pace at 30 a second over the 60 Hz simulation.
   const display=readDisplaySettings(),pacer:FramePacer={lastDrawn:0};
-  hud.bindDisplay(display,settings=>{Object.assign(display,settings);saveDisplaySettings(display);});
+  // The Display settings' Radar (FrontEndMenuManager.m_nRadarMode) is the HUD radar's.
+  const displayChanged=(settings:DisplaySettings)=>{Object.assign(display,settings);saveDisplaySettings(display);navigation?.setRadarMode(display.radarMode);};
+  hud.bindDisplay(display,displayChanged);navigation?.setRadarMode(display.radarMode);
   const clock = new FixedClock();
   let paused = true, started = false, last = performance.now(), elapsed = 0, frame = 0, alive = true;
   /** One faulting population system must not freeze the frame: its step is skipped, the fault logged once per
@@ -2487,6 +2489,9 @@ async function boot() {
     if (navigation?.open) navigation.toggle(false);
     if (arsenal.open) arsenal.toggle(false);
     paused = true; sound.setPlaying(false); clock.reset(); input.clear(); hud.setMenu(true);
+    // The front end's Map page, the first of the PC's pause menu: the full map over the game, held as the map holds it
+    // (with the radar switched off, the only way to it on a touch screen).
+    {const map=hud.button('menu-map');map.hidden=!navigation;map.onclick=()=>{play();navigation?.toggle(true);};}
     void screenAwake?.hold(false);touchPanel?.refresh();
     // The front end's Brief: CMessages::PreviousBriefs, newest first in the array, listed oldest first. A brief keeps
     // its text's key, and a mission's text goes with its table: lines whose text is no longer loaded are left out.
@@ -2635,7 +2640,7 @@ async function boot() {
     placeCar:(x:number,y:number,z:number,heading?:number)=>{if(!worldCar)return false;const b=worldCar.car.body;b.setTranslation({x,y,z},true);if(heading!==undefined)b.setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
     /** Dev: the frame limiter (the menu's Display setting). */
-    setFrameLimiter:(on:boolean)=>{display.frameLimiter=!!on;saveDisplaySettings(display);hud.bindDisplay(display,settings=>{Object.assign(display,settings);saveDisplaySettings(display);});return display.frameLimiter;},
+    setFrameLimiter:(on:boolean)=>{display.frameLimiter=!!on;saveDisplaySettings(display);hud.bindDisplay(display,displayChanged);return display.frameLimiter;},
     /** Dev: the traffic, weapons and occupants. */
     traffic:()=>traffic,weapons:()=>weapons,occupants:()=>occupants,
     /** Dev: the world head-sphere centre of a car's seated driver (renderer frame), by body handle. */

@@ -36,7 +36,15 @@ export class NativeMap {
  /** Where the camera looks (atan2(dx, dz)) and CRadar::m_radarRange, for the HUD radar. */
  private radar:{viewHeading:number;range:number;ring?:number;altitude?:number;zoomed?:boolean;horizon?:number}={viewHeading:Math.PI,range:RADAR_MIN_RANGE};
  /** CHud::Draw's !bScriptDontDisplayRadar: DISPLAY_RADAR FALSE hides the radar. */
- showRadar(on:boolean){const b=this.element.querySelector<HTMLElement>('.minimap-button');if(b&&b.hidden===on)b.hidden=!on;}
+ showRadar(on:boolean){this.scriptRadar=on;this.radarShown();}
+ private scriptRadar=true;
+ /** FrontEndMenuManager.m_nRadarMode, the Display settings' Radar: the map and the blips; the blips alone (CRadar::DrawMap
+  * draws no map sections, sea or gang overlay, and CHud::DrawRadar returns after DrawBlips: no disc, plane ring or
+  * altimeter); or no radar at all (CHud::DrawRadar returns at once). */
+ private radarMode:'map'|'blips'|'off'='map';
+ setRadarMode(mode:'map'|'blips'|'off'){if(mode===this.radarMode)return;this.radarMode=mode;this.radarShown();this.draw();}
+ private radarShown(){const b=this.element.querySelector<HTMLElement>('.minimap-button'),shown=this.scriptRadar&&this.radarMode!=='off';if(b&&b.hidden===shown)b.hidden=!shown;
+  if(!shown)this.altimeter.hidden=this.altimeterMark.hidden=true;}
  /** CHud::DrawRadar's altimeter: the bar left of the radar and its height mark. */
  private altimeter=document.createElement('div');private altimeterMark=document.createElement('div');
  private waypoint?:{x:number;z:number};
@@ -222,8 +230,11 @@ export class NativeMap {
   const radar=(canvas:HTMLCanvasElement)=>{
    // The canvas holds CHud::DrawRadar's RADAR_DISC quarters, 42 lines from the centre to their edge, around the map's
    // 38. `u` is one line in canvas pixels.
-   const c=canvas.getContext('2d')!,w=canvas.width,C=w/2,u=C/42,R=38*u,{viewHeading,range}=this.radar,k=R/range,{disc,north,centre,waypoint}=this.sprites;
-   c.clearRect(0,0,w,w);if(!disc){c.fillStyle='#000';c.beginPath();c.arc(C,C,C,0,Math.PI*2);c.fill();}
+   const c=canvas.getContext('2d')!,w=canvas.width,C=w/2,u=C/42,R=38*u,{viewHeading,range}=this.radar,k=R/range,{north,centre,waypoint}=this.sprites;
+   // Blips only: no map under them, nor the disc round them (FrontEndMenuManager.m_nRadarMode).
+   const map=this.radarMode==='map',disc=map?this.sprites.disc:undefined;
+   c.clearRect(0,0,w,w);if(map&&!disc){c.fillStyle='#000';c.beginPath();c.arc(C,C,C,0,Math.PI*2);c.fill();}
+   if(map){
    // CRadar::DrawRadarMap's sea colour (111, 137, 170) comes with DrawRadarSection; inside an interior neither is drawn.
    c.save();c.beginPath();c.arc(C,C,R,0,Math.PI*2);c.clip();if(!this.indoors){c.fillStyle='rgb(111,137,170)';c.fillRect(0,0,w,w);}
    c.translate(C,C);c.rotate(viewHeading+Math.PI);c.scale(k,k);c.translate(-this.position.x,-this.position.z);
@@ -241,8 +252,9 @@ export class NativeMap {
    // at the 59 like the radar, and flipped as the rotating sprites are.
    if(this.radar.ring!==undefined&&this.sprites.ring){const side=59*Math.SQRT2*u;c.save();c.translate(C,C);c.rotate(-this.radar.ring);c.scale(1,-1);c.drawImage(this.sprites.ring,-side/2,-side/2,side,side);c.restore();}
    // The altimeter: 76 lines tall beside the radar; the mark climbs to the top at 200 units, or at 950 above 200.
-   const alt=this.radar.altitude;this.altimeter.hidden=this.altimeterMark.hidden=alt===undefined;
+   const alt=this.radar.altitude;this.altimeter.hidden=this.altimeterMark.hidden=alt===undefined||!this.scriptRadar||this.radarMode==='off';
    if(alt!==undefined){const scale=alt<=200?200:950;this.altimeterMark.style.setProperty('--height',String(Math.min(76,76*Math.max(0,alt)/scale)));}
+   }else this.altimeter.hidden=this.altimeterMark.hidden=true;
    // The four RADAR_DISC quarters: as drawn top left, mirrored across the centre for the others.
    if(disc)for(const [sx,sy] of [[1,1],[1,-1],[-1,1],[-1,-1]]){c.save();c.translate(C,C);c.scale(sx,sy);c.drawImage(disc,-C,-C,C,C);c.restore();}
    const screen=(p:{u:number;v:number})=>({x:C+p.u*R,y:C-p.v*R});

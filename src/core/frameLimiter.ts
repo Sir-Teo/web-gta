@@ -4,11 +4,14 @@
 export const FRAME_LIMITER_FPS=30,MENU_FPS=10;
 /** `subtitles`: FrontEndMenuManager.m_bShowSubtitles, the PC's and the mobile ports' Subtitles option (on by default):
  * off, the scripts' subtitle lines (text marked ~z~) and the peds' conversation lines are not printed. */
-export interface DisplaySettings {frameLimiter:boolean;subtitles:boolean}
-export const DEFAULT_DISPLAY:DisplaySettings={frameLimiter:true,subtitles:true};
+/** FrontEndMenuManager.m_nRadarMode, the PC's and the mobile ports' Radar Mode: MAP & BLIPS, BLIPS ONLY or OFF. */
+export type RadarMode='map'|'blips'|'off';
+export interface DisplaySettings {frameLimiter:boolean;subtitles:boolean;radarMode:RadarMode}
+export const DEFAULT_DISPLAY:DisplaySettings={frameLimiter:true,subtitles:true,radarMode:'map'};
 export function parseDisplaySettings(value:unknown):DisplaySettings{
  const data=value&&typeof value==='object'?value as Partial<DisplaySettings>:{};
- return {frameLimiter:typeof data.frameLimiter==='boolean'?data.frameLimiter:DEFAULT_DISPLAY.frameLimiter,subtitles:typeof data.subtitles==='boolean'?data.subtitles:DEFAULT_DISPLAY.subtitles};
+ return {frameLimiter:typeof data.frameLimiter==='boolean'?data.frameLimiter:DEFAULT_DISPLAY.frameLimiter,subtitles:typeof data.subtitles==='boolean'?data.subtitles:DEFAULT_DISPLAY.subtitles,
+  radarMode:data.radarMode==='blips'||data.radarMode==='off'?data.radarMode:DEFAULT_DISPLAY.radarMode};
 }
 export function readDisplaySettings():DisplaySettings{
  try{return parseDisplaySettings(JSON.parse(localStorage.getItem('grove-display-v1')??'null'));}catch{return {...DEFAULT_DISPLAY};}

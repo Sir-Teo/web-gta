@@ -1,3 +1,4 @@
+import type { DisplaySettings } from '../core/frameLimiter';
 import type { AudioSettings } from '../audio/settings';
 import {healthBarHidden,armourBarHidden,hudMoney,healthBarWidth,barFill} from './nativeHudBars';
 import { NativeHudNames } from './nativeHudNames';
@@ -94,7 +95,7 @@ export class Hud {
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>&#96;</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">San Andreas</p><h1>San Andreas</h1><p class="menu-location">San Andreas</p>
-        <div class="menu-actions"><button id="play" disabled>Loading the native world…</button><button id="new-game" hidden>New Game</button><button id="brief" hidden>Brief</button><button id="controls">Controls</button><button id="audio">Audio</button><button id="lighting">Lighting</button><button id="install" hidden>Add to Home screen</button></div>
+        <div class="menu-actions"><button id="play" disabled>Loading the native world…</button><button id="menu-map" hidden>Map</button><button id="new-game" hidden>New Game</button><button id="brief" hidden>Brief</button><button id="controls">Controls</button><button id="audio">Audio</button><button id="lighting">Lighting</button><button id="install" hidden>Add to Home screen</button></div>
         <div class="brief-panel" hidden aria-label="Brief"><ol></ol></div>
         <div class="controls-panel" hidden><p><b>On foot</b> W A S D · Move &nbsp; Shift · Sprint &nbsp; Space · Jump &nbsp; C · Crouch / Stand &nbsp; R · Reload &nbsp; Ctrl · Fire / Use &nbsp; Right mouse · Aim &nbsp; Left mouse while aiming · Fire &nbsp; Wheel · Switch weapon &nbsp; Tab · Arsenal</p><p><b>Vehicles</b> F · Enter / Exit nearest car &nbsp; W/S · Accelerate / Brake / Reverse &nbsp; A/D · Steer &nbsp; Space · Handbrake</p><p><b>Boats</b> F · Board / Leave nearest runabout (leaving needs shallow water) &nbsp; W/S · Throttle / Reverse &nbsp; A/D · Steer &nbsp; Space · Brake &nbsp; Ctrl · Drive-by</p><p><b>Aircraft</b> W/S · Throttle &nbsp; ↓/↑ · Nose up/down &nbsp; A/D · Bank &nbsp; Q/E · Rudder &nbsp; G · Retractable gear &nbsp; T · Hydra hover/forward mode &nbsp; Ctrl · Mounted guns &nbsp; B · Rockets &nbsp; Space · Helicopter hover &nbsp; Space · Ground brake &nbsp; F · Exit after landing and stopping. Choose an aircraft from the full map to fly from Verdant Meadows.</p><p><b>Map</b> M · Full map &nbsp; Click map · Waypoint &nbsp; Wheel / PgUp / PgDn · Zoom &nbsp; Arrows · Pan &nbsp; Home · Find CJ</p><p><b>Camera</b> V / Home · Camera distance &nbsp; Drag mouse · Look &nbsp; Middle mouse / Numpad 1 · Look behind &nbsp; L · Lock pointer &nbsp; Escape · Pause</p><p class="mouse-settings"><label>Mouse sensitivity <input type="range" id="mouse-sens" aria-label="Mouse sensitivity"></label> &nbsp; <label><input type="checkbox" id="mouse-invert"> Invert mouse vertically</label></p></div>
         <div class="audio-panel" hidden aria-label="Audio settings">
@@ -103,6 +104,7 @@ export class Hud {
           <label class="mute"><input id="audio-muted" type="checkbox"> Mute all sound</label>
           <label class="mute"><input id="display-frame-limiter" type="checkbox"> Frame limiter (30 frames a second, as the PC original)</label>
           <label class="mute"><input id="display-subtitles" type="checkbox"> Subtitles</label>
+          <label class="mute">Radar <select id="display-radar" aria-label="Radar"><option value="map">Map &amp; blips</option><option value="blips">Blips only</option><option value="off">Off</option></select></label>
           <p id="audio-status" role="status"></p><p class="audio-credits">Native San Andreas footsteps, weapons and explosions.</p>
         </div>
         <div class="lighting-panel" hidden aria-label="Local lighting">
@@ -171,11 +173,12 @@ export class Hud {
     const mute = this.element.querySelector<HTMLInputElement>('#audio-muted')!;
     mute.checked = values.muted; mute.onchange = () => { values.muted = mute.checked; update({ ...values }); };
   }
-  /** The frame limiter and subtitles checkboxes (FrontEndMenuManager.m_bPrefsFrameLimiter and m_bShowSubtitles). */
-  bindDisplay(settings: { frameLimiter: boolean; subtitles: boolean }, update: (settings: { frameLimiter: boolean; subtitles: boolean }) => void) {
-    const limiter = this.element.querySelector<HTMLInputElement>('#display-frame-limiter')!, subtitles = this.element.querySelector<HTMLInputElement>('#display-subtitles')!;
-    limiter.checked = settings.frameLimiter; subtitles.checked = settings.subtitles;
-    limiter.onchange = subtitles.onchange = () => update({ frameLimiter: limiter.checked, subtitles: subtitles.checked });
+  /** The frame limiter, subtitles and radar mode (FrontEndMenuManager.m_bPrefsFrameLimiter, m_bShowSubtitles and
+   * m_nRadarMode). */
+  bindDisplay(settings: DisplaySettings, update: (settings: DisplaySettings) => void) {
+    const limiter = this.element.querySelector<HTMLInputElement>('#display-frame-limiter')!, subtitles = this.element.querySelector<HTMLInputElement>('#display-subtitles')!, radar = this.element.querySelector<HTMLSelectElement>('#display-radar')!;
+    limiter.checked = settings.frameLimiter; subtitles.checked = settings.subtitles; radar.value = settings.radarMode;
+    limiter.onchange = subtitles.onchange = radar.onchange = () => update({ frameLimiter: limiter.checked, subtitles: subtitles.checked, radarMode: radar.value === 'blips' || radar.value === 'off' ? radar.value : 'map' });
   }
   audioStatus(state: { unavailable: boolean; failed: number; loaded: boolean }) {
     const text = state.unavailable ? 'Sound is unavailable in this browser.' : state.failed ? 'Some sounds could not load. Gameplay remains available.' : state.loaded ? '' : 'Sounds load when you begin playing.';
