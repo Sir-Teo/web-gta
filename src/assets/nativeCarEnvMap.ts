@@ -16,6 +16,9 @@ export interface NativeCarEnvState {
  /** (−OffsetU, v) for SHINE_WAVE. */ wave:{value:Vector2};
  /** Reflections off: a blown-up car. */ enabled:{value:boolean};
 }
+/** The mobile ports' Car Reflections setting (off on their weakest device's preset): every car's reflection, either
+ * style, waits on it as on the car's own state; off, the env texture is not sampled at all. */
+export const CAR_REFLECTIONS={value:true};
 export const nativeCarEnvState=():NativeCarEnvState=>({specIntensity:{value:1.85},position:{value:new Vector2()},wave:{value:new Vector2()},enabled:{value:true}});
 /** The reflection style a material takes, or none. */
 export function nativeCarEnvStyle(env:CarEnvMaterial|undefined,envTexture:string|undefined,hasSecondUv:boolean):'cam'|'wave'|undefined{
@@ -26,32 +29,32 @@ export function nativeCarEnvStyle(env:CarEnvMaterial|undefined,envTexture:string
 export function nativeCarEnvMaterial<T extends Material>(material:T,map:Texture,env:CarEnvMaterial,style:'cam'|'wave',state:NativeCarEnvState):T{
  const compile=material.onBeforeCompile,key=material.customProgramCacheKey;
  const uniforms={nativeCarEnvMap:{value:map},nativeCarShininess:{value:env.shininess},nativeCarEnvScale:{value:new Vector2(env.scaleX,env.scaleY)},
-  nativeCarEnvTrans:{value:new Vector2(env.transSclX*50,env.transSclY*50)},nativeCarSpecIntensity:state.specIntensity,nativeCarPos:state.position,nativeCarWave:state.wave,nativeCarEnvOn:state.enabled};
+  nativeCarEnvTrans:{value:new Vector2(env.transSclX*50,env.transSclY*50)},nativeCarSpecIntensity:state.specIntensity,nativeCarPos:state.position,nativeCarWave:state.wave,nativeCarEnvOn:state.enabled,nativeCarReflections:CAR_REFLECTIONS};
  material.userData.nativeCarEnv={map,env,style};
  material.onBeforeCompile=function(shader,renderer){
   compile.call(this,shader,renderer);
   Object.assign(shader.uniforms,uniforms);
-  const common='uniform sampler2D nativeCarEnvMap; uniform float nativeCarShininess; uniform vec2 nativeCarEnvScale; uniform vec2 nativeCarEnvTrans; uniform float nativeCarSpecIntensity; uniform vec2 nativeCarPos; uniform vec2 nativeCarWave; uniform bool nativeCarEnvOn;\n';
+  const common='uniform sampler2D nativeCarEnvMap; uniform float nativeCarShininess; uniform vec2 nativeCarEnvScale; uniform vec2 nativeCarEnvTrans; uniform float nativeCarSpecIntensity; uniform vec2 nativeCarPos; uniform vec2 nativeCarWave; uniform bool nativeCarEnvOn; uniform bool nativeCarReflections;\n';
   if(style==='cam'){
    // D3DTSS_TCI_CAMERASPACENORMAL in D3D's left-handed camera space: three's view normal with z negated.
    shader.vertexShader=common+'varying vec3 vNativeCarEnv;\n'+shader.vertexShader.replace('#include <fog_vertex>',`#include <fog_vertex>
 { vec3 n = normalize( normalMatrix * normal ); n.z = -n.z;
   vec2 uv = -( nativeCarPos - nativeCarEnvTrans * trunc( nativeCarPos / nativeCarEnvTrans ) ) / nativeCarEnvTrans;
   vNativeCarEnv = vec3( nativeCarEnvScale.x * n.x + uv.x * n.z, nativeCarEnvScale.y * n.y + uv.y * n.z, n.z ); }`);
-   shader.fragmentShader=common+'varying vec3 vNativeCarEnv;\n'+shader.fragmentShader.replace('#include <fog_fragment>',`if ( nativeCarEnvOn ) {
+   shader.fragmentShader=common+'varying vec3 vNativeCarEnv;\n'+shader.fragmentShader.replace('#include <fog_fragment>',`if ( nativeCarEnvOn && nativeCarReflections ) {
   vec3 env = texture2D( nativeCarEnvMap, vNativeCarEnv.xy / vNativeCarEnv.z ).rgb;
   float factor = min( 255.0, floor( nativeCarShininess * nativeCarSpecIntensity * 254.0 ) ) / 255.0;
   gl_FragColor.rgb += env * factor; }
 #include <fog_fragment>`);
   }else{
    shader.vertexShader=common+'#ifndef USE_UV1\nattribute vec2 uv1;\n#endif\nvarying vec2 vNativeCarWaveUv;\n'+shader.vertexShader.replace('#include <fog_vertex>','#include <fog_vertex>\nvNativeCarWaveUv = uv1 + nativeCarWave;');
-   shader.fragmentShader=common+'varying vec2 vNativeCarWaveUv;\n'+shader.fragmentShader.replace('#include <fog_fragment>',`if ( nativeCarEnvOn ) {
+   shader.fragmentShader=common+'varying vec2 vNativeCarWaveUv;\n'+shader.fragmentShader.replace('#include <fog_fragment>',`if ( nativeCarEnvOn && nativeCarReflections ) {
   float a = min( 255.0, floor( nativeCarSpecIntensity * 24.0 ) ) / 255.0;
   gl_FragColor.rgb = mix( gl_FragColor.rgb, texture2D( nativeCarEnvMap, vNativeCarWaveUv ).rgb, a ); }
 #include <fog_fragment>`);
   }
  };
- material.customProgramCacheKey=function(){return `${key.call(this)}-native-car-env-${style}-v1`;};
+ material.customProgramCacheKey=function(){return `${key.call(this)}-native-car-env-${style}-v2`;};
  return material;
 }
 /** The SHINE_WAVE offset's per-frame step (0x5D8590): tri(p, s) folds the position into a 0..1 zigzag over 2s, and

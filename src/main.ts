@@ -259,6 +259,7 @@ import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
 import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fxQuality,playerRealTimeShadow,setFxQuality} from './simulation/fx/fxQuality';
 import {DRAW_DISTANCE_DEFAULT,setDrawDistance} from './render/lodDistance';
+import {CAR_REFLECTIONS} from './assets/nativeCarEnvMap';
 import {stickSteering} from './input/stickSteering';
 import {touchHaptic} from './input/haptics';
 import {roadShake,thunderShake} from './engine/nativePadShakes';
@@ -815,7 +816,7 @@ async function boot() {
   }
   // The touch settings' Visual effects set the FX quality (the port's MOB_VS); elsewhere the game runs at high.
   // and its Draw distance TheCamera's LOD distance multiplier (the port's MOB_DD); elsewhere the game draws at its default.
-  const applyVisualEffects=()=>{setFxQuality(touchScreen?touchSettings.effects:'high');setDrawDistance(touchScreen?touchSettings.drawDistance:DRAW_DISTANCE_DEFAULT);};applyVisualEffects();
+  const applyVisualEffects=()=>{setFxQuality(touchScreen?touchSettings.effects:'high');setDrawDistance(touchScreen?touchSettings.drawDistance:DRAW_DISTANCE_DEFAULT);CAR_REFLECTIONS.value=!touchScreen||touchSettings.carReflections;};applyVisualEffects();
   const lookInverted=()=>touchScreen?touchSettings.invertLook:mouseSettings.invertY;
   const applyMouseSettings=()=>{render.mouseYawScale=mouseYawScale(mouseSettings);render.mouseYSign=lookInverted()?-1:1;};applyMouseSettings();
   {const sens=hud.element.querySelector<HTMLInputElement>('#mouse-sens')!,invert=hud.element.querySelector<HTMLInputElement>('#mouse-invert')!;

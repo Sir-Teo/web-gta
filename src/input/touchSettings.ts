@@ -30,6 +30,8 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  /** How sharp the picture is: the renderer's one pixel per CSS pixel, the screen's own density up to twice it, or
   * three quarters of one (the port's Resolution setting; a phone's GPU pays for it in fill). */
  resolution:'low'|'standard'|'high';
+ /** The port's Car Reflections: the cars' environment-mapped shine (off on its weakest device's preset). */
+ carReflections:boolean;
  /** Whether the resolution drops while the game falls behind (a phone held back as it warms) and comes back once it
   * keeps up (dynamicResolution). */
  dynamicResolution:boolean;
@@ -38,7 +40,7 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  layout:Readonly<Record<string,LayoutEntry>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,autoClimb:true,analogSensitivity:27,qualityChosen:false,invertLook:false,gyroAim:false,resolution:'standard',dynamicResolution:true,layout:{},steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,autoClimb:true,analogSensitivity:27,qualityChosen:false,invertLook:false,gyroAim:false,resolution:'standard',carReflections:true,dynamicResolution:true,layout:{},steeringChosen:false};
 /** A moved button: how far across and down, and (when resized) its size against the others'. */
 export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
 /** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
@@ -72,6 +74,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   analogSensitivity:Math.round(clamp(data.analogSensitivity,ANALOG_SENSITIVITY_RANGE,DEFAULT_TOUCH.analogSensitivity)),
   qualityChosen:data.qualityChosen===true,
   invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,gyroAim:data.gyroAim===true,layout:(data as {layoutOn?:unknown}).layoutOn===LAYOUT_ON?parseLayout(data.layout):{},resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
+  carReflections:typeof data.carReflections==='boolean'?data.carReflections:DEFAULT_TOUCH.carReflections,
   dynamicResolution:typeof data.dynamicResolution==='boolean'?data.dynamicResolution:DEFAULT_TOUCH.dynamicResolution,
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};

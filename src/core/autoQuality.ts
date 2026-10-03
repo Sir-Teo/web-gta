@@ -9,7 +9,7 @@ import type {TouchSettings} from '../input/touchSettings';
 /** The presets below the game's own: the port's middling Draw Distance and its weakest device's settings. */
 export const QUALITY_PRESETS:Readonly<Record<'medium'|'low',Partial<TouchSettings>>>={
  medium:{effects:'medium',drawDistance:55},
- low:{effects:'low',drawDistance:20,resolution:'low',density:'low'},
+ low:{effects:'low',drawDistance:20,resolution:'low',density:'low',carReflections:false},
 };
 /** The preset a step down from the settings now, or none from the lowest. */
 export function lowerPreset(settings:Pick<TouchSettings,'effects'>):'medium'|'low'|undefined{
