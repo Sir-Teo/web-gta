@@ -47,3 +47,22 @@ test('under water s_WaterGreen climbs to 24, the colour is the water colour plus
  expect(underWaterXOffset(24,640)).toBe(4);expect(underWaterXOffset(12,1280)).toBe(4);
  expect(underWaterWave(0,0,4)).toBe(0);expect(underWaterWave(Math.PI/2/.04,0,4)).toBeCloseTo(4,9);
 });
+
+test('the colour filter scales the frame in place, with no copy of it, unless the goggles or the water read the copy',async()=>{
+ const {NativePostEffects}=await import('../src/render/NativePostEffects');
+ const fx=new NativePostEffects(undefined,()=>.5),quads=()=>Object.fromEntries(fx.colourFilterQuads.map(q=>[q.name,q.visible]));
+ const colour=(q:string)=>[...(fx.colourFilterQuads.find(x=>x.name===q)!.material.uniforms.colour.value as {toArray():number[]}).toArray()];
+ // A day's filter, the sum under one: one scale draw of 1 + K, the native passes and the copy idle.
+ fx.update({r:128,g:64,b:32,a:128},{r:64,g:64,b:64,a:64});
+ expect(quads()).toEqual({'Native colour filter pass 1':false,'Native colour filter pass 2':false,'Native colour filter scale 1':true,'Native colour filter scale 2':false});
+ const k=[128,64,32].map(c=>c/255*128/255+64/255*64/255);colour('Native colour filter scale 1').forEach((v,i)=>expect(v).toBeCloseTo(k[i],6));
+ expect(fx.snapshot().colourFilter.visible).toBe(true);
+ // Past one the second draw takes the rest, so the two compound to 1 + K.
+ fx.update({r:255,g:255,b:255,a:255},{r:255,g:128,b:0,a:255});
+ const k1=colour('Native colour filter scale 1'),k2=colour('Native colour filter scale 2'),sum=[2,1+128/255,1];
+ expect(quads()['Native colour filter scale 2']).toBe(true);
+ for(let i=0;i<3;i++)expect((1+k1[i])*(1+k2[i])).toBeCloseTo(1+sum[i],6);
+ // The goggles read the copied frame: the native passes over it, then.
+ fx.update({r:128,g:64,b:32,a:128},{r:64,g:64,b:64,a:64},{vision:'nightvision'});
+ expect(quads()).toMatchObject({'Native colour filter pass 1':true,'Native colour filter pass 2':true,'Native colour filter scale 1':false,'Native colour filter scale 2':false});
+});

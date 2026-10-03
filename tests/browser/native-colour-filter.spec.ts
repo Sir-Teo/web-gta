@@ -15,6 +15,11 @@ test('the timecycle post-effect colours filter the frame; the goggles grey the f
  const probe=await page.evaluate(()=>(window as any).__game.colourFilterPixelProbe());
  expect(probe.visible).toBe(true);expect(probe.darkened).toBe(0);expect(probe.changed/probe.pixels).toBeGreaterThan(.5);
  expect(Math.max(...probe.meanGain)).toBeGreaterThan(2);
+ // Scaled in place (no copy of the frame), the filter draws what the native passes over the copy do, to a channel
+ // step's rounding.
+ const paths=await page.evaluate(()=>(window as any).__game.colourFilterPathProbe());
+ expect(paths).not.toBeNull();expect(paths.max).toBeLessThanOrEqual(1);
+ console.log('PATHS '+JSON.stringify(paths));
  // m_bColorEnable off: the quad goes.
  expect(await page.evaluate(()=>(window as any).__game.setColourFilter(false))).toBe(false);
  await page.waitForTimeout(300);expect((await state()).colourFilter.visible).toBe(false);

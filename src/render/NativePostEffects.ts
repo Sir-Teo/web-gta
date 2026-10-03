@@ -17,7 +17,11 @@ export class NativePostEffects {
  private size={width:0,height:0};
  private resolution=new THREE.Vector2(1,1);
  private capture:THREE.Mesh;
- private filterPasses:Quad[];
+ private filterPasses:Quad[];private scalePasses:Quad[];
+ /** The colour filter as a scale of the frame in place (no copy of it) whenever nothing else reads the captured frame:
+  * a full-screen copy and a full-screen draw a frame less, which a phone's GPU, bound by its memory's bandwidth, feels.
+  * Off, the native passes over the copy (kept for a probe comparing the two). */
+ scaleInPlace=true;
  private flash:Quad;private nightTint:Quad;private nightGrain:Quad;
  /** CPostEffects::DarknessFilter's black quad. */
  private darkness:Quad;
@@ -60,6 +64,12 @@ export class NativePostEffects {
   const grain='uniform sampler2D grain;uniform vec2 uvScale;uniform float alpha;varying vec2 vUv;void main(){vec4 t=texture2D(grain,vUv*uvScale);gl_FragColor=vec4(t.rgb,t.a*alpha);}';
   const colourUniforms=()=>({colour:{value:new THREE.Vector3(1,1,1)},alpha:{value:1},expand:{value:0}});
   this.filterPasses=[frontQuad('Native colour filter pass 1',999.1,THREE.SrcAlphaFactor,THREE.OneFactor,modulated,colourUniforms()),frontQuad('Native colour filter pass 2',999.2,THREE.SrcAlphaFactor,THREE.OneFactor,modulated,colourUniforms())];
+  // The same filter scaled in place: both passes add the captured frame times their colour and alpha, so together they
+  // scale the frame by 1 + K (K their sum). The frame itself is the blend's source factor (DST_COLOR, ONE), which needs
+  // no copy of it: one draw for K up to 1, a second for the rest (1 + K = (1 + k1)(1 + k2)), the framebuffer's clamp
+  // the same either way.
+  const scale='uniform vec3 colour;void main(){gl_FragColor=vec4(colour,1.);}';
+  this.scalePasses=[frontQuad('Native colour filter scale 1',999.1,THREE.DstColorFactor,THREE.OneFactor,scale,colourUniforms()),frontQuad('Native colour filter scale 2',999.2,THREE.DstColorFactor,THREE.OneFactor,scale,colourUniforms())];
   // DarknessFilter: a black quad over the screen at the filter's alpha, after the colour filter.
   this.darkness=frontQuad('Native darkness filter',999.25,THREE.SrcAlphaFactor,THREE.OneMinusSrcAlphaFactor,flat,colourUniforms());
   this.flash=frontQuad('Native night vision flash',999.3,THREE.OneFactor,THREE.OneFactor,modulated,colourUniforms());
@@ -141,8 +151,13 @@ export class NativePostEffects {
    const finite=passes.every(p=>[p.r,p.g,p.b,p.a].every(Number.isFinite));
    this.passes=finite?passes:undefined;
    this.factor=finite?[0,1,2].map(i=>Math.min(1,[passes[0].r,passes[0].g,passes[0].b][i]/255*passes[0].a/255+[passes[1].r,passes[1].g,passes[1].b][i]/255*passes[1].a/255)) as [number,number,number]:[0,0,0];
-   for(const [i,quad] of this.filterPasses.entries()){const p=passes[i];this.setQuad(quad,finite&&p.a>0,[p.r,p.g,p.b],p.a/255);}
-  }else{this.passes=undefined;this.factor=[0,0,0];for(const quad of this.filterPasses)quad.visible=false;}
+   // Underwater, or with the goggles on, the ripple and the vision passes read the captured frame too, and some draw
+   // before the filter's sum would: the native passes then.
+   const inPlace=finite&&this.scaleInPlace&&!vision&&!this.ripple.visible;
+   for(const [i,quad] of this.filterPasses.entries()){const p=passes[i];this.setQuad(quad,!inPlace&&finite&&p.a>0,[p.r,p.g,p.b],p.a/255);}
+   const k=[0,1,2].map(i=>passes.reduce((sum,p)=>sum+[p.r,p.g,p.b][i]/255*p.a/255,0)),k1=k.map(v=>Math.min(1,v)),k2=k.map((v,i)=>(v-k1[i])/(1+k1[i]));
+   for(const [i,quad] of this.scalePasses.entries()){const c=i===0?k1:k2;this.setQuad(quad,inPlace&&c.some(v=>v>0),c.map(v=>v*255) as [number,number,number],1);}
+  }else{this.passes=undefined;this.factor=[0,0,0];for(const quad of [...this.filterPasses,...this.scalePasses])quad.visible=false;}
   // NightVision: the switch-on count sits at 50 while the goggles are off and is spent on the first lit frame.
   if(vision==='nightvision'){
    const flash=nightVisionFlash(this.flashCount,options.timeStep??1);this.flashCount=flash.next;this.flashDraws=flash.draws;
@@ -156,8 +171,20 @@ export class NativePostEffects {
   }else{for(const quad of this.infraredPasses)quad.visible=false;this.infraredTint.visible=false;this.infraredMain.visible=false;this.infraredGrain.visible=false;}
   this.capture.visible=this.filterPasses.some(q=>q.visible)||this.flash.visible||this.infraredPasses.some(q=>q.visible)||this.ripple.visible;
  }
+ /** For a probe: `draw` with the filter as it is now, and again through the native passes over the copied frame. */
+ drawBothColourFilterPaths<T>(draw:()=>T):{current:T;native:T}|undefined{
+  if(!this.passes||!this.scalePasses.some(q=>q.visible))return undefined;
+  const scale=this.scalePasses.map(q=>q.visible),capture=this.capture.visible;
+  const current=draw();
+  try{
+   for(const q of this.scalePasses)q.visible=false;
+   for(const [i,quad] of this.filterPasses.entries()){const p=this.passes[i];this.setQuad(quad,p.a>0,[p.r,p.g,p.b],p.a/255);}
+   this.capture.visible=true;
+   return {current,native:draw()};
+  }finally{this.scalePasses.forEach((q,i)=>{q.visible=scale[i];});for(const q of this.filterPasses)q.visible=false;this.capture.visible=capture;}
+ }
  /** The colour filter's quads, for a probe that draws the frame with and without them. */
- get colourFilterQuads(){return this.filterPasses;}
- snapshot(){return {colourFilter:{enabled:this.colourFilterEnabled,visible:this.filterPasses.some(q=>q.visible),factor:this.factor.map(v=>+v.toFixed(4)),passes:this.passes},vision:this.vision,darkness:{enabled:this.darknessFilter,alpha:this.darknessAlpha,visible:this.darkness.visible},heatHazeFX:this.heatHazeFX,flashDraws:this.flashDraws,captureSize:{...this.size},underwater:{...this.underWaterState,green:+this.waterGreenValue.toFixed(2),rows:this.rippleRows,visible:this.ripple.visible}};}
+ get colourFilterQuads(){return [...this.filterPasses,...this.scalePasses];}
+ snapshot(){return {colourFilter:{enabled:this.colourFilterEnabled,visible:this.colourFilterQuads.some(q=>q.visible),factor:this.factor.map(v=>+v.toFixed(4)),passes:this.passes},vision:this.vision,darkness:{enabled:this.darknessFilter,alpha:this.darknessAlpha,visible:this.darkness.visible},heatHazeFX:this.heatHazeFX,flashDraws:this.flashDraws,captureSize:{...this.size},underwater:{...this.underWaterState,green:+this.waterGreenValue.toFixed(2),rows:this.rippleRows,visible:this.ripple.visible}};}
  dispose(){this.group.removeFromParent();this.front.dispose();this.grainTexture.dispose();this.group.traverse(o=>{const m=o as THREE.Mesh;if(m.isMesh){m.geometry.dispose();(m.material as THREE.Material).dispose();}});}
 }

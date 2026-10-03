@@ -2754,6 +2754,15 @@ async function boot() {
         const n=width*height;return {quads:quads.length,visible:visible.some(Boolean),changed,darkened,meanGain:gain.map(g=>+(g/n).toFixed(3)),pixels:n};
       }finally{quads.forEach((q,i)=>{q.visible=visible[i];});renderer.render(render.scene,render.camera);}
     },
+    /** The frame with the colour filter scaled in place against the native passes over the copied frame: how many
+     * pixels differ, and by how much at most (a channel step), in one go so nothing moves between the two. */
+    colourFilterPathProbe:()=>{
+      const renderer=render.renderer,gl=renderer.getContext(),width=gl.drawingBufferWidth,height=gl.drawingBufferHeight;
+      const read=()=>{renderer.render(render.scene,render.camera);const bytes=new Uint8Array(width*height*4);gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,bytes);return bytes;};
+      const both=postEffects.drawBothColourFilterPaths(read);if(!both)return null;
+      let differ=0,max=0;for(let i=0;i<both.current.length;i+=4){let d=0;for(let j=0;j<3;j++)d=Math.max(d,Math.abs(both.current[i+j]-both.native[i+j]));if(d>0)differ++;if(d>max)max=d;}
+      return {pixels:width*height,differ,max};
+    },
     /** The frame with and without the colour filter quad: pixels changed and the mean channel gain. */
     colourFilterPixelProbe:()=>{
       const renderer=render.renderer,quads=postEffects.colourFilterQuads,visible=quads.map(q=>q.visible);
