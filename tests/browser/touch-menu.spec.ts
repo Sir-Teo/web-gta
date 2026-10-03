@@ -26,7 +26,7 @@ test('a short phone\'s menu opens its pages beside the list, one at a time',asyn
  // Pressed, a button lights (no hover on a finger, and no browser flash); closed, once the finger is up, it is lit no
  // more than its neighbour, though the browser still counts it hovered.
  const colour=(button:typeof audio)=>button.evaluate(e=>getComputedStyle(e).color);
- expect(await audio.evaluate(e=>getComputedStyle(e).webkitTapHighlightColor)).toBe('rgba(0, 0, 0, 0)');
+ expect(await audio.evaluate(e=>getComputedStyle(e).getPropertyValue('-webkit-tap-highlight-color'))).toBe('rgba(0, 0, 0, 0)');
  await audio.tap();await expect(page.locator('.audio-panel')).toBeHidden();await expect(audio).toHaveAttribute('aria-expanded','false');
  await expect.poll(()=>colour(audio)).toBe(await colour(controls));expect(await audio.evaluate(e=>e.matches(':hover'))).toBe(true);
 });
