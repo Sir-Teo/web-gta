@@ -1,5 +1,5 @@
 import type {Input} from './Input';
-import {BUTTON_SCALE_RANGE,DEFAULT_TOUCH,DRAW_DISTANCE_RANGE,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type LayoutEntry,type TouchSettings} from './touchSettings';
+import {ANALOG_SENSITIVITY_RANGE,BUTTON_SCALE_RANGE,DEFAULT_TOUCH,DRAW_DISTANCE_RANGE,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type LayoutEntry,type TouchSettings} from './touchSettings';
 import {touchIconSvg,type TouchIcon} from './touchIcons';
 import {touchHaptic} from './haptics';
 /* Touch-screen controls for phones and tablets, laid over the game the way the mobile ports lay theirs: a floating
@@ -476,7 +476,7 @@ export class TouchControls {
   if(this.element.dataset.layout!==file){this.element.dataset.layout=file;
    for(const [name,value] of Object.entries(portLayoutFrame(file)))document.documentElement.style.setProperty(name,String(value));}
   // The stick's travel by the layout and what it steers, on the screen's width (no wider than 16:9, as the buttons).
-  const travel=Math.round(portStickTravel(file,this.mode??'foot')*Math.min(innerWidth,innerHeight*16/9)/640);
+  const travel=Math.round(portStickTravel(file,this.mode??'foot',this.settings.analogSensitivity)*Math.min(innerWidth,innerHeight*16/9)/640);
   if(travel!==this.stickTravel||!this.stickZone.dataset.travel){this.stickTravel=travel;this.stickZone.dataset.travel=String(travel);this.stickBase.style.setProperty('--stick-r',`${travel}px`);}
   for(const {spec,element} of this.buttons){const o=layout[`${group}:${spec.className}`];const translate=o?`${o[0]}vmin ${o[1]}vmin`:'',scale=o?.[2]?String(o[2]):'';
    if(element.style.translate!==translate)element.style.translate=translate;if(element.style.scale!==scale)element.style.scale=scale;
@@ -563,6 +563,7 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
  const panel=document.createElement('p');panel.className='touch-settings';
  panel.innerHTML=`<b>Touch</b><label>Steering <select class="touch-steering" aria-label="Steering"><option value="stick">Stick</option><option value="arrows">Arrow buttons</option><option value="tilt">Tilt the device</option></select></label>
 <label>Aim <select class="touch-aim" aria-label="Aim"><option value="assist">Lock-on assist</option><option value="free">Free aim</option></select></label>
+<label>Steering sensitivity <input type="range" class="touch-analog" aria-label="Steering sensitivity" min="${ANALOG_SENSITIVITY_RANGE.min}" max="${ANALOG_SENSITIVITY_RANGE.max}" step="1"></label>
 <label>Look speed <input type="range" class="touch-look-speed" aria-label="Look speed" min="${LOOK_SPEED_RANGE.min}" max="${LOOK_SPEED_RANGE.max}" step="0.1"></label>
 <label>Invert look <input type="checkbox" class="touch-invert" aria-label="Invert look"></label>
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
@@ -575,11 +576,11 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <button type="button" class="touch-adjust-open">Adjust controls</button>
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
- const look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
+ const analog=panel.querySelector<HTMLInputElement>('.touch-analog')!,look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
  const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!,invert=panel.querySelector<HTMLInputElement>('.touch-invert')!,autoClimb=panel.querySelector<HTMLInputElement>('.touch-auto-climb')!;
  const density=panel.querySelector<HTMLSelectElement>('.touch-density')!,resolution=panel.querySelector<HTMLSelectElement>('.touch-resolution')!,effects=panel.querySelector<HTMLSelectElement>('.touch-effects')!,drawDistance=panel.querySelector<HTMLInputElement>('.touch-draw-distance')!;
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
- const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;resolution.value=settings.resolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
+ const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);analog.value=String(settings.analogSensitivity);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;resolution.value=settings.resolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
  vibration.onchange=()=>update({vibration:vibration.checked});autoClimb.onchange=()=>update({autoClimb:autoClimb.checked});invert.onchange=()=>update({invertLook:invert.checked});
  resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard'});
  density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium'});
@@ -593,6 +594,6 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
  };
  aim.onchange=()=>update({aimAssist:aim.value==='assist'});
  const adjustOpen=panel.querySelector<HTMLButtonElement>('.touch-adjust-open')!;adjustOpen.hidden=!adjust;adjustOpen.onclick=()=>adjust?.();
- look.oninput=()=>update({lookSpeed:Number(look.value)});size.oninput=()=>update({buttonScale:Number(size.value)});
+ look.oninput=()=>update({lookSpeed:Number(look.value)});analog.oninput=()=>update({analogSensitivity:Number(analog.value)});size.oninput=()=>update({buttonScale:Number(size.value)});
  return {element:panel,refresh};
 }

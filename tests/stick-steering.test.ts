@@ -22,3 +22,8 @@ test('Auto climb is kept, on by default as the port\'s is',()=>{
  expect(parseTouchSettings({}).autoClimb).toBe(true);expect(parseTouchSettings({autoClimb:false}).autoClimb).toBe(false);
  expect(parseTouchSettings({autoClimb:'no'}).autoClimb).toBe(true);
 });
+test('Steering sensitivity is the port\'s Analog Sensitivity, 20 to 45 and 27 by default',()=>{
+ expect(parseTouchSettings({}).analogSensitivity).toBe(27);
+ expect(parseTouchSettings({analogSensitivity:40}).analogSensitivity).toBe(40);
+ expect(parseTouchSettings({analogSensitivity:5}).analogSensitivity).toBe(20);expect(parseTouchSettings({analogSensitivity:99}).analogSensitivity).toBe(45);
+});

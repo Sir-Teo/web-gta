@@ -17,6 +17,9 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  /** The port's Auto Climb (MOB_ATC, on by default): hanging from a ledge, the stick pushed forward climbs on as the
   * jump button held does. */
  autoClimb:boolean;
+ /** The port's Analog Sensitivity (MOB_ANA, 20 to 45, 27 by default): the higher, the shorter the steering stick's
+  * travel to full lock (portStickTravel). */
+ analogSensitivity:number;
  /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
  invertLook:boolean;
  /** How sharp the picture is: the renderer's one pixel per CSS pixel, the screen's own density up to twice it, or
@@ -27,7 +30,7 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  layout:Readonly<Record<string,LayoutEntry>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,autoClimb:true,invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,autoClimb:true,analogSensitivity:27,invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
 /** A moved button: how far across and down, and (when resized) its size against the others'. */
 export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
 /** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
@@ -46,7 +49,7 @@ function parseLayout(value:unknown):Record<string,LayoutEntry>{
  }
  return out;
 }
-export const LOOK_SPEED_RANGE={min:.5,max:2},BUTTON_SCALE_RANGE={min:.8,max:1.3},DRAW_DISTANCE_RANGE={min:0,max:100};
+export const LOOK_SPEED_RANGE={min:.5,max:2},BUTTON_SCALE_RANGE={min:.8,max:1.3},DRAW_DISTANCE_RANGE={min:0,max:100},ANALOG_SENSITIVITY_RANGE={min:20,max:45};
 const KEY='grove-touch-v1';
 const clamp=(value:unknown,range:{min:number;max:number},fallback:number)=>typeof value==='number'&&Number.isFinite(value)?Math.min(range.max,Math.max(range.min,value)):fallback;
 export function parseTouchSettings(value:unknown):TouchSettings{
@@ -58,6 +61,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   effects:data.effects==='low'||data.effects==='medium'?data.effects:'high',
   drawDistance:Math.round(clamp(data.drawDistance,DRAW_DISTANCE_RANGE,DRAW_DISTANCE_DEFAULT)),
   autoClimb:typeof data.autoClimb==='boolean'?data.autoClimb:DEFAULT_TOUCH.autoClimb,
+  analogSensitivity:Math.round(clamp(data.analogSensitivity,ANALOG_SENSITIVITY_RANGE,DEFAULT_TOUCH.analogSensitivity)),
   invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:(data as {layoutOn?:unknown}).layoutOn===LAYOUT_ON?parseLayout(data.layout):{},resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};
