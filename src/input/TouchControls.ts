@@ -149,14 +149,18 @@ export function portLayoutFrame(file:PortLayoutFile):Readonly<Record<string,numb
  * modes it shows in (all of them when unset), whether it shows only while the game offers it (setOffered), as the
  * mobile ports show their enter-vehicle button only beside a vehicle, and whether only the driver has it (a passenger
  * has no pedals, wheel or horn). */
-interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean;icon?:TouchIcon;steering?:TouchSettings['steering'];driver?:boolean}
+interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean;icon?:TouchIcon;steering?:TouchSettings['steering'];driver?:boolean;
+ /** Hidden while the game offers this other button, which does its work (the horn in a car with hydraulics). */
+ givesWayTo?:string;
+ /** A tap presses `code` for a frame; a drag is the car-gun stick (the Hydraulics button). */
+ carGun?:boolean}
 const BUTTONS:ButtonSpec[]=[
  {label:'Fire',code:'ControlLeft',className:'fire',modes:['foot','scope','vehicle','aircraft']},
  {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope'],icon:'target'},
  {label:'Jump',code:'Space',className:'jump',modes:['foot','swim'],icon:'jump'},
  {label:'H-brake',code:'Space',className:'jump',modes:['vehicle'],icon:'parking',driver:true},
  {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot'],icon:'run'},
- {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle'],icon:'horn',driver:true},
+ {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle'],icon:'horn',driver:true,givesWayTo:'hydraulics'},
  {label:'Enter',code:'KeyF',className:'enter',contextual:true,icon:'car'},
  {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope'],icon:'crouch'},
  // At the wheel the eye looks behind (both look keys together, the PC's middle button); left and right come above the
@@ -169,6 +173,10 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down',driver:true},
  // N tunes the radio (the mobile ports swipe for it).
  {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],contextual:true,icon:'music'},
+ // A car fitted with hydraulics (a lowrider): the port's HYDRAULICS widget, at its own place, the radio moving to the
+ // horn's (whose press the hydraulics take, CAutomobile::HydraulicControl). A tap raises or drops the car, as the horn
+ // does; a drag from it is the car-gun stick, the corners rising the way it is pushed (the PC's numpad 8, 2, 4 and 6).
+ {label:'Hydraulics',code:'KeyH',className:'hydraulics',modes:['vehicle'],contextual:true,icon:'hydraulics',driver:true,carGun:true},
  // A car fitted with nitro fires it with the car's weapon button: the port gives it a button of its own, shown only then.
  {label:'Nitrous',code:'ControlLeft',className:'nitro',modes:['vehicle'],contextual:true,icon:'bolt'},
  // A cutscene, or a scripted scene in the widescreen bars: the cluster gives way to Skip (CCutsceneMgr's skip is Space or
@@ -260,6 +268,7 @@ export class TouchControls {
   for(const spec of BUTTONS){
    const button=document.createElement('button');button.type='button';button.className=`touch-button ${spec.className}`;button.dataset.code=spec.code;button.setAttribute('aria-label',spec.label);
    if(spec.icon)button.innerHTML=touchIconSvg(spec.icon);else button.textContent=spec.label;
+   if(spec.carGun){this.carGunButton(spec,button,options);pad.append(button);this.buttons.push({spec,element:button});continue;}
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);
     if(this.editing){this.drag(e,spec,button);return;}
     this.buzz();if(spec.toggle){if(this.latched.has(spec.code)){this.latched.delete(spec.code);input.release(spec.code);button.classList.remove('on');}else{this.latched.add(spec.code);input.hold(spec.code);button.classList.add('on');}return;}
@@ -410,6 +419,26 @@ export class TouchControls {
   if(mode!=='foot'&&mode!=='scope')for(const code of [...this.latched]){this.latched.delete(code);this.input.release(code);}
   for(const {spec,element} of this.buttons)if(spec.toggle)element.classList.toggle('on',this.latched.has(spec.code));
  }
+ /** The Hydraulics button: a tap is a press of its key for a frame (the horn's toggle), a drag past a few pixels the
+  * car-gun stick, a button's width to full travel, held at the PC's numpad keys too past half way (the scripts read
+  * the turret actions from those). */
+ private carGunButton(spec:ButtonSpec,button:HTMLButtonElement,options:AddEventListenerOptions){
+  let finger:{id:number;x:number;y:number;moved:boolean}|undefined;const keys=['Numpad4','Numpad6','Numpad8','Numpad2'];
+  const stick=(x:number,y:number)=>{this.input.carGunStick=x||y?{x,y}:undefined;
+   const want=new Set([...x<-.5?['Numpad4']:[],...x>.5?['Numpad6']:[],...y<-.5?['Numpad8']:[],...y>.5?['Numpad2']:[]]);
+   for(const key of keys)if(want.has(key))this.input.hold(key);else this.input.release(key);};
+  button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);
+   if(this.editing||finger)return;finger={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};button.classList.add('on');this.buzz();},options);
+  button.addEventListener('pointermove',e=>{if(e.pointerId!==finger?.id)return;
+   const dx=e.clientX-finger.x,dy=e.clientY-finger.y,reach=Math.max(24,button.getBoundingClientRect().width);
+   if(!finger.moved&&Math.hypot(dx,dy)<8)return;finger.moved=true;
+   const clamp=(v:number)=>Math.max(-1,Math.min(1,v/reach));stick(clamp(dx),clamp(dy));},options);
+  const up=(e:PointerEvent)=>{if(e.pointerId!==finger?.id)return;const tapped=!finger.moved&&e.type==='pointerup';finger=undefined;button.classList.remove('on');stick(0,0);
+   if(tapped){this.input.hold(spec.code);this.input.releaseAfterFrame(spec.code);}};
+  button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
+  this.dropCarGun=()=>{if(finger){finger=undefined;button.classList.remove('on');stick(0,0);}};
+ }
+ private dropCarGun=()=>{};
  /** The steering question, the first time at the wheel (not in a passenger seat). */
  private askSteering(){this.steeringPopup.hidden=!(this.mode==='vehicle'&&!this.passenger&&!this.settings.steeringChosen);}
  private passenger=false;
@@ -422,15 +451,18 @@ export class TouchControls {
  setOffered(classNames:Iterable<string>){
   const next=new Set(classNames);
   if(next.size===this.offered.size&&[...next].every(c=>this.offered.has(c)))return;
-  this.offered=next;this.showButtons();
+  const swapped=next.has('hydraulics')!==this.offered.has('hydraulics');
+  this.offered=next;this.showButtons();if(swapped)this.place();
  }
  private showButtons(){
   const mode=this.mode??'foot';
   for(const {spec,element} of this.buttons){
    // Adjusting, a layout's every button shows, the ones it offers only now and then too.
-   if(this.editing){element.hidden=(spec.modes?!spec.modes.includes(mode):mode==='cutscene')||!!spec.steering&&spec.steering!==this.settings.steering;continue;}
-   const hidden=(spec.modes?!spec.modes.includes(mode):mode==='cutscene')||!!spec.contextual&&!this.offered.has(spec.className)||!!spec.steering&&spec.steering!==this.settings.steering||!!spec.driver&&this.passenger;
+   // (The Hydraulics button rides on the radio's place, and is moved with it.)
+   if(this.editing){element.hidden=(spec.modes?!spec.modes.includes(mode):mode==='cutscene')||!!spec.steering&&spec.steering!==this.settings.steering||!!spec.carGun;continue;}
+   const hidden=(spec.modes?!spec.modes.includes(mode):mode==='cutscene')||!!spec.contextual&&!this.offered.has(spec.className)||!!spec.steering&&spec.steering!==this.settings.steering||!!spec.driver&&this.passenger||!!spec.givesWayTo&&this.offered.has(spec.givesWayTo);
    if(element.hidden===hidden)continue;element.hidden=hidden;
+   if(hidden&&spec.carGun)this.dropCarGun();
    // A button that goes while a finger holds it lets go of its key.
    if(hidden&&!spec.toggle){for(const [id,code] of this.held)if(code===spec.code&&element.classList.contains('on'))this.held.delete(id);if(![...this.held.values()].includes(spec.code))this.input.release(spec.code);element.classList.remove('on');}
   }
@@ -465,7 +497,7 @@ export class TouchControls {
   if(this.editing||this.element.hidden===!visible)return;
   this.element.hidden=!visible;
   this.steer();
-  if(!visible){for(const code of new Set([...this.held.values(),...this.latched]))this.input.release(code);this.held.clear();this.latched.clear();this.input.stick=undefined;this.input.release('AltLeft');this.stickPointer=this.lookPointer=undefined;this.stickBase.hidden=true;
+  if(!visible){this.dropCarGun();for(const code of new Set([...this.held.values(),...this.latched]))this.input.release(code);this.held.clear();this.latched.clear();this.input.stick=undefined;this.input.release('AltLeft');this.stickPointer=this.lookPointer=undefined;this.stickBase.hidden=true;
    for(const {element} of this.buttons)element.classList.remove('on');}
  }
  /** Each button moved where the player put it in this layout (the CSS translate, kept apart from the grid's place). */
@@ -478,10 +510,13 @@ export class TouchControls {
   // The stick's travel by the layout and what it steers, on the screen's width (no wider than 16:9, as the buttons).
   const travel=Math.round(portStickTravel(file,this.mode??'foot',this.settings.analogSensitivity)*Math.min(innerWidth,innerHeight*16/9)/640);
   if(travel!==this.stickTravel||!this.stickZone.dataset.travel){this.stickTravel=travel;this.stickZone.dataset.travel=String(travel);this.stickBase.style.setProperty('--stick-r',`${travel}px`);}
-  for(const {spec,element} of this.buttons){const o=layout[`${group}:${spec.className}`];const translate=o?`${o[0]}vmin ${o[1]}vmin`:'',scale=o?.[2]?String(o[2]):'';
+  // In a car with hydraulics their button takes the radio's place and the radio the horn's (which gives way), each with
+  // whatever Adjust controls did to that place.
+  const slot=(name:string)=>group==='vehicle'&&!this.editing&&this.offered.has('hydraulics')?name==='hydraulics'?'radio':name==='radio'?'sprint':name:name;
+  for(const {spec,element} of this.buttons){const o=layout[`${group}:${slot(spec.className)}`];const translate=o?`${o[0]}vmin ${o[1]}vmin`:'',scale=o?.[2]?String(o[2]):'';
    if(element.style.translate!==translate)element.style.translate=translate;if(element.style.scale!==scale)element.style.scale=scale;
    // The port's place for it in this layout (PORT_LAYOUTS), which the CSS lays over the safe area.
-   const at=PORT_LAYOUTS[file][group][spec.className];
+   const at=PORT_LAYOUTS[file][group][slot(spec.className)];
    if(at)portPlace(element,at);}
   // The asked buttons that are widgets of their own stand at theirs, at the wheel's layout.
   for(const {element} of this.context){const at=PORT_LAYOUTS[file].vehicle[element.classList[1]];if(at)portPlace(element,at);}

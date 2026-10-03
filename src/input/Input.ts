@@ -75,6 +75,9 @@ export class Input {
   stick?: { x: number; y: number };
   /** The stick is a game controller's left stick (GamepadInput) rather than the touch screen's. */
   stickFromPad = false;
+  /** The car-gun stick (CPad::GetCarGunLeftRight / UpDown) from the touch screen's Hydraulics button, x right and y down
+   * in -1..1; undefined while no finger drags it. */
+  carGunStick?: { x: number; y: number };
   /** Holds a key or button from somewhere other than the keyboard and mouse (the touch controls), with its press. */
   hold(code: string) { if (!this.held.has(code)) this.pressed.add(code); this.held.add(code); this.heldSince.set(code, this.frames); this.pendingRelease.delete(code); this.touches++; }
   release(code: string) { this.held.delete(code); this.pendingRelease.delete(code); }
@@ -117,6 +120,6 @@ export class Input {
   /** Forget presses nobody consumed (CPad's "just down" lasts one frame): a key pressed during a pause or menu does
    * not act when play resumes. Held keys stay held. */
   dropPresses() { this.pressed.clear(); }
-  clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.drag = false; this.press = undefined; this.stick = undefined; }
+  clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.drag = false; this.press = undefined; this.stick = undefined; this.carGunStick = undefined; }
   dispose() { this.abort.abort(); }
 }

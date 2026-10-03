@@ -3335,7 +3335,8 @@ async function boot() {
         // The player's pad for NitrousControl and BoostJumpControl: the car-gun button, the look keys and a fresh horn press.
         {const horn=input.down('CapsLock')||input.down('KeyH'),looking=input.down('KeyQ')||input.down('KeyE')||input.down('MouseMiddle');
          // The car-gun stick (GetCarGunLeftRight / GetCarGunUpDown) on the PC's special-control keys, numpad 4/6 and 8/2.
-         const stick={leftRight:(Number(input.down('Numpad6'))-Number(input.down('Numpad4')))*128,upDown:(Number(input.down('Numpad2'))-Number(input.down('Numpad8')))*128};
+         // A touch screen's Hydraulics button, dragged, is the stick itself, as far as the finger pushes it.
+         const gun=input.carGunStick,stick=gun?{leftRight:Math.round(gun.x*128),upDown:Math.round(gun.y*128)}:{leftRight:(Number(input.down('Numpad6'))-Number(input.down('Numpad4')))*128,upDown:(Number(input.down('Numpad2'))-Number(input.down('Numpad8')))*128};
          // GetHydraulicJump reads ShockButtonR, TOGGLE_SUBMISSIONS in a car: the '2' key and numpad plus.
          carPad={carGun:input.down('ControlLeft')||input.down('ControlRight')||input.down('MouseFire'),looking,hornJustDown:horn&&!hornHeldLast,stick,hydraulicJump:input.down('Digit2')||input.down('NumpadAdd'),
           // VEHICLE_STEERUP / STEERDOWN are the arrow keys on the PC; GetAccelerate is W (the port's arrows also drive).
@@ -3574,7 +3575,7 @@ async function boot() {
      else if(++touchEnterTick%8===0){const p=sim.player.position,near=(q:{x:number;y:number;z:number})=>Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;
       touchEnterNear=[...(fleet?.cars??[])].some(c=>c.consideredByPlayer!==false&&near(c.car.body.translation()))||[fleet?.nearestPlane(true),fleet?.nearestBoat(true),fleet?.nearestBike(true)].some(v=>!!v&&v.distance()<10);}
      // Radio, while the vehicle has a radio to tune (a bicycle has none, CAERadioTrackManager's RADIO_DISABLED).
-     touch.setOffered([...touchEnterNear?['enter']:[],...worldCar?.occupied&&worldCar.car.nitro.installed?['nitro']:[],...radioModel!==undefined?['radio']:[],...skippable?['skip']:[]]);
+     touch.setOffered([...touchEnterNear?['enter']:[],...worldCar?.occupied&&worldCar.car.nitro.installed?['nitro']:[],...worldCar?.occupied&&worldCar.hydraulics?['hydraulics']:[],...radioModel!==undefined?['radio']:[],...skippable?['skip']:[]]);
     }
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=touch
      // A phone's short screen gets one line, a stall first: the name shows below and the buttons say what they do.
