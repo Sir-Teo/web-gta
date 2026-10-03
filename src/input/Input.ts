@@ -101,7 +101,7 @@ export class Input {
     // stick's own push, and the full throttle for the boats and bikes that read it from y.
     const gas = this.down('KeyW'), brake = this.down('KeyS');
     if (stick && Math.hypot(stick.x, stick.y) > .12)
-      return { x: stick.x, y: gas && !brake ? 1 : brake && !gas ? -1 : stick.y, forward: gas || stick.y > .3, back: brake || stick.y < -.3 };
+      return { x: stick.x, y: gas && !brake ? 1 : brake && !gas ? -1 : stick.y, forward: gas || stick.y > .3, back: brake || stick.y < -.3, stick: true };
     // Tilt steering: the device turned like a wheel steers, and the pedals drive (a thumb on the stick takes over).
     if (this.tilt !== undefined) return { x: this.tilt, y: gas && !brake ? 1 : brake && !gas ? -1 : 0, forward: gas, back: brake };
     const forward = this.down('KeyW') || this.down('ArrowUp'), back = this.down('KeyS') || this.down('ArrowDown');
