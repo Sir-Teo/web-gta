@@ -70,8 +70,13 @@ export function resolveVehicleProps(o:VehiclePropContacts){
    if(!vehicleOverPoint(position,rotation,propSizePoint(owner.translation(),owner.rotation(),prop.boundsSize)))return;
    prop.damaged({result:objectDamage(prop.state,50,prop.effect,prop.colDamageMultiplier),damage:50,point:{x:point.x,y:point.y,z:point.z},normal});
   };
+  // A contact with no prop (the road, a building, another car) can only mark another impact, and that matters only
+  // once a prop has been smashed or uprooted this step: its manifolds are read then, rather than every terrain
+  // triangle's on every step (half of a car's calls into Rapier, and their garbage).
+  let others:[RAPIER.Collider,RAPIER.Collider][]|undefined;
   for(let i=0;i<body.numColliders();i++){const collider=body.collider(i);o.world.contactPairsWith(collider,other=>{
    const owner=other.parent();if(!owner||other.isSensor()||owner.handle===body.handle||other.handle===o.playerColliderHandle)return;
+   if(!o.propFor!(other)){(others??=[]).push([collider,other]);return;}
    o.world.contactPair(collider,other,(manifold,flipped)=>{
     if(!manifold.numSolverContacts())return;
     const n=manifold.normal(),normal=flipped?{x:n.x,y:n.y,z:n.z}:{x:-n.x,y:-n.y,z:-n.z},point=manifold.solverContactPoint(0);
@@ -140,6 +145,14 @@ export function resolveVehicleProps(o:VehiclePropContacts){
     move=fromNative(result.car.move);turn=fromNative(result.car.turn);
    });
   });}
+  if(changed&&!otherImpact&&others)for(const [collider,other] of others){
+   o.world.contactPair(collider,other,(manifold,flipped)=>{
+    if(otherImpact||!manifold.numSolverContacts())return;
+    const n=manifold.normal(),normal=flipped?{x:n.x,y:n.y,z:n.z}:{x:-n.x,y:-n.y,z:-n.z};
+    if(manifold.solverContactPoint(0)&&pre.x*normal.x+pre.y*normal.y+pre.z*normal.z<-1)otherImpact=true;
+   });
+   if(otherImpact)break;
+  }
   // A simultaneous wall or car impact keeps the solver's response this step.
   if(!changed||otherImpact)return {smashed,uprooted};
   // Collision damage below then measures only the native impulse, as natively.

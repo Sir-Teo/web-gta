@@ -52,3 +52,23 @@ test('SpecialEntityPreCollisionStuff: a car over a small loose unsmashable prop 
  expect(carRollsOverProp({position:{x:0,y:0,z:0},rotation:flat},{...prop,effect:20})).toBe(false);
  expect(carRollsOverProp({position:{x:0,y:0,z:0},rotation:flat},{...prop,boundsMax:[.25,1.2,.8]})).toBe(false);
 });
+// The end of ApplyCollision's static-object branch: a smashed prop's impulse takes the car's speed, unless the car also
+// hit something else closing (a wall), whose solver response stands. The other contacts are only read once a prop has
+// gone, so a car on the road does not read every ground triangle's manifold each step.
+test('a smashed prop takes the car\'s speed unless the car also hit a wall this step',()=>{
+ const crash=(wall:boolean)=>{
+  const world=new RAPIER.World({x:0,y:-9.8,z:0});
+  const ground=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,-1,0));world.createCollider(RAPIER.ColliderDesc.cuboid(20,.5,20),ground);
+  const car=world.createRigidBody(RAPIER.RigidBodyDesc.dynamic());world.createCollider(RAPIER.ColliderDesc.cuboid(1,.5,.5).setMass(1500),car);
+  const post=world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(1.38,0,.6));const postCollider=world.createCollider(RAPIER.ColliderDesc.cuboid(.4,.4,.3).setMass(10),post);
+  if(wall)world.createCollider(RAPIER.ColliderDesc.cuboid(.4,.5,.3),world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(1.38,0,-.6)));
+  car.setLinvel({x:30,y:0,z:0},true);world.step();
+  const solver={...car.linvel()},prop={effect:20,colDamageMultiplier:1,uprootLimit:0,mass:10,turnMass:10,elasticity:.1,state:newObjectState(),damaged:()=>{},uproot:()=>true};
+  const out=resolveVehicleProps({world,body:car,playerColliderHandle:-1,pre:{x:30,y:0,z:0},preTurn:{x:0,y:0,z:0},mass:1500,turnMass:3000,occupied:false,wrecked:false,propFor:c=>c.handle===postCollider.handle?prop as any:undefined});
+  return {out,solver,after:{...car.linvel()}};
+ };
+ const alone=crash(false),walled=crash(true);
+ expect(alone.out.smashed).toBe(1);expect(walled.out.smashed).toBe(1);
+ expect(alone.after).not.toEqual(alone.solver);
+ expect(walled.after).toEqual(walled.solver);
+});
