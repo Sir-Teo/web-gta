@@ -280,6 +280,10 @@ kbd{font:inherit}
 @media(max-height:500px){.arsenal{inset:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));padding:12px 18px}
  .arsenal small,.arsenal header p{display:none}.arsenal h2{font-size:24px;margin:0}.arsenal-actions{margin:10px 0}.arsenal input,.arsenal button{padding:8px 12px}.arsenal-grid h3{margin:6px 0}}
 .touch .location,.touch .vehicle-name,.touch .mission-title,.touch .mission-timers{right:calc(var(--touch-cluster) + 12px)}
+/* The light blue message at the top (MISSION FAILED!, a race's lap): its native place, 60 down of 448, meets a phone's
+ * money and health, which stand larger against its height; on a touch screen it comes down to under them when they
+ * reach lower. */
+.touch .light-blue-top{top:max(calc(60 / 448 * 100%),calc(var(--status-bottom,0px) + 4px))}
 /* A mission's timer and counters on a touch screen: the desktop's 228 px down is the middle of a sideways phone, over
  * CJ. They hang just under the money and health instead (where the original draws them, under the HUD), left of the
  * buttons, at a size by the screen's height. */

@@ -66,3 +66,14 @@ test('a mission\'s timer on a short phone hangs under the money and health, clea
  expect(placed.top).toBeGreaterThanOrEqual(placed.statusBottom);expect(placed.bottom).toBeLessThan(placed.height/2);
  expect(placed.overlaps).toBe(0);expect(placed.font).toBeLessThan(24);
 });
+
+test('MISSION FAILED! at the top of a short phone stands under the money and health, not over them',async({page})=>{
+ test.setTimeout(240000);
+ await page.goto('/?touch=1');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await endStoryMission(page);
+ await page.evaluate(()=>{const g=(window as any).__game.missionForProfiling().runtime.game;g.messages.addBigMessage2('M_FAIL',8000,6,true,performance.now());});
+ const top=page.locator('.light-blue-top');await expect(top).toBeVisible();await expect(top).toContainText('MISSION FAILED');
+ expect(await page.evaluate(()=>{const m=document.querySelector('.light-blue-top')!.getBoundingClientRect();
+  return [...document.querySelectorAll('.status > *')].map(e=>e.getBoundingClientRect()).filter(r=>r.width).every(r=>r.right<=m.left||r.left>=m.right||r.bottom<=m.top||r.top>=m.bottom);})).toBe(true);
+});
