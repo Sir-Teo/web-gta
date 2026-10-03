@@ -4618,6 +4618,8 @@ async function boot() {
             fleet.onHotdogVan=car=>{try{mission?.hotdogVan(car);}catch(error){console.warn('Hot-dog vendor',error);}};
             fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
+            // A phone drives the traffic beyond 60 units on rails (measured: four of six cars, a sixth of the frame's CPU).
+            if(touch)traffic.physicsRadius=60;
             police=new WorldPolice(sim,fleet,law,carEntry.clips,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);if(worldZones)police.zones=worldZones;police.noPoliceZone=()=>cullZones.noPolice;
             traffic.spawnPatrol=(position,heading)=>police!.spawnPatrol(position,heading);
             void import('./simulation/WorldEmergency').then(({WorldEmergency})=>{

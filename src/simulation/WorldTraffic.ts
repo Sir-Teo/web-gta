@@ -49,6 +49,10 @@ export function recoveryLimit(stopped:string|null){
 }
 /** Small, physics-driven ambient traffic population. No direct pose driving. */
 export class WorldTraffic {
+  /** How near the player a random car drives under physics (its active radius); beyond, it drives on rails
+   * (STATUS_SIMPLE), slowing for the traffic, the peds and the lights ahead. 100 units, or less on a phone, whose CPU
+   * pays for each car's suspension, wheels and drive twice a frame: a car 60 units off is a few pixels on its screen. */
+  physicsRadius=100;
   private paths?:ReturnType<typeof worldPaths>;
   private drivers:Driver[]=[];
   private nextCheck=0;
@@ -148,7 +152,7 @@ export class WorldTraffic {
     if(!car)continue;
     car.gang=pick.gang;
     if(this.disposed||Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>100){this.fleet.removeTrafficCar(car);return;}
-    this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};
+    this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};car.activeRadius=this.physicsRadius;
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
     const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,cruiseSpeed:randomCruiseSpeed(this.fleet.vehicleClass(car.modelId),length,(min,max)=>min+Math.floor(Math.random()*(max-min+1))),stopped:null,distance:0,last:{x,z}};
     car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);car.onBlowUp=aboard=>{if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(car);};
