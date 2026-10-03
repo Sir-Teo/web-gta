@@ -3800,12 +3800,13 @@ async function boot() {
     if(carEntry.error){hud.message(carEntry.error);carEntry.error=undefined;}
     if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:cullNoRain()});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');if(mission&&(mission.scriptFireCount()>0||scriptFiresBurning>0)){scriptFiresBurning=mission.scriptFireCount();mission.scriptFiresWentOut(weapons.fires.syncScriptFires(mission.scriptFires()));}worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
     frameProfile.between+=performance.now()-tBetween;const tRender=performance.now();
-    // Held (the start screen, the pause menu, the full map, the arsenal) the world does not move: it is drawn a few
-    // times, then again only when something may change it (a touch, a key, a setting, a resize, a restored display, a
-    // streamed window swapped in) or every two seconds, not ten times a second: a phone left on the title or paused
-    // keeps its GPU, and its battery, idle.
+    // Held (the start screen, the pause menu, the arsenal) the world does not move: it is drawn a few times, then again
+    // only when something may change it (a touch, a key, a setting, a resize, a restored display, a streamed window
+    // swapped in) or every two seconds, not ten times a second: a phone left on the title or paused keeps its GPU, and
+    // its battery, idle. Not under the full map: with the page drawing nothing, Chrome now and then makes no click of a
+    // tap that ends a pinch there (two taps in six lost a waypoint), and the map is gestures throughout.
     let draw=true;
-    if(!started||paused||!!navigation?.open||arsenal.open){if(heldRedraws>0)heldRedraws--;else if(now-heldDrawnAt<HELD_REDRAW_MS)draw=false;if(draw)heldDrawnAt=now;}
+    if((!started||paused||arsenal.open)&&!navigation?.open){if(heldRedraws>0)heldRedraws--;else if(now-heldDrawnAt<HELD_REDRAW_MS)draw=false;if(draw)heldDrawnAt=now;}
     else heldRedraws=HELD_REDRAWS;
     if(draw){
     render.update(dt, alpha, input, elapsed, paused||terrainPause||!!navigation?.open||arsenal.open);
