@@ -212,6 +212,7 @@ import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
 import { GamepadInput } from './input/GamepadInput';
 import { registerShell } from './core/serviceWorker';
+import { storagePanel } from './ui/storagePanel';
 import { TouchControls, goFullscreen, offerInstall, showHelpIcons, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, resolutionRatio, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake } from './input/screenAwake';
@@ -292,6 +293,8 @@ const canvas = document.createElement('canvas'); canvas.className = 'world'; can
 const hud = new Hud(app); hud.setMenu(true);
 // Android's browser offers to install the game; on a touch screen the menu takes the offer (TouchControls.offerInstall).
 if(wantsTouchControls())offerInstall(hud.button('install'));
+// What the game keeps on the device, and a way to clear it, under the Controls page's settings (ui/storagePanel.ts).
+{const storage=storagePanel(navigator.storage,typeof caches==='undefined'?undefined:caches);hud.element.querySelector('.controls-panel')!.append(storage.element);hud.button('controls').addEventListener('click',()=>void storage.refresh());}
 // The installed game opens from the phone's storage, and offline (core/serviceWorker.ts).
 registerShell(navigator, window, import.meta.env.PROD, import.meta.env.BASE_URL);
 let cleanup = () => {};

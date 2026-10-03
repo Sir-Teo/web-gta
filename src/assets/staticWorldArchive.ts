@@ -51,7 +51,7 @@ const sha256Hex=async(bytes:Uint8Array)=>Array.from(new Uint8Array(await crypto.
 /** Downloaded world bytes kept across sessions, keyed by their SHA-256 (GitHub Pages revalidates after ten minutes and
  * every deploy changes the ETags, so the HTTP cache alone re-downloads the world). Content addressing makes entries
  * immutable; anything unusable (no Cache Storage, a quota error, a corrupt entry) falls back to the network. */
-const WORLD_CACHE='web-gta-world-v1';
+export const WORLD_CACHE='web-gta-world-v1';
 /** One key per resource for the page and its workers alike: the app root, not the current script's own URL (a worker's
  * would put every entry under its assets folder, twice over, and each context's pruning would drop the other's). */
 export const worldCacheKey=(sha256:string)=>new URL(`${import.meta.env?.BASE_URL??'/'}__world/${sha256}`,globalThis.location?.origin??'https://cache.invalid').href;

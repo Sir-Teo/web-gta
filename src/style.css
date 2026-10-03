@@ -263,6 +263,10 @@ html.touch{-webkit-tap-highlight-color:transparent}
  .touch .menu:has(> :is(.brief-panel,.controls-panel,.audio-panel):not([hidden])) .setting{letter-spacing:2px}
  .touch .menu-actions button[aria-expanded=true]{color:#b2ca86}
 }
+/* What the game keeps on the device (ui/storagePanel.ts), under the settings. */
+.storage-settings{margin-top:14px;max-width:360px}.storage-settings small{display:block;font-size:12px;line-height:1.5;color:#c3c9bb;margin:2px 0 8px}
+.menu .storage-settings button{margin:0 0 4px;padding:8px 14px;font:14px system-ui,sans-serif;color:#ede8d3;background:#243129;border:1px solid #77836d;text-shadow:none}
+.menu .storage-settings button:disabled{opacity:.6}
 /* The pause menu's Controls panel: on a touch screen the key list gives way to the touch settings. */
 .touch .controls-panel>p:not(.touch-settings){display:none}
 .touch-settings label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0;max-width:360px;font-size:14px}
