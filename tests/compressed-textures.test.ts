@@ -21,11 +21,14 @@ test('a compressed decode cache keeps the stored DXT blocks and ends the chain b
  expect(decoded.compressed).toBeUndefined();expect(decoded.mips).toHaveLength(3);expect(decoded.reconstructedMips).toEqual([1,2]);
 });
 
-test('compressed rasters upload as S3TC when the context has it and decode to RGBA8 otherwise',()=>{
+test('compressed rasters upload as S3TC when the context has it, and DXT1 decodes to 16-bit 5551 otherwise',()=>{
  const [texture]=decodeNamedTextures(['calibration_grid'],dictionary(),new TextureDecodeCache(true));
+ // A phone's GPU without S3TC: the RGBA decode narrowed to five bits a channel and its one-bit alpha, two bytes a texel.
  const fallback=nativeTexture(texture) as THREE.DataTexture;
- expect(fallback.isDataTexture).toBe(true);expect(fallback.format).toBe(THREE.RGBAFormat);
- expect([...fallback.image.data!]).toEqual([...decodeTexture(readTxd(dictionary())[0],0)]);
+ expect(fallback.isDataTexture).toBe(true);expect(fallback.format).toBe(THREE.RGBAFormat);expect(fallback.type).toBe(THREE.UnsignedShort5551Type);expect(fallback.unpackAlignment).toBe(2);
+ const pixels=decodeTexture(readTxd(dictionary())[0],0),five=(v:number)=>Math.round(v*31/255);
+ expect([...fallback.image.data!]).toEqual(Array.from({length:16},(_,i)=>pixels[i*4+3]?five(pixels[i*4])<<11|five(pixels[i*4+1])<<6|five(pixels[i*4+2])<<1|1:0));
+ expect(fallback.mipmaps.map(m=>m.data.length)).toEqual([16]);
  setCompressedTextureSupport(true);
  const compressed=nativeTexture(texture) as THREE.CompressedTexture;
  expect(compressed.isCompressedTexture).toBe(true);expect(compressed.format).toBe(THREE.RGBA_S3TC_DXT1_Format);
