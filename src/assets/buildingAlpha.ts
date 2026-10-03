@@ -1,6 +1,12 @@
 import { MeshBasicMaterial, type GeometryGroup } from 'three';
 
 export interface BuildingAlphaPolicy { enabled: boolean; threshold: number }
+/** Whether buildings may draw their alpha in two passes (SkyGFX's PS2 dual pass: the texels at or over the threshold with
+ * depth, then the rest without). The mobile ports' shaders alpha-test in one pass, a `discard` under a fixed reference
+ * and no second draw, so a touch screen draws one (setBuildingDualPass): around Grove Street the second pass is 80 to
+ * 190 of a frame's 400 to 1000 draws, and at a phone's size its edges are all it changes. */
+let dualPassAllowed = true;
+export function setBuildingDualPass(allowed: boolean) { dualPassAllowed = allowed; }
 
 /** Keep the two complementary draws adjacent within each native mesh's queue position. */
 export function buildingAlpha(material: MeshBasicMaterial, policy: BuildingAlphaPolicy) {
@@ -24,7 +30,7 @@ export function buildingAlpha(material: MeshBasicMaterial, policy: BuildingAlpha
     const current = this as MeshBasicMaterial;
     if (!Number.isInteger(policy.threshold) || policy.threshold < 0 || policy.threshold > 255) throw new Error('Building alpha threshold must be a byte.');
     const write = current.userData.nativeDepthWrite !== false;
-    const split = policy.enabled && current.transparent && write;
+    const split = dualPassAllowed && policy.enabled && current.transparent && write;
     if (!!current.userData.nativeDualActive !== split) { current.userData.nativeDualActive = split; current.needsUpdate = true; }
     current.alphaTest = split ? policy.threshold / 255 : write ? current.userData.nativeAlphaTest : 0;
     current.depthWrite = write;

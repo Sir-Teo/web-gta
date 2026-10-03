@@ -170,6 +170,7 @@ type WorldCarPad=ScriptCar['pad'];
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
 import {setChunkCacheBudget} from './assets/staticWorldArchive';
+import {setBuildingDualPass} from './assets/buildingAlpha';
 import {modelBuildStats,setRetainedModels} from './assets/ModelObjects';
 import {rehydrateResidentParts,residentModelsOf,type ResidentModel} from './assets/residentModels';
 import {includedScene} from './assets/includedScenes';
@@ -816,6 +817,8 @@ async function boot() {
   }
   // The touch settings' Visual effects set the FX quality (the port's MOB_VS); elsewhere the game runs at high.
   // and its Draw distance TheCamera's LOD distance multiplier (the port's MOB_DD); elsewhere the game draws at its default.
+  // A touch screen draws a building's alpha in one pass, as the mobile ports' shaders do (setBuildingDualPass).
+  setBuildingDualPass(!touchScreen);
   const applyVisualEffects=()=>{setFxQuality(touchScreen?touchSettings.effects:'high');setDrawDistance(touchScreen?touchSettings.drawDistance:DRAW_DISTANCE_DEFAULT);CAR_REFLECTIONS.value=!touchScreen||touchSettings.carReflections;setRealTimeShadows(!touchScreen||touchSettings.shadows);};applyVisualEffects();
   const lookInverted=()=>touchScreen?touchSettings.invertLook:mouseSettings.invertY;
   const applyMouseSettings=()=>{render.mouseYawScale=mouseYawScale(mouseSettings);render.mouseYSign=lookInverted()?-1:1;};applyMouseSettings();

@@ -1,6 +1,6 @@
 import {test,expect,vi} from 'vitest';
 import * as THREE from 'three';
-import {buildingAlpha} from '../src/assets/buildingAlpha';
+import {buildingAlpha,setBuildingDualPass} from '../src/assets/buildingAlpha';
 import {placementFade} from '../src/render/placementFade';
 
 function fixture() {
@@ -35,6 +35,16 @@ test('disabled dual policy restores incoming alpha/depth settings and validates 
   policy.enabled=true;material.transparent=false;render(a);expect(draws).toHaveLength(1);
   for(const value of [-1,256,.5,NaN]){policy.threshold=value;expect(()=>render(a)).toThrow('byte');}
   material.dispose();geometry.dispose();
+});
+
+test('a touch screen draws building alpha in one pass, as the mobile ports\' shaders do: no high pass, the material\'s own alpha test',()=>{
+  const {material,geometry,a,draws,render}=fixture();
+  try{
+    setBuildingDualPass(false);render(a);
+    expect(draws).toHaveLength(0);expect(material.alphaTest).toBe(1/255);expect(material.depthWrite).toBe(true);expect(material.userData.nativeDualActive).toBeFalsy();
+    // Allowed again (a desktop session), the split comes back.
+    setBuildingDualPass(true);render(a);expect(draws).toHaveLength(1);expect(material.userData.nativeDualActive).toBe(true);
+  }finally{setBuildingDualPass(true);material.dispose();geometry.dispose();}
 });
 
 test('high passes read the source userData live and copy the whole material only when it changes',()=>{
