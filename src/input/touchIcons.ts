@@ -25,6 +25,9 @@ const GLYPHS={...MATERIAL,
  bolt:'M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z',
  // The floating stick, for help text: its ring and its knob.
  stick:'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20zm0 2.2a7.8 7.8 0 1 1 0 15.6a7.8 7.8 0 1 1 0-15.6zm0 3.8a4 4 0 1 0 0 8a4 4 0 1 0 0-8z',
+ // The drive-by's sides, as the port's leftshoot and shoot widgets draw them: a pistol pointing that way.
+ shootLeft:'M21 7H3v4h18zM20 11h-5l1 8h5zM15 11h-4v2a2 2 0 0 0 2 2h2zM7 13l-3 3 3 3z',
+ shootRight:'M3 7h18v4H3zM4 11h5l-1 8H3zM9 11h4v2a2 2 0 0 1-2 2H9zM17 13l3 3-3 3z',
  rocket:'M12 2c2.2 2.1 3.3 5 3.3 8.2V15l2.2 3.3h-4.3L12 22l-1.2-3.7H6.5L8.7 15v-4.8C8.7 7 9.8 4.1 12 2zm0 6a1.6 1.6 0 1 0 0 3.2A1.6 1.6 0 0 0 12 8z',
 };
 export type TouchIcon=keyof typeof GLYPHS;

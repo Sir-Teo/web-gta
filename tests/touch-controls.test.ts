@@ -79,6 +79,9 @@ test('each layout puts the buttons at its own file\'s widgets, sized as the port
  const phone=PORT_LAYOUTS.TouchDefaultPhoneWidescreen;
  expect(phone.foot).toMatchObject({fire:[607,310,'medium'],aim:[553,310,'medium'],enter:[607,246,'medium'],sprint:[603,381,'large'],jump:[554,245,'medium'],crouch:[501,245,'medium'],reload:[501,310,'medium']});
  expect(phone.vehicle).toMatchObject({gas:[602,380,'large'],reverse:[541,381,'large'],sprint:[614,191,'small'],'steer-left':[36,380,'large']});
+ // A drive-by's ◀ Look and Look ▶ are the port's VEHICLE_SHOOT_LEFT and _RIGHT widgets, above the steering arrows.
+ expect(phone.vehicle).toMatchObject({'look-left':[42,310,'medium'],'look-right':[97,310,'medium']});
+ expect(PORT_LAYOUTS.TouchDefaultTablet4x3.vehicle).toMatchObject({'look-left':[42,335,'medium'],'look-right':[97,335,'medium']});
  // An iPad's 4:3: rows lower, the attack inside the aim; a 3:2 phone's buttons larger.
  expect(PORT_LAYOUTS.TouchDefaultTablet4x3.foot).toMatchObject({fire:[552,335,'medium'],aim:[605,335,'medium'],enter:[605,284,'medium'],crouch:[499,284,'medium']});
  expect(PORT_LAYOUTS.TouchDefaultPhone3x2.vehicle).toMatchObject({gas:[598,383,'larger'],fire:[538,315,'large'],nitro:[476,315,'large']});

@@ -48,7 +48,7 @@ export function offerInstall(button:HTMLButtonElement,target:EventTarget=window)
  * symbol in the help text where the PC prints its key. Fire shows the weapon in hand, so it keeps its word alone. */
 const HELP_ICONS:Readonly<Record<string,TouchIcon>>={ENTER:'car',SPRINT:'run',JUMP:'jump',CROUCH:'crouch',AIM:'target',GAS:'up',BRAKE:'down',
  'H-BRAKE':'parking',HORN:'horn',RADIO:'music','LOOK BACK':'eye',CAMERA:'camera','ZOOM +':'zoomIn','ZOOM −':'zoomOut',ROCKET:'rocket',
- '◀ YAW':'left','YAW ▶':'right','LEFT ARROW':'left','RIGHT ARROW':'right',
+ '◀ YAW':'left','YAW ▶':'right','◀ LOOK':'shootLeft','LOOK ▶':'shootRight','LEFT ARROW':'left','RIGHT ARROW':'right',
  // The stick, one direction or the whole of it (a run of its directions is "the STICK").
  STICK:'stick','STICK UP':'stick','STICK DOWN':'stick','STICK LEFT':'stick','STICK RIGHT':'stick'};
 /** A played pad's buttons as the PS2 original's help drew them: the face buttons a symbol in the button's colour (a
@@ -101,27 +101,28 @@ export function portLayoutFile(width:number,height:number,tablet:boolean):PortLa
 /** A tablet by the browser's measure of the screen: its short side 600 CSS pixels or more, Android's own line for one
  * (smallest width 600dp). Every iPad is wider than that and every phone narrower. */
 export const isTabletScreen=(screen:{width:number;height:number}|undefined=globalThis.screen)=>!!screen&&Math.min(screen.width,screen.height)>=600;
-type PortWidget='TARGETING_AND_ATTACK'|'VC_SHOOT'|'ENTER_CAR'|'BUTTON_SPRINT_AND_SWIM'|'SKIP_CUTSCENE'|'ACCELERATE'|'BRAKE'|'HANDBRAKE_AND_AIR_SHOOT'|'CAR_SHOOT'|'HORN'|'HYDRAULICS'|'VEHICLE_STEER_LEFT'|'VEHICLE_STEER_RIGHT'|'PED_MOVE';
+type PortWidget='VEHICLE_SHOOT_LEFT'|'VEHICLE_SHOOT_RIGHT'|'TARGETING_AND_ATTACK'|'VC_SHOOT'|'ENTER_CAR'|'BUTTON_SPRINT_AND_SWIM'|'SKIP_CUTSCENE'|'ACCELERATE'|'BRAKE'|'HANDBRAKE_AND_AIR_SHOOT'|'CAR_SHOOT'|'HORN'|'HYDRAULICS'|'VEHICLE_STEER_LEFT'|'VEHICLE_STEER_RIGHT'|'PED_MOVE';
 /** The widgets the touch buttons stand at, from each file: a widget's centre on the port's 640×448 screen, which the
  * touch layer lays over the safe area, and its size (PED_MOVE, where a thumb takes the stick, is a region: its right
  * edge and its top). */
 const PORT_WIDGETS:Readonly<Record<PortLayoutFile,Readonly<Record<PortWidget,PortPlace>>>>={
- TouchDefaultPhoneWidescreen:{TARGETING_AND_ATTACK:[607,310,'medium'],VC_SHOOT:[553,310,'medium'],ENTER_CAR:[607,246,'medium'],BUTTON_SPRINT_AND_SWIM:[603,381,'large'],SKIP_CUTSCENE:[611,34,'medium'],
+ TouchDefaultPhoneWidescreen:{VEHICLE_SHOOT_LEFT:[42,310,'medium'],VEHICLE_SHOOT_RIGHT:[97,310,'medium'],TARGETING_AND_ATTACK:[607,310,'medium'],VC_SHOOT:[553,310,'medium'],ENTER_CAR:[607,246,'medium'],BUTTON_SPRINT_AND_SWIM:[603,381,'large'],SKIP_CUTSCENE:[611,34,'medium'],
   ACCELERATE:[602,380,'large'],BRAKE:[541,381,'large'],HANDBRAKE_AND_AIR_SHOOT:[607,310,'medium'],CAR_SHOOT:[554,310,'medium'],HORN:[614,191,'small'],HYDRAULICS:[554,245,'medium'],
   VEHICLE_STEER_LEFT:[36,380,'large'],VEHICLE_STEER_RIGHT:[99,381,'large'],PED_MOVE:[240,248,'medium']},
- TouchDefaultPhone3x2:{TARGETING_AND_ATTACK:[599,315,'large'],VC_SHOOT:[538,315,'large'],ENTER_CAR:[600,251,'large'],BUTTON_SPRINT_AND_SWIM:[598,383,'larger'],SKIP_CUTSCENE:[612,30,'medium'],
+ TouchDefaultPhone3x2:{VEHICLE_SHOOT_LEFT:[41,315,'large'],VEHICLE_SHOOT_RIGHT:[106,315,'large'],TARGETING_AND_ATTACK:[599,315,'large'],VC_SHOOT:[538,315,'large'],ENTER_CAR:[600,251,'large'],BUTTON_SPRINT_AND_SWIM:[598,383,'larger'],SKIP_CUTSCENE:[612,30,'medium'],
   ACCELERATE:[598,383,'larger'],BRAKE:[529,383,'larger'],HANDBRAKE_AND_AIR_SHOOT:[601,315,'large'],CAR_SHOOT:[538,315,'large'],HORN:[606,139,'medium'],HYDRAULICS:[538,249,'large'],
   VEHICLE_STEER_LEFT:[41,383,'larger'],VEHICLE_STEER_RIGHT:[111,383,'larger'],PED_MOVE:[240,248,'medium']},
- TouchDefaultTabletWidescreen:{TARGETING_AND_ATTACK:[606,310,'medium'],VC_SHOOT:[554,310,'medium'],ENTER_CAR:[606,245,'medium'],BUTTON_SPRINT_AND_SWIM:[601,380,'large'],SKIP_CUTSCENE:[611,34,'medium'],
+ TouchDefaultTabletWidescreen:{VEHICLE_SHOOT_LEFT:[42,310,'medium'],VEHICLE_SHOOT_RIGHT:[97,310,'medium'],TARGETING_AND_ATTACK:[606,310,'medium'],VC_SHOOT:[554,310,'medium'],ENTER_CAR:[606,245,'medium'],BUTTON_SPRINT_AND_SWIM:[601,380,'large'],SKIP_CUTSCENE:[611,34,'medium'],
   ACCELERATE:[601,380,'large'],BRAKE:[541,380,'large'],HANDBRAKE_AND_AIR_SHOOT:[606,310,'medium'],CAR_SHOOT:[554,310,'medium'],HORN:[613,185,'small'],HYDRAULICS:[554,245,'medium'],
   VEHICLE_STEER_LEFT:[38,380,'large'],VEHICLE_STEER_RIGHT:[99,380,'large'],PED_MOVE:[180,268,'medium']},
  // An iPad's 4:3 has its rows lower and the attack inside the aim.
- TouchDefaultTablet4x3:{TARGETING_AND_ATTACK:[552,335,'medium'],VC_SHOOT:[605,335,'medium'],ENTER_CAR:[605,284,'medium'],BUTTON_SPRINT_AND_SWIM:[601,389,'large'],SKIP_CUTSCENE:[611,27,'medium'],
+ TouchDefaultTablet4x3:{VEHICLE_SHOOT_LEFT:[42,335,'medium'],VEHICLE_SHOOT_RIGHT:[97,335,'medium'],TARGETING_AND_ATTACK:[552,335,'medium'],VC_SHOOT:[605,335,'medium'],ENTER_CAR:[605,284,'medium'],BUTTON_SPRINT_AND_SWIM:[601,389,'large'],SKIP_CUTSCENE:[611,27,'medium'],
   ACCELERATE:[601,389,'large'],BRAKE:[539,389,'large'],HANDBRAKE_AND_AIR_SHOOT:[605,335,'medium'],CAR_SHOOT:[552,335,'medium'],HORN:[612,240,'small'],HYDRAULICS:[552,284,'medium'],
   VEHICLE_STEER_LEFT:[38,389,'large'],VEHICLE_STEER_RIGHT:[100,389,'large'],PED_MOVE:[210,268,'medium']}};
 /** Each layout's buttons at the port's widgets. On foot: Fire is TARGETING_AND_ATTACK, Aim VC_SHOOT, Enter ENTER_CAR,
  * Sprint (Swim, Zoom −) BUTTON_SPRINT_AND_SWIM, Skip SKIP_CUTSCENE; at the wheel Gas and Brake are ACCELERATE and BRAKE,
- * H-brake HANDBRAKE_AND_AIR_SHOOT, Fire CAR_SHOOT, Horn HORN and the arrows VEHICLE_STEER_LEFT and _RIGHT; flying, Fire is
+ * H-brake HANDBRAKE_AND_AIR_SHOOT, Fire CAR_SHOOT, Horn HORN, the arrows VEHICLE_STEER_LEFT and _RIGHT and, while a
+ * drive-by can be fired, ◀ Look and Look ▶ VEHICLE_SHOOT_LEFT and _RIGHT above them; flying, Fire is
  * AIR_SHOOT and Rocket CAR_SHOOT's place. The buttons the port has no widget for take free places of its grid: Jump and
  * Radio the hydraulics' (where a phone's weapon swap stands; the HUD's weapon icon swaps here), Crouch, Reload, Look back
  * and Nitrous a column further in, as far in again as the hydraulics are from the enter button (the phone's row above
@@ -131,7 +132,7 @@ function portLayout(file:PortLayoutFile):Readonly<Record<LayoutGroup,Readonly<Re
  return {
   foot:{fire:w.TARGETING_AND_ATTACK,aim:w.VC_SHOOT,enter:w.ENTER_CAR,sprint:w.BUTTON_SPRINT_AND_SWIM,jump:w.HYDRAULICS,crouch:[inner,upper,size],reload:[inner,lower,size],skip:w.SKIP_CUTSCENE},
   vehicle:{gas:w.ACCELERATE,reverse:w.BRAKE,jump:w.HANDBRAKE_AND_AIR_SHOOT,fire:w.CAR_SHOOT,enter:w.ENTER_CAR,sprint:w.HORN,radio:w.HYDRAULICS,crouch:[inner,upper,size],
-   nitro:[inner,lower,size],'steer-left':w.VEHICLE_STEER_LEFT,'steer-right':w.VEHICLE_STEER_RIGHT},
+   nitro:[inner,lower,size],'steer-left':w.VEHICLE_STEER_LEFT,'steer-right':w.VEHICLE_STEER_RIGHT,'look-left':w.VEHICLE_SHOOT_LEFT,'look-right':w.VEHICLE_SHOOT_RIGHT},
   aircraft:{gas:w.ACCELERATE,reverse:w.BRAKE,fire:w.HANDBRAKE_AND_AIR_SHOOT,rocket:w.CAR_SHOOT,jump:w.HYDRAULICS,enter:w.ENTER_CAR,'yaw-left':[inner,upper,size],'yaw-right':[inner,lower,size]}};
 }
 export const PORT_LAYOUTS=Object.fromEntries((Object.keys(PORT_WIDGETS) as PortLayoutFile[]).map(file=>[file,portLayout(file)])) as Readonly<Record<PortLayoutFile,ReturnType<typeof portLayout>>>;
@@ -193,12 +194,14 @@ const BUTTONS:ButtonSpec[]=[
 ];
 /** Controls the game asks for only now and then, by the pad action the help text names: a button for each shows above
  * the others while the help box or prompt asks for it (a yes-or-no question, collecting a pickup, a crew order). */
-const CONTEXT:readonly {action:string;label:string;code:string}[]=[
+const CONTEXT:readonly {action:string;label:string;code:string;widget?:{className:string;icon:TouchIcon}}[]=[
  {action:'CONVERSATION_YES',label:'Yes',code:'KeyY'},{action:'CONVERSATION_NO',label:'No',code:'KeyN'},
  {action:'PED_ANSWER_PHONE',label:'Action',code:'Tab'},{action:'TOGGLE_SUBMISSIONS',label:'Mission',code:'Digit2'},
  {action:'GROUP_CONTROL_FWD',label:'Follow',code:'KeyG'},{action:'GROUP_CONTROL_BWD',label:'Stay',code:'KeyH'},
- // In a vehicle, looking out of either side (the PC's Q and E), for a drive-by; on foot, looking behind.
- {action:'VEHICLE_LOOKLEFT',label:'◀ Look',code:'KeyQ'},{action:'VEHICLE_LOOKRIGHT',label:'Look ▶',code:'KeyE'},
+ // In a vehicle, looking out of either side (the PC's Q and E), for a drive-by: round buttons of their own, the port's
+ // VEHICLE_SHOOT_LEFT and _RIGHT widgets above the steering arrows. On foot, looking behind.
+ {action:'VEHICLE_LOOKLEFT',label:'◀ Look',code:'KeyQ',widget:{className:'look-left',icon:'shootLeft'}},
+ {action:'VEHICLE_LOOKRIGHT',label:'Look ▶',code:'KeyE',widget:{className:'look-right',icon:'shootRight'}},
  {action:'PED_LOOKBEHIND',label:'Look back',code:'MouseMiddle'},
  // Flying: the landing gear of a plane that retracts it, once in the air, and the Hydra's vertical lift (the PC's G and T).
  {action:'AIRCRAFT_GEAR',label:'Gear',code:'KeyG'},{action:'AIRCRAFT_VTOL',label:'VTOL',code:'KeyT'},
@@ -212,6 +215,9 @@ const CONTEXT:readonly {action:string;label:string;code:string}[]=[
 const ARSENAL_HOLD_MS=500;
 /** How far the stick's knob travels from where the thumb came down, in CSS pixels. */
 const STICK_RADIUS=56;
+/** A button centred at its place on the port's screen, at its size (the CSS lays the place over the safe area). */
+const portPlace=(element:HTMLElement,[x,y,size]:PortPlace)=>{
+ for(const [name,value] of [['--x',x],['--y',y],['--r',PORT_SIZE[size]]] as const)if(element.style.getPropertyValue(name)!==String(value))element.style.setProperty(name,String(value));};
 /** Keeps a finger's later events on the element it came down on; a pointer the browser no longer tracks throws. */
 const capture=(element:Element,pointerId:number)=>{try{element.setPointerCapture?.(pointerId);}catch{/* the pointer is already gone */}};
 /** Camera drag gain: a finger's pixels to the mouse's movement units. */
@@ -270,12 +276,14 @@ export class TouchControls {
   rotateDismiss.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();rotate.classList.add('dismissed');actions.playOn?.();},options);
   rotate.append(rotateText,rotateDismiss);this.rotateCard=rotate;
   const context=document.createElement('div');context.className='touch-context';
-  for(const {action,label,code} of CONTEXT){
-   const button=document.createElement('button');button.type='button';button.textContent=label;button.className='touch-button small';button.dataset.code=code;button.hidden=true;
+  for(const {action,label,code,widget} of CONTEXT){
+   const button=document.createElement('button');button.type='button';button.dataset.code=code;button.hidden=true;
+   if(widget){button.className=`touch-button ${widget.className}`;button.innerHTML=touchIconSvg(widget.icon);button.setAttribute('aria-label',label);}
+   else{button.textContent=label;button.className='touch-button small';}
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);this.held.set(e.pointerId,code);input.hold(code);button.classList.add('on');this.buzz();},options);
    const up=(e:PointerEvent)=>{if(this.held.get(e.pointerId)!==code)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.releaseAfterFrame(code);button.classList.remove('on');};
    button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
-   context.append(button);this.context.push({action,element:button});
+   (widget?pad:context).append(button);this.context.push({action,element:button});
   }
   // The port's steering popup: the first time at the wheel it asks how to steer, and keeps the answer (the touch settings
   // change it later).
@@ -457,7 +465,9 @@ export class TouchControls {
    if(element.style.translate!==translate)element.style.translate=translate;if(element.style.scale!==scale)element.style.scale=scale;
    // The port's place for it in this layout (PORT_LAYOUTS), which the CSS lays over the safe area.
    const at=PORT_LAYOUTS[file][group][spec.className];
-   if(at)for(const [name,value] of [['--x',at[0]],['--y',at[1]],['--r',PORT_SIZE[at[2]]]] as const)if(element.style.getPropertyValue(name)!==String(value))element.style.setProperty(name,String(value));}
+   if(at)portPlace(element,at);}
+  // The asked buttons that are widgets of their own stand at theirs, at the wheel's layout.
+  for(const {element} of this.context){const at=PORT_LAYOUTS[file].vehicle[element.classList[1]];if(at)portPlace(element,at);}
   this.showSize();
  }
  private editing?:{layout:Record<string,LayoutEntry>;mode:TouchMode;done:()=>void;selected?:ButtonSpec};

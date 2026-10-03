@@ -2,7 +2,8 @@ import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** A passenger seat on a phone (WARP_CHAR_INTO_CAR_AS_PASSENGER, a mission's ride): the driver's Gas, Brake, H-brake and
  * Horn go, and no steering question or Mission button comes up in someone else's police car; Fire, Look back and Enter
- * (to get out) stay, and looking out of either side comes up above them. The radio follows only a vehicle the player
+ * (to get out) stay, and looking out of either side comes up bottom left, the port's VEHICLE_SHOOT_LEFT and _RIGHT
+ * widgets. The radio follows only a vehicle the player
  * drives, so Radio goes too. */
 test.use({hasTouch:true});
 test('a phone passenger has no pedals, wheel or horn, and gets out with Enter',async({page})=>{
@@ -19,8 +20,11 @@ test('a phone passenger has no pedals, wheel or horn, and gets out with Enter',a
  const shown=(label:string)=>page.locator(`.touch-button[aria-label="${label}"]:not([hidden])`);
  for(const label of ['Gas','Brake','H-brake','Horn'])await expect(shown(label)).toHaveCount(0);
  for(const label of ['Fire','Look back','Enter'])await expect(shown(label)).toHaveCount(1);await expect(shown('Radio')).toHaveCount(0);
- // A passenger can lean out of either side: Look left and right come up above the buttons.
- for(const look of [/^◀ Look$/,/^Look ▶$/])await expect(page.locator('.touch-context button',{hasText:look})).toBeVisible();
+ // A passenger can lean out of either side: ◀ Look and Look ▶ come up as round buttons under the left thumb, left first.
+ const look=await Promise.all(['◀ Look','Look ▶'].map(async label=>{await expect(shown(label)).toHaveCount(1);return (await shown(label).boundingBox())!;}));
+ const viewport=page.viewportSize()!;
+ for(const box of look){expect(box.x+box.width).toBeLessThan(viewport.width/4);expect(box.y).toBeGreaterThan(viewport.height/2);expect(box.width).toBeCloseTo(box.height,0);}
+ expect(look[0].x).toBeLessThan(look[1].x);
  await expect(page.getByRole('dialog',{name:'Choose steering'})).toBeHidden();
  await expect(page.locator('.touch-context button[data-code=Digit2]:not([hidden])')).toHaveCount(0);
  // Enter gets the passenger out, and on foot the controls are the walker's again.
