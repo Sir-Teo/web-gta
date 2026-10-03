@@ -2615,6 +2615,15 @@ export class WorldPedestrians {
    return listening.length>0;
   }
   /** The living Families member the player targets, not yet in his group. */
+  /** What the group buttons would do now (a touch screen shows its Recruit, Follow and Stay by it, the port's
+   * GANG_RECRUIT, GANG_FOLLOW and GANG_HOLD widgets): whether `target` names a Families member who would join (with
+   * room in the group), and how many of the crew listen to the player's commands. */
+  groupOffer(target?:{handle?:number;range:number}){
+   if(this.sim.player.health<=0)return {recruit:false,crew:0};
+   const crew=this.people.filter(p=>p.follow&&p.health>0);
+   const recruit=!!target&&!!this.targetedRecruit(target)&&crew.length<Math.min(maxGroupMembers(),this.scriptGangLimit);
+   return {recruit,crew:crew.filter(m=>!m.ignoresGroupCommands).length};
+  }
   private targetedRecruit(target:{handle?:number;range:number}){
    const candidates=this.people.filter(p=>!p.officer&&p.health>0&&p.down===0&&p.gang===1&&!p.follow);
    if(target.handle!==undefined)return candidates.find(p=>p.collider.handle===target.handle);

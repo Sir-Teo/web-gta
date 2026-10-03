@@ -2771,6 +2771,10 @@ async function boot() {
   const GROUP_DISBAND_HOLD_SECONDS=2;
   /** weapon.dat UNARMED's target range, for a target with no weapon row. */
   const GROUP_RECRUIT_MELEE_RANGE=10;
+  /** Who the group buttons are aimed at: with PED_LOCK_TARGET held, a gun's crosshair names the ped; otherwise the
+   * nearest ahead within the weapon's target range. Without it, nobody (the buttons command the group). */
+  const groupTarget=()=>{const info=weapons.inventory.info(),crosshair=['bullet','shotgun','rocket'].includes(weapons.inventory.weapon.kind);
+   return input.down('MouseAim')?{handle:crosshair?weapons.lock?.handle??-1:undefined,range:info?.targetRange??GROUP_RECRUIT_MELEE_RANGE}:undefined;};
   /** How near a ped must be to hear CJ's Y or N without the aim button (authored). */
   const CONVERSE_RANGE=4;
   function animate(now: number) {
@@ -2814,10 +2818,7 @@ async function boot() {
      groupButtonHeld=held?groupButtonHeld+dt:0;
      if(held&&groupButtonHeld>=GROUP_DISBAND_HOLD_SECONDS&&groupButtonHeld-dt<GROUP_DISBAND_HOLD_SECONDS)pedestrians!.disbandGroup();
      if(enabled&&(forward||back)){
-      // PED_LOCK_TARGET held: a gun's crosshair names the ped; otherwise the nearest ahead within the target range.
-      const info=weapons.inventory.info(),crosshair=['bullet','shotgun','rocket'].includes(weapons.inventory.weapon.kind);
-      const target=input.down('MouseAim')?{handle:crosshair?weapons.lock?.handle??-1:undefined,range:info?.targetRange??GROUP_RECRUIT_MELEE_RANGE}:undefined;
-      const result=pedestrians!.groupControl(forward?'forward':'back',target);
+      const result=pedestrians!.groupControl(forward?'forward':'back',groupTarget());
       // Recruiting shows no text in the original; the recruit answers with a line.
       if(result==='joined'){const p=sim.player.position;sound.nativeEngine?.speech('greet',{x:p.x,y:-p.z,z:p.y});}
      }
@@ -3555,6 +3556,12 @@ async function boot() {
      // An interactive script menu up puts up its arrows, Select and Back (a grid of car colours left and right too).
      {const menus=mission?.runtime.game.menus,current=menus?.numInUse&&menus.inUse[menus.currentMenuInUse]?menus.menus[menus.currentMenuInUse]:undefined;
       if(current?.interactive[0])asked.push('MENU_UP','MENU_DOWN',...current.type===1?['MENU_LEFT','MENU_RIGHT']:[],'MENU_BACK','MENU_SELECT');}
+     // On foot, the group's buttons as the port's widgets show them: Recruit while targeting a Families member who would
+     // join, else Follow and Stay while a crew listens (the help text names them only the first time).
+     if(!inVehicle&&!held&&!carEntry.active&&pedestrians&&!mission?.runtime.game.playerInfo.groupStuffDisabled){
+      const offer=pedestrians.groupOffer(groupTarget());
+      if(offer.recruit)asked.push('GANG_RECRUIT');else if(offer.crew)asked.push('GROUP_CONTROL_FWD','GROUP_CONTROL_BWD');
+     }
      // A plane with retracting gear puts up Gear in the air, and the Hydra VTOL.
      {const plane=fleet?.occupiedPlane;if(plane?.retractableGear&&!plane.grounded)asked.push('AIRCRAFT_GEAR');if(plane?.modelId===520)asked.push('AIRCRAFT_VTOL');}
      // Flying, the look keys are the rudder the Yaw buttons already are, and help names them so. In a road vehicle with a

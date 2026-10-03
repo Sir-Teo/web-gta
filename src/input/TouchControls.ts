@@ -207,6 +207,8 @@ const CONTEXT:readonly {action:string;label:string;code:string;widget?:{classNam
  {action:'CONVERSATION_YES',label:'Yes',code:'KeyY'},{action:'CONVERSATION_NO',label:'No',code:'KeyN'},
  {action:'PED_ANSWER_PHONE',label:'Action',code:'Tab'},{action:'TOGGLE_SUBMISSIONS',label:'Mission',code:'Digit2'},
  {action:'GROUP_CONTROL_FWD',label:'Follow',code:'KeyG'},{action:'GROUP_CONTROL_BWD',label:'Stay',code:'KeyH'},
+ // Targeting a Families member who would join: the port's GANG_RECRUIT (the same button as Follow).
+ {action:'GANG_RECRUIT',label:'Recruit',code:'KeyG'},
  // In a vehicle, looking out of either side (the PC's Q and E), for a drive-by: round buttons of their own, the port's
  // VEHICLE_SHOOT_LEFT and _RIGHT widgets above the steering arrows. On foot, looking behind.
  {action:'VEHICLE_LOOKLEFT',label:'◀ Look',code:'KeyQ',widget:{className:'look-left',icon:'shootLeft'}},
