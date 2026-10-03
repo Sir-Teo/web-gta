@@ -204,6 +204,10 @@ function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],optio
       // Within one dataset a model name identifies immutable bytes: the built source is shared across windows.
       const ready=prebuilt?.visuals.get(partIndex);if(ready)prebuilt!.visuals.delete(partIndex);else{allPrebuilt=false;builtHere.push(partIndex);}
       const visual = ready ?? placedModelObjects(part.model, part.textures, part.placements, pool, { buildingLighting,worldLighting:true,ambient:entityLighting,flatten:true }, options.datasetIdentity===undefined?undefined:{sources:sourcePool,key:part.name.toLowerCase()}); visuals.push(visual); root.add(visual.root);
+      // A window's placements never move by themselves, and their world matrices are made as they are placed: three.js's
+      // walk of each one every frame (about 3000 in a city window, over a millisecond on a desktop and several on a phone)
+      // leaves their roots out. A prop knocked loose moves through visibility.move, which updates its own.
+      visual.root.matrixWorldAutoUpdate=false;
       if (part.collision) for (const index of collisionPlan.indices[partIndex]) {
         const placement=part.placements[index],key=placementKeys.get(`${partIndex}:${index}`),retained=key===undefined?undefined:borrowed.get(key);
         const built=key===undefined?undefined:prebuilt?.physical.get(key);if(built!==undefined)prebuilt!.physical.delete(key!);

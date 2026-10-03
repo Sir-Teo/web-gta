@@ -143,3 +143,17 @@ test('CBaseModelInfo::m_nAlpha: a streamed-in model fades in 16 a frame while dr
  f.visibility.partAlpha[1]=40;f.camera.position.set(0,0,250);f.visibility.update(f.camera,1,undefined,1);
  expect(f.visibility.partAlpha[1]).toBe(255);
 });
+
+test('a prop moved through the graph carries its world matrix with it, its placement root left out of the frame walk', () => {
+  // nativeScene leaves a window's placement roots out of three.js's walk (matrixWorldAutoUpdate off): the moved prop
+  // and what hangs from it must be in place without it.
+  const { roots, visibility } = fixture([100], [-1]);
+  // Placements keep their own matrices (matrixAutoUpdate off), as placedModelObjects makes them.
+  const placed = roots[0].children[0], child = new Group(); placed.matrixAutoUpdate = false; child.position.set(0, 1, 0); child.updateMatrix(); child.matrixAutoUpdate = false; placed.add(child);
+  roots[0].matrixWorldAutoUpdate = false; roots[0].updateMatrixWorld(true);
+  const to = placementMatrix({ position: [3, 4, 5], rotation: [0, 0, 0, 1] } as never);
+  expect(visibility.move(0, 0, to)).toBe(true);
+  expect(placed.matrixWorld.elements.slice(12, 15)).toEqual(to.elements.slice(12, 15));
+  const expected = to.clone().multiply(child.matrix).elements;
+  child.matrixWorld.elements.forEach((v, i) => expect(v).toBeCloseTo(expected[i]));
+});

@@ -154,7 +154,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
     let home=homes.get(index);
     if(!home){home={matrix:entry.object.matrix.clone(),inverse:entry.object.matrix.clone().invert(),sphere:entry.sphere?.clone(),origin:entry.origin.clone()};homes.set(index,home);}
     motion.multiplyMatrices(matrix,home.inverse);
-    entry.object.matrix.copy(matrix);entry.object.matrixWorldNeedsUpdate=true;
+    entry.object.matrix.copy(matrix);entry.object.updateMatrixWorld(true);
     if(entry.sphere&&home.sphere)entry.sphere.center.copy(home.sphere.center).applyMatrix4(motion);
     entry.origin.copy(home.origin).applyMatrix4(motion);
     return true;
