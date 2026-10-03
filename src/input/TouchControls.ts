@@ -1,6 +1,7 @@
 import type {Input} from './Input';
 import {BUTTON_SCALE_RANGE,DEFAULT_TOUCH,DRAW_DISTANCE_RANGE,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type LayoutEntry,type TouchSettings} from './touchSettings';
 import {touchIconSvg,type TouchIcon} from './touchIcons';
+import {touchHaptic} from './haptics';
 /* Touch-screen controls for phones and tablets, laid over the game the way the mobile ports lay theirs: a floating
  * stick under the left thumb, the camera dragged with the right, and the buttons round the right thumb. Every control
  * feeds the same Input the keyboard and mouse do (the stick as CPad's analog left stick, the buttons as the PC keys
@@ -456,8 +457,9 @@ export class TouchControls {
   const angle=globalThis.screen?.orientation?.angle??(globalThis as {orientation?:number}).orientation??0;
   this.input.tilt=this.settings.steering==='tilt'&&this.mode==='vehicle'&&!this.passenger&&!this.element.hidden?tiltSteering(this.orientation.beta,this.orientation.gamma,((angle%360)+360)%360):undefined;
  }
- /** A press's buzz, as a phone game's buttons give: a short one where the browser can vibrate (not iOS Safari). */
- private buzz(){if(this.settings.vibration)try{navigator.vibrate?.(12);}catch{/* vibration refused */}}
+ /** A press's buzz, as a phone game's buttons give: a short vibration, or an iPhone's Taptic tick (touchHaptic). */
+ private haptic?:()=>void;
+ private buzz(){if(this.settings.vibration)(this.haptic??=touchHaptic())();}
  /** Hidden under the menus: everything held is let go so nothing stays pressed behind them. */
  setVisible(visible:boolean){
   if(this.editing||this.element.hidden===!visible)return;
