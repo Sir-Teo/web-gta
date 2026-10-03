@@ -257,6 +257,7 @@ import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fxQuality,playerRealTimeShadow,setFxQuality} from './simulation/fx/fxQuality';
 import {DRAW_DISTANCE_DEFAULT,setDrawDistance} from './render/lodDistance';
 import {stickSteering} from './input/stickSteering';
+import {AutoQuality,QUALITY_PRESETS,lowerPreset} from './core/autoQuality';
 /** The player's blob among the peds' (their ids are their own, from 0). */
 const PLAYER_SHADOW_ID=-1;
 import {fireGlow,missileGlow} from './combat/nativeFireGlow';
@@ -2294,6 +2295,18 @@ async function boot() {
   const screenAwake=touch?new ScreenAwake():undefined;
   // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for.
   function applyResolution(){if(touch)render.setPixelRatio(resolutionRatio(touchSettings.resolution,devicePixelRatio));}
+  // The first play's measure, on a touch screen whose quality settings nobody has chosen (not under automation, whose
+  // software rendering would lower every run's).
+  let autoQuality=touch&&!touchSettings.qualityChosen&&!navigator.webdriver?new AutoQuality():undefined;
+  function settleQuality(verdict:'slow'|'fine'){
+    const preset=verdict==='slow'?lowerPreset(touchSettings):undefined;
+    const done=!preset||preset==='low';
+    touchSettings={...touchSettings,...(preset?QUALITY_PRESETS[preset]:{}),qualityChosen:done};saveTouchSettings(touchSettings);
+    if(done)autoQuality=undefined;
+    if(!preset)return;
+    touch?.apply(touchSettings);applyVisualEffects();applyResolution();touchPanel?.refresh();
+    hud.message(`Graphics lowered to keep the game smooth (Visual effects ${touchSettings.effects==='low'?'Low':'Medium'}, Draw distance ${touchSettings.drawDistance}). Pause → Controls changes them.`,6000);
+  }
   // The help box draws the buttons it names: a touch button's glyph beside its name, as the mobile ports' help shows the
   // widget itself, and a played pad's face buttons as their symbols, as the PS2 original's did.
   hud.decorateHelp=(box,text)=>showHelpIcons(box,text,controlsNamedIn(text),controlNameOf,controlNaming());
@@ -2745,6 +2758,12 @@ async function boot() {
     // A skipped frame leaves `last` alone so the simulation clock still receives the whole interval.
     // The pause menu, the full map and the arsenal all hold the game: the world behind them draws at the menu's rate.
     if(!frameDue(pacer,now,paused||navigation?.open||arsenal.open?MENU_FPS:display.frameLimiter?FRAME_LIMITER_FPS:undefined))return;
+    // A touch screen's first play is measured (autoQuality): a game that cannot keep up steps its quality down.
+    // Measured in free play only: not under a menu, a load, a hidden page, or a cutscene or scripted scene, whose
+    // subtitles the message would cover.
+    if(autoQuality){const scene=!!mission&&(mission.runtime.game.cutscene.running||mission.runtime.game.widescreenOn);
+     const verdict=autoQuality.frame(now,started&&!paused&&!navigation?.open&&!arsenal.open&&!terrainPause&&!scene&&document.visibilityState==='visible');
+     if(verdict)settleQuality(verdict);}
     input.frameStart();
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;

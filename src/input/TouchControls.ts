@@ -582,10 +582,11 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
  const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);analog.value=String(settings.analogSensitivity);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;resolution.value=settings.resolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
  vibration.onchange=()=>update({vibration:vibration.checked});autoClimb.onchange=()=>update({autoClimb:autoClimb.checked});invert.onchange=()=>update({invertLook:invert.checked});
- resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard'});
- density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium'});
- effects.onchange=()=>update({effects:effects.value==='low'||effects.value==='medium'?effects.value:'high'});
- drawDistance.oninput=()=>update({drawDistance:Number(drawDistance.value)});
+ // A quality setting set by the player is chosen: the first play's measure leaves them be.
+ resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard',qualityChosen:true});
+ density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium',qualityChosen:true});
+ effects.onchange=()=>update({effects:effects.value==='low'||effects.value==='medium'?effects.value:'high',qualityChosen:true});
+ drawDistance.oninput=()=>update({drawDistance:Number(drawDistance.value),qualityChosen:true});
  const update=(next:Partial<TouchSettings>)=>change({...current(),...next});
  steering.onchange=async()=>{
   note.textContent='';
