@@ -50,3 +50,19 @@ test('a shop\'s script menu on a short phone stands clear of the pause button un
  await page.evaluate(({x,y})=>{const t=document.elementFromPoint(x,y)!;for(const type of ['pointerdown','pointerup'])t.dispatchEvent(new PointerEvent(type,{pointerId:3,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true}));},{x:r.x+r.width/2,y:r.y+r.height/2});
  await expect.poll(()=>page.evaluate(id=>(window as any).__game.missionForProfiling().runtime.game.menus.checkForSelected(id),menuId),{timeout:5000}).toBe(1);
 });
+
+test('a mission\'s timer on a short phone hangs under the money and health, clear of the buttons and CJ',async({page})=>{
+ test.setTimeout(240000);
+ await page.goto('/?touch=1');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await endStoryMission(page);
+ await page.evaluate(()=>{const t=(window as any).__game.missionForProfiling().runtime.game.onscreenTimer;t.addClock(9000,'BB_19',125000);t.addCounter(9004,0,'KILLS',0);});
+ const timers=page.locator('.mission-timers');await expect(timers).toBeVisible();
+ const placed=await page.evaluate(()=>{const t=document.querySelector('.mission-timers')!.getBoundingClientRect(),status=document.querySelector('.status')!.getBoundingClientRect();
+  const buttons=[...document.querySelectorAll('.touch-controls .touch-button:not([hidden])')].map(b=>b.getBoundingClientRect()).filter(r=>r.width);
+  return {top:t.top,bottom:t.bottom,statusBottom:status.bottom,height:innerHeight,overlaps:buttons.filter(b=>b.left<t.right&&b.right>t.left&&b.top<t.bottom&&b.bottom>t.top).length,font:parseFloat(getComputedStyle(document.querySelector('.mission-timers')!).fontSize)};});
+ // Under the HUD's status, in the top half of the screen (not 228 px down, the middle of a sideways phone), at a size
+ // by the screen's height, and over no button.
+ expect(placed.top).toBeGreaterThanOrEqual(placed.statusBottom);expect(placed.bottom).toBeLessThan(placed.height/2);
+ expect(placed.overlaps).toBe(0);expect(placed.font).toBeLessThan(24);
+});
