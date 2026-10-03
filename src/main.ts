@@ -3576,6 +3576,9 @@ async function boot() {
      // them: a gym's machine, a dance or a shop reads the pad's buttons itself while it holds him ("Press SPRINT
      // rapidly to begin to pedal"). Held, he cannot lean out for a drive-by, though.
      const game=mission?.runtime.game,scene=!!game&&(game.cutscene.running||game.widescreenOn),held=scene||playerControlsDisabled();
+     // Wasted or busted, nothing CJ could do answers until he is back on his feet: the controls give way, as in a scene,
+     // to the screen's own message and its fade.
+     const out=sim.player.health<=0||law.arrested;
      // A side-mission vehicle (a taxi, an ambulance, a police car...) puts up Mission, the port's mission start and cancel.
      {const ridden=worldCar?.occupied?worldCar:fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane??[...fleet?.trains??[]].find(t=>t.occupied);
       if(ridden&&!playerPassenger&&SIDE_MISSION_VEHICLES.has(ridden.modelId))asked.push('TOGGLE_SUBMISSIONS');}
@@ -3605,11 +3608,11 @@ async function boot() {
       if(flying){for(let i=asked.length-1;i>=0;i--)if(asked[i]==='VEHICLE_LOOKLEFT'||asked[i]==='VEHICLE_LOOKRIGHT')asked.splice(i,1);}
       else if(inVehicle&&!held&&mission?.runtime.game.playerInfo.canDoDriveBy!==false&&(playerPassenger||inv.inSlot(inv.slotOf(28))!==undefined))asked.push('VEHICLE_LOOKLEFT','VEHICLE_LOOKRIGHT');
      }
-     touch.setVisible(!paused&&!navigation?.open&&!arsenal.open&&!(gamepad.lastUsed>lastTouchAt));touch.setPrompts(asked);
+     touch.setVisible(!paused&&!navigation?.open&&!arsenal.open&&!(gamepad.lastUsed>lastTouchAt));touch.setPrompts(out?[]:asked);
      if(fleet)fleet.trafficScale=touchPopulation();
      const skippable=!!game&&(game.cutscene.running||game.widescreenOn&&mission!.runtime.active.some(slot=>slot.thread.sceneSkipIp!==undefined));
      touch.setPassenger(!!playerPassenger);
-     touch.setMode(scene?'cutscene':fleet?.occupiedPlane?'aircraft':inVehicle?'vehicle':render.firstPerson?'scope':sim.player.swimming?'swim':'foot');
+     touch.setMode(scene||out?'cutscene':fleet?.occupiedPlane?'aircraft':inVehicle?'vehicle':render.firstPerson?'scope':sim.player.swimming?'swim':'foot');
      // Enter shows only when it would do something, as the mobile ports' does: in a vehicle, with a jetpack on, on the
      // way to a car's door, when a prompt asks for it, or beside a vehicle (the box the enter button searches; looked
      // at a few times a second).
