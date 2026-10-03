@@ -3,6 +3,7 @@ import {nativeRasterOutput} from '../assets/nativeRasterOutput';
 import type {ShinyQuad} from '../world/nativeShinyTexts';
 /** CShinyTexts::Render: the frame's registered quads drawn additively (ONE, ONE) with the `handman` raster and their
  * vertex colours, unculled and without depth writes. Positions arrive in native space and are converted here. */
+const STAND_IN=new THREE.DataTexture(new Uint8Array(4),1,1);
 export class NativeShinyTexts {
  private mesh:THREE.Mesh<THREE.BufferGeometry,THREE.MeshBasicMaterial>;
  private position:Float32Array;private uv:Float32Array;private color:Float32Array;
@@ -15,7 +16,9 @@ export class NativeShinyTexts {
   geometry.setAttribute('uv',new THREE.BufferAttribute(this.uv,2).setUsage(THREE.DynamicDrawUsage));
   geometry.setAttribute('color',new THREE.BufferAttribute(this.color,3).setUsage(THREE.DynamicDrawUsage));
   geometry.setDrawRange(0,0);
-  this.mesh=new THREE.Mesh(geometry,nativeRasterOutput(new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,
+  // A stand-in raster until `handman` arrives (nothing draws without it): the program warmed as the mesh is added is
+  // then the one it draws with, rather than one without a texture, made again at the first sign's draw.
+  this.mesh=new THREE.Mesh(geometry,nativeRasterOutput(new THREE.MeshBasicMaterial({map:STAND_IN,vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,
    // CShinyTexts::Render blends ONE / ONE, so the texture's alpha does not scale the colour.
    blending:THREE.CustomBlending,blendSrc:THREE.OneFactor,blendDst:THREE.OneFactor,blendEquation:THREE.AddEquation})));
   this.mesh.name='Native shiny texts';this.mesh.frustumCulled=false;this.mesh.visible=false;this.mesh.renderOrder=6.2;
