@@ -12,6 +12,7 @@ import { clamp, type Vec3 } from '../core/math';
 import type { Simulation } from '../simulation/Simulation';
 import { SoundEvents, type SoundEvent } from './events';
 import { parseAudioSettings, readAudioSettings, saveAudioSettings, type AudioSettings } from './settings';
+import { resumeAfterInterruption, useAmbientAudioSession } from './audioSession';
 
 export class AudioSystem {
   settings = readAudioSettings();
@@ -23,6 +24,8 @@ export class AudioSystem {
   private voices = new Map<AudioBufferSourceNode, () => void>();
   private events = new SoundEvents();
   private stateQueue = Promise.resolve();
+  /** A context a call or another app's audio suspended, started again at the next touch or key (audioSession.ts). */
+  private recovery?: ReturnType<typeof resumeAfterInterruption>;
   private playing = false;
   private disposed = false;
   private loaded = false;
@@ -85,7 +88,9 @@ export class AudioSystem {
   }
   private createContext() {
     try {
+      if (typeof navigator !== 'undefined') useAmbientAudioSession(navigator as { audioSession?: { type: string } });
       const ctx = this.context = new AudioContext({ latencyHint: 'interactive' });
+      if (typeof window !== 'undefined') this.recovery = resumeAfterInterruption(ctx, () => this.playing && !this.disposed, () => this.unlock(), window);
       this.master = ctx.createGain(); this.master.gain.value = 0;
       this.effects = ctx.createGain();
       const limiter = ctx.createDynamicsCompressor(); limiter.threshold.value = -6; limiter.knee.value = 12;
@@ -107,6 +112,8 @@ export class AudioSystem {
       if (this.playing && ctx.state !== 'running') await ctx.resume();
       else if (!this.playing && ctx.state === 'running') await ctx.suspend();
     }).catch(() => {});
+    // A resume the browser holds back (no gesture behind it, an interruption not over) waits for the next touch.
+    this.recovery?.check();
   }
   setPlaying(playing: boolean) {
     this.playing = playing;
@@ -190,6 +197,6 @@ export class AudioSystem {
   dispose() {
     this.nativeLoad++;this.nativeFeet=undefined;this.native?.reset();this.nativeChannels?.dispose();this.combatBanks.clear();this.nativeBuffers.clear();
     this.disposed = true; this.playing = false; this.stopShots();
-    void this.context?.close().catch(() => {});
+    this.recovery?.dispose(); void this.context?.close().catch(() => {});
   }
 }
