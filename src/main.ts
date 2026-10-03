@@ -3588,7 +3588,7 @@ async function boot() {
      else if(++touchEnterTick%8===0){const p=sim.player.position,near=(q:{x:number;y:number;z:number})=>Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;
       touchEnterNear=[...(fleet?.cars??[])].some(c=>c.consideredByPlayer!==false&&near(c.car.body.translation()))||[fleet?.nearestPlane(true),fleet?.nearestBoat(true),fleet?.nearestBike(true)].some(v=>!!v&&v.distance()<10);}
      // Radio, while the vehicle has a radio to tune (a bicycle has none, CAERadioTrackManager's RADIO_DISABLED).
-     touch.setOffered([...touchEnterNear?['enter']:[],...worldCar?.occupied&&worldCar.car.nitro.installed?['nitro']:[],...worldCar?.occupied&&worldCar.hydraulics?['hydraulics']:[],...radioModel!==undefined?['radio']:[],...skippable?['skip']:[]]);
+     touch.setOffered([...touchEnterNear?['enter']:[],...worldCar?.occupied&&worldCar.car.nitro.installed?['nitro']:[],...worldCar?.occupied&&worldCar.hydraulics?['hydraulics']:[],...fleet?.occupiedBike&&BMX_MODELS.has(fleet.occupiedBike.modelId)?['hop']:[],...radioModel!==undefined?['radio']:[],...skippable?['skip']:[]]);
     }
     const aircraft=fleet?.occupiedPlane;hud.element.classList.toggle('flying',!!aircraft);flightInstruments.hidden=!aircraft;if(aircraft)flightInstruments.textContent=touch
      // A phone's short screen gets one line, a stall first: the name shows below and the buttons say what they do.

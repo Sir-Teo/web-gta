@@ -83,6 +83,8 @@ test('each layout puts the buttons at its own file\'s widgets, sized as the port
  // A drive-by's ◀ Look and Look ▶ are the port's VEHICLE_SHOOT_LEFT and _RIGHT widgets, above the steering arrows.
  expect(phone.vehicle).toMatchObject({'look-left':[42,310,'medium'],'look-right':[97,310,'medium']});
  expect(PORT_LAYOUTS.TouchDefaultTablet4x3.vehicle).toMatchObject({'look-left':[42,335,'medium'],'look-right':[97,335,'medium']});
+ // A yes and a no are the port's POSITIVE and NEGATIVE: low in the middle of a phone, high on an iPad's 4:3.
+ expect(phone.vehicle).toMatchObject({'reply-yes':[390,424,'small'],'reply-no':[240,424,'small']});expect(PORT_LAYOUTS.TouchDefaultTablet4x3.vehicle).toMatchObject({'reply-yes':[458,71,'small'],'reply-no':[412,71,'small']});
  // An iPad's 4:3: rows lower, the attack inside the aim; a 3:2 phone's buttons larger.
  expect(PORT_LAYOUTS.TouchDefaultTablet4x3.foot).toMatchObject({fire:[552,335,'medium'],aim:[605,335,'medium'],enter:[605,284,'medium'],crouch:[499,284,'medium']});
  expect(PORT_LAYOUTS.TouchDefaultPhone3x2.vehicle).toMatchObject({gas:[598,383,'larger'],fire:[538,315,'large'],nitro:[476,315,'large']});

@@ -23,7 +23,7 @@ test('a phone recruits a Grove homie with Aim and Recruit, then orders him to st
  await expect.poll(async()=>{await stand();return recruit.isVisible();},{timeout:15000}).toBe(true);
  // Someone to talk to: Yes and No too (the port's Positive and Negative talk); Yes has him answer in kind.
  const yes=page.getByRole('button',{name:'Yes',exact:true});await expect(yes).toBeVisible();await expect(page.getByRole('button',{name:'No',exact:true})).toBeVisible();
- await press('.touch-context button[data-code=KeyY]:not([hidden])','pointerdown',9);await press('.touch-context button[data-code=KeyY]:not([hidden])','pointerup',9);
+ await press('.touch-controls button[data-code=KeyY]:not([hidden])','pointerdown',9);await press('.touch-controls button[data-code=KeyY]:not([hidden])','pointerup',9);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.pedestrians().people.some((p:any)=>p.chat?.reply==='greet')),{timeout:5000}).toBe(true);
  await press('.touch-context button[data-code=KeyG]:not([hidden])','pointerdown',6);await press('.touch-context button[data-code=KeyG]:not([hidden])','pointerup',6);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.pedestrians().snapshot().people.filter((p:any)=>p.follow).length),{timeout:10000}).toBe(1);

@@ -68,11 +68,12 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  // which reaches the script's pad; it goes when the help does.
  await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~CONVERSATION_YES~ to agree.'),60000);});
  await expect(page.locator('.help-box')).toHaveText('Press YES to agree.');
- const yes=page.locator('.touch-context button',{hasText:'Yes'});await expect(yes).toBeVisible();
+ // Yes is the port's POSITIVE widget, a thumb low in the middle of a phone's screen.
+ const yes=page.getByRole('button',{name:'Yes',exact:true});await expect(yes).toBeVisible();await expect(yes).toHaveClass(/reply-yes/);
  const yesBox=(await yes.boundingBox())!;
- await page.evaluate(({x,y})=>document.querySelector('.touch-context button[data-code=KeyY]')!.dispatchEvent(new PointerEvent('pointerdown',{pointerId:21,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{x:yesBox.x+5,y:yesBox.y+5});
+ await page.evaluate(({x,y})=>document.querySelector('.touch-controls button[data-code=KeyY]:not([hidden])')!.dispatchEvent(new PointerEvent('pointerdown',{pointerId:21,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{x:yesBox.x+5,y:yesBox.y+5});
  await expect.poll(async()=>(await pad()).yes,{timeout:5000}).toBe(255);
- await page.evaluate(({x,y})=>document.querySelector('.touch-context button[data-code=KeyY]')!.dispatchEvent(new PointerEvent('pointerup',{pointerId:21,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{x:yesBox.x+5,y:yesBox.y+5});
+ await page.evaluate(({x,y})=>document.querySelector('.touch-controls button[data-code=KeyY]:not([hidden])')!.dispatchEvent(new PointerEvent('pointerup',{pointerId:21,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{x:yesBox.x+5,y:yesBox.y+5});
  await page.evaluate(()=>(window as any).__game.hud().help(''));await expect(yes).toBeHidden();
  // A help line naming the buttons draws each one's glyph before its name, as the mobile ports' help shows the widget:
  // Enter's car, Jump's chevrons; a capitalised word of the text's own (BMX) and Fire (the weapon in hand) stay words.
