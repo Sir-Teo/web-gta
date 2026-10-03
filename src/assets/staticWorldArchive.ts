@@ -1,4 +1,5 @@
-import {AssetFormatError,requireAsset} from './binary';
+import {AssetFormatError,WorldDownloadError,requireAsset} from './binary';
+export {WorldDownloadError};
 import {readImgIndex} from './img';
 /** `packed`: a gzip copy published beside the raw file (scripts/pack-world-resources.mjs); `bytes` and `sha256` describe
  * the expanded content either way. */
@@ -83,9 +84,16 @@ export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha25
  for(const mode of ['default','reload'] as RequestCache[]){
   const guard=stallGuard(signal);let bytes:Uint8Array<ArrayBuffer>;
   try{
-   const response=await fetchWorldResource(url,guard.signal,mode);requireAsset(response.ok&&response.body,`World content download failed: ${url.pathname}`);
+   let response:Response;
+   try{response=await fetchWorldResource(url,guard.signal,mode);}
+   catch(error){if(signal?.aborted)throw error;throw new WorldDownloadError(`World content download failed: ${url.pathname}`,{cause:error});}
+   // A file the server does not have is the archive's fault, like bytes that do not decode; any other refusal is
+   // the connection's.
+   if(!response.ok&&response.status!==404)throw new WorldDownloadError(`World content download failed (${response.status}): ${url.pathname}`);
+   requireAsset(response.ok&&response.body,`World content download failed: ${url.pathname}`);
    const body=gzip?response.body!.pipeThrough(new DecompressionStream('gzip')):response.body!;
-   bytes=await collect(body,resource.bytes,guard.alive);
+   try{bytes=await collect(body,resource.bytes,guard.alive);}
+   catch(error){if(signal?.aborted||error instanceof AssetFormatError)throw error;throw new WorldDownloadError(`World content download broke off: ${url.pathname}`,{cause:error});}
   }finally{guard.done();}
   requireAsset(bytes.length===resource.bytes,'Incomplete static world resource.');
   if(await sha256Hex(bytes)===resource.sha256){storeWorldBytes(resource,bytes);return bytes;}

@@ -4,7 +4,7 @@ import {distantModelTextures} from './distantModelTextures';
 import { inArea, selectSceneRegion, type SceneRegion } from './sceneRegion';
 import { readSceneCollisionSources, type SceneCollisionSources } from './sceneCollisionSources';
 import { readScenePlacements, type PlacementRef, type ScenePlacementSources } from './scenePlacements';
-import { requireAsset } from './binary';
+import { WorldDownloadError, requireAsset } from './binary';
 import { type IplInstance } from './ipl';
 import { readImgIndex, type ImgEntry } from './img';
 import { sceneVisibilityBounds, type SceneVisibilityBounds } from './sceneBounds';
@@ -75,9 +75,10 @@ export async function readScene(request: SceneRequest,geometryCache?:ModelGeomet
     // collision in COL files, so the part's collision comes from the same lookup readModel makes.
     if (resident?.has(name) && entry) part = { model: { frames: [], geometries: [], atomics: [], warnings: [] }, textures: [], dictionaryNames: [], notices: [], collision: collisionByName.get(name), collisionSource: undefined };
     // A model whose bytes do not decode is treated like one absent from the archive: CStreaming draws nothing for
-    // it and the rest of the sector still loads. Failing the whole window would strand the player at its edge.
+    // it and the rest of the sector still loads. Failing the whole window would strand the player at its edge. A
+    // download the connection lost fails the window instead, which is asked for again (staticWorldArchive).
     else try { part = await readModel({ file: request.file, entry, modelFile, textureFile, textureEntry, collisionModels, parents: request.parents }, cache); }
-    catch (error) { corrupt = error instanceof Error ? error.message : String(error); }
+    catch (error) { if (error instanceof WorldDownloadError) throw error; corrupt = error instanceof Error ? error.message : String(error); }
     return {name, placements, part, corrupt, modelFile, textureEntry, textureFile, dictionary};
   }, concurrency);
   for await (const {name, placements, part, corrupt, modelFile, textureEntry, textureFile, dictionary} of loads) {

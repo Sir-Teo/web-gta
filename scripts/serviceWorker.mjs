@@ -1,8 +1,8 @@
 /* The installed game's app shell offline. Vite emits hashed JS and CSS; the build writes sw.js with their list (and the
  * page's HTML, the manifest, the icons and the font) and a version from it. The service worker precaches that list,
- * serves the page network-first (the cached one when the network is gone) and the hashed shell cache-first, and leaves
- * everything else alone: the world's own chunks keep their Cache Storage (staticWorldArchive), audio and the rest the
- * HTTP cache. */
+ * serves the page network-first (the cached one when the network is gone) and the hashed shell cache-first, keeps the
+ * game's data under play/ as it is fetched (network-first too), and leaves the world's own chunks to their Cache
+ * Storage (staticWorldArchive). */
 import {createHash} from 'node:crypto';
 /** The version a list of shell files makes: a new build's files, a new cache. */
 export function shellVersion(urls){return createHash('sha256').update([...urls].sort().join('\n')).digest('hex').slice(0,16);}
@@ -13,6 +13,10 @@ export function serviceWorkerSource(urls,version=shellVersion(urls),assets='asse
 const CACHE='web-gta-shell-${version}',SHELL=${JSON.stringify(urls)};
 const scoped=path=>new URL(path,self.registration.scope).href,PAGE=scoped(SHELL[0]),PRECACHED=new Set(SHELL.map(scoped)),ASSETS=new URL(scoped(${JSON.stringify(assets)})).pathname;
 const PAGES=new Set([new URL(PAGE).pathname,new URL(self.registration.scope).pathname]);
+// The game's own data under play/ (the start package, the world manifest, audio banks, scripts, the map): fetched as
+// ever and kept, so an installed game started without a connection plays on what it fetched before. The world's
+// chunks, packed resources and directories are kept already, by their checksum (staticWorldArchive): not twice.
+const PLAY=new URL(scoped('play/')).pathname,PLAY_CACHE='web-gta-play-v1',PLAY_KEPT_ELSEWHERE=new RegExp('^world/(?:int/)?(?:chunks/|directory[.]bin$)|^world/packed/');
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll([...PRECACHED])).then(()=>self.skipWaiting()));});
 // The previous build's shell stays (caches.keys() lists in creation order): a page loaded before this deploy still
 // imports its own chunks later (a car, a mission), and the server has replaced them. Older ones go.
@@ -30,8 +34,14 @@ self.addEventListener('fetch',event=>{
   event.respondWith(Promise.resolve(event.preloadResponse).then(preloaded=>preloaded??fetch(request)).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(CACHE).then(cache=>cache.put(PAGE,copy)));}return response;}).catch(()=>caches.match(PAGE).then(hit=>hit??Response.error())));
   return;
  }
- // The hashed shell: the cached copy (this build's or the last one's), else the network's.
  const key=url.origin+url.pathname;
+ // The game's data: the network's, kept whole (no range, no partial answer); without a network, the copy kept.
+ if(url.pathname.startsWith(PLAY)&&!PLAY_KEPT_ELSEWHERE.test(url.pathname.slice(PLAY.length))&&!request.headers.has('range')){
+  event.respondWith(fetch(request).then(response=>{if(response.status===200){const copy=response.clone();event.waitUntil(caches.open(PLAY_CACHE).then(cache=>cache.put(key,copy)).catch(()=>{}));}return response;})
+   .catch(error=>caches.open(PLAY_CACHE).then(cache=>cache.match(key)).then(hit=>hit??Promise.reject(error))));
+  return;
+ }
+ // The hashed shell: the cached copy (this build's or the last one's), else the network's.
  if(PRECACHED.has(key)||url.pathname.startsWith(ASSETS))event.respondWith(caches.match(key).then(hit=>hit??fetch(request)));
 });
 `;

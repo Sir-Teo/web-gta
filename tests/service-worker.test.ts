@@ -11,6 +11,7 @@ function worker(urls:string[],network:(url:string)=>Response|undefined,existing:
  const open=async(name:string)=>{if(!stores.has(name))stores.set(name,new Map());const store=stores.get(name)!;return{
   addAll:async(keys:string[])=>{for(const key of keys){const response=await fetch(key);if(!response.ok)throw new TypeError(`${key} ${response.status}`);store.set(key,response);}},
   put:async(key:string,response:Response)=>{store.set(key,response);},
+  match:async(key:string)=>store.get(key)?.clone(),
  };};
  const caches={open,keys:async()=>[...stores.keys()],delete:async(name:string)=>stores.delete(name),
   match:async(key:string)=>{for(const store of stores.values())if(store.has(key))return store.get(key)!.clone();return undefined;}};
@@ -20,10 +21,11 @@ function worker(urls:string[],network:(url:string)=>Response|undefined,existing:
  new Function('self','caches','fetch','Response',serviceWorkerSource(urls))(self,caches,fetch,Response);
  const lifecycle=async(type:string)=>{let wait:Promise<unknown>=Promise.resolve();listeners[type]({waitUntil:(p:Promise<unknown>)=>{wait=p;}});await wait;};
  /** The response the worker gives a request, or undefined when it leaves it to the browser. */
- const request=async(url:string,mode='cors',method='GET')=>{
+ const request=async(url:string,mode='cors',method='GET',headers:Record<string,string>={})=>{
   let response:Promise<Response>|undefined;const waits:Promise<unknown>[]=[];
-  listeners.fetch({request:{url,mode,method},preloadResponse:Promise.resolve(undefined),respondWith:(r:Promise<Response>)=>{response=r;},waitUntil:(p:Promise<unknown>)=>waits.push(p)});
-  const result=await response;await Promise.all(waits);return result;
+  listeners.fetch({request:{url,mode,method,headers:new Headers(headers)},preloadResponse:Promise.resolve(undefined),respondWith:(r:Promise<Response>)=>{response=r;},waitUntil:(p:Promise<unknown>)=>waits.push(p)});
+  if(!response){await Promise.all(waits);return undefined;}
+  const result=await response.catch(()=>'failed' as const);await Promise.all(waits);return result;
  };
  return{stores,fetched,lifecycle,request,preload:()=>preload};
 }
@@ -41,15 +43,14 @@ test('the shell installs from the network and then answers without it, the page 
  expect([...sw.stores.keys()]).toEqual([`web-gta-shell-${shellVersion(['index.html','assets/game-a.js'])}`]);
  // Online, the page is the network's (a new deploy shows at once), and the script the cached one.
  const fetchedBefore=sw.fetched.length;
- expect(await (await sw.request(SCOPE+'?touch=1','navigate'))!.text()).toBe('page 1');
- expect(await (await sw.request(SCOPE+'assets/game-a.js'))!.text()).toBe('game a');
+ expect(await ((await sw.request(SCOPE+'?touch=1','navigate')) as Response).text()).toBe('page 1');
+ expect(await ((await sw.request(SCOPE+'assets/game-a.js')) as Response).text()).toBe('game a');
  expect(sw.fetched.slice(fetchedBefore)).toEqual([SCOPE+'?touch=1']);
  // Offline, the page is the cached one.
  online=false;
- expect(await (await sw.request(SCOPE,'navigate'))!.text()).toBe('page 1');
- expect(await (await sw.request(SCOPE+'index.html','navigate'))!.text()).toBe('page 1');
- // The world, the viewer pages, other sites and posts are the browser's own.
- expect(await sw.request(SCOPE+'play/world/manifest.json')).toBeUndefined();
+ expect(await ((await sw.request(SCOPE,'navigate')) as Response).text()).toBe('page 1');
+ expect(await ((await sw.request(SCOPE+'index.html','navigate')) as Response).text()).toBe('page 1');
+ // The viewer pages, other sites and posts are the browser's own.
  expect(await sw.request(SCOPE+'models.html','navigate')).toBeUndefined();
  expect(await sw.request('https://elsewhere.test/web-gta/assets/game-a.js')).toBeUndefined();
  expect(await sw.request(SCOPE+'assets/game-a.js','cors','POST')).toBeUndefined();
@@ -62,10 +63,10 @@ test('a new build keeps the last one\'s shell for a page still running it, and d
  await sw.lifecycle('install');await sw.lifecycle('activate');
  expect([...sw.stores.keys()]).toEqual(['web-gta-world-v1','web-gta-shell-previous',`web-gta-shell-${shellVersion(['index.html','assets/game-new.js'])}`]);
  // The server has replaced the old chunk; the running page still gets it.
- expect(await (await sw.request(SCOPE+'assets/game-old.js'))!.text()).toBe('game old');
- expect(await (await sw.request(SCOPE+'assets/game-new.js'))!.text()).toBe('game new');
+ expect(await ((await sw.request(SCOPE+'assets/game-old.js')) as Response).text()).toBe('game old');
+ expect(await ((await sw.request(SCOPE+'assets/game-new.js')) as Response).text()).toBe('game new');
  // A hashed file in no shell goes to the network.
- expect((await sw.request(SCOPE+'assets/models-x.js'))!.status).toBe(404);
+ expect(((await sw.request(SCOPE+'assets/models-x.js')) as Response).status).toBe(404);
 });
 
 test('the shell registers once the page has loaded, in a production build and not under automation',()=>{
@@ -80,4 +81,27 @@ test('the shell registers once the page has loaded, in a production build and no
  expect(registerShell({...nav,webdriver:true},win('complete'),true,'/')).toBe(false);
  expect(registerShell({},win('complete'),true,'/')).toBe(false);
  expect(registered).toHaveLength(2);
+});
+
+test('the game\'s data is the network\'s and kept, so a start without a connection plays on what was fetched before',async()=>{
+ let online=true;const served:string[]=[];
+ const sw=worker(['index.html'],url=>{if(!online)return undefined;served.push(url.slice(SCOPE.length));
+  if(url.endsWith('missing.bin'))return new Response('gone',{status:404});return url.endsWith('.html')?page('page'):new Response(`data ${served.length}`);});
+ await sw.lifecycle('install');await sw.lifecycle('activate');
+ const text=async(url:string,headers?:Record<string,string>)=>{const r=await sw.request(url,'cors','GET',headers);return r instanceof Response?r.text():r;};
+ // Online, every fetch is the network's (a republished file shows at once), and the newest copy is kept.
+ expect(await text(SCOPE+'play/world-start.scene.bin')).toBe('data 2');expect(await text(SCOPE+'play/world-start.scene.bin')).toBe('data 3');
+ expect(await text(SCOPE+'play/world/manifest.json')).toBe('data 4');expect(await text(SCOPE+'play/audio/bank-39.bin')).toBe('data 5');
+ // Kept by their checksum elsewhere, or asked for in part, or not found: passed through, nothing kept.
+ for(const path of ['play/world/chunks/00f4.bin','play/world/int/chunks/0a.bin','play/world/packed/00b7.bin','play/world/directory.bin','play/world/int/directory.bin'])
+  expect(await sw.request(SCOPE+path)).toBeUndefined();
+ expect(await text(SCOPE+'play/world/int/manifest.json')).toBe('data 6');
+ expect(await sw.request(SCOPE+'play/audio/bank-1.bin','cors','GET',{range:'bytes=0-9'})).toBeUndefined();
+ expect(((await sw.request(SCOPE+'play/missing.bin')) as Response).status).toBe(404);
+ const kept=sw.stores.get('web-gta-play-v1')!;
+ expect([...kept.keys()].map(k=>k.slice(SCOPE.length)).sort()).toEqual(['play/audio/bank-39.bin','play/world-start.scene.bin','play/world/int/manifest.json','play/world/manifest.json']);
+ // Offline, the kept copies answer (the latest, query aside), and what was never fetched fails as before.
+ online=false;
+ expect(await text(SCOPE+'play/world-start.scene.bin?v=2')).toBe('data 3');expect(await text(SCOPE+'play/world/manifest.json')).toBe('data 4');
+ expect(await sw.request(SCOPE+'play/audio/bank-2.bin')).toBe('failed');
 });

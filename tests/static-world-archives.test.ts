@@ -40,3 +40,32 @@ test('a packed loose resource is fetched as its gzip copy and checked by the exp
   await expect(fetchStaticWorldBytes(new URL('https://pages.invalid/world/files/ped.dat'),{...resource,bytes:packed.length},undefined,false)).rejects.toThrow('checksum');
  }finally{globalThis.fetch=original;}
 });
+
+test('a download the connection loses is a WorldDownloadError, which fails the window; a missing file or bad bytes are not',async()=>{
+ const {fetchStaticWorldBytes,WorldDownloadError}=await import('../src/assets/staticWorldArchive');
+ const {AssetFormatError}=await import('../src/assets/binary');
+ const {createHash}=await import('node:crypto');
+ const raw=new TextEncoder().encode('chunk'),resource={bytes:raw.length,sha256:createHash('sha256').update(raw).digest('hex')};
+ const original=globalThis.fetch;let answer:()=>Response|Promise<Response>=()=>new Response(raw);
+ globalThis.fetch=(async()=>answer()) as unknown as typeof fetch;
+ const url=new URL('https://pages.invalid/world/chunks/a.bin'),get=()=>fetchStaticWorldBytes(url,resource);
+ try{
+  // No connection: fetch itself rejects (after its retries).
+  answer=()=>Promise.reject(new TypeError('Failed to fetch'));
+  await expect(get()).rejects.toBeInstanceOf(WorldDownloadError);
+  // A server error that outlasts the retries.
+  answer=()=>new Response('busy',{status:503});
+  await expect(get()).rejects.toBeInstanceOf(WorldDownloadError);
+  // A body cut off mid-way.
+  answer=()=>new Response(new ReadableStream({start(c){c.enqueue(raw.slice(0,2));c.error(new TypeError('network error'));}}));
+  await expect(get()).rejects.toBeInstanceOf(WorldDownloadError);
+  // A file the server does not have, or bytes that are not the file: the model is left out, as before.
+  answer=()=>new Response('missing',{status:404});
+  await expect(get()).rejects.toBeInstanceOf(AssetFormatError);
+  answer=()=>new Response(new TextEncoder().encode('other'));
+  const wrong=get();await expect(wrong).rejects.toBeInstanceOf(AssetFormatError);await expect(wrong).rejects.not.toBeInstanceOf(WorldDownloadError);
+  // The caller's own abort stays an abort.
+  const caller=new AbortController();caller.abort(new DOMException('left','AbortError'));answer=()=>Promise.reject(caller.signal.reason);
+  await expect(fetchStaticWorldBytes(url,resource,caller.signal)).rejects.not.toBeInstanceOf(WorldDownloadError);
+ }finally{globalThis.fetch=original;}
+},20000);

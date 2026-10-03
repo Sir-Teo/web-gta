@@ -1,4 +1,9 @@
 export class AssetFormatError extends Error {}
+/** A world download that failed for the connection's sake (none, a server error after the retries, a stall) rather
+ * than for its bytes: the window it was for fails and is asked for again, where a model whose bytes do not decode is
+ * only left out of it. Offline, every model would be left out one by one, three tries each, and the window would
+ * install with holes, or time out long after it could have said there is no connection. */
+export class WorldDownloadError extends Error {}
 export function requireAsset(condition: unknown, message: string): asserts condition {
   if (!condition) throw new AssetFormatError(message);
 }

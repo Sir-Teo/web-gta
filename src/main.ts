@@ -2263,7 +2263,8 @@ async function boot() {
     terrainPause=on;clock.reset();last=performance.now();
     if(on){terrainHolds.count++;terrainHoldStart=performance.now();}else if(terrainHoldStart){terrainHolds.last=performance.now()-terrainHoldStart;terrainHolds.ms+=terrainHolds.last;terrainHoldStart=0;}
     sound.setPlaying(!on&&!paused&&!navigation?.open&&!arsenal.open);
-    if(on)hud.message('Loading nearby terrain…');
+    // Offline (an installed game started without a connection), only the places downloaded before are on the device.
+    if(on)hud.message(navigator.onLine===false?'No connection: the ground here loads once the connection is back.':'Loading nearby terrain…');
   }
   function menuBusy(busy: boolean) {
     hud.element.querySelectorAll<HTMLButtonElement>('.menu-actions button').forEach(button => button.disabled = busy);
@@ -4119,7 +4120,8 @@ async function boot() {
     // player at the safety boundary meanwhile. Only a run of failures stops following and shows the menu.
     if(follower.snapshot().enabled){console.warn(`Terrain window ${id} failed; retrying. ${message}`);return;}
     followBoundaryPaused=false;pause();menuBusy(false);
-    hud.menuMessage(`${message} Automatic terrain loading stopped; the current area is still available. Resume to try loading again.`);
+    hud.menuMessage(navigator.onLine===false?'No connection: this part of San Andreas has not been downloaded yet. The current area is still available; Resume once the connection is back.'
+      :`${message} Automatic terrain loading stopped; the current area is still available. Resume to try loading again.`);
   }
   function requestFollowingTerrain(){
     if((!sceneChannel&&!staticWorld)||!importedScene)return;
