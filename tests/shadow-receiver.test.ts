@@ -115,3 +115,16 @@ test('related receiver offset follows the transformed native normal and changes 
  }
  expect(()=>projectShadowReceiver(source,new Matrix4(),footprint,65535,projection,'double-sided',.028)).toThrow('surface offset');
 });
+test('faces wholly beyond the footprint add nothing, however many a receiver has, and a far bad point still throws',()=>{
+ // One quad under the footprint, then a thousand faces beyond each side of it (and above and below).
+ const positions=[-2,0,-2,2,0,-2,2,0,2,-2,0,2],indices=[0,2,1,0,3,2],lights=[0x11,0x22];
+ for(let i=0;i<1000;i++){const side=i%6,d=5+i%7,base=positions.length/3;
+  const at=[[d,0,0],[-d,0,0],[0,0,d],[0,0,-d],[0,d,0],[0,-d-4,0]][side];
+  positions.push(at[0],at[1],at[2],at[0]+1,at[1],at[2],at[0],at[1],at[2]+1);indices.push(base,base+2,base+1);lights.push(0x33);}
+ const near=projectShadowReceiver(mesh([-2,0,-2,2,0,-2,2,0,2,-2,0,2],[0,2,1,0,3,2],[0x11,0x22]),new Matrix4(),footprint);
+ const all=projectShadowReceiver(mesh(positions,indices,lights),new Matrix4(),footprint);
+ expect([...all.positions]).toEqual([...near.positions]);expect([...all.uvs]).toEqual([...near.uvs]);expect([...all.faces]).toEqual([...near.faces]);
+ expect(area(all.positions)).toBeCloseTo(4,6);
+ // A non-finite point is refused whether or not its face is near.
+ expect(()=>projectShadowReceiver(mesh([50,0,50,NaN,0,51,51,0,50]),new Matrix4(),footprint)).toThrow('Invalid shadow receiver position.');
+});

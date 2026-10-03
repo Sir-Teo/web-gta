@@ -5597,11 +5597,14 @@ async function boot() {
                    // which of them are melee. A weapon with no ammo counts while he holds it if it is used without
                    // any (CWeapon::HasWeaponAmmoToBeUsed: the fists' and the melee slots', and the parachute, which
                    // MAIN starts player_parachute for).
-                   weapons:{
+                   // Read only by the weapon commands: worked out when one asks, not each of the dozens of times a
+                   // frame the scripts ask where the player is (two copies of the ammo table a time, a phone's
+                   // garbage collector's busiest caller).
+                   get weapons(){return {
                     carried:[...weapons.inventory.ammo].filter(([id,ammo])=>id===0||ammo.clip>0||ammo.reserve>0||weapons.inventory.owned.has(id)&&weaponUsedWithoutAmmo(id)).map(([id])=>id),
                     active:{type:weapons.inventory.selected,melee:weapons.inventory.weapon.kind==='melee'},
                     ammo:Object.fromEntries([...weapons.inventory.ammo].map(([id,a])=>[id,a.clip+a.reserve])),
-                   },
+                   };},
                    shooting:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),
                    // The player is always the camera's subject, and rides in the seat rather than hanging off it.
                    onScreen:true,sittingInCar:!!vehicle,

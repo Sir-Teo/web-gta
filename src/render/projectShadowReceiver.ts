@@ -48,7 +48,27 @@ export function projectShadowReceiver(mesh:ColMesh,transform:Matrix4,footprint:S
   return {x:p.x,y:p.y,z:p.z,u:(x*front.z-front.x*z)/determinant,v:(side.x*z-x*side.z)/determinant};
  };
  const planes=[(p:Vertex)=>p.u+1,(p:Vertex)=>1-p.u,(p:Vertex)=>p.v+1,(p:Vertex)=>1-p.v,(p:Vertex)=>center.y-p.y,(p:Vertex)=>p.y-(center.y-depth)];
+ // The footprint's world bounds, widened by the most the native surface offset can move a face (and a hair): a face
+ // wholly beyond one side of them shares nothing with the footprint and clips to nothing, so it is dropped before its
+ // vertices, polygon and clipping lists are built. Most of a receiver mesh's faces are; a phone's garbage collector
+ // collected them all every frame. A face with a non-finite point is not dropped here, and throws as before.
+ const e=transform.elements,reach=surfaceOffset*transform.getMaxScaleOnAxis()+1e-4;
+ const halfX=Math.abs(side.x)+Math.abs(front.x)+reach,halfZ=Math.abs(side.z)+Math.abs(front.z)+reach;
+ const minX=center.x-halfX,maxX=center.x+halfX,minZ=center.z-halfZ,maxZ=center.z+halfZ,minY=center.y-depth-reach,maxY=center.y+reach;
+ const beyondBounds=(face:number)=>{
+  let below=0,above=0,left=0,right=0,near=0,far=0;
+  for(let k=0;k<3;k++){
+   const at=mesh.indices[face*3+k]*3;if(at+2>=mesh.positions.length)return false;
+   const px=mesh.positions[at],py=mesh.positions[at+1],pz=mesh.positions[at+2],w=1/(e[3]*px+e[7]*py+e[11]*pz+e[15]);
+   const x=(e[0]*px+e[4]*py+e[8]*pz+e[12])*w,y=(e[1]*px+e[5]*py+e[9]*pz+e[13])*w,z=(e[2]*px+e[6]*py+e[10]*pz+e[14])*w;
+   if(x<minX)left++;else if(x>maxX)right++;
+   if(z<minZ)near++;else if(z>maxZ)far++;
+   if(y<minY)below++;else if(y>maxY)above++;
+  }
+  return left===3||right===3||near===3||far===3||below===3||above===3;
+ };
  for(let face=0;face<mesh.indices.length/3;face++){
+  if(beyondBounds(face))continue;
   let polygon=[0,1,2].map(i=>vertex(mesh.indices[face*3+i]));
   if(facing==='native-col'){
    // Quantize in native source space, then compare in world coordinates with
