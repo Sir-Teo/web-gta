@@ -4,10 +4,10 @@ import {registerShell} from '../src/core/serviceWorker';
 
 const SCOPE='https://example.test/web-gta/';
 /** sw.js run over a fake worker global: Cache Storage as maps in creation order, the network as `network`. */
-function worker(urls:string[],network:(url:string)=>Response|undefined,existing:Record<string,Record<string,Response>>={}){
+function worker(urls:string[],network:(url:string,request?:{headers?:Headers;cache?:string})=>Response|undefined,existing:Record<string,Record<string,Response>>={}){
  const stores=new Map(Object.entries(existing).map(([name,entries])=>[name,new Map(Object.entries(entries))]));
  const fetched:string[]=[];
- const fetch=async(input:string|{url:string})=>{const url=typeof input==='string'?input:input.url;fetched.push(url);const response=network(url);if(!response)throw new TypeError('Failed to fetch');return response.clone();};
+ const fetch=async(input:string|{url:string;headers?:Headers;cache?:string})=>{const url=typeof input==='string'?input:input.url;fetched.push(url);const response=network(url,typeof input==='string'?undefined:input);if(!response)throw new TypeError('Failed to fetch');return response.clone();};
  const open=async(name:string)=>{if(!stores.has(name))stores.set(name,new Map());const store=stores.get(name)!;return{
   addAll:async(keys:string[])=>{for(const key of keys){const response=await fetch(key);if(!response.ok)throw new TypeError(`${key} ${response.status}`);store.set(key,response);}},
   put:async(key:string,response:Response)=>{store.set(key,response);},
@@ -104,4 +104,27 @@ test('the game\'s data is the network\'s and kept, so a start without a connecti
  online=false;
  expect(await text(SCOPE+'play/world-start.scene.bin?v=2')).toBe('data 3');expect(await text(SCOPE+'play/world/manifest.json')).toBe('data 4');
  expect(await sw.request(SCOPE+'play/audio/bank-2.bin')).toBe('failed');
+});
+
+test('a kept copy of the game\'s data is asked after by its ETag: unchanged, it answers without its bytes coming again',async()=>{
+ let online=true,version='v1';const asked:{conditional:string|null;since:string|null;cache?:string}[]=[];let bodies=0;
+ const sw=worker(['index.html'],(url,request)=>{if(!online)return undefined;if(url.endsWith('.html'))return page('page');
+  const tag=`"${version}"`,conditional=request?.headers?.get('if-none-match')??null;asked.push({conditional,since:request?.headers?.get('if-modified-since')??null,cache:request?.cache});
+  if(url.endsWith('old.bin'))return new Response(`old ${version}`,{status:200,headers:{'last-modified':'Fri, 02 Oct 2026 14:17:09 GMT'}});
+  if(conditional===tag)return new Response(null,{status:304,headers:{etag:tag}});
+  bodies++;return new Response(`scene ${version}`,{status:200,headers:{etag:tag}});});
+ await sw.lifecycle('install');await sw.lifecycle('activate');
+ const text=async(url:string)=>{const r=await sw.request(url);return r instanceof Response?r.text():r;};
+ const scene=SCOPE+'play/world-start.scene.bin';
+ // The first time it comes whole, past the browser's own cache, and is kept.
+ expect(await text(scene)).toBe('scene v1');expect(asked.at(-1)).toEqual({conditional:null,since:null,cache:'no-store'});expect(bodies).toBe(1);
+ // Again: asked after by its ETag, not changed, so the kept copy answers and no body comes.
+ expect(await text(scene)).toBe('scene v1');expect(asked.at(-1)?.conditional).toBe('"v1"');expect(bodies).toBe(1);
+ // Republished: the new one comes, and is kept in its place.
+ version='v2';expect(await text(scene)).toBe('scene v2');expect(bodies).toBe(2);
+ expect(await text(scene)).toBe('scene v2');expect(asked.at(-1)?.conditional).toBe('"v2"');expect(bodies).toBe(2);
+ // A copy with only a date is asked after by it.
+ await text(SCOPE+'play/old.bin');await text(SCOPE+'play/old.bin');expect(asked.at(-1)).toMatchObject({conditional:null,since:'Fri, 02 Oct 2026 14:17:09 GMT'});
+ // Without a network the kept copy answers, as before.
+ online=false;expect(await text(scene)).toBe('scene v2');
 });

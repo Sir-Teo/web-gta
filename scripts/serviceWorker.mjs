@@ -1,8 +1,8 @@
 /* The installed game's app shell offline. Vite emits hashed JS and CSS; the build writes sw.js with their list (and the
  * page's HTML, the manifest, the icons and the font) and a version from it. The service worker precaches that list,
  * serves the page network-first (the cached one when the network is gone) and the hashed shell cache-first, keeps the
- * game's data under play/ as it is fetched (network-first too), and leaves the world's own chunks to their Cache
- * Storage (staticWorldArchive). */
+ * game's data under play/ as it is fetched (network-first too, a kept copy revalidated by its ETag), and leaves the
+ * world's own chunks to their Cache Storage (staticWorldArchive). */
 import {createHash} from 'node:crypto';
 /** The version a list of shell files makes: a new build's files, a new cache. */
 export function shellVersion(urls){return createHash('sha256').update([...urls].sort().join('\n')).digest('hex').slice(0,16);}
@@ -35,10 +35,20 @@ self.addEventListener('fetch',event=>{
   return;
  }
  const key=url.origin+url.pathname;
- // The game's data: the network's, kept whole (no range, no partial answer); without a network, the copy kept.
+ // The game's data: the network's, kept whole (no range, no partial answer); without a network, the copy kept. A kept
+ // copy is asked after by its validators: unchanged (304), it answers without its bytes coming again, however long ago
+ // the game last ran and whatever the browser's own cache has let go since (a phone's lets a 9 MB file go in days).
+ // The browser's cache is passed by (no-store), so the phone keeps one copy of the game's data, not two.
  if(url.pathname.startsWith(PLAY)&&!PLAY_KEPT_ELSEWHERE.test(url.pathname.slice(PLAY.length))&&!request.headers.has('range')){
-  event.respondWith(fetch(request).then(response=>{if(response.status===200){const copy=response.clone();event.waitUntil(caches.open(PLAY_CACHE).then(cache=>cache.put(key,copy)).catch(()=>{}));}return response;})
-   .catch(error=>caches.open(PLAY_CACHE).then(cache=>cache.match(key)).then(hit=>hit??Promise.reject(error))));
+  event.respondWith(caches.open(PLAY_CACHE).then(cache=>cache.match(key)).catch(()=>undefined).then(kept=>{
+   const headers=new Headers(request.headers),tag=kept?.headers.get('etag'),modified=kept?.headers.get('last-modified');
+   if(tag)headers.set('if-none-match',tag);else if(modified)headers.set('if-modified-since',modified);
+   return fetch(new Request(request.url,{headers,cache:'no-store',credentials:request.credentials,signal:request.signal})).then(response=>{
+    if(response.status===304&&kept)return kept;
+    if(response.status===200){const copy=response.clone();event.waitUntil(caches.open(PLAY_CACHE).then(cache=>cache.put(key,copy)).catch(()=>{}));}
+    return response;
+   }).catch(error=>kept??Promise.reject(error));
+  }));
   return;
  }
  // The hashed shell: the cached copy (this build's or the last one's), else the network's.
