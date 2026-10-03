@@ -19,7 +19,9 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  const zone=(await page.locator('.touch-stick-zone').boundingBox())!;
  const before=(await state()).player.position;
  const x=zone.x+zone.width/2,y=zone.y+zone.height/2;
- await finger('.touch-stick-zone','pointerdown',x,y);await finger('.touch-stick-zone','pointermove',x,y-70);
+ // Pushed its whole travel (the port's, on this screen) forward.
+ const travel=Number(await page.locator('.touch-stick-zone').getAttribute('data-travel'));expect(travel).toBeGreaterThan(30);
+ await finger('.touch-stick-zone','pointerdown',x,y);await finger('.touch-stick-zone','pointermove',x,y-travel-10);
  await expect(page.locator('.touch-stick')).toBeVisible();
  // The script reads the stick as the pad's left stick, pushed up.
  const pad=()=>page.evaluate(()=>{const p=(window as any).__game.missionForProfiling().runtime.game.pads.pads[0];return {x:p.leftStickX,y:p.leftStickY,yes:p.dpadRight};});

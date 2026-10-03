@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {PORT_LAYOUTS,PORT_SIZE,goFullscreen,isTabletScreen,offerInstall,portLayoutFile,suggestHomeScreen,wantsTouchControls,type PortLayoutFile} from '../src/input/TouchControls';
+import {PORT_LAYOUTS,PORT_SIZE,goFullscreen,portStickTravel,isTabletScreen,offerInstall,portLayoutFile,suggestHomeScreen,wantsTouchControls,type PortLayoutFile} from '../src/input/TouchControls';
 import {Input} from '../src/input/Input';
 test('touch controls show on a coarse pointer, and the address can force them either way',()=>{
  expect(wantsTouchControls('',true)).toBe(true);expect(wantsTouchControls('',false)).toBe(false);
@@ -94,4 +94,12 @@ test('each layout puts the buttons at its own file\'s widgets, sized as the port
   for(const [i,[,a]] of buttons.entries())for(const [,b] of buttons.slice(i+1))
    expect(Math.hypot((a[0]-b[0])/640*width,(a[1]-b[1])/448*height)).toBeGreaterThan((PORT_SIZE[a[2]]+PORT_SIZE[b[2]])*unit);
  }
+});
+test('the stick travels as far as the port\'s widgets let the thumb go, on its 640-wide screen',()=>{
+ // On foot CWidgetRegionMove's 0.45 of PED_MOVE's half width: 54 on a phone, less on a tablet's narrower region.
+ expect(portStickTravel('TouchDefaultPhoneWidescreen','foot')).toBeCloseTo(54,4);expect(portStickTravel('TouchDefaultTablet4x3','foot')).toBeCloseTo(47.25,4);
+ expect(portStickTravel('TouchDefaultTabletWidescreen','swim')).toBeCloseTo(40.5,4);
+ // At the wheel and flying the steering stick's (0.65 - Analog Sensitivity / 100) × 130: 49.4 at its default 27.
+ expect(portStickTravel('TouchDefaultPhoneWidescreen','vehicle')).toBeCloseTo(49.4,4);expect(portStickTravel('TouchDefaultTablet4x3','aircraft')).toBeCloseTo(49.4,4);
+ expect(portStickTravel('TouchDefaultPhoneWidescreen','vehicle',45)).toBeCloseTo(26,4);
 });

@@ -28,7 +28,8 @@ test('a phone plays with real touches: two thumbs, three fingers, the weapon ico
  // Two thumbs: the stick walks CJ while the other thumb turns the camera, high on the right where no button is.
  const zone=await centre(page,'.touch-stick-zone'),look={x:page.viewportSize()!.width*.7,y:page.viewportSize()!.height*.3};
  const s0=await state(),stick=await fingers.press(zone.x,zone.y),cam=await fingers.press(look.x,look.y);
- for(let i=1;i<=15;i++){await fingers.move(stick,zone.x,zone.y-60);await fingers.move(cam,look.x+i*6,look.y);await page.waitForTimeout(60);}
+ const travel=Number(await page.locator('.touch-stick-zone').getAttribute('data-travel'));
+ for(let i=1;i<=15;i++){await fingers.move(stick,zone.x,zone.y-travel);await fingers.move(cam,look.x+i*6,look.y);await page.waitForTimeout(60);}
  const s1=await state();
  expect(Math.hypot(s1.player.position.x-s0.player.position.x,s1.player.position.z-s0.player.position.z)).toBeGreaterThan(1);
  expect(Math.abs(s1.camera.yaw-s0.camera.yaw)).toBeGreaterThan(.05);

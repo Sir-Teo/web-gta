@@ -49,7 +49,8 @@ test('a phone drives with the stick at full lock and the Gas pedal',async({page}
  const before=await yaw();
  // The stick hard right, not forward at all, and Gas held.
  const zone=(await page.locator('.touch-stick-zone').boundingBox())!,x=zone.x+zone.width/2,y=zone.y+zone.height/2;
- await finger('.touch-stick-zone','pointerdown',x,y,7);await finger('.touch-stick-zone','pointermove',x+80,y,7);
+ const travel=Number(await page.locator('.touch-stick-zone').getAttribute('data-travel'));
+ await finger('.touch-stick-zone','pointerdown',x,y,7);await finger('.touch-stick-zone','pointermove',x+travel+10,y,7);
  await press('.touch-button.gas:not([hidden])',11);await gameWait(1.5);
  const after=await yaw(),turning=(await state()).nativeCar;
  // It drives off and swings round.
@@ -57,7 +58,7 @@ test('a phone drives with the stick at full lock and the Gas pedal',async({page}
  expect(moved,JSON.stringify({start,turning})).toBeGreaterThan(3);expect(turned,JSON.stringify({before,after,velocity:turning.velocity})).toBeGreaterThan(.3);
  await gameWait(1);
  // Let go of Gas and hold Brake: the car comes to a stop (held on, it then reverses, so the stop is looked for often).
- await press('.touch-button.gas:not([hidden])',11,'pointerup');await finger('.touch-stick-zone','pointerup',x+80,y,7);
+ await press('.touch-button.gas:not([hidden])',11,'pointerup');await finger('.touch-stick-zone','pointerup',x+travel+10,y,7);
  await press('.touch-button.reverse:not([hidden])',12);
  await expect.poll(async()=>{const v=(await state()).nativeCar.velocity;return Math.hypot(v.x,v.z);},{timeout:15000,intervals:[100]}).toBeLessThan(1);
  await press('.touch-button.reverse:not([hidden])',12,'pointerup');

@@ -128,9 +128,10 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
    portLayoutFrame). */
 .touch-look{position:absolute;inset:0;pointer-events:auto;touch-action:none}
 .touch-stick-zone{position:absolute;left:0;top:calc(env(safe-area-inset-top,0px) + var(--touch-stick-top,248) / 448 * var(--touch-safe-h));bottom:0;width:calc(env(safe-area-inset-left,0px) + var(--touch-stick-w,240) / 640 * var(--touch-safe-w));pointer-events:auto;touch-action:none}
-.touch-stick{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;background:#0003;border:2px solid #fff6;pointer-events:none}
+/* The ring and knob follow the stick's travel (TouchControls' portStickTravel): the knob its radius across. */
+.touch-stick{--stick-r:56px;position:absolute;width:calc(var(--stick-r) * 2 + 16px);height:calc(var(--stick-r) * 2 + 16px);margin:calc(-8px - var(--stick-r)) 0 0 calc(-8px - var(--stick-r));border-radius:50%;background:#0003;border:2px solid #fff6;pointer-events:none}
 .touch-stick[hidden]{display:none}
-.touch-stick-knob{position:absolute;left:36px;top:36px;width:56px;height:56px;border-radius:50%;background:#fffa;box-shadow:0 1px 4px #0008}
+.touch-stick-knob{position:absolute;left:calc(var(--stick-r) / 2 + 8px);top:calc(var(--stick-r) / 2 + 8px);width:var(--stick-r);height:var(--stick-r);border-radius:50%;background:#fffa;box-shadow:0 1px 4px #0008}
 /* The buttons stand where the iOS and Android port's layout file for the device puts its widgets (TouchControls'
  * PORT_LAYOUTS): each centred at its place on the port's 640×448 screen laid over the safe area, and as big as its
  * size on the 640, the width, as the port keeps a button round (the settings' button size scales it). The port knew no

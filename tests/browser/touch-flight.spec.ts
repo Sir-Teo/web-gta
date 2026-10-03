@@ -32,7 +32,8 @@ test('a phone flies the Maverick: Thrust climbs, the stick pitches and rolls it'
  };
  const yoke=(dx:number,dy:number)=>async()=>{await finger('.touch-stick-zone','pointerdown',x,y,7);await finger('.touch-stick-zone','pointermove',x+dx,y+dy,7);};
  const letGo=async()=>{await finger('.touch-stick-zone','pointerup',x,y,7);};
- const bank=await tilt(yoke(80,0),letGo),forward=await tilt(yoke(0,-80),letGo);
+ const travel=Number(await page.locator('.touch-stick-zone').getAttribute('data-travel'))+10;
+ const bank=await tilt(yoke(travel,0),letGo),forward=await tilt(yoke(0,-travel),letGo);
  const key=await tilt(async p=>{await p.keyboard.down('ArrowUp');},async p=>{await p.keyboard.up('ArrowUp');});
  const largest=(v:{x:number;y:number;z:number})=>(['x','y','z'] as const).reduce((a,b)=>Math.abs(v[a])>=Math.abs(v[b])?a:b);
  expect(Math.hypot(bank.x,bank.y,bank.z),JSON.stringify(bank)).toBeGreaterThan(.02);

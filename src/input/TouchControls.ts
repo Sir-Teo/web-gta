@@ -213,8 +213,16 @@ const CONTEXT:readonly {action:string;label:string;code:string;widget?:{classNam
 ];
 /** How long the weapon icon is held to open the arsenal rather than step the weapon. */
 const ARSENAL_HOLD_MS=500;
-/** How far the stick's knob travels from where the thumb came down, in CSS pixels. */
-const STICK_RADIUS=56;
+/** The Analog Sensitivity setting's default (MOB_ANA, 20 to 45): the steering stick's travel shrinks as it rises. */
+export const ANALOG_SENSITIVITY_DEFAULT=27;
+/** How far the stick's knob travels from where the thumb came down, on the port's 640-wide screen, as its widgets clamp
+ * the thumb: on foot CWidgetRegionMove's 0.45 of the PED_MOVE region's half width (54 on a phone, less on a tablet's
+ * narrower region); at the wheel and flying the steering stick's 0.65 less Analog Sensitivity's hundredths of
+ * VEHICLE_STEER_ANALOG's 130 (49.4). The screen's width carries it to pixels, as the buttons' sizes. */
+export function portStickTravel(file:PortLayoutFile,mode:TouchMode,sensitivity=ANALOG_SENSITIVITY_DEFAULT){
+ const f=Math.fround;
+ return mode==='vehicle'||mode==='aircraft'?f(f(f(.65)-f(sensitivity/100))*130):f(f(.45)*PORT_WIDGETS[file].PED_MOVE[0]/2);
+}
 /** A button centred at its place on the port's screen, at its size (the CSS lays the place over the safe area). */
 const portPlace=(element:HTMLElement,[x,y,size]:PortPlace)=>{
  for(const [name,value] of [['--x',x],['--y',y],['--r',PORT_SIZE[size]]] as const)if(element.style.getPropertyValue(name)!==String(value))element.style.setProperty(name,String(value));};
@@ -225,6 +233,9 @@ const LOOK_GAIN=1.6;
 export class TouchControls {
  readonly element=document.createElement('div');
  private stickBase=document.createElement('div');
+ private stickZone=document.createElement('div');
+ /** The stick's travel in CSS pixels now (portStickTravel on this screen and mode). */
+ private stickTravel=56;
  private stickKnob=document.createElement('div');
  private stickPointer?:number;private stickOrigin={x:0,y:0};
  private lookPointer?:number;private lookLast={x:0,y:0};
@@ -241,7 +252,7 @@ export class TouchControls {
   const options={signal:this.abort.signal};
   this.element.className='touch-controls';this.element.setAttribute('aria-label','Touch controls');
   const look=document.createElement('div');look.className='touch-look';
-  const stickZone=document.createElement('div');stickZone.className='touch-stick-zone';
+  const stickZone=this.stickZone;stickZone.className='touch-stick-zone';
   this.stickBase.className='touch-stick';this.stickKnob.className='touch-stick-knob';this.stickBase.append(this.stickKnob);this.stickBase.hidden=true;
   stickZone.append(this.stickBase);
   const pad=document.createElement('div');pad.className='touch-buttons';
@@ -377,9 +388,10 @@ export class TouchControls {
  }
  private moveStick(x:number,y:number){
   let dx=x-this.stickOrigin.x,dy=y-this.stickOrigin.y;const length=Math.hypot(dx,dy);
-  if(length>STICK_RADIUS){dx*=STICK_RADIUS/length;dy*=STICK_RADIUS/length;}
+  const travel=this.stickTravel;
+  if(length>travel){dx*=travel/length;dy*=travel/length;}
   this.stickKnob.style.transform=`translate(${dx}px,${dy}px)`;
-  const stick={x:dx/STICK_RADIUS,y:-dy/STICK_RADIUS};this.input.stick=stick;this.input.stickFromPad=false;
+  const stick={x:dx/travel,y:-dy/travel};this.input.stick=stick;this.input.stickFromPad=false;
   // A light push walks (the PC's walk key); past half way CJ runs.
   if(Math.hypot(stick.x,stick.y)<.55)this.input.hold('AltLeft');else this.input.release('AltLeft');
  }
@@ -461,6 +473,9 @@ export class TouchControls {
   const file=portLayoutFile(innerWidth,innerHeight,this.tablet);
   if(this.element.dataset.layout!==file){this.element.dataset.layout=file;
    for(const [name,value] of Object.entries(portLayoutFrame(file)))document.documentElement.style.setProperty(name,String(value));}
+  // The stick's travel by the layout and what it steers, on the screen's width (no wider than 16:9, as the buttons).
+  const travel=Math.round(portStickTravel(file,this.mode??'foot')*Math.min(innerWidth,innerHeight*16/9)/640);
+  if(travel!==this.stickTravel||!this.stickZone.dataset.travel){this.stickTravel=travel;this.stickZone.dataset.travel=String(travel);this.stickBase.style.setProperty('--stick-r',`${travel}px`);}
   for(const {spec,element} of this.buttons){const o=layout[`${group}:${spec.className}`];const translate=o?`${o[0]}vmin ${o[1]}vmin`:'',scale=o?.[2]?String(o[2]):'';
    if(element.style.translate!==translate)element.style.translate=translate;if(element.style.scale!==scale)element.style.scale=scale;
    // The port's place for it in this layout (PORT_LAYOUTS), which the CSS lays over the safe area.
