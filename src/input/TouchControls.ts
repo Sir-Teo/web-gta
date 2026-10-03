@@ -157,7 +157,10 @@ interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;
  /** Stands at another button's place (and moves with it in Adjust controls), the one it stands in for. */
  slot?:string;
  /** In these modes a finger held on it and moved turns the camera as the look drag does. */
- looksIn?:readonly TouchMode[]}
+ looksIn?:readonly TouchMode[];
+ /** A tap, or a swipe to the right, presses `code` for a frame and a swipe to the left this code: the port's
+  * SWIPE_RADIO_UP and _DOWN widgets, one place swiped either way, on the Radio button. */
+ swipeBack?:string}
 const BUTTONS:ButtonSpec[]=[
  // Fire held on foot or through a scope also aims: a finger that slides from it turns the camera as the look drag does
  // (the port's SHOOT_LOOK region round its attack button), so one thumb shoots and aims.
@@ -180,8 +183,9 @@ const BUTTONS:ButtonSpec[]=[
  // while the car accelerates (a stick pushed only sideways is no push forward).
  {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle'],icon:'up',driver:true},
  {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down',driver:true},
- // N tunes the radio (the mobile ports swipe for it).
- {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],contextual:true,icon:'music'},
+ // N tunes the radio on to the next station, as a tap does; a swipe to the left tunes back (the mobile ports swipe for
+ // it, either way: the PC's Shift+N).
+ {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],contextual:true,icon:'music',swipeBack:'RadioBack'},
  // A car fitted with hydraulics (a lowrider): the port's HYDRAULICS widget, at its own place, the radio moving to the
  // horn's (whose press the hydraulics take, CAutomobile::HydraulicControl). A tap raises or drops the car, as the horn
  // does; a drag from it is the car-gun stick, the corners rising the way it is pushed (the PC's numpad 8, 2, 4 and 6).
@@ -285,6 +289,7 @@ export class TouchControls {
    const button=document.createElement('button');button.type='button';button.className=`touch-button ${spec.className}`;button.dataset.code=spec.code;button.setAttribute('aria-label',spec.label);
    if(spec.icon)button.innerHTML=touchIconSvg(spec.icon);else button.textContent=spec.label;
    if(spec.carGun){this.carGunButton(spec,button,options);pad.append(button);this.buttons.push({spec,element:button});continue;}
+   if(spec.swipeBack){this.swipeButton(spec,spec.swipeBack,button,options);pad.append(button);this.buttons.push({spec,element:button});continue;}
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);
     if(this.editing){this.drag(e,spec,button);return;}
     this.buzz();if(spec.toggle){if(this.latched.has(spec.code)){this.latched.delete(spec.code);input.release(spec.code);button.classList.remove('on');}else{this.latched.add(spec.code);input.hold(spec.code);button.classList.add('on');}return;}
@@ -460,6 +465,19 @@ export class TouchControls {
   this.dropCarGun=()=>{if(finger){finger=undefined;button.classList.remove('on');stick(0,0);}};
  }
  private dropCarGun=()=>{};
+ /** A button swiped either way (the Radio): a tap or a swipe to the right presses `code` for a frame, one to the left
+  * past a third of the button's width `back`; decided as the finger lifts. Adjusting, it is dragged like the rest. */
+ private swipeButton(spec:ButtonSpec,back:string,button:HTMLButtonElement,options:AddEventListenerOptions){
+  const fingers=new Map<number,{x:number;y:number}>();
+  button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);
+   if(this.editing){this.drag(e,spec,button);return;}
+   fingers.set(e.pointerId,{x:e.clientX,y:e.clientY});button.classList.add('on');this.buzz();},options);
+  const up=(e:PointerEvent)=>{const from=fingers.get(e.pointerId);if(!from)return;fingers.delete(e.pointerId);if(!fingers.size)button.classList.remove('on');
+   if(e.type!=='pointerup')return;
+   const dx=e.clientX-from.x,dy=e.clientY-from.y,reach=Math.max(16,button.getBoundingClientRect().width/3);
+   const code=dx<=-reach&&Math.abs(dx)>Math.abs(dy)?back:spec.code;this.input.hold(code);this.input.releaseAfterFrame(code);};
+  button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
+ }
  /** The steering question, the first time at the wheel (not in a passenger seat). */
  private askSteering(){this.steeringPopup.hidden=!(this.mode==='vehicle'&&!this.passenger&&!this.settings.steeringChosen);}
  private passenger=false;

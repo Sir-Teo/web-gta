@@ -37,6 +37,13 @@ test('a phone drives with the stick at full lock and the Gas pedal',async({page}
  // Radio tunes the next station, named at the top of the screen.
  await press('.touch-button.radio',13);await press('.touch-button.radio',13,'pointerup');
  await expect(page.locator('.radio-name')).toBeVisible({timeout:5000});
+ // Swiped to the left it tunes back (the port's radio swipe, the PC's Shift+N): a tap on and a swipe back is where it was.
+ {const station=()=>page.locator('.radio-name').textContent(),first=await station();
+  await press('.touch-button.radio',14);await press('.touch-button.radio',14,'pointerup');
+  await expect.poll(station,{timeout:5000}).not.toBe(first);
+  const b=(await page.locator('.touch-button.radio').boundingBox())!,x=b.x+b.width/2,y=b.y+b.height/2;
+  await finger('.touch-button.radio','pointerdown',x,y,15);await finger('.touch-button.radio','pointermove',x-25,y+2,15);await finger('.touch-button.radio','pointerup',x-45,y+3,15);
+  await expect.poll(station,{timeout:5000}).toBe(first);}
  // With a help line up (moved right of the radar on a phone, where the name stands top centre) the name drops under
  // the top strip, clear of it.
  await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~VEHICLE_HORN~ to sound the horn and ~k~~VEHICLE_RADIO_STATION_UP~ to change the station.'),60000);});

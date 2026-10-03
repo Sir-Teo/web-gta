@@ -2861,7 +2861,9 @@ async function boot() {
      }
     }
     // Vehicle radio tuning (N cycles the 11 stations while driving).
-    if(input.consume('KeyN')&&!paused&&radioModel!==undefined){const station=sound.nativeEngine?.tuneRadio(input.down('ShiftLeft')||input.down('ShiftRight')?-1:1);if(station)hud.radioName(station);}
+    // N tunes on, Shift+N back; the touch Radio button swiped to the left tunes back too (RadioBack).
+    {const on=input.consume('KeyN'),back=input.consume('RadioBack');
+     if((on||back)&&!paused&&radioModel!==undefined){const station=sound.nativeEngine?.tuneRadio(back||input.down('ShiftLeft')||input.down('ShiftRight')?-1:1);if(station)hud.radioName(station);}}
     // ProcessPlayerWeapon drops the aim of any non-melee weapon while the player sprints.
     // A weapon aimed with the arm (the pistols, the Uzi and Tec-9) keeps PlayerControlZelda, which sprints on the sprint
     // button while he moves; that sprint (PEDMOVE_SPRINT with m_nWeaponFire) ends the use-gun task. The aimed walk never
