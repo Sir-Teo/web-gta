@@ -83,6 +83,7 @@ export class WorldPickups {
   for(const state of this.states)state.object?.removeFromParent();
   // Exterior plus interior discs: interiors stream by 3D distance like exteriors.
   this.states=pickups.map((pickup,slot)=>({pickup,disabled:this.collected.has(pickup.id),regenerateAt:0,loading:false,slot,visible:false}));this.revenueLinks=undefined;this.bySlot=undefined;
+  this.usedSlots=new Set(this.states.map(state=>state.slot));this.lowestFree=0;
   for(const key of Object.keys(this.totals) as (keyof typeof this.totals)[])this.totals[key]=pickups.filter(p=>p.category===key).length;
  }
  counts(){const count=(category:string)=>this.states.filter(s=>s.pickup.category===category&&this.collected.has(s.pickup.id)).length;return {horseshoe:count('horseshoe'),oyster:count('oyster'),snapshot:count('snapshot')};}
@@ -121,9 +122,14 @@ export class WorldPickups {
   * routine, so 5 minutes stands in. It is never saved. */
  generate(pickup:ScmPickup,timeoutSeconds=300){
   // GenerateNewOne takes the first free slot.
-  const used=new Set(this.states.map(state=>state.slot));let slot=0;while(used.has(slot))slot++;
-  this.states.push({pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds,slot,visible:false});this.revenueLinks=undefined;this.bySlot=undefined;
+  let slot=this.lowestFree;while(this.usedSlots.has(slot))slot++;
+  this.usedSlots.add(slot);this.lowestFree=slot+1;
+  const state:State={pickup,disabled:false,regenerateAt:0,loading:false,expiresAt:this.seconds+timeoutSeconds,slot,visible:false};
+  this.states.push(state);this.revenueLinks=undefined;this.bySlot?.[slot%PICKUP_SLOTS].push(state);
  }
+ /** The slots in use, and none free below `lowestFree`: the start's script makes some hundreds of pickups, and each
+  * looked over every slot taken before it. */
+ private usedSlots=new Set<number>();private lowestFree=0;
  /** Changes what a generated pickup carries, as a script's UPDATE_PICKUP_MONEY_PER_DAY does. */
  patchGenerated(id:string,patch:Partial<ScmPickup>){const state=this.states.find(s=>s.pickup.id===id);if(state){state.pickup={...state.pickup,...patch};this.revenueLinks=undefined;}}
  /** CPickups::RemoveUnnecessaryPickups: every PICKUP_ONCE_TIMEOUT and PICKUP_MONEY pickup inside the sphere (browser
@@ -142,7 +148,7 @@ export class WorldPickups {
  anyInBubble(p:{x:number;y:number;z:number},radius:number){return this.states.some(s=>Math.hypot(s.pickup.position[0]-p.x,s.pickup.position[1]-p.y,s.pickup.position[2]-p.z)<radius);}
  removeGenerated(id:string){const state=this.states.find(s=>s.pickup.id===id);if(state)this.remove(state);}
  /** Takes a generated pickup back out of the world. */
- private remove(state:State){const index=this.states.indexOf(state);if(index>=0)this.states.splice(index,1);state.removed=true;this.revenueLinks=undefined;this.bySlot=undefined;this.despawn(state);}
+ private remove(state:State){const index=this.states.indexOf(state);if(index>=0){this.states.splice(index,1);this.usedSlots.delete(state.slot);this.lowestFree=Math.min(this.lowestFree,state.slot);}state.removed=true;this.revenueLinks=undefined;this.bySlot=undefined;this.despawn(state);}
  private despawn(state:State){if(!state.object)return;state.object.removeFromParent();(state.object.userData.dispose as (()=>void)|undefined)?.();state.object=undefined;}
   /** The game frame CPickups::Update last ran on, and the camera the last drawn frame used (TheCamera during
    * CGame::Process). */
@@ -389,7 +395,7 @@ export class WorldPickups {
  snapshot(){return {pickups:this.states.length,active:this.states.filter(s=>!s.disabled).length,spawned:this.states.filter(s=>s.object).length,collected:this.collected.size,counts:this.counts(),totals:{...this.totals},error:this.error??null,
    // The pickups a script made, which it can ask after by the handle it holds them with.
    scripted:this.states.filter(s=>s.pickup.section==='script').map(s=>({id:s.pickup.id,drawn:!!s.object}))};}
-  dispose(){this.disposed=true;for(const state of this.states)this.despawn(state);this.states=[];}
+  dispose(){this.disposed=true;for(const state of this.states)this.despawn(state);this.states=[];this.usedSlots.clear();this.lowestFree=0;}
 }
 /** Asset revenue linkage (authored): each revenue pickup belongs to its nearest
  * for-sale property within half a kilometre. Native linkage is script state. */

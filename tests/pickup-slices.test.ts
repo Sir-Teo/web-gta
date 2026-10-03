@@ -31,3 +31,19 @@ test('CPickups::Update streams a thirty-second of the slots and collects a sixth
   expect(PICKUP_SLOTS).toBe(620);
  }finally{pickups.dispose();sim.dispose();}
 });
+
+test('CPickups::GenerateNewOne takes the first free slot, a removed pickup\'s slot again, however many there are',()=>{
+ const sim=new Simulation(),pickups=new WorldPickups(sim,new Scene(),'slices-generate:',{weaponForModel:()=>undefined,giveWeapon:()=>false,wantedLevel:()=>0,setWantedLevel:()=>{},armour:()=>0,setArmour:()=>{}});
+ const slots=()=>new Map((pickups as unknown as {states:{pickup:ScmPickup;slot:number}[]}).states.map(s=>[s.pickup.id,s.slot]));
+ const made=(n:number)=>({...money(0,[0,0,0]),id:`made:${n}`,command:'GENERATED'});
+ try{
+  pickups.setPickups([money(0,[0,0,0]),money(1,[1,0,0]),money(2,[2,0,0])]);
+  for(let i=0;i<600;i++)pickups.generate(made(i));
+  expect(slots().get('made:0')).toBe(3);expect(slots().get('made:599')).toBe(602);
+  pickups.removeGenerated('made:10');pickups.removeGenerated('made:4');
+  pickups.generate(made(600));pickups.generate(made(601));pickups.generate(made(602));
+  expect([slots().get('made:600'),slots().get('made:601'),slots().get('made:602')]).toEqual([7,13,603]);
+  // A new script's list starts the slots again.
+  pickups.setPickups([money(0,[0,0,0])]);pickups.generate(made(700));expect(slots().get('made:700')).toBe(1);
+ }finally{pickups.dispose();sim.dispose();}
+});
