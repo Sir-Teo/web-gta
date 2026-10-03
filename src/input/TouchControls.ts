@@ -155,9 +155,13 @@ interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;
  /** A tap presses `code` for a frame; a drag is the car-gun stick (the Hydraulics button). */
  carGun?:boolean;
  /** Stands at another button's place (and moves with it in Adjust controls), the one it stands in for. */
- slot?:string}
+ slot?:string;
+ /** In these modes a finger held on it and moved turns the camera as the look drag does. */
+ looksIn?:readonly TouchMode[]}
 const BUTTONS:ButtonSpec[]=[
- {label:'Fire',code:'ControlLeft',className:'fire',modes:['foot','scope','vehicle','aircraft'],givesWayTo:'hop'},
+ // Fire held on foot or through a scope also aims: a finger that slides from it turns the camera as the look drag does
+ // (the port's SHOOT_LOOK region round its attack button), so one thumb shoots and aims.
+ {label:'Fire',code:'ControlLeft',className:'fire',modes:['foot','scope','vehicle','aircraft'],givesWayTo:'hop',looksIn:['foot','scope']},
  // On a bicycle the car's weapon button is the bunny hop (CBmx::ProcessBunnyHop reads it): the port's BUNNY_HOP widget,
  // at the fire button's place.
  {label:'Bunny hop',code:'ControlLeft',className:'hop',modes:['vehicle'],contextual:true,icon:'jump',driver:true,slot:'fire'},
@@ -284,6 +288,11 @@ export class TouchControls {
     if(this.editing){this.drag(e,spec,button);return;}
     this.buzz();if(spec.toggle){if(this.latched.has(spec.code)){this.latched.delete(spec.code);input.release(spec.code);button.classList.remove('on');}else{this.latched.add(spec.code);input.hold(spec.code);button.classList.add('on');}return;}
     this.held.set(e.pointerId,spec.code);input.hold(spec.code);button.classList.add('on');},options);
+   if(spec.looksIn){const last=new Map<number,{x:number;y:number}>();
+    button.addEventListener('pointerdown',e=>{if(!this.editing)last.set(e.pointerId,{x:e.clientX,y:e.clientY});},options);
+    button.addEventListener('pointermove',e=>{const from=last.get(e.pointerId);if(!from||this.held.get(e.pointerId)!==spec.code||!spec.looksIn!.includes(this.mode??'foot'))return;
+     input.lookX+=(e.clientX-from.x)*LOOK_GAIN*this.settings.lookSpeed;input.lookY+=(e.clientY-from.y)*LOOK_GAIN*this.settings.lookSpeed;last.set(e.pointerId,{x:e.clientX,y:e.clientY});input.touches++;},options);
+    for(const type of ['pointerup','pointercancel'] as const)button.addEventListener(type,e=>{last.delete(e.pointerId);},options);}
    const up=(e:PointerEvent)=>{if(spec.toggle)return;const code=this.held.get(e.pointerId);if(code===undefined)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.releaseAfterFrame(code);button.classList.remove('on');};
    button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
    pad.append(button);this.buttons.push({spec,element:button});

@@ -45,7 +45,11 @@ test('a phone plays with real touches: two thumbs, three fingers, the weapon ico
  const ammo=()=>page.evaluate(()=>{const a=(window as any).__game.weapons().inventory.ammo.get(22);return a.clip+a.reserve as number;}),full=await ammo();
  const aim=await centre(page,'.touch-button.aim');await fingers.tap(aim.x,aim.y);
  const fire=await centre(page,'.touch-button.fire:not([hidden])'),trigger=await fingers.press(fire.x,fire.y);
- await expect.poll(ammo,{timeout:10000}).toBeLessThan(full);await fingers.lift(trigger);await fingers.tap(aim.x,aim.y);
+ await expect.poll(ammo,{timeout:10000}).toBeLessThan(full);
+ // The same thumb, held on Fire and slid, aims: the camera turns as the look drag turns it (the port's SHOOT_LOOK).
+ {const before=(await state()).camera.yaw;for(let i=1;i<=12;i++){await fingers.move(trigger,fire.x-i*6,fire.y);await page.waitForTimeout(40);}
+  await expect.poll(async()=>Math.abs((await state()).camera.yaw-before),{timeout:5000}).toBeGreaterThan(.05);}
+ await fingers.lift(trigger);await fingers.tap(aim.x,aim.y);
  // The radar opens the map, which pinches under two fingers and takes a waypoint from a tap.
  const radar=await centre(page,'.minimap-button');await fingers.tap(radar.x,radar.y);
  await expect(page.locator('.world-map-panel')).toBeVisible();
@@ -66,12 +70,12 @@ test('a phone plays with real touches: two thumbs, three fingers, the weapon ico
   const hit=[...document.querySelectorAll('.touch-controls .touch-button:not([hidden])')].map(b=>b.getBoundingClientRect()).filter(r=>r.width&&r.left<s.right&&r.right>s.left&&r.top<s.bottom&&r.bottom>s.top);
   return {overlaps:hit.length,below:s.top>=status.bottom};});
  expect(stars).toEqual({overlaps:0,below:true});
- // A yes or no asked with the stars up: its pills stand beside the buttons' top row, clear of the stars and the buttons.
+ // A yes or no asked with the stars up: the port's thumbs low in the middle, clear of the stars and the other buttons.
  await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~CONVERSATION_YES~ or ~k~~CONVERSATION_NO~.'),60000);});
- await expect(page.locator('.touch-context button',{hasText:'Yes'})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Yes',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'No',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>{const rects=(sel:string)=>[...document.querySelectorAll(sel)].filter(e=>(e as HTMLElement).offsetParent).map(e=>e.getBoundingClientRect());
   const meets=(a:DOMRect,b:DOMRect)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
-  return rects('.touch-context button').flatMap(p=>[...rects('.wanted-status'),...rects('.touch-buttons .touch-button:not([hidden])')].filter(o=>meets(p,o))).length;})).toBe(0);
+  return rects('.touch-button.reply-yes,.touch-button.reply-no').flatMap(p=>[...rects('.wanted-status'),...rects('.touch-buttons .touch-button:not([hidden]):not(.reply-yes):not(.reply-no)')].filter(o=>meets(p,o))).length;})).toBe(0);
  await page.evaluate(()=>(window as any).__game.hud().help(''));
  await page.evaluate(()=>(window as any).__game.setWantedLevel(0));
  // A long subtitle wraps in the room left of the buttons rather than running under them, at a size a phone reads (by
