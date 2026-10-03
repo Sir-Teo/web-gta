@@ -10,13 +10,14 @@ test('the touch stick reads as an analog stick, and held buttons read as their k
  const target={addEventListener(){}};(globalThis as any).window??=target;
  const input=new Input(target as unknown as HTMLCanvasElement,()=>{});
  expect(input.axes()).toMatchObject({x:0,y:0,forward:false,back:false});
- input.stick={x:.5,y:.8};expect(input.axes()).toEqual({x:.5,y:.8,forward:true,back:false});
+ // Marked as the stick's, which the vehicles steer on the port's curve.
+ input.stick={x:.5,y:.8};expect(input.axes()).toEqual({x:.5,y:.8,forward:true,back:false,stick:true});
  input.stick={x:0,y:-.6};expect(input.axes()).toMatchObject({forward:false,back:true});
  // A thumb resting in the dead zone is no push.
  input.stick={x:.05,y:.05};expect(input.axes()).toMatchObject({x:0,y:0});
  // At the wheel the Gas and Brake pedals drive whatever the stick's push: full lock to the side still accelerates.
- input.stick={x:1,y:0};input.hold('KeyW');expect(input.axes()).toEqual({x:1,y:1,forward:true,back:false});
- input.release('KeyW');input.hold('KeyS');expect(input.axes()).toEqual({x:1,y:-1,forward:false,back:true});
+ input.stick={x:1,y:0};input.hold('KeyW');expect(input.axes()).toEqual({x:1,y:1,forward:true,back:false,stick:true});
+ input.release('KeyW');input.hold('KeyS');expect(input.axes()).toEqual({x:1,y:-1,forward:false,back:true,stick:true});
  input.hold('KeyW');expect(input.axes()).toMatchObject({forward:true,back:true});input.release('KeyW');input.release('KeyS');
  input.stick=undefined;input.hold('KeyF');expect(input.down('KeyF')).toBe(true);expect(input.consume('KeyF')).toBe(true);expect(input.consume('KeyF')).toBe(false);
  input.release('KeyF');expect(input.down('KeyF')).toBe(false);
