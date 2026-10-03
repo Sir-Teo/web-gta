@@ -2574,7 +2574,20 @@ export class WorldPedestrians {
    *   and the finger, then goes on.
    * Returns what the ped does, or 'none' with nobody targeted. */
   converse(kind:'yes'|'no',target:{handle?:number;range:number}):'reply'|'fight'|'flee'|'none'{
-   if(this.sim.player.health<=0)return 'none';
+   const p=this.talkTarget(target);if(!p)return 'none';
+   const delay=.6+Math.random()*.4;
+   if(kind==='yes'){p.chat={time:delay+2.2,delay,reply:'greet',fist:false};return 'reply';}
+   const rival=p.gang!==undefined&&p.gang!==1&&!p.follow,tough=!p.officer&&p.gang===undefined&&p.decisionMaker===3,weak=!p.officer&&p.gang===undefined&&p.decisionMaker===4;
+   if(rival||tough){p.loiter=true;p.rage={phase:'face',time:0};this.onThreat?.(p,{...p.actor.player.position});return 'fight';}
+   if(weak){this.fleeFromPlayer(p,30);return 'flee';}
+   p.chat={time:delay+2.2,delay,reply:'threat',fist:!p.officer};return 'reply';
+  }
+  /** Whether Y or N would reach someone now: a touch screen shows its Yes and No by it (the port's REPLY_YES and _NO). */
+  canTalk(target:{handle?:number;range:number}){return !!this.talkTarget(target);}
+  /** The ped Y and N speak to: the targeted one, else the nearest ahead within `range`; nobody running from or fighting
+   * the player stops to talk. */
+  private talkTarget(target:{handle?:number;range:number}){
+   if(this.sim.player.health<=0)return undefined;
    const candidates=this.people.filter(p=>p.health>0&&p.down===0&&p.stealth===undefined&&!p.mission);
    let p:Pedestrian|undefined;
    if(target.handle!==undefined)p=candidates.find(q=>q.collider.handle===target.handle);
@@ -2583,15 +2596,8 @@ export class WorldPedestrians {
     p=candidates.map(q=>{const dx=q.actor.player.position.x-origin.x,dz=q.actor.player.position.z-origin.z,d=Math.hypot(dx,dz);return {q,d,along:d?(dx*ahead.x+dz*ahead.z)/d:1};})
      .filter(t=>t.d<=target.range&&t.along>Math.SQRT1_2).sort((a,b)=>a.d-b.d)[0]?.q;
    }
-   if(!p)return 'none';
-   // Someone already running from him or fighting him does not stop to talk.
-   if(p.flee>0||p.retaliate>0||p.rage||p.fight)return 'none';
-   const delay=.6+Math.random()*.4;
-   if(kind==='yes'){p.chat={time:delay+2.2,delay,reply:'greet',fist:false};return 'reply';}
-   const rival=p.gang!==undefined&&p.gang!==1&&!p.follow,tough=!p.officer&&p.gang===undefined&&p.decisionMaker===3,weak=!p.officer&&p.gang===undefined&&p.decisionMaker===4;
-   if(rival||tough){p.loiter=true;p.rage={phase:'face',time:0};this.onThreat?.(p,{...p.actor.player.position});return 'fight';}
-   if(weak){this.fleeFromPlayer(p,30);return 'flee';}
-   p.chat={time:delay+2.2,delay,reply:'threat',fist:!p.officer};return 'reply';
+   if(!p||p.flee>0||p.retaliate>0||p.rage||p.fight)return undefined;
+   return p;
   }
   groupControl(button:'forward'|'back',target?:{handle?:number;range:number}):'joined'|'full'|'follow'|'stay'|'none'{
    if(this.sim.player.health<=0)return 'none';

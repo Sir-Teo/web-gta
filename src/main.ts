@@ -2773,6 +2773,10 @@ async function boot() {
   const GROUP_RECRUIT_MELEE_RANGE=10;
   /** Who the group buttons are aimed at: with PED_LOCK_TARGET held, a gun's crosshair names the ped; otherwise the
    * nearest ahead within the weapon's target range. Without it, nobody (the buttons command the group). */
+  /** Who Y and N speak to: with PED_LOCK_TARGET held, the crosshair's ped or the nearest ahead within the weapon's
+   * range; without it, the nearest ahead within a few steps. */
+  const talkTarget=()=>{const info=weapons.inventory.info(),crosshair=['bullet','shotgun','rocket'].includes(weapons.inventory.weapon.kind);
+   return input.down('MouseAim')?{handle:crosshair?weapons.lock?.handle??undefined:undefined,range:info?.targetRange??GROUP_RECRUIT_MELEE_RANGE}:{range:CONVERSE_RANGE};};
   const groupTarget=()=>{const info=weapons.inventory.info(),crosshair=['bullet','shotgun','rocket'].includes(weapons.inventory.weapon.kind);
    return input.down('MouseAim')?{handle:crosshair?weapons.lock?.handle??-1:undefined,range:info?.targetRange??GROUP_RECRUIT_MELEE_RANGE}:undefined;};
   /** How near a ped must be to hear CJ's Y or N without the aim button (authored). */
@@ -2829,9 +2833,7 @@ async function boot() {
      // A script's conversation waiting for an answer takes it first (CConversationForPed::Update reads the same pad).
      const answered=(yes||no)&&!playerControlsDisabled()&&!!mission?.runtime.game.conversations.answer(yes?'yes':'no');
      if(!answered&&(yes||no)&&!playerControlsDisabled()&&sim.player.health>0&&sim.knockdown===0&&pedestrians){
-      const info=weapons.inventory.info(),crosshair=['bullet','shotgun','rocket'].includes(weapons.inventory.weapon.kind);
-      const target=input.down('MouseAim')?{handle:crosshair?weapons.lock?.handle??undefined:undefined,range:info?.targetRange??GROUP_RECRUIT_MELEE_RANGE}:{range:CONVERSE_RANGE};
-      if(pedestrians.converse(yes?'yes':'no',target)!=='none'){const p=sim.player.position;sound.nativeEngine?.speech(yes?'greet':'threat',{x:p.x,y:-p.z,z:p.y},Math.abs(Math.floor(p.x*13-p.z*7)));}
+      if(pedestrians.converse(yes?'yes':'no',talkTarget())!=='none'){const p=sim.player.position;sound.nativeEngine?.speech(yes?'greet':'threat',{x:p.x,y:-p.z,z:p.y},Math.abs(Math.floor(p.x*13-p.z*7)));}
      }
     }
     // Vehicle radio tuning (N cycles the 11 stations while driving).
@@ -3562,6 +3564,10 @@ async function boot() {
       const offer=pedestrians.groupOffer(groupTarget());
       if(offer.recruit)asked.push('GANG_RECRUIT');else if(offer.crew)asked.push('GROUP_CONTROL_FWD','GROUP_CONTROL_BWD');
      }
+     // Yes and No (the port's REPLY_YES and _NO, "Positive talk" and "Negative talk"): a script's conversation waiting
+     // for an answer, or, on foot with Aim held, someone CJ could talk to.
+     if(!inVehicle&&!carEntry.active&&!playerControlsDisabled()&&(mission?.runtime.game.conversations.waitingForInput||!held&&input.down('MouseAim')&&!!pedestrians?.canTalk(talkTarget())))
+      asked.push('CONVERSATION_YES','CONVERSATION_NO');
      // A plane with retracting gear puts up Gear in the air, and the Hydra VTOL.
      {const plane=fleet?.occupiedPlane;if(plane?.retractableGear&&!plane.grounded)asked.push('AIRCRAFT_GEAR');if(plane?.modelId===520)asked.push('AIRCRAFT_VTOL');}
      // Flying, the look keys are the rudder the Yaw buttons already are, and help names them so. In a road vehicle with a
