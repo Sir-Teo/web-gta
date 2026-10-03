@@ -22,3 +22,13 @@ test('the presets step down from the game\'s own to the port\'s middling, then i
  expect(QUALITY_PRESETS.low).toEqual({effects:'low',drawDistance:20,resolution:'low',density:'low'});
  expect(parseTouchSettings({}).qualityChosen).toBe(false);expect(parseTouchSettings({qualityChosen:true}).qualityChosen).toBe(true);
 });
+
+test('a phone that says it is weak starts at the port\'s preset for one; one that says nothing is measured',async()=>{
+ const {devicePreset}=await import('../src/core/autoQuality');
+ // Chrome on Android: navigator.deviceMemory (GB) and the cores.
+ expect(devicePreset({deviceMemory:1,hardwareConcurrency:8})).toBe('low');expect(devicePreset({deviceMemory:2,hardwareConcurrency:8})).toBe('low');
+ expect(devicePreset({deviceMemory:4,hardwareConcurrency:4})).toBe('medium');expect(devicePreset({deviceMemory:4,hardwareConcurrency:8})).toBeUndefined();
+ expect(devicePreset({deviceMemory:8,hardwareConcurrency:4})).toBeUndefined();
+ // Safari names neither: measured from the game's own.
+ expect(devicePreset({hardwareConcurrency:4})).toBeUndefined();expect(devicePreset({})).toBeUndefined();
+});

@@ -262,7 +262,7 @@ import {DRAW_DISTANCE_DEFAULT,setDrawDistance} from './render/lodDistance';
 import {stickSteering} from './input/stickSteering';
 import {touchHaptic} from './input/haptics';
 import {roadShake,thunderShake} from './engine/nativePadShakes';
-import {AutoQuality,QUALITY_PRESETS,lowerPreset} from './core/autoQuality';
+import {AutoQuality,QUALITY_PRESETS,devicePreset,lowerPreset} from './core/autoQuality';
 /** The player's blob among the peds' (their ids are their own, from 0). */
 const PLAYER_SHADOW_ID=-1;
 import {fireGlow,missileGlow} from './combat/nativeFireGlow';
@@ -805,6 +805,12 @@ async function boot() {
   const mouseSettings=readMouseSettings();
   // On a touch screen the drag's vertical look follows the touch settings' Invert look; the mouse's is hidden there.
   const touchScreen=wantsTouchControls();let touchSettings=readTouchSettings();
+  // A phone that says it is weak starts at the port's preset for one (devicePreset), before its first frame; the measured
+  // play (AutoQuality) may still step it down. Settings the player chose stay.
+  if(touchScreen&&!touchSettings.qualityChosen&&touchSettings.effects==='high'&&!navigator.webdriver){
+   const start=devicePreset(navigator as Navigator&{deviceMemory?:number});
+   if(start){touchSettings={...touchSettings,...QUALITY_PRESETS[start],qualityChosen:start==='low'};saveTouchSettings(touchSettings);}
+  }
   // The touch settings' Visual effects set the FX quality (the port's MOB_VS); elsewhere the game runs at high.
   // and its Draw distance TheCamera's LOD distance multiplier (the port's MOB_DD); elsewhere the game draws at its default.
   const applyVisualEffects=()=>{setFxQuality(touchScreen?touchSettings.effects:'high');setDrawDistance(touchScreen?touchSettings.drawDistance:DRAW_DISTANCE_DEFAULT);};applyVisualEffects();
@@ -2333,8 +2339,9 @@ async function boot() {
   // The help box draws the buttons it names: a touch button's glyph beside its name, as the mobile ports' help shows the
   // widget itself, and a played pad's face buttons as their symbols, as the PS2 original's did.
   hud.decorateHelp=(box,text)=>showHelpIcons(box,text,controlsNamedIn(text),controlNameOf,controlNaming());
-  // A phone keeps less of the streamed world it has left behind, textures counted (ModelObjects RETAINED_MODELS).
-  if(touch)setRetainedModels(32*1024*1024,true);
+  // A phone keeps less of the streamed world it has left behind, textures counted (ModelObjects RETAINED_MODELS), and
+  // one that says it has 2 GB or less half that again.
+  if(touch)setRetainedModels(((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=2?16*1024*1024:32*1024*1024,true);
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);applyResolution();
    // The pause menu's Controls panel holds the touch settings.
    // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.

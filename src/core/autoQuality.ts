@@ -15,6 +15,17 @@ export const QUALITY_PRESETS:Readonly<Record<'medium'|'low',Partial<TouchSetting
 export function lowerPreset(settings:Pick<TouchSettings,'effects'>):'medium'|'low'|undefined{
  return settings.effects==='high'?'medium':settings.effects==='medium'?'low':undefined;
 }
+/** The port's device presets go before the first frame; a browser names no device, but Chrome on Android gives the
+ * device's memory (navigator.deviceMemory, in GB, rounded and capped at 8) and its cores. A device of 2 GB or less
+ * starts at the weakest preset, one of 4 GB or less with four cores or fewer at the middling one; anything else, and a
+ * browser that says nothing (Safari), starts at the game's own and is measured. */
+export function devicePreset(nav:{deviceMemory?:number;hardwareConcurrency?:number}):'medium'|'low'|undefined{
+ const memory=nav.deviceMemory,cores=nav.hardwareConcurrency;
+ if(memory===undefined)return undefined;
+ if(memory<=2)return 'low';
+ if(memory<=4&&cores!==undefined&&cores<=4)return 'medium';
+ return undefined;
+}
 export class AutoQuality {
  private last?:number;private played=0;private intervals:number[]=[];
  constructor(private readonly warmupMs=5000,private readonly windowMs=8000,private readonly slowMs=1000/24,private readonly stallMs=250){}
