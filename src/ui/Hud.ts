@@ -95,16 +95,18 @@ export class Hud {
       <div class="onboarding"><span>W A S D</span> move <b>·</b> <span>SHIFT</span> sprint <b>·</b> <span>SPACE</span> jump <b>·</b> <span>C</span> crouch <b>·</b> drag to look <b>·</b> <span>&#96;</span> arsenal <b>·</b> <span>F</span> enter car <b>·</b> <span>M</span> map</div>
       <div class="menu-backdrop"><section class="menu" aria-label="Game menu">
         <p class="setting">San Andreas</p><h1>San Andreas</h1><p class="menu-location">San Andreas</p>
-        <div class="menu-actions"><button id="play" disabled>Loading the native world…</button><button id="menu-map" hidden>Map</button><button id="new-game" hidden>New Game</button><button id="brief" hidden>Brief</button><button id="controls">Controls</button><button id="audio">Audio</button><button id="lighting">Lighting</button><button id="install" hidden>Add to Home screen</button></div>
+        <div class="menu-actions"><button id="play" disabled>Loading the native world…</button><button id="menu-map" hidden>Map</button><button id="new-game" hidden>New Game</button><button id="brief" hidden>Brief</button><button id="controls">Controls</button><button id="display">Display</button><button id="audio">Audio</button><button id="lighting">Lighting</button><button id="install" hidden>Add to Home screen</button></div>
         <div class="brief-panel" hidden aria-label="Brief"><ol></ol></div>
         <div class="controls-panel" hidden><p><b>On foot</b> W A S D · Move &nbsp; Shift · Sprint &nbsp; Space · Jump &nbsp; C · Crouch / Stand &nbsp; R · Reload &nbsp; Ctrl · Fire / Use &nbsp; Right mouse · Aim &nbsp; Left mouse while aiming · Fire &nbsp; Wheel · Switch weapon &nbsp; Tab · Arsenal</p><p><b>Vehicles</b> F · Enter / Exit nearest car &nbsp; W/S · Accelerate / Brake / Reverse &nbsp; A/D · Steer &nbsp; Space · Handbrake</p><p><b>Boats</b> F · Board / Leave nearest runabout (leaving needs shallow water) &nbsp; W/S · Throttle / Reverse &nbsp; A/D · Steer &nbsp; Space · Brake &nbsp; Ctrl · Drive-by</p><p><b>Aircraft</b> W/S · Throttle &nbsp; ↓/↑ · Nose up/down &nbsp; A/D · Bank &nbsp; Q/E · Rudder &nbsp; G · Retractable gear &nbsp; T · Hydra hover/forward mode &nbsp; Ctrl · Mounted guns &nbsp; B · Rockets &nbsp; Space · Helicopter hover &nbsp; Space · Ground brake &nbsp; F · Exit after landing and stopping. Choose an aircraft from the full map to fly from Verdant Meadows.</p><p><b>Map</b> M · Full map &nbsp; Click map · Waypoint &nbsp; Wheel / PgUp / PgDn · Zoom &nbsp; Arrows · Pan &nbsp; Home · Find CJ</p><p><b>Camera</b> V / Home · Camera distance &nbsp; Drag mouse · Look &nbsp; Middle mouse / Numpad 1 · Look behind &nbsp; L · Lock pointer &nbsp; Escape · Pause</p><p class="mouse-settings"><label>Mouse sensitivity <input type="range" id="mouse-sens" aria-label="Mouse sensitivity"></label> &nbsp; <label><input type="checkbox" id="mouse-invert"> Invert mouse vertically</label></p></div>
+        <div class="display-panel" hidden aria-label="Display settings">
+          <label class="mute"><input id="display-frame-limiter" type="checkbox"> Frame limiter (30 frames a second, as the PC original)</label>
+          <label class="mute"><input id="display-subtitles" type="checkbox"> Subtitles</label>
+          <label class="mute">Radar <select id="display-radar" aria-label="Radar"><option value="map">Map &amp; blips</option><option value="blips">Blips only</option><option value="off">Off</option></select></label>
+        </div>
         <div class="audio-panel" hidden aria-label="Audio settings">
           <label for="audio-master">Master volume <output id="value-master"></output></label><input id="audio-master" type="range" min="0" max="100" step="1">
           <label for="audio-effects">Sound effects <output id="value-effects"></output></label><input id="audio-effects" type="range" min="0" max="100" step="1">
           <label class="mute"><input id="audio-muted" type="checkbox"> Mute all sound</label>
-          <label class="mute"><input id="display-frame-limiter" type="checkbox"> Frame limiter (30 frames a second, as the PC original)</label>
-          <label class="mute"><input id="display-subtitles" type="checkbox"> Subtitles</label>
-          <label class="mute">Radar <select id="display-radar" aria-label="Radar"><option value="map">Map &amp; blips</option><option value="blips">Blips only</option><option value="off">Off</option></select></label>
           <p id="audio-status" role="status"></p><p class="audio-credits">Native San Andreas footsteps, weapons and explosions.</p>
         </div>
         <div class="lighting-panel" hidden aria-label="Local lighting">
@@ -148,7 +150,9 @@ export class Hud {
     this.money = this.element.querySelector('.cash')!;
     // Each button opens and closes its panel. On a touch screen one is open at a time, as the port's menu shows one page
     // beside its list (style.css puts it there on a short screen).
-    const panels = { brief: '.brief-panel', lighting: '.lighting-panel', audio: '.audio-panel', controls: '.controls-panel' } as const;
+    // Display is the PC front end's Display Setup (and the mobile ports' Display): the frame limiter, subtitles, the
+    // radar, and on a touch screen the port's graphics settings.
+    const panels = { brief: '.brief-panel', lighting: '.lighting-panel', audio: '.audio-panel', display: '.display-panel', controls: '.controls-panel' } as const;
     const toggle = (name: keyof typeof panels) => {
       const panel = this.element.querySelector<HTMLElement>(panels[name])!, open = panel.hidden;
       if (open && document.documentElement.classList.contains('touch')) for (const [other, selector] of Object.entries(panels)) if (other !== name) { this.element.querySelector<HTMLElement>(selector)!.hidden = true; this.button(other).setAttribute('aria-expanded', 'false'); }
@@ -160,6 +164,7 @@ export class Hud {
     this.button('brief').onclick = () => { const panel = toggle('brief'); if (!panel.hidden) { panel.scrollTop = panel.scrollHeight; panel.scrollIntoView({ block: 'nearest' }); } };
     this.button('lighting').onclick = () => toggle('lighting');
     this.button('audio').onclick = () => toggle('audio');
+    this.button('display').onclick = () => toggle('display');
     this.button('controls').onclick = () => toggle('controls');
   }
   bindAudio(settings: AudioSettings, update: (settings: AudioSettings) => void) {

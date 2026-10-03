@@ -24,7 +24,7 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  const home=await box(page,fire);
  const openAdjust=async()=>{await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
   // The Controls panel stays open from the last visit to the menu.
-  if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+  if(!await page.locator('.touch-settings:not(.touch-display)').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
   await page.getByRole('button',{name:'Adjust controls',exact:true}).click();
   await expect(page.locator('.touch-adjust')).toBeVisible();};
  await openAdjust();
@@ -67,7 +67,7 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  expect(await buffer()).toBe(1);
  await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
  // The Controls panel stays open from the last visit to the menu.
- if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+ if(!await page.locator('.touch-settings:not(.touch-display)').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
  // A finger drags a setting's slider along (the page's own pinch and double-tap zoom are off; a slider still slides).
  {const slider=page.locator('.touch-look-speed');await slider.scrollIntoViewIfNeeded();const b=(await slider.boundingBox())!,y=b.y+b.height/2,before=Number(await slider.inputValue());
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:b.x+b.width*.2,y,id:4}]});
@@ -75,6 +75,8 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await expect.poll(async()=>Number(await slider.inputValue())).toBeGreaterThan(before+.3);
   await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).lookSpeed)).toBeGreaterThan(before+.3);}
+ // The graphics settings stand on the Display page.
+ await page.getByRole('button',{name:'Display',exact:true}).click();
  await page.getByLabel('Resolution',{exact:true}).selectOption('high');
  await expect.poll(buffer).toBeCloseTo(2,1);
  // Low draws three quarters of a pixel per CSS pixel, softer and quicker.
@@ -94,12 +96,12 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(drawn,{timeout:10000}).toEqual({clouds:90,shadow:false});
  await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
- if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+ if(!await page.locator('.touch-display').isVisible())await page.getByRole('button',{name:'Display',exact:true}).click();
  await effects.selectOption('high');await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(async()=>(await drawn()).clouds,{timeout:10000}).toBe(180);
  // Shadows (the port's) off takes the player's real-time shadow away at High too: the clouds stay, the shadow goes.
  const shadows=async(on:boolean)=>{await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
-  if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+  if(!await page.locator('.touch-display').isVisible())await page.getByRole('button',{name:'Display',exact:true}).click();
   const box=page.getByLabel('Shadows',{exact:true});if(on)await box.check();else await box.uncheck();await page.getByRole('button',{name:'Resume game',exact:true}).click();};
  await expect.poll(async()=>(await drawn()).shadow,{timeout:10000}).toBe(true);
  await shadows(false);await expect.poll(drawn,{timeout:10000}).toEqual({clouds:180,shadow:false});
@@ -107,7 +109,7 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  // Draw distance (the port's slider, 70 by default) brings the low-detail stand-ins nearer at 0: fewer map models drawn.
  const models=()=>page.evaluate(()=>(window as any).__game.state().visibleImportedInstances as number),full=await models();
  const reach=async(value:string)=>{await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
-  if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+  if(!await page.locator('.touch-display').isVisible())await page.getByRole('button',{name:'Display',exact:true}).click();
   const slider=page.getByLabel('Draw distance',{exact:true});await slider.fill(value);await slider.dispatchEvent('input');
   await page.getByRole('button',{name:'Resume game',exact:true}).click();};
  expect(await page.getByLabel('Draw distance',{exact:true}).inputValue()).toBe('70');

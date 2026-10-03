@@ -40,7 +40,7 @@ test('a controller plays on a phone and works the pause menu',async({page,contex
  await button(9,true);await expect.poll(async()=>(await state()).paused).toBe(true);await button(9,false);
  for(let i=0;i<8&&!(await page.evaluate(()=>document.activeElement?.textContent==='Controls'));i++){await button(13,true);await page.waitForTimeout(250);await button(13,false);await page.waitForTimeout(250);}
  await expect(page.getByRole('button',{name:'Controls',exact:true})).toBeFocused();
- await button(0,true);await expect(page.locator('.touch-settings')).toBeVisible();await button(0,false);
+ await button(0,true);await expect(page.locator('.touch-settings:not(.touch-display)')).toBeVisible();await button(0,false);
  // Start plays on.
  await page.waitForTimeout(300);await button(9,true);await expect.poll(async()=>(await state()).paused).toBe(false);await button(9,false);
  // A touch on the screen brings the touch buttons back.

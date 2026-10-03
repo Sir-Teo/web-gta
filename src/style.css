@@ -53,7 +53,7 @@
 
 @media(max-height:550px){.menu-backdrop{align-items:flex-start;overflow:auto;padding:28px 6vw}.menu h1{font-size:48px}.menu-location{font-size:28px;margin-bottom:20px}.setting{margin-bottom:12px}.menu-actions{gap:10px}.menu-message{margin-top:15px}.build-label{margin-top:14px}}
 
-.audio-panel{margin-top:22px;width:min(330px,80vw);font-size:13px;color:#d9ddcc}.audio-panel>label{display:flex;justify-content:space-between;margin:12px 0 6px}.audio-panel input[type=range]{width:100%;accent-color:#a4ba80}.audio-panel .mute{justify-content:flex-start;gap:9px;align-items:center}.audio-panel a{color:#b9c99f}.audio-credits,#audio-status{font-size:11px;line-height:1.5}.menu-backdrop{overflow:auto}.menu{max-height:100%;overflow:auto;padding:8px 12px 8px 0}.audio-panel input:focus-visible{outline:2px solid #c0d394;outline-offset:3px}
+:is(.audio-panel,.display-panel){margin-top:22px;width:min(330px,80vw);font-size:13px;color:#d9ddcc}:is(.audio-panel,.display-panel)>label{display:flex;justify-content:space-between;margin:12px 0 6px}.audio-panel input[type=range]{width:100%;accent-color:#a4ba80}:is(.audio-panel,.display-panel) .mute{justify-content:flex-start;gap:9px;align-items:center}.audio-panel a{color:#b9c99f}.audio-credits,#audio-status{font-size:11px;line-height:1.5}.menu-backdrop{overflow:auto}.menu{max-height:100%;overflow:auto;padding:8px 12px 8px 0}:is(.audio-panel,.display-panel) input:focus-visible{outline:2px solid #c0d394;outline-offset:3px}
 
 
 .brief-panel{margin-top:20px;width:min(520px,84vw);max-height:calc(42 * var(--screen-h) / 100);overflow:auto;overscroll-behavior:contain;font-size:14px;line-height:1.45;color:#d9ddcc}.brief-panel ol{list-style:none;margin:0;padding:0}.brief-panel li{white-space:pre-line;padding:7px 0;border-bottom:1px solid #ffffff1c}.brief-panel li:last-child{color:#f3efdd;border-bottom:none}
@@ -260,13 +260,13 @@ html.touch{-webkit-tap-highlight-color:transparent}
 /* Hover only where a pointer hovers: a finger's tap leaves :hover on what it touched, which would keep a closed page's
  * button and a weapon it did not choose lit as if chosen. */
 @media(hover:hover){.menu button:hover:not(:disabled){color:#b2ca86}.arsenal button:hover{background:#637b47;color:white}}
-/* A phone or a small tablet sideways: the open page (Brief, Controls, Audio) stands beside the menu's list in its own
+/* A phone or a small tablet sideways: the open page (Brief, Controls, Display, Audio) stands beside the menu's list in its own
  * scrolling column, as the port's menu shows its settings, rather than under it, past the bottom of the screen. */
 @media(max-height:550px) and (orientation:landscape){
- .touch .menu:has(> :is(.brief-panel,.controls-panel,.audio-panel):not([hidden])){display:grid;grid-template-columns:minmax(170px,34%) minmax(0,1fr);grid-template-rows:repeat(7,auto) 1fr;column-gap:clamp(16px,3vw,32px);align-items:start;width:100%;max-width:none;height:100%;overflow:hidden;padding-right:0}
- .touch .menu:has(> :is(.brief-panel,.controls-panel,.audio-panel):not([hidden]))>*{grid-column:1;min-width:0}
- .touch .menu>:is(.brief-panel,.controls-panel,.audio-panel):not([hidden]){grid-column:2;grid-row:1/-1;align-self:start;width:auto;max-height:100%;box-sizing:border-box;margin:0;overflow:auto;overscroll-behavior:contain;padding:8px 16px;border-radius:10px;background:rgba(10,21,19,.8)}
- .touch .menu:has(> :is(.brief-panel,.controls-panel,.audio-panel):not([hidden])) .setting{letter-spacing:2px}
+ .touch .menu:has(> :is(.brief-panel,.controls-panel,.audio-panel,.display-panel):not([hidden])){display:grid;grid-template-columns:minmax(170px,34%) minmax(0,1fr);grid-template-rows:repeat(7,auto) 1fr;column-gap:clamp(16px,3vw,32px);align-items:start;width:100%;max-width:none;height:100%;overflow:hidden;padding-right:0}
+ .touch .menu:has(> :is(.brief-panel,.controls-panel,.audio-panel,.display-panel):not([hidden]))>*{grid-column:1;min-width:0}
+ .touch .menu>:is(.brief-panel,.controls-panel,.audio-panel,.display-panel):not([hidden]){grid-column:2;grid-row:1/-1;align-self:start;width:auto;max-height:100%;box-sizing:border-box;margin:0;overflow:auto;overscroll-behavior:contain;padding:8px 16px;border-radius:10px;background:rgba(10,21,19,.8)}
+ .touch .menu:has(> :is(.brief-panel,.controls-panel,.audio-panel,.display-panel):not([hidden])) .setting{letter-spacing:2px}
  .touch .menu-actions button[aria-expanded=true]{color:#b2ca86}
 }
 /* What the game keeps on the device (ui/storagePanel.ts), under the settings. */

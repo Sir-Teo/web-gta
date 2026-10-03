@@ -2313,7 +2313,7 @@ async function boot() {
   let touchEnterNear=false,touchEnterTick=0;
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
-  let touchPanel:{element:HTMLElement;refresh():void}|undefined;
+  let touchPanel:{element:HTMLElement;display:HTMLElement;refresh():void}|undefined;
   const touch=touchScreen?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);},playOn:()=>{if(started&&paused)play();}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);useTouchControlNames(true,next.steering);applyVisualEffects();}):undefined;
   /** The touch settings' population share (peds through the density multiplier, cars through the fleet's traffic scale). */
   const touchPopulation=()=>touch?DENSITY_SCALE[touchSettings.density]:1;
@@ -2370,7 +2370,7 @@ async function boot() {
      else{menu.selectedRow=row;menus!.onSound?.('highlight');}
     });}
    touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();applyResolution();applyVisualEffects();},
-    ()=>{hud.setMenu(false);armBackButton();touch.adjust(()=>{hud.setMenu(true);touchPanel?.refresh();});});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
+    ()=>{hud.setMenu(false);armBackButton();touch.adjust(()=>{hud.setMenu(true);touchPanel?.refresh();});});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);hud.element.querySelector('.display-panel')?.prepend(touchPanel.display);
    // A phone's short screen puts the touch buttons where the PC HUD's wanted stars sit (175 px down): they hang under
    // the clock, money and bars instead, wherever those end.
    {const status=hud.element.querySelector<HTMLElement>('.status');

@@ -691,5 +691,8 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
  aim.onchange=()=>update({aimAssist:aim.value==='assist'});
  const adjustOpen=panel.querySelector<HTMLButtonElement>('.touch-adjust-open')!;adjustOpen.hidden=!adjust;adjustOpen.onclick=()=>adjust?.();
  look.oninput=()=>update({lookSpeed:Number(look.value)});analog.oninput=()=>update({analogSensitivity:Number(analog.value)});size.oninput=()=>update({buttonScale:Number(size.value)});
- return {element:panel,refresh};
+ // The port's graphics settings stand on the Display page (the PC's Display Setup), the rest on Controls.
+ const display=document.createElement('p');display.className='touch-settings touch-display';display.innerHTML='<b>Graphics</b>';
+ for(const input of [resolution,dynamic,effects,drawDistance,shadows,reflections,density])display.append(input.closest('label')!);
+ return {element:panel,display,refresh};
 }

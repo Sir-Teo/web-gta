@@ -18,7 +18,7 @@ test('a phone sets the radar to blips only or off, and opens the map from the pa
  const setRadar=async(mode:string)=>{
   await page.locator('.touch-button.pause').dispatchEvent('pointerdown',{pointerType:'touch'});
   // The menu keeps the page last opened.
-  const select=page.locator('#display-radar');if(!await select.isVisible())await page.getByRole('button',{name:'Audio',exact:true}).tap();
+  const select=page.locator('#display-radar');if(!await select.isVisible())await page.getByRole('button',{name:'Display',exact:true}).tap();
   await select.selectOption(mode);
   await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('grove-display-v1')!).radarMode)).toBe(mode);
  };

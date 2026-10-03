@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
-/** A phone held sideways is short: the pause menu's pages (Controls, Audio, Brief) open beside its list, one at a time,
+/** A phone held sideways is short: the pause menu's pages (Controls, Display, Audio, Brief) open beside its list, one at a time,
  * each scrolling in its own column, as the port's menu shows its settings, rather than under the list and off the
  * bottom of the screen; and a tapped button lights while pressed, without the browser's tap flash, and does not stay lit
  * as if hovered once its page is closed. */
@@ -21,8 +21,12 @@ test('a short phone\'s menu opens its pages beside the list, one at a time',asyn
  const a=(await adjust.boundingBox())!;expect(a.y+a.height).toBeLessThanOrEqual(375);
  // The list stays put while its page scrolls.
  expect((await box('.menu-actions')).y).toBeCloseTo(list.y,0);
+ // Display (the PC's Display Setup) takes the page's place: the graphics settings, the frame limiter and the radar.
+ const display=page.getByRole('button',{name:'Display',exact:true});await display.tap();
+ await expect(panel).toBeHidden();await expect(page.locator('.display-panel')).toBeVisible();
+ for(const label of ['Resolution','Visual effects','Shadows','Radar'])await expect(page.getByLabel(label,{exact:true})).toBeAttached();
  // Audio takes the page's place.
- await audio.tap();await expect(panel).toBeHidden();await expect(page.locator('.audio-panel')).toBeVisible();
+ await audio.tap();await expect(page.locator('.display-panel')).toBeHidden();await expect(page.locator('.audio-panel')).toBeVisible();
  await expect(controls).toHaveAttribute('aria-expanded','false');await expect(audio).toHaveAttribute('aria-expanded','true');
  // Pressed, a button lights (no hover on a finger, and no browser flash); closed, once the finger is up, it is lit no
  // more than its neighbour, though the browser still counts it hovered.
