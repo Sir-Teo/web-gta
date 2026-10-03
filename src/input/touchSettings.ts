@@ -7,6 +7,9 @@ export type TouchSteering='stick'|'arrows'|'tilt';
 export type TouchDensity='full'|'medium'|'low';
 export const DENSITY_SCALE:Readonly<Record<TouchDensity,number>>={full:1,medium:.65,low:.4};
 export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpeed:number;buttonScale:number;vibration:boolean;density:TouchDensity;
+ /** The port's Visual Effects: the FX quality the game runs at (fewer particles, nearer grass, fewer clouds and no
+  * real-time shadow below high). Max, very high, is not offered: every ped's real-time shadow is not drawn. */
+ effects:'low'|'medium'|'high';
  /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
  invertLook:boolean;
  /** How sharp the picture is: the renderer's one pixel per CSS pixel, the screen's own density up to twice it, or
@@ -17,7 +20,7 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  layout:Readonly<Record<string,LayoutEntry>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
 /** A moved button: how far across and down, and (when resized) its size against the others'. */
 export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
 /** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
@@ -45,6 +48,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   lookSpeed:clamp(data.lookSpeed,LOOK_SPEED_RANGE,DEFAULT_TOUCH.lookSpeed),buttonScale:clamp(data.buttonScale,BUTTON_SCALE_RANGE,DEFAULT_TOUCH.buttonScale),
   vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration,
   density:data.density==='full'||data.density==='low'||data.density==='medium'?data.density:DEFAULT_TOUCH.density,
+  effects:data.effects==='low'||data.effects==='medium'?data.effects:'high',
   invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:(data as {layoutOn?:unknown}).layoutOn===LAYOUT_ON?parseLayout(data.layout):{},resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};

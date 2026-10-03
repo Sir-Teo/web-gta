@@ -1,3 +1,4 @@
+import {canAddParticle} from './fxQuality';
 import {FX_INFO,fxIntegrate,fxInterpolate,type FxInfoBlueprint,type FxPrimBlueprint,type FxSystemBlueprint} from '../../assets/fxProject';
 /** RwMatrix in native Z-up space: right (0-2), up (3-5), at (6-8), pos (9-11). */
 export type FxMatrix=Float64Array;
@@ -194,8 +195,10 @@ export class NativeFxSystem {
  setLocalParticles(enabled:boolean){this.createLocal=enabled;}
  setMustCreatePrts(enabled:boolean){this.mustCreate=enabled;}
  composite(out:FxMatrix=new Float64Array(12)){return this.parent?fxMultiply(this.local,this.parent,out):(out.set(this.local),out);}
- /** FxSystem_c::AddParticle: surface lighting below the limit darkens the particle. */
+ /** FxSystem_c::AddParticle: surface lighting below the limit darkens the particle; below high FX quality only a share
+  * of the particles asked for are added. */
  addParticle(pos:FxVec,vel:FxVec,timeSince:number,mult:FxPrtMult=FX_PRT_MULT,rotZ=-1,lightMult=1.2,lightMultLimit=.6,createLocal=false){
+  if(!canAddParticle(()=>this.manager.world.random()))return;
   const brightness=lightMult<lightMultLimit?1-lightMultLimit+lightMult:1;
   for(const emitter of this.emitters)if(emitter.enabled)this.addEmitterParticle(emitter,pos,vel,timeSince,mult,rotZ,brightness,createLocal);
  }

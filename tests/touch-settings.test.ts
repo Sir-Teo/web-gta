@@ -2,8 +2,8 @@ import {expect,test} from 'vitest';
 import {DEFAULT_TOUCH,LAYOUT_ON,LAYOUT_RANGE,LOW_RESOLUTION,TILT_FULL_LOCK,parseTouchSettings,resolutionRatio,tiltSteering} from '../src/input/touchSettings';
 test('touch settings read back what was kept, and anything else falls back to the defaults',()=>{
  expect(parseTouchSettings(null)).toEqual(DEFAULT_TOUCH);
- expect(parseTouchSettings({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false})).toEqual({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false,density:'medium',invertLook:false,layout:{},resolution:'standard',steeringChosen:true});
- expect(parseTouchSettings({steering:'wheel',aimAssist:'yes',lookSpeed:9,buttonScale:.1,vibration:'on'})).toEqual({steering:'stick',aimAssist:true,lookSpeed:2,buttonScale:.8,vibration:true,density:'medium',invertLook:false,layout:{},resolution:'standard',steeringChosen:true});
+ expect(parseTouchSettings({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false})).toEqual({steering:'tilt',aimAssist:false,lookSpeed:1.5,buttonScale:1.2,vibration:false,density:'medium',effects:'high',invertLook:false,layout:{},resolution:'standard',steeringChosen:true});
+ expect(parseTouchSettings({steering:'wheel',aimAssist:'yes',lookSpeed:9,buttonScale:.1,vibration:'on'})).toEqual({steering:'stick',aimAssist:true,lookSpeed:2,buttonScale:.8,vibration:true,density:'medium',effects:'high',invertLook:false,layout:{},resolution:'standard',steeringChosen:true});
  expect(parseTouchSettings({steering:'arrows'}).steering).toBe('arrows');
  // A phone keeps fewer peds and cars about unless told Full (or Low).
  expect(parseTouchSettings({density:'full'}).density).toBe('full');expect(parseTouchSettings({density:'low'}).density).toBe('low');expect(parseTouchSettings({density:'most'}).density).toBe('medium');

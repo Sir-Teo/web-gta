@@ -254,6 +254,9 @@ import { NativeWorldCoronas } from './render/NativeWorldCoronas';
 import { NativeLightPools } from './render/NativeLightPools';
 import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
 import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
+import {fxQuality,playerRealTimeShadow,setFxQuality} from './simulation/fx/fxQuality';
+/** The player's blob among the peds' (their ids are their own, from 0). */
+const PLAYER_SHADOW_ID=-1;
 import {fireGlow,missileGlow} from './combat/nativeFireGlow';
 import {NativePermanentShadows,explosionScorch} from './render/nativePermanentShadows';
 import {NativeCullZones,fewerPedsLimits} from './world/nativeCullZones';
@@ -790,6 +793,8 @@ async function boot() {
   const mouseSettings=readMouseSettings();
   // On a touch screen the drag's vertical look follows the touch settings' Invert look; the mouse's is hidden there.
   const touchScreen=wantsTouchControls();let touchSettings=readTouchSettings();
+  // The touch settings' Visual effects set the FX quality (the port's MOB_VS); elsewhere the game runs at high.
+  const applyVisualEffects=()=>setFxQuality(touchScreen?touchSettings.effects:'high');applyVisualEffects();
   const lookInverted=()=>touchScreen?touchSettings.invertLook:mouseSettings.invertY;
   const applyMouseSettings=()=>{render.mouseYawScale=mouseYawScale(mouseSettings);render.mouseYSign=lookInverted()?-1:1;};applyMouseSettings();
   {const sens=hud.element.querySelector<HTMLInputElement>('#mouse-sens')!,invert=hud.element.querySelector<HTMLInputElement>('#mouse-invert')!;
@@ -1236,7 +1241,7 @@ async function boot() {
      volumetricClouds.update({cameraPos:[camera.position.x,-camera.position.z,camera.position.y],playerPos:[p.x,-p.z,p.y],
       anchorPos:[anchorPos.x,-anchorPos.z,anchorPos.y],anchorForward:[front.x,-front.z,front.y],
       skyTop:sky??[0,0,0],skyBottom:bottom??[0,0,0],windDir:[weatherStarted?weather.windDir.x:0,weatherStarted?weather.windDir.y:0],
-      timeStep:Math.min(3,Math.max(1,cloudFrames)*50/30),farClip:camera.far,outside:render.lighting.area===0});
+      timeStep:Math.min(3,Math.max(1,cloudFrames)*50/30),farClip:camera.far,outside:render.lighting.area===0,quality:fxQuality()});
      volumetricCloudElapsed=elapsed;}
     const skyBottom=render.lighting.nativeSkyBottom;
     {const f=camera.getWorldDirection(scratchAim);
@@ -1315,6 +1320,11 @@ async function boot() {
         if(strength&&pedestrians){
           const d=sampleSun(sim.timeMinutes).direction,sun:[number,number,number]=[d.x,-d.z,d.y];
           for(const {id,root} of pedestrians.shadowCasters()){const pool=pedShadowPool(id,[root.x,-root.z,root.y],cam,sun,strength);if(pool)pedPools.push(pool);}
+        }
+        // Below high FX quality the player has no real-time shadow: on foot he casts the same blob (DrawDummyShadow).
+        if(strength&&!playerRealTimeShadow()&&!render.vehicleView&&render.nativeCharacter?.root.visible){
+          const d=sampleSun(sim.timeMinutes).direction,root=render.nativeCharacter.shadowPosition();
+          const pool=pedShadowPool(PLAYER_SHADOW_ID,[root.x,-root.z,root.y],cam,[d.x,-d.z,d.y],strength);if(pool)pedPools.push(pool);
         }
         pedShadows.frame(pedPools,cam,footprint=>scene.shadowReceivers(footprint),render.lighting.sunTexture.extraTexture('shad_ped'));
         // CShadows::RenderExtraPlayerShadows: the player's car under street lamps (never the RC Bandit).
@@ -2274,7 +2284,7 @@ async function boot() {
   /** The ped the touch aim assist last eased onto, kept while it stays near the crosshair. */
   let aimAssistHandle:number|undefined;
   let touchPanel:{element:HTMLElement;refresh():void}|undefined;
-  const touch=touchScreen?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);},playOn:()=>{if(started&&paused)play();}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);useTouchControlNames(true,next.steering);}):undefined;
+  const touch=touchScreen?new TouchControls(input,hud.element,{pause:()=>input.onPause(),arsenal:()=>{if(!paused&&!navigation?.open)arsenal.toggle(true);},playOn:()=>{if(started&&paused)play();}},touchSettings,next=>{touchSettings=next;saveTouchSettings(next);useTouchControlNames(true,next.steering);applyVisualEffects();}):undefined;
   /** The touch settings' population share (peds through the density multiplier, cars through the fleet's traffic scale). */
   const touchPopulation=()=>touch?DENSITY_SCALE[touchSettings.density]:1;
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
@@ -2299,7 +2309,7 @@ async function boot() {
      if(row===menu.selectedRow){input.hold('MenuSelect');input.releaseAfterFrame('MenuSelect');}
      else{menu.selectedRow=row;menus!.onSound?.('highlight');}
     });}
-   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();applyResolution();},
+   touchPanel=touchSettingsPanel(()=>touchSettings,next=>{touchSettings=next;saveTouchSettings(next);touch.apply(next);useTouchControlNames(true,next.steering);applyMouseSettings();applyResolution();applyVisualEffects();},
     ()=>{hud.setMenu(false);armBackButton();touch.adjust(()=>{hud.setMenu(true);touchPanel?.refresh();});});hud.element.querySelector('.controls-panel')?.prepend(touchPanel.element);
    // A phone's short screen puts the touch buttons where the PC HUD's wanted stars sit (175 px down): they hang under
    // the clock, money and bars instead, wherever those end.
@@ -3449,7 +3459,7 @@ async function boot() {
     {
       const p=sim.player,water=render.lighting.water.levels?.level(p.position.x,-p.position.z),entering=carEntry.active&&['approach','align','locked','open','pullout','getIn','closeInside','shuffle'].includes(carEntry.phase!);
       const inCar=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||carEntry.seated||carEntry.phase==='waitSlow'||carEntry.phase==='getOut';
-      render.playerShadowAllowed=drawsRealTimeShadow({submerged:water!==undefined&&water>p.position.y,vehicle:fleet?.occupiedBike?'bike':inCar?'other':undefined,enteringAsDriver:entering?'other':undefined,
+      render.playerShadowAllowed=playerRealTimeShadow()&&drawsRealTimeShadow({submerged:water!==undefined&&water>p.position.y,vehicle:fleet?.occupiedBike?'bike':inCar?'other':undefined,enteringAsDriver:entering?'other':undefined,
         // The drawn ped's root is its matrix position: a unit above the feet on foot, the seat when riding.
         alive:p.health>0,originZ:render.nativeCharacter?.root.getWorldPosition(scratchSpine).y??p.position.y+PED_ORIGIN_HEIGHT,spine1Z:render.nativeCharacter?.bonePosition(3,scratchSpine)?.y,ducking:p.crouched});
     }

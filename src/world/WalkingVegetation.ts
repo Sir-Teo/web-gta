@@ -1,3 +1,4 @@
+import {fxQuality} from '../simulation/fx/fxQuality';
 import type {InstalledCollisionSource} from '../simulation/nativeScene';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {requireAsset} from '../assets/binary';
@@ -33,7 +34,7 @@ export function sceneVegetationReader(){
 
 /** Current PC compatibility policy, not a retail-state reconstruction: seeded
  * CRT samples, cyclic eight-phase updates, full cache scan every 32 view updates,
- * high grass quality; caller supplies the explicit wind/timer policy. */
+ * the FX quality's grass (high unless a touch screen's settings lower it); caller supplies the explicit wind/timer policy. */
 export class WalkingVegetation {
  private owner:NativeVegetationScene;
  private readonly group=(()=>{const group=new Group();group.matrixAutoUpdate=false;return group;})();
@@ -76,7 +77,7 @@ export class WalkingVegetation {
    this.updates++;
   }
   this.frustum.setFromProjectionMatrix(this.projection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
-  this.owner.render({camera:position,night,wind:bending,quality:'high',visible:triangle=>{
+  this.owner.render({camera:position,night,wind:bending,quality:fxQuality(),visible:triangle=>{
    const [x,y,z]=triangle.candidate.triangle.center;this.sphere.center.set(x,z,-y);this.sphere.radius=triangle.candidate.triangle.radius;return this.frustum.intersectsSphere(this.sphere);
   }});
   this.procedural?.updateView(camera);

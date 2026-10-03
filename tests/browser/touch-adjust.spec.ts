@@ -2,7 +2,8 @@ import {test,expect,devices,type Page,type CDPSession} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** The touch settings' Adjust controls (the iOS and Android port's own): from the pause menu, a layout's buttons are
  * dragged by a finger (CDP touch events) where the thumbs want them and the one touched sized, Done keeps them for play and for the next visit,
- * each layout keeps its own, and Reset puts them back; a slider follows a finger; Resolution High sharpens the picture and Low softens it. */
+ * each layout keeps its own, and Reset puts them back; a slider follows a finger; Resolution High sharpens the picture and Low softens it; Visual effects Low thins the
+ * clouds and drops the player's real-time shadow. */
 const {defaultBrowserType,...phone}=devices['Pixel 7 landscape'];
 test.use({...phone});
 /** An element's centre, once it is on screen (the controls come back a frame after a menu closes). */
@@ -79,5 +80,17 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  // Low draws three quarters of a pixel per CSS pixel, softer and quicker.
  await page.getByLabel('Resolution',{exact:true}).selectOption('low');await expect.poll(buffer).toBeCloseTo(.75,1);
  await page.getByLabel('Resolution',{exact:true}).selectOption('standard');await expect.poll(buffer).toBe(1);
+ // Visual effects (the port's) set the FX quality: Low keeps half the volumetric clouds, draws no plants and no
+ // real-time shadow for the player; High, the default, all of them.
+ const effects=page.getByLabel('Visual effects',{exact:true});await expect(effects).toHaveValue('high');
+ const drawn=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {clouds:s.volumetricClouds.usedNum,shadow:s.nativeShadow.visible as boolean};});
+ await effects.selectOption('low');
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).effects)).toBe('low');
+ await page.getByRole('button',{name:'Resume game',exact:true}).click();
+ await expect.poll(drawn,{timeout:10000}).toEqual({clouds:90,shadow:false});
+ await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
+ if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+ await effects.selectOption('high');await page.getByRole('button',{name:'Resume game',exact:true}).click();
+ await expect.poll(async()=>(await drawn()).clouds,{timeout:10000}).toBe(180);
  expect(errors).toEqual([]);
 });
