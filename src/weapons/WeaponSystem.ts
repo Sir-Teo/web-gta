@@ -1,3 +1,4 @@
+import {PLANE_GUN_SHAKE,ROCKET_SHAKE} from '../engine/nativePadShakes';
 import {THROW_START_CLIP,THROW_CLIP,THROW_UP_CLIP,THROW_FORCE_PER_COUNTER,throwClip,throwFireTime,throwFiresNow,throwButtonCounter,type ThrowClip} from './nativeThrowProjectile';
 import {Vector3,Quaternion} from 'three';
 import {SEATED_PED_SPHERE_OFFSETS,seatedPedHit} from '../vehicle/nativeDieInCar';
@@ -166,6 +167,8 @@ export class WeaponSystem {
  /** CPad::StartShake_Distance for the player's pad: an explosion's (300 ms at 128) and the player's own shot's (240 at
   * 128), felt within 70 units of the camera. */
  onPadShake?:(time:number,frequency:number,from:Vec3)=>void;
+ /** CPad::StartShake for the player's pad, whatever the distance: an aircraft's guns and rockets. */
+ onPadShakeDirect?:(time:number,frequency:number)=>void;
  /** CExplosion::AddExplosion's CShadows::AddPermanentShadow scorch, for every explosion. */
  onScorch?:(point:Vec3)=>void;
  /** CWeapon::DoBulletImpact's object branch for a bullet hitting a non-ped, non-vehicle collider. `incremental` marks a shotgun pellet. */
@@ -528,7 +531,12 @@ export class WeaponSystem {
   if(rocket){const [ox,oy,oz]=plane.ordnancePosition(),v=plane.body.linvel(),ahead=Math.max(0,direction.dot(new Vector3(v.x,v.y,v.z)))/50,origin=new Vector3(ox,oz,-oy).applyQuaternion(q).add(position).addScaledVector(direction,ahead);
    for(let i=0;i<2;i++)this.projectiles.push({id:this.serial++,weapon:35,position:origin.clone(),velocity:direction.clone().multiplyScalar(55).add(v),fuse:8,stuck:false,owner:plane.body.handle});}
   else{const hit=this.ray(from,direction,gunRange,plane.body),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??gunRange);this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,38,true);if(hit){this.hitFx(hit,end,8,38,direction);this.damage(hit.collider.handle,gunDamage,direction);}}
-  this.onSound?.('fire',rocket?35:38,from,'aircraft');this.onCrime?.(rocket?CRIME.explosion:CRIME.fireWeapon,'player');return true;
+  this.onSound?.('fire',rocket?35:38,from,'aircraft');this.onCrime?.(rocket?CRIME.explosion:CRIME.fireWeapon,'player');
+  // FireUnguidedMissile shakes the player's pad 240 ms at 160; FireFixedMachineGuns 240 at the model's GetModelGunInfo
+  // frequency (the Hunter and Cargobob 160, the Seasparrow, RC Baron and Mavericks 92, the Rustler 225, the Hydra 123).
+  const gunFrequency=PLANE_GUN_SHAKE[plane.modelId];
+  if(rocket)this.onPadShakeDirect?.(240,ROCKET_SHAKE);else if(gunFrequency)this.onPadShakeDirect?.(240,gunFrequency);
+  return true;
  }
  /** Random offset inside the native free-aim crosshair circle (CPlayerPed::GetWeaponRadiusOnScreen). */
  private aimSpread(direction:Vec3,info:NativeWeaponInfo){

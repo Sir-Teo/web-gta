@@ -1,3 +1,4 @@
+import {crashShake} from '../engine/nativePadShakes';
 import {cullAirResistance} from './nativeAirResistance';
 import {requireAsset} from '../assets/binary';
 /** CMonsterTruck subclasses: Monster, Monster A and Monster B. */
@@ -1086,6 +1087,9 @@ export class WorldCar {
    const pv=player.car.body.linvel(),mine=v,theirs=(pv.x**2+pv.y**2+pv.z**2)/2500;
    if(theirs>=(mine.x**2+mine.y**2+mine.z**2)/2500&&theirs>.01)WorldCar.onPlayerRammedLaw?.();
   }
+  // 0x6A7A6E: the player's car shakes his pad over 50, at min(250, intensity / mass × 800 + 100) for 40000 over that
+  // in ms, held off 2 s.
+  {const shake=this.occupied?crashShake(intensity,this.mass):undefined;if(shake)WorldCar.onPlayerCarShake?.(shake.time,shake.frequency,shake.delayMs);}
   // Panels and doors take the hit unless the car is on its roof and moving slower than √0.3 units a frame.
   if(this.canBeVisiblyDamaged&&(up.y>0||(v.x**2+v.y**2+v.z**2)/2500>.3))this.applyComponents(applyCollisionComponents(this.damageState,piece,intensity,this.mass,{localDir,dirDotRight,van:!!(this.modelFlags&MODEL_FLAG.van)},Math.random));
   const previous=this.health;
@@ -1100,6 +1104,8 @@ export class WorldCar {
  }
  /** SetWantedLevelNoDrop(1) for the player, when his car rams a manned law car (the host wires the law). */
  static onPlayerRammedLaw?:()=>void;
+ /** CPad::StartShake for the player's pad from his car's crash: time (ms), frequency and the delay before a weaker one. */
+ static onPlayerCarShake?:(time:number,frequency:number,delayMs:number)=>void;
  /** The player's flipped-car count (CPlayerInfo::m_nUpsideDownCounter) and its 32-frame clock. */
  upsideDownCounter=0;private upsideDownClock=0;
  /** A flipped car burns. CAutomobile::VehicleDamage takes 4 health per 1/50 s frame from any upside-down

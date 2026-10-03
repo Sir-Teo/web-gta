@@ -258,6 +258,7 @@ import {fxQuality,playerRealTimeShadow,setFxQuality} from './simulation/fx/fxQua
 import {DRAW_DISTANCE_DEFAULT,setDrawDistance} from './render/lodDistance';
 import {stickSteering} from './input/stickSteering';
 import {touchHaptic} from './input/haptics';
+import {thunderShake} from './engine/nativePadShakes';
 import {AutoQuality,QUALITY_PRESETS,lowerPreset} from './core/autoQuality';
 /** The player's blob among the peds' (their ids are their own, from 0). */
 const PLAYER_SHADOW_ID=-1;
@@ -2184,6 +2185,7 @@ async function boot() {
   weapons.onScorch=point=>{scorches.add(explosionScorch([point.x,-point.z,point.y]),gameTimeMs);};
   // CPad::StartShake_Distance from an explosion or the player's shot: the distance to the camera decides.
   weapons.onPadShake=(time,frequency,from)=>{const c=render.camera.position;mission?.runtime.game.pads.startShakeDistance(0,time,frequency,Math.hypot(from.x-c.x,from.y-c.y,from.z-c.z));};
+  weapons.onPadShakeDirect=(time,frequency)=>{mission?.runtime.game.pads.startShake(0,time,frequency,0,gameTimeMs);};
   weapons.onCamShake=(strength,from)=>{const cam=mission?.runtime.game.camera;if(!cam)return;if(from){const c=render.camera.position;cam.camShake(strength,Math.hypot(from.x-c.x,from.y-c.y,from.z-c.z),gameTimeMs);}else cam.camShakeNoPos(strength,gameTimeMs);};
   render.shake=()=>mission?.runtime.game.camera.shakeLeft(gameTimeMs)??0;
   weapons.onExplosion=(point,params,byPlayer)=>{
@@ -2975,7 +2977,8 @@ async function boot() {
           for(weatherClock+=step;weatherClock>=1/30;weatherClock-=1/30){
             weatherFrame++;
             weather.update({clock:{hours:Math.floor(today/60),minutes:Math.floor(today%60),seconds:Math.floor(today%1*60)},timeMs:Math.floor(elapsed*1000),frame:weatherFrame,timeStep:50/30,camera:{x:camera.x,y:-camera.z,z:camera.y},sunZ:sun[2]/Math.hypot(...sun),noRain:cullNoRain()});
-            if(weather.thunder)sound.nativeEngine?.thunder();
+            // CWeather::Update's thunder shakes the pad too: 40 × the lightning's duration + 100 ms at (duration + 40) × 2.
+            if(weather.thunder){sound.nativeEngine?.thunder();const shake=thunderShake(weather.thunder.duration);mission?.runtime.game.pads.startShake(0,shake.time,shake.frequency,0,gameTimeMs);}
           }
           localLighting.setWeatherState(weather.state());
           render.lighting.water.wavyness=weather.wavyness;
@@ -4456,6 +4459,7 @@ async function boot() {
           pedestrians.onFootstep=(ped,position,move,foot)=>sound.pedFootstep(ped,position,move,foot);
           pedestrians.onCrunch=(ped,position)=>sound.nativeEngine?.pedCrunch(ped,{x:position.x,y:-position.z,z:position.y});
           pedestrians.onCarCrunch=car=>sound.nativeEngine?.vehicle(car,car.modelId)?.addAudioEvent(AE.pedCrunch);
+          pedestrians.onPlayerCarKill=(time,frequency)=>{mission?.runtime.game.pads.startShake(0,time,frequency,0,gameTimeMs);};
           // Car colliders do not touch peds in the solver, so the strike reports its own collision sound, both ways.
           pedestrians.onCarPedCollision=(car,handle,point,normal,carImpulse,pedImpulse)=>{const c=sound.nativeEngine?.collisions;if(!c)return;
            const pos={x:point.x,y:-point.z,z:point.y},n={x:normal.x,y:-normal.z,z:normal.y},ped={key:handle,surface:SURFACE.ped};
@@ -4515,6 +4519,8 @@ async function boot() {
             if(!hit)throw new Error('No native road surface for the Greenwood.');
             // CAutomobile::VehicleDamage: ramming a manned law car gives the player a star.
             WorldCar.onPlayerRammedLaw=()=>law.setLevelNoDrop(1);
+            // CAutomobile::VehicleDamage's crash shake on the player's pad.
+            WorldCar.onPlayerCarShake=(time,frequency,delayMs)=>{mission?.runtime.game.pads.startShake(0,time,frequency,delayMs,gameTimeMs);};
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);worldCar.driverless=true;
             worldCar.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
             fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.outside=()=>render.lighting.area===0;fleet.sphereVisible=(x,y,z)=>new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse)).containsPoint(new Vector3(x,y,z));fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);

@@ -1,3 +1,4 @@
+import {runOverShake} from '../engine/nativePadShakes';
 import {deadPedWeaponDrops} from './WeaponDrops';
 import {weaponAtStartOfFight} from '../ped/nativeFightWeapon';
 import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
@@ -484,6 +485,8 @@ export class WorldPedestrians {
  onKill?:(victim:{id:number;officer:boolean;gang?:number;pedType?:string;recruit?:boolean;byPlayer:boolean;/** Killed by the player's vehicle. */byPlayerVehicle?:boolean})=>void;
  /** CTaskSimpleKillPedWithCar's AE_PED_CRUNCH on the striking vehicle. */
  onCarCrunch?:(car:WorldCar)=>void;
+ /** CTaskSimpleKillPedWithCar: the player's vehicle killing a ped shakes his pad (time ms, frequency). */
+ onPlayerCarKill?:(time:number,frequency:number)=>void;
  /** A car striking a ped: the collision audio's report (car impulse, ped impulse), renderer space. */
  onCarPedCollision?:(car:WorldCar,pedHandle:number,point:{x:number;y:number;z:number},normal:{x:number;y:number;z:number},carImpulse:number,pedImpulse:number)=>void;
  /** CWeather::Rain for the shelter attractors (CTaskComplexWaitForDryWeather). */
@@ -2669,6 +2672,8 @@ export class WorldPedestrians {
     const kill=killPedWithCarTask({carPosition:toNative(t),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:physics.boundsMin,boundsMax:physics.boundsMax,
      carMoveSpeed:toNative({x:linvel.x/50,y:linvel.y/50,z:linvel.z/50}),carMass:physics.mass,pedPosition:toNative(at),pedHitSide:side});
     if(p.onlyDamagedByPlayer||p.proofs?.collision){addCarForce(impact.vehicleForce);return;}
+    // The player's vehicle shakes his pad: min(250, its speed (a frame) / mass × 200000 + 80), for 40000 over that ms.
+    if(striker.occupied){const shake=runOverShake(Math.hypot(linvel.x,linvel.y,linvel.z)/50,physics.mass);this.onPlayerCarKill?.(shake.time,shake.frequency);}
     // CEventDamage with the task's 1000: a ped with more health than that (a mission's 2000-health homie) lives,
     // knocked flat, and gets up.
     p.lastDamagedBy=car?{car}:{};p.lastWeaponDamage=kill.weapon;p.health=healthAfter(p.health,kill.damage);
