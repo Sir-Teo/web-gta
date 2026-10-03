@@ -211,6 +211,7 @@ import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock } from './core/FixedClock';
 import { Input } from './input/Input';
 import { GamepadInput } from './input/GamepadInput';
+import { registerShell } from './core/serviceWorker';
 import { TouchControls, goFullscreen, offerInstall, showHelpIcons, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, resolutionRatio, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake } from './input/screenAwake';
@@ -291,6 +292,8 @@ const canvas = document.createElement('canvas'); canvas.className = 'world'; can
 const hud = new Hud(app); hud.setMenu(true);
 // Android's browser offers to install the game; on a touch screen the menu takes the offer (TouchControls.offerInstall).
 if(wantsTouchControls())offerInstall(hud.button('install'));
+// The installed game opens from the phone's storage, and offline (core/serviceWorker.ts).
+registerShell(navigator, window, import.meta.env.PROD, import.meta.env.BASE_URL);
 let cleanup = () => {};
 
 /** vehicles.ide's bmx class: the BMX, Chopper and Mountain Bike, every CBmx. */
@@ -5857,12 +5860,14 @@ async function boot() {
     } else {
       if(startDownload.done)hud.menuMessage(`Downloading ${included.name}… The first load includes the terrain and character assets.`);else showStartDownload(true);
       // A download that still fails after its own retries offers Retry in the menu: once the connection is back the
-      // package is fetched again, without reloading the page.
+      // package is fetched again, without reloading the page. Offline (an installed game opened in a tunnel, the shell
+      // from its service worker) it says so, and goes again by itself when the device is back online.
       const loadStartScene=(pack:NonNullable<typeof startScene>['pack'])=>void Promise.all([pack,startScene!.identity]).then(([data,identity])=>{bundledProceduralAssets=data.proceduralAssets;if(identity)data.datasetIdentity=identity;return installScene(data);}).catch(error=>{
         if(!alive)return;
-        hud.menuMessage(`${error instanceof Error?error.message:'The included world could not be loaded.'} Check the connection, then retry.`);
+        hud.menuMessage(navigator.onLine===false?`No connection: ${included.name} downloads once the connection is back.`:`${error instanceof Error?error.message:'The included world could not be loaded.'} Check the connection, then retry.`);
         const retry=hud.button('play');retry.hidden=false;retry.disabled=false;retry.textContent='Retry download';
-        retry.onclick=()=>{retry.onclick=play;retry.hidden=true;hud.menuMessage(`Downloading ${included.name}…`);loadStartScene(readStartPack(false));};
+        const again=()=>{window.removeEventListener('online',again);if(!alive||retry.onclick!==again)return;retry.onclick=play;retry.hidden=true;hud.menuMessage(`Downloading ${included.name}…`);loadStartScene(readStartPack(false));};
+        retry.onclick=again;window.addEventListener('online',again);
       });
       loadStartScene(startScene!.pack);
     }
