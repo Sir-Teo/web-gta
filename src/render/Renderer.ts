@@ -264,7 +264,7 @@ export class GameRenderer {
     // The aimed third-person camera's 52 is authored (Process_AimWeapon and Process_FollowPedWithMouse are stubs).
     // CCam::Process_Fixed sets FOV 70 whatever mode the player was in.
     // Process_1stPerson in a vehicle sets FOV 60.
-    const fov=this.fixedCamera?70:this.bumperView?60:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;
+    const fov=this.fixedCamera?70:this.bumperView?60:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held,input.pinch):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;input.pinch=1;
     // Process_Rocket's near clip plane is 0.15.
     const near=this.scriptNearClip??(fp&&isRocketMode(fp)?.15:.08);
     if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}

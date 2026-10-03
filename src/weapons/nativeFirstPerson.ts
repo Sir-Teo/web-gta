@@ -61,9 +61,15 @@ export function wellBufferMe(target:number,value:{current:number;speed:number},m
 export class FirstPersonZoom{
  fov=FIRST_PERSON_DEFAULT_FOV;target=FIRST_PERSON_DEFAULT_FOV;speed=0;
  reset(){this.fov=this.target=FIRST_PERSON_DEFAULT_FOV;this.speed=0;}
- /** One camera frame. `notch` is +1 for a wheel notch in and −1 out; `held` is +1 while zoom in is held, −1 out. */
- update(mode:FirstPersonMode,timeStep:number,notch=0,held=0){
+ /** One camera frame. `notch` is +1 for a wheel notch in and −1 out; `held` is +1 while zoom in is held, −1 out;
+  * `pinch` is how far two fingers on a touch screen have spread (above 1) or closed (below) since the last frame, as the
+  * mobile ports' scope zooms: what lies under them grows or shrinks with them. */
+ update(mode:FirstPersonMode,timeStep:number,notch=0,held=0,pinch=1){
   if(!hasZoom(mode)){this.fov=this.target=FIRST_PERSON_DEFAULT_FOV;this.speed=0;return this.fov;}
+  if(pinch>0&&pinch!==1){
+   const fov=Math.atan(Math.tan(this.fov*Math.PI/360)/pinch)*360/Math.PI;
+   this.fov=this.target=Math.max(mode==='camera'?3:15,Math.min(FIRST_PERSON_DEFAULT_FOV,fov));this.speed=0;
+  }
   if(notch)this.target=this.fov-10*Math.sign(notch);
   else if(held){
    const scale=(255*timeStep+10000)/10000;

@@ -37,6 +37,19 @@ test('Process_Sniper zooms by wheel notches and held keys between 15 (camera 3) 
  zoom.reset();expect(zoom.fov).toBe(70);
 });
 
+test('a touch pinch zooms the scope by its spread: what lies under the fingers grows with them, and stays put',()=>{
+ const zoom=new FirstPersonZoom(),frame=50/30,half=(fov:number)=>Math.tan(fov*Math.PI/360);
+ // Fingers spread to twice their distance: the view's half-width shrinks to half, so the scene doubles on screen.
+ zoom.update('sniper',frame,0,0,2);expect(half(zoom.fov)).toBeCloseTo(half(70)/2,9);expect(zoom.target).toBe(zoom.fov);
+ // The zoom holds where the fingers left it: no easing toward an old target.
+ const held=zoom.fov;for(let i=0;i<30;i++)zoom.update('sniper',frame);expect(zoom.fov).toBe(held);
+ // Closing them by the same ratio comes back to the start; past the limits it stops at them.
+ zoom.update('sniper',frame,0,0,.5);expect(zoom.fov).toBeCloseTo(70,9);
+ zoom.update('sniper',frame,0,0,100);expect(zoom.fov).toBe(15);zoom.update('camera',frame,0,0,100);expect(zoom.fov).toBe(3);
+ zoom.update('camera',frame,0,0,.01);expect(zoom.fov).toBe(70);
+ expect(zoom.update('rocket',frame,0,0,3)).toBe(70);
+});
+
 test('first-person camera sources, angle limits and mouse rates follow Process_Rocket and Process_Sniper',()=>{
  expect(firstPersonSourceOffset('rocket',false)).toEqual({up:.1,forward:0,right:0});
  expect(firstPersonSourceOffset('sniper',false)).toEqual({up:.1,forward:-.19,right:0});

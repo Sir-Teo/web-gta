@@ -269,6 +269,8 @@ export class TouchControls {
  private stickKnob=document.createElement('div');
  private stickPointer?:number;private stickOrigin={x:0,y:0};
  private lookPointer?:number;private lookLast={x:0,y:0};
+ /** Through a scope, the two fingers on the look side pinching the zoom, and how far apart they were last. */
+ private pinch?:{a:number;b:number;spread:number};private lookFingers=new Map<number,{x:number;y:number}>();
  private held=new Map<number,string>();
  private context:{action:string;element:HTMLButtonElement}[]=[];
  private latched=new Set<string>();
@@ -409,9 +411,24 @@ export class TouchControls {
   const stickUp=(e:PointerEvent)=>{if(e.pointerId!==this.stickPointer)return;this.stickPointer=undefined;this.stickBase.hidden=true;input.stick=undefined;input.release('AltLeft');this.stickKnob.style.transform='';};
   stickZone.addEventListener('pointerup',stickUp,options);stickZone.addEventListener('pointercancel',stickUp,options);
   // The right side drags the camera as the mouse does.
-  look.addEventListener('pointerdown',e=>{if(this.lookPointer!==undefined)return;e.preventDefault();capture(look,e.pointerId);this.lookPointer=e.pointerId;this.lookLast={x:e.clientX,y:e.clientY};},options);
-  look.addEventListener('pointermove',e=>{if(e.pointerId!==this.lookPointer)return;input.lookX+=(e.clientX-this.lookLast.x)*LOOK_GAIN*this.settings.lookSpeed;input.lookY+=(e.clientY-this.lookLast.y)*LOOK_GAIN*this.settings.lookSpeed;this.lookLast={x:e.clientX,y:e.clientY};input.touches++;},options);
-  const lookUp=(e:PointerEvent)=>{if(e.pointerId===this.lookPointer)this.lookPointer=undefined;};
+  // Through a scope a second finger there pinches: spread, the two zoom in, as the mobile ports' sniper rifle and camera
+  // do (its help: "Pinching your fingers on the screen away from each other zooms in"); one lifted, the other looks on.
+  const spread=(a:number,b:number)=>{const p=this.lookFingers.get(a),q=this.lookFingers.get(b);return p&&q?Math.hypot(p.x-q.x,p.y-q.y):0;};
+  look.addEventListener('pointerdown',e=>{
+   if(this.lookPointer===undefined){e.preventDefault();capture(look,e.pointerId);this.lookPointer=e.pointerId;this.lookLast={x:e.clientX,y:e.clientY};this.lookFingers.set(e.pointerId,{x:e.clientX,y:e.clientY});}
+   else if(this.mode==='scope'&&!this.pinch&&e.pointerId!==this.lookPointer){e.preventDefault();capture(look,e.pointerId);this.lookFingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    this.pinch={a:this.lookPointer,b:e.pointerId,spread:spread(this.lookPointer,e.pointerId)};}},options);
+  look.addEventListener('pointermove',e=>{if(!this.lookFingers.has(e.pointerId))return;this.lookFingers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   const pinch=this.pinch;
+   // Out of the scope mid-pinch, the first finger looks on from where it is.
+   if(pinch&&this.mode!=='scope'){this.pinch=undefined;const at=this.lookFingers.get(pinch.a);if(at)this.lookLast={...at};return;}
+   if(pinch){if(e.pointerId!==pinch.a&&e.pointerId!==pinch.b)return;const now=spread(pinch.a,pinch.b);
+    if(now>0&&pinch.spread>0){input.pinch*=now/pinch.spread;input.touches++;}pinch.spread=now;return;}
+   if(e.pointerId!==this.lookPointer)return;input.lookX+=(e.clientX-this.lookLast.x)*LOOK_GAIN*this.settings.lookSpeed;input.lookY+=(e.clientY-this.lookLast.y)*LOOK_GAIN*this.settings.lookSpeed;this.lookLast={x:e.clientX,y:e.clientY};input.touches++;},options);
+  const lookUp=(e:PointerEvent)=>{this.lookFingers.delete(e.pointerId);const pinch=this.pinch;
+   if(pinch&&(e.pointerId===pinch.a||e.pointerId===pinch.b)){this.pinch=undefined;const other=e.pointerId===pinch.a?pinch.b:pinch.a,at=this.lookFingers.get(other);
+    this.lookPointer=at?other:undefined;if(at)this.lookLast={...at};}
+   else if(e.pointerId===this.lookPointer)this.lookPointer=undefined;};
   look.addEventListener('pointerup',lookUp,options);look.addEventListener('pointercancel',lookUp,options);
   // No page scroll, zoom or long-press menu under the thumbs.
   this.element.addEventListener('touchstart',e=>{if(e.cancelable)e.preventDefault();},{...options,passive:false});
@@ -544,7 +561,7 @@ export class TouchControls {
   if(this.editing||this.element.hidden===!visible)return;
   this.element.hidden=!visible;
   this.steer();
-  if(!visible){this.dropCarGun();for(const code of new Set([...this.held.values(),...this.latched]))this.input.release(code);this.held.clear();this.latched.clear();this.input.stick=undefined;this.input.release('AltLeft');this.stickPointer=this.lookPointer=undefined;this.stickBase.hidden=true;
+  if(!visible){this.dropCarGun();for(const code of new Set([...this.held.values(),...this.latched]))this.input.release(code);this.held.clear();this.latched.clear();this.input.stick=undefined;this.input.release('AltLeft');this.stickPointer=this.lookPointer=this.pinch=undefined;this.lookFingers.clear();this.stickBase.hidden=true;
    for(const {element} of this.buttons)element.classList.remove('on');}
  }
  /** Each button moved where the player put it in this layout (the CSS translate, kept apart from the grid's place). */
