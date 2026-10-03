@@ -66,7 +66,10 @@ export class NativeRaycastVehicle {
     const ground={} as Record<CarWheel,NativeSuspensionGroundState>,parameters={} as Record<CarWheel,NativeResolvedRoadWheel['suspension']>,surfaces={} as Record<CarWheel,WheelSurfaceInput>;
     const fallbackSurfaces:Partial<Record<CarWheel,NonNullable<NativeResolvedRoadWheel['fallback']>>>={};
     for(const wheel of NATIVE_CAR_WHEELS){
-      const resolved=structuredClone(input.resolveWheel(wheel,sampleNativeWheelGeometry(c,this.rays.indices[wheel],options.sources)));
+      // An owned copy, so nothing the step keeps aliases the caller's objects: every field is a number, a flag or a
+      // name but the fallback's two vectors (copied by hand, as structuredClone took four times a car each step).
+      const r=input.resolveWheel(wheel,sampleNativeWheelGeometry(c,this.rays.indices[wheel],options.sources));
+      const resolved:NativeResolvedRoadWheel={ground:{...r.ground},suspension:{...r.suspension},surface:{...r.surface},fallback:r.fallback&&{normal:{...r.fallback.normal},groundSpeed:{...r.fallback.groundSpeed}}};
       ground[wheel]={...resolved.ground,timeStep,forwardSpeed:chassis.forwardSpeed,handlingFlags:this.flags};parameters[wheel]=resolved.suspension;surfaces[wheel]=resolved.surface;
       if(resolved.fallback)fallbackSurfaces[wheel]=resolved.fallback;
     }
