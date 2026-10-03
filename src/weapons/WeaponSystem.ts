@@ -163,6 +163,9 @@ export class WeaponSystem {
  onExplosion?:(point:Vec3,params:ExplosionParams,byPlayer:boolean)=>void;
  /** CCamera::CamShake from an explosion (0.6, a molotov 0.2, at its point) and CamShakeNoPos from a sniper shot (0.2). */
  onCamShake?:(strength:number,from?:Vec3)=>void;
+ /** CPad::StartShake_Distance for the player's pad: an explosion's (300 ms at 128) and the player's own shot's (240 at
+  * 128), felt within 70 units of the camera. */
+ onPadShake?:(time:number,frequency:number,from:Vec3)=>void;
  /** CExplosion::AddExplosion's CShadows::AddPermanentShadow scorch, for every explosion. */
  onScorch?:(point:Vec3)=>void;
  /** CWeapon::DoBulletImpact's object branch for a bullet hitting a non-ped, non-vehicle collider. `incremental` marks a shotgun pellet. */
@@ -290,6 +293,8 @@ export class WeaponSystem {
   if(!this.explosionSlots.add(type,this.toNative(position),this.nowMs))return;
   const params=explosionParams(type);
   this.onCamShake?.(type===EXPLOSION_TYPE.molotov?.2:.6,position);
+  // A molotov's burst shakes the camera only; every other the pads within reach too.
+  if(type!==EXPLOSION_TYPE.molotov)this.onPadShake?.(300,128,position);
   // CExplosion::AddExplosion tests the ground under a molotov for water: there it makes no FX and no fires, but the
   // explosion itself stays, centred where it burst, and keeps setting peds and cars alight.
   let underwater=false;
@@ -674,13 +679,13 @@ export class WeaponSystem {
   this.projectiles.push(projectile);return true;
  }
  /** CWeapon::FireSniper (0x73AAC0): a CBulletInfo bullet from the camera along its front at 16 units a frame with the
-  * STD row's damage, a FIRE_WEAPON crime and a gunshot event. The pad shake and CamShakeNoPos(0.2) are not reproduced. */
+  * STD row's damage, a FIRE_WEAPON crime and a gunshot event, with the pad's shake and CamShakeNoPos(0.2). */
  private fireSniper(w:WeaponDefinition,info:NativeWeaponInfo,camera:{origin:Vec3;direction:Vec3}){
   const source={...camera.origin},direction=normalize(camera.direction);
   this.pedestrians()?.gunShot?.(source,false);
   this.onCrime?.(CRIME.fireWeapon,'player');
   // CWeapon::FireSniper: CamShakeNoPos(0.2) with the pad's shake.
-  this.onCamShake?.(.2);
+  this.onCamShake?.(.2);this.onPadShake?.(240,128,source);
   // CBulletInfo::AddBullet takes the first free slot; with none free the shot is lost.
   if(this.bullets.length<8)this.bullets.push({weapon:w.id,damage:info.damage,position:source,direction,destroyAt:this.nowMs+1000,passed:new Set()});
   return true;
@@ -739,6 +744,8 @@ export class WeaponSystem {
  /** Instant hits (CWeapon::FireInstantHit port): weapon range, crosshair spread, WEAPON.DAT damage, the 150-point
   * point-blank player shot and SetUpPelletCol pellets counted against the first victim. */
  private fireInstantHit(w:WeaponDefinition,info:NativeWeaponInfo,source:Vec3,aim:Vec3,exclude?:RAPIER.RigidBody,reach=info.weaponRange){
+  // The player's shot shakes his pad (StartShake_Distance at the player, 240 ms at 128).
+  this.onPadShake?.(240,128,source);
   const shotgun=w.id===25||w.id===26||w.id===27,direction=this.aimSpread(aim,info),hit=this.ray(source,direction,reach,exclude),end=add(source,direction,hit?.timeOfImpact??reach);
   const tyre=this.tyreHit(source,direction,hit?.timeOfImpact??reach);
   if(tyre){

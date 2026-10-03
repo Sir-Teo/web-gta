@@ -257,6 +257,7 @@ import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fxQuality,playerRealTimeShadow,setFxQuality} from './simulation/fx/fxQuality';
 import {DRAW_DISTANCE_DEFAULT,setDrawDistance} from './render/lodDistance';
 import {stickSteering} from './input/stickSteering';
+import {touchHaptic} from './input/haptics';
 import {AutoQuality,QUALITY_PRESETS,lowerPreset} from './core/autoQuality';
 /** The player's blob among the peds' (their ids are their own, from 0). */
 const PLAYER_SHADOW_ID=-1;
@@ -869,6 +870,8 @@ async function boot() {
     onCollect:(pickup,message)=>{
       // A pickup the script made is collected for the script too, which is what it asks after; PICKUP_ASSET_REVENUE
       // only pays out and never sets bPickupCollected.
+      // CPickup::Update: collecting shakes the pad (120 ms at 100), but not a property's icon.
+      if(pickup.modelId!==1272&&pickup.modelId!==1273)mission?.runtime.game.pads.startShake(0,120,100,0,gameTimeMs);
       if(pickup.section==='script'&&pickup.category!=='revenue'&&mission){const handle=Number(pickup.id.slice('script:'.length));if(Number.isInteger(handle))mission.collectScriptPickup(handle);}if(!paused)sound.nativeEngine?.pickup(pickup.category,pickup.type);if(message){
         // CGarages::TriggerMessage of HO_, OY_ and SN_ONE with the counts in its ~1~s, or the _ALL line, for 5 s.
         const [code,count]=message.split(' '),name=/^(HO|OY|SN)_(ONE|ALL)$/.test(code)?PICKUP_TEXT[code.slice(0,2)]:undefined;
@@ -2179,6 +2182,8 @@ async function boot() {
   /** CWorld::TriggerExplosionSectorList's object pass over OBJECT.DAT props: TryToExplode,
    * unfreezing when the blast force beats the uproot limit, ObjectDamage and the push. */
   weapons.onScorch=point=>{scorches.add(explosionScorch([point.x,-point.z,point.y]),gameTimeMs);};
+  // CPad::StartShake_Distance from an explosion or the player's shot: the distance to the camera decides.
+  weapons.onPadShake=(time,frequency,from)=>{const c=render.camera.position;mission?.runtime.game.pads.startShakeDistance(0,time,frequency,Math.hypot(from.x-c.x,from.y-c.y,from.z-c.z));};
   weapons.onCamShake=(strength,from)=>{const cam=mission?.runtime.game.camera;if(!cam)return;if(from){const c=render.camera.position;cam.camShake(strength,Math.hypot(from.x-c.x,from.y-c.y,from.z-c.z),gameTimeMs);}else cam.camShakeNoPos(strength,gameTimeMs);};
   render.shake=()=>mission?.runtime.game.camera.shakeLeft(gameTimeMs)??0;
   weapons.onExplosion=(point,params,byPlayer)=>{
@@ -2295,6 +2300,14 @@ async function boot() {
   const screenAwake=touch?new ScreenAwake():undefined;
   // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for.
   function applyResolution(){if(touch)render.setPixelRatio(resolutionRatio(touchSettings.resolution,devicePixelRatio));}
+  // A taken pad shake, felt: a played pad rumbles for its time at its strength; a touch screen vibrates for half of it,
+  // as the iOS port halves StartShake's time for a phone (an iPhone ticks once).
+  const touchShake=touch?touchHaptic():undefined;
+  function padShake(pad:number,time:number,frequency:number){
+    if(pad!==0)return;
+    if(gamepad.lastUsed>lastTouchAt)gamepad.rumble(time,Math.min(1,frequency/255));
+    else if(touchShake&&touchSettings.vibration)touchShake(time/2);
+  }
   // The first play's measure, on a touch screen whose quality settings nobody has chosen (not under automation, whose
   // software rendering would lower every run's).
   let autoQuality=touch&&!touchSettings.qualityChosen&&!navigator.webdriver?new AutoQuality():undefined;
@@ -2767,6 +2780,10 @@ async function boot() {
     input.frameStart();
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
+    // The pads' shakes: the menus' vibration setting (on a touch screen the touch settings'), none in a cutscene, run
+    // down with the frames, and each taken request felt on the pad or the phone.
+    {const pads=mission?.runtime.game.pads;if(pads){pads.useVibration=touch?touchSettings.vibration:true;pads.cutsceneRunning=!!mission?.runtime.game.cutscene.running;
+      pads.onShake??=padShake;if(!paused)pads.stepShake(dt*1000);}}
     {const vehicle=!!(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger);
      const pad=gamepad.poll(dt,paused||navigation?.open||arsenal.open?'menu':fleet?.occupiedPlane?'aircraft':vehicle?'vehicle':render.firstPerson?'scope':'foot',now);
      const padNames=gamepad.lastUsed>Math.max(lastTouchAt,lastKeyAt)?gamepad.family:undefined,flying=!!fleet?.occupiedPlane;

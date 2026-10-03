@@ -41,10 +41,11 @@ export class ScmPads {
  }
  /** IS_BUTTON_PRESSED: the state is non-zero and the menu did not just close. */
  isPressed(padIndex:number,button:number){return this.state(padIndex,button)!==0&&!this.justOutOfFrontEnd;}
- /* CPad::StartShake (0x53F8E0, reversed): the vibration the script asks a pad for. Two things the source does
-  * are kept as they are. A shake is only taken up while one is already running, since the body guards the
-  * assignment with the duration it is about to overwrite, so the very first request sets no duration; and the
-  * delay it remembers is compared against a later request's frequency, so a stronger one gets through early. */
+ /* CPad::StartShake (0x53F8E0): the vibration a pad is asked for. A request is taken up when it outlasts what is
+  * left of the running shake, as StartShake_Distance's guard reads and the iOS port's executable has StartShake's
+  * (it halves the time for a phone; the reversed source's guard, the duration alone, is a slip that would leave the
+  * very first request unheard). The delay it remembers is compared against a later request's frequency, so a
+  * stronger one gets through early. A taken request goes to `onShake`, the host's rumble or vibration. */
  /** FrontEndMenuManager.m_PrefsUseVibration and CCutsceneMgr::ms_running. */
  useVibration=true;cutsceneRunning=false;
  readonly shake=[{duration:0,frequency:0,noShakeBefore:0,noShakeFrequency:0},
@@ -56,9 +57,22 @@ export class ScmPads {
   const shake=this.shake[padIndex];
   if(!frequency){shake.duration=0;shake.frequency=0;return;}
   if(nowMs<shake.noShakeBefore&&frequency<=shake.noShakeFrequency)return;
-  if(shake.duration){shake.duration=time;shake.frequency=frequency;}
+  if(time>shake.duration){shake.duration=time;shake.frequency=frequency;this.onShake?.(padIndex,time,frequency);}
   shake.noShakeBefore=shakeDelayMs+nowMs;shake.noShakeFrequency=frequency;
  }
+ /** CPad::StartShake_Distance (0x53F9A0): a shake felt within 70 units of the camera (an explosion, the player's own
+  * shot), taken up when it outlasts what is left of the running one. */
+ startShakeDistance(padIndex:number,time:number,frequency:number,distanceToCamera:number){
+  this.pad(padIndex);
+  if(!this.useVibration||this.cutsceneRunning||!(distanceToCamera<70))return;
+  const shake=this.shake[padIndex];
+  if(!frequency){shake.duration=0;shake.frequency=0;return;}
+  if(time>shake.duration){shake.duration=time;shake.frequency=frequency;this.onShake?.(padIndex,time,frequency);}
+ }
+ /** The shake running down with the frames (CPad::Update's countdown, which the platform code keeps). */
+ stepShake(ms:number){for(const shake of this.shake){shake.duration=Math.max(0,shake.duration-ms);if(!shake.duration)shake.frequency=0;}}
+ /** The host's rumble or vibration for a taken request: the pad, the time in ms and the strength (0 to 255). */
+ onShake?:(padIndex:number,time:number,frequency:number)=>void;
  /* The pad flags the player commands switch. Each command gives its flag the other way round from the field:
   * the script enables a button and the pad disables it. */
  readonly disabled=[{duck:false,enterCar:false,fireWeapon:false,jump:false,cycleWeapon:false},

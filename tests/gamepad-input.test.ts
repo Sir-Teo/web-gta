@@ -53,3 +53,13 @@ test('a pad goes by its own names: a PlayStation pad by its shapes, others by th
  expect(padFamily('Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)')).toBe('xbox');
  expect(padFamily('Extended Gamepad')).toBe('xbox');
 });
+test('a pad\'s shake rumbles the pad played, where the browser can',()=>{
+ const target={addEventListener(){}};(globalThis as any).window??=target;
+ const input=new Input(target as unknown as HTMLCanvasElement,()=>{});
+ const effects:unknown[]=[];
+ const pad={id:'Xbox',connected:true,mapping:'standard',buttons:[],axes:[],vibrationActuator:{playEffect:(type:string,params:object)=>{effects.push([type,params]);return Promise.resolve();}}};
+ new GamepadInput(input,()=>[pad]).rumble(300,.5);
+ expect(effects).toEqual([['dual-rumble',{duration:300,strongMagnitude:.5,weakMagnitude:.5}]]);
+ // A pad without one, or none at all, is left alone.
+ expect(()=>{new GamepadInput(input,()=>[{...pad,vibrationActuator:null}]).rumble(300,.5);new GamepadInput(input,()=>[]).rumble(300,.5);}).not.toThrow();
+});

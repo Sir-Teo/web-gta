@@ -34,7 +34,7 @@ export function padCodes(pressed:readonly boolean[],context:Exclude<PadContext,'
 }
 /** A stick's dead zone (a resting stick drifts) and the camera's turn at full deflection, in mouse pixels a second. */
 export const STICK_DEAD_ZONE=.2,LOOK_PIXELS_PER_SECOND=900;
-interface PadState{readonly id?:string;readonly buttons:readonly {pressed:boolean;value:number}[];readonly axes:readonly number[];readonly mapping:string;readonly connected:boolean}
+interface PadState{readonly vibrationActuator?:{playEffect?:(type:string,params:{duration:number;strongMagnitude:number;weakMagnitude:number})=>Promise<unknown>}|null;readonly id?:string;readonly buttons:readonly {pressed:boolean;value:number}[];readonly axes:readonly number[];readonly mapping:string;readonly connected:boolean}
 /** Whose names the buttons go by: a PlayStation pad's (Sony's vendor id, or its name), else the Xbox layout's letters
  * that MFi and most other pads print. */
 export type PadFamily='playstation'|'xbox';
@@ -47,6 +47,11 @@ export class GamepadInput {
  family:PadFamily='xbox';
  private held=new Set<string>();private ownsStick=false;private previous:boolean[]=[];
  constructor(private readonly input:Input,private readonly pads:()=>readonly (PadState|null)[]=()=>(navigator.getGamepads?.()??[]) as readonly (PadState|null)[]){}
+ /** A pad's shake (CPad::StartShake) on the pad played, where the browser can rumble it: `strength` 0 to 1. */
+ rumble(ms:number,strength:number){
+  const pad=this.pads().find(p=>!!p&&p.connected&&p.mapping==='standard');
+  try{void pad?.vibrationActuator?.playEffect?.('dual-rumble',{duration:ms,strongMagnitude:strength,weakMagnitude:strength})?.catch(()=>{});}catch{/* no rumble */}
+ }
  /** One frame: `context` is what the pad plays, the menu while the game is held. */
  poll(dt:number,context:PadContext,now=performance.now()):PadFrame{
   const pad=this.pads().find(p=>!!p&&p.connected&&p.mapping==='standard');

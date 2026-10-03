@@ -65,13 +65,24 @@ describe('the cheat flags a script switches and asks about',()=>{
 });
 
 describe('the pad shake a script asks for',()=>{
- test('a shake is only taken up while one is already running, as the source leaves it',()=>{
-  const game=new ScmGameState();
+ test('a shake is taken up when it outlasts what is left of the running one, and the host hears it',()=>{
+  const game=new ScmGameState(),heard:number[][]=[];game.pads.onShake=(pad,time,frequency)=>heard.push([pad,time,frequency]);
   run(scmOpcode('SHAKE_PAD'),[0,300,200],game,1000);
-  expect(game.pads.shake[0]).toMatchObject({duration:0,frequency:0,noShakeBefore:1000,noShakeFrequency:200});
-  game.pads.shake[0].duration=1;
-  run(scmOpcode('SHAKE_PAD'),[0,300,200],game,2000);
+  expect(game.pads.shake[0]).toMatchObject({duration:300,frequency:200,noShakeBefore:1000,noShakeFrequency:200});
+  // A shorter one past the delay, while 300 is left, is not.
+  run(scmOpcode('SHAKE_PAD'),[0,100,220],game,2000);
   expect(game.pads.shake[0]).toMatchObject({duration:300,frequency:200});
+  // Run down, the next one is.
+  game.pads.stepShake(250);expect(game.pads.shake[0].duration).toBe(50);
+  run(scmOpcode('SHAKE_PAD'),[0,100,220],game,3000);
+  expect(game.pads.shake[0]).toMatchObject({duration:100,frequency:220});
+  expect(heard).toEqual([[0,300,200],[0,100,220]]);
+ });
+ test('a distant shake is felt within 70 units of the camera',()=>{
+  const game=new ScmGameState(),heard:number[][]=[];game.pads.onShake=(pad,time,frequency)=>heard.push([pad,time,frequency]);
+  game.pads.startShakeDistance(0,300,128,80);expect(game.pads.shake[0].duration).toBe(0);
+  game.pads.startShakeDistance(0,300,128,40);expect(game.pads.shake[0]).toMatchObject({duration:300,frequency:128});
+  expect(heard).toEqual([[0,300,128]]);
  });
 
  test('a weaker shake inside the delay is dropped and a stronger one gets through',()=>{

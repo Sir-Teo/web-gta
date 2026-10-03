@@ -23,3 +23,7 @@ test('on an iPhone a press clicks a hidden switch\'s label, which ticks the Tapt
 test('a browser with neither does nothing',()=>{
  const {doc,appended,clicks}=fakeDocument(false);touchHaptic({},doc)();expect(appended).toHaveLength(0);expect(clicks).toHaveLength(0);
 });
+test('a pad\'s shake vibrates for its time where the device can',()=>{
+ const vibrate=vi.fn(()=>true),{doc}=fakeDocument(true),haptic=touchHaptic({vibrate},doc);
+ haptic(120);haptic(.2);expect(vibrate.mock.calls).toEqual([[120],[1]]);
+});
