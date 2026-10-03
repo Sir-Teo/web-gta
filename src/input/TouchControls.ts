@@ -1,4 +1,5 @@
 import type {Input} from './Input';
+import {gyroLook} from './gyroAim';
 import {ANALOG_SENSITIVITY_RANGE,BUTTON_SCALE_RANGE,DEFAULT_TOUCH,DRAW_DISTANCE_RANGE,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type LayoutEntry,type TouchSettings} from './touchSettings';
 import {touchIconSvg,type TouchIcon} from './touchIcons';
 import {touchHaptic} from './haptics';
@@ -420,6 +421,13 @@ export class TouchControls {
   window.addEventListener('resize',()=>this.place(),options);
   // Tilt steering reads the device's orientation (the port's accelerometer option).
   window.addEventListener('deviceorientation',e=>{this.orientation={beta:e.beta,gamma:e.gamma};this.steer();},options);
+  // Gyro aiming reads the rate the device turns at, while aiming on foot or through a scope (gyroAim).
+  let lastMotion:number|undefined;
+  // A stream that stopped (a hidden page, the sensors paused) starts again from its next event, not with its gap.
+  window.addEventListener('devicemotion',e=>{const gap=lastMotion===undefined?0:(e.timeStamp-lastMotion)/1000,seconds=gap>.1?0:gap;lastMotion=e.timeStamp;
+   if(!this.settings.gyroAim||this.element.hidden||this.editing||!(this.mode==='scope'||this.mode==='foot'&&input.down('MouseAim')))return;
+   const angle=globalThis.screen?.orientation?.angle??(globalThis as {orientation?:number}).orientation??0,turn=gyroLook(e.rotationRate,angle,seconds);
+   if(!turn.yaw&&!turn.pitch)return;input.gyroYaw+=turn.yaw*this.settings.lookSpeed;input.gyroPitch+=turn.pitch*this.settings.lookSpeed;input.touches++;},options);
   this.apply(settings);
  }
  private moveStick(x:number,y:number){
@@ -629,8 +637,8 @@ export class TouchControls {
  * device, lock-on aim assist or free aim, the camera drag's speed, the buttons' size and the vibration. `change` gets each new set. Choosing
  * tilt asks iOS for the motion sensors (it asks only on a tap), and stays on the stick if refused. */
 /** Choosing tilt asks iOS for the motion sensors, which it asks only on a tap; refused, the choice stays where it was. */
-async function motionAllowed(){
- const request=(globalThis as {DeviceOrientationEvent?:{requestPermission?:()=>Promise<string>}}).DeviceOrientationEvent?.requestPermission;
+async function motionAllowed(kind:'DeviceOrientationEvent'|'DeviceMotionEvent'='DeviceOrientationEvent'){
+ const request=(globalThis as unknown as Record<string,{requestPermission?:()=>Promise<string>}|undefined>)[kind]?.requestPermission;
  try{return request?await request()==='granted':true;}catch{return false;}
 }
 export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:TouchSettings)=>void,adjust?:()=>void){
@@ -640,6 +648,7 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <label>Steering sensitivity <input type="range" class="touch-analog" aria-label="Steering sensitivity" min="${ANALOG_SENSITIVITY_RANGE.min}" max="${ANALOG_SENSITIVITY_RANGE.max}" step="1"></label>
 <label>Look speed <input type="range" class="touch-look-speed" aria-label="Look speed" min="${LOOK_SPEED_RANGE.min}" max="${LOOK_SPEED_RANGE.max}" step="0.1"></label>
 <label>Invert look <input type="checkbox" class="touch-invert" aria-label="Invert look"></label>
+<label>Gyro aiming <input type="checkbox" class="touch-gyro" aria-label="Gyro aiming"></label>
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
 <label>Vibration <input type="checkbox" class="touch-vibration" aria-label="Vibration"></label>
 <label>Auto climb <input type="checkbox" class="touch-auto-climb" aria-label="Auto climb"></label>
@@ -652,14 +661,17 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const analog=panel.querySelector<HTMLInputElement>('.touch-analog')!,look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
- const dynamic=panel.querySelector<HTMLInputElement>('.touch-dynamic-resolution')!;
+ const dynamic=panel.querySelector<HTMLInputElement>('.touch-dynamic-resolution')!,gyro=panel.querySelector<HTMLInputElement>('.touch-gyro')!;
  const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!,invert=panel.querySelector<HTMLInputElement>('.touch-invert')!,autoClimb=panel.querySelector<HTMLInputElement>('.touch-auto-climb')!;
  const density=panel.querySelector<HTMLSelectElement>('.touch-density')!,resolution=panel.querySelector<HTMLSelectElement>('.touch-resolution')!,effects=panel.querySelector<HTMLSelectElement>('.touch-effects')!,drawDistance=panel.querySelector<HTMLInputElement>('.touch-draw-distance')!;
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
- const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);analog.value=String(settings.analogSensitivity);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;resolution.value=settings.resolution;dynamic.checked=settings.dynamicResolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
+ const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);analog.value=String(settings.analogSensitivity);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;gyro.checked=settings.gyroAim;resolution.value=settings.resolution;dynamic.checked=settings.dynamicResolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
  vibration.onchange=()=>update({vibration:vibration.checked});autoClimb.onchange=()=>update({autoClimb:autoClimb.checked});invert.onchange=()=>update({invertLook:invert.checked});
  // Adaptive resolution: drawn softer while the phone cannot keep up (dynamicResolution), the chosen one otherwise.
  dynamic.onchange=()=>update({dynamicResolution:dynamic.checked});
+ // Gyro aiming asks iOS for the motion sensors (only on a tap); refused, it stays off.
+ gyro.onchange=async()=>{note.textContent='';if(!gyro.checked){update({gyroAim:false});return;}
+  if(await motionAllowed('DeviceMotionEvent'))update({gyroAim:true});else{gyro.checked=false;note.textContent='Motion sensors were not allowed, so gyro aiming stays off.';}};
  // A quality setting set by the player is chosen: the first play's measure leaves them be.
  resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard',qualityChosen:true});
  density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium',qualityChosen:true});

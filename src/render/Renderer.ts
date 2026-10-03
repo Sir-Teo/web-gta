@@ -200,6 +200,16 @@ export class GameRenderer {
       this.lastLook = elapsed;
       input.lookX = input.lookY = 0;
     }
+    // Gyro aiming (a touch setting): the phone turned is the camera turned, radian for radian, a scope's scaled by its
+    // zoom as the mouse's is; past the tremor it is a look as a drag is, and the aim assist waits for it to settle.
+    if (input.gyroYaw || input.gyroPitch) {
+      if (!paused && this.glance === 'none') {
+        if (fp) { const scale = this.zoom.fov / 80, range = firstPersonAlphaRange(fp); this.yaw += input.gyroYaw * scale; this.pitch = clamp(this.pitch - input.gyroPitch * scale, -range.max, -range.min); }
+        else { this.yaw += input.gyroYaw; this.pitch = clamp(this.pitch - input.gyroPitch, this.aiming ? -1.1 : -.18, 1.05); }
+        this.lastLook = elapsed;
+      }
+      input.gyroYaw = input.gyroPitch = 0;
+    }
     // The touch aim assist turns the aimed camera toward its target (a fifth of a second to settle), but not while a
     // finger is dragging the view or for a moment after.
     if(this.aimAssist&&this.aiming&&!fp&&this.glance==='none'&&elapsed-this.lastLook>LOOK_SETTLE&&this.cameraReady){

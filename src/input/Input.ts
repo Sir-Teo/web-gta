@@ -11,6 +11,8 @@ export class Input {
   private held = new Set<string>();
   private pressed = new Set<string>();
   lookX = 0;
+  /** The phone's turn to the left and up while gyro aiming (radians, gyroAim), for the camera to take whole. */
+  gyroYaw = 0; gyroPitch = 0;
   lookY = 0;
   private drag = false;
   /** Left-button press point and time, to tell a click from a camera drag. */
@@ -120,6 +122,6 @@ export class Input {
   /** Forget presses nobody consumed (CPad's "just down" lasts one frame): a key pressed during a pause or menu does
    * not act when play resumes. Held keys stay held. */
   dropPresses() { this.pressed.clear(); }
-  clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.drag = false; this.press = undefined; this.stick = undefined; this.carGunStick = undefined; }
+  clear() { this.held.clear(); this.pressed.clear(); this.lookX = this.lookY = 0; this.gyroYaw = this.gyroPitch = 0; this.drag = false; this.press = undefined; this.stick = undefined; this.carGunStick = undefined; }
   dispose() { this.abort.abort(); }
 }

@@ -25,6 +25,8 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  qualityChosen:boolean;
  /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
  invertLook:boolean;
+ /** Aiming or through a scope, the phone turned turns the camera (gyroAim); off unless chosen. */
+ gyroAim:boolean;
  /** How sharp the picture is: the renderer's one pixel per CSS pixel, the screen's own density up to twice it, or
   * three quarters of one (the port's Resolution setting; a phone's GPU pays for it in fill). */
  resolution:'low'|'standard'|'high';
@@ -36,7 +38,7 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  layout:Readonly<Record<string,LayoutEntry>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,autoClimb:true,analogSensitivity:27,qualityChosen:false,invertLook:false,resolution:'standard',dynamicResolution:true,layout:{},steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,autoClimb:true,analogSensitivity:27,qualityChosen:false,invertLook:false,gyroAim:false,resolution:'standard',dynamicResolution:true,layout:{},steeringChosen:false};
 /** A moved button: how far across and down, and (when resized) its size against the others'. */
 export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
 /** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
@@ -69,7 +71,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   autoClimb:typeof data.autoClimb==='boolean'?data.autoClimb:DEFAULT_TOUCH.autoClimb,
   analogSensitivity:Math.round(clamp(data.analogSensitivity,ANALOG_SENSITIVITY_RANGE,DEFAULT_TOUCH.analogSensitivity)),
   qualityChosen:data.qualityChosen===true,
-  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:(data as {layoutOn?:unknown}).layoutOn===LAYOUT_ON?parseLayout(data.layout):{},resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
+  invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,gyroAim:data.gyroAim===true,layout:(data as {layoutOn?:unknown}).layoutOn===LAYOUT_ON?parseLayout(data.layout):{},resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
   dynamicResolution:typeof data.dynamicResolution==='boolean'?data.dynamicResolution:DEFAULT_TOUCH.dynamicResolution,
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};
@@ -97,7 +99,7 @@ export function tiltSteering(beta:number|null,gamma:number|null,screenAngle:numb
  return Math.sign(degrees)*Math.min(1,magnitude)||0;
 }
 /** The screen's right and up in the device's x and y, by quarter turns of the screen angle. */
-const SCREEN_AXES:readonly (readonly [number,number,number,number])[]=[[1,0,0,1],[0,-1,1,0],[-1,0,0,-1],[0,1,-1,0]];
+export const SCREEN_AXES:readonly (readonly [number,number,number,number])[]=[[1,0,0,1],[0,-1,1,0],[-1,0,0,-1],[0,1,-1,0]];
 /** The vehicles whose side mission the submission button (the PC's 2) starts and ends, by model: taxi, paramedic,
  * firefighter, vigilante, pimping, burglary and freight. The port shows its mission start and cancel widgets in them. */
 export const SIDE_MISSION_VEHICLES:ReadonlySet<number>=new Set([420,438,416,407,544,596,597,598,599,523,427,490,528,432,425,430,447,575,609,537,538]);
