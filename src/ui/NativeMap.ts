@@ -70,7 +70,8 @@ export class NativeMap {
  placeAt?:(x:number,y:number)=>string|undefined;
  private zoneOverlays:readonly ZoneOverlay[]=[];
  setZoneOverlays(overlays:readonly ZoneOverlay[]){this.zoneOverlays=overlays;}
- constructor(container:HTMLElement){
+ /** `after`: what the image waits for before it is fetched (the menu's button up, after what it waits on). */
+ constructor(container:HTMLElement,after:Promise<unknown>=Promise.resolve()){
   this.element.className='native-navigation';
   this.element.innerHTML=`<button class="minimap-button" aria-label="Open San Andreas map"><canvas width="220" height="220" aria-label="Local roads and player position"></canvas></button><section class="world-map-panel" hidden tabindex="-1" aria-label="San Andreas map"><div class="map-toolbar"><strong>San Andreas</strong><label>Destination <select class="map-destination" aria-label="Map destination"><option value="">Choose a place</option><option value="grove">Grove Street</option><option value="meadows">Verdant Meadows airfield</option><option value="ls-airport">Los Santos airport</option><option value="sf-airport">San Fierro airport</option><option value="lv-airport">Las Venturas airport</option></select></label><label>Aircraft <select aria-label="Aircraft" class="map-aircraft"><option value="593">Dodo</option><option value="476">Rustler</option><option value="519">Shamal</option><option value="511">Beagle</option><option value="512">Cropduster</option><option value="513">Stuntplane</option><option value="553">Nevada</option><option value="487">Maverick</option><option value="425">Hunter</option><option value="520">Hydra (VTOL)</option><option value="417">Leviathan</option><option value="447">Seasparrow</option><option value="469">Sparrow</option><option value="488">News Maverick</option><option value="497">Police Maverick</option><option value="548">Cargobob</option><option value="563">Raindance</option></select></label><button class="map-fly">Fly from Verdant Meadows</button><button class="map-clear">Clear waypoint</button><button class="map-close">Close <kbd>[M]</kbd></button></div><canvas width="1200" height="1200" aria-label="Full San Andreas map; click to set a waypoint"></canvas><p class="map-status" role="status">Loading original map…</p></section>`;
   container.append(this.element);
@@ -128,8 +129,9 @@ export class NativeMap {
    const m=this.view.toMap(u,v);this.waypoint=mapToWorld(m.x,m.y);this.draw();};
   this.image.onload=()=>{this.loaded=true;this.draw();};this.image.onerror=()=>{this.status.textContent='Map image could not load. Reload to retry.';};
   this.element.addEventListener('click',e=>{if(e.target instanceof HTMLButtonElement)e.target.blur();});
-  // The radar is first drawn when play starts: fetch it behind what the menu is waiting on.
-  this.image.fetchPriority='low';this.image.src=`${import.meta.env.BASE_URL}play/navigation/san-andreas.png`;
+  // The radar is first drawn when play starts: fetch it once the menu is ready. A low priority alone still shared a
+  // phone's connection with the start package the menu waits on (1.1 MB beside its 9.5).
+  this.image.fetchPriority='low';void after.then(()=>{this.image.src=`${import.meta.env.BASE_URL}play/navigation/san-andreas.png`;});
  }
  /** CHud's radar sprites from hud.txd (see loadHudSprites), as image URLs by raster name. */
  setRadarSprites(urls:Record<string,string>){

@@ -345,6 +345,10 @@ async function boot() {
   /** Settles once the start package has arrived (or failed): the boot's own archive readers wait for it, so they no
    * longer share the connection with the download the play button waits on. */
   const afterStartPackage:Promise<void>=startScene?startScene.pack.then(()=>{},()=>{}):Promise.resolve();
+  /** Settles once the first scene is installed (or has failed) and the menu's button is up: what play needs only after
+   * the button (the radar's map, the streamed scripts) waits for it, rather than sharing a phone's connection with what
+   * the button waits on (the start package, then the footstep banks). */
+  let menuSettled=()=>{};const afterMenuReady=new Promise<void>(resolve=>{menuSettled=resolve;});
   // The world's chunks are kept in Cache Storage across sessions; ask that the browser not evict them under pressure.
   void navigator.storage?.persist?.().catch(()=>false);
   // Show the menu immediately, while the renderer and WASM load independently.
@@ -355,7 +359,7 @@ async function boot() {
   // A removed body or collider answers as a tombstone instead of trapping Rapier for the rest of the session.
   installRapierTombstones(RAPIER);
   installRapierUnfilteredQueries(RAPIER);
-  const navigation=walkDemo?new NativeMap(hud.element):undefined;
+  const navigation=walkDemo?new NativeMap(hud.element,afterMenuReady):undefined;
   const importedMode = true;
   const sim = new Simulation();
   const flightInstruments=document.createElement('div');flightInstruments.className='flight-instruments';flightInstruments.hidden=true;hud.element.append(flightInstruments);
@@ -1009,10 +1013,10 @@ async function boot() {
   let shoppingText:string|undefined;
   void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/data/shopping.dat`,location.href)).then(r=>r.ok?r.text():Promise.reject(new Error(`shopping.dat ${r.status}`))).then(text=>{shoppingText=text;mission?.runtime.game.shopping.load(text);}).catch(error=>{console.error('shopping.dat failed to load',error);});
   // data/script/script.img: the streamed scripts (shops, gyms, vending machines), registered with each mission runtime
-  // as it starts or as the archive arrives, whichever is later.
+  // as it starts or as the archive arrives, whichever is later; fetched once the menu's button is up.
   let scriptImg:Uint8Array|undefined;
   const registerStreamedScripts=()=>{if(scriptImg&&mission)try{mission.loadStreamedScripts(scriptImg);}catch(error){console.error('script.img could not be registered',error);}};
-  void fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/scripts/script.img`,location.href)).then(r=>r.ok?r.arrayBuffer():Promise.reject(new Error(`script.img ${r.status}`))).then(buffer=>{scriptImg=new Uint8Array(buffer);registerStreamedScripts();}).catch(error=>{console.error('script.img failed to load',error);});
+  void afterMenuReady.then(()=>fetch(new URL(`${import.meta.env.BASE_URL}play/world/files/scripts/script.img`,location.href))).then(r=>r.ok?r.arrayBuffer():Promise.reject(new Error(`script.img ${r.status}`))).then(buffer=>{scriptImg=new Uint8Array(buffer);registerStreamedScripts();}).catch(error=>{console.error('script.img failed to load',error);});
   // CPlayerInfo::m_nNumHoursDidntEat and WorkOutEnergyFromHunger.
   const hunger=new NativeHunger();
   const parachuteTimer=new NativeParachuteTimer();let inAircraft=false;
@@ -1614,7 +1618,7 @@ async function boot() {
   // same two banks itself: fetch it only if the engine could not load, instead of downloading them twice.
   // The engine's banks (about 5 MB) are needed once play starts, not to show the menu: download them after the start
   // package has arrived instead of alongside it.
-  void (startScene?.pack.catch(()=>{})??Promise.resolve()).then(()=>sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href)).then(loaded=>{if(!loaded)void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);});
+  void afterMenuReady.then(()=>sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href)).then(loaded=>{if(!loaded)void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);});
   const hornInput=new NativeHornInput();sound.setPlayer(()=>({...sim.player.position,y:sim.player.position.y+1}));
   sound.reset(sim);
   // Open the (suspended) output device while the menu waits, not inside the click that starts play.
@@ -5974,7 +5978,7 @@ async function boot() {
         }
         sceneChannel?.postMessage({ type: 'installed' });
       } catch (error) { localLighting.setModifiers([]); importedScene?.dispose(); importedScene = undefined; hud.menuMessage(error instanceof Error ? error.message : 'Scene installation failed.'); }
-      finally { installingScene = false; }
+      finally { installingScene = false; menuSettled(); }
     };
     if (sceneToken) {
       hud.menuMessage('Waiting for the local imported scene…');
