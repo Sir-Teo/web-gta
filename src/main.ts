@@ -218,6 +218,7 @@ import { storagePanel } from './ui/storagePanel';
 import { TouchControls, goFullscreen, offerInstall, showHelpIcons, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, resolutionRatio, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake, SCREEN_IDLE_MS, screenIdle } from './input/screenAwake';
+import { keepStorage, openedInstalled } from './core/persistentStorage';
 import { installRapierTombstones } from './simulation/rapierTombstones';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
@@ -2339,6 +2340,8 @@ async function boot() {
   const touchPopulation=()=>touch?DENSITY_SCALE[touchSettings.density]:1;
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
   const screenAwake=touch?new ScreenAwake():undefined;
+  /** Opened from the home screen (read before the game's own fullscreen): its storage is asked to be kept at the first play. */
+  const installedAtLaunch=openedInstalled();let storageAsked=false;
   /** Whether the lock was let go for a phone left untouched mid-game (screenIdle), to be taken again at its next touch. */
   let screenIdled=false,screenIdleMs=SCREEN_IDLE_MS;
   // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for; under it a
@@ -2534,7 +2537,7 @@ async function boot() {
     }
     paused = false; sound.setPlaying(true); last = performance.now(); clock.reset(); input.clear(); hud.setMenu(false); hud.menuMessage(''); canvas.focus();
     // A tap on the menu's button is the gesture a phone needs to go fullscreen.
-    if (touch) { void goFullscreen(); void screenAwake?.hold(true); screenIdled=false; armBackButton(); }
+    if (touch) { void goFullscreen(); void screenAwake?.hold(true); screenIdled=false; armBackButton(); if(!storageAsked){storageAsked=true;void keepStorage(navigator.storage,installedAtLaunch);} }
     // Terrain loading that gave up after failures in a row tries again from where the player stands.
     follower?.retry();
   }
