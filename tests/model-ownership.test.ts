@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import {expect,test,vi} from 'vitest';
 import {BufferGeometry,Material,Skeleton,type Mesh,type MeshBasicMaterial} from 'three';
 import {readDff} from '../src/assets/dff';
-import {modelObject,ModelObjectPool} from '../src/assets/ModelObjects';
+import {modelObject,ModelObjectPool,RETAINED_MODELS,modelTextureBytes,placedModelObjects,setRetainedModels} from '../src/assets/ModelObjects';
 import {Box3,Group} from 'three';
 import {TexturePool} from '../src/assets/TexturePool';
 import {decodeModelTextures} from '../src/assets/modelTextures';
@@ -77,4 +77,21 @@ test('a retired source keeps the decoded model it was built from for the next wi
  pool.acquire('lamp',make,10,{model,textures});expect(pool.retiredModels().size).toBe(0);
  pool.release('lamp');expect([...pool.retiredModels().keys()]).toEqual(['lamp']);expect(pool.retiredModels().get('lamp')!.model).toBe(model);
  pool.acquire('lamp',make,10);expect(pool.retiredModels().size).toBe(0);pool.dispose();
+});
+
+test('a touch screen keeps 32 MB of retired models, their textures counted; the desktop 48 MB of geometry',()=>{
+ const desktop={...RETAINED_MODELS};
+ try{
+  expect(desktop).toEqual({budget:48*1024*1024,textures:false});expect(new ModelObjectPool().retiredBudget).toBe(48*1024*1024);
+  // Every mip as decoded: a 64 x 64 texture with its 32 x 32 mip is 20 KiB.
+  const texture={name:'t',filter:2,addressU:1,addressV:1,hasAlpha:false,mips:[{width:64,height:64,data:new Uint8ClampedArray(64*64*4)},{width:32,height:32,data:new Uint8ClampedArray(32*32*4)}]} as any;
+  expect(modelTextureBytes([texture,texture])).toBe(2*(16384+4096));
+  setRetainedModels(32*1024*1024,true);
+  expect(new ModelObjectPool().retiredBudget).toBe(32*1024*1024);
+  // A placed model's pool entry counts its textures as well as its geometry.
+  const model={frames:[{name:'root',parent:-1,rotation:[1,0,0,0,1,0,0,0,1],position:[0,0,0]}],geometries:[],atomics:[],warnings:[]} as any;
+  const sizes:number[]=[];const sources={acquire:(_key:string,build:()=>any,bytes:number)=>{sizes.push(bytes);return build();},release(){}} as any;
+  try{placedModelObjects(model,[texture],[{id:1,model:'m',position:[0,0,0],rotation:[0,0,0,1]} as any],undefined,{},{sources,key:'m'});}catch{/* an empty model may not place; the size is taken first */}
+  expect(sizes[0]).toBe(modelTextureBytes([texture]));
+ }finally{setRetainedModels(desktop.budget,desktop.textures);}
 });

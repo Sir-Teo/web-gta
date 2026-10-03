@@ -216,7 +216,7 @@ export class ModelObjectPool {
    * CStreaming keeps a model loaded until memory is needed: driving back over the same street reuses them. */
   private retired = new Map<string, { source: ModelObjectSource; bytes: number; held?: HeldModel }>();
   private retiredBytes = 0;
-  constructor(readonly retiredBudget = 48 * 1024 * 1024) {}
+  constructor(readonly retiredBudget = RETAINED_MODELS.budget) {}
   get size() { return this.entries.size; }
   get retiredCount() { return this.retired.size; }
   get retiredMB() { return this.retiredBytes / 1e6; }
@@ -241,6 +241,20 @@ export class ModelObjectPool {
     for (const [oldKey, old] of this.retired) { if (this.retiredBytes <= this.retiredBudget) break; this.retired.delete(oldKey); this.retiredBytes -= old.bytes; old.source.dispose(); }
   }
   dispose() { for (const entry of this.entries.values()) entry.source.dispose(); this.entries.clear(); for (const old of this.retired.values()) old.source.dispose(); this.retired.clear(); this.retiredBytes = 0; }
+}
+/** What a pool keeps of the sources no window uses: up to `budget` bytes, counting their geometry and, with
+ * `textures`, their textures too. The desktop keeps 48 MB of geometry and whatever textures come with it, so driving
+ * back over a street reuses its models; a phone's browser closes a page that holds too much (iOS reloads the tab),
+ * and over an 18-window drive the textures alone passed two thousand, so a touch screen keeps 32 MB of the two
+ * (setRetainedModels, at boot). */
+export const RETAINED_MODELS = { budget: 48 * 1024 * 1024, textures: false };
+export function setRetainedModels(budget: number, textures: boolean) { RETAINED_MODELS.budget = budget; RETAINED_MODELS.textures = textures; }
+/** Bytes of a model's textures, every mip as decoded (RGBA): what the GPU holds for them, and the decoded copy a
+ * retired source keeps for the streaming worker. */
+export function modelTextureBytes(textures: readonly ModelTexture[]) {
+  let bytes = 0;
+  for (const t of textures) for (const m of t.mips) bytes += m.data.byteLength;
+  return bytes;
 }
 /** Bytes of geometry a model's source keeps on the GPU, for the pool's retired budget. */
 export function modelGeometryBytes(model: DffModel) {
@@ -271,7 +285,7 @@ export function flattenStaticModel(root: THREE.Object3D) {
 export function placedModelObjects(model: DffModel, textures: ModelTexture[], placements: IplInstance[], pool = new TexturePool(), options: { buildingLighting?: BuildingLightingState; worldLighting?:boolean; ambient?:NativeAmbientState; flatten?:boolean } = {}, shared?: { sources: ModelObjectPool; key: string }) {
   const triangles = model.atomics.filter(a => a.flags & 4).reduce((sum, a) => sum + model.geometries[a.geometry].indices.length / 3, 0);
   if (!placements.length || placements.length > 4096 || placements.length * triangles > 2000000 || placements.length * (model.frames.length + model.atomics.length) > 100000) throw new Error('Placement preview exceeds its instance, triangle or hierarchy limit.');
-  const source = shared ? shared.sources.acquire(shared.key, () => modelObject(model, textures, undefined, pool, options), modelGeometryBytes(model), model.geometries.length ? { model, textures } : undefined) : modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
+  const source = shared ? shared.sources.acquire(shared.key, () => modelObject(model, textures, undefined, pool, options), modelGeometryBytes(model) + (RETAINED_MODELS.textures ? modelTextureBytes(textures) : 0), model.geometries.length ? { model, textures } : undefined) : modelObject(model, textures, undefined, pool, options), root = new THREE.Group(), skeletons = new Set<THREE.Skeleton>();
   root.matrixAutoUpdate = false;
   let disposed=false;
   const dispose = () => { if(disposed)return;disposed=true;root.removeFromParent();skeletons.forEach(s => s.dispose()); skeletons.clear(); if (shared) shared.sources.release(shared.key); else source.dispose(); };

@@ -169,7 +169,7 @@ import type {WorldCar as ScriptCar} from './simulation/WorldCar';
 type WorldCarPad=ScriptCar['pad'];
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
-import {modelBuildStats} from './assets/ModelObjects';
+import {modelBuildStats,setRetainedModels} from './assets/ModelObjects';
 import {rehydrateResidentParts,residentModelsOf,type ResidentModel} from './assets/residentModels';
 import {includedScene} from './assets/includedScenes';
 import {SceneRegionFollower} from './assets/sceneRegionFollower';
@@ -2333,6 +2333,8 @@ async function boot() {
   // The help box draws the buttons it names: a touch button's glyph beside its name, as the mobile ports' help shows the
   // widget itself, and a played pad's face buttons as their symbols, as the PS2 original's did.
   hud.decorateHelp=(box,text)=>showHelpIcons(box,text,controlsNamedIn(text),controlNameOf,controlNaming());
+  // A phone keeps less of the streamed world it has left behind, textures counted (ModelObjects RETAINED_MODELS).
+  if(touch)setRetainedModels(32*1024*1024,true);
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);applyResolution();
    // The pause menu's Controls panel holds the touch settings.
    // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.
