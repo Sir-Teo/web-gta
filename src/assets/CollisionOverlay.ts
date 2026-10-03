@@ -1,3 +1,4 @@
+import { vectorFromNative } from '../core/nativeArrays';
 import * as THREE from 'three';
 import type { ColModel } from './col';
 import type { IplInstance } from './ipl';
@@ -12,7 +13,7 @@ export function collisionOverlay(model: ColModel, placements?: IplInstance[]) {
     const result = edges ? new THREE.EdgesGeometry(geometry) : new THREE.WireframeGeometry(geometry); geometry.dispose(); geometries.add(result); return result;
   };
   const sphere = model.spheres.length ? wire(new THREE.SphereGeometry(1, 12, 8)) : null;
-  for (const volume of model.spheres) { const line = new THREE.LineSegments(sphere!, material); line.position.fromArray(volume.center); line.scale.setScalar(volume.radius); source.add(line); }
+  for (const volume of model.spheres) { const line = new THREE.LineSegments(sphere!, material); vectorFromNative(line.position, volume.center); line.scale.setScalar(volume.radius); source.add(line); }
   const box = model.boxes.length ? wire(new THREE.BoxGeometry(1, 1, 1), true) : null;
   for (const volume of model.boxes) {
     const line = new THREE.LineSegments(box!, material);

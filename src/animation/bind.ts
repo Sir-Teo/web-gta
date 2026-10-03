@@ -1,3 +1,4 @@
+import { matrixFromNative } from '../core/nativeArrays';
 import { rootMotion, type RootMotionPolicy } from './rootMotion';
 import { Matrix4, Object3D, Quaternion, SkinnedMesh, Sphere, Vector3 } from 'three';
 import type { DffModel } from '../assets/dff';
@@ -24,7 +25,7 @@ function frameIndex(model: DffModel) {
 function restFrame(model: DffModel, index: number): RestFrame {
   const cache = frameIndex(model).rest; let rest = cache[index];
   if (!rest) {
-    const matrix = new Matrix4().fromArray(model.frames[index].matrix), position = new Vector3(), rotation = new Quaternion(), scale = new Vector3();
+    const matrix = matrixFromNative(new Matrix4(), model.frames[index].matrix), position = new Vector3(), rotation = new Quaternion(), scale = new Vector3();
     matrix.decompose(position, rotation, scale);
     const recomposed = new Matrix4().compose(position, rotation, scale);
     rest = matrix.elements.some((n, i) => !Number.isFinite(recomposed.elements[i]) || Math.abs(n - recomposed.elements[i]) > 1e-5)

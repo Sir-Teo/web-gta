@@ -1,3 +1,4 @@
+import {matrixFromNative} from '../core/nativeArrays';
 import {BufferAttribute,BufferGeometry,DynamicDrawUsage,Group,InstancedMesh,Matrix4,MeshBasicMaterial} from 'three';
 import {requireAsset} from '../assets/binary';
 import {TexturePool} from '../assets/TexturePool';
@@ -75,7 +76,7 @@ export class NativeGrassPass {
      }
      if(nativeGrassDistance(instance.position,frame.camera)<1)continue;
      if(matrixChanged||batch.activeIndices[written]!==index){
-      mesh.setMatrixAt(written,matrix.fromArray(instance.matrix));upload=true;
+      mesh.setMatrixAt(written,matrixFromNative(matrix,instance.matrix));upload=true;
      }
      batch.activeIndices[written++]=index;
     }
