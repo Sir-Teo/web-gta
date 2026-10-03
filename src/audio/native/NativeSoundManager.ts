@@ -49,7 +49,7 @@ export class NativeAudioHardware {
  lengthMs(ch:number){const s=this.channels[ch].sound;return s?soundLengthMs(s):0;}
  /** Advance buffers by elapsed audio time at their current frequency. */
  advance(elapsedMs:number){
-  for(const [i,c] of this.channels.entries()){
+  for(let i=0;i<this.channels.length;i++){const c=this.channels[i];
    if(!c.playing||!c.sound||c.paused)continue;
    const duration=c.sound.samples.length/c.sound.sampleRate;c.seconds+=elapsedMs/1000*c.frequency;
    if(c.seconds<duration)continue;
@@ -67,7 +67,7 @@ export class NativeAudioHardware {
   }
   if(maxGlobal<this.prevMaxGlobal){const v=this.prevMaxGlobal-(this.prevGlobalSlow?.5:1.2);if(v>maxGlobal){maxGlobal=v;if(this.prevGlobalSlow)globalSlow=true;}}
   if(maxSecondary<this.prevMaxSecondary){const v=this.prevMaxSecondary-(this.prevSecondarySlow?.5:1.2);if(v>maxSecondary){maxSecondary=v;if(this.prevSecondarySlow)secondarySlow=true;}}
-  for(const [i,c] of this.channels.entries()){
+  for(let i=0;i<this.channels.length;i++){const c=this.channels[i];
    c.volume=c.flags&CHANNEL_FLAG.clampVolumeToNegative?Math.min(c.volume,0):c.flags&CHANNEL_FLAG.secondaryGroup?c.volume-maxSecondary:c.volume-maxGlobal;
    c.gain=Math.fround(10**(Math.fround(c.volume*.05)));
    if(c.flags&CHANNEL_FLAG.unduckable)fullSum+=c.gain;
@@ -76,7 +76,7 @@ export class NativeAudioHardware {
   }
   this.prevMaxGlobal=maxGlobal;this.prevMaxSecondary=maxSecondary;this.prevSecondarySlow=secondarySlow;this.prevGlobalSlow=globalSlow;
   const masterScale=scaleSum===0?0:Math.min(Math.fround((6.4-fullSum*.8)*16383/scaleSum),16383);
-  for(const [i,c] of this.channels.entries()){
+  for(let i=0;i<this.channels.length;i++){const c=this.channels[i];
    const gain=c.gain*(c.flags&CHANNEL_FLAG.unduckable?16383:masterScale)*this.effectsScale;
    c.output=gain===0?-100:20*audioLog10(gain/16383);
    // DirectSound buffer volume spans -100..0 dB.
@@ -118,7 +118,8 @@ export class NativeSoundManager {
  cancelSoundsOfThisEventPlayingForThisEntity(event:number,entity:NativeAudioEntity){for(const s of this.sounds)if(s.inUse&&s.event===event&&s.entity===entity)s.stopSoundAndForget();}
  reset(){for(const s of this.sounds)if(s.inUse)s.stopSound();}
  private soundPaused(s:NativeSound){return this.paused&&!s.has(SOUND.unpausable);}
- /** Service (0x4F0000), once per game frame. `timeMs` is CTimer::GetTimeInMS. */
+ /** Service (0x4F0000), once per game frame. `timeMs` is CTimer::GetTimeInMS. Its loops index the 300 sounds rather
+  * than iterating entries(), which made an iterator result and an [index, sound] pair for each, every frame. */
  service(timeMs:number){
   const n=this.channelCount,sounds=this.sounds,hw=this.hardware;
   this.prioritised.fill(-1);
@@ -126,19 +127,19 @@ export class NativeSoundManager {
   this.clock.timeMs=timeMs;
   hw.advance(elapsed);
   for(let i=0;i<n;i++)this.positions[i]=hw.playTime(i);
-  for(const [i,s] of sounds.entries()){
+  for(let i=0;i<sounds.length;i++){const s=sounds[i];
    if(!s.inUse||!s.hardwareAware||!s.has(SOUND.startPercentage))continue;
    s.setFlags(SOUND.startPercentage,false);if(s.physicallyPlaying)continue;
    s.playTime=Math.trunc(Math.fround(s.playTime*this.lengths[i])/100)<<16>>16;
   }
   for(let i=0;i<n;i++){const ref=this.physical[i];if(ref===-1)continue;const s=sounds[ref];s.playTime=this.positions[i];if(s.requestedStop)hw.stopSound(i);}
-  for(const [i,s] of sounds.entries()){if(!s.inUse||!s.hardwareAware||s.frameDelay)continue;s.updatePlayTime(this.lengths[i],this.loopStarts[i],this.soundPaused(s)?0:elapsed);}
+  for(let i=0;i<sounds.length;i++){const s=sounds[i];if(!s.inUse||!s.hardwareAware||s.frameDelay)continue;s.updatePlayTime(this.lengths[i],this.loopStarts[i],this.soundPaused(s)?0:elapsed);}
   for(let i=0;i<n;i++)if(this.positions[i]===-1)this.physical[i]=-1;
   for(const s of sounds)if(s.inUse&&s.hardwareAware&&s.playTime===-1)s.soundHasFinished();
   for(const s of sounds){if(!s.inUse)continue;s.updateParameters(s.playTime);s.calculateVolume();}
   let prioritisedCount=0;
   for(let i=0;i<n;i++){const ref=this.physical[i];if(ref!==-1&&sounds[ref].has(SOUND.uncancellable))this.prioritised[prioritisedCount++]=ref;}
-  for(const [i,s] of sounds.entries()){
+  for(let i=0;i<sounds.length;i++){const s=sounds[i];
    if(!s.inUse||s.physicallyPlaying&&s.has(SOUND.uncancellable)||s.frameDelay!==0)continue;
    let ch=n-1;
    for(;ch>prioritisedCount;ch--)if(this.prioritised[ch]!==-1)break;
@@ -172,7 +173,7 @@ export class NativeSoundManager {
   }
   hw.service();
   // CAEMP3BankLoader::UpdateVirtualChannels: sound lengths and loop starts for the next frame.
-  for(const [i,s] of sounds.entries()){
+  for(let i=0;i<sounds.length;i++){const s=sounds[i];
    const sound=s.inUse?this.bank.sound(s.slot,s.sound):undefined;
    this.lengths[i]=sound?Math.min(32767,bytesToMs(sound.samples.length*2,sound.sampleRate)):-1;this.loopStarts[i]=sound?loopStartMs(sound):-1;
   }

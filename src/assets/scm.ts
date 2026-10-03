@@ -42,61 +42,65 @@ export function createScmDecodeBuffer():ScmDecodeBuffer{
  return {offset:0,end:0,opcode:0,name:'',parameters:[],pool:[]};
 }
 const WINDOWS_1252=new TextDecoder('windows-1252');
+/* The instruction being decoded. The interpreter decodes thousands of instructions a frame, one at a time and never
+ * within another: its reader state lives here, and the readers below are module functions, rather than four closures
+ * and an error message (its opcode in a template string) made for every instruction, all garbage a frame later. */
+let dBytes:Uint8Array=new Uint8Array(0),dView:DataView=new DataView(dBytes.buffer),dAt=0,dEnd=0,dCount=0,dPool:ScmParameter[]=[];
+const need=(length:number)=>{requireAsset(dAt+length<=dEnd,'Truncated asset data.');};
+function slot(){
+ let entry=dPool[dCount];
+ if(!entry){entry={type:0,value:0};dPool[dCount]=entry;}
+ dCount++;return entry;
+}
+function readName(length:number){
+ need(length);const from=dBytes.subarray(dAt,dAt+length),zero=from.indexOf(0);
+ dAt+=length;return WINDOWS_1252.decode(zero<0?from:from.subarray(0,zero));
+}
+function readParameter(){
+ need(1);const type=dBytes[dAt++],entry=slot();entry.type=type;
+ switch(type){
+  case 1:need(4);entry.value=dView.getInt32(dAt,true);dAt+=4;break;
+  case 4:{need(1);const n=dBytes[dAt++];entry.value=n>=128?n-256:n;break;}
+  case 5:{need(2);const n=dView.getUint16(dAt,true);dAt+=2;entry.value=n>=32768?n-65536:n;break;}
+  case 6:{
+   need(4);const value=dView.getFloat32(dAt,true);dAt+=4;
+   // The plain reader refuses a non-finite float rather than repairing it, and so does this one.
+   requireAsset(Number.isFinite(value),'Non-finite model coordinate.');entry.value=value;break;
+  }
+  case 2:case 3:case 10:case 11:case 16:case 17:need(2);entry.value=dView.getUint16(dAt,true);dAt+=2;break;
+  case 7:case 8:case 12:case 13:case 18:case 19:{
+   need(6);
+   const array=Array.isArray(entry.value)&&entry.value.length===6?entry.value:(entry.value=[0,0,0,0,0,0]);
+   for(let index=0;index<6;index++)array[index]=dBytes[dAt+index];
+   dAt+=6;break;
+  }
+  case 9:entry.value=readName(8);break;
+  case 15:entry.value=readName(16);break;
+  case 14:{need(1);const size=dBytes[dAt++];need(size);entry.value=WINDOWS_1252.decode(dBytes.subarray(dAt,dAt+size));dAt+=size;break;}
+  default:throw new Error(`Unsupported SCM parameter ${type} at ${dAt-1}.`);
+ }
+}
 export function decodeScmInstructionInto(bytes:Uint8Array,view:DataView,start:number,end:number,target:ScmDecodeBuffer){
  requireAsset(Number.isInteger(start)&&start>=0&&start+2<=end&&end<=bytes.length,'Invalid SCM code region.');
  const {pool,parameters}=target;
- let at=start,count=0;
- const opcode=view.getUint16(at,true);at+=2;
+ dBytes=bytes;dView=view;dAt=start;dEnd=end;dCount=0;dPool=pool;
+ const opcode=view.getUint16(dAt,true);dAt+=2;
  const command=SCM_COMMANDS[opcode&0x7fff];
- requireAsset(command,`Unknown SCM opcode at ${start}.`);
- const need=(length:number)=>{requireAsset(at+length<=end,'Truncated asset data.');};
- const slot=()=>{
-  let entry=pool[count];
-  if(!entry){entry={type:0,value:0};pool[count]=entry;}
-  count++;return entry;
- };
- const readParameter=()=>{
-  need(1);const type=bytes[at++],entry=slot();entry.type=type;
-  switch(type){
-   case 1:need(4);entry.value=view.getInt32(at,true);at+=4;break;
-   case 4:{need(1);const n=bytes[at++];entry.value=n>=128?n-256:n;break;}
-   case 5:{need(2);const n=view.getUint16(at,true);at+=2;entry.value=n>=32768?n-65536:n;break;}
-   case 6:{
-    need(4);const value=view.getFloat32(at,true);at+=4;
-    // The plain reader refuses a non-finite float rather than repairing it, and so does this one.
-    requireAsset(Number.isFinite(value),'Non-finite model coordinate.');entry.value=value;break;
-   }
-   case 2:case 3:case 10:case 11:case 16:case 17:need(2);entry.value=view.getUint16(at,true);at+=2;break;
-   case 7:case 8:case 12:case 13:case 18:case 19:{
-    need(6);
-    const array=Array.isArray(entry.value)&&entry.value.length===6?entry.value:(entry.value=[0,0,0,0,0,0]);
-    for(let index=0;index<6;index++)array[index]=bytes[at+index];
-    at+=6;break;
-   }
-   case 9:entry.value=readName(8);break;
-   case 15:entry.value=readName(16);break;
-   case 14:{need(1);const size=bytes[at++];need(size);entry.value=WINDOWS_1252.decode(bytes.subarray(at,at+size));at+=size;break;}
-   default:throw new Error(`Unsupported SCM parameter ${type} at ${at-1}.`);
-  }
- };
- const readName=(length:number)=>{
-  need(length);const from=bytes.subarray(at,at+length),zero=from.indexOf(0);
-  at+=length;return WINDOWS_1252.decode(zero<0?from:from.subarray(0,zero));
- };
+ if(!command)requireAsset(false,`Unknown SCM opcode at ${start}.`);
  for(const mode of command.parameters){
   if(mode==='raw128'){
    need(128);const entry=slot();entry.type=-1;
    const array=Array.isArray(entry.value)&&entry.value.length===128?entry.value:(entry.value=new Array<number>(128));
-   for(let index=0;index<128;index++)array[index]=bytes[at+index];
-   at+=128;
+   for(let index=0;index<128;index++)array[index]=bytes[dAt+index];
+   dAt+=128;
   }else if(mode==='arguments'){
-   while(bytes[at]!==0){requireAsset(count<64,'Too many SCM variable arguments.');readParameter();}
-   need(1);at++;
+   while(bytes[dAt]!==0){requireAsset(dCount<64,'Too many SCM variable arguments.');readParameter();}
+   need(1);dAt++;
   }else readParameter();
  }
  parameters.length=0;
- for(let index=0;index<count;index++)parameters.push(pool[index]);
- target.offset=start;target.end=at;target.opcode=opcode;target.name=command.name;
+ for(let index=0;index<dCount;index++)parameters.push(pool[index]);
+ target.offset=start;target.end=dAt;target.opcode=opcode;target.name=command.name;
 }
 function decodeScmRange(bytes:Uint8Array,start:number,end:number,one:boolean):ScmInstruction[]{
  requireAsset(Number.isInteger(start)&&Number.isInteger(end)&&start>=0&&end>=start&&end<=bytes.length,'Invalid SCM code region.');
