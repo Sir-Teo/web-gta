@@ -29,17 +29,18 @@ test('a phone works a lowrider\'s hydraulics: a tap raises it, a drag tips it',a
  if(await radio.isVisible()){const [hx,hy]=await centre(hydraulics),[rx,ry]=await centre(radio);expect(Math.hypot(hx-rx,hy-ry)).toBeGreaterThan(20);}
  const angle=()=>page.evaluate(h=>(window as any).__game.missionForProfiling().vehicles.entity(h).hydraulics.angle as number,low);
  const roll=()=>w('vehicleRoll',low) as Promise<number>;
- // A drag to the left lifts the left corners: the car rolls; let go, it settles.
+ // A drag to the left lifts the left corners: the car rolls; let go, it settles (in game time: the suspension moves
+ // over frames, which a loaded machine draws slowly).
  const flat=await roll();
  await press('.touch-button.hydraulics','pointerdown',21);
  for(let i=1;i<=8;i++){await press('.touch-button.hydraulics','pointermove',21,-i*8,0);await page.waitForTimeout(40);}
- await expect.poll(async()=>Math.abs((await roll())-flat),{timeout:10000}).toBeGreaterThan(2);
+ await expect.poll(async()=>Math.abs((await roll())-flat),{timeout:20000}).toBeGreaterThan(2);
  expect(await page.evaluate(()=>(window as any).__game.state().paused)).toBe(false);
  await press('.touch-button.hydraulics','pointerup',21,-64,0);
- await expect.poll(async()=>Math.abs((await roll())-flat),{timeout:10000}).toBeLessThan(2);
+ await expect.poll(async()=>Math.abs((await roll())-flat),{timeout:20000}).toBeLessThan(2);
  // A tap raises the whole car (HydraulicControl's horn branch: the angle goes to 500 and up).
  await press('.touch-button.hydraulics','pointerdown',22);await press('.touch-button.hydraulics','pointerup',22);
- await expect.poll(angle,{timeout:5000}).toBeGreaterThanOrEqual(500);
+ await expect.poll(angle,{timeout:10000}).toBeGreaterThanOrEqual(500);
  // Out of the car the button goes, and the horn has its place back at the next car without hydraulics.
  await w('removeVehicleHydraulics',low).catch(()=>{});
  expect(errors).toEqual([]);
