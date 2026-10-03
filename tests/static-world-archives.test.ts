@@ -69,3 +69,27 @@ test('a download the connection loses is a WorldDownloadError, which fails the w
   await expect(fetchStaticWorldBytes(url,resource,caller.signal)).rejects.not.toBeInstanceOf(WorldDownloadError);
  }finally{globalThis.fetch=original;}
 },20000);
+
+test('a phone\'s chunk budget keeps fewer decoded chunks, and a dropped one is inflated again when read',async()=>{
+ const {openStaticWorld,setChunkCacheBudget}=await import('../src/assets/staticWorldArchive');
+ const {gzipSync}=await import('node:zlib'),{createHash}=await import('node:crypto');
+ const sha=(b:Uint8Array)=>createHash('sha256').update(b).digest('hex');
+ // gta3.img of four entries, each in a chunk of its own (one sector), the header its directory.
+ const names=['a.dff','b.dff','c.dff','d.dff'],whole=img(names),directory=whole.slice(0,2048),files:Record<string,Uint8Array>={'directory.bin':directory};
+ const chunks=names.map((_,i)=>{const raw=whole.slice((1+i)*2048,(2+i)*2048),packed=new Uint8Array(gzipSync(raw)),file=`chunks/${i}.bin`;files[file]=packed;return {file,bytes:packed.length,expandedBytes:raw.length,sha256:sha(packed)};});
+ const manifest={version:1,archive:{name:'gta3.img',bytes:whole.length,directory:{file:'directory.bin',bytes:directory.length,sha256:sha(directory)}},chunks,
+  ranges:names.map((_,i)=>({offset:(1+i)*2048,length:2048,chunk:i,start:0})),resources:[]};
+ files['manifest.json']=new TextEncoder().encode(JSON.stringify(manifest));
+ const original=globalThis.fetch,base='https://pages.invalid/world/';
+ globalThis.fetch=(async(url:URL)=>{const bytes=files[String(url).slice(base.length)];return bytes?new Response(bytes.slice()):new Response('missing',{status:404});}) as typeof fetch;
+ try{
+  // Two chunks' worth: reading the four leaves the last two decoded.
+  setChunkCacheBudget(2*2048);
+  const archive=await openStaticWorld(base,new AbortController().signal);
+  for(const entry of archive.entries)expect((await readImgEntry(archive.file,entry))[0]).toBe(archive.entries.indexOf(entry)+1+40);
+  expect(archive.stats()).toMatchObject({downloads:4,retainedBytes:2*2048});
+  // The last read is still decoded; the first was dropped and is inflated again.
+  await readImgEntry(archive.file,archive.entries[3]);expect(archive.stats().downloads).toBe(4);
+  expect((await readImgEntry(archive.file,archive.entries[0]))[0]).toBe(41);expect(archive.stats()).toMatchObject({downloads:5,retainedBytes:2*2048});
+ }finally{globalThis.fetch=original;setChunkCacheBudget(64*1024*1024);}
+});

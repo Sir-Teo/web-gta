@@ -1,5 +1,5 @@
 import {openStaticWorldSource,readStaticWorldRegion} from './staticWorldSource';
-import {pruneWorldCache} from './staticWorldArchive';
+import {pruneWorldCache,setChunkCacheBudget} from './staticWorldArchive';
 let ready:ReturnType<typeof openStaticWorldSource>|undefined;
 /** The archive's base URL, once initialized. */
 let base:string|undefined;
@@ -28,7 +28,7 @@ self.onmessage=async({data})=>{
  try{
    if(data.action==='initialize'){
     if(base!==undefined)throw new Error('World source is already initialized.');
-    base=data.base;await open();return;
+    base=data.base;if(typeof data.chunkCacheBytes==='number')setChunkCacheBudget(data.chunkCacheBytes);await open();return;
    }
    if(data.action==='effects'&&ready){
     // 2d effects for models a prebuilt scene package carried without them, per geometry.

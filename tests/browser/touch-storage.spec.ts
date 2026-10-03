@@ -15,10 +15,13 @@ test('the Controls page shows the downloaded data and clears it on a second tap'
  const line=page.locator('.storage-settings small'),clear=page.getByRole('button',{name:/clear/i});
  await expect(line).toContainText(/MB kept on this device for quick starts and offline play/);
  // One tap asks; a second clears.
+ const kept=()=>page.evaluate(async()=>await caches.has('web-gta-world-v1')?(await (await caches.open('web-gta-world-v1')).keys()).length:0);
  await clear.scrollIntoViewIfNeeded();await clear.tap();await expect(clear).toHaveText(/Tap again to clear/);
- expect(await page.evaluate(()=>caches.has('web-gta-world-v1'))).toBe(true);
+ const before=await kept();expect(before).toBeGreaterThan(20);
+ // The chunks kept go. A read already on its way when the tap came (a ped's model; a phone keeps few chunks decoded,
+ // so it goes back to the network) may keep its chunk again: what the game needs where it is, not what was kept.
  await clear.tap();await expect(line).toContainText('Cleared.');await expect(clear).toHaveText('Clear downloaded data');
- expect(await page.evaluate(()=>caches.has('web-gta-world-v1'))).toBe(false);
+ expect(await kept()).toBeLessThan(Math.min(10,before/4));
  // Left alone, the question goes back to the button.
  await clear.tap();await expect(clear).toHaveText(/Tap again/);await expect(clear).toHaveText('Clear downloaded data',{timeout:8000});
  // The game plays on.

@@ -14,6 +14,11 @@ export interface StaticWorldManifest {
  archives?:{name:string;base:string}[];
 }
 const LIMIT=64*1024*1024;
+/** The decoded chunks a thread keeps for later reads (one budget for a world's IMGs): the most a chunk or a read may
+ * be, 64 MB, unless a phone asks for less (setChunkCacheBudget). The page and the streaming worker each keep their own,
+ * and a chunk dropped is only fetched again from Cache Storage and inflated. */
+let retainedLimit=LIMIT;
+export function setChunkCacheBudget(bytes:number){retainedLimit=Math.max(0,Math.min(LIMIT,bytes));}
 function safePath(path:string){return typeof path==='string'&&/^[a-zA-Z0-9_./-]+$/.test(path)&&!path.startsWith('/')&&!path.split('/').some(p=>p==='..'||p==='');}
 function validateResource(resource:{bytes:number;sha256:string}){requireAsset(Number.isSafeInteger(resource.bytes)&&resource.bytes>0&&resource.bytes<=LIMIT&&/^[a-f0-9]{64}$/.test(resource.sha256),'Invalid static world resource.');}
 async function collect(stream:ReadableStream<Uint8Array>,limit:number,progress?:()=>void){
@@ -160,7 +165,7 @@ async function openImg(base:URL,name:string,signal?:AbortSignal,budget:ChunkBudg
    // the browser's blob store.
    const source=new ReadableStream<Uint8Array<ArrayBuffer>>({start(controller){controller.enqueue(packed);controller.close();}});
    const bytes=await collect(source.pipeThrough(new DecompressionStream('gzip')),spec.expandedBytes);requireAsset(bytes.length===spec.expandedBytes,'Incomplete expanded world chunk.');
-   while(budget.retained+bytes.length>LIMIT&&budget.order.size)budget.order.values().next().value!.drop();
+   while(budget.retained+bytes.length>retainedLimit&&budget.order.size)budget.order.values().next().value!.drop();
    cache.set(index,bytes);retainedBytes+=bytes.length;budget.retained+=bytes.length;
    budget.order.set(key(index),{bytes:bytes.length,drop:()=>{cache.delete(index);retainedBytes-=bytes.length;budget.retained-=bytes.length;budget.order.delete(key(index));}});
    return bytes;

@@ -169,6 +169,7 @@ import type {WorldCar as ScriptCar} from './simulation/WorldCar';
 type WorldCarPad=ScriptCar['pad'];
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
+import {setChunkCacheBudget} from './assets/staticWorldArchive';
 import {modelBuildStats,setRetainedModels} from './assets/ModelObjects';
 import {rehydrateResidentParts,residentModelsOf,type ResidentModel} from './assets/residentModels';
 import {includedScene} from './assets/includedScenes';
@@ -2344,7 +2345,12 @@ async function boot() {
   hud.decorateHelp=(box,text)=>showHelpIcons(box,text,controlsNamedIn(text),controlNameOf,controlNaming());
   // A phone keeps less of the streamed world it has left behind, textures counted (ModelObjects RETAINED_MODELS), and
   // one that says it has 2 GB or less half that again.
-  if(touch)setRetainedModels(((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=2?16*1024*1024:32*1024*1024,true);
+  // It keeps fewer of the world's decoded chunks too, in the page and in the streaming worker: 24 MB each (16 at 2 GB or
+  // less) against 64, about 85 MB less over a drive, for a third more chunks inflated again from Cache Storage.
+  const weakDevice=((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=2;
+  if(touch)setRetainedModels(weakDevice?16*1024*1024:32*1024*1024,true);
+  const worldChunkBudget=touch?(weakDevice?16:24)*1024*1024:undefined;
+  if(worldChunkBudget!==undefined)setChunkCacheBudget(worldChunkBudget);
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);applyResolution();
    // The pause menu's Controls panel holds the touch settings.
    // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.
@@ -5884,7 +5890,7 @@ async function boot() {
               else if(data.followId===undefined)hud.menuMessage(`${data.message} The current terrain remains available.`);
               else{follower?.stop();hud.menuMessage(`${data.message} The current terrain remains available.`);}
             }
-          });
+          },{chunkCacheBytes:worldChunkBudget});
         }
         sceneChannel?.postMessage({ type: 'installed' });
       } catch (error) { localLighting.setModifiers([]); importedScene?.dispose(); importedScene = undefined; hud.menuMessage(error instanceof Error ? error.message : 'Scene installation failed.'); }
