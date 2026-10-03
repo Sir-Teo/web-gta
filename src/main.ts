@@ -2818,6 +2818,11 @@ async function boot() {
    return input.down('MouseAim')?{handle:crosshair?weapons.lock?.handle??-1:undefined,range:info?.targetRange??GROUP_RECRUIT_MELEE_RANGE}:undefined;};
   /** How near a ped must be to hear CJ's Y or N without the aim button (authored). */
   const CONVERSE_RANGE=4;
+  /** The frames drawn as the game is first held, and after anything that may change what is behind the menu. */
+  const HELD_REDRAWS=3,HELD_REDRAW_MS=2000;let heldRedraws=HELD_REDRAWS,heldDrawnAt=-Infinity;
+  const redrawHeld=()=>{heldRedraws=HELD_REDRAWS;};
+  for(const type of ['pointerdown','keydown','input','change','resize'] as const)window.addEventListener(type,redrawHeld,{capture:true,passive:true});
+  canvas.addEventListener('webglcontextrestored',redrawHeld);
   function animate(now: number) {
     if (!alive) return;
     frame = requestAnimationFrame(animate);
@@ -3795,8 +3800,15 @@ async function boot() {
     if(carEntry.error){hud.message(carEntry.error);carEntry.error=undefined;}
     if(!paused&&!navigation?.open&&!arsenal.open){if(weatherStarted)worldFx.weather({rain:weather.rain,sandstorm:weather.sandstorm,wind:weather.wind,windDir:[weather.windDir.x,weather.windDir.y,weather.windDir.z],noRain:cullNoRain()});const onFoot=!worldCar?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&(!carEntry.active||carEntry.phase==='approach');if(mission&&(mission.scriptFireCount()>0||scriptFiresBurning>0)){scriptFiresBurning=mission.scriptFireCount();mission.scriptFiresWentOut(weapons.fires.syncScriptFires(mission.scriptFires()));}worldFx.syncFires(weapons.fires.active);worldFx.step(dt,fleet?.cars??[],weapons.hazards,fleet?.planes??[],[...(onFoot?[{position:sim.player.position,speed:sim.player.speed,grounded:sim.player.grounded}]:[]),...(onFoot?(pedestrians?.walkers()??[]):[])],fleet?.boats??[]);}
     frameProfile.between+=performance.now()-tBetween;const tRender=performance.now();
+    // Held (the pause menu, the full map, the arsenal) the world does not move: it is drawn a few times, then again only
+    // when something may change it (a touch, a key, a setting, a resize, a restored display) or every two seconds (a
+    // streamed window arriving), not ten times a second: a phone left paused keeps its GPU, and its battery, idle.
+    let draw=true;
+    if(started&&(paused||!!navigation?.open||arsenal.open)){if(heldRedraws>0)heldRedraws--;else if(now-heldDrawnAt<HELD_REDRAW_MS)draw=false;if(draw)heldDrawnAt=now;}
+    else heldRedraws=HELD_REDRAWS;
+    if(draw){
     render.update(dt, alpha, input, elapsed, paused||terrainPause||!!navigation?.open||arsenal.open);
-    frameProfile.render+=performance.now()-tRender;frameProfile.frames++;
+    frameProfile.render+=performance.now()-tRender;frameProfile.frames++;}
     wantedHud.update(law,gameTimeMs);
     arsenal.update(weaponView.error,weaponView.crosshair);
     hud.weapon(weapons.inventory.weapon.name,weaponView.icon,weapons.inventory.selected===0);
@@ -5944,7 +5956,7 @@ async function boot() {
   }
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
-    alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); emergency?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
+    alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);for(const type of ['pointerdown','keydown','input','change','resize'] as const)window.removeEventListener(type,redrawHeld,{capture:true});canvas.removeEventListener('webglcontextrestored',redrawHeld);worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); emergency?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
     window.removeEventListener('touchstart',onTouchStart,{capture:true});for(const type of ['keydown','mousedown'] as const)window.removeEventListener(type,onKeyOrMouse,{capture:true});upright?.removeEventListener('change',onUpright);window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
