@@ -220,6 +220,7 @@ import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, resolutionRati
 import { ScreenAwake, SCREEN_IDLE_MS, screenIdle } from './input/screenAwake';
 import { keepStorage, openedInstalled } from './core/persistentStorage';
 import { installRapierTombstones } from './simulation/rapierTombstones';
+import { installRapierUnfilteredQueries } from './simulation/rapierUnfilteredQueries';
 import { LocalTimecycle, visionLighting } from './world/LocalTimecycle';
 import { bindLocalLighting } from './ui/localLighting';
 import {bindLocalObjectData} from './ui/localObjectData';
@@ -353,6 +354,7 @@ async function boot() {
   await RAPIER.init();
   // A removed body or collider answers as a tombstone instead of trapping Rapier for the rest of the session.
   installRapierTombstones(RAPIER);
+  installRapierUnfilteredQueries(RAPIER);
   const navigation=walkDemo?new NativeMap(hud.element):undefined;
   const importedMode = true;
   const sim = new Simulation();
