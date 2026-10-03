@@ -74,8 +74,10 @@ test('a phone plays with real touches: two thumbs, three fingers, the weapon ico
   return rects('.touch-context button').flatMap(p=>[...rects('.wanted-status'),...rects('.touch-buttons .touch-button:not([hidden])')].filter(o=>meets(p,o))).length;})).toBe(0);
  await page.evaluate(()=>(window as any).__game.hud().help(''));
  await page.evaluate(()=>(window as any).__game.setWantedLevel(0));
- // A long subtitle wraps in the room left of the buttons rather than running under them.
+ // A long subtitle wraps in the room left of the buttons rather than running under them, at a size a phone reads (by
+ // the screen's height, not a narrow window's 12 px).
  await page.evaluate(()=>(window as any).__game.hud().message("It's a good thing we found you and retrieved the murder weapon, Carl. Real good.",20000));
+ expect(await page.evaluate(()=>parseFloat(getComputedStyle(document.querySelector('.prompt')!).fontSize))).toBeGreaterThanOrEqual(13);
  expect(await page.evaluate(()=>{const s=document.querySelector('.prompt')!.getBoundingClientRect();
   return [...document.querySelectorAll('.touch-controls .touch-button:not([hidden])')].map(b=>b.getBoundingClientRect()).filter(r=>r.width&&r.left<s.right&&r.right>s.left&&r.top<s.bottom&&r.bottom>s.top).length;})).toBe(0);
  await page.evaluate(()=>(window as any).__game.hud().message('',1));
