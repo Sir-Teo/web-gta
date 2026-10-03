@@ -81,6 +81,9 @@ test('a phone plays with real touches: two thumbs, three fingers, the weapon ico
  // The pause button pauses, and Resume plays on.
  const pause=await centre(page,'.touch-button.pause');await fingers.tap(pause.x,pause.y);
  await expect.poll(async()=>(await state()).paused).toBe(true);
+ // The radar (top left, where the menu's first lines stand on a phone) goes under the menu and takes none of their taps.
+ expect(await page.evaluate(()=>{const b=document.querySelector('#play')!,r=b.getBoundingClientRect();
+  return [r.left+4,r.left+r.width/2,r.right-4].every(x=>b.contains(document.elementFromPoint(x,r.top+r.height/2)));})).toBe(true);
  const resume=await centre(page,'button:has-text("Resume game")');await fingers.tap(resume.x,resume.y);
  await expect.poll(async()=>(await state()).paused).toBe(false);
  expect(errors).toEqual([]);
