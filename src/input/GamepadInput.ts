@@ -64,9 +64,9 @@ export class GamepadInput {
   // The left stick as the touch stick's analog walk (a light push walks, the PC's Alt) and steer.
   if(context!=='menu'&&!dead(lx,ly)){
    const length=Math.min(1,Math.hypot(lx,ly)),scale=length/Math.hypot(lx,ly);
-   this.input.stick={x:lx*scale,y:-ly*scale};this.ownsStick=true;
+   this.input.stick={x:lx*scale,y:-ly*scale};this.input.stickFromPad=true;this.ownsStick=true;
    if(length<.55)this.input.hold('AltLeft');else this.input.release('AltLeft');
-  }else if(this.ownsStick){this.input.stick=undefined;this.input.release('AltLeft');this.ownsStick=false;}
+  }else if(this.ownsStick){this.input.stick=undefined;this.input.stickFromPad=false;this.input.release('AltLeft');this.ownsStick=false;}
   // The right stick turns the camera as a mouse would.
   if(context!=='menu'&&!dead(rx,ry)){this.input.lookX+=rx*LOOK_PIXELS_PER_SECOND*dt;this.input.lookY+=ry*LOOK_PIXELS_PER_SECOND*dt;this.input.touches++;}
   return frame;

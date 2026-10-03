@@ -3180,8 +3180,8 @@ async function boot() {
           shakeFist:()=>{const view=render.nativeCharacter;if(view&&!view.reactionName&&view.hasReaction('fucku'))view.playReaction('fucku');}})){playerCarHits.contacts++;if(hit.hurt){playerCarHits.hurt++;playerCarHits.hurtBy=hit.response.event.kind;}playerCarHits.last=hit.response.event.kind;}
         const controlsOff=playerControlsDisabled();
         const axes = law.arrested||weapons.stealth||entryBusy||controlsOff?{x:0,y:0}:input.axes();
-        // At the wheel the touch stick steers on the iOS port's curve (stickSteering); on foot it reads straight.
-        const steerAxes='stick' in axes&&axes.stick?{...axes,x:stickSteering(axes.x)}:axes;
+        // At the wheel the touch stick steers on the iOS port's curve (stickSteering); on foot, and a pad's stick, read straight.
+        const steerAxes='touchStick' in axes&&axes.touchStick?{...axes,x:stickSteering(axes.x)}:axes;
         let jumpPressed=input.consume('Space')&&!law.arrested&&!weapons.stealth&&!entryBusy&&!controlsOff&&!padSwitchedOff('jump')&&!playerDown;
         // CTaskSimplePlayerOnFoot::PlayerControlDucked (reversed): sprint, a jump press or an exit-vehicle press stands a
         // crouched CJ up (ClearTaskDuckSecondary). Only the ducked control runs that frame, so the press does not also jump.
@@ -3203,7 +3203,10 @@ async function boot() {
         // him by the stick (TaskSimplePlayerOnFoot.cpp:615-619, 893-903).
         // PlayerControlZelda jumps only while the target button is up; PlayerControlZeldaWeapon, which moves CJ while a
         // hip-fired rifle's use-gun task runs, never does.
-        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim')&&hipGun===undefined&&!((weapons.inventory.info()?.flags??0)&WEAPON_FLAG.heavy),jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming&&(render.aiming||weapons.inventory.weapon.kind==='melee'&&!sim.player.crouched)?render.yaw+Math.PI:hipGun!==undefined?turnToward(sim.player.heading,render.yaw+Math.PI,step):undefined };
+        let controls:import('./simulation/Simulation').Controls = { ...axes, jetPack:!!sim.jetPack, cameraYaw: render.yaw, cameraPitch: Math.asin(Math.max(-1,Math.min(1,render.camera.getWorldDirection(fogReductionForward).y))), walk: input.down('AltLeft') || input.down('AltRight'), sprint: input.down('ShiftLeft') || input.down('ShiftRight'), jump: jumpPressed&&!input.down('MouseAim')&&hipGun===undefined&&!((weapons.inventory.info()?.flags??0)&WEAPON_FLAG.heavy),jumpHeld:input.down('Space')&&!controlsOff&&!law.arrested&&!padSwitchedOff('jump'),
+          // The touch settings' Auto climb (the port's MOB_ATC, on by default): its check is the pad's left stick pushed
+          // forward past half (LeftStickY under -64), the touch stick or a played pad's.
+          autoClimb:touchScreen&&touchSettings.autoClimb&&!controlsOff&&!law.arrested&&(input.stick?.y??0)>64/128,exitVehicle:input.down('KeyF')&&!controlsOff&&!law.arrested&&!padSwitchedOff('enterCar'),parachute:weapons.parachute,facing:weapons.stealth?sim.player.heading:weapons.aiming&&(render.aiming||weapons.inventory.weapon.kind==='melee'&&!sim.player.crouched)?render.yaw+Math.PI:hipGun!==undefined?turnToward(sim.player.heading,render.yaw+Math.PI,step):undefined };
         // CTaskSimpleSwim player states: Space surfaces, attack dives, sprint selects the crawl while there is energy for
         // it (ControlButtonSprint's HandleSprintEnergy fails once spent, as the on-foot sprint does).
         if(onFoot&&sim.player.health>0&&!law.arrested&&!carEntry.active){
@@ -3301,8 +3304,8 @@ async function boot() {
           car.beforeStep(step,steerAxes,input.down('Space'),importedScene?.sources);}
         // The touch stick is the yoke: pushed forward the nose goes down, as a pad's left stick flies (on the port's steering
         // curve, its GetSteeringLeftRight and UpDown); the keys otherwise.
-        const yoke=input.stick&&Math.hypot(input.stick.x,input.stick.y)>.12?input.stick:undefined;
-        for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:yoke?-stickSteering(yoke.y):Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:yoke?stickSteering(yoke.x):Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
+        const yoke=input.stick&&Math.hypot(input.stick.x,input.stick.y)>.12?input.stick:undefined,yokeCurve=input.stickFromPad?(v:number)=>v:stickSteering;
+        for(const plane of fleet?.planes??[])plane.beforeStep(step,{throttle:Number(input.down('KeyW'))-Number(input.down('KeyS')),pitch:yoke?-yokeCurve(yoke.y):Number(input.down('ArrowDown'))-Number(input.down('ArrowUp')),roll:yoke?yokeCurve(yoke.x):Number(input.down('KeyD'))-Number(input.down('KeyA')),rudder:Number(input.down('KeyE'))-Number(input.down('KeyQ')),brake:input.down('Space')});
         for(const plane of fleet?.planes??[])if(plane.entry&&advancePlaneEntry(plane.entry,step)){const {phase,foot}=plane.entry;plane.entry=undefined;if(phase==='getin')plane.finishEnter();else plane.finishExit(foot);}
         for(const boat of fleet?.boats??[])boat.beforeStep(step,boat.occupied?{throttle:axes.y,steer:steerAxes.x,brake:input.down('Space')}:undefined);
         // ProcessDrivingAnims in a boat: a boat without m_bSitInBoat uses the DRIVE_BOAT set, steering and looking back.

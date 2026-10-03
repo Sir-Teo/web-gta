@@ -40,6 +40,8 @@ export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
 export interface Controls { x: number; y: number; sprint: boolean; walk?: boolean; jump: boolean;
   /** CPad::GetJump (held) and CPad::GetExitVehicle (held), read by CTaskSimpleClimb. `jump` is the press. */
   jumpHeld?: boolean; exitVehicle?: boolean;
+  /** The mobile ports' Auto Climb: the stick pushed forward past half climbs on as jumpHeld does (ClimbPad). */
+  autoClimb?: boolean;
   /** A jump or land task owns the ped: PlayerControlZelda does not run, so the move blend and heading hold. */
   holdMove?: boolean;
   /** The RUN and SPRINT associations' blends at the jump (CTaskSimpleJump::Launch), from the character's move anims. */
@@ -653,7 +655,7 @@ export class Simulation {
     const task = this.climb!, timeStep = dt * 50, ped = this.nativePed();
     task.updateAnim(dt);
     if (this.player.health <= 0) task.abort(ped);
-    const done = task.process(ped, { jump: !!controls.jumpHeld, jumpJustDown: controls.jump, exitVehicle: !!controls.exitVehicle }, this.climbWorld!, timeStep) || task.finished;
+    const done = task.process(ped, { jump: !!controls.jumpHeld, jumpJustDown: controls.jump, exitVehicle: !!controls.exitVehicle, autoClimb: !!controls.autoClimb }, this.climbWorld!, timeStep) || task.finished;
     // Standing on the top, the ground stops the finish's small downward speed.
     const fall = done && task.standing ? 0 : ped.moveSpeed.z * timeStep;
     const center = { x: ped.position.x + ped.moveSpeed.x * timeStep, y: ped.position.z + fall - 1 + this.playerCenterHeight, z: -(ped.position.y + ped.moveSpeed.y * timeStep) };

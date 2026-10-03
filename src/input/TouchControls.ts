@@ -379,7 +379,7 @@ export class TouchControls {
   let dx=x-this.stickOrigin.x,dy=y-this.stickOrigin.y;const length=Math.hypot(dx,dy);
   if(length>STICK_RADIUS){dx*=STICK_RADIUS/length;dy*=STICK_RADIUS/length;}
   this.stickKnob.style.transform=`translate(${dx}px,${dy}px)`;
-  const stick={x:dx/STICK_RADIUS,y:-dy/STICK_RADIUS};this.input.stick=stick;
+  const stick={x:dx/STICK_RADIUS,y:-dy/STICK_RADIUS};this.input.stick=stick;this.input.stickFromPad=false;
   // A light push walks (the PC's walk key); past half way CJ runs.
   if(Math.hypot(stick.x,stick.y)<.55)this.input.hold('AltLeft');else this.input.release('AltLeft');
  }
@@ -550,6 +550,7 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <label>Invert look <input type="checkbox" class="touch-invert" aria-label="Invert look"></label>
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
 <label>Vibration <input type="checkbox" class="touch-vibration" aria-label="Vibration"></label>
+<label>Auto climb <input type="checkbox" class="touch-auto-climb" aria-label="Auto climb"></label>
 <label>Population <select class="touch-density" aria-label="Population"><option value="full">Full</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
 <label>Draw distance <input type="range" class="touch-draw-distance" aria-label="Draw distance" min="${DRAW_DISTANCE_RANGE.min}" max="${DRAW_DISTANCE_RANGE.max}" step="1"></label>
 <label>Visual effects <select class="touch-effects" aria-label="Visual effects"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
@@ -558,11 +559,11 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
- const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!,invert=panel.querySelector<HTMLInputElement>('.touch-invert')!;
+ const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!,invert=panel.querySelector<HTMLInputElement>('.touch-invert')!,autoClimb=panel.querySelector<HTMLInputElement>('.touch-auto-climb')!;
  const density=panel.querySelector<HTMLSelectElement>('.touch-density')!,resolution=panel.querySelector<HTMLSelectElement>('.touch-resolution')!,effects=panel.querySelector<HTMLSelectElement>('.touch-effects')!,drawDistance=panel.querySelector<HTMLInputElement>('.touch-draw-distance')!;
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
- const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;invert.checked=settings.invertLook;resolution.value=settings.resolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
- vibration.onchange=()=>update({vibration:vibration.checked});invert.onchange=()=>update({invertLook:invert.checked});
+ const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;resolution.value=settings.resolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
+ vibration.onchange=()=>update({vibration:vibration.checked});autoClimb.onchange=()=>update({autoClimb:autoClimb.checked});invert.onchange=()=>update({invertLook:invert.checked});
  resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard'});
  density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium'});
  effects.onchange=()=>update({effects:effects.value==='low'||effects.value==='medium'?effects.value:'high'});

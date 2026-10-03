@@ -66,12 +66,12 @@ describe('CTaskSimpleClimb::TestForClimb',()=>{
 });
 
 /** CWorld::Process order at the browser's 60 Hz: animation, ProcessPed, then the move speed. */
-function run(world:ClimbWorld<Box>,task:NativeClimbTask<Box>,state:{position:V3;heading:number},jump:(t:number)=>boolean,seconds:number){
+function run(world:ClimbWorld<Box>,task:NativeClimbTask<Box>,state:{position:V3;heading:number},jump:(t:number)=>boolean,seconds:number,autoClimb?:(t:number)=>boolean){
  const dt=1/60,clips:ClimbClip[]=[];let t=0;
  const moved={...state,moveSpeed:{x:0,y:0,z:0},isPlayer:true};
  for(;t<seconds&&!task.finished;t+=dt){
   task.updateAnim(dt);
-  const done=task.process(moved,{jump:jump(t),jumpJustDown:false,exitVehicle:false},world,dt*50);
+  const done=task.process(moved,{jump:jump(t),jumpJustDown:false,exitVehicle:false,autoClimb:autoClimb?.(t)},world,dt*50);
   if(task.anim&&clips[clips.length-1]!==task.anim.clip)clips.push(task.anim.clip);
   moved.position={x:moved.position.x+moved.moveSpeed.x*dt*50,y:moved.position.y+moved.moveSpeed.y*dt*50,z:moved.position.z+moved.moveSpeed.z*dt*50};
   if(done)break;
@@ -102,6 +102,18 @@ describe('CTaskSimpleClimb::ProcessPed',()=>{
   expect(result.ped.position.z).toBeCloseTo(1.9,2);expect(result.ped.position.y).toBeCloseTo(.2,2);
   const resumed=run(world,task,result.ped,()=>true,4);
   expect(resumed.clips).toEqual(['CLIMB_idle','CLIMB_Pull','CLIMB_Stand','CLIMB_Stand_finish']);
+ });
+ test('the mobile ports\' Auto Climb (the stick pushed forward) pulls a hanging ped up as jump held does',()=>{
+  const wall=box({x:-3,y:.6,z:0},{x:3,y:1.6,z:3}),world=boxWorld([wall]);
+  const found=testForClimb(world,ped,true);if(!found||found==='invalid')throw new Error('no hold');
+  const task=new NativeClimbTask(found.entity,found.hold,CLIMB.GRAB,false,DURATIONS);
+  // Jump let go at once: the stick held back from the wall hangs on.
+  const hanging=run(world,task,ped,()=>false,2,()=>false);
+  expect(task.finished).toBe(false);expect(hanging.clips).toEqual(['CLIMB_jump','CLIMB_idle']);
+  // Pushed forward, with no jump button, it climbs on.
+  const climbed=run(world,task,hanging.ped,()=>false,4,()=>true);
+  expect(climbed.clips).toEqual(['CLIMB_idle','CLIMB_Pull','CLIMB_Stand','CLIMB_Stand_finish']);
+  expect(task.finished&&task.standing).toBe(true);
  });
  test('a thin fence is vaulted and the ped drops on the far side',()=>{
   const fence=box({x:-3,y:.6,z:0},{x:3,y:.7,z:1.5}),world=boxWorld([fence]);

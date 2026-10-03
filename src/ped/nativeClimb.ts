@@ -126,7 +126,9 @@ export function initialClimbHeight(hold:V3,ped:V3,inAir:boolean):ClimbHeight{
 export interface ClimbAssociation{clip:ClimbClip;time:number;step:number;blend:number;delta:number;playing:boolean;speed:number}
 const LOOPED=new Set<ClimbClip>(['CLIMB_idle']),FINISH_AUTO_REMOVE=new Set<ClimbClip>(['CLIMB_Stand_finish','CLIMB_jump2fall']);
 export interface ClimbPedState{position:V3;heading:number;moveSpeed:V3;isPlayer:boolean}
-export interface ClimbPad{jump:boolean;jumpJustDown:boolean;exitVehicle:boolean}
+/** `autoClimb`: the mobile ports' Auto Climb (MOB_ATC), the stick pushed forward past half, which climbs on as the jump
+ * button held does (the iOS port's CTaskSimpleClimb asks GetJump() || its AutoClimb check where the PC asks GetJump()). */
+export interface ClimbPad{jump:boolean;jumpJustDown:boolean;exitVehicle:boolean;autoClimb?:boolean}
 /** CTaskSimpleClimb on a static entity: the hold stays in world space. */
 export class NativeClimbTask<E extends ClimbEntity=ClimbEntity>{
  finished=false;invalid=false;
@@ -256,8 +258,8 @@ export class NativeClimbTask<E extends ClimbEntity=ClimbEntity>{
   if(a&&a.blend===1){
    const total=this.durations[a.clip],advance=()=>{this.heightForAnim=this.heightForAnim+1 as ClimbHeight;this.changeAnimation=true;};
    switch(a.clip){
-   case 'CLIMB_jump':if(total<=a.step+a.time){if(this.force||pad?.jump)advance();this.startAnim();}break;
-   case 'CLIMB_idle':if(this.force||!pad||pad.jump)advance();break;
+   case 'CLIMB_jump':if(total<=a.step+a.time){if(this.force||pad?.jump||pad?.autoClimb)advance();this.startAnim();}break;
+   case 'CLIMB_idle':if(this.force||!pad||pad.jump||pad.autoClimb)advance();break;
    case 'CLIMB_Pull':case 'CLIMB_Stand':if(total===a.time)advance();break;
    case 'CLIMB_jump_B':if(total<=a.step+a.time)advance();break;
    default:if(total===a.time&&(this.force||pad?.jumpJustDown))advance();

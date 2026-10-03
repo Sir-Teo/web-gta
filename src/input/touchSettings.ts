@@ -14,6 +14,9 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  /** The port's Draw Distance, 0 to 100 (70, its default, draws as the game does elsewhere): how far map models are
   * drawn before their low-detail stand-ins (lodDistance). */
  drawDistance:number;
+ /** The port's Auto Climb (MOB_ATC, on by default): hanging from a ledge, the stick pushed forward climbs on as the
+  * jump button held does. */
+ autoClimb:boolean;
  /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
  invertLook:boolean;
  /** How sharp the picture is: the renderer's one pixel per CSS pixel, the screen's own density up to twice it, or
@@ -24,7 +27,7 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  layout:Readonly<Record<string,LayoutEntry>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,autoClimb:true,invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
 /** A moved button: how far across and down, and (when resized) its size against the others'. */
 export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
 /** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
@@ -54,6 +57,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   density:data.density==='full'||data.density==='low'||data.density==='medium'?data.density:DEFAULT_TOUCH.density,
   effects:data.effects==='low'||data.effects==='medium'?data.effects:'high',
   drawDistance:Math.round(clamp(data.drawDistance,DRAW_DISTANCE_RANGE,DRAW_DISTANCE_DEFAULT)),
+  autoClimb:typeof data.autoClimb==='boolean'?data.autoClimb:DEFAULT_TOUCH.autoClimb,
   invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:(data as {layoutOn?:unknown}).layoutOn===LAYOUT_ON?parseLayout(data.layout):{},resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};
