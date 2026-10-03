@@ -20,7 +20,7 @@ test('the presets step down from the game\'s own to the port\'s middling, then i
  expect(lowerPreset({effects:'high'})).toBe('medium');expect(lowerPreset({effects:'medium'})).toBe('low');expect(lowerPreset({effects:'low'})).toBeUndefined();
  expect(QUALITY_PRESETS.medium).toEqual({effects:'medium',drawDistance:55});
  // The weakest device's preset turns the Car Reflections off too, as the port's does.
- expect(QUALITY_PRESETS.low).toEqual({effects:'low',drawDistance:20,resolution:'low',density:'low',carReflections:false});
+ expect(QUALITY_PRESETS.low).toEqual({effects:'low',drawDistance:20,resolution:'low',density:'low',carReflections:false,shadows:false});
  expect(parseTouchSettings({}).qualityChosen).toBe(false);expect(parseTouchSettings({qualityChosen:true}).qualityChosen).toBe(true);
 });
 

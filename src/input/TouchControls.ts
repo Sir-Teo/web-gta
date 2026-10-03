@@ -658,16 +658,17 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <label>Resolution <select class="touch-resolution" aria-label="Resolution"><option value="low">Low (softer, faster)</option><option value="standard">Standard</option><option value="high">High (sharper, slower)</option></select></label>
 <label>Adaptive resolution <input type="checkbox" class="touch-dynamic-resolution" aria-label="Adaptive resolution"></label>
 <label>Car reflections <input type="checkbox" class="touch-car-reflections" aria-label="Car reflections"></label>
+<label>Shadows <input type="checkbox" class="touch-shadows" aria-label="Shadows"></label>
 <button type="button" class="touch-adjust-open">Adjust controls</button>
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const analog=panel.querySelector<HTMLInputElement>('.touch-analog')!,look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
- const reflections=panel.querySelector<HTMLInputElement>('.touch-car-reflections')!;
+ const reflections=panel.querySelector<HTMLInputElement>('.touch-car-reflections')!,shadows=panel.querySelector<HTMLInputElement>('.touch-shadows')!;
  const dynamic=panel.querySelector<HTMLInputElement>('.touch-dynamic-resolution')!,gyro=panel.querySelector<HTMLInputElement>('.touch-gyro')!;
  const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!,invert=panel.querySelector<HTMLInputElement>('.touch-invert')!,autoClimb=panel.querySelector<HTMLInputElement>('.touch-auto-climb')!;
  const density=panel.querySelector<HTMLSelectElement>('.touch-density')!,resolution=panel.querySelector<HTMLSelectElement>('.touch-resolution')!,effects=panel.querySelector<HTMLSelectElement>('.touch-effects')!,drawDistance=panel.querySelector<HTMLInputElement>('.touch-draw-distance')!;
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
- const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);analog.value=String(settings.analogSensitivity);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;gyro.checked=settings.gyroAim;resolution.value=settings.resolution;dynamic.checked=settings.dynamicResolution;reflections.checked=settings.carReflections;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
+ const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);analog.value=String(settings.analogSensitivity);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;gyro.checked=settings.gyroAim;resolution.value=settings.resolution;dynamic.checked=settings.dynamicResolution;reflections.checked=settings.carReflections;shadows.checked=settings.shadows;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
  vibration.onchange=()=>update({vibration:vibration.checked});autoClimb.onchange=()=>update({autoClimb:autoClimb.checked});invert.onchange=()=>update({invertLook:invert.checked});
  // Adaptive resolution: drawn softer while the phone cannot keep up (dynamicResolution), the chosen one otherwise.
  dynamic.onchange=()=>update({dynamicResolution:dynamic.checked});
@@ -680,6 +681,7 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
  effects.onchange=()=>update({effects:effects.value==='low'||effects.value==='medium'?effects.value:'high',qualityChosen:true});
  drawDistance.oninput=()=>update({drawDistance:Number(drawDistance.value),qualityChosen:true});
  reflections.onchange=()=>update({carReflections:reflections.checked,qualityChosen:true});
+ shadows.onchange=()=>update({shadows:shadows.checked,qualityChosen:true});
  const update=(next:Partial<TouchSettings>)=>change({...current(),...next});
  steering.onchange=async()=>{
   note.textContent='';

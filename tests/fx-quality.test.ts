@@ -1,5 +1,5 @@
 import {afterEach,expect,test} from 'vitest';
-import {canAddParticle,fxQuality,playerRealTimeShadow,setFxQuality} from '../src/simulation/fx/fxQuality';
+import {canAddParticle,fxQuality,playerRealTimeShadow,setFxQuality,setRealTimeShadows} from '../src/simulation/fx/fxQuality';
 import {parseTouchSettings} from '../src/input/touchSettings';
 afterEach(()=>setFxQuality('high'));
 test('the FX quality drops particles below high as FxSystem_c\'s CanAddParticle does',()=>{
@@ -18,4 +18,13 @@ test('the touch settings keep a Visual effects choice, high by default',()=>{
  expect(parseTouchSettings({effects:'low'}).effects).toBe('low');expect(parseTouchSettings({effects:'medium'}).effects).toBe('medium');
  // Max (very high) is not offered.
  expect(parseTouchSettings({effects:'veryHigh'}).effects).toBe('high');
+});
+
+test('the Shadows setting off takes the real-time shadow away at every quality, the blob in its place',()=>{
+ try{
+  setRealTimeShadows(false);
+  for(const quality of ['low','medium','high','veryHigh'] as const){setFxQuality(quality);expect(playerRealTimeShadow()).toBe(false);}
+  setRealTimeShadows(true);setFxQuality('high');expect(playerRealTimeShadow()).toBe(true);
+  expect(parseTouchSettings({}).shadows).toBe(true);expect(parseTouchSettings({shadows:false}).shadows).toBe(false);
+ }finally{setRealTimeShadows(true);setFxQuality('high');}
 });
