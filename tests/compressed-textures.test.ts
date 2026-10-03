@@ -21,14 +21,19 @@ test('a compressed decode cache keeps the stored DXT blocks and ends the chain b
  expect(decoded.compressed).toBeUndefined();expect(decoded.mips).toHaveLength(3);expect(decoded.reconstructedMips).toEqual([1,2]);
 });
 
-test('compressed rasters upload as S3TC when the context has it, and DXT1 decodes to 16-bit 5551 otherwise',()=>{
+test('compressed rasters upload as S3TC when the context has it, and DXT1 decodes to 16-bit 5551 otherwise, held only for the upload',()=>{
  const [texture]=decodeNamedTextures(['calibration_grid'],dictionary(),new TextureDecodeCache(true));
  // A phone's GPU without S3TC: the RGBA decode narrowed to five bits a channel and its one-bit alpha, two bytes a texel.
  const fallback=nativeTexture(texture) as THREE.DataTexture;
  expect(fallback.isDataTexture).toBe(true);expect(fallback.format).toBe(THREE.RGBAFormat);expect(fallback.type).toBe(THREE.UnsignedShort5551Type);expect(fallback.unpackAlignment).toBe(2);
  const pixels=decodeTexture(readTxd(dictionary())[0],0),five=(v:number)=>Math.round(v*31/255);
  expect([...fallback.image.data!]).toEqual(Array.from({length:16},(_,i)=>pixels[i*4+3]?five(pixels[i*4])<<11|five(pixels[i*4+1])<<6|five(pixels[i*4+2])<<1|1:0));
- expect(fallback.mipmaps.map(m=>m.data.length)).toEqual([16]);
+ const levels=fallback.mipmaps as unknown as {data:Uint16Array;released:boolean}[];expect(levels.map(m=>m.data.length)).toEqual([16]);
+ // Once the GPU has it (three.js calls onUpdate after an upload) script memory lets the decode go, and a later upload
+ // (a lost context restored) decodes the same texels again from the blocks the source keeps.
+ const first=[...fallback.image.data!];expect(levels[0].released).toBe(false);
+ fallback.onUpdate!(fallback);expect(levels[0].released).toBe(true);
+ expect([...fallback.image.data!]).toEqual(first);expect(levels[0].released).toBe(false);
  setCompressedTextureSupport(true);
  const compressed=nativeTexture(texture) as THREE.CompressedTexture;
  expect(compressed.isCompressedTexture).toBe(true);expect(compressed.format).toBe(THREE.RGBA_S3TC_DXT1_Format);

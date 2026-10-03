@@ -14,14 +14,14 @@ export function nativeTexture(source: ModelTexture) {
   const first = source.mips[0], format = source.compressed;
   let texture: THREE.DataTexture | THREE.CompressedTexture;
   if (format && compressedUploads) texture = new THREE.CompressedTexture(source.mips as THREE.CompressedTextureMipmap[], first.width, first.height, dxtFormats[format]);
-  else if (format === 'DXT1') {
-    const mips = source.mips.map(m => ({ width: m.width, height: m.height, data: decodeDxt1To5551(new Uint8Array(m.data.buffer, m.data.byteOffset, m.data.byteLength), m.width, m.height) }));
+  else if (format) {
+    const blocks = (m: ModelTexture['mips'][number]) => new Uint8Array(m.data.buffer, m.data.byteOffset, m.data.byteLength);
+    texture = format === 'DXT1'
+      ? decodedOnUpload(source, THREE.UnsignedShort5551Type, m => decodeDxt1To5551(blocks(m), m.width, m.height))
+      : decodedOnUpload(source, THREE.UnsignedByteType, m => decodeDxt(blocks(m), m.width, m.height, format));
     // Two bytes a pixel: a one-texel-wide mip's rows are two bytes apart.
-    texture = new THREE.DataTexture(mips[0].data, first.width, first.height, THREE.RGBAFormat, THREE.UnsignedShort5551Type); texture.mipmaps = mips; texture.unpackAlignment = 2;
-  } else {
-    const mips = format ? source.mips.map(m => ({ width: m.width, height: m.height, data: decodeDxt(new Uint8Array(m.data.buffer, m.data.byteOffset, m.data.byteLength), m.width, m.height, format) })) : source.mips;
-    texture = new THREE.DataTexture(mips[0].data, first.width, first.height, THREE.RGBAFormat); texture.mipmaps = mips;
-  }
+    if (format === 'DXT1') texture.unpackAlignment = 2;
+  } else { texture = new THREE.DataTexture(first.data, first.width, first.height, THREE.RGBAFormat); texture.mipmaps = source.mips; }
   texture.name = source.name; texture.flipY = false; texture.colorSpace = THREE.NoColorSpace;
   texture.generateMipmaps = false;
   const modes = [THREE.NearestFilter, THREE.NearestFilter, THREE.LinearFilter, THREE.NearestMipmapNearestFilter,
@@ -32,5 +32,20 @@ export function nativeTexture(source: ModelTexture) {
   const wrap = (mode: number) => mode === 2 ? THREE.MirroredRepeatWrapping : mode === 3 || mode === 4 ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
   texture.wrapS = wrap(source.addressU); texture.wrapT = wrap(source.addressV || source.addressU);
   texture.needsUpdate = true;
+  return texture;
+}
+/** A DXT raster for a GPU without S3TC: each level decoded as the renderer uploads it and let go once uploaded (three.js
+ * calls onUpdate then). The blocks stay with the source, which the texture pool keeps, so script memory holds no
+ * second, larger copy of every texture on screen: on a phone's GPU, about 57 MB around Grove Street. A later upload
+ * (a lost context restored, a clone sampled another way) decodes again. */
+function decodedOnUpload(source: ModelTexture, type: THREE.TextureDataType, decode: (mip: ModelTexture['mips'][number]) => ArrayBufferView) {
+  const levels = source.mips.map(mip => {
+    let data: ArrayBufferView | undefined;
+    return { width: mip.width, height: mip.height, get data() { return data ??= decode(mip); }, get released() { return data === undefined; }, release() { data = undefined; } };
+  });
+  const texture = new THREE.DataTexture(null, levels[0].width, levels[0].height, THREE.RGBAFormat, type);
+  texture.image = { width: levels[0].width, height: levels[0].height, get data() { return levels[0].data; } } as unknown as typeof texture.image;
+  texture.mipmaps = levels as unknown as typeof texture.mipmaps;
+  texture.onUpdate = () => { for (const level of levels) level.release(); };
   return texture;
 }

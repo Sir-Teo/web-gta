@@ -2671,10 +2671,11 @@ async function boot() {
         const g=mesh.geometry.uuid,mat=[mesh.material].flat().map((x:any)=>x.uuid).join('+');byGeometry.set(g,(byGeometry.get(g)??0)+1);byPair.set(g+'|'+mat,(byPair.get(g+'|'+mat)??0)+1);});
       const repeats=[...byPair.values()].filter(n=>n>1),dist=(v:number[])=>{const s=[...v].sort((a,b)=>b-a);return {groups:s.length,draws:s.reduce((a,b)=>a+b,0),top:s.slice(0,12)};};
       return {drawn,skinned,uniqueGeometries:byGeometry.size,uniquePairs:byPair.size,repeatedPairs:dist(repeats)};},
-    /** CPU-side bytes held by scene geometry and textures (shared buffers counted once), for memory checks. */
+    /** CPU-side bytes held by scene geometry and textures (shared buffers counted once), for memory checks. A level
+     * decoded only for its upload (nativeTexture's decodedOnUpload) counts while it is held. */
     memoryCounts:async()=>{const seen=new Set<ArrayBufferLike>();let geometry=0,textures=0,textureCount=0,compressed=0;const seenTextures=new Set<unknown>();const add=(b:ArrayBufferLike|undefined)=>{if(!b||seen.has(b))return 0;seen.add(b);return b.byteLength;};
       render.scene.traverse(o=>{const g=(o as any).geometry;if(g)for(const a of Object.values(g.attributes??{}) as any[])geometry+=add(a.array?.buffer);if(g?.index)geometry+=add(g.index.array.buffer);const ms=[(o as any).material].flat().filter(Boolean);
-        const texture=(v:any)=>{if(!v?.isTexture||seenTextures.has(v))return;seenTextures.add(v);let n=0;for(const level of v.mipmaps?.length?v.mipmaps:[v.image])n+=add(level?.data?.buffer);if(n){textures+=n;textureCount++;if(v.isCompressedTexture)compressed++;}};
+        const texture=(v:any)=>{if(!v?.isTexture||seenTextures.has(v))return;seenTextures.add(v);let n=0;for(const level of v.mipmaps?.length?v.mipmaps:[v.image])if(!level?.released)n+=add(level?.data?.buffer);if(n){textures+=n;textureCount++;if(v.isCompressedTexture)compressed++;}};
         for(const m of ms)for(const v of Object.values(m))texture(v);for(const u of Object.values(ms[0]?.uniforms??{}) as any[])texture(u?.value);});
       const archive=await import('./assets/staticWorldArchive').then(m=>m.openStaticWorld(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href));
       return {geometryMB:geometry/1e6,texturesMB:textures/1e6,textureCount,compressed,chunkCacheMB:archive.stats().retainedBytes/1e6};},
