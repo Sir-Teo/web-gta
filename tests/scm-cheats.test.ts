@@ -125,3 +125,13 @@ test('eCheats places the car cheats at 28, 34 and 35, and a typed one counts for
  const table=new ScmCheats();expect(table.anyCarCheatsActivated).toBe(false);
  CHEATS.enable('perfectHandling');try{expect(table.anyCarCheatsActivated).toBe(true);}finally{CHEATS.reset();}
 });
+
+test('the pad counts each script read of a button, so a host sees a script waiting on one',()=>{
+ const game=new ScmGameState();
+ expect(game.pads.reads(0,4)).toBe(0);
+ run(scmOpcode('IS_BUTTON_PRESSED'),[0,4],game);run(scmOpcode('IS_BUTTON_PRESSED'),[0,4],game);
+ expect(game.pads.reads(0,4)).toBe(2);expect(game.pads.reads(0,16)).toBe(0);expect(game.pads.reads(1,4)).toBe(0);
+ // Any read counts (GET_PAD_STATE's too, the same state()); a button outside the switch counts for nothing.
+ game.pads.state(1,4);expect(game.pads.reads(1,4)).toBe(1);
+ game.pads.state(0,99);expect(game.pads.reads(0,99)).toBe(0);
+});

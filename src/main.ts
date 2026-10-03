@@ -226,6 +226,7 @@ import { Hud } from './ui/Hud';
 import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, GAMELOGIC_STATE_WASTED, GAMELOGIC_STATE_BUSTED, type GameLogicWorld, type SkipWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
+import { BUTTON } from './engine/ScmPads';
 import { NativeBirds, sampledDistanceToWater } from './world/nativeBirds';
 import { NativeBirdsMesh } from './render/NativeBirds';
 import { MARKER3D, Native3dMarkers, type Marker3dContext } from './world/native3dMarkers';
@@ -2771,6 +2772,8 @@ async function boot() {
   const GROUP_DISBAND_HOLD_SECONDS=2;
   /** weapon.dat UNARMED's target range, for a target with no weapon row. */
   const GROUP_RECRUIT_MELEE_RANGE=10;
+  /** The scripts' reads of the phone's button as last counted, and when the count last moved (ms). */
+  let phoneButtonReads=0,phoneButtonReadAt=-Infinity;
   /** Who the group buttons are aimed at: with PED_LOCK_TARGET held, a gun's crosshair names the ped; otherwise the
    * nearest ahead within the weapon's target range. Without it, nobody (the buttons command the group). */
   /** Who Y and N speak to: with PED_LOCK_TARGET held, the crosshair's ped or the nearest ahead within the weapon's
@@ -3564,6 +3567,10 @@ async function boot() {
       const offer=pedestrians.groupOffer(groupTarget());
       if(offer.recruit)asked.push('GANG_RECRUIT');else if(offer.crew)asked.push('GROUP_CONTROL_FWD','GROUP_CONTROL_BWD');
      }
+     // A script reading the phone's button on foot (an incoming call, camera.scm's "have your picture taken") puts up
+     // Action, as the port puts up its PHONE widget for a call, though the help names the button only the first time.
+     {const reads=mission?.runtime.game.pads.reads(0,BUTTON.leftShoulder1)??0,at=performance.now();if(reads!==phoneButtonReads){phoneButtonReads=reads;phoneButtonReadAt=at;}
+      if(!inVehicle&&!carEntry.active&&at-phoneButtonReadAt<500)asked.push('PED_ANSWER_PHONE');}
      // Yes and No (the port's REPLY_YES and _NO, "Positive talk" and "Negative talk"): a script's conversation waiting
      // for an answer, or, on foot with Aim held, someone CJ could talk to.
      if(!inVehicle&&!carEntry.active&&!playerControlsDisabled()&&(mission?.runtime.game.conversations.waitingForInput||!held&&input.down('MouseAim')&&!!pedestrians?.canTalk(talkTarget())))

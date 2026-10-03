@@ -37,8 +37,13 @@ export class ScmPads {
  state(padIndex:number,button:number){
   const pad=this.pad(padIndex);
   const name=BUTTON_ORDER[button];
+  if(name!==undefined)this.readCounts[padIndex*BUTTON_ORDER.length+button]++;
   return name===undefined?0:pad[name];
  }
+ /** How many times the scripts have read a button: a host sees a script waiting on one (an incoming call on the
+  * phone's) by the count moving, and puts a touch button up for it though no help text names it. */
+ reads(padIndex:number,button:number){return this.readCounts[padIndex*BUTTON_ORDER.length+button]??0;}
+ private readonly readCounts=new Array<number>(2*BUTTON_ORDER.length).fill(0);
  /** IS_BUTTON_PRESSED: the state is non-zero and the menu did not just close. */
  isPressed(padIndex:number,button:number){return this.state(padIndex,button)!==0&&!this.justOutOfFrontEnd;}
  /* CPad::StartShake (0x53F8E0): the vibration a pad is asked for. A request is taken up when it outlasts what is
