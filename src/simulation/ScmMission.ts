@@ -2506,7 +2506,8 @@ export class ScmMission {
   const conversations=this.runtime.game.conversations;if(!conversations.count)return;
   conversations.update(nowMs,{
    inPosition:ped=>this.playerInPositionForConversation(ped),
-   pedSays:(_ped,node,subtitles)=>{if(subtitles)this.runtime.game.messages.addMessageJump(node.name,CONVERSATION_PED_LINE_MS,1,false,nowMs);},
+   // Their lines are subtitles: with the Display settings' Subtitles off they are not printed.
+   pedSays:(_ped,node,subtitles)=>{if(subtitles&&this.runtime.game.showSubtitles)this.runtime.game.messages.addMessageJump(node.name,CONVERSATION_PED_LINE_MS,1,false,nowMs);},
    playerSays:()=>{},
   });
  }

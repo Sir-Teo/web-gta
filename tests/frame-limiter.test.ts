@@ -18,8 +18,10 @@ test('a stall resynchronises the grid instead of drawing a burst of catch-up fra
  expect(frameDue(pacer,1510,30)).toBe(false);
  expect(frameDue(pacer,1534,30)).toBe(true);
 });
-test('display settings default to the limiter on and reject junk',()=>{
- expect(parseDisplaySettings(null)).toEqual({frameLimiter:true});
- expect(parseDisplaySettings({frameLimiter:false})).toEqual({frameLimiter:false});
- expect(parseDisplaySettings({frameLimiter:'no'})).toEqual({frameLimiter:true});
+test('display settings default to the limiter and subtitles on and reject junk',()=>{
+ expect(parseDisplaySettings(null)).toEqual({frameLimiter:true,subtitles:true});
+ expect(parseDisplaySettings({frameLimiter:false})).toEqual({frameLimiter:false,subtitles:true});
+ expect(parseDisplaySettings({frameLimiter:'no',subtitles:'off'})).toEqual({frameLimiter:true,subtitles:true});
+ // Subtitles off (the PC's and the mobile ports' option) is kept.
+ expect(parseDisplaySettings({subtitles:false})).toEqual({frameLimiter:true,subtitles:false});
 });

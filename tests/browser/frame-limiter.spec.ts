@@ -26,6 +26,6 @@ test('the frame limiter draws 30 frames a second over the 60 Hz simulation, idle
  const free=(d.frameProfile.frames-c.frameProfile.frames)/3;
  console.log('FREE '+JSON.stringify({free,ticks:(d.tick-c.tick)/3}));
  expect(free).toBeGreaterThan(fps*1.3);
- expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('grove-display-v1')!))).toEqual({frameLimiter:false});
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('grove-display-v1')!))).toEqual({frameLimiter:false,subtitles:true});
  expect(errors).toEqual([]);
 });

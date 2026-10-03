@@ -1617,7 +1617,7 @@ async function boot() {
   hud.bindAudio(sound.settings, settings => sound.setSettings(settings));
   // The PC original's frame limiter (on by default): display frames pace at 30 a second over the 60 Hz simulation.
   const display=readDisplaySettings(),pacer:FramePacer={lastDrawn:0};
-  hud.bindDisplay(display,settings=>{display.frameLimiter=settings.frameLimiter;saveDisplaySettings(display);});
+  hud.bindDisplay(display,settings=>{Object.assign(display,settings);saveDisplaySettings(display);});
   const clock = new FixedClock();
   let paused = true, started = false, last = performance.now(), elapsed = 0, frame = 0, alive = true;
   /** One faulting population system must not freeze the frame: its step is skipped, the fault logged once per
@@ -2635,7 +2635,7 @@ async function boot() {
     placeCar:(x:number,y:number,z:number,heading?:number)=>{if(!worldCar)return false;const b=worldCar.car.body;b.setTranslation({x,y,z},true);if(heading!==undefined)b.setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
     /** Dev: the frame limiter (the menu's Display setting). */
-    setFrameLimiter:(on:boolean)=>{display.frameLimiter=!!on;saveDisplaySettings(display);hud.bindDisplay(display,settings=>{display.frameLimiter=settings.frameLimiter;saveDisplaySettings(display);});return display.frameLimiter;},
+    setFrameLimiter:(on:boolean)=>{display.frameLimiter=!!on;saveDisplaySettings(display);hud.bindDisplay(display,settings=>{Object.assign(display,settings);saveDisplaySettings(display);});return display.frameLimiter;},
     /** Dev: the traffic, weapons and occupants. */
     traffic:()=>traffic,weapons:()=>weapons,occupants:()=>occupants,
     /** Dev: the world head-sphere centre of a car's seated driver (renderer frame), by body handle. */
@@ -3813,6 +3813,8 @@ async function boot() {
     if(mission&&!paused&&!terrainPause&&!navigation?.open&&!arsenal.open){
       // CPad::Update: the script reads the pad the held keys make, through the driving mapping while the player drives
       // with the controls on. JustOutOfFrontEnd holds for the first frame after the menu.
+      // FrontEndMenuManager.m_bShowSubtitles, the Display settings' Subtitles.
+      mission.runtime.game.showSubtitles=display.subtitles;
       {const pads=mission.runtime.game.pads;pads.invertMouseY=lookInverted();const driving=mission.playerControl!==false&&!!(worldCar?.occupied||fleet?.occupiedPlane||fleet?.occupiedBoat||fleet?.occupiedBike);
        padStateFromActions(heldPadActions(code=>input.down(code)),driving?'driving':render.firstPerson?'firstPerson':'thirdPerson',false,pads.pads[0]);
        // The touch stick is the pad's analog left stick (the script's menus and its stick checks read it), where no key

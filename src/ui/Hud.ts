@@ -102,6 +102,7 @@ export class Hud {
           <label for="audio-effects">Sound effects <output id="value-effects"></output></label><input id="audio-effects" type="range" min="0" max="100" step="1">
           <label class="mute"><input id="audio-muted" type="checkbox"> Mute all sound</label>
           <label class="mute"><input id="display-frame-limiter" type="checkbox"> Frame limiter (30 frames a second, as the PC original)</label>
+          <label class="mute"><input id="display-subtitles" type="checkbox"> Subtitles</label>
           <p id="audio-status" role="status"></p><p class="audio-credits">Native San Andreas footsteps, weapons and explosions.</p>
         </div>
         <div class="lighting-panel" hidden aria-label="Local lighting">
@@ -170,10 +171,11 @@ export class Hud {
     const mute = this.element.querySelector<HTMLInputElement>('#audio-muted')!;
     mute.checked = values.muted; mute.onchange = () => { values.muted = mute.checked; update({ ...values }); };
   }
-  /** The frame limiter checkbox (FrontEndMenuManager.m_bPrefsFrameLimiter). */
-  bindDisplay(settings: { frameLimiter: boolean }, update: (settings: { frameLimiter: boolean }) => void) {
-    const limiter = this.element.querySelector<HTMLInputElement>('#display-frame-limiter')!;
-    limiter.checked = settings.frameLimiter; limiter.onchange = () => update({ frameLimiter: limiter.checked });
+  /** The frame limiter and subtitles checkboxes (FrontEndMenuManager.m_bPrefsFrameLimiter and m_bShowSubtitles). */
+  bindDisplay(settings: { frameLimiter: boolean; subtitles: boolean }, update: (settings: { frameLimiter: boolean; subtitles: boolean }) => void) {
+    const limiter = this.element.querySelector<HTMLInputElement>('#display-frame-limiter')!, subtitles = this.element.querySelector<HTMLInputElement>('#display-subtitles')!;
+    limiter.checked = settings.frameLimiter; subtitles.checked = settings.subtitles;
+    limiter.onchange = subtitles.onchange = () => update({ frameLimiter: limiter.checked, subtitles: subtitles.checked });
   }
   audioStatus(state: { unavailable: boolean; failed: number; loaded: boolean }) {
     const text = state.unavailable ? 'Sound is unavailable in this browser.' : state.failed ? 'Some sounds could not load. Gameplay remains available.' : state.loaded ? '' : 'Sounds load when you begin playing.';

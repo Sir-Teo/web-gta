@@ -2,11 +2,13 @@
  * second. The browser keeps the fixed 60 Hz simulation and paces rendering the same way: a display frame is drawn only
  * once a limiter interval has passed, and the menu, which draws nothing new, idles at 10 a second. */
 export const FRAME_LIMITER_FPS=30,MENU_FPS=10;
-export interface DisplaySettings {frameLimiter:boolean}
-export const DEFAULT_DISPLAY:DisplaySettings={frameLimiter:true};
+/** `subtitles`: FrontEndMenuManager.m_bShowSubtitles, the PC's and the mobile ports' Subtitles option (on by default):
+ * off, the scripts' subtitle lines (text marked ~z~) and the peds' conversation lines are not printed. */
+export interface DisplaySettings {frameLimiter:boolean;subtitles:boolean}
+export const DEFAULT_DISPLAY:DisplaySettings={frameLimiter:true,subtitles:true};
 export function parseDisplaySettings(value:unknown):DisplaySettings{
  const data=value&&typeof value==='object'?value as Partial<DisplaySettings>:{};
- return {frameLimiter:typeof data.frameLimiter==='boolean'?data.frameLimiter:DEFAULT_DISPLAY.frameLimiter};
+ return {frameLimiter:typeof data.frameLimiter==='boolean'?data.frameLimiter:DEFAULT_DISPLAY.frameLimiter,subtitles:typeof data.subtitles==='boolean'?data.subtitles:DEFAULT_DISPLAY.subtitles};
 }
 export function readDisplaySettings():DisplaySettings{
  try{return parseDisplaySettings(JSON.parse(localStorage.getItem('grove-display-v1')??'null'));}catch{return {...DEFAULT_DISPLAY};}
