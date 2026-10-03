@@ -69,13 +69,20 @@
 .map-aircraft { font:inherit; color:#fff; background:#253329; border:1px solid #72826e; padding:7px; }
 .world-map-panel canvas { flex-shrink:1; min-height:0; }
 .world-map-panel canvas{touch-action:none}
-/* A short screen (a phone held sideways) puts the map's controls in a column beside it, so the map takes the height. */
+/* A short screen (a phone held sideways) puts the map's controls in a column beside it, the status line under them, so
+   the map takes the whole height inside the panel's insets and padding. */
 @media(max-height:500px){
- .world-map-panel{--map-side:min(calc(100vh - 70px),calc(100vw - 290px));inset:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));padding:10px;display:grid;grid-template-columns:minmax(150px,220px) 1fr;grid-template-rows:1fr auto;gap:6px 14px;align-items:start}
- .map-toolbar{grid-row:1/3;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:8px;margin:0;max-height:100%;overflow:auto}
+ .world-map-panel{--map-side:min(calc(100dvh - 2 * max(8px,env(safe-area-inset-top),env(safe-area-inset-bottom)) - 20px),calc(100vw - 290px));inset:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));padding:10px;display:grid;grid-template-columns:minmax(150px,220px) 1fr;grid-template-rows:1fr auto;gap:6px 14px;align-items:start}
+ .map-toolbar{grid-row:1;grid-column:1;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:8px;margin:0;max-height:100%;min-height:0;overflow:auto}
  .map-toolbar label{display:flex;flex-direction:column;gap:4px}.map-toolbar .map-destination{max-width:none}
- .world-map-panel canvas{justify-self:center;width:var(--map-side);height:var(--map-side)}
- .map-status{margin:0;text-align:center;font-size:12px}
+ .world-map-panel canvas{grid-row:1/3;grid-column:2;justify-self:center;align-self:center;width:var(--map-side);height:var(--map-side)}
+ .map-status{grid-row:2;grid-column:1;margin:0;text-align:left;font-size:12px}
+}
+/* The shortest (an iPhone SE sideways): the column drops its title, which the map's own label repeats, and closes up,
+   so Close stays in view above the status line at its full height for a thumb. */
+@media(max-height:360px){
+ .map-toolbar>strong{display:none}
+ .map-toolbar{gap:6px}.map-toolbar label{gap:2px}
 }
 .weapon-readout{position:absolute;right:28px;top:144px;color:#fff;font:12px/1.6 monospace;text-shadow:1px 2px 2px #000;text-align:right;max-width:310px}.weapon-readout:empty{display:none}.weapon-slot{position:relative;display:flex;flex-direction:column;align-items:center}.weapon-ammo{margin-top:1px;font:bold 13px/1 Arial,Helvetica,sans-serif;letter-spacing:.5px;color:rgb(172,203,241);-webkit-text-stroke:1px #000;paint-order:stroke fill;text-shadow:1px 1px 0 #000;white-space:nowrap}.weapon-ammo[hidden]{display:none}.weapon-crosshair{--crosshair-radius:.2;position:absolute;left:53%;top:40%;width:calc(64 * var(--crosshair-radius) * 100vw / 640);height:calc(64 * var(--crosshair-radius) * 100vh / 448);transform:translate(-50%,-50%);border:1px solid #fffc;border-radius:50%;box-shadow:0 0 1px 1px #0008;pointer-events:none}.weapon-crosshair.dot:after{content:'';position:absolute;left:calc(50% - 1px);top:calc(50% - 1px);width:2px;height:2px;background:white}.weapon-crosshair.scope{left:50%;top:50%;width:min(65vh,65vw);height:min(65vh,65vw);border:2px solid #111;box-shadow:0 0 0 100vmax #000b}.weapon-crosshair.scope:after{content:'';position:absolute;width:100%;height:1px;left:0;top:50%;background:#111}.weapon-crosshair[hidden],.arsenal[hidden]{display:none}.arsenal{position:fixed;inset:6vh max(4vw,16px);z-index:40;background:#101713f5;color:#eee8d3;border:1px solid #7c8c6e;padding:28px;overflow:auto;pointer-events:auto;box-shadow:0 0 0 100vmax #0009}.arsenal header{display:flex;justify-content:space-between;align-items:center}.arsenal h2{font-size:34px;margin:4px 0}.arsenal small{letter-spacing:.2em;color:#9cb28b}.arsenal p{font:13px/1.6 sans-serif;color:#c3c9bb}.arsenal-actions{display:flex;gap:12px;margin:20px 0}.arsenal input{padding:10px;background:#242d25;color:white;border:1px solid #60735a;flex:1;min-width:0}.arsenal button{font:13px/1.4 sans-serif;padding:10px 14px;color:#eee8d3;background:#28372b;border:1px solid #57674e;cursor:pointer}.arsenal button:hover,.arsenal button[aria-pressed=true]{background:#637b47;color:white}.arsenal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:20px}.arsenal-grid h3{font:13px sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#a7bc92}.arsenal-grid button{display:block;width:100%;text-align:left;margin:5px 0}.arsenal-grid button[hidden]{display:none}.paused .weapon-crosshair,.paused .weapon-readout{display:none}
 
