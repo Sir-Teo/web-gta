@@ -212,7 +212,7 @@ const BUTTONS:ButtonSpec[]=[
 ];
 /** Controls the game asks for only now and then, by the pad action the help text names: a button for each shows above
  * the others while the help box or prompt asks for it (a yes-or-no question, collecting a pickup, a crew order). */
-const CONTEXT:readonly {action:string;label:string;code:string;widget?:{className:string;icon:TouchIcon}}[]=[
+const CONTEXT:readonly {action:string;label:string;code:string;name?:string;widget?:{className:string;icon:TouchIcon}}[]=[
  // A yes or a no (a question, a word to a ped): the port's POSITIVE and NEGATIVE widgets, a thumb each, at their places
  // (low in the middle on a phone, high on an iPad's 4:3).
  {action:'CONVERSATION_YES',label:'Yes',code:'KeyY',widget:{className:'reply-yes',icon:'thumbUp'}},{action:'CONVERSATION_NO',label:'No',code:'KeyN',widget:{className:'reply-no',icon:'thumbDown'}},
@@ -229,8 +229,9 @@ const CONTEXT:readonly {action:string;label:string;code:string;widget?:{classNam
  {action:'AIRCRAFT_GEAR',label:'Gear',code:'KeyG'},{action:'AIRCRAFT_VTOL',label:'VTOL',code:'KeyT'},
  // A script menu (a shop's, the barber's, a garage's colours): the mobile ports' arrow widgets, Select and Back, which
  // the host writes straight to the pad's d-pad, cross and triangle.
- {action:'MENU_UP',label:'▲',code:'MenuUp'},{action:'MENU_DOWN',label:'▼',code:'MenuDown'},
- {action:'MENU_LEFT',label:'◀',code:'MenuLeft'},{action:'MENU_RIGHT',label:'▶',code:'MenuRight'},
+ // The arrows are the pad's d-pad, which a minigame reads too (scriptButtons).
+ {action:'MENU_UP',label:'▲',code:'MenuUp',name:'Up'},{action:'MENU_DOWN',label:'▼',code:'MenuDown',name:'Down'},
+ {action:'MENU_LEFT',label:'◀',code:'MenuLeft',name:'Left'},{action:'MENU_RIGHT',label:'▶',code:'MenuRight',name:'Right'},
  // Select and Back are the port's STORE_ACCEPT and STORE_CANCEL, large under the right thumb, the rest of the buttons
  // giving way while the menu is up (the script holds the player still).
  {action:'MENU_BACK',label:'Back',code:'MenuBack',widget:{className:'store-cancel',icon:'close'}},{action:'MENU_SELECT',label:'Select',code:'MenuSelect',widget:{className:'store-accept',icon:'check'}},
@@ -317,10 +318,10 @@ export class TouchControls {
   rotateDismiss.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();rotate.classList.add('dismissed');actions.playOn?.();},options);
   rotate.append(rotateText,rotateDismiss);this.rotateCard=rotate;
   const context=document.createElement('div');context.className='touch-context';
-  for(const {action,label,code,widget} of CONTEXT){
+  for(const {action,label,code,name,widget} of CONTEXT){
    const button=document.createElement('button');button.type='button';button.dataset.code=code;button.hidden=true;
    if(widget){button.className=`touch-button ${widget.className}`;button.innerHTML=touchIconSvg(widget.icon);button.setAttribute('aria-label',label);}
-   else{button.textContent=label;button.className='touch-button small';}
+   else{button.textContent=label;button.className='touch-button small';if(name)button.setAttribute('aria-label',name);}
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);this.held.set(e.pointerId,code);input.hold(code);button.classList.add('on');this.buzz();},options);
    const up=(e:PointerEvent)=>{if(this.held.get(e.pointerId)!==code)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.releaseAfterFrame(code);button.classList.remove('on');};
    button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);

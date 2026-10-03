@@ -226,7 +226,6 @@ import { Hud } from './ui/Hud';
 import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, GAMELOGIC_STATE_WASTED, GAMELOGIC_STATE_BUSTED, type GameLogicWorld, type SkipWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
-import { BUTTON } from './engine/ScmPads';
 import { NativeBirds, sampledDistanceToWater } from './world/nativeBirds';
 import { NativeBirdsMesh } from './render/NativeBirds';
 import { MARKER3D, Native3dMarkers, type Marker3dContext } from './world/native3dMarkers';
@@ -270,6 +269,7 @@ import {fireGlow,missileGlow} from './combat/nativeFireGlow';
 import {NativePermanentShadows,explosionScorch} from './render/nativePermanentShadows';
 import {NativeCullZones,fewerPedsLimits} from './world/nativeCullZones';
 import {heldPadActions,padStateFromActions} from './input/nativePadState';
+import {ScriptButtonReads,touchActionsForReads} from './input/scriptButtons';
 import {NativeHudBigMessages} from './ui/nativeHudBigMessages';
 import {ScriptCarRecordingStore} from './simulation/scriptCarRecordings';
 import {recordingVehicle} from './simulation/recordingBody';
@@ -2784,8 +2784,8 @@ async function boot() {
   const GROUP_DISBAND_HOLD_SECONDS=2;
   /** weapon.dat UNARMED's target range, for a target with no weapon row. */
   const GROUP_RECRUIT_MELEE_RANGE=10;
-  /** The scripts' reads of the phone's button as last counted, and when the count last moved (ms). */
-  let phoneButtonReads=0,phoneButtonReadAt=-Infinity;
+  /** When the scripts last read each pad button (scriptButtons). */
+  const scriptReads=new ScriptButtonReads();
   /** Who the group buttons are aimed at: with PED_LOCK_TARGET held, a gun's crosshair names the ped; otherwise the
    * nearest ahead within the weapon's target range. Without it, nobody (the buttons command the group). */
   /** Who Y and N speak to: with PED_LOCK_TARGET held, the crosshair's ped or the nearest ahead within the weapon's
@@ -3581,14 +3581,15 @@ async function boot() {
       const offer=pedestrians.groupOffer(groupTarget());
       if(offer.recruit)asked.push('GANG_RECRUIT');else if(offer.crew)asked.push('GROUP_CONTROL_FWD','GROUP_CONTROL_BWD');
      }
-     // A script reading the phone's button on foot (an incoming call, camera.scm's "have your picture taken") puts up
-     // Action, as the port puts up its PHONE widget for a call, though the help names the button only the first time.
-     {const reads=mission?.runtime.game.pads.reads(0,BUTTON.leftShoulder1)??0,at=performance.now();if(reads!==phoneButtonReads){phoneButtonReads=reads;phoneButtonReadAt=at;}
-      if(!inVehicle&&!carEntry.active&&at-phoneButtonReadAt<500)asked.push('PED_ANSWER_PHONE');}
      // Yes and No (the port's REPLY_YES and _NO, "Positive talk" and "Negative talk"): a script's conversation waiting
      // for an answer, or, on foot with Aim held, someone CJ could talk to.
      if(!inVehicle&&!carEntry.active&&!playerControlsDisabled()&&(mission?.runtime.game.conversations.waitingForInput||!held&&input.down('MouseAim')&&!!pedestrians?.canTalk(talkTarget())))
       asked.push('CONVERSATION_YES','CONVERSATION_NO');
+     // A script waiting on a pad button the controls show only on call puts its button up while it reads it, though the
+     // help names it only the first time (scriptButtons): the phone's Action for a call or camera.scm's picture, Enter at
+     // a machine or a blackjack table, the arrows for a gym machine's level or the roulette chip, Look back for a hoop.
+     {const read=scriptReads.update(button=>mission?.runtime.game.pads.reads(0,button)??0,performance.now());
+      if(!carEntry.active)asked.push(...touchActionsForReads(read,{inVehicle,menu:asked.includes('MENU_SELECT'),asked}));}
      // A plane with retracting gear puts up Gear in the air, and the Hydra VTOL.
      {const plane=fleet?.occupiedPlane;if(plane?.retractableGear&&!plane.grounded)asked.push('AIRCRAFT_GEAR');if(plane?.modelId===520)asked.push('AIRCRAFT_VTOL');}
      // Flying, the look keys are the rudder the Yaw buttons already are, and help names them so. In a road vehicle with a
