@@ -1,4 +1,5 @@
 import {fxQuality} from '../simulation/fx/fxQuality';
+import {lodDistMultiplier} from '../render/lodDistance';
 import type {InstalledCollisionSource} from '../simulation/nativeScene';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import {requireAsset} from '../assets/binary';
@@ -80,7 +81,7 @@ export class WalkingVegetation {
   this.owner.render({camera:position,night,wind:bending,quality:fxQuality(),visible:triangle=>{
    const [x,y,z]=triangle.candidate.triangle.center;this.sphere.center.set(x,z,-y);this.sphere.radius=triangle.candidate.triangle.radius;return this.frustum.intersectsSphere(this.sphere);
   }});
-  this.procedural?.updateView(camera);
+  this.procedural?.updateView(camera,lodDistMultiplier());
   this.windState={...windState};this.bending=bending;
  }
  snapshot(){return {wind:{...this.windState,bending:this.bending},entities:this.owner.entityCount,cached:this.owner.cachedEntityCount,triangles:this.owner.allocations().length,batches:this.owner.root.children.filter(child=>child.visible).length,procedural:this.procedural?{...this.procedural.snapshot(),pool:this.manager!.snapshot()}:undefined};}

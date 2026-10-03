@@ -255,6 +255,7 @@ import { NativeLightPools } from './render/NativeLightPools';
 import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
 import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fxQuality,playerRealTimeShadow,setFxQuality} from './simulation/fx/fxQuality';
+import {DRAW_DISTANCE_DEFAULT,setDrawDistance} from './render/lodDistance';
 /** The player's blob among the peds' (their ids are their own, from 0). */
 const PLAYER_SHADOW_ID=-1;
 import {fireGlow,missileGlow} from './combat/nativeFireGlow';
@@ -794,7 +795,8 @@ async function boot() {
   // On a touch screen the drag's vertical look follows the touch settings' Invert look; the mouse's is hidden there.
   const touchScreen=wantsTouchControls();let touchSettings=readTouchSettings();
   // The touch settings' Visual effects set the FX quality (the port's MOB_VS); elsewhere the game runs at high.
-  const applyVisualEffects=()=>setFxQuality(touchScreen?touchSettings.effects:'high');applyVisualEffects();
+  // and its Draw distance TheCamera's LOD distance multiplier (the port's MOB_DD); elsewhere the game draws at its default.
+  const applyVisualEffects=()=>{setFxQuality(touchScreen?touchSettings.effects:'high');setDrawDistance(touchScreen?touchSettings.drawDistance:DRAW_DISTANCE_DEFAULT);};applyVisualEffects();
   const lookInverted=()=>touchScreen?touchSettings.invertLook:mouseSettings.invertY;
   const applyMouseSettings=()=>{render.mouseYawScale=mouseYawScale(mouseSettings);render.mouseYSign=lookInverted()?-1:1;};applyMouseSettings();
   {const sens=hud.element.querySelector<HTMLInputElement>('#mouse-sens')!,invert=hud.element.querySelector<HTMLInputElement>('#mouse-invert')!;

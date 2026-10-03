@@ -1,5 +1,5 @@
 import type {Input} from './Input';
-import {BUTTON_SCALE_RANGE,DEFAULT_TOUCH,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type LayoutEntry,type TouchSettings} from './touchSettings';
+import {BUTTON_SCALE_RANGE,DEFAULT_TOUCH,DRAW_DISTANCE_RANGE,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type LayoutEntry,type TouchSettings} from './touchSettings';
 import {touchIconSvg,type TouchIcon} from './touchIcons';
 /* Touch-screen controls for phones and tablets, laid over the game the way the mobile ports lay theirs: a floating
  * stick under the left thumb, the camera dragged with the right, and the buttons round the right thumb. Every control
@@ -551,6 +551,7 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <label>Button size <input type="range" class="touch-button-size" aria-label="Button size" min="${BUTTON_SCALE_RANGE.min}" max="${BUTTON_SCALE_RANGE.max}" step="0.05"></label>
 <label>Vibration <input type="checkbox" class="touch-vibration" aria-label="Vibration"></label>
 <label>Population <select class="touch-density" aria-label="Population"><option value="full">Full</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
+<label>Draw distance <input type="range" class="touch-draw-distance" aria-label="Draw distance" min="${DRAW_DISTANCE_RANGE.min}" max="${DRAW_DISTANCE_RANGE.max}" step="1"></label>
 <label>Visual effects <select class="touch-effects" aria-label="Visual effects"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
 <label>Resolution <select class="touch-resolution" aria-label="Resolution"><option value="low">Low (softer, faster)</option><option value="standard">Standard</option><option value="high">High (sharper, slower)</option></select></label>
 <button type="button" class="touch-adjust-open">Adjust controls</button>
@@ -558,13 +559,14 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
  const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!,invert=panel.querySelector<HTMLInputElement>('.touch-invert')!;
- const density=panel.querySelector<HTMLSelectElement>('.touch-density')!,resolution=panel.querySelector<HTMLSelectElement>('.touch-resolution')!,effects=panel.querySelector<HTMLSelectElement>('.touch-effects')!;
+ const density=panel.querySelector<HTMLSelectElement>('.touch-density')!,resolution=panel.querySelector<HTMLSelectElement>('.touch-resolution')!,effects=panel.querySelector<HTMLSelectElement>('.touch-effects')!,drawDistance=panel.querySelector<HTMLInputElement>('.touch-draw-distance')!;
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
- const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;invert.checked=settings.invertLook;resolution.value=settings.resolution;effects.value=settings.effects;density.value=settings.density;note.textContent='';};refresh();
+ const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;invert.checked=settings.invertLook;resolution.value=settings.resolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
  vibration.onchange=()=>update({vibration:vibration.checked});invert.onchange=()=>update({invertLook:invert.checked});
  resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard'});
  density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium'});
  effects.onchange=()=>update({effects:effects.value==='low'||effects.value==='medium'?effects.value:'high'});
+ drawDistance.oninput=()=>update({drawDistance:Number(drawDistance.value)});
  const update=(next:Partial<TouchSettings>)=>change({...current(),...next});
  steering.onchange=async()=>{
   note.textContent='';

@@ -2,6 +2,7 @@
  * port's own left and right arrow buttons, or tilting the device like a wheel, its accelerometer option), lock-on aim
  * assist or free aim, how fast a drag turns the camera and whether up looks down, how big the buttons are, and whether
  * a press buzzes. Kept in the browser like the other settings. */
+import {DRAW_DISTANCE_DEFAULT} from '../render/lodDistance';
 export type TouchSteering='stick'|'arrows'|'tilt';
 /** How many peds and cars a phone keeps about (the port's own settings thin its density): a share of the original's. */
 export type TouchDensity='full'|'medium'|'low';
@@ -10,6 +11,9 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  /** The port's Visual Effects: the FX quality the game runs at (fewer particles, nearer grass, fewer clouds and no
   * real-time shadow below high). Max, very high, is not offered: every ped's real-time shadow is not drawn. */
  effects:'low'|'medium'|'high';
+ /** The port's Draw Distance, 0 to 100 (70, its default, draws as the game does elsewhere): how far map models are
+  * drawn before their low-detail stand-ins (lodDistance). */
+ drawDistance:number;
  /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
  invertLook:boolean;
  /** How sharp the picture is: the renderer's one pixel per CSS pixel, the screen's own density up to twice it, or
@@ -20,7 +24,7 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  layout:Readonly<Record<string,LayoutEntry>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,invertLook:false,resolution:'standard',layout:{},steeringChosen:false};
 /** A moved button: how far across and down, and (when resized) its size against the others'. */
 export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
 /** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
@@ -39,7 +43,7 @@ function parseLayout(value:unknown):Record<string,LayoutEntry>{
  }
  return out;
 }
-export const LOOK_SPEED_RANGE={min:.5,max:2},BUTTON_SCALE_RANGE={min:.8,max:1.3};
+export const LOOK_SPEED_RANGE={min:.5,max:2},BUTTON_SCALE_RANGE={min:.8,max:1.3},DRAW_DISTANCE_RANGE={min:0,max:100};
 const KEY='grove-touch-v1';
 const clamp=(value:unknown,range:{min:number;max:number},fallback:number)=>typeof value==='number'&&Number.isFinite(value)?Math.min(range.max,Math.max(range.min,value)):fallback;
 export function parseTouchSettings(value:unknown):TouchSettings{
@@ -49,6 +53,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   vibration:typeof data.vibration==='boolean'?data.vibration:DEFAULT_TOUCH.vibration,
   density:data.density==='full'||data.density==='low'||data.density==='medium'?data.density:DEFAULT_TOUCH.density,
   effects:data.effects==='low'||data.effects==='medium'?data.effects:'high',
+  drawDistance:Math.round(clamp(data.drawDistance,DRAW_DISTANCE_RANGE,DRAW_DISTANCE_DEFAULT)),
   invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,layout:(data as {layoutOn?:unknown}).layoutOn===LAYOUT_ON?parseLayout(data.layout):{},resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
   // Settings kept before the question was asked chose by keeping a steering method.
   steeringChosen:typeof data.steeringChosen==='boolean'?data.steeringChosen:data.steering!==undefined};

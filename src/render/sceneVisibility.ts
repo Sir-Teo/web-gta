@@ -5,6 +5,7 @@ import { requireAsset } from '../assets/binary';
 import { placementMatrix } from '../assets/placement';
 import { placementFade, persistentNormalMaterials, type SharedNormalMaterials } from './placementFade';
 import { distanceFadeAlpha, distanceFadeWidth } from './distanceFade';
+import { lodDistMultiplier } from './lodDistance';
 
 /** Loaded-scene distance fading and sphere-frustum selection. Source streaming/occlusion remain separate. */
 /** COcclusion for the visibility pass: CRenderer::SetupEntityVisibility culls an on-screen entity IsEntityOccluded says
@@ -99,6 +100,8 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
     projectionView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(projectionView, camera.coordinateSystem, camera.reversedDepth);
     stats.occluded=0;
+    // TheCamera.m_fLODDistMultiplier: the draw distance setting's share.
+    const lodMultiplier=lodDistMultiplier();
     for (const index of order) {
       const entry = entries[index];
       const childRendered = entry.children.some(child => entries[child].covered);
@@ -110,7 +113,7 @@ export function sceneVisibility(parts: ScenePart[], roots: Object3D[], occlusion
       if(!entry.tunnelTransition&&(!tunnels.tunnels&&entry.tunnel||!tunnels.outside&&!entry.tunnel)){entry.selected=false;entry.covered=childRendered;entry.object.visible=false;entry.inRange=false;continue;}
       const measure = () => {
         const origin = entry.parent < 0 ? entry.origin : entries[entry.parent].origin;
-        const baseRange = Math.min(entry.distance, camera.far + entry.radius);
+        const baseRange = Math.min(entry.distance * lodMultiplier, camera.far + entry.radius);
         const width=distanceFadeWidth(baseRange,entry.distance,entry.hasLod);
         const bigRoot=!entry.hasLod&&(entry.children.length>0||isDistanceBigBuilding(entry.distance));
         const range=bigRoot?Math.fround(baseRange*lowLodScale):baseRange;

@@ -3,7 +3,7 @@ import {endStoryMission} from './freeRoam';
 /** The touch settings' Adjust controls (the iOS and Android port's own): from the pause menu, a layout's buttons are
  * dragged by a finger (CDP touch events) where the thumbs want them and the one touched sized, Done keeps them for play and for the next visit,
  * each layout keeps its own, and Reset puts them back; a slider follows a finger; Resolution High sharpens the picture and Low softens it; Visual effects Low thins the
- * clouds and drops the player's real-time shadow. */
+ * clouds and drops the player's real-time shadow; Draw distance 0 draws fewer map models. */
 const {defaultBrowserType,...phone}=devices['Pixel 7 landscape'];
 test.use({...phone});
 /** An element's centre, once it is on screen (the controls come back a frame after a menu closes). */
@@ -92,5 +92,15 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
  await effects.selectOption('high');await page.getByRole('button',{name:'Resume game',exact:true}).click();
  await expect.poll(async()=>(await drawn()).clouds,{timeout:10000}).toBe(180);
+ // Draw distance (the port's slider, 70 by default) brings the low-detail stand-ins nearer at 0: fewer map models drawn.
+ const models=()=>page.evaluate(()=>(window as any).__game.state().visibleImportedInstances as number),full=await models();
+ const reach=async(value:string)=>{await page.getByRole('button',{name:'Pause',exact:true}).dispatchEvent('pointerdown',{pointerType:'touch'});
+  if(!await page.locator('.touch-settings').isVisible())await page.getByRole('button',{name:'Controls',exact:true}).click();
+  const slider=page.getByLabel('Draw distance',{exact:true});await slider.fill(value);await slider.dispatchEvent('input');
+  await page.getByRole('button',{name:'Resume game',exact:true}).click();};
+ expect(await page.getByLabel('Draw distance',{exact:true}).inputValue()).toBe('70');
+ await reach('0');await expect.poll(models,{timeout:10000}).toBeLessThan(full);
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).drawDistance)).toBe(0);
+ await reach('70');await expect.poll(models,{timeout:10000}).toBe(full);
  expect(errors).toEqual([]);
 });
