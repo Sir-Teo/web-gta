@@ -274,6 +274,9 @@ export class Hud {
     const screen = this.element.querySelector<HTMLElement>('.screen-fade')!;
     screen.style.transition = `opacity ${Math.max(0, milliseconds)}ms linear`;
     screen.style.opacity = out ? '1' : '0';
+    // What a touch screen raises over the fade goes with it, over the same time (style.css).
+    this.element.style.setProperty('--fade-ms', `${Math.max(0, milliseconds)}ms`);
+    this.element.classList.toggle('screen-faded', out);
   }
   /** CTimer::GetTimeInMS for the messages CMessages and CHud time: game time, which stops while paused. */
   messageClock: () => number = () => performance.now();

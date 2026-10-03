@@ -134,6 +134,12 @@
 html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-webkit-touch-callout:none}
 .touch-controls{position:absolute;inset:0;z-index:4;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:none}
 .touch-controls[hidden],.game-ui.paused .touch-controls{display:none}
+/* CHud::Draw's layer (the money, clock, weapon and radar) is drawn before DoFade, which covers it. A touch screen raises
+ * it, and the touch buttons, over the fade so they can be tapped, so there they go with the screen as it fades: a phone
+ * held black while the opening loads shows the title card or Loading on its own, not a HUD and buttons over nothing.
+ * The pause button stays, for a long wait. */
+.touch .game-ui :is(.status,.native-navigation,.touch-controls>:not(.touch-top),.touch-top>:not(.pause)){transition:opacity var(--fade-ms,0ms) linear}
+.touch .game-ui.screen-faded :is(.status,.native-navigation,.touch-controls>:not(.touch-top),.touch-top>:not(.pause)){opacity:0}
 /* A keyboard being played on a touch screen: the buttons, the stick and the steering question give way to the keys; the
    pause and camera buttons stay, and the right side still takes a look drag. */
 .touch-controls.keys :is(.touch-buttons,.touch-context,.touch-stick,.touch-steering-choice){visibility:hidden}

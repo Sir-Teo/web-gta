@@ -2527,6 +2527,8 @@ async function boot() {
     hud.button('play').textContent = 'Resume game';
     if (document.pointerLockElement) document.exitPointerLock();
   }
+  /** How long the opening's black hold goes before it says it is loading. */
+  const OPENING_LOADING_MS=1500;
   function play() {
     terrainHold(false);
     if (!started) {
@@ -3036,6 +3038,9 @@ async function boot() {
         }
       }
       if(openingHoldAt!==undefined&&!mission&&performance.now()-openingHoldAt>45000){openingHoldAt=undefined;cameraFade.fade(1000,1,gameTimeMs);hud.fade(false,1000);}
+      // The opening's black lasts until the story script and the place it opens in are down, which on a phone's
+      // connection can be many seconds: past a moment, it says so (the line goes half a second after the hold does).
+      if(openingHoldAt!==undefined&&performance.now()-openingHoldAt>OPENING_LOADING_MS)hud.message(navigator.onLine===false?'No connection: San Andreas loads once the connection is back.':'Loading San Andreas…',500);
       if(input.consume('KeyT')&&fleet?.occupiedPlane)fleet.occupiedPlane.toggleVtol();
       if(input.consume('KeyG')&&fleet?.occupiedPlane)fleet.occupiedPlane.toggleGear();
       elapsed += dt;
