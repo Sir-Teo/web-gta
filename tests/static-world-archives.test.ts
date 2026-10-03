@@ -93,3 +93,24 @@ test('a phone\'s chunk budget keeps fewer decoded chunks, and a dropped one is i
   expect((await readImgEntry(archive.file,archive.entries[0]))[0]).toBe(41);expect(archive.stats()).toMatchObject({downloads:5,retainedBytes:2*2048});
  }finally{globalThis.fetch=original;setChunkCacheBudget(64*1024*1024);}
 });
+
+test('with Cache Storage keeping the bytes by checksum, a download passes the HTTP cache by, and comes from the kept copy after',async()=>{
+ const {fetchStaticWorldBytes,WORLD_CACHE}=await import('../src/assets/staticWorldArchive');
+ const {createHash}=await import('node:crypto');
+ const raw=new TextEncoder().encode('chunk bytes'),resource={bytes:raw.length,sha256:createHash('sha256').update(raw).digest('hex')};
+ const stores=new Map<string,Map<string,Response>>(),opened:string[]=[];
+ const fakeCaches={open:async(name:string)=>{opened.push(name);if(!stores.has(name))stores.set(name,new Map());const store=stores.get(name)!;
+  return {match:async(key:string)=>store.get(key)?.clone(),put:async(key:string,response:Response)=>{store.set(key,response);}};}};
+ const original=globalThis.fetch,hadCaches='caches' in globalThis,originalCaches=(globalThis as {caches?:unknown}).caches,modes:(RequestCache|undefined)[]=[];
+ globalThis.fetch=(async(_url:URL,init?:RequestInit)=>{modes.push(init?.cache);return new Response(raw);}) as typeof fetch;
+ (globalThis as {caches?:unknown}).caches=fakeCaches;
+ try{
+  const url=new URL('https://pages.invalid/world/chunks/k.bin');
+  expect(new TextDecoder().decode(await fetchStaticWorldBytes(url,resource))).toBe('chunk bytes');
+  expect(modes).toEqual(['no-store']);
+  // The store is written after the bytes are handed back; once it has them, the network is not asked again.
+  await expect.poll(()=>stores.get(WORLD_CACHE)?.size??0).toBe(1);
+  expect(new TextDecoder().decode(await fetchStaticWorldBytes(url,resource))).toBe('chunk bytes');
+  expect(modes).toEqual(['no-store']);expect(opened.every(name=>name===WORLD_CACHE)).toBe(true);
+ }finally{globalThis.fetch=original;if(hadCaches)(globalThis as {caches?:unknown}).caches=originalCaches;else delete (globalThis as {caches?:unknown}).caches;}
+});

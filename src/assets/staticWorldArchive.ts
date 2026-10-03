@@ -85,8 +85,12 @@ export async function pruneWorldCache(keep:Iterable<string>){
 export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha256:string},signal?:AbortSignal,gzip=false){
  validateResource(resource);
  const cached=await cachedWorldBytes(resource);if(cached)return cached;
- // A stale HTTP-cached copy of a republished path fails the checksum once; the second attempt bypasses the cache.
- for(const mode of ['default','reload'] as RequestCache[]){
+ // Kept here by checksum, a download passes the browser's HTTP cache by: it would hold a second copy of every chunk a
+ // phone streams (the whole world is 617 MB), and evict other sites' entries for it. Without Cache Storage the HTTP
+ // cache is the only one, and a stale copy of a republished path fails the checksum once, so a second attempt
+ // bypasses it.
+ const modes:RequestCache[]=await worldCache()?['no-store']:['default','reload'];
+ for(const mode of modes){
   const guard=stallGuard(signal);let bytes:Uint8Array<ArrayBuffer>;
   try{
    let response:Response;
