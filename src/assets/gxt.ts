@@ -140,13 +140,15 @@ function padControlNames(family:'playstation'|'xbox',flying:boolean){
 const TOUCH_MENU:Readonly<Record<string,string>>={GO_FORWARD:'▲',GO_BACK:'▼',GO_LEFT:'◀',GO_RIGHT:'▶',VEHICLE_STEERUP:'▲',VEHICLE_STEERDOWN:'▼',
  VEHICLE_STEERLEFT:'◀',VEHICLE_STEERRIGHT:'▶',PED_SPRINT:'SELECT',VEHICLE_ENTER_EXIT:'BACK'};
 /** How the HUD's text names controls: by the keys, the touch buttons (the steering as the settings give it, a script
- * menu's own while one is up), or a game controller's buttons while one is played; flying, by an aircraft's buttons. */
-interface ControlNaming{touch:boolean;steering:'stick'|'arrows'|'tilt';flying:boolean;menu?:boolean;pad?:'playstation'|'xbox'}
+ * menu's own while one is up), or a game controller's buttons while one is played; flying, by an aircraft's buttons.
+ * A touch screen whose keyboard is being played (`keys`, a tablet's) names the keys. */
+interface ControlNaming{touch:boolean;steering:'stick'|'arrows'|'tilt';flying:boolean;menu?:boolean;pad?:'playstation'|'xbox';keys?:boolean}
 let naming:ControlNaming={touch:false,steering:'stick',flying:false},controlNames=BROWSER_CONTROLS,touchNames=false;
 function rebuildControlNames(){
- touchNames=naming.touch||!!naming.pad;
+ const touch=naming.touch&&!naming.keys;
+ touchNames=touch||!!naming.pad;
  controlNames=naming.pad?{...BROWSER_CONTROLS,...padControlNames(naming.pad,naming.flying)}
-  :naming.touch?{...BROWSER_CONTROLS,...TOUCH_CONTROLS,...TOUCH_STEERING[naming.steering],...naming.flying?TOUCH_FLYING:{},...naming.menu?TOUCH_MENU:{}}:BROWSER_CONTROLS;
+  :touch?{...BROWSER_CONTROLS,...TOUCH_CONTROLS,...TOUCH_STEERING[naming.steering],...naming.flying?TOUCH_FLYING:{},...naming.menu?TOUCH_MENU:{}}:BROWSER_CONTROLS;
 }
 /** Name the controls in HUD text by the touch buttons rather than the keys: the steering as the settings give it, and
  * the buttons an aircraft has while flying. Left out, the steering and the flying stay as they were; off, the keys
@@ -155,13 +157,13 @@ export function useTouchControlNames(touch:boolean,steering=naming.steering,flyi
  naming=touch?{...naming,touch,steering,flying}:{touch:false,steering:'stick',flying:false};rebuildControlNames();
 }
 /** Whether the player flies, and which game controller (if any) is being played, for the names. */
-export function setControlNaming(next:{flying?:boolean;menu?:boolean;pad?:'playstation'|'xbox'|undefined}){
+export function setControlNaming(next:{flying?:boolean;menu?:boolean;pad?:'playstation'|'xbox'|undefined;keys?:boolean}){
  naming={...naming,...next};rebuildControlNames();
 }
 /** What HUD text calls a control now (its key, touch button or pad button), or undefined for one with no name. */
 export function controlNameOf(action:string):string|undefined{return controlNames[action];}
 /** Whose names HUD text gives the controls now: the keys, the touch buttons, or a played pad's (by its family). */
-export function controlNaming():'keys'|'touch'|'playstation'|'xbox'{return naming.pad??(naming.touch?'touch':'keys');}
+export function controlNaming():'keys'|'touch'|'playstation'|'xbox'{return naming.pad??(naming.touch&&!naming.keys?'touch':'keys');}
 /** The controls each recent HUD text named, by the text gxtHudText made: the touch controls show a button for a
  * control the help box asks for that has none of its own (a yes-or-no question, collecting a pickup). */
 const NAMED=new Map<string,readonly string[]>();

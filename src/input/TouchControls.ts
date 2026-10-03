@@ -551,11 +551,20 @@ export class TouchControls {
  /** Feeds the tilt to the input while it steers: in a car, on a bike or in a boat with tilt steering chosen. */
  private steer(){
   const angle=globalThis.screen?.orientation?.angle??(globalThis as {orientation?:number}).orientation??0;
-  this.input.tilt=this.settings.steering==='tilt'&&this.mode==='vehicle'&&!this.passenger&&!this.element.hidden?tiltSteering(this.orientation.beta,this.orientation.gamma,((angle%360)+360)%360):undefined;
+  this.input.tilt=this.settings.steering==='tilt'&&this.mode==='vehicle'&&!this.passenger&&!this.element.hidden&&!this.keyboard?tiltSteering(this.orientation.beta,this.orientation.gamma,((angle%360)+360)%360):undefined;
  }
  /** A press's buzz, as a phone game's buttons give: a short vibration, or an iPhone's Taptic tick (touchHaptic). */
  private haptic?:()=>void;
  private buzz(){if(this.settings.vibration)(this.haptic??=touchHaptic())();}
+ /** A tablet's or a phone's keyboard being played: the buttons and the stick give way to the keys (and the tilt to their
+  * steering), as they do to a game controller, while a drag on the right still looks; a touch elsewhere brings them back. */
+ private keyboard=false;
+ setKeyboard(on:boolean){
+  if(this.keyboard===on)return;this.keyboard=on;this.element.classList.toggle('keys',on);
+  if(on){for(const code of new Set(this.held.values()))this.input.release(code);this.held.clear();if(this.stickPointer!==undefined){this.stickPointer=undefined;this.stickBase.hidden=true;this.input.stick=undefined;this.input.release('AltLeft');}
+   for(const {element} of this.buttons)element.classList.remove('on');}
+  this.steer();
+ }
  /** Hidden under the menus: everything held is let go so nothing stays pressed behind them. */
  setVisible(visible:boolean){
   if(this.editing||this.element.hidden===!visible)return;

@@ -2295,8 +2295,23 @@ async function boot() {
   // A game controller, as the iOS and Android port takes one: it holds the keys (src/input/GamepadInput), the touch
   // controls stand aside once it is played and come back at a touch, and under a menu its D-pad and cross work the menu.
   const gamepad=new GamepadInput(input);let lastTouchAt=-Infinity,lastKeyAt=-Infinity;
-  const onTouchStart=()=>{lastTouchAt=performance.now();};window.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});
-  const onKeyOrMouse=()=>{lastKeyAt=performance.now();};for(const type of ['keydown','mousedown'] as const)window.addEventListener(type,onKeyOrMouse,{passive:true,capture:true});
+  /** A keyboard played on a touch screen (a tablet's, or one paired with a phone): its last key the game reads, not a
+   * volume or media key nor one typed into a field. While it is played the touch buttons give way to it, as to a pad. */
+  let lastKeyboardAt=-Infinity,keysPlayed=false;
+  const GAME_KEY=/^(Key[A-Z]|Digit|Numpad|Arrow|Space|Shift|Control|Alt|Tab|Enter|Escape|Backquote|Page|Home|End|CapsLock|Backspace|Delete|Insert)/;
+  /** Keys walking while a finger looks: a drag on the right leaves the buttons away; a tap there, or any touch elsewhere,
+   * brings them back. */
+  let lookTouch:{id:number;x:number;y:number;moved:boolean}|undefined;
+  const onTouchStart=(e:TouchEvent)=>{const t=e.changedTouches?.[0];
+   if(keysPlayed&&t&&(e.target as Element|null)?.closest?.('.touch-look')){lookTouch={id:t.identifier,x:t.clientX,y:t.clientY,moved:false};return;}
+   lastTouchAt=performance.now();};
+  const onTouchMove=(e:TouchEvent)=>{const look=lookTouch;if(!look)return;for(const t of e.changedTouches)if(t.identifier===look.id&&Math.hypot(t.clientX-look.x,t.clientY-look.y)>12)look.moved=true;};
+  const onTouchEnd=(e:TouchEvent)=>{const look=lookTouch;if(!look)return;for(const t of e.changedTouches)if(t.identifier===look.id){if(!look.moved)lastTouchAt=performance.now();lookTouch=undefined;}};
+  window.addEventListener('touchstart',onTouchStart,{passive:true,capture:true});window.addEventListener('touchmove',onTouchMove,{passive:true,capture:true});
+  for(const type of ['touchend','touchcancel'] as const)window.addEventListener(type,onTouchEnd,{passive:true,capture:true});
+  const onKeyOrMouse=(e:Event)=>{lastKeyAt=performance.now();
+   if(e instanceof KeyboardEvent&&GAME_KEY.test(e.code)&&!e.metaKey&&!(e.target instanceof HTMLElement&&e.target.closest('input[type=text],input[type=search],textarea,[contenteditable]')))lastKeyboardAt=lastKeyAt;};
+  for(const type of ['keydown','mousedown'] as const)window.addEventListener(type,onKeyOrMouse,{passive:true,capture:true});
   /** The help's control names: a played controller's buttons until a key, a click or a touch, and an aircraft's flying. */
   let namingPad:'playstation'|'xbox'|undefined,namingFlying=false,namingMenu=false;
   /** The D-pad moves between the open menu's controls (the arsenal's, the map's, or the pause menu's) and cross presses. */
@@ -2849,6 +2864,9 @@ async function boot() {
      const pad=gamepad.poll(dt,paused||navigation?.open||arsenal.open?'menu':fleet?.occupiedPlane?'aircraft':vehicle?'vehicle':render.firstPerson?'scope':'foot',now);
      const padNames=gamepad.lastUsed>Math.max(lastTouchAt,lastKeyAt)?gamepad.family:undefined,flying=!!fleet?.occupiedPlane;
      if(padNames!==namingPad||flying!==namingFlying){namingPad=padNames;namingFlying=flying;setControlNaming({pad:padNames,flying});}
+     // A keyboard played on a touch screen: the help names its keys, a help up reads again with them, and the buttons step aside.
+     const keys=!!touch&&lastKeyboardAt>Math.max(lastTouchAt,gamepad.lastUsed);
+     if(keys!==keysPlayed){keysPlayed=keys;setControlNaming({keys});touch?.setKeyboard(keys);if(hud.helpShowing())shownScript.helpRevision=-1;}
      if(pad.start)input.onPause();else if(pad.menuMove||pad.menuSelect)padMenu(pad.menuMove,pad.menuSelect);}
     let alpha = 1;
     if(input.consume('Backquote')&&!paused&&!navigation?.open)arsenal.toggle();
@@ -5961,7 +5979,7 @@ async function boot() {
   frame = requestAnimationFrame(animate);
   cleanup = () => { sessionCharacterChannel.close(); disposeWater(); disposeSunTexture(); disposeObjectData(); disposeLighting(); characterChannel?.close();
     alive = false; pendingPrebuild?.job.dispose();pendingPrebuild=undefined; progression.save();window.removeEventListener('pagehide',saveProgress);for(const type of ['pointerdown','keydown','input','change','resize'] as const)window.removeEventListener(type,redrawHeld,{capture:true});canvas.removeEventListener('webglcontextrestored',redrawHeld);worldFx.dispose();breakManager.resetAll();breakPieces.dispose();weatherEffects.dispose();movingFog.dispose();birdsMesh.dispose();worldCoronas.dispose();lightPools.dispose();pickups.dispose();drops.dispose();occupants.dispose();sirens.dispose();skids.dispose();wakes.dispose();wantedHud.dispose();weaponView.dispose();weapons.dispose();arsenal.dispose();traffic?.dispose(); police?.dispose(); emergency?.dispose(); driveby?.dispose(); pedestrians?.dispose(); if(fleet)fleet.dispose();else worldCar?.dispose();staticWorld?.dispose();clearTimeout(followTimer);follower?.stop();sceneChannel?.close(); importedScene?.dispose(); cancelAnimationFrame(frame); input.dispose(); sound.dispose(); render.dispose(); sim.dispose();
-    window.removeEventListener('touchstart',onTouchStart,{capture:true});for(const type of ['keydown','mousedown'] as const)window.removeEventListener(type,onKeyOrMouse,{capture:true});upright?.removeEventListener('change',onUpright);window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
+    window.removeEventListener('touchstart',onTouchStart,{capture:true});window.removeEventListener('touchmove',onTouchMove,{capture:true});for(const type of ['touchend','touchcancel'] as const)window.removeEventListener(type,onTouchEnd,{capture:true});for(const type of ['keydown','mousedown'] as const)window.removeEventListener(type,onKeyOrMouse,{capture:true});upright?.removeEventListener('change',onUpright);window.removeEventListener('popstate',onPopState);document.removeEventListener('fullscreenchange',onFullscreenChange);
     document.removeEventListener('visibilitychange', onVisibility); window.removeEventListener('blur', onBlur);
     document.removeEventListener('pointerlockchange', onLockChange); canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored);
   };
