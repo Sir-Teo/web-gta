@@ -4,6 +4,17 @@ import { NativeHudNames } from './nativeHudNames';
 import type { DrawnHudBigMessages } from './nativeHudBigMessages';
 import type { Simulation } from '../simulation/Simulation';
 
+/** How far a box (a script menu) moves to stand clear of another (a touch screen's pause button) by `margin`: right if
+ * it then fits across the screen, else down if it fits, else not at all. */
+export function clearOf(box: { left: number; top: number; right: number; bottom: number }, avoid: { left: number; top: number; right: number; bottom: number }, screen: { width: number; height: number }, margin = 8) {
+  const overlaps = box.left < avoid.right + margin && box.right > avoid.left - margin && box.top < avoid.bottom + margin && box.bottom > avoid.top - margin;
+  if (!overlaps) return { x: 0, y: 0 };
+  const x = avoid.right + margin - box.left;
+  if (box.right + x <= screen.width - margin) return { x, y: 0 };
+  const y = avoid.bottom + margin - box.top;
+  if (box.bottom + y <= screen.height - margin) return { x: 0, y };
+  return { x: 0, y: 0 };
+}
 export class Hud {
   readonly element = document.createElement('div');
   readonly menu: HTMLElement;
@@ -362,6 +373,16 @@ export class Hud {
         const sx = stretch * scale / .52, shift = t.align === 0 ? '-50%' : t.align === 2 ? '-100%' : '0';
         span.style.transform = `translateX(${shift}) scaleX(${sx})`;
       }
+    }
+    // A touch screen's pause button stands under the radar, where a menu at the left edge would cover it (the game's
+    // only way to pause on an iPhone): the menus move right past it, or down if the screen has no room across.
+    el.style.transform = '';
+    const pause = document.documentElement.classList.contains('touch') ? this.element.ownerDocument.querySelector('.touch-top .pause')?.getBoundingClientRect() : undefined;
+    if (pause?.width) {
+      const parts = [...el.children].map(c => c.getBoundingClientRect()), origin = el.getBoundingClientRect();
+      const menu = { left: Math.min(...parts.map(r => r.left)) - origin.left, top: Math.min(...parts.map(r => r.top)) - origin.top, right: Math.max(...parts.map(r => r.right)) - origin.left, bottom: Math.max(...parts.map(r => r.bottom)) - origin.top };
+      const move = clearOf(menu, { left: pause.left - origin.left, top: pause.top - origin.top, right: pause.right - origin.left, bottom: pause.bottom - origin.top }, { width, height });
+      if (move.x || move.y) el.style.transform = `translate(${move.x}px, ${move.y}px)`;
     }
   }
   /** CHud::DrawTripSkip: the skip icon (hud.txd skipicon) and its label (FEC_TSK) above the radar while
