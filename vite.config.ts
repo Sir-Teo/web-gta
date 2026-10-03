@@ -1,6 +1,7 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
+import { useRapierWasmFile } from './scripts/rapierWasm.mjs';
 import { serviceWorkerSource } from './scripts/serviceWorker.mjs';
 
 /** The public files the game page loads itself: its manifest, icons and the menu's font. */
@@ -33,9 +34,38 @@ const serviceWorker = (): Plugin => {
   };
 };
 
+/** Rapier's compat build carries its WebAssembly as a base64 string inside the JS (2.85 MB, 1.08 MB gzipped), which a
+ * phone downloads, parses and decodes before compiling. The package ships the same module as rapier_wasm3d_bg.wasm, and
+ * its loader takes a URL as readily as bytes: the build hands it the file's URL instead (0.76 MB gzipped, compiled as
+ * it streams in, and kept compiled by the browser between visits), and the game page preloads it beside its scripts. */
+const rapierWasmFile = (): Plugin => {
+  let wasmFile: string | undefined, base = '/';
+  return {
+    name: 'rapier-wasm-file',
+    apply: 'build',
+    configResolved(config) { base = config.base; },
+    transform(code, id) {
+      const file = id.split('?')[0];
+      if (!/[\\/]@dimforge[\\/]rapier3d-compat[\\/]dist[\\/]rapier\.mjs$/.test(file)) return;
+      const wasm = join(dirname(file), 'rapier_wasm3d_bg.wasm');
+      try { return { code: `import __rapierWasmUrl from ${JSON.stringify(`${wasm}?url`)};\n${useRapierWasmFile(code, readFileSync(wasm), '__rapierWasmUrl')}`, map: null }; }
+      catch (error) { this.error(`${(error as Error).message} Revisit rapierWasmFile.`); }
+    },
+    generateBundle(_options, bundle) { wasmFile = Object.keys(bundle).find(file => /rapier_wasm3d_bg-[\w-]+\.wasm$/.test(file)); },
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, context) {
+        if (!wasmFile || context.path !== '/index.html') return;
+        // The loader's fetch() is a same-origin CORS request: the preload matches it, so the one download serves both.
+        return [{ tag: 'link', attrs: { rel: 'preload', href: `${base}${wasmFile}`, as: 'fetch', type: 'application/wasm', crossorigin: '' }, injectTo: 'head' }];
+      },
+    },
+  };
+};
+
 export default defineConfig({
   base: process.env.BASE_PATH || '/',
-  plugins: [serviceWorker()],
+  plugins: [rapierWasmFile(), serviceWorker()],
   // Playwright sets this only in its server process; avoid sharing optimizer state with the editor.
   cacheDir: process.env.PLAYWRIGHT_TEST ? 'node_modules/.vite-browser-tests' : 'node_modules/.vite',
   build: {
