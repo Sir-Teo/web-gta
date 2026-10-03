@@ -86,24 +86,63 @@ export type TouchMode='foot'|'scope'|'swim'|'vehicle'|'aircraft'|'cutscene';
 /** The layouts the buttons are adjusted in: on foot's serves the scope and the water, whose buttons share its slots. */
 type LayoutGroup='foot'|'vehicle'|'aircraft';
 const layoutGroup=(mode:TouchMode):LayoutGroup=>mode==='vehicle'||mode==='aircraft'?mode:'foot';
-/** The round widgets' sizes, by the names TouchDefaultPhoneWidescreen.cfg gives them: radii on the port's 448-high
- * screen. The file names them only; these are the most its own spacing allows (the horn 48 from the camera toggle, a
- * column's buttons 64 apart, the pedals 61 apart on a widescreen phone). */
-export const PORT_SIZE={small:20,medium:27,large:35} as const;
+/** The round widgets' sizes, by the names the port's layout files give them: CTouchInterface reads SCALE_SMALL as 17,
+ * SCALE_MEDIUM 24, SCALE_LARGE 29 and SCALE_LARGER 32, half a widget's width on its 640-wide screen. A button keeps
+ * round by sizing its height by the width too (CWidgetButton's flag), so it grows with the screen's width. */
+export const PORT_SIZE={small:17,medium:24,large:29,larger:32} as const;
 type PortPlace=readonly [x:number,y:number,size:keyof typeof PORT_SIZE];
-/** The iOS and Android port's own layout, its TouchDefaultPhoneWidescreen.cfg: each widget's centre on the port's
- * 640×448 screen, which the touch layer lays over the safe area. On foot: Fire is TARGETING_AND_ATTACK, Aim VC_SHOOT,
- * Enter ENTER_CAR, Sprint (Swim, Zoom −) BUTTON_SPRINT_AND_SWIM, Skip SKIP_CUTSCENE; at the wheel Gas and Brake are
- * ACCELERATE and BRAKE, H-brake HANDBRAKE_AND_AIR_SHOOT, Fire CAR_SHOOT, Horn HORN and the arrows VEHICLE_STEER_LEFT and
- * _RIGHT; flying, Fire is AIR_SHOOT and Rocket CAR_SHOOT's place. The buttons the port has no widget for take free places
- * of its grid: Jump the weapon swap's (the HUD's weapon icon swaps here), Radio the hydraulics', Crouch, Reload, Look
- * back and Nitrous a column further in (the phone's row above stays clear, as the port's is but for a call: the wanted
- * stars hang there under the status), the yaw there too. */
-export const PORT_LAYOUT:Readonly<Record<LayoutGroup,Readonly<Record<string,PortPlace>>>>={
- foot:{fire:[607,310,'medium'],aim:[553,310,'medium'],enter:[607,246,'medium'],sprint:[603,381,'large'],jump:[554,246,'medium'],crouch:[500,246,'medium'],reload:[500,310,'medium'],skip:[611,34,'medium']},
- vehicle:{gas:[602,380,'large'],reverse:[541,381,'large'],jump:[607,310,'medium'],fire:[554,310,'medium'],enter:[607,246,'medium'],sprint:[614,191,'small'],radio:[554,245,'medium'],crouch:[500,246,'medium'],
-  nitro:[500,310,'medium'],'steer-left':[36,380,'large'],'steer-right':[99,381,'large']},
- aircraft:{gas:[602,380,'large'],reverse:[541,381,'large'],fire:[607,310,'medium'],rocket:[554,310,'medium'],jump:[554,245,'medium'],enter:[607,246,'medium'],'yaw-left':[500,246,'medium'],'yaw-right':[500,310,'medium']}};
+/** The port's four default layouts. It loads one by the device and the screen's shape: a phone's or an iPad's (the
+ * UIDevice idiom), each for a screen at least 3:2 across or narrower (TouchDefaultTablet4x3.cfg, an iPad's 4:3). */
+export type PortLayoutFile='TouchDefaultPhoneWidescreen'|'TouchDefaultPhone3x2'|'TouchDefaultTabletWidescreen'|'TouchDefaultTablet4x3';
+export function portLayoutFile(width:number,height:number,tablet:boolean):PortLayoutFile{
+ const wide=width/height>=1.5;
+ return tablet?wide?'TouchDefaultTabletWidescreen':'TouchDefaultTablet4x3':wide?'TouchDefaultPhoneWidescreen':'TouchDefaultPhone3x2';
+}
+/** A tablet by the browser's measure of the screen: its short side 600 CSS pixels or more, Android's own line for one
+ * (smallest width 600dp). Every iPad is wider than that and every phone narrower. */
+export const isTabletScreen=(screen:{width:number;height:number}|undefined=globalThis.screen)=>!!screen&&Math.min(screen.width,screen.height)>=600;
+type PortWidget='TARGETING_AND_ATTACK'|'VC_SHOOT'|'ENTER_CAR'|'BUTTON_SPRINT_AND_SWIM'|'SKIP_CUTSCENE'|'ACCELERATE'|'BRAKE'|'HANDBRAKE_AND_AIR_SHOOT'|'CAR_SHOOT'|'HORN'|'HYDRAULICS'|'VEHICLE_STEER_LEFT'|'VEHICLE_STEER_RIGHT'|'PED_MOVE';
+/** The widgets the touch buttons stand at, from each file: a widget's centre on the port's 640×448 screen, which the
+ * touch layer lays over the safe area, and its size (PED_MOVE, where a thumb takes the stick, is a region: its right
+ * edge and its top). */
+const PORT_WIDGETS:Readonly<Record<PortLayoutFile,Readonly<Record<PortWidget,PortPlace>>>>={
+ TouchDefaultPhoneWidescreen:{TARGETING_AND_ATTACK:[607,310,'medium'],VC_SHOOT:[553,310,'medium'],ENTER_CAR:[607,246,'medium'],BUTTON_SPRINT_AND_SWIM:[603,381,'large'],SKIP_CUTSCENE:[611,34,'medium'],
+  ACCELERATE:[602,380,'large'],BRAKE:[541,381,'large'],HANDBRAKE_AND_AIR_SHOOT:[607,310,'medium'],CAR_SHOOT:[554,310,'medium'],HORN:[614,191,'small'],HYDRAULICS:[554,245,'medium'],
+  VEHICLE_STEER_LEFT:[36,380,'large'],VEHICLE_STEER_RIGHT:[99,381,'large'],PED_MOVE:[240,248,'medium']},
+ TouchDefaultPhone3x2:{TARGETING_AND_ATTACK:[599,315,'large'],VC_SHOOT:[538,315,'large'],ENTER_CAR:[600,251,'large'],BUTTON_SPRINT_AND_SWIM:[598,383,'larger'],SKIP_CUTSCENE:[612,30,'medium'],
+  ACCELERATE:[598,383,'larger'],BRAKE:[529,383,'larger'],HANDBRAKE_AND_AIR_SHOOT:[601,315,'large'],CAR_SHOOT:[538,315,'large'],HORN:[606,139,'medium'],HYDRAULICS:[538,249,'large'],
+  VEHICLE_STEER_LEFT:[41,383,'larger'],VEHICLE_STEER_RIGHT:[111,383,'larger'],PED_MOVE:[240,248,'medium']},
+ TouchDefaultTabletWidescreen:{TARGETING_AND_ATTACK:[606,310,'medium'],VC_SHOOT:[554,310,'medium'],ENTER_CAR:[606,245,'medium'],BUTTON_SPRINT_AND_SWIM:[601,380,'large'],SKIP_CUTSCENE:[611,34,'medium'],
+  ACCELERATE:[601,380,'large'],BRAKE:[541,380,'large'],HANDBRAKE_AND_AIR_SHOOT:[606,310,'medium'],CAR_SHOOT:[554,310,'medium'],HORN:[613,185,'small'],HYDRAULICS:[554,245,'medium'],
+  VEHICLE_STEER_LEFT:[38,380,'large'],VEHICLE_STEER_RIGHT:[99,380,'large'],PED_MOVE:[180,268,'medium']},
+ // An iPad's 4:3 has its rows lower and the attack inside the aim.
+ TouchDefaultTablet4x3:{TARGETING_AND_ATTACK:[552,335,'medium'],VC_SHOOT:[605,335,'medium'],ENTER_CAR:[605,284,'medium'],BUTTON_SPRINT_AND_SWIM:[601,389,'large'],SKIP_CUTSCENE:[611,27,'medium'],
+  ACCELERATE:[601,389,'large'],BRAKE:[539,389,'large'],HANDBRAKE_AND_AIR_SHOOT:[605,335,'medium'],CAR_SHOOT:[552,335,'medium'],HORN:[612,240,'small'],HYDRAULICS:[552,284,'medium'],
+  VEHICLE_STEER_LEFT:[38,389,'large'],VEHICLE_STEER_RIGHT:[100,389,'large'],PED_MOVE:[210,268,'medium']}};
+/** Each layout's buttons at the port's widgets. On foot: Fire is TARGETING_AND_ATTACK, Aim VC_SHOOT, Enter ENTER_CAR,
+ * Sprint (Swim, Zoom −) BUTTON_SPRINT_AND_SWIM, Skip SKIP_CUTSCENE; at the wheel Gas and Brake are ACCELERATE and BRAKE,
+ * H-brake HANDBRAKE_AND_AIR_SHOOT, Fire CAR_SHOOT, Horn HORN and the arrows VEHICLE_STEER_LEFT and _RIGHT; flying, Fire is
+ * AIR_SHOOT and Rocket CAR_SHOOT's place. The buttons the port has no widget for take free places of its grid: Jump and
+ * Radio the hydraulics' (where a phone's weapon swap stands; the HUD's weapon icon swaps here), Crouch, Reload, Look back
+ * and Nitrous a column further in, as far in again as the hydraulics are from the enter button (the phone's row above
+ * stays clear, as the port's is but for a call: the wanted stars hang there under the status), the yaw there too. */
+function portLayout(file:PortLayoutFile):Readonly<Record<LayoutGroup,Readonly<Record<string,PortPlace>>>>{
+ const w=PORT_WIDGETS[file],[outer]=w.ENTER_CAR,[second,upper,size]=w.HYDRAULICS,lower=w.CAR_SHOOT[1],inner=2*second-outer;
+ return {
+  foot:{fire:w.TARGETING_AND_ATTACK,aim:w.VC_SHOOT,enter:w.ENTER_CAR,sprint:w.BUTTON_SPRINT_AND_SWIM,jump:w.HYDRAULICS,crouch:[inner,upper,size],reload:[inner,lower,size],skip:w.SKIP_CUTSCENE},
+  vehicle:{gas:w.ACCELERATE,reverse:w.BRAKE,jump:w.HANDBRAKE_AND_AIR_SHOOT,fire:w.CAR_SHOOT,enter:w.ENTER_CAR,sprint:w.HORN,radio:w.HYDRAULICS,crouch:[inner,upper,size],
+   nitro:[inner,lower,size],'steer-left':w.VEHICLE_STEER_LEFT,'steer-right':w.VEHICLE_STEER_RIGHT},
+  aircraft:{gas:w.ACCELERATE,reverse:w.BRAKE,fire:w.HANDBRAKE_AND_AIR_SHOOT,rocket:w.CAR_SHOOT,jump:w.HYDRAULICS,enter:w.ENTER_CAR,'yaw-left':[inner,upper,size],'yaw-right':[inner,lower,size]}};
+}
+export const PORT_LAYOUTS=Object.fromEntries((Object.keys(PORT_WIDGETS) as PortLayoutFile[]).map(file=>[file,portLayout(file)])) as Readonly<Record<PortLayoutFile,ReturnType<typeof portLayout>>>;
+/** What the CSS lays round the buttons by the layout in use: the innermost column's place and size (the subtitles,
+ * pills and prompts keep left of it), the enter row (the pills stand level with it), the stick's region and the steering
+ * arrows' outer edge. */
+export function portLayoutFrame(file:PortLayoutFile):Readonly<Record<string,number>>{
+ const w=PORT_WIDGETS[file],layout=PORT_LAYOUTS[file].foot,[inner,,size]=layout.crouch,right=w.VEHICLE_STEER_RIGHT;
+ return {'--touch-inner':inner,'--touch-inner-r':PORT_SIZE[size],'--touch-row':w.ENTER_CAR[1],'--touch-stick-w':w.PED_MOVE[0],'--touch-stick-top':w.PED_MOVE[1],
+  '--touch-arrows-x':right[0],'--touch-arrows-r':PORT_SIZE[right[2]]};
+}
 /** A button: its label, the key or mouse button it holds, whether a tap latches it (aim) rather than holds it, the
  * modes it shows in (all of them when unset), whether it shows only while the game offers it (setOffered), as the
  * mobile ports show their enter-vehicle button only beside a vehicle, and whether only the driver has it (a passenger
@@ -188,6 +227,8 @@ export class TouchControls {
  private latched=new Set<string>();
  private buttons:{spec:ButtonSpec;element:HTMLButtonElement}[]=[];
  private mode?:TouchMode;
+ /** A tablet takes the port's iPad layouts. */
+ private readonly tablet=isTabletScreen();
  private offered=new Set<string>();
  private abort=new AbortController();
  constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void;playOn?:()=>void},private settings:TouchSettings=DEFAULT_TOUCH,private readonly changeSettings:(settings:TouchSettings)=>void=()=>{}){
@@ -320,6 +361,8 @@ export class TouchControls {
   this.element.addEventListener('touchstart',e=>{if(e.cancelable)e.preventDefault();},{...options,passive:false});
   this.element.addEventListener('contextmenu',e=>e.preventDefault(),options);
   this.setMode('foot');
+  // The screen's shape picks the layout file, and a turn or the browser's bars change it.
+  window.addEventListener('resize',()=>this.place(),options);
   // Tilt steering reads the device's orientation (the port's accelerometer option).
   window.addEventListener('deviceorientation',e=>{this.orientation={beta:e.beta,gamma:e.gamma};this.steer();},options);
   this.apply(settings);
@@ -406,10 +449,14 @@ export class TouchControls {
  /** Each button moved where the player put it in this layout (the CSS translate, kept apart from the grid's place). */
  private place(){
   const layout=this.editing?.layout??this.settings.layout,group=layoutGroup(this.mode??'foot');
+  // The port's layout file for this device and the screen's shape now (a tablet's browser bars come and go).
+  const file=portLayoutFile(innerWidth,innerHeight,this.tablet);
+  if(this.element.dataset.layout!==file){this.element.dataset.layout=file;
+   for(const [name,value] of Object.entries(portLayoutFrame(file)))document.documentElement.style.setProperty(name,String(value));}
   for(const {spec,element} of this.buttons){const o=layout[`${group}:${spec.className}`];const translate=o?`${o[0]}vmin ${o[1]}vmin`:'',scale=o?.[2]?String(o[2]):'';
    if(element.style.translate!==translate)element.style.translate=translate;if(element.style.scale!==scale)element.style.scale=scale;
-   // The port's place for it in this layout (PORT_LAYOUT), which the CSS lays over the safe area.
-   const at=PORT_LAYOUT[group][spec.className];
+   // The port's place for it in this layout (PORT_LAYOUTS), which the CSS lays over the safe area.
+   const at=PORT_LAYOUTS[file][group][spec.className];
    if(at)for(const [name,value] of [['--x',at[0]],['--y',at[1]],['--r',PORT_SIZE[at[2]]]] as const)if(element.style.getPropertyValue(name)!==String(value))element.style.setProperty(name,String(value));}
   this.showSize();
  }

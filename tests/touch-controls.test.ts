@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {goFullscreen,offerInstall,suggestHomeScreen,wantsTouchControls} from '../src/input/TouchControls';
+import {PORT_LAYOUTS,PORT_SIZE,goFullscreen,isTabletScreen,offerInstall,portLayoutFile,suggestHomeScreen,wantsTouchControls,type PortLayoutFile} from '../src/input/TouchControls';
 import {Input} from '../src/input/Input';
 test('touch controls show on a coarse pointer, and the address can force them either way',()=>{
  expect(wantsTouchControls('',true)).toBe(true);expect(wantsTouchControls('',false)).toBe(false);
@@ -62,4 +62,32 @@ test('Android\'s install offer is held for the menu\'s button, which takes it on
  // Offered again (dismissed), then installed: the button goes.
  target.dispatchEvent(offer());expect(button.hidden).toBe(false);target.dispatchEvent(new Event('appinstalled'));expect(button.hidden).toBe(true);
  stop();target.dispatchEvent(offer());expect(button.hidden).toBe(true);
+});
+test('the touch layout is the port\'s file for the device: a phone\'s or a tablet\'s, 3:2 and wider or narrower',()=>{
+ // CTouchInterface: the UIDevice idiom picks phone or iPad, and a screen at least 1.5 across its height the widescreen file.
+ expect(portLayoutFile(844,390,false)).toBe('TouchDefaultPhoneWidescreen');expect(portLayoutFile(480,320,false)).toBe('TouchDefaultPhoneWidescreen');
+ expect(portLayoutFile(560,400,false)).toBe('TouchDefaultPhone3x2');
+ expect(portLayoutFile(1024,768,true)).toBe('TouchDefaultTablet4x3');expect(portLayoutFile(1194,834,true)).toBe('TouchDefaultTablet4x3');
+ // An iPad under Safari's bars is a wider page.
+ expect(portLayoutFile(1194,760,true)).toBe('TouchDefaultTabletWidescreen');
+ expect(isTabletScreen({width:390,height:844})).toBe(false);expect(isTabletScreen({width:430,height:932})).toBe(false);
+ expect(isTabletScreen({width:744,height:1133})).toBe(true);expect(isTabletScreen({width:1366,height:1024})).toBe(true);
+});
+test('each layout puts the buttons at its own file\'s widgets, sized as the port reads them',()=>{
+ // SCALE_SMALL, _MEDIUM, _LARGE and _LARGER from the executable.
+ expect(PORT_SIZE).toEqual({small:17,medium:24,large:29,larger:32});
+ const phone=PORT_LAYOUTS.TouchDefaultPhoneWidescreen;
+ expect(phone.foot).toMatchObject({fire:[607,310,'medium'],aim:[553,310,'medium'],enter:[607,246,'medium'],sprint:[603,381,'large'],jump:[554,245,'medium'],crouch:[501,245,'medium'],reload:[501,310,'medium']});
+ expect(phone.vehicle).toMatchObject({gas:[602,380,'large'],reverse:[541,381,'large'],sprint:[614,191,'small'],'steer-left':[36,380,'large']});
+ // An iPad's 4:3: rows lower, the attack inside the aim; a 3:2 phone's buttons larger.
+ expect(PORT_LAYOUTS.TouchDefaultTablet4x3.foot).toMatchObject({fire:[552,335,'medium'],aim:[605,335,'medium'],enter:[605,284,'medium'],crouch:[499,284,'medium']});
+ expect(PORT_LAYOUTS.TouchDefaultPhone3x2.vehicle).toMatchObject({gas:[598,383,'larger'],fire:[538,315,'large'],nitro:[476,315,'large']});
+ // At the port's sizes no two buttons of a layout touch on a screen of its shape: centres at their places over the
+ // screen, radii by its width (no wider than 16:9 of its height).
+ const screens:Record<PortLayoutFile,readonly [number,number]>={TouchDefaultPhoneWidescreen:[844,390],TouchDefaultPhone3x2:[560,400],TouchDefaultTabletWidescreen:[1194,760],TouchDefaultTablet4x3:[1024,768]};
+ for(const [file,[width,height]] of Object.entries(screens) as [PortLayoutFile,readonly [number,number]][])for(const places of Object.values(PORT_LAYOUTS[file])){
+  const buttons=Object.entries(places).filter(([name])=>name!=='skip'),unit=Math.min(width,height*16/9)/640;
+  for(const [i,[,a]] of buttons.entries())for(const [,b] of buttons.slice(i+1))
+   expect(Math.hypot((a[0]-b[0])/640*width,(a[1]-b[1])/448*height)).toBeGreaterThan((PORT_SIZE[a[2]]+PORT_SIZE[b[2]])*unit);
+ }
 });

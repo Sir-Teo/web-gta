@@ -21,8 +21,9 @@ export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSp
 /** A moved button: how far across and down, and (when resized) its size against the others'. */
 export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
 /** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
-/** What a kept layout's moves are measured from: the port's own places (TouchDefaultPhoneWidescreen.cfg). Moves kept
- * from the grid the buttons stood in before are dropped, as they would carry a button off somewhere else. */
+/** What a kept layout's moves are measured from: the port's own places, in the layout file the device takes (a phone's
+ * TouchDefaultPhoneWidescreen.cfg, an iPad's its own). Moves kept from the grid the buttons stood in before are
+ * dropped, as they would carry a button off somewhere else. */
 export const LAYOUT_ON='port-widescreen';
 export const LAYOUT_RANGE={x:{min:-200,max:20},y:{min:-100,max:20},scale:{min:.6,max:1.6}};
 const LAYOUT_KEY=/^(?:foot|vehicle|aircraft):[a-z-]+$/;

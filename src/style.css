@@ -121,23 +121,26 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 .touch-controls{position:absolute;inset:0;z-index:4;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:none}
 .touch-controls[hidden],.game-ui.paused .touch-controls{display:none}
 /* The port's LOOK region is the whole screen under the widgets, and its PED_MOVE region (where a thumb takes the stick)
-   the bottom left: x 0 to 240 and y 248 down, on its 640×448 screen. */
+   the bottom left: on a phone x 0 to 240 and y 248 down on its 640×448 screen, on a tablet less (TouchControls'
+   portLayoutFrame). */
 .touch-look{position:absolute;inset:0;pointer-events:auto;touch-action:none}
-.touch-stick-zone{position:absolute;left:0;top:calc(env(safe-area-inset-top,0px) + 248 / 448 * var(--touch-safe-h));bottom:0;width:calc(env(safe-area-inset-left,0px) + 240 / 640 * var(--touch-safe-w));pointer-events:auto;touch-action:none}
+.touch-stick-zone{position:absolute;left:0;top:calc(env(safe-area-inset-top,0px) + var(--touch-stick-top,248) / 448 * var(--touch-safe-h));bottom:0;width:calc(env(safe-area-inset-left,0px) + var(--touch-stick-w,240) / 640 * var(--touch-safe-w));pointer-events:auto;touch-action:none}
 .touch-stick{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;background:#0003;border:2px solid #fff6;pointer-events:none}
 .touch-stick[hidden]{display:none}
 .touch-stick-knob{position:absolute;left:36px;top:36px;width:56px;height:56px;border-radius:50%;background:#fffa;box-shadow:0 1px 4px #0008}
-/* The buttons stand where the iOS and Android port's TouchDefaultPhoneWidescreen.cfg puts its widgets (TouchControls'
- * PORT_LAYOUT): each centred at its place on the port's 640×448 screen laid over the safe area, and as big as its
- * radius on the 448 (the settings' button size scales it). */
+/* The buttons stand where the iOS and Android port's layout file for the device puts its widgets (TouchControls'
+ * PORT_LAYOUTS): each centred at its place on the port's 640×448 screen laid over the safe area, and as big as its
+ * size on the 640, the width, as the port keeps a button round (the settings' button size scales it). The port knew no
+ * phone wider than 16:9 (it ran letterboxed on one), so a wider screen sizes them as a 16:9 one its height would. */
 :root{--touch-b:calc(clamp(44px,14.5vmin,64px) * var(--touch-scale,1));--touch-right:max(12px,env(safe-area-inset-right));
  --touch-safe-w:calc(100vw - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));--touch-safe-h:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
- /* The buttons' columns on the port's screen: right of x 472 (the innermost, at 500, and its radius). */
- --touch-cluster:calc(168 / 640 * var(--touch-safe-w) + env(safe-area-inset-right,0px))}
+ --touch-size-w:min(var(--touch-safe-w),var(--touch-safe-h) * 16 / 9);
+ /* The buttons' columns on the port's screen: right of the innermost's left edge (its place less its radius). */
+ --touch-cluster:calc((640 - var(--touch-inner,501)) / 640 * var(--touch-safe-w) + var(--touch-inner-r,24) / 640 * var(--touch-size-w) * var(--touch-scale,1) + env(safe-area-inset-right,0px))}
 .touch-buttons{position:absolute;inset:0;pointer-events:none}
 /* Placed by its corner half a button up and left of its centre (not by a transform), so the editor's resize grows it
    about its own centre. */
-.touch-buttons .touch-button{position:absolute;--d:max(40px,calc(var(--r,27) * 2 / 448 * var(--touch-safe-h) * var(--touch-scale,1)));width:var(--d);height:var(--d);
+.touch-buttons .touch-button{position:absolute;--d:max(40px,calc(var(--r,24) * 2 / 640 * var(--touch-size-w) * var(--touch-scale,1)));width:var(--d);height:var(--d);
  left:calc(env(safe-area-inset-left,0px) + var(--x,0) / 640 * var(--touch-safe-w) - var(--d) / 2);top:calc(env(safe-area-inset-top,0px) + var(--y,0) / 448 * var(--touch-safe-h) - var(--d) / 2)}
 .touch-button{pointer-events:auto;touch-action:none;width:var(--touch-b);height:var(--touch-b);border-radius:50%;border:2px solid #ffffff6e;background:#00000052;color:#fffffff0;font:600 clamp(10px,3vmin,12px)/1 system-ui,sans-serif;text-shadow:0 1px 2px #000;padding:0;display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
 .touch-button>svg{width:56%;height:56%;fill:currentColor;filter:drop-shadow(0 1px 1px #000a)}.touch-button>img{width:74%;height:74%;object-fit:contain;filter:drop-shadow(0 1px 2px #000)}.touch-button.fire>svg.weapon{width:60%;height:60%;margin:0}
@@ -167,7 +170,7 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 .touch-steering-choice{--free-left:calc(var(--touch-radar-left) + var(--touch-radar) + 12px);--free:calc(100vw - var(--touch-cluster) - var(--free-left) - 12px);position:absolute;left:calc(var(--free-left) + var(--free) / 2);top:50%;transform:translate(-50%,-50%);padding:14px 18px;border-radius:12px;background:#0b110ce6;border:1px solid #ffffff40;text-align:center;pointer-events:auto;width:max-content;max-width:var(--free)}
 .touch-steering-choice[hidden]{display:none}.touch-steering-choice p{margin:0 0 12px;font:600 16px/1.3 system-ui,sans-serif;color:#ede8d3}
 .touch-steering-choice div{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.touch-steering-choice .touch-button.small{height:42px;border-radius:21px;padding:0 16px;font-size:14px}
-.touch-context{position:absolute;right:calc(var(--touch-cluster) + 8px);top:calc(env(safe-area-inset-top,0px) + 246 / 448 * var(--touch-safe-h) - 17px);display:flex;gap:8px;pointer-events:none}
+.touch-context{position:absolute;right:calc(var(--touch-cluster) + 8px);top:calc(env(safe-area-inset-top,0px) + var(--touch-row,246) / 448 * var(--touch-safe-h) - 17px);display:flex;gap:8px;pointer-events:none}
 .touch-context .touch-button.small{height:40px;border-radius:20px;padding:0 16px;background:#b8902acc;border-color:#ffe9a8;font-size:14px}
 .touch-rotate{display:none;position:absolute;inset:0;z-index:6;place-content:center;justify-items:center;gap:16px;padding:24px;background:#0b110cd9;pointer-events:auto;text-align:center}
 .touch-rotate p{margin:0;font:600 20px/1.3 system-ui,sans-serif;color:#ede8d3;text-shadow:0 1px 2px #000}
@@ -221,8 +224,8 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 /* Subtitles centre in the room left of the buttons rather than running under them; a widescreen scene, with only Skip
  * up, keeps them across the screen. */
 .touch body:not(.widescreen) .prompt{left:calc((100vw + env(safe-area-inset-left) - var(--touch-cluster)) / 2);width:max-content;max-width:calc(100vw - env(safe-area-inset-left) - var(--touch-cluster) - 36px)}
-/* Steering by the port's arrows, bottom left, the subtitle stands between them (to x 134 on its screen) and the buttons. */
-.touch body:not(.widescreen) .game-ui:has(> .touch-controls[data-mode=vehicle][data-steering=arrows]) .prompt{--arrows:calc(env(safe-area-inset-left,0px) + 134 / 640 * var(--touch-safe-w));
+/* Steering by the port's arrows, bottom left, the subtitle stands between them (to the right arrow's edge) and the buttons. */
+.touch body:not(.widescreen) .game-ui:has(> .touch-controls[data-mode=vehicle][data-steering=arrows]) .prompt{--arrows:calc(env(safe-area-inset-left,0px) + var(--touch-arrows-x,99) / 640 * var(--touch-safe-w) + var(--touch-arrows-r,29) / 640 * var(--touch-size-w) * var(--touch-scale,1));
  left:calc((100vw + var(--arrows) - var(--touch-cluster)) / 2);max-width:calc(100vw - var(--arrows) - var(--touch-cluster) - 24px)}
 .touch .menu-backdrop{padding-left:max(6vw,calc(env(safe-area-inset-left) + 16px));padding-right:max(6vw,calc(env(safe-area-inset-right) + 16px))}
 .touch .arsenal{left:max(4vw,16px,env(safe-area-inset-left));right:max(4vw,16px,env(safe-area-inset-right))}
