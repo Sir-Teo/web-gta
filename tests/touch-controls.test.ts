@@ -84,7 +84,9 @@ test('each layout puts the buttons at its own file\'s widgets, sized as the port
  expect(phone.vehicle).toMatchObject({'look-left':[42,310,'medium'],'look-right':[97,310,'medium']});
  expect(PORT_LAYOUTS.TouchDefaultTablet4x3.vehicle).toMatchObject({'look-left':[42,335,'medium'],'look-right':[97,335,'medium']});
  // A yes and a no are the port's POSITIVE and NEGATIVE: low in the middle of a phone, high on an iPad's 4:3.
- expect(phone.vehicle).toMatchObject({'reply-yes':[390,424,'small'],'reply-no':[240,424,'small']});expect(PORT_LAYOUTS.TouchDefaultTablet4x3.vehicle).toMatchObject({'reply-yes':[458,71,'small'],'reply-no':[412,71,'small']});
+ expect(phone.vehicle).toMatchObject({'reply-yes':[390,424,'small'],'reply-no':[240,424,'small']});
+ // A shop's Select and Back are its STORE_ACCEPT and STORE_CANCEL, large under the right thumb on a phone.
+ expect(phone.vehicle).toMatchObject({'store-accept':[535,405,'large'],'store-cancel':[600,405,'large']});expect(PORT_LAYOUTS.TouchDefaultTablet4x3.vehicle).toMatchObject({'store-accept':[547,415,'medium'],'store-cancel':[600,415,'medium']});expect(PORT_LAYOUTS.TouchDefaultTablet4x3.vehicle).toMatchObject({'reply-yes':[458,71,'small'],'reply-no':[412,71,'small']});
  // An iPad's 4:3: rows lower, the attack inside the aim; a 3:2 phone's buttons larger.
  expect(PORT_LAYOUTS.TouchDefaultTablet4x3.foot).toMatchObject({fire:[552,335,'medium'],aim:[605,335,'medium'],enter:[605,284,'medium'],crouch:[499,284,'medium']});
  expect(PORT_LAYOUTS.TouchDefaultPhone3x2.vehicle).toMatchObject({gas:[598,383,'larger'],fire:[538,315,'large'],nitro:[476,315,'large']});
@@ -92,7 +94,8 @@ test('each layout puts the buttons at its own file\'s widgets, sized as the port
  // screen, radii by its width (no wider than 16:9 of its height).
  const screens:Record<PortLayoutFile,readonly [number,number]>={TouchDefaultPhoneWidescreen:[844,390],TouchDefaultPhone3x2:[560,400],TouchDefaultTabletWidescreen:[1194,760],TouchDefaultTablet4x3:[1024,768]};
  for(const [file,[width,height]] of Object.entries(screens) as [PortLayoutFile,readonly [number,number]][])for(const places of Object.values(PORT_LAYOUTS[file])){
-  const buttons=Object.entries(places).filter(([name])=>name!=='skip'),unit=Math.min(width,height*16/9)/640;
+  // (Skip shows in a cutscene, and a shop's accept and cancel while its menu is up, each with no other button.)
+ const buttons=Object.entries(places).filter(([name])=>!['skip','store-accept','store-cancel'].includes(name)),unit=Math.min(width,height*16/9)/640;
   for(const [i,[,a]] of buttons.entries())for(const [,b] of buttons.slice(i+1))
    expect(Math.hypot((a[0]-b[0])/640*width,(a[1]-b[1])/448*height)).toBeGreaterThan((PORT_SIZE[a[2]]+PORT_SIZE[b[2]])*unit);
  }

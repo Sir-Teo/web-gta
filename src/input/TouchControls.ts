@@ -49,7 +49,7 @@ export function offerInstall(button:HTMLButtonElement,target:EventTarget=window)
  * symbol in the help text where the PC prints its key. Fire shows the weapon in hand, so it keeps its word alone. */
 const HELP_ICONS:Readonly<Record<string,TouchIcon>>={ENTER:'car',SPRINT:'run',JUMP:'jump',CROUCH:'crouch',AIM:'target',GAS:'up',BRAKE:'down',
  'H-BRAKE':'parking',HORN:'horn',RADIO:'music','LOOK BACK':'eye',CAMERA:'camera','ZOOM +':'zoomIn','ZOOM −':'zoomOut',ROCKET:'rocket',
- '◀ YAW':'left','YAW ▶':'right','◀ LOOK':'shootLeft','LOOK ▶':'shootRight','LEFT ARROW':'left','RIGHT ARROW':'right',YES:'thumbUp',NO:'thumbDown',
+ '◀ YAW':'left','YAW ▶':'right','◀ LOOK':'shootLeft','LOOK ▶':'shootRight','LEFT ARROW':'left','RIGHT ARROW':'right',YES:'thumbUp',NO:'thumbDown',SELECT:'check',BACK:'close',
  // The stick, one direction or the whole of it (a run of its directions is "the STICK").
  STICK:'stick','STICK UP':'stick','STICK DOWN':'stick','STICK LEFT':'stick','STICK RIGHT':'stick'};
 /** A played pad's buttons as the PS2 original's help drew them: the face buttons a symbol in the button's colour (a
@@ -102,24 +102,24 @@ export function portLayoutFile(width:number,height:number,tablet:boolean):PortLa
 /** A tablet by the browser's measure of the screen: its short side 600 CSS pixels or more, Android's own line for one
  * (smallest width 600dp). Every iPad is wider than that and every phone narrower. */
 export const isTabletScreen=(screen:{width:number;height:number}|undefined=globalThis.screen)=>!!screen&&Math.min(screen.width,screen.height)>=600;
-type PortWidget='VEHICLE_SHOOT_LEFT'|'VEHICLE_SHOOT_RIGHT'|'TARGETING_AND_ATTACK'|'VC_SHOOT'|'ENTER_CAR'|'BUTTON_SPRINT_AND_SWIM'|'SKIP_CUTSCENE'|'ACCELERATE'|'BRAKE'|'HANDBRAKE_AND_AIR_SHOOT'|'CAR_SHOOT'|'HORN'|'HYDRAULICS'|'VEHICLE_STEER_LEFT'|'VEHICLE_STEER_RIGHT'|'PED_MOVE'|'POSITIVE'|'NEGATIVE';
+type PortWidget='VEHICLE_SHOOT_LEFT'|'VEHICLE_SHOOT_RIGHT'|'TARGETING_AND_ATTACK'|'VC_SHOOT'|'ENTER_CAR'|'BUTTON_SPRINT_AND_SWIM'|'SKIP_CUTSCENE'|'ACCELERATE'|'BRAKE'|'HANDBRAKE_AND_AIR_SHOOT'|'CAR_SHOOT'|'HORN'|'HYDRAULICS'|'VEHICLE_STEER_LEFT'|'VEHICLE_STEER_RIGHT'|'PED_MOVE'|'POSITIVE'|'NEGATIVE'|'STORE_ACCEPT'|'STORE_CANCEL';
 /** The widgets the touch buttons stand at, from each file: a widget's centre on the port's 640×448 screen, which the
  * touch layer lays over the safe area, and its size (PED_MOVE, where a thumb takes the stick, is a region: its right
  * edge and its top). */
 const PORT_WIDGETS:Readonly<Record<PortLayoutFile,Readonly<Record<PortWidget,PortPlace>>>>={
  TouchDefaultPhoneWidescreen:{VEHICLE_SHOOT_LEFT:[42,310,'medium'],VEHICLE_SHOOT_RIGHT:[97,310,'medium'],TARGETING_AND_ATTACK:[607,310,'medium'],VC_SHOOT:[553,310,'medium'],ENTER_CAR:[607,246,'medium'],BUTTON_SPRINT_AND_SWIM:[603,381,'large'],SKIP_CUTSCENE:[611,34,'medium'],
   ACCELERATE:[602,380,'large'],BRAKE:[541,381,'large'],HANDBRAKE_AND_AIR_SHOOT:[607,310,'medium'],CAR_SHOOT:[554,310,'medium'],HORN:[614,191,'small'],HYDRAULICS:[554,245,'medium'],
-  VEHICLE_STEER_LEFT:[36,380,'large'],VEHICLE_STEER_RIGHT:[99,381,'large'],PED_MOVE:[240,248,'medium'],POSITIVE:[390,424,'small'],NEGATIVE:[240,424,'small']},
+  VEHICLE_STEER_LEFT:[36,380,'large'],VEHICLE_STEER_RIGHT:[99,381,'large'],PED_MOVE:[240,248,'medium'],POSITIVE:[390,424,'small'],NEGATIVE:[240,424,'small'],STORE_ACCEPT:[535,405,'large'],STORE_CANCEL:[600,405,'large']},
  TouchDefaultPhone3x2:{VEHICLE_SHOOT_LEFT:[41,315,'large'],VEHICLE_SHOOT_RIGHT:[106,315,'large'],TARGETING_AND_ATTACK:[599,315,'large'],VC_SHOOT:[538,315,'large'],ENTER_CAR:[600,251,'large'],BUTTON_SPRINT_AND_SWIM:[598,383,'larger'],SKIP_CUTSCENE:[612,30,'medium'],
   ACCELERATE:[598,383,'larger'],BRAKE:[529,383,'larger'],HANDBRAKE_AND_AIR_SHOOT:[601,315,'large'],CAR_SHOOT:[538,315,'large'],HORN:[606,139,'medium'],HYDRAULICS:[538,249,'large'],
-  VEHICLE_STEER_LEFT:[41,383,'larger'],VEHICLE_STEER_RIGHT:[111,383,'larger'],PED_MOVE:[240,248,'medium'],POSITIVE:[390,424,'small'],NEGATIVE:[240,424,'small']},
+  VEHICLE_STEER_LEFT:[41,383,'larger'],VEHICLE_STEER_RIGHT:[111,383,'larger'],PED_MOVE:[240,248,'medium'],POSITIVE:[390,424,'small'],NEGATIVE:[240,424,'small'],STORE_ACCEPT:[530,415,'large'],STORE_CANCEL:[600,415,'large']},
  TouchDefaultTabletWidescreen:{VEHICLE_SHOOT_LEFT:[42,310,'medium'],VEHICLE_SHOOT_RIGHT:[97,310,'medium'],TARGETING_AND_ATTACK:[606,310,'medium'],VC_SHOOT:[554,310,'medium'],ENTER_CAR:[606,245,'medium'],BUTTON_SPRINT_AND_SWIM:[601,380,'large'],SKIP_CUTSCENE:[611,34,'medium'],
   ACCELERATE:[601,380,'large'],BRAKE:[541,380,'large'],HANDBRAKE_AND_AIR_SHOOT:[606,310,'medium'],CAR_SHOOT:[554,310,'medium'],HORN:[613,185,'small'],HYDRAULICS:[554,245,'medium'],
-  VEHICLE_STEER_LEFT:[38,380,'large'],VEHICLE_STEER_RIGHT:[99,380,'large'],PED_MOVE:[180,268,'medium'],POSITIVE:[390,424,'small'],NEGATIVE:[240,424,'small']},
+  VEHICLE_STEER_LEFT:[38,380,'large'],VEHICLE_STEER_RIGHT:[99,380,'large'],PED_MOVE:[180,268,'medium'],POSITIVE:[390,424,'small'],NEGATIVE:[240,424,'small'],STORE_ACCEPT:[565,415,'small'],STORE_CANCEL:[605,415,'small']},
  // An iPad's 4:3 has its rows lower and the attack inside the aim.
  TouchDefaultTablet4x3:{VEHICLE_SHOOT_LEFT:[42,335,'medium'],VEHICLE_SHOOT_RIGHT:[97,335,'medium'],TARGETING_AND_ATTACK:[552,335,'medium'],VC_SHOOT:[605,335,'medium'],ENTER_CAR:[605,284,'medium'],BUTTON_SPRINT_AND_SWIM:[601,389,'large'],SKIP_CUTSCENE:[611,27,'medium'],
   ACCELERATE:[601,389,'large'],BRAKE:[539,389,'large'],HANDBRAKE_AND_AIR_SHOOT:[605,335,'medium'],CAR_SHOOT:[552,335,'medium'],HORN:[612,240,'small'],HYDRAULICS:[552,284,'medium'],
-  VEHICLE_STEER_LEFT:[38,389,'large'],VEHICLE_STEER_RIGHT:[100,389,'large'],PED_MOVE:[210,268,'medium'],POSITIVE:[458,71,'small'],NEGATIVE:[412,71,'small']}};
+  VEHICLE_STEER_LEFT:[38,389,'large'],VEHICLE_STEER_RIGHT:[100,389,'large'],PED_MOVE:[210,268,'medium'],POSITIVE:[458,71,'small'],NEGATIVE:[412,71,'small'],STORE_ACCEPT:[547,415,'medium'],STORE_CANCEL:[600,415,'medium']}};
 /** Each layout's buttons at the port's widgets. On foot: Fire is TARGETING_AND_ATTACK, Aim VC_SHOOT, Enter ENTER_CAR,
  * Sprint (Swim, Zoom −) BUTTON_SPRINT_AND_SWIM, Skip SKIP_CUTSCENE; at the wheel Gas and Brake are ACCELERATE and BRAKE,
  * H-brake HANDBRAKE_AND_AIR_SHOOT, Fire CAR_SHOOT, Horn HORN, the arrows VEHICLE_STEER_LEFT and _RIGHT and, while a
@@ -133,7 +133,7 @@ function portLayout(file:PortLayoutFile):Readonly<Record<LayoutGroup,Readonly<Re
  return {
   foot:{fire:w.TARGETING_AND_ATTACK,aim:w.VC_SHOOT,enter:w.ENTER_CAR,sprint:w.BUTTON_SPRINT_AND_SWIM,jump:w.HYDRAULICS,crouch:[inner,upper,size],reload:[inner,lower,size],skip:w.SKIP_CUTSCENE},
   vehicle:{gas:w.ACCELERATE,reverse:w.BRAKE,jump:w.HANDBRAKE_AND_AIR_SHOOT,fire:w.CAR_SHOOT,enter:w.ENTER_CAR,sprint:w.HORN,radio:w.HYDRAULICS,crouch:[inner,upper,size],
-   nitro:[inner,lower,size],'steer-left':w.VEHICLE_STEER_LEFT,'steer-right':w.VEHICLE_STEER_RIGHT,'look-left':w.VEHICLE_SHOOT_LEFT,'look-right':w.VEHICLE_SHOOT_RIGHT,'reply-yes':w.POSITIVE,'reply-no':w.NEGATIVE},
+   nitro:[inner,lower,size],'steer-left':w.VEHICLE_STEER_LEFT,'steer-right':w.VEHICLE_STEER_RIGHT,'look-left':w.VEHICLE_SHOOT_LEFT,'look-right':w.VEHICLE_SHOOT_RIGHT,'reply-yes':w.POSITIVE,'reply-no':w.NEGATIVE,'store-accept':w.STORE_ACCEPT,'store-cancel':w.STORE_CANCEL},
   aircraft:{gas:w.ACCELERATE,reverse:w.BRAKE,fire:w.HANDBRAKE_AND_AIR_SHOOT,rocket:w.CAR_SHOOT,jump:w.HYDRAULICS,enter:w.ENTER_CAR,'yaw-left':[inner,upper,size],'yaw-right':[inner,lower,size]}};
 }
 export const PORT_LAYOUTS=Object.fromEntries((Object.keys(PORT_WIDGETS) as PortLayoutFile[]).map(file=>[file,portLayout(file)])) as Readonly<Record<PortLayoutFile,ReturnType<typeof portLayout>>>;
@@ -227,7 +227,9 @@ const CONTEXT:readonly {action:string;label:string;code:string;widget?:{classNam
  // the host writes straight to the pad's d-pad, cross and triangle.
  {action:'MENU_UP',label:'▲',code:'MenuUp'},{action:'MENU_DOWN',label:'▼',code:'MenuDown'},
  {action:'MENU_LEFT',label:'◀',code:'MenuLeft'},{action:'MENU_RIGHT',label:'▶',code:'MenuRight'},
- {action:'MENU_BACK',label:'Back',code:'MenuBack'},{action:'MENU_SELECT',label:'Select',code:'MenuSelect'},
+ // Select and Back are the port's STORE_ACCEPT and STORE_CANCEL, large under the right thumb, the rest of the buttons
+ // giving way while the menu is up (the script holds the player still).
+ {action:'MENU_BACK',label:'Back',code:'MenuBack',widget:{className:'store-cancel',icon:'close'}},{action:'MENU_SELECT',label:'Select',code:'MenuSelect',widget:{className:'store-accept',icon:'check'}},
 ];
 /** How long the weapon icon is held to open the arsenal rather than step the weapon. */
 const ARSENAL_HOLD_MS=500;
