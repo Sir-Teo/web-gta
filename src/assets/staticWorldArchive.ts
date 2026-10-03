@@ -62,13 +62,16 @@ export const WORLD_CACHE='web-gta-world-v1';
 export const worldCacheKey=(sha256:string)=>new URL(`${import.meta.env?.BASE_URL??'/'}__world/${sha256}`,globalThis.location?.origin??'https://cache.invalid').href;
 const cacheKey=worldCacheKey;
 async function worldCache(){try{return typeof caches!=='undefined'?await caches.open(WORLD_CACHE):undefined;}catch{return undefined;}}
-async function cachedWorldBytes(resource:{bytes:number;sha256:string}){
+/** `hash`: check the kept copy against its SHA-256 (it was checked when stored; a caller that checks the bytes some
+ * other way need not pay for it again). */
+async function cachedWorldBytes(resource:{bytes:number;sha256:string},hash=true){
  try{
   const hit=await (await worldCache())?.match(cacheKey(resource.sha256));if(!hit)return undefined;
   const bytes=new Uint8Array(await hit.arrayBuffer());
-  return bytes.length===resource.bytes&&await sha256Hex(bytes)===resource.sha256?bytes:undefined;
+  return bytes.length===resource.bytes&&(!hash||await sha256Hex(bytes)===resource.sha256)?bytes:undefined;
  }catch{return undefined;}
 }
+async function forgetWorldBytes(resource:{sha256:string}){try{await (await worldCache())?.delete(cacheKey(resource.sha256));}catch{/* Downloaded and stored over regardless. */}}
 function storeWorldBytes(resource:{sha256:string},bytes:Uint8Array){
  void worldCache().then(cache=>cache?.put(cacheKey(resource.sha256),new Response(bytes as Uint8Array<ArrayBuffer>,{headers:{'content-type':'application/octet-stream'}}))).catch(()=>{});
 }
@@ -81,10 +84,10 @@ export async function pruneWorldCache(keep:Iterable<string>){
   return removed;
  }catch{return 0;}
 }
-/** `gzip`: the file at `url` is a gzip stream of the resource. */
-export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha256:string},signal?:AbortSignal,gzip=false){
+/** `gzip`: the file at `url` is a gzip stream of the resource. `kept`: whether a copy in Cache Storage may answer. */
+export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha256:string},signal?:AbortSignal,gzip=false,kept=true){
  validateResource(resource);
- const cached=await cachedWorldBytes(resource);if(cached)return cached;
+ const cached=kept?await cachedWorldBytes(resource):undefined;if(cached)return cached;
  // Kept here by checksum, a download passes the browser's HTTP cache by: it would hold a second copy of every chunk a
  // phone streams (the whole world is 617 MB), and evict other sites' entries for it. Without Cache Storage the HTTP
  // cache is the only one, and a stale copy of a republished path fails the checksum once, so a second attempt
@@ -109,6 +112,22 @@ export async function fetchStaticWorldBytes(url:URL,resource:{bytes:number;sha25
   if(mode==='reload')break;
  }
  throw new AssetFormatError(`World content checksum mismatch: ${url.pathname}`);
+}
+/** A chunk's bytes, inflated. A copy kept in Cache Storage was hashed as it was stored; read back, the gzip stream's own
+ * CRC-32 and length vouch for it rather than hashing it again on every start, the main thread's largest cost after
+ * its shaders as the world comes up (tens of megabytes before the player stands, a phone's CPU without SHA
+ * instructions the slowest at it). A kept copy that fails them is dropped and downloaded again. */
+async function worldChunk(url:URL,spec:{bytes:number;sha256:string;expandedBytes:number},signal?:AbortSignal){
+ const inflate=async(packed:Uint8Array<ArrayBuffer>)=>{
+  // Stream the bytes straight into the inflater: wrapping them in a Blob first copies the chunk into the browser's
+  // blob store.
+  const source=new ReadableStream<Uint8Array<ArrayBuffer>>({start(controller){controller.enqueue(packed);controller.close();}});
+  const bytes=await collect(source.pipeThrough(new DecompressionStream('gzip')),spec.expandedBytes);requireAsset(bytes.length===spec.expandedBytes,'Incomplete expanded world chunk.');
+  return bytes;
+ };
+ const kept=await cachedWorldBytes(spec,false);
+ if(kept)try{return await inflate(kept);}catch{await forgetWorldBytes(spec);}
+ return inflate(await fetchStaticWorldBytes(url,spec,signal,false,false));
 }
 /** Blob views stay lazy. Worker creates this adapter locally; it must not be structured-cloned. */
 class ArchiveSlice extends Blob {
@@ -164,11 +183,7 @@ async function openImg(base:URL,name:string,signal?:AbortSignal,budget:ChunkBudg
  async function chunkBytes(index:number){
   const cached=cache.get(index);if(cached){const held=budget.order.get(key(index));if(held){budget.order.delete(key(index));budget.order.set(key(index),held);}return cached;}
   const existing=pending.get(index);if(existing)return existing;
-  const task=(async()=>{const spec=manifest.chunks[index],packed=await fetchStaticWorldBytes(new URL(spec.file,base),spec,signal);downloads++;
-   // Stream the downloaded bytes straight into the inflater: wrapping them in a Blob first copies the chunk into
-   // the browser's blob store.
-   const source=new ReadableStream<Uint8Array<ArrayBuffer>>({start(controller){controller.enqueue(packed);controller.close();}});
-   const bytes=await collect(source.pipeThrough(new DecompressionStream('gzip')),spec.expandedBytes);requireAsset(bytes.length===spec.expandedBytes,'Incomplete expanded world chunk.');
+  const task=(async()=>{const spec=manifest.chunks[index],bytes=await worldChunk(new URL(spec.file,base),spec,signal);downloads++;
    while(budget.retained+bytes.length>retainedLimit&&budget.order.size)budget.order.values().next().value!.drop();
    cache.set(index,bytes);retainedBytes+=bytes.length;budget.retained+=bytes.length;
    budget.order.set(key(index),{bytes:bytes.length,drop:()=>{cache.delete(index);retainedBytes-=bytes.length;budget.retained-=bytes.length;budget.order.delete(key(index));}});

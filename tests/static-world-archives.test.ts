@@ -114,3 +114,39 @@ test('with Cache Storage keeping the bytes by checksum, a download passes the HT
   expect(modes).toEqual(['no-store']);expect(opened.every(name=>name===WORLD_CACHE)).toBe(true);
  }finally{globalThis.fetch=original;if(hadCaches)(globalThis as {caches?:unknown}).caches=originalCaches;else delete (globalThis as {caches?:unknown}).caches;}
 });
+
+test('a chunk kept in Cache Storage is checked by its gzip CRC rather than hashed again, and a damaged one is fetched again',async()=>{
+ const {openStaticWorld,worldCacheKey,WORLD_CACHE}=await import('../src/assets/staticWorldArchive');
+ const {gzipSync}=await import('node:zlib'),{createHash}=await import('node:crypto'),{vi}=await import('vitest');
+ const sha=(b:Uint8Array)=>createHash('sha256').update(b).digest('hex');
+ const names=['a.dff','b.dff','c.dff'],whole=img(names),directory=whole.slice(0,2048),files:Record<string,Uint8Array>={'directory.bin':directory};
+ const chunks=names.map((_,i)=>{const raw=whole.slice((1+i)*2048,(2+i)*2048).fill(i,100,2048),packed=new Uint8Array(gzipSync(raw)),file=`chunks/${i}.bin`;files[file]=packed;return {file,bytes:packed.length,expandedBytes:raw.length,sha256:sha(packed)};});
+ const manifest={version:1,archive:{name:'gta3.img',bytes:whole.length,directory:{file:'directory.bin',bytes:directory.length,sha256:sha(directory)}},chunks,
+  ranges:names.map((_,i)=>({offset:(1+i)*2048,length:2048,chunk:i,start:0})),resources:[]};
+ files['manifest.json']=new TextEncoder().encode(JSON.stringify(manifest));
+ const store=new Map<string,Uint8Array>(),fakeCaches={open:async(name:string)=>{expect(name).toBe(WORLD_CACHE);return {
+  match:async(key:string)=>store.has(key)?new Response(store.get(key)!.slice()):undefined,
+  put:async(key:string,response:Response)=>{store.set(key,new Uint8Array(await response.arrayBuffer()));},
+  delete:async(key:string)=>store.delete(key)};}};
+ const original=globalThis.fetch,hadCaches='caches' in globalThis,originalCaches=(globalThis as {caches?:unknown}).caches,base='https://pages.invalid/world/',fetched:string[]=[];
+ globalThis.fetch=(async(url:URL)=>{const path=String(url).slice(base.length);fetched.push(path);const bytes=files[path];return bytes?new Response(bytes.slice()):new Response('missing',{status:404});}) as typeof fetch;
+ (globalThis as {caches?:unknown}).caches=fakeCaches;
+ const digest=vi.spyOn(crypto.subtle,'digest'),hashed=()=>digest.mock.calls.map(call=>(call[1] as Uint8Array).byteLength);
+ const readAll=async()=>{const archive=await openStaticWorld(base,new AbortController().signal);return Promise.all(archive.entries.map(async entry=>(await readImgEntry(archive.file,entry))[200]));};
+ try{
+  // The first play downloads each chunk, hashes it and keeps it.
+  expect(await readAll()).toEqual([0,1,2]);
+  expect(fetched.filter(p=>p.startsWith('chunks/')).sort()).toEqual(['chunks/0.bin','chunks/1.bin','chunks/2.bin']);
+  await expect.poll(()=>store.size).toBe(4);
+  // The next reads them from the kept copies, hashing only the directory.
+  fetched.length=0;digest.mockClear();
+  expect(await readAll()).toEqual([0,1,2]);
+  expect(fetched).toEqual(['manifest.json']);expect(hashed()).toEqual([directory.length]);
+  // A kept chunk damaged on disk fails its CRC: dropped, downloaded again (hashed), and kept afresh.
+  const key=worldCacheKey(chunks[1].sha256),damaged=store.get(key)!.slice();damaged[damaged.length-6]^=0xff;store.set(key,damaged);
+  fetched.length=0;digest.mockClear();
+  expect(await readAll()).toEqual([0,1,2]);
+  expect(fetched).toEqual(['manifest.json','chunks/1.bin']);expect(hashed()).toEqual([directory.length,chunks[1].bytes]);
+  await expect.poll(()=>sha(store.get(key)!)).toBe(chunks[1].sha256);
+ }finally{digest.mockRestore();globalThis.fetch=original;if(hadCaches)(globalThis as {caches?:unknown}).caches=originalCaches;else delete (globalThis as {caches?:unknown}).caches;}
+});
