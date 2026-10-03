@@ -2,7 +2,7 @@ import {test,expect,devices,type Page,type CDPSession} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** The touch settings' Adjust controls (the iOS and Android port's own): from the pause menu, a layout's buttons are
  * dragged by a finger (CDP touch events) where the thumbs want them and the one touched sized, Done keeps them for play and for the next visit,
- * each layout keeps its own, and Reset puts them back; a slider follows a finger; Resolution High sharpens the picture and Low softens it; Visual effects Low thins the
+ * each layout keeps its own, and Reset puts them back; a slider follows a finger; Resolution High sharpens the picture and Low softens it, and Adaptive resolution is kept; Visual effects Low thins the
  * clouds and drops the player's real-time shadow; Draw distance 0 draws fewer map models. */
 const {defaultBrowserType,...phone}=devices['Pixel 7 landscape'];
 test.use({...phone});
@@ -80,6 +80,11 @@ test('a phone moves its buttons where the thumbs want them and keeps them',async
  // Low draws three quarters of a pixel per CSS pixel, softer and quicker.
  await page.getByLabel('Resolution',{exact:true}).selectOption('low');await expect.poll(buffer).toBeCloseTo(.75,1);
  await page.getByLabel('Resolution',{exact:true}).selectOption('standard');await expect.poll(buffer).toBe(1);
+ // Adaptive resolution (on by default) lowers it while the game falls behind (not measured under automation); off, kept.
+ {const adaptive=page.getByLabel('Adaptive resolution',{exact:true});await expect(adaptive).toBeChecked();
+  await adaptive.uncheck();await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).dynamicResolution)).toBe(false);
+  await adaptive.check();await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('grove-touch-v1')!).dynamicResolution)).toBe(true);
+  expect(await buffer()).toBe(1);}
  // Visual effects (the port's) set the FX quality: Low keeps half the volumetric clouds, draws no plants and no
  // real-time shadow for the player; High, the default, all of them.
  const effects=page.getByLabel('Visual effects',{exact:true});await expect(effects).toHaveValue('high');

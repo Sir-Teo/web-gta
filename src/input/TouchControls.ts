@@ -628,15 +628,19 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
 <label>Draw distance <input type="range" class="touch-draw-distance" aria-label="Draw distance" min="${DRAW_DISTANCE_RANGE.min}" max="${DRAW_DISTANCE_RANGE.max}" step="1"></label>
 <label>Visual effects <select class="touch-effects" aria-label="Visual effects"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
 <label>Resolution <select class="touch-resolution" aria-label="Resolution"><option value="low">Low (softer, faster)</option><option value="standard">Standard</option><option value="high">High (sharper, slower)</option></select></label>
+<label>Adaptive resolution <input type="checkbox" class="touch-dynamic-resolution" aria-label="Adaptive resolution"></label>
 <button type="button" class="touch-adjust-open">Adjust controls</button>
 <small class="touch-note"></small>`;
  const steering=panel.querySelector<HTMLSelectElement>('.touch-steering')!,aim=panel.querySelector<HTMLSelectElement>('.touch-aim')!;
  const analog=panel.querySelector<HTMLInputElement>('.touch-analog')!,look=panel.querySelector<HTMLInputElement>('.touch-look-speed')!,size=panel.querySelector<HTMLInputElement>('.touch-button-size')!,note=panel.querySelector<HTMLElement>('.touch-note')!;
+ const dynamic=panel.querySelector<HTMLInputElement>('.touch-dynamic-resolution')!;
  const vibration=panel.querySelector<HTMLInputElement>('.touch-vibration')!,invert=panel.querySelector<HTMLInputElement>('.touch-invert')!,autoClimb=panel.querySelector<HTMLInputElement>('.touch-auto-climb')!;
  const density=panel.querySelector<HTMLSelectElement>('.touch-density')!,resolution=panel.querySelector<HTMLSelectElement>('.touch-resolution')!,effects=panel.querySelector<HTMLSelectElement>('.touch-effects')!,drawDistance=panel.querySelector<HTMLInputElement>('.touch-draw-distance')!;
  // The settings can change outside the panel (the steering popup): it shows them afresh each time it is opened.
- const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);analog.value=String(settings.analogSensitivity);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;resolution.value=settings.resolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
+ const refresh=()=>{const settings=current();steering.value=settings.steering;aim.value=settings.aimAssist?'assist':'free';look.value=String(settings.lookSpeed);analog.value=String(settings.analogSensitivity);size.value=String(settings.buttonScale);vibration.checked=settings.vibration;autoClimb.checked=settings.autoClimb;invert.checked=settings.invertLook;resolution.value=settings.resolution;dynamic.checked=settings.dynamicResolution;effects.value=settings.effects;drawDistance.value=String(settings.drawDistance);density.value=settings.density;note.textContent='';};refresh();
  vibration.onchange=()=>update({vibration:vibration.checked});autoClimb.onchange=()=>update({autoClimb:autoClimb.checked});invert.onchange=()=>update({invertLook:invert.checked});
+ // Adaptive resolution: drawn softer while the phone cannot keep up (dynamicResolution), the chosen one otherwise.
+ dynamic.onchange=()=>update({dynamicResolution:dynamic.checked});
  // A quality setting set by the player is chosen: the first play's measure leaves them be.
  resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard',qualityChosen:true});
  density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium',qualityChosen:true});

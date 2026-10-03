@@ -263,6 +263,7 @@ import {stickSteering} from './input/stickSteering';
 import {touchHaptic} from './input/haptics';
 import {roadShake,thunderShake} from './engine/nativePadShakes';
 import {AutoQuality,QUALITY_PRESETS,devicePreset,lowerPreset} from './core/autoQuality';
+import {DynamicResolution,scaledRatio} from './core/dynamicResolution';
 /** The player's blob among the peds' (their ids are their own, from 0). */
 const PLAYER_SHADOW_ID=-1;
 import {fireGlow,missileGlow} from './combat/nativeFireGlow';
@@ -2314,8 +2315,10 @@ async function boot() {
   const touchPopulation=()=>touch?DENSITY_SCALE[touchSettings.density]:1;
   /** The touch controls keep a phone's screen on while the game plays (src/input/screenAwake). */
   const screenAwake=touch?new ScreenAwake():undefined;
-  // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for.
-  function applyResolution(){if(touch)render.setPixelRatio(resolutionRatio(touchSettings.resolution,devicePixelRatio));}
+  // The touch settings' Resolution: the screen's own density, up to twice the CSS pixel, when asked for; under it a
+  // step of the adaptive resolution while the game falls behind (not under automation, whose pictures are compared).
+  const dynamicResolution=touch&&!navigator.webdriver?new DynamicResolution():undefined;
+  function applyResolution(){if(touch)render.setPixelRatio(scaledRatio(resolutionRatio(touchSettings.resolution,devicePixelRatio),touchSettings.dynamicResolution&&dynamicResolution?dynamicResolution.scale:1));}
   // A taken pad shake, felt: a played pad rumbles for its time at its strength; a touch screen vibrates for half of it,
   // as the iOS port halves StartShake's time for a phone (an iPhone ticks once).
   const touchShake=touch?touchHaptic():undefined;
@@ -2803,9 +2806,11 @@ async function boot() {
     // A touch screen's first play is measured (autoQuality): a game that cannot keep up steps its quality down.
     // Measured in free play only: not under a menu, a load, a hidden page, or a cutscene or scripted scene, whose
     // subtitles the message would cover.
-    if(autoQuality){const scene=!!mission&&(mission.runtime.game.cutscene.running||mission.runtime.game.widescreenOn);
-     const verdict=autoQuality.frame(now,started&&!paused&&!navigation?.open&&!arsenal.open&&!terrainPause&&!scene&&document.visibilityState==='visible');
-     if(verdict)settleQuality(verdict);}
+    // Once settled, the same free play steers the adaptive resolution: a phone held back as it warms draws fewer pixels.
+    if(autoQuality||dynamicResolution&&touchSettings.dynamicResolution){const scene=!!mission&&(mission.runtime.game.cutscene.running||mission.runtime.game.widescreenOn);
+     const playing=started&&!paused&&!navigation?.open&&!arsenal.open&&!terrainPause&&!scene&&document.visibilityState==='visible';
+     if(autoQuality){const verdict=autoQuality.frame(now,playing);if(verdict)settleQuality(verdict);}
+     else if(dynamicResolution?.frame(now,playing)!==undefined)applyResolution();}
     input.frameStart();
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
     const dt = Math.max(0, Math.min((now - last) / 1000, 0.1)); last = now;
