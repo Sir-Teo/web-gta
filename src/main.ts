@@ -258,7 +258,7 @@ import {fxQuality,playerRealTimeShadow,setFxQuality} from './simulation/fx/fxQua
 import {DRAW_DISTANCE_DEFAULT,setDrawDistance} from './render/lodDistance';
 import {stickSteering} from './input/stickSteering';
 import {touchHaptic} from './input/haptics';
-import {thunderShake} from './engine/nativePadShakes';
+import {roadShake,thunderShake} from './engine/nativePadShakes';
 import {AutoQuality,QUALITY_PRESETS,lowerPreset} from './core/autoQuality';
 /** The player's blob among the peds' (their ids are their own, from 0). */
 const PLAYER_SHADOW_ID=-1;
@@ -4521,6 +4521,7 @@ async function boot() {
             WorldCar.onPlayerRammedLaw=()=>law.setLevelNoDrop(1);
             // CAutomobile::VehicleDamage's crash shake on the player's pad.
             WorldCar.onPlayerCarShake=(time,frequency,delayMs)=>{mission?.runtime.game.pads.startShake(0,time,frequency,delayMs,gameTimeMs);};
+            WorldCar.onRoadShake=(suspension,roughness,speed,mass,timeStep)=>{const shake=roadShake({suspension,roughness,speed,mass,timeStep,timeMs:gameTimeMs});if(shake)mission?.runtime.game.pads.startShake(0,shake.time,shake.frequency,0,gameTimeMs);};
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);worldCar.driverless=true;
             worldCar.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
             fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.outside=()=>render.lighting.area===0;fleet.sphereVisible=(x,y,z)=>new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse)).containsPoint(new Vector3(x,y,z));fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);

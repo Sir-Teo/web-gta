@@ -218,7 +218,7 @@ export class WorldCar {
   /** Alarm horn, seconds remaining: 15 s when an armed alarm goes off (CPhysical::AddCollisionRecord on a vehicle
    * collision), 8 s for the authored break-in rattle; nearby foot officers investigate. */
   alarm=0;
-  private surfaces:Map<number,{values:{glass:number};adhesionGroup?:string}>;
+  private surfaces:Map<number,{values:{glass:number;roughness?:number};adhesionGroup?:string}>;
   /** CGlass::CarWindscreenShatters when the windscreen panel reaches DAMSTATE_OPENED_DAMAGED: the pane's frame in
    * native world space (point, fwd, right, center) and the car's move speed in units a frame; unset, the panel flies
    * off as any other. */
@@ -723,7 +723,8 @@ export class WorldCar {
   // its own suspension and drive have nothing to move, and the recording's pedals show in its lamps.
   if(!this.car.body.isDynamic()){this.car.markStepStart();this.steerAngle=this.recordingControls?.steerAngle??this.steerAngle;this.gasPedal=this.recordingControls?.gas??this.gasPedal;return;}
   {const v=this.car.body.linvel();this.prevSpeed=Math.hypot(v.x,v.y,v.z)/50;}
-  const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;this.lastCompression=result.sampled.compression;
+  const result=this.car.stepPlayer(seconds,this.input,this.latch,{sources:this.sources,filter:c=>c.handle!==this.sim.playerCollider.handle,hover});this.latch=result.alreadySkidding;
+  {const previous=this.lastCompression;this.lastCompression=result.sampled.compression;if(this.occupied&&previous)this.roadShake(previous,result.sampled.compression,seconds*50);}
   this.steerAngle=result.steeringInput.angle;this.gasPedal=result.pedals.gas;this.gear=result.state.drivetrain.transmission.gear;
   this.updateAudioState(seconds*50,result.state.drivetrain.contacts,result.state.wheels,result.pedals);
    for(const wheel of NATIVE_CAR_WHEELS){const lighting=result.sampled.geometry[wheel]?.surface?.light;if(lighting!==undefined)this.collisionLighting[wheel]=lighting;}
@@ -1106,6 +1107,16 @@ export class WorldCar {
  static onPlayerRammedLaw?:()=>void;
  /** CPad::StartShake for the player's pad from his car's crash: time (ms), frequency and the delay before a weaker one. */
  static onPlayerCarShake?:(time:number,frequency:number,delayMs:number)=>void;
+ /** CAutomobile::ProcessControl's road shake inputs for the player's car (nativePadShakes' roadShake): the greatest
+  * compression jump, the roughest touching wheel's roughness × 0.1, the speed (a frame), the mass and the frames. */
+ static onRoadShake?:(suspension:number,roughness:number,speed:number,mass:number,timeStep:number)=>void;
+ private roadShake(previous:Record<CarWheel,number>,compression:Record<CarWheel,number>,timeStep:number){
+  if(!WorldCar.onRoadShake)return;
+  const v=this.car.body.linvel(),speedSq=(v.x**2+v.y**2+v.z**2)/2500;let suspension=0,roughness=0;
+  for(const wheel of NATIVE_CAR_WHEELS){const change=previous[wheel]-compression[wheel];if(change>.3&&!this.touchingSand&&speedSq>.04)suspension=Math.max(suspension,change);}
+  for(const ground of this.wheelGround)if(ground)roughness=Math.max(roughness,(this.surfaces.get(ground.material)?.values.roughness??0)*.1);
+  if(!this.touchingSand&&(suspension>0||roughness>0))WorldCar.onRoadShake(suspension,roughness,Math.sqrt(speedSq),this.mass,timeStep);
+ }
  /** The player's flipped-car count (CPlayerInfo::m_nUpsideDownCounter) and its 32-frame clock. */
  upsideDownCounter=0;private upsideDownClock=0;
  /** A flipped car burns. CAutomobile::VehicleDamage takes 4 health per 1/50 s frame from any upside-down
