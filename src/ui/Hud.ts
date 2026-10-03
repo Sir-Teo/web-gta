@@ -221,7 +221,9 @@ export class Hud {
   helpBoxWidth(width: number) {
     if (width === this.helpWidth) return;
     this.helpWidth = width;
-    this.element.querySelector<HTMLElement>('.help-box')!.style.maxWidth = width === 200 ? '' : `calc(min(380px,60vw) * ${width / 200})`;
+    // A share of the box's width, which on a touch screen stays clear of the buttons on the right too.
+    const box = this.element.querySelector<HTMLElement>('.help-box')!;
+    if (width === 200) box.style.removeProperty('--help-width'); else box.style.setProperty('--help-width', String(width / 200));
   }
   private helpWidth = 200;
   /** CHud::HelpMessageDisplayed (m_nHelpMessageState != 0): a help line or stat box that a drawn frame put up. What
