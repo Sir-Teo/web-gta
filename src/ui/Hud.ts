@@ -132,11 +132,21 @@ export class Hud {
     this.prompt = this.element.querySelector('.prompt')!;
     this.clock = this.element.querySelector('.game-time')!;
     this.money = this.element.querySelector('.cash')!;
+    // Each button opens and closes its panel. On a touch screen one is open at a time, as the port's menu shows one page
+    // beside its list (style.css puts it there on a short screen).
+    const panels = { brief: '.brief-panel', lighting: '.lighting-panel', audio: '.audio-panel', controls: '.controls-panel' } as const;
+    const toggle = (name: keyof typeof panels) => {
+      const panel = this.element.querySelector<HTMLElement>(panels[name])!, open = panel.hidden;
+      if (open && document.documentElement.classList.contains('touch')) for (const [other, selector] of Object.entries(panels)) if (other !== name) { this.element.querySelector<HTMLElement>(selector)!.hidden = true; this.button(other).setAttribute('aria-expanded', 'false'); }
+      panel.hidden = !open; this.button(name).setAttribute('aria-expanded', String(open));
+      return panel;
+    };
+    for (const name of Object.keys(panels) as (keyof typeof panels)[]) this.button(name).setAttribute('aria-expanded', 'false');
     // Opened, the list shows its newest line, and a phone's short menu scrolls the page down to it.
-    this.button('brief').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.brief-panel')!; panel.hidden = !panel.hidden; if (!panel.hidden) { panel.scrollTop = panel.scrollHeight; panel.scrollIntoView({ block: 'nearest' }); } };
-    this.button('lighting').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.lighting-panel')!; panel.hidden = !panel.hidden; };
-    this.button('audio').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.audio-panel')!; panel.hidden = !panel.hidden; };
-    this.button('controls').onclick = () => { const panel = this.element.querySelector<HTMLElement>('.controls-panel')!; panel.hidden = !panel.hidden; };
+    this.button('brief').onclick = () => { const panel = toggle('brief'); if (!panel.hidden) { panel.scrollTop = panel.scrollHeight; panel.scrollIntoView({ block: 'nearest' }); } };
+    this.button('lighting').onclick = () => toggle('lighting');
+    this.button('audio').onclick = () => toggle('audio');
+    this.button('controls').onclick = () => toggle('controls');
   }
   bindAudio(settings: AudioSettings, update: (settings: AudioSettings) => void) {
     const values = { ...settings };
@@ -372,7 +382,7 @@ export class Hud {
     setBriefs(lines: readonly string[], label: string) {
       const button = this.button('brief'), panel = this.element.querySelector<HTMLElement>('.brief-panel')!;
       panel.querySelector('ol')!.replaceChildren(...lines.map(line => { const item = document.createElement('li'); item.textContent = line; return item; }));
-      button.textContent = label; button.hidden = !lines.length; if (!lines.length) panel.hidden = true;
+      button.textContent = label; button.hidden = !lines.length; if (!lines.length) { panel.hidden = true; button.setAttribute('aria-expanded', 'false'); }
       if (!panel.hidden) panel.scrollTop = panel.scrollHeight;
     }
     menuMessage(text: string) { this.element.querySelector('.menu-message')!.textContent = text; }
