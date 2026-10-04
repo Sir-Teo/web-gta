@@ -14,13 +14,14 @@ export class DynamicResolution {
  private keptUp=0;private upAfter:number;
  /** The step just taken and the median before it, judged by the next window; and play left before stepping down again. */
  private trying?:{down:boolean;before:number};private holdDown=0;private holdFor:number;
- constructor(private readonly windowMs=3000,private readonly slowMs=1000/26,upAfterMs=30000,holdDownMs=60000,private readonly stallMs=250,private readonly gain=.92){
+ constructor(private readonly windowMs=3000,private readonly slowMs=1000/26,upAfterMs=30000,holdDownMs=60000,private readonly stallMs=1000,private readonly gain=.92){
   this.upAfter=upAfterMs;this.holdFor=holdDownMs;
  }
  /** The share of the chosen resolution drawn now. */
  get scale(){return RESOLUTION_STEPS[this.level];}
- /** A drawn frame at `now` (ms). Only frames in play count, and a stall (a load's hitch) is left out. The new scale when
-  * a window changes it. */
+ /** A drawn frame at `now` (ms). Only frames in play count, and a stall (a load's hitch, over a second) is left out: a
+  * quarter-second frame is a slow one, which a phone crawling in a car draws every time. The new scale when a window
+  * changes it. */
  frame(now:number,playing:boolean):number|undefined{
   if(!playing){this.last=undefined;return;}
   const interval=this.last===undefined?undefined:now-this.last;this.last=now;

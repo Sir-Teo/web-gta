@@ -54,6 +54,11 @@ test('only play counts: slow frames under a menu change nothing, nor a load\'s s
  expect(drs.scale).toBe(1);
 });
 
+test('a game crawling at a few frames a second, each a quarter second or more, is behind, not stalled',()=>{
+ const drs=new DynamicResolution(),clock={now:0};
+ expect(next(drs,clock,300,10000).scale).toBe(.85);
+});
+
 test('the renderer\'s ratio: the chosen one at the step, never under half a pixel, nor raised to it',()=>{
  expect(scaledRatio(2,.6)).toBeCloseTo(1.2);expect(scaledRatio(1,.6)).toBeCloseTo(.6);
  expect(scaledRatio(.75,.6)).toBe(.5);expect(scaledRatio(.4,.85)).toBe(.4);expect(scaledRatio(1,1)).toBe(1);
