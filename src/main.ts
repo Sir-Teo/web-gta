@@ -7,7 +7,7 @@ import {evaluateCarPosition} from './simulation/nativeCarChoice';
 import {statUpdateBar,statNameKey} from './ui/nativeStatUpdate';
 import {FALLEN_LAMPPOST_SOLVER_GROUPS} from './simulation/solverGroups';
 import {carRollsOverProp} from './simulation/vehiclePropContacts';
-import {controlNameOf,controlNaming,controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,useTouchControlNames} from './assets/gxt';
+import {controlNameOf,controlNaming,controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,setTouchText,useTouchControlNames} from './assets/gxt';
 import {ScriptTextLayer} from './ui/ScriptTextLayer';
 import {populationOutsideView} from './render/populationVisibility';
 import {NativeHunger} from './simulation/nativeHunger';
@@ -2388,6 +2388,9 @@ async function boot() {
   if(touch)setRetainedModels(weakDevice?16*1024*1024:32*1024*1024,true);
   const worldChunkBudget=touch?(weakDevice?16:24)*1024*1024:undefined;
   if(worldChunkBudget!==undefined)setChunkCacheBudget(worldChunkBudget);
+  // A touch screen's help is the iOS port's wording of it ("Tap ENTER to use this machine"), its own chunk, fetched beside
+  // the touch controls.
+  if(touch)void import('./assets/touchGxtText').then(({TOUCH_GXT_TEXT})=>setTouchText(TOUCH_GXT_TEXT)).catch(error=>console.warn('Touch help text unavailable.',error));
   if(touch){document.documentElement.classList.add('touch');useTouchControlNames(true,touchSettings.steering);applyResolution();
    // The pause menu's Controls panel holds the touch settings.
    // Adjust controls leaves the menu for the buttons themselves, the game still held, and comes back to it on Done.

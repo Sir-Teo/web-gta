@@ -53,6 +53,10 @@ export function readGxt(b:Uint8Array):Gxt{
  return {main,missions,bytes:b};
 }
 
+/** The iOS port's touch wording of the control help (touchGxtText), by table and key hash: while the HUD names the
+ * touch buttons, a key it rewords is read from it. */
+let touchText:Readonly<Record<string,Readonly<Record<number,string>>>>|undefined;
+export function setTouchText(text:typeof touchText){touchText=text;}
 /** TheText. */
 export class NativeText {
  private mission?:{name:string;table:Table};
@@ -60,8 +64,8 @@ export class NativeText {
  /** CText::Get: MAIN first, then the loaded mission table; a blank or missing key gives "". */
  get(key:string){
   if(!key||key[0]===' ')return '';
-  const hash=gxtKeyHash(key);
-  return this.gxt.main.get(hash)??this.mission?.table.get(hash)??'';
+  const hash=gxtKeyHash(key),touch=touchText&&controlNaming()==='touch'?touchText:undefined;
+  return touch?.MAIN?.[hash]??this.gxt.main.get(hash)??(this.mission&&touch?.[this.mission.name]?.[hash])??this.mission?.table.get(hash)??'';
  }
  /** Whether a key is in MAIN or the loaded mission table. */
  has(key:string){const hash=gxtKeyHash(key);return this.gxt.main.has(hash)||!!this.mission?.table.has(hash);}
