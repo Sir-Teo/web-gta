@@ -702,12 +702,12 @@ export function touchSettingsPanel(current:()=>TouchSettings,change:(settings:To
  gyro.onchange=async()=>{note.textContent='';if(!gyro.checked){update({gyroAim:false});return;}
   if(await motionAllowed('DeviceMotionEvent'))update({gyroAim:true});else{gyro.checked=false;note.textContent='Motion sensors were not allowed, so gyro aiming stays off.';}};
  // A quality setting set by the player is chosen: the first play's measure leaves them be.
- resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard',qualityChosen:true});
- density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium',qualityChosen:true});
- effects.onchange=()=>update({effects:effects.value==='low'||effects.value==='medium'?effects.value:'high',qualityChosen:true});
- drawDistance.oninput=()=>update({drawDistance:Number(drawDistance.value),qualityChosen:true});
- reflections.onchange=()=>update({carReflections:reflections.checked,qualityChosen:true});
- shadows.onchange=()=>update({shadows:shadows.checked,qualityChosen:true});
+ resolution.onchange=()=>update({resolution:resolution.value==='high'||resolution.value==='low'?resolution.value:'standard',qualityChosen:true,wheelMeasured:true});
+ density.onchange=()=>update({density:density.value==='full'||density.value==='low'?density.value:'medium',qualityChosen:true,wheelMeasured:true});
+ effects.onchange=()=>update({effects:effects.value==='low'||effects.value==='medium'?effects.value:'high',qualityChosen:true,wheelMeasured:true});
+ drawDistance.oninput=()=>update({drawDistance:Number(drawDistance.value),qualityChosen:true,wheelMeasured:true});
+ reflections.onchange=()=>update({carReflections:reflections.checked,qualityChosen:true,wheelMeasured:true});
+ shadows.onchange=()=>update({shadows:shadows.checked,qualityChosen:true,wheelMeasured:true});
  const update=(next:Partial<TouchSettings>)=>change({...current(),...next});
  steering.onchange=async()=>{
   note.textContent='';

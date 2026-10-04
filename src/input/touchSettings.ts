@@ -23,6 +23,9 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  /** The quality settings (visual effects, draw distance, resolution, population) are settled: chosen by the player,
   * or by the first play's measure (autoQuality). Until then a touch screen's first play may lower them. */
  qualityChosen:boolean;
+ /** Play at the wheel has been measured too (autoQuality's vehicle window), or the player has set the quality since.
+  * Settings settled by a measure of play on foot alone, before cars were measured, are measured again in a car. */
+ wheelMeasured:boolean;
  /** A drag up looks down, as an inverted pad's stick (the mouse's own setting is hidden on a touch screen). */
  invertLook:boolean;
  /** Aiming or through a scope, the phone turned turns the camera (gyroAim); off unless chosen. */
@@ -43,7 +46,7 @@ export interface TouchSettings {steering:TouchSteering;aimAssist:boolean;lookSpe
  layout:Readonly<Record<string,LayoutEntry>>;
  /** Whether the player has picked a steering method (the port asks the first time at the wheel). */
  steeringChosen:boolean}
-export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,autoClimb:true,analogSensitivity:27,qualityChosen:false,invertLook:false,gyroAim:false,resolution:'standard',carReflections:true,shadows:true,dynamicResolution:true,layout:{},steeringChosen:false};
+export const DEFAULT_TOUCH:TouchSettings={steering:'stick',aimAssist:true,lookSpeed:1,buttonScale:1,vibration:true,density:'medium',effects:'high',drawDistance:DRAW_DISTANCE_DEFAULT,autoClimb:true,analogSensitivity:27,qualityChosen:false,wheelMeasured:false,invertLook:false,gyroAim:false,resolution:'standard',carReflections:true,shadows:true,dynamicResolution:true,layout:{},steeringChosen:false};
 /** A moved button: how far across and down, and (when resized) its size against the others'. */
 export type LayoutEntry=readonly [number,number]|readonly [number,number,number];
 /** How far a button may be moved from its place (most of the way across a sideways screen and up it), and resized. */
@@ -75,7 +78,7 @@ export function parseTouchSettings(value:unknown):TouchSettings{
   drawDistance:Math.round(clamp(data.drawDistance,DRAW_DISTANCE_RANGE,DRAW_DISTANCE_DEFAULT)),
   autoClimb:typeof data.autoClimb==='boolean'?data.autoClimb:DEFAULT_TOUCH.autoClimb,
   analogSensitivity:Math.round(clamp(data.analogSensitivity,ANALOG_SENSITIVITY_RANGE,DEFAULT_TOUCH.analogSensitivity)),
-  qualityChosen:data.qualityChosen===true,
+  qualityChosen:data.qualityChosen===true,wheelMeasured:data.wheelMeasured===true,
   invertLook:typeof data.invertLook==='boolean'?data.invertLook:DEFAULT_TOUCH.invertLook,gyroAim:data.gyroAim===true,layout:(data as {layoutOn?:unknown}).layoutOn===LAYOUT_ON?parseLayout(data.layout):{},resolution:data.resolution==='high'||data.resolution==='low'?data.resolution:'standard',
   carReflections:typeof data.carReflections==='boolean'?data.carReflections:DEFAULT_TOUCH.carReflections,
   shadows:typeof data.shadows==='boolean'?data.shadows:DEFAULT_TOUCH.shadows,

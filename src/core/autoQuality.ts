@@ -3,8 +3,9 @@
  * Reflections off; middling ones Medium or High with Draw Distance 55 to 80; the strongest Max and 100 throughout. A
  * browser does not name the device, so on a touch screen the first play is measured instead: after a warm-up, a run of
  * drawn frames whose median interval is slower than 24 a second (the frame limiter asks 30) steps the settings down a
- * preset, and the next is measured in turn, until the game keeps up or the lowest is reached. It runs once; a player
- * who sets any of them has chosen. */
+ * preset, and the next is measured in turn, until the game keeps up or the lowest is reached. Play at the wheel is
+ * measured apart from play on foot (a car's camera sees further and its steps cost more): a phone that keeps up on foot
+ * and not in a car steps down too. It runs once; a player who sets any of them has chosen. */
 import type {TouchSettings} from '../input/touchSettings';
 /** The presets below the game's own: the port's middling Draw Distance and its weakest device's settings. */
 export const QUALITY_PRESETS:Readonly<Record<'medium'|'low',Partial<TouchSettings>>>={
@@ -26,20 +27,35 @@ export function devicePreset(nav:{deviceMemory?:number;hardwareConcurrency?:numb
  if(memory<=4&&cores!==undefined&&cores<=4)return 'medium';
  return undefined;
 }
+/** Where the frames are played: a car's camera sees further and its steps cost more, so play at the wheel is judged
+ * on its own. */
+export type QualityContext='foot'|'vehicle';
 export class AutoQuality {
- private last?:number;private played=0;private intervals:number[]=[];
- constructor(private readonly warmupMs=5000,private readonly windowMs=8000,private readonly slowMs=1000/24,private readonly stallMs=250){}
- /** A drawn frame at `now` (ms). Only frames in play count (not under a menu, a load or a hidden page), and a stall
-  * (a load's hitch) is left out. 'slow' once a window says the game cannot keep up, 'fine' once one says it can. */
- frame(now:number,playing:boolean):'slow'|'fine'|undefined{
+ private last?:number;private context?:QualityContext;private played=0;private intervals:number[]=[];
+ /** The contexts a window has found fine at the settings now. */
+ private fine=new Set<QualityContext>();
+ constructor(private readonly warmupMs=5000,private readonly windowMs=8000,private readonly slowMs=1000/24,private readonly stallMs=1000,
+  private readonly contexts:readonly QualityContext[]=['foot','vehicle']){}
+ /** Whether play in `context` is still to be judged: the adaptive resolution steers the rest. */
+ measuring(context:QualityContext){return this.contexts.includes(context)&&!this.fine.has(context);}
+ /** A drawn frame at `now` (ms) in `context`. Only frames in play count (not under a menu, a load or a hidden page),
+  * and a stall (a load's hitch, over a second) is left out; a frame of a quarter second is a slow one, not a hitch: a
+  * phone crawling at a few frames a second in a car is the slowness this is for. A change of context warms up again. 'slow' once a window in either
+  * context says the game cannot keep up (the next settings are measured afresh), 'fine' once a window in each has
+  * said it can. */
+ frame(now:number,playing:boolean,context:QualityContext='foot'):'slow'|'fine'|undefined{
   if(!playing){this.last=undefined;return;}
+  if(context!==this.context){this.context=context;this.played=0;this.intervals=[];this.last=undefined;}
   const interval=this.last===undefined?undefined:now-this.last;this.last=now;
   if(interval===undefined||interval>this.stallMs)return;
+  if(this.fine.has(context))return;
   this.played+=interval;if(this.played<this.warmupMs)return;
   this.intervals.push(interval);
   if(this.played<this.warmupMs+this.windowMs)return;
   const sorted=[...this.intervals].sort((a,b)=>a-b),median=sorted[sorted.length>>1];
   this.played=0;this.intervals=[];
-  return median>this.slowMs?'slow':'fine';
+  if(median>this.slowMs){this.fine.clear();return 'slow';}
+  this.fine.add(context);
+  return this.contexts.every(c=>this.fine.has(c))?'fine':undefined;
  }
 }

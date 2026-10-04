@@ -210,7 +210,7 @@ import {loadSceneEnvironment} from './ui/loadSceneEnvironment';
 import {sceneVegetationReader} from './world/WalkingVegetation';
 import {bindLocalWater} from './ui/localWater';
 import { AudioSystem } from './audio/AudioSystem';
-import { FixedClock } from './core/FixedClock';
+import { FixedClock, NATIVE_MAX_FRAME_SECONDS } from './core/FixedClock';
 import { Input } from './input/Input';
 import { GamepadInput } from './input/GamepadInput';
 import { registerShell } from './core/serviceWorker';
@@ -820,7 +820,7 @@ async function boot() {
   // play (AutoQuality) may still step it down. Settings the player chose stay.
   if(touchScreen&&!touchSettings.qualityChosen&&touchSettings.effects==='high'&&!navigator.webdriver){
    const start=devicePreset(navigator as Navigator&{deviceMemory?:number});
-   if(start){touchSettings={...touchSettings,...QUALITY_PRESETS[start],qualityChosen:start==='low'};saveTouchSettings(touchSettings);}
+   if(start){touchSettings={...touchSettings,...QUALITY_PRESETS[start],qualityChosen:start==='low',wheelMeasured:start==='low'};saveTouchSettings(touchSettings);}
   }
   // The touch settings' Visual effects set the FX quality (the port's MOB_VS); elsewhere the game runs at high.
   // and its Draw distance TheCamera's LOD distance multiplier (the port's MOB_DD); elsewhere the game draws at its default.
@@ -1631,7 +1631,9 @@ async function boot() {
   // The Display settings' Radar (FrontEndMenuManager.m_nRadarMode) is the HUD radar's.
   const displayChanged=(settings:DisplaySettings)=>{Object.assign(display,settings);saveDisplaySettings(display);navigation?.setRadarMode(display.radarMode);};
   hud.bindDisplay(display,displayChanged);navigation?.setRadarMode(display.radarMode);
-  const clock = new FixedClock();
+  // A phone keeps CTimer's cap on a frame's step (not under automation, whose software rendering would slow every
+  // run's world against the specs' real-time waits); a desktop, which keeps up, the browser's catch-up.
+  const clock = new FixedClock(touchScreen&&!navigator.webdriver?NATIVE_MAX_FRAME_SECONDS:undefined);
   let paused = true, started = false, last = performance.now(), elapsed = 0, frame = 0, alive = true;
   /** One faulting population system must not freeze the frame: its step is skipped, the fault logged once per
    * message and counted for the dev state, and the player, world and renderer keep running. */
@@ -2363,12 +2365,13 @@ async function boot() {
     else if(touchShake&&touchSettings.vibration)touchShake(time/2);
   }
   // The first play's measure, on a touch screen whose quality settings nobody has chosen (not under automation, whose
-  // software rendering would lower every run's).
-  let autoQuality=touch&&!touchSettings.qualityChosen&&!navigator.webdriver?new AutoQuality():undefined;
+  // software rendering would lower every run's). Settings an earlier measure settled on foot alone are measured again
+  // at the wheel: a phone that kept up walking could crawl driving.
+  let autoQuality=touch&&!navigator.webdriver&&(!touchSettings.qualityChosen||!touchSettings.wheelMeasured)?new AutoQuality(undefined,undefined,undefined,undefined,touchSettings.qualityChosen?['vehicle']:undefined):undefined;
   function settleQuality(verdict:'slow'|'fine'){
     const preset=verdict==='slow'?lowerPreset(touchSettings):undefined;
     const done=!preset||preset==='low';
-    touchSettings={...touchSettings,...(preset?QUALITY_PRESETS[preset]:{}),qualityChosen:done};saveTouchSettings(touchSettings);
+    touchSettings={...touchSettings,...(preset?QUALITY_PRESETS[preset]:{}),qualityChosen:done,wheelMeasured:done};saveTouchSettings(touchSettings);
     if(done)autoQuality=undefined;
     if(!preset)return;
     touch?.apply(touchSettings);applyVisualEffects();applyResolution();touchPanel?.refresh();
@@ -2866,10 +2869,12 @@ async function boot() {
     // A touch screen's first play is measured (autoQuality): a game that cannot keep up steps its quality down.
     // Measured in free play only: not under a menu, a load, a hidden page, or a cutscene or scripted scene, whose
     // subtitles the message would cover.
-    // Once settled, the same free play steers the adaptive resolution: a phone held back as it warms draws fewer pixels.
+    // Once settled (play on foot or at the wheel, each judged on its own), the same free play steers the adaptive
+    // resolution: a phone held back as it warms draws fewer pixels.
     if(autoQuality||dynamicResolution&&touchSettings.dynamicResolution){const scene=!!mission&&(mission.runtime.game.cutscene.running||mission.runtime.game.widescreenOn);
      const playing=started&&!paused&&!navigation?.open&&!arsenal.open&&!terrainPause&&!scene&&document.visibilityState==='visible';
-     if(autoQuality){const verdict=autoQuality.frame(now,playing);if(verdict)settleQuality(verdict);}
+     const context=worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger?'vehicle':'foot';
+     if(autoQuality?.measuring(context)){const verdict=autoQuality.frame(now,playing,context);if(verdict)settleQuality(verdict);}
      else if(dynamicResolution?.frame(now,playing)!==undefined)applyResolution();}
     input.frameStart();
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
