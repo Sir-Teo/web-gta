@@ -70,6 +70,42 @@ export interface GarageResprayWorld {
  /** CStats::GetStatValue, IncrementStat and SetStatValue. */
  stats:{get(id:number):number;increment(id:number,by:number):void;set(id:number,value:number):void};
 }
+/** AE_FRONTEND_CAR_ALREADY_RIGGED, and the first of the three fittings (_FIT_BOMB_TIMED, _BOOBY_TRAPPED and
+ * _REMOTE_CONTROLLED, 18 to 20 for the shop types 2 to 4). */
+export const AE_FRONTEND_CAR_ALREADY_RIGGED=17,AE_FRONTEND_CAR_FIT_BOMB_TIMED=18;
+/** A car bomb's price (GA_4: "Car bombs are $500 each."), how long the door stays down over the fitting, and
+ * STAT_KGS_OF_EXPLOSIVES_USED, which a fitting adds 10 to. */
+export const BOMB_PRICE=500,TIME_TO_FIT_BOMB=2000,STAT_KGS_OF_EXPLOSIVES_USED=127;
+/** BOMBSHOP_TIMED, BOMBSHOP_ENGINE and BOMBSHOP_REMOTE: the shop's type less 1 is the bomb it fits (eBombState
+ * BOMB_TIMED_NOT_ACTIVATED, BOMB_IGNITION, BOMB_STICKY). */
+const BOMB_SHOP_TYPES=new Set([2,3,4]);
+/** The help each shop shows once it has fitted its bomb: GA_6, GA_7 and GA_8. */
+const BOMB_SHOP_HELP:Readonly<Record<number,string>>={2:'GA_6',3:'GA_7',4:'GA_8'};
+/** What CGarage::Update's bomb shop case reaches in the world. */
+export interface GarageBombShopWorld {
+ readonly nowMs:number;
+ /** IsStaticPlayerCarEntirelyInside, as the Pay 'n' Spray asks it. */
+ playerCarParkedInside(garage:ScmGarage):boolean;
+ /** FindPlayerVehicle's m_nBombOnBoard when it is an automobile; undefined without one, or for a bike or BMX, which
+  * the case turns away without a word. */
+ playerCarBomb():number|undefined;
+ /** IsPlayerOutsideGarage. */
+ playerOutside(garage:ScmGarage):boolean;
+ money():number;pay(amount:number):void;
+ /** PLAYERCONTROL_GARAGE and CWanted::m_bPoliceBackOffGarage while the door is down on him. */
+ holdPlayer(on:boolean):void;
+ /** CGarages::TriggerMessage(id, -1, 4000, -1). */
+ message(id:string):void;
+ /** CHud::SetHelpMessage of a GXT key, added to the brief. */
+ help(key:string):void;
+ /** AudioEngine.ReportFrontendAudioEvent. */
+ sound(event:number):void;
+ stats:{increment(id:number,by:number):void};
+ /** The fitting, on the player's vehicle if it is an automobile or bike (false when there is none to fit): its
+  * m_nBombOnBoard the bomb, m_pWhoInstalledBombOnMe the player, and with `detonator` the player given the detonator
+  * (one charge, ready) and set to hold it. */
+ fitBomb(bomb:number,detonator:boolean):boolean;
+}
 /** CGarages::IsCarSprayable (0x4479A0, reversed): not a law-enforcement vehicle (CVehicle::IsLawEnforcementVehicle:
  * the Enforcer, Predator, Rhino, Barracks, FBI Rancher and truck, the police bike, the four police cars and the SWAT
  * van), not a BMX-class bike (BMX, Bike, Mountain Bike), and not the Bus, Coach, articulated trailer, Fire Truck or
@@ -115,6 +151,9 @@ export interface StoredCar {
  flags:number;
  /** m_nNitroBoosts. */
  nitroBoosts:number;
+ /** m_nBombOnBoard, for an automobile or bike (absent for none). RestoreCar gives it back without its installer, so a
+  * sticky bomb put back answers no detonator. */
+ bomb?:number;
 }
 export const STORED_CAR={bulletProof:1,fireProof:2,explosionProof:4,collisionProof:8,meleeProof:16,nitro:128} as const;
 /** NUM_GARAGE_STORED_CARS, and the twenty slots of CGarages::aCarsInSafeHouse. */
@@ -128,7 +167,8 @@ export function readStoredCar(value:unknown):StoredCar|undefined{
  const v=value as Partial<StoredCar>|null;
  const ints=(a:unknown,n:number)=>Array.isArray(a)&&a.length===n&&a.every(x=>Number.isInteger(x));
  if(!v||!Number.isInteger(v.model)||!(v.model!>0)||!Array.isArray(v.position)||v.position.length!==3||!v.position.every(Number.isFinite)||!ints(v.forward,3)||!ints(v.colours,4)||!Number.isInteger(v.flags)||!Number.isInteger(v.nitroBoosts))return undefined;
- return {model:v.model!,position:[...v.position] as StoredCar['position'],forward:[...v.forward!] as StoredCar['forward'],colours:[...v.colours!] as StoredCar['colours'],flags:v.flags!,nitroBoosts:v.nitroBoosts!};
+ const bomb=Number.isInteger(v.bomb)&&v.bomb!>0&&v.bomb!<=5?v.bomb:undefined;
+ return {model:v.model!,position:[...v.position] as StoredCar['position'],forward:[...v.forward!] as StoredCar['forward'],colours:[...v.colours!] as StoredCar['colours'],flags:v.flags!,nitroBoosts:v.nitroBoosts!,...(bomb?{bomb}:{})};
 }
 /** What a hideout garage asks of the world. */
 export interface GarageHideoutWorld {
@@ -209,6 +249,10 @@ export class ScmGarages {
  respray?:GarageResprayWorld;
  /** CGarages::NoResprays and RespraysAreFree (SET_NO_RESPRAYS and SET_FREE_RESPRAYS). */
  noResprays=false;freeResprays=false;
+ /** What a bomb shop asks of the world; without it a bomb shop's door only travels. */
+ bombShops?:GarageBombShopWorld;
+ /** CGarages::BombsAreFree (SET_FREE_BOMBS, which no script of SA's uses). */
+ freeBombs=false;
  /** The door audio a slide reports (CAEDoorAudioEntity::AddAudioEvent on the garage's m_GarageAudio, at its first
   * door object): the host's. */
  onDoorSound?:(garage:ScmGarage,event:number)=>void;
@@ -233,6 +277,7 @@ export class ScmGarages {
    if(garage.type===GARAGE_TYPE.paynspray&&this.respray&&!garage.inactive){this.updateRespray(garage,step,this.respray);continue;}
    // Update leaves an inactive garage alone only while it is shut.
    if(HIDEOUT_UPDATE_TYPES.has(garage.type)&&this.hideouts&&!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED)){this.updateHideout(garage,step,this.hideouts);continue;}
+   if(BOMB_SHOP_TYPES.has(garage.type)&&this.bombShops&&!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED)){this.updateBombShop(garage,step,this.bombShops);continue;}
    if(garage.doorState===GARAGE_DOOR_OPENING){if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_OPEN;}
    else if(garage.doorState===GARAGE_DOOR_CLOSING){if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;}
   }
@@ -266,6 +311,47 @@ export class ScmGarages {
     if(this.noResprays||world.nowMs<=garage.timeToOpen)break;
     garage.doorState=GARAGE_DOOR_OPENING;this.doRespray(garage,world);
     break;
+   case GARAGE_DOOR_OPENING:
+    if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;
+    if(garage.doorPosition>.5)world.holdPlayer(false);
+    break;
+   case GARAGE_DOOR_WAITING_PLAYER_TO_EXIT:
+    if(world.playerOutside(garage))garage.doorState=GARAGE_DOOR_OPEN;
+    break;
+  }
+ }
+ /** CGarage::Update's bomb shop case (types 2 to 4), unreversed in the reference and read from the iOS executable
+  * (0x1001b2cc0, its door switch at 0x1001b5458). Open: the player's car parked still and wholly inside (not a bike
+  * or BMX) is turned away if it already carries a bomb (GA_5, AE_FRONTEND_CAR_ALREADY_RIGGED) or, short of $500
+  * when bombs are not free, with GA_4 and AE_FRONTEND_CAR_NO_CASH; either way the door waits for him to leave.
+  * Otherwise it shuts on him, his controls and the police held off. Shut: the door opens 2 s on, then, with its
+  * fitting sound, the door starts up, $500 is taken (when he has any money and bombs are not free) and the bomb fitted
+  * (fitBomb; STAT_KGS_OF_EXPLOSIVES_USED 10 more), and the shop's help shown (GA_6, GA_7 or GA_8). Opening: from
+  * halfway up his controls and the police come back; once up, the door waits for him to be wholly out. */
+ private updateBombShop(garage:ScmGarage,step:number,world:GarageBombShopWorld){
+  switch(garage.doorState){
+   case GARAGE_DOOR_OPEN:{
+    if(!world.playerCarParkedInside(garage))break;
+    const bomb=world.playerCarBomb();if(bomb===undefined)break;
+    if(bomb&7){world.message('GA_5');garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;world.sound(AE_FRONTEND_CAR_ALREADY_RIGGED);break;}
+    if(!this.freeBombs&&world.money()<BOMB_PRICE){world.message('GA_4');garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;world.sound(AE_FRONTEND_CAR_NO_CASH);break;}
+    garage.doorState=GARAGE_DOOR_CLOSING;world.holdPlayer(true);
+    break;
+   }
+   case GARAGE_DOOR_CLOSING:
+    // (The cars near the door are not thrown out of the way, as at the Pay 'n' Spray.)
+    if(this.slideDoorClosed(garage,step)){garage.doorState=GARAGE_DOOR_CLOSED;garage.timeToOpen=world.nowMs+TIME_TO_FIT_BOMB;}
+    break;
+   case GARAGE_DOOR_CLOSED:{
+    if(world.nowMs<=garage.timeToOpen)break;
+    // (The remote shop also waits for the detonator's model to be streamed in; the port's is always to hand.)
+    world.sound(AE_FRONTEND_CAR_FIT_BOMB_TIMED+garage.type-2);
+    garage.doorState=GARAGE_DOOR_OPENING;
+    if(!this.freeBombs&&world.money()>=1)world.pay(BOMB_PRICE);
+    if(world.fitBomb(garage.type-1,garage.type===4))world.stats.increment(STAT_KGS_OF_EXPLOSIVES_USED,10);
+    world.help(BOMB_SHOP_HELP[garage.type]);
+    break;
+   }
    case GARAGE_DOOR_OPENING:
     if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;
     if(garage.doorPosition>.5)world.holdPlayer(false);

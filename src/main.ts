@@ -1,6 +1,7 @@
 import {taxiLightCoronas} from './render/taxiLights';
 import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/startingLoadout';
 import {ScmGarages,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS,STORED_CAR,type StoredCar} from './engine/ScmGarages';
+import {carBombEvents} from './vehicle/nativeCarBomb';
 import {playerFootstepSoundLevel} from './ped/nativeSoundEvents';
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
@@ -5570,6 +5571,8 @@ async function boot() {
                  usePedMobilePhone:(ped,start)=>{if(ped==='player'||onFoot(ped))phoneFor(ped).use(start);},
                  explodeScriptPedHead:ped=>{const p=onFoot(ped);if(!p)return;const q=p.actor.player.position;
                   pedestrians?.damageCollider(p.collider.handle,1000,{x:0,z:1},'bullet',{weapon:34,point:{x:q.x,y:q.y+1.6,z:q.z},noSource:true});},
+                 // USE_DETONATOR: CWorld::UseDetonator for the player (his satchels and sticky car bombs).
+                 useDetonator:()=>weapons.useDetonator(),
                  clearVehiclesInBox:(min,max)=>{fleet?.clearCarsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
                  clearPedsInBox:(min,max)=>{pedestrians?.clearPedsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
                  // CTheScripts::CleanUpThisVehicle: unlocked, no longer a mission car, and off its script mission.
@@ -6034,6 +6037,30 @@ async function boot() {
                   sound:event=>sound.frontend(event),
                   stats:{get:id=>game.stats.get(id),increment:(id,by)=>game.stats.increment(id,by),set:(id,value)=>game.stats.set(id,value)},
                  };
+                 // CGarage::Update's bomb shops: the Pay 'n' Spray's tests of the player's car, his money and the hold, and
+                 // the car's bomb.
+                 const respray=game.garages.respray;
+                 game.garages.bombShops={
+                  get nowMs(){return respray.nowMs;},
+                  playerCarParkedInside:garage=>respray.playerCarParkedInside(garage),
+                  playerCarBomb:()=>{const v=playerVehicle();return v&&'fix' in v?v.bombOnBoard:undefined;},
+                  playerOutside:garage=>respray.playerOutside(garage),
+                  money:()=>sim.money,pay:amount=>respray.pay(amount),holdPlayer:on=>respray.holdPlayer(on),
+                  message:id=>respray.message(id),
+                  help:key=>hud.help(gxtHudText(gxtText(key,''))),
+                  sound:event=>sound.frontend(event),
+                  stats:{increment:(id,by)=>game.stats.increment(id,by)},
+                  // An automobile takes it (the bikes the open door turns away carry none here); the remote shop's
+                  // detonator, one charge, goes into his hand.
+                  fitBomb:(bomb,detonator)=>{
+                   const v=playerVehicle();if(!v||!('fix' in v))return false;
+                   v.bombOnBoard=bomb;v.bombInstalledByPlayer=true;
+                   if(detonator&&weapons.inventory.give(40,1)){weapons.inventory.select(40);void weaponView.equip(40);}
+                   return true;
+                  },
+                 };
+                 // A bomb armed: CGarages::TriggerMessage("GA_12", -1, 3000).
+                 carBombEvents.armed=()=>{game.garageMessage.trigger('GA_12',-1,3000,-1,gameTimeMs);};
                  // CGarage::Update's hideouts (the safehouse garages): where the player is, what he rides, the cars in the
                  // box and in its doorway, and CStoredCar's keeping of them while the door is down.
                  const restoring=new Map<StoredCar,Promise<void>|true>();
@@ -6061,7 +6088,8 @@ async function boot() {
                      const p='fix' in v?v.proofs:undefined,nitro='nitro' in v.car?v.car.nitro:undefined;
                      const flags=(p?.bullet?STORED_CAR.bulletProof:0)|(p?.fire?STORED_CAR.fireProof:0)|(p?.explosion?STORED_CAR.explosionProof:0)|(p?.collision?STORED_CAR.collisionProof:0)|(p?.melee?STORED_CAR.meleeProof:0)|(nitro?.installed?STORED_CAR.nitro:0);
                      const colours=('colourIndices' in v.assets?v.assets.colourIndices:undefined)??[-1,-1,-1,-1];
-                     kept.push({model:v.modelId,position:[t.x,-t.z,t.y],forward:[Math.trunc(fx*100),Math.trunc(-fz*100),Math.trunc(fy*100)],colours:[colours[0],colours[1],colours[2],colours[3]],flags,nitroBoosts:nitro?.installed?nitro.boosts:0});
+                     const bomb='bombOnBoard' in v?v.bombOnBoard:0;
+                     kept.push({model:v.modelId,position:[t.x,-t.z,t.y],forward:[Math.trunc(fx*100),Math.trunc(-fz*100),Math.trunc(fy*100)],colours:[colours[0],colours[1],colours[2],colours[3]],flags,nitroBoosts:nitro?.installed?nitro.boosts:0,...(bomb?{bomb}:{})});
                     }
                     fleet.removeVehicle(v);
                    }
@@ -6095,6 +6123,7 @@ async function boot() {
                     const flag=(bit:number)=>(stored.flags&bit)!==0;
                     if(stored.flags&31&&'fix' in v)v.proofs={bullet:flag(STORED_CAR.bulletProof),fire:flag(STORED_CAR.fireProof),explosion:flag(STORED_CAR.explosionProof),collision:flag(STORED_CAR.collisionProof),melee:flag(STORED_CAR.meleeProof)};
                     if(flag(STORED_CAR.nitro)&&stored.nitroBoosts>0&&'nitrousControl' in v.car)v.car.nitrousControl(stored.nitroBoosts,0,0,undefined,false);
+                    if(stored.bomb&&'fix' in v)v.bombOnBoard=stored.bomb;
                    }).catch(error=>{console.error('A stored car could not be restored',error);}).finally(()=>{restoring.set(stored,true);}));
                    return false;
                   },

@@ -8930,7 +8930,8 @@ that did anything.
     box (EntityHasASphereWayOutsideGarage, iOS 0x1001b767c) are kept, in the garage type's slot of
     aCarsInSafeHouse (twenty slots of four, the iOS table at 0x100593290: the safehouses and the impound lots each their
     own, the rest slot 0). A kept car carries its model, place, forward (times 100, cut to whole numbers), four
-    colours, proofs and nitro with its boosts.
+    colours, proofs, nitro with its boosts, and its bomb (put back without its installer, so a sticky bomb kept in a
+    garage answers no detonator afterwards, as in the game).
   - **Up:** before the door starts up each kept car is made again where it stood (no ClearSpaceForMissionEntity,
     RANDOM_VEHICLE and abandoned), its forward squared with the up as re3's RestoreCar does, its paint, proofs and nitro
     back; the door waits shut until every one stands.
@@ -8938,7 +8939,7 @@ that did anything.
     garage not shut is first shut on the spot, its cars kept and the first car in its doorway (touching the box with
     its middle out, not locked) removed (CloseHideOutGaragesBeforeSave, iOS 0x1001b8758, which asks for any door not
     shut where gta-reversed's 0x44A170 asks for an open one; RemoveCarsBlockingDoorNotInside, iOS 0x1001b6b48).
-  - **Not kept:** the handling flags other than nitro, the radio station, the bomb, the tuning parts, the paintjob,
+  - **Not kept:** the handling flags other than nitro, the radio station, the tuning parts, the paintjob,
     the two extras and flag 32 (vehicle flag 0x56e bit 4) that StoreCar also writes: the port's cars do not carry them
     yet. The pool walk takes the fleet's cars and bikes only, so a boat or aircraft in a garage is left where it is
     (the game's would take it out, and keep it if among the first four).
@@ -8948,6 +8949,40 @@ that did anything.
     `progression` (unit: the kept cars round the save); `safehouse-garage` (browser: the Johnson house garage, cjsafe,
     opens for CJ walking up and shuts when he walks off; a Sadler parked in it is kept and gone when the door comes
     down, written to the save, and stands where it was in its paint when he comes back).
+- **The bomb shops fit car bombs** (CGarage::Update's case for types 2 to 4, unreversed in gta-reversed; the iOS
+  executable's at 0x1001b2cc0, its door switch at 0x1001b5458). SA's map has two, both type 2 (BOMBSHOP_TIMED):
+  lasbomb in Los Santos (its door bombdoor_las) and blob2 in Las Venturas (vgwbom1 and vgwbom2). No script fits a bomb
+  or uses the bomb commands, so these are the game's only car bombs. Before, the shops stood open and did nothing.
+  - **Open:** the player's car parked still and wholly inside (IsStaticPlayerCarEntirelyInside, as the Pay 'n' Spray
+    asks it; a bike or BMX is turned away without a word): one already carrying a bomb gets GA_5 and
+    AE_FRONTEND_CAR_ALREADY_RIGGED, and short of $500 (unless CGarages::BombsAreFree) GA_4 ("Car bombs are $500 each.")
+    and AE_FRONTEND_CAR_NO_CASH, the door then waiting for him to leave; otherwise the door comes down on him, his
+    controls and the police held off.
+  - **Down:** 2 s on, with AE_FRONTEND_CAR_FIT_BOMB_TIMED, _BOOBY_TRAPPED or _REMOTE_CONTROLLED (the shop's type), the
+    door starts up, $500 is taken from a purse with anything in it, and his vehicle, if an automobile, is fitted with
+    the shop's bomb (the type less one: timed, ignition, sticky), the player its installer, STAT_KGS_OF_EXPLOSIVES_USED
+    10 more; the remote shop puts its detonator (one charge) in his hand. The shop's help follows whether or not
+    anything was fitted: GA_6 ("Park it, prime it by pressing", the car-gun button, "and LEG IT!"), GA_7 or GA_8.
+  - **Up:** from halfway the hold lifts; once up the door waits for him to be wholly out, then stands open.
+  - **Not followed:** the cars near the door thrown out of the way while it shuts (as at the Pay 'n' Spray), and the
+    remote shop's wait for the detonator's model to stream in. The shops start open with their doors up (re3's
+    AddOne): the iOS executable's AddOne sets no door state, and a shut shop at the start would open on the first frame
+    with the fitting's charge, which a saved game's purse would pay.
+  - **The bombs** (CVehicle, reversed; `nativeCarBomb`): ActivateBomb (0x6D24F0), on the car-gun button's press in
+    his car (CAutomobile::ProcessControl's CarGunJustDown), arms a timed bomb for 7000 ms, the player its detonator, or
+    an ignition bomb, either with GA_12 ("Bomb armed", TriggerMessage for 3000 ms); a driver aboard who was not last
+    frame sets off an armed ignition bomb in 1000 ms, its installer's doing; CWorld::UseDetonator (0x5660B0) takes
+    the player's sticky bombs off and sets them off in 500 ms, through the detonator or USE_DETONATOR (which had no
+    adapter: DESERT9 uses it); ProcessDelayedExplosion (0x6D1340) takes (int16)(timeStep × 100/6) ms a step, 16 at
+    50 frames a second, so the 7 s run out in 438 frames, and at nothing BlowUpCar, the explosion the player's when he
+    set it off. BlowUpCar clears the bomb. AE_FRONTEND_CAR_ALREADY_RIGGED sounds as AE_FRONTEND_CAR_NO_CASH and the three
+    fittings as AE_FRONTEND_PICKUP_WEAPON (the iOS switch, 0x1001471f0 and 0x100147008). A passenger's car-gun press
+    (FindPlayerVehicle is his car in either seat) does not reach the car here.
+  - Specs: `car-bomb` (unit: arming, the timer's 16 ms steps, the ignition and the detonator); `scm-garages` (unit: the
+    open shop's refusals, the shutting and the fitting, the three shops' bombs and sounds, the detonator, nothing
+    fitted without a vehicle, the empty purse and free bombs); `bomb-shop` (browser: a Landstalker in lasbomb with
+    $1000, the door down and up, the timed bomb fitted, $500 left, GA_6 shown, armed by the car-gun key with GA_12,
+    and the car blown up).
 - **The garages start open.** `CGarages::AddOne` and `InitDoorsAtStart` are unreversed; as re3's `AddOne`, the bomb
   shops and the Pay 'n' Sprays start open with their doors up, and the other garages shut.
 - **The doors move.** `CGarage::FindDoorsWithGarage` is unreversed: as re3's `FindDoorsEntities`, a garage takes up to

@@ -10,10 +10,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1156,
+   "faithful": 1157,
    "authored": 27,
    "silent": 3,
-   "skipped": 181,
+   "skipped": 180,
    "stops": 24
   }
  },
@@ -4681,10 +4681,10 @@
    "byStatus": {
     "core": 1843,
     "nop": 9,
-    "faithful": 944,
+    "faithful": 945,
     "authored": 4,
     "silent": 0,
-    "skipped": 11,
+    "skipped": 10,
     "stops": 0
    },
    "gaps": [
@@ -4720,11 +4720,6 @@
     },
     {
      "name": "CLEAR_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "USE_DETONATOR",
      "status": "skipped",
      "sites": 1
     },
@@ -9628,23 +9623,6 @@
     "kind": "absent"
    },
    "doc": "Resets the status of the last model the player has shot",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DESERT9",
-   "portable": false
-  },
-  {
-   "name": "USE_DETONATOR",
-   "opcode": "09d9",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks useDetonator (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2611,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Detonates all satchel charges and car bombs planted by the player",
    "sites": 1,
    "missions": 1,
    "firstMission": "DESERT9",

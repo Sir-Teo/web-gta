@@ -30,6 +30,7 @@ import {WorldTrain,trainCarriageModel} from './WorldTrain';
 import {TRAIN_TYPES,TRAIN_TRACK_FILES,readTrainTrack,type TrainTrack} from './nativeTrainTracks';
 import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
+import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 /** CCarCtrl::PruneVehiclesOfInterest drops a vehicle of interest 180000 ms after it was last registered. */
 const VEHICLE_OF_INTEREST_MS=180000;
 /** Resolve one random-model generator against a membership pool (CCarGenerator
@@ -405,6 +406,9 @@ export class WorldFleet {
   if(before)car.assets.colourIndices=[0,1,2,3].map(slot=>palette[indices[slot]]?indices[slot]:before[slot]) as unknown as typeof before;
   car.assets.colors=[rows[0],rows[1],rows[2],rows[3]] as unknown as typeof colors;car.car.setColors(car.assets.colors);
  }
+ /** CWorld::UseDetonator's vehicle pass (0x5660B0) for the player: every car carrying a sticky bomb he had fitted
+  * loses it and blows up half a second on, his doing. */
+ useDetonator(){for(const car of this.cars)if(car.bombInstalledByPlayer&&detonateStickyBomb(car))car.bombDetonatedByPlayer=true;}
  /** CWorld::Remove of a vehicle the streamer or a generator may own, as the area clears take one. */
  removeVehicle(vehicle:WorldCar|WorldBike){
   if(vehicle instanceof WorldCar){if(this.cars.delete(vehicle)){this.generated.delete(vehicle);this.driven.delete(vehicle);vehicle.dispose();}return;}

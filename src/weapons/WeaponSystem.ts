@@ -207,7 +207,7 @@ export class WeaponSystem {
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.tracer(from,to,'ped',.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */
  fx?:WeaponFxHost;
-  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'|'bodyHandles'|'trainsSkill'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'>>)|undefined){}
+  constructor(readonly sim:Simulation,private pedestrians:()=>({damageCollider(handle:number,damage:number,direction:{x:number;z:number},kind?:DamageKind,hit?:{weapon?:number;point?:Vec3}):boolean|PedestrianVictim}&Pick<WorldPedestrians,'targets'|'frighten'>&Partial<Pick<WorldPedestrians,'stealthTarget'|'stealthKill'|'gunShot'|'pedPosition'|'bodyHandles'|'trainsSkill'>>)|undefined,private fleet:()=>(Pick<WorldFleet,'cars'|'boats'>&Partial<Pick<WorldFleet,'planes'|'bikes'|'useDetonator'>>)|undefined){}
  installNative(data:NativeWeaponData){this.inventory.installNative(data);}
  get native(){return this.inventory.native;}
  /** CProjectileInfo::RemoveAllProjectiles: every grenade, rocket and satchel in flight or stuck is gone, unexploded. */
@@ -387,6 +387,12 @@ export class WeaponSystem {
  /** Development: add an explosion of a native type at a renderer-frame point. */
  /** CExplosion::AddExplosion from the script: no creator; `makeSound` false leaves out only the blast's sound. */
  debugExplosion(position:Vec3,type:number,makeSound=true){this.explode(position,type,undefined,false,makeSound);}
+ /** CWorld::UseDetonator (0x5660B0) for the player: the sticky bombs he had a bomb shop fit go off half a second on,
+  * and CProjectileInfo::RemoveDetonatorProjectiles sets off every satchel. */
+ useDetonator(){
+  this.fleet?.()?.useDetonator?.();
+  const bombs=this.projectiles.filter(p=>p.weapon===39);this.projectiles=this.projectiles.filter(p=>p.weapon!==39);for(const b of bombs)this.explode(b.position,EXPLOSION_TYPE.grenade,undefined,true);
+ }
  /** The EXPLOSION_ROCKET a burning aircraft nobody flies sets off where it is. */
  burningAircraftExplosion(position:Vec3){this.explode(position,EXPLOSION_TYPE.rocket);}
  /** CObject::Explode: EXPLOSION_OBJECT (radius 10) half a unit above the object. */
@@ -404,7 +410,8 @@ export class WeaponSystem {
    const ox=(Math.random()*2-1)*.75*max[0],oy=(Math.random()*2-1)*.75*max[1],oz=1.25*max[2];
    const right=new Vector3(1,0,0).applyQuaternion(q),forward=new Vector3(0,0,1).applyQuaternion(q);
    const at={x:p.x+right.x*ox+forward.x*oy,y:p.y+right.y*ox+forward.y*oy-oz,z:p.z+right.z*ox+forward.z*oy};
-   this.explode(at,car.modelId===441||car.modelId===564?EXPLOSION_TYPE.quickCar:EXPLOSION_TYPE.car,car);
+   // BlowUpCar's culprit: the player for a bomb he set off.
+   this.explode(at,car.modelId===441||car.modelId===564?EXPLOSION_TYPE.quickCar:EXPLOSION_TYPE.car,car,car.explosionByPlayer);car.explosionByPlayer=false;
   }
  }
   /** Drive-by fire (CTaskSimpleGangDriveBy port): one-handed
@@ -596,9 +603,9 @@ export class WeaponSystem {
   if(w.kind==='nightvision'||w.kind==='infrared'){if(!this.goggles)this.goggles={kind:w.kind,remaining:this.gogglesClipSeconds};return true;}
   if(w.kind==='parachute'){this.parachute=true;return true;}
   if(w.kind==='camera'){this.photoRequested=true;return true;}
-  // CWeapon::Fire's WEAPON_DETONATOR: CWorld::UseDetonator sets off every satchel, then m_AmmoInClip = m_TotalAmmo = 1
-  // and the shot's decrement leaves the detonator empty, however many satchels were thrown.
-  if(w.kind==='detonator'){const ammo=this.inventory.ammo.get(w.id);if(ammo){ammo.clip=0;ammo.reserve=0;}const bombs=this.projectiles.filter(p=>p.weapon===39);this.projectiles=this.projectiles.filter(p=>p.weapon!==39);for(const b of bombs)this.explode(b.position,EXPLOSION_TYPE.grenade,undefined,true);return true;}
+  // CWeapon::Fire's WEAPON_DETONATOR: CWorld::UseDetonator, then m_AmmoInClip = m_TotalAmmo = 1 and the shot's
+  // decrement leaves the detonator empty, however many satchels were thrown.
+  if(w.kind==='detonator'){const ammo=this.inventory.ammo.get(w.id);if(ammo){ammo.clip=0;ammo.reserve=0;}this.useDetonator();return true;}
   if(mode==='sniper'&&info)return this.fireSniper(w,info,camera);
   // CTaskSimpleUseGun::SetPedPosition fires the right hand first, and twin pistols' left hand straight after it.
   const left=false;this.lastHand='right';this.leftHand=false;

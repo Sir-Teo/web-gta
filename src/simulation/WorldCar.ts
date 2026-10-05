@@ -52,6 +52,7 @@ import {NativeBouncingPanel} from './nativeBouncingPanel';
 import {FLYING,FlyingComponents} from './flyingComponents';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {VehicleAnimGroupData} from '../assets/vehicleAnimGroups';
+import {BOMB,activateBomb,bombDriverEntered,carBombEvents,stepBombTimer} from '../vehicle/nativeCarBomb';
 export interface TrafficControls {throttle:number;brake:number;steering:number;handbrake:boolean;
  /** CCarCtrl::SteerAICarWithPhysics output, applied as the game applies it: steer angle in radians (positive
   * left), gas (negative reverses), brake and handbrake. Takes precedence over the pad-style fields. */
@@ -137,6 +138,14 @@ export class WorldCar {
  get body(){return this.car.body;}
  /** Set by BlowUpCar until the weapon system spawns its explosion. */
  pendingExplosion=false;
+ /** The explosion is the player's: m_pWhoDetonatedMe of a bomb he set off. */
+ explosionByPlayer=false;
+ /** m_nBombOnBoard (eBombState) and m_wBombTimer (ms), which a bomb shop fits and sets. */
+ bombOnBoard=0;bombTimerMs=0;
+ /** m_pWhoInstalledBombOnMe is the player, and m_pWhoDetonatedMe. */
+ bombInstalledByPlayer=false;bombDetonatedByPlayer=false;
+ /** vehicleFlags.bDriverLastFrame, and the car-gun button last frame (CPad::CarGunJustDown). */
+ private driverLastFrame=false;private carGunLast=false;
  readonly damageState=createCarDamage();
  /** CAutomobile::m_doors in eDoors order. */
  readonly doors:ReturnType<typeof createCarDoors>;
@@ -464,8 +473,22 @@ export class WorldCar {
  }
  /** Set while blowUp runs for a cutscene: what BlowUpCarCutSceneNoExtras was asked for. */
  cutsceneExplosion?:{shake:boolean;bits:boolean;explosion:boolean;sound:boolean};
+ /** CAutomobile::ProcessControl's bomb: the player's car-gun press in it arms it (ActivateBomb: GA_12), a driver
+  * aboard who was not last frame sets off an armed ignition bomb (in 1 s, its installer's), and
+  * ProcessCarOnFireAndExplode's ProcessDelayedExplosion counts the timer down to BlowUpCar. (FindPlayerVehicle is
+  * also his car as a passenger; the passenger seat's pad does not reach the car here.) */
+ private processBomb(seconds:number){
+  const carGun=this.occupied&&this.pad.carGun,justDown=carGun&&!this.carGunLast;this.carGunLast=carGun;
+  if(justDown&&activateBomb(this)){if(this.bombOnBoard===BOMB.timedActivated)this.bombDetonatedByPlayer=true;carBombEvents.armed?.();}
+  const driver=this.occupied||!!this.autopilot&&!this.driverOut;
+  if(driver&&!this.driverLastFrame&&bombDriverEntered(this))this.bombDetonatedByPlayer=this.bombInstalledByPlayer;
+  this.driverLastFrame=driver;
+  if(stepBombTimer(this,seconds*50)){this.explosionByPlayer=this.bombDetonatedByPlayer;this.blowUp();}
+ }
  blowUp(){
   if(this.wrecked||!this.canBeDamaged)return;const cutscene=this.cutsceneExplosion;
+  // BlowUpCar: the bomb goes with the car.
+  this.bombOnBoard=BOMB.none;this.bombTimerMs=0;
   const driverAboard=!!this.autopilot&&!this.driverOut&&!this.occupied;this.wrecked=true;this.health=0;this.autopilot=undefined;this.pendingExplosion=!cutscene||cutscene.explosion;this.onBlowUp?.(driverAboard);vehicleDestroyed.report?.('road',this.modelId);
   const doors:ComponentChange[]=[];
   for(let i=0;i<this.damageState.doors.length;i++){if(this.damageState.doors[i]!==DAMSTATE.notPresent){this.damageState.doors[i]=DAMSTATE.notPresent;doors.push({kind:'door',index:i,state:DAMSTATE.notPresent});}}
@@ -692,6 +715,7 @@ export class WorldCar {
   p.engineOn=!this.wrecked;
   // CAutomobile::ProcessCarOnFireAndExplode for ordinary cars.
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;
+  this.processBomb(seconds);
   this.crushCarsInPath();
   // CAutomobile::ProcessAI's STATUS_WRECKED branch sets the controls outright: a 0.05 brake, the handbrake, no gas and
   // the steering straight; the player's pedal logic (brake-then-reverse) never runs for a wreck.

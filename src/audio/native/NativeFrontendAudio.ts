@@ -2,7 +2,7 @@ import {SOUND,type NativeAudioEntity,type NativeSound} from './NativeSound';
 import type {NativeSoundManager} from './NativeSoundManager';
 import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 /** Frontend pickup events reported by CPickup::Update, CPickups::GivePlayerGoodiesWithPickUpMI and the collectable counters. */
-export const AE_FRONTEND={select:1,back:2,highlight:3,error:4,carNoCash:14,carIsHot:15,carRespray:16,purchaseWeapon:40,race321:44,raceGo:45,buyCarMod:46,fireFailSniper:41,fireFailRocket:42,pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
+export const AE_FRONTEND={select:1,back:2,highlight:3,error:4,carNoCash:14,carIsHot:15,carRespray:16,carAlreadyRigged:17,carFitBombTimed:18,carFitBombBoobyTrapped:19,carFitBombRemoteControlled:20,purchaseWeapon:40,race321:44,raceGo:45,buyCarMod:46,fireFailSniper:41,fireFailRocket:42,pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
  bulletPassLeftRear:27,bulletPassLeftFront:28,bulletPassRightRear:29,bulletPassRightFront:30,timerCount:33,partMissionComplete:43,scannerNoiseStart:47,scannerNoiseStop:48,scannerClick:49} as const;
 /** The menu events' FRONTEND_MENU sounds, left and right. */
 const MENU_PAIRS:Readonly<Record<number,readonly [number,number]>>={1:[6,7],2:[0,1],3:[4,5],4:[2,3]};
@@ -51,9 +51,13 @@ export class NativeFrontendAudio implements NativeAudioEntity {
   const pairAt=(left:number,right:number,at:number)=>{for(const [sound,x] of [[left,-1],[right,1]] as const)this.manager.playSound({slot:SLOT.frontendGame,sound,entity:this,position:{x,y:0,z:0},volume,speed:at,flags:SOUND.forcedFront|SOUND.unduckable|SOUND.unpausable|SOUND.playPhysically|SOUND.uncancellable|SOUND.frontEnd});};
   const pair=(left:number,right:number)=>pairAt(left,right,speed);
   switch(event){
-   case AE_FRONTEND.pickupWeapon:case AE_FRONTEND.purchaseWeapon:if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pair(27,28);}break;
-   // AE_FRONTEND_CAR_NO_CASH and _CAR_IS_HOT (arm64 0x1001471f0): the same pair at 0.841 speed, under the same guard.
-   case AE_FRONTEND.carNoCash:case AE_FRONTEND.carIsHot:if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pairAt(27,28,.841);}break;
+   // A bomb shop's fitting (AE_FRONTEND_CAR_FIT_BOMB_TIMED, _BOOBY_TRAPPED, _REMOTE_CONTROLLED) sounds as a weapon
+   // pickup does (one case, arm64 0x100147008).
+   case AE_FRONTEND.pickupWeapon:case AE_FRONTEND.purchaseWeapon:case AE_FRONTEND.carFitBombTimed:case AE_FRONTEND.carFitBombBoobyTrapped:case AE_FRONTEND.carFitBombRemoteControlled:
+    if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pair(27,28);}break;
+   // AE_FRONTEND_CAR_NO_CASH, _CAR_IS_HOT and _CAR_ALREADY_RIGGED (arm64 0x1001471f0): the same pair at 0.841 speed,
+   // under the same guard.
+   case AE_FRONTEND.carNoCash:case AE_FRONTEND.carIsHot:case AE_FRONTEND.carAlreadyRigged:if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pairAt(27,28,.841);}break;
    // AE_FRONTEND_RACE_321 and _RACE_GO (0x1001478e8, 0x1001484e4): frontend sounds 6 and 7, 12 and 13, rolled off.
    case AE_FRONTEND.race321:case AE_FRONTEND.raceGo:{
     const [left,right]=event===AE_FRONTEND.race321?[6,7]:[12,13];

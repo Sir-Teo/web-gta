@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {ScmGarages,GARAGE_DOOR_CLOSED,GARAGE_DOOR_OPEN,GARAGE_DOOR_CLOSING,GARAGE_DOOR_OPENING,GARAGE_DOOR_WAITING_PLAYER_TO_EXIT,GARAGE_DOOR_CLOSED_DROPPED_CAR,GARAGE_TYPE,hideOutSlot,readStoredCar,STORED_CAR,type StoredCar} from '../src/engine/ScmGarages';
+import {ScmGarages,GARAGE_DOOR_CLOSED,GARAGE_DOOR_OPEN,GARAGE_DOOR_CLOSING,GARAGE_DOOR_OPENING,GARAGE_DOOR_WAITING_PLAYER_TO_EXIT,GARAGE_DOOR_CLOSED_DROPPED_CAR,GARAGE_TYPE,hideOutSlot,readStoredCar,STORED_CAR,STAT_KGS_OF_EXPLOSIVES_USED,type StoredCar} from '../src/engine/ScmGarages';
 
 const garages=()=>{const g=new ScmGarages();g.load([{name:'spray1',type:GARAGE_TYPE.paynspray},{name:'touch',type:GARAGE_TYPE.closesOnTouch},{name:'misn',type:1}]);return g;};
 
@@ -296,4 +296,52 @@ test('before a save every safehouse garage not shut is shut on the spot, its car
  expect([safe.doorState,safe.doorPosition]).toEqual([GARAGE_DOOR_CLOSED,0]);expect(g.storedCount(safe)).toBe(1);
  expect([hangar.doorState,hangar.doorPosition]).toEqual([GARAGE_DOOR_OPEN,1]);
  expect(log).toEqual(['store cjsafe 4','doorway cjsafe']);
+});
+test("a bomb shop (CGarage::Update's types 2 to 4, iOS): shut on a car parked in it, paid for and fitted 2 s on, then open again",()=>{
+ const g=new ScmGarages();
+ g.load([{name:'lasbomb',type:2,corner:[1843.91,-1858.8,12.3645],front:[1857.1,-1858.8],far:[1843.91,-1853.79,16.1118],flags:0}]);
+ const shop=g.garages[0];expect([shop.doorState,shop.doorPosition]).toEqual([GARAGE_DOOR_OPEN,1]);
+ const at={now:10000,parked:false,bomb:0 as number|undefined,outside:false,money:1000};
+ const log:string[]=[];const fits:[number,boolean][]=[];const stats:[number,number][]=[];
+ g.bombShops={get nowMs(){return at.now;},playerCarParkedInside:()=>at.parked,playerCarBomb:()=>at.bomb,playerOutside:()=>at.outside,
+  money:()=>at.money,pay:amount=>{at.money=Math.max(0,at.money-amount);},holdPlayer:on=>log.push(`hold ${on}`),message:id=>log.push(id),help:key=>log.push(`help ${key}`),
+  sound:event=>log.push(`sound ${event}`),stats:{increment:(id,by)=>stats.push([id,by])},fitBomb:(bomb,detonator)=>{fits.push([bomb,detonator]);return at.bomb!==undefined;}};
+ const run=(n:number)=>{for(let i=0;i<n;i++){g.update(20);at.now+=20;}};
+ // Nothing parked: it stands open.
+ run(5);expect(shop.doorState).toBe(GARAGE_DOOR_OPEN);
+ // A bike or BMX (no automobile): turned away without a word.
+ at.parked=true;at.bomb=undefined;run(1);expect(shop.doorState).toBe(GARAGE_DOOR_OPEN);expect(log).toEqual([]);
+ // A car already carrying a bomb: GA_5, AE_FRONTEND_CAR_ALREADY_RIGGED, and the door waits for him to leave.
+ at.bomb=3;run(1);expect(log).toEqual(['GA_5','sound 17']);expect(shop.doorState).toBe(GARAGE_DOOR_WAITING_PLAYER_TO_EXIT);
+ run(3);expect(shop.doorState).toBe(GARAGE_DOOR_WAITING_PLAYER_TO_EXIT);at.outside=true;run(1);expect(shop.doorState).toBe(GARAGE_DOOR_OPEN);at.outside=false;
+ // Short of $500: GA_4 and AE_FRONTEND_CAR_NO_CASH.
+ log.length=0;at.bomb=0;at.money=499;run(1);expect(log).toEqual(['GA_4','sound 14']);at.outside=true;run(1);at.outside=false;
+ // With $500 the door comes down on him, his controls held; 2 s after it is down it starts up with the fitting.
+ log.length=0;at.money=500;run(1);expect(shop.doorState).toBe(GARAGE_DOOR_CLOSING);expect(log).toEqual(['hold true']);
+ let frames=0;while(shop.doorState===GARAGE_DOOR_CLOSING&&frames<500){run(1);frames++;}
+ expect(shop.doorState).toBe(GARAGE_DOOR_CLOSED);const shut=at.now;
+ while(shop.doorState===GARAGE_DOOR_CLOSED&&at.now<shut+5000)run(1);
+ expect(at.now-shut).toBeGreaterThan(2000);expect(at.now-shut).toBeLessThanOrEqual(2040);
+ // AE_FRONTEND_CAR_FIT_BOMB_TIMED, the $500, the timed bomb fitted (no detonator), 10 kg of explosives, GA_6.
+ expect(log.slice(1)).toEqual(['sound 18','help GA_6']);expect(at.money).toBe(0);expect(fits).toEqual([[1,false]]);expect(stats).toEqual([[STAT_KGS_OF_EXPLOSIVES_USED,10]]);
+ // Opening: the hold lifts past half way; up, it waits for him to drive out.
+ while(shop.doorState===GARAGE_DOOR_OPENING)run(1);
+ expect(log).toContain('hold false');expect(shop.doorState).toBe(GARAGE_DOOR_WAITING_PLAYER_TO_EXIT);
+ at.outside=true;run(1);expect(shop.doorState).toBe(GARAGE_DOOR_OPEN);
+});
+test('the engine and remote shops fit their own bombs (the remote one with the detonator); without a vehicle nothing is fitted or counted; free bombs cost nothing',()=>{
+ for(const [type,bomb,sound,help] of [[3,2,19,'GA_7'],[4,3,20,'GA_8']] as const){
+  const g=new ScmGarages();g.load([{name:'shop',type,corner:[0,0,0],front:[10,0],far:[0,10,5],flags:0}]);
+  const shop=g.garages[0];shop.doorState=GARAGE_DOOR_CLOSED;shop.doorPosition=0;shop.timeToOpen=0;
+  const log:string[]=[];const fits:[number,boolean][]=[];let money=0,paid=0,vehicle=true;const stats:number[]=[];
+  g.bombShops={nowMs:1,playerCarParkedInside:()=>false,playerCarBomb:()=>0,playerOutside:()=>false,money:()=>money,pay:()=>{paid++;},holdPlayer:()=>{},message:()=>{},
+   help:key=>log.push(key),sound:event=>log.push(`sound ${event}`),stats:{increment:id=>stats.push(id)},fitBomb:(b,d)=>{fits.push([b,d]);return vehicle;}};
+  g.update(20);expect(log).toEqual([`sound ${sound}`,help]);expect(fits).toEqual([[bomb,type===4]]);
+  // No money at all: nothing taken (the game only takes from a purse with something in it).
+  expect(paid).toBe(0);expect(stats).toEqual([STAT_KGS_OF_EXPLOSIVES_USED]);
+  // Again with money but no vehicle to fit: the help still shows, the stat stays.
+  shop.doorState=GARAGE_DOOR_CLOSED;money=600;vehicle=false;g.update(20);expect(paid).toBe(1);expect(stats).toHaveLength(1);expect(log.at(-1)).toBe(help);
+  // Free bombs: nothing taken.
+  g.freeBombs=true;shop.doorState=GARAGE_DOOR_CLOSED;g.update(20);expect(paid).toBe(1);
+ }
 });
