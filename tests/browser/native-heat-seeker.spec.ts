@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 // CCam::Process_Rocket for the heat seeker: PickTargetForHeatSeekingMissile marks a car ahead, and the crosshair
 // locks (red) after 1.5 s on the same target in sight. FireProjectile then sends a homing rocket at it.
@@ -7,6 +8,8 @@ test('the heat seeker marks a car ahead, locks after 1.5 s and fires at it',asyn
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded,{timeout:60000}).toBe(true);
+ // The intro's script clears the area (ClearExcitingStuffFromArea takes every projectile and the cars near it); end it.
+ await endStoryMission(page);
  await page.evaluate(()=>(window as any).__game.placePlayer(2480,12.6,1668));await page.waitForTimeout(300);
  await page.keyboard.press('Backquote');await page.locator('[data-weapon="36"]').click();await expect.poll(async()=>(await state()).weapons.ready).toBe(true);
  await page.mouse.move(720,450);await page.mouse.down({button:'right'});
@@ -31,7 +34,9 @@ test('the heat seeker marks a car ahead, locks after 1.5 s and fires at it',asyn
  expect(Date.now()-marked).toBeGreaterThan(1000);
  const before=(await state()).weapons.explosions;
  await page.keyboard.press('ControlLeft');
- await expect.poll(async()=>(await state()).weapons.explosions,{timeout:8000}).toBeGreaterThan(before);
+ // The heat-seeker leaves at 0.2 units a frame (10 a second) and homes in: about a second and a half of game time to the
+ // car, which the headless game takes longer over.
+ await expect.poll(async()=>(await state()).weapons.explosions,{timeout:20000}).toBeGreaterThan(before);
  await page.mouse.up({button:'right'});
  await expect.poll(async()=>(await state()).weapons.heatSeek.target).toBeNull();
  await page.evaluate(()=>clearInterval((window as any).__hsOnly));

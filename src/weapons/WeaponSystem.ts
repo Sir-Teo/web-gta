@@ -22,6 +22,7 @@ import {bulletLine} from './bulletLine';
 import {EXPLOSION,NativeExplosionSlots,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
 import type {MeleeSwing} from '../simulation/nativeMelee';
 import {launchVelocity,projectileTuning} from '../weapons/gunnery';
+import {stepRocketVelocity,type SeekTarget} from './nativeProjectile';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
 import {firstPersonMode,isRocketMode,type FirstPersonMode} from './nativeFirstPerson';
 /** CProjectileInfo launch helpers shared by player and aircraft fire. */
@@ -57,6 +58,8 @@ export type DamageKind='melee'|'bullet'|'explosion'|'fire'|'spray';
 export interface PedestrianVictim {id:number;officer:boolean}
 export interface WeaponEffect {id:number;kind:'tracer'|'impact'|'explosion'|'flame'|'gas'|'spray'|'extinguisher';from:Vec3;to:Vec3;life:number;radius:number;}
 export interface Projectile {id:number;weapon:number;position:Vec3;velocity:Vec3;fuse:number;stuck:boolean;target?:number;owner?:number;
+ /** A rocket's matrix forward (the way it was launched; a heat-seeker's turns with its course). */
+ forward?:Vec3;
  /** The projectile type FireProjectile added, where it differs from the weapon's (an unlocked heat-seeker is a rocket). */
  kind?:string;}
 /** CBulletInfo: a sniper bullet, with the peds it has already hit. */
@@ -683,7 +686,7 @@ export class WeaponSystem {
   }
   // With nothing picked the heat-seeker's projectile type becomes WEAPON_ROCKET, flying as a plain rocket.
   const kind=w.kind==='guided'&&target===undefined?'rocket':w.kind;
-  const projectile:Projectile={id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(kind,direction),fuse:projectileFuse(kind,rocket),stuck:false,target,kind};
+  const projectile:Projectile={id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(kind,direction),fuse:projectileFuse(kind,rocket),stuck:false,target,kind,forward:normalize(direction)};
   this.projectiles.push(projectile);return true;
  }
  /** CWeapon::FireSniper (0x73AAC0): a CBulletInfo bullet from the camera along its front at 16 units a frame with the
@@ -1029,6 +1032,13 @@ export class WeaponSystem {
   return out;
  }
  /** The vehicle body a homing rocket chases, while it exists. */
+ /** A heat-seeker's target as CProjectileInfo::Update reads it: where it is, its velocity, and whether it is a plane
+  * (a helicopter is not). */
+ private heatSeekTarget(handle:number):SeekTarget|undefined{
+  const body=this.heatSeekBody(handle);if(!body)return undefined;
+  const plane=[...(this.fleet()?.planes??[])].some(p=>p.body===body&&!p.helicopter);
+  return {position:{...body.translation()},velocity:{...body.linvel()},plane};
+ }
  private heatSeekBody(handle:number){
   const f=this.fleet();if(!f)return undefined;
   for(const c of f.cars)if(c.car.body.handle===handle)return c.wrecked?undefined:c.car.body;
@@ -1108,12 +1118,14 @@ export class WeaponSystem {
   for(const p of this.projectiles){
    const w=weaponById(p.weapon)!,rocket=w.kind==='rocket'||w.kind==='guided';
    const tune=projectileTuning(p.kind??w.kind);
-   if(p.target!==undefined){const body=this.heatSeekBody(p.target);if(body){const wanted=normalize(add(body.translation(),p.position,-1)),blend=Math.min(1,dt*3);p.velocity=add({x:p.velocity.x*(1-blend),y:p.velocity.y*(1-blend),z:p.velocity.z*(1-blend)},wanted,38*blend);}else p.fuse-=dt;}
-   else p.fuse-=dt;
-   // CProjectileInfo::Update: guided homing, gravity, drag and bounce.
-   if(w.kind==='guided'&&p.target===undefined){/* unguided rocket flies flat */}
+   // AddProjectile's destroy time runs whether or not a heat-seeker has its target.
+   p.fuse-=dt;
+   // CProjectileInfo::Update: a rocket's thrust and a heat-seeker's homing (stepRocketVelocity); the thrown weapons'
+   // gravity, drag and bounce (AUTHORED).
    let impact=false;
-   if(!p.stuck){p.velocity.y-=tune.gravity*dt;const dragK=1-Math.min(0.5,tune.drag*dt*50);p.velocity={x:p.velocity.x*dragK,y:p.velocity.y*dragK,z:p.velocity.z*dragK};const length=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)*dt,dir=normalize(p.velocity),hit=this.ray(p.position,dir,length+.06,p.owner===undefined?this.sim.playerBody:this.sim.world.getRigidBody(p.owner)??this.sim.playerBody);
+   if(!p.stuck){
+    if(rocket)stepRocketVelocity(p,p.kind??w.kind,dt,p.target!==undefined?this.heatSeekTarget(p.target):undefined,p.owner===undefined);
+    else{p.velocity.y-=tune.gravity*dt;const dragK=1-Math.min(0.5,tune.drag*dt*50);p.velocity={x:p.velocity.x*dragK,y:p.velocity.y*dragK,z:p.velocity.z*dragK};}const length=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)*dt,dir=normalize(p.velocity),hit=this.ray(p.position,dir,length+.06,p.owner===undefined?this.sim.playerBody:this.sim.world.getRigidBody(p.owner)??this.sim.playerBody);
     if(hit){p.position=add(p.position,dir,Math.max(0,hit.timeOfImpact-.07));impact=true;
      if(w.kind==='satchel'){p.stuck=true;p.velocity={x:0,y:0,z:0};}
      else if(!rocket&&w.kind!=='molotov'){const n=hit.normal,dot=p.velocity.x*n.x+p.velocity.y*n.y+p.velocity.z*n.z;p.velocity={x:(p.velocity.x-2*dot*n.x)*tune.bounce,y:(p.velocity.y-2*dot*n.y)*tune.bounce,z:(p.velocity.z-2*dot*n.z)*tune.bounce};if(Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<1)p.stuck=true;}

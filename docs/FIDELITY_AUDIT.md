@@ -8748,8 +8748,8 @@ that did anything.
   quads and boats at 9.81, so they floated off jumps and waves. They share `NATIVE_GRAVITY_MS2` now, and the water
   buoyancy of cars, bikes and boats, scaled for 9.81 against that native gravity, is native too. The authored
   aircraft flight keeps its own balance of lift against 9.81.
-- **Rockets stalled.** A per-frame drag took two thirds of a rocket's speed each second. Rockets and heat-seekers fly
-  at a constant 38 units a second (AUTHORED; CProjectileInfo's Update is unreversed). Spec: `rocket-flight` (unit).
+- **Rockets stalled.** A per-frame drag took two thirds of a rocket's speed each second. Rockets and heat-seekers then
+  flew at a constant 38 units a second (AUTHORED), until the iOS executable's CProjectileInfo was read (below).
 - **Far targets could not be hit.** weapon.dat's 30 to 45 units ended both the crosshair line and the round; the
   player's aimed rounds now carry at least 120 units (AUTHORED), shotguns and the AI keep weapon.dat's range. Spec:
   `player-aim-reach` (unit).
@@ -9824,3 +9824,29 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   STOPPING keeps no place for the next track to resume from when the mission's track is the one stopping.
 - Specs: `native-ambience-tracks` (unit: the start, the level held, the stop, a zone track faded out first, the radio
   turned off); `native-audio` (unit: 1062 and 1063 reach the manager).
+
+## Rockets and heat-seekers fly as CProjectileInfo flies them
+
+- **Before:** rockets and heat-seekers flew at an authored 38 units a second for 8 s, the heat-seeker blending toward
+  its target at that speed; CProjectileInfo::AddProjectile and Update are unreversed in gta-reversed (every function of
+  the class still calls into the executable).
+- **From the iOS executable** (AddProjectile 0x100491668, its weapon jump tables at 0x10049212c and 0x1004921d8;
+  Update 0x1004925bc and its table at 0x100493348; `nativeProjectile.ts`, `stepRocketVelocity`):
+  - **Launch.** A rocket (WEAPON_ROCKET) leaves at 0.4 units a frame (20 a second) and lives 3 s; a heat-seeker
+    (WEAPON_ROCKET_HS, the projectile a locked heat-seeker fires) at 0.2 (10 a second) and lives 10 s, whether or not
+    its target lasts. The player's goes along the camera's front. Neither falls: the tail clears the projectile's
+    bApplyGravity (it sets it for the thrown weapons). CProjectile (reversed) gives them an air resistance of 0.99999.
+  - **A rocket** gains 0.008 a frame (20 units a second each second) along the way it was launched, its matrix not
+    turning, and is held to 9.9 a frame: about 30 units in its first second, 150 in its three.
+  - **A heat-seeker** with a target steers for where the target will be (its velocity times the distance, at most 50,
+    frames on) from where it will be itself 100 frames on; the backward part of that is taken away, and it turns by
+    0.0117 a frame (0.009 when not the player's), a fifth more after a target faster than 0.8 a frame. The player's at
+    a plane leads it by at most 1.5 frames from where it is, keeps 0.95 of its speed a frame and turns by 0.15. It
+    faces its course, and is held to 9.9 a frame too. Without its target it flies on unturned.
+- **Not yet:** the flares that draw heat-seekers off (no flares here), the missile warning on the player's vehicle,
+  the smoke trail's particles, launches from a vehicle (which add the vehicle's speed), and the thrown weapons, whose
+  gravity, drag, bounce, speed and fuse stay AUTHORED.
+- Specs: `rocket-flight` (unit: the rocket's launch, thrust along its launch line, cap and life; the heat-seeker's
+  turn for the player and others, unturned without a target, no turning back, the fast target's fifth, the plane
+  rule); `native-heat-seeker` (browser: the locked heat-seeker, now slower off the launcher, homes onto the car ahead
+  and explodes; the spec ends the intro, whose ClearExcitingStuffFromArea had been taking projectiles in flight).
