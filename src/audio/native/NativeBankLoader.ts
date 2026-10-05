@@ -9,6 +9,12 @@ type Fetcher=(entry:NativeBankManifest['banks'][number])=>Promise<Uint8Array>;
 /** How long a bank that failed to download waits before a request may try it again; after the last, it stays failed. */
 const RETRY_WAITS_MS=[5000,20000,60000];
 const hex=(b:ArrayBuffer)=>[...new Uint8Array(b)].map(v=>v.toString(16).padStart(2,'0')).join('');
+/** The PC banks with the rebuilt ones the PC list lacks; a bank both name stays the PC's. */
+export function mergeBanks(pc:NativeBankManifest['banks'],rebuilt:NativeBankManifest['banks']|undefined){
+ if(!Array.isArray(rebuilt))return pc;
+ const have=new Set(pc.map(b=>b.id));
+ return [...pc,...rebuilt.filter(b=>Number.isInteger(b?.id)&&!have.has(b.id))];
+}
 /** CAEMP3BankLoader bank slots over the packaged GENRL banks (`public/play/audio/banks.json`).
  * A slot keeps its previous bank until the requested bank has been read, as the streaming requests do. */
 export class NativeBankLoader implements NativeBankSlots {
@@ -30,7 +36,11 @@ export class NativeBankLoader implements NativeBankSlots {
  }
  static async open(base:string){
   const response=await fetch(new URL('banks.json',base));if(!response.ok)throw new Error('Native audio bank manifest unavailable.');
-  return new NativeBankLoader(await response.json(),async entry=>{
+  const manifest=await response.json() as NativeBankManifest;
+  // The GENRL banks rebuilt from the iOS port's bundle (scripts/content/package-ios-sound-banks.mjs), in the same PC
+  // format and checked the same way; without their list the PC banks still load.
+  try{const ios=await fetch(new URL('ios-banks.json',base));if(ios.ok)manifest.banks=mergeBanks(manifest.banks,(await ios.json() as NativeBankManifest).banks);}catch{/* The PC banks alone. */}
+  return new NativeBankLoader(manifest,async entry=>{
    if(entry.path!==`bank-${entry.id}.bin`||entry.bytes>8*1024*1024)throw new Error('Invalid native sound bank entry.');
    // Banks load at initialization as in the original, behind the terrain and scene downloads play waits on.
    const r=await fetch(new URL(entry.path,base),{priority:'low'});if(!r.ok)throw new Error(`Sound bank ${entry.id} unavailable.`);

@@ -1,0 +1,63 @@
+{
+ "version": 1,
+ "source": {
+  "url": "https://raw.githubusercontent.com/Google61/gta3sa.app/67f70cb72eb207aeca650ea9e8c10b0e7dda166a/GENRL.osw",
+  "sha256": "3d469654805f1c457bdcdd8025f4e8840b3d6674503be53709484d8680544328",
+  "soundInfoSha256": "639b880be8c20dd35b2a8702f2ec466946cf8ed44b8f3fd0a74fb8342af16d99"
+ },
+ "decoderDelay": 577,
+ "banks": [
+  {
+   "id": 28,
+   "path": "bank-28.bin",
+   "dataBytes": 65332,
+   "bytes": 70136,
+   "sounds": 3,
+   "sha256": "ffcebeab6fc56a445750e1647c5e48d30cc4b08e3540d778c71fb610b4684d64",
+   "from": {
+    "wav": 0,
+    "mp3": 3,
+    "empty": 0
+   }
+  },
+  {
+   "id": 29,
+   "path": "bank-29.bin",
+   "dataBytes": 61230,
+   "bytes": 66034,
+   "sounds": 3,
+   "sha256": "83feab60babc773afb7462ad605fe714de760982a2b65ee6d507fe7cc785354e",
+   "from": {
+    "wav": 0,
+    "mp3": 3,
+    "empty": 0
+   }
+  },
+  {
+   "id": 30,
+   "path": "bank-30.bin",
+   "dataBytes": 73484,
+   "bytes": 78288,
+   "sounds": 3,
+   "sha256": "9fef139688bc6d56a4daf24a54e64dfea9d547b1f5b2665bc9c1d9fb52b0bb62",
+   "from": {
+    "wav": 0,
+    "mp3": 3,
+    "empty": 0
+   }
+  },
+  {
+   "id": 31,
+   "path": "bank-31.bin",
+   "dataBytes": 74866,
+   "bytes": 79670,
+   "sounds": 3,
+   "sha256": "7a49d22defdedd077e1259878eb8a67fba73f990660b73ab9ad0470462655a58",
+   "from": {
+    "wav": 0,
+    "mp3": 3,
+    "empty": 0
+   }
+  }
+ ]
+}

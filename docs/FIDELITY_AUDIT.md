@@ -1708,8 +1708,9 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   event on its side and end (`PlayFrontEndSoundForTrace`). The frontend
   entity's bullet-pass cases are ported: a random whizz at most every 5
   frames, and the bank rotates after 10.
-  - The four GENRL bullet-pass banks are not in the packaged audio yet, so
-    the whizz stays silent until they are published.
+  - The four GENRL bullet-pass banks are rebuilt from the iOS port's bundle
+    (2026-10-05; see "Sound banks rebuilt from the iOS bundle"), so the whizz
+    is heard.
 - Verification: unit tests cover slot lifetimes, the streak shape, fading
   and the pass test. A browser test fires an M4 burst and sees the traces
   appear and clear.
@@ -9496,3 +9497,27 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - Specs: `track-radio-arbitration` (unit: the hooks, a station and the emergency channel stopping and coming back, a
   vehicle taken during a track, the ambience's stop); `emergency-radio` (browser: the mission-passed tune in a police
   car stops the emergency channel, which comes back after it).
+
+## Sound banks rebuilt from the iOS bundle
+
+- **Why.** The port's PC sound banks were cut from a GENRL package that is no longer on hand, and only the banks a ported
+  entity asked for then were taken. Banks asked for since (the bullet whizz's) had nowhere to come from.
+- **What the bundle has.** The iOS port's `GENRL.osw` (github.com/Google61/gta3sa.app, pinned `67f70cb72e`) holds all
+  137 GENRL banks, `Bank_001` being bank 7, one file per sound; its `BankLkup.dat` is byte-identical to the PC's. Its
+  `SOUNDINF.DAT` keeps the PC bank header of every one of the 710 banks: per sound the byte offset, loop start, sample
+  rate and headroom. For the 85 GENRL banks the port has from the PC, all 85 headers rebuilt from it are identical.
+- **How a bank is rebuilt** (`scripts/content/package-ios-sound-banks.mjs`): the header from `SOUNDINF.DAT` verbatim
+  and each sound's PCM16 at the PC rate and length, so lengths and loop starts are the PC's. A sound the bundle keeps
+  as a WAV is the PC's PCM (all 41 the port can compare are identical). An MP3 (all 32 kHz, MPEG-1 layer III) is
+  decoded with macOS `afconvert`, which starts it 577 samples late (the best alignment for 311 of the 437 comparable
+  sounds, 576 to 579 for all but 12), so those are dropped and the rest resampled (windowed sinc) to the PC rate. An
+  empty entry is silence of the PC length.
+- **How close.** `--check` rebuilds the 85 PC banks on hand: per sound the correlation with the PC's PCM has a median
+  of 0.988 and a 10th percentile of 0.879. The low ones are noisy, high-rate sounds (collisions, weapon tails, frontend
+  clicks) whose content above the encode's 16 kHz band is gone, not misaligned. **AUTHORED:** the rebuilt banks are a
+  lossy copy of the PC's, at the PC's lengths, rates, loops and headroom.
+- **Rebuilt so far:** SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB), listed in
+  `public/play/audio/ios-banks.json`, which `NativeBankLoader.open` merges with `banks.json` (a bank both list stays
+  the PC's).
+- Specs: `ios-sound-banks` (unit: the files, the merge, bank 28 into slot 42); `bullet-pass` (browser: a trace past
+  the camera plays a whizz in slot 42; it fails without the rebuilt banks).
