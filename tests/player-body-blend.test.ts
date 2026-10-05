@@ -42,7 +42,8 @@ test('skin pixels blend their colour by the ratios, cut to whole numbers, and ke
  // 50 + 50.25 + 0, 0 + 22.5 + 7.5, 127.5 + 0 + 2.5.
  expect([...out.mips[0].data]).toEqual([100,30,130,200]);expect(out.hasAlpha).toBe(true);
 });
-test("CJ's published bodies: the blend's ends are the three bodies, and between them it is in between",()=>{
+// Reading and blending the published bodies several times over takes a couple of seconds, more on a loaded machine.
+test("CJ's published bodies: the blend's ends are the three bodies, and between them it is in between",{timeout:30000},()=>{
  const f=files();
  const at=(ratios:{normal:number;fat:number;ripped:number})=>readPlayerBaseBody(f,ratios,'classic');
  for(const [variant,ratios] of [['normal',{normal:1,fat:0,ripped:0}],['fat',{normal:0,fat:1,ripped:0}],['ripped',{normal:0,fat:0,ripped:1}]] as const){

@@ -21,7 +21,7 @@ export class NativeBankLoader implements NativeBankSlots {
  /** `single` is m_BankSlotSound: the one sound a LoadSound request put in the slot, -1 when it holds the whole bank. */
  private slots=Array.from({length:45},()=>({bank:-1,single:-1,sounds:undefined as NativeBankSound[]|undefined}));
  private requests=new Map<number,number>();
- private soundRequests=new Map<number,{bank:number;sound:number}>();
+ private soundRequests=new Map<number,{bank:number;sound:number;done:Promise<void>}>();
  private decoded=new Map<number,Promise<NativeBankSound[]>>();
  readonly failures=new Map<number,string>();
  /** Banks packaged elsewhere (the PAIN_A pack's MP3s, which a host decodes), asked for by id. */
@@ -85,11 +85,18 @@ export class NativeBankLoader implements NativeBankSlots {
  loadSound(bank:number,sound:number,slot:number){
   if(bank<0||sound<0||slot<0||slot>=this.slots.length||this.isSoundLoaded(bank,sound,slot))return;
   const pending=this.soundRequests.get(slot);if(pending&&pending.bank===bank&&pending.sound===sound)return;
-  const request={bank,sound};this.soundRequests.set(slot,request);this.requests.delete(slot);
-  void (this.otherSound?.(bank,sound)??Promise.resolve(undefined)).then(loaded=>{
+  const request={bank,sound,done:Promise.resolve()};this.soundRequests.set(slot,request);this.requests.delete(slot);
+  request.done=(this.otherSound?.(bank,sound)??Promise.resolve(undefined)).then(loaded=>{
    if(this.soundRequests.get(slot)!==request)return;this.soundRequests.delete(slot);
    if(loaded)this.slots[slot]={bank,single:sound,sounds:[loaded]};
   },()=>{if(this.soundRequests.get(slot)===request)this.soundRequests.delete(slot);});
+ }
+ /** LoadSound, resolving once the sound is in that slot (true), or once it cannot be had or another request has taken
+  * the slot (false). */
+ async loadSoundAsync(bank:number,sound:number,slot:number):Promise<boolean>{
+  this.loadSound(bank,sound,slot);
+  const pending=this.soundRequests.get(slot);if(pending&&pending.bank===bank&&pending.sound===sound)await pending.done;
+  return this.isSoundLoaded(bank,sound,slot);
  }
  isSoundBankLoaded(bank:number,slot:number){return this.slots[slot]?.bank===bank&&bank>=0;}
  /** IsSoundLoaded (0x4E03B0). */

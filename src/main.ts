@@ -4182,16 +4182,25 @@ async function boot() {
       // dimmed) and moves the current one's highlight from the pad.
       // CAudioEngine::ReportMissionAudioEvent: at a point, or following the ped, car or object it names.
       // One physical per entity, so a handler can stop the sounds it started at the same one.
+      const missionPhysical=(owner:import('./simulation/ScmMission').ScmMission,kind:string,handle:number)=>{
+        const key=`${kind}:${handle}`;let physical=missionAudioEntities.get(key);
+        if(!physical){
+          if(missionAudioEntities.size>64)for(const [k,p] of missionAudioEntities)if(!p.position())missionAudioEntities.delete(k);
+          physical={position:()=>owner.audioEntityPosition(kind,handle)};missionAudioEntities.set(key,physical);
+        }
+        return physical;
+      };
       game.missionAudio.onReport??=(event,at)=>{
         if(sound.nativeEngine)sound.nativeEngine.scriptAudio.ambience??=ambience;
         if(!('kind' in at)){sound.missionAudioEvent(event,{position:{x:at.x,y:at.y,z:at.z}});return;}
         const owner=mission;if(!owner?.audioEntityPosition(at.kind,at.handle))return;
-        const key=`${at.kind}:${at.handle}`;let physical=missionAudioEntities.get(key);
-        if(!physical){
-          if(missionAudioEntities.size>64)for(const [k,p] of missionAudioEntities)if(!p.position())missionAudioEntities.delete(k);
-          physical={position:()=>owner.audioEntityPosition(at.kind,at.handle)};missionAudioEntities.set(key,physical);
-        }
-        const ped=owner.audioPed(at.kind,at.handle);sound.missionAudioEvent(event,ped?{physical,ped}:{physical});
+        const physical=missionPhysical(owner,at.kind,at.handle),ped=owner.audioPed(at.kind,at.handle);
+        sound.missionAudioEvent(event,ped?{physical,ped}:{physical});
+      };
+      // SET_MISSION_AUDIO_POSITION and the attach commands: the slot's link follows the same physical a report would.
+      game.missionAudio.onPlace??=(slot,at)=>{
+        if(!('kind' in at)){sound.missionAudioAt(slot,{position:{...at}});return;}
+        const owner=mission;if(owner)sound.missionAudioAt(slot,{physical:missionPhysical(owner,at.kind,at.handle)});
       };
       {const menus=game.menus,draws:import('./ui/nativeHudMenus').MenuDraw[]=[];
        if(menus.numInUse&&!game.messages.big[0][0]){
@@ -5696,7 +5705,7 @@ async function boot() {
                  // CAudioEngine::PreloadBeatTrack: the radio, else the ambience track, gives the stream up to the track.
                  trackAudio:{stopForTrack:()=>{if(!sound.nativeEngine?.stopRadioForTrack())ambience.stopNow(gameTimeMs);},radioAfterTrack:kept=>{sound.nativeEngine?.restartRadioAfterTrack(kept);},
                   holdAmbience:()=>{ambienceHeldUntil=performance.now()+30000;}},
-                 scriptSpeech:{load:sample=>sound.loadSpeech(sample),play:(slot,sample)=>{sound.playSpeech(slot,sample);},stop:slot=>{sound.stopSpeech(slot);},lengthMs:sample=>sound.speechLengthMs(sample)},
+                 scriptSpeech:{load:(sample,slot)=>sound.loadSpeech(sample,slot),play:(slot,sample)=>{sound.playSpeech(slot,sample);},stop:slot=>{sound.stopSpeech(slot);},lengthMs:sample=>sound.speechLengthMs(sample)},
                  loadMissionBank:(index,bank)=>sound.loadMissionBank(index,bank),clearMissionBank:index=>sound.clearMissionBank(index),
                  garageDoorSound:(garage,event,position)=>sound.garageDoorEvent(garage,event,position),
                  setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},

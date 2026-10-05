@@ -1,5 +1,6 @@
 import {NativeBankLoader} from './native/NativeBankLoader';
 import {NativeAudioEngine,type NativeAudioFrame,type NativeCombatSource} from './native/NativeAudioEngine';
+import {MISSION_BANK_SLOT_FIRST} from './native/NativeScriptAudio';
 import type {SurfaceAudioFlags} from '../assets/surfaceAudio';
 import {WebAudioChannels} from './native/WebAudioChannels';
 import {SCRIPT_BANK_FIRST,SCRIPT_SLOT_FIRST,SOUNDS_PER_BANK,ScriptSpeech,scriptSpeechMp3} from './ScriptSpeech';
@@ -62,26 +63,50 @@ export class AudioSystem {
       return ctx.decodeAudioData(mp3);
     });
   }
-  /** LOAD_MISSION_AUDIO's sample, resolving once it can play (false: it cannot be had, and the mission runs on). */
-  loadSpeech(sample:number){return this.speech?.load(sample)??Promise.resolve(false);}
+  /** LOAD_MISSION_AUDIO's sample, resolving once it can play (false: it cannot be had, and the mission runs on). With
+   * native audio, CAEScriptAudioEntity::PreloadMissionAudio asks it into the slot's bank slot too (one decode serves
+   * both). */
+  async loadSpeech(sample:number,scriptSlot?:number){
+    const script=this.native?.scriptAudio,index=scriptSlot===undefined?-1:scriptSlot-1;
+    if(script&&index>=0){
+      script.preloadMissionAudio(index,sample);
+      const link=script.missionLinks[index];
+      if(link?.event===sample&&link.soundId>=0&&await this.native!.bank.loadSoundAsync(link.bank,link.soundId,MISSION_BANK_SLOT_FIRST+index))return true;
+    }
+    return this.speech?.load(sample)??false;
+  }
   /** The loaded line's length, which the script's HAS_MISSION_AUDIO_FINISHED waits out. */
   speechLengthMs(sample:number){const line=this.speech?.line(sample);return line&&line.duration*1000;}
-  /** PLAY_MISSION_AUDIO. AUTHORED: the line plays at the listener, not from the ped or car its slot is attached to
-   * (CAEScriptAudioEntity's positioning is unreversed). It is under the effects level, as the PC's SFX slider. */
+  /** PLAY_MISSION_AUDIO: CAEScriptAudioEntity::PlayLoadedMissionAudio (the iOS executable's) plays the line in its bank
+   * slot, at its point or what it follows, at the sample's volume. Without native audio (or the line not in its slot)
+   * the line plays at the listener under the effects level, as before. */
   playSpeech(scriptSlot:number,sample:number){
-    this.stopSpeech(scriptSlot);
+    this.stopSpeechVoice(scriptSlot);
+    const script=this.native?.scriptAudio,link=script?.missionLinks[scriptSlot-1];
+    if(script&&link?.event===sample&&script.playLoadedMissionAudio(scriptSlot-1)){this.speechPlayed++;return true;}
     const ctx=this.context,line=this.speech?.line(sample);
     if(!ctx||!line||this.disposed)return false;
     const source=ctx.createBufferSource(),gain=ctx.createGain();
     source.buffer=line;source.connect(gain);gain.connect(this.effects);
     const voice={source,gain};this.speechVoices.set(scriptSlot,voice);
-    source.onended=()=>{if(this.speechVoices.get(scriptSlot)===voice)this.stopSpeech(scriptSlot);};
+    source.onended=()=>{if(this.speechVoices.get(scriptSlot)===voice)this.stopSpeechVoice(scriptSlot);};
     source.start();this.speechPlayed++;return true;
   }
   /** A mission audio line plays (the radio ducks under it). */
-  get speechPlaying(){return this.speechVoices.size>0;}
-  /** CLEAR_MISSION_AUDIO, and the mission's clean-up: the slot's line stops. */
+  get speechPlaying(){return this.speechVoices.size>0||!!this.native?.scriptAudio.missionAudioPlaying;}
+  /** SET_MISSION_AUDIO_POSITION and the attach commands: the slot's link takes the point or the entity. */
+  missionAudioAt(scriptSlot:number,at:import('./native/NativeScriptAudio').MissionAudioAt){
+    const script=this.native?.scriptAudio;if(!script)return;
+    if('physical' in at)script.attachMissionAudioToPhysical(scriptSlot-1,at.physical);else script.setMissionAudioPosition(scriptSlot-1,at.position);
+  }
+  /** CLEAR_MISSION_AUDIO, and the mission's clean-up: the slot's line stops (ClearMissionAudio: everything in its bank
+   * slot). */
   stopSpeech(scriptSlot:number){
+    this.native?.scriptAudio.clearMissionAudio(scriptSlot-1);
+    this.stopSpeechVoice(scriptSlot);
+  }
+  /** The slot's line playing at the listener, without native audio. */
+  private stopSpeechVoice(scriptSlot:number){
     const voice=this.speechVoices.get(scriptSlot);if(!voice)return;
     this.speechVoices.delete(scriptSlot);voice.source.onended=null;
     try{voice.source.stop();}catch{/* Already ended. */}

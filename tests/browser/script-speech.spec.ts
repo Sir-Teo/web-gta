@@ -20,8 +20,9 @@ test('a mission line and the mission-passed tune play from the published packs',
  // The opening fades the screen out, and CAEAudioHardware's fader scales every sound with it: a line is heard once
  // the screen is up, as a mission's are.
  await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.state().fadeAlpha),{timeout:90000}).toBe(0);
- // A free slot, as a mission's LOAD_MISSION_AUDIO leaves it, then the host's load.
- const slot=4,sample=20000;
+ // A free speech slot (1 or 2: the slots the scripts speak in, whose lines EVENTVOL marks -128 and
+ // PlayLoadedMissionAudio plays at +6 dB), as a mission's LOAD_MISSION_AUDIO leaves it, then the host's load.
+ const slot=2,sample=20000;
  await page.evaluate(({slot,sample})=>{const r=(window as any).__game.missionForProfiling().runtime;r.game.missionAudio.preload(slot,sample);r.world.loadMissionAudio(slot,sample);},{slot,sample});
  await expect.poll(async()=>await page.evaluate(slot=>(window as any).__game.missionForProfiling().runtime.game.missionAudio.hasLoaded(slot),slot),{timeout:30000}).toBe(true);
  expect(fetched.filter(f=>f.startsWith('script/'))).toEqual(['script/script.json','script/bank-237.bin']);
@@ -32,10 +33,20 @@ test('a mission line and the mission-passed tune play from the published packs',
  // INTRO1's first line runs 3.84 seconds.
  expect(length).toBeGreaterThan(3800);expect(length).toBeLessThan(3900);
  await expect.poll(async()=>(await audio()).speechPlayed).toBe(1);
+ // CAEScriptAudioEntity's link plays it: no point or entity, so ahead of the listener, at +6 dB.
+ expect((await audio()).native.script.links[slot-1]).toMatchObject({event:sample,playing:true,frontEnd:true,volume:6});
  await expect.poll(async()=>(await audio()).rms,{timeout:5000}).toBeGreaterThan(.0005);
  await expect.poll(async()=>await page.evaluate(slot=>(window as any).__game.missionForProfiling().runtime.game.missionAudio.hasFinished(slot),slot),{timeout:15000}).toBe(true);
  await page.evaluate(slot=>{const r=(window as any).__game.missionForProfiling().runtime;r.game.missionAudio.clear(slot);r.world.clearMissionAudio(slot);},slot);
  expect((await audio()).speechVoices).toBe(0);
+ // ATTACH_MISSION_AUDIO_TO_CHAR on the player after the load: the line follows him instead of playing ahead.
+ await page.evaluate(({slot,sample})=>{const r=(window as any).__game.missionForProfiling().runtime;r.game.missionAudio.preload(slot,sample);r.world.loadMissionAudio(slot,sample);},{slot,sample});
+ await expect.poll(async()=>await page.evaluate(slot=>(window as any).__game.missionForProfiling().runtime.game.missionAudio.hasLoaded(slot),slot),{timeout:30000}).toBe(true);
+ await page.evaluate(({slot,sample})=>{const r=(window as any).__game.missionForProfiling().runtime;r.game.missionAudio.attach(slot,'ped',1);
+  if(r.game.missionAudio.play(slot,r.world.missionAudioLengthMs(sample,undefined)))r.world.playMissionAudio(slot);},{slot,sample});
+ await expect.poll(async()=>(await audio()).native.script.links[slot-1],{timeout:5000}).toMatchObject({event:sample,playing:true,frontEnd:false,following:true});
+ await page.evaluate(slot=>{const r=(window as any).__game.missionForProfiling().runtime;r.game.missionAudio.clear(slot);r.world.clearMissionAudio(slot);},slot);
+ expect((await audio()).native.script.links[slot-1].playing).toBe(false);
  // Tune 1, every story mission's pass: PLAY_MISSION_PASSED_TUNE preloads beat track 11 and plays it.
  const track=()=>page.evaluate(()=>{const t=(window as any).__game.missionForProfiling().runtime.game.cutsceneTrack;return {status:t.reportedStatus,id:t.trackId};});
  const before=(await audio()).tracksPlayed;

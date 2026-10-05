@@ -129,11 +129,15 @@ export class ScmMissionAudio {
  setPosition(scriptSlot:number,position:{x:number;y:number;z:number}){
   requireAsset([position.x,position.y,position.z].every(Number.isFinite),'Invalid mission audio position.');
   const slot=this.slot(scriptSlot);slot.position={...position};slot.entity=undefined;
+  this.onPlace?.(scriptSlot,{...position});
  }
  /** The three attach commands, which point the slot at a ped, a vehicle or an object instead of a point. */
  attach(scriptSlot:number,kind:'ped'|'vehicle'|'object',handle:number){
   const slot=this.slot(scriptSlot);slot.entity={kind,handle};slot.position=undefined;
+  this.onPlace?.(scriptSlot,{kind,handle});
  }
+ /** CAEScriptAudioEntity's SetMissionAudioPosition and AttachMissionAudioToPhysical: the host's slot link. */
+ onPlace?:(scriptSlot:number,at:{x:number;y:number;z:number}|{kind:'ped'|'vehicle'|'object';handle:number})=>void;
  /** CAudioEngine::ReportMissionAudioEvent's host: CAEScriptAudioEntity::ProcessMissionAudioEvent. */
  onReport?:(audioEvent:number,at:{x:number;y:number;z:number}|{kind:string;handle:number})=>void;
  /** The report commands, which do not use a slot at all: they ask for one event at a place or an entity. */

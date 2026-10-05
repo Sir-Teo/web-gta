@@ -249,7 +249,7 @@ export interface ScmMissionWorld {
  beatTracks?:BeatTrackStream;
  /** CAudioEngine round those tracks: the radio and the ambience give way to them, and the radio comes back. */
  trackAudio?:TrackAudio;
- scriptSpeech?:{load(sample:number):Promise<boolean>;play(scriptSlot:number,sample:number):void;stop(scriptSlot:number):void;lengthMs(sample:number):number|undefined};
+ scriptSpeech?:{load(sample:number,scriptSlot?:number):Promise<boolean>;play(scriptSlot:number,sample:number):void;stop(scriptSlot:number):void;lengthMs(sample:number):number|undefined};
  /** A whole SCRIPT bank into mission audio slot `index` (zero-based), and the slot letting it go. */
  loadMissionBank?(index:number,bank:number):Promise<boolean>;clearMissionBank?(index:number):void;
  /** CModelInfo::GetModelInfo by name: the model index, or -1. */
@@ -2312,7 +2312,7 @@ export class ScmMission {
      return;
     }
     this.world.clearMissionBank?.(slot-1);
-    if(speech&&audio.stream(slot,sample))void speech.load(sample).then(()=>audio.streamed(slot,sample));
+    if(speech&&audio.stream(slot,sample))void speech.load(sample,slot).then(()=>audio.streamed(slot,sample));
    },
    playMissionAudio:slot=>{const sample=this.runtime.game.missionAudio.slots[slot-1]?.audioEvent;if(sample!==undefined&&sample>=0)this.world.scriptSpeech?.play(slot,sample);},
    clearMissionAudio:slot=>{this.world.scriptSpeech?.stop(slot);this.world.clearMissionBank?.(slot-1);},

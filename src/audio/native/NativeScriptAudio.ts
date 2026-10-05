@@ -4,6 +4,7 @@ import type {NativeBankLoader} from './NativeBankLoader';
 import {randomInt,type AudioRandom} from './nativeAudioUtility';
 import {NativeDoorAudio} from './NativeDoorAudio';
 import {AE_WEAPON,NativeExplosionAudio} from './NativeWeaponAudio';
+import {SCRIPT_BANK_FIRST,SCRIPT_SLOT_FIRST,SOUNDS_PER_BANK} from '../ScriptSpeech';
 /* CAEScriptAudioEntity::ProcessMissionAudioEvent (0x4ECCF0), which REPORT_MISSION_AUDIO_EVENT_AT_* hands a script's
  * sound to. gta-reversed leaves it a call into the exe; its commented decompilation has the right handlers but case
  * labels it says need fixing (they are script-slot names, 7000 and up, not the 1000 to 1190 the scripts report). The
@@ -131,6 +132,8 @@ export const MISSION_AUDIO_EVENTS:Readonly<Record<number,MissionAudioCase>>={
 /** CAEScriptAudioEntity's mission bank slots begin at 26 (SND_BANK_SLOT_MISSION_*): a script slot's bank sits at 26
  * plus its index. */
 export const MISSION_BANK_SLOT_FIRST=26;
+/** CAudioLink's m_vPosition for no point. */
+const NOWHERE:Readonly<NativeVec>={x:-1000,y:-1000,z:-1000};
 /** Where a report is heard: a point, or the entity it is at (whose position the sound follows) and, for a ped, whether
  * it is the player. */
 export type MissionAudioAt={position:NativeVec}|{physical:NativePhysicalEntity;ped?:'player'|'other'};
@@ -159,13 +162,24 @@ export class NativeScriptAudio implements NativeAudioEntity {
   private frontend:(event:number,volumeBoost:number,speed:number)=>void){
   this.door=new NativeDoorAudio(manager,bank,defaultVolume);this.explosion=new NativeExplosionAudio(manager,bank,random,defaultVolume);
  }
- /** UpdateParameters (iOS 0x100156878), by the sound's event: the held sounds (the dual's thrust, the bee's buzz, the
-  * Tempest's shield, Sweet's horn) stop 300 ms (the horn 500) after the last report; the roulette's spin, 4.5 s on,
-  * fades 0.1 dB a frame to -40 and slows 0.001 a frame, and at 4.8 s its ball bounces once (1160, one of sounds 1 to 3
-  * of slot 4's bank, ahead of the listener); the gym machines' loops rise 0.1 dB a frame to their event's volume while
-  * running and, stopping, fall 0.1 dB a frame to 18 dB under it and stop. (A mission audio slot's line following its
-  * entity is the speech host's.) */
- updateParameters(sound:NativeSound,_playPosition:number){
+ /** UpdateParameters (iOS 0x100156878). It walks the four links: the one playing this sound keeps it at what the link
+  * follows (and lets it go when it ends); for each other link the sound's event is handled, so a sound no link plays
+  * has its event handled four times a call, and its steps below come four to a frame. By event: the held sounds (the
+  * dual's thrust, the bee's buzz, the Tempest's shield, Sweet's horn) stop 300 ms (the horn 500) after the last report;
+  * the roulette's spin, 4.5 s on, fades 0.1 dB a step to -40 and slows 0.001 a step, and at 4.8 s its ball bounces once
+  * (1160, one of sounds 1 to 3 of slot 4's bank, ahead of the listener); the gym machines' loops rise 0.1 dB a step to
+  * their event's volume while running and, stopping, fall 0.1 dB a step to 18 dB under it and stop. */
+ updateParameters(sound:NativeSound,playPosition:number){
+  for(const link of this.missionLinks){
+   if(link.sound===sound){
+    if(playPosition===-1){link.sound=undefined;return;}
+    const p=link.physical?.position();if(p)sound.setPosition(p);
+    continue;
+   }
+   this.updateEvent(sound);
+  }
+ }
+ private updateEvent(sound:NativeSound){
   const now=this.manager.clock.timeMs;
   const timeOut=(ms:number)=>{if(now>this.heardAt+ms){sound.stopSoundAndForget();this.heardAt=0;}};
   switch(sound.event){
@@ -186,7 +200,8 @@ export class NativeScriptAudio implements NativeAudioEntity {
    }
   }
  }
- snapshot(){return {handled:Object.fromEntries(this.handled),unported:Object.fromEntries(this.unported)};}
+ snapshot(){return {handled:Object.fromEntries(this.handled),unported:Object.fromEntries(this.unported),
+  links:this.missionLinks.map(l=>({event:l.event,playing:!!l.sound,frontEnd:l.sound?l.sound.has(SOUND.frontEnd):null,following:!!l.physical,volume:l.sound?l.sound.volume:null}))};}
  /** ProcessMissionAudioEvent. */
  processMissionAudioEvent(event:number,at:MissionAudioAt){
   // Outside the jump table's range (104 to 1190; a report of -1 is 65535 as the uint16 it is read as), nothing.
@@ -266,6 +281,64 @@ export class NativeScriptAudio implements NativeAudioEntity {
  }
  /** CLEAR_MISSION_AUDIO: the slot's record lets its bank go. */
  clearMissionBank(index:number){this.missionBanks[index]=-1;}
+ /** The four CAudioLinks (the iOS entity's +0xa8, 0x30 each): where a slot's line plays (m_vPosition, -1000 each way for
+  * nowhere), what it follows (m_pEntity), the sound playing it, and the sample, bank and sound it names. */
+ readonly missionLinks=Array.from({length:4},()=>({position:{...NOWHERE} as NativeVec,physical:undefined as NativePhysicalEntity|undefined,sound:undefined as NativeSound|undefined,event:-1,bank:-1,soundId:-1}));
+ /** PreloadMissionAudio (iOS 0x100156e18) for a line (a sample from 2000: bank 147 plus a 200th, sound the rest, as
+  * GetBankAndSoundFromScriptSlotAudioEvent has it): left alone while the slot plays (slots 3 and 4: anything in their
+  * bank slot); else the line asked into bank slot 26 plus the slot, and the link reset to follow nothing, nowhere.
+  * (The whole banks of samples 1800 to 1829 are loadMissionBank's.) */
+ preloadMissionAudio(index:number,sample:number){
+  const link=this.missionLinks[index];if(!link||sample<SCRIPT_SLOT_FIRST)return;
+  if(index>=2?this.manager.areSoundsPlayingInBankSlot(MISSION_BANK_SLOT_FIRST+index):link.sound)return;
+  link.bank=SCRIPT_BANK_FIRST+Math.floor((sample-SCRIPT_SLOT_FIRST)/SOUNDS_PER_BANK);link.soundId=(sample-SCRIPT_SLOT_FIRST)%SOUNDS_PER_BANK;
+  this.bank.loadSound(link.bank,link.soundId,MISSION_BANK_SLOT_FIRST+index);
+  link.event=sample;link.physical=undefined;link.position={...NOWHERE};
+ }
+ /** GetMissionAudioLoadingStatus (iOS 0x100156f68): whether the slot's line (or bank) is in its bank slot; a slot
+  * with none counts as loaded. */
+ missionAudioLoaded(index:number){
+  const link=this.missionLinks[index];if(!link||link.bank<0)return true;
+  return link.soundId<0?this.bank.isSoundBankLoaded(link.bank,MISSION_BANK_SLOT_FIRST+index):this.bank.isSoundLoaded(link.bank,link.soundId,MISSION_BANK_SLOT_FIRST+index);
+ }
+ /** PlayLoadedMissionAudio (iOS 0x100156fec): once the line is in its bank slot, at its sample's default volume (an
+  * event of 0xffff at -100; the speech slots 1 and 2 at +6 where the table says -128) and a roll-off of 2; at what the
+  * link follows, at its point, or ahead of the listener as a front-end sound for nowhere or a point of zeros. It
+  * cannot be cancelled, asks for updates and plays physically; the speech slots' lines are also unduckable,
+  * incompressible and duck smoothly. False when there is nothing to play. */
+ playLoadedMissionAudio(index:number){
+  const link=this.missionLinks[index];if(!link||link.bank<0||link.soundId<0)return false;
+  const slot=MISSION_BANK_SLOT_FIRST+index;if(!this.bank.isSoundLoaded(link.bank,link.soundId,slot))return false;
+  let volume=-100,speech=false;
+  if(link.event!==0xffff){volume=this.defaultVolume(link.event);if(index<=1){speech=true;if(volume===-128)volume=6;}}
+  let position:NativeVec,frontEnd=false;const p=link.position;
+  if(link.physical)position=link.physical.position()??{x:0,y:0,z:0};
+  else if(p.x===NOWHERE.x&&p.y===NOWHERE.y&&p.z===NOWHERE.z||p.x===0&&p.y===0&&p.z===0){frontEnd=true;position={x:0,y:1,z:0};}
+  else position={...p};
+  link.sound=this.manager.playSound({slot,sound:link.soundId,entity:this,position,volume,rollOff:2,speed:1,doppler:1,
+   flags:SOUND.uncancellable|SOUND.requestUpdates|SOUND.playPhysically|(frontEnd?SOUND.frontEnd:0)|(speech?SOUND.unduckable|SOUND.incompressible|SOUND.smoothDucking:0)});
+  return !!link.sound;
+ }
+ /** IsMissionAudioSampleFinished (iOS 0x100156f10): the speech slots' when their line's sound is gone, slots 3 and 4's
+  * when nothing plays in their bank slot. */
+ missionAudioFinished(index:number){
+  const link=this.missionLinks[index];if(!link)return true;
+  return index>=2?!this.manager.areSoundsPlayingInBankSlot(MISSION_BANK_SLOT_FIRST+index):!link.sound;
+ }
+ /** Whether any slot's line is playing (the radio ducks under them). */
+ get missionAudioPlaying(){return this.missionLinks.some(link=>link.sound);}
+ /** ClearMissionAudio (iOS 0x1001565c4): everything in the slot's bank slot stops, and the link follows nothing,
+  * nowhere, with no sound; its sample and bank stay. */
+ clearMissionAudio(index:number){
+  const link=this.missionLinks[index];if(!link)return;
+  this.manager.cancelSoundsInBankSlot(MISSION_BANK_SLOT_FIRST+index,true);
+  link.physical=undefined;link.sound=undefined;link.position={...NOWHERE};
+ }
+ /** SetMissionAudioPosition (iOS 0x10015730c): a point, following nothing. A line already playing stays where it is. */
+ setMissionAudioPosition(index:number,position:NativeVec){const link=this.missionLinks[index];if(link){link.position={...position};link.physical=undefined;}}
+ /** AttachMissionAudioToPhysical (iOS 0x10015732c, behind the ped, car and object commands): the entity, from its
+  * next update on, and nowhere for a point. */
+ attachMissionAudioToPhysical(index:number,physical:NativePhysicalEntity){const link=this.missionLinks[index];if(link){link.physical=physical;link.position={...NOWHERE};}}
  /** PlayMissionBankSound (0x100156bcc in the iOS executable): only through link 2 or 3; skipped, if asked, while one of
   * the event's own plays; else once the slot's bank is in its bank slot, the sound at the event's default volume plus
   * the offset, at the entity (lasting no longer than it), at the point, or ahead of the listener (a point of zeros or

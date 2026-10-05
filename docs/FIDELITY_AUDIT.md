@@ -9214,10 +9214,28 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   rather than one guessed from its subtitle. `CLEAR_MISSION_AUDIO` and the mission's clean-up stop it. A line that
   cannot be had (a failed download, a sample that names a whole bank) loads as nothing, and the mission runs on sized
   from its subtitle as before.
-- **AUTHORED:** the line plays at the listener under the effects level; `CAEScriptAudioEntity`'s positioning (the
-  slot's point, ped, car or object) is unreversed and not followed.
+- **Where and how loud: the iOS executable's CAudioLink.** CAEScriptAudioEntity's slot functions are unreversed in
+  gta-reversed; the iOS executable's are followed (its entity sits at CAudioEngine+0x300 and its four links, 0x30
+  each, at +0xa8). PreloadMissionAudio (0x100156e18) puts the line into bank slot 26 plus the slot (one decode serves
+  the native sound and the line's length) and resets the link to follow nothing, nowhere (-1000 each way); it leaves
+  a slot alone while it plays. SET_MISSION_AUDIO_POSITION (0x10015730c) gives the link a point and the attach commands
+  (0x10015732c) the ped, car or object, the physical a report at it would use. PlayLoadedMissionAudio (0x100156fec)
+  plays the line at what the link follows, at its point, or ahead of the listener as a front-end sound for nowhere or
+  a point of zeros; at roll-off 2, uncancellable, asking for updates and playing physically; at the sample's EVENTVOL
+  volume, except that the speech slots (1 and 2) play the table's -128 at +6 dB and are unduckable, incompressible and
+  duck smoothly. The scripts keep to that: of their LOAD_MISSION_AUDIOs by number, slots 1 and 2 take 616 lines
+  marked -128 and 7 others, slots 3 and 4 take 297 sounds with volumes of their own (and whole banks), and only
+  impound.scm puts six -128 lines (10200 to 10206) in slot 4, where they are as silent as the code makes them.
+  UpdateParameters (0x100156878) keeps a playing line at what its link follows and lets the link go when it ends;
+  ClearMissionAudio (0x1001565c4) stops everything in the slot's bank slot (its mission-bank sounds too). The radio
+  ducks under a link's line. Without native audio the line plays at the listener under the effects level, as
+  before.
+- **Not followed:** the slot's loading and finishing stay the port's bookkeeping (the line's own length), not
+  GetMissionAudioLoadingStatus and IsMissionAudioSampleFinished, which the native links also answer.
 - Specs: `script-speech` (unit, and the browser spec, which boots the game, streams INTRO1's first line through the
-  script host, hears it and waits it out).
+  script host into speech slot 2, hears it ahead of the listener at +6 dB through its link, waits it out, then
+  attaches the slot to CJ and hears it follow him); `native-audio` (unit: a line following a walking ped, its end
+  freeing the link, slot 3's point and volume, the clear, the front end for nowhere, no reload while a line plays).
 
 ## The mission-passed tune plays
 
@@ -9714,11 +9732,13 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   the Idlewood door's closing reaches its door audio every step and closed once).
 - **UpdateParameters** (iOS 0x100156878; unreversed): the script entity's own sounds are updated by event. The held
   ones stop 300 ms after the last report: AE_SCRIPT_DUAL_THRUST (1042), BEE_BUZZ (1167), TEMPEST_SHIELD_GLOW (1177);
-  SWEETS_HORN (1147) after 500 ms. ROULETTE_SPIN (1086), 4.5 s after its report, fades 0.1 dB a frame to -40 and slows
-  0.001 a frame, and at 4.8 s ROULETTE_BALL_BOUNCING (1160) plays once, one of sounds 1 to 3 of slot 4's bank, ahead
+  SWEETS_HORN (1147) after 500 ms. ROULETTE_SPIN (1086), 4.5 s after its report, fades 0.1 dB a step to -40 and slows
+  0.001 a step, and at 4.8 s ROULETTE_BALL_BOUNCING (1160) plays once, one of sounds 1 to 3 of slot 4's bank, ahead
   of the listener. The gym bike's and running machine's loops (GYM_BIKE_START 1113, GYM_RUNNING_MACHINE_START 1118,
-  started 18 dB down) rise 0.1 dB a frame to their event's volume while running; their STOP events (1114, 1119) set
-  the machines' mode to stopping, and the loop falls 0.1 dB a frame to 18 dB under and stops.
+  started 18 dB down) rise 0.1 dB a step to their event's volume while running; their STOP events (1114, 1119) set
+  the machines' mode to stopping, and the loop falls 0.1 dB a step to 18 dB under and stops. The function walks the
+  four mission audio links and handles the sound's event once for each link not playing it, so a sound no link plays
+  takes four steps a call: the gym loops move 0.4 dB a frame and the roulette fades 0.4 dB and slows 0.004 a frame.
 - **Handed on to other entities** (the iOS handlers from 0x100158034; each checked against the scripts that report
   it, at an entity or a point):
   - 1132 (photo.scm's photographer; HEIST1, at points): at an entity, CAudioEngine::ReportWeaponEvent(AE_WEAPON_FIRE,

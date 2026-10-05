@@ -324,6 +324,40 @@ test("a script's reports handed on: a shot, an explosion, a splash and the helic
  await frames(e,key,487,()=>heli,6);expect(sounding()).toBe(true);
  await frames(e,key,487,()=>({...heli,helicopterDisabled:true}),2);expect(sounding()).toBe(false);
 });
+test("a mission audio slot's line plays from its link: at what it follows, at its point, or ahead of the listener",async()=>{
+ const e=engine();await flush();await flush();
+ // SCRIPT lines decoded by the host: a quarter second at 8 kHz, one sound a request.
+ const lines:number[][]=[];e.bank.otherSound=async(bank,sound)=>{lines.push([bank,sound]);return {samples:new Float32Array(2000),sampleRate:8000,headroom:0,loopStart:-1};};
+ const volumes=new Int8Array(45402);volumes[20000]=-128;volumes[20001]=-3;e.eventVolumes=volumes;
+ const frame=()=>e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));frame();
+ const script=e.scriptAudio;
+ // LOAD_MISSION_AUDIO 1 20000 (INTRO1's first line): bank 237, sound 0, into bank slot 26; the link follows nothing.
+ script.preloadMissionAudio(0,20000);expect(lines).toEqual([[237,0]]);
+ expect(await e.bank.loadSoundAsync(237,0,26)).toBe(true);expect(script.missionAudioLoaded(0)).toBe(true);
+ // Attached to a ped that walks: the speech slot's line, at +6 dB for the table's -128, follows him.
+ const ped={x:3,y:4,z:0};script.attachMissionAudioToPhysical(0,{position:()=>({...ped})});
+ expect(script.playLoadedMissionAudio(0)).toBe(true);
+ const line=script.missionLinks[0].sound!;
+ expect([line.slot,line.sound,line.volume,line.rollOff]).toEqual([26,0,6,2]);
+ expect(line.has(SOUND.frontEnd)).toBe(false);expect(line.has(SOUND.unduckable)&&line.has(SOUND.smoothDucking)&&line.has(SOUND.incompressible)).toBe(true);
+ ped.x=10;frame();frame();expect(line.currPos).toEqual({x:10,y:4,z:0});
+ expect(script.missionAudioPlaying).toBe(true);expect(script.missionAudioFinished(0)).toBe(false);
+ // It runs out: the link lets the sound go and the slot has finished.
+ for(let i=0;i<20;i++)frame();
+ expect(script.missionLinks[0].sound).toBeUndefined();expect(script.missionAudioFinished(0)).toBe(true);
+ // Slot 3 at a point: no speech flags, the table's volume as it is.
+ script.preloadMissionAudio(2,20001);await e.bank.loadSoundAsync(237,1,28);
+ script.setMissionAudioPosition(2,{x:5,y:6,z:7});expect(script.playLoadedMissionAudio(2)).toBe(true);
+ const third=script.missionLinks[2].sound!;
+ expect([third.slot,third.volume,third.has(SOUND.frontEnd),third.has(SOUND.unduckable)]).toEqual([28,-3,false,false]);expect(third.currPos).toEqual({x:5,y:6,z:7});
+ // Cleared: everything in its bank slot stops and the link goes back to nowhere.
+ script.clearMissionAudio(2);expect(script.missionLinks[2].sound).toBeUndefined();expect(script.missionLinks[2].position).toEqual({x:-1000,y:-1000,z:-1000});
+ // Nowhere: ahead of the listener, as a front-end sound.
+ script.preloadMissionAudio(1,20000);await e.bank.loadSoundAsync(237,0,27);expect(script.playLoadedMissionAudio(1)).toBe(true);
+ const ahead=script.missionLinks[1].sound!;expect([ahead.has(SOUND.frontEnd),ahead.currPos]).toEqual([true,{x:0,y:1,z:0}]);
+ // A slot whose line plays is not loaded again until it has finished.
+ script.preloadMissionAudio(1,20001);expect(script.missionLinks[1].event).toBe(20000);
+});
 test("the parachute's 1189 is a crunch from the ped's own audio entity, the player's or another's",async()=>{
  const e=engine();await flush();await flush();
  const player={x:0,y:4,z:0};e.setPlayer(()=>player);
@@ -435,13 +469,14 @@ test("the script entity's held sounds: the gym loop rises and winds down, the be
  let n=0;const e=new NativeAudioEngine(new NativeBankLoader(manifest,async entry=>banks.get(entry.id)!.bytes),undefined,()=>((n++*.6180339)%1));
  await flush();const frame=()=>e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));frame();
  const script=e.scriptAudio,of=(event:number)=>e.manager.sounds.filter(s=>s.inUse&&s.entity===script&&s.event===event);
- // The gym bike (bank 226 in slot 4): its start comes in 18 dB down and rises 0.1 dB a frame to its event's volume.
+ // The gym bike (bank 226 in slot 4): its start comes in 18 dB down and rises 0.1 dB a step to its event's volume,
+ // four steps a frame (UpdateParameters handles a sound no link plays once for each of the four links).
  await script.loadMissionBank(3,226);script.processMissionAudioEvent(1113,{position:{x:2,y:2,z:2}});
  const bike=of(1113)[0],full=e.defaultVolume(1113);expect(bike.volume).toBeCloseTo(full-18,5);
- for(let i=0;i<10;i++)frame();expect(bike.volume).toBeCloseTo(full-17,4);
+ for(let i=0;i<10;i++)frame();expect(bike.volume).toBeCloseTo(full-14,4);
  for(let i=0;i<200;i++)frame();expect(bike.volume).toBeCloseTo(full,5);
- // 1114 (the bike's stop): back down 0.1 dB a frame, and gone 18 dB under.
- script.processMissionAudioEvent(1114,{position:{x:2,y:2,z:2}});for(let i=0;i<10;i++)frame();expect(bike.volume).toBeCloseTo(full-1,4);
+ // 1114 (the bike's stop): back down 0.4 dB a frame, and gone 18 dB under.
+ script.processMissionAudioEvent(1114,{position:{x:2,y:2,z:2}});for(let i=0;i<10;i++)frame();expect(bike.volume).toBeCloseTo(full-4,4);
  for(let i=0;i<200;i++)frame();expect(of(1113)).toHaveLength(0);
  // The bee's buzz (bank 163 in slot 4) stops 300 ms after the last report.
  await script.loadMissionBank(3,163);script.processMissionAudioEvent(1167,{position:{x:2,y:2,z:2}});
