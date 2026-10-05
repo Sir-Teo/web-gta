@@ -162,6 +162,22 @@ export const STORED_CARS_PER_GARAGE=4,HIDEOUT_SLOT_COUNT=20;
  * 42, 45) and the impound lots (33 to 35); the table gives the rest slot 0. */
 const HIDEOUT_SLOTS:Readonly<Record<number,number>>={16:0,17:1,18:2,24:3,25:4,26:5,27:6,28:7,29:8,30:9,31:10,32:11,33:12,34:13,35:14,39:15,40:16,41:17,42:18,45:19};
 export const hideOutSlot=(type:number)=>HIDEOUT_SLOTS[type]??0;
+/** The police impounds (IMPOUND_LS, _SF and _LV): CGarage::Update's case at iOS 0x1001b2d40. */
+export const IMPOUND_TYPES:ReadonlySet<number>=new Set([33,34,35]);
+/** How many cars an impound keeps (the first three of its four places). */
+export const IMPOUND_CAPACITY=3;
+/** The impound's line-up before its cars come back (iOS 0x1001b7240): in a row along the box's front, 4 units apart,
+ * about the middle of the box half a unit over its floor, each facing across the row (the front's direction turned a
+ * quarter to the right, packed). */
+export function placeCarsInImpound(garage:ScmGarage,slot:(StoredCar|null)[]){
+ const b=garage.box;if(!b)return;
+ const l=Math.hypot(b.dirA[0],b.dirA[1])||1,nx=b.dirA[0]/l,ny=b.dirA[1]/l,vx=nx*4,vy=ny*4;
+ const cx=b.base[0]+b.dirA[0]*b.width/2+b.dirB[0]*b.depth/2,cy=b.base[1]+b.dirA[1]*b.width/2+b.dirB[1]*b.depth/2,cz=b.base[2]+.5;
+ for(let i=0;i<IMPOUND_CAPACITY;i++){
+  const car=slot[i];if(!car)break;
+  car.position=[cx-vx+i*vx,cy-vy+i*vy,cz];car.forward=[Math.trunc(ny*100),Math.trunc(nx*-100),0];
+ }
+}
 /** A stored car from a save, checked; undefined for anything that is not one. */
 export function readStoredCar(value:unknown):StoredCar|undefined{
  const v=value as Partial<StoredCar>|null;
@@ -187,8 +203,8 @@ export interface GarageHideoutWorld {
   * back stored (CStoredCar::StoreCar). Without it the garage keeps no cars of its own. */
  removeCarsInside?(garage:ScmGarage,max:number):StoredCar[];
  /** CStoredCar::RestoreCar with CWorld::Add: true once the car stands in the world again (or never can), false while
-  * it is still being made. */
- restoreCar?(car:StoredCar):boolean;
+  * it is still being made. An impound's car is also set on its wheels (PlaceOnRoadProperly) and marked impounded. */
+ restoreCar?(car:StoredCar,impound?:boolean):boolean;
  /** RemoveCarsBlockingDoorNotInside (iOS 0x1001b6b48): from the pool's end, the first vehicle touching the box with
   * its middle out of it, not locked and deletable, removed. */
  removeCarBlockingDoor?(garage:ScmGarage):void;
@@ -277,6 +293,7 @@ export class ScmGarages {
    if(garage.type===GARAGE_TYPE.paynspray&&this.respray&&!garage.inactive){this.updateRespray(garage,step,this.respray);continue;}
    // Update leaves an inactive garage alone only while it is shut.
    if(HIDEOUT_UPDATE_TYPES.has(garage.type)&&this.hideouts&&!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED)){this.updateHideout(garage,step,this.hideouts);continue;}
+   if(IMPOUND_TYPES.has(garage.type)&&this.hideouts&&!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED)){this.updateImpound(garage,this.hideouts);continue;}
    if(BOMB_SHOP_TYPES.has(garage.type)&&this.bombShops&&!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED)){this.updateBombShop(garage,step,this.bombShops);continue;}
    if(garage.doorState===GARAGE_DOOR_OPENING){if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_OPEN;}
    else if(garage.doorState===GARAGE_DOOR_CLOSING){if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;}
@@ -423,10 +440,63 @@ export class ScmGarages {
  storedCount(garage:ScmGarage){return this.storedCars[hideOutSlot(garage.type)]?.filter(Boolean).length??0;}
  /** StoreAndRemoveCarsForThisHideOut (0x449900, reversed): the slot cleared and refilled with the cars the world gives
   * up (at most four). */
- private storeAndRemoveCarsForThisHideOut(garage:ScmGarage,world:GarageHideoutWorld){
+ private storeAndRemoveCarsForThisHideOut(garage:ScmGarage,world:GarageHideoutWorld,max=STORED_CARS_PER_GARAGE){
   const slot=this.storedCars[hideOutSlot(garage.type)];if(!slot||!world.removeCarsInside)return;
-  const kept=world.removeCarsInside(garage,STORED_CARS_PER_GARAGE);
+  const kept=world.removeCarsInside(garage,max);
   for(let i=0;i<STORED_CARS_PER_GARAGE;i++)slot[i]=kept[i]??null;
+ }
+ /** CGarage::Update's impound case (types 33 to 35; iOS 0x1001b2d40, unreversed in the reference). The lot has no
+  * door to move: its state says whether its cars are out. Shut, with the player (FindPlayerCoors) within 60 units of
+  * its footprint in x and y and between its floor and 2 units under its roof, the kept cars are lined up in it
+  * (placeCarsInImpound) and put back (RestoreCarsForThisImpoundingGarage); once all stand it is open. Open (or
+  * closing), with him over 65 units off, or above that height or below the floor, it is shut and the cars inside are
+  * kept again, three at most (StoreAndRemoveCarsForThisImpoundingGarage, iOS 0x1001b6fe4, as the hideouts'). */
+ private updateImpound(garage:ScmGarage,world:GarageHideoutWorld){
+  const b=garage.box;if(!b)return;
+  const [px,py,pz]=world.playerCentre(),d2=footprintDistance2(garage,px,py),under=pz<b.topZ-2;
+  switch(garage.doorState){
+   case GARAGE_DOOR_CLOSED:{
+    if(!under||d2>=3600||pz<=b.base[2])break;
+    const slot=this.storedCars[hideOutSlot(garage.type)];if(!slot)break;
+    placeCarsInImpound(garage,slot);
+    let all=true;
+    for(let i=0;i<IMPOUND_CAPACITY;i++){const car=slot[i];if(!car)continue;if(world.restoreCar?.(car,true)??true)slot[i]=null;else all=false;}
+    if(all&&slot.slice(0,IMPOUND_CAPACITY).every(car=>!car))garage.doorState=GARAGE_DOOR_OPEN;
+    break;
+   }
+   case GARAGE_DOOR_OPEN:case GARAGE_DOOR_CLOSING:
+    if(under&&d2<=4225&&pz>b.base[2]&&garage.doorState!==GARAGE_DOOR_CLOSING)break;
+    garage.doorState=GARAGE_DOOR_CLOSED;this.storeAndRemoveCarsForThisHideOut(garage,world,IMPOUND_CAPACITY);
+    break;
+  }
+ }
+ /** CGarages::PlayerArrestedOrDied (0x449E60, reversed) and each garage's (CGarage::PlayerArrestedOrDied, unreversed;
+  * inlined in the iOS executable at 0x1001b86a8): a Pay 'n' Spray or bomb shop (types 2 to 5, and 13) whose door is
+  * down or moving goes back up (OPENING; left open or waiting for him if so), every other garage that is open or
+  * moving starts down (CLOSING); and the garage message is over (MessageStartTime and MessageEndTime 0). */
+ playerArrestedOrDied(message?:ScmGarageMessage){
+  for(const garage of this.garages){
+   const t=garage.type,s=garage.doorState;if(!t||t>45)continue;
+   if(t===1||t>=6&&t<=12||t>=14){if(s>=GARAGE_DOOR_OPEN&&s<=GARAGE_DOOR_OPENING)garage.doorState=GARAGE_DOOR_CLOSING;}
+   else if(s!==GARAGE_DOOR_OPEN&&s<=GARAGE_DOOR_OPENING)garage.doorState=GARAGE_DOOR_OPENING;
+  }
+  if(message){message.start=0;message.end=0;}
+ }
+ /** CGarages::StoreCarInNearestImpoundingGarage (iOS 0x1001b8ab4; unreversed in the reference, 0x44A3C0): a car of
+  * the player's taken off the streets goes to the impound whose corner (m_vPosn) is nearest in x and y. Its first
+  * three places fill in turn; with all three taken the oldest goes and the others move up. Nothing without an
+  * impound. */
+ storeCarInNearestImpoundingGarage(car:StoredCar){
+  let nearest:ScmGarage|undefined,best=99999.9;
+  for(const garage of this.garages){
+   if(!IMPOUND_TYPES.has(garage.type)||!garage.box)continue;
+   const d=Math.hypot(car.position[0]-garage.box.base[0],car.position[1]-garage.box.base[1]);if(d<best){best=d;nearest=garage;}
+  }
+  const slot=nearest&&this.storedCars[hideOutSlot(nearest.type)];if(!slot)return;
+  // The count as the executable makes it: the second place counts as the first's follower.
+  let n=slot[0]?1:0;if(slot[1])n=slot[0]?2:1;if(slot[2])n++;
+  if(n===3){slot[0]=slot[1];slot[1]=slot[2];n=2;}
+  slot[n]=car;
  }
  /** CGarages::CloseHideOutGaragesBeforeSave (iOS 0x1001b8758): every safehouse garage not shut is shut on the spot,
   * its cars kept and those in its doorway cleared, before the game saves. (gta-reversed's 0x44A170 asks for an open

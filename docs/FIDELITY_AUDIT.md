@@ -8949,6 +8949,33 @@ that did anything.
     `progression` (unit: the kept cars round the save); `safehouse-garage` (browser: the Johnson house garage, cjsafe,
     opens for CJ walking up and shuts when he walks off; a Sadler parked in it is kept and gone when the door comes
     down, written to the save, and stands where it was in its paint when he comes back).
+- **The police impounds keep the player's cars** (CGarages::StoreCarInNearestImpoundingGarage, unreversed in
+  gta-reversed at 0x44A3C0, and CGarage::Update's impound case, both followed from the iOS executable: 0x1001b8ab4 and
+  0x1001b2d40). SA's three (imp_la, imp_sf, imp_lv, types 33 to 35) had done nothing.
+  - **In:** a car the area clears take (CWorld::ClearExcitingStuffFromArea, CLEAR_AREA; ClearCarsFromArea,
+    CLEAR_AREA_OF_CARS) that is one of his cars of interest (CCarCtrl::IsThisVehicleInteresting: the fleet's cars he
+    has driven within three minutes, its stand-in for apCarsToKeep) goes to the impound whose corner is nearest in x
+    and y: the first three of its four places fill in turn, and with all three taken the oldest goes and the others
+    move up (the executable counts them with the second place following the first).
+  - **Out:** shut, with the player within 60 units of the lot's footprint and between its floor and 2 units under its
+    roof, the kept cars are lined up (iOS 0x1001b7240: 4 units apart along the front about the middle of the box, half a
+    unit over the floor, facing a quarter turn right of the front) and put back (RestoreCarsForThisImpoundingGarage, iOS
+    0x1001b73b0: vehicleFlags.bImpounded set, which nothing reads, and set on the floor as PlaceOnRoadProperly does,
+    looked for from two units over the spot once its collision is in). Once all stand the lot is open; over 65 units
+    off, or out of that height, it is shut again and its cars kept as a hideout's are, three at most
+    (StoreAndRemoveCarsForThisImpoundingGarage, iOS 0x1001b6fe4). The lot has no door to move.
+  - **Death and arrest** (CGameLogic's ResetForResurrectionAndFadeOut and RestorePlayerStuffDuringResurrection, which
+    the port's restart had left out): ClearInterestingVehicleList and CloseHideOutGaragesBeforeSave before the area is
+    cleared (so the clear impounds nothing and the safehouse garages keep what is in them), and
+    CGarages::PlayerArrestedOrDied after (inlined in the iOS executable at 0x1001b86a8): a Pay 'n' Spray or bomb shop
+    (types 2 to 5 and 13) whose door is down or moving goes back up, every other garage open or moving starts down,
+    and the garage message is over.
+  - **Not followed:** RegisterVehicleOfInterest's two places (the fleet's own list keeps every car he drove, and
+    leaves out the traffic cars he took, which retire their own way).
+  - Specs: `scm-garages` (unit: the nearest impound and its three places, the line-up, the lot's opening and shutting
+    by distance and height, death and arrest); `stored-vehicles` (unit: StoreCar's packing, RestoreCar's place and
+    turn, the parts given back); `impound` (browser: a Landstalker CJ drove, cleared off an El Corona street, kept in
+    imp_la, standing at the head of its line on the lot's floor when he walks in, kept again when he leaves).
 - **The bomb shops fit car bombs** (CGarage::Update's case for types 2 to 4, unreversed in gta-reversed; the iOS
   executable's at 0x1001b2cc0, its door switch at 0x1001b5458). SA's map has two, both type 2 (BOMBSHOP_TIMED):
   lasbomb in Los Santos (its door bombdoor_las) and blob2 in Las Venturas (vgwbom1 and vgwbom2). No script fits a bomb

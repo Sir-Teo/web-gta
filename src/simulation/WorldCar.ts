@@ -140,6 +140,8 @@ export class WorldCar {
  pendingExplosion=false;
  /** The explosion is the player's: m_pWhoDetonatedMe of a bomb he set off. */
  explosionByPlayer=false;
+ /** vehicleFlags.bImpounded: put back by a police impound. */
+ impounded=false;
  /** m_nBombOnBoard (eBombState) and m_wBombTimer (ms), which a bomb shop fits and sets. */
  bombOnBoard=0;bombTimerMs=0;
  /** m_pWhoInstalledBombOnMe is the player, and m_pWhoDetonatedMe. */
@@ -1032,19 +1034,20 @@ export class WorldCar {
   * CColStore::HasCollisionLoaded for its spot; here, until fixed ground (or water) is under it, asked twice a second.
   * `reground` marks a car CWorld::FindGroundZForCoord set down at its 20 fallback (a z at or below the map's low limit
   * with no collision in yet): when the ground comes in it is set down on it, as the original's scripts load the
-  * scene before they make such a car. */
+  * scene before they make such a car; `from`, a height to look for that ground from instead of the sky (an impound's
+  * car, set on the floor under it). */
  waitingForCollision=false;
- private collisionWait={seconds:0,reground:false,evenOccupied:false};
+ private collisionWait:{seconds:number;reground:boolean;evenOccupied:boolean;from?:number}={seconds:0,reground:false,evenOccupied:false};
  /** `evenOccupied`: the car waits with the player in it too (a script moved it); otherwise the player taking the
   * wheel ends the wait. */
- waitForCollision(reground:boolean,evenOccupied=false){this.waitingForCollision=true;this.collisionWait={seconds:0,reground,evenOccupied};}
+ waitForCollision(reground:boolean,evenOccupied=false,from?:number){this.waitingForCollision=true;this.collisionWait={seconds:0,reground,evenOccupied,from};}
  private collisionArrived(seconds:number){
   const w=this.collisionWait;w.seconds-=seconds;if(w.seconds>0)return false;w.seconds=.5;
-  const p=this.car.body.translation(),top=w.reground?1000:p.y+2;
+  const p=this.car.body.translation(),top=w.from??(w.reground?1000:p.y+2);
   // Its area's collision first (CColStore::HasCollisionLoaded): a fixed collider far under a spot not streamed in yet
   // (Sweet's car outside while CJ is in the pizza place's interior) is not the ground there.
   if(!(this.sim.collisionLoaded?.(p.x,p.z)??true))return false;
-  const hit=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:top,z:p.z},{x:0,y:-1,z:0}),w.reground?2000:500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  const hit=this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:top,z:p.z},{x:0,y:-1,z:0}),w.reground&&w.from===undefined?2000:500,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   const water=this.waterLevel?.(p.x,-p.z);
   if(!hit&&water===undefined)return false;
   if(w.reground){

@@ -1,7 +1,8 @@
 import {taxiLightCoronas} from './render/taxiLights';
 import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/startingLoadout';
-import {ScmGarages,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS,STORED_CAR,type StoredCar} from './engine/ScmGarages';
+import {ScmGarages,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS,type StoredCar} from './engine/ScmGarages';
 import {carBombEvents} from './vehicle/nativeCarBomb';
+import {restoreStoredParts,storedPlacement,storeVehicle} from './simulation/storedVehicles';
 import {playerFootstepSoundLevel} from './ped/nativeSoundEvents';
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
@@ -574,6 +575,8 @@ async function boot() {
   };
   let pedestrians:WorldPedestrians|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
+  /** CGarages::StoreCarInNearestImpoundingGarage, once the script's garages are loaded. */
+  let impoundCar:((car:import('./simulation/WorldCar').WorldCar)=>void)|undefined;
   let worldZones:import('./assets/worldZones').WorldZones|undefined;
   const placeName=new NativePlaceName();
  // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
@@ -1141,7 +1144,10 @@ async function boot() {
     sim.playerProofs=undefined;sim.playerCanBeDamaged=true;law.native.everybodyBackOff=false;for(const car of fleet?.cars??[])car.canBeDamaged=true;
     // ResetForResurrectionAndFadeOut: CWorld::ClearExcitingStuffFromArea(player, 4000, true) where he fell, and again at
     // the restart point after the teleport: every deletable ped and vehicle (police crews, cars and helicopters of the
-    // chase included) goes, with the fires and projectiles; recruits, mission entities and locked cars stay.
+    // chase included) goes, with the fires and projectiles; recruits, mission entities and locked cars stay. Before it,
+    // CCarCtrl::ClearInterestingVehicleList (so none of his cars goes to the impound) and
+    // CGarages::CloseHideOutGaragesBeforeSave (the safehouse garages shut on what is in them).
+    fleet?.clearInterestingVehicleList();mission?.runtime.game.garages.closeHideOutGaragesBeforeSave();
     clearExcitingStuff(sim.player.position,4000);
     // RestorePlayerStuffDuringResurrection: back to the normal world (area 0) with an empty door stack. From an
     // interior the outside world at the restart point has to stream in first, as a save point's does.
@@ -1171,6 +1177,9 @@ async function boot() {
     sim.player.heading=(result.heading*Math.PI/180+Math.PI)%(Math.PI*2);
     render.yaw=sim.player.heading+Math.PI;input.clear();
     clearExcitingStuff(sim.respawn,4000);
+    // CGarages::PlayerArrestedOrDied: a respray or bomb shop door down on him goes back up, the other garages shut, and
+    // the garage message is over.
+    if(mission)mission.runtime.game.garages.playerArrestedOrDied(mission.runtime.game.garageMessage);
     // CStreaming loads the collision under a teleported player before he falls (m_bIsStaticWaitingForCollision): the
     // restart point's window is asked for at once and the hold keeps him there until it is in, as for a script's
     // teleport.
@@ -4810,7 +4819,7 @@ async function boot() {
             WorldCar.onRoadShake=(suspension,roughness,speed,mass,timeStep)=>{const shake=roadShake({suspension,roughness,speed,mass,timeStep,timeMs:gameTimeMs});if(shake)mission?.runtime.game.pads.startShake(0,shake.time,shake.frequency,0,gameTimeMs);};
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);worldCar.driverless=true;
             worldCar.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
-            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.outside=()=>render.lighting.area===0;fleet.sphereVisible=(x,y,z)=>new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse)).containsPoint(new Vector3(x,y,z));fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);
+            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.outside=()=>render.lighting.area===0;fleet.sphereVisible=(x,y,z)=>new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse)).containsPoint(new Vector3(x,y,z));fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);fleet.onImpound=car=>impoundCar?.(car);
             // ClearSpaceForMissionEntity's ped removals reach the crowd once it exists.
             fleet.clearPed=handle=>pedestrians?.removeDeletableCollider(handle)??false;
             // CCarGenerator's hot-dog van brings its vendor, and his brain.
@@ -6082,15 +6091,7 @@ async function boot() {
                    for(const v of [...fleet.cars,...fleet.bikes].reverse()){
                     if(v.disposed||v.missionCar||v.occupied)continue;
                     const body=bodyOf(v),t=body.translation();if(!ScmGarages.pointInside(garage,[t.x,-t.z,t.y]))continue;
-                    if(kept.length<max&&!spheresOf(v).some(s=>!ScmGarages.sphereTouching(garage,s.p,s.r+1))){
-                     // The model's forward (native +y, the renderer's -z) turned by the body, in native axes, packed.
-                     const q=body.rotation(),fx=-2*(q.x*q.z+q.w*q.y),fy=-2*(q.y*q.z-q.w*q.x),fz=-(1-2*(q.x*q.x+q.y*q.y));
-                     const p='fix' in v?v.proofs:undefined,nitro='nitro' in v.car?v.car.nitro:undefined;
-                     const flags=(p?.bullet?STORED_CAR.bulletProof:0)|(p?.fire?STORED_CAR.fireProof:0)|(p?.explosion?STORED_CAR.explosionProof:0)|(p?.collision?STORED_CAR.collisionProof:0)|(p?.melee?STORED_CAR.meleeProof:0)|(nitro?.installed?STORED_CAR.nitro:0);
-                     const colours=('colourIndices' in v.assets?v.assets.colourIndices:undefined)??[-1,-1,-1,-1];
-                     const bomb='bombOnBoard' in v?v.bombOnBoard:0;
-                     kept.push({model:v.modelId,position:[t.x,-t.z,t.y],forward:[Math.trunc(fx*100),Math.trunc(-fz*100),Math.trunc(fy*100)],colours:[colours[0],colours[1],colours[2],colours[3]],flags,nitroBoosts:nitro?.installed?nitro.boosts:0,...(bomb?{bomb}:{})});
-                    }
+                    if(kept.length<max&&!spheresOf(v).some(s=>!ScmGarages.sphereTouching(garage,s.p,s.r+1)))kept.push(storeVehicle(v));
                     fleet.removeVehicle(v);
                    }
                    return kept;
@@ -6111,23 +6112,21 @@ async function boot() {
                   },
                   // RestoreCar (iOS 0x1001b7f20) with CWorld::Add: none until the model is in, then the car where it
                   // stood, its forward unpacked and squared with the up (as re3's), its proofs and nitro back.
-                  restoreCar:stored=>{
+                  restoreCar:(stored,impound)=>{
                    const state=restoring.get(stored);if(state===true){restoring.delete(stored);return true;}
                    // Until the fleet is up the car cannot be made, and the door waits as for a model still loading.
                    if(state||!fleet)return false;
-                   const [px,py,pz]=stored.position,f=new Vector3(stored.forward[0],stored.forward[2],-stored.forward[1]).normalize();
-                   const right=new Vector3().crossVectors(f,new Vector3(0,1,0));if(right.lengthSq()<1e-6)right.set(1,0,0);right.normalize();
-                   const up=new Vector3().crossVectors(right,f).normalize(),rotation=new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(right,up,f.clone().negate()));
-                   restoring.set(stored,fleet.restoreStoredVehicle(stored.model,{x:px,y:pz,z:-py},{x:rotation.x,y:rotation.y,z:rotation.z,w:rotation.w},stored.colours).then(v=>{
-                    if(!v)return;
-                    const flag=(bit:number)=>(stored.flags&bit)!==0;
-                    if(stored.flags&31&&'fix' in v)v.proofs={bullet:flag(STORED_CAR.bulletProof),fire:flag(STORED_CAR.fireProof),explosion:flag(STORED_CAR.explosionProof),collision:flag(STORED_CAR.collisionProof),melee:flag(STORED_CAR.meleeProof)};
-                    if(flag(STORED_CAR.nitro)&&stored.nitroBoosts>0&&'nitrousControl' in v.car)v.car.nitrousControl(stored.nitroBoosts,0,0,undefined,false);
-                    if(stored.bomb&&'fix' in v)v.bombOnBoard=stored.bomb;
+                   const {position,rotation}=storedPlacement(stored);
+                   restoring.set(stored,fleet.restoreStoredVehicle(stored.model,position,rotation,stored.colours,impound).then(v=>{
+                    if(!v)return;restoreStoredParts(v,stored);
+                    // vehicleFlags.bImpounded, which nothing reads.
+                    if(impound&&'fix' in v)v.impounded=true;
                    }).catch(error=>{console.error('A stored car could not be restored',error);}).finally(()=>{restoring.set(stored,true);}));
                    return false;
                   },
-                 };}
+                 };
+                 // A car of his an area clear takes goes to the nearest impound (CGarages::StoreCarInNearestImpoundingGarage).
+                 impoundCar=car=>game.garages.storeCarInNearestImpoundingGarage(storeVehicle(car));}
                 // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.
                 if(Array.isArray(data.audioZones))mission.runtime.game.audioZones.load(data.audioZones);
                 if(Array.isArray(data.cullZones)&&!cullZones.attributeZones.length&&!cullZones.tunnelZones.length)cullZones.load(data.cullZones);

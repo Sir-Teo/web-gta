@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {ScmGarages,GARAGE_DOOR_CLOSED,GARAGE_DOOR_OPEN,GARAGE_DOOR_CLOSING,GARAGE_DOOR_OPENING,GARAGE_DOOR_WAITING_PLAYER_TO_EXIT,GARAGE_DOOR_CLOSED_DROPPED_CAR,GARAGE_TYPE,hideOutSlot,readStoredCar,STORED_CAR,STAT_KGS_OF_EXPLOSIVES_USED,type StoredCar} from '../src/engine/ScmGarages';
+import {ScmGarages,GARAGE_DOOR_CLOSED,GARAGE_DOOR_OPEN,GARAGE_DOOR_CLOSING,GARAGE_DOOR_OPENING,GARAGE_DOOR_WAITING_PLAYER_TO_EXIT,GARAGE_DOOR_CLOSED_DROPPED_CAR,GARAGE_TYPE,hideOutSlot,readStoredCar,STORED_CAR,STAT_KGS_OF_EXPLOSIVES_USED,placeCarsInImpound,ScmGarageMessage,type StoredCar} from '../src/engine/ScmGarages';
 
 const garages=()=>{const g=new ScmGarages();g.load([{name:'spray1',type:GARAGE_TYPE.paynspray},{name:'touch',type:GARAGE_TYPE.closesOnTouch},{name:'misn',type:1}]);return g;};
 
@@ -344,4 +344,59 @@ test('the engine and remote shops fit their own bombs (the remote one with the d
   // Free bombs: nothing taken.
   g.freeBombs=true;shop.doorState=GARAGE_DOOR_CLOSED;g.update(20);expect(paid).toBe(1);
  }
+});
+const impoundCar=(model:number,x=0,y=0):StoredCar=>({model,position:[x,y,1],forward:[0,100,0],colours:[0,0,0,0],flags:0,nitroBoosts:0});
+test("a car of the player's taken off the streets goes to the nearest impound's next place; with three there the oldest goes (StoreCarInNearestImpoundingGarage, iOS)",()=>{
+ const g=new ScmGarages();
+ g.load([{name:'imp_la',type:33,corner:[1500,-1650,5],front:[1520,-1650],far:[1500,-1630,10],flags:0},{name:'imp_sf',type:34,corner:[-1650,650,-6],front:[-1630,650],far:[-1650,670,0],flags:0}]);
+ // Nearest by the box's corner in x and y: a car in Los Santos goes to imp_la (slot 12), one in San Fierro to imp_sf (13).
+ g.storeCarInNearestImpoundingGarage(impoundCar(400,1600,-1700));g.storeCarInNearestImpoundingGarage(impoundCar(401,-1500,600));
+ expect(g.storedCars[12].map(c=>c?.model)).toEqual([400,undefined,undefined,undefined]);expect(g.storedCars[13][0]?.model).toBe(401);
+ g.storeCarInNearestImpoundingGarage(impoundCar(402,1600,-1700));g.storeCarInNearestImpoundingGarage(impoundCar(403,1600,-1700));
+ expect(g.storedCars[12].map(c=>c?.model??0)).toEqual([400,402,403,0]);
+ // Full: the oldest goes, the rest move up, the new one third; the fourth place is never used.
+ g.storeCarInNearestImpoundingGarage(impoundCar(404,1600,-1700));
+ expect(g.storedCars[12].map(c=>c?.model??0)).toEqual([402,403,404,0]);
+ // Without an impound nothing is kept.
+ const none=new ScmGarages();none.load([{name:'cjsafe',type:16,corner:[0,0,0],front:[5,0],far:[0,5,3],flags:0}]);
+ none.storeCarInNearestImpoundingGarage(impoundCar(400));expect(none.storedCars.flat().every(c=>c===null)).toBe(true);
+});
+test('an impound lines its cars up 4 units apart along its front, about its middle half a unit up, facing across (iOS 0x1001b7240)',()=>{
+ const g=new ScmGarages();g.load([{name:'imp',type:33,corner:[0,0,5],front:[20,0],far:[0,10,9],flags:0}]);
+ const slot=[impoundCar(400),impoundCar(401),impoundCar(402),null];
+ placeCarsInImpound(g.garages[0],slot);
+ expect(slot.map(c=>c?.position)).toEqual([[6,5,5.5],[10,5,5.5],[14,5,5.5],undefined]);
+ // The front runs along +x; turned a quarter to the right they face -y, packed (0, -100, 0).
+ expect(slot[0]!.forward).toEqual([0,-100,0]);
+ // A gap stops the line: the car after it keeps its place.
+ const gap=[impoundCar(400),null,impoundCar(402),null];placeCarsInImpound(g.garages[0],gap);expect(gap[2]!.position).toEqual([0,0,1]);
+});
+test("an impound's cars come out when the player is within 60 units and between its floor and roof, and go back once he is over 65 off or out of that height",()=>{
+ const g=new ScmGarages();g.load([{name:'imp',type:33,corner:[0,0,5],front:[20,0],far:[0,10,15],flags:0}]);
+ const lot=g.garages[0];lot.doorState=GARAGE_DOOR_CLOSED;g.storedCars[12][0]=impoundCar(400);g.storedCars[12][1]=impoundCar(401);
+ const at={x:10,y:-70,z:8,ready:true};const restored:[number,boolean|undefined][]=[];let asked:number[]=[];
+ g.hideouts={playerCentre:()=>[at.x,at.y,at.z],playerVehicle:()=>undefined,playerOutside:()=>true,carsInside:()=>0,carBlockingDoor:()=>false,
+  removeCarsInside:(_g,max)=>{asked.push(max);return [impoundCar(405)];},restoreCar:(car,impound)=>{if(at.ready)restored.push([car.model,impound]);return at.ready;}};
+ // 70 off: nothing.
+ g.update(20);expect(restored).toEqual([]);expect(lot.doorState).toBe(GARAGE_DOOR_CLOSED);
+ // 59 off but above 2 under the roof (13): nothing; at 8 the cars, lined up, come back as impounded.
+ at.y=-59;at.z=13;g.update(20);expect(restored).toEqual([]);
+ at.z=8;at.ready=false;g.update(20);expect(lot.doorState).toBe(GARAGE_DOOR_CLOSED);
+ at.ready=true;g.update(20);expect(restored).toEqual([[400,true],[401,true]]);expect(lot.doorState).toBe(GARAGE_DOOR_OPEN);
+ expect(g.storedCars[12].every(c=>c===null)).toBe(true);
+ // Open: within 65 it stays; past 65 it is shut and keeps three of the cars inside.
+ at.y=-64;g.update(20);expect(lot.doorState).toBe(GARAGE_DOOR_OPEN);
+ at.y=-66;g.update(20);expect(lot.doorState).toBe(GARAGE_DOOR_CLOSED);expect(asked).toEqual([3]);expect(g.storedCars[12][0]?.model).toBe(405);
+ // Below the floor shuts it too.
+ at.y=-10;g.update(20);expect(lot.doorState).toBe(GARAGE_DOOR_OPEN);at.z=4;asked=[];g.update(20);expect(lot.doorState).toBe(GARAGE_DOOR_CLOSED);expect(asked).toEqual([3]);
+});
+test("on the player's death or arrest (CGarages::PlayerArrestedOrDied, iOS): sprays and bomb shops not open go up, every other garage open or moving starts down, the message is over",()=>{
+ const g=new ScmGarages();
+ g.load([{name:'spray',type:5},{name:'bomb',type:2},{name:'bomb2',type:4},{name:'safe',type:16},{name:'misn',type:1},{name:'imp',type:33},{name:'shut',type:16},{name:'wait',type:5}]);
+ const [spray,bomb,bomb2,safe,misn,imp,shut,wait]=g.garages;
+ spray.doorState=GARAGE_DOOR_CLOSED;bomb.doorState=GARAGE_DOOR_CLOSING;bomb2.doorState=GARAGE_DOOR_OPEN;safe.doorState=GARAGE_DOOR_OPEN;misn.doorState=GARAGE_DOOR_OPENING;imp.doorState=GARAGE_DOOR_OPEN;shut.doorState=GARAGE_DOOR_CLOSED;wait.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;
+ const message=new ScmGarageMessage();message.trigger('GA_2',-1,4000,-1,1000);
+ g.playerArrestedOrDied(message);
+ expect([spray,bomb,bomb2,safe,misn,imp,shut,wait].map(x=>x.doorState)).toEqual([GARAGE_DOOR_OPENING,GARAGE_DOOR_OPENING,GARAGE_DOOR_OPEN,GARAGE_DOOR_CLOSING,GARAGE_DOOR_CLOSING,GARAGE_DOOR_CLOSING,GARAGE_DOOR_CLOSED,GARAGE_DOOR_WAITING_PLAYER_TO_EXIT]);
+ expect(message.current(1500)).toBeUndefined();
 });

@@ -241,6 +241,16 @@ export class WorldFleet {
  /** CCarCtrl's vehicles of interest: a car the player has driven, with the last time he sat in it. RegisterVehicleOfInterest
   * keeps it for three minutes (PruneVehiclesOfInterest); after that it is an ordinary abandoned car, removed far off. */
  private driven=new Map<WorldCar,number>();
+ /** The last time update ran, for CCarCtrl::IsThisVehicleInteresting between updates. */
+ private lastUpdate=0;
+ /** CCarCtrl::IsThisVehicleInteresting: a car the player has driven within the last three minutes. */
+ isVehicleOfInterest(car:WorldCar){const last=this.driven.get(car);return last!==undefined&&this.lastUpdate-last<=VEHICLE_OF_INTEREST_MS;}
+ /** CCarCtrl::ClearInterestingVehicleList: none of his cars is of interest any more (each retires as an ordinary
+  * abandoned car does). */
+ clearInterestingVehicleList(){for(const car of this.driven.keys())this.driven.set(car,-Infinity);}
+ /** CWorld::RemoveVehicleAndItsOccupants's CGarages::StoreCarInNearestImpoundingGarage: a car of interest an area
+  * clear takes goes to the impound. */
+ onImpound?:(car:WorldCar)=>void;
  /** CCarGenerator's m_nNextGenTime and bWaitUntilFarFromPlayer per record. */
  private generatorState=new Map<string,{nextGen:number;waitFar:boolean}>();
  /** Generators whose loading car a clear of its area has removed before it arrived. */
@@ -378,7 +388,7 @@ export class WorldFleet {
  /** CStoredCar::RestoreCar (iOS 0x1001b7f20): a hideout's kept car or bike made again where it stood, at its stored
   * place and turn, with no ClearSpaceForMissionEntity (it is not a script's), RANDOM_VEHICLE and abandoned, its paint
   * back. Undefined once the fleet is gone or for a boat or aircraft (no hideout keeps one). */
- async restoreStoredVehicle(modelId:number,at:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number},colours:readonly number[]){
+ async restoreStoredVehicle(modelId:number,at:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number},colours:readonly number[],placeOnRoad=false){
   const catalog=await this.catalogReady;
   if(PLAYABLE_BOATS[modelId]||PLAYABLE_PLANES[modelId]||!catalog.definitions.some(v=>v.id===modelId))return undefined;
   let vehicle:WorldCar|WorldBike;
@@ -393,7 +403,16 @@ export class WorldFleet {
    const car=new WorldCar(this.sim,this.scene,assets,at,this.road,0);
    car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
    car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;
-   car.driverless=true;car.waitForCollision(false);this.cars.add(car);this.paintCar(car,colours);vehicle=car;
+   // An impound's car waits for the floor under it and is then set on it, looked for from two units up (not from the
+   // sky: the impounds lie under buildings).
+   car.driverless=true;car.waitForCollision(placeOnRoad,false,placeOnRoad?at.y+2:undefined);this.cars.add(car);this.paintCar(car,colours);vehicle=car;
+  }
+  // An impound's car is set on its wheels (CAutomobile and CBike::PlaceOnRoadProperly): the ground under its middle,
+  // looked for from two units up, under the base of its model.
+  if(placeOnRoad){
+   const hit=this.sim.world.castRay(new RAPIER.Ray({x:at.x,y:at.y+2,z:at.z},{x:0,y:-1,z:0}),20,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   const min=vehicle instanceof WorldCar?vehicle.assets.collision.bounds.min[2]:vehicle.assets.collision?.bounds.min[2]??0;
+   if(hit)at={...at,y:at.y+2-hit.timeOfImpact-min};
   }
   vehicle.car.body.setTranslation(at,true);vehicle.car.body.setRotation(rotation,true);
   return vehicle;
@@ -502,7 +521,7 @@ export class WorldFleet {
    if(Math.hypot(at.x-point.x,at.z-point.z)>=radius)continue;
    doomed.push(car);
   }
-  for(const car of doomed){this.cars.delete(car);this.generated.delete(car);car.dispose();}
+  for(const car of doomed){if(this.isVehicleOfInterest(car))this.onImpound?.(car);this.cars.delete(car);this.generated.delete(car);this.driven.delete(car);car.dispose();}
   // A generator's car still loading within the area counts as one cleared.
   for(const record of this.records)if(this.attempted.has(record.id)&&Math.hypot(record.position[0]-point.x,-record.position[1]-point.z)<radius)this.cleared.add(record.id);
   // The pass walks the whole vehicle pool: bikes, boats and aircraft nobody rides and no script holds go too.
@@ -524,7 +543,7 @@ export class WorldFleet {
    if(at.x<lo.x||at.x>hi.x||at.y<lo.y||at.y>hi.y||at.z<lo.z||at.z>hi.z)continue;
    doomed.push(car);
   }
-  for(const car of doomed){this.cars.delete(car);this.generated.delete(car);car.dispose();}
+  for(const car of doomed){if(this.isVehicleOfInterest(car))this.onImpound?.(car);this.cars.delete(car);this.generated.delete(car);this.driven.delete(car);car.dispose();}
   // CWorld::ClearCarsFromArea walks the whole vehicle pool: the bikes, boats and aircraft go the same way when nobody
   // rides them and no script holds them.
   let others=0;
@@ -644,7 +663,7 @@ export class WorldFleet {
  /** TheCamera.IsSphereVisible for a boat generator's origin (browser coordinates), for the 240-unit visible range. */
  sphereVisible?:(x:number,y:number,z:number)=>boolean;
  update(now:number){
-  if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+GENERATOR_PROCESS_MS;
+  if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+GENERATOR_PROCESS_MS;this.lastUpdate=now;
   if(this.zones){
    const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);
    const live=this.scriptZoneInfo?.(zone.zoneInfoIndex),stored=this.zones.population?.[zone.zoneInfoIndex];
