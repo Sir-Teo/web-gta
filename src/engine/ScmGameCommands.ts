@@ -2908,9 +2908,9 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_DISABLE_MILITARY_ZONES:(t,p,i)=>{game(t,i).militaryZonesDisabled=bool(t,p[0]);},
  DISPLAY_RADAR:(t,p,i)=>{game(t,i).displayRadar=bool(t,p[0]);},
  SET_AREA_NAME:(t,p,i)=>{game(t,i).areaName=t.text(p[0]);},
- // CGarages::AllRespraysCloseOrOpen goes with this flag; the garages themselves are not ported.
- // SetNoResprays: the flag, then AllRespraysCloseOrOpen with that same flag.
- SET_NO_RESPRAYS:(t,p,i)=>{const on=bool(t,p[0]);game(t,i).noResprays=on;game(t,i).garages.allRespraysCloseOrOpen(on);},
+ // CGarages::NoResprays, and AllRespraysCloseOrOpen with its opposite (the iOS handler, 0x100206704; gta-reversed's sets
+ // the flag alone): the Pay 'n' Sprays are marked shut while it holds and open when it is lifted.
+ SET_NO_RESPRAYS:(t,p,i)=>{const on=bool(t,p[0]);game(t,i).noResprays=on;game(t,i).garages.allRespraysCloseOrOpen(!on);},
  // The two cheats the script switches are entries of CCheat's own table, which neither has a function of its
  // own, so applying one comes to setting it and disabling it to clearing it.
  SET_ALL_TAXIS_HAVE_NITRO:(t,p,i)=>{game(t,i).cheats.set(CHEAT_ALL_TAXIS_NITRO,bool(t,p[0]));},

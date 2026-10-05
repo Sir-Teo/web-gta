@@ -8871,21 +8871,40 @@ that did anything.
 
 ## Pay 'n' Spray
 
-- **The respray is AUTHORED.** `CGarage::Update` (0x44AA50) is unreversed, so the PAYNSPRAY case follows re3's and
-  reVC's respray case over SA's door states: a car at rest (0.01 units a frame) with every collision sphere inside
-  the garage's box, not getting out and with no other car touching the box (`IsStaticPlayerCarEntirelyInside`,
-  `IsAnyOtherCarTouchingGarage`) shuts the door on the player, his controls held (`PLAYERCONTROL_GARAGE`) and the
-  police backed off (`m_bPoliceBackOffGarage`). Two seconds after the door is down (`TIME_TO_RESPRAY`) the car is
-  fixed, its health back to 1000 and its fire out, `ChooseVehicleColour` is asked again (up to ten times) for two main
-  colours it does not already wear, the wanted level is cleared, and the door opens; it then waits for the player to
-  leave the box before it takes a car again.
-- **What it costs and what it says.** SA's own lines name $100 (`GA_2`, `GA_3`, `GA_XX`). With a wanted level it is
-  `GA_2` and $100; for the repair alone `GA_XX` and $100; with resprays free (`SET_FREE_RESPRAYS`, or the garage's
-  `SET_GARAGE_RESPRAY_FREE`, which Michelle's garage uses) `GA_16`; for paint alone one of `GA_15` and `GA_16` and no
-  money, as re3 does. Under $100 it is `GA_3`, and a vehicle `CGarages::IsCarSprayable` (reversed) refuses — the law
-  enforcement vehicles, the BMX class, the Bus, Coach, articulated trailer, Fire Truck and Ambulance — gets `GA_1`;
-  either way the door stays up. The respray sets `vehicleFlags.bHasBeenResprayed` (`HAS_CAR_BEEN_RESPRAYED`) and
-  `m_bUsedRespray`, and adds one to `STAT_VEHICLE_RESPRAYS`. `SET_NO_RESPRAYS` brings the doors down until it is lifted.
+- **The respray, from the iOS executable.** `CGarage::Update` (0x44AA50) is unreversed in gta-reversed; the iOS
+  executable's (arm64 0x1001b2a00: its type table at 0x1001b534c sends a Pay 'n' Spray to 0x1001b30bc, which leaves a
+  player in an interior alone and switches on the door at 0x1001b546c) is followed. It had been re3's and reVC's case.
+  - **Open** (and resprays allowed): the player's car parked still and wholly inside (IsStaticPlayerCarEntirelyInside)
+    is turned away with `GA_1B` if it is a BMX-class bike, or `GA_1` if it is under 250 health or what
+    `CGarages::IsCarSprayable` refuses, either with AE_FRONTEND_CAR_IS_HOT; or, short of $100 while resprays are not
+    free everywhere, with `GA_3` and AE_FRONTEND_CAR_NO_CASH (a garage free only for itself still asks); the door then
+    waits for him to leave. Otherwise the door shuts on him, his controls (PLAYERCONTROL_GARAGE) and the police
+    (m_bPoliceBackOffGarage) held off.
+  - **Shut:** AE_FRONTEND_CAR_RESPRAY, the door to open 2 s on, and STAT_KILLS_SINCE_LAST_CHECKPOINT added to
+    STAT_TOTAL_LEGITIMATE_KILLS and cleared. Once that time is past (resprays allowed) the door starts up and the
+    respray is done: the wanted level cleared; for an automobile or bike, its health held to at least 1000 (a repair
+    when it had been under 970; it had been any health under 1000), its burn timer cleared and CVehicle::Fix,
+    STAT_VEHICLE_RESPRAYS one more, set upright if it lay on its roof, and unless it may not change colour (a paintjob,
+    or SET_CAN_RESPRAY_CAR off: bShouldNotChangeColour, which had kept the car out altogether) ChooseVehicleColour
+    asked once, the car taking the four colours when any differs (re3's asked up to ten times for new main colours).
+    Then `GA_22` at a garage whose resprays are always free (`SET_GARAGE_RESPRAY_FREE`, m_bRespraysAlwaysFree); else,
+    for a wanted level or a repair while resprays are not free everywhere, $100 taken (no lower than nothing),
+    STAT_AUTO_REPAIR_AND_PAINTING_BUDGET 100 more and `GA_2` or `GA_XX`; else, for new paint, `GA_15` or `GA_16` at
+    random (free everywhere, a repair alone has no line, where it had been `GA_16`). m_bUsedRespray is set
+    (`HAS_RESPRAY_HAPPENED`) and the vehicle's bHasBeenResprayed (`HAS_CAR_BEEN_RESPRAYED`).
+  - **Opening:** from halfway up his controls and the police come back (they had come back as the respray ended);
+    once up, the door waits for him (or his vehicle) to be wholly out.
+  - **`SET_NO_RESPRAYS`** (the iOS handler, 0x100206704; gta-reversed's sets the flag alone): CGarages::NoResprays and
+    AllRespraysCloseOrOpen with its opposite, which sets each Pay 'n' Spray's state shut (lifted: open) and leaves its
+    door where it is; while it holds, an open or shut Pay 'n' Spray does nothing. (The port had passed the flag
+    straight through and slid the doors down while it held.)
+  - **Not followed:** the police backing off while he is only partly inside and the chase called off around the
+    garage (CallOffChaseForArea), the gas pedal and the vehicle flag set while the door is down, the burn timer held at
+    nothing meanwhile, the cars near the door thrown out of the way, and the spray's particles.
+- **What it costs and what it says.** GA_2, GA_3 and GA_XX name $100. Specs: `scm-garages` (unit: the shutting, the
+  sound and the kills, the two seconds, the $100 and budget, the controls back at half way, the lines including GA_22,
+  GA_1B and the free cases, the money test against a garage free only for itself, SET_NO_RESPRAYS's states);
+  `pay-n-spray` (browser).
 - **The garages start open.** `CGarages::AddOne` and `InitDoorsAtStart` are unreversed; as re3's `AddOne`, the bomb
   shops and the Pay 'n' Sprays start open with their doors up, and the other garages shut.
 - **The doors move.** `CGarage::FindDoorsWithGarage` is unreversed: as re3's `FindDoorsEntities`, a garage takes up to

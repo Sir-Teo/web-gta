@@ -1,6 +1,6 @@
 import {taxiLightCoronas} from './render/taxiLights';
 import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/startingLoadout';
-import {ScmGarages,isCarSprayable,STAT_VEHICLE_RESPRAYS} from './engine/ScmGarages';
+import {ScmGarages,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS} from './engine/ScmGarages';
 import {playerFootstepSoundLevel} from './ped/nativeSoundEvents';
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
@@ -5993,10 +5993,12 @@ async function boot() {
                    for(const car of fleet?.cars??[])if(car!==v&&!car.disposed&&touching(garage,car))return false;
                    return true;
                   },
-                  playerCarSprayable:()=>{
-                   const v=playerVehicle();if(!v)return false;
-                   const handle=owner.vehicles.handleOf(v);
-                   return isCarSprayable(v.modelId)&&(handle===undefined||!game.resprayForbidden.has(handle));
+                  // The respray case's own test (iOS 0x1001b41b4): under 250 health, or what IsCarSprayable refuses; a
+                  // BMX-class bike gets its own line.
+                  playerCarRefusal:()=>{
+                   const v=playerVehicle();if(!v)return 'unsprayable';
+                   if(BMX_CLASS_MODELS.has(v.modelId))return 'bmx';
+                   return v.health<250||!isCarSprayable(v.modelId)?'unsprayable':undefined;
                   },
                   // IsPlayerOutsideGarage: his vehicle's spheres, or a ped-sized sphere at his middle, clear of the box.
                   playerOutside:garage=>{
@@ -6005,11 +6007,18 @@ async function boot() {
                   },
                   money:()=>sim.money,wantedLevel:()=>law.native.level,
                   respray:()=>{
+                   // The player's car or bike (the automobiles and bikes the case works on).
                    const v=playerVehicle();if(!v)return undefined;
-                   const repaired=v.health<1000;
-                   v.health=1000;v.burnTimer=0;if('fix' in v)v.fix();
-                   const recoloured='fix' in v&&!!fleet?.resprayCar(v);
-                   owner.markResprayed(v);game.stats.increment(STAT_VEHICLE_RESPRAYS,1);
+                   const repaired=v.health<970;
+                   v.health=Math.max(v.health,1000);v.burnTimer=0;if('fix' in v)v.fix();
+                   game.stats.increment(STAT_VEHICLE_RESPRAYS,1);
+                   // A car on its roof comes out on its wheels: its right and up turned about its forward.
+                   const body=bodyOf(v),q=body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
+                   if(upY<0)body.setRotation({x:q.y,y:-q.x,z:q.w,w:-q.z},true);
+                   // SET_CAN_RESPRAY_CAR off (bShouldNotChangeColour) keeps the paint; so does a paintjob.
+                   const handle=owner.vehicles.handleOf(v),keepPaint=handle!==undefined&&game.resprayForbidden.has(handle);
+                   const recoloured='fix' in v&&!keepPaint&&!!fleet?.resprayCar(v);
+                   owner.markResprayed(v);
                    return {repaired,recoloured};
                   },
                   pay:amount=>{sim.money=Math.max(0,sim.money-amount);},
@@ -6017,6 +6026,8 @@ async function boot() {
                   holdPlayer:on=>{garageHold=on;law.native.policeBackOffGarage=on;},
                   message:id=>{game.garageMessage.trigger(id,-1,4000,-1,gameTimeMs);},
                   coin:()=>Math.random()<.5,
+                  sound:event=>sound.frontend(event),
+                  stats:{get:id=>game.stats.get(id),increment:(id,by)=>game.stats.increment(id,by),set:(id,value)=>game.stats.set(id,value)},
                  };}
                 // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.
                 if(Array.isArray(data.audioZones))mission.runtime.game.audioZones.load(data.audioZones);

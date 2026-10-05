@@ -36,21 +36,27 @@ const SLOW_DOOR_TYPES=new Set([44,45]);
 export const AE_GARAGE_DOOR_OPENING=159,AE_GARAGE_DOOR_OPENED=160,AE_GARAGE_DOOR_CLOSING=161,AE_GARAGE_DOOR_CLOSED=162;
 /** The respray's price (GA_2, GA_3 and GA_XX all name $100) and re3's TIME_TO_RESPRAY, how long the door stays shut. */
 export const RESPRAY_PRICE=100,TIME_TO_RESPRAY=2000;
-/** eStats' STAT_VEHICLE_RESPRAYS, which the respray adds one to. */
-export const STAT_VEHICLE_RESPRAYS=138;
+/** eStats the respray touches: STAT_VEHICLE_RESPRAYS (one more), STAT_AUTO_REPAIR_AND_PAINTING_BUDGET (the $100), and the
+ * kills since the last checkpoint, which the shut door adds to the legitimate ones and clears. */
+export const STAT_VEHICLE_RESPRAYS=138,STAT_AUTO_REPAIR_AND_PAINTING_BUDGET=16,STAT_KILLS_SINCE_LAST_CHECKPOINT=176,STAT_TOTAL_LEGITIMATE_KILLS=177;
+/** AE_FRONTEND_CAR_NO_CASH, _CAR_IS_HOT and _CAR_RESPRAY. */
+export const AE_FRONTEND_CAR_NO_CASH=14,AE_FRONTEND_CAR_IS_HOT=15,AE_FRONTEND_CAR_RESPRAY=16;
 /** What CGarage::Update's PAYNSPRAY case reaches in the world (FindPlayerVehicle, CWorld::Players, the wanted level). */
 export interface GarageResprayWorld {
  nowMs:number;
  /** IsStaticPlayerCarEntirelyInside and not IsAnyOtherCarTouchingGarage: the player's vehicle, at rest, wholly in the
   * garage's box, and no other car touching it. */
  playerCarParkedInside(garage:ScmGarage):boolean;
- /** CGarages::IsCarSprayable for the player's vehicle, and SET_CAN_RESPRAY_CAR's word on it. */
- playerCarSprayable():boolean;
+ /** Why the garage turns the player's vehicle away: 'bmx' for a BMX-class bike (GA_1B); 'unsprayable' for one under
+  * 250 health or one CGarages::IsCarSprayable refuses (GA_1); nothing for one it takes. */
+ playerCarRefusal():'bmx'|'unsprayable'|undefined;
  /** IsPlayerOutsideGarage: neither the player nor his vehicle is in the box any more. */
  playerOutside(garage:ScmGarage):boolean;
  money():number;wantedLevel():number;
- /** The work on the car: fixed and its fire out (`repaired` when its health had been under 1000), and a new paint
-  * chosen (`recoloured` when it differs). Nothing when he has no vehicle by then. */
+ /** The work on an automobile or bike: its health held to at least 1000 (`repaired` when it had been under 970), its
+  * burn timer cleared and CVehicle::Fix, STAT_VEHICLE_RESPRAYS one more, set upright if it lay on its roof, and unless
+  * it may not change colour (SET_CAN_RESPRAY_CAR off, or a paintjob) ChooseVehicleColour once (`recoloured` when any
+  * of its four colours changed). Nothing when he has no vehicle by then. */
  respray():{repaired:boolean;recoloured:boolean}|undefined;
  pay(amount:number):void;clearWanted():void;
  /** CPad's PLAYERCONTROL_GARAGE and CWanted::m_bPoliceBackOffGarage, held while the car is in the spray. */
@@ -59,6 +65,10 @@ export interface GarageResprayWorld {
  message(id:string):void;
  /** CGeneral::GetRandomTrueFalse. */
  coin():boolean;
+ /** AudioEngine.ReportFrontendAudioEvent. */
+ sound(event:number):void;
+ /** CStats::GetStatValue, IncrementStat and SetStatValue. */
+ stats:{get(id:number):number;increment(id:number,by:number):void;set(id:number,value:number):void};
 }
 /** CGarages::IsCarSprayable (0x4479A0, reversed): not a law-enforcement vehicle (CVehicle::IsLawEnforcementVehicle:
  * the Enforcer, Predator, Rhino, Barracks, FBI Rancher and truck, the police bike, the four police cars and the SWAT
@@ -66,6 +76,8 @@ export interface GarageResprayWorld {
  * Ambulance. */
 const UNSPRAYABLE=new Set([427,430,432,433,490,523,528,596,597,598,599,601,481,509,510,431,437,435,407,416]);
 export const isCarSprayable=(model:number)=>!UNSPRAYABLE.has(model);
+/** CVehicle::IsSubBMX's models: the BMX, Bike and Mountain Bike. */
+export const BMX_CLASS_MODELS:ReadonlySet<number>=new Set([481,509,510]);
 /** CGarage::IsHideOut: the safehouse garages and the abandoned airport's hangar. */
 const HIDEOUT_TYPES=new Set([16,17,18,24,25,26,27,28,29,30,31,32,39,40,41,42,45]);
 export const isHideOutGarageType=(type:number)=>HIDEOUT_TYPES.has(type);
@@ -144,49 +156,57 @@ export class ScmGarages {
    else if(garage.doorState===GARAGE_DOOR_CLOSING){if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;}
   }
  }
- /** CGarage::Update's PAYNSPRAY case. Update is unreversed in the reference, so this is AUTHORED from re3's and reVC's
-  * GARAGE_RESPRAY case with SA's door states and SA's own lines: a sprayable car parked still and wholly inside, with
-  * no other car in the way, shuts the door on the player (his controls and the police held off meanwhile) if he has
-  * the $100 or resprays are free; else GA_3 (no money) or GA_1 (a car the garage will not touch), and the door waits
-  * for him to leave. Two seconds after the door is down the car is fixed and repainted, the wanted level cleared,
-  * the money taken if there was a wanted level or damage to put right, and the door opens. SET_NO_RESPRAYS's doors
-  * go down and stay down, and come back up when it is lifted. */
+ /** CGarage::Update's PAYNSPRAY case, unreversed in the reference and read from the iOS executable (its type table at
+  * 0x1001b534c sends a Pay 'n' Spray to 0x1001b30bc, which switches on the door at 0x1001b546c). Open (and resprays
+  * allowed): the player's car parked still and wholly inside is turned away (GA_1B for a BMX, GA_1 for an unsprayable
+  * one or one under 250 health, with AE_FRONTEND_CAR_IS_HOT) or, short of $100 when resprays are not free, GA_3 with
+  * AE_FRONTEND_CAR_NO_CASH; either way the door waits for him to leave. Otherwise the door shuts on him, his controls
+  * and the police held off. Shut: AE_FRONTEND_CAR_RESPRAY, the door to open 2 s on, and the kills since the last
+  * checkpoint added to the legitimate ones and cleared. Once that time is past (resprays allowed) the door starts up
+  * and the respray is done (doRespray). Opening: from halfway up, his controls and the police come back; once up, the
+  * door waits for him to be wholly out. */
  private updateRespray(garage:ScmGarage,step:number,world:GarageResprayWorld){
   switch(garage.doorState){
-   case GARAGE_DOOR_OPEN:
-    if(this.noResprays){garage.doorState=GARAGE_DOOR_CLOSING;break;}
-    if(!world.playerCarParkedInside(garage))break;
-    if(!world.playerCarSprayable()){world.message('GA_1');garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;break;}
-    if(world.money()<RESPRAY_PRICE&&!this.resprayIsFree(garage)){world.message('GA_3');garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;break;}
-    garage.doorState=GARAGE_DOOR_CLOSING;garage.timeToOpen=-1;world.holdPlayer(true);
+   case GARAGE_DOOR_OPEN:{
+    if(this.noResprays||!world.playerCarParkedInside(garage))break;
+    const refusal=world.playerCarRefusal();
+    if(refusal){world.message(refusal==='bmx'?'GA_1B':'GA_1');world.sound(AE_FRONTEND_CAR_IS_HOT);garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;break;}
+    if(world.money()<RESPRAY_PRICE&&!this.freeResprays){world.message('GA_3');world.sound(AE_FRONTEND_CAR_NO_CASH);garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;break;}
+    garage.doorState=GARAGE_DOOR_CLOSING;world.holdPlayer(true);
     break;
+   }
    case GARAGE_DOOR_CLOSING:
-    if(this.slideDoorClosed(garage,step)){garage.doorState=GARAGE_DOOR_CLOSED;if(garage.timeToOpen<0)garage.timeToOpen=world.nowMs+TIME_TO_RESPRAY;}
+    if(this.slideDoorClosed(garage,step)){
+     garage.doorState=GARAGE_DOOR_CLOSED;world.sound(AE_FRONTEND_CAR_RESPRAY);garage.timeToOpen=world.nowMs+TIME_TO_RESPRAY;
+     world.stats.increment(STAT_TOTAL_LEGITIMATE_KILLS,world.stats.get(STAT_KILLS_SINCE_LAST_CHECKPOINT));world.stats.set(STAT_KILLS_SINCE_LAST_CHECKPOINT,0);
+    }
     break;
    case GARAGE_DOOR_CLOSED:
-    if(garage.timeToOpen>0){
-     if(world.nowMs<=garage.timeToOpen)break;
-     garage.timeToOpen=0;garage.doorState=GARAGE_DOOR_OPENING;this.doRespray(garage,world);world.holdPlayer(false);
-    }else if(!this.noResprays)garage.doorState=GARAGE_DOOR_OPENING;
+    if(this.noResprays||world.nowMs<=garage.timeToOpen)break;
+    garage.doorState=GARAGE_DOOR_OPENING;this.doRespray(garage,world);
     break;
    case GARAGE_DOOR_OPENING:
     if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;
+    if(garage.doorPosition>.5)world.holdPlayer(false);
     break;
    case GARAGE_DOOR_WAITING_PLAYER_TO_EXIT:
     if(world.playerOutside(garage))garage.doorState=GARAGE_DOOR_OPEN;
     break;
   }
  }
- private resprayIsFree(garage:ScmGarage){return this.freeResprays||garage.resprayFree;}
- /** The respray itself, as the door starts up: GA_2 when it took a wanted level off him, GA_XX for the repair alone
-  * (each $100 unless resprays are free, when it is GA_16, complimentary), and for a car that only changed colour one of
-  * GA_15 and GA_16 at random, free. */
+ /** The respray, as the door starts up (iOS 0x1001b3118 on): the wanted level cleared, the car done (respray()), then
+  * GA_22 at a garage whose resprays are always free (SET_GARAGE_RESPRAY_FREE: m_bRespraysAlwaysFree); else, for a
+  * wanted level or a repair while resprays are not free everywhere, the $100 taken (no lower than nothing), the
+  * repair-and-painting budget 100 more, and GA_2 (wanted) or GA_XX; else, for new paint, GA_15 or GA_16 at random.
+  * The garage's m_bUsedRespray is set (HAS_RESPRAY_HAPPENED). */
  private doRespray(garage:ScmGarage,world:GarageResprayWorld){
   const wanted=world.wantedLevel()>0;if(wanted)world.clearWanted();
-  const done=world.respray();garage.usedRespray=true;
-  const free=this.resprayIsFree(garage);
-  if(wanted||done?.repaired){if(free)world.message('GA_16');else{world.pay(RESPRAY_PRICE);world.message(wanted?'GA_2':'GA_XX');}}
-  else if(done?.recoloured)world.message(world.coin()?'GA_15':'GA_16');
+  const done=world.respray();
+  if(garage.resprayFree)world.message('GA_22');
+  else if((wanted||done?.repaired)&&!this.freeResprays){
+   world.pay(RESPRAY_PRICE);world.stats.increment(STAT_AUTO_REPAIR_AND_PAINTING_BUDGET,RESPRAY_PRICE);world.message(wanted?'GA_2':'GA_XX');
+  }else if(done?.recoloured)world.message(world.coin()?'GA_15':'GA_16');
+  garage.usedRespray=true;
  }
  /** CGarages::HasResprayHappened (0x447E10): the flag is read and cleared. */
  hasResprayHappened(name:string){const garage=this.at(name);if(!garage)return false;const used=garage.usedRespray;garage.usedRespray=false;return used;}

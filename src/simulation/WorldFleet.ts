@@ -362,18 +362,17 @@ export class WorldFleet {
   if(indices)car.assets.colourIndices=[palette[primary]?primary:indices[0],palette[secondary]?secondary:indices[1],indices[2],indices[3]];
   car.assets.colors=next as unknown as typeof colors;car.car.setColors(car.assets.colors);return true;
  }
- /** A Pay 'n' Spray's new paint (CGarage::Update is unreversed; re3's respray case): ChooseVehicleColour again, up
-  * to ten more times while it gives the two main colours the car already has. True when they changed. */
+ /** A Pay 'n' Spray's new paint (CGarage::Update's respray, iOS 0x1001b4c30): ChooseVehicleColour once, and the car
+  * takes the colours when any of its four differs. (re3's III and VC case asked again up to ten times for new main
+  * colours; SA does not.) True when they changed. */
  resprayCar(car:WorldCar){
   const catalog=this.catalog;if(!catalog)return false;
   const model=car.assets.vehicle.model,count=carColorVariationCount(catalog.colors,model),before=car.assets.colourIndices;
-  let variation=0;
-  const choose=()=>{variation=count?catalog.colourRotation.choose(model,count):0;return chooseVehicleColors(catalog.colors,model,variation);};
-  let chosen=choose();
-  for(let attempt=0;attempt<10&&before&&chosen.indices[0]===before[0]&&chosen.indices[1]===before[1];attempt++)chosen=choose();
-  const changed=!before||chosen.indices[0]!==before[0]||chosen.indices[1]!==before[1];
+  const variation=count?catalog.colourRotation.choose(model,count):0,chosen=chooseVehicleColors(catalog.colors,model,variation);
+  const changed=!before||chosen.indices.some((index,i)=>index!==before[i]);
+  if(!changed)return false;
   car.assets.colors=chosen.colors;car.assets.colourIndices=chosen.indices;car.assets.colourVariation=variation;car.car.setColors(chosen.colors);
-  return changed;
+  return true;
  }
  /** CWorld::Remove through a script's DELETE_CAR, for a car the streamer never owned. */
  removeScriptCar(car:WorldCar){if(this.cars.delete(car))car.dispose();}

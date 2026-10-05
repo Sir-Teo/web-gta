@@ -78,11 +78,13 @@ test('the help box is blocked while a garage message shows (CHud::SetHelpMessage
 });
 
 // CGarage::Update's PAYNSPRAY case (AUTHORED from re3's respray case; see ScmGarages).
-const sprayWorld=(o:Partial<{inside:boolean;sprayable:boolean;outside:boolean;money:number;wanted:number;repaired:boolean;recoloured:boolean;coin:boolean}>={})=>{
- const log:{messages:string[];paid:number;held:boolean[];cleared:number;resprays:number}={messages:[],paid:0,held:[],cleared:0,resprays:0};
- const state={inside:true,sprayable:true,outside:false,money:500,wanted:2,repaired:true,recoloured:true,coin:true,...o};
- const world={nowMs:0,state,log,
-  playerCarParkedInside:()=>state.inside,playerCarSprayable:()=>state.sprayable,playerOutside:()=>state.outside,
+const sprayWorld=(o:Partial<{inside:boolean;refusal:'bmx'|'unsprayable'|undefined;outside:boolean;money:number;wanted:number;repaired:boolean;recoloured:boolean;coin:boolean}>={})=>{
+ const log:{messages:string[];paid:number;held:boolean[];cleared:number;resprays:number;sounds:number[]}={messages:[],paid:0,held:[],cleared:0,resprays:0,sounds:[]};
+ const state={inside:true,refusal:undefined as 'bmx'|'unsprayable'|undefined,outside:false,money:500,wanted:2,repaired:true,recoloured:true,coin:true,...o};
+ const stats=new Map<number,number>([[176,7],[177,30]]);
+ const world={nowMs:0,state,log,stats:{get:(id:number)=>stats.get(id)??0,increment:(id:number,by:number)=>stats.set(id,(stats.get(id)??0)+by),set:(id:number,value:number)=>stats.set(id,value),map:stats},
+  sound:(event:number)=>{log.sounds.push(event);},
+  playerCarParkedInside:()=>state.inside,playerCarRefusal:()=>state.refusal,playerOutside:()=>state.outside,
   money:()=>state.money,wantedLevel:()=>state.wanted,
   respray:()=>{log.resprays++;return {repaired:state.repaired,recoloured:state.recoloured};},
   pay:(n:number)=>{log.paid+=n;state.money-=n;},clearWanted:()=>{log.cleared++;state.wanted=0;},
@@ -102,42 +104,56 @@ test('a wanted car parked inside: the door shuts on the player, two seconds late
  g.update(20);expect(spray.doorState).toBe(GARAGE_DOOR_CLOSING);expect(world.log.held).toEqual([true]);
  let frames=0;while(spray.doorState===GARAGE_DOOR_CLOSING&&frames<1000){runFrames(g,world,1);frames++;}
  expect(spray.doorState).toBe(GARAGE_DOOR_CLOSED);expect(spray.doorPosition).toBe(0);expect(world.log.resprays).toBe(0);
- // TIME_TO_RESPRAY: shut for two seconds.
+ // Down: AE_FRONTEND_CAR_RESPRAY, and the kills since the last checkpoint moved to the legitimate ones.
+ expect(world.log.sounds).toEqual([16]);expect([world.stats.map.get(176),world.stats.map.get(177)]).toEqual([0,37]);
+ // Shut for two seconds.
  runFrames(g,world,99);expect(spray.doorState).toBe(GARAGE_DOOR_CLOSED);
  runFrames(g,world,2);expect(spray.doorState).toBe(GARAGE_DOOR_OPENING);
- expect(world.log).toMatchObject({resprays:1,cleared:1,paid:100,messages:['GA_2'],held:[true,false]});
+ expect(world.log).toMatchObject({resprays:1,cleared:1,paid:100,messages:['GA_2'],held:[true]});
+ expect(world.stats.map.get(16)).toBe(100);
  expect(spray.usedRespray).toBe(true);expect(g.hasResprayHappened('SPRLAE')).toBe(true);expect(g.hasResprayHappened('sprlae')).toBe(false);
+ // His controls come back once the door is halfway up.
+ while(spray.doorPosition<=.5)runFrames(g,world,1);
+ expect(world.log.held.at(-1)).toBe(false);
  frames=0;while(spray.doorState===GARAGE_DOOR_OPENING&&frames<1000){runFrames(g,world,1);frames++;}
  // Up again, the garage waits for him to drive out before it will take a car again.
  expect(spray.doorState).toBe(GARAGE_DOOR_WAITING_PLAYER_TO_EXIT);runFrames(g,world,10);expect(spray.doorState).toBe(GARAGE_DOOR_WAITING_PLAYER_TO_EXIT);
  world.state.inside=false;world.state.outside=true;runFrames(g,world,1);expect(spray.doorState).toBe(GARAGE_DOOR_OPEN);
 });
 
-test('the lines: GA_XX for a repair alone, a free respray complimentary, and a paint job alone free with one of two lines',()=>{
+test('the lines: GA_XX for a repair alone; free everywhere, only new paint has a line; GA_22 where it is always free',()=>{
  const repairOnly=sprayGarage(),a=sprayWorld({wanted:0});repairOnly.respray=a;runFrames(repairOnly,a,400);
  expect(a.log).toMatchObject({paid:100,messages:['GA_XX']});
- const free=sprayGarage(),b=sprayWorld();free.respray=b;free.freeResprays=true;runFrames(free,b,400);
+ // SET_FREE_RESPRAYS: nothing taken; the wanted level goes and the new paint gets one of its two lines.
+ const free=sprayGarage(),b=sprayWorld({coin:false});free.respray=b;free.freeResprays=true;runFrames(free,b,400);
  expect(b.log).toMatchObject({paid:0,cleared:1,messages:['GA_16']});
+ const freeSame=sprayGarage(),b2=sprayWorld({recoloured:false});freeSame.respray=b2;freeSame.freeResprays=true;runFrames(freeSame,b2,400);
+ expect(b2.log).toMatchObject({paid:0,cleared:1,messages:[]});
  const paint=sprayGarage(),c=sprayWorld({wanted:0,repaired:false,coin:true});paint.respray=c;runFrames(paint,c,400);
  expect(c.log).toMatchObject({paid:0,messages:['GA_15']});
+ // SET_GARAGE_RESPRAY_FREE (m_bRespraysAlwaysFree): GA_22, nothing taken.
  const garageFree=sprayGarage(),d=sprayWorld();garageFree.respray=d;garageFree.setResprayFree('sprlae',true);runFrames(garageFree,d,400);
- expect(d.log.paid).toBe(0);
+ expect(d.log).toMatchObject({paid:0,messages:['GA_22']});
 });
 
-test('short of $100 it is GA_3, and a car it will not touch GA_1: the door stays up and waits for him to leave',()=>{
- for(const [o,line] of [[{money:99},'GA_3'],[{sprayable:false},'GA_1']] as const){
+test('short of $100 it is GA_3 (CAR_NO_CASH), a car it will not touch GA_1 and a BMX GA_1B (CAR_IS_HOT): the door stays up and waits',()=>{
+ for(const [o,line,sound] of [[{money:99},'GA_3',14],[{refusal:'unsprayable'},'GA_1',15],[{refusal:'bmx'},'GA_1B',15]] as const){
   const g=sprayGarage(),world=sprayWorld(o);g.respray=world;runFrames(g,world,5);
-  expect(world.log.messages).toEqual([line]);expect(world.log.held).toEqual([]);
+  expect(world.log.messages).toEqual([line]);expect(world.log.sounds).toEqual([sound]);expect(world.log.held).toEqual([]);
   expect(g.garages[0].doorState).toBe(GARAGE_DOOR_WAITING_PLAYER_TO_EXIT);expect(g.garages[0].doorPosition).toBe(1);
  }
+ // A garage free only for itself still wants the $100 before it will shut (the money test reads the global flag).
+ const g=sprayGarage(),world=sprayWorld({money:50});g.respray=world;g.setResprayFree('sprlae',true);runFrames(g,world,5);
+ expect(world.log.messages).toEqual(['GA_3']);
 });
 
-test('SET_NO_RESPRAYS shuts every Pay \'n\' Spray and keeps it shut; lifted, the doors come back up',()=>{
- const g=sprayGarage(),world=sprayWorld({inside:false,outside:true}),spray=g.garages[0];g.respray=world;
- g.noResprays=true;g.allRespraysCloseOrOpen(true);runFrames(g,world,300);
- expect([spray.doorState,spray.doorPosition]).toEqual([GARAGE_DOOR_CLOSED,0]);expect(world.log.resprays).toBe(0);
- g.noResprays=false;g.allRespraysCloseOrOpen(false);runFrames(g,world,300);
- expect([spray.doorState,spray.doorPosition]).toEqual([GARAGE_DOOR_OPEN,1]);
+test('SET_NO_RESPRAYS marks every Pay \'n\' Spray shut and it does nothing; lifted, they are open again (the doors are not moved)',()=>{
+ const g=sprayGarage(),world=sprayWorld(),spray=g.garages[0];g.respray=world;
+ // The handler (iOS 0x100206704): NoResprays on, and AllRespraysCloseOrOpen(false), which only sets the state.
+ g.noResprays=true;g.allRespraysCloseOrOpen(false);runFrames(g,world,300);
+ expect([spray.doorState,spray.doorPosition]).toEqual([GARAGE_DOOR_CLOSED,1]);expect(world.log.resprays).toBe(0);
+ g.noResprays=false;g.allRespraysCloseOrOpen(true);runFrames(g,world,2);
+ expect(spray.doorState).not.toBe(GARAGE_DOOR_CLOSED);
 });
 
 test('the door\'s pose: a turning door rises by half its height less a tenth and lies flat (BuildRotatedDoorMatrix), a plain one slides up its height',async()=>{
