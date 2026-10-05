@@ -1,5 +1,5 @@
 /* The stream packs' tracks the browser has: the BEATS pack, packaged from the iOS port's BEATS.osw by
- * scripts/content/package-beat-tracks.mjs into public/play/audio/streams/ as one MP3 per track. */
+ * scripts/content/package-stream-tracks.mjs into public/play/audio/streams/ as one MP3 per track. */
 import type {TrackBeat} from '../engine/ScmCutsceneTrack';
 export interface StreamTrackManifest {version:1;tracks:{id:number;path:string;bytes:number;sha256:string;beats:TrackBeat[]}[]}
 const hex=(b:ArrayBuffer)=>[...new Uint8Array(b)].map(v=>v.toString(16).padStart(2,'0')).join('');

@@ -6,17 +6,18 @@ import {BEAT_TRACK_LOOKUP} from '../src/engine/ScmCutsceneTrack';
 
 const sha=(b:Uint8Array)=>createHash('sha256').update(b).digest('hex');
 
-describe('the beat tracks from the iOS port’s BEATS pack',()=>{
+describe('the stream tracks from the iOS port’s AMBIENCE and BEATS packs',()=>{
  test('the mission-passed tunes are beat tracks 11 and 12, the short tracks 183 and 182',()=>{
   expect(BEAT_TRACK_LOOKUP).toHaveLength(14);
   expect(BEAT_TRACK_LOOKUP[11]).toBe(183);
   expect(BEAT_TRACK_LOOKUP[12]).toBe(182);
  });
 
- test('the published tracks are the BEATS pack’s, each an MP3 matching its hash',()=>{
+ test('the published tracks are the AMBIENCE and BEATS packs’, each an MP3 matching its hash',()=>{
   const manifest=JSON.parse(readFileSync('public/play/audio/streams/streams.json','utf8'));
   const ids=manifest.tracks.map((t:{id:number})=>t.id);
-  expect(ids).toEqual([175,176,178,179,180,181,182,183,184]);// 177 is a stub in the bundle
+  // AMBIENCE's 135 to 174, then BEATS' 175 to 184 but 177, a stub in the bundle.
+  expect(ids).toEqual([...Array.from({length:40},(_,i)=>135+i),175,176,178,179,180,181,182,183,184]);
   for(const id of new Set(BEAT_TRACK_LOOKUP))if(id!==177)expect(ids).toContain(id);
   for(const track of manifest.tracks){
    const bytes=new Uint8Array(readFileSync(`public/play/audio/streams/${track.path}`));

@@ -1,7 +1,6 @@
 /* CAudioZones (Audio/AudioZones.cpp), pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166: the named boxes
  * and spheres of Audiozon.ipl's `auzo` section, the script's SwitchAudioZone and the per-frame Update that lists the
- * active ones around the camera. The ambience that reads the lists (CAEAmbienceTrackManager::UpdateAmbienceTrackAndVolume)
- * is not reversed and the ambience streams are not published, so nothing plays from them yet. Native coordinates. */
+ * active ones around the camera, which the ambience tracks read (audio/NativeAmbienceTracks.ts). Native coordinates. */
 import type {IplAudioZone} from '../assets/ipl';
 
 export const NUM_AUDIO_BOXES=158,NUM_AUDIO_SPHERES=3,MAX_ACTIVE_AUDIO_ZONES=10;
@@ -47,4 +46,9 @@ export class NativeAudioZones {
  }
  /** The audio zone ids around the point at the last update, spheres first. */
  get activeIds(){return [...this.activeSpheres.map(i=>this.spheres[i].id),...this.activeBoxes.map(i=>this.boxes[i].id)];}
+ /** What CAEAmbienceTrackManager reads: the first active sphere (with its centre), else the first active box. */
+ get firstActive():{id:number;center?:V3}|undefined{
+  const sphere=this.spheres[this.activeSpheres[0]];if(sphere)return {id:sphere.id,center:sphere.center};
+  const box=this.boxes[this.activeBoxes[0]];return box&&{id:box.id};
+ }
 }

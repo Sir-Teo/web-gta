@@ -5,6 +5,7 @@ import {WebAudioChannels} from './native/WebAudioChannels';
 import {ScriptSpeech} from './ScriptSpeech';
 import {StreamTracks} from './StreamTracks';
 import type {BeatTrackStream,TrackBeat} from '../engine/ScmCutsceneTrack';
+import type {AmbienceChannel} from './NativeAmbienceTracks';
 import {readNativeCombatAudio,combatSample,type CombatSound} from '../assets/nativeCombatAudio';
 import {nativeSoundFrequency} from './nativeFrequency';
 import {nativeHeadroomGain} from './nativeHeadroom';
@@ -126,6 +127,29 @@ export class AudioSystem {
       return (track.playedS+(ctx.currentTime-track.since)*track.rate)*1000;
     },
   };
+  /** CAEAmbienceTrackManager's channel: one looped track at a time, at a volume in dB. */
+  private ambience?:{source:AudioBufferSourceNode;gain:GainNode;startedAt:number;offsetS:number;duration:number};
+  private ambienceRequest=0;private ambiencePlayed=0;
+  readonly ambienceTracks:AmbienceChannel={
+    play:async(id,startMs)=>{
+      this.stopAmbience();const request=++this.ambienceRequest;
+      const loaded=await this.streams?.load(id),ctx=this.context;
+      if(!loaded||!ctx||request!==this.ambienceRequest||this.disposed)return false;
+      const duration=loaded.buffer.duration,offsetS=duration>0?(startMs/1000)%duration:0;
+      const source=ctx.createBufferSource(),gain=ctx.createGain();
+      source.buffer=loaded.buffer;source.loop=true;gain.gain.value=0;
+      source.connect(gain);gain.connect(this.effects);source.start(0,offsetS);
+      this.ambience={source,gain,startedAt:ctx.currentTime,offsetS,duration};this.ambiencePlayed++;return true;
+    },
+    setVolume:dB=>{const a=this.ambience;if(a)a.gain.gain.value=dB<=-100?0:10**(dB/20);},
+    stop:()=>{this.ambienceRequest++;this.stopAmbience();},
+    playedMs:()=>{const ctx=this.context,a=this.ambience;return ctx&&a?(a.offsetS+ctx.currentTime-a.startedAt)*1000:undefined;},
+  };
+  private stopAmbience(){
+    const a=this.ambience;if(!a)return;this.ambience=undefined;
+    try{a.source.stop();}catch{/* Already ended. */}
+    a.source.disconnect();a.gain.disconnect();
+  }
   /** CAECutsceneTrackManager::StopCutsceneTrack. */
   stopTrack(){
     const track=this.track;if(!track)return;
@@ -282,12 +306,12 @@ export class AudioSystem {
       rms = Math.sqrt(this.meter.reduce((sum, value) => sum + value * value, 0) / this.meter.length);
     }
     return { context: this.context?.state ?? 'uninitialized', loaded: this.loaded, failed: this.failed, unavailable: this.unavailable,
-      native:this.native?{...this.native.snapshot(),frames:this.nativeFrames}:null,nativeCombatBanks:this.combatBanks.size,combatShots:this.combatShots,nativeFootstepBanks:this.nativeFeet?.length??0,nativeShotsPlayed:this.nativeShotsPlayed,speechPlayed:this.speechPlayed,tracksPlayed:this.tracksPlayed,trackPlaying:!!this.track,speechVoices:this.speechVoices.size,buffers: this.nativeBuffers.size, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
+      native:this.native?{...this.native.snapshot(),frames:this.nativeFrames}:null,nativeCombatBanks:this.combatBanks.size,combatShots:this.combatShots,nativeFootstepBanks:this.nativeFeet?.length??0,nativeShotsPlayed:this.nativeShotsPlayed,speechPlayed:this.speechPlayed,tracksPlayed:this.tracksPlayed,trackPlaying:!!this.track,ambiencePlayed:this.ambiencePlayed,ambienceGain:this.ambience?+this.ambience.gain.gain.value.toFixed(4):null,speechVoices:this.speechVoices.size,buffers: this.nativeBuffers.size, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
   }
   dispose() {
     this.nativeLoad++;this.nativeFeet=undefined;this.native?.reset();this.nativeChannels?.dispose();this.combatBanks.clear();this.nativeBuffers.clear();
     for(const slot of [...this.speechVoices.keys()])this.stopSpeech(slot);
-    this.stopTrack();
+    this.stopTrack();this.stopAmbience();
     this.disposed = true; this.playing = false; this.stopShots();
     this.recovery?.dispose(); void this.context?.close().catch(() => {});
   }

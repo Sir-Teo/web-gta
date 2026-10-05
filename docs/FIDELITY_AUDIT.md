@@ -9189,7 +9189,7 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 
 - **The BEATS pack, from the iOS port.** `BEATS.osw` is a ZIP of ten MP3s, `Track_001` to `Track_010`; the bundle's
   `StrmPaks.dat` and `TrakLkup.dat` put BEATS at pack 4 with stream tracks 175 to 184 in that order.
-  `scripts/content/package-beat-tracks.mjs` checks the three files' hashes and writes one MP3 per track under
+  `scripts/content/package-stream-tracks.mjs` checks the three files' hashes and writes one MP3 per track under
   `public/play/audio/streams/` (9.3 MB). `Track_003` (177) is a 756-byte deflated stub in the bundle and is left out.
 - **`PLAY_MISSION_PASSED_TUNE`** is unreversed on the PC, so its handler was read from the iOS executable (arm64
   slice, stripped): it takes tune 1 or 2, calls `CAudioEngine::PreloadBeatTrack(tune + 10)` and then
@@ -9208,7 +9208,7 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   `PRELOAD_BEAT_TRACK` goes through `gBeatTrackLookup`. INTRO preloads and plays beat track 10 (stream track 184), its
   music, which is now heard. `PLAY_MISSION_PASSED_TUNE` goes through the same manager, as its handler does.
 - **The beats.** The PC's stream files carry a `tTrackInfo` (1000 beats of a time in ms and a key) before each
-  track; the iOS port keeps all 1922 in `TRKHEAD.DAT`. `package-beat-tracks.mjs` puts each BEATS track's beats in
+  track; the iOS port keeps all 1922 in `TRKHEAD.DAT`. `package-stream-tracks.mjs` puts each BEATS track's beats in
   `streams.json`: track 175 has 174 (the dance's arrows, keys 1 to 4), 180 has 76 (the lowrider's moves, 9 to 16),
   each list ending on key 33.
 - **`GET_BEAT_PROXIMITY`** (absent from gta-reversed) and **`CAEAudioHardware::GetBeatInfo`** follow the iOS
@@ -9223,4 +9223,21 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - Specs: `scm-cutscene-track` (unit: the host stream, the audio clock, the window, the 50 ms and the proximity rules),
   `stream-tracks` (unit), `script-speech` (browser: the opening's track 184 fetched, track 175's first beat read
   17.3 s off a second in, a stop ends the track).
+
+## Interiors and the sandstorm have their ambience
+
+- **The AMBIENCE pack, from the iOS port.** `AMBIENCE.osw` holds stream tracks 135 to 174 (pack 3 of the bundle's
+  `StrmPaks.dat`); `scripts/content/package-stream-tracks.mjs` (formerly `package-beat-tracks.mjs`) now packages it
+  beside BEATS (40 tracks, 21.7 MB).
+- **`CAEAmbienceTrackManager`** (`src/audio/NativeAmbienceTracks.ts`). `Service`'s status machine is reversed and
+  followed. `UpdateAmbienceTrackAndVolume` is marked "bad" in gta-reversed; taken from it: the audio zone's track
+  (the first active sphere, else the first active box: the 24/7s' 135, the Ammu-Nations' 137, the lowrider park's
+  157 and 27 more), zone 4's 9 dB a unit below 1372 and zones 5 and 10's distance attenuation, the sandstorm's 167
+  when the outside can be seen, a new track starting at -34 dB and rising 1 dB a service, and a replaced or left one
+  fading 0.4 dB a service to -40 dB before it stops. A track starts at a random point up to 600 s the first time and
+  then 7 s or more on from where it stopped, and loops. The choice is held while a beat track plays and while paused.
+- **AUTHORED:** the reversal's sea and underwater ambience (174, 166) sits behind a condition its zone tracks always
+  meet, so it cannot be followed as written and is left out; the zones that start a radio station do nothing.
+- Specs: `native-ambience-tracks` (unit: the table, the rise, the fade, the resume offset, the sandstorm, zone 4),
+  `ambience-tracks` (browser: zone 21's track streamed, risen to -6 dB and heard, then faded out and stopped).
 
