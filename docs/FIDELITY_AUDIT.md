@@ -9516,7 +9516,7 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   of 0.988 and a 10th percentile of 0.879. The low ones are noisy, high-rate sounds (collisions, weapon tails, frontend
   clicks) whose content above the encode's 16 kHz band is gone, not misaligned. **AUTHORED:** the rebuilt banks are a
   lossy copy of the PC's, at the PC's lengths, rates, loops and headroom.
-- **Rebuilt so far:** SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB) and the motorbike engines COPBIKE_D
+- **Rebuilt so far:** BOAT_INBOARD_D (21, 0.05 MB), SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB) and the motorbike engines COPBIKE_D
   and _P, SCOOTER_P, SPORTSBIKE_D and _P and VTWINBIKE_D and _P (40, 41, 119, 124, 125, 139, 140; 0.83 MB), listed in
   `public/play/audio/ios-banks.json`, which `NativeBankLoader.open` merges with `banks.json` (a bank both list stays
   the PC's).
@@ -9548,3 +9548,25 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - Specs: `native-audio` (unit: the PCJ-600's dummy idle, its player bank, PLAYER_AC_FULL, the lean factor, the rear
   wheel's skid); `bike-engine-audio` (browser: riding a PCJ-600 loads SPORTSBIKE_P into the player engine slot, idles,
   then accelerates with sounds playing).
+
+## Boats have engines
+
+- **Before:** boats had no vehicle audio entity and ran silent; seaplanes did not skim the water.
+- **CAEVehicleAudioEntity's AE_BOAT case** (gta-reversed, reversed): Initialise and JustGotInVehicleAsDriver take the
+  dummy bank's slot (a boat loads no player bank; every boat row names BOAT_INBOARD_D, 21, rebuilt from the iOS
+  bundle); ProcessVehicle runs ProcessBoatEngine, the rain and ProcessBoatMovingOverWater.
+  - ProcessBoatEngine: the dummy bank's loop at 0.6 + roll x 0.1 + es x 0.4 on the water (0.7 in the air), stepped
+    0.02 a frame, and -3 + es x 3 dB (set outright below 0 dB, stepped 3 dB a frame from it, as the reference has it),
+    es being the propeller speed times 3 up to 1; under water (UnderWaterness from 0.5) the VEHICLE_GEN distant engine,
+    sound 28, takes it at 6 dB more. The engine stops with it off or wrecked.
+  - ProcessBoatMovingOverWater: COLLISIONS sound 3 while in the water, 3 dB (12 for a seaplane) + 20 log10 of the speed
+    over 0.75 a frame, at 0.8 + 0.2 of it; under water 6 dB up at 0.185 the speed. Seaplanes run it too now.
+- **CBoat::m_EngineSpeed** (`WorldBoat.stepPropeller`, CBoat::ProcessControl, reversed): with CJ at the helm it eases
+  towards PLANE_STD_PROP_SPEED 0.18 plus the pedal's share up to PLANE_MAX_PROP_SPEED 0.34 (down to 0.05 in reverse), at
+  PLANE_ROC_PROP_SPEED 0.01 a frame, five times that with a pedal down; with the pedal up a boat's prop stops (the
+  Skimmer's idles at 0.18); an empty boat's slows by 0.95 a frame. The four constants are exe-only (0x8D33CC to
+  0x8D33D8) and taken from two gta-reversed forks that record them (0.05, 0.18, 0.34, 0.01).
+- **AUTHORED:** only CJ drives boats here, so a boat's engine is on exactly while he is at the helm (bEngineOn).
+- Specs: `native-audio` (unit: the Speeder's frequency and volume from the propeller, the 0.02 step, the skim's level
+  and pitch, silence out of the water, the stop); `boat-engine-audio` (browser: a Speeder off the docks loads bank 21,
+  plays its engine, the propeller rises on the throttle and the hull skims).

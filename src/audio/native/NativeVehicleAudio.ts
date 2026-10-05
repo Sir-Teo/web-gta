@@ -23,9 +23,13 @@ const HORN_PATTERNS=[
  '00000000001100001100001110000111100000000000','00111100001111100001110000111000001111111100','00111100001111100001111110000000000000111100','11110000111111111111111100111110111111110000',
 ].map(p=>p.slice(0,HORN_PATTERN_SIZE));
 const CAR_WHEEL={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
+/** eBoatEngineSoundType's engine sounds. */
+const BOAT={engine:2,distant:3,waterSkim:6} as const;
 /** s_Config defaults (AEVehicleAudioEntity.h). */
 const CFG={
- freqUnderwaterFactor:.7,idRollOff:2,revRollOff:2,roadNoiseRollOff:3,flatTireRollOff:3,reverseGearRollOff:1,volOffsetOnGround:1.5,rotorVolTiltFactor:.67,
+ freqUnderwaterFactor:.7,idRollOff:2,
+ boat:{engineRollOff:3.5,distantRollOff:5,waterSkimRollOff:2.5,frqEngineRollFactor:.1,frqEngineBase:.6,frqEngineOnWaterFactor:.4,frqEngineInAirFactor:.7,volBase:-3,volEngineSpeedFactor:3,
+  overWater:{volBaseOfSeaplane:12,volBase:3,volUnderwaterOffset:6,frqBase:.8,frqSpeedFactor:.2,frqUnderwaterFactor:.185}},revRollOff:2,roadNoiseRollOff:3,flatTireRollOff:3,reverseGearRollOff:1,volOffsetOnGround:1.5,rotorVolTiltFactor:.67,
  gasPedal:{stepDown:.07,stepUp:.09},flatTyre:{volOffset:-9,frqGearVelocityFactor:.4},
  roadNoise:{volBase:-12,fadeOutDistance:72,grass:{frq:1.3,vol:0},wet:{frq:1,vol:4.5},std:{frq:1,vol:0}},
  skid:{volBase:0,volOffsetForPlaneOrHeli:12,grass:{vol:-12,frq:.9,wheel:.2},wet:{vol:-9,frq:.9,wheel:.2},std:{frqBikeFactor:1.2,vol:0,frq:.8,wheel:.125},drive:{spinning:1,skidding:1,stationary:1.2},nonDrive:{skidding:1,stationary:1.2}},
@@ -64,6 +68,8 @@ export interface NativeVehicleAudioInput {
  rotorSpeed?:number;propSpeed?:number;
  /** COMPONENT_WING_RR world position for helicopters. */
  nearPosition?:NativeVec;
+ /** CBoat's m_EngineSpeed (the propeller's) and m_nBoatFlags.bBoatInWater, for a boat or a seaplane. */
+ boat?:{engineSpeed:number;inWater:boolean};
  /** CBike's m_RideAnimData.LeanAngle (radians) and bikeFlags.bPlayerBoost, for a motorbike. */
  bike?:{leanAngle:number;playerBoost:boolean};
 }
@@ -89,7 +95,7 @@ export class NativeVehicleAudio implements NativeAudioEntity {
  private surfaceSoundType=-1;private roadNoiseSoundType=-1;private roadNoiseSound?:NativeSound;private flatTireSoundType=-1;private flatTireSound?:NativeSound;
  private reverseGearSoundType=-1;private reverseGearSound?:NativeSound;hornSound?:NativeSound;sirenSound?:NativeSound;fastSirenSound?:NativeSound;
  readonly skid:NativeTwinLoopSound;
- currentRotorFrequency=-1;currentDummyEngineVolume=-100;fadeIn=1;fadeOut=0;
+ currentRotorFrequency=-1;currentDummyEngineVolume=-100;currentDummyEngineFrequency=-1;fadeIn=1;fadeOut=0;
  /** CAutomobile::m_GasPedalAudioRevs and m_PrevSpeed. */
  gasPedalAudioRevs=0;prevSpeed=0;audioChangingGear=false;
  private vehicle!:NativeVehicleAudioInput;
@@ -111,6 +117,7 @@ export class NativeVehicleAudio implements NativeAudioEntity {
   switch(s.type){
    case AE_VEHICLE.car:this.eventVolume-=CFG.volOffsetOnGround;if(s.dummyBank!==-1&&s.dummyBank!==129)this.dummySlot=this.requestBankSlot(s.dummyBank);break;
    case AE_VEHICLE.bike:case AE_VEHICLE.bmx:if(s.type===AE_VEHICLE.bike)this.eventVolume-=CFG.volOffsetOnGround;if(s.dummyBank!==-1)this.dummySlot=this.requestBankSlot(s.dummyBank);break;
+   case AE_VEHICLE.boat:case AE_VEHICLE.train:if(s.dummyBank!==-1&&s.dummyBank!==129)this.dummySlot=this.requestBankSlot(s.dummyBank);break;
    case AE_VEHICLE.plane:if(s.dummyBank!==-1)this.dummySlot=this.requestBankSlot(s.dummyBank);break;
    case AE_VEHICLE.special:this.eventVolume-=1.5;if(s.dummyBank!==-1)this.dummySlot=this.requestBankSlot(s.dummyBank);break;
   }
@@ -367,6 +374,9 @@ export class NativeVehicleAudio implements NativeAudioEntity {
    if(this.playerEngineBank!==-1&&!this.loaded(this.playerEngineBank,SLOT.playerEngine)){cancelPlayerEngine();this.ctx.bank.loadSoundBank(this.playerEngineBank,SLOT.playerEngine);}
    if(this.dummyEngineBank!==-1&&this.dummySlot===-1)this.dummySlot=this.demandBankSlot(this.dummyEngineBank);
    this.currentRotorFrequency=-1;this.currentDummyEngineVolume=-100;
+  }else if(this.type===AE_VEHICLE.boat){
+   this.eventVolume=this.ctx.defaultVolume(AE.generalVehicleSound);
+   if(this.dummySlot===-1)this.dummySlot=this.demandBankSlot(this.dummyEngineBank);
   }else if(this.type===AE_VEHICLE.special){
    this.eventVolume=this.ctx.defaultVolume(AE.generalVehicleSound);cancelPlayerEngine();this.cancelAllVehicleEngineSounds();
    if(this.dummyEngineBank!==-1&&this.dummySlot===-1){this.dummySlot=this.demandBankSlot(this.dummyEngineBank);this.ctx.bank.loadSoundBank(this.playerEngineBank,SLOT.playerEngine);}
@@ -687,9 +697,48 @@ export class NativeVehicleAudio implements NativeAudioEntity {
    }
    case AE_VEHICLE.heli:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;
    case AE_VEHICLE.plane:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;
-   case AE_VEHICLE.seaplane:this.processAircraft();this.processRainOnVehicle();break;
+   case AE_VEHICLE.boat:this.processBoatEngine();this.processRainOnVehicle();this.processBoatMovingOverWater(speed);break;
+   case AE_VEHICLE.seaplane:this.processAircraft();this.processRainOnVehicle();this.processBoatMovingOverWater(speed);break;
    case AE_VEHICLE.special:this.processSpecialVehicle(speed);break;
   }
+ }
+ /** ProcessBoatEngine (0x5003A0): one loop of the dummy bank pitched and swelled by the propeller's speed, and the
+  * distant engine, which takes over under water. */
+ private processBoatEngine(){
+  const v=this.vehicle,b=v.boat,cfg=CFG.boat;
+  if(!this.ensureHasDummySlot()||!this.ensureSoundBankIsLoaded(true))return;
+  if(!v.engineOn||this.wrecked){this.gracefullyStop(BOAT.engine);this.gracefullyStop(BOAT.distant);return;}
+  if(this.isPlayerDriver)this.thisAccel=this.accelAndBrake()[0];
+  const es=clamp((b?.engineSpeed??0)*3,0,1),roll=Math.min(1,1-v.up.z);
+  const speed=cfg.frqEngineBase+roll*cfg.frqEngineRollFactor+es*(b?.inWater?cfg.frqEngineOnWaterFactor:cfg.frqEngineInAirFactor);
+  this.currentDummyEngineFrequency=this.currentDummyEngineFrequency>=0?stepTo(this.currentDummyEngineFrequency,speed,.02):speed;
+  // As the reference has it: the volume steps only from 0 dB or above, else it is set outright.
+  const volume=cfg.volBase+es*cfg.volEngineSpeedFactor;
+  this.currentDummyEngineVolume=this.currentDummyEngineVolume>=0?stepTo(this.currentDummyEngineVolume,volume,3):volume;
+  if(this.ctx.underwaterness()<.5){
+   this.updateBoatSound(BOAT.engine,this.dummySlot,0,this.currentDummyEngineFrequency,this.currentDummyEngineVolume);
+   this.updateBoatSound(BOAT.distant,SLOT.vehicleGen,28,1,-100);
+  }else{
+   this.updateBoatSound(BOAT.engine,this.dummySlot,0,1,-100);
+   this.updateBoatSound(BOAT.distant,SLOT.vehicleGen,28,this.currentDummyEngineFrequency,this.currentDummyEngineVolume+6);
+  }
+ }
+ /** ProcessBoatMovingOverWater (0x4FA0C0): the hull skimming the water, from COLLISIONS sound 3. */
+ private processBoatMovingOverWater(speed:number){
+  const cfg=CFG.boat.overWater,sf=Math.min(.75,Math.abs(speed))/.75;
+  let volume=this.vehicle.boat?.inWater&&sf>=.00001?(this.type===AE_VEHICLE.seaplane?cfg.volBaseOfSeaplane:cfg.volBase)+audioLog10(sf)*20:-100,frequency=cfg.frqBase+cfg.frqSpeedFactor*sf;
+  if(this.ctx.underwaterness()>=.5){volume+=cfg.volUnderwaterOffset;frequency*=cfg.frqUnderwaterFactor;}
+  this.updateBoatSound(BOAT.waterSkim,SLOT.collisions,3,frequency,volume);
+ }
+ /** UpdateBoatSound (0x4F9E90). */
+ private updateBoatSound(st:number,slot:number,sfx:number,speed:number,volume:number){
+  const cfg=CFG.boat;volume+=this.eventVolume;
+  if(this.type!==AE_VEHICLE.seaplane&&st!==BOAT.waterSkim&&this.dummySlot===-1)return;
+  if(this.updateVehicleEngineSoundRawVolume(st,speed,volume))return;
+  const loaded=st===BOAT.engine?this.loaded(this.dummyEngineBank,this.dummySlot):st===BOAT.distant?this.loaded(BANK.vehicleGen,SLOT.vehicleGen):this.loaded(BANK.collisions,SLOT.collisions);
+  if(!loaded)return;
+  const rollOff=st===BOAT.engine?cfg.engineRollOff:st===BOAT.distant?cfg.distantRollOff:cfg.waterSkimRollOff;
+  this.engineSounds[st]=this.play(slot,sfx,volume,{rollOff,speed,flags:SOUND.requestUpdates});
  }
  /** ProcessSpecialVehicle (0x501AB0). The RC toys are not driven here, and the Vortex's ProcessDummyHovercraft
   * (0x500F50) is not reversed, so it plays only its rain and horn. */

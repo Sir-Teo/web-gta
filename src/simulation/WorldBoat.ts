@@ -179,6 +179,18 @@ export class WorldBoat {
   const check=this.enterCheck();if(check)return check;
   return this.finishEnter();
  }
+ /** CBoat::ProcessControl's propeller (0x6F1770, reversed in gta-reversed): with CJ at the helm it eases towards the pedal's
+  * speed, CPlane's PLANE_STD_PROP_SPEED 0.18 at rest, up to PLANE_MAX_PROP_SPEED 0.34 on the gas and down to 0.05 on
+  * full reverse, at PLANE_ROC_PROP_SPEED 0.01 a frame (five times that with a pedal down); an empty boat's slows by
+  * 0.95 a frame. The four constants are exe-only (0x8D33CC to 0x8D33D8); two gta-reversed forks record them. */
+ private stepPropeller(dt:number){
+  const MIN=.05,STD=.18,MAX=.34,ROC=.01,timeStep=dt*50;
+  if(!this.occupied||this.wrecked){if(this.engineSpeed>0)this.engineSpeed*=Math.pow(.95,dt*30);return;}
+  const gas=this.gasPedal,rate=gas!==0?ROC*5:ROC;
+  // The Skimmer (a CBoat in the original) idles at the standard speed; a boat's prop stops with the pedal up.
+  const target=gas===0?(this.modelId===460?STD:0):gas<0?(STD-MIN)*gas+STD:(MAX-STD)*gas+STD;
+  this.engineSpeed+=(target-this.engineSpeed)*timeStep*rate;
+ }
  /** CBoat::ProcessControl buoyancy section for a drifting hull (no throttle yet):
   * native float, browser gravity, stern wake points and bow spray. */
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false}){
@@ -188,6 +200,7 @@ export class WorldBoat {
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   if(this.wrecked){this.throttle=0;}
   this.controlInputs(dt);
+  this.stepPropeller(dt);
   // CBoat::ProcessControl: a scorched hull loses buoyancy each frame until it is down to 80% of its weight and sinks.
   // The loss is per game frame (30 fps), not scaled by the timestep.
   if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy=Math.max(floor,this.water.buoyancy-mass*.001*.008*dt*30);}
@@ -208,6 +221,8 @@ export class WorldBoat {
  private onWater=false;
  /** m_GasPedal, m_BrakePedal, m_fRawSteerAngle and m_fSteerAngle as CBoat::ProcessControlInputs keeps them. */
  gasPedal=0;brakePedal=0;rawSteer=0;steerAngle=0;
+ /** CBoat::m_EngineSpeed, the propeller's speed, which the engine sound follows. */
+ engineSpeed=0;
  /** CBoat::ProcessControlInputs (0x6F0A10): the brake pedal eases toward the pad's brake a tenth a frame and, once
   * past 0.05, reverses at 0.3 of it; the steering eases toward the negated stick at 0.2 a step, and the lock is the
   * handling's, applied to the signed square. Keyboard steering (the mouse branch is not modelled). */

@@ -157,6 +157,31 @@ test('a motorbike has the car engine over its own banks, the lean raising its pi
  input.wheels={...input.wheels!,states:['normal','fixed']};await frames(e,key,461,()=>input,2);
  expect(audio.skid.active).toBe(true);
 });
+test("a boat's engine follows its propeller, and its hull skims the water",async()=>{
+ // The Speeder: BOAT_INBOARD_D (21) in a dummy slot; a boat loads no player bank.
+ const e=engine(),key={};await flush();
+ const input=car({status:'player',playerDriver:true,playerInVehicle:true,transmission:undefined,wheels:undefined,boat:{engineSpeed:.1,inWater:true}});
+ await frames(e,key,452,()=>input,4);
+ const audio=e.vehicle(key,452)!,engine2=audio.engineSounds[2]!;
+ expect(engine2.slot).toBe(audio.dummySlot);expect(engine2.sound).toBe(0);
+ // ProcessBoatEngine: es = clamp(m_EngineSpeed x 3) = 0.3; on the water 0.6 + 0.3 x 0.4, level so no roll.
+ expect(engine2.speed).toBeCloseTo(.72,5);
+ expect(engine2.volume-audio.eventVolume).toBeCloseTo(-3+.3*3,5);
+ expect(audio.engineSounds[3]?.slot).toBe(SLOT.vehicleGen);
+ // The frequency steps 0.02 a frame towards a new target.
+ input.boat={engineSpeed:.3,inWater:true};await frames(e,key,452,()=>input,1);
+ expect(engine2.speed).toBeCloseTo(.74,5);
+ // ProcessBoatMovingOverWater: half of 0.75 a frame skims at 3 + 20 log10(0.5) dB, 0.8 + 0.2 x 0.5 speed.
+ input.moveSpeed={x:0,y:.375,z:0};await frames(e,key,452,()=>input,1);
+ const skim=audio.engineSounds[6]!;
+ expect(skim.slot).toBe(SLOT.collisions);expect(skim.sound).toBe(3);expect(skim.speed).toBeCloseTo(.9,5);
+ expect(skim.volume-audio.eventVolume).toBeCloseTo(3+20*Math.log10(.5),4);
+ // Out of the water the skim is silent; the engine stops with the engine off.
+ input.boat={engineSpeed:.3,inWater:false};await frames(e,key,452,()=>input,1);
+ expect(skim.volume).toBeLessThanOrEqual(-100+audio.eventVolume+1e-6);
+ input.engineOn=false;await frames(e,key,452,()=>input,1);
+ expect(audio.engineSounds[2]).toBeUndefined();
+});
 test('player helicopter rotors and weather rain loops',async()=>{
  const e=engine(),key={};await flush();
  const heli=car({status:'player',playerDriver:true,playerInVehicle:true,rotorSpeed:.22,padAccelerate:1,transmission:undefined,wheels:undefined});

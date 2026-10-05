@@ -8,6 +8,19 @@
  "decoderDelay": 577,
  "banks": [
   {
+   "id": 21,
+   "path": "bank-21.bin",
+   "dataBytes": 45976,
+   "bytes": 50780,
+   "sounds": 2,
+   "sha256": "b3bd6c6684be8cc317c31a73f4543d87ae5ac6a9b731d85cfdcacfb5d20f084e",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
    "id": 28,
    "path": "bank-28.bin",
    "dataBytes": 65332,
