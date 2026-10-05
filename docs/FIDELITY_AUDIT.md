@@ -9518,7 +9518,7 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   lossy copy of the PC's, at the PC's lengths, rates, loops and headroom.
 - **Rebuilt so far:** BICYCLE_D and _P (18, 19; 0.15 MB), BOAT_INBOARD_D (21, 0.05 MB), SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB), the
   motorbike engines COPBIKE_D and _P, SCOOTER_P, SPORTSBIKE_D and _P and VTWINBIKE_D and _P (40, 41, 119, 124, 125, 139,
-  140; 0.83 MB) and TRAIN_D and TRAM_D (131, 133; 0.13 MB), listed in
+  140; 0.83 MB), FRONTEND_MENU (60, 0.14 MB) and TRAIN_D and TRAM_D (131, 133; 0.13 MB), listed in
   `public/play/audio/ios-banks.json`, which `NativeBankLoader.open` merges with `banks.json` (a bank both list stays
   the PC's).
 - Specs: `ios-sound-banks` (unit: the files, the merge, bank 28 into slot 42); `bullet-pass` (browser: a trace past
@@ -9625,3 +9625,16 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - Specs: `native-audio` (unit: the tyres' level and pitch, the ratchet, the clang, the bell's fade, the BMX skid);
   `bmx-audio` (browser: riding a BMX loads BICYCLE_P, the tyres play, coasting freewheels and ticks, the horn key
   rings the bell).
+
+## Script menus tick
+
+- **Before:** CMenuSystem::InputStandardMenu (`ScmMenus`) reported AE_FRONTEND_SELECT, _BACK and _HIGHLIGHT, and the
+  host passed them on, but the frontend entity had no case for them and FRONTEND_MENU was not published: the shop,
+  food and gym menus were silent.
+- **Now:** CAEFrontendAudioEntity::Initialise's FRONTEND_MENU (60, rebuilt from the iOS bundle) is loaded into its slot
+  (1), and AddAudioEvent's menu cases play a pair left and right at the event's default volume, roll-off 1: highlight
+  sounds 4 and 5, select 6 and 7, back 0 and 1, error 2 and 3, all but the highlight rolled off. AddAudioEvent is a
+  call into the exe in gta-reversed, whose commented decompilation has these cases; the iOS executable's (jump table
+  at 0x1001488f4; highlight 0x100147b44, select 0x100147c18) matches it, flags 0x111b and 0x151b.
+- Specs: `native-audio` (unit: the four pairs, their sides and roll-off); `interior-shops` (browser: a move down
+  Ammu-Nation's menu plays in slot 1, and the pistol is still bought).

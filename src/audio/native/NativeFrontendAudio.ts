@@ -2,8 +2,10 @@ import {SOUND,type NativeAudioEntity,type NativeSound} from './NativeSound';
 import type {NativeSoundManager} from './NativeSoundManager';
 import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 /** Frontend pickup events reported by CPickup::Update, CPickups::GivePlayerGoodiesWithPickUpMI and the collectable counters. */
-export const AE_FRONTEND={fireFailSniper:41,fireFailRocket:42,pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
+export const AE_FRONTEND={select:1,back:2,highlight:3,error:4,fireFailSniper:41,fireFailRocket:42,pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
  bulletPassLeftRear:27,bulletPassLeftFront:28,bulletPassRightRear:29,bulletPassRightFront:30,timerCount:33,partMissionComplete:43,scannerNoiseStart:47,scannerNoiseStop:48,scannerClick:49} as const;
+/** The menu events' FRONTEND_MENU sounds, left and right. */
+const MENU_PAIRS:Readonly<Record<number,readonly [number,number]>>={1:[6,7],2:[0,1],3:[4,5],4:[2,3]};
 /** SND_BANK_GENRL_BULLET_PASS_1 to _4 and SND_BANK_SLOT_BULLET_PASS. */
 const BULLET_PASS_FIRST=28,BULLET_PASS_LAST=31,BULLET_PASS_SLOT=42;
 const BULLET_PASS_POSITION:Readonly<Record<number,{x:number;y:number;z:number}>>={27:{x:-.1,y:-1,z:0},28:{x:-.1,y:1,z:0},29:{x:.1,y:-1,z:0},30:{x:.1,y:1,z:0}};
@@ -16,7 +18,8 @@ export class NativeFrontendAudio implements NativeAudioEntity {
  /** m_BulletPassBank, m_BulletPassCount and m_nLastFrameBulletPass. */
  private bulletPassBank=BULLET_PASS_FIRST;private bulletPassCount=0;private lastFrameBulletPass=0;
  constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private defaultVolume:(event:number)=>number,private random:()=>number=Math.random){
-  // CAEFrontendAudioEntity::Initialise loads the first bullet-pass bank.
+  // CAEFrontendAudioEntity::Initialise loads the menu bank and the first bullet-pass bank.
+  bank.loadSoundBank(BANK.frontendMenu,SLOT.frontendMenu);
   bank.loadSoundBank(BULLET_PASS_FIRST,BULLET_PASS_SLOT);
  }
  addAudioEvent(event:number,volumeBoost=0,speed=1){
@@ -24,6 +27,16 @@ export class NativeFrontendAudio implements NativeAudioEntity {
   if(pass){this.bulletPass(pass,this.defaultVolume(event)+volumeBoost);return;}
   // AE_FRONTEND_SCANNER_NOISE_STOP cancels the scanner's noise, loaded bank or not (arm64 0x1001478d0).
   if(event===AE_FRONTEND.scannerNoiseStop){this.manager.cancelSoundsOfThisEventPlayingForThisEntity(AE_FRONTEND.scannerNoiseStart,this);return;}
+  // AE_FRONTEND_SELECT, _BACK, _HIGHLIGHT and _ERROR: a pair from FRONTEND_MENU left and right, as the iOS executable
+  // plays them (highlight 0x100147b44, select 0x100147c18: sounds 4 and 5, 6 and 7, roll-off 1, the highlight not
+  // rolled off), which is gta-reversed's commented decompilation.
+  const menu=MENU_PAIRS[event];
+  if(menu){
+   if(!this.bank.isSoundBankLoaded(BANK.frontendMenu,SLOT.frontendMenu))return;
+   const volume=this.defaultVolume(event)+volumeBoost,flags=SOUND.forcedFront|SOUND.unduckable|SOUND.unpausable|SOUND.playPhysically|SOUND.uncancellable|SOUND.frontEnd|(event===AE_FRONTEND.highlight?0:SOUND.rolledOff);
+   for(const [sound,x] of [[menu[0],-1],[menu[1],1]] as const)this.manager.playSound({slot:SLOT.frontendMenu,sound,entity:this,position:{x,y:0,z:0},volume,rollOff:1,speed,flags});
+   return;
+  }
   if(!this.bank.isSoundBankLoaded(BANK.frontendGame,SLOT.frontendGame)){this.bank.loadSoundBank(BANK.frontendGame,SLOT.frontendGame);return;}
   const frame=this.manager.clock.frame,volume=this.defaultVolume(event)+volumeBoost;
   const pair=(left:number,right:number)=>{for(const [sound,x] of [[left,-1],[right,1]] as const)this.manager.playSound({slot:SLOT.frontendGame,sound,entity:this,position:{x,y:0,z:0},volume,speed,flags:SOUND.forcedFront|SOUND.unduckable|SOUND.unpausable|SOUND.playPhysically|SOUND.uncancellable|SOUND.frontEnd});};
@@ -52,8 +65,7 @@ export class NativeFrontendAudio implements NativeAudioEntity {
   }
  }
  /** The bullet-pass cases (AE_FRONTEND_BULLET_PASS_*): one of three whizzes from the current bank, at most every five
-  * frames. After ten, the next bank is loaded once the slot falls silent. The GENRL bullet-pass banks are not packaged
-  * with the audio yet, so this stays quiet until they are. */
+  * frames. After ten, the next bank is loaded once the slot falls silent. */
  private bulletPass(position:{x:number;y:number;z:number},volume:number){
   const frame=this.manager.clock.frame;
   if(!this.bank.isSoundBankLoaded(this.bulletPassBank,BULLET_PASS_SLOT)||frame<this.lastFrameBulletPass+5)return;

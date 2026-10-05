@@ -125,6 +125,19 @@
    }
   },
   {
+   "id": 60,
+   "path": "bank-60.bin",
+   "dataBytes": 137316,
+   "bytes": 142120,
+   "sounds": 9,
+   "sha256": "23a0138966512f052a51942b5bd337ba2192e2e19b8eb324d9ab7555006b9e65",
+   "from": {
+    "wav": 0,
+    "mp3": 9,
+    "empty": 0
+   }
+  },
+  {
    "id": 119,
    "path": "bank-119.bin",
    "dataBytes": 91578,

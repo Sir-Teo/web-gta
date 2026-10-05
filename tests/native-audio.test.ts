@@ -239,6 +239,16 @@ test('a BMX rolls on its tyres, ticks while freewheeling, clangs its chain, ring
  const skidSum=Math.min(.4*5,1)*1.2,loop=audio.skid.sounds[0]!;
  expect(loop.sound).toBe(0);expect(loop.speed).toBeCloseTo(.9+.25*skidSum,5);
 });
+test("a script menu's highlight, select, back and error play FRONTEND_MENU pairs left and right",async()=>{
+ const e=engine();await flush();await flush();
+ expect(e.bank.isSoundBankLoaded(60,SLOT.frontendMenu)).toBe(true);
+ const played=(event:number)=>{e.frontend.addAudioEvent(event);return e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.frontendMenu&&s.entity===e.frontend).map(s=>[s.sound,s.currPos.x,s.has(SOUND.rolledOff)]);};
+ expect(played(3)).toEqual([[4,-1,false],[5,1,false]]);
+ for(const s of e.manager.sounds)if(s.slot===SLOT.frontendMenu)s.stopSoundAndForget?.();
+ expect(played(1).slice(-2)).toEqual([[6,-1,true],[7,1,true]]);
+ expect(played(2).slice(-2)).toEqual([[0,-1,true],[1,1,true]]);
+ expect(played(4).slice(-2)).toEqual([[2,-1,true],[3,1,true]]);
+});
 test('player helicopter rotors and weather rain loops',async()=>{
  const e=engine(),key={};await flush();
  const heli=car({status:'player',playerDriver:true,playerInVehicle:true,rotorSpeed:.22,padAccelerate:1,transmission:undefined,wheels:undefined});

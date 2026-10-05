@@ -3,7 +3,7 @@ import type {NativeBankSlots,NativeBankSound} from './NativeSoundManager';
 /** eSoundBankSlot values used by the ported entities. */
 export const SLOT={frontendGame:0,frontendMenu:1,collisions:2,bulletHits:3,explosions:4,weaponGen:5,weather:6,dummyFirst:7,dummyEnd:17,hornAndSiren:17,copHeli:18,vehicleGen:19,speechFirst:20,playerEngine:40} as const;
 /** eSoundBank values used by the ported entities. */
-export const BANK={tramD:133,apacheD:13,bulletHits:27,collisions:39,explosions:52,frontendGame:59,horn:74,icevanP:79,rain:105,vehicleGen:138,weapons:143} as const;
+export const BANK={frontendMenu:60,tramD:133,apacheD:13,bulletHits:27,collisions:39,explosions:52,frontendGame:59,horn:74,icevanP:79,rain:105,vehicleGen:138,weapons:143} as const;
 export interface NativeBankManifest {version:1;packageSha256:string;banks:{id:number;path:string;dataBytes:number;bytes:number;sounds:number;sha256:string}[]}
 type Fetcher=(entry:NativeBankManifest['banks'][number])=>Promise<Uint8Array>;
 /** How long a bank that failed to download waits before a request may try it again; after the last, it stays failed. */

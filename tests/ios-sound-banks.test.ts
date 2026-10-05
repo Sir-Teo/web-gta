@@ -8,8 +8,8 @@ const ios=JSON.parse(readFileSync('public/play/audio/ios-banks.json','utf8')) as
 const file=(path:string)=>new Uint8Array(readFileSync(`public/play/audio/${path}`));
 test('the banks rebuilt from the iOS bundle are PC-format banks the PC list lacks',()=>{
  // BICYCLE_D/_P, BOAT_INBOARD_D, SND_BANK_GENRL_BULLET_PASS_1 to _4 (three whizzes each), the motorbike engines
- // COPBIKE_D/_P, SCOOTER_P, SPORTSBIKE_D/_P and VTWINBIKE_D/_P, and TRAIN_D and TRAM_D.
- expect(ios.banks.map(b=>b.id)).toEqual([18,19,21,28,29,30,31,40,41,119,124,125,131,133,139,140]);
+ // COPBIKE_D/_P, SCOOTER_P, SPORTSBIKE_D/_P and VTWINBIKE_D/_P, FRONTEND_MENU, and TRAIN_D and TRAM_D.
+ expect(ios.banks.map(b=>b.id)).toEqual([18,19,21,28,29,30,31,40,41,60,119,124,125,131,133,139,140]);
  const have=new Set(pc.banks.map(b=>b.id));
  for(const bank of ios.banks){
   expect(have.has(bank.id)).toBe(false);

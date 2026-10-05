@@ -37,6 +37,11 @@ test('CJ buys a pistol over the Ammu-Nation counter',async({page})=>{
  await standAt(page,296.5,-38.17);
  await expect.poll(async()=>(await shop(page)).menu,{timeout:30000}).toBe(true);
  expect((await shop(page)).miniGame).toBe(true);
+ // CMenuSystem's highlight sound: a move down the menu plays FRONTEND_MENU's pair (slot 1), and a move back up.
+ const menuSounds=()=>page.evaluate(()=>(window as any).__game.state().audio.native?.slots[1]??0);
+ await tap(page,'KeyS');
+ await expect.poll(menuSounds,{timeout:3000,intervals:[25]}).toBeGreaterThan(0);
+ await page.waitForTimeout(600);await tap(page,'KeyW');await page.waitForTimeout(600);
  // Sprint is the script's cross button: Pistols, then the 9mm, then buy it.
  for(let presses=0;presses<6&&(await shop(page)).money===5000;presses++){await tap(page,'ShiftLeft');await page.waitForTimeout(1500);}
  const bought=await shop(page);
