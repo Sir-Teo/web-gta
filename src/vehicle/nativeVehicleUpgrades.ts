@@ -45,3 +45,23 @@ export function otherLinkedUpgrade(mods:CarMods,name:string){
  for(const [a,b] of mods.links){if(a===n)return b;if(b===n)return a;}
  return undefined;
 }
+/** GET_VEHICLE_MOD_TYPE's answer (the iOS handler, 0x1001f21c0, absent from gta-reversed): eVehicleModSlot from an
+ * upgrade's CarMod. A chassis part: bonnet 0, its halves the vents 1, spoiler 2, wings the side skirts 3, the bull bars
+ * 4 and 5, lamps 6, roof 7, nitro 8, hydraulics 9, stereo 10. A dummy part: chassis 11, wheels 12, exhaust 13, the
+ * bumpers 14 and 15, the misc parts 16. A model that is no upgrade (CarMod 0, no dummy) answers 0. */
+export function vehicleModSlot(place:{place:number;dummy:boolean}|undefined){
+ if(!place)return 0;
+ return (place.dummy?DUMMY_SLOTS:CHASSIS_SLOTS)[place.place]??0;
+}
+const CHASSIS_SLOTS:Readonly<Record<number,number>>={0:0,1:1,2:1,6:2,8:3,9:3,10:4,11:5,12:6,14:7,15:8,16:9,17:10};
+const DUMMY_SLOTS:Readonly<Record<number,number>>={1:11,2:12,12:14,13:15,19:13,20:16,21:16,22:16};
+/** CVehicleModelInfo::AssignRemapTxd (reversed): a texture dictionary named a vehicle model's name and digits is one of
+ * its paintjobs (AddRemap), in the archive's order, four at most. */
+export function vehicleRemaps(archiveNames:Iterable<string>,vehicleModels:ReadonlySet<string>){
+ const remaps=new Map<string,string[]>();
+ for(const entry of archiveNames){
+  const match=/^(.*?)(\d+)\.txd$/i.exec(entry);if(!match||!vehicleModels.has(match[1].toLowerCase()))continue;
+  const list=remaps.get(match[1].toLowerCase())??[];if(list.length<4){list.push(entry.slice(0,-4).toLowerCase());remaps.set(match[1].toLowerCase(),list);}
+ }
+ return remaps;
+}

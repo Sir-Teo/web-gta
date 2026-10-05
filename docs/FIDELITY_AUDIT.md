@@ -8956,7 +8956,17 @@ that did anything.
   names resolved to veh_mods.ide's model ids. An upgrade's place comes from its name: a chassis part (bonnet and its
   halves, spoiler, wings, bull bars, lamps, roof, nitro, hydraulics, stereo) or a dummy part standing in for one of
   the car's own (chassis, wheels, exhaust, bumpers, misc). Nothing is fitted yet: this is the mod shops' data.
-  Specs: `vehicle-upgrades` (unit, on the published file).
+  - **Paintjobs** (CVehicleModelInfo::AssignRemapTxd, reversed): a texture dictionary in the archive named after a
+    vehicle model and digits is one of its paintjobs (AddRemap), in the archive's order, four at most: 13 models have
+    them (the Blade, Broadway, Camper, Elegy, Flash, Jester, Remington, Savanna, Slamvan, Stratum, Sultan, Tornado and
+    Uranus).
+  - **The shops' questions** (absent from gta-reversed; the iOS handlers): GET_AVAILABLE_VEHICLE_MOD (0x1001f2118) a
+    place of the car's model's m_anUpgrades (-1 past the last), GET_VEHICLE_MOD_TYPE (0x1001f21c0) the upgrade's
+    eVehicleModSlot (the chassis parts 0 to 10, the dummy parts 11 to 16, any other model 0), GET_NUM_AVAILABLE_PAINTJOBS
+    (0x1001f1b3c) GetNumRemaps, GET_NUM_CAR_COLOURS (0x100202fd8) the model's colour variations, and
+    GET_CURRENT_VEHICLE_PAINTJOB (0x100203180) CVehicle::GetRemapIndex (-1 until a paintjob is given). These had no
+    handler, so carmod1.scm gave up at them.
+  Specs: `vehicle-upgrades` (unit, on the published file: the tables, the places and slots, the paintjobs).
 - **The vehicle-class questions the mod shops and the valet ask** (absent from gta-reversed; the iOS handlers in the
   2400 switch): IS_BIG_VEHICLE (0x1002034d0) reads vehicleFlags.bIsBig, here the handling's IS_BIG model flag (0x8) it
   is set from; IS_CAR_STREET_RACER (0x1002036c4) handlingFlags.bStreetRacer (0x4000000); IS_EMERGENCY_SERVICES_VEHICLE

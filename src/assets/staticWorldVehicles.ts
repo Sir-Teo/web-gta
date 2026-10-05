@@ -13,7 +13,7 @@ import {generatePlateText,plateDesignForRegion,plateModelTextures} from '../vehi
 import {VehicleColourRotation} from '../vehicle/nativeVehicleColours';
 import {requireAsset} from './binary';
 import {readIdeAssociations} from './ide';
-import {readCarMods,vehicleUpgradePlace} from '../vehicle/nativeVehicleUpgrades';
+import {readCarMods,vehicleRemaps,vehicleUpgradePlace} from '../vehicle/nativeVehicleUpgrades';
 /** Shared native asset catalog for every vehicle type. Physics preparation belongs to its type-specific controller. */
 export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof openStaticWorld>>){
  const file=async(name:string)=>{const resource=source.manifest.resources.find(r=>r.path===`vehicles/${name}`);requireAsset(resource,`Missing native vehicle resource: ${name}`);return source.resource(resource!);};
@@ -37,6 +37,7 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
   const modsResource=source.manifest.resources.find(r=>r.path==='ide/veh_mods/veh_mods.ide');requireAsset(modsResource,'Missing native vehicle upgrade definitions.');
   const ids=new Map(readIdeAssociations(await (await source.resource(modsResource!)).text()).map(r=>[r.model.toLowerCase(),r.id] as const));
   const carMods=readCarMods(await carModsFile.text());
+  const remaps=vehicleRemaps(source.entries.map(e=>e.name),new Set(definitions.filter(d=>d.id>=400&&d.id<=630).map(d=>d.model.toLowerCase())));
   return {carMods,
    /** An upgrade's model id by name (CModelInfo::GetModelInfo), and back. */
    idOf:(name:string)=>ids.get(name.toLowerCase()),
@@ -44,7 +45,9 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
    /** CAtomicModelInfo's CarMod and bUsesVehDummy for an upgrade's model id. */
    placeOf:(id:number)=>{for(const [name,value] of ids)if(value===id)return vehicleUpgradePlace(name);return undefined;},
    /** CVehicleModelInfo::m_anUpgrades of a vehicle model by name: the upgrades' model ids. */
-   upgradesOf:(model:string)=>(carMods.mods.get(model.toLowerCase())??[]).map(name=>ids.get(name)).filter((id):id is number=>id!==undefined)};
+   upgradesOf:(model:string)=>(carMods.mods.get(model.toLowerCase())??[]).map(name=>ids.get(name)).filter((id):id is number=>id!==undefined),
+   /** CVehicleModelInfo::m_anRemapTxds of a vehicle model by name: its paintjobs' texture dictionaries. */
+   remapsOf:(model:string)=>remaps.get(model.toLowerCase())??[]};
  })();
  return {definitions,handling,colors,flyingHandling,carGroups,colourRotation,lightsOnTexture,upgrades,rawPopulationCycle,populationCycle,populationCarModelsAt(zoneType:number,day:number,hour:number){return populationCarModels(populationCycleAt(populationCycle,zoneType,day,hour),carGroups);},async load(modelId:number,options:{plateRegion?:number;plateText?:string}={}){
   const matches=definitions.filter(v=>v.id===modelId);requireAsset(matches.length===1,'Vehicle ID is missing or ambiguous.');const vehicle=matches[0];

@@ -656,6 +656,11 @@ export interface ScmMissionWorld {
  setScriptVehicleHydraulics?(car:unknown,fitted:boolean):void;
  /** CVehicle::m_nHandlingFlags as the car's handling line gives them. */
  scriptVehicleHandlingFlags?(car:unknown):number;
+ /** The vehicle catalog's upgrade tables: a vehicle model's upgrades (m_anUpgrades), an upgrade's eVehicleModSlot, a
+  * model's paintjob count (GetNumRemaps) and colour variation count (m_nNumColorVariations). */
+ vehicleUpgradeTables?():{upgradesOf(model:number):readonly number[];modSlotOf(model:number):number;remapCount(model:number):number;colourCount(model:number):number}|undefined;
+ /** A script car's paintjob (CVehicle::GetRemapIndex, -1 none). */
+ scriptVehiclePaintjob?(car:unknown):number;
  /** A script car's handling model flags (m_nModelFlags), which set vehicleFlags.bIsBig among others. */
  scriptVehicleModelFlags?(car:unknown):number;
  /** CVehicle::m_fDirtLevel. */
@@ -2305,13 +2310,18 @@ export class ScmMission {
    isCarLowRider:handle=>(this.host('scriptVehicleHandlingFlags','IS_CAR_LOW_RIDER')(this.liveVehicle(handle))&HANDLING_LOW_RIDER)!==0,
    // IS_CAR_STREET_RACER: handlingFlags.bStreetRacer (0x4000000).
    isCarStreetRacer:handle=>(this.host('scriptVehicleHandlingFlags','IS_CAR_STREET_RACER')(this.liveVehicle(handle))&HANDLING_STREET_RACER)!==0,
+   availableVehicleMod:(handle,index)=>{const tables=this.host('vehicleUpgradeTables','GET_AVAILABLE_VEHICLE_MOD')();const model=this.vehicleModelNumber(handle);return tables&&model!==undefined?tables.upgradesOf(model)[index]??-1:-1;},
+   vehicleModType:model=>{const tables=this.host('vehicleUpgradeTables','GET_VEHICLE_MOD_TYPE')();return tables&&typeof model==='number'?tables.modSlotOf(model):0;},
+   numAvailablePaintjobs:handle=>{const tables=this.host('vehicleUpgradeTables','GET_NUM_AVAILABLE_PAINTJOBS')();const model=this.vehicleModelNumber(handle);return tables&&model!==undefined?tables.remapCount(model):0;},
+   numCarColours:handle=>{const tables=this.host('vehicleUpgradeTables','GET_NUM_CAR_COLOURS')();const model=this.vehicleModelNumber(handle);return tables&&model!==undefined?tables.colourCount(model):0;},
+   currentVehiclePaintjob:handle=>this.host('scriptVehiclePaintjob','GET_CURRENT_VEHICLE_PAINTJOB')(this.liveVehicle(handle)),
    // IS_BIG_VEHICLE: vehicleFlags.bIsBig, which the vehicle takes from its handling's model flags (IS_BIG, 0x8).
    isBigVehicle:handle=>(this.host('scriptVehicleModelFlags','IS_BIG_VEHICLE')(this.liveVehicle(handle))&MODEL_FLAG_IS_BIG)!==0,
    // IS_EMERGENCY_SERVICES_VEHICLE: CVehicle::IsLawEnforcementVehicle, or the Fire Truck (407), its ladder truck (544)
    // or the Ambulance (416).
    isEmergencyServicesVehicle:handle=>{
-    const model=handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle);
-    return typeof model==='number'&&(LAW_ENFORCEMENT_MODELS.has(model)||model===407||model===544||model===416);
+    const model=this.vehicleModelNumber(handle);
+    return model!==undefined&&(LAW_ENFORCEMENT_MODELS.has(model)||model===407||model===544||model===416);
    },
    // SET_VEHICLE_DIRT_LEVEL: m_fDirtLevel, which the dirt texture blend reads (0 to 15).
    setVehicleDirtLevel:(handle,level)=>{this.host('setScriptVehicleDirtLevel','SET_VEHICLE_DIRT_LEVEL')(this.liveVehicle(handle),Math.max(0,Math.min(15,level)));},
@@ -3331,6 +3341,8 @@ export class ScmMission {
   this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,seat);
  }
  /** The model of the vehicle a ped rides, by its handle. */
+ /** A car handle's model id, the player's own car's included; undefined for none or a model known only by name. */
+ private vehicleModelNumber(handle:number){const model=handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle);return typeof model==='number'?model:undefined;}
  private pedVehicleModel(handle:number){
   const vehicle=handle===PLAYER_PED_HANDLE?this.playerCarHandle():this.peds.rideOf(handle)?.vehicle;
   if(vehicle===undefined)return undefined;

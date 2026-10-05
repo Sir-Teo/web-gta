@@ -5725,6 +5725,8 @@ async function boot() {
                  setScriptVehicleHydraulics:(car,fitted)=>{const c=car as Partial<ScriptCar>;if(fitted)c.fitHydraulics?.();else c.removeHydraulics?.();},
                  scriptVehicleHandlingFlags:car=>(car as Partial<ScriptCar>).handlingFlags??0,
                  scriptVehicleModelFlags:car=>(car as Partial<ScriptCar>).modelFlags??0,
+                 vehicleUpgradeTables:()=>fleet?.upgradeTables(),
+                 scriptVehiclePaintjob:car=>(car as Partial<ScriptCar>).paintjob??-1,
                  setScriptVehicleDirtLevel:(car,level)=>{const c=car as Partial<ScriptCar>;if(c.dirtLevel!==undefined)c.dirtLevel=level;},
                  playerUsingJetpack:()=>!!sim.jetPack,
                  setDeathPenalties:apply=>{gameLogic.penaltyForDeathApplies=apply;},

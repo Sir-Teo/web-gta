@@ -32,6 +32,7 @@ import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
+import {vehicleModSlot} from '../vehicle/nativeVehicleUpgrades';
 /** CCarCtrl::PruneVehiclesOfInterest drops a vehicle of interest 180000 ms after it was last registered. */
 const VEHICLE_OF_INTEREST_MS=180000;
 /** Resolve one random-model generator against a membership pool (CCarGenerator
@@ -147,6 +148,17 @@ export class WorldFleet {
   vehicleByBody(handle:number){for(const b of this.bikes)if(!b.disposed&&b.body.handle===handle)return b;for(const b of this.boats)if(b.body.handle===handle)return b;return undefined;}
   /** VEHICLES.IDE class of a model (normal, poorfamily, executive, big, ...), once the catalog has loaded. */
   vehicleClass(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.vehicleClass;}
+  /** The catalog's upgrade tables by vehicle model id, for the mod shops' script questions; undefined until it is in. */
+  upgradeTables(){
+   const catalog=this.catalog;if(!catalog)return undefined;
+   const name=(model:number)=>catalog.definitions.find(v=>v.id===model)?.model;
+   return {
+    upgradesOf:(model:number)=>{const n=name(model);return n?catalog.upgrades.upgradesOf(n):[];},
+    modSlotOf:(model:number)=>vehicleModSlot(catalog.upgrades.placeOf(model)),
+    remapCount:(model:number)=>{const n=name(model);return n?catalog.upgrades.remapsOf(n).length:0;},
+    colourCount:(model:number)=>{const n=name(model);return n?carColorVariationCount(catalog.colors,n):0;},
+   };
+  }
   /** The cars a car park's script made (bIsCarParkVehicle, RANDOM_VEHICLE): removed far off as the parked ones are. */
   private carParkCars=new Set<WorldCar|WorldBike>();
   /** CCarCtrl::NumRandomCars: the traffic and the car parks' cars (the generators' are NumParkedCars). */

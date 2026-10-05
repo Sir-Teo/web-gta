@@ -140,6 +140,8 @@ export class WorldCar {
  pendingExplosion=false;
  /** The explosion is the player's: m_pWhoDetonatedMe of a bomb he set off. */
  explosionByPlayer=false;
+ /** CVehicle::GetRemapIndex: the paintjob of its model's it wears, -1 for none. */
+ paintjob=-1;
  /** vehicleFlags.bEngineBroken (SET_CAR_ENGINE_BROKEN): the engine stays off and the car will not drive. */
  engineBroken=false;
  /** vehicleFlags.bIsCarParkVehicle: made by a car park's script (CREATE_RANDOM_CAR_FOR_CAR_PARK). */

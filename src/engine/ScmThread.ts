@@ -880,6 +880,13 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  enableBurglaryHouses?(state:boolean):void;
  isCarLowRider?(handle:number):boolean;
  isBigVehicle?(handle:number):boolean;
+ /** The mod shops' questions: an upgrade of the car's model by place (-1 past the last), an upgrade's mod slot, the
+  * car's paintjob count, its colour variation count and its paintjob (-1 none). */
+ availableVehicleMod?(handle:number,index:number):number;
+ vehicleModType?(model:number|string):number;
+ numAvailablePaintjobs?(handle:number):number;
+ numCarColours?(handle:number):number;
+ currentVehiclePaintjob?(handle:number):number;
  isCarStreetRacer?(handle:number):boolean;
  isEmergencyServicesVehicle?(handle:number):boolean;
  getVehicleClass?(handle:number):number;

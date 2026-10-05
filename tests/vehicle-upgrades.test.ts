@@ -1,6 +1,6 @@
 import {expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {otherLinkedUpgrade,readCarMods,vehicleUpgradePlace,VEHICLE_UPGRADE_SLOTS} from '../src/vehicle/nativeVehicleUpgrades';
+import {otherLinkedUpgrade,readCarMods,vehicleModSlot,vehicleRemaps,vehicleUpgradePlace,VEHICLE_UPGRADE_SLOTS} from '../src/vehicle/nativeVehicleUpgrades';
 // CVehicleModelInfo::LoadVehicleUpgrades over the published carmods.dat (noclip's PC copy; the iOS bundle's is the
 // same file with Unix line ends), and CAtomicModelInfo::SetupVehicleUpgradeFlags.
 const mods=readCarMods(readFileSync('public/play/world/files/vehicles/carmods.dat','utf8'));
@@ -30,4 +30,15 @@ test('an upgrade\'s place: a chassis part at the car\'s upgrade positions, a dum
  // Every upgrade the file names has a place.
  const all=[...mods.links.flat(),...[...mods.mods.values()].flat(),...[...mods.wheels.values()].flat()];
  expect(all.filter(n=>!vehicleUpgradePlace(n))).toEqual([]);
+});
+test("GET_VEHICLE_MOD_TYPE's slots (iOS): the chassis parts 0 to 10, the dummy parts 11 to 16, anything else 0",()=>{
+ const slot=(name:string)=>vehicleModSlot(vehicleUpgradePlace(name));
+ expect(['bnt_b_sc_m','bntl_b_ov','bntr_b_ov','spl_b_mar_m','wg_l_b_ssk','wg_r_a_j','fbb_lr_slv1','bbb_lr_slv1','lgt_b_rspt','rf_b_sc_r','nto_b_l','hydralics','stereo'].map(slot)).toEqual([0,1,1,2,3,3,4,5,6,7,8,9,10]);
+ expect(['chss_lr_t1','wheel_gn1','exh_b_t','fbmp_a_s','rbmp_a_s','misc_a_lr_rem1','misc_b_lr_rem1','misc_c_lr_rem1'].map(slot)).toEqual([11,12,13,14,15,16,16,16]);
+ expect(slot('cj_coin_op')).toBe(0);
+});
+test("a vehicle's paintjobs: the archive's dictionaries named after it with digits, in the archive's order, four at most (AssignRemapTxd)",()=>{
+ const remaps=vehicleRemaps(['elegy1.txd','elegy.txd','elegy2.TXD','cj_ped1.txd','camper1.txd','elegy3.txd','x1.dff','sultan1.txd','sultan2.txd','sultan3.txd','sultan4.txd','sultan5.txd'],new Set(['elegy','camper','sultan']));
+ expect(remaps.get('elegy')).toEqual(['elegy1','elegy2','elegy3']);expect(remaps.get('camper')).toEqual(['camper1']);
+ expect(remaps.get('sultan')).toHaveLength(4);expect(remaps.has('cj_ped')).toBe(false);
 });
