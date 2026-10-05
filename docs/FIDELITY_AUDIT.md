@@ -8949,6 +8949,14 @@ that did anything.
     `progression` (unit: the kept cars round the save); `safehouse-garage` (browser: the Johnson house garage, cjsafe,
     opens for CJ walking up and shuts when he walks off; a Sadler parked in it is kept and gone when the door comes
     down, written to the save, and stands where it was in its paint when he comes back).
+- **The vehicle upgrades are known** (CVehicleModelInfo::LoadVehicleUpgrades and CAtomicModelInfo::
+  SetupVehicleUpgradeFlags, reversed). carmods.dat is now published (noclip's PC copy; the iOS bundle's is the same
+  file with Unix line ends) and read into the vehicle catalog: the 23 linked left/right pairs, each model's upgrades
+  (m_anUpgrades, 18 places, every list closed by the hydraulics and the stereo), and the three wheel sets, their
+  names resolved to veh_mods.ide's model ids. An upgrade's place comes from its name: a chassis part (bonnet and its
+  halves, spoiler, wings, bull bars, lamps, roof, nitro, hydraulics, stereo) or a dummy part standing in for one of
+  the car's own (chassis, wheels, exhaust, bumpers, misc). Nothing is fitted yet: this is the mod shops' data.
+  Specs: `vehicle-upgrades` (unit, on the published file).
 - **The vehicle-class questions the mod shops and the valet ask** (absent from gta-reversed; the iOS handlers in the
   2400 switch): IS_BIG_VEHICLE (0x1002034d0) reads vehicleFlags.bIsBig, here the handling's IS_BIG model flag (0x8) it
   is set from; IS_CAR_STREET_RACER (0x1002036c4) handlingFlags.bStreetRacer (0x4000000); IS_EMERGENCY_SERVICES_VEHICLE

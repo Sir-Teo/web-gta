@@ -12,10 +12,12 @@ import {decodeNamedTextures} from './modelTextures';
 import {generatePlateText,plateDesignForRegion,plateModelTextures} from '../vehicle/nativeCarPlates';
 import {VehicleColourRotation} from '../vehicle/nativeVehicleColours';
 import {requireAsset} from './binary';
+import {readIdeAssociations} from './ide';
+import {readCarMods,vehicleUpgradePlace} from '../vehicle/nativeVehicleUpgrades';
 /** Shared native asset catalog for every vehicle type. Physics preparation belongs to its type-specific controller. */
 export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof openStaticWorld>>){
  const file=async(name:string)=>{const resource=source.manifest.resources.find(r=>r.path===`vehicles/${name}`);requireAsset(resource,`Missing native vehicle resource: ${name}`);return source.resource(resource!);};
- const [ide,handlingFile,colorsFile,shared,carGroupsFile,populationFile]=await Promise.all(['vehicles.ide','handling.cfg','carcols.dat','vehicle.txd','cargrp.dat','popcycle.dat'].map(file));
+ const [ide,handlingFile,colorsFile,shared,carGroupsFile,populationFile,carModsFile]=await Promise.all(['vehicles.ide','handling.cfg','carcols.dat','vehicle.txd','cargrp.dat','popcycle.dat','carmods.dat'].map(file));
  const definitions=readVehicleIde(await ide.text()).records,handling=readHandling(await handlingFile.text()),colors=readCarColors(await colorsFile.text());
  const carGroups=resolveCarGroups(readCarGroups(await carGroupsFile.text()),definitions);
  const rawPopulationCycle=readPopulationCycle(await populationFile.text()),populationCycle=preparePopulationCycle(rawPopulationCycle);
@@ -30,7 +32,21 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
  const plateTexts=new Map<number,string>(),plateRandom=()=>Math.floor(Math.random()*32768)/32767;
  // CVehicleModelInfo::ChooseVehicleColour's per-model rotation, shared by every vehicle built from this catalog.
  const colourRotation=new VehicleColourRotation();
- return {definitions,handling,colors,flyingHandling,carGroups,colourRotation,lightsOnTexture,rawPopulationCycle,populationCycle,populationCarModelsAt(zoneType:number,day:number,hour:number){return populationCarModels(populationCycleAt(populationCycle,zoneType,day,hour),carGroups);},async load(modelId:number,options:{plateRegion?:number;plateText?:string}={}){
+ // CVehicleModelInfo::LoadVehicleUpgrades: carmods.dat, its names resolved to veh_mods.ide's model ids.
+ const upgrades=await (async()=>{
+  const modsResource=source.manifest.resources.find(r=>r.path==='ide/veh_mods/veh_mods.ide');requireAsset(modsResource,'Missing native vehicle upgrade definitions.');
+  const ids=new Map(readIdeAssociations(await (await source.resource(modsResource!)).text()).map(r=>[r.model.toLowerCase(),r.id] as const));
+  const carMods=readCarMods(await carModsFile.text());
+  return {carMods,
+   /** An upgrade's model id by name (CModelInfo::GetModelInfo), and back. */
+   idOf:(name:string)=>ids.get(name.toLowerCase()),
+   nameOf:(id:number)=>{for(const [name,value] of ids)if(value===id)return name;return undefined;},
+   /** CAtomicModelInfo's CarMod and bUsesVehDummy for an upgrade's model id. */
+   placeOf:(id:number)=>{for(const [name,value] of ids)if(value===id)return vehicleUpgradePlace(name);return undefined;},
+   /** CVehicleModelInfo::m_anUpgrades of a vehicle model by name: the upgrades' model ids. */
+   upgradesOf:(model:string)=>(carMods.mods.get(model.toLowerCase())??[]).map(name=>ids.get(name)).filter((id):id is number=>id!==undefined)};
+ })();
+ return {definitions,handling,colors,flyingHandling,carGroups,colourRotation,lightsOnTexture,upgrades,rawPopulationCycle,populationCycle,populationCarModelsAt(zoneType:number,day:number,hour:number){return populationCarModels(populationCycleAt(populationCycle,zoneType,day,hour),carGroups);},async load(modelId:number,options:{plateRegion?:number;plateText?:string}={}){
   const matches=definitions.filter(v=>v.id===modelId);requireAsset(matches.length===1,'Vehicle ID is missing or ambiguous.');const vehicle=matches[0];
   const flight=flyingHandling.get(vehicle.handling);if(vehicle.type==='plane'||vehicle.type==='heli')requireAsset(flight,`Unresolved flying handling: ${vehicle.handling}`);
   const entry=entries.get(vehicle.model.toLowerCase()+'.dff'),textureEntry=entries.get(vehicle.dictionary.toLowerCase()+'.txd');requireAsset(entry&&textureEntry,`Missing vehicle model or dictionary: ${vehicle.model}`);

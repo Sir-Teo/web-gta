@@ -25,6 +25,12 @@
       "path": "vehicles/handling.cfg",
       "bytes": 64532,
       "sha256": "b6d06109441c342a000e8bec367ffac1bd949cd12690372dc01a2c025d6c0240"
+    },
+    {
+      "url": "https://z.noclip.website/GrandTheftAutoSanAndreas/data/carmods.dat",
+      "path": "vehicles/carmods.dat",
+      "bytes": 9110,
+      "sha256": "64f8811b676094f62157272e41f8ccf017082ca31993f2ec8ac4dc29e731d40f"
     }
   ]
 }
