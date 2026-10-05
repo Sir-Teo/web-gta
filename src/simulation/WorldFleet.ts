@@ -392,7 +392,7 @@ export class WorldFleet {
    const car=new WorldCar(this.sim,this.scene,assets,at,this.road,0);
    car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
    car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;
-   car.waitForCollision(false);this.cars.add(car);this.paintCar(car,colours);vehicle=car;
+   car.driverless=true;car.waitForCollision(false);this.cars.add(car);this.paintCar(car,colours);vehicle=car;
   }
   vehicle.car.body.setTranslation(at,true);vehicle.car.body.setRotation(rotation,true);
   return vehicle;

@@ -8940,7 +8940,8 @@ that did anything.
     shut where gta-reversed's 0x44A170 asks for an open one; RemoveCarsBlockingDoorNotInside, iOS 0x1001b6b48).
   - **Not kept:** the handling flags other than nitro, the radio station, the bomb, the tuning parts, the paintjob,
     the two extras and flag 32 (vehicle flag 0x56e bit 4) that StoreCar also writes: the port's cars do not carry them
-    yet. A boat or aircraft in a garage is removed without being kept.
+    yet. The pool walk takes the fleet's cars and bikes only, so a boat or aircraft in a garage is left where it is
+    (the game's would take it out, and keep it if among the first four).
   - Specs: `scm-garages` (unit: the openings on foot, in a car and on a BMX, the interior, the closings by distance,
     the doorway, the full garage, GA_21 and the 70-unit rule, the reopening, the store and restore with a car still
     being made, the slots, the save's check of a kept car, the hangar, an inactive garage, the closing before a save);

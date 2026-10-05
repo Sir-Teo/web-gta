@@ -6085,7 +6085,8 @@ async function boot() {
                   // stood, its forward unpacked and squared with the up (as re3's), its proofs and nitro back.
                   restoreCar:stored=>{
                    const state=restoring.get(stored);if(state===true){restoring.delete(stored);return true;}
-                   if(state)return false;if(!fleet)return true;
+                   // Until the fleet is up the car cannot be made, and the door waits as for a model still loading.
+                   if(state||!fleet)return false;
                    const [px,py,pz]=stored.position,f=new Vector3(stored.forward[0],stored.forward[2],-stored.forward[1]).normalize();
                    const right=new Vector3().crossVectors(f,new Vector3(0,1,0));if(right.lengthSq()<1e-6)right.set(1,0,0);right.normalize();
                    const up=new Vector3().crossVectors(right,f).normalize(),rotation=new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(right,up,f.clone().negate()));

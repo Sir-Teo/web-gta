@@ -40,12 +40,16 @@ test('the Johnson house garage keeps a car parked in it while shut and puts it b
  // A Sadler from the cheat, set down in the middle of the garage facing in. (Other Sadlers may be about: the one
  // looked for is the one within a few units of the garage's middle, or of CJ just after the cheat.)
  const sadler=(x=2505.5,z=1695.2)=>page.evaluate(([x,z])=>{const car=[...(window as any).__game.fleet().cars].find((c:any)=>{if(c.assets.vehicle.id!==543||c.disposed)return false;const t=c.car.body.translation();return Math.hypot(t.x-x,t.z-z)<8;});
-  if(!car)return null;const t=car.car.body.translation();return {handle:car.car.body.handle,x:t.x,y:t.y,z:t.z,colours:[...car.assets.colourIndices]};},[x,z]);
+  if(!car)return null;const t=car.car.body.translation(),q=car.car.body.rotation();
+  // The model's forward (the renderer's -z) turned by the body.
+  const forward=[-2*(q.x*q.z+q.w*q.y),-2*(q.y*q.z-q.w*q.x),-(1-2*(q.x*q.x+q.y*q.y))];
+  return {handle:car.car.body.handle,x:t.x,y:t.y,z:t.z,forward,colours:[...car.assets.colourIndices],abandoned:car.abandoned};},[x,z]);
  await page.evaluate(()=>(window as any).__game.spawnVehicle(543));
  const cj=(await state()).player.position;
  await expect.poll(()=>sadler(cj.x,cj.z),{timeout:30000}).not.toBeNull();
  const parked=await sadler(cj.x,cj.z);
- await page.evaluate(handle=>{const g=(window as any).__game;g.placeFleetCar(`handle:${handle}`,2505.5,g.groundAt(2505.5,1695.2,15)+1.2,1695.2,0);},parked!.handle);
+ // Turned a little off the garage's line, so a turn lost on the way would show.
+ await page.evaluate(handle=>{const g=(window as any).__game;g.placeFleetCar(`handle:${handle}`,2505.5,g.groundAt(2505.5,1695.2,15)+1.2,1695.2,.3);},parked!.handle);
  await page.waitForTimeout(2000);
  // (The ground is found from under the garage roof.)
  const settled=(await sadler())!;expect(settled.handle).toBe(parked!.handle);expect(Math.abs(settled.z-1695.2)).toBeLessThan(.5);expect(settled.y).toBeLessThan(15);
@@ -62,5 +66,8 @@ test('the Johnson house garage keeps a car parked in it while shut and puts it b
  const back=(await sadler())!;
  expect(back).not.toBeNull();expect(Math.hypot(back.x-settled.x,back.y-settled.y,back.z-settled.z)).toBeLessThan(.2);
  expect(back.colours).toEqual(settled.colours);
+ // Facing as it was (the forward is kept to hundredths), and abandoned, as RestoreCar leaves it.
+ for(let i=0;i<3;i++)expect(Math.abs(back.forward[i]-settled.forward[i])).toBeLessThan(.03);
+ expect(Math.abs(settled.forward[0])).toBeGreaterThan(.2);expect(back.abandoned).toBe(true);
  expect(errors).toEqual([]);
 });
