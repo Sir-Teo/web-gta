@@ -8,7 +8,7 @@ import {nativePlayerMaterial} from './nativePlayerMaterial';
 import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
 import { armChain, stepIkBlend, type NativeIkChain } from '../animation/nativeIkChain';
-import { Group, Quaternion, MeshBasicMaterial, Matrix4, Object3D, Mesh, Vector3 } from 'three';
+import { Group, Quaternion, MeshBasicMaterial, Matrix4, Object3D, Mesh, Vector3, type SkinnedMesh, type BufferAttribute, type DataTexture } from 'three';
 import { bindAnimation,withoutForeignTracks} from '../animation/bind';
 import { locomotionMotion } from '../animation/locomotion';
 import { swimMotion, swimRootTrack } from '../animation/swimMotion';
@@ -233,6 +233,36 @@ export class NativeCharacter {
     if(enabled&&this.heatOriginals.size===0)this.owner.root.traverse(o=>{if(o instanceof Mesh){this.heatOriginals.set(o,o.material);o.material=this.heatMaterial;}});
     if(!enabled&&this.heatOriginals.size){for(const [mesh,material] of this.heatOriginals)mesh.material=material;this.heatOriginals.clear();}
   }
+  /** CClothes::RebuildPlayer's new body on the old skeleton (it hands the rebuilt clump its running animations back):
+   * each skinned atomic takes the new model's vertices and influences, and each of its maps the new texture of its
+   * name. The new model must have the same atomics and vertex counts (a blend of the bodies keeps the normal one's);
+   * otherwise nothing changes and the answer is false. */
+  replaceBody(model:import('../assets/dff').DffModel,textures:readonly import('../assets/modelTextures').ModelTexture[]){
+    if(!this.source.playerBody)return false;
+    const meshes:SkinnedMesh[]=[];this.owner.root.traverse(o=>{if((o as SkinnedMesh).isSkinnedMesh&&Number.isInteger(o.userData.nativeAtomic))meshes.push(o as SkinnedMesh);});
+    const parts=meshes.map(mesh=>({mesh,source:model.geometries[model.atomics[mesh.userData.nativeAtomic]?.geometry??-1]}));
+    if(!parts.length||parts.some(({mesh,source})=>!source?.skin||!source.normals||!source.uvs[0]||mesh.geometry.getAttribute('position').count*3!==source.positions.length))return false;
+    for(const {mesh,source} of parts){
+      const g=mesh.geometry,set=(name:string,data:ArrayLike<number>)=>{const a=g.getAttribute(name) as BufferAttribute|undefined;if(a){(a.array as Float32Array|Uint8Array).set(data);a.needsUpdate=true;}};
+      set('position',source.positions);set('normal',source.normals!);set('uv',source.uvs[0]);
+      // As modelObject binds them: an influence of no weight points at bone 0.
+      const indices=source.skin!.indices.slice();indices.forEach((_,i)=>{if(!source.skin!.weights[i])indices[i]=0;});
+      set('skinIndex',indices);set('skinWeight',source.skin!.weights);mesh.normalizeSkinWeights();
+      g.computeBoundingSphere();
+      const materials=this.heatOriginals.get(mesh)??mesh.material;
+      for(const material of Array.isArray(materials)?materials:[materials]){
+        const map=(material as MeshBasicMaterial).map as DataTexture|null|undefined,next=map&&textures.find(t=>t.name.toLowerCase()===map.name.toLowerCase());
+        if(!map?.isDataTexture||!next)continue;
+        // A new image, not the old one written over: the old pixels may be a dictionary's decoded raster.
+        const level=next.mips[0];map.image={data:level.data,width:level.width,height:level.height};map.mipmaps=[];map.needsUpdate=true;
+      }
+    }
+    this.bodySwaps++;
+    return true;
+  }
+  private bodySwaps=0;
+  /** The body's bind-pose half width (the largest |x| of its skinned vertices), for specs. */
+  bodyExtent(){let extent=0;this.owner.root.traverse(o=>{if((o as SkinnedMesh).isSkinnedMesh){const p=(o as SkinnedMesh).geometry.getAttribute('position');for(let i=0;i<p.count;i++)extent=Math.max(extent,Math.abs(p.getX(i)));}});return extent;}
   /** Native BONE_R_HAND (24) by default; BONE_L_HAND is 34. */
   hand(boneId=24){return this.bone(boneId);}
   setWeaponPose(name?:string,time=.05){this.weaponPose=name;if(name)this.aimPose={name,time};}
@@ -894,7 +924,7 @@ export class NativeCharacter {
   }
   /** The current locomotion action, as snapshot().action gives it, without building the snapshot. */
   get currentAction(){return this.action === 'move' ? this.moveAction() : this.action;}
-  snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time })) : null, seconds: this.seconds, visible: this.root.visible }; }
+  snapshot() { return { motionGroup:this.playerMotionGroup,vehicleClip:this.vehicleClip??null,reload:this.weaponReload??null,reaction:this.reaction?.name??null, gun:this.gunAnims?{cmd:{...this.gunAnims.cmd},lowered:this.gunAimLowered,poses:this.gunAnims.poses().map(a=>({clip:a.clip,blend:+a.blend.toFixed(3),playing:a.playing,speed:+a.speed.toFixed(3)}))}:null, playbackSpeed:landingAction(this.action)?this.landingSpeed:1, moveBlend:this.moveBlend, playerBody:!!this.shoulders, bodySwaps:this.bodySwaps, transition: this.transitionTime / this.transitionDuration, action: this.action === 'move' ? this.moveAction() : this.action, moves: this.moveAnims ? [...this.moveAnims.assocs.values()].map(a => ({ clip: a.clip, blend: a.blend, time: a.time })) : null, seconds: this.seconds, visible: this.root.visible }; }
   /** The gait the movement associations show, by name. */
   private moveAction(): Action { const a = this.moveAnims!; if (a.assocs.has('runStop') || a.assocs.has('runStopR')) return 'runStop'; if (a.assocs.has('walkStart')) return 'walkStart'; const w = (c: MoveClip) => a.assocs.get(c)?.blend ?? 0; return w('sprint') > .5 ? 'sprint' : w('run') > w('walk') && w('run') > w('idle') ? 'run' : w('walk') > w('idle') ? 'walk' : 'idle'; }
   dispose() { this.setThermal(false);this.heatMaterial.dispose();this.root.removeFromParent(); this.owner.dispose(); }

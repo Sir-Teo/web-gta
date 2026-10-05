@@ -34,6 +34,7 @@ export function readPlayerBaseBody(files:ReadonlyMap<string,Uint8Array>,variant:
  const suffix=ratios||variant==='normal'?'':`_${variant}`;
  const bindings={torso:`torso${suffix}`,head:'face',hands:`torso${suffix}`,legs:`legs${suffix}`,feet:'foot'};
  const model=assemblePlayerBody(readDff(bytes('player.dff')),parts,bindings);
+ if(!ratios)model.warnings.push('One body whole: stat blending is not applied.');
  const slots=[['player_torso.txd',bindings.torso],['player_face.txd',bindings.head],
   ['player_legs.txd',bindings.legs],['player_feet.txd',bindings.feet]];
  const textures=slots.flatMap(([dictionary,raster])=>{

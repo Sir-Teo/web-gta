@@ -6289,7 +6289,7 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Choice:** CClothes::GetPlayerMotionGroupToLoad (reversed) picks the fat group past 500 fat that outweighs the muscle, else the muscular group past 500 muscle, else the player group. RequestMotionGroupAnims loads the matching IFP block when the player is rebuilt. CClothes::RebuildPlayerIfNeeded rebuilds when the stats differ from the last build, on a restart (CGameLogic) and at the end of an entry-exit transfer, and ConstructPedModel runs at load.
 - **Port:** the player now walks, runs, sprints, idles and starts walking with fat.ifp's fat* or muscular.ifp's muscle* clips (aFatAnimations, aMuscularAnimations) from the next rebuild. Each running move keeps its blend and restarts the new clip, as ReApplyMoveAnims does.
 - **Unverifiable:** the switch itself runs in CPlayerPed::ProcessAnimGroups (0x6098F0), which is unreversed. So does the weapon-held movement (playerrocket, player2armed, playerBBBat, playercsaw and their f/m variants), which the port does not have.
-- **Not ported yet:** drawing the body shape. CClothesBuilder's blend (below) is ported, but the game still draws the normal body, so a fat CJ keeps the slim mesh. LoadCutsceneData's rebuild is wired; BuildCutscenePlayer's needs cutscenes that play.
+- **The body shape** follows the stats from the same rebuild (CClothesBuilder's blend, below). LoadCutsceneData's rebuild is wired; BuildCutscenePlayer's needs cutscenes that play.
 
 ## CJ's three bodies blend by his fat and muscle
 
@@ -6312,11 +6312,16 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   three rasters' red, green and blue summed by the ratios and cut to whole numbers, alpha the normal one's; the
   clothes go on top as before. The face's two-way blend needs a face_fat the PC dictionary does not have, and the
   tattoos' layer needs tattoos the port does not give, so neither is ported.
-- **Where:** `readPlayerBaseBody(files, ratios, outfit)`. At one ratio the blend is that body exactly; the game does
-  not build CJ this way yet (see "Player motion group").
+- **Where:** `readPlayerBaseBody(files, ratios, outfit)`. At one ratio the blend is that body exactly. The scene
+  builds CJ's normal body; each CClothes::RebuildPlayerIfNeeded whose stats give other ratios builds the blend (about
+  35 ms, in the fade of a restart, an entry-exit transfer or a load, or at the fat and muscle cheats) and puts it on
+  the same character (`NativeCharacter.replaceBody`): the skinned vertices, influences and skin maps change, the
+  skeleton and the running animations stay, as RebuildPlayer hands the rebuilt clump its animations back. A
+  character from the workshop is left alone.
 - Specs: `player-body-blend` (unit: the ratios, a vertex's blend and merged weights, a fifth bone dropped and the four
   rescaled, the pixels; on the published files, each body at its own ratio and the half-fat torso midway, every
-  vertex's weights summing to one).
+  vertex's weights summing to one; browser: 1000 fat widens CJ by more than 5% at the next rebuild on the same
+  character, with the fat motion group, and 0 brings back the slim body exactly).
 
 ## Stat update messages
 

@@ -29,6 +29,6 @@ export function assemblePlayerBody(template:DffModel,parts:Record<PlayerBodyPart
   geometries.push(copy);
   part.warnings.forEach(w=>warnings.add(`${name}: ${w}`));
  }
- warnings.add('Body parts assembled on the player skeleton; stat blending and seam processing are not applied.');
+ warnings.add('Body parts assembled on the player skeleton; seam processing is not applied.');
  return {frames:structuredClone(template.frames),geometries,atomics:geometries.map((_,geometry)=>({frame:targetAtomic.frame,geometry,flags:5})),warnings:[...warnings]};
 }

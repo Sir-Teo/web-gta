@@ -98,6 +98,7 @@ import {WorldPickups} from './simulation/WorldPickups';
 import {updatePlayerSwim} from './simulation/playerSwim';
 import {vehicleDestroyed} from './simulation/vehicleDestroyed';
 import {PLAYER_MOTION_CLIPS,playerMotionGroupToLoad} from './ped/playerMotionGroup';
+import {playerBodyRatios,type PlayerBodyRatios} from './assets/blendPlayerBody';
 import {vehicleLightsStatus} from './simulation/nativeVehicleLights';
 /** aDriveAnimIdsBoat: the standing boat driver's idle, steering and look back. */
 const BOAT_RIDE={idle:'DRIVE_BOAT',left:'DRIVE_BOAT_L',right:'DRIVE_BOAT_R',back:'DRIVE_BOAT_back'};
@@ -730,6 +731,24 @@ async function boot() {
    const fat=stats.get(21),muscle=stats.get(23);
    if(builtBody&&builtBody.fat===fat&&builtBody.muscle===muscle)return;
    builtBody={fat,muscle};wantedMotion=playerMotionGroupToLoad(fat,muscle);
+   void rebuildPlayerBody();
+  };
+  // CClothesBuilder::CreateSkinnedClump's body: the three bodies of the player's files blended by his fat and muscle,
+  // put on the character the scene built from those files (a character from the workshop is left alone). The scene
+  // builds the normal body; a rebuild with other ratios replaces it in place.
+  let playerBody:{files:File[];character:object;ratios:PlayerBodyRatios}|undefined;
+  const rebuildPlayerBody=async()=>{
+   const body=playerBody;if(!body||!builtBody||render.nativeCharacter!==body.character)return;
+   const ratios=playerBodyRatios(builtBody.fat,builtBody.muscle),was=body.ratios;
+   if(was.normal===ratios.normal&&was.fat===ratios.fat&&was.ripped===ratios.ripped)return;
+   body.ratios=ratios;
+   try{
+    const {readPlayerFiles}=await import('./assets/readPlayerFiles');
+    const built=await readPlayerFiles(body.files,ratios,'classic');
+    // A later rebuild, a new scene or another character supersedes this one.
+    if(!alive||playerBody!==body||body.ratios!==ratios||render.nativeCharacter!==body.character)return;
+    if(!render.nativeCharacter.replaceBody(built.model,built.textures))body.ratios=was;
+   }catch{if(body.ratios===ratios)body.ratios=was;}
   };
   const applyPlayerMotionGroup=()=>{
    const character=render.nativeCharacter;if(!character)return;
@@ -2848,6 +2867,8 @@ async function boot() {
     startCarPlayback:(car:number,fileNumber:number,looped=false)=>{const host=mission?.runtime.game.carRecordingHost;return host?startPlaybackRecordedCar(host,car,fileNumber,false,looped):-1;},
     /** CClothes::RebuildPlayerIfNeeded, as a restart or an entry-exit transfer runs it. */
     rebuildPlayerIfNeeded:()=>rebuildPlayerIfNeeded(),
+    /** The ratios CJ's body was last built with, and its bind-pose half width. */
+    playerBody:()=>({ratios:playerBody?{...playerBody.ratios}:null,extent:render.nativeCharacter?.bodyExtent()??null}),
     /** One pixel of a freshly drawn frame at fractions of the drawing buffer (GL origin bottom-left): the frame
      * limiter skips presenting on most animation frames, so a read from a spec's own callback sees a cleared buffer. */
     readPixel:(xFraction:number,yFraction:number)=>{
@@ -4618,7 +4639,8 @@ async function boot() {
           surfaceAudio=undefined;if(file.size>1024*1024)return false;
           try{const parsed=readSurfaceAudio(await file.text());if(parsed.warnings.length)return false;surfaceAudio=parsed;return true;}catch{return false;}
         }}},files=>sound.loadNativeFootsteps(files),async files=>{
-          try{if(parameters.has('characterTest'))return true;const {readLocalPlayerCharacter}=await import('./assets/localPlayerCharacter');const source=await readLocalPlayerCharacter(files);if(!alive)return false;render.installCharacter(source);return true;}catch{return false;}
+          try{if(parameters.has('characterTest'))return true;const {readLocalPlayerCharacter}=await import('./assets/localPlayerCharacter');const source=await readLocalPlayerCharacter(files);if(!alive)return false;render.installCharacter(source);
+           playerBody={files:files.body,character:render.nativeCharacter!,ratios:{normal:1,fat:0,ripped:0}};void rebuildPlayerBody();return true;}catch{return false;}
         });
         if(!alive)return;
         localLighting.setModifiers(data.timecycleBoxes??[]);
