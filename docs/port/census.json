@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-05T01:02:40.318Z",
+ "generated": "2026-10-05T01:13:06.689Z",
  "reference": {
   "path": "../gta-reversed/gta-reversed",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -10,9 +10,9 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1152,
+   "faithful": 1153,
    "authored": 27,
-   "silent": 4,
+   "silent": 3,
    "skipped": 183,
    "stops": 25
   }
@@ -27,18 +27,13 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3806,
+    "faithful": 3814,
     "authored": 8,
-    "silent": 8,
+    "silent": 0,
     "skipped": 19,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 8
-    },
     {
      "name": "ARE_MEASUREMENTS_IN_METRES",
      "status": "authored",
@@ -92,6 +87,11 @@
     {
      "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
      "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "GET_RID_OF_PLAYER_PROSTITUTE",
+     "status": "authored",
      "sites": 1
     }
    ]
@@ -188,9 +188,9 @@
    "byStatus": {
     "core": 631,
     "nop": 42,
-    "faithful": 247,
+    "faithful": 248,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 2
    },
@@ -203,11 +203,6 @@
     {
      "name": "CREATE_FX_SYSTEM_ON_OBJECT_WITH_DIRECTION",
      "status": "stops",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -1976,9 +1971,9 @@
    "byStatus": {
     "core": 1566,
     "nop": 0,
-    "faithful": 550,
+    "faithful": 552,
     "authored": 0,
-    "silent": 2,
+    "silent": 0,
     "skipped": 10,
     "stops": 2
    },
@@ -1996,11 +1991,6 @@
     {
      "name": "GET_PARKING_NODE_IN_AREA",
      "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 2
     },
     {
@@ -2377,9 +2367,9 @@
    "byStatus": {
     "core": 154,
     "nop": 1,
-    "faithful": 115,
+    "faithful": 116,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 10,
     "stops": 0
    },
@@ -2415,11 +2405,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "IS_PLAYER_IN_REMOTE_MODE",
      "status": "skipped",
      "sites": 1
@@ -2440,9 +2425,9 @@
    "byStatus": {
     "core": 1747,
     "nop": 1,
-    "faithful": 1106,
+    "faithful": 1107,
     "authored": 5,
-    "silent": 2,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
@@ -2451,11 +2436,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 5
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     },
     {
      "name": "DONT_SUPPRESS_CAR_MODEL",
@@ -2473,9 +2453,9 @@
    "byStatus": {
     "core": 1242,
     "nop": 1,
-    "faithful": 803,
+    "faithful": 804,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -2483,11 +2463,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -2501,9 +2476,9 @@
    "byStatus": {
     "core": 1199,
     "nop": 1,
-    "faithful": 850,
+    "faithful": 851,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -2511,11 +2486,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -2529,19 +2499,13 @@
    "byStatus": {
     "core": 1280,
     "nop": 2,
-    "faithful": 942,
+    "faithful": 943,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 15,
@@ -2552,9 +2516,9 @@
    "byStatus": {
     "core": 1294,
     "nop": 1,
-    "faithful": 818,
+    "faithful": 819,
     "authored": 4,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -2563,11 +2527,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 4
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -2580,9 +2539,9 @@
    "byStatus": {
     "core": 1600,
     "nop": 1,
-    "faithful": 1231,
+    "faithful": 1232,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -2590,11 +2549,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -2608,18 +2562,13 @@
    "byStatus": {
     "core": 2252,
     "nop": 1,
-    "faithful": 1124,
+    "faithful": 1125,
     "authored": 0,
-    "silent": 2,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "DONT_SUPPRESS_CAR_MODEL",
      "status": "silent",
@@ -2636,19 +2585,13 @@
    "byStatus": {
     "core": 1315,
     "nop": 3,
-    "faithful": 656,
+    "faithful": 657,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 19,
@@ -2659,18 +2602,13 @@
    "byStatus": {
     "core": 2703,
     "nop": 41,
-    "faithful": 1531,
+    "faithful": 1532,
     "authored": 0,
-    "silent": 2,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "DONT_SUPPRESS_CAR_MODEL",
      "status": "silent",
@@ -2687,19 +2625,13 @@
    "byStatus": {
     "core": 2708,
     "nop": 2,
-    "faithful": 1574,
+    "faithful": 1575,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 21,
@@ -2710,9 +2642,9 @@
    "byStatus": {
     "core": 439,
     "nop": 1,
-    "faithful": 398,
+    "faithful": 399,
     "authored": 3,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -2721,11 +2653,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -2738,19 +2665,13 @@
    "byStatus": {
     "core": 3672,
     "nop": 30,
-    "faithful": 1130,
+    "faithful": 1131,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 23,
@@ -2761,9 +2682,9 @@
    "byStatus": {
     "core": 1373,
     "nop": 2,
-    "faithful": 1115,
+    "faithful": 1116,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -2771,11 +2692,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -2789,9 +2705,9 @@
    "byStatus": {
     "core": 3798,
     "nop": 8,
-    "faithful": 1743,
+    "faithful": 1744,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -2799,11 +2715,6 @@
     {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -2817,9 +2728,9 @@
    "byStatus": {
     "core": 1294,
     "nop": 9,
-    "faithful": 1107,
+    "faithful": 1108,
     "authored": 4,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -2833,11 +2744,6 @@
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -2850,9 +2756,9 @@
    "byStatus": {
     "core": 3536,
     "nop": 38,
-    "faithful": 1427,
+    "faithful": 1428,
     "authored": 3,
-    "silent": 2,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
@@ -2861,11 +2767,6 @@
      "name": "SET_VEHICLE_IS_CONSIDERED_BY_PLAYER",
      "status": "authored",
      "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     },
     {
      "name": "DONT_SUPPRESS_CAR_MODEL",
@@ -2883,9 +2784,9 @@
    "byStatus": {
     "core": 2466,
     "nop": 3,
-    "faithful": 1429,
+    "faithful": 1430,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -2899,11 +2800,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -2916,19 +2812,13 @@
    "byStatus": {
     "core": 795,
     "nop": 1,
-    "faithful": 582,
+    "faithful": 583,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 29,
@@ -2939,9 +2829,9 @@
    "byStatus": {
     "core": 1468,
     "nop": 1,
-    "faithful": 1152,
+    "faithful": 1153,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -2955,11 +2845,6 @@
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -2972,9 +2857,9 @@
    "byStatus": {
     "core": 3840,
     "nop": 2,
-    "faithful": 3016,
+    "faithful": 3017,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 24,
     "stops": 0
    },
@@ -3003,11 +2888,6 @@
      "name": "HAS_OBJECT_OF_TYPE_BEEN_SMASHED",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -3020,9 +2900,9 @@
    "byStatus": {
     "core": 1276,
     "nop": 1,
-    "faithful": 710,
+    "faithful": 711,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 6,
     "stops": 0
    },
@@ -3051,11 +2931,6 @@
      "name": "ADD_VEHICLE_MOD",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -3068,19 +2943,13 @@
    "byStatus": {
     "core": 478,
     "nop": 1,
-    "faithful": 736,
+    "faithful": 737,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 33,
@@ -3091,9 +2960,9 @@
    "byStatus": {
     "core": 2023,
     "nop": 3,
-    "faithful": 1320,
+    "faithful": 1321,
     "authored": 10,
-    "silent": 1,
+    "silent": 0,
     "skipped": 8,
     "stops": 0
    },
@@ -3119,11 +2988,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "TASK_CHAR_ARREST_CHAR",
      "status": "skipped",
      "sites": 1
@@ -3139,9 +3003,9 @@
    "byStatus": {
     "core": 1044,
     "nop": 1,
-    "faithful": 1286,
+    "faithful": 1287,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -3149,11 +3013,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -3167,9 +3026,9 @@
    "byStatus": {
     "core": 4769,
     "nop": 48,
-    "faithful": 705,
+    "faithful": 706,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 17,
     "stops": 0
    },
@@ -3223,11 +3082,6 @@
      "name": "REGISTER_BEST_POSITION",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -3257,9 +3111,9 @@
    "byStatus": {
     "core": 4680,
     "nop": 1,
-    "faithful": 3694,
+    "faithful": 3695,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 57,
     "stops": 0
    },
@@ -3363,9 +3217,9 @@
    "byStatus": {
     "core": 1238,
     "nop": 2,
-    "faithful": 566,
+    "faithful": 567,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -3373,11 +3227,6 @@
     {
      "name": "ADD_BLIP_FOR_DEAD_CHAR",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -3408,19 +3257,13 @@
    "byStatus": {
     "core": 2644,
     "nop": 61,
-    "faithful": 1102,
+    "faithful": 1103,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 42,
@@ -3431,9 +3274,9 @@
    "byStatus": {
     "core": 2649,
     "nop": 5,
-    "faithful": 1575,
+    "faithful": 1576,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -3441,11 +3284,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -3459,9 +3297,9 @@
    "byStatus": {
     "core": 1706,
     "nop": 2,
-    "faithful": 797,
+    "faithful": 798,
     "authored": 3,
-    "silent": 1,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
@@ -3480,11 +3318,6 @@
      "name": "ADD_BLIP_FOR_CAR_OLD",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -3497,9 +3330,9 @@
    "byStatus": {
     "core": 1628,
     "nop": 3,
-    "faithful": 970,
+    "faithful": 971,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -3512,11 +3345,6 @@
     {
      "name": "HAS_OBJECT_OF_TYPE_BEEN_SMASHED",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -3547,9 +3375,9 @@
    "byStatus": {
     "core": 1132,
     "nop": 1,
-    "faithful": 972,
+    "faithful": 973,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -3557,11 +3385,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -3575,9 +3398,9 @@
    "byStatus": {
     "core": 1417,
     "nop": 4,
-    "faithful": 814,
+    "faithful": 815,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 16,
     "stops": 0
    },
@@ -3623,11 +3446,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "HELI_GOTO_COORDS",
      "status": "skipped",
      "sites": 1
@@ -3660,9 +3478,9 @@
    "byStatus": {
     "core": 2052,
     "nop": 1,
-    "faithful": 1003,
+    "faithful": 1004,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 4,
     "stops": 0
    },
@@ -3681,11 +3499,6 @@
      "name": "HELI_GOTO_COORDS",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -3698,9 +3511,9 @@
    "byStatus": {
     "core": 1666,
     "nop": 49,
-    "faithful": 837,
+    "faithful": 838,
     "authored": 4,
-    "silent": 1,
+    "silent": 0,
     "skipped": 8,
     "stops": 0
    },
@@ -3739,11 +3552,6 @@
      "name": "GET_CAR_MASS",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -3756,9 +3564,9 @@
    "byStatus": {
     "core": 1481,
     "nop": 8,
-    "faithful": 869,
+    "faithful": 870,
     "authored": 1,
-    "silent": 2,
+    "silent": 1,
     "skipped": 3,
     "stops": 0
    },
@@ -3784,11 +3592,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "DONT_SUPPRESS_CAR_MODEL",
      "status": "silent",
      "sites": 1
@@ -3804,9 +3607,9 @@
    "byStatus": {
     "core": 2080,
     "nop": 22,
-    "faithful": 569,
+    "faithful": 570,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 2,
     "stops": 0
    },
@@ -3815,11 +3618,6 @@
      "name": "TASK_CHAR_SLIDE_TO_COORD",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -3832,9 +3630,9 @@
    "byStatus": {
     "core": 2127,
     "nop": 3,
-    "faithful": 1301,
+    "faithful": 1302,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -3853,11 +3651,6 @@
      "name": "TASK_COWER",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -3870,19 +3663,13 @@
    "byStatus": {
     "core": 533,
     "nop": 7,
-    "faithful": 597,
+    "faithful": 598,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 55,
@@ -3893,19 +3680,13 @@
    "byStatus": {
     "core": 1009,
     "nop": 1,
-    "faithful": 490,
+    "faithful": 491,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 56,
@@ -3916,9 +3697,9 @@
    "byStatus": {
     "core": 2332,
     "nop": 4,
-    "faithful": 788,
+    "faithful": 789,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 29,
     "stops": 0
    },
@@ -3994,9 +3775,9 @@
    "byStatus": {
     "core": 1805,
     "nop": 5,
-    "faithful": 1554,
+    "faithful": 1555,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
@@ -4020,11 +3801,6 @@
      "name": "ADD_SMOKE_PARTICLE",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4037,9 +3813,9 @@
    "byStatus": {
     "core": 1556,
     "nop": 3,
-    "faithful": 661,
+    "faithful": 662,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -4047,11 +3823,6 @@
     {
      "name": "ATTACH_CHAR_TO_BIKE",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -4065,9 +3836,9 @@
    "byStatus": {
     "core": 2426,
     "nop": 45,
-    "faithful": 1242,
+    "faithful": 1243,
     "authored": 1,
-    "silent": 3,
+    "silent": 2,
     "skipped": 0,
     "stops": 0
    },
@@ -4081,11 +3852,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4098,9 +3864,9 @@
    "byStatus": {
     "core": 1680,
     "nop": 1,
-    "faithful": 776,
+    "faithful": 777,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -4114,11 +3880,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4131,9 +3892,9 @@
    "byStatus": {
     "core": 861,
     "nop": 14,
-    "faithful": 885,
+    "faithful": 886,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 5,
     "stops": 0
    },
@@ -4157,11 +3918,6 @@
      "name": "IS_CHAR_STUCK_UNDER_CAR",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4174,9 +3930,9 @@
    "byStatus": {
     "core": 774,
     "nop": 4,
-    "faithful": 460,
+    "faithful": 461,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 5,
     "stops": 0
    },
@@ -4200,11 +3956,6 @@
      "name": "SET_VEHICLE_CAN_BE_TARGETTED",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4217,9 +3968,9 @@
    "byStatus": {
     "core": 926,
     "nop": 6,
-    "faithful": 932,
+    "faithful": 933,
     "authored": 4,
-    "silent": 1,
+    "silent": 0,
     "skipped": 2,
     "stops": 0
    },
@@ -4232,11 +3983,6 @@
     {
      "name": "SET_CAR_LIGHTS_ON",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -4255,9 +4001,9 @@
    "byStatus": {
     "core": 2216,
     "nop": 4,
-    "faithful": 1859,
+    "faithful": 1860,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 14,
     "stops": 0
    },
@@ -4293,11 +4039,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "SET_HELI_REACHED_TARGET_DISTANCE",
      "status": "skipped",
      "sites": 1
@@ -4313,9 +4054,9 @@
    "byStatus": {
     "core": 998,
     "nop": 1,
-    "faithful": 532,
+    "faithful": 533,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 4,
     "stops": 0
    },
@@ -4339,11 +4080,6 @@
      "name": "LOCATE_OBJECT_2D",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4356,9 +4092,9 @@
    "byStatus": {
     "core": 1470,
     "nop": 1,
-    "faithful": 794,
+    "faithful": 795,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 2,
     "stops": 0
    },
@@ -4377,11 +4113,6 @@
      "name": "SET_CAR_ESCORT_CAR_LEFT",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4394,9 +4125,9 @@
    "byStatus": {
     "core": 880,
     "nop": 2,
-    "faithful": 309,
+    "faithful": 310,
     "authored": 4,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -4410,11 +4141,6 @@
      "name": "ADD_BLIP_FOR_CAR_OLD",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4427,9 +4153,9 @@
    "byStatus": {
     "core": 2236,
     "nop": 2,
-    "faithful": 1836,
+    "faithful": 1837,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 14,
     "stops": 0
    },
@@ -4465,11 +4191,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED",
      "status": "skipped",
      "sites": 1
@@ -4490,9 +4211,9 @@
    "byStatus": {
     "core": 3112,
     "nop": 31,
-    "faithful": 1547,
+    "faithful": 1548,
     "authored": 11,
-    "silent": 1,
+    "silent": 0,
     "skipped": 59,
     "stops": 0
    },
@@ -4551,11 +4272,6 @@
      "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4568,9 +4284,9 @@
    "byStatus": {
     "core": 752,
     "nop": 3,
-    "faithful": 454,
+    "faithful": 456,
     "authored": 2,
-    "silent": 2,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -4578,11 +4294,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 2
     },
     {
@@ -4601,9 +4312,9 @@
    "byStatus": {
     "core": 4181,
     "nop": 2,
-    "faithful": 1386,
+    "faithful": 1387,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 2,
     "stops": 0
    },
@@ -4612,11 +4323,6 @@
      "name": "SET_FREEBIES_IN_VEHICLE",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4629,9 +4335,9 @@
    "byStatus": {
     "core": 1449,
     "nop": 1,
-    "faithful": 807,
+    "faithful": 808,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 21,
     "stops": 0
    },
@@ -4662,11 +4368,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "REMOVE_RC_BUGGY",
      "status": "skipped",
      "sites": 1
@@ -4682,9 +4383,9 @@
    "byStatus": {
     "core": 851,
     "nop": 1,
-    "faithful": 485,
+    "faithful": 486,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 13,
     "stops": 0
    },
@@ -4718,11 +4419,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4735,9 +4431,9 @@
    "byStatus": {
     "core": 2395,
     "nop": 68,
-    "faithful": 633,
+    "faithful": 635,
     "authored": 0,
-    "silent": 2,
+    "silent": 0,
     "skipped": 22,
     "stops": 0
    },
@@ -4760,11 +4456,6 @@
     {
      "name": "DETACH_CAR",
      "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 2
     },
     {
@@ -4801,6 +4492,11 @@
      "name": "FIRE_SINGLE_BULLET",
      "status": "skipped",
      "sites": 1
+    },
+    {
+     "name": "REMOVE_RC_BUGGY",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -4813,19 +4509,13 @@
    "byStatus": {
     "core": 1060,
     "nop": 4,
-    "faithful": 435,
+    "faithful": 436,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 76,
@@ -4836,9 +4526,9 @@
    "byStatus": {
     "core": 1501,
     "nop": 3,
-    "faithful": 627,
+    "faithful": 628,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 18,
     "stops": 0
    },
@@ -4884,11 +4574,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "GET_RANDOM_CAR_OF_TYPE_IN_AREA_NO_SAVE",
      "status": "skipped",
      "sites": 1
@@ -4904,9 +4589,9 @@
    "byStatus": {
     "core": 2251,
     "nop": 55,
-    "faithful": 1074,
+    "faithful": 1075,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 24,
     "stops": 0
    },
@@ -4955,11 +4640,6 @@
      "name": "DISABLE_HELI_AUDIO",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -4989,9 +4669,9 @@
    "byStatus": {
     "core": 1112,
     "nop": 22,
-    "faithful": 232,
+    "faithful": 233,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 2,
     "stops": 0
    },
@@ -5010,11 +4690,6 @@
      "name": "PLANE_ATTACK_PLAYER",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5027,9 +4702,9 @@
    "byStatus": {
     "core": 1843,
     "nop": 9,
-    "faithful": 943,
+    "faithful": 944,
     "authored": 4,
-    "silent": 1,
+    "silent": 0,
     "skipped": 11,
     "stops": 0
    },
@@ -5083,11 +4758,6 @@
      "name": "GET_CHAR_VELOCITY",
      "status": "authored",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5100,9 +4770,9 @@
    "byStatus": {
     "core": 1409,
     "nop": 1,
-    "faithful": 1674,
+    "faithful": 1675,
     "authored": 7,
-    "silent": 1,
+    "silent": 0,
     "skipped": 50,
     "stops": 0
    },
@@ -5178,18 +4848,13 @@
    "byStatus": {
     "core": 207,
     "nop": 1,
-    "faithful": 225,
+    "faithful": 227,
     "authored": 0,
-    "silent": 2,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "TASK_JETPACK",
      "status": "skipped",
@@ -5216,9 +4881,9 @@
    "byStatus": {
     "core": 2961,
     "nop": 2,
-    "faithful": 953,
+    "faithful": 954,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 15,
     "stops": 0
    },
@@ -5262,11 +4927,6 @@
      "name": "FIRE_HUNTER_GUN",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5279,9 +4939,9 @@
    "byStatus": {
     "core": 2109,
     "nop": 2,
-    "faithful": 513,
+    "faithful": 514,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -5289,11 +4949,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -5312,9 +4967,9 @@
    "byStatus": {
     "core": 1254,
     "nop": 12,
-    "faithful": 1053,
+    "faithful": 1054,
     "authored": 5,
-    "silent": 2,
+    "silent": 1,
     "skipped": 3,
     "stops": 0
    },
@@ -5340,11 +4995,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "DONT_SUPPRESS_CAR_MODEL",
      "status": "silent",
      "sites": 1
@@ -5365,9 +5015,9 @@
    "byStatus": {
     "core": 979,
     "nop": 2,
-    "faithful": 826,
+    "faithful": 827,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -5380,11 +5030,6 @@
     {
      "name": "ADD_EXPLOSION_VARIABLE_SHAKE",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -5421,9 +5066,9 @@
    "byStatus": {
     "core": 4212,
     "nop": 8,
-    "faithful": 1914,
+    "faithful": 1915,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 7,
     "stops": 0
    },
@@ -5447,11 +5092,6 @@
      "name": "TASK_CHAR_SLIDE_TO_COORD",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5464,9 +5104,9 @@
    "byStatus": {
     "core": 938,
     "nop": 1,
-    "faithful": 580,
+    "faithful": 581,
     "authored": 1,
-    "silent": 2,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
@@ -5474,11 +5114,6 @@
     {
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -5497,9 +5132,9 @@
    "byStatus": {
     "core": 2481,
     "nop": 4,
-    "faithful": 1338,
+    "faithful": 1339,
     "authored": 6,
-    "silent": 1,
+    "silent": 0,
     "skipped": 6,
     "stops": 0
    },
@@ -5535,11 +5170,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "RESET_STUFF_UPON_RESURRECTION",
      "status": "skipped",
      "sites": 1
@@ -5555,9 +5185,9 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 489,
+    "faithful": 490,
     "authored": 3,
-    "silent": 1,
+    "silent": 0,
     "skipped": 6,
     "stops": 0
    },
@@ -5591,11 +5221,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5608,9 +5233,9 @@
    "byStatus": {
     "core": 1479,
     "nop": 1,
-    "faithful": 1229,
+    "faithful": 1230,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 7,
     "stops": 0
    },
@@ -5634,11 +5259,6 @@
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5651,9 +5271,9 @@
    "byStatus": {
     "core": 511,
     "nop": 1,
-    "faithful": 405,
+    "faithful": 406,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 2,
     "stops": 0
    },
@@ -5667,11 +5287,6 @@
      "name": "HELI_GOTO_COORDS",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5684,9 +5299,9 @@
    "byStatus": {
     "core": 370,
     "nop": 1,
-    "faithful": 229,
+    "faithful": 230,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -5694,11 +5309,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -5712,19 +5322,13 @@
    "byStatus": {
     "core": 998,
     "nop": 14,
-    "faithful": 682,
+    "faithful": 683,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 96,
@@ -5735,9 +5339,9 @@
    "byStatus": {
     "core": 1750,
     "nop": 4,
-    "faithful": 1425,
+    "faithful": 1426,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
@@ -5750,11 +5354,6 @@
     {
      "name": "GET_OBJECT_MASS",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -5773,9 +5372,9 @@
    "byStatus": {
     "core": 1964,
     "nop": 4,
-    "faithful": 1106,
+    "faithful": 1107,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -5783,11 +5382,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -5801,9 +5395,9 @@
    "byStatus": {
     "core": 1449,
     "nop": 8,
-    "faithful": 910,
+    "faithful": 911,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -5822,11 +5416,6 @@
      "name": "TASK_USE_ATM",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5839,9 +5428,9 @@
    "byStatus": {
     "core": 1018,
     "nop": 5,
-    "faithful": 690,
+    "faithful": 691,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 4,
     "stops": 0
    },
@@ -5870,11 +5459,6 @@
      "name": "HELI_GOTO_COORDS",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5887,9 +5471,9 @@
    "byStatus": {
     "core": 1731,
     "nop": 1,
-    "faithful": 1097,
+    "faithful": 1098,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 12,
     "stops": 0
    },
@@ -5933,11 +5517,6 @@
      "name": "RELEASE_ENTITY_FROM_WINCH",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -5950,9 +5529,9 @@
    "byStatus": {
     "core": 3088,
     "nop": 18,
-    "faithful": 3168,
+    "faithful": 3169,
     "authored": 2,
-    "silent": 1,
+    "silent": 0,
     "skipped": 14,
     "stops": 0
    },
@@ -6011,11 +5590,6 @@
      "name": "POLICE_HELI_CHASE_ENTITY",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6028,9 +5602,9 @@
    "byStatus": {
     "core": 2824,
     "nop": 1,
-    "faithful": 1566,
+    "faithful": 1567,
     "authored": 5,
-    "silent": 1,
+    "silent": 0,
     "skipped": 2,
     "stops": 0
    },
@@ -6054,11 +5628,6 @@
      "name": "FIRE_SINGLE_BULLET",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6071,9 +5640,9 @@
    "byStatus": {
     "core": 4564,
     "nop": 54,
-    "faithful": 1252,
+    "faithful": 1253,
     "authored": 3,
-    "silent": 1,
+    "silent": 0,
     "skipped": 26,
     "stops": 0
    },
@@ -6127,11 +5696,6 @@
      "name": "PLANE_FLY_IN_DIRECTION",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6144,9 +5708,9 @@
    "byStatus": {
     "core": 537,
     "nop": 8,
-    "faithful": 488,
+    "faithful": 489,
     "authored": 5,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -6155,11 +5719,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 5
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6172,19 +5731,13 @@
    "byStatus": {
     "core": 993,
     "nop": 2,
-    "faithful": 665,
+    "faithful": 666,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 106,
@@ -6195,9 +5748,9 @@
    "byStatus": {
     "core": 1683,
     "nop": 1,
-    "faithful": 1296,
+    "faithful": 1297,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -6205,11 +5758,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -6223,19 +5771,13 @@
    "byStatus": {
     "core": 443,
     "nop": 7,
-    "faithful": 264,
+    "faithful": 265,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 108,
@@ -6246,9 +5788,9 @@
    "byStatus": {
     "core": 587,
     "nop": 2,
-    "faithful": 231,
+    "faithful": 232,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
@@ -6256,11 +5798,6 @@
     {
      "name": "GIVE_VEHICLE_PAINTJOB",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -6274,9 +5811,9 @@
    "byStatus": {
     "core": 2527,
     "nop": 2,
-    "faithful": 2631,
+    "faithful": 2632,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
@@ -6285,11 +5822,6 @@
      "name": "SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6383,9 +5915,9 @@
    "byStatus": {
     "core": 3644,
     "nop": 1,
-    "faithful": 2741,
+    "faithful": 2742,
     "authored": 3,
-    "silent": 1,
+    "silent": 0,
     "skipped": 7,
     "stops": 0
    },
@@ -6419,11 +5951,6 @@
      "name": "ARE_CREDITS_FINISHED",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6436,9 +5963,9 @@
    "byStatus": {
     "core": 1793,
     "nop": 1,
-    "faithful": 388,
+    "faithful": 389,
     "authored": 8,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -6447,11 +5974,6 @@
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
      "sites": 8
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6464,19 +5986,13 @@
    "byStatus": {
     "core": 404,
     "nop": 0,
-    "faithful": 386,
+    "faithful": 387,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 115,
@@ -6487,19 +6003,13 @@
    "byStatus": {
     "core": 366,
     "nop": 0,
-    "faithful": 349,
+    "faithful": 350,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 116,
@@ -6510,19 +6020,13 @@
    "byStatus": {
     "core": 358,
     "nop": 0,
-    "faithful": 348,
+    "faithful": 349,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 117,
@@ -6533,9 +6037,9 @@
    "byStatus": {
     "core": 1529,
     "nop": 43,
-    "faithful": 242,
+    "faithful": 243,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 5,
     "stops": 0
    },
@@ -6554,11 +6058,6 @@
      "name": "ATTACH_TRAILER_TO_CAB",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6571,9 +6070,9 @@
    "byStatus": {
     "core": 2246,
     "nop": 28,
-    "faithful": 820,
+    "faithful": 821,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 19,
     "stops": 0
    },
@@ -6622,11 +6121,6 @@
      "name": "DETACH_CAR",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6639,9 +6133,9 @@
    "byStatus": {
     "core": 2630,
     "nop": 2,
-    "faithful": 1708,
+    "faithful": 1709,
     "authored": 1,
-    "silent": 1,
+    "silent": 0,
     "skipped": 12,
     "stops": 0
    },
@@ -6660,11 +6154,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6677,9 +6166,9 @@
    "byStatus": {
     "core": 2337,
     "nop": 2,
-    "faithful": 672,
+    "faithful": 673,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 2,
     "stops": 0
    },
@@ -6688,11 +6177,6 @@
      "name": "IS_PLAYER_PERFORMING_STOPPIE",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6705,9 +6189,9 @@
    "byStatus": {
     "core": 1685,
     "nop": 40,
-    "faithful": 389,
+    "faithful": 390,
     "authored": 3,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -6716,11 +6200,6 @@
      "name": "TASK_PLAY_ANIM_SECONDARY",
      "status": "authored",
      "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6733,19 +6212,13 @@
    "byStatus": {
     "core": 1495,
     "nop": 0,
-    "faithful": 446,
+    "faithful": 447,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 123,
@@ -6756,9 +6229,9 @@
    "byStatus": {
     "core": 1133,
     "nop": 4,
-    "faithful": 463,
+    "faithful": 465,
     "authored": 3,
-    "silent": 2,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -6767,11 +6240,6 @@
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
      "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 2
     }
    ]
   },
@@ -6784,9 +6252,9 @@
    "byStatus": {
     "core": 1931,
     "nop": 1,
-    "faithful": 696,
+    "faithful": 697,
     "authored": 6,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -6795,11 +6263,6 @@
      "name": "MARK_CAR_AS_CONVOY_CAR",
      "status": "authored",
      "sites": 5
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     },
     {
      "name": "GET_RANDOM_CAR_OF_TYPE_IN_AREA",
@@ -6817,9 +6280,9 @@
    "byStatus": {
     "core": 878,
     "nop": 7,
-    "faithful": 308,
+    "faithful": 309,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
@@ -6833,11 +6296,6 @@
      "name": "IS_PROCEDURAL_INTERIOR_ACTIVE",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -6850,19 +6308,13 @@
    "byStatus": {
     "core": 347,
     "nop": 7,
-    "faithful": 149,
+    "faithful": 152,
     "authored": 0,
-    "silent": 3,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 3
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 127,
@@ -6873,19 +6325,13 @@
    "byStatus": {
     "core": 3245,
     "nop": 4,
-    "faithful": 1307,
+    "faithful": 1308,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 128,
@@ -6896,9 +6342,9 @@
    "byStatus": {
     "core": 1430,
     "nop": 3,
-    "faithful": 650,
+    "faithful": 652,
     "authored": 3,
-    "silent": 2,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
@@ -6911,11 +6357,6 @@
     {
      "name": "FORCE_ALL_VEHICLE_LIGHTS_OFF",
      "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 2
     },
     {
@@ -6934,18 +6375,13 @@
    "byStatus": {
     "core": 692,
     "nop": 0,
-    "faithful": 379,
+    "faithful": 383,
     "authored": 0,
-    "silent": 4,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 4
-    },
     {
      "name": "ADD_BLIP_FOR_COORD_OLD",
      "status": "skipped",
@@ -6962,9 +6398,9 @@
    "byStatus": {
     "core": 1872,
     "nop": 0,
-    "faithful": 506,
+    "faithful": 507,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 8,
     "stops": 0
    },
@@ -6993,11 +6429,6 @@
      "name": "TASK_FOLLOW_PATH_NODES_TO_COORD_WITH_RADIUS",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -7010,9 +6441,9 @@
    "byStatus": {
     "core": 1498,
     "nop": 6,
-    "faithful": 434,
+    "faithful": 437,
     "authored": 3,
-    "silent": 3,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
@@ -7020,11 +6451,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
      "sites": 3
     }
    ]
@@ -7038,18 +6464,13 @@
    "byStatus": {
     "core": 1180,
     "nop": 2,
-    "faithful": 409,
+    "faithful": 413,
     "authored": 0,
-    "silent": 4,
+    "silent": 0,
     "skipped": 4,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 4
-    },
     {
      "name": "REGISTER_FASTEST_TIME",
      "status": "skipped",
@@ -7076,18 +6497,13 @@
    "byStatus": {
     "core": 313,
     "nop": 0,
-    "faithful": 76,
+    "faithful": 79,
     "authored": 0,
-    "silent": 3,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "REGISTER_FASTEST_TIME",
      "status": "skipped",
@@ -7109,40 +6525,16 @@
    "byStatus": {
     "core": 59,
     "nop": 0,
-    "faithful": 287,
+    "faithful": 288,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   }
  ],
  "queue": [
-  {
-   "name": "PLAY_MISSION_PASSED_TUNE",
-   "opcode": "0394",
-   "status": "silent",
-   "notes": [
-    "dispatch unreversed; follows the routines it reaches",
-    "adapter lacks playMissionPassedTune"
-   ],
-   "handlerLine": 1396,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Plays an audio file with the specified ID from the Audio directory",
-   "sites": 144,
-   "missions": 119,
-   "firstMission": "MAIN",
-   "portable": false
-  },
   {
    "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
    "opcode": "0815",

@@ -8575,8 +8575,8 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   each ran for the previous line's length. A line is now sized once, at the next script pass, from the brief its
   frame left up.
 - **Blocked by data.** Cutscenes (anim/cuts.img, and the unreversed spline camera) and the mission-passed tune and
-  beat tracks (AUDIO/STREAMS) are not in the published depot. (Spoken dialogue now comes from the iOS port's bundle:
-  see "Missions speak" below.)
+  beat tracks (AUDIO/STREAMS) are not in the published depot. (Spoken dialogue and the beat tracks now come from the
+  iOS port's bundle: see "Missions speak" and "The mission-passed tune plays" below.)
 - **Porting pipeline.** `npm run port -- census|sweep|report|all` (docs/port/README.md): a static census of every
   command against this port and gta-reversed's registrations with a ranked work queue, a headless mission sweep with
   a locate-following autopilot, and a joined status page.
@@ -9183,3 +9183,19 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **AUTHORED:** the line plays at the listener under the effects level; `CAEScriptAudioEntity`'s positioning (the
   slot's point, ped, car or object) is unreversed and not followed.
 - Spec: `script-speech` (unit).
+
+## The mission-passed tune plays
+
+- **The BEATS pack, from the iOS port.** `BEATS.osw` is a ZIP of ten MP3s, `Track_001` to `Track_010`; the bundle's
+  `StrmPaks.dat` and `TrakLkup.dat` put BEATS at pack 4 with stream tracks 175 to 184 in that order.
+  `scripts/content/package-beat-tracks.mjs` checks the three files' hashes and writes one MP3 per track under
+  `public/play/audio/streams/` (9.3 MB). `Track_003` (177) is a 756-byte deflated stub in the bundle and is left out.
+- **`PLAY_MISSION_PASSED_TUNE`** is unreversed on the PC, so its handler was read from the iOS executable (arm64
+  slice, stripped): it takes tune 1 or 2, calls `CAudioEngine::PreloadBeatTrack(tune + 10)` and then
+  `PlayPreloadedBeatTrack(true)`, the mission-complete track; other numbers do nothing.
+  `CAECutsceneTrackManager::PreloadBeatTrack` indexes `gBeatTrackLookup`, which the executable holds as
+  `180,175,178,179,178,175,175,175,175,176,184,183,182,181`. So tune 1 (every story mission's pass) is track 183
+  (9.1 s) and tune 2 (a full set of collectables) is track 182 (8.2 s).
+- The track plays once it has downloaded (the original's preload waits on the stream the same way), under the
+  effects level, and a later tune replaces it. Spec: `stream-tracks` (unit).
+

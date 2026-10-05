@@ -244,6 +244,8 @@ export interface ScmMissionWorld {
  playerCity():number;
  /** Mission dialogue: the SCRIPT pack's lines, loaded by sample (resolving once one can play, false when it cannot
   * be had), played and stopped by the script's one-based slot, and how long a loaded one runs. */
+ /** PLAY_MISSION_PASSED_TUNE: the mission-complete track for tune 1 or 2. */
+ playMissionPassedTune?(tune:number):void;
  scriptSpeech?:{load(sample:number):Promise<boolean>;play(scriptSlot:number,sample:number):void;stop(scriptSlot:number):void;lengthMs(sample:number):number|undefined};
  /** CModelInfo::GetModelInfo by name: the model index, or -1. */
  modelIndex?(name:string):number;
@@ -2297,6 +2299,7 @@ export class ScmMission {
    },
    playMissionAudio:slot=>{const sample=this.runtime.game.missionAudio.slots[slot-1]?.audioEvent;if(sample!==undefined&&sample>=0)this.world.scriptSpeech?.play(slot,sample);},
    clearMissionAudio:slot=>{this.world.scriptSpeech?.stop(slot);},
+   playMissionPassedTune:tune=>{this.world.playMissionPassedTune?.(tune);},
    missionAudioLengthMs:(sample,subtitle)=>this.world.scriptSpeech?.lengthMs(sample)??(subtitle?speechLengthMs(gxtText(subtitle,'')):undefined),
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},

@@ -24,7 +24,7 @@ test('the census inventories every command of the original script and ranks the 
  // Every queued command is one the census flagged, and each names where it is first used.
  expect(census.queue.length).toBeGreaterThan(0);
  for(const q of census.queue){expect(['authored','silent','skipped','stops']).toContain(q.status);expect(q.firstMission).toBeTruthy();}
- // The mission-audio slots have a host that plays the SCRIPT pack's lines; the mission-passed tune does not yet.
+ // The mission-audio slots and the mission-passed tune have a host that plays them (the iOS port's SCRIPT and BEATS packs).
  for(const name of ['LOAD_MISSION_AUDIO','PLAY_MISSION_AUDIO','CLEAR_MISSION_AUDIO'])expect(census.queue.find((q:any)=>q.name===name)).toBeUndefined();
- expect(census.queue.find((q:any)=>q.name==='PLAY_MISSION_PASSED_TUNE')?.status).toBe('silent');
+ expect(census.queue.find((q:any)=>q.name==='PLAY_MISSION_PASSED_TUNE')).toBeUndefined();
 },130000);

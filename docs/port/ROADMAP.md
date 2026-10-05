@@ -41,8 +41,9 @@ numbers come from the census (`npm run port -- census`, [CENSUS.md](CENSUS.md)) 
 
    After each wave, run `npm run port -- all story` so the census and sweep confirm what moved.
 4. **Unblock by data, not code.** Cutscenes (`anim/cuts.img`) and the music and beat tracks (`AUDIO/STREAMS`) are
-   not in the published depot. Mission dialogue now comes from the iOS port's bundle (github.com/Google61/gta3sa.app:
-   `SCRIPT.osw`), which also has `cutscene.img`, `CUTSCENE.osw`, `BEATS.osw` and the radio stations' packs. The workshops (`models.html`,
+   not in the published depot. Mission dialogue and the beat tracks now come from the iOS port's bundle
+   (github.com/Google61/gta3sa.app: `SCRIPT.osw`, `BEATS.osw`), which also has `cutscene.img`, `CUTSCENE.osw` and
+   the radio stations' packs. The workshops (`models.html`,
    `assets.html`) already read a local copy of the game in the browser. The same folder picker could hand the game
    these archives from the player's own install for the session, without anything being uploaded or published. That
    brings cutscenes and voiced dialogue back for players who own the game, and leaves the published site as it is.

@@ -1614,6 +1614,7 @@ async function boot() {
   const sound = new AudioSystem();
   // Mission dialogue streams bank by bank as missions load their lines (audio/ScriptSpeech.ts).
   sound.useScriptSpeech(new URL(`${import.meta.env.BASE_URL}play/audio/script/`,location.href).href);
+  sound.useStreamTracks(new URL(`${import.meta.env.BASE_URL}play/audio/streams/`,location.href).href);
   /** Each streamed window carries the same vegetation package; it is parsed once. */
   const readSceneVegetationOnce=sceneVegetationReader();
   // The sample fallback for combat sounds (banks 52 and 143) only plays without the native engine, which loads the
@@ -5559,6 +5560,7 @@ async function boot() {
                  setScriptVehicleDirtLevel:(car,level)=>{const c=car as Partial<ScriptCar>;if(c.dirtLevel!==undefined)c.dirtLevel=level;},
                  playerUsingJetpack:()=>!!sim.jetPack,
                  setDeathPenalties:apply=>{gameLogic.penaltyForDeathApplies=apply;},
+                 playMissionPassedTune:tune=>{void sound.playMissionPassedTune(tune);},
                  scriptSpeech:{load:sample=>sound.loadSpeech(sample),play:(slot,sample)=>{sound.playSpeech(slot,sample);},stop:slot=>{sound.stopSpeech(slot);},lengthMs:sample=>sound.speechLengthMs(sample)},
                  setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},
                  // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.

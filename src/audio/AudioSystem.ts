@@ -3,6 +3,7 @@ import {NativeAudioEngine,type NativeAudioFrame,type NativeCombatSource} from '.
 import type {SurfaceAudioFlags} from '../assets/surfaceAudio';
 import {WebAudioChannels} from './native/WebAudioChannels';
 import {ScriptSpeech} from './ScriptSpeech';
+import {StreamTracks,missionPassedTrack} from './StreamTracks';
 import {readNativeCombatAudio,combatSample,type CombatSound} from '../assets/nativeCombatAudio';
 import {nativeSoundFrequency} from './nativeFrequency';
 import {nativeHeadroomGain} from './nativeHeadroom';
@@ -78,6 +79,40 @@ export class AudioSystem {
     this.speechVoices.delete(scriptSlot);voice.source.onended=null;
     try{voice.source.stop();}catch{/* Already ended. */}
     voice.source.disconnect();voice.gain.disconnect();
+  }
+  /** The stream tracks (StreamTracks.ts) and CAECutsceneTrackManager's one channel, which plays one at a time. */
+  private streams?:StreamTracks;
+  private track?:{source:AudioBufferSourceNode;gain:GainNode};
+  private tracksPlayed=0;
+  /** The latest track request: one superseded while it loaded does not start. */
+  private trackRequest=0;
+  useStreamTracks(base:string){
+    this.streams=new StreamTracks(base,mp3=>{
+      if(!this.context)this.prepare();
+      const ctx=this.context;if(!ctx)return Promise.reject(new Error('No audio context.'));
+      return ctx.decodeAudioData(mp3);
+    });
+  }
+  /** PLAY_MISSION_PASSED_TUNE: CAudioEngine::PreloadBeatTrack(10 + tune), then PlayPreloadedBeatTrack as the
+   * mission-complete track. The preload waits for the track, as the original's does; it plays once it is in. */
+  async playMissionPassedTune(tune:number){
+    const id=missionPassedTrack(tune);if(id===undefined||!this.streams)return false;
+    this.stopTrack();const request=++this.trackRequest;
+    const buffer=await this.streams.load(id),ctx=this.context;
+    if(!buffer||!ctx||this.disposed||request!==this.trackRequest)return false;
+    this.stopTrack();
+    const source=ctx.createBufferSource(),gain=ctx.createGain();
+    source.buffer=buffer;source.connect(gain);gain.connect(this.effects);
+    const track={source,gain};this.track=track;
+    source.onended=()=>{if(this.track===track)this.stopTrack();};
+    source.start();this.tracksPlayed++;return true;
+  }
+  /** CAECutsceneTrackManager::StopCutsceneTrack. */
+  stopTrack(){
+    const track=this.track;if(!track)return;this.trackRequest++;
+    this.track=undefined;track.source.onended=null;
+    try{track.source.stop();}catch{/* Already ended. */}
+    track.source.disconnect();track.gain.disconnect();
   }
   /** The player's browser position for native weapon and footstep entities. */
   setPlayer(position:()=>Vec3){this.nativePlayer=position;this.native?.setPlayer(()=>{const p=position();return {x:p.x,y:-p.z,z:p.y};});}
@@ -228,11 +263,12 @@ export class AudioSystem {
       rms = Math.sqrt(this.meter.reduce((sum, value) => sum + value * value, 0) / this.meter.length);
     }
     return { context: this.context?.state ?? 'uninitialized', loaded: this.loaded, failed: this.failed, unavailable: this.unavailable,
-      native:this.native?{...this.native.snapshot(),frames:this.nativeFrames}:null,nativeCombatBanks:this.combatBanks.size,combatShots:this.combatShots,nativeFootstepBanks:this.nativeFeet?.length??0,nativeShotsPlayed:this.nativeShotsPlayed,speechPlayed:this.speechPlayed,speechVoices:this.speechVoices.size,buffers: this.nativeBuffers.size, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
+      native:this.native?{...this.native.snapshot(),frames:this.nativeFrames}:null,nativeCombatBanks:this.combatBanks.size,combatShots:this.combatShots,nativeFootstepBanks:this.nativeFeet?.length??0,nativeShotsPlayed:this.nativeShotsPlayed,speechPlayed:this.speechPlayed,tracksPlayed:this.tracksPlayed,trackPlaying:!!this.track,speechVoices:this.speechVoices.size,buffers: this.nativeBuffers.size, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
   }
   dispose() {
     this.nativeLoad++;this.nativeFeet=undefined;this.native?.reset();this.nativeChannels?.dispose();this.combatBanks.clear();this.nativeBuffers.clear();
     for(const slot of [...this.speechVoices.keys()])this.stopSpeech(slot);
+    this.stopTrack();
     this.disposed = true; this.playing = false; this.stopShots();
     this.recovery?.dispose(); void this.context?.close().catch(() => {});
   }

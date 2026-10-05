@@ -1,0 +1,63 @@
+{
+ "version": 1,
+ "source": {
+  "url": "https://raw.githubusercontent.com/Google61/gta3sa.app/67f70cb72eb207aeca650ea9e8c10b0e7dda166a/BEATS.osw",
+  "sha256": "27b0e6ff721a872ad719fab7def50247cb0d04b9bb108ec0aca334491b64b053"
+ },
+ "tracks": [
+  {
+   "id": 175,
+   "path": "track-175.mp3",
+   "bytes": 1300982,
+   "sha256": "e2c973168888be2b8029becb681c25c53955e465f8d3e6418b49c03ddd41dbab"
+  },
+  {
+   "id": 176,
+   "path": "track-176.mp3",
+   "bytes": 2331101,
+   "sha256": "32f0ca79404c5671df26e1590e5b05d3078cc2fcb9e7b7faa9f916af8fb3c863"
+  },
+  {
+   "id": 178,
+   "path": "track-178.mp3",
+   "bytes": 1368963,
+   "sha256": "6913ba43b960a18358ba36384d08a45eab564548033271abed70456001f44cfe"
+  },
+  {
+   "id": 179,
+   "path": "track-179.mp3",
+   "bytes": 1287676,
+   "sha256": "7d9e9baffe3ba1aca46f52ff805a1559d83392e5f654b9b7eecd8281b3b35177"
+  },
+  {
+   "id": 180,
+   "path": "track-180.mp3",
+   "bytes": 1396959,
+   "sha256": "87bc4d329755a02adcca8f51f16fa705aadd307d75bca518ea7cf3891f186a56"
+  },
+  {
+   "id": 181,
+   "path": "track-181.mp3",
+   "bytes": 1449489,
+   "sha256": "394c860abb5b9e0530b28b160495e3f53941cf1eda4d982964c04e99f93e83dd"
+  },
+  {
+   "id": 182,
+   "path": "track-182.mp3",
+   "bytes": 52757,
+   "sha256": "6ccb2c8d2dc0e8a81121a0bf502a23bee443c77376a687861d77818beee11c4f"
+  },
+  {
+   "id": 183,
+   "path": "track-183.mp3",
+   "bytes": 56677,
+   "sha256": "9d2aed233361b257aa0759e1f7e5a8ac5c2a42aba418765ad0fbf259d9471289"
+  },
+  {
+   "id": 184,
+   "path": "track-184.mp3",
+   "bytes": 486522,
+   "sha256": "41b9e21d0a74ea2d84e2acd049a17faeee51d45b4abe36c087b6812a5b39e97c"
+  }
+ ]
+}
