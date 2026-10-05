@@ -9182,7 +9182,8 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   from its subtitle as before.
 - **AUTHORED:** the line plays at the listener under the effects level; `CAEScriptAudioEntity`'s positioning (the
   slot's point, ped, car or object) is unreversed and not followed.
-- Spec: `script-speech` (unit).
+- Specs: `script-speech` (unit, and the browser spec, which boots the game, streams INTRO1's first line through the
+  script host, hears it and waits it out).
 
 ## The mission-passed tune plays
 
@@ -9197,5 +9198,5 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   `180,175,178,179,178,175,175,175,175,176,184,183,182,181`. So tune 1 (every story mission's pass) is track 183
   (9.1 s) and tune 2 (a full set of collectables) is track 182 (8.2 s).
 - The track plays once it has downloaded (the original's preload waits on the stream the same way), under the
-  effects level, and a later tune replaces it. Spec: `stream-tracks` (unit).
+  effects level, and a later tune replaces it. Specs: `stream-tracks` (unit), `script-speech` (browser: track 183 heard).
 
