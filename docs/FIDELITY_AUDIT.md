@@ -9638,3 +9638,34 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   at 0x1001488f4; highlight 0x100147b44, select 0x100147c18) matches it, flags 0x111b and 0x151b.
 - Specs: `native-audio` (unit: the four pairs, their sides and roll-off); `interior-shops` (browser: a move down
   Ammu-Nation's menu plays in slot 1, and the pistol is still bought).
+
+## Scripts' reported sounds start to play
+
+- **Before:** REPORT_MISSION_AUDIO_EVENT_AT_POSITION, _AT_CHAR, _AT_CAR and _AT_OBJECT were recorded and nothing
+  played them, CAEScriptAudioEntity::ProcessMissionAudioEvent (0x4ECCF0) being a call into the exe in gta-reversed.
+  Its commented decompilation has the handlers but case labels that it says need fixing: they are script-slot names
+  (7000 and up), while the scripts report events 1000 to 1190 (main.scm and the streamed scripts, read out of every
+  script by their REPORT_MISSION_AUDIO_EVENT commands).
+- **From the iOS executable.** Its ProcessMissionAudioEvent is arm64 0x100157360, a jump table at 0x10015888c over
+  events 104 to 1190; each event's handler was read out (`NativeScriptAudio.ts`, `MISSION_AUDIO_EVENTS`). Of the
+  events the scripts report: 85 play a sound of the SCRIPT bank a script has loaded into its mission audio slot 2 or 3
+  (PlayMissionBankSound, 0x100156bcc), 17 hand an event to the frontend entity, 20 play a resident GENRL sound
+  (PlayResidentSoundEvent, 0x1001566a8), 18 start or stop a beat or cutscene track, and a few drive the crane, the
+  camera or a ped.
+- **Ported now:** the frontend events (the shops' purchase and refusal, the race's 3-2-1 and go, part mission complete
+  at 1, 1.12 and 1.26, the casino's select, back and error, the car mod and respray, money) and the resident sounds,
+  played as PlayResidentSoundEvent plays them: once the bank is in its slot, at the event's default volume plus the
+  handler's, from its start percentage, at the entity (lasting no longer than it), at the point, or ahead of the
+  listener for a point of zeros or the -1000 sentinel.
+- **New frontend cases** the forwarded events need, from the iOS AddAudioEvent (jump table at 0x1001488f4):
+  PURCHASE_WEAPON (the pickup's pair, 27 and 28); CAR_NO_CASH and _IS_HOT (the same pair at 0.841, 0x1001471f0);
+  RACE_321 and _GO (6 and 7, 12 and 13, 0x1001478e8, 0x1001484e4); BUY_CAR_MOD (9 ahead, 0.0588 speed variance,
+  0x1001485b8); CAR_RESPRAY (WEAPONS 28 left and right, one pitched up 1.189 by a coin toss, 0x1001481a4).
+- **Not yet:** PlayMissionBankSound's events (the whole-bank LOAD_MISSION_AUDIO a script makes first loads as nothing
+  in the port); the beat and cutscene track events; the crane (1019 to 1022, which load CRANE_P into the player slot);
+  the camera (1035, 1036, 1153, 1154, 1165, 1166) and a few more. The gate's two (1100, 1101) take the entity's flag at
+  +0x92 as clear (sound 70); what sets it is not known. Such reports are counted (`script.unported` in the native
+  audio snapshot) and play nothing.
+- Specs: `native-audio` (unit: the forwarded events, the resident sounds' bank, speed, start, front end and entity,
+  the once-only horn, the unported mission-bank event; the new frontend cases); `interior-shops` (browser: buying the
+  pistol reports 1052, which plays the purchase pair).

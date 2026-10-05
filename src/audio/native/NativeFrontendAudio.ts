@@ -2,7 +2,7 @@ import {SOUND,type NativeAudioEntity,type NativeSound} from './NativeSound';
 import type {NativeSoundManager} from './NativeSoundManager';
 import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 /** Frontend pickup events reported by CPickup::Update, CPickups::GivePlayerGoodiesWithPickUpMI and the collectable counters. */
-export const AE_FRONTEND={select:1,back:2,highlight:3,error:4,fireFailSniper:41,fireFailRocket:42,pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
+export const AE_FRONTEND={select:1,back:2,highlight:3,error:4,carNoCash:14,carIsHot:15,carRespray:16,purchaseWeapon:40,race321:44,raceGo:45,buyCarMod:46,fireFailSniper:41,fireFailRocket:42,pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
  bulletPassLeftRear:27,bulletPassLeftFront:28,bulletPassRightRear:29,bulletPassRightFront:30,timerCount:33,partMissionComplete:43,scannerNoiseStart:47,scannerNoiseStop:48,scannerClick:49} as const;
 /** The menu events' FRONTEND_MENU sounds, left and right. */
 const MENU_PAIRS:Readonly<Record<number,readonly [number,number]>>={1:[6,7],2:[0,1],3:[4,5],4:[2,3]};
@@ -27,6 +27,15 @@ export class NativeFrontendAudio implements NativeAudioEntity {
   if(pass){this.bulletPass(pass,this.defaultVolume(event)+volumeBoost);return;}
   // AE_FRONTEND_SCANNER_NOISE_STOP cancels the scanner's noise, loaded bank or not (arm64 0x1001478d0).
   if(event===AE_FRONTEND.scannerNoiseStop){this.manager.cancelSoundsOfThisEventPlayingForThisEntity(AE_FRONTEND.scannerNoiseStart,this);return;}
+  // AE_FRONTEND_CAR_RESPRAY (arm64 0x1001481a4): WEAPONS sound 28 left and right, one of them (a coin toss which)
+  // pitched up 1.189 (two semitones), once WEAPONS is in its slot.
+  if(event===AE_FRONTEND.carRespray){
+   if(!this.bank.isSoundBankLoaded(BANK.weapons,SLOT.weaponGen))return;
+   const volume=this.defaultVolume(event)+volumeBoost,leftHigh=this.random()<.5;
+   for(const [x,high] of [[-1,leftHigh],[1,!leftHigh]] as const)this.manager.playSound({slot:SLOT.weaponGen,sound:28,entity:this,position:{x,y:0,z:0},volume,rollOff:1,speed:high?1.189:1,event,
+    flags:SOUND.forcedFront|SOUND.unduckable|SOUND.playPhysically|SOUND.requestUpdates|SOUND.uncancellable|SOUND.frontEnd});
+   return;
+  }
   // AE_FRONTEND_SELECT, _BACK, _HIGHLIGHT and _ERROR: a pair from FRONTEND_MENU left and right, as the iOS executable
   // plays them (highlight 0x100147b44, select 0x100147c18: sounds 4 and 5, 6 and 7, roll-off 1, the highlight not
   // rolled off), which is gta-reversed's commented decompilation.
@@ -39,9 +48,22 @@ export class NativeFrontendAudio implements NativeAudioEntity {
   }
   if(!this.bank.isSoundBankLoaded(BANK.frontendGame,SLOT.frontendGame)){this.bank.loadSoundBank(BANK.frontendGame,SLOT.frontendGame);return;}
   const frame=this.manager.clock.frame,volume=this.defaultVolume(event)+volumeBoost;
-  const pair=(left:number,right:number)=>{for(const [sound,x] of [[left,-1],[right,1]] as const)this.manager.playSound({slot:SLOT.frontendGame,sound,entity:this,position:{x,y:0,z:0},volume,speed,flags:SOUND.forcedFront|SOUND.unduckable|SOUND.unpausable|SOUND.playPhysically|SOUND.uncancellable|SOUND.frontEnd});};
+  const pairAt=(left:number,right:number,at:number)=>{for(const [sound,x] of [[left,-1],[right,1]] as const)this.manager.playSound({slot:SLOT.frontendGame,sound,entity:this,position:{x,y:0,z:0},volume,speed:at,flags:SOUND.forcedFront|SOUND.unduckable|SOUND.unpausable|SOUND.playPhysically|SOUND.uncancellable|SOUND.frontEnd});};
+  const pair=(left:number,right:number)=>pairAt(left,right,speed);
   switch(event){
-   case AE_FRONTEND.pickupWeapon:if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pair(27,28);}break;
+   case AE_FRONTEND.pickupWeapon:case AE_FRONTEND.purchaseWeapon:if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pair(27,28);}break;
+   // AE_FRONTEND_CAR_NO_CASH and _CAR_IS_HOT (arm64 0x1001471f0): the same pair at 0.841 speed, under the same guard.
+   case AE_FRONTEND.carNoCash:case AE_FRONTEND.carIsHot:if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pairAt(27,28,.841);}break;
+   // AE_FRONTEND_RACE_321 and _RACE_GO (0x1001478e8, 0x1001484e4): frontend sounds 6 and 7, 12 and 13, rolled off.
+   case AE_FRONTEND.race321:case AE_FRONTEND.raceGo:{
+    const [left,right]=event===AE_FRONTEND.race321?[6,7]:[12,13];
+    for(const [sound,x] of [[left,-1],[right,1]] as const)this.manager.playSound({slot:SLOT.frontendGame,sound,entity:this,position:{x,y:0,z:0},volume,rollOff:1,speed,flags:SOUND.forcedFront|SOUND.rolledOff|SOUND.unduckable|SOUND.unpausable|SOUND.playPhysically|SOUND.uncancellable|SOUND.frontEnd});
+    break;
+   }
+   // AE_FRONTEND_BUY_CAR_MOD (0x1001485b8): frontend sound 9 ahead, with 0.0588 of speed variance.
+   case AE_FRONTEND.buyCarMod:
+    this.manager.playSound({slot:SLOT.frontendGame,sound:9,entity:this,position:{x:0,y:1,z:0},volume,rollOff:1,speed:1,speedVariance:.0588,flags:SOUND.unduckable|SOUND.unpausable|SOUND.playPhysically|SOUND.uncancellable|SOUND.frontEnd});
+    break;
    case AE_FRONTEND.pickupMoney:case AE_FRONTEND.pickupHealth:case AE_FRONTEND.pickupAdrenaline:case AE_FRONTEND.pickupBodyArmour:if(frame>=this.lastGeneral+5){this.lastGeneral=frame;pair(16,17);}break;
    case AE_FRONTEND.pickupInfo:pair(14,15);break;
    // AE_FRONTEND_FIRE_FAIL_SNIPERRIFFLE / _ROCKET: frontend sound 10 or 11 ahead of the listener.

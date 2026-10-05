@@ -2991,6 +2991,16 @@ export class ScmMission {
   const node=findNthNodeClosestToCoors(areas,point,nth,{kind:'vehicle',maxDistance:999999.9,ignoreDisabled});
   return node&&{...findNodeCoorsForScript(areas,node),heading:findNodeOrientationForCarPlacement(areas,node)};
  }
+ /** Where a REPORT_MISSION_AUDIO_EVENT_AT_CHAR, _AT_CAR or _AT_OBJECT is heard: the entity's position (native), while
+  * it exists. */
+ audioEntityPosition(kind:string,handle:number):{x:number;y:number;z:number}|undefined{
+  try{
+   if(kind==='ped')return handle===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.exists(handle)?this.ridingIn(handle)??this.peds.positionOf(handle):undefined;
+   if(kind==='vehicle')return handle===PLAYER_VEHICLE_HANDLE?{...this.playerPose(handle).position}:this.vehicles.exists(handle)?this.vehicles.positionOf(handle):undefined;
+   if(kind==='object')return this.runtime.game.objects.exists(handle)?{...this.runtime.game.objects.at(handle).position}:undefined;
+  }catch{/* Gone. */}
+  return undefined;
+ }
  /** Where a ped that rides in a car is, which is where the car is. */
  private ridingIn(handle:number){
   const ride=this.peds.rideOf(handle);

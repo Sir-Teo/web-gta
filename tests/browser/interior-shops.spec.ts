@@ -46,6 +46,8 @@ test('CJ buys a pistol over the Ammu-Nation counter',async({page})=>{
  for(let presses=0;presses<6&&(await shop(page)).money===5000;presses++){await tap(page,'ShiftLeft');await page.waitForTimeout(1500);}
  const bought=await shop(page);
  expect(bought.money).toBe(4800);expect(bought.weapon).toBe(22);
+ // ammu.scm's REPORT_MISSION_AUDIO_EVENT 1052 (SOUND_AMMUNATION_BUY_WEAPON): AE_FRONTEND_PURCHASE_WEAPON's pair.
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().audio.native?.script.handled[1052]??0),{timeout:5000}).toBeGreaterThan(0);
  await page.screenshot({path:'artifacts/interior-shops-ammu.png'});
  // The enter-car key is its triangle: back out of the menus, and the script hands control back.
  for(let presses=0;presses<4&&(await shop(page)).miniGame;presses++){await tap(page,'KeyF');await page.waitForTimeout(1500);}

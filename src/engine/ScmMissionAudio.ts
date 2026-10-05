@@ -127,11 +127,13 @@ export class ScmMissionAudio {
  attach(scriptSlot:number,kind:'ped'|'vehicle'|'object',handle:number){
   const slot=this.slot(scriptSlot);slot.entity={kind,handle};slot.position=undefined;
  }
+ /** CAudioEngine::ReportMissionAudioEvent's host: CAEScriptAudioEntity::ProcessMissionAudioEvent. */
+ onReport?:(audioEvent:number,at:{x:number;y:number;z:number}|{kind:string;handle:number})=>void;
  /** The report commands, which do not use a slot at all: they ask for one event at a place or an entity. */
  report(audioEvent:number,at:{x:number;y:number;z:number}|{kind:string;handle:number}){
   requireAsset(Number.isInteger(audioEvent),'Invalid mission audio event.');
-  // Only the latest are kept: nothing plays them yet (ProcessMissionAudioEvent is unreversed), and a whole session's
-  // worth would only grow.
+  this.onReport?.(audioEvent,at);
+  // Only the latest are kept, for diagnostics: a whole session's worth would only grow.
   this.reported.push({audioEvent,at});if(this.reported.length>REPORTS_KEPT)this.reported.splice(0,this.reported.length-REPORTS_KEPT);
  }
  get loadedCount(){return this.slots.filter(slot=>slot.loadingStatus===AUDIO_LOADED).length;}

@@ -4157,6 +4157,11 @@ async function boot() {
       for(let style=1;style<game.messages.big.length;style++){if(style===2)continue;const big=game.messages.big[style][0];hudBigMessages.set(style,big?text(big):'');}
       // CHud::Draw: with no STYLE_MIDDLE message up, CMenuSystem::Process draws the script's menus (the ones not current
       // dimmed) and moves the current one's highlight from the pad.
+      // CAudioEngine::ReportMissionAudioEvent: at a point, or following the ped, car or object it names.
+      game.missionAudio.onReport??=(event,at)=>{
+        if(!('kind' in at)){sound.missionAudioEvent(event,{position:{x:at.x,y:at.y,z:at.z}});return;}
+        const owner=mission;if(owner?.audioEntityPosition(at.kind,at.handle))sound.missionAudioEvent(event,{physical:{position:()=>owner.audioEntityPosition(at.kind,at.handle)}});
+      };
       {const menus=game.menus,draws:import('./ui/nativeHudMenus').MenuDraw[]=[];
        if(menus.numInUse&&!game.messages.big[0][0]){
         // AE_FRONTEND_SELECT, _BACK and _HIGHLIGHT.

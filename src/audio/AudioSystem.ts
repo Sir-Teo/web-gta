@@ -215,6 +215,8 @@ export class AudioSystem {
   private get audible(){return this.playing&&!this.settings.muted&&this.settings.master>0&&this.settings.effects>0;}
   /** A CAEFrontendAudioEntity event such as AE_FRONTEND_PART_MISSION_COMPLETE. */
   frontend(event:number,volumeBoost=0){if(this.native&&this.audible)this.native.frontend.addAudioEvent(event,volumeBoost);}
+  /** CAudioEngine::ReportMissionAudioEvent: a script's REPORT_MISSION_AUDIO_EVENT_AT_*. */
+  missionAudioEvent(event:number,at:import('./native/NativeScriptAudio').MissionAudioAt){if(this.native&&this.audible)this.native.scriptAudio.processMissionAudioEvent(event,at);}
   pedFootstep(ped:object,position:Vec3,move:'walk'|'run'|'sprint',foot:'left'|'right'){if(this.native&&this.audible)this.native.pedFootstep(ped,{x:position.x,y:-position.z,z:position.y},move,foot);}
   /** `shooter` names an NPC and follows its position (renderer frame), so the ped keeps its own weapon audio entity. */
   combat(event:CombatSound,weapon:number,position:Vec3,source:NativeCombatSource='player',shooter?:{id:string;position:()=>Vec3|undefined}){

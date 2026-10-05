@@ -249,6 +249,45 @@ test("a script menu's highlight, select, back and error play FRONTEND_MENU pairs
  expect(played(2).slice(-2)).toEqual([[0,-1,true],[1,1,true]]);
  expect(played(4).slice(-2)).toEqual([[2,-1,true],[3,1,true]]);
 });
+test("a script's reported sounds: frontend events handed on, resident sounds where they are reported",async()=>{
+ const e=engine();await flush();await flush();
+ e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const handed:number[][]=[];const frontend=e.frontend.addAudioEvent.bind(e.frontend);
+ e.frontend.addAudioEvent=(event:number,volume=0,speed=1)=>{handed.push([event,volume,speed]);frontend(event,volume,speed);};
+ // SOUND_AMMUNATION_BUY_WEAPON and its refusal: AE_FRONTEND_PURCHASE_WEAPON and _CAR_NO_CASH; the casino's 1137 at 1.12.
+ e.scriptAudio.processMissionAudioEvent(1052,{position:{x:0,y:0,z:0}});
+ e.scriptAudio.processMissionAudioEvent(1053,{position:{x:0,y:0,z:0}});
+ e.scriptAudio.processMissionAudioEvent(1137,{position:{x:0,y:0,z:0}});
+ expect(handed).toEqual([[40,0,1],[14,0,1],[43,0,1.12]]);
+ // 1131: COLLISIONS 33, and 50 started 22% in at 0.79 speed, at the point reported.
+ e.scriptAudio.processMissionAudioEvent(1131,{position:{x:5,y:6,z:7}});
+ const played=e.manager.sounds.filter(s=>s.inUse&&s.entity===e.scriptAudio);
+ expect(played.map(s=>[s.slot,s.sound,s.speed,s.has(SOUND.startPercentage),s.has(SOUND.frontEnd)])).toEqual([[2,33,1,true,false],[2,50,.79,true,false]]);
+ expect(played[0].currPos).toEqual({x:5,y:6,z:7});
+ // A report at no point (zeros) is a front-end sound ahead of the listener; one at an entity follows it.
+ let at={x:1,y:2,z:3};
+ e.scriptAudio.processMissionAudioEvent(1136,{position:{x:0,y:0,z:0}});
+ e.scriptAudio.processMissionAudioEvent(1039,{physical:{position:()=>at}});
+ const weapons=e.manager.sounds.filter(s=>s.inUse&&s.entity===e.scriptAudio&&s.slot===SLOT.weaponGen);
+ expect(weapons.map(s=>[s.sound,s.has(SOUND.frontEnd),s.has(SOUND.lifespanTiedToEntity)])).toEqual([[82,true,false],[65,false,true]]);
+ // HORN 7 for 1147 only while none of its own plays.
+ e.scriptAudio.processMissionAudioEvent(1147,{position:{x:1,y:1,z:1}});e.scriptAudio.processMissionAudioEvent(1147,{position:{x:1,y:1,z:1}});
+ expect(e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.hornAndSiren&&s.entity===e.scriptAudio)).toHaveLength(1);
+ // A mission-bank sound is not ported yet: noted, nothing played.
+ e.scriptAudio.processMissionAudioEvent(1005,{position:{x:0,y:0,z:0}});
+ expect(e.scriptAudio.unported.get(1005)).toBe(1);
+});
+test('the frontend plays the purchase, refusal, race and garage sounds as the iOS executable does',async()=>{
+ const e=engine();await flush();await flush();
+ e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const sounds=(slot:number)=>e.manager.sounds.filter(s=>s.inUse&&s.entity===e.frontend&&s.slot===slot).map(s=>[s.sound,+s.speed.toFixed(3)]);
+ e.frontend.addAudioEvent(14);expect(sounds(SLOT.frontendGame)).toEqual([[27,.841],[28,.841]]);
+ e.frontend.addAudioEvent(44);expect(sounds(SLOT.frontendGame).slice(2)).toEqual([[6,1],[7,1]]);
+ e.frontend.addAudioEvent(45);expect(sounds(SLOT.frontendGame).slice(4)).toEqual([[12,1],[13,1]]);
+ e.frontend.addAudioEvent(46);expect(sounds(SLOT.frontendGame).slice(6)).toEqual([[9,1]]);
+ e.frontend.addAudioEvent(16);const respray=sounds(SLOT.weaponGen);
+ expect(respray.map(s=>s[0])).toEqual([28,28]);expect(respray.map(s=>s[1]).sort()).toEqual([1,1.189]);
+});
 test('player helicopter rotors and weather rain loops',async()=>{
  const e=engine(),key={};await flush();
  const heli=car({status:'player',playerDriver:true,playerInVehicle:true,rotorSpeed:.22,padAccelerate:1,transmission:undefined,wheels:undefined});

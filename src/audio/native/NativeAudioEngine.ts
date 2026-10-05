@@ -1,3 +1,4 @@
+import {NativeScriptAudio} from './NativeScriptAudio';
 import {NativeAudioEnvironment,SOUND,type NativeCamera,type NativePhysicalEntity,type NativeVec} from './NativeSound';
 import {gxtText} from '../../assets/gxt';
 import {RADIO_ID,RADIO_TYPE,vehicleRadioSettings} from './vehicleRadio';
@@ -56,6 +57,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  readonly collisions:NativeCollisionAudio;surfaceAudio?:ReadonlyMap<number,SurfaceAudioFlags>;
  /** CAudioEngine::m_FrontendAE (pickup sounds). */
  readonly frontend:NativeFrontendAudio;
+ /** CAEScriptAudioEntity's ProcessMissionAudioEvent, for the scripts' REPORT_MISSION_AUDIO_EVENT_AT_*. */
+ readonly scriptAudio:NativeScriptAudio;
  /** CWanted::m_PoliceScannerAudioEntity of the player, which plays the report of a crime that raised his level. */
  readonly policeScanner:NativePoliceScanner;
  /** CAEWaterCannonAudioEntity: the fire truck cannon's jet and splash voices. */
@@ -87,6 +90,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   this.explosions=new NativeExplosionAudio(this.manager,bank,random,e=>this.defaultVolume(e));
   this.collisions=new NativeCollisionAudio(this.manager,bank,random,e=>this.defaultVolume(e),id=>this.surfaceAudio?.get(id));
   this.frontend=new NativeFrontendAudio(this.manager,bank,e=>this.defaultVolume(e));
+  this.scriptAudio=new NativeScriptAudio(this.manager,bank,e=>this.defaultVolume(e),this.random,(event,volume,speed)=>this.frontend.addAudioEvent(event,volume,speed));
   this.policeScanner=new NativePoliceScanner(this.manager,bank,this.frontend,e=>this.defaultVolume(e),()=>this.playerInVehicle,random);
   this.waterCannon=new NativeWaterCannonAudio(this.manager,bank);
   this.radioTracks=new NativeRadioTrackManager(random);
@@ -431,5 +435,5 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  }
   /** Stop everything (CAESoundManager::Reset). */
   reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.policeScanner.reset();this.radioTracks.reset();this.manager.reset();}
-  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,scanner:this.policeScanner.snapshot(),radio:{...this.radioTracks.snapshot(),stream:this.radioStream?.snapshot?.()??null},banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
+  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,scanner:this.policeScanner.snapshot(),script:this.scriptAudio.snapshot(),radio:{...this.radioTracks.snapshot(),stream:this.radioStream?.snapshot?.()??null},banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
 }
