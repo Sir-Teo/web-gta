@@ -8977,7 +8977,9 @@ that did anything.
     50 frames a second, so the 7 s run out in 438 frames, and at nothing BlowUpCar, the explosion the player's when he
     set it off. BlowUpCar clears the bomb. AE_FRONTEND_CAR_ALREADY_RIGGED sounds as AE_FRONTEND_CAR_NO_CASH and the three
     fittings as AE_FRONTEND_PICKUP_WEAPON (the iOS switch, 0x1001471f0 and 0x100147008). A passenger's car-gun press
-    (FindPlayerVehicle is his car in either seat) does not reach the car here.
+    (FindPlayerVehicle is his car in either seat) does not reach the car here, and the timer runs only for cars in the
+    active range around him (the game's ProcessControl runs for every vehicle). Both of SA's shops are type 2: the
+    ignition and remote shops' paths have unit coverage only.
   - Specs: `car-bomb` (unit: arming, the timer's 16 ms steps, the ignition and the detonator); `scm-garages` (unit: the
     open shop's refusals, the shutting and the fitting, the three shops' bombs and sounds, the detonator, nothing
     fitted without a vehicle, the empty purse and free bombs); `bomb-shop` (browser: a Landstalker in lasbomb with

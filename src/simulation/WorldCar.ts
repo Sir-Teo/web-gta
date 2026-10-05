@@ -483,7 +483,8 @@ export class WorldCar {
   const driver=this.occupied||!!this.autopilot&&!this.driverOut;
   if(driver&&!this.driverLastFrame&&bombDriverEntered(this))this.bombDetonatedByPlayer=this.bombInstalledByPlayer;
   this.driverLastFrame=driver;
-  if(stepBombTimer(this,seconds*50)){this.explosionByPlayer=this.bombDetonatedByPlayer;this.blowUp();}
+  // (BlowUpCar declines a car that cannot be damaged, and then nothing is credited to anyone.)
+  if(stepBombTimer(this,seconds*50)&&!this.wrecked&&this.canBeDamaged){this.explosionByPlayer=this.bombDetonatedByPlayer;this.blowUp();}
  }
  blowUp(){
   if(this.wrecked||!this.canBeDamaged)return;const cutscene=this.cutsceneExplosion;
