@@ -9296,8 +9296,16 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   multiplier, bounds what is drawn. `__game.groupCounts()` shows the calls are one per material group of the meshes
   in view (827 calls, 825 groups): about 175 meshes, 27 of them distant LOD models of 11 texture groups each and a
   few of 14 to 35. `__game.drawBreakdown()` groups them by scene path (the streamed world windows, nearly all).
-- **What would cut it** without changing the picture: drawing a LOD model's groups in one call from a texture array
-  (WebGL2) where its textures share a size and format. It is a renderer change and is left for a deliberate pass.
+- **Alike spans draw together** (`assets/mergeSpans.ts`). A DFF often gives several of a geometry's materials the
+  same texture, colour and effects, and three draws each group with a call. A geometry's opaque spans whose source
+  materials are the same (and whose texture and prelight carry no alpha) are now joined into one group, their
+  triangles moved together; translucent spans keep their places, which are their draw order. Over Grove Street from
+  120 units up, 512 draws became 464; over San Fierro, 141 became 118. `__game.groupCounts()` counts what is left to
+  join (`mergeable`) and the draws by the meshes' size on screen (`drawsBySizePx`: under 16 pixels is a few draws, so
+  culling small things would not help). Spec: `merge-spans` (unit); the building, alpha, car and colour specs pass.
+- **What would cut more** without changing the picture: drawing a LOD model's groups in one call from a texture array
+  (WebGL2). SA's textures are shared across many models, so per-model arrays would copy them in GPU memory, a phone's
+  scarcest; a shared, streamed array pool is a renderer change left for a deliberate pass.
 
 ## The rhythm games have their arrows on a touch screen
 

@@ -2737,8 +2737,17 @@ async function boot() {
     /** Meshes in the frustum and the material groups they draw (a mesh with a material array draws once a group): what
      * renderer.info's draw calls are made of. */
     groupCounts:()=>{const frustum=new Frustum(),m=new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse);frustum.setFromProjectionMatrix(m);
-      let meshes=0,groups=0,hist=new Map<number,number>(),transparent=0;render.scene.traverseVisible(o=>{const mesh=o as any;if(!mesh.isMesh)return;if(mesh.frustumCulled&&!frustum.intersectsObject(mesh))return;meshes++;const n=Array.isArray(mesh.material)?Math.max(1,mesh.geometry.groups.length):1;groups+=n;hist.set(n,(hist.get(n)??0)+1);if([mesh.material].flat().some((x:any)=>x.transparent))transparent++;});
-      return {meshes,groups,transparent,hist:[...hist].sort((a,b)=>a[0]-b[0])};},
+      let meshes=0,groups=0,hist=new Map<number,number>(),transparent=0;const bySize=new Map<number,number>(),sphere=new Sphere(),cam=render.camera as any;
+      const pxPerUnit=innerHeight/2/Math.tan((cam.fov??60)*Math.PI/360);
+      render.scene.traverseVisible(o=>{const mesh=o as any;if(!mesh.isMesh)return;if(mesh.frustumCulled&&!frustum.intersectsObject(mesh))return;meshes++;const n=Array.isArray(mesh.material)?Math.max(1,mesh.geometry.groups.length):1;groups+=n;hist.set(n,(hist.get(n)??0)+1);if([mesh.material].flat().some((x:any)=>x.transparent))transparent++;
+        // Draws by the mesh's projected size: its bounding sphere's diameter on screen, in CSS pixels (bucket 2^k).
+        if(!mesh.geometry.boundingSphere)mesh.geometry.computeBoundingSphere();sphere.copy(mesh.geometry.boundingSphere).applyMatrix4(mesh.matrixWorld);
+        const d=Math.max(.1,sphere.center.distanceTo(cam.position)-sphere.radius),px=2*sphere.radius/d*pxPerUnit,k=px<2?1:2**Math.min(8,Math.floor(Math.log2(px)));bySize.set(k,(bySize.get(k)??0)+n);});
+      // Groups a mesh could draw together: materials alike but for their object (texture, colour, flags, program).
+      let mergeable=0;render.scene.traverseVisible(o=>{const mesh=o as any;if(!mesh.isMesh||!Array.isArray(mesh.material))return;if(mesh.frustumCulled&&!frustum.intersectsObject(mesh))return;
+        const keys=new Set<string>();for(const g of mesh.geometry.groups){const m=mesh.material[g.materialIndex];if(!m)continue;keys.add([m.map?.uuid,m.color?.getHexString?.(),m.opacity,m.transparent,m.alphaTest,m.side,m.customProgramCacheKey?.(),m.userData?.nativeEnv?1:0,m.userData?.uvAnim?1:0].join('|'));}
+        mergeable+=Math.max(0,mesh.geometry.groups.length-keys.size);});
+      return {meshes,groups,transparent,mergeable,hist:[...hist].sort((a,b)=>a[0]-b[0]),drawsBySizePx:[...bySize].sort((a,b)=>a[0]-b[0])};},
     drawGroups:()=>{const frustum=new Frustum(),m=new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse);frustum.setFromProjectionMatrix(m);
       const byGeometry=new Map<string,number>(),byPair=new Map<string,number>();let drawn=0,skinned=0;
       render.scene.traverseVisible(o=>{const mesh=o as any;if(!mesh.isMesh)return;if(mesh.frustumCulled&&!frustum.intersectsObject(mesh))return;drawn++;if((mesh as any).isSkinnedMesh)skinned++;

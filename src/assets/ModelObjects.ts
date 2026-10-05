@@ -11,6 +11,7 @@ import type { ModelTexture } from './modelTextures';
 import { placementMatrix } from './placement';
 import { TexturePool } from './TexturePool';
 import { materialVertexAlpha } from './vertexAlpha';
+import { mergeAlikeSpans } from './mergeSpans';
 import { buildingMaterial, isBuildingAtomic, isDayNightAtomic, type BuildingLightingState } from './buildingMaterial';
 import { blendPrelightByte, dayNightPhase, nativeDayNightPrelight, preRenderUpdate as dayNightPreRenderUpdate, type NativeDayNightPrelight } from './nativeDayNightPrelight';
 import { UvAnimationPlayer } from './uvAnimation';
@@ -81,6 +82,14 @@ export function modelObject(model: DffModel, textures: ModelTexture[] = [], plac
      indices = new Uint32Array(source.indices.length); let offset = 0;
      buckets.forEach((bucket, material) => { indices.set(bucket, offset);spans![material].start=offset;offset += bucket.length; });
     }
+    // Alike opaque spans draw as one group (mergeAlikeSpans): the same material, textured without alpha, with no vertex
+    // alpha, and opaque in every prelight it carries.
+    {const vertexAlpha=materialVertexAlpha([source.colors,source.nightColors],spans),index=new Map(spans.map((span,i)=>[span,i]));
+     ({spans,indices}=mergeAlikeSpans(spans,indices,span=>{
+      const m=source.materials[span.material];
+      if(m.color[3]<255||vertexAlpha[index.get(span)!]||(source.uvs.length&&maps.get(m.texture.toLowerCase())?.alpha))return undefined;
+      return JSON.stringify(m);
+     }));}
     spans.forEach((mesh, slot) => { if (mesh.count) geometry.addGroup(mesh.start,mesh.count,slot); });
     spansMs += clock() - spansAt;
     geometry.setIndex(new THREE.BufferAttribute(indices, 1)); if (!source.normals) { const t = clock(); geometry.computeVertexNormals(); normalsMs += clock() - t; }
