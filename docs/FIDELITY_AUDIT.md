@@ -9516,8 +9516,9 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   of 0.988 and a 10th percentile of 0.879. The low ones are noisy, high-rate sounds (collisions, weapon tails, frontend
   clicks) whose content above the encode's 16 kHz band is gone, not misaligned. **AUTHORED:** the rebuilt banks are a
   lossy copy of the PC's, at the PC's lengths, rates, loops and headroom.
-- **Rebuilt so far:** BOAT_INBOARD_D (21, 0.05 MB), SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB) and the motorbike engines COPBIKE_D
-  and _P, SCOOTER_P, SPORTSBIKE_D and _P and VTWINBIKE_D and _P (40, 41, 119, 124, 125, 139, 140; 0.83 MB), listed in
+- **Rebuilt so far:** BOAT_INBOARD_D (21, 0.05 MB), SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB), the
+  motorbike engines COPBIKE_D and _P, SCOOTER_P, SPORTSBIKE_D and _P and VTWINBIKE_D and _P (40, 41, 119, 124, 125, 139,
+  140; 0.83 MB) and TRAIN_D and TRAM_D (131, 133; 0.13 MB), listed in
   `public/play/audio/ios-banks.json`, which `NativeBankLoader.open` merges with `banks.json` (a bank both list stays
   the PC's).
 - Specs: `ios-sound-banks` (unit: the files, the merge, bank 28 into slot 42); `bullet-pass` (browser: a trace past
@@ -9570,3 +9571,22 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - Specs: `native-audio` (unit: the Speeder's frequency and volume from the propeller, the 0.02 step, the skim's level
   and pitch, silence out of the water, the stop); `boat-engine-audio` (browser: a Speeder off the docks loads bank 21,
   plays its engine, the propeller rises on the throttle and the hull skims).
+
+## Trains sound
+
+- **Before:** carriages had no vehicle audio entity, so trains and the tram ran silent.
+- **CAEVehicleAudioEntity's AE_TRAIN case** (gta-reversed, reversed): Initialise takes the dummy bank's slot (TRAIN_D,
+  131, for the engines and carriages; TRAM_D, 133, for the tram; both rebuilt from the iOS bundle), and ProcessVehicle
+  runs:
+  - ProcessTrainTrackSound for every carriage: sound 2 of the dummy bank while it moves on the rails, at lerp(0.8, 1.2)
+    of its m_fTrainSpeed times TrainCarriagesNoise (1.08, 0.96, 1.04, 0.92, 1) by its place in the train counted along
+    m_pPrevCarriage, and 6 dB (10 for the tram) + 20 log10 of the speed.
+  - ProcessDummyTrainEngine for the front carriage: sound 0 at lerp(0.8, 1.2) of the speed (0.9 to 1.1 for the tram)
+    times one plus the slope (the forward axis's height, ±0.3) times -0.6 (-0.35); the tram's at 20 log10 of the speed,
+    the others' at 0 dB. A carriage that is not the front stops its engine sound.
+  - UpdateTrainSound adds the event volume, and UpdateVehicleEngineSound adds it again once the sound plays, as the
+    reversal has it, so a playing train sound sits 3 dB under the one just started.
+- ProcessPlayerTrainBrakes (TRAIN_P's brakes) is not asked for: no one drives the port's trains.
+- Specs: `native-audio` (unit: the freight engine's pitch and level, the carriages' track pitches, the tram's swell);
+  `train-audio` (browser: RYDER3's freight train east of Grove Street loads bank 131, the engine plays the engine and
+  the track, the flat car the track alone).

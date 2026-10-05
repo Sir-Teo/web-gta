@@ -138,6 +138,32 @@
    }
   },
   {
+   "id": 131,
+   "path": "bank-131.bin",
+   "dataBytes": 62190,
+   "bytes": 66994,
+   "sounds": 6,
+   "sha256": "35941c27db502a125c5bb0aec5f3ef7bd920906677e7852e014123c99c728885",
+   "from": {
+    "wav": 0,
+    "mp3": 6,
+    "empty": 0
+   }
+  },
+  {
+   "id": 133,
+   "path": "bank-133.bin",
+   "dataBytes": 60452,
+   "bytes": 65256,
+   "sounds": 6,
+   "sha256": "5437e3c1230bc63cf13f4796c11e6fa2a04eadf76b6a06302e62d017b10ce5b1",
+   "from": {
+    "wav": 2,
+    "mp3": 4,
+    "empty": 0
+   }
+  },
+  {
    "id": 139,
    "path": "bank-139.bin",
    "dataBytes": 23072,

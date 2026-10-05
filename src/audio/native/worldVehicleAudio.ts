@@ -3,6 +3,7 @@ import type {WorldCar} from '../../simulation/WorldCar';
 import type {WorldPlane} from '../../simulation/WorldPlane';
 import type {WorldBike} from '../../simulation/WorldBike';
 import type {WorldBoat} from '../../simulation/WorldBoat';
+import type {WorldTrain} from '../../simulation/WorldTrain';
 import type {SurfaceAudioFlags} from '../../assets/surfaceAudio';
 import type {NativeCamera,NativeVec} from './NativeSound';
 import type {NativeVehicleAudioInput} from './NativeVehicleAudio';
@@ -56,6 +57,15 @@ export function worldBoatAudioInput(boat:WorldBoat,playerAlive:boolean):NativeVe
   padAccelerate:boat.occupied?Math.max(0,boat.throttle):0,padBrake:boat.occupied?Math.max(0,-boat.throttle):0,
   health:boat.health,drowning:false,underwater:false,towing:false,horn:{counter:0,pattern:0},sirenOrAlarm:false,alarmState:0,
   boat:{engineSpeed:boat.engineSpeed,inWater:boat.inWater}};
+}
+/** A CTrain carriage for the vehicle audio entity: no one drives the port's trains, so every carriage runs its dummy
+ * engine (the front one) and its track sound from the carriage's own state. */
+export function worldTrainAudioInput(train:WorldTrain,playerAlive:boolean):NativeVehicleAudioInput{
+ const c=train.carriage,body=train.body;let carriage=1;for(let p=c.prev;p;p=p.prev)carriage++;
+ return {position:native(body.translation()),...axes(body.rotation()),moveSpeed:{x:c.moveSpeed[0],y:c.moveSpeed[1],z:c.moveSpeed[2]},
+  status:'physics',playerDriver:false,playerInVehicle:false,playerAlive,engineOn:true,gasPedal:c.gas,brakePedal:c.brake,handbrake:false,gear:0,
+  padAccelerate:0,padBrake:0,health:train.health,drowning:false,underwater:false,towing:false,horn:{counter:0,pattern:0},sirenOrAlarm:false,alarmState:0,
+  train:{speed:c.speed,clockwise:c.clockwise,front:c.isFront,notOnARailRoad:c.notOnARailRoad,carriage}};
 }
 /** CHeli/CPlane state: the browser throttle stands in for m_fHeliRotorSpeed (0.22 at full) and m_fPropSpeed (0.34 at full).
  * A scripted police airframe runs its engine off the autopilot collective. */

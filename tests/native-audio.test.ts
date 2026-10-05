@@ -182,6 +182,30 @@ test("a boat's engine follows its propeller, and its hull skims the water",async
  input.engineOn=false;await frames(e,key,452,()=>input,1);
  expect(audio.engineSounds[2]).toBeUndefined();
 });
+test("a train's engine sounds at the front, and every carriage's wheels on the rails",async()=>{
+ const e=engine();await flush();
+ const train=(model:number,front:boolean,carriage:number,speed:number)=>car({transmission:undefined,wheels:undefined,train:{speed,clockwise:false,front,notOnARailRoad:false,carriage}});
+ // The freight engine (TRAIN_D, 131) and its second carriage, at half of a unit a frame.
+ const engineKey={},wagonKey={},loco=train(537,true,1,.5),wagon=train(569,false,2,.5);
+ for(let i=0;i<4;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[[engineKey,537,loco],[wagonKey,569,wagon]]}));await flush();}
+ const front=e.vehicle(engineKey,537)!,second=e.vehicle(wagonKey,569)!;
+ // ProcessDummyTrainEngine: lerp(0.8, 1.2, 0.5) on the level, at 0 dB (the event volume twice once updated, as
+ // UpdateTrainSound has it).
+ const motor=front.engineSounds[1]!;
+ expect(motor.sound).toBe(0);expect(motor.slot).toBe(front.dummySlot);expect(motor.speed).toBeCloseTo(1,5);
+ expect(motor.volume-2*front.eventVolume).toBeCloseTo(0,5);
+ expect(second.engineSounds[1]).toBeUndefined();
+ // ProcessTrainTrackSound: sound 2 at 6 + 20 log10(0.5) dB, pitched by TrainCarriagesNoise for its place.
+ expect(front.engineSounds[2]!.sound).toBe(2);expect(front.engineSounds[2]!.speed).toBeCloseTo(.96,5);
+ expect(second.engineSounds[2]!.speed).toBeCloseTo(1.04,5);
+ expect(front.engineSounds[2]!.volume-2*front.eventVolume).toBeCloseTo(6+20*Math.log10(.5),4);
+ // A tram (TRAM_D, 133) swells with its speed: 20 log10(sf) on its engine.
+ const tramKey={},tram=train(449,true,1,.25);
+ await frames(e,tramKey,449,()=>tram,4);
+ const t=e.vehicle(tramKey,449)!;
+ expect(t.engineSounds[1]!.volume-2*t.eventVolume).toBeCloseTo(20*Math.log10(.25),4);
+ expect(t.engineSounds[1]!.speed).toBeCloseTo(.9+.2*.25,5);
+});
 test('player helicopter rotors and weather rain loops',async()=>{
  const e=engine(),key={};await flush();
  const heli=car({status:'player',playerDriver:true,playerInVehicle:true,rotorSpeed:.22,padAccelerate:1,transmission:undefined,wheels:undefined});

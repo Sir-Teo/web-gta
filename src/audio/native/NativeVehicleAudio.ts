@@ -23,11 +23,18 @@ const HORN_PATTERNS=[
  '00000000001100001100001110000111100000000000','00111100001111100001110000111000001111111100','00111100001111100001111110000000000000111100','11110000111111111111111100111110111111110000',
 ].map(p=>p.slice(0,HORN_PATTERN_SIZE));
 const CAR_WHEEL={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
+/** eTrainEngineSoundType's engine sounds. */
+const TRAIN={engine:1,track:2} as const;
+/** TrainCarriagesNoise: the track sound's pitch by the carriage's place in its train. */
+const TRAIN_CARRIAGES_NOISE=[1.08,.96,1.04,.92,1];
 /** eBoatEngineSoundType's engine sounds. */
 const BOAT={engine:2,distant:3,waterSkim:6} as const;
 /** s_Config defaults (AEVehicleAudioEntity.h). */
 const CFG={
  freqUnderwaterFactor:.7,idRollOff:2,
+ train:{
+  tram:{engineRollOff:4,trackRollOff:5,track:{volBase:10,frqMin:.8,frqMax:1.2},engine:{frqMin:.9,frqMax:1.1,frqSlopeFactor:-.35}},
+  generic:{engineRollOff:4.5,trackRollOff:4.5,track:{volBase:6,frqMin:.8,frqMax:1.2},engine:{frqMin:.8,frqMax:1.2,frqSlopeFactor:-.6}}},
  boat:{engineRollOff:3.5,distantRollOff:5,waterSkimRollOff:2.5,frqEngineRollFactor:.1,frqEngineBase:.6,frqEngineOnWaterFactor:.4,frqEngineInAirFactor:.7,volBase:-3,volEngineSpeedFactor:3,
   overWater:{volBaseOfSeaplane:12,volBase:3,volUnderwaterOffset:6,frqBase:.8,frqSpeedFactor:.2,frqUnderwaterFactor:.185}},revRollOff:2,roadNoiseRollOff:3,flatTireRollOff:3,reverseGearRollOff:1,volOffsetOnGround:1.5,rotorVolTiltFactor:.67,
  gasPedal:{stepDown:.07,stepUp:.09},flatTyre:{volOffset:-9,frqGearVelocityFactor:.4},
@@ -68,6 +75,9 @@ export interface NativeVehicleAudioInput {
  rotorSpeed?:number;propSpeed?:number;
  /** COMPONENT_WING_RR world position for helicopters. */
  nearPosition?:NativeVec;
+ /** CTrain's m_fTrainSpeed, bClockwiseDirection, bIsFrontCarriage and bNotOnARailRoad, and the carriage's place in its
+  * train counted from the engine (itself and every m_pPrevCarriage, from 1). */
+ train?:{speed:number;clockwise:boolean;front:boolean;notOnARailRoad:boolean;carriage:number};
  /** CBoat's m_EngineSpeed (the propeller's) and m_nBoatFlags.bBoatInWater, for a boat or a seaplane. */
  boat?:{engineSpeed:number;inWater:boolean};
  /** CBike's m_RideAnimData.LeanAngle (radians) and bikeFlags.bPlayerBoost, for a motorbike. */
@@ -698,9 +708,42 @@ export class NativeVehicleAudio implements NativeAudioEntity {
    case AE_VEHICLE.heli:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;
    case AE_VEHICLE.plane:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;
    case AE_VEHICLE.boat:this.processBoatEngine();this.processRainOnVehicle();this.processBoatMovingOverWater(speed);break;
+   // ProcessPlayerTrainBrakes follows for a player-driven train; no one drives the port's trains.
+   case AE_VEHICLE.train:this.processTrainTrackSound();this.processDummyTrainEngine();break;
    case AE_VEHICLE.seaplane:this.processAircraft();this.processRainOnVehicle();this.processBoatMovingOverWater(speed);break;
    case AE_VEHICLE.special:this.processSpecialVehicle(speed);break;
   }
+ }
+ private get trainConfig(){return this.dummyEngineBank===BANK.tramD?CFG.train.tram:CFG.train.generic;}
+ /** ProcessDummyTrainEngine (0x500710): the front carriage's engine loop, pitched by its speed and the slope; a tram's
+  * swells with its speed. */
+ private processDummyTrainEngine(){
+  const v=this.vehicle,t=v.train,tram=this.dummyEngineBank===BANK.tramD,cfg=this.trainConfig.engine;
+  if(!t||!this.ensureHasDummySlot()||!this.ensureSoundBankIsLoaded(true,false))return;
+  if(!t.front){this.gracefullyStop(TRAIN.engine);return;}
+  const frq=clamp(v.forward.z,-.3,.3)*cfg.frqSlopeFactor;
+  let speed=t.notOnARailRoad?0:t.speed;if(t.clockwise)speed=-speed;
+  const sf=t.notOnARailRoad?0:clamp(Math.abs(speed),0,1);
+  let volume=0;if(tram)volume+=audioLog10(sf)*20;
+  this.updateTrainSound(TRAIN.engine,this.dummySlot,0,lerp(cfg.frqMin,cfg.frqMax,sf)*(1+frq),volume);
+ }
+ /** ProcessTrainTrackSound (0x4FA3F0): every carriage's wheels on the rails, sound 2 of the dummy bank. */
+ private processTrainTrackSound(){
+  const t=this.vehicle.train;
+  if(!t||!this.ensureHasDummySlot()||!this.ensureSoundBankIsLoaded(true,false))return;
+  const sf=Math.abs(t.speed);
+  if(t.notOnARailRoad||sf<.00001){this.updateTrainSound(TRAIN.track,this.dummySlot,2,0,-100);return;}
+  const cfg=this.trainConfig.track;
+  this.updateTrainSound(TRAIN.track,this.dummySlot,2,lerp(cfg.frqMin,cfg.frqMax,sf)*TRAIN_CARRIAGES_NOISE[t.carriage%TRAIN_CARRIAGES_NOISE.length],cfg.volBase+audioLog10(sf)*20);
+ }
+ /** UpdateTrainSound (0x4FA1C0). As the reference has it, the event volume is added here and again by
+  * UpdateVehicleEngineSound once the sound plays. */
+ private updateTrainSound(st:number,slot:number,sfx:number,speed:number,volume:number){
+  volume+=this.eventVolume;
+  if(this.dummySlot===-1||this.updateVehicleEngineSound(st,speed,volume))return;
+  if(!this.loaded(this.dummyEngineBank,this.dummySlot))return;
+  const cfg=this.trainConfig;
+  this.engineSounds[st]=this.play(slot,sfx,volume,{rollOff:st===TRAIN.engine?cfg.engineRollOff:cfg.trackRollOff,speed,flags:SOUND.requestUpdates});
  }
  /** ProcessBoatEngine (0x5003A0): one loop of the dummy bank pitched and swelled by the propeller's speed, and the
   * distant engine, which takes over under water. */
