@@ -9334,3 +9334,43 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **Measured** (844×390): Grove Street 364 draws against Medium's 401, a Los Santos freeway 39 against 45, San Fierro
   87 against 96; climbing in the Maverick from Verdant Meadows 225, 205 and 213 against 327, 303 and 258 at 190, 255 and
   320 units. Specs: `view-distance` (unit); the fog, altitude, sky, lighting and touch flight specs pass.
+
+## The police scanner reports a crime
+
+- **What.** A crime that raises CJ's wanted level (`CWanted::ReportCrimeNow`, which hands it to
+  `m_PoliceScannerAudioEntity.AddAudioEvent(AE_CRIME_COMMITTED, crimeType, posn)`) is reported over the police
+  scanner: a click and static, then an opening, the crime's ten-code, the direction within the zone and the area,
+  and after a second click a list that leads with one word and describes the player: a vehicle by colour and kind,
+  or on foot or swimming. (What each word says is read from how the code uses it, not checked by ear: direction
+  sounds 0 to 4 go with the middle of a zone and its east, north, south and west; instruction sound 3 with the
+  vehicles one rides on and 1 with the rest, 2 with swimming and 4 with walking.) Its words are the SCRIPT pack's
+  first six banks, the scanner banks
+  147 to 152, which the iOS port's `SCRIPT.osw` already supplied for mission dialogue; each word is fetched and
+  decoded alone into its scanner slot (33 to 37), as `CAEAudioHardware::LoadSound` loads it
+  (`NativeBankLoader.loadSound`, `isSoundLoaded`).
+- **The report, from the iOS executable.** `AddAudioEvent` (0x4E71E0) is unreversed in gta-reversed. The iOS port's
+  executable (`gta3sa`, arm64 slice, stripped, decrypted) has it at 0x100150064; its tables are read out by
+  `scripts/content/scanner-tables.mjs` into `src/audio/native/scannerTables.ts`: three openings (one picked by
+  `GetRandomNumberInRange(0, 2)`), each crime type's ten-code (types 2 to 22 only), 194 navigation zone text keys with
+  their area and whether a direction is said, each `VehicleAudioTypeForName`'s vehicle and each car colour's colour.
+  The zone is `CTheZones::FindSmallestZoneForPosition(point, true)` at the crime's point (the player's, kept with a
+  queued crime as `m_vecCoors`); its middle half each way is "central", and beyond it north or south and east or
+  west. A zone the table has no area for (9 of the PC's 169 type-0 names: CHINA, CREE, JEF, LST, PILL, REST, ROBINT,
+  SHACA, WESTP) is not reported at all. The second half leads with instruction sound 7, then on foot sound 4,
+  swimming sound 2, and on a jetpack nothing at all; in a vehicle sound 3 for a moped, bike, quad bike, tractor,
+  mower or bicycle and 1 otherwise, the colour for the 35 types that have one said (a paintjob's is colour 4; colours
+  0, 6 and 127 are not said), then the vehicle; a sedan (`AE_VAT_SEDAN`, which the table leaves without a word) is not
+  described.
+- **The playback** (`NativePoliceScanner`) is gta-reversed's reversal (`PrepSlots`, `LoadSlots`,
+  `PlayLoadedDialogue`, `UpdateParameters`, `Service`, `StopScanner`), checked against the iOS executable, which
+  differs in three places that are followed: `CanWePlayNewScannerDialogue` plays only from the initial state
+  (gta-reversed inverts it), a finished report holds the next one off for 10 s from now, and the slot states reset to
+  1. The lists load within 5 s or are dropped; the first plays 2 s after the crime, each word 40 ms before the last
+  ends (not after the area), the static and click 8 dB down on foot. Widescreen holds new reports and stops one
+  playing, and `RestorePlayerStuffDuringResurrection` stops it (`StopPoliceScanner(true)`). The frontend's
+  `SCANNER_NOISE_START`, `_STOP` and `_CLICK` (frontend sounds 3 and 24) follow the executable's cases.
+- **AUTHORED:** `CStreaming::IsVeryBusy`, which holds a word's load back, is not consulted; the port applies no
+  paintjobs, so `GetRemapIndex` is always -1; the iOS MP3s carry no headroom, so the words play at 0 dB headroom.
+- Specs: `police-scanner` (unit: the tables against the banks and the zones, the report's lists, the playback's
+  timing, the 10 s hold and widescreen, CWanted's hand-over; browser: a crime at Grove Street fetches banks 147, 149,
+  150 and 151, is heard and runs to its end).

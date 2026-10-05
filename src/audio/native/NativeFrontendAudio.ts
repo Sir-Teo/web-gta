@@ -3,7 +3,7 @@ import type {NativeSoundManager} from './NativeSoundManager';
 import {BANK,SLOT,type NativeBankLoader} from './NativeBankLoader';
 /** Frontend pickup events reported by CPickup::Update, CPickups::GivePlayerGoodiesWithPickUpMI and the collectable counters. */
 export const AE_FRONTEND={fireFailSniper:41,fireFailRocket:42,pickupWeapon:6,pickupMoney:7,pickupHealth:8,pickupAdrenaline:9,pickupBodyArmour:10,pickupInfo:11,pickupDrugs:12,pickupCollectable1:13,
- bulletPassLeftRear:27,bulletPassLeftFront:28,bulletPassRightRear:29,bulletPassRightFront:30,timerCount:33,partMissionComplete:43} as const;
+ bulletPassLeftRear:27,bulletPassLeftFront:28,bulletPassRightRear:29,bulletPassRightFront:30,timerCount:33,partMissionComplete:43,scannerNoiseStart:47,scannerNoiseStop:48,scannerClick:49} as const;
 /** SND_BANK_GENRL_BULLET_PASS_1 to _4 and SND_BANK_SLOT_BULLET_PASS. */
 const BULLET_PASS_FIRST=28,BULLET_PASS_LAST=31,BULLET_PASS_SLOT=42;
 const BULLET_PASS_POSITION:Readonly<Record<number,{x:number;y:number;z:number}>>={27:{x:-.1,y:-1,z:0},28:{x:-.1,y:1,z:0},29:{x:.1,y:-1,z:0},30:{x:.1,y:1,z:0}};
@@ -22,6 +22,8 @@ export class NativeFrontendAudio implements NativeAudioEntity {
  addAudioEvent(event:number,volumeBoost=0,speed=1){
   const pass=BULLET_PASS_POSITION[event];
   if(pass){this.bulletPass(pass,this.defaultVolume(event)+volumeBoost);return;}
+  // AE_FRONTEND_SCANNER_NOISE_STOP cancels the scanner's noise, loaded bank or not (arm64 0x1001478d0).
+  if(event===AE_FRONTEND.scannerNoiseStop){this.manager.cancelSoundsOfThisEventPlayingForThisEntity(AE_FRONTEND.scannerNoiseStart,this);return;}
   if(!this.bank.isSoundBankLoaded(BANK.frontendGame,SLOT.frontendGame)){this.bank.loadSoundBank(BANK.frontendGame,SLOT.frontendGame);return;}
   const frame=this.manager.clock.frame,volume=this.defaultVolume(event)+volumeBoost;
   const pair=(left:number,right:number)=>{for(const [sound,x] of [[left,-1],[right,1]] as const)this.manager.playSound({slot:SLOT.frontendGame,sound,entity:this,position:{x,y:0,z:0},volume,speed,flags:SOUND.forcedFront|SOUND.unduckable|SOUND.unpausable|SOUND.playPhysically|SOUND.uncancellable|SOUND.frontEnd});};
@@ -40,6 +42,13 @@ export class NativeFrontendAudio implements NativeAudioEntity {
      flags:SOUND.forcedFront|SOUND.unduckable|SOUND.playPhysically|SOUND.requestUpdates|SOUND.uncancellable|SOUND.frontEnd});
     break;
    case AE_FRONTEND.pickupDrugs:case AE_FRONTEND.pickupCollectable1:case AE_FRONTEND.partMissionComplete:if(frame>=this.lastMissionComplete+5){this.lastMissionComplete=frame;pair(18,19);}break;
+   // AE_FRONTEND_SCANNER_NOISE_START and _CLICK: the scanner's static loop (frontend sound 3) and its click (24) ahead
+   // of the listener, one of each at a time (arm64 0x100147798 and 0x100147f68).
+   case AE_FRONTEND.scannerNoiseStart:case AE_FRONTEND.scannerClick:
+    if(this.manager.areSoundsOfThisEventPlayingForThisEntity(event,this))return;
+    this.manager.playSound({slot:SLOT.frontendGame,sound:event===AE_FRONTEND.scannerClick?24:3,entity:this,position:{x:0,y:1,z:0},volume,rollOff:1,speed,doppler:1,event,
+     flags:SOUND.frontEnd|SOUND.uncancellable|SOUND.unduckable});
+    break;
   }
  }
  /** The bullet-pass cases (AE_FRONTEND_BULLET_PASS_*): one of three whizzes from the current bank, at most every five

@@ -153,6 +153,8 @@ const scratchAim = new Vector3();
 const scratchSpine = new Vector3(),scratchPoolFront = new Vector3(),scratchCameraFront = new Vector3();
 import {nativeSaveEffects,type ScmSavePoint} from './assets/scmSavePoints';
 import {AE_FRONTEND} from './audio/native/NativeFrontendAudio';
+import {VEHICLE_AUDIO_TYPE_FOR_NAME} from './audio/native/NativePoliceScanner';
+import {VEHICLE_AUDIO_SETTINGS} from './audio/native/vehicleAudioSettings';
 import {HUD_COLOURS} from './ui/nativeHudColours';
 import {PICKUP_TYPE} from './assets/scmPickups';
 import {Arsenal} from './weapons/Arsenal';
@@ -990,6 +992,21 @@ async function boot() {
   weapons.onCrime=(type,victim,queued)=>{const dontCare=!!pedestrians?.policeDontCare(victim);if(queued){if(victim)law.registerCrime(type,victim,dontCare);}else law.crime(type,victim,dontCare);};
   // CGangWars::GangWarFightingGoingOn zeroes the chaos a crime adds (CWanted::ReportCrimeNow).
   law.native.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();
+  // CWanted::ReportCrimeNow's police scanner: a crime that raises the level is reported (NativePoliceScanner) for where
+  // the player stood, the smallest type-0 navigation zone there, and what he is in or on. AUTHORED: paintjobs are not
+  // applied to the port's cars, so GetRemapIndex is always -1.
+  law.native.crimePosition=()=>({x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y});
+  law.native.onLevelRaisedByCrime=(type,position)=>{
+   const engine=sound.nativeEngine;if(!engine||!position)return;
+   const zone=worldZones&&worldZoneAt(worldZones,[position.x,position.y,position.z],true);
+   const seated=[...(fleet?.cars??[])].find(car=>car.occupied)??(worldCar?.occupied?worldCar:undefined)??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+   const typeName=seated&&VEHICLE_AUDIO_SETTINGS[seated.modelId-400]?.[8];
+   engine.crimeReported(type,{point:{x:position.x,y:position.y},
+    zone:zone&&{textKey:zone.textLabel,min:[zone.min[0],zone.min[1]],max:[zone.max[0],zone.max[1]]},
+    player:{inVehicle:!!seated,swimming:!!sim.player.swimming,jetPack:!!sim.jetPack&&!sim.jetPack.finished,
+     vehicle:seated&&{typeForName:VEHICLE_AUDIO_TYPE_FOR_NAME.indexOf(typeName as (typeof VEHICLE_AUDIO_TYPE_FOR_NAME)[number]),remapped:false,
+      primaryColour:(seated as {assets?:{colourIndices?:readonly number[]}}).assets?.colourIndices?.[0]??0}}});
+  };
   law.chasedByPolice=victim=>pedestrians?.chasedByPolice(victim);
   /** CWeapon::TakePhotograph's marking: peds whose head, and script objects whose origin, the photo catches with a
    * clear line from two units in front of the camera (to 1.5 units short of the head, toward the camera). */
@@ -1108,8 +1125,8 @@ async function boot() {
     const inside=render.lighting.area!==0;entryExits?.clearStack();
     // CGame::currArea = AREA_CODE_NORMAL_WORLD (GameLogic.cpp:407), which GET_AREA_VISIBLE reads.
     if(mission)mission.runtime.game.currentArea=0;
-    // RestorePlayerStuffDuringResurrection: CTimeCycle::StopExtraColour(0).
-    localLighting.stopExtraColour(false);
+    // RestorePlayerStuffDuringResurrection: CTimeCycle::StopExtraColour(0), and AudioEngine.StopPoliceScanner(true).
+    localLighting.stopExtraColour(false);sound.nativeEngine?.policeScanner.stopScanner(true);
     // ResetForResurrectionAndFadeOut takes him out of a vehicle he sits in as a passenger, and the Teleport's
     // FlushImmediately drops whatever fall, get-up or arrest hold was running (RestartNonPartialAnims).
     if(playerPassenger)leavePassengerSeat(true);
@@ -2692,6 +2709,8 @@ async function boot() {
     /** Put the world car at a renderer-frame position at rest; `heading` turns it about the vertical (0 faces -z). */
     placeCar:(x:number,y:number,z:number,heading?:number)=>{if(!worldCar)return false;const b=worldCar.car.body;b.setTranslation({x,y,z},true);if(heading!==undefined)b.setRotation({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)},true);b.setLinvel({x:0,y:0,z:0},true);b.setAngvel({x:0,y:0,z:0},true);return true;},
     setWantedLevel:(level:number)=>{law.setLevel(level);return law.level;},
+    // CCrime::ReportCrime of a crime against a new victim, with the police who see it or not as they stand.
+    crime:(type:number)=>{law.crime(type,`debug-${performance.now()}`);return law.level;},
     /** Dev: the frame limiter (the menu's Display setting). */
     setFrameLimiter:(on:boolean)=>{display.frameLimiter=!!on;saveDisplaySettings(display);hud.bindDisplay(display,displayChanged);return display.frameLimiter;},
     /** Dev: the traffic, weapons and occupants. */
@@ -4055,6 +4074,7 @@ async function boot() {
               if(!hit)return undefined;const t=hit.timeOfImpact;return {point:{x:origin.x+dx*t/dist,y:origin.y+dy*t/dist,z:origin.z+dz*t/dist},physical:{x:0,y:0,z:0},entity:hit.collider.handle};}}}:undefined,
         ambient:weatherStarted?{region:nativeWeatherRegion(render.camera.position.x,-render.camera.position.z),camera:{x:render.camera.position.x,y:-render.camera.position.z,z:render.camera.position.y},player:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},foggynessSF:weather.foggynessSF}:undefined,
         fires:fires.map(f=>[f.key,f.at] as const),
+        widescreen:!!mission?.runtime.game.widescreenOn,
         player:{weapon:weapons.inventory.selected,swimming:sim.player.swimming,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,inVehicle:!!radioDriven,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:radioModel!==undefined}};
     });
     hud.audioStatus(sound.status());

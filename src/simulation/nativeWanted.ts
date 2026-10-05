@@ -11,7 +11,9 @@ export const MAXIMUM_CHAOS=[0,115,365,875,1800,3500,6900] as const;
 export const LAW_ENFORCEMENT_MODELS:ReadonlySet<number>=new Set([427,430,432,433,490,523,528,596,597,598,599,601]);
 /** CCrime::FindImmediateDetectionRange. */
 export function crimeDetectionRange(type:number){return type===CRIME.destroyHeli||type===CRIME.destroyPlane||type===CRIME.explosion?60:type===CRIME.destroyVehicle?30:14;}
-interface QueuedCrime {type:number;id:string;start:number;reported:boolean;dontCare:boolean}
+/** A point in native coordinates (x east, y north, z up). */
+export interface CrimePoint {x:number;y:number;z:number}
+interface QueuedCrime {type:number;id:string;start:number;reported:boolean;dontCare:boolean;position?:CrimePoint}
 /** CWanted and CCrime::ReportCrime. Time is in milliseconds of simulation time. */
 export class NativeWanted {
  chaos=0;level=0;maxCopsInPursuit=0;maxCopCarsInPursuit=0;chanceOnRoadBlock=0;multiplier=1;
@@ -25,6 +27,12 @@ export class NativeWanted {
  maximumWantedLevel=6;maximumChaos=9200;lastLevelChange=0;
  /** CGangWars::GangWarFightingGoingOn, which zeroes the chaos a crime adds. */
  gangWarFighting:()=>boolean=()=>false;
+ /** CCrime::ReportCrime's pCommitedby->GetPosition(): where the player stands as he commits a crime, which a queued
+  * crime keeps (m_vecCoors) for its report. */
+ crimePosition?:()=>CrimePoint;
+ /** m_PoliceScannerAudioEntity.AddAudioEvent(AE_CRIME_COMMITTED, type, posn): ReportCrimeNow hands the scanner a crime
+  * that raised the level, with where it was committed. */
+ onLevelRaisedByCrime?:(type:number,position:CrimePoint|undefined)=>void;
  private crimes:(QueuedCrime|undefined)[]=Array(16).fill(undefined);
  private lastDecreased=0;private now=0;
  /** CStats for the chase: STAT_TOTAL_NUMBER_OF_WANTED_STARS_ATTAINED (131), _EVADED (132) and
@@ -72,16 +80,18 @@ export class NativeWanted {
   const existing=this.crimes.find(c=>c&&c.type===type&&c.id===id);
   if(existing){if(existing.reported)return false;existing.reported=reported;return true;}
   const free=this.crimes.findIndex(c=>!c);if(free<0)return false;
-  this.crimes[free]={type,id,start:this.now,reported,dontCare};return true;
+  this.crimes[free]={type,id,start:this.now,reported,dontCare,position:this.crimePosition?.()};return true;
  }
  /** CWanted::ReportCrimeNow. */
- reportCrimeNow(type:number,dontCare:boolean){
+ reportCrimeNow(type:number,dontCare:boolean,position=this.crimePosition?.()){
   if(CHEATS.isActive('neverWanted'))return false;
   let mul=Math.max(this.multiplier,0);if(this.gangWarFighting())mul=0;if(dontCare)mul/=3;mul*=CRIME_CHAOS[type]??1;
   const before=this.level;
   if(type!==CRIME.none&&type!==CRIME.fireWeapon)this.chaos+=Math.trunc(mul);
   this.chaos=Math.max(this.chaos,this.chaosBeforeParole);
-  this.updateWantedLevel();return this.level>before;
+  this.updateWantedLevel();
+  const raised=this.level>before;if(raised)this.onLevelRaisedByCrime?.(type,position);
+  return raised;
  }
  /** CCrime::ReportCrime for a player crime. `presence(radius)` is CWanted::WorkOutPolicePresence around the player. */
  reportCrime(type:number,victim:string|undefined,presence:(radius:number)=>number,dontCare=false){
@@ -113,7 +123,7 @@ export class NativeWanted {
   // CWanted::UpdateCrimesQ.
   for(let i=0;i<this.crimes.length;i++){
    const crime=this.crimes[i];if(!crime)continue;
-   if(this.now-crime.start>500&&!crime.reported){this.reportCrimeNow(crime.type,crime.dontCare);crime.reported=true;}
+   if(this.now-crime.start>500&&!crime.reported){this.reportCrimeNow(crime.type,crime.dontCare,crime.position);crime.reported=true;}
    if(this.now>crime.start+10000)this.crimes[i]=undefined;
   }
  }

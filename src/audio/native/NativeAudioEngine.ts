@@ -16,6 +16,7 @@ import {VEHICLE_AUDIO_SETTINGS} from './vehicleAudioSettings';
 import {RADIO_STATIONS,nextStation,speechSample,radioBedParams,type RadioStation,type SpeechEvent} from './radioSpeech';
 import {NativeTwinLoopSound} from './NativeTwinLoopSound';
 import {PAIN_CONTEXTS,PAIN_VOICE_CARL,painSound,type PainContext} from './painSpeech';
+import {AE_CRIME_COMMITTED,NativePoliceScanner,type ScannerCrimeScene} from './NativePoliceScanner';
 import type {AudioRandom} from './nativeAudioUtility';
 /** Frame limiter default (RsGlobal.frameLimit = APP_MAX_FPS 30): per-frame audio steps keep their native pacing. */
 export const NATIVE_AUDIO_FRAME_MS=1000/30;
@@ -32,6 +33,8 @@ export interface NativeAudioFrame {
  player?:{weapon:number;onFoot:boolean;attacking:boolean;radio?:boolean;swimming?:boolean;
   /** The player drives a vehicle: TurnOnRadioForVehicle has set s_pVehicleAudioSettingsForRadio, radio or not. */
   inVehicle?:boolean};
+ /** TheCamera.m_bWideScreenOn: the widescreen bars of a scripted scene. */
+ widescreen?:boolean;
 }
 export type NativeCombatSource='player'|'npc'|'aircraft'|'stealth';
 /** CAudioEngine subset: CAESoundManager, vehicle entities (serviced from CAutomobile::ProcessControl), CAEWeatherAudioEntity, CAEPedAudioEntity::HandlePedHit vocals, vehicle radio stations and CAEPedSpeech comments. */
@@ -46,6 +49,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  readonly collisions:NativeCollisionAudio;surfaceAudio?:ReadonlyMap<number,SurfaceAudioFlags>;
  /** CAudioEngine::m_FrontendAE (pickup sounds). */
  readonly frontend:NativeFrontendAudio;
+ /** CWanted::m_PoliceScannerAudioEntity of the player, which plays the report of a crime that raised his level. */
+ readonly policeScanner:NativePoliceScanner;
  /** CAEWaterCannonAudioEntity: the fire truck cannon's jet and splash voices. */
  readonly waterCannon:NativeWaterCannonAudio;
  readonly dummySlots=Array.from({length:SLOT.dummyEnd-SLOT.dummyFirst},()=>({bank:-1,refCount:0}));
@@ -68,6 +73,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   this.explosions=new NativeExplosionAudio(this.manager,bank,random,e=>this.defaultVolume(e));
   this.collisions=new NativeCollisionAudio(this.manager,bank,random,e=>this.defaultVolume(e),id=>this.surfaceAudio?.get(id));
   this.frontend=new NativeFrontendAudio(this.manager,bank,e=>this.defaultVolume(e));
+  this.policeScanner=new NativePoliceScanner(this.manager,bank,this.frontend,e=>this.defaultVolume(e),()=>this.playerInVehicle,random);
   this.waterCannon=new NativeWaterCannonAudio(this.manager,bank);
   // CAEVehicleAudioEntity/CAEWeatherAudioEntity/CAEExplosionAudioEntity/CAECollisionAudioEntity::StaticInitialise bank loads.
   for(const [id,slot] of [[BANK.vehicleGen,SLOT.vehicleGen],[BANK.apacheD,SLOT.copHeli],[BANK.horn,SLOT.hornAndSiren],[BANK.rain,SLOT.weather],[BANK.collisions,SLOT.collisions],[BANK.bulletHits,SLOT.bulletHits],[BANK.explosions,SLOT.explosions],[BANK.weapons,SLOT.weaponGen],[BANK.frontendGame,SLOT.frontendGame]])bank.loadSoundBank(id,slot);
@@ -193,6 +199,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   if(this.bank.isSoundBankLoaded(BANK.weapons,SLOT.weaponGen))this.manager.playSound({slot:SLOT.weaponGen,sound:s.sample,position,volume:this.defaultVolume(AE_SPEECH_PED),rollOff:this.playerInVehicle?3:2,speed:1,flags:SOUND.requestUpdates|SOUND.uncancellable});
  }
  /** An NPC speech comment through the shared ped entities. */
+ /** CWanted::ReportCrimeNow's AddAudioEvent(AE_CRIME_COMMITTED, crimeType, posn) when a crime raised the level. */
+ crimeReported(crimeType:number,scene:ScannerCrimeScene){this.policeScanner.addAudioEvent(AE_CRIME_COMMITTED,crimeType,scene);}
  /** Pain cries said from the PAIN_A banks. */
  painCries=0;
  /** CJ's pain (CPlayerPed's speech entity): his PAIN_A voice, at his position, with his own pain timer. */
@@ -291,11 +299,14 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
    }else this.serviceRadio(false,input.camera.position);
    // The scrape stop reads this frame's clock, as CAECollisionAudioEntity::Service reads CTimer's.
    this.collisions.service(Math.round(this.timeMs));this.pendingThunder=false;
+   this.policeScanner.widescreen=!!input.widescreen;
    this.manager.service(Math.round(this.timeMs));
+   // CAudioEngine::Service runs the police scanner after the sound manager.
+   this.policeScanner.service();
   }
   return frames;
  }
   /** Stop everything (CAESoundManager::Reset). */
-  reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.manager.reset();}
-  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
+  reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.policeScanner.reset();this.manager.reset();}
+  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,scanner:this.policeScanner.snapshot(),banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
 }

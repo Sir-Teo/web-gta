@@ -12,12 +12,17 @@ const hex=(b:ArrayBuffer)=>[...new Uint8Array(b)].map(v=>v.toString(16).padStart
 /** CAEMP3BankLoader bank slots over the packaged GENRL banks (`public/play/audio/banks.json`).
  * A slot keeps its previous bank until the requested bank has been read, as the streaming requests do. */
 export class NativeBankLoader implements NativeBankSlots {
- private slots=Array.from({length:45},()=>({bank:-1,sounds:undefined as NativeBankSound[]|undefined}));
+ /** `single` is m_BankSlotSound: the one sound a LoadSound request put in the slot, -1 when it holds the whole bank. */
+ private slots=Array.from({length:45},()=>({bank:-1,single:-1,sounds:undefined as NativeBankSound[]|undefined}));
  private requests=new Map<number,number>();
+ private soundRequests=new Map<number,{bank:number;sound:number}>();
  private decoded=new Map<number,Promise<NativeBankSound[]>>();
  readonly failures=new Map<number,string>();
  /** Banks packaged elsewhere (the PAIN_A pack's MP3s, which a host decodes), asked for by id. */
  otherBanks?:(bank:number)=>Promise<NativeBankSound[]>;
+ /** Single sounds packaged elsewhere (the SCRIPT pack's MP3s, which a host decodes one at a time), by bank and sound;
+  * undefined when the sound cannot be had. */
+ otherSound?:(bank:number,sound:number)=>Promise<NativeBankSound|undefined>;
  /** Failed downloads so far, per bank. */
  private attempts=new Map<number,number>();
  constructor(readonly manifest:NativeBankManifest,private fetchBank:Fetcher){
@@ -55,11 +60,25 @@ export class NativeBankLoader implements NativeBankSlots {
  /** LoadSoundBank (0x4E0670). */
  loadSoundBank(bank:number,slot:number){
   if(bank<0||slot<0||slot>=this.slots.length||this.isSoundBankLoaded(bank,slot)||this.requests.get(slot)===bank)return;
-  this.requests.set(slot,bank);
-  void this.decode(bank).then(sounds=>{if(this.requests.get(slot)!==bank)return;this.requests.delete(slot);this.slots[slot]={bank,sounds};}).catch(()=>{if(this.requests.get(slot)===bank)this.requests.delete(slot);});
+  this.requests.set(slot,bank);this.soundRequests.delete(slot);
+  void this.decode(bank).then(sounds=>{if(this.requests.get(slot)!==bank)return;this.requests.delete(slot);this.slots[slot]={bank,single:-1,sounds};}).catch(()=>{if(this.requests.get(slot)===bank)this.requests.delete(slot);});
+ }
+ /** LoadSound (0x4E07A0): one sound of a bank into a slot, which then holds that sound alone. The latest request for a
+  * slot wins; one that cannot be had leaves the slot as it was. */
+ loadSound(bank:number,sound:number,slot:number){
+  if(bank<0||sound<0||slot<0||slot>=this.slots.length||this.isSoundLoaded(bank,sound,slot))return;
+  const pending=this.soundRequests.get(slot);if(pending&&pending.bank===bank&&pending.sound===sound)return;
+  const request={bank,sound};this.soundRequests.set(slot,request);this.requests.delete(slot);
+  void (this.otherSound?.(bank,sound)??Promise.resolve(undefined)).then(loaded=>{
+   if(this.soundRequests.get(slot)!==request)return;this.soundRequests.delete(slot);
+   if(loaded)this.slots[slot]={bank,single:sound,sounds:[loaded]};
+  },()=>{if(this.soundRequests.get(slot)===request)this.soundRequests.delete(slot);});
  }
  isSoundBankLoaded(bank:number,slot:number){return this.slots[slot]?.bank===bank&&bank>=0;}
- sound(slot:number,sound:number){return this.slots[slot]?.sounds?.[sound];}
+ /** IsSoundLoaded (0x4E03B0). */
+ isSoundLoaded(bank:number,sound:number,slot:number){const s=this.slots[slot];return !!s&&bank>=0&&s.bank===bank&&s.single===sound;}
+ /** GetSoundBuffer's choice: a slot holding one sound answers for that sound only. */
+ sound(slot:number,sound:number){const s=this.slots[slot];if(!s?.sounds)return undefined;return s.single>=0?(sound===s.single?s.sounds[0]:undefined):s.sounds[sound];}
  loadedBank(slot:number){return this.slots[slot]?.bank??-1;}
  snapshot(){return {slots:this.slots.map((s,i)=>s.bank>=0?[i,s.bank]:undefined).filter(Boolean),pending:this.requests.size,failures:[...this.failures.keys()]};}
 }
