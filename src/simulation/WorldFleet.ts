@@ -147,6 +147,28 @@ export class WorldFleet {
   vehicleByBody(handle:number){for(const b of this.bikes)if(!b.disposed&&b.body.handle===handle)return b;for(const b of this.boats)if(b.body.handle===handle)return b;return undefined;}
   /** VEHICLES.IDE class of a model (normal, poorfamily, executive, big, ...), once the catalog has loaded. */
   vehicleClass(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.vehicleClass;}
+  /** The cars a car park's script made (bIsCarParkVehicle, RANDOM_VEHICLE): removed far off as the parked ones are. */
+  private carParkCars=new Set<WorldCar|WorldBike>();
+  /** CCarCtrl::NumRandomCars: the traffic and the car parks' cars (the generators' are NumParkedCars). */
+  get numRandomCars(){let n=this.carParkCars.size;for(const car of this.cars)if(car.trafficOrigin&&!car.disposed)n++;return n;}
+  /** CREATE_RANDOM_CAR_FOR_CAR_PARK (the iOS executable's, 0x1001d95ac): with 44 random cars or fewer about, a car
+   * CStreaming::ms_vehiclesLoaded.PickRandomCar gives (any number of it in the world, the normal, family and motorbike
+   * classes only; here a draw from the zone's traffic cars, up to ten tries) set down at the point (renderer axes) its
+   * base on it, turned to `heading` (CreateCarForScript's convention), the space cleared for it, RANDOM_VEHICLE and
+   * STATUS_ABANDONED, engine off, bIsCarParkVehicle; a motorbike as a bike. Undefined when none is made. */
+  async spawnCarParkCar(position:{x:number;y:number;z:number},heading:number){
+   if(this.numRandomCars>44)return undefined;
+   let model:number|undefined;
+   for(let tries=0;tries<10&&model===undefined;tries++){
+    const draw=this.civilianTrafficModel(),vehicleClass=draw===undefined?undefined:this.vehicleClass(draw)?.toLowerCase();
+    if(draw!==undefined&&vehicleClass&&['normal','poorfamily','richfamily','motorbike'].includes(vehicleClass))model=draw;
+   }
+   if(model===undefined)return undefined;
+   const vehicle=await this.spawnScriptVehicle(model,position,heading).catch(()=>undefined);
+   if(!vehicle||!(vehicle instanceof WorldCar||vehicle instanceof WorldBike))return undefined;
+   vehicle.missionCar=false;if(vehicle instanceof WorldCar){vehicle.driverless=true;vehicle.carParkVehicle=true;}
+   this.carParkCars.add(vehicle);return vehicle;
+  }
   /** VEHICLES.IDE model name of a model id, once the catalog has loaded. */
   modelName(modelId:number){return this.catalog?.definitions.find(v=>v.id===modelId)?.model;}
   /** CColModel::m_boundBox of a vehicle model (GET_MODEL_DIMENSIONS), native: read once from the loaded model and
@@ -687,6 +709,12 @@ export class WorldFleet {
   }
   // Keep the occupied car and starter. Released native cars retire outside the
   // loaded neighborhood; a generator is used once per browser session.
+  // A car park's car the player has not taken goes far off as a generator's does (one he has taken is his to keep a while).
+  for(const car of this.carParkCars){
+   if(car.disposed||car.occupied||car instanceof WorldCar&&this.driven.has(car)){this.carParkCars.delete(car);continue;}
+   const at=car.car.body.translation();
+   if(car.distance()>140&&this.canChangePopulation(at,6)){this.carParkCars.delete(car);this.removeVehicle(car);}
+  }
   for(const [car,id] of this.generated){
    // CCarGenerator::Process: the player took the car, so the generator waits a minute and until he is far away.
    if(car.occupied||car.disposed){this.generated.delete(car);if(car.occupied){this.generatorState.set(id,{nextGen:(this.generatorState.get(id)?.nextGen??now)+GENERATOR_TAKEN_WAIT_MS,waitFar:true});this.randomModels.delete(id);}continue;}

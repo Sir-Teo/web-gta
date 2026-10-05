@@ -2609,6 +2609,8 @@ const handlers:Record<string,ScmCommandHandler>={
  PLANE_ATTACK_PLAYER:(t,p,i)=>{world(t,i,'planeAttackPlayer')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]));},
  CLEAR_LAST_BUILDING_MODEL_SHOT_BY_PLAYER:(t,p,i)=>{world(t,i,'clearLastBuildingModelShotByPlayer')(t.readInt(p[0]));},
  USE_DETONATOR:(t,p,i)=>{world(t,i,'useDetonator')();},
+ // The iOS executable's handler (0x1001d95ac; absent from gta-reversed): no handle comes back.
+ CREATE_RANDOM_CAR_FOR_CAR_PARK:(t,p,i)=>{const at=vec(t,p,0);world(t,i,'createRandomCarForCarPark')(at.x,at.y,at.z,t.readFloat(p[3]));},
  ADD_TO_OBJECT_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'addToObjectRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  DRAW_WEAPONSHOP_CORONA:(t,p,i)=>{world(t,i,'drawWeaponshopCorona')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]));},
  ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR:(t,p,i)=>{

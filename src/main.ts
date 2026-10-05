@@ -5582,6 +5582,8 @@ async function boot() {
                   pedestrians?.damageCollider(p.collider.handle,1000,{x:0,z:1},'bullet',{weapon:34,point:{x:q.x,y:q.y+1.6,z:q.z},noSource:true});},
                  // USE_DETONATOR: CWorld::UseDetonator for the player (his satchels and sticky car bombs).
                  useDetonator:()=>weapons.useDetonator(),
+                 // CREATE_RANDOM_CAR_FOR_CAR_PARK: the script's point in renderer axes, its heading as CREATE_CAR's.
+                 createRandomCarForCarPark:(x,y,z,heading)=>{void fleet?.spawnCarParkCar({x,y:z,z:-y},scriptCarRotation(heading));},
                  clearVehiclesInBox:(min,max)=>{fleet?.clearCarsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
                  clearPedsInBox:(min,max)=>{pedestrians?.clearPedsInBox({x:min.x,y:min.z,z:-min.y},{x:max.x,y:max.z,z:-max.y});},
                  // CTheScripts::CleanUpThisVehicle: unlocked, no longer a mission car, and off its script mission.

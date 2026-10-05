@@ -1009,6 +1009,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  planeAttackPlayer?(handle:number,handle2:number,radius:number):void;
  clearLastBuildingModelShotByPlayer?(handle:number):void;
  useDetonator?():void;
+ /** CREATE_RANDOM_CAR_FOR_CAR_PARK: a random car from the loaded ones parked at a point, its heading in degrees. */
+ createRandomCarForCarPark?(x:number,y:number,z:number,heading:number):void;
  addToObjectRotationVelocity?(handle:number,x:number,y:number,z:number):void;
  drawWeaponshopCorona?(x:number,y:number,z:number,size:number,coronaType:number,flareType:number,r:number,g:number,b:number):void;
  fireHunterGun?(handle:number):void;

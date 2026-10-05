@@ -194,6 +194,8 @@ export interface ScmMissionWorld {
  clearVehiclesInBox?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
  /** USE_DETONATOR: CWorld::UseDetonator for the player. */
  useDetonator?():void;
+ /** CREATE_RANDOM_CAR_FOR_CAR_PARK, in the script's coordinates. */
+ createRandomCarForCarPark?(x:number,y:number,z:number,heading:number):void;
  clearPedsInBox?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):void;
  /** CTheScripts::CleanUpThisVehicle: the car is a random one again. */
  releaseScriptVehicle?(car:unknown):void;
@@ -1818,6 +1820,7 @@ export class ScmMission {
    // CWorld::ClearCarsFromArea and ClearPedsFromArea over the script's box.
    clearAreaOfVehicles:(min,max)=>{this.host('clearVehiclesInBox','CLEAR_AREA_OF_CARS')(min,max);},
    useDetonator:()=>{this.host('useDetonator','USE_DETONATOR')();},
+   createRandomCarForCarPark:(x,y,z,heading)=>{this.host('createRandomCarForCarPark','CREATE_RANDOM_CAR_FOR_CAR_PARK')(x,y,z,heading);},
    clearAreaOfPeds:(min,max)=>{this.host('clearPedsInBox','CLEAR_AREA_OF_CHARS')(min,max);},
    extinguishFiresAtPoint:(point,radius)=>{this.world.extinguishFiresAtPoint?.(point,radius);},
    // SET_CAR_TEMP_ACTION on a script car: CAutoPilot::SetTempAction for the time.

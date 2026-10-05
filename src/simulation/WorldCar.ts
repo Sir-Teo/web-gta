@@ -140,6 +140,8 @@ export class WorldCar {
  pendingExplosion=false;
  /** The explosion is the player's: m_pWhoDetonatedMe of a bomb he set off. */
  explosionByPlayer=false;
+ /** vehicleFlags.bIsCarParkVehicle: made by a car park's script (CREATE_RANDOM_CAR_FOR_CAR_PARK). */
+ carParkVehicle=false;
  /** vehicleFlags.bImpounded: put back by a police impound. */
  impounded=false;
  /** m_nBombOnBoard (eBombState) and m_wBombTimer (ms), which a bomb shop fits and sets. */

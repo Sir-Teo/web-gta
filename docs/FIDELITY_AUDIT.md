@@ -8949,6 +8949,20 @@ that did anything.
     `progression` (unit: the kept cars round the save); `safehouse-garage` (browser: the Johnson house garage, cjsafe,
     opens for CJ walking up and shuts when he walks off; a Sadler parked in it is kept and gone when the door comes
     down, written to the save, and stands where it was in its paint when he comes back).
+- **The Las Venturas car park fills** (CREATE_RANDOM_CAR_FOR_CAR_PARK, absent from gta-reversed; the iOS
+  executable's handler at 0x1001d95ac). MAIN streams carpark1.scm in while CJ is in the car park's area once its two
+  flags are set, and the script parks three cars on each storey while he is on it and clears the storey of cars when
+  he leaves it. The command had no handler, so the script gave up at its first car and the car park stood empty.
+  - **The car:** nothing with over 44 random cars about (CCarCtrl::NumRandomCars; here the traffic and the car parks'
+    own cars); otherwise a model from CStreaming::ms_vehiclesLoaded.PickRandomCar (any number of it in the world, the
+    normal, family and motorbike classes only: here the zone's traffic draw, up to ten tries for such a class), set
+    down at the point its base on it and turned to the heading (degrees, as CREATE_CAR's), the space cleared for it
+    (ClearSpaceForMissionEntity), RANDOM_VEHICLE, STATUS_ABANDONED, engine off and bIsCarParkVehicle, unlocked; a
+    motorbike as a bike. Far off (over 140 units, out of sight) and not taken, it goes as a generator's car does.
+  - **Not followed:** CCarCtrl::JoinCarWithRoadSystem and the autopilot fields the handler resets (a parked car has no
+    route here).
+  - Specs: `car-park` (browser: the flags set, CJ on the ground floor, CARPRK1 running and three abandoned random cars
+    parked, one at the script's first spot).
 - **The police impounds keep the player's cars** (CGarages::StoreCarInNearestImpoundingGarage, unreversed in
   gta-reversed at 0x44A3C0, and CGarage::Update's impound case, both followed from the iOS executable: 0x1001b8ab4 and
   0x1001b2d40). SA's three (imp_la, imp_sf, imp_lv, types 33 to 35) had done nothing.
