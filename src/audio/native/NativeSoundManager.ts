@@ -112,7 +112,7 @@ export class NativeSoundManager {
  }
  areSoundsPlayingInBankSlot(slot:number){let status=0;for(const s of this.sounds){if(!s.inUse||s.slot!==slot)continue;if(s.physicallyPlaying)return 2;status=1;}return status;}
  areSoundsOfThisEventPlayingForThisEntity(event:number,entity:NativeAudioEntity){let status=0;for(const s of this.sounds){if(!s.inUse||s.event!==event||s.entity!==entity)continue;if(s.physicallyPlaying)return 2;status=1;}return status;}
- areSoundsOfThisEventPlayingForThisEntityAndPhysical(event:number,entity:NativeAudioEntity,physical:NativePhysicalEntity){let status=0;for(const s of this.sounds){if(!s.inUse||s.event!==event||s.entity!==entity||s.physical!==physical)continue;if(s.physicallyPlaying)return 2;status=1;}return status;}
+ areSoundsOfThisEventPlayingForThisEntityAndPhysical(event:number,entity:NativeAudioEntity,physical:NativePhysicalEntity|undefined){let status=0;for(const s of this.sounds){if(!s.inUse||s.event!==event||s.entity!==entity||s.physical!==physical)continue;if(s.physicallyPlaying)return 2;status=1;}return status;}
  cancelSoundsInBankSlot(slot:number,fullStop:boolean){for(const s of this.sounds)if(s.inUse&&s.slot===slot){if(fullStop)s.stopSoundAndForget();else s.stopSound();}}
  cancelSoundsOwnedByAudioEntity(entity:NativeAudioEntity,fullStop:boolean){for(const s of this.sounds)if(s.inUse&&s.entity===entity){if(fullStop)s.stopSoundAndForget();else s.stopSound();}}
  cancelSoundsOfThisEventPlayingForThisEntity(event:number,entity:NativeAudioEntity){for(const s of this.sounds)if(s.inUse&&s.event===event&&s.entity===entity)s.stopSoundAndForget();}

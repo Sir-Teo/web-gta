@@ -1,3 +1,4 @@
+import {NativeDoorAudio} from './NativeDoorAudio';
 import {NativeScriptAudio} from './NativeScriptAudio';
 import {NativeAudioEnvironment,SOUND,type NativeCamera,type NativePhysicalEntity,type NativeVec} from './NativeSound';
 import {gxtText} from '../../assets/gxt';
@@ -94,6 +95,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   this.policeScanner=new NativePoliceScanner(this.manager,bank,this.frontend,e=>this.defaultVolume(e),()=>this.playerInVehicle,random);
   this.waterCannon=new NativeWaterCannonAudio(this.manager,bank);
   this.radioTracks=new NativeRadioTrackManager(random);
+  // CAEDoorAudioEntity::StaticInitialise: DOORS (51) into its slot (31).
+  NativeDoorAudio.staticInitialise(bank);
   // CAEVehicleAudioEntity/CAEWeatherAudioEntity/CAEExplosionAudioEntity/CAECollisionAudioEntity::StaticInitialise bank loads.
   for(const [id,slot] of [[BANK.vehicleGen,SLOT.vehicleGen],[BANK.apacheD,SLOT.copHeli],[BANK.horn,SLOT.hornAndSiren],[BANK.rain,SLOT.weather],[BANK.collisions,SLOT.collisions],[BANK.bulletHits,SLOT.bulletHits],[BANK.explosions,SLOT.explosions],[BANK.weapons,SLOT.weaponGen],[BANK.frontendGame,SLOT.frontendGame]])bank.loadSoundBank(id,slot);
  }

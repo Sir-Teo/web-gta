@@ -2,6 +2,7 @@ import {SOUND,type NativeAudioEntity,type NativePhysicalEntity,type NativeSound,
 import type {NativeSoundManager} from './NativeSoundManager';
 import type {NativeBankLoader} from './NativeBankLoader';
 import {randomInt,type AudioRandom} from './nativeAudioUtility';
+import {NativeDoorAudio} from './NativeDoorAudio';
 /* CAEScriptAudioEntity::ProcessMissionAudioEvent (0x4ECCF0), which REPORT_MISSION_AUDIO_EVENT_AT_* hands a script's
  * sound to. gta-reversed leaves it a call into the exe; its commented decompilation has the right handlers but case
  * labels it says need fixing (they are script-slot names, 7000 and up, not the 1000 to 1190 the scripts report). The
@@ -11,8 +12,8 @@ import {randomInt,type AudioRandom} from './nativeAudioUtility';
  * Ported: the events that hand on to the frontend entity, those that play a resident GENRL sound
  * (PlayResidentSoundEvent, 0x1001566a8), and PlayMissionBankSound's (0x100156bcc): a sound of the SCRIPT bank a script
  * has loaded whole into its mission audio slot 3 or 4 (link 2 or 3, bank slot 28 or 29), and the mission's own
- * ambience track's starts and stops. Not yet: the crane's, the camera's and a few others; those are recorded and play
- * nothing. */
+ * ambience track's starts and stops, the cranes' and the garage doors'. Not yet: a few others; those are recorded and
+ * play nothing. */
 
 /** A PlayResidentSoundEvent: bank slot, bank, sound (or an inclusive random range of sounds), the start percentage,
  * the volume offset and the speed. Its last argument, the roll-off, is 1 for every one here. */
@@ -23,7 +24,7 @@ type MissionBank=readonly [sound:number|readonly [number,number],link:number,onc
 /** What a handler does first: stop the sounds of another event (with `stopAtEntity`, only those at the report's entity
  * when it names one: CancelSoundsOfThisEventPlayingForThisEntityAndPhysical), or only play while none of its own
  * plays. */
-type MissionAudioCase={frontend:number;speed?:number}|{resident:readonly Resident[];once?:boolean}|{bank:readonly MissionBank[];stop?:number;stopAtEntity?:boolean;once?:boolean}|{stop:number;stopAtEntity?:boolean}|{custom:'keypad'|'stereo'}|{ambience:number}|{ambienceStop:true};
+type MissionAudioCase={frontend:number;speed?:number}|{resident:readonly Resident[];once?:boolean}|{bank:readonly MissionBank[];stop?:number;stopAtEntity?:boolean;once?:boolean}|{stop:number;stopAtEntity?:boolean}|{custom:'keypad'|'stereo'}|{ambience:number}|{ambienceStop:true}|{crane:'enter'|'move'|'stop'|'exit'}|{door:number;speed:number};
 const COLLISIONS=[2,39] as const,WEAPONS=[5,143] as const;
 const r=(bank:readonly [number,number],sound:Resident[2],percent=0,volume=0,speed=1):Resident=>[bank[0],bank[1],sound,percent,volume,speed];
 const b=(sound:MissionBank[0],link:number,once:boolean,volume:number,rollOff:number,speed:number):{bank:readonly MissionBank[]}=>({bank:[[sound,link,once,volume,rollOff,speed]]});
@@ -91,6 +92,11 @@ export const MISSION_AUDIO_EVENTS:Readonly<Record<number,MissionAudioCase>>={
  1163:{resident:[[41,0,0,0,0,1]]},
  1190:{resident:[r(WEAPONS,[78,80])]},
  ...MISSION_BANK_EVENTS,
+ // A garage door the script works (its own CAEDoorAudioEntity, the iOS entity's +0x170): opening, at 0.79 for 1165,
+ // and opened, at the entity's position or the point.
+ 1035:{door:159,speed:1},1153:{door:159,speed:1},1165:{door:159,speed:.79},1036:{door:160,speed:1},1154:{door:160,speed:1},1166:{door:160,speed:1},
+ // The cranes (crane1 to crane3.scm): CRANE_P into the player engine slot, its motor, its stop and leaving it.
+ 1019:{crane:'enter'},1020:{crane:'move'},1021:{crane:'stop'},1022:{crane:'exit'},
  // The mission's own ambience track (the AMBIENCE pack's) and its stop: CAEAmbienceTrackManager's
  // PlaySpecialMissionAmbienceTrack and StopSpecialMissionAmbienceTrack (iOS 0x100141480, 0x100141488).
  1062:{ambience:153},1063:{ambienceStop:true},1068:{ambience:150},1069:{ambienceStop:true},1076:{ambience:141},1077:{ambienceStop:true},
@@ -107,10 +113,14 @@ export class NativeScriptAudio implements NativeAudioEntity {
  readonly handled=new Map<number,number>();readonly unported=new Map<number,number>();
  /** CAudioEngine's ambience track manager, the host's. */
  ambience?:{playSpecialMissionAmbienceTrack(track:number):void;stopSpecialMissionAmbienceTrack():void};
+ /** The script's own CAEDoorAudioEntity. */
+ readonly door:NativeDoorAudio;
+ /** The crane being worked (the entity's +0x91 and +0x168 in the iOS executable). */
+ private crane?:{physical?:NativePhysicalEntity};
  /** Each mission audio slot's record bank (m_nBankId): the SCRIPT bank a whole-bank LOAD_MISSION_AUDIO put in it, or -1. */
  readonly missionBanks=[-1,-1,-1,-1];
  constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private defaultVolume:(event:number)=>number,private random:AudioRandom,
-  private frontend:(event:number,volumeBoost:number,speed:number)=>void){}
+  private frontend:(event:number,volumeBoost:number,speed:number)=>void){this.door=new NativeDoorAudio(manager,bank,defaultVolume);}
  updateParameters(_sound:NativeSound,_playPosition:number){}
  snapshot(){return {handled:Object.fromEntries(this.handled),unported:Object.fromEntries(this.unported)};}
  /** ProcessMissionAudioEvent. */
@@ -119,6 +129,8 @@ export class NativeScriptAudio implements NativeAudioEntity {
   if(!c){this.unported.set(event,(this.unported.get(event)??0)+1);return;}
   this.handled.set(event,(this.handled.get(event)??0)+1);
   if('frontend' in c){this.frontend(c.frontend,0,c.speed??1);return;}
+  if('crane' in c){this.craneEvent(c.crane,event,at);return;}
+  if('door' in c){const position='physical' in at?at.physical.position():at.position;if(position)this.door.addAudioEvent(c.door,{...position},0,c.speed);return;}
   if('ambience' in c){this.ambience?.playSpecialMissionAmbienceTrack(c.ambience);return;}
   if('ambienceStop' in c){this.ambience?.stopSpecialMissionAmbienceTrack();return;}
   const pick=(sound:number|readonly [number,number])=>typeof sound==='number'?sound:randomInt(this.random,sound[0],sound[1]);
@@ -137,6 +149,34 @@ export class NativeScriptAudio implements NativeAudioEntity {
   if('once' in c&&c.once&&this.manager.areSoundsOfThisEventPlayingForThisEntity(event,this))return;
   if('resident' in c)for(const [slot,bank,sound,percent,volume,speed] of c.resident)this.playResidentSoundEvent(slot,bank,pick(sound),event,at,volume,speed,percent);
   if('bank' in c)for(const [sound,link,once,volume,rollOff,speed] of c.bank)this.playMissionBankSound(event,at,pick(sound),link,once,volume,rollOff,speed);
+ }
+ /** The crane's four events (iOS 0x100157648 on): entering loads CRANE_P (44) into the player engine slot (40),
+  * cutting off what plays there, and marks the crane worked; its motor (sound 1) starts unless it already runs for
+  * that crane; stopping cuts the motor and plays sound 2; leaving cuts the slot and plays sound 3. Each at a roll-off
+  * of 2.5, and only while a crane is worked. */
+ private craneEvent(kind:'enter'|'move'|'stop'|'exit',event:number,at:MissionAudioAt){
+  const CRANE_P=44,SLOT_PLAYER_ENGINE=40,physical='physical' in at?at.physical:undefined;
+  if(kind==='enter'){
+   if(!this.bank.isSoundBankLoaded(CRANE_P,SLOT_PLAYER_ENGINE)){
+    if(this.manager.areSoundsPlayingInBankSlot(SLOT_PLAYER_ENGINE))this.manager.cancelSoundsInBankSlot(SLOT_PLAYER_ENGINE,false);
+    this.bank.loadSoundBank(CRANE_P,SLOT_PLAYER_ENGINE);
+   }
+   this.crane={physical};return;
+  }
+  if(!this.crane)return;
+  const motor=1020;
+  if(kind==='move'){
+   if(this.manager.areSoundsOfThisEventPlayingForThisEntityAndPhysical(motor,this,physical))return;
+   this.playResidentSoundEvent(SLOT_PLAYER_ENGINE,CRANE_P,1,event,at,0,1,0,2.5);return;
+  }
+  if(kind==='stop'){
+   if(physical)this.manager.cancelSoundsOfThisEventPlayingForThisEntityAndPhysical(motor,this,physical);
+   else this.manager.cancelSoundsOfThisEventPlayingForThisEntity(motor,this);
+   this.playResidentSoundEvent(SLOT_PLAYER_ENGINE,CRANE_P,2,event,at,0,1,0,2.5);return;
+  }
+  this.manager.cancelSoundsInBankSlot(SLOT_PLAYER_ENGINE,true);
+  this.playResidentSoundEvent(SLOT_PLAYER_ENGINE,CRANE_P,3,event,at,0,1,0,2.5);
+  this.crane=undefined;
  }
  /** A whole SCRIPT bank for mission audio slot `index` (PreloadMissionAudio with a sample of 1800 to 1829): loaded into
   * bank slot 26 plus the index, the slot's record taking it. Resolves once it is in (true) or cannot be had. */

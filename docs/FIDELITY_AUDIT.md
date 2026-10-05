@@ -9517,7 +9517,8 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   lossy copy of the PC's, at the PC's lengths, rates, loops and headroom.
 - **Rebuilt so far:** BICYCLE_D and _P (18, 19; 0.15 MB), BOAT_INBOARD_D (21, 0.05 MB), SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB), the
   motorbike engines COPBIKE_D and _P, SCOOTER_P, SPORTSBIKE_D and _P and VTWINBIKE_D and _P (40, 41, 119, 124, 125, 139,
-  140; 0.83 MB), FRONTEND_MENU (60, 0.14 MB), TRAIN_D and TRAM_D (131, 133; 0.13 MB) and the 25 SCRIPT banks scripts
+  140; 0.83 MB), CRANE_P (44, 0.24 MB), DOORS (51, 0.05 MB), FRONTEND_MENU (60, 0.14 MB), TRAIN_D and TRAM_D (131,
+  133; 0.13 MB) and the 25 SCRIPT banks scripts
   load whole (3.1 MB; see "Mission banks"), listed in
   `public/play/audio/ios-banks.json`, which `NativeBankLoader.open` merges with `banks.json` (a bank both list stays
   the PC's).
@@ -9661,9 +9662,19 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   PURCHASE_WEAPON (the pickup's pair, 27 and 28); CAR_NO_CASH and _IS_HOT (the same pair at 0.841, 0x1001471f0);
   RACE_321 and _GO (6 and 7, 12 and 13, 0x1001478e8, 0x1001484e4); BUY_CAR_MOD (9 ahead, 0.0588 speed variance,
   0x1001485b8); CAR_RESPRAY (WEAPONS 28 left and right, one pitched up 1.189 by a coin toss, 0x1001481a4).
-- **Not yet:** the crane (1019 to 1022, which load CRANE_P into the player slot); the camera (1035, 1036, 1153, 1154,
-  1165, 1166) and a few more. (The mission-bank sounds: see "Mission banks"; the track events: "A mission's own
-  ambience track".) The gate's two (1100, 1101) take the entity's flag at
+- **The cranes** (1019 to 1022, crane1 to crane3.scm; iOS 0x100157648 on): entering loads CRANE_P (44, rebuilt from the
+  iOS bundle) into the player engine slot (40), cutting off what plays there, and marks the crane worked; the motor
+  (sound 1) starts unless it already runs for that crane; stopping cuts it for sound 2; leaving cuts the slot for
+  sound 3. All at a roll-off of 2.5, through PlayResidentSoundEvent, and only while a crane is worked.
+- **Garage doors the scripts work** (1035, 1153 and, at 0.79, 1165 opening; 1036, 1154, 1166 opened): the script
+  entity's own CAEDoorAudioEntity (iOS +0x170), at the entity's position or the point. CAEDoorAudioEntity
+  (`NativeDoorAudio.ts`) is reversed in gta-reversed and ported whole: DOORS (51, rebuilt from the iOS bundle) loaded
+  into its slot (31) at start; opening plays the start's clunk (sound 2 at 0.79, unless told within 300 ms) and the loop
+  (0), kept going while it is told again; opened cuts it for the stop's clunk; closing and closed likewise (the clunks
+  the other way round); ten seconds untold, the loop plays the stop itself (UpdateParameters); an entry/exit door
+  moving at most every 4 s. The port's own garages (CGarage::Update is unreversed) do not report to it yet.
+- **Not yet:** 1000, 1001, 1132, 1144, 1157, 1159, 1163 and 1189 (a ped's or the camera's, a few one-offs). (The
+  mission-bank sounds: see "Mission banks"; the track events: "A mission's own ambience track".) The gate's two (1100, 1101) take the entity's flag at
   +0x92 as clear (sound 70); what sets it is not known. Such reports are counted (`script.unported` in the native
   audio snapshot) and play nothing.
 - Specs: `native-audio` (unit: the forwarded events, the resident sounds' bank, speed, start, front end and entity,

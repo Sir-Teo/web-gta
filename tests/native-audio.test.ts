@@ -277,9 +277,9 @@ test("a script's reported sounds: frontend events handed on, resident sounds whe
  const tracks:string[]=[];e.scriptAudio.ambience={playSpecialMissionAmbienceTrack:t=>tracks.push(`play ${t}`),stopSpecialMissionAmbienceTrack:()=>tracks.push('stop')};
  e.scriptAudio.processMissionAudioEvent(1062,{position:{x:0,y:0,z:0}});e.scriptAudio.processMissionAudioEvent(1063,{position:{x:0,y:0,z:0}});
  expect(tracks).toEqual(['play 153','stop']);
- // The crane is not ported yet: noted, nothing played.
- e.scriptAudio.processMissionAudioEvent(1019,{position:{x:0,y:0,z:0}});
- expect(e.scriptAudio.unported.get(1019)).toBe(1);
+ // 1189 is not ported yet: noted, nothing played.
+ e.scriptAudio.processMissionAudioEvent(1189,{position:{x:0,y:0,z:0}});
+ expect(e.scriptAudio.unported.get(1189)).toBe(1);
 });
 test('the frontend plays the purchase, refusal, race and garage sounds as the iOS executable does',async()=>{
  const e=engine();await flush();await flush();
@@ -322,6 +322,35 @@ test("a script's whole bank in a mission slot plays its reported sounds, and cle
  script.processMissionAudioEvent(1108,{physical:at});expect(mine().filter(s=>s.event===1108).map(s=>s.sound)).toEqual([1,0]);
  script.processMissionAudioEvent(1109,{physical:at});
  expect(mine().filter(s=>s.event===1108)).toHaveLength(0);expect(mine().filter(s=>s.event===1109).map(s=>s.sound)).toEqual([2]);
+});
+test('a crane loads CRANE_P into the player engine slot, runs its motor once, stops it and is left',async()=>{
+ const banks=new Map<number,ReturnType<typeof syntheticBank>>(),manifest:NativeBankManifest={version:1,packageSha256:'',banks:[]};
+ for(const id of [39,44,59,138,143]){const b=syntheticBank(6);banks.set(id,b);manifest.banks.push({id,path:`bank-${id}.bin`,dataBytes:b.dataBytes,bytes:b.bytes.length,sounds:6,sha256:''});}
+ const e=new NativeAudioEngine(new NativeBankLoader(manifest,async entry=>banks.get(entry.id)!.bytes));
+ await flush();e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const script=e.scriptAudio,crane={position:()=>({x:5,y:5,z:20})},at={physical:crane},slot=()=>e.manager.sounds.filter(s=>s.inUse&&s.entity===script&&s.slot===SLOT.playerEngine).map(s=>[s.sound,s.event,s.rollOff]);
+ // No crane worked: its motor is silent.
+ script.processMissionAudioEvent(1020,at);expect(slot()).toEqual([]);
+ script.processMissionAudioEvent(1019,at);await flush();await flush();
+ expect(e.bank.isSoundBankLoaded(44,SLOT.playerEngine)).toBe(true);
+ script.processMissionAudioEvent(1020,at);script.processMissionAudioEvent(1020,at);
+ expect(slot()).toEqual([[1,1020,2.5]]);
+ script.processMissionAudioEvent(1021,at);expect(slot()).toEqual([[2,1021,2.5]]);
+ script.processMissionAudioEvent(1022,at);expect(slot()).toEqual([[3,1022,2.5]]);
+ script.processMissionAudioEvent(1020,at);expect(slot()).toEqual([[3,1022,2.5]]);
+});
+test("a script's garage door opens with a clunk and a loop, and opened cuts the loop for the stop's clunk",async()=>{
+ const e=engine();await flush();await flush();
+ expect(e.bank.isSoundBankLoaded(51,31)).toBe(true);
+ for(let i=0;i<12;i++)e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const door=e.scriptAudio.door,sounds=()=>e.manager.sounds.filter(s=>s.inUse&&s.entity===door).map(s=>[s.sound,s.event,+s.speed.toFixed(2),s.rollOff]);
+ // 1035 (opening) at a point: the start's clunk (2, at 0.79) and the loop (0); told again, nothing new.
+ e.scriptAudio.processMissionAudioEvent(1035,{position:{x:10,y:0,z:0}});
+ expect(sounds()).toEqual([[2,159,.79,2],[0,159,1,2]]);
+ e.scriptAudio.processMissionAudioEvent(1035,{position:{x:10,y:0,z:0}});expect(sounds()).toHaveLength(2);
+ // 1036 (opened): the loop is cut for the stop's clunk at full speed.
+ e.scriptAudio.processMissionAudioEvent(1036,{position:{x:10,y:0,z:0}});
+ expect(sounds()).toEqual([[2,160,1,2]]);
 });
 test('player helicopter rotors and weather rain loops',async()=>{
  const e=engine(),key={};await flush();

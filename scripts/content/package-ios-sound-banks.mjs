@@ -55,6 +55,8 @@ const GENRL_FIRST=7,GENRL_LAST=143,SCRIPT_FIRST=147,SCRIPT_LAST=364;
  * - BICYCLE_D and _P (18, 19): the tyres and the freewheel of the BMX and the mountain bikes, and the player bank whose
  *   presence lets the freewheel be heard;
  * - FRONTEND_MENU (60): the menus' select, back, highlight and error pairs;
+ * - CRANE_P (44): the cranes' sounds, which the crane scripts' reports load into the player engine slot;
+ * - DOORS (51): CAEDoorAudioEntity's garage door loop and clunks;
  * - the SCRIPT pack's sound-effect banks a script loads whole into a mission audio slot (LOAD_MISSION_AUDIO with a
  *   sample of 1800 to 1829, through gScriptBanksLookup, which the iOS executable holds at 0x10062a64c), for
  *   ProcessMissionAudioEvent's PlayMissionBankSound: video poker 352, shooting range 310, pool 296, keypad 242, gogo
@@ -64,7 +66,7 @@ const GENRL_FIRST=7,GENRL_LAST=143,SCRIPT_FIRST=147,SCRIPT_LAST=364;
  *   22,050 Hz; no PC copy is on hand to align them against, and the same 577-sample trim is taken (their earliest
  *   onsets fall where the 32 kHz files' do, far before the 1,729 samples their total surplus would allow). */
 const MISSION_BANKS=[352,310,296,242,222,209,167,163,160,265,304,158,292,171,198,226,293,319,345,351,266,183,153,298,339];
-const BANKS=[18,19,21,28,29,30,31,40,41,60,119,124,125,131,133,139,140,...MISSION_BANKS].sort((a,b)=>a-b);
+const BANKS=[18,19,21,28,29,30,31,40,41,44,51,60,119,124,125,131,133,139,140,...MISSION_BANKS].sort((a,b)=>a-b);
 /** Samples the decoded 32 kHz MP3s start late by (see above). */
 const DECODER_DELAY=577;
 const OUTPUT='public/play/audio',MANIFEST='ios-banks.json';
