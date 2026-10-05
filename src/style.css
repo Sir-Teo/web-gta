@@ -170,6 +170,17 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
 .touch-button>svg{width:56%;height:56%;fill:currentColor;filter:drop-shadow(0 1px 1px #000a)}.touch-button>img{width:74%;height:74%;object-fit:contain;filter:drop-shadow(0 1px 2px #000)}.touch-button.fire>svg.weapon{width:60%;height:60%;margin:0}
 .touch-button[hidden]{display:none}
 .touch-button.on{background:#ffffffc7;color:#111;text-shadow:none}.touch-button.on>svg{filter:none}
+/* The iOS port's widget art (touchWidgetArt.ts): the texture is the whole button, its own black ring round a white
+   symbol, drawn white and, while held, multiplied by CWidgetButton::Update's 0x99CC99 (the mask keeps the tint to the art). */
+.touch-button.art,.touch-button.art.on{background:none;border:none;text-shadow:none}
+.widget-art{position:absolute;inset:0;pointer-events:none;isolation:isolate;--widget-size:calc(var(--widget-columns)*100%) calc(var(--widget-rows)*100%);
+ --widget-at:calc(var(--cell-x)*100%/(var(--widget-columns) - 1)) calc(var(--cell-y)*100%/(var(--widget-rows) - 1));
+ background:var(--widget-atlas) no-repeat;background-size:var(--widget-size);background-position:var(--widget-at)}
+.widget-art::after{content:'';position:absolute;inset:0;background:#99cc99;mix-blend-mode:multiply;opacity:0;
+ -webkit-mask:var(--widget-atlas) no-repeat;-webkit-mask-size:var(--widget-size);-webkit-mask-position:var(--widget-at);
+ mask:var(--widget-atlas) no-repeat;mask-size:var(--widget-size);mask-position:var(--widget-at)}
+.touch-button.on .widget-art::after{opacity:1}
+.help-key .widget-art{position:relative;display:inline-block;inset:auto;width:1.5em;height:1.5em;vertical-align:-.45em;margin-right:.25em}
 .touch-button.fire{border-color:#ff8a7ab0}.touch-button.gas{border-color:#9be0a4c0}.touch-button.nitro{border-color:#7fc8ffc0}
 /* A cutscene: no stick or camera drag, and Skip in the top right corner (SKIP_CUTSCENE). */
 .touch-controls[data-mode=cutscene] .touch-stick-zone,.touch-controls[data-mode=cutscene] .touch-look{display:none}
@@ -186,6 +197,8 @@ html.touch{touch-action:pan-x pan-y}.touch .game-ui{-webkit-user-select:none;-we
    and the pad's round buttons, which stand closer, keep their own edges. */
 .touch-top .touch-button,.touch-context .touch-button{position:relative}
 :is(.touch-top,.touch-context) .touch-button::after,.touch-buttons :is(.reply-yes,.reply-no)::after{content:'';position:absolute;inset:-6px;border-radius:inherit}
+/* A widget drawn with its art has no border, so its reach is measured from the drawn edge: the same 4 pixels past it. */
+.touch-button.art::after{inset:-4px}
 .touch-button.small.pause,.touch-button.small.camera{min-width:0;width:40px;height:40px;border-radius:50%;padding:0;display:grid;place-items:center}.touch-button svg{width:55%;height:55%;fill:currentColor}
 /* The iOS and Android port's HUD: the radar in the top left corner (the left thumb has the bottom left), bigger than the
  * PC's, a tap on it opening the map; the help and stat boxes sit beside it, the altimeter down its left edge. */

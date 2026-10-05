@@ -75,11 +75,12 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  await expect.poll(async()=>(await pad()).yes,{timeout:5000}).toBe(255);
  await page.evaluate(({x,y})=>document.querySelector('.touch-controls button[data-code=KeyY]:not([hidden])')!.dispatchEvent(new PointerEvent('pointerup',{pointerId:21,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true})),{x:yesBox.x+5,y:yesBox.y+5});
  await page.evaluate(()=>(window as any).__game.hud().help(''));await expect(yes).toBeHidden();
- // A help line naming the buttons draws each one's glyph before its name, as the mobile ports' help shows the widget:
- // Enter's car, Jump's chevrons; a capitalised word of the text's own (BMX) and Fire (the weapon in hand) stay words.
+ // A help line naming the buttons draws each one before its name, as the mobile ports' help shows the widget: Enter's
+ // art, the port's car, and Jump's chevrons (the port has no jump widget); a capitalised word of the text's own (BMX)
+ // and Fire (the weapon in hand) stay words.
  await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Press ~k~~VEHICLE_ENTER_EXIT~ to get on the BMX, ~k~~PED_JUMPING~ to hop and ~k~~PED_FIREWEAPON~ to shoot.'),60000);});
  await expect(page.locator('.help-box')).toHaveText('Press ENTER to get on the BMX, JUMP to hop and FIRE to shoot.');
- await expect(page.locator('.help-box .help-key')).toHaveText(['ENTER','JUMP']);await expect(page.locator('.help-box .help-key svg')).toHaveCount(2);
+ await expect(page.locator('.help-box .help-key')).toHaveText(['ENTER','JUMP']);await expect(page.locator('.help-box .help-key:nth-of-type(1) .widget-art[data-art=hud_car]')).toHaveCount(1);await expect(page.locator('.help-box .help-key:nth-of-type(2) svg')).toHaveCount(1);
  // The stick's four directions read as the stick, drawn once.
  await page.evaluate(async()=>{const gxt='/src/assets/gxt.ts',{gxtHudText}=await import(gxt);(window as any).__game.hud().help(gxtHudText('Use ~k~~GO_FORWARD~, ~k~~GO_BACK~, ~k~~GO_LEFT~ and ~k~~GO_RIGHT~ to move Carl.'),60000);});
  await expect(page.locator('.help-box')).toHaveText('Use the STICK to move Carl.');await expect(page.locator('.help-box .help-key')).toHaveText(['STICK']);
@@ -97,7 +98,7 @@ test('touch controls move CJ, turn the camera and press the game\'s buttons',asy
  // Select and Back are the port's store widgets under the right thumb, alone: the rest of the cluster gives way.
  await expect(select).toHaveClass(/store-accept/);await expect(page.getByRole('button',{name:'Back',exact:true})).toHaveClass(/store-cancel/);
  await expect(page.locator('.touch-button.jump:not([hidden])')).toBeHidden();await expect(page.locator('.touch-button.fire:not([hidden])')).toBeHidden();
- await expect(helpBox).toContainText('Use ▲ and ▼ to select.');await expect(helpBox).toContainText('SELECT Buy');await expect(helpBox.locator('.help-key',{hasText:'SELECT'}).locator('svg')).toHaveCount(1);
+ await expect(helpBox).toContainText('Use ▲ and ▼ to select.');await expect(helpBox).toContainText('SELECT Buy');await expect(helpBox.locator('.help-key',{hasText:'SELECT'}).locator('.widget-art[data-art=hud_check]')).toHaveCount(1);
  const tapContext=async(code:string,id:number)=>{for(const type of ['pointerdown','pointerup'])await page.evaluate(({code,type,id})=>{const b=document.querySelector(`.touch-context button[data-code=${code}]`)!,r=b.getBoundingClientRect();
   b.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',clientX:r.x+5,clientY:r.y+5,bubbles:true,cancelable:true}));},{code,type,id});};
  const start=(await menu()).selected;

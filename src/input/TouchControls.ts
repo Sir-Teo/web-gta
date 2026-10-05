@@ -1,7 +1,8 @@
 import type {Input} from './Input';
 import {gyroLook} from './gyroAim';
 import {ANALOG_SENSITIVITY_RANGE,BUTTON_SCALE_RANGE,DEFAULT_TOUCH,DRAW_DISTANCE_RANGE,LAYOUT_RANGE,LOOK_SPEED_RANGE,tiltSteering,type LayoutEntry,type TouchSettings} from './touchSettings';
-import {touchIconSvg,type TouchIcon} from './touchIcons';
+import {setTouchWidgetArt,touchIconSvg,touchWidgetArtHtml,useTouchWidgetAtlas,type TouchIcon} from './touchIcons';
+import type {TouchWidgetArt} from './touchWidgetArt';
 import {touchHaptic} from './haptics';
 /* Touch-screen controls for phones and tablets, laid over the game the way the mobile ports lay theirs: a floating
  * stick under the left thumb, the camera dragged with the right, and the buttons round the right thumb. Every control
@@ -53,6 +54,10 @@ const HELP_ICONS:Readonly<Record<string,TouchIcon>>={ENTER:'car',SPRINT:'run',JU
  '◀ YAW':'left','YAW ▶':'right','◀ LOOK':'shootLeft','LOOK ▶':'shootRight','LEFT ARROW':'left','RIGHT ARROW':'right',YES:'thumbUp',NO:'thumbDown',SELECT:'check',BACK:'close',
  // The stick, one direction or the whole of it (a run of its directions is "the STICK").
  STICK:'stick','STICK UP':'stick','STICK DOWN':'stick','STICK LEFT':'stick','STICK RIGHT':'stick'};
+/** The help names whose buttons are the port's widgets, drawn with their art in place of the glyph. */
+const HELP_ART:Readonly<Record<string,TouchWidgetArt>>={ENTER:'hud_car',SPRINT:'sprint',CROUCH:'hud_crouch',AIM:'hud_lockon',GAS:'accelerate',BRAKE:'brake',
+ 'H-BRAKE':'handbrake',HORN:'horn',RADIO:'radiostation',CAMERA:'cam-toggle','ZOOM +':'hud_plus','ZOOM −':'hud_minus',ROCKET:'hud_rockets',
+ '◀ LOOK':'leftshoot','LOOK ▶':'shoot','LEFT ARROW':'hud_left','RIGHT ARROW':'hud_right',YES:'Yes',NO:'No',SELECT:'hud_check',BACK:'hud_x'};
 /** A played pad's buttons as the PS2 original's help drew them: the face buttons a symbol in the button's colour (a
  * PlayStation pad's shapes, the letters MFi and Xbox pads print in theirs), the shoulders, stick clicks and select
  * grey chips with their names, the D-pad its arrows. */
@@ -80,7 +85,7 @@ export function showHelpIcons(box:HTMLElement,text:string,named:readonly string[
   if(i%2===0)return document.createTextNode(part);
   const key=document.createElement('span');
   if(pad){const {glyph,colour}=pad[part];key.className='help-key pad';key.textContent=glyph;key.style.color=colour;key.setAttribute('role','img');key.setAttribute('aria-label',part);return key;}
-  key.className='help-key';key.innerHTML=touchIconSvg(HELP_ICONS[part]);key.append(part);return key;
+  key.className='help-key';const art=HELP_ART[part];key.innerHTML=art?touchWidgetArtHtml(art):touchIconSvg(HELP_ICONS[part]);key.append(part);return key;
  }));
 }
 /** What the player is doing, which picks the buttons shown. */
@@ -143,6 +148,25 @@ function portLayout(file:PortLayoutFile):Readonly<Record<LayoutGroup,Readonly<Re
   aircraft:{gas:w.ACCELERATE,reverse:w.BRAKE,fire:w.HANDBRAKE_AND_AIR_SHOOT,rocket:w.CAR_SHOOT,jump:w.HYDRAULICS,enter:w.ENTER_CAR,'yaw-left':[inner,upper,size],'yaw-right':[inner,lower,size]}};
 }
 export const PORT_LAYOUTS=Object.fromEntries((Object.keys(PORT_WIDGETS) as PortLayoutFile[]).map(file=>[file,portLayout(file)])) as Readonly<Record<PortLayoutFile,ReturnType<typeof portLayout>>>;
+/** The enter widget's art (arm64 0x1004afd8c): a vehicle the button would enter shows its kind (a car fitted with
+ * hydraulics its own), one the player sits in its kind too, and a jetpack the drop. The Vortex hovercraft (539) is a
+ * boat. vehicles.ide's types stand for eVehicleType; f_heli is a car, as its jump table gives it. */
+export function enterWidgetArt(vehicle:{type:string|null|undefined;modelId:number;hydraulics?:boolean}|undefined,entering:boolean,jetPack:boolean):TouchWidgetArt{
+ if(!vehicle)return jetPack&&!entering?'hud_drop_jetpack':'hud_car';
+ if(vehicle.modelId===539)return 'hud_boat';
+ switch(vehicle.type){
+  case 'mtruck':return 'hud_monstertruck';
+  case 'quad':case 'bike':return 'hud_bike';
+  case 'heli':return 'hud_chopper';
+  case 'plane':case 'f_plane':return 'hud_plane';
+  case 'boat':return 'hud_boat';
+  case 'train':return 'hud_train';
+  case 'bmx':return 'hud_bicycle';
+  case 'trailer':return 'hud_trailer';
+  case 'car':return entering&&vehicle.hydraulics?'hydraulicCar':'hud_car';
+  default:return 'hud_car';
+ }
+}
 /** What the CSS lays round the buttons by the layout in use: the innermost column's place and size (the subtitles,
  * pills and prompts keep left of it), the enter row (the pills stand level with it), the stick's region and the steering
  * arrows' outer edge. */
@@ -156,6 +180,9 @@ export function portLayoutFrame(file:PortLayoutFile):Readonly<Record<string,numb
  * mobile ports show their enter-vehicle button only beside a vehicle, and whether only the driver has it (a passenger
  * has no pedals, wheel or horn). */
 interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean;icon?:TouchIcon;steering?:TouchSettings['steering'];driver?:boolean;
+ /** The port's widget this button is, drawn with its texture (CTouchInterface::CreateAll's): the glyph is for the
+  * buttons it has none for. */
+ art?:TouchWidgetArt;
  /** A thumb slid onto another such button presses that one instead, as the ports' widgets answer whichever one a
   * touch is over each frame: rocking from Gas to Brake, across the steering arrows or the rudder. */
  slide?:boolean;
@@ -177,66 +204,66 @@ const BUTTONS:ButtonSpec[]=[
  // On a bicycle the car's weapon button is the bunny hop (CBmx::ProcessBunnyHop reads it): the port's BUNNY_HOP widget,
  // at the fire button's place.
  {label:'Bunny hop',code:'ControlLeft',className:'hop',modes:['vehicle'],contextual:true,icon:'jump',driver:true,slot:'fire'},
- {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope'],icon:'target'},
+ {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope'],icon:'target',art:'hud_lockon'},
  {label:'Jump',code:'Space',className:'jump',modes:['foot','swim'],icon:'jump'},
- {label:'H-brake',code:'Space',className:'jump',modes:['vehicle'],icon:'parking',driver:true,slide:true},
- {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot'],icon:'run'},
- {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle'],icon:'horn',driver:true,givesWayTo:'hydraulics'},
- {label:'Enter',code:'KeyF',className:'enter',contextual:true,icon:'car'},
- {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope'],icon:'crouch'},
+ {label:'H-brake',code:'Space',className:'jump',modes:['vehicle'],icon:'parking',art:'handbrake',driver:true,slide:true},
+ {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot'],icon:'run',art:'sprint'},
+ {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle'],icon:'horn',art:'horn',driver:true,givesWayTo:'hydraulics'},
+ {label:'Enter',code:'KeyF',className:'enter',contextual:true,icon:'car',art:'hud_car'},
+ {label:'Crouch',code:'KeyC',className:'crouch',modes:['foot','scope'],icon:'crouch',art:'hud_crouch'},
  // At the wheel the eye looks behind (both look keys together, the PC's middle button); left and right come above the
  // buttons when a drive-by can be fired or a help text asks.
  {label:'Look back',code:'MouseMiddle',className:'crouch',modes:['vehicle'],icon:'eye'},
  {label:'Reload',code:'KeyR',className:'reload',modes:['foot','scope'],icon:'reload'},
  // At the wheel the right thumb has the pedals, as the mobile ports give it, so the stick can steer to full lock
  // while the car accelerates (a stick pushed only sideways is no push forward).
- {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle'],icon:'up',driver:true,slide:true},
- {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down',driver:true,slide:true},
+ {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle'],icon:'up',art:'accelerate',driver:true,slide:true},
+ {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down',art:'brake',driver:true,slide:true},
  // N tunes the radio on to the next station, as a tap does; a swipe to the left tunes back (the mobile ports swipe for
  // it, either way: the PC's Shift+N).
- {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],contextual:true,icon:'music',swipeBack:'RadioBack'},
+ {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],contextual:true,icon:'music',art:'radiostation',swipeBack:'RadioBack'},
  // A car fitted with hydraulics (a lowrider): the port's HYDRAULICS widget, at its own place, the radio moving to the
  // horn's (whose press the hydraulics take, CAutomobile::HydraulicControl). A tap raises or drops the car, as the horn
  // does; a drag from it is the car-gun stick, the corners rising the way it is pushed (the PC's numpad 8, 2, 4 and 6).
- {label:'Hydraulics',code:'KeyH',className:'hydraulics',modes:['vehicle'],contextual:true,icon:'hydraulics',driver:true,carGun:true},
+ {label:'Hydraulics',code:'KeyH',className:'hydraulics',modes:['vehicle'],contextual:true,icon:'hydraulics',art:'hydraulicCar',driver:true,carGun:true},
  // A car fitted with nitro fires it with the car's weapon button: the port gives it a button of its own, shown only then.
- {label:'Nitrous',code:'ControlLeft',className:'nitro',modes:['vehicle'],contextual:true,icon:'bolt'},
+ {label:'Nitrous',code:'ControlLeft',className:'nitro',modes:['vehicle'],contextual:true,icon:'bolt',art:'hud_nitro'},
  // A cutscene, or a scripted scene in the widescreen bars: the cluster gives way to Skip (CCutsceneMgr's skip is Space or
  // Return just pressed), offered while the scene can be skipped.
  {label:'Skip',code:'Space',className:'skip',modes:['cutscene'],contextual:true},
  // The port's default steering: left and right arrows under the left thumb (A and D), in place of the stick.
- {label:'Steer left',code:'KeyA',className:'steer-left',modes:['vehicle'],icon:'left',steering:'arrows',driver:true,slide:true},
- {label:'Steer right',code:'KeyD',className:'steer-right',modes:['vehicle'],icon:'right',steering:'arrows',driver:true,slide:true},
+ {label:'Steer left',code:'KeyA',className:'steer-left',modes:['vehicle'],icon:'left',art:'hud_left',steering:'arrows',driver:true,slide:true},
+ {label:'Steer right',code:'KeyD',className:'steer-right',modes:['vehicle'],icon:'right',art:'hud_right',steering:'arrows',driver:true,slide:true},
  // Flying, the stick is the yoke (pitch and roll) and the right thumb has the throttle, the rudder, the wheel brake
  // (a helicopter's hover hold) and the rockets: the PC's W/S, Q/E, Space and B.
  // Through a scope (the sniper rifle, the camera, the rocket launchers) Jump and Sprint give way to the zoom: the
  // PC's X and Z.
- {label:'Zoom +',code:'KeyX',className:'jump',modes:['scope'],icon:'zoomIn'},
- {label:'Zoom −',code:'KeyZ',className:'sprint',modes:['scope'],icon:'zoomOut'},
+ {label:'Zoom +',code:'KeyX',className:'jump',modes:['scope'],icon:'zoomIn',art:'hud_plus'},
+ {label:'Zoom −',code:'KeyZ',className:'sprint',modes:['scope'],icon:'zoomOut',art:'hud_minus'},
  // In the water the fire button dives under and Sprint swims the fast stroke: the mobile ports' Dive and Swim.
- {label:'Dive',code:'ControlLeft',className:'fire',modes:['swim'],icon:'dive'},
- {label:'Swim',code:'ShiftLeft',className:'sprint',modes:['swim'],icon:'swim'},
- {label:'Thrust',code:'KeyW',className:'gas',modes:['aircraft'],icon:'up',slide:true},
- {label:'Slow',code:'KeyS',className:'reverse',modes:['aircraft'],icon:'down',slide:true},
- {label:'Brake',code:'Space',className:'jump',modes:['aircraft'],icon:'parking',slide:true},
+ {label:'Dive',code:'ControlLeft',className:'fire',modes:['swim'],icon:'dive',art:'hud_dive'},
+ {label:'Swim',code:'ShiftLeft',className:'sprint',modes:['swim'],icon:'swim',art:'hud_swim'},
+ {label:'Thrust',code:'KeyW',className:'gas',modes:['aircraft'],icon:'up',art:'accelerate',slide:true},
+ {label:'Slow',code:'KeyS',className:'reverse',modes:['aircraft'],icon:'down',art:'brake',slide:true},
+ {label:'Brake',code:'Space',className:'jump',modes:['aircraft'],icon:'parking',art:'handbrake',slide:true},
  {label:'◀ Yaw',code:'KeyQ',className:'yaw-left',modes:['aircraft'],icon:'left',slide:true},
  {label:'Yaw ▶',code:'KeyE',className:'yaw-right',modes:['aircraft'],icon:'right',slide:true},
- {label:'Rocket',code:'KeyB',className:'rocket',modes:['aircraft'],icon:'rocket'},
+ {label:'Rocket',code:'KeyB',className:'rocket',modes:['aircraft'],icon:'rocket',art:'hud_rockets'},
 ];
 /** Controls the game asks for only now and then, by the pad action the help text names: a button for each shows above
  * the others while the help box or prompt asks for it (a yes-or-no question, collecting a pickup, a crew order). */
-const CONTEXT:readonly {action:string;label:string;code:string;name?:string;widget?:{className:string;icon:TouchIcon}}[]=[
+const CONTEXT:readonly {action:string;label:string;code:string;name?:string;widget?:{className:string;icon:TouchIcon;art:TouchWidgetArt}}[]=[
  // A yes or a no (a question, a word to a ped): the port's POSITIVE and NEGATIVE widgets, a thumb each, at their places
  // (low in the middle on a phone, high on an iPad's 4:3).
- {action:'CONVERSATION_YES',label:'Yes',code:'KeyY',widget:{className:'reply-yes',icon:'thumbUp'}},{action:'CONVERSATION_NO',label:'No',code:'KeyN',widget:{className:'reply-no',icon:'thumbDown'}},
+ {action:'CONVERSATION_YES',label:'Yes',code:'KeyY',widget:{className:'reply-yes',icon:'thumbUp',art:'Yes'}},{action:'CONVERSATION_NO',label:'No',code:'KeyN',widget:{className:'reply-no',icon:'thumbDown',art:'No'}},
  {action:'PED_ANSWER_PHONE',label:'Action',code:'Tab'},{action:'TOGGLE_SUBMISSIONS',label:'Mission',code:'Digit2'},
  {action:'GROUP_CONTROL_FWD',label:'Follow',code:'KeyG'},{action:'GROUP_CONTROL_BWD',label:'Stay',code:'KeyH'},
  // Targeting a Families member who would join: the port's GANG_RECRUIT (the same button as Follow).
  {action:'GANG_RECRUIT',label:'Recruit',code:'KeyG'},
  // In a vehicle, looking out of either side (the PC's Q and E), for a drive-by: round buttons of their own, the port's
  // VEHICLE_SHOOT_LEFT and _RIGHT widgets above the steering arrows. On foot, looking behind.
- {action:'VEHICLE_LOOKLEFT',label:'◀ Look',code:'KeyQ',widget:{className:'look-left',icon:'shootLeft'}},
- {action:'VEHICLE_LOOKRIGHT',label:'Look ▶',code:'KeyE',widget:{className:'look-right',icon:'shootRight'}},
+ {action:'VEHICLE_LOOKLEFT',label:'◀ Look',code:'KeyQ',widget:{className:'look-left',icon:'shootLeft',art:'leftshoot'}},
+ {action:'VEHICLE_LOOKRIGHT',label:'Look ▶',code:'KeyE',widget:{className:'look-right',icon:'shootRight',art:'shoot'}},
  {action:'PED_LOOKBEHIND',label:'Look back',code:'MouseMiddle'},
  // Flying: the landing gear of a plane that retracts it, once in the air, and the Hydra's vertical lift (the PC's G and T).
  {action:'AIRCRAFT_GEAR',label:'Gear',code:'KeyG'},{action:'AIRCRAFT_VTOL',label:'VTOL',code:'KeyT'},
@@ -249,9 +276,9 @@ const CONTEXT:readonly {action:string;label:string;code:string;name?:string;widg
  // giving way while the menu is up (the script holds the player still).
  // A dance or another rhythm game reading the left stick while the script holds CJ: the port's RHYTHM_UP, _DOWN, _LEFT
  // and _RIGHT widgets, a diamond under the right thumb, each pushing the stick full one way (the PC's movement keys).
- {action:'RHYTHM_UP',label:'Up',code:'KeyW',widget:{className:'rhythm-up',icon:'up'}},{action:'RHYTHM_DOWN',label:'Down',code:'KeyS',widget:{className:'rhythm-down',icon:'down'}},
- {action:'RHYTHM_LEFT',label:'Left',code:'KeyA',widget:{className:'rhythm-left',icon:'left'}},{action:'RHYTHM_RIGHT',label:'Right',code:'KeyD',widget:{className:'rhythm-right',icon:'right'}},
- {action:'MENU_BACK',label:'Back',code:'MenuBack',widget:{className:'store-cancel',icon:'close'}},{action:'MENU_SELECT',label:'Select',code:'MenuSelect',widget:{className:'store-accept',icon:'check'}},
+ {action:'RHYTHM_UP',label:'Up',code:'KeyW',widget:{className:'rhythm-up',icon:'up',art:'YellowArrow'}},{action:'RHYTHM_DOWN',label:'Down',code:'KeyS',widget:{className:'rhythm-down',icon:'down',art:'BlueArrow'}},
+ {action:'RHYTHM_LEFT',label:'Left',code:'KeyA',widget:{className:'rhythm-left',icon:'left',art:'RedArrow'}},{action:'RHYTHM_RIGHT',label:'Right',code:'KeyD',widget:{className:'rhythm-right',icon:'right',art:'GreenArrow'}},
+ {action:'MENU_BACK',label:'Back',code:'MenuBack',widget:{className:'store-cancel',icon:'close',art:'hud_x'}},{action:'MENU_SELECT',label:'Select',code:'MenuSelect',widget:{className:'store-accept',icon:'check',art:'hud_check'}},
 ];
 /** How long the weapon icon is held to open the arsenal rather than step the weapon. */
 const ARSENAL_HOLD_MS=500;
@@ -296,7 +323,7 @@ export class TouchControls {
  private abort=new AbortController();
  constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void;playOn?:()=>void},private settings:TouchSettings=DEFAULT_TOUCH,private readonly changeSettings:(settings:TouchSettings)=>void=()=>{}){
   const options={signal:this.abort.signal};
-  this.element.className='touch-controls';this.element.setAttribute('aria-label','Touch controls');
+  this.element.className='touch-controls';this.element.setAttribute('aria-label','Touch controls');useTouchWidgetAtlas();
   const look=document.createElement('div');look.className='touch-look';
   const stickZone=this.stickZone;stickZone.className='touch-stick-zone';
   this.stickBase.className='touch-stick';this.stickKnob.className='touch-stick-knob';this.stickBase.append(this.stickKnob);this.stickBase.hidden=true;
@@ -304,7 +331,7 @@ export class TouchControls {
   const pad=document.createElement('div');pad.className='touch-buttons';
   for(const spec of BUTTONS){
    const button=document.createElement('button');button.type='button';button.className=`touch-button ${spec.className}`;button.dataset.code=spec.code;button.setAttribute('aria-label',spec.label);
-   if(spec.icon)button.innerHTML=touchIconSvg(spec.icon);else button.textContent=spec.label;
+   if(spec.art){button.innerHTML=touchWidgetArtHtml(spec.art);button.classList.add('art');}else if(spec.icon)button.innerHTML=touchIconSvg(spec.icon);else button.textContent=spec.label;
    if(spec.carGun){this.carGunButton(spec,button,options);pad.append(button);this.buttons.push({spec,element:button});continue;}
    if(spec.swipeBack){this.swipeButton(spec,spec.swipeBack,button,options);pad.append(button);this.buttons.push({spec,element:button});continue;}
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);
@@ -331,7 +358,7 @@ export class TouchControls {
   // Beside it the camera button: the PC's V (CAMERA_CHANGE_VIEW_ALL_SITUATIONS), which a phone has no key for, steps
   // the follow camera's distance on foot and the car camera's zoom at the wheel.
   {const button=this.cameraButton;button.type='button';button.className='touch-button small camera';button.setAttribute('aria-label','Camera view');
-   button.innerHTML=touchIconSvg('camera');
+   button.innerHTML=touchWidgetArtHtml('cam-toggle');button.classList.add('art');
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();this.buzz();input.tap('KeyV');},options);top.append(button);}
   // A phone held upright squeezes the HUD, which is laid out for a sideways screen: until it is turned, a card asks for
   // that (the game holds underneath, as switching apps holds it). Play anyway keeps it upright for the rest of the visit
@@ -344,7 +371,7 @@ export class TouchControls {
   const context=document.createElement('div');context.className='touch-context';
   for(const {action,label,code,name,widget} of CONTEXT){
    const button=document.createElement('button');button.type='button';button.dataset.code=code;button.hidden=true;
-   if(widget){button.className=`touch-button ${widget.className}`;button.innerHTML=touchIconSvg(widget.icon);button.setAttribute('aria-label',label);}
+   if(widget){button.className=`touch-button ${widget.className} art`;button.innerHTML=touchWidgetArtHtml(widget.art);button.setAttribute('aria-label',label);}
    else{button.textContent=label;button.className='touch-button small';if(name)button.setAttribute('aria-label',name);}
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);this.held.set(e.pointerId,code);input.hold(code);button.classList.add('on');this.buzz();},options);
    const up=(e:PointerEvent)=>{if(this.held.get(e.pointerId)!==code)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.releaseAfterFrame(code);button.classList.remove('on');};
@@ -537,6 +564,12 @@ export class TouchControls {
  setPassenger(passenger:boolean){
   if(passenger===this.passenger)return;
   this.passenger=passenger;this.showButtons();this.steer();this.askSteering();
+ }
+ /** The enter widget's art (its class's update, arm64 0x1004afd8c): the vehicle beside or under the player, or the
+  * jetpack to take off (enterWidgetArt). */
+ setEnterArt(art:TouchWidgetArt){
+  const span=this.buttons.find(b=>b.spec.className==='enter')?.element.querySelector<HTMLElement>('.widget-art');
+  if(span)setTouchWidgetArt(span,art);
  }
  /** The contextual buttons (by class) the game offers now: Enter beside a vehicle, in one, or when a prompt asks. */
  setOffered(classNames:Iterable<string>){

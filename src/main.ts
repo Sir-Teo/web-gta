@@ -219,7 +219,7 @@ import { Input } from './input/Input';
 import { GamepadInput } from './input/GamepadInput';
 import { registerShell } from './core/serviceWorker';
 import { storagePanel } from './ui/storagePanel';
-import { TouchControls, goFullscreen, offerInstall, showHelpIcons, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
+import { TouchControls, enterWidgetArt, goFullscreen, offerInstall, showHelpIcons, suggestHomeScreen, touchSettingsPanel, wantsTouchControls } from './input/TouchControls';
 import { DENSITY_SCALE, SIDE_MISSION_VEHICLES, readTouchSettings, resolutionRatio, saveTouchSettings } from './input/touchSettings';
 import { ScreenAwake, SCREEN_IDLE_MS, screenIdle } from './input/screenAwake';
 import { keepStorage, openedInstalled } from './core/persistentStorage';
@@ -3759,6 +3759,14 @@ async function boot() {
      if(inVehicle||sim.jetPack||carEntry.active||asked.includes('VEHICLE_ENTER_EXIT'))touchEnterNear=true;
      else if(++touchEnterTick%8===0){const p=sim.player.position,near=(q:{x:number;y:number;z:number})=>Math.abs(q.x-p.x)<10&&Math.abs(q.z-p.z)<10&&Math.abs(q.y-p.y)<5;
       touchEnterNear=[...(fleet?.cars??[])].some(c=>c.consideredByPlayer!==false&&near(c.car.body.translation()))||[fleet?.nearestPlane(true),fleet?.nearestBoat(true),fleet?.nearestBike(true)].some(v=>!!v&&v.distance()<10);}
+     // The enter widget's art (enterWidgetArt): the vehicle he sits in, else the nearest one the button would take.
+     if(touchEnterNear&&(inVehicle||touchEnterTick%8===0)){
+      const seated=[...(fleet?.cars??[])].find(c=>c.occupied)??(worldCar?.occupied?worldCar:undefined)??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane;
+      let target:{modelId:number;hydraulics?:unknown}|undefined=seated,best=10;
+      if(!seated)for(const v of [...(fleet?.cars??[]),fleet?.nearestPlane(true),fleet?.nearestBoat(true),fleet?.nearestBike(true)]){
+       if(!v||v.consideredByPlayer===false)continue;const d=v.distance();if(d<best){best=d;target=v;}}
+      touch.setEnterArt(enterWidgetArt(target&&{type:fleet?.vehicleIdeType(target.modelId),modelId:target.modelId,hydraulics:!!target.hydraulics},!seated,!!sim.jetPack));
+     }
      // Radio, while the vehicle has a radio to tune (a bicycle has none, CAERadioTrackManager's RADIO_DISABLED).
      touch.setOffered([...touchEnterNear?['enter']:[],...worldCar?.occupied&&worldCar.car.nitro.installed?['nitro']:[],...worldCar?.occupied&&worldCar.hydraulics?['hydraulics']:[],...fleet?.occupiedBike&&BMX_MODELS.has(fleet.occupiedBike.modelId)?['hop']:[],...radioModel!==undefined?['radio']:[],...skippable?['skip']:[]]);
     }

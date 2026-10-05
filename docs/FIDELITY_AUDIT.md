@@ -9374,3 +9374,31 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - Specs: `police-scanner` (unit: the tables against the banks and the zones, the report's lists, the playback's
   timing, the 10 s hold and widescreen, CWanted's hand-over; browser: a crime at Grove Street fetches banks 147, 149,
   150 and 151, is heard and runs to its end).
+
+## The touch buttons are the port's widgets
+
+- **The art.** The iOS port draws each touch widget with a texture of its `mobile` texture database, which is now
+  decoded (`scripts/content/mobileTextureDatabase.mjs`; the format in `docs/research/MOBILE_TEXTURE_DATABASE.md`): a
+  run-length stream whose element is two pixels, over a mip chain. `scripts/content/touch-widgets.mjs` packs the 42
+  textures the buttons draw, each at 256 pixels, into one 208 KB atlas (`public/play/touch/widgets.png`, kept with the
+  game page by the service worker), and `src/input/touchWidgetArt.ts` names its cells.
+- **Which widget each button is**, from `CTouchInterface::CreateAll` (arm64 `0x1002a6280`), which makes every widget
+  with a name from its texture table and a place from the layout file: Gas and Brake (and Thrust and Slow flying) are
+  `accelerate` and `brake`, H-brake and a plane's brake `handbrake`, Horn `horn`, the steering arrows `hud_left` and
+  `hud_right`, Aim `hud_lockon`, Sprint `sprint`, Swim `hud_swim`, Dive `hud_dive`, Crouch `hud_crouch`, Nitrous
+  `hud_nitro`, Rocket `hud_rockets`, the camera button `cam-toggle`, Hydraulics `hydraulicCar`, Radio `radiostation`,
+  the drive-by sides `leftshoot` and `shoot`, Yes and No the Positive and Negative talk's `Yes` and `No`, a shop's
+  Select and Back `hud_check` and `hud_x`, the scope's zoom `hud_plus` and `hud_minus`, and the rhythm games' arrows
+  `YellowArrow`, `BlueArrow`, `RedArrow` and `GreenArrow` (up, down, left, right, slots 97 to 100). Enter is the
+  vehicle's own (the enter widget's class, `0x1004afd8c`: `hud_bike` beside a motorbike, `hud_boat` in a boat or the
+  Vortex, `hydraulicCar` beside a lowrider, `hud_drop_jetpack` on a jetpack; `enterWidgetArt`). The help text draws
+  the same art beside a button's name.
+- **How it is drawn**, as `CWidgetButton::Draw` and `Update` (`0x1002acd68`, `0x1002accf0`) draw it: the texture is the
+  whole button (its own black ring round a white symbol), at full alpha, and multiplied by 0x99CC99 while held.
+- **Not from this art:** Jump, Reload, Look back and the rudder keep their glyphs, the layout files placing no widget
+  of the port's for them (`TouchDefaultPhoneWidescreen.cfg`'s `WIDGET_POSITION_*` names none); Fire shows the HUD icon
+  of the weapon in hand, as the port's attack widget swaps to it; Bunny hop and Skip keep theirs, no art for them being
+  found in the table as far as it is read.
+- **Reach:** the art is drawn without the glyph buttons' 2-pixel ring, so the small ones' touch margin (pause, camera,
+  the pills, Yes and No) is measured from the drawn edge: 4 pixels past it, as before.
+- Specs: `touch-widget-art` (unit: the decoder, the atlas, the enter widget's choice); the touch browser specs.

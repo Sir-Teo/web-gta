@@ -4,8 +4,8 @@ import { defineConfig, type Plugin } from 'vite';
 import { useRapierWasmFile } from './scripts/rapierWasm.mjs';
 import { serviceWorkerSource } from './scripts/serviceWorker.mjs';
 
-/** The public files the game page loads itself: its manifest, icons and the menu's font. */
-const SHELL_PUBLIC = ['manifest.webmanifest', 'favicon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'fonts/UnifrakturCook-Bold.ttf'];
+/** The public files the game page loads itself: its manifest, icons, the menu's font and the touch buttons' widget art. */
+const SHELL_PUBLIC = ['manifest.webmanifest', 'favicon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'fonts/UnifrakturCook-Bold.ttf', 'play/touch/widgets.png'];
 
 /** sw.js with the game page's app shell: its HTML, the JS and CSS the game entry loads (statically or later, by import()),
  * the workers and SHELL_PUBLIC. The asset and model viewer pages' own chunks stay out. */

@@ -1,5 +1,7 @@
-/* The touch buttons' glyphs, drawn as the iOS and Android port draws its widgets: a white symbol on a dark round button
- * rather than a word. Paths on a 24-unit square; most are Material Icons (Apache License 2.0), the rest drawn here. */
+import {TOUCH_WIDGET_ATLAS,TOUCH_WIDGET_CELLS,type TouchWidgetArt} from './touchWidgetArt';
+/* The touch buttons' glyphs, for the buttons the iOS and Android port has no widget of its own for (jump, reload, look
+ * back, the rudder): a white symbol on a dark round button rather than a word. The rest draw the port's own widget art
+ * (touchWidgetArtHtml). Paths on a 24-unit square; most are Material Icons (Apache License 2.0), the rest drawn here. */
 const MATERIAL={
  run:'M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z',
  target:'M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z',
@@ -41,3 +43,19 @@ const GLYPHS={...MATERIAL,
 export type TouchIcon=keyof typeof GLYPHS;
 /** A glyph as the button's SVG, white (currentColor), hidden from screen readers (the button's aria-label names it). */
 export const touchIconSvg=(name:TouchIcon)=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${GLYPHS[name]}"/></svg>`;
+/** A widget's own art from the iOS port's texture database (touchWidgetArt.ts's atlas): the CSS draws the cell. */
+export const touchWidgetArtHtml=(art:TouchWidgetArt)=>{
+ const cell=TOUCH_WIDGET_CELLS[art];
+ return `<span class="widget-art" aria-hidden="true" data-art="${art}" style="--cell-x:${cell%TOUCH_WIDGET_ATLAS.columns};--cell-y:${Math.floor(cell/TOUCH_WIDGET_ATLAS.columns)}"></span>`;
+};
+/** Moves a widget-art span to another of the atlas's cells (the enter widget's vehicle). */
+export function setTouchWidgetArt(span:HTMLElement,art:TouchWidgetArt){
+ if(span.dataset.art===art)return;
+ const cell=TOUCH_WIDGET_CELLS[art];span.dataset.art=art;
+ span.style.setProperty('--cell-x',String(cell%TOUCH_WIDGET_ATLAS.columns));span.style.setProperty('--cell-y',String(Math.floor(cell/TOUCH_WIDGET_ATLAS.columns)));
+}
+/** Points the CSS at the atlas, under the page's base path: the stylesheet draws every widget-art span from it. */
+export function useTouchWidgetAtlas(root:HTMLElement=document.documentElement,base=import.meta.env.BASE_URL){
+ root.style.setProperty('--widget-atlas',`url("${base}${TOUCH_WIDGET_ATLAS.path}")`);
+ root.style.setProperty('--widget-columns',String(TOUCH_WIDGET_ATLAS.columns));root.style.setProperty('--widget-rows',String(TOUCH_WIDGET_ATLAS.rows));
+}
