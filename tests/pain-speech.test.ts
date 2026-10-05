@@ -45,3 +45,32 @@ describe('pain cries from the PAIN_A pack',()=>{
   expect(engine.painCries).toBe(1);
  });
 });
+
+import {playerPainContext} from '../src/simulation/Simulation';
+describe('CJ’s pain',()=>{
+ test('ComputeWillKillPed’s choice of line, and SayDeathSample’s',()=>{
+  expect(playerPainContext(22,4,50,false)).toBe('low');// a graze, still healthy
+  expect(playerPainContext(22,4,8,false)).toBe('high');// a graze that leaves him low
+  expect(playerPainContext(22,20,50,false)).toBe('high');
+  expect(playerPainContext(54,30,40,false)).toBe('low');// a fall
+  expect(playerPainContext(53,1,60,false)).toBe('drowning');
+  expect(playerPainContext(37,1,60,true,()=>.05)).toBe('onFire');expect(playerPainContext(37,1,60,true,()=>.5)).toBeUndefined();
+  expect(playerPainContext(49,50,0,false)).toBe('deathHigh');expect(playerPainContext(54,50,0,false)).toBe('deathHigh');
+  expect(playerPainContext(51,50,0,false)).toBeUndefined();expect(playerPainContext(53,50,0,false)).toBeUndefined();
+  expect(playerPainContext(22,50,0,false)).toBe('deathLow');
+ });
+ test('CJ’s lines come from his bank: drowning, the high fall and death',()=>{
+  expect(painSound('drowning',PAIN_VOICE_CARL,()=>0)).toEqual({bank:144,sound:34});
+  expect(painSound('highFall',PAIN_VOICE_CARL,()=>.999)).toEqual({bank:144,sound:78});
+  expect(painSound('deathLow',PAIN_VOICE_CARL,()=>0)).toEqual({bank:144,sound:25});
+  expect(painSound('drowning',PAIN_VOICE_MALE,()=>0)).toBeUndefined();
+ });
+ test('the player’s cry plays at his position from slot 20 once the bank is in',async()=>{
+  const loader=new NativeBankLoader({version:1,packageSha256:'',banks:[]},async()=>new Uint8Array());
+  loader.otherBanks=async()=>Array.from({length:169},()=>({samples:new Float32Array(100),sampleRate:22050,headroom:0,loopStart:-1}));
+  const engine=new NativeAudioEngine(loader,undefined,()=>0);engine.setPlayer(()=>({x:1,y:2,z:3}));
+  engine.playerPain('high');await new Promise(r=>setTimeout(r,0));
+  expect(loader.isSoundBankLoaded(144,20)).toBe(true);
+  engine.playerPain('high');expect(engine.painCries).toBe(0);// within his pain timer
+ });
+});

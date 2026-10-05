@@ -261,6 +261,8 @@ export class Simulation {
   playerFireProof?:()=>boolean;playerWeaponProof?:()=>boolean;
   /** CPhysical::physicalFlags' proofs on the player, which SET_CHAR_PROOFS sets. */
   playerProofs?:PhysicalProofs;
+  /** CPed::Say of a pain context for the player (the host plays it in CJ's PAIN_A voice). */
+  onPlayerPain?: (context: PlayerPainContext) => void;
   damagePlayer(amount: number, bypassArmour = false, event?: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number;
     /** CTaskSimplePlayerOnFire's ComputeFireDamage: health only, a CEventDamage only once it kills. */ burning?: boolean }) {
     // CEventDamage::AffectsPed rejects damage to a dead ped. Repeated hazards
@@ -289,6 +291,7 @@ export class Simulation {
     this.player.health = remaining<1?0:remaining;
     if (this.player.health === 0) { this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0; }
     if (event && (!event.burning || this.player.health === 0)) this.damageEvents.push({ ...event, armour, health: before - this.player.health, died: this.player.health === 0, inAirTask: !!this.playerInAirTask?.() });
+    if (event) { const pain = playerPainContext(event.weapon, amount, this.player.health, !!event.burning); if (pain) this.onPlayerPain?.(pain); }
   }
   /** CPed::m_nLastWeaponDamage for the player: -1 until a weapon has taken his health, and after CLEAR_CHAR_LAST_WEAPON_DAMAGE. */
   lastWeaponDamage = -1;
@@ -298,6 +301,7 @@ export class Simulation {
     const before = this.player.health;
     this.player.health = 0; this.deathRemaining = DEATH_RECOVERY_SECONDS; this.player.speed = 0;
     this.damageEvents.push({ weapon: 0, armour: 0, health: before, died: true });
+    this.onPlayerPain?.('deathLow');
   }
   /** CEventDamage for the player, for the reaction the renderer plays (ComputeDamageAnim / ComputeDeathAnim). */
   damageEvents: { weapon: number; from?: { x: number; z: number }; fall?: boolean; fight?: { move: number }; piece?: number; armour: number; health: number; died: boolean; inAirTask?: boolean }[] = [];
@@ -591,6 +595,10 @@ export class Simulation {
     if (controls.parachute || this.playerFallHeld?.()) this.fall = { minVz: 0, falling: false };
     else if (!this.player.grounded && !controls.jetPack) {
       this.fall.minVz = Math.min(this.fall.minVz, this.player.verticalSpeed);
+      // CTaskSimpleInAir::ProcessPed: half a second into the air and falling at 20 units a second, the player cries
+      // CTX_GLOBAL_PAIN_CJ_HIGH_FALL, once.
+      this.fall.airMs = (this.fall.airMs ?? 0) + dt * 1000;
+      if (!this.fall.cried && this.fall.airMs >= 500 && this.player.verticalSpeed <= -20 && this.player.health > 0) { this.fall.cried = true; this.onPlayerPain?.('highFall'); }
       if (!this.fall.falling && this.player.verticalSpeed < -.1 * 50) {
         const p = this.playerBody.translation();
         this.fall.falling = !this.world.castRay(new RAPIER.Ray({ x: p.x, y: p.y - this.playerCenterHeight + 1, z: p.z }, { x: 0, y: -1, z: 0 }), 4, true, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, undefined, this.playerCollider, this.playerBody);
@@ -701,7 +709,7 @@ export class Simulation {
     return { run: clamp((blend - NATIVE_BLEND_WALK) / (NATIVE_BLEND_RUN_FULL - NATIVE_BLEND_WALK), 0, 1) };
   }
   /** CTaskSimpleInAir's fastest fall and whether it went into FALL_FALL. */
-  fall = { minVz: 0, falling: false };
+  fall: { minVz: number; falling: boolean; airMs?: number; cried?: boolean } = { minVz: 0, falling: false };
   /** How the last FALL_FALL landed, for the host to play: FALL_COLLAPSE, or the KO_SKID_BACK knockdown. Cleared by it. */
   fallLanding?: 'collapse' | 'knockdown';
   /** CTaskComplexInAirAndLand's AE_PED_COLLAPSE_AFTER_FALL for a FALL_FALL landing, taken by the audio. */
@@ -960,4 +968,19 @@ export class Simulation {
       collider=>this.sunCollisionEligible?.(collider.handle)??true)!==null;
   }
   dispose() { this.world.free(); }
+}
+
+/** The pain contexts the player says. */
+export type PlayerPainContext = 'low' | 'high' | 'onFire' | 'drowning' | 'highFall' | 'deathHigh' | 'deathLow';
+/** What a hit makes the player say. Alive: CPedDamageResponseCalculator::ComputeWillKillPed's CTX_GLOBAL_PAIN_CJ_DROWNING
+ * for drowning, PAIN_LOW for a fall (its own branch) or a hit under 5 that leaves him above 10, else PAIN_HIGH; burning,
+ * CTaskSimplePlayerOnFire's PAIN_ON_FIRE one time in ten (Say's probability 0.1). Dead: CTaskComplexDie::SayDeathSample,
+ * PAIN_DEATH_HIGH for a car or a fall, nothing for an explosion or drowning (CJ has no DEATH_DROWN line), else
+ * PAIN_DEATH_LOW. */
+export function playerPainContext(weapon: number, damage: number, health: number, burning: boolean, random: () => number = Math.random): PlayerPainContext | undefined {
+  if (health <= 0) return weapon === 49 || weapon === 50 || weapon === 54 ? 'deathHigh' : weapon === 51 || weapon === 53 ? undefined : 'deathLow';
+  if (burning) return random() < .1 ? 'onFire' : undefined;
+  if (weapon === 53) return 'drowning';
+  if (weapon === 54) return 'low';
+  return damage < 5 && health > 10 ? 'low' : 'high';
 }

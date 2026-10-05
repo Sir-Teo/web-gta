@@ -15,7 +15,7 @@ import {NativeWeatherAudio,type NativeWeatherAudioInput} from './NativeWeatherAu
 import {VEHICLE_AUDIO_SETTINGS} from './vehicleAudioSettings';
 import {RADIO_STATIONS,nextStation,speechSample,radioBedParams,type RadioStation,type SpeechEvent} from './radioSpeech';
 import {NativeTwinLoopSound} from './NativeTwinLoopSound';
-import {PAIN_CONTEXTS,painSound,type PainContext} from './painSpeech';
+import {PAIN_CONTEXTS,PAIN_VOICE_CARL,painSound,type PainContext} from './painSpeech';
 import type {AudioRandom} from './nativeAudioUtility';
 /** Frame limiter default (RsGlobal.frameLimit = APP_MAX_FPS 30): per-frame audio steps keep their native pacing. */
 export const NATIVE_AUDIO_FRAME_MS=1000/30;
@@ -183,7 +183,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
    const pick=painSound(voice.context,voice.voice,this.random),slot=SLOT.speechFirst+voice.voice;
    if(pick){
     if(this.bank.isSoundBankLoaded(pick.bank,slot)){
-     this.manager.playSound({slot,sound:pick.sound,position,volume:this.defaultVolume(AE_SPEECH_PED),rollOff:this.playerInVehicle?3:2,speed:1,flags:SOUND.requestUpdates|SOUND.uncancellable});
+     this.manager.playSound({slot,sound:pick.sound,position,volume:this.defaultVolume(AE_SPEECH_PED)+(PAIN_CONTEXTS[voice.context].volume??0),rollOff:this.playerInVehicle?3:2,speed:1,flags:SOUND.requestUpdates|SOUND.uncancellable});
      this.painCries++;return;
     }
     if(!this.bank.failures.has(pick.bank)){this.bank.loadSoundBank(pick.bank,slot);return;}
@@ -195,6 +195,12 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** An NPC speech comment through the shared ped entities. */
  /** Pain cries said from the PAIN_A banks. */
  painCries=0;
+ /** CJ's pain (CPlayerPed's speech entity): his PAIN_A voice, at his position, with his own pain timer. */
+ private playerPainTimer={next:0};
+ playerPain(context:PainContext){
+  const position=this.player?.position();if(!position)return;
+  this.speech('pain',position,0,this.playerPainTimer,{voice:PAIN_VOICE_CARL,context});
+ }
  pedSpeech(key:object,position:NativeVec,event:SpeechEvent,seed=0,voice?:{voice:number;context:PainContext}){
   let ped=this.peds.get(key);
   if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state,pain:{next:0}};this.peds.set(key,ped);}

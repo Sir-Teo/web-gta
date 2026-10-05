@@ -1618,6 +1618,8 @@ async function boot() {
   sound.useScriptSpeech(new URL(`${import.meta.env.BASE_URL}play/audio/script/`,location.href).href);
   sound.useStreamTracks(new URL(`${import.meta.env.BASE_URL}play/audio/streams/`,location.href).href);
   const ambience=new NativeAmbienceTracks(sound.ambienceTracks);
+  // CJ's pain cries in his PAIN_A voice, as the damage, the fall and the fire say them.
+  sim.onPlayerPain=context=>{sound.nativeEngine?.playerPain(context);};
   /** Each streamed window carries the same vegetation package; it is parsed once. */
   const readSceneVegetationOnce=sceneVegetationReader();
   // The sample fallback for combat sounds (banks 52 and 143) only plays without the native engine, which loads the

@@ -9256,4 +9256,11 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   bank that cannot be had falls back to the old vocal.
 - Specs: `pain-speech` (unit: the voices, the ranges, the published banks, the slot; browser: a CIVFEMALE ped's cry
   fetches only bank 146, decodes it into slot 22 and is heard).
+- **CJ's own cries.** `Simulation.damagePlayer` says what `CPedDamageResponseCalculator::ComputeWillKillPed`
+  (reversed) does: `PAIN_CJ_DROWNING` for drowning, `PAIN_LOW` for a fall or a hit under 5 that leaves him above
+  10, else `PAIN_HIGH`; burning, `CTaskSimplePlayerOnFire`'s `PAIN_ON_FIRE` one time in ten; dying,
+  `CTaskComplexDie::SayDeathSample` (`DEATH_HIGH` for a car or a fall, nothing for an explosion or drowning, else
+  `DEATH_LOW`). Half a second into the air and falling at 20 units a second he cries `CJ_HIGH_FALL` once
+  (`CTaskSimpleInAir`). All in his voice (bank 144, CJ's columns of the table), drowning 3 dB up. A script's
+  `DAMAGE_CHAR` raises no damage event and says nothing. Spec: `pain-speech` (unit).
 

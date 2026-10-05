@@ -15,16 +15,19 @@ export const PAIN_SPEECH_LOOKUP:readonly (readonly ([number,number]|null)[])[]=[
 ];
 /** The global pain contexts the port says, and gSpeechContextLookup's specific context for a ped (the GEN column)
  * and for CJ (the PLY column), with the context's repeat time. */
-export const PAIN_CONTEXTS={
+export const PAIN_CONTEXTS:Readonly<Record<string,{ped:number|null;cj:number|null;repeatMs:number;volume?:number}>>={
  high:{ped:18,cj:7,repeatMs:2000},low:{ped:18,cj:8,repeatMs:2000},onFire:{ped:19,cj:6,repeatMs:100},
  deathHigh:{ped:16,cj:2,repeatMs:2000},deathLow:{ped:17,cj:2,repeatMs:2000},
-} as const;
-export type PainContext=keyof typeof PAIN_CONTEXTS;
+ // CJ's own: CTX_GLOBAL_PAIN_CJ_DROWNING (said 3 dB up, GetVolumeOffset) and CJ_HIGH_FALL.
+ drowning:{ped:null,cj:3,repeatMs:2000,volume:3},highFall:{ped:null,cj:5,repeatMs:3000},
+};
+export type PainContext='high'|'low'|'onFire'|'deathHigh'|'deathLow'|'drowning'|'highFall';
 /** CAEPedSpeechAudioEntity::GetPainVoice: CJ's, else a female one for CIVFEMALE and PROSTITUTE peds, else male. */
 export function painVoice(player:boolean,pedType?:string){return player?PAIN_VOICE_CARL:pedType==='CIVFEMALE'||pedType==='PROSTITUTE'?PAIN_VOICE_FEMALE:PAIN_VOICE_MALE;}
 /** The bank and sound a pain context says in a voice, or nothing where the table has none. */
 export function painSound(context:PainContext,voice:number,random:()=>number){
  const specific=voice===PAIN_VOICE_CARL?PAIN_CONTEXTS[context].cj:PAIN_CONTEXTS[context].ped;
+ if(specific===null)return undefined;
  const range=PAIN_SPEECH_LOOKUP[specific]?.[voice];if(!range)return undefined;
  return {bank:PAIN_BANKS[voice],sound:range[0]+Math.floor(random()*(range[1]-range[0]+1))};
 }
