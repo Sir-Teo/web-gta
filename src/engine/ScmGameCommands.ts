@@ -2449,6 +2449,19 @@ const handlers:Record<string,ScmCommandHandler>={
  // m_anUpgrades[index] of the car's model, GET_VEHICLE_MOD_TYPE (0x1001f21c0) an upgrade's eVehicleModSlot,
  // GET_NUM_AVAILABLE_PAINTJOBS (0x1001f1b3c) GetNumRemaps, GET_NUM_CAR_COLOURS (0x100202fd8)
  // m_nNumColorVariations, GET_CURRENT_VEHICLE_PAINTJOB (0x100203180) CVehicle::GetRemapIndex.
+ // STORE_CAR_MOD_STATE and RESTORE_CAR_MOD_STATE (the iOS handlers 0x100203660 and 0x100203ce4 call
+ // CShopping::StoreVehicleMods and RestoreVehicleMods on the player's vehicle).
+ STORE_CAR_MOD_STATE:(t,_p,i)=>{world(t,i,'storeCarModState')();},
+ RESTORE_CAR_MOD_STATE:(t,_p,i)=>{world(t,i,'restoreCarModState')();},
+ // GET_CAR_DOOR_LOCK_STATUS (0x100203458): CVehicle::m_nDoorLock.
+ GET_CAR_DOOR_LOCK_STATUS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehicleDoorLockStatus')(t.readInt(p[0])));},
+ // CLEAR_WANTED_LEVEL_IN_GARAGE (0x1002057bc): CWanted::ClearWantedLevelAndGoOnParole on the player's.
+ CLEAR_WANTED_LEVEL_IN_GARAGE:(t,_p,i)=>{world(t,i,'clearWantedLevelInGarage')();},
+ // MANAGE_ALL_POPULATION (0x100206548: CPopulation::ManageAllPopulation, the objects' and dummies' upkeep) and
+ // SET_RADIO_TO_PLAYERS_FAVOURITE_STATION (0x1002067a8: RetuneRadio to CStats::FindMostFavoriteRadioStation): the
+ // port's objects keep themselves and it has no radio, so a host may answer them or not.
+ MANAGE_ALL_POPULATION:t=>{t.host?.world?.manageAllPopulation?.();},
+ SET_RADIO_TO_PLAYERS_FAVOURITE_STATION:t=>{t.host?.world?.setRadioToPlayersFavouriteStation?.();},
  GET_AVAILABLE_VEHICLE_MOD:(t,p,i)=>{t.writeInt(p[2],world(t,i,'availableVehicleMod')(t.readInt(p[0]),t.readInt(p[1])));},
  GET_VEHICLE_MOD_TYPE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehicleModType')(model(t,i,p[0])));},
  GET_NUM_AVAILABLE_PAINTJOBS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'numAvailablePaintjobs')(t.readInt(p[0])));},

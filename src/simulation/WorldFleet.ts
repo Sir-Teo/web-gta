@@ -32,7 +32,7 @@ import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
-import {vehicleModSlot} from '../vehicle/nativeVehicleUpgrades';
+import {isValidModForVehicle,vehicleModSlot} from '../vehicle/nativeVehicleUpgrades';
 /** CCarCtrl::PruneVehiclesOfInterest drops a vehicle of interest 180000 ms after it was last registered. */
 const VEHICLE_OF_INTEREST_MS=180000;
 /** Resolve one random-model generator against a membership pool (CCarGenerator
@@ -157,6 +157,15 @@ export class WorldFleet {
     modSlotOf:(model:number)=>vehicleModSlot(catalog.upgrades.placeOf(model)),
     remapCount:(model:number)=>{const n=name(model);return n?catalog.upgrades.remapsOf(n).length:0;},
     colourCount:(model:number)=>{const n=name(model);return n?carColorVariationCount(catalog.colors,n):0;},
+    /** IsValidModForVehicle of an upgrade for a vehicle model. */
+    isValidMod:(upgrade:number,model:number)=>{
+     const n=name(model),definition=catalog.definitions.find(v=>v.id===model),set=definition?.wheelUpgradeClass;
+     const wheels=set!==undefined&&set>=0?(catalog.upgrades.carMods.wheels.get(set)??[]).map(w=>catalog.upgrades.idOf(w)).filter((id):id is number=>id!==undefined):undefined;
+     return isValidModForVehicle(upgrade,catalog.upgrades.placeOf(upgrade),n?catalog.upgrades.upgradesOf(n):[],wheels);
+    },
+    /** An upgrade's name (veh_mods.ide) and place. */
+    upgradeName:(upgrade:number)=>catalog.upgrades.nameOf(upgrade),
+    upgradePlace:(upgrade:number)=>catalog.upgrades.placeOf(upgrade),
    };
   }
   /** The cars a car park's script made (bIsCarParkVehicle, RANDOM_VEHICLE): removed far off as the parked ones are. */

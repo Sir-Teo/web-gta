@@ -3,6 +3,7 @@ import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/s
 import {ScmGarages,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS,type StoredCar} from './engine/ScmGarages';
 import {carBombEvents} from './vehicle/nativeCarBomb';
 import {restoreStoredParts,storedPlacement,storeVehicle} from './simulation/storedVehicles';
+import {nitroBoostsFor,vehicleModSlot} from './vehicle/nativeVehicleUpgrades';
 import {playerFootstepSoundLevel} from './ped/nativeSoundEvents';
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
@@ -575,6 +576,18 @@ async function boot() {
   };
   let pedestrians:WorldPedestrians|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
+  /** CShopping's gStoredVehicleMods: the upgrades STORE_CAR_MOD_STATE kept. */
+  let storedVehicleMods:number[]=[];
+  /** CVehicle::AddVehicleUpgrade's kind of an upgrade by its place (CarMod): hydraulics 0x10, nitro 0xF, stereo 0x11. */
+  const upgradeKind=(place:{place:number;dummy:boolean}|undefined)=>!place||place.dummy?'part' as const:place.place===0x10?'hydraulics' as const:place.place===0xF?'nitro' as const:place.place===0x11?'stereo' as const:'part' as const;
+  /** CVehicle::AddVehicleUpgrade on a car: its slot (eVehicleModSlot), its kind, and an automobile's nitro boosts; the
+   * upgrade it replaced comes back (-1 for none). A bike or boat takes none here. */
+  const fitVehicleUpgrade=(car:unknown,model:number)=>{
+   const c=car as Partial<import('./simulation/WorldCar').WorldCar>,tables=fleet?.upgradeTables();
+   if(!c.addUpgrade||!tables)return -1;
+   const place=tables.upgradePlace(model),kind=upgradeKind(place);
+   return c.addUpgrade(model,vehicleModSlot(place),kind,nitroBoostsFor(tables.upgradeName(model)));
+  };
   /** CGarages::StoreCarInNearestImpoundingGarage, once the script's garages are loaded. */
   let impoundCar:((vehicle:import('./simulation/WorldCar').WorldCar|import('./simulation/WorldBike').WorldBike)=>void)|undefined;
   let worldZones:import('./assets/worldZones').WorldZones|undefined;
@@ -5726,6 +5739,21 @@ async function boot() {
                  scriptVehicleHandlingFlags:car=>(car as Partial<ScriptCar>).handlingFlags??0,
                  scriptVehicleModelFlags:car=>(car as Partial<ScriptCar>).modelFlags??0,
                  vehicleUpgradeTables:()=>fleet?.upgradeTables(),
+                 fitVehicleUpgrade:(car,model)=>fitVehicleUpgrade(car,model),
+                 scriptVehicleUpgradeInSlot:(car,slot)=>(car as Partial<ScriptCar>).upgrades?.get(slot)??-1,
+                 removeVehicleUpgrade:(car,model)=>{const c=car as Partial<ScriptCar>,place=fleet?.upgradeTables()?.upgradePlace(model);c.removeUpgrade?.(model,upgradeKind(place));},
+                 isValidModForPlayerVehicle:model=>{const v=fleet?.occupied??fleet?.occupiedBike,tables=fleet?.upgradeTables();return !!v&&!!tables&&tables.isValidMod(model,v.modelId);},
+                 fitPlayerVehicleUpgrade:model=>{const v=fleet?.occupied??fleet?.occupiedBike;if(v)fitVehicleUpgrade(v,model);},
+                 // CShopping::StoreVehicleMods and RestoreVehicleMods: the player's vehicle's upgrades, each one taken off and
+                 // the stored ones put back. (The wheels', bumpers', bonnet's and boot's damage the original also keeps is not
+                 // put back here.)
+                 storePlayerVehicleMods:()=>{const v=fleet?.occupied;storedVehicleMods=v?[...v.upgrades.values()]:[];},
+                 restorePlayerVehicleMods:()=>{
+                  const v=fleet?.occupied;if(!v)return;const tables=fleet?.upgradeTables();
+                  for(const model of [...v.upgrades.values()])v.removeUpgrade(model,upgradeKind(tables?.upgradePlace(model)));
+                  for(const model of storedVehicleMods)fitVehicleUpgrade(v,model);
+                 },
+                 playerGoOnParole:()=>{law.native.goOnParole();},
                  scriptVehiclePaintjob:car=>(car as Partial<ScriptCar>).paintjob??-1,
                  setScriptVehicleDirtLevel:(car,level)=>{const c=car as Partial<ScriptCar>;if(c.dirtLevel!==undefined)c.dirtLevel=level;},
                  playerUsingJetpack:()=>!!sim.jetPack,

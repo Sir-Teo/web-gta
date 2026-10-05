@@ -8966,7 +8966,30 @@ that did anything.
     (0x1001f1b3c) GetNumRemaps, GET_NUM_CAR_COLOURS (0x100202fd8) the model's colour variations, and
     GET_CURRENT_VEHICLE_PAINTJOB (0x100203180) CVehicle::GetRemapIndex (-1 until a paintjob is given). These had no
     handler, so carmod1.scm gave up at them.
-  Specs: `vehicle-upgrades` (unit, on the published file: the tables, the places and slots, the paintjobs).
+  - **Fitting, as far as it is not drawn** (CVehicle::AddVehicleUpgrade, unreversed; the iOS executable's at
+    0x100480908 and its special upgrades at 0x100480b9c): an upgrade takes its slot (eVehicleModSlot; the one there
+    before comes back as ADD_VEHICLE_MOD's answer), the hydraulics are fitted (handlingFlags.bHydraulicInst), an
+    automobile gets the nitro's boosts (the large bottle 5, the twin bottles 10, the small one 2: NitrousControl), and
+    the stereo sets bUpgradedStereo. RemoveVehicleUpgrade takes them back. The parts themselves (the chassis parts at
+    the car's ug_ frames, the wheels, exhausts and bumpers in place of its own) are not drawn yet, nor the off-road
+    wheels' handling flag or the stereo's bass.
+  - **CShopping's car mods** (the shopping port already asked for them): IsValidModForVehicle (iOS 0x10020b390;
+    unreversed at 0x49B010) lists a wheel when the car's model's wheel set (vehicles.ide's wheel upgrade class) holds
+    it and any other upgrade when the model's list does (AUTHORED: the stereo always; the executable also weighs two
+    fields of the car's audio entity, its bass setting among them, that the port does not carry); a purchase fits it.
+    Before, nothing answered, so a mod shop listed no parts.
+  - **The rest of carmod1.scm's commands**: STORE_CAR_MOD_STATE and RESTORE_CAR_MOD_STATE (CShopping::StoreVehicleMods
+    and RestoreVehicleMods: the player's vehicle's upgrades kept and put back; the wheels', bumpers', bonnet's and boot's
+    damage the original keeps is not put back), GET_CAR_DOOR_LOCK_STATUS (m_nDoorLock as LOCK_CAR_DOORS last set it,
+    else unlocked, or locked for a generator's locked car), CLEAR_WANTED_LEVEL_IN_GARAGE
+    (ClearWantedLevelAndGoOnParole), REQUEST_VEHICLE_MOD, HAS_VEHICLE_MOD_LOADED and MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED
+    (AUTHORED: the port reads a part when it fits it, so a request is in at once), and MANAGE_ALL_POPULATION and
+    SET_RADIO_TO_PLAYERS_FAVOURITE_STATION, which a host may answer (the objects keep themselves; there is no radio),
+    and GET_CURRENT_CAR_MOD (iOS 0x1002033a8: the upgrade in a mod slot; the chassis dummies' slot, 11, never answers
+    one). carmod1.scm now stops nowhere; GIVE_VEHICLE_PAINTJOB is still skipped (the paintjobs are not drawn).
+  Specs: `vehicle-upgrades` (unit, on the published file: the tables, the places and slots, the paintjobs, the
+  validity and the nitro; browser: CJ in a Landstalker, the parts a shop lists for it, and the twin nitro, hydraulics
+  and stereo bought and fitted, then a smaller bottle in the nitro's slot).
 - **The vehicle-class questions the mod shops and the valet ask** (absent from gta-reversed; the iOS handlers in the
   2400 switch): IS_BIG_VEHICLE (0x1002034d0) reads vehicleFlags.bIsBig, here the handling's IS_BIG model flag (0x8) it
   is set from; IS_CAR_STREET_RACER (0x1002036c4) handlingFlags.bStreetRacer (0x4000000); IS_EMERGENCY_SERVICES_VEHICLE

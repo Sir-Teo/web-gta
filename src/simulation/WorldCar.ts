@@ -140,6 +140,28 @@ export class WorldCar {
  pendingExplosion=false;
  /** The explosion is the player's: m_pWhoDetonatedMe of a bomb he set off. */
  explosionByPlayer=false;
+ /** CVehicle::m_anUpgrades by eVehicleModSlot: the upgrade fitted in each slot (one a slot). */
+ readonly upgrades=new Map<number,number>();
+ /** vehicleFlags.bUpgradedStereo. */
+ upgradedStereo=false;
+ /** CVehicle::AddVehicleUpgrade's work that is not drawn (the iOS executable's, 0x100480908, and its special upgrades at
+  * 0x100480b9c): the hydraulics fitted (handlingFlags.bHydraulicInst), the nitro an automobile is given (`boosts`),
+  * the stereo marked (bUpgradedStereo); any upgrade takes its slot, the one there before coming back. */
+ addUpgrade(model:number,slot:number,kind:'hydraulics'|'nitro'|'stereo'|'part',boosts=0){
+  const replaced=this.upgrades.get(slot)??-1;
+  if(kind==='hydraulics')this.fitHydraulics();
+  else if(kind==='nitro')this.car.nitrousControl(boosts,0,0,undefined,false);
+  else if(kind==='stereo')this.upgradedStereo=true;
+  this.upgrades.set(slot,model);
+  return replaced;
+ }
+ /** CVehicle::RemoveVehicleUpgrade: the slot emptied, and the hydraulics, nitro or stereo it gave taken back. */
+ removeUpgrade(model:number,kind:'hydraulics'|'nitro'|'stereo'|'part'){
+  for(const [slot,fitted] of this.upgrades)if(fitted===model)this.upgrades.delete(slot);
+  if(kind==='hydraulics')this.removeHydraulics();
+  else if(kind==='nitro')this.car.nitrousControl(-1,0,0,undefined,false);
+  else if(kind==='stereo')this.upgradedStereo=false;
+ }
  /** CVehicle::GetRemapIndex: the paintjob of its model's it wears, -1 for none. */
  paintjob=-1;
  /** vehicleFlags.bEngineBroken (SET_CAR_ENGINE_BROKEN): the engine stays off and the car will not drive. */

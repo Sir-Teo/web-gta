@@ -661,6 +661,19 @@ export interface ScmMissionWorld {
  vehicleUpgradeTables?():{upgradesOf(model:number):readonly number[];modSlotOf(model:number):number;remapCount(model:number):number;colourCount(model:number):number}|undefined;
  /** A script car's paintjob (CVehicle::GetRemapIndex, -1 none). */
  scriptVehiclePaintjob?(car:unknown):number;
+ /** The upgrade fitted in a car's mod slot (eVehicleModSlot), -1 for none. */
+ scriptVehicleUpgradeInSlot?(car:unknown,slot:number):number;
+ /** CVehicle::AddVehicleUpgrade on a car (the upgrade it replaced comes back, -1 for none) and RemoveVehicleUpgrade. */
+ fitVehicleUpgrade?(car:unknown,model:number):number;
+ removeVehicleUpgrade?(car:unknown,model:number):void;
+ /** IsValidModForVehicle and AddVehicleUpgrade on the player's vehicle, for CShopping. */
+ isValidModForPlayerVehicle?(model:number):boolean;
+ fitPlayerVehicleUpgrade?(model:number):void;
+ /** CShopping::StoreVehicleMods and RestoreVehicleMods on the player's vehicle. */
+ storePlayerVehicleMods?():void;
+ restorePlayerVehicleMods?():void;
+ /** CWanted::ClearWantedLevelAndGoOnParole on the player's. */
+ playerGoOnParole?():void;
  /** A script car's handling model flags (m_nModelFlags), which set vehicleFlags.bIsBig among others. */
  scriptVehicleModelFlags?(car:unknown):number;
  /** CVehicle::m_fDirtLevel. */
@@ -2291,7 +2304,7 @@ export class ScmMission {
    // CVehicle::m_nDoorLock and CanPedOpenLocks for the player: CARLOCK_LOCKED (2), LOCKOUT_PLAYER_ONLY (3),
    // LOCKED_PLAYER_INSIDE (4), COP_CAR (5) and SKIP_SHUT_DOORS (7) keep him out; NOT_USED (0), UNLOCKED (1) and
    // FORCE_SHUT_DOORS (6) let him open the door. Whether he may get in is all the browser keeps of the field.
-   setVehicleDoorLock:(handle,lock)=>{this.world.setScriptVehicleDoorLock(this.liveVehicle(handle),playerLockedOut(lock));},
+   setVehicleDoorLock:(handle,lock)=>{const car=this.liveVehicle(handle);this.doorLocks.set(car as object,lock);this.world.setScriptVehicleDoorLock(car,playerLockedOut(lock));},
    // SWITCH_CAR_SIREN and SET_CAR_CAN_BE_VISIBLY_DAMAGED set the flags on the car; SET_TIME_SCALE sets
    // CTimer::ms_fTimeScale, the one the speed cheats and the stunt slow motion also write.
    switchVehicleSiren:(handle,on)=>{this.host('setScriptVehicleSiren','SWITCH_CAR_SIREN')(this.liveVehicle(handle),on);},
@@ -2310,6 +2323,20 @@ export class ScmMission {
    isCarLowRider:handle=>(this.host('scriptVehicleHandlingFlags','IS_CAR_LOW_RIDER')(this.liveVehicle(handle))&HANDLING_LOW_RIDER)!==0,
    // IS_CAR_STREET_RACER: handlingFlags.bStreetRacer (0x4000000).
    isCarStreetRacer:handle=>(this.host('scriptVehicleHandlingFlags','IS_CAR_STREET_RACER')(this.liveVehicle(handle))&HANDLING_STREET_RACER)!==0,
+   // CStreaming's upgrade requests: the port reads a part when it fits it, so a request is in at once (AUTHORED).
+   requestVehicleMod:()=>{},
+   hasVehicleModLoaded:()=>true,
+   markVehicleModAsNoLongerNeeded:()=>{},
+   addVehicleMod:(handle,model)=>typeof model==='number'?this.host('fitVehicleUpgrade','ADD_VEHICLE_MOD')(this.liveVehicle(handle),model):-1,
+   storeCarModState:()=>{this.host('storePlayerVehicleMods','STORE_CAR_MOD_STATE')();},
+   restoreCarModState:()=>{this.host('restorePlayerVehicleMods','RESTORE_CAR_MOD_STATE')();},
+   // m_nDoorLock as LOCK_CAR_DOORS last set it; otherwise CARLOCK_UNLOCKED (1), or CARLOCK_LOCKED (2) for a car a
+   // generator locked.
+   vehicleDoorLockStatus:handle=>{const car=this.liveVehicle(handle) as {locked?:boolean};return this.doorLocks.get(car as object)??(car.locked?2:1);},
+   // GET_CURRENT_CAR_MOD (the iOS handler, 0x1002033a8): the upgrade in a slot; the chassis dummies' slot (11) never
+   // answers one.
+   getCurrentCarMod:(handle,slot)=>slot===11||slot<0||slot>16?-1:this.host('scriptVehicleUpgradeInSlot','GET_CURRENT_CAR_MOD')(this.liveVehicle(handle),slot),
+   clearWantedLevelInGarage:()=>{this.host('playerGoOnParole','CLEAR_WANTED_LEVEL_IN_GARAGE')();},
    availableVehicleMod:(handle,index)=>{const tables=this.host('vehicleUpgradeTables','GET_AVAILABLE_VEHICLE_MOD')();const model=this.vehicleModelNumber(handle);return tables&&model!==undefined?tables.upgradesOf(model)[index]??-1:-1;},
    vehicleModType:model=>{const tables=this.host('vehicleUpgradeTables','GET_VEHICLE_MOD_TYPE')();return tables&&typeof model==='number'?tables.modSlotOf(model):0;},
    numAvailablePaintjobs:handle=>{const tables=this.host('vehicleUpgradeTables','GET_NUM_AVAILABLE_PAINTJOBS')();const model=this.vehicleModelNumber(handle);return tables&&model!==undefined?tables.remapCount(model):0;},
@@ -2460,6 +2487,8 @@ export class ScmMission {
    giveWeapon:(type,ammo)=>{this.world.givePlayerWeapon?.(type,ammo);},
    setCurrentWeapon:type=>{this.world.setPlayerCurrentWeapon?.(type);},
    setArmour:armour=>{this.world.setPlayerArmour?.(armour);},
+   isValidModForVehicle:model=>this.world.isValidModForPlayerVehicle?.(model)??false,
+   addVehicleUpgrade:model=>{this.world.fitPlayerVehicleUpgrade?.(model);},
   };
   // A command whose world member is not ported yet is skipped, and the mission runs on without it (AUTHORED: the
   // original has them all). Before, the thread gave up there and the mission hung or ended half way, so every
@@ -3341,6 +3370,8 @@ export class ScmMission {
   this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,seat);
  }
  /** The model of the vehicle a ped rides, by its handle. */
+ /** CVehicle::m_nDoorLock as LOCK_CAR_DOORS last set it, by car. */
+ private readonly doorLocks=new WeakMap<object,number>();
  /** A car handle's model id, the player's own car's included; undefined for none or a model known only by name. */
  private vehicleModelNumber(handle:number){const model=handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle);return typeof model==='number'?model:undefined;}
  private pedVehicleModel(handle:number){

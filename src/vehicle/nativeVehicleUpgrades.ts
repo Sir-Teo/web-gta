@@ -65,3 +65,16 @@ export function vehicleRemaps(archiveNames:Iterable<string>,vehicleModels:Readon
  }
  return remaps;
 }
+/** IsValidModForVehicle (iOS 0x10020b390; unreversed in gta-reversed at 0x49B010), which CShopping asks of each car mod
+ * it would list: a wheel is valid when the car's model's wheel set (vehicles.ide's wheel upgrade class) holds it, any
+ * other upgrade but the stereo when the model's m_anUpgrades does. AUTHORED: the stereo is always valid here; the
+ * executable also turns it away by two fields of the car's audio entity (one of them its bass setting) that the port's
+ * vehicle audio does not carry. */
+export function isValidModForVehicle(model:number,place:{place:number;dummy:boolean}|undefined,modelUpgrades:readonly number[],wheelSet:readonly number[]|undefined){
+ if(place&&!place.dummy&&place.place===0x11)return true;
+ if(place&&place.dummy&&place.place===2)return !!wheelSet&&wheelSet.includes(model);
+ return modelUpgrades.includes(model);
+}
+/** The nitro an automobile gets from a nitro upgrade (the iOS special-upgrade routine, 0x100480b9c): the large bottle
+ * (nto_b_l) five boosts, the twin bottles (nto_b_tw) ten, the small one two. */
+export const nitroBoostsFor=(name:string|undefined)=>name==='nto_b_l'?5:name==='nto_b_tw'?10:2;

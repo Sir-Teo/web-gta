@@ -1,6 +1,6 @@
 import {expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {otherLinkedUpgrade,readCarMods,vehicleModSlot,vehicleRemaps,vehicleUpgradePlace,VEHICLE_UPGRADE_SLOTS} from '../src/vehicle/nativeVehicleUpgrades';
+import {isValidModForVehicle,nitroBoostsFor,otherLinkedUpgrade,readCarMods,vehicleModSlot,vehicleRemaps,vehicleUpgradePlace,VEHICLE_UPGRADE_SLOTS} from '../src/vehicle/nativeVehicleUpgrades';
 // CVehicleModelInfo::LoadVehicleUpgrades over the published carmods.dat (noclip's PC copy; the iOS bundle's is the
 // same file with Unix line ends), and CAtomicModelInfo::SetupVehicleUpgradeFlags.
 const mods=readCarMods(readFileSync('public/play/world/files/vehicles/carmods.dat','utf8'));
@@ -41,4 +41,14 @@ test("a vehicle's paintjobs: the archive's dictionaries named after it with digi
  const remaps=vehicleRemaps(['elegy1.txd','elegy.txd','elegy2.TXD','cj_ped1.txd','camper1.txd','elegy3.txd','x1.dff','sultan1.txd','sultan2.txd','sultan3.txd','sultan4.txd','sultan5.txd'],new Set(['elegy','camper','sultan']));
  expect(remaps.get('elegy')).toEqual(['elegy1','elegy2','elegy3']);expect(remaps.get('camper')).toEqual(['camper1']);
  expect(remaps.get('sultan')).toHaveLength(4);expect(remaps.has('cj_ped')).toBe(false);
+});
+test('IsValidModForVehicle (iOS): a wheel by the model\'s wheel set, the stereo always, the rest by the model\'s list; the nitro bottles\' boosts',()=>{
+ const elegy=[1034,1037,1008,1087,1086],wheels=[1025,1073];
+ expect(isValidModForVehicle(1008,vehicleUpgradePlace('nto_b_l'),elegy,wheels)).toBe(true);
+ expect(isValidModForVehicle(1000,vehicleUpgradePlace('spl_b_mar_m'),elegy,wheels)).toBe(false);
+ expect(isValidModForVehicle(1073,vehicleUpgradePlace('wheel_sr6'),elegy,wheels)).toBe(true);
+ expect(isValidModForVehicle(1074,vehicleUpgradePlace('wheel_sr3'),elegy,wheels)).toBe(false);
+ expect(isValidModForVehicle(1074,vehicleUpgradePlace('wheel_sr3'),elegy,undefined)).toBe(false);
+ expect(isValidModForVehicle(1086,vehicleUpgradePlace('stereo'),[],undefined)).toBe(true);
+ expect([nitroBoostsFor('nto_b_l'),nitroBoostsFor('nto_b_tw'),nitroBoostsFor('nto_b_s'),nitroBoostsFor(undefined)]).toEqual([5,10,2,2]);
 });

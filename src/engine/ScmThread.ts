@@ -887,6 +887,12 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  numAvailablePaintjobs?(handle:number):number;
  numCarColours?(handle:number):number;
  currentVehiclePaintjob?(handle:number):number;
+ storeCarModState?():void;
+ restoreCarModState?():void;
+ vehicleDoorLockStatus?(handle:number):number;
+ clearWantedLevelInGarage?():void;
+ manageAllPopulation?():void;
+ setRadioToPlayersFavouriteStation?():void;
  isCarStreetRacer?(handle:number):boolean;
  isEmergencyServicesVehicle?(handle:number):boolean;
  getVehicleClass?(handle:number):number;
