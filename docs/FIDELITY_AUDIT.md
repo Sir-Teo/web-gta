@@ -6289,7 +6289,34 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Choice:** CClothes::GetPlayerMotionGroupToLoad (reversed) picks the fat group past 500 fat that outweighs the muscle, else the muscular group past 500 muscle, else the player group. RequestMotionGroupAnims loads the matching IFP block when the player is rebuilt. CClothes::RebuildPlayerIfNeeded rebuilds when the stats differ from the last build, on a restart (CGameLogic) and at the end of an entry-exit transfer, and ConstructPedModel runs at load.
 - **Port:** the player now walks, runs, sprints, idles and starts walking with fat.ifp's fat* or muscular.ifp's muscle* clips (aFatAnimations, aMuscularAnimations) from the next rebuild. Each running move keeps its blend and restarts the new clip, as ReApplyMoveAnims does.
 - **Unverifiable:** the switch itself runs in CPlayerPed::ProcessAnimGroups (0x6098F0), which is unreversed. So does the weapon-held movement (playerrocket, player2armed, playerBBBat, playercsaw and their f/m variants), which the port does not have.
-- **Not ported:** the body shape. CClothesBuilder's fat and muscle blend of the skin is not ported, so a fat CJ keeps the slim mesh. LoadCutsceneData's rebuild is wired; BuildCutscenePlayer's needs cutscenes that play.
+- **Not ported yet:** drawing the body shape. CClothesBuilder's blend (below) is ported, but the game still draws the normal body, so a fat CJ keeps the slim mesh. LoadCutsceneData's rebuild is wired; BuildCutscenePlayer's needs cutscenes that play.
+
+## CJ's three bodies blend by his fat and muscle
+
+- **What.** Every clothing model in player.img holds three clumps, the normal, fat and ripped bodies (ripped first in the
+  file), and the skin dictionaries hold torso, torso_fat and torso_ripped (and the legs' three). CClothesBuilder blends
+  them by the player's fat and muscle when it builds him. gta-reversed leaves BlendGeometry, the ratio code and
+  ConstructTextures unreversed (its BlendGeometry sketch reads a vertex's four weights from four vertices, and its
+  BlendTextures loops count pixels down inside the channel loop), so the iOS executable's are followed
+  (`blendPlayerBody.ts`).
+- **The ratios** (CreateSkinnedClump, iOS 0x1002dcdb0; gta-reversed's sketch agrees): fat past 200 over 800 and
+  STAT_MUSCLE over 1000, each held to 0 to 1; together past 1 they are divided by their sum and the normal body has
+  none, else it has what is left.
+- **The geometry** (BlendGeometry, iOS 0x1002de31c, from ConstructGeometryArray 0x1002dd5fc): the normal body's
+  triangles and materials; each vertex's position, normal (made unit length again) and UV the ratios' sum of the three
+  bodies' by vertex index. The three share their vertex counts and bone hierarchy, but not their UVs, their
+  influences or (for the head and the jeans) their triangles. A vertex's influences are the three bodies' four each,
+  scaled by their ratio, those of no weight left out and those on one bone added (AddWeightToBoneVertex, reversed),
+  kept in the order they came; the first four are kept, divided by their sum only when a fifth had weight.
+- **The skin** (ConstructTextures, iOS 0x1002dd1ac, over BlendTextures 0x1002de01c): the torso and the legs are the
+  three rasters' red, green and blue summed by the ratios and cut to whole numbers, alpha the normal one's; the
+  clothes go on top as before. The face's two-way blend needs a face_fat the PC dictionary does not have, and the
+  tattoos' layer needs tattoos the port does not give, so neither is ported.
+- **Where:** `readPlayerBaseBody(files, ratios, outfit)`. At one ratio the blend is that body exactly; the game does
+  not build CJ this way yet (see "Player motion group").
+- Specs: `player-body-blend` (unit: the ratios, a vertex's blend and merged weights, a fifth bone dropped and the four
+  rescaled, the pixels; on the published files, each body at its own ratio and the half-fat torso midway, every
+  vertex's weights summing to one).
 
 ## Stat update messages
 
