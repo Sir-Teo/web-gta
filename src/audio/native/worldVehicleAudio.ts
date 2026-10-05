@@ -33,8 +33,8 @@ export function worldCarAudioInput(car:WorldCar,playerAlive:boolean,surfaces?:Re
   wheels:{states:a.states,counts:a.counts,contactWheels:a.contactWheels,driveOnGround:a.driveOnGround,driveOnGroundLastFrame:a.driveOnGroundLastFrame,spinForAudio:a.spinForAudio,burst:a.burst},
   contactSurface:{grass:!!(s?.grass||s?.longGrass),wet:!!(s?.gravel||s?.sand||s?.water)}};
 }
-/** CBike state for the vehicle audio entity (motorbikes and the BMX and mountain bikes; the quad is an automobile to
- * the audio). A parked bike's engine
+/** CBike state for the vehicle audio entity: the motorbikes, the BMX and mountain bikes, and the quad (an automobile to
+ * the audio, with four wheels). A parked bike's engine
  * is off; the player's and a script-driven one's run. The pad's brake is the reverse pedal and the handbrake its brake,
  * as for a car; bPlayerBoost is never set (CBike::ProcessControlInputs is unreversed). */
 export function worldBikeAudioInput(bike:WorldBike,playerAlive:boolean):NativeVehicleAudioInput{
@@ -46,8 +46,8 @@ export function worldBikeAudioInput(bike:WorldBike,playerAlive:boolean):NativeVe
   padAccelerate:bike.occupied?Math.max(0,bike.throttle):0,padBrake:bike.occupied?Math.max(0,-bike.throttle):0,
   health:bike.health,drowning:false,underwater:false,towing:false,horn:bike.horn,sirenOrAlarm:bike.siren,alarmState:0,
   transmission:{driveType:h.values.driveType,maxVelocity:h.values.maxVelocity,maxReverseVelocity:h.maxReverseVelocity,numberOfGears:h.values.gears,gears:h.gears},
-  wheels:wheels?{states:a.states,counts:a.counts,contactWheels:a.contactWheels,driveOnGround:a.driveOnGround,driveOnGroundLastFrame:a.driveOnGroundLastFrame,spinForAudio:a.spinForAudio,burst:a.burst}:undefined,
-  bike:{leanAngle:bike.lean,playerBoost:false},bmx:bike.motorbike?undefined:{freewheeling:wheels&&bike.freewheeling}};
+  wheels:wheels?{...(bike.quad?bike.quadWheels:a),contactWheels:a.contactWheels,driveOnGround:a.driveOnGround,driveOnGroundLastFrame:a.driveOnGroundLastFrame,spinForAudio:a.spinForAudio}:undefined,
+  bike:bike.quad?undefined:{leanAngle:bike.lean,playerBoost:false},bmx:bike.motorbike?undefined:{freewheeling:wheels&&bike.freewheeling}};
 }
 /** CBoat state for the vehicle audio entity. Only CJ drives boats here, so an empty one's engine is off (bEngineOn). */
 export function worldBoatAudioInput(boat:WorldBoat,playerAlive:boolean):NativeVehicleAudioInput{

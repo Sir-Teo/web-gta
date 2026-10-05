@@ -9544,8 +9544,12 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     locks it (WHEEL_STATE_FIXED); m_fWheelSpinForAudio rises as CAutomobile's does for one driven wheel off the ground
     under more than half gas; bPlayerBoost is never set. Kept only while the bike is ridden.
   - The horn is the car's (the horn key through CPad's history, siren taps on the police bike).
-- **Not yet:** the quad (an automobile to the audio, with four wheels the bike's state does not give). The BMX and
-  mountain bikes: see "Bicycles roll, tick and ring".
+- **The quad** (AE_CAR, QUADBIKE 48 and 47) is an automobile to the audio and now has its engine too: the bike hands
+  it CAutomobile's four wheels (front left, rear left, front right, rear right). AUTHORED like the bike's: the left and
+  right wheels share the front and rear probes, the brake at speed locks the rear pair, and m_fWheelSpinForAudio is
+  CAutomobile::ProcessControl's over the handling's drive (four-wheel). Spec: `bike-engine-audio` (browser: riding a
+  quad loads QUADBIKE 48 into the player slot, idles, then accelerates).
+- The BMX and mountain bikes: see "Bicycles roll, tick and ring".
 - Specs: `native-audio` (unit: the PCJ-600's dummy idle, its player bank, PLAYER_AC_FULL, the lean factor, the rear
   wheel's skid); `bike-engine-audio` (browser: riding a PCJ-600 loads SPORTSBIKE_P into the player engine slot, idles,
   then accelerates with sounds playing).

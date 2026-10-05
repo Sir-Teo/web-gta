@@ -130,6 +130,10 @@ export class WorldBike {
   * (0x100458ddc: cleared each frame, set with a wheel down and the brake off as the rider coasts or hops); the rider's
   * clips here are the port's, so AUTHORED: a BMX with a wheel down, not braking and not pedalled. */
  freewheeling=false;
+ /** For the quad, an automobile to the audio: CAutomobile's four wheels (front left, rear left, front right, rear right),
+  * their states and counts. AUTHORED like the bike's: the left and right wheels share the front and rear probes, the
+  * brake at speed locks the rear pair, and the spin rate is CAutomobile::ProcessControl's for the handling's drive. */
+ readonly quadWheels={states:['normal','normal','normal','normal'] as ('normal'|'spinning'|'skidding'|'fixed')[],counts:[0,0,0,0],burst:[false,false,false,false]};
  readonly audio={states:['normal','normal'] as ('normal'|'spinning'|'skidding'|'fixed')[],counts:[0,0],contactWheels:0,driveOnGround:0,driveOnGroundLastFrame:0,spinForAudio:0,burst:[false,false],brake:0};
  /** Head/tail lamp glows (bike lamp pass): additive sprites at the hull ends, lit at night. */
  private lamp?:Sprite;private tailLamp?:Sprite;private night=0;
@@ -324,12 +328,25 @@ export class WorldBike {
   if(this.occupied||this.autopilot)this.stepAudioState(dt,speed,gas,braking);
  }
  private stepAudioState(dt:number,speed:number,gas:number,braking:number){
-  const a=this.audio,front=this.wheelsDown(.5)?1:0,rear=this.wheelsDown(-.5)?1:0,timeStep=dt*50;
-  a.counts[0]=front;a.counts[1]=rear;
-  a.states[0]='normal';a.states[1]=braking>.5&&rear&&Math.abs(speed)>.04*50?'fixed':'normal';
-  // CAutomobile::ProcessControl's rate for the one driven wheel: off the ground under more than half gas it races.
-  const rate=(!rear&&Math.abs(gas)>.5?10:0)*.5,k=Math.pow(rate>=a.spinForAudio?.95:.7,timeStep);a.spinForAudio=a.spinForAudio*k+(1-k)*rate;
-  a.driveOnGroundLastFrame=a.driveOnGround;a.driveOnGround=rear;a.contactWheels=front+rear;a.brake=braking;
+  const a=this.audio,front=this.wheelsDown(.5)?1:0,rear=this.wheelsDown(-.5)?1:0,timeStep=dt*50,locked=braking>.5&&rear&&Math.abs(speed)>.04*50;
+  let rate:number;a.driveOnGroundLastFrame=a.driveOnGround;
+  if(this.quad){
+   // CAutomobile::ProcessControl's rate over four wheels: a driven wheel off the ground under more than half gas races.
+   const q=this.quadWheels,drive=this.assets.handling.values.driveType;rate=0;a.driveOnGround=0;
+   for(let i=0;i<4;i++){
+    const isFront=i===0||i===2,down=isFront?front:rear,driven=drive==='4'||isFront&&drive==='F'||!isFront&&drive==='R';
+    q.counts[i]=down;q.states[i]=!isFront&&locked?'fixed':'normal';
+    if(down&&driven)a.driveOnGround++;
+    if(!down&&Math.abs(gas)>.5&&(isFront?drive!=='R':drive!=='F'))rate+=10;
+   }
+   rate*=drive==='4'?.25:.5;a.contactWheels=2*(front+rear);
+  }else{
+   a.counts[0]=front;a.counts[1]=rear;
+   a.states[0]='normal';a.states[1]=locked?'fixed':'normal';
+   // CAutomobile::ProcessControl's rate for the one driven wheel: off the ground under more than half gas it races.
+   rate=(!rear&&Math.abs(gas)>.5?10:0)*.5;a.driveOnGround=rear;a.contactWheels=front+rear;
+  }
+  const k=Math.pow(rate>=a.spinForAudio?.95:.7,timeStep);a.spinForAudio=a.spinForAudio*k+(1-k)*rate;a.brake=braking;
   this.freewheeling=!this.motorbike&&front+rear>0&&braking<=.5&&Math.abs(gas)<=.05;
   if(!this.quad)this.gasPedal=Math.max(-1,Math.min(1,gas));
   const velocity=speed/50,h=this.assets.handling;
