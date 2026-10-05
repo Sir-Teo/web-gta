@@ -9843,10 +9843,26 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     0.0117 a frame (0.009 when not the player's), a fifth more after a target faster than 0.8 a frame. The player's at
     a plane leads it by at most 1.5 frames from where it is, keeps 0.95 of its speed a frame and turns by 0.15. It
     faces its course, and is held to 9.9 a frame too. Without its target it flies on unturned.
+- **A vehicle's rockets** (the Hunter's and Hydra's) go along its forward at 0.4 units a frame plus its own speed,
+  and live 3 s like any rocket (they had flown at 55 units a second plus the craft's velocity for 8 s).
+- **The thrown weapons** (AddProjectile's cases at 0x1004916ec, 0x1004918e0, 0x10049192c; RemoveProjectile
+  0x100492358): they ignore the aim and go along the thrower's heading, at 0.15 + 0.22 x the throw's force units a
+  frame (CWeapon's force, which the port already reckons from the held button), rising at 0.4 + 0.4 x the force times
+  that; a satchel at half the speed; a molotov at least 0.2 a frame and rising at 0.4 + 0.2 x the force. They fall at
+  CPhysical's 0.008 a frame squared (20 units a second squared; they had fallen at 9.81 with an authored drag). A
+  grenade's and a molotov's destroy time is 2 s on (they had 3), a satchel's waits on the detonator, tear gas lives
+  20 s. Elasticity: a grenade's and tear gas's 0.5, a satchel's 0.03, a molotov's CProjectile 0.75, and Update drops a
+  grenade's, tear gas's or satchel's to 0.03 once each part of its velocity is under 0.05 a frame. A bounce returns
+  the part of the velocity into the surface at that elasticity and keeps the rest (it had scaled the whole reflection
+  by an authored bounce). Tear gas sets peds choking within 6 units (CWorld::SetPedsChoking, a one-in-ten chance a
+  frame) from 2.5 s after the throw until its 20 s are up, and then is gone without an explosion (it had made 5 s of
+  gas at 3 s).
 - **Not yet:** the flares that draw heat-seekers off (no flares here), the missile warning on the player's vehicle,
-  the smoke trail's particles, launches from a vehicle (which add the vehicle's speed), and the thrown weapons, whose
-  gravity, drag, bounce, speed and fuse stay AUTHORED.
+  the smoke trail's particles, a molotov that only bursts once more than 1.4 units from its thrower, the satchel's
+  sticking to what it lands on (the port's), CPhysical's friction and collision response beyond the bounce, and the
+  choking itself (the gas is the port's radial hazard, 6 units across now).
 - Specs: `rocket-flight` (unit: the rocket's launch, thrust along its launch line, cap and life; the heat-seeker's
   turn for the player and others, unturned without a target, no turning back, the fast target's fifth, the plane
-  rule); `native-heat-seeker` (browser: the locked heat-seeker, now slower off the launcher, homes onto the car ahead
+  rule; the thrown weapons' launch by heading and force, fuses, gravity, bounce and settling); `engine-gunnery`
+  (unit: the native gravity); `native-heat-seeker` (browser: the locked heat-seeker, now slower off the launcher, homes onto the car ahead
   and explodes; the spec ends the intro, whose ClearExcitingStuffFromArea had been taking projectiles in flight).

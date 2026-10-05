@@ -22,7 +22,7 @@ import {bulletLine} from './bulletLine';
 import {EXPLOSION,NativeExplosionSlots,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
 import type {MeleeSwing} from '../simulation/nativeMelee';
 import {launchVelocity,projectileTuning} from '../weapons/gunnery';
-import {stepRocketVelocity,type SeekTarget} from './nativeProjectile';
+import {bounceVelocity,projectileAirResistance,settledElasticity,stepRocketVelocity,type SeekTarget} from './nativeProjectile';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
 import {firstPersonMode,isRocketMode,type FirstPersonMode} from './nativeFirstPerson';
 /** CProjectileInfo launch helpers shared by player and aircraft fire. */
@@ -33,7 +33,7 @@ import {firstPersonMode,isRocketMode,type FirstPersonMode} from './nativeFirstPe
  * keep their own short range, and the AI keeps weapon.dat's. */
 export const PLAYER_AIM_REACH=120;
 export function playerAimReach(kind:string,info:{weaponRange:number}){return kind==='bullet'?Math.max(info.weaponRange,PLAYER_AIM_REACH):info.weaponRange;}
-function projectileVelocity(kind:string,direction:Vec3):Vec3{try{return launchVelocity(kind,direction);}catch{return add(direction,{x:0,y:0,z:0});}}
+function projectileVelocity(kind:string,direction:Vec3,force=0):Vec3{try{return launchVelocity(kind,direction,force);}catch{return add(direction,{x:0,y:0,z:0});}}
 function projectileFuse(kind:string,rocket:boolean){try{return projectileTuning(kind).fuse;}catch{return rocket?8:kind==='satchel'?Infinity:3;}}
 /** Native handheld IDs usable one-handed from a car (authored set; the gang task is not reversed). */
 /** The driver's drive-by weapons: the SMG slot's Uzi, MP5 and Tec-9, the only one RemoveWeaponWhenEnteringVehicle takes up. */
@@ -60,6 +60,8 @@ export interface WeaponEffect {id:number;kind:'tracer'|'impact'|'explosion'|'fla
 export interface Projectile {id:number;weapon:number;position:Vec3;velocity:Vec3;fuse:number;stuck:boolean;target?:number;owner?:number;
  /** A rocket's matrix forward (the way it was launched; a heat-seeker's turns with its course). */
  forward?:Vec3;
+ /** CPhysical::m_fElasticity, which Update lowers once a thrown one settles; and whether tear gas has begun. */
+ elasticity?:number;gassing?:boolean;
  /** The projectile type FireProjectile added, where it differs from the weapon's (an unlocked heat-seeker is a rocket). */
  kind?:string;}
 /** CBulletInfo: a sniper bullet, with the peds it has already hit. */
@@ -470,16 +472,14 @@ export class WeaponSystem {
   if(s.elapsed>=seconds(s.clip)){this.throwState=undefined;this.attackButtonCounter=0;}
  }
  /** CWeapon::Fire for the thrown projectile at the fire frame: the ammunition, the sound, the crime and the projectile. */
- private launchThrown(w:WeaponDefinition,camera:{origin:Vec3;direction:Vec3}){
+ private launchThrown(w:WeaponDefinition,_camera:{origin:Vec3;direction:Vec3}){
   if(this.sim.player.health<=0||!this.sim.playerBody.isEnabled()||!this.inventory.fire())return false;
   this.onSound?.('fire',w.id,this.sim.player.position);
-  const info=this.inventory.info(),range=info?info.weaponRange:w.range,h=this.sim.player.heading,forward={x:Math.sin(h),y:0,z:Math.cos(h)};
+  const h=this.sim.player.heading,forward={x:Math.sin(h),y:0,z:Math.cos(h)};
   let source={...this.sim.player.position,y:this.sim.player.position.y+(this.sim.player.crouched?.9:1.3)};
   // CWeapon::FireProjectile: the origin is pushed forward until it is at least 0.3 in front of the ped.
   const ahead=(source.x-this.sim.player.position.x)*forward.x+(source.z-this.sim.player.position.z)*forward.z;
   if(ahead<.3)source=add(source,forward,.3-ahead);
-  let direction=normalize(camera.direction);
-  const sight=this.ray(camera.origin,direction,range),target=add(camera.origin,direction,sight?.timeOfImpact??range);direction=normalize(add(target,source,-1));
   // CWeapon::Fire's CEventGunShot is silent for tear gas, as for the silenced pistol.
   this.pedestrians()?.gunShot?.(source,w.id===17);
   this.onCrime?.(CRIME.explosion,'player');
@@ -499,7 +499,8 @@ export class WeaponSystem {
    flies=(w.kind==='grenade'||w.kind==='satchel')&&!!this.pedestrians()?.targets(true).some(t=>Math.hypot(t.position.x-behind.x,t.position.z-behind.z)<.65&&Math.abs(t.position.y-behind.y)<1.3);
    source=behind;
   }
-  if(flies)this.projectiles.push({id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,direction),fuse:projectileFuse(w.kind,false),stuck:false});
+  // AddProjectile throws along the thrower's heading, at the throw's force (the aim only turned him).
+  if(flies)this.projectiles.push({id:this.serial++,weapon:w.id,position:{...source},velocity:projectileVelocity(w.kind,forward,this.lastThrowForce),fuse:projectileFuse(w.kind,false),stuck:false});
   // CWeapon::Fire: a thrown satchel gives the detonator a charge, and after the last satchel the hand goes to it.
   if(w.id===39){this.inventory.give(40,1);const left=this.inventory.ammo.get(39)!;if(left.clip+left.reserve<=0)this.inventory.select(40);}
   return true;
@@ -532,7 +533,9 @@ export class WeaponSystem {
   // FireUnguidedMissile: two rockets a press, each from the ordnance position (right, forward, up in the model) moved
   // ahead by the frame's forward travel.
   if(rocket){const [ox,oy,oz]=plane.ordnancePosition(),v=plane.body.linvel(),ahead=Math.max(0,direction.dot(new Vector3(v.x,v.y,v.z)))/50,origin=new Vector3(ox,oz,-oy).applyQuaternion(q).add(position).addScaledVector(direction,ahead);
-   for(let i=0;i<2;i++)this.projectiles.push({id:this.serial++,weapon:35,position:origin.clone(),velocity:direction.clone().multiplyScalar(55).add(v),fuse:8,stuck:false,owner:plane.body.handle});}
+   // AddProjectile for a vehicle's rocket: along the vehicle's forward at 0.4 units a frame plus its own speed.
+   const launch=launchVelocity('rocket',{x:direction.x,y:direction.y,z:direction.z},0,Math.hypot(v.x,v.y,v.z));
+   for(let i=0;i<2;i++)this.projectiles.push({id:this.serial++,weapon:35,position:origin.clone(),velocity:{...launch},fuse:projectileTuning('rocket').fuse,stuck:false,owner:plane.body.handle,forward:{x:direction.x,y:direction.y,z:direction.z}});}
   else{const hit=this.ray(from,direction,gunRange,plane.body),end=from.clone().addScaledVector(direction,hit?.timeOfImpact??gunRange);this.tracer(from,end,'aircraft',.1);this.fx?.gunshot(from,direction,38,true);if(hit){this.hitFx(hit,end,8,38,direction);this.damage(hit.collider.handle,gunDamage,direction);}}
   this.onSound?.('fire',rocket?35:38,from,'aircraft');this.onCrime?.(rocket?CRIME.explosion:CRIME.fireWeapon,'player');
   // FireUnguidedMissile shakes the player's pad 240 ms at 160; FireFixedMachineGuns 240 at the model's GetModelGunInfo
@@ -1125,13 +1128,16 @@ export class WeaponSystem {
    let impact=false;
    if(!p.stuck){
     if(rocket)stepRocketVelocity(p,p.kind??w.kind,dt,p.target!==undefined?this.heatSeekTarget(p.target):undefined,p.owner===undefined);
-    else{p.velocity.y-=tune.gravity*dt;const dragK=1-Math.min(0.5,tune.drag*dt*50);p.velocity={x:p.velocity.x*dragK,y:p.velocity.y*dragK,z:p.velocity.z*dragK};}const length=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)*dt,dir=normalize(p.velocity),hit=this.ray(p.position,dir,length+.06,p.owner===undefined?this.sim.playerBody:this.sim.world.getRigidBody(p.owner)??this.sim.playerBody);
+    else{p.velocity.y-=tune.gravity*dt;const air=projectileAirResistance(dt);p.velocity={x:p.velocity.x*air,y:p.velocity.y*air,z:p.velocity.z*air};
+     p.elasticity=settledElasticity(w.kind,p.velocity,p.elasticity??tune.bounce);}const length=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)*dt,dir=normalize(p.velocity),hit=this.ray(p.position,dir,length+.06,p.owner===undefined?this.sim.playerBody:this.sim.world.getRigidBody(p.owner)??this.sim.playerBody);
     if(hit){p.position=add(p.position,dir,Math.max(0,hit.timeOfImpact-.07));impact=true;
      if(w.kind==='satchel'){p.stuck=true;p.velocity={x:0,y:0,z:0};}
-     else if(!rocket&&w.kind!=='molotov'){const n=hit.normal,dot=p.velocity.x*n.x+p.velocity.y*n.y+p.velocity.z*n.z;p.velocity={x:(p.velocity.x-2*dot*n.x)*tune.bounce,y:(p.velocity.y-2*dot*n.y)*tune.bounce,z:(p.velocity.z-2*dot*n.z)*tune.bounce};if(Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<1)p.stuck=true;}
+     else if(!rocket&&w.kind!=='molotov'){p.velocity=bounceVelocity(p.velocity,hit.normal,p.elasticity??tune.bounce);if(Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<1)p.stuck=true;}
     }else p.position=add(p.position,p.velocity,dt);
    }
-   if(p.fuse<=0||impact&&(rocket||w.kind==='molotov')){const spot={...p.position,y:p.position.y+.12};if(w.kind==='gas')this.hazard('gas',spot,5);else if(w.kind==='molotov')this.explode(spot,EXPLOSION_TYPE.molotov,undefined,true);else this.explode(spot,rocket?EXPLOSION_TYPE.rocket:EXPLOSION_TYPE.grenade,undefined,true);}
+   // Tear gas chokes from 2.5 s on (CWorld::SetPedsChoking within 6) until its 20 s are up, and then is gone.
+   if(w.kind==='gas'&&!p.gassing&&tune.fuse-p.fuse>=2.5){p.gassing=true;this.hazard('gas',{...p.position,y:p.position.y+.12},6,Math.max(0,p.fuse));}
+   if(p.fuse<=0||impact&&(rocket||w.kind==='molotov')){const spot={...p.position,y:p.position.y+.12};if(w.kind==='gas'){/* RemoveProjectile: no explosion */}else if(w.kind==='molotov')this.explode(spot,EXPLOSION_TYPE.molotov,undefined,true);else this.explode(spot,rocket?EXPLOSION_TYPE.rocket:EXPLOSION_TYPE.grenade,undefined,true);}
    else survivors.push(p);
   }
   this.projectiles=survivors;
