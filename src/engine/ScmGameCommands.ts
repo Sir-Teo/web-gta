@@ -1919,6 +1919,9 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_CAR_MODEL:(t,p,i)=>{t.writeInt(p[1],(world(t,i,'vehicleModel')(t.readInt(p[0]))??0) as number);},
  SET_CAR_COLLISION:(t,p,i)=>{world(t,i,'setVehicleCollision')(t.readInt(p[0]),bool(t,p[1]));},
  SET_CAR_ENGINE_ON:(t,p,i)=>{world(t,i,'setVehicleEngineOn')(t.readInt(p[0]),bool(t,p[1]));},
+ // The iOS executable's handler (0x1001fc438; absent from gta-reversed): vehicleFlags.bEngineBroken, and broken, the
+ // engine off.
+ SET_CAR_ENGINE_BROKEN:(t,p,i)=>{world(t,i,'setVehicleEngineBroken')(t.readInt(p[0]),bool(t,p[1]));},
  POP_CAR_DOOR:(t,p,i)=>{world(t,i,'popVehicleDoor')(t.readInt(p[0]),t.readInt(p[1]),bool(t,p[2]));},
  DETACH_CAR:(t,p,i)=>{
   const point=vec(t,p,1);
@@ -2439,6 +2442,12 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_CAR_AVOID_LEVEL_TRANSITIONS:(t,p,i)=>{world(t,i,'setCarAvoidLevelTransitions')(t.readInt(p[0]),bool(t,p[1]));},
  ENABLE_BURGLARY_HOUSES:(t,p,i)=>{world(t,i,'enableBurglaryHouses')(bool(t,p[0]));},
  IS_CAR_LOW_RIDER:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarLowRider')(t.readInt(p[0])),negated(i));},
+ // The iOS executable's handlers (absent from gta-reversed): IS_BIG_VEHICLE (0x1002034d0) vehicleFlags.bIsBig,
+ // IS_CAR_STREET_RACER (0x1002036c4) handlingFlags.bStreetRacer, IS_EMERGENCY_SERVICES_VEHICLE (0x100203de8) a
+ // law-enforcement vehicle, a fire truck or the ambulance.
+ IS_BIG_VEHICLE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isBigVehicle')(t.readInt(p[0])),negated(i));},
+ IS_CAR_STREET_RACER:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarStreetRacer')(t.readInt(p[0])),negated(i));},
+ IS_EMERGENCY_SERVICES_VEHICLE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isEmergencyServicesVehicle')(t.readInt(p[0])),negated(i));},
  GET_VEHICLE_CLASS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getVehicleClass')(t.readInt(p[0])));},
  HAS_TRAIN_DERAILED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasTrainDerailed')(t.readInt(p[0])),negated(i));},
  SET_GANG_WEAPONS:(t,p,i)=>{world(t,i,'setGangWeapons')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readInt(p[3]));},

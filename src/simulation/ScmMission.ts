@@ -656,6 +656,8 @@ export interface ScmMissionWorld {
  setScriptVehicleHydraulics?(car:unknown,fitted:boolean):void;
  /** CVehicle::m_nHandlingFlags as the car's handling line gives them. */
  scriptVehicleHandlingFlags?(car:unknown):number;
+ /** A script car's handling model flags (m_nModelFlags), which set vehicleFlags.bIsBig among others. */
+ scriptVehicleModelFlags?(car:unknown):number;
  /** CVehicle::m_fDirtLevel. */
  setScriptVehicleDirtLevel?(car:unknown,level:number):void;
  /** CPlayerPed's jetpack task: whether the player wears one and flies it. */
@@ -800,7 +802,9 @@ export type ScmTouchEntity={kind:'player'}|{kind:'ped'|'vehicle';entity:unknown}
 /** CCarCtrl::CreateCarForScript's cruise speed. */
 const CREATED_CRUISE_SPEED=13;
 /** handlingFlags.bLowRider. */
-const HANDLING_LOW_RIDER=0x2000000;
+const HANDLING_LOW_RIDER=0x2000000,HANDLING_STREET_RACER=0x4000000;
+/** The handling model flag IS_BIG. */
+const MODEL_FLAG_IS_BIG=0x8;
 /** The tasks that drive or leave a car, which the on-foot peds cannot run. */
 /** An axis's angle above the ground in degrees; with the car upside down (its up axis below the ground) the angle
  * runs on past 90, to 180 flat on the roof. */
@@ -1309,6 +1313,7 @@ export class ScmMission {
    groupExists:group=>this.groups.has(group),
    // CVehicle::m_nVehicleFlags.bEngineOn.
    setVehicleEngineOn:(handle,state)=>{const car=this.liveVehicle(handle) as {engineRunning?:boolean};if('engineRunning' in car)car.engineRunning=state;},
+   setVehicleEngineBroken:(handle,state)=>{const car=this.liveVehicle(handle) as {engineBroken?:boolean;engineRunning?:boolean};if('engineBroken' in car){car.engineBroken=state;if(state)car.engineRunning=false;}},
    pedCarInUse:handle=>handle===PLAYER_PED_HANDLE?this.playerCarHandle()??-1:this.peds.rideOf(handle)?.vehicle??-1,
    isSphereVisible:(point,radius)=>{if(!this.world.isSphereVisible)throw new UnsupportedScmCommand(-1,0,'IS_POINT_ON_SCREEN','no camera');return this.world.isSphereVisible(point,radius);},
    startPedFacialTalk:(handle,duration)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFacialTalk(this.livePed(handle),duration/1000);},
@@ -2298,6 +2303,16 @@ export class ScmMission {
    setVehicleHydraulics:(handle,state)=>{this.host('setScriptVehicleHydraulics','SET_CAR_HYDRAULICS')(this.liveVehicle(handle),state);},
    // IS_CAR_LOW_RIDER: handlingFlags.bLowRider (0x2000000).
    isCarLowRider:handle=>(this.host('scriptVehicleHandlingFlags','IS_CAR_LOW_RIDER')(this.liveVehicle(handle))&HANDLING_LOW_RIDER)!==0,
+   // IS_CAR_STREET_RACER: handlingFlags.bStreetRacer (0x4000000).
+   isCarStreetRacer:handle=>(this.host('scriptVehicleHandlingFlags','IS_CAR_STREET_RACER')(this.liveVehicle(handle))&HANDLING_STREET_RACER)!==0,
+   // IS_BIG_VEHICLE: vehicleFlags.bIsBig, which the vehicle takes from its handling's model flags (IS_BIG, 0x8).
+   isBigVehicle:handle=>(this.host('scriptVehicleModelFlags','IS_BIG_VEHICLE')(this.liveVehicle(handle))&MODEL_FLAG_IS_BIG)!==0,
+   // IS_EMERGENCY_SERVICES_VEHICLE: CVehicle::IsLawEnforcementVehicle, or the Fire Truck (407), its ladder truck (544)
+   // or the Ambulance (416).
+   isEmergencyServicesVehicle:handle=>{
+    const model=handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle);
+    return typeof model==='number'&&(LAW_ENFORCEMENT_MODELS.has(model)||model===407||model===544||model===416);
+   },
    // SET_VEHICLE_DIRT_LEVEL: m_fDirtLevel, which the dirt texture blend reads (0 to 15).
    setVehicleDirtLevel:(handle,level)=>{this.host('setScriptVehicleDirtLevel','SET_VEHICLE_DIRT_LEVEL')(this.liveVehicle(handle),Math.max(0,Math.min(15,level)));},
    // IS_CHAR_IN_TAXI: the model of the car the ped is in (the player's own included), nothing on foot.

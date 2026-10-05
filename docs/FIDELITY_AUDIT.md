@@ -8949,6 +8949,16 @@ that did anything.
     `progression` (unit: the kept cars round the save); `safehouse-garage` (browser: the Johnson house garage, cjsafe,
     opens for CJ walking up and shuts when he walks off; a Sadler parked in it is kept and gone when the door comes
     down, written to the save, and stands where it was in its paint when he comes back).
+- **The vehicle-class questions the mod shops and the valet ask** (absent from gta-reversed; the iOS handlers in the
+  2400 switch): IS_BIG_VEHICLE (0x1002034d0) reads vehicleFlags.bIsBig, here the handling's IS_BIG model flag (0x8) it
+  is set from; IS_CAR_STREET_RACER (0x1002036c4) handlingFlags.bStreetRacer (0x4000000); IS_EMERGENCY_SERVICES_VEHICLE
+  (0x100203de8) a law-enforcement vehicle, the Fire Truck (407), its ladder truck (544) or the Ambulance (416). Each had
+  no handler, so carmod1.scm and valet.scm gave up where they asked.
+- **A script can break a car's engine** (SET_CAR_ENGINE_BROKEN, absent from gta-reversed; the iOS handler at
+  0x1001fc438: vehicleFlags.bEngineBroken, and broken, bEngineOn cleared). valet.scm uses it, and gave up there
+  before. A broken engine stays off (SetEngineState, getting in included) and CAutomobile::ProcessControlInputs gives
+  the car no gas, a 0.05 brake and no handbrake, so it rolls and stops. Specs: `engine-broken` (browser: CJ in a car
+  with its engine broken goes nowhere on the gas, and once mended drives).
 - **The police pounds' script runs** (impound.scm: the pounds' barrier gates, their guards and the police cars parked
   in them). MAIN's IMPND_L starts it within 120 units of a police station once $7464 is set; it had been held back from
   streaming in, as it stopped at IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE and MAIN would have started it again every pass.

@@ -659,6 +659,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  vehicleModel?(handle:number):number|string|undefined;
  setVehicleCollision?(handle:number,state:boolean):void;
  setVehicleEngineOn?(handle:number,state:boolean):void;
+ /** SET_CAR_ENGINE_BROKEN. */
+ setVehicleEngineBroken?(handle:number,state:boolean):void;
  popVehicleDoor?(handle:number,door:number,state:boolean):void;
  detachVehicle?(handle:number,x:number,y:number,z:number,applyTurnForce:boolean):void;
  controlVehicleDoor?(handle:number,door:number,state:number,angle:number):void;
@@ -877,6 +879,9 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setCarAvoidLevelTransitions?(handle:number,state:boolean):void;
  enableBurglaryHouses?(state:boolean):void;
  isCarLowRider?(handle:number):boolean;
+ isBigVehicle?(handle:number):boolean;
+ isCarStreetRacer?(handle:number):boolean;
+ isEmergencyServicesVehicle?(handle:number):boolean;
  getVehicleClass?(handle:number):number;
  hasTrainDerailed?(handle:number):boolean;
  setGangWeapons?(gangId:number,weaponType1:number,weaponType2:number,weaponType3:number):void;

@@ -140,6 +140,8 @@ export class WorldCar {
  pendingExplosion=false;
  /** The explosion is the player's: m_pWhoDetonatedMe of a bomb he set off. */
  explosionByPlayer=false;
+ /** vehicleFlags.bEngineBroken (SET_CAR_ENGINE_BROKEN): the engine stays off and the car will not drive. */
+ engineBroken=false;
  /** vehicleFlags.bIsCarParkVehicle: made by a car park's script (CREATE_RANDOM_CAR_FOR_CAR_PARK). */
  carParkVehicle=false;
  /** vehicleFlags.bImpounded: put back by a police impound. */
@@ -654,7 +656,7 @@ export class WorldCar {
  /** CTaskSimpleCarSetPedInAsDriver: the player becomes the driver and loses on-foot collision. */
  setPedInAsDriver(){
   const freebie=setDriverFreebie(this);if(freebie)WorldCar.onFreebie?.(this,freebie);
-  this.engineRunning=!this.wrecked;this.autopilot=undefined;this.driverless=false;this.holdForEntry=false;this.sim.setCrouched(false);this.occupied=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};}
+  this.engineRunning=!this.wrecked&&!this.engineBroken;this.autopilot=undefined;this.driverless=false;this.holdForEntry=false;this.sim.setCrouched(false);this.occupied=true;this.driverInput=true;this.exitHandbrake=false;this.sim.cameraExcludedBody=this.car.body;this.sim.playerCollider.setEnabled(false);this.sim.player.moveBlend=0;this.sim.player.speed=0;this.sim.player.jumpMomentum={x:0,z:0};}
  /** The player's passenger seat (CarEntry's numbering: 1 front right, 2 rear left, 3 rear right), 0 while he is not
   * a passenger here. The car goes on under whoever drives it; the player rides along. */
  playerPassengerSeat=0;
@@ -716,8 +718,11 @@ export class WorldCar {
   if(abandoned){p.accelerate=0;p.brake=0;p.handbrake=false;}// CPad::GetSteeringLeftRight answers 0 while player controls are disabled.
   this.input.steering.steeringAxis=driving?(this.controlsDisabled?0:padSteeringAxis(axes.x)):padSteeringAxis(ai?.steering??0);
   if(this.wrecked){p.accelerate=0;p.brake=0;p.handbrake=true;}
-  // BlowUpCar turns the engine off, and CalculateDriveAcceleration only runs with it on.
-  p.engineOn=!this.wrecked;
+  // CAutomobile::ProcessControlInputs: a broken engine gives no gas, a 0.05 brake and no handbrake.
+  if(this.engineBroken){p.accelerate=0;p.brake=Math.round(.05*255);p.handbrake=false;}
+  // BlowUpCar turns the engine off, and CalculateDriveAcceleration only runs with it on; SetEngineState keeps a broken
+  // one off.
+  p.engineOn=!this.wrecked&&!this.engineBroken;
   // CAutomobile::ProcessCarOnFireAndExplode for ordinary cars.
   if(this.onFire){this.burnTimer+=seconds;if(this.burnTimer>CAR_BURN_SECONDS)this.blowUp();}else this.burnTimer=0;
   this.processBomb(seconds);
