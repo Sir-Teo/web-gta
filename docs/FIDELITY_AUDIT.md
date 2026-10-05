@@ -9703,6 +9703,9 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     each frame, so its sounds stop; the second clears it. DISABLE_HELI_AUDIO sets one helicopter's
     m_IsHelicopterDisabled, which the same check reads (DES3, its only user, turns its helicopter back on); it had no
     adapter and was skipped.
+  - 1189 (player_parachute.scm, as the player hits the ground in a skydive, FALL_SKYDIVE_DIE): AE_PED_CRUNCH from the
+    ped's own CAEPedAudioEntity (iOS ped+0x198; AddAudioEvent at no extra volume and speed 1), only when the report is
+    at a ped: the player's entity for the player, a ped's own for another. At a point or another entity, nothing.
 - **The collision entity's UpdateParameters** (iOS 0x100145b88; gta-reversed has none): a splash's tail (event 2, or
   3 for a vehicle's) waits at speed 0 and starts at 1.26 (0.94) once its time has come. A vehicle's tail had started
   at once at 0.94: gta-reversed's ReportWaterSplash(CPhysical*) gives it the splash's speed, which leaves the 248 ms
@@ -9711,7 +9714,12 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **Paused channels resume.** CAEAudioChannel::SetFrequencyScalingFactor pauses a channel at 0 and resumes it at any
   other factor. The port's hardware layer kept a sound started at speed 0 paused for good, so the splash tails and
   the stealth kill's knife sounds (started at 0 and given 0.84 and 1 later) were never heard.
-- **Not yet:** 1189 (player_parachute.scm's), and AE_CRANE_WINCH_MOVE (104), which no script reports. (The
+- **Nothing to play:** AE_SCRIPT_FREEFALL_START and _STOP (1037, 1038, player_parachute.scm's at the -1000
+  sentinel) go straight to the iOS handler's exit, and the PC's CAEPedAudioEntity::PlayWindRush is empty, so a
+  freefall has no sound of its own; a report outside the jump table's 104 to 1190 (a -1, read as the uint16 65535, in
+  six missions and gymtread.scm) does nothing either. Neither counts as unported.
+- **Not yet:** AE_CRANE_WINCH_MOVE (104), which no script reports. Every event the scripts report by number (163 of
+  them across main.scm and script.img; 51 reports name theirs through a variable) now has its handler. (The
   mission-bank sounds: see "Mission banks"; the track events: "A mission's own ambience track".) The gate's two (1100, 1101) take the entity's flag at
   +0x92 as clear (sound 70); what sets it is not known. Such reports are counted (`script.unported` in the native
   audio snapshot) and play nothing.
@@ -9719,7 +9727,7 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   the once-only horn, the unported mission-bank event; the new frontend cases; the camera's and the M4's shots at an
   entity and at a point, the explosion, the splash at a point and its tail heard, the helicopters silenced and
   sounding again and one silenced alone; a vehicle splash's tail held 248 ms; the stealth kill's knife resumed at
-  0.84); `interior-shops` (browser: buying the
+  0.84; the parachute's crunch at the player, at another ped, and nothing elsewhere); `interior-shops` (browser: buying the
   pistol reports 1052, which plays the purchase pair).
 
 ## Mission banks

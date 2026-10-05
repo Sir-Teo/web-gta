@@ -3013,6 +3013,8 @@ export class ScmMission {
  }
  /** Where a REPORT_MISSION_AUDIO_EVENT_AT_CHAR, _AT_CAR or _AT_OBJECT is heard: the entity's position (native), while
   * it exists. */
+ /** For a reported ped, whether it is the player: its sounds are the player's ped audio entity's. */
+ audioPed(kind:string,handle:number):'player'|'other'|undefined{return kind!=='ped'?undefined:handle===PLAYER_PED_HANDLE?'player':'other';}
  audioEntityPosition(kind:string,handle:number):{x:number;y:number;z:number}|undefined{
   try{
    if(kind==='ped')return handle===PLAYER_PED_HANDLE?{...this.world.playerPed().position}:this.peds.exists(handle)?this.ridingIn(handle)??this.peds.positionOf(handle):undefined;

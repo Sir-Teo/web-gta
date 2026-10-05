@@ -14,8 +14,7 @@ import {AE_WEAPON,NativeExplosionAudio} from './NativeWeaponAudio';
  * (PlayResidentSoundEvent, 0x1001566a8), and PlayMissionBankSound's (0x100156bcc): a sound of the SCRIPT bank a script
  * has loaded whole into its mission audio slot 3 or 4 (link 2 or 3, bank slot 28 or 29), and the mission's own
  * ambience track's starts and stops, the cranes' and the garage doors', and the few that hand on to another entity: a
- * gun's or the camera's shot, an explosion, a splash, and the helicopters' silencing. Not yet: the parachute's (1189);
- * that is recorded and plays nothing. */
+ * gun's or the camera's shot, an explosion, a splash, a ped's crunch, and the helicopters' silencing. */
 
 /** A PlayResidentSoundEvent: bank slot, bank, sound (or an inclusive random range of sounds), the start percentage,
  * the volume offset and the speed. Its last argument, the roll-off, is 1 for every one here. */
@@ -29,7 +28,7 @@ type MissionBank=readonly [sound:number|readonly [number,number],link:number,onc
 /** `heard`: the handler notes the time (the entity's +0x94), which UpdateParameters times its sound out from; `gym`: it
  * sets the gym machines' mode (+0xa0), 1 running, 2 stopping. */
 type MissionAudioCase={frontend:number;speed?:number}|{resident:readonly Resident[];once?:boolean;heard?:boolean}|{bank:readonly MissionBank[];stop?:number;stopAtEntity?:boolean;once?:boolean;heard?:boolean;gym?:1|2}|{gym:2}|{stop:number;stopAtEntity?:boolean}|{custom:'keypad'|'stereo'}|{ambience:number}|{ambienceStop:true}|{crane:'enter'|'move'|'stop'|'exit'}|{door:number;speed:number}
- |{weapon:number;atPoint?:Resident}|{explosion:true}|{splash:number}|{helicoptersSilent:boolean};
+ |{weapon:number;atPoint?:Resident}|{explosion:true}|{splash:number}|{helicoptersSilent:boolean}|{ped:number}|{nothing:true};
 const COLLISIONS=[2,39] as const,WEAPONS=[5,143] as const;
 const r=(bank:readonly [number,number],sound:Resident[2],percent=0,volume=0,speed=1):Resident=>[bank[0],bank[1],sound,percent,volume,speed];
 const b=(sound:MissionBank[0],link:number,once:boolean,volume:number,rollOff:number,speed:number):{bank:readonly MissionBank[]}=>({bank:[[sound,link,once,volume,rollOff,speed]]});
@@ -122,12 +121,19 @@ export const MISSION_AUDIO_EVENTS:Readonly<Record<number,MissionAudioCase>>={
  // CAEVehicleAudioEntity::EnableHelicoptors and DisableHelicoptors (iOS 0x10015fda0, 0x10015fdb0; the boat school's):
  // the first, for all its name, sets s_HelicoptorsDisabled, which silences every helicopter, and the second clears it.
  1000:{helicoptersSilent:true},1001:{helicoptersSilent:false},
+ // AE_PED_CRUNCH from the ped's own CAEPedAudioEntity (iOS ped+0x198), when the report is at a ped (player_parachute.scm's,
+ // as the player hits the ground in a skydive); elsewhere nothing.
+ 1189:{ped:119},
+ // AE_SCRIPT_FREEFALL_START and _STOP (player_parachute.scm's): the iOS jump table sends both to the exit, and the PC's
+ // CAEPedAudioEntity::PlayWindRush is empty, so a freefall makes no sound of its own.
+ 1037:{nothing:true},1038:{nothing:true},
 };
 /** CAEScriptAudioEntity's mission bank slots begin at 26 (SND_BANK_SLOT_MISSION_*): a script slot's bank sits at 26
  * plus its index. */
 export const MISSION_BANK_SLOT_FIRST=26;
-/** Where a report is heard: a point, or the entity it is at (whose position the sound follows). */
-export type MissionAudioAt={position:NativeVec}|{physical:NativePhysicalEntity};
+/** Where a report is heard: a point, or the entity it is at (whose position the sound follows) and, for a ped, whether
+ * it is the player. */
+export type MissionAudioAt={position:NativeVec}|{physical:NativePhysicalEntity;ped?:'player'|'other'};
 export class NativeScriptAudio implements NativeAudioEntity {
  /** Reports handled and reports this cannot play yet, by event, for diagnostics. */
  readonly handled=new Map<number,number>();readonly unported=new Map<number,number>();
@@ -140,6 +146,8 @@ export class NativeScriptAudio implements NativeAudioEntity {
  weapon?:(event:number,weapon:number,physical:NativePhysicalEntity)=>void;
  splash?:(position:NativeVec,volume:number)=>void;
  helicoptersSilent?:(silent:boolean)=>void;
+ /** CAEPedAudioEntity::AddAudioEvent on the ped's own entity (the player's or that ped's): the host's. */
+ pedEvent?:(event:number,physical:NativePhysicalEntity,player:boolean)=>void;
  /** The time a held sound was last reported (+0x94), whether the roulette's bounce has followed its spin (+0x90), and
   * the gym machines' mode (+0xa0: 1 running, 2 stopping; 2 to begin with). */
  private heardAt=0;private bounced=false;private gymMode=2;
@@ -181,9 +189,12 @@ export class NativeScriptAudio implements NativeAudioEntity {
  snapshot(){return {handled:Object.fromEntries(this.handled),unported:Object.fromEntries(this.unported)};}
  /** ProcessMissionAudioEvent. */
  processMissionAudioEvent(event:number,at:MissionAudioAt){
+  // Outside the jump table's range (104 to 1190; a report of -1 is 65535 as the uint16 it is read as), nothing.
+  if(event<104||event>1190)return;
   const c=MISSION_AUDIO_EVENTS[event];
   if(!c||'splash' in c&&'physical' in at){this.unported.set(event,(this.unported.get(event)??0)+1);return;}
   this.handled.set(event,(this.handled.get(event)??0)+1);
+  if('nothing' in c)return;
   if('frontend' in c){this.frontend(c.frontend,0,c.speed??1);return;}
   if('crane' in c){this.craneEvent(c.crane,event,at);return;}
   if('gym' in c&&!('bank' in c)){this.gymMode=c.gym;return;}
@@ -199,6 +210,7 @@ export class NativeScriptAudio implements NativeAudioEntity {
   if('explosion' in c){const position='physical' in at?at.physical.position():at.position;if(position)this.explosion.addAudioEvent({...position},0);return;}
   if('splash' in c){if('position' in at)this.splash?.(at.position,c.splash);return;}
   if('helicoptersSilent' in c){this.helicoptersSilent?.(c.helicoptersSilent);return;}
+  if('ped' in c){if('physical' in at&&at.ped)this.pedEvent?.(c.ped,at.physical,at.ped==='player');return;}
   if('custom' in c){
    if(c.custom==='stereo'){for(const [sound,x] of [[0,-1],[1,1]] as const)this.playMissionBankSound(event,{position:{x,y:0,z:0}},sound,3,false,0,2,1);return;}
    // 1028 and 1107: the keypad's sound 0 (or Black Project's 3) when that bank is in slot 28, else Uncle Sam's 3 (4).

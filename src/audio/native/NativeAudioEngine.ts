@@ -100,6 +100,10 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   this.scriptAudio.weapon=(event,weapon,physical)=>this.globalWeapon.addAudioEvent(event,weapon,physical);
   this.scriptAudio.splash=(position,volume)=>this.collisions.reportWaterSplashAt(position,volume);
   this.scriptAudio.helicoptersSilent=silent=>{this.helicoptersDisabled=silent;};
+  this.scriptAudio.pedEvent=(event,physical,player)=>{
+   const position=physical.position();if(event!==AE_PED.crunch||!position)return;
+   if(player)this.playerPed?.crunch(position);else this.pedCrunch(physical,position);
+  };
   this.policeScanner=new NativePoliceScanner(this.manager,bank,this.frontend,e=>this.defaultVolume(e),()=>this.playerInVehicle,random);
   this.waterCannon=new NativeWaterCannonAudio(this.manager,bank);
   this.radioTracks=new NativeRadioTrackManager(random);

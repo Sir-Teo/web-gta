@@ -4170,7 +4170,7 @@ async function boot() {
           if(missionAudioEntities.size>64)for(const [k,p] of missionAudioEntities)if(!p.position())missionAudioEntities.delete(k);
           physical={position:()=>owner.audioEntityPosition(at.kind,at.handle)};missionAudioEntities.set(key,physical);
         }
-        sound.missionAudioEvent(event,{physical});
+        const ped=owner.audioPed(at.kind,at.handle);sound.missionAudioEvent(event,ped?{physical,ped}:{physical});
       };
       {const menus=game.menus,draws:import('./ui/nativeHudMenus').MenuDraw[]=[];
        if(menus.numInUse&&!game.messages.big[0][0]){

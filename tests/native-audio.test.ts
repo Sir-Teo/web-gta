@@ -277,9 +277,9 @@ test("a script's reported sounds: frontend events handed on, resident sounds whe
  const tracks:string[]=[];e.scriptAudio.ambience={playSpecialMissionAmbienceTrack:t=>tracks.push(`play ${t}`),stopSpecialMissionAmbienceTrack:()=>tracks.push('stop')};
  e.scriptAudio.processMissionAudioEvent(1062,{position:{x:0,y:0,z:0}});e.scriptAudio.processMissionAudioEvent(1063,{position:{x:0,y:0,z:0}});
  expect(tracks).toEqual(['play 153','stop']);
- // 1189 is not ported yet: noted, nothing played.
- e.scriptAudio.processMissionAudioEvent(1189,{position:{x:0,y:0,z:0}});
- expect(e.scriptAudio.unported.get(1189)).toBe(1);
+ // AE_CRANE_WINCH_MOVE (104), which no script reports, is not ported: noted, nothing played.
+ e.scriptAudio.processMissionAudioEvent(104,{position:{x:0,y:0,z:0}});
+ expect(e.scriptAudio.unported.get(104)).toBe(1);
 });
 test("a script's reports handed on: a shot, an explosion, a splash and the helicopters' silencing",async()=>{
  const e=engine(),key={};await flush();await flush();
@@ -323,6 +323,28 @@ test("a script's reports handed on: a shot, an explosion, a splash and the helic
  e.scriptAudio.processMissionAudioEvent(1001,{position:{x:0,y:0,z:0}});
  await frames(e,key,487,()=>heli,6);expect(sounding()).toBe(true);
  await frames(e,key,487,()=>({...heli,helicopterDisabled:true}),2);expect(sounding()).toBe(false);
+});
+test("the parachute's 1189 is a crunch from the ped's own audio entity, the player's or another's",async()=>{
+ const e=engine();await flush();await flush();
+ const player={x:0,y:4,z:0};e.setPlayer(()=>player);
+ e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const crunches=()=>e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.collisions&&s.sound===29);
+ // At a point, or at a car, nothing.
+ e.scriptAudio.processMissionAudioEvent(1189,{position:{x:1,y:2,z:3}});
+ e.scriptAudio.processMissionAudioEvent(1189,{physical:{position:()=>({x:9,y:9,z:0})}});
+ expect(crunches()).toHaveLength(0);
+ // At the player: the player's ped entity's crunch (COLLISIONS 29 and a splat); again while it plays, nothing more.
+ const at={position:()=>({...player})};
+ e.scriptAudio.processMissionAudioEvent(1189,{physical:at,ped:'player'});
+ expect(crunches().map(s=>[s.currPos,s.event])).toEqual([[player,119]]);
+ e.scriptAudio.processMissionAudioEvent(1189,{physical:at,ped:'player'});expect(crunches()).toHaveLength(1);
+ // Another ped has its own entity.
+ e.scriptAudio.processMissionAudioEvent(1189,{physical:{position:()=>({x:6,y:7,z:0})},ped:'other'});
+ expect(crunches()).toHaveLength(2);expect(new Set(crunches().map(s=>s.entity)).size).toBe(2);
+ // The freefall's start and stop, and a report outside the table (-1, read as 65535), play nothing and are no gap.
+ const before=e.manager.sounds.filter(s=>s.inUse).length;
+ for(const event of [1037,1038,65535])e.scriptAudio.processMissionAudioEvent(event,{position:{x:-1000,y:-1000,z:-1000}});
+ expect(e.manager.sounds.filter(s=>s.inUse)).toHaveLength(before);expect(e.scriptAudio.unported.size).toBe(0);
 });
 test("the stealth kill's knife, started at speed 0, is heard once UpdateParameters gives it a speed",async()=>{
  const e=engine();await flush();await flush();
