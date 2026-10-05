@@ -47,6 +47,9 @@ test('the Idlewood Pay \'n\' Spray resprays a wanted car: door down, stars off, 
  // The door comes down on him.
  await expect.poll(async()=>(await spray(page)).doorState,{timeout:30000,intervals:[200]}).toBe(0);
  const shut=(await spray(page)).doors[0];expect(Math.abs(shut.up.z-1)).toBeLessThan(.01);
+ // SlideDoorClosed told the garage's door audio it was closing, every step, and then closed (at the door).
+ const told=await page.evaluate(()=>(window as any).__game.state().audio.native?.garageDoors?.sprLAe);
+ expect(told?.[161]).toBeGreaterThan(10);expect(told?.[162]).toBe(1);
  await page.screenshot({path:'artifacts/pay-n-spray-shut.png'});
  // Two seconds later it opens on the resprayed car.
  await expect.poll(async()=>(await spray(page)).usedRespray,{timeout:30000,intervals:[200]}).toBe(true);

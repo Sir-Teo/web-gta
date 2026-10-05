@@ -279,6 +279,8 @@ export interface ScmMissionWorld {
  takeWorldObject?(key:string,taken:boolean):boolean;
  /** The models whose IDE flags mark a garage door (0x800, CBaseModelInfo::IsGarageDoor), lower case. */
  garageDoorModels?():ReadonlySet<string>|undefined;
+ /** CGarage's m_GarageAudio: a garage door's opening, opened, closing or closed, at the door (native). */
+ garageDoorSound?(garage:string,event:number,position:{x:number;y:number;z:number}):void;
  /** m_bIsStaticWaitingForCollision on a script ped: set, and read. */
  scriptPedWaitForCollision?(ped:unknown):void;
  scriptPedWaitingForCollision?(ped:unknown):boolean;
@@ -2384,6 +2386,12 @@ export class ScmMission {
   // CAECutsceneTrackManager's channel: the beat tracks and the mission-passed tune are heard through the host.
   runtime.game.cutsceneTrack.stream=this.world.beatTracks;runtime.game.cutsceneTrack.audio=this.world.trackAudio;
   // CVehicleRecording's host side: files streamed from carrec.img, and the cars playbacks move.
+  // CGarage's slides report to the garage's own door audio at its first door (FindDoorsWithGarage); a garage with no
+  // door object found has none to sound.
+  runtime.game.garages.onDoorSound=(garage,event)=>{
+   if(!this.world.garageDoorSound)return;
+   for(const door of this.garageDoors.values())if(door.garage===garage&&runtime.game.objects.exists(door.handle)){this.world.garageDoorSound(garage.name,event,{...runtime.game.objects.at(door.handle).position});return;}
+  };
   // CPathFind's switches reach the host's loaded path nodes as they are made.
   runtime.game.nodeSwitches.onSwitch=(area,isOff,isCars,backToOriginal)=>{this.world.switchPathNodes?.(area,isOff,isCars,backToOriginal);};
   const recordings=runtime.game.vehicleRecordings;

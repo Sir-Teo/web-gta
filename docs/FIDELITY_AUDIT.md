@@ -9672,7 +9672,14 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   into its slot (31) at start; opening plays the start's clunk (sound 2 at 0.79, unless told within 300 ms) and the loop
   (0), kept going while it is told again; opened cuts it for the stop's clunk; closing and closed likewise (the clunks
   the other way round); ten seconds untold, the loop plays the stop itself (UpdateParameters); an entry/exit door
-  moving at most every 4 s. The port's own garages (CGarage::Update is unreversed) do not report to it yet.
+  moving at most every 4 s.
+- **The garages' own doors** sound too: CGarage::SlideDoorOpen and SlideDoorClosed (unreversed in gta-reversed) are
+  the iOS executable's (arm64 0x1001b5918 and the next): the door travels 0.011 of the way a step up and 0.013 down
+  (a tenth of that for the AT-400 and abandoned airport hangars, types 44 and 45; the port's had been re3's 0.035/3 and
+  0.04/3), and each step tells the garage's own CAEDoorAudioEntity (m_GarageAudio) it is opening (closing), and
+  opened (closed) once there, at the garage's first door object (FindDoorsWithGarage; a garage with none found has
+  no sound). Specs: `scm-garages` (unit: 91 steps up and 77 down, the reports, the hangar); `pay-n-spray` (browser:
+  the Idlewood door's closing reaches its door audio every step and closed once).
 - **Not yet:** 1000, 1001, 1132, 1144, 1157, 1159, 1163 and 1189 (a ped's or the camera's, a few one-offs). (The
   mission-bank sounds: see "Mission banks"; the track events: "A mission's own ambience track".) The gate's two (1100, 1101) take the entity's flag at
   +0x92 as clear (sound 70); what sets it is not known. Such reports are counted (`script.unported` in the native

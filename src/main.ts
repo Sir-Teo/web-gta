@@ -5676,6 +5676,7 @@ async function boot() {
                   holdAmbience:()=>{ambienceHeldUntil=performance.now()+30000;}},
                  scriptSpeech:{load:sample=>sound.loadSpeech(sample),play:(slot,sample)=>{sound.playSpeech(slot,sample);},stop:slot=>{sound.stopSpeech(slot);},lengthMs:sample=>sound.speechLengthMs(sample)},
                  loadMissionBank:(index,bank)=>sound.loadMissionBank(index,bank),clearMissionBank:index=>sound.clearMissionBank(index),
+                 garageDoorSound:(garage,event,position)=>sound.garageDoorEvent(garage,event,position),
                  setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},
                  // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.
                  driveScriptVehicleTo:(car,goal,o)=>{if(isScriptDrivable(car))scriptCars.gotoCoords(car,{x:goal.x,y:goal.z>-100?goal.z:(car as ScriptCar).car.body.translation().y,z:-goal.y},o);},

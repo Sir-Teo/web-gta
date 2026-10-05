@@ -11,6 +11,8 @@ const BANK_DOORS=51,SLOT_DOORS=31;
 export class NativeDoorAudio implements NativeAudioEntity {
  /** m_nTime and m_nMovingDoorTime. */
  private time=0;private movingDoorTime=0;
+ /** The events told, by event, for diagnostics. */
+ readonly told=new Map<number,number>();
  constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private defaultVolume:(event:number)=>number){}
  private get now(){return this.manager.clock.timeMs;}
  /** StaticInitialise (0x5B9A80). */
@@ -24,6 +26,7 @@ export class NativeDoorAudio implements NativeAudioEntity {
  }
  /** AddAudioEvent(event, position, volume, speed) (0x4DC860). */
  addAudioEvent(event:number,position:NativeVec,volume=0,speed=1){
+  this.told.set(event,(this.told.get(event)??0)+1);
   const playing=(e:number)=>!!this.manager.areSoundsOfThisEventPlayingForThisEntity(e,this);
   switch(event){
    case AE_DOOR.garageOpening:case AE_DOOR.garageClosing:

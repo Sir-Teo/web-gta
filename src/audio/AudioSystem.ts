@@ -218,6 +218,8 @@ export class AudioSystem {
   /** CAudioEngine::ReportMissionAudioEvent: a script's REPORT_MISSION_AUDIO_EVENT_AT_*. */
   /** Handled whatever the volume: a track's start or stop missed while muted would be missed for good. */
   missionAudioEvent(event:number,at:import('./native/NativeScriptAudio').MissionAudioAt){this.native?.scriptAudio.processMissionAudioEvent(event,at);}
+  /** A garage's door moving (CGarage::SlideDoorOpen and SlideDoorClosed's m_GarageAudio.AddAudioEvent). */
+  garageDoorEvent(garage:string,event:number,position:{x:number;y:number;z:number}){this.native?.garageDoor(garage).addAudioEvent(event,position,0,1);}
   /** A whole SCRIPT bank for a mission audio slot (false when there is no native audio to hold it), and its release. */
   loadMissionBank(index:number,bank:number){return this.native?.scriptAudio.loadMissionBank(index,bank)??Promise.resolve(false);}
   clearMissionBank(index:number){this.native?.scriptAudio.clearMissionBank(index);}

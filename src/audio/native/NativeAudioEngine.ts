@@ -58,6 +58,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  readonly collisions:NativeCollisionAudio;surfaceAudio?:ReadonlyMap<number,SurfaceAudioFlags>;
  /** CAudioEngine::m_FrontendAE (pickup sounds). */
  readonly frontend:NativeFrontendAudio;
+ /** Each garage's CAEDoorAudioEntity (CGarage::m_GarageAudio), by garage name, made as a garage's door first moves. */
+ private readonly garageDoors=new Map<string,NativeDoorAudio>();
+ garageDoor(garage:string){let door=this.garageDoors.get(garage);if(!door){door=new NativeDoorAudio(this.manager,this.bank,e=>this.defaultVolume(e));this.garageDoors.set(garage,door);}return door;}
  /** CAEScriptAudioEntity's ProcessMissionAudioEvent, for the scripts' REPORT_MISSION_AUDIO_EVENT_AT_*. */
  readonly scriptAudio:NativeScriptAudio;
  /** CWanted::m_PoliceScannerAudioEntity of the player, which plays the report of a crime that raised his level. */
@@ -438,5 +441,5 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  }
   /** Stop everything (CAESoundManager::Reset). */
   reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.policeScanner.reset();this.radioTracks.reset();this.manager.reset();}
-  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,scanner:this.policeScanner.snapshot(),script:this.scriptAudio.snapshot(),radio:{...this.radioTracks.snapshot(),stream:this.radioStream?.snapshot?.()??null},banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
+  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,scanner:this.policeScanner.snapshot(),script:this.scriptAudio.snapshot(),garageDoors:Object.fromEntries([...this.garageDoors].map(([name,door])=>[name,Object.fromEntries(door.told)])),radio:{...this.radioTracks.snapshot(),stream:this.radioStream?.snapshot?.()??null},banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
 }

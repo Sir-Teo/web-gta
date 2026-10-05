@@ -27,9 +27,13 @@ export interface ScmGarage {name:string;type:number;doorState:number;inactive:bo
  box?:ScmGarageBox}
 /** What a host loads a garage from: the grge row, or a bare name and type for a world without geometry. */
 export interface ScmGarageRow {name:string;type:number;corner?:readonly [number,number,number];front?:readonly [number,number];far?:readonly [number,number,number];flags?:number}
-/** The door's travel a 50 Hz step. CGarage::Update is unreversed; these are re3's DEFAULT_DOOR_OPEN_SPEED and
- * DEFAULT_DOOR_CLOSE_SPEED (0.035 and 0.04 units a step) over a three-unit door, as a fraction of its height. */
-export const GARAGE_DOOR_OPEN_SPEED=.035/3,GARAGE_DOOR_CLOSE_SPEED=.04/3;
+/** The door's travel a 50 Hz step: CGarage::SlideDoorOpen and SlideDoorClosed, unreversed in gta-reversed, from the
+ * iOS executable (arm64 0x1001b5918 and the next): 0.011 and 0.013 of the way a step, a tenth of that for the two
+ * hangars (HANGAR_AT400 and HANGAR_ABANDONED_AIRPORT, 44 and 45). */
+export const GARAGE_DOOR_OPEN_SPEED=.011,GARAGE_DOOR_CLOSE_SPEED=.013;
+const SLOW_DOOR_TYPES=new Set([44,45]);
+/** CAEDoorAudioEntity's garage events the slides report to the garage's own door audio (m_GarageAudio). */
+export const AE_GARAGE_DOOR_OPENING=159,AE_GARAGE_DOOR_OPENED=160,AE_GARAGE_DOOR_CLOSING=161,AE_GARAGE_DOOR_CLOSED=162;
 /** The respray's price (GA_2, GA_3 and GA_XX all name $100) and re3's TIME_TO_RESPRAY, how long the door stays shut. */
 export const RESPRAY_PRICE=100,TIME_TO_RESPRAY=2000;
 /** eStats' STAT_VEHICLE_RESPRAYS, which the respray adds one to. */
@@ -114,14 +118,30 @@ export class ScmGarages {
  respray?:GarageResprayWorld;
  /** CGarages::NoResprays and RespraysAreFree (SET_NO_RESPRAYS and SET_FREE_RESPRAYS). */
  noResprays=false;freeResprays=false;
- /** CGarage::Update's door travel (the routine is unreversed; the speeds are re3's): an opening door slides up to
-  * 1 and is then open, a closing one down to 0 and shut. IS_GARAGE_OPEN and IS_GARAGE_CLOSED wait on these. */
+ /** The door audio a slide reports (CAEDoorAudioEntity::AddAudioEvent on the garage's m_GarageAudio, at its first
+  * door object): the host's. */
+ onDoorSound?:(garage:ScmGarage,event:number)=>void;
+ /** CGarage::SlideDoorOpen: the door slides up, opening sounding each step; at 1 it is up, and opened sounds. True
+  * once up. */
+ private slideDoorOpen(garage:ScmGarage,step:number){
+  garage.doorPosition+=(SLOW_DOOR_TYPES.has(garage.type)?GARAGE_DOOR_OPEN_SPEED/10:GARAGE_DOOR_OPEN_SPEED)*step;
+  if(garage.doorPosition<1){this.onDoorSound?.(garage,AE_GARAGE_DOOR_OPENING);return false;}
+  garage.doorPosition=1;this.onDoorSound?.(garage,AE_GARAGE_DOOR_OPENED);return true;
+ }
+ /** CGarage::SlideDoorClosed, the other way: true once down. */
+ private slideDoorClosed(garage:ScmGarage,step:number){
+  garage.doorPosition-=(SLOW_DOOR_TYPES.has(garage.type)?GARAGE_DOOR_CLOSE_SPEED/10:GARAGE_DOOR_CLOSE_SPEED)*step;
+  if(garage.doorPosition>0){this.onDoorSound?.(garage,AE_GARAGE_DOOR_CLOSING);return false;}
+  garage.doorPosition=0;this.onDoorSound?.(garage,AE_GARAGE_DOOR_CLOSED);return true;
+ }
+ /** CGarage::Update's door travel (Update itself is unreversed): an opening door slides up to 1 and is then open, a
+  * closing one down to 0 and shut. IS_GARAGE_OPEN and IS_GARAGE_CLOSED wait on these. */
  update(timeStepMs:number){
   const step=timeStepMs/20;
   for(const garage of this.garages){
    if(garage.type===GARAGE_TYPE.paynspray&&this.respray&&!garage.inactive){this.updateRespray(garage,step,this.respray);continue;}
-   if(garage.doorState===GARAGE_DOOR_OPENING){garage.doorPosition=Math.min(1,garage.doorPosition+GARAGE_DOOR_OPEN_SPEED*step);if(garage.doorPosition>=1)garage.doorState=GARAGE_DOOR_OPEN;}
-   else if(garage.doorState===GARAGE_DOOR_CLOSING){garage.doorPosition=Math.max(0,garage.doorPosition-GARAGE_DOOR_CLOSE_SPEED*step);if(garage.doorPosition<=0)garage.doorState=GARAGE_DOOR_CLOSED;}
+   if(garage.doorState===GARAGE_DOOR_OPENING){if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_OPEN;}
+   else if(garage.doorState===GARAGE_DOOR_CLOSING){if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;}
   }
  }
  /** CGarage::Update's PAYNSPRAY case. Update is unreversed in the reference, so this is AUTHORED from re3's and reVC's
@@ -141,8 +161,7 @@ export class ScmGarages {
     garage.doorState=GARAGE_DOOR_CLOSING;garage.timeToOpen=-1;world.holdPlayer(true);
     break;
    case GARAGE_DOOR_CLOSING:
-    garage.doorPosition=Math.max(0,garage.doorPosition-GARAGE_DOOR_CLOSE_SPEED*step);
-    if(garage.doorPosition<=0){garage.doorState=GARAGE_DOOR_CLOSED;if(garage.timeToOpen<0)garage.timeToOpen=world.nowMs+TIME_TO_RESPRAY;}
+    if(this.slideDoorClosed(garage,step)){garage.doorState=GARAGE_DOOR_CLOSED;if(garage.timeToOpen<0)garage.timeToOpen=world.nowMs+TIME_TO_RESPRAY;}
     break;
    case GARAGE_DOOR_CLOSED:
     if(garage.timeToOpen>0){
@@ -151,8 +170,7 @@ export class ScmGarages {
     }else if(!this.noResprays)garage.doorState=GARAGE_DOOR_OPENING;
     break;
    case GARAGE_DOOR_OPENING:
-    garage.doorPosition=Math.min(1,garage.doorPosition+GARAGE_DOOR_OPEN_SPEED*step);
-    if(garage.doorPosition>=1)garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;
+    if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_WAITING_PLAYER_TO_EXIT;
     break;
    case GARAGE_DOOR_WAITING_PLAYER_TO_EXIT:
     if(world.playerOutside(garage))garage.doorState=GARAGE_DOOR_OPEN;

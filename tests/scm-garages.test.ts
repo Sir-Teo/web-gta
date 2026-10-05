@@ -167,3 +167,16 @@ test('IsCarSprayable: not police, not the BMX class, not a bus, coach, trailer, 
  expect(ScmGarages.sphereTouching(spray,[2056,-1831,14],1)).toBe(true);
  expect(ScmGarages.sphereTouching(spray,[2054,-1831,14],1)).toBe(false);
 });
+
+test('the slides report to the garage door audio: opening each step, opened once, and likewise down; hangars slower (SlideDoorOpen/Closed, iOS)',()=>{
+ const g=new ScmGarages();g.load([{name:'misn',type:1},{name:'hangar',type:44}]);
+ const heard:string[]=[];g.onDoorSound=(garage,event)=>heard.push(`${garage.name} ${event}`);
+ g.open('misn');let frames=0;while(!g.isOpen('misn')&&frames<1000){g.update(20);frames++;}
+ // 0.011 a step: the 91st step reaches the top.
+ expect(frames).toBe(91);
+ expect(heard.filter(h=>h==='misn 159')).toHaveLength(90);expect(heard.at(-1)).toBe('misn 160');
+ heard.length=0;g.close('misn');frames=0;while(!g.isClosed('misn')&&frames<1000){g.update(20);frames++;}
+ expect(frames).toBe(77);expect(heard.filter(h=>h==='misn 161')).toHaveLength(76);expect(heard.at(-1)).toBe('misn 162');
+ // The AT-400 hangar's door goes a tenth as fast.
+ g.open('hangar');for(let i=0;i<91;i++)g.update(20);expect(g.garages[1].doorPosition).toBeCloseTo(.1001,3);
+});
