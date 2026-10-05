@@ -1,6 +1,6 @@
 import {taxiLightCoronas} from './render/taxiLights';
 import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/startingLoadout';
-import {ScmGarages,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS} from './engine/ScmGarages';
+import {ScmGarages,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS,STORED_CAR,type StoredCar} from './engine/ScmGarages';
 import {playerFootstepSoundLevel} from './ped/nativeSoundEvents';
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
 import {evaluateCarPosition} from './simulation/nativeCarChoice';
@@ -912,6 +912,9 @@ async function boot() {
         render.yaw=heading+Math.PI;
         // The safehouses' discs are inside: the save keeps the interior (CGame::currArea) and the doors taken into it.
         const area=render.lighting.area,enexStack=area>0&&entryExits?entryExits.stack.map(e=>entryExits!.pool.indexOf(e)).filter(i=>i>=0):undefined;
+        // CGenericGameStorage's save shuts the safehouse garages first (CGarages::CloseHideOutGaragesBeforeSave), so the
+        // cars in them are the ones kept.
+        mission?.runtime.game.garages.closeHideOutGaragesBeforeSave();
         progression.savedLocation={x:position.x,y:point.respawn[1],z:position.y,heading,timeMinutes:sim.timeMinutes,weekDay:sim.weekDay,...(area>0?{area,enexStack}:{})};const saved=progression.save();
         hud.fade(false,1000);hud.message(saved?'Game saved.':'The game could not be saved.');
         window.setTimeout(()=>{saving=false;},500);
@@ -5964,6 +5967,8 @@ async function boot() {
                 };
                 // CGarages as CFileLoader::LoadGarage filled it from the world's grge rows.
                 if(Array.isArray(data.garages))mission.runtime.game.garages.load(data.garages);
+                // CGarages::Load's aCarsInSafeHouse: the cars the safehouse garages keep come from the save and go back to it.
+                mission.runtime.game.garages.storedCars=progression.storedCars;
                 // CGarage::Update's Pay 'n' Spray (ScmGarages: AUTHORED from re3) on the player's own vehicle, purse
                 // and wanted level. A vehicle's collision spheres stand for it in the box tests, in native axes.
                 {const game=mission.runtime.game,owner=mission;
@@ -6029,8 +6034,9 @@ async function boot() {
                   sound:event=>sound.frontend(event),
                   stats:{get:id=>game.stats.get(id),increment:(id,by)=>game.stats.increment(id,by),set:(id,value)=>game.stats.set(id,value)},
                  };
-                 // CGarage::Update's hideouts (the safehouse garages): where the player is, what he rides, and the cars in
-                 // the box and in its doorway. CStoredCar is not yet ported, so a hideout keeps no cars of its own.
+                 // CGarage::Update's hideouts (the safehouse garages): where the player is, what he rides, the cars in the
+                 // box and in its doorway, and CStoredCar's keeping of them while the door is down.
+                 const restoring=new Map<StoredCar,Promise<void>|true>();
                  const cars=()=>[...(fleet?.cars??[]),...(worldCar&&!worldCar.disposed&&!fleet?.cars.has(worldCar)?[worldCar]:[])].filter(car=>!car.disposed);
                  game.garages.hideouts={
                   playerCentre:()=>{const v=playerVehicle(),p=v?bodyOf(v).translation():sim.player.position;return [p.x,-p.z,p.y];},
@@ -6041,6 +6047,56 @@ async function boot() {
                   },
                   carsInside:garage=>{const own=playerVehicle();return cars().filter(car=>{if(car===own)return false;const t=car.car.body.translation();return ScmGarages.pointInside(garage,[t.x,-t.z,t.y]);}).length;},
                   carBlockingDoor:garage=>cars().some(car=>touching(garage,car)&&!spheresOf(car).every(s=>ScmGarages.sphereInside(garage,s.p,s.r))),
+                  // StoreAndRemoveCarsForThisHideOut: the vehicle pool from its end (here the fleet's cars and bikes, newest
+                  // first); each one not a mission's with its middle in the box goes, and the first `max` with no sphere
+                  // a unit clear of the box (EntityHasASphereWayOutsideGarage, iOS 0x1001b767c) are kept (StoreCar).
+                  removeCarsInside:(garage,max)=>{
+                   const kept:StoredCar[]=[];if(!fleet)return kept;
+                   for(const v of [...fleet.cars,...fleet.bikes].reverse()){
+                    if(v.disposed||v.missionCar||v.occupied)continue;
+                    const body=bodyOf(v),t=body.translation();if(!ScmGarages.pointInside(garage,[t.x,-t.z,t.y]))continue;
+                    if(kept.length<max&&!spheresOf(v).some(s=>!ScmGarages.sphereTouching(garage,s.p,s.r+1))){
+                     // The model's forward (native +y, the renderer's -z) turned by the body, in native axes, packed.
+                     const q=body.rotation(),fx=-2*(q.x*q.z+q.w*q.y),fy=-2*(q.y*q.z-q.w*q.x),fz=-(1-2*(q.x*q.x+q.y*q.y));
+                     const p='fix' in v?v.proofs:undefined,nitro='nitro' in v.car?v.car.nitro:undefined;
+                     const flags=(p?.bullet?STORED_CAR.bulletProof:0)|(p?.fire?STORED_CAR.fireProof:0)|(p?.explosion?STORED_CAR.explosionProof:0)|(p?.collision?STORED_CAR.collisionProof:0)|(p?.melee?STORED_CAR.meleeProof:0)|(nitro?.installed?STORED_CAR.nitro:0);
+                     const colours=('colourIndices' in v.assets?v.assets.colourIndices:undefined)??[-1,-1,-1,-1];
+                     kept.push({model:v.modelId,position:[t.x,-t.z,t.y],forward:[Math.trunc(fx*100),Math.trunc(-fz*100),Math.trunc(fy*100)],colours:[colours[0],colours[1],colours[2],colours[3]],flags,nitroBoosts:nitro?.installed?nitro.boosts:0});
+                    }
+                    fleet.removeVehicle(v);
+                   }
+                   return kept;
+                  },
+                  get nowMs(){return Math.trunc(gameTimeExact);},
+                  playerNearDoor:(garage,distance)=>{
+                   const v=playerVehicle(),p=v?bodyOf(v).translation():sim.player.position;
+                   return owner.garageDoorsSnapshot().some(door=>door.garage===garage.name&&!!door.position&&Math.hypot(door.position.x-p.x,door.position.y+p.z)<distance);
+                  },
+                  help:key=>hud.help(gxtHudText(gxtText(key,key==='GA_21'?'You cannot store any more cars in this garage.':''))),
+                  removeCarBlockingDoor:garage=>{
+                   if(!fleet)return;
+                   const v=[...fleet.cars,...fleet.bikes].reverse().find(v=>{
+                    if(v.disposed||v.missionCar||v.occupied||'locked' in v&&v.locked)return false;
+                    const t=bodyOf(v).translation();return touching(garage,v)&&!ScmGarages.pointInside(garage,[t.x,-t.z,t.y]);
+                   });
+                   if(v)fleet.removeVehicle(v);
+                  },
+                  // RestoreCar (iOS 0x1001b7f20) with CWorld::Add: none until the model is in, then the car where it
+                  // stood, its forward unpacked and squared with the up (as re3's), its proofs and nitro back.
+                  restoreCar:stored=>{
+                   const state=restoring.get(stored);if(state===true){restoring.delete(stored);return true;}
+                   if(state)return false;if(!fleet)return true;
+                   const [px,py,pz]=stored.position,f=new Vector3(stored.forward[0],stored.forward[2],-stored.forward[1]).normalize();
+                   const right=new Vector3().crossVectors(f,new Vector3(0,1,0));if(right.lengthSq()<1e-6)right.set(1,0,0);right.normalize();
+                   const up=new Vector3().crossVectors(right,f).normalize(),rotation=new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(right,up,f.clone().negate()));
+                   restoring.set(stored,fleet.restoreStoredVehicle(stored.model,{x:px,y:pz,z:-py},{x:rotation.x,y:rotation.y,z:rotation.z,w:rotation.w},stored.colours).then(v=>{
+                    if(!v)return;
+                    const flag=(bit:number)=>(stored.flags&bit)!==0;
+                    if(stored.flags&31&&'fix' in v)v.proofs={bullet:flag(STORED_CAR.bulletProof),fire:flag(STORED_CAR.fireProof),explosion:flag(STORED_CAR.explosionProof),collision:flag(STORED_CAR.collisionProof),melee:flag(STORED_CAR.meleeProof)};
+                    if(flag(STORED_CAR.nitro)&&stored.nitroBoosts>0&&'nitrousControl' in v.car)v.car.nitrousControl(stored.nitroBoosts,0,0,undefined,false);
+                   }).catch(error=>{console.error('A stored car could not be restored',error);}).finally(()=>{restoring.set(stored,true);}));
+                   return false;
+                  },
                  };}
                 // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.
                 if(Array.isArray(data.audioZones))mission.runtime.game.audioZones.load(data.audioZones);

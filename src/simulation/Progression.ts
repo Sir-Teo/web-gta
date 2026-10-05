@@ -2,6 +2,7 @@ import {WEAPONS} from '../weapons/catalog';
 import {skillStatWeapon,type WeaponInventory} from '../weapons/Inventory';
 import type {Simulation} from './Simulation';
 import {NativeZonesVisited} from '../world/nativeZonesVisited';
+import {HIDEOUT_SLOT_COUNT,STORED_CARS_PER_GARAGE,readStoredCar,type StoredCar} from '../engine/ScmGarages';
 /** The revision a stored save carries (0 for none, or one written before revisions). */
 const storedRevision=(raw:string|null|undefined)=>{const m=raw?/"revision":(\d+)/.exec(raw):null;return m?Number(m[1]):0;};
 const KEY='web-gta.progress.v1';
@@ -10,8 +11,8 @@ const KEY='web-gta.progress.v1';
 const MAX_SAVE_LENGTH=512*1024;
 const finite=(v:unknown,max:number)=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=max;
 /** The player's progress the game keeps between sessions, in a bounded, versioned local save: money, weapons and
- * their practice, driving skill, collected pickups, sprayed tags, stunt jumps, explored map squares and the last
- * save point. Saves from before the Activities were removed keep loading; their fields are ignored. */
+ * their practice, driving skill, collected pickups, sprayed tags, stunt jumps, explored map squares, the cars in
+ * the safehouse garages and the last save point. Saves from before the Activities were removed keep loading; their fields are ignored. */
 export class Progression {
 /** Driving skill stat (0–1000): weak ride set below 50, standard below 100, pro above.
  * CStats::UpdateStatsWhenDriving port: +1 per 25 m driven (≈2.5 km to pro), weak/std/pro ride sets switch at the native bands. */
@@ -24,6 +25,8 @@ export class Progression {
  readonly zones=new NativeZonesVisited();
  /** CStuntJumpManager found/completed jumps, by ScmStuntJump id. */
  stuntJumpsFound=new Set<string>();stuntJumpsDone=new Set<string>();
+ /** CGarages::aCarsInSafeHouse, which CGarages::Save writes: the cars each safehouse garage keeps behind its door. */
+ storedCars:(StoredCar|null)[][]=Array.from({length:HIDEOUT_SLOT_COUNT},()=>Array<StoredCar|null>(STORED_CARS_PER_GARAGE).fill(null));
  /** Where the last save point put the player (native x/y, browser height), the clock it saved and, inside, the
   * interior (CGame::currArea) and the doors taken into it (CEntryExitManager's stack, as pool indices). */
  savedLocation?:{x:number;y:number;z:number;heading:number;timeMinutes:number;weekDay?:number;area?:number;enexStack?:number[]};private previous?:{x:number;y:number;z:number};private saveTime=0;
@@ -56,6 +59,7 @@ export class Progression {
    if(saved&&[saved.x,saved.y,saved.z,saved.heading,saved.timeMinutes].every(v=>typeof v==='number'&&Number.isFinite(v))&&Math.abs(saved.x)<4000&&Math.abs(saved.y)<4000&&saved.z>-200&&saved.z<2000&&saved.timeMinutes>=0&&saved.timeMinutes<1440)this.savedLocation={x:saved.x,y:saved.y,z:saved.z,heading:saved.heading,timeMinutes:saved.timeMinutes,weekDay:Number.isInteger(saved.weekDay)&&saved.weekDay>=1&&saved.weekDay<=7?saved.weekDay:undefined,
     ...(Number.isInteger(saved.area)&&saved.area>0&&saved.area<=18?{area:saved.area,enexStack:Array.isArray(saved.enexStack)?saved.enexStack.slice(0,8).filter((i:unknown)=>Number.isInteger(i)&&(i as number)>=0&&(i as number)<400):[]}:{})};
    for(const [key,set] of [['stuntJumpsFound',this.stuntJumpsFound],['stuntJumpsDone',this.stuntJumpsDone]] as const)if(Array.isArray(data[key]))for(const id of data[key].slice(0,256))if(typeof id==='string'&&id.length<=64)set.add(id);
+   if(Array.isArray(data.storedCars))this.storedCars.forEach((slot,i)=>{const row=data.storedCars[i];if(Array.isArray(row))for(let k=0;k<STORED_CARS_PER_GARAGE;k++)slot[k]=readStoredCar(row[k])??null;});
   }catch{/* Disabled storage or invalid saves leave the playable defaults intact. */}
  }
  /** AR_STATS.DAT's STAT_INC_*_SKILL increment per weapon type, once loaded. */
@@ -85,7 +89,7 @@ export class Progression {
   const ok=this.save();if(!ok&&!this.saveFailing)this.onSaveFailed?.(this.conflict?'conflict':'storage');this.saveFailing=!ok;
  }
  /** Whether the save was written: not without storage, not when it would be too long to load, not when the write fails. */
- save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save(),revision:this.revision+1});if(text.length>MAX_SAVE_LENGTH)return false;
+ save(){if(!this.storage)return false;try{const text=JSON.stringify({version:1,money:this.sim.money,selected:this.inventory.selected,fightingStyle:this.inventory.fightingStyle,allowedAttackMoves:this.inventory.allowedAttackMoves,ammo:this.inventory.ammoRows(),owned:[...this.inventory.owned],practice:[...this.inventory.practice],pickups:[...this.pickups],stuntJumpsFound:[...this.stuntJumpsFound],stuntJumpsDone:[...this.stuntJumpsDone],savedLocation:this.savedLocation,drivingSkill:this.drivingSkill,tags:this.tags,zonesVisited:this.zones.save(),storedCars:this.storedCars,revision:this.revision+1});if(text.length>MAX_SAVE_LENGTH)return false;
   // Nothing changed since the last write: the stored save is already this one.
   if(text===this.lastWritten)return true;
   // Another tab that has saved since this one loaded (a higher revision) is not overwritten with this tab's older state.

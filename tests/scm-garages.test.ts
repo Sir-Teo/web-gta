@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {ScmGarages,GARAGE_DOOR_CLOSED,GARAGE_DOOR_OPEN,GARAGE_DOOR_CLOSING,GARAGE_DOOR_OPENING,GARAGE_DOOR_WAITING_PLAYER_TO_EXIT,GARAGE_DOOR_CLOSED_DROPPED_CAR,GARAGE_TYPE} from '../src/engine/ScmGarages';
+import {ScmGarages,GARAGE_DOOR_CLOSED,GARAGE_DOOR_OPEN,GARAGE_DOOR_CLOSING,GARAGE_DOOR_OPENING,GARAGE_DOOR_WAITING_PLAYER_TO_EXIT,GARAGE_DOOR_CLOSED_DROPPED_CAR,GARAGE_TYPE,hideOutSlot,readStoredCar,STORED_CAR,type StoredCar} from '../src/engine/ScmGarages';
 
 const garages=()=>{const g=new ScmGarages();g.load([{name:'spray1',type:GARAGE_TYPE.paynspray},{name:'touch',type:GARAGE_TYPE.closesOnTouch},{name:'misn',type:1}]);return g;};
 
@@ -203,20 +203,23 @@ test("a safehouse garage's door (CGarage::Update's hideout case, iOS): up for CJ
  const garage=g.garages[0];expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);
  // The box spans x 2502.31 to 2508.61 and y -1699.36 to -1691.01: CJ stands south of it.
  const at={x:2505,y:-1699.36-5,z:13,vehicle:undefined as 'vehicle'|'bmx'|undefined,outside:true,inside:0,blocking:false};
- const log={stored:0,restored:0};
+ const log={stored:0,restored:[] as number[]};
+ const car=(model:number):StoredCar=>({model,position:[2505,-1695,13],forward:[0,100,0],colours:[1,1,0,0],flags:0,nitroBoosts:0});
  g.hideouts={playerCentre:()=>[at.x,at.y,at.z],playerVehicle:()=>at.vehicle,playerOutside:()=>at.outside,carsInside:()=>at.inside,carBlockingDoor:()=>at.blocking,
-  storeCars:()=>{log.stored++;},restoreCars:()=>{log.restored++;return true;}};
+  removeCarsInside:()=>{log.stored++;return [car(400)];},restoreCar:stored=>{log.restored.push(stored.model);return true;}};
  const run=(n:number)=>{for(let i=0;i<n;i++)g.update(20);};
- // On foot 5 units off: shut; 3 off: it starts up (the stored cars back first).
+ // On foot 5 units off: shut; 3 off: it starts up (it keeps no cars yet).
  run(3);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);
- at.y=-1699.36-3;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_OPENING);expect(log.restored).toBe(1);
+ at.y=-1699.36-3;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_OPENING);expect(log.restored).toEqual([]);
  run(200);expect(garage.doorState).toBe(GARAGE_DOOR_OPEN);expect(garage.doorPosition).toBe(1);
  // On foot within 4 it stays up; past 4 it starts down, and once down keeps the cars inside.
  at.y=-1699.36-3.9;run(3);expect(garage.doorState).toBe(GARAGE_DOOR_OPEN);
  at.y=-1699.36-5;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSING);
- run(200);expect([garage.doorState,garage.doorPosition,log.stored]).toEqual([GARAGE_DOOR_CLOSED,0,1]);
- // In a car (not a BMX) it opens from 10 units and stays up to 15; on foot past 4 it starts down.
- at.vehicle='vehicle';at.y=-1699.36-9;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_OPENING);run(200);
+ run(200);expect([garage.doorState,garage.doorPosition,log.stored,g.storedCount(garage)]).toEqual([GARAGE_DOOR_CLOSED,0,1,1]);
+ // In a car (not a BMX) it opens from 10 units and stays up to 15, the kept car put back first; on foot past 4 it
+ // starts down.
+ at.vehicle='vehicle';at.y=-1699.36-9;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_OPENING);
+ expect([log.restored,g.storedCount(garage)]).toEqual([[400],0]);run(200);
  at.y=-1699.36-14;run(3);expect(garage.doorState).toBe(GARAGE_DOOR_OPEN);
  at.y=-1699.36-16;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSING);
  at.y=-1699.36-2;run(1);run(200);at.vehicle=undefined;at.y=-1699.36-5;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSING);
@@ -235,9 +238,62 @@ test('the hangar (type 44) opens without stored cars and keeps none; an inactive
  const g=new ScmGarages();
  g.load([{name:'hangar',type:44,corner:[0,0,0],front:[10,0],far:[0,10,5],flags:0},{name:'safe',type:17,corner:[100,0,0],front:[110,0],far:[100,10,5],flags:0}]);
  const at={x:5,y:-2,z:1};const log={stored:0,restored:0};
+ g.storedCars[hideOutSlot(44)][0]={model:400,position:[5,5,1],forward:[0,100,0],colours:[0,0,0,0],flags:0,nitroBoosts:0};
  g.hideouts={playerCentre:()=>[at.x,at.y,at.z],playerVehicle:()=>undefined,playerOutside:()=>true,carsInside:()=>0,carBlockingDoor:()=>false,
-  storeCars:()=>{log.stored++;},restoreCars:()=>{log.restored++;return true;}};
+  removeCarsInside:()=>{log.stored++;return [];},restoreCar:()=>{log.restored++;return true;}};
  g.update(20);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPENING);expect(log.restored).toBe(0);
+ for(let i=0;i<1000;i++)g.update(20);at.x=500;for(let i=0;i<2000;i++)g.update(20);
+ expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSED);expect(log.stored).toBe(0);
  g.deactivate('safe');at.x=105;g.update(20);expect(g.garages[1].doorState).toBe(GARAGE_DOOR_CLOSED);
  g.activate('safe');g.update(20);expect(g.garages[1].doorState).toBe(GARAGE_DOOR_OPENING);
+});
+test("a hideout keeps up to four cars in its type's slot (CStoredCar): kept on the door's close, put back before it opens, a full one shut to a car",()=>{
+ // aCarsInSafeHouse's slots: the safehouses and impound lots each their own, the rest slot 0.
+ expect([16,17,18,24,32,33,35,39,42,45].map(hideOutSlot)).toEqual([0,1,2,3,11,12,14,15,18,19]);
+ expect([19,36,44].map(hideOutSlot)).toEqual([0,0,0]);
+ const g=new ScmGarages();
+ g.load([{name:'cjsafe',type:16,corner:[2502.31,-1699.36,12.4323],front:[2508.61,-1699.36],far:[2502.31,-1691.01,16.5666],flags:1}]);
+ const garage=g.garages[0];
+ const car=(model:number):StoredCar=>({model,position:[2505,-1695,13],forward:[0,100,0],colours:[1,1,0,0],flags:STORED_CAR.bulletProof,nitroBoosts:0});
+ const at={y:-1699.36-3,vehicle:'vehicle' as 'vehicle'|undefined,given:[car(400),car(401),car(402),car(403),car(404)],ready:false};
+ const asked:number[]=[],helps:string[]=[],clock={now:20000,nearDoor:false};
+ g.hideouts={playerCentre:()=>[2505,at.y,13],playerVehicle:()=>at.vehicle,playerOutside:()=>true,carsInside:()=>0,carBlockingDoor:()=>false,
+  removeCarsInside:(_g,max)=>{asked.push(max);return at.given.slice(0,max);},restoreCar:()=>at.ready,
+  playerNearDoor:(_g,distance)=>{expect(distance).toBe(5);return clock.nearDoor;},help:key=>helps.push(key),get nowMs(){return clock.now;}};
+ const run=(n:number)=>{for(let i=0;i<n;i++)g.update(20);};
+ run(1);run(200);expect(garage.doorState).toBe(GARAGE_DOOR_OPEN);
+ // Driven off and shut: the world is asked for four, and four are kept.
+ at.y=-1699.36-20;run(1);run(200);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);
+ expect(asked).toEqual([4]);expect(g.storedCars[0].map(c=>c?.model)).toEqual([400,401,402,403]);
+ // Back in a car: a type 16 garage holds two, so with four kept it stays shut; within 5 of a door it says so (GA_21),
+ // again only after 18 s.
+ at.y=-1699.36-3;run(5);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);expect(helps).toEqual([]);
+ clock.nearDoor=true;run(1);expect(helps).toEqual(['GA_21']);
+ clock.now+=18000;run(1);expect(helps).toHaveLength(1);clock.now+=1;run(1);expect(helps).toEqual(['GA_21','GA_21']);
+ expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);
+ // On foot it opens once the cars stand again; until they do it waits shut.
+ at.vehicle=undefined;run(5);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);expect(g.storedCount(garage)).toBe(4);
+ at.ready=true;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_OPENING);expect(g.storedCount(garage)).toBe(0);
+ // Shut on nothing: the slot is cleared.
+ at.given=[];at.y=-1699.36-20;run(1);run(200);expect(g.storedCars[0]).toEqual([null,null,null,null]);
+});
+test('a stored car from a save is checked whole',()=>{
+ const car={model:400,position:[1,2,3],forward:[0,100,0],colours:[1,2,3,4],flags:129,nitroBoosts:5};
+ expect(readStoredCar(car)).toEqual(car);expect(readStoredCar(JSON.parse(JSON.stringify(car)))).not.toBe(car);
+ for(const bad of [null,1,{...car,model:0},{...car,position:[1,2]},{...car,forward:[0,1.5,0]},{...car,colours:[1,2,3]},{...car,flags:'x'}])expect(readStoredCar(bad)).toBeUndefined();
+});
+test('before a save every safehouse garage not shut is shut on the spot, its cars kept and its doorway cleared (CloseHideOutGaragesBeforeSave, iOS)',()=>{
+ const g=new ScmGarages();
+ g.load([{name:'cjsafe',type:16,corner:[2502.31,-1699.36,12.4323],front:[2508.61,-1699.36],far:[2502.31,-1691.01,16.5666],flags:1},{name:'hangar',type:44,corner:[0,0,0],front:[10,0],far:[0,10,5],flags:0},{name:'safe2',type:17,corner:[100,0,0],front:[110,0],far:[100,10,5],flags:0}]);
+ const log:string[]=[];
+ g.hideouts={playerCentre:()=>[0,0,0],playerVehicle:()=>undefined,playerOutside:()=>true,carsInside:()=>0,carBlockingDoor:()=>false,
+  removeCarsInside:(garage,max)=>{log.push(`store ${garage.name} ${max}`);return [{model:400,position:[2505,-1695,13],forward:[0,100,0],colours:[1,1,0,0],flags:0,nitroBoosts:0}];},
+  removeCarBlockingDoor:garage=>{log.push(`doorway ${garage.name}`);}};
+ const [safe,hangar]=g.garages;
+ safe.doorState=GARAGE_DOOR_OPENING;safe.doorPosition=.4;hangar.doorState=GARAGE_DOOR_OPEN;hangar.doorPosition=1;
+ g.closeHideOutGaragesBeforeSave();
+ // The half-open safehouse shuts and keeps its car; the hangar (not a safehouse) and the shut one are left.
+ expect([safe.doorState,safe.doorPosition]).toEqual([GARAGE_DOOR_CLOSED,0]);expect(g.storedCount(safe)).toBe(1);
+ expect([hangar.doorState,hangar.doorPosition]).toEqual([GARAGE_DOOR_OPEN,1]);
+ expect(log).toEqual(['store cjsafe 4','doorway cjsafe']);
 });

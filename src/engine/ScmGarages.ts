@@ -99,6 +99,37 @@ export function footprintDistance2(garage:ScmGarage,x:number,y:number){
  const dx=x<f.minX?x-f.minX:x>f.maxX?x-f.maxX:0,dy=y<f.minY?y-f.minY:y>f.maxY?y-f.maxY:0;
  return dx*dx+dy*dy;
 }
+/** CStoredCar (0x40 bytes in the game): what a hideout keeps of a car while its door is shut. CStoredCar::StoreCar and
+ * RestoreCar are unreversed in gta-reversed; the iOS executable's (0x1001b7d00, 0x1001b7f20) are followed for the
+ * parts the port's cars carry. */
+export interface StoredCar {
+ model:number;
+ /** m_vPosn, in native axes. */
+ position:[number,number,number];
+ /** m_nPackedForwardX, Y and Z: the forward vector times 100, cut to whole numbers. */
+ forward:[number,number,number];
+ /** m_nPrimaryColor to m_nQuaternaryColor. */
+ colours:[number,number,number,number];
+ /** m_nStoredCarFlags: 1 bullet proof, 2 fire proof, 4 explosion proof, 8 collision proof, 16 melee proof, 128 nitro
+  * fitted. */
+ flags:number;
+ /** m_nNitroBoosts. */
+ nitroBoosts:number;
+}
+export const STORED_CAR={bulletProof:1,fireProof:2,explosionProof:4,collisionProof:8,meleeProof:16,nitro:128} as const;
+/** NUM_GARAGE_STORED_CARS, and the twenty slots of CGarages::aCarsInSafeHouse. */
+export const STORED_CARS_PER_GARAGE=4,HIDEOUT_SLOT_COUNT=20;
+/** aCarsInSafeHouse's slot for a garage type (the iOS table at 0x100593290): the safehouses (16 to 18, 24 to 32, 39 to
+ * 42, 45) and the impound lots (33 to 35); the table gives the rest slot 0. */
+const HIDEOUT_SLOTS:Readonly<Record<number,number>>={16:0,17:1,18:2,24:3,25:4,26:5,27:6,28:7,29:8,30:9,31:10,32:11,33:12,34:13,35:14,39:15,40:16,41:17,42:18,45:19};
+export const hideOutSlot=(type:number)=>HIDEOUT_SLOTS[type]??0;
+/** A stored car from a save, checked; undefined for anything that is not one. */
+export function readStoredCar(value:unknown):StoredCar|undefined{
+ const v=value as Partial<StoredCar>|null;
+ const ints=(a:unknown,n:number)=>Array.isArray(a)&&a.length===n&&a.every(x=>Number.isInteger(x));
+ if(!v||!Number.isInteger(v.model)||!(v.model!>0)||!Array.isArray(v.position)||v.position.length!==3||!v.position.every(Number.isFinite)||!ints(v.forward,3)||!ints(v.colours,4)||!Number.isInteger(v.flags)||!Number.isInteger(v.nitroBoosts))return undefined;
+ return {model:v.model!,position:[...v.position] as StoredCar['position'],forward:[...v.forward!] as StoredCar['forward'],colours:[...v.colours!] as StoredCar['colours'],flags:v.flags!,nitroBoosts:v.nitroBoosts!};
+}
 /** What a hideout garage asks of the world. */
 export interface GarageHideoutWorld {
  /** FindPlayerCentreOfWorld: his vehicle's position, or his own, in native axes. */
@@ -111,9 +142,23 @@ export interface GarageHideoutWorld {
  carsInside(garage:ScmGarage):number;
  /** IsAnyCarBlockingDoor: a vehicle half in and half out. */
  carBlockingDoor(garage:ScmGarage):boolean;
- /** CStoredCar's part (to come): RestoreCarsForThisHideOut (true once done), StoreAndRemoveCarsForThisHideOut, and how
-  * many cars the garage keeps. Without them the doors work and the garage keeps no cars of its own. */
- restoreCars?(garage:ScmGarage):boolean;storeCars?(garage:ScmGarage):void;storedCount?(garage:ScmGarage):number;
+ /** StoreAndRemoveCarsForThisHideOut's world part (reversed, 0x449900): every vehicle with its middle in the box that
+  * is not a mission's is taken out of the world, and of those without a sphere a unit outside it the first `max` come
+  * back stored (CStoredCar::StoreCar). Without it the garage keeps no cars of its own. */
+ removeCarsInside?(garage:ScmGarage,max:number):StoredCar[];
+ /** CStoredCar::RestoreCar with CWorld::Add: true once the car stands in the world again (or never can), false while
+  * it is still being made. */
+ restoreCar?(car:StoredCar):boolean;
+ /** RemoveCarsBlockingDoorNotInside (iOS 0x1001b6b48): from the pool's end, the first vehicle touching the box with
+  * its middle out of it, not locked and deletable, removed. */
+ removeCarBlockingDoor?(garage:ScmGarage):void;
+ /** For a full garage: whether the player's vehicle (FindPlayerEntity) is under `distance` from one of the garage's
+  * doors (FindDoorsWithGarage) in x and y. */
+ playerNearDoor?(garage:ScmGarage,distance:number):boolean;
+ /** CHud::SetHelpMessage of a GXT key. */
+ help?(key:string):void;
+ /** CTimer::m_snTimeInMilliseconds. */
+ readonly nowMs?:number;
 }
 export class ScmGarages {
  readonly garages:ScmGarage[]=[];
@@ -257,10 +302,15 @@ export class ScmGarages {
    case GARAGE_DOOR_CLOSED:
     if(pz>=950||!(d2<12.25||d2<100&&vehicle==='vehicle'))break;
     if(garage.type===44){garage.doorState=GARAGE_DOOR_OPENING;break;}
-    // AUTHORED: a full garage the player drives up to (iOS 0x1001b3d64) stays shut; the game's own handling of it
-    // waits on the stored cars.
-    if(vehicle&&(world.storedCount?.(garage)??0)>=capacity)break;
-    if(world.restoreCars?.(garage)??true)garage.doorState=GARAGE_DOOR_OPENING;
+    // A full garage the player drives up to stays shut (iOS 0x1001b3d64), and with his vehicle within 5 units of one of
+    // its doors says so (GA_21), at most once in 18 s. (Not in a helicopter or plane, which the port's hideouts do
+    // not count as his vehicle anyway.)
+    if(vehicle&&this.storedCount(garage)>=capacity){
+     const now=world.nowMs??0;
+     if(now-this.lastTimeHelpMessage>18000&&world.playerNearDoor?.(garage,5)){world.help?.('GA_21');this.lastTimeHelpMessage=now;}
+     break;
+    }
+    if(this.restoreCarsForThisHideOut(garage,world))garage.doorState=GARAGE_DOOR_OPENING;
     break;
    case GARAGE_DOOR_OPEN:
     if((d2>225||d2>16&&vehicle!=='vehicle')&&!world.carBlockingDoor(garage)){garage.doorState=GARAGE_DOOR_CLOSING;break;}
@@ -270,7 +320,7 @@ export class ScmGarages {
    case GARAGE_DOOR_CLOSING:
     this.slideDoorClosed(garage,step);
     if(!world.playerOutside(garage,0)){garage.doorState=GARAGE_DOOR_OPENING;break;}
-    if(garage.doorPosition===0){garage.doorState=GARAGE_DOOR_CLOSED;if(garage.type!==44)world.storeCars?.(garage);}
+    if(garage.doorPosition===0){garage.doorState=GARAGE_DOOR_CLOSED;if(garage.type!==44)this.storeAndRemoveCarsForThisHideOut(garage,world);}
     break;
    case GARAGE_DOOR_OPENING:
     if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_OPEN;
@@ -279,6 +329,38 @@ export class ScmGarages {
  }
  /** What a hideout garage asks of the world; without it a hideout's door only travels. */
  hideouts?:GarageHideoutWorld;
+ /** CGarages::LastTimeHelpMessage. */
+ lastTimeHelpMessage=0;
+ /** CGarages::aCarsInSafeHouse: four cars a slot, twenty slots (hideOutSlot), kept in the save. */
+ storedCars:(StoredCar|null)[][]=Array.from({length:HIDEOUT_SLOT_COUNT},()=>Array<StoredCar|null>(STORED_CARS_PER_GARAGE).fill(null));
+ /** The cars a hideout keeps (the iOS executable counts the slot's four by their models). */
+ storedCount(garage:ScmGarage){return this.storedCars[hideOutSlot(garage.type)]?.filter(Boolean).length??0;}
+ /** StoreAndRemoveCarsForThisHideOut (0x449900, reversed): the slot cleared and refilled with the cars the world gives
+  * up (at most four). */
+ private storeAndRemoveCarsForThisHideOut(garage:ScmGarage,world:GarageHideoutWorld){
+  const slot=this.storedCars[hideOutSlot(garage.type)];if(!slot||!world.removeCarsInside)return;
+  const kept=world.removeCarsInside(garage,STORED_CARS_PER_GARAGE);
+  for(let i=0;i<STORED_CARS_PER_GARAGE;i++)slot[i]=kept[i]??null;
+ }
+ /** CGarages::CloseHideOutGaragesBeforeSave (iOS 0x1001b8758): every safehouse garage not shut is shut on the spot,
+  * its cars kept and those in its doorway cleared, before the game saves. (gta-reversed's 0x44A170 asks for an open
+  * door; the iOS executable for any not closed.) */
+ closeHideOutGaragesBeforeSave(){
+  const world=this.hideouts;
+  for(const garage of this.garages){
+   if(!isHideOutGarageType(garage.type)||garage.doorState===GARAGE_DOOR_CLOSED)continue;
+   garage.doorState=GARAGE_DOOR_CLOSED;
+   if(world){this.storeAndRemoveCarsForThisHideOut(garage,world);world.removeCarBlockingDoor?.(garage);}
+   garage.doorPosition=0;
+  }
+ }
+ /** RestoreCarsForThisHideOut (iOS 0x1001b6efc): each stored car put back (RestoreCar), its place cleared once it
+  * stands; true when the slot is empty. */
+ private restoreCarsForThisHideOut(garage:ScmGarage,world:GarageHideoutWorld){
+  const slot=this.storedCars[hideOutSlot(garage.type)];if(!slot)return true;
+  for(let i=0;i<STORED_CARS_PER_GARAGE;i++){const car=slot[i];if(car&&(world.restoreCar?.(car)??true))slot[i]=null;}
+  return slot.every(car=>!car);
+ }
  /** CGarages::HasResprayHappened (0x447E10): the flag is read and cleared. */
  hasResprayHappened(name:string){const garage=this.at(name);if(!garage)return false;const used=garage.usedRespray;garage.usedRespray=false;return used;}
  /** CGarages::GetGarageNumberByName (0x447680): by name, ignoring case, or -1. */

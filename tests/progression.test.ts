@@ -139,3 +139,12 @@ test('a save with nothing changed since the last is not written again',()=>{
   sim.money+=10;expect(p.save()).toBe(true);expect(writes).toBe(2);expect(JSON.parse(raw).money).toBe(sim.money);
  }finally{sim.dispose();}
 });
+test("the safehouse garages' kept cars (CGarages::aCarsInSafeHouse) go into the save and come back; a broken one is dropped",()=>{const sim=new Simulation();let raw='';const storage={getItem:()=>raw,setItem:(_:string,v:string)=>{raw=v;}};try{
+ const p=new Progression(new WeaponInventory(),sim,storage);expect(p.storedCars).toHaveLength(20);expect(p.storedCars.every(slot=>slot.length===4&&slot.every(c=>c===null))).toBe(true);
+ const car={model:562,position:[2505.1,-1694.2,13.3] as [number,number,number],forward:[0,99,-2] as [number,number,number],colours:[3,1,0,0] as [number,number,number,number],flags:129,nitroBoosts:10};
+ p.storedCars[0][1]=car;p.storedCars[19][3]={...car,model:400};p.save();
+ const restored=new Progression(new WeaponInventory(),sim,storage);
+ expect(restored.storedCars[0]).toEqual([null,car,null,null]);expect(restored.storedCars[19][3]?.model).toBe(400);
+ const data=JSON.parse(raw);data.storedCars[0][1].model=-1;data.storedCars[0][2]={junk:true};raw=JSON.stringify(data);
+ expect(new Progression(new WeaponInventory(),sim,storage).storedCars[0]).toEqual([null,null,null,null]);
+}finally{sim.dispose();}});

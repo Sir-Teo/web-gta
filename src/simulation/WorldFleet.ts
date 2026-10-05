@@ -374,6 +374,42 @@ export class WorldFleet {
   car.assets.colors=chosen.colors;car.assets.colourIndices=chosen.indices;car.assets.colourVariation=variation;car.car.setColors(chosen.colors);
   return true;
  }
+ /** CStoredCar::RestoreCar (iOS 0x1001b7f20): a hideout's kept car or bike made again where it stood, at its stored
+  * place and turn, with no ClearSpaceForMissionEntity (it is not a script's), RANDOM_VEHICLE and abandoned, its paint
+  * back. Undefined once the fleet is gone or for a boat or aircraft (no hideout keeps one). */
+ async restoreStoredVehicle(modelId:number,at:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number},colours:readonly number[]){
+  const catalog=await this.catalogReady;
+  if(PLAYABLE_BOATS[modelId]||PLAYABLE_PLANES[modelId]||!catalog.definitions.some(v=>v.id===modelId))return undefined;
+  let vehicle:WorldCar|WorldBike;
+  if(PLAYABLE_BIKES[modelId]){
+   const paint=colours[0]>=0&&colours[1]>=0&&catalog.colors.palette[colours[0]]&&catalog.colors.palette[colours[1]];
+   const assets=await loadFixedWorldBike(catalog,{modelId,primaryColor:paint?colours[0]:-1,secondaryColor:paint?colours[1]:-1});
+   if(this.disposed)return undefined;
+   const bike=new WorldBike(this.sim,this.scene,assets,at,0);bike.waterLevel=this.waterLevel;this.bikes.add(bike);vehicle=bike;
+  }else{
+   const assets=await loadFixedWorldCar(catalog,{modelId,primaryColor:-1,secondaryColor:-1,plateRegion:nativeWeatherRegion(at.x,-at.z),raining:this.raining?.()??false,playerColours:this.playerColours()});
+   if(this.disposed)return undefined;
+   const car=new WorldCar(this.sim,this.scene,assets,at,this.road,0);
+   car.otherCar=handle=>this.carByBody(handle);car.otherVehicle=handle=>this.vehicleByBody(handle);
+   car.playerVehicle=()=>this.occupied;car.playerBikeBody=()=>this.occupiedBike?.body.handle;car.waterLevel=this.waterLevel;
+   car.waitForCollision(false);this.cars.add(car);this.paintCar(car,colours);vehicle=car;
+  }
+  vehicle.car.body.setTranslation(at,true);vehicle.car.body.setRotation(rotation,true);
+  return vehicle;
+ }
+ /** A car's four paint slots set to these palette entries (an entry the palette lacks leaves its slot as it was). */
+ paintCar(car:WorldCar,indices:readonly number[]){
+  const palette=this.catalog?.colors.palette,colors=car.assets.colors;if(!palette||!colors)return;
+  const rows=colors.map(rgb=>[...rgb] as [number,number,number]),before=car.assets.colourIndices;
+  for(let slot=0;slot<4;slot++){const rgb=palette[indices[slot]]?.rgb;if(rgb)rows[slot]=[...rgb] as [number,number,number];}
+  if(before)car.assets.colourIndices=[0,1,2,3].map(slot=>palette[indices[slot]]?indices[slot]:before[slot]) as unknown as typeof before;
+  car.assets.colors=[rows[0],rows[1],rows[2],rows[3]] as unknown as typeof colors;car.car.setColors(car.assets.colors);
+ }
+ /** CWorld::Remove of a vehicle the streamer or a generator may own, as the area clears take one. */
+ removeVehicle(vehicle:WorldCar|WorldBike){
+  if(vehicle instanceof WorldCar){if(this.cars.delete(vehicle)){this.generated.delete(vehicle);this.driven.delete(vehicle);vehicle.dispose();}return;}
+  if(this.bikes.delete(vehicle)){this.generatedOther.delete(vehicle);vehicle.dispose();}
+ }
  /** CWorld::Remove through a script's DELETE_CAR, for a car the streamer never owned. */
  removeScriptCar(car:WorldCar){if(this.cars.delete(car))car.dispose();}
  /** The same for a script's bike, boat or aircraft. */

@@ -8917,13 +8917,36 @@ that did anything.
     and in any case over 70 units off.
   - **Going down,** it goes back up while he or his vehicle is not wholly outside (IsEntityEntirelyOutside); down, it
     is shut and keeps the cars inside (StoreAndRemoveCarsForThisHideOut; not the hangar).
-  - **Not yet:** CStoredCar. The store and restore are hooks that keep nothing, so a garage keeps the cars that are
-    in it only as the fleet keeps any car parked in a hideout; a full garage the player drives up to stays shut
-    (AUTHORED: the iOS executable's own handling, at 0x1001b3d64, weighs the stored cars against his).
+  - **Full,** with him in a vehicle (the garage's four kept cars counted against its two or four), it stays shut, and
+    with his vehicle within 5 units in x and y of one of its doors it shows GA_21, at most once in 18 s
+    (CGarages::LastTimeHelpMessage; iOS 0x1001b3d64). The executable leaves out a helicopter or plane; the port's
+    hideouts count only a car or bike as his vehicle, so there is nothing to leave out.
+- **The safehouse garages keep their cars** (CStoredCar; StoreCar, RestoreCar and RestoreCarsForThisHideOut unreversed in
+  gta-reversed, followed from the iOS executable at 0x1001b7d00, 0x1001b7f20 and 0x1001b6efc;
+  StoreAndRemoveCarsForThisHideOut reversed at 0x449900). Before, a parked car stood in a shut garage only while the
+  fleet happened to keep it, and was gone with the session.
+  - **Down:** from the vehicle pool's end (the fleet's cars and bikes, newest first), every vehicle not a mission's
+    with its middle in the box is taken out of the world; the first four with no collision sphere a unit clear of the
+    box (EntityHasASphereWayOutsideGarage, iOS 0x1001b767c) are kept, in the garage type's slot of
+    aCarsInSafeHouse (twenty slots of four, the iOS table at 0x100593290: the safehouses and the impound lots each their
+    own, the rest slot 0). A kept car carries its model, place, forward (times 100, cut to whole numbers), four
+    colours, proofs and nitro with its boosts.
+  - **Up:** before the door starts up each kept car is made again where it stood (no ClearSpaceForMissionEntity,
+    RANDOM_VEHICLE and abandoned), its forward squared with the up as re3's RestoreCar does, its paint, proofs and nitro
+    back; the door waits shut until every one stands.
+  - **Saved:** the slots go into the save and come back with it (CGarages::Save/Load). At a save point every safehouse
+    garage not shut is first shut on the spot, its cars kept and the first car in its doorway (touching the box with
+    its middle out, not locked) removed (CloseHideOutGaragesBeforeSave, iOS 0x1001b8758, which asks for any door not
+    shut where gta-reversed's 0x44A170 asks for an open one; RemoveCarsBlockingDoorNotInside, iOS 0x1001b6b48).
+  - **Not kept:** the handling flags other than nitro, the radio station, the bomb, the tuning parts, the paintjob,
+    the two extras and flag 32 (vehicle flag 0x56e bit 4) that StoreCar also writes: the port's cars do not carry them
+    yet. A boat or aircraft in a garage is removed without being kept.
   - Specs: `scm-garages` (unit: the openings on foot, in a car and on a BMX, the interior, the closings by distance,
-    the doorway, the full garage and the 70-unit rule, the reopening, the store and restore calls, the hangar, an
-    inactive garage); `safehouse-garage` (browser: the Johnson house garage, cjsafe, opens for CJ walking up and shuts
-    when he walks off).
+    the doorway, the full garage, GA_21 and the 70-unit rule, the reopening, the store and restore with a car still
+    being made, the slots, the save's check of a kept car, the hangar, an inactive garage, the closing before a save);
+    `progression` (unit: the kept cars round the save); `safehouse-garage` (browser: the Johnson house garage, cjsafe,
+    opens for CJ walking up and shuts when he walks off; a Sadler parked in it is kept and gone when the door comes
+    down, written to the save, and stands where it was in its paint when he comes back).
 - **The garages start open.** `CGarages::AddOne` and `InitDoorsAtStart` are unreversed; as re3's `AddOne`, the bomb
   shops and the Pay 'n' Sprays start open with their doors up, and the other garages shut.
 - **The doors move.** `CGarage::FindDoorsWithGarage` is unreversed: as re3's `FindDoorsEntities`, a garage takes up to
