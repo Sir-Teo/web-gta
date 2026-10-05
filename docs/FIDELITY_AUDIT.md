@@ -9303,6 +9303,11 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   120 units up, 512 draws became 464; over San Fierro, 141 became 118. `__game.groupCounts()` counts what is left to
   join (`mergeable`) and the draws by the meshes' size on screen (`drawsBySizePx`: under 16 pixels is a few draws, so
   culling small things would not help). Spec: `merge-spans` (unit); the building, alpha, car and colour specs pass.
+- **Batching the world by material would not pay** (measured, `__game.batchPotential()`): of a view's opaque groups,
+  those sharing a texture image and material state with another are few. Grove Street from the street: 246 opaque
+  groups over 134 keys (112 of 402 draws saved, the repeated houses); from the air 84 over 67; San Fierro from the
+  street and the air, downtown Los Santos and the Strip: none shared. Translucent groups (20 to 35% of the draws)
+  could not join a batch anyway. A BatchedMesh path through LOD, fades and culling was left unbuilt for that.
 - **What would cut more** without changing the picture: drawing a LOD model's groups in one call from a texture array
   (WebGL2). SA's textures are shared across many models, so per-model arrays would copy them in GPU memory, a phone's
   scarcest; a shared, streamed array pool is a renderer change left for a deliberate pass.

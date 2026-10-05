@@ -2748,6 +2748,16 @@ async function boot() {
         const keys=new Set<string>();for(const g of mesh.geometry.groups){const m=mesh.material[g.materialIndex];if(!m)continue;keys.add([m.map?.uuid,m.color?.getHexString?.(),m.opacity,m.transparent,m.alphaTest,m.side,m.customProgramCacheKey?.(),m.userData?.nativeEnv?1:0,m.userData?.uvAnim?1:0].join('|'));}
         mergeable+=Math.max(0,mesh.geometry.groups.length-keys.size);});
       return {meshes,groups,transparent,mergeable,hist:[...hist].sort((a,b)=>a[0]-b[0]),drawsBySizePx:[...bySize].sort((a,b)=>a[0]-b[0])};},
+    /** What batching the world by material would leave: the visible opaque groups of the streamed windows, and the keys
+     * (texture image, colour, opacity, alpha test, side, program) they share, overall and per window. */
+    batchPotential:()=>{const frustum=new Frustum(),m=new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse);frustum.setFromProjectionMatrix(m);
+      let groups=0,opaque=0,other=0;const keys=new Set<string>(),perWindow=new Set<string>();
+      render.scene.traverseVisible(o=>{const mesh=o as any;if(!mesh.isMesh||mesh.isSkinnedMesh)return;if(mesh.frustumCulled&&!frustum.intersectsObject(mesh))return;
+        let win=mesh.parent;while(win&&win.parent&&win.parent!==render.scene)win=win.parent;
+        const mats=Array.isArray(mesh.material)?mesh.geometry.groups.map((g:any)=>mesh.material[g.materialIndex]):[mesh.material];
+        for(const mt of mats){if(!mt)continue;groups++;if(mt.transparent||mt.userData?.uvAnim){other++;continue;}opaque++;
+          const k=[mt.map?.source?.uuid??'none',mt.color?.getHexString?.(),mt.opacity,mt.alphaTest,mt.side,mt.customProgramCacheKey?.()??mt.type].join('|');keys.add(k);perWindow.add((win?.uuid??'')+'|'+k);}});
+      return {groups,opaque,other,keys:keys.size,keysPerWindow:perWindow.size};},
     drawGroups:()=>{const frustum=new Frustum(),m=new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse);frustum.setFromProjectionMatrix(m);
       const byGeometry=new Map<string,number>(),byPair=new Map<string,number>();let drawn=0,skinned=0;
       render.scene.traverseVisible(o=>{const mesh=o as any;if(!mesh.isMesh)return;if(mesh.frustumCulled&&!frustum.intersectsObject(mesh))return;drawn++;if((mesh as any).isSkinnedMesh)skinned++;
