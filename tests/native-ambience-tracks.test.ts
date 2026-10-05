@@ -147,3 +147,25 @@ describe('the ambience and the radio',()=>{
   m.stop();expect(m.overrideRadio).toBe(false);
  });
 });
+
+describe('a mission’s own ambience track (PlaySpecialMissionAmbienceTrack, as the iOS executable plays it)',()=>{
+ test('it takes the zone’s place, from the beginning at -2 dB with no rise, and the stop ends it',async()=>{
+  const ch=channel(),m=new NativeAmbienceTracks(ch.c,()=>.5),inside=world({zone:{id:21}});
+  m.playSpecialMissionAmbienceTrack(153);
+  await playing(m,inside);
+  expect(ch.calls).toEqual(['play 153 @0']);expect(ch.volume()).toBe(-2);
+  for(let i=0;i<10;i++)m.service(inside);expect(ch.volume()).toBe(-2);
+  m.stopSpecialMissionAmbienceTrack();m.service(world());m.service(world());
+  expect(ch.calls.at(-1)).toBe('stop');expect(m.active).toBe(false);expect(m.specialMissionTrack).toBe(-1);
+ });
+ test('a zone track playing fades out first; a radio that is on is turned off for it',async()=>{
+  const ch=channel(),m=new NativeAmbienceTracks(ch.c,()=>.5),inside=world({zone:{id:21}});
+  await playing(m,inside);for(let i=0;i<40;i++)m.service(inside);
+  m.playSpecialMissionAmbienceTrack(150);
+  for(let i=0;i<120&&!ch.calls.includes('play 150 @0');i++){m.service(inside);await settle();}
+  expect(ch.calls).toEqual(['play 135 @300000','stop','play 150 @0']);
+  const {r,calls}=radio(true),m2=new NativeAmbienceTracks(channel().c,()=>.5);
+  m2.playSpecialMissionAmbienceTrack(141);m2.service(world({radio:r}));
+  expect(calls).toEqual(['stop radio']);
+ });
+});

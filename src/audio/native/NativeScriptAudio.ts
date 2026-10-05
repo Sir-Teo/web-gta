@@ -10,8 +10,9 @@ import {randomInt,type AudioRandom} from './nativeAudioUtility';
  *
  * Ported: the events that hand on to the frontend entity, those that play a resident GENRL sound
  * (PlayResidentSoundEvent, 0x1001566a8), and PlayMissionBankSound's (0x100156bcc): a sound of the SCRIPT bank a script
- * has loaded whole into its mission audio slot 3 or 4 (link 2 or 3, bank slot 28 or 29). Not yet: the beat and
- * cutscene track starts and stops, the crane's, the camera's and a few others; those are recorded and play nothing. */
+ * has loaded whole into its mission audio slot 3 or 4 (link 2 or 3, bank slot 28 or 29), and the mission's own
+ * ambience track's starts and stops. Not yet: the crane's, the camera's and a few others; those are recorded and play
+ * nothing. */
 
 /** A PlayResidentSoundEvent: bank slot, bank, sound (or an inclusive random range of sounds), the start percentage,
  * the volume offset and the speed. Its last argument, the roll-off, is 1 for every one here. */
@@ -22,7 +23,7 @@ type MissionBank=readonly [sound:number|readonly [number,number],link:number,onc
 /** What a handler does first: stop the sounds of another event (with `stopAtEntity`, only those at the report's entity
  * when it names one: CancelSoundsOfThisEventPlayingForThisEntityAndPhysical), or only play while none of its own
  * plays. */
-type MissionAudioCase={frontend:number;speed?:number}|{resident:readonly Resident[];once?:boolean}|{bank:readonly MissionBank[];stop?:number;stopAtEntity?:boolean;once?:boolean}|{stop:number;stopAtEntity?:boolean}|{custom:'keypad'|'stereo'};
+type MissionAudioCase={frontend:number;speed?:number}|{resident:readonly Resident[];once?:boolean}|{bank:readonly MissionBank[];stop?:number;stopAtEntity?:boolean;once?:boolean}|{stop:number;stopAtEntity?:boolean}|{custom:'keypad'|'stereo'}|{ambience:number}|{ambienceStop:true};
 const COLLISIONS=[2,39] as const,WEAPONS=[5,143] as const;
 const r=(bank:readonly [number,number],sound:Resident[2],percent=0,volume=0,speed=1):Resident=>[bank[0],bank[1],sound,percent,volume,speed];
 const b=(sound:MissionBank[0],link:number,once:boolean,volume:number,rollOff:number,speed:number):{bank:readonly MissionBank[]}=>({bank:[[sound,link,once,volume,rollOff,speed]]});
@@ -90,6 +91,11 @@ export const MISSION_AUDIO_EVENTS:Readonly<Record<number,MissionAudioCase>>={
  1163:{resident:[[41,0,0,0,0,1]]},
  1190:{resident:[r(WEAPONS,[78,80])]},
  ...MISSION_BANK_EVENTS,
+ // The mission's own ambience track (the AMBIENCE pack's) and its stop: CAEAmbienceTrackManager's
+ // PlaySpecialMissionAmbienceTrack and StopSpecialMissionAmbienceTrack (iOS 0x100141480, 0x100141488).
+ 1062:{ambience:153},1063:{ambienceStop:true},1068:{ambience:150},1069:{ambienceStop:true},1076:{ambience:141},1077:{ambienceStop:true},
+ 1097:{ambience:145},1098:{ambienceStop:true},1142:{ambience:160},1143:{ambienceStop:true},1181:{ambience:172},1182:{ambienceStop:true},
+ 1183:{ambience:149},1184:{ambienceStop:true},1185:{ambience:142},1186:{ambienceStop:true},1187:{ambience:161},1188:{ambienceStop:true},
 };
 /** CAEScriptAudioEntity's mission bank slots begin at 26 (SND_BANK_SLOT_MISSION_*): a script slot's bank sits at 26
  * plus its index. */
@@ -99,6 +105,8 @@ export type MissionAudioAt={position:NativeVec}|{physical:NativePhysicalEntity};
 export class NativeScriptAudio implements NativeAudioEntity {
  /** Reports handled and reports this cannot play yet, by event, for diagnostics. */
  readonly handled=new Map<number,number>();readonly unported=new Map<number,number>();
+ /** CAudioEngine's ambience track manager, the host's. */
+ ambience?:{playSpecialMissionAmbienceTrack(track:number):void;stopSpecialMissionAmbienceTrack():void};
  /** Each mission audio slot's record bank (m_nBankId): the SCRIPT bank a whole-bank LOAD_MISSION_AUDIO put in it, or -1. */
  readonly missionBanks=[-1,-1,-1,-1];
  constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private defaultVolume:(event:number)=>number,private random:AudioRandom,
@@ -111,6 +119,8 @@ export class NativeScriptAudio implements NativeAudioEntity {
   if(!c){this.unported.set(event,(this.unported.get(event)??0)+1);return;}
   this.handled.set(event,(this.handled.get(event)??0)+1);
   if('frontend' in c){this.frontend(c.frontend,0,c.speed??1);return;}
+  if('ambience' in c){this.ambience?.playSpecialMissionAmbienceTrack(c.ambience);return;}
+  if('ambienceStop' in c){this.ambience?.stopSpecialMissionAmbienceTrack();return;}
   const pick=(sound:number|readonly [number,number])=>typeof sound==='number'?sound:randomInt(this.random,sound[0],sound[1]);
   if('custom' in c){
    if(c.custom==='stereo'){for(const [sound,x] of [[0,-1],[1,1]] as const)this.playMissionBankSound(event,{position:{x,y:0,z:0}},sound,3,false,0,2,1);return;}

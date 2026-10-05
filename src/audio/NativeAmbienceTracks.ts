@@ -14,8 +14,10 @@
  * - a track starts where it would have got to: at a random point the first time, else 7 s or more on from where it
  *   stopped (Service's PlayTrack offset), and it loops; zone 37's starts at the beginning.
  * AUTHORED: the zones that start a radio station (30, 52 to 62) start none, as the port has no stations, though the
- * ambience track stops there as it would for the station; no mission plays a track of its own (the script audio
- * entity's PlaySpecialMissionAmbienceTrack is not ported). The tracks are the AMBIENCE pack's (audio/StreamTracks.ts). */
+ * ambience track stops there as it would for the station. A mission's own track (PlaySpecialMissionAmbienceTrack, from
+ * the script audio entity's reported events) takes the place of the zone's, as the iOS function has it: from the
+ * beginning, overriding the radio, started at -2 dB with no rise, and left alone while it plays; another track playing
+ * fades out first. The tracks are the AMBIENCE pack's (audio/StreamTracks.ts). */
 import {NativeAudioEnvironment} from './native/NativeSound';
 
 /** The audio zones (Audiozon.ipl's ids) that play a track, and which. */
@@ -84,6 +86,15 @@ export class NativeAmbienceTracks {
  overrideRadio=false;
  /** m_AmbienceRadioStation: the station the zone asked for, -1 none. */
  private radioStation=-1;
+ /** m_SpecialMissionAmbienceTrackID: the mission's own track, -1 none. */
+ specialMissionTrack=-1;
+ /** PlaySpecialMissionAmbienceTrack (0x4D6D50). */
+ playSpecialMissionAmbienceTrack(track:number){this.specialMissionTrack=track;}
+ /** StopSpecialMissionAmbienceTrack (0x4D6D60): ChangeStatusToStopped and Reset's fields (the iOS 0x100141488). */
+ stopSpecialMissionAmbienceTrack(){
+  if(this.status>=Status.STARTING&&this.status<=Status.PLAYING)this.status=Status.STOPPING;
+  this.specialMissionTrack=-1;this.overrideRadio=false;this.startAtBeginning=false;this.radioStation=-1;
+ }
  private startAtBeginning=false;private prevPlayMs=-1;private prevStopMs=0;private ready=false;private request=0;
  constructor(private channel:AmbienceChannel,private random:()=>number=Math.random){}
  /** StopAmbienceTrack (ChangeStatusToStopped). */
@@ -111,7 +122,10 @@ export class NativeAmbienceTracks {
  private update(world:AmbienceWorld){
   const prevStation=this.radioStation;
   this.overrideRadio=false;this.startAtBeginning=false;this.radioStation=-1;
-  const chosen=this.chooseTrack(world),radio=world.radio;
+  // The mission's own track, in place of the zone's (and the sandstorm's): from the beginning, overriding the radio.
+  const mission=this.specialMissionTrack;
+  if(mission>=0){this.startAtBeginning=true;this.overrideRadio=true;}
+  const chosen=mission>=0?undefined:this.chooseTrack(world),radio=world.radio;
   // The zone's station plays on the radio: AUTHORED, it is not started (see above), but the ambience track stops for
   // it as StartRadio stops it, and a radio that is on (not the zone's station) is stopped.
   if(this.radioStation>=0){if(radio?.radioOn)radio.stopRadioForAmbience();else this.stop();return;}
@@ -119,6 +133,11 @@ export class NativeAmbienceTracks {
   // A track that overrides the radio turns it off (with AE_FRONTEND_RADIO_RETUNE_STOP, whose static the port does not
   // play) and plays from the next service; any other waits for the radio to be off.
   if(radio?.radioOn){if(this.overrideRadio)radio.stopRadioForAmbience();return;}
+  if(mission>=0){
+   if(this.status===Status.STOPPED)this.start(mission,-2,1);
+   else if(this.trackId!==mission)this.fadeOutAndStop();
+   return;
+  }
   if(chosen){
    this.target=chosen.volume;
    if(this.status===Status.STOPPED)this.start(chosen.track,-34,1);
@@ -167,8 +186,10 @@ export class NativeAmbienceTracks {
    // The game's pause suspends the port's audio, which holds the track as CheckForPause's frequency of 0 does.
    case Status.PLAYING:this.channel.setFrequency(this.frequency);this.channel.setVolume(this.volume);break;
    case Status.STOPPING:{
+    // A mission's track leaves no place for the next one to resume from.
     const played=this.channel.playedMs();
-    if(played!==undefined){this.prevPlayMs=Math.trunc(played);this.prevStopMs=world.nowMs;}
+    if(this.trackId===this.specialMissionTrack){this.prevPlayMs=-1;this.prevStopMs=0;}
+    else if(played!==undefined){this.prevPlayMs=Math.trunc(played);this.prevStopMs=world.nowMs;}
     this.volume=-100;this.request++;this.channel.stop();this.status=Status.WAITING_TO_STOP;break;
    }
    case Status.WAITING_TO_STOP:this.status=Status.STOPPED;break;

@@ -216,7 +216,8 @@ export class AudioSystem {
   /** A CAEFrontendAudioEntity event such as AE_FRONTEND_PART_MISSION_COMPLETE. */
   frontend(event:number,volumeBoost=0){if(this.native&&this.audible)this.native.frontend.addAudioEvent(event,volumeBoost);}
   /** CAudioEngine::ReportMissionAudioEvent: a script's REPORT_MISSION_AUDIO_EVENT_AT_*. */
-  missionAudioEvent(event:number,at:import('./native/NativeScriptAudio').MissionAudioAt){if(this.native&&this.audible)this.native.scriptAudio.processMissionAudioEvent(event,at);}
+  /** Handled whatever the volume: a track's start or stop missed while muted would be missed for good. */
+  missionAudioEvent(event:number,at:import('./native/NativeScriptAudio').MissionAudioAt){this.native?.scriptAudio.processMissionAudioEvent(event,at);}
   /** A whole SCRIPT bank for a mission audio slot (false when there is no native audio to hold it), and its release. */
   loadMissionBank(index:number,bank:number){return this.native?.scriptAudio.loadMissionBank(index,bank)??Promise.resolve(false);}
   clearMissionBank(index:number){this.native?.scriptAudio.clearMissionBank(index);}

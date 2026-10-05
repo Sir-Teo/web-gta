@@ -9267,9 +9267,8 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   1), and a corner at an earlier one's place and height is that one. PreRenderWater runs it every 32nd frame where the
   area can see water. The birds read it too. The flow it also picks is left out, as nothing drifts with it.
 - **AUTHORED:** the zones that start a radio station (30, 52 to 62) start none, the stations not being published,
-  though the ambience track stops there as it would for the station; no mission plays its own track
-  (PlaySpecialMissionAmbienceTrack, from the script audio entity, is not ported); the retune static's stop is not
-  played.
+  though the ambience track stops there as it would for the station; the retune static's stop is not played. (A
+  mission's own track: see "A mission's own ambience track".)
 - Specs: `native-ambience-tracks` (unit: the table, the rise, the fade, the stop, the resume offset, zone 37, zones 4
   and 13, the sandstorm, the sea's volume, silence and speed, the hold, the riots, the radio), `nearest-water` (unit),
   `track-radio-arbitration` (unit: the radio's side), `ambience-tracks` (browser: zone 21's track streamed, risen to
@@ -9662,8 +9661,9 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   PURCHASE_WEAPON (the pickup's pair, 27 and 28); CAR_NO_CASH and _IS_HOT (the same pair at 0.841, 0x1001471f0);
   RACE_321 and _GO (6 and 7, 12 and 13, 0x1001478e8, 0x1001484e4); BUY_CAR_MOD (9 ahead, 0.0588 speed variance,
   0x1001485b8); CAR_RESPRAY (WEAPONS 28 left and right, one pitched up 1.189 by a coin toss, 0x1001481a4).
-- **Not yet:** the beat and cutscene track events; the crane (1019 to 1022, which load CRANE_P into the player slot);
-  the camera (1035, 1036, 1153, 1154, 1165, 1166) and a few more. (The mission-bank sounds: see "Mission banks".) The gate's two (1100, 1101) take the entity's flag at
+- **Not yet:** the crane (1019 to 1022, which load CRANE_P into the player slot); the camera (1035, 1036, 1153, 1154,
+  1165, 1166) and a few more. (The mission-bank sounds: see "Mission banks"; the track events: "A mission's own
+  ambience track".) The gate's two (1100, 1101) take the entity's flag at
   +0x92 as clear (sound 70); what sets it is not known. Such reports are counted (`script.unported` in the native
   audio snapshot) and play nothing.
 - Specs: `native-audio` (unit: the forwarded events, the resident sounds' bank, speed, start, front end and entity,
@@ -9697,3 +9697,18 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   pair; the keypad's 1028; a cleared slot; a start-and-loop stopped by its partner); `ios-sound-banks` (unit: the
   lookup, the banks); `interior-shops` (browser: the Ganton gym bench's set loads the gym bank into a mission slot and
   its report is played).
+
+## A mission's own ambience track
+
+- **What.** Eighteen of the events scripts report (1062/1063, 1068/1069, 1076/1077, 1097/1098, 1142/1143, 1181/1182,
+  1183/1184, 1185/1186, 1187/1188) start and stop a track of the AMBIENCE pack of the mission's own (153, 150, 141,
+  145, 160, 172, 149, 142, 161): the iOS ProcessMissionAudioEvent hands them to CAEAmbienceTrackManager's
+  PlaySpecialMissionAmbienceTrack and StopSpecialMissionAmbienceTrack (0x100141480 and 0x100141488 there, which set
+  the track and, for the stop, ChangeStatusToStopped and Reset's fields).
+- **How it plays** (the iOS UpdateAmbienceTrackAndVolume, 0x100140ac0, whose mission branch gta-reversed's "bad"
+  reversal gets wrong: it stops the mission's track once it plays): the mission's track takes the place of the zone's
+  and the sandstorm's, from the beginning and overriding the radio (which is turned off for it); with none playing it
+  starts at -2 dB with no rise; while it plays it is left alone; another track playing fades out first. Service's
+  STOPPING keeps no place for the next track to resume from when the mission's track is the one stopping.
+- Specs: `native-ambience-tracks` (unit: the start, the level held, the stop, a zone track faded out first, the radio
+  turned off); `native-audio` (unit: 1062 and 1063 reach the manager).

@@ -273,9 +273,13 @@ test("a script's reported sounds: frontend events handed on, resident sounds whe
  // HORN 7 for 1147 only while none of its own plays.
  e.scriptAudio.processMissionAudioEvent(1147,{position:{x:1,y:1,z:1}});e.scriptAudio.processMissionAudioEvent(1147,{position:{x:1,y:1,z:1}});
  expect(e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.hornAndSiren&&s.entity===e.scriptAudio)).toHaveLength(1);
- // A track event is not ported yet: noted, nothing played.
- e.scriptAudio.processMissionAudioEvent(1062,{position:{x:0,y:0,z:0}});
- expect(e.scriptAudio.unported.get(1062)).toBe(1);
+ // The mission's own ambience track: 1062 starts AMBIENCE 153 and 1063 stops it, through the host's manager.
+ const tracks:string[]=[];e.scriptAudio.ambience={playSpecialMissionAmbienceTrack:t=>tracks.push(`play ${t}`),stopSpecialMissionAmbienceTrack:()=>tracks.push('stop')};
+ e.scriptAudio.processMissionAudioEvent(1062,{position:{x:0,y:0,z:0}});e.scriptAudio.processMissionAudioEvent(1063,{position:{x:0,y:0,z:0}});
+ expect(tracks).toEqual(['play 153','stop']);
+ // The crane is not ported yet: noted, nothing played.
+ e.scriptAudio.processMissionAudioEvent(1019,{position:{x:0,y:0,z:0}});
+ expect(e.scriptAudio.unported.get(1019)).toBe(1);
 });
 test('the frontend plays the purchase, refusal, race and garage sounds as the iOS executable does',async()=>{
  const e=engine();await flush();await flush();

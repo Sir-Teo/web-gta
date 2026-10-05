@@ -4162,6 +4162,7 @@ async function boot() {
       // CAudioEngine::ReportMissionAudioEvent: at a point, or following the ped, car or object it names.
       // One physical per entity, so a handler can stop the sounds it started at the same one.
       game.missionAudio.onReport??=(event,at)=>{
+        if(sound.nativeEngine)sound.nativeEngine.scriptAudio.ambience??=ambience;
         if(!('kind' in at)){sound.missionAudioEvent(event,{position:{x:at.x,y:at.y,z:at.z}});return;}
         const owner=mission;if(!owner?.audioEntityPosition(at.kind,at.handle))return;
         const key=`${at.kind}:${at.handle}`;let physical=missionAudioEntities.get(key);
