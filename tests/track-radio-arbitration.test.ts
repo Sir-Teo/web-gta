@@ -18,7 +18,7 @@ function stream(lengthMs:number){
 /** An engine without its constructor (as tests/radio-speech.test.ts makes one), with the radio's state. */
 function engine(){
  const e:any=Object.create(NativeAudioEngine.prototype);
- Object.assign(e,{radioId:RADIO_ID.off,radioTracks:new NativeRadioTrackManager(()=>0),radioClock:{days:1,month:1,hours:12},timeMs:0,trackRadioStationId:-1,radioHeld:false});
+ Object.assign(e,{radioId:RADIO_ID.off,requestedRadioId:RADIO_ID.off,radioTracks:new NativeRadioTrackManager(()=>0),radioClock:{days:1,month:1,hours:12},timeMs:0,trackRadioStationId:-1,radioHeld:false});
  return e as NativeAudioEngine&{radioTracks:NativeRadioTrackManager};
 }
 
@@ -26,6 +26,11 @@ describe('CAudioEngine round the beat tracks',()=>{
  test('a preload first takes the stream from the radio or the ambience',()=>{
   const t=new ScmCutsceneTrack(),h=hooks();t.audio=h.audio;
   t.preloadBeatTrack(11);expect(h.calls).toEqual(['stop for track']);
+ });
+ test('on the iOS port a preload also holds the ambience',()=>{
+  const t=new ScmCutsceneTrack(),calls:string[]=[];
+  t.audio={stopForTrack:()=>{calls.push('stop for track');},radioAfterTrack:()=>{},holdAmbience:()=>{calls.push('hold ambience');}};
+  t.preloadBeatTrack(11);expect(calls).toEqual(['stop for track','hold ambience']);
  });
  test('the mission-complete track brings the radio back once it has stopped, with the vehicle’s settings',async()=>{
   const t=new ScmCutsceneTrack(),h=hooks(),host=stream(4000);t.audio=h.audio;t.stream=host.s;
@@ -76,7 +81,7 @@ describe('the radio and the beat tracks',()=>{
 describe('the ambience gives the stream up',()=>{
  test('StopAmbienceTrack(true) stops it at once and keeps where it had got to',async()=>{
   const calls:string[]=[];let played:number|undefined;
-  const c:AmbienceChannel={play:async(id,start)=>{calls.push(`play ${id} @${start}`);played=start;return true;},setVolume:()=>{},stop:()=>{calls.push('stop');played=undefined;},playedMs:()=>played};
+  const c:AmbienceChannel={play:async(id,start)=>{calls.push(`play ${id} @${start}`);played=start;return true;},setVolume:()=>{},setFrequency:()=>{},stop:()=>{calls.push('stop');played=undefined;},playedMs:()=>played};
   const m=new NativeAmbienceTracks(c,()=>0),inside={zone:{id:21},camera:[0,0,0] as const,sandstorm:0,outside:true,held:false,nowMs:0};
   m.service(inside);await settle();for(let i=0;i<5;i++)m.service(inside);
   played=12000;m.stopNow(1000);
@@ -84,5 +89,40 @@ describe('the ambience gives the stream up',()=>{
   // Held while the track plays; after it, back 7 s or more on from where it stopped.
   m.service({...inside,held:true,nowMs:2000});expect(m.active).toBe(false);
   m.service({...inside,nowMs:3000});expect(calls.at(-1)).toBe('play 135 @19000');
+ });
+});
+
+describe('the radio and the ambience track, which share the original’s stream',()=>{
+ function ambience(overrideRadio:boolean){
+  const a={active:true,overrideRadio,stops:0,stop(){this.stops++;this.active=false;}};return a;
+ }
+ test('a vehicle’s radio stops an ambience track that plays, and does not start under one that overrides it',()=>{
+  const e=engine(),sea=ambience(false);e.ambience=sea;
+  expect(e.startRadio(400,0,12,1)).toBe(true);expect(sea.stops).toBe(1);expect(e.radioId).toBe(8);
+  e.stopRadio(0,12,1);
+  const stadium=ambience(true);e.ambience=stadium;
+  expect(e.startRadio(400,0,12,1)).toBe(true);expect(stadium.stops).toBe(0);
+  expect(e.radioId).toBe(RADIO_ID.off);expect(e.radioOn).toBe(false);expect(e.radioLabel).toBeUndefined();
+  // Nor does a retune start a station under it.
+  expect(e.tuneRadio(1)).toBeUndefined();e.retuneRadio(4);expect(e.radioId).toBe(RADIO_ID.off);
+ });
+ test('a track that overrides the radio turns it off; once it stops the station last asked for comes back',()=>{
+  const e=engine(),names:string[]=[];e.onRadioName=label=>names.push(label);
+  e.startRadio(400,0,12,1);e.tuneRadio(1);expect(e.radioId).toBe(9);expect(e.radioOn).toBe(true);
+  e.stopRadioForAmbience();expect(e.radioOn).toBe(false);expect(e.radioLabel).toBeUndefined();
+  e.restartRadioAfterAmbience();expect(e.radioId).toBe(9);expect(names).toEqual(['K-Jah West']);
+ });
+ test('on foot nothing comes back; with the radio last tuned off it comes back off, its name shown',()=>{
+  const e=engine(),names:string[]=[];e.onRadioName=label=>names.push(label);
+  e.restartRadioAfterAmbience();expect(e.radioId).toBe(RADIO_ID.off);expect(names).toEqual([]);
+  e.startRadio(400,0,12,1);for(let i=0;i<4;i++)e.tuneRadio(1);expect(e.radioId).toBe(RADIO_ID.off);
+  e.restartRadioAfterAmbience();expect(e.radioId).toBe(RADIO_ID.off);expect(names).toEqual(['Radio Off']);
+ });
+ test('the emergency channel stops for the track and starts again after it',()=>{
+  const e=engine();
+  e.startRadio(596,0,12,1);expect(e.radioTracks.initialised).toBe(true);
+  e.stopRadioForAmbience();expect(e.radioTracks.initialised).toBe(false);expect(e.radioId).toBe(RADIO_ID.off);
+  e.radioTracks.mode=RADIO_MODE.stopped;expect(e.radioOn).toBe(false);
+  e.restartRadioAfterAmbience();expect(e.radioId).toBe(RADIO_ID.emergency);expect(e.radioTracks.requested.stationId).toBe(0);
  });
 });

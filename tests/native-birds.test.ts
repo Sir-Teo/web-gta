@@ -50,11 +50,3 @@ test('CBirds::Render builds two mirrored wings, fading over the last 30% of the 
  expect(near.positions[2*3]).toBeCloseTo(-near.positions[(8+2)*3]);
  const far=birdVertices(bird,0,0,[0,-37,20]);expect(far.colors[3]).toBeLessThan(255);expect(far.colors[3]).toBeGreaterThan(0);
 });
-
-test('the camera counts as near water within 30 units', async () => {
- const {sampledDistanceToWater}=await import('../src/world/nativeBirds');
- const lake=(x:number,y:number)=>Math.hypot(x-100,y)<5?0:undefined;
- expect(sampledDistanceToWater(lake,100,0)).toBe(0);
- expect(sampledDistanceToWater(lake,80,0)).toBe(20);
- expect(sampledDistanceToWater(lake,0,0)).toBe(Infinity);
-});

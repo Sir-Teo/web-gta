@@ -2156,9 +2156,10 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     last 30% of the range.
   - A bullet line through a bird's 0.5 sphere kills it
     (`HandleGunShot`, fed from every tracer).
-- `TheCamera.m_fDistanceToWater` comes from the stubbed
-  `CWaterLevel::FindNearestWaterAndItsFlow`. Birds only compare it with 30,
-  so water.dat is sampled on rings of 10, 20 and 30 units instead.
+- `TheCamera.m_fDistanceToWater` comes from
+  `CWaterLevel::FindNearestWaterAndItsFlow`, from the iOS port since
+  2026-10-05 (`src/world/nearestWater.ts`): the nearest water with waves.
+  It used to be water.dat sampled on rings of 10, 20 and 30 units.
 - Verification: unit tests cover spawning, the biomes, flight, removal, the
   shot test and the vertices. A browser test sees a flock drawn over Grove
   Street and shoots a bird down.
@@ -9224,24 +9225,54 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   `stream-tracks` (unit), `script-speech` (browser: the opening's track 184 fetched, track 175's first beat read
   17.3 s off a second in, a stop ends the track).
 
-## Interiors and the sandstorm have their ambience
+## Interiors, the sandstorm, the sea and the riots have their ambience
 
 - **The AMBIENCE pack, from the iOS port.** `AMBIENCE.osw` holds stream tracks 135 to 174 (pack 3 of the bundle's
   `StrmPaks.dat`); `scripts/content/package-stream-tracks.mjs` (formerly `package-beat-tracks.mjs`) now packages it
   beside BEATS (40 tracks, 21.7 MB).
 - **`CAEAmbienceTrackManager`** (`src/audio/NativeAmbienceTracks.ts`). `Service`'s status machine is reversed and
-  followed. `UpdateAmbienceTrackAndVolume` is marked "bad" in gta-reversed; taken from it: the audio zone's track
-  (the first active sphere, else the first active box: the 24/7s' 135, the Ammu-Nations' 137, the lowrider park's
-  157 and 27 more), zone 4's 9 dB a unit below 1372 and zones 5 and 10's distance attenuation, the sandstorm's 167
-  when the outside can be seen, a new track starting at -34 dB and rising 1 dB a service, and a replaced or left one
-  fading 0.4 dB a service to -40 dB before it stops. A track starts at a random point up to 600 s the first time and
-  then 7 s or more on from where it stopped, and loops. The choice is held while a beat track plays and while paused.
-  It is serviced once a 30 fps game frame, as CAudioEngine::Service is (2026-10-05: it was once a rendered frame, so
-  at a low frame rate the rise and the fade, steps a service, ran slow in game time: the fade took 26 s at 3 fps).
-- **AUTHORED:** the reversal's sea and underwater ambience (174, 166) sits behind a condition its zone tracks always
-  meet, so it cannot be followed as written and is left out; the zones that start a radio station do nothing.
-- Specs: `native-ambience-tracks` (unit: the table, the rise, the fade, the resume offset, the sandstorm, zone 4),
-  `ambience-tracks` (browser: zone 21's track streamed, risen to -6 dB and heard, then faded out and stopped).
+  followed. `UpdateAmbienceTrackAndVolume` is marked "bad" in gta-reversed, its sea branch under a test that keeps it
+  from ever running; since 2026-10-05 it is the iOS port's (0x100140ac0 in its executable, with its zone jump table):
+  - The audio zone's track (the first active sphere, else the first active box: the 24/7s' 135, the Ammu-Nations'
+    137, the lowrider meet's 157 and 27 more), zone 4's 9 dB a unit below 1372 and the distance attenuation of zones
+    5, 10 and 13 (13, the lowrider meet, was flat in the reversal). The sandstorm's 167, at 20 log10 of its strength
+    less 6 dB (the reversal had log10 alone), where it can be heard: outside and out of the no-rain zones; where it
+    cannot, the zones are asked. A new track starts at -34 dB and rises 1 dB a service; a replaced one fades 0.4 dB a
+    service to -40 dB before it stops.
+  - Where no zone has a track, the sea (174): GetDistanceAttenuation of the camera's distance from the nearest water
+    with waves (to its height) over 1.75, less 12 dB, heard above -34 dB (within about 24 units), silenced between -40
+    and -34 and stopped below. Under water it plays at 14 dB and a sixteenth of its speed, the frequency factor easing a
+    quarter a service (the channel's playback rate).
+  - Else the riots' 166, outdoors where they are on (LaRiotsActiveHere), rising to -12 dB.
+  - With neither, the playing track stops at once (it used to fade), fading only in a sandstorm that cannot be heard,
+    and the vehicle's radio is asked back: IsVehicleRadioActive, then StartRadio of the station last asked for, its
+    name shown (asked each service until the track has stopped, as the iOS port does).
+  - The radio: a track plays only while the radio is off; the lowrider meet's and the stadiums' (zones 13 and 41)
+    override it and turn it off. StartRadio (getting into a vehicle, a retune, the radio after a beat track) stops any
+    other ambience track and does not start under one that overrides it.
+  - Zone 37's track starts at the beginning; the rest at a random point up to 600 s the first time and then 7 s or
+    more on from where they stopped, and loop.
+  - The iOS port's own hold (0x1001709a0, its IsCutsceneTrackActive): the cutscene track's, the widescreen bars, and
+    30 s from a cutscene or beat track's preload (a flag its PreloadCutsceneTrack sets, against the OS clock). A track
+    waits it out to start (the PC's Service, reversed, has no such wait) and the sea to be chosen.
+  - The choice is held while a beat track plays and while paused. It is serviced once a 30 fps game frame, as
+    CAudioEngine::Service is (2026-10-05: it was once a rendered frame, so at a low frame rate the rise and the fade,
+    steps a service, ran slow in game time: the fade took 26 s at 3 fps).
+- **TheCamera's distance to water** (`src/world/nearestWater.ts`): CWaterLevel::FindNearestWaterAndItsFlow,
+  unreversed in gta-reversed, from the iOS port (0x10048a59c). The nearest quad with waves at a corner, by the 2D
+  distance to its rectangle, gives m_fDistanceToWater and its first corner's height m_fHeightOfNearestWater; off the
+  map (beyond ±3000) both are 0, and with no such quad the distance is 1e7. The quads are built as AddWaterLevelVertex
+  (0x100489214) builds them: a corner beyond ±2999 is moved to ±3000 with the open sea's settings (height 0, big waves
+  1), and a corner at an earlier one's place and height is that one. PreRenderWater runs it every 32nd frame where the
+  area can see water. The birds read it too. The flow it also picks is left out, as nothing drifts with it.
+- **AUTHORED:** the zones that start a radio station (30, 52 to 62) start none, the stations not being published,
+  though the ambience track stops there as it would for the station; no mission plays its own track
+  (PlaySpecialMissionAmbienceTrack, from the script audio entity, is not ported); the retune static's stop is not
+  played.
+- Specs: `native-ambience-tracks` (unit: the table, the rise, the fade, the stop, the resume offset, zone 37, zones 4
+  and 13, the sandstorm, the sea's volume, silence and speed, the hold, the riots, the radio), `nearest-water` (unit),
+  `track-radio-arbitration` (unit: the radio's side), `ambience-tracks` (browser: zone 21's track streamed, risen to
+  -6 dB and heard, then stopped; the sea heard on Santa Maria Beach, stopping for a car's radio and back on foot).
 
 ## Peds cry in their own voices
 
@@ -9436,10 +9467,10 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     up the next one where it ends, without a gap; a track it cannot have reads -8, and the manager puts an advert and a
     music track in its place.
 - **Not ported:** the stations' own DJ banter, ChooseTalkRadioShow and the user tracks (only the emergency channel plays,
-  the stations' packs not being published); the retune static (the frontend's retune events); the bass EQ; and an
-  ambience track that overrides the radio (DoesAmbienceTrackOverrideRadio), the port's ambience zones that would
-  start a station doing nothing. The radio's stream is a channel of its own, and the beat tracks' arbitration below
-  gives way between them as the original's one stream does.
+  the stations' packs not being published); the retune static (the frontend's retune events); the bass EQ; and the
+  port's ambience zones that would start a station start none. The radio's stream is a channel of its own, and the
+  beat tracks' arbitration below, and the ambience's (an ambience track that overrides the radio, with
+  DoesAmbienceTrackOverrideRadio; see the ambience section), give way between them as the original's one stream does.
 - Specs: `radio-track-manager` (unit: the tables, the opening queues, the queue through a fake stream, the volumes, the
   kept place and its window, an unready track, CheckForPause); `emergency-radio` (browser: a police car at Grove Street
   plays the channel, the dispatcher comes on, only AA tracks are fetched, and getting out stops it).

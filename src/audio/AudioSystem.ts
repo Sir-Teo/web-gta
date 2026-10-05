@@ -132,9 +132,10 @@ export class AudioSystem {
       return (track.playedS+(ctx.currentTime-track.since)*track.rate)*1000;
     },
   };
-  /** CAEAmbienceTrackManager's channel: one looped track at a time, at a volume in dB. */
-  private ambience?:{source:AudioBufferSourceNode;gain:GainNode;startedAt:number;offsetS:number;duration:number};
-  private ambienceRequest=0;private ambiencePlayed=0;
+  /** CAEAmbienceTrackManager's channel: one looped track at a time, at a volume in dB and a frequency factor (the
+   * playback rate, which the channel keeps from one track to the next). How far in it is counts the track's time. */
+  private ambience?:{source:AudioBufferSourceNode;gain:GainNode;since:number;playedS:number};
+  private ambienceRequest=0;private ambiencePlayed=0;private ambienceRate=1;
   readonly ambienceTracks:AmbienceChannel={
     play:async(id,startMs)=>{
       this.stopAmbience();const request=++this.ambienceRequest;
@@ -142,13 +143,18 @@ export class AudioSystem {
       if(!loaded||!ctx||request!==this.ambienceRequest||this.disposed)return false;
       const duration=loaded.buffer.duration,offsetS=duration>0?(startMs/1000)%duration:0;
       const source=ctx.createBufferSource(),gain=ctx.createGain();
-      source.buffer=loaded.buffer;source.loop=true;gain.gain.value=0;
+      source.buffer=loaded.buffer;source.loop=true;source.playbackRate.value=this.ambienceRate;gain.gain.value=0;
       source.connect(gain);gain.connect(this.effects);source.start(0,offsetS);
-      this.ambience={source,gain,startedAt:ctx.currentTime,offsetS,duration};this.ambiencePlayed++;return true;
+      this.ambience={source,gain,since:ctx.currentTime,playedS:offsetS};this.ambiencePlayed++;return true;
     },
     setVolume:dB=>{const a=this.ambience;if(a)a.gain.gain.value=dB<=-100?0:10**(dB/20);},
+    setFrequency:factor=>{
+      const ctx=this.context,a=this.ambience;
+      if(ctx&&a&&factor!==this.ambienceRate){a.playedS+=(ctx.currentTime-a.since)*this.ambienceRate;a.since=ctx.currentTime;a.source.playbackRate.value=factor;}
+      this.ambienceRate=factor;
+    },
     stop:()=>{this.ambienceRequest++;this.stopAmbience();},
-    playedMs:()=>{const ctx=this.context,a=this.ambience;return ctx&&a?(a.offsetS+ctx.currentTime-a.startedAt)*1000:undefined;},
+    playedMs:()=>{const ctx=this.context,a=this.ambience;return ctx&&a?(a.playedS+(ctx.currentTime-a.since)*this.ambienceRate)*1000:undefined;},
   };
   private stopAmbience(){
     const a=this.ambience;if(!a)return;this.ambience=undefined;
@@ -342,7 +348,7 @@ export class AudioSystem {
       rms = Math.sqrt(this.meter.reduce((sum, value) => sum + value * value, 0) / this.meter.length);
     }
     return { context: this.context?.state ?? 'uninitialized', loaded: this.loaded, failed: this.failed, unavailable: this.unavailable,
-      native:this.native?{...this.native.snapshot(),frames:this.nativeFrames}:null,nativeCombatBanks:this.combatBanks.size,combatShots:this.combatShots,nativeFootstepBanks:this.nativeFeet?.length??0,nativeShotsPlayed:this.nativeShotsPlayed,speechPlayed:this.speechPlayed,tracksPlayed:this.tracksPlayed,trackPlaying:!!this.track,ambiencePlayed:this.ambiencePlayed,ambienceGain:this.ambience?+this.ambience.gain.gain.value.toFixed(4):null,speechVoices:this.speechVoices.size,buffers: this.nativeBuffers.size, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
+      native:this.native?{...this.native.snapshot(),frames:this.nativeFrames}:null,nativeCombatBanks:this.combatBanks.size,combatShots:this.combatShots,nativeFootstepBanks:this.nativeFeet?.length??0,nativeShotsPlayed:this.nativeShotsPlayed,speechPlayed:this.speechPlayed,tracksPlayed:this.tracksPlayed,trackPlaying:!!this.track,ambiencePlayed:this.ambiencePlayed,ambienceGain:this.ambience?+this.ambience.gain.gain.value.toFixed(4):null,ambienceRate:this.ambience?this.ambienceRate:null,speechVoices:this.speechVoices.size,buffers: this.nativeBuffers.size, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
   }
   dispose() {
     this.nativeLoad++;this.nativeFeet=undefined;this.native?.reset();this.nativeChannels?.dispose();this.combatBanks.clear();this.nativeBuffers.clear();

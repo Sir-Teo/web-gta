@@ -234,7 +234,7 @@ import { Hud } from './ui/Hud';
 import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, GAMELOGIC_STATE_WASTED, GAMELOGIC_STATE_BUSTED, type GameLogicWorld, type SkipWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
-import { NativeBirds, sampledDistanceToWater } from './world/nativeBirds';
+import { NativeBirds } from './world/nativeBirds';
 import { NativeBirdsMesh } from './render/NativeBirds';
 import { MARKER3D, Native3dMarkers, type Marker3dContext } from './world/native3dMarkers';
 import { Native3dMarkersMesh } from './render/Native3dMarkers';
@@ -1635,6 +1635,10 @@ async function boot() {
   sound.useScriptSpeech(new URL(`${import.meta.env.BASE_URL}play/audio/script/`,location.href).href);
   sound.useStreamTracks(new URL(`${import.meta.env.BASE_URL}play/audio/streams/`,location.href).href);
   const ambience=new NativeAmbienceTracks(sound.ambienceTracks);
+  /** TheCamera's m_fDistanceToWater and m_fHeightOfNearestWater (CWaterLevel::FindNearestWaterAndItsFlow, from
+   * PreRenderWater), for the sea's ambience and the birds; and the iOS port's 30 s hold on the ambience from a cutscene
+   * or beat track's preload (its PreloadCutsceneTrack's flag, against the OS clock). */
+  let cameraWater={distance:1e7,height:0},cameraWaterFrame=-1,ambienceHeldUntil=-Infinity;
   // CJ's pain cries in his PAIN_A voice, as the damage, the fall and the fire say them.
   sim.onPlayerPain=context=>{sound.nativeEngine?.playerPain(context);};
   /** Each streamed window carries the same vegetation package; it is parsed once. */
@@ -1644,8 +1648,9 @@ async function boot() {
   // The engine's banks (about 5 MB) are needed once play starts, not to show the menu: download them after the start
   // package has arrived instead of alongside it.
   void afterMenuReady.then(()=>sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href)).then(loaded=>{if(!loaded)void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);
-   // The radio waits while a beat track holds the stream (GetBeatTrackStatus), and its name shows when it comes back.
-   const engine=sound.nativeEngine;if(engine){engine.beatTrackStatus=()=>mission?.runtime.game.cutsceneTrack.reportedStatus??0;engine.onRadioName=label=>hud.radioName(label);}});
+   // The radio waits while a beat track holds the stream (GetBeatTrackStatus), and its name shows when it comes back;
+   // it starts as the ambience track lets it (CAERadioTrackManager::StartRadio).
+   const engine=sound.nativeEngine;if(engine){engine.beatTrackStatus=()=>mission?.runtime.game.cutsceneTrack.reportedStatus??0;engine.onRadioName=label=>hud.radioName(label);engine.ambience=ambience;}});
   const hornInput=new NativeHornInput();sound.setPlayer(()=>({...sim.player.position,y:sim.player.position.y+1}));
   sound.reset(sim);
   // Open the (suspended) output device while the menu waits, not inside the click that starts play.
@@ -3040,11 +3045,18 @@ async function boot() {
       guard('fleet.update',()=>{for(let i=0;i<newGameFrames;i++)fleet?.tickFrame();fleet?.update(now);});
       // CAudioZones::Update from Game.cpp's frame, with the camera's position.
       if(newGameFrames){const c=render.camera.position;mission?.runtime.game.audioZones.update(false,[c.x,-c.z,c.y],gameFrame);
+       // CWaterLevel::PreRenderWater's FindNearestWaterAndItsFlow, every 32nd frame where the area can see water
+       // (CGame::CanSeeWaterFromCurrArea), and on the first.
+       const nearest=render.lighting.water.nearest,area=render.lighting.area;
+       if(nearest&&(area===0||area===5))for(let f=gameFrame-newGameFrames+1;f<=gameFrame;f++)if(f%32===29||cameraWaterFrame<0){cameraWater=nearest.find(c.x,-c.z);cameraWaterFrame=f;}
        // CAEAmbienceTrackManager::Service, with CAudioEngine's, once a game frame (its rise and fade are steps a frame):
-       // the zone's (or the sandstorm's) looped track. The choice is held while a beat or cutscene track plays and while
-       // the game is paused.
-       if(mission){const g=mission.runtime.game;for(let i=0;i<newGameFrames;i++)ambience.service({zone:g.audioZones.firstActive,camera:[c.x,-c.z,c.y],sandstorm:weatherStarted?weather.sandstorm:0,
-        outside:render.lighting.area===0,held:paused||g.cutsceneTrack.active,nowMs:gameTimeMs});}}
+       // the zone's (or the sandstorm's) looped track, else the sea's or the riots'. The choice is held while a beat or
+       // cutscene track plays and while the game is paused.
+       if(mission){const g=mission.runtime.game,p=sim.player.position;
+        const riots=laRiotsActiveHere({x:p.x,y:-p.z,z:p.y},CHEATS.isActive('riot'),laRiots);
+        for(let i=0;i<newGameFrames;i++)ambience.service({zone:g.audioZones.firstActive,camera:[c.x,-c.z,c.y],sandstorm:weatherStarted?weather.sandstorm:0,
+         outside:area===0,noRain:cullZones.camNoRain||cullZones.playerNoRain,underwaterness:weather.underwaterness,water:cameraWater,riots,radio:sound.nativeEngine,
+         held:paused||g.cutsceneTrack.active,trackHold:g.cutsceneTrack.active||g.widescreenOn||performance.now()<=ambienceHeldUntil,nowMs:gameTimeMs});}}
       // CCheckpoints::Update (CSpecialFX::Update), once a game frame.
       if(mission){const cps=mission.runtime.game.checkpoints.markers;cps.player=checkpointPlayer;for(let i=0;i<newGameFrames;i++)cps.update();}
       {const c=render.camera.position,p=sim.player.position;
@@ -3602,7 +3614,7 @@ async function boot() {
           const c=render.camera.position,f=render.camera.getWorldDirection(scratchAim),level=render.lighting.water.levels;
           const waterLevel=(x:number,y:number)=>level?.level(x,y);
           birds.update({camera:[c.x,-c.z,c.y],forward:[f.x,-f.z,f.y],area:render.lighting.area,hour:Math.floor(sim.timeMinutes/60)%24,
-            distanceToWater:level?sampledDistanceToWater(waterLevel,c.x,-c.z):Infinity,desert:nativeWeatherRegion(c.x,-c.z)===WEATHER_REGION.desert,waterLevel,
+            distanceToWater:cameraWater.distance,desert:nativeWeatherRegion(c.x,-c.z)===WEATHER_REGION.desert,waterLevel,
             lineOfSightClear:(a,b)=>{const from={x:a[0],y:a[2],z:-a[1]},d={x:b[0]-a[0],y:b[2]-a[2],z:-(b[1]-a[1])},l=Math.hypot(d.x,d.y,d.z)||1;
               return !sim.world.castRay(new RAPIER.Ray(from,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,RAPIER.QueryFilterFlags.ONLY_FIXED);}},++birdFrame,1/30);
         }
@@ -5643,7 +5655,8 @@ async function boot() {
                  setDeathPenalties:apply=>{gameLogic.penaltyForDeathApplies=apply;},
                  beatTracks:sound.beatTracks,
                  // CAudioEngine::PreloadBeatTrack: the radio, else the ambience track, gives the stream up to the track.
-                 trackAudio:{stopForTrack:()=>{if(!sound.nativeEngine?.stopRadioForTrack())ambience.stopNow(gameTimeMs);},radioAfterTrack:kept=>{sound.nativeEngine?.restartRadioAfterTrack(kept);}},
+                 trackAudio:{stopForTrack:()=>{if(!sound.nativeEngine?.stopRadioForTrack())ambience.stopNow(gameTimeMs);},radioAfterTrack:kept=>{sound.nativeEngine?.restartRadioAfterTrack(kept);},
+                  holdAmbience:()=>{ambienceHeldUntil=performance.now()+30000;}},
                  scriptSpeech:{load:sample=>sound.loadSpeech(sample),play:(slot,sample)=>{sound.playSpeech(slot,sample);},stop:slot=>{sound.stopSpeech(slot);},lengthMs:sample=>sound.speechLengthMs(sample)},
                  setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},
                  // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.

@@ -24,7 +24,7 @@ export interface BirdWorld {
  area:number;
  /** CClock hours. */
  hour:number;
- /** TheCamera.m_fDistanceToWater. */
+ /** TheCamera.m_fDistanceToWater (world/nearestWater.ts). */
  distanceToWater:number;
  /** CWeather::WeatherRegion is WEATHER_REGION_DESERT. */
  desert:boolean;
@@ -166,12 +166,3 @@ export function birdVertices(bird:NativeBird,slot:number,timeMs:number,camera:re
 }
 /** CBirds::auRenderIndices, then the same triangles on the mirrored eight. */
 export const BIRD_INDICES=[0,3,1,0,2,3,2,4,5,2,5,3,0,1,3,0,3,2,2,5,4,2,3,5,0,6,7,0,7,6];
-
-/** TheCamera.m_fDistanceToWater comes from CWaterLevel::FindNearestWaterAndItsFlow, a retail stub. Birds only ask
- * whether it exceeds 30, so this samples water.dat on rings of 10, 20 and 30 units (16 directions) and returns the
- * first ring with water, 0 over water, or Infinity. */
-export function sampledDistanceToWater(level:(x:number,y:number)=>number|undefined,x:number,y:number){
- if(level(x,y)!==undefined)return 0;
- for(const r of [10,20,30])for(let i=0;i<16;i++){const a=i*Math.PI/8;if(level(x+Math.cos(a)*r,y+Math.sin(a)*r)!==undefined)return r;}
- return Infinity;
-}

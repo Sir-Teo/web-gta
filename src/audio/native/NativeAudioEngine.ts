@@ -148,8 +148,14 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state,pain:{next:0}};this.peds.set(key,ped);}
   ped.state.position=position;ped.audio.pedHit(blocked,weapon);
  }
- /** CAERadioTrackManager's requested eRadioID: 0 the emergency channel, 1-11 the stations, 13 off. */
+ /** CAERadioTrackManager's requested eRadioID while the radio is on: 0 the emergency channel, 1-11 the stations, 13
+  * off. */
  radioId:number=RADIO_ID.off;
+ /** m_RequestedSettings.StationID, which StopRadio leaves: the station last asked for (GetCurrentRadioStationID, off
+  * before any). */
+ private requestedRadioId:number=RADIO_ID.off;
+ /** IsRadioOn: a station, or the emergency channel's track manager. */
+ get radioOn(){return this.radioId!==RADIO_ID.off||this.radioTracks.isRadioOn();}
  /** m_nSavedRadioStationId, m_nSavedTimeMs and the game hour and weekday saved with it. */
  private savedRadio?:{id:number;timeMs:number;hour:number;day:number};
  /** The station playing, when it is a music station (the beds stand in for the station's music). */
@@ -169,16 +175,20 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   const settings=vehicleRadioSettings(modelId);
   this.radioVehicleType=settings.type;this.radioModelId=modelId;
   // CAudioEngine::StartRadio: none while a beat track holds the stream (GetBeatTrackStatus); the radio waits for it.
-  if(this.beatTrackHeld&&(settings.type===RADIO_TYPE.emergency||settings.type===RADIO_TYPE.civilian)){this.radioId=RADIO_ID.off;this.radioHeld=true;return true;}
+  // Nor under an ambience track that overrides the radio, which waits for that track to stop.
+  if(settings.type===RADIO_TYPE.emergency||settings.type===RADIO_TYPE.civilian){
+   if(this.beatTrackHeld||!this.ambienceLetsRadioStart()){this.radioId=RADIO_ID.off;this.radioHeld=true;return true;}
+   this.radioHeld=false;
+  }
   if(settings.type===RADIO_TYPE.emergency){
-   this.radioId=RADIO_ID.emergency;
+   this.radioId=this.requestedRadioId=RADIO_ID.emergency;
    // StartRadio(RADIO_EMERGENCY_AA, the vehicle's bass setting, its factor (for the EQ, which is not ported), no skip).
    this.radioTracks.startRadio(RADIO_ID.emergency,settings.bass,0,false,this.radioWorld());
    return true;
   }
   if(settings.type!==RADIO_TYPE.civilian){this.radioId=RADIO_ID.off;return false;}
   const s=this.savedRadio,retune=!!s&&s.id!==settings.station&&s.id!==RADIO_ID.off&&s.id!==RADIO_ID.emergency&&nowMs<=s.timeMs+60000&&hour+24*((day-s.day+7)%7)-s.hour<=5;
-  this.radioId=retune?s!.id:settings.station;
+  this.radioId=this.requestedRadioId=retune?s!.id:settings.station;
   return true;
  }
  /** StopRadio as the player leaves: the emergency channel's is the track manager's, which keeps its place; for a
@@ -195,7 +205,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** DisplayRadioStationName, for the radio that comes back after a track (the host's HUD). */
  onRadioName?:(label:string)=>void;
  /** The driven vehicle's model while it has the radio, m_nCurrentRadioStationId (the station a track stopped, -1
-  * none), and whether the radio is off for a track. */
+  * none), and whether the radio is off for a track (a beat track, or an ambience track that overrides the radio). */
  private radioModelId?:number;private trackRadioStationId=-1;private radioHeld=false;
  /** CAudioEngine::PreloadBeatTrack's (and PreloadCutsceneTrack's) first step, as the original's one stream needs it: a
   * radio that is on stops (StopRadio with the vehicle's settings, during the pause), its station kept. Whether one was
@@ -213,13 +223,44 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  restartRadioAfterTrack(keptStation:boolean){
   const type=this.radioVehicleType,model=this.radioModelId;
   if(model!==undefined&&(type===RADIO_TYPE.civilian||type===RADIO_TYPE.emergency||type===RADIO_TYPE.unknown)){
-   this.radioHeld=false;
    const station=type===RADIO_TYPE.emergency?RADIO_ID.emergency:this.trackRadioStationId>=0?this.trackRadioStationId:vehicleRadioSettings(model).station;
-   this.radioId=station;
-   if(station===RADIO_ID.emergency)this.radioTracks.startRadio(RADIO_ID.emergency,vehicleRadioSettings(model).bass,0,false,this.radioWorld());
-   const label=this.radioLabel;if(label)this.onRadioName?.(label);
+   if(station!==RADIO_ID.off&&!this.ambienceLetsRadioStart()){this.radioId=RADIO_ID.off;this.radioHeld=true;}
+   else{
+    this.radioHeld=false;this.radioId=this.requestedRadioId=station;
+    if(station===RADIO_ID.emergency)this.radioTracks.startRadio(RADIO_ID.emergency,vehicleRadioSettings(model).bass,0,false,this.radioWorld());
+    const label=this.radioLabel;if(label)this.onRadioName?.(label);
+   }
   }
   if(keptStation)this.trackRadioStationId=-1;
+ }
+ /** The ambience track manager, which on the original shares the radio's stream: whether a track plays
+  * (IsAmbienceTrackActive), whether it overrides the radio (DoesAmbienceTrackOverrideRadio), and StopAmbienceTrack. */
+ ambience?:{readonly active:boolean;readonly overrideRadio:boolean;stop():void};
+ /** CAERadioTrackManager::StartRadio's word with the ambience track, for a station or the emergency channel: one that
+  * overrides the radio keeps it from starting (reporting AE_FRONTEND_RADIO_RETUNE_STOP, whose static the port does not
+  * play), and any other one stops for it. */
+ private ambienceLetsRadioStart(){
+  const a=this.ambience;if(!a?.active)return true;
+  if(a.overrideRadio)return false;
+  a.stop();return true;
+ }
+ /** The ambience's StopRadio(nullptr, false), for a track that overrides the radio: off until the ambience brings it
+  * back (restartRadioAfterAmbience), the emergency channel's track manager keeping its place. */
+ stopRadioForAmbience(){
+  if(this.radioId===RADIO_ID.emergency)this.radioTracks.stopRadio(undefined,false,this.radioWorld());
+  this.radioId=RADIO_ID.off;this.radioHeld=true;
+ }
+ /** The ambience's StartRadio(GetCurrentRadioStationID(), NORMAL) once its track has stopped, in a vehicle with a
+  * radio (IsVehicleRadioActive): the station last asked for (off, if that was off), its name shown as the station
+  * starting sets m_bDisplayStationName. None while a beat track holds the stream (CAudioEngine::StartRadio). */
+ restartRadioAfterAmbience(){
+  const type=this.radioVehicleType;
+  if(this.radioModelId===undefined||type!==RADIO_TYPE.civilian&&type!==RADIO_TYPE.emergency&&type!==RADIO_TYPE.unknown)return;
+  const station=this.requestedRadioId;
+  if(this.beatTrackHeld||station!==RADIO_ID.off&&!this.ambienceLetsRadioStart())return;
+  this.radioHeld=false;this.radioId=station;
+  if(station===RADIO_ID.emergency)this.radioTracks.startRadio(RADIO_ID.emergency,0,0,false,this.radioWorld());
+  const label=this.radioLabel;if(label)this.onRadioName?.(label);
  }
  /** The radio's stream (RadioStream.ts), which the audio system makes once it has a context. */
  attachRadioStream(stream:RadioTrackHardware&{service():void;snapshot?():unknown}){this.radioTracks.hardware=stream;this.radioStream=stream;}
@@ -232,19 +273,24 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   return {timeMs:this.timeMs,pauseTimeMs:this.timeMs,paused:false,clock:this.radioClock,widescreen:!!input?.widescreen,slowMotion:false,
    effectsLevel:1,musicLevel:1,dialogue:!!input?.dialogue,ambienceRadio:false,laRiotsHere:!!input?.laRiots,vehicleRadioType:this.radioVehicleType};
  }
- /** The player's retune: through the eleven stations and off (user tracks retune to off with none installed). */
  /** CAudioEngine::RetuneRadio (0x507E10) and CAERadioTrackManager::RetuneRadio: the script's station request; user
   * tracks with none loaded mean off; nothing while a beat track holds the stream (GetBeatTrackStatus), and
-  * CheckForStationRetune takes no request on the emergency channel. */
+  * CheckForStationRetune takes no request on the emergency channel. The station starts as StartRadio starts it, so
+  * not under an ambience track that overrides the radio. */
  retuneRadio(id:number){
   if(!Number.isInteger(id)||id<RADIO_ID.emergency||id>RADIO_ID.off||this.beatTrackHeld||this.radioId===RADIO_ID.emergency)return;
-  this.radioId=id===RADIO_ID.userTracks?RADIO_ID.off:id;
+  const station=id===RADIO_ID.userTracks?RADIO_ID.off:id;
+  if(station!==RADIO_ID.off&&!this.ambienceLetsRadioStart())return;
+  this.radioId=this.requestedRadioId=station;
  }
- /** The player's retune: none on the emergency channel, nor while the radio is off for a beat track. */
+ /** The player's retune: through the eleven stations and off; none on the emergency channel, nor while the radio is
+  * off for a track; a station starts as StartRadio starts it, so not under an ambience track that overrides the
+  * radio. */
  tuneRadio(dir=1){
   if(this.radioId===RADIO_ID.emergency||this.radioHeld)return undefined;
-  const cycle=[1,2,3,4,5,6,7,8,9,10,11,RADIO_ID.off],i=Math.max(0,cycle.indexOf(this.radioId));
-  this.radioId=cycle[(i+dir+cycle.length)%cycle.length];return this.radioLabel;
+  const cycle=[1,2,3,4,5,6,7,8,9,10,11,RADIO_ID.off],i=Math.max(0,cycle.indexOf(this.radioId)),next=cycle[(i+dir+cycle.length)%cycle.length];
+  if(next!==RADIO_ID.off&&!this.ambienceLetsRadioStart())return undefined;
+  this.radioId=this.requestedRadioId=next;return this.radioLabel;
  }
  /** Ped speech comments (CAEPedSpeechAudioEntity) as combat-bank vocals. SetNextPlayTime spaces each context by its
   * gSpeechContextLookup repeat time plus 1 to 1000 ms: pain per ped (m_NextTimeCanSayPain), every other context once

@@ -26,7 +26,12 @@ export interface BeatTrackStream {
  * first stops the radio (keeping its station) or else the ambience track (PreloadBeatTrack, PreloadCutsceneTrack); the
  * radio comes back when the script stops the track (StopBeatTrack: StopCutsceneTrack's wait, to the kept station) and
  * once the mission-complete track has stopped (CAudioEngine::Service: StartRadio with the vehicle's settings). */
-export interface TrackAudio {stopForTrack():void;radioAfterTrack(keptStation:boolean):void}
+export interface TrackAudio {
+ stopForTrack():void;radioAfterTrack(keptStation:boolean):void;
+ /** The iOS port's PreloadCutsceneTrack also sets a flag of its CAudioEngine's for 30 s, which its own
+  * IsCutsceneTrackActive reads: the ambience track waits it out (audio/NativeAmbienceTracks.ts). */
+ holdAmbience?():void;
+}
 /** tBeatInfo: the beats around the play time (slot 9 the last, 10 the next) with times relative to it. */
 export interface BeatInfo {window:{time:number;key:number}[];present:boolean;beatTypeThisFrame:number;beatNumber:number}
 const WINDOW=20,PAST=9,NEXT=10,BEATS_PER_TRACK=1000;
@@ -50,7 +55,7 @@ export class ScmCutsceneTrack {
  private trackPlayTime(){return this.state==='ready'?TRACK_READY:this.state==='playing'?Math.trunc(this.playedMs):TRACK_STOPPED;}
  /** CAudioEngine::PreloadBeatTrack: the radio or the ambience stops, then CAECutsceneTrackManager::PreloadBeatTrack
   * through gBeatTrackLookup, and PreloadCutsceneTrack without waiting. */
- preloadBeatTrack(beat:number){this.audio?.stopForTrack();this.trackId=BEAT_TRACK_LOOKUP[beat]??-1;this.status=S0;}
+ preloadBeatTrack(beat:number){this.audio?.stopForTrack();this.trackId=BEAT_TRACK_LOOKUP[beat]??-1;this.status=S0;this.audio?.holdAmbience?.();}
  /** PlayPreloadedBeatTrack(missionComplete): PlayPreloadedCutsceneTrack. */
  play(missionComplete=false){this.playRequest=true;this.paused=false;this.missionComplete=missionComplete;}
  /** StopBeatTrack: StopCutsceneTrack(true), which waits the track out and brings the radio back. */

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {readWater,visibleWaterPolygons,waterGeometry} from '../assets/water';
 import type {ImportedLighting} from '../world/LocalTimecycle';
 import {WaterLevelIndex} from '../world/waterLevel';
+import {NearestWater} from '../world/nearestWater';
 import {DETAILED_WATER_DIST,DetailedWaterBuilder,WAVE_MULTIPLIERS_X,WAVE_MULTIPLIERS_Y,waterCameraRange,waterSurface,waterWavePhases,type WaterCameraRange,type WaterSurface} from '../world/waterWaves';
 /** Native water surfaces with timecycle color; gameplay heights come from WATER.DAT (no waves).
  * CWaterLevel::RenderWater's split (see waterWaves.ts): polygons render flat outside the camera range (SetCameraRange,
@@ -24,6 +25,8 @@ export class LocalWater {
   wavyness=0;
   /** Native water heights for gameplay queries (all polygons, including invisible surfaces). */
   levels?:WaterLevelIndex;
+  /** CWaterLevel's quads as FindNearestWaterAndItsFlow searches them. */
+  nearest?:NearestWater;
   constructor(private scene:THREE.Scene){this.detail.name='Imported detailed water';this.detail.frustumCulled=false;this.detail.visible=false;}
   private waterMaterial(detail:boolean){
     const material=new THREE.MeshBasicMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:false,toneMapped:false}),u=this.uniforms;
@@ -68,7 +71,7 @@ export class LocalWater {
         mesh.name=interior?'Imported interior water':'Imported exterior water';mesh.visible=false;mesh.userData.polygons=polygons.length;
       }
     }catch(error){for(const mesh of next)mesh.geometry.dispose();throw error;}
-    this.clear();this.meshes=next;this.surfaces=surfaces;this.name=name;this.counts=next.map(m=>m.userData.polygons);this.levels=new WaterLevelIndex(water.polygons);this.scene.add(...next);
+    this.clear();this.meshes=next;this.surfaces=surfaces;this.name=name;this.counts=next.map(m=>m.userData.polygons);this.levels=new WaterLevelIndex(water.polygons);this.nearest=new NearestWater(water.polygons);this.scene.add(...next);
   }
   /** `timeMs` is CTimer::GetTimeInMS; `camera` is the browser-space camera position (native x = x, y = -z). */
   update(area:number,source:ImportedLighting['water'],texture?:THREE.Texture,timeMs=0,camera?:{x:number;z:number}){
@@ -98,6 +101,6 @@ export class LocalWater {
     }
     geometry.setDrawRange(0,b.indexCount);
   }
-  clear(){this.detail.removeFromParent();this.detail.visible=false;this.built=undefined;this.uniforms.uDetailRange.value.set(1,1,0,0);this.surfaces=[[],[]];for(const mesh of this.meshes){mesh.removeFromParent();mesh.geometry.dispose();}this.meshes=[];this.name='';this.counts=[0,0];this.levels=undefined;}
+  clear(){this.detail.removeFromParent();this.detail.visible=false;this.built=undefined;this.uniforms.uDetailRange.value.set(1,1,0,0);this.surfaces=[[],[]];for(const mesh of this.meshes){mesh.removeFromParent();mesh.geometry.dispose();}this.meshes=[];this.name='';this.counts=[0,0];this.levels=undefined;this.nearest=undefined;}
   dispose(){if(this.disposed)return;this.disposed=true;this.clear();this.material.dispose();this.detail.geometry.dispose();this.detailMaterial.dispose();}
 }
