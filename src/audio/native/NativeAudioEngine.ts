@@ -15,6 +15,7 @@ import {NativeWeatherAudio,type NativeWeatherAudioInput} from './NativeWeatherAu
 import {VEHICLE_AUDIO_SETTINGS} from './vehicleAudioSettings';
 import {RADIO_STATIONS,nextStation,speechSample,radioBedParams,type RadioStation,type SpeechEvent} from './radioSpeech';
 import {NativeTwinLoopSound} from './NativeTwinLoopSound';
+import {PAIN_CONTEXTS,painSound,type PainContext} from './painSpeech';
 import type {AudioRandom} from './nativeAudioUtility';
 /** Frame limiter default (RsGlobal.frameLimit = APP_MAX_FPS 30): per-frame audio steps keep their native pacing. */
 export const NATIVE_AUDIO_FRAME_MS=1000/30;
@@ -169,19 +170,36 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   * for everyone (gGlobalSpeechContextNextPlayTime). I_PlayLoadedSound plays at AE_SPEECH_PED's volume, rolled off 3
   * while the player's vehicle sets the radio settings and 2 otherwise. */
  private speechNext=new Map<SpeechEvent,number>();
- speech(event:SpeechEvent,position:NativeVec,seed=0,pain?:{next:number}){
-  const next=this.timeMs+SPEECH_REPEAT_MS[event]+1+Math.floor(this.random()*1000);
+ /** `voice` gives a pain cry its PAIN_A voice and context: GetPainVoice's bank, loaded into a speech slot of its own
+  * (AUTHORED: the original streams each line into one of six shared speech slots), and a sound from
+  * gPainSpeechLookup's range. Until the bank is in, the cry is silent; a bank that cannot be had falls back to the
+  * combat-bank vocal. */
+ speech(event:SpeechEvent,position:NativeVec,seed=0,pain?:{next:number},voice?:{voice:number;context:PainContext}){
+  const repeat=event==='pain'&&voice?PAIN_CONTEXTS[voice.context].repeatMs:SPEECH_REPEAT_MS[event];
+  const next=this.timeMs+repeat+1+Math.floor(this.random()*1000);
   if(event==='pain'&&pain){if(this.timeMs<pain.next)return;pain.next=next;}
   else{if(this.timeMs<(this.speechNext.get(event)??0))return;this.speechNext.set(event,next);}
+  if(event==='pain'&&voice){
+   const pick=painSound(voice.context,voice.voice,this.random),slot=SLOT.speechFirst+voice.voice;
+   if(pick){
+    if(this.bank.isSoundBankLoaded(pick.bank,slot)){
+     this.manager.playSound({slot,sound:pick.sound,position,volume:this.defaultVolume(AE_SPEECH_PED),rollOff:this.playerInVehicle?3:2,speed:1,flags:SOUND.requestUpdates|SOUND.uncancellable});
+     this.painCries++;return;
+    }
+    if(!this.bank.failures.has(pick.bank)){this.bank.loadSoundBank(pick.bank,slot);return;}
+   }
+  }
   const s=speechSample(event,seed);
   if(this.bank.isSoundBankLoaded(BANK.weapons,SLOT.weaponGen))this.manager.playSound({slot:SLOT.weaponGen,sound:s.sample,position,volume:this.defaultVolume(AE_SPEECH_PED),rollOff:this.playerInVehicle?3:2,speed:1,flags:SOUND.requestUpdates|SOUND.uncancellable});
  }
  /** An NPC speech comment through the shared ped entities. */
- pedSpeech(key:object,position:NativeVec,event:SpeechEvent,seed=0){
+ /** Pain cries said from the PAIN_A banks. */
+ painCries=0;
+ pedSpeech(key:object,position:NativeVec,event:SpeechEvent,seed=0,voice?:{voice:number;context:PainContext}){
   let ped=this.peds.get(key);
   if(!ped){const state={position};ped={audio:new NativePedAudio(this.manager,this.bank,this.random,e=>this.defaultVolume(e),{player:false,position:()=>state.position}),state,pain:{next:0}};this.peds.set(key,ped);}
   ped.state.position=position;
-  this.speech(event,position,seed,ped.pain);
+  this.speech(event,position,seed,ped.pain,voice);
  }
  /** Vehicle radio bed (CAEVehicleAudioEntity radio): twin-loop bed per station while the player drives. */
  private radioBed?:NativeTwinLoopSound;
@@ -273,5 +291,5 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  }
   /** Stop everything (CAESoundManager::Reset). */
   reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.manager.reset();}
-  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
+  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
 }

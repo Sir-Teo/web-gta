@@ -1,7 +1,7 @@
 import {readSfxBank,sfxPcmSamples} from '../../assets/sfx';
 import type {NativeBankSlots,NativeBankSound} from './NativeSoundManager';
 /** eSoundBankSlot values used by the ported entities. */
-export const SLOT={frontendGame:0,frontendMenu:1,collisions:2,bulletHits:3,explosions:4,weaponGen:5,weather:6,dummyFirst:7,dummyEnd:17,hornAndSiren:17,copHeli:18,vehicleGen:19,playerEngine:40} as const;
+export const SLOT={frontendGame:0,frontendMenu:1,collisions:2,bulletHits:3,explosions:4,weaponGen:5,weather:6,dummyFirst:7,dummyEnd:17,hornAndSiren:17,copHeli:18,vehicleGen:19,speechFirst:20,playerEngine:40} as const;
 /** eSoundBank values used by the ported entities. */
 export const BANK={apacheD:13,bulletHits:27,collisions:39,explosions:52,frontendGame:59,horn:74,icevanP:79,rain:105,vehicleGen:138,weapons:143} as const;
 export interface NativeBankManifest {version:1;packageSha256:string;banks:{id:number;path:string;dataBytes:number;bytes:number;sounds:number;sha256:string}[]}
@@ -16,6 +16,8 @@ export class NativeBankLoader implements NativeBankSlots {
  private requests=new Map<number,number>();
  private decoded=new Map<number,Promise<NativeBankSound[]>>();
  readonly failures=new Map<number,string>();
+ /** Banks packaged elsewhere (the PAIN_A pack's MP3s, which a host decodes), asked for by id. */
+ otherBanks?:(bank:number)=>Promise<NativeBankSound[]>;
  /** Failed downloads so far, per bank. */
  private attempts=new Map<number,number>();
  constructor(readonly manifest:NativeBankManifest,private fetchBank:Fetcher){
@@ -36,7 +38,8 @@ export class NativeBankLoader implements NativeBankSlots {
   let pending=this.decoded.get(bank);
   if(!pending){
    const entry=this.manifest.banks.find(b=>b.id===bank);
-   pending=entry?this.fetchBank(entry).then(bytes=>readSfxBank(bytes,entry.dataBytes).map(s=>({samples:sfxPcmSamples(s),sampleRate:s.sampleRate,headroom:s.headroom,loopStart:s.loopStartOffset===0xffffffff?-1:s.loopStartOffset}))):Promise.reject(new Error(`Sound bank ${bank} is not packaged.`));
+   pending=entry?this.fetchBank(entry).then(bytes=>readSfxBank(bytes,entry.dataBytes).map(s=>({samples:sfxPcmSamples(s),sampleRate:s.sampleRate,headroom:s.headroom,loopStart:s.loopStartOffset===0xffffffff?-1:s.loopStartOffset})))
+    :this.otherBanks?this.otherBanks(bank):Promise.reject(new Error(`Sound bank ${bank} is not packaged.`));
    this.decoded.set(bank,pending);
    const attempt=pending;
    attempt.then(()=>{this.failures.delete(bank);this.attempts.delete(bank);},e=>{

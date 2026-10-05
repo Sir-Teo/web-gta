@@ -2,7 +2,9 @@ import {NativeBankLoader} from './native/NativeBankLoader';
 import {NativeAudioEngine,type NativeAudioFrame,type NativeCombatSource} from './native/NativeAudioEngine';
 import type {SurfaceAudioFlags} from '../assets/surfaceAudio';
 import {WebAudioChannels} from './native/WebAudioChannels';
-import {ScriptSpeech} from './ScriptSpeech';
+import {ScriptSpeech,scriptSpeechMp3} from './ScriptSpeech';
+import type {NativeBankSound} from './native/NativeSoundManager';
+import {PAIN_BANKS} from './native/painSpeech';
 import {StreamTracks} from './StreamTracks';
 import type {BeatTrackStream,TrackBeat} from '../engine/ScmCutsceneTrack';
 import type {AmbienceChannel} from './NativeAmbienceTracks';
@@ -46,7 +48,7 @@ export class AudioSystem {
   private nativeChannels?:WebAudioChannels;
   private nativeFrames=0;
   private nativePlayer?:()=>Vec3;
-  async loadNativeAudio(base:string){try{const bank=await NativeBankLoader.open(base);if(this.disposed)return false;this.native=new NativeAudioEngine(bank);try{const manifest=await (await fetch(new URL('eventvol.json',base))).json();const response=await fetch(new URL('eventvol.dat',base));if(response.ok){const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length===manifest.bytes&&manifest.sha256===[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(v=>v.toString(16).padStart(2,'0')).join(''))this.native.eventVolumes=new Int8Array(bytes.buffer);}}catch{/* Mix stays at 0 dB without the table. */}if(this.nativePlayer)this.setPlayer(this.nativePlayer);this.attachNative();return true;}catch{this.failed++;return false;}}
+  async loadNativeAudio(base:string){try{const bank=await NativeBankLoader.open(base);if(this.disposed)return false;bank.otherBanks=id=>(PAIN_BANKS as readonly number[]).includes(id)?this.decodeMp3Bank(new URL('pain/',base).href,'pain.json',id):Promise.reject(new Error(`Sound bank ${id} is not packaged.`));this.native=new NativeAudioEngine(bank);try{const manifest=await (await fetch(new URL('eventvol.json',base))).json();const response=await fetch(new URL('eventvol.dat',base));if(response.ok){const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length===manifest.bytes&&manifest.sha256===[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(v=>v.toString(16).padStart(2,'0')).join(''))this.native.eventVolumes=new Int8Array(bytes.buffer);}}catch{/* Mix stays at 0 dB without the table. */}if(this.nativePlayer)this.setPlayer(this.nativePlayer);this.attachNative();return true;}catch{this.failed++;return false;}}
   /** Mission dialogue (ScriptSpeech.ts) and the line each of CAEScriptAudioEntity's four slots is playing. */
   private speech?:ScriptSpeech;
   private speechVoices=new Map<number,{source:AudioBufferSourceNode;gain:GainNode}>();
@@ -156,6 +158,26 @@ export class AudioSystem {
     this.track=undefined;track.source.onended=null;
     try{track.source.stop();}catch{/* Already ended. */}
     track.source.disconnect();track.gain.disconnect();
+  }
+  /** A bank packaged as MP3s (scripts/content/package-script-speech.mjs: the PAIN_A pack), decoded to the PCM the
+   * native sound manager plays. */
+  private mp3Manifests=new Map<string,Promise<{banks:{id:number;path:string;bytes:number;sha256:string}[]}>>();
+  private async decodeMp3Bank(base:string,manifestName:string,id:number):Promise<NativeBankSound[]>{
+    let manifest=this.mp3Manifests.get(base);
+    if(!manifest){manifest=fetch(new URL(manifestName,base)).then(r=>r.ok?r.json():Promise.reject(new Error(`${manifestName} unavailable.`)));this.mp3Manifests.set(base,manifest);manifest.catch(()=>this.mp3Manifests.delete(base));}
+    const entry=(await manifest).banks.find(b=>b.id===id);
+    if(!entry||entry.path!==`bank-${id}.bin`)throw new Error(`Sound bank ${id} is not packaged.`);
+    const r=await fetch(new URL(entry.path,base));if(!r.ok)throw new Error(`Sound bank ${id} unavailable.`);
+    const bytes=new Uint8Array(await r.arrayBuffer());
+    if(bytes.length!==entry.bytes||[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(v=>v.toString(16).padStart(2,'0')).join('')!==entry.sha256)throw new Error(`Sound bank ${id} checksum mismatch.`);
+    if(!this.context)this.prepare();
+    const ctx=this.context;if(!ctx)throw new Error('No audio context.');
+    const count=new DataView(bytes.buffer).getUint16(0,true);
+    return Promise.all(Array.from({length:count},async(_,i)=>{
+      const mp3=scriptSpeechMp3(bytes,i);if(!mp3)throw new Error(`Sound bank ${id} lacks sound ${i}.`);
+      const buffer=await ctx.decodeAudioData(mp3.slice().buffer);
+      return {samples:buffer.getChannelData(0),sampleRate:buffer.sampleRate,headroom:0,loopStart:-1};
+    }));
   }
   /** The player's browser position for native weapon and footstep entities. */
   setPlayer(position:()=>Vec3){this.nativePlayer=position;this.native?.setPlayer(()=>{const p=position();return {x:p.x,y:-p.z,z:p.y};});}

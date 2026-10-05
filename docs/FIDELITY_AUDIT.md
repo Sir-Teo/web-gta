@@ -9241,3 +9241,19 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - Specs: `native-ambience-tracks` (unit: the table, the rise, the fade, the resume offset, the sandstorm, zone 4),
   `ambience-tracks` (browser: zone 21's track streamed, risen to -6 dB and heard, then faded out and stopped).
 
+## Peds cry in their own voices
+
+- **The PAIN_A pack, from the iOS port.** `PAIN_A.osw` is laid out as `SCRIPT.osw` is: one MP3 per sound, three
+  banks, 144 to 146, of 169, 131 and 101 sounds, exactly the three columns of `gPainSpeechLookup` (CJ, male,
+  female). `package-script-speech.mjs` now packages it beside SCRIPT into `public/play/audio/pain/` (3.0 MB).
+- **The cry.** A ped's pain went to a combat-bank vocal standing in for speech. It now says
+  `CTX_GLOBAL_PAIN_HIGH`, or `PAIN_ON_FIRE` while burning, which `gSpeechContextLookup` sends to the specific pain
+  contexts 18 and 19 for a ped (CJ's would be 7 and 6). `GetPainVoice` gives the voice: female for a `CIVFEMALE`
+  or `PROSTITUTE` ped, male otherwise. The sound is drawn from `gPainSpeechLookup`'s range for that context and
+  voice, and plays through the native sound manager at `AE_SPEECH_PED`'s volume, rolled off as before, with the
+  context's repeat time. The bank's MP3s are decoded to PCM into a speech slot (20 to 22 by voice; AUTHORED: the
+  original streams each line into one of six shared speech slots). The first cry asks for the bank and is silent; a
+  bank that cannot be had falls back to the old vocal.
+- Specs: `pain-speech` (unit: the voices, the ranges, the published banks, the slot; browser: a CIVFEMALE ped's cry
+  fetches only bank 146, decodes it into slot 22 and is heard).
+

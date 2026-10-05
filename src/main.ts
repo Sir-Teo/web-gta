@@ -210,6 +210,7 @@ import {loadSceneEnvironment} from './ui/loadSceneEnvironment';
 import {sceneVegetationReader} from './world/WalkingVegetation';
 import {bindLocalWater} from './ui/localWater';
 import { NativeAmbienceTracks } from './audio/NativeAmbienceTracks';
+import { painVoice } from './audio/native/painSpeech';
 import { AudioSystem } from './audio/AudioSystem';
 import { FixedClock, NATIVE_MAX_FRAME_SECONDS } from './core/FixedClock';
 import { Input } from './input/Input';
@@ -4599,7 +4600,8 @@ async function boot() {
           pedestrians.playerVehicleVelocity=()=>{const b=worldCar?.occupied?worldCar.car.body:fleet?.occupiedBike?.body??fleet?.occupiedBoat?.body??fleet?.occupiedPlane?.body;if(!b)return undefined;const v=b.linvel();return {x:v.x,y:v.y,z:v.z};};
           // CAEPedSpeechAudioEntity::AddSayEvent says nothing for a ped whose speech a script disabled.
           const speaks=(ped:object)=>!(ped as {shutUp?:boolean}).shutUp;
-          pedestrians.onPain=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'pain',speechSeed(position));};
+          // CTX_GLOBAL_PAIN_HIGH, or PAIN_ON_FIRE while burning, in the ped's PAIN_A voice (GetPainVoice).
+          pedestrians.onPain=(ped,position,onFire)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'pain',speechSeed(position),{voice:painVoice(false,(ped as {pedType?:string}).pedType),context:onFire?'onFire':'high'});};
           pedestrians.onFlee=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'flee',speechSeed(position));};
           pedestrians.onThreat=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'threat',speechSeed(position));};
           pedestrians.onGreet=(ped,position)=>{if(speaks(ped))sound.nativeEngine?.pedSpeech(ped,{x:position.x,y:-position.z,z:position.y},'greet',speechSeed(position));};

@@ -515,7 +515,8 @@ export class WorldPedestrians {
   }
  }
  /** Pain, flee and threat vocals (CAEPedSpeechAudioEntity comments). */
- onPain?:(ped:object,position:{x:number;y:number;z:number})=>void;
+ /** A ped's pain cry: hurt, or (`onFire`) burning. */
+ onPain?:(ped:object,position:{x:number;y:number;z:number},onFire?:boolean)=>void;
  onFlee?:(ped:object,position:{x:number;y:number;z:number})=>void;
  onThreat?:(ped:object,position:{x:number;y:number;z:number})=>void;
  /** A ped's friendly line (a reply to the player's Y). */
@@ -3289,7 +3290,7 @@ export class WorldPedestrians {
    if(p.onFire>0&&this.submerged(p))p.onFire=0;
    if(p.onFire>0&&p.health>0&&p.down===0){
     p.onFire=Math.max(0,p.onFire-dt);p.flee=Math.max(p.flee,.5);p.fleeFrom={x:this.sim.player.position.x,z:this.sim.player.position.z};p.retaliate=0;p.gunReact=undefined;
-    p.onFireSpeech=Math.max(0,p.onFireSpeech-dt);if(this.frameDue&&p.onFireSpeech===0&&Math.random()<.1){p.onFireSpeech=2;this.onPain?.(p,{...state.position});}
+    p.onFireSpeech=Math.max(0,p.onFireSpeech-dt);if(this.frameDue&&p.onFireSpeech===0&&Math.random()<.1){p.onFireSpeech=2;this.onPain?.(p,{...state.position},true);}
    }
    p.scratch=Math.max(0,p.scratch-dt);p.retaliate=Math.max(0,p.retaliate-dt);if(p.retaliate<=0||!this.sim.player.swimming)p.taunt=undefined;p.retaliateCooldown=Math.max(0,p.retaliateCooldown-dt);p.meleeCooldown=Math.max(0,p.meleeCooldown-dt);p.stagger=Math.max(0,p.stagger-dt);p.bumpCooldown=Math.max(0,p.bumpCooldown-dt);
    // The kill task that named the foe is over once its window runs out: a later fight (turf, a bump) is with the player,

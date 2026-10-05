@@ -1,4 +1,5 @@
-/** Packages the mission dialogue (the SCRIPT sound pack) from the iOS port's bundle into public/play/audio/script/.
+/** Packages the mission dialogue (the SCRIPT sound pack) and the pain cries (PAIN_A) from the iOS port's bundle into
+ * public/play/audio/script/ and public/play/audio/pain/.
  *
  * The PC's AUDIO/SFX/SCRIPT is not in the published depot; the iOS port (the gta3sa.app bundle,
  * github.com/Google61/gta3sa.app) ships the same pack as SCRIPT.osw: a ZIP that stores, uncompressed, one MP3 per
@@ -11,26 +12,34 @@
  * Each bank becomes one file, bank-{id}.bin: a u16 sound count, then per sound a u32 offset (from the file's start)
  * and a u32 size, then the MP3s as the pack holds them. script.json lists the files with their hashes.
  *
- * Usage: node scripts/content/package-script-speech.mjs [directory holding SCRIPT.osw and SCRIPT.osw.idx]
+ * PAIN_A.osw is laid out the same way: BankLkup.dat gives pack 2 three banks, 144 to 146 (CJ's, then the male and
+ * female pain voices, as gPainVoiceToBankLookup and gPainSpeechLookup's 169, 131 and 101 sounds have them).
+ *
+ * Usage: node scripts/content/package-script-speech.mjs [directory holding SCRIPT.osw, PAIN_A.osw and their .idx]
  * Without a directory both are downloaded from the bundle's pinned revision. Either way they are checked against
  * their hashes. */
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 const REVISION='67f70cb72eb207aeca650ea9e8c10b0e7dda166a',BASE=`https://raw.githubusercontent.com/Google61/gta3sa.app/${REVISION}/`;
-const SOURCES={
- pack:{name:'SCRIPT.osw',bytes:99239609,sha256:'250fa728c4504a356bf90d070704431bf7b128ba7dfc3ea8cb8d9ee1f3202262'},
- index:{name:'SCRIPT.osw.idx',bytes:219236,sha256:'3b3ee4d9a584e426da06fcc60482170afccafce1d15fc5301ef5aa6d9899aae8'},
-};
-/** SND_BANK_SCRIPT_FIRST and the SCRIPT pack's bank count in the iOS BankLkup.dat. */
-const FIRST_BANK=147,BANKS=218,OUTPUT='public/play/audio/script';
+/** Each pack: its two files, its first bank (SND_BANK_SCRIPT_FIRST, SND_BANK_PAIN_A_CARL) and bank count in the iOS
+ * BankLkup.dat, and where it goes. */
+const PACKS=[
+ {pack:{name:'SCRIPT.osw',bytes:99239609,sha256:'250fa728c4504a356bf90d070704431bf7b128ba7dfc3ea8cb8d9ee1f3202262'},
+  index:{name:'SCRIPT.osw.idx',bytes:219236,sha256:'3b3ee4d9a584e426da06fcc60482170afccafce1d15fc5301ef5aa6d9899aae8'},
+  firstBank:147,banks:218,output:'public/play/audio/script',manifest:'script.json'},
+ {pack:{name:'PAIN_A.osw',bytes:3247335,sha256:'b6e917e21c007e394b76b0d1f7121b5f1c6f397073de3554b8b56599104816e1'},
+  index:{name:'PAIN_A.osw.idx',bytes:12836,sha256:'6f64edb08e2a7e0895a70a2467d6e848e2cffcb189adaf2d74a014189060ea43'},
+  firstBank:144,banks:3,output:'public/play/audio/pain',manifest:'pain.json'},
+];
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 async function source({name,bytes,sha256}){
  const data=process.argv[2]?await readFile(join(process.argv[2],name)):Buffer.from(await (await fetch(BASE+name,{signal:AbortSignal.timeout(900000)})).arrayBuffer());
  if(data.length!==bytes||hash(data)!==sha256)throw new Error(`${name} is not the pinned one.`);
  return data;
 }
-const pack=await source(SOURCES.pack),index=await source(SOURCES.index);
+for(const {pack:packSource,index:indexSource,firstBank:FIRST_BANK,banks:BANKS,output:OUTPUT,manifest} of PACKS){
+const pack=await source(packSource),index=await source(indexSource);
 const banks=Array.from({length:BANKS},()=>[]);
 let at=4;
 for(let n=index.readUInt32LE(0);n>0;n--){
@@ -54,5 +63,6 @@ for(const [i,sounds] of banks.entries()){
  await writeFile(join(OUTPUT,path),bytes);
  listed.push({id,path,sounds:sounds.length,bytes:bytes.length,sha256:hash(bytes)});
 }
-await writeFile(join(OUTPUT,'script.json'),JSON.stringify({version:1,source:{url:BASE+SOURCES.pack.name,sha256:SOURCES.pack.sha256},firstBank:FIRST_BANK,banks:listed})+'\n');
-console.log(`Packaged ${listed.length} SCRIPT banks, ${listed.reduce((n,b)=>n+b.sounds,0)} sounds (${(listed.reduce((n,b)=>n+b.bytes,0)/1048576).toFixed(1)} MB).`);
+await writeFile(join(OUTPUT,manifest),JSON.stringify({version:1,source:{url:BASE+packSource.name,sha256:packSource.sha256},firstBank:FIRST_BANK,banks:listed})+'\n');
+console.log(`Packaged ${listed.length} ${packSource.name} banks, ${listed.reduce((n,b)=>n+b.sounds,0)} sounds (${(listed.reduce((n,b)=>n+b.bytes,0)/1048576).toFixed(1)} MB).`);
+}
