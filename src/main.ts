@@ -2729,6 +2729,16 @@ async function boot() {
       return {objects,auto,meshes,visible,roads,calls:info.render.calls,triangles:info.render.triangles,programs:info.programs?.length,gpuGeometries:info.memory.geometries,gpuTextures:info.memory.textures};},
     /** Meshes inside the camera frustum this frame grouped by geometry and by geometry+material: how many draws
      * repeat a geometry (instancing candidates) versus unique ones. */
+    /** Meshes in the frustum by their scene-graph path (two levels below the scene): which system the draws are. */
+    drawBreakdown:()=>{const frustum=new Frustum(),m=new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse);frustum.setFromProjectionMatrix(m);
+      const by=new Map<string,number>();render.scene.traverseVisible(o=>{const mesh=o as any;if(!mesh.isMesh&&!mesh.isPoints&&!mesh.isLine)return;if(mesh.frustumCulled&&!frustum.intersectsObject(mesh))return;
+        const path:string[]=[];for(let c=mesh.parent;c&&c!==render.scene;c=c.parent)path.unshift(c.name||c.type);const k=path.slice(0,2).join('/')||mesh.name||'(scene)';by.set(k,(by.get(k)??0)+1);});
+      return [...by].sort((a,b)=>b[1]-a[1]).slice(0,20);},
+    /** Meshes in the frustum and the material groups they draw (a mesh with a material array draws once a group): what
+     * renderer.info's draw calls are made of. */
+    groupCounts:()=>{const frustum=new Frustum(),m=new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse);frustum.setFromProjectionMatrix(m);
+      let meshes=0,groups=0,hist=new Map<number,number>(),transparent=0;render.scene.traverseVisible(o=>{const mesh=o as any;if(!mesh.isMesh)return;if(mesh.frustumCulled&&!frustum.intersectsObject(mesh))return;meshes++;const n=Array.isArray(mesh.material)?Math.max(1,mesh.geometry.groups.length):1;groups+=n;hist.set(n,(hist.get(n)??0)+1);if([mesh.material].flat().some((x:any)=>x.transparent))transparent++;});
+      return {meshes,groups,transparent,hist:[...hist].sort((a,b)=>a[0]-b[0])};},
     drawGroups:()=>{const frustum=new Frustum(),m=new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse);frustum.setFromProjectionMatrix(m);
       const byGeometry=new Map<string,number>(),byPair=new Map<string,number>();let drawn=0,skinned=0;
       render.scene.traverseVisible(o=>{const mesh=o as any;if(!mesh.isMesh)return;if(mesh.frustumCulled&&!frustum.intersectsObject(mesh))return;drawn++;if((mesh as any).isSkinnedMesh)skinned++;

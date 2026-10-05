@@ -9286,3 +9286,15 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   buttons out with no overlap between buttons or with the HUD, nothing off screen and none under 34 px; the JS heap
   stays between 130 and 210 MB on a drive across the map and comes back to 150 MB, the retired models held at their
   33 MB budget.
+
+## Where a phone's draws go (measured, not yet acted on)
+
+- **Draws are material groups.** On a phone screen with the touch defaults, Grove Street draws about 420 calls,
+  San Fierro 460 and Las Venturas 460; the low preset (Draw Distance 20, effects low) takes 10 to 30% off on the
+  ground. Climbing over Los Santos the count rises to 800 to 1000, and the low preset takes almost nothing off
+  (986 against 998): the port's Draw Distance 20 is a 0.73 LOD multiplier, and from the air the far clip, not the
+  multiplier, bounds what is drawn. `__game.groupCounts()` shows the calls are one per material group of the meshes
+  in view (827 calls, 825 groups): about 175 meshes, 27 of them distant LOD models of 11 texture groups each and a
+  few of 14 to 35. `__game.drawBreakdown()` groups them by scene path (the streamed world windows, nearly all).
+- **What would cut it** without changing the picture: drawing a LOD model's groups in one call from a texture array
+  (WebGL2) where its textures share a size and format. It is a renderer change and is left for a deliberate pass.
