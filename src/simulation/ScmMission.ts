@@ -7,7 +7,7 @@ import {saveOrRetrieveDataForThisFrame,type CarRecordingVehicle} from '../engine
 import {TRAIN_TYPES} from './nativeTrainTracks';
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
-import {speechLengthMs} from '../engine/ScmMissionAudio';
+import {speechLengthMs,MISSION_AUDIO_COUNT} from '../engine/ScmMissionAudio';
 import {requireAsset} from '../assets/binary';
 import {gxtText} from '../assets/gxt';
 import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
@@ -242,6 +242,9 @@ export interface ScmMissionWorld {
  loadMissionText(name:string):void;
  /** The eLevelName of the map zone the player stands in. */
  playerCity():number;
+ /** Mission dialogue: the SCRIPT pack's lines, loaded by sample (resolving once one can play, false when it cannot
+  * be had), played and stopped by the script's one-based slot, and how long a loaded one runs. */
+ scriptSpeech?:{load(sample:number):Promise<boolean>;play(scriptSlot:number,sample:number):void;stop(scriptSlot:number):void;lengthMs(sample:number):number|undefined};
  /** CModelInfo::GetModelInfo by name: the model index, or -1. */
  modelIndex?(name:string):number;
  /** CPed::GiveWeapon, SetCurrentWeapon and m_fArmour on the player. */
@@ -2160,6 +2163,7 @@ export class ScmMission {
     for(const handle of this.cleanupPeds)if(this.peds.exists(handle))this.peds.markNoLongerNeeded(handle);
     this.cleanupVehicles.clear();this.cleanupPeds.clear();
     this.runtime.game.objects.cleanUpMissionObjects();this.cutsceneThread=undefined;
+    for(let slot=1;slot<=MISSION_AUDIO_COUNT;slot++)this.world.scriptSpeech?.stop(slot);
     this.runtime.game.camera.restore(this.world.playerCameraState());
    },
    // The player's own car (not one the script made) answers from the host.
@@ -2285,7 +2289,15 @@ export class ScmMission {
    },
    vehicleExistsByHandle:handle=>handle===PLAYER_VEHICLE_HANDLE?!!this.world.playerPed().vehicle:this.vehicles.exists(handle),
    playerCity:()=>this.world.playerCity(),
-   missionAudioLengthMs:(_sample,subtitle)=>subtitle?speechLengthMs(gxtText(subtitle,'')):undefined,
+   // CAEScriptAudioEntity's slots: the line streams in while the script waits on HAS_MISSION_AUDIO_LOADED, and runs
+   // for its own length; without one, a line is sized from its subtitle.
+   loadMissionAudio:(slot,sample)=>{
+    const speech=this.world.scriptSpeech,audio=this.runtime.game.missionAudio;
+    if(speech&&audio.stream(slot,sample))void speech.load(sample).then(()=>audio.streamed(slot,sample));
+   },
+   playMissionAudio:slot=>{const sample=this.runtime.game.missionAudio.slots[slot-1]?.audioEvent;if(sample!==undefined&&sample>=0)this.world.scriptSpeech?.play(slot,sample);},
+   clearMissionAudio:slot=>{this.world.scriptSpeech?.stop(slot);},
+   missionAudioLengthMs:(sample,subtitle)=>this.world.scriptSpeech?.lengthMs(sample)??(subtitle?speechLengthMs(gxtText(subtitle,'')):undefined),
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},
    stopAllLawEnforcers:()=>{this.world.stopAllLawEnforcers();},

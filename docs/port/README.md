@@ -69,9 +69,11 @@ Not by a mechanical translation, and it is worth being plain about why:
   retail executable or registered as unimplemented. Those behaviours exist only as x86 machine code, and an
   automatic x86-to-TypeScript translation of a whole game engine (with its D3D9 renderer, streaming and audio
   hardware paths) is not something any tool does reliably.
-- **Some data is not in the published depot.** Cutscenes (`anim/cuts.img`), mission dialogue (`AUDIO/SFX/SCRIPT`),
-  music and cutscene streams (`AUDIO/STREAMS`) are absent, and the hosts the content scripts use are not reachable
-  from every environment. No code port brings those back.
+- **Some data is not in the published depot.** Cutscenes (`anim/cuts.img`), music and cutscene streams
+  (`AUDIO/STREAMS`) are absent, and the hosts the content scripts use are not reachable from every environment. No
+  code port brings those back. Mission dialogue (`AUDIO/SFX/SCRIPT`) is taken from the iOS port's bundle instead
+  (`SCRIPT.osw`, packaged by `scripts/content/package-script-speech.mjs`), which also holds the cutscene archive and
+  the stream packs.
 - **Compiling the reference to WebAssembly** does not work either: gta-reversed is a DLL that hooks into the retail
   executable and cannot run without it.
 

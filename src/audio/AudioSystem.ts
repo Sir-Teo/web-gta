@@ -2,6 +2,7 @@ import {NativeBankLoader} from './native/NativeBankLoader';
 import {NativeAudioEngine,type NativeAudioFrame,type NativeCombatSource} from './native/NativeAudioEngine';
 import type {SurfaceAudioFlags} from '../assets/surfaceAudio';
 import {WebAudioChannels} from './native/WebAudioChannels';
+import {ScriptSpeech} from './ScriptSpeech';
 import {readNativeCombatAudio,combatSample,type CombatSound} from '../assets/nativeCombatAudio';
 import {nativeSoundFrequency} from './nativeFrequency';
 import {nativeHeadroomGain} from './nativeHeadroom';
@@ -43,6 +44,41 @@ export class AudioSystem {
   private nativeFrames=0;
   private nativePlayer?:()=>Vec3;
   async loadNativeAudio(base:string){try{const bank=await NativeBankLoader.open(base);if(this.disposed)return false;this.native=new NativeAudioEngine(bank);try{const manifest=await (await fetch(new URL('eventvol.json',base))).json();const response=await fetch(new URL('eventvol.dat',base));if(response.ok){const bytes=new Uint8Array(await response.arrayBuffer());if(bytes.length===manifest.bytes&&manifest.sha256===[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(v=>v.toString(16).padStart(2,'0')).join(''))this.native.eventVolumes=new Int8Array(bytes.buffer);}}catch{/* Mix stays at 0 dB without the table. */}if(this.nativePlayer)this.setPlayer(this.nativePlayer);this.attachNative();return true;}catch{this.failed++;return false;}}
+  /** Mission dialogue (ScriptSpeech.ts) and the line each of CAEScriptAudioEntity's four slots is playing. */
+  private speech?:ScriptSpeech;
+  private speechVoices=new Map<number,{source:AudioBufferSourceNode;gain:GainNode}>();
+  private speechPlayed=0;
+  /** Where the SCRIPT banks are; nothing downloads until a mission loads a line. */
+  useScriptSpeech(base:string){
+    this.speech=new ScriptSpeech(base,mp3=>{
+      if(!this.context)this.prepare();
+      const ctx=this.context;if(!ctx)return Promise.reject(new Error('No audio context.'));
+      return ctx.decodeAudioData(mp3);
+    });
+  }
+  /** LOAD_MISSION_AUDIO's sample, resolving once it can play (false: it cannot be had, and the mission runs on). */
+  loadSpeech(sample:number){return this.speech?.load(sample)??Promise.resolve(false);}
+  /** The loaded line's length, which the script's HAS_MISSION_AUDIO_FINISHED waits out. */
+  speechLengthMs(sample:number){const line=this.speech?.line(sample);return line&&line.duration*1000;}
+  /** PLAY_MISSION_AUDIO. AUTHORED: the line plays at the listener, not from the ped or car its slot is attached to
+   * (CAEScriptAudioEntity's positioning is unreversed). It is under the effects level, as the PC's SFX slider. */
+  playSpeech(scriptSlot:number,sample:number){
+    this.stopSpeech(scriptSlot);
+    const ctx=this.context,line=this.speech?.line(sample);
+    if(!ctx||!line||this.disposed)return false;
+    const source=ctx.createBufferSource(),gain=ctx.createGain();
+    source.buffer=line;source.connect(gain);gain.connect(this.effects);
+    const voice={source,gain};this.speechVoices.set(scriptSlot,voice);
+    source.onended=()=>{if(this.speechVoices.get(scriptSlot)===voice)this.stopSpeech(scriptSlot);};
+    source.start();this.speechPlayed++;return true;
+  }
+  /** CLEAR_MISSION_AUDIO, and the mission's clean-up: the slot's line stops. */
+  stopSpeech(scriptSlot:number){
+    const voice=this.speechVoices.get(scriptSlot);if(!voice)return;
+    this.speechVoices.delete(scriptSlot);voice.source.onended=null;
+    try{voice.source.stop();}catch{/* Already ended. */}
+    voice.source.disconnect();voice.gain.disconnect();
+  }
   /** The player's browser position for native weapon and footstep entities. */
   setPlayer(position:()=>Vec3){this.nativePlayer=position;this.native?.setPlayer(()=>{const p=position();return {x:p.x,y:-p.z,z:p.y};});}
   get nativeEngine(){return this.native;}
@@ -192,10 +228,11 @@ export class AudioSystem {
       rms = Math.sqrt(this.meter.reduce((sum, value) => sum + value * value, 0) / this.meter.length);
     }
     return { context: this.context?.state ?? 'uninitialized', loaded: this.loaded, failed: this.failed, unavailable: this.unavailable,
-      native:this.native?{...this.native.snapshot(),frames:this.nativeFrames}:null,nativeCombatBanks:this.combatBanks.size,combatShots:this.combatShots,nativeFootstepBanks:this.nativeFeet?.length??0,nativeShotsPlayed:this.nativeShotsPlayed,buffers: this.nativeBuffers.size, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
+      native:this.native?{...this.native.snapshot(),frames:this.nativeFrames}:null,nativeCombatBanks:this.combatBanks.size,combatShots:this.combatShots,nativeFootstepBanks:this.nativeFeet?.length??0,nativeShotsPlayed:this.nativeShotsPlayed,speechPlayed:this.speechPlayed,speechVoices:this.speechVoices.size,buffers: this.nativeBuffers.size, voices: this.voices.size, shotsPlayed: this.shotsPlayed, rms, settings: { ...this.settings } };
   }
   dispose() {
     this.nativeLoad++;this.nativeFeet=undefined;this.native?.reset();this.nativeChannels?.dispose();this.combatBanks.clear();this.nativeBuffers.clear();
+    for(const slot of [...this.speechVoices.keys()])this.stopSpeech(slot);
     this.disposed = true; this.playing = false; this.stopShots();
     this.recovery?.dispose(); void this.context?.close().catch(() => {});
   }

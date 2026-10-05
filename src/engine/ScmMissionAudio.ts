@@ -26,9 +26,11 @@ export interface ScmMissionAudioSlot {
  remainingMs:number;
  /** Played this frame and not yet sized from the subtitle the frame left up (settleLengths). */
  sizing:boolean;
+ /** The host is streaming the sample in: the slot stays loading until it says the sample is in (streamed). */
+ streaming:boolean;
 }
-const emptySlot=():ScmMissionAudioSlot=>({audioEvent:-1,bankId:-1,bankSlotId:-1,loadingStatus:AUDIO_NOT_LOADED,playing:false,finished:false,remainingMs:0,sizing:false});
-/** A sample's length when nothing better is known: the bank headers that hold the real ones are in the SCRIPT pack. */
+const emptySlot=():ScmMissionAudioSlot=>({audioEvent:-1,bankId:-1,bankSlotId:-1,loadingStatus:AUDIO_NOT_LOADED,playing:false,finished:false,remainingMs:0,sizing:false,streaming:false});
+/** A sample's length when nothing better is known (no host plays the SCRIPT pack's lines). */
 export const DEFAULT_SAMPLE_MS=2000;
 /** Conversational speech runs at about fifteen characters a second, with a short breath before the line. */
 const MS_PER_CHARACTER=66,LEAD_MS=300,SHORTEST_LINE_MS=800;
@@ -65,6 +67,19 @@ export class ScmMissionAudio {
  loaded(scriptSlot:number,bankId=-1,bankSlotId=-1){
   const slot=this.slot(scriptSlot);slot.loadingStatus=AUDIO_LOADED;slot.bankId=bankId;slot.bankSlotId=bankSlotId;
  }
+ /** A host that streams the sample in takes over the slot's loading: until streamed, it stays loading, as the
+  * script's HAS_MISSION_AUDIO_LOADED loop waits on the bank to arrive. False when the slot is not loading it. */
+ stream(scriptSlot:number,sampleId:number){
+  const slot=this.slot(scriptSlot);
+  if(slot.audioEvent!==sampleId||slot.loadingStatus!==AUDIO_LOADING)return false;
+  slot.streaming=true;return true;
+ }
+ /** The host's sample is in (or will never be, which the script cannot tell apart): a slot still loading that
+  * sample is ready to play. One since cleared or given another sample is left alone. */
+ streamed(scriptSlot:number,sampleId:number){
+  const slot=this.slot(scriptSlot);
+  if(slot.audioEvent===sampleId&&slot.loadingStatus===AUDIO_LOADING&&slot.streaming){slot.streaming=false;slot.loadingStatus=AUDIO_LOADED;}
+ }
  /** HAS_MISSION_AUDIO_LOADED. */
  hasLoaded(scriptSlot:number){return this.slot(scriptSlot).loadingStatus===AUDIO_LOADED;}
  /** PLAY_MISSION_AUDIO: a slot that is not ready is left alone, as an unloaded sample has nothing to play.
@@ -75,9 +90,9 @@ export class ScmMissionAudio {
   requireAsset(Number.isFinite(lengthMs)&&lengthMs>=0,'Invalid mission audio length.');
   slot.playing=true;slot.finished=false;slot.remainingMs=lengthMs;slot.sizing=true;return true;
  }
- /** The lengths of the samples played last frame, from what a host can tell of them now. The browser has no
-  * sample to measure and sizes a line from its subtitle, which the script prints beside the PLAY in either order
-  * (INTRO1 prints three of its four after it): the brief the whole frame left up is the one that belongs to it. */
+ /** The lengths of the samples played last frame, from what a host can tell of them now: the decoded line's when it
+  * has one, else its subtitle's, which the script prints beside the PLAY in either order (INTRO1 prints three of its
+  * four after it): the brief the whole frame left up is the one that belongs to it. */
  settleLengths(lengthOf:(audioEvent:number)=>number|undefined){
   for(const slot of this.slots){
    if(!slot.sizing)continue;slot.sizing=false;
@@ -89,7 +104,7 @@ export class ScmMissionAudio {
   * next frame, and a playing one runs out after its length. */
  service(deltaMs:number){
   for(const slot of this.slots){
-   if(slot.loadingStatus===AUDIO_LOADING)slot.loadingStatus=AUDIO_LOADED;
+   if(slot.loadingStatus===AUDIO_LOADING){if(!slot.streaming)slot.loadingStatus=AUDIO_LOADED;}
    else if(slot.playing&&(slot.remainingMs-=deltaMs)<=0){slot.remainingMs=0;slot.playing=false;slot.finished=true;}
   }
  }

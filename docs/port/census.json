@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T20:27:19.743Z",
+ "generated": "2026-10-05T01:02:40.318Z",
  "reference": {
   "path": "../gta-reversed/gta-reversed",
   "commit": "9e9444d7345c4011827866bfd17072ccf827ac85"
@@ -10,9 +10,9 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1149,
+   "faithful": 1152,
    "authored": 27,
-   "silent": 7,
+   "silent": 4,
    "skipped": 183,
    "stops": 25
   }
@@ -27,32 +27,17 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3783,
+    "faithful": 3806,
     "authored": 8,
-    "silent": 31,
+    "silent": 8,
     "skipped": 19,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 8
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
     },
     {
      "name": "ARE_MEASUREMENTS_IN_METRES",
@@ -91,6 +76,21 @@
     },
     {
      "name": "GET_CURRENT_CAR_MOD",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "GET_RANDOM_CAR_IN_SPHERE_NO_SAVE",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "SET_ROPE_HEIGHT_FOR_OBJECT",
      "status": "skipped",
      "sites": 1
     }
@@ -171,29 +171,13 @@
    "byStatus": {
     "core": 617,
     "nop": 1,
-    "faithful": 197,
+    "faithful": 205,
     "authored": 0,
-    "silent": 8,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "bcesar3.scm",
@@ -204,28 +188,13 @@
    "byStatus": {
     "core": 631,
     "nop": 42,
-    "faithful": 240,
+    "faithful": 247,
     "authored": 0,
-    "silent": 8,
+    "silent": 1,
     "skipped": 0,
     "stops": 2
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "CAR_GOTO_COORDINATES_RACING",
      "status": "stops",
@@ -252,18 +221,13 @@
    "byStatus": {
     "core": 305,
     "nop": 0,
-    "faithful": 102,
+    "faithful": 109,
     "authored": 3,
-    "silent": 7,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
     {
      "name": "GET_USER_OF_CLOSEST_MAP_ATTRACTOR",
      "status": "authored",
@@ -285,19 +249,13 @@
    "byStatus": {
     "core": 2150,
     "nop": 1,
-    "faithful": 244,
+    "faithful": 249,
     "authored": 0,
-    "silent": 5,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "otb_script.scm",
@@ -342,26 +300,16 @@
    "byStatus": {
     "core": 117,
     "nop": 0,
-    "faithful": 76,
+    "faithful": 83,
     "authored": 1,
-    "silent": 7,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
-    {
      "name": "TASK_PLAY_ANIM_SECONDARY",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -420,24 +368,13 @@
    "byStatus": {
     "core": 585,
     "nop": 0,
-    "faithful": 153,
+    "faithful": 156,
     "authored": 0,
-    "silent": 3,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "gymbench.scm",
@@ -448,24 +385,13 @@
    "byStatus": {
     "core": 784,
     "nop": 0,
-    "faithful": 189,
+    "faithful": 193,
     "authored": 0,
-    "silent": 4,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "gymtread.scm",
@@ -476,24 +402,13 @@
    "byStatus": {
     "core": 576,
     "nop": 0,
-    "faithful": 138,
+    "faithful": 142,
     "authored": 0,
-    "silent": 4,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "gymdumb.scm",
@@ -504,24 +419,13 @@
    "byStatus": {
     "core": 757,
     "nop": 0,
-    "faithful": 167,
+    "faithful": 170,
     "authored": 0,
-    "silent": 3,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "basketb.scm",
@@ -532,23 +436,13 @@
    "byStatus": {
     "core": 1636,
     "nop": 13,
-    "faithful": 644,
+    "faithful": 646,
     "authored": 3,
-    "silent": 2,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
@@ -575,26 +469,16 @@
    "byStatus": {
     "core": 2404,
     "nop": 356,
-    "faithful": 487,
+    "faithful": 489,
     "authored": 1,
-    "silent": 2,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "SHUFFLE_CARD_DECKS",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -1062,23 +946,13 @@
    "byStatus": {
     "core": 1562,
     "nop": 2,
-    "faithful": 198,
+    "faithful": 432,
     "authored": 0,
-    "silent": 234,
+    "silent": 0,
     "skipped": 4,
     "stops": 2
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 228
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
     {
      "name": "GET_BEAT_PROXIMITY",
      "status": "skipped",
@@ -1088,11 +962,6 @@
      "name": "PAUSE_CURRENT_BEAT_TRACK",
      "status": "stops",
      "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -1763,18 +1632,13 @@
    "byStatus": {
     "core": 1270,
     "nop": 0,
-    "faithful": 331,
+    "faithful": 334,
     "authored": 1,
-    "silent": 3,
+    "silent": 0,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
      "status": "skipped",
@@ -1783,16 +1647,6 @@
     {
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -1806,29 +1660,13 @@
    "byStatus": {
     "core": 824,
     "nop": 0,
-    "faithful": 248,
+    "faithful": 252,
     "authored": 0,
-    "silent": 4,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "wardrobe.scm",
@@ -1839,29 +1677,13 @@
    "byStatus": {
     "core": 1213,
     "nop": 0,
-    "faithful": 270,
+    "faithful": 273,
     "authored": 0,
-    "silent": 3,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "clothes.scm",
@@ -1872,29 +1694,13 @@
    "byStatus": {
     "core": 982,
     "nop": 0,
-    "faithful": 270,
+    "faithful": 273,
     "authored": 0,
-    "silent": 3,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "junkfud.scm",
@@ -1905,24 +1711,13 @@
    "byStatus": {
     "core": 1185,
     "nop": 0,
-    "faithful": 393,
+    "faithful": 395,
     "authored": 0,
-    "silent": 2,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "carmod1.scm",
@@ -2138,28 +1933,13 @@
    "byStatus": {
     "core": 1731,
     "nop": 0,
-    "faithful": 599,
+    "faithful": 625,
     "authored": 0,
-    "silent": 26,
+    "silent": 0,
     "skipped": 3,
     "stops": 6
    },
    "gaps": [
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 12
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE",
      "status": "stops",
@@ -2407,18 +2187,13 @@
    "byStatus": {
     "core": 663,
     "nop": 1,
-    "faithful": 428,
+    "faithful": 434,
     "authored": 2,
-    "silent": 6,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -2435,19 +2210,13 @@
    "byStatus": {
     "core": 1116,
     "nop": 0,
-    "faithful": 201,
+    "faithful": 202,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 4,
@@ -2458,19 +2227,13 @@
    "byStatus": {
     "core": 1495,
     "nop": 0,
-    "faithful": 228,
+    "faithful": 229,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 5,
@@ -2481,24 +2244,13 @@
    "byStatus": {
     "core": 1766,
     "nop": 0,
-    "faithful": 267,
+    "faithful": 269,
     "authored": 0,
-    "silent": 2,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 6,
@@ -2509,24 +2261,13 @@
    "byStatus": {
     "core": 1461,
     "nop": 1,
-    "faithful": 257,
+    "faithful": 259,
     "authored": 0,
-    "silent": 2,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 7,
@@ -2537,9 +2278,9 @@
    "byStatus": {
     "core": 1350,
     "nop": 0,
-    "faithful": 222,
+    "faithful": 223,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
@@ -2548,11 +2289,6 @@
      "name": "GET_STRING_WIDTH",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -2565,9 +2301,9 @@
    "byStatus": {
     "core": 5047,
     "nop": 321,
-    "faithful": 1072,
+    "faithful": 1075,
     "authored": 4,
-    "silent": 3,
+    "silent": 0,
     "skipped": 8,
     "stops": 0
    },
@@ -2580,11 +2316,6 @@
     {
      "name": "SET_POOL_TABLE_COORDS",
      "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
      "sites": 2
     },
     {
@@ -2603,11 +2334,6 @@
      "sites": 2
     },
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "GET_STRING_WIDTH_WITH_NUMBER",
      "status": "skipped",
      "sites": 1
@@ -2623,18 +2349,13 @@
    "byStatus": {
     "core": 1995,
     "nop": 18,
-    "faithful": 1096,
+    "faithful": 1098,
     "authored": 2,
-    "silent": 3,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -2719,32 +2440,17 @@
    "byStatus": {
     "core": 1747,
     "nop": 1,
-    "faithful": 1078,
+    "faithful": 1106,
     "authored": 5,
-    "silent": 30,
+    "silent": 2,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 14
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
-    {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 5
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -2767,28 +2473,13 @@
    "byStatus": {
     "core": 1242,
     "nop": 1,
-    "faithful": 775,
+    "faithful": 803,
     "authored": 1,
-    "silent": 29,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 15
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -2810,28 +2501,13 @@
    "byStatus": {
     "core": 1199,
     "nop": 1,
-    "faithful": 819,
+    "faithful": 850,
     "authored": 1,
-    "silent": 32,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 14
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 11
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -2853,28 +2529,13 @@
    "byStatus": {
     "core": 1280,
     "nop": 2,
-    "faithful": 905,
+    "faithful": 942,
     "authored": 0,
-    "silent": 38,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 16
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 11
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -2891,28 +2552,13 @@
    "byStatus": {
     "core": 1294,
     "nop": 1,
-    "faithful": 772,
+    "faithful": 818,
     "authored": 4,
-    "silent": 47,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 20
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 18
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -2934,28 +2580,13 @@
    "byStatus": {
     "core": 1600,
     "nop": 1,
-    "faithful": 1189,
+    "faithful": 1231,
     "authored": 1,
-    "silent": 43,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 20
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 16
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -2977,28 +2608,13 @@
    "byStatus": {
     "core": 2252,
     "nop": 1,
-    "faithful": 1120,
+    "faithful": 1124,
     "authored": 0,
-    "silent": 6,
+    "silent": 2,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -3020,28 +2636,13 @@
    "byStatus": {
     "core": 1315,
     "nop": 3,
-    "faithful": 645,
+    "faithful": 656,
     "authored": 0,
-    "silent": 12,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -3058,23 +2659,13 @@
    "byStatus": {
     "core": 2703,
     "nop": 41,
-    "faithful": 1511,
+    "faithful": 1531,
     "authored": 0,
-    "silent": 22,
+    "silent": 2,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 15
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -3096,28 +2687,13 @@
    "byStatus": {
     "core": 2708,
     "nop": 2,
-    "faithful": 1566,
+    "faithful": 1574,
     "authored": 0,
-    "silent": 9,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -3134,9 +2710,9 @@
    "byStatus": {
     "core": 439,
     "nop": 1,
-    "faithful": 391,
+    "faithful": 398,
     "authored": 3,
-    "silent": 8,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
@@ -3145,21 +2721,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -3177,28 +2738,13 @@
    "byStatus": {
     "core": 3672,
     "nop": 30,
-    "faithful": 1117,
+    "faithful": 1130,
     "authored": 0,
-    "silent": 14,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -3215,28 +2761,13 @@
    "byStatus": {
     "core": 1373,
     "nop": 2,
-    "faithful": 1107,
+    "faithful": 1115,
     "authored": 1,
-    "silent": 9,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -3258,28 +2789,13 @@
    "byStatus": {
     "core": 3798,
     "nop": 8,
-    "faithful": 1648,
+    "faithful": 1743,
     "authored": 0,
-    "silent": 96,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 41
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 33
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 21
-    },
     {
      "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
      "status": "skipped",
@@ -3301,28 +2817,13 @@
    "byStatus": {
     "core": 1294,
     "nop": 9,
-    "faithful": 1076,
+    "faithful": 1107,
     "authored": 4,
-    "silent": 32,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 11
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -3349,23 +2850,13 @@
    "byStatus": {
     "core": 3536,
     "nop": 38,
-    "faithful": 1351,
+    "faithful": 1427,
     "authored": 3,
-    "silent": 78,
+    "silent": 2,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 43
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 33
-    },
     {
      "name": "SET_VEHICLE_IS_CONSIDERED_BY_PLAYER",
      "status": "authored",
@@ -3392,28 +2883,13 @@
    "byStatus": {
     "core": 2466,
     "nop": 3,
-    "faithful": 1366,
+    "faithful": 1429,
     "authored": 1,
-    "silent": 64,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 58
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "SET_GROUP_SEQUENCE",
      "status": "skipped",
@@ -3440,28 +2916,13 @@
    "byStatus": {
     "core": 795,
     "nop": 1,
-    "faithful": 559,
+    "faithful": 582,
     "authored": 0,
-    "silent": 24,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 11
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -3478,28 +2939,13 @@
    "byStatus": {
     "core": 1468,
     "nop": 1,
-    "faithful": 1085,
+    "faithful": 1152,
     "authored": 2,
-    "silent": 68,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 29
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 19
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 19
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -3526,28 +2972,13 @@
    "byStatus": {
     "core": 3840,
     "nop": 2,
-    "faithful": 2950,
+    "faithful": 3016,
     "authored": 2,
-    "silent": 67,
+    "silent": 1,
     "skipped": 24,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 28
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 20
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 18
-    },
     {
      "name": "ADD_SPARKS",
      "status": "skipped",
@@ -3589,18 +3020,13 @@
    "byStatus": {
     "core": 1276,
     "nop": 1,
-    "faithful": 705,
+    "faithful": 710,
     "authored": 0,
-    "silent": 6,
+    "silent": 1,
     "skipped": 6,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED",
      "status": "skipped",
@@ -3627,16 +3053,6 @@
      "sites": 1
     },
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -3652,28 +3068,13 @@
    "byStatus": {
     "core": 478,
     "nop": 1,
-    "faithful": 712,
+    "faithful": 736,
     "authored": 0,
-    "silent": 25,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -3690,18 +3091,13 @@
    "byStatus": {
     "core": 2023,
     "nop": 3,
-    "faithful": 1282,
+    "faithful": 1320,
     "authored": 10,
-    "silent": 39,
+    "silent": 1,
     "skipped": 8,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 32
-    },
     {
      "name": "MARK_CAR_AS_CONVOY_CAR",
      "status": "authored",
@@ -3711,16 +3107,6 @@
      "name": "IMPROVE_CAR_BY_CHEATING",
      "status": "skipped",
      "sites": 4
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
     },
     {
      "name": "DRAW_LIGHT_WITH_RANGE",
@@ -3753,28 +3139,13 @@
    "byStatus": {
     "core": 1044,
     "nop": 1,
-    "faithful": 1266,
+    "faithful": 1286,
     "authored": 1,
-    "silent": 21,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 14
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -3796,9 +3167,9 @@
    "byStatus": {
     "core": 4769,
     "nop": 48,
-    "faithful": 699,
+    "faithful": 705,
     "authored": 2,
-    "silent": 7,
+    "silent": 1,
     "skipped": 17,
     "stops": 0
    },
@@ -3807,11 +3178,6 @@
      "name": "REGISTER_FASTEST_TIME",
      "status": "skipped",
      "sites": 5
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
     },
     {
      "name": "HELI_GOTO_COORDS",
@@ -3874,29 +3240,13 @@
    "byStatus": {
     "core": 467,
     "nop": 1,
-    "faithful": 266,
+    "faithful": 270,
     "authored": 0,
-    "silent": 4,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 37,
@@ -3907,28 +3257,13 @@
    "byStatus": {
     "core": 4680,
     "nop": 1,
-    "faithful": 3574,
+    "faithful": 3694,
     "authored": 1,
-    "silent": 121,
+    "silent": 1,
     "skipped": 57,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 41
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 40
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 39
-    },
     {
      "name": "HELI_GOTO_COORDS",
      "status": "skipped",
@@ -3973,6 +3308,21 @@
      "name": "FIRE_SINGLE_BULLET",
      "status": "skipped",
      "sites": 2
+    },
+    {
+     "name": "ADD_BIG_GUN_FLASH",
+     "status": "skipped",
+     "sites": 2
+    },
+    {
+     "name": "SET_SEARCHLIGHT_CLIP_IF_COLLIDING",
+     "status": "skipped",
+     "sites": 2
+    },
+    {
+     "name": "LOAD_SCENE_IN_DIRECTION",
+     "status": "authored",
+     "sites": 1
     }
    ]
   },
@@ -3985,23 +3335,13 @@
    "byStatus": {
     "core": 1618,
     "nop": 6,
-    "faithful": 969,
+    "faithful": 982,
     "authored": 2,
-    "silent": 13,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -4010,11 +3350,6 @@
     {
      "name": "TASK_EVERYONE_LEAVE_CAR",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
      "sites": 1
     }
    ]
@@ -4056,24 +3391,13 @@
    "byStatus": {
     "core": 707,
     "nop": 1,
-    "faithful": 197,
+    "faithful": 201,
     "authored": 0,
-    "silent": 4,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 41,
@@ -4084,28 +3408,13 @@
    "byStatus": {
     "core": 2644,
     "nop": 61,
-    "faithful": 965,
+    "faithful": 1102,
     "authored": 0,
-    "silent": 138,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 69
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 66
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -4122,23 +3431,13 @@
    "byStatus": {
     "core": 2649,
     "nop": 5,
-    "faithful": 1562,
+    "faithful": 1575,
     "authored": 1,
-    "silent": 14,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -4146,11 +3445,6 @@
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
      "status": "silent",
      "sites": 1
     }
@@ -4165,31 +3459,16 @@
    "byStatus": {
     "core": 1706,
     "nop": 2,
-    "faithful": 785,
+    "faithful": 797,
     "authored": 3,
-    "silent": 13,
+    "silent": 1,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
      "sites": 3
     },
     {
@@ -4218,28 +3497,13 @@
    "byStatus": {
     "core": 1628,
     "nop": 3,
-    "faithful": 884,
+    "faithful": 970,
     "authored": 1,
-    "silent": 87,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 42
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 41
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -4266,29 +3530,13 @@
    "byStatus": {
     "core": 116,
     "nop": 0,
-    "faithful": 42,
+    "faithful": 48,
     "authored": 0,
-    "silent": 6,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 46,
@@ -4299,28 +3547,13 @@
    "byStatus": {
     "core": 1132,
     "nop": 1,
-    "faithful": 932,
+    "faithful": 972,
     "authored": 1,
-    "silent": 41,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 14
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 13
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 13
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -4342,18 +3575,13 @@
    "byStatus": {
     "core": 1417,
     "nop": 4,
-    "faithful": 784,
+    "faithful": 814,
     "authored": 0,
-    "silent": 31,
+    "silent": 1,
     "skipped": 16,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 26
-    },
     {
      "name": "SET_DRUNK_INPUT_DELAY",
      "status": "skipped",
@@ -4368,16 +3596,6 @@
      "name": "DELETE_SEARCHLIGHT",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "GIVE_VEHICLE_PAINTJOB",
@@ -4408,6 +3626,11 @@
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
+    },
+    {
+     "name": "HELI_GOTO_COORDS",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -4437,28 +3660,13 @@
    "byStatus": {
     "core": 2052,
     "nop": 1,
-    "faithful": 978,
+    "faithful": 1003,
     "authored": 0,
-    "silent": 26,
+    "silent": 1,
     "skipped": 4,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 16
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
     {
      "name": "SET_CAR_LIGHTS_ON",
      "status": "skipped",
@@ -4490,23 +3698,13 @@
    "byStatus": {
     "core": 1666,
     "nop": 49,
-    "faithful": 810,
+    "faithful": 837,
     "authored": 4,
-    "silent": 28,
+    "silent": 1,
     "skipped": 8,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 17
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
     {
      "name": "SWAP_NEAREST_BUILDING_MODEL",
      "status": "skipped",
@@ -4515,11 +3713,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
      "sites": 3
     },
     {
@@ -4563,28 +3756,13 @@
    "byStatus": {
     "core": 1481,
     "nop": 8,
-    "faithful": 854,
+    "faithful": 869,
     "authored": 1,
-    "silent": 17,
+    "silent": 2,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "GET_CAR_BLOCKING_CAR",
      "status": "skipped",
@@ -4654,28 +3832,13 @@
    "byStatus": {
     "core": 2127,
     "nop": 3,
-    "faithful": 1286,
+    "faithful": 1301,
     "authored": 2,
-    "silent": 16,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -4707,28 +3870,13 @@
    "byStatus": {
     "core": 533,
     "nop": 7,
-    "faithful": 590,
+    "faithful": 597,
     "authored": 0,
-    "silent": 8,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -4745,28 +3893,13 @@
    "byStatus": {
     "core": 1009,
     "nop": 1,
-    "faithful": 482,
+    "faithful": 490,
     "authored": 0,
-    "silent": 9,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -4861,31 +3994,16 @@
    "byStatus": {
     "core": 1805,
     "nop": 5,
-    "faithful": 1510,
+    "faithful": 1554,
     "authored": 2,
-    "silent": 45,
+    "silent": 1,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 39
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
      "sites": 2
     },
     {
@@ -4919,28 +4037,13 @@
    "byStatus": {
     "core": 1556,
     "nop": 3,
-    "faithful": 653,
+    "faithful": 661,
     "authored": 0,
-    "silent": 9,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "ATTACH_CHAR_TO_BIKE",
      "status": "skipped",
@@ -4962,28 +4065,13 @@
    "byStatus": {
     "core": 2426,
     "nop": 45,
-    "faithful": 1155,
+    "faithful": 1242,
     "authored": 1,
-    "silent": 90,
+    "silent": 3,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 47
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 34
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "DONT_SUPPRESS_CAR_MODEL",
      "status": "silent",
@@ -5010,28 +4098,13 @@
    "byStatus": {
     "core": 1680,
     "nop": 1,
-    "faithful": 760,
+    "faithful": 776,
     "authored": 1,
-    "silent": 17,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "GET_CHAR_HIGHEST_PRIORITY_EVENT",
      "status": "skipped",
@@ -5058,28 +4131,13 @@
    "byStatus": {
     "core": 861,
     "nop": 14,
-    "faithful": 872,
+    "faithful": 885,
     "authored": 1,
-    "silent": 14,
+    "silent": 1,
     "skipped": 5,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
     {
      "name": "CREATE_BIRDS",
      "status": "skipped",
@@ -5116,31 +4174,16 @@
    "byStatus": {
     "core": 774,
     "nop": 4,
-    "faithful": 453,
+    "faithful": 460,
     "authored": 2,
-    "silent": 8,
+    "silent": 1,
     "skipped": 5,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
      "sites": 2
     },
     {
@@ -5174,28 +4217,13 @@
    "byStatus": {
     "core": 926,
     "nop": 6,
-    "faithful": 889,
+    "faithful": 932,
     "authored": 4,
-    "silent": 44,
+    "silent": 1,
     "skipped": 2,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 15
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 14
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 14
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -5227,18 +4255,13 @@
    "byStatus": {
     "core": 2216,
     "nop": 4,
-    "faithful": 1825,
+    "faithful": 1859,
     "authored": 0,
-    "silent": 35,
+    "silent": 1,
     "skipped": 14,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 30
-    },
     {
      "name": "SET_BOAT_CRUISE_SPEED",
      "status": "skipped",
@@ -5253,16 +4276,6 @@
      "name": "SET_SWIM_SPEED",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "TASK_GREET_PARTNER",
@@ -5343,28 +4356,13 @@
    "byStatus": {
     "core": 1470,
     "nop": 1,
-    "faithful": 739,
+    "faithful": 794,
     "authored": 1,
-    "silent": 56,
+    "silent": 1,
     "skipped": 2,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 19
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 19
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 17
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -5396,9 +4394,9 @@
    "byStatus": {
     "core": 880,
     "nop": 2,
-    "faithful": 302,
+    "faithful": 309,
     "authored": 4,
-    "silent": 8,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
@@ -5407,21 +4405,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 4
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "ADD_BLIP_FOR_CAR_OLD",
@@ -5444,18 +4427,13 @@
    "byStatus": {
     "core": 2236,
     "nop": 2,
-    "faithful": 1812,
+    "faithful": 1836,
     "authored": 2,
-    "silent": 25,
+    "silent": 1,
     "skipped": 14,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 20
-    },
     {
      "name": "SET_CAR_STAY_IN_FAST_LANE",
      "status": "skipped",
@@ -5474,16 +4452,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
      "sites": 2
     },
     {
@@ -5522,9 +4490,9 @@
    "byStatus": {
     "core": 3112,
     "nop": 31,
-    "faithful": 1518,
+    "faithful": 1547,
     "authored": 11,
-    "silent": 30,
+    "silent": 1,
     "skipped": 59,
     "stops": 0
    },
@@ -5535,24 +4503,9 @@
      "sites": 25
     },
     {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 13
-    },
-    {
      "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
      "status": "skipped",
      "sites": 10
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
     },
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
@@ -5588,6 +4541,21 @@
      "name": "LOCATE_OBJECT_2D",
      "status": "skipped",
      "sites": 3
+    },
+    {
+     "name": "IS_VEHICLE_ATTACHED",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
+     "sites": 1
     }
    ]
   },
@@ -5600,28 +4568,13 @@
    "byStatus": {
     "core": 752,
     "nop": 3,
-    "faithful": 436,
+    "faithful": 454,
     "authored": 2,
-    "silent": 20,
+    "silent": 2,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 11
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -5648,28 +4601,13 @@
    "byStatus": {
     "core": 4181,
     "nop": 2,
-    "faithful": 1376,
+    "faithful": 1386,
     "authored": 0,
-    "silent": 11,
+    "silent": 1,
     "skipped": 2,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "SET_FREEBIES_IN_VEHICLE",
      "status": "skipped",
@@ -5691,32 +4629,17 @@
    "byStatus": {
     "core": 1449,
     "nop": 1,
-    "faithful": 737,
+    "faithful": 807,
     "authored": 2,
-    "silent": 71,
+    "silent": 1,
     "skipped": 21,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 32
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 32
-    },
-    {
      "name": "PLANE_GOTO_COORDS",
      "status": "skipped",
      "sites": 13
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
     },
     {
      "name": "SET_PLANE_THROTTLE",
@@ -5759,32 +4682,17 @@
    "byStatus": {
     "core": 851,
     "nop": 1,
-    "faithful": 433,
+    "faithful": 485,
     "authored": 1,
-    "silent": 53,
+    "silent": 1,
     "skipped": 13,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 25
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 25
-    },
-    {
      "name": "REMOVE_RC_BUGGY",
      "status": "skipped",
      "sites": 9
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "GIVE_REMOTE_CONTROLLED_MODEL_TO_PLAYER",
@@ -5827,27 +4735,17 @@
    "byStatus": {
     "core": 2395,
     "nop": 68,
-    "faithful": 611,
+    "faithful": 633,
     "authored": 0,
-    "silent": 24,
+    "silent": 2,
     "skipped": 22,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 17
-    },
-    {
      "name": "HELI_GOTO_COORDS",
      "status": "skipped",
      "sites": 7
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
     },
     {
      "name": "IS_OBJECT_INTERSECTING_WORLD",
@@ -5893,6 +4791,16 @@
      "name": "SET_HELI_STABILISER",
      "status": "skipped",
      "sites": 1
+    },
+    {
+     "name": "SET_HELI_REACHED_TARGET_DISTANCE",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "FIRE_SINGLE_BULLET",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -5905,28 +4813,13 @@
    "byStatus": {
     "core": 1060,
     "nop": 4,
-    "faithful": 423,
+    "faithful": 435,
     "authored": 0,
-    "silent": 13,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -5943,18 +4836,13 @@
    "byStatus": {
     "core": 1501,
     "nop": 3,
-    "faithful": 591,
+    "faithful": 627,
     "authored": 1,
-    "silent": 37,
+    "silent": 1,
     "skipped": 18,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 30
-    },
     {
      "name": "IS_TRAILER_ATTACHED_TO_CAB",
      "status": "skipped",
@@ -5964,16 +4852,6 @@
      "name": "ATTACH_TRAILER_TO_CAB",
      "status": "skipped",
      "sites": 4
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
     },
     {
      "name": "RELEASE_PATH_NODES",
@@ -6009,6 +4887,11 @@
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
+    },
+    {
+     "name": "GET_RANDOM_CAR_OF_TYPE_IN_AREA_NO_SAVE",
+     "status": "skipped",
+     "sites": 1
     }
    ]
   },
@@ -6021,23 +4904,13 @@
    "byStatus": {
     "core": 2251,
     "nop": 55,
-    "faithful": 1034,
+    "faithful": 1074,
     "authored": 2,
-    "silent": 41,
+    "silent": 1,
     "skipped": 24,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 24
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 16
-    },
     {
      "name": "HELI_GOTO_COORDS",
      "status": "skipped",
@@ -6116,31 +4989,16 @@
    "byStatus": {
     "core": 1112,
     "nop": 22,
-    "faithful": 222,
+    "faithful": 232,
     "authored": 2,
-    "silent": 11,
+    "silent": 1,
     "skipped": 2,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
      "name": "GET_CHAR_HEIGHT_ABOVE_GROUND",
      "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
      "sites": 2
     },
     {
@@ -6169,26 +5027,16 @@
    "byStatus": {
     "core": 1843,
     "nop": 9,
-    "faithful": 932,
+    "faithful": 943,
     "authored": 4,
-    "silent": 12,
+    "silent": 1,
     "skipped": 11,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
      "name": "IS_LAST_BUILDING_MODEL_SHOT_BY_PLAYER",
      "status": "skipped",
-     "sites": 3
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
      "sites": 3
     },
     {
@@ -6235,6 +5083,11 @@
      "name": "GET_CHAR_VELOCITY",
      "status": "authored",
      "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
+     "sites": 1
     }
    ]
   },
@@ -6247,9 +5100,9 @@
    "byStatus": {
     "core": 1409,
     "nop": 1,
-    "faithful": 1644,
+    "faithful": 1674,
     "authored": 7,
-    "silent": 31,
+    "silent": 1,
     "skipped": 50,
     "stops": 0
    },
@@ -6263,21 +5116,6 @@
      "name": "ATTACH_SEARCHLIGHT_TO_SEARCHLIGHT_OBJECT",
      "status": "skipped",
      "sites": 14
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 11
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 9
     },
     {
      "name": "DOES_SEARCHLIGHT_EXIST",
@@ -6313,6 +5151,21 @@
      "name": "IS_CHAR_IN_SEARCHLIGHT",
      "status": "skipped",
      "sites": 2
+    },
+    {
+     "name": "PLAYER_TAKE_OFF_GOGGLES",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "TASK_JETPACK",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "SET_VEHICLE_IS_CONSIDERED_BY_PLAYER",
+     "status": "authored",
+     "sites": 1
     }
    ]
   },
@@ -6325,23 +5178,13 @@
    "byStatus": {
     "core": 207,
     "nop": 1,
-    "faithful": 220,
+    "faithful": 225,
     "authored": 0,
-    "silent": 7,
+    "silent": 2,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -6355,11 +5198,6 @@
     {
      "name": "ATTACH_CAR_TO_CAR",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -6378,32 +5216,17 @@
    "byStatus": {
     "core": 2961,
     "nop": 2,
-    "faithful": 941,
+    "faithful": 953,
     "authored": 2,
-    "silent": 13,
+    "silent": 1,
     "skipped": 15,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
-    {
      "name": "IS_CAR_STOPPED_IN_AREA_2D",
      "status": "skipped",
      "sites": 4
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
     },
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
@@ -6456,28 +5279,13 @@
    "byStatus": {
     "core": 2109,
     "nop": 2,
-    "faithful": 505,
+    "faithful": 513,
     "authored": 1,
-    "silent": 9,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -6504,28 +5312,13 @@
    "byStatus": {
     "core": 1254,
     "nop": 12,
-    "faithful": 1036,
+    "faithful": 1053,
     "authored": 5,
-    "silent": 19,
+    "silent": 2,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -6572,28 +5365,13 @@
    "byStatus": {
     "core": 979,
     "nop": 2,
-    "faithful": 822,
+    "faithful": 826,
     "authored": 1,
-    "silent": 5,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "TASK_GO_TO_COORD_WHILE_AIMING",
      "status": "skipped",
@@ -6643,28 +5421,13 @@
    "byStatus": {
     "core": 4212,
     "nop": 8,
-    "faithful": 1837,
+    "faithful": 1914,
     "authored": 2,
-    "silent": 78,
+    "silent": 1,
     "skipped": 7,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 33
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 29
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 15
-    },
     {
      "name": "TASK_TIRED",
      "status": "skipped",
@@ -6734,18 +5497,13 @@
    "byStatus": {
     "core": 2481,
     "nop": 4,
-    "faithful": 1333,
+    "faithful": 1338,
     "authored": 6,
-    "silent": 6,
+    "silent": 1,
     "skipped": 6,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
     {
      "name": "SET_OBJECT_COORDINATES_AND_VELOCITY",
      "status": "authored",
@@ -6769,11 +5527,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -6802,9 +5555,9 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 487,
+    "faithful": 489,
     "authored": 3,
-    "silent": 3,
+    "silent": 1,
     "skipped": 6,
     "stops": 0
    },
@@ -6827,16 +5580,6 @@
     {
      "name": "PLANE_FLY_IN_DIRECTION",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -6865,28 +5608,13 @@
    "byStatus": {
     "core": 1479,
     "nop": 1,
-    "faithful": 1184,
+    "faithful": 1229,
     "authored": 2,
-    "silent": 46,
+    "silent": 1,
     "skipped": 7,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 31
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
     {
      "name": "SET_ALWAYS_DRAW_3D_MARKERS",
      "status": "skipped",
@@ -6956,23 +5684,13 @@
    "byStatus": {
     "core": 370,
     "nop": 1,
-    "faithful": 217,
+    "faithful": 229,
     "authored": 1,
-    "silent": 13,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -6994,28 +5712,13 @@
    "byStatus": {
     "core": 998,
     "nop": 14,
-    "faithful": 635,
+    "faithful": 682,
     "authored": 0,
-    "silent": 48,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 17
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 15
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 15
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -7032,28 +5735,13 @@
    "byStatus": {
     "core": 1750,
     "nop": 4,
-    "faithful": 1378,
+    "faithful": 1425,
     "authored": 0,
-    "silent": 48,
+    "silent": 1,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 40
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "LOCK_DOOR",
      "status": "skipped",
@@ -7085,28 +5773,13 @@
    "byStatus": {
     "core": 1964,
     "nop": 4,
-    "faithful": 1065,
+    "faithful": 1106,
     "authored": 1,
-    "silent": 42,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 16
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 14
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 11
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -7128,28 +5801,13 @@
    "byStatus": {
     "core": 1449,
     "nop": 8,
-    "faithful": 889,
+    "faithful": 910,
     "authored": 2,
-    "silent": 22,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -7181,28 +5839,13 @@
    "byStatus": {
     "core": 1018,
     "nop": 5,
-    "faithful": 678,
+    "faithful": 690,
     "authored": 1,
-    "silent": 13,
+    "silent": 1,
     "skipped": 4,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "SET_CAR_STAY_IN_FAST_LANE",
      "status": "skipped",
@@ -7244,28 +5887,13 @@
    "byStatus": {
     "core": 1731,
     "nop": 1,
-    "faithful": 1047,
+    "faithful": 1097,
     "authored": 1,
-    "silent": 51,
+    "silent": 1,
     "skipped": 12,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 36
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
     {
      "name": "GET_CAR_UPRIGHT_VALUE",
      "status": "skipped",
@@ -7322,28 +5950,13 @@
    "byStatus": {
     "core": 3088,
     "nop": 18,
-    "faithful": 3043,
+    "faithful": 3168,
     "authored": 2,
-    "silent": 126,
+    "silent": 1,
     "skipped": 14,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 43
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 41
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 41
-    },
     {
      "name": "SET_NIGHT_VISION",
      "status": "skipped",
@@ -7388,6 +6001,21 @@
      "name": "DELETE_SEARCHLIGHT",
      "status": "skipped",
      "sites": 1
+    },
+    {
+     "name": "CREATE_SWAT_ROPE",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "POLICE_HELI_CHASE_ENTITY",
+     "status": "skipped",
+     "sites": 1
+    },
+    {
+     "name": "PLAY_MISSION_PASSED_TUNE",
+     "status": "silent",
+     "sites": 1
     }
    ]
   },
@@ -7400,9 +6028,9 @@
    "byStatus": {
     "core": 2824,
     "nop": 1,
-    "faithful": 1565,
+    "faithful": 1566,
     "authored": 5,
-    "silent": 2,
+    "silent": 1,
     "skipped": 2,
     "stops": 0
    },
@@ -7415,11 +6043,6 @@
     {
      "name": "SET_PLANE_UNDERCARRIAGE_UP",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
      "sites": 1
     },
     {
@@ -7448,9 +6071,9 @@
    "byStatus": {
     "core": 4564,
     "nop": 54,
-    "faithful": 1246,
+    "faithful": 1252,
     "authored": 3,
-    "silent": 7,
+    "silent": 1,
     "skipped": 26,
     "stops": 0
    },
@@ -7464,11 +6087,6 @@
      "name": "SET_AIRCRAFT_CARRIER_SAM_SITE",
      "status": "skipped",
      "sites": 5
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
     },
     {
      "name": "PLANE_STARTS_IN_AIR",
@@ -7511,7 +6129,7 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_AUDIO",
+     "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
     }
@@ -7526,28 +6144,13 @@
    "byStatus": {
     "core": 537,
     "nop": 8,
-    "faithful": 469,
+    "faithful": 488,
     "authored": 5,
-    "silent": 20,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -7569,18 +6172,13 @@
    "byStatus": {
     "core": 993,
     "nop": 2,
-    "faithful": 660,
+    "faithful": 665,
     "authored": 0,
-    "silent": 6,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 5
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -7597,28 +6195,13 @@
    "byStatus": {
     "core": 1683,
     "nop": 1,
-    "faithful": 1193,
+    "faithful": 1296,
     "authored": 1,
-    "silent": 104,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 80
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 16
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -7640,28 +6223,13 @@
    "byStatus": {
     "core": 443,
     "nop": 7,
-    "faithful": 245,
+    "faithful": 264,
     "authored": 0,
-    "silent": 20,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -7678,28 +6246,13 @@
    "byStatus": {
     "core": 587,
     "nop": 2,
-    "faithful": 209,
+    "faithful": 231,
     "authored": 0,
-    "silent": 23,
+    "silent": 1,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 18
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
     {
      "name": "GIVE_VEHICLE_PAINTJOB",
      "status": "skipped",
@@ -7721,32 +6274,17 @@
    "byStatus": {
     "core": 2527,
     "nop": 2,
-    "faithful": 2589,
+    "faithful": 2631,
     "authored": 0,
-    "silent": 43,
+    "silent": 1,
     "skipped": 3,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 38
-    },
-    {
      "name": "SET_GUNSHOT_SENSE_RANGE_FOR_RIOT2",
      "status": "skipped",
      "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -7764,28 +6302,13 @@
    "byStatus": {
     "core": 2295,
     "nop": 1,
-    "faithful": 1831,
+    "faithful": 1844,
     "authored": 1,
-    "silent": 13,
+    "silent": 0,
     "skipped": 5,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 6
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 4
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
     {
      "name": "SET_INFRARED_VISION",
      "status": "skipped",
@@ -7822,9 +6345,9 @@
    "byStatus": {
     "core": 1066,
     "nop": 1,
-    "faithful": 956,
+    "faithful": 959,
     "authored": 31,
-    "silent": 3,
+    "silent": 0,
     "skipped": 3,
     "stops": 0
    },
@@ -7833,21 +6356,6 @@
      "name": "ADD_EXPLOSION_VARIABLE_SHAKE",
      "status": "authored",
      "sites": 31
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
     },
     {
      "name": "SET_PLAYER_MOOD",
@@ -7875,27 +6383,17 @@
    "byStatus": {
     "core": 3644,
     "nop": 1,
-    "faithful": 2730,
+    "faithful": 2741,
     "authored": 3,
-    "silent": 12,
+    "silent": 1,
     "skipped": 7,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "CONTROL_MOVABLE_VEHICLE_PART",
@@ -7923,11 +6421,6 @@
      "sites": 1
     },
     {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 1
@@ -7943,9 +6436,9 @@
    "byStatus": {
     "core": 1793,
     "nop": 1,
-    "faithful": 386,
+    "faithful": 388,
     "authored": 8,
-    "silent": 3,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
@@ -7956,17 +6449,7 @@
      "sites": 8
     },
     {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
      "status": "silent",
      "sites": 1
     }
@@ -7981,28 +6464,13 @@
    "byStatus": {
     "core": 404,
     "nop": 0,
-    "faithful": 355,
+    "faithful": 386,
     "authored": 0,
-    "silent": 32,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 12
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 9
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -8019,28 +6487,13 @@
    "byStatus": {
     "core": 366,
     "nop": 0,
-    "faithful": 318,
+    "faithful": 349,
     "authored": 0,
-    "silent": 32,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 12
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 9
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -8057,28 +6510,13 @@
    "byStatus": {
     "core": 358,
     "nop": 0,
-    "faithful": 317,
+    "faithful": 348,
     "authored": 0,
-    "silent": 32,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 12
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 10
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 9
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -8201,9 +6639,9 @@
    "byStatus": {
     "core": 2630,
     "nop": 2,
-    "faithful": 1694,
+    "faithful": 1708,
     "authored": 1,
-    "silent": 15,
+    "silent": 1,
     "skipped": 12,
     "stops": 0
    },
@@ -8212,21 +6650,6 @@
      "name": "HELI_GOTO_COORDS",
      "status": "skipped",
      "sites": 10
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 8
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
     },
     {
      "name": "BOAT_STOP",
@@ -8254,32 +6677,17 @@
    "byStatus": {
     "core": 2337,
     "nop": 2,
-    "faithful": 667,
+    "faithful": 672,
     "authored": 0,
-    "silent": 6,
+    "silent": 1,
     "skipped": 2,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
      "name": "IS_PLAYER_PERFORMING_STOPPIE",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
     },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
@@ -8465,23 +6873,13 @@
    "byStatus": {
     "core": 3245,
     "nop": 4,
-    "faithful": 1303,
+    "faithful": 1307,
     "authored": 0,
-    "silent": 5,
+    "silent": 1,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
-    },
     {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
@@ -8498,9 +6896,9 @@
    "byStatus": {
     "core": 1430,
     "nop": 3,
-    "faithful": 647,
+    "faithful": 650,
     "authored": 3,
-    "silent": 5,
+    "silent": 2,
     "skipped": 3,
     "stops": 0
    },
@@ -8509,11 +6907,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 3
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "FORCE_ALL_VEHICLE_LIGHTS_OFF",
@@ -8529,11 +6922,6 @@
      "name": "DONT_SUPPRESS_ANY_CAR_MODELS",
      "status": "skipped",
      "sites": 1
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -8546,32 +6934,17 @@
    "byStatus": {
     "core": 692,
     "nop": 0,
-    "faithful": 363,
+    "faithful": 379,
     "authored": 0,
-    "silent": 20,
+    "silent": 4,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
     {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 7
-    },
-    {
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 4
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
     },
     {
      "name": "ADD_BLIP_FOR_COORD_OLD",
@@ -8637,9 +7010,9 @@
    "byStatus": {
     "core": 1498,
     "nop": 6,
-    "faithful": 429,
+    "faithful": 434,
     "authored": 3,
-    "silent": 8,
+    "silent": 3,
     "skipped": 0,
     "stops": 0
    },
@@ -8653,21 +7026,6 @@
      "name": "PLAY_MISSION_PASSED_TUNE",
      "status": "silent",
      "sites": 3
-    },
-    {
-     "name": "PLAY_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "CLEAR_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 2
-    },
-    {
-     "name": "LOAD_MISSION_AUDIO",
-     "status": "silent",
-     "sites": 1
     }
    ]
   },
@@ -8767,63 +7125,6 @@
   }
  ],
  "queue": [
-  {
-   "name": "CLEAR_MISSION_AUDIO",
-   "opcode": "040d",
-   "status": "silent",
-   "notes": [
-    "adapter lacks clearMissionAudio"
-   ],
-   "handlerLine": 675,
-   "ref": {
-    "kind": "absent"
-   },
-   "doc": "Unloads the mission audio (03CF), freeing game memory",
-   "sites": 1442,
-   "missions": 121,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "LOAD_MISSION_AUDIO",
-   "opcode": "03cf",
-   "status": "silent",
-   "notes": [
-    "adapter lacks loadMissionAudio"
-   ],
-   "handlerLine": 661,
-   "ref": {
-    "kind": "handler",
-    "fn": "LoadMissionAudio",
-    "where": "ScriptCommands.cpp:48",
-    "stub": false
-   },
-   "doc": "Loads the file from the audio directory",
-   "sites": 1220,
-   "missions": 127,
-   "firstMission": "MAIN",
-   "portable": true
-  },
-  {
-   "name": "PLAY_MISSION_AUDIO",
-   "opcode": "03d1",
-   "status": "silent",
-   "notes": [
-    "adapter lacks playMissionAudio"
-   ],
-   "handlerLine": 667,
-   "ref": {
-    "kind": "handler",
-    "fn": "PlayMissionAudio",
-    "where": "ScriptCommands.cpp:64",
-    "stub": false
-   },
-   "doc": "Plays the loaded sound (03CF)",
-   "sites": 659,
-   "missions": 102,
-   "firstMission": "MAIN",
-   "portable": true
-  },
   {
    "name": "PLAY_MISSION_PASSED_TUNE",
    "opcode": "0394",

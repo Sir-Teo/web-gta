@@ -8574,8 +8574,9 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
 - **Mission dialogue drifted.** A line is sized from its subtitle; INTRO1 prints three of its four after the PLAY, so
   each ran for the previous line's length. A line is now sized once, at the next script pass, from the brief its
   frame left up.
-- **Blocked by data.** Cutscenes (anim/cuts.img, and the unreversed spline camera), spoken dialogue (AUDIO/SFX/SCRIPT)
-  and the mission-passed tune and beat tracks (AUDIO/STREAMS) are not in the published depot.
+- **Blocked by data.** Cutscenes (anim/cuts.img, and the unreversed spline camera) and the mission-passed tune and
+  beat tracks (AUDIO/STREAMS) are not in the published depot. (Spoken dialogue now comes from the iOS port's bundle:
+  see "Missions speak" below.)
 - **Porting pipeline.** `npm run port -- census|sweep|report|all` (docs/port/README.md): a static census of every
   command against this port and gta-reversed's registrations with a ranked work queue, a headless mission sweep with
   a locate-following autopilot, and a joined status page.
@@ -9160,3 +9161,25 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **A loaded game is on no mission.** Loading a save ends INTRO as it starts; its ONMISSION flag ($409) was left set,
   so every trigger that asks whether CJ is on a mission heard yes for the session (the story's markers, the gyms, the
   shops, the camera). It is cleared as the mission's own end would.
+
+## Missions speak
+
+- **The SCRIPT pack, from the iOS port.** The PC's `AUDIO/SFX/SCRIPT` is not in the published depot; the iOS port's
+  bundle (github.com/Google61/gta3sa.app, pinned `67f70cb72e`) ships it as `SCRIPT.osw`, a stored ZIP of one MP3 per
+  sound (`Bank_NNN/sound_NNN.mp3`) with an offset index beside it. Its `BankLkup.dat` gives the SCRIPT pack 218 banks,
+  ids 147 to 364, in the order of the ZIP's `Bank_001` to `Bank_218`. `scripts/content/package-script-speech.mjs`
+  checks both files' hashes and every entry's ZIP header and writes one file per bank under
+  `public/play/audio/script/` (93.6 MB, 6,851 sounds).
+- **A sample names its line** as `CAEAudioUtility::GetBankAndSoundFromScriptSlotAudioEvent` (0x4D9CC0, reversed)
+  does: sample 2000 + 200n + s is bank 147 + n, sound s. Checked at both ends: 2000 (`AE_SCRIPT_SLOT_ALDEAMALVADA`) is
+  bank 147 (`SND_BANK_SCRIPT_SCANNER_AREAS`, 164 area names, as `Bank_001` has), and INTRO1's first line 20000
+  (`AE_SCRIPT_SLOT_INT1_AA`) is bank 237 (`SND_BANK_SCRIPT_INT1`).
+- **The slots stream.** `LOAD_MISSION_AUDIO` fetches the line's bank (once; the last four are kept) and decodes the
+  line; the slot stays loading until it has, so a script's `HAS_MISSION_AUDIO_LOADED` loop waits on the bank as the
+  original's waits on the stream. `PLAY_MISSION_AUDIO` plays it, and the slot runs out after the line's own length
+  rather than one guessed from its subtitle. `CLEAR_MISSION_AUDIO` and the mission's clean-up stop it. A line that
+  cannot be had (a failed download, a sample that names a whole bank) loads as nothing, and the mission runs on sized
+  from its subtitle as before.
+- **AUTHORED:** the line plays at the listener under the effects level; `CAEScriptAudioEntity`'s positioning (the
+  slot's point, ped, car or object) is unreversed and not followed.
+- Spec: `script-speech` (unit).
