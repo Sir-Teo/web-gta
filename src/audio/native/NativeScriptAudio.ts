@@ -24,7 +24,9 @@ type MissionBank=readonly [sound:number|readonly [number,number],link:number,onc
 /** What a handler does first: stop the sounds of another event (with `stopAtEntity`, only those at the report's entity
  * when it names one: CancelSoundsOfThisEventPlayingForThisEntityAndPhysical), or only play while none of its own
  * plays. */
-type MissionAudioCase={frontend:number;speed?:number}|{resident:readonly Resident[];once?:boolean}|{bank:readonly MissionBank[];stop?:number;stopAtEntity?:boolean;once?:boolean}|{stop:number;stopAtEntity?:boolean}|{custom:'keypad'|'stereo'}|{ambience:number}|{ambienceStop:true}|{crane:'enter'|'move'|'stop'|'exit'}|{door:number;speed:number};
+/** `heard`: the handler notes the time (the entity's +0x94), which UpdateParameters times its sound out from; `gym`: it
+ * sets the gym machines' mode (+0xa0), 1 running, 2 stopping. */
+type MissionAudioCase={frontend:number;speed?:number}|{resident:readonly Resident[];once?:boolean;heard?:boolean}|{bank:readonly MissionBank[];stop?:number;stopAtEntity?:boolean;once?:boolean;heard?:boolean;gym?:1|2}|{gym:2}|{stop:number;stopAtEntity?:boolean}|{custom:'keypad'|'stereo'}|{ambience:number}|{ambienceStop:true}|{crane:'enter'|'move'|'stop'|'exit'}|{door:number;speed:number};
 const COLLISIONS=[2,39] as const,WEAPONS=[5,143] as const;
 const r=(bank:readonly [number,number],sound:Resident[2],percent=0,volume=0,speed=1):Resident=>[bank[0],bank[1],sound,percent,volume,speed];
 const b=(sound:MissionBank[0],link:number,once:boolean,volume:number,rollOff:number,speed:number):{bank:readonly MissionBank[]}=>({bank:[[sound,link,once,volume,rollOff,speed]]});
@@ -32,18 +34,20 @@ const b=(sound:MissionBank[0],link:number,once:boolean,volume:number,rollOff:num
 const MISSION_BANK_EVENTS:Readonly<Record<number,MissionAudioCase>>={
  1005:b(1,2,false,0,2,1),1007:b(0,2,false,0,2,1),1011:b(3,3,false,0,2,1),1014:b(10,3,false,0,2,1),1016:b(8,3,false,0,2,1),1018:b(7,3,false,0,2,1),
  1025:b(1,3,false,0,2,1),1026:b(0,3,false,0,2,1),1029:b(2,2,false,0,2,1),1030:b(1,2,false,0,2,1),1032:b(1,3,false,0,2,1),1033:b(0,3,false,0,2,1),
- 1041:b(8,3,false,0,2,1),1042:b(0,3,true,0,2,1),1043:b(2,3,true,0,2,1),1044:b(1,3,true,0,2,1),1045:b(5,3,false,0,2,1),1046:b(4,3,false,0,2,1),
+ 1041:b(8,3,false,0,2,1),1042:{...b(0,3,true,0,2,1),heard:true},1043:b(2,3,true,0,2,1),1044:b(1,3,true,0,2,1),1045:b(5,3,false,0,2,1),1046:b(4,3,false,0,2,1),
  1047:b(3,3,true,0,2,1),1048:b(7,3,true,0,2,1),1049:b(6,3,true,0,2,1),1050:b(9,3,true,0,2,1),1051:b(10,3,true,0,2,1),1059:b(5,3,false,0,2,1),
  1060:b(2,3,false,0,2,1),1061:b(3,3,false,0,2,1),1064:b(6,3,false,0,2,1),1065:b(0,3,false,0,2,1),1066:b(1,3,false,0,2,1),1067:b(4,3,true,0,2,1),
  1070:b(6,3,false,0,2,1),1071:b(4,3,false,0,2,1),1072:b(2,3,false,0,2,1),1073:b(5,3,false,0,2,1),1074:b(1,3,false,0,2,1),1075:b(1,3,false,0,2,.79),
- 1078:b(3,3,true,0,2,1),1079:b(2,2,true,0,3,1),1080:b(1,2,true,0,3,1),1086:b(0,3,false,0,2,1),1087:b(3,3,false,0,2,1),1089:b(0,3,false,0,2,1),
+ 1078:b(3,3,true,0,2,1),1079:b(2,2,true,0,3,1),1080:b(1,2,true,0,3,1),1086:{...b(0,3,false,0,2,1),heard:true},1087:b(3,3,false,0,2,1),1089:b(0,3,false,0,2,1),
  1090:b(1,3,false,0,2,1),1102:b(0,2,false,0,2,1),1103:b(1,2,false,0,2,1),1104:b(1,2,false,0,2,1),1105:b(2,2,false,0,2,1),1110:b(0,2,false,0,2,1),
- 1111:b(1,2,false,0,2,1),1113:b(0,3,true,-18,2,1),1115:b(2,3,false,0,2,1),1116:b(3,3,false,0,2,1),1117:b(7,3,false,0,2,1),1118:b(1,3,true,-18,2,1),
+ 1111:b(1,2,false,0,2,1),1113:{...b(0,3,true,-18,2,1),gym:1},1115:b(2,3,false,0,2,1),1116:b(3,3,false,0,2,1),1117:b(7,3,false,0,2,1),1118:{...b(1,3,true,-18,2,1),gym:1},
  1120:b(0,3,false,0,2,1),1121:b(1,3,false,0,2,1),1122:b(2,3,true,0,2,1),1123:b(4,3,false,0,2,1),1124:b(5,3,true,0,2,1),1125:b(0,2,false,0,2,1),
  1151:b(1,2,false,0,2,1),1152:b(0,2,false,0,2,1),1155:b(0,2,false,0,2,1),1156:b(1,2,false,0,2,1),1158:b(3,3,false,0,2,1),1161:b(1,2,false,0,2,1),
- 1167:b(0,3,true,0,2,1),1168:b(0,3,false,0,2,1),1169:b(1,3,false,0,2,1),1170:b(6,3,false,0,2,1),1171:b(1,3,false,0,2,1),1172:b(2,3,false,0,2,1),
- 1173:b(5,3,false,0,2,.67),1174:b(5,3,false,0,2,.79),1175:b(5,3,false,0,2,1),1176:b(8,3,true,0,2,.38),1177:b(0,3,true,0,2,1),1178:b(3,3,true,0,2,1),
+ 1167:{...b(0,3,true,0,2,1),heard:true},1168:b(0,3,false,0,2,1),1169:b(1,3,false,0,2,1),1170:b(6,3,false,0,2,1),1171:b(1,3,false,0,2,1),1172:b(2,3,false,0,2,1),
+ 1173:b(5,3,false,0,2,.67),1174:b(5,3,false,0,2,.79),1175:b(5,3,false,0,2,1),1176:b(8,3,true,0,2,.38),1177:{...b(0,3,true,0,2,1),heard:true},1178:b(3,3,true,0,2,1),
  1179:b(4,3,false,0,2,1),1180:b(7,3,false,0,2,1),
+ // The gym bike's and the running machine's stops: their loops wind down (UpdateParameters).
+ 1114:{gym:2},1119:{gym:2},
  // A random sound of a range.
  1010:b([0,2],3,false,0,2,1),1017:b([3,5],3,false,0,2,1),1031:b([2,6],3,false,0,2,1),
  // Only while none of its own plays.
@@ -86,7 +90,7 @@ export const MISSION_AUDIO_EVENTS:Readonly<Record<number,MissionAudioCase>>={
  1141:{resident:[r(COLLISIONS,[20,28]),r(COLLISIONS,65)]},
  1145:{resident:[r(COLLISIONS,19,65)]},
  // Only while none of this event's is playing for the entity: HORN sound 7.
- 1147:{resident:[[17,74,7,0,0,1]],once:true},
+ 1147:{resident:[[17,74,7,0,0,1]],once:true,heard:true},
  1148:{resident:[r(COLLISIONS,[20,28])]},
  1149:{frontend:43},1150:{frontend:7},
  1163:{resident:[[41,0,0,0,0,1]]},
@@ -115,13 +119,42 @@ export class NativeScriptAudio implements NativeAudioEntity {
  ambience?:{playSpecialMissionAmbienceTrack(track:number):void;stopSpecialMissionAmbienceTrack():void};
  /** The script's own CAEDoorAudioEntity. */
  readonly door:NativeDoorAudio;
+ /** The time a held sound was last reported (+0x94), whether the roulette's bounce has followed its spin (+0x90), and
+  * the gym machines' mode (+0xa0: 1 running, 2 stopping; 2 to begin with). */
+ private heardAt=0;private bounced=false;private gymMode=2;
  /** The crane being worked (the entity's +0x91 and +0x168 in the iOS executable). */
  private crane?:{physical?:NativePhysicalEntity};
  /** Each mission audio slot's record bank (m_nBankId): the SCRIPT bank a whole-bank LOAD_MISSION_AUDIO put in it, or -1. */
  readonly missionBanks=[-1,-1,-1,-1];
  constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private defaultVolume:(event:number)=>number,private random:AudioRandom,
   private frontend:(event:number,volumeBoost:number,speed:number)=>void){this.door=new NativeDoorAudio(manager,bank,defaultVolume);}
- updateParameters(_sound:NativeSound,_playPosition:number){}
+ /** UpdateParameters (iOS 0x100156878), by the sound's event: the held sounds (the dual's thrust, the bee's buzz, the
+  * Tempest's shield, Sweet's horn) stop 300 ms (the horn 500) after the last report; the roulette's spin, 4.5 s on,
+  * fades 0.1 dB a frame to -40 and slows 0.001 a frame, and at 4.8 s its ball bounces once (1160, one of sounds 1 to 3
+  * of slot 4's bank, ahead of the listener); the gym machines' loops rise 0.1 dB a frame to their event's volume while
+  * running and, stopping, fall 0.1 dB a frame to 18 dB under it and stop. (A mission audio slot's line following its
+  * entity is the speech host's.) */
+ updateParameters(sound:NativeSound,_playPosition:number){
+  const now=this.manager.clock.timeMs;
+  const timeOut=(ms:number)=>{if(now>this.heardAt+ms){sound.stopSoundAndForget();this.heardAt=0;}};
+  switch(sound.event){
+   case 1042:case 1167:case 1177:timeOut(300);break;
+   case 1147:timeOut(500);break;
+   case 1086:
+    if(now>this.heardAt+4500){
+     if(sound.volume>-40)sound.volume-=.1;else{sound.stopSoundAndForget();this.heardAt=0;}
+     if(sound.speed>0)sound.speed=Math.max(sound.speed-.001,0);
+    }
+    if(now>this.heardAt+4800&&!this.bounced){this.playMissionBankSound(1160,{position:{x:-1000,y:-1000,z:-1000}},randomInt(this.random,1,3),3,false,0,2,1);this.bounced=true;}
+    break;
+   case 1113:case 1118:{
+    const full=this.defaultVolume(sound.event);
+    if(this.gymMode===1){if(sound.volume<full)sound.volume=Math.min(sound.volume+.1,full);}
+    else if(this.gymMode===2){const floor=full-18;if(sound.volume>floor)sound.volume=Math.max(sound.volume-.1,floor);else sound.stopSoundAndForget();}
+    break;
+   }
+  }
+ }
  snapshot(){return {handled:Object.fromEntries(this.handled),unported:Object.fromEntries(this.unported)};}
  /** ProcessMissionAudioEvent. */
  processMissionAudioEvent(event:number,at:MissionAudioAt){
@@ -130,6 +163,7 @@ export class NativeScriptAudio implements NativeAudioEntity {
   this.handled.set(event,(this.handled.get(event)??0)+1);
   if('frontend' in c){this.frontend(c.frontend,0,c.speed??1);return;}
   if('crane' in c){this.craneEvent(c.crane,event,at);return;}
+  if('gym' in c&&!('bank' in c)){this.gymMode=c.gym;return;}
   if('door' in c){const position='physical' in at?at.physical.position():at.position;if(position)this.door.addAudioEvent(c.door,{...position},0,c.speed);return;}
   if('ambience' in c){this.ambience?.playSpecialMissionAmbienceTrack(c.ambience);return;}
   if('ambienceStop' in c){this.ambience?.stopSpecialMissionAmbienceTrack();return;}
@@ -149,6 +183,9 @@ export class NativeScriptAudio implements NativeAudioEntity {
   if('once' in c&&c.once&&this.manager.areSoundsOfThisEventPlayingForThisEntity(event,this))return;
   if('resident' in c)for(const [slot,bank,sound,percent,volume,speed] of c.resident)this.playResidentSoundEvent(slot,bank,pick(sound),event,at,volume,speed,percent);
   if('bank' in c)for(const [sound,link,once,volume,rollOff,speed] of c.bank)this.playMissionBankSound(event,at,pick(sound),link,once,volume,rollOff,speed);
+  // What the handlers note once they have played (or not, for a once-only sound already going).
+  if('heard' in c&&c.heard){this.heardAt=this.manager.clock.timeMs;if(event===1086)this.bounced=false;}
+  if('gym' in c&&c.gym)this.gymMode=c.gym;
  }
  /** The crane's four events (iOS 0x100157648 on): entering loads CRANE_P (44) into the player engine slot (40),
   * cutting off what plays there, and marks the crane worked; its motor (sound 1) starts unless it already runs for

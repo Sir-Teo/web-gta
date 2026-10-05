@@ -352,6 +352,30 @@ test("a script's garage door opens with a clunk and a loop, and opened cuts the 
  e.scriptAudio.processMissionAudioEvent(1036,{position:{x:10,y:0,z:0}});
  expect(sounds()).toEqual([[2,160,1,2]]);
 });
+test("the script entity's held sounds: the gym loop rises and winds down, the bee's buzz times out, the roulette's ball bounces once",async()=>{
+ const banks=new Map<number,ReturnType<typeof syntheticBank>>(),manifest:NativeBankManifest={version:1,packageSha256:'',banks:[]};
+ for(const id of [39,59,138,143,226,163,304]){const b=syntheticBank(12);banks.set(id,b);manifest.banks.push({id,path:`bank-${id}.bin`,dataBytes:b.dataBytes,bytes:b.bytes.length,sounds:12,sha256:''});}
+ let n=0;const e=new NativeAudioEngine(new NativeBankLoader(manifest,async entry=>banks.get(entry.id)!.bytes),undefined,()=>((n++*.6180339)%1));
+ await flush();const frame=()=>e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));frame();
+ const script=e.scriptAudio,of=(event:number)=>e.manager.sounds.filter(s=>s.inUse&&s.entity===script&&s.event===event);
+ // The gym bike (bank 226 in slot 4): its start comes in 18 dB down and rises 0.1 dB a frame to its event's volume.
+ await script.loadMissionBank(3,226);script.processMissionAudioEvent(1113,{position:{x:2,y:2,z:2}});
+ const bike=of(1113)[0],full=e.defaultVolume(1113);expect(bike.volume).toBeCloseTo(full-18,5);
+ for(let i=0;i<10;i++)frame();expect(bike.volume).toBeCloseTo(full-17,4);
+ for(let i=0;i<200;i++)frame();expect(bike.volume).toBeCloseTo(full,5);
+ // 1114 (the bike's stop): back down 0.1 dB a frame, and gone 18 dB under.
+ script.processMissionAudioEvent(1114,{position:{x:2,y:2,z:2}});for(let i=0;i<10;i++)frame();expect(bike.volume).toBeCloseTo(full-1,4);
+ for(let i=0;i<200;i++)frame();expect(of(1113)).toHaveLength(0);
+ // The bee's buzz (bank 163 in slot 4) stops 300 ms after the last report.
+ await script.loadMissionBank(3,163);script.processMissionAudioEvent(1167,{position:{x:2,y:2,z:2}});
+ for(let i=0;i<5;i++)frame();expect(of(1167)).toHaveLength(1);
+ for(let i=0;i<10;i++)frame();expect(of(1167)).toHaveLength(0);
+ // The roulette's spin (bank 304): 4.5 s on it fades; at 4.8 s its ball bounces once, ahead of the listener.
+ await script.loadMissionBank(3,304);script.processMissionAudioEvent(1086,{position:{x:2,y:2,z:2}});
+ for(let i=0;i<Math.ceil(4900/NATIVE_AUDIO_FRAME_MS);i++)frame();
+ expect(of(1160)).toHaveLength(1);expect(of(1160)[0].has(SOUND.frontEnd)).toBe(true);expect([1,2,3]).toContain(of(1160)[0].sound);
+ for(let i=0;i<30;i++)frame();expect(of(1160).length).toBeLessThanOrEqual(1);
+});
 test('player helicopter rotors and weather rain loops',async()=>{
  const e=engine(),key={};await flush();
  const heli=car({status:'player',playerDriver:true,playerInVehicle:true,rotorSpeed:.22,padAccelerate:1,transmission:undefined,wheels:undefined});

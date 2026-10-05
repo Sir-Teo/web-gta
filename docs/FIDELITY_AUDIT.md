@@ -9680,7 +9680,15 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   opened (closed) once there, at the garage's first door object (FindDoorsWithGarage; a garage with none found has
   no sound). Specs: `scm-garages` (unit: 91 steps up and 77 down, the reports, the hangar); `pay-n-spray` (browser:
   the Idlewood door's closing reaches its door audio every step and closed once).
-- **Not yet:** 1000, 1001, 1132, 1144, 1157, 1159, 1163 and 1189 (a ped's or the camera's, a few one-offs). (The
+- **UpdateParameters** (iOS 0x100156878; unreversed): the script entity's own sounds are updated by event. The held
+  ones stop 300 ms after the last report: AE_SCRIPT_DUAL_THRUST (1042), BEE_BUZZ (1167), TEMPEST_SHIELD_GLOW (1177);
+  SWEETS_HORN (1147) after 500 ms. ROULETTE_SPIN (1086), 4.5 s after its report, fades 0.1 dB a frame to -40 and slows
+  0.001 a frame, and at 4.8 s ROULETTE_BALL_BOUNCING (1160) plays once, one of sounds 1 to 3 of slot 4's bank, ahead
+  of the listener. The gym bike's and running machine's loops (GYM_BIKE_START 1113, GYM_RUNNING_MACHINE_START 1118,
+  started 18 dB down) rise 0.1 dB a frame to their event's volume while running; their STOP events (1114, 1119) set
+  the machines' mode to stopping, and the loop falls 0.1 dB a frame to 18 dB under and stops.
+- **Not yet:** 1000, 1001, 1132, 1144, 1157, 1159, 1163 and 1189 (a ped's or the camera's, a few one-offs), and
+  AE_CRANE_WINCH_MOVE (104), which no script reports. (The
   mission-bank sounds: see "Mission banks"; the track events: "A mission's own ambience track".) The gate's two (1100, 1101) take the entity's flag at
   +0x92 as clear (sound 70); what sets it is not known. Such reports are counted (`script.unported` in the native
   audio snapshot) and play nothing.
