@@ -2,6 +2,7 @@ import { NativeMoon } from './NativeMoon';
 import {nativeLowLodScale} from '../world/nativeLowLod';
 import {LocalWater} from './LocalWater';
 import {nativeAltitudeFarClip} from '../world/nativeFarClip';
+import {viewDistanceShare} from './lodDistance';
 import {GAME_CAMERA_FOV} from './cameraProjection';
 import * as THREE from 'three';
 import { installNativeFogCurve } from './nativeFog';
@@ -109,7 +110,10 @@ export class WorldLighting {
     (this.scene.background as THREE.Color).setRGB(...sample.horizon);
     if(!this.originalFar.has(camera))this.originalFar.set(camera,camera.far);
     const sourceFog=native?.fog;
-    const fog=sourceFog ? {start:sourceFog.start,end:nativeAltitudeFarClip(sourceFog.end,this.cameraWorldPosition.y)} : undefined;
+    // A weak phone's Low preset draws the view in (viewDistanceShare), the fog's start and end alike.
+    const share=viewDistanceShare(),end=sourceFog?nativeAltitudeFarClip(sourceFog.end,this.cameraWorldPosition.y):0;
+    // From the air the ground below stays in view: the far clip keeps at least 300 units plus 1.2 times the height.
+    const fog=sourceFog ? {start:sourceFog.start*share,end:share<1?Math.min(end,Math.max(end*share,300+1.2*Math.max(0,this.cameraWorldPosition.y))):end} : undefined;
     if(fog){this.importedFog.near=fog.start;this.importedFog.far=fog.end;this.scene.fog=this.importedFog;}
     else{this.authoredFog.density=sample.fog;this.scene.fog=this.authoredFog;}
     this.scene.fog.color.setRGB(...sample.horizon);

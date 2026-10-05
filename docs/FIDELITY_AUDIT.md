@@ -9321,3 +9321,16 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   foot, they come up (`scriptButtons`), each the PC's movement key, the stick pushed full that way, and the pad's
   other buttons give way, as to a shop menu. Specs: `script-buttons` and `touch-controls` (unit), `touch-rhythm`
   (browser).
+
+## A weak phone's Low preset draws the view in (not the port's)
+
+- **Why.** The port's Draw Distance scales only the LOD distances (0.73 at 20); along a long road and above all from
+  the air the timecycle's far clip bounds what is drawn instead, so the Low preset drew about as much as Medium in
+  flight. The player chose this deviation for weak phones.
+- **What.** On the touch Low preset the timecycle's fog start and far clip are multiplied by 0.5 + Draw Distance / 200
+  (0.6 at the preset's 20, all of it at 100; `render/lodDistance.ts`), the world fading into the horizon's colour
+  sooner. From the air the far clip keeps at least 300 units plus 1.2 times the camera's height, so the ground below
+  stays in view. Every other preset, and every non-touch screen, keeps the view the timecycle gives.
+- **Measured** (844×390): Grove Street 364 draws against Medium's 401, a Los Santos freeway 39 against 45, San Fierro
+  87 against 96; climbing in the Maverick from Verdant Meadows 225, 205 and 213 against 327, 303 and 258 at 190, 255 and
+  320 units. Specs: `view-distance` (unit); the fog, altitude, sky, lighting and touch flight specs pass.

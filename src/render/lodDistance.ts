@@ -17,3 +17,15 @@ export const drawDistanceMultiplier=(value:number)=>portLodDistScale(value)/port
 let multiplier=1;
 export const lodDistMultiplier=()=>multiplier;
 export function setDrawDistance(value:number){multiplier=drawDistanceMultiplier(value);}
+/** NOT THE PORT'S: the far view's share on a weak phone. The port's Draw Distance only scales the LOD distances, and
+ * from the air (or along a long road) the far clip bounds what is drawn instead, so its Low preset spares a weak device
+ * little where it needs it most. On the touch Low preset the timecycle's fog and far clip are drawn in by this share,
+ * from 0.6 at Draw Distance 20 to all of it at 100 (0.5 + Draw Distance / 200), the world fading into the horizon's
+ * colour sooner (the far clip keeping at least 300 units plus 1.2 times the camera's height, so the ground below stays in
+ * view from the air); every other preset keeps the view the timecycle gives. */
+let viewShare=1;
+export const viewDistanceShare=()=>viewShare;
+export function setViewDistance(lowPreset:boolean,drawDistance:number){
+ viewShare=lowPreset?Math.min(1,.5+Math.min(100,Math.max(0,drawDistance))/200):1;
+}
+

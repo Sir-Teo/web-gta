@@ -263,7 +263,7 @@ import { NativeLightPools } from './render/NativeLightPools';
 import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
 import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fxQuality,playerRealTimeShadow,setFxQuality,setRealTimeShadows} from './simulation/fx/fxQuality';
-import {DRAW_DISTANCE_DEFAULT,setDrawDistance} from './render/lodDistance';
+import {DRAW_DISTANCE_DEFAULT,setDrawDistance,setViewDistance} from './render/lodDistance';
 import {CAR_REFLECTIONS} from './assets/nativeCarEnvMap';
 import {stickSteering} from './input/stickSteering';
 import {touchHaptic} from './input/haptics';
@@ -828,7 +828,7 @@ async function boot() {
   // and its Draw distance TheCamera's LOD distance multiplier (the port's MOB_DD); elsewhere the game draws at its default.
   // A touch screen draws a building's alpha in one pass, as the mobile ports' shaders do (setBuildingDualPass).
   setBuildingDualPass(!touchScreen);
-  const applyVisualEffects=()=>{setFxQuality(touchScreen?touchSettings.effects:'high');setDrawDistance(touchScreen?touchSettings.drawDistance:DRAW_DISTANCE_DEFAULT);CAR_REFLECTIONS.value=!touchScreen||touchSettings.carReflections;setRealTimeShadows(!touchScreen||touchSettings.shadows);};applyVisualEffects();
+  const applyVisualEffects=()=>{setFxQuality(touchScreen?touchSettings.effects:'high');setDrawDistance(touchScreen?touchSettings.drawDistance:DRAW_DISTANCE_DEFAULT);setViewDistance(touchScreen&&touchSettings.effects==='low',touchSettings.drawDistance);CAR_REFLECTIONS.value=!touchScreen||touchSettings.carReflections;setRealTimeShadows(!touchScreen||touchSettings.shadows);};applyVisualEffects();
   const lookInverted=()=>touchScreen?touchSettings.invertLook:mouseSettings.invertY;
   const applyMouseSettings=()=>{render.mouseYawScale=mouseYawScale(mouseSettings);render.mouseYSign=lookInverted()?-1:1;};applyMouseSettings();
   {const sens=hud.element.querySelector<HTMLInputElement>('#mouse-sens')!,invert=hud.element.querySelector<HTMLInputElement>('#mouse-invert')!;
