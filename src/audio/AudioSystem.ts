@@ -8,6 +8,7 @@ import {PAIN_BANKS} from './native/painSpeech';
 import {StreamTracks} from './StreamTracks';
 import type {BeatTrackStream,TrackBeat} from '../engine/ScmCutsceneTrack';
 import type {AmbienceChannel} from './NativeAmbienceTracks';
+import {RadioStream} from './RadioStream';
 import {readNativeCombatAudio,combatSample,type CombatSound} from '../assets/nativeCombatAudio';
 import {nativeSoundFrequency} from './nativeFrequency';
 import {nativeHeadroomGain} from './nativeHeadroom';
@@ -77,6 +78,8 @@ export class AudioSystem {
     source.onended=()=>{if(this.speechVoices.get(scriptSlot)===voice)this.stopSpeech(scriptSlot);};
     source.start();this.speechPlayed++;return true;
   }
+  /** A mission audio line plays (the radio ducks under it). */
+  get speechPlaying(){return this.speechVoices.size>0;}
   /** CLEAR_MISSION_AUDIO, and the mission's clean-up: the slot's line stops. */
   stopSpeech(scriptSlot:number){
     const voice=this.speechVoices.get(scriptSlot);if(!voice)return;
@@ -195,6 +198,8 @@ export class AudioSystem {
     const ctx=this.context;if(!ctx||!this.native||this.nativeChannels)return;
     this.nativeOut=ctx.createGain();this.nativeOut.gain.value=0;this.nativeOut.connect(this.analyser);
     this.nativeChannels=new WebAudioChannels(ctx,this.nativeOut,this.native.manager.channelCount);this.native.renderer=this.nativeChannels;this.applySettings();
+    // The radio's track stream, under the effects level as the other stream tracks are (the port has no radio volume).
+    this.native.attachRadioStream(new RadioStream(ctx,this.effects,{load:id=>this.streams?.loadOnce(id).then(t=>t?.buffer)??Promise.resolve(undefined)}));
   }
   /** One rendered frame of the native engine; it services at the 30 FPS frame limit internally. */
   nativeFrame(elapsedSeconds:number,build:()=>NativeAudioFrame){if(!this.native||!this.playing)return;this.nativeFrames+=this.native.frame(elapsedSeconds*1000,build);}

@@ -18,6 +18,7 @@ import {NativeTwinLoopSound} from './NativeTwinLoopSound';
 import {PAIN_CONTEXTS,PAIN_VOICE_CARL,painSound,type PainContext} from './painSpeech';
 import {AE_CRIME_COMMITTED,NativePoliceScanner,type ScannerCrimeScene} from './NativePoliceScanner';
 import type {AudioRandom} from './nativeAudioUtility';
+import {NativeRadioTrackManager,type RadioTrackHardware,type RadioWorld} from './NativeRadioTrackManager';
 /** Frame limiter default (RsGlobal.frameLimit = APP_MAX_FPS 30): per-frame audio steps keep their native pacing. */
 export const NATIVE_AUDIO_FRAME_MS=1000/30;
 /** eAudioEvents::AE_SPEECH_PED. */
@@ -35,6 +36,12 @@ export interface NativeAudioFrame {
   inVehicle?:boolean};
  /** TheCamera.m_bWideScreenOn: the widescreen bars of a scripted scene. */
  widescreen?:boolean;
+ /** CClock's day of the month, month and hour, by which TrackRadioStation reckons a station's time away. */
+ clock?:{days:number;month:number;hours:number};
+ /** A mission audio line plays: UpdateRadioVolumes ducks the radio under it. */
+ dialogue?:boolean;
+ /** CGameLogic::LaRiotsActiveHere: the emergency channel's dispatcher talks of the riots. */
+ laRiots?:boolean;
 }
 export type NativeCombatSource='player'|'npc'|'aircraft'|'stealth';
 /** CAudioEngine subset: CAESoundManager, vehicle entities (serviced from CAutomobile::ProcessControl), CAEWeatherAudioEntity, CAEPedAudioEntity::HandlePedHit vocals, vehicle radio stations and CAEPedSpeech comments. */
@@ -53,6 +60,13 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  readonly policeScanner:NativePoliceScanner;
  /** CAEWaterCannonAudioEntity: the fire truck cannon's jet and splash voices. */
  readonly waterCannon:NativeWaterCannonAudio;
+ /** CAERadioTrackManager, which plays the emergency channel in an emergency vehicle (NativeRadioTrackManager.ts), on
+  * the track stream the audio system attaches (attachRadioStream). */
+ readonly radioTracks:NativeRadioTrackManager;
+ private radioStream?:{service():void;snapshot?():unknown};
+ /** The player's vehicle's eAERadioType while StartRadio has it (StaticGetPlayerVehicleAudioSettingsForRadio). */
+ private radioVehicleType?:number;
+ private radioClock={days:1,month:1,hours:12};private radioInput?:NativeAudioFrame;
  readonly dummySlots=Array.from({length:SLOT.dummyEnd-SLOT.dummyFirst},()=>({bank:-1,refCount:0}));
   private entities=new Map<object,NativeVehicleAudio>();
   /** CAEFireAudioEntity per burning fire (cars on fire, flame hazards). */
@@ -75,6 +89,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   this.frontend=new NativeFrontendAudio(this.manager,bank,e=>this.defaultVolume(e));
   this.policeScanner=new NativePoliceScanner(this.manager,bank,this.frontend,e=>this.defaultVolume(e),()=>this.playerInVehicle,random);
   this.waterCannon=new NativeWaterCannonAudio(this.manager,bank);
+  this.radioTracks=new NativeRadioTrackManager(random);
   // CAEVehicleAudioEntity/CAEWeatherAudioEntity/CAEExplosionAudioEntity/CAECollisionAudioEntity::StaticInitialise bank loads.
   for(const [id,slot] of [[BANK.vehicleGen,SLOT.vehicleGen],[BANK.apacheD,SLOT.copHeli],[BANK.horn,SLOT.hornAndSiren],[BANK.rain,SLOT.weather],[BANK.collisions,SLOT.collisions],[BANK.bulletHits,SLOT.bulletHits],[BANK.explosions,SLOT.explosions],[BANK.weapons,SLOT.weaponGen],[BANK.frontendGame,SLOT.frontendGame]])bank.loadSoundBank(id,slot);
  }
@@ -151,14 +166,36 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   * retune sound, which the port's frontend entity does not play). Returns whether a radio came on. */
  startRadio(modelId:number,nowMs:number,hour:number,day:number){
   const settings=vehicleRadioSettings(modelId);
-  if(settings.type===RADIO_TYPE.emergency){this.radioId=RADIO_ID.emergency;return true;}
+  this.radioVehicleType=settings.type;
+  if(settings.type===RADIO_TYPE.emergency){
+   this.radioId=RADIO_ID.emergency;
+   // StartRadio(RADIO_EMERGENCY_AA, the vehicle's bass setting, its factor (for the EQ, which is not ported), no skip).
+   this.radioTracks.startRadio(RADIO_ID.emergency,settings.bass,0,false,this.radioWorld());
+   return true;
+  }
   if(settings.type!==RADIO_TYPE.civilian){this.radioId=RADIO_ID.off;return false;}
   const s=this.savedRadio,retune=!!s&&s.id!==settings.station&&s.id!==RADIO_ID.off&&s.id!==RADIO_ID.emergency&&nowMs<=s.timeMs+60000&&hour+24*((day-s.day+7)%7)-s.hour<=5;
   this.radioId=retune?s!.id:settings.station;
   return true;
  }
- /** StopRadio as the player leaves (a retail stub; the port saves the station it keeps the fields for). */
- stopRadio(nowMs:number,hour:number,day:number){if(this.radioId!==RADIO_ID.emergency)this.savedRadio={id:this.radioId,timeMs:nowMs,hour,day};this.radioId=RADIO_ID.off;}
+ /** StopRadio as the player leaves: the emergency channel's is the track manager's, which keeps its place; for a
+  * station the port saves the station, as it keeps the fields for. */
+ stopRadio(nowMs:number,hour:number,day:number){
+  if(this.radioId!==RADIO_ID.emergency)this.savedRadio={id:this.radioId,timeMs:nowMs,hour,day};
+  else this.radioTracks.stopRadio({radioStation:RADIO_ID.emergency,bassSetting:0},false,this.radioWorld());
+  this.radioId=RADIO_ID.off;this.radioVehicleType=undefined;
+ }
+ /** The radio's stream (RadioStream.ts), which the audio system makes once it has a context. */
+ attachRadioStream(stream:RadioTrackHardware&{service():void;snapshot?():unknown}){this.radioTracks.hardware=stream;this.radioStream=stream;}
+ /** What the radio track manager reads of the game: the engine's clock (CTimer's, which stops with the game; the
+  * port's pause suspends the audio, which holds the stream as CheckForPause's frequency of 0 does), the frame's game
+  * clock, widescreen, dialogue and riots, and the effects level for the music's (the port has one level, so the
+  * dialogue duck is its 9 dB). */
+ private radioWorld(input=this.radioInput):RadioWorld{
+  if(input?.clock)this.radioClock=input.clock;
+  return {timeMs:this.timeMs,pauseTimeMs:this.timeMs,paused:false,clock:this.radioClock,widescreen:!!input?.widescreen,slowMotion:false,
+   effectsLevel:1,musicLevel:1,dialogue:!!input?.dialogue,ambienceRadio:false,laRiotsHere:!!input?.laRiots,vehicleRadioType:this.radioVehicleType};
+ }
  /** The player's retune: through the eleven stations and off (user tracks retune to off with none installed). */
  /** CAudioEngine::RetuneRadio (0x507E10) and CAERadioTrackManager::RetuneRadio: the script's station request; user
   * tracks with none loaded mean off. The port has no beat tracks, so GetBeatTrackStatus never holds it back. */
@@ -277,7 +314,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   let frames=0;
   while(this.accumulator>=NATIVE_AUDIO_FRAME_MS&&frames<3){
    this.accumulator-=NATIVE_AUDIO_FRAME_MS;frames++;this.timeMs+=NATIVE_AUDIO_FRAME_MS;
-   const input=build();this.env.camera=input.camera;
+   const input=build();this.env.camera=input.camera;this.radioInput=input;
+   // CAudioEngine::Service: the track stream's managers first, the radio's with the stream's play time.
+   this.radioStream?.service();this.radioTracks.service(this.radioWorld(input));
    const seen=new Set<object>();
    for(const [key,modelId,vehicle] of input.vehicles){const e=this.vehicle(key,modelId);if(!e)continue;seen.add(key);e.service(vehicle);}
     for(const [key,e] of this.entities)if(!seen.has(key)){e.terminate();this.entities.delete(key);}
@@ -307,6 +346,6 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   return frames;
  }
   /** Stop everything (CAESoundManager::Reset). */
-  reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.policeScanner.reset();this.manager.reset();}
-  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,scanner:this.policeScanner.snapshot(),banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
+  reset(){for(const e of this.entities.values())e.terminate();this.entities.clear();for(const e of this.fires.values())e.terminate();this.fires.clear();this.policeScanner.reset();this.radioTracks.reset();this.manager.reset();}
+  snapshot(){const slots:Record<number,number>={};for(const sound of this.manager.sounds)if(sound.inUse)slots[sound.slot]=(slots[sound.slot]??0)+1;return {waterCannon:this.waterCannon.snapshot(),...this.manager.snapshot(),slots,footsteps:this.playerPed?.footstepsPlayed??0,painCries:this.painCries,scanner:this.policeScanner.snapshot(),radio:{...this.radioTracks.snapshot(),stream:this.radioStream?.snapshot?.()??null},banks:this.bank.snapshot(),vehicles:[...this.entities.values()].map(e=>e.snapshot()),fires:this.fires.size,weather:this.weather.snapshot()};}
 }

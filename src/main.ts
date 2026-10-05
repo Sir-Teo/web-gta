@@ -4083,6 +4083,10 @@ async function boot() {
         ambient:weatherStarted?{region:nativeWeatherRegion(render.camera.position.x,-render.camera.position.z),camera:{x:render.camera.position.x,y:-render.camera.position.z,z:render.camera.position.y},player:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},foggynessSF:weather.foggynessSF}:undefined,
         fires:fires.map(f=>[f.key,f.at] as const),
         widescreen:!!mission?.runtime.game.widescreenOn,
+        // The radio's: CClock's date and hour, a mission line playing (it ducks the radio) and the riots where CJ is.
+        clock:{days:mission?.runtime.game.clock.days??1,month:mission?.runtime.game.clock.month??1,hours:Math.floor(sim.timeMinutes/60)%24},
+        dialogue:sound.speechPlaying,
+        laRiots:laRiotsActiveHere({x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},CHEATS.isActive('riot'),laRiots),
         player:{weapon:weapons.inventory.selected,swimming:sim.player.swimming,onFoot:!driven&&!fleet?.occupiedPlane&&!carEntry.active,inVehicle:!!radioDriven,attacking:input.down('MouseFire')||input.down('ControlLeft')||input.down('ControlRight'),radio:radioModel!==undefined}};
     });
     hud.audioStatus(sound.status());

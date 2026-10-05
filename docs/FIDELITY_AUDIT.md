@@ -19,7 +19,7 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 | Population and police | Authored recovery, spawn decisions, clamps and roadblock placement remain. | Original task/event scheduling, population selection, pursuit and mission-exception behavior. |
 | Combat | Native assets/data and selected algorithms coexist with browser task integration. | Damage, targeting, animation events, projectiles, AI decisions and all equipment compared against PC 1.0. |
 | Renderer, streaming and effects | Earlier PS2-inspired choices require reassessment. Sirens/skidmarks/effect triggers include approximations. | Matched PC captures and motion; correct collision/navigation/resource lifetime across traversal and interior transitions. |
-| Audio | `radioSpeech.ts` substitutes frontend-bank loops for radio and combat vocals for speech. | Original station content/scheduling, speech selection and audio entity behavior. |
+| Audio | `radioSpeech.ts` substitutes frontend-bank loops for the radio stations and combat vocals for speech; the emergency channel is the AA pack through CAERadioTrackManager ported from the iOS executable. | Original station content/scheduling, speech selection and audio entity behavior. |
 | Saves, stats and progression | Selected state persists; complete native world/script state is not established. | Reload equivalence for original progress, stats, entities and script state; original save compatibility or explicitly verified semantic equivalence. |
 | Complete content | Vehicle/weapon/archive counts do not establish playable coverage. | Versioned inventory of campaign, side activities, interiors, UI, customization and special vehicle systems, each with end-to-end evidence. |
 | Runtime reliability | Passing units coexist with browser failures. | Reproductions resolved and regression-tested; sustained traversal, cold launch and resource-lifetime checks. |
@@ -9402,3 +9402,41 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **Reach:** the art is drawn without the glyph buttons' 2-pixel ring, so the small ones' touch margin (pause, camera,
   the pills, Yes and No) is measured from the drawn edge: 4 pixels past it, as before.
 - Specs: `touch-widget-art` (unit: the decoder, the atlas, the enter widget's choice); the touch browser specs.
+
+## The emergency channel plays in an emergency vehicle
+
+- **What plays.** An emergency vehicle's radio (eAERadioType 3: the four police cars, the ambulance, both fire engines,
+  the Enforcer, the S.W.A.T. van, the FBI Rancher and truck, the police bike, the police Maverick, and the Coastguard
+  and Launch boats) starts eRadioID 0, the emergency channel, as `StartRadio(settings)` does. Its tracks are
+  the AA pack, packaged from the iOS port's `AA.osw` with the other stream packs (`package-stream-tracks.mjs`, tracks 0
+  to 65): the dispatcher's lines 0 to 38, 39 to 59 while `LaRiotsActiveHere`, and two bursts of static (music tracks 60
+  and 63), each with its intro and outro. Before, the channel was silent.
+- **The track manager** (`NativeRadioTrackManager.ts`): gta-reversed leaves Service, TrackRadioStation,
+  QueueUpTracksForStation, CheckForTrackConcatenation, UpdateRadioVolumes, StopRadio and the Choose* functions as calls
+  into the retail executable; they are ported from the iOS port's arm64 slice (addresses in the file), where
+  StartRadio, ChooseTracksForStation and CheckForPause match gta-reversed's reversals. The tables (each station's music
+  tracks, intros, outros, idents, adverts and the tracks the iOS port removed) are read out of the executable by
+  `scripts/content/radio-tables.mjs`, each checked against the code that reads it.
+  - ChooseTracksForStation: 95% a music track and its outro (90%), else an intro run or an outro and then the
+    dispatcher; 5% the dispatcher first and an intro run. The first track starts at a random point up to 5 minutes in,
+    modulo its length.
+  - CheckForTrackConcatenation: as the stream moves on to the queue's next track the queue moves up; with only the
+    playing track left, the dispatcher follows a burst's intro, body or outro, and an intro run follows anything
+    else.
+  - ChooseDJBanterIndex: from a random point of the run, the first line not among the last 15.
+  - UpdateRadioVolumes: -4 dB; -16 in the widescreen bars; under a mission line 9 dB lower (the effects level against
+    the music's, which are one level here), back by a fiftieth each time the volume is set; the police bike's cut bass
+    2 dB lower.
+  - StopRadio keeps the station's place: what plays, how far in, and the rest of its run (a music track's outro
+    reckoned at 5 s, a track after an intro at 150 s). TrackRadioStation, on an emergency vehicle within five game
+    hours, goes on from where the channel would be by then (7 s on at least).
+  - The stream (`RadioStream.ts`, after the iOS port's CAEStreamThread): it readies the track at its offset and lines
+    up the next one where it ends, without a gap; a track it cannot have reads -8, and the manager puts an advert and a
+    music track in its place.
+- **Not ported:** the stations' own DJ banter, ChooseTalkRadioShow and the user tracks (only the emergency channel plays,
+  the stations' packs not being published); the retune static (the frontend's retune events); the bass EQ; and the
+  original's single stream, on which a beat track (the mission-passed tune) stops the radio and an ambience track that
+  overrides it holds it back: here each has its own channel.
+- Specs: `radio-track-manager` (unit: the tables, the opening queues, the queue through a fake stream, the volumes, the
+  kept place and its window, an unready track, CheckForPause); `emergency-radio` (browser: a police car at Grove Street
+  plays the channel, the dispatcher comes on, only AA tracks are fetched, and getting out stops it).

@@ -1,5 +1,5 @@
-/* The stream packs' tracks the browser has: the BEATS pack, packaged from the iOS port's BEATS.osw by
- * scripts/content/package-stream-tracks.mjs into public/play/audio/streams/ as one MP3 per track. */
+/* The stream packs' tracks the browser has: the AMBIENCE, BEATS and AA packs, packaged from the iOS port's .osw packs
+ * by scripts/content/package-stream-tracks.mjs into public/play/audio/streams/ as one MP3 per track. */
 import type {TrackBeat} from '../engine/ScmCutsceneTrack';
 export interface StreamTrackManifest {version:1;tracks:{id:number;path:string;bytes:number;sha256:string;beats:TrackBeat[]}[]}
 const hex=(b:ArrayBuffer)=>[...new Uint8Array(b)].map(v=>v.toString(16).padStart(2,'0')).join('');
@@ -28,5 +28,11 @@ export class StreamTracks {
    this.tracks.set(id,pending);
   }
   return pending;
+ }
+ /** A track decoded without being kept, unless it already is: the radio's come and go, and the AA pack alone decodes
+  * to some 80 MB. */
+ loadOnce(id:number){
+  const kept=this.tracks.get(id);if(kept)return kept;
+  const pending=this.load(id);this.tracks.delete(id);return pending;
  }
 }

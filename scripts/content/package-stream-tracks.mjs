@@ -1,5 +1,5 @@
-/** Packages the beat tracks and the ambience tracks (the BEATS and AMBIENCE stream packs) from the iOS port's bundle
- * into public/play/audio/streams/.
+/** Packages the beat tracks, the ambience tracks and the emergency channel (the BEATS, AMBIENCE and AA stream packs) from
+ * the iOS port's bundle into public/play/audio/streams/.
  *
  * The PC's AUDIO/STREAMS are not in the published depot. The iOS port (the gta3sa.app bundle,
  * github.com/Google61/gta3sa.app) ships each stream pack as a ZIP of MP3s, Track_001.mp3 on: BEATS.osw holds the ten
@@ -7,7 +7,9 @@
  * mission-passed tunes (182 and 183, which PLAY_MISSION_PASSED_TUNE reaches through gBeatTrackLookup) and the dance
  * and lowrider games' beat tracks. The bundle's Track_003 (177) is a 756-byte deflated stub rather than a stored MP3,
  * so it is left out. AMBIENCE.osw holds the 40 tracks of pack 3, 135 to 174: the loops CAEAmbienceTrackManager plays in
- * the clubs, bars, casinos and the like by audio zone, the sandstorm and the sea.
+ * the clubs, bars, casinos and the like by audio zone, the sandstorm and the sea. AA.osw holds pack 0's 66, 0 to 65:
+ * the emergency channel CAERadioTrackManager plays in an emergency vehicle, the dispatcher's lines (0 to 59) and the
+ * bursts of static it puts between them (its two music tracks, 60 and 63, each with an intro and an outro).
  *
  * Each track becomes track-{id}.mp3; streams.json lists them with their hashes and their beats. The PC's stream files
  * put a tTrackInfo (gta-reversed AETrackLoader.h, 0x1F84 bytes) in front of each track: 1000 beats of a u32 time in
@@ -15,8 +17,8 @@
  * headers into TRKHEAD.DAT, one per track in TrakLkup.dat's order (1922 of them), which is where the beats come from:
  * the dance tracks' keys are the four arrows (1 to 4), the lowrider tracks' 9 to 16, and 33 ends a track's moves.
  *
- * Usage: node scripts/content/package-stream-tracks.mjs [directory holding BEATS.osw, AMBIENCE.osw, TrakLkup.dat,
- * StrmPaks.dat and TRKHEAD.DAT]
+ * Usage: node scripts/content/package-stream-tracks.mjs [directory holding BEATS.osw, AMBIENCE.osw, AA.osw,
+ * TrakLkup.dat, StrmPaks.dat and TRKHEAD.DAT]
  * Without a directory the files are downloaded from the bundle's pinned revision. Either way they are checked against
  * their hashes. */
 import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
@@ -26,13 +28,14 @@ const REVISION='67f70cb72eb207aeca650ea9e8c10b0e7dda166a',BASE=`https://raw.gith
 const SOURCES={
  BEATS:{name:'BEATS.osw',bytes:9733284,sha256:'27b0e6ff721a872ad719fab7def50247cb0d04b9bb108ec0aca334491b64b053'},
  AMBIENCE:{name:'AMBIENCE.osw',bytes:22719112,sha256:'fbe8d0c10cf5af252496e2a5729efae6e0afe37004d5905d872cf6dcc83fe272'},
+ AA:{name:'AA.osw',bytes:2553090,sha256:'70f7f5dcd69f4e0eaab6963fbe97dd6e90b4a0c932ed4c61fde7e58111bf6e7d'},
  tracks:{name:'TrakLkup.dat',bytes:23064,sha256:'adf22fcdfe798c7ad59f1b8fbf6a71574fbf06f1ca39a074ad2b3163c341c0d9'},
  packs:{name:'StrmPaks.dat',bytes:272,sha256:'03e32ee0efb3505d0cea13952370d24a417799b085946087c851060d4120dea0'},
  heads:{name:'TRKHEAD.DAT',bytes:15506696,sha256:'6474abc1c02ed8647caca1c107e0d067cce2715021f9420c009c0f763ad1c0e4'},
 };
 /** sizeof(tTrackInfo), and its beats. */
 const TRACK_INFO_BYTES=0x1f84,BEATS_PER_TRACK=1000;
-const OUTPUT='public/play/audio/streams',PACKS=['AMBIENCE','BEATS'];
+const OUTPUT='public/play/audio/streams',PACKS=['AMBIENCE','BEATS','AA'];
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 async function source({name,bytes,sha256}){
  const data=process.argv[2]?await readFile(join(process.argv[2],name)):Buffer.from(await (await fetch(BASE+name,{signal:AbortSignal.timeout(300000)})).arrayBuffer());

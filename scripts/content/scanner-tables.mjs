@@ -15,34 +15,13 @@
  *
  * Usage: node scripts/content/scanner-tables.mjs [path to the iOS executable, gta3sa]
  * Without a path it is downloaded from the bundle's pinned revision. Either way it is checked against its hash. */
-import {readFile,writeFile} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
-const REVISION='67f70cb72eb207aeca650ea9e8c10b0e7dda166a';
-const SOURCE={url:`https://raw.githubusercontent.com/Google61/gta3sa.app/${REVISION}/gta3sa`,bytes:14226544,
- sha256:'9bc5884cc0f671ad426b2d8143ec3db3a88c78ab756685ed4352af7a08471e78'};
+import {writeFile} from 'node:fs/promises';
+import {REVISION,readExecutable} from './lib/ios-executable.mjs';
 const OUTPUT='src/audio/native/scannerTables.ts';
-const file=process.argv[2]?await readFile(process.argv[2]):Buffer.from(await (await fetch(SOURCE.url,{signal:AbortSignal.timeout(300000)})).arrayBuffer());
-if(file.length!==SOURCE.bytes||createHash('sha256').update(file).digest('hex')!==SOURCE.sha256)throw new Error('The iOS executable is not the pinned one.');
-// The universal binary's arm64 slice (CPU_TYPE_ARM64), and its segments' VM addresses against file offsets.
-if(file.readUInt32BE(0)!==0xcafebabe)throw new Error('Not a universal Mach-O.');
-let slice=-1;
-for(let i=0;i<file.readUInt32BE(4);i++)if(file.readUInt32BE(8+i*20)===0x0100000c)slice=file.readUInt32BE(8+i*20+8);
-if(slice<0||file.readUInt32LE(slice)!==0xfeedfacf)throw new Error('No arm64 slice.');
-const segments=[];
-for(let i=0,at=slice+32;i<file.readUInt32LE(slice+16);i++){
- const cmd=file.readUInt32LE(at),size=file.readUInt32LE(at+4);
- if(cmd===0x19)segments.push({vm:Number(file.readBigUInt64LE(at+24)),fileoff:Number(file.readBigUInt64LE(at+40)),filesize:Number(file.readBigUInt64LE(at+48))});
- at+=size;
-}
-const offset=address=>{
- const s=segments.find(s=>address>=s.vm&&address<s.vm+s.filesize);
- if(!s)throw new Error(`Address ${address.toString(16)} is not in the file.`);
- return slice+s.fileoff+address-s.vm;
-};
-const int16s=(address,count)=>Array.from({length:count},(_,i)=>file.readInt16LE(offset(address)+i*2));
+const {file,offset,int16s,expectCode}=await readExecutable(process.argv[2]);
 // The code that reads the tables, as a check that they are where it reads them: AddAudioEvent's first slot's bank (mov
 // w8, #0x96) and the area loop's bound (cmp x9, #0xc2).
-for(const [address,word] of [[0x1001500c8,0x528012c8],[0x100150144,0xf103093f]])if(file.readUInt32LE(offset(address))!==word)throw new Error(`Unexpected code at ${address.toString(16)}.`);
+expectCode([[0x1001500c8,0x528012c8],[0x100150144,0xf103093f]]);
 const openings=int16s(0x10058fde0,3),crimes=int16s(0x10058fde6,23),vehicles=int16s(0x10059066a,46),colours=int16s(0x1005906c6,128);
 const areas=Array.from({length:194},(_,i)=>{
  const at=offset(0x10058fe14+i*8),key=file.toString('latin1',at,at+8).replace(/\0.*$/s,'');
