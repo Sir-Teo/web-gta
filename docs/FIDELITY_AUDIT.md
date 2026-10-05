@@ -9264,3 +9264,13 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   (`CTaskSimpleInAir`). All in his voice (bank 144, CJ's columns of the table), drowning 3 dB up. A script's
   `DAMAGE_CHAR` raises no damage event and says nothing. Spec: `pain-speech` (unit).
 
+
+## A phone's first flight is measured too
+
+- **Flying is judged on its own.** A touch screen's first play steps its quality down a preset at a time while the
+  game cannot hold 24 frames a second (`core/autoQuality.ts`), on foot and at the wheel apart. Flying went in with
+  driving, so a phone that kept up in a car was never measured in the air, where the view is furthest and the world
+  streams in fastest; it now has its own context, kept once found fine (`flightMeasured`). Each context is kept as it
+  is found fine, so a player who never flies still keeps the ground's measure, and settings measured on the ground in
+  an earlier session are measured again in the air alone. A player who sets any quality setting has chosen for all
+  three. Spec: `auto-quality` (unit).

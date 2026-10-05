@@ -268,7 +268,7 @@ import {CAR_REFLECTIONS} from './assets/nativeCarEnvMap';
 import {stickSteering} from './input/stickSteering';
 import {touchHaptic} from './input/haptics';
 import {roadShake,thunderShake} from './engine/nativePadShakes';
-import {AutoQuality,QUALITY_PRESETS,devicePreset,lowerPreset} from './core/autoQuality';
+import {AutoQuality,QUALITY_PRESETS,devicePreset,lowerPreset,type QualityContext} from './core/autoQuality';
 import {DynamicResolution,scaledRatio} from './core/dynamicResolution';
 /** The player's blob among the peds' (their ids are their own, from 0). */
 const PLAYER_SHADOW_ID=-1;
@@ -822,7 +822,7 @@ async function boot() {
   // play (AutoQuality) may still step it down. Settings the player chose stay.
   if(touchScreen&&!touchSettings.qualityChosen&&touchSettings.effects==='high'&&!navigator.webdriver){
    const start=devicePreset(navigator as Navigator&{deviceMemory?:number});
-   if(start){touchSettings={...touchSettings,...QUALITY_PRESETS[start],qualityChosen:start==='low',wheelMeasured:start==='low'};saveTouchSettings(touchSettings);}
+   if(start){touchSettings={...touchSettings,...QUALITY_PRESETS[start],qualityChosen:start==='low',wheelMeasured:start==='low',flightMeasured:start==='low'};saveTouchSettings(touchSettings);}
   }
   // The touch settings' Visual effects set the FX quality (the port's MOB_VS); elsewhere the game runs at high.
   // and its Draw distance TheCamera's LOD distance multiplier (the port's MOB_DD); elsewhere the game draws at its default.
@@ -2374,12 +2374,17 @@ async function boot() {
   }
   // The first play's measure, on a touch screen whose quality settings nobody has chosen (not under automation, whose
   // software rendering would lower every run's). Settings an earlier measure settled on foot alone are measured again
-  // at the wheel: a phone that kept up walking could crawl driving.
-  let autoQuality=touch&&!navigator.webdriver&&(!touchSettings.qualityChosen||!touchSettings.wheelMeasured)?new AutoQuality(undefined,undefined,undefined,undefined,touchSettings.qualityChosen?['vehicle']:undefined):undefined;
+  // at the wheel, and settings settled on the ground are measured again in the air: a phone that kept up walking could
+  // crawl driving, and one that kept up driving crawl flying. Each context is kept as it is found fine.
+  const unmeasured=():QualityContext[]=>[...(touchSettings.qualityChosen?[]:['foot' as const]),...(touchSettings.wheelMeasured?[]:['vehicle' as const]),...(touchSettings.flightMeasured?[]:['aircraft' as const])];
+  let autoQuality=touch&&!navigator.webdriver&&unmeasured().length?new AutoQuality(undefined,undefined,undefined,undefined,unmeasured()):undefined;
+  function keepMeasured(context:QualityContext){
+    touchSettings={...touchSettings,...(context==='foot'?{qualityChosen:true}:context==='vehicle'?{wheelMeasured:true}:{flightMeasured:true})};saveTouchSettings(touchSettings);
+  }
   function settleQuality(verdict:'slow'|'fine'){
     const preset=verdict==='slow'?lowerPreset(touchSettings):undefined;
     const done=!preset||preset==='low';
-    touchSettings={...touchSettings,...(preset?QUALITY_PRESETS[preset]:{}),qualityChosen:done,wheelMeasured:done};saveTouchSettings(touchSettings);
+    touchSettings={...touchSettings,...(preset?QUALITY_PRESETS[preset]:{}),...(preset?{qualityChosen:done,wheelMeasured:done,flightMeasured:done}:{})};saveTouchSettings(touchSettings);
     if(done)autoQuality=undefined;
     if(!preset)return;
     touch?.apply(touchSettings);applyVisualEffects();applyResolution();touchPanel?.refresh();
@@ -2884,8 +2889,10 @@ async function boot() {
     // resolution: a phone held back as it warms draws fewer pixels.
     if(autoQuality||dynamicResolution&&touchSettings.dynamicResolution){const scene=!!mission&&(mission.runtime.game.cutscene.running||mission.runtime.game.widescreenOn);
      const playing=started&&!paused&&!navigation?.open&&!arsenal.open&&!terrainPause&&!scene&&document.visibilityState==='visible';
-     const context=worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger?'vehicle':'foot';
-     if(autoQuality?.measuring(context)){const verdict=autoQuality.frame(now,playing,context);if(verdict)settleQuality(verdict);}
+     const context:QualityContext=fleet?.occupiedPlane?'aircraft':worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||playerPassenger?'vehicle':'foot';
+     if(autoQuality?.measuring(context)){const verdict=autoQuality.frame(now,playing,context);
+      if(autoQuality.settled){keepMeasured(autoQuality.settled);autoQuality.settled=undefined;}
+      if(verdict)settleQuality(verdict);}
      else if(dynamicResolution?.frame(now,playing)!==undefined)applyResolution();}
     input.frameStart();
     // A queued frame timestamp can predate the performance.now() baseline set on resume.
