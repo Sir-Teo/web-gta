@@ -1,6 +1,15 @@
 import {requireAsset} from '../assets/binary';
 const f=(n:number)=>{const r=Math.fround(n);requireAsset(Number.isFinite(r),'Nonfinite steering input.');return r;};
 export interface NativeSteeringState {raw:number;secondAngle:number;lastInput:'keyboard'|'mouse'}
+/** CPad::GetSteeringLeftRight's units for an analog deflection (−1 to 1): the pad's whole numbers, −128 to 128. A touch
+ * stick, tilt steering and a controller's stick give fractions, which stepNativeSteeringInput refuses (the original reads
+ * the pad's int16); the keys give whole numbers already. Nonfinite or out-of-range deflections steer straight or at
+ * full lock. */
+export function padSteeringAxis(deflection:number){
+  if(!Number.isFinite(deflection))return 0;
+  const axis=Math.round(Math.max(-128,Math.min(128,deflection*128)));
+  return Object.is(axis,-0)?0:axis;
+}
 export interface NativeSteeringControl {
   steeringAxis:number;mouseDeltaX:number;mouseThirdPerson:boolean;mouseSteeringEnabled:boolean;vehicleMouseLook:boolean;
   timeStep:number;steeringLockDegrees:number;rearHandbrakeSteering:boolean;handbrake:boolean;

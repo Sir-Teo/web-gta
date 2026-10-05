@@ -29,4 +29,17 @@ describe('fixed simulation time', () => {
     for (let i = 0; i < 300; i++) steady.advance(1 / 30, () => {});
     expect(steady.tick).toBe(600);
   });
+  it('drops the time piled up while a step threw, so the fraction never passes one afterwards', () => {
+    for (const clock of [new FixedClock(), new FixedClock(NATIVE_MAX_FRAME_SECONDS)]) {
+      // Five seconds of frames whose step throws (a bad input at the wheel): the frame aborts before the step is taken off.
+      for (let i = 0; i < 300; i++) expect(() => clock.advance(1 / 60, () => { throw new Error('bad step'); })).toThrow('bad step');
+      // The step good again: one frame's worth is stepped and the rest let go, not played back as a fraction over one.
+      let steps = 0; const fraction = clock.advance(1 / 60, () => steps++);
+      expect(steps).toBeLessThanOrEqual(6); expect(fraction).toBeGreaterThanOrEqual(0); expect(fraction).toBeLessThan(1);
+      for (let i = 0; i < 10; i++) { const f = clock.advance(1 / 60, () => {}); expect(f).toBeGreaterThanOrEqual(0); expect(f).toBeLessThan(1); }
+    }
+    // A frame that merely fell behind still carries its remainder, as before.
+    const slow = new FixedClock(); slow.advance(0.05, () => {});
+    expect(slow.advance(0.001, () => {})).toBeCloseTo(0.051 * 60 - 3, 6);
+  });
 });

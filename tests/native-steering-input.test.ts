@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {stepNativeSteeringInput,type NativeSteeringControl,type NativeSteeringState} from '../src/simulation/nativeSteeringInput';
+import {padSteeringAxis,stepNativeSteeringInput,type NativeSteeringControl,type NativeSteeringState} from '../src/simulation/nativeSteeringInput';
 const state=():NativeSteeringState=>({raw:0,secondAngle:0,lastInput:'keyboard'});
 const input=():NativeSteeringControl=>({steeringAxis:-128,mouseDeltaX:0,mouseThirdPerson:false,mouseSteeringEnabled:false,vehicleMouseLook:false,timeStep:1,steeringLockDegrees:35,rearHandbrakeSteering:false,handbrake:false});
 test('pad steering approaches its target before the sign-preserving squared angle curve',()=>{
@@ -28,4 +28,17 @@ test('mouse-look decays raw steering and rear handbrake steering updates once pe
 test('invalid input rejects without changing prior steering state',()=>{
   const previous=state(),before=structuredClone(previous);stepNativeSteeringInput(previous,input());expect(previous).toEqual(before);
   for(const patch of [{steeringAxis:129},{steeringAxis:.5},{mouseDeltaX:NaN},{timeStep:-1},{steeringLockDegrees:0}])expect(()=>stepNativeSteeringInput(previous,{...input(),...patch})).toThrow();
+});
+test('an analog deflection steers in the pad\'s whole units, which the native input accepts',()=>{
+  // A touch stick a third of the way over (on the port's curve), tilt steering and a controller's stick give fractions.
+  for(const deflection of [.24,-.613,1/3,.0001,.9999]){
+    const axis=padSteeringAxis(deflection);
+    expect(Number.isInteger(axis)).toBe(true);expect(Math.abs(axis-deflection*128)).toBeLessThanOrEqual(.5);
+    expect(()=>stepNativeSteeringInput(state(),{...input(),steeringAxis:axis})).not.toThrow();
+  }
+  expect(padSteeringAxis(1)).toBe(128);expect(padSteeringAxis(-1)).toBe(-128);expect(padSteeringAxis(0)).toBe(0);
+  // Past full lock, or nothing readable, is full lock or straight on; a rounding to -0 is 0.
+  expect(padSteeringAxis(1.2)).toBe(128);expect(padSteeringAxis(-7)).toBe(-128);expect(padSteeringAxis(NaN)).toBe(0);expect(Object.is(padSteeringAxis(-.001),0)).toBe(true);
+  // The raw fraction is what the native input refuses (the frame loop threw on it at the wheel of a touch-steered car).
+  expect(()=>stepNativeSteeringInput(state(),{...input(),steeringAxis:.24*128})).toThrow('Invalid steering input range.');
 });

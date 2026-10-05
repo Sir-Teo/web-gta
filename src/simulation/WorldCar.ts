@@ -1,4 +1,5 @@
 import {crashShake} from '../engine/nativePadShakes';
+import {padSteeringAxis} from './nativeSteeringInput';
 import {cullAirResistance} from './nativeAirResistance';
 import {requireAsset} from '../assets/binary';
 /** CMonsterTruck subclasses: Monster, Monster A and Monster B. */
@@ -685,7 +686,7 @@ export class WorldCar {
   // These are the native pedals themselves (the S key's brake-then-reverse must not drive an empty car backwards).
   const abandoned=!this.occupied&&!ai&&this.abandoned?(()=>{const v=this.car.body.linvel(),s=1/50;return {steerAngle:0,gas:0,brake:(v.x*v.x+v.y*v.y+v.z*v.z)*s*s<.01?.2:0,handbrake:false};})():undefined;
   if(abandoned){p.accelerate=0;p.brake=0;p.handbrake=false;}// CPad::GetSteeringLeftRight answers 0 while player controls are disabled.
-  this.input.steering.steeringAxis=driving?(this.controlsDisabled?0:axes.x*128):Math.round((ai?.steering??0)*128);
+  this.input.steering.steeringAxis=driving?(this.controlsDisabled?0:padSteeringAxis(axes.x)):padSteeringAxis(ai?.steering??0);
   if(this.wrecked){p.accelerate=0;p.brake=0;p.handbrake=true;}
   // BlowUpCar turns the engine off, and CalculateDriveAcceleration only runs with it on.
   p.engineOn=!this.wrecked;

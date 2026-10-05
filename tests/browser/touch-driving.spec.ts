@@ -54,10 +54,14 @@ test('a phone drives with the stick at full lock and the Gas pedal',async({page}
  // The car body's yaw, read from the car itself, so a bump into something later in the circle cannot hide the turn.
  const yaw=()=>page.evaluate(()=>{const q=[...(window as any).__game.fleet().cars].find((c:any)=>c.occupied).car.body.rotation();return Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));});
  const before=await yaw();
- // The stick hard right, not forward at all, and Gas held.
+ // The stick part of the way right first, as a thumb pushes it: a fraction of the pad's steering, which the native
+ // input takes only in its whole units (the frame loop threw on it every step, the game frozen at the wheel of a car
+ // steered by the stick or by tilt). Then hard right, not forward at all, with Gas held.
  const zone=(await page.locator('.touch-stick-zone').boundingBox())!,x=zone.x+zone.width/2,y=zone.y+zone.height/2;
  const travel=Number(await page.locator('.touch-stick-zone').getAttribute('data-travel'));
- await finger('.touch-stick-zone','pointerdown',x,y,7);await finger('.touch-stick-zone','pointermove',x+travel+10,y,7);
+ await finger('.touch-stick-zone','pointerdown',x,y,7);await finger('.touch-stick-zone','pointermove',x+travel*.37,y+1,7);await gameWait(.5);
+ expect(errors).toEqual([]);
+ await finger('.touch-stick-zone','pointermove',x+travel+10,y,7);
  await press('.touch-button.gas:not([hidden])',11);await gameWait(1.5);
  const after=await yaw(),turning=(await state()).nativeCar;
  // It drives off and swings round.

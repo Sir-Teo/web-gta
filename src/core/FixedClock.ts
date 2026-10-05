@@ -15,6 +15,10 @@ export class FixedClock {
       this.accumulator -= this.step;
       this.tick++; steps++;
     }
+    // A whole step or more left over is only possible after a step threw out of a frame (its time was added and never
+    // stepped), piling up for as long as the throwing lasted. It is dropped rather than carried: carried, it would be
+    // returned as an interpolation fraction over one for frames afterwards, and the renderers refuse one.
+    if (this.accumulator + 1e-10 >= this.step) this.accumulator = 0;
     return Math.max(0, this.accumulator / this.step);
   }
   reset() { this.accumulator = 0; }
