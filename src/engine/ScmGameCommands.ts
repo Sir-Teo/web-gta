@@ -1397,7 +1397,7 @@ const handlers:Record<string,ScmCommandHandler>={
  // the mission-complete track (PreloadBeatTrack, then PlayPreloadedBeatTrack(true)).
  PLAY_MISSION_PASSED_TUNE:(t,p,i)=>{
   const tune=t.readInt(p[0]),g=game(t,i);g.missionPassedTune=tune;
-  if(tune===1||tune===2){g.cutsceneTrack.preloadBeatTrack(10+tune);g.cutsceneTrack.play();}
+  if(tune===1||tune===2){g.cutsceneTrack.preloadBeatTrack(10+tune);g.cutsceneTrack.play(true);}
  },
  IS_MESSAGE_BEING_DISPLAYED:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'isMessageBeingDisplayed')(),negated(i));},
  IS_HELP_MESSAGE_BEING_DISPLAYED:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'isHelpMessageBeingDisplayed')(),negated(i));},

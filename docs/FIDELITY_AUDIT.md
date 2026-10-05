@@ -9434,9 +9434,32 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     up the next one where it ends, without a gap; a track it cannot have reads -8, and the manager puts an advert and a
     music track in its place.
 - **Not ported:** the stations' own DJ banter, ChooseTalkRadioShow and the user tracks (only the emergency channel plays,
-  the stations' packs not being published); the retune static (the frontend's retune events); the bass EQ; and the
-  original's single stream, on which a beat track (the mission-passed tune) stops the radio and an ambience track that
-  overrides it holds it back: here each has its own channel.
+  the stations' packs not being published); the retune static (the frontend's retune events); the bass EQ; and an
+  ambience track that overrides the radio (DoesAmbienceTrackOverrideRadio), the port's ambience zones that would
+  start a station doing nothing. The radio's stream is a channel of its own, and the beat tracks' arbitration below
+  gives way between them as the original's one stream does.
 - Specs: `radio-track-manager` (unit: the tables, the opening queues, the queue through a fake stream, the volumes, the
   kept place and its window, an unready track, CheckForPause); `emergency-radio` (browser: a police car at Grove Street
   plays the channel, the dispatcher comes on, only AA tracks are fetched, and getting out stops it).
+
+## The beat tracks take the stream from the radio and the ambience
+
+- On the original the radio, the ambience track and the beat and cutscene tracks share AEAudioHardware's one stream,
+  and CAudioEngine gives way between them (gta-reversed, reversed). The port plays each on a channel of its own and now
+  follows the same rules (the cutscene track manager's `TrackAudio` hooks, `ScmCutsceneTrack.ts`):
+  - PreloadBeatTrack (PRELOAD_BEAT_TRACK, and PLAY_MISSION_PASSED_TUNE's): a radio that is on stops, its station kept
+    (m_nCurrentRadioStationId; the emergency channel's StopRadio keeps its place too); with none on, the ambience
+    track stops at once, where it had got to kept (StopAmbienceTrack(true)), and it stays held while the track runs.
+  - StartRadio and RetuneRadio do nothing while a beat track is loading, loaded, playing or stopping
+    (GetBeatTrackStatus): getting into a vehicle then brings no radio and no station name. The player's own retune
+    waits too.
+  - StopBeatTrack (StopCutsceneTrack's wait): the radio comes back on the kept station, if the vehicle has one
+    (IsVehicleRadioActive), and the kept station is forgotten.
+  - The mission-passed tune (PlayPreloadedBeatTrack(true)): once it has run out and stopped, CAudioEngine::Service
+    starts the radio with the vehicle's settings, which StopRadio had left on the kept station (else the vehicle's
+    own), and the station's name shows.
+- Not ported: the vehicle's settings themselves (the port keeps the vehicle's station by model; StopRadio writing the
+  station back to them reaches only the kept station here), and the auto-retune StartRadio(settings) would do then.
+- Specs: `track-radio-arbitration` (unit: the hooks, a station and the emergency channel stopping and coming back, a
+  vehicle taken during a track, the ambience's stop); `emergency-radio` (browser: the mission-passed tune in a police
+  car stops the emergency channel, which comes back after it).

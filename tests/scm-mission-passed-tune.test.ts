@@ -14,5 +14,6 @@ test('PLAY_MISSION_PASSED_TUNE preloads and plays beat track 10 + tune, and the 
  expect(game.missionPassedTune).toBe(1);
  // Tune 1 is beat track 11, stream track 183, played as the mission-complete track.
  expect(game.cutsceneTrack.trackId).toBe(183);expect(game.cutsceneTrack.reportedStatus).toBe(1);expect(game.cutsceneTrack.playRequest).toBe(true);
+ expect(game.cutsceneTrack.missionComplete).toBe(true);
  expect(new DataView(space.buffer).getInt32(256,true)).toBe(7);
 });

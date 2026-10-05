@@ -22,6 +22,11 @@ export interface BeatTrackStream {
  /** How many ms of the started track have played. */
  playedMs():number|undefined;
 }
+/** CAudioEngine round the tracks, which on the original share one stream with the radio and the ambience: a preload
+ * first stops the radio (keeping its station) or else the ambience track (PreloadBeatTrack, PreloadCutsceneTrack); the
+ * radio comes back when the script stops the track (StopBeatTrack: StopCutsceneTrack's wait, to the kept station) and
+ * once the mission-complete track has stopped (CAudioEngine::Service: StartRadio with the vehicle's settings). */
+export interface TrackAudio {stopForTrack():void;radioAfterTrack(keptStation:boolean):void}
 /** tBeatInfo: the beats around the play time (slot 9 the last, 10 the next) with times relative to it. */
 export interface BeatInfo {window:{time:number;key:number}[];present:boolean;beatTypeThisFrame:number;beatNumber:number}
 const WINDOW=20,PAST=9,NEXT=10,BEATS_PER_TRACK=1000;
@@ -33,18 +38,26 @@ export class ScmCutsceneTrack {
  trackId=-1;playRequest=false;paused=false;
  /** The host's stream; without one the track is silent. */
  stream?:BeatTrackStream;
+ /** The host's CAudioEngine side (TrackAudio). */
+ audio?:TrackAudio;
+ /** m_bPlayingMissionCompleteTrack: PlayPreloadedBeatTrack(true), the mission-passed tune. */
+ missionComplete=false;
  private state:'none'|'loading'|'ready'|'playing'='none';private playedMs=0;
  private track?:{beats:readonly TrackBeat[];lengthMs:number};private request=0;
  /** CAEAudioHardware's gBeatInfo, which GetBeatInfo refreshes on every call. */
  readonly beatInfo:BeatInfo={window:Array.from({length:WINDOW},()=>({time:0,key:0})),present:false,beatTypeThisFrame:0,beatNumber:0};
  /** CAEAudioHardware::GetTrackPlayTime. */
  private trackPlayTime(){return this.state==='ready'?TRACK_READY:this.state==='playing'?Math.trunc(this.playedMs):TRACK_STOPPED;}
- /** CAECutsceneTrackManager::PreloadBeatTrack through gBeatTrackLookup, then PreloadCutsceneTrack without waiting. */
- preloadBeatTrack(beat:number){this.trackId=BEAT_TRACK_LOOKUP[beat]??-1;this.status=S0;}
- /** PlayPreloadedCutsceneTrack. */
- play(){this.playRequest=true;this.paused=false;}
- /** StopCutsceneTrack. */
- stop(){if(this.status<=PLAYING)this.status=STOP_REQUESTED;this.playRequest=false;this.paused=false;}
+ /** CAudioEngine::PreloadBeatTrack: the radio or the ambience stops, then CAECutsceneTrackManager::PreloadBeatTrack
+  * through gBeatTrackLookup, and PreloadCutsceneTrack without waiting. */
+ preloadBeatTrack(beat:number){this.audio?.stopForTrack();this.trackId=BEAT_TRACK_LOOKUP[beat]??-1;this.status=S0;}
+ /** PlayPreloadedBeatTrack(missionComplete): PlayPreloadedCutsceneTrack. */
+ play(missionComplete=false){this.playRequest=true;this.paused=false;this.missionComplete=missionComplete;}
+ /** StopBeatTrack: StopCutsceneTrack(true), which waits the track out and brings the radio back. */
+ stop(){
+  if(this.status<=PLAYING)this.status=STOP_REQUESTED;this.playRequest=false;this.paused=false;
+  this.audio?.radioAfterTrack(true);this.missionComplete=false;
+ }
  /** PauseTrack: CheckForPause then holds the channel's frequency at zero, and with it the play time. */
  pause(pause:boolean){this.paused=pause;if(this.state==='playing')this.stream?.pause(pause);}
  /** IsCutsceneTrackActive. */
@@ -88,7 +101,11 @@ export class ScmCutsceneTrack {
     this.state='playing';this.status=PLAYING;this.playRequest=false;
     if(this.track){this.stream?.play();if(this.paused)this.stream?.pause(true);}
    }break;
-   case PLAYING:if(time===TRACK_STOPPED)this.status=S8;break;
+   case PLAYING:if(time===TRACK_STOPPED){
+    this.status=S8;
+    // CAudioEngine::Service: the mission-complete track finished (-4) and then stopped (-6).
+    if(this.missionComplete){this.missionComplete=false;this.audio?.radioAfterTrack(false);}
+   }break;
    // AEAudioHardware.StopTrack.
    case STOP_REQUESTED:case S6:this.stopStream();this.status=S7;break;
    case S5:this.status=S6;break;

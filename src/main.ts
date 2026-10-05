@@ -1643,7 +1643,9 @@ async function boot() {
   // same two banks itself: fetch it only if the engine could not load, instead of downloading them twice.
   // The engine's banks (about 5 MB) are needed once play starts, not to show the menu: download them after the start
   // package has arrived instead of alongside it.
-  void afterMenuReady.then(()=>sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href)).then(loaded=>{if(!loaded)void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);});
+  void afterMenuReady.then(()=>sound.loadNativeAudio(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href)).then(loaded=>{if(!loaded)void sound.loadNativeCombat(new URL(`${import.meta.env.BASE_URL}play/audio/`,location.href).href);
+   // The radio waits while a beat track holds the stream (GetBeatTrackStatus), and its name shows when it comes back.
+   const engine=sound.nativeEngine;if(engine){engine.beatTrackStatus=()=>mission?.runtime.game.cutsceneTrack.reportedStatus??0;engine.onRadioName=label=>hud.radioName(label);}});
   const hornInput=new NativeHornInput();sound.setPlayer(()=>({...sim.player.position,y:sim.player.position.y+1}));
   sound.reset(sim);
   // Open the (suspended) output device while the menu waits, not inside the click that starts play.
@@ -5639,6 +5641,8 @@ async function boot() {
                  playerUsingJetpack:()=>!!sim.jetPack,
                  setDeathPenalties:apply=>{gameLogic.penaltyForDeathApplies=apply;},
                  beatTracks:sound.beatTracks,
+                 // CAudioEngine::PreloadBeatTrack: the radio, else the ambience track, gives the stream up to the track.
+                 trackAudio:{stopForTrack:()=>{if(!sound.nativeEngine?.stopRadioForTrack())ambience.stopNow(gameTimeMs);},radioAfterTrack:kept=>{sound.nativeEngine?.restartRadioAfterTrack(kept);}},
                  scriptSpeech:{load:sample=>sound.loadSpeech(sample),play:(slot,sample)=>{sound.playSpeech(slot,sample);},stop:slot=>{sound.stopSpeech(slot);},lengthMs:sample=>sound.speechLengthMs(sample)},
                  setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},
                  // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.

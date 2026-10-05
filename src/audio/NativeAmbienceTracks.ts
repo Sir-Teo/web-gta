@@ -93,6 +93,14 @@ export class NativeAmbienceTracks {
   }
  }
  get active(){return this.status!==Status.STOPPED;}
+ /** CAudioEngine::StopAmbienceTrack(true), as a beat or cutscene track takes the stream: StopAmbienceTrack, serviced
+  * until it has stopped, where it had got to kept for the next start. */
+ stopNow(nowMs:number){
+  this.stopTrack();if(this.status!==Status.STOPPING)return;
+  const played=this.channel.playedMs();
+  if(played!==undefined){this.prevPlayMs=Math.trunc(played);this.prevStopMs=nowMs;}
+  this.volume=-100;this.request++;this.channel.stop();this.status=Status.STOPPED;
+ }
  /** A track that is loading when it is asked to stop does not start. */
  reset(){this.request++;this.channel.stop();this.status=Status.STOPPED;this.trackId=-1;this.volume=-100;}
 }

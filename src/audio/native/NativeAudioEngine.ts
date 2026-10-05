@@ -157,6 +157,7 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** CAERadioTrackManager::DisplayRadioStationName's text: the GXT's FEA_R{id − 1}, or FEA_NON for off ("RADIO OFF");
   * none for the emergency channel. */
  get radioLabel(){
+  if(this.radioHeld)return undefined;
   if(this.radioId===RADIO_ID.off)return gxtText('FEA_NON','Radio Off');
   const station=this.radio;return station&&gxtText(`FEA_R${this.radioId-1}`,station);
  }
@@ -166,7 +167,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   * retune sound, which the port's frontend entity does not play). Returns whether a radio came on. */
  startRadio(modelId:number,nowMs:number,hour:number,day:number){
   const settings=vehicleRadioSettings(modelId);
-  this.radioVehicleType=settings.type;
+  this.radioVehicleType=settings.type;this.radioModelId=modelId;
+  // CAudioEngine::StartRadio: none while a beat track holds the stream (GetBeatTrackStatus); the radio waits for it.
+  if(this.beatTrackHeld&&(settings.type===RADIO_TYPE.emergency||settings.type===RADIO_TYPE.civilian)){this.radioId=RADIO_ID.off;this.radioHeld=true;return true;}
   if(settings.type===RADIO_TYPE.emergency){
    this.radioId=RADIO_ID.emergency;
    // StartRadio(RADIO_EMERGENCY_AA, the vehicle's bass setting, its factor (for the EQ, which is not ported), no skip).
@@ -181,9 +184,42 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  /** StopRadio as the player leaves: the emergency channel's is the track manager's, which keeps its place; for a
   * station the port saves the station, as it keeps the fields for. */
  stopRadio(nowMs:number,hour:number,day:number){
-  if(this.radioId!==RADIO_ID.emergency)this.savedRadio={id:this.radioId,timeMs:nowMs,hour,day};
+  if(this.radioId!==RADIO_ID.emergency){if(!this.radioHeld)this.savedRadio={id:this.radioId,timeMs:nowMs,hour,day};}
   else this.radioTracks.stopRadio({radioStation:RADIO_ID.emergency,bassSetting:0},false,this.radioWorld());
-  this.radioId=RADIO_ID.off;this.radioVehicleType=undefined;
+  this.radioId=RADIO_ID.off;this.radioVehicleType=undefined;this.radioModelId=undefined;this.radioHeld=false;
+ }
+ /** GetBeatTrackStatus (CAECutsceneTrackManager::GetCutsceneTrackStatus), which holds StartRadio and RetuneRadio back
+  * while a beat track is loading, loaded, playing or stopping: the host's. */
+ beatTrackStatus?:()=>number;
+ private get beatTrackHeld(){return (this.beatTrackStatus?.()??0)!==0;}
+ /** DisplayRadioStationName, for the radio that comes back after a track (the host's HUD). */
+ onRadioName?:(label:string)=>void;
+ /** The driven vehicle's model while it has the radio, m_nCurrentRadioStationId (the station a track stopped, -1
+  * none), and whether the radio is off for a track. */
+ private radioModelId?:number;private trackRadioStationId=-1;private radioHeld=false;
+ /** CAudioEngine::PreloadBeatTrack's (and PreloadCutsceneTrack's) first step, as the original's one stream needs it: a
+  * radio that is on stops (StopRadio with the vehicle's settings, during the pause), its station kept. Whether one was
+  * on; when none is, the host stops the ambience track instead. */
+ stopRadioForTrack(){
+  if(this.radioId===RADIO_ID.off&&!this.radioTracks.isRadioOn())return false;
+  this.trackRadioStationId=this.radioId;
+  if(this.radioId===RADIO_ID.emergency)this.radioTracks.stopRadio({radioStation:RADIO_ID.emergency,bassSetting:0},true,this.radioWorld());
+  this.radioId=RADIO_ID.off;this.radioHeld=true;return true;
+ }
+ /** The radio back after the track, in a vehicle with a radio (IsVehicleRadioActive): the kept station when the script
+  * stops the track (StopCutsceneTrack's wait, which then forgets it), and when the mission-complete track has stopped
+  * StartRadio with the vehicle's settings, which StopRadio left on the kept station; with none kept, the vehicle's
+  * own. Its name shows, as the station starting sets m_bDisplayStationName. */
+ restartRadioAfterTrack(keptStation:boolean){
+  const type=this.radioVehicleType,model=this.radioModelId;
+  if(model!==undefined&&(type===RADIO_TYPE.civilian||type===RADIO_TYPE.emergency||type===RADIO_TYPE.unknown)){
+   this.radioHeld=false;
+   const station=type===RADIO_TYPE.emergency?RADIO_ID.emergency:this.trackRadioStationId>=0?this.trackRadioStationId:vehicleRadioSettings(model).station;
+   this.radioId=station;
+   if(station===RADIO_ID.emergency)this.radioTracks.startRadio(RADIO_ID.emergency,vehicleRadioSettings(model).bass,0,false,this.radioWorld());
+   const label=this.radioLabel;if(label)this.onRadioName?.(label);
+  }
+  if(keptStation)this.trackRadioStationId=-1;
  }
  /** The radio's stream (RadioStream.ts), which the audio system makes once it has a context. */
  attachRadioStream(stream:RadioTrackHardware&{service():void;snapshot?():unknown}){this.radioTracks.hardware=stream;this.radioStream=stream;}
@@ -198,13 +234,15 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
  }
  /** The player's retune: through the eleven stations and off (user tracks retune to off with none installed). */
  /** CAudioEngine::RetuneRadio (0x507E10) and CAERadioTrackManager::RetuneRadio: the script's station request; user
-  * tracks with none loaded mean off. The port has no beat tracks, so GetBeatTrackStatus never holds it back. */
+  * tracks with none loaded mean off; nothing while a beat track holds the stream (GetBeatTrackStatus), and
+  * CheckForStationRetune takes no request on the emergency channel. */
  retuneRadio(id:number){
-  if(!Number.isInteger(id)||id<RADIO_ID.emergency||id>RADIO_ID.off)return;
+  if(!Number.isInteger(id)||id<RADIO_ID.emergency||id>RADIO_ID.off||this.beatTrackHeld||this.radioId===RADIO_ID.emergency)return;
   this.radioId=id===RADIO_ID.userTracks?RADIO_ID.off:id;
  }
+ /** The player's retune: none on the emergency channel, nor while the radio is off for a beat track. */
  tuneRadio(dir=1){
-  if(this.radioId===RADIO_ID.emergency)return undefined;
+  if(this.radioId===RADIO_ID.emergency||this.radioHeld)return undefined;
   const cycle=[1,2,3,4,5,6,7,8,9,10,11,RADIO_ID.off],i=Math.max(0,cycle.indexOf(this.radioId));
   this.radioId=cycle[(i+dir+cycle.length)%cycle.length];return this.radioLabel;
  }

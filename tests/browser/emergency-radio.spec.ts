@@ -1,8 +1,9 @@
 import {test,expect} from '@playwright/test';
 /** CAERadioTrackManager's emergency channel: a police car's radio plays the AA pack (the iOS port's AA.osw), bursts of
  * static with their intros and outros and the dispatcher between them, each track fetched as the stream reaches it;
- * getting out stops it. A saved game starts CJ at Grove Street, past the opening's ride. */
-test('a police car plays the emergency channel, and stops it when CJ gets out',async({page})=>{
+ * the mission-passed tune takes the stream from it and gives it back; getting out stops it. A saved game starts CJ at
+ * Grove Street, past the opening's ride. */
+test('a police car plays the emergency channel, gives way to the mission-passed tune, and stops when CJ gets out',async({page})=>{
  test.setTimeout(240000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  const fetched:number[]=[];page.on('request',r=>{const m=r.url().match(/\/play\/audio\/streams\/track-(\d+)\.mp3$/);if(m)fetched.push(Number(m[1]));});
@@ -30,6 +31,16 @@ test('a police car plays the emergency channel, and stops it when CJ gets out',a
  await expect.poll(async()=>(await radio()).banter.length,{timeout:60000}).toBeGreaterThan(0);
  const played=(await radio()).banter[0];expect(played).toBeGreaterThanOrEqual(0);expect(played).toBeLessThanOrEqual(38);
  expect(fetched.length).toBeGreaterThan(1);expect(fetched.every(id=>id>=0&&id<66)).toBe(true);
+ // The mission-passed tune takes the stream (PLAY_MISSION_PASSED_TUNE: beat track 11, the mission-complete track): the
+ // channel stops for it, and once the tune has stopped it comes back (CAudioEngine::Service's StartRadio).
+ const track=()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.cutsceneTrack.reportedStatus as number);
+ await page.evaluate(()=>{const t=(window as any).__game.missionForProfiling().runtime.game.cutsceneTrack;t.preloadBeatTrack(11);t.play(true);});
+ await expect.poll(async()=>(await radio()).mode,{timeout:10000}).toBe(7);
+ await expect.poll(track,{timeout:20000}).toBe(3);
+ expect((await radio()).mode).toBe(7);
+ await expect.poll(track,{timeout:30000}).toBe(0);
+ await expect.poll(async()=>(await radio()).mode,{timeout:20000}).toBe(2);
+ expect((await radio()).station).toBe(0);
  // Out of the car, StopRadio: the stream stops and the manager with it.
  await page.keyboard.press('KeyF');
  await expect.poll(async()=>((await state()).fleet?.cars??[]).some((c:any)=>c.modelId===596&&c.occupied),{timeout:20000}).toBe(false);

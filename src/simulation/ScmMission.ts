@@ -8,7 +8,7 @@ import {TRAIN_TYPES} from './nativeTrainTracks';
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {speechLengthMs,MISSION_AUDIO_COUNT} from '../engine/ScmMissionAudio';
-import type {BeatTrackStream} from '../engine/ScmCutsceneTrack';
+import type {BeatTrackStream,TrackAudio} from '../engine/ScmCutsceneTrack';
 import {requireAsset} from '../assets/binary';
 import {gxtText} from '../assets/gxt';
 import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
@@ -247,6 +247,8 @@ export interface ScmMissionWorld {
   * be had), played and stopped by the script's one-based slot, and how long a loaded one runs. */
  /** The stream the beat tracks (and the mission-passed tune) play on (CAECutsceneTrackManager's channel). */
  beatTracks?:BeatTrackStream;
+ /** CAudioEngine round those tracks: the radio and the ambience give way to them, and the radio comes back. */
+ trackAudio?:TrackAudio;
  scriptSpeech?:{load(sample:number):Promise<boolean>;play(scriptSlot:number,sample:number):void;stop(scriptSlot:number):void;lengthMs(sample:number):number|undefined};
  /** CModelInfo::GetModelInfo by name: the model index, or -1. */
  modelIndex?(name:string):number;
@@ -2371,7 +2373,7 @@ export class ScmMission {
   const {runtime,header}=ScmRuntime.load(script,adapter,this.random);
   this.runtime=runtime;
   // CAECutsceneTrackManager's channel: the beat tracks and the mission-passed tune are heard through the host.
-  runtime.game.cutsceneTrack.stream=this.world.beatTracks;
+  runtime.game.cutsceneTrack.stream=this.world.beatTracks;runtime.game.cutsceneTrack.audio=this.world.trackAudio;
   // CVehicleRecording's host side: files streamed from carrec.img, and the cars playbacks move.
   // CPathFind's switches reach the host's loaded path nodes as they are made.
   runtime.game.nodeSwitches.onSwitch=(area,isOff,isCars,backToOriginal)=>{this.world.switchPathNodes?.(area,isOff,isCars,backToOriginal);};
