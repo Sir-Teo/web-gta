@@ -576,7 +576,7 @@ async function boot() {
   let pedestrians:WorldPedestrians|undefined;
   let fleet:import('./simulation/WorldFleet').WorldFleet|undefined;
   /** CGarages::StoreCarInNearestImpoundingGarage, once the script's garages are loaded. */
-  let impoundCar:((car:import('./simulation/WorldCar').WorldCar)=>void)|undefined;
+  let impoundCar:((vehicle:import('./simulation/WorldCar').WorldCar|import('./simulation/WorldBike').WorldBike)=>void)|undefined;
   let worldZones:import('./assets/worldZones').WorldZones|undefined;
   const placeName=new NativePlaceName();
  // CTheScripts running the original MAIN.SCM, started once the world source hands over the script.
@@ -3080,7 +3080,7 @@ async function boot() {
       // CTimer::m_FrameCounter's 30 fps game frames, from game time, so frame-counted waits (the car generators' 20-frame
       // start window, CAudioZones' 16-frame cadence) keep their length whatever the display rate.
       const gameFrame=Math.floor(gameTimeExact*30/1000),newGameFrames=Math.min(6,Math.max(0,gameFrame-lastGameFrame));lastGameFrame=gameFrame;
-      guard('fleet.update',()=>{for(let i=0;i<newGameFrames;i++)fleet?.tickFrame();fleet?.update(now);});
+      guard('fleet.update',()=>{for(let f=gameFrame-newGameFrames+1;f<=gameFrame;f++)fleet?.tickFrame(f,gameTimeMs,playerPassenger?.car);fleet?.update(now);});
       // CAudioZones::Update from Game.cpp's frame, with the camera's position.
       if(newGameFrames){const c=render.camera.position;mission?.runtime.game.audioZones.update(false,[c.x,-c.z,c.y],gameFrame);
        // CWaterLevel::PreRenderWater's FindNearestWaterAndItsFlow, every 32nd frame where the area can see water
@@ -6126,7 +6126,7 @@ async function boot() {
                   },
                  };
                  // A car of his an area clear takes goes to the nearest impound (CGarages::StoreCarInNearestImpoundingGarage).
-                 impoundCar=car=>game.garages.storeCarInNearestImpoundingGarage(storeVehicle(car));}
+                 impoundCar=vehicle=>game.garages.storeCarInNearestImpoundingGarage(storeVehicle(vehicle));}
                 // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.
                 if(Array.isArray(data.audioZones))mission.runtime.game.audioZones.load(data.audioZones);
                 if(Array.isArray(data.cullZones)&&!cullZones.attributeZones.length&&!cullZones.tunnelZones.length)cullZones.load(data.cullZones);

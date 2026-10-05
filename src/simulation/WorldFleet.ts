@@ -31,6 +31,7 @@ import {TRAIN_TYPES,TRAIN_TRACK_FILES,readTrainTrack,type TrainTrack} from './na
 import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
+import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
 /** CCarCtrl::PruneVehiclesOfInterest drops a vehicle of interest 180000 ms after it was last registered. */
 const VEHICLE_OF_INTEREST_MS=180000;
 /** Resolve one random-model generator against a membership pool (CCarGenerator
@@ -238,19 +239,21 @@ export class WorldFleet {
  /** Aircraft made by a generator, by the generator's id: culling one frees its generator. */
  private generatedPlanes=new Map<WorldPlane,string>();
  private generated=new Map<WorldCar,string>();
- /** CCarCtrl's vehicles of interest: a car the player has driven, with the last time he sat in it. RegisterVehicleOfInterest
-  * keeps it for three minutes (PruneVehiclesOfInterest); after that it is an ordinary abandoned car, removed far off. */
+ /** The cars the player has driven (not the traffic's), with the last time he sat in it: the culling's side of CCarCtrl's
+  * vehicles of interest, kept from removal for three minutes (PruneVehiclesOfInterest) and then an ordinary abandoned
+  * car, removed far off. */
  private driven=new Map<WorldCar,number>();
- /** The last time update ran, for CCarCtrl::IsThisVehicleInteresting between updates. */
- private lastUpdate=0;
- /** CCarCtrl::IsThisVehicleInteresting: a car the player has driven within the last three minutes. */
- isVehicleOfInterest(car:WorldCar){const last=this.driven.get(car);return last!==undefined&&this.lastUpdate-last<=VEHICLE_OF_INTEREST_MS;}
- /** CCarCtrl::ClearInterestingVehicleList: none of his cars is of interest any more (each retires as an ordinary
-  * abandoned car does). */
- clearInterestingVehicleList(){for(const car of this.driven.keys())this.driven.set(car,-Infinity);}
- /** CWorld::RemoveVehicleAndItsOccupants's CGarages::StoreCarInNearestImpoundingGarage: a car of interest an area
-  * clear takes goes to the impound. */
- onImpound?:(car:WorldCar)=>void;
+ /** CCarCtrl's apCarsToKeep: the two vehicles he was last in, any kind and however made (the cull list above is the
+  * port's own). */
+ readonly vehiclesOfInterest=new VehiclesOfInterest<WorldCar|WorldBike|WorldBoat|WorldPlane>();
+ /** CCarCtrl::IsThisVehicleInteresting. */
+ isVehicleOfInterest(vehicle:WorldCar|WorldBike|WorldBoat|WorldPlane){return !vehicle.disposed&&this.vehiclesOfInterest.has(vehicle);}
+ /** CCarCtrl::ClearInterestingVehicleList. */
+ clearInterestingVehicleList(){this.vehiclesOfInterest.clear();}
+ /** CWorld::RemoveVehicleAndItsOccupants's CGarages::StoreCarInNearestImpoundingGarage: a car or bike of interest an
+  * area clear takes goes to the impound (then RemoveFromInterestingVehicleList). */
+ onImpound?:(vehicle:WorldCar|WorldBike)=>void;
+ private impoundIfInteresting(vehicle:WorldCar|WorldBike){if(this.isVehicleOfInterest(vehicle))this.onImpound?.(vehicle);this.vehiclesOfInterest.remove(vehicle);}
  /** CCarGenerator's m_nNextGenTime and bWaitUntilFarFromPlayer per record. */
  private generatorState=new Map<string,{nextGen:number;waitFar:boolean}>();
  /** Generators whose loading car a clear of its area has removed before it arrived. */
@@ -258,7 +261,14 @@ export class WorldFleet {
  /** CTheCarGenerators::GenerateEvenIfPlayerIsCloseCounter: the start window lets nearby generators fill at once. */
  private closeCounter=GENERATE_EVEN_IF_CLOSE_FRAMES;
  /** The start window's frames, counted down once a frame (CTheCarGenerators::Process), not per 500 ms update. */
- tickFrame(){if(this.closeCounter>0)this.closeCounter--;}
+ /** A game frame: the start window's count, and CPlayerPed::ProcessControl's RegisterVehicleOfInterest for the
+  * vehicle he is in (`passengerOf`, the car he rides in as a passenger) with CCarCtrl::PruneVehiclesOfInterest. */
+ tickFrame(frame=0,timeMs=0,passengerOf?:WorldCar){
+  if(this.closeCounter>0)this.closeCounter--;
+  const ridden=this.occupied??this.occupiedBike??this.occupiedBoat??this.occupiedPlane??passengerOf;
+  if(ridden)this.vehiclesOfInterest.register(ridden,timeMs);
+  this.vehiclesOfInterest.prune(timeMs,frame,this.sim.player.position.y);
+ }
  /** The model a random-model generator picked (saved as -actualModelId), kept until the player takes its car, and the
   * colours its first car got (m_nPrimaryColor and m_nSecondaryColor, from -1). */
  private randomModels=new Map<string,{model:number;colours?:[number,number]}>();
@@ -521,13 +531,13 @@ export class WorldFleet {
    if(Math.hypot(at.x-point.x,at.z-point.z)>=radius)continue;
    doomed.push(car);
   }
-  for(const car of doomed){if(this.isVehicleOfInterest(car))this.onImpound?.(car);this.cars.delete(car);this.generated.delete(car);this.driven.delete(car);car.dispose();}
+  for(const car of doomed){this.impoundIfInteresting(car);this.cars.delete(car);this.generated.delete(car);this.driven.delete(car);car.dispose();}
   // A generator's car still loading within the area counts as one cleared.
   for(const record of this.records)if(this.attempted.has(record.id)&&Math.hypot(record.position[0]-point.x,-record.position[1]-point.z)<radius)this.cleared.add(record.id);
   // The pass walks the whole vehicle pool: bikes, boats and aircraft nobody rides and no script holds go too.
   let others=0;
   const near=(v:{car:{body:RAPIER.RigidBody}})=>{const at=v.car.body.translation();return Math.hypot(at.x-point.x,at.z-point.z)<radius;};
-  for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&near(bike)){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
+  for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&near(bike)){this.impoundIfInteresting(bike);bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
   for(const boat of [...this.boats])if(!boat.occupied&&!boat.missionCar&&!boat.disposed&&near(boat)){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);others++;}
   for(const plane of [...this.planes])if(!plane.occupied&&!plane.entryBusy&&!plane.missionCar&&!plane.disposed&&near(plane)){this.removePlane(plane);others++;}
   return doomed.length+others;
@@ -543,12 +553,12 @@ export class WorldFleet {
    if(at.x<lo.x||at.x>hi.x||at.y<lo.y||at.y>hi.y||at.z<lo.z||at.z>hi.z)continue;
    doomed.push(car);
   }
-  for(const car of doomed){if(this.isVehicleOfInterest(car))this.onImpound?.(car);this.cars.delete(car);this.generated.delete(car);this.driven.delete(car);car.dispose();}
+  for(const car of doomed){this.impoundIfInteresting(car);this.cars.delete(car);this.generated.delete(car);this.driven.delete(car);car.dispose();}
   // CWorld::ClearCarsFromArea walks the whole vehicle pool: the bikes, boats and aircraft go the same way when nobody
   // rides them and no script holds them.
   let others=0;
   const inBox=(v:{car:{body:RAPIER.RigidBody}})=>{const at=v.car.body.translation();return at.x>=lo.x&&at.x<=hi.x&&at.y>=lo.y&&at.y<=hi.y&&at.z>=lo.z&&at.z<=hi.z;};
-  for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&inBox(bike)){bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
+  for(const bike of [...this.bikes])if(!bike.occupied&&!bike.missionCar&&!bike.disposed&&inBox(bike)){this.impoundIfInteresting(bike);bike.dispose();this.bikes.delete(bike);this.generatedOther.delete(bike);others++;}
   for(const boat of [...this.boats])if(!boat.occupied&&!boat.missionCar&&!boat.disposed&&inBox(boat)){boat.dispose();this.boats.delete(boat);this.generatedOther.delete(boat);others++;}
   for(const plane of [...this.planes])if(!plane.occupied&&!plane.entryBusy&&!plane.missionCar&&!plane.disposed&&inBox(plane)){this.removePlane(plane);others++;}
   return doomed.length+others;
@@ -663,7 +673,7 @@ export class WorldFleet {
  /** TheCamera.IsSphereVisible for a boat generator's origin (browser coordinates), for the 240-unit visible range. */
  sphereVisible?:(x:number,y:number,z:number)=>boolean;
  update(now:number){
-  if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+GENERATOR_PROCESS_MS;this.lastUpdate=now;
+  if(this.disposed||now<this.nextCheck)return;this.nextCheck=now+GENERATOR_PROCESS_MS;
   if(this.zones){
    const p=this.sim.player.position,point:[number,number,number]=[p.x,-p.z,p.y],zone=worldZoneAt(this.zones,point);
    const live=this.scriptZoneInfo?.(zone.zoneInfoIndex),stored=this.zones.population?.[zone.zoneInfoIndex];

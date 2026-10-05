@@ -8953,8 +8953,10 @@ that did anything.
   gta-reversed at 0x44A3C0, and CGarage::Update's impound case, both followed from the iOS executable: 0x1001b8ab4 and
   0x1001b2d40). SA's three (imp_la, imp_sf, imp_lv, types 33 to 35) had done nothing.
   - **In:** a car the area clears take (CWorld::ClearExcitingStuffFromArea, CLEAR_AREA; ClearCarsFromArea,
-    CLEAR_AREA_OF_CARS) that is one of his cars of interest (CCarCtrl::IsThisVehicleInteresting: the fleet's cars he
-    has driven within three minutes, its stand-in for apCarsToKeep) goes to the impound whose corner is nearest in x
+    CLEAR_AREA_OF_CARS) that is one of his two vehicles of interest (CCarCtrl::apCarsToKeep: RegisterVehicleOfInterest,
+    iOS 0x1001a0c74, each frame he is in a vehicle, driver or passenger, renewing a kept one's time or taking an empty
+    place or the place of the one he was in longer ago; PruneVehiclesOfInterest letting one go three minutes after,
+    every 64th frame outside the interiors) goes to the impound whose corner is nearest in x
     and y: the first three of its four places fill in turn, and with all three taken the oldest goes and the others
     move up (the executable counts them with the second place following the first).
   - **Out:** shut, with the player within 60 units of the lot's footprint and between its floor and 2 units under its
@@ -8970,8 +8972,8 @@ that did anything.
     CGarages::PlayerArrestedOrDied after (inlined in the iOS executable at 0x1001b86a8): a Pay 'n' Spray or bomb shop
     (types 2 to 5 and 13) whose door is down or moving goes back up, every other garage open or moving starts down,
     and the garage message is over.
-  - **Not followed:** RegisterVehicleOfInterest's two places (the fleet's own list keeps every car he drove, and
-    leaves out the traffic cars he took, which retire their own way).
+  - **Kept apart:** the port's own cull list of the cars he drove (which keeps them from removal for three minutes,
+    as apCarsToKeep does in the game) stays as it was; the two places decide the impound.
   - Specs: `scm-garages` (unit: the nearest impound and its three places, the line-up, the lot's opening and shutting
     by distance and height, death and arrest); `stored-vehicles` (unit: StoreCar's packing, RestoreCar's place and
     turn, the parts given back); `impound` (browser: a Landstalker CJ drove, cleared off an El Corona street, kept in

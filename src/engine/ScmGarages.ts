@@ -175,7 +175,7 @@ export function placeCarsInImpound(garage:ScmGarage,slot:(StoredCar|null)[]){
  const cx=b.base[0]+b.dirA[0]*b.width/2+b.dirB[0]*b.depth/2,cy=b.base[1]+b.dirA[1]*b.width/2+b.dirB[1]*b.depth/2,cz=b.base[2]+.5;
  for(let i=0;i<IMPOUND_CAPACITY;i++){
   const car=slot[i];if(!car)break;
-  car.position=[cx-vx+i*vx,cy-vy+i*vy,cz];car.forward=[Math.trunc(ny*100),Math.trunc(nx*-100),0];
+  car.position=[cx-vx+i*vx,cy-vy+i*vy,cz];car.forward=[Math.trunc(ny*100)||0,Math.trunc(nx*-100)||0,0];
  }
 }
 /** A stored car from a save, checked; undefined for anything that is not one. */
