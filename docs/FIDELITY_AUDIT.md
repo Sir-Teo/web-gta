@@ -9274,3 +9274,15 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   is found fine, so a player who never flies still keeps the ground's measure, and settings measured on the ground in
   an earlier session are measured again in the air alone. A player who sets any quality setting has chosen for all
   three. Spec: `auto-quality` (unit).
+
+## A thumb slides between the pedals
+
+- **Slide-over.** Each touch button captured its finger, so a thumb rocked from Gas onto Brake kept Gas held. The
+  mobile ports' widgets answer whichever one a touch is over each frame; now the pedals (Gas and Brake, Thrust and
+  Slow), the handbrake, the steering arrows and the rudder hand the press on to the one a held finger slides onto
+  (the old one let go unless another finger holds it). A finger that strays off them into the open keeps the last
+  one pressed, so a thumb drifting off a pedal keeps driving. Spec: `touch-slide` (browser).
+- **Checked while here (no change needed):** five more screens (568×320 to 1366×1024, 21:9 and 4:3) lay the touch
+  buttons out with no overlap between buttons or with the HUD, nothing off screen and none under 34 px; the JS heap
+  stays between 130 and 210 MB on a drive across the map and comes back to 150 MB, the retired models held at their
+  33 MB budget.

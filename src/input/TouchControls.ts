@@ -151,6 +151,9 @@ export function portLayoutFrame(file:PortLayoutFile):Readonly<Record<string,numb
  * mobile ports show their enter-vehicle button only beside a vehicle, and whether only the driver has it (a passenger
  * has no pedals, wheel or horn). */
 interface ButtonSpec {label:string;code:string;className:string;toggle?:boolean;modes?:readonly TouchMode[];contextual?:boolean;icon?:TouchIcon;steering?:TouchSettings['steering'];driver?:boolean;
+ /** A thumb slid onto another such button presses that one instead, as the ports' widgets answer whichever one a
+  * touch is over each frame: rocking from Gas to Brake, across the steering arrows or the rudder. */
+ slide?:boolean;
  /** Hidden while the game offers this other button, which does its work (the horn in a car with hydraulics). */
  givesWayTo?:string;
  /** A tap presses `code` for a frame; a drag is the car-gun stick (the Hydraulics button). */
@@ -171,7 +174,7 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Bunny hop',code:'ControlLeft',className:'hop',modes:['vehicle'],contextual:true,icon:'jump',driver:true,slot:'fire'},
  {label:'Aim',code:'MouseAim',className:'aim',toggle:true,modes:['foot','scope'],icon:'target'},
  {label:'Jump',code:'Space',className:'jump',modes:['foot','swim'],icon:'jump'},
- {label:'H-brake',code:'Space',className:'jump',modes:['vehicle'],icon:'parking',driver:true},
+ {label:'H-brake',code:'Space',className:'jump',modes:['vehicle'],icon:'parking',driver:true,slide:true},
  {label:'Sprint',code:'ShiftLeft',className:'sprint',modes:['foot'],icon:'run'},
  {label:'Horn',code:'KeyH',className:'sprint',modes:['vehicle'],icon:'horn',driver:true,givesWayTo:'hydraulics'},
  {label:'Enter',code:'KeyF',className:'enter',contextual:true,icon:'car'},
@@ -182,8 +185,8 @@ const BUTTONS:ButtonSpec[]=[
  {label:'Reload',code:'KeyR',className:'reload',modes:['foot','scope'],icon:'reload'},
  // At the wheel the right thumb has the pedals, as the mobile ports give it, so the stick can steer to full lock
  // while the car accelerates (a stick pushed only sideways is no push forward).
- {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle'],icon:'up',driver:true},
- {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down',driver:true},
+ {label:'Gas',code:'KeyW',className:'gas',modes:['vehicle'],icon:'up',driver:true,slide:true},
+ {label:'Brake',code:'KeyS',className:'reverse',modes:['vehicle'],icon:'down',driver:true,slide:true},
  // N tunes the radio on to the next station, as a tap does; a swipe to the left tunes back (the mobile ports swipe for
  // it, either way: the PC's Shift+N).
  {label:'Radio',code:'KeyN',className:'radio',modes:['vehicle'],contextual:true,icon:'music',swipeBack:'RadioBack'},
@@ -197,8 +200,8 @@ const BUTTONS:ButtonSpec[]=[
  // Return just pressed), offered while the scene can be skipped.
  {label:'Skip',code:'Space',className:'skip',modes:['cutscene'],contextual:true},
  // The port's default steering: left and right arrows under the left thumb (A and D), in place of the stick.
- {label:'Steer left',code:'KeyA',className:'steer-left',modes:['vehicle'],icon:'left',steering:'arrows',driver:true},
- {label:'Steer right',code:'KeyD',className:'steer-right',modes:['vehicle'],icon:'right',steering:'arrows',driver:true},
+ {label:'Steer left',code:'KeyA',className:'steer-left',modes:['vehicle'],icon:'left',steering:'arrows',driver:true,slide:true},
+ {label:'Steer right',code:'KeyD',className:'steer-right',modes:['vehicle'],icon:'right',steering:'arrows',driver:true,slide:true},
  // Flying, the stick is the yoke (pitch and roll) and the right thumb has the throttle, the rudder, the wheel brake
  // (a helicopter's hover hold) and the rockets: the PC's W/S, Q/E, Space and B.
  // Through a scope (the sniper rifle, the camera, the rocket launchers) Jump and Sprint give way to the zoom: the
@@ -208,11 +211,11 @@ const BUTTONS:ButtonSpec[]=[
  // In the water the fire button dives under and Sprint swims the fast stroke: the mobile ports' Dive and Swim.
  {label:'Dive',code:'ControlLeft',className:'fire',modes:['swim'],icon:'dive'},
  {label:'Swim',code:'ShiftLeft',className:'sprint',modes:['swim'],icon:'swim'},
- {label:'Thrust',code:'KeyW',className:'gas',modes:['aircraft'],icon:'up'},
- {label:'Slow',code:'KeyS',className:'reverse',modes:['aircraft'],icon:'down'},
- {label:'Brake',code:'Space',className:'jump',modes:['aircraft'],icon:'parking'},
- {label:'◀ Yaw',code:'KeyQ',className:'yaw-left',modes:['aircraft'],icon:'left'},
- {label:'Yaw ▶',code:'KeyE',className:'yaw-right',modes:['aircraft'],icon:'right'},
+ {label:'Thrust',code:'KeyW',className:'gas',modes:['aircraft'],icon:'up',slide:true},
+ {label:'Slow',code:'KeyS',className:'reverse',modes:['aircraft'],icon:'down',slide:true},
+ {label:'Brake',code:'Space',className:'jump',modes:['aircraft'],icon:'parking',slide:true},
+ {label:'◀ Yaw',code:'KeyQ',className:'yaw-left',modes:['aircraft'],icon:'left',slide:true},
+ {label:'Yaw ▶',code:'KeyE',className:'yaw-right',modes:['aircraft'],icon:'right',slide:true},
  {label:'Rocket',code:'KeyB',className:'rocket',modes:['aircraft'],icon:'rocket'},
 ];
 /** Controls the game asks for only now and then, by the pad action the help text names: a button for each shows above
@@ -278,6 +281,8 @@ export class TouchControls {
  private mode?:TouchMode;
  /** A tablet takes the port's iPad layouts. */
  private readonly tablet=isTabletScreen();
+ /** The button each held finger is pressing now, which a slide moves on. */
+ private heldButton=new Map<number,HTMLElement>();
  private offered=new Set<string>();
  private abort=new AbortController();
  constructor(private readonly input:Input,parent:HTMLElement,private readonly actions:{pause:()=>void;arsenal:()=>void;playOn?:()=>void},private settings:TouchSettings=DEFAULT_TOUCH,private readonly changeSettings:(settings:TouchSettings)=>void=()=>{}){
@@ -296,13 +301,15 @@ export class TouchControls {
    button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();capture(button,e.pointerId);
     if(this.editing){this.drag(e,spec,button);return;}
     this.buzz();if(spec.toggle){if(this.latched.has(spec.code)){this.latched.delete(spec.code);input.release(spec.code);button.classList.remove('on');}else{this.latched.add(spec.code);input.hold(spec.code);button.classList.add('on');}return;}
-    this.held.set(e.pointerId,spec.code);input.hold(spec.code);button.classList.add('on');},options);
+    this.held.set(e.pointerId,spec.code);this.heldButton.set(e.pointerId,button);input.hold(spec.code);button.classList.add('on');},options);
+   if(spec.slide)button.addEventListener('pointermove',e=>{if(!this.editing)this.slide(e);},options);
    if(spec.looksIn){const last=new Map<number,{x:number;y:number}>();
     button.addEventListener('pointerdown',e=>{if(!this.editing)last.set(e.pointerId,{x:e.clientX,y:e.clientY});},options);
     button.addEventListener('pointermove',e=>{const from=last.get(e.pointerId);if(!from||this.held.get(e.pointerId)!==spec.code||!spec.looksIn!.includes(this.mode??'foot'))return;
      input.lookX+=(e.clientX-from.x)*LOOK_GAIN*this.settings.lookSpeed;input.lookY+=(e.clientY-from.y)*LOOK_GAIN*this.settings.lookSpeed;last.set(e.pointerId,{x:e.clientX,y:e.clientY});input.touches++;},options);
     for(const type of ['pointerup','pointercancel'] as const)button.addEventListener(type,e=>{last.delete(e.pointerId);},options);}
-   const up=(e:PointerEvent)=>{if(spec.toggle)return;const code=this.held.get(e.pointerId);if(code===undefined)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.releaseAfterFrame(code);button.classList.remove('on');};
+   const up=(e:PointerEvent)=>{if(spec.toggle)return;const code=this.held.get(e.pointerId);if(code===undefined)return;this.held.delete(e.pointerId);if(![...this.held.values()].includes(code))input.releaseAfterFrame(code);
+    (this.heldButton.get(e.pointerId)??button).classList.remove('on');this.heldButton.delete(e.pointerId);};
    button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
    pad.append(button);this.buttons.push({spec,element:button});
   }
@@ -502,6 +509,17 @@ export class TouchControls {
    const dx=e.clientX-from.x,dy=e.clientY-from.y,reach=Math.max(16,button.getBoundingClientRect().width/3);
    const code=dx<=-reach&&Math.abs(dx)>Math.abs(dy)?back:spec.code;this.input.hold(code);this.input.releaseAfterFrame(code);};
   button.addEventListener('pointerup',up,options);button.addEventListener('pointercancel',up,options);
+ }
+ /** A held finger moved: over another slide button showing now, the press moves to it (the old one let go unless another
+  * finger holds it). Off every button it stays on the last, so a thumb that strays off a pedal keeps driving. */
+ private slide(e:PointerEvent){
+  const from=this.heldButton.get(e.pointerId),code=this.held.get(e.pointerId);if(!from||code===undefined)return;
+  const over=document.elementFromPoint(e.clientX,e.clientY)?.closest<HTMLElement>('.touch-button');
+  if(!over||over===from)return;
+  const to=this.buttons.find(b=>b.element===over&&b.spec.slide&&!b.element.hidden);if(!to)return;
+  this.held.set(e.pointerId,to.spec.code);this.heldButton.set(e.pointerId,to.element);
+  if(![...this.held.values()].includes(code))this.input.releaseAfterFrame(code);
+  from.classList.remove('on');this.input.hold(to.spec.code);to.element.classList.add('on');this.buzz();
  }
  /** The steering question, the first time at the wheel (not in a passenger seat). */
  private askSteering(){this.steeringPopup.hidden=!(this.mode==='vehicle'&&!this.passenger&&!this.settings.steeringChosen);}
