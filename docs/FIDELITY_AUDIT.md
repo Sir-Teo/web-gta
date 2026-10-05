@@ -8905,6 +8905,25 @@ that did anything.
   sound and the kills, the two seconds, the $100 and budget, the controls back at half way, the lines including GA_22,
   GA_1B and the free cases, the money test against a garage free only for itself, SET_NO_RESPRAYS's states);
   `pay-n-spray` (browser).
+- **The safehouse garages open for CJ** (CGarage::Update's hideout case, unreversed in gta-reversed; the iOS
+  executable's at 0x1001b2c10, its door switch at 0x1001b5410), for the safehouses' types (16 to 18, 24 to 32, 39 to
+  42, 45) and the hangar (44). It had left their doors shut for good.
+  - **Shut,** and the player not in an interior (below 950): within 3.5 units of the box's footprint in x and y, or
+    within 10 in a vehicle other than a BMX, the door starts up once the stored cars are back
+    (RestoreCarsForThisHideOut); the hangar's at once.
+  - **Up:** it starts down when he is over 15 units off, or over 4 on foot or on a BMX, unless a car stands in the
+    doorway (IsAnyCarBlockingDoor); when he sits in a vehicle wholly outside (by a quarter unit) a garage already
+    holding its cars (two for type 16, four for the rest: CountCarsWithCenterPointWithinGarage, his own not counted);
+    and in any case over 70 units off.
+  - **Going down,** it goes back up while he or his vehicle is not wholly outside (IsEntityEntirelyOutside); down, it
+    is shut and keeps the cars inside (StoreAndRemoveCarsForThisHideOut; not the hangar).
+  - **Not yet:** CStoredCar. The store and restore are hooks that keep nothing, so a garage keeps the cars that are
+    in it only as the fleet keeps any car parked in a hideout; a full garage the player drives up to stays shut
+    (AUTHORED: the iOS executable's own handling, at 0x1001b3d64, weighs the stored cars against his).
+  - Specs: `scm-garages` (unit: the openings on foot, in a car and on a BMX, the interior, the closings by distance,
+    the doorway, the full garage and the 70-unit rule, the reopening, the store and restore calls, the hangar, an
+    inactive garage); `safehouse-garage` (browser: the Johnson house garage, cjsafe, opens for CJ walking up and shuts
+    when he walks off).
 - **The garages start open.** `CGarages::AddOne` and `InitDoorsAtStart` are unreversed; as re3's `AddOne`, the bomb
   shops and the Pay 'n' Sprays start open with their doors up, and the other garages shut.
 - **The doors move.** `CGarage::FindDoorsWithGarage` is unreversed: as re3's `FindDoorsEntities`, a garage takes up to

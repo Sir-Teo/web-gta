@@ -196,3 +196,48 @@ test('the slides report to the garage door audio: opening each step, opened once
  // The AT-400 hangar's door goes a tenth as fast.
  g.open('hangar');for(let i=0;i<91;i++)g.update(20);expect(g.garages[1].doorPosition).toBeCloseTo(.1001,3);
 });
+
+test("a safehouse garage's door (CGarage::Update's hideout case, iOS): up for CJ near it, down once he is away, kept shut in interiors",()=>{
+ const g=new ScmGarages();
+ g.load([{name:'cjsafe',type:16,corner:[2502.31,-1699.36,12.4323],front:[2508.61,-1699.36],far:[2502.31,-1691.01,16.5666],flags:1}]);
+ const garage=g.garages[0];expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);
+ // The box spans x 2502.31 to 2508.61 and y -1699.36 to -1691.01: CJ stands south of it.
+ const at={x:2505,y:-1699.36-5,z:13,vehicle:undefined as 'vehicle'|'bmx'|undefined,outside:true,inside:0,blocking:false};
+ const log={stored:0,restored:0};
+ g.hideouts={playerCentre:()=>[at.x,at.y,at.z],playerVehicle:()=>at.vehicle,playerOutside:()=>at.outside,carsInside:()=>at.inside,carBlockingDoor:()=>at.blocking,
+  storeCars:()=>{log.stored++;},restoreCars:()=>{log.restored++;return true;}};
+ const run=(n:number)=>{for(let i=0;i<n;i++)g.update(20);};
+ // On foot 5 units off: shut; 3 off: it starts up (the stored cars back first).
+ run(3);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);
+ at.y=-1699.36-3;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_OPENING);expect(log.restored).toBe(1);
+ run(200);expect(garage.doorState).toBe(GARAGE_DOOR_OPEN);expect(garage.doorPosition).toBe(1);
+ // On foot within 4 it stays up; past 4 it starts down, and once down keeps the cars inside.
+ at.y=-1699.36-3.9;run(3);expect(garage.doorState).toBe(GARAGE_DOOR_OPEN);
+ at.y=-1699.36-5;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSING);
+ run(200);expect([garage.doorState,garage.doorPosition,log.stored]).toEqual([GARAGE_DOOR_CLOSED,0,1]);
+ // In a car (not a BMX) it opens from 10 units and stays up to 15; on foot past 4 it starts down.
+ at.vehicle='vehicle';at.y=-1699.36-9;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_OPENING);run(200);
+ at.y=-1699.36-14;run(3);expect(garage.doorState).toBe(GARAGE_DOOR_OPEN);
+ at.y=-1699.36-16;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSING);
+ at.y=-1699.36-2;run(1);run(200);at.vehicle=undefined;at.y=-1699.36-5;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSING);
+ // While he is not wholly outside, a closing door goes back up.
+ at.outside=false;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_OPENING);run(200);at.outside=true;
+ // A car in the doorway holds it up until he is over 70 units away.
+ at.vehicle=undefined;at.blocking=true;at.y=-1699.36-30;run(2);expect(garage.doorState).toBe(GARAGE_DOOR_OPEN);
+ at.y=-1699.36-71;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSING);run(200);at.blocking=false;
+ // A BMX counts as on foot; in an interior (above 950) the shut door stays shut.
+ at.vehicle='bmx';at.y=-1699.36-8;run(2);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);
+ at.vehicle=undefined;at.y=-1699.36-2;at.z=1000;run(2);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSED);
+ // Full (two cars for type 16) with him in a car outside it: it starts down.
+ at.z=13;run(1);run(200);at.vehicle='vehicle';at.inside=2;at.y=-1699.36-2;run(1);expect(garage.doorState).toBe(GARAGE_DOOR_CLOSING);
+});
+test('the hangar (type 44) opens without stored cars and keeps none; an inactive shut hideout is left alone',()=>{
+ const g=new ScmGarages();
+ g.load([{name:'hangar',type:44,corner:[0,0,0],front:[10,0],far:[0,10,5],flags:0},{name:'safe',type:17,corner:[100,0,0],front:[110,0],far:[100,10,5],flags:0}]);
+ const at={x:5,y:-2,z:1};const log={stored:0,restored:0};
+ g.hideouts={playerCentre:()=>[at.x,at.y,at.z],playerVehicle:()=>undefined,playerOutside:()=>true,carsInside:()=>0,carBlockingDoor:()=>false,
+  storeCars:()=>{log.stored++;},restoreCars:()=>{log.restored++;return true;}};
+ g.update(20);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPENING);expect(log.restored).toBe(0);
+ g.deactivate('safe');at.x=105;g.update(20);expect(g.garages[1].doorState).toBe(GARAGE_DOOR_CLOSED);
+ g.activate('safe');g.update(20);expect(g.garages[1].doorState).toBe(GARAGE_DOOR_OPENING);
+});

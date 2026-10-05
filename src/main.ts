@@ -6028,6 +6028,19 @@ async function boot() {
                   coin:()=>Math.random()<.5,
                   sound:event=>sound.frontend(event),
                   stats:{get:id=>game.stats.get(id),increment:(id,by)=>game.stats.increment(id,by),set:(id,value)=>game.stats.set(id,value)},
+                 };
+                 // CGarage::Update's hideouts (the safehouse garages): where the player is, what he rides, and the cars in
+                 // the box and in its doorway. CStoredCar is not yet ported, so a hideout keeps no cars of its own.
+                 const cars=()=>[...(fleet?.cars??[]),...(worldCar&&!worldCar.disposed&&!fleet?.cars.has(worldCar)?[worldCar]:[])].filter(car=>!car.disposed);
+                 game.garages.hideouts={
+                  playerCentre:()=>{const v=playerVehicle(),p=v?bodyOf(v).translation():sim.player.position;return [p.x,-p.z,p.y];},
+                  playerVehicle:()=>{const v=playerVehicle();return !v?undefined:BMX_CLASS_MODELS.has(v.modelId)?'bmx':'vehicle';},
+                  playerOutside:(garage,margin)=>{
+                   const v=playerVehicle();if(v)return !spheresOf(v).some(s=>ScmGarages.sphereTouching(garage,s.p,s.r+margin));
+                   const p=sim.player.position;return !ScmGarages.sphereTouching(garage,[p.x,-p.z,p.y],.5+margin);
+                  },
+                  carsInside:garage=>{const own=playerVehicle();return cars().filter(car=>{if(car===own)return false;const t=car.car.body.translation();return ScmGarages.pointInside(garage,[t.x,-t.z,t.y]);}).length;},
+                  carBlockingDoor:garage=>cars().some(car=>touching(garage,car)&&!spheresOf(car).every(s=>ScmGarages.sphereInside(garage,s.p,s.r))),
                  };}
                 // CAudioZones as CFileLoader::LoadAudioZone filled it from Audiozon.ipl's auzo rows.
                 if(Array.isArray(data.audioZones))mission.runtime.game.audioZones.load(data.audioZones);

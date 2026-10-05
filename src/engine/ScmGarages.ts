@@ -81,6 +81,40 @@ export const BMX_CLASS_MODELS:ReadonlySet<number>=new Set([481,509,510]);
 /** CGarage::IsHideOut: the safehouse garages and the abandoned airport's hangar. */
 const HIDEOUT_TYPES=new Set([16,17,18,24,25,26,27,28,29,30,31,32,39,40,41,42,45]);
 export const isHideOutGarageType=(type:number)=>HIDEOUT_TYPES.has(type);
+/** The garage types CGarage::Update runs as a hideout (the iOS type table's 0x1001b2c10): the safehouses and type 44,
+ * the hangar that keeps no cars. */
+const HIDEOUT_UPDATE_TYPES=new Set([...HIDEOUT_TYPES,44]);
+/** MAX_NUM_CARS_IN_HIDEOUT: two for type 16, four for the rest. */
+export const hideOutCapacity=(type:number)=>type===16?2:4;
+/** CGarage's m_fLeftCoord, m_fRightCoord, m_fFrontCoord and m_fBackCoord: the box's reach in x and y. */
+export function garageFootprint(garage:ScmGarage){
+ const b=garage.box;if(!b)return undefined;
+ const xs:number[]=[],ys:number[]=[];
+ for(const [a,d] of [[0,0],[b.width,0],[0,b.depth],[b.width,b.depth]] as const){xs.push(b.base[0]+b.dirA[0]*a+b.dirB[0]*d);ys.push(b.base[1]+b.dirA[1]*a+b.dirB[1]*d);}
+ return {minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)};
+}
+/** CGarage::Update's distance squared in x and y from a point to the garage's footprint (nothing inside it). */
+export function footprintDistance2(garage:ScmGarage,x:number,y:number){
+ const f=garageFootprint(garage);if(!f)return Infinity;
+ const dx=x<f.minX?x-f.minX:x>f.maxX?x-f.maxX:0,dy=y<f.minY?y-f.minY:y>f.maxY?y-f.maxY:0;
+ return dx*dx+dy*dy;
+}
+/** What a hideout garage asks of the world. */
+export interface GarageHideoutWorld {
+ /** FindPlayerCentreOfWorld: his vehicle's position, or his own, in native axes. */
+ playerCentre():readonly [number,number,number];
+ /** The vehicle he is in: 'bmx' for a BMX-class bike, 'vehicle' for any other, nothing on foot. */
+ playerVehicle():'vehicle'|'bmx'|undefined;
+ /** IsEntityEntirelyOutside(his vehicle, or him on foot, margin). */
+ playerOutside(garage:ScmGarage,margin:number):boolean;
+ /** CountCarsWithCenterPointWithinGarage, his own vehicle not counted. */
+ carsInside(garage:ScmGarage):number;
+ /** IsAnyCarBlockingDoor: a vehicle half in and half out. */
+ carBlockingDoor(garage:ScmGarage):boolean;
+ /** CStoredCar's part (to come): RestoreCarsForThisHideOut (true once done), StoreAndRemoveCarsForThisHideOut, and how
+  * many cars the garage keeps. Without them the doors work and the garage keeps no cars of its own. */
+ restoreCars?(garage:ScmGarage):boolean;storeCars?(garage:ScmGarage):void;storedCount?(garage:ScmGarage):number;
+}
 export class ScmGarages {
  readonly garages:ScmGarage[]=[];
  /** What a host calls with the world's own garages. */
@@ -152,6 +186,8 @@ export class ScmGarages {
   const step=timeStepMs/20;
   for(const garage of this.garages){
    if(garage.type===GARAGE_TYPE.paynspray&&this.respray&&!garage.inactive){this.updateRespray(garage,step,this.respray);continue;}
+   // Update leaves an inactive garage alone only while it is shut.
+   if(HIDEOUT_UPDATE_TYPES.has(garage.type)&&this.hideouts&&!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED)){this.updateHideout(garage,step,this.hideouts);continue;}
    if(garage.doorState===GARAGE_DOOR_OPENING){if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_OPEN;}
    else if(garage.doorState===GARAGE_DOOR_CLOSING){if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;}
   }
@@ -208,6 +244,41 @@ export class ScmGarages {
   }else if(done?.recoloured)world.message(world.coin()?'GA_15':'GA_16');
   garage.usedRespray=true;
  }
+ /** CGarage::Update's hideout case (the iOS executable's, 0x1001b2c10, its door switch at 0x1001b5410; unreversed in
+  * the reference). Shut (and the player not in an interior): within 3.5 units of the box, or within 10 in a vehicle
+  * other than a BMX, the door starts up once the stored cars are back (the hangar, type 44, at once). Up: it starts
+  * down when he is over 15 units away, or over 4 on foot or on a BMX, unless a car stands in the doorway;
+  * when he is in a vehicle wholly outside (by a quarter unit) a garage already holding its two or four cars; and in
+  * any case over 70 units away. Going down: it goes up again while he (or his vehicle) is not wholly outside; down,
+  * it is shut and keeps the cars inside (not the hangar). */
+ private updateHideout(garage:ScmGarage,step:number,world:GarageHideoutWorld){
+  const [px,py,pz]=world.playerCentre(),d2=footprintDistance2(garage,px,py),vehicle=world.playerVehicle(),capacity=hideOutCapacity(garage.type);
+  switch(garage.doorState){
+   case GARAGE_DOOR_CLOSED:
+    if(pz>=950||!(d2<12.25||d2<100&&vehicle==='vehicle'))break;
+    if(garage.type===44){garage.doorState=GARAGE_DOOR_OPENING;break;}
+    // AUTHORED: a full garage the player drives up to (iOS 0x1001b3d64) stays shut; the game's own handling of it
+    // waits on the stored cars.
+    if(vehicle&&(world.storedCount?.(garage)??0)>=capacity)break;
+    if(world.restoreCars?.(garage)??true)garage.doorState=GARAGE_DOOR_OPENING;
+    break;
+   case GARAGE_DOOR_OPEN:
+    if((d2>225||d2>16&&vehicle!=='vehicle')&&!world.carBlockingDoor(garage)){garage.doorState=GARAGE_DOOR_CLOSING;break;}
+    if(vehicle&&world.carsInside(garage)>=capacity&&world.playerOutside(garage,.25)){garage.doorState=GARAGE_DOOR_CLOSING;break;}
+    if(d2>4900)garage.doorState=GARAGE_DOOR_CLOSING;
+    break;
+   case GARAGE_DOOR_CLOSING:
+    this.slideDoorClosed(garage,step);
+    if(!world.playerOutside(garage,0)){garage.doorState=GARAGE_DOOR_OPENING;break;}
+    if(garage.doorPosition===0){garage.doorState=GARAGE_DOOR_CLOSED;if(garage.type!==44)world.storeCars?.(garage);}
+    break;
+   case GARAGE_DOOR_OPENING:
+    if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_OPEN;
+    break;
+  }
+ }
+ /** What a hideout garage asks of the world; without it a hideout's door only travels. */
+ hideouts?:GarageHideoutWorld;
  /** CGarages::HasResprayHappened (0x447E10): the flag is read and cleared. */
  hasResprayHappened(name:string){const garage=this.at(name);if(!garage)return false;const used=garage.usedRespray;garage.usedRespray=false;return used;}
  /** CGarages::GetGarageNumberByName (0x447680): by name, ignoring case, or -1. */
