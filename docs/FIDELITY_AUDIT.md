@@ -9200,3 +9200,27 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - The track plays once it has downloaded (the original's preload waits on the stream the same way), under the
   effects level, and a later tune replaces it. Specs: `stream-tracks` (unit), `script-speech` (browser: track 183 heard).
 
+## The beat tracks play, and their beats are read
+
+- **Every beat track is heard.** `CAECutsceneTrackManager`'s status machine (`ScmCutsceneTrack`) drove a silent
+  stream; it now drives the BEATS pack through the host (`AudioSystem.beatTracks`). A preload stays loading until the
+  track has downloaded and decoded, and a playing track runs its own length and then stops, as the stream's -6 does.
+  `PRELOAD_BEAT_TRACK` goes through `gBeatTrackLookup`. INTRO preloads and plays beat track 10 (stream track 184), its
+  music, which is now heard. `PLAY_MISSION_PASSED_TUNE` goes through the same manager, as its handler does.
+- **The beats.** The PC's stream files carry a `tTrackInfo` (1000 beats of a time in ms and a key) before each
+  track; the iOS port keeps all 1922 in `TRKHEAD.DAT`. `package-beat-tracks.mjs` puts each BEATS track's beats in
+  `streams.json`: track 175 has 174 (the dance's arrows, keys 1 to 4), 180 has 76 (the lowrider's moves, 9 to 16),
+  each list ending on key 33.
+- **`GET_BEAT_PROXIMITY`** (absent from gta-reversed) and **`CAEAudioHardware::GetBeatInfo`** follow the iOS
+  executable (arm64). GetBeatInfo fills a 20-beat window around the play time (slot 9 the last beat, 10 the next,
+  times relative to now), keeps a beat as the next one for 50 ms after it once a beat number has been given out, sets
+  the beat type of the frame a new beat is reached and the next beat's number (-1 past the last). The command answers
+  the time, key and number of beat slot 9 + offset for a positive offset, 10 + offset for a negative one, and for 0
+  the nearer of the last and next beats (with the number less one for the last); with no beat info, -1 for all three.
+  The play time is the audio's own (`AudioContext` time, held by a pause), so the beats keep to what is heard.
+- **`PAUSE_CURRENT_BEAT_TRACK`** had no handler, so `dance.scm` gave up there: it is `CAudioEngine::PauseBeatTrack`,
+  `PauseTrack`, which holds the channel at frequency zero.
+- Specs: `scm-cutscene-track` (unit: the host stream, the audio clock, the window, the 50 ms and the proximity rules),
+  `stream-tracks` (unit), `script-speech` (browser: the opening's track 184 fetched, track 175's first beat read
+  17.3 s off a second in, a stop ends the track).
+

@@ -5560,7 +5560,7 @@ async function boot() {
                  setScriptVehicleDirtLevel:(car,level)=>{const c=car as Partial<ScriptCar>;if(c.dirtLevel!==undefined)c.dirtLevel=level;},
                  playerUsingJetpack:()=>!!sim.jetPack,
                  setDeathPenalties:apply=>{gameLogic.penaltyForDeathApplies=apply;},
-                 playMissionPassedTune:tune=>{void sound.playMissionPassedTune(tune);},
+                 beatTracks:sound.beatTracks,
                  scriptSpeech:{load:sample=>sound.loadSpeech(sample),play:(slot,sample)=>{sound.playSpeech(slot,sample);},stop:slot=>{sound.stopSpeech(slot);},lengthMs:sample=>sound.speechLengthMs(sample)},
                  setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},
                  // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.

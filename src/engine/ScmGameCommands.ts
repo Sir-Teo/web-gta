@@ -1393,7 +1393,12 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  // The retail handler is unreversed; the tune is a stream track the port does not package, so a host without it only
  // records the request and the mission script carries on to its pass.
- PLAY_MISSION_PASSED_TUNE:(t,p,i)=>{const tune=t.readInt(p[0]);game(t,i).missionPassedTune=tune;t.host?.world?.playMissionPassedTune?.(tune);},
+ // Unreversed on the PC; the iOS port's executable preloads beat track 10 + tune for tunes 1 and 2 and plays it as
+ // the mission-complete track (PreloadBeatTrack, then PlayPreloadedBeatTrack(true)).
+ PLAY_MISSION_PASSED_TUNE:(t,p,i)=>{
+  const tune=t.readInt(p[0]),g=game(t,i);g.missionPassedTune=tune;
+  if(tune===1||tune===2){g.cutsceneTrack.preloadBeatTrack(10+tune);g.cutsceneTrack.play();}
+ },
  IS_MESSAGE_BEING_DISPLAYED:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'isMessageBeingDisplayed')(),negated(i));},
  IS_HELP_MESSAGE_BEING_DISPLAYED:(t,_p,i)=>{t.updateCompareFlag(world(t,i,'isHelpMessageBeingDisplayed')(),negated(i));},
  HAS_SPECIAL_CHARACTER_LOADED:(t,p,i)=>{
@@ -1990,6 +1995,8 @@ const handlers:Record<string,ScmCommandHandler>={
  // CAudioEngine's beat track, through CAECutsceneTrackManager (ScmCutsceneTrack).
  GET_BEAT_TRACK_STATUS:(t,p,i)=>{t.writeInt(p[0],game(t,i).cutsceneTrack.reportedStatus);},
  STOP_BEAT_TRACK:(t,_p,i)=>{game(t,i).cutsceneTrack.stop();},
+ // CAudioEngine::PauseBeatTrack (reversed): CAECutsceneTrackManager::PauseTrack.
+ PAUSE_CURRENT_BEAT_TRACK:(t,p,i)=>{game(t,i).cutsceneTrack.pause(bool(t,p[0]));},
  // The PC build answers nought (reVC's GTA_PC branch without DETECT_PAD_INPUT_SWITCH): keyboard and mouse.
  GET_CONTROLLER_MODE:(t,p)=>{t.writeInt(p[0],0);},
  // CPlane::SwitchAmbientPlanes (unreversed): whether ambient planes are generated. The browser generates none.
@@ -2218,8 +2225,8 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  SET_EXTRA_COLOURS:(t,p,i)=>{world(t,i,'setExtraColours')(t.readInt(p[0]),bool(t,p[1]));},
  GET_BEAT_PROXIMITY:(t,p,i)=>{
-  const beat=world(t,i,'beatProximity')(t.readInt(p[0]));
-  t.writeInt(p[1],beat.first);t.writeInt(p[2],beat.second);t.writeInt(p[3],beat.third);
+  const beat=game(t,i).cutsceneTrack.beatProximity(t.readInt(p[0]));
+  t.writeInt(p[1],beat.time);t.writeInt(p[2],beat.key);t.writeInt(p[3],beat.number);
  },
  // A model's own bounds, given as two opposite corners.
  GET_MODEL_DIMENSIONS:(t,p,i)=>{

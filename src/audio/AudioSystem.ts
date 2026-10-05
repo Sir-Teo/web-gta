@@ -3,7 +3,8 @@ import {NativeAudioEngine,type NativeAudioFrame,type NativeCombatSource} from '.
 import type {SurfaceAudioFlags} from '../assets/surfaceAudio';
 import {WebAudioChannels} from './native/WebAudioChannels';
 import {ScriptSpeech} from './ScriptSpeech';
-import {StreamTracks,missionPassedTrack} from './StreamTracks';
+import {StreamTracks} from './StreamTracks';
+import type {BeatTrackStream,TrackBeat} from '../engine/ScmCutsceneTrack';
 import {readNativeCombatAudio,combatSample,type CombatSound} from '../assets/nativeCombatAudio';
 import {nativeSoundFrequency} from './nativeFrequency';
 import {nativeHeadroomGain} from './nativeHeadroom';
@@ -82,9 +83,11 @@ export class AudioSystem {
   }
   /** The stream tracks (StreamTracks.ts) and CAECutsceneTrackManager's one channel, which plays one at a time. */
   private streams?:StreamTracks;
-  private track?:{source:AudioBufferSourceNode;gain:GainNode};
+  /** CAECutsceneTrackManager's one channel: the track loaded for it, and the one playing with where it is. */
+  private trackLoaded?:{buffer:AudioBuffer;beats:readonly TrackBeat[]};
+  private track?:{source:AudioBufferSourceNode;gain:GainNode;playedS:number;since:number;rate:number};
   private tracksPlayed=0;
-  /** The latest track request: one superseded while it loaded does not start. */
+  /** The latest load: one superseded while it downloaded is not kept. */
   private trackRequest=0;
   useStreamTracks(base:string){
     this.streams=new StreamTracks(base,mp3=>{
@@ -93,23 +96,39 @@ export class AudioSystem {
       return ctx.decodeAudioData(mp3);
     });
   }
-  /** PLAY_MISSION_PASSED_TUNE: CAudioEngine::PreloadBeatTrack(10 + tune), then PlayPreloadedBeatTrack as the
-   * mission-complete track. The preload waits for the track, as the original's does; it plays once it is in. */
-  async playMissionPassedTune(tune:number){
-    const id=missionPassedTrack(tune);if(id===undefined||!this.streams)return false;
-    this.stopTrack();const request=++this.trackRequest;
-    const buffer=await this.streams.load(id),ctx=this.context;
-    if(!buffer||!ctx||this.disposed||request!==this.trackRequest)return false;
-    this.stopTrack();
-    const source=ctx.createBufferSource(),gain=ctx.createGain();
-    source.buffer=buffer;source.connect(gain);gain.connect(this.effects);
-    const track={source,gain};this.track=track;
-    source.onended=()=>{if(this.track===track)this.stopTrack();};
-    source.start();this.tracksPlayed++;return true;
-  }
+  /** The stream the script's beat tracks (and the mission-passed tune, which is one) play on. A track plays under
+   * the effects level; its play time is the audio's own, so the beats the rhythm games read keep to what is heard. */
+  readonly beatTracks:BeatTrackStream={
+    load:async id=>{
+      this.stopTrack();this.trackLoaded=undefined;const request=++this.trackRequest;
+      const loaded=await this.streams?.load(id);
+      if(!loaded||request!==this.trackRequest||this.disposed)return undefined;
+      this.trackLoaded=loaded;return {beats:loaded.beats,lengthMs:loaded.buffer.duration*1000};
+    },
+    play:()=>{
+      const ctx=this.context,loaded=this.trackLoaded;if(!ctx||!loaded||this.disposed)return;
+      this.stopTrack();
+      const source=ctx.createBufferSource(),gain=ctx.createGain();
+      source.buffer=loaded.buffer;source.connect(gain);gain.connect(this.effects);
+      const track={source,gain,playedS:0,since:ctx.currentTime,rate:1};this.track=track;
+      source.onended=()=>{if(this.track===track)this.stopTrack();};
+      source.start();this.tracksPlayed++;
+    },
+    // CheckForPause: the channel's frequency goes to zero, which holds the track where it is.
+    pause:paused=>{
+      const ctx=this.context,track=this.track;if(!ctx||!track)return;
+      track.playedS+=(ctx.currentTime-track.since)*track.rate;track.since=ctx.currentTime;
+      track.rate=paused?0:1;track.source.playbackRate.value=track.rate;
+    },
+    stop:()=>{this.stopTrack();},
+    playedMs:()=>{
+      const ctx=this.context,track=this.track;if(!ctx||!track)return undefined;
+      return (track.playedS+(ctx.currentTime-track.since)*track.rate)*1000;
+    },
+  };
   /** CAECutsceneTrackManager::StopCutsceneTrack. */
   stopTrack(){
-    const track=this.track;if(!track)return;this.trackRequest++;
+    const track=this.track;if(!track)return;
     this.track=undefined;track.source.onended=null;
     try{track.source.stop();}catch{/* Already ended. */}
     track.source.disconnect();track.gain.disconnect();

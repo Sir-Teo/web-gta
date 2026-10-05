@@ -31,7 +31,7 @@ function recording(){
   startPedFacialTalk:method('startTalk'),stopPedFacialTalk:method('stopTalk'),
   hidePedWeaponForScriptedCutscene:method('hideWeapon'),setGroupMember:method('group'),
   setPedHasUsedEntryExit:method('entryExit'),clearPedDecisionMakerEventResponse:method('clearResponse'),
-  extendPatrolRoute:method('patrol'),playMissionPassedTune:method('tune'),
+  extendPatrolRoute:method('patrol'),
   isMessageBeingDisplayed:method('message',true),isHelpMessageBeingDisplayed:method('help',false),
  } as unknown as Partial<ScmWorldCommands>;
  return {world,calls,tasks};
@@ -104,11 +104,10 @@ describe('the vehicle setters and the world commands',()=>{
    instruction(op('SET_GROUP_MEMBER'),[int(3),int(PED)]),
    instruction(op('SET_CHAR_HAS_USED_ENTRY_EXIT'),[int(PED),float(10),float(20),float(3)]),
    instruction(op('CLEAR_CHAR_DECISION_MAKER_EVENT_RESPONSE'),[int(5),int(12)]),
-   instruction(op('EXTEND_PATROL_ROUTE'),[float(1),float(2),float(3),'IDLE','PED']),
-   instruction(op('PLAY_MISSION_PASSED_TUNE'),[int(1)]));
+   instruction(op('EXTEND_PATROL_ROUTE'),[float(1),float(2),float(3),'IDLE','PED']));
   expect(calls).toEqual([
    ['startTalk',PED,3000],['stopTalk',PED],['hideWeapon',PED,true],['group',3,PED],
-   ['entryExit',PED,10,20,3],['clearResponse',5,12],['patrol',1,2,3,'IDLE','PED'],['tune',1],
+   ['entryExit',PED,10,20,3],['clearResponse',5,12],['patrol',1,2,3,'IDLE','PED'],
   ]);
  });
 

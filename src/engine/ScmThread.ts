@@ -487,8 +487,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  clearPedDecisionMakerEventResponse?(decisionMaker:number,event:number):void;
  /** The patrol route a task follows, built a point at a time with an animation at each. */
  extendPatrolRoute?(x:number,y:number,z:number,animationName:string,animationFile:string):void;
- /** The mission-passed tune, and the two message questions the HUD answers. */
- playMissionPassedTune?(soundId:number):void;
+ /** The two message questions the HUD answers. */
  isMessageBeingDisplayed?():boolean;
  isHelpMessageBeingDisplayed?():boolean;
  /* More of the world the schema names. */
@@ -755,7 +754,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  gameIsGerman?():boolean;
  createUser3dMarker?(x:number,y:number,z:number,colour:number):number;
  setExtraColours?(colour:number,fade:boolean):void;
- beatProximity?(track:number):{first:number;second:number;third:number};
  modelDimensions?(model:number|string):{min:{x:number;y:number;z:number};max:{x:number;y:number;z:number}};
  deleteMissionTrains?():void;
  pedHeadIsMissing?(handle:number):boolean;
