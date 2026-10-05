@@ -3,13 +3,15 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {readSfxBank,sfxPcmSamples} from '../src/assets/sfx';
 import {NativeBankLoader,mergeBanks,type NativeBankManifest} from '../src/audio/native/NativeBankLoader';
+import {SCRIPT_BANKS_LOOKUP,SCRIPT_BANK_NULL,scriptBankOfSample} from '../src/engine/ScmMissionAudio';
 const pc=JSON.parse(readFileSync('public/play/audio/banks.json','utf8')) as NativeBankManifest;
 const ios=JSON.parse(readFileSync('public/play/audio/ios-banks.json','utf8')) as NativeBankManifest&{decoderDelay:number};
 const file=(path:string)=>new Uint8Array(readFileSync(`public/play/audio/${path}`));
 test('the banks rebuilt from the iOS bundle are PC-format banks the PC list lacks',()=>{
  // BICYCLE_D/_P, BOAT_INBOARD_D, SND_BANK_GENRL_BULLET_PASS_1 to _4 (three whizzes each), the motorbike engines
  // COPBIKE_D/_P, SCOOTER_P, SPORTSBIKE_D/_P and VTWINBIKE_D/_P, FRONTEND_MENU, and TRAIN_D and TRAM_D.
- expect(ios.banks.map(b=>b.id)).toEqual([18,19,21,28,29,30,31,40,41,60,119,124,125,131,133,139,140]);
+ // And the 25 SCRIPT banks scripts load whole into a mission audio slot.
+ expect(ios.banks.map(b=>b.id)).toEqual([18,19,21,28,29,30,31,40,41,60,119,124,125,131,133,139,140,...SCRIPT_BANKS_LOOKUP.filter(b=>b!==SCRIPT_BANK_NULL)].sort((a,b)=>a-b));
  const have=new Set(pc.banks.map(b=>b.id));
  for(const bank of ios.banks){
   expect(have.has(bank.id)).toBe(false);
@@ -21,7 +23,7 @@ test('the banks rebuilt from the iOS bundle are PC-format banks the PC list lack
   // Each sound is heard but those the bundle left empty, which are silence.
   let silent=0;
   for(const sound of sounds){
-   expect(sound.sampleRate).toBeGreaterThan(8000);
+   expect(sound.sampleRate).toBeGreaterThanOrEqual(8000);
    const samples=sfxPcmSamples(sound);let peak=0;for(const v of samples)peak=Math.max(peak,Math.abs(v));
    if(peak<=.05)silent++;
   }
@@ -42,4 +44,8 @@ test('the first bullet-pass bank loads into its slot as CAEFrontendAudioEntity::
  loader.loadSoundBank(28,42);
  await expect.poll(()=>loader.isSoundBankLoaded(28,42)).toBe(true);
  for(let sound=0;sound<3;sound++)expect(loader.sound(42,sound)?.samples.length).toBeGreaterThan(1000);
+});
+test('a whole-bank sample names its SCRIPT bank, as gScriptBanksLookup does',()=>{
+ expect(scriptBankOfSample(1820)).toBe(226);expect(scriptBankOfSample(1800)).toBe(352);expect(scriptBankOfSample(1829)).toBe(339);
+ expect(scriptBankOfSample(1803)).toBe(SCRIPT_BANK_NULL);expect(scriptBankOfSample(1799)).toBeUndefined();expect(scriptBankOfSample(1830)).toBeUndefined();expect(scriptBankOfSample(20000)).toBeUndefined();
 });

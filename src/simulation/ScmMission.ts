@@ -7,7 +7,7 @@ import {saveOrRetrieveDataForThisFrame,type CarRecordingVehicle} from '../engine
 import {TRAIN_TYPES} from './nativeTrainTracks';
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
-import {speechLengthMs,MISSION_AUDIO_COUNT} from '../engine/ScmMissionAudio';
+import {speechLengthMs,MISSION_AUDIO_COUNT,scriptBankOfSample,SCRIPT_BANK_NULL} from '../engine/ScmMissionAudio';
 import type {BeatTrackStream,TrackAudio} from '../engine/ScmCutsceneTrack';
 import {requireAsset} from '../assets/binary';
 import {gxtText} from '../assets/gxt';
@@ -250,6 +250,8 @@ export interface ScmMissionWorld {
  /** CAudioEngine round those tracks: the radio and the ambience give way to them, and the radio comes back. */
  trackAudio?:TrackAudio;
  scriptSpeech?:{load(sample:number):Promise<boolean>;play(scriptSlot:number,sample:number):void;stop(scriptSlot:number):void;lengthMs(sample:number):number|undefined};
+ /** A whole SCRIPT bank into mission audio slot `index` (zero-based), and the slot letting it go. */
+ loadMissionBank?(index:number,bank:number):Promise<boolean>;clearMissionBank?(index:number):void;
  /** CModelInfo::GetModelInfo by name: the model index, or -1. */
  modelIndex?(name:string):number;
  /** CPed::GiveWeapon, SetCurrentWeapon and m_fArmour on the player. */
@@ -2297,11 +2299,18 @@ export class ScmMission {
    // CAEScriptAudioEntity's slots: the line streams in while the script waits on HAS_MISSION_AUDIO_LOADED, and runs
    // for its own length; without one, a line is sized from its subtitle.
    loadMissionAudio:(slot,sample)=>{
-    const speech=this.world.scriptSpeech,audio=this.runtime.game.missionAudio;
+    const speech=this.world.scriptSpeech,audio=this.runtime.game.missionAudio,bank=scriptBankOfSample(sample);
+    // A whole bank (the gym's, the casino games', the cranes'...) for the mission-bank sounds its reports play; the slot
+    // stays loading until the bank is in, as the script's HAS_MISSION_AUDIO_LOADED loop waits on it.
+    if(bank!==undefined){
+     if(bank!==SCRIPT_BANK_NULL&&this.world.loadMissionBank&&audio.stream(slot,sample))void this.world.loadMissionBank(slot-1,bank).then(()=>audio.streamed(slot,sample));
+     return;
+    }
+    this.world.clearMissionBank?.(slot-1);
     if(speech&&audio.stream(slot,sample))void speech.load(sample).then(()=>audio.streamed(slot,sample));
    },
    playMissionAudio:slot=>{const sample=this.runtime.game.missionAudio.slots[slot-1]?.audioEvent;if(sample!==undefined&&sample>=0)this.world.scriptSpeech?.play(slot,sample);},
-   clearMissionAudio:slot=>{this.world.scriptSpeech?.stop(slot);},
+   clearMissionAudio:slot=>{this.world.scriptSpeech?.stop(slot);this.world.clearMissionBank?.(slot-1);},
    missionAudioLengthMs:(sample,subtitle)=>this.world.scriptSpeech?.lengthMs(sample)??(subtitle?speechLengthMs(gxtText(subtitle,'')):undefined),
    loadMissionText:name=>{this.missionText=name;this.world.loadMissionText(name);},
    buildPlayerModel:()=>{this.playerModelsBuilt++;this.world.buildPlayerModel();},

@@ -73,6 +73,13 @@ export class NativeBankLoader implements NativeBankSlots {
   this.requests.set(slot,bank);this.soundRequests.delete(slot);
   void this.decode(bank).then(sounds=>{if(this.requests.get(slot)!==bank)return;this.requests.delete(slot);this.slots[slot]={bank,single:-1,sounds};}).catch(()=>{if(this.requests.get(slot)===bank)this.requests.delete(slot);});
  }
+ /** LoadSoundBank, resolving once the bank is in that slot (true), or once it cannot be had or another request has
+  * taken the slot (false). */
+ loadSoundBankAsync(bank:number,slot:number):Promise<boolean>{
+  if(this.isSoundBankLoaded(bank,slot))return Promise.resolve(true);
+  this.loadSoundBank(bank,slot);
+  return this.decode(bank).then(()=>Promise.resolve().then(()=>this.isSoundBankLoaded(bank,slot)),()=>false);
+ }
  /** LoadSound (0x4E07A0): one sound of a bank into a slot, which then holds that sound alone. The latest request for a
   * slot wins; one that cannot be had leaves the slot as it was. */
  loadSound(bank:number,sound:number,slot:number){

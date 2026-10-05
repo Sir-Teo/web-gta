@@ -217,6 +217,9 @@ export class AudioSystem {
   frontend(event:number,volumeBoost=0){if(this.native&&this.audible)this.native.frontend.addAudioEvent(event,volumeBoost);}
   /** CAudioEngine::ReportMissionAudioEvent: a script's REPORT_MISSION_AUDIO_EVENT_AT_*. */
   missionAudioEvent(event:number,at:import('./native/NativeScriptAudio').MissionAudioAt){if(this.native&&this.audible)this.native.scriptAudio.processMissionAudioEvent(event,at);}
+  /** A whole SCRIPT bank for a mission audio slot (false when there is no native audio to hold it), and its release. */
+  loadMissionBank(index:number,bank:number){return this.native?.scriptAudio.loadMissionBank(index,bank)??Promise.resolve(false);}
+  clearMissionBank(index:number){this.native?.scriptAudio.clearMissionBank(index);}
   pedFootstep(ped:object,position:Vec3,move:'walk'|'run'|'sprint',foot:'left'|'right'){if(this.native&&this.audible)this.native.pedFootstep(ped,{x:position.x,y:-position.z,z:position.y},move,foot);}
   /** `shooter` names an NPC and follows its position (renderer frame), so the ped keeps its own weapon audio entity. */
   combat(event:CombatSound,weapon:number,position:Vec3,source:NativeCombatSource='player',shooter?:{id:string;position:()=>Vec3|undefined}){

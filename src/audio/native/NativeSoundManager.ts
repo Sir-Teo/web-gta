@@ -116,6 +116,7 @@ export class NativeSoundManager {
  cancelSoundsInBankSlot(slot:number,fullStop:boolean){for(const s of this.sounds)if(s.inUse&&s.slot===slot){if(fullStop)s.stopSoundAndForget();else s.stopSound();}}
  cancelSoundsOwnedByAudioEntity(entity:NativeAudioEntity,fullStop:boolean){for(const s of this.sounds)if(s.inUse&&s.entity===entity){if(fullStop)s.stopSoundAndForget();else s.stopSound();}}
  cancelSoundsOfThisEventPlayingForThisEntity(event:number,entity:NativeAudioEntity){for(const s of this.sounds)if(s.inUse&&s.event===event&&s.entity===entity)s.stopSoundAndForget();}
+ cancelSoundsOfThisEventPlayingForThisEntityAndPhysical(event:number,entity:NativeAudioEntity,physical:NativePhysicalEntity){for(const s of this.sounds)if(s.inUse&&s.event===event&&s.entity===entity&&s.physical===physical)s.stopSoundAndForget();}
  reset(){for(const s of this.sounds)if(s.inUse)s.stopSound();}
  private soundPaused(s:NativeSound){return this.paused&&!s.has(SOUND.unpausable);}
  /** Service (0x4F0000), once per game frame. `timeMs` is CTimer::GetTimeInMS. Its loops index the 300 sounds rather

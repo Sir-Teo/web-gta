@@ -1983,6 +1983,8 @@ async function boot() {
       }
     }catch(error){setPieceError=String(error);}finally{setPieces?.generated(request.piece,success,gameTimeMs);}
   };
+  /** The entities scripts' mission audio reports were made at, by kind and handle (NativeScriptAudio's physicals). */
+  const missionAudioEntities=new Map<string,import('./audio/native/NativeSound').NativePhysicalEntity>();
   /** CTagManager, from the world's IPLs once the world worker is ready. */
   let tagManager:NativeTagManager|undefined,tagScene:unknown;
   weapons.onSprayPaint=(point,radius)=>{if(!tagManager)return undefined;const state=tagManager.sprayPaint(point,radius,(key,alpha,message)=>{
@@ -4158,9 +4160,16 @@ async function boot() {
       // CHud::Draw: with no STYLE_MIDDLE message up, CMenuSystem::Process draws the script's menus (the ones not current
       // dimmed) and moves the current one's highlight from the pad.
       // CAudioEngine::ReportMissionAudioEvent: at a point, or following the ped, car or object it names.
+      // One physical per entity, so a handler can stop the sounds it started at the same one.
       game.missionAudio.onReport??=(event,at)=>{
         if(!('kind' in at)){sound.missionAudioEvent(event,{position:{x:at.x,y:at.y,z:at.z}});return;}
-        const owner=mission;if(owner?.audioEntityPosition(at.kind,at.handle))sound.missionAudioEvent(event,{physical:{position:()=>owner.audioEntityPosition(at.kind,at.handle)}});
+        const owner=mission;if(!owner?.audioEntityPosition(at.kind,at.handle))return;
+        const key=`${at.kind}:${at.handle}`;let physical=missionAudioEntities.get(key);
+        if(!physical){
+          if(missionAudioEntities.size>64)for(const [k,p] of missionAudioEntities)if(!p.position())missionAudioEntities.delete(k);
+          physical={position:()=>owner.audioEntityPosition(at.kind,at.handle)};missionAudioEntities.set(key,physical);
+        }
+        sound.missionAudioEvent(event,{physical});
       };
       {const menus=game.menus,draws:import('./ui/nativeHudMenus').MenuDraw[]=[];
        if(menus.numInUse&&!game.messages.big[0][0]){
@@ -5665,6 +5674,7 @@ async function boot() {
                  trackAudio:{stopForTrack:()=>{if(!sound.nativeEngine?.stopRadioForTrack())ambience.stopNow(gameTimeMs);},radioAfterTrack:kept=>{sound.nativeEngine?.restartRadioAfterTrack(kept);},
                   holdAmbience:()=>{ambienceHeldUntil=performance.now()+30000;}},
                  scriptSpeech:{load:sample=>sound.loadSpeech(sample),play:(slot,sample)=>{sound.playSpeech(slot,sample);},stop:slot=>{sound.stopSpeech(slot);},lengthMs:sample=>sound.speechLengthMs(sample)},
+                 loadMissionBank:(index,bank)=>sound.loadMissionBank(index,bank),clearMissionBank:index=>sound.clearMissionBank(index),
                  setArrestPenalties:apply=>{gameLogic.penaltyForArrestApplies=apply;},
                  // The script's (x, y, z) is the renderer's (x, z, -y); a z at or below MAP_Z_LOW_LIMIT is on the ground.
                  driveScriptVehicleTo:(car,goal,o)=>{if(isScriptDrivable(car))scriptCars.gotoCoords(car,{x:goal.x,y:goal.z>-100?goal.z:(car as ScriptCar).car.body.translation().y,z:-goal.y},o);},

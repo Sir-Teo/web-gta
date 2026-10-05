@@ -144,6 +144,12 @@ test('the Ganton gym bench takes CJ for a set',async({page})=>{
  await expect.poll(async()=>(await shop(page)).menu,{timeout:20000}).toBe(false);
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.onscreenTimer.counters.some((c:any)=>c.enabled)),{timeout:30000}).toBe(true);
  await page.screenshot({path:'artifacts/interior-shops-gym.png'});
+ // The gym's sounds: LOAD_MISSION_AUDIO of SOUND_BANK_GYM puts the whole gym bank (226) in a mission bank slot, and the
+ // script's reports (1117 as the set starts) play from it.
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().audio.native?.banks.slots.some(([slot,bank]:number[])=>slot>=26&&slot<=29&&bank===226)),{timeout:30000}).toBe(true);
+ await page.keyboard.down('ShiftLeft');await page.waitForTimeout(3000);await page.keyboard.up('ShiftLeft');
+ const script=await page.evaluate(()=>(window as any).__game.state().audio.native?.script);
+ expect(Object.keys(script.handled).map(Number).some(e=>e>=1113&&e<=1124)).toBe(true);
  expect((await shop(page)).gaveUp).toEqual([]);
  expect(errors).toEqual([]);
 });

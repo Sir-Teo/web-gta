@@ -9518,7 +9518,8 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   lossy copy of the PC's, at the PC's lengths, rates, loops and headroom.
 - **Rebuilt so far:** BICYCLE_D and _P (18, 19; 0.15 MB), BOAT_INBOARD_D (21, 0.05 MB), SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB), the
   motorbike engines COPBIKE_D and _P, SCOOTER_P, SPORTSBIKE_D and _P and VTWINBIKE_D and _P (40, 41, 119, 124, 125, 139,
-  140; 0.83 MB), FRONTEND_MENU (60, 0.14 MB) and TRAIN_D and TRAM_D (131, 133; 0.13 MB), listed in
+  140; 0.83 MB), FRONTEND_MENU (60, 0.14 MB), TRAIN_D and TRAM_D (131, 133; 0.13 MB) and the 25 SCRIPT banks scripts
+  load whole (3.1 MB; see "Mission banks"), listed in
   `public/play/audio/ios-banks.json`, which `NativeBankLoader.open` merges with `banks.json` (a bank both list stays
   the PC's).
 - Specs: `ios-sound-banks` (unit: the files, the merge, bank 28 into slot 42); `bullet-pass` (browser: a trace past
@@ -9661,11 +9662,38 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   PURCHASE_WEAPON (the pickup's pair, 27 and 28); CAR_NO_CASH and _IS_HOT (the same pair at 0.841, 0x1001471f0);
   RACE_321 and _GO (6 and 7, 12 and 13, 0x1001478e8, 0x1001484e4); BUY_CAR_MOD (9 ahead, 0.0588 speed variance,
   0x1001485b8); CAR_RESPRAY (WEAPONS 28 left and right, one pitched up 1.189 by a coin toss, 0x1001481a4).
-- **Not yet:** PlayMissionBankSound's events (the whole-bank LOAD_MISSION_AUDIO a script makes first loads as nothing
-  in the port); the beat and cutscene track events; the crane (1019 to 1022, which load CRANE_P into the player slot);
-  the camera (1035, 1036, 1153, 1154, 1165, 1166) and a few more. The gate's two (1100, 1101) take the entity's flag at
+- **Not yet:** the beat and cutscene track events; the crane (1019 to 1022, which load CRANE_P into the player slot);
+  the camera (1035, 1036, 1153, 1154, 1165, 1166) and a few more. (The mission-bank sounds: see "Mission banks".) The gate's two (1100, 1101) take the entity's flag at
   +0x92 as clear (sound 70); what sets it is not known. Such reports are counted (`script.unported` in the native
   audio snapshot) and play nothing.
 - Specs: `native-audio` (unit: the forwarded events, the resident sounds' bank, speed, start, front end and entity,
   the once-only horn, the unported mission-bank event; the new frontend cases); `interior-shops` (browser: buying the
   pistol reports 1052, which plays the purchase pair).
+
+## Mission banks
+
+- **Before:** a LOAD_MISSION_AUDIO of a sample from 1800 to 1829 names a whole SCRIPT bank
+  (CAEAudioUtility::GetBankAndSoundFromScriptSlotAudioEvent's gScriptBanksLookup: the gym, the casino games, pool,
+  basketball, the keypad, Black Project and the like), and the port loaded it as nothing; so the 85 reported events
+  that play from it (PlayMissionBankSound) had nothing to play.
+- **The banks.** gScriptBanksLookup is gta-reversed's and the iOS executable's alike (0x10062a64c). The 25 banks it
+  names (all but SCRIPT_NULL, 291) are rebuilt from the iOS bundle's SCRIPT.osw in the PC's format, their headers,
+  lengths and loops (16 of their 119 sounds loop) from SOUNDINF.DAT (`package-ios-sound-banks.mjs`; 3.1 MB). Their
+  MP3s are MPEG-2 at 22,050 Hz, unlike GENRL's: no PC copy is on hand to align them against, so the 577-sample trim
+  measured on GENRL is taken, their earliest onsets falling where GENRL's do. **AUTHORED** in that sense.
+- **Loading.** A whole-bank sample puts its bank in bank slot 26 plus the mission audio slot's index (28 and 29 for
+  slots 3 and 4, the two PlayMissionBankSound plays through), the slot's record taking it; the slot stays loading
+  until it is in, as the script's HAS_MISSION_AUDIO_LOADED loop waits on it, and CLEAR_MISSION_AUDIO lets it go. A
+  sample naming SCRIPT_NULL loads at once as nothing.
+- **PlayMissionBankSound** (iOS 0x100156bcc): through link 2 or 3 only; skipped, if the handler asks, while one of the
+  event's own plays; else, with the slot's bank in, the sound at the event's default volume plus the handler's, the
+  handler's roll-off (2 or 3) and speed, at the entity (lasting no longer than it), the point, ahead of the listener
+  (zeros or the -1000 sentinel) or left or right of it ((-1,0,0), (1,0,0)).
+- **The handlers** (80 single calls, read out of the jump table; a random sound for 1010, 1017 and 1031; once-only
+  1012; four start-and-loop pairs whose partners (1082, 1109, 1127, 1129) stop them and play the end; four stops
+  (1006, 1008, 1034, 1162); 1028 and 1107, whose sound depends on whether the keypad's or Black Project's bank or
+  Uncle Sam's is in slot 28; 1164's left and right pair).
+- Specs: `native-audio` (unit: no bank, no sound; the gym bank in slot 29 and 1117 from it; 1113's -18 dB once; 1164's
+  pair; the keypad's 1028; a cleared slot; a start-and-loop stopped by its partner); `ios-sound-banks` (unit: the
+  lookup, the banks); `interior-shops` (browser: the Ganton gym bench's set loads the gym bank into a mission slot and
+  its report is played).

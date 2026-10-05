@@ -40,6 +40,13 @@ export function speechLengthMs(subtitle:string){
  const spoken=subtitle.replace(/~[a-zA-Z0-9]~/g,'').trim().length;
  return spoken?Math.max(SHORTEST_LINE_MS,LEAD_MS+spoken*MS_PER_CHARACTER):DEFAULT_SAMPLE_MS;
 }
+/** CAEAudioUtility::GetBankAndSoundFromScriptSlotAudioEvent's whole-bank samples: AE_SCRIPT_BANK_FIRST (1800) to 1829
+ * name a SCRIPT bank through gScriptBanksLookup (gta-reversed's; the iOS executable's at 0x10062a64c is the same), which
+ * PreloadMissionAudio loads whole for ProcessMissionAudioEvent's mission-bank sounds. SND_BANK_SCRIPT_NULL is 291. */
+export const SCRIPT_BANK_SAMPLE_FIRST=1800,SCRIPT_BANK_NULL=291;
+export const SCRIPT_BANKS_LOOKUP:readonly number[]=[352,310,296,291,242,291,222,209,291,167,163,160,265,304,158,291,291,292,171,198,226,293,319,345,351,266,183,153,298,339];
+/** The bank a whole-bank sample names, or undefined for any other sample. */
+export function scriptBankOfSample(sample:number){return sample>=SCRIPT_BANK_SAMPLE_FIRST&&sample<SCRIPT_BANK_SAMPLE_FIRST+SCRIPT_BANKS_LOOKUP.length?SCRIPT_BANKS_LOOKUP[sample-SCRIPT_BANK_SAMPLE_FIRST]:undefined;}
 /** How many recent mission audio reports are kept. */
 export const REPORTS_KEPT=64;
 export class ScmMissionAudio {

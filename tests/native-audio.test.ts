@@ -273,9 +273,9 @@ test("a script's reported sounds: frontend events handed on, resident sounds whe
  // HORN 7 for 1147 only while none of its own plays.
  e.scriptAudio.processMissionAudioEvent(1147,{position:{x:1,y:1,z:1}});e.scriptAudio.processMissionAudioEvent(1147,{position:{x:1,y:1,z:1}});
  expect(e.manager.sounds.filter(s=>s.inUse&&s.slot===SLOT.hornAndSiren&&s.entity===e.scriptAudio)).toHaveLength(1);
- // A mission-bank sound is not ported yet: noted, nothing played.
- e.scriptAudio.processMissionAudioEvent(1005,{position:{x:0,y:0,z:0}});
- expect(e.scriptAudio.unported.get(1005)).toBe(1);
+ // A track event is not ported yet: noted, nothing played.
+ e.scriptAudio.processMissionAudioEvent(1062,{position:{x:0,y:0,z:0}});
+ expect(e.scriptAudio.unported.get(1062)).toBe(1);
 });
 test('the frontend plays the purchase, refusal, race and garage sounds as the iOS executable does',async()=>{
  const e=engine();await flush();await flush();
@@ -287,6 +287,37 @@ test('the frontend plays the purchase, refusal, race and garage sounds as the iO
  e.frontend.addAudioEvent(46);expect(sounds(SLOT.frontendGame).slice(6)).toEqual([[9,1]]);
  e.frontend.addAudioEvent(16);const respray=sounds(SLOT.weaponGen);
  expect(respray.map(s=>s[0])).toEqual([28,28]);expect(respray.map(s=>s[1]).sort()).toEqual([1,1.189]);
+});
+test("a script's whole bank in a mission slot plays its reported sounds, and clearing the slot silences them",async()=>{
+ // A synthetic gym bank (226) and keypad bank (242) beside the usual ones.
+ const banks=new Map<number,ReturnType<typeof syntheticBank>>(),manifest:NativeBankManifest={version:1,packageSha256:'',banks:[]};
+ for(const id of [39,59,138,143,226,242]){const b=syntheticBank(12);banks.set(id,b);manifest.banks.push({id,path:`bank-${id}.bin`,dataBytes:b.dataBytes,bytes:b.bytes.length,sounds:12,sha256:''});}
+ let n=0;const e=new NativeAudioEngine(new NativeBankLoader(manifest,async entry=>banks.get(entry.id)!.bytes),undefined,()=>((n++*.6180339)%1));
+ await flush();e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const script=e.scriptAudio,mine=()=>e.manager.sounds.filter(s=>s.inUse&&s.entity===script);
+ // Nothing in slot 4 yet: the gym's 1117 has no bank to play from.
+ script.processMissionAudioEvent(1117,{position:{x:3,y:4,z:5}});expect(mine()).toHaveLength(0);
+ // LOAD_MISSION_AUDIO 4 1820 (SOUND_BANK_GYM): the gym bank in bank slot 29.
+ expect(await script.loadMissionBank(3,226)).toBe(true);expect(e.bank.isSoundBankLoaded(226,29)).toBe(true);
+ script.processMissionAudioEvent(1117,{position:{x:3,y:4,z:5}});
+ expect(mine().map(s=>[s.slot,s.sound,s.rollOff,s.has(SOUND.frontEnd)])).toEqual([[29,7,2,false]]);
+ // 1113 at -18 dB, once while its own plays.
+ script.processMissionAudioEvent(1113,{position:{x:0,y:0,z:0}});script.processMissionAudioEvent(1113,{position:{x:0,y:0,z:0}});
+ const bike=mine().filter(s=>s.event===1113);expect(bike).toHaveLength(1);expect(bike[0].has(SOUND.frontEnd)).toBe(true);
+ expect(bike[0].volume-e.defaultVolume(1113)).toBeCloseTo(-18,5);
+ // 1164's left and right pair, ahead of the listener.
+ script.processMissionAudioEvent(1164,{position:{x:0,y:0,z:0}});
+ expect(mine().filter(s=>s.event===1164).map(s=>[s.sound,s.currPos.x])).toEqual([[0,-1],[1,1]]);
+ // The keypad bank in slot 28 decides 1028's sound.
+ await script.loadMissionBank(2,242);script.processMissionAudioEvent(1028,{position:{x:1,y:1,z:1}});
+ expect(mine().filter(s=>s.event===1028).map(s=>[s.slot,s.sound])).toEqual([[28,0]]);
+ // CLEAR_MISSION_AUDIO 4: the record lets the bank go and its reports are silent.
+ script.clearMissionBank(3);const before=mine().length;script.processMissionAudioEvent(1117,{position:{x:3,y:4,z:5}});expect(mine()).toHaveLength(before);
+ // An entity's start-and-loop, and the partner that stops them and plays the end (link 2: slot 28's bank).
+ const at={position:()=>({x:9,y:9,z:9})};
+ script.processMissionAudioEvent(1108,{physical:at});expect(mine().filter(s=>s.event===1108).map(s=>s.sound)).toEqual([1,0]);
+ script.processMissionAudioEvent(1109,{physical:at});
+ expect(mine().filter(s=>s.event===1108)).toHaveLength(0);expect(mine().filter(s=>s.event===1109).map(s=>s.sound)).toEqual([2]);
 });
 test('player helicopter rotors and weather rain loops',async()=>{
  const e=engine(),key={};await flush();
