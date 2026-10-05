@@ -33,3 +33,12 @@ test('the touch buttons for what a script reads: those shown only on call, by wh
  expect(touchActionsForReads(read(BUTTON.dpadLeft,BUTTON.dpadRight,BUTTON.dpadUp,BUTTON.dpadDown),{...foot,asked:['CONVERSATION_YES','CONVERSATION_NO']})).toEqual(['MENU_UP','MENU_DOWN']);
  expect(touchActionsForReads(read(BUTTON.dpadUp,BUTTON.dpadDown),{...foot,asked:['GROUP_CONTROL_FWD','GROUP_CONTROL_BWD']})).toEqual([]);
 });
+
+test('a rhythm game reading the left stick while CJ is held puts up the port’s four arrows',()=>{
+ const stick=new Set([BUTTON.leftStickX,BUTTON.leftStickY]),arrows=['RHYTHM_UP','RHYTHM_DOWN','RHYTHM_LEFT','RHYTHM_RIGHT'];
+ expect(touchActionsForReads(stick,{inVehicle:false,menu:false,asked:[],held:true})).toEqual(arrows);
+ // Not in free roam, at the wheel, or under a menu.
+ expect(touchActionsForReads(stick,{inVehicle:false,menu:false,asked:[],held:false})).toEqual([]);
+ expect(touchActionsForReads(stick,{inVehicle:true,menu:false,asked:[],held:true})).toEqual([]);
+ expect(touchActionsForReads(stick,{inVehicle:false,menu:true,asked:[],held:true})).toEqual([]);
+});

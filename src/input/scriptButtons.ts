@@ -26,8 +26,10 @@ export class ScriptButtonReads {
  * same direction is already asked for under another name (a conversation's Yes and No, the group's Follow and Stay).
  * At the wheel the shoulder twos look left and right. The rest are on screen already: Fire, Jump, Sprint, Crouch, the
  * weapon on foot, the pedals, handbrake and horn at the wheel. */
-export function touchActionsForReads(read:ReadonlySet<number>,{inVehicle,menu,asked}:{inVehicle:boolean;menu:boolean;asked:readonly string[]}):string[]{
+export function touchActionsForReads(read:ReadonlySet<number>,{inVehicle,menu,asked,held=false}:{inVehicle:boolean;menu:boolean;asked:readonly string[];held?:boolean}):string[]{
  const out:string[]=[];
+ // The left stick read while the script holds CJ on foot is a rhythm game's (a dance): the port's four rhythm arrows.
+ if(!inVehicle&&held&&!menu&&(read.has(BUTTON.leftStickX)||read.has(BUTTON.leftStickY)))out.push('RHYTHM_UP','RHYTHM_DOWN','RHYTHM_LEFT','RHYTHM_RIGHT');
  if(read.has(BUTTON.triangle))out.push('VEHICLE_ENTER_EXIT');
  if(!inVehicle){
   if(read.has(BUTTON.leftShoulder1))out.push('PED_ANSWER_PHONE');

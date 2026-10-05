@@ -94,8 +94,9 @@ test('each layout puts the buttons at its own file\'s widgets, sized as the port
  // screen, radii by its width (no wider than 16:9 of its height).
  const screens:Record<PortLayoutFile,readonly [number,number]>={TouchDefaultPhoneWidescreen:[844,390],TouchDefaultPhone3x2:[560,400],TouchDefaultTabletWidescreen:[1194,760],TouchDefaultTablet4x3:[1024,768]};
  for(const [file,[width,height]] of Object.entries(screens) as [PortLayoutFile,readonly [number,number]][])for(const places of Object.values(PORT_LAYOUTS[file])){
-  // (Skip shows in a cutscene, and a shop's accept and cancel while its menu is up, each with no other button.)
- const buttons=Object.entries(places).filter(([name])=>!['skip','store-accept','store-cancel'].includes(name)),unit=Math.min(width,height*16/9)/640;
+  // (Skip shows in a cutscene, a shop's accept and cancel while its menu is up, and a rhythm game's arrows while it
+  // reads them, each with no other button.)
+ const buttons=Object.entries(places).filter(([name])=>!['skip','store-accept','store-cancel','rhythm-up','rhythm-down','rhythm-left','rhythm-right'].includes(name)),unit=Math.min(width,height*16/9)/640;
   for(const [i,[,a]] of buttons.entries())for(const [,b] of buttons.slice(i+1))
    expect(Math.hypot((a[0]-b[0])/640*width,(a[1]-b[1])/448*height)).toBeGreaterThan((PORT_SIZE[a[2]]+PORT_SIZE[b[2]])*unit);
  }

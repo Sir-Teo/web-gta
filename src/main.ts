@@ -3701,7 +3701,7 @@ async function boot() {
      // help names it only the first time (scriptButtons): the phone's Action for a call or camera.scm's picture, Enter at
      // a machine or a blackjack table, the arrows for a gym machine's level or the roulette chip, Look back for a hoop.
      {const read=scriptReads.update(button=>mission?.runtime.game.pads.reads(0,button)??0,performance.now());
-      if(!carEntry.active)asked.push(...touchActionsForReads(read,{inVehicle,menu:asked.includes('MENU_SELECT'),asked}));}
+      if(!carEntry.active)asked.push(...touchActionsForReads(read,{inVehicle,menu:asked.includes('MENU_SELECT'),asked,held:playerControlsDisabled()}));}
      // A plane with retracting gear puts up Gear in the air, and the Hydra VTOL.
      {const plane=fleet?.occupiedPlane;if(plane?.retractableGear&&!plane.grounded)asked.push('AIRCRAFT_GEAR');if(plane?.modelId===520)asked.push('AIRCRAFT_VTOL');}
      // Flying, the look keys are the rudder the Yaw buttons already are, and help names them so. In a road vehicle with a

@@ -9298,3 +9298,13 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   few of 14 to 35. `__game.drawBreakdown()` groups them by scene path (the streamed world windows, nearly all).
 - **What would cut it** without changing the picture: drawing a LOD model's groups in one call from a texture array
   (WebGL2) where its textures share a size and format. It is a renderer change and is left for a deliberate pass.
+
+## The rhythm games have their arrows on a touch screen
+
+- **The port's RHYTHM widgets.** A dance (`dance.scm`) holds CJ and reads the left stick for its moves. With the
+  floating stick a move is a flick in time; the iOS port gives its rhythm games four arrows instead, a diamond under
+  the right thumb (`RHYTHM_UP`, `_DOWN`, `_LEFT`, `_RIGHT` at 560,345, 560,409, 512,377 and 607,377 on the phone and
+  widescreen tablet files, the 4:3 iPad's up and down 5 nearer). While a script reads the left stick with CJ held on
+  foot, they come up (`scriptButtons`), each the PC's movement key, the stick pushed full that way, and the pad's
+  other buttons give way, as to a shop menu. Specs: `script-buttons` and `touch-controls` (unit), `touch-rhythm`
+  (browser).
