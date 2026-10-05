@@ -18,6 +18,7 @@ import {requireAsset} from '../assets/binary';
 import {bikeLeanTarget,approachBikeLean} from '../flight/aero';
 import {bikeLeanDrop,bikeRiderLean,quadRiderLean} from './nativeBikeLean';
 import {nativePedals} from './nativePedals';
+import {stepNativeTransmission} from './nativeTransmission';
 import {controlsOffSpeedScale,rawSteerTowards,steerFraction} from './nativeQuadSteer';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import {browserLocalDirection} from '../combat/nativeDamageAnim';
@@ -115,6 +116,17 @@ export class WorldBike {
  private hopHeld=false;
  /** Engine speed for audio (pedal cadence on bicycles, rpm on motorbikes). */
  engine01=0;
+ /** cTransmission's m_nCurrentGear, which the engine sound reads. CBike::ProcessControl (unreversed) runs
+  * CalculateDriveAcceleration as CAutomobile's does; this drive does not, so the gear is stepped beside it from the
+  * bike's speed and pedal (stepNativeTransmission), and only the gear is kept. */
+ gear=1;
+ /** The CBike fields CAEVehicleAudioEntity reads: the front (0) and rear (1) wheel states and counts, the wheels and
+  * drive wheels on the ground, m_fWheelSpinForAudio and m_GasPedal. AUTHORED, CBike::ProcessControl being unreversed:
+  * the counts are the front and rear ground probes; the rear wheel is driven; a brake at speed locks the rear wheel
+  * (WHEEL_STATE_FIXED); the spin rate is CAutomobile::ProcessControl's for one driven wheel. Kept only while ridden. */
+ /** m_HornCounter / m_HornPattern and bSirenOrAlarm, as a car's (CBike::PlayHornIfNecessary, the horn input). */
+ readonly horn={counter:0,pattern:0};siren=false;
+ readonly audio={states:['normal','normal'] as ('normal'|'spinning'|'skidding'|'fixed')[],counts:[0,0],contactWheels:0,driveOnGround:0,driveOnGroundLastFrame:0,spinForAudio:0,burst:[false,false],brake:0};
  /** Head/tail lamp glows (bike lamp pass): additive sprites at the hull ends, lit at night. */
  private lamp?:Sprite;private tailLamp?:Sprite;private night=0;
  private stepVelocity?:{x:number;y:number;z:number};
@@ -305,6 +317,20 @@ export class WorldBike {
   this.stepVelocity={...this.body.linvel()};this.stepTurn={...this.body.angvel()};
   this.mountTimer=Math.max(0,this.mountTimer-dt);
   this.engine01=(this.modelId===481||this.modelId===510||this.modelId===509)?Math.min(1,Math.abs(this.throttle)):Math.min(1,Math.abs(want)/Math.max(1,top));
+  if(this.occupied||this.autopilot)this.stepAudioState(dt,speed,gas,braking);
+ }
+ private stepAudioState(dt:number,speed:number,gas:number,braking:number){
+  const a=this.audio,front=this.wheelsDown(.5)?1:0,rear=this.wheelsDown(-.5)?1:0,timeStep=dt*50;
+  a.counts[0]=front;a.counts[1]=rear;
+  a.states[0]='normal';a.states[1]=braking>.5&&rear&&Math.abs(speed)>.04*50?'fixed':'normal';
+  // CAutomobile::ProcessControl's rate for the one driven wheel: off the ground under more than half gas it races.
+  const rate=(!rear&&Math.abs(gas)>.5?10:0)*.5,k=Math.pow(rate>=a.spinForAudio?.95:.7,timeStep);a.spinForAudio=a.spinForAudio*k+(1-k)*rate;
+  a.driveOnGroundLastFrame=a.driveOnGround;a.driveOnGround=rear;a.contactWheels=front+rear;a.brake=braking;
+  if(!this.quad)this.gasPedal=Math.max(-1,Math.min(1,gas));
+  const velocity=speed/50,h=this.assets.handling;
+  if(velocity>=h.maxReverseVelocity&&velocity<=h.values.maxVelocity&&timeStep<=3){
+   try{this.gear=stepNativeTransmission(h,{gear:this.gear},{velocity,throttle:Math.max(-1,Math.min(1,gas)),timeStep,hasDriveWheelContact:rear>0}).state.gear;}catch{/* The gear stays. */}
+  }
  }
  /** CBmx::ProcessBunnyHop (0x6C0590) and LaunchBunnyHopCB (0x6C0390): holding the hop button charges up to 25 steps,
   * letting go plays the hop out, and then, with a front and a rear wheel down, the bike jumps

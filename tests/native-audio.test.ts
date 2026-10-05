@@ -131,6 +131,32 @@ test('the player car loads its engine bank and accelerates through PLAYER_AC_FUL
  expect(audio.state).toBe(AE_STATE.playerAcFull);
  const ac=audio.engineSounds[4]!;expect(ac.slot).toBe(SLOT.playerEngine);expect(ac.sound).toBe(0);
 });
+/** A motorbike: two wheel states (front, rear), as CBike has. */
+const bike=(over:Partial<NativeVehicleAudioInput>={}):NativeVehicleAudioInput=>car({wheels:{states:['normal','normal'],counts:[1,1],contactWheels:2,driveOnGround:1,driveOnGroundLastFrame:1,spinForAudio:0,burst:[false,false]},bike:{leanAngle:0,playerBoost:false},...over});
+test('a motorbike has the car engine over its own banks, the lean raising its pitch and two wheels to skid on',async()=>{
+ // The PCJ-600: SPORTSBIKE_P (125) and _D (124).
+ const e=engine(),dummyKey={},dummy=bike();await flush();
+ await frames(e,dummyKey,461,()=>dummy,4);
+ expect(e.vehicle(dummyKey,461)!.state).toBe(AE_STATE.dummyId);
+ const key={},input=bike({status:'player',playerDriver:true,playerInVehicle:true});
+ await frames(e,key,461,()=>input,3);
+ const audio=e.vehicle(key,461)!;
+ expect(e.bank.isSoundBankLoaded(125,SLOT.playerEngine)).toBe(true);
+ expect(audio.state).toBe(AE_STATE.playerId);
+ input.padAccelerate=1;input.gasPedal=1;input.moveSpeed={x:0,y:.2,z:0};input.gear=1;
+ await frames(e,key,461,()=>{input.moveSpeed={x:0,y:input.moveSpeed.y+.004,z:0};return input;},8);
+ expect(audio.state).toBe(AE_STATE.playerAcFull);
+ // GetFreqForPlayerEngineSound's bike factor: (sin(lean) x 0.12 + boost 0.1) x the gear factor, one plus it multiplying.
+ const ac=audio.engineSounds[4]!,upright=ac.speed;
+ input.bike={leanAngle:.5,playerBoost:false};await frames(e,key,461,()=>input,1);
+ const gf=Math.min(1,input.moveSpeed.y/(input.transmission!.gears[1].changeUpVelocity));
+ expect(ac.speed/upright).toBeCloseTo(1+Math.sin(.5)*.12*gf,2);
+ // The rear wheel locked at speed skids; a front wheel alone does not while the rear is not skidding.
+ input.bike={leanAngle:0,playerBoost:false};input.wheels={...input.wheels!,states:['skidding','normal']};await frames(e,key,461,()=>input,2);
+ expect(audio.skid.active).toBe(false);
+ input.wheels={...input.wheels!,states:['normal','fixed']};await frames(e,key,461,()=>input,2);
+ expect(audio.skid.active).toBe(true);
+});
 test('player helicopter rotors and weather rain loops',async()=>{
  const e=engine(),key={};await flush();
  const heli=car({status:'player',playerDriver:true,playerInVehicle:true,rotorSpeed:.22,padAccelerate:1,transmission:undefined,wheels:undefined});

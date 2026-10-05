@@ -35,7 +35,7 @@ const CFG={
  heli:{rotorFreqVariance:{min:-.1,max:.1,offset:.75},loSpeed:{up:.03,down:.03},hiSpeed:{up:.005,down:.005},copHeliVolOffset:6},
  dummyCar:{idleToIdle:{fadeIn:.1,fadeOut:.1},crzToCrz:{fadeIn:.05,fadeOut:.05}},
  dummyEngine:{volumeUnderwaterOffset:6,volumeTrailerOffset:6,id:{ratio:.2,volBase:-3,volMax:0,frqBase:.85,frqMax:1.2},rev:{ratio:.15,volBase:-4.5,volMax:0,frqBase:.9,frqMax:1.5},golfCart:{frqMin:.85,frqMax:1.2,volOffset:-3}},
- player:{crzSpeedOffset:.001,crzMaxCnt:150,zMoveSpeedThreshold:.2,maxAuGear:5,singleGearVolume:-2,frqWheelSpinFactor:.25,frqZMin:-.2,frqZMax:.2,frqZFactor:.15,
+ player:{frqBikeLeanFactor:.12,frqPlayerBikeBoostOffset:.1,crzSpeedOffset:.001,crzMaxCnt:150,zMoveSpeedThreshold:.2,maxAuGear:5,singleGearVolume:-2,frqWheelSpinFactor:.25,frqZMin:-.2,frqZMax:.2,frqZFactor:.15,
   rev:{frqWheelSpinFactor:.2,frqOffset:1,frqMin:.2,frqMax:.4,volMin:-4,volMax:0},id:{frqMin:.85,frqMax:1.5,volMin:-3.5,volMax:-1.5},
   crz:{frqSingleGear:1,frqMin:.925,frqMax:1.25,volMin:0,volMax:2,rollOff:2},
   ac:{frqSingleGear:1,frqMultiGearOffset:1,frqPerGear:[.4,.22,.13,.075,0,-.075],volMin:-2,volMax:0,rollOff:2,soundLength:1000,loopMaxPlayTimePercentage:80,loopInterval:120,loopFrameCnt:10,wheelSpinThreshold:150/255,speedOffset:.0015,inhibitForLowSpeedLimit:.1},
@@ -64,6 +64,8 @@ export interface NativeVehicleAudioInput {
  rotorSpeed?:number;propSpeed?:number;
  /** COMPONENT_WING_RR world position for helicopters. */
  nearPosition?:NativeVec;
+ /** CBike's m_RideAnimData.LeanAngle (radians) and bikeFlags.bPlayerBoost, for a motorbike. */
+ bike?:{leanAngle:number;playerBoost:boolean};
 }
 export interface NativeVehicleAudioContext {
  manager:NativeSoundManager;bank:NativeBankLoader;random:AudioRandom;
@@ -108,6 +110,7 @@ export class NativeVehicleAudio implements NativeAudioEntity {
   this.playerEngineBank=s.playerBank;this.dummyEngineBank=s.dummyBank;
   switch(s.type){
    case AE_VEHICLE.car:this.eventVolume-=CFG.volOffsetOnGround;if(s.dummyBank!==-1&&s.dummyBank!==129)this.dummySlot=this.requestBankSlot(s.dummyBank);break;
+   case AE_VEHICLE.bike:case AE_VEHICLE.bmx:if(s.type===AE_VEHICLE.bike)this.eventVolume-=CFG.volOffsetOnGround;if(s.dummyBank!==-1)this.dummySlot=this.requestBankSlot(s.dummyBank);break;
    case AE_VEHICLE.plane:if(s.dummyBank!==-1)this.dummySlot=this.requestBankSlot(s.dummyBank);break;
    case AE_VEHICLE.special:this.eventVolume-=1.5;if(s.dummyBank!==-1)this.dummySlot=this.requestBankSlot(s.dummyBank);break;
   }
@@ -402,10 +405,12 @@ export class NativeVehicleAudio implements NativeAudioEntity {
  private contactWheels(){return this.vehicle.wheels?.contactWheels??4;}
  /** ProcessVehicleSkidding (0x4F8F10) for automobiles. */
  private processVehicleSkidding(speed:number){
-  const w=this.vehicle.wheels,t=this.vehicle.transmission;let sum=0;const numWheels=4;
+  const w=this.vehicle.wheels,t=this.vehicle.transmission,bike=this.type===AE_VEHICLE.bike||this.type===AE_VEHICLE.bmx;let sum=0;
+  // A CBike has two wheel states, front (0) and rear (1); the front test is CAR_WHEEL_FRONT_LEFT or _FRONT_RIGHT either way.
+  const numWheels=bike?2:4;
   if(w&&t&&this.contactWheels()){
-   const rearNotSkidding=w.states[CAR_WHEEL.rearLeft]!=='skidding'&&w.states[CAR_WHEEL.rearRight]!=='skidding';
-   for(let i=0;i<4;i++){
+   const rearNotSkidding=bike?w.states[1]!=='skidding':w.states[CAR_WHEEL.rearLeft]!=='skidding'&&w.states[CAR_WHEEL.rearRight]!=='skidding';
+   for(let i=0;i<numWheels;i++){
     const state=w.states[i],front=i===CAR_WHEEL.frontLeft||i===CAR_WHEEL.frontRight;
     if(state==='normal'||w.counts[i]<=0||rearNotSkidding&&front&&state==='skidding')continue;
     const drive=t.driveType==='4'||t.driveType==='F'&&front||t.driveType==='R'&&!front;
@@ -417,7 +422,8 @@ export class NativeVehicleAudio implements NativeAudioEntity {
   const vol=this.type===AE_VEHICLE.plane||this.type===AE_VEHICLE.heli?CFG.skid.volOffsetForPlaneOrHeli:0,surface=this.vehicle.contactSurface;
   if(surface?.grass){const c=CFG.skid.grass;playSkid(6,c.frq+c.wheel*sum,c.vol+vol);}
   else if(surface?.wet){const c=CFG.skid.wet;playSkid(8,c.frq+c.wheel*sum,c.vol+vol);}
-  else{const c=CFG.skid.std;playSkid(0x18,c.frq+c.wheel*sum,vol+c.vol);}
+  // The reference scales the volume, not the frequency, by FrqFactorForBikes.
+  else{const c=CFG.skid.std;playSkid(0x18,c.frq+c.wheel*sum,(vol+c.vol)*(this.type===AE_VEHICLE.bike?c.frqBikeFactor:1));}
  }
  private driveWheelSkidValue(state:NativeWheelState,speed:number){
   const c=CFG.skid.drive;
@@ -517,7 +523,9 @@ export class NativeVehicleAudio implements NativeAudioEntity {
    else if(st===ENGINE.playerCrz)f=p.wheelSpin/5*cfg.frqWheelSpinFactor+(cfg.crz.frqMax-cfg.crz.frqMin)*this.crzCount/cfg.crzMaxCnt+(this.singleGear?cfg.crz.frqSingleGear:cfg.crz.frqMin);
    else if(st===ENGINE.playerAc)f=p.wheelSpin/5*cfg.frqWheelSpinFactor+(this.singleGear?cfg.ac.frqSingleGear:cfg.ac.frqPerGear[this.auGear]+cfg.ac.frqMultiGearOffset);
    else f=lerp(cfg.off.frqMin,cfg.off.frqMax,p.speedRatio);
-   f*=gf*zf+1;
+   // A motorbike's lean and the player's boost raise it, in proportion to the gear factor.
+   const b=this.type===AE_VEHICLE.bike?this.vehicle.bike:undefined,bf=b?(Math.sin(b.leanAngle)*cfg.frqBikeLeanFactor+(b.playerBoost?cfg.frqPlayerBikeBoostOffset:0))*gf:0;
+   f*=(gf*zf+1)*(bf+1);
   }
   return this.vehicle.underwater?f*CFG.freqUnderwaterFactor:f;
  }
@@ -663,6 +671,18 @@ export class NativeVehicleAudio implements NativeAudioEntity {
     if(!simple)this.processEngineDamage(speed);
     this.processRainOnVehicle();
     this.processNitro();
+    this.prevSpeed=speed;break;
+   }
+   case AE_VEHICLE.bike:{
+    if(this.wrecked)break;
+    this.updateGasPedalAudio();
+    const c=this.manager.env.camera.position,cameraDistance=Math.hypot(c.x-v.position.x,c.y-v.position.y,c.z-v.position.z);
+    this.processVehicleRoadNoise(speed,cameraDistance);
+    if(!simple)this.processVehicleSkidding(speed);
+    this.processVehicleSirenAlarmHorn();
+    if(this.isPlayerDriver)this.processPlayerVehicleEngine(speed);else this.processDummyVehicleEngine(speed);
+    if(!simple){this.processEngineDamage(speed);this.processVehicleFlatTyre(speed);}
+    this.processRainOnVehicle();
     this.prevSpeed=speed;break;
    }
    case AE_VEHICLE.heli:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;

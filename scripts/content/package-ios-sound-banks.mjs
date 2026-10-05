@@ -43,8 +43,10 @@ const SOURCES={
 /** GENRL's first bank (Bank_001), and its last. */
 const GENRL_FIRST=7,GENRL_LAST=143;
 /** The banks rebuilt, with the eSoundBank names gta-reversed (0076f901) gives them:
- * SND_BANK_GENRL_BULLET_PASS_1 to _4, which CAEFrontendAudioEntity rotates through for a bullet's whizz. */
-const BANKS=[28,29,30,31];
+ * - SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31), which CAEFrontendAudioEntity rotates through for a bullet's whizz;
+ * - the motorbikes' engines that VehicleAudioSettings names and the PC copy lacks: COPBIKE_D and _P (40, 41),
+ *   SCOOTER_P (119), SPORTSBIKE_D and _P (124, 125), VTWINBIKE_D and _P (139, 140). */
+const BANKS=[28,29,30,31,40,41,119,124,125,139,140];
 /** Samples the decoded 32 kHz MP3s start late by (see above). */
 const DECODER_DELAY=577,MP3_RATE=32000;
 const OUTPUT='public/play/audio',MANIFEST='ios-banks.json';

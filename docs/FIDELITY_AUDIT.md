@@ -9516,8 +9516,35 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   of 0.988 and a 10th percentile of 0.879. The low ones are noisy, high-rate sounds (collisions, weapon tails, frontend
   clicks) whose content above the encode's 16 kHz band is gone, not misaligned. **AUTHORED:** the rebuilt banks are a
   lossy copy of the PC's, at the PC's lengths, rates, loops and headroom.
-- **Rebuilt so far:** SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB), listed in
+- **Rebuilt so far:** SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB) and the motorbike engines COPBIKE_D
+  and _P, SCOOTER_P, SPORTSBIKE_D and _P and VTWINBIKE_D and _P (40, 41, 119, 124, 125, 139, 140; 0.83 MB), listed in
   `public/play/audio/ios-banks.json`, which `NativeBankLoader.open` merges with `banks.json` (a bank both list stays
   the PC's).
 - Specs: `ios-sound-banks` (unit: the files, the merge, bank 28 into slot 42); `bullet-pass` (browser: a trace past
   the camera plays a whizz in slot 42; it fails without the rebuilt banks).
+
+## Motorbikes have engines
+
+- **Before:** a bike had no vehicle audio entity, so motorbikes rode in silence (`NativeAudioEngine.supports` took
+  cars, aircraft and the special vehicles only, and the fleet's bikes were never handed to it).
+- **CAEVehicleAudioEntity's AE_BIKE case** (gta-reversed 0076f901, reversed) is followed: Initialise takes the
+  ground volume offset and the dummy bank's slot; ProcessVehicle runs the gas pedal's audio revs, road noise,
+  skidding (not for a STATUS_SIMPLE bike), the horn and siren, ProcessPlayerVehicleEngine for the rider and
+  ProcessDummyVehicleEngine otherwise, engine damage and the flat tyre, the rain and m_PrevSpeed. The car's own engine
+  states are shared, as the original's are.
+- **The bike's differences**, from the same reversal: two wheel states (front 0, rear 1), the front ones skipped while
+  the rear is not skidding; the standard skid's volume (not its frequency) times FrqFactorForBikes, 1.2;
+  GetFreqForPlayerEngineSound's bike factor, (sin LeanAngle x 0.12 + 0.1 with bPlayerBoost) x the gear factor, one plus
+  it multiplying the frequency (the lean is the bike's render lean).
+- **What the bike hands the entity** (`worldBikeAudioInput`, `WorldBike.stepAudioState`). CBike::ProcessControl and
+  ProcessControlInputs are unreversed, and this drive is the port's own, so:
+  - **AUTHORED:** the gear is cTransmission's (`stepNativeTransmission` run beside the drive on the bike's speed and
+    pedal); the wheel counts are the front and rear ground probes; the rear wheel is the driven one; a brake at speed
+    locks it (WHEEL_STATE_FIXED); m_fWheelSpinForAudio rises as CAutomobile's does for one driven wheel off the ground
+    under more than half gas; bPlayerBoost is never set. Kept only while the bike is ridden.
+  - The horn is the car's (the horn key through CPad's history, siren taps on the police bike).
+- **Not yet:** the quad (an automobile to the audio, with four wheels the bike's state does not give) and the BMX and
+  mountain bikes (CBmx's ProcessPlayerBicycle and ProcessDummyBicycle are unreversed).
+- Specs: `native-audio` (unit: the PCJ-600's dummy idle, its player bank, PLAYER_AC_FULL, the lean factor, the rear
+  wheel's skid); `bike-engine-audio` (browser: riding a PCJ-600 loads SPORTSBIKE_P into the player engine slot, idles,
+  then accelerates with sounds playing).

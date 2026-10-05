@@ -192,7 +192,7 @@ import {inPhotograph} from './weapons/nativePhotograph';
 import {stepStamina} from './locomotion/player';
 import {pickupCategory} from './assets/scmPickups';
 import {readSurfaceAudio,nativeFootstepCategory,wadingSurface} from './assets/surfaceAudio';
-import {nativeAudioCamera,worldCarAudioInput,worldPlaneAudioInput} from './audio/native/worldVehicleAudio';
+import {nativeAudioCamera,worldBikeAudioInput,worldCarAudioInput,worldPlaneAudioInput} from './audio/native/worldVehicleAudio';
 import {AE} from './audio/native/NativeVehicleAudio';
 import {NativeHornInput,NATIVE_SIREN_MODELS} from './audio/native/nativeHornInput';
 import {carCollider,worldColliderSurface} from './audio/native/worldCollisionAudio';
@@ -4043,7 +4043,7 @@ async function boot() {
     }
     sound.update(render.camera.position, render.viewYaw, render.viewPitch);
     if(!paused&&!navigation?.open&&!arsenal.open)sound.nativeFrame(dt,()=>{
-      const engine=sound.nativeEngine,alive=sim.player.health>0,cars=[...(fleet?.cars??[])],planes=[...(fleet?.planes??[])];
+      const engine=sound.nativeEngine,alive=sim.player.health>0,cars=[...(fleet?.cars??[])],planes=[...(fleet?.planes??[])],bikes=[...(fleet?.bikes??[])];
       if(engine)engine.surfaceAudio=surfaceAudio?.byId;
       for(const unit of police?.units??[])if(!unit.car.occupied)unit.car.siren=unit.siren;
       const driven=cars.find(car=>car.occupied);
@@ -4085,12 +4085,12 @@ async function boot() {
       const fires:{key:object;at:{x:number;y:number;z:number}}[]=[];
       for(const car of cars)if(car.onFire){const p=car.car.body.translation();fires.push({key:car,at:{x:p.x,y:-p.z,z:p.y}});}
       for(const fire of weapons.fires.active)fires.push({key:fire,at:{...fire.position}});
-      if(driven)hornInput.process(driven,input.down('CapsLock')||input.down('KeyH'),NATIVE_SIREN_MODELS.has(driven.modelId));
+      const hornVehicle=driven??fleet?.occupiedBike;if(hornVehicle)hornInput.process(hornVehicle,input.down('CapsLock')||input.down('KeyH'),NATIVE_SIREN_MODELS.has(hornVehicle.modelId));
       const audioCamera=nativeAudioCamera(render.camera,sim.player.position,render.scoped);
       const cityVehicle=driven??fleet?.occupiedPlane;
       const cityLin='car' in (cityVehicle??{})?(cityVehicle as ScriptCar).car.body.linvel():(cityVehicle as import('./simulation/WorldPlane').WorldPlane|undefined)?.body.linvel();
       return {camera:audioCamera,
-        vehicles:[...cars.map(car=>[car,car.modelId,worldCarAudioInput(car,alive,surfaceAudio?.byId)] as const),...planes.map(plane=>[plane,plane.modelId,worldPlaneAudioInput(plane,alive,{accelerate:Number(input.down('KeyW')),brake:Number(input.down('KeyS'))})] as const)],
+        vehicles:[...cars.map(car=>[car,car.modelId,worldCarAudioInput(car,alive,surfaceAudio?.byId)] as const),...bikes.filter(bike=>bike.motorbike&&!bike.quad).map(bike=>[bike,bike.modelId,worldBikeAudioInput(bike,alive)] as const),...planes.map(plane=>[plane,plane.modelId,worldPlaneAudioInput(plane,alive,{accelerate:Number(input.down('KeyW')),brake:Number(input.down('KeyS'))})] as const)],
         weather:weatherStarted?{rain:weather.rain,windClipped:weather.windClipped,lightningDuration:weather.lightningDuration,noRain:cullNoRain(),outside:render.lighting.area===0,cameraZ:render.camera.position.y,
           city:{camPos:audioCamera.position,camRight:audioCamera.right,camForward:audioCamera.forward,playerPos:{x:sim.player.position.x,y:-sim.player.position.z,z:sim.player.position.y},inVehicle:!!cityVehicle,moveSpeed:cityLin?{x:cityLin.x/50,y:-cityLin.z/50,z:cityLin.y/50}:{x:0,y:0,z:0},
             los:(origin,target)=>{const dx=target.x-origin.x,dy=target.y-origin.y,dz=target.z-origin.z,dist=Math.hypot(dx,dy,dz);if(!(dist>0))return undefined;

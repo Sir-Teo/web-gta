@@ -1,6 +1,7 @@
 import {Quaternion,Vector3,type PerspectiveCamera} from 'three';
 import type {WorldCar} from '../../simulation/WorldCar';
 import type {WorldPlane} from '../../simulation/WorldPlane';
+import type {WorldBike} from '../../simulation/WorldBike';
 import type {SurfaceAudioFlags} from '../../assets/surfaceAudio';
 import type {NativeCamera,NativeVec} from './NativeSound';
 import type {NativeVehicleAudioInput} from './NativeVehicleAudio';
@@ -29,6 +30,21 @@ export function worldCarAudioInput(car:WorldCar,playerAlive:boolean,surfaces?:Re
   transmission:{driveType:h.values.driveType,maxVelocity:h.values.maxVelocity,maxReverseVelocity:h.maxReverseVelocity,numberOfGears:h.values.gears,gears:h.gears},
   wheels:{states:a.states,counts:a.counts,contactWheels:a.contactWheels,driveOnGround:a.driveOnGround,driveOnGroundLastFrame:a.driveOnGroundLastFrame,spinForAudio:a.spinForAudio,burst:a.burst},
   contactSurface:{grass:!!(s?.grass||s?.longGrass),wet:!!(s?.gravel||s?.sand||s?.water)}};
+}
+/** CBike state for the vehicle audio entity (motorbikes; the quad is an automobile to the audio). A parked bike's engine
+ * is off; the player's and a script-driven one's run. The pad's brake is the reverse pedal and the handbrake its brake,
+ * as for a car; bPlayerBoost is never set (CBike::ProcessControlInputs is unreversed). */
+export function worldBikeAudioInput(bike:WorldBike,playerAlive:boolean):NativeVehicleAudioInput{
+ const body=bike.body,h=bike.assets.handling,a=bike.audio,lin=body.linvel(),wheels=bike.occupied||!!bike.autopilot;
+ return {position:native(body.translation()),...axes(body.rotation()),moveSpeed:{x:lin.x/50,y:-lin.z/50,z:lin.y/50},
+  status:bike.wrecked?'wrecked':bike.occupied?'player':bike.autopilot?'physics':'abandoned',
+  playerDriver:bike.occupied,playerInVehicle:bike.occupied,playerAlive,engineOn:!bike.wrecked&&wheels,
+  gasPedal:bike.gasPedal,brakePedal:a.brake,handbrake:bike.brake,gear:bike.gear,
+  padAccelerate:bike.occupied?Math.max(0,bike.throttle):0,padBrake:bike.occupied?Math.max(0,-bike.throttle):0,
+  health:bike.health,drowning:false,underwater:false,towing:false,horn:bike.horn,sirenOrAlarm:bike.siren,alarmState:0,
+  transmission:{driveType:h.values.driveType,maxVelocity:h.values.maxVelocity,maxReverseVelocity:h.maxReverseVelocity,numberOfGears:h.values.gears,gears:h.gears},
+  wheels:wheels?{states:a.states,counts:a.counts,contactWheels:a.contactWheels,driveOnGround:a.driveOnGround,driveOnGroundLastFrame:a.driveOnGroundLastFrame,spinForAudio:a.spinForAudio,burst:a.burst}:undefined,
+  bike:{leanAngle:bike.lean,playerBoost:false}};
 }
 /** CHeli/CPlane state: the browser throttle stands in for m_fHeliRotorSpeed (0.22 at full) and m_fPropSpeed (0.34 at full).
  * A scripted police airframe runs its engine off the autopilot collective. */
