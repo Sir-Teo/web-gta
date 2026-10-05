@@ -4,7 +4,7 @@ import {NativeSoundManager,type NativeBankSlots,type NativeBankSound} from '../s
 import {NativeBankLoader,SLOT,type NativeBankManifest} from '../src/audio/native/NativeBankLoader';
 import {NativeAudioEngine,NATIVE_AUDIO_FRAME_MS} from '../src/audio/native/NativeAudioEngine';
 import {NativeTwinLoopSound} from '../src/audio/native/NativeTwinLoopSound';
-import {AE_STATE,type NativeVehicleAudioInput} from '../src/audio/native/NativeVehicleAudio';
+import {AE_STATE,NativeVehicleAudio,type NativeVehicleAudioInput} from '../src/audio/native/NativeVehicleAudio';
 import {NativeHornInput} from '../src/audio/native/nativeHornInput';
 const camera=(x=0,y=0,z=0):NativeCamera=>({position:{x,y,z},right:{x:1,y:0,z:0},forward:{x:0,y:1,z:0},up:{x:0,y:0,z:1},firstPerson:false,justSwitched:false});
 const flush=()=>new Promise(r=>setTimeout(r,0));
@@ -205,6 +205,39 @@ test("a train's engine sounds at the front, and every carriage's wheels on the r
  const t=e.vehicle(tramKey,449)!;
  expect(t.engineSounds[1]!.volume-2*t.eventVolume).toBeCloseTo(20*Math.log10(.25),4);
  expect(t.engineSounds[1]!.speed).toBeCloseTo(.9+.2*.25,5);
+});
+test('a BMX rolls on its tyres, ticks while freewheeling, clangs its chain, rings its bell and skids',async()=>{
+ (NativeVehicleAudio as any).wasFreewheeling={player:false,dummy:false};
+ const e=engine(),key={};await flush();
+ // A ridden BMX (BICYCLE_D 18 in a dummy slot, BICYCLE_P 19 in the player slot) at half its top speed, both wheels down.
+ const input=bike({status:'player',playerDriver:true,playerInVehicle:true,moveSpeed:{x:0,y:.4,z:0},bike:{leanAngle:.3,playerBoost:false},bmx:{freewheeling:false}});
+ await frames(e,key,481,()=>input,4);
+ const audio=e.vehicle(key,481)!;
+ expect(e.bank.isSoundBankLoaded(19,SLOT.playerEngine)).toBe(true);
+ // The tyres: log10(wheels x 0.25 x sf) x 20 + event - 8 dB, at (wheels/80 + sf/10 + 1.05)(1 + |sin lean| x 0.2).
+ const tyre=audio.engineSounds[1]!,sf=.5;
+ expect(tyre.slot).toBe(audio.dummySlot);expect(tyre.sound).toBe(0);
+ expect(tyre.volume-audio.eventVolume).toBeCloseTo(20*Math.log10(2*.25*sf)-8,4);
+ expect(tyre.speed).toBeCloseTo((2*.0125+sf*.1+1.05)*(1+Math.sin(.3)*.2),5);
+ // Pedalling, the freewheel is silent; coasting, it ticks at log10(GetBaseVolumeForBicycleTyre(sf)) x 20 - 15.
+ expect(audio.engineSounds[2]!.volume-audio.eventVolume).toBeLessThan(-90);
+ input.bmx={freewheeling:true};await frames(e,key,481,()=>input,1);
+ expect(audio.engineSounds[2]!.sound).toBe(1);expect(audio.engineSounds[2]!.speed).toBeCloseTo(sf*.7+.4,5);
+ expect(audio.engineSounds[2]!.volume-audio.eventVolume).toBeCloseTo(20*Math.log10(.45+(.85-.45)*(sf-.2)/.3)-15,4);
+ // Pedalling again clangs the chain: a COLLISIONS sound started part way in.
+ input.bmx={freewheeling:false};await frames(e,key,481,()=>input,1);
+ const clang=audio.engineSounds[3]!;
+ expect(clang.slot).toBe(SLOT.collisions);expect([5,7,8,9]).toContain(clang.sound);
+ // The bell rings at the press and dies away 1.5 dB a frame.
+ input.horn.counter=1;await frames(e,key,481,()=>input,1);
+ const bell=audio.hornSound!;expect(bell.sound).toBe(0);expect(bell.slot).toBe(SLOT.hornAndSiren);
+ const rung=bell.volume;await frames(e,key,481,()=>input,2);
+ expect(rung-bell.volume).toBeCloseTo(3,5);
+ // The BMX's skid is VEHICLE_GEN's BIKE_SKID_A at 0.9 + 0.25 x the sum, from -12 dB.
+ input.wheels={...input.wheels!,states:['normal','fixed']};await frames(e,key,481,()=>input,2);
+ expect(audio.skid.active).toBe(true);
+ const skidSum=Math.min(.4*5,1)*1.2,loop=audio.skid.sounds[0]!;
+ expect(loop.sound).toBe(0);expect(loop.speed).toBeCloseTo(.9+.25*skidSum,5);
 });
 test('player helicopter rotors and weather rain loops',async()=>{
  const e=engine(),key={};await flush();

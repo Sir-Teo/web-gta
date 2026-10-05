@@ -49,8 +49,10 @@ const GENRL_FIRST=7,GENRL_LAST=143;
  * - BOAT_INBOARD_D (21), the dummy bank of every boat, whose one loop ProcessBoatEngine plays (a boat loads no player
  *   bank);
  * - TRAIN_D and TRAM_D (131, 133), the trains' and the tram's dummy banks: the engine loop and the track sound (no one
- *   drives the port's trains, so TRAIN_P's brakes are not asked for). */
-const BANKS=[21,28,29,30,31,40,41,119,124,125,131,133,139,140];
+ *   drives the port's trains, so TRAIN_P's brakes are not asked for);
+ * - BICYCLE_D and _P (18, 19): the tyres and the freewheel of the BMX and the mountain bikes, and the player bank whose
+ *   presence lets the freewheel be heard. */
+const BANKS=[18,19,21,28,29,30,31,40,41,119,124,125,131,133,139,140];
 /** Samples the decoded 32 kHz MP3s start late by (see above). */
 const DECODER_DELAY=577,MP3_RATE=32000;
 const OUTPUT='public/play/audio',MANIFEST='ios-banks.json';

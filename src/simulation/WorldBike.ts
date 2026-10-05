@@ -126,6 +126,10 @@ export class WorldBike {
   * (WHEEL_STATE_FIXED); the spin rate is CAutomobile::ProcessControl's for one driven wheel. Kept only while ridden. */
  /** m_HornCounter / m_HornPattern and bSirenOrAlarm, as a car's (CBike::PlayHornIfNecessary, the horn input). */
  readonly horn={counter:0,pattern:0};siren=false;
+ /** CBmx::m_bIsFreewheeling, which the bicycle's sound reads. CBmx::ProcessDrivingAnims sets it in the iOS executable
+  * (0x100458ddc: cleared each frame, set with a wheel down and the brake off as the rider coasts or hops); the rider's
+  * clips here are the port's, so AUTHORED: a BMX with a wheel down, not braking and not pedalled. */
+ freewheeling=false;
  readonly audio={states:['normal','normal'] as ('normal'|'spinning'|'skidding'|'fixed')[],counts:[0,0],contactWheels:0,driveOnGround:0,driveOnGroundLastFrame:0,spinForAudio:0,burst:[false,false],brake:0};
  /** Head/tail lamp glows (bike lamp pass): additive sprites at the hull ends, lit at night. */
  private lamp?:Sprite;private tailLamp?:Sprite;private night=0;
@@ -326,6 +330,7 @@ export class WorldBike {
   // CAutomobile::ProcessControl's rate for the one driven wheel: off the ground under more than half gas it races.
   const rate=(!rear&&Math.abs(gas)>.5?10:0)*.5,k=Math.pow(rate>=a.spinForAudio?.95:.7,timeStep);a.spinForAudio=a.spinForAudio*k+(1-k)*rate;
   a.driveOnGroundLastFrame=a.driveOnGround;a.driveOnGround=rear;a.contactWheels=front+rear;a.brake=braking;
+  this.freewheeling=!this.motorbike&&front+rear>0&&braking<=.5&&Math.abs(gas)<=.05;
   if(!this.quad)this.gasPedal=Math.max(-1,Math.min(1,gas));
   const velocity=speed/50,h=this.assets.handling;
   if(velocity>=h.maxReverseVelocity&&velocity<=h.values.maxVelocity&&timeStep<=3){

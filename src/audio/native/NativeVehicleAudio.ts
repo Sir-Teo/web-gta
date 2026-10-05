@@ -23,6 +23,14 @@ const HORN_PATTERNS=[
  '00000000001100001100001110000111100000000000','00111100001111100001110000111000001111111100','00111100001111100001111110000000000000111100','11110000111111111111111100111110111111110000',
 ].map(p=>p.slice(0,HORN_PATTERN_SIZE));
 const CAR_WHEEL={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
+/** eAEVehicleHornType::BIKE: SND_GENRL_HORN_BIKEBELL. */
+const HORN_BIKE_BELL=0;
+/** eBicycleSoundType's sounds. */
+const BICYCLE={tyre:1,sprocket:2,chainClang:3} as const;
+/** PlayBicycleSound's chain clangs (0x8CC1D8): a COLLISIONS sound and the percentage it starts at. */
+const CHAIN_CLANGS:readonly (readonly [number,number])[]=[[5,38],[7,25],[8,25],[9,50]];
+/** GetBaseVolumeForBicycleTyre's table (0x8CC18C); the iOS executable's last point is at 1.0001. */
+const BICYCLE_TYRE_VOLUME:readonly (readonly [number,number])[]=[[0,0],[.1,.3],[.2,.45],[.5,.85],[1.0001,1]];
 /** eTrainEngineSoundType's engine sounds. */
 const TRAIN={engine:1,track:2} as const;
 /** TrainCarriagesNoise: the track sound's pitch by the carriage's place in its train. */
@@ -39,7 +47,7 @@ const CFG={
   overWater:{volBaseOfSeaplane:12,volBase:3,volUnderwaterOffset:6,frqBase:.8,frqSpeedFactor:.2,frqUnderwaterFactor:.185}},revRollOff:2,roadNoiseRollOff:3,flatTireRollOff:3,reverseGearRollOff:1,volOffsetOnGround:1.5,rotorVolTiltFactor:.67,
  gasPedal:{stepDown:.07,stepUp:.09},flatTyre:{volOffset:-9,frqGearVelocityFactor:.4},
  roadNoise:{volBase:-12,fadeOutDistance:72,grass:{frq:1.3,vol:0},wet:{frq:1,vol:4.5},std:{frq:1,vol:0}},
- skid:{volBase:0,volOffsetForPlaneOrHeli:12,grass:{vol:-12,frq:.9,wheel:.2},wet:{vol:-9,frq:.9,wheel:.2},std:{frqBikeFactor:1.2,vol:0,frq:.8,wheel:.125},drive:{spinning:1,skidding:1,stationary:1.2},nonDrive:{skidding:1,stationary:1.2}},
+ skid:{volBase:0,volOffsetForPlaneOrHeli:12,bmx:{volBase:-12,frqBase:.9,frqWheelSkidFactor:.25},grass:{vol:-12,frq:.9,wheel:.2},wet:{vol:-9,frq:.9,wheel:.2},std:{frqBikeFactor:1.2,vol:0,frq:.8,wheel:.125},drive:{spinning:1,skidding:1,stationary:1.2},nonDrive:{skidding:1,stationary:1.2}},
  horn:{doppler:.17,bikeBellFadeOut:1.5},siren:{doppler:.25},reverseGear:{frqBase:.75,frqRevs:.2,volBase:-6},rainOnVehicle:{volBase:0},
  nitro:{stepUp:.075,stepDown:.085,sounds:[{frqMin:.75,frqMax:.84,volMin:-6,volMax:2},{frqMin:.8,frqMax:1,volMin:-36,volMax:-9}]},
  engineDamage:{steam:{frqMin:.9,frqMax:1.1,volMin:-24,volMax:-21,rollOff:1},fucked:{frqMin:.9,frqMax:1.2,volMin:-24,volMax:-18,rollOff:2.5}},
@@ -80,7 +88,9 @@ export interface NativeVehicleAudioInput {
  train?:{speed:number;clockwise:boolean;front:boolean;notOnARailRoad:boolean;carriage:number};
  /** CBoat's m_EngineSpeed (the propeller's) and m_nBoatFlags.bBoatInWater, for a boat or a seaplane. */
  boat?:{engineSpeed:number;inWater:boolean};
- /** CBike's m_RideAnimData.LeanAngle (radians) and bikeFlags.bPlayerBoost, for a motorbike. */
+ /** CBmx::m_bIsFreewheeling. */
+ bmx?:{freewheeling:boolean};
+ /** CBike's m_RideAnimData.LeanAngle (radians) and bikeFlags.bPlayerBoost, for a motorbike (the lean for a BMX too). */
  bike?:{leanAngle:number;playerBoost:boolean};
 }
 export interface NativeVehicleAudioContext {
@@ -235,14 +245,26 @@ export class NativeVehicleAudio implements NativeAudioEntity {
  }
  private playHornOrSiren(isHornOn:boolean,isSirenOn:boolean,isFastSirenOn:boolean){
   const s=this.settings;
+  const hornSound=(speed:number)=>this.play(SLOT.hornAndSiren,s.hornType,this.hornVolume,{rollOff:2.5,speed,doppler:CFG.horn.doppler,flags:SOUND.requestUpdates});
   if(isHornOn&&!this.hornOn){
    const soundsLoaded=this.loaded(BANK.horn,SLOT.hornAndSiren)||this.loaded(BANK.vehicleGen,SLOT.vehicleGen);
-   // A horn it cannot start yet, or one of no car kind, returns before the sirens are looked at this frame. The bike
-   // bell is not ported: bikes have no entity.
-   if(s.hornType<1||s.hornType>9)return;
-   this.hornVolume=s.engineVolumeOffset+this.ctx.defaultVolume(AE.carHorn);
-   if(!soundsLoaded||this.hornSound)return;
-   this.hornSound=this.play(SLOT.hornAndSiren,s.hornType,this.hornVolume,{rollOff:2.5,speed:s.hornPitch,doppler:CFG.horn.doppler,flags:SOUND.requestUpdates});
+   // A horn it cannot start yet, or one of no car kind, returns before the sirens are looked at this frame.
+   if(s.hornType>=1&&s.hornType<=9){
+    this.hornVolume=s.engineVolumeOffset+this.ctx.defaultVolume(AE.carHorn);
+    if(!soundsLoaded||this.hornSound)return;
+    this.hornSound=hornSound(s.hornPitch);
+   }else if(s.hornType===HORN_BIKE_BELL){
+    // The bell rings afresh at each press.
+    this.hornSound?.stopSoundAndForget();this.hornSound=undefined;
+    this.hornVolume=this.ctx.defaultVolume(AE.bikeBell);
+    if(!soundsLoaded)return;
+    this.hornSound=hornSound(1);
+   }else return;
+  }else if(s.hornType===HORN_BIKE_BELL){
+   // And dies away by BikeBellFadeOut a frame, held or not.
+   this.hornVolume=Math.max(this.hornVolume-CFG.horn.bikeBellFadeOut,-100);
+   if(this.hornVolume<=-100){this.hornSound?.stopSoundAndForget();this.hornSound=undefined;}
+   else if(this.hornSound)this.hornSound.volume=this.hornVolume;
   }else if(!isHornOn&&this.hornOn){this.hornSound?.stopSoundAndForget();this.hornSound=undefined;}
   const hornLoaded=this.loaded(BANK.horn,SLOT.hornAndSiren);
   const siren=(sid:number,slot:number=SLOT.hornAndSiren)=>this.play(slot,sid,this.ctx.defaultVolume(AE.siren),{rollOff:3,doppler:CFG.siren.doppler,flags:SOUND.requestUpdates});
@@ -384,6 +406,10 @@ export class NativeVehicleAudio implements NativeAudioEntity {
    if(this.playerEngineBank!==-1&&!this.loaded(this.playerEngineBank,SLOT.playerEngine)){cancelPlayerEngine();this.ctx.bank.loadSoundBank(this.playerEngineBank,SLOT.playerEngine);}
    if(this.dummyEngineBank!==-1&&this.dummySlot===-1)this.dummySlot=this.demandBankSlot(this.dummyEngineBank);
    this.currentRotorFrequency=-1;this.currentDummyEngineVolume=-100;
+  }else if(this.type===AE_VEHICLE.bmx){
+   this.eventVolume=this.ctx.defaultVolume(AE.generalVehicleSound);cancelPlayerEngine();this.cancelAllVehicleEngineSounds();
+   if(this.dummySlot===-1)this.dummySlot=this.demandBankSlot(this.dummyEngineBank);
+   if(!this.loaded(this.playerEngineBank,SLOT.playerEngine))this.ctx.bank.loadSoundBank(this.playerEngineBank,SLOT.playerEngine);
   }else if(this.type===AE_VEHICLE.boat){
    this.eventVolume=this.ctx.defaultVolume(AE.generalVehicleSound);
    if(this.dummySlot===-1)this.dummySlot=this.demandBankSlot(this.dummyEngineBank);
@@ -439,6 +465,9 @@ export class NativeVehicleAudio implements NativeAudioEntity {
   }
   if(sum<=0){this.playSkidSound(-1,1,-100);return;}
   const playSkid=(sfx:number,frq:number,volume:number)=>{const perWheel=sum/numWheels;if(perWheel>.00001){volume+=audioLog10(perWheel)*20+CFG.skid.volBase;if(volume>=-100){this.playSkidSound(sfx,frq,volume);return;}}this.playSkidSound(-1,1,-100);};
+  // The BMX's BIKE_SKID_A (VEHICLE_GEN 0) at 0.9 + 0.25 x the sum and -12 dB, as the iOS executable plays it (0x100162d20);
+  // gta-reversed's reversal hands these two to DoPlaySkidSound the other way round.
+  if(this.type===AE_VEHICLE.bmx){const c=CFG.skid.bmx;playSkid(0,c.frqBase+c.frqWheelSkidFactor*sum,c.volBase);return;}
   const vol=this.type===AE_VEHICLE.plane||this.type===AE_VEHICLE.heli?CFG.skid.volOffsetForPlaneOrHeli:0,surface=this.vehicle.contactSurface;
   if(surface?.grass){const c=CFG.skid.grass;playSkid(6,c.frq+c.wheel*sum,c.vol+vol);}
   else if(surface?.wet){const c=CFG.skid.wet;playSkid(8,c.frq+c.wheel*sum,c.vol+vol);}
@@ -707,12 +736,57 @@ export class NativeVehicleAudio implements NativeAudioEntity {
    }
    case AE_VEHICLE.heli:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;
    case AE_VEHICLE.plane:this.updateGasPedalAudio();this.processAircraft();this.processRainOnVehicle();break;
+   case AE_VEHICLE.bmx:{
+    if(this.wrecked)break;
+    this.updateGasPedalAudio();this.processVehicleSkidding(speed);this.processVehicleSirenAlarmHorn();
+    this.processBicycle(this.isPlayerDriver,speed);
+    this.prevSpeed=speed;break;
+   }
    case AE_VEHICLE.boat:this.processBoatEngine();this.processRainOnVehicle();this.processBoatMovingOverWater(speed);break;
    // ProcessPlayerTrainBrakes follows for a player-driven train; no one drives the port's trains.
    case AE_VEHICLE.train:this.processTrainTrackSound();this.processDummyTrainEngine();break;
    case AE_VEHICLE.seaplane:this.processAircraft();this.processRainOnVehicle();this.processBoatMovingOverWater(speed);break;
    case AE_VEHICLE.special:this.processSpecialVehicle(speed);break;
   }
+ }
+ /** The iOS executable's function-local `static bool`s: whether the last bicycle seen by ProcessPlayerBicycle
+  * (0x100165b24) and by ProcessDummyBicycle (0x100165e1c) was freewheeling, one for each function, shared by every
+  * entity. */
+ private static wasFreewheeling={player:false,dummy:false};
+ /** ProcessPlayerBicycle (0x500040) and ProcessDummyBicycle (0x4FFDC0), unreversed in gta-reversed, from the iOS
+  * executable. They differ in their opening: the rider's checks that the dummy bank is in its slot; the other's asks
+  * for a slot and the bank (EnsureHasDummySlot, EnsureSoundBankIsLoaded). Each plays the tyres (dummy sound 0) by the
+  * wheels on the ground and the speed over the top speed, pitched up by the lean; the freewheel's ratchet (dummy sound
+  * 1, heard once the player bank is in) while freewheeling; and a chain clang as the rider starts pedalling again.
+  * (The rider's version also times a pedal turn about in a static it never reads; that is left out.) */
+ private processBicycle(player:boolean,speed:number){
+  const v=this.vehicle,t=v.transmission;
+  if(player){if(!this.loaded(this.dummyEngineBank,this.dummySlot))return;}
+  else if(!this.ensureHasDummySlot()||!this.ensureSoundBankIsLoaded(true))return;
+  const sf=t?clamp(Math.abs(speed/t.maxVelocity),0,1):0,wheels=v.wheels?.contactWheels??0;
+  const tyreVolume=audioLog10(wheels*.25*sf)*20+this.eventVolume-8;
+  const tyreSpeed=(wheels*.1*.125+sf*.1+1.05)*(1+Math.abs(Math.sin(v.bike?.leanAngle??0))*.2);
+  const freewheeling=!!v.bmx?.freewheeling,key=player?'player':'dummy';
+  const ratchet=freewheeling?piecewiseLinear(BICYCLE_TYRE_VOLUME,sf):0;
+  this.playBicycleSound(BICYCLE.tyre,this.dummySlot,0,tyreVolume,tyreSpeed);
+  this.playBicycleSound(BICYCLE.sprocket,this.dummySlot,1,audioLog10(ratchet)*20+this.eventVolume-15,sf*.7+.4);
+  if(!freewheeling&&NativeVehicleAudio.wasFreewheeling[key])this.playBicycleSound(BICYCLE.chainClang,this.dummySlot,1,tyreVolume,1);
+  NativeVehicleAudio.wasFreewheeling[key]=freewheeling;
+ }
+ /** PlayBicycleSound (0x4F9710, reversed; the same in the iOS executable). The volume comes with the event volume in. */
+ private playBicycleSound(st:number,slot:number,sfx:number,volume:number,speed:number){
+  if(this.dummySlot===-1)return;
+  const loaded=st===BICYCLE.chainClang?this.loaded(BANK.collisions,SLOT.collisions):st===BICYCLE.sprocket?this.loaded(this.playerEngineBank,SLOT.playerEngine):this.loaded(this.dummyEngineBank,this.dummySlot);
+  if(!loaded)return;
+  const sound=this.engineSounds[st];
+  if(st===BICYCLE.chainClang){
+   if(sound)return;
+   const [clang,percent]=CHAIN_CLANGS[randomInt(this.ctx.random,0,CHAIN_CLANGS.length-1)];
+   this.engineSounds[st]=this.play(SLOT.collisions,clang,volume,{rollOff:1,speed,flags:SOUND.startPercentage|SOUND.requestUpdates,playTime:percent});
+   return;
+  }
+  if(sound){sound.volume=volume;sound.speed=speed;return;}
+  this.engineSounds[st]=this.play(slot,sfx,volume,{rollOff:st===BICYCLE.tyre?2.5:1.5,speed,flags:SOUND.requestUpdates});
  }
  private get trainConfig(){return this.dummyEngineBank===BANK.tramD?CFG.train.tram:CFG.train.generic;}
  /** ProcessDummyTrainEngine (0x500710): the front carriage's engine loop, pitched by its speed and the slope; a tram's

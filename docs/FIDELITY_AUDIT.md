@@ -9516,7 +9516,7 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   of 0.988 and a 10th percentile of 0.879. The low ones are noisy, high-rate sounds (collisions, weapon tails, frontend
   clicks) whose content above the encode's 16 kHz band is gone, not misaligned. **AUTHORED:** the rebuilt banks are a
   lossy copy of the PC's, at the PC's lengths, rates, loops and headroom.
-- **Rebuilt so far:** BOAT_INBOARD_D (21, 0.05 MB), SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB), the
+- **Rebuilt so far:** BICYCLE_D and _P (18, 19; 0.15 MB), BOAT_INBOARD_D (21, 0.05 MB), SND_BANK_GENRL_BULLET_PASS_1 to _4 (28 to 31, 0.28 MB), the
   motorbike engines COPBIKE_D and _P, SCOOTER_P, SPORTSBIKE_D and _P and VTWINBIKE_D and _P (40, 41, 119, 124, 125, 139,
   140; 0.83 MB) and TRAIN_D and TRAM_D (131, 133; 0.13 MB), listed in
   `public/play/audio/ios-banks.json`, which `NativeBankLoader.open` merges with `banks.json` (a bank both list stays
@@ -9544,8 +9544,8 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     locks it (WHEEL_STATE_FIXED); m_fWheelSpinForAudio rises as CAutomobile's does for one driven wheel off the ground
     under more than half gas; bPlayerBoost is never set. Kept only while the bike is ridden.
   - The horn is the car's (the horn key through CPad's history, siren taps on the police bike).
-- **Not yet:** the quad (an automobile to the audio, with four wheels the bike's state does not give) and the BMX and
-  mountain bikes (CBmx's ProcessPlayerBicycle and ProcessDummyBicycle are unreversed).
+- **Not yet:** the quad (an automobile to the audio, with four wheels the bike's state does not give). The BMX and
+  mountain bikes: see "Bicycles roll, tick and ring".
 - Specs: `native-audio` (unit: the PCJ-600's dummy idle, its player bank, PLAYER_AC_FULL, the lean factor, the rear
   wheel's skid); `bike-engine-audio` (browser: riding a PCJ-600 loads SPORTSBIKE_P into the player engine slot, idles,
   then accelerates with sounds playing).
@@ -9590,3 +9590,34 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - Specs: `native-audio` (unit: the freight engine's pitch and level, the carriages' track pitches, the tram's swell);
   `train-audio` (browser: RYDER3's freight train east of Grove Street loads bank 131, the engine plays the engine and
   the track, the flat car the track alone).
+
+## Bicycles roll, tick and ring
+
+- **Before:** the BMX, the mountain bike and the racing bike had no vehicle audio entity.
+- **Where it comes from.** gta-reversed reverses CAEVehicleAudioEntity's AE_BMX case and PlayBicycleSound but leaves
+  ProcessPlayerBicycle (0x500040) and ProcessDummyBicycle (0x4FFDC0) as calls into the exe, and no fork has them. The
+  iOS executable's arm64 slice has both: they read GetBaseVolumeForBicycleTyre's table (__TEXT,__const 0x100592a4c,
+  the same points but its last at 1.0001) and sit just before PlayBicycleSound's chain-clang table (0x100592a74, the
+  PC's 0x8CC1D8 values); ProcessPlayerBicycle is 0x100165b24, ProcessDummyBicycle 0x100165e1c, PlayBicycleSound
+  0x10016b408 (which matches the reversal). The bike fields they read sit in gta-reversed's CBike/CBmx order moved for
+  64-bit pointers: m_nNoOfContactWheels at 0xa08, CBmx from 0xa18 (m_bIsFreewheeling 0xa38), LeanAngle 0x838.
+- **What they do** (`processBicycle`): with sf the speed over the handling's top speed (0 to 1) and n the wheels on the
+  ground, the tyres (BICYCLE_D sound 0) at log10(n x 0.25 x sf) x 20 + the event volume - 8 dB and
+  (n x 0.0125 + sf x 0.1 + 1.05) x (1 + |sin LeanAngle| x 0.2); while freewheeling, the ratchet (sound 1, played only
+  once BICYCLE_P is in the player slot, as PlayBicycleSound asks) at log10(GetBaseVolumeForBicycleTyre(sf)) x 20 +
+  the event volume - 15 dB and sf x 0.7 + 0.4; and as freewheeling ends, a chain clang (COLLISIONS 5, 7, 8 or 9,
+  started 38, 25, 25 or 50% in). The rider's version opens by checking the dummy bank is in; the other asks for its slot
+  and bank. Each keeps the last freewheel state in a function-local static shared by every bike, as the iOS code does.
+  The rider's version also times a pedal turn about in a static it never reads; that is left out.
+- **The AE_BMX case itself** (gta-reversed): the gas pedal's audio revs, skidding, the horn, the bicycle and
+  m_PrevSpeed; getting on loads BICYCLE_P into the player slot. Two things gta-reversed lacks or gets wrong:
+  - The bell (eAEVehicleHornType::BIKE, HORN sound 0) was not ported: it rings afresh at each press at AE_BIKE_BELL's
+    volume and dies away 1.5 dB a frame, held or not.
+  - The BMX skid: the reversal hands DoPlaySkidSound -12 as the speed and the frequency as the volume. The iOS
+    executable (0x100162d20) plays BIKE_SKID_A at 0.9 + 0.25 x the skid and -12 dB, which is followed.
+- **AUTHORED:** m_bIsFreewheeling is set by CBmx::ProcessDrivingAnims (in the iOS executable at 0x100458ddc: cleared
+  each frame, set with a wheel down and the brake off as the rider coasts or hops); the port's rider clips are its own,
+  so a bike freewheels here with a wheel down, not braking and not pedalled.
+- Specs: `native-audio` (unit: the tyres' level and pitch, the ratchet, the clang, the bell's fade, the BMX skid);
+  `bmx-audio` (browser: riding a BMX loads BICYCLE_P, the tyres play, coasting freewheels and ticks, the horn key
+  rings the bell).

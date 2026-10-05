@@ -8,6 +8,32 @@
  "decoderDelay": 577,
  "banks": [
   {
+   "id": 18,
+   "path": "bank-18.bin",
+   "dataBytes": 61712,
+   "bytes": 66516,
+   "sounds": 2,
+   "sha256": "f7cf416a9a85c783cbaaffec195d01480853ed5185e3af44bd47e3feb919f75f",
+   "from": {
+    "wav": 0,
+    "mp3": 2,
+    "empty": 0
+   }
+  },
+  {
+   "id": 19,
+   "path": "bank-19.bin",
+   "dataBytes": 85518,
+   "bytes": 90322,
+   "sounds": 5,
+   "sha256": "fefef0d0dafcb252d575bb37eedbb4527616cb4bc02f09ecd444db485b7583d2",
+   "from": {
+    "wav": 0,
+    "mp3": 4,
+    "empty": 1
+   }
+  },
+  {
    "id": 21,
    "path": "bank-21.bin",
    "dataBytes": 45976,
