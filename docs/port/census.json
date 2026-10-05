@@ -10,10 +10,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1155,
+   "faithful": 1156,
    "authored": 27,
    "silent": 3,
-   "skipped": 182,
+   "skipped": 181,
    "stops": 24
   }
  },
@@ -4573,10 +4573,10 @@
    "byStatus": {
     "core": 2251,
     "nop": 55,
-    "faithful": 1075,
+    "faithful": 1076,
     "authored": 2,
     "silent": 0,
-    "skipped": 24,
+    "skipped": 23,
     "stops": 0
    },
    "gaps": [
@@ -4619,11 +4619,6 @@
      "name": "HELI_KEEP_ENTITY_IN_VIEW",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "DISABLE_HELI_AUDIO",
-     "status": "skipped",
-     "sites": 1
     }
    ]
   },
@@ -9535,26 +9530,6 @@
    "missions": 1,
    "firstMission": "DES3",
    "portable": false
-  },
-  {
-   "name": "DISABLE_HELI_AUDIO",
-   "opcode": "0a1c",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setHeliAudio (skipped: outputs read as none)"
-   ],
-   "handlerLine": 707,
-   "ref": {
-    "kind": "handler",
-    "fn": "DisableHeliAudio",
-    "where": "VehicleCommands.cpp:84",
-    "stub": false
-   },
-   "doc": "Sets whether the helicopter sound is muted",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "DES3",
-   "portable": true
   },
   {
    "name": "PLANE_ATTACK_PLAYER",

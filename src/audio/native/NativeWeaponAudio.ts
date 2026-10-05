@@ -7,7 +7,7 @@ export const AE_WEAPON={fire:145,reloadA:146,reloadB:147,firePlane:149,fireMinig
 const CAT={tail:1,flame:2,spray:3,ext:4,minigunSpin:5,minigunFire:6,minigunTail:7,minigunStop:8,chainsawIdle:9,chainsawActive:10,chainsawStop:12,stealthKnifeIn:13,stealthKnifeOut:14} as const;
 const MINIGUN={spinning:0,firing:1,stopping:2,stopped:3} as const;
 const CHAINSAW={idle:0,active:1,cutting:2,stopping:3,stopped:4} as const;
-const BANK_CHAINSAW_P=36;
+const BANK_CHAINSAW_P=36;const AE_PROJECTILE_FIRE=148;
 type GunSounds=readonly [dry:number,sub:number,left:number,right:number,tail:number,volume?:number,speed?:number,tailSpeed?:number];
 /** CAEWeaponAudioEntity::WeaponFire (0x504F80) PlayGunSounds arguments by eWeaponType. */
 const GUNS:Readonly<Record<number,GunSounds>>={
@@ -203,6 +203,13 @@ export class NativeGlobalWeaponAudio extends NativeWeaponAudio {
  private fogHorn?:NativeSound;private waterfalls:(NativeSound|undefined)[]=[undefined,undefined,undefined];
  private gunfire={at:{x:0,y:0,z:0} as NativeVec,position:()=>this.gunfire.at};
  constructor(private owner:NativeSoundManager,private banks:NativeBankLoader,private rng:AudioRandom,private volumes:(event:number)=>number){super(owner,banks,rng,volumes);}
+ /** AddAudioEvent (0x4DFAA0), which CAudioEngine::ReportWeaponEvent hands on: a shot (or an aircraft's), a reload, or a
+  * projectile's launch, from the entity. */
+ override addAudioEvent(event:number,weapon:number,entity:NativePhysicalEntity){
+  if(event===AE_WEAPON.fire||event===AE_WEAPON.firePlane)this.weaponFire(weapon,entity,event);
+  else if(event===AE_WEAPON.reloadA||event===AE_WEAPON.reloadB)this.weaponReload(weapon,entity,event);
+  else if(event===AE_PROJECTILE_FIRE)this.projectileFire(weapon,entity);
+ }
  /** ProjectileFire (0x4DF060): rocket launch plus the thrust layer. */
  projectileFire(weapon:number,entity:NativePhysicalEntity){
   if(weapon!==35&&weapon!==36)return;
@@ -211,7 +218,7 @@ export class NativeGlobalWeaponAudio extends NativeWeaponAudio {
   const position=entity.position();if(!position)return;
   const speed=[1.08,1,.92][this.rocketVariation];
   for(const [slot,sound,mult,offset] of [[SLOT.weaponGen,68,1,-8],[SLOT.vehicleGen,26,1.25,0]] as const)
-   this.owner.playSound({slot,sound,entity:this,position,volume:this.volumes(148)+offset,rollOff:3,speed:speed*mult,flags:SOUND.lifespanTiedToEntity,speedVariance:.02,physical:entity});
+   this.owner.playSound({slot,sound,entity:this,position,volume:this.volumes(AE_PROJECTILE_FIRE)+offset,rollOff:3,speed:speed*mult,flags:SOUND.lifespanTiedToEntity,speedVariance:.02,physical:entity});
  }
  private pickAmbientGunFire(){
   const pistol=this.rng()<.5;

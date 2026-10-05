@@ -84,6 +84,8 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   * sets it for every vehicle, radio or not). */
  private playerInVehicle=false;
  private accumulator=0;private timeMs=0;private pendingThunder=false;
+ /** CAEVehicleAudioEntity::s_HelicoptorsDisabled: every helicopter silent while set. */
+ helicoptersDisabled=false;
   /** EVENTVOL.DAT (45,402 signed dB bytes, retail XXH3 e95fc016454f961b): gta-reversed reads 45,401, dropping the last byte. */
   eventVolumes?:Int8Array;
  constructor(readonly bank:NativeBankLoader,renderer?:NativeChannelRenderer,readonly random:AudioRandom=Math.random){
@@ -95,6 +97,9 @@ export class NativeAudioEngine implements NativeVehicleAudioContext {
   this.collisions=new NativeCollisionAudio(this.manager,bank,random,e=>this.defaultVolume(e),id=>this.surfaceAudio?.get(id));
   this.frontend=new NativeFrontendAudio(this.manager,bank,e=>this.defaultVolume(e));
   this.scriptAudio=new NativeScriptAudio(this.manager,bank,e=>this.defaultVolume(e),this.random,(event,volume,speed)=>this.frontend.addAudioEvent(event,volume,speed));
+  this.scriptAudio.weapon=(event,weapon,physical)=>this.globalWeapon.addAudioEvent(event,weapon,physical);
+  this.scriptAudio.splash=(position,volume)=>this.collisions.reportWaterSplashAt(position,volume);
+  this.scriptAudio.helicoptersSilent=silent=>{this.helicoptersDisabled=silent;};
   this.policeScanner=new NativePoliceScanner(this.manager,bank,this.frontend,e=>this.defaultVolume(e),()=>this.playerInVehicle,random);
   this.waterCannon=new NativeWaterCannonAudio(this.manager,bank);
   this.radioTracks=new NativeRadioTrackManager(random);

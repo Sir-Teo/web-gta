@@ -43,7 +43,9 @@ export class NativeAudioHardware {
  stopSound(ch:number){const c=this.channels[ch];if(c.playing)this.renderer?.stop(ch);c.playing=false;c.sound=undefined;}
  setChannelVolume(ch:number,volume:number){this.channels[ch].volume=volume;}
  setChannelPosition(ch:number,position:NativeVec){this.channels[ch].position=position;}
- setChannelFrequencyScalingFactor(ch:number,factor:number){this.channels[ch].frequency=factor;}
+ /** CAEAudioChannel::SetFrequencyScalingFactor: 0 pauses the channel (its frequency kept); any other factor sets the
+  * frequency and resumes it, so a sound started at speed 0 plays once its entity gives it a speed. */
+ setChannelFrequencyScalingFactor(ch:number,factor:number){const c=this.channels[ch];if(factor===0){c.paused=true;return;}c.frequency=factor;c.paused=false;}
  /** CAEStaticChannel::GetPlayTime: -1 once the buffer stopped. */
  playTime(ch:number){const c=this.channels[ch];return c.playing&&c.sound?Math.floor(c.seconds*1000):-1;}
  lengthMs(ch:number){const s=this.channels[ch].sound;return s?soundLengthMs(s):0;}

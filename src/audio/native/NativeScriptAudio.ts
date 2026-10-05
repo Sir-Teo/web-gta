@@ -3,6 +3,7 @@ import type {NativeSoundManager} from './NativeSoundManager';
 import type {NativeBankLoader} from './NativeBankLoader';
 import {randomInt,type AudioRandom} from './nativeAudioUtility';
 import {NativeDoorAudio} from './NativeDoorAudio';
+import {AE_WEAPON,NativeExplosionAudio} from './NativeWeaponAudio';
 /* CAEScriptAudioEntity::ProcessMissionAudioEvent (0x4ECCF0), which REPORT_MISSION_AUDIO_EVENT_AT_* hands a script's
  * sound to. gta-reversed leaves it a call into the exe; its commented decompilation has the right handlers but case
  * labels it says need fixing (they are script-slot names, 7000 and up, not the 1000 to 1190 the scripts report). The
@@ -12,8 +13,9 @@ import {NativeDoorAudio} from './NativeDoorAudio';
  * Ported: the events that hand on to the frontend entity, those that play a resident GENRL sound
  * (PlayResidentSoundEvent, 0x1001566a8), and PlayMissionBankSound's (0x100156bcc): a sound of the SCRIPT bank a script
  * has loaded whole into its mission audio slot 3 or 4 (link 2 or 3, bank slot 28 or 29), and the mission's own
- * ambience track's starts and stops, the cranes' and the garage doors'. Not yet: a few others; those are recorded and
- * play nothing. */
+ * ambience track's starts and stops, the cranes' and the garage doors', and the few that hand on to another entity: a
+ * gun's or the camera's shot, an explosion, a splash, and the helicopters' silencing. Not yet: the parachute's (1189);
+ * that is recorded and plays nothing. */
 
 /** A PlayResidentSoundEvent: bank slot, bank, sound (or an inclusive random range of sounds), the start percentage,
  * the volume offset and the speed. Its last argument, the roll-off, is 1 for every one here. */
@@ -26,7 +28,8 @@ type MissionBank=readonly [sound:number|readonly [number,number],link:number,onc
  * plays. */
 /** `heard`: the handler notes the time (the entity's +0x94), which UpdateParameters times its sound out from; `gym`: it
  * sets the gym machines' mode (+0xa0), 1 running, 2 stopping. */
-type MissionAudioCase={frontend:number;speed?:number}|{resident:readonly Resident[];once?:boolean;heard?:boolean}|{bank:readonly MissionBank[];stop?:number;stopAtEntity?:boolean;once?:boolean;heard?:boolean;gym?:1|2}|{gym:2}|{stop:number;stopAtEntity?:boolean}|{custom:'keypad'|'stereo'}|{ambience:number}|{ambienceStop:true}|{crane:'enter'|'move'|'stop'|'exit'}|{door:number;speed:number};
+type MissionAudioCase={frontend:number;speed?:number}|{resident:readonly Resident[];once?:boolean;heard?:boolean}|{bank:readonly MissionBank[];stop?:number;stopAtEntity?:boolean;once?:boolean;heard?:boolean;gym?:1|2}|{gym:2}|{stop:number;stopAtEntity?:boolean}|{custom:'keypad'|'stereo'}|{ambience:number}|{ambienceStop:true}|{crane:'enter'|'move'|'stop'|'exit'}|{door:number;speed:number}
+ |{weapon:number;atPoint?:Resident}|{explosion:true}|{splash:number}|{helicoptersSilent:boolean};
 const COLLISIONS=[2,39] as const,WEAPONS=[5,143] as const;
 const r=(bank:readonly [number,number],sound:Resident[2],percent=0,volume=0,speed=1):Resident=>[bank[0],bank[1],sound,percent,volume,speed];
 const b=(sound:MissionBank[0],link:number,once:boolean,volume:number,rollOff:number,speed:number):{bank:readonly MissionBank[]}=>({bank:[[sound,link,once,volume,rollOff,speed]]});
@@ -106,6 +109,19 @@ export const MISSION_AUDIO_EVENTS:Readonly<Record<number,MissionAudioCase>>={
  1062:{ambience:153},1063:{ambienceStop:true},1068:{ambience:150},1069:{ambienceStop:true},1076:{ambience:141},1077:{ambienceStop:true},
  1097:{ambience:145},1098:{ambienceStop:true},1142:{ambience:160},1143:{ambienceStop:true},1181:{ambience:172},1182:{ambienceStop:true},
  1183:{ambience:149},1184:{ambienceStop:true},1185:{ambience:142},1186:{ambienceStop:true},1187:{ambience:161},1188:{ambienceStop:true},
+ // AE_WEAPON_FIRE at the entity through CAudioEngine::ReportWeaponEvent (iOS 0x100171164) to the global weapon entity:
+ // the camera's shutter (43, photo.scm's photographer) and the M4 (31, DRUGS4 and ZERO4). At a point the camera's is
+ // WEAPONS sound 45 played there (HEIST1), and the M4's nothing.
+ 1132:{weapon:43,atPoint:r(WEAPONS,45)},1157:{weapon:31},
+ // AE_EXPLOSION, at no extra volume, from the script entity's own CAEExplosionAudioEntity (iOS +0x210) at the entity or
+ // the point (RYDER3, CASINO2).
+ 1159:{explosion:true},
+ // CAECollisionAudioEntity::ReportWaterSplash at the point, 6 dB down (WUZI2, SYN5). At an entity it is the physical's
+ // ReportWaterSplash(physical, -6, false), which no script reports.
+ 1144:{splash:-6},
+ // CAEVehicleAudioEntity::EnableHelicoptors and DisableHelicoptors (iOS 0x10015fda0, 0x10015fdb0; the boat school's):
+ // the first, for all its name, sets s_HelicoptorsDisabled, which silences every helicopter, and the second clears it.
+ 1000:{helicoptersSilent:true},1001:{helicoptersSilent:false},
 };
 /** CAEScriptAudioEntity's mission bank slots begin at 26 (SND_BANK_SLOT_MISSION_*): a script slot's bank sits at 26
  * plus its index. */
@@ -117,8 +133,13 @@ export class NativeScriptAudio implements NativeAudioEntity {
  readonly handled=new Map<number,number>();readonly unported=new Map<number,number>();
  /** CAudioEngine's ambience track manager, the host's. */
  ambience?:{playSpecialMissionAmbienceTrack(track:number):void;stopSpecialMissionAmbienceTrack():void};
- /** The script's own CAEDoorAudioEntity. */
- readonly door:NativeDoorAudio;
+ /** The script's own CAEDoorAudioEntity and CAEExplosionAudioEntity. */
+ readonly door:NativeDoorAudio;readonly explosion:NativeExplosionAudio;
+ /** CAudioEngine::ReportWeaponEvent (the global weapon entity's AddAudioEvent), the collision entity's ReportWaterSplash
+  * at a point, and CAEVehicleAudioEntity's s_HelicoptorsDisabled: the host's. */
+ weapon?:(event:number,weapon:number,physical:NativePhysicalEntity)=>void;
+ splash?:(position:NativeVec,volume:number)=>void;
+ helicoptersSilent?:(silent:boolean)=>void;
  /** The time a held sound was last reported (+0x94), whether the roulette's bounce has followed its spin (+0x90), and
   * the gym machines' mode (+0xa0: 1 running, 2 stopping; 2 to begin with). */
  private heardAt=0;private bounced=false;private gymMode=2;
@@ -127,7 +148,9 @@ export class NativeScriptAudio implements NativeAudioEntity {
  /** Each mission audio slot's record bank (m_nBankId): the SCRIPT bank a whole-bank LOAD_MISSION_AUDIO put in it, or -1. */
  readonly missionBanks=[-1,-1,-1,-1];
  constructor(private manager:NativeSoundManager,private bank:NativeBankLoader,private defaultVolume:(event:number)=>number,private random:AudioRandom,
-  private frontend:(event:number,volumeBoost:number,speed:number)=>void){this.door=new NativeDoorAudio(manager,bank,defaultVolume);}
+  private frontend:(event:number,volumeBoost:number,speed:number)=>void){
+  this.door=new NativeDoorAudio(manager,bank,defaultVolume);this.explosion=new NativeExplosionAudio(manager,bank,random,defaultVolume);
+ }
  /** UpdateParameters (iOS 0x100156878), by the sound's event: the held sounds (the dual's thrust, the bee's buzz, the
   * Tempest's shield, Sweet's horn) stop 300 ms (the horn 500) after the last report; the roulette's spin, 4.5 s on,
   * fades 0.1 dB a frame to -40 and slows 0.001 a frame, and at 4.8 s its ball bounces once (1160, one of sounds 1 to 3
@@ -159,7 +182,7 @@ export class NativeScriptAudio implements NativeAudioEntity {
  /** ProcessMissionAudioEvent. */
  processMissionAudioEvent(event:number,at:MissionAudioAt){
   const c=MISSION_AUDIO_EVENTS[event];
-  if(!c){this.unported.set(event,(this.unported.get(event)??0)+1);return;}
+  if(!c||'splash' in c&&'physical' in at){this.unported.set(event,(this.unported.get(event)??0)+1);return;}
   this.handled.set(event,(this.handled.get(event)??0)+1);
   if('frontend' in c){this.frontend(c.frontend,0,c.speed??1);return;}
   if('crane' in c){this.craneEvent(c.crane,event,at);return;}
@@ -168,6 +191,14 @@ export class NativeScriptAudio implements NativeAudioEntity {
   if('ambience' in c){this.ambience?.playSpecialMissionAmbienceTrack(c.ambience);return;}
   if('ambienceStop' in c){this.ambience?.stopSpecialMissionAmbienceTrack();return;}
   const pick=(sound:number|readonly [number,number])=>typeof sound==='number'?sound:randomInt(this.random,sound[0],sound[1]);
+  if('weapon' in c){
+   if('physical' in at)this.weapon?.(AE_WEAPON.fire,c.weapon,at.physical);
+   else if(c.atPoint){const [slot,bank,sound,percent,volume,speed]=c.atPoint;this.playResidentSoundEvent(slot,bank,pick(sound),event,at,volume,speed,percent);}
+   return;
+  }
+  if('explosion' in c){const position='physical' in at?at.physical.position():at.position;if(position)this.explosion.addAudioEvent({...position},0);return;}
+  if('splash' in c){if('position' in at)this.splash?.(at.position,c.splash);return;}
+  if('helicoptersSilent' in c){this.helicoptersSilent?.(c.helicoptersSilent);return;}
   if('custom' in c){
    if(c.custom==='stereo'){for(const [sound,x] of [[0,-1],[1,1]] as const)this.playMissionBankSound(event,{position:{x,y:0,z:0}},sound,3,false,0,2,1);return;}
    // 1028 and 1107: the keypad's sound 0 (or Black Project's 3) when that bank is in slot 28, else Uncle Sam's 3 (4).

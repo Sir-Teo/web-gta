@@ -92,6 +92,8 @@ export class WorldPlane {
  heavy=false;
  /** CHeli::m_fHeliRotorSpeed, 0 to 0.22: the dust, the water gates and the rotor sound read it. */
  rotorSpeed=0;
+ /** Its audio entity's m_IsHelicopterDisabled (DISABLE_HELI_AUDIO): the helicopter makes no sound while set. */
+ heliAudioDisabled=false;
  occupied=false;gearUp=false;throttle=0;grounded=true;stall=false;airspeed=0;altitude=0;
  /** Scripted collective/cyclic input while no player sits aboard (police pursuit). */
  autopilot?:PlaneControls;

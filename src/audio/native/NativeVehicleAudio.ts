@@ -81,6 +81,8 @@ export interface NativeVehicleAudioInput {
  contactSurface?:{grass:boolean;wet:boolean};
  /** CHeli::m_fHeliRotorSpeed and CPlane::m_fPropSpeed. */
  rotorSpeed?:number;propSpeed?:number;
+ /** m_IsHelicopterDisabled, which DISABLE_HELI_AUDIO sets (DisableHelicoptor) and clears (EnableHelicoptor). */
+ helicopterDisabled?:boolean;
  /** COMPONENT_WING_RR world position for helicopters. */
  nearPosition?:NativeVec;
  /** CTrain's m_fTrainSpeed, bClockwiseDirection, bIsFrontCarriage and bNotOnARailRoad, and the carriage's place in its
@@ -96,6 +98,8 @@ export interface NativeVehicleAudioInput {
 export interface NativeVehicleAudioContext {
  manager:NativeSoundManager;bank:NativeBankLoader;random:AudioRandom;
  defaultVolume(event:number):number;
+ /** s_HelicoptorsDisabled, which the scripts' events 1000 and 1001 set and clear. */
+ helicoptersDisabled?:boolean;
  /** CAEWeatherAudioEntity::m_sfRainVolume and CWeather::UnderWaterness. */
  rainVolume():number;underwaterness():number;
  /** s_DummyEngineSlots (0xB6B9A0). */
@@ -900,7 +904,8 @@ export class NativeVehicleAudio implements NativeAudioEntity {
  private processAircraft(){
   if(this.wrecked||!this.loaded(BANK.vehicleGen,SLOT.vehicleGen))return;
   const m=this.modelId;
-  if(this.type===AE_VEHICLE.heli){if(this.isPlayerDriver)this.processDummyOrPlayerHeli(false);else if(this.vehicle.status==='physics')this.processAIHeli();else this.processDummyOrPlayerHeli(true);}
+  // A helicopter silenced (all of them, or this one) is treated as wrecked each frame: its sounds stop.
+  if(this.type===AE_VEHICLE.heli){if(this.ctx.helicoptersDisabled||this.vehicle.helicopterDisabled)this.justWreckedVehicle();else if(this.isPlayerDriver)this.processDummyOrPlayerHeli(false);else if(this.vehicle.status==='physics')this.processAIHeli();else this.processDummyOrPlayerHeli(true);}
   else if(this.type===AE_VEHICLE.plane){
    if(m===MODEL.shamal||m===MODEL.hydra||m===MODEL.at400||m===MODEL.androm){if(this.isPlayerDriver)this.processPlayerJet();else this.processDummyJet();}
    else if(this.isPlayerDriver)this.processDummyOrPlayerProp(false);

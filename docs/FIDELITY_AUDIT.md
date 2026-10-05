@@ -9687,13 +9687,39 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   of the listener. The gym bike's and running machine's loops (GYM_BIKE_START 1113, GYM_RUNNING_MACHINE_START 1118,
   started 18 dB down) rise 0.1 dB a frame to their event's volume while running; their STOP events (1114, 1119) set
   the machines' mode to stopping, and the loop falls 0.1 dB a frame to 18 dB under and stops.
-- **Not yet:** 1000, 1001, 1132, 1144, 1157, 1159, 1163 and 1189 (a ped's or the camera's, a few one-offs), and
-  AE_CRANE_WINCH_MOVE (104), which no script reports. (The
+- **Handed on to other entities** (the iOS handlers from 0x100158034; each checked against the scripts that report
+  it, at an entity or a point):
+  - 1132 (photo.scm's photographer; HEIST1, at points): at an entity, CAudioEngine::ReportWeaponEvent(AE_WEAPON_FIRE,
+    the camera) to the global weapon entity, whose AddAudioEvent (0x4DFAA0) is now ported: WeaponFire's
+    PlayCameraSound, WEAPONS 45 on the entity. At a point, PlayResidentSoundEvent's WEAPONS 45 there.
+  - 1157 (DRUGS4's ped, ZERO4's car): the same for the M4 (31); at a point, nothing.
+  - 1159 (RYDER3's and CASINO2's objects): AE_EXPLOSION, at no extra volume, from the script entity's own
+    CAEExplosionAudioEntity (m_ExplosionAudio, iOS +0x210), at the entity or the point.
+  - 1144 (WUZI2 and SYN5, at points only): CAECollisionAudioEntity::ReportWaterSplash(point, -6) (0x4DA190): the
+    splash (67) at 1.26 and its tail (66) at speed 0, brought in 166 ms on. At an entity it would be
+    ReportWaterSplash(physical, -6, false), which no script reports; such a report is counted as unported.
+  - 1000 and 1001 (BOAT, the boat school): CAEVehicleAudioEntity::EnableHelicoptors and DisableHelicoptors. The first,
+    for all its name, sets s_HelicoptorsDisabled, and ProcessVehicle then treats every helicopter as just wrecked
+    each frame, so its sounds stop; the second clears it. DISABLE_HELI_AUDIO sets one helicopter's
+    m_IsHelicopterDisabled, which the same check reads (DES3, its only user, turns its helicopter back on); it had no
+    adapter and was skipped.
+- **The collision entity's UpdateParameters** (iOS 0x100145b88; gta-reversed has none): a splash's tail (event 2, or
+  3 for a vehicle's) waits at speed 0 and starts at 1.26 (0.94) once its time has come. A vehicle's tail had started
+  at once at 0.94: gta-reversed's ReportWaterSplash(CPhysical*) gives it the splash's speed, which leaves the 248 ms
+  it stores unread; the iOS executable's (0x1001455ac) starts it at 0, as gta-reversed's point splash does. (Its
+  event 128, a glass sound's 0.56, is not delayed in the port.)
+- **Paused channels resume.** CAEAudioChannel::SetFrequencyScalingFactor pauses a channel at 0 and resumes it at any
+  other factor. The port's hardware layer kept a sound started at speed 0 paused for good, so the splash tails and
+  the stealth kill's knife sounds (started at 0 and given 0.84 and 1 later) were never heard.
+- **Not yet:** 1189 (player_parachute.scm's), and AE_CRANE_WINCH_MOVE (104), which no script reports. (The
   mission-bank sounds: see "Mission banks"; the track events: "A mission's own ambience track".) The gate's two (1100, 1101) take the entity's flag at
   +0x92 as clear (sound 70); what sets it is not known. Such reports are counted (`script.unported` in the native
   audio snapshot) and play nothing.
 - Specs: `native-audio` (unit: the forwarded events, the resident sounds' bank, speed, start, front end and entity,
-  the once-only horn, the unported mission-bank event; the new frontend cases); `interior-shops` (browser: buying the
+  the once-only horn, the unported mission-bank event; the new frontend cases; the camera's and the M4's shots at an
+  entity and at a point, the explosion, the splash at a point and its tail heard, the helicopters silenced and
+  sounding again and one silenced alone; a vehicle splash's tail held 248 ms; the stealth kill's knife resumed at
+  0.84); `interior-shops` (browser: buying the
   pistol reports 1052, which plays the purchase pair).
 
 ## Mission banks

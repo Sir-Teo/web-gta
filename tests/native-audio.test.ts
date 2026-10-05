@@ -281,6 +281,61 @@ test("a script's reported sounds: frontend events handed on, resident sounds whe
  e.scriptAudio.processMissionAudioEvent(1189,{position:{x:0,y:0,z:0}});
  expect(e.scriptAudio.unported.get(1189)).toBe(1);
 });
+test("a script's reports handed on: a shot, an explosion, a splash and the helicopters' silencing",async()=>{
+ const e=engine(),key={};await flush();await flush();
+ e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ const of=(entity:NativeAudioEntity)=>e.manager.sounds.filter(s=>s.inUse&&s.entity===entity);
+ // 1132 at the photographer: the global weapon entity's camera shutter (WEAPONS 45) on him; at a point, the script's
+ // own WEAPONS 45 there.
+ const ped={position:()=>({x:2,y:3,z:0})};
+ e.scriptAudio.processMissionAudioEvent(1132,{physical:ped});
+ expect(of(e.globalWeapon).map(s=>[s.slot,s.sound,s.physical===ped])).toEqual([[SLOT.weaponGen,45,true]]);
+ e.scriptAudio.processMissionAudioEvent(1132,{position:{x:4,y:5,z:6}});
+ expect(of(e.scriptAudio).map(s=>[s.slot,s.sound,s.currPos])).toEqual([[SLOT.weaponGen,45,{x:4,y:5,z:6}]]);
+ // 1157 at a car: the M4's shot from the global weapon entity (its dry 33 and low 53 layers among them); at a point,
+ // nothing.
+ const camera1132=new Set(of(e.globalWeapon));
+ e.scriptAudio.processMissionAudioEvent(1157,{physical:{position:()=>({x:0,y:20,z:0})}});
+ expect(of(e.globalWeapon).filter(s=>!camera1132.has(s)).map(s=>s.sound)).toEqual(expect.arrayContaining([33,53]));
+ const after=of(e.globalWeapon).length;e.scriptAudio.processMissionAudioEvent(1157,{position:{x:0,y:20,z:0}});
+ expect(of(e.globalWeapon)).toHaveLength(after);
+ // 1159: an explosion's layers and its front-end pair from the script's own explosion entity.
+ e.scriptAudio.processMissionAudioEvent(1159,{position:{x:7,y:8,z:9}});
+ expect(of(e.scriptAudio.explosion).map(s=>s.sound)).toEqual([4,3,2,1,1]);
+ // 1144 at a point: the splash (67) at 1.26 and its tail (66) held at speed 0, brought in 166 ms on and heard; at an
+ // entity it is not ported (no script reports it there).
+ e.scriptAudio.processMissionAudioEvent(1144,{position:{x:1,y:2,z:3}});
+ const splash=()=>of(e.collisions).map(s=>[s.sound,+s.speed.toFixed(2)]);
+ expect(splash()).toEqual([[67,1.26],[66,0]]);
+ for(let i=0;i<8;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();}
+ expect(splash()).toContainEqual([66,1.26]);
+ const tail=e.bank.sound(SLOT.collisions,66);
+ expect(e.manager.hardware.channels.some(c=>c.playing&&c.sound===tail&&!c.paused)).toBe(true);
+ e.scriptAudio.processMissionAudioEvent(1144,{physical:ped});expect(e.scriptAudio.unported.get(1144)).toBe(1);
+ // 1000 silences every helicopter (its sounds stop as a wreck's do) and 1001 lets them sound again; DISABLE_HELI_AUDIO
+ // silences one.
+ const heli=car({status:'player',playerDriver:true,playerInVehicle:true,rotorSpeed:.22,padAccelerate:1,transmission:undefined,wheels:undefined});
+ await frames(e,key,487,()=>heli,6);
+ const audio=e.vehicle(key,487)!,sounding=()=>audio.engineSounds.some(Boolean);
+ expect(sounding()).toBe(true);
+ e.scriptAudio.processMissionAudioEvent(1000,{position:{x:0,y:0,z:0}});expect(e.helicoptersDisabled).toBe(true);
+ await frames(e,key,487,()=>heli,2);expect(sounding()).toBe(false);
+ e.scriptAudio.processMissionAudioEvent(1001,{position:{x:0,y:0,z:0}});
+ await frames(e,key,487,()=>heli,6);expect(sounding()).toBe(true);
+ await frames(e,key,487,()=>({...heli,helicopterDisabled:true}),2);expect(sounding()).toBe(false);
+});
+test("the stealth kill's knife, started at speed 0, is heard once UpdateParameters gives it a speed",async()=>{
+ const e=engine();await flush();await flush();
+ e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
+ e.combat('impact',4,{x:0,y:3,z:0},'stealth');
+ const knife=()=>e.manager.sounds.find(s=>s.inUse&&s.slot===SLOT.weaponGen&&s.sound===81)!;
+ const buffer=e.bank.sound(SLOT.weaponGen,81),channel=()=>e.manager.hardware.channels.find(c=>c.playing&&c.sound===buffer);
+ e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();
+ expect(knife().speed).toBe(0);expect(channel()?.paused).toBe(true);
+ // 820 ms on, the knife goes in at 0.84 (CAEWeaponAudioEntity::UpdateParameters), and its channel resumes.
+ for(let i=0;i<30;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();}
+ expect(knife().speed).toBe(.84);expect(channel()?.paused).toBe(false);
+});
 test('the frontend plays the purchase, refusal, race and garage sounds as the iOS executable does',async()=>{
  const e=engine();await flush();await flush();
  e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));
@@ -433,9 +488,14 @@ test('vehicles falling into water report a splash pair once per splash',async()=
  // Settling on the surface is silent; a fall faster than 0.1 units per frame splashes.
  e.vehicleWaterSplash(plane,{x:0,y:10,z:0},{x:0,y:0,z:-.05});expect(splashes()).toHaveLength(0);
  e.vehicleWaterSplash(plane,{x:0,y:10,z:0},{x:0,y:0,z:-.3});
- expect(splashes().map(s=>[s.sound,s.event,+s.volume.toFixed(2),s.speed,s.rollOff])).toEqual([[67,1,-10.46,.94,2.5],[66,3,-10.46,.94,2.5]]);
+ // The tail (66) waits at speed 0 until UpdateParameters brings it in at 0.94, 248 ms on.
+ expect(splashes().map(s=>[s.sound,s.event,+s.volume.toFixed(2),s.speed,s.rollOff])).toEqual([[67,1,-10.46,.94,2.5],[66,3,-10.46,0,2.5]]);
  // While its own splash plays, the vehicle does not start another.
  e.vehicleWaterSplash(plane,{x:0,y:10,z:0},{x:0,y:0,z:-.5});expect(splashes()).toHaveLength(2);
+ for(let i=0;i<4;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();}
+ expect(splashes().find(s=>s.sound===66)!.speed).toBe(0);
+ for(let i=0;i<6;i++){e.frame(NATIVE_AUDIO_FRAME_MS,()=>({camera:camera(),vehicles:[]}));await flush();}
+ expect(splashes().find(s=>s.sound===66)!.speed).toBe(.94);
  e.vehicleWaterSplash({},{x:5,y:10,z:0},{x:0,y:0,z:-2});expect(splashes().at(-1)!.volume).toBeCloseTo(-4.44,2);
 });
 test('hull wave hits play the splash end at clamp(volume/800), throttled per hull',async()=>{

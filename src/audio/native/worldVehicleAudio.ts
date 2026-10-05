@@ -78,7 +78,7 @@ export function worldPlaneAudioInput(plane:WorldPlane,playerAlive:boolean,pad:{a
   status:!alive?'wrecked':plane.occupied?'player':plane.autopilot?'physics':'abandoned',playerDriver:plane.occupied,playerInVehicle:plane.occupied,playerAlive,
   engineOn,gasPedal:plane.throttle,brakePedal:0,handbrake:false,gear:0,padAccelerate:plane.occupied?pad.accelerate:0,padBrake:plane.occupied?pad.brake:0,
   health:plane.health,drowning:plane.drowning,underwater:false,towing:false,horn:{counter:0,pattern:0},sirenOrAlarm:false,alarmState:0,
-  rotorSpeed:plane.helicopter?plane.rotorSpeed:plane.throttle*.22,propSpeed:plane.throttle*.34,
+  rotorSpeed:plane.helicopter?plane.rotorSpeed:plane.throttle*.22,propSpeed:plane.throttle*.34,helicopterDisabled:plane.heliAudioDisabled,
   // A seaplane's hull skims the water as a boat's does (bBoatInWater).
   boat:{engineSpeed:0,inWater:plane.inWater}};
 }

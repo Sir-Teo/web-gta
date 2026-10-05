@@ -2219,6 +2219,9 @@ export class ScmMission {
    // The car's own fields the script sets that the browser's cars keep but do not act on: the heli's rotor speed,
    // CVehicle's status, and CAutomobile::m_fCarTraction.
    setHeliBladesFullSpeed:handle=>{(this.liveVehicle(handle) as {rotorFullSpeed?:boolean}).rotorFullSpeed=true;},
+   // DISABLE_HELI_AUDIO: the vehicle audio entity's EnableHelicoptor (true) or DisableHelicoptor (false), kept on the
+   // helicopter for its audio (DES3 turns its helicopter's back on).
+   setHeliAudio:(handle,enabled)=>{(this.liveVehicle(handle) as {heliAudioDisabled?:boolean}).heliAudioDisabled=!enabled;},
    setVehicleStatus:(handle,status)=>{(this.liveVehicle(handle) as {scriptStatus?:number}).scriptStatus=status;},
    setVehicleTraction:(handle,traction)=>{(this.liveVehicle(handle) as {carTraction?:number}).carTraction=traction;},
    // POINT_CAMERA_AT_CAR and POINT_CAMERA_AT_CHAR: CCamera::TakeControl on the entity for the script (2).

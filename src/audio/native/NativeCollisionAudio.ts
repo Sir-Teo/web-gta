@@ -113,8 +113,19 @@ export class NativeCollisionAudio implements NativeAudioEntity {
   else if(f?.gravel||f?.concrete||f?.tile)play(13,15);
   else play(1,3);
  }
+ /** ReportWaterSplash(CVector, volume) (0x4DA190): the splash (67) at the point at 1.26, and its tail (66) waiting at
+  * speed 0 for UpdateParameters to bring it in 166 ms on. Both at AE_WATER_SPLASH's volume plus the offset, rolled off
+  * at 2.5. */
+ reportWaterSplashAt(position:NativeVec,volume:number){
+  if(!this.bank.isSoundBankLoaded(BANK.collisions,SLOT.collisions)){this.bank.loadSoundBank(BANK.collisions,SLOT.collisions);return;}
+  const at={...position},v=this.defaultVolume(AE_WATER_SPLASH)+volume;
+  this.manager.playSound({slot:SLOT.collisions,sound:67,entity:this,position:at,volume:v,rollOff:2.5,speed:1.26,flags:SOUND.requestUpdates,event:1});
+  this.manager.playSound({slot:SLOT.collisions,sound:66,entity:this,position:{...at},volume:v,rollOff:2.5,speed:0,flags:SOUND.requestUpdates,event:2,clientVariable:this.time+166});
+ }
  /** ReportWaterSplash(CPhysical*, -100, false) (0x4DAE40) for a vehicle: only while it falls faster than 0.1 units per frame and no splash of its
-  * own is still playing, a pair of splash samples at 0.94 speed, louder with speed (20·log10(min(0.6, |v|)), at least −18 dB). */
+  * own is still playing, a pair of splash samples at 0.94 speed, louder with speed (20·log10(min(0.6, |v|)), at least −18 dB).
+  * The tail (66) waits at speed 0 until UpdateParameters starts it 248 ms on, as the iOS executable's (0x1001455ac) has
+  * it; gta-reversed gives it the splash's speed at once, which would leave its time unread. */
  /** CAECollisionAudioEntity::ReportGlassCollisionEvent: collision-bank sounds 51 (hit), 68 (crack), 56 (break, at
   * 0.75 speed when slow) and 15 to 18 (a pane landing, at 0.56 when slow), rolled off at 1.5. */
  reportGlassCollisionEvent(event:'hit'|'crack'|'breakSlow'|'breakFast'|'hitGround'|'hitGroundSlow',pos:NativeVec){
@@ -131,7 +142,7 @@ export class NativeCollisionAudio implements NativeAudioEntity {
    const position=physical.position();if(!position)return;
    const volume=Math.max(audioLog10(Math.min(.6,Math.hypot(moveSpeed.x,moveSpeed.y,moveSpeed.z)))*20,-18)+this.defaultVolume(AE_WATER_SPLASH);
    this.manager.playSound({slot:SLOT.collisions,sound:67,entity:this,position,volume,rollOff:2.5,speed:.94,flags:SOUND.requestUpdates,event:1});
-   this.manager.playSound({slot:SLOT.collisions,sound:66,entity:this,position,volume,rollOff:2.5,speed:.94,flags:SOUND.requestUpdates|SOUND.lifespanTiedToEntity,physical,event:3,clientVariable:this.time+248});
+   this.manager.playSound({slot:SLOT.collisions,sound:66,entity:this,position,volume,rollOff:2.5,speed:0,flags:SOUND.requestUpdates|SOUND.lifespanTiedToEntity,physical,event:3,clientVariable:this.time+248});
   }
   /** Keyed weakly: a hull the streamer drops takes its entry with it. */
   private waveLast=new WeakMap<object,number>();
@@ -164,7 +175,12 @@ export class NativeCollisionAudio implements NativeAudioEntity {
   }
  }
  /** Finished one-shots leave the list so a new impact can start (CAECollisionAudioEntity::UpdateParameters port). */
+ /** UpdateParameters (iOS 0x100145b88; gta-reversed has none): a splash's tail (event 2, or 3 for a vehicle's) starts,
+  * at 1.26 (0.94), once its time has come; the splash itself (1) needs nothing; else a collision's sound that has
+  * ended frees its entry. */
  updateParameters(sound:NativeSound,playPosition:number){
+  if(sound.event===1)return;
+  if(sound.event===2||sound.event===3){if(playPosition>=0&&this.time>=sound.clientVariable)sound.speed=sound.event===2?1.26:.94;return;}
   if(playPosition!==-1)return;
   const e=this.list.find(e=>e.sound===sound);if(!e)return;
   Object.assign(e,{a:undefined,b:undefined,sound:undefined,status:STATUS.inactive,loopStop:0,surfaceA:195,surfaceB:195});this.active=Math.max(0,this.active-1);
