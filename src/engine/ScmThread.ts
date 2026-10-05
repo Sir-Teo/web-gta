@@ -95,6 +95,14 @@ export type ScmScriptedTask=
  |{kind:'fleePed';threat:number;radius:number;time:number}
  |{kind:'fleePoint';x:number;y:number;z:number;radius:number;time:number}
  |{kind:'handsUp';time:number}
+ /** TASK_GOTO_CHAR_AIMING: CTaskComplexSeekEntityAiming, the handle sought to `seekRadius` and aimed at within
+  * `aimRadius`. */
+ |{kind:'gotoPedAiming';target:number;seekRadius:number;aimRadius:number}
+ /** TASK_GO_TO_COORD_WHILE_AIMING: CTaskComplexGoToPointAiming, to a point at eMoveState, aiming at a ped's handle
+  * (-1 none) or else at a point. */
+ |{kind:'goToCoordWhileAiming';x:number;y:number;z:number;speed:number;targetRadius:number;slowDownDistance:number;aimPed:number;aimX:number;aimY:number;aimZ:number}
+ /** TASK_COWER: CTaskSimpleCower. */
+ |{kind:'cower'}
  |{kind:'jump';state:boolean}
  |{kind:'sitDown';time:number}
  |{kind:'drivePointRouteAdvanced';vehicle:number;speed:number;driveMode:number;model:number|string;drivingStyle:number}
@@ -743,6 +751,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setBoatCruiseSpeed?(handle:number,speed:number):void;
  heliFollowEntity?(handle:number,ped:number,vehicle:number,radius:number):void;
  setSearchlightClipIfColliding?(handle:number,state:boolean):void;
+ /** IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE: a law-enforcement vehicle (not the Predator) with its position in the box. */
+ copVehicleInArea3d?(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number}):boolean;
  areaIsOccupied?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number},
   flags:{solid:boolean;vehicles:boolean;peds:boolean;objects:boolean;particles:boolean}):boolean;
  createFxSystemOnVehicleWithDirection?(name:string,vehicle:number,offset:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},ignoreBoundingChecks:boolean):number;

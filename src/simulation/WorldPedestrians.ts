@@ -166,8 +166,12 @@ export interface Pedestrian {
   |{kind:'duckFor';remaining:number}
   /** CTaskSimpleGunControl: a renderer point or a ped (the player when neither) to aim at, firing or not. */
   |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number}
-  /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. */
-  |{kind:'goToPointShooting';x:number;z:number;y?:number;moveState:number;radius:number;target?:Pedestrian;player:boolean}
+  /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. With
+   * `aimOnly` (CTaskComplexGoToPointAiming) the gun is aimed and not fired, at the ped or else at `point` (renderer). */
+  |{kind:'goToPointShooting';x:number;z:number;y?:number;moveState:number;radius:number;target?:Pedestrian;player:boolean;aimOnly?:boolean;point?:{x:number;y:number;z:number}}
+  /** CTaskComplexSeekEntityAiming: after a ped (undefined for the player): `seek` to `seekRadius`, aiming within
+   * `aimRadius`, then `stand` aiming for `remaining` seconds (or until it is `seekRadius` off again). */
+  |{kind:'seekAiming';target?:Pedestrian;seekRadius:number;aimRadius:number;phase:'seek'|'stand';remaining:number}
   /** CTaskComplexDestroyCar on a script car: armed or melee, and the subtask it is in. `seek` is CTaskComplexSeekEntity;
    * `attack` is CTaskSimpleGunControl (for `remaining` seconds) or CTaskSimpleFightingControl; `first` is before
    * CreateFirstSubTask has looked at the range. */
@@ -438,6 +442,9 @@ const ENTER_CAR_DOOR_RADIUS=.5,ENTER_CAR_SLOW_DOWN_DISTANCE=4,ENTER_CAR_SEEK_SEC
 /** CTaskSimpleGoToPoint's radius in CTaskComplexFollowPointRoute; the seek task's walk inside 2 units of its target
  * (CEntitySeekPosCalculator's move-state radius, taken as the go-to task's). */
 const GO_TO_POINT_RADIUS=.5,GO_TO_PED_WALK_DISTANCE=2;
+/** CTaskComplexSeekEntityAiming's subtasks: CTaskComplexSeekEntity's 50,000 ms at most, and CTaskSimpleStandStill's
+ * 2,000. */
+const SEEK_ENTITY_MAX_SECONDS=50,SEEK_AIMING_STAND_SECONDS=2;
 /** CTaskComplexChat's sub-tasks run 999999 ms; its lead speaker gives up after fifty silent frames. */
 const CHAT_SECONDS=999.999,CHAT_SILENT_FRAMES=50,CHAT_CLIP='idle_chat';
 /** CTaskComplexDestroyCarArmed's CTaskSimpleGunControl lasts 5000 ms. The melee task fights inside the car's bound
@@ -1816,9 +1823,16 @@ export class WorldPedestrians {
    case 'decisionMaker':ped.decisionMaker=order.index;break;
    case 'kindaStayInSamePlace':this.setFlag(ped,'kindaStayInSamePlace',order.state);break;
    case 'goToPointShooting':{
-    const resolved=this.resolveScriptPed?.(order.target);if(!resolved)break;
+    // Aiming at a point, there is no ped to look for.
+    const point=order.aimOnly&&order.aimPoint&&order.target===-1?{x:order.aimPoint.x,y:order.aimPoint.z,z:-order.aimPoint.y}:undefined;
+    const resolved=point?undefined:this.resolveScriptPed?.(order.target);if(!point&&!resolved)break;
     ped.order={kind:'goToPointShooting',x:order.x,z:-order.y,y:order.z>MAP_Z_LOW_LIMIT?order.z:undefined,moveState:order.moveState,radius:order.radius,
-     target:resolved==='player'?undefined:resolved,player:resolved==='player'};ped.flee=0;ped.loiter=false;
+     target:resolved&&resolved!=='player'?resolved:undefined,player:resolved==='player',aimOnly:order.aimOnly,point};ped.flee=0;ped.loiter=false;
+    break;
+   }
+   case 'seekAiming':{
+    const target=this.resolveScriptPed?.(order.target);if(!target)break;
+    ped.order={kind:'seekAiming',target:target==='player'?undefined:target,seekRadius:order.seekRadius,aimRadius:order.aimRadius,phase:'seek',remaining:SEEK_ENTITY_MAX_SECONDS};ped.flee=0;ped.loiter=false;
     break;
    }
    case 'gunAt':{
@@ -3430,6 +3444,20 @@ export class WorldPedestrians {
        orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;
       }
      }
+    }else if(p.order.kind==='seekAiming'){
+     const o=p.order,q=p.actor.player.position;dx=0;dz=0;
+     const holder=o.target?(o.target.health>0&&this.people.includes(o.target)?o.target.actor.player:undefined):this.sim.player;
+     // The sought ped gone, the task has nothing to seek (CreateNextSubTask answers nothing).
+     if(!holder)this.startNextOrder(p);
+     else{
+      const gx=holder.position.x-q.x,gz=holder.position.z-q.z,distance=Math.hypot(gx,gz);
+      o.remaining-=dt;
+      if(o.phase==='stand'){
+       // CTaskSimpleStandStill{2000}, cut short once the ped is seekRadius off; then the seek again.
+       if(o.remaining<=0||distance>=o.seekRadius){o.phase='seek';o.remaining=SEEK_ENTITY_MAX_SECONDS;}
+      }else if(distance<=o.seekRadius||o.remaining<=0){o.phase='stand';o.remaining=SEEK_AIMING_STAND_SECONDS;}
+      else{({x:dx,z:dz}=this.roundCars(p,holder.position,cars));orderSpeed=goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)>=6?p.runSpeed:p.walkSpeed;}
+     }
     }else if(p.order.kind==='gotoPed'){
      const o=p.order,q=p.actor.player.position;dx=0;dz=0;
      const holder=o.target?(o.target.health>0&&this.people.includes(o.target)?o.target.actor.player:undefined):this.sim.player;
@@ -3663,7 +3691,12 @@ export class WorldPedestrians {
    // CTaskComplexKillPedOnFoot aims at its threat (TaskAllocatorKillThreatsBasic hands a group member the leader's
    // attacker): a retaliating ped's live foe, otherwise the player. A follower never turns its gun on him.
    const gunFoe=p.retaliate>0&&p.foe&&p.foe.health>0?p.foe:undefined;
-   const gunOrder=p.order?.kind==='gunAt'||p.order?.kind==='goToPointShooting'?p.order:undefined;
+   // CTaskComplexSeekEntityAiming aims (ControlGun AIM) standing, or seeking within its aim radius; out of it, its gun
+   // is put away (END_LEISURE).
+   const seekAim=p.order?.kind==='seekAiming'?p.order:undefined;
+   const seekAimHolder=seekAim&&(seekAim.target?seekAim.target.actor.player:this.sim.player);
+   const seekAiming=!!seekAim&&!!seekAimHolder&&(seekAim.phase==='stand'||Math.hypot(seekAimHolder.position.x-state.position.x,seekAimHolder.position.z-state.position.z)<seekAim.aimRadius);
+   const gunOrder=p.order?.kind==='gunAt'||p.order?.kind==='goToPointShooting'||seekAiming&&p.order?.kind==='seekAiming'?p.order:undefined;
    const carToShoot=p.order?.kind==='destroyCar'&&!p.order.melee&&p.order.phase==='attack'?this.resolveScriptVehicle?.(p.order.vehicle)?.entity():undefined;
    if(carToShoot&&!carToShoot.wrecked&&p.weapon&&p.health>0&&p.down===0&&!p.officer){
     // CTaskSimpleGunControl on the car: face it and fire at its middle (spotTarget aims a unit above what it is given).
@@ -3673,14 +3706,16 @@ export class WorldPedestrians {
     gunEngaged=spot.distance<p.weapon.info.weaponRange;
    }else if(gunOrder&&p.weapon&&p.health>0&&p.down===0&&!p.officer){
     // A script's gun task: the point itself (spotTarget aims a unit above what it is given), or the ped's body.
-    const point=gunOrder.kind==='gunAt'?gunOrder.point:undefined;
+    const point=gunOrder.kind==='gunAt'||gunOrder.kind==='goToPointShooting'?gunOrder.point:undefined;
     const at=point?{...point,y:point.y-1}:gunOrder.target?gunOrder.target.actor.player.position:this.sim.player.position;
     spot=this.spotTarget(p,at,cars,gunOrder.target);
     // Standing, the ped turns to what it aims at; on the move it keeps its heading and aims the gun.
-    if(gunOrder.kind==='gunAt')state.heading=Math.atan2(spot.offset.x,spot.offset.z);
+    if(gunOrder.kind==='gunAt'||gunOrder.kind==='seekAiming'&&gunOrder.phase==='stand')state.heading=Math.atan2(spot.offset.x,spot.offset.z);
     p.view.setWeaponPose('police_fire');this.aimGun(p,spot.offset,spot.aim);gunHold=0;
     const alive=gunOrder.target?gunOrder.target.health>0:gunOrder.kind==='gunAt'&&gunOrder.point?true:this.sim.player.health>0;
-    gunEngaged=(gunOrder.kind==='goToPointShooting'||gunOrder.fire)&&alive&&spot.distance<p.weapon.info.weaponRange;
+    // Aiming alone (CTaskComplexGoToPointAiming, CTaskComplexSeekEntityAiming) never fires.
+    const fires=gunOrder.kind==='goToPointShooting'?!gunOrder.aimOnly:gunOrder.kind==='gunAt'&&gunOrder.fire;
+    gunEngaged=fires&&alive&&spot.distance<p.weapon.info.weaponRange;
    }else if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0&&(gunFoe||!p.follow)){
     spot=this.spotTarget(p,gunFoe?gunFoe.actor.player.position:this.sim.player.position,cars,gunFoe);
     p.view.setWeaponAim();p.view.setWeaponPose();

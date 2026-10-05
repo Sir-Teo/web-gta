@@ -2206,6 +2206,8 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'setSearchlightClipIfColliding')(t.readInt(p[0]),bool(t,p[1]));
  },
  // The occupied question names five kinds of thing that may be standing in the box, as the line of sight does.
+ // The iOS executable's handler (0x100203f2c; absent from gta-reversed).
+ IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'copVehicleInArea3d')(vec(t,p,0),vec(t,p,3)),negated(i));},
  IS_AREA_OCCUPIED:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'areaIsOccupied')(vec(t,p,0),vec(t,p,3),
    {solid:bool(t,p[6]),vehicles:bool(t,p[7]),peds:bool(t,p[8]),objects:bool(t,p[9]),particles:bool(t,p[10])}),negated(i));
@@ -2476,7 +2478,14 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_THIS_MODEL_A_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isThisModelACar')(model(t,i,p[0])),negated(i));},
  // The garage is named by its text label, as the other garage commands name it.
  SET_TARGET_CAR_FOR_MISSION_GARAGE:(t,p,i)=>{const car=t.readInt(p[1]);game(t,i).garages.setTargetCar(t.text(p[0]),car>0?car:undefined);},
- TASK_GO_TO_COORD_WHILE_AIMING:(t,p,i)=>{world(t,i,'taskGoToCoordWhileAiming')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readInt(p[7]),t.readFloat(p[8]),t.readFloat(p[9]),t.readFloat(p[10]));},
+ TASK_GO_TO_COORD_WHILE_AIMING:(t,p,i)=>{
+  const point=vec(t,p,1),aim=vec(t,p,8);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'goToCoordWhileAiming',...point,speed:t.readInt(p[4]),targetRadius:t.readFloat(p[5]),slowDownDistance:t.readFloat(p[6]),
+   aimPed:t.readInt(p[7]),aimX:aim.x,aimY:aim.y,aimZ:aim.z});
+ },
+ // The iOS executable's handler (0x1001f8370; gta-reversed's is commented out): CTaskComplexSeekEntityAiming(target,
+ // seek radius, aim radius).
+ TASK_GOTO_CHAR_AIMING:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'gotoPedAiming',target:t.readInt(p[1]),seekRadius:t.readFloat(p[2]),aimRadius:t.readFloat(p[3])});},
  ADD_UPSIDEDOWN_CAR_CHECK:(t,p,i)=>{game(t,i).upsideDownCars.add(t.readInt(p[0]));},
  REMOVE_UPSIDEDOWN_CAR_CHECK:(t,p,i)=>{game(t,i).upsideDownCars.remove(t.readInt(p[0]));},
  IS_CAR_STUCK_ON_ROOF:(t,p,i)=>{t.updateCompareFlag(game(t,i).upsideDownCars.hasBeenUpsideDownForAWhile(t.readInt(p[0])),negated(i));},
@@ -2581,7 +2590,7 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_CAR_BLOCKING_CAR:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCarBlockingCar')(t.readInt(p[0])));},
  GET_PARKING_NODE_IN_AREA:(t,p,i)=>{const result=world(t,i,'getParkingNodeInArea')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]));t.writeFloat(p[6],result.x);t.writeFloat(p[7],result.y);t.writeFloat(p[8],result.z);},
  IS_CHAR_IN_AREA_IN_CAR_3D:charInArea(true,'car'),
- TASK_COWER:(t,p,i)=>{world(t,i,'taskCower')(t.readInt(p[0]));},
+ TASK_COWER:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'cower'});},
  // Only a Pay 'n' Spray resprays a car, and none is ported, so none has been.
  // vehicleFlags.bHasBeenResprayed, which a Pay 'n' Spray sets: read and cleared.
  HAS_CAR_BEEN_RESPRAYED:(t,p,i)=>{t.updateCompareFlag(!!t.host?.world?.carBeenResprayed?.(t.readInt(p[0])),negated(i));},

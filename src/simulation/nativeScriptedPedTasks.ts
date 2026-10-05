@@ -67,8 +67,14 @@ export type ScriptedPedOrder=
  /** CTaskSimpleGunControl for TASK_AIM_GUN_AT_* and TASK_SHOOT_AT_*: stand, face the target (a point in the script's
   * coordinates, or a ped's handle) and aim, firing when `fire`, for `seconds`. */
  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number}
- /** CTaskComplexGoToPointShooting: to a point at eMoveState, stopping inside `radius`, firing at a ped on the way. */
- |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number}
+ /** CTaskComplexGoToPointShooting: to a point at eMoveState, stopping inside `radius`, firing at a ped on the way. With
+  * `aimOnly`, CTaskComplexGoToPointAiming: the gun aimed and not fired, at the ped (a handle; -1 none) or else at
+  * `aimPoint` (script coordinates). */
+ |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number;aimOnly?:boolean;aimPoint?:{x:number;y:number;z:number}}
+ /** CTaskComplexSeekEntityAiming (0x694B90 on, reversed): seek a ped to `seekRadius` (CTaskComplexSeekEntity, 50 s
+  * at most), aiming at it once within `aimRadius`; there, stand still aiming for 2 s, or until it is `seekRadius` off
+  * again, and seek again. Never over on its own. */
+ |{kind:'seekAiming';target:number;seekRadius:number;aimRadius:number}
  /** CTaskComplexDestroyCar: with a gun, CTaskComplexDestroyCarArmed (seek the car into half the weapon's range and
   * shoot it); unarmed, CTaskComplexDestroyCarMelee (seek it into its bound radius and fight it). Over once the car
   * is wrecked. A ped in a car leaves it first, which the mission does before the ped is given this. */
@@ -189,6 +195,16 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // CTaskSimpleHandsUp: HANDSUP held for the task's time.
   case 'handsUp':return {kind:'playAnim',file:'PED',name:'handsup',loop:false,keepLastFrame:true,seconds:seconds(task.time),release:true};
   case 'toggleDuck':return {kind:'duck',crouch:task.state};
+  case 'gotoPedAiming':return world.ped(task.target)?{kind:'seekAiming',target:task.target,seekRadius:task.seekRadius,aimRadius:task.aimRadius}:undefined;
+  // AUTHORED: CTaskComplexGoToPointAiming's CreateFirstSubTask and ControlSubTask are unreversed; it goes as
+  // CTaskComplexGoToPointShooting does with the gun aimed and never fired.
+  case 'goToCoordWhileAiming':{
+   const atPed=task.aimPed!==-1&&world.ped(task.aimPed);
+   return {kind:'goToPointShooting',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:task.targetRadius>0?task.targetRadius:GO_STRAIGHT_TARGET_RADIUS,
+    target:atPed?task.aimPed:-1,aimOnly:true,aimPoint:atPed?undefined:{x:task.aimX,y:task.aimY,z:task.aimZ}};
+  }
+  // CTaskSimpleCower: CTaskSimpleRunAnim of HANDSCOWER (not looped, removed once over), and then the task is.
+  case 'cower':return {kind:'playAnim',file:'PED',name:'handscower',loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY};
   case 'goToCoordWhileShooting':return world.ped(task.target)?{kind:'goToPointShooting',x:task.x,y:task.y,z:task.z,moveState:task.speed,
    radius:task.stopRadius>0?task.stopRadius:GO_STRAIGHT_TARGET_RADIUS,target:task.target}:undefined;
   case 'destroyCar':return world.vehicle?.(task.vehicle)?{kind:'destroyCar',vehicle:task.vehicle}:undefined;

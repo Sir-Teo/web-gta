@@ -8949,6 +8949,24 @@ that did anything.
     `progression` (unit: the kept cars round the save); `safehouse-garage` (browser: the Johnson house garage, cjsafe,
     opens for CJ walking up and shuts when he walks off; a Sadler parked in it is kept and gone when the door comes
     down, written to the save, and stands where it was in its paint when he comes back).
+- **The police pounds' script runs** (impound.scm: the pounds' barrier gates, their guards and the police cars parked
+  in them). MAIN's IMPND_L starts it within 120 units of a police station once $7464 is set; it had been held back from
+  streaming in, as it stopped at IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE and MAIN would have started it again every pass.
+  - **IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE** (absent from gta-reversed; the iOS handler at 0x100203f2c): the box's axes
+    put in order, and true for any vehicle of CVehicle::IsLawEnforcementVehicle's models (iOS 0x100479618) but the
+    Predator with its position in the box, ends included; wrecked or empty ones count. With it a police car at a
+    pound's barrier, its guard in the booth, lifts the barrier.
+  - **TASK_GOTO_CHAR_AIMING** (the iOS handler at 0x1001f8370: CTaskComplexSeekEntityAiming(target, seek radius, aim
+    radius); gta-reversed's handler is commented out, the task reversed): the ped seeks its target to the seek radius
+    (CTaskComplexSeekEntity, 50 s at most), aiming at it once inside the aim radius and putting the gun away outside it;
+    there it stands aiming for 2 s, or until the target is the seek radius off, and seeks again. It never ends itself.
+  - **TASK_GO_TO_COORD_WHILE_AIMING** (AUTHORED: CTaskComplexGoToPointAiming's CreateFirstSubTask and ControlSubTask are
+    unreversed): as TASK_GO_TO_COORD_WHILE_SHOOTING's task, with the gun aimed at the ped or else at the point and
+    never fired.
+  - **TASK_COWER**: CTaskSimpleCower, HANDSCOWER played once (not looped, removed when over).
+  - **Not followed:** GET_CHAR_HIGHEST_PRIORITY_EVENT stays skipped (the port has no ped event queue to read).
+  - Specs: `impound-script` (browser: $7464 set by CJ's Los Santos police station, IMPND running with nothing given up,
+    the barrier shut without a police car, and with one at it lifting, then up).
 - **The Las Venturas car park fills** (CREATE_RANDOM_CAR_FOR_CAR_PARK, absent from gta-reversed; the iOS
   executable's handler at 0x1001d95ac). MAIN streams carpark1.scm in while CJ is in the car park's area once its two
   flags are set, and the script parks three cars on each storey while he is on it and clears the storey of cars when
@@ -8960,7 +8978,8 @@ that did anything.
     (ClearSpaceForMissionEntity), RANDOM_VEHICLE, STATUS_ABANDONED, engine off and bIsCarParkVehicle, unlocked; a
     motorbike as a bike. Far off (over 140 units, out of sight) and not taken, it goes as a generator's car does.
   - **Not followed:** CCarCtrl::JoinCarWithRoadSystem and the autopilot fields the handler resets (a parked car has no
-    route here).
+    route here). A car park's motorbike CJ rides away is culled by the bikes' own 350-unit rule (the port's cull lists
+    of cars he drove hold cars only).
   - Specs: `car-park` (browser: the flags set, CJ on the ground floor, CARPRK1 running and three abandoned random cars
     parked, one at the script's first spot).
 - **The police impounds keep the player's cars** (CGarages::StoreCarInNearestImpoundingGarage, unreversed in

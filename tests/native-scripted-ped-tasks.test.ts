@@ -21,6 +21,19 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'pause',time:750},world({}))).toEqual({kind:'standStill',seconds:.75});
  });
 
+ test("the pound guards' tasks: seeking a ped while aiming, going to a point aiming, cowering",()=>{
+  // TASK_GOTO_CHAR_AIMING: CTaskComplexSeekEntityAiming(target, seek radius, aim radius); nothing for a ped gone.
+  expect(scriptedPedOrder({kind:'gotoPedAiming',target:7,seekRadius:5,aimRadius:10},world({7:{x:1,y:2,z:3}}))).toEqual({kind:'seekAiming',target:7,seekRadius:5,aimRadius:10});
+  expect(scriptedPedOrder({kind:'gotoPedAiming',target:8,seekRadius:5,aimRadius:10},world({}))).toBeUndefined();
+  // TASK_GO_TO_COORD_WHILE_AIMING: aimed at a point when no ped is named, at the ped when one is; a radius of nothing is
+  // the go-to's own.
+  const go={kind:'goToCoordWhileAiming' as const,x:1,y:2,z:3,speed:6,targetRadius:1,slowDownDistance:5,aimPed:-1,aimX:4,aimY:5,aimZ:6};
+  expect(scriptedPedOrder(go,world({}))).toEqual({kind:'goToPointShooting',x:1,y:2,z:3,moveState:6,radius:1,target:-1,aimOnly:true,aimPoint:{x:4,y:5,z:6}});
+  expect(scriptedPedOrder({...go,aimPed:7,targetRadius:0},world({7:{x:0,y:0,z:0}}))).toEqual({kind:'goToPointShooting',x:1,y:2,z:3,moveState:6,radius:.5,target:7,aimOnly:true,aimPoint:undefined});
+  // TASK_COWER: HANDSCOWER once.
+  expect(scriptedPedOrder({kind:'cower'},world({}))).toEqual({kind:'playAnim',file:'PED',name:'handscower',loop:false,keepLastFrame:false,seconds:Infinity});
+ });
+
  test('staying in the same place holds the ped, and clearing it sends it back to wandering',()=>{
   expect(scriptedPedOrder({kind:'stayInSamePlace',state:true},world({}))).toEqual({kind:'standStill',seconds:Infinity});
   expect(scriptedPedOrder({kind:'stayInSamePlace',state:false},world({}))).toEqual({kind:'wander'});

@@ -383,6 +383,8 @@ export interface ScmMissionWorld {
  vehicleInSphere?(p:{x:number;y:number;z:number},radius:number):boolean;
  /** Whether anything of the named kinds has its bounds in the native box (min and max corners). */
  areaOccupied?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number},kinds:{buildings:boolean;vehicles:boolean;peds:boolean;objects:boolean;dummies:boolean}):boolean;
+ /** Whether any vehicle of these models has its position (script coordinates) in the box, ends included. */
+ vehicleOfModelsInBox?(models:ReadonlySet<number>,min:{x:number;y:number;z:number},max:{x:number;y:number;z:number}):boolean;
  /** CEntryExitManager's nearest door to a point within a range, by its own pool index. */
  nearestEntryExit(x:number,y:number,radius:number):number|undefined;
  /** Whether the ped is still answering an event of that type. */
@@ -756,13 +758,17 @@ export const SCRIPT_PED_FIRST_HANDLE=1024,SCRIPT_VEHICLE_FIRST_HANDLE=1024;
 const RADIO_OFF=13;
 /** eVehicleAppearance::VEHICLE_APPEARANCE_AUTOMOBILE. */
 const VEHICLE_APPEARANCE_AUTOMOBILE=1;
+/** IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE's models: CVehicle::IsLawEnforcementVehicle's (iOS 0x100479618) less the
+ * Predator, which the handler leaves out. */
+const COP_VEHICLE_MODELS:ReadonlySet<number>=new Set([...LAW_ENFORCEMENT_MODELS].filter(model=>model!==430));
 /** Streamed scripts that are never streamed in, so MAIN's HAS_STREAMED_SCRIPT_LOADED stays false and it never starts
- * them: `impound` (the police pounds; MAIN starts it again whenever none runs near one) stops at
- * IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE and would be started again every pass. `player_parachute` runs (it flies the free
- * fall and the canopy, and the browser's own canopy stays shut while a script runs), and so does `camera` (MAIN starts
- * it while CJ holds the camera: his group poses for it, and a homie beside him takes his picture); the port's own
- * shots with the camera are the weapon's, which the script leaves alone. */
-const HELD_BACK_STREAMED_SCRIPTS:ReadonlySet<string>=new Set(['impound']);
+ * them: none now. `impound` (the police pounds' gates, guards and cars) was held back while it stopped at
+ * IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE, which MAIN would have started again every pass; it now has every command it
+ * reaches but GET_CHAR_HIGHEST_PRIORITY_EVENT (skipped: no event queue here, so no event is read). `player_parachute`
+ * runs (it flies the free fall and the canopy, and the browser's own canopy stays shut while a script runs), and so
+ * does `camera` (MAIN starts it while CJ holds the camera: his group poses for it, and a homie beside him takes his
+ * picture); the port's own shots with the camera are the weapon's, which the script leaves alone. */
+const HELD_BACK_STREAMED_SCRIPTS:ReadonlySet<string>=new Set();
 /** CRunningScript::ThisIsAValidRandomPed (0x489490): civilians, the nine gang types, or criminals and prostitutes. */
 export function validRandomPedType(pedType:number,civilian:boolean,gang:boolean,criminal:boolean){
  if(pedType===4||pedType===5)return civilian;
@@ -1292,6 +1298,10 @@ export class ScmMission {
    // flag have no bodies to test here.
    lineOfSightIsClear:(from,to,flags)=>this.world.lineOfSightClear(from,to,flags),
    // CWorld::FindObjectsIntersectingCube over the lists the flags name, the corners sorted first.
+   // The vehicle pool walked for CVehicle::IsLawEnforcementVehicle's models less the Predator (430), each axis of the
+   // box put in order first.
+   copVehicleInArea3d:(a,b)=>this.host('vehicleOfModelsInBox','IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE')(COP_VEHICLE_MODELS,
+    {x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),z:Math.min(a.z,b.z)},{x:Math.max(a.x,b.x),y:Math.max(a.y,b.y),z:Math.max(a.z,b.z)}),
    areaIsOccupied:(a,b,flags)=>this.host('areaOccupied','IS_AREA_OCCUPIED')(
     {x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),z:Math.min(a.z,b.z)},{x:Math.max(a.x,b.x),y:Math.max(a.y,b.y),z:Math.max(a.z,b.z)},
     {buildings:flags.solid,vehicles:flags.vehicles,peds:flags.peds,objects:flags.objects,dummies:flags.particles}),

@@ -5180,6 +5180,15 @@ async function boot() {
                   for(const set of [fleet?.cars,fleet?.bikes,fleet?.boats,fleet?.planes,fleet?.trains])for(const v of set??[])vehicleBodies.add((v as {car?:{body:{handle:number}};body?:{handle:number}}).car?.body.handle??(v as {body:{handle:number}}).body.handle);
                   return found.some(h=>{const body=sim.world.getCollider(h)?.parent();return !!body&&vehicleBodies.has(body.handle);});
                  },
+                 // The vehicle pool: the fleet's cars, bikes, boats and aircraft, by their positions in native axes.
+                 vehicleOfModelsInBox:(models,min,max)=>{
+                  for(const set of [fleet?.cars,fleet?.bikes,fleet?.boats,fleet?.planes])for(const v of set??[]){
+                   if(v.disposed||!models.has(v.modelId))continue;
+                   const t=('car' in v&&v.car?v.car.body:(v as {body:import('@dimforge/rapier3d-compat').RigidBody}).body).translation(),x=t.x,y=-t.z,z=t.y;
+                   if(x>=min.x&&x<=max.x&&y>=min.y&&y<=max.y&&z>=min.z&&z<=max.z)return true;
+                  }
+                  return false;
+                 },
                  areaOccupied:(min,max,kinds)=>{
                   const found:import('@dimforge/rapier3d-compat').Collider[]=[];
                   sim.world.collidersWithAabbIntersectingAabb({x:(min.x+max.x)/2,y:(min.z+max.z)/2,z:-(min.y+max.y)/2},{x:(max.x-min.x)/2,y:(max.z-min.z)/2,z:(max.y-min.y)/2},c=>{found.push(c);return true;});
