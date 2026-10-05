@@ -3040,9 +3040,10 @@ async function boot() {
       guard('fleet.update',()=>{for(let i=0;i<newGameFrames;i++)fleet?.tickFrame();fleet?.update(now);});
       // CAudioZones::Update from Game.cpp's frame, with the camera's position.
       if(newGameFrames){const c=render.camera.position;mission?.runtime.game.audioZones.update(false,[c.x,-c.z,c.y],gameFrame);
-       // CAEAmbienceTrackManager::Service, with CAudioEngine's: the zone's (or the sandstorm's) looped track. The choice
-       // is held while a beat or cutscene track plays and while the game is paused.
-       if(mission){const g=mission.runtime.game;ambience.service({zone:g.audioZones.firstActive,camera:[c.x,-c.z,c.y],sandstorm:weatherStarted?weather.sandstorm:0,
+       // CAEAmbienceTrackManager::Service, with CAudioEngine's, once a game frame (its rise and fade are steps a frame):
+       // the zone's (or the sandstorm's) looped track. The choice is held while a beat or cutscene track plays and while
+       // the game is paused.
+       if(mission){const g=mission.runtime.game;for(let i=0;i<newGameFrames;i++)ambience.service({zone:g.audioZones.firstActive,camera:[c.x,-c.z,c.y],sandstorm:weatherStarted?weather.sandstorm:0,
         outside:render.lighting.area===0,held:paused||g.cutsceneTrack.active,nowMs:gameTimeMs});}}
       // CCheckpoints::Update (CSpecialFX::Update), once a game frame.
       if(mission){const cps=mission.runtime.game.checkpoints.markers;cps.player=checkpointPlayer;for(let i=0;i<newGameFrames;i++)cps.update();}

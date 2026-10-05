@@ -9236,6 +9236,8 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   when the outside can be seen, a new track starting at -34 dB and rising 1 dB a service, and a replaced or left one
   fading 0.4 dB a service to -40 dB before it stops. A track starts at a random point up to 600 s the first time and
   then 7 s or more on from where it stopped, and loops. The choice is held while a beat track plays and while paused.
+  It is serviced once a 30 fps game frame, as CAudioEngine::Service is (2026-10-05: it was once a rendered frame, so
+  at a low frame rate the rise and the fade, steps a service, ran slow in game time: the fade took 26 s at 3 fps).
 - **AUTHORED:** the reversal's sea and underwater ambience (174, 166) sits behind a condition its zone tracks always
   meet, so it cannot be followed as written and is left out; the zones that start a radio station do nothing.
 - Specs: `native-ambience-tracks` (unit: the table, the rise, the fade, the resume offset, the sandstorm, zone 4),
