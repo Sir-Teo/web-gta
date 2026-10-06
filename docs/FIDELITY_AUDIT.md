@@ -9688,7 +9688,14 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     right: 5 in 128 for the pistols, the shotgun, the Uzis, the MP5 and the TEC-9, 10 for the AK-47 and M4, and 64
     for the Desert Eagle. The player's rounds never do, and bTyresDontBurst stops it. The bike case (front or rear
     by the hit, no kick) is not ported.
-  - Not ported from the same function: the player-driven car's ×0.95 (×0.42 at 100% progress) and aircraft's ×0.4.
+  - The rest of InflictDamage for a car:
+    - a weapon's damage comes off the health one for one; the port's AUTHORED falloff for grazing shots (40% to 100% by
+      the struck face) is gone;
+    - the player's own car takes 0.95 of it, or 0.42 once progress reaches 100%;
+    - damage that takes the last of the health blows the car up at once, whatever the weapon. Before, bullets and fire
+      left a car at 1 health to burn out.
+  - Not ported from the same function: aircraft's ×0.4; the iOS build's further quarter for the player's car during
+    STRAP3; and a blast's 1000 to 3047 ms bomb timer (a car a blast destroys blows up at once here).
 
 ## Homies in CJ's car fire at threats
 

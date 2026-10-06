@@ -1,4 +1,5 @@
 import {crashShake} from '../engine/nativePadShakes';
+import {carDamageHost} from './carDamageHost';
 import {padSteeringAxis} from './nativeSteeringInput';
 import {cullAirResistance} from './nativeAirResistance';
 import {requireAsset} from '../assets/binary';
@@ -368,9 +369,10 @@ export class WorldCar {
     return {ground:{status:status===2?'missing':burst?'burst':'normal',burstSample:burst?Math.floor(Math.random()*burstCompressionRandomUpper(forwardSpeed)):undefined,sandGroup:record?.adhesionGroup==='SAND',railTrack:material===178,rhino:this.modelId===432,wetRoads:this.wetRoads,rotation:0,wheelSpeed:0},suspension:this.suspensionTerms(wheel),surface:nativeSurfaceGrip(material,road.records,road.rows,nativeWetGripByte(record?.wetGrip??0),this.wetRoads,{burst,burstNoise:burst?(Math.random()*2-1)*BURST_TYRE_MOD:undefined}),fallback:this.lastRoad.get(wheel)};
    }};
  }
- /** Weapon damage: CVehicle::InflictDamage port — health loss scaled by impact
-  * angle (grazing shots keep 40%, square hits 100%) plus CAutomobile::VehicleDamage
-  * component progression for the hit COL piece. Returns true only when the car is wrecked. */
+ /** Weapon damage: CVehicle::InflictDamage (unreversed in gta-reversed; iOS 0x1004781b4), the weapon's damage off the
+  * health one for one (the player's own car takes 0.95 of it, 0.42 once progress reaches 100%), plus
+  * CAutomobile::VehicleDamage's component progression for the hit COL piece. Returns true only when the car is
+  * wrecked. */
  damage(amount:number,collider?:number,explosive=false,shotDir?:{x:number;y:number;z:number},options:{kind?:Exclude<CarDamageKind,'explosion'>;byPlayer?:boolean;weapon?:number;by?:CarDamager;point?:{x:number;y:number;z:number}}={}){
   const kind:CarDamageKind=explosive?'explosion':options.kind??'bullet';
   if(this.wrecked||carRefusesDamage(this,kind))return false;
@@ -385,13 +387,9 @@ export class WorldCar {
    this.lastWeaponDamage=options.weapon??(explosive?51:kind==='fire'?37:-1);
    this.lastDamagedBy=options.by??(options.byPlayer?{player:true}:undefined);
   }
-  if(shotDir&&!explosive){
-   // Face-normal falloff in native axes: the struck face is the car axis most
-   // opposed to the shot; grazing shots keep 40%, square hits deal 100%.
-   const {right,forward,up}=this.axes(),s=native(shotDir);
-   const face=Math.max(Math.abs(s[0]*right[0]+s[1]*right[1]+s[2]*right[2]),Math.abs(s[0]*forward[0]+s[1]*forward[1]+s[2]*forward[2]),Math.abs(s[0]*up[0]+s[1]*up[1]+s[2]*up[2]));
-   amount*=0.4+0.6*Math.min(1,face/Math.max(1e-4,Math.hypot(s[0],s[1],s[2])));
-  }
+  // The player's own car (STATUS_PLAYER): 0.95 of the damage, 0.42 once CStats::GetPercentageProgress reaches 100.
+  // (The iOS build's further quarter during STRAP3 is not kept.)
+  if(this.occupied)amount*=carDamageHost.fullCompletion()?.42:.95;
   // The petrol tank (vehicleFlags.bPetrolTankIsWeakPoint): a round the player's own ped fires that lands on the
   // petrolcap dummy deals min(health, 1100), so a car of 1100 or less blows up at once (BlowUpCar, no fire first) and
   // a sturdier one loses 1100 (SWEET2: "shoot the car's gas tank"). Other shooters' rounds treat it as any other spot.
@@ -400,8 +398,9 @@ export class WorldCar {
    if(this.health<=0){this.health=0;this.blowUp();return true;}
    return false;
   }
-  // Bullets leave a destroyed car at 1 health to burn out; blasts that exhaust its health blow it up at once.
-  this.health=Math.max(explosive?0:1,this.health-amount);
+  // Damage that takes the last of the health blows the car up at once (BlowUpCar), whatever the weapon. (A blast's
+  // WEAPON_EXPLOSION sets the bomb timer to 1000 to 3047 ms instead; here it blows up at once too.)
+  this.health=Math.max(0,this.health-amount);
   const piece=collider===undefined?undefined:this.pieceOf(collider);
   if(piece!==undefined&&amount>25&&this.canBeVisiblyDamaged)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true),true);
   if(this.health===0){this.blowUp();return true;}

@@ -173,6 +173,7 @@ import {weaponById} from './weapons/catalog';
 import {CAR_EXTINGUISHED_HEALTH} from './simulation/nativeCarDamage';
 import {fxIdentity} from './simulation/fx/NativeFx';
 import type {WorldCar as ScriptCar} from './simulation/WorldCar';
+import {carDamageHost} from './simulation/carDamageHost';
 type WorldCarPad=ScriptCar['pad'];
 import {nativeDayNightBalance} from './world/nativeDayNight';
 import {StaticWorldProvider} from './assets/StaticWorldProvider';
@@ -865,6 +866,7 @@ async function boot() {
   weapons.inventory.fastReload=()=>!!mission?.runtime.game.playerInfo.fastReload;
   // CStats::GetPercentageProgress: STAT_PROGRESS_MADE over a constant 187, whatever SET_PROGRESS_TOTAL said.
   weapons.inventory.fullCompletion=()=>{const g=mission?.runtime.game;return !!g&&g.stats.get(STAT_PROGRESS_MADE)/187*100>=100;};
+  carDamageHost.fullCompletion=weapons.inventory.fullCompletion;
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
   // A New Game whose old save could not be cleared comes back with ?new-game: the old progress is not read, and the
   // flag leaves the address so a later reload loads what the new game has saved since.
