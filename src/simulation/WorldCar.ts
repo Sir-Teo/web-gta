@@ -214,6 +214,10 @@ export class WorldCar {
  takeLessDamage=false;
  /** CAutomobile::m_nNumContactWheels: the wheels whose suspension line touched something last step. */
  get wheelsOnGround(){const c=this.lastCompression;return c?Object.values(c).filter(x=>x<1).length:0;}
+ /** m_fWheelsSuspensionCompressionPrev, front left, rear left, front right, rear right (1 off the ground). */
+ get suspensionCompression():[number,number,number,number]{const c=this.lastCompression;return c?[c.frontLeft,c.rearLeft,c.frontRight,c.rearRight]:[1,1,1,1];}
+ /** CPhysical::m_fDamageIntensity: the collision this step, 0 for none. */
+ get collisionIntensity(){return this.damageIntensity;}
  onDoorEvent?:(event:'open'|'close',door:number)=>void;
  /** CPhysical::ApplyCollision audio reports: the other collider, the world contact point, the normal toward this car and the normal impulse per unit mass in native units per frame. */
  onCollision?:(report:{other:RAPIER.Collider;point:V3;normal:V3;impulse:number})=>void;

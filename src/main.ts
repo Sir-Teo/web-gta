@@ -3259,6 +3259,17 @@ async function boot() {
         // CAutomobile::ProcessControl once a game frame, sound or no sound: AI cars count their horn down, honk when blocked
         // by cars or pedestrians, and sirens chirp when (seed ^ rand) & 0xFF is 0xAD (CCarAI::UpdateCarAI).
         if(statFrameDue)for(const car of fleet?.cars??[])if(!car.occupied){if(car.horn.counter)car.horn.counter--;playHornIfNecessary(car);if(car.siren&&Math.random()*256<1)car.horn.counter=45;}
+        // CPlayerInfo::Process's two-wheel, wheelie and stoppie counters, once a game frame. A quad is CAutomobile there
+        // (its two axles here stand in for the four lines); the port's boats, planes and helicopters count as other.
+        if(statFrameDue&&mission){
+         const car=worldCar?.occupied?worldCar:fleet?.occupied,bike=fleet?.occupiedBike,frame=1/30;
+         const moved=(v:{x:number;y:number;z:number})=>Math.hypot(v.x,v.y,v.z)*frame;
+         mission.runtime.game.wheelStats.process({timeStep:50*frame,vehicle:car?{kind:'car',compression:car.suspensionCompression,contactWheels:car.wheelsOnGround,
+          damageIntensity:car.collisionIntensity,movingSpeed:moved(car.car.body.linvel())}:bike?(()=>{const w=bike.wheelContacts(),front=w.front?0:1,rear=w.rear?0:1;
+          return bike.quad?{kind:'car' as const,compression:[front,rear,front,rear] as [number,number,number,number],contactWheels:2*((1-front)+(1-rear)),damageIntensity:0,movingSpeed:moved(bike.body.linvel())}
+           :{kind:'bike' as const,ratios:[front,front,rear,rear] as [number,number,number,number],damageIntensity:0,movingSpeed:moved(bike.body.linvel())};})()
+          :fleet?.occupiedBoat||fleet?.occupiedPlane?{kind:'other'}:undefined});
+        }
         {const plane=fleet?.occupiedPlane;if(statFrameDue)parachuteTimer.step(1000/30,plane?{heightOverGround:plane.altitude}:undefined);
          // GivePlayerParachute: GiveWeapon(PARACHUTE, 1, true) and SetSavedWeapon(PARACHUTE), so ReplaceWeaponWhenExitingVehicle
          // hands the parachute back rather than whatever was held before boarding.

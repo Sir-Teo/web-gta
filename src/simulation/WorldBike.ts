@@ -64,6 +64,8 @@ export class WorldBike {
  get motorbike(){return !BMX_MODELS.has(this.modelId);}
  /** No ground under the wheels. */
  get airborne(){return !this.wheelsDown();}
+ /** Whether the ground is under the front wheel and under the rear (the rays half a unit ahead and behind). */
+ wheelContacts(){return {front:this.wheelsDown(.5),rear:this.wheelsDown(-.5)};}
  /** CPhysical::m_nNumEntitiesCollided this step: the bodies it touches, or the ground its wheels rest on. */
  entitiesCollided(){
   const body=this.body,touched=new Set<number>();

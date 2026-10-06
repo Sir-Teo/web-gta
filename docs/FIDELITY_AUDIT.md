@@ -5806,7 +5806,29 @@ CStuntJumpManager::Update already matches the reference. The pieces around it no
 - CStuntJumpManager::AddOne takes any values. With all 256 slots used, nothing is added and no error is raised.
 
 **Not yet**
-- Wheelie, stoppie and two-wheels bonuses still never fire. CPlayerInfo::Process, which counts them, is not reversed, and neither is GET_WHEELIE_STATS.
+- (Since ported: the wheelie, stoppie and two-wheels counters; see the next entry.)
+
+**Wheelies, stoppies and two wheels**
+- **Source:** the counters follow the iOS `CPlayerInfo::Process` (0x100253bac); they had never run, so the stunt-bonus script (HJ) read zeros from `GET_WHEELIE_STATS`.
+- **Car (every CAutomobile):** a run counts while one side's two wheels are off the ground and the other side's on it, with no collision that frame. It is recorded from 2 s.
+- **Bike (and BMX):**
+  - a wheelie is the rear wheel alone, recorded from 5 s;
+  - a stoppie is the front wheel alone, recorded from 2 s;
+  - in the executable's lopsided contact test, the second line of the touching wheel counts only without a collision.
+- **Grace buffer:**
+  - a frame off the pattern adds its time to the buffer;
+  - a run wears the buffer down by half its time for a car and a fifth for a bike;
+  - a run ends when a failing frame finds the buffer past 499 ms.
+- **Ending at once:** a car run ends when neither side is clear, a wheelie when the front touches, and a stoppie when the rear does.
+- **Records:** a record overwrites the best fields. `GET_WHEELIE_STATS` reads them and clears them. `SetNewRecordStat` raises stats 10, 11, 12 (distance) and 17, 18, 19 (whole seconds).
+- **Script commands:** `IS_PLAYER_PERFORMING_WHEELIE` and `_STOPPIE` are a bike with that counter running.
+- **Leaving the vehicle:** this clears the counters but not the distances.
+- **Port approximations:**
+  - a bike's two lines per wheel are the port's single ray ahead or behind;
+  - a quad is counted as a car on its two axles;
+  - boats, planes and helicopters count as nothing (iOS runs its helicopters and planes as cars);
+  - the fewer-than-three-wheels counter's in-air balance is not ported.
+- **Spec:** `native-wheel-stats` (unit).
 - (Since drawn: the HUD now shows the script's CMessages queues; see "GXT text sweep".)
 
 ## Breakable glass

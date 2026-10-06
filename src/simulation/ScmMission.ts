@@ -778,8 +778,8 @@ export const PLAYER_VEHICLE_HANDLE=1;
 export const SCRIPT_PED_FIRST_HANDLE=1024,SCRIPT_VEHICLE_FIRST_HANDLE=1024;
 /** eRadioID::RADIO_OFF. */
 const RADIO_OFF=13;
-/** eVehicleAppearance::VEHICLE_APPEARANCE_AUTOMOBILE. */
-const VEHICLE_APPEARANCE_AUTOMOBILE=1;
+/** eVehicleAppearance::VEHICLE_APPEARANCE_AUTOMOBILE and _BIKE. */
+const VEHICLE_APPEARANCE_AUTOMOBILE=1,VEHICLE_APPEARANCE_BIKE=2;
 /** IS_COP_VEHICLE_IN_AREA_3D_NO_SAVE's models: CVehicle::IsLawEnforcementVehicle's (iOS 0x100479618) less the
  * Predator, which the handler leaves out. */
 const COP_VEHICLE_MODELS:ReadonlySet<number>=new Set([...LAW_ENFORCEMENT_MODELS].filter(model=>model!==430));
@@ -2218,9 +2218,6 @@ export class ScmMission {
    },
    // The player's own car (not one the script made) answers from the host.
    vehicleModel:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle),
-   // CPlayerInfo's two-wheel, wheelie and stoppie counters are kept by the unreversed CPlayerInfo::Process and the
-   // vehicles' ProcessControl, which the port does not measure: no stunt is ever under way or on record, so the
-   // stunt-bonus script (HJ) reads zeros and the wheelie questions (reversed, over those counters) answer no.
    // IS_CAR_IN_AIR_PROPER (VehicleCommands.cpp, reversed): nothing it collides with is a building or a vehicle. The
    // host answers for the player's own vehicle; a car the script made is not measured.
    vehicleIsInAirProper:handle=>{
@@ -2285,8 +2282,12 @@ export class ScmMission {
    },
    // RANDOM_PASSENGER_SAY: a passenger's speech line (CAEPedSpeechAudioEntity); the speech banks are not published.
    randomPassengerSay:()=>{},
-   getWheelieStats:()=>({twoWheelsTime:0,twoWheelsDistance:0,wheelieTime:0,wheelieDistance:0,stoppieTime:0,stoppieDistance:0}),
-   isPlayerPerformingWheelie:()=>false,isPlayerPerformingStoppie:()=>false,
+   // CPlayerInfo's counters (game.wheelStats, which the host runs as CPlayerInfo::Process does): GET_WHEELIE_STATS
+   // reads the bests and clears them, as the stunt-bonus script (HJ) asks after each run; IS_PLAYER_PERFORMING_WHEELIE
+   // and _STOPPIE (iOS 0x1001fc108, 0x1001fb054) are a bike-appearance vehicle with that counter running.
+   getWheelieStats:()=>this.runtime.game.wheelStats.takeBests(),
+   isPlayerPerformingWheelie:()=>this.world.playerPed().vehicle?.appearance===VEHICLE_APPEARANCE_BIKE&&this.runtime.game.wheelStats.bikeRearWheelCounter!==0,
+   isPlayerPerformingStoppie:()=>this.world.playerPed().vehicle?.appearance===VEHICLE_APPEARANCE_BIKE&&this.runtime.game.wheelStats.bikeFrontWheelCounter!==0,
    vehicleModelIs:(handle,model)=>(handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle))===model,
    vehicleHealth:handle=>this.world.scriptVehicleHealth(this.liveVehicle(handle)),
    setVehicleHealth:(handle,health)=>{this.world.setScriptVehicleHealth(this.liveVehicle(handle),health);},

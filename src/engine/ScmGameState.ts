@@ -1,4 +1,5 @@
 import {ScmOnscreenTimer} from './ScmOnscreenTimer';
+import {NativePlayerWheelStats} from '../simulation/nativeWheelStats';
 import {ScmStuckCarCheck,ScmUpsideDownCarCheck} from './ScmCarChecks';
 import {NativeAudioZones} from '../audio/nativeAudioZones';
 import {requireAsset} from '../assets/binary';
@@ -209,6 +210,8 @@ const MAXIMUM_CHAOS=[0,115,365,875,1800,3500,6900];
 
 export class ScmGameState {
  readonly stats=new ScmStats();
+ /** CPlayerInfo's two-wheel, wheelie and stoppie counters, which the host runs each frame (CPlayerInfo::Process). */
+ readonly wheelStats=new NativePlayerWheelStats((stat,value)=>this.stats.setNewRecord(stat,value));
  readonly clock=new ScmClock();
  // CWanted static initialisers (Wanted.cpp 0x561E70 region): level 6, chaos 9200.
  maximumWantedLevel=6;maximumChaosLevel=9200;
