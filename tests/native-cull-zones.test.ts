@@ -37,3 +37,10 @@ test('ApplyAirResistance takes 2.5 times the drag in an extra-air-resistance zon
  const plain=nativeAirResistance(v,w,1,.001),extra=nativeAirResistance(v,w,1,.001,VEHICLE_AIR_RESISTANCE_MULT);
  expect(1-plain.factor).toBeCloseTo(.0008,6);expect(1-extra.factor).toBeCloseTo(.002,6);
 });
+
+import {NativeCullZones as CullZonesForCars} from '../src/world/nativeCullZones';
+test('FewerCars reads the player zone flag 0x8000, which takes the traffic density to 0.6',()=>{
+ const zones=Object.create(CullZonesForCars.prototype) as InstanceType<typeof CullZonesForCars>&{player:number};
+ zones.player=0x8000;expect(zones.fewerCars).toBe(true);expect(zones.fewerPeds).toBe(false);
+ zones.player=0x400;expect(zones.fewerCars).toBe(false);
+});

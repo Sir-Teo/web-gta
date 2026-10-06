@@ -5982,7 +5982,9 @@ CCullZones now loads the IPL `cull` rows the way CFileLoader::LoadCullZone reads
 - **Fewer peds:** in the 16 fewer-peds zones, FindPedDensityMultiplierCullZone gives 0.6. Its only reversed caller is the bench count. AddToPopulation, which caps the street population, is not reversed, so the port scales its own ped caps by 0.6 (truncated) as a stand-in.
 
 **Not wired**
-- **Fewer cars:** the IPLs use it in 15 zones, but nothing reversed reads CCullZones::FewerCars.
+- **Fewer cars:** the IPLs use it in 15 zones. Nothing reversed reads CCullZones::FewerCars, but the iOS
+  GenerateOneRandomCar does (0x10018e044): there the car density counts 0.6 (0x3F19999A) toward the random-car cap. The
+  port takes 0.6 of its traffic density while the player is in one.
 - **No police and police abandon cars:** their readers are in CCarAI and the pursuit task, but no published zone sets either flag.
 - **The rest:** the camera flags (close-in, stairs, first person) and the mirrors.
 

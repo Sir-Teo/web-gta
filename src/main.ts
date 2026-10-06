@@ -4936,7 +4936,7 @@ async function boot() {
             fleet.clearPed=handle=>pedestrians?.removeDeletableCollider(handle)??false;
             // CCarGenerator's hot-dog van brings its vendor, and his brain.
             fleet.onHotdogVan=car=>{try{mission?.hotdogVan(car);}catch(error){console.warn('Hot-dog vendor',error);}};
-            fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;fleet.carDensity=()=>mission?.trafficCarDensity()??1;
+            fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;fleet.carDensity=()=>(mission?.trafficCarDensity()??1)*(cullZones.fewerCars?Math.fround(.6):1);
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             // A phone drives the traffic beyond 60 units on rails (measured: four of six cars, a sixth of the frame's CPU).
             if(touch)traffic.physicsRadius=60;

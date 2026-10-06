@@ -65,6 +65,9 @@ export class NativeCullZones {
  get noPolice(){return !!(this.player&ZONE.noPolice);}
  /** FewerPeds (0x72DD90): CPopulation::FindPedDensityMultiplierCullZone gives 0.6 in these zones. */
  get fewerPeds(){return !!(this.player&ZONE.fewerPeds);}
+ /** CCullZones::FewerCars (iOS 0x10039c660): the player's zone has flag 0x8000. GenerateOneRandomCar takes 0.6 of the
+  * car density there (iOS 0x10018e04c, 0x3F19999A). */
+ get fewerCars(){return !!(this.player&ZONE.fewerCars);}
  /** DoExtraAirResistanceForPlayer (0x72DDD0): CPhysical::ApplyAirResistance multiplies every automobile's and
   * motorbike's drag by CVehicle::m_fAirResistanceMult while the player is in one. */
  get extraAirResistance(){return !!(this.player&ZONE.extraAirResistance);}
