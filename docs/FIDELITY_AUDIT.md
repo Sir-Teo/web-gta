@@ -9768,6 +9768,12 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     that destroys one leaves it on the bomb timer (CAutomobile::ProcessControl, which CPlane and CHeli run), and it
     goes up with whoever is aboard when the timer runs out. Before, an aircraft a blast destroyed lay at 0 health and
     never exploded.
+  - The same share reaches collisions through the iOS-only ScalePlayerVehicleDamage (0x100477f94):
+    - for the player's own car and quad (CAutomobile::VehicleDamage), on the intensity, before the threshold, the pad
+      shake, the panels and the health loss;
+    - for his boat (CBoat::ProcessControl), on the power once it is over 25.
+    It replaces PC's halving at 100% progress, which the port lacked. A boat's power is tested against 25 before the
+    share, so a light knock in strap3, or at 100%, gives the hull a little health back, as on iOS and PC.
   - Not ported: the law-enforcer star for police bikes and boats.
 
 ## Homies in CJ's car fire at threats

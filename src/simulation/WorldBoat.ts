@@ -338,10 +338,13 @@ export class WorldBoat {
   // GetHasHitWall: the hull is touching fixed world geometry.
   let wall=false;for(let i=0;i<this.body.numColliders()&&!wall;i++)this.sim.world.contactPairsWith(this.body.collider(i),other=>{if(other.parent()?.isFixed()??true)wall=true;});
   this.hitWall=wall;
-  const power=this.handling.values.mass*change/50*this.handling.values.collisionDamageMultiplier;
+  const raw=this.handling.values.mass*change/50*this.handling.values.collisionDamageMultiplier;
   // CBoat::ProcessControl: collisions only hurt a hull at 250 health or more, and never past 1; the fire below 250
   // then burns it out.
-  if(power<=25||this.health<250)return;
+  if(raw<=25||this.health<250)return;
+  // The player's own boat: iOS ScalePlayerVehicleDamage (0.95, 0.42 at 100% progress, a quarter of that in strap3)
+  // where PC halved the power only at 100%.
+  const power=this.occupied?playerVehicleDamage(raw):raw;
   this.health-=this.occupied?(power-25)/2:(power-25)/4;
   if(this.health<=0)this.health=1;
  }

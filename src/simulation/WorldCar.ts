@@ -1154,13 +1154,17 @@ export class WorldCar {
  /** Collision damage from the velocity change the contact solver applied during the world step (native impulse = mass × Δv per 50 Hz step). */
  private collisionDamage(){
   const before=this.stepVelocity;this.stepVelocity=undefined;this.damageIntensity=0;if(!before||this.wrecked||!this.car.body.isEnabled())return;
-  const v=this.car.body.linvel(),dv={x:v.x-before.x,y:v.y-before.y,z:v.z-before.z},change=Math.hypot(dv.x,dv.y,dv.z),intensity=this.mass*change/50;
+  const v=this.car.body.linvel(),dv={x:v.x-before.x,y:v.y-before.y,z:v.z-before.z},change=Math.hypot(dv.x,dv.y,dv.z),impact=this.mass*change/50;
   // CPhysical's SetDamagedPieceRecord keeps every collision's intensity, ground hits and light knocks included;
   // ProcessOpenDoor reads it.
-  this.damageIntensity=intensity;
+  this.damageIntensity=impact;
   // CAutomobile::VehicleDamage returns at once for a car that cannot be damaged, and a collision-proof one takes
   // nothing from a crash.
   if(!this.canBeDamaged||this.proofs?.collision)return;
+  // The player's own car (STATUS_PLAYER): iOS ScalePlayerVehicleDamage (0x100477f94) takes the intensity to 0.95 (0.42
+  // at 100% progress, a quarter of that in strap3) where PC halved it only at 100%, before the threshold, the shake,
+  // the panels and the health loss all read it.
+  const intensity=this.occupied?playerVehicleDamage(impact):impact;
   const q=this.car.body.rotation();
   if(this.noUpsideDownDamage&&!this.occupied&&1-2*(q.x*q.x+q.z*q.z)<0)return;
   if(intensity<=this.mass/1500*25)return;

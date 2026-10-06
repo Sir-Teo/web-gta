@@ -508,7 +508,8 @@ export class WorldBike {
   // before the health loss; otherwise the collision comes out of its health, ridden or not (half of it with CJ
   // aboard, a quarter otherwise), and the hit that would empty it leaves 1.
   if(hit&&this.quad&&!this.wrecked&&!knocked){
-   const h=this.assets.handling.values,loss=collisionHealthLoss({intensity:hit.intensity,mass:h.mass,collisionDamageMultiplier:h.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:false,modelId:this.modelId});
+   // The player's own quad: iOS ScalePlayerVehicleDamage on the intensity, as for a car.
+   const h=this.assets.handling.values,loss=collisionHealthLoss({intensity:this.occupied?playerVehicleDamage(hit.intensity):hit.intensity,mass:h.mass,collisionDamageMultiplier:h.collisionDamageMultiplier,playerVehicle:this.occupied,hitByPlayerVehicle:false,modelId:this.modelId});
    if(loss>0){const previous=this.health;this.health-=loss;if(this.health<=0&&previous>0)this.health=1;}
   }
   if(knocked)this.knockOff(v,{x:dx,y:dy,z:dz},change);

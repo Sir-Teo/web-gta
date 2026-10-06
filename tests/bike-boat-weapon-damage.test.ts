@@ -37,3 +37,21 @@ for(const [name,Vehicle] of [['bike',WorldBike],['boat',WorldBoat]] as const){
   }finally{carDamageHost.addPropertyDamage=was;}
  });
 }
+
+// CBoat::ProcessControl's collision power, mass × Δv × fCollisionDamageMultiplier: over 25 it hurts a hull at 250 or
+// more; the player's own takes iOS ScalePlayerVehicleDamage (0.95, 0.42 at 100%, a quarter in strap3) before the half.
+test('a boat\'s collision power: the player\'s own scaled by 0.95 before the half',()=>{
+ const was={full:carDamageHost.fullCompletion,head:carDamageHost.headScriptName};
+ const hull=(occupied:boolean)=>({wrecked:false,occupied,health:1000,stepVelocity:{x:0,y:0,z:0},
+  body:{isEnabled:()=>true,linvel:()=>({x:0,y:0,z:-50}),numColliders:()=>0},handling:{values:{mass:100,collisionDamageMultiplier:1}},sim:{world:{}}} as any);
+ const hit=(target:any)=>{(WorldBoat.prototype as any).collisionDamage.call(target);return target.health;};
+ try{
+  // Power 100 × 1 × 1 = 100.
+  expect(hit(hull(false))).toBeCloseTo(1000-(100-25)/4,6);
+  expect(hit(hull(true))).toBeCloseTo(1000-(95-25)/2,6);
+  carDamageHost.fullCompletion=()=>true;expect(hit(hull(true))).toBeCloseTo(1000-(42-25)/2,6);
+  carDamageHost.fullCompletion=()=>false;carDamageHost.headScriptName=()=>'strap3';
+  // A quarter of 0.95: 23.75, under the 25 the power is tested against before scaling, so the hull gains health.
+  expect(hit(hull(true))).toBeCloseTo(1000-(23.75-25)/2,6);
+ }finally{carDamageHost.fullCompletion=was.full;carDamageHost.headScriptName=was.head;}
+});
