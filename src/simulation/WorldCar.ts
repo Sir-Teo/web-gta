@@ -1,5 +1,5 @@
 import {crashShake} from '../engine/nativePadShakes';
-import {blastBombTimerMs,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {padSteeringAxis} from './nativeSteeringInput';
 import {cullAirResistance} from './nativeAirResistance';
 import {requireAsset} from '../assets/binary';
@@ -380,7 +380,7 @@ export class WorldCar {
   // player's own car, once under 250 and burning, takes no more from blasts, bullets or the molotov (the weapons
   // CPhysical::CanPhysicalBeDamaged flags as fire, explosion or bullet; the flamethrower is not flagged).
   if(this.onlyDamagedByPlayer&&!this.occupied&&options.byPlayer===false)return false;
-  if(this.occupied&&this.health<250&&(explosive||kind==='bullet'||options.weapon===18))return false;
+  if(this.occupied&&this.health<250&&(explosive||(options.weapon!==undefined?firesExplodesOrShoots(options.weapon):kind==='bullet')))return false;
   // CVehicle::InflictDamage: a car with health left keeps the weapon and whoever used it. A blast is WEAPON_EXPLOSION
   // (51) and a fire WEAPON_FLAMETHROWER (37); the player's harm is his own ped's.
   if(this.health>0){
@@ -547,7 +547,12 @@ export class WorldCar {
   const driver=this.occupied||!!this.autopilot&&!this.driverOut;
   if(driver&&!this.driverLastFrame&&bombDriverEntered(this))this.bombDetonatedByPlayer=this.bombInstalledByPlayer;
   this.driverLastFrame=driver;
-  // (BlowUpCar declines a car that cannot be damaged, and then nothing is credited to anyone.)
+  this.processDelayedExplosion(seconds);
+ }
+ /** ProcessDelayedExplosion: the timer counts down to BlowUpCar, crediting whoever set it off. It runs for a car out of
+  * the active range too (CAutomobile::ProcessControl has no distance gate before it), so a blast's victim carried
+  * away still goes up on time. (BlowUpCar declines a car that cannot be damaged, and then nothing is credited.) */
+ private processDelayedExplosion(seconds:number){
   if(stepBombTimer(this,seconds*50)&&!this.wrecked&&this.canBeDamaged){this.explosionByPlayer=this.bombDetonatedByPlayer;this.blowUp();}
  }
  blowUp(){
@@ -755,7 +760,7 @@ export class WorldCar {
    // before its body joins the world again, rather than falling through a spot whose collision is still streaming in.
    if(nearby&&!this.wasNearby&&!this.occupied)this.waitForCollision(false);
    this.wasNearby=nearby;
-   if(this.waitingForCollision&&(this.occupied&&!this.collisionWait.evenOccupied||this.collisionArrived(seconds)))this.waitingForCollision=false;this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision){this.car.markStepStart();return;}
+   if(this.waitingForCollision&&(this.occupied&&!this.collisionWait.evenOccupied||this.collisionArrived(seconds)))this.waitingForCollision=false;this.car.body.setEnabled(nearby&&!this.frozen&&!this.waitingForCollision);this.car.root.visible=true;if(!nearby||this.waitingForCollision){this.processDelayedExplosion(seconds);this.car.markStepStart();return;}
    this.input.airResistance!.extraMultiplier=cullAirResistance.multiplier;
   const driving=this.occupied&&this.driverInput&&!this.scriptDriven;
   // CEntity::TreatAsPlayerForCollisions (STATUS_PLAYER): wet grip, suspension load and off-road adhesion apply to the player's car only.

@@ -17,6 +17,13 @@ for(const [name,Vehicle] of [['bike',WorldBike],['boat',WorldBoat]] as const){
   const timer={bombTimerMs:1600};let frames=1;while(!stepBombTimer(timer,1))frames++;expect(frames).toBe(100);
   const waiting=vehicle({health:0,bombTimerMs:1200});expect(damage(waiting,50,false,{weapon:31})).toBe(false);expect(waiting.wrecked).toBe(false);
  });
+ test(`a ${name} carried out of range still goes up on its bomb timer`,()=>{
+  let blown=0;
+  const far=vehicle({bombTimerMs:32,frozen:false,distance:()=>400,collisionLoaded:()=>true,body:{setEnabled(){}},root:{visible:true},blowUp(this:any){blown++;this.wrecked=true;}});
+  const step=()=>(Vehicle.prototype as any).beforeStep.call(far,1/50);
+  step();expect(blown).toBe(0);expect(far.bombTimerMs).toBe(16);
+  step();expect(blown).toBe(1);
+ });
  test(`the player's own ${name}: 0.95 of it, and no blasts or rounds once burning`,()=>{
   const was=carDamageHost.addPropertyDamage;let stat=0;carDamageHost.addPropertyDamage=d=>{stat+=d;};
   try{

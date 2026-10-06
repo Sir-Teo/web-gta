@@ -26,7 +26,7 @@ import {vehicleSolverGroups} from './solverGroups';
 import {bikeTooFastToBoard} from './BikeMount';
 import {applyNativeBikeBuoyancy,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import {NATIVE_GRAVITY_MS2} from './nativeGravity';
-import {blastBombTimerMs,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
@@ -205,7 +205,7 @@ export class WorldBike {
  damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number}={}){
   if(this.wrecked)return false;
   if(this.occupied){
-   if(this.health<250&&(explosive||(options.kind??'bullet')==='bullet'||options.weapon===18))return false;
+   if(this.health<250&&(explosive||(options.weapon!==undefined?firesExplodesOrShoots(options.weapon):(options.kind??'bullet')==='bullet')))return false;
    amount=playerVehicleDamage(amount);
   }
   notePlayerVehicleHarm(amount,options.byPlayer);
@@ -278,6 +278,9 @@ export class WorldBike {
   return this.finishEnter();
  }
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean;hop?:boolean;disabled?:boolean}={throttle:0,steer:0,brake:false}){
+  // ProcessDelayedExplosion, which CBike::ProcessControl runs too, whether or not the body is in the world: a blast's
+  // victim carried out of range still goes up on time.
+  if(stepBombTimer(this,dt*50))this.blowUp();
   // A body out of the world (far off, frozen, or waiting for collision) takes none of the step: its speed would be
   // worked on with nothing to move it.
   const nearby=this.distance()<250,active=nearby&&!this.frozen&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
@@ -295,8 +298,6 @@ export class WorldBike {
   if(this.wrecked){this.throttle=0;}
   this.bunnyHop(dt,!!input.hop,input.disabled);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
-  // ProcessDelayedExplosion, which CBike::ProcessControl runs too.
-  if(stepBombTimer(this,dt*50))this.blowUp();
   const h=this.assets.handling.values,q=this.body.rotation(),v=this.body.linvel();
   // CAutomobile::ProcessControl: the player's quad with the controls disabled is held to 0.28 units a frame.
   if(this.quad&&input.disabled){const f=controlsOffSpeedScale(Math.hypot(v.x,v.y,v.z));if(f<1){v.x*=f;v.y*=f;v.z*=f;}}

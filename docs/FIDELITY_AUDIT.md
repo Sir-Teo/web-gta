@@ -9742,7 +9742,8 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     - only a car with health left takes the damage. Damage that takes the last of it destroys the car:
       - a blast (WEAPON_EXPLOSION) sets m_wBombTimer to (rand() & 0x7FF) + 1000 ms, with its damager as
         m_pWhoDetonatedMe. ProcessDelayedExplosion blows the car up when the timer runs out, so blasts ripple
-        through a row of parked cars 1 to 3 s apart;
+        through a row of parked cars 1 to 3 s apart. CAutomobile::ProcessControl has no distance gate before it,
+        so the timer runs on for a car, bike or boat outside the port's active range, whose physics step is skipped;
       - any other weapon blows it up at once.
       Before, a car already at 0 and burning blew up at the next bullet, and a blast's victims all went up in the
       same frame;

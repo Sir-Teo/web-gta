@@ -19,7 +19,7 @@ import {interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
 import {addWakePoint,applyNativeBoatBuoyancy,createWakeTrail,pruneWakeTrail,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBoatBody,type NativeVec} from './nativeBuoyancy';
 import {NATIVE_GRAVITY_MS2} from './nativeGravity';
-import {blastBombTimerMs,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {nativeBoatDrive} from '../flight/aero';
 export const PLAYABLE_BOATS:Readonly<Record<number,string>>={430:'Predator',446:'Squalo',452:'Speeder',453:'Reefer',454:'Tropic',472:'Coastguard',473:'Dinghy',484:'Marquis',493:'Jetmax',595:'Launch'};
@@ -63,7 +63,7 @@ export class WorldBoat {
  damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number}={}){
   if(this.wrecked)return false;
   if(this.occupied){
-   if(this.health<250&&(explosive||(options.kind??'bullet')==='bullet'||options.weapon===18))return false;
+   if(this.health<250&&(explosive||(options.weapon!==undefined?firesExplodesOrShoots(options.weapon):(options.kind??'bullet')==='bullet')))return false;
    amount=playerVehicleDamage(amount);
   }
   notePlayerVehicleHarm(amount,options.byPlayer);
@@ -209,6 +209,9 @@ export class WorldBoat {
  /** CBoat::ProcessControl buoyancy section for a drifting hull (no throttle yet):
   * native float, browser gravity, stern wake points and bow spray. */
  beforeStep(dt:number,input:{throttle:number;steer:number;brake:boolean}={throttle:0,steer:0,brake:false}){
+  // ProcessDelayedExplosion (CBoat::ProcessControl) runs whether or not the hull is in the world: a blast's victim
+  // carried out of range still goes up on time.
+  if(stepBombTimer(this,dt*50)&&!this.wrecked)this.blowUp();
   // A frozen boat takes none of the step, as a far one does: its speed would be worked on with nothing to move it.
   const nearby=this.distance()<250;this.body.setEnabled(nearby&&!this.frozen);this.root.visible=nearby;if(!nearby||this.frozen)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
@@ -220,8 +223,6 @@ export class WorldBoat {
   // The loss is per game frame (30 fps), not scaled by the timestep.
   if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy=Math.max(floor,this.water.buoyancy-mass*.001*.008*dt*30);}
   this.processFire(dt);
-  // ProcessDelayedExplosion (CBoat::ProcessControl).
-  if(stepBombTimer(this,dt*50)&&!this.wrecked)this.blowUp();
   this.floatOnWater(dt);
   this.holdAnchor();
   this.stepVelocity={...this.body.linvel()};
