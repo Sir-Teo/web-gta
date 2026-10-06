@@ -817,6 +817,10 @@ const GARAGE_DOOR_STREAM_RADIUS=150,GARAGE_DOOR_DEFAULT_HEIGHT=4,GARAGE_FLAG_DOO
 /** CPopulation::FindDummyDistForModel (0x610ED0, reversed) for every brain model: a map object is made real within 80
  * units of the player and goes back to its dummy beyond that. */
 const OBJECT_DUMMY_DISTANCE=80;
+/** CTaskComplexSignalAtPed's start: the player's car above 0.2 units a frame (speed squared over 0.04) stops it. */
+const HAND_SIGNAL_PLAYER_CAR_SPEED=.2;
+/** CTaskComplexPlayHandSignalAnim's GetAnimIdForPed: the ped types that sign (Ballas, Grove, Vagos, Da Nang, Aztecas). */
+const HAND_SIGNAL_PED_TYPES:ReadonlySet<number>=new Set([7,8,9,11,14]);
 /** MODEL_BMOCHIL and MODEL_HOTDOG (eModelID). */
 const MODEL_BMOCHIL=168,MODEL_HOTDOG=588;
 /** COMMAND_TASK_USE_ATTRACTOR and COMMAND_TASK_PLAY_ANIM_SECONDARY, the task records those commands leave. */
@@ -3303,21 +3307,41 @@ export class ScmMission {
   *   point, turns to the heading and plays the clip.
   * - TASK_PICK_UP_OBJECT as a step of a sequence: the object is in the hand from when the sequence is given, and the
   *   step plays the clip the command names.
-  * - TASK_HAND_GESTURE (CTaskComplexSignalAtPed and CTaskComplexPlayHandSignalAnim, unreversed): the ped turns to face
-  *   the other and plays one of GHANDS' five gang signs; the finger models the task swaps in are not drawn. */
+  * - TASK_HAND_GESTURE: see handGestureOrders. */
  private standInOrders(handle:number,task:ScmScriptedTask,world:Parameters<typeof scriptedPedOrder>[1]):ScriptedPedOrder[]|undefined{
   const built=(tasks:ScmScriptedTask[])=>{const orders=tasks.map(t=>scriptedPedOrder(t,world));return orders.every(o=>!!o)?orders as ScriptedPedOrder[]:undefined;};
   if(task.kind==='slideToCoordAndPlayAnim')return built([
    {kind:'goStraightToCoord',x:task.x,y:task.y,z:task.z,speed:4,time:3000},{kind:'achieveHeading',heading:task.heading},
    {kind:'playAnim',animationName:task.animationName,animationFile:task.animationFile,blendSpeed:task.blendSpeed,loop:task.loop,lockX:task.lockX,lockY:task.lockY,keepLastFrame:task.keepLastFrame,time:task.time,interruptable:false}]);
-  if(task.kind==='handGesture')return built([{kind:'turnToFaceEntity',target:task.target},
-   {kind:'playAnim',animationName:`gsign${1+this.random.next()%5}`,animationFile:'GHANDS',blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:true}]);
+  if(task.kind==='handGesture')return this.handGestureOrders(handle,task.target,built);
   if(task.kind==='pickUpObject'){
    this.pickUpObject(handle,task);
    const named=task.animationName&&task.animationName.toUpperCase()!=='NULL';
    return named?built([{kind:'playAnim',animationName:task.animationName,animationFile:task.animationFile,blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:false}]):[];
   }
   return undefined;
+ }
+ /** TASK_HAND_GESTURE's CTaskComplexSignalAtPed(other, -1, false), unreversed in gta-reversed and read from the iOS
+  * executable (CreateFirstSubTask 0x1003ff28c, CreateNextSubTask 0x1003ff114, with the hand-signal tasks
+  * CTaskSimpleDoHandSignal 0x1003fef54, CTaskComplexPlayHandSignalAnim 0x1003a8400 and
+  * CTaskSimplePlayHandSignalAnim::StartAnim 0x1003a7d98):
+  * - Nothing, when the other ped is gone or the player's car moves faster than 0.2 units a frame.
+  * - A look at the other for 5 s (the look outlives the task), and a turn to face him.
+  * - Then a hand signal, only from a gang ped of type 7, 8, 9, 11 or 14 (GetAnimIdForPed; any other ped's task ends
+  *   there). It is a pause of (rand() & 0xffff) / 65536 × 1500 ms, then GSIGN1 to GSIGN5 picked the same way × 5,
+  *   blended at 4. The left-hand clip (GSIGNnLH) is used when the ped has a weapon out.
+  * Not ported: the finger models the signal poses (SHANDL/R, FHANDL/R for 103, 105 and 107), the pause given as
+  * -1 (the constructor stores 0, so the stand-still after the turn lasts a frame), no signal from a ped off screen
+  * when its turn ends, and the task waiting on the hand models and GHANDS streaming in. */
+ private handGestureOrders(handle:number,target:number,built:(tasks:ScmScriptedTask[])=>ScriptedPedOrder[]|undefined){
+  const me=this.world.playerPed();
+  if(!(target===PLAYER_PED_HANDLE||this.peds.exists(target))||me.vehicle&&(me.moveSpeed??0)/50>HAND_SIGNAL_PLAYER_CAR_SPEED)return [];
+  const face=built([{kind:'lookAtPed',target,time:5000},{kind:'turnToFaceEntity',target}]);
+  if(!face||handle===PLAYER_PED_HANDLE||!HAND_SIGNAL_PED_TYPES.has(this.peds.typeOf(handle)))return face;
+  const f=Math.fround,draw=(k:number)=>Math.trunc(f(f(this.randomSample16()*(1/65536))*k));
+  const pause=draw(1500),sign=1+draw(5),oneHanded=this.world.scriptPedActiveWeapon(this.livePed(handle)).type!==0;
+  const signal=built([{kind:'pause',time:pause},{kind:'playAnim',animationName:`gsign${sign}${oneHanded?'LH':''}`,animationFile:'GHANDS',blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:true}]);
+  return signal&&[...face,...signal];
  }
  private expandSequence(tasks:readonly ScmScriptedTask[],from?:{task:number;subTask:number}){
   return expandScriptSequence(tasks,index=>this.runtime.game.sequences.at(index).tasks,from);

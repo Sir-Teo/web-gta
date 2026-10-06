@@ -9707,10 +9707,16 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   **`GET_GROUP_MEMBER`** (handler unreversed: `CPedGroupMembership::GetMember` of the slot, -1 when empty),
   **`IS_FLAME_IN_ANGLED_AREA_2D`** (it had asked whether any burning fire lay in the angled area; the iOS handler,
   0x1001deb00, asks `CShotInfo`'s flamethrower shots in use, whose origin must lie in the area; spec
-  `scm-flame-area`) and **`TASK_HAND_GESTURE`**
-  (AUTHORED: `CTaskComplexSignalAtPed` is unreversed; the ped turns to the other and plays one of GHANDS' five gang
-  signs, without the finger models the task swaps in). The spec covers the script starting and the offer; the
-  hand-over after the press is not covered yet.
+  `scm-flame-area`) and **`TASK_HAND_GESTURE`**. That command builds `CTaskComplexSignalAtPed`, which is unreversed in
+  gta-reversed and AUTHORED here before; it now follows the iOS executable (spec `hand-gesture`):
+  - Nothing happens when the other ped is gone, or when the player's car moves faster than 0.2 units a frame.
+  - Otherwise the ped looks at the other for 5 s (the look outlives the task) and turns to face him.
+  - Then only a gang ped of type 7, 8, 9, 11 or 14 signs (GetAnimIdForPed); any other ped, CJ included, stops at the
+    turn. The sign comes after a pause of up to 1.5 s and is GSIGN1 to GSIGN5 at random, blended at 4, or its
+    left-hand form with a weapon out.
+  - Not ported: the finger models the sign poses (SHANDL/R, or FHANDL/R for models 103, 105 and 107), no sign from
+    a ped off screen when its turn ends, and the wait for the hand models and GHANDS to stream in.
+  The camera spec covers the script starting and the offer; the hand-over after the press is not covered yet.
 - **`PED_ANSWER_PHONE` is on Tab** (`CControllerConfigManager::InitDefaultControlConfiguration`): the pad's L1 on foot,
   which the camera's offer and the phone read.
 - **A loaded game is on no mission.** Loading a save ends INTRO as it starts; its ONMISSION flag ($409) was left set,
