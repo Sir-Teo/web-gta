@@ -5,9 +5,8 @@
  * melee baseCombo resolution via `simulation/nativeMelee.ts`.
  */
 export { projectileTuning, launchVelocity, stepProjectile } from '../weapons/nativeProjectile';
-export { stepNpcGun, npcWeaponSpread } from '../simulation/npcGun';
+export { stepNpcGun } from '../simulation/npcGun';
 export type { NpcGunState } from '../simulation/npcGun';
-export { npcAimSpread, npcInaccurateAim } from '../simulation/npcGun';
 export { meleeComboFor, NATIVE_MELEE_COMBOS } from '../simulation/nativeMelee';
 
 /** Proficiency spread multiplier (FireInstantHit): pro tightens, poor widens. */

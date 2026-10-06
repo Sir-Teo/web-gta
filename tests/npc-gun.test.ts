@@ -1,7 +1,7 @@
 import {expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {readWeaponData,nativeWeaponInfo,nativeWeaponReloadMs} from '../src/weapons/weaponData';
-import {stepNpcGun,npcAimSpread,npcBurstLength,npcBurstPause,type NpcGunState} from '../src/simulation/npcGun';
+import {stepNpcGun,npcBurstLength,npcBurstPause,npcShotEnd,shotgunPelletCount,shotgunPelletOffset,type NpcGunState} from '../src/simulation/npcGun';
 const data=readWeaponData(readFileSync('public/play/world/files/data/weapon.dat','utf8'));
 test('NPC shots cross native fire markers, consume magazines and pause for reload',()=>{
  const info=nativeWeaponInfo(data,22,3)!,state:NpcGunState={time:0,rounds:2,reload:0,active:false};
@@ -18,35 +18,6 @@ test('loss of target cancels the fire marker; weapon loops retain different cade
  const info=nativeWeaponInfo(data,22,3)!,state={time:info.loop.fire-.01,rounds:17,reload:0,active:true};
  expect(stepNpcGun(state,info,1,.02,false)).toBe(false);expect(state.time).toBe(0);expect(state.rounds).toBe(17);
 });
-test('NPC dispersion stays inside the native weapon radius',()=>{
- const info=nativeWeaponInfo(data,22,3)!;
- const onset={x:0,y:0,z:-1};
- expect(npcAimSpread(onset,info).maxAngle).toBeGreaterThan(0);
- let worst=0;
- for(let i=0;i<200;i++){
-  const {vector,maxAngle}=npcAimSpread(onset,info);
-  expect(Math.hypot(vector.x,vector.y,vector.z)).toBeCloseTo(1,6);
-  const angle=Math.acos(Math.max(-1,Math.min(1,-vector.z)));
-  worst=Math.max(worst,angle);
-  expect(angle).toBeLessThanOrEqual(maxAngle+1e-9);
- }
- expect(worst).toBeGreaterThan(0);
-});
-test('cop shooting accuracy tightens the dispersion cone',()=>{
- const info=nativeWeaponInfo(data,22,3)!,onset={x:0,y:0,z:-1};
- const street=npcAimSpread(onset,info,60).maxAngle,army=npcAimSpread(onset,info,84).maxAngle;
- expect(army).toBeLessThan(street);
- expect(army).toBeCloseTo(street*60/84,9);
-});
-test('weapon-class dispersion sprays shotguns and tightens rifles',async()=>{
-  const {npcWeaponSpread}=await import('../src/simulation/npcGun');
-  expect(npcWeaponSpread(25)).toBeGreaterThan(npcWeaponSpread(22));
-  expect(npcWeaponSpread(30)).toBeLessThan(npcWeaponSpread(22));
-  expect(npcWeaponSpread(34)).toBeLessThan(npcWeaponSpread(30));
-  expect(npcWeaponSpread(38)).toBeGreaterThan(npcWeaponSpread(22));
-  expect(npcWeaponSpread(99)).toBe(1);
-});
-
 test('CTaskSimpleGunControl bursts: 4-5 rounds at the default rate 40, 3-4 for a city cop, paused in between',()=>{
  expect([npcBurstLength(17,40,()=>0),npcBurstLength(17,40,()=>.99)]).toEqual([5,4]);
  expect([npcBurstLength(17,30,()=>0),npcBurstLength(17,30,()=>.99)]).toEqual([4,3]);
@@ -72,16 +43,29 @@ test('An engagement opens with a burst at once, and a reload drops the rest of t
  for(let i=0;i<120&&!low.reload;i++)stepNpcGun(low,info,.5,1/60,true,{rate:40,random:()=>0});
  expect(low.burstLeft).toBe(0);expect(low.pause).toBeCloseTo(npcBurstPause(false,40,()=>0),6);
 });
-test('an AI round strays further the further off and the faster the target',async()=>{
- const {npcInaccurateAim}=await import('../src/simulation/npcGun');
- const aim={x:0,y:1,z:-10},from={x:0,y:1,z:0},edge=()=>1;
- const at=(range:number,moving=false)=>npcInaccurateAim({...aim,z:-range},60,edge,from,moving).x;
- // Ten units off, still: the earlier games' ±0.02 × inaccuracy, scaled by 0.9 + 10/12.
- expect(at(10)).toBeCloseTo(.02*40*(.9+10/12),6);
- expect(at(40)).toBeGreaterThan(at(10)*2.2);
- expect(at(10,true)).toBeCloseTo(at(10)*1.5,6);
- // A street cop lands well under half his rounds on a still man a street away (0.5 across, 1.8 tall).
- let hits=0;const rng=((seed)=>()=>(seed=(seed*16807)%2147483647)/2147483647)(7);
- for(let i=0;i<4000;i++){const p=npcInaccurateAim({x:0,y:1,z:-20},60,rng,from);if(Math.abs(p.x)<.25&&Math.abs(p.y-1)<.9)hits++;}
- expect(hits/4000).toBeLessThan(.12);expect(hits/4000).toBeGreaterThan(.02);
+test('FireInstantHit sends an AI round to the weapon\'s range, its end moved by (100 - accuracy) over the weapon\'s',()=>{
+ const pistol=nativeWeaponInfo(data,22,1)!,from={x:0,y:1,z:0};
+ // The line runs on through the target to the weapon's range; with the draws at their ends the offset is the spread
+ // times 0.2 across (x), 0.2 along native y (renderer -z) and 0.1 up.
+ const spread=(100-60)/pistol.accuracy,edge=()=>1,centre=()=>.5;
+ const straight=npcShotEnd(from,{x:0,y:1,z:-10},pistol,60,{},centre);
+ expect(straight.z).toBeCloseTo(-pistol.weaponRange,4);expect(straight.x).toBeCloseTo(0,6);expect(straight.y).toBeCloseTo(1,6);
+ const far=npcShotEnd(from,{x:0,y:1,z:-10},pistol,60,{},edge);
+ expect(far.x).toBeCloseTo(.2*spread,4);expect(far.y-1).toBeCloseTo(.1*spread,4);expect(far.z+pistol.weaponRange).toBeCloseTo(-.2*spread,4);
+ // The error is fixed at the range's end: a target three units off and thirty off get the same end point offsets.
+ const near=npcShotEnd(from,{x:0,y:1,z:-3},pistol,60,{},edge),distant=npcShotEnd(from,{x:0,y:1,z:-30},pistol,60,{},edge);
+ expect(near).toEqual(distant);
+ // The army (84) misses by less than a street cop (60); the player's speed widens it up to 1.1 (0.8 still).
+ expect(npcShotEnd(from,{x:0,y:1,z:-10},pistol,84,{},edge).x).toBeCloseTo(.2*(16/pistol.accuracy),4);
+ expect(npcShotEnd(from,{x:0,y:1,z:-10},pistol,60,{targetIsPlayer:true,targetSpeed:0},edge).x).toBeCloseTo(.2*spread*.8,4);
+ expect(npcShotEnd(from,{x:0,y:1,z:-10},pistol,60,{targetIsPlayer:true,targetSpeed:1},edge).x).toBeCloseTo(.2*spread*1.1,4);
+ // A target in a car: three times the range, so a third of the angle.
+ expect(npcShotEnd(from,{x:0,y:1,z:-10},pistol,60,{rangeMultiplier:3},centre).z).toBeCloseTo(-3*pistol.weaponRange,3);
+ // A shotgun takes no random end point.
+ const shotgun=nativeWeaponInfo(data,25,1)!;
+ expect(npcShotEnd(from,{x:0,y:1,z:-10},shotgun,60,{},edge).x).toBeCloseTo(0,6);
+});
+test('SetUpPelletCol: eight pellets for the SPAS 12, fifteen for the other shotguns, between a fifth and the whole depth off',()=>{
+ expect([shotgunPelletCount(25),shotgunPelletCount(26),shotgunPelletCount(27)]).toEqual([15,15,8]);
+ for(const r of [0,.25,.5,.999]){const o=shotgunPelletOffset(2,()=>r),d=Math.hypot(o.across,o.up);expect(d).toBeGreaterThanOrEqual(.4-1e-9);expect(d).toBeLessThanOrEqual(2+1e-9);}
 });

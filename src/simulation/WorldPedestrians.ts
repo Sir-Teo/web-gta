@@ -18,7 +18,8 @@ import {draggedOutDecisionTask} from '../ped/nativeJackedDecision';
 const ATTRACTOR_TYPES=new Set<number>([PED_ATTRACTOR.atm,PED_ATTRACTOR.seat,PED_ATTRACTOR.stop,PED_ATTRACTOR.pizza,PED_ATTRACTOR.shelter,PED_ATTRACTOR.lookAt,PED_ATTRACTOR.step]);
 import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
-import {stepNpcGun,npcAimSpread,npcInaccurateAim,type NpcGunState} from '../weapons/gunnery';
+import {stepNpcGun,type NpcGunState} from '../weapons/gunnery';
+import {npcShotEnd,shotgunPelletCount,shotgunPelletOffset,SHOTGUN_TYPES} from './npcGun';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
 import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from '../ped/nativeWalkRoundBuilding';
@@ -3087,11 +3088,14 @@ export class WorldPedestrians {
    return {eye,aim,offset,distance,visible};
   }
   /** Whether the point a shooter aims at is the player on the move (running, or in a moving vehicle). */
-  private targetMoving(aim:{x:number;y:number;z:number}){
+  /** A gun's target when it is the player (aimed within 3 units of him): his speed (|m_vecMoveSpeed|, units a frame) and
+   * TargetWeaponRangeMultiplier (3 in a vehicle that is not a bike). */
+  private playerTargetAt(aim:{x:number;y:number;z:number}){
    const p=this.sim.player.position;
-   if(Math.hypot(aim.x-p.x,aim.z-p.z)>3)return false;
-   const v=this.playerVehicleVelocity?.();
-   return v?Math.hypot(v.x,v.z)>2:this.sim.player.speed>1.5;
+   if(Math.hypot(aim.x-p.x,aim.z-p.z)>3)return undefined;
+   const ride=this.playerRide?.(),onFoot=this.playerOnFoot();
+   const v=ride?ride.body.linvel():undefined,speed=v?Math.hypot(v.x,v.y,v.z)/50:onFoot?this.sim.player.speed/50:this.playerVehicleSpeed?.()??0;
+   return {speed,rangeMultiplier:onFoot?1:3};
   }
   /** The player's capsule, for a bullet line to try while he rides a bike. */
   private riderShape?:RAPIER.Capsule;
@@ -3135,27 +3139,26 @@ export class WorldPedestrians {
     if(p.order?.kind!=='goToPointShooting')state.heading=Math.atan2(aimOffset.x,aimOffset.z);
     p.view.update(p.actor,1);
     const muzzle=p.gun?.root.getObjectByName('gunflash')?.getWorldPosition(new Vector3())??p.view.hand()?.getWorldPosition(new Vector3())??new Vector3(eye.x,eye.y,eye.z);
-    const aimed=npcInaccurateAim(p.aimPoint??aim,p.gunAccuracy,Math.random,muzzle,this.targetMoving(aim)),direction=new Vector3(aimed.x,aimed.y,aimed.z).sub(muzzle).normalize();
-    // Native weapon dispersion: the muzzle ray scatters inside the
-    // weapon.dat radius instead of striking the aim point every shot.
-    const scattered=npcAimSpread(direction,weapon.info,p.gunAccuracy);
-    direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
-    const shot=bulletLine(this.sim.world,muzzle,direction,weapon.info.weaponRange,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
+    // CWeapon::FireInstantHit for a ped: the line to the target, on to the weapon's range, its end moved by the
+    // ped's inaccuracy (npcShotEnd).
+    const playerTarget=this.playerTargetAt(aim),endPoint=npcShotEnd(muzzle,aim,weapon.info,p.gunAccuracy,{targetIsPlayer:!!playerTarget,targetSpeed:playerTarget?.speed,rangeMultiplier:playerTarget?.rangeMultiplier});
+    const direction=new Vector3(endPoint.x,endPoint.y,endPoint.z).sub(muzzle),lineLength=direction.length();direction.divideScalar(lineLength||1);
+    const shot=bulletLine(this.sim.world,muzzle,direction,lineLength,{isShootThrough:this.isShootThrough,excludeCollider:p.collider,excludeBody:p.body});
     // CWorld::bIncludeBikers, which FireInstantHit sets: the line meets a biker's own collision too. CJ's is off while
     // he rides, so his capsule on the bike is tried here, short of whatever else the line struck.
     let riderAt=-1;
-    if(this.playerRide?.()?.bike&&this.sim.player.health>0)riderAt=(this.riderShape??=new RAPIER.Capsule(.6,.3)).castRay(new RAPIER.Ray(muzzle,direction),this.sim.playerBody.translation(),{x:0,y:0,z:0,w:1},shot?.timeOfImpact??weapon.info.weaponRange,true);
+    if(this.playerRide?.()?.bike&&this.sim.player.health>0)riderAt=(this.riderShape??=new RAPIER.Capsule(.6,.3)).castRay(new RAPIER.Ray(muzzle,direction),this.sim.playerBody.translation(),{x:0,y:0,z:0,w:1},shot?.timeOfImpact??lineLength,true);
     const riderHit=riderAt>=0;
     // FireInstantHit includes car tyres for every shooter: a wheel sphere before the hit takes the round.
-    const reach=riderHit?riderAt:shot?.timeOfImpact??weapon.info.weaponRange,tyre=bulletTyreHit(cars,muzzle,direction,reach);
+    const reach=riderHit?riderAt:shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
     const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);p.flash=.06;
-    // SetUpPelletCol (reversed, shooter-blind): a shotgun's fifteen pellet lines spread with the distance to what the
-    // first line hit, and every pellet on that same victim adds the weapon's damage.
+    // SetUpPelletCol (iOS 0x100499000): a shotgun's pellet lines (eight for the SPAS 12, fifteen otherwise) spread with
+    // the distance to what the first line hit, and every pellet on that same victim adds the weapon's damage.
     let pellets=1;
-    if(shot&&!tyre&&!riderHit&&(weapon.info.type===25||weapon.info.type===26||weapon.info.type===27)){
+    if(shot&&!tyre&&!riderHit&&SHOTGUN_TYPES.has(weapon.info.type)){
      const depth=Math.max(.05,reach*(.05/weapon.info.accuracy)*1.3),right=new Vector3(-direction.z,0,direction.x).normalize(),up=new Vector3().crossVectors(right,direction).normalize();
-     for(let i=1;i<15;i++){
-      const angle=(Math.random()*2-1)*Math.PI,spread=Math.random()*depth*.8,target=end.clone().addScaledVector(right,Math.cos(angle)*spread).addScaledVector(up,Math.sin(angle)*spread);
+     for(let i=1;i<shotgunPelletCount(weapon.info.type);i++){
+      const o=shotgunPelletOffset(depth),target=end.clone().addScaledVector(right,o.across).addScaledVector(up,o.up);
       const dir=target.sub(muzzle),length=dir.length();dir.divideScalar(length||1);
       const pellet=this.sim.world.castRay(new RAPIER.Ray(muzzle,dir),length+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body);
       if(pellet?.collider.handle===shot.collider.handle)pellets++;

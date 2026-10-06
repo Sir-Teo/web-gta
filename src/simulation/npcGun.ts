@@ -1,4 +1,4 @@
-import {CROSSHAIR_TANGENT,nativeWeaponRadiusOnScreen,type NativeWeaponInfo} from '../weapons/weaponData';
+import type {NativeWeaponInfo} from '../weapons/weaponData';
 export interface NpcGunState {time:number;rounds:number;reload:number;active:boolean;
  /** CTaskSimpleGunControl: the rounds left in the burst, and the seconds until the next one (m_nextAtkTimeMs). */
  burstLeft?:number;pause?:number}
@@ -39,38 +39,29 @@ export function stepNpcGun(state:NpcGunState,info:NativeWeaponInfo,reloadSeconds
  if(fired&&--state.rounds<=0){state.reload=reloadSeconds;state.active=false;state.time=0;if(burst){state.burstLeft=0;state.pause=npcBurstPause(info.fire==='projectile',burst.rate,burst.random);}return true;}
  return fired;
 }
-/** Weapon-class dispersion (AUTHORED: CWeapon::FireInstantHit, which aims an AI shot, is unreversed, and the reversed
- * CTaskSimpleUseGun applies no spread): shotguns spray, SMGs/miniguns drift, rifles and the sniper stay tight. */
-export function npcWeaponSpread(type:number){
- if(type===25||type===26||type===27)return 1.7;
- if(type===30||type===31)return 0.7;
- if(type===34)return 0.5;
- if(type===38)return 1.5;
- if(type===28||type===29||type===32)return 1.2;
- return 1;
+/** The shotguns, whose shot takes no random end point (their pellets spread instead). */
+export const SHOTGUN_TYPES:ReadonlySet<number>=new Set([25,26,27]);
+/** CWeapon::FireInstantHit's line for a ped that is not the player, aiming at a target (the iOS executable's, at
+ * 0x100494b6c; SA's is unreversed): the line runs from the muzzle through the target to the weapon's range, times
+ * TargetWeaponRangeMultiplier (3 when the target is, or is in, a vehicle that is not a bike), and its end moves by
+ * spread × (U(±0.2), U(±0.2), U(±0.1)) native units, spread being (100 − CPed::m_nWeaponAccuracy) over the weapon.dat
+ * row's accuracy (none for a shotgun); against the player it is scaled by 0.8 + 0.3 × min(his speed, 0.33) / 0.33 (units
+ * a frame). So the error is fixed at the range's end, an angle that does not grow with the target's distance, and the
+ * shooter's own movement does not enter. Renderer axes in and out (native x, y, z are x, −z, y). */
+export function npcShotEnd(start:{x:number;y:number;z:number},target:{x:number;y:number;z:number},info:{type:number;weaponRange:number;accuracy:number},accuracy:number,
+ o:{targetIsPlayer?:boolean;targetSpeed?:number;rangeMultiplier?:number}={},random:()=>number=Math.random){
+ const f=Math.fround,dx=target.x-start.x,dy=target.y-start.y,dz=target.z-start.z,length=Math.max(Math.hypot(dx,dy,dz),.01),reach=f(info.weaponRange*(o.rangeMultiplier??1));
+ const end={x:start.x+dx/length*reach,y:start.y+dy/length*reach,z:start.z+dz/length*reach};
+ let spread=SHOTGUN_TYPES.has(info.type)?0:f((100-accuracy)/info.accuracy);
+ if(spread>0&&o.targetIsPlayer)spread=f(spread*(.8+.3*Math.min(o.targetSpeed??0,.33)/.33));
+ if(spread>0){end.x+=spread*(random()*.4-.2);end.z-=spread*(random()*.4-.2);end.y+=spread*(random()*.2-.1);}
+ return end;
 }
-/** Where an AI shooter's round is sent: the point it aims at, moved by its inaccuracy (100 − CPed::m_nWeaponAccuracy).
- * AUTHORED in the shape of the earlier games' CWeapon::FireInstantHit, which moves an AI's target point by a random
- * amount in proportion to its inaccuracy (SA's FireInstantHit is unreversed): up to ±0.02 × it across the ground and
- * ±0.01 × it up at ten units. The offset grows with the range (an angular error, not a fixed one: a fixed ±0.8 units
- * let a street cop land a third of his rounds from forty units as from ten) and by half again on a target that moves
- * (the shooter aims where it was when the burst began). Tuned to play (0.9 + range/12, widened from 0.6 + range/15 when
- * a gang pistol at eight units landed over half its rounds): a street cop (accuracy 60) lands roughly a fifth of his
- * rounds on a man standing ten units off and few from across a street, SWAT (68) and the FBI (76) more, the army (84)
- * most. */
-export function npcInaccurateAim(aim:{x:number;y:number;z:number},accuracy=60,random:()=>number=Math.random,from?:{x:number;y:number;z:number},moving=false){
- const range=from?Math.hypot(aim.x-from.x,aim.y-from.y,aim.z-from.z):10;
- const k=Math.max(0,100-accuracy)*(.9+range/12)*(moving?1.5:1);
- return {x:aim.x+(random()*2-1)*.02*k,y:aim.y+(random()*2-1)*.01*k,z:aim.z+(random()*2-1)*.02*k};
-}
-/** NPC dispersion from the same native weapon radius as the player crosshair:
- * officers no longer land perfect muzzle rays (CTaskSimpleUseGun spread).
- * CCopPed shooting accuracy (street 60, SWAT 68, FBI 76, army 84) scales the
- * cone; street cops fire the unscaled radius and elites tighten proportionally. */
-export function npcAimSpread(direction:{x:number;y:number;z:number},info:NativeWeaponInfo,accuracy=60){
- const angle=Math.atan(nativeWeaponRadiusOnScreen(info,0,false)*CROSSHAIR_TANGENT)*npcWeaponSpread(info.type)*(60/Math.max(1,accuracy)),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
- const norm=(v:{x:number;y:number;z:number})=>{const l=Math.hypot(v.x,v.y,v.z)||1;return {x:v.x/l,y:v.y/l,z:v.z/l};};
- const right=norm({x:-direction.z,y:0,z:direction.x}),up=norm({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
- const scattered={x:direction.x+right.x*Math.cos(theta)*r+up.x*Math.sin(theta)*r,y:direction.y+right.y*Math.cos(theta)*r+up.y*Math.sin(theta)*r,z:direction.z+right.z*Math.cos(theta)*r+up.z*Math.sin(theta)*r};
- return {vector:norm(scattered),maxAngle:angle};
+/** SetUpPelletCol (iOS 0x100499000): a shotgun's pellets (eight for the SPAS 12, fifteen otherwise), the first down the
+ * line and each other at a random angle and a distance from it of U(0.2, 1) × the depth, |hit − start| × 1.3 × the
+ * spread rate (0.05 over the weapon's accuracy). */
+export const shotgunPelletCount=(type:number)=>type===27?8:15;
+export function shotgunPelletOffset(depth:number,random:()=>number=Math.random){
+ const angle=random()*2*Math.PI-Math.PI,r=.2*depth+random()*.8*depth;
+ return {across:Math.cos(angle)*r,up:Math.sin(angle)*r};
 }

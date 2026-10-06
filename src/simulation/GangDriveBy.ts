@@ -10,7 +10,7 @@ import {GAME_SPEED_TO_CARAI_SPEED,steerHeadingForTarget} from '../vehicle/native
 import {readPedGroups} from '../assets/pedGroups';
 import {openWeaponAssets} from '../weapons/assets';
 import {nativeWeaponInfo,nativeWeaponReloadMs,type NativeWeaponInfo} from '../weapons/weaponData';
-import {stepNpcGun,npcAimSpread,npcInaccurateAim,type NpcGunState} from './npcGun';
+import {stepNpcGun,npcShotEnd,type NpcGunState} from './npcGun';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import type {DffModel} from '../assets/dff';
 import type {ModelTexture} from '../assets/modelTextures';
@@ -188,12 +188,13 @@ export class GangDriveBy {
    const oldTime=s.gunState.time;
    const fire=stepNpcGun(s.gunState,info,this.gunCache!.reloadSeconds,dt,engaged);
    if(fire){
-    const aimed=npcInaccurateAim(s.aimPoint??aim,60,Math.random,muzzle,true),direction=new Vector3(aimed.x,aimed.y,aimed.z).sub(muzzle).normalize();
-    const scattered=npcAimSpread(direction,info,60);
-    direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
-    const shot=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
+    // CWeapon::FireInstantHit for the shooter (a ped, accuracy 60): the line on to the weapon's range, three times it at
+    // the player's car (TargetWeaponRangeMultiplier), its end moved by his inaccuracy; on foot the player's speed scales it.
+    const endPoint=npcShotEnd(muzzle,aim,info,60,playerCar?{rangeMultiplier:3}:{targetIsPlayer:true,targetSpeed:this.sim.player.speed/50});
+    const direction=new Vector3(endPoint.x,endPoint.y,endPoint.z).sub(muzzle),lineLength=direction.length();direction.divideScalar(lineLength||1);
+    const shot=this.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
     // FireInstantHit includes car tyres for every shooter, the gang car's own excepted.
-    const reach=shot?.timeOfImpact??info.weaponRange,tyre=bulletTyreHit([...this.fleet.cars].filter(c=>c!==car),muzzle,direction,reach);
+    const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit([...this.fleet.cars].filter(c=>c!==car),muzzle,direction,reach);
     const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);s.shots++;
     this.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
     if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');

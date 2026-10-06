@@ -1,6 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Vector3} from 'three';
-import {stepNpcGun,npcAimSpread,npcInaccurateAim,type NpcGunState} from './npcGun';
+import {stepNpcGun,npcShotEnd,type NpcGunState} from './npcGun';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import type {NativeWeaponInfo} from '../weapons/weaponData';
 import type {Simulation} from './Simulation';
@@ -54,11 +54,12 @@ export function stepScriptDriveBy(d:ScriptDriveBy,car:WorldCar,info:NativeWeapon
  const oldTime=d.gun.time;
  const fire=stepNpcGun(d.gun,info,reloadSeconds,dt,engaged);
  if(fire){
-  const aimed=npcInaccurateAim(d.aimPoint??aim,60,Math.random,muzzle,true),direction=new Vector3(aimed.x,aimed.y,aimed.z).sub(muzzle).normalize();
-  const scattered=npcAimSpread(direction,info,60);direction.set(scattered.vector.x,scattered.vector.y,scattered.vector.z);
-  const shot=world.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),info.weaponRange,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
+  // CWeapon::FireInstantHit for the rider (a ped, accuracy 60): on to the weapon's range, three times it at a car.
+  const endPoint=npcShotEnd(muzzle,aim,info,60,{rangeMultiplier:d.target.kind==='vehicle'?3:1});
+  const direction=new Vector3(endPoint.x,endPoint.y,endPoint.z).sub(muzzle),lineLength=direction.length();direction.divideScalar(lineLength||1);
+  const shot=world.sim.world.castRayAndGetNormal(new RAPIER.Ray(muzzle,direction),lineLength,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
   const cars=[...world.cars()].filter(c=>c!==car);
-  const reach=shot?.timeOfImpact??info.weaponRange,tyre=bulletTyreHit(cars,muzzle,direction,reach);
+  const reach=shot?.timeOfImpact??lineLength,tyre=bulletTyreHit(cars,muzzle,direction,reach);
   const end=muzzle.clone().addScaledVector(direction,tyre?tyre.t:reach);d.shots++;
   world.onShot?.(muzzle,end,info.type,!!shot||!!tyre);
   if(tyre)tyre.car.burstTyre(tyre.wheel,true,'ped');

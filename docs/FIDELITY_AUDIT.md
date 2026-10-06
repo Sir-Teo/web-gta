@@ -8571,6 +8571,18 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   round and a single burst took most of CJ's health. AUTHORED (SA's `CWeapon::FireInstantHit` is unreversed): the aim
   point moves by up to ±0.02 × (100 − accuracy) units across and ±0.01 × it up, the shape of the earlier games' rule, so
   street cops (60) miss more often than SWAT (68), the FBI (76) or the army (84). Foot peds and drive-bys alike.
+- **An AI round now goes where SA's goes.** The rule above was invented, with a range term and a moving-target term on
+  top of a weapon-class cone. `CWeapon::FireInstantHit`, read from the iOS executable (0x100494b6c), sends a ped's round
+  (not the player's) along the line through its target on to the weapon's range, times TargetWeaponRangeMultiplier
+  (reversed: 3 when the target is, or rides in, a vehicle that is not a bike), and moves that end point by spread ×
+  (U(±0.2), U(±0.2), U(±0.1)) native units, spread being (100 − CPed::m_nWeaponAccuracy) over the weapon.dat row's
+  accuracy; against the player it is scaled by 0.8 + 0.3 × min(his speed, 0.33 units a frame) / 0.33. The error is so a
+  fixed angle whatever the target's distance, the shooter's own movement does not enter, and a shotgun's end point is not
+  moved (its pellets spread: SetUpPelletCol, iOS 0x100499000, eight for the SPAS 12 and fifteen otherwise, each U(0.2, 1)
+  of the depth off the line). An accuracy-60 ped with a pistol ends up to 8 units across and 4 up at its 35. Foot peds,
+  cops and both kinds of drive-by (a drive-by's rider at accuracy 60). AUTHORED: a burst aims at the target as it stands
+  at each shot (the iOS FireGun's bGunReachedTarget gate, which holds a round until the arm is on the target, is not
+  modelled). Spec: `npc-gun` (unit).
 - **Siren lights were flat squares.** Untextured sprites floated over the collision box. AUTHORED (`CAutomobile::
   PreRender` is unreversed): the light bar is read off the chassis geometry, its two ends flash red and blue through
   `CCoronas`, and each flash throws a coloured pool on the ground. Spec: `siren-lights` (unit).
