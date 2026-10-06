@@ -8830,6 +8830,13 @@ that did anything.
   sphere, in 3D, passing over peds being removed, fading out, dying, dead or arrested, or in a group. There is no
   last-taken exclusion (gf_date, prisonr). `ARE_ANY_CHARS_NEAR_CHAR` (iOS 0x1001f1504) was already the iOS rule:
   any other ped, the player and the dead included, strictly within the radius.
+- **`GET_RANDOM_CHAR_IN_AREA_OFFSET_NO_SAVE`** (unregistered in gta-reversed) follows the iOS handler (0x100207fe0):
+  - it takes the first street ped (PED_GAME) on foot inside the box, inclusive, passing over peds being removed,
+    fading, dying, dead or arrested, or in a group;
+  - the script's own peds and peds in vehicles are not asked;
+  - the ped gets a handle without becoming the script's (NO_SAVE).
+  The port had asked the script's peds first and taken the street ped as the script's. slot_machine.scm asks whether
+  anyone stands at the machine.
 - **`HAS_OBJECT_BEEN_UPROOTED`** (iOS 0x100202630: neither bIsStatic nor bIsStaticWaitingForCollision) answers for a
   brain's object from its map placement, true once the prop has been knocked loose; food_vendor.scm asks it of its
   cart. It had always answered no.

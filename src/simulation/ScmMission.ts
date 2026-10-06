@@ -2013,13 +2013,14 @@ export class ScmMission {
     this.world.adoptStreetPed?.(found.ped);
     return this.forCleanup(this.cleanupPeds,this.peds.adopt(found.ped,found.pedType,found.model,found.position,found.heading,found.health));
    },
+   // GET_RANDOM_CHAR_IN_AREA_OFFSET_NO_SAVE (unregistered in gta-reversed; the iOS handler, 0x100207fe0): the first
+   // street ped (PED_GAME) on foot inside the box, inclusive, not being removed, fading out, dying, dead or arrested,
+   // nor in a group. The script's own peds are not asked, and the ped stays the street's (NO_SAVE): it gets a handle
+   // and is not made the script's.
    randomPedInBox:(x,y,z,dx,dy,dz)=>{
     const inside=(q:{x:number;y:number;z:number})=>Math.abs(q.x-x)<=dx&&Math.abs(q.y-y)<=dy&&Math.abs(q.z-z)<=dz;
-    // The script's own peds first, then the street's (taken under a handle, as the NO_SAVE forms hand one back).
-    for(const h of this.peds.handles){try{if(this.peds.exists(h)&&inside(this.ridingIn(h)??this.peds.positionOf(h)))return h;}catch{}}
     for(const c of this.world.randomStreetPeds?.()??[]){
      if(!inside(c.position))continue;
-     this.world.adoptStreetPed?.(c.ped);
      return this.peds.adopt(c.ped,c.pedType,c.model,c.position,c.heading,c.health);
     }
     return -1;
