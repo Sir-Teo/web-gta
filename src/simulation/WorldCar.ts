@@ -729,7 +729,9 @@ export class WorldCar {
   // A car the player is getting into stands still under him: a driver still aboard brakes and holds, and one being
   // dragged out (or a parked car) is held on its brakes too, rather than coasting on as an abandoned car would while
   // CJ is pinned at its door.
-  const holding=!this.occupied&&this.holdForEntry?{steering:0,throttle:0,brake:1,handbrake:true} as TrafficControls:undefined;
+  // The native pedals themselves: a full brake through the pad (ProcessControlInputs) turns into reverse once the car has
+  // stopped, and backed it away from CJ at its door, or from the driver it had just set down.
+  const holding=!this.occupied&&this.holdForEntry?{steering:0,throttle:0,brake:1,handbrake:true,native:{steerAngle:0,gas:0,brake:1,handbrake:true}} as TrafficControls:undefined;
   const p=this.input.pedals,ai=this.occupied&&!this.scriptDriven?undefined:!this.occupied&&this.driverOut?holding:holding??this.autopilot;p.accelerate=driving?((axes.forward??axes.y>0)?255:0):Math.round((ai?.throttle??0)*255);p.brake=driving?((axes.back??axes.y<0)?255:0):Math.round((ai?.brake??0)*255);
   p.handbrake=this.occupied&&!this.scriptDriven?(driving&&handbrake)||this.exitHandbrake||this.exitHeld:ai?.handbrake??!this.abandoned;
   // ProcessControlInputs' automaticallyHandBrake: while the driver waits to slow down, is dragged out or holds exit,

@@ -8579,6 +8579,10 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   landed, while CJ still climbed in. The car is now held on its brakes, and its ground speed firmly damped, from the
   door until CJ is seated (authored), and a nearly stopped AI car (5 m/s or less) waits from the button press, so one
   that stopped for CJ in the road does not pull away as he goes round to the door. Spec: `car-entry`.
+- **A held car backed away.** The hold's full brake went through the pad (ProcessControlInputs), where a brake held on
+  a stopped car becomes reverse, so a car whose driver was getting out (a burst tyre, a fire, road rage) stopped and
+  then rolled backwards at up to 2 m/s, and set him down beside a moving car. The hold now gives the native pedals
+  (gas 0, brake 1, handbrake), as the police cruise hold does. Spec: `tyre-shot-driver`.
 - **The jacked driver popped up.** He became a fresh standing ped the moment the pull-out ended.
   `CTaskComplexCarSlowBeDraggedOutAndStandUp` (unreversed) is now followed in its shape: he lies in `CAR_jackedLHS`'s last
   frame for 0.6 s, gets up with `GETUP_FRONT` (the jacked clips are `ANIMATION_IS_FRONT`) and only then answers. Spec:
