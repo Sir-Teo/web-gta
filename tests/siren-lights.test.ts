@@ -73,3 +73,17 @@ test('the FBI Rancher flashes one blue dashboard lamp, seen only from in front',
     expect(lights.update([car],frame(256,[0,1,0])).coronas).toHaveLength(0);
   }finally{lights.dispose();}
 });
+
+test('the police bike flashes its left lamp red and its right blue by halves of 512 ms, with its engine running',()=>{
+  const lights=new SirenLights(),bike=Object.assign(fakeCar({modelId:523}),{engineRunning:true});
+  try{
+    const red=lights.update([bike],frame(100));
+    expect(red.coronas).toHaveLength(1);expect(red.coronas[0]).toMatchObject({color:[255,0,0],range:40,fadeSpeed:30,size:.4});
+    // Native frame: 0.28 left of the bike, 0.6 ahead, 0.3 up.
+    expect(red.coronas[0].position[0]).toBeCloseTo(10-.28,5);expect(red.coronas[0].position[1]).toBeCloseTo(-5+.6,5);
+    expect(red.pointLights[0].color).toEqual([100/1024,0,155/1024]);
+    const blue=lights.update([bike],frame(300));
+    expect(blue.coronas[0].color).toEqual([0,0,255]);expect(blue.coronas[0].position[0]).toBeCloseTo(10.28,5);
+    expect(lights.update([Object.assign(fakeCar({modelId:523}),{engineRunning:false})],frame(100)).coronas).toHaveLength(0);
+  }finally{lights.dispose();}
+});

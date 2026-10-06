@@ -8587,7 +8587,9 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   two lamps read off the chassis geometry, flashing red and blue, each flash throwing a pool on the ground.
 - **Siren lights are now the iOS executable's.** `CAutomobile::PreRender` is unreversed in gta-reversed; the iOS
   code is at 0x10044927c.
-  - **Which vehicles:** only the fire engine, the ambulance, the Enforcer and the four police cars light up.
+  - **Which vehicles:** only the fire engine, the ambulance, the Enforcer, the four police cars, the FBI Rancher and
+    (in `CBike::PreRender`) the police bike light up. The other siren vehicles do not: no other reader of
+    bSirenOrAlarm draws a corona, whether it tests the flag byte or the 64-bit flag word.
   - **Bar positions:** four coronas spread evenly across a bar in the model's frame. The ends and height for each
     model are fixed in the code; the police cars' bar is ±0.7 across, 0.4 back and 1.0 up.
   - **Flash pattern:** each lamp runs a 1024 ms cycle of four 256 ms phases, 64 ms behind the lamp to its right.
@@ -8600,6 +8602,10 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
     200. It eases in over the first 100 ms of each 512 ms half and out over the last 99, with extra shadows on, so
     the extra player shadows take it up. It replaces the authored ground pools.
   - **FBI Rancher:** a single blue dashboard lamp, lit in every other 256 ms and seen only from in front of the car.
+  - **Police bike** (0x100455210), with the siren and the engine on and the bike not scorched:
+    - the left lamp shows red in the first 256 ms of each 512, and the right lamp blue in the second;
+    - the coronas are size 0.4, seen from 40 units, fading at 30;
+    - a point light a unit ahead and half a unit up crossfades between the two colours.
   - **Spec:** `siren-lights` (unit).
 - **The car moved while CJ got in.** A car whose driver was being dragged out fell into the abandoned-car branch (no
   handbrake, no brake above a crawl) and coasted with CJ pinned at its door; the hold was also dropped when the victim
@@ -8859,7 +8865,7 @@ that did anything.
   (0x10018fe74) has neither limit. `GenerateRandomCars` runs it whenever the game clock crosses a 4096 ms boundary
   (`(now ^ previous) >= 0x1000`, 0x10018df80). It sends nothing in these cases:
   `SWITCH_EMERGENCY_SERVICES` has it off (the port stored the switch and never read it); CJ is wasted or busted, or a
-  trip skip is in progress (0x1001b2558); CJ has more than three stars; he is indoors; he is in the countryside
+  trip skip is in progress (0x1001b2558, read as CGameLogic's GameState and SkipState from their stores); CJ has more than three stars; he is indoors; he is in the countryside
   (`CGame::currLevel` 0); or the car counts are at `MaxNumberOfCarsInUse`.
   Otherwise, with no ambulance on duty and at least two free accidents, it sends one to the nearest free accident,
   however far, once 30 s have passed since `LastTimeAmbulanceCreated` (0 at Init, so none comes in the first 30 s of

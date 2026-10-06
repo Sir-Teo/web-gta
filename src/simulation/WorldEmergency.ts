@@ -63,8 +63,8 @@ export const MEDIC_CRUISE=30;
 export function emergencyDispatchTick(previousMs:number,nowMs:number){return Math.floor(nowMs/4096)!==Math.floor(previousMs/4096);}
 export const EMERGENCY_MAX_WANTED=3,AMBULANCE_MIN_FREE_ACCIDENTS=2,AMBULANCE_INTERVAL_MS=30000;
 /** GenerateEmergencyServicesCar's opening gate (iOS 0x10018fe88 to 0x10018ff28), both halves behind it:
- * CCarCtrl::bAllowEmergencyServicesToBeCreated (SWITCH_EMERGENCY_SERVICES); 0x1001b2558, CGameLogic's GameState not PLAYING or its
- * SkipState SKIP_IN_PROGRESS; CWanted's level no more than 3; CGame::currArea 0; CGame::currLevel not the countryside.
+ * CCarCtrl::bAllowEmergencyServicesToBeCreated (SWITCH_EMERGENCY_SERVICES); 0x1001b2558, read as CGameLogic's GameState not
+ * PLAYING or its SkipState SKIP_IN_PROGRESS (from the stores to the two words); CWanted's level no more than 3; CGame::currArea 0; CGame::currLevel not the countryside.
  * The car count against MaxNumberOfCarsInUse is the caller's (the browser's own budget). */
 export function emergencyDispatchOpen(o:{enabled:boolean;gameLogicBusy:boolean;wanted:number;interior:boolean;level:number}){
  return o.enabled&&!o.gameLogicBusy&&o.wanted<=EMERGENCY_MAX_WANTED&&!o.interior&&o.level!==0;
@@ -206,13 +206,15 @@ export class WorldEmergency {
  canSpawn:(point:V3,radius:number)=>boolean=()=>true;
  /** The peds and the player, renderer positions, for the placement's clearance. */
  peds:()=>readonly V3[]=()=>[this.sim.player.position];
+ /** CJ's car when the fleet does not hold it. */
+ playerCar:()=>WorldCar|undefined=()=>undefined;
  /** CCarCtrl::GenerateCarCreationCoors2's statics. */
  private readonly creation=newCarCreationCache();
  /** CGame::currArea is 0: no ambulance answers indoors. */
  outside:()=>boolean=()=>true;
  /** CCarCtrl::bAllowEmergencyServicesToBeCreated, which SWITCH_EMERGENCY_SERVICES sets. */
  enabled:()=>boolean=()=>true;
- /** iOS 0x1001b2558: CGameLogic's GameState is not PLAYING (wasted or busted), or a trip skip is in progress. */
+ /** iOS 0x1001b2558, read as CGameLogic's GameState not PLAYING (wasted or busted) or a trip skip in progress. */
  gameLogicBusy:()=>boolean=()=>false;
  crowd?:EmergencyCrowd;
  error?:string;
@@ -403,7 +405,8 @@ export class WorldEmergency {
  /** CWorld::FindObjectsKindaColliding(point, radius, 2D, vehicles and peds): a car whose bounding sphere, or a ped
   * (CTempColModels' bounding radius 1), reaches within `radius` of the point across the ground (native point). */
  private kindaColliding(point:V3,radius:number){
-  for(const car of this.fleet.cars){
+  const own=this.playerCar();
+  for(const car of own&&!this.fleet.cars.has(own)?[...this.fleet.cars,own]:this.fleet.cars){
    if(car.disposed)continue;
    const b=car.assets.collision.bounds,c=car.worldPoint({x:b.center[0],y:b.center[1],z:b.center[2]});
    if(Math.hypot(c.x-point.x,-c.z-point.y)<b.radius+radius)return true;

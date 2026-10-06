@@ -6,7 +6,9 @@ import type {EntityPointLight} from '../world/nativeEntityLights';
  * Enforcer and the four police cars light four coronas spread evenly across a bar in the model's frame. Each lamp
  * steps through a 1024 ms cycle of four 256 ms phases, 64 ms behind the lamp to its right: red in the first phase,
  * the model's second colour in the third, dark (left to fade) in the other two. One point light two units above
- * the car follows the halves of a 512 ms swing. Other siren vehicles light nothing here. */
+ * the car follows the halves of a 512 ms swing. The police bike's are CBike::PreRender's (0x100455210, below). No
+ * other siren vehicle lights anything: no other reader of bSirenOrAlarm, by byte or by the 64-bit flag word, draws
+ * a corona. */
 export interface SirenBarLayout {
  /** The bar's ends across the car (the first lamp at `from`, the fourth at `to`), how far forward and how high. */
  from:number;to:number;y:number;z:number;
@@ -25,6 +27,17 @@ export const SIREN_BAR_LAYOUTS:ReadonlyMap<number,SirenBarLayout>=new Map([
 export const MODEL_FBIRANCH=490;
 const FBI_LAMP={x:0,y:1.2,z:.5};
 const RED:readonly [number,number,number]=[255,0,0];
+/** CBike::PreRender's police bike lamps: with the siren and the engine on (and the bike not scorched), the left lamp
+ * (−0.28, 0.6, 0.3) red in the first 256 ms of each 512 and the right one (0.28, 0.6, 0.3) blue in the second, at the
+ * sprite brightness / 10 × 255, size 0.4, seen from 40 units (not scaled by the LOD multiplier), fading at 30. */
+export const MODEL_COPBIKE=523;
+const BIKE_LAMPS={left:{x:-.28,y:.6,z:.3},right:{x:.28,y:.6,z:.3}};
+/** The bike's point light (a unit ahead and half a unit up, radius 10): red the low byte of time & 0x1ff, blue the low
+ * byte of its complement, each over 1024; in the blue half both run from the negated time. */
+export function copBikePointLightColour(timeMs:number):[number,number,number]{
+ const t=timeMs>>>0,first=(t&0x1ff)<=0xff,a=first?t&0x1ff:-t,b=first?t&0xff:-t;
+ return [(a&0xff)/1024,0,(~b&0xff)/1024];
+}
 const f=Math.fround,THIRD=f(1/3);
 /** Lamp `i` (0 to 3) of a bar: (to × i + from × (3 − i)) / 3 across, in float32 as the executable sums it. */
 export function sirenLampPosition(layout:SirenBarLayout,i:number){
@@ -79,6 +92,14 @@ export class SirenLights {
    const id=(i:number)=>0x51000000+handle*4+i;
    const corona=(i:number,color:readonly [number,number,number],at:{x:number;y:number;z:number}):CoronaRegistration=>({id:id(i),color,intensity:255,
     position:SirenLights.world(car,at),size:.4,range,pullTowardsCamera:1.5,fadeSpeed:15});
+   if(car.modelId===MODEL_COPBIKE){
+    if(!car.engineRunning)continue;
+    this.live.add(handle);
+    const level=Math.trunc(f(f(frame.spriteBrightness/10)*255)),red=(time&0x1ff)<=0xff;
+    coronas.push({...corona(red?0:1,red?[level,0,0]:[0,0,level],red?BIKE_LAMPS.left:BIKE_LAMPS.right),range:40,fadeSpeed:30});
+    pointLights.push({position:SirenLights.world(car,{x:0,y:1,z:.5}),radius:10,color:copBikePointLightColour(time)});
+    continue;
+   }
    if(car.modelId===MODEL_FBIRANCH){
     this.live.add(handle);
     if(!((time>>>8)&1))continue;
