@@ -2763,7 +2763,9 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_FLAME_IN_ANGLED_AREA_2D:(t,p,i)=>{
   const area=new NativeAngledRect({x:t.readFloat(p[0]),y:t.readFloat(p[1])},{x:t.readFloat(p[2]),y:t.readFloat(p[3])},t.readFloat(p[4]));
   if(bool(t,p[5]))highlightImportantAngledArea(t,i,[area.a,area.cornerB,area.cornerC,area.cornerD]);
-  t.updateCompareFlag(game(t,i).fires.fires.some(fire=>fire.active&&area.contains(fire.position)),negated(i));
+  // The iOS handler (0x1001deb00) asks CShotInfo's flamethrower shots, not the fire manager's fires: a flame is a
+  // flamethrower shot in use whose origin lies in the area.
+  t.updateCompareFlag((t.host?.world?.flamethrowerShots?.()??[]).some(position=>area.contains(position)),negated(i));
  },
  /* The rest of the tasks the script hands its peds. Their operands come from the pinned Sanny Builder schema
   * this project already generates its opcode table from, which names and types each one; the reference reverses

@@ -373,6 +373,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  activeCameraFront?():{x:number;y:number;z:number};
  /** CConversations::IsPlayerInPositionForConversation, which needs where the player and the ped both are. */
  isPlayerInPositionForConversation?(ped:number):boolean;
+ /** CShotInfo::gShotInfo's flamethrower shots in use (m_bExist, WEAPON_FLAMETHROWER), their origins (native). */
+ flamethrowerShots?():readonly {x:number;y:number;z:number}[];
  /* The last of the ped and camera questions a host answers. */
  /** CPed::m_nPedType against the female types. */
  pedIsMale?(handle:number):boolean;

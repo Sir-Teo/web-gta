@@ -9674,7 +9674,9 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   reversed: `CTheScripts::bDrawCrossHair`, the one setting DRAW_CROSSHAIR also writes, set to the held weapon's
   first-person crosshair at the camera's 256 × 192 or to none; with the fists, which have no model, nothing is drawn),
   **`GET_GROUP_MEMBER`** (handler unreversed: `CPedGroupMembership::GetMember` of the slot, -1 when empty),
-  **`IS_FLAME_IN_ANGLED_AREA_2D`** (AUTHORED: any burning fire in the angled area) and **`TASK_HAND_GESTURE`**
+  **`IS_FLAME_IN_ANGLED_AREA_2D`** (it had asked whether any burning fire lay in the angled area; the iOS handler,
+  0x1001deb00, asks `CShotInfo`'s flamethrower shots in use, whose origin must lie in the area; spec
+  `scm-flame-area`) and **`TASK_HAND_GESTURE`**
   (AUTHORED: `CTaskComplexSignalAtPed` is unreversed; the ped turns to the other and plays one of GHANDS' five gang
   signs, without the finger models the task swaps in). The spec covers the script starting and the offer; the
   hand-over after the press is not covered yet.

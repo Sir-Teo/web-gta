@@ -622,6 +622,8 @@ export interface ScmMissionWorld {
  /** GET_RANDOM_CAR_OF_TYPE_IN_AREA's search over the vehicle pool (native area corners, either order): the first car
   * or bike from the pool's top down (here the newest first), a law enforcer only when `lawEnforcers`, of `model` (any
   * when negative), that CVehicle::CanBeDeleted (not a mission vehicle, nobody getting in or out), standing inside. */
+ /** CShotInfo's flamethrower shots in use, their origins (native). */
+ flamethrowerShots?():readonly {x:number;y:number;z:number}[];
  randomCarOfTypeInArea?(x1:number,y1:number,x2:number,y2:number,model:number,lawEnforcers:boolean):{entity:unknown;model:number}|undefined;
  /** Where the player's vehicle of any kind is and how it lies: native position, axes and CPlaceable::GetHeading in degrees. */
  playerVehiclePose?():{position:{x:number;y:number;z:number};right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};heading:number}|undefined;
@@ -1460,6 +1462,7 @@ export class ScmMission {
    // in AUDIO/SFX and not published: the casino's dealers deal on without their lines.
    pedSayScript:handle=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);},
    isPlayerInPositionForConversation:handle=>{this.livePed(handle);return this.playerInPositionForConversation(handle);},
+   flamethrowerShots:()=>this.world.flamethrowerShots?.()??[],
    // FxSystem_c::AttachToBone: the system follows the bone (a bone tag) from here.
    attachFxSystemToPedBone:(fx,handle,bone)=>{
     const record=this.scriptFx.get(fx);if(!record)throw new UnsupportedScmCommand(-1,0,'AN_FX_SYSTEM_THE_BROWSER_DOES_NOT_HOLD',`fx ${fx}`);

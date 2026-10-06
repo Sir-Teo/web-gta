@@ -5742,6 +5742,7 @@ async function boot() {
                  playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane,
                  // GET_RANDOM_CAR_OF_TYPE_IN_AREA's pool walk: cars and bikes, newest first, as CanBeDeleted allows (no
                  // mission vehicle, none the player is getting into or out of), inside the area across the ground.
+                 flamethrowerShots:()=>weapons.shots.filter(shot=>shot.weapon===37&&shot.remaining>0).map(shot=>({x:shot.origin.x,y:-shot.origin.z,z:shot.origin.y})),
                  randomCarOfTypeInArea:(x1,y1,x2,y2,model,lawEnforcers)=>{
                   const [minX,maxX]=x1>x2?[x2,x1]:[x1,x2],[minY,maxY]=y1>y2?[y2,y1]:[y1,y2];
                   const vehicles=[...(fleet?.cars??[]),...(fleet?.bikes??[])].reverse();
