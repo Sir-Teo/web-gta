@@ -56,7 +56,9 @@ export class GameRenderer {
   playerShadowAllowed=true;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
   /** `roll`: radians about the view, + leaning the top of the view right (CCam::Process_AttachedCam's tilt). */
-  fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3;roll?:number};
+  fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3;roll?:number;
+    /** CAMERA_SET_LERP_FOV's field of view while it runs (or persists); 70 otherwise. */
+    fov?:number};
   /** CCam::Process_1stPerson's source and the vehicle's frame for the bumper view, from the host each frame. */
   bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number}};
   /** TheCamera.m_bDisableFirstPersonInCar off. */
@@ -265,7 +267,7 @@ export class GameRenderer {
     // The aimed third-person camera's 52 is authored (Process_AimWeapon and Process_FollowPedWithMouse are stubs).
     // CCam::Process_Fixed sets FOV 70 whatever mode the player was in.
     // Process_1stPerson in a vehicle sets FOV 60.
-    const fov=this.fixedCamera?70:this.bumperView?60:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held,input.pinch):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;input.pinch=1;
+    const fov=this.fixedCamera?this.fixedCamera.fov??70:this.bumperView?60:fp?this.zoom.update(fp,dt*50,this.zoomInput.notch,this.zoomInput.held,input.pinch):this.aiming?52:GAME_CAMERA_FOV;this.zoomInput.notch=0;input.pinch=1;
     // Process_Rocket's near clip plane is 0.15.
     const near=this.scriptNearClip??(fp&&isRocketMode(fp)?.15:.08);
     if(fov!==this.sourceFov||near!==this.camera.near){this.sourceFov=fov;this.camera.near=near;applyWindowedCameraProjection(this.camera,Math.max(1,this.canvas.clientWidth),Math.max(1,this.canvas.clientHeight),fov);}

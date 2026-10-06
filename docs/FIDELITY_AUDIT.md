@@ -8741,7 +8741,9 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   - from + r × (to − from), with r eased to (1 − cos πr) / 2 when asked;
   - after the end time nothing applies, unless the persist flag holds the last point worked out inside the window
     (short of the far end by up to a frame's share);
-  - a move alone shifts the fixed camera's source and keeps its own direction, while a track turns it to the point.
+  - a move alone shifts the fixed camera's source and keeps its own direction, while a track turns it to the point;
+  - CAMERA_SET_LERP_FOV's field of view is applied the same way (inlined at 0x10022a824) to the script's fixed and
+    attached cameras, CAMERA_PERSIST_FOV holding its last value. It had been kept and not applied.
 - **Mission dialogue drifted.** A line is sized from its subtitle; INTRO1 prints three of its four after the PLAY, so
   each ran for the previous line's length. A line is now sized once, at the next script pass, from the brief its
   frame left up.

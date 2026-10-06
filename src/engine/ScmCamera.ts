@@ -187,6 +187,16 @@ export class ScmCamera {
   this.cameraPersistPosition=false;this.cameraPersistTrack=false;
   this.vecTrackLinearProcessed=false;this.vecMoveLinearProcessed=false;this.fovLerpProcessed=false;
  }
+ /** The field of view CCamera::ProcessFOVLerp works out at `nowMs` (iOS, inlined in ProcessScriptedCommands at
+  * 0x10022a824; CCam::Process then sets it on the camera, 0x10020f784): from the zoom-in factor to the zoom-out one
+  * as the vector lerps run, eased when the zoom mode is 1, and after the end time held at the last value worked out
+  * only while CAMERA_PERSIST_FOV's m_bBlockZoom is set. Nothing when no zoom applies. */
+ private lastFov?:number;
+ fovValue(nowMs:number){
+  const value=linearPoint(this.startZoomTime,this.endZoomTime,{x:this.zoomInFactor,y:0,z:0},{x:this.zoomOutFactor,y:0,z:0},this.zoomMode===1,nowMs)?.x;
+  if(value!==undefined){this.lastFov=value;return value;}
+  return this.blockZoom&&this.startZoomTime>=0&&nowMs>this.endZoomTime?this.lastFov:undefined;
+ }
  /** CCamera::LerpFOV (0x50D280): the zoom runs from now to now plus the limit, easing when the script says so. */
  lerpFOV(zoomInFactor:number,zoomOutFactor:number,timeLimit:number,ease:boolean,nowMs:number){
   requireAsset(Number.isFinite(timeLimit),'Invalid camera zoom time.');

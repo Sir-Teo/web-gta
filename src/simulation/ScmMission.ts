@@ -3609,7 +3609,7 @@ export class ScmMission {
    const moved=camera.moveLinearPoint(this.clockMs),tracked=camera.trackLinearPoint(this.clockMs),fixed=camera.fixedModeSource;
    const source=moved??fixed,aim=at??camera.fixedModeVector;
    const target=tracked??(moved?{x:moved.x+aim.x-fixed.x,y:moved.y+aim.y-fixed.y,z:moved.z+aim.z-fixed.z}:aim);
-   return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
+   return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y},fov:camera.fovValue(this.clockMs)};
   }
   // MODE_ATTACHCAM: CCam::Process_AttachedCam (unreversed in gta-reversed; iOS 0x10021b478). The camera rides the
   // entity at the offset in its space, at a FOV of 70, recomputed every frame. It looks at the target entity's root,
@@ -3622,7 +3622,7 @@ export class ScmMission {
     const place=(o:{x:number;y:number;z:number})=>({x:matrix.right.x*o.x+matrix.forward.x*o.y+matrix.up.x*o.z+matrix.position.x,
      y:matrix.right.y*o.x+matrix.forward.y*o.y+matrix.up.y*o.z+matrix.position.y,z:matrix.right.z*o.x+matrix.forward.z*o.y+matrix.up.z*o.z+matrix.position.z});
     const source=place(a.offset),target=camera.targetEntity?this.cameraEntityPosition(camera.targetEntity):place(a.lookAt??{x:0,y:1,z:0});
-    if(target)return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y},roll:Math.fround(Math.fround(a.tilt*Math.fround(Math.PI))/180)};
+    if(target)return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y},roll:Math.fround(Math.fround(a.tilt*Math.fround(Math.PI))/180),fov:camera.fovValue(this.clockMs)};
    }catch{return undefined;}
   }
   // MODE_CAM_ON_A_STRING and the follow camera on an entity the script names (two missions): a chase point behind

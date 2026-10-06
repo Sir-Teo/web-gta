@@ -142,3 +142,13 @@ describe('where the linear runs put the camera (authored ProcessVectorMoveLinear
   expect(camera.trackLinearPoint(60000)).toBeUndefined();
  });
 });
+
+test('the lerped field of view runs from the zoom-in factor to the zoom-out one and persists under CAMERA_PERSIST_FOV',()=>{
+ const camera=new ScmGameState().camera;
+ camera.lerpFOV(70,30,1000,false,0);
+ expect(camera.fovValue(-1)).toBeUndefined();
+ expect(camera.fovValue(500)).toBeCloseTo(50,6);
+ expect(camera.fovValue(2000)).toBeUndefined();
+ camera.blockZoom=true;camera.fovValue(1000);
+ expect(camera.fovValue(2000)).toBe(30);
+});
