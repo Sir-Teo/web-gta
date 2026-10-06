@@ -57,8 +57,6 @@ export class Native3dMarkers {
  /** IgnoreRenderLimit. */
  ignoreRenderLimit=false;
  numActiveMarkers=0;
- /** s_SavedAlpha (0x8D5E44). Its initial value is exe data; 0 stands in. */
- private savedAlpha=0;
  /** C3dMarkers::PlaceMarkerCone (0x726D40): not within 1.6 units of the camera. The alpha passed is replaced by
   * m_colDiamond and the rotate rate by 0. */
  placeMarkerCone(id:number,point:readonly [number,number,number],size:number,red:number,green:number,blue:number,_alpha:number,pulsePeriod:number,pulseFraction:number,_rotateRate:number,collision:boolean,
@@ -193,10 +191,9 @@ export class Native3dMarkers {
   for(const m of this.markers){
    if(m.active){
     if(visible(m.position,2)&&(m.distToCam2D<150||this.ignoreRenderLimit||m.type===MARKER3D.torus)){
-     // C3dMarker::Render: arrows and cones draw opaque; the same alpha twice in a row is nudged by one.
+     // C3dMarker::Render: arrows and cones draw opaque. (PC's s_SavedAlpha nudge, the same alpha twice in a row moved
+     // by one, is not in the iOS executable's Render, 0x100390ff8, and is not kept.)
      if(m.type===MARKER3D.arrow||coneType(m.type))m.color[3]=255;
-     if(m.color[3]===this.savedAlpha)m.color[3]+=m.color[3]<128?1:-1;
-     this.savedAlpha=m.color[3];
      drawn.push({marker:m,color:[m.color[0],m.color[1],m.color[2],m.color[3]]});
     }
     m.inUse=false;m.active=false;this.numActiveMarkers++;

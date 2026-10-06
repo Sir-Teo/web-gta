@@ -2229,7 +2229,8 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     fades it from tip to rim.
   - As reversed, `PlaceMarkerCone` passes a rotate rate of 0, so the cones do
     not spin. The render's pulse term is `sin(0)`.
-  - `s_SavedAlpha`'s initial value is exe data; 0 stands in.
+  - `s_SavedAlpha` (PC's nudge of an alpha equal to the last marker's by one) is not in the iOS executable's
+    C3dMarker::Render (0x100390ff8), which draws arrows and cones at 255 with no compare; it is dropped here.
   - Controls-disabled, cutscene and replay states do not hide the markers yet.
 - `CEntryExit::TransitionFinished` is unreversed; its commented draft in
   gta-reversed is followed.

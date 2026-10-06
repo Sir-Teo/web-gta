@@ -15,8 +15,8 @@ test('an entry exit cone bobs 0.3 units, shrinks up close and is drawn opaque un
  // Next frame the same slot bobs by sin(5°) × 0.3 and scales for the 30-unit 2D distance (no shrink beyond 25).
  const again=m.placeMarkerCone(7,[0,30,10],2,255,255,0,255,1024,1,5,false,camera,ctx())!;
  expect(again).toBe(first);expect(again.position[2]).toBeCloseTo(10+Math.sin(5*Math.PI/180)*.3);expect(again.size).toBe(2);
- // The same alpha twice in a row is nudged by one.
- m.update(1);expect(m.render(all)[0].color[3]).toBe(254);
+ // The iOS Render draws a cone opaque every frame (PC's s_SavedAlpha nudge is not there).
+ m.update(1);expect(m.render(all)[0].color[3]).toBe(255);
  // Within 5 units it is 70% of its size, and its alpha fades to 0.65 (drawn opaque anyway).
  const near=m.placeMarkerCone(7,[0,3,10],2,255,255,0,255,1024,1,5,false,camera,ctx())!;
  expect(near.size).toBeCloseTo(1.4);expect(near.color[3]).toBe(165);
