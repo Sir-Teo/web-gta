@@ -9041,7 +9041,9 @@ that did anything.
   - dealer.scm asks every 15 s within 5 units. A buyer walks up, pays and buys, and a drive-up buyer is sent off
     wandering in his car.
   - The handler does not pass over the dealer himself: a BIKDRUG dealer, whose model buys too, can be his own buyer, as
-    on iOS.
+    on iOS. Taking a ped the script already holds gives back the handle it has (CPools::GetPedRef: one reference per
+    ped), so the dealer's buyer is then his own `0@`.
+  - iOS walks the ped pool from the top, so which of two peds within a unit of each other wins differs here.
 - **`TASK_FOLLOW_FOOTSTEPS`** (AUTHORED: CTaskComplexFollowPedFootsteps is unreversed past its constructor, which sets a
   walk): the ped walks after the target, waits within 1.5 units of it, and never ends the task himself. dealer.scm gives
   it to a dealer whose buyer stands within 2 units, for 6 s.

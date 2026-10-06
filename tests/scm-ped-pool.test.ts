@@ -153,6 +153,15 @@ describe('the peds a script creates before the browser can load them',()=>{
   expect(peds.isDead(handle)).toBe(true);
  });
 
+ test('a street ped taken twice keeps one handle, as CPools::GetPedRef gives one reference per ped',()=>{
+  const {pool:peds}=pool();
+  const street:FakePed={id:99,position:{x:1,y:2,z:3},heading:0,health:100,accuracy:60,invulnerable:false,proofs:[],alive:true,scripted:false};
+  const first=peds.adopt(street,4,254,street.position,0);
+  expect(peds.adopt(street,4,254,street.position,0)).toBe(first);
+  // Deleted, the ped's next adoption is a new handle.
+  peds.delete(first);
+  expect(peds.adopt(street,4,254,street.position,0)).not.toBe(first);
+ });
  test('the ped is the type the script asked for, and only two types are female',()=>{
   const {pool:peds}=pool();
   // ePedType: 4 is PED_TYPE_CIVMALE, 5 PED_TYPE_CIVFEMALE, 22 PED_TYPE_PROSTITUTE, 17 PED_TYPE_DEALER.

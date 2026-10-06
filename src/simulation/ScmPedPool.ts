@@ -78,6 +78,9 @@ export class ScmPedPool<Ped>{
  /** A street ped a script took for its own (GET_RANDOM_CHAR_IN_ZONE: the pool hands out a reference to a ped that
   * already exists, and the ped becomes PED_MISSION). */
  adopt(ped:Ped,pedType:number,model:number|string|undefined,position:{x:number;y:number;z:number},heading:number,health=DEFAULT_PED_HEALTH){
+  // CPools::GetPedRef: one reference per ped, so a ped the script already holds (a brain's ped picked again, as a
+  // BIKDRUG dealer picks himself as his own buyer) keeps the handle it has.
+  const known=this.pool.handleOf(ped);if(known!==undefined&&this.pool.exists(known))return known;
   const handle=this.pool.adopt(ped);
   this.said.set(handle,{pedType,model,position:{...position},heading,health,maxHealth:Math.max(health,DEFAULT_PED_HEALTH),dead:false});
   return handle;
