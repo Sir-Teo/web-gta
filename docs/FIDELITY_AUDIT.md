@@ -8837,6 +8837,13 @@ that did anything.
   sphere, in 3D, passing over peds being removed, fading out, dying, dead or arrested, or in a group. There is no
   last-taken exclusion (gf_date, prisonr). `ARE_ANY_CHARS_NEAR_CHAR` (iOS 0x1001f1504) was already the iOS rule:
   any other ped, the player and the dead included, strictly within the radius.
+- **`ROTATE_OBJECT`** follows the iOS handler (0x1001d75e8; unregistered in gta-reversed). Its operands are the object,
+  the target heading, the step and the collision flag; the port had read the second and third as two angles and
+  stopped any script whose call did not hold them equal. Each call turns the heading (atan2(−fwd.x, fwd.y) in
+  [0, 360)) by the step along the shorter way, snapping to the target once less than a step is left, unscaled by the
+  timestep. The compare flag is set when this call reached the target or it was already there. MAIN's 39 calls step by
+  2, 3, 10, 100 or 360. Not ported: the collision flag's test (vehicles and peds in the turned footprint stop the turn
+  and set the flag), which no script sets.
 - **`GET_RANDOM_CHAR_IN_AREA_OFFSET_NO_SAVE`** (unregistered in gta-reversed) follows the iOS handler (0x100207fe0):
   - it takes the first street ped (PED_GAME) on foot inside the box, inclusive, passing over peds being removed,
     fading, dying, dead or arrested, or in a group;

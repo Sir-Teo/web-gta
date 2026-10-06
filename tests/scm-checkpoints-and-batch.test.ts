@@ -130,6 +130,25 @@ describe('the vehicle, ped and object commands of this batch',()=>{
   // A unit east and half down over half a frame: two units and one down a frame, each held to ±1 (iOS 0x1001fbeec).
   expect(game.objects.at(handle).velocity).toEqual({x:1,y:0,z:-1});
  });
+ test('ROTATE_OBJECT steps the heading the shorter way to the target and flags the arrival (iOS 0x1001d75e8)',()=>{
+  const game=new ScmGameState(),handle=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false}).handle;
+  game.objects.setHeading(handle,80);
+  const rotate=(target:number,step:number)=>{const {thread}=run({},game,instruction(op('ROTATE_OBJECT'),[int(handle),float(target),float(step),int(0)]));
+   return {heading:game.objects.getHeading(handle),done:(thread as unknown as {condition:boolean}).condition};};
+  // Up from 80 toward 90 by 2 a call, snapping once less than a step is left.
+  expect(rotate(90,2)).toMatchObject({done:false});expect(game.objects.getHeading(handle)).toBeCloseTo(82,4);
+  for(let k=0;k<3;k++)rotate(90,2);expect(game.objects.getHeading(handle)).toBeCloseTo(88,4);
+  // The call that lands on it is the arrival, and one already there says so too.
+  expect(rotate(90,2).done).toBe(true);expect(game.objects.getHeading(handle)).toBeCloseTo(90,4);
+  expect(rotate(90,2).done).toBe(true);
+  // Less than a step left snaps to the target.
+  game.objects.setHeading(handle,89);expect(rotate(90,2).done).toBe(true);expect(game.objects.getHeading(handle)).toBeCloseTo(90,4);
+  // The shorter way round: from 90 to 0 goes down; to 300 goes down through 0 too.
+  rotate(0,10);expect(game.objects.getHeading(handle)).toBeCloseTo(80,4);
+  game.objects.setHeading(handle,10);rotate(300,30);expect(game.objects.getHeading(handle)).toBeCloseTo(340,4);
+  // A step of 360 gets there at once.
+  expect(rotate(180,360).done).toBe(true);expect(game.objects.getHeading(handle)).toBeCloseTo(180,4);
+ });
  test('SET_OBJECT_COORDINATES_AND_VELOCITY puts a z at or below -100 on the ground',()=>{
   const game=new ScmGameState(),handle=game.objects.create(1337,{x:1,y:2,z:3},{external:false,missionCleanup:false}).handle;
   const space=new Uint8Array(2048);

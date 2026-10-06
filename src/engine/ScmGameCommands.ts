@@ -3048,15 +3048,21 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_OBJECT_COORDINATES:(t,p,i)=>{game(t,i).objects.setPosition(t.readInt(p[0]),vec(t,p,1));},
  GET_OBJECT_HEADING:(t,p,i)=>{t.writeFloat(p[1],game(t,i).objects.getHeading(t.readInt(p[0])));},
  SET_OBJECT_HEADING:(t,p,i)=>{game(t,i).objects.setHeading(t.readInt(p[0]),t.readFloat(p[1]));},
- // ROTATE_OBJECT: the reference registers this nowhere, so only what the script itself does is known. Its one
- // use turns an object from ninety degrees to ninety with the collision check off, which finishes at once, so
- // the runtime sets the heading to the angle asked for and reports the rotation done. A call whose two angles
- // differ would need the real handler to say how it steps between them and when it reports finished.
+ // ROTATE_OBJECT (unregistered in gta-reversed; the iOS handler, 0x1001d75e8): operands are the object, the target
+ // heading, the step and the collision flag. Each call turns the heading (atan2(-fwd.x, fwd.y) in [0, 360)) by the step
+ // along the shorter way to the target (a tie of 180 goes down), snapping to it once the way left is shorter than the
+ // step; the step is not scaled by the timestep. The flag is set when the heading was already the target or this call
+ // reached it. (With the collision flag set, iOS also stops the turn and sets the flag when a vehicle or ped is in the
+ // turned footprint; no script sets it, and that test is not ported.)
  ROTATE_OBJECT:(t,p,i)=>{
-  const from=t.readFloat(p[1]),to=t.readFloat(p[2]);
-  requireAsset(from===to,'ROTATE_OBJECT between two different angles needs the handler the reference does not carry.');
-  game(t,i).objects.setHeading(t.readInt(p[0]),to);
-  t.updateCompareFlag(true,negated(i));
+  const objects=game(t,i).objects,handle=t.readInt(p[0]),target=t.readFloat(p[1]),step=t.readFloat(p[2]),f=Math.fround;
+  const current=f(objects.getHeading(handle));
+  if(current===target){t.updateCompareFlag(true,negated(i));return;}
+  let up=f(target-current);if(up<0)up=f(up+360);
+  let down=f(current-target);if(down<0)down=f(down+360);
+  const next=up<down?(up<step?target:f(current+step)):(down<step?target:f(current-step));
+  objects.setHeading(handle,next);
+  t.updateCompareFlag(next===target,negated(i));
  },
  // SET_OBJECT_ROTATION: CPlaceable::SetOrientation's three angles, the last of which is the heading.
  SET_OBJECT_ROTATION:(t,p,i)=>{const v=vec(t,p,1);game(t,i).objects.setRotation(t.readInt(p[0]),v.x,v.y,v.z);},
