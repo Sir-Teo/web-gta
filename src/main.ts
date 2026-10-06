@@ -4871,7 +4871,7 @@ async function boot() {
              if(!alive||!fleet||emergency)return;
              emergency=new WorldEmergency(sim,fleet,carEntry.clips,scriptCars,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
              if(worldZones)emergency.zones=worldZones;emergency.wanted=()=>law.level;emergency.outside=()=>render.lighting.area===0;
-             emergency.enabled=()=>mission?.runtime.game.allowEmergencyServices??true;
+             emergency.enabled=()=>mission?.runtime.game.allowEmergencyServices??true;emergency.peds=()=>[...(pedestrians?.positions()??[]),sim.player.position];
              emergency.gameLogicBusy=()=>gameLogic.state!==GAMELOGIC_STATE_PLAYING||gameLogic.skipState===SKIP_IN_PROGRESS;
              emergency.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);emergency.fires=weapons.fires;
              emergency.crowd={dead:()=>pedestrians?.deadPeds()??[],exists:id=>!!pedestrians?.pedExists(id),spawnCrew:(model,position,heading,crew)=>pedestrians?pedestrians.spawnCrew(model,position,heading,crew):Promise.resolve(false),

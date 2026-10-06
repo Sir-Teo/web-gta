@@ -8866,8 +8866,20 @@ that did anything.
   play). It is made with its siren on and goes to the accident at 30 under `DRIVINGSTYLE_AVOID_CARS`.
   `CStreaming`'s default models by level are the executable's tables (0x100592cc0): the medics are LAEMT1, SFEMT1
   and LVEMT1, the ambulance is 416, and the countryside has none.
-  AUTHORED still: where the car is made (60 to 120 units off, out of sight; the route to the accident is the shortest
-  of a dozen tried), and the car budget, which is the browser's fleet cap of 12.
+  Where the car is made is the executable's too (`GenerateOneEmergencyServicesCar`, 0x1001a1398). It calls
+  `CCarCtrl::GenerateCarCreationCoors2` (0x10018d028, ported in `nativeCarCreationCoors.ts`), which walks the road
+  graph at random from the nodes nearest CJ, at most 29 links and 230 units, until a link crosses the 160-unit circle.
+  Either circle test passes, since both circles are 160 units here, so the place may be in view or out of it.
+  There are five tries:
+  - a try is passed over if its place is on a water node, or a car's or a ped's bounding sphere reaches within 10
+    units of it across the ground;
+  - a place found on the fifth try is dropped (the loop counts the try before it looks).
+  In Grove Street about a third of calls miss on all five tries. The car stands at the two nodes' height there,
+  facing the goal across the ground.
+  The browser's own parts:
+  - the nearest-node search uses the port's metric, not the iOS search's added link distance;
+  - the ground probe finds nothing beyond the collision streamed in round CJ;
+  - the car budget is the browser's fleet cap of 12.
 - **The medics are the reversed tasks.** `CCarAI::AddAmbulanceOccupants` (driver and passenger seat 1, the rear
   left), `CTaskComplexMedicTreatInjuredPed`, `CTaskComplexTreatAccident`, `CTaskSimpleGiveCPR` and
   `CEventHandler::ComputeReviveResponse`: inside 10 units of the accident both get out; each takes the nearest free
@@ -9256,9 +9268,9 @@ that did anything.
 
 - **`CREATE_EMERGENCY_SERVICES_CAR`.** `CCarCtrl::ScriptGenerateOneEmergencyServicesCar` (0x42FBC0) is reversed:
   `GenerateOneEmergencyServicesCar`, which is not, makes the vehicle, and the autopilot is sent to the point
-  (`MISSION_GOTOCOORDINATES`). The fire engine (CRASH1) and the ambulance are made as the dispatch makes its own (on a
-  road 60 to 120 units out, crewed), drive there with the siren on and then take up their own work, the fires about
-  or the accidents. The police cars DECON asks for as it raises the wanted level are left to that level's dispatch.
+  (`MISSION_GOTOCOORDINATES`). The fire engine (CRASH1) and the ambulance are made as the dispatch makes its own
+  (where a road crosses the 160-unit circle round CJ, crewed; a call whose five tries all miss makes nothing), drive
+  there with the siren on and then take up their own work, the fires about or the accidents. The police cars DECON asks for as it raises the wanted level are left to that level's dispatch.
 - **Script spheres.** `AddScriptSphere`, `RemoveScriptSphere` and `DrawScriptSpheres` are reversed: sixteen slots,
   handles carrying the slot's unique id, and a red `MARKER3D_CYLINDER` (alpha 228, pulse 0.1) for each sphere every
   frame (`ADD_SPHERE`, `REMOVE_SPHERE`: HEIST5, KICKSTA). `DRAW_SPHERE` (TWAR7, WUZI5), which the scripts call every

@@ -43,7 +43,12 @@ test('a script\'s fire engine drives with its siren to the point it was sent to'
  // The point: the street twenty units west of CJ (native axes).
  const goal=await page.evaluate(()=>{const g=(window as any).__game,p=g.sim.player.position,goal={x:p.x-20,y:-p.z,z:p.y};
   g.missionForProfiling().adapterRef.createEmergencyServicesVehicle(407,goal.x,goal.y,goal.z);return goal;});
- await expect.poll(async()=>(await emergency(page)).trucks.length,{timeout:60000}).toBeGreaterThan(0);
+ // GenerateOneEmergencyServicesCar's tries for a crossing of the 160-unit circle can all miss in Grove Street's grid
+ // (about a third of calls here), and then the command makes nothing; the spec asks again, as a script's loop would.
+ let asked=Date.now();
+ await expect.poll(async()=>{const n=(await emergency(page)).trucks.length;
+  if(!n&&Date.now()-asked>8000){asked=Date.now();await page.evaluate(g=>(window as any).__game.missionForProfiling().adapterRef.createEmergencyServicesVehicle(407,g.x,g.y,g.z),goal);}
+  return n;},{timeout:90000,intervals:[1000]}).toBeGreaterThan(0);
  const first=(await emergency(page)).trucks[0];
  expect(first.mission).toBe('toPoint');expect(first.siren).toBe(true);
  const away=(t:any)=>Math.hypot(t.position.x-goal.x,-t.position.z-goal.y);

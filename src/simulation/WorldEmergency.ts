@@ -8,7 +8,7 @@ import type {NativeAnimation} from '../assets/ifp';
 import {NativeAccidentManager,type Accident,type AccidentPed} from '../ped/nativeAccidents';
 import {clipRootEnd,nativeDoorPoint} from './CarEntry';
 import {DOOR,sitClip} from './nativeDoor';
-import {findTrafficRoute,trafficLinks,type TrafficLink} from './trafficRoute';
+import {generateCarCreationCoors2,newCarCreationCache} from './nativeCarCreationCoors';
 import type {ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {DRIVINGSTYLE,type ScriptCarMissions} from './ScriptCarMissions';
 import type {Simulation} from './Simulation';
@@ -24,8 +24,9 @@ import type {WorldFleet} from './WorldFleet';
  * wasted or busted or a trip skip runs, above three stars, indoors, in the countryside (whose level has no ambulance,
  * medic, fire engine or fireman) or with the car count at its cap. With no ambulance on duty, two free accidents bring
  * one to the nearest of them, wherever it lies, 30 s after the last; with no fire engine on duty, three burning fires
- * not the script's bring one to the nearest fire, 35 s after the last. The car is made on a road out of sight and told
- * to go there with its siren on. CStreaming's default ambulance, medic, fire engine and fireman by level are the
+ * not the script's bring one to the nearest fire, 35 s after the last. The car is made where a road crosses the
+ * 160-unit circle round CJ (GenerateOneEmergencyServicesCar, see emergencyPlacement) and told to go there with its
+ * siren on. CStreaming's default ambulance, medic, fire engine and fireman by level are the
  * executable's tables (0x100592cc0 to 0x100592d14).
  *
  * What the medics do is reversed (CarAI.cpp's AddAmbulanceOccupants, TaskComplexMedicTreatInjuredPed.cpp,
@@ -203,6 +204,10 @@ export class WorldEmergency {
  wanted:()=>number=()=>0;
  /** Whether a point's sphere is out of the camera's sight, where a car may be made. */
  canSpawn:(point:V3,radius:number)=>boolean=()=>true;
+ /** The peds and the player, renderer positions, for the placement's clearance. */
+ peds:()=>readonly V3[]=()=>[this.sim.player.position];
+ /** CCarCtrl::GenerateCarCreationCoors2's statics. */
+ private readonly creation=newCarCreationCache();
  /** CGame::currArea is 0: no ambulance answers indoors. */
  outside:()=>boolean=()=>true;
  /** CCarCtrl::bAllowEmergencyServicesToBeCreated, which SWITCH_EMERGENCY_SERVICES sets. */
@@ -270,13 +275,11 @@ export class WorldEmergency {
   const player=this.sim.player.position,at=toNative(player),nearest=findNearestFire(fires,at);
   const level=this.level() as 0|1|2|3,fireman=DEFAULT_FIREMAN_MODEL[level],engine=DEFAULT_FIRE_ENGINE_MODEL[level];if(!fireman||!engine)return;
   if(!fireTruckDue({onDuty:this.trucks.filter(t=>!t.car.wrecked).length,nonScriptFires:fires.filter(f=>f.active&&!f.script).length,nearest:!!nearest,nowMs:this.seconds*1000,lastCreatedMs:this.lastFireTruckMs}))return;
-  const goal=toRenderer(nearest!.position);
   this.truckBusy=true;
   void paths.loadAround(player.x,player.z).then(async()=>{
    if(this.disposed)return;
-   const link=this.spawnLink(paths.areas,goal);if(!link)return;
-   const {x,z}=link.start,y=link.from.position[2];
-   const car=await this.fleet.spawnTrafficCar(engine,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
+   const place=this.emergencyPlacement(paths.areas,nearest!.position);if(!place)return;
+   const car=await this.fleet.spawnTrafficCar(engine,place.position,place.heading,()=>!this.disposed).catch(()=>undefined);
    if(!car)return;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
    this.lastFireTruckMs=this.seconds*1000;
    // bSirenOrAlarm from the start; the driver's task keeps it on only while there is a fire to go to.
@@ -336,13 +339,11 @@ export class WorldEmergency {
   const player=this.sim.player.position,at=toNative(player),nearest=this.accidents.nearestFree(at,false);
   const level=this.level() as 0|1|2|3,medic=DEFAULT_MEDIC_MODEL[level],ambulance=DEFAULT_AMBULANCE_MODEL[level];if(!medic||!ambulance)return;
   if(!ambulanceDue({onDuty:this.ambulancesOnDuty,freeAccidents:this.accidents.numberOfFree(),nearest:!!nearest,nowMs:this.seconds*1000,lastCreatedMs:this.lastAmbulanceMs}))return;
-  const goal=toRenderer(nearest!.ped.position());
   this.busy=true;
   void paths.loadAround(player.x,player.z).then(async()=>{
    if(this.disposed)return;
-   const link=this.spawnLink(paths.areas,goal);if(!link)return;
-   const {x,z}=link.start,y=link.from.position[2];
-   const car=await this.fleet.spawnTrafficCar(ambulance,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
+   const place=this.emergencyPlacement(paths.areas,nearest!.ped.position());if(!place)return;
+   const car=await this.fleet.spawnTrafficCar(ambulance,place.position,place.heading,()=>!this.disposed).catch(()=>undefined);
    if(!car)return;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
    this.lastAmbulanceMs=this.seconds*1000;
    car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;car.siren=true;void this.clips.load(car.animGroup).catch(()=>{});
@@ -354,8 +355,9 @@ export class WorldEmergency {
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
  }
  /** CCarCtrl::ScriptGenerateOneEmergencyServicesCar (0x42FBC0, reversed) over GenerateOneEmergencyServicesCar, which
-  * is unreversed and made here as the dispatch makes its own: a fire engine or an ambulance, crewed, on a road out of
-  * sight from which the road reaches the script's point (native axes), driving there with its siren on
+  * is unreversed and made here as the dispatch makes its own: a fire engine or an ambulance, crewed, where a road
+  * crosses the 160-unit circle round CJ (nothing when every try misses), driving to the script's point (native
+  * axes) with its siren on
   * (MISSION_GOTOCOORDINATES). There it takes up its own work: the fires about, or the accidents. Any other model
   * (the police cars DECON asks for as it raises the wanted level) is left to the wanted level's own dispatch. */
  scriptGenerate(modelId:number,goalNative:V3){
@@ -363,9 +365,8 @@ export class WorldEmergency {
   const goal=toRenderer(goalNative),player=this.sim.player.position;
   void paths.loadAround(player.x,player.z).then(async()=>{
    if(this.disposed)return;
-   const link=this.spawnLink(paths.areas,goal);if(!link)return;
-   const {x,z}=link.start,y=link.from.position[2];
-   const car=await this.fleet.spawnTrafficCar(modelId,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
+   const place=this.emergencyPlacement(paths.areas,goalNative);if(!place)return;
+   const car=await this.fleet.spawnTrafficCar(modelId,place.position,place.heading,()=>!this.disposed).catch(()=>undefined);
    if(!car)return;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
    car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;car.siren=true;
    const level=Math.max(1,Math.min(3,this.level())) as 1|2|3;
@@ -380,18 +381,34 @@ export class WorldEmergency {
   }).catch(e=>{this.error=String(e);});
   return true;
  }
- /** NewGenerateCarCreationCoors' stand-in: a road link 60 to 120 units from the player, out of sight, with no car on
-  * it, from which the road reaches the accident; the shortest such route first. */
- private spawnLink(areas:ReadonlyMap<number,import('../assets/pathNodes').PathArea>,goal:V3){
-  const p=this.sim.player.position;
-  const links=[...areas.values()].flatMap(a=>a.nodes).filter(n=>{const d=Math.hypot(n.position[0]-p.x,-n.position[1]-p.z);return d>60&&d<120;}).flatMap(n=>trafficLinks(areas,n));
-  const open=links.filter(l=>this.canSpawn({x:l.start.x,y:l.from.position[2]+1,z:l.start.z},6)&&![...this.fleet.cars].some(c=>{const t=c.car.body.translation();return Math.hypot(t.x-l.start.x,t.z-l.start.z)<12;}));
-  let best:{link:TrafficLink;length:number}|undefined;
-  for(const link of open.sort(()=>this.random()-.5).slice(0,12)){
-   const route=findTrafficRoute(areas,link.to,goal,1500);if(!route)continue;
-   const length=route.reduce((n,l)=>n+l.length,link.length);if(!best||length<best.length)best={link,length};
+ /** GenerateOneEmergencyServicesCar's placement (iOS 0x1001a1398): GenerateCarCreationCoors2 from CJ for a crossing
+  * of the 160-unit circle in any direction (in view or not, the two circles being one), on a land road with no
+  * vehicle or ped kinda colliding within 10 units (2D, their bounding spheres), five tries; the executable counts
+  * the fifth before it looks, so a place found on it is dropped. The car stands at the nodes' height there, facing
+  * the goal across the ground (renderer axes and heading). The browser's ground probe is its own, and finds nothing
+  * beyond the collision streamed in round CJ, where the executable would find the ground and the port does not. */
+ private emergencyPlacement(areas:ReadonlyMap<number,import('../assets/pathNodes').PathArea>,goal:V3){
+  const from=toNative(this.sim.player.position);
+  for(let attempt=1;attempt<=5;attempt++){
+   const hit=generateCarCreationCoors2(areas,this.creation,{position:from,dirX:.707,dirY:.707,minDot:-1,dotAbove:true,inViewDistance:160,outOfViewDistance:160,
+    avoidSwitchedOff:false,noBoats:false},{nowMs:this.seconds*1000,rand:()=>Math.floor(this.random()*0x80000000),sphereVisible:(q,r)=>!this.canSpawn(toRenderer(q),r)});
+   if(!hit||hit.node1.water||this.kindaColliding(hit.position,10))continue;
+   if(attempt>4)return undefined;
+   const z=(1-hit.t)*hit.node1.position[2]+hit.t*hit.node2.position[2];
+   // CVector2D's heading of the way to the goal: atan2(-dx, dy).
+   return {position:toRenderer({x:hit.position.x,y:hit.position.y,z}),heading:Math.atan2(-(goal.x-hit.position.x),goal.y-hit.position.y)};
   }
-  return best?.link;
+  return undefined;
+ }
+ /** CWorld::FindObjectsKindaColliding(point, radius, 2D, vehicles and peds): a car whose bounding sphere, or a ped
+  * (CTempColModels' bounding radius 1), reaches within `radius` of the point across the ground (native point). */
+ private kindaColliding(point:V3,radius:number){
+  for(const car of this.fleet.cars){
+   if(car.disposed)continue;
+   const b=car.assets.collision.bounds,c=car.worldPoint({x:b.center[0],y:b.center[1],z:b.center[2]});
+   if(Math.hypot(c.x-point.x,-c.z-point.y)<b.radius+radius)return true;
+  }
+  return this.peds().some(p=>Math.hypot(p.x-point.x,-p.z-point.y)<1+radius);
  }
  /** CTaskComplexMedicTreatInjuredPed::ControlSubTask under TASK_COMPLEX_CAR_DRIVE_WANDER: the nearest free accident
   * is taken (treated) and driven to. */
