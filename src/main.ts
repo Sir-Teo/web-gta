@@ -5306,12 +5306,31 @@ async function boot() {
                  preloadAnimationBlock:block=>{void pedestrians?.scriptAnimation(block,'');},
                  // CAutomobile::SetTaxiLight (0x6A3740) on a script's car, or (none named) the one the player drives.
                  setTaxiLight:(car,on)=>{const c=(car!==undefined?car:worldCar?.occupied?worldCar:fleet?.occupied) as {taxiLight?:boolean}|undefined;if(c&&'taxiLight' in c)c.taxiLight=on;},
+                 // SLIDE_OBJECT's FindObjectsIntersectingAngledCollisionBox asks vehicles and peds only (the player among
+                 // them), not other objects or buildings.
                  scriptObjectBlockedAt:(handle,from,to)=>{
                   const body=scriptObjectViews?.bodyOf(handle);if(!body)return false;
                   const offset={x:to.x-from.x,y:to.z-from.z,z:-(to.y-from.y)};
+                  // Built only once something not fixed overlaps the object (most steps meet nothing).
+                  let vehicles:Set<number>|undefined,peds:Set<number>|undefined;
+                  const counts=(c:{handle:number;parent():{handle:number}|null})=>{
+                   if(!vehicles||!peds){
+                    vehicles=new Set([...(fleet?.cars??[])].map(car=>car.car.body.handle));
+                    for(const v of [...fleet?.bikes??[],...fleet?.boats??[],...fleet?.planes??[]])vehicles.add(v.body.handle);
+                    peds=new Set((pedestrians?.targets(true)??[]).map(p=>p.handle));peds.add(sim.playerCollider.handle);
+                   }
+                   return peds.has(c.handle)||vehicles.has(c.parent()?.handle??-1);
+                  };
+                  // Each collider's pose from the body's and its own offset on it: a collider's world pose is only
+                  // brought up to the body's at the next step.
+                  const b=body.translation(),q=body.rotation(),at={x:b.x+offset.x,y:b.y+offset.y,z:b.z+offset.z};
+                  const turn=(v:{x:number;y:number;z:number})=>{const tx=2*(q.y*v.z-q.z*v.y),ty=2*(q.z*v.x-q.x*v.z),tz=2*(q.x*v.y-q.y*v.x);
+                   return {x:v.x+q.w*tx+(q.y*tz-q.z*ty),y:v.y+q.w*ty+(q.z*tx-q.x*tz),z:v.z+q.w*tz+(q.x*ty-q.y*tx)};};
                   for(let i=0;i<body.numColliders();i++){
-                   const c=body.collider(i);if(!c.isEnabled())continue;const t=c.translation();
-                   if(sim.world.intersectionWithShape({x:t.x+offset.x,y:t.y+offset.y,z:t.z+offset.z},c.rotation(),c.shape,RAPIER.QueryFilterFlags.EXCLUDE_FIXED,undefined,undefined,body))return true;
+                   const c=body.collider(i);if(!c.isEnabled())continue;
+                   const l=c.translationWrtParent()??{x:0,y:0,z:0},r=c.rotationWrtParent()??{x:0,y:0,z:0,w:1},d=turn(l);
+                   const rot={w:q.w*r.w-q.x*r.x-q.y*r.y-q.z*r.z,x:q.w*r.x+q.x*r.w+q.y*r.z-q.z*r.y,y:q.w*r.y-q.x*r.z+q.y*r.w+q.z*r.x,z:q.w*r.z+q.x*r.y-q.y*r.x+q.z*r.w};
+                   if(sim.world.intersectionWithShape({x:at.x+d.x,y:at.y+d.y,z:at.z+d.z},rot,c.shape,RAPIER.QueryFilterFlags.EXCLUDE_FIXED,undefined,undefined,body,counts))return true;
                   }
                   return false;
                  },

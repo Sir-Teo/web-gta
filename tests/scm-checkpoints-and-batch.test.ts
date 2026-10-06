@@ -114,8 +114,8 @@ describe('the vehicle, ped and object commands of this batch',()=>{
   };
   // 0.25 and 0.5 units a frame at a timestep of 1: a quarter of the way along x, and half way along y.
   expect(slide(1)).toBe(false);expect(game.objects.at(handle).position).toEqual({x:0.25,y:-0.5,z:0});
-  // A blocked move is not made.
-  expect(slide(1,{objectBlockedAt:()=>true})).toBe(false);expect(game.objects.at(handle).position).toEqual({x:0.25,y:-0.5,z:0});
+  // A blocked move is not made, and the iOS handler then sets the flag as if the object had arrived.
+  expect(slide(1,{objectBlockedAt:()=>true})).toBe(true);expect(game.objects.at(handle).position).toEqual({x:0.25,y:-0.5,z:0});
   // It stops at the target on each axis, and says so once all three are there.
   expect(slide(10)).toBe(true);expect(game.objects.at(handle).position).toEqual({x:1,y:-2,z:0});
  });

@@ -9514,10 +9514,12 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 
 ## Sliding objects meet what stands in their way
 
-- **`SLIDE_OBJECT`'s collision check** (Vice City's handler; SA's is unreversed) now has its question answered: the
-  object's collision at the next point is tested against every body that is not fixed (the player, peds, vehicles,
-  other script objects), and a blocked step is not taken. MAIN's gates and 15 missions' sliding doors stop at CJ rather
-  than pass through him.
+- **`SLIDE_OBJECT`'s collision check** follows the iOS handler (SA's is unreversed in gta-reversed; the port first took
+  Vice City's). The object's collision at the next point is tested with FindObjectsIntersectingAngledCollisionBox. That
+  asks only vehicles and peds, CJ among them, and not other objects or buildings. A blocked step is not taken, and the
+  command reports it true, as if the object had arrived. MAIN's gates and 15 missions' sliding doors stop at CJ rather
+  than pass through him. The test poses each collider from its body and its own offset, because a collider's world
+  pose only catches up with its body at the next physics step.
 
 ## The taxi's roof light
 

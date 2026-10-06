@@ -1452,17 +1452,18 @@ const handlers:Record<string,ScmCommandHandler>={
    bool(t,p[7]),bool(t,p[8]));
  },
  // The object commands: a slide to a point at its own speed, and the health it carries.
- /* SLIDE_OBJECT's handler is unreversed; Vice City's is followed. Each axis moves toward the target by its speed
-  * times the timestep, stopping at the target, and the flag is set once all three have arrived. With the collision
-  * check, a move the host finds blocked is not made. */
+ /* SLIDE_OBJECT's handler is unreversed in gta-reversed; the iOS one (0x1001d7790's case) is followed. Each axis moves
+  * toward the target by its speed times the timestep, stopping at the target, and the flag is set once all three have
+  * arrived. With the collision check (FindObjectsIntersectingAngledCollisionBox over vehicles and peds only), a move
+  * the host finds blocked is not made, and the flag is set as if it had arrived. */
  SLIDE_OBJECT:(t,p,i)=>{
   const objects=game(t,i).objects,handle=t.readInt(p[0]),target=vec(t,p,1),speed=vec(t,p,4),check=bool(t,p[7]);
   if(t.timeStep===undefined)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,'no timestep');
   const from=objects.at(handle).position,step=Math.fround(t.timeStep);
   const axis=(at:number,to:number,rate:number)=>{const f=Math.fround;if(to<at){const n=f(at-f(rate*step));return n<to?to:n;}const n=f(at+f(rate*step));return n>to?to:n;};
   const next={x:axis(from.x,target.x,speed.x),y:axis(from.y,target.y,speed.y),z:axis(from.z,target.z,speed.z)};
-  const blocked=check&&!!t.host?.world?.objectBlockedAt?.(handle,next);
-  if(!blocked)objects.setPosition(handle,next);
+  if(check&&t.host?.world?.objectBlockedAt?.(handle,next)){t.updateCompareFlag(true,negated(i));return;}
+  objects.setPosition(handle,next);
   t.updateCompareFlag(next.x===target.x&&next.y===target.y&&next.z===target.z,negated(i));
  },
  SET_OBJECT_HEALTH:(t,p,i)=>{world(t,i,'setObjectHealth')(t.readInt(p[0]),t.readInt(p[1]));},
