@@ -1072,7 +1072,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  getPositionOfEntryExitCharUsed?(handle:number):{x:number,y:number,z:number,heading:number};
  findTrainDirection?(handle:number):boolean;
  addBlipForCoordOld?(x:number,y:number,z:number,colour:number,display:number):number;
- taskFollowPathNodesToCoordWithRadius?(handle:number,x:number,y:number,z:number,speed:number,time:number,radius:number):void;
  drawShadow?(textureType:number,x:number,y:number,z:number,angle:number,length:number,intensity:number,r:number,g:number,b:number):void;
  /** The three names the game hands back as text labels: the zone at a point, the entry-exit a ped last used,
   * and the shop that is loaded. */
