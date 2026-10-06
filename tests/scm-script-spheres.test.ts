@@ -51,4 +51,9 @@ describe('CTheScripts\' script spheres',()=>{
   run(build(scmOpcode('DRAW_SPHERE'),[float(1),float(2),float(3),float(1.5)]),game,{drawSphere:(id,x,y,z,r)=>{drawn.push([id,x,y,z,r]);}});
   expect(drawn).toHaveLength(1);expect(drawn[0][0]).toBeGreaterThan(0);expect(drawn[0].slice(1)).toEqual([1,2,3,1.5]);
  });
+ test('DRAW_SPHERE puts a z at or below -100 on the ground, as the iOS handler does',()=>{
+  const game=new ScmGameState(),drawn:number[][]=[];
+  run(build(scmOpcode('DRAW_SPHERE'),[float(1),float(2),float(-100),float(1.5)]),game,{drawSphere:(id,x,y,z,r)=>{drawn.push([x,y,z,r]);},groundZForCoord:(x,y)=>x+y+10});
+  expect(drawn).toEqual([[1,2,13,1.5]]);
+ });
 });

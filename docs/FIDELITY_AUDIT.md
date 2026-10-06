@@ -9364,7 +9364,9 @@ that did anything.
 - **Script spheres.** `AddScriptSphere`, `RemoveScriptSphere` and `DrawScriptSpheres` are reversed: sixteen slots,
   handles carrying the slot's unique id, and a red `MARKER3D_CYLINDER` (alpha 228, pulse 0.1) for each sphere every
   frame (`ADD_SPHERE`, `REMOVE_SPHERE`: HEIST5, KICKSTA). `DRAW_SPHERE` (TWAR7, WUZI5), which the scripts call every
-  frame in their loops, places the same cylinder for that frame (AUTHORED: its handler is not reversed).
+  frame in their loops, places the same cylinder for that frame. Its handler is unreversed in gta-reversed; the iOS one
+  (0x1001d9734) places it with the thread and the command's place as its id, and puts a z at or below -100 on the
+  ground first.
 - **Flags and small effects.** `SET_CAR_ALWAYS_CREATE_SKIDS` (reversed) keeps `bAlwaysSkidMarks`, which in the game only
   keeps an off-screen car pre-rendered, and so laying marks, further out; the browser lays every stepped car's marks on
   or off screen. `IGNORE_HEIGHT_DIFFERENCE_FOLLOWING_NODES` (reversed) and `VEHICLE_DOES_PROVIDE_COVER` are kept on the

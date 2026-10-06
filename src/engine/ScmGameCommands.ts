@@ -2011,8 +2011,11 @@ const handlers:Record<string,ScmCommandHandler>={
  SWITCH_AMBIENT_PLANES:(t,p,i)=>{game(t,i).ambientPlanes=bool(t,p[0]);},
  SYNC_WATER:(t,_p,i)=>{world(t,i,'syncWater')();},
  // A red marker for this frame, keyed by the thread and the instruction as the highlights are.
+ // The iOS handler (0x1001d9734): DrawScriptSpheres' red cylinder (alpha 228, pulse 2048 ms at 0.1) for this frame,
+ // its id the thread and the command's place in it, and a z at or below -100 put on the ground.
  DRAW_SPHERE:(t,p,i)=>{
-  const point=vec(t,p,0);world(t,i,'drawSphere')(highlightId(t,i),point.x,point.y,point.z,t.readFloat(p[3]));
+  const point=vec(t,p,0);if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=world(t,i,'groundZForCoord')(point.x,point.y);
+  world(t,i,'drawSphere')(highlightId(t,i),point.x,point.y,point.z,t.readFloat(p[3]));
  },
  REMOVE_USER_3D_MARKER:(t,p,i)=>{world(t,i,'removeUser3dMarker')(t.readInt(p[0]));},
  REGISTER_FASTEST_TIME:(t,p,i)=>{world(t,i,'registerFastestTime')(t.readInt(p[0]),t.readInt(p[1]));},
@@ -2759,9 +2762,8 @@ const handlers:Record<string,ScmCommandHandler>={
  // ScriptCommands.cpp (reversed): CTheScripts::bDrawCrossHair, the one flag DRAW_CROSSHAIR sets too, to the held
  // weapon's first-person crosshair or to none.
  SET_PHOTO_CAMERA_EFFECT:(t,p,i)=>{world(t,i,'setPhotoCameraEffect')(bool(t,p[0]));},
- // Handler unreversed (AUTHORED): any burning fire, the script's own included, standing in the angled area, which is
- // highlighted as the char form highlights its. camera.scm asks it of the strip in front of CJ before it poses his
- // group there.
+ // Handler unreversed in gta-reversed; the iOS one is followed (below). The area is highlighted as the char form
+ // highlights its. camera.scm asks it of the strip in front of CJ before it poses his group there.
  IS_FLAME_IN_ANGLED_AREA_2D:(t,p,i)=>{
   const area=new NativeAngledRect({x:t.readFloat(p[0]),y:t.readFloat(p[1])},{x:t.readFloat(p[2]),y:t.readFloat(p[3])},t.readFloat(p[4]));
   if(bool(t,p[5]))highlightImportantAngledArea(t,i,[area.a,area.cornerB,area.cornerC,area.cornerD]);
