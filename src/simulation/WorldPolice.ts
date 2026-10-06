@@ -1,4 +1,5 @@
 import type {SetPieceCar} from './nativeSetPieces';
+import {pedEnteredVehicleLeaveDelay} from './nativePedEnteredVehicle';
 import {DIE_IN_CAR_OFFSET_MS,canPedStepOutCar} from '../vehicle/nativeDieInCar';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {openStaticWorld} from '../assets/staticWorldArchive';
@@ -30,11 +31,6 @@ export const DEFAULT_COP_CAR=[599,596,597,598] as const;
 /** CStreaming::ms_aDefaultCopModel by level (csher, lapd1, sfpd1, lvpd1). */
 export const DEFAULT_COP_MODEL=['csher','lapd1','sfpd1','lvpd1'] as const;
 /** CCarCtrl::ChoosePoliceCarModel: Enforcer 1 in 3 at four stars, FBI Rancher at five, Rhino or Barracks at six. */
-/** ComputePedEnteredVehicleResponse's leave delay (iOS 0x10029f874): (int)((rand() & 0xffff) / 65536 × 300) + 300 ms,
- * here in seconds. */
-export function pedEnteredVehicleLeaveDelay(sample16:number){
- return (Math.trunc(Math.fround(Math.fround((sample16&0xffff)*(1/65536))*300))+300)/1000;
-}
 export function choosePoliceCarModel(level:number,wanted:number,random:()=>number){
  if(wanted===4){if(Math.floor(random()*3)===2)return 427;}
  else{if(wanted===5)return 490;if(wanted===6)return random()<.5?432:433;}

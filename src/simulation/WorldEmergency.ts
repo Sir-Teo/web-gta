@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat';
+import {pedEnteredVehicleLeaveDelay} from './nativePedEnteredVehicle';
 import {openStaticWorld} from '../assets/staticWorldArchive';
 import {worldPaths} from '../assets/worldPaths';
 import {worldLevelAt,type WorldZones} from '../assets/worldZones';
@@ -169,7 +170,9 @@ interface Medic {
  cpr?:boolean;
  /** Time on the current step, and the best distance to his door with how long it has not improved. */
  time:number;best:number;stall:number;
- clip?:{key:string;animation:NativeAnimation;phase:'getOut'|'align'|'open'|'getIn'|'closeInside';time:number;group:number};
+ clip?:{key:string;animation:NativeAnimation;phase:'getOut'|'align'|'open'|'getIn'|'closeInside';time:number;group:number;
+  /** CTaskComplexLeaveCar's delay, seconds still to wait before the door (a passenger the player did not drag out). */
+  wait?:number};
  leftOnce:boolean;
 }
 interface Unit {
@@ -456,11 +459,11 @@ export class WorldEmergency {
   const getIn=this.clips.slot(car.animGroup,VEHICLE_ANIM.getinLHS),frame=car.car.nativeFramePosition(seat<2?'ped_frontseat':'ped_backseat');if(!getIn||!frame)return undefined;
   return nativeDoorPoint({x:frame.x,y:frame.y,z:frame.z},clipRootEnd(getIn.clip),car.assets.handling.values.seatOffset,seat%2===0?'left':'right',1);
  }
- private beginExit(u:Unit,m:Medic){
+ private beginExit(u:Unit,m:Medic,wait=0){
   const found=this.clips.slot(u.car.animGroup,this.exitSlot(m.seat));
   m.leftOnce=true;
   if(!found){void this.finishExit(u,m);return;}
-  m.state='leaving';m.clip={key:found.key,animation:found.clip,phase:'getOut',time:0,group:0};
+  m.state='leaving';m.clip={key:found.key,animation:found.clip,phase:'getOut',time:0,group:0,wait};
  }
  private async finishExit(u:Unit,m:Medic){
   m.state='foot';m.clip=undefined;m.time=0;
@@ -509,7 +512,9 @@ export class WorldEmergency {
   m.time+=dt;
   const car=u.car;
   if(m.clip){
-   const c=m.clip;c.time+=dt;
+   const c=m.clip;
+   if(c.wait&&c.wait>0){c.wait-=dt;return;}
+   c.time+=dt;
    const door=this.door(m.seat);
    if(c.phase==='getOut'){const ratio=nativeDoorAnimRatio(car.animGroup,'getOut',c.time,car.doors[door].ratio,0);if(ratio!==undefined&&!car.doorMissing(door))car.openDoor(door,ratio);}
    else if(c.phase==='open'||c.phase==='closeInside'){const ratio=nativeDoorAnimRatio(car.animGroup,c.phase,c.time,car.doors[door].ratio,c.group);if(ratio!==undefined&&!car.doorMissing(door))car.openDoor(door,ratio);}
@@ -647,14 +652,15 @@ export class WorldEmergency {
  frontPassengerOf(car:WorldCar){const t=this.trucks.find(t=>t.car===car);return t&&!t.passenger?{model:t.model}:undefined;}
  /** The player is dragging him out: the car entry draws him from now on. */
  dragPassenger(car:WorldCar){const t=this.trucks.find(t=>t.car===car);if(t)t.passenger='gone';}
- /** CCarEnterExit::MakeUndraggedPassengerPedsLeaveCar (unreversed; AUTHORED as for the police crews): the crew still
-  * aboard but the driver get out by their own doors; a medic on his way back aboard steps out at the door. */
+ /** CCarEnterExit::MakeUndraggedPassengerPedsLeaveCar (iOS 0x1003e9564; see WorldPolice.crewLeave): the crew still
+  * aboard but the driver get out by their own doors after the leave task's 300 to 599 ms (the decision maker's choice
+  * of leave task AUTHORED as for the police crews); a medic on his way back aboard steps out at the door. */
  crewLeave(car:WorldCar){
   const u=this.units.find(u=>u.car===car);
   if(u){
    u.taken=true;this.driving.forget(car);
    for(const m of u.medics){
-    if(m.seat!==0&&m.state==='seated')this.beginExit(u,m);
+    if(m.seat!==0&&m.state==='seated')this.beginExit(u,m,pedEnteredVehicleLeaveDelay(Math.floor(this.random()*65536)));
     else if(m.seat!==0&&m.state==='entering')void this.finishExit(u,m);
     else if(m.state==='foot'){
      // Those on foot are let go with the unit; one on his way back to the van stops there.

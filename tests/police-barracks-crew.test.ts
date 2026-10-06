@@ -1,5 +1,6 @@
 import {expect,test} from 'vitest';
-import {pedEnteredVehicleLeaveDelay,policeCrew} from '../src/simulation/WorldPolice';
+import {policeCrew} from '../src/simulation/WorldPolice';
+import {pedEnteredVehicleLeaveDelay} from '../src/simulation/nativePedEnteredVehicle';
 
 // CCarAI::AddPoliceCarOccupants: MODEL_BARRACKS shares the city cars' case, so its army driver gets a partner above one
 // star or else one time in two, and above two stars one of them a shotgun one time in four.
