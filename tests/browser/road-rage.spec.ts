@@ -13,12 +13,21 @@ test('a driver rammed by the player draws his decision: road rage gets him out t
   try{
    for(let i=0;i<300&&(traffic.snapshot().cars.length<2||!crowd.snapshot().ready);i++){traffic.update(i*2100);crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
    if(fleet.cars.size<2)throw new Error(JSON.stringify(traffic.snapshot()));
-   const car=[...fleet.cars][0] as any;await entry.clips.load(car.animGroup);
+   let car=[...fleet.cars][0] as any;await entry.clips.load(car.animGroup);
    let follow=true;
    const tick=()=>{crowd.update(performance.now());if(follow){const at=car.car.body.translation();sim.player.position={x:at.x+10,y:at.y,z:at.z+10};}traffic.beforeStep(1/60);entry.step(1/60,{pedal:false,moving:false});crowd.beforeStep(1/60,[...fleet.cars]);for(const c of fleet.cars)c.beforeStep(1/60,{x:0,y:0},false);sim.world.step();for(const c of fleet.cars)c.afterStep(1/60);crowd.afterStep();};
    const ahead=(distance:number)=>{const p=car.car.body.translation(),q=car.car.body.rotation(),heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
     return {position:{x:p.x-Math.sin(heading)*distance,y:p.y,z:p.z-Math.cos(heading)*distance},heading};};
    for(let i=0;i<120;i++)tick();
+   // A car made partway along its link (GenerateOneRandomCar's place) can be turning at a junction by now: take a car
+   // that has run straight along its link, moving, for half a second, so the blocker lands in its lane.
+   const straight=new Map<any,number>();
+   for(let i=0;i<900;i++){
+    tick();
+    for(const c of traffic.snapshot().cars){const owner=[...fleet.cars].find((f:any)=>{const at=f.car.body.translation();return Math.hypot(c.position.x-at.x,c.position.z-at.z)<1;});
+     if(owner)straight.set(owner,c.alignment>.98&&c.speed>3?(straight.get(owner)??0)+1:0);}
+    const pick=[...straight].find(([,n])=>n>=30)?.[0];if(pick){car=pick;await entry.clips.load(car.animGroup);break;}
+   }
    // A blocker parks the car in its lane; the player's car then rams it from behind at 12 m/s.
    const spot=ahead(14),blocker=await fleet.spawnTrafficCar(492,spot.position,spot.heading);
    for(let i=0;i<300;i++)tick();

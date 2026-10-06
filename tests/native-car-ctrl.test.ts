@@ -1,6 +1,6 @@
 import {test,expect} from 'vitest';
 import {LANE_WIDTH,PATH_DIRECTION,findMaxSteerAngle,findPathDirection,findSpeedMultiplier,lanePoint,nextLaneOnLink,oneWayLaneOffset,pickNextNodeRandomly,
- randomCruiseSpeed,shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,testCollisionBetween2MovingRects,carAIJam,tempActionPedals,makeWayForCarWithSiren,type NextCandidate,type TravelLink} from '../src/vehicle/nativeCarCtrl';
+ shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,testCollisionBetween2MovingRects,carAIJam,tempActionPedals,makeWayForCarWithSiren,type NextCandidate,type TravelLink} from '../src/vehicle/nativeCarCtrl';
 
 // A road running north (+y) with its link at the origin.
 const north=(y=0,laneOffset=.5):TravelLink=>({position:{x:0,y},forward:{x:0,y:1},laneOffset});
@@ -92,13 +92,6 @@ test('a pedestrian ahead slows the car, and makes it wait when very close',()=>{
  expect(slowCarDownForPed(c,{x:0,y:3.5,z:0},12)!.wait).toBe(true);
  expect(slowCarDownForPed(c,{x:3,y:8,z:0},12)).toBeUndefined();
  expect(slowCarDownForPed(c,{x:0,y:30,z:0},12)).toBeUndefined();
-});
-
-test('GenerateOneRandomCar cruise speeds by class',()=>{
- const low=(min:number)=>min,high=(_:number,max:number)=>max;
- expect([randomCruiseSpeed(undefined,4,low),randomCruiseSpeed(undefined,4,high)]).toEqual([9,14]);
- expect([randomCruiseSpeed('executive',4,low),randomCruiseSpeed('poorfamily',4,high)]).toEqual([12,10]);
- expect(randomCruiseSpeed('big',12,high)).toBe(10);
 });
 
 test('UpdateCarAI reverses a car jammed against something and turns it to AVOID_CARS',()=>{

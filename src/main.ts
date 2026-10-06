@@ -4926,6 +4926,13 @@ async function boot() {
              return out;
             };
             traffic.peds=()=>{const out=pedestrians?.positions()??[];if(!fleet?.occupied)out.push({...sim.player.position});return out;};
+            // GenerateOneRandomCar's bearing: TheCamera's forward (its height, and its front across the ground) and the
+            // driven vehicle's speed across the ground; FindPlayerSpeed for its last test. Native axes, units a frame.
+            const playerVehicleVelocity=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied,body=car?car.car.body:fleet?.occupiedBike?.body;if(!body)return undefined;
+             const l=body.linvel();return {x:l.x/50,y:-l.z/50};};
+            traffic.creationView=()=>{const f=render.camera.getWorldDirection(new Vector3()),l=Math.hypot(f.x,f.z)||1;
+             return {cameraForwardZ:f.y,cameraFront:{x:f.x/l,y:-f.z/l},vehicleVelocity:playerVehicleVelocity()};};
+            traffic.playerVelocity=()=>{const v=playerVehicleVelocity();if(v)return v;const h=sim.player.heading,s=sim.player.speed/50;return {x:Math.sin(h)*s,y:-Math.cos(h)*s};};
             police.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
             police.camera=()=>{const forward=render.camera.getWorldDirection(render.camera.position.clone());return {position:render.camera.position,forward};};
             police.spawnOfficer=(model,weapon,position,heading,crew,accuracy,lying)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew,accuracy,false,lying);};

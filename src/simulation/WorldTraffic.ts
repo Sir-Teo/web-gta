@@ -6,7 +6,9 @@ import {worldPaths} from '../assets/worldPaths';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
 import {trafficLinks,travelLink,type TrafficLink} from './trafficRoute';
-import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,carAIJam,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,pickNextNodeRandomly,randomCruiseSpeed,
+import {generateCarCreationCoors2,newCarCreationCache} from './nativeCarCreationCoors';
+import {approachesPlayer,clampCreationT,laneCountAllows,nodeSpeedMultiplier,randomCarCreationBearing,randomCarCruiseSpeed,spawnProbabilityPasses} from '../vehicle/nativeRandomCarSpawn';
+import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,carAIJam,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,pickNextNodeRandomly,
  shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,steerHeadingForTarget,tempActionPedals,type NextCandidate,type TempAction} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
@@ -19,6 +21,13 @@ import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
 /** How long a rammed driver's CTaskComplexCarDriveMissionKillPed chase lasts, and how far off the player ends it (authored:
  * the task is not reversed). */
 const CHASE_SECONDS=30,CHASE_GIVE_UP_DISTANCE=120;
+/** GenerateOneRandomCar's out-of-view circle (38 units) and its kinda-colliding clearance (8, 2D). The browser's own:
+ * a hidden circle of 75 (the far edge of the band the port made cars in before) standing in, every other try, for the
+ * executable's in-view one (160 × the generation multiplier, kept to 150 to 170 on screen), which is beyond the
+ * browser's traffic budget; the tries a check; and the length it clamps by before the model is in. */
+const RANDOM_CAR_OUT_OF_VIEW=38,RANDOM_CAR_FAR_HIDDEN=75,RANDOM_CAR_CLEARANCE=8,RANDOM_CAR_TRIES=32,ASSUMED_CAR_LENGTH=5;
+/** The BMX-type models (vehicles.ide "bmx"): the BMX, the bike and the mountain bike. */
+const BMX_MODELS:ReadonlySet<number>=new Set([481,509,510]);
 interface Driver {/** The chase CTaskComplexCarDriveMissionKillPed runs after the player. */chase?:{until:number};/** Road rage waiting for the car to slow before he gets out. */rageWait?:boolean;car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
  temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'|'death'|'flipped'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
@@ -60,6 +69,23 @@ export class WorldTraffic {
   private disposed=false;
   private serial=0;
   private elapsed=0;
+  /** CCarCtrl::GenerateCarCreationCoors2's statics, and the tries' stand-in for CTimer::m_FrameCounter. */
+  private readonly creation=newCarCreationCache();private frameCounter=0;
+  /** What GenerateOneRandomCar's bearing reads: TheCamera's forward height and its front across the ground (native),
+   * and the player's vehicle's speed across the ground (units a frame) when he drives. */
+  creationView:()=>{cameraForwardZ:number;cameraFront:{x:number;y:number};vehicleVelocity?:{x:number;y:number}}=()=>({cameraForwardZ:0,cameraFront:{x:0,y:1}});
+  /** FindPlayerSpeed across the ground (native, units a frame). */
+  playerVelocity:()=>{x:number;y:number}=()=>({x:0,y:0});
+  /** CWorld::FindObjectsKindaColliding(point, radius, 2D, vehicles and peds): a car's bounding sphere or a ped's (radius 1)
+   * within `radius` of the point across the ground (native point). */
+  private kindaColliding(point:{x:number;y:number},radius:number){
+   for(const car of this.fleet.cars){
+    if(car.disposed)continue;
+    const b=car.assets.collision.bounds,c=car.worldPoint({x:b.center[0],y:b.center[1],z:b.center[2]});
+    if(Math.hypot(c.x-point.x,-c.z-point.y)<b.radius+radius)return true;
+   }
+   return (this.peds?.()??[this.sim.player.position]).some(q=>Math.hypot(q.x-point.x,-q.z-point.y)<1+radius);
+  }
   /** The traffic-light timer the cars read (CTimer::m_snTimeInMilliseconds from this system's start). */
   get lightMs(){return this.elapsed*1000;}
   private error?:string;
@@ -133,28 +159,48 @@ export class WorldTraffic {
     const maxDrivers=this.fleet.trafficDrivers()??3;
     // CCarCtrl::GenerateRandomCars returns while the current area cannot see outside.
     if(this.drivers.length>=maxDrivers||this.fleet.cars.size>=9||!this.fleet.outside()||this.noSpawn())return;
-   const p=this.sim.player.position;
-   const candidates=[...paths.areas.values()].flatMap(a=>a.nodes).filter(n=>Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)>25&&Math.hypot(n.position[0]-p.x,-n.position[1]-p.z)<75).flatMap(n=>trafficLinks(paths.areas,n));
-   for(let i=0;i<candidates.length;i++){
-    const link=candidates[(i+this.serial*17)%candidates.length],lane=Math.floor(Math.random()*Math.max(1,lanes(link).lanes)),at=lanePoint(travel(link),lane),x=at.x,z=-at.y;
+   const p=this.sim.player.position,centre=toNative(p),view=this.creationView(),rand=()=>Math.floor(Math.random()*0x80000000);
+   // CCarCtrl::GenerateOneRandomCar's way to a place (two tries a frame there; a handful a check here, the browser's).
+   for(let attempt=0;attempt<RANDOM_CAR_TRIES;attempt++){
+    const bearing=randomCarCreationBearing({...view,frameCounter:this.frameCounter++});
+    // Nothing is made in view here (see RANDOM_CAR_FAR_HIDDEN): the in-view circle is off, and every other try asks
+    // the far hidden circle instead of the executable's 38.
+    const hidden=attempt&1?RANDOM_CAR_FAR_HIDDEN:RANDOM_CAR_OUT_OF_VIEW;
+    const hit=generateCarCreationCoors2(paths.areas,this.creation,{position:centre,...bearing,inViewDistance:0,outOfViewDistance:hidden,avoidSwitchedOff:true,noBoats:false},
+     {nowMs:this.elapsed*1000,rand,sphereVisible:(q,r)=>!this.fleet.canChangePopulation({x:q.x,y:q.z,z:-q.y},r)});
+    if(!hit||!spawnProbabilityPasses(rand(),hit.node1.spawnProbability,hit.node2.spawnProbability))continue;
+    // A water start makes a boat there; the browser's traffic has none.
+    if(hit.node1.water||this.kindaColliding(hit.position,RANDOM_CAR_CLEARANCE))continue;
+    const link=trafficLinks(paths.areas,hit.node1).find(l=>l.to===hit.node2);if(!link)continue;
+    const pick=this.fleet.trafficPick(),laneCount=lanes(link).lanes;
+    if(!laneCountAllows(laneCount,pick.modelId,BMX_MODELS.has(pick.modelId)))continue;
+    const lane=rand()%laneCount,from=hit.node1.position,to=hit.node2.position,nodeDistance=Math.hypot(to[0]-from[0],to[1]-from[1]);
+    // The executable clamps by the model's own length; the browser has not loaded it yet, so a car of 5 stands in.
+    const t=clampCreationT(hit.t,ASSUMED_CAR_LENGTH,nodeDistance),route=travel(link);
+    const along=lanePoint({...route,position:{x:from[0]+(to[0]-from[0])*t,y:from[1]+(to[1]-from[1])*t}},lane),x=along.x,z=-along.y;
+    const way=unit({x:to[0]-from[0],y:to[1]-from[1]}),heading=Math.atan2(-way.x,way.y);
+    // The car must be closing on the player: its speed (the cruise a car of its kind is given, by the next node's
+    // speed code) less his.
+    const cruise=randomCarCruiseSpeed(rand(),ASSUMED_CAR_LENGTH,pick.modelId,BMX_MODELS.has(pick.modelId)),speed=cruise*nodeSpeedMultiplier(hit.node2.flags)/GAME_SPEED_TO_CARAI_SPEED;
+    const mine=this.playerVelocity();
+    if(!approachesPlayer({x:way.x*speed,y:way.y*speed},mine,{x,y:-z},centre))continue;
     if(!this.fleet.canChangePopulation({x,y:link.from.position[2]+1,z},6))continue;
-    if([...this.fleet.cars].some(c=>Math.hypot(c.car.body.translation().x-x,c.car.body.translation().z-z)<12))continue;
-    const top=link.from.position[2]+3,hit=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-    if(!hit||hit.normal.y<.8)continue;
-    const foot=top-hit.timeOfImpact,rotation={x:0,y:Math.sin(Math.atan2(-link.dx,-link.dz)/2),z:0,w:Math.cos(Math.atan2(-link.dx,-link.dz)/2)};
+    const top=from[2]+(to[2]-from[2])*t+3,hit2=this.sim.world.castRayAndGetNormal(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+    if(!hit2||hit2.normal.y<.8)continue;
+    const foot=top-hit2.timeOfImpact,rotation={x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)};
     if(this.sim.world.intersectionWithShape({x,y:foot+1,z},rotation,new RAPIER.Cuboid(1,.8,2.5)))continue;
     if(this.spawnPatrol&&this.fleet.patrolCarDue()){
-     const patrol=await this.spawnPatrol({x,y:foot,z},Math.atan2(-link.dx,-link.dz)).catch(()=>undefined);
+     const patrol=await this.spawnPatrol({x,y:foot,z},heading).catch(()=>undefined);
      if(patrol){this.serial++;break;}
     }
-    const pick=this.fleet.trafficPick();
-    const car=await this.fleet.spawnTrafficCar(pick.modelId,{x,y:foot,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.fleet.canChangePopulation({x,y:foot+1,z},6));
+    const car=await this.fleet.spawnTrafficCar(pick.modelId,{x,y:foot,z},heading,()=>!this.disposed&&this.fleet.canChangePopulation({x,y:foot+1,z},6));
     if(!car)continue;
     car.gang=pick.gang;
     if(this.disposed||Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>100){this.fleet.removeTrafficCar(car);return;}
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};car.activeRadius=this.physicsRadius;
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
-    const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,cruiseSpeed:randomCruiseSpeed(this.fleet.vehicleClass(car.modelId),length,(min,max)=>min+Math.floor(Math.random()*(max-min+1))),stopped:null,distance:0,last:{x,z}};
+    const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,
+     cruiseSpeed:length<=10?cruise:randomCarCruiseSpeed(rand(),length,pick.modelId,BMX_MODELS.has(pick.modelId)),stopped:null,distance:0,last:{x,z}};
     car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);car.onBlowUp=aboard=>{if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(car);};
     this.pickNext(driver,link);this.drivers.push(driver);this.serial++;break;
    }

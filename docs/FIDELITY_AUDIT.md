@@ -1449,11 +1449,34 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   - `CCarAI::MakeWayForCarWithSiren` (0x41D660, reversed): cars faster than
     about 11 m/s ahead of a siren swerve and stop for 2.5 s, and others
     heading towards it wait 2 or 4 s.
-- Cruise speeds follow Vice City's `GenerateOneRandomCar`, by the model's
-  VEHICLES.IDE class. They are 9 to 14 CarAI units (60 × units per frame,
-  about 7.5 to 11.7 m/s), 12 to 18 for executive cars and 7 to 10 for poor
-  ones. Big or long vehicles take three quarters. Traffic used to drive at an
-  authored 5.5 m/s.
+- Cruise speeds first followed Vice City's `GenerateOneRandomCar`, by the model's VEHICLES.IDE class: 9 to 14 CarAI
+  units (60 × units per frame, about 7.5 to 11.7 m/s), 12 to 18 for executive cars and 7 to 10 for poor ones, with
+  big or long vehicles at three quarters. Traffic used to drive at an authored 5.5 m/s before that.
+- They now follow the iOS `GenerateOneRandomCar` (0x10018dfa4): 13 to 20 for every car, three quarters of it for a
+  vehicle longer than 10 units, and a third of that for the tractor, the combine and the BMX-type bikes.
+- **Where a random car is made is now the iOS routine's** (`nativeRandomCarSpawn.ts`, over the ported
+  `GenerateCarCreationCoors2`). It had been the browser's own: a link 25 to 75 units off and out of sight, tried in
+  turn.
+  - **Bearing:** the spawn point is asked on a bearing:
+    - when driving, the car's way: within 0.85, within 0.707, or outside 0.707, by the frame and the speed band;
+    - on foot, the camera's way: inside the 0.707 cone on even tries, outside it on odd ones;
+    - with the camera looking straight down, any way.
+  - **Gates:** the node pair's spawn probability (`rand() & 15` against the lower of the two); nothing made on a
+    water node; nothing within 8 units (2D) of a car's or a ped's bounding sphere; the lane rules (a BMX off roads
+    of two lanes or more, a bus or coach off roads of fewer, nothing on a road with none).
+  - **Placement:** the car stands partway along its link, clamped half its length and a unit clear of either node,
+    in lane `rand() % lanes`, headed from node to node.
+  - **Approach test:** the car must be closing on the player, its speed (cruise × the next node's speed code: 0.65
+    on an ordinary road) less his.
+  - **The browser's own:**
+    - the executable's in-view circle (160 × the generation multiplier, kept to 150 to 170 on screen) is beyond the
+      browser's 120-unit removal and 100-unit physics radius, so nothing is made in view. Every other try asks a
+      hidden circle of 75 (the old band's far edge) in its place. iOS's own hidden circle of 38 alone starves
+      Grove Street, whose roads are switched off;
+    - 32 tries every 2 s (iOS tries twice a frame);
+    - the length the place is clamped by is a car's 5 units, the model not yet being in;
+    - the special-zone test (golf course, factory, airport) and the curve placement are not ported.
+  - **Spec:** `native-random-car-spawn` (unit). `road-rage` now rams a car that has run straight for half a second.
 - AI cars now set their steer angle, gas, brake and handbrake directly, as
   `SteerAICarWithPhysics` writes them. They used to go through the player's
   smoothed pad input.

@@ -198,14 +198,6 @@ export function slowCarDownForPed(car:{position:{x:number;y:number;z:number};for
  return {speed:Math.abs(untilHit-1)/10*curSpeed,wait:untilHit<2};
 }
 
-/** Vice City's GenerateOneRandomCar cruise speeds by car class: 9 to 14, executive cars 12 to 18, poor ones 7 to 10,
- * and three quarters of that for big vehicles or any longer than 10 units. `random(min, max)` is inclusive. */
-export function randomCruiseSpeed(carClass:string|undefined,length:number,random:(min:number,max:number)=>number){
- let speed=carClass==='executive'?random(12,18):carClass==='poorfamily'?random(7,10):random(9,14);
- if(length>10||carClass==='big')speed=Math.floor(speed*3/4);
- return speed;
-}
-
 /** CAutoPilot temporary actions a cruising car can be given. */
 export type TempAction='wait'|'swerveStop'|'reverse'|'handbrakeStraight';
 /** CCarAI::MakeWayForCarWithSiren (0x41D660, reversed) for one random car against one car sounding its siren:
