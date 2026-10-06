@@ -102,3 +102,16 @@ test('a quad is two planes split along (maxX,minY)–(minX,maxY), not bilinear',
  expect(index.level(5,5)).toBe(0);
  expect(index.level(7.5,7.5)).toBeCloseTo(5,6);
 });
+
+test('AddWaveToResult gives the swell triangle\'s normal when asked',()=>{
+ const index=new WaterLevelIndex([poly([waterVertex(-100,-100),waterVertex(100,-100),waterVertex(-100,100),waterVertex(100,100)])]);
+ const n=[9,9,9];index.level(3.3,5.1,undefined,true,n);expect(n).toEqual([0,0,1]);
+ Object.assign(index.waves,{timeMs:12345,waterTimeOffset:0,wavyness:.7});
+ index.level(2.5,4.5,undefined,true,n);
+ const w=(x:number,y:number)=>gameplayWaveAt(x,y,Math.fround(.8),Math.fround(.4),12345,0,.7),d1=w(4,4)-w(2,4),d2=w(2,6)-w(2,4),l=Math.hypot(2*d1,2*d2,4);
+ expect(n[0]).toBeCloseTo(-2*d1/l,6);expect(n[1]).toBeCloseTo(-2*d2/l,6);expect(n[2]).toBeCloseTo(4/l,6);
+ // The upper triangle's sign flips.
+ index.level(3.5,5.5,undefined,true,n);
+ const e1=w(2,6)-w(4,6),e2=w(4,4)-w(4,6),m=Math.hypot(2*e1,2*e2,4);
+ expect(n[0]).toBeCloseTo(2*e1/m,6);expect(n[1]).toBeCloseTo(2*e2/m,6);
+});

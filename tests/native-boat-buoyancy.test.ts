@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {addWakePoint,applyNativeBoatBuoyancy,boatBounds,boatVolumeClass,createWakeTrail,pruneWakeTrail,WAKE,type NativeBoatBody,type NativeVec} from '../src/simulation/nativeBuoyancy';
+import {addWakePoint,applyNativeBoatBuoyancy,boatBounds,boatVolumeClass,boatVolumeTable,createWakeTrail,pruneWakeTrail,WAKE,type NativeBoatBody,type NativeVec} from '../src/simulation/nativeBuoyancy';
 
 const hull=(over:Partial<NativeBoatBody>={}):NativeBoatBody=>({
  position:[0,0,0],right:[1,0,0],forward:[0,1,0],up:[0,0,1],
@@ -27,8 +27,10 @@ test('a settled hull floats mid-immersion with balanced force',()=>{
  const body=hull(),state:{sample?:never}={};
  const result=applyNativeBoatBuoyancy(body,flat,1,state,9.81/20);
  expect(result.inWater).toBe(true);
- // SimpleSumBuoyancyData squares a boat's depth: half the hull height under counts a quarter.
- expect(result.immersion).toBeCloseTo(.25,6);
+ // SimpleSumBuoyancyData: each point's depth less (1 − its volume multiplier), times the multiplier, squared for a
+ // boat. Half the hull height under, with the speed class's table (the Squalo's), over the hull height × 9.
+ const table=boatVolumeTable(446);let sum=0;for(const row of table)for(const m of row){const d=.5-(1-m);if(d>0)sum+=(d*m)**2;}
+ expect(result.immersion).toBeCloseTo(sum/9,6);
  expect(result.force).toBeGreaterThan(0);
  // A boat's bTouchingWater is CBoat's constructor's and is never cleared here.
  expect(body.touchingWater).toBe(hull().touchingWater);
@@ -55,8 +57,9 @@ test('roll torque is symmetric and restoring',()=>{
   applyNativeBoatBuoyancy(body,flat,1,{},9.81/20);
   return body.turnSpeed;
  };
+ // Level, the tables are even left to right (no roll), though the lighter bow pitches it.
  const level=roll(0);
- expect(Math.hypot(...level)).toBeLessThan(1e-9);
+ expect(Math.abs(level[1])).toBeLessThan(1e-9);
  const plus=roll(.1),minus=roll(-.1);
  expect(plus[1]).not.toBeCloseTo(0,12);
  expect(plus[1]).toBeCloseTo(-minus[1],10);
@@ -94,4 +97,18 @@ test('against the world (GetHasHitWall) the hull points turn nothing; the drive 
  applyNativeBoatBuoyancy(free,flat,1,{});applyNativeBoatBuoyancy(walled,flat,1,{},1,true);
  expect(Math.abs(free.turnSpeed[1])).toBeGreaterThan(1e-5);
  expect(walled.turnSpeed[1]).toBe(0);
+});
+
+test('the volume tables are the iOS executable\'s, and a swell normal tilts the push',()=>{
+ expect(boatVolumeTable(446)).toEqual([[.7,.9,.7],[.95,1,.95],[.6,.7,.6]]);
+ expect(boatVolumeTable(473)).toEqual([[.65,.85,.65],[.85,1.1,.85],[.65,.95,.65]]);
+ expect(boatVolumeTable(484)).toEqual([[.55,.95,.55],[.75,1.1,.75],[.3,.8,.3]]);
+ expect(boatVolumeTable(430)).toEqual([[.75,.9,.75],[.95,1,.95],[.4,.7,.4]]);
+ // A flat normal changes nothing; a slope across the hull adds a sideways part to every point's push.
+ const flatNormal=hull({waterNormal:(_x,_y,out)=>{out[0]=0;out[1]=0;out[2]=1;}}),plain=hull();
+ applyNativeBoatBuoyancy(flatNormal,flat,1,{},9.81/20);applyNativeBoatBuoyancy(plain,flat,1,{},9.81/20);
+ expect(flatNormal.turnSpeed).toEqual(plain.turnSpeed);
+ const sloped=hull({waterNormal:(_x,_y,out)=>{out[0]=.6;out[1]=0;out[2]=.8;}});
+ applyNativeBoatBuoyancy(sloped,flat,1,{},9.81/20);
+ expect(sloped.turnSpeed[2]).not.toBeCloseTo(plain.turnSpeed[2],9);
 });

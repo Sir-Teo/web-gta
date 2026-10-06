@@ -180,11 +180,9 @@ export function addWakePoint(trail:WakeTrail,position:{x:number;y:number},moveSp
  trail.coords.unshift({x:position.x,y:position.y});trail.speeds.unshift(intensity);trail.counters.unshift(WAKE.lifetime);
  trail.coords.length=Math.min(WAKE.max,keep+1);trail.speeds.length=trail.coords.length;trail.counters.length=trail.coords.length;
 }
-/** cBuoyancy boat volume classes (ProcessBuoyancyBoat model selection). The 3x3
- * distribution tables live at static addresses upstream, so every class uses a
- * uniform table (authored); per-model class selection is preserved. Model IDs
- * follow the local vehicle definitions (the reversed comments name JETMAX 498;
- * the local JETMAX/CUPBOAT is 493). */
+/** cBuoyancy boat volume classes (ProcessBuoyancyBoat model selection). Model IDs follow the local vehicle definitions
+ * (the reversed comments name JETMAX 498; the local JETMAX/CUPBOAT is 493). Their 3 × 3 tables are BOAT_VOLUME's, read
+ * from the iOS executable. */
 export type BoatVolumeClass='speed'|'dinghy'|'sail'|'standard';
 export function boatVolumeClass(modelId:number):BoatVolumeClass{
  if(modelId===446||modelId===452||modelId===493||modelId===595)return 'speed';
@@ -211,11 +209,24 @@ export function boatBounds(modelId:number,boundsMin:NativeVec,boundsMax:NativeVe
 export interface NativeBoatBody extends Omit<NativeBuoyancyBody,'heli'> {
  /** Handling m_fSuspensionDampingLevel for the per-point wave power. */
  suspensionDamping:number;
+ /** cBuoyancy::FindWaterLevelNorm's swell normal at a native world point (GetWaterLevel's AddWaveToResult); flat water
+  * without it. */
+ waterNormal?:(x:number,y:number,out:NativeVec)=>void;
 }
-/** cBuoyancy::ProcessBuoyancyBoat for hulls over flat water (waves are not local):
- * nine footprint samples with the class volume table, per-point wave power from the
- * sample-point velocity and suspension damping, force up plus turn torque. Speeds are
- * native 50 Hz-step units; `forceScale` keeps browser gravity equilibrium. */
+/** cBuoyancy's afBoatVolumeDistribution tables, [rear, middle, front][left, centre, right], as the iOS executable holds
+ * them (0x100653528 default, 0x10065354c sail, 0x100653570 dinghy, 0x100653594 speed): each hull point's
+ * fPointVolMultiplier. */
+const BOAT_VOLUME:Readonly<Record<BoatVolumeClass,readonly (readonly number[])[]>>={
+ standard:[[.75,.9,.75],[.95,1,.95],[.4,.7,.4]],
+ sail:[[.55,.95,.55],[.75,1.1,.75],[.3,.8,.3]],
+ dinghy:[[.65,.85,.65],[.85,1.1,.85],[.65,.95,.65]],
+ speed:[[.7,.9,.7],[.95,1,.95],[.6,.7,.6]],
+};
+/** The table of the class ProcessBuoyancyBoat picks by model. */
+export function boatVolumeTable(modelId:number){return BOAT_VOLUME[boatVolumeClass(modelId)];}
+/** cBuoyancy::ProcessBuoyancyBoat: nine footprint samples weighted by the class volume table, per-point wave power from
+ * the sample-point velocity along the swell normal and the suspension damping, force up plus turn torque along that
+ * normal. Speeds are native 50 Hz-step units; `forceScale` keeps browser gravity equilibrium. */
 export function applyNativeBoatBuoyancy(body:NativeBoatBody,level:(x:number,y:number)=>number|undefined,timeStep:number,state:{sample?:{points:NativeVec[][];min:NativeVec;max:NativeVec}},forceScale=1,underwater=false){
  const [px,py,pz]=body.position;
  // A boat's bTouchingWater is set in CBoat's constructor and never cleared, so GetWaterLevel's 3-units-below test never
@@ -235,27 +246,32 @@ export function applyNativeBoatBuoyancy(body:NativeBoatBody,level:(x:number,y:nu
  const torque:NativeVec=[0,0,0];
  let force=0;
  const baseForce=timeStep*body.buoyancyConstant;
- const com=transform(body,body.centerOfMass);
+ const com=transform(body,body.centerOfMass),volume=boatVolumeTable(body.modelId);
  for(let ix=0;ix<3;ix++)for(let iy=0;iy<3;iy++){
   const local:NativeVec=[min[0]+center[0]*ix,min[1]+center[1]*iy,0],t=transform(body,local);
   let z=(nativeWaterLevel(level,t[0]+px,t[1]+py,pz,true)??0)-(t[2]+pz),above=false;
   if(z>max[2])z=max[2];else if(z<min[2]){z=min[2];above=true;}
   points[ix][iy]=above?[0,0,min[2]]:[local[0],local[1],z];
   if(above)continue;
-  // SimpleSumBuoyancyData with a uniform class table (multiplier 1): a boat's depth counts squared.
-  const added=Math.abs(z-min[2])**2;immersion+=added;
+  // SimpleSumBuoyancyData: the point's depth less (1 − its volume multiplier); none below 0, and a boat's counts
+  // squared after the multiplier.
+  const multiplier=volume[iy][ix],depth=Math.abs(z-min[2])-(1-multiplier);
+  if(depth<0)continue;
+  const added=(depth*multiplier)**2;immersion+=added;
+  // FindWaterLevelNorm's swell normal, (n + (0, 0, 2)) / 3.
+  const n:NativeVec=[0,0,1];body.waterNormal?.(t[0]+px,t[1]+py,n);const wn:NativeVec=[n[0]/3,n[1]/3,(n[2]+2)/3];
   const offset:NativeVec=[local[0]*normalized[0],local[1]*normalized[1],(z+min[2])*normalized[2]*.5],fresh=1/checked;
   turn=[0,1,2].map(i=>offset[i]*fresh*added+turn[i]*(1-fresh)) as NativeVec;checked+=1;inWater=true;
   const contribution=baseForce*(added*heightRatio);
   // Flat-water wave normal with the point velocity: CPhysical::GetSpeed takes the offset from the centre of mass.
   const at=transform(body,local),r:NativeVec=[at[0]-com[0],at[1]-com[1],at[2]-com[2]];
   const vp:NativeVec=[body.moveSpeed[0]+(body.turnSpeed[1]*r[2]-body.turnSpeed[2]*r[1]),body.moveSpeed[1]+(body.turnSpeed[2]*r[0]-body.turnSpeed[0]*r[2]),body.moveSpeed[2]+(body.turnSpeed[0]*r[1]-body.turnSpeed[1]*r[0])];
-  const wavePower=Math.max(0,1-vp[2]*body.suspensionDamping)*contribution;
+  const wavePower=Math.max(0,1-(vp[0]*wn[0]+vp[1]*wn[1]+vp[2]*wn[2])*body.suspensionDamping)*contribution;
   force+=wavePower;
   if(!underwater){
    const applied=transform(body,[local[0],local[1],z]);
    const arm:NativeVec=[applied[0]-com[0],applied[1]-com[1],applied[2]-com[2]];
-   const q=cross(arm,[0,0,wavePower*forceScale]);
+   const q=cross(arm,[wn[0]*wavePower*forceScale,wn[1]*wavePower*forceScale,wn[2]*wavePower*forceScale]);
    torque[0]+=q[0];torque[1]+=q[1];torque[2]+=q[2];
   }
  }

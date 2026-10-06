@@ -1082,7 +1082,7 @@ export class WorldCar {
    if(r.delta)this.car.body.setLinvel({x:v.x+r.delta.x*50,y:v.y+r.delta.z*50,z:v.z-r.delta.y*50},true);
   }
   /** Native-coordinate WATER.DAT height query (shared with aircraft). */
-  waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
+  waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean,normal?:number[])=>number|undefined;
   private water={touching:false,buoyancy:0};inWater=false;drowning=false;
   /** autoFlags.bWaterTight (SET_CAR_WATERTIGHT): the peds sat in it do not drown when it goes under; the player still does. */
   waterTight=false;

@@ -98,7 +98,7 @@ export class WorldFleet {
    * live one, and it answers first wherever it has a record. */
   scriptZoneInfo?:(zoneInfoIndex:number)=>{popType:number;gangStrength:readonly number[];dealerStrength:number;noCops:boolean;popRaces:number}|undefined;
   /** Native-coordinate WATER.DAT height query shared with spawned aircraft. */
-  waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
+  waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean,normal?:number[])=>number|undefined;
   /** Native popcycle traffic models for the current zone, weekday and clock (a car group drawn by its
    * popcycle percentage, then a random model of it); the fixed trio covers missing zones, calendars and
    * unloadable models. */

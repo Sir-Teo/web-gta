@@ -72,15 +72,18 @@ export class WaterLevelIndex {
  /** GetWaterLevel: the surface with AddWaveToResult's swell, if there is water. With a z, water more than 20 under it,
   * or limited-depth water more than 6 over it, does not count, and unless the caller is touching the water (most are)
   * a surface more than 3 over it is none either. */
- level(x:number,y:number,z?:number,touchingWater=true){
+ level(x:number,y:number,z?:number,touchingWater=true,normal?:number[]){
   const found=this.noWaves(x,y,z,true);if(!found)return undefined;
   if(z!==undefined&&!touchingWater&&found.z-z>3)return undefined;
-  const {timeMs,waterTimeOffset,wavyness}=this.waves;if(!wavyness||!found.big&&!found.small)return found.z;
-  // AddWaveToResult: the 2-unit cell's triangle the point is in, its three corners' swell planar-interpolated.
+  const {timeMs,waterTimeOffset,wavyness}=this.waves;
+  if(!wavyness||!found.big&&!found.small){if(normal){normal[0]=0;normal[1]=0;normal[2]=1;}return found.z;}
+  // AddWaveToResult: the 2-unit cell's triangle the point is in, its three corners' swell planar-interpolated; the
+  // normal asked for is the swell triangle's, (∓2·Δ1, ∓2·Δ2, 4) normalised.
   const hx=f(x*.5),fx=Math.floor(hx),u=f(hx-fx),hy=f(y*.5),fy=Math.floor(hy),t=f(hy-fy),X=fx*2,Y=fy*2;
   const wave=(wx:number,wy:number)=>gameplayWaveAt(wx,wy,found.big,found.small,timeMs,waterTimeOffset,wavyness);
-  if(u+t<1){const w0=wave(X,Y),w1=wave(X+2,Y),w2=wave(X,Y+2);return found.z+w0+u*(w1-w0)+t*(w2-w0);}
-  const w0=wave(X+2,Y+2),w1=wave(X,Y+2),w2=wave(X+2,Y);return found.z+w0+(1-u)*(w1-w0)+(1-t)*(w2-w0);
+  const lower=u+t<1,w0=lower?wave(X,Y):wave(X+2,Y+2),w1=lower?wave(X+2,Y):wave(X,Y+2),w2=lower?wave(X,Y+2):wave(X+2,Y);
+  if(normal){const s=lower?-2:2,nx=s*(w1-w0),ny=s*(w2-w0),l=Math.hypot(nx,ny,4);normal[0]=nx/l;normal[1]=ny/l;normal[2]=4/l;}
+  return lower?found.z+w0+u*(w1-w0)+t*(w2-w0):found.z+w0+(1-u)*(w1-w0)+(1-t)*(w2-w0);
  }
 }
 /** TestQuadToGetWaterLevel: an inclusive box, then two planes split along v1–v2. */

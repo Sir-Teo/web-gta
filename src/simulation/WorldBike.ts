@@ -459,7 +459,7 @@ export class WorldBike {
   this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return false;
  }
  /** WATER.DAT's level at a native (x, y), which the fleet hands its bikes. */
- waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
+ waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean,normal?:number[])=>number|undefined;
  private water={touching:false};inWater=false;drowning=false;
  /** CBike::ProcessBuoyancy over WATER.DAT surfaces, at native gravity (unscaled). The controller keeps the
   * bike from pitching or rolling, so of the turn force only the yaw damping stays. Drowning with CJ on board, he loses

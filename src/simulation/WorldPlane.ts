@@ -133,7 +133,7 @@ export class WorldPlane {
  policeHeli=false;
  private physical:ReturnType<typeof installNativeVehicleBody>;private handling:ReturnType<typeof prepareHandling>;
  /** Native-coordinate water height query (WATER.DAT). */
- waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
+ waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean,normal?:number[])=>number|undefined;
  private water={touching:false,buoyancy:0,rotorSpeed:0};inWater=false;drowning=false;private visual:ReturnType<typeof modelObject>;private ambient=nativeAmbientState();
  private impactVelocity=new Vector3();
  /** cBuoyancy::AddSplashParticles spray waiting for the FX system, and the move speed of the last splash reported to the audio engine. */

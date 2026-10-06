@@ -5783,7 +5783,19 @@ Left as they are, on purpose or for want of a reference:
     CalculateWavesOnlyForCoordinate2. That indexes CMaths' 256-entry sin table, not sinf. There is no camera-distance
     gate.
   - GET_WATER_HEIGHT_AT_COORDS asks at height 0 and writes -1000 where there is no water (it wrote 0 here before).
-  - The wave normal the boats' buoyancy can ask for is not computed.
+  - A boat's buoyancy asks each hull point's water with its swell normal (cBuoyancy::FindWaterLevelNorm,
+    AddWaveToResult's normal). (n + (0, 0, 2)) / 3 replaces straight up: the wave power damps by the point's speed
+    along it, and the turn force at the point is along it, so a hull leans with the swell. Before, the port treated
+    the water as flat.
+  - Each hull point's depth also takes its class's afBoatVolumeDistribution multiplier. The tables, read from the
+    iOS executable (0x100653528 standard, 0x10065354c sail, 0x100653570 dinghy, 0x100653594 speed), give
+    [rear, middle, front][left, centre, right]:
+    - standard: [.75 .9 .75 | .95 1 .95 | .4 .7 .4];
+    - sail: [.55 .95 .55 | .75 1.1 .75 | .3 .8 .3];
+    - dinghy: [.65 .85 .65 | .85 1.1 .85 | .65 .95 .65];
+    - speed: [.7 .9 .7 | .95 1 .95 | .6 .7 .6].
+    SimpleSumBuoyancyData counts (depth − (1 − m)) × m, squared for a boat, and nothing below 0. Before, a uniform
+    table of 1 was authored. The bow, lighter, now sits lower than the stern would have it.
 
 ## The player's shadow
 

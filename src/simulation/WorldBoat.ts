@@ -33,7 +33,7 @@ export class WorldBoat {
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
  readonly boatHandling:BoatHandlingData;
  /** Native-coordinate water height query (WATER.DAT). */
- waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
+ waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean,normal?:number[])=>number|undefined;
  /** bTouchingWater, which CBoat's constructor sets and nothing clears, and m_fBuoyancyConstant. */
  private water={touching:true,buoyancy:0};inWater=false;immersion=0;
  private physical:ReturnType<typeof installNativeVehicleBody>;
@@ -265,6 +265,8 @@ export class WorldBoat {
   const sample:{sample?:{points:NativeVec[][];min:NativeVec;max:NativeVec}}={},moveSpeed=[...state.moveSpeed] as NativeVec;
   // ProcessBoatControl hands GetHasHitWall to ProcessBuoyancyBoat's last argument: against the world, the hull points'
   // turn forces are held back, and the drive turns 0.4 of the whole force at the turn point instead.
+  // FindWaterLevelNorm asks each hull point's water with its swell normal, at the hull's height, touching.
+  state.waterNormal=(x,y,out)=>{hook(x,y,waterHeight,true,out);};
   const result=applyNativeBoatBuoyancy(state,level,dt*50,sample,1,this.hitWall);
   if(this.occupied&&this.sim.player.health>0&&result.inWater&&boatDriverNeedsBreath(result.force,state.mass,dt*50,state.up[2],moveSpeed[0],moveSpeed[1]))this.sim.handlePlayerBreath(dt);
   // Bow spray from partly submerged edges once per native 30 fps frame.
