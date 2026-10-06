@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'vitest';
-import {findNodeCoorsForScript,findNodeOrientationForCarPlacement,findNthNodeClosestToCoors,nodeScore} from '../src/simulation/nativeScriptCarNodes';
+import {findClosestStraightRoad,findNodeCoorsForScript,findNodeOrientationForCarPlacement,findNodePairClosestToCoors,findNthNodeClosestToCoors,nodeScore} from '../src/simulation/nativeScriptCarNodes';
 import type {PathArea,PathNode} from '../src/assets/pathNodes';
 
 // One area: three car nodes along a road running north (+y), one switched off, one boat node and one ped node.
@@ -52,5 +52,23 @@ describe('the car path questions the script asks',()=>{
   // Node 1's first link is node 0, to the south.
   expect(Math.abs(findNodeOrientationForCarPlacement(areas,nodes[1]))).toBeCloseTo(180,6);
   expect(findNodeOrientationForCarPlacement(areas,nodes[3])).toBe(0);
+ });
+
+ test('FindNodePairClosestToCoors: the nearest node with a link longer than the minimum, found within the reach',()=>{
+  const areas=area();
+  // From (0, 9, 0): node 1 is 1 off, and of its links (to 0, and to the switched-off 2) only 0's counts.
+  const pair=findNodePairClosestToCoors(areas,{x:0,y:9,z:0},5,100)!;
+  expect([pair.first.address.node,pair.second.address.node]).toEqual([1,0]);
+  // The heading is the way from the second node to the first: north.
+  expect(pair.heading).toBeCloseTo(0,4);
+  // A link no longer than the minimum does not count; the reach is the measure, not the link's length.
+  expect(findNodePairClosestToCoors(areas,{x:0,y:9,z:0},10,100)).toBeUndefined();
+  expect(findNodePairClosestToCoors(areas,{x:0,y:9,z:0},5,1)).toBeUndefined();
+  expect(findNodePairClosestToCoors(areas,{x:0,y:9,z:0},5,1.5)).toBeDefined();
+  // From the south end, node 0's one link runs to 1: the heading points south, unwrapped.
+  expect(Math.abs(findNodePairClosestToCoors(areas,{x:0,y:-1,z:0},5,100)!.heading)).toBeCloseTo(180,3);
+  // The script's points are FindNodeCoorsForScript's: node 0 has width, so its point stands beside it.
+  const road=findClosestStraightRoad(areas,{x:0,y:-1,z:0},5,100)!;
+  expect(road.node1X).toBeCloseTo(findNodeCoorsForScript(areas,areas.get(0)!.nodes[0]).x,6);
  });
 });

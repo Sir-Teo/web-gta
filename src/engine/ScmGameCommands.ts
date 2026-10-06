@@ -2437,7 +2437,9 @@ const handlers:Record<string,ScmCommandHandler>={
  CLEAR_ALL_SCRIPT_ROADBLOCKS:(t,p,i)=>{world(t,i,'clearAllScriptRoadblocks')();},
  CREATE_FX_SYSTEM_ON_CAR:(t,p,i)=>{t.writeInt(p[6],world(t,i,'createFxSystemOnCar')(t.text(p[0]),t.readInt(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),bool(t,p[5])));},
  TASK_PLAY_ANIM_SECONDARY:(t,p,i)=>{world(t,i,'taskPlayAnimSecondary')(t.readInt(p[0]),t.text(p[1]),t.text(p[2]),t.readFloat(p[3]),bool(t,p[4]),bool(t,p[5]),bool(t,p[6]),bool(t,p[7]),t.readInt(p[8]));},
- GET_CLOSEST_STRAIGHT_ROAD:(t,p,i)=>{const result=world(t,i,'getClosestStraightRoad')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]));t.writeFloat(p[5],result.node1X);t.writeFloat(p[6],result.node1Y);t.writeFloat(p[7],result.node1Z);t.writeFloat(p[8],result.node2X);t.writeFloat(p[9],result.node2Y);t.writeFloat(p[10],result.node2Z);t.writeFloat(p[11],result.angle);},
+ GET_CLOSEST_STRAIGHT_ROAD:(t,p,i)=>{const result=world(t,i,'getClosestStraightRoad')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]));t.writeFloat(p[5],result.node1X);t.writeFloat(p[6],result.node1Y);t.writeFloat(p[7],result.node1Z);t.writeFloat(p[8],result.node2X);t.writeFloat(p[9],result.node2Y);t.writeFloat(p[10],result.node2Z);t.writeFloat(p[11],result.angle);
+  // The iOS handler (0x1001e357c) also sets the condition: whether a pair was found.
+  t.updateCompareFlag(!!result.found,negated(i));},
  SET_CAR_RANDOM_ROUTE_SEED:(t,p,i)=>{world(t,i,'setCarRandomRouteSeed')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CAR_AVOID_LEVEL_TRANSITIONS:(t,p,i)=>{world(t,i,'setCarAvoidLevelTransitions')(t.readInt(p[0]),bool(t,p[1]));},
  ENABLE_BURGLARY_HOUSES:(t,p,i)=>{world(t,i,'enableBurglaryHouses')(bool(t,p[0]));},

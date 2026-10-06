@@ -874,7 +874,7 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  clearAllScriptRoadblocks?():void;
  createFxSystemOnCar?(name:string,vehicle:number,xOffset:number,yOffset:number,zOffset:number,ignoreBoundingChecks:boolean):number;
  taskPlayAnimSecondary?(handle:number,animationName:string,animationFile:string,blendSpeed:number,loop:boolean,lockX:boolean,lockY:boolean,keepLastFrame:boolean,time:number):void;
- getClosestStraightRoad?(x:number,y:number,z:number,minDist:number,maxDist:number):{node1X:number,node1Y:number,node1Z:number,node2X:number,node2Y:number,node2Z:number,angle:number};
+ getClosestStraightRoad?(x:number,y:number,z:number,minDist:number,maxDist:number):{node1X:number,node1Y:number,node1Z:number,node2X:number,node2Y:number,node2Z:number,angle:number,found?:boolean};
  setCarRandomRouteSeed?(handle:number,routeSeed:number):void;
  setCarAvoidLevelTransitions?(handle:number,state:boolean):void;
  enableBurglaryHouses?(state:boolean):void;

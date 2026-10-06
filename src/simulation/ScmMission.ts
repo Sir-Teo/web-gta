@@ -1775,7 +1775,7 @@ export class ScmMission {
    randomDrugsBuyerInSphere:()=>-1,
    getClosestStraightRoad:(x,y,z,minDist,maxDist)=>{
     const areas=this.world.carPathAreas?.(),found=areas&&findClosestStraightRoad(areas,{x,y,z},minDist,maxDist);
-    return found??{node1X:0,node1Y:0,node1Z:0,node2X:0,node2Y:0,node2Z:0,angle:0};
+    return found?{...found,found:true}:{node1X:0,node1Y:0,node1Z:0,node2X:0,node2Y:0,node2Z:0,angle:0,found:false};
    },
    // CTheZones::GetLevelFromPosition (dispatch unreversed): the city a point lies in, as the player's own is found.
    getCityFromCoords:(x,y,z)=>{if(!this.world.cityAt)throw new UnsupportedScmCommand(-1,0,'GET_CITY_FROM_COORDS','no host');return this.world.cityAt(x,y,z);},

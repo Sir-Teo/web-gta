@@ -99,25 +99,35 @@ export function findNodeCoorsForScriptBetween(a:PathNode,b:PathNode){
  return {x:x-dy*offset,y:y+dx*offset,z,heading};
 }
 
-/** GET_CLOSEST_STRAIGHT_ROAD (CPathFind::FindNodePairClosestToCoors is unreversed, so this is AUTHORED from what the
- * fire truck and police missions do with it): the pair of linked land car nodes nearest the point whose link is at
- * least `minDist` and at most `maxDist` long, a stretch with no node between its ends, and the heading from the
- * first to the second (degrees, atan2(-x, y)). Nothing when the loaded areas hold no such pair. */
-export function findClosestStraightRoad(areas:ReadonlyMap<number,PathArea>,point:{x:number;y:number;z:number},minDist:number,maxDist:number){
- let best:{a:PathNode;b:PathNode}|undefined,bestDistance=Infinity;
- for(const area of areas.values())for(const node of area.nodes){
-  if(node.kind!=='vehicle'||node.water||node.switchedOff)continue;
-  const d=Math.hypot(node.position[0]-point.x,node.position[1]-point.y,node.position[2]-point.z);
-  if(d>=bestDistance)continue;
+/** CPathFind::FindNodePairClosestToCoors (PC 0x44FEE0, unreversed; iOS 0x1001bc604), as GET_CLOSEST_STRAIGHT_ROAD
+ * asks it (car nodes, switched-off ones passed over, land only). Over the areas in order, the node with the least
+ * |dx| + |dy| + 3|dz| (the search starts at 10000) that has a link to a node passing the same tests, longer than
+ * `minDist` in 3D; of that node's links, the last such. Nothing unless the measure is under `maxDist`, which is the
+ * reach of the search, not a bound on the link. The heading is the way from the second node to the first across the
+ * ground, in degrees, unwrapped (atan2(-dx, dy)). */
+export function findNodePairClosestToCoors(areas:ReadonlyMap<number,PathArea>,point:{x:number;y:number;z:number},minDist:number,maxDist:number){
+ const f=Math.fround,ok=(n:PathNode)=>n.kind==='vehicle'&&!n.switchedOff&&!n.water;
+ let best=10000,first:PathNode|undefined,second:PathNode|undefined;
+ for(const key of [...areas.keys()].sort((a,b)=>a-b))for(const node of areas.get(key)!.nodes){
+  if(!ok(node))continue;
+  const [x,y,z]=node.position,d=f(f(f(Math.abs(x-point.x))+f(Math.abs(y-point.y)))+f(Math.abs(z-point.z)*3));
+  if(!(d<best)||node.linkCount===0)continue;
   for(let slot=0;slot<node.linkCount;slot++){
-   const other=linked(areas,node,slot);if(!other||other.kind!=='vehicle'||other.water||other.switchedOff)continue;
-   const length=Math.hypot(other.position[0]-node.position[0],other.position[1]-node.position[1]);
-   if(length<minDist||length>maxDist)continue;
-   best={a:node,b:other};bestDistance=d;break;
+   const other=linked(areas,node,slot);if(!other||!ok(other))continue;
+   if(!(f(Math.hypot(x-other.position[0],y-other.position[1],z-other.position[2]))>minDist))continue;
+   best=d;first=node;second=other;
   }
  }
- if(!best)return undefined;
- const [ax,ay,az]=best.a.position,[bx,by,bz]=best.b.position;
- return {node1X:ax,node1Y:ay,node1Z:az,node2X:bx,node2Y:by,node2Z:bz,angle:((Math.atan2(-(bx-ax),by-ay)*180/Math.PI)%360+360)%360};
+ if(!first||!second||!(best<maxDist))return undefined;
+ const dx=first.position[0]-second.position[0],dy=first.position[1]-second.position[1];
+ return {first,second,heading:f(f(Math.atan2(-dx,dy)*180)/f(Math.PI))};
+}
+/** GET_CLOSEST_STRAIGHT_ROAD (iOS 0x1001e357c): the pair's FindNodeCoorsForScript points and the heading, and the
+ * condition set when one was found; zeros and false when not. */
+export function findClosestStraightRoad(areas:ReadonlyMap<number,PathArea>,point:{x:number;y:number;z:number},minDist:number,maxDist:number){
+ const pair=findNodePairClosestToCoors(areas,point,minDist,maxDist);
+ if(!pair)return undefined;
+ const a=findNodeCoorsForScript(areas,pair.first),b=findNodeCoorsForScript(areas,pair.second);
+ return {node1X:a.x,node1Y:a.y,node1Z:a.z,node2X:b.x,node2Y:b.y,node2Z:b.z,angle:pair.heading};
 }
 

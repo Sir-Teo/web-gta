@@ -8859,8 +8859,14 @@ that did anything.
 - **Firefighter** (spec `side-missions`): `START_CAR_FIRE` is a script fire that rides its car; `GET_NAME_OF_ZONE` is
   the smallest navigation zone's label and `PRINT_STRING_IN_STRING_NOW` puts its name into the report
   (`AddMessageJumpQWithString`); the truck's water cannon puts the fire out and the level pays.
-  `GET_CLOSEST_STRAIGHT_ROAD` is AUTHORED (`FindNodePairClosestToCoors` is unreversed): the nearest pair of linked
-  land car nodes whose link is within the two lengths.
+  `GET_CLOSEST_STRAIGHT_ROAD` was AUTHORED: the nearest pair of linked land car nodes whose link lay between the two
+  lengths. It is now the iOS executable's (handler 0x1001e357c over `FindNodePairClosestToCoors`, 0x1001bc604):
+  - **the search:** the node with the least |dx| + |dy| + 3|dz| (from 10000 down) that has a link longer than the
+    minimum (3D) to another land car node that is not switched off; of its links, the last such;
+  - **the reach:** found only when that measure is under the second figure, which bounds the search, not the link;
+  - **the points:** `FindNodeCoorsForScript`'s for the two nodes (beside a node with width);
+  - **the heading:** the way from the second node to the first, in degrees, unwrapped;
+  - **the condition:** set to whether a pair was found; zeros when none was.
 - **Paramedic and vigilante** start and run without stopping on a command. Their patients and criminals are made
   hundreds of units from the player: a mission ped made where nothing is streamed in now waits for its collision
   (`m_bIsStaticWaitingForCollision`) instead of falling for ever, set down on the ground when it arrives if the script
