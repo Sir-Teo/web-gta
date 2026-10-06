@@ -22,7 +22,7 @@ import {bulletLine} from './bulletLine';
 import {EXPLOSION,NativeExplosionSlots,explosionDirection,explosionFalloff,explosionOnPed,explosionOnVehicle,explosionParams,type ExplosionParams} from '../combat/nativeExplosion';
 import type {MeleeSwing} from '../simulation/nativeMelee';
 import {launchVelocity,projectileTuning} from '../weapons/gunnery';
-import {bounceVelocity,projectileAirResistance,settledElasticity,stepRocketVelocity,type SeekTarget} from './nativeProjectile';
+import {bounceVelocity,molotovArmed,projectileAirResistance,settledElasticity,stepRocketVelocity,type SeekTarget} from './nativeProjectile';
 import type {WeaponFxHost} from '../simulation/fx/WorldFx';
 import {firstPersonMode,isRocketMode,type FirstPersonMode} from './nativeFirstPerson';
 /** CProjectileInfo launch helpers shared by player and aircraft fire. */
@@ -829,6 +829,8 @@ export class WeaponSystem {
  private nowMs=0;
  /** Molotov explosions still active (3000 ms): each frame they set peds, the world and cars alight. */
  private molotovs:{position:Vec3;remaining:number}[]=[];
+ /** CProjectileInfo::m_pCreator's position: the player's, or the thrower's body. */
+ private projectileThrower(p:Projectile):Vec3|undefined{return p.owner===undefined?this.sim.player.position:this.sim.world.getRigidBody(p.owner)?.translation();}
  /** Live EXPLOSION_AIRCRAFT explosions with a victim: CExplosion::Update adds an EXPLOSION_ROCKET at the victim one
   * frame in twenty (GetRandomNumberInRange(0, 100) < 5) for their 3000 ms. Frames are the PC game's 30 a second. */
  private aircraftExplosions:{victim:()=>Vec3|undefined;remainingMs:number;frameMs:number}[]=[];
@@ -1137,11 +1139,15 @@ export class WeaponSystem {
     if(rocket)stepRocketVelocity(p,p.kind??w.kind,dt,p.target!==undefined?this.heatSeekTarget(p.target):undefined,p.owner===undefined);
     else{p.velocity.y-=tune.gravity*dt;const air=projectileAirResistance(dt);p.velocity={x:p.velocity.x*air,y:p.velocity.y*air,z:p.velocity.z*air};
      p.elasticity=settledElasticity(w.kind,p.velocity,p.elasticity??tune.bounce);}const length=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)*dt,dir=normalize(p.velocity),hit=this.ray(p.position,dir,length+.06,p.owner===undefined?this.sim.playerBody:this.sim.world.getRigidBody(p.owner)??this.sim.playerBody);
-    if(hit){p.position=add(p.position,dir,Math.max(0,hit.timeOfImpact-.07));impact=true;
+    // A molotov within √2 of its thrower is not yet tested and bounces like the rest (molotovArmed).
+    const armed=w.kind!=='molotov'||molotovArmed(p.position,this.projectileThrower(p));
+    if(hit){p.position=add(p.position,dir,Math.max(0,hit.timeOfImpact-.07));impact=armed;
      if(w.kind==='satchel'){p.stuck=true;p.velocity={x:0,y:0,z:0};}
-     else if(!rocket&&w.kind!=='molotov'){p.velocity=bounceVelocity(p.velocity,hit.normal,p.elasticity??tune.bounce);if(Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<1)p.stuck=true;}
+     else if(!rocket&&(w.kind!=='molotov'||!impact)){p.velocity=bounceVelocity(p.velocity,hit.normal,p.elasticity??tune.bounce);if(Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z)<1)p.stuck=true;}
     }else p.position=add(p.position,p.velocity,dt);
    }
+   // A molotov at rest on a solid surface bursts once it is past √2 of its thrower.
+   else if(w.kind==='molotov'&&molotovArmed(p.position,this.projectileThrower(p)))impact=true;
    // Tear gas chokes from 2.5 s on (CWorld::SetPedsChoking within 6) until its 20 s are up, and then is gone.
    if(w.kind==='gas'&&!p.gassing&&tune.fuse-p.fuse>=2.5){p.gassing=true;this.hazard('gas',{...p.position,y:p.position.y+.12},6,Math.max(0,p.fuse));}
    if(p.fuse<=0||impact&&(rocket||w.kind==='molotov')){const spot={...p.position,y:p.position.y+.12};if(w.kind==='gas'){/* RemoveProjectile: no explosion */}else if(w.kind==='molotov')this.explode(spot,EXPLOSION_TYPE.molotov,undefined,true);else this.explode(spot,rocket?EXPLOSION_TYPE.rocket:EXPLOSION_TYPE.grenade,undefined,true);}

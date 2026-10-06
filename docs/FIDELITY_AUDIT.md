@@ -10234,8 +10234,14 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   by an authored bounce). Tear gas sets peds choking within 6 units (CWorld::SetPedsChoking, a one-in-ten chance a
   frame) from 2.5 s after the throw until its 20 s are up, and then is gone without an explosion (it had made 5 s of
   gas at 3 s).
+- **A molotov's burst** (Update's case for it and the freefall bomb, 0x100492aac):
+  - nothing is tested while its last position lies within √2 units of its thrower (the squared distance under 2),
+    so until then it bounces at CProjectile's 0.75 as the rest do; it had burst on any contact;
+  - past that, it bursts when the way from its last position to this one is not clear
+    (`GetIsLineOfSightClear` over buildings, vehicles, peds and objects), or once it rests on a solid surface;
+  - spec: `native-throw-projectile` (unit).
 - **Not yet:** the flares that draw heat-seekers off (no flares here), the missile warning on the player's vehicle,
-  the smoke trail's particles, a molotov that only bursts once more than 1.4 units from its thrower, the satchel's
+  the smoke trail's particles, the satchel's
   sticking to what it lands on (the port's), CPhysical's friction and collision response beyond the bounce, and the
   choking itself (the gas is the port's radial hazard, 6 units across now).
 - Specs: `rocket-flight` (unit: the rocket's launch, thrust along its launch line, cap and life; the heat-seeker's

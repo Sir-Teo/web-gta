@@ -13,6 +13,9 @@ test('a molotov lights native fires that burn CJ and a nearby pedestrian',async(
  await expect.poll(async()=>(await state()).pedestrians.people.some((p:any)=>!p.officer&&p.health>0),{timeout:60000}).toBe(true);
  const id=await page.evaluate(()=>(window as any).__game.placePed(2484,12.55,1668));
  await page.waitForTimeout(400);
+ // A new game's starting loadout gives full armour, which takes fire as it takes every blow but a fall's or drowning's
+ // (CPedDamageResponseCalculator::AdjustPedArmour); it is health this is about.
+ await page.evaluate(()=>{(window as any).__game.sim.player.armour=0;});
  const before=(await state()).player.health;
  await page.evaluate(()=>(window as any).__game.explodeAt(2480,12.8,1668,1));
  // The molotov's explosion window sets the ground alight (SetWorldOnFire) and the civilian (SetPedsOnFire, 6-unit box).

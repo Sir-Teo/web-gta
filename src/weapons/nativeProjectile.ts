@@ -39,6 +39,15 @@ export function launchVelocity(kind:string,direction:Vec3,force=0,creatorSpeed=0
  const level=Math.hypot(direction.x,direction.z),hx=level>0?direction.x/level:0,hz=level>0?direction.z/level:0;
  return {x:hx*speed*FPS,y:rise*speed*FPS,z:hz*speed*FPS};
 }
+/** CProjectileInfo::Update for a molotov (and a freefall bomb), iOS 0x100492aac: nothing is tested while its last
+ * position lies within √2 of its thrower (the squared distance under 2); past that it bursts when the way from its
+ * last position to this one is not clear of buildings, vehicles, peds and objects, or once it rests on a solid
+ * surface. Until then it is CProjectile's physics, bouncing at its elasticity. */
+export function molotovArmed(lastPosition:Vec3,thrower:Vec3|undefined){
+ if(!thrower)return true;
+ const dx=lastPosition.x-thrower.x,dy=lastPosition.y-thrower.y,dz=lastPosition.z-thrower.z;
+ return !(Math.fround(dx*dx+dy*dy+dz*dz)<2);
+}
 /** CProjectileInfo::Update's rest for grenades, tear gas and satchels: once each part of the velocity is under 0.05
  * units a frame, the elasticity drops to 0.03, so it stops bouncing. */
 export function settledElasticity(kind:string,velocity:Vec3,elasticity:number){
