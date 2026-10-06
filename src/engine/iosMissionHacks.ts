@@ -36,3 +36,19 @@ export function iosPrintReleasesPlayerControls(key:string){return key==='WUZ1_DA
 export function iosAttachSavedWeapon(head:string|undefined,weapon:number,ammo:number){
  return lower(head)==='heist5'?{weapon:38,ammo:400}:{weapon,ammo};
 }
+
+/** CPad::Update for pad 0 (0x100242cc0): once mtbiker (the Mount Chiliad Challenge) has headed the list and no longer
+ * does, a Mountain Bike is left near the summit (CreateCarForScript without the mission cleanup, so it stays). The
+ * latch also lets go when mtbiker merely starts a sub-script. iOS waits while its mission-retry prompt is up; the
+ * port has none. */
+export class IosMtbikerBike {
+ private latched=false;
+ /** True on the frame the bike is to be made. */
+ update(head:string|undefined){
+  if(lower(head)==='mtbiker'){this.latched=true;return false;}
+  if(!this.latched)return false;
+  this.latched=false;return true;
+ }
+}
+/** The bike: MTBIKE (510) at the script's (x, y, z) and heading in radians (0x100593a08..a14). */
+export const IOS_MTBIKER_BIKE={model:510,position:{x:Math.fround(-2309.23),y:Math.fround(-1651.22),z:Math.fround(483.09)},heading:Math.fround(-2.6528976)};

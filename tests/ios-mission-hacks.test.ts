@@ -62,3 +62,12 @@ test('AttachPedToEntity saves the weapon in hand, or the minigun with 400 rounds
  expect(iosAttachSavedWeapon('MAIN',24,50)).toEqual({weapon:24,ammo:50});
  expect(iosAttachSavedWeapon('HEIST5',24,50)).toEqual({weapon:38,ammo:400});
 });
+
+import {IOS_MTBIKER_BIKE,IosMtbikerBike} from '../src/engine/iosMissionHacks';
+test('the Mountain Bike is left once mtbiker no longer heads the list, once',()=>{
+ const latch=new IosMtbikerBike();
+ expect(latch.update('MAIN')).toBe(false);
+ expect(latch.update('MTBIKER')).toBe(false);expect(latch.update('MTBIKER')).toBe(false);
+ expect(latch.update('MAIN')).toBe(true);expect(latch.update('MAIN')).toBe(false);
+ expect(IOS_MTBIKER_BIKE.model).toBe(510);expect(IOS_MTBIKER_BIKE.heading*180/Math.PI).toBeCloseTo(-152,3);
+});

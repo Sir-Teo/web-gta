@@ -305,7 +305,7 @@ import {MOUSE_ACCEL_MAX,MOUSE_ACCEL_MIN,MOUSE_ACCEL_STEP,mouseYawScale,parseMous
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
 import { ENEX, EntryExitManager, entryExitPosition, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
 import { worldLevelAt } from './assets/worldZones';
-import {IosMissionCarDensity,iosAttachSavedWeapon,iosCutsceneSkipBlocked,iosWaterExtinguishMultiplier} from './engine/iosMissionHacks';
+import {IOS_MTBIKER_BIKE,IosMissionCarDensity,IosMtbikerBike,iosAttachSavedWeapon,iosCutsceneSkipBlocked,iosWaterExtinguishMultiplier} from './engine/iosMissionHacks';
 import './style.css';
 
 const app = document.querySelector<HTMLElement>('#app')!;
@@ -650,7 +650,7 @@ async function boot() {
  // The script's tasks on CJ's own ped (TASK_GO_STRAIGHT_TO_COORD, TASK_PLAY_ANIM... on scplayer).
  /** The cutscene skip button this frame, and the keys it reads as they were last frame. */
  let cutsceneSkipNow=false,skipKeysLast={enter:false,space:false};
- const iosCarDensity=new IosMissionCarDensity();
+ const iosCarDensity=new IosMissionCarDensity(),iosMtbikerBike=new IosMtbikerBike();
  /** The player's car while a script's driving task has it. */
  let scriptDrivenCar:ScriptCar|import("./simulation/WorldBike").WorldBike|undefined;
  const playerTasks=new PlayerScriptTasks({
@@ -4151,6 +4151,8 @@ async function boot() {
        cutsceneSkipNow=!iosCutsceneSkipBlocked(mission.runtime.headName)&&(input.down('MouseFire')||enter&&!skipKeysLast.enter||space&&!skipKeysLast.space);skipKeysLast={enter,space};}
       // iOS CGame::Process: cprace and heist4 force the car density while the player is on a mission.
       {const forced=iosCarDensity.update(mission.runtime.playerOnAMission(),mission.runtime.headName);if(forced!==undefined)mission.runtime.game.carDensityMultiplier=forced;}
+      // iOS CPad::Update: the Mountain Bike left near the Chiliad summit once mtbiker no longer heads the list.
+      if(iosMtbikerBike.update(mission.runtime.headName)&&fleet){const b=IOS_MTBIKER_BIKE;void fleet.spawnScriptVehicle(b.model,{x:b.position.x,y:b.position.z,z:-b.position.y},b.heading).catch(()=>undefined);}
       // CTheScripts::Process reads CTimer's game clock: WAITs, TIMERA/B and the onscreen timers stop while the world is
       // held (a streaming hold included) and run slower under the stunt jump's or a cheat's time scale.
       if(scriptClockMission!==mission){scriptClockMission=mission;scriptGameTimeExact=gameTimeExact;}

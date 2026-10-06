@@ -10590,8 +10590,12 @@ to 15.0 and never changes.
 - CPed::AttachPedToEntity (0x10032c398): when no weapon is saved yet, the one in hand is kept for the detach, except
   that while heist5 heads the list the saved weapon is the minigun with 400 rounds, which CJ holds once detached.
 
+- CPad::Update for pad 0 (0x100242cc0): once mtbiker (the Mount Chiliad Challenge) has headed the list and no longer
+  does, a Mountain Bike is made at (-2309.23, -1651.22, 483.09), heading -2.6529 rad (152° west of north). It is made
+  through CreateCarForScript without the mission cleanup, so it stays. iOS waits while its mission-retry prompt is up,
+  and the latch also lets go when mtbiker merely starts a sub-script.
+
 Not ported yet:
-- the Mountain Bike mtbiker leaves near the Chiliad summit;
 - zero1's lock of the player weapon camera mode to 45;
 - barb's car camera zoom held at 2.
 
