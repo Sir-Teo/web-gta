@@ -2580,7 +2580,8 @@ export class ScmMission {
  }
  /** CScriptsForBrains' object brains, as the iOS executable runs them (unreversed in gta-reversed):
   * - A map placement of a brain's model becomes a CObject the script can hold once it is within 80 units of the player
-  *   (CPopulation::ManageDummy and FindDummyDistForModel), and goes back past that (ManageObject).
+  *   (CPopulation::ManageDummy and FindDummyDistForModel; its IsInCurrentArea test is left to the map's own area), and
+  *   goes back once both it and its placement are past that (ManageObject).
   * - As it is made, CheckIfNewEntityNeedsScript (0x1001f4f10) draws the brain's chance for it, once. Then
   *   StartOrRequestNewStreamedScriptBrain (0x1001f5000) gives it the brain only while the brain is switched on. A
   *   brain script already in memory starts at once, wherever the player stands; otherwise it is asked for.
@@ -2610,7 +2611,7 @@ export class ScmMission {
      if(scripts.at(proper).memory)record.thread=this.runtime.startNewStreamedScript(proper,[record.handle],EXTERNAL_OBJECT_BRAIN)?.thread;
      else this.adapterRef.requestStreamedScript?.(proper);
     }
-   }else if(distance>OBJECT_DUMMY_DISTANCE)continue;
+   }else if(distance>OBJECT_DUMMY_DISTANCE&&!this.brainObjectNear(record,player))continue;
    seen.add(found.key);
    // A window streamed in since brings the map's copy back: it stays out while the script's own is drawn.
    if(record.taken)this.world.takeWorldObject?.(found.key,true);
@@ -2624,12 +2625,19 @@ export class ScmMission {
    record.thread=this.runtime.startNewStreamedScript(index,[record.handle],EXTERNAL_OBJECT_BRAIN)?.thread;
   }
   // A placement that went back to its dummy takes its object with it: the script holding the handle finds it gone and
-  // ends.
-  for(const [key,record] of this.brainObjects)if(!seen.has(key)){
+  // ends. ManageObject (iOS 0x100369b40) puts a map object back once both it and its dummy are more than 80 units
+  // from the player, so one a script moved stays while it is near.
+  for(const [key,record] of this.brainObjects)if(!seen.has(key)&&!this.brainObjectNear(record,player)){
    game.objects.remove(record.handle);this.brainObjects.delete(key);
    // The map has its own copy back, where it always stood.
    if(record.taken)this.world.takeWorldObject?.(key,false);
   }
+ }
+ /** Whether a brain's object (where it stands now) is within the dummy distance of the player, in 3D. */
+ private brainObjectNear(record:{handle:number},player:{x:number;y:number;z:number}){
+  const objects=this.runtime.game.objects;if(!objects.exists(record.handle))return false;
+  const p=objects.at(record.handle).position;
+  return Math.hypot(player.x-p.x,player.y-p.y,player.z-p.z)<=OBJECT_DUMMY_DISTANCE;
  }
  /** The low 16 bits of a rand() for the iOS rolls that take them: the stream gives 15 bits, so two draws make one. */
  private randomSample16(){return ((this.random.next()&1)<<15|this.random.next())&0xffff;}

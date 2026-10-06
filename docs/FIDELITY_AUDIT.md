@@ -9011,7 +9011,7 @@ that did anything.
     - CPopulation::AddToPopulation, for each street ped it makes (not a sunbather it gave a towel, nor a ped made
       during the riots);
     - CDummyObject::CreateObject, as a map object is made real within 80 units of the player (FindDummyDistForModel;
-      it goes back to its dummy past 80);
+      ManageObject puts it back once both it and its dummy are past 80);
     - the hot-dog van's generator, for the vendor.
     Peds put in cars and the scripts' own peds and objects are never given a brain.
   - **The roll.** Every brain of the entity's type and model is rolled for in slot order: (rand() & 0xffff) / 65536 ×
@@ -9691,8 +9691,9 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     now has its own maker. Under the per-template rule they had shared one, and one script freeing it took it from
     the others' peds.
 - **The game's own decision makers answer to their handle** (GetActualScriptThingIndex type 7, which every
-  decision-maker command uses). Every script names them as 65536 + n, the reference CTheScripts starts each slot at.
-  A bare index such as 0 names none: `DOES_DECISION_MAKER_EXIST 0` is false.
+  decision-maker command uses). The scripts name the ones they use (1 to 7) as 65536 + n: CTheScripts starts slots 0
+  to 7 at reference 1. A bare index such as 0 names none, so `DOES_DECISION_MAKER_EXIST 0` is false. The executable's
+  starting references for slots 8 and 9 (0 and 49736) are not kept; the port gives every game maker reference 1.
 - **A decision maker slot's reference index goes on counting** as the slot is freed and taken again
   (`CTheScripts`' script things): a handle to what the slot held before names nothing, rather than its new maker.
 
