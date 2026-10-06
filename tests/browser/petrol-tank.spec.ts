@@ -37,13 +37,15 @@ test('a shot on the petrol cap blows the car up, elsewhere it only dents it',asy
  await shoot(s.bonnet,{x:s.bonnet.x+s.out.x*4,y:stand.y,z:s.bonnet.z+s.out.z*4});
  await page.waitForTimeout(300);
  expect(await wrecked(car)).toBe(false);expect(await health(car)).toBeLessThan(1000);
+ // Each round nudges the car (pushShotVehicle), so the cap is found afresh before each shot at it.
+ const capShot=async()=>{const c=await spots(car);await shoot(c.cap,{x:c.cap.x+c.out.x*4,y:c.cap.y+.2,z:c.cap.z+c.out.z*4});};
  // With the weak point off, the cap is as safe as the bonnet.
  await page.evaluate(h=>(window as any).__game.missionForProfiling().adapterRef.setVehiclePetrolTankWeakpoint(h,false),car);
- await shoot(s.cap,stand);await page.waitForTimeout(300);
+ await capShot();await page.waitForTimeout(300);
  expect(await wrecked(car)).toBe(false);
  // On again: one round on the cap and it goes up.
  await page.evaluate(h=>(window as any).__game.missionForProfiling().adapterRef.setVehiclePetrolTankWeakpoint(h,true),car);
- await shoot(s.cap,stand);
+ await capShot();
  await expect.poll(()=>wrecked(car),{timeout:3000}).toBe(true);
  expect(errors).toEqual([]);
 });
