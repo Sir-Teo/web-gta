@@ -10556,3 +10556,47 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   rule; the thrown weapons' launch by heading and force, fuses, gravity, bounce and settling); `engine-gunnery`
   (unit: the native gravity); `native-heat-seeker` (browser: the locked heat-seeker, now slower off the launcher, homes onto the car ahead
   and explodes; the spec ends the intro, whose ClearExcitingStuffFromArea had been taking projectiles in flight).
+
+## The iOS executable's checks of script names
+
+The iOS build compares script names in about twenty places. iOS SCRIPT_NAME (0x1001da55c) lowercases A to Z of the
+label, and every check is a full strcmp against a lowercase literal; the port keeps the label as written and compares
+case-blind (`src/engine/iosMissionHacks.ts`). Most read the head of CTheScripts::pActiveScripts, the most recently
+started script still running, which `ScmRuntime.headName` gives; a mission that has started a sub-script is not the
+head. Decoded in full in the session's `mission-name-hacks-decode.md`.
+
+Ported:
+- CCutsceneMgr::IsCutsceneSkipButtonBeingPressed (0x10013f840) answers false before reading any input while cat3,
+  cat4, zero1, la1fin1 or bcrash1 heads the list: their cutscenes, SKIP_CUTSCENE_START blocks and
+  IS_SKIP_CUTSCENE_BUTTON_PRESSED cannot be skipped.
+- CFireManager::ExtinguishPointWithWater (0x10023d83c): while firetru is the head or the script after it, the water
+  cannon and the extinguisher take fire strength down 24 times as fast.
+- CGame::Process (0x10023ebc8): from the first frame cprace or heist4 heads the list while the player is on a mission,
+  CCarCtrl::CarDensityMultiplier is forced every frame, 0.75 for cprace and 1.0 for heist4, until he is off it.
+  The multiplier itself now reaches traffic: CCarCtrl::GenerateOneRandomCar makes no car once the random cars reach
+  CarDensityMultiplier × MaxNumberOfCarsInUse (iOS 0x10018e044), so it scales the port's driver cap, and a script's
+  SET_CAR_DENSITY_MULTIPLIER 0 stops new traffic. Before, the command was stored and never read.
+- ComputeWillKillPed (0x10028a1b8): while intro1 (Big Smoke) heads the list, CJ takes 0.77 of every hit after armour,
+  falls and fire included.
+- The strap3 quarter of the player vehicle's damage, weapon and collision (see the InflictDamage entries).
+- PRINT (0x1001cf5c4) of WUZ1_DA or GAR2_10, keyed on the text: the next pad 0 update clears DisablePlayerControls.
+  The port clears the script's player-safe bit and leaves the CPlayerInfo half of MakePlayerSafe; the garage hold
+  and the trip skip's camera bit are its own and set again each frame.
+
+Unreachable with these scripts: desert5's LOCATE_CHAR_* (0x1001dc668) widening of three radii of exactly 36 to 43.2
+(the 3D path only; the 2D path compares a stale register). desert5's only 3D locates take local 129@, which it sets
+to 15.0 and never changes.
+
+Not ported yet:
+- heist5's minigun on CPed::AttachPedToEntity (the saved weapon becomes the minigun with 400 rounds);
+- the Mountain Bike mtbiker leaves near the Chiliad summit;
+- zero1's lock of the player weapon camera mode to 45;
+- barb's car camera zoom held at 2.
+
+iOS UI only, not ported:
+- the mission-retry and checkpoint saves (TERMINATE_THIS_SCRIPT for catalin, SCRIPT_NAME's copcar, ambulan, firetru,
+  stunt and the two-player scripts, PRINT_BIG for mtbiker and desert5, opcode 0x0A77 for crane2);
+- strap3's and heist9's CLEAR_HELP exceptions;
+- the touch widgets: bcour's vehicle-shoot buttons, plchute's exit, barb's zoom and pool2's look-back widgets,
+  lowgame's accelerate widget, and the bball, bbchal and shrange start icons;
+- the run_* scripts' aim-assist targets.

@@ -232,6 +232,8 @@ export class WorldFleet {
   }
   /** CWeather::Rain for the popcycle's other-peds damping (main wires the weather). */
   rain?:()=>number;
+  /** CCarCtrl::CarDensityMultiplier (SET_CAR_DENSITY_MULTIPLIER; main wires the script's). */
+  carDensity?:()=>number;
   /** CPopCycle::Update's ped targets for the zone and clock, with the zone's gang strengths for the gang picker. */
   pedTargets(){
    const row=this.popRow(),zone=this.currentZone;
@@ -248,11 +250,14 @@ export class WorldFleet {
   }
   /** The browser's own population scale for traffic (the touch controls' Population setting; 1 elsewhere). */
   trafficScale=1;
-  /** Ambient traffic driver cap: the popcycle car maximum for the zone and hour, ceiling 14, by trafficScale. */
+  /** Ambient traffic driver cap: the popcycle car maximum for the zone and hour, ceiling 14, by trafficScale and the
+   * script's car density. CCarCtrl::GenerateOneRandomCar makes no car once the random cars reach
+   * CarDensityMultiplier × MaxNumberOfCarsInUse (iOS 0x10018e044), so a density of 0 stops new traffic. */
   trafficDrivers(){
    const row=this.popRow();
    if(!row)return undefined;
-   return Math.max(2,Math.round(trafficDriverBudget(row.maxCars)*this.trafficScale));
+   const density=this.carDensity?.()??1;if(density<=0)return 0;
+   return Math.max(2,Math.round(trafficDriverBudget(row.maxCars)*this.trafficScale*density));
   }
   private randomParkedRecord(candidates:readonly WorldCarGenerator[],groundAt:(record:WorldCarGenerator)=>unknown){
   const record=candidates.find(record=>record.modelId===-1&&groundAt(record));

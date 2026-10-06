@@ -259,6 +259,8 @@ export class Simulation {
   playerCanBeDamaged=true;
   /** CPlayerInfo::m_bFireProof and CHEAT_NO_ONE_CAN_STOP_US, which the host answers. */
   playerFireProof?:()=>boolean;playerWeaponProof?:()=>boolean;
+  /** The name of CTheScripts::pActiveScripts' head, the most recently started script still running (iOS name checks). */
+  headScriptName?:()=>string|undefined;
   /** CPhysical::physicalFlags' proofs on the player, which SET_CHAR_PROOFS sets. */
   playerProofs?:PhysicalProofs;
   /** CPed::Say of a pain context for the player (the host plays it in CJ's PAIN_A voice). */
@@ -283,6 +285,9 @@ export class Simulation {
     let armour = 0;
     if (!bypassArmour && this.player.armour > 0) { const absorbed = Math.min(this.player.armour, amount); this.player.armour -= absorbed; amount -= absorbed; armour = absorbed; }
     if (event && megaPunchBlow(event.weapon)) amount = this.player.health;
+    // iOS ComputeWillKillPed (0x10028a1b8): while intro1 (Big Smoke) heads the script list, CJ takes 0.77 of every hit
+    // the damage calculator sees, a fall or a fire included.
+    if (this.headScriptName?.()?.toLowerCase() === 'intro1') amount *= Math.fround(.77);
     // ComputeWillKillPed's ordinary branch kills below 1 HP, not just at zero.
     // CPed::m_nLastWeaponDamage: the weapon of a hit that took health (a landing is WEAPON_FALL, a car's knockdown
     // WEAPON_RAMMEDBYCAR), not one armour soaked up.

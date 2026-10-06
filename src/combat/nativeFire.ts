@@ -119,12 +119,14 @@ export class NativeFireManager {
  numFiresInRange(point:V3,radius:number){return this.fires.filter(f=>f.active&&!f.script&&Math.hypot(f.position.x-point.x,f.position.y-point.y)<=radius).length;}
  /** CFireManager::ExtinguishPoint. */
  extinguishPoint(point:V3,radius:number){for(const f of this.fires)if(f.active&&dist2(f.position,point)<=radius*radius){f.script=false;f.extinguish();}}
+ /** iOS ExtinguishPointWithWater's script check (iosWaterExtinguishMultiplier); the host sets it. */
+ waterMultiplier=():number=>1;
  /** CFireManager::ExtinguishPointWithWater and CFire::ExtinguishWithWater. */
  extinguishPointWithWater(point:V3,radius:number,waterStrength:number,dtSeconds:number){
-  let any=false;
+  let any=false;const multiplier=this.waterMultiplier();
   for(const f of this.fires){
    if(!f.active||dist2(f.position,point)>radius*radius)continue;
-   any=true;const before=f.strength;f.strength-=waterStrength*dtSeconds;
+   any=true;const before=f.strength;f.strength-=waterStrength*dtSeconds*multiplier;
    if(this.onSteam){const r=this.random,at={x:f.position.x+(r()*2-1)*1.28,y:f.position.y+(r()*2-1)*1.28,z:f.position.z+(r()*2-1)*.64};this.onSteam(at,.8);this.onSteam(at,1.4);}
    f.beingExtinguished=true;
    if(f.strength<0)f.extinguish();else if(Math.trunc(before)!==Math.trunc(f.strength))f.fxSerial++;

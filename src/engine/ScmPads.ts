@@ -85,6 +85,8 @@ export class ScmPads {
  /** bPlayerSafe, which CPlayerInfo::MakePlayerSafe sets: the script takes control away by making the player
   * safe, so the question of whether control is on is this flag read the other way round. */
  readonly playerSafe=[false,false];
+ /** iOS pad byte 0x124 (iosPrintReleasesPlayerControls): the next pad update clears DisablePlayerControls. */
+ readonly releaseControls=[false,false];
  setPlayerSafe(padIndex:number,safe:boolean){this.pad(padIndex);this.playerSafe[padIndex]=safe;}
  /** bApplyBrakes and bPlayerSafeForCutscene. */
  readonly applyBrakes=[false,false];readonly safeForCutscene=[false,false];

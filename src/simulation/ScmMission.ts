@@ -3881,6 +3881,9 @@ export class ScmMission {
   this.highlights.clear();
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;
+  // CPad::Update for pad 0 before the scripts run: a PRINT of WUZ1_DA or GAR2_10 (iOS) clears DisablePlayerControls,
+  // the script's player-safe bit with it; the CPlayerInfo half of MakePlayerSafe is left as it was.
+  {const pads=this.runtime.game.pads;if(pads.releaseControls[0]){pads.releaseControls[0]=false;pads.setPlayerSafe(0,false);this.playerControl=true;}}
   try{this.runtime.process(Math.trunc(nowMs)>>>0,timeStepMs);if(this.handBackPending)this.handBack(nowMs);if(this.attractorArrivals.size)this.settleAttractorArrivals();this.processObjectBrains(nowMs);this.processPedBrains(nowMs);this.processGarageDoors(nowMs);this.updateConversations(nowMs);this.settlePutDown();if(this.brainObjects.size)this.takeMovedBrainObjects();this.runtime.game.objects.advanceAnims(timeStepMs/1000);this.runtime.game.objects.advanceFades(timeStepMs/1000);this.followAttachments();this.processGroups(nowMs);
    // CUserDisplay::Process, after CTheScripts::Process in CGame::Process: the mission clock moves its variable.
    this.processRunners(timeStepMs/1000);

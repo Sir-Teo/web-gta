@@ -51,6 +51,8 @@ export class ScmRuntime {
  /** The name of CTheScripts::pActiveScripts' head, the most recently started thread still running (StartNewScript
   * prepends). iOS SCRIPT_NAME lowercases the label, so the iOS build's name checks are case-blind here. */
  get headName(){return this.head?.thread.name;}
+ /** The thread after the head (CFireManager's firetru check reads it too). */
+ get secondName(){return this.head?.next?.thread.name;}
  /** Any active thread flagged m_ThisMustBeTheOnlyMissionRunning. */
  get missionRunning(){for(let s=this.head;s;s=s.next)if(s.thread.thisMustBeTheOnlyMissionRunning)return true;return false;}
  start(entry:number,argumentBits:readonly number[]=[],options:{base?:number;mission?:boolean;space?:Uint8Array}={}){

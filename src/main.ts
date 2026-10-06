@@ -305,6 +305,7 @@ import {MOUSE_ACCEL_MAX,MOUSE_ACCEL_MIN,MOUSE_ACCEL_STEP,mouseYawScale,parseMous
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
 import { ENEX, EntryExitManager, entryExitPosition, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
 import { worldLevelAt } from './assets/worldZones';
+import {IosMissionCarDensity,iosCutsceneSkipBlocked,iosWaterExtinguishMultiplier} from './engine/iosMissionHacks';
 import './style.css';
 
 const app = document.querySelector<HTMLElement>('#app')!;
@@ -642,6 +643,7 @@ async function boot() {
  // The script's tasks on CJ's own ped (TASK_GO_STRAIGHT_TO_COORD, TASK_PLAY_ANIM... on scplayer).
  /** The cutscene skip button this frame, and the keys it reads as they were last frame. */
  let cutsceneSkipNow=false,skipKeysLast={enter:false,space:false};
+ const iosCarDensity=new IosMissionCarDensity();
  /** The player's car while a script's driving task has it. */
  let scriptDrivenCar:ScriptCar|import("./simulation/WorldBike").WorldBike|undefined;
  const playerTasks=new PlayerScriptTasks({
@@ -1067,7 +1069,7 @@ async function boot() {
   weapons.muzzle=left=>weaponView.muzzle(left);
   weapons.playerMove=()=>{const view=render.nativeCharacter;return view&&{blendRatio:view.moveBlendRatio,sprinting:view.sprinting};};
   const worldFx=new WorldFx(render.scene,sim,render.camera);
-  worldFx.collisionSources=()=>importedScene?.sources;weapons.fires.onSteam=(p,rise)=>worldFx.fireSteam([p.x,p.y,p.z],rise);worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
+  worldFx.collisionSources=()=>importedScene?.sources;weapons.fires.onSteam=(p,rise)=>worldFx.fireSteam([p.x,p.y,p.z],rise);weapons.fires.waterMultiplier=()=>iosWaterExtinguishMultiplier(mission?.runtime.headName,mission?.runtime.secondName);worldFx.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
   weapons.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
   void afterStartPackage.then(()=>worldFx.load(new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href)).then(()=>{if(alive&&worldFx.ready)weapons.fx=worldFx;}).catch(error=>{worldFx.error=String(error);});
   // CCamera::Find3rdPersonCamTargetVector: third-person shots go through the crosshair at (0.53, 0.4) of the screen;
@@ -1083,7 +1085,7 @@ async function boot() {
   weapons.onSound=(event,id,position,source)=>sound.combat(event,id,position,source);
   NativeWeaponAudio.canSeeOutside=()=>render.lighting.area===0;
   // CEventDamage::AffectsPed's MAKE_PLAYER_FIRE_PROOF and ComputeWillKillPed's CHEAT_NO_ONE_CAN_STOP_US (the AK recruit cheat).
-  sim.playerFireProof=()=>!!mission?.runtime.game.playerInfo.fireProof;sim.playerWeaponProof=()=>CHEATS.isActive('recruitAk');
+  sim.playerFireProof=()=>!!mission?.runtime.game.playerInfo.fireProof;sim.playerWeaponProof=()=>CHEATS.isActive('recruitAk');sim.headScriptName=()=>mission?.runtime.headName;
   weapons.onBulletHit=(hit,point,angle)=>{
     const collisions=sound.nativeEngine?.collisions;if(!collisions||paused)return;
     const handle=hit.collider.handle,vehicle=[...(fleet?.cars??[])].some(c=>hit.collider.parent()?.handle===c.car.body.handle)||[...(fleet?.planes??[])].some(p=>hit.collider.parent()?.handle===p.body.handle);
@@ -4136,9 +4138,12 @@ async function boot() {
       mission.runtime.game.weatherHost??={forceWeather:w=>weather.forceWeather(w),forceWeatherNow:w=>weather.forceWeatherNow(w),releaseWeather:()=>weather.releaseWeather()};
       const clock=mission.runtime.game.clock;if(clock.follow(sim.timeMinutes,sim.weekDay))mission.runtime.game.stats.increment(STAT_DAYS_PASSED_IN_GAME,1);
       const set=[clock.hours,clock.minutes,clock.seconds,clock.currentDay];
-      // CCutsceneMgr::IsCutsceneSkipButtonBeingPressed: the left mouse button held, or Return or Space just pressed.
+      // CCutsceneMgr::IsCutsceneSkipButtonBeingPressed: the left mouse button held, or Return or Space just pressed; on
+      // iOS nothing while one of five missions heads the script list (iosCutsceneSkipBlocked).
       {const enter=input.down('Enter')||input.down('NumpadEnter'),space=input.down('Space');
-       cutsceneSkipNow=input.down('MouseFire')||enter&&!skipKeysLast.enter||space&&!skipKeysLast.space;skipKeysLast={enter,space};}
+       cutsceneSkipNow=!iosCutsceneSkipBlocked(mission.runtime.headName)&&(input.down('MouseFire')||enter&&!skipKeysLast.enter||space&&!skipKeysLast.space);skipKeysLast={enter,space};}
+      // iOS CGame::Process: cprace and heist4 force the car density while the player is on a mission.
+      {const forced=iosCarDensity.update(mission.runtime.playerOnAMission(),mission.runtime.headName);if(forced!==undefined)mission.runtime.game.carDensityMultiplier=forced;}
       // CTheScripts::Process reads CTimer's game clock: WAITs, TIMERA/B and the onscreen timers stop while the world is
       // held (a streaming hold included) and run slower under the stunt jump's or a cheat's time scale.
       if(scriptClockMission!==mission){scriptClockMission=mission;scriptGameTimeExact=gameTimeExact;}
@@ -4917,7 +4922,7 @@ async function boot() {
             fleet.clearPed=handle=>pedestrians?.removeDeletableCollider(handle)??false;
             // CCarGenerator's hot-dog van brings its vendor, and his brain.
             fleet.onHotdogVan=car=>{try{mission?.hotdogVan(car);}catch(error){console.warn('Hot-dog vendor',error);}};
-            fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;
+            fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;fleet.carDensity=()=>mission?.runtime.game.carDensityMultiplier??1;
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             // A phone drives the traffic beyond 60 units on rails (measured: four of six cars, a sixth of the frame's CPU).
             if(touch)traffic.physicsRadius=60;

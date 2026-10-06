@@ -1,3 +1,4 @@
+import {iosPrintReleasesPlayerControls} from './iosMissionHacks';
 import type {ScmInstruction,ScmParameter} from '../assets/scm';
 import {CHEAT_ALL_TAXIS_NITRO,CHEAT_PROSTITUTES_PAY_YOU} from './ScmCheats';
 import {CRANE_LAS_VEGAS,CRANE_MAGNO,CRANE_NONE,CRANE_QUARRY,CRANE_WRECKING_BALL} from './ScmPlayerInfo';
@@ -372,6 +373,7 @@ const handlers:Record<string,ScmCommandHandler>={
  PRINT:(t,p,i,now)=>{
   const g=game(t,i),key=t.text(p[0]);
   if(subtitleAllowed(t,i,key))g.messages.addMessageQ(key,t.readInt(p[1]),t.readInt(p[2]),g.addNextMessageToPreviousBriefs,now);
+  if(iosPrintReleasesPlayerControls(key))g.pads.releaseControls[0]=true;
   g.addNextMessageToPreviousBriefs=true;
  },
  PRINT_NOW:(t,p,i,now)=>{
