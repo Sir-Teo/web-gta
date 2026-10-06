@@ -14,6 +14,8 @@ export const SPECIAL_PED_MODELS=10;
 export class ScmCutscene {
  /** The name the script asked for, and where that request has got to. */
  name?:string;status=CUTSCENE_NONE;
+ /** m_fPrevCarDensity and m_fPrevPedDensity: the multipliers LOAD_CUTSCENE found, which CLEAR_CUTSCENE puts back. */
+ previousDensity?:{car:number;ped:number};
  /** LOAD_CUTSCene: the data is asked for and nothing is running yet. */
  load(name:string){
   requireAsset(name.length>0,'Invalid cutscene name.');

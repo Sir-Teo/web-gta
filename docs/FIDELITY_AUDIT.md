@@ -8946,7 +8946,7 @@ that did anything.
   player's aimed rounds now carry at least 120 units (AUTHORED), shotguns and the AI keep weapon.dat's range. Spec:
   `player-aim-reach` (unit).
 - **Cops were still too good.** The AI's miss offset grows with range and by half again on a moving target
-  (AUTHORED). Spec: `npc-gun` (unit).
+  (AUTHORED; since replaced by the iOS rule, see "An AI round now goes where SA's goes"). Spec: `npc-gun` (unit).
 - **A jacked driver became somebody else.** A packaged-roster driver was swapped for a zone resident as he landed,
   and the occupants' model cache could re-pick the driver the frame his clip ended. The cache lives as long as the
   car, the ped keeps the model, and the drawn victim holds his last frame until the ped exists.
@@ -10582,8 +10582,9 @@ Ported:
   INTRO is the exception, as for IsPlayerOnAMission. MAIN sets 0 before launching it and INTRO sets 0 again; only
   its mission cleanup puts 1 back, and here INTRO never ends. So while its thread holds, traffic sees 1 and the 0
   stays on the script's copy.
-  CCutsceneMgr's own 0 for the length of a cutscene (restored after) is not routed through the multiplier; the
-  port's cutscenes suppress traffic their own way.
+  CCutsceneMgr::LoadCutsceneData keeps both density multipliers and sets them to 0 for the cutscene, and
+  DeleteCutsceneData (CLEAR_CUTSCENE) puts them back unless nothing was loaded. LOAD_CUTSCENE and CLEAR_CUTSCENE now
+  do the same, so no traffic or street peds are made while a cutscene is loaded.
 - ComputeWillKillPed (0x10028a1b8): while intro1 (Big Smoke) heads the list, CJ takes 0.77 of every hit after armour,
   falls and fire included.
 - The strap3 quarter of the player vehicle's damage, weapon and collision (see the InflictDamage entries).

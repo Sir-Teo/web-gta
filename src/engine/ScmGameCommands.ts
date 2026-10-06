@@ -1,4 +1,5 @@
 import {iosPrintReleasesPlayerControls} from './iosMissionHacks';
+import {CUTSCENE_NONE} from './ScmCutscene';
 import type {ScmInstruction,ScmParameter} from '../assets/scm';
 import {CHEAT_ALL_TAXIS_NITRO,CHEAT_PROSTITUTES_PAY_YOU} from './ScmCheats';
 import {CRANE_LAS_VEGAS,CRANE_MAGNO,CRANE_NONE,CRANE_QUARRY,CRANE_WRECKING_BALL} from './ScmPlayerInfo';
@@ -1300,12 +1301,21 @@ const handlers:Record<string,ScmCommandHandler>={
  /* --- The cutscene the script loads, runs and clears. Its loop is load, wait for loaded, start, wait for
   * finished, clear; a host moves it between those. */
  LOAD_CUTSCENE:(t,p,i)=>{
-  const name=t.text(p[0]);game(t,i).cutscene.load(name);t.host?.world?.loadCutscene?.(name);
+  // CCutsceneMgr::LoadCutsceneData keeps the car and ped density multipliers and sets both to 0 for the cutscene
+  // (DeleteCutsceneData puts them back), so no traffic or street peds are made around it.
+  const name=t.text(p[0]),g=game(t,i);
+  g.cutscene.previousDensity={car:g.carDensityMultiplier,ped:g.pedDensityMultiplier};g.carDensityMultiplier=0;g.pedDensityMultiplier=0;
+  g.cutscene.load(name);t.host?.world?.loadCutscene?.(name);
  },
  HAS_CUTSCENE_LOADED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cutscene.hasLoaded,negated(i));},
  START_CUTSCENE:(t,_p,i)=>{const state=game(t,i);state.cutscene.start();if(state.cutscene.running)t.host?.world?.startCutscene?.();},
  HAS_CUTSCENE_FINISHED:(t,_p,i)=>{t.updateCompareFlag(game(t,i).cutscene.hasFinished,negated(i));},
- CLEAR_CUTSCENE:(t,_p,i)=>{game(t,i).cutscene.clear();t.host?.world?.clearCutscene?.();},
+ CLEAR_CUTSCENE:(t,_p,i)=>{
+  // DeleteCutsceneData returns at once with nothing loaded; otherwise it restores the two density multipliers.
+  const g=game(t,i),previous=g.cutscene.previousDensity;
+  if(g.cutscene.status!==CUTSCENE_NONE&&previous){g.carDensityMultiplier=previous.car;g.pedDensityMultiplier=previous.ped;}
+  g.cutscene.previousDensity=undefined;g.cutscene.clear();t.host?.world?.clearCutscene?.();
+ },
  APPEND_TO_NEXT_CUTSCENE:(t,p,i)=>{game(t,i).cutscene.append(t.text(p[0]),t.text(p[1]));},
  // The skip pair: CRunningScript::m_SceneSkipIP, the label the thread jumps to when the skip button is pressed
  // (CRunningScript::Process), and back to none.

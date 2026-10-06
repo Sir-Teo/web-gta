@@ -117,3 +117,14 @@ describe('the special characters and the mission reports',()=>{
   expect(game.missionPassedKey).toBe('INTRO1');
  });
 });
+
+test('a cutscene holds the car and ped densities at 0 from LOAD_CUTSCENE until CLEAR_CUTSCENE puts them back',()=>{
+ const game=new ScmGameState();game.carDensityMultiplier=.5;game.pedDensityMultiplier=.7;
+ run(game,{},instruction(op('LOAD_CUTSCENE'),['INTRO1A']));
+ expect([game.carDensityMultiplier,game.pedDensityMultiplier]).toEqual([0,0]);
+ run(game,{},instruction(op('CLEAR_CUTSCENE'),[]));
+ expect([game.carDensityMultiplier,game.pedDensityMultiplier]).toEqual([.5,.7]);
+ expect(game.cutscene.status).toBe(CUTSCENE_NONE);
+ // DeleteCutsceneData with nothing loaded leaves them as they are.
+ game.carDensityMultiplier=0;run(game,{},instruction(op('CLEAR_CUTSCENE'),[]));expect(game.carDensityMultiplier).toBe(0);
+});
