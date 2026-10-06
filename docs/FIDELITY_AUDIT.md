@@ -1904,6 +1904,9 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
   - `aTrafficLightColoursR/G/B` are exe data gta-reversed only references. They had been stood in by each lamp's
     own 2d effect colour; they are now read from the iOS executable (DisplayActualLight 0x10020d9dc): green
     (0, 255, 0), amber (255, 128, 0), red (255, 0, 0). The lamp's own colour only tells which lamp it is.
+  - A lit pole adds a point light (CPointLights::AddLight, iOS 0x10020df08) while TrafficLightsBrightness is over 0.5:
+    at the mean of its 2d effects, radius 14, colour max(channel, 50) × fLightMult (0.4 / 255). The player's car casts
+    its extra shadow away from it, as from any point light.
   - The lit lamp's lens is a `CBrightLights` light (reversed), up to 32
     within 60 units. It is a hexagon at half alpha, or an octagon for the
     five small-lens models. Its colour is the phase's with a random flicker,

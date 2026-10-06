@@ -1432,7 +1432,7 @@ async function boot() {
         const pools=importedScene.litPlacements().filter(entity=>!lightIsDamaged(entity.name,entity.matrix)).flatMap(entity=>{
           // The walk sign is part of DisplayActualLight, which a light tipped past up.z 0.96 skips.
           if(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)&&entity.matrix[10]>=.96){const sign=pedSignalQuad(entity,Math.floor(traffic?.lightMs??gameTimeMs),cam);if(sign)shinyQuads.push(sign);}
-          return [...processLightsForEntity(entity,frame,coronas,pointLights),...(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)?displayActualLight(entity,trafficFrame,coronas,brightLights):[])];});
+          return [...processLightsForEntity(entity,frame,coronas,pointLights),...(entity.name&&TRAFFIC_LIGHT_MODELS.has(entity.name)?displayActualLight(entity,trafficFrame,coronas,brightLights,pointLights):[])];});
         shinyTexts.frame(shinyQuads,render.lighting.sunTexture.extraTexture('handman'));
         if(poolScene!==importedScene){lightPools.clear();carLightPoolsTwin.clear();carLightPoolsSingle.clear();pedShadows.clear();scorchShadows.clear();extraCarShadows.clear();poolScene=importedScene;}
         // CEntity::CreateEffects / DestroyEffects: the installed scene's particle effects run while it is loaded.

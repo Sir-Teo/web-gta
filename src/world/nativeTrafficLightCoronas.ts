@@ -1,6 +1,6 @@
 import type {Model2dEffect} from '../assets/twoDEffect';
 import type {NativeCoronas} from './nativeCoronas';
-import type {LightPool} from './nativeEntityLights';
+import type {EntityPointLight,LightPool} from './nativeEntityLights';
 import {TRAFFIC_LIGHT,type TrafficLightState} from './nativeTrafficLights';
 import {BRIGHT_LIGHT,type NativeBrightLights} from './nativeBrightLights';
 
@@ -30,11 +30,13 @@ export interface TrafficLightFrame {
  * the phase for the pole's direction, on the side facing the camera, its lens (CBrightLights::RegisterOne), and a pool
  * of that colour below the lamps. aTrafficLightColoursR/G/B (0x8A6214) are exe data gta-reversed does not carry; they
  * are read from the iOS executable (DisplayActualLight 0x10020d9dc; R 0x100648bd8, G 0x100648bdb, B 0x1007a39b8): green
- * (0, 255, 0), amber (255, 128, 0), red (255, 0, 0). A lamp's own 2d effect colour only tells which lamp it is. Point
- * lights are not ported, nor the iOS build's FX-quality gate on the corona. */
+ * (0, 255, 0), amber (255, 128, 0), red (255, 0, 0). A lamp's own 2d effect colour only tells which lamp it is. The iOS
+ * build's FX-quality gate on the corona is not ported. */
 /** aTrafficLightColoursR/G/B by light state (green, amber, red). */
 export const TRAFFIC_LIGHT_COLOURS:readonly (readonly [number,number,number])[]=[[0,255,0],[255,128,0],[255,0,0]];
-export function displayActualLight(entity:{id:number;name?:string;matrix:readonly number[];effects:readonly Model2dEffect[]},frame:TrafficLightFrame,coronas:NativeCoronas,bright?:NativeBrightLights):LightPool[]{
+/** fLightMult (PC 0x8A621C; iOS 0x100593648): 0.4 / 255. */
+const TRAFFIC_POINT_LIGHT_MULT=Math.fround(.0015686274),TRAFFIC_POINT_LIGHT_RADIUS=14;
+export function displayActualLight(entity:{id:number;name?:string;matrix:readonly number[];effects:readonly Model2dEffect[]},frame:TrafficLightFrame,coronas:NativeCoronas,bright?:NativeBrightLights,pointLights?:EntityPointLight[]):LightPool[]{
  const m=entity.matrix;if(m[10]<.96)return [];
  const lensBase=entity.name&&SMALL_LENS_MODELS.has(entity.name)?BRIGHT_LIGHT.greenSmall:BRIGHT_LIGHT.greenBig;
  const state=frame.visual[trafficLightType(m)===TRAFFIC_DIRECTION.northSouth?0:1];
@@ -54,8 +56,16 @@ export function displayActualLight(entity:{id:number;name?:string;matrix:readonl
   // The lens faces along the pole: RegisterOne takes its up and right.
   bright?.registerOne(world,[m[8],m[9],m[10]],[m[0],m[1],m[2]],state+lensBase,frame.camera);
  });
- if(!entity.effects.length||state===TRAFFIC_LIGHT.off||frame.trafficLightsBrightness<=.05||!lit)return [];
+ if(!entity.effects.length||state===TRAFFIC_LIGHT.off||!lit)return [];
  // vecCenter /= m_n2dfxCount: every effect counts, not only the lights.
  const n=entity.effects.length,mult=frame.lightsOnGroundBrightness*frame.trafficLightsBrightness/80;
+ // CPointLights::AddLight (iOS 0x10020df08) at the centre, radius 14, the state's colour (no channel under 50) ×
+ // fLightMult, while CWeather::TrafficLightsBrightness is over 0.5.
+ if(pointLights&&frame.trafficLightsBrightness>.5){
+  const c=TRAFFIC_LIGHT_COLOURS[state];
+  if(c)pointLights.push({position:[center[0]/n,center[1]/n,center[2]/n],radius:TRAFFIC_POINT_LIGHT_RADIUS,
+   color:[Math.fround(Math.max(c[0],50)*TRAFFIC_POINT_LIGHT_MULT),Math.fround(Math.max(c[1],50)*TRAFFIC_POINT_LIGHT_MULT),Math.fround(Math.max(c[2],50)*TRAFFIC_POINT_LIGHT_MULT)]});
+ }
+ if(frame.trafficLightsBrightness<=.05)return [];
  return [{id:entity.id+255,position:[center[0]/n,center[1]/n,center[2]/n],size:8,color:[Math.trunc(lit[0]*mult)&255,Math.trunc(lit[1]*mult)&255,Math.trunc(lit[2]*mult)&255],intensity:128,maxHeight:12}];
 }

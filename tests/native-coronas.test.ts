@@ -93,6 +93,14 @@ test('DisplayActualLight shows the phase of the pole direction on the side facin
  const amber=new NativeCoronas(),amberPole={...pole,effects:[lamp(-.4,[230,150,20])]};
  const amberPools=displayActualLight(amberPole,{visual:[1,1],cameraForward:[0,1,0],camera:[100,150,12],spriteBrightness:10,spriteSize:10,lightsOnGroundBrightness:10,trafficLightsBrightness:1},amber);
  expect(amber.coronas.filter(k=>k.id)[0].color).toEqual([178,89,0]);expect(amberPools[0].color).toEqual([31,16,0]);
+ // CPointLights::AddLight at the effects' centre, radius 14, max(channel, 50) × 0.4 / 255, over 0.5 brightness only.
+ const lights:{position:[number,number,number];radius:number;color:[number,number,number]}[]=[];
+ displayActualLight(amberPole,{visual:[1,1],cameraForward:[0,1,0],camera:[100,150,12],spriteBrightness:10,spriteSize:10,lightsOnGroundBrightness:10,trafficLightsBrightness:1},new NativeCoronas(),undefined,lights);
+ expect(lights).toHaveLength(1);expect(lights[0].radius).toBe(14);
+ expect(lights[0].color[0]).toBeCloseTo(.4,5);expect(lights[0].color[1]).toBeCloseTo(128*.4/255,5);expect(lights[0].color[2]).toBeCloseTo(50*.4/255,5);
+ const dim:typeof lights=[];
+ displayActualLight(amberPole,{visual:[1,1],cameraForward:[0,1,0],camera:[100,150,12],spriteBrightness:10,spriteSize:10,lightsOnGroundBrightness:10,trafficLightsBrightness:.4},new NativeCoronas(),undefined,dim);
+ expect(dim).toHaveLength(0);
 });
 
 test('CCoronas::RenderReflections mirrors reflecting coronas through the ground while the roads are wet', () => {
