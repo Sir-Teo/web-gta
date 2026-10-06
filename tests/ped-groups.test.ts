@@ -36,6 +36,8 @@ test('peds.ide maps models to ped type, stats and anim groups', () => {
   expect(pedCanDriveClass({id:0,model:'x',pedType:'CIVMALE',stat:'S',animGroup:'man',drives:0x120c},'normal')).toBe(false);
   expect(pedCanDriveClass({id:0,model:'x',pedType:'CIVMALE',stat:'S',animGroup:'man',drives:0x120c},'richfamily')).toBe(true);
   expect(pedCanDriveClass({id:0,model:'x',pedType:'CIVMALE',stat:'S',animGroup:'man',drives:0x120c},'executive')).toBe(true);
+  // Column eight is CPedModelInfo::m_nPedFlags (hex): bit 0 marks a ped who buys drugs.
+  expect(defs.get('bmydj')?.flags).toBe(1);expect(defs.get('wmybmx')?.flags).toBe(0);
 });
 
 test('pedgrp resolves the ten gangs and dealers', () => {

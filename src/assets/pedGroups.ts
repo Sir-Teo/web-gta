@@ -5,7 +5,10 @@ export interface PedModelDef {
  /** The model id (the row's first column). */
  id:number;model:string;pedType:string;stat:string;animGroup:string;
  /** CPedModelInfo::m_nCarsCanDriveMask: one bit per vehicle class (VEHICLE_CLASS_NORMAL first); 0x1000 is on foot. */
- drives:number}
+ drives:number;
+ /** CPedModelInfo::m_nPedFlags, the column after the mask (hex, as CFileLoader::LoadPedObject's %x reads it): bit 0
+  * marks a ped who buys drugs. */
+ flags?:number}
 /** vehicles.ide class names in eVehicleClass order, the bit each occupies in a ped's cars-can-drive mask. */
 export const VEHICLE_CLASSES=['normal','poorfamily','richfamily','executive','worker','big','taxi','moped','motorbike','leisureboat','workerboat','bicycle'] as const;
 /** CPedModelInfo::CanPedDriveVehicleClass. */
@@ -29,11 +32,11 @@ export function readPedsIde(text:string):Map<string,PedModelDef>{
   if(body.toLowerCase()==='end'){section='done';continue;}
   const fields=body.split(',').map(f=>f.trim());
   requireAsset(fields.length>=6,`Ped definition line ${line+1}: expected id, model, txd, pedtype, stat and anims.`);
-  const [id,model,,pedType,stat,animGroup,drivesText]=fields;const drives=parseInt(drivesText??'0',16);
+  const [id,model,,pedType,stat,animGroup,drivesText,flagsText]=fields;const drives=parseInt(drivesText??'0',16),flags=parseInt(flagsText??'0',16);
   requireAsset(Number.isInteger(Number(id))&&model.length>0&&pedType.length>0&&stat.length>0&&animGroup.length>0,`Ped definition line ${line+1}: invalid row.`);
   const key=model.toLowerCase();
   requireAsset(!defs.has(key),`Duplicate ped definition: ${model}.`);
-  defs.set(key,{id:Number(id),model:key,pedType:pedType.toUpperCase(),stat:stat.toUpperCase(),animGroup:animGroup.toLowerCase(),drives:Number.isFinite(drives)?drives:0});
+  defs.set(key,{id:Number(id),model:key,pedType:pedType.toUpperCase(),stat:stat.toUpperCase(),animGroup:animGroup.toLowerCase(),drives:Number.isFinite(drives)?drives:0,flags:Number.isFinite(flags)?flags:0});
  }
  requireAsset(section==='done'&&defs.size>=200,'Expected a complete peds.ide table.');
  return defs;

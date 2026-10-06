@@ -272,6 +272,8 @@ export interface ScmMissionWorld {
  /** The street peds a script may take (GET_RANDOM_CHAR_IN_ZONE): each with its ePedType, peds.ide model id, native
   * centre position, heading (degrees), health and whether a roof is over it; and the call that makes one PED_MISSION. */
  randomStreetPeds?():{ped:unknown;pedType:number;model:number;position:{x:number;y:number;z:number};heading:number;health:number;roofed:()=>boolean}[];
+ /** CPedModelInfo::m_nPedFlags' bit 0 (peds.ide): the model buys drugs. */
+ pedModelBuysDrugs?(model:number):boolean;
  adoptStreetPed?(ped:unknown):void;
  /** CTheZones::GetLevelFromPosition for a native point. */
  cityAt?(x:number,y:number,z:number):number;
@@ -1797,9 +1799,23 @@ export class ScmMission {
    setVehicleAlwaysCreateSkids:(handle,enable)=>{this.carFlag(handle).alwaysSkidMarks=enable;},
    vehicleDoesProvideCover:(handle,state)=>{this.carFlag(handle).providesCover=state;},
    setPedDruggedUp:(handle,state)=>{this.pedFlag(handle).druggedUp=state;},
-   // AUTHORED: the street makes no drug buyers (the handler and whatever marks a buyer are unreversed), so a dealer's
-   // look for one finds nobody.
-   randomDrugsBuyerInSphere:()=>-1,
+   // GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS (disabled in gta-reversed; the iOS handler, 0x1001ffdc4): the nearest
+   // street ped (PED_GAME) strictly within the sphere, in 3D, whose model buys drugs (peds.ide's flags, bit 0). Peds
+   // being removed, fading out, dying, dead or arrested, or in a group, are passed over. The nearest so far is kept as
+   // a whole number of units, so a later ped less than a unit nearer can still win. The ped becomes the script's
+   // (PED_MISSION, on the mission's cleanup list when the thread keeps one).
+   randomDrugsBuyerInSphere:(x,y,z,radius)=>{
+    const buys=this.world.pedModelBuysDrugs;if(!buys)return -1;
+    let best=9999,found:ReturnType<NonNullable<ScmMissionWorld['randomStreetPeds']>>[number]|undefined;
+    for(const c of this.world.randomStreetPeds?.()??[]){
+     if(!buys(c.model))continue;
+     const d=Math.fround(Math.hypot(c.position.x-x,c.position.y-y,c.position.z-z));
+     if(d<radius&&d<best){best=Math.trunc(d);found=c;}
+    }
+    if(!found)return -1;
+    this.world.adoptStreetPed?.(found.ped);
+    return this.forCleanup(this.cleanupPeds,this.peds.adopt(found.ped,found.pedType,found.model,found.position,found.heading,found.health));
+   },
    getClosestStraightRoad:(x,y,z,minDist,maxDist)=>{
     const areas=this.world.carPathAreas?.(),found=areas&&findClosestStraightRoad(areas,{x,y,z},minDist,maxDist);
     return found?{...found,found:true}:{node1X:0,node1Y:0,node1Z:0,node2X:0,node2Y:0,node2Z:0,angle:0,found:false};

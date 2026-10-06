@@ -9029,9 +9029,22 @@ that did anything.
   - MAIN gives `dealer.scm` to BMYDRUG, WMYDRUG, HMYDRUG and BIKDRUG at 100%, and `hotdog.scm` to BMOCHIL.
 - **dealer.scm runs.** `GET_NAME_OF_INFO_ZONE` (disabled in the reference) is the smallest zone's info label, as
   `FindSmallestZoneForPosition` over every zone type gives it; `SET_CHAR_WANTED_BY_POLICE` and `SET_CHAR_DRUGGED_UP`
-  are kept on the handle and not read yet; `GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS` finds nobody (AUTHORED: the
-  browser makes no drug buyers). A dealer now carries $2000, loops `DEALER_IDLE`, looks about and wanders, and draws
-  the pistol when the player targets or hurts him; his script cleans up when he dies.
+  are kept on the handle and not read yet. A dealer now carries $2000, loops `DEALER_IDLE`, looks about and wanders,
+  and draws the pistol when the player targets or hurts him; his script cleans up when he dies.
+- **Dealers find buyers.** `GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS` is disabled in gta-reversed and AUTHORED here
+  as finding nobody; it now follows the iOS handler (0x1001ffdc4).
+  - It takes the nearest street ped (PED_GAME) strictly within the sphere, in 3D, whose peds.ide flags have bit 0 set
+    (CPedModelInfo::m_nPedFlags, "buys drugs": 139 models).
+  - It passes over peds being removed, fading out, dying, dead or arrested, or in a group.
+  - The nearest so far is kept truncated to whole units.
+  - The ped becomes the script's (PED_MISSION, on the mission's cleanup when the thread keeps one).
+  - dealer.scm asks every 15 s within 5 units. A buyer walks up, pays and buys, and a drive-up buyer is sent off
+    wandering in his car.
+  - The handler does not pass over the dealer himself: a BIKDRUG dealer, whose model buys too, can be his own buyer, as
+    on iOS.
+- **`TASK_FOLLOW_FOOTSTEPS`** (AUTHORED: CTaskComplexFollowPedFootsteps is unreversed past its constructor, which sets a
+  walk): the ped walks after the target, waits within 1.5 units of it, and never ends the task himself. dealer.scm gives
+  it to a dealer whose buyer stands within 2 units, for 6 s.
 - **The hot-dog vans have their vendor.** `CCarGenerator::DoInternalProcessing` (reversed, CarGenerator.cpp:303): a
   generator whose own model is the hot-dog van (588), having made it, adds a BMOCHIL and attaches him at (0, 0, 0.6)
   with turret position 3, then `CheckIfNewEntityNeedsScript`, which is MAIN's random-ped brain for BMOCHIL:

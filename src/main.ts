@@ -5943,6 +5943,7 @@ async function boot() {
                  // SetCurrentCharWeapon only picks among the weapons the ped holds: a type he does not have changes nothing.
                  setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.owned.has(weapon)&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
                  setPlayerArmour:armour=>{sim.player.armour=armour;},playerArmour:()=>sim.player.armour,
+                 pedModelBuysDrugs:model=>pedestrians?.modelBuysDrugs(model)??false,
                  randomStreetPeds:()=>(pedestrians?.scriptCandidates()??[]).map(p=>{const at=p.actor.player.position;return {ped:p,pedType:nativePedType(p.pedType)??4,model:pedestrians!.modelIdOf(p)??-1,
                   position:{x:at.x,y:-at.z,z:at.y+1},heading:(((p.actor.player.heading-Math.PI)*180/Math.PI)%360+360)%360,health:p.health,
                   // CWorld::FindRoofZFor3DCoord: anything fixed straight above the ped.

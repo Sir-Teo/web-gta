@@ -50,7 +50,9 @@ export type ScriptedPedOrder=
  |{kind:'gotoPed';target:number;radius:number;seconds:number;
   /** CEntitySeekPosCalculatorRadiusAngleOffset (TASK_GOTO_CHAR_OFFSET): the point `radius` out from the target at
    * `angle` radians from its heading, 0 being straight ahead of it. */
-  offset?:{radius:number;angle:number}}
+  offset?:{radius:number;angle:number};
+  /** TASK_FOLLOW_FOOTSTEPS: at a walk, and on arrival the ped waits for the target to move off rather than ending. */
+  follow?:boolean}
  /** CTaskSimpleDuckToggle (TASK_TOGGLE_DUCK): the ped ducks or stands, and the task is over at once; with `seconds`,
   * CTaskSimpleDuck (TASK_DUCK) holds it ducked where it is for that long. */
  |{kind:'duck';crouch:boolean;seconds?:number}
@@ -115,6 +117,8 @@ export const GO_STRAIGHT_TARGET_RADIUS=.5,GO_STRAIGHT_MOVE_STATE_RADIUS=2;
 const moveStateOf=(task:{moveState?:number})=>task.moveState!==undefined&&task.moveState!==6?{moveState:task.moveState}:{};
 /** A task time in milliseconds as seconds; the original's -1 means for ever. */
 const seconds=(milliseconds:number)=>milliseconds<0?Number.POSITIVE_INFINITY:milliseconds/1000;
+/** How close TASK_FOLLOW_FOOTSTEPS' stand-in keeps behind its target (AUTHORED). */
+const FOLLOW_FOOTSTEPS_RADIUS=1.5;
 /** CVector2D::Heading, atan2(-x, y), in the degrees a script speaks. */
 export const nativeHeadingDegrees=(dx:number,dy:number)=>{
  const degrees=Math.atan2(-dx,dy)*180/Math.PI;
@@ -187,6 +191,10 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'goToCoordAnyMeans':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:Number.POSITIVE_INFINITY};
   case 'gotoPed':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:task.radius,seconds:seconds(task.time)}:undefined;
+  // AUTHORED: CTaskComplexFollowPedFootsteps is unreversed past its constructor (which sets PEDMOVE_WALK and a point
+  // route of the target's steps). The ped walks after the target, waits within FOLLOW_FOOTSTEPS_RADIUS of it, and the
+  // task never ends by itself; dealer.scm gives it to a dealer for 6 s before sending him back.
+  case 'followFootsteps':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:FOLLOW_FOOTSTEPS_RADIUS,seconds:Number.POSITIVE_INFINITY,follow:true}:undefined;
   // CTaskComplexSeekEntity with CEntitySeekPosCalculatorRadiusAngleOffset, arrived within half a unit of that point.
   case 'gotoPedOffset':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:.5,seconds:seconds(task.time),offset:{radius:task.offsetX,angle:task.offsetY*Math.PI/180}}:undefined;
   case 'killPedOnFootTimed':return world.ped(task.target)?{kind:'killPed',target:task.target,seconds:seconds(task.time)}:undefined;

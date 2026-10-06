@@ -42,6 +42,9 @@ test('a dealer asks CJ if he wants some, and Y answers him',async({page})=>{
  await endStoryMission(page);
  await expect.poll(async()=>(await state(page)).player.grounded,{timeout:60000}).toBe(true);
  await expect.poll(async()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.game.scriptBrains.brains.some((b:any)=>b.typeOfBrain===1)),{timeout:60000}).toBe(true);
+ // This is the conversation's test: no street ped buys from him meanwhile (a deal turns his conversation off until it
+ // is done; GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS finds the street's buyers every 15 s).
+ await page.evaluate(()=>{(window as any).__game.missionForProfiling().world.pedModelBuysDrugs=()=>false;});
  await expect.poll(async()=>page.evaluate(async()=>{
   const g=(window as any).__game,p=g.pedestrians(),me=g.sim.player.position,node=p.nearestNode({x:me.x+8,y:me.y,z:me.z});
   if(!node)return false;await p.spawnDealer(node,{x:me.x,z:me.z});return g.state().pedestrians.people.some((q:any)=>/drug/i.test(String(q.model)));

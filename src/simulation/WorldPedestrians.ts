@@ -160,7 +160,7 @@ export interface Pedestrian {
   /** CTaskComplexFollowPointRoute over renderer points (x, z, and the origin height y). */
   |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
   /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
-  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number;offset?:{radius:number;angle:number}}
+  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number;offset?:{radius:number;angle:number};follow?:boolean}
   /** TASK_DIVE_AND_GET_UP: over when the evasive dive it started is. */
   |{kind:'dive'}
   /** CTaskSimpleDuck for its time: ducked where it stands. */
@@ -1889,7 +1889,7 @@ export class WorldPedestrians {
     break;
    case 'gotoPed':{
     const target=this.resolveScriptPed?.(order.target);if(!target)break;
-    ped.order={kind:'gotoPed',target:target==='player'?undefined:target,radius:order.radius,remaining:order.seconds,offset:order.offset};ped.flee=0;ped.loiter=false;
+    ped.order={kind:'gotoPed',target:target==='player'?undefined:target,radius:order.radius,remaining:order.seconds,offset:order.offset,follow:order.follow};ped.flee=0;ped.loiter=false;
     break;
    }
    case 'enterCar':{
@@ -2160,6 +2160,8 @@ export class WorldPedestrians {
  /** SetCharCreatedBy(PED_MISSION) on a street ped a script took: the population manager leaves it alone until the
   * script lets go of it. */
  adoptForScript(ped:Pedestrian){ped.mission=true;ped.flee=0;ped.fleePlayer=undefined;}
+ /** Whether a ped model buys drugs (peds.ide's flags, bit 0). */
+ modelBuysDrugs(model:number){return this.catalog?.buysDrugs(model)??false;}
  /** The ped's peds.ide model id (CEntity::m_nModelIndex), or nothing while the catalog is not in. */
  modelIdOf(ped:Pedestrian){
   const c=this.catalog;if(!c)return undefined;
@@ -3477,9 +3479,11 @@ export class WorldPedestrians {
      if(!target||o.remaining<=0)this.startNextOrder(p);
      else{
       const gx=target.x-q.x,gz=target.z-q.z,distance=Math.hypot(gx,gz);
+      // Following, the ped waits where it is until the target moves off again.
+      if(distance<=o.radius&&o.follow){}
       // Achieved: CTaskComplexTurnToFaceEntityOrCoord (bFaceEntityWhenDone), then the task is over.
-      if(distance<=o.radius)p.order={kind:'achieveHeading',heading:o.offset&&holder?Math.atan2(holder.position.x-q.x,holder.position.z-q.z):Math.atan2(gx,gz)};
-      else{({x:dx,z:dz}=this.roundCars(p,target,cars));orderSpeed=goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)>=6?p.runSpeed:p.walkSpeed;}
+      else if(distance<=o.radius)p.order={kind:'achieveHeading',heading:o.offset&&holder?Math.atan2(holder.position.x-q.x,holder.position.z-q.z):Math.atan2(gx,gz)};
+      else{({x:dx,z:dz}=this.roundCars(p,target,cars));orderSpeed=o.follow||goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)<6?p.walkSpeed:p.runSpeed;}
      }
     }else if(p.order.kind==='enterCar'){
      const o=p.order,car=this.resolveScriptVehicle?.(o.vehicle);dx=0;dz=0;

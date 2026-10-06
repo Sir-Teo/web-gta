@@ -111,6 +111,8 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  const modelIdsByName=new Map([...pedIde.values()].map(def=>[def.model.toLowerCase(),def.id]));
  /** The peds.ide id of a model name, which is what GET_CHAR_MODEL hands a script. */
  const pedModelId=(name:string)=>modelIdsByName.get(name.toLowerCase());
+ /** CPedModelInfo::m_nPedFlags' bit 0, from peds.ide: the model buys drugs. */
+ const buysDrugs=(id:number)=>{const name=modelNamesById.get(id);return !!name&&((pedIde.get(name)?.flags??0)&1)===1;};
  const animGroupOf=(name:string)=>pedIde.get(name.toLowerCase())?.animGroup??'man';
  /** CPedModelInfo::CanPedDriveVehicleClass for a model and a vehicles.ide class name. */
  const canDrive=(name:string,vehicleClass:string|undefined)=>pedCanDriveClass(pedIde.get(name.toLowerCase()),vehicleClass);
@@ -143,5 +145,5 @@ export async function openWorldPedestrians(base:string,includePolice=false){
  };
  // CPopulation::IsSunbather: the BEACH_GUY and BEACH_GIRL pedstats.
  const sunbather=(name:string)=>/^STAT_BEACH_(GUY|GIRL)$/i.test(pedIde.get(name.toLowerCase())?.stat??'');
- return {pedModelName,pedModelId,sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,walkcycleLocomotion,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,scriptAnimation,stealth,gangClips,attractorClips,...worldPaths(source)};
+ return {pedModelName,pedModelId,buysDrugs,sunbather,models,modelSpeeds,modelStats,officer,officerSpeeds,officerStats,weapon,nightstick,character,characterSpeeds,characterStats,animGroupOf,walkcycles:animGroups,walkcycleLocomotion,modelNames,onFoot,gangs:pedGroups.gangs,dealers:pedGroups.dealers,popcycleGroups,hasModel,canDrive,decisionMakers,acquaintances,armedWith,animations,scriptAnimation,stealth,gangClips,attractorClips,...worldPaths(source)};
 }
