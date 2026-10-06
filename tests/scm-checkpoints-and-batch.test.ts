@@ -127,8 +127,16 @@ describe('the vehicle, ped and object commands of this batch',()=>{
   const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game,world:{fade(){}} as unknown as ScmWorldCommands});
   try{thread.run(0,1,.5);}catch(error){if(!String(error).match(/watchdog|opcode|Unknown/))throw error;}
   expect(game.objects.at(handle).position).toEqual({x:2,y:2,z:2.5});
-  // A unit east and half down over half a frame: two units and one down a frame.
-  expect(game.objects.at(handle).velocity).toEqual({x:2,y:0,z:-1});
+  // A unit east and half down over half a frame: two units and one down a frame, each held to ±1 (iOS 0x1001fbeec).
+  expect(game.objects.at(handle).velocity).toEqual({x:1,y:0,z:-1});
+ });
+ test('SET_OBJECT_COORDINATES_AND_VELOCITY puts a z at or below -100 on the ground',()=>{
+  const game=new ScmGameState(),handle=game.objects.create(1337,{x:1,y:2,z:3},{external:false,missionCleanup:false}).handle;
+  const space=new Uint8Array(2048);
+  space.set(instruction(op('SET_OBJECT_COORDINATES_AND_VELOCITY'),[int(handle),float(1.5),float(2),float(-100)]),CODE);
+  const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game,world:{fade(){},groundZForCoord:()=>3.1} as unknown as ScmWorldCommands});
+  try{thread.run(0,1,1);}catch(error){if(!String(error).match(/watchdog|opcode|Unknown/))throw error;}
+  expect(game.objects.at(handle).position).toEqual({x:1.5,y:2,z:3.1});
  });
 
  test('an object’s model is its number, or the script’s own used-object id for a named one',()=>{

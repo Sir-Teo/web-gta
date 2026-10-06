@@ -2072,15 +2072,18 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_TRAILER_ATTACHED_TO_CAB:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'trailerIsAttachedToCab')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
  },
- /* SET_OBJECT_COORDINATES_AND_VELOCITY (AUTHORED; the handler is unreversed): the object is put at the point and
-  * given the move speed that takes it there in this frame, its displacement over CTimer::ms_fTimeStep, as PROJECT moves
+ /* SET_OBJECT_COORDINATES_AND_VELOCITY (unreversed in gta-reversed; the iOS handler, 0x1001fbeec): a z at or below
+  * -100 is put on the ground; the object is given the move speed that takes it there in this frame, its displacement
+  * over CTimer::ms_fTimeStep with each component held to ±1, and is put at the point, as PROJECT and the cranes move
   * an object along its path a frame at a time; SET_OBJECT_COORDINATES leaves the speed alone. */
  SET_OBJECT_COORDINATES_AND_VELOCITY:(t,p,i)=>{
   const objects=game(t,i).objects,handle=t.readInt(p[0]),to=vec(t,p,1);
   if(t.timeStep===undefined)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,'no timestep');
-  const from=objects.at(handle).position,step=Math.max(Math.fround(t.timeStep),1e-3);
+  if(to.z<=ScmCamera.MAP_Z_LOW_LIMIT)to.z=world(t,i,'groundZForCoord')(to.x,to.y);
+  const from=objects.at(handle).position,f=Math.fround,inverse=f(1/Math.max(f(t.timeStep),1e-3));
+  const speed=(d:number)=>Math.min(1,Math.max(-1,f(f(d)*inverse)));
+  objects.at(handle).velocity={x:speed(to.x-from.x),y:speed(to.y-from.y),z:speed(to.z-from.z)};
   objects.setPosition(handle,to);
-  objects.at(handle).velocity={x:(to.x-from.x)/step,y:(to.y-from.y)/step,z:(to.z-from.z)/step};
  },
  FORCE_CAR_LIGHTS:(t,p,i)=>{world(t,i,'forceVehicleLights')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CAR_CAN_BE_DAMAGED:(t,p,i)=>{world(t,i,'setVehicleCanBeDamaged')(t.readInt(p[0]),bool(t,p[1]));},
