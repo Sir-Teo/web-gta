@@ -8311,8 +8311,13 @@ without it, as RYDER2, MAF4 and QUARRY rely on to keep the player out of their p
 `CPedGroup::Teleport`: the leader, then each living follower to the point plus
 `CTaskComplexFollowLeaderInFormation::ms_offsets[i]` in world axes. The player's followers were left behind, so a
 mission that moves CJ (or its probe) lost Sweet and re-blipped him (SWEET1B). `_DONT_WARP_GANG` moves the leader alone.
-The formation offsets are static data the reversed sources do not carry; a wedge a unit apart stands in for them. A
-mission follower in a car stays in it, as the game sets only non-mission followers out. Spec: `script-group-teleport`.
+The formation offsets are static data the reversed sources do not carry (PC 0xC196E8 is filled at start-up). They now
+come from the iOS executable's initialiser (0x1004366d4, table 0x1008e5100): follower i goes to the leader's point plus
+Offsets[i], in world axes, which ring the leader a unit apart — (-1, 1), (1, 1), (0, 1), (-1, 0), (1, 0), (-1, -1),
+(0, -1), (1, -1). Before, a wedge a unit apart behind and to the sides stood in. CEntryExit::WarpGangWithPlayer takes the
+same eight in turn. The walking formation's MovingOffsets, (-1, 0), (1, 0), (0, -1.25), (±1.25, -1.25), (0, -2.5) and
+(±1, -2.5) with scale 1, are kept beside them for the follow task. A mission follower in a car stays in it, as the game
+sets only non-mission followers out. Spec: `script-group-teleport`.
 
 ## SET_CHAR_USES_UPPERBODY_DAMAGE_ANIMS_ONLY
 
