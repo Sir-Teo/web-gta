@@ -25,7 +25,11 @@ test('new threads wait until the next pass; existing threads continue in linked-
  expect(runtime.active.map(s=>s.id)).toEqual([94]);
  expect(parent.thread.locals.getInt32(128,true)).toBe(32); // sleeping, but timers run
  runtime.process(60,40);expect(runtime.active).toEqual([]);
+ expect(runtime.headName).toBeUndefined();
  const reused=runtime.start(384);expect(reused.id).toBe(94);
+ // pActiveScripts' head is the thread started last.
+ reused.thread.name='first';const later=runtime.start(384);later.thread.name='strap3';expect(runtime.headName).toBe('strap3');
+ runtime.terminateAllWithName('strap3');expect(runtime.headName).toBe('first');reused.thread.name='noname';
  expect(reused.thread.name).toBe('noname');expect(reused.thread.locals.getInt32(0,true)).toBe(0);
  expect(reused.thread.locals.getInt32(128,true)).toBe(0);
 });

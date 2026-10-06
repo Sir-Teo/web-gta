@@ -905,7 +905,7 @@ async function boot() {
   weapons.inventory.fastReload=()=>!!mission?.runtime.game.playerInfo.fastReload;
   // CStats::GetPercentageProgress: STAT_PROGRESS_MADE over a constant 187, whatever SET_PROGRESS_TOTAL said.
   weapons.inventory.fullCompletion=()=>{const g=mission?.runtime.game;return !!g&&g.stats.get(STAT_PROGRESS_MADE)/187*100>=100;};
-  carDamageHost.fullCompletion=weapons.inventory.fullCompletion;
+  carDamageHost.fullCompletion=weapons.inventory.fullCompletion;carDamageHost.headScriptName=()=>mission?.runtime.headName;
   // SET_RAILTRACK_RESISTANCE_MULT's multiplier on CVehicle::ms_fRailTrackResistance.
   railTrackResistance.multiplier=()=>mission?.runtime.game.railTrackResistanceMultiplier??1;
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}

@@ -80,7 +80,8 @@ test('firearms kill native pedestrians and destroy native cars',async({page})=>{
    for(let i=0;i<240;i++){crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();}const deadAfter=crowd.snapshot().people.filter((p:any)=>p.state==='dead').length;
    const car=[...fleet.cars][0] as any;if(!car)throw new Error('No vehicle');const p=car.car.body.translation();
    sim.player.position={x:p.x,y:p.y-1.3,z:p.z+10};sim.playerBody.setTranslation({...sim.player.position,y:p.y},true);sim.world.step();weapons.inventory.select(38);
-   for(let i=0;i<40&&car.health>1;i++){weapons.tick(.1);weapons.fire({origin:{x:p.x,y:p.y,z:p.z+10},direction:{x:0,y:0,z:-1}});}
+   // Fire until the car burns (under 250): a round that takes the last of its health would blow it up at once.
+   for(let i=0;i<40&&car.health>=250;i++){weapons.tick(.1);weapons.fire({origin:{x:p.x,y:p.y,z:p.z+10},direction:{x:0,y:0,z:-1}});}
    const burning=car.onFire,panels=[...car.damageState.panels];
    // Native cars below 250 health burn for 5000 ms before CAutomobile::BlowUpCar.
    for(let i=0;i<400&&!car.wrecked;i++){car.beforeStep(1/60,{x:0,y:0},true);sim.world.step();car.afterStep();weapons.tick(1/60);}

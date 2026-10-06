@@ -1,5 +1,6 @@
 import {describe,expect,test} from 'vitest';
 import {WorldCar} from '../src/simulation/WorldCar';
+import {carDamageHost} from '../src/simulation/carDamageHost';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
 import {checkDamagedWeaponType} from '../src/engine/ScmGameCommands';
@@ -38,6 +39,40 @@ describe('who last damaged a car, and with what',()=>{
   const guarded=car({onlyDamagedByPlayer:true});
   damage(guarded,20,false,{weapon:31,by:{ped:{}},byPlayer:false});
   expect(guarded.lastWeaponDamage).toBe(-1);
+ });
+
+ test('a blast that destroys a car arms the bomb timer; any other weapon blows it up at once',()=>{
+  // CVehicle::InflictDamage (iOS 0x1004781b4): WEAPON_EXPLOSION sets m_wBombTimer to (rand() & 0x7FF) + 1000 and
+  // m_pWhoDetonatedMe, and ProcessDelayedExplosion blows the car up when it runs out.
+  for(let i=0;i<50;i++){
+   const blasted=car({bombTimerMs:0,bombDetonatedByPlayer:false});
+   expect(damage(blasted,1500,true,{byPlayer:true})).toBe(true);
+   expect(blasted.wrecked).toBe(false);expect(blasted.health).toBe(0);
+   expect(blasted.bombTimerMs).toBeGreaterThanOrEqual(1000);expect(blasted.bombTimerMs).toBeLessThanOrEqual(3047);
+   expect(blasted.bombDetonatedByPlayer).toBe(true);
+  }
+  const shot=car();
+  expect(damage(shot,1000,false,{weapon:31})).toBe(true);expect(shot.wrecked).toBe(true);
+  // Health left survives: InflictDamage subtracts only while old health exceeds the damage.
+  const scraped=car();expect(damage(scraped,999.5,false,{weapon:31})).toBe(false);expect(scraped.health).toBeCloseTo(.5,6);
+  // A car already at 0, burning or counting down, takes nothing more and is not blown up early.
+  const waiting=car({health:0,bombTimerMs:1500});
+  expect(damage(waiting,100,false,{weapon:31})).toBe(false);
+  expect(waiting.wrecked).toBe(false);expect(waiting.bombTimerMs).toBe(1500);
+ });
+
+ test('the player car takes 0.95 of the damage, and a quarter of that while strap3 heads the script list',()=>{
+  const was=carDamageHost.headScriptName;
+  try{
+   const mine=car({occupied:true});damage(mine,100,false,{weapon:22});expect(mine.health).toBeCloseTo(905,6);
+   // SCRIPT_NAME lowercases on iOS; the port keeps the label as written and compares case-blind.
+   carDamageHost.headScriptName=()=>'STRAP3';
+   const strap=car({occupied:true});damage(strap,100,false,{weapon:22});expect(strap.health).toBeCloseTo(1000-23.75,6);
+   // Only the player's own car, and only while strap3 is the head.
+   const other=car();damage(other,100,false,{weapon:22});expect(other.health).toBe(900);
+   carDamageHost.headScriptName=()=>'strap3x';
+   const notStrap=car({occupied:true});damage(notStrap,100,false,{weapon:22});expect(notStrap.health).toBeCloseTo(905,6);
+  }finally{carDamageHost.headScriptName=was;}
  });
 
  test('CDarkel::CheckDamagedWeaponType sorts the two wildcards',()=>{

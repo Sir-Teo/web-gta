@@ -9735,10 +9735,21 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     - a weapon's damage comes off the health one for one; the port's AUTHORED falloff for grazing shots (40% to 100% by
       the struck face) is gone;
     - the player's own car takes 0.95 of it, or 0.42 once progress reaches 100%;
-    - damage that takes the last of the health blows the car up at once, whatever the weapon. Before, bullets and fire
-      left a car at 1 health to burn out.
-  - Not ported from the same function: aircraft's ×0.4; the iOS build's further quarter for the player's car during
-    STRAP3; and a blast's 1000 to 3047 ms bomb timer (a car a blast destroys blows up at once here).
+    - while the most recently started script still running (the head of pActiveScripts) is strap3 (Management
+      Issues), the player's car first takes a quarter. This is an iOS-only hack: a strcmp against "strap3", which
+      matches because iOS SCRIPT_NAME (0x1001da55c) lowercases A to Z of the label. The port keeps the label as
+      written and compares case-blind;
+    - only a car with health left takes the damage. Damage that takes the last of it destroys the car:
+      - a blast (WEAPON_EXPLOSION) sets m_wBombTimer to (rand() & 0x7FF) + 1000 ms, with its damager as
+        m_pWhoDetonatedMe. ProcessDelayedExplosion blows the car up when the timer runs out, so blasts ripple
+        through a row of parked cars 1 to 3 s apart;
+      - any other weapon blows it up at once.
+      Before, a car already at 0 and burning blew up at the next bullet, and a blast's victims all went up in the
+      same frame.
+  - A heli or plane, other than the RC Baron, RC Raider and RC Goblin (bIsRCVehicle), takes 0.4 of a weapon's damage
+    (0x3ECCCCCD). Grenades, rockets (ROCKET, ROCKET_HS) and blasts (WEAPON_EXPLOSION) do full damage (mask
+    0x0008000000190000). A blast's bomb timer is not ported for bikes, boats or aircraft, where ProcessDelayedExplosion
+    also runs.
 
 ## Homies in CJ's car fire at threats
 

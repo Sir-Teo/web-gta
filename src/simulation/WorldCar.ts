@@ -387,21 +387,32 @@ export class WorldCar {
    this.lastWeaponDamage=options.weapon??(explosive?51:kind==='fire'?37:-1);
    this.lastDamagedBy=options.by??(options.byPlayer?{player:true}:undefined);
   }
-  // The player's own car (STATUS_PLAYER): 0.95 of the damage, 0.42 once CStats::GetPercentageProgress reaches 100.
-  // (The iOS build's further quarter during STRAP3 is not kept.)
-  if(this.occupied)amount*=carDamageHost.fullCompletion()?.42:.95;
+  // The player's own car (STATUS_PLAYER): 0.95 of the damage, 0.42 once CStats::GetPercentageProgress reaches 100. The
+  // iOS build quarters it first while the most recently started script still running is strap3 (Management Issues):
+  // strcmp of pActiveScripts' name with "strap3".
+  if(this.occupied){
+   if(carDamageHost.headScriptName()?.toLowerCase()==='strap3')amount*=.25;
+   amount*=carDamageHost.fullCompletion()?.42:.95;
+  }
   // The petrol tank (vehicleFlags.bPetrolTankIsWeakPoint): a round the player's own ped fires that lands on the
   // petrolcap dummy deals min(health, 1100), so a car of 1100 or less blows up at once (BlowUpCar, no fire first) and
   // a sturdier one loses 1100 (SWEET2: "shoot the car's gas tank"). Other shooters' rounds treat it as any other spot.
   // The hit goes on to dent the panel like any other (CAutomobile::VehicleDamage runs apart from InflictDamage).
   if(kind==='bullet'&&options.point&&options.byPlayer===true&&this.petrolTankIsWeakPoint&&this.health>0&&this.hitsPetrolTank(options.point))
    amount=Math.min(this.health,PETROL_TANK_DAMAGE);
-  // Damage that takes the last of the health blows the car up at once (BlowUpCar), whatever the weapon. (A blast's
-  // WEAPON_EXPLOSION sets the bomb timer to 1000 to 3047 ms instead; here it blows up at once too.)
-  this.health=Math.max(0,this.health-amount);
+  // Only a car with health left takes the damage: one already at 0 waits out its fire or bomb timer. Damage that takes
+  // the last of it destroys the car, which returns true. A blast (WEAPON_EXPLOSION) sets m_wBombTimer to
+  // (rand() & 0x7FF) + 1000 ms with its damager as m_pWhoDetonatedMe, so ProcessDelayedExplosion blows the car up 1 to
+  // 3 s later and blasts ripple through a row of cars. Any other weapon blows it up at once (BlowUpCar).
+  const before=this.health;
+  if(before>0)this.health=before>amount?before-amount:0;
   const piece=collider===undefined?undefined:this.pieceOf(collider);
   if(piece!==undefined&&amount>25&&this.canBeVisiblyDamaged)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true),true);
-  if(this.health===0){this.blowUp();return true;}
+  if(before>0&&this.health===0){
+   if(explosive){this.bombTimerMs=(Math.floor(Math.random()*0x8000)&0x7ff)+1000;this.bombDetonatedByPlayer=options.byPlayer===true;}
+   else this.blowUp();
+   return true;
+  }
   return false;
  }
  /** Whether a point (browser world axes) is within PETROL_TANK_REACH of the model's petrolcap dummy (DUMMY_GAS_CAP). */
