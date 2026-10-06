@@ -8785,11 +8785,7 @@ that did anything.
   `GET_MODEL_DIMENSIONS` answers for object models from their COL box. `KILL_FX_SYSTEM` on a handle that names no
   system is left alone.
 - **AUTHORED** (the reference has only stubs for them):
-  - *Object brains.* `CScriptsForBrains::CheckIfNewEntityNeedsScript`, `StartOrRequestNewStreamedScriptBrain` and
-    `IsObjectWithinBrainActivationRange` call into the executable. From what `ALLOCATE_STREAMED_SCRIPT_TO_OBJECT` records
-    and the brain scripts do: a placement of a brain's model near the player is a CObject the script can hold (it has
-    no view of its own; the map draws it), the percentage chance is drawn for it once, and while the player is within
-    the brain's radius and no script runs on it the script is started with the object's handle as its first local.
+  - *Object brains* were AUTHORED here; they now follow the iOS executable (see "Script brains as iOS runs them").
   - *Scripted attractors.* A user walks straight to the point, turns to the heading and performs the sequence.
   - *Map attractor users.* `GET_USER_OF_CLOSEST_MAP_ATTRACTOR`, `IS_CHAR_USING_MAP_ATTRACTOR` and
     `GET_RANDOM_CHAR_IN_SPHERE_NO_BRAIN` answer that there is none: interiors have no ambient peds yet
@@ -9007,13 +9003,30 @@ that did anything.
 
 ## Random-ped brains: the dealers
 
-- **The trigger is AUTHORED.** `CScriptsForBrains::CheckIfNewEntityNeedsScript` and
-  `StartOrRequestNewStreamedScriptBrain` are unreversed. From the allocation's operands and the scripts: a street ped
-  whose model has an active `ALLOCATE_STREAMED_SCRIPT_TO_RANDOM_PED` brain is weighed once, the first time it is
-  seen, against the brain's chance; a chosen one gets a script handle without becoming `PED_MISSION`
-  (`bHasAScriptBrain`), and the streamed script starts with it as `0@` (external type 0, `ShutdownThisScript`'s ped
-  case). The script runs while the ped lives; one the population removes reads as dead and the script ends itself.
-  MAIN gives `dealer.scm` to BMYDRUG, WMYDRUG, HMYDRUG and BIKDRUG at 100% and `hotdog.scm` to BMOCHIL.
+- **Script brains as iOS runs them.** `CScriptsForBrains::CheckIfNewEntityNeedsScript`,
+  `StartOrRequestNewStreamedScriptBrain`, `StartNewStreamedScriptBrain`, `ProcessWaitingForScriptBrainArray` and
+  `IsObjectWithinBrainActivationRange` are unreversed in gta-reversed. The port first AUTHORED them; it now follows
+  the iOS executable (0x1001f4f10, 0x1001f5000, 0x1001f5228, 0x1001f57d0, 0x1001f574c).
+  - **When a brain is weighed.** Only three callers ask, each as it makes the entity:
+    - CPopulation::AddToPopulation, for each street ped it makes (not a sunbather it gave a towel, nor a ped made
+      during the riots);
+    - CDummyObject::CreateObject, as a map object is made real within 80 units of the player (FindDummyDistForModel;
+      it goes back to its dummy past 80);
+    - the hot-dog van's generator, for the vendor.
+    Peds put in cars and the scripts' own peds and objects are never given a brain.
+  - **The roll.** Every brain of the entity's type and model is rolled for in slot order: (rand() & 0xffff) / 65536 ×
+    100 in float, truncated, under the brain's chance. The first that comes up gives the brain, provided the brain is
+    switched on.
+  - **Ped brains.** A street ped gets a script handle without becoming `PED_MISSION` (`bHasAScriptBrain`), and the
+    streamed script starts with it as `0@` (external type 0). It never gets a second brain once its script ends. The
+    script runs while the ped lives; one the population removes reads as dead, and the script ends itself.
+  - **Object brains.** A script already in memory starts at once, wherever the player is; otherwise it is asked for.
+    From then on, each pass starts the script on the object, when none runs, once the player is strictly within the
+    brain's radius in 3D. The script ends itself once he leaves, which puts the object back to waiting, and it starts
+    again when he returns. `SWITCH_OBJECT_BRAINS` off stops only new objects being given the brain; objects given it
+    before keep it. The switch compares grouping ids as bytes, and a negative id switches nothing.
+  - **The table.** A radius not above 0 is 5, and a seventy-first brain is dropped rather than refused.
+  - MAIN gives `dealer.scm` to BMYDRUG, WMYDRUG, HMYDRUG and BIKDRUG at 100%, and `hotdog.scm` to BMOCHIL.
 - **dealer.scm runs.** `GET_NAME_OF_INFO_ZONE` (disabled in the reference) is the smallest zone's info label, as
   `FindSmallestZoneForPosition` over every zone type gives it; `SET_CHAR_WANTED_BY_POLICE` and `SET_CHAR_DRUGGED_UP`
   are kept on the handle and not read yet; `GET_RANDOM_CHAR_IN_SPHERE_ONLY_DRUGS_BUYERS` finds nobody (AUTHORED: the

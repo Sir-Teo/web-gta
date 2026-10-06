@@ -15,7 +15,7 @@ import {deadPedPickupCoors} from '../ped/nativeDeadPedPickup';
 import {resetGangWeapons,setGangWeapons} from './nativeGangWeapons';
 import {VEHICLE_CLASSES} from '../assets/pedGroups';
 import {ScmEntityPending,UnsupportedScmCommand,type ScmScriptedTask,type ScmThread,type ScmWorldCommands} from '../engine/ScmThread';
-import {BRAIN_OBJECT,BRAIN_RANDOM_PED} from '../engine/ScmScriptBrains';
+import {BRAIN_OBJECT,BRAIN_RANDOM_PED,brainChancePasses} from '../engine/ScmScriptBrains';
 import {GARAGE_DOOR_REACH,garageCentre,garageDoorHeight,garageDoorPose,type ScmGarage} from '../engine/ScmGarages';
 import {globalSoundLevel,type SoundQuietEvent} from '../ped/nativeSoundEvents';
 import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
@@ -814,6 +814,9 @@ const EXTERNAL_PED_BRAIN=0;
 /** How near the player a garage's doors are made objects of, and the height a door model with no collision gets (re3's
  * AddOne falls back to 4). The grge row's 0x1 flag: the door opens up and turns. */
 const GARAGE_DOOR_STREAM_RADIUS=150,GARAGE_DOOR_DEFAULT_HEIGHT=4,GARAGE_FLAG_DOOR_TURNS=0x1;
+/** CPopulation::FindDummyDistForModel (0x610ED0, reversed) for every brain model: a map object is made real within 80
+ * units of the player and goes back to its dummy beyond that. */
+const OBJECT_DUMMY_DISTANCE=80;
 /** MODEL_BMOCHIL and MODEL_HOTDOG (eModelID). */
 const MODEL_BMOCHIL=168,MODEL_HOTDOG=588;
 /** COMMAND_TASK_USE_ATTRACTOR and COMMAND_TASK_PLAY_ANIM_SECONDARY, the task records those commands leave. */
@@ -2038,7 +2041,8 @@ export class ScmMission {
     const object=objects.at(handle),brain=this.runtime.game.scriptBrains.brains.find(b=>b.typeOfBrain===BRAIN_OBJECT&&b.model===object.model);
     if(!brain)return false;
     const player=this.world.playerPed().position;
-    return Math.hypot(player.x-object.position.x,player.y-object.position.y,player.z-object.position.z)<=brain.activationRadius;
+    // IsObjectWithinBrainActivationRange (iOS 0x1001f574c): strictly within the radius, in 3D.
+    return Math.hypot(player.x-object.position.x,player.y-object.position.y,player.z-object.position.z)<brain.activationRadius;
    },
    // CREATE_CHAR_AT_ATTRACTOR: the ped is made at the attractor, facing its heading, already performing its sequence.
    createCharAtAttractor:(pedType,model,attractor,taskCommand)=>{
@@ -2574,48 +2578,61 @@ export class ScmMission {
   return [...this.brainObjects].map(([key,r])=>({key,handle:r.handle,wanted:r.wanted,running:!!r.thread&&!r.thread.terminated,script:r.thread?.name,
    model:String(objects.exists(r.handle)?objects.at(r.handle).model:''),position:objects.exists(r.handle)?{...objects.at(r.handle).position}:undefined,heading:objects.exists(r.handle)?objects.getHeading(r.handle):undefined}));
  }
- /** CScriptsForBrains' object brains. CheckIfNewEntityNeedsScript, StartOrRequestNewStreamedScriptBrain and
-  * IsObjectWithinBrainActivationRange are unreversed, so this is AUTHORED from what ALLOCATE_STREAMED_SCRIPT_TO_OBJECT
-  * records and the brain scripts themselves do: a placement of a brain's model near the player is a CObject the
-  * script can hold; the brain's chance is drawn for it once; while the player is within the brain's radius and no
-  * script runs on it, the streamed script is asked for and started with the object's handle as its first local. The
-  * script ends itself once the player leaves the radius, and may be started again when he comes back. */
+ /** CScriptsForBrains' object brains, as the iOS executable runs them (unreversed in gta-reversed):
+  * - A map placement of a brain's model becomes a CObject the script can hold once it is within 80 units of the player
+  *   (CPopulation::ManageDummy and FindDummyDistForModel), and goes back past that (ManageObject).
+  * - As it is made, CheckIfNewEntityNeedsScript (0x1001f4f10) draws the brain's chance for it, once. Then
+  *   StartOrRequestNewStreamedScriptBrain (0x1001f5000) gives it the brain only while the brain is switched on. A
+  *   brain script already in memory starts at once, wherever the player stands; otherwise it is asked for.
+  * - ProcessWaitingForScriptBrainArray (0x1001f57d0), each pass, starts the script on an object given the brain and
+  *   running none, once the player is within the brain's radius (3D, strictly). The script ends itself once he leaves
+  *   (ShutdownThisScript puts the object back to waiting), and starts again when he comes back. Switching the brain
+  *   off later does not stop that. */
  private processObjectBrains(nowMs:number){
   if(nowMs<this.nextBrainScan)return;this.nextBrainScan=nowMs+500;
   const game=this.runtime.game,scripts=game.streamedScripts,near=this.world.worldObjectsNear;
   if(!near||!scripts.count)return;
-  const brains=game.scriptBrains.brains,models=new Set<string>();let reach=0;
-  for(const brain of brains)if(brain.typeOfBrain===BRAIN_OBJECT&&brain.active&&typeof brain.model==='string'){models.add(brain.model.toLowerCase());reach=Math.max(reach,brain.activationRadius);}
+  const brains=game.scriptBrains.brains,models=new Set<string>();
+  for(const brain of brains)if(brain.typeOfBrain===BRAIN_OBJECT&&typeof brain.model==='string')models.add(brain.model.toLowerCase());
   const player=this.world.playerPed().position,seen=new Set<string>();
-  if(models.size)for(const found of near(models,player.x,player.y,reach+40)){
-   seen.add(found.key);
+  if(models.size)for(const found of near(models,player.x,player.y,OBJECT_DUMMY_DISTANCE)){
+   const [x,y,z]=found.position,distance=Math.hypot(player.x-x,player.y-y,player.z-z);
    let record=this.brainObjects.get(found.key);
    if(!record){
+    if(!(distance<OBJECT_DUMMY_DISTANCE))continue;
     const index=brains.findIndex(b=>b.typeOfBrain===BRAIN_OBJECT&&typeof b.model==='string'&&b.model.toLowerCase()===found.model.toLowerCase());if(index<0)continue;
-    const brain=brains[index],[x,y,z]=found.position;
+    const brain=brains[index];
     const adopted=game.objects.adoptWorld(brain.model!,{x,y,z},found.heading,found.key);
-    record={handle:adopted.handle,wanted:this.random.next()%100<brain.percentageChance,brain:index,home:{x,y,z,heading:adopted.heading}};
+    record={handle:adopted.handle,wanted:brainChancePasses(this.randomSample16(),brain.percentageChance)&&brain.active,brain:index,home:{x,y,z,heading:adopted.heading}};
     this.brainObjects.set(found.key,record);
-   }
-   const brain=brains[record.brain];
+    const proper=record.wanted?scripts.properIndexFromScriptIndex(brain.streamedScriptIndex):-1;
+    if(proper>=0){
+     if(scripts.at(proper).memory)record.thread=this.runtime.startNewStreamedScript(proper,[record.handle],EXTERNAL_OBJECT_BRAIN)?.thread;
+     else this.adapterRef.requestStreamedScript?.(proper);
+    }
+   }else if(distance>OBJECT_DUMMY_DISTANCE)continue;
+   seen.add(found.key);
    // A window streamed in since brings the map's copy back: it stays out while the script's own is drawn.
    if(record.taken)this.world.takeWorldObject?.(found.key,true);
    // A script that ended itself (the player left its radius) may start again; one that gave up on a command keeps
    // its thread record unterminated, so it is not started over and over.
-   if(!record.wanted||!brain?.active||record.thread&&!record.thread.terminated)continue;
-   const [x,y,z]=found.position;
-   if(Math.hypot(player.x-x,player.y-y,player.z-z)>brain.activationRadius)continue;
+   if(!record.wanted||record.thread&&!record.thread.terminated)continue;
+   const brain=brains[record.brain];
+   if(!brain||brain.typeOfBrain!==BRAIN_OBJECT||!(distance<brain.activationRadius))continue;
    const index=scripts.properIndexFromScriptIndex(brain.streamedScriptIndex);if(index<0)continue;
    this.adapterRef.requestStreamedScript?.(index);
    record.thread=this.runtime.startNewStreamedScript(index,[record.handle],EXTERNAL_OBJECT_BRAIN)?.thread;
   }
-  // A placement that streamed out takes its object with it: the script holding the handle finds it gone and ends.
+  // A placement that went back to its dummy takes its object with it: the script holding the handle finds it gone and
+  // ends.
   for(const [key,record] of this.brainObjects)if(!seen.has(key)){
    game.objects.remove(record.handle);this.brainObjects.delete(key);
    // The map has its own copy back, where it always stood.
    if(record.taken)this.world.takeWorldObject?.(key,false);
   }
  }
+ /** The low 16 bits of a rand() for the iOS rolls that take them: the stream gives 15 bits, so two draws make one. */
+ private randomSample16(){return ((this.random.next()&1)<<15|this.random.next())&0xffff;}
  /** The garages' doors as CObjects made from their map placements, by placement key. CGarage::FindDoorsWithGarage
   * is unreversed: as re3's FindDoorsEntities, a garage takes up to two garage-door models within GARAGE_DOOR_REACH of
   * its centre in x and y; a door near two garages goes with the nearer. The map's copy is taken out once the door
@@ -2728,29 +2745,32 @@ export class ScmMission {
   const brain=game.scriptBrains.brains.find(b=>b.typeOfBrain===BRAIN_RANDOM_PED&&b.active&&b.model===MODEL_BMOCHIL);
   const van=this.vehicles.handleFor(car,MODEL_HOTDOG);
   const vendor=this.peds.createOnCar(4,MODEL_BMOCHIL,van,{x:0,y:0,z:.6},3);
-  if(!brain||!scripts.count||this.random.next()%100>=brain.percentageChance)return vendor;
+  if(!brain||!scripts.count||!brainChancePasses(this.randomSample16(),brain.percentageChance))return vendor;
   const index=scripts.properIndexFromScriptIndex(brain.streamedScriptIndex);if(index<0)return vendor;
   this.adapterRef.requestStreamedScript?.(index);
   this.runtime.startNewStreamedScript(index,[vendor],EXTERNAL_PED_BRAIN);
   return vendor;
  }
- /** CScriptsForBrains' random-ped brains (ALLOCATE_STREAMED_SCRIPT_TO_RANDOM_PED). CheckIfNewEntityNeedsScript and
-  * StartOrRequestNewStreamedScriptBrain are unreversed, so this is AUTHORED from the allocation's operands and what the
-  * brain scripts do: a street ped of a brain's model is weighed once, the first time it is seen, against the brain's
-  * chance; a chosen one gets a handle (it stays a random ped, bHasAScriptBrain rather than PED_MISSION) and the
-  * streamed script starts with it as 0@. The script runs while the ped lives; one the population removes is dead to it
-  * (IS_CHAR_DEAD on a handle with no ped), and the script ends itself. MAIN gives dealer.scm to the four dealer models
-  * and hotdog.scm to the hot-dog vendor. */
+ /** CScriptsForBrains' random-ped brains (ALLOCATE_STREAMED_SCRIPT_TO_RANDOM_PED), as the iOS executable runs them:
+  * CPopulation::AddToPopulation asks CheckIfNewEntityNeedsScript (0x1001f4f10) of each street ped it makes. Every
+  * brain of the ped's model is rolled for in slot order, and the first roll that comes up gives the brain, if it is
+  * switched on (StartOrRequestNewStreamedScriptBrain). The ped gets a handle (it stays a random ped,
+  * bHasAScriptBrain rather than PED_MISSION), and the streamed script starts with it as 0@. A ped is weighed once, as
+  * it is made (here, the first time the scan sees it); one whose script ends is never given another. The script runs
+  * while the ped lives; one the population removes is dead to it (IS_CHAR_DEAD on a handle with no ped), and the
+  * script ends itself. MAIN gives dealer.scm to the four dealer models and hotdog.scm to the hot-dog vendor. Not
+  * ported: a sunbather given a towel, and a ped made during the riots, get no brain. */
  private processPedBrains(nowMs:number){
   if(nowMs<this.nextPedBrainScan)return;this.nextPedBrainScan=nowMs+500;
   const game=this.runtime.game,scripts=game.streamedScripts;if(!scripts.count)return;
-  const brains=game.scriptBrains.brains.filter(b=>b.typeOfBrain===BRAIN_RANDOM_PED&&b.active&&typeof b.model==='number');if(!brains.length)return;
+  const brains=game.scriptBrains.brains.filter(b=>b.typeOfBrain===BRAIN_RANDOM_PED&&typeof b.model==='number');if(!brains.length)return;
   const candidates=this.world.randomStreetPeds?.();if(!candidates)return;
   for(const c of candidates){
    const key=c.ped as object;if(this.brainPeds.has(key))continue;
-   const brain=brains.find(b=>b.model===c.model);if(!brain)continue;
+   const matching=brains.filter(b=>b.model===c.model);if(!matching.length)continue;
    this.brainPeds.add(key);
-   if(this.random.next()%100>=brain.percentageChance)continue;
+   const brain=matching.find(b=>brainChancePasses(this.randomSample16(),b.percentageChance));
+   if(!brain?.active)continue;
    const index=scripts.properIndexFromScriptIndex(brain.streamedScriptIndex);if(index<0)continue;
    this.adapterRef.requestStreamedScript?.(index);
    const handle=this.peds.adopt(c.ped,c.pedType,c.model,c.position,c.heading,c.health);

@@ -1,7 +1,7 @@
 import {describe,expect,test} from 'vitest';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
-import {BRAIN_ATTRACTOR,BRAIN_CODE,BRAIN_OBJECT,BRAIN_RANDOM_PED,NUM_SCRIPT_BRAINS} from '../src/engine/ScmScriptBrains';
+import {BRAIN_ATTRACTOR,BRAIN_CODE,BRAIN_OBJECT,BRAIN_RANDOM_PED,NUM_SCRIPT_BRAINS,brainChancePasses} from '../src/engine/ScmScriptBrains';
 import {scmOpcode} from '../src/engine/scmOpcodes';
 
 function run(bytes:Uint8Array,game:ScmGameState){
@@ -72,11 +72,28 @@ describe('the script brains a script allocates',()=>{
   expect(game.scriptBrains.brains.every(brain=>brain.active)).toBe(true);
  });
 
- test('the table holds seventy brains and refuses the seventy-first',()=>{
+ test('the table holds seventy brains, and a seventy-first is dropped (iOS AddNewScriptBrain)',()=>{
   const game=new ScmGameState();
   for(let i=0;i<NUM_SCRIPT_BRAINS;i++)game.scriptBrains.addRandomPedBrain(i,105,50);
   expect(game.scriptBrains.count).toBe(NUM_SCRIPT_BRAINS);
-  expect(()=>game.scriptBrains.addRandomPedBrain(70,105,50)).toThrow(/seventy/);
+  expect(game.scriptBrains.addRandomPedBrain(70,105,50)).toBe(-1);
+  expect(game.scriptBrains.count).toBe(NUM_SCRIPT_BRAINS);
+ });
+
+ test('an object brain whose radius is not above 0 takes five units, and a negative grouping switches nothing',()=>{
+  const game=new ScmGameState();
+  game.scriptBrains.addObjectBrain(1,2900,100,0,-1);game.scriptBrains.addObjectBrain(2,2901,100,-3,-1);
+  expect(game.scriptBrains.brains.map(b=>b.activationRadius)).toEqual([5,5]);
+  run(assemble(scmOpcode('SWITCH_OBJECT_BRAINS'),[int(-1),int(0)]),game);
+  expect(game.scriptBrains.brains.every(brain=>brain.active)).toBe(true);
+ });
+
+ test('the roll for a new entity: (sample / 65536) × 100, truncated, under the chance',()=>{
+  // 100% always comes up and 0% never; 50% for the lower half of the samples.
+  expect(brainChancePasses(0xffff,100)).toBe(true);expect(brainChancePasses(0,0)).toBe(false);
+  expect(brainChancePasses(0x7fff,50)).toBe(true);expect(brainChancePasses(0x8000,50)).toBe(false);
+  // 60% (brain 5): up to 39321 (59.9998) comes up.
+  expect(brainChancePasses(39321,60)).toBe(true);expect(brainChancePasses(39322,60)).toBe(false);
  });
 });
 
