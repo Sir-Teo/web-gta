@@ -121,14 +121,19 @@ export class NativeFireManager {
  extinguishPoint(point:V3,radius:number){for(const f of this.fires)if(f.active&&dist2(f.position,point)<=radius*radius){f.script=false;f.extinguish();}}
  /** iOS ExtinguishPointWithWater's script check (iosWaterExtinguishMultiplier); the host sets it. */
  waterMultiplier=():number=>1;
+ /** CTimer::m_FrameCounter, the host's 30 fps game frames. */
+ frameCounter=():number=>0;
  /** CFireManager::ExtinguishPointWithWater and CFire::ExtinguishWithWater. */
  extinguishPointWithWater(point:V3,radius:number,waterStrength:number,dtSeconds:number){
-  let any=false;const multiplier=this.waterMultiplier();
+  // iOS (0x10023d984): the two steam puffs, and the being-extinguished flag, only on every fourth game frame.
+  let any=false;const multiplier=this.waterMultiplier(),steamFrame=(this.frameCounter()&3)===0;
   for(const f of this.fires){
    if(!f.active||dist2(f.position,point)>radius*radius)continue;
    any=true;const before=f.strength;f.strength-=waterStrength*dtSeconds*multiplier;
-   if(this.onSteam){const r=this.random,at={x:f.position.x+(r()*2-1)*1.28,y:f.position.y+(r()*2-1)*1.28,z:f.position.z+(r()*2-1)*.64};this.onSteam(at,.8);this.onSteam(at,1.4);}
-   f.beingExtinguished=true;
+   if(steamFrame){
+    if(this.onSteam){const r=this.random,at={x:f.position.x+(r()*2-1)*1.28,y:f.position.y+(r()*2-1)*1.28,z:f.position.z+(r()*2-1)*.64};this.onSteam(at,.8);this.onSteam(at,1.4);}
+    f.beingExtinguished=true;
+   }
    if(f.strength<0)f.extinguish();else if(Math.trunc(before)!==Math.trunc(f.strength))f.fxSerial++;
   }
   return any;

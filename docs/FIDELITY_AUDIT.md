@@ -5499,6 +5499,9 @@ Another round of per-subsystem reviews against gta-reversed, each claim read on 
   stamina and bike skill; bike skill reaches the knock-off force.
 - **Fires and wrecks.** Hosed fires steam; any Rhino blows up what it rams; the blast sits off-centre; burning
   aircraft blow up after 5 s; wrecks are lit scorched (0.18 grey ambient, no reflection) rather than repainted.
+  - On iOS, ExtinguishPointWithWater (0x10023d984) gives off the two steam puffs only on every fourth game frame
+    (CTimer::m_FrameCounter & 3), where PC puffs on every call. The fire's being-extinguished flag, which a fire
+    engine's crew reads, is set only on those frames too. The water's strength comes off on every call.
 - **Pickups.** Bribes from any vehicle, money without a pulse, the briefcase's turn, the jetpack's weapon refusal,
   $100,000 a snapshot, script street pickups regenerating and HAS_PICKUP_BEEN_COLLECTED answering once.
 - **Police.** Roadblocks come from ROADBLOX.DAT nodes rolling m_nChanceOnRoadBlock within 90 units; police

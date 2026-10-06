@@ -91,6 +91,13 @@ describe('CFireManager extinguishing and counts',()=>{
   expect(puffs.map(p=>p.rise)).toEqual([.8,1.4]);
   expect(puffs[0].x).toBeCloseTo(11.28,6);expect(puffs[0].y).toBeCloseTo(21.28,6);expect(puffs[0].z).toBeCloseTo(f.position.z+.64,6);
  });
+ it('on iOS steams, and marks the fire being put out, only on every fourth game frame',()=>{
+  const m=new NativeFireManager(),f=m.startFire({x:10,y:20,z:5},7000,0,clock(0))!;let puffs=0,frame=1;
+  m.onSteam=()=>{puffs++;};m.frameCounter=()=>frame;
+  for(;frame<4;frame++)m.extinguishPointWithWater(f.position,1,2,.02);
+  expect(puffs).toBe(0);expect(f.beingExtinguished).toBe(false);expect(f.strength).toBeCloseTo(1-3*.04,9);
+  m.extinguishPointWithWater(f.position,1,2,.02);expect(puffs).toBe(2);expect(f.beingExtinguished).toBe(true);
+ });
  it('counts non-script fires within a 2D radius',()=>{
   const m=new NativeFireManager();m.startFire({x:0,y:0,z:10},7000,0,clock(0));m.startFire({x:3,y:0,z:0},7000,0,clock(0));
   expect(m.numFiresInRange({x:0,y:0,z:0},2)).toBe(1);
