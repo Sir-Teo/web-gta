@@ -394,6 +394,9 @@ export class WorldCar {
    if(carDamageHost.headScriptName()?.toLowerCase()==='strap3')amount*=.25;
    amount*=carDamageHost.fullCompletion()?.42:.95;
   }
+  // More than 10 of the player's harm (his ped's or his vehicle's) adds rand() % 20 + 5 dollars to
+  // STAT_COST_OF_PROPERTY_DAMAGED (and 2 to the unused m_nHavocCaused), whatever health the car has left.
+  if(amount>10&&options.byPlayer===true)carDamageHost.addPropertyDamage(5+Math.floor(Math.random()*20));
   // The petrol tank (vehicleFlags.bPetrolTankIsWeakPoint): a round the player's own ped fires that lands on the
   // petrolcap dummy deals min(health, 1100), so a car of 1100 or less blows up at once (BlowUpCar, no fire first) and
   // a sturdier one loses 1100 (SWEET2: "shoot the car's gas tank"). Other shooters' rounds treat it as any other spot.
@@ -408,12 +411,17 @@ export class WorldCar {
   if(before>0)this.health=before>amount?before-amount:0;
   const piece=collider===undefined?undefined:this.pieceOf(collider);
   if(piece!==undefined&&amount>25&&this.canBeVisiblyDamaged)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true),true);
+  let destroyed=false;
   if(before>0&&this.health===0){
    if(explosive){this.bombTimerMs=(Math.floor(Math.random()*0x8000)&0x7ff)+1000;this.bombDetonatedByPlayer=options.byPlayer===true;}
    else this.blowUp();
-   return true;
+   destroyed=true;
   }
-  return false;
+  // The player's harm to a law enforcer (bIsLawEnforcer) gives him at least one star (SetWantedLevelNoDrop(1)),
+  // whether or not the car had health left. A police car stands in for the flag as when he rams one, but not the one he
+  // drives: dragging its cop out clears it.
+  if(options.byPlayer===true&&!this.occupied&&LAW_ENFORCEMENT_MODELS.has(this.modelId)&&!this.abandoned)WorldCar.onPlayerDamagedLaw?.();
+  return destroyed;
  }
  /** Whether a point (browser world axes) is within PETROL_TANK_REACH of the model's petrolcap dummy (DUMMY_GAS_CAP). */
  private hitsPetrolTank(point:{x:number;y:number;z:number}){
@@ -1198,6 +1206,8 @@ export class WorldCar {
  }
  /** SetWantedLevelNoDrop(1) for the player, when his car rams a manned law car (the host wires the law). */
  static onPlayerRammedLaw?:()=>void;
+ /** CVehicle::InflictDamage's end: the player's ped harmed a law enforcer. */
+ static onPlayerDamagedLaw?:()=>void;
  /** CPad::StartShake for the player's pad from his car's crash: time (ms), frequency and the delay before a weaker one. */
  static onPlayerCarShake?:(time:number,frequency:number,delayMs:number)=>void;
  /** CAutomobile::ProcessControl's road shake inputs for the player's car (nativePadShakes' roadShake): the greatest

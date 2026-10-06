@@ -9745,7 +9745,12 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
         through a row of parked cars 1 to 3 s apart;
       - any other weapon blows it up at once.
       Before, a car already at 0 and burning blew up at the next bullet, and a blast's victims all went up in the
-      same frame.
+      same frame;
+    - more than 10 of the player's harm, after those scalings, adds rand() % 20 + 5 dollars to
+      STAT_COST_OF_PROPERTY_DAMAGED. It also adds 2 to m_nHavocCaused, which nothing reads;
+    - the player's harm to a law enforcer gives him at least one star (SetWantedLevelNoDrop(1)), with or without
+      health left. As for ramming one, a police model that is neither abandoned nor his own stands in for
+      bIsLawEnforcer, which dragging out its cop clears.
   - A heli or plane, other than the RC Baron, RC Raider and RC Goblin (bIsRCVehicle), takes 0.4 of a weapon's damage
     (0x3ECCCCCD). Grenades, rockets (ROCKET, ROCKET_HS) and blasts (WEAPON_EXPLOSION) do full damage (mask
     0x0008000000190000). A blast's bomb timer is not ported for bikes, boats or aircraft, where ProcessDelayedExplosion

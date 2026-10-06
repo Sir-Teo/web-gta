@@ -905,7 +905,7 @@ async function boot() {
   weapons.inventory.fastReload=()=>!!mission?.runtime.game.playerInfo.fastReload;
   // CStats::GetPercentageProgress: STAT_PROGRESS_MADE over a constant 187, whatever SET_PROGRESS_TOTAL said.
   weapons.inventory.fullCompletion=()=>{const g=mission?.runtime.game;return !!g&&g.stats.get(STAT_PROGRESS_MADE)/187*100>=100;};
-  carDamageHost.fullCompletion=weapons.inventory.fullCompletion;carDamageHost.headScriptName=()=>mission?.runtime.headName;
+  carDamageHost.fullCompletion=weapons.inventory.fullCompletion;carDamageHost.headScriptName=()=>mission?.runtime.headName;carDamageHost.addPropertyDamage=dollars=>mission?.runtime.game.stats.increment(STAT_COST_OF_PROPERTY_DAMAGED,dollars);
   // SET_RAILTRACK_RESISTANCE_MULT's multiplier on CVehicle::ms_fRailTrackResistance.
   railTrackResistance.multiplier=()=>mission?.runtime.game.railTrackResistanceMultiplier??1;
   let progressStorage:Storage|undefined;try{progressStorage=localStorage;}catch{}
@@ -4904,7 +4904,7 @@ async function boot() {
             const x=2491,z=1680,hit=sim.world.castRay(new RAPIER.Ray({x,y:80,z},{x:0,y:-1,z:0}),100,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
             if(!hit)throw new Error('No native road surface for the Greenwood.');
             // CAutomobile::VehicleDamage: ramming a manned law car gives the player a star.
-            WorldCar.onPlayerRammedLaw=()=>law.setLevelNoDrop(1);
+            WorldCar.onPlayerRammedLaw=()=>law.setLevelNoDrop(1);WorldCar.onPlayerDamagedLaw=()=>law.setLevelNoDrop(1);
             // CAutomobile::VehicleDamage's crash shake on the player's pad.
             WorldCar.onPlayerCarShake=(time,frequency,delayMs)=>{mission?.runtime.game.pads.startShake(0,time,frequency,delayMs,gameTimeMs);};
             WorldCar.onRoadShake=(suspension,roughness,speed,mass,timeStep)=>{const shake=roadShake({suspension,roughness,speed,mass,timeStep,timeMs:gameTimeMs});if(shake)mission?.runtime.game.pads.startShake(0,shake.time,shake.frequency,0,gameTimeMs);};

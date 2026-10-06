@@ -75,6 +75,33 @@ describe('who last damaged a car, and with what',()=>{
   }finally{carDamageHost.headScriptName=was;}
  });
 
+ test('the player harming a law enforcer gives him a star, his own stolen cop car aside',()=>{
+  const was=WorldCar.onPlayerDamagedLaw;let stars=0;WorldCar.onPlayerDamagedLaw=()=>{stars++;};
+  try{
+   damage(car({modelId:596,abandoned:false}),20,false,{weapon:22,byPlayer:true});expect(stars).toBe(1);
+   // Even with no health left to take, and from a blast.
+   damage(car({modelId:596,abandoned:false,health:0}),20,true,{byPlayer:true});expect(stars).toBe(2);
+   // Not another shooter's round, not a civilian car, not an empty or player-driven cop car.
+   damage(car({modelId:596,abandoned:false}),20,false,{weapon:22,by:{ped:{}}});
+   damage(car({modelId:400,abandoned:false}),20,false,{weapon:22,byPlayer:true});
+   damage(car({modelId:596,abandoned:true}),20,false,{weapon:22,byPlayer:true});
+   damage(car({modelId:596,abandoned:false,occupied:true}),20,false,{weapon:22,byPlayer:true});
+   expect(stars).toBe(2);
+  }finally{WorldCar.onPlayerDamagedLaw=was;}
+ });
+
+ test('more than 10 of the player\'s harm adds 5 to 24 dollars of property damage',()=>{
+  const was=carDamageHost.addPropertyDamage;const added:number[]=[];carDamageHost.addPropertyDamage=d=>{added.push(d);};
+  try{
+   for(let i=0;i<40;i++)damage(car(),11,false,{weapon:22,byPlayer:true});
+   expect(added.length).toBe(40);expect(Math.min(...added)).toBeGreaterThanOrEqual(5);expect(Math.max(...added)).toBeLessThanOrEqual(24);
+   // 10 or less, another shooter's, or 0.95 of 10.5 in the player's own car: nothing.
+   damage(car(),10,false,{weapon:22,byPlayer:true});damage(car(),50,false,{weapon:22,by:{ped:{}}});
+   damage(car({occupied:true}),10.5,false,{weapon:22,byPlayer:true});
+   expect(added.length).toBe(40);
+  }finally{carDamageHost.addPropertyDamage=was;}
+ });
+
  test('CDarkel::CheckDamagedWeaponType sorts the two wildcards',()=>{
   expect(checkDamagedWeaponType(-1,57)).toBe(false);
   expect(checkDamagedWeaponType(15,56)).toBe(true);expect(checkDamagedWeaponType(16,56)).toBe(false);
