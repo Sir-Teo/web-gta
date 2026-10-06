@@ -26,6 +26,7 @@ import {nativeSuspensionRestPose} from './nativeSuspensionRestPose';
 import {applyNativeWheelRestPose} from '../render/nativeWheelRestPose';
 import {bindNativeCarLod} from '../render/nativeCarLod';
 import {resolveCarWheelFrames} from '../assets/carWheelFrames';
+import {nativeWheelScale} from '../vehicle/nativeWheelScale';
 import {installNativeVehicleBody} from './nativeVehicleBody';
 import {NativeRaycastVehicle,type NativeRaycastPlayerInput} from './NativeRaycastVehicle';
 import type {prepareHandling} from './nativeHandling';
@@ -99,8 +100,13 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
    for(const node of part.ok)node.visible=!missing&&!damaged;for(const node of part.dam)node.visible=!missing&&damaged;
   };
   let currentColors=assets.colors,currentNight=0,currentAlpha=1;
-  /** CAutomobile::PreRender's scale on each wheel's frame, none until one is set. */
-  let wheelScales:Partial<Record<CarWheel,{width:number;diameter:number}>>|undefined;
+  /** CAutomobile::PreRender's scale on each wheel's frame for CVehicle::m_fWheelScale (nativeWheelScale): 1 for the
+   * car's own wheels, the front wheel size while upgrade wheels are on. None for a model without both wheel sizes. */
+  const wheelScalesFor=(wheelScale:number)=>{
+   const v=assets.vehicle,flags=assets.handling.values.handlingFlags??0;if(v.frontWheelSize===undefined||v.rearWheelSize===undefined)return undefined;
+   return Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,nativeWheelScale({frontSize:v.frontWheelSize!,rearSize:v.rearWheelSize!,rear:wheel.startsWith('rear'),wheelScale,handlingFlags:flags,modelId:v.id,vehicleType:v.type,wheelModel:(v.misc??-1)!==-1})])) as Record<CarWheel,{width:number;diameter:number}>;
+  };
+  let wheelScales=wheelScalesFor(1);
   let previous={...physical.body.translation()},previousRotation={...physical.body.rotation()};
   const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();controller?.dispose();for(const part of parts.keys())part.dispose();parts.clear();visual?.dispose();physical.dispose();};
   const update=(alpha:number)=>{
@@ -182,8 +188,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     hasFrame(name:string){return !!visual!.root.getObjectByName(name);},
     /** The four wheel frames' names (a wheel upgrade replaces the wheel on each). */
     wheelFrameNames(){return Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,assets.model.frames[wheelFrames[wheel]]?.name??''])) as Record<CarWheel,string>;},
-    /** CAutomobile::PreRender's wheel frame scales (width along the axle, diameter); undefined for none. */
-    setWheelScales(scales:Partial<Record<CarWheel,{width:number;diameter:number}>>|undefined){wheelScales=scales;wheelAnimation?.update(wheelPrevious,wheelCurrent,1);},
+    /** CVehicle::m_fWheelScale, which CAutomobile::PreRender's wheel frame scales follow. */
+    setWheelScale(wheelScale:number){wheelScales=wheelScalesFor(wheelScale);wheelAnimation?.update(wheelPrevious,wheelCurrent,1);},
     /** RwFrameGetLTM(frame)->pos: the named frame's world position, renderer space. */
     frameWorldPosition(name:string){const frame=visual!.root.getObjectByName(name);if(!frame)return undefined;visual!.root.updateWorldMatrix(true,false);frame.updateWorldMatrix(true,false);return new Vector3().setFromMatrixPosition(frame.matrixWorld);},
     /** RwFrameGetMatrix(frame)->pos: the named frame's position relative to its parent, in native units. */

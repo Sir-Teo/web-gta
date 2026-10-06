@@ -1,8 +1,11 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('a pistol round bursts the tyre it hits, and the car still drives on it',async({page})=>{
  test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ // INTRO would seat CJ in its car as a passenger a moment after the press.
+ await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await page.keyboard.press('Backquote');await page.locator('[data-weapon="22"]').click();

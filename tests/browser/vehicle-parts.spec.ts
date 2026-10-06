@@ -127,5 +127,6 @@ test('a wheel set replaces all four wheels, scaled to the car\'s wheels by m_fWh
  await page.waitForTimeout(300);
  const off=await wheels();
  expect(off.wheelScale).toBe(1);
- for(const w of Object.values(off.out)){expect(w.parts).toBe(0);expect(w.own).toBe(1);expect(w.scale.map(v=>Math.round(v*100)/100)).toEqual([1,1,1]);}
+ // The car's own wheels back at m_fWheelScale 1: their modelled 0.7 diameter, the rear ones 1.1 times wider.
+ for(const [name,w] of Object.entries(off.out)){expect(w.parts).toBe(0);expect(w.own).toBe(1);expect(w.scale.map(v=>Math.round(v*100)/100)).toEqual([name.startsWith('rear')?1.1:1,1,1]);}
 });

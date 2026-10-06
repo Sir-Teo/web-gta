@@ -33,8 +33,6 @@ import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
 import {EXHAUST_NODE,isValidModForVehicle,otherLinkedUpgrade,REPLACED_COMPONENT_FRAMES,upgradePositionFrame,vehicleModSlot,WHEEL_NODE} from '../vehicle/nativeVehicleUpgrades';
-import {nativeWheelScale} from '../vehicle/nativeWheelScale';
-import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
 import {isRemapMaterial,remapColours,remapName} from '../vehicle/nativeVehicleRemap';
 import {TexturePool} from '../assets/TexturePool';
 import {MODEL_FLAG} from './nativeDoor';
@@ -559,14 +557,8 @@ export class WorldFleet {
    if(part.frame==='wheels'){car.wheelScale=1;this.applyWheelScales(car);}
   }
  }
- /** CAutomobile::PreRender's wheel frame scales for a car (nativeWheelScale): while it wears upgrade wheels. The car's
-  * own wheels are drawn as modelled for now. */
- private applyWheelScales(car:WorldCar){
-  const v=car.assets.vehicle;
-  if(car.wheelScale===1||v.frontWheelSize===undefined||v.rearWheelSize===undefined){car.car.setWheelScales?.(undefined);return;}
-  const flags=car.assets.handling.values.handlingFlags??0;
-  car.car.setWheelScales?.(Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,nativeWheelScale({frontSize:v.frontWheelSize!,rearSize:v.rearWheelSize!,rear:wheel.startsWith('rear'),wheelScale:car.wheelScale,handlingFlags:flags,modelId:car.modelId,vehicleType:v.type,wheelModel:(v.misc??-1)!==-1})])));
- }
+ /** The car's wheel frames to its m_fWheelScale (CAutomobile::PreRender, nativeWheelScale). */
+ private applyWheelScales(car:WorldCar){car.car.setWheelScale?.(car.wheelScale);}
  /** The tuning parts drawn on a car, by upgrade model id. */
  drawnUpgradeParts(car:WorldCar){return [...(this.drawnParts.get(car)?.keys()??[])];}
  private withLinkedUpgrade(id:number){

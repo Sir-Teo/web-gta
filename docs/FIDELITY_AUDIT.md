@@ -9061,8 +9061,16 @@ that did anything.
   from 0x1004484ec, `nativeWheelScale`): the diameter m_fWheelScale, a rear wheel's times the rear size over the
   front; the width along the axle the axle's size over 0.7 times the diameter scale, by the handling's
   WHEEL_F/R_NARROW2, _NARROW, _WIDE and _WIDE2 flags (0.65, 0.8, 1.1, 1.25), three times on the Kart, and no width rule
-  on a monster truck or quad. The unit-sized upgrade wheels so come out at the car's wheel size. AUTHORED: the car's
-  own wheels are still drawn as modelled, without this scale. Specs: `vehicle-upgrades` (unit: the positions),
+  on a monster truck or quad. The unit-sized upgrade wheels so come out at the car's wheel size.
+- **Every car's own wheels were drawn as modelled.** The port drew the one wheel atomic a car model carries (its front
+  wheel, cloned to the other three by PreprocessHierarchy) unscaled on all four frames. CAutomobile::PreRender scales
+  each wheel frame as above with m_fWheelScale 1: a rear wheel by the rear size over the front, so the Tractor's rear
+  wheels (1.3 to its 0.68 front) sat small and off the ground inside their mudguards and the Bandito's (0.7 to 0.55)
+  matched its front ones; and every wheel's width by its axle's size over 0.7 and the handling's wheel-width flags,
+  so a Huntley's 0.9 wheels, WHEEL_F_WIDE and WHEEL_R_WIDE, are 1.41 times as wide as modelled and a Manana's 0.62
+  ones 0.89 times. Monster trucks and quads keep their width. Measured against the models: every car's wheel mesh is
+  modelled at its vehicles.ide diameter and 0.25 to 0.35 wide whatever that diameter, the template this rule widens.
+  Specs: `vehicle-upgrades` (unit: the positions),
   `vehicle-parts` (browser: a Sultan's spoiler on its boot, its roof scoop and both skirts from one, painted, then the
   skirts off and a second spoiler in the first's place; its exhaust and both bumpers in place of its own, the front
   one damaged with its bumper, and its own back when they come off; an Infernus on Shadow wheels, the front ones
