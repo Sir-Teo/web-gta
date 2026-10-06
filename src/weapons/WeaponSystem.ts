@@ -265,8 +265,11 @@ export class WeaponSystem {
    }
    return true;
   }
+  const vehicleHit={kind:kind==='melee'?'melee' as const:kind==='fire'?'fire' as const:'bullet' as const,byPlayer:hit?.byPlayer??(kind!=='explosion'),weapon:hit?.weapon};
    for(const car of this.fleet()?.cars??[]){for(let i=0;i<car.car.body.numColliders();i++)if(car.car.body.collider(i).handle===handle&&!car.wrecked){this.hits++;this.hitTrains=car.health>0&&car.canBeDamaged&&!car.proofs?.bullet;if(car.damage(amount,handle,explosive,kind==='bullet'?direction:undefined,{kind:kind==='melee'?'melee':kind==='fire'?'fire':'bullet',byPlayer:hit?.byPlayer??(kind!=='explosion'),weapon:hit?.weapon,point:kind==='bullet'?hit?.point:undefined}))this.onCrime?.(CRIME.destroyVehicle,`car:${car.car.body.handle}`);this.releaseExplosions();return true;}}
-   for(const boat of this.fleet()?.boats??[])if(!boat.wrecked&&boat.body.numColliders()&&[...Array(boat.body.numColliders()).keys()].some(i=>boat.body.collider(i).handle===handle)){this.hits++;this.hitTrains=true;if(boat.damage(amount))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);return true;}
+   for(const boat of this.fleet()?.boats??[])if(!boat.wrecked&&boat.body.numColliders()&&[...Array(boat.body.numColliders()).keys()].some(i=>boat.body.collider(i).handle===handle)){this.hits++;this.hitTrains=true;if(boat.damage(amount,handle,explosive,undefined,vehicleHit))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);return true;}
+   // CWeapon::DoBulletImpact harms a bike as any vehicle (CVehicle::InflictDamage).
+   for(const bike of this.fleet()?.bikes??[])if(!bike.wrecked&&[...Array(bike.body.numColliders()).keys()].some(i=>bike.body.collider(i).handle===handle)){this.hits++;this.hitTrains=true;if(bike.damage(amount,handle,explosive,undefined,vehicleHit))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);return true;}
   for(const plane of this.fleet()?.planes??[])for(let i=0;i<plane.body.numColliders();i++)if(plane.body.collider(i).handle===handle&&plane.health>0){this.hits++;this.hitTrains=true;if(plane.damage(amount,explosive?51:hit?.weapon??-1)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane);}return true;}
   return false;
  }
@@ -371,9 +374,9 @@ export class WeaponSystem {
    // A BMX's rider is knocked off (KNOCK_OFF_TYPE_EXPLOSION) and takes the bike's own WEAPON_EXPLOSION damage: the
    // bike never shields him, as a motorbike's frame does.
    if(bike.motorbike===false&&bike.occupied){bike.explosionKnockOff?.();this.sim.damagePlayer(Math.trunc(1100*falloff*params.damagePercentage),false,{weapon:51,from:{x:position.x,z:position.z}});}
-   if(bike.damage(1100*falloff*params.damagePercentage))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);
+   if(bike.damage(1100*falloff*params.damagePercentage,undefined,true,undefined,{byPlayer}))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);
   }
-  for(const boat of this.fleet()?.boats??[]){if(boat.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,boat.body.translation()));if(falloff&&boat.damage(1100*falloff*params.damagePercentage))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);}
+  for(const boat of this.fleet()?.boats??[]){if(boat.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,boat.body.translation()));if(falloff&&boat.damage(1100*falloff*params.damagePercentage,undefined,true,undefined,{byPlayer}))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);}
   for(const plane of this.fleet()?.planes??[]){if(plane.health<=0)continue;const falloff=explosionFalloff(params.radius,distance(position,plane.body.translation()));if(falloff&&plane.damage(1100*falloff*params.damagePercentage)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);}}
   this.onExplosion?.(position,params,byPlayer);
  }

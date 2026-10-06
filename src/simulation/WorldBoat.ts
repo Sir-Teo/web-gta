@@ -19,6 +19,8 @@ import {interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
 import {addWakePoint,applyNativeBoatBuoyancy,createWakeTrail,pruneWakeTrail,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBoatBody,type NativeVec} from './nativeBuoyancy';
 import {NATIVE_GRAVITY_MS2} from './nativeGravity';
+import {blastBombTimerMs,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {nativeBoatDrive} from '../flight/aero';
 export const PLAYABLE_BOATS:Readonly<Record<number,string>>={430:'Predator',446:'Squalo',452:'Speeder',453:'Reefer',454:'Tropic',472:'Coastguard',473:'Dinghy',484:'Marquis',493:'Jetmax',595:'Launch'};
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
@@ -53,13 +55,26 @@ export class WorldBoat {
  /** The driver's steering and look-back clips (ProcessDrivingAnims). */
  readonly driving=new NativeDrivingAnims();
  private stepVelocity?:{x:number;y:number;z:number};
- /** Weapon damage: bullets subtract directly; returns true only when wrecked. */
- damage(amount:number){
+ /** CVehicle::InflictDamage (iOS 0x1004781b4) for a boat, with WorldCar.damage's arguments:
+  * - the player's own one, once burning under 250, refuses blasts, rounds and the molotov (CanVehicleBeDamaged), and
+  *   otherwise takes playerVehicleDamage's share;
+  * - only health left is taken. Damage that takes the last of it destroys the vehicle and returns true. A blast's
+  *   victim waits on the bomb timer; anything else blows it up at once (BlowUpCar). */
+ damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number}={}){
   if(this.wrecked)return false;
-  this.health=Math.max(0,this.health-amount);
-  if(this.health===0){this.blowUp();return true;}
-  return false;
+  if(this.occupied){
+   if(this.health<250&&(explosive||(options.kind??'bullet')==='bullet'||options.weapon===18))return false;
+   amount=playerVehicleDamage(amount);
+  }
+  notePlayerVehicleHarm(amount,options.byPlayer);
+  if(this.health<=0)return false;
+  if(this.health>amount){this.health-=amount;return false;}
+  this.health=0;
+  if(explosive)this.bombTimerMs=blastBombTimerMs();else this.blowUp();
+  return true;
  }
+ /** m_wBombTimer (ms): a blast's victim blows up when ProcessDelayedExplosion has counted it down. */
+ bombTimerMs=0;
  /** CBoat::BlowUpCar: the hull is scorched and thrown up 0.13 units a frame, and the occupant is killed with it. */
  blowUp(){
   if(this.wrecked)return;this.wrecked=true;this.health=0;this.pendingExplosion=true;vehicleDestroyed.report?.('boat',this.modelId);
@@ -205,6 +220,8 @@ export class WorldBoat {
   // The loss is per game frame (30 fps), not scaled by the timestep.
   if(this.wrecked){const mass=this.handling.values.mass,floor=mass*.008*100/125;if(floor<this.water.buoyancy)this.water.buoyancy=Math.max(floor,this.water.buoyancy-mass*.001*.008*dt*30);}
   this.processFire(dt);
+  // ProcessDelayedExplosion (CBoat::ProcessControl).
+  if(stepBombTimer(this,dt*50)&&!this.wrecked)this.blowUp();
   this.floatOnWater(dt);
   this.holdAnchor();
   this.stepVelocity={...this.body.linvel()};

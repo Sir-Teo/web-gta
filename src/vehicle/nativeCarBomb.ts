@@ -28,7 +28,7 @@ export function detonateStickyBomb(car:CarBomb){
 /** ProcessDelayedExplosion's tick: the timer less (int16)(timeStep × 100/6) ms (CTimer's step, 1 at 50 frames a
  * second, so 16 ms a frame rather than 20, and 7000 ms run out in 438 frames, 8.76 s), held at 0. True when it has
  * just run out: BlowUpCar. */
-export function stepBombTimer(car:CarBomb,timeStep:number){
+export function stepBombTimer(car:Pick<CarBomb,'bombTimerMs'>,timeStep:number){
  if(!car.bombTimerMs)return false;
  car.bombTimerMs=Math.max(car.bombTimerMs-Math.trunc(timeStep*100/6),0);
  return car.bombTimerMs===0;

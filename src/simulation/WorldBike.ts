@@ -26,6 +26,8 @@ import {vehicleSolverGroups} from './solverGroups';
 import {bikeTooFastToBoard} from './BikeMount';
 import {applyNativeBikeBuoyancy,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import {NATIVE_GRAVITY_MS2} from './nativeGravity';
+import {blastBombTimerMs,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import type {NativeBikeAssets} from '../assets/fixedWorldBike';
 /** Rideable bike/quad models by ID with HUD names. */
 export const PLAYABLE_BIKES:Readonly<Record<number,string>>={448:'Pizzaboy',461:'PCJ-600',462:'Faggio',463:'Freeway',468:'Sanchez',471:'Quadbike',481:'BMX',509:'Chopper',510:'Mountain Bike',521:'FCR-900',522:'NRG-500',523:'HPV-1000',581:'BF-400',586:'Wayfarer'};
@@ -195,13 +197,26 @@ export class WorldBike {
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
  distance(){const p=this.sim.player.position,b=this.body.translation();return Math.hypot(p.x-b.x,p.y-b.y,p.z-b.z);}
  speed(){const v=this.body.linvel(),q=this.body.rotation(),f=rotate(q,{x:0,y:0,z:-1});return v.x*f.x+v.y*f.y+v.z*f.z;}
- /** Weapon damage: bullets subtract directly; returns true only when wrecked. */
- damage(amount:number){
+ /** CVehicle::InflictDamage (iOS 0x1004781b4) for a bike (a BMX too, though CBmx's BlowUpCar does nothing), with WorldCar.damage's arguments:
+  * - the player's own one, once burning under 250, refuses blasts, rounds and the molotov (CanVehicleBeDamaged), and
+  *   otherwise takes playerVehicleDamage's share;
+  * - only health left is taken. Damage that takes the last of it destroys the vehicle and returns true. A blast's
+  *   victim waits on the bomb timer; anything else blows it up at once (BlowUpCar). */
+ damage(amount:number,_collider?:number,explosive=false,_shotDir?:unknown,options:{kind?:'bullet'|'fire'|'melee';byPlayer?:boolean;weapon?:number}={}){
   if(this.wrecked)return false;
-  this.health=Math.max(0,this.health-amount);
-  if(this.health===0&&this.motorbike){this.blowUp();return true;}
-  return false;
+  if(this.occupied){
+   if(this.health<250&&(explosive||(options.kind??'bullet')==='bullet'||options.weapon===18))return false;
+   amount=playerVehicleDamage(amount);
+  }
+  notePlayerVehicleHarm(amount,options.byPlayer);
+  if(this.health<=0)return false;
+  if(this.health>amount){this.health-=amount;return false;}
+  this.health=0;
+  if(explosive)this.bombTimerMs=blastBombTimerMs();else this.blowUp();
+  return true;
  }
+ /** m_wBombTimer (ms): a blast's victim blows up when ProcessDelayedExplosion has counted it down. */
+ bombTimerMs=0;
  /** CBike::BlowUpCar; CBmx overrides it with a NOP, so the BMX, Chopper and Mountain Bike never explode (the
   * blow-up-cars cheat and a wreck included). */
  blowUp(){
@@ -280,6 +295,8 @@ export class WorldBike {
   if(this.wrecked){this.throttle=0;}
   this.bunnyHop(dt,!!input.hop,input.disabled);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
+  // ProcessDelayedExplosion, which CBike::ProcessControl runs too.
+  if(stepBombTimer(this,dt*50))this.blowUp();
   const h=this.assets.handling.values,q=this.body.rotation(),v=this.body.linvel();
   // CAutomobile::ProcessControl: the player's quad with the controls disabled is held to 0.28 units a frame.
   if(this.quad&&input.disabled){const f=controlsOffSpeedScale(Math.hypot(v.x,v.y,v.z));if(f<1){v.x*=f;v.y*=f;v.z*=f;}}

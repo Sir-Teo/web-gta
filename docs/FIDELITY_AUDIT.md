@@ -9753,8 +9753,19 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
       bIsLawEnforcer, which dragging out its cop clears.
   - A heli or plane, other than the RC Baron, RC Raider and RC Goblin (bIsRCVehicle), takes 0.4 of a weapon's damage
     (0x3ECCCCCD). Grenades, rockets (ROCKET, ROCKET_HS) and blasts (WEAPON_EXPLOSION) do full damage (mask
-    0x0008000000190000). A blast's bomb timer is not ported for bikes, boats or aircraft, where ProcessDelayedExplosion
-    also runs.
+    0x0008000000190000).
+  - Bikes and boats take InflictDamage as cars do:
+    - the player's own one refuses blasts, rounds and the molotov once burning under 250, and otherwise takes the
+      share above;
+    - the player's harm counts toward property damage;
+    - only health left is taken;
+    - a blast's victim waits on the bomb timer, which CBike's and CBoat's ProcessControl count down;
+    - any other weapon blows it up at once. A BMX reports its destruction too, though CBmx's BlowUpCar does nothing.
+  - The player's rounds now reach bikes (CWeapon::DoBulletImpact harms any vehicle); before, they left a motorbike
+    whole.
+  - Not ported:
+    - aircraft's bomb timer: a destroyed heli or plane still goes up at once;
+    - the law-enforcer star for police bikes and boats.
 
 ## Homies in CJ's car fire at threats
 

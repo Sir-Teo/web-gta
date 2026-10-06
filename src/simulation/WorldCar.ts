@@ -1,5 +1,5 @@
 import {crashShake} from '../engine/nativePadShakes';
-import {carDamageHost} from './carDamageHost';
+import {blastBombTimerMs,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {padSteeringAxis} from './nativeSteeringInput';
 import {cullAirResistance} from './nativeAirResistance';
 import {requireAsset} from '../assets/binary';
@@ -390,13 +390,10 @@ export class WorldCar {
   // The player's own car (STATUS_PLAYER): 0.95 of the damage, 0.42 once CStats::GetPercentageProgress reaches 100. The
   // iOS build quarters it first while the most recently started script still running is strap3 (Management Issues):
   // strcmp of pActiveScripts' name with "strap3".
-  if(this.occupied){
-   if(carDamageHost.headScriptName()?.toLowerCase()==='strap3')amount*=.25;
-   amount*=carDamageHost.fullCompletion()?.42:.95;
-  }
-  // More than 10 of the player's harm (his ped's or his vehicle's) adds rand() % 20 + 5 dollars to
-  // STAT_COST_OF_PROPERTY_DAMAGED (and 2 to the unused m_nHavocCaused), whatever health the car has left.
-  if(amount>10&&options.byPlayer===true)carDamageHost.addPropertyDamage(5+Math.floor(Math.random()*20));
+  if(this.occupied)amount=playerVehicleDamage(amount);
+  // More than 10 of the player's harm (his ped's or his vehicle's) adds to STAT_COST_OF_PROPERTY_DAMAGED, whatever
+  // health the car has left.
+  notePlayerVehicleHarm(amount,options.byPlayer);
   // The petrol tank (vehicleFlags.bPetrolTankIsWeakPoint): a round the player's own ped fires that lands on the
   // petrolcap dummy deals min(health, 1100), so a car of 1100 or less blows up at once (BlowUpCar, no fire first) and
   // a sturdier one loses 1100 (SWEET2: "shoot the car's gas tank"). Other shooters' rounds treat it as any other spot.
@@ -413,7 +410,7 @@ export class WorldCar {
   if(piece!==undefined&&amount>25&&this.canBeVisiblyDamaged)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true),true);
   let destroyed=false;
   if(before>0&&this.health===0){
-   if(explosive){this.bombTimerMs=(Math.floor(Math.random()*0x8000)&0x7ff)+1000;this.bombDetonatedByPlayer=options.byPlayer===true;}
+   if(explosive){this.bombTimerMs=blastBombTimerMs();this.bombDetonatedByPlayer=options.byPlayer===true;}
    else this.blowUp();
    destroyed=true;
   }
