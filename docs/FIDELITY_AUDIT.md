@@ -9763,9 +9763,11 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     - any other weapon blows it up at once. A BMX reports its destruction too, though CBmx's BlowUpCar does nothing.
   - The player's rounds now reach bikes (CWeapon::DoBulletImpact harms any vehicle); before, they left a motorbike
     whole.
-  - Not ported:
-    - aircraft's bomb timer: a destroyed heli or plane still goes up at once;
-    - the law-enforcer star for police bikes and boats.
+  - Helis and planes take the same player-vehicle share, the property-damage stat and the under-250 refusal. A blast
+    that destroys one leaves it on the bomb timer (CAutomobile::ProcessControl, which CPlane and CHeli run), and it
+    goes up with whoever is aboard when the timer runs out. Before, an aircraft a blast destroyed lay at 0 health and
+    never exploded.
+  - Not ported: the law-enforcer star for police bikes and boats.
 
 ## Homies in CJ's car fire at threats
 

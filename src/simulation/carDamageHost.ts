@@ -19,3 +19,9 @@ export function notePlayerVehicleHarm(amount:number,byPlayer:boolean|undefined){
 /** CVehicle::InflictDamage's m_wBombTimer for a vehicle a blast (WEAPON_EXPLOSION) destroys: (rand() & 0x7FF) + 1000 ms,
  * which ProcessDelayedExplosion counts down to BlowUpCar. */
 export function blastBombTimerMs(){return (Math.floor(Math.random()*0x8000)&0x7ff)+1000;}
+/** CPhysical::CanPhysicalBeDamaged's flag (iOS jump table 0x100252b84): the weapons that count as fire, explosion or
+ * bullet, which the player's own vehicle under 250 refuses (CVehicle::CanVehicleBeDamaged). The explosives, the
+ * molotov, the guns from the pistol to the sniper rifle, the minigun and the drive-by Uzi; not the flamethrower. */
+export function firesExplodesOrShoots(weapon:number){
+ return weapon===16||weapon>=18&&weapon<=36||weapon>=38&&weapon<=40||weapon===51||weapon===52;
+}

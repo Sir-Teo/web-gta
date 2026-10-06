@@ -270,7 +270,7 @@ export class WeaponSystem {
    for(const boat of this.fleet()?.boats??[])if(!boat.wrecked&&boat.body.numColliders()&&[...Array(boat.body.numColliders()).keys()].some(i=>boat.body.collider(i).handle===handle)){this.hits++;this.hitTrains=true;if(boat.damage(amount,handle,explosive,undefined,vehicleHit))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);return true;}
    // CWeapon::DoBulletImpact harms a bike as any vehicle (CVehicle::InflictDamage).
    for(const bike of this.fleet()?.bikes??[])if(!bike.wrecked&&[...Array(bike.body.numColliders()).keys()].some(i=>bike.body.collider(i).handle===handle)){this.hits++;this.hitTrains=true;if(bike.damage(amount,handle,explosive,undefined,vehicleHit))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);return true;}
-  for(const plane of this.fleet()?.planes??[])for(let i=0;i<plane.body.numColliders();i++)if(plane.body.collider(i).handle===handle&&plane.health>0){this.hits++;this.hitTrains=true;if(plane.damage(amount,explosive?51:hit?.weapon??-1)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane);}return true;}
+  for(const plane of this.fleet()?.planes??[])for(let i=0;i<plane.body.numColliders();i++)if(plane.body.collider(i).handle===handle&&plane.health>0){this.hits++;this.hitTrains=true;if(plane.damage(amount,explosive?51:hit?.weapon??-1,vehicleHit.byPlayer)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);if(!plane.bombTimerMs)this.explode(plane.body.translation(),EXPLOSION_TYPE.aircraft,plane);}return true;}
   return false;
  }
  private radial(position:Vec3,radius:number,damage:number,ignitePeople=false,gas=false){
@@ -377,7 +377,7 @@ export class WeaponSystem {
    if(bike.damage(1100*falloff*params.damagePercentage,undefined,true,undefined,{byPlayer}))this.onCrime?.(CRIME.destroyVehicle,`bike:${bike.body.handle}`);
   }
   for(const boat of this.fleet()?.boats??[]){if(boat.wrecked)continue;const falloff=explosionFalloff(params.radius,distance(position,boat.body.translation()));if(falloff&&boat.damage(1100*falloff*params.damagePercentage,undefined,true,undefined,{byPlayer}))this.onCrime?.(CRIME.destroyVehicle,`boat:${boat.body.handle}`);}
-  for(const plane of this.fleet()?.planes??[]){if(plane.health<=0)continue;const falloff=explosionFalloff(params.radius,distance(position,plane.body.translation()));if(falloff&&plane.damage(1100*falloff*params.damagePercentage)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);}}
+  for(const plane of this.fleet()?.planes??[]){if(plane.health<=0)continue;const falloff=explosionFalloff(params.radius,distance(position,plane.body.translation()));if(falloff&&plane.damage(1100*falloff*params.damagePercentage,51,byPlayer)){this.onCrime?.(plane.helicopter?CRIME.destroyHeli:CRIME.destroyPlane,`plane:${plane.body.handle}`);}}
   this.onExplosion?.(position,params,byPlayer);
  }
  private hazard(kind:Hazard['kind'],position:Vec3,radius:number,remaining=kind==='flame'?6:9){if(this.hazards.length>=16)this.hazards.shift();this.hazards.push({kind,position:{...position},radius,remaining,tick:0});}

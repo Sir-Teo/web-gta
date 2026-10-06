@@ -14,6 +14,8 @@ import {interpolateVehiclePose} from '../render/vehiclePose';
 import {hoverFlight} from '../flight/aero';
 import {planeFlight,type PlaneControls} from '../flight/aero';
 import {requireAsset} from '../assets/binary';
+import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
+import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
 import {applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,type NativeBuoyancyBody,type NativeVec} from './nativeBuoyancy';
 import type {NativeAnimation} from '../assets/ifp';
@@ -93,8 +95,30 @@ export class WorldPlane {
  get rocketsArmed(){return this.modelId===425||this.modelId===520;}
  /** GetPlaneOrdnancePosition in native model space (right, forward, up): the Hunter's and the Hydra's first rocket pod. */
  ordnancePosition():[number,number,number]{return this.modelId===425?[2.17,1,-.8]:[3.7,.98,-1.02];}
- /** Weapon damage, with the weapon when it comes through CVehicle::InflictDamage (aircraftWeaponDamageScale). */
- damage(amount:number,weapon?:number){if(this.health<=0)return false;if(weapon!==undefined)amount*=aircraftWeaponDamageScale(this.modelId,weapon);this.health=Math.max(0,this.health-amount);if(this.health===0){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}return true;}return false;}
+ /** Damage, returning true when it destroys the aircraft. With a weapon it is CVehicle::InflictDamage's:
+  * - the player's own aircraft refuses blasts, rounds and the molotov once burning under 250, and otherwise takes
+  *   playerVehicleDamage's share;
+  * - more than 10 of the player's harm counts toward property damage;
+  * - aircraftWeaponDamageScale applies;
+  * - a blast (WEAPON_EXPLOSION) that destroys the aircraft leaves it on the bomb timer.
+  * Without a weapon (a crash, the burn-out, the water) it is taken as given, and the aircraft goes up at once. */
+ damage(amount:number,weapon?:number,byPlayer?:boolean){
+  if(this.health<=0)return false;
+  if(weapon!==undefined){
+   if(this.occupied){if(this.health<250&&firesExplodesOrShoots(weapon))return false;amount=playerVehicleDamage(amount);}
+   notePlayerVehicleHarm(amount,byPlayer);
+   amount*=aircraftWeaponDamageScale(this.modelId,weapon);
+  }
+  this.health=Math.max(0,this.health-amount);
+  if(this.health>0)return false;
+  if(weapon===51)this.bombTimerMs=blastBombTimerMs();else this.destroyed();
+  return true;
+ }
+ /** m_wBombTimer (ms): a blast's victim blows up when ProcessDelayedExplosion (CAutomobile::ProcessControl, which
+  * CPlane and CHeli run) has counted it down. */
+ bombTimerMs=0;
+ /** BlowUpCar's end for the aircraft: the engine stops and the player aboard dies with it. */
+ private destroyed(){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}}
  toggleVtol(){if(this.modelId!==520)return '';this.vtol=!this.vtol;return this.vtol?'Hydra: vertical lift':'Hydra: forward flight';}
  /** physicalFlags.bMakeMassTwiceAsBig (SET_CAR_HEAVY): the water's drag ×1.5. */
  heavy=false;
@@ -339,6 +363,7 @@ export class WorldPlane {
  /** CAutomobile::IsInAir: not in the water, no wheel on the ground and moving. */
  get inAir(){if(this.inWater)return false;const v=this.body.linvel();return !this.grounded&&(v.x!==0||v.y!==0||v.z!==0);}
  afterStep(){let destroyed=this.pendingExplosion;this.pendingExplosion=false;
+  if(stepBombTimer(this,this.stepDt*50)){this.destroyed();destroyed=true;}
   if(!this.occupied)this.exitPending=false;
   else if(this.exitPending&&this.leaveMode()==='wait')this.slowForExit(this.stepDt);
   const change=new Vector3().copy(this.body.linvel()).sub(this.impactVelocity).length();
