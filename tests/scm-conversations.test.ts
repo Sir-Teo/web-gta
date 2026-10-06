@@ -1,8 +1,8 @@
 import {describe,expect,test} from 'vitest';
 import {ScmThread,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
-import {CONVERSATION_INACTIVE,CONVERSATION_PED_SPEAKING,CONVERSATION_PLAYER_SPEAKING,MAX_NUM_CONVERSATIONS,ScmConversations,CONVERSATION_PED_LINE_MS,CONVERSATION_PLAYER_LINE_MS,
- MAX_NUM_TEMP_CONVERSATION_NODES,conversationNodeName} from '../src/engine/ScmConversations';
+import {AWKWARD_SAY_INACTIVE,AWKWARD_SAY_LOADING,AWKWARD_SAY_PLAYING,CONVERSATION_INACTIVE,CONVERSATION_PED_SPEAKING,CONVERSATION_PLAYER_SPEAKING,
+ CONVERSATION_WAITING_FOR_INPUT,MAX_NUM_CONVERSATIONS,ScmConversations,MAX_NUM_TEMP_CONVERSATION_NODES,conversationNodeName,type ScmConversationWorld} from '../src/engine/ScmConversations';
 import {scmOpcode} from '../src/engine/scmOpcodes';
 
 function instruction(opcode:number,operands:readonly (readonly [number,number]|string)[]){
@@ -158,40 +158,73 @@ describe('conversations of deleted peds',()=>{
  });
 });
 
-describe('CConversationForPed::Update (AUTHORED)',()=>{
+describe('DoneSettingUpConversation (iOS 0x1001a5b50)',()=>{
+ test('the yes and no names become indices, the last node of a name when two share it, or -1',()=>{
+  const c=new ScmConversations();c.startSettingUp(7);
+  c.setUpNode('A','B','NONE',1,2,3);c.setUpNode('B',undefined,undefined,4,0,0);c.setUpNode('B',undefined,undefined,5,0,0);
+  const conversation=c.finishSettingUp(false,1234);
+  expect(conversation.nodes.map(n=>[n.yesIndex,n.noIndex])).toEqual([[2,-1],[-1,-1],[-1,-1]]);
+  expect(conversation).toMatchObject({current:0,currentNode:'A',lastChange:1234,lastCloseEnough:0,enabled:true,status:CONVERSATION_INACTIVE});
+ });
+ test('a second set-up for a ped takes another free slot, and the first stays the one found for it',()=>{
+  const c=new ScmConversations();
+  c.startSettingUp(7);c.setUpNode('A',undefined,undefined,1,0,0);c.finishSettingUp(false);
+  c.startSettingUp(7);c.setUpNode('B',undefined,undefined,1,0,0);c.finishSettingUp(false);
+  expect(c.count).toBe(2);expect(c.forPed(7)?.currentNode).toBe('A');
+ });
+});
+
+describe('CConversationForPed::Update (iOS 0x1001a541c)',()=>{
  const dealer=()=>{
   const c=new ScmConversations();c.startSettingUp(7);
   c.setUpNode('DEAL1','DEAL2','DEAL3',192,77,78);c.setUpNode('DEAL2',undefined,undefined,79,0,0);c.setUpNode('DEAL3',undefined,undefined,75,0,0);
-  c.finishSettingUp(false);return c;
+  c.finishSettingUp(false,0);return c;
  };
- const world=(near:{value:boolean})=>{const said:string[]=[];return {said,w:{inPosition:()=>near.value,pedSays:(_p:number,n:{name:string})=>{said.push(n.name);},playerSays:(_p:number,a:string)=>{said.push(`player ${a}`);}}};};
- test('the player comes near, the ped asks, the answer leads to its node, which ends there',()=>{
-  const c=dealer(),near={value:false},{said,w}=world(near);
-  c.update(0,w);expect(said).toEqual([]);
-  near.value=true;c.update(100,w);
-  expect(said).toEqual(['DEAL1']);expect(c.forPed(7)!.status).toBe(CONVERSATION_PED_SPEAKING);
-  // No answer before the ped has finished; then it waits for one.
-  expect(c.answer('yes')).toBe(false);
-  c.update(100+CONVERSATION_PED_LINE_MS,w);expect(c.waitingForInput).toBe(true);
-  expect(c.answer('yes')).toBe(true);c.update(3000,w);
-  expect(said.at(-1)).toBe('player yes');
-  // While the player speaks the conversation is at no node.
-  expect(c.isAtNode(7,'DEAL1')).toBe(false);
-  c.update(3000+CONVERSATION_PLAYER_LINE_MS,w);
-  expect(said.at(-1)).toBe('DEAL2');expect(c.isAtNode(7,'DEAL2')).toBe(true);
-  c.update(3000+CONVERSATION_PLAYER_LINE_MS+CONVERSATION_PED_LINE_MS,w);
-  expect(c.forPed(7)!.status).toBe(CONVERSATION_INACTIVE);expect(c.isAtNode(7,'DEAL2')).toBe(true);
-  // It does not start again until the player has stepped away.
-  c.update(20000,w);expect(said.filter(x=>x==='DEAL1').length).toBe(1);
-  near.value=false;c.update(21000,w);near.value=true;c.update(22000,w);
-  expect(said.filter(x=>x==='DEAL1').length).toBe(2);
+ const world=(near:{value:boolean}):{log:string[];w:ScmConversationWorld}=>{const log:string[]=[];return {log,w:{inPosition:()=>near.value,clearSmallMessages:()=>{log.push('clear');},
+  message:(key,flag,instant)=>{log.push(`${instant?'now':'queue'} ${key} ${flag}`);},say:(ped,context)=>{log.push(`${ped===undefined?'player':'ped'} says ${context}`);}}};};
+ test('in position, the ped greets; an answer 400 ms on makes the player say it, and the ped goes on 4 s later',()=>{
+  const c=dealer(),near={value:true},{log,w}=world(near),conversation=c.forPed(7)!;
+  c.update(20000,w);
+  expect(log).toEqual(['clear','now DEAL1 1','ped says 192']);expect(conversation.status).toBe(CONVERSATION_PED_SPEAKING);
+  // Too soon after the change, a Yes is not taken.
+  c.answer('yes');c.update(20400,w);expect(log.length).toBe(3);
+  // The ped's line need not have ended: from 400 ms on, a Yes is the player's line.
+  expect(c.answer('yes')).toBe(true);c.update(20500,w);
+  expect(log.slice(3)).toEqual(['clear','now DEAL1Y 3','player says 77','queue DEAL2 1']);
+  expect(conversation.status).toBe(CONVERSATION_PLAYER_SPEAKING);expect(c.isAtNode(7,'DEAL2')).toBe(false);
+  c.update(24500,w);expect(conversation.status).toBe(CONVERSATION_PLAYER_SPEAKING);
+  c.update(24501,w);expect(log.slice(7)).toEqual(['clear','now DEAL2 1','ped says 79']);expect(c.isAtNode(7,'DEAL2')).toBe(true);
+  c.update(28502,w);expect(conversation.status).toBe(CONVERSATION_WAITING_FOR_INPUT);
+  // A node with no answers ends nothing: the conversation stays at it.
+  c.answer('yes');c.update(29000,w);c.answer('no');c.update(29100,w);expect(c.isAtNode(7,'DEAL2')).toBe(true);expect(log.length).toBe(10);
  });
- test('walking off while the ped waits drops the conversation; a disabled one never starts',()=>{
-  const c=dealer(),near={value:true},{said,w}=world(near);
-  c.update(0,w);c.update(CONVERSATION_PED_LINE_MS,w);expect(c.waitingForInput).toBe(true);
-  near.value=false;c.update(CONVERSATION_PED_LINE_MS+10,w);
-  expect(c.forPed(7)!.status).toBe(CONVERSATION_INACTIVE);expect(c.isAtNode(7,'DEAL1')).toBe(true);
-  const off=dealer();off.enable(7,false);const x=world({value:true});off.update(0,x.w);expect(x.said).toEqual([]);
-  expect(said).toEqual(['DEAL1']);
+ test('either button hands the player\'s turn to the ped at once; No is asked before Yes',()=>{
+  const c=dealer(),{log,w}=world({value:true});
+  c.update(20000,w);c.answer('no');c.answer('yes');c.update(21000,w);
+  expect(log.slice(3)).toEqual(['clear','now DEAL1N 3','player says 78','queue DEAL3 1']);
+  c.answer('yes');c.update(21100,w);expect(log.slice(7)).toEqual(['clear','now DEAL3 1','ped says 75']);
+ });
+ test('out of position a conversation goes inactive where it is; back within 10 s it still takes an answer, after 10 s the ped greets again',()=>{
+  const c=dealer(),near={value:true},{log,w}=world(near),conversation=c.forPed(7)!;
+  c.update(20000,w);near.value=false;c.update(21000,w);expect(conversation.status).toBe(CONVERSATION_INACTIVE);
+  near.value=true;c.answer('yes');c.update(25000,w);expect(log.at(-1)).toBe('queue DEAL2 1');
+  near.value=false;c.update(26000,w);near.value=true;c.update(40000,w);expect(log.slice(-2)).toEqual(['now DEAL2 1','ped says 79']);
+ });
+ test('a disabled conversation goes inactive and says nothing; the conversations run side by side',()=>{
+  const off=dealer(),x=world({value:true});off.enable(7,false);off.update(20000,x.w);expect(x.log).toEqual([]);
+  const c=new ScmConversations(),{log,w}=world({value:true});
+  for(const ped of [1,2]){c.startSettingUp(ped);c.setUpNode(`HI${ped}`,undefined,undefined,10+ped,0,0);c.finishSettingUp(true,0);}
+  c.update(20000,w);expect(log).toEqual(['ped says 11','ped says 12']);
+ });
+ test('a scripted line goes to mission audio, and no conversation updates until it has played',()=>{
+  const c=new ScmConversations(),{log,w}=world({value:true}),audio={loaded:false,finished:false,played:0,preloaded:[] as unknown[]};
+  w.awkward={preload:(sample,ped)=>{audio.preloaded.push([sample,ped]);},loaded:()=>audio.loaded,play:()=>{audio.played++;},finished:()=>audio.finished};
+  c.startSettingUp(7);c.setUpNode('Q','A',undefined,-1800,-1801,0);c.setUpNode('A',undefined,undefined,5,0,0);c.finishSettingUp(true,0);
+  c.update(20000,w);expect(audio.preloaded).toEqual([[1800,7]]);expect(c.awkwardSayStatus).toBe(AWKWARD_SAY_LOADING);
+  c.answer('yes');c.update(20500,w);expect(c.forPed(7)!.currentNode).toBe('Q');
+  audio.loaded=true;c.update(20600,w);expect(audio.played).toBe(1);expect(c.awkwardSayStatus).toBe(AWKWARD_SAY_PLAYING);
+  audio.finished=true;c.answer('yes');c.update(20700,w);expect(c.awkwardSayStatus).toBe(AWKWARD_SAY_LOADING);
+  expect(audio.preloaded.at(-1)).toEqual([1801,undefined]);expect(c.forPed(7)!.currentNode).toBe('A');
+  expect(log).toEqual([]);expect(AWKWARD_SAY_INACTIVE).toBe(0);
  });
 });

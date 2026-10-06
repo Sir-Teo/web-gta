@@ -2,12 +2,13 @@ import {requireAsset} from '../assets/binary';
 /* CConversations' script-facing half, pinned gta-reversed ead3051 (`Conversations/Conversations.h` for the three
  * table sizes, and `Conversations.cpp`'s `StartSettingUpConversation` 0x43A840, `SetUpConversationNode`,
  * `IsConversationAtNode`, `EnableConversation` 0x43AA40, `RemoveConversationForPed`, `IsConversationGoingOn`
- * 0x43AAC0 and `Clear`, all reversed; the command layer in `ConversationCommands.cpp` is reversed too).
+ * 0x43AAC0, `Clear` and `Update` 0x43C590, all reversed; the command layer in `ConversationCommands.cpp` is reversed
+ * too). `DoneSettingUpConversation` (0x43ADB0) and `CConversationForPed::Update` (0x43C190) are unreversed there and
+ * follow the iOS executable's (0x1001a5b50 and 0x1001a541c).
  *
- * What is not reversed is `DoneSettingUpConversation` (0x43ADB0), which moves the temporary nodes into the
- * permanent table and turns each yes and no name into the index of another node. So the names are kept as names
- * here rather than resolved into indices that are not known, which costs nothing: the one question the script
- * asks, whether a conversation sits at a named node, compares names anyway.
+ * The nodes are kept with each conversation rather than in the shared table of fifty (whose slots only matter once
+ * they run out); DoneSettingUpConversation's work on them is kept: each yes and no name becomes the index of the
+ * node of that name (the last one, when two share it), or none.
  *
  * Two details the source carries: a node name is cut to six characters and raised to upper case as it is
  * stored, and the scripted-speech forms of the node commands negate their three speech ids, which is how the
@@ -18,56 +19,61 @@ export const CONVERSATION_INACTIVE=0,CONVERSATION_PLAYER_SPEAKING=1,CONVERSATION
 export interface ScmConversationNode {
  /** The node's own name, and the names of the nodes a yes and a no lead to. */
  name:string;yes?:string;no?:string;
+ /** DoneSettingUpConversation: the nodes a yes and a no lead to, by index, or -1. */
+ yesIndex:number;noIndex:number;
  /** The three speech ids, negative for scripted speech. */
  speech:number;speechYes:number;speechNo:number;
 }
 export interface ScmConversationForPed {
  /** m_pPed: nothing once CConversationForPed::Clear has freed the slot. */
  ped:number|undefined;enabled:boolean;status:number;
- /** The node the conversation sits at, or nothing before it has reached one. */
- currentNode?:string;
+ /** m_CurrentNode: the node the conversation sits at, by index and by name. */
+ current:number;currentNode?:string;
  nodes:ScmConversationNode[];
  suppressSubtitles:boolean;
  /** m_LastChange: when the status last moved, ms. */
- lastChange?:number;
- /** The node the player's answer leads to, while he says it. */
- chosen?:string;
- /** An ended conversation starts again only once the player has stepped out of position. */
- finished?:boolean;
+ lastChange:number;
+ /** m_LastTimeWeWereCloseEnough: the last update with the player in position, ms (0 when set up). */
+ lastCloseEnough:number;
+ /** Whether the last update found the player in position (the browser's, for the touch screen's Yes and No). */
+ inPosition?:boolean;
 }
 /** What CConversationForPed::Update asks of the world. */
 export interface ScmConversationWorld {
- /** IsPlayerInPositionForConversation for the ped. */
+ /** IsPlayerInPositionForConversation(false) for the ped. */
  inPosition(ped:number):boolean;
- /** The ped says a node's line: its GXT key, as a subtitle when the conversation has them. */
- pedSays(ped:number,node:ScmConversationNode,subtitles:boolean):void;
- /** The player answers yes or no to the node. */
- playerSays(ped:number,answer:'yes'|'no',node:ScmConversationNode):void;
+ /** CMessages::ClearSmallMessagesOnly. */
+ clearSmallMessages():void;
+ /** A GXT key for CONVERSATION_LINE_MS: AddMessageJumpQ (`instant`) or AddMessage, queued, with the message flag. */
+ message(key:string,flag:number,instant:boolean):void;
+ /** CPed::Say(context) for the ped, or for the player when `ped` is undefined. */
+ say(ped:number|undefined,context:number):void;
+ /** CConversations::AwkwardSay's mission audio slot 0 (the script's slot 1): the sample is preloaded and attached to
+  * the ped (the player when undefined), then played once loaded; Update waits until it has finished. A host without
+  * mission audio leaves it out, and the line is passed over. */
+  awkward?:{preload(sample:number,ped:number|undefined):void;loaded():boolean;play():void;finished():boolean};
 }
-/** How long a ped's line and the player's answer last (AUTHORED: the original waits for the speech sample, which is not
- * published, to finish). */
-export const CONVERSATION_PED_LINE_MS=2500,CONVERSATION_PLAYER_LINE_MS=1200;
+/** CConversationForPed::Update's times (iOS 0x1001a541c): a line stands 4000 ms (the subtitle's time, and the ped's
+ * turn before it waits; the player's before the ped goes on), an answer is taken 400 ms after the last change at the
+ * soonest, and a player out of position for 10000 ms is greeted again with the line the conversation is at. */
+export const CONVERSATION_LINE_MS=4000,CONVERSATION_ANSWER_DELAY_MS=400,CONVERSATION_GREET_AGAIN_MS=10000;
+/** CConversations::m_AwkwardSayStatus. */
+export const AWKWARD_SAY_INACTIVE=0,AWKWARD_SAY_LOADING=1,AWKWARD_SAY_PLAYING=2;
 /** The six-character upper-case name a node is stored under. */
 export const conversationNodeName=(name:string)=>name.slice(0,6).toUpperCase();
 export class ScmConversations {
  private readonly conversations:ScmConversationForPed[]=[];
  /** m_aTempNodes and the ped the script is setting up for. */
- private temp:ScmConversationNode[]=[];
+ private temp:Omit<ScmConversationNode,'yesIndex'|'noIndex'>[]=[];
  private settingUpFor?:number;
+ /** m_AwkwardSayStatus. */
+ awkwardSayStatus=AWKWARD_SAY_INACTIVE;
  get settingUp(){return this.settingUpFor!==undefined;}
  /** The slots a ped holds. */
  get count(){return this.conversations.filter(conversation=>conversation.ped!==undefined).length;}
  get all():readonly ScmConversationForPed[]{return this.conversations;}
  /** CConversations::FindConversationForPed. */
  forPed(ped:number){return this.conversations.find(conversation=>conversation.ped===ped);}
- /** The ped's slot, else a freed one, else a new one of the fourteen. */
- private ensure(ped:number){
-  const found=this.forPed(ped)??this.conversations.find(conversation=>conversation.ped===undefined);
-  if(found){found.ped=ped;return found;}
-  requireAsset(this.conversations.length<MAX_NUM_CONVERSATIONS,'CConversations holds fourteen conversations.');
-  const conversation:ScmConversationForPed={ped,enabled:true,status:CONVERSATION_INACTIVE,nodes:[],suppressSubtitles:false};
-  this.conversations.push(conversation);return conversation;
- }
  /** START_SETTING_UP_CONVERSATION: the ped is remembered and the temporary nodes start again from none. */
  startSettingUp(ped:number){this.settingUpFor=ped;this.temp=[];}
  /** The four node commands, which differ only in whether they carry answers and whether the speech is scripted.
@@ -80,15 +86,22 @@ export class ScmConversations {
    no:no===undefined?undefined:conversationNodeName(no),
    speech,speechYes,speechNo});
  }
- /** FINISH_SETTING_UP_CONVERSATION and its no-subtitles twin: the nodes become the ped's conversation. What
-  * DoneSettingUpConversation does beyond that is not reversed: the conversation is put at its first node, so a script
-  * can ask for it, and its status is left to CConversationForPed::Update, which is not reversed either. */
- finishSettingUp(suppressSubtitles:boolean){
+ /** FINISH_SETTING_UP_CONVERSATION and its no-subtitles twin: CConversations::DoneSettingUpConversation (iOS
+  * 0x1001a5b50). Each yes and no name becomes the index of the last node so named, or -1; the conversation takes the
+  * first slot with no ped (a second for a ped that has one already; a fifteenth crashes the original, and is refused
+  * here), at its first node, enabled, inactive, last changed now and never yet in position. */
+ finishSettingUp(suppressSubtitles:boolean,nowMs=0){
   requireAsset(this.settingUpFor!==undefined,'A conversation was finished with none started.');
-  const conversation=this.ensure(this.settingUpFor);
-  requireAsset(this.temp.length<=MAX_NUM_CONVERSATION_NODES,'Too many conversation nodes.');
-  conversation.nodes=this.temp;conversation.suppressSubtitles=suppressSubtitles;
-  conversation.currentNode=this.temp[0]?.name;
+  const temp=this.temp,last=(name:string|undefined)=>{let found=-1;if(name!==undefined)temp.forEach((node,j)=>{if(node.name===name)found=j;});return found;};
+  const nodes:ScmConversationNode[]=temp.map(node=>({...node,yesIndex:last(node.yes),noIndex:last(node.no)}));
+  let conversation=this.conversations.find(c=>c.ped===undefined);
+  if(!conversation){
+   requireAsset(this.conversations.length<MAX_NUM_CONVERSATIONS,'CConversations holds fourteen conversations.');
+   conversation={ped:undefined,enabled:true,status:CONVERSATION_INACTIVE,current:0,nodes:[],suppressSubtitles:false,lastChange:0,lastCloseEnough:0};
+   this.conversations.push(conversation);
+  }
+  Object.assign(conversation,{ped:this.settingUpFor,nodes,current:0,currentNode:nodes[0]?.name,lastChange:nowMs,lastCloseEnough:0,enabled:true,
+   suppressSubtitles,status:CONVERSATION_INACTIVE,inPosition:false});
   this.temp=[];this.settingUpFor=undefined;
   return conversation;
  }
@@ -100,8 +113,12 @@ export class ScmConversations {
   if(!conversation||conversation.currentNode===undefined||conversation.status===CONVERSATION_PLAYER_SPEAKING)return false;
   return conversation.currentNode===name.toUpperCase();
  }
- /** What a host moves as the conversation runs. */
- setCurrentNode(ped:number,name:string|undefined){const conversation=this.forPed(ped);if(conversation)conversation.currentNode=name&&conversationNodeName(name);}
+ /** What a host or a test moves directly. */
+ setCurrentNode(ped:number,name:string|undefined){
+  const conversation=this.forPed(ped);if(!conversation)return;
+  const key=name&&conversationNodeName(name),index=conversation.nodes.findIndex(node=>node.name===key);
+  conversation.currentNode=key;if(index>=0)conversation.current=index;
+ }
  setStatus(ped:number,status:number){const conversation=this.forPed(ped);if(conversation)conversation.status=status;}
  /** ENABLE_CONVERSATION: CConversations::EnableConversation sets the flag on the ped's conversation. A ped with none
   * would crash the original; here nothing happens. */
@@ -115,62 +132,67 @@ export class ScmConversations {
   * have been when the ped was deleted. */
  releaseGone(exists:(ped:number)=>boolean){for(const conversation of this.conversations)if(conversation.ped!==undefined&&!exists(conversation.ped))this.clearForPed(conversation.ped);}
  /** CLEAR_ALL_CONVERSATIONS. */
- clearAll(){this.conversations.length=0;this.temp=[];this.settingUpFor=undefined;}
+ clearAll(){this.conversations.length=0;this.temp=[];this.settingUpFor=undefined;this.awkwardSayStatus=AWKWARD_SAY_INACTIVE;}
  /** CConversations::IsConversationGoingOn, which GET_CONVERSATION_STATUS reads. */
  get goingOn(){return this.conversations.some(conversation=>conversation.status!==CONVERSATION_INACTIVE);}
- /** A conversation waits for the player's yes or no. */
- get waitingForInput(){return this.conversations.some(conversation=>conversation.ped!==undefined&&conversation.status===CONVERSATION_WAITING_FOR_INPUT);}
- private pendingAnswer?:'yes'|'no';
- /** CPad::ConversationYesJustDown or ConversationNoJustDown: taken by the conversation waiting for one, at its next
-  * update. Whether one was waiting (the button then says nothing to the street). */
- answer(kind:'yes'|'no'){if(!this.waitingForInput)return false;this.pendingAnswer=kind;return true;}
- private node(conversation:ScmConversationForPed,name:string|undefined){return name===undefined?undefined:conversation.nodes.find(node=>node.name===name);}
- private speak(conversation:ScmConversationForPed,node:ScmConversationNode,nowMs:number,world:ScmConversationWorld){
-  conversation.currentNode=node.name;conversation.status=CONVERSATION_PED_SPEAKING;conversation.lastChange=nowMs;
-  world.pedSays(conversation.ped!,node,!conversation.suppressSubtitles);
- }
- private end(conversation:ScmConversationForPed){conversation.status=CONVERSATION_INACTIVE;conversation.finished=true;}
- /** CConversations::Update, each conversation's CConversationForPed::Update (0x43C190, unreversed; AUTHORED after the
-  * retail game): an enabled conversation starts when the player comes into position and no other is going on, the ped
-  * saying its first node; a node with answers then waits for the player's yes or no, which he says before the ped
-  * goes on with the node it leads to; a node with none ends the conversation there, where IS_CONVERSATION_AT_NODE finds
-  * it, until the player steps away. Walking off while the ped waits for an answer drops the conversation back to its
-  * start. */
+ /** A conversation would take a yes or a no now: the player in position, not speaking, at a node with an answer. */
+ get waitingForInput(){return this.conversations.some(c=>c.ped!==undefined&&c.inPosition&&c.status!==CONVERSATION_PLAYER_SPEAKING&&!!c.nodes[c.current]&&(c.nodes[c.current].yesIndex>=0||c.nodes[c.current].noIndex>=0));}
+ /** CPad::ConversationYesJustPressed and ConversationNoJustPressed this frame, which every conversation's update reads. */
+ private pressed={yes:false,no:false};
+ /** The button reaches the conversations at their next update. Whether one would take it (the button then says
+  * nothing to the street). */
+ answer(kind:'yes'|'no'){this.pressed[kind]=true;return this.waitingForInput||this.goingOn;}
+ /** CConversations::Update (0x43C590, reversed): while a scripted line (AwkwardSay) loads and plays, no conversation
+  * updates; then each runs CConversationForPed::Update. The buttons are this frame's. */
  update(nowMs:number,world:ScmConversationWorld){
-  for(const conversation of this.conversations){
-   const ped=conversation.ped;if(ped===undefined)continue;
-   const inPosition=world.inPosition(ped);
-   switch(conversation.status){
-    case CONVERSATION_INACTIVE:
-     if(!inPosition){conversation.finished=false;break;}
-     if(!conversation.enabled||conversation.finished||!conversation.nodes.length)break;
-     if(this.conversations.some(other=>other!==conversation&&other.ped!==undefined&&other.status!==CONVERSATION_INACTIVE))break;
-     this.speak(conversation,conversation.nodes[0],nowMs,world);break;
-    case CONVERSATION_PED_SPEAKING:{
-     if(nowMs-(conversation.lastChange??nowMs)<CONVERSATION_PED_LINE_MS)break;
-     const node=this.node(conversation,conversation.currentNode);
-     if(node&&(node.yes||node.no)){conversation.status=CONVERSATION_WAITING_FOR_INPUT;conversation.lastChange=nowMs;}
-     else this.end(conversation);
-     break;
-    }
-    case CONVERSATION_WAITING_FOR_INPUT:{
-     if(!inPosition||!conversation.enabled){conversation.status=CONVERSATION_INACTIVE;conversation.currentNode=conversation.nodes[0]?.name;break;}
-     const kind=this.pendingAnswer;if(!kind)break;
-     this.pendingAnswer=undefined;
-     const node=this.node(conversation,conversation.currentNode),next=kind==='yes'?node?.yes:node?.no;
-     if(!node||!next)break;
-     conversation.chosen=next;conversation.status=CONVERSATION_PLAYER_SPEAKING;conversation.lastChange=nowMs;
-     world.playerSays(ped,kind,node);break;
-    }
-    case CONVERSATION_PLAYER_SPEAKING:{
-     if(nowMs-(conversation.lastChange??nowMs)<CONVERSATION_PLAYER_LINE_MS)break;
-     const next=this.node(conversation,conversation.chosen);conversation.chosen=undefined;
-     if(next)this.speak(conversation,next,nowMs,world);
-     else{conversation.currentNode=undefined;this.end(conversation);}
-     break;
-    }
+  const awkward=world.awkward;
+  if(this.awkwardSayStatus===AWKWARD_SAY_LOADING){if(!awkward||awkward.loaded()){awkward?.play();this.awkwardSayStatus=AWKWARD_SAY_PLAYING;}}
+  else if(this.awkwardSayStatus===AWKWARD_SAY_PLAYING){if(!awkward||awkward.finished()){this.awkwardSayStatus=AWKWARD_SAY_INACTIVE;this.updateAll(nowMs,world);}}
+  else this.updateAll(nowMs,world);
+  this.pressed={yes:false,no:false};
+ }
+ private updateAll(nowMs:number,world:ScmConversationWorld){for(const conversation of this.conversations)this.updateOne(conversation,nowMs,world);}
+ /** CConversations::AwkwardSay: the scripted line goes to mission audio slot 0, attached to the speaker. */
+ private awkwardSay(sample:number,ped:number|undefined,world:ScmConversationWorld){
+  if(!world.awkward)return;
+  world.awkward.preload(sample,ped);this.awkwardSayStatus=AWKWARD_SAY_LOADING;
+ }
+ private speak(ped:number|undefined,speech:number,world:ScmConversationWorld){
+  if(speech>=1)world.say(ped,speech);
+  if(speech<0)this.awkwardSay(-speech,ped,world);
+ }
+ private moveTo(conversation:ScmConversationForPed,index:number){conversation.current=index;conversation.currentNode=conversation.nodes[index]?.name;}
+ /** CConversationForPed::Update (iOS 0x1001a541c). Out of position (or disabled) a conversation goes inactive and is
+  * otherwise left as it is. In position, a player away for more than 10 s is greeted with the ped's line at the
+  * current node; the player's own line gives way to the ped's after 4 s or at a press of either button. From 400 ms
+  * after the last change, in any state but the player's speaking, a No (asked first) or a Yes the node leads on from
+  * makes the player say it: the answer's subtitle is the node's name and N or Y, the ped's next line queued behind
+  * it, and the conversation moves to that node. A ped's line becomes waiting for input after 4 s. A node with no
+  * answers never ends anything: the conversation stays there. Each conversation runs on its own. */
+ private updateOne(conversation:ScmConversationForPed,nowMs:number,world:ScmConversationWorld){
+  const ped=conversation.ped;if(ped===undefined)return;
+  conversation.inPosition=conversation.enabled&&world.inPosition(ped);
+  if(!conversation.inPosition){conversation.status=CONVERSATION_INACTIVE;return;}
+  const node=conversation.nodes[conversation.current];if(!node)return;
+  const {yes,no}=this.pressed,subtitles=!conversation.suppressSubtitles;
+  let pedSpeaks=nowMs>conversation.lastCloseEnough+CONVERSATION_GREET_AGAIN_MS;
+  if(!pedSpeaks&&conversation.status===CONVERSATION_PLAYER_SPEAKING&&(nowMs>conversation.lastChange+CONVERSATION_LINE_MS||no||yes))pedSpeaks=true;
+  if(pedSpeaks){
+   if(subtitles){world.clearSmallMessages();world.message(node.name,1,true);}
+   this.speak(ped,node.speech,world);
+   conversation.status=CONVERSATION_PED_SPEAKING;conversation.lastChange=nowMs;
+  }else if(nowMs>conversation.lastChange+CONVERSATION_ANSWER_DELAY_MS&&conversation.status!==CONVERSATION_PLAYER_SPEAKING){
+   const answer=node.noIndex>=0&&no?'N':node.yesIndex>=0&&yes?'Y':undefined;
+   if(answer){
+    if(subtitles){world.clearSmallMessages();world.message(node.name+answer,3,true);}
+    this.speak(undefined,answer==='N'?node.speechNo:node.speechYes,world);
+    this.moveTo(conversation,answer==='N'?node.noIndex:node.yesIndex);conversation.lastChange=nowMs;
+    const next=conversation.nodes[conversation.current];
+    if(subtitles&&next)world.message(next.name,1,false);
+    conversation.status=CONVERSATION_PLAYER_SPEAKING;
    }
   }
-  this.pendingAnswer=undefined;
+  conversation.lastCloseEnough=nowMs;
+  if(conversation.status===CONVERSATION_PED_SPEAKING&&nowMs>conversation.lastChange+CONVERSATION_LINE_MS)conversation.status=CONVERSATION_WAITING_FOR_INPUT;
  }
 }

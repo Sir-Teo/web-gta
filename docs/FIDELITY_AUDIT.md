@@ -9373,16 +9373,33 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 
 ## Scripted conversations
 
-- **`CConversationForPed::Update` and `IsPlayerInPositionForConversation` (AUTHORED; 0x43C190 and 0x43AC40 are
-  unreversed).** Set-up conversations now run: an enabled one starts when the player, on foot, comes within 3 units
-  across and 2 up or down of its ped (also on foot) and no other is going on; the ped says its first node, then a node
-  with answers waits for `CONVERSATION_YES` or `CONVERSATION_NO` (Y and N, which go to the conversation before the
-  street), the player says his answer, and the ped goes on with the node it leads to; a node with none ends it there,
-  where `IS_CONVERSATION_AT_NODE` finds it, until the player steps away. Walking off while the ped waits drops it back
-  to its start. A ped's line goes up as a subtitle for 2.5 s unless the conversation was finished without subtitles
-  (dealer.scm does that in English); the player's answer takes 1.2 s. The speech itself is in the unpublished banks.
-  A dealer now asks CJ "You want some stuff?" and takes his answer (spec `ped-brains`); gf_meeting, HEIST1 and MUSIC1
-  use the same machinery.
+- **`CConversationForPed::Update` and `IsPlayerInPositionForConversation` were AUTHORED** (0x43C190 and 0x43AC40 are
+  unreversed). They were exclusive, restarted from the first node, ended at a node with no answers, and stood 3 units
+  across.
+- **They now follow the iOS executable's** (0x1001a541c and 0x1001a58d8). `DoneSettingUpConversation` (0x1001a5b50)
+  does too: each yes and no name becomes the index of the last node so named, and the conversation takes the first
+  free slot, enabled and never yet in position.
+  - **When the player counts as in position:**
+    - he is within 4 units of the ped (3D);
+    - their forwards' dot is at most 0, so they do not face the same way;
+    - he is standing, under 0.01 units a frame;
+    - neither is in a vehicle.
+  - **The state machine,** with each conversation running on its own:
+    - Out of position, a conversation goes inactive and is otherwise left as it was.
+    - A player who has not been in position for 10 s is greeted with the line at the current node.
+    - From 400 ms after the last change, in any state but the player's speaking, a No (checked first) or a Yes makes the
+      player answer. His subtitle is the node's name plus N or Y, the ped's next line is queued behind it, and the
+      conversation moves to that node.
+    - The ped goes on 4 s later, or at once at a press of either button.
+    - A ped's line turns into waiting for input after 4 s. A node with no answers ends nothing.
+  - **Lines:** they stand 4 s as subtitles. A scripted line (`AwkwardSay`, the negative speech ids `main.scm`'s
+    conversations use) plays through mission audio slot 1, and no conversation updates until it has played.
+  - **Not ported:**
+    - the position test's task checks: either ped fighting, jogging or running, or in a partner chat;
+    - the ped hurt by the player in the last 6 s;
+    - the ped speech itself (the banks are unpublished).
+  - **Specs:** `scm-conversations` (unit) and `ped-brains`. In `ped-brains`, CJ faces the dealer and waits for the game
+    clock to pass 10 s.
 
 ## Fallen through the map
 

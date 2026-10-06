@@ -1,4 +1,4 @@
-import {CONVERSATION_PED_LINE_MS} from '../engine/ScmConversations';
+import {CONVERSATION_LINE_MS} from '../engine/ScmConversations';
 import {SPECIAL_MODELS_RESOURCE_ID,SPECIAL_PED_MODELS} from '../engine/ScmCutscene';
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
@@ -767,8 +767,8 @@ export interface ScmMissionWorld {
 }
 /** CTheScripts' player slot: the script always addresses player zero, whose ped it creates first. */
 export const PLAYER_PED_HANDLE=1,PLAYER_GROUP_HANDLE=0;
-/** How near a ped the player stands for its conversation (AUTHORED; see playerInPositionForConversation). */
-const CONVERSATION_REACH=3,CONVERSATION_HEIGHT=2;
+/** IsPlayerInPositionForConversation's reach (3D) and the most the player may move, units a frame across the ground. */
+const CONVERSATION_REACH=4,CONVERSATION_STILL_SPEED=.01;
 /** CVehicle::CanPedOpenLocks answered for the player by eCarLock. */
 export const playerLockedOut=(lock:number)=>lock===2||lock===3||lock===4||lock===5||lock===7;
 /** The browser holds one vehicle for the player at a time, so the script's questions about the car it is in are
@@ -2604,24 +2604,44 @@ export class ScmMission {
  private readonly resprayedCars=new WeakSet<object>();
  /** What the host calls on the vehicle a Pay 'n' Spray resprays. */
  markResprayed(car:object){this.resprayedCars.add(car);}
- /** CConversationForPed::IsPlayerInPositionForConversation (0x43AC40, unreversed; AUTHORED): both on foot and alive,
-  * the player within CONVERSATION_REACH of the ped across and CONVERSATION_HEIGHT up or down. */
+ /** CConversationForPed::IsPlayerInPositionForConversation (0x43AC40, unreversed; iOS 0x1001a58d8) for a script's
+  * conversation: the player within 4 units of the ped, the two not facing the same way (the dot of their forwards
+  * no more than 0, across the ground here), the player standing (under 0.01 a frame), and neither in a vehicle. A
+  * script's ped passes the rest of the executable's ped test once it is not fighting, jogging or running; those
+  * tests, the player's fighting, and the ped hurt by the player in the last 6 s are not ported. Neither ped's health
+  * is asked. */
  private playerInPositionForConversation(handle:number){
   const me=this.world.playerPed();
-  if(me.dead||me.health<=0||me.vehicle)return false;
-  if(!this.peds.exists(handle)||(this.peds.healthOf(handle)??0)<=0||this.peds.rideOf(handle))return false;
+  if(me.vehicle||!this.peds.exists(handle)||this.peds.rideOf(handle))return false;
   const p=this.peds.positionOf(handle),q=me.position;
-  return Math.hypot(p.x-q.x,p.y-q.y)<CONVERSATION_REACH&&Math.abs(p.z-q.z)<CONVERSATION_HEIGHT;
+  if(Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z)>CONVERSATION_REACH)return false;
+  // CPlaceable::GetForward across the ground, (-sin h, cos h) for heading h.
+  const a=(me.heading??0)*Math.PI/180,b=this.peds.headingOf(handle)*Math.PI/180;
+  if(Math.sin(a)*Math.sin(b)+Math.cos(a)*Math.cos(b)>0)return false;
+  return !((me.moveSpeed??0)/50>CONVERSATION_STILL_SPEED);
  }
- /** CConversations::Update after the scripts: the ped's line goes up as a subtitle, PRINT_NOW's way, when the
-  * conversation has them (dealer.scm turns them off in English). */
+ /** CConversations::Update after the scripts. The lines go up as subtitles for 4 s (with the Display settings'
+  * Subtitles off they are not printed), and a scripted line (AwkwardSay) plays through mission audio slot 1. */
  private updateConversations(nowMs:number){
-  const conversations=this.runtime.game.conversations;if(!conversations.count)return;
+  const game=this.runtime.game,conversations=game.conversations;if(!conversations.count)return;
   conversations.update(nowMs,{
    inPosition:ped=>this.playerInPositionForConversation(ped),
-   // Their lines are subtitles: with the Display settings' Subtitles off they are not printed.
-   pedSays:(_ped,node,subtitles)=>{if(subtitles&&this.runtime.game.showSubtitles)this.runtime.game.messages.addMessageJump(node.name,CONVERSATION_PED_LINE_MS,1,false,nowMs);},
-   playerSays:()=>{},
+   clearSmallMessages:()=>{if(game.showSubtitles)game.messages.clearSmallMessagesOnly();},
+   message:(key,flag,instant)=>{
+    if(!game.showSubtitles)return;
+    if(instant)game.messages.addMessageJump(key,CONVERSATION_LINE_MS,flag,true,nowMs);else game.messages.addMessageQ(key,CONVERSATION_LINE_MS,flag,true,nowMs);
+   },
+   // CPed::Say: the ped speech banks are not published.
+   say:()=>{},
+   awkward:{
+    preload:(sample,ped)=>{game.missionAudio.preload(1,sample);game.missionAudio.attach(1,'ped',ped??PLAYER_PED_HANDLE);this.adapterRef.loadMissionAudio?.(1,sample);},
+    loaded:()=>game.missionAudio.hasLoaded(1),
+    play:()=>{
+     const audio=game.missionAudio,sample=audio.slots[0].audioEvent,subtitle=game.messages.briefs[0]?.key;
+     if(audio.play(1,this.adapterRef.missionAudioLengthMs?.(sample,subtitle)))this.adapterRef.playMissionAudio?.(1);
+    },
+    finished:()=>game.missionAudio.hasFinished(1),
+   },
   });
  }
  private processGarageDoors(nowMs:number){

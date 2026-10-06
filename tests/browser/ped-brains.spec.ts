@@ -51,8 +51,13 @@ test('a dealer asks CJ if he wants some, and Y answers him',async({page})=>{
  await expect.poll(async()=>(await state(page)).pedestrians.people.find((q:any)=>q.id===dealer)?.reaction,{timeout:30000}).toBe('dealer_idle');
  const handle=await page.evaluate(()=>{const m=(window as any).__game.missionForProfiling();return m.runtime.game.conversations.all.find((c:any)=>c.ped!==undefined)?.ped;});
  expect(handle).toBeDefined();
- // CJ steps up beside him.
- await page.evaluate(id=>{const g=(window as any).__game,q=g.pedestrians().people.find((x:any)=>x.id===id).actor.player.position;g.placePlayer(q.x+1.5,q.y,q.z);},dealer);
+ // CConversationForPed::Update greets a player who has not been in position for 10 s (m_LastTimeWeWereCloseEnough is
+ // 0 at set-up), so the game clock must be past 10 s, as it is in play.
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().clockMs),{timeout:30000}).toBeGreaterThan(10500);
+ // CJ steps up in front of him and faces him: IsPlayerInPositionForConversation wants the two within 4 units, facing
+ // other ways (their forwards' dot no more than 0), and CJ standing.
+ await page.evaluate(id=>{const g=(window as any).__game,a=g.pedestrians().people.find((x:any)=>x.id===id).actor.player,q=a.position,h=a.heading;
+  g.placePlayer(q.x+Math.sin(h)*2.5,q.y,q.z+Math.cos(h)*2.5);g.sim.player.heading=h+Math.PI;},dealer);
  const conversation=()=>page.evaluate(h=>{const c=(window as any).__game.missionForProfiling().runtime.game.conversations.forPed(h);return {status:c?.status,node:c?.currentNode};},handle);
  await expect.poll(async()=>(await conversation()).status,{timeout:20000}).toBe(3);
  expect((await conversation()).node).toBe('DEAL1');

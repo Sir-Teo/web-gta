@@ -1136,8 +1136,8 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_UP_CONVERSATION_END_NODE_WITH_SCRIPTED_SPEECH:(t,p,i)=>{
   game(t,i).conversations.setUpNode(t.text(p[0]),undefined,undefined,-t.readInt(p[1]),0,0);
  },
- FINISH_SETTING_UP_CONVERSATION:(t,_p,i)=>{releaseGoneConversations(t,i);game(t,i).conversations.finishSettingUp(false);},
- FINISH_SETTING_UP_CONVERSATION_NO_SUBTITLES:(t,_p,i)=>{releaseGoneConversations(t,i);game(t,i).conversations.finishSettingUp(true);},
+ FINISH_SETTING_UP_CONVERSATION:(t,_p,i,nowMs)=>{releaseGoneConversations(t,i);game(t,i).conversations.finishSettingUp(false,nowMs);},
+ FINISH_SETTING_UP_CONVERSATION_NO_SUBTITLES:(t,_p,i,nowMs)=>{releaseGoneConversations(t,i);game(t,i).conversations.finishSettingUp(true,nowMs);},
  IS_CONVERSATION_AT_NODE:(t,p,i)=>{
   releaseGoneConversations(t,i);
   t.updateCompareFlag(game(t,i).conversations.isAtNode(t.readInt(p[0]),t.text(p[1])),negated(i));
