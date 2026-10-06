@@ -71,6 +71,8 @@ export type ScmScriptedTask=
  |{kind:'kindaStayInSamePlace';state:boolean}
  |{kind:'useMobilePhone';start:boolean}
  |{kind:'pickUpObject';object:number;offset:{x:number;y:number;z:number};bone:number;orientation:number;animationName:string;animationFile:string;time:number}
+ /** TASK_GO_TO_COORD_WHILE_SHOOTING: `turnRadius` is the go-to's target radius and `stopRadius` its slow-down distance
+  * (the iOS handler hands operands 5 and 6 to the constructor in that order). */
  |{kind:'goToCoordWhileShooting';x:number;y:number;z:number;speed:number;turnRadius:number;stopRadius:number;target:number}
  |{kind:'carDriveWander';vehicle:number;speed:number;drivingMode:number}
  |{kind:'followPatrolRoute';speed:number;mode:number}

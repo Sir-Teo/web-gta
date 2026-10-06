@@ -9299,8 +9299,11 @@ that did anything.
       this also covers.
     - Not ported: bIgnoreWeaponRange (TASK_SET_IGNORE_WEAPON_RANGE_FLAG is not run), and the back-off within about 2.45
       units of the aim target.
-    TASK_GO_TO_COORD_WHILE_SHOOTING shares these functions on iOS: it differs by firing bursts, and by a FIRE one frame
-    in 64 on the arm path. The port's version of it is unchanged.
+  - **TASK_GO_TO_COORD_WHILE_SHOOTING** (iOS handler 0x1001e83cc) builds CTaskComplexGoToPointShooting, which runs the
+    aiming walk's own functions: the same 0.5 stop radius and the same weapon branches. It differs by firing bursts
+    (and, on the arm path, a FIRE one frame in 64, which the port leaves to its own gun cadence). The handler hands
+    operand 5 to the constructor as the target radius and operand 6 as the slow-down distance; the port had taken 6 as
+    the stop radius.
   - **TASK_COWER**: CTaskSimpleCower, HANDSCOWER played once (not looped, removed when over).
   - **Not followed:** GET_CHAR_HIGHEST_PRIORITY_EVENT stays skipped (the port has no ped event queue to read).
   - Specs: `impound-script` (browser: $7464 set by CJ's Los Santos police station, IMPND running with nothing given up,

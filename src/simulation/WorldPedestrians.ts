@@ -1842,7 +1842,7 @@ export class WorldPedestrians {
     // one that can aim and fires instantly or over an area aims with CTaskSimpleGunControl (NONE, 600000 ms); anything
     // else (unarmed, melee, a thrown weapon, the camera) only walks.
     const info=ped.weapon?.info;
-    const aimBranch=!order.aimOnly||order.gunControlRadius===undefined?undefined:!info?'walk':hasWeaponFlag(info,WEAPON_FLAG.aimWithArm)?'arm'
+    const aimBranch=order.gunControlRadius===undefined?undefined:!info?'walk':hasWeaponFlag(info,WEAPON_FLAG.aimWithArm)?'arm'
      :hasWeaponFlag(info,WEAPON_FLAG.canAim)&&(info.fire==='instant'||info.fire==='area')?'gunControl':'walk';
     ped.order={kind:'goToPointShooting',x:order.x,z:-order.y,y:order.z>MAP_Z_LOW_LIMIT?order.z:undefined,moveState:order.moveState,
      radius:aimBranch==='gunControl'?order.gunControlRadius!:order.radius,

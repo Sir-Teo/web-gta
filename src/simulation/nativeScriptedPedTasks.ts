@@ -73,8 +73,8 @@ export type ScriptedPedOrder=
   * `aimOnly`, CTaskComplexGoToPointAiming: the gun aimed and not fired, at the ped (a handle; -1 none) or else at
   * `aimPoint` (script coordinates). */
  |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number;aimOnly?:boolean;aimPoint?:{x:number;y:number;z:number};
-  /** CTaskComplexGoToPointAiming with a gun aimed from the shoulder (canAim, instant-hit or area): CTaskSimpleGunControl's
-   * radius, inside which the ped stops and goes on aiming rather than ending the task. */
+  /** CTaskComplexGoToPointAiming (and Shooting) with a gun aimed from the shoulder (canAim, instant-hit or area):
+   * CTaskSimpleGunControl's radius, inside which the ped stops and goes on aiming rather than ending the task. */
   gunControlRadius?:number}
  /** CTaskComplexSeekEntityAiming (0x694B90 on, reversed): seek a ped to `seekRadius` (CTaskComplexSeekEntity, 50 s
   * at most), aiming at it once within `aimRadius`; there, stand still aiming for 2 s, or until it is `seekRadius` off
@@ -218,8 +218,11 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   }
   // CTaskSimpleCower: CTaskSimpleRunAnim of HANDSCOWER (not looped, removed once over), and then the task is.
   case 'cower':return {kind:'playAnim',file:'PED',name:'handscower',loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY};
+  // CTaskComplexGoToPointShooting (iOS handler 0x1001e83cc) runs CTaskComplexGoToPointAiming's own subtask functions:
+  // operand 5 is the target radius and 6 the slow-down distance, with the same 0.5 stop radius and weapon branches,
+  // firing bursts where the aiming walk only aims.
   case 'goToCoordWhileShooting':return world.ped(task.target)?{kind:'goToPointShooting',x:task.x,y:task.y,z:task.z,moveState:task.speed,
-   radius:task.stopRadius>0?task.stopRadius:GO_STRAIGHT_TARGET_RADIUS,target:task.target}:undefined;
+   radius:Math.fround(task.stopRadius)===2?task.turnRadius:GO_STRAIGHT_TARGET_RADIUS,target:task.target,gunControlRadius:task.turnRadius}:undefined;
   case 'destroyCar':return world.vehicle?.(task.vehicle)?{kind:'destroyCar',vehicle:task.vehicle}:undefined;
   // TASK_GOTO_CAR: CTaskComplexSeekEntity after the car, at a run, to within the radius, for the time; the car's place
   // is taken as the task starts.

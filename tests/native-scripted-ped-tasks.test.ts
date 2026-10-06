@@ -194,8 +194,12 @@ describe('the tasks a script gives a ped',()=>{
  });
 
  test('going to a point while shooting at a ped',()=>{
-  expect(scriptedPedOrder({kind:'goToCoordWhileShooting',x:1,y:2,z:3,speed:6,turnRadius:.5,stopRadius:1,target:3},world({3:{x:0,y:0,z:0}})))
-   .toEqual({kind:'goToPointShooting',x:1,y:2,z:3,moveState:6,radius:1,target:3});
+  // Operand 5 (turnRadius) is the target radius and 6 (stopRadius) the slow-down distance: the walk stops at 0.5 unless
+  // the slow-down distance is exactly 2.
+  expect(scriptedPedOrder({kind:'goToCoordWhileShooting',x:1,y:2,z:3,speed:6,turnRadius:.75,stopRadius:1,target:3},world({3:{x:0,y:0,z:0}})))
+   .toEqual({kind:'goToPointShooting',x:1,y:2,z:3,moveState:6,radius:.5,target:3,gunControlRadius:.75});
+  expect(scriptedPedOrder({kind:'goToCoordWhileShooting',x:1,y:2,z:3,speed:6,turnRadius:.75,stopRadius:2,target:3},world({3:{x:0,y:0,z:0}})))
+   .toMatchObject({radius:.75});
  });
 
  test('dying is its own order',()=>{
