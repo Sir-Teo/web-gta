@@ -8597,7 +8597,8 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   driver keeps the wheel until CJ is in and then leaves by his own door. After `TASK_SIMPLE_CAR_GET_IN`,
   `MakeUndraggedPassengerPedsLeaveCar` (unreversed; AUTHORED from its name and call sites) has every living cop still
   aboard but the driver get out by his own door with the unit's exit clips and go on foot; the unit is let go once
-  they are out. A cop dead in his seat is left as before. Only police crews ride as passengers this way so far: the
+  they are out; one still in his door when CJ drives off rolls out with the car's roll-out clip and gets up (AUTHORED,
+  `CTaskSimpleCarJumpOut`'s shape). A cop dead in his seat is left as before. Only police crews ride as passengers this way so far: the
   ambulance's rear medic, the fire truck's second man and a drive-by shooter still vanish when CJ takes their car.
   Spec: `police-jack`.
 - **Aiming from a sprint did nothing.** The aim button with a gun now drops CJ out of the sprint into the aimed walk.

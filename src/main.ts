@@ -4902,7 +4902,7 @@ async function boot() {
             traffic.peds=()=>{const out=pedestrians?.positions()??[];if(!fleet?.occupied)out.push({...sim.player.position});return out;};
             police.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
             police.camera=()=>{const forward=render.camera.getWorldDirection(render.camera.position.clone());return {position:render.camera.position,forward};};
-            police.spawnOfficer=(model,weapon,position,heading,crew,accuracy)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew,accuracy);};
+            police.spawnOfficer=(model,weapon,position,heading,crew,accuracy,lying)=>{void pedestrians?.spawnOfficer(model,weapon,position,heading,crew,accuracy,false,lying);};
             police.onUnitDropped=unit=>pedestrians?.releaseCrew(unit);
             police.crew={list:unit=>pedestrians?.footCrew(unit)??[],goTo:(id,point,walk)=>pedestrians?.sendOfficer(id,point,walk),board:id=>pedestrians?.boardOfficer(id)??false};
             // CTaskComplexArrestPed opens the door and waits for the suspect to be out; the arrest itself follows on foot.

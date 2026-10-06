@@ -179,7 +179,7 @@ export class WorldPolice {
  canSpawn:(point:V3,radius:number)=>boolean=()=>true;
  /** A unit the police stop tracking (its car taken, gone or culled): its crew on foot are ordinary peds from then on. */
  onUnitDropped?:(unit:object)=>void;
- spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy?:number)=>void;
+ spawnOfficer?:(model:string,weapon:number,position:V3,heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy?:number,lying?:{key:string;clip:NativeAnimation})=>void;
  /** The street population's cops on foot: list a unit's crew, send one toward a door point (undefined resumes the pursuit), or take one into the car. */
  crew?:{list:(unit:object)=>FootCrew[];goTo:(id:number,point?:{x:number;z:number},walk?:boolean)=>void;board:(id:number)=>boolean};
  /** CTaskComplexLeaveCarAndDie for a unit's shot driver once the car rests: the host plays his exit and lays him dead. */
@@ -400,18 +400,22 @@ export class WorldPolice {
  /** Crew exiting: CTaskSimpleCarGetOut clips at the door, then CTaskSimpleCarSetPedOut. */
  private stepLeaving(u:Unit,dt:number){
   const car=u.car;
+  // The player drives off the car he took before a cop is out of it: CTaskSimpleCarJumpOut, out of his door with the
+  // roll-out clip, to get up an officer (AUTHORED, as the leave task's sensible-leave flag is unknown).
+  if(u.taken&&u.leaving.length&&!car.canStepOut()){for(const l of u.leaving.splice(0))this.finishExit(u,l.seat,true);return;}
   for(let i=u.leaving.length-1;i>=0;i--){
    const l=u.leaving[i];l.time+=dt;
    const ratio=nativeDoorAnimRatio(car.animGroup,'getOut',l.time,car.doors[l.door].ratio,0);if(ratio!==undefined&&!car.doorMissing(l.door))car.openDoor(l.door,ratio);
    if(l.time>=l.clip.duration){u.leaving.splice(i,1);this.finishExit(u,l.seat);}
   }
  }
- private finishExit(u:Unit,seat:number){
+ private finishExit(u:Unit,seat:number,rollout=false){
   u.seats[seat]=false;const local=this.doorPoint(u.car,seat);
   const world=local?u.car.worldPoint(local):new RAPIER.Vector3(u.car.car.body.translation().x,u.car.car.body.translation().y,u.car.car.body.translation().z);
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,u.car.car.body);
   // Out of a car the player took, a cop is no longer the unit's: it is let go as soon as he is out.
-  this.spawnOfficer?.(u.member.model,seat===u.shotgunSeat?25:u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),u.taken?undefined:{unit:u,seat},u.member.accuracy);
+  const rolled=rollout?this.clips.slot(u.car.animGroup,seat%2===0?VEHICLE_ANIM.rolloutLHS:VEHICLE_ANIM.rolloutRHS):undefined;
+  this.spawnOfficer?.(u.member.model,seat===u.shotgunSeat?25:u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),u.taken?undefined:{unit:u,seat},u.member.accuracy,rolled&&{key:rolled.key,clip:rolled.clip});
  }
  private entrySlot(seat:number,phase:Entering['phase']){
   const left=seat%2===0,rear=seat>=2;
