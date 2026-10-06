@@ -806,10 +806,12 @@ async function boot() {
   // The driver who leaves a police, emergency or drive-by car is the unit's own ped, as drawn in its seat; anyone else is
   // the zone roster's driver the car was given.
   carEntry.driverOf=car=>police?.driverOf(car)??emergency?.driverOf(car)??driveby?.driverOf(car);
-  // A police car's front passenger is dragged out by the passenger's door, and the crew CJ leaves aboard get out.
-  carEntry.frontPassengerOf=car=>police?.frontPassengerOf(car);
-  carEntry.onPassengerDragged=car=>police?.dragPassenger(car);
-  carEntry.onGotIn=car=>police?.crewLeave(car);
+  // A unit's car has a driver only while he is in his seat; its front passenger is dragged out by the passenger's
+  // door, and the crew CJ leaves aboard get out.
+  carEntry.driverSeated=car=>police?.driverSeated(car)??emergency?.driverSeated(car);
+  carEntry.frontPassengerOf=car=>police?.frontPassengerOf(car)??emergency?.frontPassengerOf(car);
+  carEntry.onPassengerDragged=car=>{police?.dragPassenger(car);emergency?.dragPassenger(car);};
+  carEntry.onGotIn=car=>{police?.crewLeave(car);emergency?.crewLeave(car);};
   carEntry.onDriverOut=(car,position,heading,lying,who,seat=0)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);const model=who?.model??occupants.driverModel(car),release=()=>carEntry.releaseDragged(car,seat);
    if(!seat&&car.driverDead||who?.dead){if(!seat)car.driverDead=false;pedestrians?.spawnDead(model,position,heading,car.gang);release();return;}
    // A cop dragged out of his car gets up a cop, armed, and goes on as any officer on foot (CCopPed).

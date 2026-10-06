@@ -806,6 +806,11 @@ export class WorldPolice {
   for(const e of u.entering.splice(0))if(e.seat)this.finishExit(u,e.seat);
   for(let seat=1;seat<4;seat++)if(u.seats[seat]&&!u.deadSeats[seat])this.beginExit(u,seat);
  }
+ /** Whether a unit's driver is in his seat (alive or dead), not getting in or out; undefined for any other car. */
+ driverSeated(car:WorldCar){
+  const u=this.units.find(u=>u.car===car);
+  return u&&u.seats[0]&&!u.leaving.some(l=>l.seat===0)&&!u.entering.some(e=>e.seat===0);
+ }
  /** Seated and leaving crews for the occupant renderer. */
  poses():PolicePose[]{
   const out:PolicePose[]=[];

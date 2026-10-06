@@ -256,7 +256,12 @@ export class CarEntry {
   // A roll-out at speed may leave over open air (a car off a ramp or a pier): the capsule stands at the door point.
   return !this.sim.world.intersectionWithShape({x:world.x,y:(ground??world.y-1)+.95,z:world.z},{x:0,y:0,z:0,w:1},new RAPIER.Capsule(.55,.3),undefined,undefined,this.sim.playerCollider,car.car.body);
  }
- private jackRequired(car:WorldCar){return !!car.autopilot&&!car.occupied&&!car.driverOut;}
+ /** CCarEnterExit::IsCarSlowJackRequired for the driver's door: m_pDriver is set. A car a unit drives (police,
+  * emergency, drive-by) says whether its driver is in the seat (a roadblock's crew stand at the block, an ambulance's
+  * are treating a body, its van held on its brakes all the while); any other car has a driver while it is driven. */
+ private jackRequired(car:WorldCar){return !car.occupied&&!car.driverOut&&(this.driverSeated?.(car)??!!car.autopilot);}
+ /** Whether a unit's car has its driver in his seat; undefined for a car no unit drives. */
+ driverSeated?:(car:WorldCar)=>boolean|undefined;
  /** CTaskComplexEnterCarAsDriver from on foot. */
   enter(car:WorldCar){
    if(this.active)return false;
