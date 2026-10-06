@@ -7246,8 +7246,18 @@ the first ones now implemented:
   - FindNodeCoorsForScript gives the point: beside a node that has width, width + 2.7 to the left of the way to its
     first link, turned to face east. For the heading, FindNodeOrientationForCarPlacement gives the heading of that
     first link.
-- FindNodeClosestToCoors's measure is |dx| + |dy| + 3|dz|. The Nth search runs it N + 1 times, passing over the nodes
-  it has already picked. It searches only the loaded areas, which stream round the player while a mission runs. With
+- FindNodeClosestToCoors's measure was reVC's |dx| + |dy| + 3|dz|. It is now the iOS executable's (0x1001ba348,
+  0x1001bba4c, 0x1001bb90c):
+  - the score is 0.3 × (|dx| + |dy| + 3|dz|), plus 0.2 × the distance from the point to the nearest of the node's
+    links, the segments to its loaded linked nodes (`CCollision::DistToLineSqr`);
+  - the link term is reckoned only when the first part already beats the best;
+  - a node with no links gets about 200 more;
+  - the score must be under the search's limit;
+  - water and land nodes never mix.
+
+  The Nth search runs it N + 1 times, passing over the nodes it has already picked. The executable looks in the
+  point's own area first and then in up to four rings of areas round it; ties here go by the order of the loaded
+  areas. It searches only the loaded areas, which stream round the player while a mission runs. With
   nothing found, the answer is the zero vector, as SA's FindNodeCoorsForScript gives for an invalid node.
 
 ## Stuck and upside-down car checks

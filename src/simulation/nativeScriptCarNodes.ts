@@ -1,7 +1,9 @@
 import type {PathArea,PathNode} from '../assets/pathNodes';
 /* The car path questions the script asks, over the loaded areas (native coordinates):
- * - CPathFind::FindNodeClosestToCoors (SA's unreversed, reVC's): the node with the least |dx| + |dy| + 3|dz|.
- * - FindNthNodeClosestToCoors: the same N more times, each time passing over the nodes already picked.
+ * - CPathFind::FindNodeClosestToCoors (SA's unreversed; the iOS executable's, 0x1001ba348): the node with the least
+ *   0.3 × (|dx| + |dy| + 3|dz|) + 0.2 × its distance to the nearest of its links (see nodeScore).
+ * - FindNthNodeClosestToCoors (iOS 0x1001bbce8): the same N more times, each time passing over the nodes already
+ *   picked.
  * - FindNodeCoorsForScript (gta-reversed 0x4505E0): a node of some width gives a point beside it, across from its
  *   first link, so a car set down there is not on the divider.
  * - FindNodeOrientationForCarPlacement (reVC's): the heading of the node's first link.
@@ -16,7 +18,7 @@ function linked(areas:ReadonlyMap<number,PathArea>,node:PathNode,slot=0){
 export interface NodeSearch {
  /** PATH_TYPE_VEH or PATH_TYPE_PED. */
  kind:'vehicle'|'pedestrian';
- /** Only a node nearer than this is found. */
+ /** Only a node scoring under this is found. */
  maxDistance:number;
  /** Nodes switched off (SWITCH_ROADS_OFF and the like) are passed over. */
  ignoreDisabled?:boolean;
@@ -24,17 +26,38 @@ export interface NodeSearch {
  water?:boolean;
 }
 
-/** FindNthNodeClosestToCoors: the nth (0 the nearest) node of the kind. Nothing when fewer than n + 1 qualify. */
+/** CCollision::DistToLineSqr (iOS 0x10017fdec): the squared distance from `p` to the segment from `a` to `b`. */
+export function distToLineSqr(a:readonly number[],b:readonly number[],p:{x:number;y:number;z:number}){
+ const vx=b[0]-a[0],vy=b[1]-a[1],vz=b[2]-a[2],wx=p.x-a[0],wy=p.y-a[1],wz=p.z-a[2],dot=vx*wx+vy*wy+vz*wz,ww=wx*wx+wy*wy+wz*wz;
+ if(dot<=0)return ww;
+ const vv=vx*vx+vy*vy+vz*vz;
+ if(dot>=vv)return (p.x-b[0])**2+(p.y-b[1])**2+(p.z-b[2])**2;
+ const r=ww-dot*dot/vv;return r<=0?0:r;
+}
+/** FindNodeClosestToCoors' score of a node (iOS 0x1001bba4c and 0x1001bb90c): 0.3 × (|dx| + |dy| + 3|dz|), and, only
+ * when that alone beats `best`, 0.2 × the distance to the nearest of the node's links (the segments to its loaded
+ * linked nodes; 999999.875 squared for none, so a node with no links scores about 200 more). */
+export function nodeScore(areas:ReadonlyMap<number,PathArea>,node:PathNode,point:{x:number;y:number;z:number},best:number){
+ const f=Math.fround,[x,y,z]=node.position;
+ const d=f(f(f(Math.abs(x-point.x)+Math.abs(y-point.y))+f(Math.abs(z-point.z)*3))*.3);
+ if(!(d<best))return d;
+ let nearest=999999.875;
+ for(let i=0;i<node.linkCount;i++){const to=linked(areas,node,i);if(to)nearest=Math.min(nearest,distToLineSqr(node.position,to.position,point));}
+ return f(d+f(.2*Math.sqrt(nearest)));
+}
+/** FindNthNodeClosestToCoors: the nth (0 the nearest) node of the kind, the score under `maxDistance`. Nothing when
+ * fewer than n + 1 qualify. Ties keep the first found (the executable looks in the point's own area first, then in
+ * rings of areas round it; here the loaded areas in their order). */
 export function findNthNodeClosestToCoors(areas:ReadonlyMap<number,PathArea>,point:{x:number;y:number;z:number},nth:number,search:NodeSearch){
  const picked=new Set<PathNode>();
  for(let n=0;;n++){
-  let best:PathNode|undefined,bestDistance=Infinity;
+  let best:PathNode|undefined,bestScore=search.maxDistance;
   for(const area of areas.values())for(const node of area.nodes){
    if(node.kind!==search.kind||picked.has(node)||node.water!==!!search.water||search.ignoreDisabled&&node.switchedOff)continue;
-   const d=Math.abs(node.position[0]-point.x)+Math.abs(node.position[1]-point.y)+3*Math.abs(node.position[2]-point.z);
-   if(d<bestDistance){bestDistance=d;best=node;}
+   const score=nodeScore(areas,node,point,bestScore);
+   if(score<bestScore){bestScore=score;best=node;}
   }
-  if(!best||!(bestDistance<search.maxDistance))return undefined;
+  if(!best)return undefined;
   if(n>=nth)return best;
   picked.add(best);
  }
