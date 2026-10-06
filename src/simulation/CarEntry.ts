@@ -95,6 +95,9 @@ export class CarEntry {
  private npcs:{car:WorldCar;clip:ClipUse;time:number;kind:'jacked'|'getOut';done:boolean;onOut?:(position:V3,heading:number)=>void;who?:LeavingDriver;
   /** The driver (0, the left front door) or the front passenger (1, dragged out by the right front door). */
   seat:0|1;
+  /** Seconds he sits on before his get-out starts (ComputePedEnteredVehicleResponse's wait), on the clip's first
+   * frame with the door shut. */
+  wait?:number;
   /** A dragged-out driver drawn on his clip's last frame until the ped who replaces him exists (releaseDragged), so a
    * model still loading leaves no gap where he vanishes; at most HELD_SECONDS. */
   held?:number}[]=[];
@@ -533,12 +536,12 @@ export class CarEntry {
   const v=car.car.body.linvel();this.jumpSpeed=Math.hypot(v.x,v.y,v.z)/50;this.setOut=false;this.doorExisted=!car.doorMissing(this.door);
   this.begin('jumpOut',8);return true;
  }
- private startNpc(car:WorldCar,kind:'jacked'|'getOut',onOut?:(position:V3,heading:number)=>void,seat:0|1=0,leaving?:LeavingDriver){
+ private startNpc(car:WorldCar,kind:'jacked'|'getOut',onOut?:(position:V3,heading:number)=>void,seat:0|1=0,leaving?:LeavingDriver,wait=0){
   const clip=this.slotFor(car,kind==='jacked'?(seat?VEHICLE_ANIM.jackedRHS:VEHICLE_ANIM.jackedLHS):seat?VEHICLE_ANIM.getoutRHS:VEHICLE_ANIM.getoutLHS);if(!clip)return false;
   if(seat){
    // The passenger goes; the driver stays at the wheel, held while CJ gets in, and leaves once he is in.
    const who=leaving??this.frontPassengerOf?.(car);if(kind==='jacked')this.onPassengerDragged?.(car);
-   this.npcs.push({car,clip,time:0,kind,done:false,who,seat});this.onJackStart?.(car,who);return true;
+   this.npcs.push({car,clip,time:0,kind,done:false,who,seat,wait});this.onJackStart?.(car,who);return true;
   }
   const who=this.driverOf?.(car);
   // CTaskComplexCarSlowBeDraggedOut: the victim's car is abandoned (FORCED_STOP for a player victim).
@@ -560,10 +563,10 @@ export class CarEntry {
  }
  /** CTaskComplexLeaveCar for the front passenger of a car its own unit cannot set down (a drive-by shooter): his
   * get-out clip at the right front door, drawn as `who`, and `onOut` places him at the door. False without the clip
-  * or while someone already uses that door. */
- evictPassenger(car:WorldCar,who:LeavingDriver,onOut:(position:V3,heading:number)=>void){
+  * or while someone already uses that door. `wait` holds him in his seat that long first. */
+ evictPassenger(car:WorldCar,who:LeavingDriver,onOut:(position:V3,heading:number)=>void,wait=0){
   if(this.npcs.some(n=>n.car===car&&!n.done&&n.seat===1))return false;
-  if(this.startNpc(car,'getOut',onOut,1,who))return true;
+  if(this.startNpc(car,'getOut',onOut,1,who,wait))return true;
   // The car's exit clips are not read yet: ask for them and set him out at his door now, as evictDriver does.
   void this.clips.load(car.animGroup).catch(()=>{});
   const local=this.doorPoint(car,'right'),bounds=car.assets.collision.bounds;
@@ -571,7 +574,7 @@ export class CarEntry {
   onOut({x:base.x,y:ground+.03,z:base.z},car.heading());return true;
  }
  /** CTaskSimpleCarSetPedSlowDraggedOut: the victim lands at the jacked clip's end offset (2D) with its Z on the ground. */
- private stepNpc(dt:number){for(const npc of this.npcs){if(npc.car.disposed){npc.done=true;npc.held=undefined;}if(npc.held!==undefined&&(npc.held-=dt)<=0)npc.held=undefined;if(!npc.done)this.stepOneNpc(npc,dt);}
+ private stepNpc(dt:number){for(const npc of this.npcs){if(npc.car.disposed){npc.done=true;npc.held=undefined;}if(npc.held!==undefined&&(npc.held-=dt)<=0)npc.held=undefined;if(npc.done)continue;if(npc.wait&&npc.wait>0){npc.wait-=dt;continue;}this.stepOneNpc(npc,dt);}
   this.npcs=this.npcs.filter(npc=>!npc.done||npc.held!==undefined);}
  private stepOneNpc(npc:NonNullable<CarEntry['npc']>,dt:number){
   npc.time+=dt;

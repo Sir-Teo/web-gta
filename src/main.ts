@@ -174,6 +174,7 @@ import {CAR_EXTINGUISHED_HEALTH} from './simulation/nativeCarDamage';
 import {fxIdentity} from './simulation/fx/NativeFx';
 import type {WorldCar as ScriptCar} from './simulation/WorldCar';
 import {carDamageHost} from './simulation/carDamageHost';
+import {pedEnteredVehicleLeaveDelay} from './simulation/nativePedEnteredVehicle';
 import {railTrackResistance} from './simulation/nativeSoftGround';
 type WorldCarPad=ScriptCar['pad'];
 import {nativeDayNightBalance} from './world/nativeDayNight';
@@ -856,9 +857,10 @@ async function boot() {
   carEntry.frontPassengerOf=car=>police?.frontPassengerOf(car)??emergency?.frontPassengerOf(car)??driveby?.frontPassengerOf(car);
   carEntry.onPassengerDragged=car=>{police?.dragPassenger(car);emergency?.dragPassenger(car);driveby?.dragPassenger(car);};
   carEntry.onGotIn=car=>{police?.crewLeave(car);emergency?.crewLeave(car);
-   // A drive-by shooter has no exit of his own: the entry plays it, and he stands up a gang member by the door.
+   // A drive-by shooter has no exit of his own: the entry plays it, after ComputePedEnteredVehicleResponse's 300 to
+   // 600 ms as the crews wait, and he stands up a gang member by the door.
    const shooter=driveby?.crewLeave(car);
-   if(shooter)carEntry.evictPassenger(car,{model:shooter.model},(position,heading)=>{pedestrians?.spawnJacked(shooter.model,position,heading,shooter.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}});});};
+   if(shooter)carEntry.evictPassenger(car,{model:shooter.model},(position,heading)=>{pedestrians?.spawnJacked(shooter.model,position,heading,shooter.gang,{position:()=>{const t=car.car.body.translation();return {x:t.x,y:t.y,z:t.z};}});},pedEnteredVehicleLeaveDelay(Math.floor(Math.random()*65536)));};
   carEntry.onDriverOut=(car,position,heading,lying,who,seat=0)=>{law.registerCrime(CRIME.carSteal,`car:${car.car.body.handle}`);const model=who?.model??occupants.driverModel(car),release=()=>carEntry.releaseDragged(car,seat);
    if(!seat&&car.driverDead||who?.dead){if(!seat)car.driverDead=false;pedestrians?.spawnDead(model,position,heading,car.gang);release();return;}
    // A cop dragged out of his car gets up a cop, armed, and goes on as any officer on foot (CCopPed).
