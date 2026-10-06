@@ -41,7 +41,7 @@ export type ScmScriptedTask=
  /* The tasks below take their operands from the pinned Sanny Builder schema this project already generates its
   * opcode table from, which names and types every one of them. The names here are the schema's own. */
  |{kind:'goStraightToCoord';x:number;y:number;z:number;speed:number;time:number}
- |{kind:'followPathNodesToCoord';x:number;y:number;z:number;speed:number;time:number}
+ |{kind:'followPathNodesToCoord';x:number;y:number;z:number;speed:number;time:number;radius?:number}
  |{kind:'playAnim';animationName:string;animationFile:string;blendSpeed:number;loop:boolean;lockX:boolean;lockY:boolean;keepLastFrame:boolean;time:number;interruptable:boolean}
  |{kind:'stayInSamePlace';state:boolean}
  |{kind:'toggleDuck';state:boolean}

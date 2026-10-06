@@ -1,3 +1,4 @@
+import {followRouteSeconds} from './nativeFollowNodeRoute';
 import type {ScmScriptedTask} from '../engine/ScmThread';
 /* What a script's task asks of a ped, in the script's own terms.
  *
@@ -86,7 +87,7 @@ export type ScriptedPedOrder=
  |{kind:'destroyCar';vehicle:number}
  /** CTaskComplexFollowNodeRoute: along the ped path nodes to a point at eMoveState, or straight at it when it is near
   * and clear; put on the point when `seconds` run out. */
- |{kind:'followNodeRoute';x:number;y:number;z:number;moveState:number;seconds:number}
+ |{kind:'followNodeRoute';x:number;y:number;z:number;moveState:number;seconds:number;tolerance?:number}
  /** CTaskComplexChat with a partner (a handle, the player's included): the lead speaker chats (CTaskSimpleChat, IDLE_chat),
   * the other stands and listens, each at the script's stage. */
  |{kind:'chat';partner:number;chatter:boolean;stage:number}
@@ -190,10 +191,10 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'leaveCar':return {kind:'leaveCar',vehicle:task.vehicle,immediately:false};
   case 'leaveAnyCar':return {kind:'leaveCar',immediately:false};
   case 'leaveCarImmediately':return {kind:'leaveCar',vehicle:task.vehicle,immediately:true};
-  case 'followPathNodesToCoord':return {kind:'followNodeRoute',x:task.x,y:task.y,z:task.z,moveState:task.speed,seconds:seconds(task.time)};
+  case 'followPathNodesToCoord':return {kind:'followNodeRoute',x:task.x,y:task.y,z:task.z,moveState:task.speed,seconds:followRouteSeconds(task.time),tolerance:task.radius};
   case 'goToCoordAnyMeans':return {kind:'goToPoint',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:GO_STRAIGHT_TARGET_RADIUS,
    moveStateRadius:GO_STRAIGHT_MOVE_STATE_RADIUS,seconds:Number.POSITIVE_INFINITY};
-  case 'gotoPed':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:task.radius,seconds:seconds(task.time)}:undefined;
+  case 'gotoPed':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:task.radius,seconds:followRouteSeconds(task.time)}:undefined;
   // AUTHORED: CTaskComplexFollowPedFootsteps is unreversed past its constructor (which sets PEDMOVE_WALK and a point
   // route of the target's steps). The ped walks after the target, waits within FOLLOW_FOOTSTEPS_RADIUS of it, and the
   // task never ends by itself; dealer.scm gives it to a dealer for 6 s before sending him back.

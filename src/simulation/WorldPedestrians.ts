@@ -24,7 +24,7 @@ import type {DamageKind} from '../weapons/WeaponSystem';
 import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
 import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from '../ped/nativeWalkRoundBuilding';
 import {followersToRemove} from '../ped/nativePedGroup';
-import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,planFollowNodeRoute} from './nativeFollowNodeRoute';
+import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,planFollowNodeRoute,type NodeRouteOptions} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
@@ -185,7 +185,7 @@ export interface Pedestrian {
   /** The points in the renderer's terms, the target (its origin height) last when `lastIsTarget`. */
   /** CTaskComplexChat: `partner` is nothing for the player, who never holds a chat task. */
   |{kind:'chat';partner?:Pedestrian;chatter:boolean;stage:number;finished:boolean;noChat:number;remaining:number}
-  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];at:number;lastIsTarget:boolean;moveState:number;remaining:number};
+  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];nodes:PathNode[];at:number;lastIsTarget:boolean;moveState:number;remaining:number;tolerance:number};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** CTaskSimpleTogglePedThreatScanner's three switches, kept on the ped (its threat scan is not modelled). */
@@ -234,7 +234,7 @@ export interface Pedestrian {
  gunFight?:{shooting:boolean;lastAttack:number};
  /** CTaskComplexSeekEntity's TASK_COMPLEX_FOLLOW_NODE_ROUTE while it chases something on foot: the planned points, the
   * one it walks to, the target it was planned for and how long ago. */
- seekRoute?:{points:{x:number;y:number;z:number}[];lastIsTarget:boolean;at:number;target:{x:number;y:number;z:number};age:number};
+ seekRoute?:{points:{x:number;y:number;z:number}[];nodes:PathNode[];lastIsTarget:boolean;at:number;target:{x:number;y:number;z:number};age:number};
  down:number; flee:number;fleeFrom?:{x:number;z:number};
  /** The clock at which this ped last started a stare, so one approach does not restart it every frame. */
  staredAt?:number;
@@ -1157,7 +1157,7 @@ export class WorldPedestrians {
     view.setHeadLook(this.playerLook&&point?new Vector3(point.x,point.y,point.z):this.playerLook&&t?new Vector3(t.x,t.y+0.9,t.z):undefined,this.playerLook?.blend??0);
    }
    /** CWaterLevel::GetWaterLevel at a native point (main wires the water), for CPed::ProcessBuoyancy. */
-   waterLevel?:(x:number,y:number,z?:number)=>number|undefined;
+   waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
   /** The area the camera is in, which decides whether a ped with an area of its own is drawn. */
   visibleArea?:()=>number;
   /** The rows a script has written for a decision maker, by the slot a ped wears. */
@@ -1896,7 +1896,8 @@ export class WorldPedestrians {
     // (MAP_Z_LOW_LIMIT) is looked for from above the ped instead of from under the map.
     const q=ped.actor.player.position,top=order.z>MAP_Z_LOW_LIMIT?order.z+1:q.y+PED_ORIGIN_HEIGHT+50;
     const ground=this.groundUnder(order.x,-order.y,top),target={x:order.x,y:ground===undefined?Math.max(order.z,q.y+PED_ORIGIN_HEIGHT):ground+1,z:-order.y};
-    ped.order={kind:'followNodeRoute',target,...this.planNodeRoute(ped,target),at:0,moveState:order.moveState,remaining:order.seconds};ped.flee=0;ped.loiter=false;
+    const plan=this.planNodeRoute(ped,target,{keepNodesHeadingAway:true});
+    ped.order={kind:'followNodeRoute',target,points:plan.points,nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,at:plan.resumeAt,moveState:order.moveState,remaining:order.seconds,tolerance:order.tolerance??FOLLOW_NODE_TARGET_TOLERANCE};ped.flee=0;ped.loiter=false;
     break;
    }
    case 'followRoute':
@@ -2016,28 +2017,44 @@ export class WorldPedestrians {
  }
  /** CTaskComplexFollowNodeRoute::SetTarget's ComputePathNodes and ComputeRoute from where the ped stands, in the
   * renderer's terms. */
- private planNodeRoute(ped:Pedestrian,target:{x:number;y:number;z:number}){
+ private planNodeRoute(ped:Pedestrian,target:{x:number;y:number;z:number},options:NodeRouteOptions={}){
   const q=ped.actor.player.position,areas=this.catalog?.areas??new Map();
   const plan=planFollowNodeRoute({areas,clear:(from,to,maxHeightChange)=>this.wanderPathClear(from,to,maxHeightChange)},
-   {x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT},{x:target.x,y:-target.z,z:target.y});
-  return {points:plan.points.map(n=>({x:n.x,y:n.z,z:-n.y})),lastIsTarget:plan.lastIsTarget};
+   {x:q.x,y:-q.z,z:q.y+PED_ORIGIN_HEIGHT},{x:target.x,y:-target.z,z:target.y},options);
+  return {points:plan.points.map(n=>({x:n.x,y:n.z,z:-n.y})),nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,resumeAt:plan.resumeAt};
  }
- /** CPedGeometryAnalyser::IsWanderPathClear(from, to, maxHeightChange, 4) (unreversed), in native Z-up points: nothing
-  * fixed across the line at the ped's middle, and the ground found at four steps along it, none rising or falling past
-  * `maxHeightChange` from the one before. */
+ /** CPedGeometryAnalyser::IsWanderPathClear(from, to, maxHeightChange, 4) == CLEAR, as the iOS executable runs it
+  * (0x100347c24), in native Z-up points; the fixed world stands in for its buildings.
+  * - The two ends may differ in height by `maxHeightChange` at most.
+  * - Nothing lies across a level line at the lower end's height.
+  * - Probes sit at 1, 2 and 3 units along the 3D line (min(floor(length), 4) − 1 of them; a line under 1 unit is
+  *   clear at once). Water at a probe with nothing between it and the higher end's height blocks the path.
+  * - There must be ground within 5 under `from`, and at each probe the ground within half a unit of the last. */
  private wanderPathClear(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},maxHeightChange:number){
-  const ax=from.x,ay=from.z,az=-from.y,bx=to.x,by=to.z,bz=-to.y,length=Math.hypot(bx-ax,by-ay,bz-az);
-  if(length>1e-3){
-   const hit=this.sim.world.castRay(new RAPIER.Ray({x:ax,y:ay,z:az},{x:(bx-ax)/length,y:(by-ay)/length,z:(bz-az)/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
-   if(hit)return false;
+  if(Math.abs(from.z-to.z)>maxHeightChange)return false;
+  const low=Math.min(from.z,to.z),high=Math.max(from.z,to.z),hx=to.x-from.x,hy=to.y-from.y,level=Math.hypot(hx,hy);
+  if(level>1e-3&&this.sim.world.castRay(new RAPIER.Ray({x:from.x,y:low,z:-from.y},{x:hx/level,y:0,z:-hy/level}),level,true,RAPIER.QueryFilterFlags.ONLY_FIXED))return false;
+  const dz=to.z-from.z,length=Math.hypot(hx,hy,dz),samples=Math.min(Math.floor(length),4);
+  if(samples===0)return true;
+  const ux=hx/length,uy=hy/length,uz=dz/length;
+  for(let i=1;i<samples;i++){
+   const px=from.x+ux*i,py=from.y+uy*i,water=this.waterLevel?.(px,py,from.z+uz*i,false);
+   if(water!==undefined&&this.verticalLine(px,py,water,high)===undefined)return false;
   }
-  let previous=from.z-PED_ORIGIN_HEIGHT;
-  for(let i=1;i<=4;i++){
-   const t=i/4,ground=this.groundUnder(ax+(bx-ax)*t,az+(bz-az)*t,Math.max(ay,by)+maxHeightChange);
-   if(ground===undefined||Math.abs(ground-previous)>=maxHeightChange)return false;
-   previous=ground;
+  let ground=this.verticalLine(from.x,from.y,from.z,from.z-5);if(ground===undefined)return false;
+  for(let i=1;i<samples;i++){
+   const top=ground+.5,hit=this.verticalLine(from.x+ux*i,from.y+uy*i,top,top-2);
+   if(hit===undefined||Math.abs(hit-top)>1)return false;
+   ground=hit;
   }
   return true;
+ }
+ /** CWorld::ProcessVerticalLine over the fixed world, native point (x, y) from height `from` toward `to`: the first hit's
+  * height, if any. */
+ private verticalLine(x:number,y:number,from:number,to:number){
+  const span=to-from,length=Math.abs(span);if(length<1e-6)return undefined;
+  const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:from,z:-y},{x:0,y:Math.sign(span),z:0}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+  return hit?from+Math.sign(span)*hit.timeOfImpact:undefined;
  }
  /** SET_ANIM_GROUP_FOR_CHAR: the walkcycle's moves and their speeds on the ped. */
  setAnimGroup(ped:Pedestrian,group:string){
@@ -3131,9 +3148,11 @@ export class WorldPedestrians {
   private seekStep(p:Pedestrian,target:{x:number;y:number;z:number},dt:number){
    const q=p.actor.player.position,distance=Math.hypot(target.x-q.x,target.z-q.z);
    let r=p.seekRoute;
-   if(!r||Math.hypot(r.target.x-target.x,r.target.z-target.z)>2||(r.age+=dt)>1){r=p.seekRoute={...this.planNodeRoute(p,target),at:0,target:{...target},age:0};}
+   // After a replan the walk resumes at the node it was heading for, when the new route holds it (m_CurrPtIdx).
+   const replan=(old:typeof r)=>{const plan=this.planNodeRoute(p,target,{currentNode:old?.nodes[old.at]});return {points:plan.points,nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,at:plan.resumeAt,target:{...target},age:0};};
+   if(!r||Math.hypot(r.target.x-target.x,r.target.z-target.z)>2||(r.age+=dt)>1){r=p.seekRoute=replan(r);}
    while(r.at<r.points.length-1&&Math.hypot(r.points[r.at].x-q.x,r.points[r.at].z-q.z)<1)r.at++;
-   if(r.at===r.points.length-1&&!r.lastIsTarget&&Math.hypot(r.points[r.at].x-q.x,r.points[r.at].z-q.z)<1){r=p.seekRoute={...this.planNodeRoute(p,target),at:0,target:{...target},age:0};}
+   if(r.at===r.points.length-1&&!r.lastIsTarget&&Math.hypot(r.points[r.at].x-q.x,r.points[r.at].z-q.z)<1){r=p.seekRoute=replan(r);}
    const w=r.points[r.at]??target,dx=w.x-q.x,dz=w.z-q.z,l=Math.hypot(dx,dz);
    return l>1e-3?{dx:dx/l*distance,dz:dz/l*distance}:{dx:target.x-q.x,dz:target.z-q.z};
   }
@@ -3475,9 +3494,9 @@ export class WorldPedestrians {
       const point=o.points[o.at],gx=point.x-q.x,gz=point.z-q.z,distance=Math.hypot(gx,gz),last=o.lastIsTarget&&o.at===o.points.length-1;
       // The legs between nodes are CTaskSimpleGoToPoint at the task's move state; the last, to the target, is
       // CTaskComplexGoToPointAndStandStill with the task's tolerance and slow-down distance.
-      if(goToPointArrived(distance,q.y+PED_ORIGIN_HEIGHT-point.y,last?FOLLOW_NODE_TARGET_TOLERANCE:FOLLOW_NODE_POINT_RADIUS,state.speed*dt)){
+      if(goToPointArrived(distance,q.y+PED_ORIGIN_HEIGHT-point.y,last?o.tolerance:FOLLOW_NODE_POINT_RADIUS,state.speed*dt)){
        if(last)this.startNextOrder(p);
-       else if(++o.at>=o.points.length){Object.assign(o,this.planNodeRoute(p,o.target));o.at=0;}
+       else if(++o.at>=o.points.length){const plan=this.planNodeRoute(p,o.target,{keepNodesHeadingAway:true,currentNode:o.nodes[o.points.length-1]});Object.assign(o,{points:plan.points,nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,at:plan.resumeAt});}
       }else{
        ({x:dx,z:dz}=this.roundCars(p,point,cars));
        const moveState=last?goToPointMoveState(o.moveState,distance,FOLLOW_NODE_SLOW_DOWN_DISTANCE):o.moveState;

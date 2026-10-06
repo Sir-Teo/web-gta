@@ -2712,7 +2712,12 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_POSITION_OF_ENTRY_EXIT_CHAR_USED:(t,p,i)=>{const result=world(t,i,'getPositionOfEntryExitCharUsed')(t.readInt(p[0]));t.writeFloat(p[1],result.x);t.writeFloat(p[2],result.y);t.writeFloat(p[3],result.z);t.writeFloat(p[4],result.heading);},
  FIND_TRAIN_DIRECTION:(t,p,i)=>{t.updateCompareFlag(world(t,i,'findTrainDirection')(t.readInt(p[0])),negated(i));},
  ADD_BLIP_FOR_COORD_OLD:(t,p,i)=>{t.writeInt(p[5],world(t,i,'addBlipForCoordOld')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]),t.readInt(p[4])));},
- TASK_FOLLOW_PATH_NODES_TO_COORD_WITH_RADIUS:(t,p,i)=>{world(t,i,'taskFollowPathNodesToCoordWithRadius')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readFloat(p[6]));},
+ // The iOS handler (0x100207b24) builds the same CTaskComplexFollowNodeRoute as TASK_FOLLOW_PATH_NODES_TO_COORD, with
+ // the radius as its target tolerance.
+ TASK_FOLLOW_PATH_NODES_TO_COORD_WITH_RADIUS:(t,p,i)=>{
+  const point=vec(t,p,1);
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'followPathNodesToCoord',...point,speed:t.readInt(p[4]),time:t.readInt(p[5]),radius:t.readFloat(p[6])});
+ },
  SET_CHECKPOINT_HEADING:(t,p,i)=>{game(t,i).checkpoints.setHeading(t.readInt(p[0]),t.readFloat(p[1]));},
  DRAW_SHADOW:(t,p,i)=>{world(t,i,'drawShadow')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]),t.readInt(p[9]));},
  // IsCharInFlyingVehicle is the heli question or the plane one.

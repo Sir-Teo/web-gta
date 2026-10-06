@@ -166,7 +166,10 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'scratchHead'},w)).toMatchObject({kind:'playAnim',name:'XPRESSscratch',loop:false});
   expect(scriptedPedOrder({kind:'handsUp',time:3000},w)).toMatchObject({kind:'playAnim',name:'handsup',keepLastFrame:true,release:true,seconds:3});
   expect(scriptedPedOrder({kind:'goToCoordAnyMeans',x:1,y:2,z:3,speed:6,vehicle:-1},w)).toMatchObject({kind:'goToPoint',x:1,y:2,moveState:6});
-  expect(scriptedPedOrder({kind:'followPathNodesToCoord',x:1,y:2,z:3,speed:4,time:-1},w)).toEqual({kind:'followNodeRoute',x:1,y:2,z:3,moveState:4,seconds:Number.POSITIVE_INFINITY});
+  // iOS 0x1001e8d64: -1 is 50000 ms (then the ped is put on the target), -2 no limit; the radius form's radius is the
+  // target tolerance.
+  expect(scriptedPedOrder({kind:'followPathNodesToCoord',x:1,y:2,z:3,speed:4,time:-1},w)).toEqual({kind:'followNodeRoute',x:1,y:2,z:3,moveState:4,seconds:50,tolerance:undefined});
+  expect(scriptedPedOrder({kind:'followPathNodesToCoord',x:1,y:2,z:3,speed:4,time:-2,radius:8},w)).toEqual({kind:'followNodeRoute',x:1,y:2,z:3,moveState:4,seconds:Number.POSITIVE_INFINITY,tolerance:8});
   expect(scriptedPedOrder({kind:'followPathNodesToCoord',x:1,y:2,z:3,speed:6,time:2500},w)).toMatchObject({seconds:2.5});
   expect(scriptedPedOrder({kind:'chatWithPed',other:3,leadSpeaker:true,unknown:1},w)).toEqual({kind:'chat',partner:3,chatter:true,stage:1});
   expect(scriptedPedOrder({kind:'chatWithPed',other:99,leadSpeaker:false,unknown:1},w)).toBeUndefined();

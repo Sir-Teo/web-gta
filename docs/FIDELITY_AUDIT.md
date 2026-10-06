@@ -7098,25 +7098,52 @@ the first ones now implemented:
 
 ### TASK_FOLLOW_PATH_NODES_TO_COORD (CTaskComplexFollowNodeRoute)
 
-- The script's form uses the constructor defaults: target tolerance 0.5, slow-down distance 3, height-change threshold
-  2 and blending on. With blending on, CalcGoToTaskType never runs, so the ped does not slow for corners. The port
-  models none, which matches.
-- ComputePathNodes:
+- The script's form (iOS 0x1001e8d64) uses target tolerance 0.5, slow-down distance 3, height-change threshold 2,
+  bKeepNodesHeadingAwayFromTarget and blending on. TASK_FOLLOW_PATH_NODES_TO_COORD_WITH_RADIUS (0x100207b24) is the same
+  with the radius as the tolerance; it had no adapter here before. The script's time:
+  - -1 is 50000 ms, after which the ped is put on the target;
+  - -2 is no limit;
+  - TASK_GOTO_CHAR maps its time the same way.
+  The port had taken every negative time as no limit.
+- ComputePathNodes (iOS 0x1004061c4):
   - The target is put a unit above the ground under it.
-  - A target within 30 units (CPedIntelligence::m_FollowNodeThresholdDistance) with a clear wander path is walked
-    straight at. Otherwise the route is CPathFind::ComputeRoute over the ped nodes, eight nodes at most.
-  - The route is dropped when its first node lies 3 units past the target (50 when the heights differ by 2 or more).
+  - A target within 30 units (CPedIntelligence::m_FollowNodeThresholdDistance; equal counts) with a clear wander path
+    is walked straight at. Otherwise the route is CPathFind::ComputeRoute over the ped nodes, eight nodes at most.
+  - Unless the task keeps it (the script's forms always do), a route is dropped for the straight walk when its first
+    node lies farther from the target than the ped does, by 3 (50 when the heights differ by 2 or more). The port
+    had measured the node from the ped, gta-reversed's reading.
   - The route is cut at the first node (raised a unit) from which the target is straight and clear.
-- The unreversed pieces have stand-ins:
-  - ComputeRoute: a Dijkstra search by link length between the ped nodes nearest each end, in the same flood-fill group.
-  - IsWanderPathClear: no fixed geometry across the line, and ground found at four steps, each within the height
-    change of the last.
+  - After any new route, the walk resumes at the node it was heading for when the route holds it (m_CurrPtIdx). The
+    port had restarted at the first node and could walk back.
+- ComputeRoute and DoPathSearch, as the iOS executable runs them (0x1001b9bc4, 0x1001b9cd4; unreversed in
+  gta-reversed, whose body misreads the route back):
+  - The end nodes are FindNodeClosestToCoors' (its weighted score, land nodes, switched-off ones included), not the
+    nearest in 3D, in one flood-fill group.
+  - Dial's Dijkstra over the links' byte lengths grows out from the target; only water–land links and unloaded areas
+    are passed over.
+  - The route is read back from the ped's node: at each node, the first link in link order whose node lies exactly
+    that link's length nearer the target. That is the ped's node and up to seven more.
+  - No route (the straight walk) when both ends are one node, when more than 4950 nodes have been touched, or when the
+    search runs dry as it reaches the ped's node (that node the farthest from the target in its graph), as gta-reversed's
+    body also has it.
+- IsWanderPathClear (iOS 0x100347c24):
+  - the ends may differ in height by the threshold at most;
+  - nothing lies across a level line at the lower end's height;
+  - the ground lies within 5 under the start, and at probes 1, 2 and 3 units along the line, within half a unit of the
+    last; no probes on a line under 2 units, clear at once under 1;
+  - water at a probe with nothing above it up to the higher end's height blocks the path.
+  The port's fixed world stands in for its buildings. The stand-in before probed the ground at quarters of the line
+  with the height threshold as the step, had no end or water test, and cast a 3D line at every fixed collider.
 - Legs between nodes are CTaskSimpleGoToPoint (radius 0.5, the task's move state). The last leg to the target is
   CTaskComplexGoToPointAndStandStill, walking inside the slow-down distance.
 - When eight nodes fill the route, the target does not fit. Reaching the last node plans the next stretch (SetTarget
   with bForce).
 - A timed task that runs out teleports the ped onto the target, and the task ends.
-- A MAP_Z_LOW_LIMIT target has its ground looked for from above the ped.
+- A MAP_Z_LOW_LIMIT target has its ground looked for from above the ped. iOS passes the z as it is (a -100 target
+  always takes the node route); the port keeps its lookup.
+- Not ported: with blending on, which every form sets, iOS does run CalcGoToTaskType (gta-reversed reads the test the
+  other way round). A jogging, running or sprinting ped slows into a corner sharper than about 45° (2D dot under 0.707)
+  through CTaskSimpleGoToPointFine. The port's peds keep their speed round corners.
 
 ### TASK_CHAT_WITH_CHAR (CTaskComplexChat)
 
