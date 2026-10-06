@@ -33,7 +33,7 @@ export class WorldBoat {
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
  readonly boatHandling:BoatHandlingData;
  /** Native-coordinate water height query (WATER.DAT). */
- waterLevel?:(x:number,y:number)=>number|undefined;
+ waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
  /** bTouchingWater, which CBoat's constructor sets and nothing clears, and m_fBuoyancyConstant. */
  private water={touching:true,buoyancy:0};inWater=false;immersion=0;
  private physical:ReturnType<typeof installNativeVehicleBody>;
@@ -254,7 +254,10 @@ export class WorldBoat {
  }
  private floatOnWater(dt:number){
   this.onWater=false;
-  const level=this.waterLevel;if(!level){this.inWater=false;return;}
+  // cBuoyancy asks GetWaterLevel at the body's own height with its bTouchingWater (iOS 0x10045f9f0), so
+  // limited-depth water far over it, or water far under it, is none.
+  const hook=this.waterLevel;if(!hook){this.inWater=false;return;}
+  const waterHeight=this.body.translation().y,level=(x:number,y:number)=>hook(x,y,waterHeight,this.water.touching);
   const p=this.body.translation(),q=new Quaternion().copy(this.body.rotation()),v=this.body.linvel(),w=this.body.angvel(),h=this.handling.values;
   const native=(x:number,y:number,z:number):NativeVec=>[x,-z,y],axis=(x:number,y:number,z:number)=>{const a=new Vector3(x,y,z).applyQuaternion(q);return native(a.x,a.y,a.z);};
   const b=this.assets.collision!.bounds;

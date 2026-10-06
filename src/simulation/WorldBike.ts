@@ -459,14 +459,17 @@ export class WorldBike {
   this.sim.playerBody.setTranslation({x:p.x,y:p.y+.9,z:p.z},true);this.sim.playerBody.setNextKinematicTranslation({x:p.x,y:p.y+.9,z:p.z});return false;
  }
  /** WATER.DAT's level at a native (x, y), which the fleet hands its bikes. */
- waterLevel?:(x:number,y:number)=>number|undefined;
+ waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
  private water={touching:false};inWater=false;drowning=false;
  /** CBike::ProcessBuoyancy over WATER.DAT surfaces, at native gravity (unscaled). The controller keeps the
   * bike from pitching or rolling, so of the turn force only the yaw damping stays. Drowning with CJ on board, he loses
   * breath (HandlePlayerBreath) while a wheel still touches the bottom, and is knocked off (KNOCK_OFF_TYPE_FALL) once
   * none does; a bike with no rider has its engine cut. */
  private floatOnWater(dt:number){
-  const level=this.waterLevel;if(!level){this.inWater=this.drowning=false;return;}
+  // cBuoyancy asks GetWaterLevel at the body's own height with its bTouchingWater (iOS 0x10045f9f0), so
+  // limited-depth water far over it, or water far under it, is none.
+  const hook=this.waterLevel;if(!hook){this.inWater=this.drowning=false;return;}
+  const waterHeight=this.body.translation().y,level=(x:number,y:number)=>hook(x,y,waterHeight,this.water.touching);
   const p=this.body.translation(),q=this.body.rotation(),v=this.body.linvel(),w=this.body.angvel(),h=this.assets.handling.values,b=this.assets.collision.bounds;
   const native=(a:{x:number;y:number;z:number}):NativeVec=>[a.x,-a.z,a.y],axis=(x:number,y:number,z:number)=>native(rotate(q,{x,y,z})),offGround=!this.wheelsDown();
   const state:NativeBuoyancyBody={position:native(p),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:false,anyWheelOffGround:offGround,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],buoyancyConstant:this.assets.handling.buoyancy,moveSpeed:native({x:v.x/50,y:v.y/50,z:v.z/50}),turnSpeed:native({x:w.x/50,y:w.y/50,z:w.z/50})};

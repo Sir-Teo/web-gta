@@ -4930,8 +4930,8 @@ async function boot() {
             WorldCar.onPlayerCarShake=(time,frequency,delayMs)=>{mission?.runtime.game.pads.startShake(0,time,frequency,delayMs,gameTimeMs);};
             WorldCar.onRoadShake=(suspension,roughness,speed,mass,timeStep)=>{const shake=roadShake({suspension,roughness,speed,mass,timeStep,timeMs:gameTimeMs});if(shake)mission?.runtime.game.pads.startShake(0,shake.time,shake.frequency,0,gameTimeMs);};
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);worldCar.driverless=true;
-            worldCar.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);
-            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);fleet.outside=()=>render.lighting.area===0;fleet.sphereVisible=(x,y,z)=>new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse)).containsPoint(new Vector3(x,y,z));fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);fleet.onImpound=car=>impoundCar?.(car);
+            worldCar.waterLevel=(x,y,z,touching)=>render.lighting.water.levels?.level(x,y,z,touching);
+            fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y,z,touching)=>render.lighting.water.levels?.level(x,y,z,touching);fleet.outside=()=>render.lighting.area===0;fleet.sphereVisible=(x,y,z)=>new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse)).containsPoint(new Vector3(x,y,z));fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);fleet.onImpound=car=>impoundCar?.(car);
             // ClearSpaceForMissionEntity's ped removals reach the crowd once it exists.
             fleet.clearPed=handle=>pedestrians?.removeDeletableCollider(handle)??false;
             // CCarGenerator's hot-dog van brings its vendor, and his brain.

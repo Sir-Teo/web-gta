@@ -5777,7 +5777,8 @@ Left as they are, on purpose or for want of a reference:
     - A quad's test runs only when GetWaterLevel asks for the amplitudes (the executable's quirk); outside callers of
       GetWaterLevelNoWaves skip it.
     - The port passes the height where the caller has one: CJ, peds (their origin, a unit above the feet), the
-      underwater camera, molotovs and the script's point checks.
+      underwater camera, molotovs and the script's point checks. Cars, bikes, boats and aircraft ask at their body's
+      height with their bTouchingWater, as cBuoyancy does (iOS 0x10045f9f0).
   - **Swell.** AddWaveToResult takes the 2-unit cell's triangle the point is in and interpolates its three corners'
     CalculateWavesOnlyForCoordinate2. That indexes CMaths' 256-entry sin table, not sinf. There is no camera-distance
     gate.

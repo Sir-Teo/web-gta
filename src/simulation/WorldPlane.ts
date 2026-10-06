@@ -133,7 +133,7 @@ export class WorldPlane {
  policeHeli=false;
  private physical:ReturnType<typeof installNativeVehicleBody>;private handling:ReturnType<typeof prepareHandling>;
  /** Native-coordinate water height query (WATER.DAT). */
- waterLevel?:(x:number,y:number)=>number|undefined;
+ waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
  private water={touching:false,buoyancy:0,rotorSpeed:0};inWater=false;drowning=false;private visual:ReturnType<typeof modelObject>;private ambient=nativeAmbientState();
  private impactVelocity=new Vector3();
  /** cBuoyancy::AddSplashParticles spray waiting for the FX system, and the move speed of the last splash reported to the audio engine. */
@@ -324,7 +324,10 @@ export class WorldPlane {
  /** CAutomobile::ProcessBuoyancy for aircraft over WATER.DAT surfaces. Browser flight gravity is 9.81 m/s²
   * against native 0.008 per 50 Hz step (20 m/s²), so buoyancy force is scaled to keep native immersion. */
  private floatOnWater(dt:number){
-  const level=this.waterLevel;if(!level){this.inWater=this.drowning=false;return;}
+  // cBuoyancy asks GetWaterLevel at the body's own height with its bTouchingWater (iOS 0x10045f9f0), so
+  // limited-depth water far over it, or water far under it, is none.
+  const hook=this.waterLevel;if(!hook){this.inWater=this.drowning=false;return;}
+  const waterHeight=this.body.translation().y,level=(x:number,y:number)=>hook(x,y,waterHeight,this.water.touching);
   const p=this.body.translation(),q=new Quaternion().copy(this.body.rotation()),v=this.body.linvel(),w=this.body.angvel(),h=this.handling.values;
   const native=(x:number,y:number,z:number):NativeVec=>[x,-z,y],axis=(x:number,y:number,z:number)=>{const a=new Vector3(x,y,z).applyQuaternion(q);return native(a.x,a.y,a.z);};
   const b=this.assets.collision!.bounds;

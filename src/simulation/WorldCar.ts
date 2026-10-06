@@ -1012,7 +1012,10 @@ export class WorldCar {
    * a step, NativeVehicleForces), so the buoyancy is native too: scaled for 9.81 it held a car at half its lift and
    * sank it. */
   private floatOnWater(dt:number){
-   const level=this.waterLevel;if(!level){this.inWater=this.drowning=false;return;}
+   // cBuoyancy asks GetWaterLevel at the body's own height with its bTouchingWater (iOS 0x10045f9f0), so
+   // limited-depth water far over it, or water far under it, is none.
+   const hook=this.waterLevel;if(!hook){this.inWater=this.drowning=false;return;}
+   const waterHeight=this.car.body.translation().y,level=(x:number,y:number)=>hook(x,y,waterHeight,this.water.touching);
    if(!this.assets.handling||!this.assets.collision)return;
    const p=this.car.body.translation(),q=this.car.body.rotation(),v=this.car.body.linvel(),w=this.car.body.angvel(),h=this.assets.handling.values;
    if(this.assets.handling.buoyancy===undefined||this.water.buoyancy===0&&!this.water.touching)this.water.buoyancy=this.assets.handling.buoyancy??0;
@@ -1079,7 +1082,7 @@ export class WorldCar {
    if(r.delta)this.car.body.setLinvel({x:v.x+r.delta.x*50,y:v.y+r.delta.z*50,z:v.z-r.delta.y*50},true);
   }
   /** Native-coordinate WATER.DAT height query (shared with aircraft). */
-  waterLevel?:(x:number,y:number)=>number|undefined;
+  waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
   private water={touching:false,buoyancy:0};inWater=false;drowning=false;
   /** autoFlags.bWaterTight (SET_CAR_WATERTIGHT): the peds sat in it do not drown when it goes under; the player still does. */
   waterTight=false;
