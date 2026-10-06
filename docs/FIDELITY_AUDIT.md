@@ -8603,14 +8603,15 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   aboard but the driver get out by his own door with the unit's exit clips and go on foot; the unit is let go once
   they are out; one still in his door when CJ drives off rolls out with the car's roll-out clip and gets up (AUTHORED,
   `CTaskSimpleCarJumpOut`'s shape). A cop dead in his seat is left as before. An ambulance's rear medic and a fire engine's second man
-  (whom the passenger's door drags out as it does a cop) get out the same way; a drive-by shooter still vanishes when
-  CJ takes the attack car. Specs: `police-jack`, `emergency-jack`.
+  (whom the passenger's door drags out as it does a cop) get out the same way, and so does a gang attack car's shooter,
+  whose get-out clip the car entry plays (`evictPassenger`) as it does an evicted driver's; dragged out at the
+  passenger's door he stops firing. Specs: `police-jack`, `crewed-car-jack`.
 - **CJ dragged a driver out of an empty seat.** The entry took any car with an autopilot for a car with a driver, so an
   ambulance waiting on its brakes while its medics treated a body, or a roadblock car whose crew stood at the block,
   gave up a phantom medic or cop from the empty driver's seat, who then walked off as an extra ped.
   `CCarEnterExit::IsCarSlowJackRequired` asks for `m_pDriver`: the unit driving the car now says whether its driver is
   in his seat, and only a car no unit drives falls back to the autopilot. A medic on his way back to a van CJ is taking
-  stops where he is instead of climbing in after him. Spec: `emergency-jack`.
+  stops where he is instead of climbing in after him. Spec: `crewed-car-jack`.
 - **Aiming from a sprint did nothing.** The aim button with a gun now drops CJ out of the sprint into the aimed walk.
 - **Y and N did nothing.** `CPad::ConversationYesJustDown` / `NoJustDown` with a ped targeted (or the nearest ahead
   within 4 units) now have CJ say something positive or negative; the ped stops, turns and answers. AUTHORED

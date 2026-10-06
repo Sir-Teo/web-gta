@@ -2,16 +2,16 @@ import {test,expect,type Page} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 
 const state=(page:Page)=>page.evaluate(()=>(window as any).__game.state());
-type Crew='ambulanceAboard'|'ambulanceAway'|'fireTruck'|'roadblock';
+type Crew='ambulanceAboard'|'ambulanceAway'|'fireTruck'|'roadblock'|'driveBy';
 
-/** An emergency vehicle or a roadblock car on Grove Street's open tarmac, its crew as `crew` says, held for CJ, who
+/** An emergency vehicle, a roadblock car or a gang's attack car on Grove Street's open tarmac, its crew as `crew` says, held for CJ, who
  * presses enter beside the driver's door (or the passenger's); the occupant views of the car each frame until he is
  * seated, and the peds standing about it after. */
 async function enter(page:Page,crew:Crew,side:'left'|'right'='left'){
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
  await endStoryMission(page);
  await expect.poll(async()=>(await state(page)).player.grounded,{timeout:60000}).toBe(true);
- await expect.poll(()=>page.evaluate(()=>!!(window as any).__game.emergency()&&!!(window as any).__game.police()),{timeout:60000}).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>!!(window as any).__game.emergency()&&!!(window as any).__game.police()&&!!(window as any).__game.driveby()),{timeout:60000}).toBe(true);
  await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2486,g.groundAt(2486,1662,40)+.05,1662);});
  await page.waitForTimeout(2500);
  const made=await page.evaluate(async crew=>{
@@ -22,6 +22,13 @@ async function enter(page:Page,crew:Crew,side:'left'|'right'='left'){
    // A roadblock's crew stand at the block at once; the car waits on its brakes.
    const u=police.units.find((u:any)=>u.car===car);u.mission='roadblock';u.seats.fill(false);
    car.holdForEntry=true;(window as any).__car=car;return 'roadblock';
+  }
+  if(crew==='driveBy'){
+   // A Ballas attack car at the mark, its shooter's gun held empty so the probe is not a gunfight.
+   const car=await fleet.spawnTrafficCar(492,at,Math.PI/2);if(!car)return null;
+   car.gang=0;car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.holdForEntry=true;(window as any).__car=car;
+   g.driveby().units.push({car,gang:0,driver:'ballas1',shooter:{model:'ballas2',gun:undefined,gunState:{time:0,rounds:0,reload:1e9,active:false},side:'right',seconds:0,shots:0},mission:'attack',seconds:0,leaveAt:Infinity,driverHealth:100,shooterHealth:100});
+   return 'ballas';
   }
   const car=await fleet.spawnTrafficCar(crew==='fireTruck'?407:416,at,Math.PI/2);if(!car)return null;
   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.holdForEntry=true;(window as any).__car=car;
@@ -46,7 +53,7 @@ async function enter(page:Page,crew:Crew,side:'left'|'right'='left'){
  }
  expect(frames.at(-1)!.phase).toBe('seated');
  const peds=():Promise<{fallClip:string|null;crew:boolean}[]>=>page.evaluate(m=>{const g=(window as any).__game,car=(window as any).__car,t=car.car.body.translation();
-  return g.pedestrians().people.filter((p:any)=>p.modelRef===m&&Math.hypot(p.actor.player.position.x-t.x,p.actor.player.position.z-t.z)<16).map((p:any)=>({fallClip:(p.fallClip??null) as string|null,crew:!!p.crew}));},made);
+  return g.pedestrians().people.filter((p:any)=>String(p.modelRef).startsWith(m)&&Math.hypot(p.actor.player.position.x-t.x,p.actor.player.position.z-t.z)<16).map((p:any)=>({fallClip:(p.fallClip??null) as string|null,crew:!!p.crew}));},made!);
  return {model:made!,frames,peds};
 }
 
@@ -80,5 +87,18 @@ test('at a fire engine\'s passenger door CJ drags the second fireman out and the
  await expect.poll(async()=>(await right.peds()).length,{timeout:10000}).toBe(2);
  const left=await enter(page,'fireTruck','left');
  expect(left.frames.filter(f=>f.phase==='pullout').slice(1).every(f=>f.views.includes(`leaving:0=${left.model}`))).toBe(true);
+ await expect.poll(async()=>(await left.peds()).length,{timeout:10000}).toBe(2);
+});
+
+test('jacking a gang\'s attack car: the shooter is dragged out at the passenger\'s door, or gets out once CJ is in at the driver\'s',async({page})=>{
+ test.setTimeout(240000);
+ const right=await enter(page,'driveBy','right');
+ expect(right.frames.filter(f=>f.phase==='pullout').slice(1).every(f=>f.views.includes('leaving:1=ballas2')&&!f.views.some(v=>v.startsWith('driveby-shooter')))).toBe(true);
+ expect(right.frames.some(f=>f.npc==='getOut'&&f.views.includes('leaving:0=ballas1'))).toBe(true);
+ await expect.poll(async()=>(await right.peds()).length,{timeout:10000}).toBe(2);
+ const left=await enter(page,'driveBy','left');
+ expect(left.frames.filter(f=>f.phase==='pullout').slice(1).every(f=>f.views.includes('leaving:0=ballas1'))).toBe(true);
+ // MakeUndraggedPassengerPedsLeaveCar: the shooter's exit clip at his door once CJ is in, drawn as himself.
+ expect(left.frames.some(f=>f.views.includes('leaving:1=ballas2'))).toBe(true);
  await expect.poll(async()=>(await left.peds()).length,{timeout:10000}).toBe(2);
 });
