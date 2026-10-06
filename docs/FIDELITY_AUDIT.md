@@ -5759,8 +5759,30 @@ Left as they are, on purpose or for want of a reference:
   - The per-cell multipliers faWaveMultipliersX/Y are data in the exe, not in the source. They had been set to 1.0;
     they are now read from the iOS executable (0x100596730: 1, .85, .73, .77, .75, .8, .73, .8; 0x100596750: .75, .9,
     .95, .82, .7, .75, .9, 1), indexed by (|x| >> 1) & 7 and (|y| >> 1) & 7, so the swell varies cell by cell.
-- **Gameplay height:** CWaterLevel::GetWaterLevel adds the waves through AddWaveToResult, which is not reversed. The stand-in in src/world/waterLevel.ts adds the same drawn swell, so swimmers, boats, drowning checks and the underwater camera ride the surface on screen. `levelNoWaves` keeps the flat GetWaterLevelNoWaves height.
-  - Unlike the drawing, gameplay adds the waves at any distance from the camera, as GetWaterLevel calls AddWaveToResult unconditionally.
+- **Gameplay height:** CWaterLevel::GetWaterLevel, GetWaterLevelNoWaves and AddWaveToResult are unreversed in
+  gta-reversed. `src/world/waterLevel.ts` now follows the iOS executable (0x1004897f4, 0x100489894, 0x10048934c; the
+  stand-in it replaces picked the highest polygon and ignored height). Swimmers, boats, drowning checks and the
+  underwater camera read it.
+  - **Lookup.** 500-unit blocks on a 12 × 12 grid list the polygons that overlap them, quads in WATER.DAT order and
+    then triangles. The first one that holds the point and passes the height test wins, not the highest. Beyond
+    ±3000 it is open sea at 0, with full big waves.
+  - **Height.** A quad (corners sorted (minX,minY), (maxX,minY), (minX,maxY), (maxX,maxY)) is two planes split along
+    (maxX,minY)–(minX,maxY), not bilinear; its wave amplitudes are interpolated the same way. A triangle is a right
+    triangle with the right angle at v0 or v1.
+  - **The point's height.**
+    - A surface more than 20 under the point does not count.
+    - Limited-depth water (WATER.DAT flag 2: the pools, ponds and the interior's) more than 6 over it does not count
+      either, so a ped under a raised pool is not in its water.
+    - A caller not touching the water finds none more than 3 over it.
+    - A quad's test runs only when GetWaterLevel asks for the amplitudes (the executable's quirk); outside callers of
+      GetWaterLevelNoWaves skip it.
+    - The port passes the height where the caller has one: CJ, peds (their origin, a unit above the feet), the
+      underwater camera, molotovs and the script's point checks.
+  - **Swell.** AddWaveToResult takes the 2-unit cell's triangle the point is in and interpolates its three corners'
+    CalculateWavesOnlyForCoordinate2. That indexes CMaths' 256-entry sin table, not sinf. There is no camera-distance
+    gate.
+  - GET_WATER_HEIGHT_AT_COORDS asks at height 0 and writes -1000 where there is no water (it wrote 0 here before).
+  - The wave normal the boats' buoyancy can ask for is not computed.
 
 ## The player's shadow
 

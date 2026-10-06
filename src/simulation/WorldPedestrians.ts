@@ -1157,7 +1157,7 @@ export class WorldPedestrians {
     view.setHeadLook(this.playerLook&&point?new Vector3(point.x,point.y,point.z):this.playerLook&&t?new Vector3(t.x,t.y+0.9,t.z):undefined,this.playerLook?.blend??0);
    }
    /** CWaterLevel::GetWaterLevel at a native point (main wires the water), for CPed::ProcessBuoyancy. */
-   waterLevel?:(x:number,y:number)=>number|undefined;
+   waterLevel?:(x:number,y:number,z?:number)=>number|undefined;
   /** The area the camera is in, which decides whether a ped with an area of its own is drawn. */
   visibleArea?:()=>number;
   /** The rows a script has written for a decision maker, by the slot a ped wears. */
@@ -3233,7 +3233,7 @@ export class WorldPedestrians {
      // CTaskComplexInWater then drowns a street ped (bDrownsInWater): the DROWN clip, and death when it ends.
      // bDrownsInWater, which a script can clear: a ped that does not drown stays in the water.
     if(p.health>0&&p.down===0&&!p.drowning&&!p.follow&&p.flags?.drownsInWater!==false&&this.waterLevel){
-      const water=this.waterLevel(q.x,-q.z);
+      const water=this.waterLevel(q.x,-q.z,q.y+PED_ORIGIN_HEIGHT);
       // CPed::ProcessBuoyancy: the origin (a unit above the feet) 0.6 under the surface.
       if(water!==undefined&&q.y+PED_ORIGIN_HEIGHT+0.6<water){
        const duration=p.view.reactionDuration('drown')??4;
@@ -3914,7 +3914,7 @@ export class WorldPedestrians {
    const along=length&&p.down===0?{x:Math.sin(state.heading),z:Math.cos(state.heading)}:{x:length?dx/length:0,z:length?dz/length:0};
    // A drowning or drowned ped floats where the buoyancy force balances gravity: the origin 0.727 under the surface
    // alive and 0.056 under it dead (1.8× buoyancy), at most 0.1 units a frame either way, instead of falling.
-   const water=(p.drowning||p.drowned)&&this.waterLevel?this.waterLevel(position.x,-position.z):undefined;
+   const water=(p.drowning||p.drowned)&&this.waterLevel?this.waterLevel(position.x,-position.z,position.y+PED_ORIGIN_HEIGHT):undefined;
    // CTaskSimpleInAir: an airborne ped falls with CPhysical::ApplyGravity and the ped air resistance; on the
    // ground the controller's own probe keeps him on slopes and stairs.
    if(p.air){p.air.vz-=NATIVE_JUMP_GRAVITY*dt;p.air.vz*=Math.pow(Math.max(0,1-Math.abs(p.air.vz)/50*NATIVE_PED_AIR_RESISTANCE),dt*50);p.air.minVz=Math.min(p.air.minVz,p.air.vz);p.air.seconds+=dt;}

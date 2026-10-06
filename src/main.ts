@@ -500,7 +500,7 @@ async function boot() {
    if(!p.swimming||p.health<=0||p.swimState!==SWIM.diveUnderwater)swimDiveSplashed=false;
    if(!p.swimming||p.health<=0)return;
    const fx=Math.sin(p.heading),fy=-Math.cos(p.heading),originY=p.position.y+PED_ORIGIN_HEIGHT;
-   const water=render.lighting.water.levels?.level(p.position.x,-p.position.z)??originY;
+   const water=render.lighting.water.levels?.level(p.position.x,-p.position.z,p.position.y)??originY;
    const at:[number,number,number]=[p.position.x+fx*.4,-p.position.z+fy*.4,water];
    if(p.swimState===SWIM.sprint||p.swimState===SWIM.sprinting){
     let degrees=Math.atan2(fx,-fy)*180/Math.PI;while(degrees>=180)degrees-=360;while(degrees<-180)degrees+=360;
@@ -1393,7 +1393,7 @@ async function boot() {
      colourFilterState.extraMult=screenExtraMult(colourFilterState.extraMult,light,frameSeconds*50);
      // CWeather::UnderWaterness and WaterDepth come from a raw CWeather::Update: here the camera under the water
      // surface counts as fully under (1), its depth the surface height less the camera height.
-     const surface=render.lighting.water.levels?.level(camera.position.x,-camera.position.z),waterDepth=surface===undefined?0:surface-camera.position.y;
+     const surface=render.lighting.water.levels?.level(camera.position.x,-camera.position.z,camera.position.y),waterDepth=surface===undefined?0:surface-camera.position.y;
      weather.underwaterness=waterDepth>0?1:0;render.lighting.skyWeather.underwaterness=weather.underwaterness;render.lighting.skyWeather.cloudCoverage=weatherStarted?weather.cloudCoverage:0;
      render.lighting.lightningFlash=weatherStarted&&weather.lightningFlash;
      postEffects.update(render.lighting.nativePostFx?.pass1,render.lighting.nativePostFx?.pass2,{vision:(weapons.vision??null) as VisionMode,extraMult:colourFilterState.extraMult,timeStep:frameSeconds*50,timeMs:Math.floor(elapsed*1000),underwaterness:weather.underwaterness,waterDepth:Math.max(0,waterDepth)});}
@@ -3375,7 +3375,7 @@ async function boot() {
         // the crosshair (m_p3rdPersonMouseTarget, from the stubbed Compute3rdPersonMouseTarget) gets it instead.
         if(onFoot&&weapons.aiming&&weapons.lock&&weapons.inventory.info()?.fire==='instant')pedestrians?.gunAimedAt(weapons.lock.handle,{...sim.player.position});
         // CPed::ProcessBuoyancy: the ped origin (a unit above the feet) 0.6 under the surface starts the in-water task.
-        const swimWater=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z);
+        const swimWater=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z,sim.player.position.y);
         // ProcessBuoyancy's tail for a player outside the swim task: his head bone (plus 0.1) under the surface loses
         // breath at x1 (HandlePlayerBreath) and drowns him, floored in a channel or wading a steep bank.
         if(onFoot&&!sim.player.swimming&&swimWater!==undefined&&sim.player.health>0){const head=render.nativeCharacter?.headPosition();
@@ -3741,7 +3741,7 @@ async function boot() {
           const r=render.camera.matrixWorld.elements,right={x:r[0]*.07,y:r[1]*.07,z:r[2]*.07},level=render.lighting.water.levels;
           for(const p of weapons.projectiles){
             if((p.weapon!==16&&p.weapon!==18)||Math.hypot(p.velocity.x,p.velocity.z)<=.03*50)continue;
-            const water=p.weapon===18?level?.level(p.position.x,-p.position.z):undefined;if(water!==undefined&&p.position.y<=water)continue;
+            const water=p.weapon===18?level?.level(p.position.x,-p.position.z,p.position.y):undefined;if(water!==undefined&&p.position.y<=water)continue;
             streaks.register(p.id+1,p.weapon===16?[100,100,100,255]:[255,160,100,255],{x:p.position.x-right.x,y:p.position.y-right.y,z:p.position.z-right.z},{x:p.position.x+right.x,y:p.position.y+right.y,z:p.position.z+right.z});
           }
         }
@@ -3771,7 +3771,7 @@ async function boot() {
          // Any vehicle but a boat, plane or helicopter: cars and bikes alike.
          const car=[...(fleet?.cars??[])].find(c=>c.occupied)??(worldCar?.occupied?worldCar:undefined),bike=car?undefined:fleet?.occupiedBike;
          const body=car?.car.body??bike?.body,p=body?.translation(),v=body?.linvel();
-         const water=p?render.lighting.water.levels?.level(p.x,-p.z):undefined,under=water!==undefined&&p!==undefined&&water>p.y;
+         const water=p?render.lighting.water.levels?.level(p.x,-p.z,p.y):undefined,under=water!==undefined&&p!==undefined&&water>p.y;
          stuntJumps.update(step*1000,{driving:!!body&&sim.player.health>0&&!law.arrested,position:p?{x:p.x,y:-p.z,z:p.y}:{x:0,y:0,z:0},
           moveSpeed:v?{x:v.x/50,y:-v.z/50,z:v.y/50}:{x:0,y:0,z:0},collided:car?car.entitiesCollided:bike?bike.entitiesCollided():1,lost:car?car.wrecked||car.drowning||under:bike?bike.wrecked||under:false});
         }
@@ -3821,7 +3821,7 @@ async function boot() {
           render.contactLighting=contact?.light;
           playerSurfaceFlags=contact?surfaceAudio?.byId.get(contact.material):undefined;
           // Feet under open water step and land on the swimming bank even over dry collision.
-          const waterAt=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z);
+          const waterAt=render.lighting.water.levels?.level(sim.player.position.x,-sim.player.position.z,sim.player.position.y);
           playerSurfaceFlags=wadingSurface(playerSurfaceFlags,waterAt===undefined?undefined:waterAt-sim.player.position.y);
           playerSurface=nativeFootstepCategory(playerSurfaceFlags);
         }
@@ -3838,7 +3838,7 @@ async function boot() {
     if(playerPassenger&&(playerPassenger.car.disposed||playerPassenger.car.wrecked))leavePassengerSeat();
     render.vehicleView=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||!!fleet?.occupiedBike||!!playerPassenger;
     {
-      const p=sim.player,water=render.lighting.water.levels?.level(p.position.x,-p.position.z),entering=carEntry.active&&['approach','align','locked','open','pullout','getIn','closeInside','shuffle'].includes(carEntry.phase!);
+      const p=sim.player,water=render.lighting.water.levels?.level(p.position.x,-p.position.z,p.position.y),entering=carEntry.active&&['approach','align','locked','open','pullout','getIn','closeInside','shuffle'].includes(carEntry.phase!);
       const inCar=!!worldCar?.occupied||!!fleet?.occupiedPlane||!!fleet?.occupiedBoat||carEntry.seated||carEntry.phase==='waitSlow'||carEntry.phase==='getOut';
       render.playerShadowAllowed=playerRealTimeShadow()&&drawsRealTimeShadow({submerged:water!==undefined&&water>p.position.y,vehicle:fleet?.occupiedBike?'bike':inCar?'other':undefined,enteringAsDriver:entering?'other':undefined,
         // The drawn ped's root is its matrix position: a unit above the feet on foot, the seat when riding.
@@ -5013,7 +5013,7 @@ async function boot() {
              // Reinforcements arrive with their car crews; do not synthesize extra nearby foot police.
              pedestrians.footOfficerLimit=()=>0;
              // PopulateInterior's interior peds are not generated; street peds only come outside (CanSeeOutSideFromCurrArea).
-             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:scalePedLimits(fewerPedsLimits(fleet?.pedLimits(),cullZones.fewerPeds),(mission?.runtime.game.pedDensityMultiplier??1)*touchPopulation());pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.trains=()=>[...(fleet?.trains??[])].filter(t=>!t.disposed).map(t=>({body:t.body,nativeBody:t.nativeBody,occupied:false,boundRadius:t.boundRadius,train:true}));pedestrians.pedTargets=()=>{const t=fleet?.pedTargets();return t&&scalePedTargets(t,(mission?.runtime.game.pedDensityMultiplier??1)*touchPopulation());};pedestrians.dontCreateRandomCops=()=>!!mission?.runtime.game.population.dontCreateRandomCops;pedestrians.copModel=()=>DEFAULT_COP_MODEL[fleet?.zoneLevel()??0];pedestrians.cameraKeepsPeds=()=>render.firstPerson==='sniper'||render.firstPerson==='camera'||render.glance!=='none';pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.bikes=()=>[...(fleet?.bikes??[])].map(bike=>({body:bike.body,nativeBody:bike.nativeBody,occupied:bike.occupied,boundRadius:bike.boundRadius}));pedestrians.playerRide=()=>{const bike=fleet?.occupiedBike;if(bike)return {body:bike.body,bike:true};const other=fleet?.occupiedBoat??fleet?.occupiedPlane;return other?{body:other.body,bike:false}:undefined;};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:fleet?.occupied&&!fleet.occupied.disposed?fleet.occupied:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y)=>render.lighting.water.levels?.level(x,y);pedestrians.visibleArea=()=>render.lighting.area;pedestrians.scriptDecisionMaker=slot=>mission?.scriptDecisions.get(slot);if(fleet)fleet.rain=()=>{if(!weatherStarted)return 0;const car=worldCar?.occupied?worldCar:fleet?.occupied;
+             pedestrians.limits=()=>render.lighting.area!==0?{civilians:0,total:0}:scalePedLimits(fewerPedsLimits(fleet?.pedLimits(),cullZones.fewerPeds),(mission?.runtime.game.pedDensityMultiplier??1)*touchPopulation());pedestrians.pedZone=()=>fleet?.pedZone();pedestrians.trains=()=>[...(fleet?.trains??[])].filter(t=>!t.disposed).map(t=>({body:t.body,nativeBody:t.nativeBody,occupied:false,boundRadius:t.boundRadius,train:true}));pedestrians.pedTargets=()=>{const t=fleet?.pedTargets();return t&&scalePedTargets(t,(mission?.runtime.game.pedDensityMultiplier??1)*touchPopulation());};pedestrians.dontCreateRandomCops=()=>!!mission?.runtime.game.population.dontCreateRandomCops;pedestrians.copModel=()=>DEFAULT_COP_MODEL[fleet?.zoneLevel()??0];pedestrians.cameraKeepsPeds=()=>render.firstPerson==='sniper'||render.firstPerson==='camera'||render.glance!=='none';pedestrians.noCivilians=()=>gangWars?.dontCreateCivilians()??false;pedestrians.gangWarFighting=()=>!!gangWars?.gangWarFightingGoingOn();pedestrians.playerVehicle=()=>{const car=worldCar?.occupied?worldCar:fleet?.occupied;if(!car)return undefined;const t=car.car.body.translation();return {position:{x:t.x,y:t.y,z:t.z},alarm:car.alarm>0,law:LAW_ENFORCEMENT_MODELS.has(car.modelId),wrecked:car.wrecked};};pedestrians.bikes=()=>[...(fleet?.bikes??[])].map(bike=>({body:bike.body,nativeBody:bike.nativeBody,occupied:bike.occupied,boundRadius:bike.boundRadius}));pedestrians.playerRide=()=>{const bike=fleet?.occupiedBike;if(bike)return {body:bike.body,bike:true};const other=fleet?.occupiedBoat??fleet?.occupiedPlane;return other?{body:other.body,bike:false}:undefined;};pedestrians.playerVehicleSpeed=()=>{const car=worldCar?.occupied&&!worldCar.disposed?worldCar:fleet?.occupied&&!fleet.occupied.disposed?fleet.occupied:undefined;if(!car)return 0;const v=car.car.body.linvel();return Math.hypot(v.x,v.z)/50;};pedestrians.attractorsNear=(x,y,r)=>importedScene?.attractorsNear(x,y,r)??[];pedestrians.waterLevel=(x,y,z)=>render.lighting.water.levels?.level(x,y,z);pedestrians.visibleArea=()=>render.lighting.area;pedestrians.scriptDecisionMaker=slot=>mission?.scriptDecisions.get(slot);if(fleet)fleet.rain=()=>{if(!weatherStarted)return 0;const car=worldCar?.occupied?worldCar:fleet?.occupied;
              // CPopCycle::GetCurrentPercOther_Peds: no rain damping on a mission in a Taxi or Cabbie (the fares keep coming).
              if(car&&(car.modelId===420||car.modelId===438)&&mission?.playerOnAMission())return 0;return weather.rain;};if(fleet)fleet.insideHideOutGarage=at=>!!mission?.runtime.game.garages.isPointWithinHideOut([at.x,-at.z,at.y]);if(fleet)fleet.pedCentres=()=>pedestrians?.targets(true).map(t=>t.position)??[];if(fleet)fleet.suppressedModels=()=>mission?.suppressedCarModels()??new Set();if(fleet)fleet.scriptZoneInfo=index=>mission?.scriptZoneInfo(index);occupants.pickDriver=car=>car.gang!==undefined?pedestrians?.gangDriver(car.gang):pedestrians?.specificDriver(fleet?.modelName(car.modelId),fleet?.zoneLevel()??0)??pedestrians?.rosterDriver(fleet?.vehicleClass(car.modelId));
              carEntry.crowd=pedestrians;
@@ -5562,7 +5562,7 @@ async function boot() {
                  stopScriptFx:system=>{(system as import('./simulation/fx/NativeFx').NativeFxSystem).stop();},
                  killScriptFx:system=>{(system as import('./simulation/fx/NativeFx').NativeFxSystem).kill();},
                  // The same test CPed::ProcessBuoyancy makes: the point under the water's own level.
-                 pointUnderWater:position=>{const level=render.lighting.water.levels?.level(position.x,position.y);return level!==undefined&&position.z<level;},
+                 pointUnderWater:position=>{const level=render.lighting.water.levels?.level(position.x,position.y,position.z);return level!==undefined&&position.z<level;},
                  // CCamera::Restore asks FindPlayerVehicle and the ped's state. The browser's entry sequence is
                  // on foot until the door work begins, which is where the original's ENTER_CAR, CARJACK and
                  // OPEN_DOOR states start, and its exit states run to the ped standing up again.
@@ -5855,7 +5855,7 @@ async function boot() {
                  scriptVehicleStopped:car=>{const v=(car as ScriptCar).car.body.linvel();return Math.hypot(v.x,v.y,v.z)/50<=.01;},
                  scriptVehicleOnFire:car=>(car as ScriptCar).onFire,
                  scriptVehicleInWater:car=>!!(car as {inWater?:boolean}).inWater,
-                 waterLevelAt:(x,y,waves)=>{const levels=render.lighting.water.levels;return waves?levels?.level(x,y):levels?.levelNoWaves(x,y);},
+                 waterLevelAt:(x,y,waves)=>{const levels=render.lighting.water.levels;return waves?levels?.level(x,y,0):levels?.levelNoWaves(x,y,0);},
                  scriptVehicleOnScreen:car=>{const p=(car as ScriptCar).car.body.translation();return !populationOutsideView(render.camera,p,2);},
                  explodeScriptVehicle:car=>{(car as {blowUp?:()=>void}).blowUp?.();},
                  explodeScriptVehicleInCutscene:(car,o)=>{if(isScriptCar(car))car.blowUpInCutscene(o);else (car as {blowUp?:()=>void}).blowUp?.();},

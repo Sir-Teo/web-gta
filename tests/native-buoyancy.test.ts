@@ -2,9 +2,9 @@ import {expect,test} from 'vitest';
 import {WaterLevelIndex} from '../src/world/waterLevel';
 import {applyNativeBikeBuoyancy,applyNativeBuoyancy,nativeBuoyancySplashEdges,nativeSplashParticles,processNativeBuoyancy,type NativeBuoyancyBody} from '../src/simulation/nativeBuoyancy';
 const vertex=(x:number,y:number,z:number)=>({position:[x,y,z] as [number,number,number],flow:[0,0] as [number,number],bigWaves:0,smallWaves:0});
-test('water heights interpolate native quads and triangles and choose the highest surface',()=>{
+test('water heights interpolate native quads and triangles, the first listed polygon winning (iOS GetWaterLevelNoWaves)',()=>{
  const index=new WaterLevelIndex([{vertices:[vertex(0,0,0),vertex(100,0,2),vertex(0,100,0),vertex(100,100,2)],flags:1,line:1},{vertices:[vertex(300,0,5),vertex(400,0,5),vertex(300,100,7)],flags:1,line:2},{vertices:[vertex(40,40,9),vertex(60,40,9),vertex(40,60,9),vertex(60,60,9)],flags:0,line:3}]);
- expect(index.level(50,10)).toBeCloseTo(1,5);expect(index.level(50,50)).toBe(9);expect(index.level(310,10)).toBeCloseTo(5.2,5);expect(index.level(399,99)).toBeUndefined();expect(index.level(200,50)).toBeUndefined();
+ expect(index.level(50,10)).toBeCloseTo(1,5);expect(index.level(50,50)).toBeCloseTo(1,5);expect(new WaterLevelIndex([{vertices:[vertex(40,40,9),vertex(60,40,9),vertex(40,60,9),vertex(60,60,9)],flags:0,line:3}] as never).level(50,50)).toBe(9);expect(index.level(310,10)).toBeCloseTo(5.2,5);expect(index.level(399,99)).toBeUndefined();expect(index.level(200,50)).toBeUndefined();
 });
 const flat=(level:number)=>(x:number,y:number)=>Math.abs(x)<500&&Math.abs(y)<500?level:undefined;
 const body=(z:number,extra:Partial<NativeBuoyancyBody>={}):NativeBuoyancyBody=>({position:[0,0,z],right:[1,0,0],forward:[0,1,0],up:[0,0,1],boundsMin:[-2,-4,-1],boundsMax:[2,4,1],modelId:400,heli:false,touchingWater:false,mass:1500,turnMass:3000,centerOfMass:[0,0,0],buoyancyConstant:1500*.8/75,moveSpeed:[0,0,0],turnSpeed:[0,0,0],...extra});

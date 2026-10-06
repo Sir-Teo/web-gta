@@ -59,17 +59,46 @@ test('builder buffers grow and are reused',()=>{
  b.build([surface],waterCameraRange(2,2));expect(b.grown).toBe(false);expect(b.vertexCount).toBe(49*49);
 });
 
-import {WaterLevelIndex} from '../src/world/waterLevel';
-test('GetWaterLevel rides the drawn swell: the wave at grid corners, spread over the patch triangles; NoWaves stays flat',()=>{
- const vertex=(x:number,y:number)=>({position:[x,y,1] as [number,number,number],flow:[0,0] as [number,number],bigWaves:.8,smallWaves:.4});
- const index=new WaterLevelIndex([{vertices:[vertex(-100,-100),vertex(100,-100),vertex(-100,100),vertex(100,100)]} as never]);
+import {WaterLevelIndex,gameplayWaveAt} from '../src/world/waterLevel';
+const waterVertex=(x:number,y:number,z=1,big=.8,small=.4)=>({position:[x,y,z] as [number,number,number],flow:[0,0] as [number,number],bigWaves:big,smallWaves:small});
+const poly=(vertices:ReturnType<typeof waterVertex>[],flags=0)=>({vertices,flags,line:0}) as never;
+test('GetWaterLevel adds AddWaveToResult: the 2-unit cell triangle\'s corners through the sin table; NoWaves stays flat',()=>{
+ const index=new WaterLevelIndex([poly([waterVertex(-100,-100),waterVertex(100,-100),waterVertex(-100,100),waterVertex(100,100)])]);
  expect(index.level(3.3,5.1)).toBe(1);
  Object.assign(index.waves,{timeMs:12345,waterTimeOffset:0,wavyness:.7});
  expect(index.levelNoWaves(3.3,5.1)).toBe(1);
- expect(index.level(4,6)).toBeCloseTo(1+calculateWavesOnlyForCoordinate(4,6,.8,.4,12345,0,.7),6);
+ const w=(x:number,y:number)=>gameplayWaveAt(x,y,Math.fround(.8),Math.fround(.4),12345,0,.7);
+ expect(index.level(4,6)).toBeCloseTo(1+w(4,6),6);
  // Inside a cell: the lower-left triangle of (2,4)-(4,6) mixes its three corners.
- const w=(x:number,y:number)=>calculateWavesOnlyForCoordinate(x,y,.8,.4,12345,0,.7);
- expect(index.level(2.5,4.5)).toBeCloseTo(1+w(2,4)*.5+w(4,4)*.25+w(2,6)*.25,6);
- expect(index.level(3.5,5.5)).toBeCloseTo(1+w(4,6)*.5+w(4,4)*.25+w(2,6)*.25,6);
+ expect(index.level(2.5,4.5)).toBeCloseTo(1+w(2,4)+.25*(w(4,4)-w(2,4))+.25*(w(2,6)-w(2,4)),6);
+ expect(index.level(3.5,5.5)).toBeCloseTo(1+w(4,6)+.25*(w(2,6)-w(4,6))+.25*(w(4,4)-w(4,6)),6);
  expect(index.level(500,500)).toBeUndefined();
+ // The table's sine is within a step of the true one: the swell differs from Math.sin's by little.
+ expect(Math.abs(w(4,6)-calculateWavesOnlyForCoordinate(4,6,.8,.4,12345,0,.7))).toBeLessThan(.06);
+});
+
+test('GetWaterLevelNoWaves takes the first polygon that passes, quads before triangles, and the z window',()=>{
+ // A limited-depth pool at 50 above the sea at 0, listed first.
+ const pool=poly([waterVertex(0,0,50,0,0),waterVertex(20,0,50,0,0),waterVertex(0,20,50,0,0),waterVertex(20,20,50,0,0)],2);
+ const sea=poly([waterVertex(-200,-200,0,0,0),waterVertex(200,-200,0,0,0),waterVertex(-200,200,0,0,0),waterVertex(200,200,0,0,0)]);
+ const index=new WaterLevelIndex([pool,sea]);
+ // First listed wins, not the highest; without a z there is no window.
+ expect(index.level(10,10)).toBe(50);expect(new WaterLevelIndex([sea,pool]).level(10,10)).toBe(0);
+ // Under the limited-depth pool by more than 6, its water is not there: the sea below it is.
+ expect(index.level(10,10,49)).toBe(50);expect(index.level(10,10,10)).toBe(0);expect(index.level(10,10,43)).toBeUndefined();
+ // Water more than 20 under the point does not count.
+ expect(index.level(50,50,21)).toBeUndefined();expect(index.level(50,50,19)).toBe(0);
+ // Not touching the water: a surface more than 3 over the point is none.
+ expect(index.level(50,50,-4,false)).toBeUndefined();expect(index.level(50,50,-4)).toBe(0);
+ // An outside NoWaves caller skips a quad's window (the executable's quirk).
+ expect(index.levelNoWaves(10,10,0)).toBe(50);
+ // Beyond ±3000: open sea at 0.
+ expect(index.level(3100,0)).toBe(0);
+});
+
+test('a quad is two planes split along (maxX,minY)–(minX,maxY), not bilinear',()=>{
+ const index=new WaterLevelIndex([poly([waterVertex(0,0,0,0,0),waterVertex(10,0,0,0,0),waterVertex(0,10,0,0,0),waterVertex(10,10,10,0,0)])]);
+ // Bilinear would give 2.5 at the centre; the planes give 0 there (u + t = 1 is the lower triangle) and z of v3's plane beyond.
+ expect(index.level(5,5)).toBe(0);
+ expect(index.level(7.5,7.5)).toBeCloseTo(5,6);
 });

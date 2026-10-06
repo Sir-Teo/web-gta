@@ -1406,7 +1406,7 @@ export class ScmMission {
    objectHealth:handle=>this.runtime.game.objects.at(handle).health,
    setObjectHealth:(handle,health)=>{this.runtime.game.objects.setHealth(handle,health);},
    // The handler is unreversed; off the water nothing writes its height, which reads here as 0.
-   waterHeightAtCoords:(x,y,waves)=>this.host('waterLevelAt','GET_WATER_HEIGHT_AT_COORDS')(x,y,waves)??0,
+   waterHeightAtCoords:(x,y,waves)=>this.host('waterLevelAt','GET_WATER_HEIGHT_AT_COORDS')(x,y,waves)??-1000,
    addToObjectVelocity:(handle,x,y,z)=>{this.runtime.game.objects.addToVelocity(handle,{x,y,z});},
    setObjectRotationVelocity:(handle,x,y,z)=>{this.runtime.game.objects.setTurnSpeed(handle,{x,y,z});},
    addToObjectRotationVelocity:(handle,x,y,z)=>{this.runtime.game.objects.addToTurnSpeed(handle,{x,y,z});},

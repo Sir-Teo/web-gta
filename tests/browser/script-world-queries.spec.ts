@@ -84,9 +84,9 @@ test('a script reads a passenger seat, a line of sight, a group, a car engine, c
  expect(await w('pedIsGettingIntoCar',walker)).toBe(false);
  await w('givePedScriptedTask',walker,{kind:'enterCarAsPassenger',vehicle:made.car,time:20000,seat:1,moveState:4},0x05ca);
  await expect.poll(()=>w('pedIsGettingIntoCar',walker),{timeout:10000}).toBe(true);
- // The lake at 40.6 north of the desert, without the swell; dry land writes nothing, read as 0.
+ // The lake at 40.6 north of the desert, without the swell; dry land writes -1000 (the iOS handler, 0x1002022a0).
  expect(await w('waterHeightAtCoords',-1170,2680,false)).toBeCloseTo(40.6,3);
- expect(await w('waterHeightAtCoords',2495,-1680,false)).toBe(0);
+ expect(await w('waterHeightAtCoords',2495,-1680,false)).toBe(-1000);
  await w('explodeVehicle',made.car);
  await expect.poll(()=>w('vehicleIsDeadForScript',made.car),{timeout:10000}).toBe(true);
  expect(await w('vehicleExists',made.car)).toBe(true);
