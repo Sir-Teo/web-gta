@@ -27,7 +27,10 @@ test('a driver rammed by the player draws his decision: road rage gets him out t
    let raged=0,evicted=0,exitSpeed=-1;traffic.driverDecisionMaker=()=>2;traffic.random=()=>.7;
    traffic.onRoadRage=(c:any)=>{raged++;const lv=c.car.body.linvel();exitSpeed=Math.hypot(lv.x,lv.z);evicted+=entry.evictDriver(c,(position:any,heading:number)=>crowd.spawnRoadRage(0,position,heading,undefined))?1:0;};
    const forward={x:-Math.sin(back.heading)*12,z:-Math.cos(back.heading)*12};
-   let hitAt=-1;for(let i=0;i<240;i++){if(hitAt<0)ram.car.body.setLinvel({x:forward.x,y:0,z:forward.z},true);tick();if(raged&&hitAt<0)hitAt=i;if(hitAt>=0&&i>hitAt+30)break;}
+   // The ram is driven in until the rammed driver decides on road rage; he then waits for his car to stop
+   // (canPedStepOutCar), which a car still being shoved at 12 m/s never does.
+   const rammedDriver=traffic.drivers.find((d:any)=>d.car===car);
+   let hitAt=-1;for(let i=0;i<240;i++){if(hitAt<0&&!rammedDriver?.raged)ram.car.body.setLinvel({x:forward.x,y:0,z:forward.z},true);tick();if(raged&&hitAt<0)hitAt=i;if(hitAt>=0&&i>hitAt+30)break;}
    const snap=traffic.snapshot().cars.find((c:any)=>c.modelId===car.modelId&&Math.hypot(c.position.x-car.car.body.translation().x,c.position.z-car.car.body.translation().z)<1);
    const rammed={hitAt,raged,evicted,exitSpeed,driverOut:car.driverOut,autopilot:!!car.autopilot,health:car.health,snap:snap?{raged:snap.raged,fleeScene:snap.fleeScene}:null};
    // The player stands 8 m off the driver's door; the rager gets out, faces him, shakes a fist and comes over.

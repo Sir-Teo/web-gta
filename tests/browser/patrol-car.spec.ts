@@ -25,6 +25,9 @@ test('the popcycle cop share puts a cruising patrol car in traffic that joins th
    const unit=police.units[0];if(!unit)throw new Error(JSON.stringify({traffic:traffic.snapshot(),police:police.snapshot()}));
    const spawned={modelId:unit.car.modelId,mission:unit.mission,siren:unit.siren,cruise:unit.cruise,seats:unit.seats.filter(Boolean).length,trafficDrivers:traffic.snapshot().cars.length};
    const tick=()=>{const at=unit.car.car.body.translation();sim.player.position={x:at.x+8,y:at.y,z:at.z+8};traffic.beforeStep(1/60);police.beforeStep(1/60);for(const c of fleet.cars)c.beforeStep(1/60,{x:0,y:0},false);sim.world.step();for(const c of fleet.cars)c.afterStep();};
+   // A cruising patrol waits on its brakes until it is joined to a road link, which needs the paths around it loaded
+   // (the game's own load is not awaited between these hand-driven ticks).
+   {const at=unit.car.car.body.translation();await police.paths.loadAround(at.x,at.z);}
    for(let i=0;i<240;i++)tick();
    const start=unit.car.car.body.translation();for(let i=0;i<240;i++)tick();const end=unit.car.car.body.translation();
    const cruised={mission:unit.mission,siren:unit.siren,moved:Math.hypot(end.x-start.x,end.z-start.z)};

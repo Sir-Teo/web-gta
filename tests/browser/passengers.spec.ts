@@ -13,7 +13,8 @@ test('a recruited homie boards, rides and climbs back out',async({page})=>{
   const entry=new CarEntry(sim,new VehicleAnimationLibrary(base));await entry.clips.load(car.animGroup);
   const crowd=new WorldPedestrians(sim,scene,base,()=>undefined);
   const occupants=new VehicleOccupants(scene,base);
-  crowd.gangTurf=()=>({gang:1,strength:255});entry.crowd=crowd;
+  // A gang party takes its model from the gang roster, whose residents are the gangs the zone needs: the Families.
+  crowd.gangTurf=()=>({gang:1,strength:255});crowd.gangsNeeded=()=>1<<1;entry.crowd=crowd;
   const out:Record<string,unknown>={};
   try{
    for(let i=0;i<300&&!crowd.snapshot().people.some((p:any)=>p.gang===1);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}

@@ -1,8 +1,11 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('a three-star roadblock stands its crew beside the cars at once instead of walking them out of the doors',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ // INTRO would seat CJ in its car as a passenger a moment after the press.
+ await endStoryMission(page);
  const state=()=>page.evaluate(()=>(window as any).__game.state());
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await expect.poll(async()=>(await state()).pedestrians?.ready,{timeout:30000}).toBe(true);
