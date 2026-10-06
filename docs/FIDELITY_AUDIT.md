@@ -6438,7 +6438,10 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
 - **Reload:** a reload in the middle of a burst drops the rest of it. Back in FIREBURST the last command was RELOAD, so the attack timer restarts and a fresh pause follows the reload. The port had finished the old burst straight after reloading.
 - **Shotguns:** SetUpPelletCol is reversed and does not depend on the shooter, so an NPC shotgun now sends fifteen pellet lines. Each pellet on the first line's victim adds the weapon's damage, as the player's shotgun does. FireInstantHit, which would confirm the pellet count for AI shooters, is unreversed; it only declares SHOTGUN_NUM_PELLETS = 15.
 - **Matches:** burst length, the pause formula, each cop class's accuracy and rate, the default rate 40 and accuracy 60, the COP/STD skill rows, the ammo rule and the engage/disengage rules.
-- **Authored:** the AI aim spread (FireInstantHit is unreversed; the class multipliers are the port's own). The same goes for DEFAULT_GUN_ATTACK_PERIOD's 1000 ms and the drive-by fire rate (CTaskSimpleGangDriveBy::ProcessPed is unreversed).
+- **Authored:** the AI aim spread (FireInstantHit is unreversed; the class multipliers are the port's own; since ported
+  from the iOS executable, see "An AI round now goes where SA's goes"), and the drive-by fire rate
+  (CTaskSimpleGangDriveBy::ProcessPed is unreversed). DEFAULT_GUN_ATTACK_PERIOD, AUTHORED as 1000 ms, is the iOS
+  executable's 2000 (0x100652e78): a burst comes every 2 s × 0.75 to 1.25 / (rate × 0.04).
 
 ## AI drivers when something goes wrong
 

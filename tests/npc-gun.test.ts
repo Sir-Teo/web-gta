@@ -22,8 +22,9 @@ test('CTaskSimpleGunControl bursts: 4-5 rounds at the default rate 40, 3-4 for a
  expect([npcBurstLength(17,40,()=>0),npcBurstLength(17,40,()=>.99)]).toEqual([5,4]);
  expect([npcBurstLength(17,30,()=>0),npcBurstLength(17,30,()=>.99)]).toEqual([4,3]);
  expect(npcBurstLength(2,40,()=>0)).toBe(2);expect(npcBurstLength(1,40,()=>.99)).toBe(1);expect(npcBurstLength(30,100,()=>.99)).toBe(30);
- // The pause scales with 1 / (rate × 0.04) around the attack period, twice it for projectiles.
- expect(npcBurstPause(false,40,()=>.5)).toBeCloseTo(.625,6);expect(npcBurstPause(true,40,()=>.5)).toBeCloseTo(1.25,6);
+ // The pause scales with 1 / (rate × 0.04) around the attack period (2000 ms, iOS 0x100652e78), twice it for
+ // projectiles.
+ expect(npcBurstPause(false,40,()=>.5)).toBeCloseTo(1.25,6);expect(npcBurstPause(true,40,()=>.5)).toBeCloseTo(2.5,6);
  const state:NpcGunState={time:0,rounds:17,reload:0,active:false};let shots=0,paused=0;
  const info=nativeWeaponInfo(data,22,1)!;
  for(let i=0;i<600;i++){const fired=stepNpcGun(state,info,1,1/60,true,{rate:40,random:()=>0});shots+=Number(fired);if(!state.active)paused++;}

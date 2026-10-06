@@ -2,9 +2,9 @@ import type {NativeWeaponInfo} from '../weapons/weaponData';
 export interface NpcGunState {time:number;rounds:number;reload:number;active:boolean;
  /** CTaskSimpleGunControl: the rounds left in the burst, and the seconds until the next one (m_nextAtkTimeMs). */
  burstLeft?:number;pause?:number}
-/** DEFAULT_GUN_ATTACK_PERIOD (0x8D2E78) is a value in the executable that the reference does not carry; the browser's
- * own 1000 ms stands in for it. */
-export const GUN_ATTACK_PERIOD_MS=1000;
+/** DEFAULT_GUN_ATTACK_PERIOD (0x8D2E78), a value in the executable the reference does not carry: 2000 ms in the iOS
+ * one (0x100652e78, read by CTaskSimpleGunControl::ProcessPed at 0x1003b025c). */
+export const GUN_ATTACK_PERIOD_MS=2000;
 /** CTaskSimpleGunControl's burst: min(4 × the ped's shooting rate / 30, the clip) less 0 or 1, at least 1. */
 export function npcBurstLength(clip:number,shootingRate:number,random:()=>number=Math.random){
  let n=clip;
