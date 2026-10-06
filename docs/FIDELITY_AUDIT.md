@@ -254,8 +254,10 @@ Authored: the SHOCKED line (speech banks are not shipped); the signal-at-ped ges
 
 ## Drivers whose tyres are shot out
 
-CWeapon::DoBulletImpact raises CEventVehicleDamageWeapon on a car's occupants only when a ped's bullet bursts a tyre
-(a body hit just inflicts damage). The default decision makers' event 41 rows (data/decision/allowed): R_Norm flees
+CWeapon::DoBulletImpact raises CEventVehicleDamageWeapon on a car's occupants when a ped's bullet bursts a tyre. The
+iOS CVehicle::InflictDamage (0x1004781b4) raises it too, for any ped's weapon harm the car survives, while the car is
+STATUS_PLAYER, SIMPLE or PHYSICS: a round on a traffic car's body, or the player's blast, now has its driver answer as
+for a tyre. Before, a body hit only took health. The default decision makers' event 41 rows (data/decision/allowed): R_Norm flees
 the scene 75 from the player (nothing 25; a threat may be rammed); R_Tough nothing 50 or CTaskComplexKillPedOnFoot 50,
 which CEventHandler::IsKillTaskAppropriate turns into the flee-scene drive for a driver without a gun facing a gunman;
 R_Weak nothing 30, flee the scene 35, CTaskComplexLeaveCarAndFlee 35 (CTaskComplexLeaveCar at once, then

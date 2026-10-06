@@ -201,7 +201,7 @@ export class WorldTraffic {
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
     const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,
      cruiseSpeed:length<=10?cruise:randomCarCruiseSpeed(rand(),length,pick.modelId,BMX_MODELS.has(pick.modelId)),stopped:null,distance:0,last:{x,z}};
-    car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);car.onBlowUp=aboard=>{if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(car);};
+    car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);car.onWeaponDamage=shooter=>this.tyreShot(driver,shooter);car.onBlowUp=aboard=>{if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(car);};
     this.pickNext(driver,link);this.drivers.push(driver);this.serial++;break;
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
@@ -424,7 +424,8 @@ export class WorldTraffic {
  }
  /** CTheScripts::IsPlayerOnAMission, for the kill-ped answer to a ram. */
  playerOnMission?:()=>boolean;
- /** CEventVehicleDamageWeapon: a ped's bullet burst the car's tyre (CWeapon::DoBulletImpact). The driver's decision
+ /** CEventVehicleDamageWeapon: a ped's bullet burst the car's tyre (CWeapon::DoBulletImpact), or a ped's weapon harmed
+  * the car and left it health (CVehicle::InflictDamage, iOS 0x1004781b4). The driver's decision
   * maker draws nothing, the flee-scene drive, a kill on foot (IsKillTaskAppropriate: an unarmed driver never takes on a
   * gunman, so the driver flees the scene instead) or CTaskComplexLeaveCarAndFlee. Cops and gang members answer with
   * tasks that do not apply here (kill criminal, inform) so nothing happens. */

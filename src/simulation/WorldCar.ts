@@ -409,6 +409,10 @@ export class WorldCar {
   const piece=collider===undefined?undefined:this.pieceOf(collider);
   if(piece!==undefined&&amount>25&&this.canBeVisiblyDamaged)this.applyComponents(applyCollisionComponents(this.damageState,piece,amount,this.mass,{localDir:0,dirDotRight:0},Math.random,true),true);
   let destroyed=false;
+  // A ped's weapon harm that the car survives raises CEventVehicleDamageWeapon (41) on its occupants, while it is
+  // STATUS_PLAYER, SIMPLE or PHYSICS (driven, not abandoned): the driver's decision maker answers it as for a tyre shot.
+  if(before>0&&this.health>0&&(options.byPlayer===true||options.by?.ped!==undefined)&&(this.occupied||!!this.autopilot&&!this.driverOut))
+   this.onWeaponDamage?.(options.byPlayer===true?'player':'ped');
   if(before>0&&this.health===0){
    if(explosive){this.bombTimerMs=blastBombTimerMs();this.bombDetonatedByPlayer=options.byPlayer===true;}
    else this.blowUp();
@@ -1291,6 +1295,8 @@ export class WorldCar {
  onTyreBurst?:()=>void;
  /** CWeapon::DoBulletImpact's CEventVehicleDamageWeapon: a ped's bullet burst a tyre (the occupants hear it). */
  onTyreShot?:(shooter:'player'|'ped')=>void;
+ /** CVehicle::InflictDamage's CEventVehicleDamageWeapon on the occupants of a car a ped's weapon harmed and left with health. */
+ onWeaponDamage?:(shooter:'player'|'ped')=>void;
  burstTyre(wheel:number,physicalEffect=true,shotBy?:'player'|'ped'){
   if(this.modelId===432||this.wrecked||this.tyresDontBurst)return false;
   if(this.damageState.wheels[wheel])return false;

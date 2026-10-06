@@ -122,3 +122,19 @@ describe('who last damaged a car, and with what',()=>{
   expect(ask(op,[5,-1],world(-1))).toBe(false);
  });
 });
+
+describe('CEventVehicleDamageWeapon from InflictDamage',()=>{
+ test('a ped\'s weapon harm the car survives tells its driver; a kill, another cause or an empty car does not',()=>{
+  const was=WorldCar.prototype.onWeaponDamage;const heard:string[]=[];
+  const driven=(extra:object={})=>car({autopilot:{},driverOut:false,onWeaponDamage:(s:string)=>heard.push(s),...extra});
+  damage(driven(),20,false,{weapon:22,byPlayer:true});
+  damage(driven(),20,false,{weapon:31,by:{ped:{}}});
+  expect(heard).toEqual(['player','ped']);
+  damage(driven(),2000,false,{weapon:31,byPlayer:true});
+  damage(driven(),20,false,{kind:'fire'});
+  damage(driven({autopilot:undefined}),20,false,{weapon:22,byPlayer:true});
+  damage(driven({driverOut:true}),20,false,{weapon:22,byPlayer:true});
+  expect(heard).toEqual(['player','ped']);
+  expect(was).toBeUndefined();
+ });
+});
