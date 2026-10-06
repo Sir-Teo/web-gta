@@ -1158,6 +1158,7 @@ const handlers:Record<string,ScmCommandHandler>={
  // The script reads the velocity fifty times the engine's, as SET_CHAR_VELOCITY divides it and GET_OBJECT_VELOCITY
  // scales it (AUTHORED: gta-reversed's GetCharVelocity returns m_vecMoveSpeed as it is, but the scripts read units a
  // second: player_parachute's free fall starts under -10, and the Freefall mission hands it back to SET_CHAR_VELOCITY).
+ // m_vecMoveSpeed times 50, as the iOS handler (0x1001fe0e4) multiplies it; gta-reversed's returns it unscaled.
  GET_CHAR_VELOCITY:(t,p,i)=>{
   const velocity=world(t,i,'pedVelocity')(t.readInt(p[0]));
   t.writeFloat(p[1],velocity.x*50);t.writeFloat(p[2],velocity.y*50);t.writeFloat(p[3],velocity.z*50);
