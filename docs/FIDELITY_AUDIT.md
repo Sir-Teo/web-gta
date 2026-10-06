@@ -1690,6 +1690,23 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
 - The spread is the reversed `GetWeaponRadiusOnScreen` circle. The authored
   multipliers are gone: skill practice × 0.25, which counted skill twice
   over weapon.dat's skill rows, crouch × 1.4 and moving × 0.6.
+  - It now follows CWeapon::FireInstantHit's third-person free aim, as the iOS executable runs it (0x1004951c0;
+    PC's is unreversed). The radius is (100 − 95) / the row's accuracy (the player's m_nWeaponAccuracy is 95 for a gun
+    he can aim), halved ducking, × min(15 / range, 1) × 0.75 × m_fAttackButtonCounter.
+    - The 3 × range line's end sits on that circle, swept once a second by the game clock. Before, a random point
+      in a cone of the crosshair's size was picked on every shot.
+    - Each shot adds damage / 25 to the counter, so the first round of a burst goes exactly down the crosshair line.
+    - CTaskSimpleUseGun decays the counter by 0.96 a frame while the gun task runs and zeroes it when it ends. The
+      port counts the task as running while CJ aims or for 300 ms after a shot.
+    - The crosshair grows with the counter (GetWeaponRadiusOnScreen), which before stayed at 0 for guns.
+    - Shotguns take no wobble; their pellets spread. A SPAS 12 fires 8 pellets (iOS 0x100654480), not
+      gta-reversed's SPAS_NUM_PELLETS 4, as NPC shotguns already did.
+  - Not changed, a decision to make: the range. On iOS a free-aimed round's line runs 3 × weapon.dat's range from
+    where the camera ray passes the muzzle. A hit counts only within 1 × range of that point in 2D, or 3 × range for
+    a car (not a bike) or a ped in one (TargetWeaponRangeMultiplier). A pistol cannot hit a man more than 35 units
+    off. FireM16_1stPerson does the same along the camera front (3 × range, not gta-reversed's 3). Whether PC's free
+    aim matches is unverified (FireInstantHit is unreversed there). The port keeps its AUTHORED reach of at least
+    120 units, which was chosen so a ped under the crosshair across a street can be hit.
 - SA has no reload control: `CWeapon::Fire` reloads when a clip runs out. The
   R key no longer reloads.
 - Pistol whip: `CTaskSimpleUseGun::RequirePistolWhip` (0x61E200, reversed)
@@ -10617,4 +10634,5 @@ iOS UI only, not ported:
 - strap3's and heist9's CLEAR_HELP exceptions;
 - the touch widgets: bcour's vehicle-shoot buttons, plchute's exit, barb's zoom and pool2's look-back widgets,
   lowgame's accelerate widget, and the bball, bbchal and shrange start icons;
-- the run_* scripts' aim-assist targets.
+- the run_* check in CWeapon::FindNearestTargetEntityWithScreenCoors (0x10049bd4c, PC 0x73E240). It is the
+  two-player co-op finder (camera mode 49) and unreachable in single player; it is not an aim assist.

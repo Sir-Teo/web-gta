@@ -8,7 +8,7 @@ import type {WorldPlane} from '../simulation/WorldPlane';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {WeaponInventory} from './Inventory';
 import {weaponById,type WeaponDefinition} from './catalog';
-import {WEAPON_FLAG,hasWeaponFlag,nativeAimOffset,nativeWeaponInfo,nativeWeaponRadiusOnScreen,CROSSHAIR_TANGENT,type NativeWeaponData,type NativeWeaponInfo} from './weaponData';
+import {WEAPON_FLAG,hasWeaponFlag,nativeAimOffset,nativeWeaponInfo,nativeWeaponRadiusOnScreen,type NativeWeaponData,type NativeWeaponInfo} from './weaponData';
 import type {Simulation} from '../simulation/Simulation';
 import type {WorldPedestrians} from '../simulation/WorldPedestrians';
 import type {WorldFleet} from '../simulation/WorldFleet';
@@ -77,7 +77,12 @@ const normalize=(a:Vec3):Vec3=>{const l=Math.hypot(a.x,a.y,a.z)||1;return {x:a.x
 /** Native simulation steps are 1/50 s; CShotInfo speeds are per step. */
 const NATIVE_STEP=1/50;
 /** SetUpPelletCol accepts at most 15 pellet lines. */
-const PELLETS=15,SPAS_PELLETS=4;
+const PELLETS=15,SPAS_PELLETS=8;
+/** The weapons that fire through CTaskSimpleUseGun's instant hit. */
+const GUN_KINDS:ReadonlySet<string>=new Set(['bullet','shotgun']);
+/** The port's stand-in for the gun task's end when a shot is fired without aiming: CTaskSimpleUseGun runs on while the
+ * fire button is held, and the port's fire is a press per shot. */
+const GUN_TASK_LINGER_MS=300;
 /** CShotInfo::ms_afRandTable: -0.05 to 0.045 in 0.005 steps. */
 const randTable=()=>-.05+.005*Math.floor(Math.random()*20);
 export class WeaponSystem {
@@ -556,12 +561,22 @@ export class WeaponSystem {
  }
  /** Random offset inside the native free-aim crosshair circle (CPlayerPed::GetWeaponRadiusOnScreen). */
  private aimSpread(direction:Vec3,info:NativeWeaponInfo){
-  // GetWeaponRadiusOnScreen from the skill row's accuracy, halved ducking. FireInstantHit is a stub, so the circle's
-  // radius is taken as the shot's cone; m_fAttackButtonCounter is left at 0 (its growth is in a stubbed ProcessPed).
-  const angle=Math.atan(nativeWeaponRadiusOnScreen(info,0,this.sim.player.crouched)*CROSSHAIR_TANGENT),r=angle*Math.sqrt(Math.random()),theta=Math.random()*Math.PI*2;
+  // CWeapon::FireInstantHit's third-person free aim (iOS 0x1004951c0; PC's is unreversed). The player's
+  // m_nWeaponAccuracy is 95 for a gun he can aim (100 otherwise), so the spread is (100 − 95) / the row's accuracy,
+  // halved ducking, and none for a shotgun. It is scaled by min(15 / range, 1) × 0.75 × m_fAttackButtonCounter: the
+  // first shot is exact. The end of the 3 × range line then sits on a circle of that radius, swept once a second by
+  // the game clock (not at random), and each shot adds damage / 25 to the counter.
+  if(!hasWeaponFlag(info,WEAPON_FLAG.canAim)||info.type===25||info.type===26||info.type===27)return direction;
+  const base=Math.fround((100-95)/info.accuracy)*(this.sim.player.crouched?.5:1);
+  const radius=base*Math.min(15/info.weaponRange,1)*(.75*this.attackButtonCounter);
+  this.attackButtonCounter+=info.damage/25;this.gunTaskUntilMs=this.nowMs+GUN_TASK_LINGER_MS;
+  if(radius===0)return direction;
+  const theta=this.nowMs*Math.fround(.0062831854),length=3*info.weaponRange;
   const right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
-  return normalize(add(add(direction,right,Math.cos(theta)*r),up,Math.sin(theta)*r));
+  return normalize(add(add(direction,right,Math.sin(theta)*radius/length),up,Math.cos(theta)*radius/length));
  }
+ /** Until when the gun task (CTaskSimpleUseGun) counts as running after a shot fired without aiming. */
+ private gunTaskUntilMs=-Infinity;
   /** Camera selects a target; a separate muzzle ray prevents firing through nearby walls. */
   fire(camera:{origin:Vec3;direction:Vec3}){
    const w=this.inventory.weapon;if(!this.ready||this.sim.player.health<=0||this.sim.player.swimming||!this.sim.playerBody.isEnabled()||!this.sim.playerCollider.isEnabled())return false;
@@ -797,7 +812,7 @@ export class WeaponSystem {
   }
   // SetUpPelletCol: pellet lines spread with distance to the first victim; hits on that victim accumulate.
   const spreadRate=.05/info.accuracy,depth=Math.max(.05,(hit?.timeOfImpact??info.weaponRange)*spreadRate*1.3),right=normalize({x:-direction.z,y:0,z:direction.x}),up=normalize({x:-direction.y*direction.x,y:direction.x**2+direction.z**2,z:-direction.y*direction.z});
-  // FireInstantHit: SHOTGUN_NUM_PELLETS 15, SPAS_NUM_PELLETS 4.
+  // FireInstantHit: 15 pellets, 8 for the SPAS 12 (iOS 0x100654480; gta-reversed's SPAS_NUM_PELLETS 4 is not the binary's).
   const count=w.id===27?SPAS_PELLETS:PELLETS;
   let pellets=0;
   for(let i=0;i<count;i++){
@@ -1093,6 +1108,11 @@ export class WeaponSystem {
    this.aircraftGunCooldown=Math.max(0,this.aircraftGunCooldown-dt);this.aircraftOrdnanceCooldown=Math.max(0,this.aircraftOrdnanceCooldown-dt);
    this.inventory.crouched=this.sim.player.crouched;
    if(camera)this.lockCamera={origin:{...camera.origin},direction:{...camera.direction}};
+  // CTaskSimpleUseGun::ProcessPed: m_fAttackButtonCounter decays by 0.96 a frame while the gun task runs (aiming, or a
+  // shot just fired), and is zeroed when it ends. A thrown weapon's counter is the throw's own.
+  if(GUN_KINDS.has(this.inventory.weapon.kind)){
+   if(this.aiming||this.nowMs<this.gunTaskUntilMs)this.attackButtonCounter*=Math.pow(.96,dt*50);else this.attackButtonCounter=0;
+  }
   this.updateLock();this.updateHeatSeek();
   if(this.goggles){this.goggles.remaining-=dt;if(this.goggles.remaining<=0){this.vision=this.vision===this.goggles.kind?null:this.goggles.kind;this.goggles=undefined;}}
   const candidate=this.stealthTarget();if(candidate&&candidate.id===this.stealthCandidate)this.stealthReady+=dt;else{this.stealthReady=0;this.stealthCandidate=candidate?.id;}

@@ -202,13 +202,14 @@ test('switching to a weapon loads its clip from the total (CPlayerPed::MakeChang
  inv.loadClipForNewWeapon(30);const size=inv.magazine(30);expect(inv.ammo.get(30)).toEqual({clip:Math.min(size,60),reserve:60-Math.min(size,60)});
  inv.ammo.set(30,{clip:3,reserve:2});inv.loadClipForNewWeapon(30);expect(inv.ammo.get(30)).toEqual({clip:5,reserve:0});
 });
-test('FireInstantHit fires 15 pellets from a shotgun and 4 from the SPAS-12',()=>{
+test('FireInstantHit fires 15 pellets from a shotgun and 8 from the SPAS-12 (iOS 0x100654480)',()=>{
  const f=setup();try{f.weapons.installNative(nativeData);
   // Only the first eight pellets draw a tracer; the damage counts every pellet that lands on the capsule.
   f.weapons.inventory.select(25);const s0=f.damage();f.weapons.fire(camera);const shotgun=f.weapons.effects.filter(e=>e.kind==='tracer').length,shotgunHits=(f.damage()-s0)/nativeWeaponInfo(nativeData,25,0)!.damage;
   f.tick(2);f.weapons.effects.length=0;f.weapons.inventory.select(27);const p0=f.damage();f.weapons.fire(camera);const spas=f.weapons.effects.filter(e=>e.kind==='tracer').length,spasHits=(f.damage()-p0)/nativeWeaponInfo(nativeData,27,0)!.damage;
-  expect(shotgun).toBe(8);expect(spas).toBe(4);
-  expect(shotgunHits).toBeGreaterThan(4);expect(shotgunHits).toBeLessThanOrEqual(15);expect(spasHits).toBeGreaterThanOrEqual(1);expect(spasHits).toBeLessThanOrEqual(4);
+  // Only the first eight pellets draw a tracer, so both draw eight.
+  expect(shotgun).toBe(8);expect(spas).toBe(8);
+  expect(shotgunHits).toBeGreaterThan(4);expect(shotgunHits).toBeLessThanOrEqual(15);expect(spasHits).toBeGreaterThanOrEqual(1);expect(spasHits).toBeLessThanOrEqual(8);
  }finally{f.dispose();}
 });
 
