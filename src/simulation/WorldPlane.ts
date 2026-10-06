@@ -58,6 +58,13 @@ export function heightAboveCeiling(height:number,model:'baron'|'aircraft'){
  return height<800?-1:height-800;
 }
 /** A helicopter's rotor speed at full throttle (CAEVehicleAudioEntity divides the native rotor speed by 0.22). */
+/** CVehicle::InflictDamage (iOS 0x1004781b4, mask 0x0008000000190000 and 0x3ECCCCCD): a heli or plane takes 0.4 of a
+ * weapon's damage, except a grenade's, a rocket's (ROCKET, ROCKET_HS) and a blast's (WEAPON_EXPLOSION), which it takes
+ * in full. The RC Baron, RC Raider and RC Goblin (bIsRCVehicle) take everything in full. */
+export function aircraftWeaponDamageScale(modelId:number,weapon:number){
+ if(modelId===464||modelId===465||modelId===501)return 1;
+ return weapon===16||weapon===19||weapon===20||weapon===51?1:Math.fround(.4);
+}
 const HELI_MAX_ROTOR_SPEED=.22;
 /** How fast a helicopter's rotor spins up while its engine runs and winds down after, per second: authored, since
  * CHeli::ProcessControl is unreversed (the slow-rotor branch in FlyingControl implies a rotor that winds down). */
@@ -86,7 +93,8 @@ export class WorldPlane {
  get rocketsArmed(){return this.modelId===425||this.modelId===520;}
  /** GetPlaneOrdnancePosition in native model space (right, forward, up): the Hunter's and the Hydra's first rocket pod. */
  ordnancePosition():[number,number,number]{return this.modelId===425?[2.17,1,-.8]:[3.7,.98,-1.02];}
- damage(amount:number){if(this.health<=0)return false;this.health=Math.max(0,this.health-amount);if(this.health===0){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}return true;}return false;}
+ /** Weapon damage, with the weapon when it comes through CVehicle::InflictDamage (aircraftWeaponDamageScale). */
+ damage(amount:number,weapon?:number){if(this.health<=0)return false;if(weapon!==undefined)amount*=aircraftWeaponDamageScale(this.modelId,weapon);this.health=Math.max(0,this.health-amount);if(this.health===0){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}return true;}return false;}
  toggleVtol(){if(this.modelId!==520)return '';this.vtol=!this.vtol;return this.vtol?'Hydra: vertical lift':'Hydra: forward flight';}
  /** physicalFlags.bMakeMassTwiceAsBig (SET_CAR_HEAVY): the water's drag ×1.5. */
  heavy=false;
