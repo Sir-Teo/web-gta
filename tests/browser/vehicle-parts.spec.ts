@@ -87,3 +87,45 @@ test('a dummy part replaces the car\'s own exhaust or bumper, hiding it, and sho
  const off=await look();
  expect(off.exhaust_ok).toMatchObject({own:ids.before.exhaust_ok,parts:0});expect(off.bump_rear_dummy).toMatchObject({own:ids.before.bump_rear_dummy,parts:0});expect(off.bump_front_dummy).toMatchObject({own:ids.before.bump_front_dummy,parts:0});
 });
+
+test('a wheel set replaces all four wheels, scaled to the car\'s wheels by m_fWheelScale and its wheel flags, and comes off again',async({page})=>{
+ test.setTimeout(240000);
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});
+ await endStoryMission(page);
+ await expect.poll(async()=>(await state(page)).player.grounded,{timeout:60000}).toBe(true);
+ await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2486,g.groundAt(2486,1662,40)+.05,1662);});
+ await page.waitForTimeout(2500);
+ // An Infernus: 0.7 wheels all round, its rear ones widened (WHEEL_R_WIDE, 0x4000).
+ const wheel=await page.evaluate(async()=>{
+  const g=(window as any).__game,fleet=g.fleet(),up=fleet.catalog.upgrades;
+  const car=await fleet.spawnScriptCar(411,{x:2481,y:g.groundAt(2481,1666,40),z:1666},Math.PI/2);(window as any).__car=car;
+  const id=up.idOf('wheel_sr6');fleet.drawUpgradePart(car,id);return id;
+ });
+ const wheels=async()=>page.evaluate(()=>{const car=(window as any).__car,names=car.car.wheelFrameNames(),out:Record<string,{own:number;parts:number;scale:number[]}>={};
+  for(const [wheel,name] of Object.entries(names) as [string,string][]){
+   const frame=car.car.root.getObjectByName(name);let own=0,parts=0;
+   const walk=(node:any,inPart:boolean)=>{const part=inPart||!!node.userData.nativePart;if(node.userData.nativeAtomic!==undefined&&node.visible)part?parts++:own++;for(const c of node.children)walk(c,part);};
+   walk(frame,false);
+   const e=frame.matrix.elements,len=(i:number)=>Math.hypot(e[i],e[i+1],e[i+2]);
+   out[wheel]={own,parts,scale:[len(0),len(4),len(8)].map(v=>+v.toFixed(3))};
+  }
+  return {out,wheelScale:car.wheelScale};});
+ await expect.poll(async()=>Object.values((await wheels()).out).every(w=>w.parts>0),{timeout:15000}).toBe(true);
+ await page.waitForTimeout(300);
+ const on=await wheels();
+ expect(on.wheelScale).toBeCloseTo(.7,5);
+ for(const [name,w] of Object.entries(on.out)){
+  expect(w.own).toBe(0);
+  // Width (the axle) 0.7/0.7 times the diameter, the rear ones 1.1 times wider; diameter the 0.7 wheel size.
+  expect(w.scale[0]).toBeCloseTo(name.startsWith('rear')?1.1:1,2);expect(w.scale[1]).toBeCloseTo(.7,2);expect(w.scale[2]).toBeCloseTo(.7,2);
+ }
+ await page.evaluate(()=>{const g=(window as any).__game,car=(window as any).__car,r=g.render(),t=car.car.body.translation(),cam=r.camera.position.clone();
+  r.fixedCamera={position:cam.clone().set(t.x+1.5,t.y+1.2,t.z+5),target:()=>cam.clone().set(t.x,t.y+.2,t.z)};});
+ await page.waitForTimeout(800);
+ await page.screenshot({path:test.info().outputPath('infernus-wheels.png'),scale:'css'});
+ await page.evaluate(id=>{const g=(window as any).__game;g.fleet().removeUpgradePart((window as any).__car,id);},wheel);
+ await page.waitForTimeout(300);
+ const off=await wheels();
+ expect(off.wheelScale).toBe(1);
+ for(const w of Object.values(off.out)){expect(w.parts).toBe(0);expect(w.own).toBe(1);expect(w.scale.map(v=>Math.round(v*100)/100)).toEqual([1,1,1]);}
+});

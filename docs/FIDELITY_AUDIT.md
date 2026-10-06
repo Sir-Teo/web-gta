@@ -9054,11 +9054,20 @@ that did anything.
   component's own were; on a DOUBLE_EXHAUST model (the handling model flag 0x2000) the exhaust goes on again on a frame
   of its own at -2 times the exhaust frame's x. The port hides the car's own atomics while the part stands (the detail
   pass leaves them hidden) and shows them as they were when it comes off. AUTHORED gaps: the damaged copy AddUpgrade
-  makes at the _dam position for a part on the bonnet, boot or lamps is not drawn, and wheel sets (all four wheel
-  frames, with CVehicle::m_fWheelScale) are not drawn yet. Specs: `vehicle-upgrades` (unit: the positions),
+  makes at the _dam position for a part on the bonnet, boot or lamps is not drawn. A wheel set (CarMod 2) goes on
+  the four wheel frames (CAR_WHEEL_RF, LF, RB, LB; a six-wheeler's middle wheels keep theirs), drawn at every detail
+  as the car's own wheels are, and AddVehicleUpgrade sets CVehicle::m_fWheelScale to the front wheel size (0x100480a44;
+  RemoveVehicleUpgrade puts it back to 1, 0x100481218). CAutomobile::PreRender scales each wheel's frame by it (iOS
+  from 0x1004484ec, `nativeWheelScale`): the diameter m_fWheelScale, a rear wheel's times the rear size over the
+  front; the width along the axle the axle's size over 0.7 times the diameter scale, by the handling's
+  WHEEL_F/R_NARROW2, _NARROW, _WIDE and _WIDE2 flags (0.65, 0.8, 1.1, 1.25), three times on the Kart, and no width rule
+  on a monster truck or quad. The unit-sized upgrade wheels so come out at the car's wheel size. AUTHORED: the car's
+  own wheels are still drawn as modelled, without this scale. Specs: `vehicle-upgrades` (unit: the positions),
   `vehicle-parts` (browser: a Sultan's spoiler on its boot, its roof scoop and both skirts from one, painted, then the
   skirts off and a second spoiler in the first's place; its exhaust and both bumpers in place of its own, the front
-  one damaged with its bumper, and its own back when they come off).
+  one damaged with its bumper, and its own back when they come off; an Infernus on Shadow wheels, the front ones
+  0.7 across and as wide as that, the rear ones 1.1 times wider, its own back unscaled when they come off),
+  `wheel-scale` (unit).
 - **The vehicle-class questions the mod shops and the valet ask** (absent from gta-reversed; the iOS handlers in the
   2400 switch): IS_BIG_VEHICLE (0x1002034d0) reads vehicleFlags.bIsBig, here the handling's IS_BIG model flag (0x8) it
   is set from; IS_CAR_STREET_RACER (0x1002036c4) handlingFlags.bStreetRacer (0x4000000); IS_EMERGENCY_SERVICES_VEHICLE

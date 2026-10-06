@@ -32,7 +32,9 @@ import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
-import {EXHAUST_NODE,isValidModForVehicle,otherLinkedUpgrade,REPLACED_COMPONENT_FRAMES,upgradePositionFrame,vehicleModSlot} from '../vehicle/nativeVehicleUpgrades';
+import {EXHAUST_NODE,isValidModForVehicle,otherLinkedUpgrade,REPLACED_COMPONENT_FRAMES,upgradePositionFrame,vehicleModSlot,WHEEL_NODE} from '../vehicle/nativeVehicleUpgrades';
+import {nativeWheelScale} from '../vehicle/nativeWheelScale';
+import {NATIVE_CAR_WHEELS} from './nativeDriveContacts';
 import {isRemapMaterial,remapColours,remapName} from '../vehicle/nativeVehicleRemap';
 import {TexturePool} from '../assets/TexturePool';
 import {MODEL_FLAG} from './nativeDoor';
@@ -524,19 +526,24 @@ export class WorldFleet {
  drawUpgradePart(car:WorldCar,id:number){
   const catalog=this.catalog;if(!catalog)return;
   for(const model of this.withLinkedUpgrade(id)){
-   const place=catalog.upgrades.placeOf(model),replace=!!place?.dummy;
-   const frame=replace?REPLACED_COMPONENT_FRAMES[place!.place]:upgradePositionFrame(place);
-   if(!frame||!car.car.hasFrame(frame))continue;
+   const place=catalog.upgrades.placeOf(model),replace=!!place?.dummy,wheels=replace&&place!.place===WHEEL_NODE;
+   // A wheel set stands at the four wheel frames, which it takes as one position.
+   const frame=wheels?'wheels':replace?REPLACED_COMPONENT_FRAMES[place!.place]:upgradePositionFrame(place);
+   const frames=wheels?Object.values(car.car.wheelFrameNames()).filter(name=>name&&car.car.hasFrame(name)):frame?[frame]:[];
+   if(!frame||!frames.length||!wheels&&!car.car.hasFrame(frame))continue;
    let drawn=this.drawnParts.get(car);if(!drawn){drawn=new Map();this.drawnParts.set(car,drawn);}
    for(const [fitted,part] of drawn)if(part.frame===frame){for(const remove of part.removes)remove();part.cancelled=true;drawn.delete(fitted);}
    const part:{frame:string;removes:(()=>void)[];cancelled?:boolean}={frame,removes:[]};drawn.set(model,part);
+   // CVehicle::AddVehicleUpgrade: upgrade wheels are unit wheels, m_fWheelScale the front wheel size scaling them.
+   if(wheels){car.wheelScale=car.assets.vehicle.frontWheelSize??1;this.applyWheelScales(car);}
    // DOUBLE_EXHAUST (the handling's model flag 0x2000): the exhaust once more on a frame of its own, at -2 times the
    // exhaust frame's x, which puts it on the other side.
    const copies:{replace:boolean;offsetX?:number}[]=[{replace}];
    if(replace&&place!.place===EXHAUST_NODE&&car.modelFlags&MODEL_FLAG.doubleExhaust){const x=car.car.nativeFramePosition(frame)?.x;if(x!==undefined)copies.push({replace:false,offsetX:-2*x});}
    void catalog.upgrades.partAsset(model).then(asset=>{
     if(!asset||part.cancelled||car.disposed)return;
-    for(const copy of copies){const remove=car.car.attachPart(asset.model,asset.textures,frame,copy);if(remove)part.removes.push(remove);}
+    if(wheels)for(const name of frames){const remove=car.car.attachPart(asset.model,asset.textures,name,{replace:true,everyDetail:true});if(remove)part.removes.push(remove);}
+    else for(const copy of copies){const remove=car.car.attachPart(asset.model,asset.textures,frame,copy);if(remove)part.removes.push(remove);}
     // A paintjob worn reaches the part's remappable materials too.
     const worn=this.remapped.get(car);if(worn)this.remapMaterials(car,worn.map);
    }).catch(()=>{});
@@ -546,7 +553,19 @@ export class WorldFleet {
   * component's own atomics shown again). */
  removeUpgradePart(car:WorldCar,id:number){
   const drawn=this.drawnParts.get(car);if(!drawn)return;
-  for(const model of this.withLinkedUpgrade(id)){const part=drawn.get(model);if(!part)continue;for(const remove of part.removes)remove();part.cancelled=true;drawn.delete(model);}
+  for(const model of this.withLinkedUpgrade(id)){
+   const part=drawn.get(model);if(!part)continue;for(const remove of part.removes)remove();part.cancelled=true;drawn.delete(model);
+   // RemoveVehicleUpgrade (0x100481218): the car's own wheels back at m_fWheelScale 1.
+   if(part.frame==='wheels'){car.wheelScale=1;this.applyWheelScales(car);}
+  }
+ }
+ /** CAutomobile::PreRender's wheel frame scales for a car (nativeWheelScale): while it wears upgrade wheels. The car's
+  * own wheels are drawn as modelled for now. */
+ private applyWheelScales(car:WorldCar){
+  const v=car.assets.vehicle;
+  if(car.wheelScale===1||v.frontWheelSize===undefined||v.rearWheelSize===undefined){car.car.setWheelScales?.(undefined);return;}
+  const flags=car.assets.handling.values.handlingFlags??0;
+  car.car.setWheelScales?.(Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,nativeWheelScale({frontSize:v.frontWheelSize!,rearSize:v.rearWheelSize!,rear:wheel.startsWith('rear'),wheelScale:car.wheelScale,handlingFlags:flags,modelId:car.modelId,vehicleType:v.type,wheelModel:(v.misc??-1)!==-1})])));
  }
  /** The tuning parts drawn on a car, by upgrade model id. */
  drawnUpgradeParts(car:WorldCar){return [...(this.drawnParts.get(car)?.keys()??[])];}

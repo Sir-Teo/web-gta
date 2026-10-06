@@ -162,6 +162,8 @@ export class WorldCar {
   else if(kind==='nitro')this.car.nitrousControl(-1,0,0,undefined,false);
   else if(kind==='stereo')this.upgradedStereo=false;
  }
+ /** CVehicle::m_fWheelScale: 1, or the front wheel size while upgrade wheels are fitted. */
+ wheelScale=1;
  /** CVehicle::GetRemapIndex: the paintjob of its model's it wears, -1 for none. */
  paintjob=-1;
  /** vehicleFlags.bEngineBroken (SET_CAR_ENGINE_BROKEN): the engine stays off and the car will not drive. */

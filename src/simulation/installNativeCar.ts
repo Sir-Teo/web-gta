@@ -88,7 +88,9 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   interface DrawnPart {paint:ReturnType<typeof bindNativeCarPaint>;ok:import('three').Object3D[];dam:import('three').Object3D[];
    /** The component the part hangs from (its damage shows on the part), whether it switches to its damaged atomic
     * with it, and the car's own atomics it replaced. */
-   component?:string;switchDamage:boolean;replaced:import('three').Object3D[]}
+   component?:string;switchDamage:boolean;replaced:import('three').Object3D[];
+   /** A wheel, drawn at every detail as the car's own wheels are. */
+   everyDetail:boolean}
   const parts=new Map<ReturnType<typeof modelObject>,DrawnPart>();
   /** A part's intact or damaged atomic by its component's state, as the component's own (the rule below); gone with it. */
   const applyPartDamage=(part:DrawnPart)=>{
@@ -97,6 +99,8 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
    for(const node of part.ok)node.visible=!missing&&!damaged;for(const node of part.dam)node.visible=!missing&&damaged;
   };
   let currentColors=assets.colors,currentNight=0,currentAlpha=1;
+  /** CAutomobile::PreRender's scale on each wheel's frame, none until one is set. */
+  let wheelScales:Partial<Record<CarWheel,{width:number;diameter:number}>>|undefined;
   let previous={...physical.body.translation()},previousRotation={...physical.body.rotation()};
   const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();controller?.dispose();for(const part of parts.keys())part.dispose();parts.clear();visual?.dispose();physical.dispose();};
   const update=(alpha:number)=>{
@@ -107,7 +111,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   try{
     controller=new NativeRaycastVehicle(world,physical.body,assets.handling,lines);
     visual=modelObject(prepared,assets.textures??[],undefined,undefined,{worldLighting:true,ambient,carEnv});
-    reflection.useModel(prepared);dirt=bindNativeCarDirt(visual.materialBindings);applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames);if(assets.lightTexture)lights=bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture,assets.lightsOnTexture&&visual.textureMap(assets.lightsOnTexture.name));paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
+    reflection.useModel(prepared);dirt=bindNativeCarDirt(visual.materialBindings);applyNativeWheelRestPose(visual.root,wheelFrames,wheelPose.positions);wheelAnimation=bindNativeWheelAnimation(visual.root,wheelFrames,wheel=>wheelScales?.[wheel]);if(assets.lightTexture)lights=bindNativeCarLightMaterials(visual.materialBindings,assets.lightTexture,assets.lightsOnTexture&&visual.textureMap(assets.lightsOnTexture.name));paint=bindNativeCarPaint(visual.materialBindings,assets.lightTexture);if(assets.colors)paint.setColors(assets.colors);lod=bindNativeCarLod(visual.root,prepared,wheelFrames);visual.root.traverse(o=>{if(/_(ok|dam)$/.test(o.name)&&prepared.frames.some(f=>f.name===o.name.replace(/_(ok|dam)$/,'_dam')))damagedFrames.set(o.name,o);});applyDamage();
     for(const name of DOOR_NODES){const frame=visual.root.getObjectByName(name);doorFrames.push(frame);doorPositions.push(frame?new Vector3().setFromMatrixPosition(frame.matrix):new Vector3());}
     // The model's Z-up to Y-up turn never changes.
     visual.root.updateMatrix();visual.root.matrixAutoUpdate=false;
@@ -130,7 +134,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     /** CVehicle::CreateUpgradeAtomic (0x6D3510, reversed): a tuning part's atomic under the car, its frame taking the
      * upgrade position the model's `frameName` frame gives (that frame's own matrix, under the component it hangs
      * from), lit, reflecting, painted and faded as the car's own atomics are. The returned call takes it off. */
-    attachPart(model:DffModel,textures:ModelTexture[],frameName:string,options:{replace?:boolean;offsetX?:number}={}){
+    attachPart(model:DffModel,textures:ModelTexture[],frameName:string,options:{replace?:boolean;offsetX?:number;everyDetail?:boolean}={}){
      const frame=visual?.root.getObjectByName(frameName);if(!frame||disposed)return undefined;
      // CVehicle 0x100480d44's callbacks (0x10048171c, recursing through 0x1004817a8): a replacement destroys every
      // atomic on the component's frame and below it, the car's own and an earlier part's alike; here the car's own are
@@ -158,10 +162,10 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
      const ok:import('three').Object3D[]=[],dam:import('three').Object3D[]=[];
      part.root.traverse(o=>{if(o.userData.nativeAtomic!==undefined)(/_dam$/i.test(o.parent?.name??'')?dam:ok).push(o);});
      const holder=options.replace?frame:frame.parent,component=holder?.name.endsWith('_dummy')?holder.name.slice(0,-6):undefined;
-     const drawn:DrawnPart={paint:bindNativeCarPaint(part.materialBindings,assets.lightTexture),ok,dam,component,switchDamage:!!options.replace,replaced};
+     const drawn:DrawnPart={paint:bindNativeCarPaint(part.materialBindings,assets.lightTexture),ok,dam,component,switchDamage:!!options.replace,replaced,everyDetail:!!options.everyDetail};
      if(currentColors)drawn.paint.setColors(currentColors);
      part.setNight(currentNight);parts.set(part,drawn);applyPartDamage(drawn);if(currentAlpha<1)setAlpha(currentAlpha);
-     part.root.visible=!lod||lod.detail==='high';
+     part.root.visible=drawn.everyDetail||!lod||lod.detail==='high';
      return ()=>{
       if(!parts.delete(part))return;part.dispose();
       // The car's own atomics back as they were (the detail and damage passes then put them right).
@@ -176,6 +180,10 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     /** CBouncingPanel::ProcessPanel output: the frame's rest matrix with native basis entries [column,row,value] overwritten. */
     setFrameBasis(name:string,entries:readonly [number,number,number][]){const frame=visual!.root.getObjectByName(name),index=frame?.userData.nativeFrame;if(!frame||!Number.isInteger(index))return false;matrixFromNative(frame.matrix,assets.model.frames[index].matrix);for(const [column,row,value] of entries)frame.matrix.elements[column*4+row]=value;frame.matrixWorldNeedsUpdate=true;return true;},
     hasFrame(name:string){return !!visual!.root.getObjectByName(name);},
+    /** The four wheel frames' names (a wheel upgrade replaces the wheel on each). */
+    wheelFrameNames(){return Object.fromEntries(NATIVE_CAR_WHEELS.map(wheel=>[wheel,assets.model.frames[wheelFrames[wheel]]?.name??''])) as Record<CarWheel,string>;},
+    /** CAutomobile::PreRender's wheel frame scales (width along the axle, diameter); undefined for none. */
+    setWheelScales(scales:Partial<Record<CarWheel,{width:number;diameter:number}>>|undefined){wheelScales=scales;wheelAnimation?.update(wheelPrevious,wheelCurrent,1);},
     /** RwFrameGetLTM(frame)->pos: the named frame's world position, renderer space. */
     frameWorldPosition(name:string){const frame=visual!.root.getObjectByName(name);if(!frame)return undefined;visual!.root.updateWorldMatrix(true,false);frame.updateWorldMatrix(true,false);return new Vector3().setFromMatrixPosition(frame.matrixWorld);},
     /** RwFrameGetMatrix(frame)->pos: the named frame's position relative to its parent, in native units. */
@@ -185,7 +193,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     setViewDistance(distanceSquared:number,generationMultiplier:number){
      requireAsset(!disposed,'Native car is disposed.');const result=lod!.update(distanceSquared,generationMultiplier);
      // The parts are high-detail atomics: the far _vlo model draws without them.
-     for(const part of parts.keys())part.root.visible=result.detail==='high';
+     for(const [part,drawn] of parts)part.root.visible=drawn.everyDetail?result.detail!=='culled':result.detail==='high';
      return result;},
     setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);currentColors=colors;for(const part of parts.values())part.paint.setColors(colors);},
     /** Active-light switching: brake pedal brightens rear lamps, night brightens fronts. */
