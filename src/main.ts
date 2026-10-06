@@ -305,7 +305,7 @@ import {MOUSE_ACCEL_MAX,MOUSE_ACCEL_MIN,MOUSE_ACCEL_STEP,mouseYawScale,parseMous
 import { NativeDuckMove, playerDuckMove } from './locomotion/nativeDuck';
 import { ENEX, EntryExitManager, entryExitPosition, findValidTeleportPoint, type EntryExitTransition } from './world/nativeEntryExits';
 import { worldLevelAt } from './assets/worldZones';
-import {IosMissionCarDensity,iosCutsceneSkipBlocked,iosWaterExtinguishMultiplier} from './engine/iosMissionHacks';
+import {IosMissionCarDensity,iosAttachSavedWeapon,iosCutsceneSkipBlocked,iosWaterExtinguishMultiplier} from './engine/iosMissionHacks';
 import './style.css';
 
 const app = document.querySelector<HTMLElement>('#app')!;
@@ -424,6 +424,13 @@ async function boot() {
      const inv=weapons.inventory;inv.setTotalAmmo(inv.selected,0);
      inv.select(a.savedWeapon);inv.setTotalAmmo(a.savedWeapon,a.savedAmmo??0);void weaponView.equip(inv.selected);
     }
+  };
+  /** CPed::AttachPedToEntity's m_nSavedWeapon and m_nTurretAmmo: kept from an attachment still in place, else the
+   * weapon in hand and its ammo (the minigun with 400 in heist5 on iOS). */
+  const attachSavedWeapon=(previous:typeof playerAttached)=>{
+    if(previous?.savedWeapon!==undefined)return {weapon:previous.savedWeapon,ammo:previous.savedAmmo};
+    const inv=weapons.inventory,a=inv.ammo.get(inv.selected);
+    return iosAttachSavedWeapon(mission?.runtime.headName,inv.selected,(a?.clip??0)+(a?.reserve??0));
   };
   const boneScratch=new Matrix4();
   /** The passenger steps out on his own side: his seat's point carried out past the body, set down on the ground. */
@@ -6075,7 +6082,7 @@ async function boot() {
                  attachPlayerToVehicle:(car,offset,side,limit,weapon)=>{
                   if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger||!attachedBody(car))return false;
                   const inv=weapons.inventory,previous=playerAttached;
-                  playerAttached={car,offset:{...offset},side:side&3,limit,savedWeapon:previous?.savedWeapon??inv.selected,savedAmmo:previous?.savedAmmo??((inv.ammo.get(inv.selected)?.clip??0)+(inv.ammo.get(inv.selected)?.reserve??0))};
+                  const saved=attachSavedWeapon(previous);playerAttached={car,offset:{...offset},side:side&3,limit,savedWeapon:saved.weapon,savedAmmo:saved.ammo};
                   carEntry.cancel();sim.playerCollider.setEnabled(false);
                   if(weapon!==0)inv.give(weapon,30000);
                   inv.select(weapon);void weaponView.equip(inv.selected);
@@ -6086,7 +6093,7 @@ async function boot() {
                  attachPlayerToObject:(object,offset,side,limit,weapon)=>{
                   if(worldCar?.occupied||fleet?.occupied||fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane||playerPassenger)return false;
                   const inv=weapons.inventory,previous=playerAttached;
-                  playerAttached={object,offset:{...offset},side:side&3,limit,savedWeapon:previous?.savedWeapon??inv.selected,savedAmmo:previous?.savedAmmo??((inv.ammo.get(inv.selected)?.clip??0)+(inv.ammo.get(inv.selected)?.reserve??0))};
+                  const saved=attachSavedWeapon(previous);playerAttached={object,offset:{...offset},side:side&3,limit,savedWeapon:saved.weapon,savedAmmo:saved.ammo};
                   carEntry.cancel();sim.playerCollider.setEnabled(false);
                   if(weapon!==0)inv.give(weapon,30000);
                   inv.select(weapon);void weaponView.equip(inv.selected);

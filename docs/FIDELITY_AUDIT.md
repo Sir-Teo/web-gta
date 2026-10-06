@@ -10587,8 +10587,10 @@ Unreachable with these scripts: desert5's LOCATE_CHAR_* (0x1001dc668) widening o
 (the 3D path only; the 2D path compares a stale register). desert5's only 3D locates take local 129@, which it sets
 to 15.0 and never changes.
 
+- CPed::AttachPedToEntity (0x10032c398): when no weapon is saved yet, the one in hand is kept for the detach, except
+  that while heist5 heads the list the saved weapon is the minigun with 400 rounds, which CJ holds once detached.
+
 Not ported yet:
-- heist5's minigun on CPed::AttachPedToEntity (the saved weapon becomes the minigun with 400 rounds);
 - the Mountain Bike mtbiker leaves near the Chiliad summit;
 - zero1's lock of the player weapon camera mode to 45;
 - barb's car camera zoom held at 2.

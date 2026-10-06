@@ -56,3 +56,9 @@ test('the PRINT handler raises the pad flag for GAR2_10, not for another key or 
  expect(run([op('PRINT',key('GAR2_11'),int(7000),int(1))])).toBe(false);
  expect(run([op('PRINT_NOW',key('GAR2_10'),int(7000),int(1))])).toBe(false);
 });
+
+import {iosAttachSavedWeapon} from '../src/engine/iosMissionHacks';
+test('AttachPedToEntity saves the weapon in hand, or the minigun with 400 rounds in heist5',()=>{
+ expect(iosAttachSavedWeapon('MAIN',24,50)).toEqual({weapon:24,ammo:50});
+ expect(iosAttachSavedWeapon('HEIST5',24,50)).toEqual({weapon:38,ammo:400});
+});

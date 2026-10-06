@@ -30,3 +30,9 @@ export class IosMissionCarDensity {
 
 /** PRINT (0x1001cf5c4): printing WUZ1_DA or GAR2_10 has the next pad 0 update clear DisablePlayerControls. */
 export function iosPrintReleasesPlayerControls(key:string){return key==='WUZ1_DA'||key==='GAR2_10';}
+
+/** CPed::AttachPedToEntity (0x10032c398): the weapon and ammo the ped had are saved for his detach (when none is saved
+ * yet), except that while heist5 heads the list the saved weapon is the minigun with 400 rounds. */
+export function iosAttachSavedWeapon(head:string|undefined,weapon:number,ammo:number){
+ return lower(head)==='heist5'?{weapon:38,ammo:400}:{weapon,ammo};
+}
