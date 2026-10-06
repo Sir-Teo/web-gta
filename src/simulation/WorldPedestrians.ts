@@ -1540,16 +1540,19 @@ export class WorldPedestrians {
  spawnJacked(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,gang:number|undefined,car:{position:()=>{x:number;y:number;z:number}},coach=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation},onCreated?:()=>void){
   return this.spawnFromCar(modelRef,position,heading,gang,0,p=>{
    onCreated?.();
-   // CTaskComplexCarSlowBeDraggedOutAndStandUp: the victim lies where CAR_jackedLHS leaves him, on the clip's last
-   // frame, then CTaskSimpleGetUp (GETUP_FRONT, the jacked clips being ANIMATION_IS_FRONT) stands him up before his
-   // response (flee, or come back for the car). Before, he stood up at once as a fresh ped.
-   const respond=()=>this.jackedResponse(p,modelRef,car,coach);
-   if(lying&&p.view.holdClipEnd(`dragged:${lying.key}`,lying.clip,JACKED_LIE_SECONDS)){
-    const getUp=p.view.reactionDuration(getUpClip(lying.key))??1.37;
-    p.down=JACKED_LIE_SECONDS+getUp;p.fallClip=lying.key;p.stuckUnderCar=false;p.collider.setShape(new RAPIER.Ball(.3));
-    p.onStood=respond;
-   }else respond();
+   // His response (flee, or come back for the car) once he is on his feet.
+   this.layDragged(p,lying,()=>this.jackedResponse(p,modelRef,car,coach));
   });
+ }
+ /** CTaskComplexCarSlowBeDraggedOutAndStandUp: the victim lies where CAR_jackedLHS leaves him, on the clip's last
+  * frame, then CTaskSimpleGetUp (GETUP_FRONT, the jacked clips being ANIMATION_IS_FRONT) stands him up before `then`.
+  * Before, he stood up at once as a fresh ped. */
+ private layDragged(p:Pedestrian,lying:{key:string;clip:import('../assets/ifp').NativeAnimation}|undefined,then:()=>void){
+  if(lying&&p.view.holdClipEnd(`dragged:${lying.key}`,lying.clip,JACKED_LIE_SECONDS)){
+   const getUp=p.view.reactionDuration(getUpClip(lying.key))??1.37;
+   p.down=JACKED_LIE_SECONDS+getUp;p.fallClip=lying.key;p.stuckUnderCar=false;p.collider.setShape(new RAPIER.Ball(.3));
+   p.onStood=then;
+  }else then();
  }
  /** ComputeDraggedOutCarResponse for a driver the player pulled out, once he is on his feet. */
  private jackedResponse(p:Pedestrian,modelRef:number|string,car:{position:()=>{x:number;y:number;z:number}},coach:boolean){
@@ -1606,14 +1609,17 @@ export class WorldPedestrians {
    p.event={type:EVENT.vehicleOnFire};p.flee=Math.max(p.flee,SMART_FLEE_SECONDS);p.fleeFrom={...at};p.fleePlayer={safe:15,check:SMART_FLEE_CHECK_SECONDS,point:{...at}};p.retaliate=0;
   }
  }
- /** A police crew member stepping out of a cop car (CCopPed type model and weapon). */
- async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy=60,cullExtraFarAway=false){
+ /** A police crew member stepping out of a cop car (CCopPed type model and weapon); `lying`, one the player dragged
+  * out, who lies on the jacked clip's last frame and gets up as any dragged-out driver does, an officer still. */
+ async spawnOfficer(model:string,weapon:number,position:{x:number;y:number;z:number},heading:number,crew?:{unit:object;seat:number;roadblock?:boolean},accuracy=60,cullExtraFarAway=false,lying?:{key:string;clip:import('../assets/ifp').NativeAnimation}){
   const catalog=this.catalog;if(!catalog||this.disposed)return false;
   const [built,armed]=await Promise.all([catalog.character(model).then(async source=>({source,speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)})),catalog.armedWith(weapon,true)]);
   const node=this.nearestNode(position);if(!node||this.disposed)return false;
   const cop=this.createPed({position,heading,source:built.source,officer:true,node,weapon:armed,speeds:built.speeds,stats:built.stats,gunAccuracy:accuracy,modelRef:model});cop.crew=crew;
   // CCopPed's constructor sets the shooting rate with the accuracy: 30/60 city, 70/68 SWAT, 60/76 FBI, 80/84 army.
-  cop.shootingRate=({60:30,68:70,76:60,84:80} as Record<number,number>)[accuracy]??30;cop.cullExtraFarAway=cullExtraFarAway;return cop.id;
+  cop.shootingRate=({60:30,68:70,76:60,84:80} as Record<number,number>)[accuracy]??30;cop.cullExtraFarAway=cullExtraFarAway;
+  if(lying)this.layDragged(cop,lying,()=>{});
+  return cop.id;
  }
  /** An ambulance or fire truck crew member stepping out (CEmergencyPed from CPopulation::AddPedInCar): unarmed, and
   * kept from the population manager while his unit holds him. */

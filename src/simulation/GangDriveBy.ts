@@ -76,6 +76,8 @@ export class GangDriveBy {
   get gun(){return this.gunCache;}
   /** Cars this manager drives (excluded from the civilian driver poses). */
   covers(car:WorldCar){return this.units.some(u=>u.car===car);}
+  /** The gang member at the wheel of an attack car, for the ped the player drags out or who leaves it. */
+  driverOf(car:WorldCar){const u=this.units.find(u=>u.car===car);return u&&{model:u.driver};}
   /** CTaskComplexLeaveCarAndDie for a shot driver once the car rests: the host plays his exit and lays him dead. */
   onCrewDiesOut?:(car:WorldCar,model:string)=>void;
   /** The seated crew a bullet line can reach: the driver (seat 0) and the shooter (seat 1), seat locals in car space. */

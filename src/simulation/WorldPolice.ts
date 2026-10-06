@@ -153,7 +153,7 @@ interface Unit {
  /** CAutoPilot lanes on the current and next links, CVehicle::m_nRandomSeed and a TEMPACT_TURNLEFT/RIGHT in progress. */
  lane?:number;nextLane?:number;cruiseNext?:TrafficLink;seed?:number;turn?:{dir:'left'|'right';until:number};
 }
-export interface PolicePose {car:WorldCar;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}
+export interface PolicePose {car:WorldCar;seat:number;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}
 /** Law vehicles in pursuit: CCarAI police missions, speeds and switch distances, crew exits and recovery. Spawning comes from the
  * unreversed CCarCtrl::GenerateOneRandomCar. The browser uses car path nodes 60–110 units away,
  * with a strict visibility guard checked again after asset loading. */
@@ -768,6 +768,12 @@ export class WorldPolice {
   }
   return speed;
  }
+ /** The cop at the wheel of a unit's car (every seat holds the unit's model; the driver's gun is the shotgun when he
+  * was handed it), for the ped the player drags out or who leaves it. */
+ driverOf(car:WorldCar){
+  const u=this.units.find(u=>u.car===car);
+  return u&&{model:u.member.model,officer:{weapon:u.shotgunSeat===0?25:u.member.weapon,accuracy:u.member.accuracy}};
+ }
  /** Seated and leaving crews for the occupant renderer. */
  poses():PolicePose[]{
   const out:PolicePose[]=[];
@@ -775,12 +781,14 @@ export class WorldPolice {
    if(u.car.wrecked||u.car.occupied)continue;
    for(let seat=0;seat<4;seat++){
     const leaving=u.leaving.find(l=>l.seat===seat)??u.entering.find(e=>e.seat===seat);
-    if(leaving){const local=this.doorPoint(u.car,seat);if(local)out.push({car:u.car,model:u.member.model,local,clip:leaving.key,seconds:leaving.time,animation:leaving.clip});continue;}
+    if(leaving){const local=this.doorPoint(u.car,seat);if(local)out.push({car:u.car,seat,model:u.member.model,local,clip:leaving.key,seconds:leaving.time,animation:leaving.clip});continue;}
     if(!u.seats[seat])continue;
+    // A driver the player has started to drag out is drawn by the car entry from that frame (beforeStep clears his seat).
+    if(seat===0&&u.car.driverOut)continue;
     const frame=u.car.car.nativeFramePosition(seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
     // A cop dead in his seat holds CAR_dead_LHS/RHS on its last frame.
     const dead=u.deadSeats[seat];
-    out.push({car:u.car,model:u.member.model,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:dead?(seat%2===0?'car_dead_lhs':'car_dead_rhs'):sitClip(u.car.modelFlags,seat===0),seconds:dead?1e6:0});
+    out.push({car:u.car,seat,model:u.member.model,local:{x:seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:dead?(seat%2===0?'car_dead_lhs':'car_dead_rhs'):sitClip(u.car.modelFlags,seat===0),seconds:dead?1e6:0});
    }
   }
   return out;

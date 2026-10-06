@@ -8583,6 +8583,13 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   `CTaskComplexCarSlowBeDraggedOutAndStandUp` (unreversed) is now followed in its shape: he lies in `CAR_jackedLHS`'s last
   frame for 0.6 s, gets up with `GETUP_FRONT` (the jacked clips are `ANIMATION_IS_FRONT`) and only then answers. Spec:
   `jacked-driver`.
+- **A cop dragged out of his patrol car came out a civilian.** The pull-out and the get-out drew the victim with the
+  zone roster's driver for that car, and the ped who stood up was that civilian, so a uniformed cop turned into a
+  passer-by the frame CJ took hold of him (an ambulance, fire truck or drive-by driver the same). CJ drags out the ped
+  who sat there (`CTaskComplexEnterCar::CreateDragPedOutSubTask` on `m_pDriver`): the unit's ped is taken from its seat
+  as the clip starts, drawn on `CAR_jackedLHS`, and set down as itself; a cop gets up a `CCopPed` with his gun and goes
+  on as any officer on foot (the cop decision maker's dragged-out answer is inform, avoided). Police and emergency
+  seats are keyed by seat, so the passenger's view is kept when the driver's empties. Spec: `police-jack`.
 - **Aiming from a sprint did nothing.** The aim button with a gun now drops CJ out of the sprint into the aimed walk.
 - **Y and N did nothing.** `CPad::ConversationYesJustDown` / `NoJustDown` with a ped targeted (or the nearest ahead
   within 4 units) now have CJ say something positive or negative; the ped stops, turns and answers. AUTHORED

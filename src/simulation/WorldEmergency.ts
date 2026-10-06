@@ -551,25 +551,28 @@ export class WorldEmergency {
  }
  /** The medics in their seats, or in their door clips. */
  poses(){
-  const out:{car:WorldCar;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}[]=[];
+  const out:{car:WorldCar;seat:number;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}[]=[];
   for(const u of this.units){
    if(u.car.wrecked||u.car.occupied)continue;
    for(const m of u.medics){
-    if(m.clip){const local=this.doorPoint(u.car,m.seat);if(local)out.push({car:u.car,model:u.model,local,clip:m.clip.key,seconds:m.clip.time,animation:m.clip.animation});continue;}
-    if(m.state!=='seated')continue;
+    if(m.clip){const local=this.doorPoint(u.car,m.seat);if(local)out.push({car:u.car,seat:m.seat,model:u.model,local,clip:m.clip.key,seconds:m.clip.time,animation:m.clip.animation});continue;}
+    // A driver the player has started to drag out is drawn by the car entry from then on.
+    if(m.state!=='seated'||m.seat===0&&u.car.driverOut)continue;
     const frame=u.car.car.nativeFramePosition(m.seat<2?'ped_frontseat':'ped_backseat');if(!frame)continue;
-    out.push({car:u.car,model:u.model,local:{x:m.seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:sitClip(u.car.modelFlags,m.seat===0),seconds:0});
+    out.push({car:u.car,seat:m.seat,model:u.model,local:{x:m.seat%2===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:sitClip(u.car.modelFlags,m.seat===0),seconds:0});
    }
   }
   // AddFiretruckOccupants: the driver and the front passenger (seat 0), who stay in the cab.
   for(const t of this.trucks){
    if(t.car.wrecked||t.car.occupied)continue;
    const frame=t.car.car.nativeFramePosition('ped_frontseat');if(!frame)continue;
-   for(const seat of [0,1])out.push({car:t.car,model:t.model,local:{x:seat===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:sitClip(t.car.modelFlags,seat===0),seconds:0});
+   for(const seat of [0,1])if(seat||!t.car.driverOut)out.push({car:t.car,seat,model:t.model,local:{x:seat===0?-Math.abs(frame.x):Math.abs(frame.x),y:frame.y,z:frame.z},clip:sitClip(t.car.modelFlags,seat===0),seconds:0});
   }
   return out;
  }
  covers(car:WorldCar){return this.units.some(u=>u.car===car)||this.trucks.some(t=>t.car===car);}
+ /** The medic or firefighter at the wheel of a unit's car, for the ped who leaves it or is dragged out. */
+ driverOf(car:WorldCar){const model=this.units.find(u=>u.car===car)?.model??this.trucks.find(t=>t.car===car)?.model;return model===undefined?undefined:{model};}
  snapshot(){return {ready:!!this.paths,error:this.error??null,lastAmbulanceMs:this.lastAmbulanceMs,
   accidents:this.accidents.accidents.filter(a=>a.ped).map(a=>({id:a.ped!.id,treated:a.treated,revived:a.revived})),
   units:this.units.map(u=>({handle:u.car.car.body.handle,modelId:u.car.modelId,mission:u.mission,siren:u.car.siren,position:{...u.car.car.body.translation()},
