@@ -393,11 +393,9 @@ export class WorldCar {
   // The petrol tank (vehicleFlags.bPetrolTankIsWeakPoint): a round the player's own ped fires that lands on the
   // petrolcap dummy deals min(health, 1100), so a car of 1100 or less blows up at once (BlowUpCar, no fire first) and
   // a sturdier one loses 1100 (SWEET2: "shoot the car's gas tank"). Other shooters' rounds treat it as any other spot.
-  if(kind==='bullet'&&options.point&&options.byPlayer===true&&this.petrolTankIsWeakPoint&&this.health>0&&this.hitsPetrolTank(options.point)){
-   this.health-=Math.min(this.health,PETROL_TANK_DAMAGE);
-   if(this.health<=0){this.health=0;this.blowUp();return true;}
-   return false;
-  }
+  // The hit goes on to dent the panel like any other (CAutomobile::VehicleDamage runs apart from InflictDamage).
+  if(kind==='bullet'&&options.point&&options.byPlayer===true&&this.petrolTankIsWeakPoint&&this.health>0&&this.hitsPetrolTank(options.point))
+   amount=Math.min(this.health,PETROL_TANK_DAMAGE);
   // Damage that takes the last of the health blows the car up at once (BlowUpCar), whatever the weapon. (A blast's
   // WEAPON_EXPLOSION sets the bomb timer to 1000 to 3047 ms instead; here it blows up at once too.)
   this.health=Math.max(0,this.health-amount);

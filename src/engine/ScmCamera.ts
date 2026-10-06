@@ -78,8 +78,9 @@ export class ScmCamera {
  }
  /** m_pTargetEntity while the script has the camera on an entity (TakeControl), by the script's handle. */
  targetEntity?:{kind:'ped'|'vehicle';handle:number};
- /** CCamera::TakeControl (0x50C7C0): the camera on an entity. A request from the script (2) yields to a cutscene's
-  * (1) unless the cinema camera is on; MODE_NONE means the ped's follow camera or the car's on-a-string one. */
+ /** CCamera::TakeControl (0x50C7C0): the camera on an entity. Every script command asks with the script's control
+  * (CAMCONTROL_SCRIPT, 1); a request with the cinematic camera's (2) yields to the script's unless the cinema camera
+  * is on. MODE_NONE means the ped's follow camera or the car's on-a-string one. */
  takeControl(entity:{kind:'ped'|'vehicle';handle:number},mode:number,switchType:number,whoIsInControl:number){
   if(!this.cinemaCamera&&whoIsInControl===2&&this.whoIsInControlOfTheCamera===1)return;
   this.whoIsInControlOfTheCamera=whoIsInControl;
@@ -105,8 +106,8 @@ export class ScmCamera {
   this.targetEntity=target&&{...target};this.typeOfSwitch=switchType;
   this.lookingAtPlayer=false;this.lookingAtVector=false;this.startInterScript=true;
  }
- /** CCamera::TakeControlNoEntity (0x50C8B0): a request from the script (2) yields to one already in force
-  * from a cutscene (1). */
+ /** CCamera::TakeControlNoEntity (0x50C8B0): a request with the cinematic camera's control (2) yields to the
+  * script's (1) already in force. */
  takeControlNoEntity(target:Vec3,switchType:number,whoIsInControl:number){
   requireAsset([target.x,target.y,target.z].every(Number.isFinite),'Invalid camera target.');
   if(whoIsInControl===2&&this.whoIsInControlOfTheCamera===1)return;
