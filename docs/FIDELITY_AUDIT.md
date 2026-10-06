@@ -8807,8 +8807,8 @@ that did anything.
 - **The gyms.** `gymbench`, `gymbike`, `gymtread` and `gymdumb` start on their object brains and ran into
   `GET_CURRENT_DATE` (now CClock's day and month: one session a day), `TASK_PICK_UP_SECOND_OBJECT` /
   `DROP_SECOND_OBJECT` (a second held object beside the first, for the two dumbbells) and
-  `SET_CHAR_ANIM_PLAYING_FLAG` (a stopped clip holds its frame; started again it runs at the usual rate, AUTHORED in
-  that the rate it had is not kept). The bench press is checked in `interior-shops`: the weights menu, CJ on the
+  `SET_CHAR_ANIM_PLAYING_FLAG` (SetCharAnimPlayingFlag, reversed: ANIMATION_IS_PLAYING on the clip, so a stopped clip
+  holds its frame and, started again, runs on at the rate it had; the port had reset the rate). The bench press is checked in `interior-shops`: the weights menu, CJ on the
   bench with the bar, the power bar and the rep counter.
 - **A map object a script moves.** A brain's object stands for a placement the map draws. Once its script moves,
   turns or animates it (an automatic gate sliding open), the map's copy is taken out and the object is drawn and

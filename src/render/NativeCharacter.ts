@@ -272,7 +272,9 @@ export class NativeCharacter {
   get carryPoseName(){return this.carryPose;}
   /** The script or reaction clip on top of the move: CAnimBlendAssociation's m_fCurrentTime and m_fSpeed, with the
    * clip time it is let go at (Infinity while held). */
-  private reaction?: {name:string;time:number;end:number;speed:number;loop:boolean};
+  private reaction?: {name:string;time:number;end:number;speed:number;loop:boolean;
+    /** ANIMATION_IS_PLAYING cleared (SET_CHAR_ANIM_PLAYING_FLAG): the clip holds its frame, its speed kept. */
+    stopped?:boolean};
   installReactions(clips:Record<string,NativeAnimation>,upperBody=false) {
     for(const [name,source] of Object.entries(clips)){
       const own=withoutForeignTracks(this.source.model,source);
@@ -296,6 +298,7 @@ export class NativeCharacter {
   }
   /** CAnimBlendAssociation::SetSpeed on the clip playing, when it is the one named (SET_CHAR_ANIM_SPEED). */
   setReactionSpeed(name:string,speed:number){const r=this.reaction;if(!r||r.name!==name)return false;r.speed=speed;return true;}
+  setReactionPlaying(name:string,playing:boolean){const r=this.reaction;if(!r||r.name!==name)return false;r.stopped=!playing;return true;}
   /** CAnimBlendAssociation::SetCurrentTime at a fraction of the clip, when it is the one named
    * (SET_CHAR_ANIM_CURRENT_TIME). */
   setReactionProgress(name:string,fraction:number){
@@ -524,7 +527,7 @@ export class NativeCharacter {
     this.ikClockMs+=dt*1000;this.ikFrameMs+=dt*1000;this.stepHeading=sim.player.heading;
     this.stepAimLook(dt*1000);
     this.aimBlend=this.weaponPose&&!lowered?Math.min(1,this.aimBlend+8*dt):Math.max(0,this.aimBlend-(this.weaponPose&&lowered?4:8)*dt);
-    if(this.reaction){if(!this.reactionPaused)this.reaction.time+=dt*this.reaction.speed;if(this.reaction.time>=this.reaction.end){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
+    if(this.reaction){if(!this.reactionPaused&&!this.reaction.stopped)this.reaction.time+=dt*this.reaction.speed;if(this.reaction.time>=this.reaction.end){this.reactions.get(this.reaction.name)?.restore();this.reaction=undefined;}}
     this.landingFootContacts = undefined;
     // CTaskComplexInAirAndLand makes no land task after a climb or into water: the swim (and the climb, resetAirborne)
     // ends the air time.

@@ -402,9 +402,11 @@ const WEAPON_LAST_MELEE=15;
 const FIGHT_CTRL_MAX_ATTACK_ANGLE=15*Math.PI/180;
 /** CPedDamageResponseCalculator::ComputeWillKillPed (0x4B3210): a blow that leaves under 1 HP kills. */
 /** RpAnimBlendClumpGetAssociation by name (any case), then SetSpeed or SetCurrentTime at a fraction of the clip. */
-export function setCharacterAnim(view:{readonly reactionName:string|undefined;setReactionSpeed(name:string,speed:number):boolean;setReactionProgress(name:string,fraction:number):boolean},animation:string,change:{speed?:number;progress?:number}){
+export function setCharacterAnim(view:{readonly reactionName:string|undefined;setReactionSpeed(name:string,speed:number):boolean;setReactionProgress(name:string,fraction:number):boolean;
+ setReactionPlaying?(name:string,playing:boolean):boolean},animation:string,change:{speed?:number;progress?:number;playing?:boolean}){
  const name=view.reactionName;if(!name||name.toLowerCase()!==animation.toLowerCase())return;
  if(change.speed!==undefined)view.setReactionSpeed(name,change.speed);
+ if(change.playing!==undefined)view.setReactionPlaying?.(name,change.playing);
  if(change.progress!==undefined)view.setReactionProgress(name,change.progress);
 }
 export const healthAfter=(health:number,damage:number)=>health-damage<1?0:health-damage;
@@ -2156,7 +2158,7 @@ export class WorldPedestrians {
   for(const name of swings.attacks)void this.loadScriptAnimation(swings.file,name).then(clip=>{if(clip&&!this.disposed&&p.fightingStyle===style)p.view.installReactions({[name.toLowerCase()]:clip});});
  }
  /** SET_CHAR_ANIM_SPEED and SET_CHAR_ANIM_CURRENT_TIME: the association the ped is playing under that name, if any. */
- setAnim(ped:Pedestrian,animation:string,change:{speed?:number;progress?:number}){setCharacterAnim(ped.view,animation,change);}
+ setAnim(ped:Pedestrian,animation:string,change:{speed?:number;progress?:number;playing?:boolean}){setCharacterAnim(ped.view,animation,change);}
  /** HIDE_CHAR_WEAPON_FOR_SCRIPTED_CUTSCENE: the held model goes out of sight, and the ped keeps the weapon. */
  hideWeapon(ped:Pedestrian,hidden:boolean){ped.weaponHidden=hidden;if(ped.gun)ped.gun.root.visible=!hidden;}
  /** One of the CPed bits a script sets by name. */

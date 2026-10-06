@@ -418,7 +418,7 @@ export interface ScmMissionWorld {
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
  scriptPedAnimProgress(ped:unknown,animation:string):number|undefined;
  /** SET_CHAR_ANIM_SPEED and SET_CHAR_ANIM_CURRENT_TIME on the clip the ped plays by that name; `undefined` is the player. */
- setScriptPedAnim?(ped:unknown,animation:string,change:{speed?:number;progress?:number}):void;
+ setScriptPedAnim?(ped:unknown,animation:string,change:{speed?:number;progress?:number;playing?:boolean}):void;
  /** GET_CHAR_ANIM_CURRENT_TIME on the player. */
  playerAnimProgress?(animation:string):number|undefined;
  setScriptPedSpeech(ped:unknown,shutUp:boolean):void;
@@ -1452,7 +1452,8 @@ export class ScmMission {
    setPedDropsSecondObject:(handle,quietly)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.dropHeldObject(handle,quietly,true);},
    // SetCharAnimPlayingFlag (CharacterCommands.cpp:2864): ANIMATION_IS_PLAYING on the named clip. A stopped clip holds
    // its frame; one started again runs at the usual rate (the rate it had before is not kept here).
-   setPedAnimPlayingFlag:(handle,animation,playing)=>{this.host('setScriptPedAnim','SET_CHAR_ANIM_PLAYING_FLAG')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),animation,{speed:playing?1:0});},
+   // SetCharAnimPlayingFlag (CharacterCommands.cpp:2864): ANIMATION_IS_PLAYING on the clip, its speed left as it is.
+   setPedAnimPlayingFlag:(handle,animation,playing)=>{this.host('setScriptPedAnim','SET_CHAR_ANIM_PLAYING_FLAG')(handle===PLAYER_PED_HANDLE?undefined:this.livePed(handle),animation,{playing});},
    // bDoesntListenToPlayerGroupCommands, which the group command events read of each member: the player, who gives
    // the commands, keeps it without effect.
    setPedListensToPlayerGroupCommands:(handle,listens)=>{if(handle===PLAYER_PED_HANDLE){this.playerListensToGroupCommands=listens;return;}this.world.setScriptPedListensToGroupCommands?.(this.livePed(handle),listens);},
