@@ -69,6 +69,13 @@ export const DEFAULT_VEHICLE_ANIM_GROUP:VehicleAnimGroupData={id:0,first:0,secon
 type V3={x:number;y:number;z:number};
 /** Browser (x, y up, z south) to native (x, y north, z up). */
 const native=(v:V3):Vec=>[v.x,-v.z,v.y];
+/** CVehicle::InflictDamage's chance, out of 128, that an AI ped's round on a car's body bursts a tyre (iOS jump table
+ * 0x10047887c): 5 for the pistols, the shotgun, the Uzis, the MP5, the TEC-9 and a drive-by, 10 for the AK-47 and M4,
+ * 64 for the Desert Eagle, none for anything else; at most 1 from a shooter on a motorbike. The player's never do. */
+export function aiTyreBurstChance(weapon:number,shooterOnBike=false){
+ const chance=weapon===22||weapon===23||weapon===25||weapon===28||weapon===29||weapon===32||weapon===52?5:weapon===30||weapon===31?10:weapon===24?64:0;
+ return shooterOnBike?Math.min(chance,1):chance;
+}
 const rotate=(q:{x:number;y:number;z:number;w:number},v:V3)=>new Vector3(v.x,v.y,v.z).applyQuaternion(q as never);
 /** Native car lifecycle in the streamed world. Entry and exit sequencing lives in CarEntry; `interact` is the direct seat warp. */
 export type CarDamageKind='bullet'|'explosion'|'melee'|'fire';
@@ -1247,6 +1254,15 @@ export class WorldCar {
  entitiesCollided=0;
  /** Seconds since the body last touched another entity (from CPhysical::m_nLastCollisionTime). */
  collisionAge=Infinity;
+ /** CVehicle::InflictDamage's random tyre burst (iOS 0x1004781b4) for an AI ped's round on the body that came up
+  * (aiTyreBurstChance): the tyre in the hit point's quadrant across the ground, front or rear by the car's forward
+  * and left or right by its right, with BurstTyre's kick. `point` is in the renderer's frame. */
+ burstTyreAt(point:V3){
+  const t=this.car.body.translation(),d=native({x:point.x-t.x,y:point.y-t.y,z:point.z-t.z}),{right,forward}=this.axes();
+  const ahead=d[0]*forward[0]+d[1]*forward[1],side=d[0]*right[0]+d[1]*right[1];
+  // eCarWheel: front left 0, rear left 1, front right 2, rear right 3.
+  return this.burstTyre(ahead>0?(side>0?2:0):(side>0?3:1),true,'ped');
+ }
  /** CAutomobile::BurstTyre (0x6A32B0) for an eCarWheel index. */
  onTyreBurst?:()=>void;
  /** CWeapon::DoBulletImpact's CEventVehicleDamageWeapon: a ped's bullet burst a tyre (the occupants hear it). */

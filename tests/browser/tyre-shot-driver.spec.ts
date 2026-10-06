@@ -37,7 +37,8 @@ test('a tyre shot out makes the driver flee the scene at 40, or a weak driver le
    return {before,flee,left,exitFrames,runnerStart,ended,dist,again,evicted};
   }finally{crowd.dispose();traffic.dispose();fleet.dispose();sim.dispose();}
  });
- expect(result.before.avoid).toBe(false);expect(result.before.cruise).toBeLessThan(20);
+ // A street car's cruise is GenerateOneRandomCar's 13 to 20 (21 at rand()'s top), under the flight's 40.
+ expect(result.before.avoid).toBe(false);expect(result.before.cruise).toBeLessThanOrEqual(21);
  expect(result.flee).toEqual({burst:true,cruise:40,avoid:true,fleeScene:true,fled:false});
  expect(result.left).toEqual({fled:true,evicted:1,driverOut:true,autopilot:false,fleeScene:false});
  expect(result.exitFrames).toBeGreaterThan(20);

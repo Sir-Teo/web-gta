@@ -9684,8 +9684,11 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
     sturdier one loses 1100.
   - Other shooters' rounds treat the cap as any other spot.
   - SWEET2 teaches it ("Use manual aim to shoot the car's gas tank").
-  - Not ported from the same function: the player-driven car's ×0.95 (×0.42 at 100% progress), aircraft's ×0.4, and
-    the AI shooters' random tyre bursts.
+  - An AI ped's round on a car's body may also burst the tyre in the hit's quadrant, front or rear and left or
+    right: 5 in 128 for the pistols, the shotgun, the Uzis, the MP5 and the TEC-9, 10 for the AK-47 and M4, and 64
+    for the Desert Eagle. The player's rounds never do, and bTyresDontBurst stops it. The bike case (front or rear
+    by the hit, no kick) is not ported.
+  - Not ported from the same function: the player-driven car's ×0.95 (×0.42 at 100% progress) and aircraft's ×0.4.
 
 ## Homies in CJ's car fire at threats
 
