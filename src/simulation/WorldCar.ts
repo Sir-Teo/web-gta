@@ -606,9 +606,11 @@ export class WorldCar {
   if(this.damageState.panels[panel]!==DAMSTATE.ok)return;
   this.damageState.panels[panel]=DAMSTATE.damaged;this.applyComponents([{kind:'panel',index:panel,state:DAMSTATE.damaged}]);
  }
- /** CONTROL_CAR_DOOR (unreversed; AUTHORED): CDamageManager::SetDoorStatus with the script's status (DRIV6 takes a
-  * door from whole through crumpled and swinging to gone), whole and shut again for OK, gone for not present; an angle
-  * of 0 or more then sets it open to that ratio (CAutomobile::OpenDoor), a negative one leaves it as it hangs. */
+ /** CONTROL_CAR_DOOR (unreversed in gta-reversed; the iOS handler, 0x100201a28, confirms it): an angle of 0 or more
+  * opens the door to that ratio (CDoor::Open), a negative one leaves it as it hangs; then
+  * CDamageManager::SetDoorStatus with the script's status (DRIV6 takes a door from whole through crumpled and swinging
+  * to gone) and CAutomobile::SetDoorDamage draw it: whole and shut again for OK, gone for not present. The handler's
+  * door beyond the six (a seventh CDoor of the automobile) is not ported. */
  controlDoor(door:number,status:number,ratio:number){
   if(door<0||door>5||status<DAMSTATE.ok||status>DAMSTATE.notPresent)return;
   if(status===DAMSTATE.notPresent){this.popDoor(door,false);return;}

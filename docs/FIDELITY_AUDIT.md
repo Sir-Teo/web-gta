@@ -9484,7 +9484,10 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 
 ## Car doors, colours and claimed cars
 
-- **`CONTROL_CAR_DOOR` (AUTHORED; unreversed).** `CDamageManager::SetDoorStatus` with the script's status: OK fixes and
+- **`CONTROL_CAR_DOOR` (unreversed; the iOS handler, 0x100201a28, confirms the reading below).** It opens the door first
+  (`CDoor::Open`), then sets the status and draws it (`SetDoorStatus`, `SetDoorDamage`). It reads the ratio as an
+  integer, so any positive float would open the door fully; the scripts pass only -1.0 and 0.0. Its seventh door is
+  not ported. `CDamageManager::SetDoorStatus` with the script's status: OK fixes and
   shuts the door, crumpled and swinging are drawn as such, not present drops it; an angle of 0 or more opens it to that
   ratio, a negative one leaves it as it hangs (DRIV6 wrecks a door step by step, MUSIC1 opens the rear doors).
 - **`GET_CAR_COLOURS` and `GET_EXTRA_CAR_COLOURS`** read the four paint slots' palette entries.

@@ -102,7 +102,8 @@ describe('the tail of vehicle, object and world commands',()=>{
   const {readInt,readFloat}=run(world,undefined,
    instruction(op('GET_TRAIN_CARRIAGE'),[int(CAR),int(1),gvar(40)]),
    instruction(op('ATTACH_CAR_TO_CAR'),[int(CAR),int(10),float(0),float(1),float(2),float(0),float(0),float(90)]),
-   instruction(op('CONTROL_CAR_DOOR'),[int(CAR),int(2),int(1),float(0.5)]),
+   // The iOS handler reads the ratio as an integer: 0.5's bits are a large positive number, so the door opens fully.
+  instruction(op('CONTROL_CAR_DOOR'),[int(CAR),int(2),int(1),float(0.5)]),
    instruction(op('ADD_TO_OBJECT_VELOCITY'),[int(OBJECT),float(1),float(0),float(0)]),
    instruction(op('ATTACH_OBJECT_TO_OBJECT'),[int(OBJECT),int(12),float(0),float(0),float(1),float(0),float(0),float(0)]),
    instruction(op('POINT_SEARCHLIGHT_AT_CHAR'),[int(4),int(PED),float(2)]),
@@ -116,7 +117,7 @@ describe('the tail of vehicle, object and world commands',()=>{
   // The PC build's controller mode is nought, whatever the host.
   expect(readInt(48)).toBe(0);
   expect(calls).toEqual([
-   ['carriage',CAR,1],['attachCar',CAR,10,{x:0,y:1,z:2},{x:0,y:0,z:90}],['door',CAR,2,1,0.5],
+   ['carriage',CAR,1],['attachCar',CAR,10,{x:0,y:1,z:2},{x:0,y:0,z:90}],['door',CAR,2,1,1],
    ['velocity',OBJECT,1,0,0],['attachObject',OBJECT,12,{x:0,y:0,z:1},{x:0,y:0,z:0}],
    ['light',4,PED,2],['sphere',expect.any(Number),1,2,3,5],['skip',10,20,3,90],['fastest',12,4500],
    ['speed',OBJECT],

@@ -1927,8 +1927,11 @@ const handlers:Record<string,ScmCommandHandler>={
   const point=vec(t,p,1);
   world(t,i,'detachVehicle')(t.readInt(p[0]),point.x,point.y,point.z,bool(t,p[4]));
  },
+ // The iOS handler (0x100201a28) reads the open ratio as an integer and converts it: a script's -1.0 stays negative
+ // and 0.0 is 0, but any positive float is a ratio of 1 or more, CDoor::Open's fully open. The scripts pass only
+ // -1.0 and 0.0.
  CONTROL_CAR_DOOR:(t,p,i)=>{
-  world(t,i,'controlVehicleDoor')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]));
+  world(t,i,'controlVehicleDoor')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),Math.min(t.readInt(p[3]),1));
  },
  SET_CAR_WATERTIGHT:(t,p,i)=>{world(t,i,'setVehicleWatertight')(t.readInt(p[0]),bool(t,p[1]));},
  GET_NUMBER_OF_PASSENGERS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehiclePassengerCount')(t.readInt(p[0])));},
