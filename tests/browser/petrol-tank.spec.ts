@@ -1,8 +1,9 @@
 import {test,expect,type Page} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 const state=(page:Page)=>page.evaluate(()=>(window as any).__game.state());
-// vehicleFlags.bPetrolTankIsWeakPoint: a bullet on a car's petrol cap blows it up at once (SWEET2, "shoot the car's gas
-// tank"); a bullet anywhere else only takes its health, and SET_PETROL_TANK_WEAKPOINT off makes the tank safe.
+// vehicleFlags.bPetrolTankIsWeakPoint (iOS CVehicle::InflictDamage): CJ's bullet within 0.25 of a car's petrol cap deals
+// min(health, 1100), blowing up a Tampa at once (SWEET2, "shoot the car's gas tank"); a bullet anywhere else only takes
+// its health, and SET_PETROL_TANK_WEAKPOINT off makes the tank safe.
 test('a shot on the petrol cap blows the car up, elsewhere it only dents it',async({page})=>{
  test.setTimeout(300000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));

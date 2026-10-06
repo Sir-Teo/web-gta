@@ -9665,10 +9665,17 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 
 ## The petrol tank is a car's weak point
 
-- **`vehicleFlags.bPetrolTankIsWeakPoint`** (CVehicle's constructor sets it; SET_PETROL_TANK_WEAKPOINT clears it): a
-  bullet that lands within 0.35 of the model's `petrolcap` dummy (DUMMY_GAS_CAP) blows the car up at once.
-  `CVehicle::InflictDamage` is unreversed, so the reach is AUTHORED; the instant explosion is the retail behaviour
-  SWEET2 teaches ("Use manual aim to shoot the car's gas tank").
+- **`vehicleFlags.bPetrolTankIsWeakPoint`** (CVehicle's constructor sets it; SET_PETROL_TANK_WEAKPOINT clears it).
+  `CVehicle::InflictDamage` is unreversed in gta-reversed; the reach was AUTHORED (0.35) and now follows the iOS
+  executable (0x1004781b4):
+  - Only a round the player's own ped fires counts, landing strictly within 0.25 (3D) of the model's `petrolcap`
+    dummy (DUMMY_GAS_CAP). A dummy at the model's origin means no tank.
+  - It deals min(health, 1100): a car of 1100 health or less blows up at once (BlowUpCar, no fire first), and a
+    sturdier one loses 1100.
+  - Other shooters' rounds treat the cap as any other spot.
+  - SWEET2 teaches it ("Use manual aim to shoot the car's gas tank").
+  - Not ported from the same function: the player-driven car's ×0.95 (×0.42 at 100% progress), aircraft's ×0.4, and
+    the AI shooters' random tyre bursts.
 
 ## Homies in CJ's car fire at threats
 

@@ -37,8 +37,9 @@ export interface CrushableVehicle {modelId:number;wrecked:boolean;blowUp():void;
 const CAR_WHEEL_INDEX={frontLeft:0,rearLeft:1,frontRight:2,rearRight:3} as const;
 /** CVehicle::ProcessWheel's fBurstTyreMod (0x8D34B4). */
 const BURST_TYRE_MOD=.13;
-/** How near the petrolcap dummy a bullet lands to hit the tank (AUTHORED: InflictDamage is unreversed). */
-const PETROL_TANK_REACH=.35;
+/** CVehicle::InflictDamage (unreversed in gta-reversed; iOS 0x1004781b4): a round strictly within this of the petrolcap
+ * dummy, in 3D, hits the tank, which then takes PETROL_TANK_DAMAGE (0x44898000) or what health is left. */
+const PETROL_TANK_REACH=.25,PETROL_TANK_DAMAGE=1100;
 import {VEHICLE_ELASTICITY,impulseVelocityChange,vehicleHitsObject,vehicleUprootsObject,type NativeObjectState,type ObjectDamageResult} from './nativeObjectDamage';
 import {resolveVehicleProps,type VehicleProp} from './vehiclePropContacts';
 import {installNativeCar,type NativeCarAssets} from './installNativeCar';
@@ -384,9 +385,14 @@ export class WorldCar {
    const face=Math.max(Math.abs(s[0]*right[0]+s[1]*right[1]+s[2]*right[2]),Math.abs(s[0]*forward[0]+s[1]*forward[1]+s[2]*forward[2]),Math.abs(s[0]*up[0]+s[1]*up[1]+s[2]*up[2]));
    amount*=0.4+0.6*Math.min(1,face/Math.max(1e-4,Math.hypot(s[0],s[1],s[2])));
   }
-  // The petrol tank (vehicleFlags.bPetrolTankIsWeakPoint, CVehicle::InflictDamage, unreversed; AUTHORED): a bullet that
-  // lands on the petrolcap dummy blows the car up at once (SWEET2: "shoot the car's gas tank").
-  if(kind==='bullet'&&options.point&&this.petrolTankIsWeakPoint&&this.health>0&&this.hitsPetrolTank(options.point)){this.health=0;this.blowUp();return true;}
+  // The petrol tank (vehicleFlags.bPetrolTankIsWeakPoint): a round the player's own ped fires that lands on the
+  // petrolcap dummy deals min(health, 1100), so a car of 1100 or less blows up at once (BlowUpCar, no fire first) and
+  // a sturdier one loses 1100 (SWEET2: "shoot the car's gas tank"). Other shooters' rounds treat it as any other spot.
+  if(kind==='bullet'&&options.point&&options.byPlayer===true&&this.petrolTankIsWeakPoint&&this.health>0&&this.hitsPetrolTank(options.point)){
+   this.health-=Math.min(this.health,PETROL_TANK_DAMAGE);
+   if(this.health<=0){this.health=0;this.blowUp();return true;}
+   return false;
+  }
   // Bullets leave a destroyed car at 1 health to burn out; blasts that exhaust its health blow it up at once.
   this.health=Math.max(explosive?0:1,this.health-amount);
   const piece=collider===undefined?undefined:this.pieceOf(collider);
@@ -398,7 +404,9 @@ export class WorldCar {
  private hitsPetrolTank(point:{x:number;y:number;z:number}){
   const cap=this.car.nativeFramePosition('petrolcap');if(!cap)return false;
   const t=this.car.body.translation(),o=this.worldOffset(cap);
-  return Math.hypot(point.x-(t.x+o.x),point.y-(t.y+o.y),point.z-(t.z+o.z))<=PETROL_TANK_REACH;
+  // A model whose petrolcap dummy sits at its origin has no tank to hit.
+  if(cap.x===0&&cap.y===0&&cap.z===0)return false;
+  return Math.hypot(point.x-(t.x+o.x),point.y-(t.y+o.y),point.z-(t.z+o.z))<PETROL_TANK_REACH;
  }
  /** COL spheres and boxes carry the eVehicleCollisionComponent piece byte; mesh faces do not. */
  private pieceOf(handle:number){const source=this.car.sources.get(handle);return source&&source.kind!=='mesh'?source.surface.flags:undefined;}
