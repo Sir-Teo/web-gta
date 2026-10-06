@@ -8590,6 +8590,16 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   as the clip starts, drawn on `CAR_jackedLHS`, and set down as itself; a cop gets up a `CCopPed` with his gun and goes
   on as any officer on foot (the cop decision maker's dragged-out answer is inform, avoided). Police and emergency
   seats are keyed by seat, so the passenger's view is kept when the driver's empties. Spec: `police-jack`.
+- **CJ sat down on the cop in the passenger seat.** Entering by the right front door ignored whoever sat there, and
+  the partner of a dragged-out driver stayed drawn in his seat until the car was CJ's, then vanished. At the passenger's
+  door `CCarEnterExit::ComputeSlowJackedPed` names `m_apPassengers[0]` and `IsCarSlowJackRequired` drags him out:
+  CJ plays `CAR_pulloutL_RHS` and the cop `CAR_jackedRHS` at the right door, lies and gets up an officer, while the
+  driver keeps the wheel until CJ is in and then leaves by his own door. After `TASK_SIMPLE_CAR_GET_IN`,
+  `MakeUndraggedPassengerPedsLeaveCar` (unreversed; AUTHORED from its name and call sites) has every living cop still
+  aboard but the driver get out by his own door with the unit's exit clips and go on foot; the unit is let go once
+  they are out. A cop dead in his seat is left as before. Only police crews ride as passengers this way so far: the
+  ambulance's rear medic, the fire truck's second man and a drive-by shooter still vanish when CJ takes their car.
+  Spec: `police-jack`.
 - **Aiming from a sprint did nothing.** The aim button with a gun now drops CJ out of the sprint into the aimed walk.
 - **Y and N did nothing.** `CPad::ConversationYesJustDown` / `NoJustDown` with a ped targeted (or the nearest ahead
   within 4 units) now have CJ say something positive or negative; the ped stops, turns and answers. AUTHORED

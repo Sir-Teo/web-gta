@@ -152,6 +152,8 @@ interface Unit {
  aim?:{x:number;z:number};link?:TrafficLink;route:TrafficLink[];routeAt:number;routeGoal?:{x:number;y:number;z:number};seconds:number;
  /** CAutoPilot lanes on the current and next links, CVehicle::m_nRandomSeed and a TEMPACT_TURNLEFT/RIGHT in progress. */
  lane?:number;nextLane?:number;cruiseNext?:TrafficLink;seed?:number;turn?:{dir:'left'|'right';until:number};
+ /** The player has climbed into the car: the crew still aboard are getting out, and nobody boards it again. */
+ taken?:boolean;
 }
 export interface PolicePose {car:WorldCar;seat:number;model:string;local:V3;clip:string;seconds:number;animation?:NativeAnimation}
 /** Law vehicles in pursuit: CCarAI police missions, speeds and switch distances, crew exits and recovery. Spawning comes from the
@@ -243,7 +245,8 @@ export class WorldPolice {
    const u=this.units[i];
    if(u.car.disposed||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.onUnitDropped?.(u);continue;}
    const p=u.car.car.body.translation(),far=Math.hypot(p.x-player.x,p.z-player.z);
-   if(u.car.occupied){this.units.splice(i,1);this.onUnitDropped?.(u);continue;}
+   // A car the player took is let go once the crew he left aboard are out of it.
+   if(u.car.occupied){if(!u.leaving.length){this.units.splice(i,1);this.onUnitDropped?.(u);}continue;}
    if(far>(this.law.level?220:120)&&this.canSpawn(p,6)||!this.fleet.cars.has(u.car)){this.units.splice(i,1);this.fleet.removeTrafficCar(u.car);this.onUnitDropped?.(u);}
   }
   // ThePaths keeps the areas around the player loaded, which the roadblock nodes are looked up in whatever the
@@ -394,11 +397,21 @@ export class WorldPolice {
   if(!found){this.finishExit(u,seat);return;}
   u.leaving.push({seat,clip:found.clip,key:found.key,time:0,door:[DOOR.leftFront,DOOR.rightFront,DOOR.leftRear,DOOR.rightRear][seat]});
  }
+ /** Crew exiting: CTaskSimpleCarGetOut clips at the door, then CTaskSimpleCarSetPedOut. */
+ private stepLeaving(u:Unit,dt:number){
+  const car=u.car;
+  for(let i=u.leaving.length-1;i>=0;i--){
+   const l=u.leaving[i];l.time+=dt;
+   const ratio=nativeDoorAnimRatio(car.animGroup,'getOut',l.time,car.doors[l.door].ratio,0);if(ratio!==undefined&&!car.doorMissing(l.door))car.openDoor(l.door,ratio);
+   if(l.time>=l.clip.duration){u.leaving.splice(i,1);this.finishExit(u,l.seat);}
+  }
+ }
  private finishExit(u:Unit,seat:number){
   u.seats[seat]=false;const local=this.doorPoint(u.car,seat);
   const world=local?u.car.worldPoint(local):new RAPIER.Vector3(u.car.car.body.translation().x,u.car.car.body.translation().y,u.car.car.body.translation().z);
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,u.car.car.body);
-  this.spawnOfficer?.(u.member.model,seat===u.shotgunSeat?25:u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),{unit:u,seat},u.member.accuracy);
+  // Out of a car the player took, a cop is no longer the unit's: it is let go as soon as he is out.
+  this.spawnOfficer?.(u.member.model,seat===u.shotgunSeat?25:u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},u.car.heading(),u.taken?undefined:{unit:u,seat},u.member.accuracy);
  }
  private entrySlot(seat:number,phase:Entering['phase']){
   const left=seat%2===0,rear=seat>=2;
@@ -554,17 +567,13 @@ export class WorldPolice {
   const chaseOff=!this.law.level||this.law.native.backOff||!!this.noPoliceZone?.();
   for(const u of this.units){
    const car=u.car;u.seconds+=dt;
-   if(car.occupied||car.wrecked){car.autopilot=undefined;continue;}
+   if(car.wrecked){car.autopilot=undefined;continue;}
+   if(car.occupied){car.autopilot=undefined;this.stepLeaving(u,dt);continue;}
    // The player dragged the driver out (CreateDragPedOutSubTask): his seat is empty from then on.
    if(car.driverOut&&(u.seats[0]||u.deadSeats[0])&&!u.leaving.some(l=>l.seat===0)){u.seats[0]=false;u.deadSeats[0]=false;}
-   // Crew exiting: CTaskSimpleCarGetOut clips at the door, then CTaskSimpleCarSetPedOut.
-   for(let i=u.leaving.length-1;i>=0;i--){
-    const l=u.leaving[i];l.time+=dt;
-    const ratio=nativeDoorAnimRatio(car.animGroup,'getOut',l.time,car.doors[l.door].ratio,0);if(ratio!==undefined&&!car.doorMissing(l.door))car.openDoor(l.door,ratio);
-    if(l.time>=l.clip.duration){u.leaving.splice(i,1);this.finishExit(u,l.seat);}
-   }
+   this.stepLeaving(u,dt);
    // Roadblock crews hold the block instead of reboarding while it stands.
-   if(u.mission!=='roadblock')this.recallCrew(u,dt,playerCar);
+   if(u.mission!=='roadblock'&&!u.taken)this.recallCrew(u,dt,playerCar);
    for(let i=u.entering.length-1;i>=0;i--){
     const e=u.entering[i];e.time+=dt;
     if(e.phase==='open'||e.phase==='closeInside'){const ratio=nativeDoorAnimRatio(car.animGroup,e.phase,e.time,car.doors[e.door].ratio,e.group);if(ratio!==undefined&&!car.doorMissing(e.door))car.openDoor(e.door,ratio);}
@@ -774,13 +783,35 @@ export class WorldPolice {
   const u=this.units.find(u=>u.car===car);
   return u&&{model:u.member.model,officer:{weapon:u.shotgunSeat===0?25:u.member.weapon,accuracy:u.member.accuracy}};
  }
+ /** The cop in the front passenger seat of a unit's car (CCarEnterExit::ComputeSlowJackedPed for the right front
+  * door, m_apPassengers[0]), alive or dead, unless he is getting in or out. */
+ frontPassengerOf(car:WorldCar){
+  const u=this.units.find(u=>u.car===car);
+  if(!u||!u.seats[1]||u.leaving.some(l=>l.seat===1)||u.entering.some(e=>e.seat===1))return undefined;
+  return {model:u.member.model,officer:{weapon:u.shotgunSeat===1?25:u.member.weapon,accuracy:u.member.accuracy},dead:u.deadSeats[1]};
+ }
+ /** The player is dragging the front passenger out: the car entry draws him from now on. */
+ dragPassenger(car:WorldCar){const u=this.units.find(u=>u.car===car);if(u){u.seats[1]=false;u.deadSeats[1]=false;u.seatHealth[1]=100;}}
+ /** CCarEnterExit::MakeUndraggedPassengerPedsLeaveCar (0x64F540, unreversed; AUTHORED from its name and its calls in
+  * CTaskComplexEnterCar, once the player is in his seat): every living cop still aboard but the driver gets out by his
+  * own door (CTaskComplexLeaveCar) and goes on as an officer on foot. A cop dead in his seat is left as before. */
+ crewLeave(car:WorldCar){
+  const u=this.units.find(u=>u.car===car);if(!u)return;
+  u.taken=true;u.returning.clear();
+  // A cop still climbing in steps back out at his door.
+  for(const e of u.entering.splice(0))if(e.seat)this.finishExit(u,e.seat);
+  for(let seat=1;seat<4;seat++)if(u.seats[seat]&&!u.deadSeats[seat])this.beginExit(u,seat);
+ }
  /** Seated and leaving crews for the occupant renderer. */
  poses():PolicePose[]{
   const out:PolicePose[]=[];
   for(const u of this.units){
-   if(u.car.wrecked||u.car.occupied)continue;
+   if(u.car.wrecked)continue;
+   // In a car the player has taken only the crew getting out are drawn.
+   const taken=u.car.occupied;
    for(let seat=0;seat<4;seat++){
-    const leaving=u.leaving.find(l=>l.seat===seat)??u.entering.find(e=>e.seat===seat);
+    const leaving=u.leaving.find(l=>l.seat===seat)??(taken?undefined:u.entering.find(e=>e.seat===seat));
+    if(!leaving&&taken)continue;
     if(leaving){const local=this.doorPoint(u.car,seat);if(local)out.push({car:u.car,seat,model:u.member.model,local,clip:leaving.key,seconds:leaving.time,animation:leaving.clip});continue;}
     if(!u.seats[seat])continue;
     // A driver the player has started to drag out is drawn by the car entry from that frame (beforeStep clears his seat).
