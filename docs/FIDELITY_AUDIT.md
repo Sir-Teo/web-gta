@@ -8583,9 +8583,24 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   cops and both kinds of drive-by (a drive-by's rider at accuracy 60). AUTHORED: a burst aims at the target as it stands
   at each shot (the iOS FireGun's bGunReachedTarget gate, which holds a round until the arm is on the target, is not
   modelled). Spec: `npc-gun` (unit).
-- **Siren lights were flat squares.** Untextured sprites floated over the collision box. AUTHORED (`CAutomobile::
-  PreRender` is unreversed): the light bar is read off the chassis geometry, its two ends flash red and blue through
-  `CCoronas`, and each flash throws a coloured pool on the ground. Spec: `siren-lights` (unit).
+- **Siren lights were flat squares.** Untextured sprites floated over the collision box. They were then authored:
+  two lamps read off the chassis geometry, flashing red and blue, each flash throwing a pool on the ground.
+- **Siren lights are now the iOS executable's.** `CAutomobile::PreRender` is unreversed in gta-reversed; the iOS
+  code is at 0x10044927c.
+  - **Which vehicles:** only the fire engine, the ambulance, the Enforcer and the four police cars light up.
+  - **Bar positions:** four coronas spread evenly across a bar in the model's frame. The ends and height for each
+    model are fixed in the code; the police cars' bar is ±0.7 across, 0.4 back and 1.0 up.
+  - **Flash pattern:** each lamp runs a 1024 ms cycle of four 256 ms phases, 64 ms behind the lamp to its right.
+    - phase 1: red;
+    - phase 3: blue, or yellow on the fire engine and white on the ambulance;
+    - phases 2 and 4: nothing is registered, so the lamp fades out at fade speed 15.
+  - **Coronas:** size 0.4 and range 150 × the LOD distance multiplier. The colour is scaled by the timecycle's
+    sprite brightness / 10.
+  - **Point light:** one per car, two units above it, radius 10, colour a sixth of the current half's colour /
+    200. It eases in over the first 100 ms of each 512 ms half and out over the last 99, with extra shadows on, so
+    the extra player shadows take it up. It replaces the authored ground pools.
+  - **FBI Rancher:** a single blue dashboard lamp, lit in every other 256 ms and seen only from in front of the car.
+  - **Spec:** `siren-lights` (unit).
 - **The car moved while CJ got in.** A car whose driver was being dragged out fell into the abandoned-car branch (no
   handbrake, no brake above a crawl) and coasted with CJ pinned at its door; the hold was also dropped when the victim
   landed, while CJ still climbed in. The car is now held on its brakes, and its ground speed firmly damped, from the

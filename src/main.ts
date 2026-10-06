@@ -270,7 +270,7 @@ import { NativeLightPools } from './render/NativeLightPools';
 import {drawsRealTimeShadow} from './render/NativeCharacterShadow';
 import {extraPlayerShadows,pedShadowPool} from './render/nativePedShadows';
 import {fxQuality,playerRealTimeShadow,setFxQuality,setRealTimeShadows} from './simulation/fx/fxQuality';
-import {DRAW_DISTANCE_DEFAULT,setDrawDistance,setViewDistance} from './render/lodDistance';
+import {DRAW_DISTANCE_DEFAULT,lodDistMultiplier,setDrawDistance,setViewDistance} from './render/lodDistance';
 import {CAR_REFLECTIONS} from './assets/nativeCarEnvMap';
 import {stickSteering} from './input/stickSteering';
 import {touchHaptic} from './input/haptics';
@@ -1403,9 +1403,11 @@ async function boot() {
           const p=projectile.position,missile=missileGlow(projectile.id,[p.x,-p.z,p.y]);glow.pools.push(missile.pool);glow.coronas.push(missile.corona);
         }
         for(const corona of glow.coronas)coronas.register(corona,cam);
-        // The sounding sirens' light bars: coronas, and the flashes' pools on the ground.
-        const siren=sirens.update(fleet?.cars??[],Math.floor(elapsed*1000));
-        for(const corona of siren.coronas)coronas.register(corona,cam);glow.pools.push(...siren.pools);
+        // CAutomobile::PreRender's siren lights: the bars' coronas, and a point light over each car (which the extra
+        // player shadows below take up).
+        const siren=sirens.update(fleet?.cars??[],{timeMs:gameTimeMs,spriteBrightness:render.lighting.nativeSpriteBrightness??3,lodMultiplier:lodDistMultiplier(),
+         cameraForward:trafficFrame.cameraForward});
+        for(const corona of siren.coronas)coronas.register(corona,cam);pointLights.push(...siren.pointLights);
         // A lit taxi sign (bTaxiLight): its roof corona.
         for(const corona of taxiLightCoronas([...(fleet?.cars??[]),...(worldCar&&!fleet?.cars.has(worldCar)?[worldCar]:[])]))coronas.register(corona,cam);
         // DRAW_CORONA: 450 units of range, reflected in wet roads, no obstacle check (reVC's RegisterCorona call). Only
