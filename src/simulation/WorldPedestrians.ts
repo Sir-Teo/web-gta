@@ -169,7 +169,10 @@ export interface Pedestrian {
   |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number}
   /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. With
    * `aimOnly` (CTaskComplexGoToPointAiming) the gun is aimed and not fired, at the ped or else at `point` (renderer). */
-  |{kind:'goToPointShooting';x:number;z:number;y?:number;moveState:number;radius:number;target?:Pedestrian;player:boolean;aimOnly?:boolean;point?:{x:number;y:number;z:number}}
+  |{kind:'goToPointShooting';x:number;z:number;y?:number;moveState:number;radius:number;target?:Pedestrian;player:boolean;aimOnly?:boolean;point?:{x:number;y:number;z:number};
+   /** CTaskComplexGoToPointAiming's branch, by the weapon as it starts: 'arm' aims from the arm while walking,
+    * 'gunControl' aim-walks with CTaskSimpleGunControl and does not end on arrival, 'walk' only walks. */
+   aimBranch?:'arm'|'gunControl'|'walk';remaining?:number}
   /** CTaskComplexSeekEntityAiming: after a ped (undefined for the player): `seek` to `seekRadius`, aiming within
    * `aimRadius`, then `stand` aiming for `remaining` seconds (or until it is `seekRadius` off again). */
   |{kind:'seekAiming';target?:Pedestrian;seekRadius:number;aimRadius:number;phase:'seek'|'stand';remaining:number}
@@ -443,6 +446,8 @@ const ENTER_CAR_DOOR_RADIUS=.5,ENTER_CAR_SLOW_DOWN_DISTANCE=4,ENTER_CAR_SEEK_SEC
 /** CTaskSimpleGoToPoint's radius in CTaskComplexFollowPointRoute; the seek task's walk inside 2 units of its target
  * (CEntitySeekPosCalculator's move-state radius, taken as the go-to task's). */
 const GO_TO_POINT_RADIUS=.5,GO_TO_PED_WALK_DISTANCE=2;
+/** CTaskSimpleGunControl's leisure time as CTaskComplexGoToPointAiming makes it: 600000 ms. */
+const GUN_CONTROL_AIM_SECONDS=600;
 /** CTaskComplexSeekEntityAiming's subtasks: CTaskComplexSeekEntity's 50,000 ms at most, and CTaskSimpleStandStill's
  * 2,000. */
 const SEEK_ENTITY_MAX_SECONDS=50,SEEK_AIMING_STAND_SECONDS=2;
@@ -1833,8 +1838,16 @@ export class WorldPedestrians {
     // Aiming at a point, there is no ped to look for.
     const point=order.aimOnly&&order.aimPoint&&order.target===-1?{x:order.aimPoint.x,y:order.aimPoint.z,z:-order.aimPoint.y}:undefined;
     const resolved=point?undefined:this.resolveScriptPed?.(order.target);if(!point&&!resolved)break;
-    ped.order={kind:'goToPointShooting',x:order.x,z:-order.y,y:order.z>MAP_Z_LOW_LIMIT?order.z:undefined,moveState:order.moveState,radius:order.radius,
-     target:resolved&&resolved!=='player'?resolved:undefined,player:resolved==='player',aimOnly:order.aimOnly,point};ped.flee=0;ped.loiter=false;
+    // CTaskComplexGoToPointAiming::CreateFirstSubTask: a weapon aimed with the arm walks with CTaskSimpleUseGun aiming;
+    // one that can aim and fires instantly or over an area aims with CTaskSimpleGunControl (NONE, 600000 ms); anything
+    // else (unarmed, melee, a thrown weapon, the camera) only walks.
+    const info=ped.weapon?.info;
+    const aimBranch=!order.aimOnly||order.gunControlRadius===undefined?undefined:!info?'walk':hasWeaponFlag(info,WEAPON_FLAG.aimWithArm)?'arm'
+     :hasWeaponFlag(info,WEAPON_FLAG.canAim)&&(info.fire==='instant'||info.fire==='area')?'gunControl':'walk';
+    ped.order={kind:'goToPointShooting',x:order.x,z:-order.y,y:order.z>MAP_Z_LOW_LIMIT?order.z:undefined,moveState:order.moveState,
+     radius:aimBranch==='gunControl'?order.gunControlRadius!:order.radius,
+     target:resolved&&resolved!=='player'?resolved:undefined,player:resolved==='player',aimOnly:order.aimOnly,point,aimBranch,
+     remaining:aimBranch==='gunControl'?GUN_CONTROL_AIM_SECONDS:undefined};ped.flee=0;ped.loiter=false;
     break;
    }
    case 'seekAiming':{
@@ -3378,8 +3391,20 @@ export class WorldPedestrians {
        this.startNextOrder(p);
       }
      }
+    }else if(p.order.kind==='goToPointShooting'&&p.order.aimBranch==='gunControl'){
+     // CTaskSimpleGunControl: aim-walks toward the point (local x and y beyond the radius, strictly) and stands aiming
+     // inside it; over when its 600 s run out, or when the aim ped is beyond the weapon's range.
+     const o=p.order,q=p.actor.player.position,gx=o.x-q.x,gz=o.z-q.z,distance=Math.hypot(gx,gz);dx=0;dz=0;
+     o.remaining=(o.remaining??GUN_CONTROL_AIM_SECONDS)-dt;
+     const aimAt=o.target?o.target.actor.player.position:o.player?this.sim.player.position:undefined;
+     // (bIgnoreWeaponRange, which TASK_SET_IGNORE_WEAPON_RANGE_FLAG sets, is not ported.)
+     const range=p.weapon?.info.weaponRange??0,outOfRange=!!aimAt&&Math.hypot(aimAt.x-q.x,aimAt.y-q.y,aimAt.z-q.z)>range;
+     if(o.remaining<=0||outOfRange)this.startNextOrder(p);
+     else if(distance>o.radius){({x:dx,z:dz}=this.roundCars(p,o,cars));orderSpeed=p.walkSpeed;}
     }else if(p.order.kind==='goToPointShooting'){
      const o=p.order,q=p.actor.player.position,gx=o.x-q.x,gz=o.z-q.z,distance=Math.hypot(gx,gz);dx=0;dz=0;
+     // ControlSubTask asks for an arm-aimed weapon every frame of the walk: one taken up on the way starts the aim.
+     if(o.aimBranch==='walk'&&p.weapon&&hasWeaponFlag(p.weapon.info,WEAPON_FLAG.aimWithArm))o.aimBranch='arm';
      if(goToPointArrived(distance,o.y===undefined?undefined:q.y+PED_ORIGIN_HEIGHT-o.y,o.radius,state.speed*dt))this.startNextOrder(p);
      else{({x:dx,z:dz}=this.roundCars(p,o,cars));const moveState=goToPointMoveState(o.moveState,distance,GO_STRAIGHT_MOVE_STATE_RADIUS);orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;}
     }else if(p.order.kind==='destroyCar'){
@@ -3709,7 +3734,7 @@ export class WorldPedestrians {
    const seekAim=p.order?.kind==='seekAiming'?p.order:undefined;
    const seekAimHolder=seekAim&&(seekAim.target?seekAim.target.actor.player:this.sim.player);
    const seekAiming=!!seekAim&&!!seekAimHolder&&(seekAim.phase==='stand'||Math.hypot(seekAimHolder.position.x-state.position.x,seekAimHolder.position.z-state.position.z)<seekAim.aimRadius);
-   const gunOrder=p.order?.kind==='gunAt'||p.order?.kind==='goToPointShooting'||seekAiming&&p.order?.kind==='seekAiming'?p.order:undefined;
+   const gunOrder=p.order?.kind==='gunAt'||p.order?.kind==='goToPointShooting'&&p.order.aimBranch!=='walk'||seekAiming&&p.order?.kind==='seekAiming'?p.order:undefined;
    const carToShoot=p.order?.kind==='destroyCar'&&!p.order.melee&&p.order.phase==='attack'?this.resolveScriptVehicle?.(p.order.vehicle)?.entity():undefined;
    if(carToShoot&&!carToShoot.wrecked&&p.weapon&&p.health>0&&p.down===0&&!p.officer){
     // CTaskSimpleGunControl on the car: face it and fire at its middle (spotTarget aims a unit above what it is given).

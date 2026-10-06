@@ -72,7 +72,10 @@ export type ScriptedPedOrder=
  /** CTaskComplexGoToPointShooting: to a point at eMoveState, stopping inside `radius`, firing at a ped on the way. With
   * `aimOnly`, CTaskComplexGoToPointAiming: the gun aimed and not fired, at the ped (a handle; -1 none) or else at
   * `aimPoint` (script coordinates). */
- |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number;aimOnly?:boolean;aimPoint?:{x:number;y:number;z:number}}
+ |{kind:'goToPointShooting';x:number;y:number;z:number;moveState:number;radius:number;target:number;aimOnly?:boolean;aimPoint?:{x:number;y:number;z:number};
+  /** CTaskComplexGoToPointAiming with a gun aimed from the shoulder (canAim, instant-hit or area): CTaskSimpleGunControl's
+   * radius, inside which the ped stops and goes on aiming rather than ending the task. */
+  gunControlRadius?:number}
  /** CTaskComplexSeekEntityAiming (0x694B90 on, reversed): seek a ped to `seekRadius` (CTaskComplexSeekEntity, 50 s
   * at most), aiming at it once within `aimRadius`; there, stand still aiming for 2 s, or until it is `seekRadius` off
   * again, and seek again. Never over on its own. */
@@ -204,12 +207,14 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'handsUp':return {kind:'playAnim',file:'PED',name:'handsup',loop:false,keepLastFrame:true,seconds:seconds(task.time),release:true};
   case 'toggleDuck':return {kind:'duck',crouch:task.state};
   case 'gotoPedAiming':return world.ped(task.target)?{kind:'seekAiming',target:task.target,seekRadius:task.seekRadius,aimRadius:task.aimRadius}:undefined;
-  // AUTHORED: CTaskComplexGoToPointAiming's CreateFirstSubTask and ControlSubTask are unreversed; it goes as
-  // CTaskComplexGoToPointShooting does with the gun aimed and never fired.
+  // CTaskComplexGoToPointAiming (unreversed in gta-reversed; iOS handler 0x1001f1140, CreateFirstSubTask 0x1004042d0,
+  // ControlSubTask 0x10040442c). A negative or stale aim ped aims at the point instead. The walk
+  // (CTaskComplexGoToPointAndStandStill) has its radii reset on the first pass to stop at 0.5 and slow at 2, unless the
+  // slow-down distance is exactly 2, when the script's radius stands. The ped's weapon picks the rest as the order starts.
   case 'goToCoordWhileAiming':{
-   const atPed=task.aimPed!==-1&&world.ped(task.aimPed);
-   return {kind:'goToPointShooting',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:task.targetRadius>0?task.targetRadius:GO_STRAIGHT_TARGET_RADIUS,
-    target:atPed?task.aimPed:-1,aimOnly:true,aimPoint:atPed?undefined:{x:task.aimX,y:task.aimY,z:task.aimZ}};
+   const atPed=task.aimPed>=0&&world.ped(task.aimPed);
+   return {kind:'goToPointShooting',x:task.x,y:task.y,z:task.z,moveState:task.speed,radius:Math.fround(task.slowDownDistance)===2?task.targetRadius:GO_STRAIGHT_TARGET_RADIUS,
+    target:atPed?task.aimPed:-1,aimOnly:true,aimPoint:atPed?undefined:{x:task.aimX,y:task.aimY,z:task.aimZ},gunControlRadius:task.targetRadius};
   }
   // CTaskSimpleCower: CTaskSimpleRunAnim of HANDSCOWER (not looped, removed once over), and then the task is.
   case 'cower':return {kind:'playAnim',file:'PED',name:'handscower',loop:false,keepLastFrame:false,seconds:Number.POSITIVE_INFINITY};

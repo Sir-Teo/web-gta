@@ -9283,9 +9283,24 @@ that did anything.
     radius); gta-reversed's handler is commented out, the task reversed): the ped seeks its target to the seek radius
     (CTaskComplexSeekEntity, 50 s at most), aiming at it once inside the aim radius and putting the gun away outside it;
     there it stands aiming for 2 s, or until the target is the seek radius off, and seeks again. It never ends itself.
-  - **TASK_GO_TO_COORD_WHILE_AIMING** (AUTHORED: CTaskComplexGoToPointAiming's CreateFirstSubTask and ControlSubTask are
-    unreversed): as TASK_GO_TO_COORD_WHILE_SHOOTING's task, with the gun aimed at the ped or else at the point and
-    never fired.
+  - **TASK_GO_TO_COORD_WHILE_AIMING** builds CTaskComplexGoToPointAiming, whose subtask functions are unreversed in
+    gta-reversed. AUTHORED before as the shooting walk that never fires, it now follows the iOS executable (handler
+    0x1001f1140; CreateFirstSubTask 0x1004042d0, ControlSubTask 0x10040442c; spec `goto-coord-aiming`):
+    - The ped aims at the named ped, or at the point when the handle is negative or names nobody. It never fires.
+    - The weapon held as the task starts picks the branch:
+      - aimed with the arm: walk aiming, the task over at the point;
+      - aimed from the shoulder and firing instantly or over an area: CTaskSimpleGunControl aim-walks to within the
+        script's radius and goes on aiming there, ending only when its 600 s run out or the aim ped is beyond the
+        weapon's range;
+      - anything else: walk only.
+    - The walk stops at 0.5 (the first control pass resets the radii to 0.5 and 2), unless the slow-down distance is
+      exactly 2, when the script's radius stands.
+    - An arm-aimed weapon taken up on the way starts the aim; the port's weapons load before a ped holds them, which
+      this also covers.
+    - Not ported: bIgnoreWeaponRange (TASK_SET_IGNORE_WEAPON_RANGE_FLAG is not run), and the back-off within about 2.45
+      units of the aim target.
+    TASK_GO_TO_COORD_WHILE_SHOOTING shares these functions on iOS: it differs by firing bursts, and by a FIRE one frame
+    in 64 on the arm path. The port's version of it is unchanged.
   - **TASK_COWER**: CTaskSimpleCower, HANDSCOWER played once (not looped, removed when over).
   - **Not followed:** GET_CHAR_HIGHEST_PRIORITY_EVENT stays skipped (the port has no ped event queue to read).
   - Specs: `impound-script` (browser: $7464 set by CJ's Los Santos police station, IMPND running with nothing given up,

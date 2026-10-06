@@ -25,11 +25,14 @@ describe('the tasks a script gives a ped',()=>{
   // TASK_GOTO_CHAR_AIMING: CTaskComplexSeekEntityAiming(target, seek radius, aim radius); nothing for a ped gone.
   expect(scriptedPedOrder({kind:'gotoPedAiming',target:7,seekRadius:5,aimRadius:10},world({7:{x:1,y:2,z:3}}))).toEqual({kind:'seekAiming',target:7,seekRadius:5,aimRadius:10});
   expect(scriptedPedOrder({kind:'gotoPedAiming',target:8,seekRadius:5,aimRadius:10},world({}))).toBeUndefined();
-  // TASK_GO_TO_COORD_WHILE_AIMING: aimed at a point when no ped is named, at the ped when one is; a radius of nothing is
-  // the go-to's own.
+  // TASK_GO_TO_COORD_WHILE_AIMING (iOS): aimed at a point when no ped is named (any negative handle), at the ped when
+  // one is. The walk stops at 0.5 unless the slow-down distance is exactly 2; the gun-control branch keeps the script's
+  // radius.
   const go={kind:'goToCoordWhileAiming' as const,x:1,y:2,z:3,speed:6,targetRadius:1,slowDownDistance:5,aimPed:-1,aimX:4,aimY:5,aimZ:6};
-  expect(scriptedPedOrder(go,world({}))).toEqual({kind:'goToPointShooting',x:1,y:2,z:3,moveState:6,radius:1,target:-1,aimOnly:true,aimPoint:{x:4,y:5,z:6}});
-  expect(scriptedPedOrder({...go,aimPed:7,targetRadius:0},world({7:{x:0,y:0,z:0}}))).toEqual({kind:'goToPointShooting',x:1,y:2,z:3,moveState:6,radius:.5,target:7,aimOnly:true,aimPoint:undefined});
+  expect(scriptedPedOrder(go,world({}))).toEqual({kind:'goToPointShooting',x:1,y:2,z:3,moveState:6,radius:.5,target:-1,aimOnly:true,aimPoint:{x:4,y:5,z:6},gunControlRadius:1});
+  expect(scriptedPedOrder({...go,slowDownDistance:2},world({}))).toMatchObject({radius:1,gunControlRadius:1});
+  expect(scriptedPedOrder({...go,aimPed:-2},world({}))).toMatchObject({target:-1,aimPoint:{x:4,y:5,z:6}});
+  expect(scriptedPedOrder({...go,aimPed:7,targetRadius:0},world({7:{x:0,y:0,z:0}}))).toEqual({kind:'goToPointShooting',x:1,y:2,z:3,moveState:6,radius:.5,target:7,aimOnly:true,aimPoint:undefined,gunControlRadius:0});
   // TASK_COWER: HANDSCOWER once.
   expect(scriptedPedOrder({kind:'cower'},world({}))).toEqual({kind:'playAnim',file:'PED',name:'handscower',loop:false,keepLastFrame:false,seconds:Infinity});
  });
