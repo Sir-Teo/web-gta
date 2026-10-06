@@ -3087,10 +3087,9 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_HELP_MESSAGE_BOX_SIZE:(t,p,i)=>{game(t,i).help.boxWidth=t.readInt(p[0]);},
  SET_OBJECT_PROOFS:(t,p,i)=>{game(t,i).objects.setProofs(t.readInt(p[0]),{bullet:bool(t,p[1]),fire:bool(t,p[2]),explosion:bool(t,p[3]),collision:bool(t,p[4]),melee:bool(t,p[5])});},
  DOES_OBJECT_HAVE_THIS_MODEL:(t,p,i)=>{t.updateCompareFlag(game(t,i).objects.hasModel(t.readInt(p[0]),model(t,i,p[1])),negated(i));},
- // AUTHORED: the command fades the object out of existence and takes it off the mission's cleanup (its handler is
- // not in the reversed source; REMOVE_CHAR_ELEGANTLY's does that for a ped). The browser draws script objects
- // opaque, so it goes at once. An object already gone is left alone.
- REMOVE_OBJECT_ELEGANTLY:(t,p,i)=>{const handle=t.readInt(p[0]);if(game(t,i).objects.exists(handle))game(t,i).objects.remove(handle);},
+ // The iOS handler (0x100203a28; unreversed in gta-reversed): the object comes off the mission's cleanup and fades
+ // out (bFadingIn, 16 alpha a frame) until ManageObject deletes it at 0. An object already gone is left alone.
+ REMOVE_OBJECT_ELEGANTLY:(t,p,i)=>{game(t,i).objects.removeElegantly(t.readInt(p[0]));},
  // --- CTheCarGenerators (TheCarGenerators.cpp reversed; both command dispatches are not).
  CREATE_CAR_GENERATOR:(t,p,i,now)=>{
   const v=vec(t,p,0);

@@ -55,10 +55,15 @@ describe('the last of the ped questions',()=>{
   expect(calls).toEqual([[PED,-12.5,20,270]]);
  });
 
- test('REMOVE_OBJECT_ELEGANTLY takes the object away and leaves a handle already gone alone',()=>{
+ test('REMOVE_OBJECT_ELEGANTLY fades the object out of the cleanup and away, and leaves a handle already gone alone',()=>{
   const game=new ScmGameState(),handle=game.objects.create(3131,{x:0,y:0,z:0},{external:false,missionCleanup:true}).handle;
   run({},game,instruction(scmOpcode('REMOVE_OBJECT_ELEGANTLY'),[int(handle)]));
-  expect(game.objects.exists(handle)).toBe(false);
+  // Off the cleanup, fading from 255 by 16 a frame (iOS 0x100203a28, CObject::PreRender).
+  expect(game.objects.at(handle)).toMatchObject({missionCleanup:false,fadeAlpha:255});
+  game.objects.advanceFades(1/30);expect(game.objects.at(handle).fadeAlpha).toBeCloseTo(239,6);
+  // At 0, ManageObject deletes it: after the 16th frame (15 left after the 15th).
+  game.objects.advanceFades(14/30);expect(game.objects.at(handle).fadeAlpha).toBeCloseTo(15,6);
+  game.objects.advanceFades(1/30);expect(game.objects.exists(handle)).toBe(false);
   const {thread}=run({},game,instruction(scmOpcode('REMOVE_OBJECT_ELEGANTLY'),[int(handle)]));
   expect(thread.ip).toBeGreaterThan(CODE);
  });

@@ -88,6 +88,9 @@ export interface ScmObject {
  proofs:{bullet:boolean;fire:boolean;explosion:boolean;collision:boolean;melee:boolean};
  /** CTheScripts::MissionCleanUp holds the object while this is set; DONT_REMOVE_OBJECT takes it off the list. */
  missionCleanup:boolean;
+ /** objectFlags.bFadingIn, which REMOVE_OBJECT_ELEGANTLY sets: the clump's alpha (CVisibilityPlugins, 255 down), which
+  * CObject::PreRender lowers by 16 a frame and at 0 CPopulation::ManageObject deletes the object. */
+ fadeAlpha?:number;
  /** physicalFlags.bCanBeCollidedWith, which SET_OBJECT_RECORDS_COLLISIONS sets: whether the object keeps a record
   * of what it touches. */
  recordsCollisions?:boolean;
@@ -377,6 +380,19 @@ export class ScmObjects {
  /** CAnimBlendAssociation::UpdateTime and UpdateBlend for each object's association over a step of `seconds`: the
   * time runs at m_Speed; at the end a loop wraps, and a one-shot stops there and, fading out when done, goes a
   * quarter second later. Nothing runs past the end until the host has the clip's length. */
+ /** REMOVE_OBJECT_ELEGANTLY (the iOS handler, 0x100203a28): off the mission's cleanup, fading from 255. */
+ removeElegantly(handle:number){
+  if(!this.objects.has(handle))return;
+  const object=this.at(handle);object.missionCleanup=false;object.fadeAlpha??=255;
+ }
+ /** CObject::PreRender's fade, 16 a frame at the game's 30 frames a second, and ManageObject's deletion at 0. */
+ advanceFades(seconds:number){
+  for(const object of [...this.objects.values()]){
+   if(object.fadeAlpha===undefined)continue;
+   object.fadeAlpha=Math.max(0,object.fadeAlpha-16*30*seconds);
+   if(object.fadeAlpha===0)this.remove(object.handle);
+  }
+ }
  advanceAnims(seconds:number){
   for(const object of this.objects.values()){
    const anim=object.anim;if(!anim)continue;

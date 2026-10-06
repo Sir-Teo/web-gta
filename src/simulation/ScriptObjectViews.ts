@@ -59,6 +59,8 @@ export class ScriptObjectViews{
  private readonly views=new Map<number,{group:Group;dispose:()=>void;model:number|string;applied:Float64Array;shown:boolean;
   physical?:ReturnType<typeof installNativeCollisionMatrix>;collisionOn:boolean;col?:ColModel;
   asset:{model:import('../assets/dff').DffModel;textures:import('../assets/modelTextures').ModelTexture[]};root:import('three').Object3D;
+  /** The object's own materials, and the fade alpha last put on them. */
+  materials:import('three').Material[];alpha?:number;
   anim?:{name:string;binding?:ReturnType<typeof bindObjectAnimation>;time:number};
   /** While the object is a moving CPhysical: what was last written into its record from the body (to tell the
    * script's own writes apart) and CObject::ProcessControl's settling state. */
@@ -202,6 +204,11 @@ export class ScriptObjectViews{
      if(view.physical&&!view.dyn)ScriptObjectViews.pose(view.physical.body,object,false);
     }
     if(view.anim||object.anim)this.animate(object,view);
+    // REMOVE_OBJECT_ELEGANTLY's fade: the clump's alpha on its own materials (each object builds its own).
+    if(object.fadeAlpha!==undefined&&object.fadeAlpha!==view.alpha){
+     view.alpha=object.fadeAlpha;
+     for(const material of view.materials){material.transparent=true;material.opacity=object.fadeAlpha/255;}
+    }
     if(view.physical&&view.collisionOn!==ScriptObjectViews.collides(object)){
      view.collisionOn=ScriptObjectViews.collides(object);
      for(let i=0;i<view.physical.body.numColliders();i++)view.physical.body.collider(i).setEnabled(view.collisionOn);
@@ -238,7 +245,7 @@ export class ScriptObjectViews{
    const group=new Group();group.add(built.root);
    this.place(group,object);this.scene.add(group);
    const applied=new Float64Array(TRANSFORM_FIELDS);ScriptObjectViews.record(object,applied);
-   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object),physical,collisionOn:ScriptObjectViews.collides(object),col,asset,root:built.root});
+   this.views.set(object.handle,{group,dispose:()=>built.dispose(),model:object.model,applied,shown:this.shows(object),physical,collisionOn:ScriptObjectViews.collides(object),col,asset,root:built.root,materials:built.materialBindings.map(b=>b.material)});
   });
  }
  /** The association's pose on the clump's frames: each track drives the frame of its name (an object's clump has no

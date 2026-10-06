@@ -9763,8 +9763,10 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **An object or FX system attached to the player** follows him (the attachment frame only knew the script's peds),
   and the attachments are placed again just before the frame is drawn, as `CPhysical::PositionAttachedEntity` runs
   in the world's process: the script steps after the physics, and the canopy trailed him by a frame.
-- **`REMOVE_OBJECT_ELEGANTLY`** fades an object out of existence; the browser draws script objects opaque, so it goes
-  at once (AUTHORED).
+- **`REMOVE_OBJECT_ELEGANTLY`** follows the iOS handler (0x100203a28; unreversed in gta-reversed). The object comes off
+  the mission's cleanup and fades (objectFlags.bFadingIn: CObject::PreRender takes 16 off its alpha a frame), and
+  CPopulation::ManageObject deletes it at 0, after about half a second. AUTHORED before as gone at once; the canopy
+  player_parachute.scm drops now fades.
 - Spec: `player-parachute` (the drop from 150 units, the free fall and its tilt, the canopy drawn over him, the eased
   fall and the landing with the script ended).
 
