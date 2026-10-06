@@ -1901,8 +1901,9 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     units, by day and night.
   - A pool of the lit colour lies below when `TrafficLightsBrightness`
     exceeds 0.05.
-  - `aTrafficLightColoursR/G/B` are exe data gta-reversed only references,
-    so each lamp's own 2d effect colour stands in.
+  - `aTrafficLightColoursR/G/B` are exe data gta-reversed only references. They had been stood in by each lamp's
+    own 2d effect colour; they are now read from the iOS executable (DisplayActualLight 0x10020d9dc): green
+    (0, 255, 0), amber (255, 128, 0), red (255, 0, 0). The lamp's own colour only tells which lamp it is.
   - The lit lamp's lens is a `CBrightLights` light (reversed), up to 32
     within 60 units. It is a hexagon at half alpha, or an octagon for the
     five small-lens models. Its colour is the phase's with a random flicker,

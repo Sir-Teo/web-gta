@@ -28,8 +28,12 @@ export interface TrafficLightFrame {
 }
 /** CTrafficLights::DisplayActualLight (0x49DAB0), from CEntity::PreRender for traffic light models: the lit colour of
  * the phase for the pole's direction, on the side facing the camera, its lens (CBrightLights::RegisterOne), and a pool
- * of that colour below the lamps. aTrafficLightColoursR/G/B (0x8A6214) are exe data gta-reversed does not carry, so
- * each lamp's own 2d effect colour stands in. Point lights are not ported. */
+ * of that colour below the lamps. aTrafficLightColoursR/G/B (0x8A6214) are exe data gta-reversed does not carry; they
+ * are read from the iOS executable (DisplayActualLight 0x10020d9dc; R 0x100648bd8, G 0x100648bdb, B 0x1007a39b8): green
+ * (0, 255, 0), amber (255, 128, 0), red (255, 0, 0). A lamp's own 2d effect colour only tells which lamp it is. Point
+ * lights are not ported, nor the iOS build's FX-quality gate on the corona. */
+/** aTrafficLightColoursR/G/B by light state (green, amber, red). */
+export const TRAFFIC_LIGHT_COLOURS:readonly (readonly [number,number,number])[]=[[0,255,0],[255,128,0],[255,0,0]];
 export function displayActualLight(entity:{id:number;name?:string;matrix:readonly number[];effects:readonly Model2dEffect[]},frame:TrafficLightFrame,coronas:NativeCoronas,bright?:NativeBrightLights):LightPool[]{
  const m=entity.matrix;if(m[10]<.96)return [];
  const lensBase=entity.name&&SMALL_LENS_MODELS.has(entity.name)?BRIGHT_LIGHT.greenSmall:BRIGHT_LIGHT.greenBig;
@@ -41,10 +45,11 @@ export function displayActualLight(entity:{id:number;name?:string;matrix:readonl
   const p=effect.position,world:[number,number,number]=[m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12],m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13],m[2]*p[0]+m[6]*p[1]+m[10]*p[2]+m[14]];
   center[0]+=world[0];center[1]+=world[1];center[2]+=world[2];
   const colorState=light.color[0]>200?light.color[1]>100?TRAFFIC_LIGHT.yellow:TRAFFIC_LIGHT.red:TRAFFIC_LIGHT.green;
-  if(colorState===state)lit??=[light.color[0],light.color[1],light.color[2]];
+  const colour=TRAFFIC_LIGHT_COLOURS[colorState]??[light.color[0],light.color[1],light.color[2]];
+  if(colorState===state)lit??=[colour[0],colour[1],colour[2]];
   if(sameDir===p[1]>0||colorState!==state)return;
   const brightness=frame.spriteBrightness*.07;
-  coronas.register({id:entity.id+i,color:[Math.trunc(light.color[0]*brightness)&255,Math.trunc(light.color[1]*brightness)&255,Math.trunc(light.color[2]*brightness)&255],intensity:255,
+  coronas.register({id:entity.id+i,color:[Math.trunc(colour[0]*brightness)&255,Math.trunc(colour[1]*brightness)&255,Math.trunc(colour[2]*brightness)&255],intensity:255,
    position:world,size:frame.spriteSize*.175,range:50,reflection:true,pullTowardsCamera:1.5,fadeSpeed:15},frame.camera);
   // The lens faces along the pole: RegisterOne takes its up and right.
   bright?.registerOne(world,[m[8],m[9],m[10]],[m[0],m[1],m[2]],state+lensBase,frame.camera);

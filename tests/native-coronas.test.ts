@@ -88,6 +88,11 @@ test('DisplayActualLight shows the phase of the pole direction on the side facin
  // By day (traffic lights brightness 0) there is no pool, but the corona stays.
  const day=new NativeCoronas();expect(displayActualLight(pole,{visual:[0,2],cameraForward:[0,-1,0],camera:[100,170,12],spriteBrightness:10,spriteSize:10,lightsOnGroundBrightness:10,trafficLightsBrightness:0},day)).toEqual([]);
  expect(day.coronas.filter(k=>k.id).map(k=>k.id)).toEqual([501]);
+ // aTrafficLightColoursR/G/B (iOS): a lamp is lit in the table's colour, whatever its own 2d effect colour; an amber
+ // lamp drawn (230, 150, 20) in the model shows (255, 128, 0).
+ const amber=new NativeCoronas(),amberPole={...pole,effects:[lamp(-.4,[230,150,20])]};
+ const amberPools=displayActualLight(amberPole,{visual:[1,1],cameraForward:[0,1,0],camera:[100,150,12],spriteBrightness:10,spriteSize:10,lightsOnGroundBrightness:10,trafficLightsBrightness:1},amber);
+ expect(amber.coronas.filter(k=>k.id)[0].color).toEqual([178,89,0]);expect(amberPools[0].color).toEqual([31,16,0]);
 });
 
 test('CCoronas::RenderReflections mirrors reflecting coronas through the ground while the roads are wet', () => {
