@@ -1,7 +1,8 @@
 import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 
-// SET_TAXI_LIGHTS (CAutomobile::SetTaxiLight): a lit taxi sign shows its roof corona (reVC's PreRender, AUTHORED).
+// SET_TAXI_LIGHTS (CAutomobile::SetTaxiLight): a lit taxi sign shows its roof corona (the iOS PreRender's, at high FX
+// quality, the game's default here).
 test('a taxi whose light the script turns on shows its roof corona',async({page})=>{
  test.setTimeout(240000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));

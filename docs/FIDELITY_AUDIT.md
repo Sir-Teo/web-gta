@@ -9394,9 +9394,14 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 ## The taxi's roof light
 
 - **`SET_TAXI_LIGHTS`** sets `CAutomobile::autoFlags.bTaxiLight` (SetTaxiLight, reversed) on the script's car or the
-  player's. What draws it is `CAutomobile::PreRender`, unreversed in SA; reVC's is followed (AUTHORED): a yellow
-  (128, 128, 0) corona of 0.8 over the roof sign, 0.95 up and 0.4 back on the taxi, 0.9 up and 0.2 forward on the
-  cabbie, seen from 50 units.
+  player's. What draws it is `CAutomobile::PreRender`, unreversed in SA. The port first followed reVC's version. It
+  now follows the iOS executable's (0x100449314 and 0x10044932c):
+  - **Corona:** a reflected headlight-type corona of 0.8 over the roof sign, seen from 150 × the LOD multiplier. Its
+    red and green are the timecycle's sprite brightness × 10, and its blue is 0.
+  - **Position:** 0.4 back and 0.95 up on the Taxi, 0.85 straight up on the Cabbie.
+  - **Point light:** a faint yellow one, (0.1, 0.1, 0.05) with radius 10, at the sign.
+  - **FX quality gate:** the Taxi's sign is drawn only at high FX quality or above; the Cabbie's is always drawn.
+  - **Spec:** `taxi-lights` (unit).
 
 ## A mission's new ped waits for its ground
 
