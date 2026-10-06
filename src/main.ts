@@ -5854,7 +5854,7 @@ async function boot() {
                    vehicle:vehicle?{appearance,train:false,model:vehicle.modelId,inAirProper:()=>!(car?car.audio.contactWheels>0:'airborne' in vehicle&&!(vehicle as {airborne:boolean}).airborne)&&!touchesBuildingOrVehicle(car?car.car.body:(vehicle as {body:import('@dimforge/rapier3d-compat').RigidBody}).body)}:undefined,
                    stopped:speed<0.01&&(!!vehicle||sim.player.grounded),
                    // m_vecMoveSpeed's magnitude in units a second: the car's in one, his own (with the fall) on foot.
-                   moveSpeed:vehicle?speed:Math.hypot(sim.player.speed,sim.player.verticalSpeed),
+                   moveSpeed:vehicle?speed:Math.hypot(sim.player.speed,sim.player.verticalSpeed),groundSpeed:vehicle?speed:sim.player.speed,
                    health:sim.player.health,dead:sim.player.health<=0,
                    heading:((((sim.player.heading-Math.PI)*180/Math.PI)%360)+360)%360,
                    areaCode:render.lighting.area,

@@ -8682,6 +8682,17 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   within 4 units) now have CJ say something positive or negative; the ped stops, turns and answers. AUTHORED
   (`CPedToPlayerConversations::Update` is unreversed): an insulted rival gang member or tough ped squares up and fights,
   a weak one runs, anyone else answers with a threat and the finger. Spec: `ped-converse`.
+  - **Not in the original.** The iOS executable (0x1001a641c, decoded) has no player-initiated street chat.
+    - **Who reads Y and N:** the conversation buttons are read only by the script conversations, the ped-opened
+      street conversation and one prompt inside a task.
+    - **How the street conversation runs:** a game-made ped on screen within 7 units opens. The two must face each
+      other, CJ must be on foot with no stars, and 30 s must have passed since the last. The ped remarks on CJ's last
+      car, clothes, hair, physique, shoes, smell or tattoos (from his stats and clothes); gang members open with
+      "where you from" or a challenge. CJ answers yes or no within 4 s. Some answers make the ped attack (75% or 40%),
+      and none open while gang wars are on.
+    - **Status:** the port's player-opened version is its own invention, kept for now because the touch screen's Yes
+      and No hang off it. The decoded machine is waiting on the speech banks, without which it would be silent head
+      turns.
 
 ## Bike kerbs, the starting loadout, story characters, the intro's pans and a porting pipeline
 

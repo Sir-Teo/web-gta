@@ -225,6 +225,8 @@ export interface ScmMissionWorld {
   /** CPed::m_aWeapons as the types it carries, and the one it is holding. */
   /** GET_CHAR_SPEED: m_vecMoveSpeed's magnitude, units a second. */
   moveSpeed?:number;
+  /** m_vecMoveSpeed across the ground (x and y), units a second. */
+  groundSpeed?:number;
   weapons:{carried:readonly number[];active:{type:number;melee:boolean};
    /** CWeapon::m_nTotalAmmo of each weapon he carries. */
    ammo?:Readonly<Record<number,number>>};
@@ -2619,7 +2621,7 @@ export class ScmMission {
   // CPlaceable::GetForward across the ground, (-sin h, cos h) for heading h.
   const a=(me.heading??0)*Math.PI/180,b=this.peds.headingOf(handle)*Math.PI/180;
   if(Math.sin(a)*Math.sin(b)+Math.cos(a)*Math.cos(b)>0)return false;
-  return !((me.moveSpeed??0)/50>CONVERSATION_STILL_SPEED);
+  return !((me.groundSpeed??me.moveSpeed??0)/50>CONVERSATION_STILL_SPEED);
  }
  /** CConversations::Update after the scripts. The lines go up as subtitles for 4 s (with the Display settings'
   * Subtitles off they are not printed), and a scripted line (AwkwardSay) plays through mission audio slot 1. */
