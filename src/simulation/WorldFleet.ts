@@ -32,7 +32,7 @@ import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
-import {EXHAUST_NODE,isValidModForVehicle,otherLinkedUpgrade,REPLACED_COMPONENT_FRAMES,upgradePositionFrame,vehicleModSlot,WHEEL_NODE} from '../vehicle/nativeVehicleUpgrades';
+import {damagedPositionFrame,EXHAUST_NODE,isValidModForVehicle,otherLinkedUpgrade,REPLACED_COMPONENT_FRAMES,upgradePositionFrame,vehicleModSlot,WHEEL_NODE} from '../vehicle/nativeVehicleUpgrades';
 import {isRemapMaterial,remapColours,remapName} from '../vehicle/nativeVehicleRemap';
 import {TexturePool} from '../assets/TexturePool';
 import {MODEL_FLAG} from './nativeDoor';
@@ -536,7 +536,7 @@ export class WorldFleet {
    if(wheels){car.wheelScale=car.assets.vehicle.frontWheelSize??1;this.applyWheelScales(car);}
    // DOUBLE_EXHAUST (the handling's model flag 0x2000): the exhaust once more on a frame of its own, at -2 times the
    // exhaust frame's x, which puts it on the other side.
-   const copies:{replace:boolean;offsetX?:number}[]=[{replace}];
+   const copies:{replace:boolean;offsetX?:number;damagedFrame?:string}[]=[{replace,damagedFrame:replace?undefined:damagedPositionFrame(place)}];
    if(replace&&place!.place===EXHAUST_NODE&&car.modelFlags&MODEL_FLAG.doubleExhaust){const x=car.car.nativeFramePosition(frame)?.x;if(x!==undefined)copies.push({replace:false,offsetX:-2*x});}
    void catalog.upgrades.partAsset(model).then(asset=>{
     if(!asset||part.cancelled||car.disposed)return;

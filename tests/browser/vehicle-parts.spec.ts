@@ -82,6 +82,10 @@ test('a dummy part replaces the car\'s own exhaust or bumper, hiding it, and sho
  // The front bumper damaged: the part's damaged atomic, as the bumper's own would have been.
  await page.evaluate(()=>(window as any).__sultan.car.setComponentDamage({bump_front:1}));
  expect((await look()).bump_front_dummy).toMatchObject({own:0,ok:0,dam:1});
+ // The boot damaged: the spoiler on it shows AddUpgrade's damaged copy (spl_a_s_b_dam) instead of its intact one.
+ await page.evaluate(()=>(window as any).__sultan.car.setComponentDamage({boot:2}));
+ expect((await look()).ug_spoiler).toMatchObject({ok:0,dam:1});
+ await page.evaluate(()=>(window as any).__sultan.car.setComponentDamage({bump_front:1}));
  // Off again: the car's own exhaust and bumpers back (the front one damaged, as its component is).
  await page.evaluate(i=>{const g=(window as any).__game,car=(window as any).__sultan;for(const id of [i.exhaust,i.front,i.rear])g.fleet().removeUpgradePart(car,id);},ids);
  const off=await look();

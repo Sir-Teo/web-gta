@@ -9053,8 +9053,11 @@ that did anything.
   part's atomic on the frame itself, with its damaged atomic beside it, shown by the component's damage as the
   component's own were; on a DOUBLE_EXHAUST model (the handling model flag 0x2000) the exhaust goes on again on a frame
   of its own at -2 times the exhaust frame's x. The port hides the car's own atomics while the part stands (the detail
-  pass leaves them hidden) and shows them as they were when it comes off. AUTHORED gaps: the damaged copy AddUpgrade
-  makes at the _dam position for a part on the bonnet, boot or lamps is not drawn. A wheel set (CarMod 2) goes on
+  pass leaves them hidden) and shows them as they were when it comes off. A part at an upgrade position hanging from a
+  component other than the chassis gets AddUpgrade's damaged copy (iOS 0x100481014): another instance, its damaged
+  atomic where it has one, at the position's _dam twin (the bonnet's three, the spoiler's and the lamps'; any other
+  position, or a model without the twin, at the position itself), the intact one shown while the component is intact
+  and the copy while it is damaged. A wheel set (CarMod 2) goes on
   the four wheel frames (CAR_WHEEL_RF, LF, RB, LB; a six-wheeler's middle wheels keep theirs), drawn at every detail
   as the car's own wheels are, and AddVehicleUpgrade sets CVehicle::m_fWheelScale to the front wheel size (0x100480a44;
   RemoveVehicleUpgrade puts it back to 1, 0x100481218). CAutomobile::PreRender scales each wheel's frame by it (iOS

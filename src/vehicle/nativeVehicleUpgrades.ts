@@ -51,6 +51,13 @@ export function upgradePositionFrame(place:{place:number;dummy:boolean}|undefine
  if(!place||place.dummy||place.place===0x10||place.place===0x11)return undefined;
  return UPGRADE_POSITION_FRAMES[place.place];
 }
+/** CVehicle::AddUpgrade's damaged copy (iOS 0x100481014): the bonnet's three positions, the spoiler and the lamps
+ * have a _dam twin (the copy falls back on the position itself when the model lacks the twin); any other position's
+ * copy goes at the position itself. */
+export function damagedPositionFrame(place:{place:number;dummy:boolean}|undefined){
+ const frame=upgradePositionFrame(place);if(!frame)return undefined;
+ return ({0:'ug_bonnet_dam',1:'ug_bonnet_left_dam',2:'ug_bonnet_right_dam',6:'ug_spoiler_dam',12:'ug_lights_dam'} as Record<number,string>)[place!.place]??frame;
+}
 /** The component a dummy part replaces (its CarMod is an eCarNodes id; CClumpModelInfo::GetFrameFromId finds the
  * frame carIds names for it): the chassis, the two bumpers, the exhaust and the three misc nodes. The wheels (2) are
  * all four wheel frames and are not here. */

@@ -86,18 +86,41 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   let visual:ReturnType<typeof modelObject>|undefined,controller:NativeRaycastVehicle|undefined,disposed=false;
   /** The tuning parts drawn on the car (CVehicle::CreateUpgradeAtomic), each with its paint; and what the car's own
    * atomics were last given, which a part fitted later takes too. */
+  /** How a part shows its component's damage: a replacement switches to its damaged atomic as the component's own
+   * did; a part at an upgrade position stays intact (gone with the component), or, with a damaged copy, shows while the
+   * component is intact, the copy (its damaged atomic, or its only one) while it is damaged. */
+  type PartRole='replacement'|'position'|'intact'|'damaged';
   interface DrawnPart {paint:ReturnType<typeof bindNativeCarPaint>;ok:import('three').Object3D[];dam:import('three').Object3D[];
-   /** The component the part hangs from (its damage shows on the part), whether it switches to its damaged atomic
-    * with it, and the car's own atomics it replaced. */
-   component?:string;switchDamage:boolean;replaced:import('three').Object3D[];
+   /** The component the part hangs from, how it shows the component's damage, and the car's own atomics it replaced. */
+   component?:string;role:PartRole;replaced:import('three').Object3D[];
    /** A wheel, drawn at every detail as the car's own wheels are. */
    everyDetail:boolean}
   const parts=new Map<ReturnType<typeof modelObject>,DrawnPart>();
   /** A part's intact or damaged atomic by its component's state, as the component's own (the rule below); gone with it. */
   const applyPartDamage=(part:DrawnPart)=>{
    const state=part.component?componentStates[part.component]??0:0,door=!!part.component&&/^(door_|bonnet|boot)/.test(part.component);
-   const missing=state===4||!door&&state===3,damaged=part.switchDamage&&(door?state===2||state===3:state>0);
-   for(const node of part.ok)node.visible=!missing&&!damaged;for(const node of part.dam)node.visible=!missing&&damaged;
+   const missing=state===4||!door&&state===3,damaged=door?state===2||state===3:state>0;
+   const okShown=part.role==='position'||(part.role==='damaged'?damaged&&!part.dam.length:!damaged),damShown=part.role==='replacement'||part.role==='damaged'?damaged:false;
+   for(const node of part.ok)node.visible=!missing&&okShown;for(const node of part.dam)node.visible=!missing&&damShown;
+  };
+  /** CVehicle::CreateUpgradeAtomic / CreateReplacementAtomic: one instance of a part at a frame. */
+  const build=(model:DffModel,textures:ModelTexture[],frame:import('three').Object3D,role:PartRole,offsetX:number|undefined,component:string|undefined,replaced:import('three').Object3D[],everyDetail:boolean)=>{
+   const part=modelObject(model,textures,undefined,undefined,{worldLighting:true,ambient,carEnv});
+   // The atomic's own frame is replaced by the upgrade position (or, for a replacement, the component's frame): the
+   // part stands at the frame itself. A double exhaust's second copy has a frame of its own, the exhaust's x mirrored
+   // (-2 times its offset from its parent).
+   part.root.rotation.set(0,0,0);part.root.position.set(offsetX??0,0,0);part.root.updateMatrix();part.root.userData.nativePart=true;
+   // CAtomicModelInfo::CreateInstance clones the atomic onto a new frame: none of the part file's own frames count.
+   part.root.traverse(o=>{if(o.userData.nativeFrame!==undefined)o.matrix.identity();});
+   frame.add(part.root);
+   // CreateInstance gives the intact atomic, the damaged one only when asked (ms_bCreateDamagedVersion).
+   const ok:import('three').Object3D[]=[],dam:import('three').Object3D[]=[];
+   part.root.traverse(o=>{if(o.userData.nativeAtomic!==undefined)(/_dam$/i.test(o.parent?.name??'')?dam:ok).push(o);});
+   const drawn:DrawnPart={paint:bindNativeCarPaint(part.materialBindings,assets.lightTexture),ok,dam,component,role,replaced,everyDetail};
+   if(currentColors)drawn.paint.setColors(currentColors);
+   part.setNight(currentNight);parts.set(part,drawn);applyPartDamage(drawn);if(currentAlpha<1)setAlpha(currentAlpha);
+   part.root.visible=everyDetail||!lod||lod.detail==='high';
+   return part;
   };
   let currentColors=assets.colors,currentNight=0,currentAlpha=1;
   /** CAutomobile::PreRender's scale on each wheel's frame for CVehicle::m_fWheelScale (nativeWheelScale): 1 for the
@@ -140,7 +163,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     /** CVehicle::CreateUpgradeAtomic (0x6D3510, reversed): a tuning part's atomic under the car, its frame taking the
      * upgrade position the model's `frameName` frame gives (that frame's own matrix, under the component it hangs
      * from), lit, reflecting, painted and faded as the car's own atomics are. The returned call takes it off. */
-    attachPart(model:DffModel,textures:ModelTexture[],frameName:string,options:{replace?:boolean;offsetX?:number;everyDetail?:boolean}={}){
+    attachPart(model:DffModel,textures:ModelTexture[],frameName:string,options:{replace?:boolean;offsetX?:number;everyDetail?:boolean;damagedFrame?:string}={}){
      const frame=visual?.root.getObjectByName(frameName);if(!frame||disposed)return undefined;
      // CVehicle 0x100480d44's callbacks (0x10048171c, recursing through 0x1004817a8): a replacement destroys every
      // atomic on the component's frame and below it, the car's own and an earlier part's alike; here the car's own are
@@ -154,26 +177,17 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
       };
       walk(frame);
      }
-     const part=modelObject(model,textures,undefined,undefined,{worldLighting:true,ambient,carEnv});
-     // The atomic's own frame is replaced by the upgrade position (or, for a replacement, the component's frame): the
-     // part stands at the frame itself. A double exhaust's second copy has a frame of its own, the
-     // exhaust's x mirrored (-2 times its offset from its parent).
-     part.root.rotation.set(0,0,0);part.root.position.set(options.offsetX??0,0,0);part.root.updateMatrix();part.root.userData.nativePart=true;
-     // CAtomicModelInfo::CreateInstance clones the atomic onto a new frame: none of the part file's own frames count.
-     part.root.traverse(o=>{if(o.userData.nativeFrame!==undefined)o.matrix.identity();});
-     frame.add(part.root);
-     // CreateInstance gives the intact atomic, the damaged one only when asked (ms_bCreateDamagedVersion): a replacement
-     // gets both, shown by its component's damage state as that component's own were; a part at an upgrade position
-     // keeps its intact one (its damaged copy at the _dam position is not drawn), gone with its component.
-     const ok:import('three').Object3D[]=[],dam:import('three').Object3D[]=[];
-     part.root.traverse(o=>{if(o.userData.nativeAtomic!==undefined)(/_dam$/i.test(o.parent?.name??'')?dam:ok).push(o);});
      const holder=options.replace?frame:frame.parent,component=holder?.name.endsWith('_dummy')?holder.name.slice(0,-6):undefined;
-     const drawn:DrawnPart={paint:bindNativeCarPaint(part.materialBindings,assets.lightTexture),ok,dam,component,switchDamage:!!options.replace,replaced,everyDetail:!!options.everyDetail};
-     if(currentColors)drawn.paint.setColors(currentColors);
-     part.setNight(currentNight);parts.set(part,drawn);applyPartDamage(drawn);if(currentAlpha<1)setAlpha(currentAlpha);
-     part.root.visible=drawn.everyDetail||!lod||lod.detail==='high';
+     // CVehicle::AddUpgrade: a part at an upgrade position on a component other than the chassis gets a damaged copy
+     // (CreateUpgradeAtomic asked for the damaged version) at the position's _dam twin, the two shown by the
+     // component's damage as its own atomics are.
+     const damagedFrame=!options.replace&&component&&options.damagedFrame?visual!.root.getObjectByName(options.damagedFrame)??frame:undefined;
+     const role:PartRole=options.replace?'replacement':damagedFrame?'intact':'position';
+     const built=[build(model,textures,frame,role,options.offsetX,component,replaced,!!options.everyDetail)];
+     if(damagedFrame)built.push(build(model,textures,damagedFrame,'damaged',0,component,[],false));
      return ()=>{
-      if(!parts.delete(part))return;part.dispose();
+      let removed=false;for(const part of built)if(parts.delete(part)){part.dispose();removed=true;}
+      if(!removed)return;
       // The car's own atomics back as they were (the detail and damage passes then put them right).
       for(const node of replaced){const count=(node.userData.nativeReplaced??1)-1;if(count>0)node.userData.nativeReplaced=count;else{delete node.userData.nativeReplaced;node.visible=!!node.userData.nativeShownBefore;delete node.userData.nativeShownBefore;}}
       applyDamage();lod?.refresh();
