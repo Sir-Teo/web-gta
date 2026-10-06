@@ -3,12 +3,15 @@ import {readWater} from '../src/assets/water';
 import {DetailedWaterBuilder,calculateWavesOnlyForCoordinate,waterCameraRange,waterSurface,waterWavePhases} from '../src/world/waterWaves';
 const vertex=(x:number,y:number,big:number,small:number,z=0)=>`${x} ${y} ${z} 0 0 ${big} ${small}`;
 test('CalculateWavesOnlyForCoordinate sums the three native sines over |x|,|y|',()=>{
- // t=0: phases are purely spatial. Big wave at x=16,y=0: sin(2π·16/64)=1, amplitude 2·big.
- expect(calculateWavesOnlyForCoordinate(16,0,1,0,0)).toBeCloseTo(2,6);
- // Small waves at x=0,y=5: sin(2π·5/52)+.5·sin(2π·5/20).
- expect(calculateWavesOnlyForCoordinate(0,5,0,1,0)).toBeCloseTo(Math.sin(2*Math.PI*5/52)+.5,6);
+ // faWaveMultipliersX/Y (iOS 0x100596730, 0x100596750) by (|x| >> 1) & 7 and (|y| >> 1) & 7.
+ const MX=[1,.85,.73,.77,.75,.8,.73,.8].map(Math.fround),MY=[.75,.9,.95,.82,.7,.75,.9,1].map(Math.fround);
+ const mult=(ax:number,ay:number)=>MX[(ax>>1)&7]*MY[(ay>>1)&7];
+ // t=0: phases are purely spatial. Big wave at x=16,y=0: sin(2π·16/64)=1, amplitude 2·big, times X[0]·Y[0].
+ expect(calculateWavesOnlyForCoordinate(16,0,1,0,0)).toBeCloseTo(2*mult(16,0),6);
+ // Small waves at x=0,y=5: sin(2π·5/52)+.5·sin(2π·5/20), times X[0]·Y[2].
+ expect(calculateWavesOnlyForCoordinate(0,5,0,1,0)).toBeCloseTo((Math.sin(2*Math.PI*5/52)+.5)*mult(0,5),6);
  const reference=(x:number,y:number,big:number,small:number,t:number)=>{const ax=Math.abs(Math.trunc(x)),ay=Math.abs(Math.trunc(y));
-  return Math.sin(t%5000*2*Math.PI/5000+2*Math.PI*(ax/64+ay/64))*2*big+Math.sin(t%3500*2*Math.PI/3500+2*Math.PI*(ax/26+ay/52))*small+Math.sin(t%3000*2*Math.PI/3000+2*Math.PI*ay/20)*.5*small;};
+  return (Math.sin(t%5000*2*Math.PI/5000+2*Math.PI*(ax/64+ay/64))*2*big+Math.sin(t%3500*2*Math.PI/3500+2*Math.PI*(ax/26+ay/52))*small+Math.sin(t%3000*2*Math.PI/3000+2*Math.PI*ay/20)*.5*small)*mult(ax,ay);};
  for(const [x,y,t] of [[400,-2000,12345],[-2830.7,1296.2,99999],[3,7,4999]])expect(calculateWavesOnlyForCoordinate(x,y,.199,.241,t)).toBeCloseTo(reference(x,y,.199,.241,t),6);
  // abs() mirrors the field; CWeather::Wavyness scales it; zero amplitudes are calm.
  expect(calculateWavesOnlyForCoordinate(-37,-81,.5,.3,777)).toBeCloseTo(calculateWavesOnlyForCoordinate(37,81,.5,.3,777),9);

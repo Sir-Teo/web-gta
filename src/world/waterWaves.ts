@@ -5,8 +5,8 @@
  *   big/small wave amplitudes; each phase is ((GetTimeInMS() - m_nWaterTimeOffset) % period) * 2π/period + 2π(kx·x+ky·y).
  *   GetSinFast's lookup table is replaced by Math.sin. Only the height is ported; the normal/colorMult/glare outputs
  *   feed the unreversed high-detail renderer (0x6EB810, 0x6EDDC0), whose use of them is unknown.
- * - faWaveMultipliersX/Y (0x8D38C8, 0x8D38E8) are exe data the source does not carry: AUTHORED here as all 1.0,
- *   so the swell is uniform and only CWeather::Wavyness and the per-vertex amplitudes scale it.
+ * - faWaveMultipliersX/Y (0x8D38C8, 0x8D38E8) are exe data the source does not carry; they are read from the iOS
+ *   executable (0x100596730 and 0x100596750, indexed by (|x| >> 1) & 7 and (|y| >> 1) & 7 at 0x100489610).
  * - CWaterLevel::SyncWater (SYNC_WATER; no address in the source) sets m_nWaterTimeOffset to GetTimeInMS().
  * - CWaterLevel::SetCameraRange (0x6E9C80): the detailed patch spans the camera ±DETAILEDWATERDIST (48) rounded out
  *   to even units. RenderWaterRectangle (0x6EC5D0) / RenderWaterTriangle (0x6EE240) split polygons at that range,
@@ -14,9 +14,9 @@
  *   RenderHighDetailWater* (unreversed). The port subdivides the inside parts on the 2-unit grid the even range implies.
  *   WATER.DAT positions are truncated to int32 as LoadDataFile's VertexUnpack does. */
 import type {WaterPolygon} from '../assets/water';
-/** AUTHORED: faWaveMultipliersX/Y are not in the reversed source; all 1.0 leaves the swell uniform. */
-export const WAVE_MULTIPLIERS_X:readonly number[]=[1,1,1,1,1,1,1,1];
-export const WAVE_MULTIPLIERS_Y:readonly number[]=[1,1,1,1,1,1,1,1];
+/** faWaveMultipliersX/Y, from the iOS executable (float32). */
+export const WAVE_MULTIPLIERS_X:readonly number[]=[1,.85,.73,.77,.75,.8,.73,.8].map(Math.fround);
+export const WAVE_MULTIPLIERS_Y:readonly number[]=[.75,.9,.95,.82,.7,.75,.9,1].map(Math.fround);
 export const DETAILED_WATER_DIST=48;
 /** CalculateWave(period ms, kx, ky, amplitude = big·a + small·b). */
 export const WATER_WAVES:readonly (readonly [period:number,kx:number,ky:number,big:number,small:number])[]=[[5000,1/64,1/64,2,0],[3500,1/26,1/52,0,1],[3000,0,1/20,0,.5]];

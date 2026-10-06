@@ -5727,7 +5727,9 @@ Left as they are, on purpose or for want of a reference:
 
 - **The swell:** the water near the camera is displaced with CWaterLevel::CalculateWavesOnlyForCoordinate. It uses three sines, the WATER.DAT big and small wave strengths, CWeather::Wavyness and SYNC_WATER's time offset.
   - It covers the camera ±48 units, as SetCameraRange does, on a 2-unit grid. Water outside that range stays flat.
-  - The per-cell multipliers faWaveMultipliersX/Y are data in the exe, not in the source. They are set to 1.0 here.
+  - The per-cell multipliers faWaveMultipliersX/Y are data in the exe, not in the source. They had been set to 1.0;
+    they are now read from the iOS executable (0x100596730: 1, .85, .73, .77, .75, .8, .73, .8; 0x100596750: .75, .9,
+    .95, .82, .7, .75, .9, 1), indexed by (|x| >> 1) & 7 and (|y| >> 1) & 7, so the swell varies cell by cell.
 - **Gameplay height:** CWaterLevel::GetWaterLevel adds the waves through AddWaveToResult, which is not reversed. The stand-in in src/world/waterLevel.ts adds the same drawn swell, so swimmers, boats, drowning checks and the underwater camera ride the surface on screen. `levelNoWaves` keeps the flat GetWaterLevelNoWaves height.
   - Unlike the drawing, gameplay adds the waves at any distance from the camera, as GetWaterLevel calls AddWaveToResult unconditionally.
 
