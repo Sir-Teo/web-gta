@@ -267,14 +267,21 @@ export class ScmObjects {
  }
  /** GET_OBJECT_ROTATION_VELOCITY: m_vecTurnSpeed back in radians a second. */
  getTurnSpeed(handle:number){const w=this.at(handle).turnSpeed;return {x:w.x*50,y:w.y*50,z:w.z*50};}
- /** ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY (AUTHORED, the handler is unreversed): the speed given in the frame of the
-  * object's own heading of travel on the ground (x to its right, y along it, z up), units a second, added to
-  * m_vecMoveSpeed. POOL2 gives the cue ball its side and top spin this way the moment it strikes a ball. An object
-  * standing still has no heading of travel and takes the speed in the world's axes. */
- addVelocityRelativeToVelocity(handle:number,speed:{x:number;y:number;z:number}){
-  const object=this.at(handle),v=object.velocity,flat=Math.hypot(v.x,v.y);
-  const forward=flat>0?{x:v.x/flat,y:v.y/flat}:{x:0,y:1},right={x:forward.y,y:-forward.x};
-  object.velocity={x:v.x+(right.x*speed.x+forward.x*speed.y)/50,y:v.y+(right.y*speed.x+forward.y*speed.y)/50,z:v.z+speed.z/50};
+ /** ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY (unreversed in gta-reversed; iOS handler 0x1001e6738). The speed (units a
+  * second) is scaled by CTimer::ms_fTimeStep × 0.02, which is the frame's own length in seconds (`frameSeconds`), and
+  * added to m_vecMoveSpeed in the frame of the object's way of travel: forward its move speed normalised in 3D
+  * (CVector::Normalise makes a standstill (1, 0, 0)), right that crossed with straight up, and up the right crossed
+  * with the forward. Travel straight up adds nothing. POOL2 gives the cue ball its side and top spin this way as it
+  * strikes a ball. The handler also does nothing for an object with m_bIsStatic set, which the engine clears as an
+  * object moves; the port clears it only for SET_OBJECT_DYNAMIC, so that test is not made here. */
+ addVelocityRelativeToVelocity(handle:number,speed:{x:number;y:number;z:number},frameSeconds=.02){
+  const f=Math.fround,object=this.at(handle),v=object.velocity;
+  const unit=(a:{x:number;y:number;z:number})=>{const d=a.x*a.x+a.y*a.y+a.z*a.z;if(!(d>0))return {x:1,y:a.y,z:a.z};const k=f(1/Math.sqrt(d));return {x:f(a.x*k),y:f(a.y*k),z:f(a.z*k)};};
+  const cross=(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number})=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
+  const forward=unit(v);if(forward.z===1)return;
+  const right=unit(cross(forward,{x:0,y:0,z:1})),up=unit(cross(right,forward));
+  const k=f(frameSeconds),sx=f(speed.x*k),sy=f(speed.y*k),sz=f(speed.z*k);
+  object.velocity={x:v.x+right.x*sx+forward.x*sy+up.x*sz,y:v.y+right.y*sx+forward.y*sy+up.y*sz,z:v.z+right.z*sx+forward.z*sy+up.z*sz};
  }
  setPosition(handle:number,position:{x:number;y:number;z:number}){this.at(handle).position={...position};}
  setScale(handle:number,scale:number){requireAsset(Number.isFinite(scale),'Invalid object scale.');this.at(handle).scale=scale;}

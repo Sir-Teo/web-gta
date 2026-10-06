@@ -1397,7 +1397,7 @@ export class ScmMission {
    setObjectRotationVelocity:(handle,x,y,z)=>{this.runtime.game.objects.setTurnSpeed(handle,{x,y,z});},
    addToObjectRotationVelocity:(handle,x,y,z)=>{this.runtime.game.objects.addToTurnSpeed(handle,{x,y,z});},
    getObjectRotationVelocity:handle=>this.runtime.game.objects.getTurnSpeed(handle),
-   addVelocityRelativeToObjectVelocity:(handle,x,y,z)=>{this.runtime.game.objects.addVelocityRelativeToVelocity(handle,{x,y,z});},
+   addVelocityRelativeToObjectVelocity:(handle,x,y,z)=>{this.runtime.game.objects.addVelocityRelativeToVelocity(handle,{x,y,z},this.frameMs/1000);},
    breakObject:(handle,intensity)=>{this.runtime.game.objects.breakObject(handle,intensity!==0);},
    // IS_CHAR_TOUCHING_OBJECT, _VEHICLE and _CHAR: GetPedOrItsVehicle(ped)->GetHasCollidedWith(other), the other ped
    // also by its vehicle when it sits in one; IS_VEHICLE_TOUCHING_OBJECT and IS_CAR_TOUCHING_CAR ask the car's.
@@ -3773,8 +3773,10 @@ export class ScmMission {
   * (C3dMarkers::PlaceMarkerSet, MARKER3D_CYLINDER, 255 0 0 255, pulse 2048 and 0.2) at 0.8, 0.9 and the full size, all
   * under the script's id. A 2D area's centre has no height: FindGroundZForCoord finds it. */
  highlightedAreas(){return [...this.highlights.values()];}
+ /** The length of the frame the scripts run in, ms (CTimer::ms_fTimeStep × 20). */
+ private frameMs=20;
  step(nowMs:number,timeStepMs:number){
-  this.clockMs=nowMs;
+  this.clockMs=nowMs;if(timeStepMs>0)this.frameMs=timeStepMs;
   if(this.stopped)return;
   this.highlights.clear();
   if(!this.started){this.started=true;this.runtime.start(this.entry);}

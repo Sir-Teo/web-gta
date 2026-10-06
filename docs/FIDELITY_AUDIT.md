@@ -9439,9 +9439,15 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **`SET_`, `ADD_TO_` and `GET_OBJECT_ROTATION_VELOCITY`** keep `m_vecTurnSpeed` per frame (the command's radians a second
   over fifty, as reVC's handler) and a moving object's body turns at it, its turn read back as it lasts (DRUGS4's props,
   POOL2's balls; basketb asks for its ball's).
-- **`ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY` (AUTHORED).** The handler is unreversed: the speed is added in the frame of
-  the object's heading of travel on the ground (x to its right, y along it, z up), units a second. POOL2 gives the cue
-  ball its side and top spin this way as it strikes a ball.
+- **`ADD_VELOCITY_RELATIVE_TO_OBJECT_VELOCITY`** was AUTHORED: the speed added in the frame of the object's heading of
+  travel on the ground, in units a second. POOL2 gives the cue ball its side and top spin this way as it strikes a
+  ball. It now follows the iOS handler (0x1001e6738):
+  - **the frame:** forward is the move speed normalised in 3D (a standstill is east, as `CVector::Normalise` makes
+    it), right is that crossed with straight up, and up is the right crossed with the forward;
+  - **the scale:** the speed is multiplied by `ms_fTimeStep` × 0.02, the frame's own length in seconds;
+  - **straight up:** travel straight up adds nothing;
+  - **not ported:** the handler's skip for an object with `m_bIsStatic` set, since the port clears that flag only
+    for `SET_OBJECT_DYNAMIC` while the engine clears it as an object moves.
 
 ## The casino's card games
 

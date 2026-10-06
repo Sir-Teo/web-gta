@@ -152,12 +152,28 @@ describe('an object\'s turn speed',()=>{
   game.objects.setVelocity(object.handle,{x:2,y:0,z:0});
   game.objects.addVelocityRelativeToVelocity(object.handle,{x:1,y:.5,z:0});
   const v=game.objects.getVelocity(object.handle);
-  expect(v.x).toBeCloseTo(2.5,9);expect(v.y).toBeCloseTo(-1,9);expect(v.z).toBe(0);
-  // Standing still: the world's own axes.
+  expect(v.x).toBeCloseTo(2.5,6);expect(v.y).toBeCloseTo(-1,6);expect(v.z).toBe(0);
+  // Standing still: CVector::Normalise makes the way of travel east, so along is east, right south, up up.
   const still=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
   game.objects.addVelocityRelativeToVelocity(still.handle,{x:1,y:2,z:3});
   const u=game.objects.getVelocity(still.handle);
-  expect(u.x).toBeCloseTo(1,9);expect(u.y).toBeCloseTo(2,9);expect(u.z).toBeCloseTo(3,9);
+  expect(u.x).toBeCloseTo(2,5);expect(u.y).toBeCloseTo(-1,5);expect(u.z).toBeCloseTo(3,5);
+  // The speed is scaled by the frame's length: a 30 fps frame adds 5/3 of a 50 fps one.
+  const slow=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  game.objects.setVelocity(slow.handle,{x:2,y:0,z:0});
+  game.objects.addVelocityRelativeToVelocity(slow.handle,{x:0,y:3,z:0},1/30);
+  expect(game.objects.getVelocity(slow.handle).x).toBeCloseTo(2+3*50/30,4);
+  // Climbing: up is the right crossed with the way of travel, tipped back from the vertical.
+  const climbing=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  game.objects.setVelocity(climbing.handle,{x:3,y:0,z:3});
+  game.objects.addVelocityRelativeToVelocity(climbing.handle,{x:0,y:0,z:Math.SQRT2});
+  const c=game.objects.getVelocity(climbing.handle);
+  expect(c.x).toBeCloseTo(2,4);expect(c.z).toBeCloseTo(4,4);
+  // Straight up: nothing is added.
+  const rising=game.objects.create(1337,{x:0,y:0,z:0},{external:false,missionCleanup:false});
+  game.objects.setVelocity(rising.handle,{x:0,y:0,z:5});
+  game.objects.addVelocityRelativeToVelocity(rising.handle,{x:1,y:1,z:1});
+  expect(game.objects.getVelocity(rising.handle)).toEqual({x:0,y:0,z:5});
  });
 });
 
