@@ -9,18 +9,21 @@ test('native police spawn, pursue, respect cover, fire, and bust a suspect who f
  const tick=()=>{law.tick(1/60);crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();};
  const wall=sim.world.createCollider(RAPIER.ColliderDesc.cuboid(3,4,3).setTranslation(2490,15,1680));sim.world.step();for(let i=0;i<120;i++)tick();const coveredHealth=sim.player.health;sim.world.removeCollider(wall,true);sim.world.step();
  // Bystanders do not block a cop's line of sight (LineOfSightClearForAttack), so a round can meet another cop first.
- for(let i=0;i<600&&sim.player.health>=100;i++)tick();const fired=shots,health=sim.player.health;
+ // CTaskSimpleGunControl's bursts come every DEFAULT_GUN_ATTACK_PERIOD (2000 ms) × 0.75 to 1.25 / (rate × 0.04).
+ for(let i=0;i<2400&&sim.player.health>=100;i++)tick();const fired=shots,health=sim.player.health;
  // Standing still is not an arrest: only a suspect in a fall within 3 units of a cop.
  for(let i=0;i<120;i++)tick();const stillArrested=law.arrested;
  const cop=crowd.snapshot().people.find((p:any)=>p.officer&&p.health>0);const at={x:cop.position.x+1.5,y:cop.position.y,z:cop.position.z};
  // The cops' fire may have killed the suspect by now; a living one is needed for the bust.
  sim.player.health=100;sim.deathRemaining=0;sim.playerBody.setTranslation({x:at.x,y:at.y+.9,z:at.z},true);sim.player.position={...at};sim.knockdown=3;sim.knockdownGetUp=1;
+ // The level may have eased while the cops took their time to land a round.
+ const levelBefore=law.level;
  for(let i=0;i<30&&!law.arrested;i++)tick();
- return {initial,coveredHealth,fired,health,stillArrested,arrested:law.arrested,level:law.level,knockdown:sim.knockdown};
+ return {initial,coveredHealth,fired,health,stillArrested,arrested:law.arrested,level:law.level,levelBefore,knockdown:sim.knockdown};
  }finally{crowd.dispose();sim.dispose();}
  });expect(result.initial.error).toBeNull();expect(result.initial.people.filter((p:any)=>p.officer)).toHaveLength(3);expect(result.coveredHealth).toBe(100);expect(result.fired).toBeGreaterThan(0);expect(result.health).toBeLessThan(100);expect(result.stillArrested).toBe(false);expect(result.arrested).toBe(true);
  // ArrestPlayer keeps the wanted level for the fee, and the suspect is held down.
- expect(result.level).toBe(2);expect(result.knockdown).toBeGreaterThan(90);
+ expect(result.levelBefore).toBeGreaterThan(0);expect(result.level).toBe(result.levelBefore);expect(result.knockdown).toBeGreaterThan(90);
 });
 test('at one star a cop beats an unarmed suspect with the nightstick combo, and the third swing knocks him down',async({page})=>{
  test.setTimeout(120000);await page.goto('/models.html');const result=await page.evaluate(async()=>{

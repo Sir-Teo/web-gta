@@ -383,14 +383,18 @@ export class ScmObjects {
  /** REMOVE_OBJECT_ELEGANTLY (the iOS handler, 0x100203a28): off the mission's cleanup, fading from 255. */
  removeElegantly(handle:number){
   if(!this.objects.has(handle))return;
-  const object=this.at(handle);object.missionCleanup=false;object.fadeAlpha??=255;
+  const object=this.at(handle);object.missionCleanup=false;object.fadeAlpha??=255;this.fading.add(handle);
  }
+ /** The objects fading out, so a frame with none costs nothing. */
+ private readonly fading=new Set<number>();
  /** CObject::PreRender's fade, 16 a frame at the game's 30 frames a second, and ManageObject's deletion at 0. */
  advanceFades(seconds:number){
-  for(const object of [...this.objects.values()]){
-   if(object.fadeAlpha===undefined)continue;
+  if(!this.fading.size)return;
+  for(const handle of [...this.fading]){
+   const object=this.objects.get(handle);
+   if(object?.fadeAlpha===undefined){this.fading.delete(handle);continue;}
    object.fadeAlpha=Math.max(0,object.fadeAlpha-16*30*seconds);
-   if(object.fadeAlpha===0)this.remove(object.handle);
+   if(object.fadeAlpha===0){this.fading.delete(handle);this.remove(handle);}
   }
  }
  advanceAnims(seconds:number){
