@@ -37,11 +37,25 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
  // CVehicleModelInfo::LoadVehicleUpgrades: carmods.dat, its names resolved to veh_mods.ide's model ids.
  const upgrades=await (async()=>{
   const modsResource=source.manifest.resources.find(r=>r.path==='ide/veh_mods/veh_mods.ide');requireAsset(modsResource,'Missing native vehicle upgrade definitions.');
-  const ids=new Map(readIdeAssociations(await (await source.resource(modsResource!)).text()).map(r=>[r.model.toLowerCase(),r.id] as const));
+  const associations=readIdeAssociations(await (await source.resource(modsResource!)).text());
+  const ids=new Map(associations.map(r=>[r.model.toLowerCase(),r.id] as const)),dictionaries=new Map(associations.map(r=>[r.id,r.dictionary.toLowerCase()] as const));
+  const partAssets=new Map<number,Promise<{model:Awaited<ReturnType<typeof readModel>>['model'];textures:ModelTexture[]}|undefined>>();
   const carMods=readCarMods(await carModsFile.text());
   const remaps=vehicleRemaps(source.entries.map(e=>e.name),new Set(definitions.filter(d=>d.id>=400&&d.id<=630).map(d=>d.model.toLowerCase())));
   const remapTextures=new Map<string,Promise<ModelTexture|undefined>>();
   return {carMods,
+   /** An upgrade's model and textures (veh_mods.ide: its dictionary is vehicle.txd, or a car's own, which falls back
+    * on vehicle.txd as the car's does), read once. */
+   partAsset:(id:number)=>{
+    let found=partAssets.get(id);
+    if(!found){
+     const name=[...ids].find(([,value])=>value===id)?.[0],entry=name?entries.get(`${name}.dff`):undefined,dictionary=dictionaries.get(id);
+     const request=!entry||!dictionary?undefined:dictionary==='vehicle'?{file:source.file,entry,textureFile:shared}:{file:source.file,entry,textureEntry:entries.get(`${dictionary}.txd`),parents:[[dictionary,'vehicle']] as [string,string][]};
+     found=request?readModel(request,cache).then(asset=>({model:asset.model,textures:asset.textures})):Promise.resolve(undefined);
+     partAssets.set(id,found);
+    }
+    return found;
+   },
    /** A paintjob's texture: CVehicle::PreRender's GetFirstTexture of the remap dictionary, read once. */
    remapTexture:(name:string)=>{
     const key=name.toLowerCase();let found=remapTextures.get(key);

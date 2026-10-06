@@ -7,6 +7,7 @@ describe('vehicle paintjobs (remaps)',()=>{
   expect(isRemapMaterial('RemapUranus92body256','uranus')).toBe(true);
   expect(isRemapMaterial('vehiclegeneric256','vehicle')).toBe(false);
   expect(isRemapMaterial('remapsomething','vehicle')).toBe(false);
+  expect(isRemapMaterial('remapsomething','vehicle.txd')).toBe(false);expect(isRemapMaterial('remapsultanbody256','sultan.txd')).toBe(true);
   expect(isRemapMaterial('sultan92interior128','sultan')).toBe(false);
  });
  it('takes the head of the dictionary list, the last texture read',()=>{

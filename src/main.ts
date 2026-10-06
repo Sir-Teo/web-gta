@@ -587,7 +587,10 @@ async function boot() {
    const c=car as Partial<import('./simulation/WorldCar').WorldCar>,tables=fleet?.upgradeTables();
    if(!c.addUpgrade||!tables)return -1;
    const place=tables.upgradePlace(model),kind=upgradeKind(place);
-   return c.addUpgrade(model,vehicleModSlot(place),kind,nitroBoostsFor(tables.upgradeName(model)));
+   const replaced=c.addUpgrade(model,vehicleModSlot(place),kind,nitroBoostsFor(tables.upgradeName(model)));
+   // The part drawn in its place (the one it replaced in that slot taken off first).
+   if(isScriptCar(car)){if(replaced>=0)fleet?.removeUpgradePart(car,replaced);fleet?.drawUpgradePart(car,model);}
+   return replaced;
   };
   /** CGarages::StoreCarInNearestImpoundingGarage, once the script's garages are loaded. */
   let impoundCar:((vehicle:import('./simulation/WorldCar').WorldCar|import('./simulation/WorldBike').WorldBike)=>void)|undefined;
@@ -5758,7 +5761,7 @@ async function boot() {
                  vehicleUpgradeTables:()=>fleet?.upgradeTables(),
                  fitVehicleUpgrade:(car,model)=>fitVehicleUpgrade(car,model),
                  scriptVehicleUpgradeInSlot:(car,slot)=>(car as Partial<ScriptCar>).upgrades?.get(slot)??-1,
-                 removeVehicleUpgrade:(car,model)=>{const c=car as Partial<ScriptCar>,place=fleet?.upgradeTables()?.upgradePlace(model);c.removeUpgrade?.(model,upgradeKind(place));},
+                 removeVehicleUpgrade:(car,model)=>{const c=car as Partial<ScriptCar>,place=fleet?.upgradeTables()?.upgradePlace(model);c.removeUpgrade?.(model,upgradeKind(place));if(isScriptCar(car))fleet?.removeUpgradePart(car,model);},
                  isValidModForPlayerVehicle:model=>{const v=fleet?.occupied??fleet?.occupiedBike,tables=fleet?.upgradeTables();return !!v&&!!tables&&tables.isValidMod(model,v.modelId);},
                  fitPlayerVehicleUpgrade:model=>{const v=fleet?.occupied??fleet?.occupiedBike;if(v)fitVehicleUpgrade(v,model);},
                  // CShopping::StoreVehicleMods and RestoreVehicleMods: the player's vehicle's upgrades, each one taken off and
@@ -5767,7 +5770,7 @@ async function boot() {
                  storePlayerVehicleMods:()=>{const v=fleet?.occupied;storedVehicleMods=v?[...v.upgrades.values()]:[];},
                  restorePlayerVehicleMods:()=>{
                   const v=fleet?.occupied;if(!v)return;const tables=fleet?.upgradeTables();
-                  for(const model of [...v.upgrades.values()])v.removeUpgrade(model,upgradeKind(tables?.upgradePlace(model)));
+                  for(const model of [...v.upgrades.values()]){v.removeUpgrade(model,upgradeKind(tables?.upgradePlace(model)));fleet?.removeUpgradePart(v,model);}
                   for(const model of storedVehicleMods)fitVehicleUpgrade(v,model);
                  },
                  playerGoOnParole:()=>{law.native.goOnParole();},

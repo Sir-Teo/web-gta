@@ -1,6 +1,6 @@
 import {expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {isValidModForVehicle,nitroBoostsFor,otherLinkedUpgrade,readCarMods,vehicleModSlot,vehicleRemaps,vehicleUpgradePlace,VEHICLE_UPGRADE_SLOTS} from '../src/vehicle/nativeVehicleUpgrades';
+import {isValidModForVehicle,nitroBoostsFor,otherLinkedUpgrade,readCarMods,upgradePositionFrame,vehicleModSlot,vehicleRemaps,vehicleUpgradePlace,VEHICLE_UPGRADE_SLOTS} from '../src/vehicle/nativeVehicleUpgrades';
 // CVehicleModelInfo::LoadVehicleUpgrades over the published carmods.dat (noclip's PC copy; the iOS bundle's is the
 // same file with Unix line ends), and CAtomicModelInfo::SetupVehicleUpgradeFlags.
 const mods=readCarMods(readFileSync('public/play/world/files/vehicles/carmods.dat','utf8'));
@@ -51,4 +51,18 @@ test('IsValidModForVehicle (iOS): a wheel by the model\'s wheel set, the stereo 
  expect(isValidModForVehicle(1074,vehicleUpgradePlace('wheel_sr3'),elegy,undefined)).toBe(false);
  expect(isValidModForVehicle(1086,vehicleUpgradePlace('stereo'),[],undefined)).toBe(true);
  expect([nitroBoostsFor('nto_b_l'),nitroBoostsFor('nto_b_tw'),nitroBoostsFor('nto_b_s'),nitroBoostsFor(undefined)]).toEqual([5,10,2,2]);
+});
+
+test('AddVehicleUpgrade draws a chassis part at the upgrade position its CarMod names; hydraulics, stereo and dummy parts at none',()=>{
+ expect(upgradePositionFrame(vehicleUpgradePlace('spl_a_s_b'))).toBe('ug_spoiler');
+ expect(upgradePositionFrame(vehicleUpgradePlace('rf_a_s'))).toBe('ug_roof');
+ expect(upgradePositionFrame(vehicleUpgradePlace('wg_l_a_s'))).toBe('ug_wing_left');
+ expect(upgradePositionFrame(vehicleUpgradePlace('wg_r_a_s'))).toBe('ug_wing_right');
+ expect(upgradePositionFrame(vehicleUpgradePlace('bntl_b_ov'))).toBe('ug_bonnet_left');
+ expect(upgradePositionFrame(vehicleUpgradePlace('lgt_b_rspt'))).toBe('ug_lights');
+ expect(upgradePositionFrame(vehicleUpgradePlace('nto_b_tw'))).toBe('ug_nitro');
+ expect(upgradePositionFrame(vehicleUpgradePlace('hydralics'))).toBeUndefined();
+ expect(upgradePositionFrame(vehicleUpgradePlace('stereo'))).toBeUndefined();
+ expect(upgradePositionFrame(vehicleUpgradePlace('exh_a_s'))).toBeUndefined();
+ expect(upgradePositionFrame(vehicleUpgradePlace('wheel_or1'))).toBeUndefined();
 });

@@ -6,7 +6,7 @@
  * "remap", is renamed '#…'; SetEditableMaterialsCB gives every material whose texture's name begins '#' the remap
  * texture while one is set. */
 export function isRemapMaterial(textureName:string,dictionary:string|undefined){
- return dictionary!=='vehicle'&&textureName.toLowerCase().startsWith('remap');
+ return dictionary?.toLowerCase().replace(/\.txd$/,'')!=='vehicle'&&textureName.toLowerCase().startsWith('remap');
 }
 /** GetFirstTexture (0x734940): the first texture RwTexDictionaryForAllTextures visits, the head of the dictionary's
  * list, at whose front RwTexDictionaryAddTexture links each texture as it is read: the last one in the file. (Every

@@ -9033,6 +9033,22 @@ that did anything.
   wearing a paintjob its colours (the iOS case asks GetRemapIndex before ChooseVehicleColour, and clears the remap
   when it does recolour). Specs: `vehicle-remap` (unit), `vehicle-paintjob` (browser: a Sultan in sultan2.txd's
   paint, primary colour 1, and its own texture back past its third paintjob), `stored-vehicles`.
+- **Tuning parts were never drawn.** A spoiler, scoop, roof vent, side skirt, bull bar, lamp or nitro bottle bought at a
+  mod shop changed nothing to look at. CVehicle::AddVehicleUpgrade (unreversed; iOS 0x100480908) hands a chassis part
+  (one whose CarMod is an upgrade position) to CVehicle::AddUpgrade (iOS 0x100480f70): RemoveUpgradeCB takes off any part
+  already at that position, then CreateUpgradeAtomic (0x6D3510, reversed) makes the part's atomic and hangs it from the
+  component the position's frame hangs from, at that frame's matrix. The positions are the model's `ug_*` frames that
+  CVehicleModelInfo::PreprocessHierarchy reads (ms_vehicleDescs; ug_bonnet to ug_nitro, the iOS strings at 0x58020e),
+  a model without the frame having no such position. AddVehicleUpgrade adds the other half of a linked pair the same
+  way (both side skirts from one), skips the hydraulics and stereo (its special-upgrade routine, 0x100480b9c, takes them
+  and draws nothing), and draws nitro only where the car has a nitro position. The part is read from the archive with
+  its veh_mods.ide dictionary (vehicle.txd, or the car's own over vehicle.txd) and drawn as the car's own atomics are:
+  lit, reflecting, painted with the car's colours (and a paintjob's texture on its remap materials), faded with it.
+  AUTHORED gaps: the damaged copy AddUpgrade also makes on the bonnet, boot or lamps is not drawn (the part stays as it
+  was when its component is damaged), the far _vlo model does not hide the part, and the parts that replace one of the
+  car's own components (wheels, exhausts, bumpers, the chassis kits: CVehicle 0x100480d44) are not drawn yet. Specs:
+  `vehicle-upgrades` (unit: the positions), `vehicle-parts` (browser: a Sultan's spoiler on its boot, its roof scoop
+  and both skirts from one, painted, then the skirts off and a second spoiler in the first's place).
 - **The vehicle-class questions the mod shops and the valet ask** (absent from gta-reversed; the iOS handlers in the
   2400 switch): IS_BIG_VEHICLE (0x1002034d0) reads vehicleFlags.bIsBig, here the handling's IS_BIG model flag (0x8) it
   is set from; IS_CAR_STREET_RACER (0x1002036c4) handlingFlags.bStreetRacer (0x4000000); IS_EMERGENCY_SERVICES_VEHICLE

@@ -39,6 +39,18 @@ export function vehicleUpgradePlace(name:string):{place:number;dummy:boolean}|un
 }
 const CHASSIS_PARTS:readonly (readonly [string,number])[]=[['bnt_',0x0],['bntl_',0x1],['bntr_',0x2],['spl_',0x6],['wg_l_',0x8],['wg_r',0x9],['fbb_',0xA],['bbb_',0xB],['lgt_',0xC],['rf_',0xE],['nto_',0xF],['hydralics',0x10],['stereo',0x11]];
 const DUMMY_PARTS:readonly (readonly [string,number])[]=[['chss_',0x1],['wheel_',0x2],['exh_',0x13],['fbmp_',0xC],['rbmp_',0xD],['misc_a_',0x14],['misc_b_',0x15],['misc_c_',0x16]];
+/** CVehicleModelInfo's upgrade positions (eVehicleUpgradePosn), each read by PreprocessHierarchy from the model's frame
+ * of this name (ms_vehicleDescs; the iOS strings at 0x58020e): a chassis part's CarMod indexes it. A model lacking the
+ * frame has no such position (IsUpgradeAvailable). The _dam ones are where a damaged copy goes. */
+export const UPGRADE_POSITION_FRAMES=['ug_bonnet','ug_bonnet_left','ug_bonnet_right','ug_bonnet_dam','ug_bonnet_left_dam','ug_bonnet_right_dam','ug_spoiler','ug_spoiler_dam','ug_wing_left','ug_wing_right','ug_frontbullbar','ug_backbullbar','ug_lights','ug_lights_dam','ug_roof','ug_nitro'] as const;
+/** CVehicle::AddVehicleUpgrade (iOS 0x100480908): which upgrades CVehicle::AddUpgrade (0x100480f70) draws at an
+ * upgrade position. Hydraulics and the stereo are taken by the special-upgrade routine (0x100480b9c) and have no model
+ * drawn; nitro is too, but goes on to be drawn when the car has a nitro position; a dummy part replaces a component
+ * instead (0x100480d44). */
+export function upgradePositionFrame(place:{place:number;dummy:boolean}|undefined){
+ if(!place||place.dummy||place.place===0x10||place.place===0x11)return undefined;
+ return UPGRADE_POSITION_FRAMES[place.place];
+}
 /** CLinkedUpgradeList::FindOtherUpgrade: the other half of a linked pair, or undefined. */
 export function otherLinkedUpgrade(mods:CarMods,name:string){
  const n=name.toLowerCase();

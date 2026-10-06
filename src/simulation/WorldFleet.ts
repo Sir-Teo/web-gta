@@ -32,7 +32,7 @@ import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
-import {isValidModForVehicle,vehicleModSlot} from '../vehicle/nativeVehicleUpgrades';
+import {isValidModForVehicle,otherLinkedUpgrade,upgradePositionFrame,vehicleModSlot} from '../vehicle/nativeVehicleUpgrades';
 import {isRemapMaterial,remapColours,remapName} from '../vehicle/nativeVehicleRemap';
 import {TexturePool} from '../assets/TexturePool';
 import type {ModelTexture} from '../assets/modelTextures';
@@ -475,7 +475,7 @@ export class WorldFleet {
  }
  /** The paintjob textures the cars wear, held while worn; each material's own texture, to put back. */
  private readonly remapPool=new TexturePool();
- private readonly remapped=new WeakMap<WorldCar,ModelTexture>();
+ private readonly remapped=new WeakMap<WorldCar,{texture:ModelTexture;map:unknown}>();
  private readonly remapOriginals=new WeakMap<object,unknown>();
  /** CVehicle::SetRemap (iOS 0x1004763c4) and CVehicle::PreRender's remap: the model's paintjob `index` (-1, or one
   * past its remaps, takes it off), its dictionary read and its texture put on every remappable material
@@ -493,18 +493,57 @@ export class WorldFleet {
   }).catch(()=>{});
  }
  private applyRemap(car:WorldCar,texture:ModelTexture|undefined){
-  const before=this.remapped.get(car);if(before===texture)return;
+  const before=this.remapped.get(car);if(before?.texture===texture)return;
   const map=texture?this.remapPool.acquire(texture):undefined;
+  this.remapMaterials(car,map);
+  if(before)this.remapPool.release(before.texture);
+  if(!texture){this.remapped.delete(car);return;}
+  if(!before)car.whenDisposed(()=>{const worn=this.remapped.get(car);if(worn){this.remapPool.release(worn.texture);this.remapped.delete(car);}});
+  this.remapped.set(car,{texture,map});
+ }
+ /** SetEditableMaterialsCB over the whole clump, the car's own atomics and its tuning parts: the remap texture on every
+  * remappable material, or each one's own back. */
+ private remapMaterials(car:WorldCar,map:unknown){
   for(const binding of car.car.materialBindings?.()??[]){
    if(!isRemapMaterial(binding.source.texture,binding.texture?.sourceDictionary))continue;
    const material=binding.material as {map:unknown};
    if(!this.remapOriginals.has(material))this.remapOriginals.set(material,material.map);
    material.map=map??this.remapOriginals.get(material)??null;
   }
-  if(before)this.remapPool.release(before);
-  if(!texture){this.remapped.delete(car);return;}
-  if(!before)car.whenDisposed(()=>{const worn=this.remapped.get(car);if(worn){this.remapPool.release(worn);this.remapped.delete(car);}});
-  this.remapped.set(car,texture);
+ }
+ /** The tuning parts drawn on each car, by upgrade model id: the upgrade position's frame, and the call that takes the
+  * part off once it is drawn (a part still being read is cancelled instead). */
+ private readonly drawnParts=new WeakMap<WorldCar,Map<number,{frame:string;remove?:()=>void;cancelled?:boolean}>>();
+ /** CVehicle::AddVehicleUpgrade's drawing (iOS 0x100480908): the upgrade, and the other half of a linked pair
+  * (CLinkedUpgradeList::FindOtherUpgrade), drawn by CVehicle::AddUpgrade (0x100480f70) at the car's upgrade position,
+  * which first takes off whatever part stood there (RemoveUpgradeCB, by position). Nothing for a car without the
+  * position, for the hydraulics or stereo, or for a part that replaces a component (not drawn yet). The damaged copy
+  * AddUpgrade also makes for a part on the bonnet, boot or lamps is not drawn. */
+ drawUpgradePart(car:WorldCar,id:number){
+  const catalog=this.catalog;if(!catalog)return;
+  for(const model of this.withLinkedUpgrade(id)){
+   const frame=upgradePositionFrame(catalog.upgrades.placeOf(model));if(!frame||!car.car.hasFrame(frame))continue;
+   let drawn=this.drawnParts.get(car);if(!drawn){drawn=new Map();this.drawnParts.set(car,drawn);}
+   for(const [fitted,part] of drawn)if(part.frame===frame){part.remove?.();part.cancelled=true;drawn.delete(fitted);}
+   const part:{frame:string;remove?:()=>void;cancelled?:boolean}={frame};drawn.set(model,part);
+   void catalog.upgrades.partAsset(model).then(asset=>{
+    if(!asset||part.cancelled||car.disposed)return;
+    part.remove=car.car.attachPart(asset.model,asset.textures,frame);
+    // A paintjob worn reaches the part's remappable materials too.
+    const worn=this.remapped.get(car);if(worn)this.remapMaterials(car,worn.map);
+   }).catch(()=>{});
+  }
+ }
+ /** CVehicle::RemoveVehicleUpgrade's drawing: the part, and the other half of its pair, taken off. */
+ removeUpgradePart(car:WorldCar,id:number){
+  const drawn=this.drawnParts.get(car);if(!drawn)return;
+  for(const model of this.withLinkedUpgrade(id)){const part=drawn.get(model);if(!part)continue;part.remove?.();part.cancelled=true;drawn.delete(model);}
+ }
+ /** The tuning parts drawn on a car, by upgrade model id. */
+ drawnUpgradeParts(car:WorldCar){return [...(this.drawnParts.get(car)?.keys()??[])];}
+ private withLinkedUpgrade(id:number){
+  const upgrades=this.catalog?.upgrades,name=upgrades?.nameOf(id),other=name?otherLinkedUpgrade(upgrades!.carMods,name):undefined,otherId=other?upgrades!.idOf(other):undefined;
+  return otherId!==undefined?[id,otherId]:[id];
  }
  /** A car's four paint slots set to these palette entries (an entry the palette lacks leaves its slot as it was). */
  paintCar(car:WorldCar,indices:readonly number[]){

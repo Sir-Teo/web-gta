@@ -83,8 +83,12 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   let lights:ReturnType<typeof bindNativeCarLightMaterials>|undefined;
   let dirt:ReturnType<typeof bindNativeCarDirt>|undefined;
   let visual:ReturnType<typeof modelObject>|undefined,controller:NativeRaycastVehicle|undefined,disposed=false;
+  /** The tuning parts drawn on the car (CVehicle::CreateUpgradeAtomic), each with its paint; and what the car's own
+   * atomics were last given, which a part fitted later takes too. */
+  const parts=new Map<ReturnType<typeof modelObject>,ReturnType<typeof bindNativeCarPaint>>();
+  let currentColors=assets.colors,currentNight=0,currentAlpha=1;
   let previous={...physical.body.translation()},previousRotation={...physical.body.rotation()};
-  const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();controller?.dispose();visual?.dispose();physical.dispose();};
+  const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();controller?.dispose();for(const part of parts.keys())part.dispose();parts.clear();visual?.dispose();physical.dispose();};
   const update=(alpha:number)=>{
     requireAsset(!disposed,'Native car is disposed.');requireAsset(Number.isFinite(alpha)&&alpha>=0&&alpha<=1,'Invalid vehicle interpolation fraction.');
     wheelAnimation?.update(wheelPrevious,wheelCurrent,alpha);
@@ -102,16 +106,31 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   const axisVectors=[new Vector3(1,0,0),new Vector3(0,1,0),new Vector3(0,0,1)];
   const baseByMaterial=new Map<object,{opaque:boolean;opacity:number}>();
   /** CVisibilityPlugins::SetClumpAlpha: every material's own alpha scaled by the clump alpha (0 to 1). */
+  const allBindings=()=>visual?[...visual.materialBindings,...[...parts.keys()].flatMap(part=>part.materialBindings)]:[];
   const setAlpha=(alpha:number)=>{
-    if(!visual)return;const a=Math.max(0,Math.min(1,alpha));
-    for(const b of visual.materialBindings){
+    if(!visual)return;const a=Math.max(0,Math.min(1,alpha));currentAlpha=a;
+    for(const b of allBindings()){
       let base=baseByMaterial.get(b.material);if(!base){base={opaque:!b.material.transparent,opacity:Number.isFinite(b.material.opacity)?b.material.opacity:1};baseByMaterial.set(b.material,base);}
       b.material.opacity=base.opacity*a;const transparent=a<1||!base.opaque;
       // three compiles an opaque material with alpha forced to 1 and does not recompile when this flag flips.
       if(b.material.transparent!==transparent){b.material.transparent=transparent;b.material.needsUpdate=true;}
     }
   };
-  return {root,setComponentDamage(states:Record<string,number>){componentStates={...states};applyDamage();},body:physical.body,sources:physical.sources,dispose,update,setAlpha,materialBindings:()=>visual?.materialBindings??[],
+  return {root,setComponentDamage(states:Record<string,number>){componentStates={...states};applyDamage();},body:physical.body,sources:physical.sources,dispose,update,setAlpha,materialBindings:allBindings,
+    /** CVehicle::CreateUpgradeAtomic (0x6D3510, reversed): a tuning part's atomic under the car, its frame taking the
+     * upgrade position the model's `frameName` frame gives (that frame's own matrix, under the component it hangs
+     * from), lit, reflecting, painted and faded as the car's own atomics are. The returned call takes it off. */
+    attachPart(model:DffModel,textures:ModelTexture[],frameName:string){
+     const frame=visual?.root.getObjectByName(frameName);if(!frame||disposed)return undefined;
+     const part=modelObject(model,textures,undefined,undefined,{worldLighting:true,ambient,carEnv});
+     // The atomic's own frame is replaced by the upgrade position: the part's root frames stand at the frame itself.
+     part.root.rotation.set(0,0,0);part.root.updateMatrix();
+     part.root.traverse(o=>{const index=o.userData.nativeFrame;if(index!==undefined&&model.frames[index]?.parent<0)o.matrix.identity();});
+     frame.add(part.root);
+     const partPaint=bindNativeCarPaint(part.materialBindings,assets.lightTexture);if(currentColors)partPaint.setColors(currentColors);
+     part.setNight(currentNight);parts.set(part,partPaint);if(currentAlpha<1)setAlpha(currentAlpha);
+     return ()=>{if(!parts.delete(part))return;part.dispose();};
+    },
     /** Native frame-local positions of the eDoors dummies, or undefined when the model lacks the frame. */
     doorPosition(index:number){return doorFrames[index]?doorPositions[index]:undefined;},
     /** CDoor::UpdateFrameMatrix: SetRotateKeepPos about the hinge axis in native frame space. */
@@ -126,10 +145,10 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     /** Detached copy of a component's currently visible atomics in native frame space, for flying components. */
     cloneComponent(name:string){const frame=visual!.root.getObjectByName(name);if(!frame)return;frame.updateWorldMatrix(true,true);const copy=new Group();frame.traverse(o=>{if(o!==frame&&o instanceof Mesh&&o.visible&&(o.parent===frame||o.parent?.visible)){const mesh=o.clone(false);mesh.matrixAutoUpdate=false;mesh.matrix.copy(new Matrix4().copy(frame.matrixWorld).invert().multiply(o.matrixWorld));copy.add(mesh);}});return copy.children.length?{object:copy,matrixWorld:frame.matrixWorld.clone()}:undefined;},
     setViewDistance(distanceSquared:number,generationMultiplier:number){requireAsset(!disposed,'Native car is disposed.');return lod!.update(distanceSquared,generationMultiplier);},
-    setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);},
+    setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);currentColors=colors;for(const partPaint of parts.values())partPaint.setColors(colors);},
     /** Active-light switching: brake pedal brightens rear lamps, night brightens fronts. */
     setLightState(brake:boolean,headlights:boolean,broken?:readonly boolean[]){if(lights)setCarLightState(lights,{brake,headlights,broken});},
-    setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);},
+    setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);currentNight=amount;for(const part of parts.keys())part.setNight(amount);},
     /** CCustomCarEnvMapPipeline's per-frame inputs: `lighting` is SetupLightingForEntity's multiplier (gSpecIntensity);
      * the body's native position, up and forward drive SHINE_CAM's u, v and SHINE_WAVE's offset. */
     setReflection(lighting:number){reflection.update(lighting,physical.body.translation(),physical.body.rotation());},
