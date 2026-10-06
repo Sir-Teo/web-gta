@@ -8735,9 +8735,13 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   Tenpenny, Sweet, Smoke, Ryder and the Ballas came out as bmydj, wfyri and the rest. Ids from MODEL_SPECIAL01 (290)
   now name the special-character slot (`CStreaming::RequestSpecialChar`: script slot n is model 289 + n) and any
   other id its peds.ide row. Spec: `script-special-characters`.
-- **INTRO's title pans were still shots.** CAMERA_SET_VECTOR_MOVE/TRACK now carry the fixed camera while they run,
-  eased as a sine when asked, held at the far end under the persist flags. AUTHORED: `ProcessVectorMoveLinear` and
-  `ProcessVectorTrackLinear` still call into the executable; they follow the reversed `ProcessFOVLerp`'s shape.
+- **INTRO's title pans were still shots.** CAMERA_SET_VECTOR_MOVE/TRACK now carry the fixed camera while they run.
+  `ProcessVectorMoveLinear` and `ProcessVectorTrackLinear` are unreversed in gta-reversed and were AUTHORED; they now
+  follow the iOS executable (inlined at 0x10022e2b0 and 0x10022e18c; CCam::Process's tail at 0x10020f784):
+  - from + r × (to − from), with r eased to (1 − cos πr) / 2 when asked;
+  - after the end time nothing applies, unless the persist flag holds the last point worked out inside the window
+    (short of the far end by up to a frame's share);
+  - a move alone shifts the fixed camera's source and keeps its own direction, while a track turns it to the point.
 - **Mission dialogue drifted.** A line is sized from its subtitle; INTRO1 prints three of its four after the PLAY, so
   each ran for the previous line's length. A line is now sized once, at the next script pass, from the brief its
   frame left up.

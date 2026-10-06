@@ -127,14 +127,17 @@ describe('where the linear runs put the camera (authored ProcessVectorMoveLinear
   expect(camera.moveLinearPoint(6000)).toEqual({x:10,y:20,z:30});
   expect(camera.moveLinearPoint(6001)).toBeUndefined();
  });
- test('an eased run starts and ends at rest, and a persisted one holds its far end until the scriptables reset',()=>{
+ test('an eased run starts and ends at rest, and a persisted one holds its last point until the scriptables reset',()=>{
   const game=new ScmGameState(),camera=game.camera;
   camera.cameraPersistTrack=true;
   camera.vectorTrackLinear({x:0,y:0,z:0},{x:100,y:0,z:0},1000,true,0);
   expect(camera.trackLinearPoint(500)!.x).toBeCloseTo(50,6);
   expect(camera.trackLinearPoint(100)!.x).toBeLessThan(10);
   expect(camera.trackLinearPoint(900)!.x).toBeGreaterThan(90);
-  expect(camera.trackLinearPoint(60000)).toEqual({x:100,y:0,z:0});
+  // The iOS lerp holds the last point it worked out inside the window (here at 900 ms), not the far end.
+  const last=camera.trackLinearPoint(900)!;
+  expect(camera.trackLinearPoint(60000)).toEqual(last);
+  camera.trackLinearPoint(1000);expect(camera.trackLinearPoint(60000)).toEqual({x:100,y:0,z:0});
   camera.initialiseScriptableComponents();
   expect(camera.trackLinearPoint(60000)).toBeUndefined();
  });

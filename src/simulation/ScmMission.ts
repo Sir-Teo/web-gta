@@ -3604,7 +3604,11 @@ export class ScmMission {
    // The fixed camera looks at its vector, or at the entity TakeControl gave it, where that entity is now; the
    // script's linear move and track (CAMERA_SET_VECTOR_MOVE/TRACK) carry the source and the look-at point while
    // they run.
-   const source=camera.moveLinearPoint(this.clockMs)??camera.fixedModeSource,target=camera.trackLinearPoint(this.clockMs)??at??camera.fixedModeVector;
+   // A move alone shifts the source and keeps the fixed camera's own direction from the fixed source (CCam::Process
+   // replaces Source after Process_Fixed has set Front, iOS 0x10020f784); a track turns it to the tracked point.
+   const moved=camera.moveLinearPoint(this.clockMs),tracked=camera.trackLinearPoint(this.clockMs),fixed=camera.fixedModeSource;
+   const source=moved??fixed,aim=at??camera.fixedModeVector;
+   const target=tracked??(moved?{x:moved.x+aim.x-fixed.x,y:moved.y+aim.y-fixed.y,z:moved.z+aim.z-fixed.z}:aim);
    return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
   }
   // MODE_ATTACHCAM: CCam::Process_AttachedCam (unreversed in gta-reversed; iOS 0x10021b478). The camera rides the
