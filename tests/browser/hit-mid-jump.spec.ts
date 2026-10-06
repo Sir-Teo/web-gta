@@ -7,6 +7,8 @@ test('a knockdown blow mid-jump hurts CJ without flooring him',async({page})=>{
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
  const state=()=>page.evaluate(()=>{const s=(window as any).__game.state();return {grounded:s.player.grounded,health:s.player.health,knockdown:s.knockdown,reaction:s.nativeCharacter?.reaction};});
  await expect.poll(async()=>(await state()).grounded,{timeout:60000}).toBe(true);
+ // A new game's starting loadout gives full armour, which would take the blow; it is health this is about.
+ await page.evaluate(()=>{(window as any).__game.sim.player.armour=0;});
  // The blow lands while the jump's task runs (a press a slow frame misses is pressed again).
  let hit=false;
  for(let i=0;i<20&&!hit;i++){

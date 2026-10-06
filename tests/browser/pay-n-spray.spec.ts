@@ -41,6 +41,8 @@ test('the Idlewood Pay \'n\' Spray resprays a wanted car: door down, stars off, 
  const colours=()=>page.evaluate(()=>{const car=[...(window as any).__game.fleet().cars].find((c:any)=>c.modelId===400);return [...car.assets.colourIndices];});
  const paint=await colours();
  await page.locator('canvas.world').click({position:{x:400,y:300}});
+ // The click attacks (a punch, or the starting loadout's gun): firing quits the walk to the door, so it ends first.
+ await page.waitForTimeout(2000);
  await page.keyboard.press('KeyF');
  await expect.poll(async()=>(await state(page)).carEntry.phase,{timeout:60000}).toBe('seated');
  expect((await state(page)).wanted.level).toBe(2);
