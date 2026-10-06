@@ -8688,8 +8688,11 @@ A headless play-through of a new game and of INTRO1 turned up these, each now fi
   door `CCarEnterExit::ComputeSlowJackedPed` names `m_apPassengers[0]` and `IsCarSlowJackRequired` drags him out:
   CJ plays `CAR_pulloutL_RHS` and the cop `CAR_jackedRHS` at the right door, lies and gets up an officer, while the
   driver keeps the wheel until CJ is in and then leaves by his own door. After `TASK_SIMPLE_CAR_GET_IN`,
-  `MakeUndraggedPassengerPedsLeaveCar` (unreversed; AUTHORED from its name and call sites) has every living cop still
-  aboard but the driver get out by his own door with the unit's exit clips and go on foot; the unit is let go once
+  `MakeUndraggedPassengerPedsLeaveCar` (unreversed in gta-reversed; iOS 0x1003e9564) gives every passenger but the
+  dragged one CEventPedEnteredMyVehicle. The decision maker's answer (ComputePedEnteredVehicleResponse, 0x10029f874) is
+  a leave task by the ped's own door after (rand() & 0xffff) / 65536 × 300 + 300 ms, which the police crews now wait.
+  Which leave task a cop's decision maker picks is not decoded (AUTHORED): every living cop still aboard but the driver
+  gets out with the unit's exit clips and goes on foot. The emergency and gang crews leave without the wait. The unit is let go once
   they are out; one still in his door when CJ drives off rolls out with the car's roll-out clip and gets up (AUTHORED,
   `CTaskSimpleCarJumpOut`'s shape). A cop dead in his seat is left as before. An ambulance's rear medic and a fire engine's second man
   (whom the passenger's door drags out as it does a cop) get out the same way, and so does a gang attack car's shooter,

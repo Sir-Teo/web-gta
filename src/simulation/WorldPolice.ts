@@ -30,6 +30,11 @@ export const DEFAULT_COP_CAR=[599,596,597,598] as const;
 /** CStreaming::ms_aDefaultCopModel by level (csher, lapd1, sfpd1, lvpd1). */
 export const DEFAULT_COP_MODEL=['csher','lapd1','sfpd1','lvpd1'] as const;
 /** CCarCtrl::ChoosePoliceCarModel: Enforcer 1 in 3 at four stars, FBI Rancher at five, Rhino or Barracks at six. */
+/** ComputePedEnteredVehicleResponse's leave delay (iOS 0x10029f874): (int)((rand() & 0xffff) / 65536 × 300) + 300 ms,
+ * here in seconds. */
+export function pedEnteredVehicleLeaveDelay(sample16:number){
+ return (Math.trunc(Math.fround(Math.fround((sample16&0xffff)*(1/65536))*300))+300)/1000;
+}
 export function choosePoliceCarModel(level:number,wanted:number,random:()=>number){
  if(wanted===4){if(Math.floor(random()*3)===2)return 427;}
  else{if(wanted===5)return 490;if(wanted===6)return random()<.5?432:433;}
@@ -113,7 +118,9 @@ export function mellowChaseSpeed(wanted:number,distance:number,playerInCar:boole
  else if(wanted===2)speed=playerInCar?distance<10?27:distance<20?30:34:distance<20?5:distance<40?18:34;
  return !playerInCar&&speed>=10&&distance<=30&&playerSpeed<.07?10:speed;
 }
-interface Leaving {seat:number;clip:NativeAnimation;key:string;time:number;door:number}
+interface Leaving {seat:number;clip:NativeAnimation;key:string;time:number;door:number;
+ /** CTaskComplexLeaveCar's delay, seconds still to wait before the door (the passengers CJ did not drag out). */
+ wait?:number}
 /** CTaskComplexEnterCarAsDriver's simple tasks for a returning cop: align, open the door, get in, close it from inside. */
 interface Entering {seat:number;door:number;phase:'align'|'open'|'getIn'|'closeInside';clip:NativeAnimation;key:string;group:number;time:number}
 /** CTaskComplexGoToCarDoorAndStandStill for a cop heading back to a seat (radius 0.5, walk within 4, 50 units, 30 s). */
@@ -391,11 +398,11 @@ export class WorldPolice {
    this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat,roadblock:true},u.member.accuracy);
   });
  }
- private beginExit(u:Unit,seat:number){
+ private beginExit(u:Unit,seat:number,wait=0){
   if(!u.seats[seat]||u.leaving.some(l=>l.seat===seat))return;
   const found=this.clips.slot(u.car.animGroup,this.exitSlot(seat));
   if(!found){this.finishExit(u,seat);return;}
-  u.leaving.push({seat,clip:found.clip,key:found.key,time:0,door:[DOOR.leftFront,DOOR.rightFront,DOOR.leftRear,DOOR.rightRear][seat]});
+  u.leaving.push({seat,clip:found.clip,key:found.key,time:0,door:[DOOR.leftFront,DOOR.rightFront,DOOR.leftRear,DOOR.rightRear][seat],wait});
  }
  /** Crew exiting: CTaskSimpleCarGetOut clips at the door, then CTaskSimpleCarSetPedOut. */
  private stepLeaving(u:Unit,dt:number){
@@ -404,7 +411,9 @@ export class WorldPolice {
   // roll-out clip, to get up an officer (AUTHORED, as the leave task's sensible-leave flag is unknown).
   if(u.taken&&u.leaving.length&&!car.canStepOut()){for(const l of u.leaving.splice(0))this.finishExit(u,l.seat,true);return;}
   for(let i=u.leaving.length-1;i>=0;i--){
-   const l=u.leaving[i];l.time+=dt;
+   const l=u.leaving[i];
+   if(l.wait&&l.wait>0){l.wait-=dt;continue;}
+   l.time+=dt;
    const ratio=nativeDoorAnimRatio(car.animGroup,'getOut',l.time,car.doors[l.door].ratio,0);if(ratio!==undefined&&!car.doorMissing(l.door))car.openDoor(l.door,ratio);
    if(l.time>=l.clip.duration){u.leaving.splice(i,1);this.finishExit(u,l.seat);}
   }
@@ -796,15 +805,18 @@ export class WorldPolice {
  }
  /** The player is dragging the front passenger out: the car entry draws him from now on. */
  dragPassenger(car:WorldCar){const u=this.units.find(u=>u.car===car);if(u){u.seats[1]=false;u.deadSeats[1]=false;u.seatHealth[1]=100;}}
- /** CCarEnterExit::MakeUndraggedPassengerPedsLeaveCar (0x64F540, unreversed; AUTHORED from its name and its calls in
-  * CTaskComplexEnterCar, once the player is in his seat): every living cop still aboard but the driver gets out by his
-  * own door (CTaskComplexLeaveCar) and goes on as an officer on foot. A cop dead in his seat is left as before. */
+ /** CCarEnterExit::MakeUndraggedPassengerPedsLeaveCar (0x64F540, unreversed in gta-reversed; iOS 0x1003e9564), run by
+  * CTaskComplexEnterCar once the player is in his seat. Every passenger but the one dragged out (and one flagged
+  * bStayInCarOnJack) gets CEventPedEnteredMyVehicle; a dead one is passed over. ComputePedEnteredVehicleResponse
+  * (0x10029f874) answers it by the decision maker with a leave task by the ped's own door after (rand() & 0xffff) /
+  * 65536 × 300 + 300 ms. Which leave task a cop's decision maker picks is not decoded (AUTHORED: CTaskComplexLeaveCar,
+  * and he goes on as an officer on foot). */
  crewLeave(car:WorldCar){
   const u=this.units.find(u=>u.car===car);if(!u)return;
   u.taken=true;u.returning.clear();
   // A cop still climbing in steps back out at his door.
   for(const e of u.entering.splice(0))if(e.seat)this.finishExit(u,e.seat);
-  for(let seat=1;seat<4;seat++)if(u.seats[seat]&&!u.deadSeats[seat])this.beginExit(u,seat);
+  for(let seat=1;seat<4;seat++)if(u.seats[seat]&&!u.deadSeats[seat])this.beginExit(u,seat,pedEnteredVehicleLeaveDelay(Math.floor(this.random()*65536)));
  }
  /** Whether a unit's driver is in his seat (alive or dead), not getting in or out; undefined for any other car. */
  driverSeated(car:WorldCar){
