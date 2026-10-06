@@ -8,6 +8,9 @@ const car=(x:number,y:number,speed=0,heading={x:0,y:1})=>({position:{x,y},forwar
 
 test('lanes sit to the right of travel: half a lane on two-way roads, spread about the line on one-way roads',()=>{
  expect(oneWayLaneOffset({sameLanes:1,oppositeLanes:1})).toBe(.5);
+ // A two-way link's width (sixteenths) pushes its first lane out by the width over a 5.4 lane, read unsigned.
+ expect(oneWayLaneOffset({sameLanes:1,oppositeLanes:1,width:4})).toBeCloseTo(.5+64/86.4,5);
+ expect(oneWayLaneOffset({sameLanes:1,oppositeLanes:1,width:-1})).toBeCloseTo(.5+240/86.4,5);
  expect(oneWayLaneOffset({sameLanes:2,oppositeLanes:0})).toBe(-.5);
  expect(oneWayLaneOffset({sameLanes:0,oppositeLanes:3})).toBe(-1);
  expect(lanePoint(north(),0)).toEqual({x:LANE_WIDTH/2,y:0});

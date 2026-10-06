@@ -29,12 +29,16 @@ const atanOf=(v:V2)=>Math.atan2(v.y,v.x);
 /** A navigation link as a car travels it: its point, its direction of travel (the link direction times the
  * travel sign) and CCarPathLink::OneWayLaneOffset. */
 export interface TravelLink {position:V2;forward:V2;laneOffset:number}
-/** CCarPathLink::OneWayLaneOffset (VC's rule; see above): lanes of a one-way road are spread about its line, and
- * a two-way road's first lane starts half a lane to the right. */
-export function oneWayLaneOffset(link:{sameLanes:number;oppositeLanes:number}){
- if(link.oppositeLanes===0)return .5-link.sameLanes/2;
- if(link.sameLanes===0)return .5-link.oppositeLanes/2;
- return .5;
+/** CCarPathLink::OneWayLaneOffset (iOS 0x1001bdb54): lanes of a one-way road are spread about its line, and a
+ * two-way road's first lane starts half a lane plus the link's width (its unsigned byte, sixteenths of a unit, over
+ * 86.4, so the width over one 5.4 lane) to the right. Vice City's, which the port first took, had no width. */
+export function oneWayLaneOffset(link:{sameLanes:number;oppositeLanes:number;width?:number}){
+ const f=Math.fround;
+ if(link.oppositeLanes===0)return f(.5-f(link.sameLanes*.5));
+ if(link.sameLanes===0)return f(.5-f(link.oppositeLanes*.5));
+ // The port reads the width byte signed, in sixteenths; the executable reads it unsigned.
+ const raw=Math.round((link.width??0)*16)&0xff;
+ return f(f(raw/f(86.4))+.5);
 }
 /** The lane's point on a link, LANE_WIDTH per lane to the right of the direction of travel. */
 export function lanePoint(link:TravelLink,lane:number):V2{

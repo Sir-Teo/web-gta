@@ -1458,8 +1458,9 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   `SteerAICarWithPhysics` writes them. They used to go through the player's
   smoothed pad input.
 - Known differences:
-  - The two-way lane offset of half a lane is Vice City's rule, because
-    SA's `OneWayLaneOffset` (0x44DB00) is not reversed.
+  - (Since fixed: the two-way lane offset was Vice City's half a lane. It is now the iOS
+    `OneWayLaneOffset`'s (0x1001bdb54): half a lane plus the link's unsigned width byte over 86.4,
+    so a wide two-way road keeps its traffic further from the line.)
   - `TEMPACT_SWIRVELEFT_STOP` is SA-only. It follows Vice City's swerve
     (a steer of −0.15, straightening over the last second) and brakes at
     0.5.
