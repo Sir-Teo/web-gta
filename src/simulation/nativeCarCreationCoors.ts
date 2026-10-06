@@ -11,9 +11,8 @@ import {findNthNodeClosestToCoors} from './nativeScriptCarNodes';
  *   point the camera sees, or the out-of-view circle at a point it does not, and climbs no more than half its length;
  * - the car's direction along the link is a coin toss; a car headed into a dead end (when switched-off roads are
  *   avoided) or off the wanted bearing fails the whole call.
- * Find2NodesForCarCreation's nearest nodes use the port's FindNodeClosestToCoors metric, |dx| + |dy| + 3|dz|: the iOS
- * search adds a fifth of the distance to the node's links, which is not ported. Its side effect on
- * CPopulation::m_bMoreCarsAndFewerPeds (a highway start) is not ported either. */
+ * Find2NodesForCarCreation's nearest nodes use FindNodeClosestToCoors' iOS score (nativeScriptCarNodes' nodeScore).
+ * Its side effect on CPopulation::m_bMoreCarsAndFewerPeds (a highway start) is not ported. */
 
 export interface CarCreationCache {
  /** Find2NodesForCarCreation's two nodes passing over switched-off ones, and its two over all of them. */

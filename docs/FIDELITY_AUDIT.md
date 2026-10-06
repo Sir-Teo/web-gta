@@ -8915,7 +8915,6 @@ that did anything.
   In Grove Street about a third of calls miss on all five tries. The car stands at the two nodes' height there,
   facing the goal across the ground.
   The browser's own parts:
-  - the nearest-node search uses the port's metric, not the iOS search's added link distance;
   - the ground probe finds nothing beyond the collision streamed in round CJ;
   - the car budget is the browser's fleet cap of 12.
 - **The medics are the reversed tasks.** `CCarAI::AddAmbulanceOccupants` (driver and passenger seat 1, the rear
