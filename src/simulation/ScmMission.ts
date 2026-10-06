@@ -619,6 +619,10 @@ export interface ScmMissionWorld {
   * applied when it does. */
  /** The car the player drives, as the scriptVehicle* methods take it, when it is a car the browser can answer for. */
  playerVehicleEntity?():unknown|undefined;
+ /** GET_RANDOM_CAR_OF_TYPE_IN_AREA's search over the vehicle pool (native area corners, either order): the first car
+  * or bike from the pool's top down (here the newest first), a law enforcer only when `lawEnforcers`, of `model` (any
+  * when negative), that CVehicle::CanBeDeleted (not a mission vehicle, nobody getting in or out), standing inside. */
+ randomCarOfTypeInArea?(x1:number,y1:number,x2:number,y2:number,model:number,lawEnforcers:boolean):{entity:unknown;model:number}|undefined;
  /** Where the player's vehicle of any kind is and how it lies: native position, axes and CPlaceable::GetHeading in degrees. */
  playerVehiclePose?():{position:{x:number;y:number;z:number};right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};heading:number}|undefined;
  spawnScriptVehicle(model:number|string,position:{x:number;y:number;z:number},heading:number,componentsToUse?:readonly [number,number]):Promise<unknown>;
@@ -1741,8 +1745,21 @@ export class ScmMission {
    setCharForceDieInCar:(handle,on)=>{if(handle!==PLAYER_PED_HANDLE&&this.peds.exists(handle))this.pedFlag(handle).forceDieInCar=on;},
    // IS_MODEL_IN_CDIMAGE: CStreaming's directory has the model. The vigilante draws random ped ids until one exists.
    isModelInCdimage:model=>typeof model==='number'?this.world.modelInArchive?.(model)??false:(this.world.modelIndex?.(model)??-1)>=0,
-   // GET_RANDOM_CAR_OF_TYPE_IN_AREA hands a script a traffic car. AUTHORED: none is handed over yet (-1).
-   getRandomCarOfTypeInArea:()=>-1,
+   // GET_RANDOM_CAR_OF_TYPE_IN_AREA (iOS 0x1001d79b8; unreversed in gta-reversed): the vehicle pool's first car or
+   // bike, not a law enforcer, of the model (any when negative), that CanBeDeleted, inside the area. It becomes a
+   // mission vehicle (SetVehicleCreatedBy) and, in a mission script, goes on its cleanup list. -1 when none.
+   getRandomCarOfTypeInArea:(x1,y1,x2,y2,model)=>{
+    const found=this.world.randomCarOfTypeInArea?.(x1,y1,x2,y2,typeof model==='number'?model:-1,false);if(!found)return -1;
+    const handle=this.vehicles.handleFor(found.entity,found.model);
+    this.world.claimScriptVehicle?.(found.entity);
+    return this.forCleanup(this.cleanupVehicles,handle);
+   },
+   // GET_RANDOM_CAR_OF_TYPE_IN_AREA_NO_SAVE (iOS 0x1001e4f48): the same search, law enforcers included, and the car
+   // is only handed over: it stays the population's.
+   getRandomCarOfTypeInAreaNoSave:(x1,y1,x2,y2,model)=>{
+    const found=this.world.randomCarOfTypeInArea?.(x1,y1,x2,y2,typeof model==='number'?model:-1,true);
+    return found?this.vehicles.handleFor(found.entity,found.model):-1;
+   },
    // START_CAR_FIRE (dispatch unreversed; as StartCharFire does for a ped): CFireManager::StartScriptFire on the
    // vehicle, strength 1, no generations to spread. The fire rides the car until it is put out or the car goes.
    startVehicleFire:handle=>this.runtime.game.fires.startScriptFire(this.vehicles.positionOf(handle),1,0,undefined,handle),

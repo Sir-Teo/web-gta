@@ -8872,7 +8872,19 @@ that did anything.
   (`m_bIsStaticWaitingForCollision`) instead of falling for ever, set down on the ground when it arrives if the script
   asked for the ground (`PutToGroundIfTooLow`). Neither has been driven to its end here. The vigilante's convoy flag,
   route seed, level-transition switch, `SET_CHAR_IS_CHRIS_CRIMINAL` and `SET_CHAR_FORCE_DIE_IN_CAR` are kept and not
-  yet read (AUTHORED); `GET_RANDOM_CAR_OF_TYPE_IN_AREA` hands over no car.
+  yet read (AUTHORED).
+- **`GET_RANDOM_CAR_OF_TYPE_IN_AREA`** handed over no car. It now follows the iOS handler (0x1001d79b8; unreversed in
+  gta-reversed):
+  - **the search:** the vehicle pool from its top down (the browser's newest cars first) for a car or a bike that
+    meets all of these:
+    - it is not a law enforcer;
+    - it is of the asked model (any when negative);
+    - `CVehicle::CanBeDeleted` (no mission vehicle, nobody getting in or out);
+    - it stands inside the area (`IsWithinArea`, corners in either order);
+  - **the claim:** the car becomes a mission vehicle and, in a mission script, goes on its cleanup list;
+  - **the `_NO_SAVE` twin** (0x1001e4f48) does the same search with law enforcers included, and only hands the car
+    over;
+  - **spec:** `script-random-car`.
 - **A mission that gives up clears the on-mission flag** (the global `DECLARE_MISSION_FLAG` names), as its own
   ending would have: without that every side mission, gym and trigger after it heard that a mission was still on.
 

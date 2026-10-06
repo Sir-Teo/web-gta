@@ -5740,6 +5740,19 @@ async function boot() {
                  // CVehicle::m_fHealth, and GET_CAR_SPEED's m_vecMoveSpeed magnitude times fifty, which for a
                  // body the browser moves in units a second is the magnitude itself.
                  playerVehicleEntity:()=>worldCar?.occupied?worldCar:fleet?.occupied??playerPassenger?.car??fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane,
+                 // GET_RANDOM_CAR_OF_TYPE_IN_AREA's pool walk: cars and bikes, newest first, as CanBeDeleted allows (no
+                 // mission vehicle, none the player is getting into or out of), inside the area across the ground.
+                 randomCarOfTypeInArea:(x1,y1,x2,y2,model,lawEnforcers)=>{
+                  const [minX,maxX]=x1>x2?[x2,x1]:[x1,x2],[minY,maxY]=y1>y2?[y2,y1]:[y1,y2];
+                  const vehicles=[...(fleet?.cars??[]),...(fleet?.bikes??[])].reverse();
+                  for(const v of vehicles){
+                   if(v.disposed||v.missionCar||carEntry.active&&carEntry.car===v)continue;
+                   if(model>=0&&v.modelId!==model||!lawEnforcers&&LAW_ENFORCEMENT_MODELS.has(v.modelId))continue;
+                   const t=v.car.body.translation();
+                   if(t.x>=minX&&t.x<=maxX&&-t.z>=minY&&-t.z<=maxY)return {entity:v,model:v.modelId};
+                  }
+                  return undefined;
+                 },
                  playerVehiclePose:()=>{
                   const car=worldCar?.occupied?worldCar:fleet?.occupied,other=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane,body=car?car.car.body:other?.body;
                   if(!body)return undefined;
