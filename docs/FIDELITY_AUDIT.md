@@ -8825,6 +8825,14 @@ that did anything.
   collided as the script's own; the map has it back when the object goes.
 - **Trigger points.** `GET_LEVEL_DESIGN_COORDS_FOR_OBJECT` is `CEntity::FindTriggerPointCoors` (0x533380): the
   model's EFFECT_TRIGGER_POINT of that index under the object's matrix (here its heading about the vertical).
+- **`GET_RANDOM_CHAR_IN_SPHERE`** (disabled in gta-reversed) follows the iOS handler (0x1001f6ad4), not the zone form
+  it had been AUTHORED after. It takes the nearest street ped (PED_GAME) of an asked-for kind strictly within the
+  sphere, in 3D, passing over peds being removed, fading out, dying, dead or arrested, or in a group. There is no
+  last-taken exclusion (gf_date, prisonr). `ARE_ANY_CHARS_NEAR_CHAR` (iOS 0x1001f1504) was already the iOS rule:
+  any other ped, the player and the dead included, strictly within the radius.
+- **`HAS_OBJECT_BEEN_UPROOTED`** (iOS 0x100202630: neither bIsStatic nor bIsStaticWaitingForCollision) answers for a
+  brain's object from its map placement, true once the prop has been knocked loose; food_vendor.scm asks it of its
+  cart. It had always answered no.
 - **Street peds for scripts.** `GET_RANDOM_CHAR_IN_ZONE` follows `GetRandomCharInZone`
   (CharacterCommands.cpp:1784): the first game-made ped on foot of an asked-for kind (`ThisIsAValidRandomPed`) in the
   navigation zone, within five units of the player's height and under no roof, other than the last one handed out;

@@ -2599,8 +2599,9 @@ const handlers:Record<string,ScmCommandHandler>={
  // The handler is unreversed; by its name it reads CDarkel::FindTotalPedsKilledByPlayer, the register
  // RESET_NUM_OF_MODELS_KILLED_BY_PLAYER clears (the casino's and strip clubs' ambience watch it for a killing).
  GET_TOTAL_NUMBER_OF_PEDS_KILLED_BY_PLAYER:(t,p,i)=>{t.writeInt(p[1],game(t,i).totalPedsKilledByPlayer());},
- // ARE_ANY_CHARS_NEAR_CHAR (unreversed; AUTHORED from III's handler as re3 has it): any other ped of the pool within the
- // radius of the ped (the booths and chairs ask before seating someone).
+ // ARE_ANY_CHARS_NEAR_CHAR (unreversed in gta-reversed; the iOS handler, 0x1001f1504): any other ped of the pool, the
+ // player and the dead included, strictly within the radius of the ped in 3D (the booths and chairs ask before seating
+ // someone).
  ARE_ANY_CHARS_NEAR_CHAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'anyPedsNearPed')(t.readInt(p[0]),t.readFloat(p[1])),negated(i));},
  SET_FORCE_RANDOM_CAR_MODEL:(t,p,i)=>{world(t,i,'setForceRandomCarModel')(model(t,i,p[0]));},
  IS_PLAYER_IN_REMOTE_MODE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerInRemoteMode')(t.readInt(p[0])),negated(i));},
@@ -3161,8 +3162,8 @@ const handlers:Record<string,ScmCommandHandler>={
   const modelPart=textureDependency(part);
   t.writeInt(p[2],clothes.textureKeys[part]|0);t.writeInt(p[3],modelPart===CLOTHES_MODEL_UNAVAILABLE?0:clothes.modelKeys[modelPart]|0);
  },
- // HAS_OBJECT_BEEN_UPROOTED: whether a street cart or a machine has been knocked off its footing. AUTHORED: the
- // script's own objects are never uprooted here, and a host that tracks its map props answers for those.
+ // HAS_OBJECT_BEEN_UPROOTED (iOS 0x100202630): whether a street cart or a machine has been knocked off its footing (no
+ // longer static); food_vendor.scm asks it of its cart.
  HAS_OBJECT_BEEN_UPROOTED:(t,p,i)=>{t.updateCompareFlag(!!t.host?.world?.hasObjectBeenUprooted?.(t.readInt(p[0])),negated(i));},
  // CREATE_CHAR_AT_ATTRACTOR (registration disabled in the reference): the ped, standing at the scripted attractor.
  CREATE_CHAR_AT_ATTRACTOR:(t,p,i)=>{t.writeInt(p[4],world(t,i,'createCharAtAttractor')(t.readInt(p[0]),model(t,i,p[1]),t.readInt(p[2]),t.readInt(p[3])));},

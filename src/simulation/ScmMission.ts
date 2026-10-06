@@ -275,6 +275,8 @@ export interface ScmMissionWorld {
  randomStreetPeds?():{ped:unknown;pedType:number;model:number;position:{x:number;y:number;z:number};heading:number;health:number;roofed:()=>boolean}[];
  /** CPedModelInfo::m_nPedFlags' bit 0 (peds.ide): the model buys drugs. */
  pedModelBuysDrugs?(model:number):boolean;
+ /** Whether the map placement of this model at this native position has been knocked loose (no longer static). */
+ placementUprooted?(model:string,position:readonly [number,number,number]):boolean;
  adoptStreetPed?(ped:unknown):void;
  /** CTheZones::GetLevelFromPosition for a native point. */
  cityAt?(x:number,y:number,z:number):number;
@@ -1994,19 +1996,22 @@ export class ScmMission {
    // GetRandomCharInZone (CharacterCommands.cpp:1784): the first street ped of an asked-for kind that stands in the
    // navigation zone, within five units of the player's height and under no roof, and is not the one taken last
    // time. It becomes the script's (PED_MISSION), on the mission's cleanup list when the thread keeps one.
-   // GET_RANDOM_CHAR_IN_SPHERE (the reference disables its handler, CharacterCommands.cpp:4272; AUTHORED after the zone
-   // twin above): the first street ped of an asked-for kind within the sphere, not the one taken last time, becomes the
-   // script's.
+   // GET_RANDOM_CHAR_IN_SPHERE (disabled in gta-reversed, CharacterCommands.cpp:4272; the iOS handler, 0x1001f6ad4): the
+   // nearest street ped (PED_GAME) of an asked-for kind (ThisIsAValidRandomPed) strictly within the sphere, in 3D, not
+   // being removed, fading out, dying, dead or arrested, nor in a group, becomes the script's. The zone form's
+   // last-taken exclusion is not asked here.
    randomPedInSphere:(x,y,z,radius,civilian,gang,criminal)=>{
     const candidates=this.world.randomStreetPeds?.();
     if(!candidates)throw new UnsupportedScmCommand(-1,0,'GET_RANDOM_CHAR_IN_SPHERE','no host');
+    let best=Math.fround(9999.9),found:(typeof candidates)[number]|undefined;
     for(const c of candidates){
-     if(c.ped===this.lastRandomPed||!validRandomPedType(c.pedType,civilian,gang,criminal))continue;
-     if(Math.hypot(c.position.x-x,c.position.y-y,c.position.z-z)>radius)continue;
-     this.lastRandomPed=c.ped;this.world.adoptStreetPed?.(c.ped);
-     return this.forCleanup(this.cleanupPeds,this.peds.adopt(c.ped,c.pedType,c.model,c.position,c.heading,c.health));
+     if(!validRandomPedType(c.pedType,civilian,gang,criminal))continue;
+     const d=Math.hypot(c.position.x-x,c.position.y-y,c.position.z-z);
+     if(d<radius&&d<best){best=d;found=c;}
     }
-    return -1;
+    if(!found)return -1;
+    this.world.adoptStreetPed?.(found.ped);
+    return this.forCleanup(this.cleanupPeds,this.peds.adopt(found.ped,found.pedType,found.model,found.position,found.heading,found.health));
    },
    randomPedInBox:(x,y,z,dx,dy,dz)=>{
     const inside=(q:{x:number;y:number;z:number})=>Math.abs(q.x-x)<=dx&&Math.abs(q.y-y)<=dy&&Math.abs(q.z-z)<=dz;
@@ -2057,6 +2062,15 @@ export class ScmMission {
     if(!local)return {x:0,y:0,z:0};
     const c=Math.cos(object.heading),s=Math.sin(object.heading);
     return {x:object.position.x+local[0]*c-local[1]*s,y:object.position.y+local[0]*s+local[1]*c,z:object.position.z+local[2]};
+   },
+   // HAS_OBJECT_BEEN_UPROOTED (the iOS handler, 0x100202630): the object is neither bIsStatic nor
+   // bIsStaticWaitingForCollision, so something knocked it loose. A brain's object stands for its map placement, which the
+   // host's props report knocked loose; the script's own objects are never set moving here.
+   hasObjectBeenUprooted:handle=>{
+    const objects=this.runtime.game.objects;if(!objects.exists(handle))return false;
+    for(const record of this.brainObjects.values())if(record.handle===handle)
+     return !!this.world.placementUprooted?.(String(objects.at(handle).model),[record.home.x,record.home.y,record.home.z]);
+    return false;
    },
    isObjectWithinBrainActivationRange:handle=>{
     const objects=this.runtime.game.objects;if(!objects.exists(handle))return false;
