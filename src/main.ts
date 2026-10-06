@@ -5092,8 +5092,11 @@ async function boot() {
                   const model=await pedestrians?.scriptPedModel(id)??id;
                   const target=car as ScriptCar|undefined;
                   if(!target||target.disposed)return undefined;
-                  // AUTHORED (CPed::PositionAttachedPed is unreversed): a ped the game attaches itself stands in its idle,
-                  // facing the turret position (0 ahead, 1 left, 2 behind, 3 right) a quarter turn at a time.
+                  // CPed::PositionAttachedPed (unreversed in gta-reversed; iOS 0x10032c59c): the ped stands at the offset in
+                  // the entity's frame, tilting with it, facing the entity's heading turned by the turret position (0
+                  // ahead, 1 left +π/2, 2 behind +π, 3 right −π/2) and held there by a heading limit of 0. It plays
+                  // CTaskSimpleStandStill's idle_stance, the stand-still task every ped is made with (AttachPedToEntity
+                  // 0x10032c398 gives no task or clip).
                   const rider:ScriptRider={rider:true,model,car:target,seat:0,offset:{...offset},health:100,
                    heading:target.heading(),accuracy:60,invulnerable:false,gone:false,...(turret!==undefined?{stand:true,facing:turret*Math.PI/2}:{})};
                   scriptRiders.add(rider);

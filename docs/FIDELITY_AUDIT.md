@@ -9051,8 +9051,10 @@ that did anything.
   `hotdog.scm` (HOTDOGV) starts with him. Six generators make the van (Bone County, the lakes north of Las Venturas
   and the desert). `STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE` (reversed) hands back the van's handle; CJ on foot at its
   right side, 2 units out, buys a hot dog: 50 health and `VEND_EAT1_P` for a dollar. `CPed::PositionAttachedPed` is
-  unreversed, so the vendor's stance is AUTHORED: standing in `IDLE_stance`, facing the turret position a quarter turn
-  at a time (0 ahead, 1 left, 2 behind, 3 right), which puts him at the serving window.
+  unreversed in gta-reversed. The vendor's stance, AUTHORED before, now matches the iOS one (0x10032c59c; AttachPedToEntity
+  0x10032c398): he stands at (0, 0, 0.6) in the van's frame, tilting with it. He faces the van's heading turned by the
+  turret position (0 ahead, 1 left +π/2, 2 behind +π, 3 right −π/2), held there by a heading limit of 0, which puts
+  him at the serving window. He plays `idle_stance` from the stand-still task every ped is made with.
 
 ## The area a door leads into is the script's area
 
