@@ -3069,11 +3069,11 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_OBJECT_DYNAMIC:(t,p,i)=>{game(t,i).objects.setDynamic(t.readInt(p[0]),bool(t,p[1]));},
  // Attractor::EnableDisabledAttractorOnObject (ObjectCommands.cpp:150): objectFlags.bEnableDisabledAttractors.
  ENABLE_DISABLED_ATTRACTORS_ON_OBJECT:(t,p,i)=>{game(t,i).objects.at(t.readInt(p[0])).enableDisabledAttractors=bool(t,p[1]);},
- // CTheScripts' card stack (ScmCardDecks, AUTHORED from re3's III handlers): the shuffle draws on the CRT stream the
- // random commands share.
+ // CTheScripts' card stack (ScmCardDecks, the iOS handlers): the shuffle draws on the CRT stream the random commands
+ // share. The iOS handler takes the low 16 bits of its 31-bit rand(), and the stream gives 15, so two draws make one.
  SHUFFLE_CARD_DECKS:(t,p,i)=>{
   const random=t.host?.nextRandom;if(!random)throw new UnsupportedScmCommand(i.offset,i.opcode&0x7fff,i.name,'no random stream');
-  game(t,i).cards.shuffle(t.readInt(p[0]),random);
+  game(t,i).cards.shuffle(t.readInt(p[0]),()=>((random()&1)<<15|random())&0xffff);
  },
  FETCH_NEXT_CARD:(t,p,i)=>{t.writeInt(p[0],game(t,i).cards.next());},
  SET_HELP_MESSAGE_BOX_SIZE:(t,p,i)=>{game(t,i).help.boxWidth=t.readInt(p[0]);},

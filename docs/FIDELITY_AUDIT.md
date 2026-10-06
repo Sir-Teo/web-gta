@@ -9451,10 +9451,14 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 
 ## The casino's card games
 
-- **The card stack (AUTHORED from re3's III handlers).** `SHUFFLE_CARD_DECKS` and `FETCH_NEXT_CARD` are unreversed in
-  gta-reversed; III's, which re3 has, are followed: a stack with room for six decks, every card (1 to 52, the sprite
-  numbers blackj and vidpok draw, clubs, diamonds, spades, hearts) of every deck put in a free slot the CRT stream
-  picks among those left, and the deal starting over from the top past the last card shuffled in.
+- **The card stack.** `SHUFFLE_CARD_DECKS` and `FETCH_NEXT_CARD` are unreversed in gta-reversed. The port first
+  followed III's handlers from re3; it now follows the iOS ones (0x1001e6d88 and 0x1001e644c), which keep their shape:
+  - The stack has room for six decks, 312 shorts.
+  - Each card (1 to 52: the sprite numbers blackj and vidpok draw, in the order clubs, diamonds, spades, hearts) of
+    each deck goes in a free slot picked from a list of the slots left.
+  - The deal starts over from the top once it passes the last card shuffled in.
+  - The pick is (rand() & 0xffff) / 65536 × the cards left, not III's rand() % the cards left. The iOS rand() gives 31
+    bits; the script stream is MSVC's 15-bit one, so two draws make each 16-bit sample.
 - **`SET_CHAR_SAY_SCRIPT`** is `CPed::SayScript`, `AddScriptSayEvent` with the scripted line; the scripted speech banks
   are in `AUDIO/SFX`, which is not published, so the dealers deal without their lines (roulette, blackjack, the wheel).
 - **`SET_HELP_MESSAGE_BOX_SIZE`** sets `CHud::m_fHelpMessageBoxWidth` (200 from `CHud::Initialise`); `DrawHelpText` is
