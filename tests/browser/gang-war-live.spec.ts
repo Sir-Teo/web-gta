@@ -8,9 +8,12 @@ test('provoking a war in Ballas turf starts the waves: attackers arrive, and cle
  await expect.poll(async()=>(await state()).player.grounded).toBe(true);
  await expect.poll(async()=>(await state()).pedestrians?.ready,{timeout:30000}).toBe(true);
  await expect.poll(async()=>(await state()).gangWars!=null,{timeout:30000}).toBe(true);
- // East Los Santos (ELS4), Ballas turf north of Grove Street (native x 2527, y -1541), dropped from 120 up so the
- // terrain window streams in under him.
+ // East Los Santos (ELS4), Ballas turf north of Grove Street (native x 2527, y -1541): held at 120 up while the
+ // terrain window streams in under him, then set on the ground, since the whole drop would kill him and the war's
+ // zone would be the one around County General's door.
  await page.evaluate(()=>(window as any).__game.placePlayer(2527,120,1541));
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.groundAt(2527,1541,100)),{timeout:90000}).not.toBeNull();
+ await page.evaluate(()=>{const g=(window as any).__game;g.placePlayer(2527,g.groundAt(2527,1541,100)+.05,1541);});
  await page.waitForTimeout(1000);
  await expect.poll(async()=>(await state()).player.grounded,{timeout:90000}).toBe(true);
  await expect.poll(async()=>(await state()).gangWars?.here?.gangStrength?.[0]??0,{timeout:30000}).toBeGreaterThanOrEqual(20);
@@ -32,5 +35,6 @@ test('provoking a war in Ballas turf starts the waves: attackers arrive, and cle
  await expect.poll(async()=>(await state()).gangWars.state,{timeout:20000}).toBe(3);
  const after=await strengths();
  expect(after.ballas).toBe(Math.trunc(before.ballas*.7));expect(after.grove).toBe(before.grove+before.ballas-after.ballas);
+ expect((await state()).player.health).toBeGreaterThan(0);
  expect(errors).toEqual([]);
 });
