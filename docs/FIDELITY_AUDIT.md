@@ -5795,7 +5795,7 @@ Left as they are, on purpose or for want of a reference:
     - dinghy: [.65 .85 .65 | .85 1.1 .85 | .65 .95 .65];
     - speed: [.7 .9 .7 | .95 1 .95 | .6 .7 .6].
     SimpleSumBuoyancyData counts (depth − (1 − m)) × m, squared for a boat, and nothing below 0. Before, a uniform
-    table of 1 was authored. The bow, lighter, now sits lower than the stern would have it.
+    table of 1 was authored. The bow carries the least volume, so a hull now sits bow-down a little.
 
 ## The player's shadow
 
