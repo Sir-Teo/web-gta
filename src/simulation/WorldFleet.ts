@@ -32,9 +32,10 @@ import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
-import {isValidModForVehicle,otherLinkedUpgrade,upgradePositionFrame,vehicleModSlot} from '../vehicle/nativeVehicleUpgrades';
+import {EXHAUST_NODE,isValidModForVehicle,otherLinkedUpgrade,REPLACED_COMPONENT_FRAMES,upgradePositionFrame,vehicleModSlot} from '../vehicle/nativeVehicleUpgrades';
 import {isRemapMaterial,remapColours,remapName} from '../vehicle/nativeVehicleRemap';
 import {TexturePool} from '../assets/TexturePool';
+import {MODEL_FLAG} from './nativeDoor';
 import type {ModelTexture} from '../assets/modelTextures';
 /** CCarCtrl::PruneVehiclesOfInterest drops a vehicle of interest 180000 ms after it was last registered. */
 const VEHICLE_OF_INTEREST_MS=180000;
@@ -511,33 +512,41 @@ export class WorldFleet {
    material.map=map??this.remapOriginals.get(material)??null;
   }
  }
- /** The tuning parts drawn on each car, by upgrade model id: the upgrade position's frame, and the call that takes the
-  * part off once it is drawn (a part still being read is cancelled instead). */
- private readonly drawnParts=new WeakMap<WorldCar,Map<number,{frame:string;remove?:()=>void;cancelled?:boolean}>>();
+ /** The tuning parts drawn on each car, by upgrade model id: the frame they stand at (an upgrade position, or the
+  * component they replace), and the calls that take them off once drawn (a part still being read is cancelled). */
+ private readonly drawnParts=new WeakMap<WorldCar,Map<number,{frame:string;removes:(()=>void)[];cancelled?:boolean}>>();
  /** CVehicle::AddVehicleUpgrade's drawing (iOS 0x100480908): the upgrade, and the other half of a linked pair
-  * (CLinkedUpgradeList::FindOtherUpgrade), drawn by CVehicle::AddUpgrade (0x100480f70) at the car's upgrade position,
-  * which first takes off whatever part stood there (RemoveUpgradeCB, by position). Nothing for a car without the
-  * position, for the hydraulics or stereo, or for a part that replaces a component (not drawn yet). The damaged copy
-  * AddUpgrade also makes for a part on the bonnet, boot or lamps is not drawn. */
+  * (CLinkedUpgradeList::FindOtherUpgrade). A chassis part is drawn by CVehicle::AddUpgrade (0x100480f70) at the car's
+  * upgrade position, which first takes off whatever part stood there (RemoveUpgradeCB, by position); a dummy part
+  * (bUsesVehDummy) by 0x100480d44 in place of the component its CarMod names, whose own atomics (and an earlier
+  * part's) it destroys, with a second, mirrored exhaust on a double-exhaust model. Nothing for a car without the
+  * position or component, for the hydraulics or stereo, or (not yet) for wheels. */
  drawUpgradePart(car:WorldCar,id:number){
   const catalog=this.catalog;if(!catalog)return;
   for(const model of this.withLinkedUpgrade(id)){
-   const frame=upgradePositionFrame(catalog.upgrades.placeOf(model));if(!frame||!car.car.hasFrame(frame))continue;
+   const place=catalog.upgrades.placeOf(model),replace=!!place?.dummy;
+   const frame=replace?REPLACED_COMPONENT_FRAMES[place!.place]:upgradePositionFrame(place);
+   if(!frame||!car.car.hasFrame(frame))continue;
    let drawn=this.drawnParts.get(car);if(!drawn){drawn=new Map();this.drawnParts.set(car,drawn);}
-   for(const [fitted,part] of drawn)if(part.frame===frame){part.remove?.();part.cancelled=true;drawn.delete(fitted);}
-   const part:{frame:string;remove?:()=>void;cancelled?:boolean}={frame};drawn.set(model,part);
+   for(const [fitted,part] of drawn)if(part.frame===frame){for(const remove of part.removes)remove();part.cancelled=true;drawn.delete(fitted);}
+   const part:{frame:string;removes:(()=>void)[];cancelled?:boolean}={frame,removes:[]};drawn.set(model,part);
+   // DOUBLE_EXHAUST (the handling's model flag 0x2000): the exhaust once more on a frame of its own, at -2 times the
+   // exhaust frame's x, which puts it on the other side.
+   const copies:{replace:boolean;offsetX?:number}[]=[{replace}];
+   if(replace&&place!.place===EXHAUST_NODE&&car.modelFlags&MODEL_FLAG.doubleExhaust){const x=car.car.nativeFramePosition(frame)?.x;if(x!==undefined)copies.push({replace:false,offsetX:-2*x});}
    void catalog.upgrades.partAsset(model).then(asset=>{
     if(!asset||part.cancelled||car.disposed)return;
-    part.remove=car.car.attachPart(asset.model,asset.textures,frame);
+    for(const copy of copies){const remove=car.car.attachPart(asset.model,asset.textures,frame,copy);if(remove)part.removes.push(remove);}
     // A paintjob worn reaches the part's remappable materials too.
     const worn=this.remapped.get(car);if(worn)this.remapMaterials(car,worn.map);
    }).catch(()=>{});
   }
  }
- /** CVehicle::RemoveVehicleUpgrade's drawing: the part, and the other half of its pair, taken off. */
+ /** CVehicle::RemoveVehicleUpgrade's drawing: the part, and the other half of its pair, taken off (a replaced
+  * component's own atomics shown again). */
  removeUpgradePart(car:WorldCar,id:number){
   const drawn=this.drawnParts.get(car);if(!drawn)return;
-  for(const model of this.withLinkedUpgrade(id)){const part=drawn.get(model);if(!part)continue;part.remove?.();part.cancelled=true;drawn.delete(model);}
+  for(const model of this.withLinkedUpgrade(id)){const part=drawn.get(model);if(!part)continue;for(const remove of part.removes)remove();part.cancelled=true;drawn.delete(model);}
  }
  /** The tuning parts drawn on a car, by upgrade model id. */
  drawnUpgradeParts(car:WorldCar){return [...(this.drawnParts.get(car)?.keys()??[])];}

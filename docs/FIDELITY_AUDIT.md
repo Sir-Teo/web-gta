@@ -9044,11 +9044,21 @@ that did anything.
   and draws nothing), and draws nitro only where the car has a nitro position. The part is read from the archive with
   its veh_mods.ide dictionary (vehicle.txd, or the car's own over vehicle.txd) and drawn as the car's own atomics are:
   lit, reflecting, painted with the car's colours (and a paintjob's texture on its remap materials), faded with it.
-  AUTHORED gaps: the damaged copy AddUpgrade also makes on the bonnet, boot or lamps is not drawn (the part stays as it
-  was when its component is damaged), the far _vlo model does not hide the part, and the parts that replace one of the
-  car's own components (wheels, exhausts, bumpers, the chassis kits: CVehicle 0x100480d44) are not drawn yet. Specs:
-  `vehicle-upgrades` (unit: the positions), `vehicle-parts` (browser: a Sultan's spoiler on its boot, its roof scoop
-  and both skirts from one, painted, then the skirts off and a second spoiler in the first's place).
+  CAtomicModelInfo::CreateInstance clones the part's atomic onto a new frame, so none of the part file's own frames
+  count; the part draws its intact atomic only (CreateInstance gives the damaged one only when asked), and goes with its
+  component when that falls off. Parts are high-detail atomics: the far _vlo model draws without them.
+  A dummy part (bUsesVehDummy: exhausts, bumpers, the misc parts; carmods.dat lists no chassis kit) goes in place of
+  the component its CarMod names as an eCarNodes id (0x100480d44): the callbacks at 0x10048171c destroy every atomic on
+  that frame and below it, the car's own and an earlier part's, and CreateReplacementAtomic (0x100481a48) puts the
+  part's atomic on the frame itself, with its damaged atomic beside it, shown by the component's damage as the
+  component's own were; on a DOUBLE_EXHAUST model (the handling model flag 0x2000) the exhaust goes on again on a frame
+  of its own at -2 times the exhaust frame's x. The port hides the car's own atomics while the part stands (the detail
+  pass leaves them hidden) and shows them as they were when it comes off. AUTHORED gaps: the damaged copy AddUpgrade
+  makes at the _dam position for a part on the bonnet, boot or lamps is not drawn, and wheel sets (all four wheel
+  frames, with CVehicle::m_fWheelScale) are not drawn yet. Specs: `vehicle-upgrades` (unit: the positions),
+  `vehicle-parts` (browser: a Sultan's spoiler on its boot, its roof scoop and both skirts from one, painted, then the
+  skirts off and a second spoiler in the first's place; its exhaust and both bumpers in place of its own, the front
+  one damaged with its bumper, and its own back when they come off).
 - **The vehicle-class questions the mod shops and the valet ask** (absent from gta-reversed; the iOS handlers in the
   2400 switch): IS_BIG_VEHICLE (0x1002034d0) reads vehicleFlags.bIsBig, here the handling's IS_BIG model flag (0x8) it
   is set from; IS_CAR_STREET_RACER (0x1002036c4) handlingFlags.bStreetRacer (0x4000000); IS_EMERGENCY_SERVICES_VEHICLE

@@ -25,7 +25,11 @@ export function bindNativeCarLod(root:Object3D,model:DffModel,wheels:Record<CarW
   requireAsset(matches.length===1,'Expected one rendered mesh per native car atomic.');
   targets.push({node:matches[0],role:wheelFrames.has(atomic.frame)?'wheel':model.frames[atomic.frame].name.includes('_vlo')?'low':'high'});
  });
- const apply=(detail:'high'|'low'|'culled')=>{for(const {node,role} of targets)node.visible=detail!=='culled'&&(role==='wheel'||role===detail);};
+ // An atomic a tuning part has replaced (the upgrade's replacement destroyed it) stays hidden at every detail.
+ let current:'high'|'low'|'culled'='high';
+ const apply=(detail:'high'|'low'|'culled')=>{current=detail;for(const {node,role} of targets)node.visible=detail!=='culled'&&(role==='wheel'||role===detail)&&!node.userData.nativeReplaced;};
  apply('high');
- return {update(distanceSquared:number,generationMultiplier:number){const result=nativeCarLod(distanceSquared,generationMultiplier);apply(result.detail);return result;}};
+ return {update(distanceSquared:number,generationMultiplier:number){const result=nativeCarLod(distanceSquared,generationMultiplier);apply(result.detail);return result;},
+  /** The detail last chosen; the replaced atomics' visibility put right after a part comes off. */
+  get detail(){return current;},refresh(){apply(current);}};
 }

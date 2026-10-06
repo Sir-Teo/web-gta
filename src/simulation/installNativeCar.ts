@@ -74,7 +74,7 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   // (an opened door keeps its previous atomic); panels and bumpers show `_dam` from their first stage and vanish
   // at opened-damaged; not-present hides both.
   let componentStates:Record<string,number>={};
-  const applyDamage=()=>{for(const [name,node] of damagedFrames){const base=name.replace(/_(ok|dam)$/,''),state=componentStates[base]??0,door=/^(door_|bonnet|boot)/.test(base),missing=state===4||!door&&state===3,damaged=door?state===2||state===3:state>0;node.visible=!missing&&(name.endsWith('_dam')?damaged:!damaged);}};
+  const applyDamage=()=>{for(const part of parts.values())applyPartDamage(part);for(const [name,node] of damagedFrames){const base=name.replace(/_(ok|dam)$/,''),state=componentStates[base]??0,door=/^(door_|bonnet|boot)/.test(base),missing=state===4||!door&&state===3,damaged=door?state===2||state===3:state>0;node.visible=!missing&&(name.endsWith('_dam')?damaged:!damaged);}};
   const doorFrames:(import('three').Object3D|undefined)[]=[],doorPositions:Vector3[]=[];
   const physical=installNativeVehicleBody(world,assets.collision,assets.handling,pose,contact),root=new Group();root.name=assets.vehicle.model;
   const ambient=nativeAmbientState(),reflection=new NativeCarReflection(),carEnv=reflection.state;let scorched=false;
@@ -85,7 +85,17 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
   let visual:ReturnType<typeof modelObject>|undefined,controller:NativeRaycastVehicle|undefined,disposed=false;
   /** The tuning parts drawn on the car (CVehicle::CreateUpgradeAtomic), each with its paint; and what the car's own
    * atomics were last given, which a part fitted later takes too. */
-  const parts=new Map<ReturnType<typeof modelObject>,ReturnType<typeof bindNativeCarPaint>>();
+  interface DrawnPart {paint:ReturnType<typeof bindNativeCarPaint>;ok:import('three').Object3D[];dam:import('three').Object3D[];
+   /** The component the part hangs from (its damage shows on the part), whether it switches to its damaged atomic
+    * with it, and the car's own atomics it replaced. */
+   component?:string;switchDamage:boolean;replaced:import('three').Object3D[]}
+  const parts=new Map<ReturnType<typeof modelObject>,DrawnPart>();
+  /** A part's intact or damaged atomic by its component's state, as the component's own (the rule below); gone with it. */
+  const applyPartDamage=(part:DrawnPart)=>{
+   const state=part.component?componentStates[part.component]??0:0,door=!!part.component&&/^(door_|bonnet|boot)/.test(part.component);
+   const missing=state===4||!door&&state===3,damaged=part.switchDamage&&(door?state===2||state===3:state>0);
+   for(const node of part.ok)node.visible=!missing&&!damaged;for(const node of part.dam)node.visible=!missing&&damaged;
+  };
   let currentColors=assets.colors,currentNight=0,currentAlpha=1;
   let previous={...physical.body.translation()},previousRotation={...physical.body.rotation()};
   const dispose=()=>{if(disposed)return;disposed=true;root.removeFromParent();controller?.dispose();for(const part of parts.keys())part.dispose();parts.clear();visual?.dispose();physical.dispose();};
@@ -120,16 +130,44 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     /** CVehicle::CreateUpgradeAtomic (0x6D3510, reversed): a tuning part's atomic under the car, its frame taking the
      * upgrade position the model's `frameName` frame gives (that frame's own matrix, under the component it hangs
      * from), lit, reflecting, painted and faded as the car's own atomics are. The returned call takes it off. */
-    attachPart(model:DffModel,textures:ModelTexture[],frameName:string){
+    attachPart(model:DffModel,textures:ModelTexture[],frameName:string,options:{replace?:boolean;offsetX?:number}={}){
      const frame=visual?.root.getObjectByName(frameName);if(!frame||disposed)return undefined;
+     // CVehicle 0x100480d44's callbacks (0x10048171c, recursing through 0x1004817a8): a replacement destroys every
+     // atomic on the component's frame and below it, the car's own and an earlier part's alike; here the car's own are
+     // hidden while it stands (and the caller takes the earlier part off).
+     const replaced:import('three').Object3D[]=[];
+     if(options.replace){
+      const walk=(node:import('three').Object3D)=>{
+       if(node.userData.nativePart)return;
+       if(node.userData.nativeAtomic!==undefined){if(!node.userData.nativeReplaced)node.userData.nativeShownBefore=node.visible;node.userData.nativeReplaced=(node.userData.nativeReplaced??0)+1;node.visible=false;replaced.push(node);}
+       for(const child of node.children)walk(child);
+      };
+      walk(frame);
+     }
      const part=modelObject(model,textures,undefined,undefined,{worldLighting:true,ambient,carEnv});
-     // The atomic's own frame is replaced by the upgrade position: the part's root frames stand at the frame itself.
-     part.root.rotation.set(0,0,0);part.root.updateMatrix();
-     part.root.traverse(o=>{const index=o.userData.nativeFrame;if(index!==undefined&&model.frames[index]?.parent<0)o.matrix.identity();});
+     // The atomic's own frame is replaced by the upgrade position (or, for a replacement, the component's frame): the
+     // part stands at the frame itself. A double exhaust's second copy has a frame of its own, the
+     // exhaust's x mirrored (-2 times its offset from its parent).
+     part.root.rotation.set(0,0,0);part.root.position.set(options.offsetX??0,0,0);part.root.updateMatrix();part.root.userData.nativePart=true;
+     // CAtomicModelInfo::CreateInstance clones the atomic onto a new frame: none of the part file's own frames count.
+     part.root.traverse(o=>{if(o.userData.nativeFrame!==undefined)o.matrix.identity();});
      frame.add(part.root);
-     const partPaint=bindNativeCarPaint(part.materialBindings,assets.lightTexture);if(currentColors)partPaint.setColors(currentColors);
-     part.setNight(currentNight);parts.set(part,partPaint);if(currentAlpha<1)setAlpha(currentAlpha);
-     return ()=>{if(!parts.delete(part))return;part.dispose();};
+     // CreateInstance gives the intact atomic, the damaged one only when asked (ms_bCreateDamagedVersion): a replacement
+     // gets both, shown by its component's damage state as that component's own were; a part at an upgrade position
+     // keeps its intact one (its damaged copy at the _dam position is not drawn), gone with its component.
+     const ok:import('three').Object3D[]=[],dam:import('three').Object3D[]=[];
+     part.root.traverse(o=>{if(o.userData.nativeAtomic!==undefined)(/_dam$/i.test(o.parent?.name??'')?dam:ok).push(o);});
+     const holder=options.replace?frame:frame.parent,component=holder?.name.endsWith('_dummy')?holder.name.slice(0,-6):undefined;
+     const drawn:DrawnPart={paint:bindNativeCarPaint(part.materialBindings,assets.lightTexture),ok,dam,component,switchDamage:!!options.replace,replaced};
+     if(currentColors)drawn.paint.setColors(currentColors);
+     part.setNight(currentNight);parts.set(part,drawn);applyPartDamage(drawn);if(currentAlpha<1)setAlpha(currentAlpha);
+     part.root.visible=!lod||lod.detail==='high';
+     return ()=>{
+      if(!parts.delete(part))return;part.dispose();
+      // The car's own atomics back as they were (the detail and damage passes then put them right).
+      for(const node of replaced){const count=(node.userData.nativeReplaced??1)-1;if(count>0)node.userData.nativeReplaced=count;else{delete node.userData.nativeReplaced;node.visible=!!node.userData.nativeShownBefore;delete node.userData.nativeShownBefore;}}
+      applyDamage();lod?.refresh();
+     };
     },
     /** Native frame-local positions of the eDoors dummies, or undefined when the model lacks the frame. */
     doorPosition(index:number){return doorFrames[index]?doorPositions[index]:undefined;},
@@ -144,8 +182,12 @@ export function installNativeCar(world:RAPIER.World,scene:Scene,assets:NativeCar
     nativeFramePosition(name:string){const index=visual!.root.getObjectByName(name)?.userData.nativeFrame;return Number.isInteger(index)?vectorFromNative(new Vector3(),assets.model.frames[index].matrix,12):undefined;},
     /** Detached copy of a component's currently visible atomics in native frame space, for flying components. */
     cloneComponent(name:string){const frame=visual!.root.getObjectByName(name);if(!frame)return;frame.updateWorldMatrix(true,true);const copy=new Group();frame.traverse(o=>{if(o!==frame&&o instanceof Mesh&&o.visible&&(o.parent===frame||o.parent?.visible)){const mesh=o.clone(false);mesh.matrixAutoUpdate=false;mesh.matrix.copy(new Matrix4().copy(frame.matrixWorld).invert().multiply(o.matrixWorld));copy.add(mesh);}});return copy.children.length?{object:copy,matrixWorld:frame.matrixWorld.clone()}:undefined;},
-    setViewDistance(distanceSquared:number,generationMultiplier:number){requireAsset(!disposed,'Native car is disposed.');return lod!.update(distanceSquared,generationMultiplier);},
-    setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);currentColors=colors;for(const partPaint of parts.values())partPaint.setColors(colors);},
+    setViewDistance(distanceSquared:number,generationMultiplier:number){
+     requireAsset(!disposed,'Native car is disposed.');const result=lod!.update(distanceSquared,generationMultiplier);
+     // The parts are high-detail atomics: the far _vlo model draws without them.
+     for(const part of parts.keys())part.root.visible=result.detail==='high';
+     return result;},
+    setColors(colors:NativeCarColors){requireAsset(!disposed,'Native car is disposed.');paint!.setColors(colors);currentColors=colors;for(const part of parts.values())part.paint.setColors(colors);},
     /** Active-light switching: brake pedal brightens rear lamps, night brightens fronts. */
     setLightState(brake:boolean,headlights:boolean,broken?:readonly boolean[]){if(lights)setCarLightState(lights,{brake,headlights,broken});},
     setNight(amount:number){requireAsset(!disposed,'Native car is disposed.');visual!.setNight(amount);currentNight=amount;for(const part of parts.keys())part.setNight(amount);},

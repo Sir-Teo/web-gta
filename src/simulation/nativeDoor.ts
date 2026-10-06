@@ -2,7 +2,7 @@
 export const DOOR_AXIS={x:0,y:1,z:2,negX:3,negY:4,negZ:5} as const;
 export const DOOR_EXTRA={based:0x10,lowGravity:0x20} as const;
 /** eVehicleHandlingModelFlags used by door setup and entry. */
-export const MODEL_FLAG={van:0x1,bus:0x2,low:0x4,big:0x8,reverseBonnet:0x10,hangingBoot:0x20,tailgateBoot:0x40,noswingBoot:0x80,noDoors:0x100,tandemSeats:0x200,sitInBoat:0x400,convertible:0x800,bouncePanels:0x10000000} as const;
+export const MODEL_FLAG={van:0x1,bus:0x2,low:0x4,big:0x8,reverseBonnet:0x10,hangingBoot:0x20,tailgateBoot:0x40,noswingBoot:0x80,noDoors:0x100,tandemSeats:0x200,sitInBoat:0x400,convertible:0x800,doubleExhaust:0x2000,bouncePanels:0x10000000} as const;
 /** CCarEnterExit::AddInCarAnim's seated pose: CAR_LSIT for a driver and CAR_SITPLO for a passenger of a low vehicle
  * (handling's m_bIsLow), else CAR_SIT and CAR_SITP. */
 export function sitClip(modelFlags:number,driver:boolean){return modelFlags&MODEL_FLAG.low?driver?'car_lsit':'car_sitplo':driver?'car_sit':'car_sitp';}

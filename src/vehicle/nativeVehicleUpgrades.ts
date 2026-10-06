@@ -51,6 +51,12 @@ export function upgradePositionFrame(place:{place:number;dummy:boolean}|undefine
  if(!place||place.dummy||place.place===0x10||place.place===0x11)return undefined;
  return UPGRADE_POSITION_FRAMES[place.place];
 }
+/** The component a dummy part replaces (its CarMod is an eCarNodes id; CClumpModelInfo::GetFrameFromId finds the
+ * frame carIds names for it): the chassis, the two bumpers, the exhaust and the three misc nodes. The wheels (2) are
+ * all four wheel frames and are not here. */
+export const REPLACED_COMPONENT_FRAMES:Readonly<Record<number,string>>={1:'chassis',12:'bump_front_dummy',13:'bump_rear_dummy',19:'exhaust_ok',20:'misc_a',21:'misc_b',22:'misc_c'};
+/** The eCarNodes id of the exhaust, which a double-exhaust model's (DOUBLE_EXHAUST) replacement gets twice. */
+export const EXHAUST_NODE=19;
 /** CLinkedUpgradeList::FindOtherUpgrade: the other half of a linked pair, or undefined. */
 export function otherLinkedUpgrade(mods:CarMods,name:string){
  const n=name.toLowerCase();
