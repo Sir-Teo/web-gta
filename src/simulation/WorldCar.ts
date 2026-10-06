@@ -28,7 +28,7 @@ import {Quaternion,Vector3,type Scene} from 'three';
 import type {Simulation} from './Simulation';
 import {vehicleSolverGroups} from './solverGroups';
 import {burstCompressionRandomUpper} from './nativeGroundCompression';
-import {softGroundResistance} from './nativeSoftGround';
+import {railTrackResistance,softGroundResistance} from './nativeSoftGround';
 import {hoverWheelContact,hoverActive} from './nativeHoverSuspension';
 import type {CarWheel} from './nativeDriveContacts';
 const MODEL_VORTEX=539;
@@ -1040,8 +1040,8 @@ export class WorldCar {
   private hoverForceScale(){return this.modelId===MODEL_VORTEX?Math.abs(this.input.pedals.accelerate-this.input.pedals.brake)/255*.25+1:1;}
   /** CWeather::WetRoads. */
   wetRoads=0;
-  /** CVehicle::ms_fRailTrackResistance (its exe-data default is not in the reference: 0 until measured). */
-  railTrackResistance=0;
+  /** CVehicle::ms_fRailTrackResistance (nativeSoftGround's railTrackResistance). */
+  get railTrackResistance(){return railTrackResistance.value;}
   /** CAutomobile autoFlags.bIsBoggedDownInSand and the EXTRA_HANDLING_WHEELS_TOUCHING_SAND flag of the last step. */
   boggedDownInSand=false;touchingSand=false;
   /** CAutomobile::DoSoftGroundResistance: sand drags the planar move speed down each step (rail tracks likewise). */

@@ -3,7 +3,15 @@
  * units a step, when it is bogged down; a 0.3-unit push against the direction of travel above that, the rate eased by
  * max(0.2, 1 − 2 × speed)); offroad-ability handling flags cut the loss to 60 % or 30 %, and wet roads over 0.2 scale
  * it by 1.2 − WetRoads. A wheel on SURFACE_RAILTRACK instead applies CVehicle::ms_fRailTrackResistance × the planar
- * speed (its default is exe data the reference does not carry; 0 here until measured). Native units: units a step. */
+ * speed (iOS 0x100447804; ApplyMoveForce of −resistance × mass × timestep over the planar speed). Native units: units a
+ * step. */
+/** CVehicle::ms_fRailTrackResistanceDefault, exe data the reference does not carry: 0.003 in the iOS executable
+ * (0x100654218). SET_RAILTRACK_RESISTANCE_MULT sets ms_fRailTrackResistance to it times a multiplier above 0, else to
+ * it (iOS handler 0x1002081cc). */
+export const RAIL_TRACK_RESISTANCE_DEFAULT=Math.fround(.003);
+/** The script's multiplier as the host reads it (1 with no script). */
+export const railTrackResistance={multiplier:():number=>1,
+ get value(){return Math.fround(RAIL_TRACK_RESISTANCE_DEFAULT*this.multiplier());}};
 export const SOFT_GROUND_OFFROAD_ABILITY=0.005,SOFT_GROUND_BOGGED_SPEED=0.3,SOFT_GROUND_PUSH=0.3;
 export const HANDLING_FLAG_OFFROAD_ABILITY=0x100000,HANDLING_FLAG_OFFROAD_ABILITY2=0x200000;
 export const SOFT_GROUND_EXEMPT_MODELS=new Set([441,432]);

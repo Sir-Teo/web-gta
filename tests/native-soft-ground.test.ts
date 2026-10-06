@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {softGroundResistance,HANDLING_FLAG_OFFROAD_ABILITY,HANDLING_FLAG_OFFROAD_ABILITY2} from '../src/simulation/nativeSoftGround';
+import {softGroundResistance,HANDLING_FLAG_OFFROAD_ABILITY,HANDLING_FLAG_OFFROAD_ABILITY2,RAIL_TRACK_RESISTANCE_DEFAULT,railTrackResistance} from '../src/simulation/nativeSoftGround';
 const base={up:{x:0,y:0,z:1},modelId:492,handlingFlags:0,wetRoads:0,timeStep:1,touchingSand:true,touchingRailTrack:false,railTrackResistance:0};
 test('a slow car on sand is bogged down: it loses 0.005 of its planar speed a step, the vertical part untouched',()=>{
  const r=softGroundResistance({...base,moveSpeed:{x:0.1,y:0.2,z:0.05}});
@@ -25,4 +25,11 @@ test('the Rhino and the RC Bandit ignore sand and rails; rail tracks use the rai
  const rail=softGroundResistance({...base,touchingSand:false,touchingRailTrack:true,railTrackResistance:.01,moveSpeed:{x:0.2,y:0,z:0.3}});
  expect(rail.boggedDown).toBe(false);expect(rail.delta!.x).toBeCloseTo(-0.002,9);expect(rail.delta!.z).toBeCloseTo(0,9);
  expect(softGroundResistance({...base,touchingSand:false,moveSpeed:{x:0.2,y:0,z:0}}).delta).toBeUndefined();
+});
+
+test('ms_fRailTrackResistance defaults to the iOS executable\'s 0.003 and takes the script\'s multiplier',()=>{
+ expect(RAIL_TRACK_RESISTANCE_DEFAULT).toBe(Math.fround(.003));
+ expect(railTrackResistance.value).toBe(Math.fround(.003));
+ const before=railTrackResistance.multiplier;railTrackResistance.multiplier=()=>2;
+ try{expect(railTrackResistance.value).toBeCloseTo(.006,9);}finally{railTrackResistance.multiplier=before;}
 });

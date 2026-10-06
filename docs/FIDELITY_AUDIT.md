@@ -2628,8 +2628,10 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   bogged down, `bIsBoggedDownInSand`), a 0.3-unit push against the direction of travel above it with the rate
   eased by max(0.2, 1 − 2 × speed). Offroad-ability handling flags (0x100000, 0x200000) scale the rate by
   0.6 or 0.3, and wet roads over 0.2 by 1.2 − WetRoads. On a rail track the planar speed is opposed by
-  `ms_fRailTrackResistance` × time step instead; that constant's default is exe data the reference does not
-  carry, so `WorldCar.railTrackResistance` is 0 until it is measured.
+  `ms_fRailTrackResistance` × time step instead. That constant's default is exe data the reference does not
+  carry. It had been 0 here; it is now the iOS executable's 0.003 (0x100654218; DoSoftGroundResistance at
+  0x100447804). SET_RAILTRACK_RESISTANCE_MULT's multiplier now reaches it: the default × a multiplier above 0, else
+  the default (iOS handler 0x1002081cc). It had been kept and not applied.
 - `WorldCar.softGround` runs after the wheel step each frame: the wheel contact materials
   (`wheelGround`) resolve the SAND group through SURFINFO.DAT and the rail id, the delta is applied to the
   body's velocity in native units, and `touchingSand` / `boggedDownInSand` are kept for the dev state
