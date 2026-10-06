@@ -33,6 +33,9 @@ import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
 import {isValidModForVehicle,vehicleModSlot} from '../vehicle/nativeVehicleUpgrades';
+import {isRemapMaterial,remapColours,remapName} from '../vehicle/nativeVehicleRemap';
+import {TexturePool} from '../assets/TexturePool';
+import type {ModelTexture} from '../assets/modelTextures';
 /** CCarCtrl::PruneVehiclesOfInterest drops a vehicle of interest 180000 ms after it was last registered. */
 const VEHICLE_OF_INTEREST_MS=180000;
 /** Resolve one random-model generator against a membership pool (CCarGenerator
@@ -469,6 +472,39 @@ export class WorldFleet {
   }
   vehicle.car.body.setTranslation(at,true);vehicle.car.body.setRotation(rotation,true);
   return vehicle;
+ }
+ /** The paintjob textures the cars wear, held while worn; each material's own texture, to put back. */
+ private readonly remapPool=new TexturePool();
+ private readonly remapped=new WeakMap<WorldCar,ModelTexture>();
+ private readonly remapOriginals=new WeakMap<object,unknown>();
+ /** CVehicle::SetRemap (iOS 0x1004763c4) and CVehicle::PreRender's remap: the model's paintjob `index` (-1, or one
+  * past its remaps, takes it off), its dictionary read and its texture put on every remappable material
+  * (SetEditableMaterialsCB), the primary colour then white unless bDontSetColourWhenRemapping (not kept here).
+  * GetRemapIndex answers the new index at once rather than once the dictionary has loaded. */
+ setRemap(car:WorldCar,index:number){
+  const catalog=this.catalog;if(!catalog)return;
+  const name=remapName(catalog.upgrades.remapsOf(car.assets.vehicle.model),index);
+  car.paintjob=name?index:-1;
+  if(!name){this.applyRemap(car,undefined);return;}
+  void catalog.upgrades.remapTexture(name).then(texture=>{
+   if(car.disposed||car.paintjob!==index||!texture)return;
+   this.applyRemap(car,texture);
+   const indices=car.assets.colourIndices;if(indices)this.paintCar(car,remapColours(indices));
+  }).catch(()=>{});
+ }
+ private applyRemap(car:WorldCar,texture:ModelTexture|undefined){
+  const before=this.remapped.get(car);if(before===texture)return;
+  const map=texture?this.remapPool.acquire(texture):undefined;
+  for(const binding of car.car.materialBindings?.()??[]){
+   if(!isRemapMaterial(binding.source.texture,binding.texture?.sourceDictionary))continue;
+   const material=binding.material as {map:unknown};
+   if(!this.remapOriginals.has(material))this.remapOriginals.set(material,material.map);
+   material.map=map??this.remapOriginals.get(material)??null;
+  }
+  if(before)this.remapPool.release(before);
+  if(!texture){this.remapped.delete(car);return;}
+  if(!before)car.whenDisposed(()=>{const worn=this.remapped.get(car);if(worn){this.remapPool.release(worn);this.remapped.delete(car);}});
+  this.remapped.set(car,texture);
  }
  /** A car's four paint slots set to these palette entries (an entry the palette lacks leaves its slot as it was). */
  paintCar(car:WorldCar,indices:readonly number[]){

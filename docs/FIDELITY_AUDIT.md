@@ -8968,8 +8968,10 @@ that did anything.
     garage not shut is first shut on the spot, its cars kept and the first car in its doorway (touching the box with
     its middle out, not locked) removed (CloseHideOutGaragesBeforeSave, iOS 0x1001b8758, which asks for any door not
     shut where gta-reversed's 0x44A170 asks for an open one; RemoveCarsBlockingDoorNotInside, iOS 0x1001b6b48).
-  - **Not kept:** the handling flags other than nitro, the radio station, the tuning parts, the paintjob,
-    the two extras and flag 32 (vehicle flag 0x56e bit 4) that StoreCar also writes: the port's cars do not carry them
+  - **Upgrades and paintjob:** StoreCar keeps m_awCarMods (the upgrades fitted) and m_nPaintjob (GetRemapIndex as a
+    byte, 255 for none; iOS 0x1001b7f04); RestoreCar fits the upgrades again and hands the byte to SetRemap
+    sign-extended (iOS 0x1001b8434), so 255 takes none.
+  - **Not kept:** the handling flags other than nitro, the radio station, the two extras and flag 32 (vehicle flag 0x56e bit 4) that StoreCar also writes: the port's cars do not carry them
     yet. The pool walk takes the fleet's cars and bikes only, so a boat or aircraft in a garage is left where it is
     (the game's would take it out, and keep it if among the first four).
   - Specs: `scm-garages` (unit: the openings on foot, in a car and on a BMX, the interior, the closings by distance,
@@ -9015,10 +9017,22 @@ that did anything.
     (AUTHORED: the port reads a part when it fits it, so a request is in at once), and MANAGE_ALL_POPULATION and
     SET_RADIO_TO_PLAYERS_FAVOURITE_STATION, which a host may answer (the objects keep themselves; there is no radio),
     and GET_CURRENT_CAR_MOD (iOS 0x1002033a8: the upgrade in a mod slot; the chassis dummies' slot, 11, never answers
-    one). carmod1.scm now stops nowhere; GIVE_VEHICLE_PAINTJOB is still skipped (the paintjobs are not drawn).
+    one). carmod1.scm now stops nowhere.
   Specs: `vehicle-upgrades` (unit, on the published file: the tables, the places and slots, the paintjobs, the
   validity and the nitro; browser: CJ in a Landstalker, the parts a shop lists for it, and the twin nitro, hydraulics
   and stereo bought and fitted, then a smaller bottle in the nitro's slot).
+- **Paintjobs were never drawn.** GIVE_VEHICLE_PAINTJOB (iOS 0x1001f0fec) calls CVehicle::SetRemap (0x1004763c4,
+  reversed at 0x6D0C00): the model's remap dictionary by index, -1 or an index past its remaps taking it off.
+  CVehicle::PreRender reads the dictionary and takes its first texture (GetFirstTexture: the head of the dictionary's
+  list, the last one read; each paintjob dictionary holds one), and unless bDontSetColourWhenRemapping (not kept)
+  sets the primary colour to 1, white. SetEditableMaterialsCB gives the texture to every material whose texture
+  CVehicleModelInfo::FindTextureCB renamed '#…' when the model loaded: one found in the model's own dictionary under a
+  name beginning "remap" (remapsultanbody256), not one vehicle.txd holds. The port reads the dictionary from the
+  archive on the first SetRemap, swaps the material's texture and puts its own back when the paintjob comes off;
+  GetRemapIndex answers the new index at once rather than once the dictionary is in. The Pay 'n' Spray leaves a car
+  wearing a paintjob its colours (the iOS case asks GetRemapIndex before ChooseVehicleColour, and clears the remap
+  when it does recolour). Specs: `vehicle-remap` (unit), `vehicle-paintjob` (browser: a Sultan in sultan2.txd's
+  paint, primary colour 1, and its own texture back past its third paintjob), `stored-vehicles`.
 - **The vehicle-class questions the mod shops and the valet ask** (absent from gta-reversed; the iOS handlers in the
   2400 switch): IS_BIG_VEHICLE (0x1002034d0) reads vehicleFlags.bIsBig, here the handling's IS_BIG model flag (0x8) it
   is set from; IS_CAR_STREET_RACER (0x1002036c4) handlingFlags.bStreetRacer (0x4000000); IS_EMERGENCY_SERVICES_VEHICLE

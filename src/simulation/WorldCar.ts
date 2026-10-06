@@ -1325,5 +1325,8 @@ export class WorldCar {
   // SetupLightingForEntity's multiplier feeds the car pipeline's reflection strength (gSpecIntensity).
   this.car.setReflection(contact);
  }
- dispose(){if(this.disposed)return;this.disposed=true;this.debris.dispose();this.car.dispose();}
+ private readonly disposers:(()=>void)[]=[];
+ /** Something held for this car (a paintjob's texture) let go with it. */
+ whenDisposed(release:()=>void){if(this.disposed)release();else this.disposers.push(release);}
+ dispose(){if(this.disposed)return;this.disposed=true;this.debris.dispose();this.car.dispose();for(const release of this.disposers.splice(0))release();}
 }

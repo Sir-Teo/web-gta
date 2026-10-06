@@ -154,6 +154,10 @@ export interface StoredCar {
  /** m_nBombOnBoard, for an automobile or bike (absent for none). RestoreCar gives it back without its installer, so a
   * sticky bomb put back answers no detonator. */
  bomb?:number;
+ /** m_awCarMods: the upgrades fitted (their model ids), put back after the car is made (absent for none). */
+ mods?:number[];
+ /** m_nPaintjob: GetRemapIndex as a byte, 255 for none (absent in a car stored before paintjobs were kept). */
+ paintjob?:number;
 }
 export const STORED_CAR={bulletProof:1,fireProof:2,explosionProof:4,collisionProof:8,meleeProof:16,nitro:128} as const;
 /** NUM_GARAGE_STORED_CARS, and the twenty slots of CGarages::aCarsInSafeHouse. */

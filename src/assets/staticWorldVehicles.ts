@@ -8,7 +8,9 @@ import {readCarColors} from './carColors';
 import {readModel,ModelReadCache} from './readModel';
 import {boxCollisionFallback} from './col';
 import {readVehicleAnimGroups} from './vehicleAnimGroups';
-import {decodeNamedTextures} from './modelTextures';
+import {decodeNamedTextures,type ModelTexture} from './modelTextures';
+import {readTxd} from './txd';
+import {firstTextureOf} from '../vehicle/nativeVehicleRemap';
 import {generatePlateText,plateDesignForRegion,plateModelTextures} from '../vehicle/nativeCarPlates';
 import {VehicleColourRotation} from '../vehicle/nativeVehicleColours';
 import {requireAsset} from './binary';
@@ -38,7 +40,21 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
   const ids=new Map(readIdeAssociations(await (await source.resource(modsResource!)).text()).map(r=>[r.model.toLowerCase(),r.id] as const));
   const carMods=readCarMods(await carModsFile.text());
   const remaps=vehicleRemaps(source.entries.map(e=>e.name),new Set(definitions.filter(d=>d.id>=400&&d.id<=630).map(d=>d.model.toLowerCase())));
+  const remapTextures=new Map<string,Promise<ModelTexture|undefined>>();
   return {carMods,
+   /** A paintjob's texture: CVehicle::PreRender's GetFirstTexture of the remap dictionary, read once. */
+   remapTexture:(name:string)=>{
+    const key=name.toLowerCase();let found=remapTextures.get(key);
+    if(!found){
+     const entry=entries.get(`${key}.txd`);
+     found=entry?cache.dictionary(entry).then(bytes=>{
+      const natives=cache.decode.dictionaries.get(bytes)??readTxd(bytes);cache.decode.dictionaries.set(bytes,natives);
+      const first=firstTextureOf(natives);return first?decodeNamedTextures([first.name],bytes,cache.decode,[key])[0]:undefined;
+     }):Promise.resolve(undefined);
+     remapTextures.set(key,found);
+    }
+    return found;
+   },
    /** An upgrade's model id by name (CModelInfo::GetModelInfo), and back. */
    idOf:(name:string)=>ids.get(name.toLowerCase()),
    nameOf:(id:number)=>{for(const [name,value] of ids)if(value===id)return name;return undefined;},

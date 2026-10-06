@@ -661,6 +661,8 @@ export interface ScmMissionWorld {
  vehicleUpgradeTables?():{upgradesOf(model:number):readonly number[];modSlotOf(model:number):number;remapCount(model:number):number;colourCount(model:number):number}|undefined;
  /** A script car's paintjob (CVehicle::GetRemapIndex, -1 none). */
  scriptVehiclePaintjob?(car:unknown):number;
+ /** CVehicle::SetRemap on a script car: its model's paintjob `index`, -1 none. */
+ giveScriptVehiclePaintjob?(car:unknown,index:number):void;
  /** The upgrade fitted in a car's mod slot (eVehicleModSlot), -1 for none. */
  scriptVehicleUpgradeInSlot?(car:unknown,slot:number):number;
  /** CVehicle::AddVehicleUpgrade on a car (the upgrade it replaced comes back, -1 for none) and RemoveVehicleUpgrade. */
@@ -2342,6 +2344,8 @@ export class ScmMission {
    numAvailablePaintjobs:handle=>{const tables=this.host('vehicleUpgradeTables','GET_NUM_AVAILABLE_PAINTJOBS')();const model=this.vehicleModelNumber(handle);return tables&&model!==undefined?tables.remapCount(model):0;},
    numCarColours:handle=>{const tables=this.host('vehicleUpgradeTables','GET_NUM_CAR_COLOURS')();const model=this.vehicleModelNumber(handle);return tables&&model!==undefined?tables.colourCount(model):0;},
    currentVehiclePaintjob:handle=>this.host('scriptVehiclePaintjob','GET_CURRENT_VEHICLE_PAINTJOB')(this.liveVehicle(handle)),
+   // GIVE_VEHICLE_PAINTJOB (iOS 0x1001f0fec): CVehicle::SetRemap on the car.
+   giveVehiclePaintjob:(handle,index)=>{this.host('giveScriptVehiclePaintjob','GIVE_VEHICLE_PAINTJOB')(this.liveVehicle(handle),index);},
    // IS_BIG_VEHICLE: vehicleFlags.bIsBig, which the vehicle takes from its handling's model flags (IS_BIG, 0x8).
    isBigVehicle:handle=>(this.host('scriptVehicleModelFlags','IS_BIG_VEHICLE')(this.liveVehicle(handle))&MODEL_FLAG_IS_BIG)!==0,
    // IS_EMERGENCY_SERVICES_VEHICLE: CVehicle::IsLawEnforcementVehicle, or the Fire Truck (407), its ladder truck (544)

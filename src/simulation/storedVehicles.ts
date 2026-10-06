@@ -1,16 +1,20 @@
 import {Matrix4,Quaternion,Vector3} from 'three';
 import {STORED_CAR,type StoredCar} from '../engine/ScmGarages';
 import type {PhysicalProofs} from '../combat/nativePhysicalProofs';
+import {packStoredPaintjob} from '../vehicle/nativeVehicleRemap';
 /** What CStoredCar::StoreCar reads of a vehicle and RestoreCar gives back: its body, and what an automobile carries. */
 export interface StorableVehicle {
  modelId:number;
  car:{body:{translation():{x:number;y:number;z:number};rotation():{x:number;y:number;z:number;w:number}};nitro?:{installed:boolean;boosts:number}};
  assets:{colourIndices?:readonly number[]};
  proofs?:PhysicalProofs;bombOnBoard?:number;
+ /** CVehicle::GetRemapIndex and m_anUpgrades, for an automobile. */
+ paintjob?:number;upgrades?:ReadonlyMap<number,number>;
 }
 /** CStoredCar::StoreCar (iOS 0x1001b7d00) for the parts the port's vehicles carry: the model, the position (native
  * axes), the forward times 100 cut to whole numbers, the four colours (-1 for a vehicle that keeps none), the proofs
- * and nitro as m_nStoredCarFlags, the nitro boosts and the bomb. */
+ * and nitro as m_nStoredCarFlags, the nitro boosts, the bomb, the upgrades (m_awCarMods) and the paintjob
+ * (GetRemapIndex, byte 0x3a). */
 export function storeVehicle(v:StorableVehicle):StoredCar{
  const body=v.car.body,t=body.translation(),q=body.rotation();
  // The model's forward (native +y, the renderer's -z) turned by the body, in native axes.
@@ -20,7 +24,8 @@ export function storeVehicle(v:StorableVehicle):StoredCar{
  const colours=v.assets.colourIndices??[-1,-1,-1,-1],bomb=v.bombOnBoard??0;
  // An int8 (no negative zero).
  const pack=(f:number)=>Math.trunc(f*100)||0;
- return {model:v.modelId,position:[t.x,-t.z,t.y],forward:[pack(fx),pack(-fz),pack(fy)],colours:[colours[0],colours[1],colours[2],colours[3]],flags,nitroBoosts:nitro?.installed?nitro.boosts:0,...(bomb?{bomb}:{})};
+ const mods=v.upgrades?[...v.upgrades.values()]:[];
+ return {model:v.modelId,position:[t.x,-t.z,t.y],forward:[pack(fx),pack(-fz),pack(fy)],colours:[colours[0],colours[1],colours[2],colours[3]],flags,nitroBoosts:nitro?.installed?nitro.boosts:0,...(bomb?{bomb}:{}),...(mods.length?{mods}:{}),paintjob:packStoredPaintjob(v.paintjob??-1)};
 }
 /** RestoreCar's place and turn in renderer axes: the position as stored, the forward unpacked and squared with the up
  * as re3's RestoreCar does (right = forward × up, up = right × forward). */

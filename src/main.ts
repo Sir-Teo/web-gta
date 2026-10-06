@@ -3,6 +3,7 @@ import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/s
 import {ScmGarages,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS,type StoredCar} from './engine/ScmGarages';
 import {carBombEvents} from './vehicle/nativeCarBomb';
 import {restoreStoredParts,storedPlacement,storeVehicle} from './simulation/storedVehicles';
+import {unpackStoredPaintjob} from './vehicle/nativeVehicleRemap';
 import {nitroBoostsFor,vehicleModSlot} from './vehicle/nativeVehicleUpgrades';
 import {playerFootstepSoundLevel} from './ped/nativeSoundEvents';
 import {NativeWeaponAudio} from './audio/native/NativeWeaponAudio';
@@ -5771,6 +5772,7 @@ async function boot() {
                  },
                  playerGoOnParole:()=>{law.native.goOnParole();},
                  scriptVehiclePaintjob:car=>(car as Partial<ScriptCar>).paintjob??-1,
+                 giveScriptVehiclePaintjob:(car,index)=>{if(isScriptCar(car))fleet?.setRemap(car,index);},
                  setScriptVehicleDirtLevel:(car,level)=>{const c=car as Partial<ScriptCar>;if(c.dirtLevel!==undefined)c.dirtLevel=level;},
                  playerUsingJetpack:()=>!!sim.jetPack,
                  setDeathPenalties:apply=>{gameLogic.penaltyForDeathApplies=apply;},
@@ -6091,7 +6093,8 @@ async function boot() {
                    const body=bodyOf(v),q=body.rotation(),upY=1-2*(q.x*q.x+q.z*q.z);
                    if(upY<0)body.setRotation({x:q.y,y:-q.x,z:q.w,w:-q.z},true);
                    // SET_CAN_RESPRAY_CAR off (bShouldNotChangeColour) keeps the paint; so does a paintjob.
-                   const handle=owner.vehicles.handleOf(v),keepPaint=handle!==undefined&&game.resprayForbidden.has(handle);
+                   // (The iOS case asks GetRemapIndex: a car wearing a paintjob is not recoloured.)
+                   const handle=owner.vehicles.handleOf(v),keepPaint=handle!==undefined&&game.resprayForbidden.has(handle)||'paintjob' in v&&v.paintjob>=0;
                    const recoloured='fix' in v&&!keepPaint&&!!fleet?.resprayCar(v);
                    owner.markResprayed(v);
                    return {repaired,recoloured};
@@ -6177,6 +6180,8 @@ async function boot() {
                    const {position,rotation}=storedPlacement(stored);
                    restoring.set(stored,fleet.restoreStoredVehicle(stored.model,position,rotation,stored.colours,impound).then(v=>{
                     if(!v)return;restoreStoredParts(v,stored);
+                    // m_awCarMods fitted again, then SetRemap(m_nPaintjob) sign-extended (iOS 0x1001b8434).
+                    if('paintjob' in v){for(const model of stored.mods??[])fitVehicleUpgrade(v,model);fleet?.setRemap(v,unpackStoredPaintjob(stored.paintjob??255));}
                     // vehicleFlags.bImpounded, which nothing reads.
                     if(impound&&'fix' in v)v.impounded=true;
                    }).catch(error=>{console.error('A stored car could not be restored',error);}).finally(()=>{restoring.set(stored,true);}));

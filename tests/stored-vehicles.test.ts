@@ -4,12 +4,15 @@ import {STORED_CAR} from '../src/engine/ScmGarages';
 // CStoredCar::StoreCar and RestoreCar for the port's vehicles: what a garage keeps and how the car comes back.
 const vehicle=(heading:number,extra:object={})=>({modelId:400,car:{body:{translation:()=>({x:10,y:13,z:-20}),rotation:()=>({x:0,y:Math.sin(heading/2),z:0,w:Math.cos(heading/2)})},nitro:{installed:true,boosts:7}},
  assets:{colourIndices:[3,1,0,0]},proofs:{bullet:true,fire:false,explosion:true,collision:false,melee:false},bombOnBoard:2,...extra});
-test('StoreCar: native position, the forward times 100 cut, colours, proofs and nitro as flags, boosts and the bomb',()=>{
+test('StoreCar: native position, the forward times 100 cut, colours, proofs and nitro as flags, boosts, the bomb, upgrades and paintjob',()=>{
  // Turned a quarter left in the renderer (+y up): the model's forward (-z) goes to -x, native west.
  const stored=storeVehicle(vehicle(Math.PI/2));
- expect(stored).toEqual({model:400,position:[10,20,13],forward:[-100,0,0],colours:[3,1,0,0],flags:STORED_CAR.bulletProof|STORED_CAR.explosionProof|STORED_CAR.nitro,nitroBoosts:7,bomb:2});
+ expect(stored).toEqual({model:400,position:[10,20,13],forward:[-100,0,0],colours:[3,1,0,0],flags:STORED_CAR.bulletProof|STORED_CAR.explosionProof|STORED_CAR.nitro,nitroBoosts:7,bomb:2,paintjob:255});
  // A bike keeps no colours, proofs, nitro or bomb.
- expect(storeVehicle({modelId:581,car:{body:vehicle(0).car.body},assets:{}})).toEqual({model:581,position:[10,20,13],forward:[0,100,0],colours:[-1,-1,-1,-1],flags:0,nitroBoosts:0});
+ expect(storeVehicle({modelId:581,car:{body:vehicle(0).car.body},assets:{}})).toEqual({model:581,position:[10,20,13],forward:[0,100,0],colours:[-1,-1,-1,-1],flags:0,nitroBoosts:0,paintjob:255});
+ // m_awCarMods and m_nPaintjob: the upgrades fitted and GetRemapIndex as a byte.
+ const modded=storeVehicle({...vehicle(0),paintjob:2,upgrades:new Map([[0,1010],[12,1025]])});
+ expect(modded.mods).toEqual([1010,1025]);expect(modded.paintjob).toBe(2);
 });
 test('RestoreCar: the same place and turn back (to the hundredths the forward is kept to), level and upright',()=>{
  for(const heading of [0,.3,Math.PI/2,2.5,-1.2]){
