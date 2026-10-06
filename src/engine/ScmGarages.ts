@@ -24,6 +24,8 @@ export interface ScmGarage {name:string;type:number;doorState:number;inactive:bo
  targetCar?:number;
  /** m_nFlags as the row gives them (0x1 the door opens up, 0x2 it goes in). */
  flags:number;
+ /** CGarage's m_b0x1 (reVC's m_bClosingWithoutTargetCar): the door is shutting with no car to keep. */
+ closingEmpty?:boolean;
  box?:ScmGarageBox}
 /** What a host loads a garage from: the grge row, or a bare name and type for a world without geometry. */
 export interface ScmGarageRow {name:string;type:number;corner?:readonly [number,number,number];front?:readonly [number,number];far?:readonly [number,number,number];flags?:number}
@@ -190,6 +192,50 @@ export function readStoredCar(value:unknown):StoredCar|undefined{
  const bomb=Number.isInteger(v.bomb)&&v.bomb!>0&&v.bomb!<=5?v.bomb:undefined;
  return {model:v.model!,position:[...v.position] as StoredCar['position'],forward:[...v.forward!] as StoredCar['forward'],colours:[...v.colours!] as StoredCar['colours'],flags:v.flags!,nitroBoosts:v.nitroBoosts!,...(bomb?{bomb}:{})};
 }
+/** The garage types CGarage::Update moves the doors of by the player and a target car (iOS 0x1001b2a00): the tuning
+ * shops (36 Loco Low Co, 37 Wheel Arch Angels, 38 Transfender), the mission garages (1 ONLY_TARGET_VEH, 14, 20, 21,
+ * 23) and the script's (11, 15, 19, 43). */
+const DOOR_CASE_TYPES:ReadonlySet<number>=new Set([1,11,14,15,19,20,21,23,36,37,38,43]);
+/** RightModTypeForThisGarage on the handling flags: Loco Low Co takes a LOW_RIDER, Wheel Arch Angels a STREET_RACER,
+ * Transfender anything else. */
+export function rightModTypeForGarage(type:number,handlingFlags:number){
+ if(type===36)return (handlingFlags&0x2000000)!==0;
+ if(type===37)return (handlingFlags&0x4000000)!==0;
+ return (handlingFlags&0x6000000)===0;
+}
+/** What those garages ask of the world. Positions are native; a vehicle is the player's or a script handle (the
+ * garage's m_pTargetCar). */
+export interface GarageDoorWorld {
+ /** CTimer::m_FrameCounter and m_snTimeInMilliseconds. */
+ readonly frameCounter:number;readonly nowMs:number;
+ /** FindPlayerCoors: his vehicle's position, or his own. */
+ playerCoors():readonly [number,number,number];
+ /** FindPlayerVehicle: its position, its handling flags and its script handle (when a script holds it). */
+ playerVehicle():{position:readonly [number,number,number];handlingFlags:number;handle?:number}|undefined;
+ /** The vehicle a script handle names still exists. */
+ vehicleExists(handle:number):boolean;
+ /** IsEntityTouching3D, IsEntityEntirelyInside3D (margin) and IsEntityEntirelyOutside (margin) of a vehicle. */
+ vehicleTouching(garage:ScmGarage,handle:number):boolean;
+ vehicleInside(garage:ScmGarage,handle:number,margin:number):boolean;
+ vehicleOutside(garage:ScmGarage,handle:number,margin:number):boolean;
+ /** IsEntityEntirelyOutside of his vehicle, or of him on foot. */
+ playerOutside(garage:ScmGarage,margin:number):boolean;
+ /** IsAnyOtherCarTouchingGarage: a vehicle not wrecked, not `ignore` (a script handle, or the player's), touching. */
+ anyOtherCarTouching(garage:ScmGarage,ignore?:number|'player'):boolean;
+ /** IsAnyCarBlockingDoor: a vehicle touching the box with some sphere out of it. */
+ anyCarBlockingDoor(garage:ScmGarage):boolean;
+ /** IsStaticPlayerCarEntirelyInside: his automobile or bike at rest and wholly inside, not getting out. */
+ playerCarParkedInside(garage:ScmGarage):boolean;
+ /** IsGarageEmpty: no vehicle or ped touching the box. */
+ garageEmpty(garage:ScmGarage):boolean;
+ /** ThrowCarsNearDoorOutOfGarage: every other vehicle touching the box with a sphere's middle out of it pushed away from
+  * the box's middle (0.02 units a frame each frame). */
+ throwCarsNearDoorOut(garage:ScmGarage,ignore:number|'player'|undefined,step:number):void;
+ /** PLAYERCONTROL_GARAGE on CPad 0 (bPlayerAwaitsInGarage) and, with `police`, CWanted::m_bPoliceBackOffGarage. */
+ holdPlayer(on:boolean,police:boolean):void;
+ /** CVehicle::DestroyVehicleAndDriverAndPassengers. */
+ destroyVehicle(handle:number):void;
+}
 /** What a hideout garage asks of the world. */
 export interface GarageHideoutWorld {
  /** FindPlayerCentreOfWorld: his vehicle's position, or his own, in native axes. */
@@ -299,6 +345,7 @@ export class ScmGarages {
    if(HIDEOUT_UPDATE_TYPES.has(garage.type)&&this.hideouts&&!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED)){this.updateHideout(garage,step,this.hideouts);continue;}
    if(IMPOUND_TYPES.has(garage.type)&&this.hideouts&&!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED)){this.updateImpound(garage,this.hideouts);continue;}
    if(BOMB_SHOP_TYPES.has(garage.type)&&this.bombShops&&!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED)){this.updateBombShop(garage,step,this.bombShops);continue;}
+   if(DOOR_CASE_TYPES.has(garage.type)&&this.doors){if(!(garage.inactive&&garage.doorState===GARAGE_DOOR_CLOSED))this.updateDoorCase(garage,step,this.doors);continue;}
    if(garage.doorState===GARAGE_DOOR_OPENING){if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_OPEN;}
    else if(garage.doorState===GARAGE_DOOR_CLOSING){if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;}
   }
@@ -523,6 +570,87 @@ export class ScmGarages {
  }
  /** CGarages::HasResprayHappened (0x447E10): the flag is read and cleared. */
  hasResprayHappened(name:string){const garage=this.at(name);if(!garage)return false;const used=garage.usedRespray;garage.usedRespray=false;return used;}
+ /** The world the door cases ask; without it those garages' doors only slide as the script opens and shuts them. */
+ doors?:GarageDoorWorld;
+ /** CGarage::Update's cases for the tuning shops, the mission garages and the script's (iOS 0x1001b2a00; the type table
+  * at 0x1001b534c), per door state. A door shutting with no car to keep (CLOSE_EMPTY) marks closingEmpty; one shutting
+  * on the target car (CLOSE_WITH_CAR) holds the player (PLAYERCONTROL_GARAGE) and the police off. */
+ private updateDoorCase(garage:ScmGarage,step:number,world:GarageDoorWorld){
+  const t=garage.type,state=garage.doorState,target=garage.targetCar!==undefined&&world.vehicleExists(garage.targetCar)?garage.targetCar:undefined;
+  const closeEmpty=()=>{garage.doorState=GARAGE_DOOR_CLOSING;garage.closingEmpty=true;};
+  const closeWithCar=()=>{world.holdPlayer(true,true);garage.doorState=GARAGE_DOOR_CLOSING;garage.closingEmpty=false;};
+  // The player's distance from the box's footprint, and his (FindPlayerCoors) from its middle squared, 2D.
+  const rect2=(p:readonly [number,number,number])=>footprintDistance2(garage,p[0],p[1]);
+  const centre2=()=>{const f=garageFootprint(garage),p=world.playerCoors();if(!f)return Infinity;const dx=p[0]-(f.minX+f.maxX)/2,dy=p[1]-(f.minY+f.maxY)/2;return dx*dx+dy*dy;};
+  if(state===GARAGE_DOOR_OPENING){if(this.slideDoorOpen(garage,step))garage.doorState=GARAGE_DOOR_OPEN;return;}
+  if(t>=36&&t<=38){
+   // RightModTypeForThisGarage: the shop opens within 8 units for its kind of car; it stays open while the player is
+   // within 30 of its middle, and every 32nd frame after shuts once neither his car nor any other is in its way.
+   const vehicle=world.playerVehicle();
+   if(state===GARAGE_DOOR_CLOSED){if(vehicle&&rightModTypeForGarage(t,vehicle.handlingFlags)&&rect2(vehicle.position)<64)garage.doorState=GARAGE_DOOR_OPENING;}
+   else if(state===GARAGE_DOOR_OPEN){
+    if(centre2()<=900||world.frameCounter&31)return;
+    // (Its test of his own car touching is covered here: IsAnyOtherCarTouchingGarage(nullptr) leaves none out.)
+    if(world.anyOtherCarTouching(garage))return;
+    closeEmpty();
+   }else if(state===GARAGE_DOOR_CLOSING){if(vehicle)world.throwCarsNearDoorOut(garage,'player',step);if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;}
+   return;
+  }
+  const vehicle=world.playerVehicle(),playerInTarget=target!==undefined&&vehicle?.handle===target;
+  // The target car within the distance (8 units, 17 for types 14 and 21) of the footprint: the door opens for it.
+  const openForTarget=(distance2:number)=>{if(playerInTarget&&rect2(vehicle!.position)<distance2)garage.doorState=GARAGE_DOOR_OPENING;};
+  // The door down on the target car: the car kept (type 1 destroys it), the garage CLOSED_DROPPED_CAR, the player let go.
+  const shutOnTarget=(destroy:boolean)=>{
+   if(target!==undefined)world.throwCarsNearDoorOut(garage,target,step);
+   if(!this.slideDoorClosed(garage,step))return;
+   if(garage.closingEmpty){garage.doorState=GARAGE_DOOR_CLOSED;return;}
+   if(target===undefined){garage.doorState=GARAGE_DOOR_CLOSED;world.holdPlayer(false,true);return;}
+   garage.doorState=GARAGE_DOOR_CLOSED_DROPPED_CAR;
+   if(destroy)world.destroyVehicle(target);else garage.timeToOpen=world.nowMs+2000;
+   garage.targetCar=undefined;world.holdPlayer(false,true);
+  };
+  switch(t){
+   case 1:
+    if(state===GARAGE_DOOR_CLOSED)openForTarget(64);
+    else if(state===GARAGE_DOOR_OPEN){
+     if(centre2()>900){if(!(world.frameCounter&31)&&(target===undefined||!world.vehicleTouching(garage,target)))closeEmpty();}
+     else if(target!==undefined&&!playerInTarget&&world.vehicleInside(garage,target,0)&&world.playerOutside(garage,2))closeWithCar();
+    }else if(state===GARAGE_DOOR_CLOSING)shutOnTarget(true);
+    return;
+   case 14:case 21:
+    if(state===GARAGE_DOOR_CLOSED)openForTarget(289);
+    else if(state===GARAGE_DOOR_OPEN){
+     if(centre2()>900||target===undefined){closeEmpty();return;}
+     if(playerInTarget&&world.playerCarParkedInside(garage)&&!world.anyCarBlockingDoor(garage))closeWithCar();
+    }else if(state===GARAGE_DOOR_CLOSING)shutOnTarget(false);
+    // Type 14 opens again two seconds after it dropped its car.
+    else if(state===GARAGE_DOOR_CLOSED_DROPPED_CAR&&t===14&&world.nowMs>garage.timeToOpen)garage.doorState=GARAGE_DOOR_OPENING;
+    return;
+   case 20:
+    if(state===GARAGE_DOOR_CLOSED)openForTarget(64);
+    else if(state===GARAGE_DOOR_OPEN){if(centre2()>900&&target!==undefined&&world.vehicleOutside(garage,target,0))closeEmpty();}
+    else if(state===GARAGE_DOOR_CLOSING){if(target!==undefined)world.throwCarsNearDoorOut(garage,target,step);if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;}
+    return;
+   case 23:
+    if(state===GARAGE_DOOR_OPEN){
+     if(target===undefined||!world.vehicleInside(garage,target,0)||world.anyCarBlockingDoor(garage)||!world.playerOutside(garage,0))return;
+     world.holdPlayer(true,false);garage.doorState=GARAGE_DOOR_CLOSING;garage.closingEmpty=false;
+    }else if(state===GARAGE_DOOR_CLOSING){if(this.slideDoorClosed(garage,step)){garage.doorState=GARAGE_DOOR_CLOSED;world.holdPlayer(false,false);}}
+    return;
+   case 11:
+    if(state===GARAGE_DOOR_OPEN){if(world.garageEmpty(garage))garage.doorState=GARAGE_DOOR_CLOSING;}
+    else if(state===GARAGE_DOOR_CLOSING){if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;if(!world.garageEmpty(garage))garage.doorState=GARAGE_DOOR_OPENING;}
+    return;
+   case 43:
+    if(state===GARAGE_DOOR_OPEN){if(centre2()>900&&!world.anyOtherCarTouching(garage))garage.doorState=GARAGE_DOOR_CLOSING;}
+    else if(state===GARAGE_DOOR_CLOSING){if(vehicle)world.throwCarsNearDoorOut(garage,'player',step);if(this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;}
+    return;
+   case 19:
+    if(state===GARAGE_DOOR_CLOSING&&this.slideDoorClosed(garage,step))garage.doorState=GARAGE_DOOR_CLOSED;
+    return;
+   // 15 SCRIPT_ONLY_OPEN: only the opening is run; a door the script shuts stays shutting.
+  }
+ }
  /** CGarages::GetGarageNumberByName (0x447680): by name, ignoring case, or -1. */
  numberByName(name:string){const wanted=name.toLowerCase();return this.garages.findIndex(garage=>garage.name.toLowerCase()===wanted);}
  private at(name:string){const index=this.numberByName(name);return index<0?undefined:this.garages[index];}

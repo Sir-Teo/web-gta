@@ -400,3 +400,59 @@ test("on the player's death or arrest (CGarages::PlayerArrestedOrDied, iOS): spr
  expect([spray,bomb,bomb2,safe,misn,imp,shut,wait].map(x=>x.doorState)).toEqual([GARAGE_DOOR_OPENING,GARAGE_DOOR_OPENING,GARAGE_DOOR_OPEN,GARAGE_DOOR_CLOSING,GARAGE_DOOR_CLOSING,GARAGE_DOOR_CLOSING,GARAGE_DOOR_CLOSED,GARAGE_DOOR_WAITING_PLAYER_TO_EXIT]);
  expect(message.current(1500)).toBeUndefined();
 });
+
+// CGarage::Update's tuning, mission and script garage cases (the iOS executable's, from 0x1001b2a00).
+const doorWorld=(o:{vehicle?:{position:[number,number,number];handlingFlags:number;handle?:number};coors?:[number,number,number];touching?:boolean;inside?:boolean;outside?:boolean;playerOutside?:boolean;otherTouching?:boolean;parked?:boolean;blocking?:boolean;empty?:boolean;exists?:boolean}={})=>{
+ const log:string[]=[];
+ const w={frameCounter:0,nowMs:0,state:o,log,
+  playerCoors:()=>w.state.coors??w.state.vehicle?.position??[0,0,0],playerVehicle:()=>w.state.vehicle,vehicleExists:()=>w.state.exists??true,
+  vehicleTouching:()=>!!w.state.touching,vehicleInside:()=>!!w.state.inside,vehicleOutside:()=>w.state.outside??true,playerOutside:()=>w.state.playerOutside??true,
+  anyOtherCarTouching:()=>!!w.state.otherTouching,anyCarBlockingDoor:()=>!!w.state.blocking,playerCarParkedInside:()=>!!w.state.parked,garageEmpty:()=>w.state.empty??true,
+  throwCarsNearDoorOut:()=>{log.push('throw');},holdPlayer:(on:boolean,police:boolean)=>{log.push(`hold ${on} ${police}`);},destroyVehicle:(h:number)=>{log.push(`destroy ${h}`);}};
+ return w;
+};
+const doorGarage=(type:number)=>{const g=new ScmGarages();g.load([{name:'g',type,corner:[0,0,0],front:[10,0],far:[0,10,5],flags:0}]);return g;};
+const frames=(g:ScmGarages,w:{nowMs:number;frameCounter:number},n:number)=>{for(let i=0;i<n;i++){w.nowMs+=20;w.frameCounter++;g.update(20);}};
+
+test('a tuning shop opens within 8 units for its kind of car only, and shuts once the player is 30 off and nothing is in its way',()=>{
+ const LOW_RIDER=0x2000000,STREET_RACER=0x4000000;
+ for(const [type,right,wrong] of [[36,LOW_RIDER,0],[37,STREET_RACER,LOW_RIDER],[38,0,STREET_RACER]] as const){
+  const g=doorGarage(type),w=doorWorld({vehicle:{position:[5,-7,0],handlingFlags:wrong}});g.doors=w;
+  frames(g,w,5);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSED);
+  w.state.vehicle={position:[5,-7,0],handlingFlags:right};frames(g,w,1);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPENING);
+  frames(g,w,120);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPEN);
+  // Within 30 of its middle it stays open; out beyond, a car touching it holds it open.
+  w.state.vehicle={position:[5,-30,0],handlingFlags:right};w.state.otherTouching=true;frames(g,w,64);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPEN);
+  w.state.otherTouching=false;frames(g,w,32);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSING);expect(g.garages[0].closingEmpty).toBe(true);
+  frames(g,w,120);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSED);expect(w.log).toContain('throw');
+  // Over 8 units off the footprint, a right car leaves it shut.
+  w.state.vehicle={position:[5,-9,0],handlingFlags:right};frames(g,w,3);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSED);
+ }
+});
+
+test('a mission garage opens for its target car, shuts on it once the player is out, and destroys it',()=>{
+ const g=doorGarage(1),w=doorWorld({vehicle:{position:[5,-6,0],handlingFlags:0,handle:7}});g.doors=w;
+ g.setTargetCar('g',7);
+ frames(g,w,1);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPENING);frames(g,w,120);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPEN);
+ // He is still in it: it stays open. Out, the car wholly inside and he 2 units clear: it shuts on the car.
+ w.state.vehicle={position:[5,5,0],handlingFlags:0,handle:7};w.state.inside=true;frames(g,w,5);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPEN);
+ w.state.vehicle=undefined;w.state.coors=[5,-5,0];frames(g,w,1);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSING);expect(w.log).toContain('hold true true');
+ frames(g,w,120);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSED_DROPPED_CAR);expect(w.log).toContain('destroy 7');expect(w.log.at(-1)).toBe('hold false true');
+ expect(g.garages[0].targetCar).toBeUndefined();
+});
+
+test('type 14 opens again two seconds after it dropped its car; type 21 does not; type 19 only slides; type 11 closes when empty and opens when not',()=>{
+ for(const type of [14,21]){
+  const g=doorGarage(type),w=doorWorld({vehicle:{position:[5,-15,0],handlingFlags:0,handle:3}});g.doors=w;g.setTargetCar('g',3);
+  frames(g,w,1);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_OPENING);frames(g,w,120);
+  w.state.parked=true;w.state.vehicle={position:[5,5,0],handlingFlags:0,handle:3};frames(g,w,1);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSING);
+  frames(g,w,120);expect(g.garages[0].doorState).toBe(GARAGE_DOOR_CLOSED_DROPPED_CAR);
+  frames(g,w,110);expect(g.garages[0].doorState).toBe(type===14?GARAGE_DOOR_OPENING:GARAGE_DOOR_CLOSED_DROPPED_CAR);
+ }
+ const s=doorGarage(19),sw=doorWorld();s.doors=sw;frames(s,sw,10);expect(s.garages[0].doorState).toBe(GARAGE_DOOR_CLOSED);
+ s.open('g');frames(s,sw,120);expect(s.garages[0].doorState).toBe(GARAGE_DOOR_OPEN);frames(s,sw,10);expect(s.garages[0].doorState).toBe(GARAGE_DOOR_OPEN);
+ s.close('g');frames(s,sw,120);expect(s.garages[0].doorState).toBe(GARAGE_DOOR_CLOSED);
+ const t=doorGarage(11),tw=doorWorld({empty:false});t.doors=tw;t.open('g');frames(t,tw,120);expect(t.garages[0].doorState).toBe(GARAGE_DOOR_OPEN);
+ tw.state.empty=true;frames(t,tw,1);expect(t.garages[0].doorState).toBe(GARAGE_DOOR_CLOSING);
+ tw.state.empty=false;frames(t,tw,1);expect(t.garages[0].doorState).toBe(GARAGE_DOOR_OPENING);
+});

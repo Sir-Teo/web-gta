@@ -9033,6 +9033,23 @@ that did anything.
   wearing a paintjob its colours (the iOS case asks GetRemapIndex before ChooseVehicleColour, and clears the remap
   when it does recolour). Specs: `vehicle-remap` (unit), `vehicle-paintjob` (browser: a Sultan in sultan2.txd's
   paint, primary colour 1, and its own texture back past its third paintjob), `stored-vehicles`.
+- **The mod shops' doors never opened.** The three tuning shops' garages (TUNING_LOCO_LOW_CO 36, _WHEEL_ARCH_ANGELS 37,
+  _TRANSFENDER 38) stood shut, so no car could be driven into one (carmod.scm leaves the door to the garage). CGarage::Update
+  (unreversed; the iOS executable's, 0x1001b2a00, its type table at 0x1001b534c) now runs their case: shut, the door
+  rises once the player's car is within 8 units of the footprint and is the shop's kind (RightModTypeForThisGarage on the
+  handling flags: LOW_RIDER for Loco Low Co, STREET_RACER for Wheel Arch Angels, neither for Transfender); open, it stays
+  while he is within 30 units of its middle, and beyond that, every 32nd frame, comes down once no vehicle touches the
+  box; shutting, it throws cars near the door out (ThrowCarsNearDoorOutOfGarage, 0.02 units a frame). The other cases
+  the port had only slid doors for run as well: ONLY_TARGET_VEH (1) opens for its target car within 8 units, shuts on it
+  once it is wholly inside and the player 2 units clear (his controls held, the police backed off), destroys it
+  (DestroyVehicleAndDriverAndPassengers) and is CLOSED_DROPPED_CAR, or shuts empty when he is 30 off and the car is
+  not in it; OPEN_FOR_TARGET_FREEZE_PLAYER (14) and CLOSE_WITH_CAR_DONT_OPEN_AGAIN (21) open within 17 units and shut on
+  the parked car (IsStaticPlayerCarEntirelyInside, nothing blocking the door), keeping it, 14 opening again two seconds
+  on; STAY_OPEN_WITH_CAR_INSIDE (20) shuts empty once he is 30 off and the car is out; SCRIPT_OPEN_FREEZE_WHEN_CLOSING
+  (23) shuts on its target car holding the player only; UNKN_CLOSESONTOUCH (11) shuts when empty and opens again when
+  not; BURGLARY (43) shuts when he is 30 off and nothing touches it; SCRIPT_CONTROLLED (19) and SCRIPT_ONLY_OPEN (15)
+  only slide as the script says (15 not even closing). Specs: `scm-garages` (unit), `tuning-garage` (browser: Transfender
+  shut for a Sultan, a street racer, open for a Premier, and down again once it is 40 units off).
 - **Tuning parts were never drawn.** A spoiler, scoop, roof vent, side skirt, bull bar, lamp or nitro bottle bought at a
   mod shop changed nothing to look at. CVehicle::AddVehicleUpgrade (unreversed; iOS 0x100480908) hands a chassis part
   (one whose CarMod is an upgrade position) to CVehicle::AddUpgrade (iOS 0x100480f70): RemoveUpgradeCB takes off any part

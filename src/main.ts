@@ -1,6 +1,6 @@
 import {taxiLightCoronas} from './render/taxiLights';
 import {STARTING_LOADOUT,OPENING_MISSION,grantStartingLoadout} from './weapons/startingLoadout';
-import {ScmGarages,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS,type StoredCar} from './engine/ScmGarages';
+import {ScmGarages,garageFootprint,isCarSprayable,BMX_CLASS_MODELS,STAT_VEHICLE_RESPRAYS,type StoredCar} from './engine/ScmGarages';
 import {carBombEvents} from './vehicle/nativeCarBomb';
 import {restoreStoredParts,storedPlacement,storeVehicle} from './simulation/storedVehicles';
 import {unpackStoredPaintjob} from './vehicle/nativeVehicleRemap';
@@ -6138,6 +6138,51 @@ async function boot() {
                  // box and in its doorway, and CStoredCar's keeping of them while the door is down.
                  const restoring=new Map<StoredCar,Promise<void>|true>();
                  const cars=()=>[...(fleet?.cars??[]),...(worldCar&&!worldCar.disposed&&!fleet?.cars.has(worldCar)?[worldCar]:[])].filter(car=>!car.disposed);
+                 // CGarage::Update's tuning shops, mission garages and script garages (ScmGarages.updateDoorCase).
+                 {
+                  type Vehicle=Parameters<typeof spheresOf>[0];
+                  const vehicleOf=(handle:number):Vehicle|undefined=>{if(!owner.vehicles.exists(handle))return undefined;const v=owner.vehicles.entity(handle) as (Vehicle&{disposed?:boolean})|undefined;return v&&!v.disposed&&'assets' in v?v:undefined;};
+                  const allVehicles=()=>[...cars(),...[...(fleet?.bikes??[])].filter(b=>!b.disposed)] as (Vehicle&{wrecked?:boolean})[];
+                  const ignored=(ignore?:number|'player')=>ignore==='player'?playerVehicle():ignore===undefined?undefined:vehicleOf(ignore);
+                  const outside=(garage:import('./engine/ScmGarages').ScmGarage,v:Vehicle,margin:number)=>!spheresOf(v).some(s=>ScmGarages.sphereTouching(garage,s.p,s.r+margin));
+                  game.garages.doors={
+                   get frameCounter(){return Math.floor(gameTimeExact*30/1000);},
+                   get nowMs(){return Math.trunc(gameTimeExact);},
+                   playerCoors:()=>{const v=playerVehicle(),p=v?bodyOf(v).translation():sim.player.position;return [p.x,-p.z,p.y];},
+                   playerVehicle:()=>{const v=playerVehicle();if(!v)return undefined;const p=bodyOf(v).translation();return {position:[p.x,-p.z,p.y],handlingFlags:(v.assets.handling as {values:{handlingFlags?:number}}).values.handlingFlags??0,handle:owner.vehicles.handleOf(v)};},
+                   vehicleExists:handle=>!!vehicleOf(handle),
+                   vehicleTouching:(garage,handle)=>{const v=vehicleOf(handle);return !!v&&touching(garage,v);},
+                   // IsEntityEntirelyInside3D(margin): every sphere within the box grown by the margin.
+                   vehicleInside:(garage,handle,margin)=>{const v=vehicleOf(handle);return !!v&&spheresOf(v).every(s=>ScmGarages.sphereInside(garage,s.p,s.r-margin));},
+                   vehicleOutside:(garage,handle,margin)=>{const v=vehicleOf(handle);return !v||outside(garage,v,margin);},
+                   playerOutside:(garage,margin)=>{const v=playerVehicle();if(v)return outside(garage,v,margin);const p=sim.player.position;return !ScmGarages.sphereTouching(garage,[p.x,-p.z,p.y],.5+margin);},
+                   anyOtherCarTouching:(garage,ignore)=>{const skip=ignored(ignore);return allVehicles().some(v=>v!==skip&&!v.wrecked&&touching(garage,v));},
+                   anyCarBlockingDoor:garage=>allVehicles().some(v=>touching(garage,v)&&!spheresOf(v).every(s=>ScmGarages.sphereInside(garage,s.p,s.r))),
+                   // IsStaticPlayerCarEntirelyInside: not getting out, at rest to 0.01 units a frame, every sphere inside.
+                   playerCarParkedInside:garage=>{
+                    const v=playerVehicle();if(!v||carEntry.phase&&GETTING_OUT.has(carEntry.phase))return false;
+                    const velocity=bodyOf(v).linvel();if(Math.hypot(velocity.x,velocity.y,velocity.z)>.5)return false;
+                    return spheresOf(v).every(s=>ScmGarages.sphereInside(garage,s.p,s.r));
+                   },
+                   // IsGarageEmpty: no vehicle and no ped (CJ included) touching the box.
+                   garageEmpty:garage=>{
+                    if(allVehicles().some(v=>touching(garage,v)))return false;
+                    const p=sim.player.position;if(!playerVehicle()&&ScmGarages.sphereTouching(garage,[p.x,-p.z,p.y],.5))return false;
+                    return !(pedestrians?.targets(true)??[]).some(ped=>{const q=ped.position;return ScmGarages.sphereTouching(garage,[q.x,-q.z,q.y],.5);});
+                   },
+                   // ThrowCarsNearDoorOutOfGarage: 0.02 units a frame each frame, outward from the box's middle in x and y.
+                   throwCarsNearDoorOut:(garage,ignore,step)=>{
+                    const skip=ignored(ignore),f=garageFootprint(garage);if(!f)return;
+                    for(const v of allVehicles()){
+                     if(v===skip||!touching(garage,v)||spheresOf(v).every(s=>ScmGarages.pointInside(garage,s.p)))continue;
+                     const body=bodyOf(v),t=body.translation(),dx=t.x-(f.minX+f.maxX)/2,dy=-t.z-(f.minY+f.maxY)/2,l=Math.hypot(dx,dy)||1,lv=body.linvel(),push=.02*50*step;
+                     body.setLinvel({x:lv.x+dx/l*push,y:lv.y,z:lv.z-dy/l*push},true);
+                    }
+                   },
+                   holdPlayer:(on,police)=>{garageHold=on;if(police)law.native.policeBackOffGarage=on;},
+                   destroyVehicle:handle=>{owner.vehicles.delete(handle);},
+                  };
+                 }
                  game.garages.hideouts={
                   playerCentre:()=>{const v=playerVehicle(),p=v?bodyOf(v).translation():sim.player.position;return [p.x,-p.z,p.y];},
                   playerVehicle:()=>{const v=playerVehicle();return !v?undefined:BMX_CLASS_MODELS.has(v.modelId)?'bmx':'vehicle';},
