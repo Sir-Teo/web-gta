@@ -1,6 +1,6 @@
 import {describe,expect,test} from 'vitest';
 import {NativeAccidentManager,NUM_ACCIDENTS,type AccidentPed} from '../src/ped/nativeAccidents';
-import {ambulanceDue,findNearestFire,fireTruckAim,fireTruckDue,medicCanTreat} from '../src/simulation/WorldEmergency';
+import {ambulanceDue,emergencyDispatchOpen,emergencyDispatchTick,findNearestFire,fireTruckAim,fireTruckDue,medicCanTreat} from '../src/simulation/WorldEmergency';
 
 const ped=(x:number,y:number,o:Partial<{mission:boolean;allowMedics:boolean;submerged:boolean;headless:boolean}>={}):AccidentPed=>({
  mission:!!o.mission,allowMedics:o.allowMedics??true,headless:!!o.headless,submerged:()=>!!o.submerged,position:()=>({x,y,z:0})});
@@ -39,17 +39,28 @@ describe('CAccidentManager',()=>{
  });
 });
 
-describe('the ambulance dispatch (AUTHORED from III/VC)',()=>{
- const base={wanted:0,onDuty:0,freeAccidents:2,nearestDistance:10,ambulances:0,nowMs:40000,lastCreatedMs:0};
- test('two free accidents, one within 30 units, none on duty: an ambulance',()=>{expect(ambulanceDue(base)).toBe(true);});
- test('one accident, a far one, one on duty, two about, four stars or within 30 s of the last: none',()=>{
+describe('the emergency dispatch (iOS CCarCtrl::GenerateEmergencyServicesCar)',()=>{
+ test('GenerateRandomCars runs it each time the clock crosses a 4096 ms boundary',()=>{
+  expect(emergencyDispatchTick(4095,4096)).toBe(true);expect(emergencyDispatchTick(4096,8191)).toBe(false);
+  expect(emergencyDispatchTick(8190,8200)).toBe(true);expect(emergencyDispatchTick(100,200)).toBe(false);
+ });
+ test('its gate: switched on, playing with no trip skip, three stars at most, outdoors, not the countryside',()=>{
+  const open={enabled:true,gameLogicBusy:false,wanted:3,interior:false,level:1};
+  expect(emergencyDispatchOpen(open)).toBe(true);
+  expect(emergencyDispatchOpen({...open,enabled:false})).toBe(false);
+  expect(emergencyDispatchOpen({...open,gameLogicBusy:true})).toBe(false);
+  expect(emergencyDispatchOpen({...open,wanted:4})).toBe(false);
+  expect(emergencyDispatchOpen({...open,interior:true})).toBe(false);
+  expect(emergencyDispatchOpen({...open,level:0})).toBe(false);
+ });
+ const base={onDuty:0,freeAccidents:2,nearest:true,nowMs:40000,lastCreatedMs:0};
+ test('two free accidents, none on duty, 30 s since the last: an ambulance, however far the nearest is',()=>{expect(ambulanceDue(base)).toBe(true);});
+ test('one accident, none found, one on duty or within 30 s of the last: none',()=>{
   expect(ambulanceDue({...base,freeAccidents:1})).toBe(false);
-  expect(ambulanceDue({...base,nearestDistance:31})).toBe(false);
-  expect(ambulanceDue({...base,nearestDistance:undefined})).toBe(false);
+  expect(ambulanceDue({...base,nearest:false})).toBe(false);
   expect(ambulanceDue({...base,onDuty:1})).toBe(false);
-  expect(ambulanceDue({...base,ambulances:2})).toBe(false);
-  expect(ambulanceDue({...base,wanted:4})).toBe(false);
-  expect(ambulanceDue({...base,nowMs:29000})).toBe(false);
+  expect(ambulanceDue({...base,nowMs:30000})).toBe(false);
+  expect(ambulanceDue({...base,nowMs:30001})).toBe(true);
  });
  test('CTaskComplexMedicTreatInjuredPed treats within 1 unit across and 2 up',()=>{
   expect(medicCanTreat({x:0,y:0,z:0},{x:.9,y:0,z:1.9})).toBe(true);
@@ -65,13 +76,13 @@ describe('the fire engine (CTaskComplexDriveFireTruck, FireTruckControl)',()=>{
   expect(findNearestFire(fires,{x:0,y:0})?.position.x).toBe(7);
   expect(findNearestFire([],{x:0,y:0})).toBeUndefined();
  });
- test('the dispatch wants three fires, the nearest within 30 units, and 35 s since the last engine',()=>{
-  const base={wanted:0,onDuty:0,activeFires:3,nearestDistance:10,fireTrucks:0,nowMs:40000,lastCreatedMs:0};
+ test('the dispatch wants three fires not the script\'s, a nearest one, none on duty and 35 s since the last engine',()=>{
+  const base={onDuty:0,nonScriptFires:3,nearest:true,nowMs:40000,lastCreatedMs:0};
   expect(fireTruckDue(base)).toBe(true);
-  expect(fireTruckDue({...base,activeFires:2})).toBe(false);
-  expect(fireTruckDue({...base,nearestDistance:31})).toBe(false);
+  expect(fireTruckDue({...base,nonScriptFires:2})).toBe(false);
+  expect(fireTruckDue({...base,nearest:false})).toBe(false);
   expect(fireTruckDue({...base,onDuty:1})).toBe(false);
-  expect(fireTruckDue({...base,nowMs:34000})).toBe(false);
+  expect(fireTruckDue({...base,nowMs:35000})).toBe(false);
  });
  test('the nozzle turns a hundredth of a step at a time toward the fire\'s bearing off the heading, and sways ±0.15',()=>{
   // Fire straight to the truck's left (−x) with the truck facing +y: bearing atan2(1, 0) = π/2.

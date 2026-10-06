@@ -4,9 +4,9 @@ import {endStoryMission} from './freeRoam';
 const state=(page:Page)=>page.evaluate(()=>(window as any).__game.state());
 const emergency=(page:Page)=>page.evaluate(()=>(window as any).__game.state().emergency);
 
-// CCarCtrl::GenerateEmergencyServicesCar (AUTHORED from III/VC) with SA's CAccidentManager and the reversed medic tasks:
-// two dead in the street within 30 units of CJ bring an ambulance with its siren on; its medics get out inside 10 units
-// of the accident, give CPR (MEDIC CPR) and the body gets up (ComputeReviveResponse).
+// CCarCtrl::GenerateEmergencyServicesCar (iOS) with SA's CAccidentManager and the reversed medic tasks: two dead in the
+// street bring an ambulance with its siren on; its medics get out inside 10 units of the accident, give CPR (MEDIC CPR)
+// and the body gets up (ComputeReviveResponse).
 test('two dead in Grove Street bring an ambulance whose medics revive one',async({page})=>{
  test.setTimeout(420000);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -27,8 +27,10 @@ test('two dead in Grove Street bring an ambulance whose medics revive one',async
   return killed.length;
  },{timeout:120000,intervals:[2000]}).toBe(2);
  await expect.poll(async()=>(await emergency(page)).accidents.length,{timeout:20000}).toBeGreaterThanOrEqual(2);
- // The ambulance comes, siren on.
- await expect.poll(async()=>(await emergency(page)).units.length,{timeout:60000}).toBeGreaterThan(0);
+ // The ambulance comes, siren on: at the next 4096 ms tick once 30 s of play have passed (LastTimeAmbulanceCreated is
+ // 0 at Init). The bodies' 30 s to fading (CPopulation::ManagePed) is held here meanwhile.
+ await expect.poll(async()=>page.evaluate(ids=>{const g=(window as any).__game;for(const id of ids)g.pedestrians().holdDead(id);
+  return g.state().emergency.units.length;},killed),{timeout:60000,intervals:[1000]}).toBeGreaterThan(0);
  const unit=(await emergency(page)).units[0];
  expect(unit.modelId).toBe(416);expect(unit.siren).toBe(true);
  // Its crew get out and one of them treats an accident.

@@ -8838,13 +8838,21 @@ that did anything.
   `GetNearestFreeAccident(ExceptThisOne)` by 3D distance, passing over the headless when asked. A revived ped keeps
   his slot, so dying again does not report him a second time. The reporter itself is a raw call: the port reports a
   ped the first time it is seen dead.
-- **The dispatch is AUTHORED.** `CCarCtrl::GenerateEmergencyServicesCar` and `GenerateOneEmergencyServicesCar` are raw
-  calls in gta-reversed; III's and Vice City's versions of the same routine give the shape: nothing above three
-  stars or while an ambulance is on duty; one when at least two accidents are free and the nearest lies within 30
-  units of the player, fewer than two ambulances are about and 30 s have passed since the last; made on a road out
-  of sight (60 to 120 units off here, the route to the accident the shortest of a dozen tried), told to go to the
-  accident at 30 under `DRIVINGSTYLE_AVOID_CARS` with its siren on. `CStreaming::ms_aDefaultMedicModel` is exe data:
-  the level's EMT (LAEMT1, SFEMT1, LVEMT1; LAEMT1 for the countryside) stands in.
+- **The dispatch is the iOS executable's.** `CCarCtrl::GenerateEmergencyServicesCar` and
+  `GenerateOneEmergencyServicesCar` are raw calls in gta-reversed, and the port first took III's and Vice City's
+  shape (a 30-unit reach to the accident, at most two ambulances about, checked every second). The iOS routine
+  (0x10018fe74) has neither limit. `GenerateRandomCars` runs it whenever the game clock crosses a 4096 ms boundary
+  (`(now ^ previous) >= 0x1000`, 0x10018df80). It sends nothing in these cases:
+  `SWITCH_EMERGENCY_SERVICES` has it off (the port stored the switch and never read it); CJ is wasted or busted, or a
+  trip skip is in progress (0x1001b2558); CJ has more than three stars; he is indoors; he is in the countryside
+  (`CGame::currLevel` 0); or the car counts are at `MaxNumberOfCarsInUse`.
+  Otherwise, with no ambulance on duty and at least two free accidents, it sends one to the nearest free accident,
+  however far, once 30 s have passed since `LastTimeAmbulanceCreated` (0 at Init, so none comes in the first 30 s of
+  play). It is made with its siren on and goes to the accident at 30 under `DRIVINGSTYLE_AVOID_CARS`.
+  `CStreaming`'s default models by level are the executable's tables (0x100592cc0): the medics are LAEMT1, SFEMT1
+  and LVEMT1, the ambulance is 416, and the countryside has none.
+  AUTHORED still: where the car is made (60 to 120 units off, out of sight; the route to the accident is the shortest
+  of a dozen tried), and the car budget, which is the browser's fleet cap of 12.
 - **The medics are the reversed tasks.** `CCarAI::AddAmbulanceOccupants` (driver and passenger seat 1, the rear
   left), `CTaskComplexMedicTreatInjuredPed`, `CTaskComplexTreatAccident`, `CTaskSimpleGiveCPR` and
   `CEventHandler::ComputeReviveResponse`: inside 10 units of the accident both get out; each takes the nearest free
@@ -8864,10 +8872,11 @@ that did anything.
 
 ## Fire engines answer fires
 
-- **The dispatch is AUTHORED** the same way as the ambulance's (III and Vice City's `GenerateEmergencyServicesCar`): no
-  engine while one is on duty or above three stars; one when three fires burn and the nearest lies within 30 units of
-  the player, fewer than two engines are about, and 35 s have passed since the last. The level's firefighter (LAFD1,
-  SFFD1, LVFD1; LAFD1 in the countryside) stands in for `ms_aDefaultFiremanModel`.
+- **The dispatch is the iOS executable's** (the second half of the same routine, after the ambulance's, behind the
+  same gate). With no engine on duty and three fires burning that are not the script's
+  (`CFireManager::GetNumOfNonScriptFires`, 0x10023bf88), it sends one to the nearest fire, however far, once 35 s
+  have passed since `LastTimeFireTruckCreated`. The port had counted script fires and wanted the fire within 30
+  units. The firemen by level are the executable's table: LAFD1, SFFD1 and LVFD1, and none in the countryside.
 - **The crew are the reversed tasks.** `CCarAI::AddFiretruckOccupants` seats the driver and the front passenger, who
   never leave the cab; the driver's `CTaskComplexDriveFireTruck` takes `CFireManager::FindNearestFire` from the truck
   (active, not the script's, not being put out, not on a ped, nearest in 2D), drives there at 30 under AVOID_CARS

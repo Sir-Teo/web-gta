@@ -236,7 +236,7 @@ import {bindLocalObjectData} from './ui/localObjectData';
 import {bindLocalSunTexture} from './ui/localSunTexture';
 import { NativeMap } from './ui/NativeMap';
 import { Hud } from './ui/Hud';
-import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, GAMELOGIC_STATE_WASTED, GAMELOGIC_STATE_BUSTED, type GameLogicWorld, type SkipWorld } from './simulation/nativeGameLogic';
+import { NativeGameLogic, STAT_DAYS_PASSED_IN_GAME, GAMELOGIC_STATE_PLAYING, GAMELOGIC_STATE_WASTED, GAMELOGIC_STATE_BUSTED, SKIP_IN_PROGRESS, type GameLogicWorld, type SkipWorld } from './simulation/nativeGameLogic';
 import { LEVEL_COUNTRYSIDE, NativeRestart } from './simulation/nativeRestart';
 import { ScmCameraFade } from './engine/ScmCameraFade';
 import { NativeBirds } from './world/nativeBirds';
@@ -4867,6 +4867,8 @@ async function boot() {
              if(!alive||!fleet||emergency)return;
              emergency=new WorldEmergency(sim,fleet,carEntry.clips,scriptCars,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
              if(worldZones)emergency.zones=worldZones;emergency.wanted=()=>law.level;emergency.outside=()=>render.lighting.area===0;
+             emergency.enabled=()=>mission?.runtime.game.allowEmergencyServices??true;
+             emergency.gameLogicBusy=()=>gameLogic.state!==GAMELOGIC_STATE_PLAYING||gameLogic.skipState===SKIP_IN_PROGRESS;
              emergency.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);emergency.fires=weapons.fires;
              emergency.crowd={dead:()=>pedestrians?.deadPeds()??[],exists:id=>!!pedestrians?.pedExists(id),spawnCrew:(model,position,heading,crew)=>pedestrians?pedestrians.spawnCrew(model,position,heading,crew):Promise.resolve(false),
               orders:(id,orders)=>pedestrians?.crewOrders(id,orders),crewState:id=>pedestrians?.crewState(id),holdDead:id=>pedestrians?.holdDead(id),revive:id=>!!pedestrians?.revive(id),

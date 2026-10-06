@@ -19,11 +19,14 @@ import type {WorldFleet} from './WorldFleet';
  * AddAmbulanceOccupants' two medics on CTaskComplexMedicTreatInjuredPed.
  *
  * CCarCtrl::GenerateEmergencyServicesCar (0x42F9C0) and GenerateOneEmergencyServicesCar (0x42B7D0) are raw calls in
- * the reference. Their shape here is III's and Vice City's version of the same routine (AUTHORED from those): no
- * ambulance while one is on duty or the player has more than three stars; one is sent when at least two accidents are
- * free and one of them lies within 30 units of the player, at most two ambulances about and 30 s since the last was
- * made; it is made on a road out of sight up to 120 units off and told to go to the accident with its siren on.
- * CStreaming::ms_aDefaultMedicModel is exe data the reference only addresses: the level's EMT model stands in.
+ * the reference; the dispatch is read from the iOS executable (0x10018fe74), which GenerateRandomCars runs whenever the
+ * game clock crosses a 4096 ms boundary. Nothing is sent while SWITCH_EMERGENCY_SERVICES has it off, while CJ is
+ * wasted or busted or a trip skip runs, above three stars, indoors, in the countryside (whose level has no ambulance,
+ * medic, fire engine or fireman) or with the car count at its cap. With no ambulance on duty, two free accidents bring
+ * one to the nearest of them, wherever it lies, 30 s after the last; with no fire engine on duty, three burning fires
+ * not the script's bring one to the nearest fire, 35 s after the last. The car is made on a road out of sight and told
+ * to go there with its siren on. CStreaming's default ambulance, medic, fire engine and fireman by level are the
+ * executable's tables (0x100592cc0 to 0x100592d14).
  *
  * What the medics do is reversed (CarAI.cpp's AddAmbulanceOccupants, TaskComplexMedicTreatInjuredPed.cpp,
  * TaskComplexTreatAccident.cpp, TaskSimpleGiveCPR.cpp, EventHandler.cpp's ComputeReviveResponse):
@@ -40,9 +43,13 @@ import type {WorldFleet} from './WorldFleet';
  * back aboard. */
 
 export const MODEL_AMBULAN=416;
-/** CStreaming::ms_aDefaultMedicModel by m_CurrLevel (countryside, Los Santos, San Fierro, Las Venturas): exe data
- * (0x8A5AC4) the reference only points at. The level's own EMT stands in; the countryside has none of its own. */
-export const DEFAULT_MEDIC_MODEL=['laemt1','laemt1','sfemt1','lvemt1'] as const;
+/** CStreaming::ms_aDefaultMedicModel by m_CurrLevel (countryside, Los Santos, San Fierro, Las Venturas), exe data the
+ * reference only points at (0x8A5AC4; iOS 0x100592cc0: -1, 274, 276, 275). The countryside has none: the dispatch
+ * sends nobody there. A script's car there (CREATE_EMERGENCY_SERVICES_CAR) takes Los Santos's crew, the browser's
+ * own choice. */
+export const DEFAULT_MEDIC_MODEL=[undefined,'laemt1','sfemt1','lvemt1'] as const;
+/** CStreaming::ms_aDefaultAmbulanceModel by level (iOS 0x100592cd0: -1, 416, 416, 416). */
+export const DEFAULT_AMBULANCE_MODEL=[undefined,416,416,416] as const;
 /** CTaskComplexMedicTreatInjuredPed's distances: the van stops for the accident and the passenger joins inside 10
  * units (100 squared), the run turns to a walk inside 5 (25 squared), and treatment starts within 1 across and 2 up. */
 export const MEDIC_LEAVE_CAR_DISTANCE=10,MEDIC_WALK_DISTANCE=5,MEDIC_TREAT_RADIUS=1,MEDIC_TREAT_HEIGHT=2;
@@ -50,14 +57,22 @@ export const MEDIC_LEAVE_CAR_DISTANCE=10,MEDIC_WALK_DISTANCE=5,MEDIC_TREAT_RADIU
 export const MEDIC_STAND_SECONDS=10;
 /** CTaskComplexDriveToPoint and CTaskComplexCarDriveWander's cruise speed and style. */
 export const MEDIC_CRUISE=30;
-/** AUTHORED (III and Vice City's GenerateEmergencyServicesCar): the dispatch gates. */
-export const AMBULANCE_ACCIDENT_RANGE=30,AMBULANCE_INTERVAL_MS=30000,AMBULANCE_MAX_WANTED=3;
-
-/** AUTHORED: whether CCarCtrl::GenerateEmergencyServicesCar would make an ambulance now (see the module comment). */
-export function ambulanceDue(o:{wanted:number;onDuty:number;freeAccidents:number;nearestDistance:number|undefined;ambulances:number;nowMs:number;lastCreatedMs:number}){
- if(o.wanted>AMBULANCE_MAX_WANTED||o.onDuty>0||o.freeAccidents<2)return false;
- if(o.nearestDistance===undefined||o.nearestDistance>AMBULANCE_ACCIDENT_RANGE)return false;
- return o.ambulances<2&&o.nowMs>o.lastCreatedMs+AMBULANCE_INTERVAL_MS;
+/** CCarCtrl::GenerateRandomCars (iOS 0x10018df80) runs the dispatch when (now ^ previous) >= 0x1000: the game clock has
+ * crossed a 4096 ms boundary since the last frame. */
+export function emergencyDispatchTick(previousMs:number,nowMs:number){return Math.floor(nowMs/4096)!==Math.floor(previousMs/4096);}
+export const EMERGENCY_MAX_WANTED=3,AMBULANCE_MIN_FREE_ACCIDENTS=2,AMBULANCE_INTERVAL_MS=30000;
+/** GenerateEmergencyServicesCar's opening gate (iOS 0x10018fe88 to 0x10018ff28), both halves behind it:
+ * CCarCtrl::bAllowEmergencyServicesToBeCreated (SWITCH_EMERGENCY_SERVICES); 0x1001b2558, CGameLogic's GameState not PLAYING or its
+ * SkipState SKIP_IN_PROGRESS; CWanted's level no more than 3; CGame::currArea 0; CGame::currLevel not the countryside.
+ * The car count against MaxNumberOfCarsInUse is the caller's (the browser's own budget). */
+export function emergencyDispatchOpen(o:{enabled:boolean;gameLogicBusy:boolean;wanted:number;interior:boolean;level:number}){
+ return o.enabled&&!o.gameLogicBusy&&o.wanted<=EMERGENCY_MAX_WANTED&&!o.interior&&o.level!==0;
+}
+/** The ambulance half: none on duty (CCarCtrl::NumAmbulancesOnDuty), at least two free accidents
+ * (GetNumberOfFreeAccidents), a nearest free one to CJ (GetNearestFreeAccident(FindPlayerCoors, false), no reach), and
+ * the clock past LastTimeAmbulanceCreated + 30 s. */
+export function ambulanceDue(o:{onDuty:number;freeAccidents:number;nearest:boolean;nowMs:number;lastCreatedMs:number}){
+ return o.onDuty===0&&o.freeAccidents>=AMBULANCE_MIN_FREE_ACCIDENTS&&o.nearest&&o.nowMs>o.lastCreatedMs+AMBULANCE_INTERVAL_MS;
 }
 /** CTaskComplexMedicTreatInjuredPed::CreateNextSubTask after TASK_COMPLEX_GO_TO_POINT_AND_STAND_STILL: close enough
  * to treat. */
@@ -66,18 +81,18 @@ export function medicCanTreat(medic:{x:number;y:number;z:number},target:{x:numbe
 }
 
 export const MODEL_FIRETRUK=407;
-/** CStreaming::ms_aDefaultFiremanModel (0x8A5AE4), exe data like the medics': the level's firefighter stands in. */
-export const DEFAULT_FIREMAN_MODEL=['lafd1','lafd1','sffd1','lvfd1'] as const;
-/** AUTHORED (III and Vice City's GenerateEmergencyServicesCar): a fire engine needs three fires burning, the nearest
- * within 30 units of the player, and 35 s since the last one. */
-export const FIRETRUCK_MIN_FIRES=3,FIRETRUCK_FIRE_RANGE=30,FIRETRUCK_INTERVAL_MS=35000;
+/** CStreaming::ms_aDefaultFiremanModel by level (0x8A5AE4; iOS 0x100592ce0: -1, 277, 279, 278), like the medics'. */
+export const DEFAULT_FIREMAN_MODEL=[undefined,'lafd1','sffd1','lvfd1'] as const;
+/** CStreaming::ms_aDefaultFireEngineModel by level (iOS 0x100592d08: -1, 407, 407, 407). */
+export const DEFAULT_FIRE_ENGINE_MODEL=[undefined,407,407,407] as const;
+/** The fire engine half: three fires burning that are not the script's (CFireManager::GetNumOfNonScriptFires, iOS
+ * 0x10023bf88), a nearest one (FindNearestFire(FindPlayerCoors, true, true), no reach), and 35 s since the last. */
+export const FIRETRUCK_MIN_FIRES=3,FIRETRUCK_INTERVAL_MS=35000;
 /** CTaskComplexDriveFireTruck's CTaskComplexDriveToPoint: 30 under AVOID_CARS, done within 25 units, where the cannon
  * takes over; its wander is 10 under STOP_FOR_CARS. */
 export const FIRETRUCK_CRUISE=30,FIRETRUCK_TARGET_RADIUS=25,FIRETRUCK_WANDER_CRUISE=10;
-export function fireTruckDue(o:{wanted:number;onDuty:number;activeFires:number;nearestDistance:number|undefined;fireTrucks:number;nowMs:number;lastCreatedMs:number}){
- if(o.wanted>AMBULANCE_MAX_WANTED||o.onDuty>0||o.activeFires<FIRETRUCK_MIN_FIRES)return false;
- if(o.nearestDistance===undefined||o.nearestDistance>FIRETRUCK_FIRE_RANGE)return false;
- return o.fireTrucks<2&&o.nowMs>o.lastCreatedMs+FIRETRUCK_INTERVAL_MS;
+export function fireTruckDue(o:{onDuty:number;nonScriptFires:number;nearest:boolean;nowMs:number;lastCreatedMs:number}){
+ return o.onDuty===0&&o.nonScriptFires>=FIRETRUCK_MIN_FIRES&&o.nearest&&o.nowMs>o.lastCreatedMs+FIRETRUCK_INTERVAL_MS;
 }
 /** A fire as the fire engines see it (CFire): native position. */
 export interface EmergencyFire {readonly active:boolean;readonly script:boolean;readonly beingExtinguished:boolean;readonly position:{x:number;y:number;z:number};readonly target?:{kind:string}}
@@ -174,20 +189,26 @@ export class WorldEmergency {
  readonly trucks:Truck[]=[];
  /** CFireManager's pool. */
  fires?:{readonly fires:readonly EmergencyFire[]};
- private lastFireTruckMs=-Infinity;
+ /** CCarCtrl::LastTimeFireTruckCreated, 0 at Init. */
+ private lastFireTruckMs=0;
  readonly accidents=new NativeAccidentManager<Casualty>();
  private readonly casualties=new Map<number,Casualty>();
  /** This frame's dead, by id. */
  private deadNow=new Map<number,ReturnType<EmergencyCrowd['dead']>[number]>();
- private paths?:ReturnType<typeof worldPaths>;private busy=false;private disposed=false;
- private seconds=0;private lastAmbulanceMs=-Infinity;private nextCheck=0;
+ private paths?:ReturnType<typeof worldPaths>;private busy=false;private truckBusy=false;private disposed=false;
+ /** The game clock here, and CCarCtrl::LastTimeAmbulanceCreated (0 at Init). */
+ private seconds=0;private lastAmbulanceMs=0;
  zones?:WorldZones;
  /** CWanted::m_nWantedLevel. */
  wanted:()=>number=()=>0;
  /** Whether a point's sphere is out of the camera's sight, where a car may be made. */
  canSpawn:(point:V3,radius:number)=>boolean=()=>true;
- /** CGame::CanSeeOutSideFromCurrArea: no ambulance answers indoors. */
+ /** CGame::currArea is 0: no ambulance answers indoors. */
  outside:()=>boolean=()=>true;
+ /** CCarCtrl::bAllowEmergencyServicesToBeCreated, which SWITCH_EMERGENCY_SERVICES sets. */
+ enabled:()=>boolean=()=>true;
+ /** iOS 0x1001b2558: CGameLogic's GameState is not PLAYING (wasted or busted), or a trip skip is in progress. */
+ gameLogicBusy:()=>boolean=()=>false;
  crowd?:EmergencyCrowd;
  error?:string;
  constructor(private sim:Simulation,private fleet:WorldFleet,private clips:VehicleAnimationLibrary,private driving:ScriptCarMissions,base:string,private random:()=>number=Math.random){
@@ -215,14 +236,13 @@ export class WorldEmergency {
  private fading(c:Casualty){return !!this.deadNow.get(c.id)?.fading;}
  update(dt:number){
   if(this.disposed)return;
-  this.seconds+=dt;
+  const previousMs=this.seconds*1000;this.seconds+=dt;
   for(let i=this.units.length-1;i>=0;i--){const u=this.units[i];if(u.car.disposed||!u.car.car.body.isValid()){this.drop(i);continue;}}
   this.refreshAccidents();
   for(const u of this.units)this.stepUnit(u,dt);
   for(let i=this.trucks.length-1;i>=0;i--){const t=this.trucks[i];if(t.car.disposed||!t.car.car.body.isValid()){this.dropTruck(i);continue;}this.stepTruck(t,dt);}
   this.cull();
-  if(this.seconds<this.nextCheck)return;this.nextCheck=this.seconds+1;
-  this.generate();
+  if(emergencyDispatchTick(previousMs,this.seconds*1000))this.generate();
  }
  /** The browser's removal (CCarCtrl::RemoveDistantCars stands behind it): an ambulance out of sight beyond 120 units
   * once it is wandering, 250 while it is on its way to an accident or its crew is out (the road there can lead it
@@ -244,26 +264,26 @@ export class WorldEmergency {
  }
  private dropTruck(i:number){const t=this.trucks[i];this.trucks.splice(i,1);this.driving.forget(t.car);}
  private drop(i:number){const u=this.units[i];this.units.splice(i,1);this.driving.forget(u.car);this.crowd?.release(u);}
- /** GenerateEmergencyServicesCar's fire engine half (AUTHORED, see fireTruckDue). */
+ /** GenerateEmergencyServicesCar's fire engine half (see fireTruckDue). */
  private generateFireTruck(){
-  const paths=this.paths,fires=this.fires?.fires;if(!paths||!fires||this.busy||!this.outside()||this.fleet.cars.size>=12)return;
-  const player=this.sim.player.position,at=toNative(player);
-  const nearest=findNearestFire(fires,at),distance=nearest?Math.hypot(nearest.position.x-at.x,nearest.position.y-at.y):undefined;
-  const trucks=[...this.fleet.cars].filter(c=>c.modelId===MODEL_FIRETRUK&&!c.wrecked).length;
-  if(!fireTruckDue({wanted:this.wanted(),onDuty:this.trucks.filter(t=>!t.car.wrecked).length,activeFires:fires.filter(f=>f.active).length,nearestDistance:distance,fireTrucks:trucks,nowMs:this.seconds*1000,lastCreatedMs:this.lastFireTruckMs}))return;
+  const paths=this.paths,fires=this.fires?.fires;if(!paths||!fires||this.truckBusy)return;
+  const player=this.sim.player.position,at=toNative(player),nearest=findNearestFire(fires,at);
+  const level=this.level() as 0|1|2|3,fireman=DEFAULT_FIREMAN_MODEL[level],engine=DEFAULT_FIRE_ENGINE_MODEL[level];if(!fireman||!engine)return;
+  if(!fireTruckDue({onDuty:this.trucks.filter(t=>!t.car.wrecked).length,nonScriptFires:fires.filter(f=>f.active&&!f.script).length,nearest:!!nearest,nowMs:this.seconds*1000,lastCreatedMs:this.lastFireTruckMs}))return;
   const goal=toRenderer(nearest!.position);
-  this.busy=true;
+  this.truckBusy=true;
   void paths.loadAround(player.x,player.z).then(async()=>{
    if(this.disposed)return;
    const link=this.spawnLink(paths.areas,goal);if(!link)return;
    const {x,z}=link.start,y=link.from.position[2];
-   const car=await this.fleet.spawnTrafficCar(MODEL_FIRETRUK,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
+   const car=await this.fleet.spawnTrafficCar(engine,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
    if(!car)return;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
    this.lastFireTruckMs=this.seconds*1000;
-   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;
-   const truck:Truck={car,model:DEFAULT_FIREMAN_MODEL[Math.max(0,Math.min(3,this.level()))],mission:'wander',aim:{yaw:0,pitch:0}};
+   // bSirenOrAlarm from the start; the driver's task keeps it on only while there is a fire to go to.
+   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;car.siren=true;
+   const truck:Truck={car,model:fireman,mission:'wander',aim:{yaw:0,pitch:0}};
    this.trucks.push(truck);this.truckFindsFire(truck);
-  }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
+  }).catch(e=>{this.error=String(e);}).finally(()=>{this.truckBusy=false;});
  }
  /** CTaskComplexDriveFireTruck::CreateFirstSubTask for the driver: the nearest fire, or the wander. */
  private truckFindsFire(t:Truck){
@@ -303,26 +323,31 @@ export class WorldEmergency {
  }
  /** The fire engines whose cannon is on (CTaskComplexUseWaterCannon), with FireTruckControl's aim. */
  cannons(){return this.trucks.filter(t=>t.mission==='cannon'&&!t.car.wrecked&&!t.car.disposed&&t.fire?.active).map(t=>({car:t.car,aim:t.aim}));}
- /** GenerateEmergencyServicesCar's ambulance half (AUTHORED, see the module comment). */
+ /** CCarCtrl::GenerateEmergencyServicesCar (iOS 0x10018fe74): the gate, then the ambulance half and the fire engine's. */
  private generate(){
-  this.generateFireTruck();
-  const paths=this.paths;if(!paths||this.busy||!this.crowd||!this.outside()||this.fleet.cars.size>=12)return;
-  const player=this.sim.player.position,at=toNative(player);
-  const nearest=this.accidents.nearestFree(at,false),distance=nearest?Math.hypot(nearest.ped.position().x-at.x,nearest.ped.position().y-at.y,nearest.ped.position().z-at.z):undefined;
-  const ambulances=[...this.fleet.cars].filter(c=>c.modelId===MODEL_AMBULAN&&!c.wrecked).length;
-  if(!ambulanceDue({wanted:this.wanted(),onDuty:this.ambulancesOnDuty,freeAccidents:this.accidents.numberOfFree(),nearestDistance:distance,ambulances,nowMs:this.seconds*1000,lastCreatedMs:this.lastAmbulanceMs}))return;
+  if(!emergencyDispatchOpen({enabled:this.enabled(),gameLogicBusy:this.gameLogicBusy(),wanted:this.wanted(),interior:!this.outside(),level:this.level()}))return;
+  // The sum of the car counts against MaxNumberOfCarsInUse: the browser's fleet budget stands in.
+  if(this.fleet.cars.size>=12)return;
+  this.generateAmbulance();this.generateFireTruck();
+ }
+ /** GenerateEmergencyServicesCar's ambulance half (see ambulanceDue). */
+ private generateAmbulance(){
+  const paths=this.paths;if(!paths||this.busy||!this.crowd)return;
+  const player=this.sim.player.position,at=toNative(player),nearest=this.accidents.nearestFree(at,false);
+  const level=this.level() as 0|1|2|3,medic=DEFAULT_MEDIC_MODEL[level],ambulance=DEFAULT_AMBULANCE_MODEL[level];if(!medic||!ambulance)return;
+  if(!ambulanceDue({onDuty:this.ambulancesOnDuty,freeAccidents:this.accidents.numberOfFree(),nearest:!!nearest,nowMs:this.seconds*1000,lastCreatedMs:this.lastAmbulanceMs}))return;
   const goal=toRenderer(nearest!.ped.position());
   this.busy=true;
   void paths.loadAround(player.x,player.z).then(async()=>{
    if(this.disposed)return;
    const link=this.spawnLink(paths.areas,goal);if(!link)return;
    const {x,z}=link.start,y=link.from.position[2];
-   const car=await this.fleet.spawnTrafficCar(MODEL_AMBULAN,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
+   const car=await this.fleet.spawnTrafficCar(ambulance,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
    if(!car)return;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
    this.lastAmbulanceMs=this.seconds*1000;
-   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;void this.clips.load(car.animGroup).catch(()=>{});
+   car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;car.siren=true;void this.clips.load(car.animGroup).catch(()=>{});
    // AddAmbulanceOccupants: the driver and passenger seat 1, which is the rear left in this port's seat order.
-   const unit:Unit={car,model:DEFAULT_MEDIC_MODEL[Math.max(0,Math.min(3,this.level()))],mission:'wander',
+   const unit:Unit={car,model:medic,mission:'wander',
     medics:[0,2].map(seat=>({seat,state:'seated',time:0,best:Infinity,stall:0,leftOnce:false}))};
    this.units.push(unit);
    this.driverFindsAccident(unit);
@@ -343,7 +368,7 @@ export class WorldEmergency {
    const car=await this.fleet.spawnTrafficCar(modelId,{x,y,z},Math.atan2(-link.dx,-link.dz),()=>!this.disposed&&this.canSpawn({x,y:y+1,z},6)).catch(()=>undefined);
    if(!car)return;if(this.disposed){this.fleet.removeTrafficCar(car);return;}
    car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;car.siren=true;
-   const level=Math.max(0,Math.min(3,this.level()));
+   const level=Math.max(1,Math.min(3,this.level())) as 1|2|3;
    if(modelId===MODEL_FIRETRUK){
     this.trucks.push({car,model:DEFAULT_FIREMAN_MODEL[level],mission:'toPoint',aim:{yaw:0,pitch:0},goal});
     this.driving.gotoCoords(car,goal,{cruise:FIRETRUCK_CRUISE,style:DRIVINGSTYLE.avoidCars});
