@@ -9452,12 +9452,19 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 
 ## Stealable objects
 
-- **Picked up and carried by the enter/exit button (AUTHORED).** `SET_OBJECT_AS_STEALABLE` marks an object (GUNS1's
-  crates). `CPlayerInfo::FindObjectToSteal` and the code that calls it are unreversed, so this follows what GUNS1 tells
-  the player ("Press ~k~~VEHICLE_ENTER_EXIT~ to pick up the crate", "... to put the crate in the truck") and waits on
-  (`IS_CHAR_HOLDING_OBJECT`, then not): on foot, the button lifts the nearest stealable object within 1.5 units in
-  front of CJ and he holds it before his chest (the script's hold machinery, `CTaskSimpleHoldEntity`); carrying one, the
-  button sets it down 0.6 units ahead. The button goes to a car only when neither applies.
+- **Picked up and carried by the enter/exit button.** `SET_OBJECT_AS_STEALABLE` sets `bIsLiftable` (iOS: bit 0x2000 of
+  m_nObjectFlags) on an object (GUNS1's crates). `CPlayerInfo::FindObjectToSteal` and its caller in
+  `CPlayerInfo::Process` are unreversed in gta-reversed and were AUTHORED.
+  - **The button.** On PC the enter/exit button does it, as GUNS1 tells the player ("Press ~k~~VEHICLE_ENTER_EXIT~ to
+    pick up the crate", "... to put the crate in the truck") before waiting on `IS_CHAR_HOLDING_OBJECT`, then not. The
+    iOS build lifts on its own and puts down with a touch button, so the port keeps the PC button.
+  - **The search** follows iOS (0x100255bb8): a liftable object strictly within 1.5 units, in 3D, of the point 0.75
+    ahead of CJ, with no angle or height cut. AUTHORED before as 1.5 across in front. iOS takes the last such object in
+    sector order; the nearest is taken here.
+  - **With one found** the button never goes to a car.
+  - **Holding.** He holds it before his chest (`CTaskSimpleHoldEntity`), and the button sets it down 0.6 units ahead.
+  - **Not ported:** `CTaskComplexGoPickUpEntity`'s walk to 0.4 outside the object's box and its turn before the lift,
+    and the iOS 2 s cooldown after a put-down.
 - **The CARRY clips (CTaskSimpleHoldEntity, reversed).** The pick-up plays the LIFTUP clip of the object's height group
   and the put-down the PUTDWN of `ChoosePutDownHeight`'s (a surface 0.65 ahead within 0.2 under the ped's origin is
   CARRY105, within 0.7 CARRY05, lower CARRY), the object leaving the hands at `m_fPutDownHeightZ` into it (0.6 s, 0.37,

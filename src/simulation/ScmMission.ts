@@ -67,9 +67,10 @@ type V3={x:number;y:number;z:number};
 const PED_NODE_BONE_TAG:Readonly<Record<number,number>>={1:3,2:5,3:32,4:22,5:34,6:24,7:41,8:51,9:43,10:53,11:52,12:42,13:33,14:23,15:31,16:21,17:4,18:8};
 /** CTaskSimpleHoldEntity's bone flag. */
 const HOLD_ENTITY_UPDATE_TRANSLATION_ONLY=0x10;
-/** The stealable objects' reach (AUTHORED, see playerStealKey): within 1.5 units across and 1.5 up or down, the carry
- * held at the upper torso (PED_NODE_UPPER_TORSO) half a unit before it, and set down 0.6 ahead. */
-const STEAL_REACH=1.5,STEAL_HEIGHT=1.5,STEAL_HOLD_NODE=1,STEAL_HOLD_OFFSET={x:0,y:.45,z:0},STEAL_PUT_DOWN_AHEAD=.6;
+/** CPlayerInfo::FindObjectToSteal (iOS 0x100255bb8): a liftable object strictly within 1.5 units (3D) of the point 0.75
+ * ahead of the ped. The carry is held at the upper torso (PED_NODE_UPPER_TORSO) half a unit before it (AUTHORED), and
+ * set down 0.6 ahead. */
+const STEAL_REACH=1.5,STEAL_SEARCH_AHEAD=.75,STEAL_HOLD_NODE=1,STEAL_HOLD_OFFSET={x:0,y:.45,z:0},STEAL_PUT_DOWN_AHEAD=.6;
 /** CTaskSimpleHoldEntity's carry groups (ChoosePutDownHeight, TaskSimpleHoldEntity.cpp:476): CARRY105 for a surface
  * within 0.2 under the ped's origin, CARRY05 within 0.7, CARRY lower down; each with its LIFTUP and PUTDWN clips in
  * carry.ifp and m_fPutDownHeightZ, the put-down clip's time at which the object leaves the hands. CRRY_PRTIAL, the
@@ -3385,11 +3386,16 @@ export class ScmMission {
   this.poseHeldObject(object);
  }
  /** The enter/exit button on foot near a stealable object. CPlayerInfo::FindObjectToSteal (0x56DBD0) and the code
-  * that calls it are unreversed, so this is AUTHORED from what GUNS1 (Home Invasion) tells the player ("Press
-  * ~k~~VEHICLE_ENTER_EXIT~ to pick up the crate", "... to put the crate in the truck") and waits on
-  * (IS_CHAR_HOLDING_OBJECT, then NOT): carrying a stealable object, the button sets it down in front of CJ; otherwise
-  * the nearest stealable object within STEAL_REACH in front of him is lifted and held before his chest, with no pick-up
-  * clip or carrying walk. True when the button went to it rather than to a car. */
+  * that calls it are unreversed in gta-reversed. On PC the button does it, as GUNS1 (Home Invasion) tells the player
+  * ("Press ~k~~VEHICLE_ENTER_EXIT~ to pick up the crate", "... to put the crate in the truck"); the iOS build picks up
+  * on its own and puts down with a touch button, so the button is kept here.
+  * - The search is the iOS one (0x100255bb8): a stealable (bIsLiftable) object strictly within 1.5 units, in 3D, of the
+  *   point 0.75 ahead of CJ, with no angle or height cut. The iOS build takes the last such object in its sector lists'
+  *   order; the nearest to that point is taken here.
+  * - With one found, the button does not go to a car.
+  * - Carrying a stealable object, the button sets it down in front of CJ.
+  * Not ported: CTaskComplexGoPickUpEntity's walk to 0.4 outside the object's box and turn to it before the lift (the
+  * object is lifted where CJ stands). True when the button went to it rather than to a car. */
  playerStealKey(){
   const held=this.heldObjectOf(PLAYER_PED_HANDLE),me=this.world.playerPed(),h=(me.heading??0)*Math.PI/180,forward={x:-Math.sin(h),y:Math.cos(h)};
   if(held){
@@ -3406,10 +3412,11 @@ export class ScmMission {
    return true;
   }
   let best:import('../engine/ScmObjects').ScmObject|undefined,bestDistance=STEAL_REACH;
+  const search={x:me.position.x+forward.x*STEAL_SEARCH_AHEAD,y:me.position.y+forward.y*STEAL_SEARCH_AHEAD,z:me.position.z};
   for(const object of this.runtime.game.objects.all){
    if(!object.stealable||object.heldBy||object.attachedTo)continue;
-   const dx=object.position.x-me.position.x,dy=object.position.y-me.position.y,distance=Math.hypot(dx,dy);
-   if(distance>bestDistance||Math.abs(object.position.z-me.position.z)>STEAL_HEIGHT||(dx*forward.x+dy*forward.y)<0)continue;
+   const distance=Math.hypot(object.position.x-search.x,object.position.y-search.y,object.position.z-search.z);
+   if(!(distance<bestDistance))continue;
    best=object;bestDistance=distance;
   }
   if(!best)return false;
