@@ -2058,11 +2058,12 @@ export class ScmMission {
     const v=handle===PLAYER_PED_HANDLE?this.host('playerVelocity','GET_CHAR_VELOCITY')():this.host('scriptPedVelocity','GET_CHAR_VELOCITY')(this.livePed(handle));
     return {x:v.x/50,y:v.y/50,z:v.z/50};
    },
-   // GET_CHAR_HEIGHT_ABOVE_GROUND (0x0819, unreversed; AUTHORED): the ped's position, its origin a unit over its feet,
-   // less the ground FindGroundZFor3DCoord finds under it. The parachute script lets him open the canopy above 20.
+   // GET_CHAR_HEIGHT_ABOVE_GROUND (0x0819, unreversed in gta-reversed; iOS handler 0x1001fb428): the ped's position,
+   // its origin a unit over its feet, less CWorld::FindGroundZFor3DCoord there, which is 0 when nothing is under it
+   // (so the height is then the ped's own z). The parachute script lets him open the canopy above 20.
    getCharHeightAboveGround:handle=>{
     const p=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(handle)??this.peds.positionOf(handle);
-    return p.z-(this.world.groundLevel(p.x,p.y,p.z)??p.z);
+    return p.z-(this.world.groundLevel(p.x,p.y,p.z)??0);
    },
    pedSpeed:handle=>(handle===PLAYER_PED_HANDLE?this.world.playerPed().moveSpeed??0:this.world.scriptPedSpeed(this.livePed(handle)))/50,
    pedIsInWater:handle=>handle===PLAYER_PED_HANDLE?this.host('playerInWater','IS_CHAR_IN_WATER')():this.world.scriptPedSubmerged(this.livePed(handle)),

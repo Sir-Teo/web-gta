@@ -9534,7 +9534,8 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
   returns m_vecMoveSpeed unscaled): `player_parachute` starts the free fall under -10 and the Freefall mission hands the
   reading back to `SET_CHAR_VELOCITY`, which divides by fifty. CJ's is his vehicle's, or his last step's travel on foot;
   a script ped's likewise.
-- **`GET_CHAR_HEIGHT_ABOVE_GROUND`** (unreversed; AUTHORED) is the ped's origin less the ground under it, and
+- **`GET_CHAR_HEIGHT_ABOVE_GROUND`** (unreversed; the iOS handler, 0x1001fb428, confirms it) is the ped's origin less
+  `FindGroundZFor3DCoord` under it, which is 0 with nothing there (the height is then the ped's own z; it had been 0), and
   **`IS_2PLAYER_GAME_GOING_ON`** is `CGameLogic::IsCoopGameGoingOn`, false with no second player.
 
 ## A ped told to stand still stops
