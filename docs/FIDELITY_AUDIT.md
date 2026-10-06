@@ -10576,6 +10576,11 @@ Ported:
   The multiplier itself now reaches traffic: CCarCtrl::GenerateOneRandomCar makes no car once the random cars reach
   CarDensityMultiplier × MaxNumberOfCarsInUse (iOS 0x10018e044), so it scales the port's driver cap, and a script's
   SET_CAR_DENSITY_MULTIPLIER 0 stops new traffic. Before, the command was stored and never read.
+  INTRO is the exception, as for IsPlayerOnAMission. MAIN sets 0 before launching it and INTRO sets 0 again; only
+  its mission cleanup puts 1 back, and here INTRO never ends. So while its thread holds, traffic sees 1 and the 0
+  stays on the script's copy.
+  CCutsceneMgr's own 0 for the length of a cutscene (restored after) is not routed through the multiplier; the
+  port's cutscenes suppress traffic their own way.
 - ComputeWillKillPed (0x10028a1b8): while intro1 (Big Smoke) heads the list, CJ takes 0.77 of every hit after armour,
   falls and fire included.
 - The strap3 quarter of the player vehicle's damage, weapon and collision (see the InflictDamage entries).
@@ -10589,6 +10594,7 @@ to 15.0 and never changes.
 
 - CPed::AttachPedToEntity (0x10032c398): when no weapon is saved yet, the one in hand is kept for the detach, except
   that while heist5 heads the list the saved weapon is the minigun with 400 rounds, which CJ holds once detached.
+  Given back (GiveWeapon), it takes the heavy slot from whatever else is in it.
 
 - CPad::Update for pad 0 (0x100242cc0): once mtbiker (the Mount Chiliad Challenge) has headed the list and no longer
   does, a Mountain Bike is made at (-2309.23, -1651.22, 483.09), heading -2.6529 rad (152° west of north). It is made

@@ -422,6 +422,9 @@ async function boot() {
     sim.playerCollider.setEnabled(true);
     if(a.savedWeapon!==undefined&&sim.player.health>0){
      const inv=weapons.inventory;inv.setTotalAmmo(inv.selected,0);
+     // The saved weapon is given back (GiveWeapon): one he no longer holds, as heist5's minigun, takes its slot from
+     // whatever else is in it.
+     if(!inv.owned.has(a.savedWeapon))inv.give(a.savedWeapon,0,false);
      inv.select(a.savedWeapon);inv.setTotalAmmo(a.savedWeapon,a.savedAmmo??0);void weaponView.equip(inv.selected);
     }
   };
@@ -4933,7 +4936,7 @@ async function boot() {
             fleet.clearPed=handle=>pedestrians?.removeDeletableCollider(handle)??false;
             // CCarGenerator's hot-dog van brings its vendor, and his brain.
             fleet.onHotdogVan=car=>{try{mission?.hotdogVan(car);}catch(error){console.warn('Hot-dog vendor',error);}};
-            fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;fleet.carDensity=()=>mission?.runtime.game.carDensityMultiplier??1;
+            fleet.raining=()=>weatherStarted&&weather.rainyWeatherType;fleet.carDensity=()=>mission?.trafficCarDensity()??1;
             traffic=new WorldTraffic(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
             // A phone drives the traffic beyond 60 units on rails (measured: four of six cars, a sixth of the frame's CPU).
             if(touch)traffic.physicsRadius=60;

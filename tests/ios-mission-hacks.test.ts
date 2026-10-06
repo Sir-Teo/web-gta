@@ -74,3 +74,10 @@ test('the Mountain Bike is left once mtbiker no longer heads the list, once',()=
 
 import {iosForcedCarZoom} from '../src/engine/iosMissionHacks';
 test('barb pins the car camera zoom at 2',()=>{expect(iosForcedCarZoom('BARB')).toBe(2);expect(iosForcedCarZoom('barber')).toBeUndefined();});
+
+import {ScmMission} from '../src/simulation/ScmMission';
+test('traffic sees the script car density, except while the never-ending INTRO holds',()=>{
+ const density=(names:string[],multiplier:number)=>(ScmMission.prototype as any).trafficCarDensity.call({runtime:{active:names.map(name=>({thread:{name}})),game:{carDensityMultiplier:multiplier}}});
+ expect(density(['MAIN'],0)).toBe(0);expect(density(['INTRO2','MAIN'],.5)).toBe(.5);
+ expect(density(['PLCHUTE','INTRO','MAIN'],0)).toBe(1);
+});

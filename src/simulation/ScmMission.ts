@@ -3568,6 +3568,11 @@ export class ScmMission {
   * here it never gets past its car-recording wait (docs/FIDELITY_AUDIT.md "The intro that cannot finish"), so free roam
   * does not stay on a mission because of it, as with its zone names and weather. */
  playerOnAMission(){return this.runtime.playerOnAMission()&&!this.runtime.active.some(slot=>slot.thread.name.toUpperCase()==='INTRO');}
+ /** CCarCtrl::CarDensityMultiplier as the world's traffic sees it. INTRO is the exception again: MAIN sets 0 before
+  * launching it and INTRO sets 0 again, and only the mission cleanup at its end puts 1 back. Here it never ends, so
+  * while its thread holds, the script's 0 stays on the script's copy (as its weather does) rather than empty free roam
+  * of traffic. */
+ trafficCarDensity(){return this.runtime.active.some(slot=>slot.thread.name.toUpperCase()==='INTRO')?1:this.runtime.game.carDensityMultiplier;}
  /* CRadar::Draw3dMarkers (0x585BF0), which CHud::Draw runs while the HUD draws 3D markers and the screen is not
   * widescreen: every tracked blip shown as a marker places one. An entity's cone floats above it in the blip's colour
   * (a car's 2 above its box top raised a fifth, two thirds for the Nevada; a ped's 2.7 above it; an object's or
