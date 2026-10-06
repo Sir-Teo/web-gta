@@ -10595,9 +10595,11 @@ to 15.0 and never changes.
   through CreateCarForScript without the mission cleanup, so it stays. iOS waits while its mission-retry prompt is up,
   and the latch also lets go when mtbiker merely starts a sub-script.
 
-Not ported yet:
-- zero1's lock of the player weapon camera mode to 45;
-- barb's car camera zoom held at 2.
+- CPad::Update for pad 0: TheCamera.m_nCarZoom is pinned to 2 while barb (the barber's shop) heads the list; the
+  port's car camera does not draw by it, but GET_PLAYER_IN_CAR_CAMERA_MODE reads it back.
+
+Not ported: zero1's lock of the player weapon camera mode to 45 (MODE_HELICANNON_1STPERSON) whenever the controls are
+on. The port's attached turret camera has no other player weapon mode to leave it for.
 
 iOS UI only, not ported:
 - the mission-retry and checkpoint saves (TERMINATE_THIS_SCRIPT for catalin, SCRIPT_NAME's copcar, ambulan, firetru,

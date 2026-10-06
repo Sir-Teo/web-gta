@@ -71,3 +71,6 @@ test('the Mountain Bike is left once mtbiker no longer heads the list, once',()=
  expect(latch.update('MAIN')).toBe(true);expect(latch.update('MAIN')).toBe(false);
  expect(IOS_MTBIKER_BIKE.model).toBe(510);expect(IOS_MTBIKER_BIKE.heading*180/Math.PI).toBeCloseTo(-152,3);
 });
+
+import {iosForcedCarZoom} from '../src/engine/iosMissionHacks';
+test('barb pins the car camera zoom at 2',()=>{expect(iosForcedCarZoom('BARB')).toBe(2);expect(iosForcedCarZoom('barber')).toBeUndefined();});

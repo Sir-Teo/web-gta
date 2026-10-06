@@ -52,3 +52,7 @@ export class IosMtbikerBike {
 }
 /** The bike: MTBIKE (510) at the script's (x, y, z) and heading in radians (0x100593a08..a14). */
 export const IOS_MTBIKER_BIKE={model:510,position:{x:Math.fround(-2309.23),y:Math.fround(-1651.22),z:Math.fround(483.09)},heading:Math.fround(-2.6528976)};
+
+/** CPad::Update for pad 0: TheCamera.m_nCarZoom is pinned to 2 every frame while barb (the barber's shop) heads the
+ * list. Returns the zoom to force, or undefined. */
+export function iosForcedCarZoom(head:string|undefined){return lower(head)==='barb'?2:undefined;}
