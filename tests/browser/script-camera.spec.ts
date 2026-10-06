@@ -47,6 +47,18 @@ test('the camera goes where the script puts it and comes back when it is restore
   return {at,expected:{x:expected.x,y:expected.z,z:-expected.y}};
  });
  expect(Math.hypot(attached.at.x-attached.expected.x,attached.at.y-attached.expected.y,attached.at.z-attached.expected.z)).toBeLessThan(.05);
+ // The tilt (degrees) rolls the view about its direction (CCam::Process_AttachedCam, iOS): 30 leans the top of the
+ // view right, the camera's up taking sin 30° of its right.
+ const rolled=await page.evaluate(async()=>{
+  const game=(window as any).__game,mission=game.missionForProfiling(),camera=mission.runtime.game.camera,adapter=(mission as any).runtime.world;
+  camera.takeControlAttachToEntity(undefined,{kind:'ped',handle:1},{x:0,y:-5,z:2},{x:0,y:2,z:0},30,1,1);
+  await new Promise(r=>setTimeout(r,500));
+  const cam=game.render().camera,e=cam.matrixWorld.elements,right={x:e[0],y:e[1],z:e[2]},up={x:e[4],y:e[5],z:e[6]};
+  camera.restoreWithJumpCut(adapter.playerCameraState());
+  // The world's up across the view, as the camera sees it: + to the left for a top leaning right.
+  return {upRight:right.y,upUp:up.y};
+ });
+ expect(rolled.upRight).toBeLessThan(-.3);expect(rolled.upUp).toBeGreaterThan(.6);
  // SET_CAMERA_BEHIND_PLAYER swings the string camera straight behind the ped, and its counterpart in front.
  const swung=await page.evaluate(async()=>{
   const game=(window as any).__game,mission=game.missionForProfiling(),adapter=(mission as any).runtime.world;

@@ -9631,10 +9631,17 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 - **`APPEND_TO_NEXT_CUTSCENE`** is `CCutsceneMgr::AppendToNextCutscene` (reversed): the object and clip, lower-cased,
   join the next cutscene loaded, which takes and empties the list.
 - **`ATTACH_CAMERA_TO_VEHICLE`, `…_LOOK_AT_VEHICLE`, `…_LOOK_AT_CHAR`, `ATTACH_CAMERA_TO_CHAR` and
-  `…_LOOK_AT_CHAR`** call `CCamera::TakeControlAttachToEntity` (handlers reversed; the routine and
-  `CCam::Process_AttachedCam` are not, AUTHORED): MODE_ATTACHCAM on the entity, the camera at the offset in its
-  space, looking at the target entity or at the look-at point in that space. The tilt (a roll) is kept but not drawn.
-  `gf_date` stopped on the look-at-char form.
+  `…_LOOK_AT_CHAR`** call `CCamera::TakeControlAttachToEntity`. The routine and `CCam::Process_AttachedCam` are
+  unreversed in gta-reversed and were AUTHORED; they now follow the iOS executable (0x10022de3c, 0x10021b478):
+  - MODE_ATTACHCAM on the entity, with the camera at the offset in its space. An offset of nothing is two units up.
+  - It looks at the target entity's root, or at the look-at point in the entity's space. A look-at point equal to
+    the offset is the entity's origin.
+  - The FOV is 70, recomputed every frame with no smoothing.
+  - The tilt, in degrees, rolls the view about its direction; a positive tilt leans the top right. It was kept but
+    not drawn before.
+  - Every handler hands over the script's control (1), as all script camera commands do. The port had passed 2 here
+    and for POINT_CAMERA_AT_CAR/CHAR, so an attach after POINT_CAMERA_AT_POINT was refused.
+  - `gf_date` stopped on the look-at-char form.
 
 ## A ped made against furniture stays on the floor
 

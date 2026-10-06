@@ -91,14 +91,17 @@ export class ScmCamera {
   * riding an entity (MODE_ATTACHCAM), at an offset in its space and looking at a point in its space or at the
   * target entity. */
  attached?:{kind:'ped'|'vehicle';handle:number;offset:Vec3;lookAt?:Vec3;tilt:number};
- /** CCamera::TakeControlAttachToEntity (0x50C910, unreversed; AUTHORED as TakeControl beside it): the script's
-  * request yields to a cutscene's unless the cinema camera is on, and the camera goes to MODE_ATTACHCAM on the
-  * entity, looking at the target when one is given and at the offset point otherwise. */
+ /** CCamera::TakeControlAttachToEntity (0x50C910, unreversed in gta-reversed; iOS 0x10022de3c): a cutscene's
+  * request (2) yields to the script's (1) unless the cinema camera is on, and the camera goes to MODE_ATTACHCAM on the
+  * entity, looking at the target when one is given and at the look-at point otherwise. */
  takeControlAttachToEntity(target:{kind:'ped'|'vehicle';handle:number}|undefined,attached:{kind:'ped'|'vehicle';handle:number},offset:Vec3,lookAt:Vec3|undefined,tilt:number,switchType:number,whoIsInControl:number){
   requireAsset([offset.x,offset.y,offset.z,tilt].every(Number.isFinite)&&(!lookAt||[lookAt.x,lookAt.y,lookAt.z].every(Number.isFinite)),'Invalid attached camera.');
   if(!this.cinemaCamera&&whoIsInControl===2&&this.whoIsInControlOfTheCamera===1)return;
   this.whoIsInControlOfTheCamera=whoIsInControl;this.modeToGoTo=MODE_ATTACHCAM;
-  this.attached={...attached,offset:{...offset},lookAt:lookAt&&{...lookAt},tilt};
+  // An offset of nothing is two units up, and a look-at point the same as the offset is the entity's own origin.
+  const at=offset.x===0&&offset.y===0&&offset.z===0?{x:0,y:0,z:2}:{...offset};
+  const look=lookAt&&(lookAt.x===offset.x&&lookAt.y===offset.y&&lookAt.z===offset.z?{x:0,y:0,z:0}:{...lookAt});
+  this.attached={...attached,offset:at,lookAt:look,tilt};
   this.targetEntity=target&&{...target};this.typeOfSwitch=switchType;
   this.lookingAtPlayer=false;this.lookingAtVector=false;this.startInterScript=true;
  }

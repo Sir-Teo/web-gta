@@ -123,9 +123,16 @@ describe('the last of the tail',()=>{
    ['move',8,{x:0,y:0,z:0},{x:10,y:10,z:10},2],
   ]);
   const camera=game.camera;
-  expect(camera.modeToGoTo).toBe(47);expect(camera.lookingAtPlayer).toBe(false);expect(camera.whoIsInControlOfTheCamera).toBe(2);
+  // The script's control (1), as the iOS handler passes it.
+  expect(camera.modeToGoTo).toBe(47);expect(camera.lookingAtPlayer).toBe(false);expect(camera.whoIsInControlOfTheCamera).toBe(1);
   expect(camera.attached).toEqual({kind:'vehicle',handle:CAR,offset:{x:0,y:-5,z:2},lookAt:{x:0,y:0,z:0},tilt:15});
   expect(camera.targetEntity).toBeUndefined();expect(camera.typeOfSwitch).toBe(1);
+  // TakeControlAttachToEntity (iOS 0x10022de3c): an offset of nothing is two units up, and a look-at point the same as
+  // the offset is the entity's origin.
+  camera.takeControlAttachToEntity(undefined,{kind:'vehicle',handle:CAR},{x:0,y:0,z:0},{x:1,y:2,z:3},0,1,1);
+  expect(camera.attached).toMatchObject({offset:{x:0,y:0,z:2},lookAt:{x:1,y:2,z:3}});
+  camera.takeControlAttachToEntity(undefined,{kind:'vehicle',handle:CAR},{x:1,y:2,z:3},{x:1,y:2,z:3},0,1,1);
+  expect(camera.attached).toMatchObject({offset:{x:1,y:2,z:3},lookAt:{x:0,y:0,z:0}});
   // Looking at another vehicle, and from the car at a ped: the target entity, no look-at point.
   run({},game,instruction(op('ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE'),[int(CAR),float(0),float(-5),float(2),int(10),float(15),int(1)]));
   expect(camera.targetEntity).toEqual({kind:'vehicle',handle:10});expect(camera.attached?.lookAt).toBeUndefined();

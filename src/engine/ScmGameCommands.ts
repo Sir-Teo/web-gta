@@ -2122,14 +2122,16 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  // CameraCommands.cpp (reversed): TheCamera.TakeControlAttachToEntity with the script in control (2), the entity's
  // offset and either a look-at point in its space or a target entity.
+ // The attach handlers (iOS 0x1001ee584 and on) hand CCamera::TakeControlAttachToEntity the script's control (1), as
+ // every script camera command does; the tilt is in degrees.
  ATTACH_CAMERA_TO_VEHICLE:(t,p,i)=>{
-  game(t,i).camera.takeControlAttachToEntity(undefined,{kind:'vehicle',handle:t.readInt(p[0])},vec(t,p,1),vec(t,p,4),t.readFloat(p[7]),t.readInt(p[8]),2);
+  game(t,i).camera.takeControlAttachToEntity(undefined,{kind:'vehicle',handle:t.readInt(p[0])},vec(t,p,1),vec(t,p,4),t.readFloat(p[7]),t.readInt(p[8]),1);
  },
  ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_VEHICLE:(t,p,i)=>{
-  game(t,i).camera.takeControlAttachToEntity({kind:'vehicle',handle:t.readInt(p[4])},{kind:'vehicle',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),2);
+  game(t,i).camera.takeControlAttachToEntity({kind:'vehicle',handle:t.readInt(p[4])},{kind:'vehicle',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),1);
  },
  ATTACH_CAMERA_TO_VEHICLE_LOOK_AT_CHAR:(t,p,i)=>{
-  game(t,i).camera.takeControlAttachToEntity({kind:'ped',handle:t.readInt(p[4])},{kind:'vehicle',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),2);
+  game(t,i).camera.takeControlAttachToEntity({kind:'ped',handle:t.readInt(p[4])},{kind:'vehicle',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),1);
  },
  /* --- The peds, objects and world of the last batch. */
  SET_CHAR_USES_UPPERBODY_DAMAGE_ANIMS_ONLY:(t,p,i)=>{
@@ -2542,7 +2544,7 @@ const handlers:Record<string,ScmCommandHandler>={
  HELI_KEEP_ENTITY_IN_VIEW:(t,p,i)=>{world(t,i,'heliKeepEntityInView')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]),t.readFloat(p[4]));},
  SET_CAR_COORDINATES_NO_OFFSET:(t,p,i)=>{world(t,i,'setCarCoordinatesNoOffset')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  ATTACH_CAMERA_TO_CHAR:(t,p,i)=>{
-  game(t,i).camera.takeControlAttachToEntity(undefined,{kind:'ped',handle:t.readInt(p[0])},vec(t,p,1),vec(t,p,4),t.readFloat(p[7]),t.readInt(p[8]),2);
+  game(t,i).camera.takeControlAttachToEntity(undefined,{kind:'ped',handle:t.readInt(p[0])},vec(t,p,1),vec(t,p,4),t.readFloat(p[7]),t.readInt(p[8]),1);
  },
  ADD_EXPLOSION_NO_SOUND:(t,p,i)=>{world(t,i,'addExplosionNoSound')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]));},
  SWITCH_ON_GROUND_SEARCHLIGHT:(t,p,i)=>{world(t,i,'switchOnGroundSearchlight')(t.readInt(p[0]),bool(t,p[1]));},
@@ -2664,7 +2666,7 @@ const handlers:Record<string,ScmCommandHandler>={
  ADD_TO_OBJECT_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'addToObjectRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
  DRAW_WEAPONSHOP_CORONA:(t,p,i)=>{world(t,i,'drawWeaponshopCorona')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readInt(p[6]),t.readInt(p[7]),t.readInt(p[8]));},
  ATTACH_CAMERA_TO_CHAR_LOOK_AT_CHAR:(t,p,i)=>{
-  game(t,i).camera.takeControlAttachToEntity({kind:'ped',handle:t.readInt(p[4])},{kind:'ped',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),2);
+  game(t,i).camera.takeControlAttachToEntity({kind:'ped',handle:t.readInt(p[4])},{kind:'ped',handle:t.readInt(p[0])},vec(t,p,1),undefined,t.readFloat(p[5]),t.readInt(p[6]),1);
  },
  FIRE_HUNTER_GUN:(t,p,i)=>{world(t,i,'fireHunterGun')(t.readInt(p[0]));},
  TASK_DIVE_FROM_ATTACHMENT_AND_GET_UP:(t,p,i)=>{world(t,i,'taskDiveFromAttachmentAndGetUp')(t.readInt(p[0]),t.readInt(p[1]));},

@@ -3952,7 +3952,7 @@ async function boot() {
     if(mission){
      const scripted=mission.scriptCamera();
      if(scripted){scriptFixedCamera=render.fixedCamera={position:new Vector3(scripted.position.x,scripted.position.y,scripted.position.z),
-      target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z)};}
+      target:()=>new Vector3(scripted.target.x,scripted.target.y,scripted.target.z),roll:'roll' in scripted?scripted.roll:undefined};}
      else if(scriptFixedCamera&&render.fixedCamera===scriptFixedCamera){render.fixedCamera=undefined;scriptFixedCamera=undefined;}
     }
     occupants.update([...occupants.drivers(fleet?.cars??[],car=>policeCars.has(car)||!!driveby?.covers(car)||!!emergency?.covers(car)),...leavingAll.map(({pose:leaving,clip:leavingClip})=>({key:`leaving:${leaving.car.car.body.handle}:${leaving.seat}`,car:leaving.car,model:leaving.who?.model??occupants.driverModel(leaving.car),local:leaving.local,clip:leaving.clip,seconds:leaving.seconds,animation:leavingClip.clip})),...(police?.poses().map(p=>({...p,key:`police:${p.car.car.body.handle}:${p.seat}`}))??[]),...(emergency?.poses().map(p=>({...p,key:`emergency:${p.car.car.body.handle}:${p.seat}`}))??[]),...(driveby?.poses()??[]),...carEntry.passengerPoses(d=>{const name=`gang_driveby${d.side==='left'?'lhs':'rhs'}`,clip=driveby?.clip(name);return clip&&clip.duration>0?{clip:name,seconds:d.seconds%clip.duration,animation:clip,gun:driveby?.gun?.asset}:undefined;}),...carEntry.leavingPoses(),...scriptOccupantPoses(driveby,(block,name)=>carEntry.clips.peek(block,name),gameTimeMs)],render.lighting.nativeObjectAmbient,nativeDayNightBalance(sim.timeMinutes));

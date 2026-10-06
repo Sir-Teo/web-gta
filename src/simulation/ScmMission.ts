@@ -2311,8 +2311,9 @@ export class ScmMission {
    setVehicleStatus:(handle,status)=>{(this.liveVehicle(handle) as {scriptStatus?:number}).scriptStatus=status;},
    setVehicleTraction:(handle,traction)=>{(this.liveVehicle(handle) as {carTraction?:number}).carTraction=traction;},
    // POINT_CAMERA_AT_CAR and POINT_CAMERA_AT_CHAR: CCamera::TakeControl on the entity for the script (2).
-   pointCameraAtVehicle:(handle,mode,switchType)=>{if(handle!==PLAYER_VEHICLE_HANDLE)this.liveVehicle(handle);this.runtime.game.camera.takeControl({kind:'vehicle',handle},mode,switchType,2);},
-   pointCameraAtPed:(handle,_isPlayer,mode,switchType)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.runtime.game.camera.takeControl({kind:'ped',handle},mode,switchType,2);},
+   // CameraCommands.cpp:54 and :62: TakeControl with the script's control (1).
+   pointCameraAtVehicle:(handle,mode,switchType)=>{if(handle!==PLAYER_VEHICLE_HANDLE)this.liveVehicle(handle);this.runtime.game.camera.takeControl({kind:'vehicle',handle},mode,switchType,1);},
+   pointCameraAtPed:(handle,_isPlayer,mode,switchType)=>{if(handle!==PLAYER_PED_HANDLE)this.livePed(handle);this.runtime.game.camera.takeControl({kind:'ped',handle},mode,switchType,1);},
    // SET_CAR_STRAIGHT_LINE_DISTANCE: CAutoPilot::m_nStraightLineDistance, which FindSwitchDistanceClose reads.
    setVehicleStraightLineDistance:(handle,distance)=>{this.host('setScriptVehicleStraightLineDistance','SET_CAR_STRAIGHT_LINE_DISTANCE')(this.liveVehicle(handle),distance);},
    // IS_CAR_UPSIDEDOWN's handler is unreversed; CVehicle::IsUpsideDown (0x6D1D90) is the car's up axis at or below -0.9.
@@ -3599,9 +3600,10 @@ export class ScmMission {
    const source=camera.moveLinearPoint(this.clockMs)??camera.fixedModeSource,target=camera.trackLinearPoint(this.clockMs)??at??camera.fixedModeVector;
    return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
   }
-  // MODE_ATTACHCAM (CCam::Process_AttachedCam, unreversed; AUTHORED): the camera rides the entity at the offset in
-  // its space and looks at the target entity, or at the look-at point in the same space. The tilt (a roll) is not
-  // applied: the browser's camera keeps its up.
+  // MODE_ATTACHCAM: CCam::Process_AttachedCam (unreversed in gta-reversed; iOS 0x10021b478). The camera rides the
+  // entity at the offset in its space, at a FOV of 70, recomputed every frame. It looks at the target entity's root,
+  // or at the look-at point in the same space. Its up turns about the view by the tilt, in degrees (+ leans the top of
+  // the view right).
   if(camera.modeToGoTo===MODE_ATTACHCAM&&camera.attached){
    const a=camera.attached;
    try{
@@ -3609,7 +3611,7 @@ export class ScmMission {
     const place=(o:{x:number;y:number;z:number})=>({x:matrix.right.x*o.x+matrix.forward.x*o.y+matrix.up.x*o.z+matrix.position.x,
      y:matrix.right.y*o.x+matrix.forward.y*o.y+matrix.up.y*o.z+matrix.position.y,z:matrix.right.z*o.x+matrix.forward.z*o.y+matrix.up.z*o.z+matrix.position.z});
     const source=place(a.offset),target=camera.targetEntity?this.cameraEntityPosition(camera.targetEntity):place(a.lookAt??{x:0,y:1,z:0});
-    if(target)return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y}};
+    if(target)return {position:{x:source.x,y:source.z,z:-source.y},target:{x:target.x,y:target.z,z:-target.y},roll:Math.fround(Math.fround(a.tilt*Math.fround(Math.PI))/180)};
    }catch{return undefined;}
   }
   // MODE_CAM_ON_A_STRING and the follow camera on an entity the script names (two missions): a chase point behind

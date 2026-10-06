@@ -55,7 +55,8 @@ export class GameRenderer {
   /** CPed::PreRenderAfterTest's drawRealTimeShadow for the player (see drawsRealTimeShadow). */
   playerShadowAllowed=true;
   /** MODE_FIXED after CCamera::TakeControl: the camera sits at a native-script position and looks at the target. */
-  fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3};
+  /** `roll`: radians about the view, + leaning the top of the view right (CCam::Process_AttachedCam's tilt). */
+  fixedCamera?:{position:THREE.Vector3;target:()=>THREE.Vector3;roll?:number};
   /** CCam::Process_1stPerson's source and the vehicle's frame for the bumper view, from the host each frame. */
   bumper?:{source:{x:number;y:number;z:number};quaternion:{x:number;y:number;z:number;w:number}};
   /** TheCamera.m_bDisableFirstPersonInCar off. */
@@ -247,7 +248,7 @@ export class GameRenderer {
     this.camera.position.copy(this.target).addScaledVector(direction, this.distance);this.followPosition.copy(this.camera.position);
     this.camera.lookAt(this.target);
     // CCam::Process_Fixed keeps the camera at m_vecCamFixedModeSource and faces the entity it took control of.
-    if(this.fixedCamera){this.camera.position.copy(this.fixedCamera.position);this.camera.lookAt(this.fixedCamera.target());}
+    if(this.fixedCamera){this.camera.position.copy(this.fixedCamera.position);this.camera.lookAt(this.fixedCamera.target());if(this.fixedCamera.roll)this.camera.rotateZ(-this.fixedCamera.roll);}
     // CCam::Process_1stPerson: the source the host worked out, looking along the vehicle's own forward and up.
     else if(this.bumperView){const b=this.bumper!;this.camera.position.set(b.source.x,b.source.y,b.source.z);this.camera.quaternion.set(b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w);}
     else if(fp){
