@@ -9708,11 +9708,18 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 
 - **`CTaskAllocatorKillThreatsDriveby`** (reversed): while CJ drives, every member of his group riding his car (not
   driving it) gets `CTaskSimpleGangDriveBy` on the threat, abort range 60, frequency 90, all directions, through the
-  port's TASK_DRIVE_BY rider. Which ped is the threat is `CPedGroupIntelligence`'s event handling, unreversed
-  (AUTHORED): the nearest within 60 attacking CJ or a member (a kill task or a retaliation on them, a gun fired at
-  them, TASK_DESTROY_CAR on CJ's car as SWEET4's Ballas do, a rider's drive-by at them or at CJ's car), looked for twice
-  a second; the drive-by ends when none is left, and one the script gave
-  is left alone. The crew recruited off the street rides along the same way when it carries a gun. SWEET3 teaches it
+  port's TASK_DRIVE_BY rider. Which ped is the threat is `CPedGroupIntelligence`'s event handling, unreversed in
+  gta-reversed; the iOS executable settles how a threat is held:
+  - The threat is the source of the group's current event, held until its drive-by ends: the target is dead or gone,
+    or out past 60 after having come within it. It is no longer re-picked as others come nearer.
+  - A source in a script ped group of its own gives the riders that group's nearest living member
+    (ComputeClosestPeds, 0x1003a4294).
+  - The tasks are handed out again every 5000 ms.
+  - Still AUTHORED: which events become a drive-by. On iOS these are the car shot or rammed, and hated or disliked
+    peds seen, answered from MISSION.grp, which is not published. They stand as the nearest ped within 60 attacking CJ
+    or a member: a kill task or a retaliation on them, a gun fired at them, TASK_DESTROY_CAR on CJ's car as SWEET4's
+    Ballas do, or a rider's drive-by at them or at CJ's car. This is looked for twice a second.
+  - A drive-by the script gave is left alone. The crew recruited off the street rides along the same way when it carries a gun. SWEET3 teaches it
   ("Gang members in your car will open fire on threats if you're close enough").
 
 ## A ped told to enter the car it rides stays in its seat
