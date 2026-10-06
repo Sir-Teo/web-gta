@@ -26,8 +26,6 @@ export interface ScmDecisionMaker {
  group:boolean;referenceIndex:number;loaded:boolean;
  /** A copy's source: the default decision maker whose decisions it took (-1 for none). */
  copiedFrom?:number;
- /** Made by COPY_SHARED_CHAR_DECISION_MAKER, and handed again to the next script that asks for its template. */
- shared?:boolean;
 }
 export class ScmDecisionMakers {
  private readonly slots:(ScmDecisionMaker|undefined)[]=Array(TOTAL_DECISION_MAKERS).fill(undefined);
@@ -61,27 +59,25 @@ export class ScmDecisionMakers {
   const from=source===-1?-1:ScmDecisionMakers.indexOf(source);
   return {handle:this.allocate({type:-1,file:'',forMission,group:false,loaded:true,copiedFrom:from}),from};
  }
- /** COPY_SHARED_CHAR_DECISION_MAKER (handler unreversed; AUTHORED): the copy of a default decision maker the scripts
-  * share, made once a template and handed again to the next script that asks for that template until it is removed.
-  * dealer.scm, which every street dealer's brain runs, keeps the copy in one global, edits its responses through it,
-  * and frees what the global names when its dealer is done; a copy for each brain filled the ten script slots with
-  * dealers within minutes and the next brain gave up. */
- copyShared(source:number,forMission:boolean){
-  requireAsset(Number.isInteger(source),'Invalid decision maker source.');
-  const from=source===-1?-1:ScmDecisionMakers.indexOf(source);
-  const shared=this.slots.find(maker=>maker?.shared&&maker.copiedFrom===from);
-  if(shared)return {handle:(shared.referenceIndex<<16|shared.index)|0,from,made:false};
-  const copied=this.copy(source,forMission);
-  this.slots[ScmDecisionMakers.indexOf(copied.handle)]!.shared=true;
-  return {...copied,made:true};
+ /** COPY_SHARED_CHAR_DECISION_MAKER (unreversed in gta-reversed; the iOS handler, 0x100203cec): when the variable the
+  * copy is to be stored in already names a live decision maker (GetActualScriptThingIndex, type 7), that one is
+  * kept and nothing is copied; otherwise a new copy of the template is made, as COPY_CHAR_DECISION_MAKER's is. So a
+  * copy is shared by whatever reads one variable. Every script that uses the command stores into a global of its own:
+  * dealer.scm's brains all share $37812 until one frees it, while bouncer.scm and copsit.scm, which copy the same
+  * template into different globals, each have their own, and one freeing its copy leaves the other's. */
+ copyShared(source:number,forMission:boolean,current:number){
+  requireAsset(Number.isInteger(source)&&Number.isInteger(current),'Invalid decision maker source.');
+  if(this.actualIndex(current)!==-1)return {handle:current,from:-1,made:false};
+  return {...this.copy(source,forMission),made:true};
  }
- /** CTheScripts::GetActualScriptThingIndex for a decision maker: the slot a handle names, or -1 when a script slot's
-  * reference no longer matches (freed and reused). The game's own makers below COUNT_GAME_DECISION_MAKERS are always
-  * there. */
+ /** CTheScripts::GetActualScriptThingIndex for a decision maker: the slot a handle names, or -1 when the reference
+  * in its high half no longer matches the slot's (freed and reused). The game's own makers below
+  * COUNT_GAME_DECISION_MAKERS are always there, under the reference CTheScripts starts every slot at (1, so 65536 +
+  * n), the form every script names them in; a bare index (reference 0) names none. */
  actualIndex(handle:number){
   if(handle===-1)return -1;
   const index=ScmDecisionMakers.indexOf(handle);
-  if(index<COUNT_GAME_DECISION_MAKERS)return index;
+  if(index<COUNT_GAME_DECISION_MAKERS)return handle>>>16===1?index:-1;
   const maker=index<TOTAL_DECISION_MAKERS?this.slots[index]:undefined;
   return maker&&maker.referenceIndex===(handle>>>16)?index:-1;
  }

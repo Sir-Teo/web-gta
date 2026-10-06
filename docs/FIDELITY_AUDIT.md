@@ -9664,11 +9664,20 @@ Found driving the paramedic job and INTRO2 past the pizza shop.
 
 ## The dealers share one decision maker
 
-- **`COPY_SHARED_CHAR_DECISION_MAKER`** (handler unreversed; AUTHORED): one copy of a default decision maker a template,
-  handed again to every script that asks for that template until it is removed, and seeded only when made.
-  `dealer.scm`, which every street dealer's brain runs, copies the template into one global, edits its responses
-  through it and frees what the global names when its dealer is done. A copy for each brain filled the ten script
-  slots with dealers within minutes, and the next brain gave up (SWEET3's sweep stopped on it).
+- **`COPY_SHARED_CHAR_DECISION_MAKER`** follows the iOS handler (0x100203cec; unreversed in gta-reversed, and
+  AUTHORED here before as one copy per template).
+  - When the variable the copy goes into already names a live decision maker, that maker is kept and nothing is
+    copied or seeded. Otherwise a new copy of the template is made.
+  - Every script that uses the command stores into a global. `dealer.scm`, which every street dealer's brain runs,
+    copies into $37812, edits its responses through it, and frees what the global names when its dealer is done.
+    The next brain then makes a new copy. A copy for each brain had filled the ten script slots with dealers within
+    minutes, and the next brain gave up (SWEET3's sweep stopped on it).
+  - bouncer.scm and copsit.scm copy the same template into globals of their own, and so do burg_brains' three. Each
+    now has its own maker. Under the per-template rule they had shared one, and one script freeing it took it from
+    the others' peds.
+- **The game's own decision makers answer to their handle** (GetActualScriptThingIndex type 7, which every
+  decision-maker command uses). Every script names them as 65536 + n, the reference CTheScripts starts each slot at.
+  A bare index such as 0 names none: `DOES_DECISION_MAKER_EXIST 0` is false.
 - **A decision maker slot's reference index goes on counting** as the slot is freed and taken again
   (`CTheScripts`' script things): a handle to what the slot held before names nothing, rather than its new maker.
 

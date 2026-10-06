@@ -82,25 +82,29 @@ describe('the decision makers a script loads',()=>{
 });
 
 describe('DOES_DECISION_MAKER_EXIST',()=>{
- test('every dealer brain shares one copy of a template until it is removed, and a new one is made after',()=>{
+ test('a copy into a variable that already names a live decision maker keeps that one (iOS 0x100203cec)',()=>{
   // dealer.scm: COPY_SHARED_CHAR_DECISION_MAKER 65539 into the global every dealer's brain shares.
-  const game=new ScmGameState(),seeded:number[]=[];
-  const copy=()=>{
-   const space=new Uint8Array(2048);space.set(instruction(scmOpcode('COPY_SHARED_CHAR_DECISION_MAKER'),[int(65539),gvar(40)]),CODE);
+  const game=new ScmGameState(),seeded:number[]=[],space=new Uint8Array(2048),globals=new DataView(space.buffer);
+  const copy=(template=65539,global=40)=>{
+   space.set(instruction(scmOpcode('COPY_SHARED_CHAR_DECISION_MAKER'),[int(template),gvar(global)]),CODE);
    const thread=new ScmThread(space,CODE,0,undefined,{startScript(){},game,world:{fade(){},seedDecisionMaker:(handle:number)=>{seeded.push(handle);}} as unknown as ScmWorldCommands});
    try{thread.run(0,4);}catch(error){if(!String(error).match(/watchdog|opcode|Unknown/))throw error;}
-   return new DataView(space.buffer).getInt32(40,true);
+   return globals.getInt32(global,true);
   };
   const first=copy();
   for(let i=0;i<30;i++)expect(copy()).toBe(first);
   expect(game.decisionMakers.count).toBe(1);expect(seeded).toEqual([first]);
+  // Freed, the global names nothing live, so the next brain makes a new copy.
   game.decisionMakers.remove(first);
   const next=copy();expect(next).not.toBe(first);expect(game.decisionMakers.count).toBe(1);expect(seeded).toEqual([first,next]);
-  // Another template has its own.
-  const other=game.decisionMakers.copyShared(65538,false);expect(other.made).toBe(true);expect(game.decisionMakers.count).toBe(2);
+  // bouncer.scm and copsit.scm copy one template into different globals: each has its own, and freeing one leaves
+  // the other.
+  const bouncer=copy(65537,44),copsit=copy(65537,48);
+  expect(copsit).not.toBe(bouncer);expect(game.decisionMakers.count).toBe(3);
+  game.decisionMakers.remove(bouncer);expect(game.decisionMakers.actualIndex(copsit)).not.toBe(-1);
  });
 
- test('the game’s own makers always, a script’s while its slot still holds it, and -1 never',()=>{
+ test('the game’s own makers by their handle, a script’s while its slot still holds it, and -1 never',()=>{
   const game=new ScmGameState();
   const handle=run(game,false,instruction(scmOpcode('LOAD_CHAR_DECISION_MAKER'),[int(1),gvar(40)])).global(40);
   // IF DOES_DECISION_MAKER_EXIST handle; SET_VAR_INT 44 1.
@@ -113,7 +117,9 @@ describe('DOES_DECISION_MAKER_EXIST',()=>{
    return view.getInt32(44,true)===1;
   };
   expect(exists(handle)).toBe(true);
-  expect(exists(0)).toBe(true);
+  expect(exists(65537)).toBe(true);
+  // A bare index is not a handle: its reference half (0) is not the slot's.
+  expect(exists(0)).toBe(false);
   expect(exists(-1)).toBe(false);
   game.decisionMakers.remove(handle);
   expect(exists(handle)).toBe(false);
