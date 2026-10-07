@@ -2284,7 +2284,7 @@ export class ScmMission {
     // It also puts the player's group back (iOS 0x1001ca4a4): separation 120 (the script group's too), the always- and
     // never-follow flags off, and the FOLLOW_LIMITED task allocator, which holds until a group command.
     this.playerGroupAlwaysFollows=false;this.playerGroupNeverFollows=false;
-    this.groups.get(PLAYER_GROUP_HANDLE)!.separationRange=120;
+    this.group(PLAYER_GROUP_HANDLE).separationRange=120;
     this.world.playerGroupMissionCleanup?.();
    },
    // The player's own car (not one the script made) answers from the host.
