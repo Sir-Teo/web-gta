@@ -2248,11 +2248,7 @@ export class ScmMission {
     // driver's seat and back, the rear right to the rear left and back, when that seat is free.
     if(task.kind==='shuffleToNextCarSeat'){
      if(handle===PLAYER_PED_HANDLE)return;
-     this.livePed(handle);const ride=this.peds.rideOf(handle);
-     if(!ride||ride.vehicle!==task.vehicle||ride.offset)return;
-     const to=ride.seat==='driver'?0:ride.seat===0?'driver':ride.seat===1?2:ride.seat===2?1:undefined;if(to===undefined)return;
-     const free=to==='driver'?this.peds.driverOf(task.vehicle)===undefined&&this.playerCarHandle()!==task.vehicle:!this.peds.seatTaken(task.vehicle,to);
-     if(free)this.peds.warpIntoCar(handle,task.vehicle,to);
+     this.livePed(handle);this.shuffleSeat(handle,task.vehicle);
      return;
     }
     // Any other primary task takes the rider's drive-by from it.
@@ -2306,9 +2302,11 @@ export class ScmMission {
     if(steps)this.sequenceSteps.set(handle,steps);else this.sequenceSteps.delete(handle);
     const world=this.taskWorld(handle);
     const orders:ScriptedPedOrder[]=[],orderSteps:{outer:number;inner:number}[]=[];let standIns=false,orderStart=start;
-    const carTasks=handle!==PLAYER_PED_HANDLE&&tasks.some(task=>CAR_TASKS.has(task.kind));
+    // The car tasks and the seat shuffle run in the task-at-a-time runner.
+    const runnerTask=(task:ScmScriptedTask)=>CAR_TASKS.has(task.kind)||task.kind==='shuffleToNextCarSeat';
+    const carTasks=handle!==PLAYER_PED_HANDLE&&tasks.some(runnerTask);
     tasks.forEach((task,index)=>{
-     if(carTasks&&CAR_TASKS.has(task.kind))return;
+     if(carTasks&&runnerTask(task))return;
      if(index===start)orderStart=orders.length;
      const order=scriptedPedOrder(task,world),several=order?[order]:this.standInOrders(handle,task,world);
      if(!several)throw new UnsupportedScmCommand(-1,opcode,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
@@ -3068,6 +3066,15 @@ export class ScmMission {
   * - A leave-car task sets the ped down at its door.
   * - An on-foot task leaves the car first. A pause or a stand-still is waited out in the seat, and the head-look and
   *   flag tasks, which have nothing to act on in a seat, are over at once. */
+ /** CTaskComplexShuffleSeats (reversed; the CAR_SHUFFLE clip is not played): across the car, the front right to the
+  * driver's seat and back, the rear right to the rear left and back, when that seat is free. */
+ private shuffleSeat(handle:number,vehicle:number){
+  const ride=this.peds.rideOf(handle);
+  if(!ride||ride.vehicle!==vehicle||ride.offset)return;
+  const to=ride.seat==='driver'?0:ride.seat===0?'driver':ride.seat===1?2:ride.seat===2?1:undefined;if(to===undefined)return;
+  const free=to==='driver'?this.peds.driverOf(vehicle)===undefined&&this.playerCarHandle()!==vehicle:!this.peds.seatTaken(vehicle,to);
+  if(free)this.peds.warpIntoCar(handle,vehicle,to);
+ }
  private dispatch(handle:number,task:ScmScriptedTask,opcode:number):RunnerStep|undefined{
   const entity=this.peds.entity(handle);
   if(entity===undefined)return {kind:'settle',then:task};
@@ -3082,6 +3089,8 @@ export class ScmMission {
     if(!jump&&task.kind!=='leaveCarImmediately'&&!this.vehicleStill(ride.vehicle)){this.stopDriving(handle);return {kind:'slowing',then:task};}
     return this.leaveCarNow(handle,vehicle,opcode,jump)?{kind:'settle'}:undefined;
    }
+   // A sequence's shuffle (SWEET4: Sweet's girl slides over to the wheel, then drives off) is over once she has moved.
+   case 'shuffleToNextCarSeat':this.shuffleSeat(handle,task.vehicle);return undefined;
    case 'carDriveToCoord':case 'carTempAction':case 'carDriveWander':case 'carMission':{
     // CTaskComplexCarDrive::CreateFirstSubTask with no car (-1): the one the ped is in. On foot it would enter any
     // car as driver, which is not ported, so the task is over.

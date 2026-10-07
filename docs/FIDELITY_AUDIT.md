@@ -11195,3 +11195,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   light of the range, its colour over 255, casting extra shadows, on no entity (MUSIC3 and photo.scm). The port's
   point lights do not light the world; they feed RenderExtraPlayerShadows, which now takes the script's too. It was
   skipped.
+- **A seat shuffle inside a sequence.** TASK_SHUFFLE_TO_NEXT_CAR_SEAT ran on its own (CTaskComplexShuffleSeats, an
+  instant move across the car) but not as a step of a sequence: the sequence was refused and the mission thread gave
+  up. SWEET4 (Sweet's Girl) gives the girl "shuffle to the wheel, then drive off" when CJ leaves her car, and stopped
+  there; found by the mission bot's sweep. The step now runs in the task-at-a-time runner like the car tasks, and the
+  mission goes on to its own failure when the player lets her drive away ("You sure you're down for the 'hood?").
