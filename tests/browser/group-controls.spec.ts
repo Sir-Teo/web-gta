@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {endStoryMission} from './freeRoam';
 /** The group buttons as the game's help text states them: "Hold PED_LOCK_TARGET to target a gang member and press
  * GROUP_CONTROL_FWD or GROUP_CONTROL_BWD to recruit him"; with a group, BWD tells it to stay in position and FWD to
- * follow; holding either for a few seconds disbands it. */
+ * follow; holding either for 1.2 s (iOS ProcessGroupBehaviour) disbands it. */
 test('G and H recruit a targeted homie, order stay and follow, and a held button disbands',async({page})=>{
  test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:90000});await endStoryMission(page);
@@ -30,7 +30,9 @@ test('G and H recruit a targeted homie, order stay and follow, and a held button
  const allocator=()=>page.evaluate(()=>(window as any).__game.pedestrians().playerGroupAllocator);
  await page.evaluate(()=>(window as any).__game.pedestrians().missionCleanup());expect(await allocator()).toBe('followLimited');
  await page.keyboard.press('KeyG');await expect.poll(allocator,{timeout:30000}).toBe('random');
- await page.keyboard.down('KeyH');
+ // ProcessGroupBehaviour's hold: 1200 ms of GROUP_CONTROL_BWD with a group and nobody targeted disbands it.
+ await page.keyboard.down('KeyH');await frames(15);
+ expect(await crew()).toBe(1);
  await expect.poll(crew,{timeout:60000}).toBe(0);
  await page.keyboard.up('KeyH');
  expect(errors).toEqual([]);

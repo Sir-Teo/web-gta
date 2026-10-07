@@ -307,6 +307,7 @@ import { ENEX, EntryExitManager, entryExitPosition, findValidTeleportPoint, type
 import { worldLevelAt } from './assets/worldZones';
 import {IOS_MTBIKER_BIKE,IosMissionCarDensity,IosMtbikerBike,iosAttachSavedWeapon,iosCutsceneSkipBlocked,iosForcedCarZoom,iosWaterExtinguishMultiplier} from './engine/iosMissionHacks';
 import './style.css';
+import {stepGroupButtonHold} from './simulation/groupFormation';
 
 const app = document.querySelector<HTMLElement>('#app')!;
 const canvas = document.createElement('canvas'); canvas.className = 'world'; canvas.tabIndex = 0; canvas.setAttribute('aria-label', 'San Andreas game world'); app.append(canvas);
@@ -3037,10 +3038,9 @@ async function boot() {
       audio: {...sound.state(),surfaceDefinitions:surfaceAudio?.byId.size??0,ambience:{track:ambience.trackId,status:ambience.status,volume:+ambience.volume.toFixed(2),zones:mission?.runtime.game.audioZones.activeIds??[]}}, timeMinutes: sim.timeMinutes, lighting: { area: render.lighting.area, sunMultiplier: render.lighting.sunLightMultiplier, night: render.lighting.night, imported: localLighting.name, weather: localLighting.weather, regionalModifiers:localLighting.modifierCount, native: localLighting.sample(sim.timeMinutes,render.camera.position) },
       tick: clock.tick, memory: { ...render.renderer.info.memory }, draws: render.renderer.info.render.calls, triangles: render.renderer.info.render.triangles }),
   } });
-  /** How long a group button has been held. The game's help text: "Holding GROUP_CONTROL_FWD or GROUP_CONTROL_BWD for a
-   * few seconds ... will disband your group"; the exact hold is in the unreversed ProcessGroupBehaviour, so authored. */
-  let groupButtonHeld=0;
-  const GROUP_DISBAND_HOLD_SECONDS=2;
+  /** CPlayerPedData::m_nPadUpPressedInMilliseconds and m_nPadDownPressedInMilliseconds: how long GROUP_CONTROL_FWD (G)
+   * and GROUP_CONTROL_BWD (H) have been held toward a disband (stepGroupButtonHold). */
+  const groupButtonHeldMs={forward:0,back:0};
   /** weapon.dat UNARMED's target range, for a target with no weapon row. */
   const GROUP_RECRUIT_MELEE_RANGE=10;
   /** When the scripts last read each pad button (scriptButtons). */
@@ -3102,19 +3102,28 @@ async function boot() {
     if(input.consume('Backquote')&&!paused&&!navigation?.open)arsenal.toggle();
     // CPad::CollectPickupJustDown is PED_ANSWER_PHONE (Tab), and false while DisablePlayerControls.
     if(input.consume('Tab')&&!paused&&!navigation?.open&&!arsenal.open&&!playerControlsDisabled())pickups.collectJustDown();
-    // The group buttons, GROUP_CONTROL_FWD (G) and GROUP_CONTROL_BWD (H), on foot: a targeted Families member joins,
-    // otherwise the group follows (G) or stays in position (H); holding either disbands it.
+    // The group buttons, GROUP_CONTROL_FWD (G) and GROUP_CONTROL_BWD (H), on foot (CPlayerPed::ProcessGroupBehaviour,
+    // iOS 0x1003615d8): a targeted Families member joins, otherwise the group follows (G) or stays in position (H);
+    // holding either for 1.2 s disbands it.
     {
      const onFoot=!paused&&!navigation?.open&&!arsenal.open&&!worldCar?.occupied&&!fleet?.occupied&&!fleet?.occupiedPlane&&!fleet?.occupiedBoat&&!fleet?.occupiedBike&&!carEntry.active;
-     // SET_PLAYER_GROUP_RECRUITMENT off (m_bGroupStuffDisabled) stops ProcessGroupBehaviour altogether.
-     const enabled=onFoot&&!!pedestrians&&!mission?.runtime.game.playerInfo.groupStuffDisabled;
-     // In a vehicle the buttons are the vehicle's (G raises an aircraft's gear, H sounds the horn).
-     const forward=enabled&&input.consume('KeyG'),back=enabled&&input.consume('KeyH');
-     const held=enabled&&(input.down('KeyG')||input.down('KeyH'));
-     groupButtonHeld=held?groupButtonHeld+dt:0;
-     if(held&&groupButtonHeld>=GROUP_DISBAND_HOLD_SECONDS&&groupButtonHeld-dt<GROUP_DISBAND_HOLD_SECONDS)pedestrians!.disbandGroup();
+     const enabled=onFoot&&!!pedestrians;
+     // SET_PLAYER_GROUP_RECRUITMENT off (m_bGroupStuffDisabled) stops recruiting, disbanding and BWD's order to stay;
+     // FWD still tells the group to follow.
+     const stuffDisabled=!!mission?.runtime.game.playerInfo.groupStuffDisabled;
+     // In a vehicle the buttons are the vehicle's (G raises an aircraft's gear, H sounds the horn), and the hold counts
+     // stand where they were.
+     const forward=enabled&&input.consume('KeyG'),back=enabled&&!stuffDisabled&&input.consume('KeyH');
+     if(enabled){
+      const target=groupTarget(),commandable=pedestrians!.groupCommandable(target),frameMs=dt*1000;
+      const fwd=stepGroupButtonHold(groupButtonHeldMs.forward,input.down('KeyG'),commandable,frameMs);groupButtonHeldMs.forward=fwd.count;
+      if(!stuffDisabled){
+       const bwd=stepGroupButtonHold(groupButtonHeldMs.back,input.down('KeyH'),commandable,frameMs);groupButtonHeldMs.back=bwd.count;
+       if(fwd.disband||bwd.disband)pedestrians!.disbandGroup();
+      }
+     }
      if(enabled&&(forward||back)){
-      const result=pedestrians!.groupControl(forward?'forward':'back',groupTarget());
+      const result=pedestrians!.groupControl(forward?'forward':'back',groupTarget(),!stuffDisabled);
       // Recruiting shows no text in the original; the recruit answers with a line.
       if(result==='joined'){const p=sim.player.position;sound.nativeEngine?.speech('greet',{x:p.x,y:-p.z,z:p.y});}
      }

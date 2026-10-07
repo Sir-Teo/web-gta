@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {GROUP_MOVING_OFFSETS,GROUP_TELEPORT_OFFSETS,gangFollowerGait,gangFollowerOffset,type GangFollowerState} from '../src/simulation/groupFormation';
+import {GROUP_DISBAND_HOLD_MS,GROUP_MOVING_OFFSETS,GROUP_TELEPORT_OFFSETS,gangFollowerGait,gangFollowerOffset,stepGroupButtonHold,type GangFollowerState} from '../src/simulation/groupFormation';
 
 // CTaskComplexFollowLeaderInFormation::ms_offsets as the iOS static initialiser (0x1004366d4) fills them.
 test('the formation offsets ring the leader a unit apart, and the moving ones trail behind him',()=>{
@@ -26,4 +26,15 @@ test('a follower walks beside or behind a moving leader, and keeps a world-axis 
 
 test('the follower walks under 5 units from its spot, runs under 10, sprints beyond, and is there within 0.5',()=>{
  expect([.5,.6,4.9,5,9.9,10].map(gangFollowerGait)).toEqual(['arrived','walk','walk','run','run','sprint']);
+});
+
+test('a group button held 1.2 s with a group to command disbands it once; letting go or targeting someone starts over',()=>{
+ expect(GROUP_DISBAND_HOLD_MS).toBe(1200);
+ // 30 fps: 33 whole milliseconds a frame, so the 37th frame reaches 1221.
+ let count=0,disbands=0,frames=0;
+ for(;frames<60;frames++){const r=stepGroupButtonHold(count,true,true,1000/30);count=r.count;if(r.disband){disbands++;if(disbands===1)expect(frames+1).toBe(37);}}
+ expect(disbands).toBe(1);expect(count).toBe(60*33);
+ expect(stepGroupButtonHold(1100,false,true,33)).toEqual({count:0,disband:false});
+ expect(stepGroupButtonHold(1100,true,false,33)).toEqual({count:0,disband:false});
+ expect(stepGroupButtonHold(1199,true,true,1)).toEqual({count:1200,disband:true});
 });

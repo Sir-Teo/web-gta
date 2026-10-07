@@ -2639,12 +2639,14 @@ export class WorldPedestrians {
   playerGroupAllocator:'random'|'followLimited'='random';
   /** CMissionCleanup::Process (iOS 0x1001ca4a4): the player's group is put on FOLLOW_LIMITED with separation 120. */
   missionCleanup(){this.playerGroupAllocator='followLimited';this.groupSeparationRange=PLAYER_GROUP_SEPARATION_RANGE;}
-  /** CPlayerPed::ProcessGroupBehaviour's buttons, GROUP_CONTROL_FWD (G) and GROUP_CONTROL_BWD (H), on foot. The function
-   * is unreversed; the game's own help text states the rules: "Hold PED_LOCK_TARGET to target a gang member and press
-   * GROUP_CONTROL_FWD or GROUP_CONTROL_BWD to recruit him to your group"; "Press GROUP_CONTROL_BWD to instruct your gang
-   * to stay in position or GROUP_CONTROL_FWD to instruct them to follow you"; holding either for a few seconds disbands
-   * the group (see `disbandGroup`). `target` is what the player targets while holding the target button: the ped under
-   * a gun's crosshair (`handle`, -1 for none), else the nearest ped ahead within the weapon's target range. */
+  /** CPlayerPed::ProcessGroupBehaviour's buttons, GROUP_CONTROL_FWD (G) and GROUP_CONTROL_BWD (H), on foot (iOS
+   * 0x1003615d8; unreversed in the reference). The game's help text states the rules: "Hold PED_LOCK_TARGET to target a
+   * gang member and press GROUP_CONTROL_FWD or GROUP_CONTROL_BWD to recruit him to your group"; "Press GROUP_CONTROL_BWD
+   * to instruct your gang to stay in position or GROUP_CONTROL_FWD to instruct them to follow you". Targeting anyone
+   * else gives no order. Holding either for 1.2 s disbands the group (stepGroupButtonHold, `disbandGroup`). `target` is
+   * what the player targets while holding the target button: the ped under a gun's crosshair (`handle`, -1 for none),
+   * else the nearest ped ahead within the weapon's target range. `recruit` false (m_bGroupStuffDisabled) refuses the
+   * recruit. */
   /** Y and N at a ped the player targets (CPad::ConversationYesJustDown and ConversationNoJustDown, the d-pad's right
    * and left, with PED_LOCK_TARGET held). What the player's line sets off belongs to CPedToPlayerConversations::Update
    * and CPlayerPed code the reference leaves unreversed, so the answers are AUTHORED after the retail game:
@@ -2669,21 +2671,16 @@ export class WorldPedestrians {
   private talkTarget(target:{handle?:number;range:number}){
    if(this.sim.player.health<=0)return undefined;
    const candidates=this.people.filter(p=>p.health>0&&p.down===0&&p.stealth===undefined&&!p.mission);
-   let p:Pedestrian|undefined;
-   if(target.handle!==undefined)p=candidates.find(q=>q.collider.handle===target.handle);
-   else{
-    const origin=this.sim.player.position,h=this.sim.player.heading,ahead={x:Math.sin(h),z:Math.cos(h)};
-    p=candidates.map(q=>{const dx=q.actor.player.position.x-origin.x,dz=q.actor.player.position.z-origin.z,d=Math.hypot(dx,dz);return {q,d,along:d?(dx*ahead.x+dz*ahead.z)/d:1};})
-     .filter(t=>t.d<=target.range&&t.along>Math.SQRT1_2).sort((a,b)=>a.d-b.d)[0]?.q;
-   }
+   const p=this.targetAmong(candidates,target);
    if(!p||p.flee>0||p.retaliate>0||p.rage||p.fight)return undefined;
    return p;
   }
-  groupControl(button:'forward'|'back',target?:{handle?:number;range:number}):'joined'|'full'|'follow'|'stay'|'none'{
+  groupControl(button:'forward'|'back',target?:{handle?:number;range:number},recruit=true):'joined'|'full'|'follow'|'stay'|'none'{
    if(this.sim.player.health<=0)return 'none';
    const crew=this.people.filter(p=>p.follow&&p.health>0);
    const mark=target&&this.targetedRecruit(target);
    if(mark){
+    if(!recruit)return 'none';
     // CPlayerPed::MakeThisPedJoinOurGroup's cap: FindMaxNumberOfGroupMembers, at most the script's limit.
     if(crew.length>=Math.min(maxGroupMembers(),this.scriptGangLimit))return 'full';
     mark.follow=true;mark.holdPosition=undefined;mark.flee=0;mark.foe=undefined;this.leaveParty(mark);
@@ -2691,16 +2688,19 @@ export class WorldPedestrians {
     this.groupSeparationRange=PLAYER_GROUP_SEPARATION_RANGE;
     return 'joined';
    }
+   // Targeting anyone else (a member, a stranger), the buttons give no order.
+   if(target&&this.targetAmong(this.people.filter(p=>p.health>0),target))return 'none';
    const listening=crew.filter(m=>!m.ignoresGroupCommands);if(!listening.length)return 'none';
    // TellGroupToStartFollowingPlayer puts the group back on RANDOM, for following or waiting alike.
    this.playerGroupAllocator='random';
    for(const m of listening){m.holdPosition=button==='back'?{...m.actor.player.position}:undefined;m.followPaused=undefined;}
    return button==='back'?'stay':'follow';
   }
-  /** Holding a group button, or leaving the group behind, disbands it: every member that listens to the player's group
-   * commands leaves. */
+  /** CPlayerPed::DisbandPlayerGroup (iOS 0x100365814), as a held group button sets it off: CJ says
+   * CTX_GLOBAL_ORDER_DISBAND_ONE or _MANY (no speech banks are local) and CPedGroupMembership::RemoveAllFollowers(true)
+   * lets every follower go but a mission's (ePedCreatedBy PED_MISSION), so the script's peds stay. */
   disbandGroup(){
-   const listening=this.people.filter(p=>p.follow&&p.health>0&&!p.ignoresGroupCommands);
+   const listening=this.people.filter(p=>p.follow&&p.health>0&&!p.mission&&!p.ignoresGroupCommands);
    for(const m of listening)this.leaveGroup(m);
    return listening.length>0;
   }
@@ -2715,11 +2715,22 @@ export class WorldPedestrians {
    return {recruit,crew:crew.filter(m=>!m.ignoresGroupCommands).length};
   }
   private targetedRecruit(target:{handle?:number;range:number}){
-   const candidates=this.people.filter(p=>!p.officer&&p.health>0&&p.down===0&&p.gang===1&&!p.follow);
+   return this.targetAmong(this.people.filter(p=>!p.officer&&p.health>0&&p.down===0&&p.gang===1&&!p.follow),target);
+  }
+  /** Of `candidates`, the one `target` names: the ped under the crosshair (`handle`), else the nearest within `range`
+   * ahead of the player (within 45° of his heading). */
+  private targetAmong(candidates:Pedestrian[],target:{handle?:number;range:number}){
    if(target.handle!==undefined)return candidates.find(p=>p.collider.handle===target.handle);
    const origin=this.sim.player.position,h=this.sim.player.heading,ahead={x:Math.sin(h),z:Math.cos(h)};
    return candidates.map(p=>{const dx=p.actor.player.position.x-origin.x,dz=p.actor.player.position.z-origin.z,d=Math.hypot(dx,dz);return {p,d,along:d?(dx*ahead.x+dz*ahead.z)/d:1};})
     .filter(t=>t.d<=target.range&&t.along>Math.SQRT1_2).sort((a,b)=>a.d-b.d)[0]?.p;
+  }
+  /** Whether the group buttons command the group now (CPlayerPed::ProcessGroupBehaviour, iOS 0x1003615d8): it has a
+   * member (CountMembersExcludingLeader, the script's members included) and the player targets nobody. Only then does a
+   * held button count toward disbanding it. */
+  groupCommandable(target?:{handle?:number;range:number}){
+   if(this.sim.player.health<=0||!this.people.some(p=>p.follow&&p.health>0))return false;
+   return !target||!this.targetAmong(this.people.filter(p=>p.health>0),target);
   }
   /** MAKE_ROOM_IN_PLAYER_GANG_FOR_MISSION_PEDS (unreversed): room for `room` more in the player's group, whose size is
    * FindMaxNumberOfGroupMembers (at most the script's limit). The street recruits go first, as

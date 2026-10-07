@@ -8389,6 +8389,32 @@ Each is now answered:
   clips (a follower still appears in its seat at the door). The wander's static counter still counts without the
   collision condition.
 
+## The group buttons
+
+- CPlayerPed::ProcessGroupBehaviour is a retail stub in gta-reversed; the port had a 2 s authored hold for the
+  disband the help text mentions ("holding ... for a few seconds"). The iOS function (0x1003615d8) gives:
+  - the buttons work on foot only (FindPlayerVehicle first);
+  - with a group (CountMembersExcludingLeader > 0) and nothing targeted, a held GROUP_CONTROL_FWD or _BWD adds the
+    frame's whole milliseconds (ms_fTimeStep / 50 × 1000, truncated) to m_nPadUpPressedInMilliseconds or
+    m_nPadDownPressedInMilliseconds, and at 1200 the group disbands; letting go, or targeting someone, clears it;
+  - targeting a Families member not in the group, FWD recruits; targeting anyone else gives no order (the port had
+    told the group to follow);
+  - m_bGroupStuffDisabled (SET_PLAYER_GROUP_RECRUITMENT off) blocks recruiting, disbanding and BWD, but FWD still
+    tells the group to follow (TellGroupToStartFollowingPlayer reads only the always- and never-follow flags). The
+    port had blocked FWD too;
+  - DisbandPlayerGroup (0x100365814) says CTX_GLOBAL_ORDER_DISBAND_ONE (150) or _MANY (149) and calls
+    RemoveAllFollowers(true), which keeps the mission's peds (gta-reversed's version removes followers only when
+    there are none). The port had let the script's peds go too; the line is not played (no speech banks are local).
+- Kept as the port had them: the orders are given as the button goes down (iOS gives follow and stay as its touch
+  widget is let go), and FWD disbands as its count reaches 1200 (iOS compares FWD's count for exactly 1200, which a
+  steady 30 fps step of 33 ms never lands on; BWD's is 1200 or more). BWD on a targeted Families member recruits him,
+  as the help text says; the iOS widget for it lets go of the lock-on instead.
+- Not yet, from MakeThisPedJoinOurGroup (0x1003658a0): no recruits at all while STAT_CITY_UNLOCKED (181) is 1 or 2
+  (the port fixes that stat for its restart points); with a Recruit Anyone cheat on (iOS cheat flags 84 to 86, U),
+  any ped joins, up to 7 whatever the respect; and the every 32nd frame gang pass at the end of
+  ProcessGroupBehaviour.
+- Verification: `tests/group-formation.test.ts`, `tests/browser/group-controls.spec.ts`.
+
 ## The player's group: its leader and its script peds
 
 - CPlayerPed leads its own group from its creation on. The port's player group had no leader recorded, so

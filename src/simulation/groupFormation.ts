@@ -35,3 +35,16 @@ export const FOLLOWER_STUCK_SECONDS=1,FOLLOWER_UNSTICK_SECONDS=.3,FOLLOWER_UNSTI
 export const FOLLOWER_STAND_SECONDS=.5,FOLLOWER_PAUSE_SECONDS=.05;
 /** CPedGroupMembership::m_fSeparationRange for the player's group: 120, set at every recruit (iOS 0x100365c88). */
 export const PLAYER_GROUP_SEPARATION_RANGE=120;
+/** CPlayerPed::ProcessGroupBehaviour (iOS 0x1003615d8): holding GROUP_CONTROL_FWD or GROUP_CONTROL_BWD this long, in
+ * CPlayerPedData::m_nPadUpPressedInMilliseconds and m_nPadDownPressedInMilliseconds, disbands the group. */
+export const GROUP_DISBAND_HOLD_MS=1200;
+/** One frame of a group button's hold count. While the button is held and the group can be commanded (it has a
+ * member and the player targets nobody), the frame's whole milliseconds (CTimer::ms_fTimeStep / 50 × 1000, truncated)
+ * are added; otherwise the count goes back to 0. `disband` is the frame the count reaches GROUP_DISBAND_HOLD_MS.
+ * (BWD's count disbands at 1200 or more; FWD's compares for exactly 1200, which a steady 30 fps step of 33 ms never
+ * lands on. The port disbands on both as the count reaches it, as the help text has it.) */
+export function stepGroupButtonHold(count:number,held:boolean,commandable:boolean,frameMs:number){
+ if(!held||!commandable)return {count:0,disband:false};
+ const next=count+Math.trunc(frameMs);
+ return {count:next,disband:count<GROUP_DISBAND_HOLD_MS&&next>=GROUP_DISBAND_HOLD_MS};
+}
