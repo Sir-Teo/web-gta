@@ -1,4 +1,5 @@
 import {Matrix4,Quaternion,Vector3,type Object3D} from 'three';
+import {boneInfo,boneLimits,type BoneInfo} from './nativeBoneInfo';
 /* IKChain_c and BoneNode_c (source/game_sa/Ragdoll, reversed): the solver behind g_ikChainMan.PointArm.
  *
  * - SetupBones walks from the effector bone up the parent links to (not including) the pivot bone; each BoneNode_c
@@ -10,8 +11,9 @@ import {Matrix4,Quaternion,Vector3,type Object3D} from 'three';
  *   parent's frame) by bone speed × acos(dot) × chain speed; nothing turns once dot ≥ 0.997. Limit clamps the
  *   node's Tait-Bryan XYZ angles (QuatToEuler) between PoseRots − Min and PoseRots + Max; CalcWldMat then carries
  *   the change down to the effector.
- * - BoneNodeManager_c::ms_boneInfos (limits, pose rotations) lives in the executable (0x8D26D0) and is not in the
- *   reversed source. The limits here are authored: see ARM_LIMITS. */
+ * - BoneNodeManager_c::ms_boneInfos (limits, pose rotations) is read from the iOS executable (nativeBoneInfo.ts). Along
+ *   the arm the clavicle and the hand have no range, so the chain holds them at their poses, the forearm bends about
+ *   Z only (−148.6° to −0.6°) and the upper arm keeps its X. */
 
 export type EulerDeg=[number,number,number];
 /** QuatToEuler (0x617080): Tait-Bryan XYZ in degrees. */
@@ -27,30 +29,13 @@ export function eulerDegToQuat(e:EulerDeg,out=new Quaternion()){
  const cc=cx*cz,cs=cx*sz,sc=sx*cz,ss=sx*sz;
  return out.set(sc*cy-cs*sy,cc*sy+ss*cy,cs*cy-sc*sy,cc*cy+ss*sy).normalize();
 }
-/** A limit range per axis in degrees around the node's starting angles: [min below, max above]. */
-export interface BoneLimits {x:[number,number];y:[number,number];z:[number,number]}
-/** Authored stand-ins for ms_boneInfos along the arm chain. The measured rigs bend the elbow about the forearm's local
- * Z only (idle −7°, the aim clips' ready frame −107°), so the forearm is a Z hinge between straight and fully bent;
- * the clavicle only shrugs a little; the upper arm is free enough to point the gun. The wrist keeps the fire clip's
- * hold: MoveBonesToTarget turns the hand first, to swing its (0, 0.05, 0) effector offset at the target, and a free
- * wrist bends the gun (along the hand's X) some 50° off the aim, where SA's straight-armed aim has it along the
- * forearm. */
-export const ARM_LIMITS:Readonly<Record<'clavicle'|'upperArm'|'foreArm'|'hand',BoneLimits>>={
- clavicle:{x:[10,10],y:[10,10],z:[10,10]},
- upperArm:{x:[180,180],y:[90,90],z:[180,180]},
- foreArm:{x:[0,0],y:[0,0],z:[160,160]},
- hand:{x:[0,0],y:[0,0],z:[0,0]},
-};
-const FOREARM_Z_RANGE:[number,number]=[-160,0];
-
 class BoneNode {
  orientation=new Quaternion();position=new Vector3();world=new Matrix4();parent?:BoneNode;children:BoneNode[]=[];
  min:EulerDeg;max:EulerDeg;speed=1;
- constructor(readonly object:Object3D,limits:BoneLimits,hinge?:[number,number]){
+ /** Init: the keyframe's rotation and translation; InitLimits from the bone's BoneInfo_t. */
+ constructor(readonly object:Object3D,info:Pick<BoneInfo,'pose'|'min'|'max'>){
   const scale=new Vector3();object.matrix.decompose(this.position,this.orientation,scale);
-  const pose=quatToEulerDeg(this.orientation);
-  this.min=[pose[0]-limits.x[0],pose[1]-limits.y[0],hinge?hinge[0]:pose[2]-limits.z[0]];
-  this.max=[pose[0]+limits.x[1],pose[1]+limits.y[1],hinge?hinge[1]:pose[2]+limits.z[1]];
+  ({min:this.min,max:this.max}=boneLimits(info as BoneInfo));
  }
  /** CalcWldMat (0x616CD0): this node and everything below it. */
  calcWorld(parentWorld:Matrix4){
@@ -72,8 +57,8 @@ export class NativeIkChain {
  readonly bones:BoneNode[];
  blend=0;
  private readonly parentRotation=new Quaternion();
- constructor(readonly pivot:Object3D,chain:{object:Object3D;limits:BoneLimits;hinge?:[number,number]}[],readonly effectorOffset=new Vector3(0,.05,0),readonly speed=.5){
-  this.bones=chain.map(c=>new BoneNode(c.object,c.limits,c.hinge));
+ constructor(readonly pivot:Object3D,chain:readonly {object:Object3D;info:Pick<BoneInfo,'pose'|'min'|'max'>}[],readonly effectorOffset=new Vector3(0,.05,0),readonly speed=.5){
+  this.bones=chain.map(c=>new BoneNode(c.object,c.info));
   for(let i=0;i<this.bones.length-1;i++){this.bones[i].parent=this.bones[i+1];this.bones[i+1].children.push(this.bones[i]);}
  }
  /** Update (0x6184B0) without the keyframe blend: the pivot, the world matrices, then MoveBonesToTarget. */
@@ -111,8 +96,7 @@ export class NativeIkChain {
 export function armChain(bone:(id:number)=>Object3D|undefined,arm:'right'|'left',speed:number){
  const ids=arm==='right'?[24,23,22,21]:[34,33,32,31],neck=bone(4);
  const objects=ids.map(bone);if(!neck||objects.some(o=>!o))return undefined;
- const limits=[ARM_LIMITS.hand,ARM_LIMITS.foreArm,ARM_LIMITS.upperArm,ARM_LIMITS.clavicle];
- return new NativeIkChain(neck,objects.map((object,i)=>({object:object!,limits:limits[i],...(i===1?{hinge:FOREARM_Z_RANGE}:{})})),new Vector3(0,.05,0),speed);
+ return new NativeIkChain(neck,objects.map((object,i)=>({object:object!,info:boneInfo(ids[i])!})),new Vector3(0,.05,0),speed);
 }
 /** CTaskSimpleIKChain::ProcessPed's blend step (0x633D98), including the original's lerp: it moves the remaining
  * distance by stepMs / (targetTime − stepMs − now), so a target renewed every frame is only ever approached. */

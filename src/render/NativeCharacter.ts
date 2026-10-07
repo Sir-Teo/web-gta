@@ -1,5 +1,5 @@
 import {characterShadowBounds} from './characterShadowBounds';
-import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,quatToEulerDeg,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
+import {HEAD_EFFECTOR_OFFSET,LOOK_AT_SPEED,applyQuat,limitHead,moveHeadToTarget,slerpQuat,startLookAt,stepLookAt,type LookAtTask,type Quat} from '../simulation/nativeIkLookAt';
 import {playerMoveBlend} from '../animation/playerMoveBlend';
 import {STAMINA_EXHAUST_FLOOR} from '../locomotion/player';
 import {bindPlayerShoulders} from '../animation/playerShoulders';
@@ -8,6 +8,7 @@ import {nativePlayerMaterial} from './nativePlayerMaterial';
 import { MotionTransition } from '../animation/MotionTransition';
 import { PoseTransition } from '../animation/PoseTransition';
 import { armChain, stepIkBlend, type NativeIkChain } from '../animation/nativeIkChain';
+import { TORSO_INFO } from '../animation/nativeBoneInfo';
 import { Group, Quaternion, MeshBasicMaterial, Matrix4, Object3D, Mesh, Vector3, type SkinnedMesh, type BufferAttribute, type DataTexture } from 'three';
 import { bindAnimation,withoutForeignTracks} from '../animation/bind';
 import { locomotionMotion } from '../animation/locomotion';
@@ -134,16 +135,16 @@ export class NativeCharacter {
   }
   /** CPedIK::PointGunInDirection (0x5FDC00) through the normalized MoveLimb (0x5FDB60), as CTaskSimpleUseGun aims a
    * two-handed weapon: the aim's yaw off the ped's heading and its pitch, both scaled by the aim clip's blend and
-   * clamped by ms_torsoInfo, turn the upper torso (BONE_SPINE1) about the spine and the ped's right axis. The SA
-   * ms_torsoInfo is in the executable (0x8D22E4); these are Vice City's reversed values (reVC CPedIK::ms_torsoInfo). */
+   * clamped by ms_torsoInfo (the iOS executable's, TORSO_INFO), turn the upper torso (BONE_SPINE1) about the spine and
+   * the ped's right axis. The pitch here is positive aiming up, CPedIK's aiming down. */
   private pointGunInDirection(){
     const torso=this.bone(3),hand=this.hand(24);if(!torso?.parent||!hand)return;
     this.root.updateWorldMatrix(true,true);
     const from=new Vector3().setFromMatrixPosition(torso.matrixWorld),to=this.weaponAimPoint?this.weaponAimPoint.clone().sub(from):this.weaponAim!.clone();
     const forward=new Vector3(Math.sin(this.renderedHeading),0,Math.cos(this.renderedHeading)),up=new Vector3(0,1,0),right=new Vector3().crossVectors(forward,up).normalize();
     const flat=Math.hypot(to.x,to.z),aimYaw=Math.atan2(forward.x*to.z-forward.z*to.x,forward.x*to.x+forward.z*to.z);
-    const TORSO={maxYaw:50*Math.PI/180,maxPitch:45*Math.PI/180};
-    const yaw=Math.max(-TORSO.maxYaw,Math.min(TORSO.maxYaw,-aimYaw*this.aimBlend)),pitch=Math.max(-TORSO.maxPitch,Math.min(TORSO.maxPitch,Math.atan2(to.y,flat)*this.aimBlend));
+    const rad=Math.PI/180;
+    const yaw=Math.max(TORSO_INFO.minYaw*rad,Math.min(TORSO_INFO.maxYaw*rad,-aimYaw*this.aimBlend)),pitch=Math.max(-TORSO_INFO.maxPitch*rad,Math.min(-TORSO_INFO.minPitch*rad,Math.atan2(to.y,flat)*this.aimBlend));
     const spine=new Vector3(1,0,0).transformDirection(torso.matrixWorld);
     const world=new Quaternion().setFromAxisAngle(right,pitch).multiply(new Quaternion().setFromAxisAngle(spine,yaw));
     const parent=torso.parent.getWorldQuaternion(new Quaternion()),local=parent.clone().invert().multiply(world).multiply(parent);
@@ -892,8 +893,7 @@ export class NativeCharacter {
     this.lookOrientation??=[rotation.x,rotation.y,rotation.z,rotation.w];
     const local=neck.worldToLocal(look.target.clone()),target:[number,number,number]=[local.x-position.x,local.y-position.y,local.z-position.z];
     const animated:Quat=[rotation.x,rotation.y,rotation.z,rotation.w];
-    const pose=quatToEulerDeg(animated);
-    this.lookOrientation=limitHead(moveHeadToTarget(this.lookOrientation,[...HEAD_EFFECTOR_OFFSET],target,LOOK_AT_SPEED),pose);
+    this.lookOrientation=limitHead(moveHeadToTarget(this.lookOrientation,[...HEAD_EFFECTOR_OFFSET],target,LOOK_AT_SPEED));
     const blended=slerpQuat(animated,this.lookOrientation,look.blend);
     const animatedMatrix=head.matrix.clone();
     head.matrix.compose(position,rotation.set(blended[0],blended[1],blended[2],blended[3]),scale);head.matrixWorldNeedsUpdate=true;

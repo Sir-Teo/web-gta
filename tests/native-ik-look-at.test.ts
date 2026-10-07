@@ -38,12 +38,13 @@ test('Euler conversions round trip and the head limits clamp yaw, pitch and a pi
   const back=quatToEulerDeg(eulerDegToQuat(e));
   for(let i=0;i<3;i++)expect(back[i]).toBeCloseTo(e[i],3);
  }
- const wide=eulerDegToQuat([120,0,0]);
- expect(quatToEulerDeg(limitHead(wide,[0,0,0]))[0]).toBeCloseTo(80,2);
- expect(quatToEulerDeg(limitHead(eulerDegToQuat([0,60,0]),[0,0,0]))[1]).toBeCloseTo(35,2);
+ // The iOS ms_boneInfos head: ±65° yaw, ±15° and ±45° round the pose (−1.8°, −0.5°, −7.3°).
+ const wide=eulerDegToQuat([120,0,-7.3]);
+ expect(quatToEulerDeg(limitHead(wide))[0]).toBeCloseTo(63.2,2);
+ expect(quatToEulerDeg(limitHead(eulerDegToQuat([0,60,-7.3])))[1]).toBeCloseTo(14.5,2);
+ // At 40° about x the z range shrinks to (1 − 40/45) of 45° about the pose's −7.3°.
  const rolled=eulerDegToQuat([40,0,30]);
- // At 40° about x the z range shrinks to (1 - 40/45) of 25°.
- expect(Math.abs(quatToEulerDeg(limitHead(rolled,[0,0,0]))[2])).toBeLessThan(3.5);
+ expect(quatToEulerDeg(limitHead(rolled))[2]).toBeCloseTo(-7.3+45*(1-40/45),1);
  const a:Quat=[0,0,0,1],b=eulerDegToQuat([0,60,0]);
  expect(quatToEulerDeg(slerpQuat(a,b,0.5))[1]).toBeCloseTo(30,3);
  expect(slerpQuat(a,b,0)).toEqual(a);

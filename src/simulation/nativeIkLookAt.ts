@@ -6,12 +6,13 @@
  * over the blend time, holds until blendTime before the end, then falls to 0. CPedIntelligence::
  * LookAtInterestingEntities starts one on 1 frame in 100 for an on-screen ped that is not looking, at a random
  * interesting entity within 15 units, for 3 to 5 s with a 500 ms blend and speed 0.25. */
+import {boneInfo,boneLimits,type BoneInfo} from '../animation/nativeBoneInfo';
 export const LOOK_AT_SPEED=0.25,LOOK_AT_BLEND_MS=500,LOOK_AT_RANGE=15,LOOK_AT_MIN_MS=3000,LOOK_AT_MAX_MS=5000,LOOK_AT_CHANCE=100;
 export const HEAD_EFFECTOR_OFFSET:readonly [number,number,number]=[0,0.05,0];
-/** BoneNodeManager_c::ms_boneInfos for the head lives in the exe (0x8D26D0); these limits are authored: the turn
- * about the bone's own axis (x, the head's yaw) ±80°, and ±35° and ±25° about the other two, from the animated
- * pose. */
-export const HEAD_LIMITS_DEG={x:80,y:35,z:25} as const;
+/** BoneNodeManager_c::ms_boneInfos for BONE_HEAD, from the iOS executable (nativeBoneInfo.ts): ±65° about the
+ * bone's own axis (x, the head's yaw), ±15° and ±45° about the other two, round the pose (−1.8°, −0.5°, −7.3°). They
+ * had been authored, ±80°, ±35° and ±25° round the animated pose. */
+export const HEAD_INFO=boneInfo(5)!;
 export interface LookAtTask {
  /** CTaskSimpleIKChain: the end time, the blend target and the time it is reached, the current blend, and whether
   * the task is blending out. */
@@ -84,13 +85,14 @@ export function eulerDegToQuat(e:V3):Quat{
  const q:Quat=[sc*cy-cs*sy,cc*sy+ss*cy,cs*cy-sc*sy,cc*cy+ss*sy];
  const m=Math.hypot(...q)||1;return [q[0]/m,q[1]/m,q[2]/m,q[3]/m];
 }
-export function limitHead(orientation:Quat,pose:V3,limits:{x:number;y:number;z:number}=HEAD_LIMITS_DEG):Quat{
- const a=quatToEulerDeg(orientation);
+export function limitHead(orientation:Quat,info:Pick<BoneInfo,'pose'|'min'|'max'>=HEAD_INFO):Quat{
+ const a=quatToEulerDeg(orientation),{pose}=info,{min,max}=boneLimits(info as BoneInfo);
  const clamp=(v:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,v));
- a[0]=clamp(a[0],pose[0]-limits.x,pose[0]+limits.x);
- a[1]=clamp(a[1],pose[1]-limits.y,pose[1]+limits.y);
+ a[0]=clamp(a[0],min[0],max[0]);
+ a[1]=clamp(a[1],min[1],max[1]);
+ // The head's Z range narrows to its pose as the yaw nears 45°.
  const factor=Math.max(0,Math.abs(a[0])/-45+1);
- a[2]=clamp(a[2],pose[2]-limits.z*factor,pose[2]+limits.z*factor);
+ a[2]=clamp(a[2],(min[2]-pose[2])*factor+pose[2],(max[2]-pose[2])*factor+pose[2]);
  return eulerDegToQuat(a);
 }
 /** RtQuatSlerp for BoneNode_c::BlendKeyframe: the animated orientation toward the IK one by `blend`. */

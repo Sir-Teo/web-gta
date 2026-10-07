@@ -437,10 +437,26 @@ CPedIntelligence::LookAtInterestingEntities starts one on 1 frame in 100 for an 
 at a random interesting entity within 15 units, for 3 to 5 s. The browser ports the task, the chain step, the
 limits and the slerp (`nativeIkLookAt.ts`, `NativeCharacter.setHeadLook`), restoring the animated head when the
 chain goes (the original rewrites the frame from its keyframes; a clip without a head track would otherwise keep
-the pose). Authored: the head's joint limits (BoneNodeManager_c::ms_boneInfos lives in the exe: ±80° about the
-bone axis, ±35° and ±25° about the others) and the interesting entity, which is the player (the entity list's
-sources are not reversed). CJ's own intelligence runs the same roll, glancing at a random street ped within 15
+the pose). The head's joint limits are BoneNodeManager_c::ms_boneInfos read from the iOS executable (0x100651658,
+`nativeBoneInfo.ts`): ±65° about the bone axis, ±15° and ±45° about the others, round the table's pose (−1.8°,
+−0.5°, −7.3°), the Z range narrowing to the pose as the yaw nears 45°. They had been authored, ±80°, ±35° and ±25°
+round the animated pose. Authored: the interesting entity, which is the player (the entity list's sources are not
+reversed). CJ's own intelligence runs the same roll, glancing at a random street ped within 15
 units. The dev state's `look` per ped and `playerLook` show the blends.
+
+## IK tables from the iOS executable
+
+- BoneNodeManager_c::ms_boneInfos and CPedIK::ms_torsoInfo are data gta-reversed leaves in the exe. Both are read
+  from the iOS executable (`src/animation/nativeBoneInfo.ts`):
+  - ms_boneInfos at 0x100651658: 32 BoneInfo_t (tag, parent, pose rotations, X/Y/Z min and max). The poses use the
+    port's QuatToEuler convention: the belly, breasts, jaw and toes equal the ped DFFs' bind rotations to 0.1°.
+  - The free-aim PointArm chain (`nativeIkChain.ts`) now clamps each bone to pose − min .. pose + max, as
+    BoneNode_c::InitLimits does, in place of authored ranges round the animated angles. The clavicle and the hand
+    have no range, so the chain holds them at their poses; the forearm bends about Z from −148.6° to −0.6°; the upper
+    arm keeps its X and turns −45°..70° about Y and −103°..32° about Z (mirrored on the left). An aimed pistol's
+    barrel now lies within about 9° of the aim standing and 12° strafing (it was 14° and 15°).
+  - ms_torsoInfo at 0x100650cd0, where PointGunInDirection's inlined MoveLimb reads it: yaw ±50°, pitch 55° up to
+    60° down, steps 3° and 5°. The two-handed aim's torso turn had Vice City's ±50° and ±45°.
 
 ## Removing street peds
 
