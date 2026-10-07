@@ -2688,7 +2688,7 @@ export class ScmMission {
    this.streamedScriptStopped(thread);
   };
   this.runtime.onThreadError=(error,thread)=>{const at=thread.currentInstruction;this.gaveUp.push({thread:thread.name,command:at.name,offset:at.offset,detail:String(error)});if(thread.usesMissionCleanup||this.heldByShop(thread))this.handBackPending=true;if(thread.usesMissionCleanup)this.missionGaveUp=true;};
-  this.runtime.game.zones.load(zones.infoLabels);
+  this.runtime.game.zones.load(zones.infoLabels,zones.population);
   this.entry=header.entry;this.streamedTable=header.streamed;this.largestStreamedSize=header.largestStreamedSize;
  }
  /** Flags a script set on its cars and peds that nothing in the port reads yet (see the vigilante's adapters). */
@@ -3881,7 +3881,7 @@ export class ScmMission {
   if(!zones.loaded||zoneInfoIndex<0||zoneInfoIndex>=zones.count)return undefined;
   const info=zones.at(zoneInfoIndex);
   return {popType:info.popType,gangStrength:info.gangStrength,dealerStrength:info.dealerStrength,
-   noCops:info.noCops,popRaces:info.popRaces};
+   noCops:info.noCops,popRaces:info.races};
  }
  /** CRestart as the script has it, for the one the game respawns from to follow, and a cheap count of the
   * changes the script has made to it so a host can copy only when one has happened. */

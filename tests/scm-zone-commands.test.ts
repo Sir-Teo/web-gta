@@ -2,7 +2,7 @@ import {describe,expect,test} from 'vitest';
 import {readFile} from 'node:fs/promises';
 import {ScmThread,UnsupportedScmCommand,type ScmThreadHost,type ScmWorldCommands} from '../src/engine/ScmThread';
 import {ScmGameState} from '../src/engine/ScmGameState';
-import {ZONE_POP_RESIDENTIAL_AVERAGE,ZONE_RACES_ALL} from '../src/engine/ScmZones';
+import {ScmZones,ZONE_POP_RESIDENTIAL_AVERAGE,ZONE_RACES_ALL} from '../src/engine/ScmZones';
 import {readScmHeader,decodeScmInstructions} from '../src/assets/scm';
 import {readInitialZonePopulation} from '../src/assets/scmZonePopulation';
 import {readZones,prepareWorldZones} from '../src/assets/worldZones';
@@ -23,7 +23,7 @@ describe('CTheZones script commands',()=>{
   expect(game.zones.count).toBeGreaterThan(100);
   const first=game.zones.at(0);
   expect(first.popType).toBe(ZONE_POP_RESIDENTIAL_AVERAGE);
-  expect(first.popRaces).toBe(ZONE_RACES_ALL);
+  expect(first.races).toBe(ZONE_RACES_ALL);
   expect(first.gangStrength).toHaveLength(10);
   expect(first.dealerStrength).toBe(0);
   expect(first.noCops).toBe(false);
@@ -42,7 +42,7 @@ describe('CTheZones script commands',()=>{
   const expected=readInitialZonePopulation(bytes,zones);
   expect(expected.unresolved).toEqual([]);
   expect(game.zones.unresolved).toEqual([]);
-  const mine=game.zones.all.map(info=>({popType:info.popType,gangStrength:info.gangStrength,dealerStrength:info.dealerStrength,races:info.popRaces,noCops:info.noCops}));
+  const mine=game.zones.all.map(info=>({popType:info.popType,gangStrength:info.gangStrength,dealerStrength:info.dealerStrength,races:info.races,noCops:info.noCops}));
   expect(mine).toEqual(expected.population);
  });
 
@@ -90,5 +90,23 @@ describe('CTheZones script commands',()=>{
   const gan=game.zones.at(game.zones.findZoneByLabel(label));
   expect(gan.popType).toBe(ZONE_POP_RESIDENTIAL_AVERAGE);
   expect(gan.noCops).toBe(false);
+ });
+});
+
+describe('one CZoneInfo array',()=>{
+ test('the script works on the records the streets and the gang wars read, which keep what they held',()=>{
+  const world=[{popType:9,gangStrength:[40,0,0,0,0,0,0,0,0,0],dealerStrength:3,races:7,noCops:false},{popType:5,gangStrength:Array(10).fill(0),dealerStrength:0,races:15,noCops:true}];
+  const zones=new ScmZones();zones.load(['GLN1','GAN1'],world);
+  // The script reads what the world holds, and the world sees what it sets.
+  expect(zones.gangStrength('GLN1',0)).toBe(40);
+  zones.setGangStrength('GLN1',1,12);expect(world[0].gangStrength[1]).toBe(12);
+  // A war moving strength in the world's record is what GET_ZONE_GANG_STRENGTH answers.
+  world[0].gangStrength[0]=0;expect(zones.gangStrength('GLN1',0)).toBe(0);
+  expect(zones.all[0]).toBe(world[0]);
+  // INIT_ZONE_POPULATION_SETTINGS resets the same records.
+  zones.initZonesPopulationSettings();
+  expect(world[0]).toMatchObject({popType:ZONE_POP_RESIDENTIAL_AVERAGE,dealerStrength:0,races:ZONE_RACES_ALL,noCops:false});
+  expect(world[0].gangStrength.every(v=>v===0)).toBe(true);
+  expect(world[1].noCops).toBe(false);
  });
 });

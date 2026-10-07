@@ -11262,3 +11262,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   PICKUP_ONCE_TIMEOUT_SLOW within two units: health by Gang1's in the first wave, armour in the second, and in the
   third health by Gang1's and armour by Gang2's. Not yet ported: the first wave's drive-by car (a gang car with an
   Uzi-armed crew on CTaskSimpleGangDriveBy at the player).
+- There is one CZoneInfo array (CTheZones::ZoneInfoArray), as in the game. The script's zone records were their own copy,
+  fresh at the start, while the street population, the turf colours and the gang wars read another (MAIN's initial
+  settings read from the file): a gang war moved strength in the one, and CRASH4 polled GET_ZONE_GANG_STRENGTH on the
+  other for Glen Park's Ballas to be gone, for ever; and no script's SET_ZONE_* reached the streets. The script now works
+  on the world's records as they stand, and INIT_ZONE_POPULATION_SETTINGS resets them in place.
