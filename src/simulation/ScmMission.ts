@@ -732,6 +732,8 @@ export interface ScmMissionWorld {
  setScriptLimitToGangSize?(size:number):void;
  /** CGangWars::SetGangWarsActive. */
  setGangWarsActive?(state:boolean):void;setPlayerGroupSeparationRange?(range:number):void;
+ /** CMissionCleanup::Process's reset of the player's group: separation 120 and FOLLOW_LIMITED until the next group command. */
+ playerGroupMissionCleanup?():void;
  /** CCutsceneMgr::IsCutsceneSkipButtonBeingPressed this frame. */
  cutsceneSkipPressed?():boolean;
  /** A script car's own autopilot settings (SET_CAR_CRUISE_SPEED, SET_CAR_DRIVING_STYLE). */
@@ -2279,6 +2281,11 @@ export class ScmMission {
     this.runtime.game.objects.cleanUpMissionObjects();this.cutsceneThread=undefined;
     for(let slot=1;slot<=MISSION_AUDIO_COUNT;slot++)this.world.scriptSpeech?.stop(slot);
     this.runtime.game.camera.restore(this.world.playerCameraState());
+    // It also puts the player's group back (iOS 0x1001ca4a4): separation 120 (the script group's too), the always- and
+    // never-follow flags off, and the FOLLOW_LIMITED task allocator, which holds until a group command.
+    this.playerGroupAlwaysFollows=false;this.playerGroupNeverFollows=false;
+    this.groups.get(PLAYER_GROUP_HANDLE)!.separationRange=120;
+    this.world.playerGroupMissionCleanup?.();
    },
    // The player's own car (not one the script made) answers from the host.
    vehicleModel:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerVehicle(handle).model:this.vehicles.modelOf(handle),

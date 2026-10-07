@@ -23,6 +23,13 @@ test('G and H recruit a targeted homie, order stay and follow, and a held button
  await page.keyboard.press('KeyH');await expect.poll(staying,{timeout:30000}).toBe(1);
  await page.keyboard.press('KeyG');await expect.poll(staying,{timeout:30000}).toBe(0);
  expect(await crew()).toBe(1);
+ // CTaskComplexGangFollower by a still CJ: member slot 0 stands at Offsets[0] (-1, 1), a unit west and a unit north.
+ const offSpot=()=>page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position,m=g.pedestrians().people.find((q:any)=>q.follow),q=m.actor.player.position;return Math.hypot(q.x-(p.x-1),q.z-(p.z-1));});
+ await expect.poll(offSpot,{timeout:30000}).toBeLessThan(.7);
+ // A mission's cleanup puts the group on FOLLOW_LIMITED until the next group command.
+ const allocator=()=>page.evaluate(()=>(window as any).__game.pedestrians().playerGroupAllocator);
+ await page.evaluate(()=>(window as any).__game.pedestrians().missionCleanup());expect(await allocator()).toBe('followLimited');
+ await page.keyboard.press('KeyG');await expect.poll(allocator,{timeout:30000}).toBe('random');
  await page.keyboard.down('KeyH');
  await expect.poll(crew,{timeout:60000}).toBe(0);
  await page.keyboard.up('KeyH');
