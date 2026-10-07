@@ -11243,4 +11243,5 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   CTaskComplexDrivePointRoute over the route EXTEND_ROUTE built, a CTaskComplexDriveToPoint to each point in turn with the
   task's speed, mode and driving style, over once the last is reached (iOS pre-increments its point index; gta-reversed's
   post-increment would drive on to a slot past the route). The plain form is the same task in mode 2 (straight line),
-  any model and driving style 0, iOS 0x1001f20b8; it used to be refused as a world command.
+  any model and driving style 0, iOS 0x1001f20b8; it used to be refused as a world command. Not used: the desired model
+  (iOS turns an argument of 0 into any and 1 into 415 before the task), which the port's drive to a point never reads.
