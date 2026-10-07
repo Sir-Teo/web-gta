@@ -2195,7 +2195,7 @@ export class ScmMission {
     if(!order){
      // A task run as several orders (see standInOrders) goes as a sequence of them.
      const several=this.standInOrders(handle,task,this.taskWorld(handle));
-     if(!several)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+     if(!several)throw new UnsupportedScmCommand(-1,opcode,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
      if(handle===PLAYER_PED_HANDLE){this.givePlayer(several,false,opcode,true);return;}
      this.world.giveScriptPedSequence(this.livePed(handle),several,false,0);this.recordTask(handle,opcode,false);return;
     }
@@ -2218,7 +2218,7 @@ export class ScmMission {
      if(carTasks&&CAR_TASKS.has(task.kind))return;
      if(index===start)orderStart=orders.length;
      const order=scriptedPedOrder(task,world),several=order?[order]:this.standInOrders(handle,task,world);
-     if(!several)throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+     if(!several)throw new UnsupportedScmCommand(-1,opcode,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
      if(!order)standIns=true;
      for(const one of several){orders.push(one);orderSteps.push(steps?.[index]??{outer:index,inner:-1});}
     });
@@ -2579,7 +2579,7 @@ export class ScmMission {
   this.runtime.onUnsupported=(error,thread)=>{
    // An adapter that cannot answer (offset -1) names what it lacked; the command is the one the thread was running.
    const at=thread.currentInstruction;
-   this.gaveUp.push(error.offset<0?{thread:thread.name,command:at.name,offset:at.offset,detail:error.command}:{thread:thread.name,command:error.command,offset:error.offset});
+   this.gaveUp.push(error.offset<0?{thread:thread.name,command:at.name,offset:at.offset,detail:error.detail?`${error.command}: ${error.detail}`:error.command}:{thread:thread.name,command:error.command,offset:error.offset});
    if(thread.usesMissionCleanup||this.heldByShop(thread))this.handBackPending=true;
    if(thread.usesMissionCleanup)this.missionGaveUp=true;
    this.streamedScriptStopped(thread);
@@ -2901,7 +2901,7 @@ export class ScmMission {
   if(!this.vehicles.exists(ride.vehicle)){this.stopDriving(handle);this.peds.detachFromCar(handle,this.peds.positionOf(handle));return true;}
   const car=this.liveVehicle(ride.vehicle);
   const at=this.host('scriptVehicleSeatDoor','TASK_LEAVE_CAR')(car,ride.seat);
-  if(!at)throw new UnsupportedScmCommand(opcode,0,'A_SEAT_WITHOUT_A_DOOR',String(ride.seat));
+  if(!at)throw new UnsupportedScmCommand(-1,opcode,'A_SEAT_WITHOUT_A_DOOR',String(ride.seat));
   this.stopDriving(handle);
   // CTaskSimpleCarJumpOut: out of a car that is still moving the ped rolls, by its seat's side, with the car's speed.
   const native=jump&&!this.vehicleStill(ride.vehicle)?this.world.scriptVehicleVelocity?.(car):undefined,velocity=native&&{x:native.x,z:-native.y};
@@ -2927,10 +2927,10 @@ export class ScmMission {
     // -1 names no car: the player's missions (ram, block) go after him.
     const target=task.targetVehicle===-1?undefined:this.liveVehicle(task.targetVehicle);
     if(!this.host('scriptVehicleCarMission','TASK_CAR_MISSION')(car,{mission:task.missionId,target,cruise:task.cruiseSpeed,style:task.drivingStyle}))
-     throw new UnsupportedScmCommand(opcode,0,'A_CAR_MISSION_THE_BROWSER_DOES_NOT_DRIVE',`mission ${task.missionId}`);
+     throw new UnsupportedScmCommand(-1,opcode,'A_CAR_MISSION_THE_BROWSER_DOES_NOT_DRIVE',`mission ${task.missionId}`);
     return;
    }
-   default:throw new UnsupportedScmCommand(opcode,0,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
+   default:throw new UnsupportedScmCommand(-1,opcode,'A_TASK_THE_BROWSER_DOES_NOT_RUN',task.kind);
   }
  }
  /** CTaskComplexSequence run from here, a task at a time, for the sequences the on-foot peds cannot carry alone: one
@@ -3061,13 +3061,13 @@ export class ScmMission {
  private driverCar(handle:number,vehicle:number,opcode:number){
   this.livePed(handle);
   const ride=this.peds.rideOf(handle);
-  if(!ride||ride.offset||ride.seat!=='driver'||ride.vehicle!==vehicle)throw new UnsupportedScmCommand(opcode,0,'A_DRIVER_NOT_AT_THE_WHEEL',`ped ${handle}`);
+  if(!ride||ride.offset||ride.seat!=='driver'||ride.vehicle!==vehicle)throw new UnsupportedScmCommand(-1,opcode,'A_DRIVER_NOT_AT_THE_WHEEL',`ped ${handle}`);
   return this.liveVehicle(vehicle);
  }
  /** The player's ped runs only the tasks PlayerScriptTasks knows; any other gives the thread up. */
  private givePlayer(orders:readonly ScriptedPedOrder[],repeat:boolean,opcode:number,sequence=false,start=0){
   const other=orders.find(order=>!PlayerScriptTasks.runs(order));
-  if(other)throw new UnsupportedScmCommand(opcode,0,'A_PLAYER_TASK_THE_BROWSER_DOES_NOT_RUN',other.kind);
+  if(other)throw new UnsupportedScmCommand(-1,opcode,'A_PLAYER_TASK_THE_BROWSER_DOES_NOT_RUN',other.kind);
   this.host('givePlayerOrders','A_PLAYER_TASK')(orders,repeat,sequence,start);
   this.recordTask(PLAYER_PED_HANDLE,opcode,false);
  }

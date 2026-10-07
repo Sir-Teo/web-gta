@@ -9,7 +9,7 @@ import type {ScmGameState} from './ScmGameState';
 import type {ScmCarCheckWorld} from './ScmCarChecks';
 
 export class UnsupportedScmCommand extends Error {
- constructor(readonly offset:number,readonly opcode:number,readonly command:string,detail=''){
+ constructor(readonly offset:number,readonly opcode:number,readonly command:string,readonly detail=''){
   super(`Unsupported SCM command ${command} (0x${opcode.toString(16)}) at ${offset}${detail?`: ${detail}`:''}`);
  }
 }
