@@ -70,7 +70,7 @@ type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
 /** The weapons that choke (WEAPON_SPRAYCAN, WEAPON_EXTINGUISHER, WEAPON_TEARGAS). */
 const CHOKING_WEAPONS=new Set([41,42,17]);
 /** ePedType's PED_TYPE_COP and PED_TYPE_GANG2 (the Grove Street Families), as nativePedType numbers them. */
-const PED_TYPE_PLAYER1=0,PED_TYPE_COP=6,PED_TYPE_GANG2=8;
+const PED_TYPE_PLAYER1=0,PED_TYPE_COP=6,PED_TYPE_GANG2=8,PED_TYPE_GANG7=13;
 /** CPopulation::AddPed's choice for an armed civilian: WEAPON_PISTOL, _BASEBALLBAT, _SHOTGUN, _M4, _RLAUNCHER. */
 const EVERYONE_ARMED_WEAPONS=[22,5,25,31,35] as const;
 /** The Grove Street Families' gang index, PED_TYPE_GANG2. */
@@ -1447,7 +1447,10 @@ export class WorldPedestrians {
     catch{return;}
    const position={x,y:top-hit.timeOfImpact+.03,z};
    let armed:Awaited<Catalog['weapon']>|undefined;
-   if(gangMemberArmed(this.gangWeaponRandom)){const id=randomGangWeapon(gang,this.gangWeaponRandom);if(id&&this.law){try{armed=await catalog.armedWith(id);}catch{armed=undefined;}}}
+   // CPopulation::AddPed: under CHEAT_NINJA_THEME a GANG7 member takes the katana; any other gang member a third of the
+   // time one of its gang's weapons.
+   const id=CHEATS.isActive('ninja')&&gangPedType(gang)===PED_TYPE_GANG7?WEAPON.katana:gangMemberArmed(this.gangWeaponRandom)?randomGangWeapon(gang,this.gangWeaponRandom):undefined;
+   if(id&&this.law){try{armed=await catalog.armedWith(id);}catch{armed=undefined;}}
    if(this.disposed)return;
    const p=this.createPed({position,heading:this.sim.player.heading,source:built.source,officer:false,node,weapon:armed,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang,modelRef:model});
     if(leader){p.target=leader.target;p.previousNode=leader.previousNode;}

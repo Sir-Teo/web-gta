@@ -2279,6 +2279,10 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     launcher at random, with 25001 rounds (`everyone-armed` spec). The golf
     club cheat's kill task on the nearest ped is not ported (gta-reversed's
     version is marked as not the original).
+  - The ninja theme's weapon: under CHEAT_NINJA_THEME AddPed gives every
+    GANG7 member the katana, in place of the one-in-three gang weapon (the
+    theme's models are not ported). The slut magnet (prostitutes hassling the
+    player with a dildo or vibrator) is not in the port's cheat table.
   - Fat, muscle, skinny and max stamina do nothing yet.
 - Verification: unit tests cover the codes, the toggle messages and the
   hooks for traffic, colours, wanted, ammo and oxygen. A browser test types
