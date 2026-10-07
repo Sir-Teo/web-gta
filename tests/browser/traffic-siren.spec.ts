@@ -20,14 +20,17 @@ test('a car ahead of a sounding siren swerves and stops, then drives on',async({
     return {position:{x:p.x-f.x*15,y:p.y,z:p.z-f.z*15},velocity:{x:f.x*25,y:0,z:f.z*25}};};
    const siren=sirenAt();traffic.sirens=()=>[siren];tick();traffic.sirens=()=>[];
    const yielding=traffic.snapshot().cars[0];
-   for(let i=0;i<150;i++)tick();const held=traffic.snapshot().cars[0];
+   for(let i=0;i<160;i++)tick();const swerved=traffic.snapshot().cars[0];
+   for(let i=0;i<170;i++)tick();const held=traffic.snapshot().cars[0];
    for(let i=0;i<300;i++)tick();const resumed=traffic.snapshot().cars[0];
-   return {rolling,yielding:yielding.temp,stopped:yielding.stopped,heldSpeed:held.speed,resumedTemp:resumed.temp,resumedSpeed:resumed.speed};
+   return {rolling,yielding:yielding.temp,stopped:yielding.stopped,afterSwerve:swerved.temp,heldTemp:held.temp,heldSpeed:held.speed,resumedTemp:resumed.temp,resumedSpeed:resumed.speed};
   }finally{traffic.dispose();fleet.dispose();if(scene.children.length)throw new Error('Traffic views leaked');sim.dispose();}
  });
  expect(result.rolling).toBeGreaterThan(11.2);
- // TEMPACT_SWIRVELEFT_STOP for 2.5 s: swerve towards the kerb and brake.
+ // TEMPACT_SWIRVELEFT_STOP for 2.5 s: swerve towards the kerb with no gas (and a 0.001 brake), then TEMPACT_WAIT
+ // (brake 0.2) for 4 s, which brings it to a stop.
  expect(result.yielding).toBe('swerveStop');expect(result.stopped).toBe('siren');
+ expect(result.afterSwerve).toBe('wait');expect(result.heldTemp).toBe('wait');
  expect(result.heldSpeed).toBeLessThan(result.rolling*.6);
  expect(result.resumedTemp).toBeNull();expect(result.resumedSpeed).toBeGreaterThan(result.heldSpeed);
 });

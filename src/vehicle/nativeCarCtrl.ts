@@ -333,9 +333,17 @@ export function makeWayForCarWithSiren(car:{position:{x:number;y:number;z:number
  }
  return towardsSiren&&car.current!=='swerveStop'?{action:'wait',ms:4000}:undefined;
 }
-/** CCarCtrl::SteerAICarWithPhysics for a temporary action. TEMPACT_WAIT holds the brake at 0.2, TEMPACT_BRAKE at 1. SA's
- * TEMPACT_SWIRVELEFT_STOP is not reversed: it follows VC's TEMPACT_SWERVELEFT (a steer of −0.15, towards the
- * kerb, straightening over the last second) and brakes to a stop. */
+/** TEMPACT_SWIRVELEFT and _RIGHT and their _STOP variants as the iOS SteerAICarWithPhysics has them (0x100198610): a
+ * steer of 0.25 (negative to the left, towards the kerb), turned the other way over the last 1250 ms, no gas and a
+ * touch of brake (0.001). As they run out the _STOP variants wait 4 s (SWIRVE_STOP_WAIT_MS). Vice City's swerve had
+ * steered 0.15, straightened over the last second and braked at 0.5. */
+export function swirvePedals(right:boolean,remainingMs:number):Pedals{
+ const steer=right?.25:-.25;
+ return {swerve:remainingMs<1250?-steer:steer,accel:0,brake:.001,handbrake:false};
+}
+export const SWIRVE_STOP_WAIT_MS=4000;
+/** CCarCtrl::SteerAICarWithPhysics for a temporary action. TEMPACT_WAIT holds the brake at 0.2, TEMPACT_BRAKE at 1;
+ * `swerveStop` is TEMPACT_SWIRVELEFT_STOP. */
 export function tempActionPedals(action:TempAction,remainingMs:number,o:{follow?:Pedals;forwardSpeed?:number}={}):Pedals{
  if(action==='wait')return {swerve:0,accel:0,brake:.2,handbrake:false};
  if(action==='brake')return {swerve:0,accel:0,brake:1,handbrake:false};
@@ -343,7 +351,7 @@ export function tempActionPedals(action:TempAction,remainingMs:number,o:{follow?
  if(action==='handbrakeStraight')return {swerve:0,accel:0,brake:0,handbrake:true};
  // TEMPACT_REVERSE: the mission's own steer, mirrored, backing at half gas (braking first while still rolling forward).
  if(action==='reverse'){const rolling=(o.forwardSpeed??0)>.04;return {swerve:-(o.follow?.swerve??0),accel:rolling?0:-.5,brake:rolling?.5:0,handbrake:false};}
- return {swerve:remainingMs<1000?.15:-.15,accel:0,brake:.5,handbrake:false};
+ return swirvePedals(false,remainingMs);
 }
 /** CCarAI::UpdateCarAI's jam handling for a random car cruising under STOP_FOR_CARS (0x41FB1B–0x41FD3C). The
  * decompiled test reads as if only stationary and escort missions qualified; that is the list VC excludes, so the

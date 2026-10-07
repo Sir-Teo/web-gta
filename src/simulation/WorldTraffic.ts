@@ -8,7 +8,7 @@ import {nativeShouldStopForLight} from '../world/nativeSignalStop';
 import {trafficLinks,travelLink,type TrafficLink} from './trafficRoute';
 import {generateCarCreationCoors2,newCarCreationCache} from './nativeCarCreationCoors';
 import {approachesPlayer,clampCreationT,laneCountAllows,nodeSpeedCode,nodeSpeedMultiplier,randomCarCreationBearing,speedMultiplierFromNodes,randomCarCruiseSpeed,spawnProbabilityPasses} from '../vehicle/nativeRandomCarSpawn';
-import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,TRY_NOT_TO_TURN_MODELS,carAIJam,initialLaneChangeCountdown,laneChangeCountdown,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,pickNextNodeRandomly,
+import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,SWIRVE_STOP_WAIT_MS,TRY_NOT_TO_TURN_MODELS,carAIJam,initialLaneChangeCountdown,laneChangeCountdown,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,pickNextNodeRandomly,
  shouldPickNextNode,slowCarDownForCars,slowCarDownForPeds,standoffApplies,steerFollowPath,steerHeadingForTarget,tempActionPedals,type DangerView,type NextCandidate,type TempAction} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
@@ -421,10 +421,11 @@ export class WorldTraffic {
    let pedals=follow;
    if(driver.temp&&now<driver.temp.until)pedals=tempActionPedals(driver.temp.action,driver.temp.until-now,{follow,forwardSpeed:move.x*f3.x+move.y*f3.y+move.z*f3.z});
    else if(driver.temp){
-    // TEMPACT_WAIT and TEMPACT_BRAKE restart the jam clock as they end; BRAKE the moving one too.
+    // TEMPACT_WAIT and TEMPACT_BRAKE restart the jam clock as they end; BRAKE the moving one too. A swerve to a stop
+    // then waits.
     if(driver.temp.action==='wait'||driver.temp.action==='brake')driver.timeToStartMission=now;
     if(driver.temp.action==='brake')driver.timeSwitchedToRealPhysics=now;
-    driver.temp=undefined;
+    driver.temp=driver.temp.action==='swerveStop'?{action:'wait',until:now+SWIRVE_STOP_WAIT_MS,from:driver.temp.from}:undefined;
    }
    // CAutoPilot::m_bSlowedDownBecauseOfCars and ...Peds, which PlayHornIfNecessary reads.
    car.honkAtCar=slowedByCars;car.honkAtPed=slowedByPeds;car.stoppedForLight=atSignal;

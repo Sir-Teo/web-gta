@@ -1546,9 +1546,14 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   - (Since fixed: the two-way lane offset was Vice City's half a lane. It is now the iOS
     `OneWayLaneOffset`'s (0x1001bdb54): half a lane plus the link's unsigned width byte over 86.4,
     so a wide two-way road keeps its traffic further from the line.)
-  - `TEMPACT_SWIRVELEFT_STOP` is SA-only. It follows Vice City's swerve
-    (a steer of −0.15, straightening over the last second) and brakes at
-    0.5.
+  - (Since fixed: `TEMPACT_SWIRVELEFT_STOP` had followed Vice City's swerve,
+    a steer of −0.15 straightening over the last second with the brake at
+    0.5.) The swerves are now the iOS `SteerAICarWithPhysics`'s
+    (0x100198610): a steer of 0.25 (negative to the left, towards the kerb),
+    the other way over the last 1250 ms, no gas and a 0.001 brake. The _STOP
+    variants wait 4 s (`TEMPACT_WAIT`) as they run out, which is what stops
+    a car yielding to a siren. Script cars take all four (10, 11, 20, 21),
+    which they had ignored.
   - Weaving through traffic (`FindAngleToWeaveThroughTraffic`) is not ported.
 - Police cars steer with the same port.
   - Far-away chases (`MISSION_RAMPLAYER_FARAWAY`) follow their route with

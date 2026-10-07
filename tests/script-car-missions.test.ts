@@ -48,8 +48,21 @@ test('a temporary action runs for its time over the mission, then the mission (o
  missions.step(.02);expect(raw.autopilot).toEqual({steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:0,gas:0,brake:.5,handbrake:true}});
 });
 
+test('a swerve to a stop waits 4 s as it runs out',()=>{
+ const missions=new ScriptCarMissions(()=>undefined),{car:c,raw}=car(0,0);
+ missions.tempAction(c,20,2);missions.step(.05);
+ expect(raw.autopilot).toMatchObject({native:{steerAngle:-.25,brake:.001}});
+ missions.step(1);expect(raw.autopilot).toMatchObject({native:{steerAngle:.25,brake:.001}});
+ missions.step(1);expect(missions.inTempAction(c)).toBe(true);
+ missions.step(.05);expect(raw.autopilot).toMatchObject({native:{steerAngle:0,gas:0,brake:.2}});
+ missions.step(4);expect(missions.inTempAction(c)).toBe(false);
+});
+
 test('the temporary actions the scripts use',()=>{
  expect(scriptTempActionPedals(9,0,{forwardSpeed:0})).toEqual({swerve:0,accel:.5,brake:0,handbrake:false});
+ // The swerves: TEMPACT_SWIRVELEFT(_STOP) −0.25, _RIGHT +0.25, turned back over the last 1250 ms.
+ expect(scriptTempActionPedals(10,2000,{forwardSpeed:0})).toEqual({swerve:-.25,accel:0,brake:.001,handbrake:false});
+ expect(scriptTempActionPedals(21,1000,{forwardSpeed:0})).toEqual({swerve:-.25,accel:0,brake:.001,handbrake:false});
  expect(scriptTempActionPedals(7,0,{forwardSpeed:0})).toEqual({swerve:1,accel:1,brake:0,handbrake:false});
  expect(scriptTempActionPedals(4,0,{forwardSpeed:0})).toEqual({swerve:1,accel:0,brake:0,handbrake:true});
  // Reversing brakes first while the car still rolls forward.

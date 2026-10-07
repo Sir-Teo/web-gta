@@ -2,7 +2,7 @@ import {Quaternion,Vector3} from 'three';
 import type {PathArea} from '../assets/pathNodes';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {TRY_NOT_TO_TURN_MODELS,initialLaneChangeCountdown,laneChangeCountdown,lanePoint,nextLaneOnLink,pickNextNodeRandomly,type NextCandidate,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,tempActionPedals,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
+import {SWIRVE_STOP_WAIT_MS,TRY_NOT_TO_TURN_MODELS,initialLaneChangeCountdown,swirvePedals,laneChangeCountdown,lanePoint,nextLaneOnLink,pickNextNodeRandomly,type NextCandidate,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,tempActionPedals,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
 import {slowCarDownForCars,type DangerView} from '../vehicle/nativeCarCtrl';
 import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
 import type {WorldCar} from './WorldCar';
@@ -98,7 +98,7 @@ interface Mission{
 }
 /** eAutoPilotTempAction, the ones the scripts use. */
 export const TEMPACT={wait:1,reverse:3,handbrakeTurnLeft:4,handbrakeTurnRight:5,handbrakeStraight:6,turnLeft:7,turnRight:8,goForward:9,
- reverseLeft:13,reverseRight:14,reverseStraight:22,brake:24} as const;
+ swirveLeft:10,swirveRight:11,reverseLeft:13,reverseRight:14,swirveLeftStop:20,swirveRightStop:21,reverseStraight:22,brake:24} as const;
 /** CCarCtrl::SteerAICarWithPhysics for a temporary action; SA's steerer is a stub, so these are Vice City's where VC has
  * the action (wait, reverse, the handbrake turns, the turns, go forward) and plain readings of the SA-only ones: the
  * reverses with the wheel full left, full right or straight, and TEMPACT_BRAKE's full brake. */
@@ -113,6 +113,8 @@ export function scriptTempActionPedals(action:number,remainingMs:number,o:{follo
   case TEMPACT.turnLeft:return turnPedals('left');
   case TEMPACT.turnRight:return turnPedals('right');
   case TEMPACT.goForward:return {swerve:0,accel:.5,brake:0,handbrake:false};
+  case TEMPACT.swirveLeft:case TEMPACT.swirveLeftStop:return swirvePedals(false,remainingMs);
+  case TEMPACT.swirveRight:case TEMPACT.swirveRightStop:return swirvePedals(true,remainingMs);
   case TEMPACT.reverseLeft:return back(1);
   case TEMPACT.reverseRight:return back(-1);
   case TEMPACT.reverseStraight:return back(0);
@@ -377,7 +379,8 @@ export class ScriptCarMissions{
   const p=car.car.body.translation(),v=car.car.body.linvel(),f=this.forward(car);
   const state={position:{x:p.x,y:-p.z},forward:f,moveSpeed:{x:v.x/50,y:-v.z/50,z:v.y/50},forward3:this.forward3(car)};
   if(m.temp){
-   const t=m.temp;t.remaining-=dt;if(t.remaining<=0)m.temp=undefined;
+   // The swerves to a stop wait 4 s as they run out.
+   const t=m.temp;t.remaining-=dt;if(t.remaining<=0)m.temp=t.action===TEMPACT.swirveLeftStop||t.action===TEMPACT.swirveRightStop?{action:TEMPACT.wait,remaining:SWIRVE_STOP_WAIT_MS/1000}:undefined;
    const forwardSpeed=state.moveSpeed.x*f.x+state.moveSpeed.y*f.y;
    const pedals=scriptTempActionPedals(t.action,Math.max(0,t.remaining)*1000,{forwardSpeed});
    if(pedals)return {steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}};

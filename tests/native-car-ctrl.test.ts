@@ -226,6 +226,9 @@ test('MakeWayForCarWithSiren: fast cars ahead in its line swerve and stop, cars 
  // Off its line and heading towards it.
  expect(makeWayForCarWithSiren(car(20,10,{x:-1,y:0},.3),siren)).toEqual({action:'wait',ms:2000});
  expect(makeWayForCarWithSiren({...car(0,20,{x:0,y:1},.3),current:'swerveStop'},siren)).toBeUndefined();
+ // TEMPACT_SWIRVELEFT_STOP (iOS): 0.25 towards the kerb, the other way over the last 1250 ms, brake 0.001.
+ expect(tempActionPedals('swerveStop',2000)).toEqual({swerve:-.25,accel:0,brake:.001,handbrake:false});
+ expect(tempActionPedals('swerveStop',1200)).toEqual({swerve:.25,accel:0,brake:.001,handbrake:false});
 });
 
 test('the 30 s rule\'s 400 ms reverse replaces the jam\'s 750 on the frame both fire, keeping its horn; a dying driver pulls the handbrake straight',()=>{
