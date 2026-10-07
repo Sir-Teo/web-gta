@@ -5403,6 +5403,7 @@ async function boot() {
                  setScriptVehicleCarCheats:(car,on)=>{if(isScriptCar(car))car.useCarCheats=on;},
                  takeOffPlayerGoggles:animate=>{weapons.takeOffGoggles(animate);},
                  setVisionEffect:(kind,on)=>{weapons.setVisionEffect(kind,on);},
+                 forceDeathRestart:()=>{gameLogic.forceDeathRestart(gameTimeMs,gameLogicWorld);},
                  nightVisionActive:()=>weapons.vision==='nightvision',
                  // FireOneInstantHitRound: the line of sight from start to end, the trace, then a ped not dying takes a
                  // WEAPON_UZI_DRIVEBY damage event of the intensity and a vehicle InflictDamage by WEAPON_MICRO_UZI (none

@@ -440,6 +440,8 @@ export interface ScmMissionWorld {
  /** CPostEffects::m_bNightVision and m_bInfraredVision (WeaponSystem.setVisionEffect), and the first read back. */
  setVisionEffect?(kind:'nightvision'|'infrared',on:boolean):void;
  nightVisionActive?():boolean;
+ /** CGameLogic::ForceDeathRestart. */
+ forceDeathRestart?():void;
  /** The handling's nMonetaryValue for a vehicle model. */
  vehicleModelValue?(model:number|string):number;
  /** SET_CAR_ROLL's matrix: the car's heading alone, then turned about the world's y axis by `roll` radians. */
@@ -1261,6 +1263,8 @@ export class ScmMission {
    setExtraCarColours:(handle,tertiary,quaternary)=>{this.host('recolourScriptVehicleExtras','SET_EXTRA_CAR_COLOURS')(this.liveVehicle(handle),tertiary,quaternary);},
    // SET_FREEBIES_IN_VEHICLE (iOS 0x100200a28): vehicleFlags.bFreebies, bit 7.
    setFreebiesInVehicle:(handle,on)=>{this.host('setScriptVehicleFreebies','SET_FREEBIES_IN_VEHICLE')(this.liveVehicle(handle),on);},
+   // FORCE_DEATH_RESTART (iOS 0x100203450): CGameLogic::ForceDeathRestart.
+   forceDeathRestart:()=>{this.host('forceDeathRestart','FORCE_DEATH_RESTART')();},
    // SET_NIGHT_VISION, SET_INFRARED_VISION (iOS 0x100200584, 0x1002005a8) and IS_NIGHT_VISION_ACTIVE (0x1002034c0).
    setNightVision:on=>{this.host('setVisionEffect','SET_NIGHT_VISION')('nightvision',on);},
    setInfraredVision:on=>{this.host('setVisionEffect','SET_INFRARED_VISION')('infrared',on);},
@@ -2335,12 +2339,10 @@ export class ScmMission {
    // reVC's SET_CAR_COORDINATES: the point lifted by CEntity::GetDistanceFromCentreOfMassToBaseOfModel, the car
    // teleported there keeping its heading, the space round it cleared (ClearSpaceForMissionEntity), and a car on a
    // mission joined to the roads again from where it now stands. The player's own car (handle 1) moves the same way.
-   setVehicleCoordinates:(handle,x,y,z)=>{
-    const car=this.vehicleByHandle(handle),at={x,y,z:z+(car!==undefined?this.world.scriptVehicleBaseOffset?.(car)??0:0)};
-    if(handle===PLAYER_VEHICLE_HANDLE)this.world.placeScriptVehicle(this.liveVehicle(handle),at,this.playerPose(handle).heading);
-    else this.vehicles.setPosition(handle,at,car===undefined?arrived=>this.world.scriptVehicleBaseOffset?.(arrived)??0:undefined);
-    if(car!==undefined){this.world.clearSpaceForScriptVehicle?.(car);this.world.rejoinScriptVehicleRoads?.(car);}
-   },
+   setVehicleCoordinates:(handle,x,y,z)=>{this.setScriptCarCoords(handle,x,y,z,true);},
+   // SET_CAR_COORDINATES_NO_OFFSET (iOS 0x1001fe79c): CCarCtrl::SetCoordsOfScriptCar(car, x, y, z, 0, 0), the same
+   // placement without the lift from the centre of mass to the base of the model.
+   setCarCoordinatesNoOffset:(handle,x,y,z)=>{this.setScriptCarCoords(handle,x,y,z,false);},
    vehicleHeading:handle=>handle===PLAYER_VEHICLE_HANDLE?this.playerPose(handle).heading:this.vehicles.headingOf(handle),
    setVehicleHeading:(handle,degrees)=>{
     if(handle===PLAYER_VEHICLE_HANDLE)this.world.placeScriptVehicle(this.liveVehicle(handle),this.playerPose(handle).position,degrees);
@@ -3268,6 +3270,15 @@ export class ScmMission {
  }
  /** The CAutomobile behind a car handle, when the host has one. */
  private carComponents(handle:number){return this.world.scriptCarComponents?.(this.liveVehicle(handle));}
+ /** CCarCtrl::SetCoordsOfScriptCar (iOS 0x1001924a4): `addOffset` lifts the point by the car's distance from its centre of
+  * mass to the base of its model; the car is put there keeping its heading, the space round it cleared and a car on a
+  * mission joined to the roads again. */
+ private setScriptCarCoords(handle:number,x:number,y:number,z:number,addOffset:boolean){
+  const car=this.vehicleByHandle(handle),at={x,y,z:z+(addOffset&&car!==undefined?this.world.scriptVehicleBaseOffset?.(car)??0:0)};
+  if(handle===PLAYER_VEHICLE_HANDLE)this.world.placeScriptVehicle(this.liveVehicle(handle),at,this.playerPose(handle).heading);
+  else this.vehicles.setPosition(handle,at,addOffset&&car===undefined?arrived=>this.world.scriptVehicleBaseOffset?.(arrived)??0:undefined);
+  if(car!==undefined){this.world.clearSpaceForScriptVehicle?.(car);this.world.rejoinScriptVehicleRoads?.(car);}
+ }
  private liveVehicle(handle:number){
   // The player's own car is not one the script made: the host hands it over while the player drives it.
   const car=handle===PLAYER_VEHICLE_HANDLE?this.world.playerVehicleEntity?.():this.vehicles.entity(handle);

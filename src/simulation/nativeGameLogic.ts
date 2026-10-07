@@ -161,6 +161,13 @@ export class NativeGameLogic {
    this.bustedAudioStatus=0;world.incrementStat?.(STAT_TIMES_BUSTED,1);world.showBustedMessage?.();world.endGangWar?.();
   }
  }
+ /** CGameLogic::ForceDeathRestart (0x441240, reversed; iOS 0x1001ade78): the player has died and the game is wasted
+  * as of 3001 ms ago, so the wasted delay has passed, and the camera fades to black over 4 s. KillPlayer is not
+  * called: no stat, no WASTED text. The restart follows when the fade is done. */
+ forceDeathRestart(nowMs:number,world:Pick<GameLogicWorld,'fade'>){
+  this.state=GAMELOGIC_STATE_WASTED;this.timeOfLastEvent=nowMs-WASTED_DELAY_MS-1;
+  world.fade(0,4);
+ }
  /** ClearSkip: an after-mission skip survives the clear its mission's end asks for; one in progress fades back. */
  clearSkip(afterMission:boolean,world?:Pick<SkipWorld,'fade'|'setPadCamera'>){
   if(afterMission&&this.skipState===SKIP_AFTER_MISSION)return;

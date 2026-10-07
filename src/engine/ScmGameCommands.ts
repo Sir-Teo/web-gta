@@ -2602,7 +2602,10 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_RADIO_CHANNEL:(t,p,i)=>{t.writeInt(p[0],world(t,i,'getRadioChannel')());},
  ACTIVATE_HELI_SPEED_CHEAT:(t,p,i)=>{world(t,i,'activateHeliSpeedCheat')(t.readInt(p[0]),t.readInt(p[1]));},
  HELI_KEEP_ENTITY_IN_VIEW:(t,p,i)=>{world(t,i,'heliKeepEntityInView')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]),t.readFloat(p[4]));},
- SET_CAR_COORDINATES_NO_OFFSET:(t,p,i)=>{world(t,i,'setCarCoordinatesNoOffset')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
+ SET_CAR_COORDINATES_NO_OFFSET:(t,p,i)=>{
+  const v=vec(t,p,1);if(v.z<=ScmCamera.MAP_Z_LOW_LIMIT)v.z=world(t,i,'groundZForCoord')(v.x,v.y);
+  world(t,i,'setCarCoordinatesNoOffset')(t.readInt(p[0]),v.x,v.y,v.z);
+ },
  ATTACH_CAMERA_TO_CHAR:(t,p,i)=>{
   game(t,i).camera.takeControlAttachToEntity(undefined,{kind:'ped',handle:t.readInt(p[0])},vec(t,p,1),vec(t,p,4),t.readFloat(p[7]),t.readInt(p[8]),1);
  },

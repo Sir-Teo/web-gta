@@ -11174,3 +11174,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   the same state, which the three now drive. HEIST9 has CJ remark when he goes in without night vision, and it and
   FINALEA switch the effects off on the way out; all three were skipped. The port has one field for the worn goggles
   and their effect, so the script's switch also counts as goggles on or off.
+- **A car placed without its lift, and a forced death.** SET_CAR_COORDINATES and SET_CAR_COORDINATES_NO_OFFSET both
+  call CCarCtrl::SetCoordsOfScriptCar (iOS 0x1001924a4); the second (0x1001fe79c) passes no offset, so the point is not
+  lifted by the car's distance from its centre of mass to the base of its model. Both put a height at or under -100
+  on the ground first. FORCE_DEATH_RESTART (0x100203450) is CGameLogic::ForceDeathRestart (reversed): the player has
+  died and the game is wasted as of 3001 ms ago, past the 3 s hold, with a 4 s fade to black and no KillPlayer (no
+  WASTED text, no hospital-visit stat); the hospital restart follows the fade. DESERT9 uses both; both were skipped.

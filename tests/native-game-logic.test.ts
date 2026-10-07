@@ -124,3 +124,16 @@ test('a resurrection clears any trip skip, after-mission ones too, and lets the 
  expect(f.step(6000,5900)).toBe(GAMELOGIC_STATE_PLAYING);
  expect(f.logic.canPlayerTripSkip()).toBe(false);expect(held).toEqual([false]);
 });
+
+test('FORCE_DEATH_RESTART: wasted as of 3001 ms ago, a 4 s fade to black, no WASTED text, then the hospital (iOS 0x1001ade78)',()=>{
+ const f=fixture();
+ f.logic.forceDeathRestart(10000,f.world);
+ expect(f.logic.state).toBe(GAMELOGIC_STATE_WASTED);
+ expect(f.named('fade')).toEqual([['fade',0,4]]);
+ expect(f.named('wasted')).toEqual([]);expect(f.named('stat')).toEqual([]);
+ // The fade holds the restart; once it is done the player respawns at the hospital.
+ expect(f.step(10020,10000)).toBe(GAMELOGIC_STATE_WASTED);expect(f.named('resurrect')).toEqual([]);
+ f.state.fading=false;
+ expect(f.step(10040,10020)).toBe(GAMELOGIC_STATE_PLAYING);
+ expect(f.named('resurrect')).toEqual([['resurrect',[10,20,30],90]]);
+});
