@@ -30,6 +30,13 @@ test('G and H recruit a targeted homie, order stay and follow, and a held button
  // CTaskComplexGangFollower by a still CJ: member slot 0 stands at Offsets[0] (-1, 1), a unit west and a unit north.
  const offSpot=()=>page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position,m=g.pedestrians().people.find((q:any)=>q.follow),q=m.actor.player.position;return Math.hypot(q.x-(p.x-1),q.z-(p.z-1));});
  await expect.poll(offSpot,{timeout:30000}).toBeLessThan(.7);
+ // CreateNextSubTask after a stand: (int)(R16 × 30) == 20 turns it to face a member; the only one picks itself, so it
+ // faces the leader.
+ const facingCJ=()=>page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position,m=g.pedestrians().people.find((q:any)=>q.follow),q=m.actor.player;
+  const d=Math.atan2(p.x-q.position.x,p.z-q.position.z)-q.heading;return Math.abs(Math.atan2(Math.sin(d),Math.cos(d)));});
+ await page.evaluate(()=>{const g=(window as any).__game,m=g.pedestrians().people.find((q:any)=>q.follow);m.actor.player.heading+=2;g.pedestrians().followRandom=()=>.69;});
+ await expect.poll(facingCJ,{timeout:4000}).toBeLessThan(.25);
+ await page.evaluate(()=>{(window as any).__game.pedestrians().followRandom=Math.random;});
  // A mission's cleanup puts the group on FOLLOW_LIMITED until the next group command.
  const allocator=()=>page.evaluate(()=>(window as any).__game.pedestrians().playerGroupAllocator);
  await page.evaluate(()=>(window as any).__game.pedestrians().missionCleanup());expect(await allocator()).toBe('followLimited');

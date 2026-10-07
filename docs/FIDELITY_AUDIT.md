@@ -8418,8 +8418,12 @@ Each is now answered:
   0.1 a frame, every follower, in member-slot order, runs to the door of a seat of its own wherever it is (the front
   seat first, so a lone follower takes it), and boards there; those beyond the seats stay out. Before, only a follower
   that happened to be within 3.5 units of a free door got in.
-- Not yet: the node route beyond 2 units, the FOLLOW_ARRIVE line and turning to a member, and the boarding's own
-  clips (a follower still appears in its seat at the door). The wander's static counter still counts without the
+- After each 500 ms stand, CreateNextSubTask gives the 50 ms pause, or one time in 30 ((int)(R16 × 30) == 20)
+  CTaskComplexTurnToFaceEntityOrCoord(member, 0.5, 0.2). The member is the one in slot (int)(CountMembers × R16),
+  or the leader if it is the ped itself; an empty slot gives the pause. The turn runs at half the ped's heading
+  change rate and is done within 0.2 rad, then the follower seeks (or stands, told to wait) again.
+- Not yet: the node route beyond 2 units, the FOLLOW_ARRIVE line, and the boarding's own clips (a follower still
+  appears in its seat at the door). The wander's static counter still counts without the
   collision condition.
 
 ## The group buttons
