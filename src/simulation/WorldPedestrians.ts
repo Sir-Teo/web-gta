@@ -105,6 +105,9 @@ export interface Pedestrian {
  frozen?:boolean;
  /** bNeverEverTargetThisPed, which SET_CHAR_NEVER_TARGETTED sets: the player's lock-on passes it by. */
  neverTargeted?:boolean;
+ /** CREATE_CHAR's ePedType, the m_nPedType a script ped has whatever its model's peds.ide type (`pedType`) says. Only
+  * the recruit test reads it so far. */
+ scriptPedType?:number;
  /** CEntity::m_nAreaCode, which SET_CHAR_AREA_VISIBLE sets: the ped is drawn only in the area it belongs to.
   * A ped with no area of its own belongs wherever it stands, as a street ped does. */
  areaCode?:number;
@@ -536,6 +539,8 @@ export class WorldPedestrians {
   /** A script ped's phone comes out (a sequence's TASK_USE_MOBILE_PHONE step). */
   onScriptPhone?:(ped:Pedestrian)=>void;
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
+  /** A ped the group button recruited (MakeThisPedJoinOurGroup), for the script's record of the player's group. */
+  onRecruit?:(ped:Pedestrian)=>void;
  /** A ped killed by player damage (mission kill tracking; NPC-vs-NPC deaths excluded). */
  /** AE_PED_CRUNCH: a ped killed by a fall hits the ground. */
  onCrunch?:(ped:object,position:{x:number;y:number;z:number})=>void;
@@ -1752,7 +1757,7 @@ export class WorldPedestrians {
  /** CPopulation::AddPed (0x612710) through a script's CREATE_CHAR: the model loaded, the ped stood where the
   * script says and flagged PED_MISSION, so the population manager leaves it alone until the script lets go.
   * Resolves to nothing when the model cannot be loaded, which is the handle the script then finds empty. */
- async spawnScripted(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,reground=false){
+ async spawnScripted(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,reground=false,pedType?:number){
   // CREATE_CHAR never fails for want of the model: the script streamed it first. A script that runs before the
   // browser's ped catalog has finished loading waits for it instead of losing the ped.
   const catalog=this.catalog??await this.catalogLoad;if(!catalog||this.disposed)return undefined;
@@ -1771,7 +1776,7 @@ export class WorldPedestrians {
    if(this.disposed)return undefined;
    made=this.createPed({position,heading,source:built.source,officer:false,node,speed:0,speeds:built.speeds,stats:built.stats,modelRef});
   }
-  made.mission=true;made.noMedics=true;made.flee=0;made.order=this.defaultOrder(made);
+  made.mission=true;made.noMedics=true;made.flee=0;made.order=this.defaultOrder(made);made.scriptPedType=pedType;
   // m_bIsStaticWaitingForCollision: a mission ped made where no collision is streamed in (a patient or a criminal
   // hundreds of units off) stands where it was made until there is ground under it, rather than falling for ever.
   made.collisionWait={seconds:0,reground};
@@ -2814,6 +2819,7 @@ export class WorldPedestrians {
     if(!mark.weapon&&mark.weaponType===undefined){const w=weaponWhenJoiningGang({recruitAk:CHEATS.isActive('recruitAk'),rocketMayhem:CHEATS.isActive('rocketMayhem')});this.giveWeapon(mark,w.type,w.ammo);}
     // MakeThisPedJoinOurGroup sets the group's separation range back to 120 with every recruit.
     this.groupSeparationRange=PLAYER_GROUP_SEPARATION_RANGE;
+    this.onRecruit?.(mark);
     return 'joined';
    }
    // Targeting anyone else (a member, a stranger), the buttons give no order.
@@ -2842,9 +2848,11 @@ export class WorldPedestrians {
    const recruit=!!target&&!!this.targetedRecruit(target)&&crew.length<this.groupRoom();
    return {recruit,crew:crew.filter(m=>!m.ignoresGroupCommands).length};
   }
+  /** A Families member is m_nPedType PED_TYPE_GANG2: a street one by his gang, a script's by CREATE_CHAR's type (SWEET7's
+   * two at Grove). A ped never to be targetted (bNeverEverTargetThisPed) is not one the player can target to recruit. */
   private targetedRecruit(target:{handle?:number;range:number}){
    const anyone=this.recruitAnyone();
-   return this.targetAmong(this.people.filter(p=>!p.officer&&p.health>0&&p.down===0&&(p.gang===1||anyone)&&!p.follow&&!(p.retaliate>0)),target);
+   return this.targetAmong(this.people.filter(p=>!p.officer&&p.health>0&&p.down===0&&(p.gang===1||p.scriptPedType===PED_TYPE_GANG2||anyone)&&!p.neverTargeted&&!p.follow&&!(p.retaliate>0)),target);
   }
   /** CHEAT_WANNA_BE_IN_MY_GANG, _NO_ONE_CAN_STOP_US or _ROCKET_MAYHEM: anyone joins the player's group, not only a
    * Families member (ProcessGroupBehaviour and MakeThisPedJoinOurGroup read the three together). */

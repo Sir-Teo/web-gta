@@ -11215,3 +11215,12 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   CTaskSimpleClimb on the ped's own CLIMB_* clips. A vault ends the jump (CLIMB_FINISHED_V clears bIsInTheAir); an abort
   falls on through CTaskComplexInAirAndLand. A ped's fall now goes into FALL_FALL only with nothing within CTaskSimpleInAir's
   4-unit line under its centre, as the player's does, so a drop off a wall lands with FALL_LAND, not a collapse.
+- A script's Families member can be recruited: the group button's test is m_nPedType PED_TYPE_GANG2, which for a script
+  ped is CREATE_CHAR's type (now carried on the ped) rather than its model's, and a never-targetted ped is passed by.
+  The recruit then joins the script's record of the player's group too (MakeThisPedJoinOurGroup's AddFollower, out of
+  any group it was in), so IS_GROUP_MEMBER and GET_GROUP_SIZE see him: SWEET7 waited for ever on its two at Grove. His
+  script task ends as he joins (iOS gives him CTaskComplexBeInGroup through a script-command event in TASK_PRIMARY_PRIMARY),
+  so SWEET7's two stop their smoking loop and get in the car with CJ. Not ported: AddFollower's switch of the recruit's
+  decision maker to GangMbr.ped. Still
+  open: a street recruit has no script handle, so GET_GROUP_SIZE does not count him; and a script ped's acquaintances and
+  same-type friendly fire still go by its model's peds.ide type, not CREATE_CHAR's.

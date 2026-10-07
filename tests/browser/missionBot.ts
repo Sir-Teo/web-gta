@@ -149,7 +149,9 @@ export function missionBotTick(dtSeconds:number){
   const sheer=found===undefined||found===null||!over&&me.z-1-found>6;
   if(sheer&&me.z>500)return false;
   const z=sheer?me.z-1:found;
-  world.setPedCoordinates(1,x,y,z+1);
+  // Walking, not a script warp: SET_CHAR_COORDINATES would warp his group round him every step (CPedGroup::Teleport),
+  // and the recruits set down on him shoved him back (SWEET7's two at Grove).
+  (world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,x,y,z+1);
   return true;
  };
  // Whether nothing fixed (a wall, the room's own mesh) stands between CJ's eye and a ped's chest, in script coordinates.
@@ -240,7 +242,8 @@ export function missionBotTick(dtSeconds:number){
  }
  if(cars.length){
   const c=nearest(cars);
-  if(glide(c.position,3))return {action:'go to car',target:c.handle};
+  // A car's length keeps him off its centre: nose on, its body holds him a good three and a half units out.
+  if(distance(c.position)>4.5&&glide(c.position,3))return {action:'go to car',target:c.handle};
   const now=performance.now();
   if(now-mem.lastEnter>3000){mem.lastEnter=now;try{if(vehicle)world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);world.warpPedIntoCar(1,c.handle);}catch{}}
   return {action:'get in car',target:c.handle};
@@ -326,6 +329,20 @@ export function missionBotTick(dtSeconds:number){
   const c=nearest(chases);
   if(glide(c.position,15,true))return {action:'chase car',target:c.handle};
   shoot(c.position);return {action:'shoot car',target:c.handle};
+ }
+ // "Get those gang members to join you" (SWEET7's TWAR652): a player walks up to each blipped Families member not yet
+ // in his group, faces him and recruits him with the aim held and the group button.
+ // The brief goes after its few seconds; the bot keeps on until every blipped one has joined.
+ if(/join you/i.test(objective))mem.recruiting=true;
+ if(!vehicle&&mem.recruiting){
+  const recruits=friends.filter((f:any)=>!members.includes(f.handle));
+  if(!recruits.length)mem.recruiting=false;
+  else{
+   const f=nearest(recruits);
+   if(distance(f.position)>8&&glide(f.position,4))return {action:'go to recruit',target:f.handle};
+   try{world.setCharHeading?.(1,Math.atan2(-(f.position.x-me.x),f.position.y-me.y)*180/Math.PI);}catch{}
+   return {action:'recruit '+(g.groupButton?.()??'none'),target:f.handle};
+  }
  }
  if(friends.length){
   // Follow from behind: the point ten units back along the way he is going, never ahead of him or in his path

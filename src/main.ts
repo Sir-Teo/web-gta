@@ -2811,6 +2811,9 @@ async function boot() {
     /** CBulletTraces::AddTrace for a weapon's streak (browser space), as an NPC's shot past the camera adds it. */
     traceBullet:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number})=>{bulletTraces.addTrace(from,to,.01,300,70);},
     fireAt:(x:number,y:number,z:number)=>{const p=sim.player.position,eye={x:p.x,y:p.y+1.3,z:p.z},d={x:x-eye.x,y:y-eye.y,z:z-eye.z},l=Math.hypot(d.x,d.y,d.z)||1;return weapons.fire({origin:eye,direction:{x:d.x/l,y:d.y/l,z:d.z/l}});},
+    /** The group button (G) with the aim held and no gun's lock-on, as a player recruits the Families member he faces:
+     * what CPlayerPed::ProcessGroupBehaviour answered. */
+    groupButton:()=>pedestrians?.groupControl('forward',{range:GROUP_RECRUIT_MELEE_RANGE},!mission?.runtime.game.playerInfo.groupStuffDisabled)??'none',
     /** The world car's wheel col spheres (renderer frame), as bullets test them. */
     carWheels:()=>worldCar?.wheelSpheres().map(s=>({wheel:s.wheel,center:{x:s.center.x,y:s.center.y,z:s.center.z},radius:s.radius}))??[],
     /** Add a native explosion (eExplosionType) at a renderer-frame point. */
@@ -4848,6 +4851,7 @@ async function boot() {
            else void drops.report(position,weapon,rounds,persist);
           };
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
+          pedestrians.onRecruit=ped=>mission?.playerRecruited(ped);
           pedestrians.resolveScriptPed=handle=>{const ped=mission?.pedByHandle(handle);return ped==='player'?ped:onFoot(ped);};
           pedestrians.onScriptPhone=ped=>phoneFor(ped).use(true);
           pedestrians.resolveScriptVehicle=handle=>{
@@ -5213,12 +5217,12 @@ async function boot() {
                   scriptRiders.add(rider);
                   return rider;
                  },
-                 spawnScriptPed:async(_pedType,id,position)=>{
+                 spawnScriptPed:async(pedType,id,position)=>{
                   // CWorld::PutToGroundIfTooLow: a z at or below the map's low limit is the ground there, or
                   // FindGroundZForCoord's 20 where none is streamed in; the ped is then set down when it arrives.
                   const low=position.z<=-100;let y=position.z;
                   if(low){const hit=sim.world.castRay(new RAPIER.Ray({x:position.x,y:1000,z:-position.y},{x:0,y:-1,z:0}),2000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);y=hit?1000-hit.timeOfImpact:20;}
-                  return await pedestrians?.spawnScripted(await pedestrians.scriptPedModel(id),{x:position.x,y,z:-position.y},scriptYaw(0),low)??undefined;
+                  return await pedestrians?.spawnScripted(await pedestrians.scriptPedModel(id),{x:position.x,y,z:-position.y},scriptYaw(0),low,pedType)??undefined;
                  },
                  // A ped riding in a car goes where the car goes, so nothing a script says about where it
                  // stands, how it walks or what it looks at reaches it; onFoot answers nothing for one, and

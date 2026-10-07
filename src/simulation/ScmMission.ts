@@ -3227,6 +3227,16 @@ export class ScmMission {
  }
  /** CPlayerData::m_bGroupAlwaysFollow (SET_PLAYER_GROUP_TO_FOLLOW_ALWAYS). */
  playerGroupAlwaysFollows=false;
+ /** The group button's recruit (MakeThisPedJoinOurGroup, iOS 0x100365934): a script ped leaves any group it was in,
+  * takes CTaskComplexBeInGroup through a script-command event in TASK_PRIMARY_PRIMARY, which ends whatever script task it
+  * had (SWEET7's two Families stop smoking and get in the car), and joins the player's group, where IS_GROUP_MEMBER and
+  * GET_GROUP_SIZE find it. A street ped has no script handle; only the browser's group holds it. */
+ playerRecruited(entity:unknown){
+  const handle=this.peds.handleOf(entity);if(handle===undefined)return;
+  for(const [key,group] of this.groups)if(key!==PLAYER_GROUP_HANDLE&&group.isFollower(handle))group.removeMember(handle);
+  this.clearTasks(handle,'MakeThisPedJoinOurGroup');
+  this.groups.get(PLAYER_GROUP_HANDLE)?.addFollower(handle);
+ }
  /** CPlayerData::m_bGroupNeverFollow (SET_PLAYER_GROUP_TO_FOLLOW_NEVER). */
  playerGroupNeverFollows=false;
  /** The player's own bDoesntListenToPlayerGroupCommands, the other way round. */
