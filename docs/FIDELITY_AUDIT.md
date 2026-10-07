@@ -6501,6 +6501,15 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
     step.
   - Not yet, being parts of the unported CBike::ProcessControl: the up/down stick's lean forward and back (wheelies and
     stoppies), the fall when the nose drops 0.36 below the stoppie angle, and the knock-off on drowning.
+- **In the air:** no tyre turns a bike with no wheel touching, so it keeps the spin it left the ground with; the port
+  had steered it in the air as on the road. A ridden BMX spins with the stick (CBmx::ProcessAI, iOS 0x100458ddc):
+  0.002 rad a step faster each step at full stick, toward it, up to 0.04 rad a step (2 rad/s).
+- **Hop cooldown (iOS only):** LaunchBunnyHopCB ends by setting g_hopCooldown (0x100aacc58) to 0.5 s, and while it
+  runs ProcessBunnyHop is not called, so a press then is lost. Every CBmx's ProcessControl takes its frame off the
+  one counter.
+- Not yet from CBmx: the sprint push (holding the throttle with the bars straight, or tap-pumping, adds up to
+  0.004 units a step² along the frame until 1.6 times the top speed), which needs GetFatAndMuscleModifier(5) and
+  the drag of the unported physics.
 - **Not ported:**
   - **Pedalling:** sprint-tap pedalling (CPlayerPed::ControlButtonSprint is unreversed) and the pedal sway lean.
   - **Quad control:** the quad's forward lean and airborne roll control (CQuadBike::ProcessControlInputs and ProcessAI's lean forces, reversed but tied to the unported quad chassis), and its handlebar and axle animation.

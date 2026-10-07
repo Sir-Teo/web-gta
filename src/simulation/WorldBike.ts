@@ -43,6 +43,10 @@ const BMX_MODELS:ReadonlySet<number>=new Set([481,509,510]);
 /** The rest of BIKE_BUNNYHOP after the charged pose, played at 1.5 speed until LaunchBunnyHopCB. The clip is not
  * published with the world, so its length is authored. */
 const HOP_RELEASE_SECONDS=.3;
+/** LaunchBunnyHopCB's g_hopCooldown (iOS only, 0x10045a3f0 = 0.5 s). */
+const HOP_COOLDOWN_SECONDS=.5;
+/** CBmx::ProcessAI's airborne spin: 0x10058fd38 = 0.002 rad a step per step at full stick, to 0.04 rad a step. */
+const BMX_AIR_SPIN_RATE=.002,BMX_AIR_SPIN_CAP=.04;
 /** Rideable bikes: arcade drive over prepared handling magnitudes, native lean
  * caps with an authored lean rate, knock-off from the reversed force formula,
  * jumpon/getoff mount timing, bike drive-by
@@ -328,6 +332,16 @@ export class WorldBike {
   // Positive steer (D) turns right, which is negative yaw about world up.
   let yaw=-speed*Math.tan(Math.max(-1,Math.min(1,this.steer))*effLock)/WHEELBASE;
   yaw=Math.max(-2.5,Math.min(2.5,yaw));
+  // With no wheel touching (CBike's four wheel ratios all 1) no tyre turns the bike: it keeps the spin it left the
+  // ground with. A ridden CBmx spins with the stick (CBmx::ProcessAI, iOS 0x100458ddc): ApplyTurnForce(R × x/128 ×
+  // 0.002 × dt × turnMass, F) turns it 0.002 rad a step faster each step, toward the stick, until it spins at 0.04.
+  if(!this.wheelsDown()&&!this.wheelsDown(.5)&&!this.wheelsDown(-.5)){
+   yaw=this.body.angvel().y;
+   if(!this.motorbike&&this.occupied){
+    const x=Math.max(-1,Math.min(1,input.steer)),spin=yaw/50;
+    if(spin<BMX_AIR_SPIN_CAP&&x<0||spin>-BMX_AIR_SPIN_CAP&&x>0)yaw-=BMX_AIR_SPIN_RATE*x*dt*50*50;
+   }
+  }
   const horizontal={x:forward.x*want,y:forward.y*want,z:forward.z*want};
   this.body.setLinvel({x:horizontal.x,y:v.y-NATIVE_GRAVITY_MS2*dt,z:horizontal.z},true);
   // A ridden bike's body stays upright about its forward axis (the lean is the render matrix's, CalculateLeanMatrix):
@@ -386,7 +400,12 @@ export class WorldBike {
  /** The ANIM_ID_BIKE_BUNNYHOP clip's length for a CBmx model's ride group, once loaded. */
  static hopClipSeconds?:(modelId:number)=>number|undefined;
  /** CBmx::ProcessBunnyHop. Under DisablePlayerControls the press is refused and the charge dropped. */
+ /** iOS g_hopCooldown (0x100aacc58), seconds: LaunchBunnyHopCB sets it to 0.5, and each CBmx's ProcessControl takes
+  * its frame off it (one counter for every BMX); while it runs ProcessBunnyHop is not called at all. */
+ static hopCooldown=0;
  private bunnyHop(dt:number,held:boolean,disabled=false){
+  if(BMX_MODELS.has(this.modelId))WorldBike.hopCooldown=Math.max(0,Math.min(HOP_COOLDOWN_SECONDS,WorldBike.hopCooldown-dt));
+  if(WorldBike.hopCooldown>0&&this.hopLaunch===undefined){this.hopHeld=held;return;}
   const pressed=held&&!this.hopHeld;this.hopHeld=held;
   if(disabled&&this.hopLaunch===undefined)this.controlJump=0;
   if(!BMX_MODELS.has(this.modelId)||!this.occupied){this.controlJump=0;this.hopLaunch=undefined;return;}
@@ -398,6 +417,7 @@ export class WorldBike {
     // A front wheel and a rear wheel must both be touching (m_WheelCounts); GetFatAndMuscleModifier(STAT_MOD_6) is a
     // retail stub, taken as 1.
     if(this.wheelsDown(.5)&&this.wheelsDown(-.5)){const up=rotate(this.body.rotation(),{x:0,y:1,z:0}),v=this.body.linvel(),dv=.06*power*50;this.body.setLinvel({x:v.x+up.x*dv,y:v.y+up.y*dv,z:v.z+up.z*dv},true);}
+    WorldBike.hopCooldown=HOP_COOLDOWN_SECONDS;
    }
   }else if(held&&(this.controlJump>0||pressed&&!disabled))this.controlJump=Math.min(25,this.controlJump+dt*50);
   // On release the bunny-hop clip jumps to (0.2 − t)/0.2 × (T − 0.2) + 0.2, t being the charge's 0..0.2 hold time, and

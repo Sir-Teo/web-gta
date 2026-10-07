@@ -30,6 +30,8 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
    for(let i=0;i<30;i++)tick({throttle:0,steer:0,brake:false,hop:true} as any);
    let hopVy=0;for(let i=0;i<40;i++){tick({throttle:0,steer:0,brake:false});hopVy=Math.max(hopVy,bike.body.linvel().y);}
    out.hopVy=hopVy;
+   // LaunchBunnyHopCB starts iOS's half-second cooldown, during which ProcessBunnyHop does not run.
+   out.cooldown=WorldBike.hopCooldown;
    // A wall stop at speed knocks the rider off through the force formula.
    sim.world.createCollider(RAPIER.ColliderDesc.cuboid(5,3,.5).setTranslation(0,3,-40));
    // A rider the script keeps on (SET_CHAR_CAN_BE_KNOCKED_OFF_BIKE) rides the same crash out.
@@ -49,6 +51,7 @@ test('a BMX pedals, steers with lean, poses the rider and knocks off on impact',
  expect(result.movedZ).toBeLessThan(-2);
  // A full charge is 0.06 x 2 units a frame up: 6 m/s.
  expect(result.hopVy).toBeGreaterThan(4);
+ expect(result.cooldown as number).toBeGreaterThan(0);expect(result.cooldown as number).toBeLessThanOrEqual(.5);
  expect(result.speed).toBeGreaterThan(2);
  expect(result.idle).toBe('bmx_pedal');
  expect(result.seat).toBe(true);
@@ -138,4 +141,33 @@ test('a bike rolling over 0.2 units a frame cannot be boarded (CTaskComplexEnter
   }finally{bike.dispose();sim.dispose();}
  });
  expect(result.still).toBe('');expect(result.rolling).toMatch(/too fast/);
+});
+
+test('in the air a BMX spins with the stick up to 0.04 rad a step, and a motorbike does not steer',async({page})=>{
+ test.setTimeout(180000);
+ await page.goto('/models.html');const result=await page.evaluate(async()=>{
+  const [{openStaticWorld},{openStaticWorldVehicles},{loadFixedWorldBike},{WorldBike},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/assets/staticWorldArchive.ts','/src/assets/staticWorldVehicles.ts','/src/assets/fixedWorldBike.ts','/src/simulation/WorldBike.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+  await RAPIER.init();const base=new URL('/play/world/',location.href).href;
+  const catalog=await openStaticWorldVehicles(await openStaticWorld(base));
+  const out:Record<string,number>={};
+  for(const modelId of [481,468]){
+   const sim=new Simulation(),scene=new THREE.Scene();
+   sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(0,-.5,0));
+   sim.respawn={x:1.5,y:.55,z:2};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
+   const bike=new WorldBike(sim,scene,await loadFixedWorldBike(catalog,{modelId,primaryColor:-1,secondaryColor:-1}),{x:0,y:1.5,z:0},0);
+   try{
+    const tick=(input?:{throttle:number;steer:number;brake:boolean})=>{bike.beforeStep(1/60,input);sim.world.step();bike.afterStep();bike.update(1);};
+    for(let i=0;i<30;i++)tick();bike.interact();
+    // Lifted well clear of the ground, moving forward, not turning.
+    bike.body.setTranslation({x:0,y:60,z:0},true);bike.body.setLinvel({x:0,y:0,z:-8},true);bike.body.setAngvel({x:0,y:0,z:0},true);
+    let fastest=0;for(let i=0;i<45;i++){tick({throttle:0,steer:1,brake:false});fastest=Math.min(fastest,bike.body.angvel().y);}
+    out[`spin${modelId}`]=bike.body.angvel().y;out[`fastest${modelId}`]=fastest;
+   }finally{bike.dispose();sim.dispose();}
+  }
+  return out;
+ });
+ // The BMX turns right (negative yaw) toward 0.04 rad a step, 2 rad/s, and no faster.
+ expect(result.spin481).toBeLessThan(-1.5);expect(result.fastest481).toBeGreaterThan(-2.2);
+ // A Sanchez in the air keeps the spin it had: none.
+ expect(Math.abs(result.spin468)).toBeLessThan(.1);
 });
