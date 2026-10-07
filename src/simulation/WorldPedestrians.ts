@@ -1555,8 +1555,11 @@ export class WorldPedestrians {
   * nearest ped node. With `defenders`, `center` is CreateDefendingGroup's car node: each ped stands at the node plus
   * (sin, cos)(angle) × a random 0 to 3, plus 2 on both axes, on the ground found from 2 above the node. */
  /** `make`: an attack wave's arms and health (attackWaveComposition), each attacker taking weapon A or B by
-  * attackWaveWeapon; without it (the defenders) the four guns go round in turn. */
- async spawnAttackWave(gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number,defenders=false,make?:{weapons:{a:number;b:number};difficulty:number;health:number;ammo:number}){
+  * attackWaveWeapon; without it (the defenders) the four guns go round in turn. `line`: CreateAttackWave's
+  * formation (iOS 0x1001b112c), the group across its way in from `center` to the player (browser x, z): attacker i
+  * stands (i − count/2) × 2 times 1.2 units along the perpendicular, 1.5 either way at random on each axis, on the
+  * ground found from two units over the point (FindGroundZFor3DCoord; an attacker with none under him is not made). */
+ async spawnAttackWave(gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number,defenders=false,make?:{weapons:{a:number;b:number};difficulty:number;health:number;ammo:number},line?:{player:{x:number;z:number}}){
   const catalog=this.catalog;if(!catalog||this.disposed)return 0;
   const node=this.nearestNode(center);if(!node)return 0;
   const members=catalog.gangs[gang]??[];if(!members.length)return 0;
@@ -1566,8 +1569,14 @@ export class WorldPedestrians {
    const model=this.gangRoster?.choose(gang)??members[Math.floor(Math.random()*members.length)];
    const angle=i*2*Math.PI/count;let x:number,z:number,top:number;
    if(defenders){x=center.x+Math.sin(angle)*Math.random()*3+2;z=-(-center.z+Math.cos(angle)*Math.random()*3+2);top=center.y+2;}
+   else if(line){
+    // Native: the perpendicular (player.y − point.y, point.x − player.x), normalised and 1.2 long.
+    const px=-line.player.z-(-center.z),py=center.x-line.player.x,l=Math.hypot(px,py)||1,along=(i-Math.trunc(count/2))*2;
+    const nx=center.x+px/l*1.2*along+Math.random()*3-1.5,ny=-center.z+py/l*1.2*along+Math.random()*3-1.5;
+    x=nx;z=-ny;top=center.y+2;
+   }
    else{const r=2+Math.random()*3;x=node.position[0]+Math.sin(angle)*r;z=-node.position[1]+Math.cos(angle)*r;top=node.position[2]+3;}
-   const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+   const hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),line?100:6,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    if(!hit)continue;
    let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;pedType?:string;decisionMaker?:number}},weapon:Awaited<Catalog['weapon']>|undefined;
    try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}catch{continue;}

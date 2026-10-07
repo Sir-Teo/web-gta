@@ -11254,8 +11254,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   zone), each (Difficulty × 0.3 + 0.7) × (ferocity + 3) strong, two in the training mission and ten at ferocity 5; armed
   from the game's ferocity tables (pistol or bat at first, up to the AK-47 or Desert Eagle), the training mission's
   CRASH4 waves with bats, then pistols, then Tec-9s; 5000 rounds, 120 health and an accuracy of Difficulty × 25 + 70.
-  Still authored: where they stand (a ring round a path node 45 units out, where iOS forms each group in a line across
-  its approach at a car-path point some 50 units out, out of the camera's sight if it can). Each attacker carries a
+  Each group stands where iOS puts it: a point of attack from up to 20 tries of GenerateCarCreationCoors2 round the
+  player (circles of 50, no boats), out of the camera's sight when one can be found and over 15 units from the other
+  group's, the attackers in a line across their way in, 2.4 units apart and 1.5 either way at random, on the ground
+  found from two units over the point. Each attacker carries a
   gang-coloured blip (bClearRadarBlipOnDeath), and by each group's point of attack the wave leaves a
   PICKUP_ONCE_TIMEOUT_SLOW within two units: health by Gang1's in the first wave, armour in the second, and in the
   third health by Gang1's and armour by Gang2's. Not yet ported: the first wave's drive-by car (a gang car with an

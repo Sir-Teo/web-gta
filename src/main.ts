@@ -14,6 +14,7 @@ import {carRollsOverProp} from './simulation/vehiclePropContacts';
 import {controlNameOf,controlNaming,controlsNamedIn,gxtHudText,gxtText,insertNumbers,loadedText,setControlNaming,setTouchText,useTouchControlNames} from './assets/gxt';
 import {ScriptTextLayer} from './ui/ScriptTextLayer';
 import {populationOutsideView} from './render/populationVisibility';
+import {generateCarCreationCoors2,newCarCreationCache} from './simulation/nativeCarCreationCoors';
 import {NativeHunger} from './simulation/nativeHunger';
 import {turnToward} from './simulation/nativePlayerLocomotion';
 import {NativeParachuteTimer,WEAPON_PARACHUTE} from './simulation/nativeParachuteTimer';
@@ -6472,12 +6473,12 @@ async function boot() {
                // A failure here would leave the script silent, so it is reported rather than swallowed.
                }).catch(error=>{console.error('ScmMission failed to start',error);});
               }
-              // CGangWars over the zone gang strengths. CreateAttackWave's make-up is iOS's (attackWaveComposition: two
-              // groups, Gang1's and Gang2's); where each stands is still authored, round a path node 45 units from the
-              // player, the second group at least a quarter turn round from the first.
+              // CGangWars over the zone gang strengths. CreateAttackWave as iOS has it (0x1001b0b58): two groups, Gang1's and
+              // Gang2's (attackWaveComposition), each lined up across its way in from a point of attack on the car paths.
               if(worldZones&&!gangWars){
                const toNative=(p:{x:number;y:number;z:number})=>({x:p.x,y:-p.z,z:p.y}),toBrowser=(p:{x:number;y:number;z:number})=>({x:p.x,y:p.z,z:-p.y});
                let pending:'wave'|'defenders'|undefined,ready:'wave'|'defenders'|undefined;
+               const attackCreation=newCarCreationCache();
                const spawn=(kind:'wave'|'defenders',gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number)=>{
                 if(ready===kind){ready=undefined;return true;}
                 if(!pending&&pedestrians){pending=kind;void pedestrians.spawnAttackWave(gang,count,center,accuracy,kind==='defenders').then(n=>{pending=undefined;if(n>0)ready=kind;}).catch(()=>{pending=undefined;});}
@@ -6494,10 +6495,29 @@ async function boot() {
                  if(ready==='wave'){ready=undefined;return true;}
                  if(pending||!pedestrians)return false;
                  const war=gangWars!,crowd=pedestrians,d=war.difficulty,make=attackWaveComposition(ferocity,d,!!mission?.runtime.game.gangWarsTrainingMission),p=sim.player.position;
-                 const first=Math.random()*Math.PI*2,angles=[first,first+Math.PI/2+Math.random()*Math.PI];
-                 const points=angles.map(a=>({x:p.x+Math.sin(a)*45,y:p.y,z:p.z+Math.cos(a)*45}));
+                 // Each group's point of attack: up to 20 tries of GenerateCarCreationCoors2 from the player (any bearing,
+                 // circles of 50, no boats). A point the camera cannot see (IsSphereVisible, radius 7) is taken, and the
+                 // tries stop once one is over 15 units from the last group's point; one it can see only while none is
+                 // taken. A group with no point is not made.
+                 const areas=scriptCars.pathAreas({x:p.x,z:p.z}),from=toNative(p),points:({x:number;y:number;z:number}|undefined)[]=[];
+                 if(!areas)return false;
+                 let previous={x:999999.875,y:999999.875,z:999999.875};
+                 for(let g=0;g<2;g++){
+                  let point:{x:number;y:number;z:number}|undefined;
+                  for(let tries=0;tries<20;tries++){
+                   const hit=generateCarCreationCoors2(areas,attackCreation,{position:from,dirX:1,dirY:0,minDot:-1,dotAbove:true,inViewDistance:50,outOfViewDistance:50,avoidSwitchedOff:false,noBoats:true},
+                    {nowMs:elapsed*1000,rand:()=>Math.floor(Math.random()*0x80000000),sphereVisible:(q,r)=>!populationOutsideView(render.camera,toBrowser(q),r)});
+                   if(!hit)continue;
+                   const at={x:hit.position.x,y:hit.position.y,z:(1-hit.t)*hit.node1.position[2]+hit.t*hit.node2.position[2]};
+                   if(populationOutsideView(render.camera,toBrowser(at),7)){point=at;if(Math.hypot(previous.x-at.x,previous.y-at.y,previous.z-at.z)>15)break;}
+                   else if(!point)point=at;
+                  }
+                  if(point)previous=point;
+                  points.push(point&&toBrowser(point));
+                 }
+                 if(!points[0]&&!points[1])return false;
                  pending='wave';
-                 void Promise.all([war.gang1,war.gang2].map((gang,i)=>crowd.spawnAttackWave(gang,make.count,points[i],make.accuracy,false,{weapons:make,difficulty:d,health:make.health,ammo:make.ammo})))
+                 void Promise.all([war.gang1,war.gang2].map((gang,i)=>{const at=points[i];return at?crowd.spawnAttackWave(gang,make.count,at,make.accuracy,false,{weapons:make,difficulty:d,health:make.health,ammo:make.ammo},{player:{x:p.x,z:p.z}}):Promise.resolve(0);}))
                   .then(n=>{
                    pending=undefined;if(n[0]+n[1]>0)ready='wave';
                    // By each group's point of attack, within two units and 0.75 over the ground, CreateAttackWave leaves
@@ -6506,7 +6526,8 @@ async function boot() {
                    const kinds=wave===0?['health']:wave===1?['bodyarmour']:['health','bodyarmour'];
                    kinds.forEach((model,i)=>{
                     if(!(n[i]>0))return;
-                    const x=points[i].x+Math.random()*4-2,z=points[i].z+Math.random()*4-2,ground=groundY(x,z,points[i].y+1);
+                    const at=points[i];if(!at)return;
+                    const x=at.x+Math.random()*4-2,z=at.z+Math.random()*4-2,ground=groundY(x,z,at.y+1);
                     pickups.generate({id:`gangwar:${model}:${Date.now()}:${i}`,command:'GENERATED',section:'gangwar',offset:0,
                      modelId:model==='health'?1240:1242,model,dictionary:model==='health'?'icons5':'icons7',type:PICKUP_TYPE.onceTimeoutSlow,
                      category:model==='health'?'health':'armour',ammo:0,position:[x,-z,ground+.75]});
