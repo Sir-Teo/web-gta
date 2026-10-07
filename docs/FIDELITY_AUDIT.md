@@ -11300,3 +11300,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - TASK_CAR_MISSION's escort FARAWAY missions are 65 to 68, as eCarMission and iOS's chase-strategy table have them; the
   port had them at 57 to 60, which are the plane and heli crash-and-burn missions, the police plane's attack and
   DO_DRIVEBY_CLOSE. No script asks for either range directly.
+- GET_CHAR_AREA_VISIBLE (iOS 0x100205218) writes the ped's m_nAreaCode itself. The port followed gta-reversed's
+  GetCharAreaVisible, which writes whether the area is not the normal world (1 or 0), so a script waiting for a given
+  interior never saw it: CRASH1 waits for area 5 (the burning house it sends CJ into) before it lets the mission go on,
+  and MUSIC2 (5), DRUGS4 (15) and the gym (5, 6, 7) ask for others.

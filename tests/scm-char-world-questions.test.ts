@@ -98,9 +98,9 @@ describe('the questions a script asks about what a ped is riding',()=>{
 });
 
 describe('the area a ped is in and whether the player may start a mission',()=>{
- test('the area command writes one anywhere but the normal world',()=>{
+ test('the area command writes the ped’s area code itself (iOS 0x100205218)',()=>{
   const game=new ScmGameState();
-  for(const [area,expected] of [[0,0],[3,1],[18,1]] as const){
+  for(const [area,expected] of [[0,0],[3,3],[5,5],[18,18]] as const){
    const {global}=run({pedAreaCode:()=>area},game,
     instruction(scmOpcode('GET_CHAR_AREA_VISIBLE'),[int(PED),gvar(40)]));
    expect(global(40)).toBe(expected);

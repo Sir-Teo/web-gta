@@ -2810,9 +2810,9 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  STORE_CLOTHES_STATE:(t,_p,i)=>{game(t,i).clothes.storeState();},
  RESTORE_CLOTHES_STATE:(t,_p,i)=>{game(t,i).clothes.restoreState();},
- // GetCharAreaVisible returns a comparison rather than the area code its documentation promises: the variable
- // takes one when the ped is anywhere but the normal world.
- GET_CHAR_AREA_VISIBLE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedAreaCode')(t.readInt(p[0]))!==0?1:0);},
+ // iOS 0x100205218: the ped's m_nAreaCode itself (gta-reversed's GetCharAreaVisible compares it with the normal world,
+ // which iOS does not; CRASH1 waits for 5, the burning house, and others ask for 6, 7 or 15).
+ GET_CHAR_AREA_VISIBLE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'pedAreaCode')(t.readInt(p[0])));},
  // CPlayerPed::CanPlayerStartMission (0x6091B0): every gate has to pass.
  CAN_PLAYER_START_MISSION:(t,p,i)=>{
   const gates=world(t,i,'playerMissionGates')(t.readInt(p[0]));
