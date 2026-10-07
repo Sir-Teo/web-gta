@@ -1717,6 +1717,9 @@ export class ScmMission {
     if(z<=-100)z=this.findGroundZForCoord(x,y);
     this.coronaQueue.push({id,position:[x,y,z],size,color:[r&255,g&255,b&255],coronaType,flareType});
    },
+   // DRAW_LIGHT_WITH_RANGE (iOS 0x10020531c): CPointLights::AddLight for this frame, a point light (type 0) of the
+   // range, the colour over 255, casting extra shadows, on no entity.
+   drawLightWithRange:(x,y,z,r,g,b,range)=>{this.lightQueue.push({position:[x,y,z],radius:range,color:[r/255,g/255,b/255]});},
    popVehiclePanel:(handle,panel,visible)=>{this.carComponents(handle)?.popPanel(panel,visible);},
    popVehicleBoot:handle=>{this.carComponents(handle)?.popBoot();},
    fixVehicleDoor:(handle,door)=>{this.carComponents(handle)?.fixDoor(door);},
@@ -3268,6 +3271,9 @@ export class ScmMission {
  /** DRAW_CORONA's registrations since the host last took them: the host registers each with CCoronas that frame. */
  private coronaQueue:{id:number;position:[number,number,number];size:number;color:[number,number,number];coronaType:number;flareType:number}[]=[];
  takeScriptCoronas(){const out=this.coronaQueue;this.coronaQueue=[];return out;}
+ /** The point lights DRAW_LIGHT_WITH_RANGE asked for since the last frame took them. */
+ private lightQueue:{position:[number,number,number];radius:number;color:[number,number,number]}[]=[];
+ takeScriptLights(){const out=this.lightQueue;this.lightQueue=[];return out;}
  private vehicleModelType(model:number|string,command:string){
   const type=this.host('vehicleModelType',command)(model);
   if(type===null)throw new ScmEntityPending('the vehicle catalog');

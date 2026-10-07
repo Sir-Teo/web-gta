@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T14:42:49.498Z",
+ "generated": "2026-10-07T14:44:22.928Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1233,
+   "faithful": 1234,
    "authored": 19,
    "silent": 2,
-   "skipped": 131,
+   "skipped": 130,
    "stops": 6
   }
  },
@@ -1813,18 +1813,13 @@
    "byStatus": {
     "core": 172,
     "nop": 4,
-    "faithful": 57,
+    "faithful": 59,
     "authored": 1,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "DRAW_LIGHT_WITH_RANGE",
-     "status": "skipped",
-     "sites": 2
-    },
     {
      "name": "IS_CHAR_USING_MAP_ATTRACTOR",
      "status": "authored",
@@ -2686,10 +2681,10 @@
    "byStatus": {
     "core": 2023,
     "nop": 3,
-    "faithful": 1325,
+    "faithful": 1327,
     "authored": 10,
     "silent": 0,
-    "skipped": 4,
+    "skipped": 2,
     "stops": 0
    },
    "gaps": [
@@ -2697,11 +2692,6 @@
      "name": "MARK_CAR_AS_CONVOY_CAR",
      "status": "authored",
      "sites": 10
-    },
-    {
-     "name": "DRAW_LIGHT_WITH_RANGE",
-     "status": "skipped",
-     "sites": 2
     },
     {
      "name": "SET_CAR_FOLLOW_CAR",
@@ -6468,23 +6458,6 @@
    "sites": 2,
    "missions": 2,
    "firstMission": "valet.scm",
-   "portable": false
-  },
-  {
-   "name": "DRAW_LIGHT_WITH_RANGE",
-   "opcode": "09e5",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks drawLightWithRange (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2572,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Draws colored light in radius of the specified point",
-   "sites": 4,
-   "missions": 2,
-   "firstMission": "photo.scm",
    "portable": false
   },
   {

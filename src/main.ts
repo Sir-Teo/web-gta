@@ -1468,6 +1468,8 @@ async function boot() {
         const taxi=taxiLights([...(fleet?.cars??[]),...(worldCar&&!fleet?.cars.has(worldCar)?[worldCar]:[])],{spriteBrightness:render.lighting.nativeSpriteBrightness??3,
          lodMultiplier:lodDistMultiplier(),highQuality:fxQuality()==='high'||fxQuality()==='veryHigh'});
         for(const corona of taxi.coronas)coronas.register(corona,cam);pointLights.push(...taxi.pointLights);
+        // DRAW_LIGHT_WITH_RANGE's lights, for this frame.
+        pointLights.push(...mission?.takeScriptLights()??[]);
         // DRAW_CORONA: 450 units of range, reflected in wet roads, no obstacle check (reVC's RegisterCorona call). Only
         // the star raster is drawn here, whatever type the script names.
         for(const c of mission?.takeScriptCoronas()??[])coronas.register({id:c.id,color:c.color,intensity:255,position:c.position,size:c.size,range:450,flareType:c.flareType,reflection:true},cam);

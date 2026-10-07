@@ -11191,3 +11191,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   sets CPlayerPedData::m_bForceInteriorLighting, which CPhysical::GetLightingTotal (reversed) ORs with being in an
   interior area for the player; the port's player lighting for the post effects now does the same (MAF4). Both were
   skipped. LOCK_DOOR (0x100201c64, CObject::LockDoor and UnlockDoor on a swinging door) waits on the door objects.
+- **A script's point light.** DRAW_LIGHT_WITH_RANGE (iOS 0x10020531c) is CPointLights::AddLight for the frame: a point
+  light of the range, its colour over 255, casting extra shadows, on no entity (MUSIC3 and photo.scm). The port's
+  point lights do not light the world; they feed RenderExtraPlayerShadows, which now takes the script's too. It was
+  skipped.
