@@ -80,6 +80,8 @@ export function missionBotTick(dtSeconds:number){
  // vehicle down step by step knocked CJ off his bike and wrecked it. On foot he is set down at walking pace.
  // `chase`: a car running from CJ (SWEET3's Ballas, whom the homies' drive-by only reaches within its weapon's range) is
  // run down as a player would, round the traffic (AVOID_CARS), at 30, re-aimed every second.
+ // A countdown on screen (SWEET7's funeral): a player drives the long legs flat out.
+ const hurry=(r.game.onscreenTimer?.clock?.varId??0)!==0;
  const glide=(to:any,stopAt:number,chase=false)=>{
   const d=distance(to);
   if(vehicle){
@@ -115,7 +117,7 @@ export function missionBotTick(dtSeconds:number){
    }
    if(!last||last.vehicle!==vehicle||last.style!==style||Math.hypot(last.x-to.x,last.y-to.y)>(chase?3:8)||now-last.at>(chase?1000:4000)){
     mem.drive={vehicle,x:to.x,y:to.y,at:now,style};
-    try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:chase?30:d>40?22:12,driveStyle:0,model:-1,drivingStyle:style},0x05d1);}catch{}
+    try{world.givePedScriptedTask(1,{kind:'carDriveToCoord',vehicle,x:to.x,y:to.y,z:to.z,speed:chase||hurry&&d>40?30:d>40?22:12,driveStyle:0,model:-1,drivingStyle:style},0x05d1);}catch{}
    }
    return true;
   }
@@ -330,10 +332,16 @@ export function missionBotTick(dtSeconds:number){
   if(glide(c.position,15,true))return {action:'chase car',target:c.handle};
   shoot(c.position);return {action:'shoot car',target:c.handle};
  }
+ // A car the script has frozen and no longer blips is done with (SWEET7 at the cemetery wall: "climb over the wall"):
+ // a player gets out. One still blipped is where the gang is boarding, and he waits in it.
+ if(vehicle&&m.vehicles.entity?.(vehicle)?.frozen&&!blips.some((b:any)=>b.type===BLIP_CAR&&b.handle===vehicle)){
+  try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}
+  return {action:'leave frozen car',target:vehicle};
+ }
  // "Get those gang members to join you" (SWEET7's TWAR652): a player walks up to each blipped Families member not yet
  // in his group, faces him and recruits him with the aim held and the group button.
  // The brief goes after its few seconds; the bot keeps on until every blipped one has joined.
- if(/join you/i.test(objective))mem.recruiting=true;
+ if(/join you/i.test(objective))mem.recruiting=true;else if(objective)mem.recruiting=false;
  if(!vehicle&&mem.recruiting){
   const recruits=friends.filter((f:any)=>!members.includes(f.handle));
   if(!recruits.length)mem.recruiting=false;
@@ -353,7 +361,8 @@ export function missionBotTick(dtSeconds:number){
   // would. Still means within three units of where he was five seconds ago (a recovery rocks him back and forth).
   const anchors=mem.friendAnchor??={},a=anchors[f.handle];
   if(!a||Math.hypot(f.position.x-a.x,f.position.y-a.y)>3)anchors[f.handle]={x:f.position.x,y:f.position.y,for:0};else a.for+=dtSeconds;
-  if(anchors[f.handle].for>5){glide(f.position,5);return {action:'join stopped friend',target:f.handle};}
+  // On foot he walks right up to him (SWEET7: CJ within two units of Sweet in the cemetery).
+  if(anchors[f.handle].for>5){glide(f.position,vehicle?5:1.5);return {action:'join stopped friend',target:f.handle};}
   if(v>.2){
    const ahead=(me.x-f.position.x)*vx+(me.y-f.position.y)*vy>0;if(ahead)return {action:'let him pass',target:f.handle};
    glide({x:f.position.x-vx/v*10,y:f.position.y-vy/v*10,z:f.position.z},1.5);
