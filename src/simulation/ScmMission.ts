@@ -911,12 +911,17 @@ const IN_SEAT_OVER_AT_ONCE:ReadonlySet<ScriptedPedOrder['kind']>=new Set(['lookA
 type RunnerStep=
  /** `route`: a point route's drive, and the point it goes to next once this one is reached. */
  |{kind:'held';route?:{task:Extract<ScmScriptedTask,{kind:'drivePointRouteAdvanced'}>;next:number}}
- |{kind:'wait';remaining:number}
+ |{kind:'wait';remaining:number;then?:ScmScriptedTask}
  |{kind:'settle';then?:ScmScriptedTask}
  |{kind:'board';vehicle:number;then:ScmScriptedTask}
  |{kind:'slowing';then:ScmScriptedTask}
  /** A clip played in the seat, which the host says when it is over. */
  |{kind:'seatClip'};
+/** TASK_EVERYONE_LEAVE_CAR's CTaskComplexLeaveAnyCar delay for a seat (iOS 0x1001ef31c): none for the driver, and for
+ * passenger seat i 250 + 500 i ms and another (rand() & 0xffff) / 65536 of 500. */
+export function everyoneLeaveCarDelay(seat:number|'driver'|undefined,rand16:()=>number){
+ return typeof seat==='number'?250+500*seat+Math.trunc(rand16()/65536*500):0;
+}
 /** CGeneral::GetATanOfXY: the angle of (x, y) from the x axis, in [0, 2π). */
 export function getATanOfXY(x:number,y:number){if(x===0&&y===0)return 0;const a=Math.atan2(y,x);return a<0?a+2*Math.PI:a;}
 /** IS_POINT_OBSCURED_BY_A_MISSION_ENTITY's box, the point less and plus each radius with the ends swapped into order,
@@ -2266,9 +2271,17 @@ export class ScmMission {
    givePedScriptedTask:(handle,task,opcode)=>{
     // CTaskSimpleHoldEntity on the ped's partial-anim slot: it holds the object from here, and its other tasks go on.
     if(task.kind==='pickUpObject'){this.pickUpObject(handle,task);return;}
-    // TASK_EVERYONE_LEAVE_CAR names a car: each ped seated in it takes CTaskComplexLeaveCar for it, the player too.
+    // TASK_EVERYONE_LEAVE_CAR (iOS 0x1001ef31c) names a car: the driver takes CTaskComplexLeaveAnyCar(0, sensible) and
+    // the passenger in seat i the same after 250 + 500 i ms and a rand()'s low 16 bits of another 500, so they climb out
+    // one after another. The player leaves with no delay (as the driver; a passenger player's seat is not known here).
     if(task.kind==='everyoneLeaveCar'){
-     for(const rider of this.peds.ridersOf(task.vehicle))adapter.givePedScriptedTask!(rider,{kind:'leaveCar',vehicle:task.vehicle},opcode);
+     // In seat order, as the rolls are drawn.
+     const order=(seat:number|'driver'|undefined)=>seat==='driver'?-1:seat??99;
+     const riders=this.peds.ridersOf(task.vehicle).map(rider=>({rider,seat:this.peds.rideOf(rider)?.seat})).sort((a,b)=>order(a.seat)-order(b.seat));
+     for(const {rider,seat} of riders){
+      const delay=everyoneLeaveCarDelay(seat,()=>this.randomSample16());
+      adapter.givePedScriptedTask!(rider,{kind:'leaveCar',vehicle:task.vehicle,...(delay?{delay}:{})},opcode);
+     }
      if(this.playerCarHandle()===task.vehicle)adapter.givePedScriptedTask!(PLAYER_PED_HANDLE,{kind:'leaveCar',vehicle:task.vehicle},opcode);
      return;
     }
@@ -3123,6 +3136,7 @@ export class ScmMission {
    case 'leaveCar':case 'leaveCarImmediately':case 'leaveAnyCar':{
     const vehicle=task.kind==='leaveAnyCar'?undefined:task.vehicle;
     if(!riding||vehicle!==undefined&&vehicle!==ride.vehicle)return undefined;
+    if(task.kind==='leaveCar'&&task.delay)return {kind:'wait',remaining:task.delay/1000,then:{...task,delay:0}};
     // CTaskSimpleCarWaitToSlowDown first (not for the Immediately form): a script driver stops its car's mission,
     // and the ped waits in its seat until the car is still enough to step out of.
     const jump=this.groupLeaving.delete(handle);
@@ -3176,7 +3190,12 @@ export class ScmMission {
     const step=r.step,entity=this.peds.entity(handle);
     if(!step){this.advanceRunner(handle);continue;}
     switch(step.kind){
-     case 'wait':step.remaining-=dt;if(step.remaining<=0)this.advanceRunner(handle);break;
+     case 'wait':{
+      step.remaining-=dt;if(step.remaining>0)break;
+      // A wait ahead of a task (a leave-car delay) goes on to it; else the task is over.
+      const next=step.then&&this.dispatch(handle,step.then,r.opcode);if(next)r.step=next;else this.advanceRunner(handle);
+      break;
+     }
      case 'seatClip':if(entity===undefined||!this.peds.rideOf(handle)||this.world.scriptRiderClipDone?.(entity)!==false)this.advanceRunner(handle);break;
      case 'slowing':{
       const ride=this.peds.rideOf(handle);

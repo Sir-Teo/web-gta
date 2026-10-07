@@ -11293,3 +11293,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   CStats::FindMostFavoriteRadioStation (0x1002611d4): the station of 1 to 12 with the most listening time, the lower on a
   tie, 1 with none. The game's list is the radio's listening times as last copied (when saving or drawing the stats
   screen, neither of which the port has); here they are read as they stand.
+- TASK_EVERYONE_LEAVE_CAR (iOS 0x1001ef31c) gives the driver CTaskComplexLeaveAnyCar(0, sensible) and the passenger in
+  seat i the same with a delay of 250 + 500 i ms and another (rand() & 0xffff) / 65536 of 500, so the crew climbs out
+  one after another; the port had them all leave at once. The delay is CTaskComplexLeaveCar's m_nDelayTime, a wait in
+  the seat before the leaving starts. (A player riding as a passenger still leaves at once: the seat is not known here.)
+- TASK_CAR_MISSION's escort FARAWAY missions are 65 to 68, as eCarMission and iOS's chase-strategy table have them; the
+  port had them at 57 to 60, which are the plane and heli crash-and-burn missions, the police plane's attack and
+  DO_DRIVEBY_CLOSE. No script asks for either range directly.

@@ -84,6 +84,10 @@ test('TASK_CAR_MISSION’s numbers name the eCarMission kinds, and the escorts t
  expect([CAR_MISSION[2],CAR_MISSION[4],CAR_MISSION[17],CAR_MISSION[29],CAR_MISSION[11]]).toEqual(['ramPlayerFar','blockPlayerFar','blockCarFar','escort','stopForever']);
  expect([29,30,31,32].map(escortSide)).toEqual(['left','right','rear','front']);
  expect(CAR_MISSION[20]).toBeUndefined();
+ // The FARAWAY escorts are 65-68 (eCarMission, and iOS's chase strategy table); 57-60 are no escort.
+ expect([65,66,67,68].map(n=>CAR_MISSION[n])).toEqual(['escortFar','escortFar','escortFar','escortFar']);
+ expect([65,66,67,68].map(escortSide)).toEqual(['left','right','rear','front']);
+ expect([57,58,59,60].map(n=>CAR_MISSION[n])).toEqual([undefined,undefined,undefined,undefined]);
 });
 
 test('the block aims where the target will be, its speed counted up to 0.13 a frame',async()=>{

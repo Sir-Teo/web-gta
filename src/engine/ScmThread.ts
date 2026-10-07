@@ -58,7 +58,9 @@ export type ScmScriptedTask=
  |{kind:'goToCoordAnyMeans';x:number;y:number;z:number;speed:number;vehicle:number}
  |{kind:'enterCarAsDriver';vehicle:number;time:number;moveState?:number}
  |{kind:'enterCarAsPassenger';vehicle:number;time:number;seat:number;moveState?:number}
- |{kind:'leaveCar';vehicle:number}
+ |{kind:'leaveCar';vehicle:number;
+  /** CTaskComplexLeaveCar's m_nDelayTime: milliseconds in the seat before the leaving starts. */
+  delay?:number}
  |{kind:'standStill';time:number}
  |{kind:'shootAtCoord';x:number;y:number;z:number;time:number}
  |{kind:'setDecisionMaker';decisionMaker:number}

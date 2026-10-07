@@ -36,10 +36,11 @@ export type ScriptCarMissionKind='gotoCoords'|'gotoCoordsStraight'|'gotoCoordsAc
 /** eCarMission's numbers for TASK_CAR_MISSION, and the kind each starts as. */
 export const CAR_MISSION:Readonly<Record<number,ScriptCarMissionKind>>={0:'none',1:'cruise',2:'ramPlayerFar',3:'ramPlayerClose',4:'blockPlayerFar',
  5:'blockPlayerClose',6:'blockPlayerStop',10:'emergencyStop',11:'stopForever',15:'ramCarFar',16:'ramCarClose',17:'blockCarFar',18:'blockCarClose',
- 19:'blockCarStop',29:'escort',30:'escort',31:'escort',32:'escort',57:'escortFar',58:'escortFar',59:'escortFar',60:'escortFar'};
-/** MISSION_ESCORT_LEFT, _RIGHT, _REAR and _FRONT (29-32) and their FARAWAY forms. */
+ 19:'blockCarStop',29:'escort',30:'escort',31:'escort',32:'escort',65:'escortFar',66:'escortFar',67:'escortFar',68:'escortFar'};
+/** MISSION_ESCORT_LEFT, _RIGHT, _REAR and _FRONT (29-32) and their FARAWAY forms (65-68; 57-60 are the plane and heli
+ * crash-and-burn missions, the police plane's attack and DO_DRIVEBY_CLOSE). */
 export type EscortSide='left'|'right'|'rear'|'front';
-export const escortSide=(mission:number):EscortSide|undefined=>(['left','right','rear','front'] as const)[mission>=57?mission-57:mission-29];
+export const escortSide=(mission:number):EscortSide|undefined=>(['left','right','rear','front'] as const)[mission>=65?mission-65:mission-29];
 /** The kinds that follow the road toward a goal (SteerAICarWithPhysicsFollowPath), a moving one for the FARAWAY missions. */
 const ROAD_KINDS:ReadonlySet<ScriptCarMissionKind>=new Set(['gotoCoords','gotoCoordsAccurate','gotoCoordsRacing','ramPlayerFar','blockPlayerFar','ramCarFar','blockCarFar','escortFar']);
 /** VC's SteerAICarWithPhysicsTryingToBlockTarget: the target's speed counted up to 0.13 a frame, and the handbrake stop
