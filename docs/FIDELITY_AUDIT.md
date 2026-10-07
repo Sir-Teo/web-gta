@@ -2281,8 +2281,15 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
     version is marked as not the original).
   - The ninja theme's weapon: under CHEAT_NINJA_THEME AddPed gives every
     GANG7 member the katana, in place of the one-in-three gang weapon (the
-    theme's models are not ported). The slut magnet (prostitutes hassling the
-    player with a dildo or vibrator) is not in the port's cheat table.
+    theme's models are not ported).
+  - The slut magnet (LoveConquersAllCheat): AddPed gives a prostitute it makes
+    a dildo or a vibrator with one round. Its CEventSexyPed(player,
+    TASK_COMPLEX_GANG_HASSLE_PED) is not ported: the hassle task is unreversed.
+  - Gang land (GangLandCheat) sets CPopulation::m_bOnlyCreateRandomGangMembers
+    with its toggle, the flag SET_ONLY_CREATE_GANG_MEMBERS sets. Gang members
+    everywhere (GangsCheat streaming the Ballas, Families and Vagos models into
+    the ped slots) is not ported.
+  - Spec: `population-cheat-weapons` (unit), `everyone-armed`.
   - Fat, muscle, skinny and max stamina do nothing yet.
 - Verification: unit tests cover the codes, the toggle messages and the
   hooks for traffic, colours, wanted, ammo and oxygen. A browser test types

@@ -2669,6 +2669,9 @@ async function boot() {
       case 'muscle':mission?.runtime.game.stats.set(23,1000);rebuildPlayerUnlessDriving();break;
       case 'skinny':mission?.runtime.game.stats.set(21,0);mission?.runtime.game.stats.set(23,0);rebuildPlayerUnlessDriving();break;
       case 'maxStamina':mission?.runtime.game.stats.set(22,1000);break;
+      // CCheat::GangLandCheat: toggled, and CPopulation::m_bOnlyCreateRandomGangMembers follows it (the flag
+      // SET_ONLY_CREATE_GANG_MEMBERS sets).
+      case 'gangLand':cheats.toggle(cheat);if(mission)mission.runtime.game.population.onlyCreateRandomGangMembers=cheats.isActive(cheat);break;
       // CCheat::EverybodyAttacksPlayerCheat: toggled; turned on, every ped hates the player and sets on him.
       case 'bounty':cheats.toggle(cheat);if(cheats.isActive(cheat))pedestrians?.everybodyAttacksPlayer();break;
       default:cheats.toggle(cheat);

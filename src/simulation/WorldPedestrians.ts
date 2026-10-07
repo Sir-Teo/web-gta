@@ -73,6 +73,8 @@ const CHOKING_WEAPONS=new Set([41,42,17]);
 const PED_TYPE_PLAYER1=0,PED_TYPE_COP=6,PED_TYPE_GANG2=8,PED_TYPE_GANG7=13;
 /** CPopulation::AddPed's choice for an armed civilian: WEAPON_PISTOL, _BASEBALLBAT, _SHOTGUN, _M4, _RLAUNCHER. */
 const EVERYONE_ARMED_WEAPONS=[22,5,25,31,35] as const;
+/** The slut magnet's: WEAPON_DILDO1, _DILDO2, _VIBE1, _VIBE2. */
+const SLUT_MAGNET_WEAPONS=[10,11,12,13] as const;
 /** The Grove Street Families' gang index, PED_TYPE_GANG2. */
 const GANG_GROVE=1;
 /** eTaskType TASK_COMPLEX_AVOID_OTHER_PED_WHILE_WANDERING. */
@@ -2156,7 +2158,11 @@ export class WorldPedestrians {
   * CHEAT_PEDS_ATTACK_OTHER_WITH_GOLFCLUB is on takes, at random, the pistol, the bat, the shotgun, the M4 or the rocket
   * launcher, with 25001 rounds (GiveDelayedWeapon and SetCurrentWeapon). */
  private armForCheats(p:Pedestrian){
-  if(p.officer||!/^CIV(MALE|FEMALE)$/i.test(p.pedType??''))return;
+  if(p.officer)return;
+  // CHEAT_SLUT_MAGNET (LoveConquersAllCheat): a prostitute takes a dildo or a vibrator, with one round. Its
+  // CEventSexyPed(player, TASK_COMPLEX_GANG_HASSLE_PED) is not ported (the hassle task is unreversed).
+  if(/^PROSTITUTE$/i.test(p.pedType??'')&&CHEATS.isActive('loveConquersAll')){this.giveWeapon(p,SLUT_MAGNET_WEAPONS[Math.floor(Math.random()*SLUT_MAGNET_WEAPONS.length)],1);return;}
+  if(!/^CIV(MALE|FEMALE)$/i.test(p.pedType??''))return;
   if(!CHEATS.isActive('everyoneArmed')&&!CHEATS.isActive('pedsAttackOther'))return;
   this.giveWeapon(p,EVERYONE_ARMED_WEAPONS[Math.floor(Math.random()*EVERYONE_ARMED_WEAPONS.length)],25001);
  }
