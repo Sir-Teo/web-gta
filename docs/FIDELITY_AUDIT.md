@@ -8309,9 +8309,12 @@ Each is now answered:
     it aims at the point past him;
   - CPedGroupMembership::Process lets a follower go past the separation range only in the leader's area, and the
     player's group's range is 120 (set at every recruit; it was 60).
+- Leaving the player's car (ComputeResponseLeaderExitedCar, iOS 0x10034d564) the follower in member slot k gets out
+  after 250 + 500 × k ms and up to 500 more; the slot rides with it. It had been ±250 ms round 500 × its place among
+  the riders, so the first was out at once.
 - Not yet: the FOLLOW_LIMITED formation the mission cleanup puts the group on until the next group command, the
-  boarding (every follower runs to a seat when the player gets in, a lone one to the front), the slot-timed exits
-  (250 + 500 × slot + up to 500 ms), the node route beyond 2 units, the FOLLOW_ARRIVE line and turning to a member.
+  boarding (every follower runs to a seat when the player gets in, a lone one to the front), the node route beyond 2
+  units, the FOLLOW_ARRIVE line and turning to a member.
 
 ## The player's group: its leader and its script peds
 

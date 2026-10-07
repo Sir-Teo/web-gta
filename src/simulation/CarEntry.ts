@@ -208,8 +208,9 @@ export class CarEntry {
    const riders=this.passengers.splice(0);
    this.doorCloses=this.doorCloses.filter(pending=>pending.car!==car);
    // CVehicle::KillPedsInVehicle kills everyone aboard a car that blew up at once; only living riders leave one by one
-   // (ComputeResponseLeaderExitedCar).
-   riders.forEach((rider,i)=>this.leaving.push({rider,car,at:this.passengerClock+(car.wrecked?0:Math.max(0,(Math.random()*500-250+i*500)/1000))}));
+   // (ComputeResponseLeaderExitedCar, iOS 0x10034d564): the follower in member slot k after 250 + 500 × k ms and up to
+   // 500 more. A rider with no slot takes its place in the riders' order.
+   riders.forEach((rider,i)=>{const slot=(rider.keep as {slot?:number}|undefined)?.slot??i;this.leaving.push({rider,car,at:this.passengerClock+(car.wrecked?0:(250+500*slot+Math.random()*500)/1000)});});
   }
   private passengerOut(car:WorldCar,rider:CarEntry['passengers'][number]){
    if(!this.crowd||car.disposed)return;

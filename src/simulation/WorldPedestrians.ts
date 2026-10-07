@@ -468,7 +468,7 @@ const PED_BOUND_RADIUS=1;
 /** Heights above the feet of the stand-in ped hit spheres (see hideNearCamera). */
 const HIT_SPHERE_HEIGHTS=[.25,.6,.95,1.3,1.6];
 /** What a ped carries into a car and out again as CJ's passenger. */
-interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;gang?:number;gangClips:boolean}
+interface PassengerKeep {weapon:Pedestrian['weapon'];health:number;gang?:number;gangClips:boolean;/** The follower's member slot, kept while it rides. */slot?:number}
 /** CTaskComplexWalkRoundBuildingAttempt's state: the route, the point it walks round to (m_targetPos, native) and the
  * ped or player it follows there (m_targetEntity), its move state, and which sub-task runs: the first one (scratch
  * head walking, hit wall running), look about, following the route, or the stand or hit wall it gives up with. */
@@ -1674,7 +1674,7 @@ export class WorldPedestrians {
   const i=this.people.findIndex(p=>p.id===id);if(i<0)return undefined;
   const [p]=this.people.splice(i,1);this.remove(p);
   // The same ped rides and gets out: CPed keeps his weapons, health and gang in the car.
-  const keep:PassengerKeep={weapon:p.weapon,health:p.health,gang:p.gang,gangClips:p.gang!==undefined};
+  const keep:PassengerKeep={weapon:p.weapon,health:p.health,gang:p.gang,gangClips:p.gang!==undefined,slot:p.follow?p.followSlot:undefined};
   return {modelRef:p.modelRef,follow:p.follow,gang:p.gang,keep};
  }
  /** The model a script ped id stands for: its peds.ide row's name where the depot carries that model, so the
@@ -2375,7 +2375,7 @@ export class WorldPedestrians {
   }
   const p=this.people[this.people.length-1];
   p.follow=follow;p.flee=0;
-  if(keep){p.health=keep.health;if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);}
+  if(keep){p.health=keep.health;if(keep.gangClips)p.view.installReactions(catalog.gangClips,true);if(follow)p.followSlot=keep.slot;}
   if(rollout)this.rollOut(p,rollout.velocity,rollout.clip);
   return true;
  }
