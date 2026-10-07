@@ -11120,3 +11120,12 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   (+0x12, no check that he swims). The port's player swim keeps the same eSwimState values, which the command now
   reads; script peds never swim here and read SWIM_TREAD. WUZI2 (Amphibious Assault) counts CJ as hidden from the
   guards only while he sprints underwater (state 4); with the command skipped he never was.
+- **Big Smoke's vest.** SET_CHAR_BULLETPROOF_VEST (iOS 0x1002016e4) sets CPed::bHasBulletProofVest, which
+  CEventDamage::AffectsPed (reversed; iOS 0x10028acb4) reads: a WEAPON_FIRE_INSTANT_HIT weapon's hit on
+  PED_PIECE_TORSO or PED_PIECE_ASS does not affect the ped at all. FINALEA gives it to Big Smoke in the crack palace,
+  so only shots to his head, arms and legs hurt him (and he suffers no critical hits). The command was skipped, so he
+  took every round. Both the player's rounds and other peds' now pass the test; the piece is the port's height and
+  side stand-in for the hit spheres.
+- **SET_SWIM_SPEED stays skipped on purpose.** iOS (0x100207d14) writes CTaskSimpleSwim::m_fAnimSpeed of a ped that
+  swims, which only the AI swimmer's strokes read. No script ped swims in the port (TRIA's racers and SYN5's swimmer
+  among them), so the command marks that larger gap rather than a detail.

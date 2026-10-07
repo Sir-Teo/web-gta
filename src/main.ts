@@ -5396,6 +5396,7 @@ async function boot() {
                  setScriptPickupMoneyPerDay:(handle,money)=>{pickups.patchGenerated(`script:${handle}`,{revenueRate:money});},
                  // bNoCriticalHits is the command's own value inverted.
                  setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},
+                 setScriptPedBulletProofVest:(ped,on)=>{const p=onFoot(ped);if(p)p.bulletProofVest=on;},
                  playerAnimTotalTime:animation=>{const view=render.nativeCharacter;return view&&(view.reactionName??'').toLowerCase()===animation.toLowerCase()?(view.reactionDuration(view.reactionName!)??0)*1000:undefined;},
                  scriptPedAnimTotalTime:(ped,animation)=>{const p=onFoot(ped);return p?pedestrians?.animTotalTime(p,animation):undefined;},
                  playerDucking:()=>!!sim.player.crouched,

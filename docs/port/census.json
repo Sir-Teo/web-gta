@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T14:03:05.626Z",
+ "generated": "2026-10-07T14:09:33.173Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1210,
+   "faithful": 1211,
    "authored": 19,
    "silent": 2,
-   "skipped": 154,
+   "skipped": 153,
    "stops": 6
   }
  },
@@ -5369,10 +5369,10 @@
    "byStatus": {
     "core": 2295,
     "nop": 1,
-    "faithful": 1844,
+    "faithful": 1845,
     "authored": 1,
     "silent": 0,
-    "skipped": 5,
+    "skipped": 4,
     "stops": 0
    },
    "gaps": [
@@ -5388,11 +5388,6 @@
     },
     {
      "name": "SET_PLAYER_MOOD",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_CHAR_BULLETPROOF_VEST",
      "status": "skipped",
      "sites": 1
     },
@@ -8916,23 +8911,6 @@
    },
    "doc": "Enables thermal vision effects",
    "sites": 2,
-   "missions": 1,
-   "firstMission": "FINALEA",
-   "portable": false
-  },
-  {
-   "name": "SET_CHAR_BULLETPROOF_VEST",
-   "opcode": "093b",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setCharBulletproofVest (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2737,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Specifies that the character should only use upper-body damage animations, meaning they can still run if shot in the legs etc",
-   "sites": 1,
    "missions": 1,
    "firstMission": "FINALEA",
    "portable": false

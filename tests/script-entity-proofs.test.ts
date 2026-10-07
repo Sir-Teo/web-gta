@@ -66,3 +66,18 @@ test('each proof guards its own class: melee blows, the flamethrower and bullets
  expect(fires.startFireOn({kind:'vehicle',key:{}},{x:0,y:0,z:0},7000,100,clock,'player',{engineDamaged:true})).toBeUndefined();
  expect(fires.startFireOn({kind:'vehicle',key:{}},{x:0,y:0,z:0},7000,100,clock,'player')).toBeDefined();
 });
+
+test('a bulletproof vest turns away instant-hit rounds on the torso and the ass only (CEventDamage::AffectsPed)',async()=>{
+ const {bulletProofVestStops,npcDamageReaches}=await import('../src/simulation/WorldPedestrians');
+ const {PED_PIECE,WEAPON}=await import('../src/combat/nativeDamageAnim');
+ const smoke={bulletProofVest:true,health:2000,pedType:'SPECIAL'};
+ expect(bulletProofVestStops(smoke,WEAPON.pistol,PED_PIECE.torso)).toBe(true);
+ expect(bulletProofVestStops(smoke,30,PED_PIECE.ass)).toBe(true);
+ expect(bulletProofVestStops(smoke,30,PED_PIECE.head)).toBe(false);
+ expect(bulletProofVestStops(smoke,30,PED_PIECE.leftLeg)).toBe(false);
+ // Not an instant hit: a rocket's blast, a punch.
+ expect(bulletProofVestStops(smoke,WEAPON.explosion,PED_PIECE.torso)).toBe(false);
+ expect(bulletProofVestStops({health:100},30,PED_PIECE.torso)).toBe(false);
+ expect(npcDamageReaches(smoke,{},30,true,PED_PIECE.torso)).toBe(false);
+ expect(npcDamageReaches(smoke,{},30,true,PED_PIECE.rightArm)).toBe(true);
+});

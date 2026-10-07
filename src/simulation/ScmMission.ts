@@ -423,6 +423,8 @@ export interface ScmMissionWorld {
  /** UPDATE_PICKUP_MONEY_PER_DAY reaching the drawn pickup. */
  setScriptPickupMoneyPerDay?(handle:number,moneyPerDay:number):void;
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
+ /** CPed::bHasBulletProofVest of a script ped. */
+ setScriptPedBulletProofVest?(ped:unknown,on:boolean):void;
  scriptPedAnimProgress(ped:unknown,animation:string):number|undefined;
  /** SET_CHAR_ANIM_SPEED and SET_CHAR_ANIM_CURRENT_TIME on the clip the ped plays by that name; `undefined` is the player. */
  setScriptPedAnim?(ped:unknown,animation:string,change:{speed?:number;progress?:number;playing?:boolean}):void;
@@ -1235,6 +1237,8 @@ export class ScmMission {
     if(flag==='neverLeavesGroup'){if(value)this.neverLeavesGroup.add(handle);else this.neverLeavesGroup.delete(handle);}
    },
    setPedSuffersCriticalHits:(handle,suffers)=>{this.world.setScriptPedCriticalHits(this.livePed(handle),suffers);},
+   // SET_CHAR_BULLETPROOF_VEST (iOS 0x1002016e4): CPed::bHasBulletProofVest, which CEventDamage::AffectsPed reads.
+   setCharBulletproofVest:(handle,on)=>{this.host('setScriptPedBulletProofVest','SET_CHAR_BULLETPROOF_VEST')(this.livePed(handle),on);},
    pedAnimTotalTime:(handle,animation)=>(handle===PLAYER_PED_HANDLE?this.host('playerAnimTotalTime','GET_CHAR_ANIM_TOTAL_TIME')(animation):this.world.scriptPedAnimTotalTime?.(this.livePed(handle),animation))??0,
    setWeekDay:day=>{this.world.setWorldWeekDay?.(day);},
    anyPedsNearPed:(handle,radius)=>{
