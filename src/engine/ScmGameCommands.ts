@@ -1966,11 +1966,9 @@ const handlers:Record<string,ScmCommandHandler>={
  VEHICLE_CAN_BE_TARGETTED_BY_HS_MISSILE:(t,p,i)=>{
   world(t,i,'vehicleCanBeTargettedByHomingMissile')(t.readInt(p[0]),bool(t,p[1]));
  },
- DONT_SUPPRESS_CAR_MODEL:(t,p,i)=>{
-  const chosen=model(t,i,p[0]);
-  game(t,i).suppressedCarModels.delete(chosen);
-  t.host?.world?.dontSuppressVehicleModel?.(chosen);
- },
+ // CTheScripts::SuppressedVehicleModels (40 entries): the iOS handler (0x1001f68e8) sets every entry naming the model
+ // back to -1.
+ DONT_SUPPRESS_CAR_MODEL:(t,p,i)=>{game(t,i).suppressedCarModels.delete(model(t,i,p[0]));},
  EXPLODE_CAR_IN_CUTSCENE:(t,p,i)=>{world(t,i,'explodeVehicleInCutscene')(t.readInt(p[0]));},
  OPEN_CAR_DOOR_A_BIT:(t,p,i)=>{
   world(t,i,'openVehicleDoorABit')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]));
@@ -2559,7 +2557,8 @@ const handlers:Record<string,ScmCommandHandler>={
  REMOVE_UPSIDEDOWN_CAR_CHECK:(t,p,i)=>{game(t,i).upsideDownCars.remove(t.readInt(p[0]));},
  IS_CAR_STUCK_ON_ROOF:(t,p,i)=>{t.updateCompareFlag(game(t,i).upsideDownCars.hasBeenUpsideDownForAWhile(t.readInt(p[0])),negated(i));},
  CREATE_BIRDS:(t,p,i)=>{world(t,i,'createBirds')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readInt(p[6]),t.readInt(p[7]));},
- DONT_SUPPRESS_ANY_CAR_MODELS:(t,p,i)=>{world(t,i,'dontSuppressAnyCarModels')();},
+ // CTheScripts::ClearAllSuppressedCarModels (0x46A7C0, reversed): the iOS handler (0x1001f5f2c) fills the table with -1.
+ DONT_SUPPRESS_ANY_CAR_MODELS:(t,_p,i)=>{game(t,i).suppressedCarModels.clear();},
  SET_FREEBIES_IN_VEHICLE:(t,p,i)=>{world(t,i,'setFreebiesInVehicle')(t.readInt(p[0]),bool(t,p[1]));},
  TAKE_REMOTE_CONTROL_OF_CAR:(t,p,i)=>{world(t,i,'takeRemoteControlOfCar')(t.readInt(p[0]),t.readInt(p[1]));},
  CLEAR_CAR_LAST_WEAPON_DAMAGE:(t,p,i)=>{world(t,i,'clearCarLastWeaponDamage')(t.readInt(p[0]));},

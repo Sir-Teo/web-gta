@@ -80,6 +80,9 @@ describe('the tail of vehicle, object and world commands',()=>{
   expect([...game.suppressedCarModels]).toEqual([411]);
   run({},game,instruction(op('DONT_SUPPRESS_CAR_MODEL'),[int(411)]));
   expect(game.suppressedCarModels.size).toBe(0);
+  // DONT_SUPPRESS_ANY_CAR_MODELS empties the whole table (ClearAllSuppressedCarModels; iOS 0x1001f5f2c).
+  run({},game,instruction(op('SUPPRESS_CAR_MODEL'),[int(411)]),instruction(op('SUPPRESS_CAR_MODEL'),[int(560)]),instruction(op('DONT_SUPPRESS_ANY_CAR_MODELS'),[]));
+  expect(game.suppressedCarModels.size).toBe(0);
  });
 
  test('the everyone-leave task names a car rather than a ped',()=>{

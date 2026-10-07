@@ -672,7 +672,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  vehiclePassengerCount?(handle:number):number;
  attachVehicleToVehicle?(handle:number,other:number,offset:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number}):void;
  vehicleCanBeTargettedByHomingMissile?(handle:number,state:boolean):void;
- dontSuppressVehicleModel?(model:number|string):void;
  setPlaneThrottle?(handle:number,throttle:number):void;
  planeStartsInAir?(handle:number):void;
  setPlaneUndercarriageUp?(handle:number,state:boolean):void;
@@ -932,7 +931,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isThisModelACar?(modelId:number|string):boolean;
  taskGoToCoordWhileAiming?(char:number,x:number,y:number,z:number,speed:number,turnRadius:number,stopRadius:number,target:number,xOffset:number,yOffset:number,zOffset:number):void;
  createBirds?(xFrom:number,yFrom:number,zFrom:number,xTo:number,yTo:number,zTo:number,quantity:number,type:number):void;
- dontSuppressAnyCarModels?():void;
  setFreebiesInVehicle?(handle:number,state:boolean):void;
  takeRemoteControlOfCar?(player:number,vehicle:number):void;
  clearCarLastWeaponDamage?(handle:number):void;

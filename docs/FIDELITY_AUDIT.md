@@ -11083,3 +11083,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   started-flying time 20 s back) and, for the Hydra, a level nozzle. Only the AI pilot reads that time (its gear
   goes up once 4 s off the ground, 0x10019f490), and no AI plane flies in the port yet, so the time itself is not kept.
   All three were skipped before.
+- **Car models let back into traffic.** CTheScripts::SuppressedVehicleModels is 40 model ids. DONT_SUPPRESS_CAR_MODEL
+  (iOS 0x1001f68e8) sets every entry naming the model to -1, which the runtime's list already did; it also asked the
+  host for a hook nothing needed, so the census counted it silent across nine missions. DONT_SUPPRESS_ANY_CAR_MODELS
+  (CTheScripts::ClearAllSuppressedCarModels, 0x46A7C0; iOS 0x1001f5f2c fills the table with -1) was skipped and now
+  empties the list, so STEAL2's and the other users' suppressed models come back to the streets.
