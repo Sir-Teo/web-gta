@@ -11129,3 +11129,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - **SET_SWIM_SPEED stays skipped on purpose.** iOS (0x100207d14) writes CTaskSimpleSwim::m_fAnimSpeed of a ped that
   swims, which only the AI swimmer's strokes read. No script ped swims in the port (TRIA's racers and SYN5's swimmer
   among them), so the command marks that larger gap rather than a detail.
+- **Blips on the ground, the old blip forms, and markers drawn far.** Every iOS coord blip handler (ADD_BLIP_FOR_COORD
+  0x1001d2c10, the sprite, short-range and contact-point forms, ADD_BLIP_FOR_COORD_OLD) puts a height at or under -100
+  on the ground (FindGroundZFor2DCoord) before CRadar::SetCoordBlip; the port kept the -100, and the radar's
+  above-and-below arrow reads the blip's height against the player's. The _OLD forms (iOS 0x1001d24cc, 0x1001d2544)
+  pass a colour and a display to SetEntityBlip / SetCoordBlip, which drop the colour (reversed), and skip the
+  ChangeBlipScale(3) the newer forms make, so the blip stays at size 1. ADD_BLIP_FOR_DEAD_CHAR (0x1001fd5a0) is
+  ADD_BLIP_FOR_CHAR's entity blip. SET_ALWAYS_DRAW_3D_MARKERS (0x100200160) is C3dMarkers::ForceRender, lifting the
+  150-unit limit Render3dMarkers keeps (WUZI2 and two others). All four were skipped.

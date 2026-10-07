@@ -77,7 +77,7 @@ test('a bulletproof vest turns away instant-hit rounds on the torso and the ass 
  expect(bulletProofVestStops(smoke,30,PED_PIECE.leftLeg)).toBe(false);
  // Not an instant hit: a rocket's blast, a punch.
  expect(bulletProofVestStops(smoke,WEAPON.explosion,PED_PIECE.torso)).toBe(false);
- expect(bulletProofVestStops({health:100},30,PED_PIECE.torso)).toBe(false);
+ expect(bulletProofVestStops({},30,PED_PIECE.torso)).toBe(false);
  expect(npcDamageReaches(smoke,{},30,true,PED_PIECE.torso)).toBe(false);
  expect(npcDamageReaches(smoke,{},30,true,PED_PIECE.rightArm)).toBe(true);
 });

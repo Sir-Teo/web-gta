@@ -1566,6 +1566,8 @@ async function boot() {
       }
       // CEntryExitManager::Update's marker pass, C3dMarkers::Update (CSpecialFX::Update), then C3dMarkers::Render.
       if(markersMesh.ready){
+        // SET_ALWAYS_DRAW_3D_MARKERS: C3dMarkers::ForceRender, which lifts the 150-unit limit.
+        markers3d.ignoreRenderLimit=!!mission?.runtime.game.alwaysDraw3dMarkers;
         const p=sim.player.position,f=camera.getWorldDirection(scratchAim);
         markerFrustum.setFromProjectionMatrix(markerProjection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
         const visible=(q:readonly [number,number,number],radius:number)=>markerFrustum.intersectsSphere(markerSphere.set(markerPoint.set(q[0],q[2],-q[1]),radius));

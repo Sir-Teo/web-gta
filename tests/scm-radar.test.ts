@@ -60,3 +60,23 @@ test('blip commands allocate, adjust, test and remove traces through script hand
  expect(globals.getInt32(12,true)).toBe(0x20001);expect(thread.condition).toBe(true); // NOT DOES_BLIP_EXIST after removal
  expect([runtime.game.radarShowBlipOnAllLevels,runtime.game.hideAllFrontEndMapBlips]).toEqual([true,true]);
 });
+
+test('coord blips put a height at MAP_Z_LOW_LIMIT on the ground, and the _OLD forms keep size 1 (iOS)',async()=>{
+ const {ScmThread}=await import('../src/engine/ScmThread');
+ const {ScmGameState}=await import('../src/engine/ScmGameState');
+ const game=new ScmGameState(),space=new Uint8Array(512);
+ space.set([...op('ADD_BLIP_FOR_COORD',float(10),float(20),float(-100),global(300)),...op('ADD_SPRITE_BLIP_FOR_COORD',float(1),float(2),float(-150),int(5),global(304)),
+  ...op('ADD_BLIP_FOR_COORD_OLD',float(3),float(4),float(-100),int(2),int(2),global(308)),...op('ADD_BLIP_FOR_CAR_OLD',int(55),int(4),int(1),global(312)),
+  ...op('ADD_BLIP_FOR_DEAD_CHAR',int(66),global(316)),...op('ADD_BLIP_FOR_COORD',float(5),float(5),float(7),global(320))],0);
+ const asked:number[][]=[];
+ const thread=new ScmThread(space,0,0,undefined,{startScript(){},game,world:{fade(){},groundZForCoord:(x:number,y:number)=>{asked.push([x,y]);return 12.5;}} as never});
+ try{thread.run(0,16);}catch(error){if(!String(error).includes('watchdog'))throw error;}
+ const t=game.radar.traces;
+ expect(asked).toEqual([[10,20],[1,2],[3,4]]);
+ expect(t[0]).toMatchObject({position:{x:10,y:20,z:12.5},blipSize:3});
+ expect(t[1].position.z).toBe(12.5);
+ expect(t[2]).toMatchObject({position:{x:3,y:4,z:12.5},display:2,blipSize:1,colour:8});
+ expect(t[3]).toMatchObject({type:BLIP_CAR,entityHandle:55,display:1,blipSize:1,colour:7});
+ expect(t[4]).toMatchObject({type:BLIP_CHAR,entityHandle:66,display:3,blipSize:3});
+ expect(t[5].position.z).toBe(7);
+});

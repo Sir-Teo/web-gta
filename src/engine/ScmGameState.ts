@@ -269,6 +269,9 @@ export class ScmGameState {
  /** FORCE_ALL_VEHICLE_LIGHTS_OFF's byte (iOS 0x1008f80b0): while set, CVehicle::DoVehicleLights returns at once, so no
   * vehicle draws its lights and none changes vehicleFlags.bLightsOn. CTheScripts::Init and the restart clear it. */
  forceAllVehicleLightsOff=false;
+ /** C3dMarkers::IgnoreRenderLimit, which SET_ALWAYS_DRAW_3D_MARKERS sets (C3dMarkers::ForceRender, 0x722870): the
+  * markers draw past 150 units from the camera across the ground. */
+ alwaysDraw3dMarkers=false;
  missionRespect=0;
  /** Whether the player's gang is showing, which the two appear commands switch. */
  playerGangVisible=true;

@@ -761,7 +761,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
   flags:{solid:boolean;vehicles:boolean;peds:boolean;objects:boolean;particles:boolean}):boolean;
  createFxSystemOnVehicleWithDirection?(name:string,vehicle:number,offset:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},ignoreBoundingChecks:boolean):number;
  controlMovableVehiclePart?(handle:number,value:number):void;
- setAlwaysDraw3dMarkers?(state:boolean):void;
  objectIsStatic?(handle:number):boolean;
  setVehicleStayInSlowLane?(handle:number,state:boolean):void;
  setMenuColumnWidth?(handle:number,column:number,width:number):void;
@@ -923,7 +922,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  taskCharArrestChar?(char:number,target:number):void;
  drawLightWithRange?(x:number,y:number,z:number,red:number,green:number,blue:number,radius:number):void;
  addBigGunFlash?(fromX:number,fromY:number,fromZ:number,toX:number,toY:number,toZ:number):void;
- addBlipForCarOld?(vehicle:number,color:number,display:number):number;
  getNthClosestCarNodeWithHeading?(xCoord:number,yCoord:number,zCoord:number,nth:number):{x:number,y:number,z:number,heading:number};
  isThisModelACar?(modelId:number|string):boolean;
  taskGoToCoordWhileAiming?(char:number,x:number,y:number,z:number,speed:number,turnRadius:number,stopRadius:number,target:number,xOffset:number,yOffset:number,zOffset:number):void;
@@ -1003,7 +1001,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isAttachedPlayerHeadingAchieved?(handle:number):boolean;
  isCarTouchingCar?(handle:number,handle2:number):boolean;
  addToCarRotationVelocity?(handle:number,x:number,y:number,z:number):void;
- addBlipForDeadChar?(char:number):number;
  heliLandAtCoords?(handle:number,x:number,y:number,z:number,minAltitude:number,maxAltitude:number):void;
  isPlayerPressingHorn?(handle:number):boolean;
  setVehicleQuaternion?(handle:number,x:number,y:number,z:number,w:number):void;
@@ -1063,7 +1060,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isProceduralInteriorActive?(areaId:number):boolean;
  getPositionOfEntryExitCharUsed?(handle:number):{x:number,y:number,z:number,heading:number};
  findTrainDirection?(handle:number):boolean;
- addBlipForCoordOld?(x:number,y:number,z:number,colour:number,display:number):number;
  drawShadow?(textureType:number,x:number,y:number,z:number,angle:number,length:number,intensity:number,r:number,g:number,b:number):void;
  /** The three names the game hands back as text labels: the zone at a point, the entry-exit a ped last used,
   * and the shop that is loaded. */

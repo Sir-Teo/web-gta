@@ -278,10 +278,16 @@ const PED_CENTRE_ABOVE_FEET=1;
  * adds show the blip only. CRadar itself ignores the colour argument. */
 /* The ADD_BLIP_FOR_* handlers are unreversed; like their Vice City forebears the port scales a new trace blip to 3
  * (CRadar::ChangeBlipScale), where the blip table itself starts it at 1. */
+/** A coordinate blip's point: every iOS coord blip handler (ADD_BLIP_FOR_COORD 0x1001d2c10, the sprite, short-range,
+ * contact-point and _OLD forms) puts a height at or under MAP_Z_LOW_LIMIT on the ground (FindGroundZFor2DCoord)
+ * before CRadar::SetCoordBlip, so the radar's above-and-below arrow reads the real height. */
+function blipPoint(t:ScmThread,p:ScmParameter[],at:number,i:ScmInstruction){
+ const point=vec(t,p,at);if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=world(t,i,'groundZForCoord')(point.x,point.y);return point;
+}
 function entityBlip(type:number):ScmCommandHandler{return (t,p,i)=>{const {radar}=game(t,i),blip=radar.setEntityBlip(type,t.readInt(p[0]),BLIP_DISPLAY_BOTH);radar.changeScale(blip,3);t.writeInt(p[1],blip|0);};}
 function spriteBlip(type:number,shortRange:boolean):ScmCommandHandler{
  return (t,p,i)=>{
-  const {radar}=game(t,i),position=vec(t,p,0),blip=shortRange?radar.setShortRangeCoordBlip(type,position,BLIP_DISPLAY_BLIPONLY):radar.setCoordBlip(type,position,BLIP_DISPLAY_BLIPONLY);
+  const {radar}=game(t,i),position=blipPoint(t,p,0,i),blip=shortRange?radar.setShortRangeCoordBlip(type,position,BLIP_DISPLAY_BLIPONLY):radar.setCoordBlip(type,position,BLIP_DISPLAY_BLIPONLY);
   radar.setSprite(blip,t.readInt(p[3]));t.writeInt(p[4],blip|0);
  };
 }
@@ -465,7 +471,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_TEXT_DROPSHADOW:(t,p,i)=>{const line=game(t,i).introText.pending;line.dropShadowColour=rgba(t,p,1);line.dropShadow=t.readInt(p[0]);},
  SET_TEXT_EDGE:(t,p,i)=>{const line=game(t,i).introText.pending;line.dropShadowColour=rgba(t,p,1);line.textEdge=t.readInt(p[0]);},
  // --- CRadar blips (Radar.cpp routines reversed; command dispatch unreversed) --
- ADD_BLIP_FOR_COORD:(t,p,i)=>{const {radar}=game(t,i),blip=radar.setCoordBlip(BLIP_COORD,vec(t,p,0),BLIP_DISPLAY_BOTH);radar.changeScale(blip,3);t.writeInt(p[3],blip|0);},
+ ADD_BLIP_FOR_COORD:(t,p,i)=>{const {radar}=game(t,i),blip=radar.setCoordBlip(BLIP_COORD,blipPoint(t,p,0,i),BLIP_DISPLAY_BOTH);radar.changeScale(blip,3);t.writeInt(p[3],blip|0);},
  ADD_SPRITE_BLIP_FOR_COORD:spriteBlip(BLIP_COORD,false),ADD_SHORT_RANGE_SPRITE_BLIP_FOR_COORD:spriteBlip(BLIP_COORD,true),
  ADD_SPRITE_BLIP_FOR_CONTACT_POINT:spriteBlip(BLIP_CONTACT_POINT,false),ADD_SHORT_RANGE_SPRITE_BLIP_FOR_CONTACT_POINT:spriteBlip(BLIP_CONTACT_POINT,true),
  ADD_BLIP_FOR_CHAR:entityBlip(BLIP_CHAR),ADD_BLIP_FOR_CAR:entityBlip(BLIP_CAR),ADD_BLIP_FOR_OBJECT:entityBlip(BLIP_OBJECT),ADD_BLIP_FOR_PICKUP:entityBlip(BLIP_PICKUP),
@@ -2276,7 +2282,8 @@ const handlers:Record<string,ScmCommandHandler>={
    vec(t,p,2),vec(t,p,5),bool(t,p[8])));
  },
  CONTROL_MOVABLE_VEHICLE_PART:(t,p,i)=>{world(t,i,'controlMovableVehiclePart')(t.readInt(p[0]),t.readFloat(p[1]));},
- SET_ALWAYS_DRAW_3D_MARKERS:(t,p,i)=>{world(t,i,'setAlwaysDraw3dMarkers')(bool(t,p[0]));},
+ // iOS 0x100200160: C3dMarkers::ForceRender(operand != 0).
+ SET_ALWAYS_DRAW_3D_MARKERS:(t,p,i)=>{game(t,i).alwaysDraw3dMarkers=bool(t,p[0]);},
  IS_OBJECT_STATIC:(t,p,i)=>{t.updateCompareFlag(world(t,i,'objectIsStatic')(t.readInt(p[0])),negated(i));},
  SET_CAR_STAY_IN_SLOW_LANE:(t,p,i)=>{world(t,i,'setVehicleStayInSlowLane')(t.readInt(p[0]),bool(t,p[1]));},
  SET_MENU_COLUMN_WIDTH:(t,p,i)=>{game(t,i).menus.setColumnWidth(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
@@ -2558,7 +2565,9 @@ const handlers:Record<string,ScmCommandHandler>={
  TASK_CHAR_ARREST_CHAR:(t,p,i)=>{world(t,i,'taskCharArrestChar')(t.readInt(p[0]),t.readInt(p[1]));},
  DRAW_LIGHT_WITH_RANGE:(t,p,i)=>{world(t,i,'drawLightWithRange')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]),t.readInt(p[4]),t.readInt(p[5]),t.readFloat(p[6]));},
  ADD_BIG_GUN_FLASH:(t,p,i)=>{world(t,i,'addBigGunFlash')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]));},
- ADD_BLIP_FOR_CAR_OLD:(t,p,i)=>{t.writeInt(p[3],world(t,i,'addBlipForCarOld')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2])));},
+ // The _OLD forms (iOS 0x1001d24cc, 0x1001d2544) take a colour and a display: CRadar::SetEntityBlip and SetCoordBlip
+ // drop the colour (the trace takes its type's), and no ChangeBlipScale follows, so the blip keeps size 1.
+ ADD_BLIP_FOR_CAR_OLD:(t,p,i)=>{t.writeInt(p[3],game(t,i).radar.setEntityBlip(BLIP_CAR,t.readInt(p[0]),t.readInt(p[2]))|0);},
  GET_NTH_CLOSEST_CAR_NODE_WITH_HEADING:(t,p,i)=>{
   const point=vec(t,p,0);
   if(point.z<=ScmCamera.MAP_Z_LOW_LIMIT)point.z=world(t,i,'groundZForCoord')(point.x,point.y);
@@ -2673,7 +2682,8 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_ATTACHED_PLAYER_HEADING_ACHIEVED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isAttachedPlayerHeadingAchieved')(t.readInt(p[0])),negated(i));},
  IS_CAR_TOUCHING_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarTouchingCar')(t.readInt(p[0]),t.readInt(p[1])),negated(i));},
  ADD_TO_CAR_ROTATION_VELOCITY:(t,p,i)=>{world(t,i,'addToCarRotationVelocity')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
- ADD_BLIP_FOR_DEAD_CHAR:(t,p,i)=>{t.writeInt(p[1],world(t,i,'addBlipForDeadChar')(t.readInt(p[0])));},
+ // iOS 0x1001fd5a0: the same entity blip as ADD_BLIP_FOR_CHAR, display both and scale 3.
+ ADD_BLIP_FOR_DEAD_CHAR:entityBlip(BLIP_CHAR),
  HELI_LAND_AT_COORDS:(t,p,i)=>{world(t,i,'heliLandAtCoords')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]));},
  IS_PLAYER_PRESSING_HORN:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerPressingHorn')(t.readInt(p[0])),negated(i));},
  SET_VEHICLE_QUATERNION:(t,p,i)=>{world(t,i,'setVehicleQuaternion')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]));},
@@ -2745,7 +2755,7 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_PROCEDURAL_INTERIOR_ACTIVE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isProceduralInteriorActive')(t.readInt(p[0])),negated(i));},
  GET_POSITION_OF_ENTRY_EXIT_CHAR_USED:(t,p,i)=>{const result=world(t,i,'getPositionOfEntryExitCharUsed')(t.readInt(p[0]));t.writeFloat(p[1],result.x);t.writeFloat(p[2],result.y);t.writeFloat(p[3],result.z);t.writeFloat(p[4],result.heading);},
  FIND_TRAIN_DIRECTION:(t,p,i)=>{t.updateCompareFlag(world(t,i,'findTrainDirection')(t.readInt(p[0])),negated(i));},
- ADD_BLIP_FOR_COORD_OLD:(t,p,i)=>{t.writeInt(p[5],world(t,i,'addBlipForCoordOld')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]),t.readInt(p[4])));},
+ ADD_BLIP_FOR_COORD_OLD:(t,p,i)=>{t.writeInt(p[5],game(t,i).radar.setCoordBlip(BLIP_COORD,blipPoint(t,p,0,i),t.readInt(p[4]))|0);},
  // The iOS handler (0x100207b24) builds the same CTaskComplexFollowNodeRoute as TASK_FOLLOW_PATH_NODES_TO_COORD, with
  // the radius as its target tolerance.
  TASK_FOLLOW_PATH_NODES_TO_COORD_WITH_RADIUS:(t,p,i)=>{
