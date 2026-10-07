@@ -61,7 +61,9 @@ export function nativeDoorPoint(seat:V3,getInEnd:V3,seatOffset:number,side:Side,
 /** Street population surface for passenger boarding and ejection. */
 export interface PassengerCrowd {
   /** The player's group members still standing: the only peds that can take a seat. */
-  followers():readonly {id:number;position:{x:number;y:number;z:number};health:number;down:number}[];
+  followers():readonly {id:number;position:{x:number;y:number;z:number};health:number;down:number;slot?:number}[];
+  /** Sends a follower running to the door of the seat it was given (`point`), or lets it follow again. */
+  sendToSeat?(id:number,point?:{x:number;z:number}):void;
   /** `keep`: what the ped takes into the car and out again (his weapon, health and gang), opaque to the car. */
   boardPassenger(id:number):{modelRef:number|string;follow:boolean;gang?:number;keep?:unknown}|undefined;
   spawnPassenger(modelRef:number|string,position:{x:number;y:number;z:number},heading:number,follow:boolean,keep?:unknown,rollout?:{velocity:{x:number;z:number};clip:'car_rollout_lhs'|'car_rollout_rhs'}):Promise<boolean>|boolean;
@@ -177,31 +179,34 @@ export class CarEntry {
     this.ejectPassengers();
    }
    this.prevSeated=inside;this.passengerCar=car;
+   const crew=this.crowd?this.crowd.followers().filter(p=>p.health>0&&p.down<=0):[];
    // CTaskComplexEnterCar gives a non-player ped up (a fall) once the car moves over 0.1 units a frame.
-   if(!car||car.wrecked||!this.seated||car.speed2D()>.1||!this.crowd)return;
+   if(!car||car.wrecked||!this.seated||car.speed2D()>.1||!this.crowd){for(const p of crew)this.crowd?.sendToSeat?.(p.id);return;}
    // CVehicle::m_nMaxPassengers (GetMaximumNumberOfPassengersFromNumberOfDoors) bounds the seats; a door knocked off
    // keeps nobody out of its seat (the door just does not open).
    const free=PASSENGER_SEATS.slice(0,car.maximumPassengers).filter(s=>!this.passengers.some(p=>p.seat===s.seat));
-   if(!free.length)return;
-   const crew=this.crowd.followers().filter(p=>p.health>0&&p.down<=0);
    if(!crew.length)return;
-   const boarded=new Set<number>();
-   for(const s of free){
+   // ComputeResponseLeaderEnteredCar (iOS 0x10034cbe0): every follower, in member-slot order, runs to a seat
+   // (CTaskComplexEnterCarAsPassengerWait, RUN) wherever it is, the seats taken in turn (the front one first, which a
+   // lone follower always gets); those beyond the seats stay out (CTaskComplexLeaveAnyCar).
+   const order=[...crew].sort((a,b)=>(a.slot??99)-(b.slot??99));
+   for(const [i,p] of order.entries())if(i>=free.length)this.crowd.sendToSeat?.(p.id);
+   for(const [i,s] of free.entries()){
+    const p=order[i];if(!p)break;
     // CCarEnterExit::GetPositionToOpenCarDoor for the seat's own door (a rear seat from ped_backseat).
     const local=this.seatDoorPoint(car,s.seat-1);
-    if(!local)continue;
+    if(!local){this.crowd.sendToSeat?.(p.id);continue;}
     const door=car.worldPoint(local);
-    const near=crew.filter(p=>!boarded.has(p.id)&&Math.hypot(p.position.x-door.x,p.position.z-door.z)<3.5).sort((a,b)=>Math.hypot(a.position.x-door.x,a.position.z-door.z)-Math.hypot(b.position.x-door.x,b.position.z-door.z))[0];
-    if(!near)continue;
-    const taken=this.crowd.boardPassenger(near.id);
+    if(Math.hypot(p.position.x-door.x,p.position.z-door.z)>=3.5){this.crowd.sendToSeat?.(p.id,{x:door.x,z:door.z});continue;}
+    this.crowd.sendToSeat?.(p.id);
+    const taken=this.crowd.boardPassenger(p.id);
     if(!taken)continue;
-    boarded.add(near.id);
     if(!car.doorMissing(s.door)){car.openDoor(s.door,1);this.doorCloses.push({car,door:s.door,at:this.passengerClock+0.8});}
     this.passengers.push({modelRef:taken.modelRef,seat:s.seat,follow:taken.follow,gang:taken.gang,keep:taken.keep});
    }
   }
-  /** CGroupEventHandler::ComputeResponseLeaderExitedCar: follower i leaves its seat rand(-250, 250) + 500 i ms after
-   * the leader, each at its own door; the crew keeps following on foot. */
+  /** CGroupEventHandler::ComputeResponseLeaderExitedCar: the follower in member slot k leaves its seat 250 + 500 k ms
+   * after the leader and up to 500 more, each at its own door; the crew keeps following on foot. */
   private ejectPassengers(){
    const car=this.passengerCar;
    if(!car||!this.crowd)return;

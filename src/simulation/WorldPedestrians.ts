@@ -307,6 +307,8 @@ export interface Pedestrian {
  followSlot?:number;followState?:GangFollowerState;followStand?:number;
  /** CTaskComplexFollowLeaderInFormation's 2 s pauses while the player drives more than 10 units off. */
  followPaused?:boolean;
+ /** CTaskComplexEnterCarAsPassengerWait: the door of the seat in the player's car the follower runs to. */
+ seatTarget?:{x:number;z:number};
  /** Animation id of the last CEventDamage reaction, for the native re-pick. */
  damageAnimId?:number;
  /** Current enemy for crew and brawlers (undefined means the player). */
@@ -632,7 +634,7 @@ export class WorldPedestrians {
  /** CPedGroupMembership::RemoveMember only frees the slot: a member fighting an enemy keeps that kill task (it never
   * turns on the player), and one with no enemy left stops fighting. */
  private leaveGroup(p:Pedestrian){
-  p.follow=false;p.holdPosition=undefined;p.followSlot=undefined;p.followState=undefined;p.followStand=undefined;p.followPaused=undefined;this.rejoinWander(p);
+  p.follow=false;p.holdPosition=undefined;p.followSlot=undefined;p.followState=undefined;p.followStand=undefined;p.followPaused=undefined;p.seatTarget=undefined;this.rejoinWander(p);
   if(!(p.retaliate>0&&p.foe&&p.foe.health>0&&this.people.includes(p.foe))){p.foe=undefined;p.retaliate=0;p.fight=undefined;}
  }
  /** A fresh CTaskComplexWander resets its nodes and picks the next from where the ped stands (TaskComplexWander.cpp:
@@ -3861,6 +3863,10 @@ export class WorldPedestrians {
      const gap=Math.hypot(pp.x-state.position.x,pp.y-state.position.y,pp.z-state.position.z);
      if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup&&!p.mission&&(p.areaCode??0)===(this.visibleArea?.()??0))this.leaveGroup(p);
      else if(this.sim.player.health<=0){}
+     else if(p.retaliate<=0&&p.seatTarget){
+      // Running to its seat in the player's car (ComputeResponseLeaderEnteredCar's RUN).
+      dx=p.seatTarget.x-state.position.x;dz=p.seatTarget.z-state.position.z;followSpeed=p.runSpeed;
+     }
      else if(p.retaliate<=0){
       const step=this.playerGroupAllocator==='followLimited'?this.formationFollower(p,pp,ride,this.sim.player.speed<.1,dt):this.gangFollower(p,pp,!ride&&this.sim.player.speed>=.1,dt);
       dx=step.dx;dz=step.dz;followSpeed=step.speed;
@@ -4075,7 +4081,9 @@ export class WorldPedestrians {
   if(gait==='arrived'){if(!leaderMoving)p.followStand=FOLLOWER_STAND_SECONDS+FOLLOWER_PAUSE_SECONDS;return {dx,dz,speed:0};}
   return {dx,dz,speed:gait==='walk'?p.walkSpeed:gait==='run'?p.runSpeed:p.sprintSpeed};
  }
- followers(){const out:{id:number;position:{x:number;y:number;z:number};health:number;down:number}[]=[];for(const p of this.people)if(p.follow&&!p.mission&&!p.holdPosition)out.push({id:p.id,position:p.actor.player.position,health:p.health,down:p.down});return out;}
+ followers(){const out:{id:number;position:{x:number;y:number;z:number};health:number;down:number;slot?:number}[]=[];for(const p of this.people)if(p.follow&&!p.mission&&!p.holdPosition)out.push({id:p.id,position:p.actor.player.position,health:p.health,down:p.down,slot:p.followSlot});return out;}
+ /** A follower sent running to its seat's door in the player's car, or (no point) back to following. */
+ sendToSeat(id:number,point?:{x:number;z:number}){const p=this.people.find(q=>q.id===id);if(p)p.seatTarget=point&&{...point};}
  /** The drawn peds, for CPed::PreRenderAfterTest's dummy shadows: their ids and BONE_ROOT in the world (browser space). */
  *shadowCasters(){for(const p of this.people)if(p.view.root.visible)yield {id:p.id,root:p.view.shadowPosition()};}
  render(alpha:number,ambient:readonly number[]|undefined,night:number,thermal=false){for(const p of this.people){p.view.setThermal(thermal);p.view.setAmbient(ambient);p.view.setNight(night);p.view.update(p.actor,alpha);}}

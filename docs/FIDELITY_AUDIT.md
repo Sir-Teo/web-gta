@@ -8381,9 +8381,13 @@ Each is now answered:
   within 1 unit (his car's bounding radius while he drives), walking under 2 units, running under 10, sprinting
   beyond, standing 500 ms by a still player; with the player driving more than 10 units off a follower stops until
   he is on foot within 10.
-- Not yet: the boarding (every follower runs to a seat when the player gets in, a lone one to the front), the node
-  route beyond 2 units, the FOLLOW_ARRIVE line and turning to a member. The wander's static counter still counts
-  without the collision condition.
+- Getting in (ComputeResponseLeaderEnteredCar, iOS 0x10034cbe0): with the player at the wheel of a car slower than
+  0.1 a frame, every follower, in member-slot order, runs to the door of a seat of its own wherever it is (the front
+  seat first, so a lone follower takes it), and boards there; those beyond the seats stay out. Before, only a follower
+  that happened to be within 3.5 units of a free door got in.
+- Not yet: the node route beyond 2 units, the FOLLOW_ARRIVE line and turning to a member, and the boarding's own
+  clips (a follower still appears in its seat at the door). The wander's static counter still counts without the
+  collision condition.
 
 ## The player's group: its leader and its script peds
 
