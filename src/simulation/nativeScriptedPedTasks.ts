@@ -71,6 +71,9 @@ export type ScriptedPedOrder=
  |{kind:'threatScanner';onFoot:boolean;inCar:boolean;duringScriptTask:boolean}
  |{kind:'decisionMaker';index:number}
  |{kind:'kindaStayInSamePlace';state:boolean}
+ /** CTaskSimpleSetCharIgnoreWeaponRangeFlag (TASK_SET_IGNORE_WEAPON_RANGE_FLAG, reversed): bIgnoreWeaponRange, and the
+  * task is over at once. */
+ |{kind:'ignoreWeaponRange';state:boolean}
  /** CTaskSimpleGunControl for TASK_AIM_GUN_AT_* and TASK_SHOOT_AT_*: stand, face the target (a point in the script's
   * coordinates, or a ped's handle) and aim, firing when `fire`, for `seconds`. */
  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number}
@@ -243,6 +246,7 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'togglePedThreatScanner':return {kind:'threatScanner',onFoot:task.onFoot,inCar:task.inCar,duringScriptTask:task.duringScriptTask};
   case 'setDecisionMaker':{const index=world.decisionMaker?.(task.decisionMaker);return index===undefined?undefined:{kind:'decisionMaker',index};}
   case 'kindaStayInSamePlace':return {kind:'kindaStayInSamePlace',state:task.state};
+  case 'setIgnoreWeaponRangeFlag':return {kind:'ignoreWeaponRange',state:task.state};
   case 'duck':return {kind:'duck',crouch:true,seconds:seconds(task.time)};
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{

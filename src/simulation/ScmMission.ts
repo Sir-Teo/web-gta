@@ -894,7 +894,7 @@ const tiltDegrees=(axis:{x:number;y:number;z:number},upZ:number)=>{
 };
 const CAR_TASKS:ReadonlySet<ScmScriptedTask['kind']>=new Set(['carDriveToCoord','carTempAction','carDriveWander','carMission','leaveCar','leaveAnyCar','leaveCarImmediately']);
 /** Orders that only set something and are over at once, with nothing for them to act on while the ped sits in a car. */
-const IN_SEAT_OVER_AT_ONCE:ReadonlySet<ScriptedPedOrder['kind']>=new Set(['lookAt','clearLookAt','lookAtPoint','threatScanner','decisionMaker','kindaStayInSamePlace']);
+const IN_SEAT_OVER_AT_ONCE:ReadonlySet<ScriptedPedOrder['kind']>=new Set(['lookAt','clearLookAt','lookAtPoint','threatScanner','decisionMaker','kindaStayInSamePlace','ignoreWeaponRange']);
 /** Where a runner's task stands: held by the ped, waited out in the seat, waiting for the ped to be rebuilt (then the
  * task to begin), or getting in at the wheel before the drive. */
 type RunnerStep=

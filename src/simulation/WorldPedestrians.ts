@@ -133,6 +133,8 @@ export interface Pedestrian {
  flags?:{notAllowedToDuck?:boolean;stayInCarOnJack?:boolean;doesntDropWeaponsWhenDead?:boolean;targetPriority?:boolean;stayOnBike?:boolean;
   getOutUpsideDownCar?:boolean;bleeding?:boolean;drownsInWater?:boolean;neverLeavesGroup?:boolean;
   canBeShotInVehicle?:boolean;cantBeDraggedOut?:boolean;loadsCollision?:boolean;kindaStayInSamePlace?:boolean;deathPickupsPersist?:boolean;
+  /** bIgnoreWeaponRange: CTaskSimpleGunControl keeps aiming at a target past the weapon's range. */
+  ignoreWeaponRange?:boolean;
   /** bUpperBodyDamageAnimsOnly (SET_CHAR_USES_UPPERBODY_DAMAGE_ANIMS_ONLY): ComputeDamageAnim keeps it on its feet. */
   upperBodyDamageAnimsOnly?:boolean};
  /** CPed::m_nWeaponSkill, and whether the ped has used an entry-exit, which the script sets on it. */
@@ -1892,6 +1894,7 @@ export class WorldPedestrians {
    case 'threatScanner':ped.threatScanner={onFoot:order.onFoot,inCar:order.inCar,duringScriptTask:order.duringScriptTask};break;
    case 'decisionMaker':ped.decisionMaker=order.index;break;
    case 'kindaStayInSamePlace':this.setFlag(ped,'kindaStayInSamePlace',order.state);break;
+   case 'ignoreWeaponRange':this.setFlag(ped,'ignoreWeaponRange',order.state);break;
    case 'goToPointShooting':{
     // Aiming at a point, there is no ped to look for.
     const point=order.aimOnly&&order.aimPoint&&order.target===-1?{x:order.aimPoint.x,y:order.aimPoint.z,z:-order.aimPoint.y}:undefined;
@@ -3545,8 +3548,8 @@ export class WorldPedestrians {
      const o=p.order,q=p.actor.player.position,gx=o.x-q.x,gz=o.z-q.z,distance=Math.hypot(gx,gz);dx=0;dz=0;
      o.remaining=(o.remaining??GUN_CONTROL_AIM_SECONDS)-dt;
      const aimAt=o.target?o.target.actor.player.position:o.player?this.sim.player.position:undefined;
-     // (bIgnoreWeaponRange, which TASK_SET_IGNORE_WEAPON_RANGE_FLAG sets, is not ported.)
-     const range=p.weapon?.info.weaponRange??0,outOfRange=!!aimAt&&Math.hypot(aimAt.x-q.x,aimAt.y-q.y,aimAt.z-q.z)>range;
+     // bIgnoreWeaponRange (TASK_SET_IGNORE_WEAPON_RANGE_FLAG) keeps it aiming past the range.
+     const range=p.weapon?.info.weaponRange??0,outOfRange=!p.flags?.ignoreWeaponRange&&!!aimAt&&Math.hypot(aimAt.x-q.x,aimAt.y-q.y,aimAt.z-q.z)>range;
      if(o.remaining<=0||outOfRange)this.startNextOrder(p);
      else if(distance>o.radius){({x:dx,z:dz}=this.roundCars(p,o,cars));orderSpeed=p.walkSpeed;}
     }else if(p.order.kind==='goToPointShooting'){

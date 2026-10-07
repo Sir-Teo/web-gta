@@ -18,6 +18,10 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'useMobilePhone',start:false},world({}))).toBeUndefined();
  });
 
+ test('TASK_SET_IGNORE_WEAPON_RANGE_FLAG is CTaskSimpleSetCharIgnoreWeaponRangeFlag, over at once (WUZI5, SYN5, MUSIC5)',()=>{
+  expect(scriptedPedOrder({kind:'setIgnoreWeaponRangeFlag',state:true},world({}))).toEqual({kind:'ignoreWeaponRange',state:true});
+ });
+
  test('standing still takes its time in milliseconds, and no time at all means for ever',()=>{
   expect(scriptedPedOrder({kind:'standStill',time:2500},world({}))).toEqual({kind:'standStill',seconds:2.5});
   expect(scriptedPedOrder({kind:'standStill',time:0},world({}))).toEqual({kind:'standStill',seconds:Infinity});

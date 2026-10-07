@@ -11200,3 +11200,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   up. SWEET4 (Sweet's Girl) gives the girl "shuffle to the wheel, then drive off" when CJ leaves her car, and stopped
   there; found by the mission bot's sweep. The step now runs in the task-at-a-time runner like the car tasks, and the
   mission goes on to its own failure when the player lets her drive away ("You sure you're down for the 'hood?").
+- **Tasks with handlers that the runtime still refused.** A scan of every OPEN_SEQUENCE_TASK block found task kinds
+  whose command handler exists (so the census counts them) but which the port's ped tasks did not run, alone or in a
+  sequence; the mission thread gave up on them. TASK_SET_IGNORE_WEAPON_RANGE_FLAG is the first fixed:
+  CTaskSimpleSetCharIgnoreWeaponRangeFlag (reversed) sets bIgnoreWeaponRange and is over at once, and
+  CTaskSimpleGunControl's range stop now spares a ped with the flag (WUZI5, SYN5, MUSIC5; 17 uses). Still refused:
+  TASK_CLIMB (32 uses: SWEET7, SMOKE2, WUZI5, MUSIC5, RIOT2), TASK_JUMP, TASK_DRIVE_POINT_ROUTE_ADVANCED, TASK_WEAPON_ROLL,
+  TASK_FALL_AND_GET_UP and TASK_SIT_DOWN. Not ported: GunControl's walk toward a target out of range (the port's TASK_SHOOT_AT
+  and TASK_AIM_GUN_AT stand), which is where the flag would otherwise matter.
