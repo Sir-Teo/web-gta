@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T14:01:01.157Z",
+ "generated": "2026-10-07T14:03:05.626Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1209,
+   "faithful": 1210,
    "authored": 19,
    "silent": 2,
-   "skipped": 155,
+   "skipped": 154,
    "stops": 6
   }
  },
@@ -3403,10 +3403,10 @@
    "byStatus": {
     "core": 2332,
     "nop": 4,
-    "faithful": 789,
+    "faithful": 790,
     "authored": 0,
     "silent": 0,
-    "skipped": 29,
+    "skipped": 28,
     "stops": 0
    },
    "gaps": [
@@ -3437,11 +3437,6 @@
     },
     {
      "name": "SET_ALWAYS_DRAW_3D_MARKERS",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_CHAR_SWIM_STATE",
      "status": "skipped",
      "sites": 1
     },
@@ -7698,23 +7693,6 @@
    "doc": "Turns off the car's engine",
    "sites": 3,
    "missions": 2,
-   "firstMission": "WUZI2",
-   "portable": false
-  },
-  {
-   "name": "GET_CHAR_SWIM_STATE",
-   "opcode": "0966",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getCharSwimState (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2688,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "",
-   "sites": 1,
-   "missions": 1,
    "firstMission": "WUZI2",
    "portable": false
   },

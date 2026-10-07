@@ -11116,3 +11116,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   (0x1001f6290) asks m_nPedState for PEDSTATE_ARRESTED (63): the player is in it while busted, until the restart, and
   no task in the port arrests a script ped. SYN7's failure branch uses it to restart a busted player at the San Fierro
   police station rather than the hospital; with the command skipped he always went to the hospital. Both were skipped.
+- **The player's swim state.** GET_CHAR_SWIM_STATE (iOS 0x100203408) reads the ped's CTaskSimpleSwim m_nSwimState
+  (+0x12, no check that he swims). The port's player swim keeps the same eSwimState values, which the command now
+  reads; script peds never swim here and read SWIM_TREAD. WUZI2 (Amphibious Assault) counts CJ as hidden from the
+  guards only while he sprints underwater (state 4); with the command skipped he never was.

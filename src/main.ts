@@ -5564,6 +5564,7 @@ async function boot() {
                  playerSwimming:()=>sim.player.swimming,
                  // The world's peds do not swim: in deep water they drown.
                  scriptPedSwimming:()=>false,
+                 playerSwimState:()=>sim.player.swimming?sim.player.swimState:0,
                  gangWarFightingGoingOn:()=>!!gangWars?.gangWarFightingGoingOn(),
                  gangWarGoingOn:()=>!!gangWars?.gangWarGoingOn(),
                  setUpScriptSkip:(position,heading,afterMission,vehicle,finishedByScript)=>{gameLogic.setUpSkip(position,heading,afterMission,vehicle,finishedByScript,gameTimeMs,skipWorld);},

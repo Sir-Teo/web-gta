@@ -545,6 +545,8 @@ export interface ScmMissionWorld {
  removeScriptUser3dMarker?(index:number):void;
  /** Whether a ped swims (CTaskSimpleSwim): the player's own, and a script ped's. */
  playerSwimming?():boolean;
+ /** CTaskSimpleSwim::m_nSwimState of the player's swim (eSwimState, 0 treading to 5 back to the surface). */
+ playerSwimState?():number;
  scriptPedSwimming?(ped:unknown):boolean;
  /** CGangWars::GangWarFightingGoingOn. */
  gangWarFightingGoingOn?():boolean;
@@ -1733,6 +1735,9 @@ export class ScmMission {
    removeUser3dMarker:index=>{this.host('removeScriptUser3dMarker','REMOVE_USER_3D_MARKER')(index);},
    pedIsSwimming:handle=>handle===PLAYER_PED_HANDLE?this.host('playerSwimming','IS_CHAR_SWIMMING')()
     :this.host('scriptPedSwimming','IS_CHAR_SWIMMING')(this.livePed(handle)),
+   // GET_CHAR_SWIM_STATE (iOS 0x100203408): the ped's CTaskSimpleSwim m_nSwimState, read with no check that he swims
+   // (WUZI2 asks only after IS_CHAR_SWIMMING). Script peds never swim here, so theirs reads SWIM_TREAD.
+   getCharSwimState:handle=>{if(handle===PLAYER_PED_HANDLE)return this.host('playerSwimState','GET_CHAR_SWIM_STATE')();this.livePed(handle);return 0;},
    isGangWarFightingGoingOn:()=>this.host('gangWarFightingGoingOn','IS_GANG_WAR_FIGHTING_GOING_ON')(),
    gangWarIsGoingOn:()=>this.host('gangWarGoingOn','IS_GANG_WAR_GOING_ON')(),
    // The trip skip's four set-ups: after a mission, or for a named vehicle, or for one the script finishes off.
