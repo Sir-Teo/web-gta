@@ -10,6 +10,8 @@ test('G and H recruit a targeted homie, order stay and follow, and a held button
  // A Families member two and a half units ahead of CJ.
  await page.evaluate(()=>{const g=(window as any).__game,p=g.state().player.position,ped=g.pedestrians().people.find((p:any)=>p.gang===1&&p.health>0);
   const b=ped.body.translation();ped.body.setTranslation({x:p.x,y:b.y-ped.actor.player.position.y+p.y,z:p.z-2.5},true);ped.actor.player.position={x:p.x,y:p.y,z:p.z-2.5};
+  // Unarmed (a gang member may spawn with a gun), so joining arms him.
+  const held=ped.weapon?.info.type;if(held!==undefined)g.pedestrians().clearWeapon(ped,held);
   g.turnPlayer(Math.PI);});
  const crew=()=>page.evaluate(()=>(window as any).__game.pedestrians().people.filter((p:any)=>p.follow).length);
  const staying=()=>page.evaluate(()=>(window as any).__game.pedestrians().people.filter((p:any)=>p.follow&&p.holdPosition).length);
@@ -20,6 +22,8 @@ test('G and H recruit a targeted homie, order stay and follow, and a held button
  await page.mouse.move(700,450);await page.mouse.down({button:'right'});await frames(3);
  await page.keyboard.press('KeyG');await frames(3);await page.mouse.up({button:'right'});
  await expect.poll(crew,{timeout:30000}).toBe(1);
+ // CPed::GiveWeaponWhenJoiningGang: the unarmed recruit takes a pistol with 200 rounds.
+ expect(await page.evaluate(()=>{const m=(window as any).__game.pedestrians().people.find((q:any)=>q.follow);return [m.weaponType,m.totalAmmo];})).toEqual([22,200]);
  await page.keyboard.press('KeyH');await expect.poll(staying,{timeout:30000}).toBe(1);
  await page.keyboard.press('KeyG');await expect.poll(staying,{timeout:30000}).toBe(0);
  expect(await crew()).toBe(1);

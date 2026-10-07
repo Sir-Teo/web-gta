@@ -4809,6 +4809,7 @@ async function boot() {
           sim.nearestPedNode=position=>pedestrians?.nearestPedNode(position);
           // Crossing peds read the same traffic-light timer as the cars.
           pedestrians.lightClock=()=>traffic?.lightMs;
+          pedestrians.cityUnlocked=()=>{try{return mission?.runtime.game.stats.get(181)??0;}catch{return 0;}};
           pedestrians.playerArmed=()=>{const fire=weapons.inventory.info()?.fire;return fire==='instant'||fire==='projectile';};
           pedestrians.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
           pedestrians.onShot=(from,to,weapon,hit,shooter)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc',shooter);};

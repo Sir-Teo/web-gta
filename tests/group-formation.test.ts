@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {GROUP_DISBAND_HOLD_MS,GROUP_MOVING_OFFSETS,GROUP_TELEPORT_OFFSETS,gangFollowerGait,gangFollowerOffset,stepGroupButtonHold,type GangFollowerState} from '../src/simulation/groupFormation';
+import {GROUP_DISBAND_HOLD_MS,GROUP_MOVING_OFFSETS,GROUP_TELEPORT_OFFSETS,gangFollowerGait,gangFollowerOffset,recruitRoom,stepGroupButtonHold,weaponWhenJoiningGang,type GangFollowerState} from '../src/simulation/groupFormation';
 
 // CTaskComplexFollowLeaderInFormation::ms_offsets as the iOS static initialiser (0x1004366d4) fills them.
 test('the formation offsets ring the leader a unit apart, and the moving ones trail behind him',()=>{
@@ -37,4 +37,16 @@ test('a group button held 1.2 s with a group to command disbands it once; lettin
  expect(stepGroupButtonHold(1100,false,true,33)).toEqual({count:0,disband:false});
  expect(stepGroupButtonHold(1100,true,false,33)).toEqual({count:0,disband:false});
  expect(stepGroupButtonHold(1199,true,true,1)).toEqual({count:1200,disband:true});
+});
+
+test('MakeThisPedJoinOurGroup: room by respect and the script limit, none away from Los Santos, 7 under a recruit cheat',()=>{
+ expect(recruitRoom(5,99,0,false)).toBe(5);expect(recruitRoom(5,2,0,false)).toBe(2);
+ expect(recruitRoom(5,99,1,false)).toBe(0);expect(recruitRoom(5,99,2,false)).toBe(0);expect(recruitRoom(5,99,3,false)).toBe(5);
+ expect(recruitRoom(0,0,2,true)).toBe(7);
+});
+
+test('GiveWeaponWhenJoiningGang: a pistol, or the AK or rocket launcher under their cheats, with 200 rounds',()=>{
+ expect(weaponWhenJoiningGang({recruitAk:false,rocketMayhem:false})).toEqual({type:22,ammo:200});
+ expect(weaponWhenJoiningGang({recruitAk:true,rocketMayhem:true})).toEqual({type:30,ammo:200});
+ expect(weaponWhenJoiningGang({recruitAk:false,rocketMayhem:true})).toEqual({type:35,ammo:200});
 });

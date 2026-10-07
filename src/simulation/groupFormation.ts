@@ -48,3 +48,16 @@ export function stepGroupButtonHold(count:number,held:boolean,commandable:boolea
  const next=count+Math.trunc(frameMs);
  return {count:next,disband:count<GROUP_DISBAND_HOLD_MS&&next>=GROUP_DISBAND_HOLD_MS};
 }
+/** CPlayerPed::MakeThisPedJoinOurGroup's room for one more (iOS 0x1003658a0). With a Recruit Anyone cheat on, 7 whatever
+ * the respect. Otherwise CStats::FindMaxNumberOfGroupMembers at most the script's limit (m_nScriptLimitToGangSize), and
+ * none while STAT_CITY_UNLOCKED is 1 or 2 (the story away from Los Santos). */
+export function recruitRoom(maxFromRespect:number,scriptLimit:number,cityUnlocked:number,recruitAnyone:boolean){
+ if(recruitAnyone)return 7;
+ if(cityUnlocked===1||cityUnlocked===2)return 0;
+ return Math.min(maxFromRespect,scriptLimit);
+}
+/** CPed::GiveWeaponWhenJoiningGang (iOS 0x10032ce30, PC 0x5E8BE0): an unarmed recruit gets 200 rounds of the AK-47 with
+ * CHEAT_NO_ONE_CAN_STOP_US on, else of the rocket launcher with CHEAT_ROCKET_MAYHEM, else of the pistol. */
+export function weaponWhenJoiningGang(cheats:{recruitAk:boolean;rocketMayhem:boolean}){
+ return {type:cheats.recruitAk?30:cheats.rocketMayhem?35:22,ammo:200};
+}

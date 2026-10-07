@@ -8442,10 +8442,19 @@ Each is now answered:
   widget is let go), and FWD disbands as its count reaches 1200 (iOS compares FWD's count for exactly 1200, which a
   steady 30 fps step of 33 ms never lands on; BWD's is 1200 or more). BWD on a targeted Families member recruits him,
   as the help text says; the iOS widget for it lets go of the lock-on instead.
-- Not yet, from MakeThisPedJoinOurGroup (0x1003658a0): no recruits at all while STAT_CITY_UNLOCKED (181) is 1 or 2
-  (the port fixes that stat for its restart points); with a Recruit Anyone cheat on (iOS cheat flags 84 to 86, U),
-  any ped joins, up to 7 whatever the respect; and the every 32nd frame gang pass at the end of
-  ProcessGroupBehaviour.
+- Joining (CPlayerPed::MakeThisPedJoinOurGroup, 0x1003658a0; a retail stub in gta-reversed):
+  - the room is FindMaxNumberOfGroupMembers at most the script's limit, and none at all while STAT_CITY_UNLOCKED
+    (181, the script's stat) is 1 or 2, the story away from Los Santos;
+  - with CHEAT_WANNA_BE_IN_MY_GANG, _NO_ONE_CAN_STOP_US or _ROCKET_MAYHEM on (iOS cheat flags 84 to 86, PC's 76 to 78
+    eight places on), anyone joins, up to 7 whatever the respect;
+  - a ped running CTaskComplexKillPedOnFoot (the port's fighting `retaliate`) does not join;
+  - CPed::GiveWeaponWhenJoiningGang (0x10032ce30, as PC 0x5E8BE0): an unarmed recruit takes 200 rounds of the pistol,
+    or of the AK-47 under NO_ONE_CAN_STOP_US, or of the rocket launcher under ROCKET_MAYHEM. Recruits had joined
+    unarmed.
+  - Kept: cops do not join even under the cheats (the port's foot cops belong to its police); a ped flag that makes
+    CJ say context 82 instead (iOS bit 106, bDruggedUp or bWantedByPolice by the flag order, U) is not read; the
+    joining and refusal lines are not played.
+- Not yet: the every 32nd frame gang pass at the end of ProcessGroupBehaviour.
 - Verification: `tests/group-formation.test.ts`, `tests/browser/group-controls.spec.ts`.
 
 ## The player's group: its leader and its script peds

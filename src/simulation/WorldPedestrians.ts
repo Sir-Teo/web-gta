@@ -1,7 +1,7 @@
 import {runOverShake} from '../engine/nativePadShakes';
 import {deadPedWeaponDrops} from './WeaponDrops';
 import {weaponAtStartOfFight} from '../ped/nativeFightWeapon';
-import {FOLLOWER_PAUSE_SECONDS,FOLLOWER_STAND_SECONDS,FOLLOWER_STUCK_SECONDS,FOLLOWER_UNSTICK_RANGE,FOLLOWER_UNSTICK_SECONDS,GROUP_TELEPORT_OFFSETS,PLAYER_GROUP_SEPARATION_RANGE,gangFollowerGait,gangFollowerOffset,type GangFollowerState} from './groupFormation';
+import {FOLLOWER_PAUSE_SECONDS,FOLLOWER_STAND_SECONDS,FOLLOWER_STUCK_SECONDS,FOLLOWER_UNSTICK_RANGE,FOLLOWER_UNSTICK_SECONDS,GROUP_TELEPORT_OFFSETS,PLAYER_GROUP_SEPARATION_RANGE,gangFollowerGait,gangFollowerOffset,recruitRoom,weaponWhenJoiningGang,type GangFollowerState} from './groupFormation';
 import { CHEATS, megaPunchBlow } from './nativeCheats';
 import {GangPedRoster,ZonePedRoster,type PedZoneGroups} from './nativePedRoster';
 import {newPedTypeOrder,gangToCreateMembersOf,type PopulationTargets} from '../assets/populationCycle';
@@ -1169,6 +1169,8 @@ export class WorldPedestrians {
    waterLevel?:(x:number,y:number,z?:number,touchingWater?:boolean)=>number|undefined;
   /** The area the camera is in, which decides whether a ped with an area of its own is drawn. */
   visibleArea?:()=>number;
+  /** STAT_CITY_UNLOCKED (181): MakeThisPedJoinOurGroup refuses every recruit while it is 1 or 2. */
+  cityUnlocked?:()=>number;
   /** The rows a script has written for a decision maker, by the slot a ped wears. */
   scriptDecisionMaker?:(slot:number)=>DecisionMaker|undefined;
    /** The placed 2dfx ped attractors within a radius of a native point (the installed scene provides them). */
@@ -2681,9 +2683,9 @@ export class WorldPedestrians {
    const mark=target&&this.targetedRecruit(target);
    if(mark){
     if(!recruit)return 'none';
-    // CPlayerPed::MakeThisPedJoinOurGroup's cap: FindMaxNumberOfGroupMembers, at most the script's limit.
-    if(crew.length>=Math.min(maxGroupMembers(),this.scriptGangLimit))return 'full';
+    if(crew.length>=this.groupRoom())return 'full';
     mark.follow=true;mark.holdPosition=undefined;mark.flee=0;mark.foe=undefined;this.leaveParty(mark);
+    if(!mark.weapon&&mark.weaponType===undefined){const w=weaponWhenJoiningGang({recruitAk:CHEATS.isActive('recruitAk'),rocketMayhem:CHEATS.isActive('rocketMayhem')});this.giveWeapon(mark,w.type,w.ammo);}
     // MakeThisPedJoinOurGroup sets the group's separation range back to 120 with every recruit.
     this.groupSeparationRange=PLAYER_GROUP_SEPARATION_RANGE;
     return 'joined';
@@ -2711,12 +2713,18 @@ export class WorldPedestrians {
   groupOffer(target?:{handle?:number;range:number}){
    if(this.sim.player.health<=0)return {recruit:false,crew:0};
    const crew=this.people.filter(p=>p.follow&&p.health>0);
-   const recruit=!!target&&!!this.targetedRecruit(target)&&crew.length<Math.min(maxGroupMembers(),this.scriptGangLimit);
+   const recruit=!!target&&!!this.targetedRecruit(target)&&crew.length<this.groupRoom();
    return {recruit,crew:crew.filter(m=>!m.ignoresGroupCommands).length};
   }
   private targetedRecruit(target:{handle?:number;range:number}){
-   return this.targetAmong(this.people.filter(p=>!p.officer&&p.health>0&&p.down===0&&p.gang===1&&!p.follow),target);
+   const anyone=this.recruitAnyone();
+   return this.targetAmong(this.people.filter(p=>!p.officer&&p.health>0&&p.down===0&&(p.gang===1||anyone)&&!p.follow&&!(p.retaliate>0)),target);
   }
+  /** CHEAT_WANNA_BE_IN_MY_GANG, _NO_ONE_CAN_STOP_US or _ROCKET_MAYHEM: anyone joins the player's group, not only a
+   * Families member (ProcessGroupBehaviour and MakeThisPedJoinOurGroup read the three together). */
+  private recruitAnyone(){return CHEATS.isActive('recruitPistol')||CHEATS.isActive('recruitAk')||CHEATS.isActive('rocketMayhem');}
+  /** How many the player's group may hold for a recruit to join (recruitRoom). */
+  private groupRoom(){return recruitRoom(maxGroupMembers(),this.scriptGangLimit,this.cityUnlocked?.()??0,this.recruitAnyone());}
   /** Of `candidates`, the one `target` names: the ped under the crosshair (`handle`), else the nearest within `range`
    * ahead of the player (within 45° of his heading). */
   private targetAmong(candidates:Pedestrian[],target:{handle?:number;range:number}){
