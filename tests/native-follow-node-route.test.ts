@@ -93,3 +93,27 @@ describe('CTaskComplexFollowNodeRoute’s route (iOS ComputePathNodes and DoPath
   expect(followRouteSeconds(-7)).toBe(Number.POSITIVE_INFINITY);expect(followRouteSeconds(10000)).toBe(10);
  });
 });
+
+import {cornerMoveRatio,cornerSlowing,goToPointFineBaseRatio} from '../src/simulation/nativeFollowNodeRoute';
+test('CalcGoToTaskType slows a jog, run or sprint into a corner sharper than 45°, toward 1.75 at the point',()=>{
+ expect([4,5,6,7,1].map(goToPointFineBaseRatio)).toEqual([1,0,2,3,0]);
+ const square={prev:{x:0,y:0},at:{x:10,y:0},right:{x:10,y:10},ahead:{x:20,y:1}};
+ // A walk never slows; a gentle bend does not either.
+ expect(cornerSlowing(4,square.prev,square.at,square.right)).toBeUndefined();
+ expect(cornerSlowing(6,square.prev,square.at,square.ahead)).toBeUndefined();
+ // A right angle: dot 0, so (0 + 1) / -1.707 + 1 = 0.414 of 1.5 running (3 sprinting), within 4 (5).
+ const run=cornerSlowing(6,square.prev,square.at,square.right)!,sprint=cornerSlowing(7,square.prev,square.at,square.right)!;
+ expect(run.amount).toBeCloseTo((1-1/Math.fround(1.707))*1.5,5);expect(run.distance).toBe(4);
+ expect(sprint.amount).toBeCloseTo((1-1/Math.fround(1.707))*3,5);expect(sprint.distance).toBe(5);
+ // A hairpin (the last node, whose "next" is the one before): the whole amount.
+ expect(cornerSlowing(6,square.prev,square.at,square.prev)!.amount).toBeCloseTo(1.5,6);
+ // Outside the distance: the ped's own pace; at the point: base − amount, floored at 1.75.
+ expect(cornerMoveRatio(run,16,6)).toBeUndefined();
+ expect(cornerMoveRatio(run,0,6)).toBeCloseTo(Math.max(1.75,2-run.amount),6);
+ expect(cornerMoveRatio(sprint,0,7)).toBeCloseTo(3-sprint.amount,6);
+ expect(cornerMoveRatio({amount:3,distance:5},0,7)).toBe(1.75);
+ // Halfway in (d²/D² = 0.5): half the slowing.
+ expect(cornerMoveRatio(sprint,12.5,7)).toBeCloseTo(3-.5*sprint.amount,6);
+ // A jog's base ratio is 0, so in a corner it moves at 1.75.
+ expect(cornerMoveRatio(cornerSlowing(5,square.prev,square.at,square.right)!,0,5)).toBe(1.75);
+});

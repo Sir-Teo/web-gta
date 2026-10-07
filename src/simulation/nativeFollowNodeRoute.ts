@@ -125,3 +125,27 @@ export function planFollowNodeRoute(world:NodeRouteWorld,ped:NativePoint,target:
 /** The script's time for TASK_FOLLOW_PATH_NODES_TO_COORD (and _WITH_RADIUS) and TASK_GOTO_CHAR, in seconds: -1 is
  * 50000 ms (iOS 0x100595d74), after which the ped is put on the target; -2, or any other negative, is no limit. */
 export function followRouteSeconds(milliseconds:number){return milliseconds===-1?50:milliseconds<0?Number.POSITIVE_INFINITY:milliseconds/1000;}
+
+/** CTaskSimpleGoToPointFine::BaseRatio: the move ratio of a move state, walk 1, run 2, sprint 3, anything else 0. */
+export const goToPointFineBaseRatio=(moveState:number)=>moveState===4?1:moveState===6?2:moveState===7?3:0;
+/** CalcGoToTaskType's corner (iOS, run with blending on): for a jog, run or sprint (move state 5 and up), a turn at
+ * the current point sharper than 45°, the 2D directions in and out having a dot under 0.707 (0x3f34fdf4), slows the ped
+ * near it: by clamp((dot + 1) / -1.707 + 1, 0, 1) × 1.5 (3 sprinting), within 4 units (5 sprinting). `previous` is the
+ * route point before (the ped's position for the first) and `next` the one after (the one before, for the last). */
+export interface CornerSlowing {amount:number;distance:number}
+export function cornerSlowing(moveState:number,previous:{x:number;y:number},current:{x:number;y:number},next:{x:number;y:number}):CornerSlowing|undefined{
+ if(moveState<5)return undefined;
+ const ax=current.x-previous.x,ay=current.y-previous.y,al=Math.hypot(ax,ay),bx=next.x-current.x,by=next.y-current.y,bl=Math.hypot(bx,by);
+ const dot=(al>0?ax/al:0)*(bl>0?bx/bl:0)+(al>0?ay/al:0)*(bl>0?by/bl:0);
+ if(!(dot<Math.fround(.707)))return undefined;
+ const sprint=moveState===7;
+ return {amount:Math.min(1,Math.max(0,(dot+1)/Math.fround(-1.707)+1))*(sprint?3:1.5),distance:sprint?5:4};
+}
+/** CalcBlendRatio while slowing: inside the corner's distance (squared distances, as the executable has them), the move
+ * ratio eases from the move state's toward 1.75 at the point: max(1.75, base − (cos(min(d²/D², 1)·π)/2 + 1/2) ×
+ * amount). Undefined outside, where the ped keeps his own pace. */
+export function cornerMoveRatio(corner:CornerSlowing,distanceSquared:number,moveState:number){
+ const limit=corner.distance*corner.distance;if(distanceSquared>=limit)return undefined;
+ const r=Math.cos(Math.min(1,Math.max(0,distanceSquared/limit))*Math.PI)*.5+.5;
+ return Math.max(goToPointFineBaseRatio(4)+.75,goToPointFineBaseRatio(moveState)-r*corner.amount);
+}

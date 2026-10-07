@@ -24,7 +24,7 @@ import type {DamageKind} from '../weapons/WeaponSystem';
 import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
 import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from '../ped/nativeWalkRoundBuilding';
 import {followersToRemove} from '../ped/nativePedGroup';
-import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,planFollowNodeRoute,type NodeRouteOptions} from './nativeFollowNodeRoute';
+import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,cornerMoveRatio,cornerSlowing,planFollowNodeRoute,type CornerSlowing,type NodeRouteOptions} from './nativeFollowNodeRoute';
 import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
@@ -185,7 +185,7 @@ export interface Pedestrian {
   /** The points in the renderer's terms, the target (its origin height) last when `lastIsTarget`. */
   /** CTaskComplexChat: `partner` is nothing for the player, who never holds a chat task. */
   |{kind:'chat';partner?:Pedestrian;chatter:boolean;stage:number;finished:boolean;noChat:number;remaining:number}
-  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];nodes:PathNode[];at:number;lastIsTarget:boolean;moveState:number;remaining:number;tolerance:number};
+  |{kind:'followNodeRoute';target:{x:number;y:number;z:number};points:{x:number;y:number;z:number}[];nodes:PathNode[];at:number;lastIsTarget:boolean;moveState:number;remaining:number;tolerance:number;corner?:CornerSlowing};
  /** A script's TASK_WANDER_STANDARD is the ped's primary task, which no default stand takes over from. */
  scriptWanders?:boolean;
  /** CTaskSimpleTogglePedThreatScanner's three switches, kept on the ped (its threat scan is not modelled). */
@@ -1897,7 +1897,8 @@ export class WorldPedestrians {
     const q=ped.actor.player.position,top=order.z>MAP_Z_LOW_LIMIT?order.z+1:q.y+PED_ORIGIN_HEIGHT+50;
     const ground=this.groundUnder(order.x,-order.y,top),target={x:order.x,y:ground===undefined?Math.max(order.z,q.y+PED_ORIGIN_HEIGHT):ground+1,z:-order.y};
     const plan=this.planNodeRoute(ped,target,{keepNodesHeadingAway:true});
-    ped.order={kind:'followNodeRoute',target,points:plan.points,nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,at:plan.resumeAt,moveState:order.moveState,remaining:order.seconds,tolerance:order.tolerance??FOLLOW_NODE_TARGET_TOLERANCE};ped.flee=0;ped.loiter=false;
+    ped.order={kind:'followNodeRoute',target,points:plan.points,nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,at:plan.resumeAt,moveState:order.moveState,remaining:order.seconds,tolerance:order.tolerance??FOLLOW_NODE_TARGET_TOLERANCE};
+    ped.order.corner=this.routeCorner(ped,ped.order);ped.flee=0;ped.loiter=false;
     break;
    }
    case 'followRoute':
@@ -2014,6 +2015,15 @@ export class WorldPedestrians {
  private fixedBetween(from:{x:number;z:number},to:{x:number;z:number},y:number){
   const dx=to.x-from.x,dz=to.z-from.z,length=Math.hypot(dx,dz);if(length<1e-3)return false;
   return !!this.sim.world.castRay(new RAPIER.Ray({x:from.x,y,z:from.z},{x:dx/length,y:0,z:dz/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
+ }
+ /** CalcGoToTaskType for the route point the ped now walks to (a GO_TO_POINT leg, not the last to the target): the
+  * corner there, from the point before (the ped himself for the first) to the one after (the one before, for a last
+  * node short of the target). */
+ private routeCorner(p:Pedestrian,o:{points:{x:number;y:number;z:number}[];at:number;lastIsTarget:boolean;moveState:number}){
+  if(o.lastIsTarget&&o.at===o.points.length-1)return undefined;
+  const q=p.actor.player.position,n=o.points.length,current=o.points[o.at];if(!current)return undefined;
+  const previous=n===1?current:o.at>0?o.points[o.at-1]:q,next=n===1?current:o.points[o.at+1<n?o.at+1:o.at-1];
+  return cornerSlowing(o.moveState,{x:previous.x,y:-previous.z},{x:current.x,y:-current.z},{x:next.x,y:-next.z});
  }
  /** CTaskComplexFollowNodeRoute::SetTarget's ComputePathNodes and ComputeRoute from where the ped stands, in the
   * renderer's terms. */
@@ -3496,11 +3506,14 @@ export class WorldPedestrians {
       // CTaskComplexGoToPointAndStandStill with the task's tolerance and slow-down distance.
       if(goToPointArrived(distance,q.y+PED_ORIGIN_HEIGHT-point.y,last?o.tolerance:FOLLOW_NODE_POINT_RADIUS,state.speed*dt)){
        if(last)this.startNextOrder(p);
-       else if(++o.at>=o.points.length){const plan=this.planNodeRoute(p,o.target,{keepNodesHeadingAway:true,currentNode:o.nodes[o.points.length-1]});Object.assign(o,{points:plan.points,nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,at:plan.resumeAt});}
+       else{if(++o.at>=o.points.length){const plan=this.planNodeRoute(p,o.target,{keepNodesHeadingAway:true,currentNode:o.nodes[o.points.length-1]});Object.assign(o,{points:plan.points,nodes:plan.nodes,lastIsTarget:plan.lastIsTarget,at:plan.resumeAt});}o.corner=this.routeCorner(p,o);}
       }else{
        ({x:dx,z:dz}=this.roundCars(p,point,cars));
        const moveState=last?goToPointMoveState(o.moveState,distance,FOLLOW_NODE_SLOW_DOWN_DISTANCE):o.moveState;
        orderSpeed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;
+       // CTaskSimpleGoToPointFine round a sharp corner (blending on): the move ratio eases down near the point.
+       const ratio=!last&&o.corner?cornerMoveRatio(o.corner,gx*gx+gz*gz+(q.y+PED_ORIGIN_HEIGHT-point.y)**2,o.moveState):undefined;
+       if(ratio!==undefined)orderSpeed=ratio<=2?p.walkSpeed+(p.runSpeed-p.walkSpeed)*(ratio-1):p.runSpeed+(p.sprintSpeed-p.runSpeed)*(ratio-2);
       }
      }
     }else if(p.order.kind==='seekAiming'){

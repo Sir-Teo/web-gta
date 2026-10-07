@@ -7141,9 +7141,17 @@ the first ones now implemented:
 - A timed task that runs out teleports the ped onto the target, and the task ends.
 - A MAP_Z_LOW_LIMIT target has its ground looked for from above the ped. iOS passes the z as it is (a -100 target
   always takes the node route); the port keeps its lookup.
-- Not ported: with blending on, which every form sets, iOS does run CalcGoToTaskType (gta-reversed reads the test the
-  other way round). A jogging, running or sprinting ped slows into a corner sharper than about 45° (2D dot under 0.707)
-  through CTaskSimpleGoToPointFine. The port's peds keep their speed round corners.
+- Corners. With blending on, which every form sets, iOS runs CalcGoToTaskType (gta-reversed reads the test the other
+  way round). For a jog, run or sprint, a turn at a route point sharper than about 45° (2D dot under 0.707) arms
+  CTaskSimpleGoToPointFine:
+  - inside 4 units of the point (5 sprinting), measured squared in 3D, the move ratio eases from the move state's
+    (walk 1, run 2, sprint 3, a jog 0) to max(1.75, base − (cos(d²/D² · π)/2 + 1/2) × amount);
+  - amount = clamp((dot + 1) / −1.707 + 1, 0, 1) × 1.5, or × 3 sprinting;
+  - past the point the ped is back at his pace;
+  - a last node short of the target turns back on itself (its next point is the one before), so the whole amount
+    applies there.
+  The port turns the ratio into a speed between the ped's walk, run and sprint speeds. A seek's route
+  (TASK_GOTO_CHAR) keeps the chase's own pace.
 
 ### TASK_CHAT_WITH_CHAR (CTaskComplexChat)
 
