@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T14:28:49.835Z",
+ "generated": "2026-10-07T14:31:46.309Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1224,
+   "faithful": 1225,
    "authored": 19,
    "silent": 2,
-   "skipped": 140,
+   "skipped": 139,
    "stops": 6
   }
  },
@@ -2822,10 +2822,10 @@
    "byStatus": {
     "core": 4680,
     "nop": 1,
-    "faithful": 3695,
+    "faithful": 3697,
     "authored": 1,
     "silent": 0,
-    "skipped": 57,
+    "skipped": 55,
     "stops": 0
    },
    "gaps": [
@@ -2870,11 +2870,6 @@
      "sites": 2
     },
     {
-     "name": "FIRE_SINGLE_BULLET",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
      "name": "ADD_BIG_GUN_FLASH",
      "status": "skipped",
      "sites": 2
@@ -2887,6 +2882,11 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
+     "sites": 1
+    },
+    {
+     "name": "TASK_PLAY_ANIM_WITH_FLAGS",
+     "status": "skipped",
      "sites": 1
     }
    ]
@@ -4025,10 +4025,10 @@
    "byStatus": {
     "core": 2395,
     "nop": 68,
-    "faithful": 635,
+    "faithful": 636,
     "authored": 0,
     "silent": 0,
-    "skipped": 22,
+    "skipped": 21,
     "stops": 0
    },
    "gaps": [
@@ -4079,11 +4079,6 @@
     },
     {
      "name": "SET_HELI_REACHED_TARGET_DISTANCE",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "FIRE_SINGLE_BULLET",
      "status": "skipped",
      "sites": 1
     },
@@ -5071,10 +5066,10 @@
    "byStatus": {
     "core": 2824,
     "nop": 1,
-    "faithful": 1568,
+    "faithful": 1569,
     "authored": 5,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
@@ -5086,11 +5081,6 @@
     {
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "FIRE_SINGLE_BULLET",
-     "status": "skipped",
      "sites": 1
     }
    ]
@@ -7127,23 +7117,6 @@
    "doc": "",
    "sites": 6,
    "missions": 2,
-   "firstMission": "DRUGS4",
-   "portable": false
-  },
-  {
-   "name": "FIRE_SINGLE_BULLET",
-   "opcode": "06bc",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks fireSingleBullet (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2436,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Creates firearm projectile effect between two coordinates. Leaves visible trace and deals damage on hit",
-   "sites": 4,
-   "missions": 3,
    "firstMission": "DRUGS4",
    "portable": false
   },

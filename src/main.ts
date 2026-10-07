@@ -5402,6 +5402,19 @@ async function boot() {
                  setScriptVehicleFreebies:(car,on)=>{if(isScriptCar(car))car.freebies=on;},
                  setScriptVehicleCarCheats:(car,on)=>{if(isScriptCar(car))car.useCarCheats=on;},
                  takeOffPlayerGoggles:animate=>{weapons.takeOffGoggles(animate);},
+                 // FireOneInstantHitRound: the line of sight from start to end, the trace, then a ped not dying takes a
+                 // WEAPON_UZI_DRIVEBY damage event of the intensity and a vehicle InflictDamage by WEAPON_MICRO_UZI (none
+                 // for one only the player may hurt). Its point light at the start and ReportBulletHit are left out.
+                 fireSingleRound:(from,to,intensity)=>{
+                  const a=new Vector3(from.x,from.z,-from.y),dir=new Vector3(to.x,to.z,-to.y).sub(a),length=dir.length();if(!length)return;dir.divideScalar(length);
+                  const shot=sim.world.castRayAndGetNormal(new RAPIER.Ray(a,dir),length,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS);
+                  const end=a.clone().addScaledVector(dir,shot?.timeOfImpact??length);weapons.singleRound(a,end);
+                  if(!shot)return;
+                  if(shot.collider.handle===sim.playerCollider.handle){if(sim.player.health>0)sim.damagePlayer(intensity,false,{weapon:52,from:{x:a.x,z:a.z}});return;}
+                  const car=[...(fleet?.cars??[])].find(c=>shot.collider.parent()?.handle===c.car.body.handle);
+                  if(car){if(!car.onlyDamagedByPlayer)car.damage(intensity,undefined,false,undefined,{weapon:28});return;}
+                  pedestrians?.bulletHit(shot.collider.handle,intensity,52,{x:dir.x,z:dir.z},end);
+                 },
                  vehicleModelValue:model=>fleet?.modelMonetaryValue(model)??0,
                  setScriptVehicleRoll:(car,roll)=>{
                   type Turnable={rotation():{x:number;y:number;z:number;w:number};setRotation(q:{x:number;y:number;z:number;w:number},wake:boolean):void};

@@ -11163,3 +11163,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   inclusive) with objectFlags.bIsBroken; the port asks the script's objects and the map's smashed placements (DRUGS1,
   FINALEA and an interior). PLAYER_TAKE_OFF_GOGGLES (0x1002056d8) runs CTaskComplexUseGoggles as the primary task when
   asked to animate and the goggles are on, and otherwise CPed::TakeOffGoggles at once (MAF4). Both were skipped.
+- **A single scripted round.** FIRE_SINGLE_BULLET (iOS 0x1001f14c0) is CWeapon's FireOneInstantHitRound (0x73AF00,
+  reversed; iOS 0x10049b350): the line of sight from start to end, a bullet trace (0.02 wide, 750 ms), then a ped not
+  dying or dead takes a WEAPON_UZI_DRIVEBY damage event of the intensity (the port's bulletHit, the shot clip by side
+  included) and a vehicle InflictDamage by WEAPON_MICRO_UZI (none for a car only the player may hurt). Left out: the
+  point light at the start and the bullet-hit sound. DRUGS4 and two others fire them; it was skipped.

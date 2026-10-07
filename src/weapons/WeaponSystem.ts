@@ -215,6 +215,9 @@ export class WeaponSystem {
   if(this.strike||this.inventory.cooldown>0||this.fightStance)return undefined;
   return this.pedestrians()?.stealthTarget?.(this.sim.player.position,this.lockCamera);
  }
+ /** FIRE_SINGLE_BULLET's FireOneInstantHitRound: CBulletTraces::AddTrace(start, end, 0.02, 750, 150) and no gunshot
+  * particles or impact effect. */
+ singleRound(from:Vec3,to:Vec3){this.tracer(from,to,'ped',.75);}
  npcShot(from:Vec3,to:Vec3,weapon=22,hit=true){this.tracer(from,to,'ped',.09);if(hit)this.effect('impact',to);this.fx?.gunshot(from,normalize(add(to,from,-1)),weapon,false);}
  /** Native FX (effects.fxp); the sphere effects remain as the fallback while it loads or when it is unavailable. */
  fx?:WeaponFxHost;
