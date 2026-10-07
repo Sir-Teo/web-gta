@@ -29,7 +29,7 @@ export interface ScriptDrivable {
  * stub. Traffic avoidance is not modelled: STOP_FOR_CARS and SLOW_DOWN_FOR_CARS only stop at red lights. */
 
 /** eCarMission, the ones a script's drive asks for. */
-export type ScriptCarMissionKind='gotoCoords'|'gotoCoordsStraight'|'gotoCoordsAccurate'|'gotoCoordsStraightAccurate'|'cruise'|'none'
+export type ScriptCarMissionKind='gotoCoords'|'gotoCoordsStraight'|'gotoCoordsAccurate'|'gotoCoordsStraightAccurate'|'gotoCoordsRacing'|'cruise'|'none'
  |'ramPlayerFar'|'ramPlayerClose'|'blockPlayerFar'|'blockPlayerClose'|'blockPlayerStop'
  |'ramCarFar'|'ramCarClose'|'blockCarFar'|'blockCarClose'|'blockCarStop'
  |'emergencyStop'|'stopForever'|'escort'|'escortFar';
@@ -41,7 +41,7 @@ export const CAR_MISSION:Readonly<Record<number,ScriptCarMissionKind>>={0:'none'
 export type EscortSide='left'|'right'|'rear'|'front';
 export const escortSide=(mission:number):EscortSide|undefined=>(['left','right','rear','front'] as const)[mission>=57?mission-57:mission-29];
 /** The kinds that follow the road toward a goal (SteerAICarWithPhysicsFollowPath), a moving one for the FARAWAY missions. */
-const ROAD_KINDS:ReadonlySet<ScriptCarMissionKind>=new Set(['gotoCoords','gotoCoordsAccurate','ramPlayerFar','blockPlayerFar','ramCarFar','blockCarFar','escortFar']);
+const ROAD_KINDS:ReadonlySet<ScriptCarMissionKind>=new Set(['gotoCoords','gotoCoordsAccurate','gotoCoordsRacing','ramPlayerFar','blockPlayerFar','ramCarFar','blockCarFar','escortFar']);
 /** VC's SteerAICarWithPhysicsTryingToBlockTarget: the target's speed counted up to 0.13 a frame, and the handbrake stop
  * inside 5 units, back to blocking past 10. */
 export const MAX_SPEED_TO_ACCOUNT_IN_INTERCEPTING=.13,DISTANCE_TO_SWITCH_FROM_BLOCK_TO_STOP=5,DISTANCE_TO_SWITCH_FROM_STOP_TO_BLOCK=10;
@@ -175,12 +175,15 @@ export class ScriptCarMissions{
  }
  mission(car:ScriptDrivable){return this.missions.get(car)?.kind;}
  /** CCarAI::GetCarToGoToCoors and its accurate and straight-line forms, with the task's cruise speed and style. */
- gotoCoords(car:ScriptDrivable,goal:{x:number;y:number;z:number},o:{accurate?:boolean;straight?:boolean;cruise:number;style:number;straightLineDistance?:number}){
+ /** `racing`: MISSION_GOTOCOORDINATES_RACING, which UpdateCarAI never turns straight however near the point. CCarAI::
+  * GetCarToGoToCoorsRacing (TASK_CAR_DRIVE_TO_COORD's mode 3) sets it 'always'; CAR_GOTO_COORDINATES_RACING (iOS
+  * 0x1001f23f0) only when JoinCarWithRoadSystemGotoCoors finds a road route, else STRAIGHTLINE ('orStraight'). */
+ gotoCoords(car:ScriptDrivable,goal:{x:number;y:number;z:number},o:{accurate?:boolean;straight?:boolean;racing?:'always'|'orStraight';cruise:number;style:number;straightLineDistance?:number}){
   const existing=this.missions.get(car);
-  const kind:ScriptCarMissionKind=o.straight?(o.accurate?'gotoCoordsStraightAccurate':'gotoCoordsStraight'):this.join(car,goal)?(o.accurate?'gotoCoordsStraightAccurate':'gotoCoordsStraight'):(o.accurate?'gotoCoordsAccurate':'gotoCoords');
+  const kind:ScriptCarMissionKind=o.racing?(o.racing==='orStraight'&&this.join(car,goal)?'gotoCoordsStraight':'gotoCoordsRacing'):o.straight?(o.accurate?'gotoCoordsStraightAccurate':'gotoCoordsStraight'):this.join(car,goal)?(o.accurate?'gotoCoordsStraightAccurate':'gotoCoordsStraight'):(o.accurate?'gotoCoordsAccurate':'gotoCoords');
   this.missions.set(car,{kind,goal:{...goal},cruise:o.cruise,style:o.style,straightLineDistance:o.straightLineDistance??existing?.straightLineDistance??20,
    lane:0,nextLane:0,route:existing?.route??[],link:existing?.link,joinedAt:-Infinity,stuck:0,recoveryMode:0,lastRecovery:-Infinity,seed:existing?.seed??0});
-  if(kind==='gotoCoords'||kind==='gotoCoordsAccurate')this.route(car,this.missions.get(car)!);
+  if(kind==='gotoCoords'||kind==='gotoCoordsAccurate'||kind==='gotoCoordsRacing')this.route(car,this.missions.get(car)!);
  }
  /** SET_CAR_STRAIGHT_LINE_DISTANCE: m_nStraightLineDistance (a byte). */
  setStraightLineDistance(car:ScriptDrivable,distance:number){const m=this.missions.get(car);if(m)m.straightLineDistance=distance&255;else this.missions.set(car,this.idle(distance&255));}
@@ -453,10 +456,12 @@ export class ScriptCarMissions{
     const stop=lights&&nativeShouldStopForLight({position:[state.position.x,state.position.y],appearance:'car',physicsStatus:true,
      current:{navigation:link.navigation,routeAddress:link.to.address,travelSign:link.dx*link.navigation.direction[0]-link.dz*link.navigation.direction[1]>=0?1:-1}},Math.floor(this.seconds*1000)>>>0);
     pedals=steerFollowPath(state,travel(link),m.lane,travel(next),{cruiseSpeed:m.cruise,trafficSpeed,stop});
-   }else if(!next&&(m.kind==='gotoCoords'||m.kind==='gotoCoordsAccurate')){
+   }else if(!next&&(m.kind==='gotoCoords'||m.kind==='gotoCoordsAccurate'||m.kind==='gotoCoordsRacing')){
     // SteerAICarWithPhysicsFollowPath (VC): with the path search spent (PickNextNodeToFollowPath finds under two
     // nodes), the go-to missions turn straight for the point, the accurate one staying accurate.
-    m.kind=m.kind==='gotoCoords'?'gotoCoordsStraight':'gotoCoordsStraightAccurate';
+    // AUTHORED: the racing mission steers by SteerAICarWithPhysicsFollowPath_Racing (iOS 0x10019b300, its own path
+    // search and racing line, not ported); here it follows the route as the plain one does and ends as it does.
+    m.kind=m.kind==='gotoCoordsAccurate'?'gotoCoordsStraightAccurate':'gotoCoordsStraight';
     pedals=steerHeadingForTarget(state,goal,m.cruise);
    }else if(!next){
     // The route is spent before the switch distance: carry on along the road's continuation.

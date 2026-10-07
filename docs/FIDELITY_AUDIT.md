@@ -11277,3 +11277,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   node nearest each of the six stations over all four tracks but reads its distance from tracks.dat's node of that
   index: Unity, Market and Cranberry are nearest tracks4.dat, so theirs come from unrelated main-line nodes, as in the
   game.
+- CREATE_FX_SYSTEM_ON_OBJECT_WITH_DIRECTION (iOS 0x1001ee820) and CAR_GOTO_COORDINATES_RACING (0x1001f23f0) had no
+  handler, so the coke courier (bcesar3.scm) gave up as its bike set off. The first puts a system on the object's frame,
+  offset and pointed in its space, as the car and char forms do. The second joins the road system and sets
+  MISSION_GOTOCOORDINATES_RACING, or STRAIGHTLINE without a road route, the cruise speed at least 1; TASK_CAR_DRIVE_TO_COORD's
+  racing mode (CCarAI::GetCarToGoToCoorsRacing) sets the racing mission whatever the join finds. UpdateCarAI has no case
+  for it, so unlike MISSION_GOTOCOORDINATES it never turns straight near the point. Its steering,
+  SteerAICarWithPhysicsFollowPath_Racing (0x10019b300, a path search of its own and a racing line), is not ported: the
+  racing car follows the route as the plain mission does.

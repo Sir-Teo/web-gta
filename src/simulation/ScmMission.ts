@@ -754,7 +754,7 @@ export interface ScmMissionWorld {
  rollOutScriptPed?(ped:unknown,velocity:{x:number;z:number},clip:'car_rollout_lhs'|'car_rollout_rhs'):void;
  /** CCarAI's coordinate missions on a script car (ScriptCarMissions), in the script's coordinates, and
   * m_nStraightLineDistance. */
- driveScriptVehicleTo?(car:unknown,goal:{x:number;y:number;z:number},o:{cruise:number;style:number;accurate:boolean;straight:boolean}):void;
+ driveScriptVehicleTo?(car:unknown,goal:{x:number;y:number;z:number},o:{cruise:number;style:number;accurate:boolean;straight:boolean;racing?:'always'|'orStraight'}):void;
  setScriptVehicleStraightLineDistance?(car:unknown,distance:number):void;
  /** The car's CCarAI mission cleared (MISSION_NONE): its driver's task was cleared, or the driver got out. */
  stopScriptVehicle?(car:unknown):void;
@@ -1112,6 +1112,13 @@ export class ScmMission {
    vehicleGotoCoordinatesAccurate:(handle,x,y,z)=>{
     const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
     this.host('driveScriptVehicleTo','CAR_GOTO_COORDINATES_ACCURATE')(car,{x,y,z},{cruise:Math.max(fields.cruiseSpeed??CREATED_CRUISE_SPEED,6),style:fields.drivingStyle??0,accurate:true,straight:false});
+   },
+   // CAR_GOTO_COORDINATES_RACING (iOS 0x1001f23f0): JoinCarWithRoadSystemGotoCoors to the point (a z of -100 or under
+   // grounded, then lifted by the car's base height, which the 2D drive here does not read), then
+   // MISSION_GOTOCOORDINATES_RACING, or STRAIGHTLINE without a road route, the cruise speed at least 1.
+   vehicleGotoCoordinatesRacing:(handle,x,y,z)=>{
+    const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};
+    this.host('driveScriptVehicleTo','CAR_GOTO_COORDINATES_RACING')(car,{x,y,z},{cruise:Math.max(fields.cruiseSpeed??CREATED_CRUISE_SPEED,1),style:fields.drivingStyle??0,accurate:false,straight:false,racing:'orStraight'});
    },
    // GET_CAR_FORWARD_X and _Y (VC's handler, reVC): the forward vector's two ground components over its ground length.
    vehicleForwardX:handle=>{const f=this.vehicleMatrixOf(handle).forward;return f.x/Math.hypot(f.x,f.y);},
@@ -1628,6 +1635,7 @@ export class ScmMission {
    createFxSystemOnObject:(name,object,offset,ignoreBoundingChecks)=>this.makeAttachedFx(name,'object',object,offset,undefined,ignoreBoundingChecks),
    createFxSystemOnCar:(name,vehicle,x,y,z,ignoreBoundingChecks)=>this.makeAttachedFx(name,'vehicle',vehicle,{x,y,z},undefined,ignoreBoundingChecks),
    createFxSystemOnVehicleWithDirection:(name,vehicle,offset,direction,ignoreBoundingChecks)=>this.makeAttachedFx(name,'vehicle',vehicle,offset,direction,ignoreBoundingChecks),
+   createFxSystemOnObjectWithDirection:(name,object,offset,direction,ignoreBoundingChecks)=>this.makeAttachedFx(name,'object',object,offset,direction,ignoreBoundingChecks),
    createFxSystemOnCharWithDirection:(name,char,x,y,z,dx,dy,dz,ignoreBoundingChecks)=>this.makeAttachedFx(name,'ped',char,{x,y,z},{x:dx,y:dy,z:dz},ignoreBoundingChecks),
    playFxSystem:handle=>{this.world.playScriptFx(this.fxOf(handle),false);},
    playAndKillFxSystem:handle=>{this.world.playScriptFx(this.fxOf(handle),true);},
@@ -3030,12 +3038,12 @@ export class ScmMission {
  /** A driving task on the car the ped is at the wheel of: CCarAI's mission, a temporary action, or the wander. */
  private startCarTask(handle:number,task:ScmScriptedTask,opcode:number){
   switch(task.kind){
-   // CTaskComplexDriveToPoint: CCarAI::GetCarToGoToCoors (mode 0), …Accurate (1) or …StraightLine (2) with the task's
-   // cruise speed and driving style; the racing mode (3) drives as the plain one. It is over once the mission clears.
+   // CTaskComplexDriveToPoint: CCarAI::GetCarToGoToCoors (mode 0), …Accurate (1), …StraightLine (2) or …Racing (3) with
+   // the task's cruise speed and driving style. It is over once the mission clears.
    case 'carDriveToCoord':{
     const car=this.driverCar(handle,task.vehicle,opcode);
     this.host('driveScriptVehicleTo','TASK_CAR_DRIVE_TO_COORD')(car,{x:task.x,y:task.y,z:task.z},
-     {cruise:task.speed,style:task.drivingStyle,accurate:task.driveStyle===1,straight:task.driveStyle===2});
+     {cruise:task.speed,style:task.drivingStyle,accurate:task.driveStyle===1,straight:task.driveStyle===2,racing:task.driveStyle===3?'always':undefined});
     return;
    }
    case 'carTempAction':this.host('scriptVehicleTempAction','TASK_CAR_TEMP_ACTION')(this.driverCar(handle,task.vehicle,opcode),task.actionId,task.time/1000);return;

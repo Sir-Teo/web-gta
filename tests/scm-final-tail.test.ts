@@ -195,3 +195,16 @@ test('IS_NEXT_STATION_ALLOWED asks after the train the handle names (iOS 0x10020
  expect(run(world,undefined,instruction(op('IS_NEXT_STATION_ALLOWED'),[int(CAR+1)])).thread.condition).toBe(false);
  expect(asked).toEqual([CAR,CAR+1]);
 });
+
+test('CAR_GOTO_COORDINATES_RACING and CREATE_FX_SYSTEM_ON_OBJECT_WITH_DIRECTION reach their adapters',()=>{
+ let drove:number[]=[];
+ run({vehicleGotoCoordinatesRacing:(handle,x,y,z)=>{drove=[handle,x,y,z];}},undefined,
+  instruction(op('CAR_GOTO_COORDINATES_RACING'),[int(CAR),float(1),float(2),float(3)]));
+ expect(drove).toEqual([CAR,1,2,3]);
+ let made:unknown[]=[];
+ const {readInt}=run({createFxSystemOnObjectWithDirection:(name,object,offset,direction,ignore)=>{made=[name,object,offset,direction,ignore];return 5;}},undefined,
+  instruction(op('CREATE_FX_SYSTEM_ON_OBJECT_WITH_DIRECTION'),['COKE_TRAIL',int(OBJECT),float(0),float(-.2),float(-.1),float(0),float(0),float(-1),int(1),gvar(40)]));
+ expect(made[0]).toBe('COKE_TRAIL');expect(made[1]).toBe(OBJECT);
+ expect(made[2]).toEqual({x:0,y:expect.closeTo(-.2,6),z:expect.closeTo(-.1,6)});expect(made[3]).toEqual({x:0,y:0,z:-1});expect(made[4]).toBe(true);
+ expect(readInt(40)).toBe(5);
+});

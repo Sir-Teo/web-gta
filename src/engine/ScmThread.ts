@@ -711,6 +711,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  forceVehicleLights?(handle:number,lights:number):void;
  setVehicleCanBeDamaged?(handle:number,state:boolean):void;
  vehicleGotoCoordinatesAccurate?(handle:number,x:number,y:number,z:number):void;
+ /** CAR_GOTO_COORDINATES_RACING: MISSION_GOTOCOORDINATES_RACING to the point. */
+ vehicleGotoCoordinatesRacing?(handle:number,x:number,y:number,z:number):void;
  vehicleWasDamagedByVehicle?(handle:number,other:number):boolean;
  popVehicleBoot?(handle:number):void;
  setVehicleModelComponents?(model:number|string,first:number,second:number):void;
@@ -763,6 +765,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  areaIsOccupied?(min:{x:number;y:number;z:number},max:{x:number;y:number;z:number},
   flags:{solid:boolean;vehicles:boolean;peds:boolean;objects:boolean;particles:boolean}):boolean;
  createFxSystemOnVehicleWithDirection?(name:string,vehicle:number,offset:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},ignoreBoundingChecks:boolean):number;
+ /** CREATE_FX_SYSTEM_ON_OBJECT_WITH_DIRECTION: a system on the object's frame, offset and pointed in its space. */
+ createFxSystemOnObjectWithDirection?(name:string,object:number,offset:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},ignoreBoundingChecks:boolean):number;
  controlMovableVehiclePart?(handle:number,value:number):void;
  objectIsStatic?(handle:number):boolean;
  setVehicleStayInSlowLane?(handle:number,state:boolean):void;

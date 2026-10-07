@@ -178,3 +178,17 @@ test('under the stop-for-cars styles a script car slows for a car stopped ahead;
  expect(speed(c,20,false)).toBe(20);
  missions.traffic=undefined;expect(speed(c,20,false)).toBe(20);
 });
+
+test('the racing mission never turns straight near the point; the racing command does without a road route',()=>{
+ const missions=new ScriptCarMissions(()=>undefined),{car:c,at}=car(0,0);
+ // CCarAI::GetCarToGoToCoorsRacing: MISSION_GOTOCOORDINATES_RACING whatever JoinCarWithRoadSystemGotoCoors answers.
+ missions.gotoCoords(c,{x:0,y:0,z:-50},{cruise:20,style:0,racing:'always'});
+ expect(missions.mission(c)).toBe('gotoCoordsRacing');
+ // UpdateCarAI has no case for it: inside the straight-line distance, and inside 3 units, it is still racing.
+ at.z=-45;missions.step(1/50);expect(missions.mission(c)).toBe('gotoCoordsRacing');
+ at.z=-49;missions.step(1/50);expect(missions.mission(c)).toBe('gotoCoordsRacing');
+ // CAR_GOTO_COORDINATES_RACING: STRAIGHTLINE when the join finds no road route.
+ const other=car(0,0);
+ missions.gotoCoords(other.car,{x:0,y:0,z:-50},{cruise:20,style:0,racing:'orStraight'});
+ expect(missions.mission(other.car)).toBe('gotoCoordsStraight');
+});

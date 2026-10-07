@@ -2147,6 +2147,10 @@ const handlers:Record<string,ScmCommandHandler>={
   const g=game(t,i),host=g.carRecordingHost;
   if(host)skipToEndAndStopPlaybackRecordedCar(host,t.readInt(p[0]));else g.vehicleRecordings.stopPlayback(t.readInt(p[0]));
  },
+ CAR_GOTO_COORDINATES_RACING:(t,p,i)=>{
+  const point=vec(t,p,1);
+  world(t,i,'vehicleGotoCoordinatesRacing')(t.readInt(p[0]),point.x,point.y,point.z);
+ },
  CAR_GOTO_COORDINATES_ACCURATE:(t,p,i)=>{
   const point=vec(t,p,1);
   world(t,i,'vehicleGotoCoordinatesAccurate')(t.readInt(p[0]),point.x,point.y,point.z);
@@ -2281,6 +2285,10 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_AREA_OCCUPIED:(t,p,i)=>{
   t.updateCompareFlag(world(t,i,'areaIsOccupied')(vec(t,p,0),vec(t,p,3),
    {solid:bool(t,p[6]),vehicles:bool(t,p[7]),peds:bool(t,p[8]),objects:bool(t,p[9]),particles:bool(t,p[10])}),negated(i));
+ },
+ // iOS 0x1001ee820: the object's RwFrame matrix as the system's parent, the point and direction in its space.
+ CREATE_FX_SYSTEM_ON_OBJECT_WITH_DIRECTION:(t,p,i)=>{
+  t.writeInt(p[9],world(t,i,'createFxSystemOnObjectWithDirection')(t.text(p[0]),t.readInt(p[1]),vec(t,p,2),vec(t,p,5),bool(t,p[8])));
  },
  CREATE_FX_SYSTEM_ON_CAR_WITH_DIRECTION:(t,p,i)=>{
   t.writeInt(p[9],world(t,i,'createFxSystemOnVehicleWithDirection')(t.text(p[0]),t.readInt(p[1]),
