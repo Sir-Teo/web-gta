@@ -1022,7 +1022,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  hasCharBeenArrested?(handle:number):boolean;
  taskGreetPartner?(handle:number,partner:number,approachRatio:number,greetStyle:number):void;
  setHeliOrientation?(handle:number,angle:number):void;
- isObjectInAngledArea2d?(handle:number,leftBottomX:number,leftBottomY:number,rightTopX:number,rightTopY:number,angle:number,drawSphere:boolean):boolean;
  taskGoToObject?(char:number,object:number,time:number,radius:number):void;
  setCarEscortCarRight?(handle:number,handle2:number):void;
  setCarEscortCarLeft?(handle:number,handle2:number):void;
@@ -1048,7 +1047,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  resetStuffUponResurrection?():void;
  setCarRoll?(handle:number,yAngle:number):void;
  lockDoor?(handle:number,state:boolean):void;
- getObjectMass?(handle:number):number;
  taskUseAtm?(handle:number):void;
  attachWinchToHeli?(handle:number,state:boolean):void;
  releaseEntityFromWinch?(handle:number):void;

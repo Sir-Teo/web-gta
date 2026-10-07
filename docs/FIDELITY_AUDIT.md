@@ -11105,3 +11105,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   keeps its lamps as on iOS. SET_CAR_LIGHTS_ON (0x100201284) sets the flag (bit 6), which GARAG1 does to a parked car.
   FORCE_ALL_VEHICLE_LIGHTS_OFF (0x1002079c8) sets the byte DoVehicleLights reads first: while it is set no vehicle draws
   its lights and none changes its flag (BLOOD). CTheScripts::Init and the restart clear it. Both commands were skipped.
+- **Objects in an angled area, and masses.** IS_OBJECT_IN_ANGLED_AREA_2D and _3D are
+  CRunningScript::ObjectInAngledAreaCheckCommand (unreversed; iOS 0x1001de724), the geometry of the ped form
+  (NativeAngledRect) over the object's position, its height between the corners' for 3D, the area highlighted on
+  request whatever the answer (DRIV2 asks the 2D one). GET_CAR_MASS (0x1001ef0cc) and GET_OBJECT_MASS (0x100201cb4)
+  both read CPhysical::m_fMass: a vehicle's handling fMass (SET_CAR_HEAVY doubles it only inside collisions), and an
+  object's OBJECT.DAT mass or 99999 without a row (DECON and HEIST1). All were skipped.

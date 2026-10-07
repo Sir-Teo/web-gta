@@ -5728,6 +5728,7 @@ async function boot() {
                  },
                  setPlayerUsedEntryExit:(x,y,radius)=>{if(entryExits)entryExits.enteredBy=entryExits.findNearest(x,y,radius);},
                  playerEntryExit:()=>{const e=entryExits?.enteredBy;return e&&{name:e.name,position:entryExitPosition(e),heading:e.angle*180/Math.PI};},
+                 scriptVehicleMass:car=>(car as {assets?:{handling?:{values?:{mass?:number}}}}).assets?.handling?.values?.mass??0,
                  setScriptVehicleLightsFlag:(car,on)=>{if(car&&typeof car==='object'&&'lightsFlag' in car)(car as ScriptCar).lightsFlag=on;},
                  setScriptVehicleOverrideLights:(car,lights)=>{if(car&&typeof car==='object'&&'overrideLights' in car)(car as ScriptCar).overrideLights=lights&3;},
                  // CEntity::m_bUsesCollision: with it off nothing collides with the car, the ground included.

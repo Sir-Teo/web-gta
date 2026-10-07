@@ -200,6 +200,20 @@ function charInAngledArea(threeDimensional:boolean,gates:{car:boolean;foot:boole
   t.updateCompareFlag(inside,negated(i));
  };
 }
+/** CRunningScript::ObjectInAngledAreaCheckCommand (unreversed; iOS 0x1001de724) for IS_OBJECT_IN_ANGLED_AREA_2D and
+ * _3D: the object's position in the angled rectangle as the ped form measures it (NativeAngledRect), its height
+ * between the two corners' for 3D, and the area highlighted on request whatever the answer. */
+function objectInAngledArea(threeDimensional:boolean):ScmCommandHandler{
+ return (t,p,i)=>{
+  const position=game(t,i).objects.at(t.readInt(p[0])).position;
+  const a={x:t.readFloat(p[1]),y:t.readFloat(p[2])},b=threeDimensional?{x:t.readFloat(p[4]),y:t.readFloat(p[5])}:{x:t.readFloat(p[3]),y:t.readFloat(p[4])};
+  const aZ=threeDimensional?t.readFloat(p[3]):0,bZ=threeDimensional?t.readFloat(p[6]):0;
+  const area=new NativeAngledRect(a,b,t.readFloat(threeDimensional?p[7]:p[5]));
+  const inside=area.contains(position)&&(!threeDimensional||position.z>=Math.min(aZ,bZ)&&position.z<=Math.max(aZ,bZ));
+  t.updateCompareFlag(inside,negated(i));
+  if(bool(t,p[threeDimensional?8:6]))highlightImportantAngledArea(t,i,[area.a,area.cornerB,area.cornerC,area.cornerD]);
+ };
+}
 /** The locate commands that name a vehicle, whose own position is the point. LocateCharEntity2D and its 3D twin
  * again, over a car rather than an object. */
 function locateCharVehicle(threeDimensional:boolean,gates:{car:boolean;foot:boolean}):ScmCommandHandler{
@@ -2678,7 +2692,8 @@ const handlers:Record<string,ScmCommandHandler>={
  HAS_CHAR_BEEN_ARRESTED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasCharBeenArrested')(t.readInt(p[0])),negated(i));},
  TASK_GREET_PARTNER:(t,p,i)=>{world(t,i,'taskGreetPartner')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]),t.readInt(p[3]));},
  SET_HELI_ORIENTATION:(t,p,i)=>{world(t,i,'setHeliOrientation')(t.readInt(p[0]),t.readFloat(p[1]));},
- IS_OBJECT_IN_ANGLED_AREA_2D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isObjectInAngledArea2d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),bool(t,p[6])),negated(i));},
+ IS_OBJECT_IN_ANGLED_AREA_2D:objectInAngledArea(false),
+ IS_OBJECT_IN_ANGLED_AREA_3D:objectInAngledArea(true),
  TASK_GO_TO_OBJECT:(t,p,i)=>{world(t,i,'taskGoToObject')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]),t.readFloat(p[3]));},
  SET_CAR_ESCORT_CAR_RIGHT:(t,p,i)=>{world(t,i,'setCarEscortCarRight')(t.readInt(p[0]),t.readInt(p[1]));},
  SET_CAR_ESCORT_CAR_LEFT:(t,p,i)=>{world(t,i,'setCarEscortCarLeft')(t.readInt(p[0]),t.readInt(p[1]));},
@@ -2707,7 +2722,8 @@ const handlers:Record<string,ScmCommandHandler>={
  RESET_STUFF_UPON_RESURRECTION:(t,p,i)=>{world(t,i,'resetStuffUponResurrection')();},
  SET_CAR_ROLL:(t,p,i)=>{world(t,i,'setCarRoll')(t.readInt(p[0]),t.readFloat(p[1]));},
  LOCK_DOOR:(t,p,i)=>{world(t,i,'lockDoor')(t.readInt(p[0]),bool(t,p[1]));},
- GET_OBJECT_MASS:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getObjectMass')(t.readInt(p[0])));},
+ // CPhysical::m_fMass (iOS 0x100201cb4 reads +0xb0): OBJECT.DAT's, or 99999 for a model without a row.
+ GET_OBJECT_MASS:(t,p,i)=>{t.writeFloat(p[1],game(t,i).objects.at(t.readInt(p[0])).mass);},
  TASK_USE_ATM:(t,p,i)=>{world(t,i,'taskUseAtm')(t.readInt(p[0]));},
  ATTACH_WINCH_TO_HELI:(t,p,i)=>{world(t,i,'attachWinchToHeli')(t.readInt(p[0]),bool(t,p[1]));},
  RELEASE_ENTITY_FROM_WINCH:(t,p,i)=>{world(t,i,'releaseEntityFromWinch')(t.readInt(p[0]));},

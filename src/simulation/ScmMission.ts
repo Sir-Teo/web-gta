@@ -166,6 +166,8 @@ export interface ScmMissionWorld {
  setScriptVehicleOverrideLights?(car:unknown,lights:number):void;
  /** vehicleFlags.bLightsOn of a script's car (SET_CAR_LIGHTS_ON). */
  setScriptVehicleLightsFlag?(car:unknown,on:boolean):void;
+ /** CPhysical::m_fMass of a script's vehicle: its handling's fMass (SET_CAR_HEAVY doubles it only in collisions). */
+ scriptVehicleMass?(car:unknown):number;
  setScriptVehicleUsesCollision?(car:unknown,state:boolean):void;
  /** CVehicleRecording's host: stream a file of carrec.img (calling `loaded` once its frames are here), read its
   * frames, and see a car as a playback moves it. */
@@ -1724,6 +1726,8 @@ export class ScmMission {
    // SET_CAR_LIGHTS_ON (iOS 0x100201284): vehicleFlags.bLightsOn, bit 6 of the flags. DoVehicleLights rewrites it from
    // GetVehicleLightsStatus for a car with a driver; a parked car keeps it.
    setCarLightsOn:(handle,on)=>{this.host('setScriptVehicleLightsFlag','SET_CAR_LIGHTS_ON')(this.liveVehicle(handle),on);},
+   // GET_CAR_MASS (iOS 0x1001ef0cc): CPhysical::m_fMass, +0xb0.
+   getCarMass:handle=>this.host('scriptVehicleMass','GET_CAR_MASS')(this.liveVehicle(handle)),
    setVehicleCollision:(handle,state)=>{this.host('setScriptVehicleUsesCollision','SET_CAR_COLLISION')(this.liveVehicle(handle),state);},
    createUser3dMarker:(x,y,z,colour)=>this.host('createScriptUser3dMarker','CREATE_USER_3D_MARKER')(x,y,z,colour),
    removeUser3dMarker:index=>{this.host('removeScriptUser3dMarker','REMOVE_USER_3D_MARKER')(index);},

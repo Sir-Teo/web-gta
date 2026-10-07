@@ -110,3 +110,33 @@ describe('the stopped forms of the locate commands',()=>{
   expect(run(moving,instruction(scmOpcode('LOCATE_STOPPED_CHAR_ANY_MEANS_2D'),operands)).condition).toBe(false);
  });
 });
+
+describe('the object angled-area commands (iOS ObjectInAngledAreaCheckCommand 0x1001de724)',()=>{
+ function ask(at:{x:number;y:number;z:number},opcode:string,operands:readonly (readonly [number,number])[]){
+  const game=new ScmGameState(),handle=game.objects.create(1234,at,{external:false,missionCleanup:false}).handle;
+  const space=new Uint8Array(1024);space.set(instruction(scmOpcode(opcode),[int(handle),...operands]),0);
+  const thread=new ScmThread(space,0,0,undefined,{startScript(){},game,world:{fade(){}} as ScmWorldCommands});
+  try{thread.run(0,8);}catch(error){if(!String(error).includes('watchdog'))throw error;}
+  return thread.condition;
+ }
+ test('the object stands in the rectangle the ped form measures, with a height band in 3D',()=>{
+  const flat=[float(0),float(0),float(10),float(0),float(4),int(0)] as const;
+  expect(ask({x:5,y:2,z:99},'IS_OBJECT_IN_ANGLED_AREA_2D',flat)).toBe(true);
+  expect(ask({x:5,y:-2,z:0},'IS_OBJECT_IN_ANGLED_AREA_2D',flat)).toBe(false);
+  const tall=[float(0),float(0),float(10),float(10),float(0),float(0),float(4),int(0)] as const;
+  expect(ask({x:5,y:2,z:-1},'IS_OBJECT_IN_ANGLED_AREA_3D',tall)).toBe(false);
+  expect(ask({x:5,y:2,z:3},'IS_OBJECT_IN_ANGLED_AREA_3D',tall)).toBe(true);
+ });
+});
+
+test('GET_OBJECT_MASS reads the object\'s m_fMass, OBJECT.DAT\'s or 99999 without a row (iOS 0x100201cb4)',()=>{
+ const game=new ScmGameState();
+ game.objects.objectInfo=model=>model===1234?{mass:150,colDamageEffect:0,colDamageMultiplier:1,smashMultiplier:1} as never:undefined;
+ const light=game.objects.create(1234,{x:0,y:0,z:0},{external:false,missionCleanup:false}).handle;
+ const fixed=game.objects.create(999,{x:0,y:0,z:0},{external:false,missionCleanup:false}).handle;
+ const space=new Uint8Array(1024),view=new DataView(space.buffer);
+ space.set([...instruction(scmOpcode('GET_OBJECT_MASS'),[int(light)]),2,64,0,...instruction(scmOpcode('GET_OBJECT_MASS'),[int(fixed)]),2,68,0],0);
+ const thread=new ScmThread(space,0,0,undefined,{startScript(){},game,world:{fade(){}} as ScmWorldCommands});
+ try{thread.run(0,8);}catch(error){if(!String(error).includes('watchdog'))throw error;}
+ expect([view.getFloat32(64,true),view.getFloat32(68,true)]).toEqual([150,99999]);
+});
