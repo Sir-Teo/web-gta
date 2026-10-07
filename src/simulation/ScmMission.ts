@@ -425,6 +425,14 @@ export interface ScmMissionWorld {
  setScriptPedCriticalHits(ped:unknown,suffers:boolean):void;
  /** CPed::bHasBulletProofVest of a script ped. */
  setScriptPedBulletProofVest?(ped:unknown,on:boolean):void;
+ /** m_nTertiaryColor and m_nQuaternaryColor of a script's car (SET_EXTRA_CAR_COLOURS). */
+ recolourScriptVehicleExtras?(car:unknown,tertiary:number,quaternary:number):void;
+ /** vehicleFlags.bFreebies of a script's car. */
+ setScriptVehicleFreebies?(car:unknown,on:boolean):void;
+ /** The handling's nMonetaryValue for a vehicle model. */
+ vehicleModelValue?(model:number|string):number;
+ /** SET_CAR_ROLL's matrix: the car's heading alone, then turned about the world's y axis by `roll` radians. */
+ setScriptVehicleRoll?(car:unknown,roll:number):void;
  scriptPedAnimProgress(ped:unknown,animation:string):number|undefined;
  /** SET_CHAR_ANIM_SPEED and SET_CHAR_ANIM_CURRENT_TIME on the clip the ped plays by that name; `undefined` is the player. */
  setScriptPedAnim?(ped:unknown,animation:string,change:{speed?:number;progress?:number;playing?:boolean}):void;
@@ -1238,6 +1246,16 @@ export class ScmMission {
    },
    setPedSuffersCriticalHits:(handle,suffers)=>{this.world.setScriptPedCriticalHits(this.livePed(handle),suffers);},
    // SET_CHAR_BULLETPROOF_VEST (iOS 0x1002016e4): CPed::bHasBulletProofVest, which CEventDamage::AffectsPed reads.
+   // SET_EXTRA_CAR_COLOURS (iOS 0x1002057cc): the third and fourth colour bytes (+0x576, +0x577).
+   setExtraCarColours:(handle,tertiary,quaternary)=>{this.host('recolourScriptVehicleExtras','SET_EXTRA_CAR_COLOURS')(this.liveVehicle(handle),tertiary,quaternary);},
+   // SET_FREEBIES_IN_VEHICLE (iOS 0x100200a28): vehicleFlags.bFreebies, bit 7.
+   setFreebiesInVehicle:(handle,on)=>{this.host('setScriptVehicleFreebies','SET_FREEBIES_IN_VEHICLE')(this.liveVehicle(handle),on);},
+   // GET_CAR_MODEL_VALUE (iOS 0x100206094): the model's handling entry's nMonetaryValue.
+   getCarModelValue:model=>this.host('vehicleModelValue','GET_CAR_MODEL_VALUE')(model),
+   // SET_CAR_ROLL (iOS 0x1001f5f44): the position kept, CMatrix::SetRotateZ by the matrix's own heading (pitch and
+   // roll gone), CMatrix::RotateY by the roll in degrees (about the world's y axis, which is the car's own length only
+   // while it faces north), the position put back.
+   setCarRoll:(handle,degrees)=>{this.host('setScriptVehicleRoll','SET_CAR_ROLL')(this.liveVehicle(handle),degrees*Math.PI/180);},
    setCharBulletproofVest:(handle,on)=>{this.host('setScriptPedBulletProofVest','SET_CHAR_BULLETPROOF_VEST')(this.livePed(handle),on);},
    pedAnimTotalTime:(handle,animation)=>(handle===PLAYER_PED_HANDLE?this.host('playerAnimTotalTime','GET_CHAR_ANIM_TOTAL_TIME')(animation):this.world.scriptPedAnimTotalTime?.(this.livePed(handle),animation))??0,
    setWeekDay:day=>{this.world.setWorldWeekDay?.(day);},

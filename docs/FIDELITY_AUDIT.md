@@ -11137,3 +11137,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   ChangeBlipScale(3) the newer forms make, so the blip stays at size 1. ADD_BLIP_FOR_DEAD_CHAR (0x1001fd5a0) is
   ADD_BLIP_FOR_CHAR's entity blip. SET_ALWAYS_DRAW_3D_MARKERS (0x100200160) is C3dMarkers::ForceRender, lifting the
   150-unit limit Render3dMarkers keeps (WUZI2 and two others). All four were skipped.
+- **Four small car commands.** SET_EXTRA_CAR_COLOURS (iOS 0x1002057cc) writes the third and fourth colour bytes,
+  which the paint now takes as CHANGE_CAR_COLOUR does the first two (CASINO6). SET_FREEBIES_IN_VEHICLE (0x100200a28) is
+  vehicleFlags.bFreebies, which the port's SetDriver freebies already read (DSKOOL). GET_CAR_MODEL_VALUE (0x100206094)
+  is the model's handling nMonetaryValue (MAIN). SET_CAR_ROLL (0x1001f5f44) keeps the position, sets the matrix to its
+  own heading alone (CMatrix::SetRotateZ, so pitch and roll go) and turns it by CMatrix::RotateY, which turns about
+  the world's y axis rather than the car's length unless it faces north; CASINO9 rolls its Dodo by it frame by frame.
+  All four were skipped.

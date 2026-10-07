@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T14:16:05.577Z",
+ "generated": "2026-10-07T14:19:49.741Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1215,
+   "faithful": 1219,
    "authored": 19,
    "silent": 2,
-   "skipped": 149,
+   "skipped": 145,
    "stops": 6
   }
  },
@@ -24,10 +24,10 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3810,
+    "faithful": 3814,
     "authored": 18,
     "silent": 0,
-    "skipped": 13,
+    "skipped": 9,
     "stops": 0
    },
    "gaps": [
@@ -43,11 +43,6 @@
     },
     {
      "name": "GRAB_ENTITY_ON_ROPE_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 4
-    },
-    {
-     "name": "GET_CAR_MODEL_VALUE",
      "status": "skipped",
      "sites": 4
     },
@@ -3947,19 +3942,13 @@
    "byStatus": {
     "core": 4181,
     "nop": 2,
-    "faithful": 1387,
+    "faithful": 1389,
     "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "SET_FREEBIES_IN_VEHICLE",
-     "status": "skipped",
-     "sites": 2
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 72,
@@ -4692,10 +4681,10 @@
    "byStatus": {
     "core": 2481,
     "nop": 4,
-    "faithful": 1342,
+    "faithful": 1343,
     "authored": 3,
     "silent": 0,
-    "skipped": 6,
+    "skipped": 5,
     "stops": 0
    },
    "gaps": [
@@ -4720,11 +4709,6 @@
      "sites": 1
     },
     {
-     "name": "SET_EXTRA_CAR_COLOURS",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
      "name": "RESET_STUFF_UPON_RESURRECTION",
      "status": "skipped",
      "sites": 1
@@ -4740,10 +4724,10 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 493,
+    "faithful": 494,
     "authored": 3,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 2,
     "stops": 0
    },
    "gaps": [
@@ -4759,11 +4743,6 @@
     },
     {
      "name": "PLANE_FLY_IN_DIRECTION",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_CAR_ROLL",
      "status": "skipped",
      "sites": 1
     },
@@ -6074,23 +6053,6 @@
    "doc": "Returns true if the game uses metric measurements (meters instead of feet)",
    "sites": 6,
    "missions": 2,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "GET_CAR_MODEL_VALUE",
-   "opcode": "09e1",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getCarModelValue (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2413,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Returns the value of the specified car model",
-   "sites": 4,
-   "missions": 1,
    "firstMission": "MAIN",
    "portable": false
   },
@@ -7910,23 +7872,6 @@
    "portable": false
   },
   {
-   "name": "SET_FREEBIES_IN_VEHICLE",
-   "opcode": "08f3",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setFreebiesInVehicle (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2592,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Sets whether the player can receive items from this vehicle, such as shotgun ammo from a police car and cash from a taxi",
-   "sites": 2,
-   "missions": 1,
-   "firstMission": "DSKOOL",
-   "portable": false
-  },
-  {
    "name": "SET_PLANE_THROTTLE",
    "opcode": "0742",
    "status": "skipped",
@@ -8454,23 +8399,6 @@
    "portable": false
   },
   {
-   "name": "SET_EXTRA_CAR_COLOURS",
-   "opcode": "0a11",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setExtraCarColours (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2734,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Sets the car's ternary and quaternary colors. See also 0229",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "CASINO6",
-   "portable": false
-  },
-  {
    "name": "RESET_STUFF_UPON_RESURRECTION",
    "opcode": "0974",
    "status": "skipped",
@@ -8501,23 +8429,6 @@
    "doc": "",
    "sites": 2,
    "missions": 2,
-   "firstMission": "CASINO9",
-   "portable": false
-  },
-  {
-   "name": "SET_CAR_ROLL",
-   "opcode": "0731",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setCarRoll (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2736,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Sets the Y Angle of the vehicle to the specified value",
-   "sites": 1,
-   "missions": 1,
    "firstMission": "CASINO9",
    "portable": false
   },

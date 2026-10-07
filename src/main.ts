@@ -5398,6 +5398,19 @@ async function boot() {
                  setScriptPickupMoneyPerDay:(handle,money)=>{pickups.patchGenerated(`script:${handle}`,{revenueRate:money});},
                  // bNoCriticalHits is the command's own value inverted.
                  setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},
+                 recolourScriptVehicleExtras:(car,tertiary,quaternary)=>{if(isScriptCar(car))fleet?.recolourCar(car,tertiary,quaternary,2);},
+                 setScriptVehicleFreebies:(car,on)=>{if(isScriptCar(car))car.freebies=on;},
+                 vehicleModelValue:model=>fleet?.modelMonetaryValue(model)??0,
+                 setScriptVehicleRoll:(car,roll)=>{
+                  type Turnable={rotation():{x:number;y:number;z:number;w:number};setRotation(q:{x:number;y:number;z:number;w:number},wake:boolean):void};
+                  const body=(car as {car?:{body?:Turnable}}).car?.body??(car as {body?:Turnable}).body;if(!body)return;
+                  // The heading from the forward axis (the body's local -z) across the ground, then the world-y turn,
+                  // which is a turn about -z in the renderer's frame: q = turn(-z, roll) x turn(y, heading).
+                  const r=body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),f=new Vector3(0,0,-1).applyQuaternion(q);
+                  const heading=Math.atan2(-f.x,-f.z),yaw=new Quaternion().setFromAxisAngle(new Vector3(0,1,0),heading);
+                  const turned=new Quaternion().setFromAxisAngle(new Vector3(0,0,-1),roll).multiply(yaw);
+                  body.setRotation({x:turned.x,y:turned.y,z:turned.z,w:turned.w},true);
+                 },
                  setScriptPedBulletProofVest:(ped,on)=>{const p=onFoot(ped);if(p)p.bulletProofVest=on;},
                  playerAnimTotalTime:animation=>{const view=render.nativeCharacter;return view&&(view.reactionName??'').toLowerCase()===animation.toLowerCase()?(view.reactionDuration(view.reactionName!)??0)*1000:undefined;},
                  scriptPedAnimTotalTime:(ped,animation)=>{const p=onFoot(ped);return p?pedestrians?.animTotalTime(p,animation):undefined;},

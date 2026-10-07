@@ -215,6 +215,13 @@ export class WorldFleet {
    const name=typeof model==='string'?model.toLowerCase():undefined;
    return this.catalog.definitions.find(v=>name===undefined?v.id===model:v.model.toLowerCase()===name)?.type;
   }
+  /** cHandlingDataMgr's nMonetaryValue for a vehicle model (its IDE row's handling name), 0 for none. */
+  modelMonetaryValue(model:number|string){
+   if(!this.catalog)return 0;
+   const name=typeof model==='string'?model.toLowerCase():undefined;
+   const definition=this.catalog.definitions.find(v=>name===undefined?v.id===model:v.model.toLowerCase()===name);
+   return definition?this.catalog.handling.records.find(r=>r.name===definition.handling)?.values.monetaryValue??0:0;
+  }
   /** The player's zone level: 0 countryside, 1 Los Santos, 2 San Fierro, 3 Las Venturas. */
   zoneLevel(){return this.currentZone?.level??0;}
   private popRow(){
@@ -424,15 +431,15 @@ export class WorldFleet {
  /** CHANGE_CAR_COLOUR: the two paint slots take the palette entries the script names, and the other two are
   * left as the car's own variation chose them. A slot the palette does not carry is left alone, which is what
   * the loader's own unresolved paint would have been. */
- recolourCar(car:WorldCar,primary:number,secondary:number){
+ recolourCar(car:WorldCar,primary:number,secondary:number,first:0|2=0){
   const palette=this.catalog?.colors.palette;if(!palette)return false;
   const colors=car.assets.colors;if(!colors)return false;
   const rows=colors.map(rgb=>[...rgb] as [number,number,number]);
   for(const [slot,index] of [primary,secondary].entries()){
-   const rgb=palette[index]?.rgb;if(rgb)rows[slot]=[...rgb] as [number,number,number];
+   const rgb=palette[index]?.rgb;if(rgb)rows[first+slot]=[...rgb] as [number,number,number];
   }
   const next=[rows[0],rows[1],rows[2],rows[3]] as const,indices=car.assets.colourIndices;
-  if(indices)car.assets.colourIndices=[palette[primary]?primary:indices[0],palette[secondary]?secondary:indices[1],indices[2],indices[3]];
+  if(indices){const kept=[...indices] as [number,number,number,number];kept[first]=palette[primary]?primary:indices[first];kept[first+1]=palette[secondary]?secondary:indices[first+1];car.assets.colourIndices=kept;}
   car.assets.colors=next as unknown as typeof colors;car.car.setColors(car.assets.colors);return true;
  }
  /** A Pay 'n' Spray's new paint (CGarage::Update's respray, iOS 0x1001b4c30): ChooseVehicleColour once, and the car
