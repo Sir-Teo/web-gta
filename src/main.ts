@@ -6025,7 +6025,8 @@ async function boot() {
                  givePlayerWeapon:(weapon,ammo)=>{const before=weapons.inventory.selected;if(weapons.inventory.give(weapon,ammo)&&weapons.inventory.selected!==before)void weaponView.equip(weapons.inventory.selected);},
                  // SetCurrentCharWeapon only picks among the weapons the ped holds: a type he does not have changes nothing.
                  setPlayerCurrentWeapon:weapon=>{if(weapons.inventory.selected!==weapon&&weapons.inventory.owned.has(weapon)&&weapons.inventory.select(weapon))void weaponView.equip(weapons.inventory.selected);},
-                 setPlayerArmour:armour=>{sim.player.armour=armour;},playerArmour:()=>sim.player.armour,
+                 setPlayerArmour:armour=>{sim.player.armour=armour;},
+                 playerArmour:()=>sim.player.armour,
                  pedModelBuysDrugs:model=>pedestrians?.modelBuysDrugs(model)??false,
                  placementUprooted:(model,position)=>movedPlacements.has(placementKey(model,position)),
                  randomStreetPeds:()=>(pedestrians?.scriptCandidates()??[]).map(p=>{const at=p.actor.player.position;return {ped:p,pedType:nativePedType(p.pedType)??4,model:pedestrians!.modelIdOf(p)??-1,

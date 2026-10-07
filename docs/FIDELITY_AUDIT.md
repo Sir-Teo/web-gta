@@ -11071,3 +11071,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   ped (a duration of -1 never ends). Still the port's own: outside a sequence the phone stays an upper-body clip over
   whatever the ped does (iOS runs it as the primary task, whose PHONE_IN, PHONE_TALK and PHONE_OUT subtasks 1601 to
   1603 are CTaskSimpleRunAnim), and a later task does not put the phone away.
+- **A script ped's armour.** GET_CHAR_ARMOUR is m_fArmour truncated (0x48C12E, reversed; iOS 0x1001e3428 `fcvtzs`).
+  The port answered 0 for every ped but the player, though ADD_ARMOUR_TO_CHAR keeps a script ped's figure; it now reads
+  that figure back. The census also listed the command as silent for the player: main.ts's `playerArmour` shared a
+  line with `setPlayerArmour`, where the census's member scan does not look.

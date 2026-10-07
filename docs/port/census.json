@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T13:23:47.413Z",
+ "generated": "2026-10-07T13:35:43.435Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,9 +7,9 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1193,
+   "faithful": 1194,
    "authored": 19,
-   "silent": 4,
+   "silent": 3,
    "skipped": 169,
    "stops": 6
   }
@@ -1515,19 +1515,13 @@
    "byStatus": {
     "core": 1164,
     "nop": 1,
-    "faithful": 319,
+    "faithful": 320,
     "authored": 0,
-    "silent": 1,
+    "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "GET_CHAR_ARMOUR",
-     "status": "silent",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "tattoo.scm",
@@ -6751,23 +6745,6 @@
    "sites": 3,
    "missions": 1,
    "firstMission": "stripw.scm",
-   "portable": false
-  },
-  {
-   "name": "GET_CHAR_ARMOUR",
-   "opcode": "04dd",
-   "status": "silent",
-   "notes": [
-    "host lacks playerArmour"
-   ],
-   "handlerLine": 3159,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Returns the character's armor amount",
-   "sites": 1,
-   "missions": 1,
-   "firstMission": "ammu.scm",
    "portable": false
   },
   {

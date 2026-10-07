@@ -2049,7 +2049,8 @@ export class ScmMission {
    // CAutomobile's taxi light (m_bTaxiLight through SetTaxiLight; the command's dispatch is unreversed).
    setTaxiLights:(handle,on)=>{if(handle!==PLAYER_VEHICLE_HANDLE)this.liveVehicle(handle);this.world.setTaxiLight?.(handle===PLAYER_VEHICLE_HANDLE?undefined:this.liveVehicle(handle),on);},
    // GetCharArmour: the player's m_fArmour; a script ped wears none here.
-   pedArmour:handle=>handle===PLAYER_PED_HANDLE?this.world.playerArmour?.()??0:0,
+   // GET_CHAR_ARMOUR (0x48C12E; iOS 0x1001e3428): m_fArmour, truncated. A script ped's is what ADD_ARMOUR_TO_CHAR left.
+   pedArmour:handle=>{if(handle===PLAYER_PED_HANDLE)return this.world.playerArmour?.()??0;this.livePed(handle);return this.peds.armourOf(handle);},
    weaponTypeSlot:type=>{const info=this.world.weaponTypeInfo?.(type);if(!info)throw new UnsupportedScmCommand(-1,0,'GET_WEAPONTYPE_SLOT','weapon.dat');return info.slot;},
    weaponTypeModel:type=>{const info=this.world.weaponTypeInfo?.(type);if(!info)throw new UnsupportedScmCommand(-1,0,'GET_WEAPONTYPE_MODEL','weapon.dat');return info.model;},
    // CScripted2dEffects (ADD_ATTRACTOR; unreversed): a scripted ped attractor is a point, the heading its user takes
