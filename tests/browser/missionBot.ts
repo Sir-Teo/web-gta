@@ -17,7 +17,10 @@ export function missionBotTick(dtSeconds:number){
   try{
    if(t.type===BLIP_CHAR)return alive(t.entityHandle)?world.pedPosition(t.entityHandle):undefined;
    if(t.type===BLIP_CAR)return world.vehiclePosition(t.entityHandle);
-   if(t.type===BLIP_OBJECT)return world.objectPosition?.(t.entityHandle)??t.position;
+   // An object's blip holds its handle; its place is the object's, as the radar reads it (CRASH1's windows).
+   if(t.type===BLIP_OBJECT){const objects=r.game.objects;return objects?.exists?.(t.entityHandle)?objects.at(t.entityHandle).position:world.objectPosition?.(t.entityHandle)??t.position;}
+   // A pickup's blip holds its handle, as the radar does (CRASH1's molotovs): its place is the pickup's.
+   if(t.type===BLIP_PICKUP)return r.game.pickups?.at?.(t.entityHandle)?.position??t.position;
   }catch{return undefined;}
   return t.position;
  };
@@ -340,6 +343,36 @@ export function missionBotTick(dtSeconds:number){
    return {action:'shoot gang member',probe,ammo:(()=>{try{return world.pedWeaponAmmo?.(1,31);}catch{return -1;}})(),rival:`${rival.id}:${rival.gang}:${Math.round(rival.hp)}:${distance(rival).toFixed(1)}:${clearShot(me,rival)?'clear':'blocked'}`,war:gw?`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`:''};
   }
  }
+ // "Throw molotovs into the 5 downstairs windows" (CRASH1): with the molotovs in hand a player stands a few units off
+ // each blipped window and throws one in (the script counts IS_PROJECTILE_IN_AREA at each).
+ // Kept through the script's asides ("Good shot!") until no window is blipped.
+ if(/molotov|windows|torch/i.test(objective))mem.torching=true;else if(!blips.some((b:any)=>b.type===BLIP_OBJECT))mem.torching=false;
+ const windows=mem.torching&&!vehicle&&(()=>{try{return !!world.pedHasWeapon?.(1,18);}catch{return false;}})()?blips.filter((b:any)=>b.type===BLIP_OBJECT):[];
+ if(windows.length){
+  const w=nearest(windows);
+  // From a spot by the window with a floor and nothing fixed in the way (thrown from the porch, they smashed on the
+  // house's own wall at CJ's feet), and only with the window in sight: the script's molotovs are counted.
+  // CRASH1 counts IS_PROJECTILE_IN_AREA in a box just inside each window (its locals 222..251: x, y and z, min and
+  // max, of five windows): a player throws from a few units straight out from the window at its middle.
+  const crash1=[...r.active].map((slot:any)=>slot.thread).find((th:any)=>th.base>0&&/crash1/i.test(th.name));
+  let aim=w.position,stand:any;
+  if(crash1){
+   const f=(n:number)=>crash1.locals.getFloat32(n*4,true);
+   const box=[0,1,2,3,4].map(i=>({x:(f(222+i)+f(227+i))/2,y:(f(232+i)+f(237+i))/2,z:(f(242+i)+f(247+i))/2})).sort((a,b)=>Math.hypot(a.x-w.position.x,a.y-w.position.y)-Math.hypot(b.x-w.position.x,b.y-w.position.y))[0];
+   const ox=w.position.x-box.x,oy=w.position.y-box.y,l=Math.hypot(ox,oy)||1;
+   aim=box;stand={x:w.position.x+ox/l*3.5,y:w.position.y+oy/l*3.5,z:w.position.z-1};
+  }
+  const spots=mem.windowSpots??={};
+  if(!stand&&!(w.handle in spots))spots[w.handle]=vantageOn(w.position)??null;
+  const spot=stand??spots[w.handle];
+  if(spot&&glide(spot,1))return {action:'go to window',target:w.handle};
+  if(!spot&&distance(w.position)>6&&glide(w.position,5))return {action:'go to window',target:w.handle};
+  try{world.setPedCurrentWeapon?.(1,18);}catch{}
+  // A throw goes along CJ's heading (AddProjectile; the aim only turns him): he faces the window first.
+  const now=performance.now();if((stand||clearShot(me,w.position))&&now-(mem.thrownAt??0)>2500){mem.thrownAt=now;try{world.setCharHeading?.(1,Math.atan2(-(aim.x-me.x),aim.y-me.y)*180/Math.PI);}catch{}g.fireAt(aim.x,aim.z+.4,-aim.y);}
+  const ws=g.weapons?.(),proj=(ws?.projectiles??[]).map((q:any)=>`${q.position.x.toFixed(1)},${(-q.position.z).toFixed(1)},${q.position.y.toFixed(1)}`).join(' ');
+  return {action:'throw at window',target:w.handle,win:`${w.position.x.toFixed(1)},${w.position.y.toFixed(1)},${w.position.z.toFixed(1)}`,d:distance(w.position).toFixed(1),ammo:(()=>{try{return world.pedWeaponAmmo?.(1,18);}catch{return -1;}})(),held:ws?.inventory?.weapon?.kind,throwing:!!ws?.throwing,proj};
+ }
  if(places.length){
   // A place stood at for six seconds with its blip still up is not what the script waits on (CRASH4's Ammu-Nation, for
   // a gun if CJ wants one): a player goes on to the next, before the door near it would take him in.
@@ -379,7 +412,24 @@ export function missionBotTick(dtSeconds:number){
    if(!mem.approachTried&&distance(p.position)<30&&!carLineClear(me,p.position,p.position.z+.6)){mem.approachTried=true;mem.approach=approachTo(p.position);}
    if(mem.approach){if(glide(mem.approach,2.5))return {action:'go round to place'};mem.approach=undefined;}
   }
+  // An outdoor blip tied to a door beside it (SET_BLIP_ENTRY_EXIT: CRASH1's burning house) is walked into the door's
+  // marker, a 1.6-unit square the place's 1.5-unit 'over' can leave CJ outside of.
+  const outsideDoor=!vehicle&&p.entryExit!=null&&p.position.z<500&&me.z<500?g.entryExitEntrance?.(p.entryExit):null;
+  if(outsideDoor&&Math.hypot(outsideDoor.x-p.position.x,outsideDoor.y-p.position.y)<6&&distance(p.position)<8){
+   if(glide(outsideDoor,0))return {action:'go into door'};return {action:'in door'};
+  }
   if(!over&&glide(p.position,1))return {action:'go to place'};
+  // On a weapon pickup that stays (CJ holding another weapon of its slot: CPickup::Update's PU_CF1 gate), a player
+  // presses the collect button (PED_ANSWER_PHONE, Tab), which the sweep does for this action.
+  if(!vehicle&&p.type===BLIP_PICKUP&&distance(p.position)<1.5){
+   const now=performance.now();if(now-(mem.collectAt??0)>1500){mem.collectAt=now;return {action:'press collect'};}
+  }
+  // Over the place but far under or over it on foot (fallen through an alley's floor short of CRASH1's molotovs), a
+  // player would be standing at it: the bot is set on it.
+  if(!vehicle&&me.z<500&&p.position.z<500&&Math.abs(me.z-1-p.position.z)>2.5&&distance(p.position)<3){
+   try{(world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,p.position.x,p.position.y,p.position.z+1);}catch{}
+   return {action:'step onto place'};
+  }
   // Indoors with nothing left to do at the place for twenty seconds (the haircut bought, the counter served), a player
   // walks out through the interior's exit marker: INTRO2 waits for CJ back at the barber's door.
   if(!vehicle&&me.z>500){
@@ -410,7 +460,7 @@ export function missionBotTick(dtSeconds:number){
   }
   const gw=g.gangWars?.();
   const crowdNow=((g.pedestrians?.() as any)?.people??[]) as any[];
-  return {action:marker?'in marker':'at place',peds:`${crowdNow.length}/${crowdNow.filter(p=>p.health>0&&p.gang===0).length}`,...(gw&&gw.state?{war:`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`,wave:((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.attackWave&&p.health>0).map((p:any)=>Math.round(Math.hypot(p.actor.player.position.x-me.x,-p.actor.player.position.z-me.y))).join('/')}:{})};
+  return {action:marker?'in marker':'at place',place:`${p.position.x.toFixed(1)},${p.position.y.toFixed(1)},${p.position.z.toFixed(1)}`,peds:`${crowdNow.length}/${crowdNow.filter(p=>p.health>0&&p.gang===0).length}`,...(gw&&gw.state?{war:`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`,wave:((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.attackWave&&p.health>0).map((p:any)=>Math.round(Math.hypot(p.actor.player.position.x-me.x,-p.actor.player.position.z-me.y))).join('/')}:{})};
  }
  if(chases.length){
   const c=nearest(chases);

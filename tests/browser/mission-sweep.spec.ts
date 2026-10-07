@@ -29,6 +29,10 @@ const watch=(process.env.SWEEP_WATCH??'').split(',').filter(Boolean);
 /** SWEEP_GLOBALS=169,409,676: globals printed with the progress line, with CJ's money (what a shop or a flag the
  * mission waits on holds). */
 const globals=(process.env.SWEEP_GLOBALS??'').split(',').filter(Boolean).map(Number);
+/** SWEEP_LOCALS=35,204: the mission thread's own integer locals printed with the progress line (its stage counter). */
+const localInts=(process.env.SWEEP_LOCALS??'').split(',').filter(Boolean).map(Number);
+/** SWEEP_FLOATS=222,227: the mission thread's float locals, printed the same way. */
+const localFloats=(process.env.SWEEP_FLOATS??'').split(',').filter(Boolean).map(Number);
 const list=process.env.SWEEP??'';
 test.skip(!list,'set SWEEP to a mission list to run the mission sweep');
 test('mission sweep',async({page})=>{
@@ -81,7 +85,7 @@ test('mission sweep',async({page})=>{
   const deadline=Date.now()+seconds*1000;
   while(Date.now()<deadline){
    await page.waitForTimeout(500);
-   const s=await page.evaluate(([id,playerOnly,bot,watch,globals])=>{
+   const s=await page.evaluate(([id,playerOnly,bot,watch,globals,localInts,localFloats])=>{
     const g=(window as any).__game,m=g.missionForProfiling(),r=m.runtime,sweep=(window as any).__sweep;
     const slot=r.active.find((a:any)=>a.thread.base>0&&a.thread.thisMustBeTheOnlyMissionRunning);
     const gaveUp=m.snapshot().gaveUp.slice((window as any).__sweepGaveUp);
@@ -149,7 +153,7 @@ test('mission sweep',async({page})=>{
     // The wanted level and the police units within 40 units, with their CCarAI mission: cops pinning CJ or trying to bust
     // him out of a mission car stall the objective.
     const pol=g.police?.(),cops=(pol?.units??[]).filter((u:any)=>{if(u.car.disposed||!u.car.car.body.isValid())return false;const c=u.car.car.body.translation();const q=r.world.pedPosition(1);return Math.hypot(c.x-q.x,-c.z-q.y)<40;}).map((u:any)=>u.mission).join('/');
-    const me=r.world.pedPosition(1),watched=[...((globals as number[]).length?[`$${g.sim.money} ${(globals as number[]).map(n=>`g${n}=${(t as any).globals.getInt32(n*4,true)}`).join(' ')}`]:[]),`W${pol?.law?.level??'?'}${cops?` cops ${cops}`:''}${(()=>{
+    const me=r.world.pedPosition(1),watched=[...((globals as number[]).length?[`$${g.sim.money} ${(globals as number[]).map(n=>`g${n}=${(t as any).globals.getInt32(n*4,true)}`).join(' ')}`]:[]),...((localInts as number[]).length?[(localInts as number[]).map(n=>`${n}@=${t.locals.getInt32(n*4,true)}`).join(' ')]:[]),...((localFloats as number[]).length?[(localFloats as number[]).map(n=>`${n}@=${t.locals.getFloat32(n*4,true).toFixed(1)}`).join(' ')]:[]),`W${pol?.law?.level??'?'}${cops?` cops ${cops}`:''}${(()=>{
      // Script peds standing where the browser's collision window left them (bc3a443d): a mission waiting on one shows here.
      const n=(m.peds.handles as number[]).filter(h=>m.peds.entity(h)?.collisionWait).length;return n?` colwait ${n}`:'';})()} CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?`riding ${r.world.pedVehicle(1)}${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1));return car?.car?.body?`${car.waitingForCollision?' WAIT':''}${car.car.body.isEnabled()?'':' OFF'}${car.frozen?' FROZEN':''} w${car.wheelsOnGround??'?'}`:'';})()} hp ${(()=>{try{return Math.round(r.world.vehicleHealth?.(r.world.pedVehicle(1)));}catch{return '?';}})()} ${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1)),mi=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();return `${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mi?`${mi.kind}->${mi.goal.x.toFixed(0)},${(-mi.goal.z).toFixed(0)}${mi.recovery?` rec${mi.recovery.kind}`:''}`:'no mission'}`;})()}`:'on foot'}`,...(watch as string[]).map(local=>{
      // A `g` prefix names a global ($131, Sweet in SWEET1) rather than a mission local.
@@ -186,12 +190,13 @@ test('mission sweep',async({page})=>{
      hp[local]=health;
     }
     return {ended:false,offset,name:t.currentInstruction?.name??null,moved,gaveUp,loop,said:said(),bot:botAction,watched,hurt};
-   },[id,playerOnly,bot,watch,globals] as const);
+   },[id,playerOnly,bot,watch,globals,localInts,localFloats] as const);
    samples++;previous=last;last=s;
    // The bot picks a shop menu's item with the cross button (sprint), as the interior-shops spec does.
    if((s.bot as {action?:string}|null)?.action==='menu accept'){await page.keyboard.down('ShiftLeft');await page.waitForTimeout(150);await page.keyboard.up('ShiftLeft');}
    // Triangle is the enter-car key.
    if((s.bot as {action?:string}|null)?.action==='menu back'){await page.keyboard.down('KeyF');await page.waitForTimeout(150);await page.keyboard.up('KeyF');}
+   if((s.bot as {action?:string}|null)?.action==='press collect'){await page.keyboard.down('Tab');await page.waitForTimeout(150);await page.keyboard.up('Tab');}
    // The bot's decisions as they change, and a progress line every twenty samples.
    const decision=s.bot?JSON.stringify(s.bot):null;if(decision&&decision!==timeline.at(-1)?.decision)timeline.push({at:samples,offset:s.offset??-1,decision});
    for(const h of s.hurt??[])console.log(`sweep ${id} sample ${samples} HURT ${h}`);
