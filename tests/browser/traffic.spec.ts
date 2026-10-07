@@ -39,7 +39,7 @@ test('native traffic follows its lane, slows behind a car and for a pedestrian, 
    const blockedByPed={pedHonk,closest};
    traffic.peds=()=>[];car.horn.counter=0;
    // Lane keeping on straights: while the car heads along its link (within 11 degrees), not mid-turn onto a new one,
-   // following its path (not a jam's DRIVINGSTYLE_AVOID_CARS, which weaves, nor at the end of its route).
+   // following its path (not after a jam's reverse has put it off its lane, nor at the end of its route).
    let maxLaneError=0,alignedSamples=0;for(let i=0;i<1800;i++){tick();const c=traffic.snapshot().cars[0];if(i>300&&c.alignment>.98&&!c.avoidCars&&c.stopped!=='end of route'){alignedSamples++;maxLaneError=Math.max(maxLaneError,c.laneError);}}const longRun=traffic.snapshot();
    car.car.body.setLinvel({x:0,y:0,z:0},true);const at=car.car.body.translation();sim.player.position={x:at.x+2,y:at.y,z:at.z};const entered=car.interact();traffic.beforeStep(1/60);const takeover={occupied:car.occupied,autopilot:car.autopilot??null,entered};
    const exit=car.interact();traffic.beforeStep(1/60);const parked=!car.autopilot;sim.player.position={x:1000,y:13,z:1000};traffic.update(1e8);const retired=fleet.cars.size;

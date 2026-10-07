@@ -244,8 +244,8 @@ export class WorldTraffic {
    d.rails.spendMs=this.curveMs(d);
   }
   const r=d.rails,ts=dt*50,limit=stop||!d.next?0:trafficSpeed;
-  if(hold){this.modifySpeed(d,0,now);car.car.placeOnRails({...p},{...body.rotation()},{x:0,y:0,z:0});return;}
   if(!d.next&&!r.entry){r.speed=0;car.car.placeOnRails({...p},{...body.rotation()},{x:0,y:0,z:0});return;}
+  if(hold){this.modifySpeed(d,0,now);car.car.placeOnRails({...p},{...body.rotation()},{x:0,y:0,z:0});return;}
   if(limit>=r.speed){if(limit>r.speed)this.modifySpeed(d,Math.min(limit,r.speed+.05*ts),now);}
   else if(r.speed!==0)this.modifySpeed(d,r.speed<.1?0:Math.max(limit,r.speed-.7*ts),now);
   for(let guard=0;d.next&&r.enteredMs+r.spendMs<=now&&guard<8;guard++){
