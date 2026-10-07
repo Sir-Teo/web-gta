@@ -513,6 +513,8 @@ export class WorldPedestrians {
   doorPoint(seat:'driver'|number,from:{x:number;z:number}):{x:number;y:number;z:number}|undefined;board(ped:Pedestrian,seat:'driver'|number):boolean}|undefined;
   /** The ped (or the player) a script's handle names, for the tasks that target one. */
   resolveScriptPed?:(handle:number)=>Pedestrian|'player'|undefined;
+  /** A script ped's phone comes out (a sequence's TASK_USE_MOBILE_PHONE step). */
+  onScriptPhone?:(ped:Pedestrian)=>void;
   onDropMoney?:(position:{x:number;y:number;z:number},amount:number)=>void;
  /** A ped killed by player damage (mission kill tracking; NPC-vs-NPC deaths excluded). */
  /** AE_PED_CRUNCH: a ped killed by a fall hits the ground. */
@@ -1915,6 +1917,7 @@ export class WorldPedestrians {
     ped.order={kind:'destroyCar',vehicle:order.vehicle,melee:!ped.weapon&&(ped.weaponType===undefined||ped.weaponType<16),phase:'first',remaining:0};
     ped.flee=0;ped.loiter=false;
     break;
+   case 'mobilePhone':this.onScriptPhone?.(ped);ped.order={kind:'standStill',remaining:Number.POSITIVE_INFINITY};ped.flee=0;ped.loiter=false;break;
    case 'duck':
     ped.actor.player.crouched=order.crouch;
     if(order.seconds!==undefined)ped.order={kind:'duckFor',remaining:order.seconds};

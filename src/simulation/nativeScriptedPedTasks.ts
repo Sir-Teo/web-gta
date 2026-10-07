@@ -57,6 +57,10 @@ export type ScriptedPedOrder=
  /** CTaskSimpleDuckToggle (TASK_TOGGLE_DUCK): the ped ducks or stands, and the task is over at once; with `seconds`,
   * CTaskSimpleDuck (TASK_DUCK) holds it ducked where it is for that long. */
  |{kind:'duck';crouch:boolean;seconds?:number}
+ /** TASK_USE_MOBILE_PHONE TRUE as a step of a sequence. The iOS handler (0x1001f6590) gives
+  * CTaskComplexUseMobilePhone(-1) as the ped's primary scripted task, in a sequence or not; with no duration it never
+  * ends, so the step holds the ped standing with the phone out until another task replaces it. */
+ |{kind:'mobilePhone'}
  /** The simple tasks that set something on the ped and are over at once: CTaskSimpleTriggerLookAt at a point,
   * CTaskSimpleTogglePedThreatScanner, CTaskSimpleSetCharDecisionMaker (the decision maker's actual index) and
   * CTaskSimpleSetKindaStayInSamePlace. */
@@ -207,6 +211,8 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // CTaskSimpleHandsUp: HANDSUP held for the task's time.
   case 'handsUp':return {kind:'playAnim',file:'PED',name:'handsup',loop:false,keepLastFrame:true,seconds:seconds(task.time),release:true};
   case 'toggleDuck':return {kind:'duck',crouch:task.state};
+  // Stopping it inside a sequence (ped -1) reads a ped that is not there on iOS; no script does.
+  case 'useMobilePhone':return task.start?{kind:'mobilePhone'}:undefined;
   case 'gotoPedAiming':return world.ped(task.target)?{kind:'seekAiming',target:task.target,seekRadius:task.seekRadius,aimRadius:task.aimRadius}:undefined;
   // CTaskComplexGoToPointAiming (unreversed in gta-reversed; iOS handler 0x1001f1140, CreateFirstSubTask 0x1004042d0,
   // ControlSubTask 0x10040442c). A negative or stale aim ped aims at the point instead. The walk

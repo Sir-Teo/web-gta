@@ -4827,6 +4827,7 @@ async function boot() {
           };
           pedestrians.onDropMoney=(position,amount)=>moneyDrops.drop(position,amount);
           pedestrians.resolveScriptPed=handle=>{const ped=mission?.pedByHandle(handle);return ped==='player'?ped:onFoot(ped);};
+          pedestrians.onScriptPhone=ped=>phoneFor(ped).use(true);
           pedestrians.resolveScriptVehicle=handle=>{
            const m=mission,entity=m?.vehicles.exists(handle)?m.vehicles.entity(handle):undefined;
            if(!m||!entity)return undefined;

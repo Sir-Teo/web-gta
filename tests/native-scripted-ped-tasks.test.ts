@@ -13,6 +13,11 @@ describe('the tasks a script gives a ped',()=>{
   expect(nativeHeadingDegrees(1,0)).toBeCloseTo(270,6);
  });
 
+ test('a phone step in a sequence (HOODS5) is the never-ending CTaskComplexUseMobilePhone(-1), as iOS gives it',()=>{
+  expect(scriptedPedOrder({kind:'useMobilePhone',start:true},world({}))).toEqual({kind:'mobilePhone'});
+  expect(scriptedPedOrder({kind:'useMobilePhone',start:false},world({}))).toBeUndefined();
+ });
+
  test('standing still takes its time in milliseconds, and no time at all means for ever',()=>{
   expect(scriptedPedOrder({kind:'standStill',time:2500},world({}))).toEqual({kind:'standStill',seconds:2.5});
   expect(scriptedPedOrder({kind:'standStill',time:0},world({}))).toEqual({kind:'standStill',seconds:Infinity});

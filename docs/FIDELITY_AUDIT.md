@@ -11063,3 +11063,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   and the thread gave up. HOODS5 runs into it: its dialogue's cancel branch clears the speaker's slot (351@) before
   any line has set it, which is CLEAR_MISSION_AUDIO 0. The set-position and attach calls have no check and write past
   the links; the port leaves them undone.
+- **A phone call as a step of a sequence.** The iOS TASK_USE_MOBILE_PHONE handler (0x1001f6590) gives
+  CTaskComplexUseMobilePhone(-1) through the script's ordinary task path (GivePedScriptedTask, opcode 0x729), so in an
+  open sequence it is one step like any other; stopping it finds task 1600 in the ped's primary slot (0x10041ed64) and
+  quits it (0x1003c73cc). The port ran the phone only as a command of its own and gave up on it inside a sequence:
+  HOODS5 gives a Ballas member "duck, then phone" and stopped there. The step now brings the phone out and holds the
+  ped (a duration of -1 never ends). Still the port's own: outside a sequence the phone stays an upper-body clip over
+  whatever the ped does (iOS runs it as the primary task, whose PHONE_IN, PHONE_TALK and PHONE_OUT subtasks 1601 to
+  1603 are CTaskSimpleRunAnim), and a later task does not put the phone away.
