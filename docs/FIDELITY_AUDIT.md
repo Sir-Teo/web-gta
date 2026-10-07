@@ -11168,3 +11168,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   dying or dead takes a WEAPON_UZI_DRIVEBY damage event of the intensity (the port's bulletHit, the shot clip by side
   included) and a vehicle InflictDamage by WEAPON_MICRO_UZI (none for a car only the player may hurt). Left out: the
   point light at the start and the bullet-hit sound. DRUGS4 and two others fire them; it was skipped.
+- **Night and infrared vision by script.** SET_NIGHT_VISION and SET_INFRARED_VISION (iOS 0x100200584, 0x1002005a8)
+  call CPostEffects::SetNightVision and SetInfraredVision (0x100384da8, 0x100384dcc): on sets the one and clears the
+  other, off clears only the one. IS_NIGHT_VISION_ACTIVE (0x1002034c0) reads m_bNightVision. The port's goggles keep
+  the same state, which the three now drive. HEIST9 has CJ remark when he goes in without night vision, and it and
+  FINALEA switch the effects off on the way out; all three were skipped. The port has one field for the worn goggles
+  and their effect, so the script's switch also counts as goggles on or off.

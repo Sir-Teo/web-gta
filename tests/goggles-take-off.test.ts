@@ -14,3 +14,13 @@ test('the script takes the player\'s goggles off, with the clip or at once',()=>
  weapons.vision='infrared';weapons.goggles=undefined;weapons.takeOffGoggles(false);
  expect([weapons.vision,weapons.goggles]).toEqual([null,undefined]);
 });
+
+// CPostEffects::SetNightVision / SetInfraredVision (iOS 0x100384da8, 0x100384dcc): on sets the one and clears the other;
+// off clears only the one.
+test('the script turns night and infrared vision on and off',()=>{
+ const weapons=new WeaponSystem(new Simulation(),()=>undefined,()=>undefined);
+ weapons.setVisionEffect('nightvision',true);expect(weapons.vision).toBe('nightvision');
+ weapons.setVisionEffect('infrared',true);expect(weapons.vision).toBe('infrared');
+ weapons.setVisionEffect('nightvision',false);expect(weapons.vision).toBe('infrared');
+ weapons.setVisionEffect('infrared',false);expect(weapons.vision).toBeNull();
+});

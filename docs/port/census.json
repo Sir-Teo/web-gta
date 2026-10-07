@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T14:31:46.309Z",
+ "generated": "2026-10-07T14:34:35.599Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1225,
+   "faithful": 1228,
    "authored": 19,
    "silent": 2,
-   "skipped": 139,
+   "skipped": 136,
    "stops": 6
   }
  },
@@ -4993,18 +4993,13 @@
    "byStatus": {
     "core": 3088,
     "nop": 18,
-    "faithful": 3168,
+    "faithful": 3173,
     "authored": 5,
     "silent": 0,
-    "skipped": 12,
+    "skipped": 7,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_NIGHT_VISION",
-     "status": "skipped",
-     "sites": 4
-    },
     {
      "name": "ROTATE_OBJECT",
      "status": "authored",
@@ -5014,11 +5009,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 2
-    },
-    {
-     "name": "IS_NIGHT_VISION_ACTIVE",
-     "status": "skipped",
-     "sites": 1
     },
     {
      "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
@@ -5277,18 +5267,13 @@
    "byStatus": {
     "core": 2295,
     "nop": 1,
-    "faithful": 1846,
+    "faithful": 1848,
     "authored": 1,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_INFRARED_VISION",
-     "status": "skipped",
-     "sites": 2
-    },
     {
      "name": "SET_PLAYER_MOOD",
      "status": "skipped",
@@ -5310,10 +5295,10 @@
    "byStatus": {
     "core": 1066,
     "nop": 1,
-    "faithful": 960,
+    "faithful": 961,
     "authored": 31,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
@@ -5324,11 +5309,6 @@
     },
     {
      "name": "SET_PLAYER_MOOD",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "SET_NIGHT_VISION",
      "status": "skipped",
      "sites": 1
     }
@@ -8379,23 +8359,6 @@
    "portable": false
   },
   {
-   "name": "SET_NIGHT_VISION",
-   "opcode": "08b1",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setNightVision (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2397,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Enables night vision effects",
-   "sites": 5,
-   "missions": 2,
-   "firstMission": "HEIST9",
-   "portable": false
-  },
-  {
    "name": "GET_CAR_MOVING_COMPONENT_OFFSET",
    "opcode": "098d",
    "status": "skipped",
@@ -8409,23 +8372,6 @@
    "doc": "Sets the angle of a vehicle's extra",
    "sites": 4,
    "missions": 2,
-   "firstMission": "HEIST9",
-   "portable": false
-  },
-  {
-   "name": "IS_NIGHT_VISION_ACTIVE",
-   "opcode": "099d",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks isNightVisionActive (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2748,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Returns true if night vision is active",
-   "sites": 1,
-   "missions": 1,
    "firstMission": "HEIST9",
    "portable": false
   },
@@ -8545,23 +8491,6 @@
    "doc": "Sets the players mood, affecting the dialogue spoken by the player",
    "sites": 2,
    "missions": 2,
-   "firstMission": "FINALEA",
-   "portable": false
-  },
-  {
-   "name": "SET_INFRARED_VISION",
-   "opcode": "08b2",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setInfraredVision (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2626,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Enables thermal vision effects",
-   "sites": 2,
-   "missions": 1,
    "firstMission": "FINALEA",
    "portable": false
   },

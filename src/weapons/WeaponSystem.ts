@@ -200,6 +200,9 @@ export class WeaponSystem {
  gogglesClipSeconds=.8;
  /** PLAYER_TAKE_OFF_GOGGLES (iOS 0x1002056d8): with goggles on, `animate` runs CTaskComplexUseGoggles (the clip, then
   * TakeOffGoggles) unless a clip is already running; otherwise CPed::TakeOffGoggles at once. */
+ /** CPostEffects::SetNightVision and SetInfraredVision (iOS 0x100384da8, 0x100384dcc), as SET_NIGHT_VISION and
+  * SET_INFRARED_VISION call them: on sets the one and clears the other; off clears only the one. */
+ setVisionEffect(kind:'nightvision'|'infrared',on:boolean){if(on)this.vision=kind;else if(this.vision===kind)this.vision=null;}
  takeOffGoggles(animate:boolean){
   if(animate){if(this.vision&&!this.goggles)this.goggles={kind:this.vision,remaining:this.gogglesClipSeconds};}
   else{this.vision=null;this.goggles=undefined;}

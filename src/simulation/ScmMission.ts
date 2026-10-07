@@ -437,6 +437,9 @@ export interface ScmMissionWorld {
  takeOffPlayerGoggles?(animate:boolean):void;
  /** FireOneInstantHitRound from one native point to another, with its intensity. */
  fireSingleRound?(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number},intensity:number):void;
+ /** CPostEffects::m_bNightVision and m_bInfraredVision (WeaponSystem.setVisionEffect), and the first read back. */
+ setVisionEffect?(kind:'nightvision'|'infrared',on:boolean):void;
+ nightVisionActive?():boolean;
  /** The handling's nMonetaryValue for a vehicle model. */
  vehicleModelValue?(model:number|string):number;
  /** SET_CAR_ROLL's matrix: the car's heading alone, then turned about the world's y axis by `roll` radians. */
@@ -1258,6 +1261,10 @@ export class ScmMission {
    setExtraCarColours:(handle,tertiary,quaternary)=>{this.host('recolourScriptVehicleExtras','SET_EXTRA_CAR_COLOURS')(this.liveVehicle(handle),tertiary,quaternary);},
    // SET_FREEBIES_IN_VEHICLE (iOS 0x100200a28): vehicleFlags.bFreebies, bit 7.
    setFreebiesInVehicle:(handle,on)=>{this.host('setScriptVehicleFreebies','SET_FREEBIES_IN_VEHICLE')(this.liveVehicle(handle),on);},
+   // SET_NIGHT_VISION, SET_INFRARED_VISION (iOS 0x100200584, 0x1002005a8) and IS_NIGHT_VISION_ACTIVE (0x1002034c0).
+   setNightVision:on=>{this.host('setVisionEffect','SET_NIGHT_VISION')('nightvision',on);},
+   setInfraredVision:on=>{this.host('setVisionEffect','SET_INFRARED_VISION')('infrared',on);},
+   isNightVisionActive:()=>this.host('nightVisionActive','IS_NIGHT_VISION_ACTIVE')(),
    // FIRE_SINGLE_BULLET (iOS 0x1001f14c0): CWeapon's FireOneInstantHitRound (0x73AF00, reversed; iOS 0x10049b350).
    fireSingleBullet:(x1,y1,z1,x2,y2,z2,intensity)=>{this.host('fireSingleRound','FIRE_SINGLE_BULLET')({x:x1,y:y1,z:z1},{x:x2,y:y2,z:z2},intensity);},
    playerTakeOffGoggles:(_player,animate)=>{this.host('takeOffPlayerGoggles','PLAYER_TAKE_OFF_GOGGLES')(animate);},
