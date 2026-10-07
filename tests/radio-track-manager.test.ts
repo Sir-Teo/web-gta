@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'vitest';
-import {NativeRadioTrackManager,RADIO_MODE,TRACK_TYPE,isTrackBanned,type RadioTrackHardware,type RadioWorld} from '../src/audio/native/NativeRadioTrackManager';
+import {NativeRadioTrackManager,RADIO_MODE,TRACK_TYPE,findMostFavoriteRadioStation,isTrackBanned,type RadioTrackHardware,type RadioWorld} from '../src/audio/native/NativeRadioTrackManager';
 import {EMERGENCY_DJ_BANTER,RADIO_ADVERTS,RADIO_INTROS,RADIO_MUSIC_TRACKS,RADIO_OUTROS} from '../src/audio/native/radioTables';
 import {vehicleRadioSettings} from '../src/audio/native/vehicleRadio';
 
@@ -138,4 +138,13 @@ describe('CAERadioTrackManager on the emergency channel',()=>{
   radio.service(world({vehicleRadioType:undefined}));
   expect(radio.mode).toBe(RADIO_MODE.stopping);
  });
+});
+
+test('FindMostFavoriteRadioStation: the most listened of stations 1 to 12, the lower on a tie, 1 with none',()=>{
+ const times=(set:Record<number,number>)=>Array.from({length:14},(_,i)=>set[i]??0);
+ expect(findMostFavoriteRadioStation(times({}))).toBe(1);
+ expect(findMostFavoriteRadioStation(times({4:500,7:900}))).toBe(7);
+ expect(findMostFavoriteRadioStation(times({3:900,9:900}))).toBe(3);
+ // The emergency channel (0) and RADIO_OFF (13) are never counted.
+ expect(findMostFavoriteRadioStation(times({0:9999,13:9999,5:1}))).toBe(5);
 });

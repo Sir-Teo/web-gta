@@ -5159,6 +5159,7 @@ async function boot() {
                 mission=new ScmMission(new Uint8Array(data.script),zones,{
                   frontendAudioEvent:event=>sound.frontend(event),
                   retuneRadio:station=>{sound.nativeEngine?.retuneRadio(station);},
+                  radioListenTimes:()=>sound.nativeEngine?.radioTracks.listenTimes,
                   radioStationId:()=>sound.nativeEngine?.radioId??13,
                   defaultDecisionMaker:index=>pedestrians?.defaultDecisionMaker(index),
                   // CCamera::IsSphereVisible: the sphere against the camera's frustum.

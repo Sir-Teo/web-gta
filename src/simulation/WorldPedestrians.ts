@@ -176,7 +176,7 @@ export interface Pedestrian {
   /** CTaskComplexFollowPointRoute over renderer points (x, z, and the origin height y). */
   |{kind:'followRoute';points:{x:number;y:number;z:number}[];at:number;mode:number;traversals:number;moveState:number}
   /** CTaskComplexSeekEntity after a ped (undefined for the player), to within the radius. */
-  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number;offset?:{radius:number;angle:number};follow?:boolean}
+  |{kind:'gotoPed';target?:Pedestrian;radius:number;remaining:number;offset?:{radius:number;angle:number};follow?:boolean;sprint?:boolean;giveUp?:number}
   /** TASK_DIVE_AND_GET_UP: over when the evasive dive it started is. */
   |{kind:'dive'}
   /** CTaskSimpleDuck for its time: ducked where it stands. */
@@ -2024,7 +2024,7 @@ export class WorldPedestrians {
     break;
    case 'gotoPed':{
     const target=this.resolveScriptPed?.(order.target);if(!target)break;
-    ped.order={kind:'gotoPed',target:target==='player'?undefined:target,radius:order.radius,remaining:order.seconds,offset:order.offset,follow:order.follow};ped.flee=0;ped.loiter=false;
+    ped.order={kind:'gotoPed',target:target==='player'?undefined:target,radius:order.radius,remaining:order.seconds,offset:order.offset,follow:order.follow,sprint:order.sprint,giveUp:order.giveUp};ped.flee=0;ped.loiter=false;
     break;
    }
    case 'enterCar':{
@@ -3796,11 +3796,13 @@ export class WorldPedestrians {
      if(!target||o.remaining<=0)this.startNextOrder(p);
      else{
       const gx=target.x-q.x,gz=target.z-q.z,distance=Math.hypot(gx,gz);
+      // Too far behind (CTaskComplexWalkAlongsidePed's give-up distance), the task is over.
+      if(o.giveUp!==undefined&&distance>=o.giveUp)this.startNextOrder(p);
       // Following, the ped waits where it is until the target moves off again.
-      if(distance<=o.radius&&o.follow){}
+      else if(distance<=o.radius&&o.follow){}
       // Achieved: CTaskComplexTurnToFaceEntityOrCoord (bFaceEntityWhenDone), then the task is over.
       else if(distance<=o.radius)p.order={kind:'achieveHeading',heading:o.offset&&holder?Math.atan2(holder.position.x-q.x,holder.position.z-q.z):Math.atan2(gx,gz)};
-      else{({x:dx,z:dz}=this.roundCars(p,target,cars));orderSpeed=o.follow||goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)<6?p.walkSpeed:p.runSpeed;}
+      else{({x:dx,z:dz}=this.roundCars(p,target,cars));orderSpeed=o.sprint?p.sprintSpeed:o.follow||goToPointMoveState(6,distance,GO_TO_PED_WALK_DISTANCE)<6?p.walkSpeed:p.runSpeed;}
      }
     }else if(p.order.kind==='enterCar'){
      const o=p.order,car=this.resolveScriptVehicle?.(o.vehicle);dx=0;dz=0;

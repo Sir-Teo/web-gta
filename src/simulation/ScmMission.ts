@@ -55,6 +55,7 @@ const headingFrame=(heading:number)=>({
 import {ScmDecisionMakers} from '../engine/ScmDecisionMakers';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {PlayerScriptTasks} from './playerScriptTasks';
+import {findMostFavoriteRadioStation} from '../audio/native/NativeRadioTrackManager';
 /** STAT_CITY_UNLOCKED. */
 const STAT_CITY_UNLOCKED=181;
 /** MI_NEVADA, whose radar cone floats higher above its box. */
@@ -97,6 +98,8 @@ export interface ScmMissionWorld {
  defaultDecisionMaker?(index:number):import('../ped/nativeDecisionMaker').DecisionMaker|undefined;
  /** CAudioEngine::RetuneRadio for SET_RADIO_CHANNEL (an eRadioID). */
  retuneRadio?(station:number):void;
+ /** CAERadioTrackManager's listening time per station (what CStats::PopulateFavoriteRadioStationList copies). */
+ radioListenTimes?():readonly number[]|undefined;
  /** CAERadioTrackManager::GetCurrentRadioStationID (reversed): the station asked for, RADIO_OFF (13) with none. */
  radioStationId?():number;
  /** CAEFrontendAudioEntity::AddAudioEvent, for the reports the script's own systems make (the timer count). */
@@ -2227,6 +2230,10 @@ export class ScmMission {
    setPedAccuracy:(handle,accuracy)=>{this.peds.setAccuracy(handle,accuracy);},
    setPedShootRate:(handle,rate)=>{this.peds.setShootingRate(handle,rate);},
    setRadioChannel:station=>{this.world.retuneRadio?.(station);},
+   // SET_RADIO_TO_PLAYERS_FAVOURITE_STATION (iOS 0x1002067a8): RetuneRadio(CStats::FindMostFavoriteRadioStation()).
+   // The game's list is the radio's listening times as last copied, when saving or drawing the stats screen; the port
+   // has neither, so the times are read as they stand.
+   setRadioToPlayersFavouriteStation:()=>{const times=this.world.radioListenTimes?.();if(times)this.world.retuneRadio?.(findMostFavoriteRadioStation(times));},
    // GET_RADIO_CHANNEL: CAudioEngine::GetCurrentRadioStationID; gf_date steps through the stations from it.
    getRadioChannel:()=>this.world.radioStationId?.()??RADIO_OFF,
    setPedInvulnerable:(handle,enabled)=>{this.peds.setInvulnerable(handle,enabled);},

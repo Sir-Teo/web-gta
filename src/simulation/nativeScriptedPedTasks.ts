@@ -53,7 +53,11 @@ export type ScriptedPedOrder=
    * `angle` radians from its heading, 0 being straight ahead of it. */
   offset?:{radius:number;angle:number};
   /** TASK_FOLLOW_FOOTSTEPS: at a walk, and on arrival the ped waits for the target to move off rather than ending. */
-  follow?:boolean}
+  follow?:boolean;
+  /** At a sprint (CTaskComplexSeekEntity::SetMoveState(PEDMOVE_SPRINT)). */
+  sprint?:boolean;
+  /** The task is over once the target is this far off across the ground. */
+  giveUp?:number}
  /** CTaskSimpleDuckToggle (TASK_TOGGLE_DUCK): the ped ducks or stands, and the task is over at once; with `seconds`,
   * CTaskSimpleDuck (TASK_DUCK) holds it ducked where it is for that long. */
  |{kind:'duck';crouch:boolean;seconds?:number}
@@ -144,6 +148,9 @@ const moveStateOf=(task:{moveState?:number})=>task.moveState!==undefined&&task.m
 const seconds=(milliseconds:number)=>milliseconds<0?Number.POSITIVE_INFINITY:milliseconds/1000;
 /** How close TASK_FOLLOW_FOOTSTEPS' stand-in keeps behind its target (AUTHORED). */
 const FOLLOW_FOOTSTEPS_RADIUS=1.5;
+/** CTaskComplexWalkAlongsidePed: ControlSubTask's SetEntityMinDist2D(3) on its seek, and the give-up distance the
+ * TASK_WALK_ALONGSIDE_CHAR handler constructs it with. */
+const WALK_ALONGSIDE_RADIUS=3,WALK_ALONGSIDE_GIVE_UP=10;
 /** CVector2D::Heading, atan2(-x, y), in the degrees a script speaks. */
 export const nativeHeadingDegrees=(dx:number,dy:number)=>{
  const degrees=Math.atan2(-dx,dy)*180/Math.PI;
@@ -222,6 +229,10 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // route of the target's steps). The ped walks after the target, waits within FOLLOW_FOOTSTEPS_RADIUS of it, and the
   // task never ends by itself; dealer.scm gives it to a dealer for 6 s before sending him back.
   case 'followFootsteps':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:FOLLOW_FOOTSTEPS_RADIUS,seconds:Number.POSITIVE_INFINITY,follow:true}:undefined;
+  // CTaskComplexWalkAlongsidePed (reversed): a seek at a sprint to within 3 of the target, a stand while there and the
+  // seek again as it moves off, the task over once it is 10 or more away. AUTHORED: the walk clips' speeds matched to
+  // the target's (0.85 to 1.25), the side offset taken after standing beside it, and leaving a car first.
+  case 'walkAlongsidePed':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:WALK_ALONGSIDE_RADIUS,seconds:Number.POSITIVE_INFINITY,follow:true,sprint:true,giveUp:WALK_ALONGSIDE_GIVE_UP}:undefined;
   // CTaskComplexSeekEntity with CEntitySeekPosCalculatorRadiusAngleOffset, arrived within half a unit of that point.
   case 'gotoPedOffset':return world.ped(task.target)?{kind:'gotoPed',target:task.target,radius:.5,seconds:seconds(task.time),offset:{radius:task.offsetX,angle:task.offsetY*Math.PI/180}}:undefined;
   case 'killPedOnFootTimed':return world.ped(task.target)?{kind:'killPed',target:task.target,seconds:seconds(task.time)}:undefined;

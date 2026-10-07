@@ -18,6 +18,11 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'useMobilePhone',start:false},world({}))).toBeUndefined();
  });
 
+ test('TASK_WALK_ALONGSIDE_CHAR sprints to within 3 of the target, waits there and gives up at 10 (CTaskComplexWalkAlongsidePed)',()=>{
+  expect(scriptedPedOrder({kind:'walkAlongsidePed',target:4},world({4:{x:1,y:2,z:3}}))).toEqual({kind:'gotoPed',target:4,radius:3,seconds:Number.POSITIVE_INFINITY,follow:true,sprint:true,giveUp:10});
+  expect(scriptedPedOrder({kind:'walkAlongsidePed',target:5},world({}))).toBeUndefined();
+ });
+
  test('TASK_SET_IGNORE_WEAPON_RANGE_FLAG is CTaskSimpleSetCharIgnoreWeaponRangeFlag, over at once (WUZI5, SYN5, MUSIC5)',()=>{
   expect(scriptedPedOrder({kind:'setIgnoreWeaponRangeFlag',state:true},world({}))).toEqual({kind:'ignoreWeaponRange',state:true});
  });

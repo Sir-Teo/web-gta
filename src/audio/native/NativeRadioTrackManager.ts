@@ -23,6 +23,13 @@ const RADIO_EMERGENCY=0,RADIO_TALK=11,RADIO_USER_TRACKS=12,RADIO_OFF=13,RADIO_CO
 /** CClock::daysInMonth (the executable's 0x100649420). */
 const DAYS_IN_MONTH=[31,29,31,30,31,30,31,31,30,31,30,31];
 /** IsTrackBanned (0x100150e40): a track the iOS port removed. CAEStreamThread::PlayTrack refuses one too. */
+/** CStats::FindMostFavoriteRadioStation (iOS 0x1002611d4) over FavoriteRadioStationList: the station of 1 to 12 with the
+ * most listening time, the lower on a tie, and 1 when none has any. */
+export function findMostFavoriteRadioStation(listenTimes:readonly number[]){
+ let best=Math.max(listenTimes[1]??0,0),station=1;
+ for(let id=2;id<=12;id++)if((listenTimes[id]??0)>best){best=listenTimes[id];station=id;}
+ return station;
+}
 export const isTrackBanned=(id:number)=>BANNED_TRACKS.some(([first,count])=>id>=first&&id<first+count);
 
 /** AEAudioHardware's track stream (CAEStreamThread and its CAEStreamingChannel), as the radio uses it. */

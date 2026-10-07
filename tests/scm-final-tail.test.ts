@@ -208,3 +208,9 @@ test('CAR_GOTO_COORDINATES_RACING and CREATE_FX_SYSTEM_ON_OBJECT_WITH_DIRECTION 
  expect(made[2]).toEqual({x:0,y:expect.closeTo(-.2,6),z:expect.closeTo(-.1,6)});expect(made[3]).toEqual({x:0,y:0,z:-1});expect(made[4]).toBe(true);
  expect(readInt(40)).toBe(5);
 });
+
+test('SET_RADIO_TO_PLAYERS_FAVOURITE_STATION asks the adapter (iOS 0x1002067a8)',()=>{
+ let tuned=0;
+ run({setRadioToPlayersFavouriteStation:()=>{tuned++;}},undefined,instruction(op('SET_RADIO_TO_PLAYERS_FAVOURITE_STATION'),[]));
+ expect(tuned).toBe(1);
+});

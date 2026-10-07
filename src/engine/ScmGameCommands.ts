@@ -2118,6 +2118,8 @@ const handlers:Record<string,ScmCommandHandler>={
    offsetX:t.readFloat(p[3]),offsetY:t.readFloat(p[4])});
  },
  TASK_FOLLOW_FOOTSTEPS:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'followFootsteps',target:t.readInt(p[1])});},
+ // iOS 0x1001fdad4: CTaskComplexWalkAlongsidePed(target, give-up distance 10) as the ped's script task.
+ TASK_WALK_ALONGSIDE_CHAR:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'walkAlongsidePed',target:t.readInt(p[1])});},
  TASK_FLEE_CHAR_ANY_MEANS:(t,p,i)=>{
   scriptedTask(t,i,t.readInt(p[0]),{kind:'fleePedAnyMeans',threat:t.readInt(p[1]),radius:t.readFloat(p[2]),
    time:t.readInt(p[3]),flag:bool(t,p[4]),unknown1:t.readInt(p[5]),unknown2:t.readInt(p[6]),unknown3:t.readFloat(p[7])});
@@ -2540,11 +2542,11 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_CAR_DOOR_LOCK_STATUS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehicleDoorLockStatus')(t.readInt(p[0])));},
  // CLEAR_WANTED_LEVEL_IN_GARAGE (0x1002057bc): CWanted::ClearWantedLevelAndGoOnParole on the player's.
  CLEAR_WANTED_LEVEL_IN_GARAGE:(t,_p,i)=>{world(t,i,'clearWantedLevelInGarage')();},
- // MANAGE_ALL_POPULATION (0x100206548: CPopulation::ManageAllPopulation, the objects' and dummies' upkeep) and
- // SET_RADIO_TO_PLAYERS_FAVOURITE_STATION (0x1002067a8: RetuneRadio to CStats::FindMostFavoriteRadioStation): the
- // port's objects keep themselves and it has no radio, so a host may answer them or not.
+ // MANAGE_ALL_POPULATION (0x100206548: CPopulation::ManageAllPopulation, the objects' and dummies' upkeep): the port's
+ // objects keep themselves, so a host may answer it or not.
  MANAGE_ALL_POPULATION:t=>{t.host?.world?.manageAllPopulation?.();},
- SET_RADIO_TO_PLAYERS_FAVOURITE_STATION:t=>{t.host?.world?.setRadioToPlayersFavouriteStation?.();},
+ // SET_RADIO_TO_PLAYERS_FAVOURITE_STATION (0x1002067a8): RetuneRadio to CStats::FindMostFavoriteRadioStation.
+ SET_RADIO_TO_PLAYERS_FAVOURITE_STATION:(t,_p,i)=>{world(t,i,'setRadioToPlayersFavouriteStation')();},
  GET_AVAILABLE_VEHICLE_MOD:(t,p,i)=>{t.writeInt(p[2],world(t,i,'availableVehicleMod')(t.readInt(p[0]),t.readInt(p[1])));},
  GET_VEHICLE_MOD_TYPE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'vehicleModType')(model(t,i,p[0])));},
  GET_NUM_AVAILABLE_PAINTJOBS:(t,p,i)=>{t.writeInt(p[1],world(t,i,'numAvailablePaintjobs')(t.readInt(p[0])));},

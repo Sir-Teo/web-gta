@@ -11285,3 +11285,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   for it, so unlike MISSION_GOTOCOORDINATES it never turns straight near the point. Its steering,
   SteerAICarWithPhysicsFollowPath_Racing (0x10019b300, a path search of its own and a racing line), is not ported: the
   racing car follows the route as the plain mission does.
+- TASK_WALK_ALONGSIDE_CHAR (iOS 0x1001fdad4) had no handler, so home_brains.scm gave up when a resident spotted CJ. It
+  gives CTaskComplexWalkAlongsidePed(target, 10): a seek at a sprint to within 3 of the target, a stand while there and
+  the seek again as it moves off, over once the target is 10 or more away. Not ported: the walk clips' speeds matched to
+  the target's, the side offset taken after standing beside it, and leaving a car first.
+- SET_RADIO_TO_PLAYERS_FAVOURITE_STATION (0x1002067a8) did nothing. It retunes the radio to
+  CStats::FindMostFavoriteRadioStation (0x1002611d4): the station of 1 to 12 with the most listening time, the lower on a
+  tie, 1 with none. The game's list is the radio's listening times as last copied (when saving or drawing the stats
+  screen, neither of which the port has); here they are read as they stand.
