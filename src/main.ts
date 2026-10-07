@@ -5571,6 +5571,7 @@ async function boot() {
                  },
                  setDarknessFilter:(enable,alpha)=>{postEffects.scriptDarknessFilterSwitch(enable,alpha);},
                  setHeatHazeFX:enable=>{postEffects.heatHazeFX=enable;},
+                 playerStreetGroupFollowers:()=>(pedestrians?.streetFollowers()??0)+carEntry.ridingFollowers(),
                  setScriptPedFollowsPlayer:(ped,follows)=>{const p=onFoot(ped);if(p&&p.follow!==follows){p.follow=follows;if(!follows)p.foe=undefined;}},
                  setEntryExitGroupWarping:(x,y,radius,on)=>{entryExits?.setAcceptNpcGroupNear(x,y,radius,on);},
                  // TASK_DRIVE_BY on a rider: the target is a point (script coordinates), a ped or a car handle.

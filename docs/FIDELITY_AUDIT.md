@@ -11222,7 +11222,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   script task ends as he joins (iOS gives him CTaskComplexBeInGroup through a script-command event in TASK_PRIMARY_PRIMARY),
   so SWEET7's two stop their smoking loop and get in the car with CJ. Not ported: AddFollower's switch of the recruit's
   decision maker to GangMbr.ped. Still
-  open: a street recruit has no script handle, so GET_GROUP_SIZE does not count him; and a script ped's acquaintances and
+  open: a script ped's acquaintances and
   same-type friendly fire still go by its model's peds.ide type, not CREATE_CHAR's.
 - A live mission ped stays where it is when the player leaves its area: CColStore::LoadCollision keeps the collision in
   round every mission ped that loads it (not a frozen one or one with bDontLoadCollision), which the browser's single
@@ -11245,3 +11245,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   post-increment would drive on to a slot past the route). The plain form is the same task in mode 2 (straight line),
   any model and driving style 0, iOS 0x1001f20b8; it used to be refused as a world command. Not used: the desired model
   (iOS turns an argument of 0 into any and 1 into 415 before the task), which the port's drive to a point never reads.
+- GET_GROUP_SIZE on the player's group counts his street recruits too, on foot, riding with him or getting out
+  (CountMembersExcludingLeader counts every follower; the script holds no handle for them), up to the group's seven. RIOT2
+  asks for "a couple of Grove Street Families" and waits for Cesar and two more: it could never go on. GET_GROUP_MEMBER
+  still names only the script's own members.

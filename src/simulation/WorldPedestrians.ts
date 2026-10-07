@@ -4348,6 +4348,8 @@ export class WorldPedestrians {
   const other=members.find(o=>o.followSlot===slot);
   return other===p?'leader':other;
  }
+ /** The living followers a script did not make: the player's street recruits on foot. */
+ streetFollowers(){let n=0;for(const p of this.people)if(p.follow&&!p.mission&&p.health>0)n++;return n;}
  followers(){const out:{id:number;position:{x:number;y:number;z:number};health:number;down:number;slot?:number}[]=[];for(const p of this.people)if(p.follow&&!p.mission&&!p.holdPosition)out.push({id:p.id,position:p.actor.player.position,health:p.health,down:p.down,slot:p.followSlot});return out;}
  /** A follower sent running to its seat's door in the player's car, or (no point) back to following. */
  sendToSeat(id:number,point?:{x:number;z:number}){const p=this.people.find(q=>q.id===id);if(p)p.seatTarget=point&&{...point};}

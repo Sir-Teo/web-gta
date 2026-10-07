@@ -157,6 +157,8 @@ export class CarEntry {
   }
   /** Riders waiting their turn to get out, still in their seats. */
   private leaving:{rider:CarEntry['passengers'][number];car:WorldCar;at:number}[]=[];
+  /** The followers riding with the player, or still getting out: members of his group while off the street. */
+  ridingFollowers(){return this.passengers.filter(rider=>rider.follow).length+this.leaving.filter(l=>l.rider.follow).length;}
   leavingPoses():import('../render/VehicleOccupants').OccupantPose[]{
    const out:import('../render/VehicleOccupants').OccupantPose[]=[];
    for(const {rider,car} of this.leaving){const local=this.passengerSeat(car,rider.seat);if(local&&!car.disposed)out.push({key:`passenger:${car.car.body.handle}:${rider.seat}`,car,model:rider.modelRef,local,clip:sitClip(car.modelFlags,false),seconds:0});}

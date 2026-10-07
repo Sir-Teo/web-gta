@@ -22,7 +22,7 @@ import {RANDOM_SAMPLE_MAX} from '../engine/nativeRandomRange';
 import {findZone,worldZoneAt,type WorldZones} from '../assets/worldZones';
 import {ScmVehiclePool} from './ScmVehiclePool';
 import {ScmPedPool,type ScmPedProofs} from './ScmPedPool';
-import {NativePedGroup} from '../ped/nativePedGroup';
+import {NativePedGroup,LEADER_MEM_ID} from '../ped/nativePedGroup';
 import {findClosestStraightRoad,findNodeCoorsForScript,findNodeCoorsForScriptBetween,findNodeOrientationForCarPlacement,findNthNodeClosestToCoors} from './nativeScriptCarNodes';
 import type {PathArea,PathNode} from '../assets/pathNodes';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
@@ -577,6 +577,8 @@ export interface ScmMissionWorld {
  gangWarGoingOn?():boolean;
  /** A script ped in the player's group follows him on foot as his recruits do, or stops. */
  setScriptPedFollowsPlayer?(ped:unknown,follows:boolean):void;
+ /** The living followers in the player's group the script has no handle for: street recruits, on foot or riding with him. */
+ playerStreetGroupFollowers?():number;
  /** CPostEffects::ScriptDarknessFilterSwitch and ScriptHeatHazeFXSwitch. */
  setDarknessFilter?(enable:boolean,alpha:number):void;
  setHeatHazeFX?(enable:boolean):void;
@@ -1142,7 +1144,12 @@ export class ScmMission {
    clearRelationship:(relationship,pedType,otherPedType)=>{this.world.setPedTypeRelationship?.(relationship,pedType,otherPedType,false);},
    isRelationshipSet:(relationship,pedType,otherPedType)=>this.host('pedTypeRelationshipSet','IS_RELATIONSHIP_SET')(relationship,pedType,otherPedType),
    // GET_GROUP_SIZE: whether the group has a leader, and its members besides.
-   groupSize:group=>{const g=this.groups.get(group);return {leader:g?.leader!==undefined?1:0,members:g?g.countFollowers():0};},
+   // CountMembersExcludingLeader counts every follower: on the player's group that takes in the street Families he
+   // recruited, which the script holds no handle for (RIOT2 waits for Cesar and two of them), up to the group's seven.
+   groupSize:group=>{
+    const g=this.groups.get(group),street=group===PLAYER_GROUP_HANDLE?this.world.playerStreetGroupFollowers?.()??0:0;
+    return {leader:g?.leader!==undefined?1:0,members:g?Math.min(LEADER_MEM_ID,g.countFollowers()+street):0};
+   },
    groupMember:(group,slot)=>this.groups.get(group)?.memberAt(slot)??-1,
    setPhotoCameraEffect:on=>{this.host('setPhotoCameraEffect','SET_PHOTO_CAMERA_EFFECT')(on);},
    maxGroupMembers:()=>this.host('maxGroupMembers','FIND_MAX_NUMBER_OF_GROUP_MEMBERS')(),
