@@ -21,7 +21,10 @@ export function missionBotTick(dtSeconds:number){
   }catch{return undefined;}
   return t.position;
  };
- const blips=radar.traces.filter((t:any)=>t.tracking&&t.sprite===0&&t.display!==0&&!t.shortRange)
+ // MAIN's sprite blips (shops, contacts) are there before the mission; a sprite blip the mission adds is an objective
+ // (CRASH4's Glen Park and Ammu-Nation, ADD_SPRITE_BLIP_FOR_COORD).
+ mem.preSprites??=new Set(radar.traces.map((t:any,i:number)=>t.tracking&&t.sprite!==0?i:-1).filter((i:number)=>i>=0));
+ const blips=radar.traces.filter((t:any,i:number)=>t.tracking&&(t.sprite===0||!mem.preSprites.has(i))&&t.display!==0&&!t.shortRange)
   .map((t:any)=>({type:t.type,handle:t.entityHandle,friendly:!!t.friendly,position:at(t),entryExit:t.entryExit})).filter((b:any)=>b.position&&(b.position.x||b.position.y));
  const distance=(p:any)=>Math.hypot(p.x-me.x,p.y-me.y);
  // A shop's menu is up (the barber's chair, a counter): a player picks with the cross button, which the sweep presses.
@@ -147,20 +150,36 @@ export function missionBotTick(dtSeconds:number){
   // Its own ray, not solid: started inside a solid collider (the closed door over Binco's exit) the game's lookup
   // reports the start itself, which lifted CJ step by step onto the door; this one goes on to the floor under it.
   const R=g.RAPIER,physics=g.sim?.world;
-  const probe=(px:number,py:number)=>{
-   if(R&&physics){const hit=physics.castRay(new R.Ray({x:px,y:from,z:-py},{x:0,y:-1,z:0}),from+1000,false,R.QueryFilterFlags.ONLY_FIXED);return hit&&hit.timeOfImpact>1e-3?from-hit.timeOfImpact:undefined;}
-   const v=world.groundZFor3DCoord?.(px,py,from);return typeof v==='number'&&v!==0?v:undefined;
+  const probe=(px:number,py:number,top=from)=>{
+   if(R&&physics){const hit=physics.castRay(new R.Ray({x:px,y:top,z:-py},{x:0,y:-1,z:0}),top+1000,false,R.QueryFilterFlags.ONLY_FIXED);return hit&&hit.timeOfImpact>1e-3?top-hit.timeOfImpact:undefined;}
+   const v=world.groundZFor3DCoord?.(px,py,top);return typeof v==='number'&&v!==0?v:undefined;
   };
-  const found=probe(x,y)??probe(x+.25,y)??probe(x-.25,y)??probe(x,y+.25)??probe(x,y-.25);
+  let found=probe(x,y)??probe(x+.25,y)??probe(x-.25,y)??probe(x,y+.25)??probe(x,y-.25);
+  // Outdoors with nothing near under the line (it ran under the street up a slope and met Glen Park's storm drain, or
+  // nothing), the ground is looked for from well above and taken when it is near him: otherwise each step set him a
+  // unit lower and he sank under the map (CRASH4).
+  // Ground near him, or near the point he is making for (once he has sunk well under it).
+  if(me.z<500&&(found===undefined||me.z-1-found>6)){const top=probe(x,y,Math.max(me.z,to.z)+30);if(top!==undefined&&(Math.abs(top-(me.z-1))<8||Math.abs(top-(to.z-1))<8))found=top;}
+  // A straight step into a building (its roof far over him, no floor under it) or off a drop: a player walks round,
+  // so the step is tried turned 45 and then 90 degrees either way first (CJ walked into Downtown's towers on the way
+  // to Glen Park and fell under the map).
+  let sx=x,sy=y;
+  if(me.z<500&&!leap&&!over&&(found===undefined||Math.abs(found-(me.z-1))>3)){
+   const ux=(to.x-me.x)/d,uy=(to.y-me.y)/d;
+   for(const a of [Math.PI/4,-Math.PI/4,Math.PI/2,-Math.PI/2]){
+    const c=Math.cos(a),sn=Math.sin(a),px=me.x+(ux*c-uy*sn)*step,py=me.y+(ux*sn+uy*c)*step,f=probe(px,py)??probe(px,py,me.z+3);
+    if(f!==undefined&&Math.abs(f-(me.z-1))<=3){sx=px;sy=py;found=f;break;}
+   }
+  }
   // No ground within six units under the step: inside, that is FindGroundZFor3DCoord's 0 through a wall into the void
   // round the rooms (CJ fell for ever under SWEET1B's crack den), where a player cannot walk, so the bot goes no nearer;
   // outside it is a storm drain or a spot not streamed in yet, and he keeps his height for physics to settle.
   const sheer=found===undefined||found===null||!over&&me.z-1-found>6;
   if(sheer&&me.z>500)return false;
-  const z=sheer?me.z-1:found;
+  const z=sheer||found===undefined?me.z-1:found;
   // Walking, not a script warp: SET_CHAR_COORDINATES would warp his group round him every step (CPedGroup::Teleport),
   // and the recruits set down on him shoved him back (SWEET7's two at Grove).
-  (world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,x,y,z+1);
+  (world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,sx,sy,z+1);
   return true;
  };
  // Whether nothing fixed (a wall, the room's own mesh) stands between CJ's eye and a ped's chest, in script coordinates.
@@ -203,7 +222,8 @@ export function missionBotTick(dtSeconds:number){
   return best;
  };
  const shoot=(target:any,ownGun=false)=>{
-  if(!mem.armed&&!ownGun){try{world.givePedWeapon?.(1,31,2000);world.setPedCurrentWeapon?.(1,31);mem.armed=true;}catch{}}
+  // The M4 topped up every half minute: three waves of a gang war emptied the first 2000 rounds (CRASH4).
+  if(!ownGun&&performance.now()-(mem.armedAt??-Infinity)>30000){try{world.givePedWeapon?.(1,31,2000);world.setPedCurrentWeapon?.(1,31);mem.armedAt=performance.now();}catch{}}
   const now=performance.now();if(now-mem.lastShot<120)return;mem.lastShot=now;
   // __game.fireAt takes renderer coordinates: x, height, -y.
   g.fireAt(target.x,target.z+.6,-target.y);
@@ -273,7 +293,10 @@ export function missionBotTick(dtSeconds:number){
  // the tag, and sprays at it until it is his. Tags carry no blip; the script counts them by area.
  // A homie left behind comes first: SWEET1B's CJ still has SWEET1's can, and went spraying the street's tags while the
  // mission waited for him to fetch Sweet.
- let canSpray=false;try{canSpray=!vehicle&&!!world.pedHasWeapon?.(1,41)&&!(friends.length&&distance(nearest(friends).position)>10);}catch{}
+ // Only while the mission asks for it (a brief about tags or spraying, kept until the next brief): CJ still carries
+ // the can after SWEET1, and in CRASH4 went for a street tag on the way to Glen Park.
+ if(/\btags?\b|spray/i.test(objective))mem.spraying=true;else if(objective&&!objective.startsWith('~z~'))mem.spraying=false;
+ let canSpray=false;try{canSpray=!!mem.spraying&&!vehicle&&!!world.pedHasWeapon?.(1,41)&&!(friends.length&&distance(nearest(friends).position)>10);}catch{}
  if(canSpray){
   const tag=(g.tagsNear?.(me.x,me.y,20)??[]).filter((t:any)=>t.alpha<255).sort((a:any,b:any)=>distance(a)-distance(b))[0];
   if(tag){
@@ -284,8 +307,40 @@ export function missionBotTick(dtSeconds:number){
    return {action:'spray tag',alpha:tag.alpha};
   }
  }
+ // Just out of an interior, a player walks clear of its door before heading off; a straight line back past the marker
+ // (CRASH4: out of Ammu-Nation, off to Glen Park) would take him in again.
+ if(me.z<500&&mem.wasIndoors&&!vehicle){const door=g.interiorExitNear?.(me.x,me.y,me.z,true);mem.clearOf=door?{x:door.x,y:door.y,until:performance.now()+3000}:undefined;}
+ mem.wasIndoors=me.z>500;
+ if(mem.clearOf&&performance.now()<mem.clearOf.until&&!vehicle){
+  const dx=me.x-mem.clearOf.x,dy=me.y-mem.clearOf.y,l=Math.hypot(dx,dy)||1;
+  if(l<6&&glide({x:mem.clearOf.x+dx/l*6,y:mem.clearOf.y+dy/l*6,z:me.z-1},.3))return {action:'clear the door'};
+ }
+ // "Attack enemy gang members while on foot" (CRASH4, the gang war lesson): street gang members carry no blip, so a
+ // player picks out the nearest rival (any gang but the Families) and shoots him; a war's waves come blipped.
+ if(/enemy gang|gang members/i.test(objective))mem.gangHunt=true;else if(objective&&!objective.startsWith('~z~'))mem.gangHunt=false;
+ if(mem.gangHunt&&!vehicle){
+  // A war's attack wave is hunted wherever it got to: one stuck far off keeps the wave from being overcome.
+  const rival=((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.health>0&&p.gang!==undefined&&p.gang!==1&&!p.follow)
+   .map((p:any)=>{const q=p.actor.player.position;return {x:q.x,y:-q.z,z:q.y+1,id:p.id,hp:p.health,gang:p.gang,wave:!!p.attackWave};}).sort((a:any,b:any)=>distance(a)-distance(b))[0];
+  if(rival&&(distance(rival)<80||rival.wave)){
+   // With the M4 a player fires from thirty units when nothing stands between; else he closes in.
+   // A blocked shot (a fence, a car between) is closed right up to.
+   const open=clearShot(me,rival);
+   if((distance(rival)>30||!open)&&glide(rival,open?8:1.5))return {action:'close on gang member'};
+   shoot(rival);const gw=g.gangWars?.();
+   return {action:'shoot gang member',ammo:(()=>{try{return world.pedWeaponAmmo?.(1,31);}catch{return -1;}})(),rival:`${rival.id}:${rival.gang}:${Math.round(rival.hp)}:${distance(rival).toFixed(1)}:${clearShot(me,rival)?'clear':'blocked'}`,war:gw?`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`:''};
+  }
+ }
  if(places.length){
-  const p=nearest(places);
+  // A place stood at for six seconds with its blip still up is not what the script waits on (CRASH4's Ammu-Nation, for
+  // a gun if CJ wants one): a player goes on to the next, before the door near it would take him in.
+  const key=(b:any)=>`${Math.round(b.position.x)},${Math.round(b.position.y)}`,stood=mem.stoodAt??=new Map<string,number>();
+  // Stood on a blip that is also a door's marker (Ammu-Nation's, SWITCH_ENTRY_EXIT on), the game takes him in before
+  // the six seconds are up: that place counts as stood at.
+  if(me.z<500)mem.lastOutdoor={x:me.x,y:me.y};
+  else if(mem.lastOutdoor)for(const b of places)if(b.position.z<500&&Math.hypot(b.position.x-mem.lastOutdoor.x,b.position.y-mem.lastOutdoor.y)<10)stood.set(key(b),6);
+  const p=nearest(places.filter((b:any)=>(stood.get(key(b))??0)<6))??nearest(places);
+  if(distance(p.position)<4)stood.set(key(p),(stood.get(key(p))??0)+dtSeconds);
   // A place inside an interior tied to its door (SET_BLIP_ENTRY_EXIT) is reached through the door: CJ drives to it,
   // gets out and walks into the marker, as the radar shows it from outside.
   const door=p.entryExit!=null&&p.position.z>500&&me.z<500?g.entryExitEntrance?.(p.entryExit):null;
@@ -344,7 +399,8 @@ export function missionBotTick(dtSeconds:number){
    const door=mem.idleAtPlace>8?g.interiorExitNear?.(me.x,me.y,me.z,true):null;
    if(door&&distance(door)<8){if(glide({x:door.x,y:door.y,z:door.z-1},0))return {action:'go to door near place'};return {action:'at door near place'};}
   }
-  return {action:marker?'in marker':'at place'};
+  const gw=g.gangWars?.();
+  return {action:marker?'in marker':'at place',...(gw&&gw.state?{war:`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`,wave:((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.attackWave&&p.health>0).map((p:any)=>Math.round(Math.hypot(p.actor.player.position.x-me.x,-p.actor.player.position.z-me.y))).join('/')}:{})};
  }
  if(chases.length){
   const c=nearest(chases);
@@ -360,7 +416,8 @@ export function missionBotTick(dtSeconds:number){
  // "Get those gang members to join you" (SWEET7's TWAR652): a player walks up to each blipped Families member not yet
  // in his group, faces him and recruits him with the aim held and the group button.
  // The brief goes after its few seconds; the bot keeps on until every blipped one has joined.
- if(/join you/i.test(objective))mem.recruiting=true;else if(objective)mem.recruiting=false;
+ // Lines spoken (~z~, the subtitles) are not objectives and leave it as it was.
+ if(/join you/i.test(objective))mem.recruiting=true;else if(objective&&!objective.startsWith('~z~'))mem.recruiting=false;
  if(!vehicle&&mem.recruiting){
   const recruits=friends.filter((f:any)=>!members.includes(f.handle));
   if(!recruits.length)mem.recruiting=false;
