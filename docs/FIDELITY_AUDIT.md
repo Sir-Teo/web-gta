@@ -1548,8 +1548,12 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
       reaches within 1 s (it was 4), moving faster than 0.05 units a frame, within half its width plus 0.35 (it
       was 0.5), past its front length either way (a reversing car had led with its back).
     - `native-evasive` puts CJ in the car it rolls at the ped.
-  - Not ported: `ShouldCarStopForBridge`, the road-barrier objects (`DYN_ROADBARRIER_6`, `la_fuckcar1` and `2`),
-    and the rails limit being refreshed only every 4th frame.
+  - **On rails** the limit (`m_fMaxTrafficSpeed`) and the light are refreshed only on frames where (frame + seed) & 3
+    is 0, as `SlowCarOnRailsDownForTrafficAndLights` does; on the others `ScanForPedDanger`'s ±11 ped check runs
+    alone, for its waits and brakes. It had been refreshed every step.
+  - Not ported: `ShouldCarStopForBridge` and the road-barrier objects (`DYN_ROADBARRIER_6`, `la_fuckcar1` and `2`).
+  - `traffic-on-rails` ends INTRO first (it took CJ away from the traffic) and lowers the physics radius to 40, since
+    cars made closing on the player seldom left 100.
 - AI cars now set their steer angle, gas, brake and handbrake directly, as
   `SteerAICarWithPhysics` writes them. They used to go through the player's
   smoothed pad input.

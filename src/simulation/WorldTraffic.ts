@@ -17,6 +17,7 @@ import {playCarHorn} from './nativeCarHorn';
 import {collisionDamageResponse,damageDriverResponse,gunShotDriverResponse,weaponDamageResponse,FLEE_SCENE_CRUISE_SPEED,RELATIONSHIP} from '../vehicle/nativeCollisionDecision';
 import {isKillTaskAppropriate} from '../ped/nativeDecisionMaker';
 import {calcCurvePoint,calcSpeedScaleFactor} from '../vehicle/nativeCurves';
+import {PED_DANGER_SCAN_DISTANCE} from '../ped/nativeGetRunOver';
 /** A cruising car's CAutoPilot: the link it is heading for, the one after, a lane on each, and its cruise speed. */
 /** How long a rammed driver's CTaskComplexCarDriveMissionKillPed chase lasts, and how far off the player ends it (authored:
  * the task is not reversed). */
@@ -35,7 +36,9 @@ interface Driver {/** The chase CTaskComplexCarDriveMissionKillPed runs after th
  /** CAutoPilot's speed code (field_41) from the last node reached, and m_SpeedMult, which glides to its multiplier. */
  speedCode:number;speedMult:number;
  /** CAutoPilot's lane-change countdown (field_50). */
- laneCountdown:number;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
+ laneCountdown:number;
+ /** CAutoPilot::m_fMaxTrafficSpeed, the limit a car on rails eases towards, refreshed every 4th frame. */
+ railsLimit?:number;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
  /** CPed health (100) under the player's bullets; CTaskComplexDieInCar's 2000 ms coast after the fatal one, then dead out of the door or in the seat. */
  health:number;dying?:{at:number};dead?:boolean;deadInSeat?:boolean;
  /** STATUS_SIMPLE: m_nTimeEnteredCurve, m_nTimeToSpendOnCurrentCurve and m_fMaxTrafficSpeed, the curve from where the car
@@ -75,6 +78,8 @@ export class WorldTraffic {
   private elapsed=0;
   /** CCarCtrl::GenerateCarCreationCoors2's statics, and the tries' stand-in for CTimer::m_FrameCounter. */
   private readonly creation=newCarCreationCache();private frameCounter=0;
+  /** CTimer::m_FrameCounter for the traffic: one a step. */
+  private steps=0;
   /** What GenerateOneRandomCar's bearing reads: TheCamera's forward height and its front across the ground (native),
    * and the player's vehicle's speed across the ground (units a frame) when he drives. */
   creationView:()=>{cameraForwardZ:number;cameraFront:{x:number;y:number};vehicleVelocity?:{x:number;y:number}}=()=>({cameraForwardZ:0,cameraFront:{x:0,y:1}});
@@ -278,7 +283,7 @@ export class WorldTraffic {
   * past its current link, it heads for the next one. */
  private leaveRails(d:Driver,now:number){
   if(!d.rails?.entry&&d.next){d.previous=d.current;d.current=d.next;d.currentLane=d.nextLane;this.pickNext(d,d.current);}
-  d.rails=undefined;d.timeSwitchedToRealPhysics=now;
+  d.rails=undefined;d.railsLimit=undefined;d.timeSwitchedToRealPhysics=now;
  }
  /** CCarCtrl::PickNextNodeRandomly: the link after `from`, and the lane on it. Switched-off and don't-wander roads are
   * among the candidates: the pick's own rules keep a random car off the first unless it is on one, and only mission
@@ -306,7 +311,7 @@ export class WorldTraffic {
   d.nextLane=nextLaneOnLink(d.nextLane,lanes(d.next).lanes,change.change,change.right);
  }
  beforeStep(dt:number){
-  const previousNow=this.elapsed*1000;this.elapsed+=dt;const now=this.elapsed*1000,sirens=this.sirens?.()??[],peds=(this.peds?.()??[]).map(toNative);
+  this.steps++;const previousNow=this.elapsed*1000;this.elapsed+=dt;const now=this.elapsed*1000,sirens=this.sirens?.()??[],peds=(this.peds?.()??[]).map(toNative);
   // Scan the fleet's live set, never a copy: a stalled driver removed below frees its body, and a copy would hand
   // that freed body to the next driver's danger scan (a Rapier panic that then failed every frame).
   const cars=this.fleet.cars;
@@ -373,9 +378,15 @@ export class WorldTraffic {
    {const target=speedMultiplierFromNodes(driver.speedCode),step=dt*50*.01;driver.speedMult=Math.abs(driver.speedMult-target)<step?target:driver.speedMult+(driver.speedMult>target?-step:step);}
    // CCarCtrl::FindMaximumSpeedForThisCarInTraffic (iOS 0x100193dcc) under STOP_FOR_CARS: from cruise × m_SpeedMult, the
    // lowest speed any vehicle or ped in the ±14 box allows. DRIVINGSTYLE_AVOID_CARS returns cruise × m_SpeedMult at once.
-   const cur=driver.cruiseSpeed*driver.speedMult,b=car.nativeBody;
+   // SlowCarOnRailsDownForTrafficAndLights refreshes a car on rails' limit only on frames where (frame + seed) & 3 is 0;
+   // on the others ScanForPedDanger's ±11 ped check runs alone, for its temporary actions.
+   const cur=driver.cruiseSpeed*driver.speedMult,b=car.nativeBody,scanFrame=!onRails||driver.railsLimit===undefined||((this.steps+driver.seed)&3)===0;
    let trafficSpeed=cur,slowedByCars=false,slowedByPeds=false;
-   if(!driver.avoidCars){
+   if(!driver.avoidCars&&!scanFrame){
+    const inBox=peds.filter(q=>Math.abs(q.x-position.x)<PED_DANGER_SCAN_DISTANCE&&Math.abs(q.y-position.y)<PED_DANGER_SCAN_DISTANCE);
+    const pedScan=slowCarDownForPeds({position,forward:f3,right:right3,moveSpeed:move,front:b.boundsMax.y,halfWidth:b.boundsMax.x},inBox,driver.cruiseSpeed,driver.cruiseSpeed);
+    if(pedScan.action)driver.temp={action:pedScan.action,until:now+4000,from:'ped'};
+   }else if(!driver.avoidCars){
     car.pedDangerScan=DISTANCE_TO_SCAN_FOR_DANGER;
     const own=view(car),scan=slowCarDownForCars(own,others(),trafficSpeed,cur,(other,proximity,speed)=>{
      // SlowCarDownForOtherCar's 15-second standoff, asked of one car of the pair (the executable compares pointers):
@@ -396,7 +407,7 @@ export class WorldTraffic {
    }
    const approach=(link:TrafficLink|undefined)=>link&&{navigation:link.navigation,routeAddress:link.to.address,travelSign:travelSign(link)};
    // ShouldCarStopForLight checks the previous link's light only for a car under physics.
-   const atSignal=nativeShouldStopForLight({position:[position.x,position.y],appearance:'car',physicsStatus:!onRails,current:approach(driver.current)!,next:approach(driver.next),previous:approach(driver.previous)},Math.floor(now)>>>0);
+   const atSignal=scanFrame&&nativeShouldStopForLight({position:[position.x,position.y],appearance:'car',physicsStatus:!onRails,current:approach(driver.current)!,next:approach(driver.next),previous:approach(driver.previous)},Math.floor(now)>>>0);
    // CCarAI::CarHasReasonToStop: a car stopping for a light is not stuck.
    if(atSignal&&(onRails||!driver.avoidCars))driver.timeToStartMission=now;
    // CCarAI::UpdateCarAI's jam handling, which a temporary action skips until the steering below clears it as it runs
@@ -413,7 +424,8 @@ export class WorldTraffic {
     const hold=driver.temp&&(driver.temp.action==='wait'||driver.temp.action==='brake')?driver.temp:undefined;
     if(hold&&now>hold.until){driver.temp=undefined;driver.timeToStartMission=driver.timeSwitchedToRealPhysics=now;}
     // SlowCarOnRailsDownForTrafficAndLights stops a car on rails for a light whatever its driving style.
-    this.stepRails(driver,now,dt,trafficSpeed,atSignal,!!hold);
+    if(scanFrame)driver.railsLimit=atSignal?0:trafficSpeed;
+    this.stepRails(driver,now,dt,driver.railsLimit!,false,!!hold);
     car.autopilot={steering:0,throttle:0,brake:0,handbrake:false};driver.stopped=null;continue;
    }
    // Only STOP_FOR_CARS drivers stop for lights, and only their FollowPath reads the traffic speed.
