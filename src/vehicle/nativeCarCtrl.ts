@@ -67,8 +67,10 @@ export function findPathDirection(prev:V2,cur:V2,next:V2,out?:{sharp:boolean}){
 
 export interface FollowPathCar {position:V2;forward:V2;moveSpeed:{x:number;y:number;z:number};forward3:{x:number;y:number;z:number}}
 /** The node-change test at the top of SteerAICarWithPhysicsFollowPath: close to the current link's lane point,
- * nearly facing past it, or already moving away along the next segment. */
+ * nearly facing past it, or already moving away along the next segment; or, as the iOS executable adds (0x10019a7f4),
+ * the next link is the current one, as a U-turn leaves it, so the car picks again at once. */
 export function shouldPickNextNode(car:FollowPathCar,current:TravelLink,currentLane:number,next:TravelLink,nextLane:number){
+ if(next.position.x===current.position.x&&next.position.y===current.position.y)return true;
  const here=lanePoint(current,currentLane),there=lanePoint(next,nextLane);
  const toCar={x:car.position.x-here.x,y:car.position.y-here.y},distance=Math.hypot(toCar.x,toCar.y);
  const between={x:there.x-here.x,y:there.y-here.y},d=dot(between,toCar);
