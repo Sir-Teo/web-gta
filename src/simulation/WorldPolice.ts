@@ -733,7 +733,9 @@ export class WorldPolice {
     if(next&&next.from===link.to&&shouldPickNextNode(state,travel(link),u.lane,travel(next),u.nextLane)){
      if(u.mission==='far'&&u.route[0]===next)u.route.shift();
      u.link=link=next;u.lane=u.nextLane;u.cruiseNext=undefined;next=u.mission==='far'&&u.route.length?u.route[0]:cruiseNext(link);
-     if(next)u.nextLane=nextLaneOnLink(u.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5);
+     // Vice City's lane change: a lane over one time in four on a segment of 14 or more (the patrol's pick is not
+     // PickNextNodeRandomly's).
+     if(next){const change=this.random()<.25,right=this.random()<.5;u.nextLane=nextLaneOnLink(u.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,change&&next.length>=14,right);}
     }
     let here=lanePoint(travel(link),u.lane),t=travel(link);
     // Thrown off its link (12 across it, or 3 above or below the road), or stuck through two recoveries: rejoin the

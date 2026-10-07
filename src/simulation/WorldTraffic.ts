@@ -8,7 +8,7 @@ import {nativeShouldStopForLight} from '../world/nativeSignalStop';
 import {trafficLinks,travelLink,type TrafficLink} from './trafficRoute';
 import {generateCarCreationCoors2,newCarCreationCache} from './nativeCarCreationCoors';
 import {approachesPlayer,clampCreationT,laneCountAllows,nodeSpeedCode,nodeSpeedMultiplier,randomCarCreationBearing,speedMultiplierFromNodes,randomCarCruiseSpeed,spawnProbabilityPasses} from '../vehicle/nativeRandomCarSpawn';
-import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,carAIJam,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,pickNextNodeRandomly,
+import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,TRY_NOT_TO_TURN_MODELS,carAIJam,initialLaneChangeCountdown,laneChangeCountdown,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,pickNextNodeRandomly,
  shouldPickNextNode,slowCarDownForCars,slowCarDownForPeds,standoffApplies,steerFollowPath,steerHeadingForTarget,tempActionPedals,type DangerView,type NextCandidate,type TempAction} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
@@ -29,11 +29,13 @@ const RANDOM_CAR_OUT_OF_VIEW=38,RANDOM_CAR_FAR_HIDDEN=75,RANDOM_CAR_CLEARANCE=8,
 /** The BMX-type models (vehicles.ide "bmx"): the BMX, the bike and the mountain bike. */
 const BMX_MODELS:ReadonlySet<number>=new Set([481,509,510]);
 interface Driver {/** The chase CTaskComplexCarDriveMissionKillPed runs after the player. */chase?:{until:number};/** Road rage waiting for the car to slow before he gets out. */rageWait?:boolean;car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
- temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'|'death'|'flipped'};
+ temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'|'death'|'flipped'|'node'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
  seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;
  /** CAutoPilot's speed code (field_41) from the last node reached, and m_SpeedMult, which glides to its multiplier. */
- speedCode:number;speedMult:number;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
+ speedCode:number;speedMult:number;
+ /** CAutoPilot's lane-change countdown (field_50). */
+ laneCountdown:number;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
  /** CPed health (100) under the player's bullets; CTaskComplexDieInCar's 2000 ms coast after the fatal one, then dead out of the door or in the seat. */
  health:number;dying?:{at:number};dead?:boolean;deadInSeat?:boolean;
  /** STATUS_SIMPLE: m_nTimeEnteredCurve, m_nTimeToSpendOnCurrentCurve and m_fMaxTrafficSpeed, the curve from where the car
@@ -205,7 +207,7 @@ export class WorldTraffic {
     if(this.disposed||Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>100){this.fleet.removeTrafficCar(car);return;}
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};car.activeRadius=this.physicsRadius;
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
-    const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,speedCode:nodeSpeedCode(hit.node2.flags,false),speedMult:nodeSpeedMultiplier(hit.node2.flags),
+    const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,laneCountdown:initialLaneChangeCountdown(rand),speedCode:nodeSpeedCode(hit.node2.flags,false),speedMult:nodeSpeedMultiplier(hit.node2.flags),
      cruiseSpeed:length<=10?cruise:randomCarCruiseSpeed(rand(),length,pick.modelId,BMX_MODELS.has(pick.modelId)),stopped:null,distance:0,last:{x,z}};
     car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);car.onWeaponDamage=shooter=>this.tyreShot(driver,shooter);car.onBlowUp=aboard=>{if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(car);};
     // GenerateOneRandomCar's speed code is the node ahead's, without the behaviour-type case.
@@ -278,17 +280,30 @@ export class WorldTraffic {
   if(!d.rails?.entry&&d.next){d.previous=d.current;d.current=d.next;d.currentLane=d.nextLane;this.pickNext(d,d.current);}
   d.rails=undefined;d.timeSwitchedToRealPhysics=now;
  }
- /** CCarCtrl::PickNextNodeRandomly: the link after `from`, and the lane on it. */
+ /** CCarCtrl::PickNextNodeRandomly: the link after `from`, and the lane on it. Switched-off and don't-wander roads are
+  * among the candidates: the pick's own rules keep a random car off the first unless it is on one, and only mission
+  * cars off the second. */
  private pickNext(d:Driver,from:TrafficLink){
   // PickNextNodeAccordingStrategy first takes the speed code of the node just reached.
   d.speedCode=nodeSpeedCode(from.from.flags);
   const areas=this.paths?.areas;if(!areas){d.next=undefined;return;}
-  const onFrom=lanes(from),candidates:NextCandidate<TrafficLink>[]=trafficLinks(areas,from.to).map(link=>{const l=lanes(link);
-   return {value:link,node:{x:link.to.position[0],y:link.to.position[1]},uTurn:sameNode(link.to,from.from),deadEnd:link.to.deadEnd,switchedOff:link.to.switchedOff,lanes:l.lanes,oppositeLanes:l.reverseLanes};});
-  const pick=pickNextNodeRandomly({previous:{x:from.from.position[0],y:from.from.position[1]},current:{x:from.to.position[0],y:from.to.position[1]},candidates,
-   lanesOnCurrent:onFrom.lanes,onOneWayRoad:onFrom.reverseLanes===0,nextLane:d.nextLane,previousDeadEnd:from.from.deadEnd,previousSwitchedOff:from.from.switchedOff,random:count=>Math.floor(Math.random()*count)});
+  const junction=from.to,onFrom=lanes(from),now=this.elapsed*1000,rand=()=>Math.floor(Math.random()*0x80000000);
+  const candidates:NextCandidate<TrafficLink>[]=trafficLinks(areas,junction,true).map(link=>{const l=lanes(link);
+   return {value:link,node:{x:link.to.position[0],y:link.to.position[1]},uTurn:sameNode(link.to,from.from),deadEnd:link.to.deadEnd,switchedOff:link.to.switchedOff,
+    water:link.to.water,dontWander:link.to.dontWander,behaviour:link.to.behaviour,lanes:l.lanes,oppositeLanes:l.reverseLanes};});
+  const pick=pickNextNodeRandomly({previous:{x:from.from.position[0],y:from.from.position[1]},current:{x:junction.position[0],y:junction.position[1]},candidates,
+   lanesOnCurrent:onFrom.lanes,onOneWayRoad:onFrom.reverseLanes===0,nextLane:d.nextLane,junction,previousSwitchedOff:from.from.switchedOff,
+   vehicle:{tryNotToTurn:TRY_NOT_TO_TURN_MODELS.has(d.car.modelId),onRails:!!d.rails,boundsMax:d.car.nativeBody.boundsMax},random:count=>rand()%count});
   d.next=pick.choice?.value;
-  if(d.next)d.nextLane=nextLaneOnLink(d.nextLane,lanes(d.next).lanes,d.next.length,Math.random()<.25,Math.random()<.5);
+  if(!d.next)return;
+  // A U-turn switches a car on rails to physics (SwitchVehicleToRealPhysics: no temporary action, 2 s before a jam
+  // can count). The browser's rails are decided by distance, so only the clocks are kept.
+  if(pick.uTurn&&d.rails){d.temp=undefined;d.timeToStartMission=now+2000;d.timeSwitchedToRealPhysics=now;}
+  // Node behaviour types: the car waits (TEMPACT_WAIT) 10 s heading for a type-10 node, and 4.5 s at a type-9 junction.
+  if(d.next.to.behaviour===10)d.temp={action:'wait',until:now+10000,from:'node'};
+  if(junction.behaviour===9)d.temp={action:'wait',until:now+4500,from:'node'};
+  const change=laneChangeCountdown(d.laneCountdown,d.next.length,rand);d.laneCountdown=change.countdown;
+  d.nextLane=nextLaneOnLink(d.nextLane,lanes(d.next).lanes,change.change,change.right);
  }
  beforeStep(dt:number){
   const previousNow=this.elapsed*1000;this.elapsed+=dt;const now=this.elapsed*1000,sirens=this.sirens?.()??[],peds=(this.peds?.()??[]).map(toNative);

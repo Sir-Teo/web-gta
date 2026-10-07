@@ -16,7 +16,7 @@
 export const LANE_WIDTH=5.4,GAME_SPEED_TO_CARAI_SPEED=60;
 export const DISTANCE_TO_NEXT_NODE_TO_CONSIDER_SLOWING_DOWN=40,
  DISTANCE_TO_NEXT_NODE_TO_SELECT_NEW=5,DISTANCE_TO_FACING_NEXT_NODE_TO_SELECT_NEW=8,MIN_LOWERING_SPEED_COEFFICIENT=.4,MAX_ANGLE_FOR_SPEED_LIMITING=1.2,
- MIN_ANGLE_FOR_SPEED_LIMITING=.4,MIN_ANGLE_FOR_SPEED_LIMITING_BETWEEN_NODES=.1,ATTEMPTS_TO_FIND_NEXT_NODE=15;
+ MIN_ANGLE_FOR_SPEED_LIMITING=.4,MIN_ANGLE_FOR_SPEED_LIMITING_BETWEEN_NODES=.1;
 export const PATH_DIRECTION={NONE:0,STRAIGHT:1,RIGHT:2,LEFT:4} as const;
 
 type V2={x:number;y:number};
@@ -52,12 +52,17 @@ export function findSpeedMultiplier(angleChange:number,minAngle:number,maxAngle:
  const n=Math.max(0,Math.abs(limitRadianAngle(angleChange))-minAngle),d=maxAngle-minAngle;
  return n>d?coef:1-n/d*(1-coef);
 }
-/** CCarCtrl::FindPathDirection over three node positions. */
-export function findPathDirection(prev:V2,cur:V2,next:V2){
+/** CCarCtrl::FindPathDirection as the iOS executable has it (0x100197f74): straight while the turn's cosine is over
+ * 0.4 (up to 66.4 degrees), else left or right by the cross product (a dead reverse counts as right). `out.sharp` is
+ * set for a turn sharper than 107.5 degrees (cosine under −0.3). Vice City's had split at a sine of ±0.77. */
+export function findPathDirection(prev:V2,cur:V2,next:V2,out?:{sharp:boolean}){
+ if(out)out.sharp=false;
  const a={x:cur.x-prev.x,y:cur.y-prev.y},b={x:next.x-cur.x,y:next.y-cur.y},la=Math.hypot(a.x,a.y),lb=Math.hypot(b.x,b.y);
  if(la===0||lb===0)return PATH_DIRECTION.NONE;
- const sin=a.x/la*(b.y/lb)-a.y/la*(b.x/lb);
- return sin>.77?PATH_DIRECTION.LEFT:sin<-.77?PATH_DIRECTION.RIGHT:PATH_DIRECTION.STRAIGHT;
+ const cos=(a.x*b.x+a.y*b.y)/(la*lb);
+ if(cos>.4)return PATH_DIRECTION.STRAIGHT;
+ if(out&&cos<-.3)out.sharp=true;
+ return a.x*b.y-a.y*b.x>0?PATH_DIRECTION.LEFT:PATH_DIRECTION.RIGHT;
 }
 
 export interface FollowPathCar {position:V2;forward:V2;moveSpeed:{x:number;y:number;z:number};forward3:{x:number;y:number;z:number}}
@@ -100,43 +105,83 @@ export interface NextCandidate<T> {
  /** The next node is the one the car came from. */
  uTurn:boolean;
  deadEnd:boolean;switchedOff:boolean;
+ /** Node flags 0x80 (water) and 0x400 (don't wander), and the behaviour type (bits 20 to 23). */
+ water?:boolean;dontWander?:boolean;behaviour?:number;
  /** Lanes in the direction of travel along the connection, and against it. */
  lanes:number;oppositeLanes:number;
 }
-/** CCarCtrl::PickNextNodeRandomly's choice, with its three passes: first respecting the turns the current lane
- * allows, dead ends, switched-off roads and one-way roads; then only one-way and switched-off roads; then the
- * first usable connection in order, or a U-turn. `random` is CGeneral::GetRandomNumber() % count. */
+/** The junction node's own flags, which IsThisAnAppropriateNode judges a candidate against. */
+export interface JunctionFlags {deadEnd:boolean;switchedOff:boolean;water?:boolean;dontWander?:boolean}
+/** What PickNextNodeRandomly knows of the vehicle: ThisVehicleShouldTryNotToTurn, STATUS_SIMPLE, the Vortex (which may
+ * cross between land and water), a mission car cruising (MISSION_CRUISE, m_nCreatedBy 2), and its collision box's
+ * maxima (bbox.max). */
+export interface PickingVehicle {tryNotToTurn?:boolean;onRails?:boolean;vortex?:boolean;missionCruiser?:boolean;boundsMax?:{x:number;y:number;z:number}}
+/** ThisVehicleShouldTryNotToTurn (inlined in the iOS PickNextNodeRandomly): the linerunner, dumper, bus, coach,
+ * packer, flatbed, tanker, roadtrain and cement truck go straight on. */
+export const TRY_NOT_TO_TURN_MODELS:ReadonlySet<number>=new Set([403,406,431,437,443,455,514,515,524]);
+/** CCarCtrl::IsThisAnAppropriateNode as the iOS executable has it (0x100197a14), for a candidate off the junction:
+ * not the way back; no switch between land and water (but for the Vortex); node behaviour types 5 and 10 only for
+ * vehicles 2 or more tall, 8 and 9 only for ones at most 1.5 tall, 2 wide and 4 long, and neither against a one-way
+ * road; no don't-wander node for a mission car cruising, a dead end or a switched-off node from a junction that is
+ * not one; and not against a one-way road. Behaviour types 1 and 2 (parallel and perpendicular parking spots) send a
+ * random car to park, which the browser has not: they are refused. */
+export function isThisAnAppropriateNode(c:NextCandidate<unknown>,junction:JunctionFlags,vehicle:PickingVehicle={}){
+ const againstOneWay=c.lanes===0,size=vehicle.boundsMax;
+ if(c.uTurn)return false;
+ if(!!c.water!==!!junction.water&&!vehicle.vortex)return false;
+ switch(c.behaviour){
+  case 5:case 10:if(againstOneWay||!(size&&size.z>=2))return false;break;
+  case 8:case 9:if(againstOneWay||!size||size.z>1.5||size.x>2||size.y>4)return false;break;
+  case 1:case 2:return false;
+ }
+ if(vehicle.missionCruiser&&c.dontWander&&!junction.dontWander)return false;
+ if(c.deadEnd&&!junction.deadEnd)return false;
+ return !(c.switchedOff&&!junction.switchedOff||againstOneWay);
+}
+/** CCarCtrl::PickNextNodeRandomly's choice as the iOS executable makes it (0x10019052c): one draw for where to start
+ * among the junction's links and one for which way to walk them, every link tried once a pass in that order:
+ * - first the turns the lane allows (only straight on for ThisVehicleShouldTryNotToTurn; no turn sharper than 107.5
+ *   degrees for a car on rails), never one-way onto one-way, and IsThisAnAppropriateNode;
+ * - then any link with lanes the car's way that is not the way back, onto a switched-off road only from one;
+ * - then any link with lanes the car's way that is not the way back;
+ * - else the U-turn.
+ * `random` is rand() % count (the direction is rand()'s bit 4). Vice City's drew 14 times a pass, with repeats. */
 export function pickNextNodeRandomly<T>(o:{previous:V2;current:V2;candidates:readonly NextCandidate<T>[];
- lanesOnCurrent:number;onOneWayRoad:boolean;nextLane:number;previousDeadEnd:boolean;previousSwitchedOff:boolean;random:(count:number)=>number}):{choice:NextCandidate<T>|undefined;uTurn:boolean}{
- const {candidates}=o;if(!candidates.length)return {choice:undefined,uTurn:true};
+ lanesOnCurrent:number;onOneWayRoad:boolean;nextLane:number;junction:JunctionFlags;previousSwitchedOff:boolean;vehicle?:PickingVehicle;random:(count:number)=>number}):{choice:NextCandidate<T>|undefined;uTurn:boolean}{
+ const {candidates}=o,n=candidates.length;if(!n)return {choice:undefined,uTurn:true};
  let allowed=0;
  if(o.nextLane===0)allowed|=PATH_DIRECTION.LEFT;
  if(o.nextLane===o.lanesOnCurrent-1)allowed|=PATH_DIRECTION.RIGHT;
  if(o.lanesOnCurrent<3||allowed===0)allowed|=PATH_DIRECTION.STRAIGHT;
- // Each pass draws ATTEMPTS_TO_FIND_NEXT_NODE times and tests a draw at the start of the next attempt, so the last
- // draw is never tested.
- const pass=(accept:(c:NextCandidate<T>)=>boolean)=>{
-  for(let attempt=1;attempt<ATTEMPTS_TO_FIND_NEXT_NODE;attempt++){const c=candidates[o.random(candidates.length)];if(accept(c))return c;}
-  o.random(candidates.length);return undefined;
- };
- const strict=pass(c=>!c.uTurn&&!!(findPathDirection(o.previous,o.current,c.node)&allowed)&&(!c.deadEnd||o.previousDeadEnd)&&(!c.switchedOff||o.previousSwitchedOff)&&c.lanes>0&&(!o.onOneWayRoad||c.oppositeLanes>0));
- if(strict)return {choice:strict,uTurn:false};
- const loose=pass(c=>!c.uTurn&&(!c.switchedOff||o.previousSwitchedOff)&&c.lanes>0);
- if(loose)return {choice:loose,uTurn:false};
- const first=candidates.find(c=>c.lanes>0&&(!c.switchedOff||o.previousSwitchedOff));
- if(first)return {choice:first,uTurn:first.uTurn};
+ if(o.vehicle?.tryNotToTurn)allowed=PATH_DIRECTION.STRAIGHT;
+ const start=o.random(n),onwards=o.random(2)===1,at=(k:number)=>candidates[onwards?(start+k)%n:(start+n-k)%n];
+ const turn={sharp:false};
+ for(let k=0;k<n;k++){
+  const c=at(k),direction=findPathDirection(o.previous,o.current,c.node,turn);
+  if(o.vehicle?.onRails&&turn.sharp)continue;
+  if((c.oppositeLanes>0||!o.onOneWayRoad)&&(direction&allowed)&&isThisAnAppropriateNode(c,o.junction,o.vehicle))return {choice:c,uTurn:false};
+ }
+ for(let k=0;k<n;k++){const c=at(k);if(!c.uTurn&&c.lanes>0&&(!c.switchedOff||o.previousSwitchedOff))return {choice:c,uTurn:false};}
+ for(let k=0;k<n;k++){const c=at(k);if(!c.uTurn&&c.lanes>0)return {choice:c,uTurn:false};}
  return {choice:candidates.find(c=>c.uTurn),uTurn:true};
 }
-/** PickNextNodeRandomly's lane on the next link: when `change` (a one-in-four draw) is set, move a lane over on a
- * segment of 14 units or more, to the right when `right`; then clamp to the lanes in the direction of travel.
- * `slowLane` is CAutoPilot::bStayInSlowLane (SET_CAR_STAY_IN_SLOW_LANE): the outermost lane, the counterpart of VC's
- * m_bStayInFastLane, which takes lane 0 after the clamp. */
-export function nextLaneOnLink(lane:number,lanesOnNext:number,segmentLength:number,change:boolean,right:boolean,slowLane=false){
- if(lanesOnNext<=0)return lane;
- let next=lane;
- if(change&&segmentLength>=14)next+=right?1:-1;
- if(slowLane)return lanesOnNext-1;
- return Math.max(0,Math.min(lanesOnNext-1,next));
+/** CAutoPilot's lane-change countdown (field_50), 2 to 9 as the car is made. */
+export const initialLaneChangeCountdown=(rand:()=>number)=>(rand()&7)+2;
+/** PickNextNodeRandomly's lane-change rhythm (iOS 0x100191088): a new segment over 16 units node to node takes one off
+ * the countdown; at 0 it restarts at 4 to 7 and the car moves a lane, outwards on an odd draw. `rand` is rand(). */
+export function laneChangeCountdown(countdown:number,segmentLength:number,rand:()=>number){
+ if(!(segmentLength*segmentLength>256))return {countdown,change:false,right:false};
+ countdown=(countdown-1)&255;
+ if(countdown!==0)return {countdown,change:false,right:false};
+ countdown=(rand()&3)|4;
+ return {countdown,change:true,right:(rand()&1)!==0};
+}
+/** PickNextNodeRandomly's lane on the next link: a lane over when the countdown says so (to the right when `right`),
+ * clamped to the lanes in the direction of travel (0 when there are none). `slowLane` is CAutoPilot::bStayInSlowLane
+ * (SET_CAR_STAY_IN_SLOW_LANE): the outermost lane. */
+export function nextLaneOnLink(lane:number,lanesOnNext:number,change:boolean,right:boolean,slowLane=false){
+ if(slowLane)return Math.max(lanesOnNext-1,0);
+ return Math.max(Math.min(change?lane+(right?1:-1):lane,lanesOnNext-1),0);
 }
 
 type V3={x:number;y:number;z:number};

@@ -2,7 +2,7 @@ import {Quaternion,Vector3} from 'three';
 import type {PathArea} from '../assets/pathNodes';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {lanePoint,nextLaneOnLink,pickNextNodeRandomly,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,tempActionPedals,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
+import {TRY_NOT_TO_TURN_MODELS,initialLaneChangeCountdown,laneChangeCountdown,lanePoint,nextLaneOnLink,pickNextNodeRandomly,type NextCandidate,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,tempActionPedals,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
 import {slowCarDownForCars,type DangerView} from '../vehicle/nativeCarCtrl';
 import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
 import type {WorldCar} from './WorldCar';
@@ -11,6 +11,7 @@ export interface ScriptDrivable {
  readonly car:{body:import('@dimforge/rapier3d-compat').RigidBody};
  readonly wrecked:boolean;readonly disposed:boolean;readonly occupied:boolean;scriptDriven?:boolean;
  readonly nativeBody:{boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
+ readonly modelId?:number;
  autopilot?:WorldCar['autopilot'];
  autopilotFields?:{stayInSlowLane?:number};
 }
@@ -78,6 +79,8 @@ interface Mission{
  goal:{x:number;y:number;z:number};
  cruise:number;style:number;straightLineDistance:number;
  link?:TrafficLink;lane:number;nextLane:number;route:TrafficLink[];cruiseNext?:TrafficLink;joinedAt:number;
+ /** CAutoPilot's lane-change countdown (field_50), which PickNextNodeRandomly runs down. */
+ laneCountdown?:number;
  stuck:number;recoveryMode:number;lastRecovery:number;recovery?:{kind:number;remaining:number};
  /** Seconds without headway, for the last-resort unstick. */
  jammed?:number;
@@ -398,27 +401,28 @@ export class ScriptCarMissions{
    if(!paths)return native(HOLD);
    if(!m.link){const q=car.car.body.translation();m.link=joinCarWithRoadSystem(paths.areas,{x:q.x,y:-q.z,z:q.y},f);}
    const link=m.link;if(!link)return native(HOLD);
-   // CCarCtrl::PickNextNodeRandomly, one continuation per node change, as the traffic controller runs it: the turn the
-   // lane allows, no dead end or switched-off road unless coming from one, and the U-turn when nothing else is left.
+   // CCarCtrl::PickNextNodeRandomly, one continuation per node change, as the traffic controller runs it, for a
+   // mission car cruising (kept off don't-wander roads it is not on). Switched-off and don't-wander roads are among
+   // the candidates: a car that joined the road system on one (Grove Street's) found no link at all from its end.
    // (Filtering the way back out and drawing from the rest left a car at a dead end with nothing, circling the end
    // of its last link: an ambulance wandering off from Grove Street's turning circle ran down the people there.)
    const pick=(from:TrafficLink)=>{
     const onFrom=pathDirection(from.from.address,from.to.address,from.navigation);
-    // Switched-off and don't-wander roads are among the candidates, kept to a car already on one by the switched-off
-    // test: a car that joined the road system on one (Grove Street's) found no link at all from its end.
-    const closed=(n:TrafficLink['to'])=>n.switchedOff||n.dontWander;
-    const candidates=trafficLinks(paths.areas,from.to,true).map(link=>{const l=pathDirection(link.from.address,link.to.address,link.navigation);
+    const candidates:NextCandidate<TrafficLink>[]=trafficLinks(paths.areas,from.to,true).map(link=>{const l=pathDirection(link.from.address,link.to.address,link.navigation);
      return {value:link,node:{x:link.to.position[0],y:link.to.position[1]},uTurn:link.to.address.area===from.from.address.area&&link.to.address.node===from.from.address.node,
-      deadEnd:link.to.deadEnd,switchedOff:closed(link.to),lanes:l.lanes,oppositeLanes:l.reverseLanes};});
+      deadEnd:link.to.deadEnd,switchedOff:link.to.switchedOff,water:link.to.water,dontWander:link.to.dontWander,behaviour:link.to.behaviour,lanes:l.lanes,oppositeLanes:l.reverseLanes};});
     return pickNextNodeRandomly({previous:{x:from.from.position[0],y:from.from.position[1]},current:{x:from.to.position[0],y:from.to.position[1]},candidates,
-     lanesOnCurrent:onFrom.lanes,onOneWayRoad:onFrom.reverseLanes===0,nextLane:m.nextLane,previousDeadEnd:from.from.deadEnd,previousSwitchedOff:closed(from.from)||closed(from.to),
-     random:count=>Math.floor(this.random()*count)}).choice?.value;
+     lanesOnCurrent:onFrom.lanes,onOneWayRoad:onFrom.reverseLanes===0,nextLane:m.nextLane,junction:from.to,previousSwitchedOff:from.from.switchedOff,
+     vehicle:{tryNotToTurn:car.modelId!==undefined&&TRY_NOT_TO_TURN_MODELS.has(car.modelId),missionCruiser:true,boundsMax:car.nativeBody.boundsMax},random:count=>Math.floor(this.random()*count)}).choice?.value;
    };
    if(!m.cruiseNext||m.cruiseNext.from!==link.to)m.cruiseNext=pick(link);
    let next=m.cruiseNext;
    if(next&&shouldPickNextNode(state,travel(link),m.lane,travel(next),m.nextLane)){
     m.link=next;m.lane=m.nextLane;m.cruiseNext=pick(next);next=m.cruiseNext;
-    if(next)m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5,car.autopilotFields?.stayInSlowLane===1);
+    if(next){
+     const change=laneChangeCountdown(m.laneCountdown??=initialLaneChangeCountdown(()=>Math.floor(this.random()*0x80000000)),next.length,()=>Math.floor(this.random()*0x80000000));m.laneCountdown=change.countdown;
+     m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,change.change,change.right,car.autopilotFields?.stayInSlowLane===1);
+    }
    }
    const at=m.link;
    if(next&&at){
@@ -432,7 +436,8 @@ export class ScriptCarMissions{
    let link=m.link,next=m.route.length?m.route[0]:undefined;
    if(next&&next.from===link.to&&shouldPickNextNode(state,travel(link),m.lane,travel(next),m.nextLane)){
     m.route.shift();m.link=link=next;m.lane=m.nextLane;next=m.route[0];
-    if(next)m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,next.length,this.random()<.25,this.random()<.5,car.autopilotFields?.stayInSlowLane===1);
+    // Along a route Vice City's lane change stands: a lane over one time in four on a segment of 14 or more.
+    if(next){const change=this.random()<.25,right=this.random()<.5;m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,change&&next.length>=14,right,car.autopilotFields?.stayInSlowLane===1);}
    }
    const here=lanePoint(travel(link),m.lane),t=travel(link),roadZ=(link.from.position[2]+link.to.position[2])/2;
    const offRoute=Math.abs((state.position.x-here.x)*t.forward.y-(state.position.y-here.y)*t.forward.x)>12||Math.abs(p.y-roadZ)>3||m.recoveryMode>=2&&!!m.recovery;

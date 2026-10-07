@@ -1437,11 +1437,39 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
     turn onto the next link within 40 units, and by the traffic limit below.
     Over it the car brakes min(0.5, −difference / 12), not Vice City's
     −difference × 0.05.
-  - At a node it picks the next link at random, as `PickNextNodeRandomly`
-    does. The first pass keeps to turns the lane allows and avoids U-turns,
-    dead ends, switched-off roads and wrong-way roads. Later passes relax
-    those rules, and a U-turn is the last resort. A car moves a lane over
-    one time in four on segments of 14 units or more.
+  - At a node it picks the next link as the iOS `PickNextNodeRandomly`
+    (0x10019052c) does. It had been Vice City's 14 independent draws a pass:
+    - one draw for where to start among the junction's links and one for
+      which way to walk them, every link tried once a pass in that order;
+    - `FindPathDirection` (0x100197f74) calls a turn up to 66.4 degrees
+      straight on (Vice City split at a sine of 0.77), and one past 107.5
+      sharp, which a car on rails refuses;
+    - pass 1 keeps to the turns the lane allows (straight on only for the
+      linerunner, dumper, bus, coach, packer, flatbed, tanker, roadtrain and
+      cement truck), never one-way onto one-way, and
+      `IsThisAnAppropriateNode` (0x100197a14): no way back, no land-water
+      switch but for the Vortex, a dead end or a switched-off node only from
+      a junction that is one (Vice City's judged the previous node), node
+      behaviour types 5 and 10 only for vehicles 2 or more tall and 8 and 9
+      only for small ones, don't-wander nodes closed only to mission cars
+      cruising;
+    - pass 2 takes any link with lanes the car's way but the way back, onto a
+      switched-off road only from one; pass 3 the same without that test;
+      then the U-turn, which on rails restarts the jam clocks with 2 s of
+      grace (the executable also switches the car to physics).
+    - The parking-spot types 1 and 2 (`MISSION_PARK_PARALLEL` and
+      `_PERPENDICULAR`) are refused, the parking missions not being ported.
+      A type-10 node ahead holds the car (`TEMPACT_WAIT`) 10 s and a type-9
+      junction 4.5 s.
+    - Switched-off and don't-wander roads are now candidates for random
+      traffic, which the pick's rules keep off them; the browser still leaves
+      out water nodes and links under 3 units long or steeper than 0.3.
+    - The lane changes on a rhythm: a countdown made 2 to 9 drops at each
+      new segment over 16 units, node to node; at 0 the car moves a lane (an
+      odd draw outwards) and it restarts at 4 to 7. Vice City's one time in
+      four on segments of 14 or more stays for routes and patrol cars, whose
+      picks are not this one.
+    - `srand(m_nForcedRandomRouteSeed)` is not ported.
 - SA pieces used where they are known:
   - `FindMaxSteerAngle` (0x427FE0, reversed).
   - A lane width of 5.4: SA's `CCarPathLink::OneWayLaneOffset` divides the

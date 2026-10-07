@@ -1,5 +1,5 @@
 import {test,expect} from 'vitest';
-import {LANE_WIDTH,PATH_DIRECTION,findMaxSteerAngle,findPathDirection,findSpeedMultiplier,lanePoint,nextLaneOnLink,oneWayLaneOffset,pickNextNodeRandomly,
+import {LANE_WIDTH,PATH_DIRECTION,findMaxSteerAngle,findPathDirection,findSpeedMultiplier,initialLaneChangeCountdown,isThisAnAppropriateNode,laneChangeCountdown,lanePoint,nextLaneOnLink,oneWayLaneOffset,pickNextNodeRandomly,
  shouldPickNextNode,slowCarDownForCars,slowCarDownForOtherCar,slowCarDownForPeds,standoffApplies,steerFollowPath,testFrontBumperCrossing,testFrontCornersEnterRect,carAIJam,tempActionPedals,makeWayForCarWithSiren,type NextCandidate,type TravelLink} from '../src/vehicle/nativeCarCtrl';
 
 // A road running north (+y) with its link at the origin.
@@ -28,6 +28,13 @@ test('FindMaxSteerAngle, FindSpeedMultiplier and FindPathDirection',()=>{
  expect(findPathDirection(prev,cur,{x:0,y:10})).toBe(PATH_DIRECTION.STRAIGHT);
  expect(findPathDirection(prev,cur,{x:-10,y:0})).toBe(PATH_DIRECTION.LEFT);
  expect(findPathDirection(prev,cur,{x:10,y:0})).toBe(PATH_DIRECTION.RIGHT);
+ // iOS splits at a cosine of 0.4: a 60-degree bend is straight on, a 70-degree one a turn; past 107.5 it is sharp.
+ const bend=(deg:number)=>({x:-Math.sin(deg*Math.PI/180)*10,y:Math.cos(deg*Math.PI/180)*10});
+ expect(findPathDirection(prev,cur,bend(60))).toBe(PATH_DIRECTION.STRAIGHT);expect(findPathDirection(prev,cur,bend(70))).toBe(PATH_DIRECTION.LEFT);
+ const out={sharp:false};expect(findPathDirection(prev,cur,bend(-110),out)).toBe(PATH_DIRECTION.RIGHT);expect(out.sharp).toBe(true);
+ findPathDirection(prev,cur,bend(100),out);expect(out.sharp).toBe(false);
+ // A dead reverse counts as right.
+ expect(findPathDirection(prev,cur,{x:0,y:-10})).toBe(PATH_DIRECTION.RIGHT);
 });
 
 test('a car picks its next node near the lane point, or once past it',()=>{
@@ -64,17 +71,65 @@ test('a turn onto the next link lowers the speed near the corner',()=>{
 });
 
 const candidate=(x:number,y:number,o:Partial<NextCandidate<string>>={}):NextCandidate<string>=>({value:`${x},${y}`,node:{x,y},uTurn:false,deadEnd:false,switchedOff:false,lanes:1,oppositeLanes:1,...o});
+const junction={deadEnd:false,switchedOff:false};
 test('PickNextNodeRandomly avoids U-turns, dead ends and wrong-way roads, and falls back to turning round',()=>{
- const base={previous:{x:0,y:-10},current:{x:0,y:0},lanesOnCurrent:1,onOneWayRoad:false,nextLane:0,previousDeadEnd:false,previousSwitchedOff:false};
- let draws=0;const cycle=(count:number)=>draws++%count;
+ const base={previous:{x:0,y:-10},current:{x:0,y:0},lanesOnCurrent:1,onOneWayRoad:false,nextLane:0,junction,previousSwitchedOff:false};
  const back=candidate(0,-10,{uTurn:true}),dead=candidate(-10,0,{deadEnd:true}),wrongWay=candidate(10,0,{lanes:0}),ahead=candidate(0,10);
- expect(pickNextNodeRandomly({...base,candidates:[back,dead,wrongWay,ahead],random:cycle}).choice).toBe(ahead);
- draws=0;expect(pickNextNodeRandomly({...base,candidates:[back,dead],random:cycle}).choice).toBe(dead);
- const turned=pickNextNodeRandomly({...base,candidates:[back,wrongWay],random:cycle});
- expect(turned).toEqual({choice:back,uTurn:true});
- expect(nextLaneOnLink(0,2,20,true,true)).toBe(1);expect(nextLaneOnLink(0,2,10,true,true)).toBe(0);expect(nextLaneOnLink(1,1,20,false,false)).toBe(0);
- // bStayInSlowLane: the outermost lane whatever the draw; a link with no lanes keeps the lane.
- expect(nextLaneOnLink(0,3,20,true,false,true)).toBe(2);expect(nextLaneOnLink(2,2,5,false,false,true)).toBe(1);expect(nextLaneOnLink(1,0,20,false,false,true)).toBe(1);
+ expect(pickNextNodeRandomly({...base,candidates:[back,dead,wrongWay,ahead],random:()=>0}).choice).toBe(ahead);
+ // Pass 2 takes a dead end; pass 3 a switched-off road; the U-turn only when no link has lanes the car's way.
+ expect(pickNextNodeRandomly({...base,candidates:[back,dead],random:()=>0}).choice).toBe(dead);
+ const off=candidate(10,0,{switchedOff:true});
+ expect(pickNextNodeRandomly({...base,candidates:[back,off],random:()=>0})).toEqual({choice:off,uTurn:false});
+ expect(pickNextNodeRandomly({...base,candidates:[back,wrongWay],random:()=>0})).toEqual({choice:back,uTurn:true});
+});
+
+test('PickNextNodeRandomly walks the links once from a drawn start in a drawn direction',()=>{
+ const base={previous:{x:0,y:-10},current:{x:0,y:0},lanesOnCurrent:1,onOneWayRoad:false,nextLane:0,junction,previousSwitchedOff:false};
+ const a=candidate(0,10),b=candidate(-10,0),c=candidate(10,0),d=candidate(1,10);
+ // One lane: straight on and both turns are allowed, so the first link walked wins.
+ const draws=(start:number,onwards:number)=>{const q=[start,onwards];return (count:number)=>q.shift()!%count;};
+ expect(pickNextNodeRandomly({...base,candidates:[a,b,c,d],random:draws(2,1)}).choice).toBe(c);
+ expect(pickNextNodeRandomly({...base,candidates:[a,b,c,d],random:draws(1,1)}).choice).toBe(b);
+ // Walking down from the start: 1, 0, 3, 2.
+ const blockedB={...b,deadEnd:true},blockedA={...a,deadEnd:true};
+ expect(pickNextNodeRandomly({...base,candidates:[blockedA,blockedB,c,d],random:draws(1,0)}).choice).toBe(d);
+ // A ThisVehicleShouldTryNotToTurn model takes only straight on in the first pass.
+ expect(pickNextNodeRandomly({...base,candidates:[a,b,c,d],random:draws(1,1),vehicle:{tryNotToTurn:true}}).choice).toBe(d);
+ // In the middle lane of three only straight on is allowed; a car on rails refuses a sharp turn.
+ const three={...base,lanesOnCurrent:3,nextLane:1};
+ expect(pickNextNodeRandomly({...three,candidates:[b,c,a],random:draws(0,1)}).choice).toBe(a);
+ const sharp=candidate(10,-5);
+ expect(pickNextNodeRandomly({...base,candidates:[sharp,c],random:draws(0,1),vehicle:{onRails:true}}).choice).toBe(c);
+ expect(pickNextNodeRandomly({...base,candidates:[sharp,c],random:draws(0,1)}).choice).toBe(sharp);
+});
+
+test('IsThisAnAppropriateNode judges a candidate against the junction',()=>{
+ const car={boundsMax:{x:1,y:2.4,z:1}};
+ // A dead end or switched-off node is fine from a junction that is one; land to water is not (but for the Vortex).
+ expect(isThisAnAppropriateNode(candidate(0,10,{deadEnd:true}),{...junction,deadEnd:true},car)).toBe(true);
+ expect(isThisAnAppropriateNode(candidate(0,10,{switchedOff:true}),{...junction,switchedOff:true},car)).toBe(true);
+ expect(isThisAnAppropriateNode(candidate(0,10,{water:true}),junction,car)).toBe(false);
+ expect(isThisAnAppropriateNode(candidate(0,10,{water:true}),junction,{...car,vortex:true})).toBe(true);
+ // Behaviour types 5 and 10 are for tall vehicles, 8 and 9 for small ones, and the parking spots are refused.
+ expect(isThisAnAppropriateNode(candidate(0,10,{behaviour:10}),junction,car)).toBe(false);
+ expect(isThisAnAppropriateNode(candidate(0,10,{behaviour:10}),junction,{boundsMax:{x:1.3,y:4,z:2.2}})).toBe(true);
+ expect(isThisAnAppropriateNode(candidate(0,10,{behaviour:9}),junction,car)).toBe(true);
+ expect(isThisAnAppropriateNode(candidate(0,10,{behaviour:9}),junction,{boundsMax:{x:1.3,y:4.5,z:1}})).toBe(false);
+ expect(isThisAnAppropriateNode(candidate(0,10,{behaviour:1}),junction,car)).toBe(false);
+ // Don't-wander nodes keep out only a mission car cruising.
+ expect(isThisAnAppropriateNode(candidate(0,10,{dontWander:true}),junction,car)).toBe(true);
+ expect(isThisAnAppropriateNode(candidate(0,10,{dontWander:true}),junction,{...car,missionCruiser:true})).toBe(false);
+});
+
+test('the lane-change countdown moves a lane every 4 to 7 long segments',()=>{
+ expect(initialLaneChangeCountdown(()=>0x7fffffff)).toBe(9);expect(initialLaneChangeCountdown(()=>0)).toBe(2);
+ // A segment of 16 or less leaves it; a longer one counts down, and at 0 the car moves (odd draw: to the right).
+ expect(laneChangeCountdown(3,16,()=>0)).toEqual({countdown:3,change:false,right:false});
+ expect(laneChangeCountdown(3,17,()=>0)).toEqual({countdown:2,change:false,right:false});
+ const q=[2,1];expect(laneChangeCountdown(1,17,()=>q.shift()!)).toEqual({countdown:6,change:true,right:true});
+ expect(nextLaneOnLink(0,2,true,true)).toBe(1);expect(nextLaneOnLink(0,2,true,false)).toBe(0);expect(nextLaneOnLink(1,1,false,false)).toBe(0);
+ // bStayInSlowLane: the outermost lane whatever the draw; a link with no lanes gives lane 0.
+ expect(nextLaneOnLink(0,3,true,false,true)).toBe(2);expect(nextLaneOnLink(2,2,false,false,true)).toBe(1);expect(nextLaneOnLink(1,0,false,false)).toBe(0);
 });
 
 test('the iOS moving-rect tests: corners across the front bumper, and the front corners into the other box',()=>{
