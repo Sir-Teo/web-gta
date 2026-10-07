@@ -326,9 +326,17 @@ export function missionBotTick(dtSeconds:number){
    // With the M4 a player fires from thirty units when nothing stands between; else he closes in.
    // A blocked shot (a fence, a car between) is closed right up to.
    const open=clearShot(me,rival);
+   // Right beside one on a ledge or over a wall (a wave Balla two units up, CRASH4), a player climbs up to where he
+   // can see him: the nearest spot round him with a floor at his level and a clear shot.
+   if(!open&&distance(rival)<3){const v=vantageOn(rival);if(v){try{(world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,v.x,v.y,v.z);}catch{}return {action:'climb to gang member'};}}
    if((distance(rival)>30||!open)&&glide(rival,open?8:1.5))return {action:'close on gang member'};
    shoot(rival);const gw=g.gangWars?.();
-   return {action:'shoot gang member',ammo:(()=>{try{return world.pedWeaponAmmo?.(1,31);}catch{return -1;}})(),rival:`${rival.id}:${rival.gang}:${Math.round(rival.hp)}:${distance(rival).toFixed(1)}:${clearShot(me,rival)?'clear':'blocked'}`,war:gw?`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`:''};
+   const R=g.RAPIER,w=g.sim?.world,probe=(()=>{try{
+    const o={x:me.x,y:me.z+.6,z:-me.y},dx=rival.x-me.x,dy=rival.z-me.z,dz=-(rival.y-me.y),l=Math.hypot(dx,dy,dz);
+    const hit=w.castRay(new R.Ray(o,{x:dx/l,y:dy/l,z:dz/l}),l,true,R.QueryFilterFlags.ONLY_FIXED);
+    const down=w.castRay(new R.Ray({x:rival.x,y:rival.z+5,z:-rival.y},{x:0,y:-1,z:0}),40,true,R.QueryFilterFlags.ONLY_FIXED);
+    return `toi${hit?hit.timeOfImpact.toFixed(2):'-'}/${l.toFixed(2)} rz${(rival.z-1).toFixed(1)} gz${down?(rival.z+5-down.timeOfImpact).toFixed(1):'-'} cjhp${Math.round(world.pedHealth?.(1)??-1)}`;}catch(e){return 'err';}})();
+   return {action:'shoot gang member',probe,ammo:(()=>{try{return world.pedWeaponAmmo?.(1,31);}catch{return -1;}})(),rival:`${rival.id}:${rival.gang}:${Math.round(rival.hp)}:${distance(rival).toFixed(1)}:${clearShot(me,rival)?'clear':'blocked'}`,war:gw?`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`:''};
   }
  }
  if(places.length){
