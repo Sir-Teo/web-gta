@@ -40,6 +40,12 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'weaponRoll',state:false},world({}))).toEqual({kind:'roll',clip:'crouch_roll_l'});
  });
 
+ test('TASK_SIT_DOWN sits for its time, a time of -1 being 20 seconds (iOS)',()=>{
+  expect(scriptedPedOrder({kind:'sitDown',time:80000},world({}))).toEqual({kind:'sitDown',idleMs:80000});
+  expect(scriptedPedOrder({kind:'sitDown',time:-1},world({}))).toEqual({kind:'sitDown',idleMs:20000});
+  expect(scriptedPedOrder({kind:'sitDown',time:-5},world({}))).toEqual({kind:'sitDown',idleMs:0});
+ });
+
  test('standing still takes its time in milliseconds, and no time at all means for ever',()=>{
   expect(scriptedPedOrder({kind:'standStill',time:2500},world({}))).toEqual({kind:'standStill',seconds:2.5});
   expect(scriptedPedOrder({kind:'standStill',time:0},world({}))).toEqual({kind:'standStill',seconds:Infinity});
@@ -94,7 +100,7 @@ describe('the tasks a script gives a ped',()=>{
  });
 
  test('a task with no browser behaviour yet gives nothing back, so the thread gives up instead of pretending',()=>{
-  const unported:ScmScriptedTask[]=[{kind:'sitDown',time:1000}];
+  const unported:ScmScriptedTask[]=[{kind:'swimToCoord',x:0,y:0,z:0}];
   for(const task of unported)expect(scriptedPedOrder(task,world({}))).toBeUndefined();
  });
 

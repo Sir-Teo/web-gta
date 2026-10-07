@@ -85,6 +85,9 @@ export type ScriptedPedOrder=
  /** CTaskSimpleRunAnim for TASK_WEAPON_ROLL: the default group's CROUCH_ROLL_R or _L at a blend of 4, the ped carried
   * along by the clip's own movement; over when the clip ends. */
  |{kind:'roll';clip:'crouch_roll_r'|'crouch_roll_l'}
+ /** CTaskComplexSitDownThenIdleThenStandUp for TASK_SIT_DOWN: a tenth of a second standing, SEAT_down, SEAT_idle for
+  * `idleMs`, SEAT_up, and over. */
+ |{kind:'sitDown';idleMs:number}
  /** CTaskSimpleGunControl for TASK_AIM_GUN_AT_* and TASK_SHOOT_AT_*: stand, face the target (a point in the script's
   * coordinates, or a ped's handle) and aim, firing when `fire`, for `seconds`. */
  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number}
@@ -268,6 +271,9 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // 2 KO_SKID_BACK, 3 KO_SPIN_L; another direction leaves the clip unset, which the port does not guess at.
   // iOS 0x1001f1f90: new CTaskSimpleRunAnim(ANIM_GROUP_DEFAULT, flag ? 59 CROUCH_ROLL_R : 57 CROUCH_ROLL_L, 4.0).
   case 'weaponRoll':return {kind:'roll',clip:task.state?'crouch_roll_r':'crouch_roll_l'};
+  // iOS 0x1001f168c: new CTaskComplexSitDownThenIdleThenStandUp(time, false, false), a time of -1 being 20000 ms
+  // ([0x100595a94]); any other time below nothing runs out at once.
+  case 'sitDown':return {kind:'sitDown',idleMs:task.time===-1?20000:Math.max(0,task.time)};
   case 'fallAndGetUp':{const clip=FALL_DIRECTION_CLIPS[task.direction];return clip?{kind:'fallAndGetUp',clip,lieMs:Math.max(0,task.time)}:undefined;}
   case 'duck':return {kind:'duck',crouch:true,seconds:seconds(task.time)};
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};

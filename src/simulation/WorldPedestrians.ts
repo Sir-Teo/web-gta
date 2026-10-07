@@ -184,6 +184,7 @@ export interface Pedestrian {
   |{kind:'jumping'}
   |{kind:'fallingDown'}
   |{kind:'rolling';clip:string;elapsed:number;ready:boolean}
+  |{kind:'sitting';phase:'pre'|'down'|'idle'|'up';time:number;until:number;idleMs:number}
   /** CTaskSimpleGunControl: a renderer point or a ped (the player when neither) to aim at, firing or not. */
   |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number}
   /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. With
@@ -1936,6 +1937,7 @@ export class WorldPedestrians {
     });
     break;
    }
+   case 'sitDown':ped.flee=0;ped.loiter=false;ped.order={kind:'sitting',phase:'pre',time:0,until:.1,idleMs:order.idleMs};break;
    case 'fallAndGetUp':ped.flee=0;ped.loiter=false;ped.order={kind:'fallingDown'};this.scriptFall(ped,order.clip,order.lieMs);break;
    case 'goToPointShooting':{
     // Aiming at a point, there is no ped to look for.
@@ -2194,8 +2196,9 @@ export class WorldPedestrians {
  /** CLEAR_CHAR_TASKS: the primary task goes, leaving the default. */
  clearTasks(ped:Pedestrian){
   // A named clip the task was running goes with it, and so does one held on its last frame.
-  const clip=ped.order?.kind==='playAnim'?ped.order.clip:ped.heldScriptClip;
+  const order=ped.order,clip=order?.kind==='playAnim'||order?.kind==='rolling'?order.clip:ped.heldScriptClip;
   if(clip!==undefined&&ped.view.reactionName===clip)ped.view.clearReaction();
+  if(order?.kind==='sitting'&&/^seat_(down|idle|up)$/.test(ped.view.reactionName??''))ped.view.clearReaction();
   ped.heldScriptClip=undefined;ped.sequence=undefined;ped.goTo=undefined;ped.scriptWanders=false;ped.order=this.defaultOrder(ped);
  }
  /** Whether a script's own task still runs on the ped (the default stand is not one). */
@@ -3691,6 +3694,17 @@ export class WorldPedestrians {
       const duration=p.view.reactionDuration(o.clip)??0,to=Math.min(duration,o.elapsed+dt),m=p.view.reactionClipMotion(o.clip,o.elapsed,to),h=p.actor.player.heading;
       p.animShift={x:-Math.cos(h)*m.x+Math.sin(h)*m.y,z:Math.sin(h)*m.x+Math.cos(h)*m.y};o.elapsed=to;
       if(to>=duration){if(p.view.reactionName===o.clip)p.view.clearReaction();this.startNextOrder(p);}
+     }
+    }else if(p.order.kind==='sitting'){
+     // CTaskComplexSitDownThenIdleThenStandUp: CTaskSimpleStandStill(100), CTaskSimpleSitDown's SEAT_down,
+     // CTaskSimpleSitIdle's SEAT_idle (at a random 0.9 to 1.5 speed) for its time, CTaskSimpleStandUp's SEAT_up.
+     const o=p.order;dx=0;dz=0;o.time+=dt;
+     if(o.time>=o.until){
+      o.time=0;
+      if(o.phase==='pre'){o.phase='down';o.until=p.view.reactionDuration('seat_down')??1;if(p.view.hasReaction('seat_down'))p.view.playReaction('seat_down');}
+      else if(o.phase==='down'){o.phase='idle';o.until=o.idleMs/1000;if(p.view.hasReaction('seat_idle'))p.view.playReaction('seat_idle',o.until+.5,false,0,false,.9+Math.random()*.6);}
+      else if(o.phase==='idle'){o.phase='up';o.until=p.view.reactionDuration('seat_up')??1;if(p.view.hasReaction('seat_up'))p.view.playReaction('seat_up');}
+      else{if(p.view.reactionName==='seat_up')p.view.clearReaction();this.startNextOrder(p);}
      }
     }else if(p.order.kind==='fallingDown'){
      // CTaskComplexFallAndGetUp: over once CTaskSimpleGetUp has stood the ped up.

@@ -11236,3 +11236,6 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   group's CROUCH_ROLL_R for its flag and CROUCH_ROLL_L without, the ped carried sideways by the clip's own root movement
   (about 2.8 units) through its character controller, and the task over when the clip ends. The player's crouch roll is
   still not ported.
+- TASK_SIT_DOWN runs for script peds (12 or more uses): CTaskComplexSitDownThenIdleThenStandUp(time), a tenth of a second
+  standing, SEAT_down, SEAT_idle for the time at CTaskSimpleSitIdle's random 0.9 to 1.5 speed, SEAT_up, then over; a time
+  of -1 is iOS's 20000 ms. CLEAR_CHAR_TASKS takes a seat or roll clip off with the task.
