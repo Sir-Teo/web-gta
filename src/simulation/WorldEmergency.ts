@@ -386,6 +386,13 @@ export class WorldEmergency {
   }).catch(e=>{this.error=String(e);});
   return true;
  }
+ /** GenerateOneEmergencyServicesCar's placement facing a native point, for a car another system crews (the gang war
+  * attack wave's drive-by car), once the paths round CJ are in; nothing before the paths have loaded. */
+ async placementToward(goalNative:V3){
+  const paths=this.paths;if(!paths)return undefined;
+  const player=this.sim.player.position;await paths.loadAround(player.x,player.z);
+  return this.disposed?undefined:this.emergencyPlacement(paths.areas,goalNative);
+ }
  /** GenerateOneEmergencyServicesCar's placement (iOS 0x1001a1398): GenerateCarCreationCoors2 from CJ for a crossing
   * of the 160-unit circle in any direction (in view or not, the two circles being one), on a land road with no
   * vehicle or ped kinda colliding within 10 units (2D, their bounding spheres), five tries; the executable counts

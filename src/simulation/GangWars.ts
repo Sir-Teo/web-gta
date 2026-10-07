@@ -84,6 +84,9 @@ export class GangWars {
  provocation=0;timeTillNextAttack=0;fightTimer=0;warFerocity=0;difficulty=0;gang1=GANG.ballas as number;gang2=GANG.ballas as number;
  timeStarted=0;lastTimeInArea=0;previousNow=0;territoryUnderControlPercentage=0;playerCloseby=false;
  zoneToFightOver?:WorldZone;zoneInfoToFightOver?:ZonePopulation;pointOfAttack={x:0,y:0,z:0};coorsAtStartOfWar={x:0,y:0,z:0};
+ /** CGangWars::pDriveByCar (iOS 0x1007252c0): the attack waves' one drive-by car, a registered reference the host keeps
+  * (gone with the car), cleared as an offensive war starts. */
+ driveByCar?:unknown;
  private radarBlip=false;
  constructor(private host:GangWarHost){this.timeTillNextAttack=this.calculateTimeTillNextAttack();}
  /** CGangWars::AddKillToProvocation: a Ballas or Vagos kill by the player on foot. */
@@ -208,6 +211,7 @@ export class GangWars {
    if(info.gangStrength[gang1]>info.gangStrength[gang2]/3)this.gang2=gang1;
    this.host.tellGangMembersTo(false);
    this.zoneColours(zone);
+   this.driveByCar=undefined;
   }
  }
  /** CGangWars::EndGangWar. */

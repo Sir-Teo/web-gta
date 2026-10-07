@@ -11260,8 +11260,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   found from two units over the point. Each attacker carries a
   gang-coloured blip (bClearRadarBlipOnDeath), and by each group's point of attack the wave leaves a
   PICKUP_ONCE_TIMEOUT_SLOW within two units: health by Gang1's in the first wave, armour in the second, and in the
-  third health by Gang1's and armour by Gang2's. Not yet ported: the first wave's drive-by car (a gang car with an
-  Uzi-armed crew on CTaskSimpleGangDriveBy at the player).
+  third health by Gang1's and armour by Gang2's. The drive-by car that follows is described below.
 - There is one CZoneInfo array (CTheZones::ZoneInfoArray), as in the game. The script's zone records were their own copy,
   fresh at the start, while the street population, the turf colours and the gang wars read another (MAIN's initial
   settings read from the file): a gang war moved strength in the one, and CRASH4 polled GET_ZONE_GANG_STRENGTH on the
@@ -11304,3 +11303,13 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   GetCharAreaVisible, which writes whether the area is not the normal world (1 or 0), so a script waiting for a given
   interior never saw it: CRASH1 waits for area 5 (the burning house it sends CJ into) before it lets the mission go on,
   and MUSIC2 (5), DRUGS4 (15) and the gym (5, 6, 7) ask for others.
+- CreateAttackWave's drive-by car (iOS 0x1001b1580): after a wave's attackers, outside the training mission and only
+  while CGangWars::pDriveByCar is empty (cleared as an offensive war starts, and gone with the car), Gang1's car when one
+  is loaded, where GenerateOneEmergencyServicesCar puts one facing the player (160 units out, set down at the nodes'
+  height to wait for the collision), with a driver and one passenger of the gang. It runs MISSION_DO_DRIVEBY_FARAWAY at
+  the player, cruise speed 10, DRIVINGSTYLE_AVOID_CARS; the passenger has a Micro SMG and CTaskSimpleGangDriveBy
+  (abort range 100, frequency 50); the driver carries a char blip in the gang's colour, scale 3, until he dies. The
+  missions themselves are new for script cars too: DO_DRIVEBY_FARAWAY (61) follows the road to the target and turns
+  CLOSE within the straight-line distance, and DO_DRIVEBY_CLOSE (60, 0x100199968) heads for the point 10 units off the
+  target square to the line from the car, on the side the low bit of the car's seed picks, going FARAWAY again past
+  the far distance. The crew are the ambient drive-by's posed driver and shooter (GangDriveBy), not full peds.

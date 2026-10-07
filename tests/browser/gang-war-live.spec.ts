@@ -30,6 +30,8 @@ test('provoking a war in Ballas turf starts the waves: attackers arrive, and cle
  await expect.poll(async()=>((await state()).pedestrians.people as any[]).filter(p=>p.attackWave).length,{timeout:20000}).toBeGreaterThanOrEqual(4);
  const wave=((await state()).pedestrians.people as any[]).filter(p=>p.attackWave);
  expect(wave.every(p=>p.gang===0)).toBe(true);
+ // CreateAttackWave's drive-by car: Ballas, crewed, on its way in (it waits for the collision 160 units out first).
+ await expect.poll(async()=>((await state()).driveby?.units??[]).filter((u:any)=>u.wave&&u.gang===0).length,{timeout:20000}).toBe(1);
  // Clearing the wave moves 30 % of the Ballas strength to the Families and readies the second wave.
  for(const p of wave)await page.evaluate(id=>(window as any).__game.killPed(id),p.id);
  await expect.poll(async()=>(await state()).gangWars.state,{timeout:20000}).toBe(3);

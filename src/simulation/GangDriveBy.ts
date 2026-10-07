@@ -32,7 +32,11 @@ interface AttackCar {car:WorldCar;gang:number;driver:string;shooter:Shooter;miss
  /** CPed health under the player's bullets, the driver's 2000 ms coast after the fatal shot (CTaskComplexDieInCar) and the dead seats. */
  driverHealth:number;shooterHealth:number;driverDying?:{at:number};driverDead?:boolean;shooterDead?:boolean;
  /** The shooter has been dragged out, or is getting out of the car the player took. */
- shooterGone?:boolean}
+ shooterGone?:boolean;
+ /** A gang war attack wave's drive-by car (CGangWars::CreateAttackWave): driven by the script-car missions
+  * (MISSION_DO_DRIVEBY_FARAWAY at the player), with no time limit; its shooter's CTaskSimpleGangDriveBy fires a burst
+  * only as the frequency (50) lets it. */
+ wave?:{fireRate:number;firing:boolean;stopped:boolean}}
 /** Rival turf drive-bys (CTaskSimpleGangDriveBy port): a gang car
  * cruises past the mark with a posed Micro SMG shooter working the passenger
  * window on muzzle rays; NPC traffic drivers join in when the mark is wanted. */
@@ -54,6 +58,8 @@ export class GangDriveBy {
    * one of its cars come by shooting at him. */
   gangHatesPlayer?:(gang:number)=>boolean;
   error?:string;
+  /** The script cars' CCarAI missions, which drive an attack wave's car. */
+  carMissions?:{carMission(car:WorldCar,o:{mission:number;cruise:number;style:number;targetPlayer?:boolean}):boolean;clear(car:WorldCar):void;forget(car:WorldCar):void};
   constructor(private sim:Simulation,private fleet:WorldFleet,base:string,private random:()=>number=Math.random){
    void openStaticWorld(base).then(async source=>{
     if(this.disposed)return;
@@ -167,6 +173,24 @@ export class GangDriveBy {
     }
    }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
   }
+  /** The tail of CGangWars::CreateAttackWave (iOS 0x1001b1580): the car (Gang1's, placed by the caller where
+   * GenerateOneEmergencyServicesCar puts one) crewed by SetUpDriverAndPassengersForVehicle with a driver and one
+   * passenger of the gang, on MISSION_DO_DRIVEBY_FARAWAY at the player with cruise speed 10 and DRIVINGSTYLE_AVOID_CARS.
+   * The passenger takes a Micro SMG (1500 rounds) and CTaskSimpleGangDriveBy at the player: abort range 100, frequency
+   * 50, from the right-hand seat. False when the gun or the gang's models are not to hand. */
+  adoptAttackCar(car:WorldCar,gang:number){
+   if(!this.gunCache)return false;
+   const resident=this.gangResident?.(gang),members=resident&&resident.length>=1?resident:this.gangs[gang]??[];
+   if(!members.length)return false;
+   const driver=members[Math.floor(this.random()*members.length)],shooter=members[Math.floor(this.random()*members.length)];
+   car.gang=gang;car.autopilot={throttle:0,brake:0,steering:0,handbrake:false};car.activeRadius=250;
+   this.units.push({car,gang,driver,shooter:{model:shooter,gun:this.gunCache.asset,gunState:{time:0,rounds:this.gunCache.info.clip,reload:0,active:false},side:'right',seconds:0,shots:0},
+    mission:'attack',seconds:0,leaveAt:Infinity,driverHealth:100,shooterHealth:100,wave:{fireRate:50,firing:false,stopped:false}});
+   this.carMissions?.carMission(car,{mission:61,cruise:10,style:2,targetPlayer:true});
+   return true;
+  }
+  /** The attack wave cars' drivers alive in their seats, for their radar blips (the gang's colour, scale 3). */
+  waveDrivers(){return this.units.filter(u=>u.wave&&!u.driverDead&&!u.driverDying&&!u.car.driverOut&&!u.car.wrecked).map(u=>({gang:u.gang,position:u.car.car.body.translation()}));}
   /** Muzzle-ray firing sequence from the passenger window (officer routine,
    * here with street-cop dispersion: gang marksmanship has no native table). */
   private stepShooter(u:AttackCar,dt:number,target:{x:number;y:number;z:number},playerCar?:WorldCar){
@@ -178,12 +202,14 @@ export class GangDriveBy {
    const aim={x:target.x,y:target.y+1,z:target.z};
    const toAim=new Vector3(aim.x-muzzle.x,aim.y-muzzle.y,aim.z-muzzle.z),dist=toAim.length();
    const targetBody=playerCar?playerCar.car.body:undefined;
-   let engaged=dist<info.weaponRange&&this.sim.player.health>0;
+   let engaged=dist<(u.wave?Math.min(info.weaponRange,100):info.weaponRange)&&this.sim.player.health>0;
    if(engaged){
     const dir=toAim.clone().normalize();
     const probe=this.sim.world.castRay(new RAPIER.Ray(muzzle,dir),dist+.5,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,undefined,car.car.body);
     engaged=!!probe&&(probe.collider.handle===this.sim.playerCollider.handle||!!targetBody&&probe.collider.parent()?.handle===targetBody.handle);
    }
+   // An attack wave's shooter starts a burst only when its frequency lets it (CTaskSimpleGangDriveBy's 50).
+   if(u.wave){if(!s.gunState.active&&!s.gunState.reload)u.wave.firing=engaged&&this.random()*100<u.wave.fireRate;engaged=engaged&&u.wave.firing;}
    if(engaged&&!s.gunState.active&&!s.gunState.reload)s.aimPoint={...aim};
    const oldTime=s.gunState.time;
    const fire=stepNpcGun(s.gunState,info,this.gunCache!.reloadSeconds,dt,engaged);
@@ -209,9 +235,13 @@ export class GangDriveBy {
    for(let i=this.units.length-1;i>=0;i--){
     const u=this.units[i],car=u.car;u.seconds+=dt;
     car.activeRadius=250;
+    // An attack wave's car is no one's to take away: the crew goes with it, and the fleet keeps or culls the car.
+    if(u.wave&&(car.occupied||car.wrecked||car.disposed||!this.fleet.cars.has(car))){this.units.splice(i,1);this.carMissions?.forget(car);continue;}
     if(car.occupied||car.wrecked||u.seconds>DRIVEBY_LIFETIME+10||!this.fleet.cars.has(car)){this.units.splice(i,1);if(!car.occupied)this.fleet.removeTrafficCar(car);continue;}
     const p=car.car.body.translation(),q=car.car.body.rotation(),v=car.car.body.linvel(),speed=Math.hypot(v.x,v.z),distance=Math.hypot(target.x-p.x,target.z-p.z);
     const heading=Math.atan2(2*(q.w*q.y+q.x*q.z),1-2*(q.x*q.x+q.y*q.y));
+    // A wave car's driver shot: the CCarAI mission is dropped and the car is the dying driver's, as below.
+    if(u.wave&&(u.driverDying||u.driverDead)&&!u.wave.stopped){u.wave.stopped=true;this.carMissions?.forget(car);}
     // CTaskComplexDieInCar: the shot driver coasts 2000 ms, then leaves dead if the car is still, else dies in his seat;
     // a car with a dead driver brakes to a halt and stays.
     if(u.driverDying){
@@ -223,6 +253,14 @@ export class GangDriveBy {
      car.autopilot={steering:0,throttle:0,brake:0,handbrake:false};continue;
     }
     if(u.driverDead){car.autopilot={steering:0,throttle:0,brake:1,handbrake:speed<.3};continue;}
+    // The wave's car drives on its CCarAI mission; only its shooter is stepped here.
+    if(u.wave){
+     u.shooter.seconds+=dt;
+     const toTarget={x:target.x-p.x,z:target.z-p.z};
+     u.shooter.side=toTarget.x*Math.cos(heading)-toTarget.z*Math.sin(heading)>=0?'right':'left';
+     if(!u.shooterDead&&!u.shooterGone)this.stepShooter(u,dt,{x:target.x,y:target.y,z:target.z},playerCar);
+     continue;
+    }
     if(u.mission==='approach'&&distance<=DRIVEBY_ATTACK_RANGE)u.mission='attack';
     else if(u.mission==='attack'&&(distance>55||u.seconds>DRIVEBY_LIFETIME)){u.mission='leave';u.leaveAt=u.seconds;}
     if(u.mission==='leave'){
@@ -243,6 +281,6 @@ export class GangDriveBy {
     if(!u.shooterDead&&!u.shooterGone)this.stepShooter(u,dt,{x:target.x,y:target.y,z:target.z},playerCar);
    }
   }
-  snapshot(){return {ready:!!this.paths&&!!this.gangs.length&&!!this.gunCache,pending:this.busy,error:this.error??null,lastAttack:this.lastAttack,units:this.units.map(u=>({handle:u.car.car.body.handle,gang:u.gang,mission:u.mission,driverHealth:u.driverHealth,shooterHealth:u.shooterHealth,driverDying:!!u.driverDying,driverDead:!!u.driverDead,shooterDead:!!u.shooterDead,shooter:u.shooter.model,weapon:DRIVEBY_WEAPON,rounds:u.shooter.gunState.rounds,shots:u.shooter.shots,side:u.shooter.side,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z)}))};}
+  snapshot(){return {ready:!!this.paths&&!!this.gangs.length&&!!this.gunCache,pending:this.busy,error:this.error??null,lastAttack:this.lastAttack,units:this.units.map(u=>({handle:u.car.car.body.handle,gang:u.gang,mission:u.mission,wave:!!u.wave,driverHealth:u.driverHealth,shooterHealth:u.shooterHealth,driverDying:!!u.driverDying,driverDead:!!u.driverDead,shooterDead:!!u.shooterDead,shooter:u.shooter.model,weapon:DRIVEBY_WEAPON,rounds:u.shooter.gunState.rounds,shots:u.shooter.shots,side:u.shooter.side,position:{...u.car.car.body.translation()},speed:Math.hypot(u.car.car.body.linvel().x,u.car.car.body.linvel().z)}))};}
   dispose(){this.disposed=true;for(const u of this.units)if(!u.car.occupied)this.fleet.removeTrafficCar(u.car);this.units.length=0;}
 }

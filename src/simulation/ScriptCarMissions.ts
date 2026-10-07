@@ -32,17 +32,17 @@ export interface ScriptDrivable {
 export type ScriptCarMissionKind='gotoCoords'|'gotoCoordsStraight'|'gotoCoordsAccurate'|'gotoCoordsStraightAccurate'|'gotoCoordsRacing'|'cruise'|'none'
  |'ramPlayerFar'|'ramPlayerClose'|'blockPlayerFar'|'blockPlayerClose'|'blockPlayerStop'
  |'ramCarFar'|'ramCarClose'|'blockCarFar'|'blockCarClose'|'blockCarStop'
- |'emergencyStop'|'stopForever'|'escort'|'escortFar';
+ |'emergencyStop'|'stopForever'|'escort'|'escortFar'|'driveByFar'|'driveByClose';
 /** eCarMission's numbers for TASK_CAR_MISSION, and the kind each starts as. */
 export const CAR_MISSION:Readonly<Record<number,ScriptCarMissionKind>>={0:'none',1:'cruise',2:'ramPlayerFar',3:'ramPlayerClose',4:'blockPlayerFar',
  5:'blockPlayerClose',6:'blockPlayerStop',10:'emergencyStop',11:'stopForever',15:'ramCarFar',16:'ramCarClose',17:'blockCarFar',18:'blockCarClose',
- 19:'blockCarStop',29:'escort',30:'escort',31:'escort',32:'escort',65:'escortFar',66:'escortFar',67:'escortFar',68:'escortFar'};
+ 19:'blockCarStop',29:'escort',30:'escort',31:'escort',32:'escort',60:'driveByClose',61:'driveByFar',65:'escortFar',66:'escortFar',67:'escortFar',68:'escortFar'};
 /** MISSION_ESCORT_LEFT, _RIGHT, _REAR and _FRONT (29-32) and their FARAWAY forms (65-68; 57-60 are the plane and heli
  * crash-and-burn missions, the police plane's attack and DO_DRIVEBY_CLOSE). */
 export type EscortSide='left'|'right'|'rear'|'front';
 export const escortSide=(mission:number):EscortSide|undefined=>(['left','right','rear','front'] as const)[mission>=65?mission-65:mission-29];
 /** The kinds that follow the road toward a goal (SteerAICarWithPhysicsFollowPath), a moving one for the FARAWAY missions. */
-const ROAD_KINDS:ReadonlySet<ScriptCarMissionKind>=new Set(['gotoCoords','gotoCoordsAccurate','gotoCoordsRacing','ramPlayerFar','blockPlayerFar','ramCarFar','blockCarFar','escortFar']);
+const ROAD_KINDS:ReadonlySet<ScriptCarMissionKind>=new Set(['gotoCoords','gotoCoordsAccurate','gotoCoordsRacing','ramPlayerFar','blockPlayerFar','ramCarFar','blockCarFar','escortFar','driveByFar']);
 /** VC's SteerAICarWithPhysicsTryingToBlockTarget: the target's speed counted up to 0.13 a frame, and the handbrake stop
  * inside 5 units, back to blocking past 10. */
 export const MAX_SPEED_TO_ACCOUNT_IN_INTERCEPTING=.13,DISTANCE_TO_SWITCH_FROM_BLOCK_TO_STOP=5,DISTANCE_TO_SWITCH_FROM_STOP_TO_BLOCK=10;
@@ -142,12 +142,15 @@ export class ScriptCarMissions{
  constructor(private paths:()=>Paths|undefined,private random:()=>number=Math.random){}
  /** TASK_CAR_MISSION: CTaskComplexCarDriveMission sets the autopilot's mission, target, cruise speed and style.
   * Missions the browser does not drive give nothing back. */
- carMission(car:ScriptDrivable,o:{mission:number;target?:WorldCar;cruise:number;style:number}){
+ carMission(car:ScriptDrivable,o:{mission:number;target?:WorldCar;cruise:number;style:number;
+  /** m_TargetEntity is the player (CGangWars::CreateAttackWave's drive-by car); a drive-by with neither clears. */
+  targetPlayer?:boolean}){
   const kind=CAR_MISSION[o.mission];if(kind===undefined)return false;
+  if(kind.startsWith('driveBy')&&!o.target&&!o.targetPlayer)return false;
   if(kind==='cruise'){this.wander(car,o);return true;}
   const needsCar=kind.startsWith('ramCar')||kind.startsWith('blockCar')||kind.startsWith('escort');
   if(needsCar&&!o.target)return false;
-  const existing=this.missions.get(car),m:Mission={...this.idle(existing?.straightLineDistance),kind,cruise:o.cruise,style:o.style,target:needsCar?o.target:undefined,
+  const existing=this.missions.get(car),m:Mission={...this.idle(existing?.straightLineDistance),kind,cruise:o.cruise,style:o.style,target:needsCar||kind.startsWith('driveBy')?o.target:undefined,
    escort:kind.startsWith('escort')?escortSide(o.mission):undefined,seed:Math.floor(this.random()*32768)};
   this.missions.set(car,m);
   if(ROAD_KINDS.has(kind)){const goal=this.targetPosition(m);if(goal){m.goal=goal;this.route(car,m);m.routeAt=this.seconds;m.routeGoal={...goal};}}
@@ -227,6 +230,15 @@ export class ScriptCarMissions{
     return m.turn&&this.seconds<m.turn.until?turnPedals(m.turn.dir):steerHeadingForTarget(state,ram.target,m.cruise);
    }
    case 'ramCarClose':{const t=targetNative();return t?steerHeadingForTarget(state,t.at,m.cruise):undefined;}
+   // MISSION_DO_DRIVEBY_CLOSE (iOS 0x100199968): heading for the point 10 units off the target square to the line from
+   // the car (CVector::Normalise, x 1 when there is no line), on the side the low bit of the car's seed picks.
+   case 'driveByClose':{
+    const t=targetNative();if(!t)return {swerve:0,accel:0,brake:1,handbrake:false};
+    let sx=t.at.y-state.position.y,sy=state.position.x-t.at.x;const l=Math.hypot(sx,sy);
+    if(l>0){sx/=l;sy/=l;}else{sx=1;sy=0;}
+    const side=m.seed&1?-10:10;
+    return steerHeadingForTarget(state,{x:t.at.x+sx*side,y:t.at.y+sy*side},m.cruise);
+   }
    case 'blockPlayerClose':case 'blockCarClose':{
     const t=targetNative();if(!t)return {swerve:0,accel:0,brake:1,handbrake:false};
     // DRIVINGSTYLE_AVOID_CARS for the block, and the handbrake stop once it is in front.
@@ -329,6 +341,10 @@ export class ScriptCarMissions{
    // holds it close.
    case 'escort':{const e2=(playerAt.x-p.x)**2+(playerAt.z-p.z)**2;if(m.straightLineDistance<240&&e2>=far**2&&!this.join(car,playerAt)){m.kind='escortFar';this.route(car,m);}break;}
    case 'escortFar':{const e2=(playerAt.x-p.x)**2+(playerAt.z-p.z)**2;if(e2<=close**2)m.kind='escort';break;}
+   // DO_DRIVEBY_FARAWAY and _CLOSE (UpdateCarAI 0x41F4D7, 0x41F5B1): close in at the close distance, and back to the
+   // road system at the far one.
+   case 'driveByFar':if(d2<=close**2)m.kind='driveByClose';break;
+   case 'driveByClose':if(d2>=far**2){m.kind='driveByFar';this.route(car,m);}break;
   }
   if(ROAD_KINDS.has(m.kind)){
    m.goal={...target};

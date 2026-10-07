@@ -4398,7 +4398,9 @@ async function boot() {
      if(navigation){navigation.zones=progression.zones;navigation.placeAt??=(x,y)=>worldZones?zoneText(worldZoneAt(worldZones,[x,y,sim.player.position.y]).textLabel):undefined;navigation.hideMapBlips=!!(game?.hideAllFrontEndMapBlips||game?.playerIsOffTheMap);}}
     navigation?.setZoneOverlays((gangWars?.zoneOverlays(elapsed*1000)??[]).map(o=>({x1:o.zone.min[0],z1:-o.zone.max[1],x2:o.zone.max[0],z2:-o.zone.min[1],colour:`rgba(${o.colour[0]},${o.colour[1]},${o.colour[2]},${(o.colour[3]/255).toFixed(3)})`})));
     // The script's own blips join the browser's: CRadar's table, drawn where the things it names are.
-    navigation?.setLiveBlips([...(mission?.radarBlips()??[]),...(gangWarBlip&&gangWarBlip.visible?[{x:gangWarBlip.position.x,z:-gangWarBlip.position.y,sprite:attackBlipSprite(gangWarBlip.gang)}]:[]),...(pedestrians?.attackWavePositions()??[]).map(p=>{const c=GANG_COLOURS[p.gang??0]??[255,255,255];return {x:p.x,z:p.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:2};})]);
+    navigation?.setLiveBlips([...(mission?.radarBlips()??[]),...(gangWarBlip&&gangWarBlip.visible?[{x:gangWarBlip.position.x,z:-gangWarBlip.position.y,sprite:attackBlipSprite(gangWarBlip.gang)}]:[]),...(pedestrians?.attackWavePositions()??[]).map(p=>{const c=GANG_COLOURS[p.gang??0]??[255,255,255];return {x:p.x,z:p.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:2};}),
+     // The drive-by car's driver: a char blip in the gang's colour, scale 3, cleared with his death.
+     ...(driveby?.waveDrivers()??[]).map(d=>{const c=GANG_COLOURS[d.gang]??[255,255,255];return {x:d.position.x,z:d.position.z,colour:`rgb(${c[0]},${c[1]},${c[2]})`,size:3};})]);
     navigation?.update(sim.player.position,sim.player.heading,
       // CRadar: the camera looks along viewYaw + pi; the range follows the vehicle's speed, or a plane's altitude (not a
       // helicopter's or the Vortex's, which go by speed).
@@ -5049,7 +5051,7 @@ async function boot() {
             police.onPullFromCar=()=>{if(carEntry.seated)carEntry.dragOut();};police.onPullFromBike=bike=>{if(!bikeMount.active&&!bikeMount.jacked(bike))bike.pulledOff();};
             void import('./simulation/GangDriveBy').then(({GangDriveBy})=>{
              if(!alive||!fleet||driveby)return;driveby=new GangDriveBy(sim,fleet,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);
-             driveby.gangTurf=turfAt;driveby.gangResident=gang=>pedestrians?.gangResident(gang)??[];driveby.gangHatesPlayer=gang=>!!pedestrians?.gangHatesPlayer(gang);driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
+             driveby.gangTurf=turfAt;driveby.gangResident=gang=>pedestrians?.gangResident(gang)??[];driveby.carMissions=scriptCars;driveby.gangHatesPlayer=gang=>!!pedestrians?.gangHatesPlayer(gang);driveby.canSpawn=(point,radius)=>populationOutsideView(render.camera,point,radius);
              driveby.onShot=(from,to,weapon,hit)=>{weapons.npcShot(from,to,weapon,hit);sound.combat('fire',weapon,from,'npc');};
             }).catch(error=>{if(alive)hud.message(`Drive-by pursuit could not load: ${error instanceof Error?error.message:String(error)}`);});
            if(pedestrians){
@@ -6488,6 +6490,25 @@ async function boot() {
                 return false;
                };
                const groundY=(x:number,z:number,top:number)=>{const hit=sim.world.castRay(new RAPIER.Ray({x,y:top+50,z},{x:0,y:-1,z:0}),150,true,RAPIER.QueryFilterFlags.ONLY_FIXED);return hit?top+50-hit.timeOfImpact:top;};
+               // CreateAttackWave's drive-by car (iOS 0x1001b1580), while CGangWars holds none (pDriveByCar: cleared as the war
+               // starts, gone with the car): Gang1's car, when one is loaded, where GenerateOneEmergencyServicesCar puts one
+               // facing the player, crewed and on MISSION_DO_DRIVEBY_FARAWAY at him (GangDriveBy.adoptAttackCar).
+               const spawnWaveCar=(war:GangWars)=>{
+                const held=war.driveByCar as ScriptCar|'pending'|undefined;
+                if(held==='pending'||held&&!held.disposed&&fleet?.cars.has(held))return;
+                war.driveByCar=undefined;
+                const model=fleet?.gangCarModel(war.gang1);if(model===undefined||!fleet||!driveby||!emergency)return;
+                war.driveByCar='pending';
+                // The car is made at the nodes' height whether or not the collision there has streamed in (at 160 units it
+                // seldom has), and waits for it, as a script's car is set down; it is an ordinary car, not the mission's.
+                void emergency.placementToward(toNative(sim.player.position)).then(place=>place&&fleet?.spawnScriptCar(model,place.position,place.heading)).then(car=>{
+                 if(!car){if(war.driveByCar==='pending')war.driveByCar=undefined;return;}
+                 car.missionCar=false;
+                 // A war started over meanwhile cleared the reference: the car is not this one's.
+                 if(war.driveByCar!=='pending'||!driveby?.adoptAttackCar(car,war.gang1)){fleet?.removeTrafficCar(car);if(war.driveByCar==='pending')war.driveByCar=undefined;return;}
+                 war.driveByCar=car;
+                }).catch(()=>{if(war.driveByCar==='pending')war.driveByCar=undefined;});
+               };
                gangWars=new GangWars({
                 nowMs:()=>elapsed*1000,player:()=>toNative(sim.player.position),playerOnMission:()=>!!mission?.playerOnAMission(),canTriggerGangWarWhenOnAMission:()=>!!mission?.runtime.game.canTriggerGangWarWhenOnAMission,playerInAircraft:()=>!!fleet?.occupiedPlane,
                 canStartHere:infoIndex=>{const g=mission?.runtime.game;if(!g)return true;if(g.gangWarsTrainingMission)return infoIndex===g.gangWarTrainingZone;return !g.specificGangWarZones.length||g.specificGangWarZones.includes(infoIndex);},
@@ -6535,6 +6556,7 @@ async function boot() {
                      modelId:model==='health'?1240:1242,model,dictionary:model==='health'?'icons5':'icons7',type:PICKUP_TYPE.onceTimeoutSlow,
                      category:model==='health'?'health':'armour',ammo:0,position:[x,-z,ground+.75]});
                    });
+                   if(n[0]+n[1]>0&&!mission?.runtime.game.gangWarsTrainingMission)spawnWaveCar(war);
                   }).catch(()=>{pending=undefined;});
                  return false;
                 },

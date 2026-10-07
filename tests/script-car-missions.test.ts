@@ -84,10 +84,10 @@ test('TASK_CAR_MISSION’s numbers name the eCarMission kinds, and the escorts t
  expect([CAR_MISSION[2],CAR_MISSION[4],CAR_MISSION[17],CAR_MISSION[29],CAR_MISSION[11]]).toEqual(['ramPlayerFar','blockPlayerFar','blockCarFar','escort','stopForever']);
  expect([29,30,31,32].map(escortSide)).toEqual(['left','right','rear','front']);
  expect(CAR_MISSION[20]).toBeUndefined();
- // The FARAWAY escorts are 65-68 (eCarMission, and iOS's chase strategy table); 57-60 are no escort.
+ // The FARAWAY escorts are 65-68 (eCarMission, and iOS's chase strategy table); 57-59 are no escort, 60 the close drive-by.
  expect([65,66,67,68].map(n=>CAR_MISSION[n])).toEqual(['escortFar','escortFar','escortFar','escortFar']);
  expect([65,66,67,68].map(escortSide)).toEqual(['left','right','rear','front']);
- expect([57,58,59,60].map(n=>CAR_MISSION[n])).toEqual([undefined,undefined,undefined,undefined]);
+ expect([57,58,59,60,61].map(n=>CAR_MISSION[n])).toEqual([undefined,undefined,undefined,'driveByClose','driveByFar']);
 });
 
 test('the block aims where the target will be, its speed counted up to 0.13 a frame',async()=>{
@@ -195,4 +195,17 @@ test('the racing mission never turns straight near the point; the racing command
  const other=car(0,0);
  missions.gotoCoords(other.car,{x:0,y:0,z:-50},{cruise:20,style:0,racing:'orStraight'});
  expect(missions.mission(other.car)).toBe('gotoCoordsStraight');
+});
+
+test('the drive-by missions close in at the switch distance and drive 10 units off the target (iOS 0x100199968)',()=>{
+ const missions=new ScriptCarMissions(()=>undefined),{car:c,at}=car(0,0);
+ const player={position:{x:0,y:0,z:-60},velocity:{x:0,y:0,z:0}};
+ missions.player=()=>player as never;
+ // DO_DRIVEBY_FARAWAY with no target car or player clears; at the player it drives.
+ expect(missions.carMission(c,{mission:61,cruise:20,style:2})).toBe(false);
+ expect(missions.carMission(c,{mission:61,cruise:20,style:2,targetPlayer:true})).toBe(true);
+ expect(missions.mission(c)).toBe('driveByFar');
+ at.z=-45;missions.step(1/50);expect(missions.mission(c)).toBe('driveByClose');
+ // Back past the far distance (the straight-line distance and 5) it is FARAWAY again.
+ at.z=40;missions.step(1/50);expect(missions.mission(c)).toBe('driveByFar');
 });
