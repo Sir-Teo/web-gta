@@ -123,7 +123,14 @@ export function missionBotTick(dtSeconds:number){
   }
   mem.drive=undefined;
   if(d<=stopAt+.05)return false;
-  const step=Math.min(d-stopAt,7*dtSeconds),x=me.x+(to.x-me.x)/d*step,y=me.y+(to.y-me.y)/d*step;
+  // Held where he is for five seconds (the cemetery's wall between him and Kane's men, a fence): a player climbs over
+  // or goes round; the bot is set down at the point.
+  // Progress is the distance left: a step the physics pushes back rocks him to and fro without getting closer.
+  const held=mem.footStuck,sameGoal=held&&Math.hypot(to.x-held.x,to.y-held.y)<2;
+  if(!sameGoal||d<held.best-.5)mem.footStuck={x:to.x,y:to.y,best:d,for:0};else held.for+=dtSeconds;
+  const leap=mem.footStuck.for>5;if(leap){mem.footStuck=undefined;mem.leaps=(mem.leaps??0)+1;}
+  // A leap lands half a unit inside the stop, so a nudge from the physics does not leave him just outside it.
+  const step=leap?Math.max(0,Math.min(d-.1,d-stopAt+.5)):Math.min(d-stopAt,7*dtSeconds),x=me.x+(to.x-me.x)/d*step,y=me.y+(to.y-me.y)/d*step;
   // The ground is looked for from a little over the line between the two points, not over the higher one: from
   // above a roof it finds the roof (CJ walking to the barber's door stood on the shop).
   // Over the point already but above it (on a porch roof over SWEET1B's crack house door), the ground is looked for
@@ -233,13 +240,25 @@ export function missionBotTick(dtSeconds:number){
   if(vehicle&&distance(e.position)<25){try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car to fight',target:e.handle};}
   // Six seconds at the same target and it still stands (behind a wall in SWEET1B's crack den): a player walks up to it.
   if(mem.shootTarget!==e.handle){mem.shootTarget=e.handle;mem.shootFor=0;mem.vantage=undefined;}
+  // The six seconds run from when he takes the target on, closing in or firing (one held twelve units off behind a
+  // tomb, SWEET7, was never fired at, so the clock never ran).
+  mem.shootFor+=dtSeconds;
   // Still standing after that with a wall between them (the den's back room, its door a few units along): a player
   // goes round to where he can see it, the nearest spot near it with a floor under it and nothing fixed in the way.
-  if(mem.shootFor>6&&!mem.vantage&&!clearShot(me,e.position))mem.vantage=vantageOn(e.position);
-  if(mem.vantage&&glide(mem.vantage,.2))return {action:'go round to enemy',target:e.handle};
+  if(mem.shootFor>6&&!mem.vantage&&mem.vantageGaveUp!==e.handle&&!clearShot(me,e.position))mem.vantage=vantageOn(e.position);
+  // Held off the way round (a railing, the tombs) for five seconds, the bot steps to the spot; twice so and it shoots
+  // from where it stands.
+  if(mem.vantage){
+   const at=mem.vantageAt,moved=at?Math.hypot(me.x-at.x,me.y-at.y):1;
+   if(!at||moved>.5)mem.vantageAt={x:me.x,y:me.y,for:0,tries:at?.tries??0};else at.for+=dtSeconds;
+   if(mem.vantageAt.for>5){
+    if(++mem.vantageAt.tries>2){mem.vantage=undefined;mem.vantageAt=undefined;mem.vantageGaveUp=e.handle;}
+    else{try{(world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,mem.vantage.x,mem.vantage.y,mem.vantage.z);}catch{}mem.vantageAt.for=0;}
+   }
+  }
+  if(mem.vantage&&glide(mem.vantage,.2))return {action:'go round to enemy',target:e.handle,at:[Math.round(e.position.x),Math.round(e.position.y),Math.round(e.position.z)]};
   const reach=mem.shootFor>6?3:12;
-  if(!mem.vantage&&glide(e.position,reach))return {action:'close on enemy',target:e.handle};
-  mem.shootFor+=dtSeconds;
+  if(!mem.vantage&&glide(e.position,reach))return {action:'close on enemy',target:e.handle,at:[Math.round(e.position.x),Math.round(e.position.y),Math.round(e.position.z)],leaps:mem.leaps??0};
   shoot(e.position);return {action:'shoot',target:e.handle};
  }
  if(cars.length){
