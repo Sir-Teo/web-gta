@@ -11093,3 +11093,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   CTheScripts::IsVehicleStopped first, then the car's position inside the box, each axis inclusive, and with the flag
   set the area is highlighted whatever the answer. The port ran three of them without the highlight and skipped the
   2D stopped form, which DESERT5 asks.
+- **An object near a point, and how upright a car is.** LOCATE_OBJECT_2D shares CRunningScript::LocateObjectCommand
+  (0x487D10, unreversed; iOS 0x1001ddcb0) with the 3D form the port had: the object within the radius of the point on
+  x and y, inclusive, with the box highlighted on request whatever the answer. GET_CAR_UPRIGHT_VALUE (iOS 0x1001fdd30)
+  is the z of the car matrix's up axis (+0x28), 1 on its wheels and -1 on its roof. Both were skipped (crane1.scm and
+  two others locate objects; DESERT5 asks the upright value).

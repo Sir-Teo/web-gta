@@ -824,7 +824,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setDrunkInputDelay?(pad:number,delay:number):void;
  taskCharSlideToCoord?(handle:number,x:number,y:number,z:number,angle:number,slideSpeed:number):void;
  getCharHighestPriorityEvent?(handle:number):number;
- locateObject2d?(handle:number,x:number,y:number,xRadius:number,yRadius:number,drawSphere:boolean):boolean;
  attachCarToObject?(handle:number,handle2:number,xOffset:number,yOffset:number,zOffset:number,xRotation:number,yRotation:number,zRotation:number):void;
  fixCarTyre?(handle:number,tireId:number):void;
  /** CVehicle::m_nLastWeaponDamageType: the eWeaponType that last hurt the car, -1 when none has. */

@@ -129,6 +129,15 @@ describe('the vehicle, object and world commands of this batch',()=>{
   expect(locate(50)).toBe(false);
  });
 
+ test('LOCATE_OBJECT_2D: the radius inclusive on x and y, the height not asked (iOS 0x1001ddcb0)',()=>{
+  const game=new ScmGameState();
+  const handle=game.objects.create(1234,{x:12,y:18,z:500},{external:false,missionCleanup:false}).handle;
+  const locate=(rx:number,ry:number)=>run({},game,instruction(op('LOCATE_OBJECT_2D'),[int(handle),float(10),float(20),float(rx),float(ry),int(0)])).thread.condition;
+  expect(locate(2,2)).toBe(true);
+  expect(locate(1.5,2)).toBe(false);
+  expect(locate(2,1.5)).toBe(false);
+ });
+
  test('the world settings and the particle creation reach the host',()=>{
   const {world,calls}=recording();
   const {readInt}=run(world,undefined,

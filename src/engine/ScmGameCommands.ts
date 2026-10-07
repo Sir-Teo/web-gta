@@ -1587,7 +1587,14 @@ const handlers:Record<string,ScmCommandHandler>={
   t.updateCompareFlag(world(t,i,'closestObjectOfTypeIsSmashedOrDamaged')(point.x,point.y,point.z,
    t.readFloat(p[3]),model(t,i,p[4]),bool(t,p[5]),bool(t,p[6])),negated(i));
  },
- // The box around a point that an object must be inside, which the locate helpers already measure.
+ // CRunningScript::LocateObjectCommand (0x487D10, unreversed; iOS 0x1001ddcb0): the object within the radius of the
+ // point on each axis, inclusive (the height only in 3D), and with the flag the box is highlighted whatever the answer.
+ LOCATE_OBJECT_2D:(t,p,i)=>{
+  const position=game(t,i).objects.at(t.readInt(p[0])).position;
+  const point={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:0},radius={x:t.readFloat(p[3]),y:t.readFloat(p[4]),z:0};
+  if(bool(t,p[5]))highlightLocate(t,i,point,radius,false);
+  t.updateCompareFlag(insideBox(position,point,radius,false),negated(i));
+ },
  LOCATE_OBJECT_3D:(t,p,i)=>{
   const position=game(t,i).objects.at(t.readInt(p[0])).position;
   const point=vec(t,p,1),radius={x:t.readFloat(p[4]),y:t.readFloat(p[5]),z:t.readFloat(p[6])};
@@ -2407,7 +2414,6 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_DRUNK_INPUT_DELAY:(t,p,i)=>{world(t,i,'setDrunkInputDelay')(t.readInt(p[0]),t.readInt(p[1]));},
  TASK_CHAR_SLIDE_TO_COORD:(t,p,i)=>{world(t,i,'taskCharSlideToCoord')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]));},
  GET_CHAR_HIGHEST_PRIORITY_EVENT:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCharHighestPriorityEvent')(t.readInt(p[0])));},
- LOCATE_OBJECT_2D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'locateObject2d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),bool(t,p[5])),negated(i));},
  ATTACH_CAR_TO_OBJECT:(t,p,i)=>{world(t,i,'attachCarToObject')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]));},
  FIX_CAR_TYRE:(t,p,i)=>{world(t,i,'fixCarTyre')(t.readInt(p[0]),t.readInt(p[1]));},
  HAS_CAR_BEEN_DAMAGED_BY_WEAPON:(t,p,i)=>{

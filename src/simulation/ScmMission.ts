@@ -1077,6 +1077,8 @@ export class ScmMission {
    // 90 once the car is upside down.
    getCarPitch:handle=>{const m=this.vehicleMatrixOf(handle);return tiltDegrees(m.forward,m.up.z);},
    vehicleRoll:handle=>{const m=this.vehicleMatrixOf(handle);return tiltDegrees(m.right,m.up.z);},
+   // GET_CAR_UPRIGHT_VALUE (iOS 0x1001fdd30): the z of the car matrix's up axis, 1 on its wheels and -1 on its roof.
+   getCarUprightValue:handle=>this.vehicleMatrixOf(handle).up.z,
    // GET_CAR_SPEED_VECTOR: m_vecMoveSpeed in units a second.
    getCarSpeedVector:handle=>this.host('scriptVehicleVelocity','GET_CAR_SPEED_VECTOR')(this.liveVehicle(handle)),
    // CAR_SET_IDLE: MISSION_NONE.
