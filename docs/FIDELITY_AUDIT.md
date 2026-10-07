@@ -2269,8 +2269,16 @@ ancestor (reVC), in `weapons/nativeFirstPerson.ts`.
       these cars.
 - Cheats whose effect is not ported only toggle. These are the population
   themes (beach, funhouse, country, ninja, Elvis, gangs), riots, peds
-  attacking, cars and boats flying, nitro, the bunny hop, infinite health
-  (its checks are unreversed), never hungry, and recruit anyone.
+  attacking each other, cars and boats flying, nitro, the bunny hop, infinite
+  health (its checks are unreversed) and never hungry.
+  - Since ported: recruit anyone (see "The group buttons"), the bounty on the
+    player's head (see "Gangs attack the player only when they hate him"), and
+    everyone armed: CPopulation::AddPed gives each civilian (CIVMALE or
+    CIVFEMALE) it makes under CHEAT_EVERYONE_ARMED or
+    CHEAT_PEDS_ATTACK_OTHER_WITH_GOLFCLUB a pistol, bat, shotgun, M4 or rocket
+    launcher at random, with 25001 rounds (`everyone-armed` spec). The golf
+    club cheat's kill task on the nearest ped is not ported (gta-reversed's
+    version is marked as not the original).
   - Fat, muscle, skinny and max stamina do nothing yet.
 - Verification: unit tests cover the codes, the toggle messages and the
   hooks for traffic, colours, wanted, ammo and oxygen. A browser test types

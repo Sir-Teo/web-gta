@@ -71,6 +71,8 @@ type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
 const CHOKING_WEAPONS=new Set([41,42,17]);
 /** ePedType's PED_TYPE_COP and PED_TYPE_GANG2 (the Grove Street Families), as nativePedType numbers them. */
 const PED_TYPE_PLAYER1=0,PED_TYPE_COP=6,PED_TYPE_GANG2=8;
+/** CPopulation::AddPed's choice for an armed civilian: WEAPON_PISTOL, _BASEBALLBAT, _SHOTGUN, _M4, _RLAUNCHER. */
+const EVERYONE_ARMED_WEAPONS=[22,5,25,31,35] as const;
 /** The Grove Street Families' gang index, PED_TYPE_GANG2. */
 const GANG_GROVE=1;
 /** eTaskType TASK_COMPLEX_AVOID_OTHER_PED_WHILE_WANDERING. */
@@ -1148,7 +1150,7 @@ export class WorldPedestrians {
      if(this.disposed)return;
     }
     const p=this.createPed({position,heading:this.sim.player.heading,source,officer,node,weapon:officer?catalog.weapon:undefined,speed:speeds.walk,speeds,stats,modelRef});
-    this.chooseTarget(p);
+    this.armForCheats(p);this.chooseTarget(p);
     // CPopulation::Update: every successful AddToPopulation is followed by GeneratePedsAtAttractors for one ped.
     if(!officer){await this.spawnAtAttractor(center);if(this.disposed)return;}
    }
@@ -1237,7 +1239,7 @@ export class WorldPedestrians {
      const top=y+2,hit=this.sim.world.castRay(new RAPIER.Ray({x,y:top,z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
      const position={x,y:hit?top-hit.timeOfImpact+.03:y+.03,z},heading=queue.slotHeading(slot);
      const p=this.createPed({position,heading,source:built.source,officer:false,node,speed:0,speeds:built.speeds,stats:built.stats,modelRef:model});
-     this.attractorQueues.set(a.key,queue);queue.register(p.id);p.attractorsTried.add(a.key);
+     this.armForCheats(p);this.attractorQueues.set(a.key,queue);queue.register(p.id);p.attractorsTried.add(a.key);
      if(!queue.atHead(slot))p.attract={key:a.key,type:a.type,phase:'wait',time:0,until:Infinity,heading,slot,startAt:0};
      else this.beginAttractor(p,a.key,a.type,heading);
      p.actor.player.heading=heading;
@@ -2146,6 +2148,14 @@ export class WorldPedestrians {
   state.position={...position};state.previous={...position};
   ped.body.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);
   this.rejoinWander(ped);
+ }
+ /** CPopulation::AddPed (0x612710): a civilian (CIVMALE or CIVFEMALE) made while CHEAT_EVERYONE_ARMED or
+  * CHEAT_PEDS_ATTACK_OTHER_WITH_GOLFCLUB is on takes, at random, the pistol, the bat, the shotgun, the M4 or the rocket
+  * launcher, with 25001 rounds (GiveDelayedWeapon and SetCurrentWeapon). */
+ private armForCheats(p:Pedestrian){
+  if(p.officer||!/^CIV(MALE|FEMALE)$/i.test(p.pedType??''))return;
+  if(!CHEATS.isActive('everyoneArmed')&&!CHEATS.isActive('pedsAttackOther'))return;
+  this.giveWeapon(p,EVERYONE_ARMED_WEAPONS[Math.floor(Math.random()*EVERYONE_ARMED_WEAPONS.length)],25001);
  }
  /** CCheat::EverybodyAttacksPlayerCheat turned on (PC 0x439C70, iOS 0x1001a3358): every ped in the pool hates PLAYER1
   * and is given CEventAcquaintancePedHate(player) with TASK_COMPLEX_KILL_PED_ON_FOOT. Here the street peds take the
