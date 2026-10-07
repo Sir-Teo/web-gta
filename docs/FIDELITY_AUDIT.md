@@ -11158,3 +11158,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   0x1001fb880), which CEventGroup::Add records for every event a ped takes in and CTheScripts::Process clears for
   mission peds after the scripts run. SYND4 asks it of drivers (dragged out, someone entering their car) and DRIV2 of
   a ped shots whizz past; the port raises only the first of those events, and for peds on foot.
+- **Smashed objects of a type, and goggles taken off.** HAS_OBJECT_OF_TYPE_BEEN_SMASHED (iOS 0x1001fb9d4) puts a height
+  at or under -100 on the ground, then walks the object pool for any object of the model within the radius (3D,
+  inclusive) with objectFlags.bIsBroken; the port asks the script's objects and the map's smashed placements (DRUGS1,
+  FINALEA and an interior). PLAYER_TAKE_OFF_GOGGLES (0x1002056d8) runs CTaskComplexUseGoggles as the primary task when
+  asked to animate and the goggles are on, and otherwise CPed::TakeOffGoggles at once (MAF4). Both were skipped.

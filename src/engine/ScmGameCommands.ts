@@ -2474,7 +2474,12 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_SEQUENCE_PROGRESS_RECURSIVE:(t,p,i)=>{const result=world(t,i,'getSequenceProgressRecursive')(t.readInt(p[0]));t.writeInt(p[1],result.p2);t.writeInt(p[2],result.p3);},
  SET_TRAIN_FORCED_TO_SLOW_DOWN:(t,p,i)=>{world(t,i,'setTrainForcedToSlowDown')(t.readInt(p[0]),bool(t,p[1]));},
  DELETE_MISSION_TRAIN:(t,p,i)=>{world(t,i,'deleteMissionTrain')(t.readInt(p[0]));},
- HAS_OBJECT_OF_TYPE_BEEN_SMASHED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'hasObjectOfTypeBeenSmashed')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),model(t,i,p[4])),negated(i));},
+ // iOS 0x1001fb9d4: a height at or under -100 put on the ground (as the coord blips do), then any CObject of the model
+ // within the radius, 3D and inclusive, with objectFlags.bIsBroken.
+ HAS_OBJECT_OF_TYPE_BEEN_SMASHED:(t,p,i)=>{
+  const point=blipPoint(t,p,0,i);
+  t.updateCompareFlag(world(t,i,'hasObjectOfTypeBeenSmashed')(point.x,point.y,point.z,t.readFloat(p[3]),model(t,i,p[4])),negated(i));
+ },
  MARK_VEHICLE_MOD_AS_NO_LONGER_NEEDED:(t,p,i)=>{world(t,i,'markVehicleModAsNoLongerNeeded')(model(t,i,p[0]));},
  SET_WEATHER_TO_APPROPRIATE_TYPE_NOW:(t,p,i)=>{world(t,i,'setWeatherToAppropriateTypeNow')();},
  SET_HELI_REACHED_TARGET_DISTANCE:(t,p,i)=>{world(t,i,'setHeliReachedTargetDistance')(t.readInt(p[0]),t.readInt(p[1]));},

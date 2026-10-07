@@ -131,6 +131,8 @@ export interface ScmMissionWorld {
  unmarkAllRoadNodesAsDontWander?():void;
  /** The nearest of the map's own objects of a model within the radius (native), and whether it is smashed or shows its damage. */
  closestWorldObjectOfType?(point:{x:number;y:number;z:number},radius:number,model:number|string):{distance:number;smashed:boolean;damaged:boolean;key?:string}|undefined;
+ /** Whether any map object of the model within `radius` (inclusive) has been smashed. */
+ worldObjectOfTypeSmashedWithin?(point:{x:number;y:number;z:number},radius:number,model:number|string):boolean;
  /** bIsVisible or bUsesCollision on the map object with this placement key, kept while it streams in and out. */
  setWorldObjectFlag?(key:string,flag:'visible'|'collision',state:boolean):void;
  /** IS_CAR_IN_AIR_PROPER for a script vehicle: no wheel on the ground and nothing touched. */
@@ -431,6 +433,8 @@ export interface ScmMissionWorld {
  setScriptVehicleFreebies?(car:unknown,on:boolean):void;
  /** vehicleFlags.bUseCarCheats of a script's car. */
  setScriptVehicleCarCheats?(car:unknown,on:boolean):void;
+ /** PLAYER_TAKE_OFF_GOGGLES on the player (WeaponSystem.takeOffGoggles). */
+ takeOffPlayerGoggles?(animate:boolean):void;
  /** The handling's nMonetaryValue for a vehicle model. */
  vehicleModelValue?(model:number|string):number;
  /** SET_CAR_ROLL's matrix: the car's heading alone, then turned about the world's y axis by `roll` radians. */
@@ -1252,6 +1256,7 @@ export class ScmMission {
    setExtraCarColours:(handle,tertiary,quaternary)=>{this.host('recolourScriptVehicleExtras','SET_EXTRA_CAR_COLOURS')(this.liveVehicle(handle),tertiary,quaternary);},
    // SET_FREEBIES_IN_VEHICLE (iOS 0x100200a28): vehicleFlags.bFreebies, bit 7.
    setFreebiesInVehicle:(handle,on)=>{this.host('setScriptVehicleFreebies','SET_FREEBIES_IN_VEHICLE')(this.liveVehicle(handle),on);},
+   playerTakeOffGoggles:(_player,animate)=>{this.host('takeOffPlayerGoggles','PLAYER_TAKE_OFF_GOGGLES')(animate);},
    // IMPROVE_CAR_BY_CHEATING (iOS 0x100204f94): vehicleFlags.bUseCarCheats, bit 57.
    improveVehicleByCheating:(handle,on)=>{this.host('setScriptVehicleCarCheats','IMPROVE_CAR_BY_CHEATING')(this.liveVehicle(handle),on);},
    // GET_CAR_MODEL_VALUE (iOS 0x100206094): the model's handling entry's nMonetaryValue.
@@ -1542,6 +1547,12 @@ export class ScmMission {
     const prop=this.world.closestWorldObjectOfType?.({x,y,z},radius,model);
     if(prop&&(!best||prop.distance<best.distance))best=prop;
     return !!best&&(smashed&&best.smashed||damaged&&best.damaged);
+   },
+   // HAS_OBJECT_OF_TYPE_BEEN_SMASHED: any object of the model, the script's or the map's, broken within the radius.
+   hasObjectOfTypeBeenSmashed:(x,y,z,radius,model)=>{
+    for(const object of this.runtime.game.objects.all)
+     if(object.model===model&&object.broken&&Math.hypot(object.position.x-x,object.position.y-y,object.position.z-z)<=radius)return true;
+    return !!this.world.worldObjectOfTypeSmashedWithin?.({x,y,z},radius,model);
    },
    clearObjectLastWeaponDamage:handle=>{this.runtime.game.objects.clearLastWeaponDamage(handle);},
    // objectFlags.bIsTargetable; CPlayerPed::FindWeaponLockOnTarget's object pass reads it through the host.

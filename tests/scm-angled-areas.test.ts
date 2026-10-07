@@ -140,3 +140,11 @@ test('GET_OBJECT_MASS reads the object\'s m_fMass, OBJECT.DAT\'s or 99999 withou
  try{thread.run(0,8);}catch(error){if(!String(error).includes('watchdog'))throw error;}
  expect([view.getFloat32(64,true),view.getFloat32(68,true)]).toEqual([150,99999]);
 });
+
+test('HAS_OBJECT_OF_TYPE_BEEN_SMASHED grounds a height at -100 and asks for the model within the radius (iOS 0x1001fb9d4)',()=>{
+ const asked:unknown[][]=[];
+ const world={groundZForCoord:()=>18.5,hasObjectOfTypeBeenSmashed:(...a:unknown[])=>{asked.push(a);return true;}};
+ const thread=run(world as never,instruction(scmOpcode('HAS_OBJECT_OF_TYPE_BEEN_SMASHED'),[float(10),float(20),float(-100),float(30),int(1220)]));
+ expect(asked).toEqual([[10,20,18.5,30,1220]]);
+ expect(thread.condition).toBe(true);
+});

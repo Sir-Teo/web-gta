@@ -5401,6 +5401,7 @@ async function boot() {
                  recolourScriptVehicleExtras:(car,tertiary,quaternary)=>{if(isScriptCar(car))fleet?.recolourCar(car,tertiary,quaternary,2);},
                  setScriptVehicleFreebies:(car,on)=>{if(isScriptCar(car))car.freebies=on;},
                  setScriptVehicleCarCheats:(car,on)=>{if(isScriptCar(car))car.useCarCheats=on;},
+                 takeOffPlayerGoggles:animate=>{weapons.takeOffGoggles(animate);},
                  vehicleModelValue:model=>fleet?.modelMonetaryValue(model)??0,
                  setScriptVehicleRoll:(car,roll)=>{
                   type Turnable={rotation():{x:number;y:number;z:number;w:number};setRotation(q:{x:number;y:number;z:number;w:number},wake:boolean):void};
@@ -5711,6 +5712,15 @@ async function boot() {
                    if(!source.placement||placementKey(source.modelName,source.placement.position)!==key)continue;
                    if(flag==='visible')importedScene!.setPlacementHidden(handle,!state);else importedScene!.setPlacementCollision(handle,state);
                   }
+                 },
+                 worldObjectOfTypeSmashedWithin:(point,radius,model)=>{
+                  const scene=importedScene,name=(typeof model==='number'?scriptPickupModels?.byId.get(model)?.model:model)?.toLowerCase();if(!scene||!name)return false;
+                  for(const [handle,source] of scene.sources){
+                   if(!source.placement||source.modelName.toLowerCase()!==name)continue;
+                   const [x,y,z]=source.placement.position;if(Math.hypot(x-point.x,y-point.y,z-point.z)>radius)continue;
+                   if(propStates.get(handle)?.destroyed||smashedPlacements.has(placementKey(source.modelName,source.placement.position)))return true;
+                  }
+                  return false;
                  },
                  closestWorldObjectOfType:(point,radius,model)=>{
                   const scene=importedScene,name=(typeof model==='number'?scriptPickupModels?.byId.get(model)?.model:model)?.toLowerCase();if(!scene||!name)return undefined;

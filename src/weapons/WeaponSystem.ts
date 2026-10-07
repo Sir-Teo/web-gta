@@ -198,6 +198,12 @@ export class WeaponSystem {
  /** Pending goggles_put_on animation before vision toggles. */
  goggles?:{kind:'nightvision'|'infrared';remaining:number};
  gogglesClipSeconds=.8;
+ /** PLAYER_TAKE_OFF_GOGGLES (iOS 0x1002056d8): with goggles on, `animate` runs CTaskComplexUseGoggles (the clip, then
+  * TakeOffGoggles) unless a clip is already running; otherwise CPed::TakeOffGoggles at once. */
+ takeOffGoggles(animate:boolean){
+  if(animate){if(this.vision&&!this.goggles)this.goggles={kind:this.vision,remaining:this.gogglesClipSeconds};}
+  else{this.vision=null;this.goggles=undefined;}
+ }
  /** The player's move blend ratio and sprint state, from the movement associations. */
  playerMove?:()=>{blendRatio:number;sprinting:boolean}|undefined;
  /** ProcessPlayerWeapon's KILL_Partial gate: the target button held with a weapon whose anim group is loaded (only the
