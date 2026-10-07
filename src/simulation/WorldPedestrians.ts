@@ -70,7 +70,7 @@ type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
 /** The weapons that choke (WEAPON_SPRAYCAN, WEAPON_EXTINGUISHER, WEAPON_TEARGAS). */
 const CHOKING_WEAPONS=new Set([41,42,17]);
 /** ePedType's PED_TYPE_COP and PED_TYPE_GANG2 (the Grove Street Families), as nativePedType numbers them. */
-const PED_TYPE_COP=6,PED_TYPE_GANG2=8;
+const PED_TYPE_PLAYER1=0,PED_TYPE_COP=6,PED_TYPE_GANG2=8;
 /** The Grove Street Families' gang index, PED_TYPE_GANG2. */
 const GANG_GROVE=1;
 /** eTaskType TASK_COMPLEX_AVOID_OTHER_PED_WHILE_WANDERING. */
@@ -1468,7 +1468,11 @@ export class WorldPedestrians {
   if(nightstick?.asset){const asset=nightstick.asset;stick=modelObject(asset.model,asset.textures);stick.root.rotation.set(0,0,0);stick.root.traverse(obj=>{const i=obj.userData.nativeFrame;if(i!==undefined&&asset.model.frames[i].parent<0)obj.matrix.identity();delete obj.userData.nativeFrame;});stick.root.visible=false;view.hand()?.add(stick.root);}
   if(nightstick?.melee)view.installReactions(Object.fromEntries(nightstick.melee.attacks.map((clip,i)=>[`cop_bat_${i+1}`,clip])));
   const p:Pedestrian={pedType:o.stats?.pedType,attractScan:Math.random()*ATTRACTOR_SCAN_SECONDS,attractorsTried:new Set(),copScan:0,criminalsAt:0,wanderDir:Math.floor(Math.random()*8),seed:Math.floor(Math.random()*32768),scratch:0,money:pedMoneyCount(Math.random,!!o.stats?.rich),copWeapon:'unarmed',stick,id:this.nextId++,weapon:o.weapon,gunState:o.weapon?{time:0,rounds:o.weapon.info.clip,reload:0,active:false}:undefined,flash:0,deadTime:0,officer:o.officer,arrest:0,gun,health:o.officer?copHealth(String(o.modelRef)):100,actor:{player:{...this.sim.player,tilt:undefined,position:{...o.position},previous:{...o.position},heading:o.heading,health:100,stamina:100,crouched:false,grounded:true,speed:o.speed??0}},body,collider,controller,view,target:o.node,down:0,flee:o.flee??0,impulse:{x:0,z:0},blocked:0,retaliate:0,retaliateCooldown:0,meleeCooldown:0,walkSpeed:o.speeds?.walk??NATIVE_PED_WALK_SPEED,runSpeed:o.speeds?.run??NATIVE_PED_RUN_SPEED,sprintSpeed:o.speeds?.sprint??NATIVE_PED_SPRINT_SPEED,onFire:0,onFireSpeech:0,attackMult:o.stats?.attack??1,decisionMaker:o.stats?.decisionMaker??(o.officer?1:2),statFlags:o.stats?.flags??40,headingChange:o.stats?.headingChange??7.5,defendMult:o.stats?.defend??1,temper:o.stats?.temper??50,gunAccuracy:o.gunAccuracy??60,stagger:0,bumpCooldown:0,dropped:false,gait:o.speed??0,gang:o.gang,modelRef:o.modelRef,loiter:!!o.loiter,dealer:!!o.dealer,neededUntil:this.clock+4,alpha:0,fadeOut:false,follow:false,foe:undefined,brain:new PedTaskAdapter(),fightStage:0};
-  this.people.push(p);return p;
+  this.people.push(p);
+  // CPed's constructor with CHEAT_HAVE_ABOUNTY_ON_YOUR_HEAD on: a new ped hates PLAYER1 (and is given a hate event
+  // with no task, which a street decision maker has no row for).
+  if(CHEATS.isActive('bounty'))this.setRelationship(p,ACQUAINTANCE_HATE,PED_TYPE_PLAYER1);
+  return p;
  }
  /** The allowed path node nearest a point within `range`, by one scan. */
  private closestNode(position:{x:number;z:number},range:number){
@@ -2142,6 +2146,17 @@ export class WorldPedestrians {
   state.position={...position};state.previous={...position};
   ped.body.setTranslation({x:position.x,y:position.y+.9,z:position.z},true);
   this.rejoinWander(ped);
+ }
+ /** CCheat::EverybodyAttacksPlayerCheat turned on (PC 0x439C70, iOS 0x1001a3358): every ped in the pool hates PLAYER1
+  * and is given CEventAcquaintancePedHate(player) with TASK_COMPLEX_KILL_PED_ON_FOOT. Here the street peds take the
+  * kill task; cops keep the police's own pursuit, and the player's recruits and a mission's peds their orders. Turning
+  * the cheat off undoes nothing. */
+ everybodyAttacksPlayer(){
+  for(const p of this.people){
+   if(p.health<=0)continue;
+   this.setRelationship(p,ACQUAINTANCE_HATE,PED_TYPE_PLAYER1);
+   if(!p.officer&&!p.follow&&!p.mission){this.killPedOnFoot(p);p.flee=0;}
+  }
  }
  /** SET_CHAR_RELATIONSHIP and its clearing forms, through CAcquaintance's own routines. */
  setRelationship(ped:Pedestrian,acquaintance:number,pedType:number){
@@ -3824,7 +3839,9 @@ export class WorldPedestrians {
       p.acquaintanceScan=ACQUAINTANCE_SCAN_SECONDS;
       if(this.seesForAcquaintance(p,state.heading,d)){
        p.acquaintanceScan=ACQUAINTANCE_RAISED_SCAN_SECONDS;
-       if(this.turfRandom()<TURF_KILL_THREATS_CHANCE)for(const m of p.party?.members??[p])if(m.health>0&&!m.officer)m.turfFoe=true;
+       // With a bounty on the player's head the hate goes to the group as TASK_GROUP_KILL_THREATS_BASIC (or the ped's own
+       // TASK_COMPLEX_KILL_PED_ON_FOOT with no group): no draw.
+       if(CHEATS.isActive('bounty')||this.turfRandom()<TURF_KILL_THREATS_CHANCE)for(const m of p.party?.members??[p])if(m.health>0&&!m.officer)m.turfFoe=true;
       }
      }
     }

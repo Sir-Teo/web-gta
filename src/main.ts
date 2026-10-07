@@ -2669,6 +2669,8 @@ async function boot() {
       case 'muscle':mission?.runtime.game.stats.set(23,1000);rebuildPlayerUnlessDriving();break;
       case 'skinny':mission?.runtime.game.stats.set(21,0);mission?.runtime.game.stats.set(23,0);rebuildPlayerUnlessDriving();break;
       case 'maxStamina':mission?.runtime.game.stats.set(22,1000);break;
+      // CCheat::EverybodyAttacksPlayerCheat: toggled; turned on, every ped hates the player and sets on him.
+      case 'bounty':cheats.toggle(cheat);if(cheats.isActive(cheat))pedestrians?.everybodyAttacksPlayer();break;
       default:cheats.toggle(cheat);
     }
     if(inventory.selected!==before)void weaponView.equip(inventory.selected);

@@ -9012,9 +9012,17 @@ re-armed only beyond 30:
   player's, a unit lower while he ducks.
 - Removed: the authored disrespect rule (a gang leaning on a mark under 25 respect inside 5 m). The scanner never
   reads respect.
+- Have a bounty on your head (CCheat::EverybodyAttacksPlayerCheat, PC 0x439C70) had only toggled. Turned on, every ped
+  in the pool now hates PLAYER1 and takes the kill task on him (CEventAcquaintancePedHate with
+  TASK_COMPLEX_KILL_PED_ON_FOOT); while it is on a new ped is made hating him (CPed's constructor), and the scanner
+  hands a hating gang member's sighting to its group as TASK_GROUP_KILL_THREATS_BASIC with no 200-in-700 draw.
+  Turning it off undoes nothing. Kept: cops keep the police's pursuit, and the player's recruits and a mission's
+  peds their orders. Street civilians' decision makers have no row for events 36 to 40 (R_Norm, R_Tough, R_Weak), so
+  they never scan.
 - Not ported: the lighting test (a player lit at 0.3 or less is noticed only close in), the scan of other peds (gang
-  against gang, cops), and the "bounty on your head" cheat and LA riots, which make the hate a kill task at once.
-Specs: `gang-shootout` (a hated mark is shot at; with the first draws missing, a later scan still brings the attack),
+  against gang, cops), and LA riots, which make the hate a kill task at once.
+Specs: `gang-shootout` (a hated mark is shot at; with the first draws missing, a later scan still brings the attack;
+under the bounty cheat a disliking gang shoots too),
 `driveby-attack`, `native-population` (unit).
 
 ## Mission text and train paint

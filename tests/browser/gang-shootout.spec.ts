@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
-async function shootout(page:import('@playwright/test').Page,hate:boolean,lateDraw=false){
- await page.goto('/models.html');return page.evaluate(async({hate,lateDraw})=>{
+async function shootout(page:import('@playwright/test').Page,hate:boolean,lateDraw=false,bounty=false){
+ await page.goto('/models.html');return page.evaluate(async({hate,lateDraw,bounty})=>{
   const [{WorldPedestrians},{WantedSystem},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
   await RAPIER.init();const sim=new Simulation(),scene=new THREE.Scene(),base=new URL('/play/world/',location.href).href;
   sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(2490,12,1680));
@@ -22,6 +22,8 @@ async function shootout(page:import('@playwright/test').Page,hate:boolean,lateDr
    for(let i=0;i<300&&!crowd.snapshot().people.some((p:any)=>p.weapon!==undefined);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
    const armed=crowd.snapshot().people.find((p:any)=>p.weapon!==undefined);
    if(!armed)throw new Error(JSON.stringify(crowd.snapshot()));
+   // CCheat::EverybodyAttacksPlayerCheat turned on: every ped hates him and takes a kill task on him.
+   if(bounty){(await import('/src/simulation/nativeCheats.ts' as string)).CHEATS.enable('bounty');crowd.everybodyAttacksPlayer();}
    // Eight metres south of the shooter, in the open, to start with.
    sim.player.position={x:armed.position.x,y:armed.position.y,z:armed.position.z+8};sim.playerBody.setTranslation({...sim.player.position,y:armed.position.y+.9},true);sim.world.step();
    const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();elapsed+=1/60;};
@@ -32,12 +34,12 @@ async function shootout(page:import('@playwright/test').Page,hate:boolean,lateDr
    const shooter=crowd.people.find((p:any)=>p.id===armed.id);
    const inFront=()=>{if(shooter.retaliate>0)return;const q=shooter.actor.player.position,h=shooter.actor.player.heading;sim.player.position={x:q.x+8*Math.sin(h),y:q.y,z:q.z+8*Math.cos(h)};sim.playerBody.setTranslation({...sim.player.position,y:q.y+.9},true);};
    if(lateDraw)for(let i=0;i<900&&shots===0;i++){if(i%15===0)inFront();tick();}
-   else for(let i=0;i<(hate?600:60)&&(i<60||sim.player.health>=100);i++){if(i%15===0)inFront();tick();}
+   else for(let i=0;i<(hate||bounty?600:60)&&(i<60||sim.player.health>=100);i++){if(i%15===0)inFront();tick();}
    const health=sim.player.health;
    const snap=crowd.snapshot();const resident=snap.gangs[0];const worn=[...new Set(snap.people.filter((p:any)=>p.gang===0).map((p:any)=>p.model))];
    return {armed:armed.id,shots,health,resident,worn};
-  }finally{crowd.dispose();sim.dispose();}
- },{hate,lateDraw});
+  }finally{crowd.dispose();sim.dispose();if(bounty)(await import('/src/simulation/nativeCheats.ts' as string)).CHEATS.disable('bounty');}
+ },{hate,lateDraw,bounty});
 }
 
 test('armed turf gangs stand and shoot an armed mark they hate',async({page})=>{
@@ -82,4 +84,9 @@ test('while the player is wanted every Families member hates cops, and stops onc
  });
  // ped.dat gives GANG2 no relationship with COP; the pass makes it HATE (4) within 32 frames and takes it away.
  expect(result).toEqual({before:null,wanted:4,cleared:null});
+});
+
+test('with a bounty on his head even a gang that only dislikes the player sets on him',async({page})=>{
+ test.setTimeout(180000);const result=await shootout(page,false,false,true);
+ expect(result.shots).toBeGreaterThan(0);
 });
