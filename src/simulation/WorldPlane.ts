@@ -307,6 +307,14 @@ export class WorldPlane {
   else if(this.gearStatus>0&&this.gearStatus<1){this.gearStatus+=.02*ts;if(this.gearStatus>=1){this.gearStatus=1;this.setGearUp(true);}}
  }
  private setGearUp(up:boolean){this.gearUp=up;for(const c of this.wheels)c.setEnabled(!up);}
+ /** CPlane::SetGearUp and SetGearDown (0x6CAC20, 0x6CAC70; iOS 0x100469e58, 0x100469e28), as
+  * SET_PLANE_UNDERCARRIAGE_UP calls them: the gear is at once fully up or down, with its drag and its wheels (missing
+  * while up), whatever the model, fixed gear and all. */
+ setGear(up:boolean){this.gearStatus=up?1:0;this.setGearUp(up);}
+ /** PLANE_STARTS_IN_AIR (iOS 0x1001f701c): CPlane::IsAlreadyFlying puts m_nStartedFlyingTime 20 s back, which only the
+  * AI pilot reads (gear up after 4 s off the ground, iOS 0x10019f490; not ported, as no AI plane flies here), and a
+  * Hydra's nozzle is set level. */
+ startsInAir(){if(this.modelId===520)this.nozzle=0;}
  beforeStep(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}){
   const nearby=this.occupied||this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};this.stepDt=dt;

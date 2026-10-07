@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T13:35:43.435Z",
+ "generated": "2026-10-07T13:40:58.441Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1194,
+   "faithful": 1197,
    "authored": 19,
    "silent": 3,
-   "skipped": 169,
+   "skipped": 166,
    "stops": 6
   }
  },
@@ -794,18 +794,13 @@
    "byStatus": {
     "core": 675,
     "nop": 0,
-    "faithful": 314,
+    "faithful": 317,
     "authored": 3,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "skipped",
-     "sites": 3
-    },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
@@ -4083,10 +4078,10 @@
    "byStatus": {
     "core": 1449,
     "nop": 1,
-    "faithful": 808,
+    "faithful": 810,
     "authored": 2,
     "silent": 0,
-    "skipped": 21,
+    "skipped": 19,
     "stops": 0
    },
    "gaps": [
@@ -4099,11 +4094,6 @@
      "name": "SET_PLANE_THROTTLE",
      "status": "skipped",
      "sites": 5
-    },
-    {
-     "name": "PLANE_STARTS_IN_AIR",
-     "status": "skipped",
-     "sites": 2
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -4407,18 +4397,13 @@
    "byStatus": {
     "core": 1112,
     "nop": 22,
-    "faithful": 235,
+    "faithful": 236,
     "authored": 0,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "PLANE_STARTS_IN_AIR",
-     "status": "skipped",
-     "sites": 1
-    },
     {
      "name": "PLANE_ATTACK_PLAYER",
      "status": "skipped",
@@ -4604,10 +4589,10 @@
    "byStatus": {
     "core": 2961,
     "nop": 2,
-    "faithful": 954,
+    "faithful": 959,
     "authored": 2,
     "silent": 0,
-    "skipped": 15,
+    "skipped": 10,
     "stops": 0
    },
    "gaps": [
@@ -4617,17 +4602,7 @@
      "sites": 4
     },
     {
-     "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "skipped",
-     "sites": 3
-    },
-    {
      "name": "SET_ALWAYS_DRAW_3D_MARKERS",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "GET_PLANE_UNDERCARRIAGE_POSITION",
      "status": "skipped",
      "sites": 2
     },
@@ -4898,18 +4873,13 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 490,
+    "faithful": 493,
     "authored": 3,
     "silent": 0,
-    "skipped": 6,
+    "skipped": 3,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "skipped",
-     "sites": 3
-    },
     {
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
@@ -4946,10 +4916,10 @@
    "byStatus": {
     "core": 1479,
     "nop": 1,
-    "faithful": 1230,
+    "faithful": 1234,
     "authored": 2,
     "silent": 0,
-    "skipped": 7,
+    "skipped": 3,
     "stops": 0
    },
    "gaps": [
@@ -4961,16 +4931,6 @@
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
-     "sites": 2
-    },
-    {
-     "name": "PLANE_STARTS_IN_AIR",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "skipped",
      "sites": 2
     }
    ]
@@ -5310,10 +5270,10 @@
    "byStatus": {
     "core": 2824,
     "nop": 1,
-    "faithful": 1567,
+    "faithful": 1568,
     "authored": 5,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
@@ -5321,11 +5281,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 4
-    },
-    {
-     "name": "SET_PLANE_UNDERCARRIAGE_UP",
-     "status": "skipped",
-     "sites": 1
     },
     {
      "name": "ATTACH_CHAR_TO_OBJECT",
@@ -5348,10 +5303,10 @@
    "byStatus": {
     "core": 4564,
     "nop": 54,
-    "faithful": 1253,
+    "faithful": 1258,
     "authored": 3,
     "silent": 0,
-    "skipped": 26,
+    "skipped": 21,
     "stops": 0
    },
    "gaps": [
@@ -5364,11 +5319,6 @@
      "name": "SET_AIRCRAFT_CARRIER_SAM_SITE",
      "status": "skipped",
      "sites": 5
-    },
-    {
-     "name": "PLANE_STARTS_IN_AIR",
-     "status": "skipped",
-     "sites": 4
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
@@ -5392,11 +5342,6 @@
     },
     {
      "name": "PLANE_ATTACK_PLAYER_USING_DOG_FIGHT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_PLANE_UNDERCARRIAGE_POSITION",
      "status": "skipped",
      "sites": 1
     },
@@ -6628,23 +6573,6 @@
    "doc": "",
    "sites": 122,
    "missions": 62,
-   "firstMission": "planes.scm",
-   "portable": false
-  },
-  {
-   "name": "SET_PLANE_UNDERCARRIAGE_UP",
-   "opcode": "08e6",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setPlaneUndercarriageUp (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1980,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Sets whether the plane's landing wheels are up",
-   "sites": 12,
-   "missions": 5,
    "firstMission": "planes.scm",
    "portable": false
   },
@@ -8382,23 +8310,6 @@
    "portable": false
   },
   {
-   "name": "PLANE_STARTS_IN_AIR",
-   "opcode": "0745",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks planeStartsInAir (skipped: outputs read as none)"
-   ],
-   "handlerLine": 1979,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Provides the aircraft with full power so it can start flying mid-air",
-   "sites": 9,
-   "missions": 4,
-   "firstMission": "ZERO1",
-   "portable": false
-  },
-  {
    "name": "SET_HELI_STABILISER",
    "opcode": "04df",
    "status": "skipped",
@@ -8802,23 +8713,6 @@
    },
    "doc": "Gets the car's vertical angle",
    "sites": 4,
-   "missions": 2,
-   "firstMission": "DESERT5",
-   "portable": false
-  },
-  {
-   "name": "GET_PLANE_UNDERCARRIAGE_POSITION",
-   "opcode": "091f",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getPlaneUndercarriagePosition (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2467,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "",
-   "sites": 3,
    "missions": 2,
    "firstMission": "DESERT5",
    "portable": false

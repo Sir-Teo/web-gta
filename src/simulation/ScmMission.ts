@@ -467,6 +467,12 @@ export interface ScmMissionWorld {
  setForceCrosshair?(state:boolean):void;
  /** STATUS_WRECKED or bIsDrowning: what IS_CAR_DEAD asks. */
  scriptVehicleIsDead(car:unknown):boolean;
+ /** CPlane::SetGearUp / SetGearDown on a script's aircraft (nothing for a vehicle that is not one). */
+ setScriptPlaneGear?(vehicle:unknown,up:boolean):void;
+ /** CPlane::m_fLandingGearStatus of a script's aircraft (0 down, 1 up; 0 for a vehicle that is not one). */
+ scriptPlaneGearStatus?(vehicle:unknown):number;
+ /** PLANE_STARTS_IN_AIR on a script's aircraft. */
+ scriptPlaneStartsInAir?(vehicle:unknown):void;
  /** m_pEntityIgnoredCollision: the object and the car pass through each other until they part; undefined while the
   * object's collision loads, false for a vehicle that is no automobile here. */
  sortOutScriptObjectCollisionWithCar?(object:number,car:unknown):boolean|undefined;
@@ -1044,6 +1050,11 @@ export class ScmMission {
     this.world.setScriptVehicleAutopilot(car,'cruiseSpeed',cruise);
     this.host('scriptVehicleWander','CAR_WANDER_RANDOMLY')(car,{cruise,style:fields.drivingStyle??0});
    },
+   // SET_PLANE_UNDERCARRIAGE_UP (iOS 0x10020029c), GET_PLANE_UNDERCARRIAGE_POSITION (0x100202050) and
+   // PLANE_STARTS_IN_AIR (0x1001f701c), all on the vehicle taken as a CPlane without a check of its type.
+   setPlaneUndercarriageUp:(handle,up)=>{this.host('setScriptPlaneGear','SET_PLANE_UNDERCARRIAGE_UP')(this.liveVehicle(handle),up);},
+   getPlaneUndercarriagePosition:handle=>this.host('scriptPlaneGearStatus','GET_PLANE_UNDERCARRIAGE_POSITION')(this.liveVehicle(handle)),
+   planeStartsInAir:handle=>{this.host('scriptPlaneStartsInAir','PLANE_STARTS_IN_AIR')(this.liveVehicle(handle));},
    // SET_CAR_CAN_GO_AGAINST_TRAFFIC: CAutoPilot's bCantGoAgainstTraffic, the inverse of the operand. Nothing reversed
    // reads the bit, so it is kept and does nothing more.
    setVehicleIsConsideredByPlayer:(handle,state)=>{this.host('setScriptVehicleConsideredByPlayer','SET_VEHICLE_IS_CONSIDERED_BY_PLAYER')(this.liveVehicle(handle),state);},

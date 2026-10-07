@@ -5465,6 +5465,9 @@ async function boot() {
                  // CTheScripts::bDrawCrossHair is one setting: the circle and the photo effect each clear the other.
                  setForceCrosshair:state=>{weapons.forceCrosshair=state;weapons.photoCameraEffect=false;},
                  setPhotoCameraEffect:on=>{weapons.photoCameraEffect=on;weapons.forceCrosshair=false;},
+                 setScriptPlaneGear:(vehicle,up)=>{if(vehicle instanceof WorldPlane)vehicle.setGear(up);},
+                 scriptPlaneGearStatus:vehicle=>vehicle instanceof WorldPlane?vehicle.gearStatus:0,
+                 scriptPlaneStartsInAir:vehicle=>{if(vehicle instanceof WorldPlane)vehicle.startsInAir();},
                  scriptVehicleIsDead:car=>{const v=car as {wrecked?:boolean;drowning?:boolean;disposed?:boolean};return v.disposed===true||v.wrecked===true||v.drowning===true;},
                  pedEnteringCar:ped=>ped===undefined?carEntry.active||bikeMount.active:onFoot(ped)?.order?.kind==='enterCar',
                  vehicleModelClass:model=>fleet?.vehicleClass(model),

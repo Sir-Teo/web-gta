@@ -11075,3 +11075,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   The port answered 0 for every ped but the player, though ADD_ARMOUR_TO_CHAR keeps a script ped's figure; it now reads
   that figure back. The census also listed the command as silent for the player: main.ts's `playerArmour` shared a
   line with `setPlayerArmour`, where the census's member scan does not look.
+- **A script plane's landing gear.** SET_PLANE_UNDERCARRIAGE_UP (iOS 0x10020029c) calls CPlane::SetGearUp or
+  SetGearDown (0x6CAC20 and 0x6CAC70, reversed; iOS 0x100469e58 and 0x100469e28): the gear is at once fully up (status
+  1, the drag × fGearUpR, the four wheels missing) or down, on any model, fixed gear included.
+  GET_PLANE_UNDERCARRIAGE_POSITION (0x100202050) reads m_fLandingGearStatus as it stands, so a gear in motion reads
+  between -1 and 1 as the port already keeps it. PLANE_STARTS_IN_AIR (0x1001f701c) is CPlane::IsAlreadyFlying (the
+  started-flying time 20 s back) and, for the Hydra, a level nozzle. Only the AI pilot reads that time (its gear
+  goes up once 4 s off the ground, 0x10019f490), and no AI plane flies in the port yet, so the time itself is not kept.
+  All three were skipped before.
