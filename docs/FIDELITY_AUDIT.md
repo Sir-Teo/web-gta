@@ -11239,3 +11239,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - TASK_SIT_DOWN runs for script peds (12 or more uses): CTaskComplexSitDownThenIdleThenStandUp(time), a tenth of a second
   standing, SEAT_down, SEAT_idle for the time at CTaskSimpleSitIdle's random 0.9 to 1.5 speed, SEAT_up, then over; a time
   of -1 is iOS's 20000 ms. CLEAR_CHAR_TASKS takes a seat or roll clip off with the task.
+- TASK_DRIVE_POINT_ROUTE and TASK_DRIVE_POINT_ROUTE_ADVANCED run, alone or in a sequence (12 uses):
+  CTaskComplexDrivePointRoute over the route EXTEND_ROUTE built, a CTaskComplexDriveToPoint to each point in turn with the
+  task's speed, mode and driving style, over once the last is reached (iOS pre-increments its point index; gta-reversed's
+  post-increment would drive on to a slot past the route). The plain form is the same task in mode 2 (straight line),
+  any model and driving style 0, iOS 0x1001f20b8; it used to be refused as a world command.

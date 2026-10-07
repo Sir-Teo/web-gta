@@ -1968,7 +1968,7 @@ const handlers:Record<string,ScmCommandHandler>={
  /* --- The last of the tasks. */
  TASK_DRIVE_POINT_ROUTE_ADVANCED:(t,p,i)=>{
   scriptedTask(t,i,t.readInt(p[0]),{kind:'drivePointRouteAdvanced',vehicle:t.readInt(p[1]),
-   speed:t.readFloat(p[2]),driveMode:t.readInt(p[3]),model:model(t,i,p[4]),drivingStyle:t.readInt(p[5])});
+   speed:t.readFloat(p[2]),driveMode:t.readInt(p[3]),model:model(t,i,p[4]),drivingStyle:t.readInt(p[5]),route:game(t,i).route.map(point=>({...point}))});
  },
  TASK_EVERYONE_LEAVE_CAR:(t,p,i)=>{
   // This one names a car rather than a ped: everyone in it leaves, so it is given to no ped in particular.
@@ -2613,7 +2613,11 @@ const handlers:Record<string,ScmCommandHandler>={
  ADD_EXPLOSION_NO_SOUND:(t,p,i)=>{world(t,i,'addExplosionNoSound')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readInt(p[3]));},
  SWITCH_ON_GROUND_SEARCHLIGHT:(t,p,i)=>{world(t,i,'switchOnGroundSearchlight')(t.readInt(p[0]),bool(t,p[1]));},
  TASK_JETPACK:(t,p,i)=>{world(t,i,'taskJetpack')(t.readInt(p[0]));},
- TASK_DRIVE_POINT_ROUTE:(t,p,i)=>{world(t,i,'taskDrivePointRoute')(t.readInt(p[0]),t.readInt(p[1]),t.readFloat(p[2]));},
+ // iOS 0x1001f20b8: the same CTaskComplexDrivePointRoute as the ADVANCED form, in mode 2 (straight line), any model and
+ // driving style 0 (stop for cars).
+ TASK_DRIVE_POINT_ROUTE:(t,p,i)=>{
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'drivePointRouteAdvanced',vehicle:t.readInt(p[1]),speed:t.readFloat(p[2]),driveMode:2,model:-1,drivingStyle:0,route:game(t,i).route.map(point=>({...point}))});
+ },
  IS_CAR_DOOR_DAMAGED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarDoorDamaged')(t.readInt(p[0]),t.readInt(p[1])),negated(i));},
  SET_VEHICLE_TO_FADE_IN:(t,p,i)=>{world(t,i,'setVehicleToFadeIn')(t.readInt(p[0]),t.readInt(p[1]));},
  ADD_ATTRACTOR:(t,p,i)=>{t.writeInt(p[6],world(t,i,'addAttractor')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readInt(p[5])));},

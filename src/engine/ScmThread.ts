@@ -107,7 +107,9 @@ export type ScmScriptedTask=
  |{kind:'cower'}
  |{kind:'jump';state:boolean}
  |{kind:'sitDown';time:number}
- |{kind:'drivePointRouteAdvanced';vehicle:number;speed:number;driveMode:number;model:number|string;drivingStyle:number}
+ /** CTaskComplexDrivePointRoute over the route EXTEND_ROUTE built, as it stood when the task was given; `from` is the
+  * point the runner has reached. */
+ |{kind:'drivePointRouteAdvanced';vehicle:number;speed:number;driveMode:number;model:number|string;drivingStyle:number;route:readonly {x:number;y:number;z:number}[];from?:number}
  |{kind:'everyoneLeaveCar';vehicle:number}
  |{kind:'smartFleePoint';x:number;y:number;z:number;radius:number;time:number}
  |{kind:'lookAtVehicle';vehicle:number;time:number}
@@ -936,7 +938,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  addExplosionNoSound?(x:number,y:number,z:number,type:number):void;
  switchOnGroundSearchlight?(handle:number,state:boolean):void;
  taskJetpack?(handle:number):void;
- taskDrivePointRoute?(char:number,vehicle:number,speed:number):void;
  isCarDoorDamaged?(handle:number,door:number):boolean;
  setVehicleToFadeIn?(handle:number,alpha:number):void;
  addAttractor?(x:number,y:number,z:number,angle:number,p5:number,sequence:number):number;

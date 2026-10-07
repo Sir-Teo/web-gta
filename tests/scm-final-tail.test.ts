@@ -98,6 +98,21 @@ describe('the last of the tail',()=>{
   expect(tasks).toEqual([{kind:'playAnim',animationName:'fucku',animationFile:'ped',blendSpeed:4,loop:false,lockX:false,lockY:false,keepLastFrame:false,time:-1,interruptable:true}]);
  });
 
+ test('both point-route drives take the route as it stands; the plain one drives straight, any model, stopping for cars (iOS)',()=>{
+  const tasks:ScmScriptedTask[]=[];
+  run({givePedScriptedTask:(_ped:number,task:ScmScriptedTask)=>{tasks.push(task);}},undefined,
+   instruction(op('EXTEND_ROUTE'),[float(1),float(2),float(3)]),
+   instruction(op('EXTEND_ROUTE'),[float(4),float(5),float(6)]),
+   instruction(op('TASK_DRIVE_POINT_ROUTE_ADVANCED'),[int(PED),int(CAR),float(20),int(1),int(0),int(2)]),
+   instruction(op('TASK_DRIVE_POINT_ROUTE'),[int(PED),int(CAR),float(10)]),
+   instruction(op('FLUSH_ROUTE'),[]));
+  const route=[{x:1,y:2,z:3},{x:4,y:5,z:6}];
+  expect(tasks).toEqual([
+   {kind:'drivePointRouteAdvanced',vehicle:CAR,speed:20,driveMode:1,model:0,drivingStyle:2,route},
+   {kind:'drivePointRouteAdvanced',vehicle:CAR,speed:10,driveMode:2,model:-1,drivingStyle:0,route},
+  ]);
+ });
+
  test('the last tasks carry their own operands',()=>{
   const tasks:ScmScriptedTask[]=[];
   run({givePedScriptedTask:(_ped:number,task:ScmScriptedTask)=>{tasks.push(task);}},undefined,

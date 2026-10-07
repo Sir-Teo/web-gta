@@ -892,13 +892,14 @@ const tiltDegrees=(axis:{x:number;y:number;z:number},upZ:number)=>{
  const degrees=Math.atan2(axis.z,Math.hypot(axis.x,axis.y))*180/Math.PI;
  return upZ>=0?degrees:(degrees>=0?180-degrees:-180-degrees);
 };
-const CAR_TASKS:ReadonlySet<ScmScriptedTask['kind']>=new Set(['carDriveToCoord','carTempAction','carDriveWander','carMission','leaveCar','leaveAnyCar','leaveCarImmediately']);
+const CAR_TASKS:ReadonlySet<ScmScriptedTask['kind']>=new Set(['carDriveToCoord','carTempAction','carDriveWander','carMission','drivePointRouteAdvanced','leaveCar','leaveAnyCar','leaveCarImmediately']);
 /** Orders that only set something and are over at once, with nothing for them to act on while the ped sits in a car. */
 const IN_SEAT_OVER_AT_ONCE:ReadonlySet<ScriptedPedOrder['kind']>=new Set(['lookAt','clearLookAt','lookAtPoint','threatScanner','decisionMaker','kindaStayInSamePlace','ignoreWeaponRange']);
 /** Where a runner's task stands: held by the ped, waited out in the seat, waiting for the ped to be rebuilt (then the
  * task to begin), or getting in at the wheel before the drive. */
 type RunnerStep=
- |{kind:'held'}
+ /** `route`: a point route's drive, and the point it goes to next once this one is reached. */
+ |{kind:'held';route?:{task:Extract<ScmScriptedTask,{kind:'drivePointRouteAdvanced'}>;next:number}}
  |{kind:'wait';remaining:number}
  |{kind:'settle';then?:ScmScriptedTask}
  |{kind:'board';vehicle:number;then:ScmScriptedTask}
@@ -2276,6 +2277,8 @@ export class ScmMission {
      const ride=this.peds.rideOf(handle),atWheel=!!ride&&!ride.offset&&ride.seat==='driver'&&'vehicle' in task&&(ride.vehicle===task.vehicle||task.vehicle===-1);
      // No car (-1) is the one the ped drives.
      if(atWheel&&'vehicle' in task&&task.vehicle===-1)task={...task,vehicle:ride.vehicle};
+     // A point route is a drive a point at a time, which the runner sees through.
+     if(task.kind==='drivePointRouteAdvanced'){this.runSequence(handle,[task],false,opcode,false);return;}
      if(atWheel){this.startCarTask(handle,task,opcode);this.recordTask(handle,opcode,false);this.drivingTasks.add(handle);}
      else this.runSequence(handle,[task],false,opcode,false);
      return;
@@ -3091,6 +3094,15 @@ export class ScmMission {
    }
    // A sequence's shuffle (SWEET4: Sweet's girl slides over to the wheel, then drives off) is over once she has moved.
    case 'shuffleToNextCarSeat':this.shuffleSeat(handle,task.vehicle);return undefined;
+   // CTaskComplexDrivePointRoute (iOS 0x1003d8aa0): CTaskComplexDriveToPoint to each point of the route in turn, over
+   // once the last is reached (gta-reversed's post-increment, which would drive on to the slot after it, is not iOS's).
+   case 'drivePointRouteAdvanced':{
+    const index=task.from??0,point=task.route[index];if(!point)return undefined;
+    const step=this.dispatch(handle,{kind:'carDriveToCoord',vehicle:task.vehicle,...point,speed:task.speed,driveStyle:task.driveMode,model:task.model,drivingStyle:task.drivingStyle},opcode);
+    if(step?.kind==='held')return {kind:'held',route:{task,next:index+1}};
+    if(step?.kind==='board')return {...step,then:{...task,from:index}};
+    return step;
+   }
    case 'carDriveToCoord':case 'carTempAction':case 'carDriveWander':case 'carMission':{
     // CTaskComplexCarDrive::CreateFirstSubTask with no car (-1): the one the ped is in. On foot it would enter any
     // car as driver, which is not ported, so the task is over.
@@ -3147,7 +3159,12 @@ export class ScmMission {
       }else if(entity!==undefined&&!ride&&!this.world.scriptPedHasOrder?.(entity))this.advanceRunner(handle);
       break;
      }
-     case 'held':if(entity!==undefined&&this.world.scriptPedHasOrder&&!this.world.scriptPedHasOrder(entity))this.advanceRunner(handle);break;
+     case 'held':
+      if(entity!==undefined&&this.world.scriptPedHasOrder&&!this.world.scriptPedHasOrder(entity)){
+       const route=step.route,next=route&&route.next<route.task.route.length?this.dispatch(handle,{...route.task,from:route.next},r.opcode):undefined;
+       if(next)r.step=next;else this.advanceRunner(handle);
+      }
+      break;
     }
    }catch(error){
     if(!(error instanceof UnsupportedScmCommand))throw error;
