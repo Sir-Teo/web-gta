@@ -20,6 +20,7 @@ import {bikeLeanDrop,bikeRiderLean,quadRiderLean} from './nativeBikeLean';
 import {nativePedals} from './nativePedals';
 import {stepNativeTransmission} from './nativeTransmission';
 import {controlsOffSpeedScale,rawSteerTowards,steerFraction} from './nativeQuadSteer';
+import {bikePedals,bikeSteerFraction} from './nativeBikeControls';
 import {knockOffForce,knocksOffRider} from './nativeBikeKnockOff';
 import {browserLocalDirection} from '../combat/nativeDamageAnim';
 import {vehicleSolverGroups} from './solverGroups';
@@ -288,19 +289,18 @@ export class WorldBike {
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   // The ride clip's clock: the pedal cycle turns while the rider pedals and holds while he coasts.
   if(Math.abs(input.throttle)>.05)this.rideTime+=dt;
-  // CAutomobile::ProcessControlInputs for the quad: the raw steer follows the pad a fifth of the way a frame, and the
-  // steer angle is the lock times its square.
-  // CAutomobile::ProcessControlInputs for the quad, and CBike::ProcessControlInputs (0x6BE310, unreversed; its VC
-  // ancestor steers the same way) for every other bike: the raw steer follows the pad a fifth of the way a frame and
-  // the steer angle is the lock times its square. A key press is not full lock at once: taken raw, each tap threw the
-  // bike into its full turn and its full 48 degree lean, and it would not ride straight.
-  this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=steerFraction(this.rawSteer);
+  // The raw steer follows the pad a fifth of the way a frame: CAutomobile::ProcessControlInputs for the quad, whose
+  // steer angle is the lock times its square, and CBike::ProcessControlInputs (iOS 0x100456178) for every other bike,
+  // whose angle is the lock times the raw steer itself. A key press is not full lock at once: taken raw, each tap threw
+  // the bike into its full turn and its full 48 degree lean, and it would not ride straight.
+  this.rawSteer=rawSteerTowards(this.rawSteer,input.steer,dt);this.steer=this.quad?steerFraction(this.rawSteer):bikeSteerFraction(this.rawSteer);
   if(this.wrecked){this.throttle=0;}
   this.bunnyHop(dt,!!input.hop,input.disabled);
   if(this.onFire){this.burnTimer+=dt;if(this.burnTimer>5)this.blowUp();}else this.burnTimer=0;
   const h=this.assets.handling.values,q=this.body.rotation(),v=this.body.linvel();
-  // CAutomobile::ProcessControl: the player's quad with the controls disabled is held to 0.28 units a frame.
-  if(this.quad&&input.disabled){const f=controlsOffSpeedScale(Math.hypot(v.x,v.y,v.z));if(f<1){v.x*=f;v.y*=f;v.z*=f;}}
+  // CAutomobile::ProcessControl for the quad and CBike::ProcessControlInputs for the rest: the player's bike with the
+  // controls disabled is held to 0.28 units a frame.
+  if(input.disabled){const f=controlsOffSpeedScale(Math.hypot(v.x,v.y,v.z));if(f<1){v.x*=f;v.y*=f;v.z*=f;}}
   const forward=rotate(q,{x:0,y:0,z:-1}),speed=v.x*forward.x+v.y*forward.y+v.z*forward.z;
   // Prepared native per-step magnitudes become browser per-second rates at 50 Hz (×50 units × 50 steps).
   const top=this.assets.handling.maxFlatVelocity*50,reverse=this.assets.handling.maxReverseVelocity*50;
@@ -312,6 +312,11 @@ export class WorldBike {
    const pedals=nativePedals({accelerate:Math.round(Math.max(0,Math.min(1,this.throttle))*255),brake:Math.round(Math.max(0,Math.min(1,-this.throttle))*255),forwardSpeed:speed/50,previousGas:this.gasPedal,
     automaticallyHandbrake:!!input.disabled,handbrake:this.brake,engineOn:true,drowning:false,driveByAim:false,rightShoulder:0,leftShoulder:0,unloadModel:false,forwardAllowed:true,reverseAllowed:true});
    this.gasPedal=gas=pedals.gas;braking=Math.max(pedals.brake,pedals.handbrake?1:0);
+  }else{
+   // CBike::ProcessControlInputs's pedals: the reverse button brakes a bike rolling forward (and the throttle one
+   // rolling back), and reverses it only from all but a standstill; the handbrake is the brake button.
+   const pedals=bikePedals({accelerate:Math.round(Math.max(0,Math.min(1,this.throttle))*255),brake:Math.round(Math.max(0,Math.min(1,-this.throttle))*255),forwardSpeed:speed/50,bmx:!this.motorbike,controlsDisabled:!!input.disabled});
+   gas=pedals.gas;braking=Math.max(pedals.brake,this.brake||pedals.handbrake?1:0);
   }
   if(gas>.05)want=Math.min(top,speed+accelRate*dt*gas);
   else if(gas<-.05)want=Math.max(reverse,speed+accelRate*dt*gas);

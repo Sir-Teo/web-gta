@@ -6491,6 +6491,16 @@ CAutomobile::ProcessControl gives an abandoned or wrecked car "fake physics" (m_
   - **Launch delay:** on release the hop clip jumps to (0.2 − t)/0.2 × (T − 0.2) + 0.2 and plays at 1.5, so the launch comes (T − 0.2) × charge/25 / 1.5 after release: a tap hops at once, a full charge about 0.09 s later with the published 1/3 s clips. The port waited a flat 0.3 s.
   - **Disabled controls:** a press is refused and the charge dropped.
 - **Disabled controls:** a bike's gas is cut and its brakes held, as CAutomobile::ProcessControlInputs does for the quad.
+- **Bike inputs (CBike::ProcessControlInputs, iOS 0x100456178; unreversed in the reference):** `nativeBikeControls.ts`.
+  - The raw steer follows the stick a fifth of the way a step, as a car's does, but the wheel's angle is the steering
+    lock times the raw steer itself. The port had taken CAutomobile's square, so half a stick gave a quarter lock.
+  - The pedals are unsmoothed. Rolling forward, the reverse button brakes the bike (it had pulled it back at the
+    engine's rate). Rolling back, the throttle brakes it. Only below 0.01 a step does it reverse. Both held past 150
+    from a standstill is a burnout, never on a BMX.
+  - With the player's controls off, every bike (not only the quad) brakes, holds the handbrake and is held to 0.28 a
+    step.
+  - Not yet, being parts of the unported CBike::ProcessControl: the up/down stick's lean forward and back (wheelies and
+    stoppies), the fall when the nose drops 0.36 below the stoppie angle, and the knock-off on drowning.
 - **Not ported:**
   - **Pedalling:** sprint-tap pedalling (CPlayerPed::ControlButtonSprint is unreversed) and the pedal sway lean.
   - **Quad control:** the quad's forward lean and airborne roll control (CQuadBike::ProcessControlInputs and ProcessAI's lean forces, reversed but tied to the unported quad chassis), and its handlebar and axle animation.
