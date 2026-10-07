@@ -622,7 +622,10 @@ helicopter's collective is cut to 10 / (h + 10).
   the wheels and the drag changing as it reaches either end and fGearDownL lifting while it is not fully up; within
   30 units of the ground with no throttle it comes down by itself, above 30 it goes up by itself, and G (the gear
   widget) sends it the other way. It had switched at once on G alone.
-- Not yet: damaged control surfaces, wind, and the AI pilots' steering.
+- Wind: FlyingControl takes every aero term on the speed through the air, the move speed less CWeather::WindDir ×
+  fWindMult (none for a mission's aircraft), and a helicopter levels toward the vertical leaned into the wind; the
+  browser's WindDir is the weather's (WindClipped × 0.7 north-east, the gust tables not being available).
+- Not yet: damaged control surfaces and the AI pilots' steering.
 - `planes.spec` holds the throttle through the climb (the old throttle latched) and measures once the plane is a few
   units up: flown hands-off after a pull it rises and sinks, and can fly into the ground.
 

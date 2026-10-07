@@ -366,8 +366,9 @@ export class WorldPlane {
    // Over 3000 the player's Hydra hovers: FlyingControl's heli model on the Hunter's flying handling, the roll
    // reversed and a quarter of the throttle, while climbing or off its wheels.
    if(hydra&&this.occupied&&this.nozzle>=HYDRA_VTOL_NOZZLE&&this.assets.vtolFlyingHandling){
-    if(accel>0||!this.grounded&&!this.inWater)heliFlyingControl(body,this.assets.vtolFlyingHandling.values,{yaw:rudder,pitch,roll:-roll,accel:accel*.25},HELI_FLIGHT_MODEL.heli,ts,{liftAxis:axis});
-   }else{const r=planeFlyingControl(body,f,{rudder,pitch,roll,accel},model,ts,{vortex:this.modelId===539,thrustAxis:axis});this.stall=r.stallMs>0;}
+    const hunter=this.assets.vtolFlyingHandling.values;
+    if(accel>0||!this.grounded&&!this.inWater)heliFlyingControl(body,hunter,{yaw:rudder,pitch,roll:-roll,accel:accel*.25},HELI_FLIGHT_MODEL.heli,ts,{liftAxis:axis,wind:this.flightWind(hunter.windMultiplier)});
+   }else{const r=planeFlyingControl(body,f,{rudder,pitch,roll,accel},model,ts,{vortex:this.modelId===539,thrustAxis:axis,wind:this.flightWind(f.windMultiplier)});this.stall=r.stallMs>0;}
   }
   if(this.grounded){
    // The browser's wheels: side grip, the brakes and the nose wheel's turn (rad/s at the browser's metres).
@@ -412,7 +413,7 @@ export class WorldPlane {
   applyGravityAndAirResistance(body,h.dragMultiplier/2000,ts);
   const m=body.moveSpeed,floating=this.inWater&&(this.modelId===447||this.modelId===417);
   if(this.rotorSpeed>HELI_ROTOR_FLY&&(this.rcHeli||accel>0||!this.grounded&&!floating||Math.abs(m[0])>.02||Math.abs(m[1])>.02||Math.abs(m[2])>.02))
-   heliFlyingControl(body,f,{yaw,pitch,roll,accel},this.rcHeli?HELI_FLIGHT_MODEL.rc:HELI_FLIGHT_MODEL.heli,ts);
+   heliFlyingControl(body,f,{yaw,pitch,roll,accel},this.rcHeli?HELI_FLIGHT_MODEL.rc:HELI_FLIGHT_MODEL.heli,ts,{wind:this.flightWind(f.windMultiplier)});
   this.stall=false;
   this.writeFlyingBody(body);
  }
@@ -500,6 +501,10 @@ export class WorldPlane {
  readonly car:{body:RAPIER.RigidBody};disposed=false;
  /** A script's vehicle (CVehicle's MISSION_VEHICLE creation): the population never removes it; the script lets it go. */
  missionCar=false;
+ /** CWeather::WindDir (native axes), which FlyingControl blows aircraft with. */
+ static windDir?:()=>{x:number;y:number;z:number};
+ /** FlyingControl's −CWeather::WindDir × fWindMult, none for a mission vehicle. */
+ private flightWind(windMult:number):NV{const w=this.missionCar?undefined:WorldPlane.windDir?.();return w?[-w.x*windMult,-w.y*windMult,-w.z*windMult]:[0,0,0];}
  /** CVehicle::bConsideredByPlayer, which SET_VEHICLE_IS_CONSIDERED_BY_PLAYER clears: the player's enter search passes it over. */
  consideredByPlayer=true;
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}

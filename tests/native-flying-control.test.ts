@@ -89,3 +89,11 @@ test('the Hydra nozzle turns its thrust from forward (0) to straight up (5000)',
  const half=hydraThrustAxis(b,2500);expect(half[1]).toBeCloseTo(Math.SQRT1_2,6);expect(half[2]).toBeCloseTo(Math.SQRT1_2,6);
  const up=hydraThrustAxis(b,5000);expect(up[1]).toBeCloseTo(0,6);expect(up[2]).toBeCloseTo(1,6);
 });
+
+test('wind: the air speed is the move speed less WindDir × fWindMult, so a still aircraft drifts downwind',()=>{
+ // CWeather::WindDir blowing east at 0.5 a step, fWindMult 0.2: FlyingControl's wind is (−0.1, 0, 0).
+ const plane=body();planeFlyingControl(plane,{...rustler,thrust:0,formLift:0,attackLift:0},still,3,1,{wind:[-.1,0,0]});
+ expect(plane.moveSpeed[0]).toBeCloseTo(rustler.sideSlip*.01,6);
+ const heli=body();heliFlyingControl(heli,{...sparrow,moveResistance:1},{yaw:0,pitch:0,roll:0,accel:0},6,1,{wind:[-.1,0,0]});
+ expect(heli.moveSpeed[0]).toBeCloseTo(sparrow.sideSlip*.01,6);
+});

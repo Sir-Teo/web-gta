@@ -106,7 +106,7 @@ import {playerBodyRatios,type PlayerBodyRatios} from './assets/blendPlayerBody';
 import {vehicleLightsStatus} from './simulation/nativeVehicleLights';
 /** aDriveAnimIdsBoat: the standing boat driver's idle, steering and look back. */
 const BOAT_RIDE={idle:'DRIVE_BOAT',left:'DRIVE_BOAT_L',right:'DRIVE_BOAT_R',back:'DRIVE_BOAT_back'};
-import {advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
+import {WorldPlane,advancePlaneEntry,planeEntrySlots} from './simulation/WorldPlane';
 import {WorldPolice,DEFAULT_COP_MODEL,DEFAULT_COP_CAR} from './simulation/WorldPolice';
 import {waitingCopSpot,waitingCoppers} from './police/waitingCoppers';
 import {scalePedLimits,scalePedTargets} from './assets/populationCycle';
@@ -4927,6 +4927,8 @@ async function boot() {
             // CAutomobile::VehicleDamage's crash shake on the player's pad.
             WorldCar.onPlayerCarShake=(time,frequency,delayMs)=>{mission?.runtime.game.pads.startShake(0,time,frequency,delayMs,gameTimeMs);};
             WorldCar.onRoadShake=(suspension,roughness,speed,mass,timeStep)=>{const shake=roadShake({suspension,roughness,speed,mass,timeStep,timeMs:gameTimeMs});if(shake)mission?.runtime.game.pads.startShake(0,shake.time,shake.frequency,0,gameTimeMs);};
+            // FlyingControl's wind: CWeather::WindDir once the weather runs.
+            WorldPlane.windDir=()=>weatherStarted?weather.windDir:{x:0,y:0,z:0};
             worldCar=new WorldCar(sim,render.scene,assets,{x,y:80-hit.timeOfImpact+1,z},road);worldCar.driverless=true;
             worldCar.waterLevel=(x,y,z,touching,normal)=>render.lighting.water.levels?.level(x,y,z,touching,normal);
             fleet=new WorldFleet(sim,render.scene,road,worldCar,new URL(`${import.meta.env.BASE_URL}play/world/`,location.href).href);fleet.waterLevel=(x,y,z,touching,normal)=>render.lighting.water.levels?.level(x,y,z,touching,normal);fleet.outside=()=>render.lighting.area===0;fleet.sphereVisible=(x,y,z)=>new Frustum().setFromProjectionMatrix(new Matrix4().multiplyMatrices(render.camera.projectionMatrix,render.camera.matrixWorldInverse)).containsPoint(new Vector3(x,y,z));fleet.setGenerators(worldGenerators);if(worldZones)fleet.setZones(worldZones);fleet.onImpound=car=>impoundCar?.(car);
