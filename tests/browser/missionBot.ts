@@ -322,7 +322,8 @@ export function missionBotTick(dtSeconds:number){
   // A war's attack wave is hunted wherever it got to: one stuck far off keeps the wave from being overcome.
   const rival=((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.health>0&&p.gang!==undefined&&p.gang!==1&&!p.follow)
    .map((p:any)=>{const q=p.actor.player.position;return {x:q.x,y:-q.z,z:q.y+1,id:p.id,hp:p.health,gang:p.gang,wave:!!p.attackWave};}).sort((a:any,b:any)=>distance(a)-distance(b))[0];
-  if(rival&&(distance(rival)<80||rival.wave)){
+  // A player walks off to find one (the street's Ballas thin out once he has shot a few).
+  if(rival&&(distance(rival)<250||rival.wave)){
    // With the M4 a player fires from thirty units when nothing stands between; else he closes in.
    // A blocked shot (a fence, a car between) is closed right up to.
    const open=clearShot(me,rival);
@@ -408,7 +409,8 @@ export function missionBotTick(dtSeconds:number){
    if(door&&distance(door)<8){if(glide({x:door.x,y:door.y,z:door.z-1},0))return {action:'go to door near place'};return {action:'at door near place'};}
   }
   const gw=g.gangWars?.();
-  return {action:marker?'in marker':'at place',...(gw&&gw.state?{war:`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`,wave:((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.attackWave&&p.health>0).map((p:any)=>Math.round(Math.hypot(p.actor.player.position.x-me.x,-p.actor.player.position.z-me.y))).join('/')}:{})};
+  const crowdNow=((g.pedestrians?.() as any)?.people??[]) as any[];
+  return {action:marker?'in marker':'at place',peds:`${crowdNow.length}/${crowdNow.filter(p=>p.health>0&&p.gang===0).length}`,...(gw&&gw.state?{war:`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`,wave:((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.attackWave&&p.health>0).map((p:any)=>Math.round(Math.hypot(p.actor.player.position.x-me.x,-p.actor.player.position.z-me.y))).join('/')}:{})};
  }
  if(chases.length){
   const c=nearest(chases);
