@@ -14,10 +14,10 @@ export function heliHeading(rotation:{x:number;y:number;z:number;w:number}){
  const {x,y,z,w}=rotation;
  return Math.atan2(2*(w*y+x*z),1-2*(x*x+y*y));
 }
-/** Rotor pursuit controller for the hover flight adapter: collective holds the
- * hover height while pitch/roll tilt toward a closing orbit point and the
- * rudder faces the suspect (CHeli pursuit/search with collective/cyclic
- * rotor states; see docs/research/NATIVE_POLICE.md). */
+/** Rotor pursuit controller (authored: the AI's SteerAIHeli steering is not decoded), writing CHeli's fields for
+ * FlyingControl: the collective (m_fAccelerationBreakStatus, −1 to 1) holds the hover height from the 0.08 that keeps
+ * a POLMAV level (0.45 + 0.08 × fThrust 0.6 against the half g FlyingControl leaves), pitch and roll tilt toward a
+ * closing orbit point, and the rudder faces the suspect. */
 export function policeHeliInputs(o:{position:V3;velocity:V3;heading:number},target:V3):PlaneControls{
  const dx=target.x-o.position.x,dz=target.z-o.position.z,dist=Math.hypot(dx,dz);
  const close=Math.min(12,dist*0.4),des=dist>1?{x:dx/dist*close,z:dz/dist*close}:{x:0,z:0};
@@ -27,7 +27,7 @@ export function policeHeliInputs(o:{position:V3;velocity:V3;heading:number},targ
  const pitch=clamp(-(ax*forward.x+az*forward.z)*0.12,-1,1);
  const roll=clamp((ax*right.x+az*right.z)*0.12,-1,1);
  const climb=clamp((target.y-o.position.y)*0.15-o.velocity.y*0.25,-1,1);
- const throttle=clamp(0.47+climb*0.3,0,1);
+ const throttle=clamp(0.08+climb,-1,1);
  const rudder=clamp(-angleDelta(o.heading,Math.atan2(-dx,-dz))*1.5,-1,1);
  return {throttle,pitch,roll,rudder,brake:false};
 }

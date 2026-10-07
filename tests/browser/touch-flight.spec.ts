@@ -20,7 +20,9 @@ test('a phone flies the Maverick: Thrust climbs, the stick pitches and rolls it'
  const press=async(selector:string,id:number,type='pointerdown')=>{const b=(await page.locator(selector).boundingBox())!;await finger(selector,type,b.x+b.width/2,b.y+b.height/2,id);};
  // Thrust lifts it off.
  const start=(await state()).aircraft.position.y;
- await press('.touch-button.gas:not([hidden])',11);await page.waitForTimeout(4000);await press('.touch-button.gas:not([hidden])',11,'pointerup');
+ // The rotor spins up first (0.001 a frame to the 0.15 it flies at, CHeli::ProcessFlyingCarStuff).
+ await press('.touch-button.gas:not([hidden])',11);await expect.poll(async()=>(await state()).aircraft.rotorSpeed,{timeout:20000}).toBeGreaterThan(.15);
+ await page.waitForTimeout(4000);await press('.touch-button.gas:not([hidden])',11,'pointerup');
  await expect.poll(async()=>(await state()).aircraft.position.y,{timeout:10000}).toBeGreaterThan(start+3);
  // The stick tilts it: to the side it banks, and forward it pitches the way the ↑ key (nose down) does.
  const zone=(await page.locator('.touch-stick-zone').boundingBox())!,x=zone.x+zone.width/2,y=zone.y+zone.height/2;

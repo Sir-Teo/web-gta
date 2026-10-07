@@ -145,3 +145,61 @@ export function stepPropSpeed(prop:number,accel:number,ts:number){
  const target=.18+(accel>0?accel*(.34-.18):accel<0?accel*(.18-.05):0);
  return prop+(target-prop)*.01*ts;
 }
+
+/** CVehicle::FlyingControl's flight models for rotorcraft: the RC helicopters and every other helicopter. */
+export const HELI_FLIGHT_MODEL={rc:2,heli:6} as const;
+/** FlyingControl's heli arguments: yaw (m_fLeftRightSkid, positive to the right), pitch (m_fSteeringUpDown, positive
+ * nose up), roll (m_fSteeringLeftRight, negative rolling right: CHeli passes −stick) and the collective
+ * (m_fAccelerationBreakStatus, (gas − brake) / 255). */
+export interface HeliInputs {yaw:number;pitch:number;roll:number;accel:number}
+/** FlyingControl's heli branch (iOS 0x10047a1d4, 0x10047a630 .. 0x10047b450) and the common tail:
+ * - the move speed loses (1 − fMoveRes) a step; the air speed (`vel`, with the wind) is taken before that;
+ * - lift along the rotor's up: 0.008 × (accel × fThrust + 0.45 − fThrustFallOff × the climb speed, doubled when
+ *   climbing), with a half-g push less the vertical speed; over the ceiling × 10 / (h + 10). The rotor speed does
+ *   not scale it;
+ * - self-levelling toward the (wind-tilted) vertical by fAttackLift, its lean clamped to fFormLift;
+ * - pitch and roll inputs by fPitch and fRoll, quadratic side slip, the yaw input twice by fYaw with fYawStab
+ *   turning the nose into a slip. */
+export function heliFlyingControl(body:FlyingBody,flight:FlyingHandling['values'],input:HeliInputs,model:number,ts:number,o:{wind?:NativeVec;liftAxis?:NativeVec}={}){
+ const F=body.forward,R=body.right,U=body.up,wind=o.wind??[0,0,0];
+ const turn=(D:NativeVec,X:NativeVec,c:number)=>{body.turnSpeed=add(body.turnSpeed,cross(X,D),c);};
+ const vel=add(body.moveSpeed,wind);
+ body.moveSpeed=scale(body.moveSpeed,Math.pow(flight.moveResistance,ts));
+ const lift=o.liftAxis??U;
+ let up=dot(vel,lift);if(up>0)up*=2;
+ let thrust=input.accel*flight.thrust+.45-flight.thrustFallOff*up;
+ body.moveSpeed[2]+=(.5-body.moveSpeed[2])*.008*ts;
+ const h=heightAboveCeiling(body.position[2],model);if(h>0)thrust*=10/(h+10);
+ body.moveSpeed=add(body.moveSpeed,lift,.008*thrust*ts);
+ if(U[2]>0){
+  // −wind × fWindMult is the air's motion; the vertical the rotor levels toward leans with the wind itself.
+  const w=add([0,0,1],wind,-1),l=length(w),v:NativeVec=[w[0]/l,w[1]/l,w[2]/l];
+  const r=Math.max(-flight.formLift,Math.min(flight.formLift,dot(R,v)));turn(U,R,-r*flight.attackLift*ts);
+  const p=Math.max(-flight.formLift,Math.min(flight.formLift,dot(F,v)));turn(U,F,-p*flight.attackLift*ts);
+ }else{
+  turn(U,R,(R[2]<0?flight.formLift:-flight.formLift)*flight.attackLift*ts);
+  turn(U,F,(F[2]<0?flight.formLift:-flight.formLift)*flight.attackLift*ts);
+ }
+ turn(U,F,input.pitch*flight.pitch*ts);
+ turn(U,R,input.roll*flight.roll*ts);
+ const side=dot(vel,R);
+ body.moveSpeed=add(body.moveSpeed,R,-flight.sideSlip*side*Math.abs(side)*ts);
+ turn(R,scale(F,-1),(input.yaw*flight.yaw-flight.yawStabilization*side*Math.abs(side))*ts);
+ turn(F,R,input.yaw*flight.yaw*ts);
+ flyingControlTail(body,flight,model,ts);
+}
+/** CHeli::ProcessControlInputs' hover button (iOS): no yaw, and the pitch and roll that brake the drift, by fPitchStab
+ * and fRollStab, within ±2, while the heli is upright. */
+export function heliHoverInputs(body:FlyingBody,flight:FlyingHandling['values']){
+ const norm=(v:NativeVec)=>{const l=length(v);return l>0?scale(v,1/l):v;};
+ const hF=norm(cross([0,0,1],body.right)),hR=norm(cross(body.forward,[0,0,1]));
+ return {yaw:0,pitch:Math.max(-2,Math.min(2,dot(body.moveSpeed,hF)*flight.pitchStabilization)),roll:Math.max(-2,Math.min(2,dot(body.moveSpeed,hR)*flight.rollStabilization))};
+}
+/** CHeli::ProcessFlyingCarStuff's rotor (m_fHeliRotorSpeed): up 0.001 a frame (0.003 for the RC helicopters), not
+ * scaled by the time step, to 0.22, while the engine runs and it is not under water; down 0.00055 a step otherwise.
+ * The heli flies only with it over 0.15. `frames` is how many 30 fps frames passed. */
+export const HELI_ROTOR_FULL=.22,HELI_ROTOR_FLY=.15;
+export function stepHeliRotor(rotor:number,running:boolean,rc:boolean,frames:number,ts:number){
+ if(running)return Math.min(HELI_ROTOR_FULL,rotor+(rc?.003:.001)*frames);
+ return rotor>.00055*ts?rotor-.00055*ts:0;
+}

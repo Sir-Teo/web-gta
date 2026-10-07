@@ -1,7 +1,6 @@
 import { expect, test } from 'vitest';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { Quaternion, Vector3 } from 'three';
-import { hoverFlight } from '../src/simulation/hoverFlight';
+import { applyGravityAndAirResistance, heliFlyingControl, type FlyingBody } from '../src/simulation/nativeFlyingControl';
 import { WorldPolice } from '../src/simulation/WorldPolice';
 import { heliHeading, heliOrbitPoint, helisRequired, policeHeliInputs, rappelWindow, HELI_HOVER_HEIGHT, HELI_ORBIT_RADIUS } from '../src/simulation/policeHeli';
 
@@ -45,24 +44,33 @@ test('a low five-star airframe grounds a two-officer stick', async () => {
   expect(sticks).toHaveLength(2);
   expect(orbiter.autopilot?.brake).toBe(false);
 });
-test('the pursuit controller closes to a stable hover', () => {
-  const pos = new Vector3(0, 40, 0), vel = new Vector3(), quat = new Quaternion();
-  const suspect = new Vector3(60, 10, -40);
-  const dt = 1 / 60;
-  for (let i = 0; i < 60 * 25; i++) {
-    const target = heliOrbitPoint({ x: suspect.x, y: suspect.y, z: suspect.z }, i * dt);
-    const inputs = policeHeliInputs({ position: { x: pos.x, y: pos.y, z: pos.z }, velocity: { x: vel.x, y: vel.y, z: vel.z }, heading: heliHeading(quat) }, target);
-    const result = hoverFlight({ x: vel.x, y: vel.y, z: vel.z }, { x: quat.x, y: quat.y, z: quat.z, w: quat.w }, inputs);
-    vel.addScaledVector(result.acceleration, dt);
-    pos.addScaledVector(vel, dt);
-    const spin = new Quaternion(result.angular.x * dt / 2, result.angular.y * dt / 2, result.angular.z * dt / 2, 1).normalize();
-    quat.copy(spin.multiply(quat).normalize());
-    expect(Number.isFinite(pos.x + pos.y + pos.z)).toBe(true);
+// POLMAV's flying handling line.
+const POLMAV = { thrust: .6, thrustFallOff: .75, yaw: -.0005, yawStabilization: .005, sideSlip: .03, roll: .001, rollStabilization: 1.5, pitch: .001, pitchStabilization: 1.5,
+  formLift: .6, attackLift: .002, gearUpResistance: .2, gearDownLift: 1, windMultiplier: .2, moveResistance: .9985, turnResistanceX: .992, turnResistanceY: .992, turnResistanceZ: .996,
+  speedResistanceX: .5, speedResistanceY: .5, speedResistanceZ: 10 };
+test('the pursuit controller flies a POLMAV on FlyingControl to a stable hover over the suspect', () => {
+  // Native axes and units: the heli's basis, position, and move and turn speeds a 50 Hz step.
+  type N = [number, number, number];
+  const cross = (a: N, b: N): N => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const norm = (a: N): N => { const l = Math.hypot(...a); return [a[0] / l, a[1] / l, a[2] / l]; };
+  let R: N = [1, 0, 0], F: N = [0, 1, 0], U: N = [0, 0, 1], pos: N = [0, 0, 40], move: N = [0, 0, 0], spin: N = [0, 0, 0];
+  const suspect = { x: 60, y: 10, z: -40 }, dt = 1 / 60, ts = dt * 50;
+  for (let i = 0; i < 60 * 30; i++) {
+    const target = heliOrbitPoint(suspect, i * dt);
+    const inputs = policeHeliInputs({ position: { x: pos[0], y: pos[2], z: -pos[1] }, velocity: { x: move[0] * 50, y: move[2] * 50, z: -move[1] * 50 }, heading: Math.atan2(-F[0], F[1]) }, target);
+    const body: FlyingBody = { moveSpeed: move, turnSpeed: spin, position: pos, right: R, forward: F, up: U, comWorld: [0, 0, 0], tailY: -6, allWheelsInAir: true, gearStatus: 0 };
+    applyGravityAndAirResistance(body, .2 / 2000, ts);
+    heliFlyingControl(body, POLMAV, { yaw: inputs.rudder, pitch: inputs.pitch, roll: -inputs.roll, accel: inputs.throttle }, 6, ts);
+    move = body.moveSpeed; spin = body.turnSpeed;
+    pos = [pos[0] + move[0] * ts, pos[1] + move[1] * ts, pos[2] + move[2] * ts];
+    const turn = (a: N): N => { const d = cross(spin, a); return [a[0] + d[0] * ts, a[1] + d[1] * ts, a[2] + d[2] * ts]; };
+    F = norm(turn(F)); U = norm(cross(norm(turn(R)), F)); R = norm(cross(F, U));
+    expect(Number.isFinite(pos[0] + pos[1] + pos[2])).toBe(true);
   }
-  const flat = Math.hypot(pos.x - suspect.x, pos.z - suspect.z);
-  expect(flat).toBeLessThan(HELI_ORBIT_RADIUS + 12);
-  expect(Math.abs(pos.y - (suspect.y + HELI_HOVER_HEIGHT))).toBeLessThan(6);
-  expect(vel.length()).toBeLessThan(6);
+  // In the browser's axes the suspect is at (60, 10, −40): native (60, 40, 10).
+  expect(Math.hypot(pos[0] - 60, pos[1] - 40)).toBeLessThan(HELI_ORBIT_RADIUS + 12);
+  expect(Math.abs(pos[2] - (10 + HELI_HOVER_HEIGHT))).toBeLessThan(6);
+  expect(Math.hypot(...move) * 50).toBeLessThan(6);
 });
 test('a police helicopter freed by a vehicle clear-out is never read again', async () => {
   await RAPIER.init();

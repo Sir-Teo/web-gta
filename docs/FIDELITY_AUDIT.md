@@ -14,7 +14,7 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 | System | Current evidence / difference | Required acceptance evidence |
 | --- | --- | --- |
 | Script runtime and campaign | `ScmRuntime` executes numeric/control-flow families, ordinary and mission scheduling, mission loading, native no-ops and a first set of game-state commands, separately from gameplay. With a recording world adapter, packaged MAIN reaches mission INITIAL, which stops at CREATE_LOCKED_PROPERTY_PICKUP (mission offset 868); message queues, help text, intro text lines, switch tables, streaming requests and the radar blip table are ported, and 1,190 of 1,455 distinct MAIN.SCM commands remain unsupported. Authored mission objectives are not original campaign execution. | Original threads, variables, native commands, cleanup, cutscenes, success/failure/retry and saved script state execute correctly across the campaign and side content. |
-| Physics and vehicles | Rapier contacts are approximate; fixed-wing flight follows the iOS FlyingControl (`nativeFlyingControl.ts`), helicopters and the Hydra's hover still authored equations (`hoverFlight.ts`). Bike lean and boat integration retain authored behavior. | Original dynamics/task semantics and repeated multi-class acceleration, braking, cornering, impact, flight and water trials. |
+| Physics and vehicles | Rapier contacts are approximate; planes and helicopters fly the iOS FlyingControl (`nativeFlyingControl.ts`), the Hydra's hover still authored equations (`hoverFlight.ts`). Bike lean and boat integration retain authored behavior. | Original dynamics/task semantics and repeated multi-class acceleration, braking, cornering, impact, flight and water trials. |
 | Player, camera and animation | Movement/animation pieces are implemented; native constants do not prove complete transition or collision equivalence. | Matched input/pose/contact/camera traces, including occlusion, interiors and vehicle transitions. |
 | Population and police | Authored recovery, spawn decisions, clamps and roadblock placement remain. | Original task/event scheduling, population selection, pursuit and mission-exception behavior. |
 | Combat | Native assets/data and selected algorithms coexist with browser task integration. | Damage, targeting, animation events, projectiles, AI decisions and all equipment compared against PC 1.0. |
@@ -563,10 +563,31 @@ traffic step 0.1 ms a frame, render time unchanged.
 
 A Rustler climbed to 4.5 km in a flight probe; the original stops aircraft at a ceiling. `CVehicle::HeightAboveCeiling`
 (0x6D2600, reversed in gta-reversed ead3051) gives 800 m for planes and helicopters and 500 m for the RC Baron (with a
-band between 950 and 1500 m). Its caller `FlyingControl` is a retail stub in gta-reversed; for helicopters the response
-above the ceiling is still authored from play (the nose held down, a downward push growing with the height above it).
-Planes now take the iOS one (see "Fixed-wing flight"): past the ceiling lift beyond the weight is cut to the weight,
-fading to none 50 units up, and the player's throttle loses a twenty-fifth for every unit above it.
+band between 950 and 1500 m). Its caller `FlyingControl` is a retail stub in gta-reversed; aircraft now take the iOS
+one (see "Fixed-wing flight" and "Helicopter flight"): past the ceiling a plane's lift beyond its weight is cut to the
+weight, fading to none 50 units up, and the player's throttle loses a twenty-fifth for every unit above it; a
+helicopter's collective is cut to 10 / (h + 10). Only the Hydra's hover keeps the authored response (the nose held
+down, a downward push growing with the height above the ceiling).
+
+## Helicopter flight
+
+- Helicopters (and the RC Raider and RC Goblin) fly FlyingControl's heli branch (iOS 0x10047a1d4 .. 0x10047b450) and
+  common tail, with CHeli::ProcessFlyingCarStuff (0x100465884) and ProcessControlInputs (0x100465418) round it; they
+  had flown an authored lift scaled by the rotor speed:
+  - the move speed loses (1 − fMoveRes) a step; the collective lifts 0.008 × (accel × fThrust + 0.45 −
+    fThrustFallOff × the climb speed, doubled when climbing) along the rotor's up, with a half-g push less the
+    vertical speed, so a heli at no collective sinks slowly; the rotor speed does not scale the lift;
+  - it levels itself toward the (wind-tilted) vertical by fAttackLift, its lean clamped to fFormLift; pitch and roll
+    by fPitch and fRoll; quadratic side slip; the yaw input twice by fYaw, fYawStab turning the nose into a slip;
+  - the rotor spins up 0.001 a frame (0.003 for the RC helicopters) to 0.22, about 5 s to the 0.15 it flies at, and
+    winds down 0.00055 a step; with the rotor up, FlyingControl runs only with the collective up, the heli off its
+    wheels (a Seasparrow or Leviathan afloat counts as on them) or moving;
+  - the collective is gas − brake at once; the roll is the stick's opposite; the hover button holds the yaw and brakes
+    the drift by fPitchStab and fRollStab (within ±2), but not the height; a heli under 250 health sinks and turns.
+- The police helicopter keeps its authored pursuit controller (SteerAIHeli is not decoded), its collective retuned
+  from the 0.08 that holds a POLMAV level.
+- `rotorcraft` and `touch-flight` wait for the rotor before the climb; the hover check is for the drift (under 1 m/s)
+  and a slow sink (under 2 m/s).
 
 ## Fixed-wing flight
 
@@ -591,8 +612,8 @@ fading to none 50 units up, and the player's throttle loses a twenty-fifth for e
 - On its wheels the browser keeps its own side grip, brakes and nose-wheel turn, as CAutomobile's wheel physics for
   planes are not ported; the wheels now roll (their small friction is not averaged with the ground's), which native
   gravity's heavier load had turned into a 5 m/s² drag.
-- Not yet: helicopters and the Hydra's hover (FlyingControl's heli branch), the RC helicopters, the Hydra's nozzle,
-  the iOS automatic landing gear, damaged control surfaces, wind, and the AI pilots' steering.
+- Not yet: the Hydra's nozzle and hover (FlyingControl's heli model with the Hunter's handling), the iOS automatic
+  landing gear, damaged control surfaces, wind, and the AI pilots' steering.
 - `planes.spec` holds the throttle through the climb (the old throttle latched) and measures once the plane is a few
   units up: flown hands-off after a pull it rises and sinks, and can fly into the ground.
 

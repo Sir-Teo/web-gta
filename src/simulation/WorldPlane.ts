@@ -12,7 +12,7 @@ import {installNativeVehicleBody} from './nativeVehicleBody';
 import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {hoverFlight} from '../flight/aero';
-import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
+import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,HELI_FLIGHT_MODEL,HELI_ROTOR_FLY,HELI_ROTOR_FULL,heliFlyingControl,heliHoverInputs,stepHeliRotor,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
 import {requireAsset} from '../assets/binary';
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
@@ -59,7 +59,6 @@ export function heightAboveCeiling(height:number,model:'baron'|'aircraft'){
  if(model==='baron'){if(height>=500&&height<950)return height-500;if(height>=1500)return height-1000+500;return -1;}
  return height<800?-1:height-800;
 }
-/** A helicopter's rotor speed at full throttle (CAEVehicleAudioEntity divides the native rotor speed by 0.22). */
 /** CVehicle::InflictDamage (iOS 0x1004781b4, mask 0x0008000000190000 and 0x3ECCCCCD): a heli or plane takes 0.4 of a
  * weapon's damage, except a grenade's, a rocket's (ROCKET, ROCKET_HS) and a blast's (WEAPON_EXPLOSION), which it takes
  * in full. The RC Baron, RC Raider and RC Goblin (bIsRCVehicle) take everything in full. */
@@ -67,10 +66,7 @@ export function aircraftWeaponDamageScale(modelId:number,weapon:number){
  if(modelId===464||modelId===465||modelId===501)return 1;
  return weapon===16||weapon===19||weapon===20||weapon===51?1:Math.fround(.4);
 }
-const HELI_MAX_ROTOR_SPEED=.22;
-/** How fast a helicopter's rotor spins up while its engine runs and winds down after, per second: authored, since
- * CHeli::ProcessControl is unreversed (the slow-rotor branch in FlyingControl implies a rotor that winds down). */
-const HELI_ROTOR_SPIN_UP=.1,HELI_ROTOR_SPIN_DOWN=.04;
+
 export class WorldPlane {
  readonly body:RAPIER.RigidBody;readonly root=new Group();
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
@@ -303,20 +299,21 @@ export class WorldPlane {
    const auto=!this.occupied&&this.health>0?this.autopilot:undefined;
    if(auto)this.throttle=Math.max(0,Math.min(1,auto.throttle));
    else if(this.occupied&&this.health>0&&!(this.drowning&&this.water.buoyancy<this.handling.values.mass/125))this.throttle=Math.max(0,Math.min(1,this.throttle+input.throttle*dt*.4));else this.throttle=0;
-   // CHeli::m_fHeliRotorSpeed runs on its own: up to 0.22 while the engine runs, whatever the collective. A heli the
-   // game flies itself was made already flying, with its rotor at speed.
+   // CHeli::m_fHeliRotorSpeed runs on its own while the engine runs, whatever the collective; it spins up 0.001 a
+   // frame (0.003 for the RC helicopters) to 0.22 and winds down 0.00055 a step. A heli the game flies itself was
+   // made already flying, with its rotor at speed (0.22 from script and AI creation).
    if(this.helicopter){
-    const running=this.health>0&&(!!auto||this.occupied&&!(this.drowning&&this.water.buoyancy<this.handling.values.mass/125));
-    this.rotorSpeed=auto?HELI_MAX_ROTOR_SPEED:running?Math.min(HELI_MAX_ROTOR_SPEED,this.rotorSpeed+HELI_ROTOR_SPIN_UP*dt):Math.max(0,this.rotorSpeed-HELI_ROTOR_SPIN_DOWN*dt);
+    const running=this.health>0&&(!!auto||this.occupied)&&!this.drowning;
+    this.rotorSpeed=auto?HELI_ROTOR_FULL:stepHeliRotor(this.rotorSpeed,running,this.rcHeli,dt*30,dt*50);
    }
    this.inputs={throttle:this.throttle,pitch:this.occupied?input.pitch:auto?.pitch??0,roll:this.occupied?input.roll:auto?.roll??0,rudder:this.occupied?input.rudder:auto?.rudder??0,brake:auto?auto.brake:!this.occupied||input.brake};
   if(!this.helicopter&&!(this.modelId===520&&this.vtol)){this.flyPlane(dt,input,auto);}
+  else if(this.helicopter){this.flyHeli(dt,input,auto);}
   else{
-  // CVehicle::HeightAboveCeiling (gta-reversed ead3051): the flight ceiling is 800 m for planes and helicopters
-  // (500 m for the RC Baron); FlyingControl's response above it is a retail stub, so this is authored from play:
-  // the nose is held down and the aircraft is pushed down harder the further above the ceiling it is.
-  const above=heightAboveCeiling(this.body.translation().y,this.modelId===464?'baron':'aircraft');
-  const result=hoverFlight(this.body.linvel(),this.body.rotation(),{...this.inputs,brake:this.occupied&&input.brake},this.helicopter?this.rotorSpeed/HELI_MAX_ROTOR_SPEED:1);this.airspeed=result.speed;this.stall=result.stall;
+  // The Hydra's hover: authored (FlyingControl's heli model with the Hunter's handling is not ported yet), as is its
+  // response over the 800 m ceiling (the nose held down, a downward push growing with the height above it).
+  const above=heightAboveCeiling(this.body.translation().y,'aircraft');
+  const result=hoverFlight(this.body.linvel(),this.body.rotation(),{...this.inputs,brake:this.occupied&&input.brake},1);this.airspeed=result.speed;this.stall=result.stall;
   let ay=result.acceleration.y;
   if(above>0){ay-=9.81*Math.min(3,above/40);const vy=this.body.linvel().y;if(vy>0)ay-=vy/Math.max(dt,1e-3)*.5;}
   const v=this.body.linvel();this.body.setLinvel({x:v.x+result.acceleration.x*dt,y:v.y+ay*dt,z:v.z+result.acceleration.z*dt},true);
@@ -325,7 +322,7 @@ export class WorldPlane {
   const forwardSpeed=-new Vector3().copy(this.body.linvel()).applyQuaternion(new Quaternion().copy(this.body.rotation()).invert()).z;
   for(const wheel of this.rollingWheels){wheel.previous=wheel.roll.angle;wheel.roll=stepPlaneWheelRoll(wheel.roll,forwardSpeed,wheel.radius,this.grounded&&!this.gearUp,dt);}
   this.impactVelocity.copy(this.body.linvel());
-  this.propAngle=(this.propAngle+dt*(this.helicopter?this.rotorSpeed/HELI_MAX_ROTOR_SPEED*95:5+this.throttle*90))%(Math.PI*2);
+  this.propAngle=(this.propAngle+dt*(this.helicopter?this.rotorSpeed/HELI_ROTOR_FULL*95:5+this.throttle*90))%(Math.PI*2);
   this.floatOnWater(dt);
  }
  /** CPlane's flight for a fixed-wing aircraft (nativeFlyingControl.ts): ProcessControlInputs' smoothing, ProcessFlyingCarStuff
@@ -333,9 +330,8 @@ export class WorldPlane {
   * after CPhysical's gravity and air resistance, in native units on the body's velocities. On its wheels the browser
   * keeps its own grip, brakes and nose-wheel turn (CAutomobile's wheel physics for planes are not ported). */
  private flyPlane(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean},auto:WorldPlane['autopilot']){
-  const ts=dt*50,h=this.handling.values,f=this.assets.flyingHandling!.values,q=new Quaternion().copy(this.body.rotation());
-  const native=(v:{x:number;y:number;z:number}):NV=>[v.x,-v.z,v.y],axis=(x:number,y:number,z:number)=>native(new Vector3(x,y,z).applyQuaternion(q));
-  const right=axis(1,0,0),forward=axis(0,0,-1),up=axis(0,1,0),v=this.body.linvel(),w=this.body.angvel(),p=this.body.translation();
+  const ts=dt*50,h=this.handling.values,f=this.assets.flyingHandling!.values,v=this.body.linvel();
+  const body=this.flyingBody(),{right,forward,up,position}=body;
   const flying=this.health>0&&(!!auto||this.occupied)&&!(this.drowning&&this.water.buoyancy<h.mass/125);
   // ProcessControlInputs: the player's pitch, roll and rudder follow the stick 0.069 of the way a step; the throttle is
   // (gas − brake) / 255 at once. The AI writes its own.
@@ -344,7 +340,7 @@ export class WorldPlane {
   else if(auto){s.pitch=auto.pitch;s.roll=auto.roll;s.rudder=auto.rudder;s.accel=auto.throttle;}
   else{s.pitch=s.roll=s.rudder=s.accel=0;}
   let {pitch,roll,rudder,accel}=s;
-  const model=this.modelId===464?FLIGHT_MODEL.baron:FLIGHT_MODEL.plane,position:NV=[p.x,-p.z,p.y];
+  const model=this.modelId===464?FLIGHT_MODEL.baron:FLIGHT_MODEL.plane;
   if(this.occupied){
    // ProcessFlyingCarStuff under 250 health: the controls pull the burning plane over.
    if(this.health<250){const bank=Math.atan2(right[2],up[2]<0?-Math.hypot(right[0],right[1]):Math.hypot(right[0],right[1]));if(Math.abs(bank)<3*Math.PI/4)roll+=.75;rudder+=.5;if(Math.abs(bank)>Math.PI/2)pitch+=.5;}
@@ -353,9 +349,6 @@ export class WorldPlane {
   }
   this.propSpeed=flying?stepPropSpeed(this.propSpeed,accel,ts):this.propSpeed>.001*ts?this.propSpeed-(this.propSpeed>.18?.003:.001)*ts:0;
   this.throttle=flying?Math.max(0,accel):0;
-  const body:FlyingBody={moveSpeed:native(v).map(c=>c/50) as NV,turnSpeed:native(w).map(c=>c/50) as NV,position,right,forward,up,
-   comWorld:[0,1,2].map(i=>right[i]*h.centerOfMassX+forward[i]*h.centerOfMassY+up[i]*h.centerOfMassZ) as NV,
-   tailY:this.assets.collision!.bounds.min[1],allWheelsInAir:!this.grounded,gearStatus:this.gearUp?1:0};
   applyGravityAndAirResistance(body,h.dragMultiplier/2000*(this.gearUp?f.gearUpResistance:1),ts);
   const moving=body.moveSpeed[0]**2+body.moveSpeed[1]**2+body.moveSpeed[2]**2>.05;
   this.stall=false;
@@ -368,9 +361,44 @@ export class WorldPlane {
    const yaw=-rudder*.5*Math.min(1,speed/5)/50,spin=body.turnSpeed[0]*up[0]+body.turnSpeed[1]*up[1]+body.turnSpeed[2]*up[2];
    body.turnSpeed=body.turnSpeed.map((c,i)=>c+up[i]*(yaw-spin)) as NV;
   }
+  this.writeFlyingBody(body);
+ }
+ /** The body as FlyingControl reads it: native axes, move and turn speeds a 50 Hz step. */
+ private flyingBody():FlyingBody{
+  const h=this.handling.values,q=new Quaternion().copy(this.body.rotation()),p=this.body.translation();
+  const native=(v:{x:number;y:number;z:number}):NV=>[v.x,-v.z,v.y],axis=(x:number,y:number,z:number)=>native(new Vector3(x,y,z).applyQuaternion(q));
+  const right=axis(1,0,0),forward=axis(0,0,-1),up=axis(0,1,0);
+  return {moveSpeed:native(this.body.linvel()).map(c=>c/50) as NV,turnSpeed:native(this.body.angvel()).map(c=>c/50) as NV,position:[p.x,-p.z,p.y],right,forward,up,
+   comWorld:[0,1,2].map(i=>right[i]*h.centerOfMassX+forward[i]*h.centerOfMassY+up[i]*h.centerOfMassZ) as NV,
+   tailY:this.assets.collision!.bounds.min[1],allWheelsInAir:!this.grounded,gearStatus:this.gearUp?1:0};
+ }
+ private writeFlyingBody(body:FlyingBody){
   this.airspeed=Math.hypot(...body.moveSpeed)*50;
   const [mx,my,mz]=body.moveSpeed,[tx,ty,tz]=body.turnSpeed;
   this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
+ }
+ /** The RC Raider and RC Goblin (bIsRCVehicle): FlyingControl's RC model, the 500 m ceiling band, a quicker rotor. */
+ get rcHeli(){return this.modelId===465||this.modelId===501;}
+ /** CHeli's flight (nativeFlyingControl.ts): ProcessControlInputs (the collective from gas and brake at once, the roll
+  * the stick's opposite, yaw from its own keys; the hover button holds yaw and brakes the drift; a heli under 250
+  * health sinks and turns), and ProcessFlyingCarStuff, which calls FlyingControl only with the rotor over 0.15 and
+  * the heli climbing, off its wheels (a sea heli afloat counts as on them) or moving, after CPhysical's gravity and
+  * air resistance. */
+ private flyHeli(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean},auto:WorldPlane['autopilot']){
+  const ts=dt*50,h=this.handling.values,f=this.assets.flyingHandling!.values,body=this.flyingBody();
+  let yaw=0,pitch=0,roll=0,accel=0;
+  if(this.occupied&&this.health>0){
+   accel=input.throttle;pitch=input.pitch;roll=-input.roll;yaw=input.rudder;
+   if(input.brake&&body.up[2]>0)({yaw,pitch,roll}=heliHoverInputs(body,f));
+   if(this.health<250){accel=-.05;yaw+=.5;}
+  }else if(auto){accel=auto.throttle;pitch=auto.pitch;roll=-auto.roll;yaw=auto.rudder;}
+  this.throttle=Math.max(0,accel);
+  applyGravityAndAirResistance(body,h.dragMultiplier/2000,ts);
+  const m=body.moveSpeed,floating=this.inWater&&(this.modelId===447||this.modelId===417);
+  if(this.rotorSpeed>HELI_ROTOR_FLY&&(this.rcHeli||accel>0||!this.grounded&&!floating||Math.abs(m[0])>.02||Math.abs(m[1])>.02||Math.abs(m[2])>.02))
+   heliFlyingControl(body,f,{yaw,pitch,roll,accel},this.rcHeli?HELI_FLIGHT_MODEL.rc:HELI_FLIGHT_MODEL.heli,ts);
+  this.stall=false;
+  this.writeFlyingBody(body);
  }
  /** CPlane's m_fSteeringUpDown, m_fSteeringLeftRight, m_fLeftRightSkid and m_fAccelerationBreakStatus. */
  private planeInput={pitch:0,roll:0,rudder:0,accel:0};
@@ -450,7 +478,7 @@ export class WorldPlane {
   this.reflection.update(Math.min(1.05,(mean+.5)*.95+.05),this.body.translation(),this.body.rotation());
  }
  setLighting(rgb:readonly number[]|undefined,multiplier:number,night:number){if(this.reflection)this.updateReflection(rgb);if(rgb)this.ambient.color.value.set(rgb[0]*multiplier,rgb[1]*multiplier,rgb[2]*multiplier);this.ambient.enabled.value=!!rgb;this.visual.setNight(night);}
- snapshot(){return {inWater:this.inWater,drowning:this.drowning,health:this.health,vtol:this.modelId===520?this.vtol:null,helicopter:this.helicopter,modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
+ snapshot(){return {inWater:this.inWater,drowning:this.drowning,health:this.health,rotorSpeed:this.rotorSpeed,vtol:this.modelId===520?this.vtol:null,helicopter:this.helicopter,modelId:this.modelId,name:this.name,occupied:this.occupied,gearUp:this.gearUp,throttle:this.throttle,grounded:this.grounded,stall:this.stall,airspeed:this.airspeed,altitude:this.altitude,position:{...this.body.translation()},rotation:{...this.body.rotation()},velocity:{...this.body.linvel()}};}
  /** What the script's vehicle host reads of any vehicle: the body under `car`, the heading as WorldCar's (the
   * body's yaw turned half round), and whether it has gone. */
  readonly car:{body:RAPIER.RigidBody};disposed=false;
