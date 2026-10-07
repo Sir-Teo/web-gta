@@ -414,9 +414,12 @@ export class ScriptCarMissions{
     const candidates:NextCandidate<TrafficLink>[]=trafficLinks(paths.areas,from.to,true).map(link=>{const l=pathDirection(link.from.address,link.to.address,link.navigation);
      return {value:link,node:{x:link.to.position[0],y:link.to.position[1]},uTurn:link.to.address.area===from.from.address.area&&link.to.address.node===from.from.address.node,
       deadEnd:link.to.deadEnd,switchedOff:link.to.switchedOff,water:link.to.water,dontWander:link.to.dontWander,behaviour:link.to.behaviour,lanes:l.lanes,oppositeLanes:l.reverseLanes};});
-    return pickNextNodeRandomly({previous:{x:from.from.position[0],y:from.from.position[1]},current:{x:from.to.position[0],y:from.to.position[1]},candidates,
+    const chosen=pickNextNodeRandomly({previous:{x:from.from.position[0],y:from.from.position[1]},current:{x:from.to.position[0],y:from.to.position[1]},candidates,
      lanesOnCurrent:onFrom.lanes,onOneWayRoad:onFrom.reverseLanes===0,nextLane:m.nextLane,junction:from.to,previousSwitchedOff:from.from.switchedOff,
      vehicle:{tryNotToTurn:car.modelId!==undefined&&TRY_NOT_TO_TURN_MODELS.has(car.modelId),missionCruiser:true,boundsMax:car.nativeBody.boundsMax},random:count=>Math.floor(this.random()*count)}).choice?.value;
+    // A type-10 node ahead holds any car 10 s (TEMPACT_WAIT); a type-9 junction's 4.5 s is for random cars only.
+    if(chosen?.to.behaviour===10)m.temp={action:TEMPACT.wait,remaining:10};
+    return chosen;
    };
    if(!m.cruiseNext||m.cruiseNext.from!==link.to)m.cruiseNext=pick(link);
    let next=m.cruiseNext;

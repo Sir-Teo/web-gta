@@ -325,7 +325,7 @@ export function makeWayForCarWithSiren(car:{position:{x:number;y:number;z:number
  const distance=Math.hypot(to.x,to.y);
  if(distance>=sirenSpeed*45+40||car.moveSpeed.x**2+car.moveSpeed.y**2<=.05)return undefined;
  const towardsSiren=dot(to,car.moveSpeed)<0;
- if(dot(sirenDir,{x:to.x/distance,y:to.y/distance})<=.8)return towardsSiren&&car.current!=='wait'?{action:'wait',ms:2000}:undefined;
+ if(dot(sirenDir,{x:to.x/distance,y:to.y/distance})<=.8)return towardsSiren&&car.current!=='wait'&&car.current!=='brake'?{action:'wait',ms:2000}:undefined;
  const sameDirection=dot(sirenDir,car.forward);
  if(sameDirection>.7||sameDirection< -.9){
   if(car.current==='swerveStop')return undefined;

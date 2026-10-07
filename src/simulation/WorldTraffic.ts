@@ -282,8 +282,9 @@ export class WorldTraffic {
  /** Back within the active radius the car takes physics again from where the rails left it (SwitchVehicleToRealPhysics):
   * past its current link, it heads for the next one. */
  private leaveRails(d:Driver,now:number){
-  if(!d.rails?.entry&&d.next){d.previous=d.current;d.current=d.next;d.currentLane=d.nextLane;this.pickNext(d,d.current);}
-  d.rails=undefined;d.railsLimit=undefined;d.timeSwitchedToRealPhysics=now;
+  const entering=!!d.rails?.entry;d.rails=undefined;d.railsLimit=undefined;d.timeSwitchedToRealPhysics=now;
+  // Picked under physics: no refusal of a sharp turn.
+  if(!entering&&d.next){d.previous=d.current;d.current=d.next;d.currentLane=d.nextLane;this.pickNext(d,d.current);}
  }
  /** CCarCtrl::PickNextNodeRandomly: the link after `from`, and the lane on it. Switched-off and don't-wander roads are
   * among the candidates: the pick's own rules keep a random car off the first unless it is on one, and only mission

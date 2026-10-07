@@ -1459,8 +1459,8 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
       grace (the executable also switches the car to physics).
     - The parking-spot types 1 and 2 (`MISSION_PARK_PARALLEL` and
       `_PERPENDICULAR`) are refused, the parking missions not being ported.
-      A type-10 node ahead holds the car (`TEMPACT_WAIT`) 10 s and a type-9
-      junction 4.5 s.
+      A type-10 node ahead holds the car (`TEMPACT_WAIT`) 10 s, script cars
+      too, and a type-9 junction holds a random car 4.5 s.
     - Switched-off and don't-wander roads are now candidates for random
       traffic, which the pick's rules keep off them; the browser still leaves
       out water nodes and links under 3 units long or steeper than 0.3.
@@ -1551,7 +1551,8 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   - **On rails** the limit (`m_fMaxTrafficSpeed`) and the light are refreshed only on frames where (frame + seed) & 3
     is 0, as `SlowCarOnRailsDownForTrafficAndLights` does; on the others `ScanForPedDanger`'s ±11 ped check runs
     alone, for its waits and brakes. It had been refreshed every step.
-  - Not ported: `ShouldCarStopForBridge` and the road-barrier objects (`DYN_ROADBARRIER_6`, `la_fuckcar1` and `2`).
+  - Not ported: `ShouldCarStopForBridge`, the road-barrier objects (`DYN_ROADBARRIER_6`, `la_fuckcar1` and `2`), and
+    the BMX's lane points 1.458 further right (FollowPath and the rails; the browser's traffic makes no BMX).
   - `traffic-on-rails` ends INTRO first (it took CJ away from the traffic) and lowers the physics radius to 40, since
     cars made closing on the player seldom left 100.
 - AI cars now set their steer angle, gas, brake and handbrake directly, as
