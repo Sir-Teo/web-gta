@@ -317,7 +317,7 @@ export class WorldTraffic {
   const order=(c:WorldCar)=>{let n=this.carOrder.get(c);if(n===undefined)this.carOrder.set(c,n=this.carOrderNext++);return n;};
   const firstSeen=(c:WorldCar)=>{let t=this.carFirstSeen.get(c);if(t===undefined)this.carFirstSeen.set(c,t=now);return t;};
   for(const driver of this.drivers){
-   const car=driver.car;if(car.disposed){driver.gone=true;continue;}car.honkAtCar=car.honkAtPed=false;
+   const car=driver.car;if(car.disposed){driver.gone=true;continue;}car.honkAtCar=car.honkAtPed=false;car.pedDangerScan=undefined;
    // CAutomobile::ProcessControl raises CEventVehicleOnFire when the engine fire starts; the driver answers it once.
    if(car.onFire&&!driver.fired&&!car.occupied&&car.autopilot){driver.fired=true;this.onFire?.(car);}
    if(car.occupied||!car.autopilot)continue;
@@ -376,6 +376,7 @@ export class WorldTraffic {
    const cur=driver.cruiseSpeed*driver.speedMult,b=car.nativeBody;
    let trafficSpeed=cur,slowedByCars=false,slowedByPeds=false;
    if(!driver.avoidCars){
+    car.pedDangerScan=DISTANCE_TO_SCAN_FOR_DANGER;
     const own=view(car),scan=slowCarDownForCars(own,others(),trafficSpeed,cur,(other,proximity,speed)=>{
      // SlowCarDownForOtherCar's 15-second standoff, asked of one car of the pair (the executable compares pointers):
      // at least 0.2 of cur, and DRIVINGSTYLE_AVOID_CARS. It also switches a car on rails to physics, which the

@@ -2897,10 +2897,12 @@ export class WorldPedestrians {
    const v=body.linvel(),q=body.rotation(),rot=new Quaternion(q.x,q.y,q.z,q.w);
    const f=new Vector3(0,0,-1).applyQuaternion(rot),r=new Vector3(1,0,0).applyQuaternion(rot);
    const fl=Math.hypot(f.x,f.z),rl=Math.hypot(r.x,r.z);if(fl<1e-3||rl<1e-3)return undefined;
-   const forward={x:f.x/fl,z:f.z/fl},forwardSpeed=(v.x*forward.x+v.z*forward.z)/50;
-   if(Math.abs(forwardSpeed)<.01)return undefined;
+   const forward={x:f.x/fl,z:f.z/fl},forwardSpeed=(v.x*f.x+v.y*f.y+v.z*f.z)/50,horn=(car.horn?.counter??0)>0;
+   // A stopped vehicle warns nobody in its path, but a honking player's warns those near it.
+   if(Math.abs(forwardSpeed)<.01&&!(car.occupied&&horn))return undefined;
    const t=body.translation(),b=car.nativeBody;
-   return {position:{x:t.x,z:t.z},height:t.y,forward,right:{x:r.x/rl,z:r.z/rl},boundsMin:{x:b.boundsMin.x,y:b.boundsMin.y},boundsMax:{x:b.boundsMax.x,y:b.boundsMax.y},forwardSpeed,horn:(car.horn?.counter??0)>0,playerDriven:!!car.occupied};
+   return {position:{x:t.x,z:t.z},height:t.y,forward,right:{x:r.x/rl,z:r.z/rl},forward3:{x:f.x,y:f.y,z:f.z},right3:{x:r.x,y:r.y,z:r.z},
+    boundsMin:{x:b.boundsMin.x,y:b.boundsMin.y},boundsMax:{x:b.boundsMax.x,y:b.boundsMax.y},forwardSpeed,horn,playerDriven:!!car.occupied,aiDriven:!car.occupied&&!!car.autopilot&&car.inActiveRange(),scanHalf:car.pedDangerScan};
   }
   /** CEventPotentialGetRunOver on a street ped: the scan stand-in, the reversed response and the tasks it
    * starts. Returns the speed the task asks for, or undefined when no task drives the ped. */

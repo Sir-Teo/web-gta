@@ -1539,9 +1539,17 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
     fell off getting into (`m_pLastTargetVehicle`), which the browser's entry never sets.
   - **Script cars** (`SET_CAR_DRIVING_STYLE` 0, 1 and 4) and **patrol cars** share the vehicle scan, with
     `m_SpeedMult` taken as 1. `SLOW_DOWN_FOR_CARS` averages the limit with the cruise speed, as iOS does.
-  - Not ported: `ScanForPedDanger`'s own 11- and 44-unit boxes and its `CEventPotentialGetRunOver` warnings,
-    `ShouldCarStopForBridge`, the road-barrier objects (`DYN_ROADBARRIER_6`, `la_fuckcar1` and `2`), and the
-    rails limit being refreshed only every 4th frame.
+  - **Warning the peds** (`CEventPotentialGetRunOver`, raised by the same ped scan and by `ScanForPedDanger`,
+    0x1001949b0, the PC scanner being a stub) is the executable's now; it had been Vice City's test:
+    - the box is ±44 round the player's vehicle, ±14 round a car that ran the traffic scan and ±11 otherwise (it
+      was 11); a ped counts under 6 above or below and 3 off the vehicle's slope (it was 4);
+    - a honking player's vehicle warns everyone within 7 units, stopped or not;
+    - a vehicle the player or the AI drives (not an empty one rolling) warns a ped on its side of travel that it
+      reaches within 1 s (it was 4), moving faster than 0.05 units a frame, within half its width plus 0.35 (it
+      was 0.5), past its front length either way (a reversing car had led with its back).
+    - `native-evasive` puts CJ in the car it rolls at the ped.
+  - Not ported: `ShouldCarStopForBridge`, the road-barrier objects (`DYN_ROADBARRIER_6`, `la_fuckcar1` and `2`),
+    and the rails limit being refreshed only every 4th frame.
 - AI cars now set their steer angle, gas, brake and handbrake directly, as
   `SteerAICarWithPhysics` writes them. They used to go through the player's
   smoothed pad input.

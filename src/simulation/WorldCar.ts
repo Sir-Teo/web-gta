@@ -1285,6 +1285,8 @@ export class WorldCar {
  entitiesCollided=0;
  /** Seconds since the body last touched another entity (from CPhysical::m_nLastCollisionTime). */
  collisionAge=Infinity;
+ /** Half the box the AI's ped scan used this frame: 14 when FindMaximumSpeedForThisCarInTraffic ran (else ScanForPedDanger's 11). */
+ pedDangerScan?:number;
  /** CVehicle::InflictDamage's random tyre burst (iOS 0x1004781b4) for an AI ped's round on the body that came up
   * (aiTyreBurstChance): the tyre in the hit point's quadrant across the ground, front or rear by the car's forward
   * and left or right by its right, with BurstTyre's kick. `point` is in the renderer's frame. */

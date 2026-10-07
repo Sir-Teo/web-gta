@@ -3,11 +3,15 @@
  * - CEventHandler::ComputeVehiclePotentialCollisionResponse (Events/EventHandler.cpp, 0x4C0C80)
  *   answers CEventPotentialGetRunOver. It is fully reversed and needs no decision maker:
  *   evasive steps, dives, raised hands, shaken fists and flights from a honking player.
- * - CVehiclePotentialCollisionScanner::ScanForVehiclePotentialCollisionEvents (0x603720), which
- *   raises the event, is a retail stub. `potentialGetRunOver` stands in with the test of its Vice
- *   City ancestor, CCarCtrl::SlowCarDownForPedsSectorList (reVC, src/control/CarCtrl.cpp): peds
- *   inside an 11-unit box around the vehicle, within 4 units of height, ahead of its front, due
- *   to be reached within 4 s and no further to the side than half its width plus 0.5.
+ * - CVehiclePotentialCollisionScanner::ScanForVehiclePotentialCollisionEvents (0x603720) is a retail
+ *   stub. The event is raised by the warning half of CCarCtrl::SlowCarDownForPedsSectorList, which
+ *   `potentialGetRunOver` follows as the iOS executable has it (0x1001941b8, with ScanForPedDanger
+ *   0x1001949b0 for the box): peds strictly inside a box of ±44 round the player's vehicle (±14 round
+ *   one that ran FindMaximumSpeedForThisCarInTraffic, else ±11), under 6 above or below it and 3 off
+ *   its slope; every one within 7 units of a honking player's vehicle; and, for a vehicle the player
+ *   or the AI drives, one on its side of travel that it reaches within 1 s, moving faster than 0.05
+ *   units a frame, no further to the side than half its width plus 0.35. (Vice City's had an 11-unit
+ *   box, 4 units of height, 4 s and 0.5, and led a reversing vehicle with its back.)
  * - CPedGeometryAnalyser::ComputeMoveDirToAvoidEntity (0x5F3730) is a stub too: `avoidDirection`
  *   points straight out of the vehicle's path on the ped's side.
  * Vectors here are on the ground plane of one frame; the vehicle's `forward` and `right` are unit
@@ -16,10 +20,12 @@
 type V2={x:number;z:number};
 const dot=(a:V2,b:V2)=>a.x*b.x+a.z*b.z;
 
-/** DISTANCE_TO_SCAN_FOR_PED_DANGER in the Vice City scan. */
-export const PED_DANGER_SCAN_DISTANCE=11;
+/** ScanForPedDanger's half box: 11, or 44 round the player's vehicle. */
+export const PED_DANGER_SCAN_DISTANCE=11,PLAYER_PED_DANGER_SCAN_DISTANCE=44;
 export interface GetRunOverVehicle {
  position:V2;height:number;forward:V2;right:V2;
+ /** The matrix's forward and right in the renderer's axes (y up); flat ones when absent. */
+ forward3?:{x:number;y:number;z:number};right3?:{x:number;y:number;z:number};
  boundsMin:{x:number;y:number};boundsMax:{x:number;y:number};
  /** Move speed along the forward vector, units per 1/50 s frame. */
  forwardSpeed:number;
@@ -27,20 +33,26 @@ export interface GetRunOverVehicle {
  horn:boolean;
  /** STATUS_PLAYER: the player is driving. */
  playerDriven:boolean;
- bike?:boolean;
+ /** The AI drives it under physics (a STOP_FOR_CARS car on rails, or one nobody drives, warns nobody). */
+ aiDriven?:boolean;
+ /** Half the scan box for an AI vehicle: 14 when it ran FindMaximumSpeedForThisCarInTraffic, else 11. */
+ scanHalf?:number;
 }
 
-/** The scanner stand-in: whether the vehicle raises CEventPotentialGetRunOver on the ped. */
+/** Whether the vehicle raises CEventPotentialGetRunOver on the ped. */
 export function potentialGetRunOver(ped:V2&{height:number},v:GetRunOverVehicle){
- const to={x:ped.x-v.position.x,z:ped.z-v.position.z};
- if(Math.abs(to.x)>PED_DANGER_SCAN_DISTANCE||Math.abs(to.z)>PED_DANGER_SCAN_DISTANCE||Math.abs(ped.height-v.height)>=4)return false;
- // Reversing vehicles lead with their back.
- const sign=v.forwardSpeed<0?-1:1,along=dot(to,v.forward)*sign,front=sign>0?v.boundsMax.y:-v.boundsMin.y;
- if(along<=front)return false;
- const untilHit=along-front,perSecond=Math.abs(v.forwardSpeed)*50;
- if(4*perSecond<=untilHit)return false;
- const side=v.boundsMax.x*(v.bike?1.6:1);
- return Math.abs(dot(to,v.right))<=side+.5;
+ const to={x:ped.x-v.position.x,z:ped.z-v.position.z},dz=ped.height-v.height;
+ const half=v.playerDriven?PLAYER_PED_DANGER_SCAN_DISTANCE:v.scanHalf??PED_DANGER_SCAN_DISTANCE;
+ if(!(Math.abs(to.x)<half&&Math.abs(to.z)<half&&Math.abs(dz)<6))return false;
+ const f=v.forward3??{x:v.forward.x,y:0,z:v.forward.z},r=v.right3??{x:v.right.x,y:0,z:v.right.z};
+ if(!(Math.abs(dz-(to.x*f.x+to.z*f.z)*f.y)<3))return false;
+ if(v.playerDriven&&v.horn&&to.x*to.x+to.z*to.z+dz*dz<49)return true;
+ const speed=v.forwardSpeed;
+ if(!(v.playerDriven||v.aiDriven)||speed===0)return false;
+ const along=to.x*f.x+dz*f.y+to.z*f.z,front=v.boundsMax.y;
+ if((along>=0?1:-1)!==(speed>=0?1:-1))return false;
+ if(!(Math.abs(along)-front<Math.abs(speed)*50&&Math.abs(along)>front&&Math.abs(speed)>.05))return false;
+ return Math.abs(to.x*r.x+dz*r.y+to.z*r.z)<=v.boundsMax.x+.35;
 }
 
 /** ComputeMoveDirToAvoidEntity stand-in: out of the vehicle's path, towards the ped's side. */
