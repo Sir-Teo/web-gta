@@ -11,8 +11,7 @@ import {nativeAmbientState} from '../assets/nativeMaterial';
 import {installNativeVehicleBody} from './nativeVehicleBody';
 import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
-import {hoverFlight} from '../flight/aero';
-import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,HELI_FLIGHT_MODEL,HELI_ROTOR_FLY,HELI_ROTOR_FULL,heliFlyingControl,heliHoverInputs,stepHeliRotor,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
+import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,HELI_FLIGHT_MODEL,HELI_ROTOR_FLY,HELI_ROTOR_FULL,HYDRA_NOZZLE_MAX,HYDRA_NOZZLE_RATE,HYDRA_VTOL_NOZZLE,heliFlyingControl,heliHoverInputs,hydraThrustAxis,stepHeliRotor,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
 import {requireAsset} from '../assets/binary';
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
@@ -53,12 +52,6 @@ export function advancePlaneEntry(entry:PlaneEntry,dt:number){
  }
 }
 type Assets=Awaited<ReturnType<Awaited<ReturnType<typeof openStaticWorldVehicles>>['load']>>;
-/** CVehicle::HeightAboveCeiling (0x6D2600): metres above the flight ceiling, or -1 below it. The RC Baron's ceiling
- * is 500 m with a band between 950 and 1500 m; everything else ceils at 800 m. `height` is the world height. */
-export function heightAboveCeiling(height:number,model:'baron'|'aircraft'){
- if(model==='baron'){if(height>=500&&height<950)return height-500;if(height>=1500)return height-1000+500;return -1;}
- return height<800?-1:height-800;
-}
 /** CVehicle::InflictDamage (iOS 0x1004781b4, mask 0x0008000000190000 and 0x3ECCCCCD): a heli or plane takes 0.4 of a
  * weapon's damage, except a grenade's, a rocket's (ROCKET, ROCKET_HS) and a blast's (WEAPON_EXPLOSION), which it takes
  * in full. The RC Baron, RC Raider and RC Goblin (bIsRCVehicle) take everything in full. */
@@ -72,7 +65,11 @@ export class WorldPlane {
  /** CCustomCarEnvMapPipeline's reflection state (every vehicle model uses the car pipeline). */
  readonly reflection=new NativeCarReflection();readonly name:string;readonly modelId:number;
  /** CVehicle's constructor: every vehicle starts at 1000 health. */
- health=1000;vtol=true;
+ health=1000;
+ /** The Hydra's nozzle direction (CPlane's keyboard nozzle, iOS 0x100654160): true moving toward vertical lift. */
+ vtol=true;
+ /** CAutomobile::m_wMiscComponentAngle, the Hydra's nozzle: 0 forward to 5000 vertical. */
+ nozzle=0;
  /** CAutomobile::m_fBurnTimer in milliseconds, which ProcessCarOnFireAndExplode runs for planes and helicopters too. */
  burnTimer=0;
  /** CAutomobile::m_fireParticleCounter: set once when the fire starts, 2 for an aircraft in the air, 1 otherwise, and never cleared. */
@@ -307,18 +304,7 @@ export class WorldPlane {
     this.rotorSpeed=auto?HELI_ROTOR_FULL:stepHeliRotor(this.rotorSpeed,running,this.rcHeli,dt*30,dt*50);
    }
    this.inputs={throttle:this.throttle,pitch:this.occupied?input.pitch:auto?.pitch??0,roll:this.occupied?input.roll:auto?.roll??0,rudder:this.occupied?input.rudder:auto?.rudder??0,brake:auto?auto.brake:!this.occupied||input.brake};
-  if(!this.helicopter&&!(this.modelId===520&&this.vtol)){this.flyPlane(dt,input,auto);}
-  else if(this.helicopter){this.flyHeli(dt,input,auto);}
-  else{
-  // The Hydra's hover: authored (FlyingControl's heli model with the Hunter's handling is not ported yet), as is its
-  // response over the 800 m ceiling (the nose held down, a downward push growing with the height above it).
-  const above=heightAboveCeiling(this.body.translation().y,'aircraft');
-  const result=hoverFlight(this.body.linvel(),this.body.rotation(),{...this.inputs,brake:this.occupied&&input.brake},1);this.airspeed=result.speed;this.stall=result.stall;
-  let ay=result.acceleration.y;
-  if(above>0){ay-=9.81*Math.min(3,above/40);const vy=this.body.linvel().y;if(vy>0)ay-=vy/Math.max(dt,1e-3)*.5;}
-  const v=this.body.linvel();this.body.setLinvel({x:v.x+result.acceleration.x*dt,y:v.y+ay*dt,z:v.z+result.acceleration.z*dt},true);
-  this.body.setAngvel(result.angular,true);
-  }
+  if(this.helicopter)this.flyHeli(dt,input,auto);else this.flyPlane(dt,input,auto);
   const forwardSpeed=-new Vector3().copy(this.body.linvel()).applyQuaternion(new Quaternion().copy(this.body.rotation()).invert()).z;
   for(const wheel of this.rollingWheels){wheel.previous=wheel.roll.angle;wheel.roll=stepPlaneWheelRoll(wheel.roll,forwardSpeed,wheel.radius,this.grounded&&!this.gearUp,dt);}
   this.impactVelocity.copy(this.body.linvel());
@@ -350,9 +336,19 @@ export class WorldPlane {
   this.propSpeed=flying?stepPropSpeed(this.propSpeed,accel,ts):this.propSpeed>.001*ts?this.propSpeed-(this.propSpeed>.18?.003:.001)*ts:0;
   this.throttle=flying?Math.max(0,accel):0;
   applyGravityAndAirResistance(body,h.dragMultiplier/2000*(this.gearUp?f.gearUpResistance:1),ts);
+  // The Hydra's nozzle (CPlane::ProcessControlInputs, the keyboard's way): 25 a step toward where it was last sent.
+  const hydra=this.modelId===520;
+  if(hydra&&this.occupied)this.nozzle=Math.max(0,Math.min(HYDRA_NOZZLE_MAX,this.nozzle+HYDRA_NOZZLE_RATE*(this.vtol?1:-1)*ts));
   const moving=body.moveSpeed[0]**2+body.moveSpeed[1]**2+body.moveSpeed[2]**2>.05;
   this.stall=false;
-  if(flying&&(this.propSpeed>.05||moving)){const r=planeFlyingControl(body,f,{rudder,pitch,roll,accel},model,ts,{vortex:this.modelId===539});this.stall=r.stallMs>0;}
+  if(flying&&(this.propSpeed>.05||moving)){
+   const axis=hydra?hydraThrustAxis(body,this.nozzle):undefined;
+   // Over 3000 the player's Hydra hovers: FlyingControl's heli model on the Hunter's flying handling, the roll
+   // reversed and a quarter of the throttle, while climbing or off its wheels.
+   if(hydra&&this.occupied&&this.nozzle>=HYDRA_VTOL_NOZZLE&&this.assets.vtolFlyingHandling){
+    if(accel>0||!this.grounded&&!this.inWater)heliFlyingControl(body,this.assets.vtolFlyingHandling.values,{yaw:rudder,pitch,roll:-roll,accel:accel*.25},HELI_FLIGHT_MODEL.heli,ts,{liftAxis:axis});
+   }else{const r=planeFlyingControl(body,f,{rudder,pitch,roll,accel},model,ts,{vortex:this.modelId===539,thrustAxis:axis});this.stall=r.stallMs>0;}
+  }
   if(this.grounded){
    // The browser's wheels: side grip, the brakes and the nose wheel's turn (rad/s at the browser's metres).
    const side=body.moveSpeed[0]*right[0]+body.moveSpeed[1]*right[1]+body.moveSpeed[2]*right[2],speed=Math.hypot(v.x,v.z);
@@ -404,8 +400,8 @@ export class WorldPlane {
  private planeInput={pitch:0,roll:0,rudder:0,accel:0};
  /** CPlane::m_fPropSpeed. */
  propSpeed=0;
- /** CAutomobile::ProcessBuoyancy for aircraft over WATER.DAT surfaces. Browser flight gravity is 9.81 m/s²
-  * against native 0.008 per 50 Hz step (20 m/s²), so buoyancy force is scaled to keep native immersion. */
+ /** CAutomobile::ProcessBuoyancy for aircraft over WATER.DAT surfaces, at native gravity (0.008 a 50 Hz step, which the
+  * flight step applies), so the buoyancy force is the native one. */
  private floatOnWater(dt:number){
   // cBuoyancy asks GetWaterLevel at the body's own height with its bTouchingWater (iOS 0x10045f9f0), so
   // limited-depth water far over it, or water far under it, is none.
@@ -416,7 +412,7 @@ export class WorldPlane {
   const b=this.assets.collision!.bounds;
   const state:NativeBuoyancyBody={position:native(p.x,p.y,p.z),right:axis(1,0,0),forward:axis(0,0,-1),up:axis(0,1,0),boundsMin:[...b.min] as NativeVec,boundsMax:[...b.max] as NativeVec,modelId:this.modelId,heli:this.helicopter,plane:!this.helicopter,touchingWater:this.water.touching,mass:h.mass,turnMass:h.turnMass,centerOfMass:[h.centerOfMassX,h.centerOfMassY,h.centerOfMassZ],heavy:this.heavy,buoyancyConstant:this.water.buoyancy,moveSpeed:native(v.x/50,v.y/50,v.z/50),turnSpeed:native(w.x/50,w.y/50,w.z/50)};
   const rotor:Parameters<typeof applyNativeBuoyancy>[3]={rotorSpeed:this.helicopter?this.rotorSpeed:0,initialBuoyancy:this.handling.buoyancy},moveSpeed=[...state.moveSpeed] as NativeVec;
-  const result=applyNativeBuoyancy(state,level,dt*50,rotor,9.81/20);
+  const result=applyNativeBuoyancy(state,level,dt*50,rotor,1);
   // SimpleCalcBuoyancy throws spray from partly submerged edges once per native 30 fps frame, using the speed before the buoyancy response.
   this.splashClock+=dt;
   if(rotor.sample&&this.splashClock>=1/30){

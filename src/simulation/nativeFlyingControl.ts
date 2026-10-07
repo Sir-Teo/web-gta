@@ -61,7 +61,7 @@ export function applyGravityAndAirResistance(body:FlyingBody,airResistance:numbe
 /** FlyingControl's plane branch and common tail for `model` 3 (planes) or 1 (the RC Baron). `vortex` is the hovercraft
  * (539), whose thrust steers and which never counts as airborne. `wind` is −CWeather::WindDir × fWindMult (none for a
  * mission vehicle). Returns the stall time FlyingControl adds for the audio, in ms. */
-export function planeFlyingControl(body:FlyingBody,flight:FlyingHandling['values'],input:FlyingInputs,model:number,ts:number,o:{vortex?:boolean;wind?:NativeVec}={}){
+export function planeFlyingControl(body:FlyingBody,flight:FlyingHandling['values'],input:FlyingInputs,model:number,ts:number,o:{vortex?:boolean;wind?:NativeVec;thrustAxis?:NativeVec}={}){
  const F=body.forward,R=body.right,U=body.up,wind=o.wind??[0,0,0];
  const vel=add(body.moveSpeed,wind),K=stickFactor(input.rudder,input.pitch);
  const turn=(D:NativeVec,X:NativeVec,c:number)=>{body.turnSpeed=add(body.turnSpeed,cross(X,D),c);};
@@ -84,7 +84,7 @@ export function planeFlyingControl(body:FlyingBody,flight:FlyingHandling['values
   thrust=0;
   if(accel<0&&dot(F,body.moveSpeed)<.02)thrust=Math.min(accel-7.76*fwd,0)*flight.thrust;
  }
- body.moveSpeed=add(body.moveSpeed,F,.008*thrust*ts);
+ body.moveSpeed=add(body.moveSpeed,o.thrustAxis??F,.008*thrust*ts);
  // Quadratic side slip.
  const side=dot(vel,R);
  body.moveSpeed=add(body.moveSpeed,R,-flight.sideSlip*side*Math.abs(side)*ts);
@@ -202,4 +202,12 @@ export const HELI_ROTOR_FULL=.22,HELI_ROTOR_FLY=.15;
 export function stepHeliRotor(rotor:number,running:boolean,rc:boolean,frames:number,ts:number){
  if(running)return Math.min(HELI_ROTOR_FULL,rotor+(rc?.003:.001)*frames);
  return rotor>.00055*ts?rotor-.00055*ts:0;
+}
+
+/** The Hydra's nozzle (CAutomobile::m_wMiscComponentAngle, 0 to 5000) as an angle from forward toward up, and the
+ * axis its thrust (and, hovering, its lift) takes: F cos θ + U sin θ. */
+export const HYDRA_NOZZLE_MAX=5000,HYDRA_VTOL_NOZZLE=3000,HYDRA_NOZZLE_RATE=25;
+export function hydraThrustAxis(body:FlyingBody,nozzle:number):NativeVec{
+ const th=nozzle*(Math.PI/2)/HYDRA_NOZZLE_MAX;
+ return add(scale(body.forward,Math.cos(th)),body.up,Math.sin(th));
 }

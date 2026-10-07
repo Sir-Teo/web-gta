@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {applyGravityAndAirResistance,flyingControlTail,heightAboveCeiling,heliFlyingControl,heliHoverInputs,planeFlyingControl,stepHeliRotor,smoothPlaneInput,stepPropSpeed,stickFactor,type FlyingBody,type NativeVec} from '../src/simulation/nativeFlyingControl';
+import {applyGravityAndAirResistance,flyingControlTail,heightAboveCeiling,heliFlyingControl,heliHoverInputs,hydraThrustAxis,planeFlyingControl,stepHeliRotor,smoothPlaneInput,stepPropSpeed,stickFactor,type FlyingBody,type NativeVec} from '../src/simulation/nativeFlyingControl';
 
 // The RUSTLER's flying handling line.
 const rustler={thrust:.5,thrustFallOff:.3,yaw:-.0001,yawStabilization:.004,sideSlip:.1,roll:.002,rollStabilization:-.002,pitch:.0002,pitchStabilization:.002,
@@ -81,4 +81,11 @@ test('the rotor spins up 0.001 a frame (0.003 for RC) to 0.22 and winds down 0.0
  expect(stepHeliRotor(.1,false,false,1,2)).toBeCloseTo(.1-.0011,9);expect(stepHeliRotor(.0001,false,false,1,1)).toBe(0);
  const hover=heliHoverInputs(body({moveSpeed:[.1,.2,0]}),sparrow);
  expect(hover.yaw).toBe(0);expect(hover.pitch).toBeCloseTo(.4,6);expect(hover.roll).toBeCloseTo(.2,6);
+});
+
+test('the Hydra nozzle turns its thrust from forward (0) to straight up (5000)',()=>{
+ const b=body();
+ expect(hydraThrustAxis(b,0)).toEqual([0,1,0]);
+ const half=hydraThrustAxis(b,2500);expect(half[1]).toBeCloseTo(Math.SQRT1_2,6);expect(half[2]).toBeCloseTo(Math.SQRT1_2,6);
+ const up=hydraThrustAxis(b,5000);expect(up[1]).toBeCloseTo(0,6);expect(up[2]).toBeCloseTo(1,6);
 });

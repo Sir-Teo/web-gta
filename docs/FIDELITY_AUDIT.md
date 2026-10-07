@@ -14,7 +14,7 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 | System | Current evidence / difference | Required acceptance evidence |
 | --- | --- | --- |
 | Script runtime and campaign | `ScmRuntime` executes numeric/control-flow families, ordinary and mission scheduling, mission loading, native no-ops and a first set of game-state commands, separately from gameplay. With a recording world adapter, packaged MAIN reaches mission INITIAL, which stops at CREATE_LOCKED_PROPERTY_PICKUP (mission offset 868); message queues, help text, intro text lines, switch tables, streaming requests and the radar blip table are ported, and 1,190 of 1,455 distinct MAIN.SCM commands remain unsupported. Authored mission objectives are not original campaign execution. | Original threads, variables, native commands, cleanup, cutscenes, success/failure/retry and saved script state execute correctly across the campaign and side content. |
-| Physics and vehicles | Rapier contacts are approximate; planes and helicopters fly the iOS FlyingControl (`nativeFlyingControl.ts`), the Hydra's hover still authored equations (`hoverFlight.ts`). Bike lean and boat integration retain authored behavior. | Original dynamics/task semantics and repeated multi-class acceleration, braking, cornering, impact, flight and water trials. |
+| Physics and vehicles | Rapier contacts are approximate; aircraft fly the iOS FlyingControl (`nativeFlyingControl.ts`). Bike lean and boat integration retain authored behavior. | Original dynamics/task semantics and repeated multi-class acceleration, braking, cornering, impact, flight and water trials. |
 | Player, camera and animation | Movement/animation pieces are implemented; native constants do not prove complete transition or collision equivalence. | Matched input/pose/contact/camera traces, including occlusion, interiors and vehicle transitions. |
 | Population and police | Authored recovery, spawn decisions, clamps and roadblock placement remain. | Original task/event scheduling, population selection, pursuit and mission-exception behavior. |
 | Combat | Native assets/data and selected algorithms coexist with browser task integration. | Damage, targeting, animation events, projectiles, AI decisions and all equipment compared against PC 1.0. |
@@ -566,8 +566,7 @@ A Rustler climbed to 4.5 km in a flight probe; the original stops aircraft at a 
 band between 950 and 1500 m). Its caller `FlyingControl` is a retail stub in gta-reversed; aircraft now take the iOS
 one (see "Fixed-wing flight" and "Helicopter flight"): past the ceiling a plane's lift beyond its weight is cut to the
 weight, fading to none 50 units up, and the player's throttle loses a twenty-fifth for every unit above it; a
-helicopter's collective is cut to 10 / (h + 10). Only the Hydra's hover keeps the authored response (the nose held
-down, a downward push growing with the height above the ceiling).
+helicopter's collective is cut to 10 / (h + 10).
 
 ## Helicopter flight
 
@@ -612,8 +611,14 @@ down, a downward push growing with the height above the ceiling).
 - On its wheels the browser keeps its own side grip, brakes and nose-wheel turn, as CAutomobile's wheel physics for
   planes are not ported; the wheels now roll (their small friction is not averaged with the ground's), which native
   gravity's heavier load had turned into a 5 m/s² drag.
-- Not yet: the Hydra's nozzle and hover (FlyingControl's heli model with the Hunter's handling), the iOS automatic
-  landing gear, damaged control surfaces, wind, and the AI pilots' steering.
+- The Hydra's nozzle (m_wMiscComponentAngle, 0 forward to 5000 up) moves 25 a step toward where it was last sent
+  (CPlane::ProcessControlInputs' keyboard way; T sends it the other way), turning the thrust from forward to up;
+  over 3000 the player's Hydra hovers on FlyingControl's heli model with the Hunter's flying handling, its roll
+  reversed and a quarter of the throttle, the lift along the nozzle. It had hovered on authored equations. The touch
+  controls' way (gas over 0.15 a step forward and brake sending it up) is not ported.
+- Aircraft in water take the native buoyancy force (the flight step's gravity is native), which the browser's 9.81
+  gravity had scaled to half; the Vortex had sunk.
+- Not yet: the iOS automatic landing gear, damaged control surfaces, wind, and the AI pilots' steering.
 - `planes.spec` holds the throttle through the climb (the old throttle latched) and measures once the plane is a few
   units up: flown hands-off after a pull it rises and sinks, and can fly into the ground.
 

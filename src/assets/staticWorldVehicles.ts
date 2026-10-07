@@ -104,6 +104,8 @@ export async function openStaticWorldVehicles(source:Awaited<ReturnType<typeof o
    collision=boxCollisionFallback(vehicle.model,new Float32Array(positions));
    repaired.push(`Synthesized box collision for corrupt ${vehicle.model} collision data.`);
   }
-  return {...asset,plate,collision,repaired,vehicle,handling:records[0],flyingHandling:flight,animGroup:readVehicleAnimGroups(handling.supplements).get(records[0].values.animationGroup),supplements:handling.supplements.filter(row=>row.tokens[0]===vehicle.handling),missingTextures};
+  // CPlane::ProcessFlyingCarStuff flies the Hydra's hover on the Hunter's flying handling (iOS 0x100469e9c).
+  const vtolFlyingHandling=modelId===520?flyingHandling.get('HUNTER'):undefined;
+  return {...asset,plate,collision,repaired,vehicle,handling:records[0],flyingHandling:flight,vtolFlyingHandling,animGroup:readVehicleAnimGroups(handling.supplements).get(records[0].values.animationGroup),supplements:handling.supplements.filter(row=>row.tokens[0]===vehicle.handling),missingTextures};
  }};
 }
