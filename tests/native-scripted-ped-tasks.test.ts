@@ -35,6 +35,11 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'fallAndGetUp',direction:4,time:0},world({}))).toBeUndefined();
  });
 
+ test('TASK_WEAPON_ROLL rolls with CROUCH_ROLL_R for its flag and CROUCH_ROLL_L without (iOS)',()=>{
+  expect(scriptedPedOrder({kind:'weaponRoll',state:true},world({}))).toEqual({kind:'roll',clip:'crouch_roll_r'});
+  expect(scriptedPedOrder({kind:'weaponRoll',state:false},world({}))).toEqual({kind:'roll',clip:'crouch_roll_l'});
+ });
+
  test('standing still takes its time in milliseconds, and no time at all means for ever',()=>{
   expect(scriptedPedOrder({kind:'standStill',time:2500},world({}))).toEqual({kind:'standStill',seconds:2.5});
   expect(scriptedPedOrder({kind:'standStill',time:0},world({}))).toEqual({kind:'standStill',seconds:Infinity});

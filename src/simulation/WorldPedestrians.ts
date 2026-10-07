@@ -183,6 +183,7 @@ export interface Pedestrian {
   /** CTaskComplexJump after its launch: over once the ped has landed (or climbed). */
   |{kind:'jumping'}
   |{kind:'fallingDown'}
+  |{kind:'rolling';clip:string;elapsed:number;ready:boolean}
   /** CTaskSimpleGunControl: a renderer point or a ped (the player when neither) to aim at, firing or not. */
   |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number}
   /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. With
@@ -354,6 +355,8 @@ export interface Pedestrian {
    h?:{x:number;z:number};
    /** The jump task's forced climb, and an edge without room to stand already met (CTaskSimpleInAir's m_bInvalidClimb). */
    forceClimb?:boolean;invalidClimb?:boolean};
+ /** A clip's root movement for this frame (CTaskSimpleRunAnim's moving shift), taken by the next movement step. */
+ animShift?:{x:number;z:number};
   /** CTaskSimpleClimb under a jump task: the climb moves the ped (kinematic) until it stands on top or drops. */
   climb?:NativeClimbTask<ClimbEntity>;
   /** CTaskSimpleLand: the landing clip's remaining seconds (FALL_land, or FALL_collapse after a real fall). */
@@ -1920,6 +1923,17 @@ export class WorldPedestrians {
     // group) and 4.5 otherwise over the ped's mass, and a standing ped is given 0.1 a frame along its heading.
     const force=order.highJump||!!ped.follow?8.5:4.5,vz=force/PED_MASS*50,h=ped.actor.player.heading;
     ped.air={vz,minVz:0,seconds:0,h:{x:Math.sin(h)*.1*50,z:Math.cos(h)*.1*50},forceClimb:order.forceClimb};
+    break;
+   }
+   case 'roll':{
+    const own={kind:'rolling' as const,clip:order.clip,elapsed:0,ready:ped.view.hasReaction(order.clip)};
+    ped.order=own;ped.flee=0;ped.loiter=false;
+    if(own.ready)ped.view.playReaction(own.clip,ped.view.reactionDuration(own.clip)??1);
+    else void (this.catalog?.scriptAnimation('PED',order.clip)??Promise.resolve(undefined)).then(animation=>{
+     if(this.disposed||ped.order!==own)return;
+     if(!animation){this.startNextOrder(ped);return;}
+     ped.view.installReactions({[own.clip]:animation});own.ready=true;ped.view.playReaction(own.clip,ped.view.reactionDuration(own.clip)??1);
+    });
     break;
    }
    case 'fallAndGetUp':ped.flee=0;ped.loiter=false;ped.order={kind:'fallingDown'};this.scriptFall(ped,order.clip,order.lieMs);break;
@@ -3669,6 +3683,15 @@ export class WorldPedestrians {
      const o=p.order;dx=0;dz=0;o.remaining-=dt;
      const gone=o.target!==undefined&&(o.target.health<=0||!this.people.includes(o.target))||o.player&&this.sim.player.health<=0;
      if(o.remaining<=0||gone)this.startNextOrder(p);
+    }else if(p.order.kind==='rolling'){
+     // CTaskSimpleRunAnim: the clip's root movement carries the ped (sideways for a roll), through the character
+     // controller so a wall still stops it; over when the clip has played.
+     const o=p.order;dx=0;dz=0;
+     if(o.ready){
+      const duration=p.view.reactionDuration(o.clip)??0,to=Math.min(duration,o.elapsed+dt),m=p.view.reactionClipMotion(o.clip,o.elapsed,to),h=p.actor.player.heading;
+      p.animShift={x:-Math.cos(h)*m.x+Math.sin(h)*m.y,z:Math.sin(h)*m.x+Math.cos(h)*m.y};o.elapsed=to;
+      if(to>=duration){if(p.view.reactionName===o.clip)p.view.clearReaction();this.startNextOrder(p);}
+     }
     }else if(p.order.kind==='fallingDown'){
      // CTaskComplexFallAndGetUp: over once CTaskSimpleGetUp has stood the ped up.
      dx=0;dz=0;if(p.down===0)this.startNextOrder(p);
@@ -4181,7 +4204,8 @@ export class WorldPedestrians {
    const held=(p.drowning&&p.health>0)||!!p.air||p.landing!==undefined;
    // A fallen ped's low collider ignores the cars: the controller would otherwise shove it out of a car parked
    // over it, through the road (the get-up waits for the car instead, CTaskSimpleGetUp).
-   const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt+(p.air?.h?.x??0)*dt,y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt+(p.air?.h?.z??0)*dt},p.down>0?notCarCollider:undefined);
+   const shift=p.animShift;p.animShift=undefined;
+   const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt+(p.air?.h?.x??0)*dt+(shift?.x??0),y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt+(p.air?.h?.z??0)*dt+(shift?.z??0)},p.down>0?notCarCollider:undefined);
    if(water===undefined&&p.health>0&&p.down===0){
     if(!p.air&&!grounded&&movement.y<-4.5*dt){
      // Off the ground with the 5 m/s pull fully spent: the ped is in the air (bIsInTheAir) from this frame's gravity.

@@ -11232,3 +11232,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - TASK_FALL_AND_GET_UP runs for script peds, alone or in a sequence (8 uses): CTaskComplexFallAndGetUp(direction, time)
   falls with KO_SKID_FRONT, KO_SPIN_R, KO_SKID_BACK or KO_SPIN_L by the direction (the command read it as a flag), lies
   the time and gets up, with no blow behind it (nobody frightened, no flight after). The player's form ($3) still refused.
+- TASK_WEAPON_ROLL runs for script peds, alone or in a sequence (12 or more uses): CTaskSimpleRunAnim with the default
+  group's CROUCH_ROLL_R for its flag and CROUCH_ROLL_L without, the ped carried sideways by the clip's own root movement
+  (about 2.8 units) through its character controller, and the task over when the clip ends. The player's crouch roll is
+  still not ported.

@@ -82,6 +82,9 @@ export type ScriptedPedOrder=
  /** CTaskComplexFallAndGetUp(direction, downTime) for TASK_FALL_AND_GET_UP: CTaskSimpleFall's KO clip, `lieMs` on the
   * ground, then CTaskSimpleGetUp; the task is over once the ped stands. */
  |{kind:'fallAndGetUp';clip:'ko_skid_front'|'ko_spin_r'|'ko_skid_back'|'ko_spin_l';lieMs:number}
+ /** CTaskSimpleRunAnim for TASK_WEAPON_ROLL: the default group's CROUCH_ROLL_R or _L at a blend of 4, the ped carried
+  * along by the clip's own movement; over when the clip ends. */
+ |{kind:'roll';clip:'crouch_roll_r'|'crouch_roll_l'}
  /** CTaskSimpleGunControl for TASK_AIM_GUN_AT_* and TASK_SHOOT_AT_*: stand, face the target (a point in the script's
   * coordinates, or a ped's handle) and aim, firing when `fire`, for `seconds`. */
  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number}
@@ -263,6 +266,8 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'jump':return {kind:'jump',forceClimb:false,highJump:task.state};
   // iOS 0x1001e6c04: new CTaskComplexFallAndGetUp(direction, time) (ctor 0x100414850): 0 KO_SKID_FRONT, 1 KO_SPIN_R,
   // 2 KO_SKID_BACK, 3 KO_SPIN_L; another direction leaves the clip unset, which the port does not guess at.
+  // iOS 0x1001f1f90: new CTaskSimpleRunAnim(ANIM_GROUP_DEFAULT, flag ? 59 CROUCH_ROLL_R : 57 CROUCH_ROLL_L, 4.0).
+  case 'weaponRoll':return {kind:'roll',clip:task.state?'crouch_roll_r':'crouch_roll_l'};
   case 'fallAndGetUp':{const clip=FALL_DIRECTION_CLIPS[task.direction];return clip?{kind:'fallAndGetUp',clip,lieMs:Math.max(0,task.time)}:undefined;}
   case 'duck':return {kind:'duck',crouch:true,seconds:seconds(task.time)};
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};

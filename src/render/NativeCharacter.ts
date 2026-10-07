@@ -322,6 +322,9 @@ export class NativeCharacter {
   reactionPaused=false;
   hasReaction(name:string){return this.reactions.has(name);}
   reactionDuration(name:string){return this.reactions.get(name)?.duration;}
+  /** The root's X (to the right) and Y (ahead) movement a reaction clip extracts between two of its times: the moving
+   * shift CAnimBlendAssociation hands the ped for a clip that moves it. Nothing for a clip not installed. */
+  reactionClipMotion(name:string,from:number,to:number){const motion=this.reactions.get(name)?.rootMotion;return motion?motion.delta(from,to,false,new Vector3()):new Vector3();}
   /** `loop` wraps the clip (an ANIMATION_LOOPED association); otherwise it stops on its last frame. */
   playReaction(name:string,duration?:number,fitDuration=false,startSeconds=0,loop=false,rate=1) {
     const binding=this.reactions.get(name);if(!binding)return;
