@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {GangWars,GANG,WAR_STATE,ATTACK_STATE,GANG_WAR_TEXT,type GangWarHost} from '../src/simulation/GangWars';
+import {GangWars,GANG,WAR_STATE,ATTACK_STATE,GANG_WAR_TEXT,attackWaveComposition,attackWaveWeapon,type GangWarHost} from '../src/simulation/GangWars';
 import type {WorldZones,WorldZone} from '../src/assets/worldZones';
 const zone=(infoLabel:string,i:number,min:[number,number],max:[number,number]):WorldZone=>({infoLabel,textLabel:infoLabel,type:0,min:[min[0],min[1],-100],max:[max[0],max[1],500],level:0,line:0,source:'t',zoneInfoIndex:i});
 function world(){
@@ -127,4 +127,21 @@ test('the zone name colour is the gang colour of the zone under the player while
  zones.population![4].gangStrength[GANG.ballas]=30;state.player={x:2200,y:-1550,z:10};
  expect(g.zoneNameColour()).toEqual([135,100,100]);
  g.active=false;expect(g.zoneNameColour()).toBeUndefined();
+});
+
+test('an attack wave is made as iOS makes it: its size, its two weapons and its aim by ferocity and difficulty',()=>{
+ // (Difficulty × 0.3 + 0.7) × (f + 3), accuracy Difficulty × 25 + 70, 120 health, 5000 rounds.
+ expect(attackWaveComposition(0,0,false)).toEqual({count:2,a:22,b:5,accuracy:70,health:120,ammo:5000});
+ expect(attackWaveComposition(3,1,false)).toMatchObject({count:6,a:30,b:29,accuracy:95});
+ expect(attackWaveComposition(2,.5,false)).toMatchObject({count:4,a:29,b:28,accuracy:82});
+ // Ferocity 5: ten of them, the AK-47 or the Desert Eagle.
+ expect(attackWaveComposition(5,0,false)).toMatchObject({count:10,a:30,b:24});
+ // The training mission (CRASH4): two, with a bat, then a pistol, then Tec-9s.
+ expect(attackWaveComposition(0,.2,true)).toMatchObject({count:2,a:5,b:5});
+ expect(attackWaveComposition(1,.2,true)).toMatchObject({count:2,a:22,b:22});
+ expect(attackWaveComposition(2,.2,true)).toMatchObject({count:2,a:32,b:32});
+ // B when random × 1.6 − 0.3 is over Difficulty.
+ expect(attackWaveWeapon({a:22,b:5},.3,.5)).toBe(5);
+ expect(attackWaveWeapon({a:22,b:5},0,0)).toBe(22);
+ expect(attackWaveWeapon({a:22,b:5},1,.99)).toBe(5);
 });

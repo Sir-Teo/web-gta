@@ -11249,3 +11249,12 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   (CountMembersExcludingLeader counts every follower; the script holds no handle for them), up to the group's seven. RIOT2
   asks for "a couple of Grove Street Families" and waits for Cesar and two more: it could never go on. GET_GROUP_MEMBER
   still names only the script's own members.
+- A gang war's attack waves are made as iOS makes them (CGangWars::CreateAttackWave, iOS 0x1001b0b58; unreversed on PC,
+  where the port had taken it for a stub): two groups a wave, Gang1's and then Gang2's (the same gang when one rules the
+  zone), each (Difficulty × 0.3 + 0.7) × (ferocity + 3) strong, two in the training mission and ten at ferocity 5; armed
+  from the game's ferocity tables (pistol or bat at first, up to the AK-47 or Desert Eagle), the training mission's
+  CRASH4 waves with bats, then pistols, then Tec-9s; 5000 rounds, 120 health and an accuracy of Difficulty × 25 + 70.
+  Still authored: where they stand (a ring round a path node 45 units out, where iOS forms each group in a line across
+  its approach at a car-path point some 50 units out, out of the camera's sight if it can); and not yet ported, the
+  gang-coloured radar blip on each attacker, the health or armour pickup by the point of attack, and the first wave's
+  drive-by car.

@@ -115,7 +115,7 @@ import {WeaponDrops} from './simulation/WeaponDrops';
 import {MoneyDrops} from './simulation/MoneyDrops';
 import {nativeWeatherRegion,WEATHER_REGION} from './world/weatherRegion';
 import {CRIME,LAW_ENFORCEMENT_MODELS} from './simulation/nativeWanted';
-import {GangWars,GANG_COLOURS,attackBlipSprite} from './simulation/GangWars';
+import {GangWars,GANG_COLOURS,attackBlipSprite,attackWaveComposition} from './simulation/GangWars';
 import {HeadlightBeams} from './render/HeadlightBeams';
 import {FRAME_LIMITER_FPS,MENU_FPS,frameDue,readDisplaySettings,saveDisplaySettings,type DisplaySettings,type FramePacer} from './core/frameLimiter';
 import {getUpClip,getUpBlockedBy,isFrontClip,stuckUnderCarDamage,GET_UP_CLEAR_RADIUS} from './ped/nativeGetUp';
@@ -6472,8 +6472,9 @@ async function boot() {
                // A failure here would leave the script silent, so it is reported rather than swallowed.
                }).catch(error=>{console.error('ScmMission failed to start',error);});
               }
-              // CGangWars over the zone gang strengths. CreateAttackWave is a retail stub: the offensive waves are
-              // authored (4 + 2 × ferocity attackers, at most 12, round a path node 45 units from the player).
+              // CGangWars over the zone gang strengths. CreateAttackWave's make-up is iOS's (attackWaveComposition: two
+              // groups, Gang1's and Gang2's); where each stands is still authored, round a path node 45 units from the
+              // player, the second group at least a quarter turn round from the first.
               if(worldZones&&!gangWars){
                const toNative=(p:{x:number;y:number;z:number})=>({x:p.x,y:-p.z,z:p.y}),toBrowser=(p:{x:number;y:number;z:number})=>({x:p.x,y:p.z,z:-p.y});
                let pending:'wave'|'defenders'|undefined,ready:'wave'|'defenders'|undefined;
@@ -6489,7 +6490,16 @@ async function boot() {
                 trainingMission:()=>!!mission?.runtime.game.gangWarsTrainingMission,
                 territoryStat:(kind,value)=>{const stats=mission?.runtime.game.stats;if(!stats)return;if(kind==='taken')stats.increment(234,1);else if(kind==='lost')stats.increment(235,1);else{stats.set(236,value);stats.setNewRecord(237,value);}},
                 weatherLA:()=>nativeWeatherRegion(sim.player.position.x,-sim.player.position.z)===WEATHER_REGION.la,zones:()=>worldZones,
-                createAttackWave:(ferocity)=>{const a=Math.random()*Math.PI*2,p=sim.player.position;return spawn('wave',gangWars!.gang1,Math.min(12,4+2*ferocity),{x:p.x+Math.sin(a)*45,y:p.y,z:p.z+Math.cos(a)*45},90-gangWars!.difficulty*60);},
+                createAttackWave:ferocity=>{
+                 if(ready==='wave'){ready=undefined;return true;}
+                 if(pending||!pedestrians)return false;
+                 const war=gangWars!,crowd=pedestrians,d=war.difficulty,make=attackWaveComposition(ferocity,d,!!mission?.runtime.game.gangWarsTrainingMission),p=sim.player.position;
+                 const first=Math.random()*Math.PI*2,angles=[first,first+Math.PI/2+Math.random()*Math.PI];
+                 pending='wave';
+                 void Promise.all([war.gang1,war.gang2].map((gang,i)=>crowd.spawnAttackWave(gang,make.count,{x:p.x+Math.sin(angles[i])*45,y:p.y,z:p.z+Math.cos(angles[i])*45},make.accuracy,false,{weapons:make,difficulty:d,health:make.health,ammo:make.ammo})))
+                  .then(n=>{pending=undefined;if(n[0]+n[1]>0)ready='wave';}).catch(()=>{pending=undefined;});
+                 return false;
+                },
                 createDefendingGroup:(gang,point,difficulty)=>{
                  // The group gathers at the car node nearest PointOfAttack (within 400; none while the paths are not loaded),
                  // and not while the player is within 40 of that node.

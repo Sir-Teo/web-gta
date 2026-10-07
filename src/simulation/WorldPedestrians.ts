@@ -1,3 +1,4 @@
+import {attackWaveWeapon} from './GangWars';
 import {runOverShake} from '../engine/nativePadShakes';
 import {deadPedWeaponDrops} from './WeaponDrops';
 import {weaponAtStartOfFight} from '../ped/nativeFightWeapon';
@@ -1553,7 +1554,9 @@ export class WorldPedestrians {
  /** A gang war's attackers or defenders. CreateAttackWave (unreversed) is stood in for by a ring 2 to 5 units round the
   * nearest ped node. With `defenders`, `center` is CreateDefendingGroup's car node: each ped stands at the node plus
   * (sin, cos)(angle) × a random 0 to 3, plus 2 on both axes, on the ground found from 2 above the node. */
- async spawnAttackWave(gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number,defenders=false){
+ /** `make`: an attack wave's arms and health (attackWaveComposition), each attacker taking weapon A or B by
+  * attackWaveWeapon; without it (the defenders) the four guns go round in turn. */
+ async spawnAttackWave(gang:number,count:number,center:{x:number;y:number;z:number},accuracy:number,defenders=false,make?:{weapons:{a:number;b:number};difficulty:number;health:number;ammo:number}){
   const catalog=this.catalog;if(!catalog||this.disposed)return 0;
   const node=this.nearestNode(center);if(!node)return 0;
   const members=catalog.gangs[gang]??[];if(!members.length)return 0;
@@ -1568,11 +1571,13 @@ export class WorldPedestrians {
    if(!hit)continue;
    let built:{source:import('../render/NativeCharacter').CharacterSource;speeds:{walk:number;run:number;sprint:number};stats:{attack:number;defend:number;pedType?:string;decisionMaker?:number}},weapon:Awaited<Catalog['weapon']>|undefined;
    try{built={source:await catalog.character(model),speeds:await catalog.characterSpeeds(model),stats:await catalog.characterStats(model)};}catch{continue;}
-   try{weapon=await catalog.armedWith(guns[i%4]);}catch{try{weapon=await catalog.armedWith(22);}catch{weapon=undefined;}}
+   const type=make?attackWaveWeapon(make.weapons,make.difficulty,Math.random()):guns[i%4];
+   try{weapon=await catalog.armedWith(type);}catch{try{weapon=await catalog.armedWith(22);}catch{weapon=undefined;}}
    if(this.disposed)return spawned;
    const position={x,y:top-hit.timeOfImpact+.03,z};
    const p=this.createPed({position,heading:angle,source:built.source,officer:false,node,weapon,speed:built.speeds.walk,speeds:built.speeds,stats:built.stats,gang,modelRef:model,gunAccuracy:accuracy});
    p.attackWave=true;p.retaliate=KILL_PED_ON_FOOT_SECONDS;p.flee=0;this.chooseTarget(p);spawned++;
+   if(make){p.health=make.health;p.weaponType=type;p.totalAmmo=make.ammo;}
   }
   return spawned;
  }

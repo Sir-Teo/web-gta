@@ -5,13 +5,32 @@ import type {ZonePopulation} from '../assets/scmZonePopulation';
  * starts an offensive war in the zone he stands in (three waves, 10 s apart, the zone's gang strength shifting to
  * the Families after each), and a defensive war timer (648 to 1,620 s, LA time; 0.6× elsewhere) picks a Families
  * zone near enemy turf for an attack the player must reach (200 ms a unit plus 240 s) and beat (30 s more), or
- * lose 30 strength and 30 respect. `CreateAttackWave` is a retail stub: the host authors the offensive waves.
+ * lose 30 strength and 30 respect. `CreateAttackWave` (unreversed on PC) is decoded from iOS 0x1001b0b58: what the
+ * waves are made of is `attackWaveComposition`; where they stand is still the host's authored placement.
  * Native coordinates throughout (x, y, z up). */
 export const GANG={ballas:0,grove:1,vagos:2,rifa:3,danang:4,mafia:5,triad:6,aztecas:7} as const;
 export const WAR_STATE={notInWar:0,preFirstWave:1,firstWave:2,preSecondWave:3,secondWave:4,preThirdWave:5,thirdWave:6} as const;
 export const ATTACK_STATE={none:0,notified:1,playerCame:2} as const;
 /** gaGangColors: Ballas purple, Families green, Vagos yellow, Rifa blue, Da Nang, Mafia, Triad, Aztecas. */
 export const GANG_COLOURS:readonly [number,number,number][]=[[200,0,200],[70,200,0],[255,200,0],[0,0,200],[255,220,190],[200,200,200],[240,140,240],[0,200,255],[255,255,255],[255,255,255]];
+/** CGangWars::CreateAttackWave (iOS 0x1001b0b58; unreversed on PC): the make-up of each of a wave's two groups (Gang1's,
+ * then Gang2's) for ferocity `f` (WarFerocity + the wave, at least 0). (Difficulty × 0.3 + 0.7) × (f + 3) attackers,
+ * two in the gang wars training mission (CRASH4) and ten at ferocity 5; each armed with weapon A or B from the game's
+ * ferocity tables, or in the training mission a bat at ferocity 0, a pistol at 1 and a Tec-9 above, both alike; and
+ * an accuracy of Difficulty × 25 + 70. Every attacker has 120 health and 5000 rounds. */
+export function attackWaveComposition(f:number,difficulty:number,training:boolean){
+ const row=Math.min(5,Math.max(0,Math.trunc(f)));
+ const trainingWeapon=row===0?5:row===1?22:32;
+ const count=training?2:row===5?10:Math.trunc((difficulty*.3+.7)*(row+3));
+ return {count,a:training?trainingWeapon:ATTACK_WEAPON_A[row],b:training?trainingWeapon:ATTACK_WEAPON_B[row],accuracy:Math.trunc(difficulty*25+70),health:ATTACK_WAVE_HEALTH,ammo:5000};
+}
+/** The weapon tables CreateAttackWave reads by ferocity (iOS 0x1005931e0 and 0x100593220): A pistol, Micro Uzi, MP5,
+ * AK-47; B bat, pistol, Micro Uzi, MP5, AK-47, Desert Eagle. */
+const ATTACK_WEAPON_A=[22,28,29,30,30,30] as const,ATTACK_WEAPON_B=[5,22,28,29,30,24] as const;
+/** CPed m_fHealth and m_fMaxHealth for an attacker (iOS writes 120.0 to both). */
+export const ATTACK_WAVE_HEALTH=120;
+/** Each attacker's weapon: B when CGeneral::GetRandomNumber × 1.6 / 2^31 − 0.3 is over Difficulty, else A. */
+export function attackWaveWeapon(composition:{a:number;b:number},difficulty:number,random:number){return random*1.6-.3>difficulty?composition.b:composition.a;}
 /** eRadarSprite for the defensive war's blip: RADAR_SPRITE_GANGP 59, GANGY 60, GANGB 58, ENEMYATTACK 19. */
 export function attackBlipSprite(gang:number){return gang===GANG.ballas?59:gang===GANG.vagos||gang===GANG.danang?60:gang===GANG.rifa?58:19;}
 /** The messages CGangWars queues, by TheText label: the port's own wording, used only until AMERICAN.GXT has loaded. */
@@ -29,7 +48,8 @@ export interface GangWarHost {
  /** CWeather::WeatherRegion == LA: the defensive timer runs at full speed there. */
  weatherLA():boolean;
  zones():WorldZones|undefined;
- /** CreateAttackWave(ferocity, wave): true once the wave stands. Authored by the host (retail stub). */
+ /** CreateAttackWave(ferocity, wave): true once the wave stands. The host places it (authored); its make-up is
+  * attackWaveComposition. */
  createAttackWave(ferocity:number,wave:number):boolean;
  /** CreateDefendingGroup at the point of attack: false until the defenders stand (models, nodes, the player 40 units off). */
  createDefendingGroup(gang:number,point:{x:number;y:number;z:number},difficulty:number):boolean;
