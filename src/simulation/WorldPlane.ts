@@ -287,7 +287,26 @@ export class WorldPlane {
  /** Whether the model has landing gear to retract (gear_ frames). */
  get retractableGear(){return this.gearFrames??=this.assets.model.frames.some(f=>f.name.startsWith('gear_'));}
  private gearFrames?:boolean;
- toggleGear(){if(!this.retractableGear)return 'This aircraft has fixed landing gear.';if(this.grounded)return 'Take off before retracting the landing gear.';this.gearUp=!this.gearUp;for(const c of this.wheels)c.setEnabled(!this.gearUp);return `Landing gear ${this.gearUp?'up':'down'}`;}
+ /** The gear widget (iOS widget 102): the next flight step sends the gear the other way, if it may move. */
+ toggleGear(){if(!this.retractableGear)return 'This aircraft has fixed landing gear.';if(this.grounded)return 'Take off before retracting the landing gear.';this.gearToggle=true;return `Landing gear ${this.gearStatus===0||this.gearStatus<0?'up':'down'}`;}
+ private gearToggle=false;
+ /** CPlane::m_fLandingGearStatus: 0 down, 1 up, rising from 0 to 1 while retracting and from −1 to 0 while lowering. */
+ gearStatus=0;
+ /** CPlane::ProcessControlInputs' landing gear (iOS 0x100469930): within 30 units of the ground with the gear up and
+  * no throttle it comes down, above that it goes up, and the widget sends it the other way; it moves only with every
+  * wheel off the ground, on a gear with fGearUpR under 1, and takes 50 steps (1 s). The wheels and the drag change as
+  * it reaches either end. */
+ private stepGear(ts:number,accelerating:boolean){
+  const f=this.assets.flyingHandling!.values;
+  if(this.retractableGear&&f.gearUpResistance<1&&this.modelId!==464&&!this.grounded){
+   const toggle=this.gearToggle||(this.altitude<=30?!accelerating&&this.gearStatus===1:this.gearStatus===0);
+   if(toggle)this.gearStatus=this.gearStatus===0?.02*ts:this.gearStatus===1?.02*ts-1:-this.gearStatus;
+  }
+  this.gearToggle=false;
+  if(this.gearStatus<0){this.gearStatus+=.02*ts;if(this.gearStatus>=0){this.gearStatus=0;this.setGearUp(false);}}
+  else if(this.gearStatus>0&&this.gearStatus<1){this.gearStatus+=.02*ts;if(this.gearStatus>=1){this.gearStatus=1;this.setGearUp(true);}}
+ }
+ private setGearUp(up:boolean){this.gearUp=up;for(const c of this.wheels)c.setEnabled(!up);}
  beforeStep(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}){
   const nearby=this.occupied||this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};this.stepDt=dt;
@@ -326,6 +345,7 @@ export class WorldPlane {
   else if(auto){s.pitch=auto.pitch;s.roll=auto.roll;s.rudder=auto.rudder;s.accel=auto.throttle;}
   else{s.pitch=s.roll=s.rudder=s.accel=0;}
   let {pitch,roll,rudder,accel}=s;
+  if(this.occupied)this.stepGear(ts,input.throttle>0);
   const model=this.modelId===464?FLIGHT_MODEL.baron:FLIGHT_MODEL.plane;
   if(this.occupied){
    // ProcessFlyingCarStuff under 250 health: the controls pull the burning plane over.
@@ -366,7 +386,7 @@ export class WorldPlane {
   const right=axis(1,0,0),forward=axis(0,0,-1),up=axis(0,1,0);
   return {moveSpeed:native(this.body.linvel()).map(c=>c/50) as NV,turnSpeed:native(this.body.angvel()).map(c=>c/50) as NV,position:[p.x,-p.z,p.y],right,forward,up,
    comWorld:[0,1,2].map(i=>right[i]*h.centerOfMassX+forward[i]*h.centerOfMassY+up[i]*h.centerOfMassZ) as NV,
-   tailY:this.assets.collision!.bounds.min[1],allWheelsInAir:!this.grounded,gearStatus:this.gearUp?1:0};
+   tailY:this.assets.collision!.bounds.min[1],allWheelsInAir:!this.grounded,gearStatus:this.gearStatus};
  }
  private writeFlyingBody(body:FlyingBody){
   this.airspeed=Math.hypot(...body.moveSpeed)*50;

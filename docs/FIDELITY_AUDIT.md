@@ -618,7 +618,11 @@ helicopter's collective is cut to 10 / (h + 10).
   controls' way (gas over 0.15 a step forward and brake sending it up) is not ported.
 - Aircraft in water take the native buoyancy force (the flight step's gravity is native), which the browser's 9.81
   gravity had scaled to half; the Vortex had sunk.
-- Not yet: the iOS automatic landing gear, damaged control surfaces, wind, and the AI pilots' steering.
+- The landing gear is CPlane's (iOS 0x100469930): m_fLandingGearStatus takes 50 steps (1 s) between down and up,
+  the wheels and the drag changing as it reaches either end and fGearDownL lifting while it is not fully up; within
+  30 units of the ground with no throttle it comes down by itself, above 30 it goes up by itself, and G (the gear
+  widget) sends it the other way. It had switched at once on G alone.
+- Not yet: damaged control surfaces, wind, and the AI pilots' steering.
 - `planes.spec` holds the throttle through the climb (the old throttle latched) and measures once the plane is a few
   units up: flown hands-off after a pull it rises and sinks, and can fly into the ground.
 
