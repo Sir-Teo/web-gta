@@ -1,13 +1,11 @@
 /** Aero engine — full-game port facade.
  *
- * Provenance: fixed-wing forces via `simulation/planeFlight.ts`
- * (authored FlyingControl approximation: thrust/drag, stall authority, ground effect,
- * crosswind coupling), heli lift via `simulation/hoverFlight.ts` (authored
+ * Provenance: fixed-wing forces via `simulation/nativeFlyingControl.ts` (the iOS
+ * CVehicle::FlyingControl plane branch), heli lift via `simulation/hoverFlight.ts` (authored
  * collective + CHeli rotor-gated model), gear via `simulation/nativePlaneGear.ts`,
  * buoyancy via `simulation/nativeBuoyancy.ts` (WATER.DAT).
  */
-export type { PlaneControls } from '../simulation/planeFlight';
-export { planeFlight } from '../simulation/planeFlight';
+export type { PlaneControls } from '../simulation/nativeFlyingControl';
 export { hoverFlight } from '../simulation/hoverFlight';
 export { bikeLeanTarget, approachBikeLean } from '../simulation/nativeBikeLean';
 export { nativeBoatDrive } from '../simulation/nativeBoatDrive';

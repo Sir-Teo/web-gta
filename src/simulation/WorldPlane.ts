@@ -12,7 +12,7 @@ import {installNativeVehicleBody} from './nativeVehicleBody';
 import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {hoverFlight} from '../flight/aero';
-import {planeFlight,type PlaneControls} from '../flight/aero';
+import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
 import {requireAsset} from '../assets/binary';
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
@@ -162,7 +162,11 @@ export class WorldPlane {
     const key=[p.x,p.y,p.z].map(n=>n.toFixed(2)).join(',');if(seen.has(key))return;seen.add(key);
     const radius=Math.max(.15,(assets.vehicle.frontWheelSize??.6)*.5);
     this.rollingWheels.push({object,base:object.matrix.clone(),radius,previous:0,roll:{angle:0,speed:0}});
-    this.wheels.push(sim.world.createCollider(RAPIER.ColliderDesc.ball(radius).setTranslation(p.x,p.y,p.z).setDensity(0).setFriction(.02).setRestitution(0),this.body));
+    // A plane's wheels roll (CAutomobile's wheels): their ball takes its own small friction whatever it touches, the
+    // grip and the brakes being the flight step's. A helicopter's keeps the ground's.
+    const wheel=RAPIER.ColliderDesc.ball(radius).setTranslation(p.x,p.y,p.z).setDensity(0).setFriction(.02).setRestitution(0);
+    if(assets.vehicle.type!=='heli')wheel.setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min);
+    this.wheels.push(sim.world.createCollider(wheel,this.body));
    }
   });
   this.previous={...position};this.previousRotation={...this.body.rotation()};this.update(1);
@@ -306,21 +310,72 @@ export class WorldPlane {
     this.rotorSpeed=auto?HELI_MAX_ROTOR_SPEED:running?Math.min(HELI_MAX_ROTOR_SPEED,this.rotorSpeed+HELI_ROTOR_SPIN_UP*dt):Math.max(0,this.rotorSpeed-HELI_ROTOR_SPIN_DOWN*dt);
    }
    this.inputs={throttle:this.throttle,pitch:this.occupied?input.pitch:auto?.pitch??0,roll:this.occupied?input.roll:auto?.roll??0,rudder:this.occupied?input.rudder:auto?.rudder??0,brake:auto?auto.brake:!this.occupied||input.brake};
+  if(!this.helicopter&&!(this.modelId===520&&this.vtol)){this.flyPlane(dt,input,auto);}
+  else{
   // CVehicle::HeightAboveCeiling (gta-reversed ead3051): the flight ceiling is 800 m for planes and helicopters
   // (500 m for the RC Baron); FlyingControl's response above it is a retail stub, so this is authored from play:
   // the nose is held down and the aircraft is pushed down harder the further above the ceiling it is.
   const above=heightAboveCeiling(this.body.translation().y,this.modelId===464?'baron':'aircraft');
-  if(above>0&&!this.helicopter)this.inputs={...this.inputs,pitch:Math.min(this.inputs.pitch,-.5)};
-  const result=this.helicopter||this.modelId===520&&this.vtol?hoverFlight(this.body.linvel(),this.body.rotation(),{...this.inputs,brake:this.occupied&&input.brake},this.helicopter?this.rotorSpeed/HELI_MAX_ROTOR_SPEED:1):planeFlight(this.body.linvel(),this.body.rotation(),this.inputs,this.assets.flyingHandling!,this.gearUp,this.grounded);this.airspeed=result.speed;this.stall=result.stall;
-  const forwardSpeed=-new Vector3().copy(this.body.linvel()).applyQuaternion(new Quaternion().copy(this.body.rotation()).invert()).z;
-  for(const wheel of this.rollingWheels){wheel.previous=wheel.roll.angle;wheel.roll=stepPlaneWheelRoll(wheel.roll,forwardSpeed,wheel.radius,this.grounded&&!this.gearUp,dt);}
+  const result=hoverFlight(this.body.linvel(),this.body.rotation(),{...this.inputs,brake:this.occupied&&input.brake},this.helicopter?this.rotorSpeed/HELI_MAX_ROTOR_SPEED:1);this.airspeed=result.speed;this.stall=result.stall;
   let ay=result.acceleration.y;
   if(above>0){ay-=9.81*Math.min(3,above/40);const vy=this.body.linvel().y;if(vy>0)ay-=vy/Math.max(dt,1e-3)*.5;}
   const v=this.body.linvel();this.body.setLinvel({x:v.x+result.acceleration.x*dt,y:v.y+ay*dt,z:v.z+result.acceleration.z*dt},true);
+  this.body.setAngvel(result.angular,true);
+  }
+  const forwardSpeed=-new Vector3().copy(this.body.linvel()).applyQuaternion(new Quaternion().copy(this.body.rotation()).invert()).z;
+  for(const wheel of this.rollingWheels){wheel.previous=wheel.roll.angle;wheel.roll=stepPlaneWheelRoll(wheel.roll,forwardSpeed,wheel.radius,this.grounded&&!this.gearUp,dt);}
   this.impactVelocity.copy(this.body.linvel());
-  this.body.setAngvel(result.angular,true);this.propAngle=(this.propAngle+dt*(this.helicopter?this.rotorSpeed/HELI_MAX_ROTOR_SPEED*95:5+this.throttle*90))%(Math.PI*2);
+  this.propAngle=(this.propAngle+dt*(this.helicopter?this.rotorSpeed/HELI_MAX_ROTOR_SPEED*95:5+this.throttle*90))%(Math.PI*2);
   this.floatOnWater(dt);
  }
+ /** CPlane's flight for a fixed-wing aircraft (nativeFlyingControl.ts): ProcessControlInputs' smoothing, ProcessFlyingCarStuff
+  * (the damage biases under 250, the throttle cut above the ceiling, the propeller and its gate) and FlyingControl,
+  * after CPhysical's gravity and air resistance, in native units on the body's velocities. On its wheels the browser
+  * keeps its own grip, brakes and nose-wheel turn (CAutomobile's wheel physics for planes are not ported). */
+ private flyPlane(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean},auto:WorldPlane['autopilot']){
+  const ts=dt*50,h=this.handling.values,f=this.assets.flyingHandling!.values,q=new Quaternion().copy(this.body.rotation());
+  const native=(v:{x:number;y:number;z:number}):NV=>[v.x,-v.z,v.y],axis=(x:number,y:number,z:number)=>native(new Vector3(x,y,z).applyQuaternion(q));
+  const right=axis(1,0,0),forward=axis(0,0,-1),up=axis(0,1,0),v=this.body.linvel(),w=this.body.angvel(),p=this.body.translation();
+  const flying=this.health>0&&(!!auto||this.occupied)&&!(this.drowning&&this.water.buoyancy<h.mass/125);
+  // ProcessControlInputs: the player's pitch, roll and rudder follow the stick 0.069 of the way a step; the throttle is
+  // (gas − brake) / 255 at once. The AI writes its own.
+  const s=this.planeInput;
+  if(this.occupied){s.pitch=smoothPlaneInput(s.pitch,input.pitch,ts);s.roll=smoothPlaneInput(s.roll,input.roll,ts);s.rudder=smoothPlaneInput(s.rudder,input.rudder,ts);s.accel=input.throttle;}
+  else if(auto){s.pitch=auto.pitch;s.roll=auto.roll;s.rudder=auto.rudder;s.accel=auto.throttle;}
+  else{s.pitch=s.roll=s.rudder=s.accel=0;}
+  let {pitch,roll,rudder,accel}=s;
+  const model=this.modelId===464?FLIGHT_MODEL.baron:FLIGHT_MODEL.plane,position:NV=[p.x,-p.z,p.y];
+  if(this.occupied){
+   // ProcessFlyingCarStuff under 250 health: the controls pull the burning plane over.
+   if(this.health<250){const bank=Math.atan2(right[2],up[2]<0?-Math.hypot(right[0],right[1]):Math.hypot(right[0],right[1]));if(Math.abs(bank)<3*Math.PI/4)roll+=.75;rudder+=.5;if(Math.abs(bank)>Math.PI/2)pitch+=.5;}
+   // Above the ceiling the throttle is cut by a twenty-fifth a unit.
+   const above=nativeHeightAboveCeiling(position[2],model);if(above>0)accel=Math.max(accel-above/25,-1);
+  }
+  this.propSpeed=flying?stepPropSpeed(this.propSpeed,accel,ts):this.propSpeed>.001*ts?this.propSpeed-(this.propSpeed>.18?.003:.001)*ts:0;
+  this.throttle=flying?Math.max(0,accel):0;
+  const body:FlyingBody={moveSpeed:native(v).map(c=>c/50) as NV,turnSpeed:native(w).map(c=>c/50) as NV,position,right,forward,up,
+   comWorld:[0,1,2].map(i=>right[i]*h.centerOfMassX+forward[i]*h.centerOfMassY+up[i]*h.centerOfMassZ) as NV,
+   tailY:this.assets.collision!.bounds.min[1],allWheelsInAir:!this.grounded,gearStatus:this.gearUp?1:0};
+  applyGravityAndAirResistance(body,h.dragMultiplier/2000*(this.gearUp?f.gearUpResistance:1),ts);
+  const moving=body.moveSpeed[0]**2+body.moveSpeed[1]**2+body.moveSpeed[2]**2>.05;
+  this.stall=false;
+  if(flying&&(this.propSpeed>.05||moving)){const r=planeFlyingControl(body,f,{rudder,pitch,roll,accel},model,ts,{vortex:this.modelId===539});this.stall=r.stallMs>0;}
+  if(this.grounded){
+   // The browser's wheels: side grip, the brakes and the nose wheel's turn (rad/s at the browser's metres).
+   const side=body.moveSpeed[0]*right[0]+body.moveSpeed[1]*right[1]+body.moveSpeed[2]*right[2],speed=Math.hypot(v.x,v.z);
+   body.moveSpeed=body.moveSpeed.map((c,i)=>c-right[i]*side*Math.min(1,5*dt)) as NV;
+   if(input.brake||!flying){const fwd=body.moveSpeed[0]*forward[0]+body.moveSpeed[1]*forward[1],cut=Math.min(Math.abs(fwd),Math.min(speed*3,14)*ts/2500)*Math.sign(fwd);body.moveSpeed=body.moveSpeed.map((c,i)=>c-forward[i]*cut) as NV;}
+   const yaw=-rudder*.5*Math.min(1,speed/5)/50,spin=body.turnSpeed[0]*up[0]+body.turnSpeed[1]*up[1]+body.turnSpeed[2]*up[2];
+   body.turnSpeed=body.turnSpeed.map((c,i)=>c+up[i]*(yaw-spin)) as NV;
+  }
+  this.airspeed=Math.hypot(...body.moveSpeed)*50;
+  const [mx,my,mz]=body.moveSpeed,[tx,ty,tz]=body.turnSpeed;
+  this.body.setLinvel({x:mx*50,y:mz*50,z:-my*50},true);this.body.setAngvel({x:tx*50,y:tz*50,z:-ty*50},true);
+ }
+ /** CPlane's m_fSteeringUpDown, m_fSteeringLeftRight, m_fLeftRightSkid and m_fAccelerationBreakStatus. */
+ private planeInput={pitch:0,roll:0,rudder:0,accel:0};
+ /** CPlane::m_fPropSpeed. */
+ propSpeed=0;
  /** CAutomobile::ProcessBuoyancy for aircraft over WATER.DAT surfaces. Browser flight gravity is 9.81 m/s²
   * against native 0.008 per 50 Hz step (20 m/s²), so buoyancy force is scaled to keep native immersion. */
  private floatOnWater(dt:number){

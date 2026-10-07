@@ -7,8 +7,13 @@ test('map hangar launches an original plane into the continuous world',async({pa
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().aircraft?.occupied),{timeout:30000}).toBe(true).catch(async error=>{console.log(await page.locator('body').innerText());throw error;});
  await page.screenshot({path:'artifacts/plane-runway.png'});
  const before=await page.evaluate(()=>(window as any).__game.state().aircraft);
- await page.keyboard.down('KeyW');await page.waitForTimeout(6500);await page.keyboard.up('KeyW');
- await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');await page.waitForTimeout(6500);
+ // CPlane::ProcessControlInputs takes the throttle from the pedals as they are ((gas − brake) / 255), with no latch:
+ // W is held through the take-off and the climb.
+ await page.keyboard.down('KeyW');await page.waitForTimeout(6500);
+ // A one-second pull lifts it; flown hands-off after that it rises and sinks (FlyingControl's lift against its pitch
+ // stability), so it is measured once it is a few units up.
+ await page.keyboard.down('ArrowDown');await page.waitForTimeout(1000);await page.keyboard.up('ArrowDown');
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().aircraft.altitude),{timeout:15000}).toBeGreaterThan(6);
  const after=await page.evaluate(()=>(window as any).__game.state().aircraft);console.log(JSON.stringify({before,after,state:await page.evaluate(()=>(window as any).__game.state().following)}));
  await page.screenshot({path:'artifacts/plane-flight.png'});
  expect(after.airspeed).toBeGreaterThan(15);expect(after.position.y-before.position.y).toBeGreaterThan(4);expect(after.grounded).toBe(false);
@@ -19,7 +24,7 @@ test('map hangar launches an original plane into the continuous world',async({pa
  // CVehicle::CanPedJumpOutCar has no altitude rule for aircraft: F in flight (v2D² ≥ 0.1 units/frame) jumps out, and
  // without a parachute CJ falls with the plane's speed.
  await page.keyboard.press('KeyF');await expect.poll(()=>page.evaluate(()=>(window as any).__game.state().aircraft)).toBeNull();
- expect(await page.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(false);
+ expect(await page.evaluate(()=>(window as any).__game.state().player.grounded)).toBe(false);await page.keyboard.up('KeyW');
  await page.keyboard.press('KeyM');await page.getByLabel('Map destination').selectOption('ls-airport');await expect(page.locator('.map-status')).toContainText('Waypoint');
  const paused=await page.evaluate(()=>(window as any).__game.state().player.position);await page.waitForTimeout(300);expect(await page.evaluate(()=>(window as any).__game.state().player.position)).toEqual(paused);
  expect(errors).toEqual([]);

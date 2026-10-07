@@ -14,7 +14,7 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 | System | Current evidence / difference | Required acceptance evidence |
 | --- | --- | --- |
 | Script runtime and campaign | `ScmRuntime` executes numeric/control-flow families, ordinary and mission scheduling, mission loading, native no-ops and a first set of game-state commands, separately from gameplay. With a recording world adapter, packaged MAIN reaches mission INITIAL, which stops at CREATE_LOCKED_PROPERTY_PICKUP (mission offset 868); message queues, help text, intro text lines, switch tables, streaming requests and the radar blip table are ported, and 1,190 of 1,455 distinct MAIN.SCM commands remain unsupported. Authored mission objectives are not original campaign execution. | Original threads, variables, native commands, cleanup, cutscenes, success/failure/retry and saved script state execute correctly across the campaign and side content. |
-| Physics and vehicles | Rapier contacts are approximate; `planeFlight.ts` uses authored equations, including a purported ground effect without a ground-distance input. Bike lean and boat integration retain authored behavior. | Original dynamics/task semantics and repeated multi-class acceleration, braking, cornering, impact, flight and water trials. |
+| Physics and vehicles | Rapier contacts are approximate; fixed-wing flight follows the iOS FlyingControl (`nativeFlyingControl.ts`), helicopters and the Hydra's hover still authored equations (`hoverFlight.ts`). Bike lean and boat integration retain authored behavior. | Original dynamics/task semantics and repeated multi-class acceleration, braking, cornering, impact, flight and water trials. |
 | Player, camera and animation | Movement/animation pieces are implemented; native constants do not prove complete transition or collision equivalence. | Matched input/pose/contact/camera traces, including occlusion, interiors and vehicle transitions. |
 | Population and police | Authored recovery, spawn decisions, clamps and roadblock placement remain. | Original task/event scheduling, population selection, pursuit and mission-exception behavior. |
 | Combat | Native assets/data and selected algorithms coexist with browser task integration. | Damage, targeting, animation events, projectiles, AI decisions and all equipment compared against PC 1.0. |
@@ -563,9 +563,38 @@ traffic step 0.1 ms a frame, render time unchanged.
 
 A Rustler climbed to 4.5 km in a flight probe; the original stops aircraft at a ceiling. `CVehicle::HeightAboveCeiling`
 (0x6D2600, reversed in gta-reversed ead3051) gives 800 m for planes and helicopters and 500 m for the RC Baron (with a
-band between 950 and 1500 m). Its caller `FlyingControl` is still a retail stub, so the response above the ceiling is
-authored from play: the nose is held down and a downward push grows with the height above the ceiling. In the probe
-the Rustler tops out at 802 m, noses over and dives away at 74 m/s.
+band between 950 and 1500 m). Its caller `FlyingControl` is a retail stub in gta-reversed; for helicopters the response
+above the ceiling is still authored from play (the nose held down, a downward push growing with the height above it).
+Planes now take the iOS one (see "Fixed-wing flight"): past the ceiling lift beyond the weight is cut to the weight,
+fading to none 50 units up, and the player's throttle loses a twenty-fifth for every unit above it.
+
+## Fixed-wing flight
+
+- `CVehicle::FlyingControl` is a fragment in gta-reversed, and the browser's flight had been authored (`planeFlight.ts`:
+  m/s with 9.81 gravity, a stall speed, a ground effect, set turn rates). Planes now fly the iOS FlyingControl's plane
+  branch and common tail (0x10047a098 .. 0x10047c008), with CPhysical's gravity and air resistance first and CPlane's
+  ProcessFlyingCarStuff round it (0x100469e9c), in native units on the body's velocities (`nativeFlyingControl.ts`,
+  `WorldPlane.flyPlane`; decoded in the session's flying-control decode):
+  - gravity 0.008 a step (20 m/s², as the port's cars), air resistance fDragMult / 2000 × |v| (× fGearUpR with the
+    gear up), the spin losing 1 % a step;
+  - thrust 0.008 × 0.5 × fThrust × (accel + 1) in the air (a centred throttle gives half), falling off with
+    1 − 0.65 (fwd − fThrustFallOff)²; on its wheels only with the throttle open, or a reverse push nearly still;
+  - quadratic side slip; yaw and pitch through the tail point (the collision box's min.y) with the tail's speed
+    stabilising them; roll by the forward speed and a wing-levelling term; the rudder and pitch scaled by the iOS
+    stick factor (√2 on a diagonal);
+  - lift fwd² (fFormLift − fAttackLift × the angle of attack), fFormLift × fGearDownL while the gear is down, no stall
+    speed (the stall is only the audio's counter);
+  - turn and speed resistance on each local axis, speed capped at 1.5 a step (75 m/s), spin at 0.2;
+  - the player's pitch, roll and rudder follow the stick 0.069 of the way a step, and the throttle is the pedals' own
+    (gas − brake), with no latch; under 250 health the controls pull the plane over; the propeller spins up toward
+    0.18 to 0.34 and gates the flight at 0.05.
+- On its wheels the browser keeps its own side grip, brakes and nose-wheel turn, as CAutomobile's wheel physics for
+  planes are not ported; the wheels now roll (their small friction is not averaged with the ground's), which native
+  gravity's heavier load had turned into a 5 m/s² drag.
+- Not yet: helicopters and the Hydra's hover (FlyingControl's heli branch), the RC helicopters, the Hydra's nozzle,
+  the iOS automatic landing gear, damaged control surfaces, wind, and the AI pilots' steering.
+- `planes.spec` holds the throttle through the climb (the old throttle latched) and measures once the plane is a few
+  units up: flown hands-off after a pull it rises and sinks, and can fly into the ground.
 
 ## Loading holds while driving and flying
 

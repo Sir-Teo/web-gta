@@ -1,5 +1,5 @@
 import {angleDelta,clamp} from '../core/math';
-import type {PlaneControls} from './planeFlight';
+import type {PlaneControls} from './nativeFlyingControl';
 
 type V3={x:number;y:number;z:number};
 /** Native police helicopter (POLMAV 497, CWanted::NumOfHelisRequired). */

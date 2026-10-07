@@ -1,5 +1,5 @@
 import {Euler,Quaternion,Vector3} from 'three';
-import type {PlaneControls} from './planeFlight';
+import type {PlaneControls} from './nativeFlyingControl';
 /** Browser rotor/VTOL adapter with the CHeli flight model: rotor-speed-gated
  * collective lift, velocity-damped cyclic and bank-limited self-leveling. */
 export function hoverFlight(velocity:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number},controls:PlaneControls,rotor01=1){
