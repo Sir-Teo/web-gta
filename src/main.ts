@@ -6490,14 +6490,28 @@ async function boot() {
                 trainingMission:()=>!!mission?.runtime.game.gangWarsTrainingMission,
                 territoryStat:(kind,value)=>{const stats=mission?.runtime.game.stats;if(!stats)return;if(kind==='taken')stats.increment(234,1);else if(kind==='lost')stats.increment(235,1);else{stats.set(236,value);stats.setNewRecord(237,value);}},
                 weatherLA:()=>nativeWeatherRegion(sim.player.position.x,-sim.player.position.z)===WEATHER_REGION.la,zones:()=>worldZones,
-                createAttackWave:ferocity=>{
+                createAttackWave:(ferocity,wave)=>{
                  if(ready==='wave'){ready=undefined;return true;}
                  if(pending||!pedestrians)return false;
                  const war=gangWars!,crowd=pedestrians,d=war.difficulty,make=attackWaveComposition(ferocity,d,!!mission?.runtime.game.gangWarsTrainingMission),p=sim.player.position;
                  const first=Math.random()*Math.PI*2,angles=[first,first+Math.PI/2+Math.random()*Math.PI];
+                 const points=angles.map(a=>({x:p.x+Math.sin(a)*45,y:p.y,z:p.z+Math.cos(a)*45}));
                  pending='wave';
-                 void Promise.all([war.gang1,war.gang2].map((gang,i)=>crowd.spawnAttackWave(gang,make.count,{x:p.x+Math.sin(angles[i])*45,y:p.y,z:p.z+Math.cos(angles[i])*45},make.accuracy,false,{weapons:make,difficulty:d,health:make.health,ammo:make.ammo})))
-                  .then(n=>{pending=undefined;if(n[0]+n[1]>0)ready='wave';}).catch(()=>{pending=undefined;});
+                 void Promise.all([war.gang1,war.gang2].map((gang,i)=>crowd.spawnAttackWave(gang,make.count,points[i],make.accuracy,false,{weapons:make,difficulty:d,health:make.health,ammo:make.ammo})))
+                  .then(n=>{
+                   pending=undefined;if(n[0]+n[1]>0)ready='wave';
+                   // By each group's point of attack, within two units and 0.75 over the ground, CreateAttackWave leaves
+                   // a PICKUP_ONCE_TIMEOUT_SLOW: health by Gang1's in the first wave, armour in the second, and in the
+                   // third health by Gang1's and armour by Gang2's.
+                   const kinds=wave===0?['health']:wave===1?['bodyarmour']:['health','bodyarmour'];
+                   kinds.forEach((model,i)=>{
+                    if(!(n[i]>0))return;
+                    const x=points[i].x+Math.random()*4-2,z=points[i].z+Math.random()*4-2,ground=groundY(x,z,points[i].y+1);
+                    pickups.generate({id:`gangwar:${model}:${Date.now()}:${i}`,command:'GENERATED',section:'gangwar',offset:0,
+                     modelId:model==='health'?1240:1242,model,dictionary:model==='health'?'icons5':'icons7',type:PICKUP_TYPE.onceTimeoutSlow,
+                     category:model==='health'?'health':'armour',ammo:0,position:[x,-z,ground+.75]});
+                   });
+                  }).catch(()=>{pending=undefined;});
                  return false;
                 },
                 createDefendingGroup:(gang,point,difficulty)=>{

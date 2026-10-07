@@ -11255,6 +11255,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   from the game's ferocity tables (pistol or bat at first, up to the AK-47 or Desert Eagle), the training mission's
   CRASH4 waves with bats, then pistols, then Tec-9s; 5000 rounds, 120 health and an accuracy of Difficulty × 25 + 70.
   Still authored: where they stand (a ring round a path node 45 units out, where iOS forms each group in a line across
-  its approach at a car-path point some 50 units out, out of the camera's sight if it can); and not yet ported, the
-  gang-coloured radar blip on each attacker, the health or armour pickup by the point of attack, and the first wave's
-  drive-by car.
+  its approach at a car-path point some 50 units out, out of the camera's sight if it can). Each attacker carries a
+  gang-coloured blip (bClearRadarBlipOnDeath), and by each group's point of attack the wave leaves a
+  PICKUP_ONCE_TIMEOUT_SLOW within two units: health by Gang1's in the first wave, armour in the second, and in the
+  third health by Gang1's and armour by Gang2's. Not yet ported: the first wave's drive-by car (a gang car with an
+  Uzi-armed crew on CTaskSimpleGangDriveBy at the player).
