@@ -11088,3 +11088,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   host for a hook nothing needed, so the census counted it silent across nine missions. DONT_SUPPRESS_ANY_CAR_MODELS
   (CTheScripts::ClearAllSuppressedCarModels, 0x46A7C0; iOS 0x1001f5f2c fills the table with -1) was skipped and now
   empties the list, so STEAL2's and the other users' suppressed models come back to the streets.
+- **A car in an area.** IS_CAR_IN_AREA_2D/3D and IS_CAR_STOPPED_IN_AREA_2D/3D are one routine,
+  CRunningScript::CarInAreaCheckCommand (0x488EC0, unreversed; iOS 0x1001df2e4): for the stopped forms
+  CTheScripts::IsVehicleStopped first, then the car's position inside the box, each axis inclusive, and with the flag
+  set the area is highlighted whatever the answer. The port ran three of them without the highlight and skipped the
+  2D stopped form, which DESERT5 asks.

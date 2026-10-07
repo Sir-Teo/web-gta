@@ -63,6 +63,18 @@ describe('the last of the tail',()=>{
    instruction(op('IS_CAR_STOPPED_IN_AREA_3D'),operands)).thread.condition).toBe(false);
  });
 
+ test('the 2D stopped form, and the highlight every car area form draws when asked (iOS 0x1001df2e4)',()=>{
+  const drawn:number[]=[];
+  const inside={vehiclePosition:()=>({x:10,y:0,z:500}),vehicleIsStopped:()=>true,highlightArea:(_id:number,_c:unknown,halfX:number)=>{drawn.push(halfX);}};
+  // Each axis is inclusive, and the height does not matter in 2D.
+  const operands=(flag:number)=>[int(CAR),float(0),float(0),float(10),float(10),int(flag)] as const;
+  expect(run(inside,undefined,instruction(op('IS_CAR_STOPPED_IN_AREA_2D'),operands(0))).thread.condition).toBe(true);
+  expect(run({...inside,vehicleIsStopped:()=>false},undefined,instruction(op('IS_CAR_STOPPED_IN_AREA_2D'),operands(1))).thread.condition).toBe(false);
+  expect(drawn).toEqual([5]);
+  run(inside,undefined,instruction(op('IS_CAR_IN_AREA_3D'),[int(CAR),float(0),float(0),float(0),float(4),float(4),float(4),int(1)]));
+  expect(drawn).toEqual([5,2]);
+ });
+
  test('the three model questions each ask their own',()=>{
   const asked:string[]=[];
   const world={modelIsBoat:()=>{asked.push('boat');return true;},modelIsHeli:()=>{asked.push('heli');return false;},

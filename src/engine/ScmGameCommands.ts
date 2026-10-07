@@ -83,6 +83,24 @@ function highlightImportantAngledArea(t:ScmThread,i:ScmInstruction,corners:reado
  const xs=mids.map(m=>m.x),ys=mids.map(m=>m.y);
  highlightImportantArea(t,i,{x:Math.min(...xs),y:Math.min(...ys)},{x:Math.max(...xs),y:Math.max(...ys)});
 }
+/** CRunningScript::CarInAreaCheckCommand (0x488EC0, unreversed; iOS 0x1001df2e4) for IS_CAR_IN_AREA_2D/3D and
+ * IS_CAR_STOPPED_IN_AREA_2D/3D: the car's position inside the box, each axis inclusive, and for the stopped forms
+ * CTheScripts::IsVehicleStopped first; with the flag set, the area is highlighted whatever the answer. */
+function carInArea(threeDimensional:boolean,stopped:boolean):ScmCommandHandler{
+ return (t,p,i)=>{
+  const handle=t.readInt(p[0]),axes=threeDimensional?3:2;
+  const a={x:t.readFloat(p[1]),y:t.readFloat(p[2]),z:threeDimensional?t.readFloat(p[3]):0};
+  const b={x:t.readFloat(p[1+axes]),y:t.readFloat(p[2+axes]),z:threeDimensional?t.readFloat(p[3+axes]):0};
+  const within=(value:number,low:number,high:number)=>value>=Math.min(low,high)&&value<=Math.max(low,high);
+  let inside=false;
+  if(!stopped||world(t,i,'vehicleIsStopped')(handle)){
+   const position=world(t,i,'vehiclePosition')(handle);
+   inside=within(position.x,a.x,b.x)&&within(position.y,a.y,b.y)&&(!threeDimensional||within(position.z,a.z,b.z));
+  }
+  t.updateCompareFlag(inside,negated(i));
+  if(bool(t,p[1+axes*2]))highlightImportantArea(t,i,threeDimensional?a:{x:a.x,y:a.y},threeDimensional?b:{x:b.x,y:b.y});
+ };
+}
 /** IsCharInArea2D and IsCharInArea3D: two corners, and the ped read at its vehicle while it rides in one. */
 /** The area tests, with the on-foot and in-car forms' gate (III's IS_CHAR_IN_AREA_ON_FOOT_3D tests !bInVehicle first,
  * the in-car form the reverse; SA's are unimplemented in the reference, the plain ones reversed). */
@@ -1636,14 +1654,8 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_CAR_IN_WATER:(t,p,i)=>{t.updateCompareFlag(world(t,i,'vehicleIsInWater')(t.readInt(p[0])),negated(i));},
  SET_CAR_VISIBLE:(t,p,i)=>{world(t,i,'setVehicleVisible')(t.readInt(p[0]),bool(t,p[1]));},
  SET_TRAIN_SPEED:(t,p,i)=>{world(t,i,'setTrainSpeed')(t.readInt(p[0]),t.readFloat(p[1]));},
- // The box a car must be inside, measured the same way the ped's is.
- IS_CAR_IN_AREA_2D:(t,p,i)=>{
-  const position=world(t,i,'vehiclePosition')(t.readInt(p[0]));
-  const x1=t.readFloat(p[1]),y1=t.readFloat(p[2]),x2=t.readFloat(p[3]),y2=t.readFloat(p[4]);
-  const inside=position.x>=Math.min(x1,x2)&&position.x<=Math.max(x1,x2)
-   &&position.y>=Math.min(y1,y2)&&position.y<=Math.max(y1,y2);
-  t.updateCompareFlag(inside,negated(i));
- },
+ // The box a car must be inside (carInArea).
+ IS_CAR_IN_AREA_2D:carInArea(false,false),
  // The peds and objects.
  SET_CHAR_CAN_BE_KNOCKED_OFF_BIKE:(t,p,i)=>{world(t,i,'setPedCanBeKnockedOffBike')(t.readInt(p[0]),bool(t,p[1]));},
  IS_CHAR_HOLDING_OBJECT:(t,p,i)=>{
@@ -1977,14 +1989,7 @@ const handlers:Record<string,ScmCommandHandler>={
  PLANE_STARTS_IN_AIR:(t,p,i)=>{world(t,i,'planeStartsInAir')(t.readInt(p[0]));},
  SET_PLANE_UNDERCARRIAGE_UP:(t,p,i)=>{world(t,i,'setPlaneUndercarriageUp')(t.readInt(p[0]),bool(t,p[1]));},
  // The box a car must be inside, in all three axes this time.
- IS_CAR_IN_AREA_3D:(t,p,i)=>{
-  const position=world(t,i,'vehiclePosition')(t.readInt(p[0]));
-  const a=vec(t,p,1),b=vec(t,p,4);
-  const inside=position.x>=Math.min(a.x,b.x)&&position.x<=Math.max(a.x,b.x)
-   &&position.y>=Math.min(a.y,b.y)&&position.y<=Math.max(a.y,b.y)
-   &&position.z>=Math.min(a.z,b.z)&&position.z<=Math.max(a.z,b.z);
-  t.updateCompareFlag(inside,negated(i));
- },
+ IS_CAR_IN_AREA_3D:carInArea(true,false),
  /* --- The objects of the tail. */
  SET_OBJECT_RECORDS_COLLISIONS:(t,p,i)=>{world(t,i,'setObjectRecordsCollisions')(t.readInt(p[0]),bool(t,p[1]));},
  GET_OBJECT_SPEED:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'objectSpeed')(t.readInt(p[0])));},
@@ -2127,15 +2132,8 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_CAR_FORWARD_Y:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'vehicleForwardY')(t.readInt(p[0])));},
  DELETE_ALL_TRAINS:(t,_p,i)=>{world(t,i,'deleteAllTrains')();},
  MAKE_HELI_COME_CRASHING_DOWN:(t,p,i)=>{world(t,i,'makeHeliComeCrashingDown')(t.readInt(p[0]));},
- // A car stopped inside a box, which is the stopped question and the box test together.
- IS_CAR_STOPPED_IN_AREA_3D:(t,p,i)=>{
-  const handle=t.readInt(p[0]);
-  const a=vec(t,p,1),b=vec(t,p,4),position=world(t,i,'vehiclePosition')(handle);
-  const inside=position.x>=Math.min(a.x,b.x)&&position.x<=Math.max(a.x,b.x)
-   &&position.y>=Math.min(a.y,b.y)&&position.y<=Math.max(a.y,b.y)
-   &&position.z>=Math.min(a.z,b.z)&&position.z<=Math.max(a.z,b.z);
-  t.updateCompareFlag(inside&&world(t,i,'vehicleIsStopped')(handle),negated(i));
- },
+ // A car stopped inside a box (carInArea).
+ IS_CAR_STOPPED_IN_AREA_3D:carInArea(true,true),
  /* --- The searchlights on a vehicle, and the camera hung on one. */
  CREATE_SEARCHLIGHT_ON_VEHICLE:(t,p,i)=>{
   t.writeInt(p[9],world(t,i,'createSearchlightOnVehicle')(t.readInt(p[0]),vec(t,p,1),vec(t,p,4),
@@ -2421,7 +2419,7 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_CHAR_HEIGHT_ABOVE_GROUND:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCharHeightAboveGround')(t.readInt(p[0])));},
  FORCE_INTERIOR_LIGHTING_FOR_PLAYER:(t,p,i)=>{world(t,i,'forceInteriorLightingForPlayer')(t.readInt(p[0]),bool(t,p[1]));},
  PLAYER_TAKE_OFF_GOGGLES:(t,p,i)=>{world(t,i,'playerTakeOffGoggles')(t.readInt(p[0]),bool(t,p[1]));},
- IS_CAR_STOPPED_IN_AREA_2D:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarStoppedInArea2d')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),bool(t,p[5])),negated(i));},
+ IS_CAR_STOPPED_IN_AREA_2D:carInArea(false,true),
  GET_CAR_UPRIGHT_VALUE:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCarUprightValue')(t.readInt(p[0])));},
  SET_MENU_COLUMN_ORIENTATION:(t,p,i)=>{game(t,i).menus.setColumnOrientation(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  CLEAR_ATTRACTOR:(t,p,i)=>{world(t,i,'clearAttractor')(t.readInt(p[0]));},

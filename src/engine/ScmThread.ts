@@ -834,7 +834,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  getCharHeightAboveGround?(handle:number):number;
  forceInteriorLightingForPlayer?(handle:number,state:boolean):void;
  playerTakeOffGoggles?(handle:number,animate:boolean):void;
- isCarStoppedInArea2d?(handle:number,leftBottomX:number,leftBottomY:number,rightTopX:number,rightTopY:number,drawSphere:boolean):boolean;
  getCarUprightValue?(handle:number):number;
  setMenuColumnOrientation?(handle:number,column:number,alignment:number):void;
  clearAttractor?(handle:number):void;
