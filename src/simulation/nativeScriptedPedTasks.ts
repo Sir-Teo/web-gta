@@ -74,6 +74,11 @@ export type ScriptedPedOrder=
  /** CTaskSimpleSetCharIgnoreWeaponRangeFlag (TASK_SET_IGNORE_WEAPON_RANGE_FLAG, reversed): bIgnoreWeaponRange, and the
   * task is over at once. */
  |{kind:'ignoreWeaponRange';state:boolean}
+ /** CTaskComplexJump (TASK_JUMP) and CTaskComplexClimb (TASK_CLIMB, the climb forced), reversed: CTaskSimpleJump tests
+  * for a hold ahead at the launch (CTaskSimpleClimb::TestForClimb); with one the ped climbs it, else it jumps (a force of
+  * 4.5, or 8.5 for a high jump, over its mass) and the task is over once it has landed. `highJump` is
+  * m_UsePlayerLaunchForce, the script's flag for both. */
+ |{kind:'jump';forceClimb:boolean;highJump:boolean}
  /** CTaskSimpleGunControl for TASK_AIM_GUN_AT_* and TASK_SHOOT_AT_*: stand, face the target (a point in the script's
   * coordinates, or a ped's handle) and aim, firing when `fire`, for `seconds`. */
  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number}
@@ -247,6 +252,10 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   case 'setDecisionMaker':{const index=world.decisionMaker?.(task.decisionMaker);return index===undefined?undefined:{kind:'decisionMaker',index};}
   case 'kindaStayInSamePlace':return {kind:'kindaStayInSamePlace',state:task.state};
   case 'setIgnoreWeaponRangeFlag':return {kind:'ignoreWeaponRange',state:task.state};
+  // iOS: TASK_CLIMB is CTaskComplexJump(FORCE) under CTaskComplexClimb's vtable (0x1001f8458), TASK_JUMP
+  // CTaskComplexJump(0) (0x1001e6cec); each stores its flag as m_UsePlayerLaunchForce.
+  case 'climb':return {kind:'jump',forceClimb:true,highJump:task.flag};
+  case 'jump':return {kind:'jump',forceClimb:false,highJump:task.state};
   case 'duck':return {kind:'duck',crouch:true,seconds:seconds(task.time)};
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{

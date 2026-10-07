@@ -11208,3 +11208,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   TASK_CLIMB (32 uses: SWEET7, SMOKE2, WUZI5, MUSIC5, RIOT2), TASK_JUMP, TASK_DRIVE_POINT_ROUTE_ADVANCED, TASK_WEAPON_ROLL,
   TASK_FALL_AND_GET_UP and TASK_SIT_DOWN. Not ported: GunControl's walk toward a target out of range (the port's TASK_SHOOT_AT
   and TASK_AIM_GUN_AT stand), which is where the flag would otherwise matter.
+- TASK_CLIMB and TASK_JUMP (CTaskComplexJump with its forced or disabled climb) run for script peds, alone or as a sequence
+  step (SWEET7's cemetery wall, SMOKE2, WUZI5, MUSIC5, RIOT2; 43 uses). The jump launches as CTaskSimpleJump does (4.5 up, or
+  8.5 for TASK_JUMP's high jump, and 0.1 a frame forward), tests for a climb at the launch and every frame of the glide
+  (CTaskSimpleInAir, while the fall is under 0.2 a frame and the ped still moves), and climbs the hold with the player's
+  CTaskSimpleClimb on the ped's own CLIMB_* clips. A vault ends the jump (CLIMB_FINISHED_V clears bIsInTheAir); an abort
+  falls on through CTaskComplexInAirAndLand. A ped's fall now goes into FALL_FALL only with nothing within CTaskSimpleInAir's
+  4-unit line under its centre, as the player's does, so a drop off a wall lands with FALL_LAND, not a collapse.

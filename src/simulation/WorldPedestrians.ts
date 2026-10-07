@@ -10,6 +10,7 @@ import {PED_ATTRACTOR} from '../assets/twoDEffect';
 import {AttractorQueue,attractorHeading} from './nativeAttractors';
 import {startLookAt,stepLookAt,shouldStartLookAt,lookAtDurationMs,LOOK_AT_RANGE,type LookAtTask} from './nativeIkLookAt';
 import {NATIVE_JUMP_GRAVITY,NATIVE_PED_AIR_RESISTANCE} from './nativePlayerLocomotion';
+import {CLIMB,NativeClimbTask,initialClimbHeight,testForClimb,type ClimbEntity,type ClimbPedState} from '../ped/nativeClimb';
 import {landingDamage} from './health';
 import {deadPedDecisionTask} from '../ped/nativeDeadPedDecision';
 import {gangMemberArmed,randomGangWeapon} from './nativeGangWeapons';
@@ -176,6 +177,8 @@ export interface Pedestrian {
   |{kind:'dive'}
   /** CTaskSimpleDuck for its time: ducked where it stands. */
   |{kind:'duckFor';remaining:number}
+  /** CTaskComplexJump after its launch: over once the ped has landed (or climbed). */
+  |{kind:'jumping'}
   /** CTaskSimpleGunControl: a renderer point or a ped (the player when neither) to aim at, firing or not. */
   |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number}
   /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. With
@@ -342,7 +345,13 @@ export interface Pedestrian {
   /** CTaskSimpleInAir: off the ground the ped falls under CPhysical::ApplyGravity (0.008 units a frame²) with the
    * ped air resistance; `vz` is the vertical speed (m/s), `minVz` the fastest fall, `clip` the fall clip playing
    * (FALL_glide, then FALL_fall past 0.1 units a frame), `seconds` the time in the air. */
-  air?:{vz:number;minVz:number;clip?:'fall_glide'|'fall_fall';seconds:number};
+  air?:{vz:number;minVz:number;clip?:'fall_glide'|'fall_fall';seconds:number;
+   /** A jump's horizontal speed (m/s, renderer frame), carried through the air. */
+   h?:{x:number;z:number};
+   /** The jump task's forced climb, and an edge without room to stand already met (CTaskSimpleInAir's m_bInvalidClimb). */
+   forceClimb?:boolean;invalidClimb?:boolean};
+  /** CTaskSimpleClimb under a jump task: the climb moves the ped (kinematic) until it stands on top or drops. */
+  climb?:NativeClimbTask<ClimbEntity>;
   /** CTaskSimpleLand: the landing clip's remaining seconds (FALL_land, or FALL_collapse after a real fall). */
   landing?:number;
   /** CTaskComplexRoadRage after the driver left his car: turn to face the rammer, then shake a fist (its clip's
@@ -1895,6 +1904,18 @@ export class WorldPedestrians {
    case 'decisionMaker':ped.decisionMaker=order.index;break;
    case 'kindaStayInSamePlace':this.setFlag(ped,'kindaStayInSamePlace',order.state);break;
    case 'ignoreWeaponRange':this.setFlag(ped,'ignoreWeaponRange',order.state);break;
+   case 'jump':{
+    // CTaskSimpleJump::ProcessPed at the launch: TestForClimb (isLaunch) for a hold ahead, which the climb takes.
+    const world=this.sim.climbWorld,durations=this.sim.climbDurations,native=this.pedClimbState(ped);
+    const found=world&&durations?testForClimb(world,native,true):undefined;
+    ped.flee=0;ped.loiter=false;ped.order={kind:'jumping'};
+    if(found&&found!=='invalid'&&durations){ped.climb=new NativeClimbTask(found.entity,found.hold,initialClimbHeight(found.hold.position,native.position,false),order.forceClimb,durations);break;}
+    // CTaskSimpleJump::Launch: a force of 8.5 for a high jump (m_UsePlayerLaunchForce, or a member of the player's
+    // group) and 4.5 otherwise over the ped's mass, and a standing ped is given 0.1 a frame along its heading.
+    const force=order.highJump||!!ped.follow?8.5:4.5,vz=force/PED_MASS*50,h=ped.actor.player.heading;
+    ped.air={vz,minVz:0,seconds:0,h:{x:Math.sin(h)*.1*50,z:Math.cos(h)*.1*50},forceClimb:order.forceClimb};
+    break;
+   }
    case 'goToPointShooting':{
     // Aiming at a point, there is no ped to look for.
     const point=order.aimOnly&&order.aimPoint&&order.target===-1?{x:order.aimPoint.x,y:order.aimPoint.z,z:-order.aimPoint.y}:undefined;
@@ -2273,6 +2294,39 @@ export class WorldPedestrians {
  hideWeapon(ped:Pedestrian,hidden:boolean){ped.weaponHidden=hidden;if(ped.gun)ped.gun.root.visible=!hidden;}
  /** One of the CPed bits a script sets by name. */
  setFlag(ped:Pedestrian,flag:keyof NonNullable<Pedestrian['flags']>,value:boolean){(ped.flags??={})[flag]=value;}
+ /** A ped as CTaskSimpleClimb sees it: the native collision centre a unit above the feet and a heading whose forward
+  * is (−sin, cos), as the player's (Simulation.nativePed). */
+ private pedClimbState(p:Pedestrian):ClimbPedState{
+  const q=p.actor.player.position;
+  return {position:{x:q.x,y:-q.z,z:q.y+1},heading:p.actor.player.heading-Math.PI,moveSpeed:{x:0,y:0,z:0},isPlayer:false};
+ }
+ /** One frame of a script ped's CTaskSimpleClimb, the forced climb of a jump task (no pad): its CLIMB_* clip, the
+  * move speed ProcessPed sets, and at the end the ped standing on top or dropping into CTaskComplexInAirAndLand. */
+ private stepPedClimb(p:Pedestrian,dt:number){
+  const task=p.climb!,world=this.sim.climbWorld,state=p.actor.player;
+  if(!world){p.climb=undefined;return;}
+  const ped=this.pedClimbState(p),timeStep=dt*50;
+  task.updateAnim(dt);
+  const done=task.process(ped,undefined,world,timeStep);
+  const clip=task.anim?.clip;
+  if(clip){
+   const key=`climb:${clip}`;
+   if(!p.view.hasReaction(key))void (this.catalog?.scriptAnimation('PED',clip)??Promise.resolve(undefined)).then(animation=>{if(animation&&!this.disposed)p.view.installReactions({[key]:animation});});
+   else if(p.view.reactionName!==key)p.view.playReaction(key,Number.POSITIVE_INFINITY,false,task.anim!.time,clip==='CLIMB_idle');
+  }
+  const fall=done&&task.standing?0:ped.moveSpeed.z*timeStep;
+  const feet={x:ped.position.x+ped.moveSpeed.x*timeStep,y:ped.position.z+fall-1,z:-(ped.position.y+ped.moveSpeed.y*timeStep)};
+  p.body.setNextKinematicTranslation({x:feet.x,y:feet.y+.9,z:feet.z});
+  state.heading=ped.heading+Math.PI;state.speed=0;p.gait=0;
+  p.view.step(dt,{x:0,y:0,cameraYaw:state.heading,walk:true,sprint:false,jump:false},p.actor);
+  if(!done)return;
+  p.climb=undefined;
+  if(p.view.reactionName?.startsWith('climb:'))p.view.clearReaction();
+  // CTaskComplexJump::CreateNextSubTask after the climb: CLIMB_FINISHED_V clears bIsInTheAir, so a vault ends the jump
+  // and the ped drops under its own control (only a deep drop turns into a fall); an abort is still in the air and
+  // goes on through CTaskComplexInAirAndLand with the climb's validity.
+  if(!task.standing&&task.heightForPos!==CLIMB.FINISHED_V)p.air={vz:ped.moveSpeed.z*50,minVz:Math.min(0,ped.moveSpeed.z*50),seconds:0,h:{x:ped.moveSpeed.x*50,z:-ped.moveSpeed.y*50},invalidClimb:task.invalid};
+ }
  /** The civilian model the zone's own roster would have used, which is what CREATE_RANDOM_CHAR asks the game
   * to pick. Nothing while the roster has not streamed a model yet. */
  /** ChooseCivilianOccupation: with CWeather::Rain at 0.1 or more, no sunbather (BEACH_GUY or BEACH_GIRL) is chosen. */
@@ -3431,6 +3485,9 @@ export class WorldPedestrians {
     if(p.stealth>=damage){const recruit=!!p.follow;p.lastDamagedBy={player:true};p.lastWeaponDamage=WEAPON.knife;p.health=0;p.down=Infinity;p.collider.setShape(new RAPIER.Ball(.3));p.view.playReaction('kill_knife_ped_die',Infinity);this.deadPedEvent(p);this.onKill?.({id:p.id,officer:p.officer,gang:p.gang,pedType:p.pedType,recruit,byPlayer:true});}
     else{p.view.step(dt,{x:0,y:0,cameraYaw:state.heading,walk:true,sprint:false,jump:false},p.actor);continue;}
    }
+   // A ped on a jump task's climb is moved by CTaskSimpleClimb alone.
+   // Killed on the wall, CTaskComplexJump's MakeAbortable lets the climb go with the death.
+   if(p.climb){if(p.health>0){this.stepPedClimb(p,dt);continue;}p.climb=undefined;if(p.view.reactionName?.startsWith('climb:'))p.view.clearReaction();}
    const at=p.body.translation();
    for(const striker of strikers){
     if(!striker.body.isEnabled()||p.down>0||p.health<=0)continue;
@@ -3588,6 +3645,9 @@ export class WorldPedestrians {
      const o=p.order;dx=0;dz=0;o.remaining-=dt;
      const gone=o.target!==undefined&&(o.target.health<=0||!this.people.includes(o.target))||o.player&&this.sim.player.health<=0;
      if(o.remaining<=0||gone)this.startNextOrder(p);
+    }else if(p.order.kind==='jumping'){
+     // CTaskComplexJump: over once the ped has climbed, or landed and stood (CTaskComplexInAirAndLand).
+     dx=0;dz=0;if(!p.climb&&!p.air&&p.landing===undefined)this.startNextOrder(p);
     }else if(p.order.kind==='duckFor'){
      dx=0;dz=0;p.order.remaining-=dt;
      if(p.order.remaining<=0){p.actor.player.crouched=false;this.startNextOrder(p);}
@@ -4079,6 +4139,14 @@ export class WorldPedestrians {
    // CTaskSimpleInAir: an airborne ped falls with CPhysical::ApplyGravity and the ped air resistance; on the
    // ground the controller's own probe keeps him on slopes and stairs.
    if(p.air){p.air.vz-=NATIVE_JUMP_GRAVITY*dt;p.air.vz*=Math.pow(Math.max(0,1-Math.abs(p.air.vz)/50*NATIVE_PED_AIR_RESISTANCE),dt*50);p.air.minVz=Math.min(p.air.minVz,p.air.vz);p.air.seconds+=dt;}
+   // CTaskSimpleInAir in a jump's glide: TestForClimb each frame while it falls no faster than 0.2 a frame and still moves
+   // over 0.05 a frame across the ground, unless an edge without room to stand was met; a hold found is climbed.
+   const climbWorld=this.sim.climbWorld,climbDurations=this.sim.climbDurations;
+   if(p.air?.h&&!p.air.invalidClimb&&p.health>0&&p.air.vz>-.2*50&&Math.hypot(p.air.h.x,p.air.h.z)>.05*50&&climbWorld&&climbDurations){
+    const native=this.pedClimbState(p),found=testForClimb(climbWorld,native,false);
+    if(found==='invalid')p.air.invalidClimb=true;
+    else if(found){p.climb=new NativeClimbTask(found.entity,found.hold,initialClimbHeight(found.hold.position,native.position,true),!!p.air.forceClimb,climbDurations);p.air=undefined;this.stepPedClimb(p,dt);continue;}
+   }
    // `position` is the collider centre, 0.9 above the feet standing and 0.3 down; the target is the feet under the origin.
    // physicalFlags.bDontApplySpeed (FREEZE_CHAR_POSITION): CPhysical::ApplyMoveSpeed moves a frozen ped not at all, so
    // it does not fall either.
@@ -4086,12 +4154,12 @@ export class WorldPedestrians {
    const held=(p.drowning&&p.health>0)||!!p.air||p.landing!==undefined;
    // A fallen ped's low collider ignores the cars: the controller would otherwise shove it out of a car parked
    // over it, through the road (the get-up waits for the car instead, CTaskSimpleGetUp).
-   const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt,y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt},p.down>0?notCarCollider:undefined);
+   const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt+(p.air?.h?.x??0)*dt,y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt+(p.air?.h?.z??0)*dt},p.down>0?notCarCollider:undefined);
    if(water===undefined&&p.health>0&&p.down===0){
     if(!p.air&&!grounded&&movement.y<-4.5*dt){
      // Off the ground with the 5 m/s pull fully spent: the ped is in the air (bIsInTheAir) from this frame's gravity.
      const vz=-NATIVE_JUMP_GRAVITY*dt;p.air={vz,minVz:vz,seconds:0};
-    }else if(p.air&&grounded){
+    }else if(p.air&&grounded&&p.air.vz<=0){
      // CTaskComplexInAirAndLand: FALL_fall lands as a collapse (or a knockdown past 0.4 units a frame), a glide as
      // FALL_land; the height costs the same damage as the player's landing.
      const minVz=p.air.minVz,fell=p.air.clip==='fall_fall';p.air=undefined;
@@ -4103,8 +4171,11 @@ export class WorldPedestrians {
       // CTaskComplexDie::SayDeathSample for WEAPON_FALL (with blood on): AE_PED_CRUNCH on the ped.
       if(p.health<=0)this.onCrunch?.(p,{...state.position});}
     }else if(p.air){
-     // FALL_glide until the fall passes 0.1 units a frame, then FALL_fall (CTaskSimpleInAir).
-     const clip=p.air.vz<-0.1*50?'fall_fall':'fall_glide';
+     // FALL_glide until the fall passes 0.1 units a frame with nothing under it: CTaskSimpleInAir's vertical line from
+     // the ped's centre down 4 units (buildings, vehicles and objects, no peds) hitting finds the ground near enough
+     // that the drop stays a glide. FALL_fall, once started, stays.
+     const ground=()=>!!this.sim.world.castRay(new RAPIER.Ray({x:state.position.x,y:state.position.y+1,z:state.position.z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,p.collider,p.body,c=>c.solverGroups()!==PED_SOLVER_GROUPS);
+     const clip=p.air.clip==='fall_fall'||p.air.vz<-0.1*50&&!ground()?'fall_fall':'fall_glide';
      if(p.air.clip!==clip&&p.view.hasReaction(clip)){p.air.clip=clip;p.view.playReaction(clip,1e6);}
     }
    }

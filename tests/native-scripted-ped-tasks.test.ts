@@ -22,6 +22,11 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'setIgnoreWeaponRangeFlag',state:true},world({}))).toEqual({kind:'ignoreWeaponRange',state:true});
  });
 
+ test('TASK_CLIMB is the jump with its climb forced, TASK_JUMP the jump; each flag asks the high jump (iOS)',()=>{
+  expect(scriptedPedOrder({kind:'climb',flag:true},world({}))).toEqual({kind:'jump',forceClimb:true,highJump:true});
+  expect(scriptedPedOrder({kind:'jump',state:false},world({}))).toEqual({kind:'jump',forceClimb:false,highJump:false});
+ });
+
  test('standing still takes its time in milliseconds, and no time at all means for ever',()=>{
   expect(scriptedPedOrder({kind:'standStill',time:2500},world({}))).toEqual({kind:'standStill',seconds:2.5});
   expect(scriptedPedOrder({kind:'standStill',time:0},world({}))).toEqual({kind:'standStill',seconds:Infinity});
@@ -76,7 +81,7 @@ describe('the tasks a script gives a ped',()=>{
  });
 
  test('a task with no browser behaviour yet gives nothing back, so the thread gives up instead of pretending',()=>{
-  const unported:ScmScriptedTask[]=[{kind:'sitDown',time:1000},{kind:'jump',state:true}];
+  const unported:ScmScriptedTask[]=[{kind:'sitDown',time:1000}];
   for(const task of unported)expect(scriptedPedOrder(task,world({}))).toBeUndefined();
  });
 
