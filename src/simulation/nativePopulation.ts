@@ -77,12 +77,18 @@ export const gangPedType=(gang:number)=>7+gang;
  * sets (Ballas, Vagos and Aztecas only dislike him at the start; SWEET4 turns the Ballas' to hate). The acquaintance
  * scanner's hate event reaches the gang's group, whose RANDOM.grp answers a threat with CTaskAllocatorKillThreatsBasic
  * 200 times in 700 and with nothing otherwise; dislike draws a stare, a hassle or nothing, never an attack.
- * PED_SEEING_RANGE is CPedIntelligence's m_fSeeingRange. Respect (0–100, from 40) gates the rest: neutral gangs lean
- * on a disrespected mark inside 5 m (authored). */
+ * PED_SEEING_RANGE is CPedIntelligence's m_fSeeingRange. Respect does not enter into it: the iOS scanner never reads
+ * it (the port had gangs lean on a mark under 25 respect inside 5 m). */
 export const PED_SEEING_RANGE=15,TURF_KILL_THREATS_CHANCE=200/700;
+/** CPedAcquaintanceScanner (iOS 0x1003564f4) looks at the peds within its ped's seeing range (a gang ped type's 40,
+ * GANG_SEEING_RANGE in nativeGunAimedAt, set at 0x10035a944), within the scan's own 40-unit cap (0x10058fdc0 = 1600,
+ * squared). The scanner's timer: a scan every 500 ms (0x100650d10), 3000 ms after one that raised an event (0x100650d14); a
+ * new ped's first scan waits rand × 3000 ms (CPedIntelligence's m_nNextScanTime). */
+export const ACQUAINTANCE_SCAN_SECONDS=.5,ACQUAINTANCE_RAISED_SCAN_SECONDS=3,ACQUAINTANCE_FIRST_SCAN_SECONDS=3;
+/** The line of sight runs from 0.75 above the scanning ped's origin to 0.75 above the other's (−1 while he ducks). */
+export const ACQUAINTANCE_EYE_HEIGHT=.75;
 /** The Families' rivals, whose dead count to the player's respect (authored). */
 export const GANG_RIVALS:ReadonlySet<number>=new Set([0,2]);
-export const GANG_DISRESPECT_RADIUS = 5;
 let respect = 40;
 export function gangRespect(){return respect;}
 /** CStats::FindMaxNumberOfGroupMembers (0x559A50) on STAT_TOTAL_RESPECT. The browser keeps respect as a 0-100 share of
@@ -91,12 +97,6 @@ export function maxGroupMembers(totalRespect=respect*10){
  return totalRespect<10?0:totalRespect<60?2:totalRespect<160?3:totalRespect<330?4:totalRespect<540?5:totalRespect<800?6:7;
 }
 export function addRespect(delta:number){respect=Math.max(0,Math.min(100,respect+delta));}
-export function gangHostile(gang:number|undefined,distance:number,mark=respect){
- if(gang===undefined)return false;
- // Families (1) never turn on their own; other gangs press a weak mark.
- if(gang===1)return false;
- return mark<25&&distance<GANG_DISRESPECT_RADIUS;
-}
 /** Escalated turf parties (give-peds-weapons script flag): one pistol appears
  * once the mark is armed or wanted, and only on turf strong enough to be armed
  * (INITIAL strength 20+); weak corners stay unarmed. */

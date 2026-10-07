@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangHostile, gangPartyArmed, separationPush, SEPARATION_RADIUS, GANG_RIVALS, TURF_KILL_THREATS_CHANCE, gangPedType, managePed } from '../src/simulation/nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, visibleSpawnAllowed, gangPartySize, gangFormationOffset, gangPartyArmed, separationPush, SEPARATION_RADIUS, GANG_RIVALS, TURF_KILL_THREATS_CHANCE, gangPedType, managePed } from '../src/simulation/nativePopulation';
 
 test('creation bands match re3 MIN 40 RANGE 10 OFFSCREEN 0.5', () => {
   expect(onscreenSpawnBand(1)).toEqual({ min: 42.5, max: 50.5 });
@@ -33,14 +33,8 @@ test('gang formation spreads members 0.75 units apart per index', () => {
   expect(second.z).toBeLessThanOrEqual(1.5);
 });
 
-test('rivals no longer jump the player by turf alone; only a weak mark is leaned on', () => {
+test('rivals jump the player only through the hate their ped type holds for him', () => {
   expect([...GANG_RIVALS].sort()).toEqual([0, 2]);
-  expect(gangHostile(0, 5)).toBe(false);
-  expect(gangHostile(2, 11.9)).toBe(false);
-  expect(gangHostile(0, 4, 20)).toBe(true);
-  expect(gangHostile(1, 4, 20)).toBe(false);
-  expect(gangHostile(7, 6, 20)).toBe(false);
-  expect(gangHostile(undefined, 5)).toBe(false);
   expect(TURF_KILL_THREATS_CHANCE).toBeCloseTo(2 / 7);
   expect(gangPedType(0)).toBe(7);
 });
@@ -68,20 +62,20 @@ test('ManagePed keeps onscreen peds and expires the grace', () => {
   expect(managePed({ distance2D: 40, pcdm: 1, onScreen: false, farAwayCull: false, graceExpires: 99999, now: 0, sniperMode: false, lookingAside: false })).toBe('keep');
 });
 
-test('respect gates neutral gangs and rewards rival kills',async()=>{
+test('respect moves within 0 to 100 from 40',async()=>{
   const pop=await import('../src/simulation/nativePopulation');
   expect(pop.gangRespect()).toBe(40);
-  expect(pop.gangHostile(3,4)).toBe(false);
   pop.addRespect(-30);
   expect(pop.gangRespect()).toBe(10);
-  expect(pop.gangHostile(3,4)).toBe(true);
-  expect(pop.gangHostile(1,4)).toBe(false);
-  expect(pop.gangHostile(0,11)).toBe(false);
   pop.addRespect(200);
   expect(pop.gangRespect()).toBe(100);
-  expect(pop.gangHostile(3,4)).toBe(false);
   pop.addRespect(-60);
   expect(pop.gangRespect()).toBe(40);
+});
+
+test('the acquaintance scanner scans every 500 ms and 3 s after an event, the first within 3 s',async()=>{
+  const pop=await import('../src/simulation/nativePopulation');
+  expect([pop.ACQUAINTANCE_SCAN_SECONDS,pop.ACQUAINTANCE_RAISED_SCAN_SECONDS,pop.ACQUAINTANCE_FIRST_SCAN_SECONDS,pop.ACQUAINTANCE_EYE_HEIGHT]).toEqual([.5,3,3,.75]);
 });
 
 test('weak turf stays unarmed while strong turf arms up',async()=>{

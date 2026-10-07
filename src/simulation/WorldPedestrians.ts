@@ -52,7 +52,7 @@ import {deadPedTyreBlood} from './nativeTyreBlood';
 import {bulletTyreHit,pushShotVehicle} from '../weapons/bulletVehicle';
 import {findNextNodeWandering,wanderSector,wanderStep,wanderTargetOffset} from '../ped/nativeWander';
 import {TRAFFIC_LIGHT,nativeTrafficLights} from '../world/nativeTrafficLights';
-import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, gangHostile, separationPush, maxGroupMembers, PED_SEEING_RANGE, TURF_KILL_THREATS_CHANCE, gangPedType } from './nativePopulation';
+import { onscreenSpawnBand, offscreenSpawnBand, pedCreationDistMultiplier, gangPartySize, gangFormationOffset, separationPush, maxGroupMembers, PED_SEEING_RANGE, TURF_KILL_THREATS_CHANCE, gangPedType, ACQUAINTANCE_SCAN_SECONDS, ACQUAINTANCE_RAISED_SCAN_SECONDS, ACQUAINTANCE_FIRST_SCAN_SECONDS, ACQUAINTANCE_EYE_HEIGHT } from './nativePopulation';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {Quaternion,Vector3,type Scene} from 'three';
 import {modelObject} from '../assets/ModelObjects';
@@ -255,7 +255,8 @@ export interface Pedestrian {
  retaliate:number;retaliateCooldown:number;
  /** The player came into this gang member's view (it rolls its group's answer once a sighting), and the group set on
   * him (CTaskAllocatorKillThreatsBasic). */
- turfSighted?:boolean;turfFoe?:boolean;
+ /** Seconds to the ped's next CPedAcquaintanceScanner scan. */
+ acquaintanceScan?:number;turfFoe?:boolean;
  /** CGangWars::TellGangMembersTo(false)'s CTaskComplexKillPedOnFoot at the player, handed to the gangsters there at the time. */
  warFoe?:boolean;
   /** A cop who left a police car seat (CPed::m_pVehicle), and the door point it is heading back to. */
@@ -648,6 +649,19 @@ export class WorldPedestrians {
   const q=p.actor.player.position;
   if(Math.hypot(p.target.position[0]-q.x,-p.target.position[1]-q.z)<=20)return;
   const n=this.nearestNode(q);if(n){p.target=n;p.previousNode=undefined;}
+ }
+ /** CPedAcquaintanceScanner::FindClosestAcquaintance's tests for the player as the candidate (iOS 0x1003566e8): within the
+  * scanner's radius (a gang ped's seeing range, 40) and its 40-unit cap; in front (dot > ms_fThresholdDotProduct, 0),
+  * unless either is in a vehicle; and a line clear of buildings and objects from 0.75 above the ped's origin to 0.75
+  * above his (a unit lower while he ducks). The lighting test, which lets a badly lit player be seen only close in, is not made (no ped lighting here). */
+ private seesForAcquaintance(p:Pedestrian,heading:number,distance:number){
+  if(distance>GANG_SEEING_RANGE)return false;
+  const q=p.actor.player.position,t=this.sim.player.position,playerOnFoot=this.sim.playerCollider.isEnabled()&&this.sim.playerBody.isEnabled();
+  if(playerOnFoot&&(t.x-q.x)*Math.sin(heading)+(t.z-q.z)*Math.cos(heading)<=0)return false;
+  // From the ped's origin (a unit above its feet) + 0.75 to the player's, a unit lower while he ducks.
+  const from={x:q.x,y:q.y+PED_ORIGIN_HEIGHT+ACQUAINTANCE_EYE_HEIGHT,z:q.z},to={x:t.x,y:t.y+PED_ORIGIN_HEIGHT+ACQUAINTANCE_EYE_HEIGHT-(this.sim.player.crouched?1:0),z:t.z};
+  const dx=to.x-from.x,dy=to.y-from.y,dz=to.z-from.z,length=Math.hypot(dx,dy,dz);
+  return length<1e-3||!this.sim.world.castRay(new RAPIER.Ray(from,{x:dx/length,y:dy/length,z:dz/length}),length,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
  }
  private answering(p:Pedestrian){return p.retaliate>0||p.flee>0||!!p.gunReact||!!p.evade||!!p.carReact;}
  /** Whether an event of `type` from `source` (the player when undefined) displaces the one the ped answers. */
@@ -3788,21 +3802,26 @@ export class WorldPedestrians {
      }
     }
    }
-   // Gangs that hate the player: the acquaintance scanner's sighting (in front, within the seeing range) reaches the
-   // gang's group, which answers with a kill-threats task for every member TURF_KILL_THREATS_CHANCE of the time, once
-   // for each time he comes into view (see nativePopulation). A gang that only dislikes him leaves him be.
+   // Gangs that hate the player: CPedAcquaintanceScanner (iOS 0x1003564f4, 0x1003566e8) sees him and raises
+   // CEventAcquaintancePedHate, which reaches the gang's group; the group answers with a kill-threats task for every
+   // member TURF_KILL_THREATS_CHANCE of the time (see nativePopulation). A gang that only dislikes him leaves him be.
    if(!p.officer&&p.health>0&&p.down===0&&this.sim.player.health>0){
     const t=this.sim.player.position,d=Math.hypot(t.x-state.position.x,t.z-state.position.z);
-    if(p.gang!==undefined&&!p.follow&&this.regardForPlayer(p)===ACQUAINTANCE_HATE){
-     const h=state.heading,inFront=(t.x-state.position.x)*Math.sin(h)+(t.z-state.position.z)*Math.cos(h)>0;
-     if(d<=PED_SEEING_RANGE&&inFront&&!p.turfSighted){
-      p.turfSighted=true;
-      if(this.turfRandom()<TURF_KILL_THREATS_CHANCE)for(const m of p.party?.members??[p])if(m.health>0&&!m.officer){m.turfFoe=true;m.turfSighted=true;}
-     }else if(d>PED_SEEING_RANGE*2)p.turfSighted=false;
+    // The scan runs on its own 500 ms timer (the first after 0 to 3 s), and waits 3000 ms after raising the event; a
+    // ped answering the hate (its kill task) does not scan.
+    if(p.gang!==undefined&&!p.follow&&!p.turfFoe&&this.regardForPlayer(p)===ACQUAINTANCE_HATE){
+     p.acquaintanceScan=(p.acquaintanceScan??this.turfRandom()*ACQUAINTANCE_FIRST_SCAN_SECONDS)-dt;
+     if(p.acquaintanceScan<=0){
+      p.acquaintanceScan=ACQUAINTANCE_SCAN_SECONDS;
+      if(this.seesForAcquaintance(p,state.heading,d)){
+       p.acquaintanceScan=ACQUAINTANCE_RAISED_SCAN_SECONDS;
+       if(this.turfRandom()<TURF_KILL_THREATS_CHANCE)for(const m of p.party?.members??[p])if(m.health>0&&!m.officer)m.turfFoe=true;
+      }
+     }
     }
     // CTaskComplexKillPedOnFoot holds until the player gets clear of it.
     if(p.turfFoe&&d>PED_SEEING_RANGE*4)p.turfFoe=false;
-    if(p.attackWave||p.warFoe||p.turfFoe||gangHostile(p.gang,d)){p.retaliate=Math.max(p.retaliate,2);p.flee=0;}
+    if(p.attackWave||p.warFoe||p.turfFoe){p.retaliate=Math.max(p.retaliate,2);p.flee=0;}
    }
    // Armed turf gangs stand and shoot instead of brawling (escalated pursuit).
    let gunHold:number|undefined,gunEngaged=false;
@@ -3838,7 +3857,7 @@ export class WorldPedestrians {
    }else if(!p.officer&&p.weapon&&p.health>0&&p.down===0&&this.sim.player.health>0&&(gunFoe||!p.follow)){
     spot=this.spotTarget(p,gunFoe?gunFoe.actor.player.position:this.sim.player.position,cars,gunFoe);
     p.view.setWeaponAim();p.view.setWeaponPose();
-    const hostile=!!gunFoe||p.retaliate>0||!!p.turfFoe||gangHostile(p.gang,Math.hypot(this.sim.player.position.x-state.position.x,this.sim.player.position.z-state.position.z));
+    const hostile=!!gunFoe||p.retaliate>0||!!p.turfFoe;
     const fight=p.gunFight??={shooting:false,lastAttack:-Infinity},range=p.weapon.info.targetRange,d=spot.distance;
     if(!hostile||!spot.visible)fight.shooting=false;
     // CTaskComplexKillPedOnFootArmed: fire from a quarter of the target range at once, or from half of it once two

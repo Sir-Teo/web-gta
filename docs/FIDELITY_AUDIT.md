@@ -8982,10 +8982,26 @@ or Vagos car came by shooting every 50 s in their turf, from the first minute of
 gang regards CJ is its ped type's acquaintance with PLAYER1, which MAIN.SCM sets: the Ballas, Vagos and Aztecas only
 dislike him at the start, and SWEET4's pass turns the Ballas' to hate. A gang member's acquaintance scanner raises the
 sighting to its group, and RANDOM.grp answers a hated ped with `CTaskAllocatorKillThreatsBasic` 200 times in 700 and
-with nothing otherwise; a disliked one draws a stare, a hassle or nothing. Now a gang member that hates the player rolls
-that draw once each time he comes into view (in front, within the 15-unit seeing range); on an attack its whole party
-sets on him until he is sixty units clear. A gang that only dislikes him leaves him be, and only a hating gang sends its
-cars on drive-bys. The authored disrespect rule (a weak mark leaned on inside 5 m) stays. Specs: `gang-shootout`,
+with nothing otherwise; a disliked one draws a stare, a hassle or nothing. On an attack the member's whole party sets on
+him until he is sixty units clear. A gang that only dislikes him leaves him be, and only a hating gang sends its cars on
+drive-bys.
+
+The scan itself is the iOS CPedAcquaintanceScanner (ScanForPedAcquaintances 0x1003564f4, FindClosestAcquaintance
+0x1003566e8); gta-reversed has only the class. It replaced a roll made once per sighting, in front within 15 units,
+re-armed only beyond 30:
+- it runs on its own timer, every 500 ms, and 3000 ms after a scan that raised the event; a new ped's first scan comes
+  0 to 3 s in. A ped answering the hate (its kill task) does not scan. So a gang that keeps the player in view draws
+  again every 3 s;
+- a gang ped type looks as far as its 40-unit seeing range (the scan's own cap is 40 too);
+- in front means a dot product over ms_fThresholdDotProduct, which is 0 (never written); the test is skipped while the
+  player is in a vehicle;
+- the line of sight must be clear of buildings and objects, from 0.75 above the ped's origin to 0.75 above the
+  player's, a unit lower while he ducks.
+- Removed: the authored disrespect rule (a gang leaning on a mark under 25 respect inside 5 m). The scanner never
+  reads respect.
+- Not ported: the lighting test (a player lit at 0.3 or less is noticed only close in), the scan of other peds (gang
+  against gang, cops), and the "bounty on your head" cheat and LA riots, which make the hate a kill task at once.
+Specs: `gang-shootout` (a hated mark is shot at; with the first draws missing, a later scan still brings the attack),
 `driveby-attack`, `native-population` (unit).
 
 ## Mission text and train paint
