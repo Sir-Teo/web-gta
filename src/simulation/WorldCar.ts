@@ -259,8 +259,11 @@ export class WorldCar {
   gang?:number;
  /** CEntity::m_nRandomSeed, and its driver's (only its oddness is read). */
  readonly randomSeed=randomSeed();readonly driverSeedOdd=randomSeed()%2===1;
- /** The lamps are lit this frame (GetVehicleLightsStatus for a car with a driver; the host decides). */
+ /** The lamps are lit this frame (CVehicle::DoVehicleLights; the host decides). */
  lightsOn=false;
+ /** vehicleFlags.bLightsOn, which DoVehicleLights keeps from frame to frame: a car without a driver keeps it until the
+  * camera is far, and SET_CAR_LIGHTS_ON sets it. */
+ lightsFlag=false;
  /** m_nOverrideLights (FORCE_CAR_LIGHTS): 0 the car's own rule, 1 forced off, 2 forced on. */
  overrideLights=0;
  /** m_fDirtLevel: CVehicle's constructor draws CGeneral::GetRandomNumber() % 15. MakeDirty's callers are unreversed, so

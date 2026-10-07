@@ -2602,7 +2602,8 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_RELATIONSHIP_SET:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isRelationshipSet')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2])),negated(i));},
  CLEAR_RELATIONSHIP:(t,p,i)=>{world(t,i,'clearRelationship')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
  GET_CLOSEST_STEALABLE_OBJECT:(t,p,i)=>{t.writeInt(p[4],world(t,i,'getClosestStealableObject')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3])));},
- FORCE_ALL_VEHICLE_LIGHTS_OFF:(t,p,i)=>{world(t,i,'forceAllVehicleLightsOff')(bool(t,p[0]));},
+ // iOS 0x1002079c8 stores the operand in the byte DoVehicleLights reads first.
+ FORCE_ALL_VEHICLE_LIGHTS_OFF:(t,p,i)=>{game(t,i).forceAllVehicleLightsOff=bool(t,p[0]);},
  SET_FREE_HEALTH_CARE:(t,p,i)=>{world(t,i,'setFreeHealthCare')(t.readInt(p[0]),bool(t,p[1]));},
  FIND_NUMBER_TAGS_TAGGED:(t,p,i)=>{t.writeInt(p[0],world(t,i,'findNumberTagsTagged')());},
  UPDATE_PICKUP_MONEY_PER_DAY:(t,p,i)=>{world(t,i,'updatePickupMoneyPerDay')(t.readInt(p[0]),t.readInt(p[1]));},

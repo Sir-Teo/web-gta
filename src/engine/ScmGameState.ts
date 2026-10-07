@@ -266,6 +266,9 @@ export class ScmGameState {
  readonly checkpoints=new ScmCheckpoints();
  /** The vehicle models the script suppresses, and the respect a mission awarded. */
  readonly suppressedCarModels=new Set<number|string>();
+ /** FORCE_ALL_VEHICLE_LIGHTS_OFF's byte (iOS 0x1008f80b0): while set, CVehicle::DoVehicleLights returns at once, so no
+  * vehicle draws its lights and none changes vehicleFlags.bLightsOn. CTheScripts::Init and the restart clear it. */
+ forceAllVehicleLightsOff=false;
  missionRespect=0;
  /** Whether the player's gang is showing, which the two appear commands switch. */
  playerGangVisible=true;

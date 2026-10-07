@@ -11098,3 +11098,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   x and y, inclusive, with the box highlighted on request whatever the answer. GET_CAR_UPRIGHT_VALUE (iOS 0x1001fdd30)
   is the z of the car matrix's up axis (+0x28), 1 on its wheels and -1 on its roof. Both were skipped (crane1.scm and
   two others locate objects; DESERT5 asks the upright value).
+- **Headlights a car keeps.** CVehicle::DoVehicleLights (iOS 0x100485948) keeps vehicleFlags.bLightsOn from frame to
+  frame. When GetVehicleLightsStatus differs from it, a car with a driver takes the status, a wrecked one keeps the
+  flag, and a parked (abandoned) car never lights by itself and goes dark only once the camera is more than 100 away
+  in |dx| + |dy|. The port lit only cars with a driver, so a car the player left at night went dark at once; it now
+  keeps its lamps as on iOS. SET_CAR_LIGHTS_ON (0x100201284) sets the flag (bit 6), which GARAG1 does to a parked car.
+  FORCE_ALL_VEHICLE_LIGHTS_OFF (0x1002079c8) sets the byte DoVehicleLights reads first: while it is set no vehicle draws
+  its lights and none changes its flag (BLOOD). CTheScripts::Init and the restart clear it. Both commands were skipped.

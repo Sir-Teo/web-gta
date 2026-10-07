@@ -976,7 +976,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isRelationshipSet?(relationshipType:number,ofPedType:number,toPedType:number):boolean;
  clearRelationship?(relationshipType:number,ofPedType:number,toPedType:number):void;
  getClosestStealableObject?(x:number,y:number,z:number,radius:number):number;
- forceAllVehicleLightsOff?(state:boolean):void;
  setFreeHealthCare?(handle:number,state:boolean):void;
  findNumberTagsTagged?():number;
  updatePickupMoneyPerDay?(handle:number,value:number):void;

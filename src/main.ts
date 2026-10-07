@@ -1624,10 +1624,28 @@ async function boot() {
     {const hours=Math.floor(sim.timeMinutes/60)%24,minutes=Math.floor(sim.timeMinutes)%60;
      const zone=worldZones?.population?worldZones.population[worldZoneAt(worldZones,[sim.player.position.x,-sim.player.position.z,sim.player.position.y]).zoneInfoIndex]:undefined;
      const gangArea=(zone?.gangStrength?.reduce((a,b)=>a+b,0)??0)>20,foggyness=weatherStarted?weather.foggyness:0,wetRoads=weatherStarted?weather.wetRoads:0;
+     // FORCE_ALL_VEHICLE_LIGHTS_OFF: DoVehicleLights returns before anything, for every vehicle.
+     const allLightsOff=!!mission?.runtime.game.forceAllVehicleLightsOff;
      // A ridden motorbike reads the same rule; the bike's contact brightness is not kept, so the dark test is off.
-     for(const bike of fleet?.bikes??[])bike.lightsOn=!bike.wrecked&&bike.occupied&&!BMX_MODELS.has(bike.modelId)&&vehicleLightsStatus({seed:bike.randomSeed,gangDriverOddSeed:false,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:1,camNoRain:cullZones.camNoRain});
-     // m_nOverrideLights answers first: FORCE_CAR_LIGHTS on or off, whoever drives.
-     for(const car of fleet?.cars??[])car.lightsOn=car.overrideLights===2?!car.wrecked:car.overrideLights===1?false:!car.wrecked&&(car.occupied||!!car.autopilot&&!car.driverOut)&&vehicleLightsStatus({seed:car.randomSeed,gangDriverOddSeed:car.gang!==undefined&&car.driverSeedOdd,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:car.contactBrightness(nativeDayNightBalance(sim.timeMinutes)),camNoRain:cullZones.camNoRain});}
+     for(const bike of fleet?.bikes??[])bike.lightsOn=!allLightsOff&&!bike.wrecked&&bike.occupied&&!BMX_MODELS.has(bike.modelId)&&vehicleLightsStatus({seed:bike.randomSeed,gangDriverOddSeed:false,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:1,camNoRain:cullZones.camNoRain});
+     // CVehicle::DoVehicleLights (iOS 0x100485948) keeps vehicleFlags.bLightsOn (lightsFlag): when GetVehicleLightsStatus
+     // differs from it, a car with a driver takes the status, a wrecked one keeps the flag, and a parked one never lights
+     // by itself and goes dark only once the camera is more than 100 away (|dx| + |dy|). So a car the player leaves at
+     // night keeps its lamps, as does one SET_CAR_LIGHTS_ON lit. m_nOverrideLights then: 1 puts the flag out, 2 lights
+     // the car whoever drives.
+     for(const car of fleet?.cars??[]){
+      if(allLightsOff){car.lightsOn=false;continue;}
+      const driven=car.occupied||!!car.autopilot&&!car.driverOut;
+      if(!car.wrecked&&(driven||car.lightsFlag)){
+       const status=vehicleLightsStatus({seed:car.randomSeed,gangDriverOddSeed:car.gang!==undefined&&car.driverSeedOdd,gangArea,hours,minutes,foggyness,wetRoads,contactBrightness:car.contactBrightness(nativeDayNightBalance(sim.timeMinutes)),camNoRain:cullZones.camNoRain});
+       if(status!==car.lightsFlag){
+        if(driven)car.lightsFlag=status;
+        else{const at=car.car.body.translation();if(Math.abs(camera.position.x-at.x)+Math.abs(camera.position.z-at.z)>100)car.lightsFlag=false;}
+       }
+      }
+      if(car.overrideLights===1)car.lightsFlag=false;
+      car.lightsOn=car.overrideLights===2?!car.wrecked:car.lightsFlag&&!car.wrecked;
+     }}
     for(const bike of fleet?.bikes??[])bike.setViewDistance(bike.root.position.distanceToSquared(camera.position),1);
     for(const car of fleet?.cars??[]){car.car.setViewDistance(car.car.root.position.distanceToSquared(camera.position),1);car.setLighting(render.lighting.nativeWorldAmbient,render.lighting.nativeObjectAmbient,render.lighting.sunLightMultiplier,nativeDayNightBalance(sim.timeMinutes));}
     // CWaterCannons::Render: the crossed quads of the live sections, and the splash where the jet meets a surface.
@@ -5710,6 +5728,7 @@ async function boot() {
                  },
                  setPlayerUsedEntryExit:(x,y,radius)=>{if(entryExits)entryExits.enteredBy=entryExits.findNearest(x,y,radius);},
                  playerEntryExit:()=>{const e=entryExits?.enteredBy;return e&&{name:e.name,position:entryExitPosition(e),heading:e.angle*180/Math.PI};},
+                 setScriptVehicleLightsFlag:(car,on)=>{if(car&&typeof car==='object'&&'lightsFlag' in car)(car as ScriptCar).lightsFlag=on;},
                  setScriptVehicleOverrideLights:(car,lights)=>{if(car&&typeof car==='object'&&'overrideLights' in car)(car as ScriptCar).overrideLights=lights&3;},
                  // CEntity::m_bUsesCollision: with it off nothing collides with the car, the ground included.
                  setScriptVehicleUsesCollision:(car,state)=>{
