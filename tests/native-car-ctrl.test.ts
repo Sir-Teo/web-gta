@@ -42,6 +42,9 @@ test('a car picks its next node near the lane point, or once past it',()=>{
  expect(shouldPickNextNode(car(2.7,-20),current,0,next,0)).toBe(false);
  expect(shouldPickNextNode(car(2.7,-4),current,0,next,0)).toBe(true);
  expect(shouldPickNextNode(car(2.7,6),current,0,next,0)).toBe(true);
+ // After a U-turn the next link is the current one, turned round: the car picks again at once.
+ const back={...current,forward:{x:0,y:-1}};
+ expect(shouldPickNextNode(car(2.7,-20),current,0,back,0)).toBe(true);
 });
 
 test('FollowPath steers towards the lane and cruises at the cruise speed on a straight road',()=>{

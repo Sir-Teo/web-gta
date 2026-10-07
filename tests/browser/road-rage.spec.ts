@@ -72,8 +72,9 @@ test('a driver rammed by the player draws his decision: road rage gets him out t
  const order=result.rage.phases.join('>');expect(order.startsWith('face>shake>seek')||order.startsWith('shake>seek')).toBe(true);
  expect(result.rage.fistClip).toBe(true);expect(result.rage.foe).toBe('player');
  expect(result.rage.retaliate).toBeGreaterThan(15);expect(result.rage.closest).toBeLessThan(3);
- // The flee-scene drive: cruise 40, DRIVING_STYLE_AVOID_CARS; a light bump (5 raw health or less) is no event.
- expect(result.beforeFlee.cruise).toBeLessThan(20);expect(result.beforeFlee.avoid).toBe(false);
+ // The flee-scene drive: cruise 40, DRIVING_STYLE_AVOID_CARS; a light bump (5 raw health or less) is no event. Before
+ // it the car has its GenerateOneRandomCar cruise, 13 to 20 (21 at rand()'s very top).
+ expect(result.beforeFlee.cruise).toBeLessThanOrEqual(21);expect(result.beforeFlee.avoid).toBe(false);
  expect(result.flee).toEqual({cruise:40,avoid:true,fleeScene:true,raged:false});
  expect(result.small.cruise).toBe(40);
 });

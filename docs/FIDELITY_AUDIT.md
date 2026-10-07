@@ -1470,6 +1470,9 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
       four on segments of 14 or more stays for routes and patrol cars, whose
       picks are not this one.
     - `srand(m_nForcedRandomRouteSeed)` is not ported.
+    - The node-change test also fires when the next link is the current one,
+      as a U-turn leaves it (iOS 0x10019a7f4), so the car picks again at once
+      from the node it turned at.
 - SA pieces used where they are known:
   - `FindMaxSteerAngle` (0x427FE0, reversed).
   - A lane width of 5.4: SA's `CCarPathLink::OneWayLaneOffset` divides the
