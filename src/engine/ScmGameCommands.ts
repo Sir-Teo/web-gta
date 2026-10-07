@@ -1211,8 +1211,11 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  IS_CHAR_GETTING_IN_TO_A_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsGettingIntoCar')(t.readInt(p[0])),negated(i));},
  IS_CHAR_WAITING_FOR_WORLD_COLLISION:(t,p,i)=>{t.updateCompareFlag(world(t,i,'pedIsWaitingForCollision')(t.readInt(p[0])),negated(i));},
+ // iOS 0x1001e4da8: the ped's m_pLastEntityDamage is that very car (a car hit records itself; the handle -1 names
+ // none, so nothing matches it).
  HAS_CHAR_BEEN_DAMAGED_BY_CAR:(t,p,i)=>{
-  t.updateCompareFlag(world(t,i,'pedWasDamagedByVehicle')(t.readInt(p[0]),t.readInt(p[1])),negated(i));
+  const damage=world(t,i,'pedLastDamagedBy')(t.readInt(p[0])),car=t.readInt(p[1]);
+  t.updateCompareFlag(damage?.vehicle!==undefined&&damage.vehicle===car,negated(i));
  },
  // The command names a second ped and the source ignores it: it asks whether this ped can see any dead ped near
  // it, which is what its scanner holds.

@@ -388,7 +388,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  /** m_bIsStaticWaitingForCollision. */
  pedIsWaitingForCollision?(handle:number):boolean;
  /** m_pLastEntityDamage against a vehicle the script names. */
- pedWasDamagedByVehicle?(handle:number,vehicle:number):boolean;
  /** Whether any dead ped near this one can be seen by it. */
  pedCanSeeDeadPed?(handle:number):boolean;
  /** bChrisCriminal, bIgnoreHeightDifferenceFollowingNodes and the death-weapons flag. */

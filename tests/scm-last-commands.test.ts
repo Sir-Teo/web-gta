@@ -98,7 +98,7 @@ describe('the last of the ped questions',()=>{
   const calls:unknown[]=[];
   const world={
    pedIsMale:()=>true,pedIsGettingIntoCar:()=>true,pedIsWaitingForCollision:()=>true,
-   pedWasDamagedByVehicle:(...a:unknown[])=>{calls.push(['damaged',...a]);return true;},
+   pedLastDamagedBy:(...a:unknown[])=>{calls.push(['damaged',...a]);return {vehicle:CAR};},
    pedCanSeeDeadPed:(...a:unknown[])=>{calls.push(['seeDead',...a]);return true;},
    setPedChrisCriminal:(...a:unknown[])=>{calls.push(['chris',...a]);},
    setPedIgnoreHeightDifferenceFollowingNodes:(...a:unknown[])=>{calls.push(['height',...a]);},
@@ -118,7 +118,7 @@ describe('the last of the ped questions',()=>{
    instruction(scmOpcode('REMOVE_CHAR_FROM_CAR_MAINTAIN_POSITION'),[int(PED),int(CAR)]),
    instruction(scmOpcode('GET_RID_OF_PLAYER_PROSTITUTE'),[]));
   expect(calls).toEqual([
-   ['damaged',PED,CAR],['seeDead',PED],['chris',PED,true],['height',PED,true],['skids',CAR,true],
+   ['damaged',PED],['seeDead',PED],['chris',PED,true],['height',PED,true],['skids',CAR,true],
    ['anim',PED,'RUN',true],['out',PED,CAR],['prostitute'],
   ]);
   expect(thread.condition).toBe(true);

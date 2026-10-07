@@ -11111,3 +11111,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   request whatever the answer (DRIV2 asks the 2D one). GET_CAR_MASS (0x1001ef0cc) and GET_OBJECT_MASS (0x100201cb4)
   both read CPhysical::m_fMass: a vehicle's handling fMass (SET_CAR_HEAVY doubles it only inside collisions), and an
   object's OBJECT.DAT mass or 99999 without a row (DECON and HEIST1). All were skipped.
+- **Hit by which car, and arrested.** HAS_CHAR_BEEN_DAMAGED_BY_CAR (iOS 0x1001e4da8) is true when the ped's
+  m_pLastEntityDamage is that very car, which a run-over records (TRIA's and MTBIKER's racers). HAS_CHAR_BEEN_ARRESTED
+  (0x1001f6290) asks m_nPedState for PEDSTATE_ARRESTED (63): the player is in it while busted, until the restart, and
+  no task in the port arrests a script ped. SYN7's failure branch uses it to restart a busted player at the San Fierro
+  police station rather than the hospital; with the command skipped he always went to the hospital. Both were skipped.

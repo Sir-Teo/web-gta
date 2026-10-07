@@ -155,3 +155,12 @@ describe('the last of the tail',()=>{
   expect(camera.attached).toBeUndefined();expect(camera.lookingAtPlayer).toBe(true);
  });
 });
+
+test('HAS_CHAR_BEEN_DAMAGED_BY_CAR: the ped\'s last damage is that very car (iOS 0x1001e4da8)',()=>{
+ const by=(vehicle?:number,ped?:number)=>({pedLastDamagedBy:()=>vehicle===undefined&&ped===undefined?undefined:{vehicle,ped}});
+ const ask=(world:object,car:number)=>run(world,undefined,instruction(op('HAS_CHAR_BEEN_DAMAGED_BY_CAR'),[int(7),int(car)])).thread.condition;
+ expect(ask(by(CAR),CAR)).toBe(true);
+ expect(ask(by(CAR+1),CAR)).toBe(false);
+ expect(ask(by(undefined,3),CAR)).toBe(false);
+ expect(ask(by(),-1)).toBe(false);
+});

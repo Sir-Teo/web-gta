@@ -2513,6 +2513,10 @@ export class ScmMission {
    isPlayerRestarting:()=>{const state=this.world.playerState?.();return state==='dead'||state==='arrested';},
    isPlayerPlaying:()=>(this.world.playerState?.()??'playing')==='playing',
    isPlayerDead:()=>this.world.playerState?.()==='dead',
+   // HAS_CHAR_BEEN_ARRESTED (iOS 0x1001f6290): m_nPedState is PEDSTATE_ARRESTED (63). The player's is while he is
+   // busted, until the restart; no task in the port puts a script ped in that state. SYN7's failure picks the
+   // police station over the hospital for the restart by it.
+   hasCharBeenArrested:handle=>{if(handle===PLAYER_PED_HANDLE)return this.world.playerState?.()==='arrested';this.livePed(handle);return false;},
    clearSmallMessages:()=>{},
    isDrawingMap:()=>false,
   };
