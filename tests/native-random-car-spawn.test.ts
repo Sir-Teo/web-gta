@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {approachesPlayer,clampCreationT,laneCountAllows,nodeSpeedMultiplier,randomCarCreationBearing,randomCarCruiseSpeed,spawnProbabilityPasses} from '../src/vehicle/nativeRandomCarSpawn';
+import {approachesPlayer,clampCreationT,laneCountAllows,nodeSpeedCode,nodeSpeedMultiplier,speedMultiplierFromNodes,randomCarCreationBearing,randomCarCruiseSpeed,spawnProbabilityPasses} from '../src/vehicle/nativeRandomCarSpawn';
 
 test('the bearing: any from a camera looking down, the car\'s way when driving, the camera\'s on foot',()=>{
  const view={cameraForwardZ:0,cameraFront:{x:0,y:1}};
@@ -25,6 +25,10 @@ test('spawn probability, lanes, cruise and the place along the link',()=>{
  expect(randomCarCruiseSpeed(0x70000000,12,400,false)).toBe(15);expect(randomCarCruiseSpeed(0x70000000,4,531,false)).toBe(6);
  expect(clampCreationT(.01,5,20)).toBeCloseTo(3.5/20,6);expect(clampCreationT(.99,5,20)).toBeCloseTo(1-3.5/20,6);expect(clampCreationT(.4,5,6)).toBe(.5);
  expect(nodeSpeedMultiplier(0)).toBe(.65);expect(nodeSpeedMultiplier(0x2000)).toBe(2.3);
+ // PickNextNodeAccordingStrategy: a reached node of behaviour type 8 or 9 gives code −1 (0.5); GenerateOneRandomCar
+ // reads bits 12 and 13 alone.
+ expect(nodeSpeedCode(0x801000)).toBe(-1);expect(nodeSpeedCode(0x801000,false)).toBe(1);expect(nodeSpeedCode(0x1000)).toBe(1);
+ expect([-1,0,1,2,3].map(speedMultiplierFromNodes)).toEqual([.5,.65,1,2.3,1]);
 });
 
 test('a car must be closing on the player, his own speed taken off',()=>{

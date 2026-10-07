@@ -16,7 +16,7 @@ import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel
 import {Quaternion,Vector3} from 'three';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
-import {BLOCK_TO_STOP_DISTANCE,DISTANCE_TO_SCAN_FOR_DANGER,STOP_TO_BLOCK_DISTANCE,blockPlayerTarget,lanePoint,slowCarDownForOtherCar,nextLaneOnLink,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,type Pedals} from '../vehicle/nativeCarCtrl';
+import {BLOCK_TO_STOP_DISTANCE,STOP_TO_BLOCK_DISTANCE,blockPlayerTarget,lanePoint,slowCarDownForCars,nextLaneOnLink,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,type Pedals} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 import type {WorldPlane} from './WorldPlane';
@@ -754,7 +754,7 @@ export class WorldPolice {
      // A cruising unit drives DRIVINGSTYLE_STOP_FOR_CARS like the traffic it is part of: FindMaximumSpeedForThisCarInTraffic
      // slows it for the cars ahead. Taking its cruise speed as the traffic speed, a patrol car drove into a car
      // stopped in its lane and kept pushing it (SWEET1's Greenwood pinned against a wall at a tag).
-     const trafficSpeed=u.mission==='cruise'?this.cruiseTrafficSpeed(car,state.position,state.forward,cruise):cruise;
+     const trafficSpeed=u.mission==='cruise'?this.cruiseTrafficSpeed(car,cruise):cruise;
      pedals=steerFollowPath(state,t,u.lane,travel(next),{cruiseSpeed:cruise,trafficSpeed,stop});
      aim={x:here.x-p.x,z:-here.y-p.z};
     }
@@ -772,19 +772,11 @@ export class WorldPolice {
   }
  }
  /** CCarCtrl::FindMaximumSpeedForThisCarInTraffic under STOP_FOR_CARS (SlowCarDownForCarsSectorList): the lowest speed
-  * any car ahead within DISTANCE_TO_SCAN_FOR_DANGER allows, as WorldTraffic works it out for random traffic. */
- private cruiseTrafficSpeed(car:WorldCar,position:{x:number;y:number},forward:{x:number;y:number},cruise:number){
-  const b=car.nativeBody,height=car.car.body.translation().y,rect={position,front:b.boundsMax.y,back:-b.boundsMin.y,halfWidth:b.boundsMax.x,forward};
-  let speed=cruise;
-  for(const other of this.fleet.cars){
-   if(other===car||other.disposed)continue;
-   const t=other.car.body.translation(),o={x:t.x,y:-t.z};
-   if(Math.abs(o.x-position.x)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(o.y-position.y)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(t.y-height)>=5)continue;
-   const ob=other.nativeBody,r=other.car.body.rotation(),f=new Vector3(0,0,-1).applyQuaternion(new Quaternion(r.x,r.y,r.z,r.w)),v=other.car.body.linvel();
-   const allowed=slowCarDownForOtherCar(rect,{position:o,front:ob.boundsMax.y,back:-ob.boundsMin.y,halfWidth:ob.boundsMax.x,forward:{x:f.x,y:-f.z},moveSpeed:{x:v.x/50,y:-v.z/50}},cruise);
-   if(allowed!==undefined)speed=Math.min(speed,allowed);
-  }
-  return speed;
+  * any vehicle ahead allows, as WorldTraffic works it out for random traffic (the patrol car's m_SpeedMult is taken
+  * as 1). */
+ private cruiseTrafficSpeed(car:WorldCar,cruise:number){
+  const others=[...this.fleet.cars].filter(o=>o!==car&&!o.disposed).map(o=>o.dangerView());
+  return slowCarDownForCars(car.dangerView(),others,cruise,cruise).speed;
  }
  /** The cop at the wheel of a unit's car (every seat holds the unit's model; the driver's gun is the shotgun when he
   * was handed it), for the ped the player drags out or who leaves it. */

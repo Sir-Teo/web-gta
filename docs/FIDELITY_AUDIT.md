@@ -1429,12 +1429,14 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   `vehicle/nativeCarCtrl.ts`:
   - Each car keeps a CAutoPilot-style route: the link it is heading for,
     the one after, and a lane on each.
-  - It steers at a point 0.4 of the way back from its lane point towards
-    the car, within `FindMaxSteerAngle`. Above 0.45 units per frame the
-    steer is capped at 0.2.
+  - It steers at a point 0.35 of the way back from its lane point towards
+    the car (the iOS `SteerAICarWithPhysicsFollowPath`, 0x10019a584; Vice
+    City's 0.4), within `FindMaxSteerAngle` alone. Vice City's 0.2 cap above
+    0.45 units per frame is not in the executable.
   - Speed follows the cruise speed, lowered by the heading error, by the
-    turn onto the next link within 40 units, by any vehicle ahead in the
-    14-unit scan box, and by pedestrians it is due to reach within 4 s.
+    turn onto the next link within 40 units, and by the traffic limit below.
+    Over it the car brakes min(0.5, −difference / 12), not Vice City's
+    −difference × 0.05.
   - At a node it picks the next link at random, as `PickNextNodeRandomly`
     does. The first pass keeps to turns the lane allows and avoids U-turns,
     dead ends, switched-off roads and wrong-way roads. Later passes relax
@@ -1479,6 +1481,36 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
     - the length the place is clamped by is a car's 5 units, the model not yet being in;
     - the special-zone test (golf course, factory, airport) and the curve placement are not ported.
   - **Spec:** `native-random-car-spawn` (unit). `road-rage` now rams a car that has run straight for half a second.
+- **The traffic limit is the iOS `FindMaximumSpeedForThisCarInTraffic` (0x100193dcc) and its
+  `SlowCarDownFor*` family** (they had been Vice City's):
+  - **m_SpeedMult:** the limit starts from cruise × `m_SpeedMult`, and every test scales by that (`curSpeed`).
+    `m_SpeedMult` glides 0.01 a 50 Hz step (snapping within one) towards
+    `FindSpeedMultiplierWithSpeedFromNodes` of the speed code `PickNextNodeAccordingStrategy` takes from each node
+    reached: 0.5 at a node of behaviour type 8 or 9, else 0.65, 1, 2.3 or 1 by bits 12 and 13 (Grove Street's
+    roads are almost all 1). Physics cars still drive at most at cruise (the angle and turn multipliers are at most 1);
+    a car on rails eases to the full limit, so it runs 2.3 times as fast on a code-2 road.
+  - **Vehicles:** another vehicle counts when its bound centre is strictly inside the ±14 box, under 10 above or
+    below and under 3 off the car's own slope (it had been the body position and 5). `SlowCarDownForOtherCar` takes
+    the lower of two tests: the other's four corners swept across this car's front bumper (0x100194f4c), and Vice
+    City's slab test for this car's two front corners only, without Vice City's front-left slip (0x100195134). A
+    projected contact within 1 unit stops the car, within 3 it crawls at 1 CarAI unit, and beyond that Vice City's
+    max(0, proximity − 0.2) / 1.3 holds. The 62 % cap from any vehicle ahead stays, as on iOS.
+  - **The 15-second standoff** is ported: two cars facing each other (forwards' dot under −0.5) at a proximity under
+    0.5, neither having moved for 15 s, and not the player's car: the one first seen keeps at least 0.2 of curSpeed
+    and turns to `DRIVINGSTYLE_AVOID_CARS`. The executable compares pointers; a vehicle no traffic driver owns uses
+    when the traffic first saw it as its clock. It also switches a car on rails to physics, which the browser's
+    distance-decided rails cannot.
+  - **Pedestrians:** under 6 above or below and 3 off the slope, ahead of the nose, due within 4 s, within 13 of it
+    and the car's width plus 0.5 to the side: the limit is max(1, max(0, distance − 1) / 13 × curSpeed), so a
+    pedestrian never stops a car alone. Within 4 the car waits (`TEMPACT_WAIT`, brake 0.2) and within 2.5 brakes
+    (`TEMPACT_BRAKE`, brake 1), each for 4 s, over whatever it was doing. Vice City's were 10, |distance − 1| / 10
+    and a 3 s wait within 2. A car on rails holds still through either. The player is passed over by the car he
+    fell off getting into (`m_pLastTargetVehicle`), which the browser's entry never sets.
+  - **Script cars** (`SET_CAR_DRIVING_STYLE` 0, 1 and 4) and **patrol cars** share the vehicle scan, with
+    `m_SpeedMult` taken as 1. `SLOW_DOWN_FOR_CARS` averages the limit with the cruise speed, as iOS does.
+  - Not ported: `ScanForPedDanger`'s own 11- and 44-unit boxes and its `CEventPotentialGetRunOver` warnings,
+    `ShouldCarStopForBridge`, the road-barrier objects (`DYN_ROADBARRIER_6`, `la_fuckcar1` and `2`), and the
+    rails limit being refreshed only every 4th frame.
 - AI cars now set their steer angle, gas, brake and handbrake directly, as
   `SteerAICarWithPhysics` writes them. They used to go through the player's
   smoothed pad input.
@@ -1489,11 +1521,7 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   - `TEMPACT_SWIRVELEFT_STOP` is SA-only. It follows Vice City's swerve
     (a steer of −0.15, straightening over the last second) and brakes at
     0.5.
-  - Vice City's `SlowCarDownForOtherCar` accepts every proximity below 1.5,
-    and the test never exceeds 1, so any vehicle ahead in the scan box caps
-    the speed at 62 % of cruise. This is kept.
-  - Weaving through traffic (`FindAngleToWeaveThroughTraffic`) and the
-    15-second standoff rule are not ported.
+  - Weaving through traffic (`FindAngleToWeaveThroughTraffic`) is not ported.
 - Police cars steer with the same port.
   - Far-away chases (`MISSION_RAMPLAYER_FARAWAY`) follow their route with
     `SteerAICarWithPhysicsFollowPath` as avoid-cars drivers, so traffic and
@@ -1514,6 +1542,14 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
     which ignores traffic and lights, and sounds its horn.
   - One car in eight that has not moved faster than 0.05 units per frame for
     30 s does the same with a 400 ms reverse.
+  - A temporary action keeps the jam check off until the steering clears it
+    as it runs out, which restarts the jam clock (and, for `TEMPACT_BRAKE`,
+    the movement clock). The port had let the frame a pedestrian's wait ended
+    count as a jam, which turned most cars that had waited to
+    `DRIVINGSTYLE_AVOID_CARS`.
+  - A car on its roof (up.z under −0.7) waits (`TEMPACT_WAIT`) for 1000 ms,
+    refreshed, and skips the jam check (iOS 0x10018a620; gta-reversed reads
+    a reverse).
   - The decompiled test lists exactly the missions Vice City exclude, so it
     is taken as inverted, as the police port already does. Read literally,
     stationary mission cars would reverse, and cruising cars never would.
@@ -1544,7 +1580,9 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
   the node choice, the slow-downs, cruise speeds and the siren yield.
   Browser tests cover lane keeping, stopping behind a parked car, slowing
   and honking for a pedestrian, the siren swerve, and the Grove Street and
-  native-road traffic. A live run shows cars holding their lanes at their
+  native-road traffic. `traffic.spec` now waits up to 720 steps for the stop
+  behind the parked car (the last 2 units are a crawl), checks lanes only
+  while the car follows its path, and allows the iOS cruise range. A live run shows cars holding their lanes at their
   class cruise speeds and stopping at lights.
 
 ## Police set pieces

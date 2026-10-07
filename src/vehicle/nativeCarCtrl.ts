@@ -14,9 +14,9 @@
  * speeds (units per frame × 60). */
 
 export const LANE_WIDTH=5.4,GAME_SPEED_TO_CARAI_SPEED=60;
-export const DISTANCE_TO_NEXT_NODE_TO_CONSIDER_SLOWING_DOWN=40,MAX_ANGLE_TO_STEER_AT_HIGH_SPEED=.2,MIN_SPEED_TO_START_LIMITING_STEER=.45,
+export const DISTANCE_TO_NEXT_NODE_TO_CONSIDER_SLOWING_DOWN=40,
  DISTANCE_TO_NEXT_NODE_TO_SELECT_NEW=5,DISTANCE_TO_FACING_NEXT_NODE_TO_SELECT_NEW=8,MIN_LOWERING_SPEED_COEFFICIENT=.4,MAX_ANGLE_FOR_SPEED_LIMITING=1.2,
- MIN_ANGLE_FOR_SPEED_LIMITING=.4,MIN_ANGLE_FOR_SPEED_LIMITING_BETWEEN_NODES=.1,DISTANCE_TO_SCAN_FOR_DANGER=14,SAFE_DISTANCE_TO_PED=3,ATTEMPTS_TO_FIND_NEXT_NODE=15;
+ MIN_ANGLE_FOR_SPEED_LIMITING=.4,MIN_ANGLE_FOR_SPEED_LIMITING_BETWEEN_NODES=.1,ATTEMPTS_TO_FIND_NEXT_NODE=15;
 export const PATH_DIRECTION={NONE:0,STRAIGHT:1,RIGHT:2,LEFT:4} as const;
 
 type V2={x:number;y:number};
@@ -70,16 +70,17 @@ export function shouldPickNextNode(car:FollowPathCar,current:TravelLink,currentL
  return distance<DISTANCE_TO_NEXT_NODE_TO_SELECT_NEW||d>0&&distance<DISTANCE_TO_FACING_NEXT_NODE_TO_SELECT_NEW||d/(distance*Math.hypot(between.x,between.y))>.7;
 }
 export interface Pedals {swerve:number;accel:number;brake:number;handbrake:boolean}
-/** The rest of SteerAICarWithPhysicsFollowPath for a car cruising under STOP_FOR_CARS: steer at a point 0.4 of
- * the way back from the lane point towards the car, and cruise at the speed allowed by the heading error, the
- * turn onto the next link and the traffic ahead. `trafficSpeed` is FindMaximumSpeedForThisCarInTraffic. */
+/** The rest of SteerAICarWithPhysicsFollowPath for a car cruising under STOP_FOR_CARS, as the iOS executable has it
+ * (0x10019a584): steer at a point 0.35 of the way back from the lane point towards the car (Vice City's 0.4), within
+ * FindMaxSteerAngle alone (no high-speed cap), and cruise at the speed allowed by the heading error, the turn onto the
+ * next link and the traffic ahead; over it, brake min(0.5, −difference / 12). `trafficSpeed` is
+ * FindMaximumSpeedForThisCarInTraffic. */
 export function steerFollowPath(car:FollowPathCar,current:TravelLink,currentLane:number,next:TravelLink,o:{cruiseSpeed:number;trafficSpeed:number;stop:boolean}):Pedals{
  const here=lanePoint(current,currentLane),distance=Math.hypot(here.x-car.position.x,here.y-car.position.y);
- const projected=distance>DISTANCE_TO_NEXT_NODE_TO_CONSIDER_SLOWING_DOWN?here:{x:here.x-current.forward.x*distance*.4,y:here.y-current.forward.y*distance*.4};
+ const pull=Math.fround(.35),projected=distance>DISTANCE_TO_NEXT_NODE_TO_CONSIDER_SLOWING_DOWN?here:{x:here.x-current.forward.x*distance*pull,y:here.y-current.forward.y*distance*pull};
  const angleForward=atanOf(car.forward),angleToPoint=atanOf({x:projected.x-car.position.x,y:projected.y-car.position.y});
  const move=Math.hypot(car.moveSpeed.x,car.moveSpeed.y,car.moveSpeed.z),maxAngle=findMaxSteerAngle(move);
- let steer=Math.min(maxAngle,Math.max(-maxAngle,limitRadianAngle(angleToPoint-angleForward)));
- if(move>MIN_SPEED_TO_START_LIMITING_STEER)steer=Math.min(MAX_ANGLE_TO_STEER_AT_HIGH_SPEED,Math.max(-MAX_ANGLE_TO_STEER_AT_HIGH_SPEED,steer));
+ const steer=Math.min(maxAngle,Math.max(-maxAngle,limitRadianAngle(angleToPoint-angleForward)));
  const forwardSpeed=(car.moveSpeed.x*car.forward3.x+car.moveSpeed.y*car.forward3.y+car.moveSpeed.z*car.forward3.z)*GAME_SPEED_TO_CARAI_SPEED;
  const styleMultiplier=o.stop?0:o.cruiseSpeed?o.trafficSpeed/o.cruiseSpeed:0;
  const angleMultiplier=findSpeedMultiplier(atanOf({x:here.x-car.position.x,y:here.y-car.position.y})-angleForward,MIN_ANGLE_FOR_SPEED_LIMITING,MAX_ANGLE_FOR_SPEED_LIMITING,MIN_LOWERING_SPEED_COEFFICIENT);
@@ -88,7 +89,7 @@ export function steerFollowPath(car:FollowPathCar,current:TravelLink,currentLane
  const speed=o.cruiseSpeed*Math.min(styleMultiplier,angleMultiplier,nodesMultiplier),difference=speed-forwardSpeed;
  let accel=0,brake=0;
  if(speed<.05&&difference<.03)brake=1;
- else if(difference<=0)brake=Math.min(.5,-difference*.05);
+ else if(difference<=0)brake=Math.min(.5,difference/-12);
  else accel=Math.min(1,difference*(forwardSpeed<2?.25:.125));
  return {swerve:steer,accel,brake,handbrake:false};
 }
@@ -138,68 +139,132 @@ export function nextLaneOnLink(lane:number,lanesOnNext:number,segmentLength:numb
  return Math.max(0,Math.min(lanesOnNext-1,next));
 }
 
-/** A vehicle as TestCollisionBetween2MovingRects sees it: position, collision box extents. */
+type V3={x:number;y:number;z:number};
+/** A vehicle as the moving-rect tests see it: position and its collision box's front (max.y), back (−min.y) and
+ * half-width (max.x). */
 export interface MovingRect {position:V2;front:number;back:number;halfWidth:number}
-/** CCarCtrl::TestCollisionBetween2MovingRects: the fraction of `projection` (A's velocity relative to B over the
- * look-ahead) at which one of A's corners enters B's box, or 1. VC's front-left corner mixes B's forward x into its
- * x offset; the slip is kept. */
-export function testCollisionBetween2MovingRects(a:MovingRect,b:MovingRect,projection:V2,forwardA:V2,forwardB:V2){
- const toA={x:a.position.x-b.position.x,y:a.position.y-b.position.y};
- const lenB=b.front,widthB=b.halfWidth,backLenB=b.back,lenA=a.front,widthA=a.halfWidth,backLenA=a.back;
- const fullWidthB=2*widthB,fullLenB=lenB+backLenB;let proximity=1;
- const corners:V2[]=[
-  {x:toA.x+widthA*forwardB.y+lenA*forwardB.x,y:toA.y+lenA*forwardB.y-widthA*forwardB.x},
-  {x:toA.x-widthA*forwardB.x+lenA*forwardB.x,y:toA.y+lenA*forwardB.y+widthA*forwardB.x},
-  {x:toA.x+widthA*forwardB.y-backLenA*forwardB.x,y:toA.y-backLenA*forwardB.y-widthA*forwardB.x},
-  {x:toA.x-widthA*forwardB.y-backLenA*forwardB.x,y:toA.y-backLenA*forwardB.y+widthA*forwardB.x}];
- const axis=(distance:number,projected:number,near:number,far:number,full:number)=>{
-  let base=0,whole=1;
-  if(distance>near){
-   if(projected<0){const t=-(distance-near)/projected;if(t<1){base=t;whole=Math.min(1,t-full/projected);}else base=1;}
-   else{base=1;whole=1;}
-  }else if(distance<-far){
-   if(projected>0){const t=-(distance+far)/projected;if(t<1){base=t;whole=Math.min(1,t+full/projected);}else base=1;}
-   else{base=1;whole=1;}
-  }else if(projected>0)whole=(near-distance)/projected;
-  else if(projected<0)whole=-(far+distance)/projected;
-  return {base,whole};
- };
- for(const c of corners){
-  const w=axis(c.x*forwardA.y-c.y*forwardA.x,projection.x*forwardA.y-projection.y*forwardA.x,widthB,widthB,fullWidthB);
-  const l=axis(c.x*forwardA.x+c.y*forwardA.y,projection.x*forwardA.x+projection.y*forwardA.y,lenB,backLenB,fullLenB);
-  const base=Math.max(w.base,l.base);
-  if(base<w.whole&&base<l.whole)proximity=Math.min(proximity,base);
+/** The iOS executable's first moving-rect test (0x100194f4c): the fraction of `projection` (A's motion relative to B
+ * over 60 frames) at which one of A's four corners crosses B's front bumper, between its two ends, from in front of
+ * it; 1 when none does. A corner already inside B, or meeting its side or back, does not count. */
+export function testFrontBumperCrossing(a:MovingRect,b:MovingRect,projection:V2,forwardB:V2,forwardA:V2){
+ const rb={x:forwardB.y,y:-forwardB.x},ra={x:forwardA.y,y:-forwardA.x};
+ const p1={x:b.position.x+forwardB.x*b.front+rb.x*b.halfWidth,y:b.position.y+forwardB.y*b.front+rb.y*b.halfWidth};
+ const p2={x:b.position.x+forwardB.x*b.front-rb.x*b.halfWidth,y:b.position.y+forwardB.y*b.front-rb.y*b.halfWidth};
+ let r=1;
+ for(const [along,side] of [[a.front,1],[a.front,-1],[-a.back,1],[-a.back,-1]]){
+  const c={x:a.position.x+forwardA.x*along+ra.x*a.halfWidth*side,y:a.position.y+forwardA.y*along+ra.y*a.halfWidth*side};
+  const d0=(c.x-p1.x)*forwardB.x+(c.y-p1.y)*forwardB.y;if(!(d0>0))continue;
+  const d1=(c.x+projection.x-p1.x)*forwardB.x+(c.y+projection.y-p1.y)*forwardB.y;if(!(d1<0))continue;
+  const s1=(p1.x-c.x)*projection.y-(p1.y-c.y)*projection.x,s2=(p2.x-c.x)*projection.y-(p2.y-c.y)*projection.x;
+  if(!(s1*s2<0))continue;
+  const t=d0/(d0-d1);r=r<t?r:t;
  }
- return proximity;
+ return r;
 }
-/** CCarCtrl::SlowCarDownForOtherCar: the cruise speed allowed by another vehicle ahead, `curSpeed` being the car's
- * cruise speed. Returns undefined when the other vehicle is behind or no collision is projected. */
-export function slowCarDownForOtherCar(car:MovingRect&{forward:V2},other:MovingRect&{forward:V2;moveSpeed:V2},curSpeed:number){
- const fa=normal(car.forward),fb=normal(other.forward);
+/** The second (0x100195134): Vice City's TestCollisionBetween2MovingRects slab test for A's two front corners alone,
+ * without VC's front-left slip: the fraction of `projection` (A's motion relative to B) at which one enters B's box,
+ * or 1. */
+export function testFrontCornersEnterRect(a:MovingRect,b:MovingRect,projection:V2,forwardB:V2,forwardA:V2){
+ const to={x:a.position.x-b.position.x,y:a.position.y-b.position.y},width=b.halfWidth,front=b.front,back=-b.back;
+ const lateral=forwardB.y*projection.x-forwardB.x*projection.y,longitudinal=forwardB.x*projection.x+forwardB.y*projection.y;
+ const fullWidth=2*width/lateral,fullLength=(front-back)/longitudinal;
+ // Where along the move the corner is inside the slab [far, near] on one axis: its entry (base) and exit (whole).
+ const axis=(d:number,moving:number,near:number,far:number,full:number):[number,number]=>{
+  if(d>near){if(moving>=0)return [1,1];const t=-(d-near)/moving;return t>=1?[1,1]:[t,Math.min(1,t-full)];}
+  if(d<far){if(moving<=0)return [1,1];const t=-(d-far)/moving;return t>=1?[1,1]:[t,Math.min(1,t+full)];}
+  return moving>0?[0,(near-d)/moving]:moving<0?[0,(far-d)/moving]:[0,1];
+ };
+ const ra={x:forwardA.y,y:-forwardA.x};let r=1;
+ for(const side of [1,-1]){
+  const c={x:to.x+forwardA.x*a.front+ra.x*a.halfWidth*side,y:to.y+forwardA.y*a.front+ra.y*a.halfWidth*side};
+  const [bw,ww]=axis(c.x*forwardB.y-c.y*forwardB.x,lateral,width,-width,fullWidth);
+  const [bl,wl]=axis(c.x*forwardB.x+c.y*forwardB.y,longitudinal,front,back,fullLength);
+  const base=Math.max(bw,bl);
+  if(base<wl&&base<ww)r=Math.min(r,base);
+ }
+ return r;
+}
+/** CCarCtrl::SlowCarDownForOtherCar as the iOS executable has it (0x100194b98): `speed` (the lowest so far) lowered
+ * for another vehicle not behind the car, `curSpeed` being cruise × m_SpeedMult. The two tests above give the
+ * proximity, a fraction of the 60 frames ahead; projected contact within 1 unit of travel stops the car, within 3 it
+ * crawls at 1, and further it may go Vice City's max(0, proximity − 0.2) / 1.3 of curSpeed (so 0.615 of it with no
+ * contact projected at all). Any vehicle ahead raises bHonkAtCar. Returns the new speed and the proximity the
+ * standoff reads, or undefined for a vehicle behind. */
+export function slowCarDownForOtherCar(car:MovingRect&{forward:V2},other:MovingRect&{forward:V2;moveSpeed:V2},speed:number,curSpeed:number){
+ const fa=normal(car.forward);
  if(dot({x:other.position.x-car.position.x,y:other.position.y-car.position.y},fa)<0)return undefined;
+ const fb=normal(other.forward);
  const projection={x:GAME_SPEED_TO_CARAI_SPEED*other.moveSpeed.x-fa.x*curSpeed,y:GAME_SPEED_TO_CARAI_SPEED*other.moveSpeed.y-fa.y*curSpeed};
- const proximity=Math.min(testCollisionBetween2MovingRects(other,car,projection,fa,fb),testCollisionBetween2MovingRects(car,other,{x:-projection.x,y:-projection.y},fb,fa));
- if(proximity>=0&&proximity<1.5)return Math.max(0,(proximity-.2)/1.3)*curSpeed;
- return undefined;
+ const p1=testFrontBumperCrossing(other,car,projection,fa,fb),p2=testFrontCornersEnterRect(car,other,{x:-projection.x,y:-projection.y},fb,fa);
+ let proximity=p1<p2?p1:p2;
+ if(proximity>=0&&proximity<1.5){
+  if(proximity<1/curSpeed)speed=0;
+  else if(proximity<3/curSpeed)speed=Math.min(speed,1);
+  else{proximity=Math.max((proximity-.2)*.7692308,0);speed=Math.min(speed,proximity*curSpeed);}
+ }
+ return {speed,proximity};
 }
 function normal(v:V2){const l=Math.hypot(v.x,v.y);return l>0?{x:v.x/l,y:v.y/l}:{x:1,y:v.y};}
-/** The vehicle half of CCarCtrl::SlowCarDownForPedsSectorList: a ped ahead, due to be reached within 4 s and within
- * the car's width plus 0.5 to the side, lowers the speed when less than 10 units away; under 2 units the car waits
- * 3 s (TEMPACT_WAIT). Returns undefined when the ped is no concern. */
-export function slowCarDownForPed(car:{position:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};right:{x:number;y:number;z:number};moveSpeed:{x:number;y:number;z:number};front:number;halfWidth:number;bike?:boolean},ped:{x:number;y:number;z:number},curSpeed:number){
- if(Math.abs(ped.z-car.position.z)>=4)return undefined;
- const to={x:ped.x-car.position.x,y:ped.y-car.position.y,z:ped.z-car.position.z};
- const along=car.forward.x*to.x+car.forward.y*to.y+car.forward.z*to.z,velocity=car.forward.x*car.moveSpeed.x+car.forward.y*car.moveSpeed.y+car.forward.z*car.moveSpeed.z;
- if(along<=car.front)return undefined;
- const untilHit=along-car.front;
- if(4*50*velocity<=untilHit)return undefined;
- const side=Math.abs(car.right.x*to.x+car.right.y*to.y+car.right.z*to.z),width=car.halfWidth*(car.bike?1.6:1);
- if(width+.5<side||untilHit>=10)return undefined;
- return {speed:Math.abs(untilHit-1)/10*curSpeed,wait:untilHit<2};
+/** A vehicle as CCarCtrl's danger scans read it, in native coordinates: its position, its matrix's forward, the
+ * collision model's bound centre in the world (CEntity::GetBoundCentre), its box and its move speed per frame. */
+export interface DangerView extends MovingRect {position:V3;forward:V3;centre:V3;moveSpeed:V2}
+/** FindMaximumSpeedForThisCarInTraffic's scan: half the side of the box centred on the car. */
+export const DISTANCE_TO_SCAN_FOR_DANGER=14;
+/** SlowCarDownForCarsSectorList's filter (iOS 0x100194058): the other vehicle's bound centre strictly inside the
+ * ±14 box round the car, under 10 above or below it, and under 3 off the car's own slope (its unnormalised forward). */
+export function inCarDangerZone(car:{position:V3;forward:V3},centre:V3){
+ const dx=centre.x-car.position.x,dy=centre.y-car.position.y;
+ if(!(Math.abs(dx)<DISTANCE_TO_SCAN_FOR_DANGER&&Math.abs(dy)<DISTANCE_TO_SCAN_FOR_DANGER&&Math.abs(centre.z-car.position.z)<10))return false;
+ return Math.abs(centre.z-(car.position.z+(dx*car.forward.x+dy*car.forward.y)*car.forward.z))<3;
+}
+/** SlowCarDownForCarsSectorList over `others`: the lowest speed they allow, starting from `speed`, and whether any
+ * raised bHonkAtCar. `standoff` sees each vehicle ahead with its proximity and the speed so far, and may change it. */
+export function slowCarDownForCars<T extends DangerView>(car:DangerView,others:Iterable<T>,speed:number,curSpeed:number,standoff?:(other:T,proximity:number,speed:number)=>number){
+ let honk=false;
+ const rect={position:car.position,front:car.front,back:car.back,halfWidth:car.halfWidth,forward:car.forward};
+ for(const other of others){
+  if(other===car||!inCarDangerZone(car,other.centre))continue;
+  const r=slowCarDownForOtherCar(rect,other,speed,curSpeed);if(!r)continue;
+  honk=true;speed=standoff?standoff(other,r.proximity,r.speed):r.speed;
+ }
+ return {speed,honk};
+}
+/** The 15-second standoff at the end of SlowCarDownForOtherCar: two cars facing each other (their forwards' dot under
+ * −0.5) with a proximity under 0.5, neither having moved for 15 s. The car this is asked of keeps at least 0.2 of
+ * curSpeed and turns to DRIVINGSTYLE_AVOID_CARS. */
+export function standoffApplies(proximity:number,o:{now:number;stillSince:number;otherStillSince:number;forward:V3;otherForward:V3}){
+ return proximity>=0&&proximity<.5&&o.now-o.stillSince>=15001&&o.now-o.otherStillSince>=15001&&o.forward.x*o.otherForward.x+o.forward.y*o.otherForward.y<-.5;
+}
+/** The vehicle half of CCarCtrl::SlowCarDownForPedsSectorList as the iOS executable has it (0x1001941b8), over one
+ * list of peds already in the ±14 box: a ped under 6 above or below the car and under 3 off its slope, ahead of its
+ * nose, due to be reached within 4 s, within 13 of the nose and within the car's width plus 0.5 to the side keeps the
+ * car to max(1, max(0, distance − 1) / 13 × curSpeed) and raises bHonkAtPed; within 4 the car waits (TEMPACT_WAIT),
+ * within 2.5 it brakes (TEMPACT_BRAKE), each for 4 s, the last ped setting it. A car stopped dead never reaches the
+ * test. The player is passed over by the car he fell off getting into (`ignored`). A bike's width grows by 1.6 for each
+ * ped due within 4 s, compounding over the list (the executable stores it back). */
+export function slowCarDownForPeds(car:{position:V3;forward:V3;right:V3;moveSpeed:V3;front:number;halfWidth:number;bike?:boolean},peds:Iterable<V3&{ignored?:boolean}>,speed:number,curSpeed:number){
+ const p=car.position,f=car.forward,reach=(f.x*car.moveSpeed.x+f.y*car.moveSpeed.y+f.z*car.moveSpeed.z)*50*4;
+ let width=car.halfWidth,honk=false,action:'wait'|'brake'|undefined;
+ for(const ped of peds){
+  if(!(Math.abs(ped.z-p.z)<6))continue;
+  const d={x:ped.x-p.x,y:ped.y-p.y,z:ped.z-p.z};
+  if(!(Math.abs(ped.z-(p.z+(d.x*f.x+d.y*f.y)*f.z))<3))continue;
+  const along=d.x*f.x+d.y*f.y+d.z*f.z;
+  if(!(along>car.front)||ped.ignored)continue;
+  const distance=along-car.front;if(!(distance<reach))continue;
+  const side=Math.abs(d.x*car.right.x+d.y*car.right.y+d.z*car.right.z);
+  if(car.bike)width*=1.6;
+  if(distance<13&&side<=width+.5){
+   speed=Math.min(speed,Math.max(Math.max(distance-1,0)/13*curSpeed,1));honk=true;
+   if(distance<4)action='wait';
+   if(distance<2.5)action='brake';
+  }
+ }
+ return {speed,honk,action};
 }
 
 /** CAutoPilot temporary actions a cruising car can be given. */
-export type TempAction='wait'|'swerveStop'|'reverse'|'handbrakeStraight';
+export type TempAction='wait'|'brake'|'swerveStop'|'reverse'|'handbrakeStraight';
 /** CCarAI::MakeWayForCarWithSiren (0x41D660, reversed) for one random car against one car sounding its siren:
  * a car more than 0.8 inside the siren's line of travel that faces along it (or nearly straight against it)
  * swerves and stops for 2.5 s (TEMPACT_SWIRVELEFT_STOP; the right-hand variant, taken by cars facing the siren,
@@ -223,11 +288,12 @@ export function makeWayForCarWithSiren(car:{position:{x:number;y:number;z:number
  }
  return towardsSiren&&car.current!=='swerveStop'?{action:'wait',ms:4000}:undefined;
 }
-/** CCarCtrl::SteerAICarWithPhysics for a temporary action. TEMPACT_WAIT holds the brake at 0.2. SA's
+/** CCarCtrl::SteerAICarWithPhysics for a temporary action. TEMPACT_WAIT holds the brake at 0.2, TEMPACT_BRAKE at 1. SA's
  * TEMPACT_SWIRVELEFT_STOP is not reversed: it follows VC's TEMPACT_SWERVELEFT (a steer of −0.15, towards the
  * kerb, straightening over the last second) and brakes to a stop. */
 export function tempActionPedals(action:TempAction,remainingMs:number,o:{follow?:Pedals;forwardSpeed?:number}={}):Pedals{
  if(action==='wait')return {swerve:0,accel:0,brake:.2,handbrake:false};
+ if(action==='brake')return {swerve:0,accel:0,brake:1,handbrake:false};
  // TEMPACT_HANDBRAKESTRAIGHT (VC; the SA steerer is a stub): wheel straight, no pedals, the handbrake on.
  if(action==='handbrakeStraight')return {swerve:0,accel:0,brake:0,handbrake:true};
  // TEMPACT_REVERSE: the mission's own steer, mirrored, backing at half gas (braking first while still rolling forward).

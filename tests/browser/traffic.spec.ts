@@ -20,8 +20,10 @@ test('native traffic follows its lane, slows behind a car and for a pedestrian, 
    // A car parked in the lane ahead: SlowCarDownForOtherCar brings the driver to a stop behind it.
    const spot=ahead(14),blocker=await fleet.spawnTrafficCar(492,spot.position,spot.heading);
    // It stops behind the car; on the road it has always just collided, so CCarAI's jam recovery may then back it up,
-   // honk and take it round (DRIVINGSTYLE_AVOID_CARS) within the wait. The first stop is what is checked.
-   let stopped:any;for(let i=0;i<300;i++){tick();const c=traffic.snapshot().cars[0];if(!stopped&&c.stopped==='obstacle'&&c.speed<1)stopped=traffic.snapshot();}
+   // honk and take it round (DRIVINGSTYLE_AVOID_CARS) within the wait. The first stop is what is checked, and the
+   // pedestrian comes from there. The last 2 units before the stop 1 unit short are a crawl at 1 CarAI unit (0.83 units
+   // a second), so it takes a while.
+   let stopped:any;for(let i=0;i<720&&!stopped;i++){tick();const c=traffic.snapshot().cars[0];if(c.stopped==='obstacle'&&c.speed<1)stopped=traffic.snapshot();}
    stopped??=traffic.snapshot();
    fleet.removeTrafficCar(blocker);
    // A jam reverse still running overrides the pedals; the pedestrian comes once the car drives its lane again.
@@ -36,16 +38,18 @@ test('native traffic follows its lane, slows behind a car and for a pedestrian, 
     const p=car.car.body.translation();closest=Math.min(closest,Math.hypot(p.x-walker.x,p.z-walker.z));}
    const blockedByPed={pedHonk,closest};
    traffic.peds=()=>[];car.horn.counter=0;
-   // Lane keeping on straights: while the car heads along its link (within 11 degrees), not mid-turn onto a new one.
-   let maxLaneError=0,alignedSamples=0;for(let i=0;i<1800;i++){tick();const c=traffic.snapshot().cars[0];if(i>300&&c.alignment>.98){alignedSamples++;maxLaneError=Math.max(maxLaneError,c.laneError);}}const longRun=traffic.snapshot();
+   // Lane keeping on straights: while the car heads along its link (within 11 degrees), not mid-turn onto a new one,
+   // following its path (not a jam's DRIVINGSTYLE_AVOID_CARS, which weaves, nor at the end of its route).
+   let maxLaneError=0,alignedSamples=0;for(let i=0;i<1800;i++){tick();const c=traffic.snapshot().cars[0];if(i>300&&c.alignment>.98&&!c.avoidCars&&c.stopped!=='end of route'){alignedSamples++;maxLaneError=Math.max(maxLaneError,c.laneError);}}const longRun=traffic.snapshot();
    car.car.body.setLinvel({x:0,y:0,z:0},true);const at=car.car.body.translation();sim.player.position={x:at.x+2,y:at.y,z:at.z};const entered=car.interact();traffic.beforeStep(1/60);const takeover={occupied:car.occupied,autopilot:car.autopilot??null,entered};
    const exit=car.interact();traffic.beforeStep(1/60);const parked=!car.autopilot;sim.player.position={x:1000,y:13,z:1000};traffic.update(1e8);const retired=fleet.cars.size;
    return {exit,parked,retired,moving,longRun,maxLaneError,alignedSamples,stopped,takeover,blockedByPed,honked};
   }finally{traffic.dispose();fleet.dispose();if(scene.children.length)throw new Error('Traffic views leaked');sim.dispose();}
  });
  expect(result.moving.error).toBeNull();expect(result.moving.cars[0].distance).toBeGreaterThan(5);
- // GenerateOneRandomCar cruise speeds: 7 to 18 CarAI units, 5.8 to 15 m/s.
- expect(result.moving.cars[0].cruiseSpeed).toBeGreaterThanOrEqual(5);expect(result.moving.cars[0].cruiseSpeed).toBeLessThanOrEqual(18);
+ // GenerateOneRandomCar cruise speeds (iOS): 13 to 20 CarAI units (21 at rand()'s very top), three quarters of that
+ // for a vehicle over 10 long.
+ expect(result.moving.cars[0].cruiseSpeed).toBeGreaterThanOrEqual(9);expect(result.moving.cars[0].cruiseSpeed).toBeLessThanOrEqual(21);
  expect(result.stopped.cars[0].stopped).toBe('obstacle');expect(result.stopped.cars[0].speed).toBeLessThan(1);expect(result.stopped.cars[0].honk.car).toBe(true);
  // The car stops with its nose short of the pedestrian (a Greenwood's front is 2.9 units from its centre).
  expect(result.blockedByPed.pedHonk).toBe(true);expect(result.blockedByPed.closest).toBeGreaterThan(3);expect(result.honked).toBe(45);

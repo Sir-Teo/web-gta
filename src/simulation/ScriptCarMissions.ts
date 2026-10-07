@@ -3,7 +3,7 @@ import type {PathArea} from '../assets/pathNodes';
 import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
 import {lanePoint,nextLaneOnLink,pickNextNodeRandomly,ramPlayerCloseTarget,shouldPickNextNode,steerFollowPath,steerHeadingForTarget,tempActionPedals,turnPedals,type Pedals} from '../vehicle/nativeCarCtrl';
-import {DISTANCE_TO_SCAN_FOR_DANGER as SCAN_FOR_DANGER,slowCarDownForOtherCar as slowForOtherCar} from '../vehicle/nativeCarCtrl';
+import {slowCarDownForCars,type DangerView} from '../vehicle/nativeCarCtrl';
 import {findTrafficRoute,joinCarWithRoadSystem,trafficLinks,travelLink as travel,type TrafficLink} from './trafficRoute';
 import type {WorldCar} from './WorldCar';
 /** What CAutoPilot drives: a car, or a bike, whose rider takes the same pedals (CBike::ProcessControlInputs). */
@@ -130,9 +130,9 @@ export class ScriptCarMissions{
  /** The loaded collision under a renderer (x, z), looking down from height `from`, or undefined where none is
   * streamed in. */
  ground?:(x:number,z:number,from:number)=>number|undefined;
- /** The other vehicles on the road, native: position, the rect CCarCtrl tests (front and back of the centre, half
-  * width), forward and move speed in units a frame, and the vehicle itself so a car does not slow for itself. */
- traffic?:()=>Iterable<{vehicle:unknown;position:{x:number;y:number;z:number};front:number;back:number;halfWidth:number;forward:{x:number;y:number};moveSpeed:{x:number;y:number}}>;
+ /** The vehicles on the road as CCarCtrl's danger scans read them (WorldCar.dangerView), each with the vehicle itself
+  * so a car finds its own. */
+ traffic?:()=>Iterable<DangerView&{vehicle:unknown}>;
  constructor(private paths:()=>Paths|undefined,private random:()=>number=Math.random){}
  /** TASK_CAR_MISSION: CTaskComplexCarDriveMission sets the autopilot's mission, target, cruise speed and style.
   * Missions the browser does not drive give nothing back. */
@@ -363,18 +363,12 @@ export class ScriptCarMissions{
   if(!theirs)return false;
   return theirs.x*d.x+theirs.y*d.y<=-.8&&own.x*d.x+own.y*d.y>=.8;
  }
- private trafficSpeed(car:ScriptDrivable,state:{position:{x:number;y:number};forward:{x:number;y:number}},cruise:number){
-  const others=this.traffic?.();if(!others)return cruise;
-  const p=car.car.body.translation(),height=p.y,own=[...others].find(o=>o.vehicle===car);if(!own)return cruise;
-  const rect={position:state.position,front:own.front,back:own.back,halfWidth:own.halfWidth,forward:state.forward};
-  let speed=cruise;
-  for(const o of others){
-   if(o.vehicle===car)continue;
-   if(Math.abs(o.position.x-state.position.x)>SCAN_FOR_DANGER||Math.abs(o.position.y-state.position.y)>SCAN_FOR_DANGER||Math.abs(o.position.z-height)>=5)continue;
-   const allowed=slowForOtherCar(rect,{position:{x:o.position.x,y:o.position.y},front:o.front,back:o.back,halfWidth:o.halfWidth,forward:o.forward,moveSpeed:o.moveSpeed},cruise);
-   if(allowed!==undefined)speed=Math.min(speed,allowed);
-  }
-  return speed;
+ /** CCarCtrl::FindMaximumSpeedForThisCarInTraffic for the car scans (the car's m_SpeedMult is taken as 1): the lowest
+  * speed the vehicles ahead allow, which SLOW_DOWN_FOR_CARS averages with the cruise speed. */
+ private trafficSpeed(car:ScriptDrivable,cruise:number,slowDown:boolean){
+  const others=[...this.traffic?.()??[]],own=others.find(o=>o.vehicle===car);if(!own)return cruise;
+  const speed=slowCarDownForCars(own,others,cruise,cruise).speed;
+  return slowDown?(speed+cruise)/2:speed;
  }
  private drive(car:ScriptDrivable,m:Mission,dt:number):WorldCar['autopilot']{
   const p=car.car.body.translation(),v=car.car.body.linvel(),f=this.forward(car);
@@ -388,7 +382,7 @@ export class ScriptCarMissions{
   // CCarCtrl::FindMaximumSpeedForThisCarInTraffic (SlowCarDownForCarsSectorList) under the stop-for-cars styles: the
   // lowest speed any car ahead allows; AVOID_CARS and PLOUGH_THROUGH keep the cruise speed. A script car took its
   // cruise speed as the traffic speed whatever its style, and drove into the cars stopped ahead of it.
-  const trafficSpeed=m.style===DRIVINGSTYLE.stopForCars||m.style===DRIVINGSTYLE.slowDownForCars||m.style===DRIVINGSTYLE.stopForCarsIgnoreLights?this.trafficSpeed(car,state,m.cruise):m.cruise;
+  const trafficSpeed=m.style===DRIVINGSTYLE.stopForCars||m.style===DRIVINGSTYLE.slowDownForCars||m.style===DRIVINGSTYLE.stopForCarsIgnoreLights?this.trafficSpeed(car,m.cruise,m.style===DRIVINGSTYLE.slowDownForCars):m.cruise;
   const native=(pedals:Pedals):WorldCar['autopilot']=>({steering:0,throttle:0,brake:0,handbrake:false,native:{steerAngle:pedals.swerve,gas:pedals.accel,brake:pedals.brake,handbrake:pedals.handbrake}});
   // MISSION_NONE: no gas, half brake and the handbrake, as the car's own pedals (the pad's brake at a standstill
   // would put it in reverse).

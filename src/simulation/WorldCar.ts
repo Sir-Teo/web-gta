@@ -1342,6 +1342,13 @@ export class WorldCar {
  private nativeBodyCache?:{mass:number;turnMass:number;boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
  /** Mass, turn mass and the collision model's bounds, built once: hot per-ped checks read it every step. */
  get nativeBody(){if(!this.nativeBodyCache){const b=this.assets.collision.bounds;this.nativeBodyCache={mass:this.mass,turnMass:this.turnMass,boundsMin:{x:b.min[0],y:b.min[1],z:b.min[2]},boundsMax:{x:b.max[0],y:b.max[1],z:b.max[2]}};}return this.nativeBodyCache;}
+ /** The car as CCarCtrl's danger scans read it (native coordinates): position, the matrix's forward, the collision
+  * model's bound centre in the world (CEntity::GetBoundCentre), its box and the move speed per frame. */
+ dangerView(){
+  const t=this.car.body.translation(),r=this.car.body.rotation(),q=new Quaternion(r.x,r.y,r.z,r.w),v=this.car.body.linvel(),b=this.nativeBody,c=this.assets.collision.bounds.center;
+  const f=new Vector3(0,0,-1).applyQuaternion(q),o=new Vector3(c[0],c[2],-c[1]).applyQuaternion(q);
+  return {position:{x:t.x,y:-t.z,z:t.y},forward:{x:f.x,y:-f.z,z:f.y},centre:{x:t.x+o.x,y:-(t.z+o.z),z:t.y+o.y},moveSpeed:{x:v.x/50,y:-v.z/50},front:b.boundsMax.y,back:-b.boundsMin.y,halfWidth:b.boundsMax.x};
+ }
  /** Distance from the car's origin to the farthest corner of its collision bounds, for cheap range culls. */
  get boundRadius(){const b=this.assets.collision.bounds;return Math.hypot(Math.max(-b.min[0],b.max[0]),Math.max(-b.min[1],b.max[1]),Math.max(-b.min[2],b.max[2]));}
  /** CPhysical::ApplyCollision's static-object branch for the props this car touched (vehiclePropContacts). */

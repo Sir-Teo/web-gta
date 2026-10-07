@@ -1,6 +1,6 @@
 import {test,expect} from 'vitest';
 import {LANE_WIDTH,PATH_DIRECTION,findMaxSteerAngle,findPathDirection,findSpeedMultiplier,lanePoint,nextLaneOnLink,oneWayLaneOffset,pickNextNodeRandomly,
- shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,testCollisionBetween2MovingRects,carAIJam,tempActionPedals,makeWayForCarWithSiren,type NextCandidate,type TravelLink} from '../src/vehicle/nativeCarCtrl';
+ shouldPickNextNode,slowCarDownForCars,slowCarDownForOtherCar,slowCarDownForPeds,standoffApplies,steerFollowPath,testFrontBumperCrossing,testFrontCornersEnterRect,carAIJam,tempActionPedals,makeWayForCarWithSiren,type NextCandidate,type TravelLink} from '../src/vehicle/nativeCarCtrl';
 
 // A road running north (+y) with its link at the origin.
 const north=(y=0,laneOffset=.5):TravelLink=>({position:{x:0,y},forward:{x:0,y:1},laneOffset});
@@ -45,9 +45,12 @@ test('FollowPath steers towards the lane and cruises at the cruise speed on a st
  // At 0.2 units per frame (12 CarAI) in its lane: no correction and no pedal.
  const cruising=steerFollowPath(car(LANE_WIDTH/2,0,.2),current,0,next,{cruiseSpeed:12,trafficSpeed:12,stop:false});
  expect(Math.abs(cruising.swerve)).toBeLessThan(1e-9);expect(cruising.accel).toBeCloseTo(0);expect(cruising.brake).toBeCloseTo(0);
- // Above 0.45 units per frame the steer is capped at 0.2.
+ // FindMaxSteerAngle alone limits it: 0.9 − 0.5 at 0.5 units per frame (iOS has no further 0.2 cap above 0.45).
  const fast=steerFollowPath(car(-8,0,.5),current,0,next,{cruiseSpeed:30,trafficSpeed:30,stop:false});
- expect(fast.swerve).toBeCloseTo(-.2);
+ expect(fast.swerve).toBeCloseTo(-.4);
+ // Over speed, the brake is min(0.5, −difference / 12) (iOS 0x10019a584; Vice City's −difference × 0.05).
+ const over=steerFollowPath(car(LANE_WIDTH/2,0,.3),current,0,next,{cruiseSpeed:12,trafficSpeed:6,stop:false});
+ expect(over.accel).toBe(0);expect(over.brake).toBeCloseTo(Math.min(.5,(.3*60-6)/12),6);
  // A red light stops the car: a target of zero brakes fully.
  const red=steerFollowPath(car(LANE_WIDTH/2,0,.2),current,0,next,{cruiseSpeed:12,trafficSpeed:12,stop:true});
  expect(red.accel).toBe(0);expect(red.brake).toBe(1);
@@ -74,24 +77,69 @@ test('PickNextNodeRandomly avoids U-turns, dead ends and wrong-way roads, and fa
  expect(nextLaneOnLink(0,3,20,true,false,true)).toBe(2);expect(nextLaneOnLink(2,2,5,false,false,true)).toBe(1);expect(nextLaneOnLink(1,0,20,false,false,true)).toBe(1);
 });
 
-test('TestCollisionBetween2MovingRects and SlowCarDownForOtherCar slow a car closing on a stopped one',()=>{
- const rect=(x:number,y:number)=>({position:{x,y},front:2.4,back:2.4,halfWidth:1});
- const ahead={...rect(0,8),forward:{x:0,y:1},moveSpeed:{x:0,y:0}},behind={...rect(0,0),forward:{x:0,y:1}};
- expect(testCollisionBetween2MovingRects(ahead,behind,{x:0,y:-12},{x:0,y:1},{x:0,y:1})).toBeLessThan(1);
- const allowed=slowCarDownForOtherCar(behind,ahead,12)!;
- expect(allowed).toBeGreaterThanOrEqual(0);expect(allowed).toBeLessThan(12);
- // The test never exceeds 1, so any vehicle ahead in the scan box caps the speed at (1 - 0.2) / 1.3 of cruise,
- // as in Vice City; one behind is no concern.
- expect(slowCarDownForOtherCar(behind,{...ahead,position:{x:6,y:8}},12)).toBeCloseTo(.8/1.3*12);
- expect(slowCarDownForOtherCar(behind,{...ahead,position:{x:0,y:-8}},12)).toBeUndefined();
+test('the iOS moving-rect tests: corners across the front bumper, and the front corners into the other box',()=>{
+ const rect=(x:number,y:number)=>({position:{x,y},front:2.4,back:2.4,halfWidth:1}),north={x:0,y:1};
+ // A stopped car 8 ahead, half a unit over: its rear-left corner crosses the bumper 3.2 into the 12-unit closing.
+ expect(testFrontBumperCrossing(rect(.5,8),rect(0,0),{x:0,y:-12},north,north)).toBeCloseTo(3.2/12);
+ // Squarely ahead its corners run along the bumper's ends, which do not count; nor does a corner beside the car.
+ expect(testFrontBumperCrossing(rect(0,8),rect(0,0),{x:0,y:-12},north,north)).toBe(1);
+ expect(testFrontBumperCrossing(rect(3,0),rect(0,0),{x:-3,y:0},north,north)).toBe(1);
+ // The front corners' slab test: the nose reaches the stopped car's tail 3.2 into the closing.
+ expect(testFrontCornersEnterRect(rect(0,0),rect(0,8),{x:0,y:12},north,north)).toBeCloseTo(3.2/12);
+ // Only the front corners are tested: backing onto a car behind, they reach its box 8 into the move, where Vice
+ // City's rear corners would at 3.2.
+ expect(testFrontCornersEnterRect(rect(0,0),rect(0,-8),{x:0,y:-12},north,north)).toBeCloseTo(8/12);
 });
 
-test('a pedestrian ahead slows the car, and makes it wait when very close',()=>{
+test('SlowCarDownForOtherCar crawls within 3 units of contact and stops within 1',()=>{
+ const rect=(x:number,y:number)=>({position:{x,y},front:2.4,back:2.4,halfWidth:1});
+ const car={...rect(0,0),forward:{x:0,y:1}},stopped=(x:number,y:number)=>({...rect(x,y),forward:{x:0,y:1},moveSpeed:{x:0,y:0}});
+ const at8=slowCarDownForOtherCar(car,stopped(0,8),12,12)!;
+ expect(at8.speed).toBeCloseTo((3.2/12-.2)*.7692308*12);expect(at8.proximity).toBeCloseTo((3.2/12-.2)*.7692308);
+ expect(slowCarDownForOtherCar(car,stopped(0,6.5),12,12)!.speed).toBe(1);
+ expect(slowCarDownForOtherCar(car,stopped(0,6.5),.5,12)!.speed).toBe(.5);
+ expect(slowCarDownForOtherCar(car,stopped(0,5.5),12,12)!.speed).toBe(0);
+ // With no contact projected any vehicle ahead still caps the speed at (1 − 0.2) / 1.3 of curSpeed; one behind is
+ // no concern.
+ expect(slowCarDownForOtherCar(car,stopped(6,8),12,12)!.speed).toBeCloseTo(.8/1.3*12);
+ expect(slowCarDownForOtherCar(car,stopped(0,-8),12,12)).toBeUndefined();
+});
+
+test('SlowCarDownForCarsSectorList takes vehicles by their bound centre in the box and off the slope',()=>{
+ const view=(x:number,y:number,z=0,cz=z)=>({position:{x,y,z},forward:{x:0,y:1,z:0},centre:{x,y,z:cz},moveSpeed:{x:0,y:0},front:2.4,back:2.4,halfWidth:1});
+ const car=view(0,0);
+ expect(slowCarDownForCars(car,[car,view(6,8)],12,12)).toEqual({speed:expect.closeTo(.8/1.3*12),honk:true});
+ // Strictly inside ±14, under 10 above and 3 off the road's slope.
+ expect(slowCarDownForCars(car,[view(0,14)],12,12)).toEqual({speed:12,honk:false});
+ expect(slowCarDownForCars(car,[view(0,8,4)],12,12)).toEqual({speed:12,honk:false});
+ const climbing={...car,forward:{x:0,y:.8,z:.6}};
+ expect(slowCarDownForCars(climbing,[view(6,8,4)],12,12).honk).toBe(true);
+ // The standoff hook sees each vehicle ahead.
+ const seen:number[]=[];slowCarDownForCars(car,[view(6,8),view(0,-8)],12,12,(other,_p,speed)=>{seen.push(other.position.y);return speed;});
+ expect(seen).toEqual([8]);
+ expect(standoffApplies(.3,{now:20000,stillSince:4000,otherStillSince:0,forward:{x:0,y:1,z:0},otherForward:{x:0,y:-1,z:0}})).toBe(true);
+ expect(standoffApplies(.3,{now:20000,stillSince:5000,otherStillSince:0,forward:{x:0,y:1,z:0},otherForward:{x:0,y:-1,z:0}})).toBe(false);
+ expect(standoffApplies(.3,{now:20000,stillSince:0,otherStillSince:0,forward:{x:0,y:1,z:0},otherForward:{x:1,y:0,z:0}})).toBe(false);
+ expect(standoffApplies(.5,{now:20000,stillSince:0,otherStillSince:0,forward:{x:0,y:1,z:0},otherForward:{x:0,y:-1,z:0}})).toBe(false);
+});
+
+test('a pedestrian ahead slows the car to no less than 1, makes it wait within 4 and brake within 2.5',()=>{
  const c={position:{x:0,y:0,z:0},forward:{x:0,y:1,z:0},right:{x:1,y:0,z:0},moveSpeed:{x:0,y:.2,z:0},front:2.4,halfWidth:1};
- expect(slowCarDownForPed(c,{x:0,y:8,z:0},12)).toEqual({speed:Math.abs(8-2.4-1)/10*12,wait:false});
- expect(slowCarDownForPed(c,{x:0,y:3.5,z:0},12)!.wait).toBe(true);
- expect(slowCarDownForPed(c,{x:3,y:8,z:0},12)).toBeUndefined();
- expect(slowCarDownForPed(c,{x:0,y:30,z:0},12)).toBeUndefined();
+ const ped=(x:number,y:number,z=0)=>({x,y,z});
+ expect(slowCarDownForPeds(c,[ped(0,8)],12,12)).toEqual({speed:expect.closeTo((8-2.4-1)/13*12),honk:true,action:undefined});
+ expect(slowCarDownForPeds(c,[ped(0,6)],12,12)).toEqual({speed:expect.closeTo(2.6/13*12),honk:true,action:'wait'});
+ expect(slowCarDownForPeds(c,[ped(0,4.5)],12,12)).toEqual({speed:expect.closeTo(1.1/13*12),honk:true,action:'brake'});
+ expect(slowCarDownForPeds(c,[ped(0,3)],12,12)).toEqual({speed:1,honk:true,action:'brake'});
+ // The last ped in range sets the action.
+ expect(slowCarDownForPeds(c,[ped(0,4.5),ped(.5,6)],12,12).action).toBe('wait');
+ // Off to the side, beyond 13, off the slope, passed over, or with the car stopped dead: no concern.
+ for(const p of [ped(3,8),ped(0,30),ped(0,8,5),{...ped(0,8),ignored:true}])expect(slowCarDownForPeds(c,[p],12,12)).toEqual({speed:12,honk:false,action:undefined});
+ expect(slowCarDownForPeds({...c,moveSpeed:{x:0,y:0,z:0}},[ped(0,4)],12,12).honk).toBe(false);
+ expect(slowCarDownForPeds(c,[ped(0,8,2)],12,12).honk).toBe(true);
+ // A bike's width grows 1.6 times for each ped due within 4 s, over the list.
+ const bike={...c,bike:true};
+ expect(slowCarDownForPeds(bike,[ped(3,8)],12,12).honk).toBe(false);
+ expect(slowCarDownForPeds(bike,[ped(3,8),ped(3,9)],12,12).honk).toBe(true);
 });
 
 test('UpdateCarAI reverses a car jammed against something and turns it to AVOID_CARS',()=>{

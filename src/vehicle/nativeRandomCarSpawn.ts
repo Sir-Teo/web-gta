@@ -49,9 +49,16 @@ export function clampCreationT(t:number,length:number,nodeDistance:number){
  const edge=f(half/nodeDistance);
  return Math.min(Math.max(t,edge),f(1-edge));
 }
-/** CAutoPilot::m_SpeedMult by the speed code in a node's flags (bits 12 and 13, table 0x100592e80): 0.65 on an
- * ordinary road, 1 and 2.3 and 1 for codes 1 to 3. */
-export const nodeSpeedMultiplier=(flags:number)=>[.65,1,2.3,1][(flags>>>12)&3];
+/** CCarCtrl::FindSpeedMultiplierWithSpeedFromNodes (iOS 0x100191398, table 0x100592e80): 0.5 for code −1, 0.65 for
+ * 0, 1 and 2.3 for 1 and 2, and 1 otherwise. */
+export const speedMultiplierFromNodes=(code:number)=>code>=-1&&code<=2?[.5,.65,1,2.3][code+1]:1;
+/** The speed code PickNextNodeAccordingStrategy (iOS 0x1001936c0) takes from the node a car reaches: bits 12 and 13
+ * of its flags, or −1 at a node of behaviour type 8 or 9 (bits 21 to 23 = 4). GenerateOneRandomCar takes bits 12
+ * and 13 alone (`reached` false). */
+export const nodeSpeedCode=(flags:number,reached=true)=>reached&&((flags>>>21)&7)===4?-1:(flags>>>12)&3;
+/** CAutoPilot::m_SpeedMult GenerateOneRandomCar gives a car starting towards a node: 0.65 on an ordinary road, 1 and
+ * 2.3 and 1 for codes 1 to 3. */
+export const nodeSpeedMultiplier=(flags:number)=>speedMultiplierFromNodes(nodeSpeedCode(flags,false));
 /** The last test before the car goes in: its speed (units a frame) less the player's must not point away from the
  * centre, or the car would only be leaving. */
 export function approachesPlayer(carVelocity:V2,playerVelocity:V2,carPosition:V2,centre:V2){

@@ -7,9 +7,9 @@ import {pathDirection} from '../assets/pathDirection';
 import {nativeShouldStopForLight} from '../world/nativeSignalStop';
 import {trafficLinks,travelLink,type TrafficLink} from './trafficRoute';
 import {generateCarCreationCoors2,newCarCreationCache} from './nativeCarCreationCoors';
-import {approachesPlayer,clampCreationT,laneCountAllows,nodeSpeedMultiplier,randomCarCreationBearing,randomCarCruiseSpeed,spawnProbabilityPasses} from '../vehicle/nativeRandomCarSpawn';
+import {approachesPlayer,clampCreationT,laneCountAllows,nodeSpeedCode,nodeSpeedMultiplier,randomCarCreationBearing,speedMultiplierFromNodes,randomCarCruiseSpeed,spawnProbabilityPasses} from '../vehicle/nativeRandomCarSpawn';
 import {GAME_SPEED_TO_CARAI_SPEED,DISTANCE_TO_SCAN_FOR_DANGER,carAIJam,lanePoint,makeWayForCarWithSiren,nextLaneOnLink,pickNextNodeRandomly,
- shouldPickNextNode,slowCarDownForOtherCar,slowCarDownForPed,steerFollowPath,steerHeadingForTarget,tempActionPedals,type NextCandidate,type TempAction} from '../vehicle/nativeCarCtrl';
+ shouldPickNextNode,slowCarDownForCars,slowCarDownForPeds,standoffApplies,steerFollowPath,steerHeadingForTarget,tempActionPedals,type DangerView,type NextCandidate,type TempAction} from '../vehicle/nativeCarCtrl';
 import type {Simulation} from './Simulation';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldCar} from './WorldCar';
@@ -31,7 +31,9 @@ const BMX_MODELS:ReadonlySet<number>=new Set([481,509,510]);
 interface Driver {/** The chase CTaskComplexCarDriveMissionKillPed runs after the player. */chase?:{until:number};/** Road rage waiting for the car to slow before he gets out. */rageWait?:boolean;car:WorldCar;current:TrafficLink;next?:TrafficLink;previous?:TrafficLink;currentLane:number;nextLane:number;cruiseSpeed:number;
  temp?:{action:TempAction;until:number;from:'siren'|'ped'|'jam'|'death'|'flipped'};
  /** CVehicle::m_nRandomSeed, CAutoPilot's jam timers, and DRIVINGSTYLE_AVOID_CARS once a jam has turned the car. */
- seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
+ seed:number;timeToStartMission:number;timeSwitchedToRealPhysics:number;avoidCars:boolean;
+ /** CAutoPilot's speed code (field_41) from the last node reached, and m_SpeedMult, which glides to its multiplier. */
+ speedCode:number;speedMult:number;stopped:string|null;distance:number;last:{x:number;z:number};gone?:boolean;stalledReason?:string|null;stalledAt?:number;fired?:boolean;raged?:boolean;fleeScene?:boolean;fled?:boolean;
  /** CPed health (100) under the player's bullets; CTaskComplexDieInCar's 2000 ms coast after the fatal one, then dead out of the door or in the seat. */
  health:number;dying?:{at:number};dead?:boolean;deadInSeat?:boolean;
  /** STATUS_SIMPLE: m_nTimeEnteredCurve, m_nTimeToSpendOnCurrentCurve and m_fMaxTrafficSpeed, the curve from where the car
@@ -135,6 +137,10 @@ export class WorldTraffic {
   random:()=>number=Math.random;
   /** Pedestrians and the player on foot, for SlowCarDownForPedsSectorList. */
   peds?:()=>V3[];
+  /** The standoff's pointer comparison: an order for each vehicle, by when the traffic first saw it. */
+  private carOrder=new WeakMap<WorldCar,number>();private carOrderNext=0;
+  /** A vehicle no traffic driver owns: when the traffic first saw it, for its CAutoPilot clock (set as it is made). */
+  private carFirstSeen=new WeakMap<WorldCar,number>();
   /** A cruising patrol car for the police system to own (CCarAI MISSION_CRUISE law enforcer); undefined when none spawned. */
   spawnPatrol?:(position:V3,heading:number)=>Promise<WorldCar|undefined>;
  constructor(private sim:Simulation,private fleet:WorldFleet,base:string){
@@ -199,10 +205,11 @@ export class WorldTraffic {
     if(this.disposed||Math.hypot(x-this.sim.player.position.x,z-this.sim.player.position.z)>100){this.fleet.removeTrafficCar(car);return;}
     this.error=undefined;car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};car.activeRadius=this.physicsRadius;
     const b=car.nativeBody,length=b.boundsMax.y-b.boundsMin.y;
-    const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,
+    const driver:Driver={car,health:100,current:link,currentLane:lane,nextLane:lane,seed:Math.floor(Math.random()*65536),timeToStartMission:this.elapsed*1000,timeSwitchedToRealPhysics:this.elapsed*1000,avoidCars:false,speedCode:nodeSpeedCode(hit.node2.flags,false),speedMult:nodeSpeedMultiplier(hit.node2.flags),
      cruiseSpeed:length<=10?cruise:randomCarCruiseSpeed(rand(),length,pick.modelId,BMX_MODELS.has(pick.modelId)),stopped:null,distance:0,last:{x,z}};
     car.onCollisionDamage=(raw,byPlayer)=>this.collisionEvent(driver,raw,byPlayer);car.onTyreShot=shooter=>this.tyreShot(driver,shooter);car.onWeaponDamage=shooter=>this.tyreShot(driver,shooter);car.onBlowUp=aboard=>{if(aboard&&!driver.raged&&!driver.fled&&!driver.fired)this.onDriverDied?.(car);};
-    this.pickNext(driver,link);this.drivers.push(driver);this.serial++;break;
+    // GenerateOneRandomCar's speed code is the node ahead's, without the behaviour-type case.
+    this.pickNext(driver,link);driver.speedCode=nodeSpeedCode(hit.node2.flags,false);this.drivers.push(driver);this.serial++;break;
    }
   }).catch(e=>{this.error=String(e);}).finally(()=>{this.busy=false;});
  }
@@ -229,7 +236,7 @@ export class WorldTraffic {
   * - PickNextNodeAccordingStrategy runs once the curve's time is up.
   * - The car is dragged onto the CCurves point (DragCarToPoint): its nose on the point, its tail 3 behind, each on
   *   the ground below. */
- private stepRails(d:Driver,now:number,dt:number,trafficSpeed:number,stop:boolean){
+ private stepRails(d:Driver,now:number,dt:number,trafficSpeed:number,stop:boolean,hold=false){
   const car=d.car,body=car.car.body,p=body.translation();
   if(!d.rails){
    const r=body.rotation(),f=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(r.x,r.y,r.z,r.w))),v=body.linvel(),ground=this.groundBelow(p.x,p.y,p.z,1.5,3);
@@ -237,6 +244,7 @@ export class WorldTraffic {
    d.rails.spendMs=this.curveMs(d);
   }
   const r=d.rails,ts=dt*50,limit=stop||!d.next?0:trafficSpeed;
+  if(hold){this.modifySpeed(d,0,now);car.car.placeOnRails({...p},{...body.rotation()},{x:0,y:0,z:0});return;}
   if(!d.next&&!r.entry){r.speed=0;car.car.placeOnRails({...p},{...body.rotation()},{x:0,y:0,z:0});return;}
   if(limit>=r.speed){if(limit>r.speed)this.modifySpeed(d,Math.min(limit,r.speed+.05*ts),now);}
   else if(r.speed!==0)this.modifySpeed(d,r.speed<.1?0:Math.max(limit,r.speed-.7*ts),now);
@@ -272,6 +280,8 @@ export class WorldTraffic {
  }
  /** CCarCtrl::PickNextNodeRandomly: the link after `from`, and the lane on it. */
  private pickNext(d:Driver,from:TrafficLink){
+  // PickNextNodeAccordingStrategy first takes the speed code of the node just reached.
+  d.speedCode=nodeSpeedCode(from.from.flags);
   const areas=this.paths?.areas;if(!areas){d.next=undefined;return;}
   const onFrom=lanes(from),candidates:NextCandidate<TrafficLink>[]=trafficLinks(areas,from.to).map(link=>{const l=lanes(link);
    return {value:link,node:{x:link.to.position[0],y:link.to.position[1]},uTurn:sameNode(link.to,from.from),deadEnd:link.to.deadEnd,switchedOff:link.to.switchedOff,lanes:l.lanes,oppositeLanes:l.reverseLanes};});
@@ -285,6 +295,12 @@ export class WorldTraffic {
   // Scan the fleet's live set, never a copy: a stalled driver removed below frees its body, and a copy would hand
   // that freed body to the next driver's danger scan (a Rapier panic that then failed every frame).
   const cars=this.fleet.cars;
+  // Each vehicle's danger view, taken once a frame when first asked for (a car removed below is skipped as disposed).
+  const views=new Map<WorldCar,DangerView&{car:WorldCar}>(),view=(c:WorldCar)=>{let v=views.get(c);if(!v){v={...c.dangerView(),car:c};views.set(c,v);}return v;};
+  const others=function*(){for(const c of cars)if(!c.disposed)yield view(c);};
+  let drivers:Map<WorldCar,Driver>|undefined;const driverOf=()=>drivers??=new Map(this.drivers.map(d=>[d.car,d]));
+  const order=(c:WorldCar)=>{let n=this.carOrder.get(c);if(n===undefined)this.carOrder.set(c,n=this.carOrderNext++);return n;};
+  const firstSeen=(c:WorldCar)=>{let t=this.carFirstSeen.get(c);if(t===undefined)this.carFirstSeen.set(c,t=now);return t;};
   for(const driver of this.drivers){
    const car=driver.car;if(car.disposed){driver.gone=true;continue;}car.honkAtCar=car.honkAtPed=false;
    // CAutomobile::ProcessControl raises CEventVehicleOnFire when the engine fire starts; the driver answers it once.
@@ -338,46 +354,63 @@ export class WorldTraffic {
     const yielded=makeWayForCarWithSiren({position,moveSpeed:move,forward,current:driver.temp&&now<driver.temp.until?driver.temp.action:undefined},{position:toNative(siren.position),moveSpeed:toNative({x:siren.velocity.x/50,y:siren.velocity.y/50,z:siren.velocity.z/50})});
     if(yielded)driver.temp={action:yielded.action,until:now+yielded.ms,from:'siren'};
    }
-   // FindMaximumSpeedForThisCarInTraffic under STOP_FOR_CARS: the lowest speed any vehicle or ped ahead allows.
-   const b=car.nativeBody,rect={position,front:b.boundsMax.y,back:-b.boundsMin.y,halfWidth:b.boundsMax.x,forward};
-   // FindMaximumSpeedForThisCarInTraffic returns the cruise speed at once under DRIVINGSTYLE_AVOID_CARS.
-   let trafficSpeed=driver.cruiseSpeed,slowedByCars=false,slowedByPeds=false;
-   if(!driver.avoidCars)for(const other of cars){
-    if(other===car||other.disposed)continue;
-    const o=toNative(other.car.body.translation());
-    if(Math.abs(o.x-position.x)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(o.y-position.y)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(o.z-position.z)>=5)continue;
-    const ob=other.nativeBody,orot=other.car.body.rotation(),of=toNative(new Vector3(0,0,-1).applyQuaternion(new Quaternion(orot.x,orot.y,orot.z,orot.w))),ov=other.car.body.linvel();
-    const allowed=slowCarDownForOtherCar(rect,{position:{x:o.x,y:o.y},front:ob.boundsMax.y,back:-ob.boundsMin.y,halfWidth:ob.boundsMax.x,forward:{x:of.x,y:of.y},moveSpeed:{x:ov.x/50,y:-ov.z/50}},driver.cruiseSpeed);
-    if(allowed!==undefined){slowedByCars=true;trafficSpeed=Math.min(trafficSpeed,allowed);}
-   }
-   if(!driver.avoidCars)for(const ped of peds){
-    if(Math.abs(ped.x-position.x)>DISTANCE_TO_SCAN_FOR_DANGER||Math.abs(ped.y-position.y)>DISTANCE_TO_SCAN_FOR_DANGER)continue;
-    const concern=slowCarDownForPed({position,forward:f3,right:right3,moveSpeed:move,front:b.boundsMax.y,halfWidth:b.boundsMax.x},ped,driver.cruiseSpeed);
-    if(concern){slowedByPeds=true;trafficSpeed=Math.min(trafficSpeed,concern.speed);if(concern.wait&&!(driver.temp&&now<driver.temp.until))driver.temp={action:'wait',until:now+3000,from:'ped'};}
+   // CCarAI::UpdateCarAI: m_SpeedMult glides 0.01 a 50 Hz step towards the speed code's multiplier, snapping within a step.
+   {const target=speedMultiplierFromNodes(driver.speedCode),step=dt*50*.01;driver.speedMult=Math.abs(driver.speedMult-target)<step?target:driver.speedMult+(driver.speedMult>target?-step:step);}
+   // CCarCtrl::FindMaximumSpeedForThisCarInTraffic (iOS 0x100193dcc) under STOP_FOR_CARS: from cruise × m_SpeedMult, the
+   // lowest speed any vehicle or ped in the ±14 box allows. DRIVINGSTYLE_AVOID_CARS returns cruise × m_SpeedMult at once.
+   const cur=driver.cruiseSpeed*driver.speedMult,b=car.nativeBody;
+   let trafficSpeed=cur,slowedByCars=false,slowedByPeds=false;
+   if(!driver.avoidCars){
+    const own=view(car),scan=slowCarDownForCars(own,others(),trafficSpeed,cur,(other,proximity,speed)=>{
+     // SlowCarDownForOtherCar's 15-second standoff, asked of one car of the pair (the executable compares pointers):
+     // at least 0.2 of cur, and DRIVINGSTYLE_AVOID_CARS. It also switches a car on rails to physics, which the
+     // browser's rails (decided by the active radius) cannot.
+     const them=driverOf().get(other.car);
+     if(other.car.occupied||order(car)>order(other.car)||!standoffApplies(proximity,{now,stillSince:driver.timeSwitchedToRealPhysics,otherStillSince:them?them.timeSwitchedToRealPhysics:firstSeen(other.car),forward:own.forward,otherForward:other.forward}))return speed;
+     driver.avoidCars=true;return Math.max(speed,cur*.2);
+    });
+    trafficSpeed=scan.speed;slowedByCars=scan.honk;
+    // CPlayerInfo::m_pLastTargetVehicle, which passes the player over, is only set while he falls off a car he was
+    // getting into (CTaskComplexEnterCar's fall and get-up), which the browser's entry has not.
+    const inBox=peds.filter(q=>Math.abs(q.x-position.x)<DISTANCE_TO_SCAN_FOR_DANGER&&Math.abs(q.y-position.y)<DISTANCE_TO_SCAN_FOR_DANGER);
+    const pedScan=slowCarDownForPeds({position,forward:f3,right:right3,moveSpeed:move,front:b.boundsMax.y,halfWidth:b.boundsMax.x},inBox,trafficSpeed,cur);
+    trafficSpeed=pedScan.speed;slowedByPeds=pedScan.honk;
+    // TEMPACT_WAIT within 4 of the nose, TEMPACT_BRAKE within 2.5, for 4 s, over whatever the car was doing.
+    if(pedScan.action)driver.temp={action:pedScan.action,until:now+4000,from:'ped'};
    }
    const approach=(link:TrafficLink|undefined)=>link&&{navigation:link.navigation,routeAddress:link.to.address,travelSign:travelSign(link)};
    // ShouldCarStopForLight checks the previous link's light only for a car under physics.
    const atSignal=nativeShouldStopForLight({position:[position.x,position.y],appearance:'car',physicsStatus:!onRails,current:approach(driver.current)!,next:approach(driver.next),previous:approach(driver.previous)},Math.floor(now)>>>0);
    // CCarAI::CarHasReasonToStop: a car stopping for a light is not stuck.
    if(atSignal&&(onRails||!driver.avoidCars))driver.timeToStartMission=now;
-   // CCarAI::UpdateCarAI's jam handling.
-   // CCarAI::UpdateCarAI: a car on its roof (up.z at or under −0.7) keeps TEMPACT_REVERSE for 1000 ms, refreshed.
-   {const up=toNative(new Vector3(0,1,0).applyQuaternion(q));if(up.z<=-.7)driver.temp={action:'reverse',until:now+1000,from:'flipped'};}
-   const jam=carAIJam({now,previousNow,moveSpeed2D:Math.hypot(move.x,move.y),collisionAgeMs:car.collisionAge*1000,seed:driver.seed,tempAction:!!driver.temp&&now<driver.temp.until,timeToStartMission:driver.timeToStartMission,timeSwitchedToRealPhysics:driver.timeSwitchedToRealPhysics,stopForCars:!driver.avoidCars});
+   // CCarAI::UpdateCarAI's jam handling, which a temporary action skips until the steering below clears it as it runs
+   // out (restarting the jam clock), so the frame it ends is not a jam. A car on its roof (up.z under −0.7) skips it
+   // and waits (TEMPACT_WAIT) for 1000 ms, refreshed (iOS 0x10018a620; gta-reversed reads a reverse).
+   const flipped=toNative(new Vector3(0,1,0).applyQuaternion(q)).z<-.7;
+   const jam=carAIJam({now,previousNow,moveSpeed2D:Math.hypot(move.x,move.y),collisionAgeMs:car.collisionAge*1000,seed:driver.seed,tempAction:flipped||!!driver.temp,timeToStartMission:driver.timeToStartMission,timeSwitchedToRealPhysics:driver.timeSwitchedToRealPhysics,stopForCars:!driver.avoidCars});
    driver.timeToStartMission=jam.timeToStartMission;driver.timeSwitchedToRealPhysics=jam.timeSwitchedToRealPhysics;
    if(jam.action){driver.temp={action:'reverse',until:now+jam.action.ms,from:'jam'};driver.avoidCars=true;if(jam.action.horn)playCarHorn(car);}
+   if(flipped)driver.temp={action:'wait',until:now+1000,from:'flipped'};
    if(onRails){
-    const wait=driver.temp?.action==='wait'&&now<driver.temp.until;
+    // UpdateCarOnRails: TEMPACT_WAIT and TEMPACT_BRAKE hold the car where it is (ModifySpeed(0)) until they run out,
+    // which restarts both jam clocks.
+    const hold=driver.temp&&(driver.temp.action==='wait'||driver.temp.action==='brake')?driver.temp:undefined;
+    if(hold&&now>hold.until){driver.temp=undefined;driver.timeToStartMission=driver.timeSwitchedToRealPhysics=now;}
     // SlowCarOnRailsDownForTrafficAndLights stops a car on rails for a light whatever its driving style.
-    this.stepRails(driver,now,dt,trafficSpeed,atSignal||wait);
+    this.stepRails(driver,now,dt,trafficSpeed,atSignal,!!hold);
     car.autopilot={steering:0,throttle:0,brake:0,handbrake:false};driver.stopped=null;continue;
    }
-   // Only STOP_FOR_CARS drivers stop for lights.
-   const follow=driver.next?steerFollowPath(state,travel(driver.current),driver.currentLane,travel(driver.next),{cruiseSpeed:driver.cruiseSpeed,trafficSpeed,stop:atSignal&&!driver.avoidCars})
+   // Only STOP_FOR_CARS drivers stop for lights, and only their FollowPath reads the traffic speed.
+   const follow=driver.next?steerFollowPath(state,travel(driver.current),driver.currentLane,travel(driver.next),{cruiseSpeed:driver.cruiseSpeed,trafficSpeed:driver.avoidCars?driver.cruiseSpeed:trafficSpeed,stop:atSignal&&!driver.avoidCars})
      :{swerve:0,accel:0,brake:1,handbrake:speed<.3};
    let pedals=follow;
    if(driver.temp&&now<driver.temp.until)pedals=tempActionPedals(driver.temp.action,driver.temp.until-now,{follow,forwardSpeed:move.x*f3.x+move.y*f3.y+move.z*f3.z});
-   else driver.temp=undefined;
+   else if(driver.temp){
+    // TEMPACT_WAIT and TEMPACT_BRAKE restart the jam clock as they end; BRAKE the moving one too.
+    if(driver.temp.action==='wait'||driver.temp.action==='brake')driver.timeToStartMission=now;
+    if(driver.temp.action==='brake')driver.timeSwitchedToRealPhysics=now;
+    driver.temp=undefined;
+   }
    // CAutoPilot::m_bSlowedDownBecauseOfCars and ...Peds, which PlayHornIfNecessary reads.
    car.honkAtCar=slowedByCars;car.honkAtPed=slowedByPeds;car.stoppedForLight=atSignal;
    const forwardSpeed=(move.x*f3.x+move.y*f3.y+move.z*f3.z)*GAME_SPEED_TO_CARAI_SPEED;
