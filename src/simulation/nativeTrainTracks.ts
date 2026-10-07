@@ -36,6 +36,13 @@ export function readTrainTrack(text:string):TrainTrack{
  return {nodes,totalLength:Math.fround(t)};
 }
 
+/** The six stations (iOS 0x1006541a0): Unity, Market, Cranberry, Yellow Bell, Linden Station and Sobell Rail Yards. */
+export const TRAIN_STATIONS:readonly (readonly [number,number,number])[]=[[1741,-1954,15],[1297,-1898,3],[-1945,128,29],[1434,2632,13],[2783,1758,12],[2865,1281,12]];
+/** CTrain::InitTrains' StationDist (iOS 0x1004712a4): each station's distance along the rails. The node nearest the
+ * station is looked for over all four tracks, and its index read back from track 0's nodes. */
+export function stationDistances(tracks:readonly TrainTrack[]){
+ return TRAIN_STATIONS.map(([x,y,z])=>tracks[0]?.nodes[findClosestTrackNode(tracks,{x,y,z}).node]?.distance??0);
+}
 /** CTrain::FindClosestTrackNode (unreversed): the node nearest the point over every track. */
 export function findClosestTrackNode(tracks:readonly TrainTrack[],point:{x:number;y:number;z:number}){
  let best={track:0,node:0},bestDistance=Infinity;

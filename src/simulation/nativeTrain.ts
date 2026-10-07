@@ -16,6 +16,15 @@ type V3=[number,number,number];
  * z, and the handling's m_fSuspensionLowerLimit. */
 export interface TrainCarriageModel {model:number;boxLength:number;boxMinZ:number;suspensionLowerLimit:number}
 
+/** The station IsNextStationAllowed (iOS 0x10047518c) asks about for a train's engine: the first whose StationDist
+ * lies beyond the rail distance (none: station 0), or the one before it running anticlockwise; within 100 of that
+ * one it is the train's own, and the next along its way is taken. */
+export function nextStation(railDistance:number,clockwise:boolean,stationDist:readonly number[]){
+ let ahead=stationDist.findIndex(d=>d>railDistance);if(ahead<0||ahead>5)ahead=0;
+ let station=clockwise?ahead:ahead===0?5:ahead-1;
+ if(Math.abs(railDistance-stationDist[station])<100)station=clockwise?(station+1>5?0:station+1):(station-1<0?station+5:station-1);
+ return station;
+}
 export class NativeTrainCarriage {
  trackId=0;nodeIndex=0;
  /** m_fCurrentRailDistance, m_fTrainSpeed (signed by direction), m_fLength, m_fTrainGas and m_fTrainBrake. */

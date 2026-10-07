@@ -5338,6 +5338,7 @@ async function boot() {
                  // FindObjectsIntersectingCube tests each entity's bounding sphere against the box; the collider
                  // bounds stand in for it. The handles are gathered first and sorted into the lists after the query.
                  pickupsInBubble:(p,radius)=>pickups.anyInBubble(p,radius),
+                 moneyPickupsInBubble:(p,radius)=>pickups.moneyInBubble(p,radius)||moneyDrops.anyInSphere({x:p.x,y:p.z,z:-p.y},radius),
                  // TestSphereAgainstWorld with only the vehicles list: gathered first, sorted after the query.
                  vehicleInSphere:(p,radius)=>{
                   const found:number[]=[];
@@ -5716,6 +5717,7 @@ async function boot() {
                  setScriptTrainCruiseSpeed:(train,speed)=>{if(train instanceof WorldTrain)setTrainCruiseSpeed(train.carriage,speed);},
                  setScriptTrainForcedToSlowDown:(train,state)=>{if(train instanceof WorldTrain)train.carriage.forceSlowDown=state;},
                  scriptTrainClockwise:train=>train instanceof WorldTrain&&train.carriage.clockwise,
+                 scriptTrainNextStation:train=>train instanceof WorldTrain&&fleet?fleet.trainNextStation(train.carriage):undefined,
                  setScriptTrainPosition:(train,position)=>{if(train instanceof WorldTrain)fleet?.setTrainPosition(train,position);},
                  removeScriptMissionTrain:train=>{if(train instanceof WorldTrain)fleet?.removeMissionTrain(train);},
                  releaseScriptMissionTrain:train=>{if(train instanceof WorldTrain)fleet?.releaseMissionTrain(train);},

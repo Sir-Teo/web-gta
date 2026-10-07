@@ -179,3 +179,19 @@ test('HAS_CHAR_BEEN_DAMAGED_BY_CAR: the ped\'s last damage is that very car (iOS
  expect(ask(by(undefined,3),CAR)).toBe(false);
  expect(ask(by(),-1)).toBe(false);
 });
+
+test('IS_MONEY_PICKUP_AT_COORDS asks after money within half a unit of the point (iOS 0x100205bf0)',()=>{
+ let asked:number[]=[];
+ const world={moneyPickupAtCoords:(x:number,y:number,z:number)=>{asked=[x,y,z];return x===1;}};
+ const ask=(x:number)=>run(world,undefined,instruction(op('IS_MONEY_PICKUP_AT_COORDS'),[float(x),float(2),float(3)])).thread.condition;
+ expect(ask(1)).toBe(true);expect(asked).toEqual([1,2,3]);
+ expect(ask(4)).toBe(false);
+});
+
+test('IS_NEXT_STATION_ALLOWED asks after the train the handle names (iOS 0x10020527c)',()=>{
+ const asked:number[]=[];
+ const world={isNextStationAllowed:(handle:number)=>{asked.push(handle);return handle===CAR;}};
+ expect(run(world,undefined,instruction(op('IS_NEXT_STATION_ALLOWED'),[int(CAR)])).thread.condition).toBe(true);
+ expect(run(world,undefined,instruction(op('IS_NEXT_STATION_ALLOWED'),[int(CAR+1)])).thread.condition).toBe(false);
+ expect(asked).toEqual([CAR,CAR+1]);
+});

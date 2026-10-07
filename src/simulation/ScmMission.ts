@@ -4,7 +4,7 @@ import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
 import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
 import type {CarRecordingFrame} from '../assets/carRecordings';
 import {saveOrRetrieveDataForThisFrame,type CarRecordingVehicle} from '../engine/carRecordingPlayback';
-import {TRAIN_TYPES} from './nativeTrainTracks';
+import {TRAIN_STATIONS,TRAIN_TYPES} from './nativeTrainTracks';
 import {ScmRuntime} from '../engine/ScmRuntime';
 import {ScmCameraFade} from '../engine/ScmCameraFade';
 import {speechLengthMs,MISSION_AUDIO_COUNT,scriptBankOfSample,SCRIPT_BANK_NULL} from '../engine/ScmMissionAudio';
@@ -55,6 +55,8 @@ const headingFrame=(heading:number)=>({
 import {ScmDecisionMakers} from '../engine/ScmDecisionMakers';
 import {scriptedPedOrder,type ScriptedPedOrder} from './nativeScriptedPedTasks';
 import {PlayerScriptTasks} from './playerScriptTasks';
+/** STAT_CITY_UNLOCKED. */
+const STAT_CITY_UNLOCKED=181;
 /** MI_NEVADA, whose radar cone floats higher above its box. */
 const MODEL_NEVADA=553;
 
@@ -159,6 +161,8 @@ export interface ScmMissionWorld {
  setScriptTrainCruiseSpeed?(train:unknown,speed:number):void;
  setScriptTrainForcedToSlowDown?(train:unknown,state:boolean):void;
  scriptTrainClockwise?(train:unknown):boolean;
+ /** IsNextStationAllowed's station (TRAIN_STATIONS index) for a script's train, undefined while its tracks load. */
+ scriptTrainNextStation?(train:unknown):number|undefined;
  setScriptTrainPosition?(train:unknown,position:{x:number;y:number;z:number}):void;
  removeScriptMissionTrain?(train:unknown):void;
  releaseScriptMissionTrain?(train:unknown):void;
@@ -392,6 +396,8 @@ export interface ScmMissionWorld {
  randomVehicleInMemory():{model:number;vehicleClass:number}|undefined;
  /** CPickups::TestForPickupsInBubble round a native point. */
  pickupsInBubble?(p:{x:number;y:number;z:number},radius:number):boolean;
+ /** The PICKUP_MONEY pickups (a script's money and a dead ped's wads) within the radius of a native point. */
+ moneyPickupsInBubble?(p:{x:number;y:number;z:number},radius:number):boolean;
  /** CWorld::TestSphereAgainstWorld against vehicles only, native point. */
  vehicleInSphere?(p:{x:number;y:number;z:number},radius:number):boolean;
  /** Whether anything of the named kinds has its bounds in the native box (min and max corners). */
@@ -1782,6 +1788,14 @@ export class ScmMission {
    // bNotOnARailRoad: only a player's train leaves the rails, and the player drives none here.
    hasTrainDerailed:handle=>{this.liveVehicle(handle);return false;},
    findTrainDirection:handle=>this.host('scriptTrainClockwise','FIND_TRAIN_DIRECTION')(this.liveVehicle(handle)),
+   // CTrain::IsNextStationAllowed (iOS 0x10047518c): CTheZones::GetLevelFromPosition of the next station along the
+   // train's way no more than STAT_CITY_UNLOCKED + 1.
+   isNextStationAllowed:handle=>{
+    const station=this.host('scriptTrainNextStation','IS_NEXT_STATION_ALLOWED')(this.liveVehicle(handle));
+    if(station===undefined)return false;
+    const [x,y,z]=TRAIN_STATIONS[station];
+    return this.host('cityAt','IS_NEXT_STATION_ALLOWED')(x,y,z)<=this.runtime.game.stats.get(STAT_CITY_UNLOCKED)+1;
+   },
    setMissionTrainCoordinates:(handle,x,y,z)=>{this.host('setScriptTrainPosition','SET_MISSION_TRAIN_COORDINATES')(this.liveVehicle(handle),{x,y,z});},
    deleteMissionTrain:handle=>{this.host('removeScriptMissionTrain','DELETE_MISSION_TRAIN')(this.liveVehicle(handle));},
    markMissionTrainAsNoLongerNeeded:handle=>{this.host('releaseScriptMissionTrain','MARK_MISSION_TRAIN_AS_NO_LONGER_NEEDED')(this.liveVehicle(handle));},
@@ -2408,6 +2422,7 @@ export class ScmMission {
    // than where its root was left.
    // IS_ANY_PICKUP_AT_COORDS: TestForPickupsInBubble half a unit round the point (reVC's handler).
    anyPickupAtCoords:(x,y,z)=>this.host('pickupsInBubble','IS_ANY_PICKUP_AT_COORDS')({x,y,z},.5),
+   moneyPickupAtCoords:(x,y,z)=>this.host('moneyPickupsInBubble','IS_MONEY_PICKUP_AT_COORDS')({x,y,z},.5),
    // GET_DEAD_CHAR_PICKUP_COORDS: CPed::CreateDeadPedPickupCoors round the ped.
    deadPedPickupCoordinates:handle=>{
     const at=handle===PLAYER_PED_HANDLE?this.world.playerPed().position:(this.livePed(handle),this.peds.positionOf(handle));

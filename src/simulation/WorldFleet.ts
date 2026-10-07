@@ -27,8 +27,8 @@ import {GangCarRoster} from './nativePedRoster';
 import { trafficDriverBudget, clampBudget } from '../world/popcycle';
 import type {WorldCarGenerator} from '../assets/worldCarGenerators';
 import {WorldTrain,trainCarriageModel} from './WorldTrain';
-import {TRAIN_TYPES,TRAIN_TRACK_FILES,readTrainTrack,type TrainTrack} from './nativeTrainTracks';
-import {createMissionTrain,type NativeTrainCarriage} from './nativeTrain';
+import {TRAIN_TYPES,TRAIN_TRACK_FILES,readTrainTrack,stationDistances,type TrainTrack} from './nativeTrainTracks';
+import {createMissionTrain,nextStation,type NativeTrainCarriage} from './nativeTrain';
 import type {loadWorldRoadMaterials} from '../assets/worldRoadMaterials';
 import {detonateStickyBomb} from '../vehicle/nativeCarBomb';
 import {VehiclesOfInterest} from '../vehicle/vehiclesOfInterest';
@@ -964,6 +964,14 @@ export class WorldFleet {
   const made=carriages.map(c=>{const asset=assets.get(c.model.model)!,t=new WorldTrain(this.sim.world,this.scene,asset,c,rotatedColours(catalog,asset.vehicle.model));this.trains.add(t);this.trainOf.set(c,t);return t;});
   return made[0];
  }
+ /** CTrain::IsNextStationAllowed's station for a carriage's train, from its engine; undefined before the tracks load. */
+ trainNextStation(carriage:NativeTrainCarriage){
+  let engine=carriage;while(engine.prev)engine=engine.prev;
+  const tracks=this.loadedTracks;if(!tracks)return undefined;
+  this.stationDist??=stationDistances(tracks);
+  return nextStation(engine.railDistance,engine.clockwise,this.stationDist);
+ }
+ private stationDist?:number[];
  /** The browser's carriage for a CTrain. */
  trainFor(carriage:NativeTrainCarriage|undefined){return carriage&&this.trainOf.get(carriage);}
  /** CTrain::ProcessControl for every carriage, each train from its engine back, then the bodies to their places. */

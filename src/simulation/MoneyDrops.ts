@@ -86,6 +86,8 @@ export class MoneyDrops{
  removeInSphere(at:V3,radius:number){
   for(let i=this.wads.length-1;i>=0;i--){const wad=this.wads[i];if(Math.hypot(wad.position.x-at.x,wad.position.y-at.y,wad.position.z-at.z)<=radius){this.retire(wad);this.wads.splice(i,1);}}
  }
+ /** Whether a wad (a PICKUP_MONEY pickup) lies within the radius of the point. */
+ anyInSphere(at:V3,radius:number){return this.wads.some(wad=>Math.hypot(wad.position.x-at.x,wad.position.y-at.y,wad.position.z-at.z)<radius);}
  private retire(wad:Wad){wad.root?.removeFromParent();wad.owner?.dispose();}
  snapshot(){return this.wads.map(w=>({value:w.value,position:{...w.position},age:w.age}));}
  dispose(){for(const wad of this.wads)this.retire(wad);this.wads.length=0;}

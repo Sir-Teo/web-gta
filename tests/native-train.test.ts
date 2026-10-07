@@ -1,7 +1,7 @@
 import {describe,expect,test} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {TRAIN_TRACK_FILES,findClosestTrackNode,readTrainTrack} from '../src/simulation/nativeTrainTracks';
-import {createMissionTrain,findCaboose,findCarriage,setTrainCruiseSpeed,setTrainSpeed} from '../src/simulation/nativeTrain';
+import {TRAIN_STATIONS,TRAIN_TRACK_FILES,findClosestTrackNode,readTrainTrack,stationDistances} from '../src/simulation/nativeTrainTracks';
+import {createMissionTrain,findCaboose,findCarriage,nextStation,setTrainCruiseSpeed,setTrainSpeed} from '../src/simulation/nativeTrain';
 
 const tracks=TRAIN_TRACK_FILES.map(f=>readTrainTrack(readFileSync(`public/play/world/files/data/paths/${f}`,'utf8')));
 const model=(id:number)=>({model:id,boxLength:id===537?18:15,boxMinZ:-1.2,suspensionLowerLimit:-.1});
@@ -59,5 +59,27 @@ describe('a mission train',()=>{
   expect(cars[0].speed).toBe(0);
   for(let f=0;f<3000;f++)for(const c of cars)c.processControl(tracks,1,23000+f*20);
   expect(cars[0].speed).toBeGreaterThan(.3);
+ });
+});
+
+describe('IsNextStationAllowed',()=>{
+ test('StationDist reads track 0 at the index of the nearest node on any track (iOS 0x1004712a4)',()=>{
+  const dist=stationDistances(tracks);
+  const nearest=TRAIN_STATIONS.map(([x,y,z])=>findClosestTrackNode(tracks,{x,y,z}));
+  // Unity, Market and Cranberry are nearest tracks4.dat's nodes; the index is still read from tracks.dat.
+  expect(nearest.map(n=>n.track)).toEqual([3,3,3,0,0,0]);
+  expect(dist).toEqual(nearest.map(n=>tracks[0].nodes[n.node].distance));
+  expect(dist.slice(3)).toEqual([16645.666666666668,627.6666666666666,1134.6666666666667]);
+ });
+ test('the next station ahead, or the one after when the train stands within 100 of it',()=>{
+  const dist=[100,1000,2000,3000,4000,5000];
+  expect(nextStation(500,true,dist)).toBe(1);expect(nextStation(500,false,dist)).toBe(0);
+  // Past the last station: clockwise wraps to the first, anticlockwise the last.
+  expect(nextStation(6000,true,dist)).toBe(0);expect(nextStation(6000,false,dist)).toBe(5);
+  // Before the first: anticlockwise goes round to the last.
+  expect(nextStation(50,false,dist)).toBe(5);
+  // At a station (within 100) the one after it along the way.
+  expect(nextStation(950,true,dist)).toBe(2);expect(nextStation(1050,false,dist)).toBe(0);
+  expect(nextStation(5050,true,dist)).toBe(0);expect(nextStation(120,false,dist)).toBe(5);
  });
 });

@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {deadPedMoney,moneyWads,pedMoneyCount} from '../src/simulation/MoneyDrops';
+import {MoneyDrops,deadPedMoney,moneyWads,pedMoneyCount} from '../src/simulation/MoneyDrops';
 import {readPedGroups} from '../src/assets/pedGroups';
 import {readFileSync} from 'node:fs';
 
@@ -38,4 +38,11 @@ test('clearing an area removes the cash in it, and passed time ages the rest out
  expect(money.snapshot()).toHaveLength(far);
  money.passTime(360);money.step(0,{position:{x:0,y:0,z:100},alive:true,onFoot:true});
  expect(money.snapshot()).toEqual([]);
+});
+test('a wad answers IS_MONEY_PICKUP_AT_COORDS within its radius',()=>{
+ const drops=new MoneyDrops({add(){}},'',()=>0,sequence(.25,0,0));
+ drops.drop({x:0,y:0,z:0},20);
+ const [wad]=drops.snapshot();
+ expect(drops.anyInSphere(wad.position,.5)).toBe(true);
+ expect(drops.anyInSphere({x:wad.position.x+.6,y:wad.position.y,z:wad.position.z},.5)).toBe(false);
 });

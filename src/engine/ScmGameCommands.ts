@@ -2198,6 +2198,11 @@ const handlers:Record<string,ScmCommandHandler>={
   const point=vec(t,p,0);
   t.updateCompareFlag(world(t,i,'anyPickupAtCoords')(point.x,point.y,point.z),negated(i));
  },
+ // iOS 0x100205bf0: every CPickups slot of type PICKUP_MONEY (8), its compressed position under 0.5 from the point.
+ IS_MONEY_PICKUP_AT_COORDS:(t,p,i)=>{
+  const point=vec(t,p,0);
+  t.updateCompareFlag(world(t,i,'moneyPickupAtCoords')(point.x,point.y,point.z),negated(i));
+ },
  IS_THIS_MODEL_A_BOAT:(t,p,i)=>{t.updateCompareFlag(world(t,i,'modelIsBoat')(model(t,i,p[0])),negated(i));},
  IS_THIS_MODEL_A_HELI:(t,p,i)=>{t.updateCompareFlag(world(t,i,'modelIsHeli')(model(t,i,p[0])),negated(i));},
  IS_THIS_MODEL_A_PLANE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'modelIsPlane')(model(t,i,p[0])),negated(i));},
@@ -2768,6 +2773,7 @@ const handlers:Record<string,ScmCommandHandler>={
  IS_PROCEDURAL_INTERIOR_ACTIVE:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isProceduralInteriorActive')(t.readInt(p[0])),negated(i));},
  GET_POSITION_OF_ENTRY_EXIT_CHAR_USED:(t,p,i)=>{const result=world(t,i,'getPositionOfEntryExitCharUsed')(t.readInt(p[0]));t.writeFloat(p[1],result.x);t.writeFloat(p[2],result.y);t.writeFloat(p[3],result.z);t.writeFloat(p[4],result.heading);},
  FIND_TRAIN_DIRECTION:(t,p,i)=>{t.updateCompareFlag(world(t,i,'findTrainDirection')(t.readInt(p[0])),negated(i));},
+ IS_NEXT_STATION_ALLOWED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isNextStationAllowed')(t.readInt(p[0])),negated(i));},
  ADD_BLIP_FOR_COORD_OLD:(t,p,i)=>{t.writeInt(p[5],game(t,i).radar.setCoordBlip(BLIP_COORD,blipPoint(t,p,0,i),t.readInt(p[4]))|0);},
  // The iOS handler (0x100207b24) builds the same CTaskComplexFollowNodeRoute as TASK_FOLLOW_PATH_NODES_TO_COORD, with
  // the radius as its target tolerance.

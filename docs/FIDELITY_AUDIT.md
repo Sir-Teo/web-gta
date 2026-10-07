@@ -11267,3 +11267,13 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   settings read from the file): a gang war moved strength in the one, and CRASH4 polled GET_ZONE_GANG_STRENGTH on the
   other for Glen Park's Ballas to be gone, for ever; and no script's SET_ZONE_* reached the streets. The script now works
   on the world's records as they stand, and INIT_ZONE_POPULATION_SETTINGS resets them in place.
+- IS_MONEY_PICKUP_AT_COORDS (iOS 0x100205bf0) had no handler, so the strip clubs' dancers (stripw.scm) gave up at the
+  first look for a tip at their feet. It walks every CPickups slot for PICKUP_MONEY (8, not MONEY_DOESNTDISAPPEAR) whose
+  compressed position is under 0.5 from the point: a script's money pickup or a dead ped's wad.
+- IS_NEXT_STATION_ALLOWED (CTrain::IsNextStationAllowed, iOS 0x10047518c, unreversed) had no handler, so trains.scm gave
+  up. From the train's engine: the first station whose StationDist lies beyond its rail distance (none: station 0), or
+  the one before it running anticlockwise; within 100 of that one, the next along its way. The answer is that station's
+  CTheZones::GetLevelFromPosition no more than STAT_CITY_UNLOCKED + 1. StationDist (InitTrains, 0x1004712a4) takes the
+  node nearest each of the six stations over all four tracks but reads its distance from tracks.dat's node of that
+  index: Unity, Market and Cranberry are nearest tracks4.dat, so theirs come from unrelated main-line nodes, as in the
+  game.

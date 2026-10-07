@@ -726,6 +726,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  objectHasCollidedWithAnything?(handle:number):boolean;
  objectIsOnScreen?(handle:number):boolean;
  anyPickupAtCoords?(x:number,y:number,z:number):boolean;
+ /** IS_MONEY_PICKUP_AT_COORDS: a PICKUP_MONEY pickup within half a unit of the native point. */
+ moneyPickupAtCoords?(x:number,y:number,z:number):boolean;
  modelIsBoat?(model:number|string):boolean;
  modelIsHeli?(model:number|string):boolean;
  modelIsPlane?(model:number|string):boolean;
@@ -1058,6 +1060,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  isProceduralInteriorActive?(areaId:number):boolean;
  getPositionOfEntryExitCharUsed?(handle:number):{x:number,y:number,z:number,heading:number};
  findTrainDirection?(handle:number):boolean;
+ /** CTrain::IsNextStationAllowed: the next station along the train's way lies in a city the player may reach. */
+ isNextStationAllowed?(handle:number):boolean;
  drawShadow?(textureType:number,x:number,y:number,z:number,angle:number,length:number,intensity:number,r:number,g:number,b:number):void;
  /** The three names the game hands back as text labels: the zone at a point, the entry-exit a ped last used,
   * and the shop that is loaded. */

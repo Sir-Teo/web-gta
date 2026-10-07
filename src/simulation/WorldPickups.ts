@@ -146,6 +146,9 @@ export class WorldPickups {
  /** CPickups::TestForPickupsInBubble: any pickup within the radius of the native point (active or not, as the
   * original walks every slot). */
  anyInBubble(p:{x:number;y:number;z:number},radius:number){return this.states.some(s=>Math.hypot(s.pickup.position[0]-p.x,s.pickup.position[1]-p.y,s.pickup.position[2]-p.z)<radius);}
+ /** IS_MONEY_PICKUP_AT_COORDS's walk: the PICKUP_MONEY pickups (MONEY_DOESNTDISAPPEAR is another type) within the
+  * radius of the native point. */
+ moneyInBubble(p:{x:number;y:number;z:number},radius:number){return this.states.some(s=>s.pickup.type===PICKUP_TYPE.money&&Math.hypot(s.pickup.position[0]-p.x,s.pickup.position[1]-p.y,s.pickup.position[2]-p.z)<radius);}
  removeGenerated(id:string){const state=this.states.find(s=>s.pickup.id===id);if(state)this.remove(state);}
  /** Takes a generated pickup back out of the world. */
  private remove(state:State){const index=this.states.indexOf(state);if(index>=0){this.states.splice(index,1);this.usedSlots.delete(state.slot);this.lowestFree=Math.min(this.lowestFree,state.slot);}state.removed=true;this.revenueLinks=undefined;this.bySlot=undefined;this.despawn(state);}
