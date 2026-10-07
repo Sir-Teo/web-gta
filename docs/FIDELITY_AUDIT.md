@@ -24,6 +24,39 @@ Target selected by the user on September 17, 2026: one-to-one original PC 1.0 be
 | Complete content | Vehicle/weapon/archive counts do not establish playable coverage. | Versioned inventory of campaign, side activities, interiors, UI, customization and special vehicle systems, each with end-to-end evidence. |
 | Runtime reliability | Passing units coexist with browser failures. | Reproductions resolved and regression-tested; sustained traversal, cold launch and resource-lifetime checks. |
 
+## Decisions on the remaining iOS gaps (October 7, 2026)
+
+The gap pass against the iOS build (Google61/gta3sa.app at 67f70cb7) left six questions that the port's budgets, not
+the decodes, have to settle. Each is settled here with the constraint that decides it.
+
+1. **Audio budget: not published.** That means the radio stations (339 MB), the speech packs (SPC_EA, _FA and _PA, 120 MB) and
+   CUTSCENE.osw (59 MB). public/ holds 786 MB of GitHub Pages' 1 GB, so all three would take it to about 1.3 GB, and the
+   radio alone goes past the cap. The radio keeps the frontend-bank beds and speech the combat vocals
+   (`radioSpeech.ts`). The speech packs would fit by themselves (about 906 MB) and come first if a later pass wants
+   them. The radio needs a host other than Pages.
+2. **Traffic distance: kept.** The port removes traffic past 120 units, runs physics within 100, and tries a hidden 75-unit
+   spot on alternate attempts. iOS makes cars in view 150 to 170 units out and removes them with RemoveDistantCars. Matching it means
+   widening removal and physics, at a CPU cost the browser (phones first) cannot spare. For the same budget, the iOS
+   AddToPopulation ped cap is decoded and not ported. That cap is the popcycle targets × PedDensityMultiplier × 0.6 with
+   FewerPeds, compared as a float.
+3. **Street chat: kept, AUTHORED.** The port keeps its player-opened Y and N (WorldPedestrians.converse), which the touch
+   Yes and No widgets depend on. iOS has only the ped-opened CPedToPlayerConversations, which is decoded. Without the
+   speech packs (1) it would be silent head turns.
+4. **Free-aim range: kept.** The port keeps PLAYER_AIM_REACH at 120. iOS runs the line three times the weapon's range from the camera
+   and counts a hit only within one range (three against vehicles). weapon.dat gives the pistols and SMGs 30 to 45, so
+   with a mouse a man across a street, plainly under the crosshair, could not be hit.
+5. **Touch lock-on: kept.** The port keeps `aimAssist.ts`. The iOS FindWeaponLockOnTarget (0x10036223c) is a port of its own.
+   - Each target weighs max(0, 1 − |angle|·4/π) / distance^0.25 × its priority, scored twice.
+   - The next target is taken within 50°, and Process_AimWeapon slews the camera at 0.033 × the step.
+   - Drive-by auto-aim (DoDriveByAutoAiming) goes with it.
+6. **Camera: kept as a unit.** The port keeps the foot zooms 1.5 / 2.9 / 3.6, the authored car distance and height, and the
+   2 s / 1 s returns behind. The iOS follow cameras (FollowCar_SA 0x10020faa0, FollowPed_SA 0x10021171c) are one rewrite:
+   - MOB_CAM's raised car target ("Vehicle Camera Height", on by default) belongs with the iOS distance formula and
+     string;
+   - the iOS foot zooms 1.45 / 3.5 / 5.6 draw more of the city, against the render budget of 2;
+   - without the return timer, the string and the velocity pull are what swing the camera behind.
+   Taken piecemeal, the camera would end up neither the port's nor the iOS one.
+
 ## September 17 initial reproduction
 
 - Baseline unit suite: 1,103 passed, 41 skipped. This is implementation regression evidence, not reference matching.
