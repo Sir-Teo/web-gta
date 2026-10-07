@@ -8294,6 +8294,25 @@ Each is now answered:
   the gangs' chance 50; refusing gangs still wins, and a gang that cannot be made makes nobody.
 - Verification: `tests/native-zone-names.test.ts`, `tests/scm-population-switches.test.ts`, `tests/gang-wars.test.ts`.
 
+## How recruits follow the player
+
+- CTaskComplexGangFollower and CTaskComplexFollowLeaderInFormation are retail stubs in gta-reversed. Recruits followed
+  an authored point 2.5 units behind the player and 1.3 to one side by id, running beyond 2.2 units and stopping
+  inside. They now follow the iOS GangFollower (0x1003faa78, 0x1003faf30, 0x1003fb200; `groupFormation.ts`):
+  - each follower has a member slot (0 to 6, the first free one); while the player walks, runs or sprints its point is
+    MovingOffsets[slot] turned by his heading (slot 0 a unit to his left, slot 1 to his right, slot 2 1.25 behind);
+    while he stands or drives it is Offsets[slot] in world axes, kept until he has moved 3 units;
+  - it walks under 5 units from the point, runs under 10 and sprints beyond, and is there within 0.5; beside a player
+    who is not walking it stands 500 ms and pauses 50 ms before seeking again;
+  - told to wait, it stands where it is (it had walked back to where it was told);
+  - m_AnotherStaticCounter (a quarter unit for 30 frames) stands it still; from 9 frames within 8 units of the player
+    it aims at the point past him;
+  - CPedGroupMembership::Process lets a follower go past the separation range only in the leader's area, and the
+    player's group's range is 120 (set at every recruit; it was 60).
+- Not yet: the FOLLOW_LIMITED formation the mission cleanup puts the group on until the next group command, the
+  boarding (every follower runs to a seat when the player gets in, a lone one to the front), the slot-timed exits
+  (250 + 500 × slot + up to 500 ms), the node route beyond 2 units, the FOLLOW_ARRIVE line and turning to a member.
+
 ## The player's group: its leader and its script peds
 
 - CPlayerPed leads its own group from its creation on. The port's player group had no leader recorded, so

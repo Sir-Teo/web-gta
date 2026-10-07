@@ -1,7 +1,7 @@
 import {runOverShake} from '../engine/nativePadShakes';
 import {deadPedWeaponDrops} from './WeaponDrops';
 import {weaponAtStartOfFight} from '../ped/nativeFightWeapon';
-import {GROUP_TELEPORT_OFFSETS} from './groupFormation';
+import {FOLLOWER_PAUSE_SECONDS,FOLLOWER_STAND_SECONDS,FOLLOWER_STUCK_SECONDS,FOLLOWER_UNSTICK_RANGE,FOLLOWER_UNSTICK_SECONDS,GROUP_TELEPORT_OFFSETS,PLAYER_GROUP_SEPARATION_RANGE,gangFollowerGait,gangFollowerOffset,type GangFollowerState} from './groupFormation';
 import { CHEATS, megaPunchBlow } from './nativeCheats';
 import {GangPedRoster,ZonePedRoster,type PedZoneGroups} from './nativePedRoster';
 import {newPedTypeOrder,gangToCreateMembersOf,type PopulationTargets} from '../assets/populationCycle';
@@ -300,8 +300,11 @@ export interface Pedestrian {
  modelRef:number|string;
  /** Recruited Grove crew: shadows the player and shares their enemies. */
  follow:boolean;
- /** Told to stay in position (GROUP_CONTROL_BWD): the member holds this spot until told to follow again. */
+ /** Told to wait (GROUP_CONTROL_BWD): the member stands where it is until told to follow again (where it was told). */
  holdPosition?:{x:number;y:number;z:number};
+ /** CPedGroupMembership's member slot (0 to 6), CTaskComplexGangFollower's offset and latch, and what is left of its
+  * stand-still and pause. */
+ followSlot?:number;followState?:GangFollowerState;followStand?:number;
  /** Animation id of the last CEventDamage reaction, for the native re-pick. */
  damageAnimId?:number;
  /** Current enemy for crew and brawlers (undefined means the player). */
@@ -625,7 +628,7 @@ export class WorldPedestrians {
  /** CPedGroupMembership::RemoveMember only frees the slot: a member fighting an enemy keeps that kill task (it never
   * turns on the player), and one with no enemy left stops fighting. */
  private leaveGroup(p:Pedestrian){
-  p.follow=false;p.holdPosition=undefined;this.rejoinWander(p);
+  p.follow=false;p.holdPosition=undefined;p.followSlot=undefined;p.followState=undefined;p.followStand=undefined;this.rejoinWander(p);
   if(!(p.retaliate>0&&p.foe&&p.foe.health>0&&this.people.includes(p.foe))){p.foe=undefined;p.retaliate=0;p.fight=undefined;}
  }
  /** A fresh CTaskComplexWander resets its nodes and picks the next from where the ped stands (TaskComplexWander.cpp:
@@ -2624,7 +2627,7 @@ export class WorldPedestrians {
   }
   /** SET_SCRIPT_LIMIT_TO_GANG_SIZE (m_nScriptLimitToGangSize, 99 at start) and the player group's
    * CPedGroupMembership::m_separationRange (60, SET_GROUP_SEPARATION_RANGE). */
-  scriptGangLimit=99;groupSeparationRange=60;
+  scriptGangLimit=99;groupSeparationRange=PLAYER_GROUP_SEPARATION_RANGE;
   /** CPlayerPed::ProcessGroupBehaviour's buttons, GROUP_CONTROL_FWD (G) and GROUP_CONTROL_BWD (H), on foot. The function
    * is unreversed; the game's own help text states the rules: "Hold PED_LOCK_TARGET to target a gang member and press
    * GROUP_CONTROL_FWD or GROUP_CONTROL_BWD to recruit him to your group"; "Press GROUP_CONTROL_BWD to instruct your gang
@@ -2673,6 +2676,8 @@ export class WorldPedestrians {
     // CPlayerPed::MakeThisPedJoinOurGroup's cap: FindMaxNumberOfGroupMembers, at most the script's limit.
     if(crew.length>=Math.min(maxGroupMembers(),this.scriptGangLimit))return 'full';
     mark.follow=true;mark.holdPosition=undefined;mark.flee=0;mark.foe=undefined;this.leaveParty(mark);
+    // MakeThisPedJoinOurGroup sets the group's separation range back to 120 with every recruit.
+    this.groupSeparationRange=PLAYER_GROUP_SEPARATION_RANGE;
     return 'joined';
    }
    const listening=crew.filter(m=>!m.ignoresGroupCommands);if(!listening.length)return 'none';
@@ -3837,22 +3842,17 @@ export class WorldPedestrians {
    // the primary one (CPedIntelligence's TASK_PRIMARY_PRIMARY over the group's default).
    if(p.follow&&!p.officer&&p.health>0&&p.down===0&&!(p.mission&&this.hasScriptTask(p))){
     // CPedGroupMembership::Process keeps a dead player leading his group and lets go of any follower further than the
-    // separation range from him, on foot or driving, in 3D. The script's own groups do that for its peds.
+    // separation range from him, on foot or driving, in 3D, unless they are in different areas (iOS 0x1003497cc: CJ
+    // gone into an interior alone keeps his crew). The script's own groups do that for its peds.
     {
      const ride=[...cars].find(c=>c.occupied);
      const pp=ride?ride.car.body.translation():this.sim.player.position;
      const gap=Math.hypot(pp.x-state.position.x,pp.y-state.position.y,pp.z-state.position.z);
-     if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup&&!p.mission)this.leaveGroup(p);
+     if(gap>this.groupSeparationRange&&!p.flags?.neverLeavesGroup&&!p.mission&&(p.areaCode??0)===(this.visibleArea?.()??0))this.leaveGroup(p);
      else if(this.sim.player.health<=0){}
-     else if(p.retaliate<=0&&p.holdPosition){
-      dx=p.holdPosition.x-state.position.x;dz=p.holdPosition.z-state.position.z;
-      followSpeed=Math.hypot(dx,dz)>1?p.walkSpeed:0;
-     }
      else if(p.retaliate<=0){
-      const hx=this.sim.player.heading,side=p.id%2?1.3:-1.3;
-      dx=pp.x-Math.sin(hx)*2.5-Math.cos(hx)*side-state.position.x;
-      dz=pp.z-Math.cos(hx)*2.5+Math.sin(hx)*side-state.position.z;
-      followSpeed=Math.hypot(dx,dz)>2.2?p.runSpeed:0;
+      const step=this.gangFollower(p,pp,!ride&&this.sim.player.speed>=.1,dt);
+      dx=step.dx;dz=step.dz;followSpeed=step.speed;
      }
     }
    }
@@ -3930,6 +3930,8 @@ export class WorldPedestrians {
     p.gait+=(target-p.gait)*(1-Math.exp(-8*dt));
     const speed=p.gait;
     // The plain wander's CTaskSimpleGoToPoint at a walk or faster, the only go-to ProcessStaticCounter counts here.
+    // A recruit's seek (CTaskComplexGangFollower) counts too.
+    const followWalk=p.follow&&followSpeed!==undefined&&target>=p.walkSpeed*.5&&p.retaliate<=0;
     const wanderWalk=target>=p.walkSpeed*.5&&!p.officer&&!p.follow&&!p.gunReact&&!p.evade&&!p.carReact&&!p.fight&&p.flee<=0&&p.retaliate<=0&&p.down===0&&p.stagger<=0;
    // CPed::UpdateHeading: the ped turns toward where it is going at its pedstats heading change rate (degrees per
    // frame) and its clips carry it along its facing.
@@ -3984,7 +3986,7 @@ export class WorldPedestrians {
    if(p.landing!==undefined){p.landing-=dt;if(p.landing<=0)p.landing=undefined;}
    if(speed&&Math.hypot(movement.x,movement.z)<speed*dt*.2)p.blocked+=dt;else p.blocked=0;
    // CPedIntelligence::ProcessStaticCounter: m_AnotherStaticCounter counts while a walker stays within a quarter unit.
-   if(wanderWalk){const s=p.stuck;if(!s||(position.x-s.x)**2+(position.z-s.z)**2>=1/16)p.stuck={x:position.x,z:position.z,seconds:0};else s.seconds+=dt;}else p.stuck=undefined;
+   if(wanderWalk||followWalk){const s=p.stuck;if(!s||(position.x-s.x)**2+(position.z-s.z)**2>=1/16)p.stuck={x:position.x,z:position.z,seconds:0};else s.seconds+=dt;}else p.stuck=undefined;
    // CEventBuildingCollision: a step mostly stopped by something fixed ahead, on a ped seeking someone or going to a
    // point, gets ComputeBuildingCollisionResponse's answer.
    if(!p.walkRound&&!held&&speed>.05&&p.down===0&&p.health>0&&!p.air&&Math.hypot(movement.x,movement.z)<speed*dt*.5)this.buildingCollision(p,along);
@@ -4014,6 +4016,33 @@ export class WorldPedestrians {
  /** The player's group members (PassengerCrowd), without building a whole snapshot. */
  /** The player's followers the car entry seats by taking them off the street and making them again inside: street
   * recruits only, and not those told to stay in position. A script's ped keeps its handle, so it is not one of them. */
+ /** CTaskComplexGangFollower for a recruit following the player on foot (iOS 0x1003faa78, 0x1003faf30, 0x1003fb200):
+  * the seek to the player plus the member slot's formation offset (gangFollowerOffset), walking, running or
+  * sprinting by the distance to it and done within 0.5; beside a player who is not walking, a 500 ms stand-still and
+  * a 50 ms pause before seeking again; told to wait, the same stand-still where it is. m_AnotherStaticCounter over
+  * 30 frames stands it still instead; from 9 frames within 8 units of the player it aims past him (the offset set to
+  * the player less itself). The seek goes straight (the original's node route beyond 2 units is not taken), with no
+  * FOLLOW_ARRIVE line (speech banks are not shipped) and no turn to a random member. */
+ private gangFollower(p:Pedestrian,leaderAt:{x:number;y:number;z:number},leaderMoving:boolean,dt:number){
+  const here=p.actor.player.position;
+  if(p.followSlot===undefined||this.people.some(o=>o!==p&&o.follow&&o.health>0&&o.followSlot===p.followSlot)){
+   const taken=new Set(this.people.filter(o=>o!==p&&o.follow&&o.health>0).map(o=>o.followSlot));
+   let slot=0;while(slot<6&&taken.has(slot))slot++;p.followSlot=slot;p.followState=undefined;
+  }
+  const st=p.followState??={offset:{x:0,y:0},latched:false};
+  if(p.followStand!==undefined){p.followStand-=dt;if(p.followStand>0)return {dx:0,dz:0,speed:0};p.followStand=undefined;}
+  if(p.holdPosition){p.followStand=FOLLOWER_STAND_SECONDS+FOLLOWER_PAUSE_SECONDS;return {dx:0,dz:0,speed:0};}
+  const h=this.sim.player.heading,forward={x:Math.sin(h),y:-Math.cos(h)};
+  const offset=gangFollowerOffset(p.followSlot,{position:{x:leaderAt.x,y:-leaderAt.z,z:leaderAt.y},right:{x:forward.y,y:-forward.x},forward,moving:leaderMoving},st);
+  const stuck=p.stuck?.seconds??0;
+  if(stuck>FOLLOWER_STUCK_SECONDS){p.stuck=undefined;p.followStand=FOLLOWER_STAND_SECONDS+FOLLOWER_PAUSE_SECONDS;return {dx:0,dz:0,speed:0};}
+  if(stuck>=FOLLOWER_UNSTICK_SECONDS&&Math.hypot(leaderAt.x-here.x,leaderAt.z-here.z)<FOLLOWER_UNSTICK_RANGE){
+   st.offset={x:leaderAt.x-here.x,y:-(leaderAt.z-here.z)};p.stuck=undefined;p.followStand=FOLLOWER_STAND_SECONDS+FOLLOWER_PAUSE_SECONDS;return {dx:0,dz:0,speed:0};
+  }
+  const dx=leaderAt.x+offset.x-here.x,dz=leaderAt.z-offset.y-here.z,gait=gangFollowerGait(Math.hypot(dx,dz));
+  if(gait==='arrived'){if(!leaderMoving)p.followStand=FOLLOWER_STAND_SECONDS+FOLLOWER_PAUSE_SECONDS;return {dx,dz,speed:0};}
+  return {dx,dz,speed:gait==='walk'?p.walkSpeed:gait==='run'?p.runSpeed:p.sprintSpeed};
+ }
  followers(){const out:{id:number;position:{x:number;y:number;z:number};health:number;down:number}[]=[];for(const p of this.people)if(p.follow&&!p.mission&&!p.holdPosition)out.push({id:p.id,position:p.actor.player.position,health:p.health,down:p.down});return out;}
  /** The drawn peds, for CPed::PreRenderAfterTest's dummy shadows: their ids and BONE_ROOT in the world (browser space). */
  *shadowCasters(){for(const p of this.people)if(p.view.root.visible)yield {id:p.id,root:p.view.shadowPosition()};}
