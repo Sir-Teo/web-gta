@@ -182,6 +182,7 @@ export interface Pedestrian {
   |{kind:'duckFor';remaining:number}
   /** CTaskComplexJump after its launch: over once the ped has landed (or climbed). */
   |{kind:'jumping'}
+  |{kind:'fallingDown'}
   /** CTaskSimpleGunControl: a renderer point or a ped (the player when neither) to aim at, firing or not. */
   |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:Pedestrian;player:boolean;fire:boolean;remaining:number}
   /** CTaskComplexGoToPointShooting: the go-to point (renderer, with the origin height) and the ped fired at. With
@@ -1921,6 +1922,7 @@ export class WorldPedestrians {
     ped.air={vz,minVz:0,seconds:0,h:{x:Math.sin(h)*.1*50,z:Math.cos(h)*.1*50},forceClimb:order.forceClimb};
     break;
    }
+   case 'fallAndGetUp':ped.flee=0;ped.loiter=false;ped.order={kind:'fallingDown'};this.scriptFall(ped,order.clip,order.lieMs);break;
    case 'goToPointShooting':{
     // Aiming at a point, there is no ped to look for.
     const point=order.aimOnly&&order.aimPoint&&order.target===-1?{x:order.aimPoint.x,y:order.aimPoint.z,z:-order.aimPoint.y}:undefined;
@@ -2962,6 +2964,15 @@ export class WorldPedestrians {
    }
    return undefined;
   }
+  /** CTaskComplexFallAndGetUp given by a script (TASK_FALL_AND_GET_UP): the fall clip, `lieMs` on the ground, then the
+   * get-up, as a blow's knockdown, but with no blow behind it: no push, nobody frightened, no flight after. */
+  private scriptFall(p:Pedestrian,clip:string,lieMs:number){
+   if(p.down>0)return;
+   const fall=p.view.reactionDuration(clip)??1,getUp=p.view.reactionDuration(getUpClip(clip))??1.37;
+   p.down=fall+lieMs/1000+getUp;p.fallClip=clip;p.stuckUnderCar=false;p.impulse={x:0,z:0};
+   p.view.playReaction(clip,fall+lieMs/1000);
+   p.collider.setShape(new RAPIER.Ball(.3));
+  }
   /** CTaskComplexFallAndGetUp: the fall clip, `lieMs` on the ground, then the get-up. A weapon's knockdown lies
    * 1000 / (m_nWeaponShootingRate / 40) ms; a car, a fall or being run over, 1000 ms (EventHandler::ComputeDamageResponse). */
   private hit(p:Pedestrian,x:number,z:number,strength:number,clip='ko_skid_front',lieMs=1000/((p.shootingRate??40)/40)){
@@ -3658,6 +3669,9 @@ export class WorldPedestrians {
      const o=p.order;dx=0;dz=0;o.remaining-=dt;
      const gone=o.target!==undefined&&(o.target.health<=0||!this.people.includes(o.target))||o.player&&this.sim.player.health<=0;
      if(o.remaining<=0||gone)this.startNextOrder(p);
+    }else if(p.order.kind==='fallingDown'){
+     // CTaskComplexFallAndGetUp: over once CTaskSimpleGetUp has stood the ped up.
+     dx=0;dz=0;if(p.down===0)this.startNextOrder(p);
     }else if(p.order.kind==='jumping'){
      // CTaskComplexJump: over once the ped has climbed, or landed and stood (CTaskComplexInAirAndLand).
      dx=0;dz=0;if(!p.climb&&!p.air&&p.landing===undefined)this.startNextOrder(p);

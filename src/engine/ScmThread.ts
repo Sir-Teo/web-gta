@@ -113,7 +113,7 @@ export type ScmScriptedTask=
  |{kind:'lookAtVehicle';vehicle:number;time:number}
  |{kind:'lookAtObject';object:number;time:number}
  |{kind:'weaponRoll';state:boolean}
- |{kind:'fallAndGetUp';state:boolean;time:number}
+ |{kind:'fallAndGetUp';direction:number;time:number}
  |{kind:'diveAndGetUp';x:number;y:number;time:number}
  |{kind:'gotoPedOffset';target:number;time:number;offsetX:number;offsetY:number}
  |{kind:'followFootsteps';target:number}

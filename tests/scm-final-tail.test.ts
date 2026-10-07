@@ -110,7 +110,7 @@ describe('the last of the tail',()=>{
   expect(tasks).toEqual([
    {kind:'lookAtVehicle',vehicle:CAR,time:2000},
    {kind:'weaponRoll',state:true},
-   {kind:'fallAndGetUp',state:true,time:1500},
+   {kind:'fallAndGetUp',direction:1,time:1500},
    {kind:'gotoPedOffset',target:8,time:3000,offsetX:1,offsetY:2},
    {kind:'followFootsteps',target:8},
    {kind:'swimToCoord',x:1,y:2,z:0},

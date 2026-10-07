@@ -11229,3 +11229,6 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   window round the player cannot, so the ped waits for its ground there as one made out of the window does. It used to
   fall through the map and be set down at a path node by the player, again and again (a ped made at Grove ended up in
   San Fierro). The ped stands still meanwhile rather than going on with its task there.
+- TASK_FALL_AND_GET_UP runs for script peds, alone or in a sequence (8 uses): CTaskComplexFallAndGetUp(direction, time)
+  falls with KO_SKID_FRONT, KO_SPIN_R, KO_SKID_BACK or KO_SPIN_L by the direction (the command read it as a flag), lies
+  the time and gets up, with no blow behind it (nobody frightened, no flight after). The player's form ($3) still refused.

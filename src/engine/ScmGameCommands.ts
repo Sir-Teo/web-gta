@@ -2108,7 +2108,7 @@ const handlers:Record<string,ScmCommandHandler>={
  },
  TASK_WEAPON_ROLL:(t,p,i)=>{scriptedTask(t,i,t.readInt(p[0]),{kind:'weaponRoll',state:bool(t,p[1])});},
  TASK_FALL_AND_GET_UP:(t,p,i)=>{
-  scriptedTask(t,i,t.readInt(p[0]),{kind:'fallAndGetUp',state:bool(t,p[1]),time:t.readInt(p[2])});
+  scriptedTask(t,i,t.readInt(p[0]),{kind:'fallAndGetUp',direction:t.readInt(p[1]),time:t.readInt(p[2])});
  },
  TASK_DIVE_AND_GET_UP:(t,p,i)=>{
   scriptedTask(t,i,t.readInt(p[0]),{kind:'diveAndGetUp',x:t.readFloat(p[1]),y:t.readFloat(p[2]),time:t.readInt(p[3])});

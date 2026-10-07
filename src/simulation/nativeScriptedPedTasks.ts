@@ -79,6 +79,9 @@ export type ScriptedPedOrder=
   * 4.5, or 8.5 for a high jump, over its mass) and the task is over once it has landed. `highJump` is
   * m_UsePlayerLaunchForce, the script's flag for both. */
  |{kind:'jump';forceClimb:boolean;highJump:boolean}
+ /** CTaskComplexFallAndGetUp(direction, downTime) for TASK_FALL_AND_GET_UP: CTaskSimpleFall's KO clip, `lieMs` on the
+  * ground, then CTaskSimpleGetUp; the task is over once the ped stands. */
+ |{kind:'fallAndGetUp';clip:'ko_skid_front'|'ko_spin_r'|'ko_skid_back'|'ko_spin_l';lieMs:number}
  /** CTaskSimpleGunControl for TASK_AIM_GUN_AT_* and TASK_SHOOT_AT_*: stand, face the target (a point in the script's
   * coordinates, or a ped's handle) and aim, firing when `fire`, for `seconds`. */
  |{kind:'gunAt';point?:{x:number;y:number;z:number};target?:number;fire:boolean;seconds:number}
@@ -140,6 +143,8 @@ export const nativeHeadingDegrees=(dx:number,dy:number)=>{
  const degrees=Math.atan2(-dx,dy)*180/Math.PI;
  return ((degrees%360)+360)%360;
 };
+/** CTaskComplexFallAndGetUp's fall clip by direction (0x678700). */
+const FALL_DIRECTION_CLIPS=['ko_skid_front','ko_spin_r','ko_skid_back','ko_spin_l'] as const;
 export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):ScriptedPedOrder|undefined{
  switch(task.kind){
   // CTaskSimpleStandStill takes its time in milliseconds; a time of nothing is the looped form, which the
@@ -256,6 +261,9 @@ export function scriptedPedOrder(task:ScmScriptedTask,world:ScriptedTaskWorld):S
   // CTaskComplexJump(0) (0x1001e6cec); each stores its flag as m_UsePlayerLaunchForce.
   case 'climb':return {kind:'jump',forceClimb:true,highJump:task.flag};
   case 'jump':return {kind:'jump',forceClimb:false,highJump:task.state};
+  // iOS 0x1001e6c04: new CTaskComplexFallAndGetUp(direction, time) (ctor 0x100414850): 0 KO_SKID_FRONT, 1 KO_SPIN_R,
+  // 2 KO_SKID_BACK, 3 KO_SPIN_L; another direction leaves the clip unset, which the port does not guess at.
+  case 'fallAndGetUp':{const clip=FALL_DIRECTION_CLIPS[task.direction];return clip?{kind:'fallAndGetUp',clip,lieMs:Math.max(0,task.time)}:undefined;}
   case 'duck':return {kind:'duck',crouch:true,seconds:seconds(task.time)};
   case 'smartFleePoint':return {kind:'smartFlee',from:{x:task.x,y:task.y},safe:task.radius,seconds:seconds(task.time)};
   case 'smartFleePed':{

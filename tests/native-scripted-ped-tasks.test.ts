@@ -27,6 +27,14 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'jump',state:false},world({}))).toEqual({kind:'jump',forceClimb:false,highJump:false});
  });
 
+ test('TASK_FALL_AND_GET_UP falls the way its direction names, lies its time and gets up (CTaskComplexFallAndGetUp)',()=>{
+  expect(scriptedPedOrder({kind:'fallAndGetUp',direction:0,time:500},world({}))).toEqual({kind:'fallAndGetUp',clip:'ko_skid_front',lieMs:500});
+  expect(scriptedPedOrder({kind:'fallAndGetUp',direction:1,time:0},world({}))).toEqual({kind:'fallAndGetUp',clip:'ko_spin_r',lieMs:0});
+  expect(scriptedPedOrder({kind:'fallAndGetUp',direction:2,time:3000},world({}))).toEqual({kind:'fallAndGetUp',clip:'ko_skid_back',lieMs:3000});
+  expect(scriptedPedOrder({kind:'fallAndGetUp',direction:3,time:-5},world({}))).toEqual({kind:'fallAndGetUp',clip:'ko_spin_l',lieMs:0});
+  expect(scriptedPedOrder({kind:'fallAndGetUp',direction:4,time:0},world({}))).toBeUndefined();
+ });
+
  test('standing still takes its time in milliseconds, and no time at all means for ever',()=>{
   expect(scriptedPedOrder({kind:'standStill',time:2500},world({}))).toEqual({kind:'standStill',seconds:2.5});
   expect(scriptedPedOrder({kind:'standStill',time:0},world({}))).toEqual({kind:'standStill',seconds:Infinity});
