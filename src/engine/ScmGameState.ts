@@ -132,6 +132,10 @@ export class ScmStats {
  }
  /** CStats::SetNewRecordStat (0x55C410): only raises the stored value. */
  setNewRecord(stat:number,value:number){if(this.get(stat)<value)this.set(stat,value);}
+ /** CStats::RegisterFastestTime and RegisterBestPosition (iOS 0x100261010 and 0x1002610ec): a stat still at 0 takes
+  * the value, otherwise it keeps the lower of the two. gta-reversed routes both through SetNewRecordStat, which keeps
+  * the higher; the executable does not. CheckForStatsMessage is HUD-only. */
+ registerLowest(stat:number,value:number){const current=this.get(stat);this.set(stat,current===0?value:Math.min(current,value));}
  static isCapped(stat:number){return CAPPED_STATS.has(stat);}
 }
 

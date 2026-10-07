@@ -699,7 +699,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  syncWater?():void;
  drawSphere?(id:number,x:number,y:number,z:number,radius:number):void;
  removeUser3dMarker?(handle:number):void;
- registerFastestTime?(stat:number,time:number):void;
  setUpSkip?(x:number,y:number,z:number,heading:number):void;
  setMenuItemWithTwoNumbers?(handle:number,column:number,row:number,text:string,first:number,second:number):void;
  explodeVehicleInCutscene?(handle:number):void;
@@ -996,7 +995,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  setUpSkipForVehicleFinishedByScript?(x:number,y:number,z:number,heading:number,vehicle:number):void;
  setGroupSequence?(handle:number,sequence:number):void;
  taskWarpCharIntoCarAsPassenger?(char:number,vehicle:number,seatId:number):void;
- registerBestPosition?(id:number,position:number):void;
  taskPlayAnimWithFlags?(handle:number,animationName:string,animationFile:string,frameDelta:number,loop:boolean,lockX:boolean,lockY:boolean,lockF:boolean,time:number,disableForce:boolean,disableLockZ:boolean):void;
  isAttachedPlayerHeadingAchieved?(handle:number):boolean;
  isCarTouchingCar?(handle:number,handle2:number):boolean;

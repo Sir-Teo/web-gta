@@ -2074,7 +2074,7 @@ const handlers:Record<string,ScmCommandHandler>={
   world(t,i,'drawSphere')(highlightId(t,i),point.x,point.y,point.z,t.readFloat(p[3]));
  },
  REMOVE_USER_3D_MARKER:(t,p,i)=>{world(t,i,'removeUser3dMarker')(t.readInt(p[0]));},
- REGISTER_FASTEST_TIME:(t,p,i)=>{world(t,i,'registerFastestTime')(t.readInt(p[0]),t.readInt(p[1]));},
+ REGISTER_FASTEST_TIME:(t,p,i)=>{game(t,i).stats.registerLowest(t.readInt(p[0]),t.readInt(p[1]));},
  SET_UP_SKIP:(t,p,i)=>{
   const point=vec(t,p,0);world(t,i,'setUpSkip')(point.x,point.y,point.z,t.readFloat(p[3]));
  },
@@ -2677,7 +2677,7 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_UP_SKIP_FOR_VEHICLE_FINISHED_BY_SCRIPT:(t,p,i)=>{world(t,i,'setUpSkipForVehicleFinishedByScript')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readInt(p[4]));},
  SET_GROUP_SEQUENCE:(t,p,i)=>{world(t,i,'setGroupSequence')(t.readInt(p[0]),t.readInt(p[1]));},
  TASK_WARP_CHAR_INTO_CAR_AS_PASSENGER:(t,p,i)=>{world(t,i,'taskWarpCharIntoCarAsPassenger')(t.readInt(p[0]),t.readInt(p[1]),t.readInt(p[2]));},
- REGISTER_BEST_POSITION:(t,p,i)=>{world(t,i,'registerBestPosition')(t.readInt(p[0]),t.readInt(p[1]));},
+ REGISTER_BEST_POSITION:(t,p,i)=>{game(t,i).stats.registerLowest(t.readInt(p[0]),t.readInt(p[1]));},
  TASK_PLAY_ANIM_WITH_FLAGS:(t,p,i)=>{world(t,i,'taskPlayAnimWithFlags')(t.readInt(p[0]),t.text(p[1]),t.text(p[2]),t.readFloat(p[3]),bool(t,p[4]),bool(t,p[5]),bool(t,p[6]),bool(t,p[7]),t.readInt(p[8]),bool(t,p[9]),bool(t,p[10]));},
  IS_ATTACHED_PLAYER_HEADING_ACHIEVED:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isAttachedPlayerHeadingAchieved')(t.readInt(p[0])),negated(i));},
  IS_CAR_TOUCHING_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCarTouchingCar')(t.readInt(p[0]),t.readInt(p[1])),negated(i));},

@@ -429,6 +429,8 @@ export interface ScmMissionWorld {
  recolourScriptVehicleExtras?(car:unknown,tertiary:number,quaternary:number):void;
  /** vehicleFlags.bFreebies of a script's car. */
  setScriptVehicleFreebies?(car:unknown,on:boolean):void;
+ /** vehicleFlags.bUseCarCheats of a script's car. */
+ setScriptVehicleCarCheats?(car:unknown,on:boolean):void;
  /** The handling's nMonetaryValue for a vehicle model. */
  vehicleModelValue?(model:number|string):number;
  /** SET_CAR_ROLL's matrix: the car's heading alone, then turned about the world's y axis by `roll` radians. */
@@ -1250,6 +1252,8 @@ export class ScmMission {
    setExtraCarColours:(handle,tertiary,quaternary)=>{this.host('recolourScriptVehicleExtras','SET_EXTRA_CAR_COLOURS')(this.liveVehicle(handle),tertiary,quaternary);},
    // SET_FREEBIES_IN_VEHICLE (iOS 0x100200a28): vehicleFlags.bFreebies, bit 7.
    setFreebiesInVehicle:(handle,on)=>{this.host('setScriptVehicleFreebies','SET_FREEBIES_IN_VEHICLE')(this.liveVehicle(handle),on);},
+   // IMPROVE_CAR_BY_CHEATING (iOS 0x100204f94): vehicleFlags.bUseCarCheats, bit 57.
+   improveVehicleByCheating:(handle,on)=>{this.host('setScriptVehicleCarCheats','IMPROVE_CAR_BY_CHEATING')(this.liveVehicle(handle),on);},
    // GET_CAR_MODEL_VALUE (iOS 0x100206094): the model's handling entry's nMonetaryValue.
    getCarModelValue:model=>this.host('vehicleModelValue','GET_CAR_MODEL_VALUE')(model),
    // SET_CAR_ROLL (iOS 0x1001f5f44): the position kept, CMatrix::SetRotateZ by the matrix's own heading (pitch and

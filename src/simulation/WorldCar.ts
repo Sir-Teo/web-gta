@@ -118,6 +118,9 @@ export class WorldCar {
  /** autoFlags.bDoesNotGetDamagedUpsideDown, which SET_UPSIDEDOWN_CAR_NOT_DAMAGED sets: CAutomobile::VehicleDamage
   * returns at once for such a car on its roof unless it is the player's. */
  noUpsideDownDamage=false;
+ /** vehicleFlags.bUseCarCheats (IMPROVE_CAR_BY_CHEATING): CAutomobile::ProcessControl runs the car with
+  * EXTRA_HANDLING_PERFECT, which the grip gives a car the player does not drive. */
+ useCarCheats=false;
  /** vehicleFlags.bFreebies and the weapon model it streamed (nativeFreebies). */
  freebies=true;freebieModelRequested?:boolean;
  /** The player's pad as this car reads it this step: the car-gun button, looking left, right or behind, and a fresh
@@ -811,7 +814,7 @@ export class WorldCar {
   this.input.pedals.drowning=this.drowning;
   // STATUS_PLAYER only for the car the player drives: the speed-sensitive steering lock, the neutral-handling
   // exemption and the perfect-handling grip all tell the player's car from the rest.
-  this.input.steeringControl.playerStatus=this.occupied;this.input.tires.playerControlled=this.occupied;this.input.tires.vehicleGrip.isPlayerVehicle=this.occupied;
+  this.input.steeringControl.playerStatus=this.occupied;this.input.tires.playerControlled=this.occupied;this.input.tires.vehicleGrip.isPlayerVehicle=this.occupied;this.input.tires.vehicleGrip.extraPerfectHandling=this.useCarCheats;
   // ProcessControlInputs (0x6ADDCC): with the player's controls taken, the car is held on the handbrake and brake,
   // its gas cut and its speed capped at 0.28 units a frame.
   if(this.occupied&&this.controlsDisabled){

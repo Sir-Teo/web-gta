@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T14:19:49.741Z",
+ "generated": "2026-10-07T14:25:06.667Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1219,
+   "faithful": 1222,
    "authored": 19,
    "silent": 2,
-   "skipped": 145,
+   "skipped": 142,
    "stops": 6
   }
  },
@@ -2701,10 +2701,10 @@
    "byStatus": {
     "core": 2023,
     "nop": 3,
-    "faithful": 1321,
+    "faithful": 1325,
     "authored": 10,
     "silent": 0,
-    "skipped": 8,
+    "skipped": 4,
     "stops": 0
    },
    "gaps": [
@@ -2712,11 +2712,6 @@
      "name": "MARK_CAR_AS_CONVOY_CAR",
      "status": "authored",
      "sites": 10
-    },
-    {
-     "name": "IMPROVE_CAR_BY_CHEATING",
-     "status": "skipped",
-     "sites": 4
     },
     {
      "name": "DRAW_LIGHT_WITH_RANGE",
@@ -2767,18 +2762,13 @@
    "byStatus": {
     "core": 4769,
     "nop": 48,
-    "faithful": 708,
+    "faithful": 714,
     "authored": 4,
     "silent": 0,
-    "skipped": 13,
+    "skipped": 7,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "REGISTER_FASTEST_TIME",
-     "status": "skipped",
-     "sites": 5
-    },
     {
      "name": "HELI_GOTO_COORDS",
      "status": "skipped",
@@ -2807,11 +2797,6 @@
     {
      "name": "ARE_MEASUREMENTS_IN_METRES",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "REGISTER_BEST_POSITION",
-     "status": "skipped",
      "sites": 1
     }
    ]
@@ -5849,10 +5834,10 @@
    "byStatus": {
     "core": 1872,
     "nop": 0,
-    "faithful": 509,
+    "faithful": 510,
     "authored": 0,
     "silent": 0,
-    "skipped": 6,
+    "skipped": 5,
     "stops": 0
    },
    "gaps": [
@@ -5860,11 +5845,6 @@
      "name": "SET_SWIM_SPEED",
      "status": "skipped",
      "sites": 4
-    },
-    {
-     "name": "IMPROVE_CAR_BY_CHEATING",
-     "status": "skipped",
-     "sites": 1
     },
     {
      "name": "TASK_TIRED",
@@ -5905,24 +5885,13 @@
    "byStatus": {
     "core": 1180,
     "nop": 2,
-    "faithful": 414,
+    "faithful": 417,
     "authored": 0,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "REGISTER_FASTEST_TIME",
-     "status": "skipped",
-     "sites": 2
-    },
-    {
-     "name": "IMPROVE_CAR_BY_CHEATING",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 133,
@@ -5933,18 +5902,13 @@
    "byStatus": {
     "core": 313,
     "nop": 0,
-    "faithful": 79,
+    "faithful": 81,
     "authored": 0,
     "silent": 0,
-    "skipped": 3,
+    "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "REGISTER_FASTEST_TIME",
-     "status": "skipped",
-     "sites": 2
-    },
     {
      "name": "DRAW_SHADOW",
      "status": "skipped",
@@ -6988,23 +6952,6 @@
    "portable": false
   },
   {
-   "name": "IMPROVE_CAR_BY_CHEATING",
-   "opcode": "0a21",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks improveVehicleByCheating (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2261,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Sets whether a ped driven vehicle's handling is affected by the 'perfect handling' cheat",
-   "sites": 6,
-   "missions": 3,
-   "firstMission": "MUSIC3",
-   "portable": false
-  },
-  {
    "name": "SET_CAR_FOLLOW_CAR",
    "opcode": "07f8",
    "status": "skipped",
@@ -7073,23 +7020,6 @@
    "portable": false
   },
   {
-   "name": "REGISTER_FASTEST_TIME",
-   "opcode": "042e",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks registerFastestTime (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2077,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Updates the stat if the value is lower than the current stat value",
-   "sites": 9,
-   "missions": 3,
-   "firstMission": "CPRACE",
-   "portable": false
-  },
-  {
    "name": "SET_BOAT_CRUISE_SPEED",
    "opcode": "02db",
    "status": "skipped",
@@ -7103,23 +7033,6 @@
    "doc": "Sets the boat's max speed",
    "sites": 6,
    "missions": 3,
-   "firstMission": "CPRACE",
-   "portable": false
-  },
-  {
-   "name": "REGISTER_BEST_POSITION",
-   "opcode": "0582",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks registerBestPosition (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2680,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Updates the race best position",
-   "sites": 1,
-   "missions": 1,
    "firstMission": "CPRACE",
    "portable": false
   },

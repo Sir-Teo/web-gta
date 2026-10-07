@@ -11144,3 +11144,17 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   own heading alone (CMatrix::SetRotateZ, so pitch and roll go) and turns it by CMatrix::RotateY, which turns about
   the world's y axis rather than the car's length unless it faces north; CASINO9 rolls its Dodo by it frame by frame.
   All four were skipped.
+- **Race records keep the lowest, as the executable does.** REGISTER_FASTEST_TIME and REGISTER_BEST_POSITION call
+  CStats::RegisterFastestTime and RegisterBestPosition (iOS 0x100261010, 0x1002610ec). A stat still at 0 takes the
+  value; otherwise the lower of the two stays. gta-reversed routes both through SetNewRecordStat, which keeps the
+  higher, and the port follows the executable. The races (CPRACE and the stadium events) now record their best times
+  and places; both commands were skipped.
+- **A script car driven with the perfect-handling grip.** IMPROVE_CAR_BY_CHEATING (iOS 0x100204f94) sets
+  vehicleFlags.bUseCarCheats, for which CAutomobile::ProcessControl (reversed) adds EXTRA_HANDLING_PERFECT. The port's
+  grip already gave that flag to a car the player does not drive (traction × 1.2, acceleration × 1.4) and to the
+  transmission, but nothing set it; MUSIC3 and two others now do. SET_BOAT_CRUISE_SPEED stays skipped: it writes the
+  boat's CAutoPilot cruise speed, and no AI boat drives in the port (BOAT_GOTO_COORDS is not there either).
+- **GET_CHAR_HIGHEST_PRIORITY_EVENT is left for the event plumbing.** It reads CPedIntelligence::m_nEventId (iOS
+  0x1001fb880), which CEventGroup::Add records for every event a ped takes in and CTheScripts::Process clears for
+  mission peds after the scripts run. SYND4 asks it of drivers (dragged out, someone entering their car) and DRIV2 of
+  a ped shots whizz past; the port raises only the first of those events, and for peds on foot.

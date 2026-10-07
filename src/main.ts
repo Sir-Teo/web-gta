@@ -5400,6 +5400,7 @@ async function boot() {
                  setScriptPedCriticalHits:(ped,suffers)=>{const p=onFoot(ped);if(p)p.noCriticalHits=!suffers;},
                  recolourScriptVehicleExtras:(car,tertiary,quaternary)=>{if(isScriptCar(car))fleet?.recolourCar(car,tertiary,quaternary,2);},
                  setScriptVehicleFreebies:(car,on)=>{if(isScriptCar(car))car.freebies=on;},
+                 setScriptVehicleCarCheats:(car,on)=>{if(isScriptCar(car))car.useCarCheats=on;},
                  vehicleModelValue:model=>fleet?.modelMonetaryValue(model)??0,
                  setScriptVehicleRoll:(car,roll)=>{
                   type Turnable={rotation():{x:number;y:number;z:number;w:number};setRotation(q:{x:number;y:number;z:number;w:number},wake:boolean):void};

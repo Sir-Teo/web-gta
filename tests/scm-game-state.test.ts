@@ -139,3 +139,21 @@ test('script weather forcing reaches the world weather and a followed midnight r
  expect(clock.follow(0.25,5)).toBe(1);
  expect(clock.follow(1,5)).toBe(0);
 });
+
+test('REGISTER_FASTEST_TIME and REGISTER_BEST_POSITION keep the lowest, a stat at 0 taking any (iOS 0x100261010)',async()=>{
+ const {ScmGameState}=await import('../src/engine/ScmGameState');
+ const {ScmThread}=await import('../src/engine/ScmThread');
+ const {scmOpcode}=await import('../src/engine/scmOpcodes');
+ const game=new ScmGameState();
+ const ask=(name:string,stat:number,value:number)=>{
+  const space=new Uint8Array(64),view=new DataView(space.buffer),op=scmOpcode(name);
+  space.set([op&255,op>>8,1,0,0,0,0,1,0,0,0,0],0);view.setInt32(3,stat,true);view.setInt32(8,value,true);
+  const thread=new ScmThread(space,0,0,undefined,{startScript(){},game,world:{fade(){}} as never});
+  try{thread.run(0,4);}catch(error){if(!String(error).includes('watchdog'))throw error;}
+ };
+ // 212 is an int stat (a race's best time, in seconds); 49 a float one.
+ ask('REGISTER_FASTEST_TIME',212,95);expect(game.stats.get(212)).toBe(95);
+ ask('REGISTER_FASTEST_TIME',212,120);expect(game.stats.get(212)).toBe(95);
+ ask('REGISTER_FASTEST_TIME',212,80);expect(game.stats.get(212)).toBe(80);
+ ask('REGISTER_BEST_POSITION',49,3);ask('REGISTER_BEST_POSITION',49,5);expect(game.stats.get(49)).toBe(3);
+});
