@@ -11224,3 +11224,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   decision maker to GangMbr.ped. Still
   open: a street recruit has no script handle, so GET_GROUP_SIZE does not count him; and a script ped's acquaintances and
   same-type friendly fire still go by its model's peds.ide type, not CREATE_CHAR's.
+- A live mission ped stays where it is when the player leaves its area: CColStore::LoadCollision keeps the collision in
+  round every mission ped that loads it (not a frozen one or one with bDontLoadCollision), which the browser's single
+  window round the player cannot, so the ped waits for its ground there as one made out of the window does. It used to
+  fall through the map and be set down at a path node by the player, again and again (a ped made at Grove ended up in
+  San Fierro). The ped stands still meanwhile rather than going on with its task there.

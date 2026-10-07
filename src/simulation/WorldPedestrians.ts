@@ -3476,6 +3476,11 @@ export class WorldPedestrians {
    for(const p of this.people){
     const state=p.actor.player;if(p.health<=0)p.deadTime+=dt;state.previous={...state.position};
     if(p.collisionWait){if(this.collisionArrived(p,dt))p.collisionWait=undefined;else continue;}
+    // CColStore::LoadCollision keeps the collision in round every live mission ped that loads it (not one frozen or with
+    // bDontLoadCollision). The browser has one window round the player: a script ped it leaves behind stands where it
+    // is until its ground comes back, as one made out there does, rather than falling through the map and being set
+    // down at a path node by the player (a Grove ped was found in San Fierro).
+    else if(p.mission&&p.health>0&&!p.frozen&&p.flags?.loadsCollision!==false&&!(this.sim.collisionLoaded?.(state.position.x,state.position.z)??true)){p.collisionWait={seconds:.5,reground:false};continue;}
    // Crowd separation: standing bodies push apart before anything steers.
    // Scaled by the impulse decay so overlapping peds part at ~push speed.
    if(p.health>0&&p.down===0){
