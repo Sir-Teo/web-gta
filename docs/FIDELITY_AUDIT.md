@@ -8477,7 +8477,11 @@ Each is now answered:
   - Kept: cops do not join even under the cheats (the port's foot cops belong to its police); a ped flag that makes
     CJ say context 82 instead (iOS bit 106, bDruggedUp or bWantedByPolice by the flag order, U) is not read; the
     joining and refusal lines are not played.
-- Not yet: the every 32nd frame gang pass at the end of ProcessGroupBehaviour.
+- The gang pass at the end of ProcessGroupBehaviour (0x10036193c), every 32nd frame (m_FrameCounter & 31 == 6): every
+  GANG2 ped in the pool hates cops while the player is wanted (CAcquaintance::SetAsAcquaintance(HATE,
+  GetPedFlag(PED_TYPE_COP)) on its own table), and the hate is cleared once he is not. The decision makers read it
+  when a cop is an event's source (a Families member a cop shoots answers as to a hated ped). Through the
+  acquaintance scanner it starts nothing: GangMbr.ped answers event 36 only when the source is the player.
 - Verification: `tests/group-formation.test.ts`, `tests/browser/group-controls.spec.ts`.
 
 ## The player's group: its leader and its script peds

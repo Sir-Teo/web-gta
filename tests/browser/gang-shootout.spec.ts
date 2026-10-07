@@ -58,3 +58,28 @@ test('a hated mark who stays in view is looked at again every 3 s until the gang
  test.setTimeout(180000);const result=await shootout(page,true,true);
  expect(result.shots).toBeGreaterThan(0);
 });
+
+test('while the player is wanted every Families member hates cops, and stops once he is not',async({page})=>{
+ test.setTimeout(180000);
+ await page.goto('/models.html');const result=await page.evaluate(async()=>{
+  const [{WorldPedestrians},{WantedSystem},{Simulation},{THREE,RAPIER}]=await Promise.all(['/src/simulation/WorldPedestrians.ts','/src/simulation/WantedSystem.ts','/src/simulation/Simulation.ts','/tests/fixtures/native-render-dependencies.ts'].map(p=>import(p)));
+  await RAPIER.init();const sim=new Simulation(),scene=new THREE.Scene(),base=new URL('/play/world/',location.href).href;
+  sim.world.createCollider(RAPIER.ColliderDesc.cuboid(200,.5,200).setTranslation(2490,12,1680));
+  sim.respawn={x:2490,y:12.55,z:1680};sim.resetPlayer();sim.world.step();sim.player.grounded=true;
+  const law=new WantedSystem(),crowd=new WorldPedestrians(sim,scene,base,()=>undefined,law);
+  // Families turf (gangsNeeded is a mask of the gangs: bit 1 for the Families).
+  crowd.gangTurf=()=>({gang:1,strength:255});crowd.gangsNeeded=()=>2;
+  try{
+   for(let i=0;i<300&&!crowd.people.some((p:any)=>p.gang===1);i++){crowd.update(i*1600);await new Promise(r=>setTimeout(r,20));}
+   const homie=crowd.people.find((p:any)=>p.gang===1);if(!homie)throw new Error('No Families member');
+   const regard=()=>crowd.acquaintanceOf(homie).idFor(6)??null;
+   const tick=()=>{crowd.beforeStep(1/60,[]);sim.world.step();crowd.afterStep();};
+   const before=regard();
+   law.setLevelNoDrop(1);for(let i=0;i<40;i++)tick();const wanted=regard();
+   law.clear();for(let i=0;i<40;i++)tick();const cleared=regard();
+   return {before,wanted,cleared};
+  }finally{crowd.dispose();sim.dispose();}
+ });
+ // ped.dat gives GANG2 no relationship with COP; the pass makes it HATE (4) within 32 frames and takes it away.
+ expect(result).toEqual({before:null,wanted:4,cleared:null});
+});

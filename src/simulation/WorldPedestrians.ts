@@ -69,6 +69,8 @@ type PedStriker={body:RAPIER.RigidBody;nativeBody:WorldCar['nativeBody'];occupie
 type Catalog=Awaited<ReturnType<typeof openWorldPedestrians>>;
 /** The weapons that choke (WEAPON_SPRAYCAN, WEAPON_EXTINGUISHER, WEAPON_TEARGAS). */
 const CHOKING_WEAPONS=new Set([41,42,17]);
+/** ePedType's PED_TYPE_COP and PED_TYPE_GANG2 (the Grove Street Families), as nativePedType numbers them. */
+const PED_TYPE_COP=6,PED_TYPE_GANG2=8;
 /** The Grove Street Families' gang index, PED_TYPE_GANG2. */
 const GANG_GROVE=1;
 /** eTaskType TASK_COMPLEX_AVOID_OTHER_PED_WHILE_WANDERING. */
@@ -561,7 +563,7 @@ export class WorldPedestrians {
  private busy=false;
  private nextCheck=0;
  private nextId=0;
- /** CTimer::m_FrameCounter, for the wander's draws. */
+ /** CTimer::m_FrameCounter, for the wander's draws and the player's gang pass. */
  private frame=0;
  /** Seconds since this crowd started, the light clock when no `lightClock` is given. */
  private elapsed=0;
@@ -3347,6 +3349,13 @@ export class WorldPedestrians {
      const frames=dt*30,alpha=p.fadeOut?Math.max(0,p.alpha-8*frames):Math.min(255,p.alpha+16*frames);
      if(alpha!==p.alpha){p.alpha=alpha;p.view.setAlpha(alpha/255);}}}
    this.frame++;this.elapsed+=dt;this.cooldown=Math.max(0,this.cooldown-dt);
+   // CPlayerPed::ProcessGroupBehaviour's gang pass (iOS 0x10036193c), every 32nd frame (m_FrameCounter & 31 == 6):
+   // every GANG2 ped hates cops while the player is wanted (CAcquaintance::SetAsAcquaintance(HATE, PED_TYPE_COP)) and
+   // stops once he is not (ClearAsAcquaintance), which the decision makers read for a cop as an event's source.
+   if((this.frame&31)===6&&this.sim.player.health>0){
+    const wanted=(this.law?.level??0)>=1;
+    for(const p of this.people)if(nativePedType(p.pedType)===PED_TYPE_GANG2){if(wanted)this.setRelationship(p,ACQUAINTANCE_HATE,PED_TYPE_COP);else this.clearRelationship(p,ACQUAINTANCE_HATE,PED_TYPE_COP);}
+   }
    this.runOverVehicles.clear();for(const car of cars){const v=this.runOverVehicle(car);if(v)this.runOverVehicles.set(car,v);}
    const strikers:PedStriker[]=[...[...cars].map(car=>({body:car.car.body,nativeBody:car.nativeBody,occupied:car.occupied,boundRadius:car.boundRadius,car})),...[...(this.bikes?.()??[])].map(b=>({...b,bike:true})),...(this.trains?.()??[])];
    for(let i=this.pendingStrikes.length-1;i>=0;i--){const s=this.pendingStrikes[i];s.delay-=dt;if(s.delay<=0){this.pendingStrikes.splice(i,1);this.resolveStrike(s);}}
