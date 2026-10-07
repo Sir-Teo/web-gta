@@ -81,7 +81,7 @@ test('mission sweep',async({page})=>{
    r.loadAndLaunchMission(id);return {threads:r.active.length};
   },id);
   const timeline:{at:number;offset:number;decision:string}[]=[];
-  let last:any,previous:any,teleports=0,samples=0,maxOffset=0,ended=false;const waits=new Map<string,number>();
+  let last:any,previous:any,teleports=0,samples=0,maxOffset=0,ended=false,lastAction='';const waits=new Map<string,number>();
   const deadline=Date.now()+seconds*1000;
   while(Date.now()<deadline){
    await page.waitForTimeout(500);
@@ -155,7 +155,9 @@ test('mission sweep',async({page})=>{
     const pol=g.police?.(),cops=(pol?.units??[]).filter((u:any)=>{if(u.car.disposed||!u.car.car.body.isValid())return false;const c=u.car.car.body.translation();const q=r.world.pedPosition(1);return Math.hypot(c.x-q.x,-c.z-q.y)<40;}).map((u:any)=>u.mission).join('/');
     const me=r.world.pedPosition(1),watched=[...((globals as number[]).length?[`$${g.sim.money} ${(globals as number[]).map(n=>`g${n}=${(t as any).globals.getInt32(n*4,true)}`).join(' ')}`]:[]),...((localInts as number[]).length?[(localInts as number[]).map(n=>`${n}@=${t.locals.getInt32(n*4,true)}`).join(' ')]:[]),...((localFloats as number[]).length?[(localFloats as number[]).map(n=>`${n}@=${t.locals.getFloat32(n*4,true).toFixed(1)}`).join(' ')]:[]),`W${pol?.law?.level??'?'}${cops?` cops ${cops}`:''}${(()=>{
      // Script peds standing where the browser's collision window left them (bc3a443d): a mission waiting on one shows here.
-     const n=(m.peds.handles as number[]).filter(h=>m.peds.entity(h)?.collisionWait).length;return n?` colwait ${n}`:'';})()} CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?`riding ${r.world.pedVehicle(1)}${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1));return car?.car?.body?`${car.waitingForCollision?' WAIT':''}${car.car.body.isEnabled()?'':' OFF'}${car.frozen?' FROZEN':''} w${car.wheelsOnGround??'?'}`:'';})()} hp ${(()=>{try{return Math.round(r.world.vehicleHealth?.(r.world.pedVehicle(1)));}catch{return '?';}})()} ${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1)),mi=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();return `${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mi?`${mi.kind}->${mi.goal.x.toFixed(0)},${(-mi.goal.z).toFixed(0)}${mi.recovery?` rec${mi.recovery.kind}`:''}`:'no mission'}`;})()}`:'on foot'}`,...(watch as string[]).map(local=>{
+     const n=(m.peds.handles as number[]).filter(h=>m.peds.entity(h)?.collisionWait).length;return n?` colwait ${n}`:'';})()}${(()=>{
+     // The area the script has on (SET_AREA_VISIBLE) and the entry-exit manager's state, when either is not idle.
+     const enex=g.state?.().entryExits,area=r.game.currentArea??0;return area||enex?.state||enex?.active?` area ${area} enex ${enex?.state}${enex?.active?' '+enex.active:''}`:'';})()} CJ ${me.x.toFixed(0)},${me.y.toFixed(0)},${me.z.toFixed(0)} ${(r.world.pedVehicle?.(1)??0)>0?`riding ${r.world.pedVehicle(1)}${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1));return car?.car?.body?`${car.waitingForCollision?' WAIT':''}${car.car.body.isEnabled()?'':' OFF'}${car.frozen?' FROZEN':''} w${car.wheelsOnGround??'?'}`:'';})()} hp ${(()=>{try{return Math.round(r.world.vehicleHealth?.(r.world.pedVehicle(1)));}catch{return '?';}})()} ${(()=>{const car=m.vehicles.entity(r.world.pedVehicle(1)),mi=car?g.scriptCars().missions.get(car):undefined,lv=car?.car?.body?.linvel?.()??car?.body?.linvel?.();return `${lv?Math.hypot(lv.x,lv.z).toFixed(1):'?'}m/s ${mi?`${mi.kind}->${mi.goal.x.toFixed(0)},${(-mi.goal.z).toFixed(0)}${mi.recovery?` rec${mi.recovery.kind}`:''}`:'no mission'}`;})()}`:'on foot'}`,...(watch as string[]).map(local=>{
      // A `g` prefix names a global ($131, Sweet in SWEET1) rather than a mission local.
      const handle=String(local).startsWith('g')?(t as any).globals.getInt32(Number(String(local).slice(1))*4,true):t.locals.getInt32(Number(local)*4,true);
      const seq=(()=>{try{const n=r.world.pedSequenceProgress?.(handle);return n===undefined||n<0?'':` seq${n}`;}catch{return '';}})()
@@ -200,6 +202,8 @@ test('mission sweep',async({page})=>{
    // The bot's decisions as they change, and a progress line every twenty samples.
    const decision=s.bot?JSON.stringify(s.bot):null;if(decision&&decision!==timeline.at(-1)?.decision)timeline.push({at:samples,offset:s.offset??-1,decision});
    for(const h of s.hurt??[])console.log(`sweep ${id} sample ${samples} HURT ${h}`);
+   // SWEEP_ACTIONS=1: a line whenever the bot's action changes, between the progress lines.
+   if(process.env.SWEEP_ACTIONS){const action=(s.bot as {action?:string}|null)?.action??'';if(action!==lastAction){lastAction=action;console.log(`sweep ${id} sample ${samples} ACT ${decision??''} ${(s.watched??[]).join(' | ')}`);}}
    // SWEEP_SHOTS=1: a screenshot every hundred samples, to see what a stall looks like.
    if(process.env.SWEEP_SHOTS&&samples%100===0){mkdirSync('artifacts/port/shots',{recursive:true});await page.screenshot({path:`artifacts/port/shots/${id}-${samples}.png`}).catch(()=>{});}
    if(samples%20===0)console.log(`sweep ${id} sample ${samples} offset ${s.offset} ${s.name} ${decision??''} ${(s.said??[]).join(',')} ${(s.watched??[]).join(' | ')}`);

@@ -366,6 +366,12 @@ export function missionBotTick(dtSeconds:number){
   if(!stand&&!(w.handle in spots))spots[w.handle]=vantageOn(w.position)??null;
   const spot=stand??spots[w.handle];
   if(spot&&glide(spot,1))return {action:'go to window',target:w.handle};
+  // At the spot but under its floor (in the yard below CRASH1's porch, where the throws break on the porch's edge), a
+  // player would be up on the porch: the bot is set on the floor found from just over the window's height.
+  if(spot&&stand&&Math.hypot(spot.x-me.x,spot.y-me.y)<1.5){
+   const floor=(()=>{try{const z=world.groundZFor3DCoord?.(spot.x,spot.y,w.position.z+1.5);return typeof z==='number'&&z!==0?z:undefined;}catch{return undefined;}})();
+   if(floor!==undefined&&me.z-1<floor-1){try{(world.setPedCoordinatesDontWarpGang??world.setPedCoordinates).call(world,1,spot.x,spot.y,floor+1);}catch{}return {action:'step onto window spot',floor:floor.toFixed(1)};}
+  }
   if(!spot&&distance(w.position)>6&&glide(w.position,5))return {action:'go to window',target:w.handle};
   try{world.setPedCurrentWeapon?.(1,18);}catch{}
   // A throw goes along CJ's heading (AddProjectile; the aim only turns him): he faces the window first.
@@ -460,7 +466,12 @@ export function missionBotTick(dtSeconds:number){
   }
   const gw=g.gangWars?.();
   const crowdNow=((g.pedestrians?.() as any)?.people??[]) as any[];
-  return {action:marker?'in marker':'at place',place:`${p.position.x.toFixed(1)},${p.position.y.toFixed(1)},${p.position.z.toFixed(1)}`,peds:`${crowdNow.length}/${crowdNow.filter(p=>p.health>0&&p.gang===0).length}`,...(gw&&gw.state?{war:`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`,wave:((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.attackWave&&p.health>0).map((p:any)=>Math.round(Math.hypot(p.actor.player.position.x-me.x,-p.actor.player.position.z-me.y))).join('/')}:{})};
+  // The door markers about the place, for a sweep stuck at one: the nearest of any and the nearest switched on, with
+  // the entry-exit manager's state (0 idle; 3/4 arrived until CJ leaves the arrival marker).
+  const anyDoor=g.interiorExitNear?.(me.x,me.y,me.z,false),onDoor=g.interiorExitNear?.(me.x,me.y,me.z,true);
+  const enex=anyDoor&&distance(anyDoor)<10?g.state?.().entryExits:undefined;
+  const doors=anyDoor&&distance(anyDoor)<10?{doors:`${distance(anyDoor).toFixed(1)}/${onDoor?distance(onDoor).toFixed(1):'-'} enex ${enex?.state}${enex?.active?' '+enex.active:''}`}:{};
+  return {action:marker?'in marker':'at place',...doors,place:`${p.position.x.toFixed(1)},${p.position.y.toFixed(1)},${p.position.z.toFixed(1)}`,peds:`${crowdNow.length}/${crowdNow.filter(p=>p.health>0&&p.gang===0).length}`,...(gw&&gw.state?{war:`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`,wave:((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.attackWave&&p.health>0).map((p:any)=>Math.round(Math.hypot(p.actor.player.position.x-me.x,-p.actor.player.position.z-me.y))).join('/')}:{})};
  }
  if(chases.length){
   const c=nearest(chases);
