@@ -11180,3 +11180,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   on the ground first. FORCE_DEATH_RESTART (0x100203450) is CGameLogic::ForceDeathRestart (reversed): the player has
   died and the game is wasted as of 3001 ms ago, past the 3 s hold, with a 4 s fade to black and no KillPlayer (no
   WASTED text, no hospital-visit stat); the hospital restart follows the fade. DESERT9 uses both; both were skipped.
+- **The "random" car in a sphere is the nearest.** GET_RANDOM_CAR_IN_SPHERE_NO_SAVE (iOS 0x1001f6970) walks the vehicle
+  pool from the top for cars and bikes (by appearance) that are not law enforcers, of the model or any for a negative
+  one, and that CanBeDeleted; of those strictly inside the sphere it hands over the nearest, without making it the
+  script's. It was skipped (MAIN and one mission); the port's law-enforcer test is its model list, as for the in-area
+  search.

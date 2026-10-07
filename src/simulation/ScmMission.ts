@@ -665,6 +665,9 @@ export interface ScmMissionWorld {
  /** CShotInfo's flamethrower shots in use, their origins (native). */
  flamethrowerShots?():readonly {x:number;y:number;z:number}[];
  randomCarOfTypeInArea?(x1:number,y1:number,x2:number,y2:number,model:number,lawEnforcers:boolean):{entity:unknown;model:number}|undefined;
+ /** GET_RANDOM_CAR_IN_SPHERE_NO_SAVE's search (iOS 0x1001f6970): from the pool's top down, the nearest car or bike, not a
+  * law enforcer, of `model` (any when negative), that CanBeDeleted, strictly inside the sphere. */
+ nearestCarInSphere?(x:number,y:number,z:number,radius:number,model:number):{entity:unknown;model:number}|undefined;
  /** Where the player's vehicle of any kind is and how it lies: native position, axes and CPlaceable::GetHeading in degrees. */
  playerVehiclePose?():{position:{x:number;y:number;z:number};right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};heading:number}|undefined;
  spawnScriptVehicle(model:number|string,position:{x:number;y:number;z:number},heading:number,componentsToUse?:readonly [number,number]):Promise<unknown>;
@@ -1855,6 +1858,11 @@ export class ScmMission {
    // is only handed over: it stays the population's.
    getRandomCarOfTypeInAreaNoSave:(x1,y1,x2,y2,model)=>{
     const found=this.world.randomCarOfTypeInArea?.(x1,y1,x2,y2,typeof model==='number'?model:-1,true);
+    return found?this.vehicles.handleFor(found.entity,found.model):-1;
+   },
+   // GET_RANDOM_CAR_IN_SPHERE_NO_SAVE (iOS 0x1001f6970): the nearest such car, despite the name; it is only handed over.
+   getRandomCarInSphereNoSave:(x,y,z,radius,model)=>{
+    const found=this.world.nearestCarInSphere?.(x,y,z,radius,typeof model==='number'?model:-1);
     return found?this.vehicles.handleFor(found.entity,found.model):-1;
    },
    // START_CAR_FIRE (dispatch unreversed; as StartCharFire does for a ped): CFireManager::StartScriptFire on the

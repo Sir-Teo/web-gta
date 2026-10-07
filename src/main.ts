@@ -5923,6 +5923,16 @@ async function boot() {
                   }
                   return undefined;
                  },
+                 nearestCarInSphere:(x,y,z,radius,model)=>{
+                  let best:{entity:unknown;model:number}|undefined,bestDistance=Infinity;
+                  for(const v of [...(fleet?.cars??[]),...(fleet?.bikes??[])].reverse()){
+                   if(v.disposed||v.missionCar||carEntry.active&&carEntry.car===v)continue;
+                   if(model>=0&&v.modelId!==model||LAW_ENFORCEMENT_MODELS.has(v.modelId))continue;
+                   const t=v.car.body.translation(),d=Math.hypot(t.x-x,-t.z-y,t.y-z);
+                   if(d<radius&&d<bestDistance){best={entity:v,model:v.modelId};bestDistance=d;}
+                  }
+                  return best;
+                 },
                  playerVehiclePose:()=>{
                   const car=worldCar?.occupied?worldCar:fleet?.occupied,other=fleet?.occupiedBike??fleet?.occupiedBoat??fleet?.occupiedPlane,body=car?car.car.body:other?.body;
                   if(!body)return undefined;

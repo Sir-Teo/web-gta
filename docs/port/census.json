@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T14:37:39.524Z",
+ "generated": "2026-10-07T14:39:11.521Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1230,
+   "faithful": 1231,
    "authored": 19,
    "silent": 2,
-   "skipped": 134,
+   "skipped": 133,
    "stops": 6
   }
  },
@@ -24,10 +24,10 @@
    "byStatus": {
     "core": 12583,
     "nop": 163,
-    "faithful": 3814,
+    "faithful": 3815,
     "authored": 18,
     "silent": 0,
-    "skipped": 9,
+    "skipped": 8,
     "stops": 0
    },
    "gaps": [
@@ -58,11 +58,6 @@
     },
     {
      "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_RANDOM_CAR_IN_SPHERE_NO_SAVE",
      "status": "skipped",
      "sites": 1
     },
@@ -2145,10 +2140,10 @@
    "byStatus": {
     "core": 154,
     "nop": 1,
-    "faithful": 116,
+    "faithful": 117,
     "authored": 0,
     "silent": 0,
-    "skipped": 10,
+    "skipped": 9,
     "stops": 0
    },
    "gaps": [
@@ -2184,11 +2179,6 @@
     },
     {
      "name": "IS_PLAYER_IN_REMOTE_MODE",
-     "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "GET_RANDOM_CAR_IN_SPHERE_NO_SAVE",
      "status": "skipped",
      "sites": 1
     }
@@ -5941,23 +5931,6 @@
    },
    "doc": "Returns true if the game uses metric measurements (meters instead of feet)",
    "sites": 6,
-   "missions": 2,
-   "firstMission": "MAIN",
-   "portable": false
-  },
-  {
-   "name": "GET_RANDOM_CAR_IN_SPHERE_NO_SAVE",
-   "opcode": "073e",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks getRandomCarInSphereNoSave (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2545,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "",
-   "sites": 2,
    "missions": 2,
    "firstMission": "MAIN",
    "portable": false
