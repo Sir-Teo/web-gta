@@ -74,6 +74,26 @@ describe('the mission audio a script loads and plays',()=>{
   expect(game.missionAudio.slots[MISSION_AUDIO_COUNT-1].audioEvent).toBe(1);
  });
 
+ test('a command naming no slot does nothing and reads as loaded and finished (iOS slot calls)',()=>{
+  // HOODS5 clears its speaker's slot (351@) before it has set one: the thread must run on, not give up.
+  const game=new ScmGameState();const told:string[]=[];
+  const world={loadMissionAudio:()=>{told.push('load');},playMissionAudio:()=>{told.push('play');},clearMissionAudio:()=>{told.push('clear');}};
+  game.missionAudio.preload(1,77);
+  for(const slot of [0,5,-1]){
+   run(game,world,instruction(op('LOAD_MISSION_AUDIO'),[slot,3045]));
+   run(game,world,instruction(op('PLAY_MISSION_AUDIO'),[slot]));
+   run(game,world,instruction(op('CLEAR_MISSION_AUDIO'),[slot]));
+   expect(run(game,world,instruction(op('HAS_MISSION_AUDIO_LOADED'),[slot])).condition).toBe(true);
+   expect(run(game,world,instruction(op('HAS_MISSION_AUDIO_FINISHED'),[slot])).condition).toBe(true);
+  }
+  expect(told).toEqual([]);
+  expect(game.missionAudio.slots.map(slot=>slot.audioEvent)).toEqual([77,-1,-1,-1]);
+  // The engine takes the operand less one as a byte, so 257 is the first slot again.
+  run(game,world,instruction(op('CLEAR_MISSION_AUDIO'),[257]));
+  expect(told).toEqual(['clear']);
+  expect(game.missionAudio.slots[0].audioEvent).toBe(-1);
+ });
+
  test('a slot follows a point or an entity, and each replaces the other',()=>{
   const game=new ScmGameState();
   // The slot is an integer and the point is three floats.

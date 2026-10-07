@@ -14,6 +14,7 @@ import {STAT_MISSION_ATTEMPTS,STAT_PROGRESS_MADE} from './ScmGameState';
 import {skipForwardInRecording,skipToEndAndStopPlaybackRecordedCar,startPlaybackRecordedCar,stopPlaybackRecordedCar} from './carRecordingPlayback';
 import {BUTTON,CONTROLLER_JOYPAD} from './ScmPads';
 import {MENU_TYPE_DEFAULT,MENU_TYPE_GRID} from './ScmMenus';
+import {missionAudioSlot} from './ScmMissionAudio';
 import {switchArea} from './ScmNodeSwitches';
 import {ScmCamera} from './ScmCamera';
 import {fixAngleDegrees} from './ScmObjects';
@@ -660,28 +661,38 @@ const handlers:Record<string,ScmCommandHandler>={
  SET_AREA_VISIBLE:(t,p,i)=>{game(t,i).currentArea=t.readInt(p[0]);},
  /* --- CAEScriptAudioEntity's four mission-audio slots. Every command's slot operand is one-based and the
   * engine's is not, so each subtracts one; the sample the script names is an audio event. Playing the sound is
-  * the host's, which is told each time the script loads, plays or clears a slot. */
+  * the host's, which is told each time the script loads, plays or clears a slot. An operand that names no slot
+  * (missionAudioSlot) is passed over, and the two questions answer yes for it, as the iOS slot calls do. */
  LOAD_MISSION_AUDIO:(t,p,i)=>{
-  const slot=t.readInt(p[0]),sample=t.readInt(p[1]);
+  const slot=missionAudioSlot(t.readInt(p[0])),sample=t.readInt(p[1]);if(slot===undefined)return;
   game(t,i).missionAudio.preload(slot,sample);
   t.host?.world?.loadMissionAudio?.(slot,sample);
  },
- HAS_MISSION_AUDIO_LOADED:(t,p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.hasLoaded(t.readInt(p[0])),negated(i));},
+ HAS_MISSION_AUDIO_LOADED:(t,p,i)=>{
+  const slot=missionAudioSlot(t.readInt(p[0]));
+  t.updateCompareFlag(slot===undefined||game(t,i).missionAudio.hasLoaded(slot),negated(i));
+ },
  PLAY_MISSION_AUDIO:(t,p,i)=>{
-  const slot=t.readInt(p[0]),g=game(t,i),audio=g.missionAudio;
-  const sample=audio.slots[slot-1]?.audioEvent??-1,subtitle=g.messages.briefs[0]?.key;
+  const slot=missionAudioSlot(t.readInt(p[0])),g=game(t,i),audio=g.missionAudio;if(slot===undefined)return;
+  const sample=audio.slots[slot-1].audioEvent,subtitle=g.messages.briefs[0]?.key;
   if(audio.play(slot,t.host?.world?.missionAudioLengthMs?.(sample,subtitle)))t.host?.world?.playMissionAudio?.(slot);
  },
- HAS_MISSION_AUDIO_FINISHED:(t,p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.hasFinished(t.readInt(p[0])),negated(i));},
+ HAS_MISSION_AUDIO_FINISHED:(t,p,i)=>{
+  const slot=missionAudioSlot(t.readInt(p[0]));
+  t.updateCompareFlag(slot===undefined||game(t,i).missionAudio.hasFinished(slot),negated(i));
+ },
  IS_MISSION_AUDIO_PLAYING:(t,_p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.anyPlaying,negated(i));},
  IS_MISSION_AUDIO_LOADING:(t,_p,i)=>{t.updateCompareFlag(game(t,i).missionAudio.anyLoading,negated(i));},
  CLEAR_MISSION_AUDIO:(t,p,i)=>{
-  const slot=t.readInt(p[0]);game(t,i).missionAudio.clear(slot);t.host?.world?.clearMissionAudio?.(slot);
+  const slot=missionAudioSlot(t.readInt(p[0]));if(slot===undefined)return;
+  game(t,i).missionAudio.clear(slot);t.host?.world?.clearMissionAudio?.(slot);
  },
- SET_MISSION_AUDIO_POSITION:(t,p,i)=>{game(t,i).missionAudio.setPosition(t.readInt(p[0]),vec(t,p,1));},
- ATTACH_MISSION_AUDIO_TO_CHAR:(t,p,i)=>{game(t,i).missionAudio.attach(t.readInt(p[0]),'ped',t.readInt(p[1]));},
- ATTACH_MISSION_AUDIO_TO_CAR:(t,p,i)=>{game(t,i).missionAudio.attach(t.readInt(p[0]),'vehicle',t.readInt(p[1]));},
- ATTACH_MISSION_AUDIO_TO_OBJECT:(t,p,i)=>{game(t,i).missionAudio.attach(t.readInt(p[0]),'object',t.readInt(p[1]));},
+ // SetMissionAudioPosition and the attach calls (0x10015730c, 0x10015732c) have no range check of their own; past
+ // the fourth slot they write outside the links, which the port leaves undone.
+ SET_MISSION_AUDIO_POSITION:(t,p,i)=>{const slot=missionAudioSlot(t.readInt(p[0]));if(slot!==undefined)game(t,i).missionAudio.setPosition(slot,vec(t,p,1));},
+ ATTACH_MISSION_AUDIO_TO_CHAR:(t,p,i)=>{const slot=missionAudioSlot(t.readInt(p[0]));if(slot!==undefined)game(t,i).missionAudio.attach(slot,'ped',t.readInt(p[1]));},
+ ATTACH_MISSION_AUDIO_TO_CAR:(t,p,i)=>{const slot=missionAudioSlot(t.readInt(p[0]));if(slot!==undefined)game(t,i).missionAudio.attach(slot,'vehicle',t.readInt(p[1]));},
+ ATTACH_MISSION_AUDIO_TO_OBJECT:(t,p,i)=>{const slot=missionAudioSlot(t.readInt(p[0]));if(slot!==undefined)game(t,i).missionAudio.attach(slot,'object',t.readInt(p[1]));},
  // The report commands name no slot: they ask for one event where the script says.
  REPORT_MISSION_AUDIO_EVENT_AT_POSITION:(t,p,i)=>{game(t,i).missionAudio.report(t.readInt(p[3]),vec(t,p,0));},
  REPORT_MISSION_AUDIO_EVENT_AT_CHAR:(t,p,i)=>{game(t,i).missionAudio.report(t.readInt(p[1]),{kind:'ped',handle:t.readInt(p[0])});},

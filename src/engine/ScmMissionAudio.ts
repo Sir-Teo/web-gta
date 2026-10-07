@@ -47,6 +47,12 @@ export const SCRIPT_BANK_SAMPLE_FIRST=1800,SCRIPT_BANK_NULL=291;
 export const SCRIPT_BANKS_LOOKUP:readonly number[]=[352,310,296,291,242,291,222,209,291,167,163,160,265,304,158,291,291,292,171,198,226,293,319,345,351,266,183,153,298,339];
 /** The bank a whole-bank sample names, or undefined for any other sample. */
 export function scriptBankOfSample(sample:number){return sample>=SCRIPT_BANK_SAMPLE_FIRST&&sample<SCRIPT_BANK_SAMPLE_FIRST+SCRIPT_BANKS_LOOKUP.length?SCRIPT_BANKS_LOOKUP[sample-SCRIPT_BANK_SAMPLE_FIRST]:undefined;}
+/** The one-based slot a command's operand names, or undefined for none. Every iOS handler hands the engine the
+ * operand less one as a byte (CLEAR_MISSION_AUDIO 0x1001e0b48 and its neighbours), and CAEScriptAudioEntity's slot
+ * calls skip anything past the fourth (`cmp #3; b.hi`): loading, playing and clearing do nothing, and the loading
+ * status (0x100156f68) and IsMissionAudioSampleFinished (0x100156f10) answer loaded and finished. HOODS5 clears its
+ * speaker's slot before it has set one, so slot 0 is a real case. */
+export function missionAudioSlot(operand:number){const index=(operand+0xff)&0xff;return index<MISSION_AUDIO_COUNT?index+1:undefined;}
 /** How many recent mission audio reports are kept. */
 export const REPORTS_KEPT=64;
 export class ScmMissionAudio {

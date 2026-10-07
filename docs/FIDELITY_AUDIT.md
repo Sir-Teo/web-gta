@@ -11051,3 +11051,15 @@ iOS UI only, not ported:
   lowgame's accelerate widget, and the bball, bbchal and shrange start icons;
 - the run_* check in CWeapon::FindNearestTargetEntityWithScreenCoors (0x10049bd4c, PC 0x73E240). It is the
   two-player co-op finder (camera mode 49) and unreachable in single player; it is not an aim assist.
+
+## Small details from the iOS build (October 7, 2026)
+
+Bugs and mission gaps closed one at a time against the iOS executable (Google61/gta3sa.app at 67f70cb7).
+
+- **A mission audio slot that is no slot.** Every iOS mission-audio handler hands the engine the script's slot less
+  one as a byte (CLEAR_MISSION_AUDIO 0x1001e0b48 and its neighbours), and CAEScriptAudioEntity's slot calls skip
+  anything past the fourth (`cmp #3; b.hi`). Loading, playing and clearing such a slot do nothing; its loading status
+  (0x100156f68) reads loaded and IsMissionAudioSampleFinished (0x100156f10) reads finished. The port refused the slot
+  and the thread gave up. HOODS5 runs into it: its dialogue's cancel branch clears the speaker's slot (351@) before
+  any line has set it, which is CLEAR_MISSION_AUDIO 0. The set-position and attach calls have no check and write past
+  the links; the port leaves them undone.
