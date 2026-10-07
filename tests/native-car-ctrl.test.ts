@@ -133,6 +133,8 @@ test('the lane-change countdown moves a lane every 4 to 7 long segments',()=>{
  expect(nextLaneOnLink(0,2,true,true)).toBe(1);expect(nextLaneOnLink(0,2,true,false)).toBe(0);expect(nextLaneOnLink(1,1,false,false)).toBe(0);
  // bStayInSlowLane: the outermost lane whatever the draw; a link with no lanes gives lane 0.
  expect(nextLaneOnLink(0,3,true,false,true)).toBe(2);expect(nextLaneOnLink(2,2,false,false,true)).toBe(1);expect(nextLaneOnLink(1,0,false,false)).toBe(0);
+ // bStayInFastLane forces lane 0, ahead of bStayInSlowLane (iOS PickNextNodeRandomly).
+ expect(nextLaneOnLink(2,3,true,true,false,true)).toBe(0);expect(nextLaneOnLink(1,3,false,false,true,true)).toBe(0);
 });
 
 test('the iOS moving-rect tests: corners across the front bumper, and the front corners into the other box',()=>{

@@ -13,7 +13,7 @@ export interface ScriptDrivable {
  readonly nativeBody:{boundsMin:{x:number;y:number;z:number};boundsMax:{x:number;y:number;z:number}};
  readonly modelId?:number;
  autopilot?:WorldCar['autopilot'];
- autopilotFields?:{stayInSlowLane?:number};
+ autopilotFields?:{stayInSlowLane?:number;stayInFastLane?:number};
 }
 
 /* CCarAI's coordinate missions for the cars a script drives (TASK_CAR_DRIVE_TO_COORD's CTaskComplexDriveToPoint).
@@ -427,7 +427,7 @@ export class ScriptCarMissions{
     m.link=next;m.lane=m.nextLane;m.cruiseNext=pick(next);next=m.cruiseNext;
     if(next){
      const change=laneChangeCountdown(m.laneCountdown??=initialLaneChangeCountdown(()=>Math.floor(this.random()*0x80000000)),next.length,()=>Math.floor(this.random()*0x80000000));m.laneCountdown=change.countdown;
-     m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,change.change,change.right,car.autopilotFields?.stayInSlowLane===1);
+     m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,change.change,change.right,car.autopilotFields?.stayInSlowLane===1,car.autopilotFields?.stayInFastLane===1);
     }
    }
    const at=m.link;
@@ -443,7 +443,7 @@ export class ScriptCarMissions{
    if(next&&next.from===link.to&&shouldPickNextNode(state,travel(link),m.lane,travel(next),m.nextLane)){
     m.route.shift();m.link=link=next;m.lane=m.nextLane;next=m.route[0];
     // Along a route Vice City's lane change stands: a lane over one time in four on a segment of 14 or more.
-    if(next){const change=this.random()<.25,right=this.random()<.5;m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,change&&next.length>=14,right,car.autopilotFields?.stayInSlowLane===1);}
+    if(next){const change=this.random()<.25,right=this.random()<.5;m.nextLane=nextLaneOnLink(m.lane,pathDirection(next.from.address,next.to.address,next.navigation).lanes,change&&next.length>=14,right,car.autopilotFields?.stayInSlowLane===1,car.autopilotFields?.stayInFastLane===1);}
    }
    const here=lanePoint(travel(link),m.lane),t=travel(link),roadZ=(link.from.position[2]+link.to.position[2])/2;
    const offRoute=Math.abs((state.position.x-here.x)*t.forward.y-(state.position.y-here.y)*t.forward.x)>12||Math.abs(p.y-roadZ)>3||m.recoveryMode>=2&&!!m.recovery;

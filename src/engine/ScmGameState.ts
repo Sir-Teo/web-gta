@@ -276,6 +276,9 @@ export class ScmGameState {
  /** C3dMarkers::IgnoreRenderLimit, which SET_ALWAYS_DRAW_3D_MARKERS sets (C3dMarkers::ForceRender, 0x722870): the
   * markers draw past 150 units from the camera across the ground. */
  alwaysDraw3dMarkers=false;
+ /** CPlayerPedData::m_bForceInteriorLighting (FORCE_INTERIOR_LIGHTING_FOR_PLAYER): CPhysical::GetLightingTotal lights
+  * the player as indoors, as it does in any area but the outside. */
+ playerForceInteriorLighting=false;
  missionRespect=0;
  /** Whether the player's gang is showing, which the two appear commands switch. */
  playerGangVisible=true;

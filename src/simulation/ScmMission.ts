@@ -417,7 +417,7 @@ export interface ScmMissionWorld {
  setScriptPedArea(ped:unknown,area:number):void;
  setScriptPedSkill(ped:unknown,skill:number):void;
  setScriptPedUsedEntryExit(ped:unknown):void;
- setScriptVehicleAutopilot(car:unknown,field:'cruiseSpeed'|'drivingStyle'|'loadsCollision'|'cantGoAgainstTraffic'|'stayInSlowLane',value:number):void;
+ setScriptVehicleAutopilot(car:unknown,field:'cruiseSpeed'|'drivingStyle'|'loadsCollision'|'cantGoAgainstTraffic'|'stayInSlowLane'|'stayInFastLane',value:number):void;
  setScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationship(ped:unknown,relationship:number,pedType:number):void;
  clearScriptPedRelationships(ped:unknown,relationship:number):void;
@@ -1092,6 +1092,8 @@ export class ScmMission {
    setVehicleIsConsideredByPlayer:(handle,state)=>{this.host('setScriptVehicleConsideredByPlayer','SET_VEHICLE_IS_CONSIDERED_BY_PLAYER')(this.liveVehicle(handle),state);},
    // SET_CAR_STAY_IN_SLOW_LANE: CAutoPilot::bStayInSlowLane.
    setVehicleStayInSlowLane:(handle,state)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'stayInSlowLane',state?1:0);},
+   // SET_CAR_STAY_IN_FAST_LANE (iOS 0x1001e19f8): CAutoPilot's bStayInFastLane, bit 3 of the flags at +0x50b.
+   setCarStayInFastLane:(handle,state)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'stayInFastLane',state?1:0);},
    setVehicleCanGoAgainstTraffic:(handle,state)=>{this.world.setScriptVehicleAutopilot(this.liveVehicle(handle),'cantGoAgainstTraffic',state?0:1);},
    vehicleGotoCoordinates:(handle,x,y,z)=>{
     const car=this.liveVehicle(handle),fields=this.world.scriptVehicleAutopilotFields?.(car)??{};

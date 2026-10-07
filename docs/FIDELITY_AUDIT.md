@@ -11185,3 +11185,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   one, and that CanBeDeleted; of those strictly inside the sphere it hands over the nearest, without making it the
   script's. It was skipped (MAIN and one mission); the port's law-enforcer test is its model list, as for the in-area
   search.
+- **Fast lane, and the player lit as indoors.** SET_CAR_STAY_IN_FAST_LANE (iOS 0x1001e19f8) sets CAutoPilot's
+  bStayInFastLane (bit 3 of the flags at +0x50b), which PickNextNodeRandomly reads before the slow lane: lane 0 rather
+  than the outermost; the script car missions now take it (STEAL2). FORCE_INTERIOR_LIGHTING_FOR_PLAYER (0x100205814)
+  sets CPlayerPedData::m_bForceInteriorLighting, which CPhysical::GetLightingTotal (reversed) ORs with being in an
+  interior area for the player; the port's player lighting for the post effects now does the same (MAF4). Both were
+  skipped. LOCK_DOOR (0x100201c64, CObject::LockDoor and UnlockDoor on a swinging door) waits on the door objects.

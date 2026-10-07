@@ -1387,7 +1387,7 @@ async function boot() {
     // CPostEffects::Render: the timecycle post-effect colours over the frame, greyed under the goggles, scaled by
     // the player's collision lighting (ambient before brightness plus the contact surface brightness).
     {const ambient=render.lighting.nativeWorldAmbient,contact=render.contactLighting===undefined?DEFAULT_CONTACT_SURFACE_BRIGHTNESS:nativeContactBrightness(render.contactLighting,nativeDayNightBalance(sim.timeMinutes));
-     const light=ambient?lightingFromCol([ambient[0],ambient[1],ambient[2]],contact,render.lighting.area!==0):SCREEN_EXTRA_MULT_INITIAL;
+     const light=ambient?lightingFromCol([ambient[0],ambient[1],ambient[2]],contact,render.lighting.area!==0||!!mission?.runtime.game.playerForceInteriorLighting):SCREEN_EXTRA_MULT_INITIAL;
      const nowMs=performance.now(),frameSeconds=colourFilterState.lastMs?Math.min(.1,(nowMs-colourFilterState.lastMs)/1000):0;colourFilterState.lastMs=nowMs;
      colourFilterState.extraMult=screenExtraMult(colourFilterState.extraMult,light,frameSeconds*50);
      // CWeather::UnderWaterness and WaterDepth come from a raw CWeather::Update: here the camera under the water

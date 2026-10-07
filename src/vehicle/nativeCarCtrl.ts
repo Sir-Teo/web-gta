@@ -181,7 +181,9 @@ export function laneChangeCountdown(countdown:number,segmentLength:number,rand:(
 /** PickNextNodeRandomly's lane on the next link: a lane over when the countdown says so (to the right when `right`),
  * clamped to the lanes in the direction of travel (0 when there are none). `slowLane` is CAutoPilot::bStayInSlowLane
  * (SET_CAR_STAY_IN_SLOW_LANE): the outermost lane. */
-export function nextLaneOnLink(lane:number,lanesOnNext:number,change:boolean,right:boolean,slowLane=false){
+export function nextLaneOnLink(lane:number,lanesOnNext:number,change:boolean,right:boolean,slowLane=false,fastLane=false){
+ // CAutoPilot's bStayInFastLane (SET_CAR_STAY_IN_FAST_LANE) forces lane 0 ahead of bStayInSlowLane's outermost lane.
+ if(fastLane)return 0;
  if(slowLane)return Math.max(lanesOnNext-1,0);
  return Math.max(Math.min(change?lane+(right?1:-1):lane,lanesOnNext-1),0);
 }

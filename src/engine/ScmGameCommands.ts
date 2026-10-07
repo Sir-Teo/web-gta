@@ -2447,7 +2447,8 @@ const handlers:Record<string,ScmCommandHandler>={
  GET_CITY_FROM_COORDS:(t,p,i)=>{t.writeInt(p[3],world(t,i,'getCityFromCoords')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2])));},
  SET_HELI_STABILISER:(t,p,i)=>{world(t,i,'setHeliStabiliser')(t.readInt(p[0]),bool(t,p[1]));},
  GET_CHAR_HEIGHT_ABOVE_GROUND:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCharHeightAboveGround')(t.readInt(p[0])));},
- FORCE_INTERIOR_LIGHTING_FOR_PLAYER:(t,p,i)=>{world(t,i,'forceInteriorLightingForPlayer')(t.readInt(p[0]),bool(t,p[1]));},
+ // iOS 0x100205814: the player's CPlayerPedData byte +0xa2, m_bForceInteriorLighting.
+ FORCE_INTERIOR_LIGHTING_FOR_PLAYER:(t,p,i)=>{game(t,i).playerForceInteriorLighting=bool(t,p[1]);},
  PLAYER_TAKE_OFF_GOGGLES:(t,p,i)=>{world(t,i,'playerTakeOffGoggles')(t.readInt(p[0]),bool(t,p[1]));},
  IS_CAR_STOPPED_IN_AREA_2D:carInArea(false,true),
  GET_CAR_UPRIGHT_VALUE:(t,p,i)=>{t.writeFloat(p[1],world(t,i,'getCarUprightValue')(t.readInt(p[0])));},
