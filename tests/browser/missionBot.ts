@@ -53,6 +53,10 @@ export function missionBotTick(dtSeconds:number){
   return {action:'menu accept'};
  }
  mem.leftMenuAt=undefined;
+ // With the pad off (SET_PLAYER_CONTROL 0) a player can do nothing: TWAR7's scene at the Ballas' house takes him out of
+ // the car by TASK_LEAVE_ANY_CAR, and the bot, seeing the car's blip with CJ no longer in it, warped him back in and
+ // the scene never ended. The action keeps the sweep's autopilot off too.
+ if(m.playerControl===false)return {action:'wait: the pad is off'};
  // The homies in CJ's group, remembered: CPedGroupMembership drops a follower left past the separation range (60
  // units), and a stage that re-adds him only when CJ comes back within ten (SWEET1B after the tag wall) shows no blip.
  const players=m.groups?.get?.(0),members:number[]=players?players.all().filter((h:number)=>h!==1&&players.isFollower(h)):[];
