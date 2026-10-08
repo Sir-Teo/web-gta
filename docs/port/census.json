@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-08T00:10:32.429Z",
+ "generated": "2026-10-08T00:21:06.377Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,8 +7,8 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1242,
-   "authored": 19,
+   "faithful": 1243,
+   "authored": 18,
    "silent": 1,
    "skipped": 128,
    "stops": 1
@@ -373,18 +373,13 @@
    "byStatus": {
     "core": 1636,
     "nop": 13,
-    "faithful": 646,
-    "authored": 3,
+    "faithful": 647,
+    "authored": 2,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
-     "status": "authored",
-     "sites": 1
-    },
     {
      "name": "GET_DEBUG_CAMERA_COORDINATES",
      "status": "authored",
@@ -1470,19 +1465,13 @@
    "byStatus": {
     "core": 1270,
     "nop": 0,
-    "faithful": 335,
-    "authored": 1,
+    "faithful": 336,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": "barber.scm",
@@ -1589,8 +1578,8 @@
    "byStatus": {
     "core": 284,
     "nop": 6,
-    "faithful": 112,
-    "authored": 1,
+    "faithful": 113,
+    "authored": 0,
     "silent": 0,
     "skipped": 3,
     "stops": 0
@@ -1600,11 +1589,6 @@
      "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
-     "status": "authored",
-     "sites": 1
     },
     {
      "name": "RELEASE_ENTITY_FROM_ROPE_FOR_OBJECT",
@@ -1622,8 +1606,8 @@
    "byStatus": {
     "core": 587,
     "nop": 2,
-    "faithful": 138,
-    "authored": 1,
+    "faithful": 139,
+    "authored": 0,
     "silent": 0,
     "skipped": 2,
     "stops": 0
@@ -1633,11 +1617,6 @@
      "name": "GET_ROPE_HEIGHT_FOR_OBJECT",
      "status": "skipped",
      "sites": 2
-    },
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
-     "status": "authored",
-     "sites": 1
     }
    ]
   },
@@ -2507,8 +2486,8 @@
    "byStatus": {
     "core": 1468,
     "nop": 1,
-    "faithful": 1153,
-    "authored": 2,
+    "faithful": 1154,
+    "authored": 1,
     "silent": 0,
     "skipped": 0,
     "stops": 0
@@ -2516,11 +2495,6 @@
    "gaps": [
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
      "sites": 1
     }
@@ -3846,8 +3820,8 @@
    "byStatus": {
     "core": 1449,
     "nop": 1,
-    "faithful": 810,
-    "authored": 2,
+    "faithful": 811,
+    "authored": 1,
     "silent": 0,
     "skipped": 19,
     "stops": 0
@@ -3865,11 +3839,6 @@
     },
     {
      "name": "LOAD_SCENE_IN_DIRECTION",
-     "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
      "sites": 1
     },
@@ -4520,19 +4489,13 @@
    "byStatus": {
     "core": 938,
     "nop": 1,
-    "faithful": 582,
-    "authored": 1,
+    "faithful": 583,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
-     "status": "authored",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 90,
@@ -4586,18 +4549,13 @@
    "byStatus": {
     "core": 1059,
     "nop": 1,
-    "faithful": 495,
-    "authored": 3,
+    "faithful": 497,
+    "authored": 1,
     "silent": 0,
     "skipped": 1,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
-     "status": "authored",
-     "sites": 2
-    },
     {
      "name": "PLANE_FLY_IN_DIRECTION",
      "status": "skipped",
@@ -4817,8 +4775,8 @@
    "byStatus": {
     "core": 1731,
     "nop": 1,
-    "faithful": 1101,
-    "authored": 1,
+    "faithful": 1102,
+    "authored": 0,
     "silent": 0,
     "skipped": 9,
     "stops": 0
@@ -4842,11 +4800,6 @@
     {
      "name": "ATTACH_WINCH_TO_HELI",
      "status": "skipped",
-     "sites": 1
-    },
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
-     "status": "authored",
      "sites": 1
     },
     {
@@ -4933,8 +4886,8 @@
    "byStatus": {
     "core": 2824,
     "nop": 1,
-    "faithful": 1569,
-    "authored": 5,
+    "faithful": 1570,
+    "authored": 4,
     "silent": 0,
     "skipped": 0,
     "stops": 0
@@ -4944,11 +4897,6 @@
      "name": "LOAD_SCENE_IN_DIRECTION",
      "status": "authored",
      "sites": 4
-    },
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
-     "status": "authored",
-     "sites": 1
     }
    ]
   },
@@ -5243,19 +5191,13 @@
    "byStatus": {
     "core": 1793,
     "nop": 1,
-    "faithful": 389,
-    "authored": 8,
+    "faithful": 397,
+    "authored": 0,
     "silent": 0,
     "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "ATTACH_CHAR_TO_OBJECT",
-     "status": "authored",
-     "sites": 8
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 114,
@@ -5937,23 +5879,6 @@
    "sites": 6,
    "missions": 4,
    "firstMission": "vending_machine.scm",
-   "portable": false
-  },
-  {
-   "name": "ATTACH_CHAR_TO_OBJECT",
-   "opcode": "04f4",
-   "status": "authored",
-   "notes": [
-    "adapter comments name an authored stand-in (attachPedToObject)"
-   ],
-   "handlerLine": 1049,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Attaches the character to the specified object, in turret mode",
-   "sites": 19,
-   "missions": 11,
-   "firstMission": "basketb.scm",
    "portable": false
   },
   {

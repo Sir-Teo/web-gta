@@ -1391,14 +1391,24 @@ export class ScmMission {
    },
    // SET_HEADING_FOR_ATTACHED_PLAYER: a player not attached to anything is left alone.
    setHeadingForAttachedPlayer:(_player,heading,range)=>{this.world.setAttachedPlayerHeading?.(heading,range);},
-   // ATTACH_CHAR_TO_OBJECT: the player's attachment to a script object; a script ped's is not ported yet.
+   // ATTACH_CHAR_TO_OBJECT: CPed::AttachPedToEntity on a script object. The player's attachment is the host's; a script
+   // ped (SMOKE3, CASINO5) is kept at the offset in the object's frame each step (PositionAttachedPed, as the car form
+   // has it: facing the object's heading turned by the side, 0 ahead, 1 left, 2 behind, 3 right), frozen, with the
+   // weapon given (30000 rounds) and in hand when one is named.
    attachPedToObject:(handle,object,offset,position,angleLimit,weapon)=>{
     this.runtime.game.objects.at(object);
-    if(handle!==PLAYER_PED_HANDLE)throw new UnsupportedScmCommand(-1,0,'ATTACH_CHAR_TO_OBJECT','a script ped');
-    this.host('attachPlayerToObject','ATTACH_CHAR_TO_OBJECT')(object,offset,position,angleLimit,weapon);
+    if(handle===PLAYER_PED_HANDLE){this.host('attachPlayerToObject','ATTACH_CHAR_TO_OBJECT')(object,offset,position,angleLimit,weapon);return;}
+    const entity=this.livePed(handle);
+    this.pedsOnObjects.set(handle,{object,offset:{...offset},side:position&3});
+    this.world.setScriptPedFrozen(entity,true);
+    if(weapon!==0)adapter.givePedWeapon!(handle,weapon,30000);
+    this.positionPedsOnObjects();
    },
    // DetachCharFromCar: only a ped that hangs from something is let go.
-   detachPedFromCar:handle=>{if(handle===PLAYER_PED_HANDLE){this.world.detachPlayerFromVehicle?.();return;}this.peds.detachFromCar(handle,this.peds.positionOf(handle));},
+   detachPedFromCar:handle=>{
+    // DettachPedFromEntity of a ped on an object: it stands again where it was.
+    if(this.pedsOnObjects.delete(handle)){if(this.peds.exists(handle))this.world.setScriptPedFrozen(this.livePed(handle),false);return;}
+    if(handle===PLAYER_PED_HANDLE){this.world.detachPlayerFromVehicle?.();return;}this.peds.detachFromCar(handle,this.peds.positionOf(handle));},
    // CPed::m_pAttachedTo is a vehicle: ATTACH_CHAR_TO_CAR's hold, not a seat. The reversed handler tests the ped
    // itself for being a vehicle, which never holds; its sibling STORE_CAR_CHAR_IS_ATTACHED_TO_NO_SAVE reads
    // m_pAttachedTo, which is what LOWR and SWEET6 ask about before they detach.
@@ -4106,9 +4116,25 @@ export class ScmMission {
  highlightedAreas(){return [...this.highlights.values()];}
  /** The length of the frame the scripts run in, ms (CTimer::ms_fTimeStep × 20). */
  private frameMs=20;
+ /** Script peds ATTACH_CHAR_TO_OBJECT has put on an object: the object, the offset in its frame and the side faced. */
+ private pedsOnObjects=new Map<number,{object:number;offset:{x:number;y:number;z:number};side:number}>();
+ /** PositionAttachedPed for the script peds on objects: the offset carried in the object's axes, the feet a unit under
+  * that centre, the heading the object's turned by a quarter turn a side. A ped or object gone ends the attachment. */
+ private positionPedsOnObjects(){
+  const objects=this.runtime.game.objects;
+  for(const [handle,a] of this.pedsOnObjects){
+   if(!this.peds.exists(handle)||!objects.exists(a.object)||(this.peds.healthOf(handle)??0)<=0){this.pedsOnObjects.delete(handle);continue;}
+   const m=objects.matrix(a.object),o=a.offset;
+   const at={x:m.position.x+m.right.x*o.x+m.forward.x*o.y+m.up.x*o.z,y:m.position.y+m.right.y*o.x+m.forward.y*o.y+m.up.y*o.z,z:m.position.z+m.right.z*o.x+m.forward.z*o.y+m.up.z*o.z};
+   this.peds.setPosition(handle,{x:at.x,y:at.y,z:at.z-1});
+   const heading=Math.atan2(-m.forward.x,m.forward.y)*180/Math.PI+a.side*90;
+   this.peds.setHeading(handle,((heading%360)+360)%360);
+  }
+ }
  step(nowMs:number,timeStepMs:number){
   this.clockMs=nowMs;if(timeStepMs>0)this.frameMs=timeStepMs;
   if(this.stopped)return;
+  if(this.pedsOnObjects.size)this.positionPedsOnObjects();
   this.highlights.clear();
   if(!this.started){this.started=true;this.runtime.start(this.entry);}
   this.elapsed+=timeStepMs;

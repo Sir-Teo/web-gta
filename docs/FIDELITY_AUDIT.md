@@ -11319,3 +11319,12 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   makes it the ped's m_pEntityIgnoredCollision; with the flag set the ped collides with everything again, and with no
   such object nothing changes. Here the ped's movement passes through that object's colliders. (A map object is looked
   for within the radius in 3D, and the player keeps no ignored entity.)
+- A frozen ped (FREEZE_CHAR_POSITION, physicalFlags.bDontApplySpeed) is not moved at all: CPhysical::ApplyMoveSpeed
+  resets the move speed instead of applying it. The port only kept it from falling, so shoves, the root motion of its
+  clips and the character controller's push out of anything it overlapped still moved it. CRASH1's girl, frozen at the
+  burning house's upstairs window under her panic clips, wandered up to fifteen units off, and the mission then waited
+  for ever on her walk back to the window.
+- ATTACH_CHAR_TO_OBJECT on a script ped (SMOKE3, CASINO5) threw, so those missions gave up there. The ped is now kept,
+  frozen, at the offset in the object's frame each step, facing the object's heading turned by the side (0 ahead, 1
+  left, 2 behind, 3 right) as the car form's PositionAttachedPed has it, with the named weapon given; DETACH_CHAR_FROM_CAR
+  lets it go where it stands.

@@ -4238,7 +4238,10 @@ export class WorldPedestrians {
    // A fallen ped's low collider ignores the cars: the controller would otherwise shove it out of a car parked
    // over it, through the road (the get-up waits for the car instead, CTaskSimpleGetUp).
    const shift=p.animShift;p.animShift=undefined;
-   const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt+(p.air?.h?.x??0)*dt+(shift?.x??0),y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt+(p.air?.h?.z??0)*dt+(shift?.z??0)},p.ignoredColliders?(c:RAPIER.Collider)=>!p.ignoredColliders!.has(c.handle)&&(p.down<=0||notCarCollider(c)):p.down>0?notCarCollider:undefined);
+   // A frozen ped's move speed is reset rather than applied, whatever fed it: the shoves it takes, its clips' root
+   // motion and the controller's own push out of whatever it overlaps leave it where it stands (CRASH1's girl, frozen at
+   // her window, wandered off under her panic clips). It is not moved at all.
+   const {movement,grounded}=p.frozen&&water===undefined?{movement:{x:0,y:0,z:0},grounded:true}:characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt+(p.air?.h?.x??0)*dt+(shift?.x??0),y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt+(p.air?.h?.z??0)*dt+(shift?.z??0)},p.ignoredColliders?(c:RAPIER.Collider)=>!p.ignoredColliders!.has(c.handle)&&(p.down<=0||notCarCollider(c)):p.down>0?notCarCollider:undefined);
    if(water===undefined&&p.health>0&&p.down===0){
     if(!p.air&&!grounded&&movement.y<-4.5*dt){
      // Off the ground with the 5 m/s pull fully spent: the ped is in the air (bIsInTheAir) from this frame's gravity.
