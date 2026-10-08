@@ -1,8 +1,8 @@
 import { CHEATS, megaPunchBlow } from './nativeCheats';
 import { characterMovement } from './characterMovement';
 import { currentShapeCast } from './currentShapeCast';
-import { landingDamage, DEATH_RECOVERY_SECONDS } from '../health/survival';
-import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/weather';
+import { landingDamage, DEATH_RECOVERY_SECONDS } from './health';
+import { GAME_MINUTES_PER_SECOND, wrapMinutes } from '../world/timecycle';
 import { PED_ORIGIN_HEIGHT, pedFloatDepth, swimResistance, swimRotationTowardSurface, swimSubmergeVelocity, swimSubmergeZ } from './nativeSwim';
 import { NativeJetPack } from './nativeJetPack';
 import {beginPlayerBreathFrame,handlePlayerBreath} from './playerBreath';

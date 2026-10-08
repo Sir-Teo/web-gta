@@ -15,7 +15,7 @@ import {nativeAmbientState} from '../assets/nativeMaterial';
 import {installNativeVehicleBody} from './nativeVehicleBody';
 import {composeVehicleRoot,interpolateVehiclePose} from '../render/vehiclePose';
 import {requireAsset} from '../assets/binary';
-import {bikeLeanTarget,approachBikeLean} from '../flight/aero';
+import {bikeLeanTarget,approachBikeLean} from './nativeBikeLean';
 import {bikeLeanDrop,bikeRiderLean,quadRiderLean} from './nativeBikeLean';
 import {nativePedals} from './nativePedals';
 import {stepNativeTransmission} from './nativeTransmission';

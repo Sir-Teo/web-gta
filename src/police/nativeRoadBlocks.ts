@@ -8,6 +8,10 @@ import {MAX_ROADBLOCKS} from '../assets/roadblox';
 import type {NavigationNode,PathAddress,PathNode} from '../assets/pathNodes';
 
 export const MAX_SCRIPT_ROADBLOCKS=16;
+/** Whether the host stands roadblocks up: from three stars, as the ROADBLOX.DAT chance (CWanted::m_nChanceOnRoadBlock)
+ * is nought below that; a block already standing dissolves when the level falls under it (the host's rule, as
+ * CreateRoadBlockBetween2Points is a stub). */
+export function roadblockAllowed(level:number){return level>=3;}
 type V3={x:number;y:number;z:number};
 
 /** What the generator reads of the loaded path areas. */

@@ -21,7 +21,7 @@ import type {Simulation} from './Simulation';
 import type {WorldCar} from './WorldCar';
 import type {WorldPlane} from './WorldPlane';
 import {POLICE_HELI_MODEL,heliHeading,heliOrbitPoint,policeHeliInputs,rappelWindow,searchlightTarget} from './policeHeli';
-import { roadblockAllowed } from '../police/pursuit';
+import { roadblockAllowed } from '../police/nativeRoadBlocks';
 import type {WorldFleet} from './WorldFleet';
 import type {WorldBike} from './WorldBike';
 import type {WantedSystem} from './WantedSystem';
