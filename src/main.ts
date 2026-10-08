@@ -5909,7 +5909,12 @@ async function boot() {
                  warpPlayerFromCarToCoord:position=>{
                   const car=worldCar?.occupied?worldCar:fleet?.occupied,x=position.x,z=-position.y,y=position.z;
                   if(car){carEntry.cancel();car.setPedOut({x,y,z});}
-                  else if(fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane)return false;
+                  // CTaskSimpleCarSetPedOut and the teleport take him off a bike, boat or aircraft as off a car (a script
+                  // ending a ride warps CJ off his BMX).
+                  else if(fleet?.occupiedBike||fleet?.occupiedBoat||fleet?.occupiedPlane){
+                   const ride=fleet.occupiedBike??fleet.occupiedBoat??fleet.occupiedPlane;bikeMount.abandon();
+                   ride?.finishExit({x,y,z});sim.flushPlayerTasks();
+                  }
                   else{sim.flushPlayerTasks();sim.player.position={x,y,z};sim.player.previous={x,y,z};sim.playerBody.setTranslation({x,y:y+.9,z},true);sim.playerBody.setNextKinematicTranslation({x,y:y+.9,z});sim.playerCollider.setTranslation({x,y:y+.9,z});}
                   return true;
                  },

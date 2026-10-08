@@ -11409,3 +11409,5 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   BIKE_PASSENGER (iOS 0x1003d6134 blends it from GetRideAnimData's group), held on its last frame. The occupant
   drawing skipped every bike rider but the driver, so TWAR7's OG Loc rode CJ's PCJ-600 unseen. A BMX or mountain bike
   has no back seat or passenger clip.
+- WARP_CHAR_FROM_CAR_TO_COORD sets the player down off a bike, boat or aircraft as off a car; it gave the thread up
+  ("a player on a bike, boat or plane"), so a script ending a ride with CJ on his BMX stopped there.

@@ -88,3 +88,21 @@ test('a script ped on the back of a bike is drawn there, in the passenger clip',
  const pose=await drawn();expect(pose!.visible).toBe(true);expect(pose!.off).toBeLessThan(.05);
  expect(errors).toEqual([]);
 });
+
+/** WARP_CHAR_FROM_CAR_TO_COORD on a player riding a bike sets him down at the point, as off a car. It gave the thread
+ * up ("a player on a bike, boat or plane"). */
+test('a script warps the player off a bike to a point',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const bike=await page.evaluate(()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;return m.vehicles.create(481,{x:p.x+5,y:-p.z,z:-100},90);});
+ await page.waitForFunction(b=>!!(window as any).__game.missionForProfiling().vehicles.entity(b),bike,{timeout:60000});
+ await page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCar(1,b),bike);
+ await expect.poll(()=>page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1)===b,bike),{timeout:10000}).toBe(true);
+ const out=await page.evaluate(b=>{const g=(window as any).__game,w=g.missionForProfiling().runtime.world,at=w.vehiclePosition(b);
+  w.warpPedFromCarToCoord(1,at.x+4,at.y,at.z);const p=g.state().player.position;return {vehicle:w.pedVehicle(1)??null,riding:!!g.fleet().occupiedBike,dx:p.x-(at.x+4),dy:-p.z-at.y};},bike);
+ expect(out.vehicle).toBe(null);expect(out.riding).toBe(false);expect(Math.abs(out.dx)).toBeLessThan(.05);expect(Math.abs(out.dy)).toBeLessThan(.05);
+ expect(errors).toEqual([]);
+});
