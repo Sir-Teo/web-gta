@@ -204,6 +204,8 @@ export class WorldBike {
  get quad(){return this.assets.vehicle.type==='quad';}
  /** The ped_frontseat dummy in native model space. */
  seat(){const frame=this.assets.model.frames.find(f=>f.name.toLowerCase()==='ped_frontseat');return frame?{x:frame.matrix[12],y:frame.matrix[13],z:frame.matrix[14]}:undefined;}
+ /** The pillion's place, the model's ped_backseat dummy (none on a BMX or a mountain bike). */
+ backSeat(){const frame=this.assets.model.frames.find(f=>f.name.toLowerCase()==='ped_backseat');return frame?{x:frame.matrix[12],y:frame.matrix[13],z:frame.matrix[14]}:undefined;}
  heading(){const q=this.body.rotation();return Math.atan2(-2*(q.x*q.z+q.w*q.y),-(1-2*(q.x*q.x+q.y*q.y)));}
  distance(){const p=this.sim.player.position,b=this.body.translation();return Math.hypot(p.x-b.x,p.y-b.y,p.z-b.z);}
  speed(){const v=this.body.linvel(),q=this.body.rotation(),f=rotate(q,{x:0,y:0,z:-1});return v.x*f.x+v.y*f.y+v.z*f.z;}

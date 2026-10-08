@@ -65,11 +65,19 @@ function scriptOccupantPoses(driveBy?:{clip:(name:string)=>import('./assets/ifp'
   // A clip the script plays on the seated rider takes the place of the seat's own pose: looped, or held at its end.
   const own=rider.clip?.animation,played=own&&rider.clip?{clip:rider.clip.name,animation:own,seconds:own.duration>0?(rider.clip.loop?((nowMs-rider.clip.started)/1000)%own.duration:Math.min((nowMs-rider.clip.started)/1000,own.duration)):0}:undefined;
   // A bike's rider sits on the saddle with the ride group's clip, as the player does: still, riding or pedalling by
-  // the bike's speed. A pillion, and riders of boats and aircraft, ride unseen for now.
+  // the bike's speed. Riders of boats and aircraft ride unseen for now.
   const bike=rider.car as unknown as Partial<import('./simulation/WorldBike').WorldBike>;
   if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&bike.car&&!rider.offset&&rider.seat==='driver'){
    const pose=bike.riderPose(),clip=pose.seat&&bikeClip?.(pose.block,pose.idle);
    if(pose.seat&&(clip||played))poses.push({key:`script:${bike.car.body.handle}:driver`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:pose.seat,...(played??{clip:pose.idle,seconds:clip!.duration>0?pose.time%clip!.duration:0,animation:clip!})});
+   continue;
+  }
+  // The pillion (pPassengers[0]) sits at the model's ped_backseat (SetPedPositionInCar), holding the ride group's
+  // BIKE_PASSENGER (iOS 0x1003d6134 blends it from GetRideAnimData's group); a bike with no back seat or no passenger
+  // clip (the BMX, the mountain bike) has none. TWAR7's OG Loc rode CJ's PCJ-600 unseen.
+  if(!isScriptCar(rider.car)&&typeof bike.riderPose==='function'&&typeof bike.backSeat==='function'&&bike.car&&!rider.offset&&rider.seat!=='driver'){
+   const seat=bike.backSeat(),block=bike.riderPose().block,name=`${block}_passenger`.toLowerCase(),clip=seat&&block?bikeClip?.(block,name):undefined;
+   if(seat&&(clip||played))poses.push({key:`script:${bike.car.body.handle}:pillion`,car:bike as import('./render/VehicleOccupants').OccupantVehicle,model:rider.model,local:seat,...(played??{clip:name,seconds:clip!.duration,animation:clip!})});
    continue;
   }
   // The occupant renderer seats peds in cars; a rider on a script boat or aircraft rides unseen for now.

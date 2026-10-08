@@ -66,3 +66,25 @@ test('a script sends the player to a bike and he gets on it',async({page})=>{
  await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(1,0x05cb)),{timeout:10000}).toBe(7);
  expect(errors).toEqual([]);
 });
+
+/** The pillion (pPassengers[0] of a bike) sits at the model's ped_backseat holding the ride group's BIKE_PASSENGER.
+ * TWAR7's OG Loc rode CJ's PCJ-600 unseen: the occupant drawing skipped every bike rider but the driver. */
+test('a script ped on the back of a bike is drawn there, in the passenger clip',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const made=await page.evaluate(()=>{
+  const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;
+  return {bike:m.vehicles.create(461,{x:p.x+6,y:-p.z,z:-100},90),ped:m.peds.create(4,'MALE01',{x:p.x+4,y:-p.z+3,z:p.y})};
+ });
+ await page.waitForFunction(({bike,ped})=>{const m=(window as any).__game.missionForProfiling();return !!m.vehicles.entity(bike)&&!!m.peds.entity(ped);},made,{timeout:60000});
+ await page.evaluate(({ped,bike})=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCarAsPassenger(ped,bike,0),made);
+ const drawn=()=>page.evaluate(bike=>{const g=(window as any).__game,b=g.missionForProfiling().vehicles.entity(bike),v=g.occupants().views.get(`script:${b.car.body.handle}:pillion`);
+  if(!v)return null;const seat=b.backSeat(),root=v.view.root.position,at=b.car.root.localToWorld(root.clone().set(seat.x,seat.z,-seat.y));
+  return {clip:v.view.snapshot().vehicleClip,visible:v.view.root.visible,off:Math.hypot(root.x-at.x,root.y-at.y,root.z-at.z)};},made.bike);
+ await expect.poll(async()=>(await drawn())?.clip??null,{timeout:30000}).toBe('bikes_passenger');
+ const pose=await drawn();expect(pose!.visible).toBe(true);expect(pose!.off).toBeLessThan(.05);
+ expect(errors).toEqual([]);
+});

@@ -11405,3 +11405,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   threw out: TWAR7's PCJ-600, turned as it was made, flew up and rolled off. A bike in use is placed and goes on.
 - The player's TASK_ENTER_CAR_AS_DRIVER boards a bike: the walk up to it and its jump-on clip, as the enter button
   from further off. It knew only cars and ended at once on a bike (TWAR7 sends CJ to the second PCJ-600).
+- A bike's pillion (pPassengers[0]) is drawn: at the model's ped_backseat (SetPedPositionInCar) in the ride group's
+  BIKE_PASSENGER (iOS 0x1003d6134 blends it from GetRideAnimData's group), held on its last frame. The occupant
+  drawing skipped every bike rider but the driver, so TWAR7's OG Loc rode CJ's PCJ-600 unseen. A BMX or mountain bike
+  has no back seat or passenger clip.
