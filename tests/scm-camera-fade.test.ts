@@ -14,11 +14,13 @@ test('native screen fade retains its extra completion frame and reverses from th
  fade.fade(1000,1,1620);fade.process(1);expect(fade.value).toBe(0);expect(fade.fading).toBe(false);
 });
 
-test('zero-duration fade preserves the source asymmetric branches',()=>{
+test('a fade of no length: to black takes a frame to finish, back in finishes at once (iOS 0x10022a904)',()=>{
  const fade=new ScmCameraFade();fade.fade(0,0,0);fade.process(0);
  expect(fade.value).toBe(255);expect(fade.fading).toBe(true);
  fade.process(0);expect(fade.fading).toBe(false);
- fade.fade(0,1,0);fade.process(1);expect(fade.value).toBe(255);expect(fade.fading).toBe(true);
+ // gta-reversed's reconstruction adds nothing here and leaves the overlay fading for ever; RYDER2's DO_FADE 0 1 waits
+ // on GET_FADING_STATUS right after it.
+ fade.fade(0,1,0);fade.process(1);expect(fade.value).toBe(0);expect(fade.fading).toBe(false);
 });
 
 test('original MAIN invokes its fade, runs the game-state prologue and stops at the first world request',()=>{

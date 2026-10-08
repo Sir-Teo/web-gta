@@ -36,7 +36,9 @@ export class ScmCameraFade {
   if(!this.fading)return;
   const step=this.duration===0?0:Math.fround(Math.fround(Math.fround(timeStepSeconds)/this.duration)*255);
   if(this.direction===1){
-   this.alpha=Math.fround(this.alpha-step);
+   // iOS (0x10022a904) clears the overlay at once for a fade of no length; gta-reversed's reconstruction adds nothing
+   // and would leave it fading for ever (RYDER2's DO_FADE 0 1 then waits on GET_FADING_STATUS).
+   this.alpha=this.duration===0?0:Math.fround(this.alpha-step);
    if(this.alpha>0){this.value=Math.trunc(this.alpha)&255;return;}
    this.fading=false;this.alpha=0;
   }else{

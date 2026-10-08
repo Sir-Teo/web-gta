@@ -11332,3 +11332,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   walk to the point (radius 0.5) and CTaskSimpleSlideToCoord to the heading. The port's handler asked an adapter that
   did not exist, so SCRASH2 and two other scripts skipped it; it now runs as the walk and the turn, the slide over the
   last half unit being the turn alone (as the AND_PLAY_ANIM form's stand-in has it).
+- A fade back in of no length (DO_FADE 0 1) ends at once on iOS: CCamera::ProcessFade (0x10022a904) sets the overlay
+  to nothing and clears m_bFading. The port followed gta-reversed's reconstruction, which adds nothing to the alpha when
+  the duration is zero, so after a fade to black the overlay stayed and GET_FADING_STATUS answered true for ever:
+  RYDER2 hung at its start, waiting for the fade it had just made.
