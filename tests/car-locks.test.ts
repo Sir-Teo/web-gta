@@ -34,6 +34,17 @@ test('a locked car is still walked to: the rattle at its door is CTaskSimpleCarO
   }finally{entry.cancel();sim.dispose();}
 });
 
+test('a door with nothing in the way is entered with no ground found under it yet (a teleport\'s streamed collision not in the queries)',()=>{
+  const sim=new Simulation(),clips=new VehicleAnimationLibrary('ground-test:'),entry=new CarEntry(sim,clips);
+  // A get-in clip whose root ends at the Greenwood's ENTER_FRONT offset, and a car over a world with no collision.
+  const getIn={key:'car_getin_lhs',group:0,clip:{name:'CAR_getin_LHS',flags:0,duration:1,tracks:[{name:'Root',boneId:0,frameType:4,times:new Float32Array([0,1]),rotations:new Float32Array(8),translations:new Float32Array([0,0,0,.949,.489,-.348])}]}};
+  (clips as unknown as {slot:()=>unknown}).slot=()=>getIn;
+  const car={wrecked:false,onFire:false,locked:false,alarm:0,modelFlags:0,animGroup:{flags:0},assets:{handling:{values:{seatOffset:.22}}},doors:[],car:{body:sim.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,20,0))},
+   seat:(side:'left'|'right')=>({x:side==='left'?-.463:.463,y:.14,z:-.095}),worldPoint:(p:{x:number;y:number;z:number})=>({x:p.x,y:p.z+20,z:-p.y})} as unknown as WorldCar;
+  try{expect(entry.enter(car)).toBe(true);expect(entry.snapshot().phase).toBe('approach');}
+  finally{entry.cancel();sim.dispose();}
+});
+
 test('alarms count down and reach the horn as an active alarm state',()=>{  expect(tickAlarm(8,1/60)).toBeCloseTo(8-1/60,10);
   expect(tickAlarm(.01,1)).toBe(0);
   expect(tickAlarm(0,1)).toBe(0);

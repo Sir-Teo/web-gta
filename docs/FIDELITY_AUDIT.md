@@ -11379,3 +11379,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   dragged man is lined up with no seat offset (he is in the car until his clip sets him out), so the last frame is
   where he lands; and the ground pose he holds before CTaskSimpleGetUp drops the jacked clip's root X/Y, which a
   reaction pinned at its first key, a metre from where the drag ended. A cop dragging CJ out uses the same line-up.
+- TWAR7 (Drive-Thru) no longer hangs at its start. The script puts CJ at Smoke's house and gives him
+  TASK_ENTER_CAR_AS_DRIVER on the Glendale; the task arrives the frame the terrain hold lifts, when the collision just
+  streamed in is not yet in the ray queries (they update on the physics step). The entry's door test asked for ground
+  under the door point, found none at either door, called the way blocked and ended the task, so CJ stood by the car
+  and the mission waited for him in it for good. GetNearestCarDoor's IsRoomForPedToLeaveCar tests for something in the
+  way, not for ground; the entry's test now does the same (the exit's still wants ground, so CJ does not step out over
+  a drop the stream has not filled).

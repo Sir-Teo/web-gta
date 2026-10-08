@@ -288,8 +288,11 @@ export class CarEntry {
   const p=this.sim.player.position,left=car.worldPoint(this.doorPoint(car,'left')??{x:-1.4,y:0,z:0}),right=car.worldPoint(this.doorPoint(car,'right')??{x:1.4,y:0,z:0});
   const preferred:Side=car.modelFlags&MODEL_FLAG.bus||Math.hypot(right.x-p.x,right.z-p.z)>Math.hypot(left.x-p.x,left.z-p.z)?'left':'right';
   const other:Side=preferred==='left'?'right':'left';
-  // A door whose stand point cannot be worked out is not tested.
-  const clear=(side:Side)=>!this.doorPoint(car,side)||this.room(car,side);
+  // A door whose stand point cannot be worked out is not tested. The test is for something in the way, not for ground
+  // under the door: the frame a script's teleport lifts the terrain hold, the streamed collision is not in the ray
+  // queries until the next physics step, and TASK_ENTER_CAR_AS_DRIVER given then (TWAR7's opening) found "no room"
+  // at either door and ended with CJ standing beside the car.
+  const clear=(side:Side)=>!this.doorPoint(car,side)||this.room(car,side,true);
   if(clear(preferred))this.side=preferred;
   else if(clear(other))this.side=other;
   else{this.car=undefined;this.message='The way to the door is blocked.';return false;}
