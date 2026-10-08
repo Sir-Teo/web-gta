@@ -63,5 +63,10 @@ test('a script bike made on a slope stays where it was made',async({page})=>{
  const at=()=>page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.vehiclePosition(b),bike);
  const first=await at();await page.waitForTimeout(6000);const later=await at();
  expect(Math.hypot(later.x-first.x,later.y-first.y)).toBeLessThan(.3);
+ // SET_CAR_COORDINATES a metre above where it rests: a bike set down in the air is not idle (no tyre on the ground), so
+ // it comes down rather than sleeping where it was put.
+ await page.evaluate(([b,p])=>(window as any).__game.missionForProfiling().runtime.world.setVehicleCoordinates(b,p.x,p.y,p.z+1),[bike,later] as const);
+ await page.waitForTimeout(3000);const landed=await at();
+ expect(landed.z).toBeLessThan(later.z+.3);
  expect(errors).toEqual([]);
 });

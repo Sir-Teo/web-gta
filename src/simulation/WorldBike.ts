@@ -475,7 +475,7 @@ export class WorldBike {
   * STATUS_ABANDONED or WRECKED (nobody riding or driving it) whose move and turn speed, averaged into m_vecForce and
   * m_vecTorque, stay within 0.003 and 0.0009 units a frame (0.006 and 0.0015 wrecked) times the timestep, and whose
   * speed stays under 0.005 (0.015), for more than 10 frames stops its physics: the speeds are reset and the body sleeps
-  * until something touches it. An idle bike (move speed exactly nought, a wheel on the ground and no collision to
+  * until something touches it. An idle bike (move speed exactly nought, a tyre on the ground and no collision to
   * process: CREATE_CAR leaves one so) stops at once. The port had none of it: an empty bike on a slope rolled away, as
   * TWAR7's PCJ-600 did from behind the Ballas' house, out of its rider's reach. */
  private fakeForce={x:0,y:0,z:0};private fakeTorque={x:0,y:0,z:0};private fakeFrames=0;
@@ -485,16 +485,18 @@ export class WorldBike {
   * would have the solver throw a woken body out of it. TWAR7's PCJ-600, turned in the yard behind the Ballas' house,
   * was thrown up and rolled away so. A bike someone rides or drives is placed and goes on. */
  place(position:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number}){
-  const rest=this.abandoned&&!this.wrecked,body=this.body;
-  body.setTranslation(position,!rest);body.setRotation(rotation,!rest);body.setLinvel({x:0,y:0,z:0},!rest);body.setAngvel({x:0,y:0,z:0},!rest);
-  if(rest){this.fakeFrames=10;this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};body.sleep();}
+  const body=this.body;
+  body.setTranslation(position,false);body.setRotation(rotation,false);body.setLinvel({x:0,y:0,z:0},false);body.setAngvel({x:0,y:0,z:0},false);
+  // Idle needs a wheel on the ground (the suspension not at full stretch): one set down in the air comes down first.
+  if(this.abandoned&&!this.wrecked&&this.tyreOnGround()){this.fakeFrames=10;this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};body.sleep();}
+  else{this.fakeFrames=0;body.wakeUp();}
  }
  private skipPhysics(dt:number){
   const body=this.body;
   if(!this.abandoned){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
   if(body.isSleeping()){this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;}
   const v=body.linvel(),w=body.angvel(),f=this.fakeForce,t=this.fakeTorque,ts=dt*50;
-  const idle=v.x===0&&v.y===0&&v.z===0&&this.wheelsDown();
+  const idle=v.x===0&&v.y===0&&v.z===0&&this.tyreOnGround();
   f.x=(f.x+v.x/50)/2;f.y=(f.y+v.y/50)/2;f.z=(f.z+v.z/50)/2;t.x=(t.x+w.x/50)/2;t.y=(t.y+w.y/50)/2;t.z=(t.z+w.z/50)/2;
   const [force,torque,moving]=this.wrecked?[.006,.0015,.015]:[.003,.0009,.005];
   const rest=(force*ts)**2>=f.x*f.x+f.y*f.y+f.z*f.z&&(torque*ts)**2>=t.x*t.x+t.y*t.y+t.z*t.z&&Math.hypot(v.x,v.y,v.z)/50<moving;
@@ -503,6 +505,20 @@ export class WorldBike {
   if(this.fakeFrames<=10&&!idle)return false;
   this.fakeFrames=Math.min(this.fakeFrames,10);body.setLinvel({x:0,y:0,z:0},false);body.setAngvel({x:0,y:0,z:0},false);body.sleep();
   this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;
+ }
+ /** A tyre on the ground (its suspension not at full stretch): the ground within a few centimetres under a wheel ball,
+  * which the idle rest asks for. wheelsDown's reach is a ride's (it finds the road a metre under a bike in a hop). */
+ private tyreOnGround(){
+  // The wheels from the body's own pose: a collider's world place lags a body just set down until the next step.
+  const p=this.body.translation(),q=this.body.rotation();
+  for(const handle of this.wheelColliders){
+   const c=this.sim.world.getCollider(handle);if(!c)continue;
+   // As a suspension line, from above the wheel to a little under the tyre: a tyre sunk into a slope it was set down on
+   // is on the ground too.
+   const o=rotate(q,c.translationWrtParent()??{x:0,y:0,z:0}),t={x:p.x+o.x,y:p.y+o.y,z:p.z+o.z},r=(c.shape as RAPIER.Ball).radius??.3;
+   if(this.sim.world.castRay(new RAPIER.Ray({x:t.x,y:t.y+r,z:t.z},{x:0,y:-1,z:0}),2*r+.15,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.body))return true;
+  }
+  return false;
  }
  private wheelsDown(along=0){
   const p=this.body.translation(),f=rotate(this.body.rotation(),{x:0,y:0,z:-1});
