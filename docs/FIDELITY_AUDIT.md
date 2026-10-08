@@ -11361,3 +11361,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   task's move state and its clip, if any, played to its end (CTaskSimpleRunNamedAnim); at the end the modes are the
   point route's (0 once, 1 there and back, 2 back and forth, 3 round again), the clips turning round with the points.
   MUSIC2 now runs to its pass under the sweep's bot.
+- An empty plane at rest now waits for the world's collision under it (bIsStaticWaitingForCollision), as a bike does.
+  WorldPlane woke its body whenever the player came within 250 units, ground or no ground: HEIST2's Nevada, made at
+  the far end of Las Venturas airport 860 units from CJ, dropped through a runway not yet streamed in and the flight
+  to the dam happened under the map. It asks twice a second for fixed ground or water within forty units below; a
+  plane with a pilot, an autopilot, made flying (PLANE_STARTS_IN_AIR) or already moving goes on. FREEZE_CAR_POSITION
+  also holds a plane now: its step had switched the body back on the next frame.

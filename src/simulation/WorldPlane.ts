@@ -311,12 +311,30 @@ export class WorldPlane {
   * SET_PLANE_UNDERCARRIAGE_UP calls them: the gear is at once fully up or down, with its drag and its wheels (missing
   * while up), whatever the model, fixed gear and all. */
  setGear(up:boolean){this.gearStatus=up?1:0;this.setGearUp(up);}
+ /** CColStore::HasCollisionLoaded for an empty plane at rest (bIsStaticWaitingForCollision), as a bike's: out where the
+  * world's collision has not streamed in, it waits for it rather than falling through the map. HEIST2's Nevada, made
+  * on the far end of Las Venturas airport 860 units from CJ, woke at 250 units over a runway not yet in and dropped
+  * through it. Fixed ground (or water) within forty units below, asked twice a second; one already moving (flying
+  * empty, or falling after its pilot bails out) goes on. */
+ private groundCheck={seconds:0,loaded:true};
+ private collisionLoaded(dt:number){
+  const v=this.body.linvel();if(Math.hypot(v.x,v.y,v.z)>1)return true;
+  const g=this.groundCheck;g.seconds-=dt;if(g.seconds>0)return g.loaded;g.seconds=.5;
+  const p=this.body.translation();
+  g.loaded=!!this.sim.world.castRay(new RAPIER.Ray({x:p.x,y:p.y+2,z:p.z},{x:0,y:-1,z:0}),40,true,RAPIER.QueryFilterFlags.ONLY_FIXED)||this.waterLevel?.(p.x,-p.z)!==undefined;
+  return g.loaded;
+ }
  /** PLANE_STARTS_IN_AIR (iOS 0x1001f701c): CPlane::IsAlreadyFlying puts m_nStartedFlyingTime 20 s back, which only the
   * AI pilot reads (gear up after 4 s off the ground, iOS 0x10019f490; not ported, as no AI plane flies here), and a
   * Hydra's nozzle is set level. */
- startsInAir(){if(this.modelId===520)this.nozzle=0;}
+ startsInAir(){this.startedInAir=true;if(this.modelId===520)this.nozzle=0;}
+ /** Made flying (PLANE_STARTS_IN_AIR): never held for the ground under it. */
+ private startedInAir=false;
+ /** FREEZE_CAR_POSITION (bIsFrozen): the body stays off while it is set, which this step would otherwise undo. */
+ frozen=false;
  beforeStep(dt:number,input:{throttle:number;pitch:number;roll:number;rudder:number;brake:boolean}){
-  const nearby=this.occupied||this.distance()<250;this.body.setEnabled(nearby);this.root.visible=nearby;if(!nearby)return;
+  const nearby=this.occupied||this.distance()<250,active=nearby&&!this.frozen&&(this.occupied||!!this.autopilot||this.startedInAir||this.collisionLoaded(dt));
+  this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};this.stepDt=dt;
   const p=this.body.translation(),hit=this.sim.world.castRay(new RAPIER.Ray(p,{x:0,y:-1,z:0}),3000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   this.altitude=hit?hit.timeOfImpact:Math.max(0,p.y);const clearance=Math.max(1.5,-this.assets.collision!.bounds.min[2]+.8);this.grounded=!!hit&&hit.timeOfImpact<clearance;
