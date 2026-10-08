@@ -2518,6 +2518,7 @@ export class ScmMission {
     const where=this.scriptEntityPosition(ped,vehicle);
     heli.tellHeliToKeepEntityInView?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},distance,minAltitude);
    },
+   setDrunkInputDelay:(pad,delay)=>{this.runtime.game.pads.setDrunkInputDelay(pad,delay);},
    heliLandAtCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToLand?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToLand?.(x,y,z,minAltitude,maxAltitude);},
    setHeliOrientation:(handle,angle)=>{(this.liveVehicle(handle) as {setHeliOrientation?:(a:number|undefined)=>void}).setHeliOrientation?.(angle);},
    clearHeliOrientation:handle=>{(this.liveVehicle(handle) as {setHeliOrientation?:(a:number|undefined)=>void}).setHeliOrientation?.(undefined);},

@@ -88,6 +88,11 @@ export class ScmPads {
  /** iOS pad byte 0x124 (iosPrintReleasesPlayerControls): the next pad update clears DisablePlayerControls. */
  readonly releaseControls=[false,false];
  setPlayerSafe(padIndex:number,safe:boolean){this.pad(padIndex);this.playerSafe[padIndex]=safe;}
+ /** CPad::DrunkDrivingBufferUsed, which SET_DRUNK_INPUT_DELAY sets (iOS 0x1001e107c, CPad +0x78). On PC
+  * GetSteeringLeftRight answers the stick that many frames back; the iOS executable stores it and never reads it again
+  * (no pad code loads CPad +0x78), so the steering here is not delayed either. */
+ readonly drunkInputDelay=[0,0];
+ setDrunkInputDelay(padIndex:number,delay:number){this.pad(padIndex);this.drunkInputDelay[padIndex]=delay;}
  /** bApplyBrakes and bPlayerSafeForCutscene. */
  readonly applyBrakes=[false,false];readonly safeForCutscene=[false,false];
  /** CPad::GetHorn, which a host writes while the player sounds one. */

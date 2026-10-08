@@ -11476,3 +11476,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   round again. Not ported: the guns and rockets it fires after steering. 0x10019fa50 sets bFireGun with the player
   within 150 and ahead (direction · forward over 0.8); 0x1001a0ac0 fires the rockets. The port's aircraft guns are the
   player's alone (WeaponSystem.fireAircraft).
+- SET_DRUNK_INPUT_DELAY (iOS 0x1001e107c) stores CPad::DrunkDrivingBufferUsed (CPad +0x78) and nothing more. On PC,
+  GetSteeringLeftRight answers the stick that many frames back; the iOS executable never reads the field again (no
+  pad code loads CPad +0x78; the touch steering replaced the buffer), so the steering is not delayed here either. It
+  had no world hook and was skipped 8961 times over TRUTH2's stoned drive.
