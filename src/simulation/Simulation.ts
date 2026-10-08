@@ -150,7 +150,10 @@ export class Simulation {
   /** Rapier's JS World.step hands the hooks on only through stepWithEvents, which it takes when given an event queue. */
   private readonly hookEvents=new RAPIER.EventQueue(true);
   /** One world step; with the hooks only while a pair is being ignored, so the usual step stays the plain one. */
-  stepWorld(){if(this.ignoredBodyPairs.size)this.world.step(this.hookEvents,this.physicsHooks);else this.world.step();}
+  /** What the host does once the world has stepped, before anything reads the bodies (PositionAttachedEntity for the
+   * vehicles a script attached to others). */
+  afterWorldStep?:()=>void;
+  stepWorld(){if(this.ignoredBodyPairs.size)this.world.step(this.hookEvents,this.physicsHooks);else this.world.step();this.afterWorldStep?.();}
   /** CPhysical::SetVelocity on the player (SET_CHAR_VELOCITY), in native units per 50th of a second: the air carries
    * the horizontal part as his jump momentum, and a rise takes him off the ground; standing, the next step's
    * animation drives him again, as CPed's own move speed does. */

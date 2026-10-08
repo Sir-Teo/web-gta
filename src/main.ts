@@ -1315,6 +1315,64 @@ async function boot() {
   const playerControlsDisabled=()=>mission?.playerControl===false||skipPadCamera||garageHold;
   /** The pad's own switches the player commands set (SET_PLAYER_ENTER_CAR_BUTTON and the rest): CPad's getters for
    * that button answer nothing while its bDisablePlayer flag is up, as they do with the controls off. */
+  /** CPhysical::AttachEntityToEntity for a vehicle on a vehicle (ATTACH_CAR_TO_CAR, iOS 0x1001eee08): the attached
+   * vehicle's body is made kinematic and set, after each physics step, at the parent's matrix times its own rotation
+   * (CMatrix::SetRotate of the command's angles, or the rotation it had relative to the parent when the offset's x is
+   * -999.9 or less), at the parent's transform of the offset (PositionAttachedEntity, 0x546FF0). The two pass through
+   * each other (m_pEntityIgnoredCollision). Native rows: right, forward, up. */
+  type RB=import('@dimforge/rapier3d-compat').RigidBody;
+  type NativeV3={x:number;y:number;z:number};type NativeRows={right:NativeV3;forward:NativeV3;up:NativeV3};
+  const attachedVehicles=new Map<object,{parent:object;offset:NativeV3;local:NativeRows;pair:string;colliders:number[]}>();
+  const vehicleBodyOf=(v:object):RB|undefined=>{const b=(v as {car?:{body?:RB}}).car?.body??(v as {body?:RB}).body;return b?.isValid()?b:undefined;};
+  const nativeRowsOf=(body:RB):NativeRows&{position:NativeV3}=>{
+   const q=new Quaternion().copy(body.rotation()),p=body.translation(),n=(x:number,y:number,z:number)=>{const v=new Vector3(x,y,z).applyQuaternion(q);return {x:v.x,y:-v.z,z:v.y};};
+   return {right:n(1,0,0),forward:n(0,0,-1),up:n(0,1,0),position:{x:p.x,y:-p.z,z:p.y}};
+  };
+  const rowsToPortQuaternion=(r:NativeRows)=>{const port=(v:NativeV3)=>new Vector3(v.x,v.z,-v.y);
+   return new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(port(r.right),port(r.up),port(r.forward).negate()));};
+  const inFrame=(m:NativeRows,v:NativeV3):NativeV3=>({x:m.right.x*v.x+m.forward.x*v.y+m.up.x*v.z,y:m.right.y*v.x+m.forward.y*v.y+m.up.y*v.z,z:m.right.z*v.x+m.forward.z*v.y+m.up.z*v.z});
+  const dot3=(a:NativeV3,b:NativeV3)=>a.x*b.x+a.y*b.y+a.z*b.z;
+  /** CMatrix::SetRotate (Core/Matrix.cpp): the rows for rotations about x, y and z, radians. */
+  const setRotateRows=(x:number,y:number,z:number):NativeRows=>{const sx=Math.sin(x),cx=Math.cos(x),sy=Math.sin(y),cy=Math.cos(y),sz=Math.sin(z),cz=Math.cos(z);
+   return {right:{x:cz*cy-sz*sx*sy,y:cz*sx*sy+sz*cy,z:-(sy*cx)},forward:{x:-(sz*cx),y:cz*cx,z:sx},up:{x:cz*sy+sz*sx*cy,y:sz*sy-cz*sx*cy,z:cy*cx}};};
+  const attachVehicle=(child:object,parent:object,offset?:NativeV3,rotation?:NativeV3)=>{
+   const body=vehicleBodyOf(child),parentBody=vehicleBodyOf(parent);if(!body||!parentBody||child===parent)return;
+   detachVehicle(child,0,0,0,false,true);
+   const P=nativeRowsOf(parentBody),C=nativeRowsOf(body),d={x:C.position.x-P.position.x,y:C.position.y-P.position.y,z:C.position.z-P.position.z};
+   const relative=(v:NativeV3)=>({x:dot3(P.right,v),y:dot3(P.forward,v),z:dot3(P.up,v)});
+   const local=rotation?setRotateRows(rotation.x,rotation.y,rotation.z):{right:relative(C.right),forward:relative(C.forward),up:relative(C.up)};
+   const pair=pairKey(body.handle,parentBody.handle),colliders:number[]=[];
+   for(let i=0;i<body.numColliders();i++){const c=body.collider(i);c.setActiveHooks(RAPIER.ActiveHooks.FILTER_CONTACT_PAIRS);colliders.push(c.handle);}
+   sim.ignoredBodyPairs.add(pair);body.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased,true);
+   attachedVehicles.set(child,{parent,offset:offset?{...offset}:relative(d),local,pair,colliders});
+   positionAttachedVehicle(child);
+  };
+  /** CPhysical::DettachEntityFromEntity (0x5442F0 region; DETACH_CAR, iOS 0x1001ee0a8): dynamic again, moving with the
+   * parent plus `push` units a frame along the parent's forward turned about z by `y` then about x by `x`. (The turn
+   * force it may add is not.) */
+  function detachVehicle(child:object,x:number,y:number,push:number,_turn:boolean,quiet=false){
+   const entry=attachedVehicles.get(child);if(!entry)return;
+   attachedVehicles.delete(child);sim.ignoredBodyPairs.delete(entry.pair);
+   for(const h of entry.colliders)sim.world.getCollider(h)?.setActiveHooks(RAPIER.ActiveHooks.NONE);
+   const body=vehicleBodyOf(child),parentBody=vehicleBodyOf(entry.parent);if(!body)return;
+   body.setBodyType(RAPIER.RigidBodyType.Dynamic,true);if(quiet||!parentBody)return;
+   const f=nativeRowsOf(parentBody).forward,cz=Math.cos(y),sz=Math.sin(y),cx=Math.cos(x),sx=Math.sin(x);
+   const zf={x:f.x*cz-f.y*sz,y:f.x*sz+f.y*cz,z:f.z},dir={x:zf.x,y:zf.y*cx-zf.z*sx,z:zf.y*sx+zf.z*cx};
+   const v=parentBody.linvel();body.setLinvel({x:v.x+dir.x*push*50,y:v.y+dir.z*push*50,z:v.z-dir.y*push*50},true);
+  }
+  /** PositionAttachedEntity for one attached vehicle; a vehicle on a parent rolled or pitched past 45 degrees comes off,
+   * lifted a unit a frame. */
+  sim.afterWorldStep=()=>{for(const child of attachedVehicles.keys())positionAttachedVehicle(child);};
+  function positionAttachedVehicle(child:object){
+   const entry=attachedVehicles.get(child);if(!entry)return;
+   const body=vehicleBodyOf(child),parentBody=vehicleBodyOf(entry.parent);
+   if(!body||!parentBody||(entry.parent as {disposed?:boolean}).disposed){detachVehicle(child,0,0,0,false,!body);return;}
+   const P=nativeRowsOf(parentBody);
+   if(Math.abs(P.right.z)>.707||Math.abs(P.forward.z)>.707){detachVehicle(child,0,0,1,false);return;}
+   const rows={right:inFrame(P,entry.local.right),forward:inFrame(P,entry.local.forward),up:inFrame(P,entry.local.up)},o=inFrame(P,entry.offset);
+   body.setTranslation({x:P.position.x+o.x,y:P.position.z+o.z,z:-(P.position.y+o.y)},true);
+   const q=rowsToPortQuaternion(rows);body.setRotation({x:q.x,y:q.y,z:q.z,w:q.w},true);body.setLinvel(parentBody.linvel(),true);
+  }
   /** The script searchlights' beams as this frame found them (CTheScripts::RenderAllSearchLights draws them). */
   let searchlightBeams:ReturnType<NonNullable<typeof mission>['stepSearchlights']>=[];
   /** CWorld::ProcessLineOfSight against buildings alone, native coordinates in and out: the point struck. */
@@ -5696,6 +5754,8 @@ async function boot() {
                  takeScriptPedPhotographed:ped=>{const p=onFoot(ped);if(!p?.photographed)return false;p.photographed=false;return true;},
                  // CMatrix's rows in the script's own axes: right, forward, up and the position.
                  scriptVehicleVelocity:car=>{const v=(car as ScriptCar).car.body.linvel();return {x:v.x,y:-v.z,z:v.y};},
+                 attachScriptVehicle:(child,parent,offset,rotation)=>attachVehicle(child as object,parent as object,offset,rotation),
+                 detachScriptVehicle:(child,x,y,push,turn)=>detachVehicle(child as object,x,y,push,turn),
                  scriptVehicleMatrix:car=>{
                   const body=(car as ScriptCar).car.body,q=body.rotation(),p=body.translation();
                   const rotate=(v:{x:number;y:number;z:number})=>{

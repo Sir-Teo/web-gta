@@ -425,6 +425,8 @@ export class WorldPlane {
   const nearby=this.occupied||this.distance()<250,active=(nearby||piloted)&&!this.frozen&&(this.occupied||!!this.autopilot||this.startedInAir||this.collisionLoaded(dt));
   this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};this.stepDt=dt;
+  // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
+  if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   const p=this.body.translation(),hit=this.sim.world.castRay(new RAPIER.Ray(p,{x:0,y:-1,z:0}),3000,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
   this.altitude=hit?hit.timeOfImpact:Math.max(0,p.y);const clearance=Math.max(1.5,-this.assets.collision!.bounds.min[2]+.8);this.grounded=!!hit&&hit.timeOfImpact<clearance;
    if(this.helicopter)this.steerAIHeli(dt);

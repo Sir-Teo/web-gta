@@ -687,6 +687,11 @@ export interface ScmMissionWorld {
  playerVehiclePose?():{position:{x:number;y:number;z:number};right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};heading:number}|undefined;
  spawnScriptVehicle(model:number|string,position:{x:number;y:number;z:number},heading:number,componentsToUse?:readonly [number,number]):Promise<unknown>;
  placeScriptVehicle(car:unknown,position:{x:number;y:number;z:number},heading:number):void;
+ /** ATTACH_CAR_TO_CAR: CPhysical::AttachEntityToEntity of one script vehicle on another, the offset and rotation
+  * (radians) native, or neither to keep where it sits relative to the parent. */
+ attachScriptVehicle?(child:unknown,parent:unknown,offset?:{x:number;y:number;z:number},rotation?:{x:number;y:number;z:number}):void;
+ /** DETACH_CAR: CPhysical::DettachEntityFromEntity, the push's turns in radians and its size in units a frame. */
+ detachScriptVehicle?(child:unknown,x:number,y:number,push:number,applyTurnForce:boolean):void;
  scriptVehiclePosition(car:unknown):{x:number;y:number;z:number};
  /** The top of a script car's collision box above its origin (GetColModel()->GetBoundingBox().m_vecMax.z). */
  scriptVehicleBoxTop?(car:unknown):number;
@@ -2533,6 +2538,14 @@ export class ScmMission {
    // IS_CHAR_IN_SEARCHLIGHT (iOS 0x1001f1718) and IS_CHAR_IN_ANY_SEARCHLIGHT: the ped's position in the lit ellipse.
    pedIsInSearchlight:(searchlight,handle)=>{const at=this.scriptEntityPosition(handle,-1)();return !!at&&this.runtime.game.searchlights.lighting(searchlight,at);},
    charInAnySearchlight:handle=>{const at=this.scriptEntityPosition(handle,-1)();return at?this.runtime.game.searchlights.anyLighting(at):-1;},
+   // ATTACH_CAR_TO_CAR (iOS 0x1001eee08): the rotation in degrees, made radians; an offset x of -999.9 or less keeps the
+   // car where it sits relative to the other (the quaternion form with neither given).
+   attachVehicleToVehicle:(handle,other,offset,rotation)=>{
+    const D=Math.PI/180,keep=offset.x<=-999.9;
+    this.world.attachScriptVehicle?.(this.liveVehicle(handle),this.liveVehicle(other),keep?undefined:offset,keep?undefined:{x:rotation.x*D,y:rotation.y*D,z:rotation.z*D});
+   },
+   // DETACH_CAR (iOS 0x1001ee0a8): x in degrees, y in degrees turned the other way, the push as given.
+   detachVehicle:(handle,x,y,z,applyTurnForce)=>{this.world.detachScriptVehicle?.(this.liveVehicle(handle),x*Math.PI/180,-y*Math.PI/180,z,applyTurnForce);},
    setDrunkInputDelay:(pad,delay)=>{this.runtime.game.pads.setDrunkInputDelay(pad,delay);},
    heliLandAtCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToLand?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToLand?.(x,y,z,minAltitude,maxAltitude);},
    setHeliOrientation:(handle,angle)=>{(this.liveVehicle(handle) as {setHeliOrientation?:(a:number|undefined)=>void}).setHeliOrientation?.(angle);},

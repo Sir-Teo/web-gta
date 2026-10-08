@@ -11502,3 +11502,13 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - ADD_BLIP_FOR_SEARCHLIGHT (iOS 0x1001f1858) is CRadar::SetEntityBlip with BLIP_SPOTLIGHT on the searchlight's handle,
   scale 3. The radar draws it at the searchlight's target (iOS 0x1002b9218). WUZI2 marks its searchlights so; the
   command had no world hook and wrote no blip.
+- ATTACH_CAR_TO_CAR and DETACH_CAR (DRUGS1's car carrier, DES10's tank on the train, TORENO2, HEIST4, QUARRY; STEAL4
+  and ZERO4 detach) had no world hooks.
+  - Attaching is CPhysical::AttachEntityToEntity (iOS 0x1001eee08: the rotation in degrees made radians; an offset x of
+    −999.9 or less keeps the car where it sits relative to the other). The attached vehicle's body is kinematic and set
+    after every world step by PositionAttachedEntity (0x546FF0): the parent's matrix times CMatrix::SetRotate of the
+    angles, at the parent's transform of the offset. A vehicle on a parent rolled or pitched past 45 degrees comes off.
+    The two pass through each other (m_pEntityIgnoredCollision).
+  - Detaching (iOS 0x1001ee0a8, DettachEntityFromEntity) makes it dynamic again at the parent's speed plus the push
+    along the parent's turned forward. The turn force it may also add is not ported.
+- script-car-force-hydraulics.spec.ts fails on main 8771fb3e too.

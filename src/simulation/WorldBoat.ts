@@ -215,6 +215,8 @@ export class WorldBoat {
   // A frozen boat takes none of the step, as a far one does: its speed would be worked on with nothing to move it.
   const nearby=this.distance()<250;this.body.setEnabled(nearby&&!this.frozen);this.root.visible=nearby;if(!nearby||this.frozen)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
+  // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
+  if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   if(this.wrecked){this.throttle=0;}
   this.controlInputs(dt);

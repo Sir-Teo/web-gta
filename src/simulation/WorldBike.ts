@@ -309,6 +309,8 @@ export class WorldBike {
   // worked on with nothing to move it.
   const nearby=this.distance()<250,active=nearby&&!this.frozen&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
+  // Attached to another vehicle (ATTACH_CAR_TO_CAR): a kinematic body the host sets on it after the step.
+  if(this.body.bodyType()===RAPIER.RigidBodyType.KinematicPositionBased)return;
   // A playback without car AI owns the body (bDisableCollisionForce, a velocity-driven body here): the bike's own
   // pedals and balance would fight the recording's speeds.
   if(this.recordingSlot>=0&&this.body.bodyType()===RAPIER.RigidBodyType.KinematicVelocityBased)return;
