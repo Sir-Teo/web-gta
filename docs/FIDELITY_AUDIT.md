@@ -11424,3 +11424,16 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   rest, 0x1004537e4 under physics). The port drew every parked bike bolt upright. Not ported: the stand's turn of the
   front wheel to 20 degrees (no fork is turned here), the moving branch's further term, and the stand coming up for
   a hit over 20 (CBike's damage, iOS 0x100450e58).
+- HELI_GOTO_COORDS flies the helicopter. It had no world hook, so the command was skipped and the fourteen missions'
+  helicopters (BOAT, DRUGS4, ZERO4, DES3, SYN5, SYN6, WUZI5, TRUTH2, GARAG1, CPRACE, HEIST4, ...) dropped out of the
+  sky. It is CAutomobile::TellHeliToGoToCoors with the command's arguments as they are (iOS 0x1001e268c): the
+  destination, MISSION_HELI_FLYTOCOORS at cruise speed 100 and the altitude band. SteerAICarWithPhysics' mission switch
+  (iOS 0x100198e04) sends it to SteerAIHeliTowardsTargetCoors (iOS 0x10019c430) and FlyAIHeliInCertainDirection (iOS
+  0x10019fcf4), which gta-reversed does not have, ported in nativeHeliAI.ts. They set CHeli's four controls, which the
+  ported FlyingControl flies. The heli holds m_fMaxAltitude, an absolute height, raised every half second to
+  m_fMinAltitude over what a ray 60 units forward and down finds. It flies full forward (−0.8), eases within 60 units
+  to nothing at m_ucHeliTargetDist2, yaws twice the turn left to make, and with the way ahead blocked rolls from the
+  nearer-walled side and brakes. An AI heli flies on out past the 250 units the port steps aircraft within.
+  SET_HELI_BLADES_FULL_SPEED sets the rotor to 0.22 (iOS 0x1001faec4); it was stored and never read. Not yet ported:
+  a forced orientation (FlyAIHeliToTarget_FixedOrientation, iOS 0x1001a068c), and the follow, land, keep-in-view,
+  attack and crash missions.

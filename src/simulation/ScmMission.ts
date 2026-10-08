@@ -2493,9 +2493,12 @@ export class ScmMission {
    setPedIsTargetPriority:(handle,state)=>{if(handle!==PLAYER_PED_HANDLE)this.world.setScriptPedFlag(this.livePed(handle),'targetPriority',state);},
    setFreeHealthCare:(_player,on)=>{this.host('setFreeHealthCare','SET_FREE_HEALTH_CARE')(on);},
    setPedCanBeKnockedOffBike:(handle,stayOnBike)=>{if(handle===PLAYER_PED_HANDLE)this.runtime.game.playerInfo.stayOnBike=stayOnBike;else this.world.setScriptPedFlag(this.livePed(handle),'stayOnBike',stayOnBike);},
-   // The car's own fields the script sets that the browser's cars keep but do not act on: the heli's rotor speed,
-   // CVehicle's status, and CAutomobile::m_fCarTraction.
-   setHeliBladesFullSpeed:handle=>{(this.liveVehicle(handle) as {rotorFullSpeed?:boolean}).rotorFullSpeed=true;},
+   // SET_HELI_BLADES_FULL_SPEED (iOS 0x1001faec4): a helicopter's m_fHeliRotorSpeed to 0.22 at once.
+   setHeliBladesFullSpeed:handle=>{const heli=this.liveVehicle(handle) as {helicopter?:boolean;rotorSpeed?:number};if(heli.helicopter)heli.rotorSpeed=.22;},
+   // HELI_GOTO_COORDS (iOS 0x1001e268c): CAutomobile::TellHeliToGoToCoors with the command's arguments as they are.
+   heliGotoCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToGoToCoors?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToGoToCoors?.(x,y,z,minAltitude,maxAltitude);},
+   // The car's own fields the script sets that the browser's cars keep but do not act on: CVehicle's status and
+   // CAutomobile::m_fCarTraction.
    // DISABLE_HELI_AUDIO: the vehicle audio entity's EnableHelicoptor (true) or DisableHelicoptor (false), kept on the
    // helicopter for its audio (DES3 turns its helicopter's back on).
    setHeliAudio:(handle,enabled)=>{(this.liveVehicle(handle) as {heliAudioDisabled?:boolean}).heliAudioDisabled=!enabled;},
