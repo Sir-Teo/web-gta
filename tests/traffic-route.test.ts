@@ -23,6 +23,13 @@ test('missing navigation, water, closures and pedestrian links never become traf
 });
 
 
+test('a short or steep link is still a road: the bank down into the flood channel is a 1.5 grade',()=>{
+ const areas=graph(),area=areas.get(0)!;
+ area.nodes[1].position=[5,0,-7.3];expect(trafficLinks(areas,area.nodes[0],true).map(l=>l.to)).toEqual([area.nodes[1]]);
+ area.nodes[1].position=[2.5,0,0];expect(trafficLinks(areas,area.nodes[0],true)[0].length).toBeCloseTo(2.5);
+ area.nodes[1].position=[0,0,3];expect(trafficLinks(areas,area.nodes[0],true)).toEqual([]);
+});
+
 test('pursuit destination distinguishes an overpass from the nearby street below',()=>{
  const areas=graph(),area=areas.get(0)!,start=area.nodes[0],bridge=area.nodes[1],street=node(2,17);
  start.position=[-100,0,0];start.linkCount=2;bridge.position=[20,0,15];bridge.baseLink=2;street.baseLink=3;

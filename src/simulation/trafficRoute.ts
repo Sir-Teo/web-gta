@@ -12,7 +12,11 @@ export function trafficLinks(areas:ReadonlyMap<number,PathArea>,from:PathNode,cl
   const address=area.links[slot],to=address&&areas.get(address.area)?.nodes[address.node],ref=area.navigationLinks[slot],navigation=ref&&areas.get(ref.area)?.navigation[ref.node];
   // Mission cars may also drive against one-way lanes, keeping to the road centre.
   if(!to||!allowed(to)||!navigation||!closed&&!pathDirection(from.address,to.address,navigation).lanes)continue;
-  const length=Math.hypot(to.position[0]-from.position[0],to.position[1]-from.position[1]);if(length<3||Math.abs(to.position[2]-from.position[2])/length>.3)continue;
+  // DoPathSearch costs a link by its length alone and the random pick has no slope term: a link however short or
+  // steep is a road (INTRO1's homies take a 2.5 unit link and a 1.5 grade down the bank into the flood channel at
+  // Glen Park; random traffic is kept off such ramps by their switched-off nodes). Only a link of no length is left
+  // out, having no direction.
+  const length=Math.hypot(to.position[0]-from.position[0],to.position[1]-from.position[1]);if(length<1e-3)continue;
   const dx=(to.position[0]-from.position[0])/length,dz=-(to.position[1]-from.position[1])/length;
   // Browser policy: innermost right-hand lane, with 3.2 m lane spacing.
   // On one-way links center the selected lane within the available carriageway.

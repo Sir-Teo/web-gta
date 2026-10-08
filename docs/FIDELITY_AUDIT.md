@@ -1574,7 +1574,7 @@ Pinned gta-reversed 0076f9017b4aeef7433957ac2bd8b6988e9df166.
       too, and a type-9 junction holds a random car 4.5 s.
     - Switched-off and don't-wander roads are now candidates for random
       traffic, which the pick's rules keep off them; the browser still leaves
-      out water nodes and links under 3 units long or steeper than 0.3.
+      out water nodes (and a link of no length, which has no direction).
     - The lane changes on a rhythm: a countdown made 2 to 9 drops at each
       new segment over 16 units, node to node; at 0 the car moves a lane (an
       odd draw outwards) and it restarts at 4 to 7. Vice City's one time in
@@ -11411,3 +11411,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   has no back seat or passenger clip.
 - WARP_CHAR_FROM_CAR_TO_COORD sets the player down off a bike, boat or aircraft as off a car; it gave the thread up
   ("a player on a bike, boat or plane"), so a script ending a ride with CJ on his BMX stopped there.
+- A road link however short or steep is a road. The car routes and picks left out links under 3 units or steeper than
+  0.3, which DoPathSearch never did (it costs a link by its length alone): INTRO1's homies, sent to the flood channel
+  at Glen Park (1987.6, -1516.7), could not take the bank down at 1970, -1488 (a 1.5 grade) and rode 400 units round
+  by the next ramp while CJ, following, was told to stay with Sweet. Random traffic keeps off such ramps by their
+  switched-off nodes, as in the original.
