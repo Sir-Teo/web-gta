@@ -382,11 +382,16 @@ export function missionBotTick(dtSeconds:number){
  // "Drive the girl home" (CRASH1): on foot with someone to take somewhere and no car of the script's to use, a player
  // takes the nearest car, walking up to it and pressing the enter-car key (the game's own entry, a jacking when it has a
  // driver), and his group gets in with him.
- if(!vehicle&&me.z<500&&/\bdrive\b|take (her|him|them) home/i.test(objective)){
+ // Kept to for half a minute once begun, through the brief's swaps between "drive her home" and "you left her behind".
+ if(vehicle)mem.carHunt=undefined;
+ if(!vehicle&&me.z<500&&/\bdrive\b|take (her|him|them) home/i.test(objective)&&!mem.carHunt)mem.carHunt={since:performance.now()};
+ if(mem.carHunt&&performance.now()-mem.carHunt.since>30000)mem.carHunt=undefined;
+ if(!vehicle&&me.z<500&&mem.carHunt){
   const near=[...(g.fleet?.()?.cars??[])].filter((c:any)=>!c.disposed&&!c.wrecked&&c.car?.body?.isValid?.())
    .map((c:any)=>{const t=c.car.body.translation();return {x:t.x,y:-t.z,z:t.y};}).filter((p:any)=>distance(p)<80).sort((a:any,b:any)=>distance(a)-distance(b));
   if(near.length){
-   if(glide(near[0],2.5))return {action:'go to a car'};
+   // A car's body keeps him a few units off its centre: within five he is at a door.
+   if(distance(near[0])>5&&glide(near[0],2.5))return {action:'go to a car'};
    const now=performance.now();if(now-(mem.enterKeyAt??0)>2500){mem.enterKeyAt=now;return {action:'press enter car'};}
    return {action:'getting into a car'};
   }
