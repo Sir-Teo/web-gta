@@ -6230,13 +6230,16 @@ async function boot() {
                   const v=vehicle?vehicle.linvel():sim.playerVelocity();return {x:v.x,y:-v.z,z:v.y};
                  },
                  playerAttachedObject:()=>playerAttached?.object,
-                 // SET_HEADING_FOR_ATTACHED_PLAYER: the way he faces on the thing he hangs from (degrees anticlockwise from
-                 // its front, as the side's quarter turns are) and the turn allowed either side of it; the view turns there.
+                 // SET_HEADING_FOR_ATTACHED_PLAYER (AUTHORED): the way he faces on the thing he hangs from (degrees
+                 // anticlockwise from its front, as the side's quarter turns are) and the turn allowed either side of it;
+                 // the view turns there. iOS's handler (0x1001fe4b4) only stores the angle and the second operand in
+                 // radians, which the attached-aim camera (0x1002136f8) takes as an absolute Beta to swing to, by that
+                 // much a frame, and then clears.
                  setAttachedPlayerHeading:(heading,range)=>{
                   const a=playerAttached;if(!a)return false;
                   a.facing=heading*Math.PI/180;a.limit=range*Math.PI/180;
                   const frame=attachedFrame(a);
-                  if(frame){const f=new Vector3(0,0,-1).applyQuaternion(frame.q);render.yaw=Math.atan2(f.x,f.z)-a.facing-Math.PI;}
+                  if(frame){const f=new Vector3(0,0,-1).applyQuaternion(frame.q);render.yaw=Math.atan2(f.x,f.z)+a.facing-Math.PI;}
                   pinAttachedPlayer();return true;
                  },
                  playerAttachedVehicle:()=>playerAttached?.car,

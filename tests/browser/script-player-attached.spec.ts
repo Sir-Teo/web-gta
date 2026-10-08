@@ -29,7 +29,8 @@ test('the player rides on a car at an offset with a given gun, and is let go wit
  await w('setHeadingForAttachedPlayer',0,90,10);
  const facing=()=>page.evaluate(h=>{const g=(window as any).__game,c=g.missionForProfiling().vehicles.entity(h).car.body.rotation();
   // The car's front in renderer axes, and CJ's heading against it (anticlockwise seen from above is positive).
-  const x=2*(c.x*c.z+c.w*c.y)*-1,z=-(1-2*(c.x*c.x+c.y*c.y));const front=Math.atan2(x,z),d=front-g.state().player.heading;return Math.atan2(Math.sin(d),Math.cos(d))*180/Math.PI;},car);
+  // The player's heading grows anticlockwise (forward (sin h, cos h) in renderer x and z), so his left is front + 90.
+  const x=2*(c.x*c.z+c.w*c.y)*-1,z=-(1-2*(c.x*c.x+c.y*c.y));const front=Math.atan2(x,z),d=g.state().player.heading-front;return Math.atan2(Math.sin(d),Math.cos(d))*180/Math.PI;},car);
  await expect.poll(facing,{timeout:5000}).toBeGreaterThan(79);
  expect(await facing()).toBeLessThan(101);
  await w('detachPedFromCar',1);

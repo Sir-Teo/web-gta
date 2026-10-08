@@ -8783,8 +8783,11 @@ in its axes, turned to where he aims within the limit about the side he faces (0
 standing and taking the vehicle's motion. `DETACH_CHAR_FROM_CAR` does nothing to a player who hangs from nothing;
 otherwise `DettachPedFromEntity` empties the weapon given for the ride and gives back the one he had with its ammo,
 and his collision returns. `IS_CHAR_ATTACHED_TO_ANY_CAR` answers for him. Not done: the first-person
-`MODE_HELICANNON_1STPERSON` camera the game switches to, and `SET_HEADING_FOR_ATTACHED_PLAYER`, whose handler is in
-no source to hand. Spec: `script-player-attached`.
+`MODE_HELICANNON_1STPERSON` camera the game switches to, and `SET_HEADING_FOR_ATTACHED_PLAYER` as iOS has it: its
+handler (0x1001fe4b4) stores the angle and the second operand in radians, and the attached-aim camera (0x1002136f8)
+swings its Beta to that absolute angle by the second operand a frame, then clears it. The port's stand-in turns his
+facing on the vehicle (anticlockwise from its front, as the side's quarter turns) and the view with it, within that
+many degrees. Spec: `script-player-attached`.
 
 ## DELETE_CAR under the player
 
