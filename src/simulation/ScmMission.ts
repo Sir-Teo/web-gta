@@ -2505,6 +2505,7 @@ export class ScmMission {
      :()=>vehicle===PLAYER_VEHICLE_HANDLE?this.playerPose(vehicle).position:this.vehicles.exists(vehicle)&&this.vehicles.entity(vehicle)?this.vehicles.positionOf(vehicle):undefined;
     heli.tellHeliToFollowEntity?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},distance);
    },
+   heliLandAtCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToLand?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToLand?.(x,y,z,minAltitude,maxAltitude);},
    makeHeliComeCrashingDown:handle=>{(this.liveVehicle(handle) as {makeHeliComeCrashingDown?:()=>void}).makeHeliComeCrashingDown?.();},
    setHeliReachedTargetDistance:(handle,distance)=>{(this.liveVehicle(handle) as {setHeliReachedTargetDistance?:(d:number)=>void}).setHeliReachedTargetDistance?.(distance);},
    // The car's own fields the script sets that the browser's cars keep but do not act on: CVehicle's status and

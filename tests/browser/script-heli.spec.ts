@@ -62,3 +62,23 @@ test('a burning script helicopter told to crash spins down and blows up',async({
  await expect.poll(dead,{timeout:15000}).toBe(true);
  expect(errors).toEqual([]);
 });
+
+/** HELI_LAND_AT_COORDS (GARAG1's RC Raider): MISSION_HELI_LAND, SteerAIHeliToLand (iOS 0x10019de50). */
+test('a script helicopter told to land comes down on the spot and rests there',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const p=await page.evaluate(()=>{const s=(window as any).__game.state().player.position;return {x:s.x,y:-s.z,z:s.y};});
+ const heli=await page.evaluate(([x,y,z])=>(window as any).__game.missionForProfiling().runtime.world.createCar(487,x+20,y+60,z+30),[p.x,p.y,p.z] as const);
+ await page.waitForFunction(b=>!!(window as any).__game.missionForProfiling().vehicles.entity(b),heli,{timeout:60000});
+ // The street beside CJ, where he stands.
+ const spot={x:p.x+12,y:p.y,z:p.z};
+ await page.evaluate(([b,s])=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.setHeliBladesFullSpeed(b);w.heliLandAtCoords(b,s.x,s.y,s.z,0,s.z+20);},[heli,spot] as const);
+ const at=()=>page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.vehiclePosition(b),heli);
+ await expect.poll(async()=>{const q=await at();return Math.hypot(q.x-spot.x,q.y-spot.y)<12&&q.z<spot.z+4;},{timeout:40000,intervals:[500]}).toBe(true);
+ await page.waitForTimeout(3000);const rest=await at();await page.waitForTimeout(2000);const still=await at();
+ expect(Math.hypot(still.x-rest.x,still.y-rest.y,still.z-rest.z)).toBeLessThan(.5);
+ expect(errors).toEqual([]);
+});

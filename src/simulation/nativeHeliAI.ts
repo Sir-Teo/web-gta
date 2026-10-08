@@ -7,7 +7,7 @@
 import type {NativeVec} from './nativeFlyingControl';
 
 /** eCarMission values the steering looks at. */
-export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_LAND_TOUCHING_DOWN=48,MISSION_HELI_CRASH_AND_BURN=58;
+export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_LAND=47,MISSION_HELI_LAND_TOUCHING_DOWN=48,MISSION_HELI_CRASH_AND_BURN=58;
 
 /** CHeli's fields the AI flies by: the controls it writes (m_fLeftRightSkid +0xbcc, positive yawing right;
  * m_fSteeringUpDown +0xbd0, positive nose up; m_fSteeringLeftRight +0xbd4, negative rolling right;
@@ -50,6 +50,18 @@ export function heliProbeDue(nowMs:number,previousMs:number,seed:number){return 
 export function steerAIHeliTowardsTargetCoors(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,probe:boolean,ts:number){
  const dx=pilot.destination[0]-body.position[0],dy=pilot.destination[1]-body.position[1];
  flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(dx,dy),Math.hypot(dx,dy),true,probe,ts);
+}
+
+/** SteerAIHeliToLand (iOS 0x10019de50), MISSION_HELI_LAND and _TOUCHING_DOWN: toward the spot as toward a target; within
+ * 10 units of it along the ground and all but still (under 0.05 a frame), both altitudes go to nought so it sinks to
+ * what is under it, and with a wheel on the ground (a suspension line short of full length) every control is let go. */
+export function steerAIHeliToLand(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,probe:boolean,ts:number,wheelOnGround:boolean){
+ const dx=pilot.destination[0]-body.position[0],dy=pilot.destination[1]-body.position[1],along=Math.hypot(dx,dy);
+ flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(dx,dy),along,true,probe,ts);
+ if(along<10&&Math.hypot(body.moveSpeed[0],body.moveSpeed[1])<.05){
+  ai.minAltitude=0;ai.maxAltitude=0;
+  if(wheelOnGround){ai.yaw=0;ai.pitch=0;ai.roll=0;ai.accel=0;}
+ }
 }
 
 /** CHeli's constructor (iOS 0x1004645cc): the yaw it spins at coming down in a crash, 2 to 8. */

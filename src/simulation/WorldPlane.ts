@@ -13,7 +13,7 @@ import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,HELI_FLIGHT_MODEL,HELI_ROTOR_FLY,HELI_ROTOR_FULL,HYDRA_NOZZLE_MAX,HYDRA_NOZZLE_RATE,HYDRA_VTOL_NOZZLE,heliFlyingControl,heliHoverInputs,hydraThrustAxis,stepHeliRotor,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
 import {requireAsset} from '../assets/binary';
-import {MISSION_HELI_CRASH_AND_BURN,MISSION_HELI_FLYTOCOORS,MISSION_HELI_FOLLOW_ENTITY,heliCrashYaw,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
+import {MISSION_HELI_CRASH_AND_BURN,MISSION_HELI_FLYTOCOORS,MISSION_HELI_FOLLOW_ENTITY,MISSION_HELI_LAND,MISSION_HELI_LAND_TOUCHING_DOWN,heliCrashYaw,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
@@ -145,6 +145,11 @@ export class WorldPlane {
   if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_HELI_FOLLOW_ENTITY;
   pilot.target=target;pilot.ai.minAltitude=minAltitude;pilot.cruiseSpeed=100;
  }
+ /** HELI_LAND_AT_COORDS (iOS 0x1001f5c10): TellHeliToGoToCoors with its arguments, then MISSION_HELI_LAND (the handler's
+  * own test for a heli crashing comes after TellHeliToGoToCoors has made the mission 20, so it always lands). */
+ tellHeliToLand(x:number,y:number,z:number,minAltitude:number,maxAltitude:number){
+  this.tellHeliToGoToCoors(x,y,z,minAltitude,maxAltitude);const pilot=this.heliPilot;if(pilot)pilot.mission=MISSION_HELI_LAND;
+ }
  /** MAKE_HELI_COME_CRASHING_DOWN (iOS 0x1001e5414): MISSION_HELI_CRASH_AND_BURN, unless it is crashing already. */
  makeHeliComeCrashingDown(){const pilot=this.aiPilot();if(pilot&&pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_HELI_CRASH_AND_BURN;}
  /** SET_HELI_REACHED_TARGET_DISTANCE (iOS 0x1001fe394): CAutoPilot's m_ucHeliTargetDist2, a byte. */
@@ -160,7 +165,8 @@ export class WorldPlane {
   const pilot=this.heliPilot;if(!pilot||this.occupied||this.health<=0)return;
   const ai=pilot.ai,controls=()=>{this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:-ai.roll,rudder:ai.yaw,brake:false};};
   if(pilot.mission===MISSION_HELI_CRASH_AND_BURN){steerAIHeliToCrashAndBurn(ai,this.heliSeed,this.crashYaw);controls();return;}
-  if(pilot.mission!==MISSION_HELI_FLYTOCOORS&&pilot.mission!==MISSION_HELI_FOLLOW_ENTITY)return;
+  const landing=pilot.mission===MISSION_HELI_LAND||pilot.mission===MISSION_HELI_LAND_TOUCHING_DOWN;
+  if(pilot.mission!==MISSION_HELI_FLYTOCOORS&&pilot.mission!==MISSION_HELI_FOLLOW_ENTITY&&!landing)return;
   const previous=this.heliClockMs;this.heliClockMs+=dt*1000;
   const body=this.flyingBody(),world=this.sim.world;
   const port=(v:NV)=>({x:v[0],y:v[2],z:-v[1]});
@@ -171,7 +177,9 @@ export class WorldPlane {
   };
   const env={lineOfSight,rand:()=>Math.floor(Math.random()*32768)},probe=heliProbeDue(this.heliClockMs,previous,this.heliSeed);
   const target=pilot.mission===MISSION_HELI_FOLLOW_ENTITY?pilot.target?.():undefined;
-  if(target)steerAIHeliToFollowEntity(pilot.ai,body,pilot,env,target,probe,dt*50);
+  // A wheel on the ground: the port's aircraft stands on its gear when the ground is within its clearance.
+  if(landing)steerAIHeliToLand(pilot.ai,body,pilot,env,probe,dt*50,this.grounded);
+  else if(target)steerAIHeliToFollowEntity(pilot.ai,body,pilot,env,target,probe,dt*50);
   else steerAIHeliTowardsTargetCoors(pilot.ai,body,pilot,env,probe,dt*50);
   // m_ucHeliSpeedMult's push forward is on the move speed itself.
   if(pilot.heliSpeedMult!==0)this.body.setLinvel({x:body.moveSpeed[0]*50,y:body.moveSpeed[2]*50,z:-body.moveSpeed[1]*50},true);

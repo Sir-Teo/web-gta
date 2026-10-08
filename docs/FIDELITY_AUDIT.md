@@ -11435,8 +11435,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   to nothing at m_ucHeliTargetDist2, yaws twice the turn left to make, and with the way ahead blocked rolls from the
   nearer-walled side and brakes. An AI heli flies on out past the 250 units the port steps aircraft within.
   SET_HELI_BLADES_FULL_SPEED sets the rotor to 0.22 (iOS 0x1001faec4); it was stored and never read. Not yet ported:
-  a forced orientation (FlyAIHeliToTarget_FixedOrientation, iOS 0x1001a068c), and the land, keep-in-view, attack
-  and police missions.
+  a forced orientation (FlyAIHeliToTarget_FixedOrientation, iOS 0x1001a068c), and the keep-in-view, attack and
+  police missions.
 - HELI_FOLLOW_ENTITY (iOS 0x1001f5edc) follows the ped, or the vehicle: MISSION_HELI_FOLLOW_ENTITY, the command's
   distance as m_fMinAltitude, cruise speed 100. SteerAIHeliToFollowEntity (iOS 0x10019d400) makes the entity's position
   the destination each step and holds its height, at least 6, or 25 while more than 50 units off, flying as toward
@@ -11450,3 +11450,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   strikes something rising or is down; the port did that for the player's burning aircraft alone. A blown-up plane
   or helicopter is now wrecked (STATUS_WRECKED, which IS_CAR_DEAD asks): it had kept no such state, so a mission
   waiting for a shot-down helicopter to be dead waited for good.
+- HELI_LAND_AT_COORDS (iOS 0x1001f5c10) is TellHeliToGoToCoors with its arguments, then MISSION_HELI_LAND (the
+  handler's test for a crashing heli comes after TellHeliToGoToCoors has set mission 20, so it always lands).
+  SteerAIHeliToLand (iOS 0x10019de50) flies toward the spot. Within 10 units and all but still (under 0.05 a frame),
+  both altitudes drop to nought so it sinks onto what is under it, and once a wheel is on the ground every control is
+  let go. A wheel on the ground here is the port's aircraft standing within its gear clearance.

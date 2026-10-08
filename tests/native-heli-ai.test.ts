@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,heliCrashYaw,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
+import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,heliCrashYaw,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
 import type {NativeVec} from '../src/simulation/nativeFlyingControl';
 
 const pilot=(destination:NativeVec):HeliPilot=>({mission:MISSION_HELI_FLYTOCOORS,cruiseSpeed:100,heliSpeedMult:0,heliTargetDist2:10,destination,rc:false,forcedOrientation:-1});
@@ -67,4 +67,17 @@ test('coming down in a crash: nose down 0.3, collective −0.5, spinning and rol
  steerAIHeliToCrashAndBurn(ai,3,5);expect([ai.pitch,ai.yaw,ai.roll,ai.accel]).toEqual([-.3,5,1,-.5]);
  steerAIHeliToCrashAndBurn(ai,4,5);expect([ai.yaw,ai.roll]).toEqual([-5,-1]);
  expect(heliCrashYaw(()=>0)).toBe(2);expect(heliCrashYaw(()=>.999)).toBeCloseTo(7.994);
+});
+
+test('landing: over the spot and all but still it sinks, and lets every control go once a wheel is down',()=>{
+ const ai=newHeliAI();ai.maxAltitude=40;ai.minAltitude=10;
+ const p={...pilot([3,4,0]),mission:47};
+ steerAIHeliToLand(ai,body(),p,open,true,1,false);
+ expect([ai.maxAltitude,ai.minAltitude]).toEqual([0,0]);expect(ai.accel).not.toBe(0);
+ steerAIHeliToLand(ai,body(),p,open,true,1,true);
+ expect([ai.yaw,ai.pitch,ai.roll,ai.accel]).toEqual([0,0,0,0]);
+ // Far off, it flies there at its altitude.
+ const far=newHeliAI();far.maxAltitude=40;
+ steerAIHeliToLand(far,body(),{...pilot([0,200,0]),mission:47},open,true,1,true);
+ expect(far.maxAltitude).toBe(40);expect(far.pitch).toBeLessThan(0);
 });
