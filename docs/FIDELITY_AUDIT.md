@@ -11393,3 +11393,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
 - CVehicleRecording plays on bikes. The recording host took only script cars, so TWAR7's Ballas rider sat on his
   PCJ-600 while recording 30 ran on nothing and the scene waited on him. A bike now has the playback slot and pedals
   a car has, and its own pedals and balance stand aside while a playback drives its body.
+- An abandoned bike rests as CBike::ProcessControl has it (iOS 0x100451b3c, limits at 0x100595eb0, the car's own
+  values): nobody riding or driving it, its averaged move and turn speed within 0.003 and 0.0009 a frame (0.006 and
+  0.0015 wrecked) and its speed under 0.005 (0.015) for over 10 frames, or idle (speed exactly nought, a wheel down)
+  at once, and its physics stop until something touches it. The port had no rest for bikes: TWAR7's PCJ-600, made in
+  the yard behind the Ballas' house on a slope, rolled back three units past a ledge, its rider could not reach it,
+  and the mission waited on him for good. (CREATE_CAR also puts script bikes on their side stand, iOS 0x10018ce38;
+  the stand's lean, which ProcessControl eases toward 20 degrees while the bike rests, is not drawn yet.)

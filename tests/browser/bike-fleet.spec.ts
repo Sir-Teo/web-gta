@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {endStoryMission} from './freeRoam';
 
 test('a bike generator parks its bike, and the fleet invents none of its own',async({page})=>{
  test.setTimeout(180000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -39,5 +40,25 @@ test('a bike generator parks its bike, and the fleet invents none of its own',as
  expect(result.settled).toBeLessThan(1);
  expect(result.nearest).toBe(true);
  expect(result.snapshot).toEqual([481]);
+ expect(errors).toEqual([]);
+});
+
+/** CBike::ProcessControl's fake physics: an abandoned bike at rest skips its physics, at once when CREATE_CAR has left it
+ * idle. TWAR7 makes the Ballas rider's PCJ-600 in the yard behind his house, on a slope; with no rest it rolled back
+ * three units and nosed down past a ledge, out of his reach, and the mission waited on him for good. */
+test('a script bike made on a slope stays where it was made',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.setPedCoordinates(1,2469,-1279,30));
+ await page.waitForFunction(()=>{const s=(window as any).__game.state();return s.player.grounded&&!s.terrainHold;},undefined,{timeout:90000});
+ await page.waitForTimeout(2000);
+ const bike=await page.evaluate(()=>(window as any).__game.missionForProfiling().vehicles.create(461,{x:2488.2,y:-1279.9,z:30},286.4));
+ await page.waitForFunction(b=>!!(window as any).__game.missionForProfiling().vehicles.entity(b),bike,{timeout:60000});
+ const at=()=>page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.vehiclePosition(b),bike);
+ const first=await at();await page.waitForTimeout(6000);const later=await at();
+ expect(Math.hypot(later.x-first.x,later.y-first.y)).toBeLessThan(.3);
  expect(errors).toEqual([]);
 });

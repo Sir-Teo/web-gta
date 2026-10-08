@@ -58,6 +58,8 @@ export class WorldBike {
  static riderStaysOn?:()=>boolean;
  /** CCullZones::CamStairsForPlayer and FindZoneWithStairsAttributeForPlayer: the player stands in a stairs zone. */
  static playerOnStairs?:()=>boolean;
+ /** Whether a ped of the script's sits on the bike's saddle: such a bike is not abandoned, so it never rests. */
+ static hasDriverPed?:(bike:WorldBike)=>boolean;
  /** CEventKnockOffBike's response for the player: the host plays the fall clip CalcForcesAndAnims picked and the
   * get-up after it (CTaskComplexFallAndGetUp). */
  static onKnockedOff?:(clip:string)=>void;
@@ -296,6 +298,7 @@ export class WorldBike {
   // A playback without car AI owns the body (bDisableCollisionForce, a velocity-driven body here): the bike's own
   // pedals and balance would fight the recording's speeds.
   if(this.recordingSlot>=0&&this.body.bodyType()===RAPIER.RigidBodyType.KinematicVelocityBased)return;
+  if(this.skipPhysics(dt))return;
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   // The ride clip's clock: the pedal cycle turns while the rider pedals and holds while he coasts.
   if(Math.abs(input.throttle)>.05)this.rideTime+=dt;
@@ -468,6 +471,29 @@ export class WorldBike {
   this.body.setTranslation({x:p.x,y:p.y+lift+.02,z:p.z},true);
  }
  /** Whether the ground is under the bike (a short ray down from the body), `along` units ahead of its centre. */
+ /** CBike::ProcessControl's fake physics (iOS 0x100451b3c, its limits at 0x100595eb0), as CAutomobile's: a bike that is
+  * STATUS_ABANDONED or WRECKED (nobody riding or driving it) whose move and turn speed, averaged into m_vecForce and
+  * m_vecTorque, stay within 0.003 and 0.0009 units a frame (0.006 and 0.0015 wrecked) times the timestep, and whose
+  * speed stays under 0.005 (0.015), for more than 10 frames stops its physics: the speeds are reset and the body sleeps
+  * until something touches it. An idle bike (move speed exactly nought, a wheel on the ground and no collision to
+  * process: CREATE_CAR leaves one so) stops at once. The port had none of it: an empty bike on a slope rolled away, as
+  * TWAR7's PCJ-600 did from behind the Ballas' house, out of its rider's reach. */
+ private fakeForce={x:0,y:0,z:0};private fakeTorque={x:0,y:0,z:0};private fakeFrames=0;
+ private skipPhysics(dt:number){
+  const body=this.body;
+  if(this.occupied||this.autopilot||this.scriptDriven||this.mountTimer>0||WorldBike.hasDriverPed?.(this)||this.inWater){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
+  if(body.isSleeping()){this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;}
+  const v=body.linvel(),w=body.angvel(),f=this.fakeForce,t=this.fakeTorque,ts=dt*50;
+  const idle=v.x===0&&v.y===0&&v.z===0&&this.wheelsDown();
+  f.x=(f.x+v.x/50)/2;f.y=(f.y+v.y/50)/2;f.z=(f.z+v.z/50)/2;t.x=(t.x+w.x/50)/2;t.y=(t.y+w.y/50)/2;t.z=(t.z+w.z/50)/2;
+  const [force,torque,moving]=this.wrecked?[.006,.0015,.015]:[.003,.0009,.005];
+  const rest=(force*ts)**2>=f.x*f.x+f.y*f.y+f.z*f.z&&(torque*ts)**2>=t.x*t.x+t.y*t.y+t.z*t.z&&Math.hypot(v.x,v.y,v.z)/50<moving;
+  if(!rest&&!idle){this.fakeFrames=0;return false;}
+  this.fakeFrames+=dt*50;
+  if(this.fakeFrames<=10&&!idle)return false;
+  this.fakeFrames=Math.min(this.fakeFrames,10);body.setLinvel({x:0,y:0,z:0},false);body.setAngvel({x:0,y:0,z:0},false);body.sleep();
+  this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;
+ }
  private wheelsDown(along=0){
   const p=this.body.translation(),f=rotate(this.body.rotation(),{x:0,y:0,z:-1});
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:p.x+f.x*along,y:p.y+.2+f.y*along,z:p.z+f.z*along},{x:0,y:-1,z:0}),1.4,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,this.body);
