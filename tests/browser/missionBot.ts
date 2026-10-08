@@ -27,8 +27,11 @@ export function missionBotTick(dtSeconds:number){
  // MAIN's sprite blips (shops, contacts) are there before the mission; a sprite blip the mission adds is an objective
  // (CRASH4's Glen Park and Ammu-Nation, ADD_SPRITE_BLIP_FOR_COORD).
  mem.preSprites??=new Set(radar.traces.map((t:any,i:number)=>t.tracking&&t.sprite!==0?i:-1).filter((i:number)=>i>=0));
- const blips=radar.traces.filter((t:any,i:number)=>t.tracking&&(t.sprite===0||!mem.preSprites.has(i))&&t.display!==0&&!t.shortRange)
-  .map((t:any)=>({type:t.type,handle:t.entityHandle,friendly:!!t.friendly,position:at(t),entryExit:t.entryExit})).filter((b:any)=>b.position&&(b.position.x||b.position.y));
+ const shown=radar.traces.filter((t:any,i:number)=>t.tracking&&(t.sprite===0||!mem.preSprites.has(i))&&t.display!==0&&!t.shortRange)
+  .map((t:any)=>({type:t.type,handle:t.entityHandle,friendly:!!t.friendly,position:at(t),entryExit:t.entryExit,sprite:t.sprite})).filter((b:any)=>b.position&&(b.position.x||b.position.y));
+ // Beside a plain blip, a sprite blip the mission adds is a detour it offers (SMOKE2's gun at Emmet's: "if you need a
+ // weapon"), not the way on.
+ const blips=shown.some((b:any)=>!b.sprite)?shown.filter((b:any)=>!b.sprite):shown;
  const distance=(p:any)=>Math.hypot(p.x-me.x,p.y-me.y);
  // A shop's menu is up (the barber's chair, a counter): a player picks with the cross button, which the sweep presses.
  // When the shop refuses the highlighted item (too dear: SHOPNO; already worn: BARBNO), he moves down a row first, as
