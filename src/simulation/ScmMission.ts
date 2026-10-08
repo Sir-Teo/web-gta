@@ -419,6 +419,9 @@ export interface ScmMissionWorld {
  setScriptPedFrozen(ped:unknown,frozen:boolean):void;
  scriptPedInAir(ped:unknown):boolean;
  scriptPedArea(ped:unknown):number;
+ /** CPhysical::m_pEntityIgnoredCollision of a script ped: a script object's, or a map object's by its placement key, or
+  * nothing. */
+ setScriptPedIgnoredCollision?(ped:unknown,target:{object:number}|{world:string}|undefined):void;
  scriptPedActiveWeapon(ped:unknown):{type:number;melee:boolean};
  scriptPedShooting(ped:unknown):boolean;
  warpScriptPedToCoord(ped:unknown,position:{x:number;y:number;z:number}):void;
@@ -1418,6 +1421,23 @@ export class ScmMission {
    // IS_GERMAN_GAME: these are the English-language data files, not the German release's.
    gameIsGerman:()=>false,
    setPedUsesUpperbodyDamageAnimsOnly:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'upperBodyDamageAnimsOnly',state);},
+   // SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE (iOS 0x100203af4): CWorld::FindObjectsOfTypeInRange (2D, the map's
+   // buildings and dummies and the objects), the nearest of them in 3D from twice the radius; with the flag clear it
+   // becomes the ped's m_pEntityIgnoredCollision, with it set the ped collides with everything again. Nothing changes
+   // when no such object is near. (A map object is looked for within the radius in 3D. The player's is not kept.)
+   setCharUsesCollisionClosestObjectOfType:(x,y,z,radius,model,uses,handle)=>{
+    if(z<=-100)z=this.findGroundZForCoord(x,y);
+    let best:{distance:number;target:{object:number}|{world:string}}|undefined;
+    for(const object of this.runtime.game.objects.all){
+     if(object.model!==model||Math.hypot(object.position.x-x,object.position.y-y)>radius)continue;
+     const distance=Math.hypot(object.position.x-x,object.position.y-y,object.position.z-z);
+     if(distance<(best?.distance??radius*2))best={distance,target:{object:object.handle}};
+    }
+    const map=this.world.closestWorldObjectOfType?.({x,y,z},radius,model);
+    if(map?.key!==undefined&&map.distance<(best?.distance??radius*2))best={distance:map.distance,target:{world:map.key}};
+    if(!best||handle===PLAYER_PED_HANDLE)return;
+    this.world.setScriptPedIgnoredCollision?.(this.livePed(handle),uses?undefined:best.target);
+   },
    setPedKindaStayInSamePlace:(handle,state)=>{this.world.setScriptPedFlag(this.livePed(handle),'kindaStayInSamePlace',state);},
    // CPed::bIsTalking and the facial talk. The depot has no speech banks, so these hold what the script said
    // and nothing speaks; the thread carries on rather than stopping on a question nothing here answers.

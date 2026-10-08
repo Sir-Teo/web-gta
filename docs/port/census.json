@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-07T23:54:17.632Z",
+ "generated": "2026-10-08T00:10:32.429Z",
  "reference": null,
  "totals": {
   "instructions": 416669,
@@ -7,10 +7,10 @@
   "byStatus": {
    "core": 153,
    "nop": 26,
-   "faithful": 1241,
+   "faithful": 1242,
    "authored": 19,
    "silent": 1,
-   "skipped": 129,
+   "skipped": 128,
    "stops": 1
   }
  },
@@ -976,18 +976,13 @@
    "byStatus": {
     "core": 232,
     "nop": 4,
-    "faithful": 74,
+    "faithful": 78,
     "authored": 1,
     "silent": 0,
-    "skipped": 4,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
-    {
-     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "skipped",
-     "sites": 4
-    },
     {
      "name": "IS_CHAR_USING_MAP_ATTRACTOR",
      "status": "authored",
@@ -1116,21 +1111,16 @@
    "byStatus": {
     "core": 227,
     "nop": 9,
-    "faithful": 76,
+    "faithful": 77,
     "authored": 1,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
     {
      "name": "IS_CHAR_USING_MAP_ATTRACTOR",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "skipped",
      "sites": 1
     },
     {
@@ -1149,21 +1139,16 @@
    "byStatus": {
     "core": 227,
     "nop": 9,
-    "faithful": 76,
+    "faithful": 77,
     "authored": 1,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 1
    },
    "gaps": [
     {
      "name": "IS_CHAR_USING_MAP_ATTRACTOR",
      "status": "authored",
-     "sites": 1
-    },
-    {
-     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "skipped",
      "sites": 1
     },
     {
@@ -1376,18 +1361,13 @@
    "byStatus": {
     "core": 183,
     "nop": 4,
-    "faithful": 49,
+    "faithful": 51,
     "authored": 1,
     "silent": 0,
-    "skipped": 2,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "skipped",
-     "sites": 2
-    },
     {
      "name": "IS_CHAR_USING_MAP_ATTRACTOR",
      "status": "authored",
@@ -1490,18 +1470,13 @@
    "byStatus": {
     "core": 1270,
     "nop": 0,
-    "faithful": 334,
+    "faithful": 335,
     "authored": 1,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
    "gaps": [
-    {
-     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "skipped",
-     "sites": 1
-    },
     {
      "name": "ATTACH_CHAR_TO_OBJECT",
      "status": "authored",
@@ -2419,19 +2394,13 @@
    "byStatus": {
     "core": 3798,
     "nop": 8,
-    "faithful": 1744,
+    "faithful": 1745,
     "authored": 0,
     "silent": 0,
-    "skipped": 1,
+    "skipped": 0,
     "stops": 0
    },
-   "gaps": [
-    {
-     "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-     "status": "skipped",
-     "sites": 1
-    }
-   ]
+   "gaps": []
   },
   {
    "id": 25,
@@ -6137,23 +6106,6 @@
    "doc": "Returns true if the character is using a map attractor",
    "sites": 20,
    "missions": 20,
-   "firstMission": "pchair.scm",
-   "portable": false
-  },
-  {
-   "name": "SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE",
-   "opcode": "0985",
-   "status": "skipped",
-   "notes": [
-    "adapter lacks setCharUsesCollisionClosestObjectOfType (skipped: outputs read as none)"
-   ],
-   "handlerLine": 2698,
-   "ref": {
-    "kind": "unknown"
-   },
-   "doc": "Sets whether collision of the object closest to the given coordinates and matching the model applies to the target character",
-   "sites": 10,
-   "missions": 6,
    "firstMission": "pchair.scm",
    "portable": false
   },

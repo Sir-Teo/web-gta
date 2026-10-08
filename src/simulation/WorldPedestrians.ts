@@ -104,6 +104,9 @@ export interface Pedestrian {
  weaponType?:number;totalAmmo?:number;
  /** physicalFlags.bDontApplySpeed, which FREEZE_CHAR_POSITION sets: the ped keeps its place. */
  frozen?:boolean;
+ /** CPhysical::m_pEntityIgnoredCollision (SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE): the colliders of the one
+  * object the ped passes through (a chair it sits on). */
+ ignoredColliders?:ReadonlySet<number>;
  /** bNeverEverTargetThisPed, which SET_CHAR_NEVER_TARGETTED sets: the player's lock-on passes it by. */
  neverTargeted?:boolean;
  /** CREATE_CHAR's ePedType, the m_nPedType a script ped has whatever its model's peds.ide type (`pedType`) says. Only
@@ -4235,7 +4238,7 @@ export class WorldPedestrians {
    // A fallen ped's low collider ignores the cars: the controller would otherwise shove it out of a car parked
    // over it, through the road (the get-up waits for the car instead, CTaskSimpleGetUp).
    const shift=p.animShift;p.animShift=undefined;
-   const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt+(p.air?.h?.x??0)*dt+(shift?.x??0),y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt+(p.air?.h?.z??0)*dt+(shift?.z??0)},p.down>0?notCarCollider:undefined);
+   const {movement,grounded}=characterMovement(p.controller,p.collider,{x:(held?0:along.x*speed*dt)+p.impulse.x*dt+(p.air?.h?.x??0)*dt+(shift?.x??0),y:vertical,z:(held?0:along.z*speed*dt)+p.impulse.z*dt+(p.air?.h?.z??0)*dt+(shift?.z??0)},p.ignoredColliders?(c:RAPIER.Collider)=>!p.ignoredColliders!.has(c.handle)&&(p.down<=0||notCarCollider(c)):p.down>0?notCarCollider:undefined);
    if(water===undefined&&p.health>0&&p.down===0){
     if(!p.air&&!grounded&&movement.y<-4.5*dt){
      // Off the ground with the 5 m/s pull fully spent: the ped is in the air (bIsInTheAir) from this frame's gravity.

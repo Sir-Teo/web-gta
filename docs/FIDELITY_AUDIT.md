@@ -11313,3 +11313,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   CLOSE within the straight-line distance, and DO_DRIVEBY_CLOSE (60, 0x100199968) heads for the point 10 units off the
   target square to the line from the car, on the side the low bit of the car's seed picks, going FARAWAY again past
   the far distance. The crew are the ambient drive-by's posed driver and shooter (GangDriveBy), not full peds.
+- SET_CHAR_USES_COLLISION_CLOSEST_OBJECT_OF_TYPE (iOS 0x100203af4) did nothing, so the brains that seat a ped on a chair
+  (pchair.scm and five others) left it colliding with the chair. It finds the objects of the model within the radius
+  across the ground (the map's buildings and dummies and the objects), takes the nearest in 3D, and with the flag clear
+  makes it the ped's m_pEntityIgnoredCollision; with the flag set the ped collides with everything again, and with no
+  such object nothing changes. Here the ped's movement passes through that object's colliders. (A map object is looked
+  for within the radius in 3D, and the player keeps no ignored entity.)

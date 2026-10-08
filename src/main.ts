@@ -5302,6 +5302,13 @@ async function boot() {
                  },
                  setScriptPedAmmo:(ped,ammo)=>{const p=onFoot(ped);if(p)p.totalAmmo=ammo;},
                  setScriptPedFrozen:(ped,frozen)=>{const p=onFoot(ped);if(p)p.frozen=frozen;},
+                 setScriptPedIgnoredCollision:(ped,target)=>{
+                  const p=onFoot(ped);if(!p)return;if(!target){p.ignoredColliders=undefined;return;}
+                  const handles=new Set<number>();
+                  if('object' in target){const body=scriptObjectViews?.bodyOf(target.object);if(body)for(let i=0;i<body.numColliders();i++)handles.add(body.collider(i).handle);}
+                  else for(const [handle,source] of importedScene?.sources??[])if(source.placement&&placementKey(source.modelName,source.placement.position)===target.world)handles.add(handle);
+                  p.ignoredColliders=handles;
+                 },
                  scriptPedWaitForCollision:ped=>{const p=onFoot(ped);if(p)pedestrians?.waitForCollision(p);},
                  scriptPedWaitingForCollision:ped=>!!onFoot(ped)?.collisionWait,
                  // A ped without collision leaves the query pipeline: nothing touches it and no line of sight meets
