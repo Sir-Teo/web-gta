@@ -1,3 +1,4 @@
+import {searchlightCone,type SearchlightEntity} from '../engine/ScmSearchlights';
 import {CONVERSATION_LINE_MS} from '../engine/ScmConversations';
 import {SPECIAL_MODELS_RESOURCE_ID,SPECIAL_PED_MODELS} from '../engine/ScmCutscene';
 import {LAW_ENFORCEMENT_MODELS} from './nativeWanted';
@@ -2518,6 +2519,20 @@ export class ScmMission {
     const where=this.scriptEntityPosition(ped,vehicle);
     heli.tellHeliToKeepEntityInView?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},distance,minAltitude);
    },
+   // CTheScripts' script searchlights (ScmSearchlights.ts). The host moves them each frame and finds where their beams
+   // meet the ground; the scripts' in-the-light tests read that.
+   createSearchlight:(position,pointAt,radius,radiusPoint)=>this.runtime.game.searchlights.add(position,undefined,pointAt,radius,radiusPoint),
+   createSearchlightOnVehicle:(handle,offset,pointAt,radius,radiusPoint)=>{this.liveVehicle(handle);return this.runtime.game.searchlights.add(offset,{kind:'vehicle',handle},pointAt,radius,radiusPoint);},
+   deleteSearchlight:handle=>{this.runtime.game.searchlights.remove(handle);},
+   searchlightExists:handle=>this.runtime.game.searchlights.exists(handle),
+   moveSearchlightBetweenCoords:(handle,from,to,speed)=>{this.runtime.game.searchlights.moveBetween(handle,from,to,speed);},
+   pointSearchlightAtPed:(handle,ped,speed)=>{this.runtime.game.searchlights.pointAt(handle,{kind:'ped',handle:ped},speed);},
+   attachSearchlightToObject:(handle,tower,housing,bulb,offset)=>{this.runtime.game.searchlights.attachToObjects(handle,tower,housing,bulb,offset);},
+   setSearchlightClipIfColliding:(handle,on)=>{this.runtime.game.searchlights.setClipIfColliding(handle,on);},
+   switchOnGroundSearchlight:(handle,on)=>{this.runtime.game.searchlights.setGroundLight(handle,on);},
+   // IS_CHAR_IN_SEARCHLIGHT (iOS 0x1001f1718) and IS_CHAR_IN_ANY_SEARCHLIGHT: the ped's position in the lit ellipse.
+   pedIsInSearchlight:(searchlight,handle)=>{const at=this.scriptEntityPosition(handle,-1)();return !!at&&this.runtime.game.searchlights.lighting(searchlight,at);},
+   charInAnySearchlight:handle=>{const at=this.scriptEntityPosition(handle,-1)();return at?this.runtime.game.searchlights.anyLighting(at):-1;},
    setDrunkInputDelay:(pad,delay)=>{this.runtime.game.pads.setDrunkInputDelay(pad,delay);},
    heliLandAtCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToLand?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToLand?.(x,y,z,minAltitude,maxAltitude);},
    setHeliOrientation:(handle,angle)=>{(this.liveVehicle(handle) as {setHeliOrientation?:(a:number|undefined)=>void}).setHeliOrientation?.(angle);},
@@ -3470,6 +3485,35 @@ export class ScmMission {
   return undefined;
  }
  /** Where a ped that rides in a car is, which is where the car is. */
+ /** CTheScripts::ProcessAllSearchLights, then the ground spot RenderAllSearchLights has CHeli::SearchLightCone find for
+  * each script searchlight, once a frame (`frames` of them). The bulb and its housing are turned to face the target
+  * (RotateX by its pitch, RotateZ by its heading, both moved to the bulb), and the beam starts at the origin offset on
+  * the vehicle or bulb it hangs from. `lineOfSight` strikes buildings only (native). Returns what to draw. */
+ stepSearchlights(frames:number,lineOfSight:(from:{x:number;y:number;z:number},to:{x:number;y:number;z:number})=>{x:number;y:number;z:number}|undefined){
+  const lights=this.runtime.game.searchlights,objects=this.runtime.game.objects;
+  const positionOf=(e:SearchlightEntity)=>e.kind==='object'?(objects.exists(e.handle)?{...objects.at(e.handle).position}:undefined)
+   :e.kind==='ped'?this.scriptEntityPosition(e.handle,-1)():this.scriptEntityPosition(-1,e.handle)();
+  lights.process(positionOf,frames);
+  const drawn:{origin:{x:number;y:number;z:number};cone:ReturnType<typeof searchlightCone>;ground:boolean}[]=[];
+  for(const light of lights.lights){
+   if(!light.used)continue;
+   const bulb=light.bulb!==undefined&&objects.exists(light.bulb)?light.bulb:undefined;
+   if(bulb!==undefined){
+    const at={...objects.at(bulb).position},d={x:light.target.x-at.x,y:light.target.y-at.y,z:light.target.z-at.z},l=Math.hypot(d.x,d.y,d.z)||1;
+    const yaw=Math.atan2(-d.x/l,d.y/l),pitch=Math.atan2(d.z/l,Math.hypot(d.x,d.y)/l),cp=Math.cos(pitch),sp=Math.sin(pitch),cy=Math.cos(yaw),sy=Math.sin(yaw);
+    const matrix={right:{x:cy,y:sy,z:0},forward:{x:-cp*sy,y:cp*cy,z:sp},up:{x:sp*sy,y:-sp*cy,z:cp}};
+    for(const part of [bulb,light.housing])if(part!==undefined&&objects.exists(part)){const o=objects.at(part);o.matrix={right:{...matrix.right},forward:{...matrix.forward},up:{...matrix.up}};o.heading=yaw;o.position={...at};}
+   }
+   let origin={...light.origin};
+   const frame=light.attached?.kind==='vehicle'&&this.vehicles.exists(light.attached.handle)&&this.vehicles.entity(light.attached.handle)?this.vehicleMatrixOf(light.attached.handle)
+    :bulb!==undefined?objects.matrix(bulb):undefined;
+   if(frame){const o=light.origin;origin={x:frame.right.x*o.x+frame.forward.x*o.y+frame.up.x*o.z+frame.position.x,y:frame.right.y*o.x+frame.forward.y*o.y+frame.up.y*o.z+frame.position.y,z:frame.right.z*o.x+frame.forward.z*o.y+frame.up.z*o.z+frame.position.z};}
+   const cone=searchlightCone(origin,light.target,light.targetRadius,light.baseRadius,lineOfSight);
+   light.spot=cone.spot;light.axisA=cone.axisA;light.axisB=cone.axisB;
+   drawn.push({origin,cone,ground:light.enableShadow});
+  }
+  return drawn;
+ }
  /** A script's ped, or with none (-1) its vehicle, as a position to fly to each step (native), or nothing once gone. */
  private scriptEntityPosition(ped:number,vehicle:number):()=>{x:number;y:number;z:number}|undefined{
   if(ped!==-1)return ()=>ped===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.exists(ped)?this.ridingIn(ped)??this.peds.positionOf(ped):undefined;

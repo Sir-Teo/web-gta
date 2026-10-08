@@ -1016,7 +1016,8 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  taskCower?(handle:number):void;
  getCharSwimState?(handle:number):number;
  boatGotoCoords?(handle:number,x:number,y:number,z:number):void;
- isCharInAnySearchlight?(handle:number):boolean;
+ /** IS_CHAR_IN_ANY_SEARCHLIGHT (iOS 0x1001f9328): the handle of the first searchlight lighting the ped, or -1. */
+ charInAnySearchlight?(handle:number):number;
  addSmokeParticle?(x:number,y:number,z:number,velocityX:number,velocityY:number,velocityZ:number,red:number,green:number,blue:number,alpha:number,size:number,lastFactor:number):void;
  isPlayerClimbing?(handle:number):boolean;
  isCharStuckUnderCar?(handle:number):boolean;

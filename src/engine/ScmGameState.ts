@@ -12,6 +12,7 @@ import {ScmObjects} from './ScmObjects';
 import {ScmZones} from './ScmZones';
 import {ScmCamera} from './ScmCamera';
 import {ScmFires} from './ScmFires';
+import {ScmSearchlights} from './ScmSearchlights';
 import {ScmScriptSpheres} from './ScmScriptSpheres';
 import {ScmSetPieces} from './ScmSetPieces';
 import {ScmPads} from './ScmPads';
@@ -465,6 +466,8 @@ export class ScmGameState {
  set wantedMultiplier(value:number){this.wanted.multiplier=value;}
  /** CFireManager's sixty slots, the ones a script starts among them. */
  readonly fires=new ScmFires();
+ /** CTheScripts::ScriptSearchLightArray (CREATE_SEARCHLIGHT and the rest). */
+ readonly searchlights=new ScmSearchlights();
  /** CTheScripts::ScriptSphereArray (ADD_SPHERE, REMOVE_SPHERE). */
  readonly scriptSpheres=new ScmScriptSpheres();
  /** TheCamera's script-facing state, which a host applies to the camera it draws with. */

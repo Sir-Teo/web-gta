@@ -11480,3 +11480,22 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   GetSteeringLeftRight answers the stick that many frames back; the iOS executable never reads the field again (no
   pad code loads CPad +0x78; the touch steering replaced the buffer), so the steering is not delayed here either. It
   had no world hook and was skipped 8961 times over TRUTH2's stoned drive.
+- Script searchlights (CREATE_SEARCHLIGHT and its family, used by MAF4, WUZI2, DRUGS4, TRUTH2 and HEIST9) are in.
+  None of the commands had a world hook: no beam was drawn, and the stealth tests (IS_CHAR_IN_SEARCHLIGHT,
+  IS_CHAR_IN_ANY_SEARCHLIGHT) never answered. ScmSearchlights.ts holds CTheScripts' eight slots as the iOS executable
+  lays them out (0x10079d698, 0x98 bytes each).
+  - AddScriptSearchLight (0x1001ecda4): lit, with its ground light, ready to move.
+  - The path states ProcessAllSearchLights (0x1001ed44c) steps a frame at a time, toward a point, an entity, or a
+    point and then stop. gta-reversed decompiles the step as a product. MOVE_SEARCHLIGHT_BETWEEN_COORDS (0x1001ed244)
+    starts toward the nearer point. POINT_SEARCHLIGHT_AT_CHAR (0x1001f159c) follows the ped.
+  - Attached to its objects (0x1001ed318), the bulb and housing are turned to the target and the beam starts on the
+    bulb.
+  - CHeli::SearchLightCone (0x100466ba8), in neither source, is how the beam meets the ground. The spot is where a line
+    of sight from the bulb to three past the target strikes. The cone's edge runs from the bulb's radius to the target
+    radius 100 along, in forty 9-degree steps, cut at the spot's height. The lit ellipse has half axes to the cuts at 180
+    and 270 degrees. IsEntityWithinSearchLight (0x1001ecfdc) tests that ellipse.
+  - IS_CHAR_IN_ANY_SEARCHLIGHT writes the lighting searchlight's handle (or −1).
+  - The beam is drawn as the cone draws it: additive, from (200, 200, 255) × 0.25 at the bulb, brighter where the
+    camera sees along an edge, to black on the ground.
+  - The scripts' path speeds are taken as per frame at 30 a second.
+  - Not drawn yet: the corona at the bulb and the light pool on the ground (the shadow with m_bEnableShadow).

@@ -2732,7 +2732,7 @@ const handlers:Record<string,ScmCommandHandler>={
  HAS_CAR_BEEN_RESPRAYED:(t,p,i)=>{t.updateCompareFlag(!!t.host?.world?.carBeenResprayed?.(t.readInt(p[0])),negated(i));},
  GET_CHAR_SWIM_STATE:(t,p,i)=>{t.writeInt(p[1],world(t,i,'getCharSwimState')(t.readInt(p[0])));},
  BOAT_GOTO_COORDS:(t,p,i)=>{world(t,i,'boatGotoCoords')(t.readInt(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]));},
- IS_CHAR_IN_ANY_SEARCHLIGHT:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharInAnySearchlight')(t.readInt(p[0])),negated(i));},
+ IS_CHAR_IN_ANY_SEARCHLIGHT:(t,p,i)=>{const light=world(t,i,'charInAnySearchlight')(t.readInt(p[0]));t.writeInt(p[1],light);t.updateCompareFlag(light>=0,negated(i));},
  ADD_SMOKE_PARTICLE:(t,p,i)=>{world(t,i,'addSmokeParticle')(t.readFloat(p[0]),t.readFloat(p[1]),t.readFloat(p[2]),t.readFloat(p[3]),t.readFloat(p[4]),t.readFloat(p[5]),t.readFloat(p[6]),t.readFloat(p[7]),t.readFloat(p[8]),t.readFloat(p[9]),t.readFloat(p[10]),t.readFloat(p[11]));},
  IS_PLAYER_CLIMBING:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isPlayerClimbing')(t.readInt(p[0])),negated(i));},
  IS_CHAR_STUCK_UNDER_CAR:(t,p,i)=>{t.updateCompareFlag(world(t,i,'isCharStuckUnderCar')(t.readInt(p[0])),negated(i));},
