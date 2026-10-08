@@ -11,6 +11,8 @@ npm run port -- sweep 2,11,12          # headless mission sweep: artifacts/port/
 npm run port -- sweep story --seconds 600   # every mission (hours)
 npm run port -- report                 # docs/port/STATUS.md from both
 npm run port -- all 2,11               # all three
+npm run port -- sweep 11 --bot         # the objective bot plays from the radar (SWEEP_BOT)
+npm run port -- engine                 # engine census: docs/port/ENGINE_CENSUS.md
 ```
 
 ## Stage 1: census (`scripts/port/census.mjs`)

@@ -6,11 +6,13 @@ numbers come from the census (`npm run port -- census`, [CENSUS.md](CENSUS.md)) 
 
 ## Where it stands
 
-- The script already runs: all 1,455 commands of `main.scm` dispatch, 1,010 of them as the reversed source does.
-- **244 commands used to stop a mission.** Their handler needs a world member the adapter does not have yet, so the
-  mission thread gave up the moment it reached one (searchlights, cranes, ropes, helicopter and plane autopilots, car
-  attachments, races). Only 37 of them have a reversed handler in gta-reversed; 189 are absent there.
-- 23 commands are authored stand-ins and 8 do nothing yet. They let a mission go on, but it may play differently. The 244 are now skipped instead (step 1).
+- The script runs live: the 1,570 commands MAIN.SCM, its missions and the streamed scripts use all dispatch, 1,244
+  of them as the reversed source or the iOS executable does (census of 2026-10-08).
+- 127 commands are skipped: their engine side is not ported (searchlights, cranes, ropes, the helicopter and plane
+  autopilots, car attachments, races), so the command does nothing and the mission goes on (step 1). One command
+  still stops its thread, TASK_USE_CLOSEST_MAP_ATTRACTOR, and only in the interior attractor brains, which the port
+  does not start yet.
+- 18 commands are authored stand-ins and 1 does nothing yet. They let a mission go on, but it may play differently.
 - The headless sweep teleports CJ to whatever point the mission waits for. Until now it also moved the homies and
   their bikes and cars, which hid missions a player could not finish because an NPC never drove or rode to the
   point. `SWEEP_PLAYER_ONLY=1` now moves CJ alone, so those missions show up as waiting.
@@ -124,14 +126,11 @@ drives `STOP_FOR_CARS`, goes round a car left in its lane, and gets out at a pla
 | The Greenwood ploughed into stopped traffic and burned | Script cars took their cruise speed as the traffic speed in every driving style | `FindMaximumSpeedForThisCarInTraffic` under the stop-for-cars styles |
 | The Greenwood reversed away from a red light | The stuck recovery counted a car held on its brake as stuck | Only a car asking for gas can be stuck |
 
-### INTRO2: the interior is published; not swept since
+### INTRO2: passes under the bot
 
 INTRO2 drives Ryder to the barber's under the bot (two faults fixed on the way: a vehicle's collision mesh rested on
 the road's mesh, which `CCollision::ProcessColModels` never tests triangle against triangle, and Ryder's generator
-put a second Picador inside the mission one), then stopped at the barber's door: `gta_int.img` was not published, so no
-interior entrance could start (`areaAvailable` refused area 2).
-
-That archive is published now (`public/play/world/int/`, see "Interiors are published" in `docs/FIDELITY_AUDIT.md`),
-so `areaAvailable` no longer refuses the area. The mission has not been swept again since. What it should meet next
-is the barber's chair: the haircut is a clothes change, and CJ's clothes (`player.img`, 66 MB) are not published, so
-the barber, tattoo and clothes shops have nothing to put on him (`docs/GAPS_CHECKLIST.md`).
+put a second Picador inside the mission one). Once `gta_int.img` was published (`public/play/world/int/`, see
+"Interiors are published" in `docs/FIDELITY_AUDIT.md`) the barber's interior opened, and the 2026-10-01 sweep ran it
+to its pass ([STATUS.md](STATUS.md)). CJ's clothes (`player.img`, 66 MB) are still not published, so the haircut and
+the clothes and tattoo shops change nothing on him (`docs/GAPS_CHECKLIST.md`).

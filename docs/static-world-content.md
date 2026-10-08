@@ -20,8 +20,8 @@ The imported public dataset contains:
 - The original environment, collision, vegetation, path data and companion files
   available in the locked depot, plus CJ's current body and animation package.
 
-Archive contents are stored in 235 independently compressed static chunks
-(543,482,301 bytes total). The manifest maps each original IMG entry to its chunk,
+Archive contents are stored in independently compressed static chunks (the
+current packing is described below). The manifest maps each original IMG entry to its chunk,
 without changing native bytes or archive offsets. Chunks preserve source sector
 padding. The published directory is checked against every manifest range before
 use; downloads have exact length and SHA-256 checks. The decoded chunk cache
@@ -76,17 +76,14 @@ them from disk. Rerun after any change to `files/` or the manifest's resources:
 node scripts/pack-world-resources.mjs
 ```
 
-Current playability includes walking and a native Greenwood near the initial spawn.
 The runtime prefetches after movement through 30% of its 180-unit window and
-pauses at 85% of it if loading is slow. The original 144 radar textures
-supply a minimap and full map, with player heading, car marker and click waypoint.
-
-This is not yet aircraft-speed streaming or a verified end-to-end traversal of
-every location. The Greenwood uses native ordinary-car mechanics and dry native
-road adhesion, with immediate entry/exit. Driver animation, vehicle sound,
-damage, other playable vehicles, aircraft flight, traffic and missions remain
-unfinished. Long-distance LOD coverage and native weather transitions also remain
-unfinished. Full vehicle catalog availability is not full vehicle gameplay.
+pauses at 85% of it if loading is slow; outdoors every window also requests a
+1,000-unit LOD ring. Interiors stream from the published `gta_int.img` chunks
+(`int/`). The original 144 radar textures supply a minimap and full map, with
+player heading, car marker and click waypoint. Vehicles, aircraft, traffic,
+population, weather and the story's missions run on the native ports; what is
+left is in the [gap checklist](GAPS_CHECKLIST.md). No end-to-end traversal of
+every location has been verified.
 
 `staticWorldVehicles.ts` resolves original model, texture, embedded collision,
 base handling and specialized handling rows through the same source. It does
@@ -101,8 +98,7 @@ Trailer (584) sanitize non-finite geometry values (zeroed, warned); RC Cam
 model-bounds box collision. Their original bytes remain in the source package;
 repairs are recorded per model. See `static-world-vehicle-audit.json`
 for the complete per-model result. All plane-type and helicopter-type models
-decode, including their specialized handling rows; this does not implement
-flying.
+decode, including their specialized handling rows.
 
 ## Native parked cars
 
@@ -110,6 +106,6 @@ The runtime now imports 1,043 original IPL vehicle-generator records from this
 same archive and its companion files. Nearby fixed ordinary-car spawns become
 drivable using the native resource catalog; the minimap shows loaded parked
 cars. Eight fixed model references are invalid in the original data and remain
-unresolved. Random population and aircraft controls remain unfinished. See
+unresolved. See
 [native generator integration](research/NATIVE_VEHICLE_GENERATORS.md) for the
 bounded browser spawn policy, source evidence and validation.

@@ -21,13 +21,13 @@ checks bounded lengths and SHA-256, and resolves a `NativeCarAssets` assembly.
 The base URL must end in `/`; callers use the Vite base path for project Pages
 hosting. No content depot, backend, conversion service or upstream asset host
 is needed by the browser. The eight source paint combinations are available
-through an explicit variation index; automatic traffic paint selection remains
-unfinished. Handling index 68 is the native VT_GREENWOOD enum, independent of
+through an explicit variation index (traffic cars choose theirs with
+ChooseVehicleColour, `src/vehicle/nativeVehicleColours.ts`). Handling index 68 is the native VT_GREENWOOD enum, independent of
 vehicle model ID 492.
 
 Validation: `tests/browser/included-greenwood.spec.ts` loads the shipped files
 without a depot, installs and renders the production car assembly, checks all
 12 textures and 20 collision shapes, verifies disposal, and rejects a changed
-DFF. This is an assembly check: world placement, entry/exit, driving input and
-camera integration remain unfinished. The main game does not request this
-bundle yet.
+DFF. The game loads this bundle as it starts and places the drivable Greenwood
+near the spawn (`src/main.ts`); world placement, entry and driving are the
+ordinary car's.
