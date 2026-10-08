@@ -1,5 +1,5 @@
 // Prints a mission block (or MAIN) of the packaged main.scm as text, one instruction a line with its offset, for
-// reading what a mission does while porting it: `npm run port -- disasm INTRO` or `node scripts/port/disasm.mjs 2`.
+// reading what a mission does while porting it: `node scripts/port/disasm.mjs 2` (a mission's index) or `... MAIN`.
 // A streamed script of script.img prints by its file name: `node scripts/port/disasm.mjs barber.scm`.
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
