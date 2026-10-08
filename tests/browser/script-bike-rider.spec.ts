@@ -48,3 +48,21 @@ test('a script ped gets on a script BMX and rides it to a point, and the peds ke
  expect(await gaveUp()).toBe(before);
  expect(faults).toEqual([]);expect(errors).toEqual([]);
 });
+
+/** TASK_ENTER_CAR_AS_DRIVER on the player and a bike: TWAR7 sends CJ to a PCJ-600 behind the Ballas' house and waits
+ * for him on it. The player's enter task knew only cars, ended at once on the bike, and the mission waited for good. */
+test('a script sends the player to a bike and he gets on it',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const bike=await page.evaluate(()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;return m.vehicles.create(461,{x:p.x+6,y:-p.z+2,z:-100},90);});
+ await page.waitForFunction(b=>!!(window as any).__game.missionForProfiling().vehicles.entity(b),bike,{timeout:60000});
+ await page.waitForTimeout(1000);
+ await page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.givePedScriptedTask(1,{kind:'enterCarAsDriver',vehicle:b,time:-1},0x05cb),bike);
+ await expect.poll(()=>page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.pedVehicle(1)===b,bike),{timeout:30000}).toBe(true);
+ // The task is over once he is on (GET_SCRIPT_TASK_STATUS reads finished).
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.scriptTaskStatus(1,0x05cb)),{timeout:10000}).toBe(7);
+ expect(errors).toEqual([]);
+});

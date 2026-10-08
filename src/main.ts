@@ -664,6 +664,14 @@ async function boot() {
   duck:crouch=>{sim.setCrouched(crouch);},
   enterCar:vehicle=>{
    const car=mission?.vehicles.entity(vehicle) as Partial<ScriptCar>|undefined;
+   // A bike (TWAR7 sends CJ to a PCJ-600): the walk up to it and its jump-on clip, as the enter button from further
+   // off gives them.
+   const bike=car&&fleet?.bikes.has(car as never)?car as unknown as import('./simulation/WorldBike').WorldBike:undefined;
+   if(bike){
+    if(bike.disposed||bike.wrecked||bike.occupied||carEntry.active||bikeMount.active||bikeApproach)return false;
+    if(bike.distance()>bikeReach(bike))bikeApproach={bike,time:0,best:Infinity,stall:0};else boardBike(bike);
+    return !!bikeApproach||bikeMount.active||bike.occupied;
+   }
    if(!car||typeof car.setPedInAsDriver!=='function'||car.disposed||carEntry.active)return false;
    return carEntry.enter(car as ScriptCar);
   },
@@ -683,7 +691,7 @@ async function boot() {
    if(!immediately&&!car.canStepOut())return 'wait';
    return carEntry.exit()?'started':'wait';
   },
-  carState:()=>carEntry.seated?'seated':carEntry.active?'entering':'none',
+  carState:()=>carEntry.seated||fleet?.occupiedBike?'seated':carEntry.active||bikeApproach||bikeMount.active?'entering':'none',
   // CTaskComplexEvasiveDiveAndGetUp on CJ: turned along the dive, EV_DIVE held through the script's lie, then
   // GETUP_FRONT, through the same knockdown a fall gives him. The dive's forward root motion is not applied.
   dive:(yaw,lie)=>{
