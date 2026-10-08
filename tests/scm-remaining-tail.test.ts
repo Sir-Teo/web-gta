@@ -106,7 +106,6 @@ describe('the questions and switches of the tail',()=>{
    heliFollowEntity:method('heliFollow'),setVehicleFollowVehicle:method('follow'),
    waterHeightAtCoords:method('water',0.5),createUser3dMarker:method('marker',3),
    createEmergencyServicesVehicle:method('emergency'),
-   addBlipForSearchlight:method('blip',5),
   } as unknown as Partial<ScmWorldCommands>;
   const {readInt,readFloat}=run(world,
    instruction(op('START_CAR_FIRE'),[int(CAR),gvar(40)]),
@@ -121,10 +120,11 @@ describe('the questions and switches of the tail',()=>{
   expect(readInt(40)).toBe(7);
   expect(readFloat(44)).toBeCloseTo(0.5,5);
   expect(readInt(48)).toBe(3);
-  expect(readInt(52)).toBe(5);
+  // ADD_BLIP_FOR_SEARCHLIGHT is the radar's own spotlight blip: the first trace's first handle.
+  expect(readInt(52)).toBe(1<<16);
   expect(calls).toEqual([
    ['fire',CAR],['fixDoor',CAR,2],['panel',CAR,1,true],['heliFollow',CAR,PED,10,25],['follow',CAR,10,15],
-   ['water',1,2,true],['marker',1,2,3,4],['emergency',416,1,2,3],['blip',8],
+   ['water',1,2,true],['marker',1,2,3,4],['emergency',416,1,2,3],
   ]);
  });
 

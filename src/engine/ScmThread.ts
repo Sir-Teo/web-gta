@@ -789,7 +789,6 @@ export interface ScmWorldCommands extends ScmCarCheckWorld {
  markMissionTrainAsNoLongerNeeded?(handle:number):void;
  setVehicleFollowVehicle?(handle:number,other:number,radius:number):void;
  setTaxiLights?(handle:number,state:boolean):void;
- addBlipForSearchlight?(handle:number):number;
  /* The last 277 commands the script uses, generated from the pinned Sanny Builder schema this project already
   * builds its opcode table from. Each adapter's name is the command's own name and each parameter is the name
   * and type the schema gives it, so the mapping from a command to its adapter is mechanical rather than a

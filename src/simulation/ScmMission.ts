@@ -29,7 +29,7 @@ import type {PathArea,PathNode} from '../assets/pathNodes';
 import {MAX_DECISION_CHOICES,type DecisionChoice} from '../ped/nativeDecisionMaker';
 import {PED_SIGHT_TARGET_RAISE,pedSightAngleAndRange} from '../ped/nativePedSight';
 import {isMissionObjectType,type ScmObject} from '../engine/ScmObjects';
-import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_DISPLAY_MARKERONLY,BLIP_FLAG_THREAT,BLIP_FLAG_UNK,BLIP_NONE,BLIP_OBJECT,BLIP_PICKUP} from '../engine/ScmRadar';
+import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_DISPLAY_MARKERONLY,BLIP_FLAG_THREAT,BLIP_FLAG_UNK,BLIP_NONE,BLIP_OBJECT,BLIP_PICKUP,BLIP_SPOTLIGHT} from '../engine/ScmRadar';
 import {MODE_ATTACHCAM,MODE_FIXED} from '../engine/ScmCamera';
 import {HUD_COLOURS,HUD_COLOUR_BLUE,HUD_COLOUR_RED,radarTraceColour,radarTraceRgb} from '../ui/nativeHudColours';
 /* The axes of something that only turns about the up axis, which is every ped and every object a script
@@ -3873,7 +3873,7 @@ export class ScmMission {
   for(const trace of this.runtime.game.radar.traces){
    if(trace.type===BLIP_NONE||!(trace.display&BLIP_DISPLAY_BLIPONLY))continue;
    const at=this.blipPosition(trace);if(!at)continue;
-   const entity=trace.type===BLIP_CAR||trace.type===BLIP_CHAR||trace.type===BLIP_OBJECT;
+   const entity=trace.type===BLIP_CAR||trace.type===BLIP_CHAR||trace.type===BLIP_OBJECT||trace.type===BLIP_SPOTLIGHT;
    // tRadarTrace::GetStaticColour for the coord blips DrawCoordBlip draws: HUD blue for a THREAT appearance, red for
    // UNK, otherwise the trace colour taken as unfriendly. Entity blips (DrawEntityBlip, unreversed) keep the flag.
    const colour=entity?radarTraceColour(trace.colour,trace.bright,trace.friendly)
@@ -3929,6 +3929,8 @@ export class ScmMission {
   if(trace.type===BLIP_OBJECT)return this.runtime.game.objects.exists(trace.entityHandle)?this.runtime.game.objects.at(trace.entityHandle).position:undefined;
   // A pickup blip follows the pickup the handle names; the trace keeps no point of its own for it.
   if(trace.type===BLIP_PICKUP)return this.runtime.game.pickups.at(trace.entityHandle)?.position;
+  // A spotlight blip sits on its searchlight's target (CRadar's blip drawing, iOS 0x1002b9218).
+  if(trace.type===BLIP_SPOTLIGHT){const lights=this.runtime.game.searchlights,index=lights.slotOf(trace.entityHandle);return index<0?undefined:{...lights.lights[index].target};}
   return trace.position;
  }
  /* Where the script has put the camera, in the renderer's axes, or nothing while the camera is the player's.

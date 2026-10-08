@@ -9,7 +9,7 @@ import {NativeAngledRect} from './nativeAngledRect';
 import {requireAsset} from '../assets/binary';
 import {scmOpcode} from './scmOpcodes';
 import {USE_TEXT_DISABLE_NEXT_FRAME,USE_TEXT_ENABLED_BY_SCRIPT} from './ScmMessages';
-import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_COORD,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_OBJECT,BLIP_PICKUP} from './ScmRadar';
+import {BLIP_CAR,BLIP_CHAR,BLIP_CONTACT_POINT,BLIP_COORD,BLIP_DISPLAY_BLIPONLY,BLIP_DISPLAY_BOTH,BLIP_OBJECT,BLIP_PICKUP,BLIP_SPOTLIGHT} from './ScmRadar';
 import {STAT_MISSION_ATTEMPTS,STAT_PROGRESS_MADE} from './ScmGameState';
 import {skipForwardInRecording,skipToEndAndStopPlaybackRecordedCar,startPlaybackRecordedCar,stopPlaybackRecordedCar} from './carRecordingPlayback';
 import {BUTTON,CONTROLLER_JOYPAD} from './ScmPads';
@@ -2353,7 +2353,9 @@ const handlers:Record<string,ScmCommandHandler>={
   t.writeInt(p[1],colours.primary);t.writeInt(p[2],colours.secondary);
  },
  SET_TAXI_LIGHTS:(t,p,i)=>{world(t,i,'setTaxiLights')(t.readInt(p[0]),bool(t,p[1]));},
- ADD_BLIP_FOR_SEARCHLIGHT:(t,p,i)=>{t.writeInt(p[1],world(t,i,'addBlipForSearchlight')(t.readInt(p[0])));},
+ // ADD_BLIP_FOR_SEARCHLIGHT (iOS 0x1001f1858): CRadar::SetEntityBlip(BLIP_SPOTLIGHT) on the searchlight's handle, scale 3;
+ // the radar draws it at the searchlight's target.
+ ADD_BLIP_FOR_SEARCHLIGHT:entityBlip(BLIP_SPOTLIGHT),
  /* --- The last three tasks. */
  TASK_LEAVE_CAR_AND_FLEE:(t,p,i)=>{
   const point=vec(t,p,2);

@@ -42,3 +42,12 @@ test('script searchlights: handles, moving between two points, after an entity, 
  expect(lights.anyLighting({x:.5,y:.5,z:0})).toBe(again);expect(lights.anyLighting({x:5,y:5,z:0})).toBe(-1);
  expect(lights.lighting(again,{x:.5,y:.5,z:0})).toBe(true);
 });
+
+test('ADD_BLIP_FOR_SEARCHLIGHT is a spotlight blip on the searchlight, which the radar puts at its target',async()=>{
+ const {ScmRadar,BLIP_SPOTLIGHT,BLIP_DISPLAY_BOTH}=await import('../src/engine/ScmRadar');
+ const lights=new ScmSearchlights(),radar=new ScmRadar();
+ const h=lights.add({x:0,y:0,z:20},undefined,{x:5,y:6,z:0},5,.2);
+ const blip=radar.setEntityBlip(BLIP_SPOTLIGHT,h,BLIP_DISPLAY_BOTH);
+ const trace=radar.traces[radar.index(blip)];expect(trace.type).toBe(BLIP_SPOTLIGHT);expect(trace.entityHandle).toBe(h);
+ expect(lights.lights[lights.slotOf(trace.entityHandle)].target).toEqual({x:5,y:6,z:0});
+});

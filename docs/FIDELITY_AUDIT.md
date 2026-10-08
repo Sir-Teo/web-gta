@@ -11499,3 +11499,6 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
     camera sees along an edge, to black on the ground.
   - The scripts' path speeds are taken as per frame at 30 a second.
   - Not drawn yet: the corona at the bulb and the light pool on the ground (the shadow with m_bEnableShadow).
+- ADD_BLIP_FOR_SEARCHLIGHT (iOS 0x1001f1858) is CRadar::SetEntityBlip with BLIP_SPOTLIGHT on the searchlight's handle,
+  scale 3. The radar draws it at the searchlight's target (iOS 0x1002b9218). WUZI2 marks its searchlights so; the
+  command had no world hook and wrote no blip.
