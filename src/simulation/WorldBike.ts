@@ -47,6 +47,13 @@ const HOP_RELEASE_SECONDS=.3;
 const HOP_COOLDOWN_SECONDS=.5;
 /** CBmx::ProcessAI's airborne spin: 0x10058fd38 = 0.002 rad a step per step at full stick, to 0.04 rad a step. */
 const BMX_AIR_SPIN_RATE=.002,BMX_AIR_SPIN_CAP=.04;
+/** CBike::ProcessControl on the side stand (iOS 0x100451f48 at rest, 0x1004537e4 under physics): the drawn lean eases to
+ * 15 degrees left of the body's own roll, keeping 0.97 of the old lean a frame; the stand comes up past a roll of
+ * 0.35 (right.z) or a pitch of 0.5 (forward.z) (iOS 0x1004518a0). */
+const SIDE_STAND_LEAN=.2617994,SIDE_STAND_KEEP=.97,SIDE_STAND_ROLL=.35,SIDE_STAND_PITCH=.5;
+/** The rider gets off onto the stand only with the bike all but stopped: under 0.1 a frame along x and y (iOS
+ * 0x1003e0df8), in metres a second. */
+const SIDE_STAND_SPEED=5;
 /** Rideable bikes: arcade drive over prepared handling magnitudes, native lean
  * caps with an authored lean rate, knock-off from the reversed force formula,
  * jumpon/getoff mount timing, bike drive-by
@@ -116,6 +123,11 @@ export class WorldBike {
  readonly randomSeed=randomSeed();lightsOn=false;
  /** Visual lean roll in radians (positive leans right); the body stays upright like the native render matrix. */
  lean=0;
+ /** CBike's bOnSideStand (iOS +0x800 bit 0x10): GetNewVehicleDependingOnCarModel (iOS 0x10018ce38) sets it on every new
+  * bike and BMX, and a rider getting off a bike all but stopped puts it back down. The stand's 20 degree turn of the
+  * front wheel is not drawn (the fork is not turned for any steer here). */
+ onSideStand=true;
+ private wasRidden=false;
  /** Jumpon mount timer. */
  mountTimer=0;
  /** CQuadBike's m_sRideAnimData.LeanAngle, in radians (positive leans right): the quad's body stays level, so only
@@ -300,7 +312,7 @@ export class WorldBike {
   // A playback without car AI owns the body (bDisableCollisionForce, a velocity-driven body here): the bike's own
   // pedals and balance would fight the recording's speeds.
   if(this.recordingSlot>=0&&this.body.bodyType()===RAPIER.RigidBodyType.KinematicVelocityBased)return;
-  if(this.skipPhysics(dt))return;
+  if(this.skipPhysics(dt)){this.standLean(dt);return;}
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   // The ride clip's clock: the pedal cycle turns while the rider pedals and holds while he coasts.
   if(Math.abs(input.throttle)>.05)this.rideTime+=dt;
@@ -368,8 +380,10 @@ export class WorldBike {
    if(Math.abs(up.y)<.707&&(m.x*m.x+m.y*m.y+m.z*m.z)/2500<.0025&&(w.x*w.x+w.y*w.y+w.z*w.z)/2500<.0001){const k=Math.pow(.5,dt*50);this.body.setLinvel({x:m.x*k,y:m.y*k,z:m.z*k},true);}}
   this.lastCollisionSeconds+=dt;
   // Native lean caps with an authored rate; quads stay level.
-  const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
-  this.lean=approachBikeLean(this.lean,target,this.assets.bike.desLean,dt);
+  if(!this.standLean(dt)){
+   const target=this.quad?0:bikeLeanTarget(this.steer,Math.abs(speed),this.assets.bike.maxLean);
+   this.lean=approachBikeLean(this.lean,target,this.assets.bike.desLean,dt);
+  }
   if(this.quad)this.riderLean=quadRiderLean(this.riderLean,this.steer,this.assets.bike.fullAnimLean,this.assets.bike.desLean,dt);
   this.floatOnWater(dt);
   this.stepVelocity={...this.body.linvel()};this.stepTurn={...this.body.angvel()};
@@ -480,6 +494,20 @@ export class WorldBike {
   * until something touches it. An idle bike (move speed exactly nought, a tyre on the ground and no collision to
   * process: CREATE_CAR leaves one so) stops at once. The port had none of it: an empty bike on a slope rolled away, as
   * TWAR7's PCJ-600 did from behind the Ballas' house, out of its rider's reach. */
+ /** The side stand's part of a step: it comes up while the bike is ridden or tipped, goes down when the last rider leaves
+  * it all but stopped, and while it is down with no one on, the drawn lean eases to the stand's. False when it is up. */
+ private standLean(dt:number){
+  if(this.quad)return false;
+  const ridden=this.occupied||!!this.autopilot||!!this.scriptDriven||this.recordingSlot>=0||!!WorldBike.hasDriverPed?.(this);
+  if(ridden){this.wasRidden=true;this.onSideStand=false;return false;}
+  if(this.wasRidden){this.wasRidden=false;const v=this.body.linvel();if(Math.abs(v.x)<SIDE_STAND_SPEED&&Math.abs(v.z)<SIDE_STAND_SPEED)this.onSideStand=true;}
+  if(!this.onSideStand)return false;
+  const q=this.body.rotation(),right=rotate(q,{x:1,y:0,z:0}),forward=rotate(q,{x:0,y:0,z:-1});
+  if(Math.abs(right.y)>SIDE_STAND_ROLL||Math.abs(forward.y)>SIDE_STAND_PITCH){this.onSideStand=false;return false;}
+  const keep=Math.pow(SIDE_STAND_KEEP,dt*50);
+  this.lean=keep*this.lean-(1-keep)*(Math.asin(right.y)+SIDE_STAND_LEAN);
+  return true;
+ }
  private fakeForce={x:0,y:0,z:0};private fakeTorque={x:0,y:0,z:0};private fakeFrames=0;
  private get abandoned(){return !(this.occupied||this.autopilot||this.scriptDriven||this.mountTimer>0||WorldBike.hasDriverPed?.(this)||this.inWater);}
  /** CPlaceable::SetHeading or SetPosn on a bike at rest (SET_CAR_HEADING turning a script's bike where it stands): the

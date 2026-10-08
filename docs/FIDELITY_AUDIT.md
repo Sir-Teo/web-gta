@@ -11399,7 +11399,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   at once, and its physics stop until something touches it. The port had no rest for bikes: TWAR7's PCJ-600, made in
   the yard behind the Ballas' house on a slope, rolled back three units past a ledge, its rider could not reach it,
   and the mission waited on him for good. (CREATE_CAR also puts script bikes on their side stand, iOS 0x10018ce38;
-  the stand's lean, which ProcessControl eases toward 20 degrees while the bike rests, is not drawn yet.)
+  the stand's lean is drawn, below.)
 - SET_CAR_HEADING on a bike at rest turns it where it stands and leaves it at rest, as CPlaceable::SetHeading does on
   a body whose physics are skipped. The port woke it to place it, and on a slope the turn sank a wheel the solver then
   threw out: TWAR7's PCJ-600, turned as it was made, flew up and rolled off. A bike in use is placed and goes on.
@@ -11416,3 +11416,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   at Glen Park (1987.6, -1516.7), could not take the bank down at 1970, -1488 (a 1.5 grade) and rode 400 units round
   by the next ramp while CJ, following, was told to stay with Sweet. Random traffic keeps off such ramps by their
   switched-off nodes, as in the original.
+- A bike stands on its side stand (bOnSideStand, iOS +0x800 bit 0x10) and is drawn leaning on it. Every new bike and
+  BMX is made on it (GetNewVehicleDependingOnCarModel, iOS 0x10018ce38) and a rider getting off one under 0.1 a frame
+  puts it back down (iOS 0x1003e0df8); a rider, or a roll past 0.35 or a pitch past 0.5, takes it up (iOS 0x1004518a0).
+  On it with no one aboard, CBike::ProcessControl eases the drawn lean (m_fAnimLean, which CalculateLeanMatrix rolls
+  the body by, iOS 0x100455aec) to 15 degrees left of the body's roll, keeping 0.97 of it a frame (iOS 0x100451f48 at
+  rest, 0x1004537e4 under physics). The port drew every parked bike bolt upright. Not ported: the stand's turn of the
+  front wheel to 20 degrees (no fork is turned here), the moving branch's further term, and the stand coming up for
+  a hit over 20 (CBike's damage, iOS 0x100450e58).

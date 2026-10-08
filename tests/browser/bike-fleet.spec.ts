@@ -27,6 +27,12 @@ test('a bike generator parks its bike, and the fleet invents none of its own',as
     for(let i=0;i<60;i++){bike.beforeStep(1/60);sim.world.step();bike.afterStep();}
     out.settled=bike.body.translation().y;
     out.nearest=fleet.nearestBike()===bike;
+    // It was made on its side stand, and leans on it: 15 degrees to the left, drawn (the body itself stays level).
+    for(let i=0;i<180;i++){bike.beforeStep(1/60);sim.world.step();bike.afterStep();}
+    out.standLean=+bike.lean.toFixed(3);out.onStand=bike.onSideStand;
+    // A rider takes it off the stand; got off at a standstill, it goes back on.
+    bike.occupied=true;bike.beforeStep(1/60);sim.world.step();bike.afterStep();out.ridden=bike.onSideStand;
+    bike.occupied=false;bike.body.setLinvel({x:0,y:0,z:0},true);bike.beforeStep(1/60);sim.world.step();bike.afterStep();out.leftOn=bike.onSideStand;
    }
    out.snapshot=fleet.snapshot().bikes.map((b:any)=>b.modelId);
    out.failures=fleet.snapshot().failures;
@@ -39,6 +45,8 @@ test('a bike generator parks its bike, and the fleet invents none of its own',as
  expect(result.settled).toBeGreaterThan(0);
  expect(result.settled).toBeLessThan(1);
  expect(result.nearest).toBe(true);
+ expect(result.onStand).toBe(true);expect(result.standLean).toBeCloseTo(-.262,2);
+ expect(result.ridden).toBe(false);expect(result.leftOn).toBe(true);
  expect(result.snapshot).toEqual([481]);
  expect(errors).toEqual([]);
 });
