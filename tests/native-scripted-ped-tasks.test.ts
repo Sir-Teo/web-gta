@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'vitest';
-import {ACHIEVE_HEADING_TOLERANCE,achieveHeadingStep,goToPointArrived,goToPointMoveState,nativeHeadingDegrees,nextRoutePoint,scriptedPedOrder,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
+import {ACHIEVE_HEADING_TOLERANCE,achieveHeadingStep,goToPointArrived,goToPointMoveState,nativeHeadingDegrees,nextRoutePoint,scriptedPedOrder,slideToCoordStep,type ScriptedTaskWorld} from '../src/simulation/nativeScriptedPedTasks';
 import type {ScmScriptedTask} from '../src/engine/ScmThread';
 
 const world=(peds:Record<number,{x:number;y:number;z:number}>,self={x:0,y:0,z:0}):ScriptedTaskWorld=>
@@ -247,4 +247,12 @@ describe('the tasks a script gives a ped',()=>{
   expect(scriptedPedOrder({kind:'die'},world({}))).toEqual({kind:'die'});
   expect(scriptedPedOrder({kind:'dead'},world({}))).toEqual({kind:'die'});
  });
+});
+
+test('CTaskSimpleSlideToCoord closes its speed share of the gap each 30 fps frame and stops within 0.05 (iOS 0x10040d958)',()=>{
+ const frame=slideToCoordStep({x:0,z:0},{x:1,z:0},.1,1/30);
+ expect(frame.reached).toBe(false);expect(frame.shift.x).toBeCloseTo(.1,6);expect(frame.shift.z).toBe(0);
+ expect(slideToCoordStep({x:0,z:0},{x:0,z:-2},.1,1).shift.z).toBeCloseTo(-2*(1-.9**30),6);
+ expect(slideToCoordStep({x:0,z:0},{x:.049,z:0},.1,1/30)).toEqual({shift:{x:0,z:0},reached:true});
+ expect(slideToCoordStep({x:0,z:0},{x:.051,z:0},.1,1/30).reached).toBe(false);
 });

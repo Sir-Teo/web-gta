@@ -27,7 +27,7 @@ import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
 import {WalkRoundBuildingRoute,buildingCollisionFacing,type V3 as NativeV3} from '../ped/nativeWalkRoundBuilding';
 import {followersToRemove} from '../ped/nativePedGroup';
 import {FOLLOW_NODE_POINT_RADIUS,FOLLOW_NODE_SLOW_DOWN_DISTANCE,FOLLOW_NODE_TARGET_TOLERANCE,cornerMoveRatio,cornerSlowing,planFollowNodeRoute,type CornerSlowing,type NodeRouteOptions} from './nativeFollowNodeRoute';
-import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder} from './nativeScriptedPedTasks';
+import {GO_STRAIGHT_MOVE_STATE_RADIUS,achieveHeadingStep,goToPointArrived,goToPointMoveState,nextRoutePoint,type ScriptedPedOrder,slideToCoordStep,SLIDE_HEADING_TOLERANCE} from './nativeScriptedPedTasks';
 import {ACQUAINTANCE_DISLIKE,ACQUAINTANCE_HATE,ACQUAINTANCE_IGNORE,ACQUAINTANCE_LIKE,ACQUAINTANCE_RESPECT,NATIVE_PED_TYPES,NativeAcquaintance,nativePedType} from '../ped/nativeAcquaintance';
 import {characterMovement} from './characterMovement';
 import {ANIM_ID,NATIVE_DAMAGE_CLIPS,PED_PIECE,PEDMOVE,WEAPON,browserLocalDirection,computeDamageEventAnim,computeDeathAnim,type DamageAnimResult} from '../combat/nativeDamageAnim';
@@ -166,6 +166,7 @@ export interface Pedestrian {
   /** The looped CTaskSimpleStandStill CPed's constructor makes the default task: what a script's ped does with no
    * task of the script's own, which GET_SCRIPT_TASK_STATUS does not count as one. */
   isDefault?:boolean}|{kind:'achieveHeading';heading:number}
+  |{kind:'slideToCoord';x:number;z:number;heading:number;speed:number;remaining:number}
   /** CTaskComplexGoToPointAndStandStill(Timed): a renderer point, with its origin height (undefined for a point the
    * script put on the ground), eMoveState and radii, and the seconds left of a timed task (Infinity otherwise). */
   |{kind:'goToPoint';x:number;z:number;y?:number;moveState:number;radius:number;moveStateRadius:number;remaining:number}
@@ -1884,6 +1885,7 @@ export class WorldPedestrians {
     radius:order.radius,moveStateRadius:order.moveStateRadius,remaining:order.seconds};ped.flee=0;ped.loiter=false;break;
    // The script's degrees clockwise from north are the browser's yaw plus half a turn.
    case 'achieveHeading':ped.order={kind:'achieveHeading',heading:order.degrees*Math.PI/180+Math.PI};break;
+   case 'slideToCoord':ped.order={kind:'slideToCoord',x:order.x,z:-order.y,heading:order.degrees*Math.PI/180+Math.PI,speed:order.speed,remaining:2};ped.flee=0;ped.loiter=false;break;
    // Wandering is what the ped does with no task at all, so it ends the sequence rather than joining it.
    case 'wander':ped.sequence=undefined;ped.flee=0;ped.loiter=false;this.chooseTarget(ped);break;
    case 'killPed':{
@@ -3832,6 +3834,14 @@ export class WorldPedestrians {
      const speed=moveState>=7?p.sprintSpeed:moveState>=5?p.runSpeed:p.walkSpeed;
      if(goToPointArrived(distance,o.y===undefined?undefined:q.y+PED_ORIGIN_HEIGHT-o.y,o.radius,state.speed*dt))this.startNextOrder(p);
      else{({x:dx,z:dz}=this.roundCars(p,o,cars));orderSpeed=speed;}
+    }else if(p.order.kind==='slideToCoord'){
+     // CTaskSimpleSlideToCoord::ProcessPed (iOS 0x10040d958): the slide is the clip's moving shift for the frame, the
+     // heading the aiming rotation the ped turns to.
+     const o=p.order,step=slideToCoordStep(state.position,o,o.speed,dt);dx=0;dz=0;o.remaining-=dt;
+     if(!step.reached)p.animShift=step.shift;
+     const turned=achieveHeadingStep(state.heading,o.heading,p.headingChange,dt);state.heading=turned.heading;
+     const off=Math.abs(Math.atan2(Math.sin(o.heading-state.heading),Math.cos(o.heading-state.heading)));
+     if(o.remaining<=0||step.reached&&off<SLIDE_HEADING_TOLERANCE)this.startNextOrder(p);
     }else{
      dx=0;dz=0;
      const turned=achieveHeadingStep(state.heading,p.order.heading,p.headingChange,dt);

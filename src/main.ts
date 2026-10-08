@@ -403,14 +403,15 @@ async function boot() {
   const attachedBody=(car:unknown)=>{const c=car as {car?:{body?:import('@dimforge/rapier3d-compat').RigidBody};body?:import('@dimforge/rapier3d-compat').RigidBody;disposed?:boolean};return c.disposed?undefined:c.car?.body??c.body;};
   /** PositionAttachedPed for the player: his matrix is the vehicle's with the offset carried in its axes, turned to
    * where he aims (the camera's heading in sniper mode) within the limit about the side he faces; he takes the
-   * vehicle's speed and stands. */
+   * vehicle's speed and stands. The side turns the entity's heading as iOS 0x10032c59c does: 1 by +π/2 (left), 2 by π,
+   * 3 by −π/2 (right) — WUZI5 sets CJ on a car's left flank (x −1.4) with side 1 and a 90° limit to shoot outward. */
   const pinAttachedPlayer=()=>{
     const a=playerAttached;if(!a)return;
     const frame=attachedFrame(a);if(!frame){detachPlayer();return;}
     const {t,q}=frame;
     const off=new Vector3(a.offset.x,a.offset.z,-a.offset.y).applyQuaternion(q),forward=new Vector3(0,0,-1).applyQuaternion(q);
     const centre={x:t.x+off.x,y:t.y+off.y,z:t.z+off.z};
-    const base=Math.atan2(forward.x,forward.z)-(a.facing??a.side*Math.PI/2);
+    const base=Math.atan2(forward.x,forward.z)+(a.facing??a.side*Math.PI/2);
     let heading=render.yaw+Math.PI;
     if(a.limit<Math.PI){let d=Math.atan2(Math.sin(heading-base),Math.cos(heading-base));d=Math.max(-a.limit,Math.min(a.limit,d));heading=base+d;}
     const feet={x:centre.x,y:centre.y-1,z:centre.z};

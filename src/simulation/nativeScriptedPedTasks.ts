@@ -11,6 +11,9 @@ export type ScriptedPedOrder=
  |{kind:'standStill';seconds:number}
  /** CTaskSimpleAchieveHeading: turn, at the ped's own heading rate, to a heading in degrees clockwise from north. */
  |{kind:'achieveHeading';degrees:number}
+ /** CTaskSimpleSlideToCoord (iOS ProcessPed 0x10040d958): the ped is slid a share of the way left each frame toward the
+  * point while it turns to the heading; over within 0.05 and 0.1 rad of them, or after two seconds. */
+ |{kind:'slideToCoord';x:number;y:number;z:number;degrees:number;speed:number}
  /** CTaskComplexWanderStandard: back to walking the path nodes, which is what a street ped does unasked. */
  |{kind:'wander'}
  /** CTaskComplexDie, with the named clip of TASK_DIE_NAMED_ANIM when one is given. */
@@ -324,6 +327,18 @@ export function nextRoutePoint(route:{points:{x:number;y:number;z:number}[];at:n
   case 3:route.at=0;return true;
   default:return false;
  }
+}
+/** CTaskSimpleSlideToCoord's reach, 0.05 squared ([0x100592d64]), and the heading it must be turned to within, 0.1 rad
+ * ([0x10058cb80]). */
+export const SLIDE_REACHED_SQ=.0025,SLIDE_HEADING_TOLERANCE=.1;
+/** One step of CTaskSimpleSlideToCoord::ProcessPed (iOS 0x10040d958): until within 0.05 of the point the ped's moving
+ * shift is the way left times the task's speed, once a game frame (30 fps here), so it closes that share of the gap
+ * each frame; within it, none. The caller ends the task within reach and turned, or after its two seconds. */
+export function slideToCoordStep(at:{x:number;z:number},goal:{x:number;z:number},speed:number,seconds:number){
+ const gx=goal.x-at.x,gz=goal.z-at.z;
+ if(gx*gx+gz*gz<SLIDE_REACHED_SQ)return {shift:{x:0,z:0},reached:true};
+ const share=1-Math.pow(1-Math.min(1,Math.max(0,speed)),seconds*30);
+ return {shift:{x:gx*share,z:gz*share},reached:false};
 }
 export function achieveHeadingStep(current:number,desired:number,headingChangeDegrees:number,seconds:number){
  let delta=desired-current;delta=Math.atan2(Math.sin(delta),Math.cos(delta));

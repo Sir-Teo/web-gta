@@ -11330,8 +11330,15 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   lets it go where it stands.
 - TASK_CHAR_SLIDE_TO_COORD (iOS 0x1001f8c54) is a script task: a sequence of CTaskComplexGoToPointAndStandStill at a
   walk to the point (radius 0.5) and CTaskSimpleSlideToCoord to the heading. The port's handler asked an adapter that
-  did not exist, so SCRASH2 and two other scripts skipped it; it now runs as the walk and the turn, the slide over the
-  last half unit being the turn alone (as the AND_PLAY_ANIM form's stand-in has it).
+  did not exist, so SCRASH2 and two other scripts skipped it. The walk is followed by the slide itself
+  (CTaskSimpleSlideToCoord::ProcessPed, iOS 0x10040d958): each frame the ped is moved the given share (a negative
+  speed is the default 0.1) of the way left while turning to the heading, until within 0.05 of the point and turned,
+  or after two seconds.
+- The player's attachment faced the wrong way on sides 1 and 3. iOS PositionAttachedPed (0x10032c59c) adds +π/2
+  ([0x10058cab4]) to the entity's heading for side 1 and −π/2 ([0x10059305c]) for side 3, so 1 is left and 3 right,
+  as the script peds' attachment already had it; the player's pin subtracted the side's quarter turns. WUZI5 sets CJ
+  on a car's left flank (offset x −1.4) with side 1 and a 90° limit, so he faced into the car and could not aim out.
+  Sides 0 and 2, and any limit of 180° or more (HEIST5's side 1 has 360°), were unaffected.
 - A fade back in of no length (DO_FADE 0 1) ends at once on iOS: CCamera::ProcessFade (0x10022a904) sets the overlay
   to nothing and clears m_bFading. The port followed gta-reversed's reconstruction, which adds nothing to the alpha when
   the duration is zero, so after a fade to black the overlay stayed and GET_FADING_STATUS answered true for ever:
