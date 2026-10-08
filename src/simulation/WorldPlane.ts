@@ -13,7 +13,7 @@ import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,HELI_FLIGHT_MODEL,HELI_ROTOR_FLY,HELI_ROTOR_FULL,HYDRA_NOZZLE_MAX,HYDRA_NOZZLE_RATE,HYDRA_VTOL_NOZZLE,heliFlyingControl,heliHoverInputs,hydraThrustAxis,stepHeliRotor,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
 import {requireAsset} from '../assets/binary';
-import {MISSION_HELI_CRASH_AND_BURN,MISSION_HELI_FLYTOCOORS,MISSION_HELI_FOLLOW_ENTITY,MISSION_HELI_LAND,MISSION_HELI_LAND_TOUCHING_DOWN,heliCrashYaw,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
+import {MISSION_HELI_CRASH_AND_BURN,MISSION_HELI_FLYTOCOORS,MISSION_HELI_FOLLOW_ENTITY,MISSION_HELI_KEEP_ENTITY_IN_VIEW,MISSION_HELI_LAND,MISSION_HELI_LAND_TOUCHING_DOWN,heliCrashYaw,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToKeepEntityInView,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
@@ -155,6 +155,13 @@ export class WorldPlane {
  setHeliOrientation(degrees:number|undefined){const pilot=this.aiPilot();if(pilot)pilot.forcedOrientation=degrees===undefined?-1:heliForcedOrientation(degrees);}
  /** MAKE_HELI_COME_CRASHING_DOWN (iOS 0x1001e5414): MISSION_HELI_CRASH_AND_BURN, unless it is crashing already. */
  makeHeliComeCrashingDown(){const pilot=this.aiPilot();if(pilot&&pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_HELI_CRASH_AND_BURN;}
+ /** HELI_KEEP_ENTITY_IN_VIEW (iOS 0x1001f8ae4): MISSION_HELI_KEEP_ENTITY_IN_VIEW on the entity, the first distance as
+  * m_ucHeliTargetDist (a byte) and the second as m_fMinAltitude, cruise speed 100; a crashing heli keeps crashing. */
+ tellHeliToKeepEntityInView(target:()=>NV|undefined,distance:number,minAltitude:number){
+  const pilot=this.aiPilot();if(!pilot)return;
+  if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_HELI_KEEP_ENTITY_IN_VIEW;
+  pilot.target=target;pilot.heliTargetDist=Math.trunc(distance)&0xff;pilot.ai.minAltitude=minAltitude;pilot.cruiseSpeed=100;
+ }
  /** SET_HELI_REACHED_TARGET_DISTANCE (iOS 0x1001fe394): CAutoPilot's m_ucHeliTargetDist2, a byte. */
  setHeliReachedTargetDistance(distance:number){const pilot=this.aiPilot();if(pilot)pilot.heliTargetDist2=distance&0xff;}
  private aiPilot(){
@@ -169,7 +176,8 @@ export class WorldPlane {
   const ai=pilot.ai,controls=()=>{this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:-ai.roll,rudder:ai.yaw,brake:false};};
   if(pilot.mission===MISSION_HELI_CRASH_AND_BURN){steerAIHeliToCrashAndBurn(ai,this.heliSeed,this.crashYaw);controls();return;}
   const landing=pilot.mission===MISSION_HELI_LAND||pilot.mission===MISSION_HELI_LAND_TOUCHING_DOWN;
-  if(pilot.mission!==MISSION_HELI_FLYTOCOORS&&pilot.mission!==MISSION_HELI_FOLLOW_ENTITY&&!landing)return;
+  const keeping=pilot.mission===MISSION_HELI_KEEP_ENTITY_IN_VIEW;
+  if(pilot.mission!==MISSION_HELI_FLYTOCOORS&&pilot.mission!==MISSION_HELI_FOLLOW_ENTITY&&!landing&&!keeping)return;
   const previous=this.heliClockMs;this.heliClockMs+=dt*1000;
   const body=this.flyingBody(),world=this.sim.world;
   const port=(v:NV)=>({x:v[0],y:v[2],z:-v[1]});
@@ -179,9 +187,10 @@ export class WorldPlane {
    const t=hit.timeOfImpact/l;return [from[0]+(to[0]-from[0])*t,from[1]+(to[1]-from[1])*t,from[2]+(to[2]-from[2])*t];
   };
   const env={lineOfSight,rand:()=>Math.floor(Math.random()*32768)},probe=heliProbeDue(this.heliClockMs,previous,this.heliSeed);
-  const target=pilot.mission===MISSION_HELI_FOLLOW_ENTITY?pilot.target?.():undefined;
+  const target=pilot.mission===MISSION_HELI_FOLLOW_ENTITY||keeping?pilot.target?.():undefined;
   // A wheel on the ground: the port's aircraft stands on its gear when the ground is within its clearance.
   if(landing)steerAIHeliToLand(pilot.ai,body,pilot,env,probe,dt*50,this.grounded);
+  else if(target&&keeping)steerAIHeliToKeepEntityInView(pilot.ai,body,pilot,env,target,probe,dt*50);
   else if(target)steerAIHeliToFollowEntity(pilot.ai,body,pilot,env,target,probe,dt*50);
   else steerAIHeliTowardsTargetCoors(pilot.ai,body,pilot,env,probe,dt*50);
   // m_ucHeliSpeedMult's push forward is on the move speed itself.

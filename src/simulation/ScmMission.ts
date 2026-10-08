@@ -2501,9 +2501,14 @@ export class ScmMission {
    // is gone.
    heliFollowEntity:(handle,ped,vehicle,distance)=>{
     const heli=this.liveVehicle(handle) as {tellHeliToFollowEntity?:(target:()=>[number,number,number]|undefined,min:number)=>void};
-    const where=ped!==-1?()=>ped===PLAYER_PED_HANDLE||this.peds.exists(ped)?(ped===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(ped)??this.peds.positionOf(ped)):undefined
-     :()=>vehicle===PLAYER_VEHICLE_HANDLE?this.playerPose(vehicle).position:this.vehicles.exists(vehicle)&&this.vehicles.entity(vehicle)?this.vehicles.positionOf(vehicle):undefined;
+    const where=this.scriptEntityPosition(ped,vehicle);
     heli.tellHeliToFollowEntity?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},distance);
+   },
+   // HELI_KEEP_ENTITY_IN_VIEW (iOS 0x1001f8ae4): the same entity, side on at the first distance.
+   heliKeepEntityInView:(handle,ped,vehicle,distance,minAltitude)=>{
+    const heli=this.liveVehicle(handle) as {tellHeliToKeepEntityInView?:(target:()=>[number,number,number]|undefined,d:number,min:number)=>void};
+    const where=this.scriptEntityPosition(ped,vehicle);
+    heli.tellHeliToKeepEntityInView?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},distance,minAltitude);
    },
    heliLandAtCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToLand?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToLand?.(x,y,z,minAltitude,maxAltitude);},
    setHeliOrientation:(handle,angle)=>{(this.liveVehicle(handle) as {setHeliOrientation?:(a:number|undefined)=>void}).setHeliOrientation?.(angle);},
@@ -3456,6 +3461,11 @@ export class ScmMission {
   return undefined;
  }
  /** Where a ped that rides in a car is, which is where the car is. */
+ /** A script's ped, or with none (-1) its vehicle, as a position to fly to each step (native), or nothing once gone. */
+ private scriptEntityPosition(ped:number,vehicle:number):()=>{x:number;y:number;z:number}|undefined{
+  if(ped!==-1)return ()=>ped===PLAYER_PED_HANDLE?this.world.playerPed().position:this.peds.exists(ped)?this.ridingIn(ped)??this.peds.positionOf(ped):undefined;
+  return ()=>vehicle===PLAYER_VEHICLE_HANDLE?this.playerPose(vehicle).position:this.vehicles.exists(vehicle)&&this.vehicles.entity(vehicle)?this.vehicles.positionOf(vehicle):undefined;
+ }
  private ridingIn(handle:number){
   const ride=this.peds.rideOf(handle);
   return ride&&this.vehicles.exists(ride.vehicle)?this.vehicles.positionOf(ride.vehicle):undefined;

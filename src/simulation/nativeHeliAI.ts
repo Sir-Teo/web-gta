@@ -7,7 +7,7 @@
 import type {NativeVec} from './nativeFlyingControl';
 
 /** eCarMission values the steering looks at. */
-export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_LAND=47,MISSION_HELI_LAND_TOUCHING_DOWN=48,MISSION_HELI_CRASH_AND_BURN=58;
+export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_LAND=47,MISSION_HELI_LAND_TOUCHING_DOWN=48,MISSION_HELI_KEEP_ENTITY_IN_VIEW=51,MISSION_HELI_CRASH_AND_BURN=58;
 
 /** CHeli's fields the AI flies by: the controls it writes (m_fLeftRightSkid +0xbcc, positive yawing right;
  * m_fSteeringUpDown +0xbd0, positive nose up; m_fSteeringLeftRight +0xbd4, negative rolling right;
@@ -17,10 +17,10 @@ export interface HeliAI {yaw:number;pitch:number;roll:number;accel:number;maxAlt
 /** CHeli's constructor: both altitudes 10. */
 export function newHeliAI():HeliAI{return {yaw:0,pitch:0,roll:0,accel:0,maxAltitude:10,minAltitude:10,holdHeight:10,blockedAhead:false};}
 
-/** The CAutoPilot fields the steering reads: the mission, m_nCruiseSpeed (+0x40), m_ucHeliSpeedMult (+0x49, signed),
- * m_ucHeliTargetDist2 (+0x4f, 10 from the constructor), m_vecDestinationCoors (+0x5c); bIsRCVehicle (CVehicle flag
- * bit 39); and CAutomobile::m_fForcedOrientation (−1 when none). */
-export interface HeliPilot {mission:number;cruiseSpeed:number;heliSpeedMult:number;heliTargetDist2:number;destination:NativeVec;rc:boolean;forcedOrientation:number}
+/** The CAutoPilot fields the steering reads: the mission, m_nCruiseSpeed (+0x40), m_ucHeliTargetDist (+0x48),
+ * m_ucHeliSpeedMult (+0x49, signed), m_ucHeliTargetDist2 (+0x4f, 10 from the constructor), m_vecDestinationCoors
+ * (+0x5c); bIsRCVehicle (CVehicle flag bit 39); and CAutomobile::m_fForcedOrientation (−1 when none). */
+export interface HeliPilot {mission:number;cruiseSpeed:number;heliTargetDist?:number;heliSpeedMult:number;heliTargetDist2:number;destination:NativeVec;rc:boolean;forcedOrientation:number}
 export interface HeliAIBody {position:NativeVec;moveSpeed:NativeVec;right:NativeVec;forward:NativeVec}
 export interface HeliAIWorld {
  /** CWorld::ProcessLineOfSight against buildings alone (and shooting through what can be shot through): the point it
@@ -89,6 +89,23 @@ export function steerAIHeliToLand(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,worl
   ai.minAltitude=0;ai.maxAltitude=0;
   if(wheelOnGround){ai.yaw=0;ai.pitch=0;ai.roll=0;ai.accel=0;}
  }
+}
+
+/** SteerAIHeliToKeepEntityInView (iOS 0x10019df68), MISSION_HELI_KEEP_ENTITY_IN_VIEW: further than twice
+ * m_ucHeliTargetDist along the ground it follows the entity; within that it turns side on to it (the entity on its
+ * right) at the whole turn left, holds 15 over the entity's height with the collective 0.3 up, within 0 and 1, rolls
+ * away inside half the distance and toward it beyond the whole, and in between, and inside one and a half times it
+ * pitched too, leans against its own drift. It looks out for nothing in the way. */
+export function steerAIHeliToKeepEntityInView(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,target:NativeVec,probe:boolean,ts:number){
+ const pos=body.position,ms=body.moveSpeed,F=body.forward,R=body.right;
+ const dx=target[0]-pos[0],dy=target[1]-pos[1],along=Math.hypot(dx,dy),keep=pilot.heliTargetDist??0;
+ if(along>keep*2){steerAIHeliToFollowEntity(ai,body,pilot,world,target,probe,ts);return;}
+ ai.yaw=clamp(-wrap(atanOfXY(dx,dy)+Math.PI/2-atanOfXY(F[0],F[1])),-1,1);
+ ai.maxAltitude=target[2]+15;pilot.destination=[target[0],target[1],target[2]];ai.holdHeight=target[2]+15;
+ const gap=ai.holdHeight-(pos[2]+ms[2]*100);
+ ai.accel=clamp((gap<=0?gap/5:gap/10)+.3+((world.rand()&15)-7)*.002,0,1);
+ ai.roll=along<keep*.5?.5:along>keep?-.5:ms[0]*R[0]+ms[1]*R[1]+ms[2]*R[2];
+ ai.pitch=along<keep*1.5?ms[0]*F[0]+ms[1]*F[1]+ms[2]*F[2]:0;
 }
 
 /** CHeli's constructor (iOS 0x1004645cc): the yaw it spins at coming down in a crash, 2 to 8. */

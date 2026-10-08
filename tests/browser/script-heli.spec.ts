@@ -103,3 +103,21 @@ test('a script helicopter with a forced orientation holds it and slides to its t
  expect(Math.abs(((end.heading-270)%360+540)%360-180)).toBeLessThan(15);
  expect(errors).toEqual([]);
 });
+
+/** HELI_KEEP_ENTITY_IN_VIEW (DES3): SteerAIHeliToKeepEntityInView (iOS 0x10019df68). */
+test('a script helicopter keeping CJ in view comes in side on at its distance, 15 over him',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const p=await page.evaluate(()=>{const s=(window as any).__game.state().player.position;return {x:s.x,y:-s.z,z:s.y};});
+ const heli=await page.evaluate(([x,y,z])=>(window as any).__game.missionForProfiling().runtime.world.createCar(487,x+120,y,z+30),[p.x,p.y,p.z] as const);
+ await page.waitForFunction(b=>!!(window as any).__game.missionForProfiling().vehicles.entity(b),heli,{timeout:60000});
+ await page.evaluate(b=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.setHeliBladesFullSpeed(b);w.heliKeepEntityInView(b,1,-1,30,10);},heli);
+ const look=()=>page.evaluate(b=>{const w=(window as any).__game.missionForProfiling().runtime.world,q=w.vehiclePosition(b),c=w.pedPosition(1);return {along:Math.hypot(q.x-c.x,q.y-c.y),above:q.z-c.z};},heli);
+ let inside=0;for(let i=0;i<60;i++){await page.waitForTimeout(500);const l=await look();if(i>=30&&l.along<60&&l.above>5)inside++;}
+ // The last 15 s: within twice its distance and over him.
+ expect(inside).toBeGreaterThan(20);
+ expect(errors).toEqual([]);
+});

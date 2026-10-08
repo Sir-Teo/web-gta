@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,flyAIHeliToTargetFixedOrientation,heliCrashYaw,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
+import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,flyAIHeliToTargetFixedOrientation,heliCrashYaw,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToKeepEntityInView,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
 import type {NativeVec} from '../src/simulation/nativeFlyingControl';
 
 const pilot=(destination:NativeVec):HeliPilot=>({mission:MISSION_HELI_FLYTOCOORS,cruiseSpeed:100,heliSpeedMult:0,heliTargetDist2:10,destination,rc:false,forcedOrientation:-1});
@@ -94,4 +94,15 @@ test('a forced orientation: the nose held to it, and a slide to the target acros
  expect(ai.roll).toBeCloseTo(.01);
  // Told to face east while facing north: half the turn, to the right.
  flyAIHeliToTargetFixedOrientation(ai,body(),pilot([0,0,50]),open,0,[0,0,50],true);expect(ai.yaw).toBeCloseTo(Math.PI/4);
+});
+
+test('keeping an entity in view: side on to it at its distance, 15 over it; following it from further than twice that',()=>{
+ const ai=newHeliAI(),p={...pilot([0,0,0]),mission:51,heliTargetDist:30};
+ // 100 north: further than 60, so it follows (the height rule of following).
+ steerAIHeliToKeepEntityInView(ai,body(),p,open,[0,100,13],false,1);expect(ai.maxAltitude).toBe(25);
+ // 40 north, facing north: it turns to face west (the entity on its right), rolls toward it (beyond 30) and holds 28.
+ steerAIHeliToKeepEntityInView(ai,body(),p,open,[0,40,13],false,1);
+ expect(ai.yaw).toBe(-1);expect(ai.roll).toBe(-.5);expect(ai.pitch).toBe(0);expect(ai.holdHeight).toBe(28);expect(ai.accel).toBe(0);
+ // 10 off, inside half the distance: it rolls away, and pitches against its (nil) drift.
+ steerAIHeliToKeepEntityInView(ai,body(),p,open,[0,10,60],false,1);expect(ai.roll).toBe(.5);expect(ai.pitch).toBe(0);expect(ai.accel).toBe(1);
 });
