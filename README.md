@@ -42,7 +42,7 @@ npm run dev
 
 Production files are generated with `npm run build` and served by static hosting. GitHub Pages deployments use `BASE_PATH=/web-gta/`.
 
-The [content starting point](docs/research/CONTENT_START_HERE.md) and [scene provenance](public/play/README.md) document content acquisition and packaging. [Design](docs/DESIGN.md), [implementation plan](docs/IMPLEMENTATION.md), and [research register](docs/research/SOURCES.md) track the larger objective. Older progress records describe historical prototypes and are not claims about current shipped behavior.
+The [content starting point](docs/research/CONTENT_START_HERE.md) and [scene provenance](public/play/README.md) document content acquisition and packaging. The [fidelity audit](docs/FIDELITY_AUDIT.md) records each port decision and fix against the reference, the [gap checklist](docs/GAPS_CHECKLIST.md) what remains, and the [research register](docs/research/SOURCES.md) the sources behind them.
 
 `npm run port -- census` inventories every command of the original script against this port and gta-reversed and ranks what to port next; `npm run port -- sweep 2,11` runs missions headless and reports where each stops (see the [porting pipeline](docs/port/README.md), its [status](docs/port/STATUS.md) and the [roadmap for the remaining missions](docs/port/ROADMAP.md)). A command whose engine side is not ported yet is skipped (its outputs read as nothing found) rather than ending the mission thread.
 

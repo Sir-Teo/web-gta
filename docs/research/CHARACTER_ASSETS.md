@@ -635,8 +635,6 @@ Validation: all three discrete body variants resolve their native garment geomet
 
 ## Native player body in the gameplay character adapter
 
-The idle foot clipping reported during this first integration is corrected by the subsequent [ground alignment work](GROUND_ALIGNMENT.md): authored road collision and capsule dimensions now agree with rendering and the simulation's foot-origin convention.
-
 `readPlayerBaseBody` now returns the explicit `playerBody: true` marker. `NativeCharacter` accepts that marker only with the San Andreas pedestrian coordinate convention, validates the required shoulder bones and applies the native shoulder update **after animation sampling and pose blending**. Generic imported pedestrians do not receive the player-only correction. Failed construction still disposes the candidate model and preserves the previously installed character through the renderer's existing replacement path.
 
 The new browser integration case assembles the **Fat** classic outfit, pairs it with the acquired `FatWalk`, `FatRun` and `FatIdle` clips, sends it through the existing live-session character channel, and verifies walking/running/idle transitions plus simulation displacement. This is a matching-body/animation gameplay probe; it does not claim normal-CJ locomotion. The test currently supplies the assembled source programmatically through the workshop channel. A user-facing multi-file CJ assembly control is still needed.

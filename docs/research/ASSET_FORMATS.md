@@ -1,6 +1,6 @@
 # Local PC asset reader — September 13, 2026
 
-The local texture library at `/assets.html` is the first implemented component of the original-file route in the design. It reads local files in a dedicated worker and previews native texture pixels. It does not yet bind imported materials to the game, persist files, convert models or load an original district.
+The local texture library at `/assets.html` was the first component of the original-file route. It reads local files in a dedicated worker and previews native texture pixels. The game now loads the native world, models and textures itself (see [static world content](../static-world-content.md)); the related readers are described in [model formats](MODEL_FORMATS.md), [collision formats](COLLISION_FORMATS.md) and [texture filtering](TEXTURE_FILTERING.md).
 
 ## Source evidence
 

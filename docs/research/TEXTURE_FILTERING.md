@@ -1,6 +1,6 @@
 # Native texture sampler audit
 
-Inspected 2026-09-13 after the combined Grove/character capture showed speckled foliage and fences. This investigation found an independent sampler translation bug; it does not establish that correcting those modes removes the observed foliage artifacts.
+Inspected 2026-09-13 after the combined Grove/character capture showed speckled foliage and fences. This investigation found an independent sampler translation bug; it does not establish that correcting those modes removes the observed foliage artifacts. The follow-up on world textures is the [texture sampling investigation](TEXTURE_SAMPLING.md).
 
 ## Verified mode mapping
 

@@ -1,6 +1,6 @@
 # Research register
 
-Research checked September 13, 2026. This register distinguishes source-backed capabilities from untested design recommendations. The full linked footnotes are also included in the [design document](../DESIGN.md).
+Research checked September 13, 2026. This register distinguishes source-backed capabilities from untested design recommendations.
 
 ## Evidence and source quality
 

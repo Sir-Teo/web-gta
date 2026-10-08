@@ -1,6 +1,6 @@
 # Static DFF model reader — September 13, 2026
 
-`/models.html`, linked from the texture library, reads a locally selected DFF in a worker and previews its static geometry. No game assets are bundled or uploaded. Gameplay meshes are still authored stand-ins.
+`/models.html`, linked from the texture library, reads a locally selected DFF in a worker and previews its static geometry. No game assets are bundled or uploaded. The game itself builds its world, vehicles and characters from these native models; their per-vertex lighting is described in [generic vertex lighting](GENERIC_VERTEX_LIGHTING.md).
 
 ## Evidence
 

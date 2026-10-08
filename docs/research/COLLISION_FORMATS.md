@@ -1,6 +1,6 @@
 # Native collision data
 
-`src/assets/col.ts` reads bounded COL2/COL3 model collections. This is the source-data foundation for imported collision; the workshop now displays optional local collision collections as overlays. It is not yet installed into the gameplay scene. A tested Rapier adapter is available.
+`src/assets/col.ts` reads bounded COL2/COL3 model collections. It is the source of the game's world and vehicle collision, installed into the Rapier world by `src/simulation/nativeCollision.ts` and `installNativeCar.ts`; the workshop also displays local collision collections as overlays.
 
 ## Evidence and independent fixtures
 
