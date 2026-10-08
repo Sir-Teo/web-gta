@@ -1270,7 +1270,9 @@ export class ScmMission {
    // WARP_CHAR_FROM_CAR_TO_COORD: CWorld::PutToGroundIfTooLow first, as the teleport does.
    warpPedFromCarToCoord:(handle,x,y,z)=>{
     const ground=z<=-100?this.findGroundZForCoord(x,y):undefined;
-    if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerFromCarToCoord','WARP_CHAR_FROM_CAR_TO_COORD')({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_FROM_CAR_TO_COORD','a player on a bike, boat or plane');return;}
+    // FlushImmediately first, as all three warps do: a task the warp would leave behind (a TASK_LEAVE_ANY_CAR whose
+    // get-out it cut short) otherwise waits on for good, with GET_SCRIPT_TASK_STATUS never finished.
+    if(handle===PLAYER_PED_HANDLE){this.clearTasks(handle,'WARP_CHAR_FROM_CAR_TO_COORD');if(!this.host('warpPlayerFromCarToCoord','WARP_CHAR_FROM_CAR_TO_COORD')({x,y,z:ground??z}))throw new UnsupportedScmCommand(-1,0,'WARP_CHAR_FROM_CAR_TO_COORD','a player on a bike, boat or plane');return;}
     // A ped in a car is set out of it at the point (CTaskSimpleCarSetPedOut, then the teleport): its seat is freed and
     // it no longer counts as in the car.
     const at={x,y,z:ground??z};
@@ -3735,11 +3737,12 @@ export class ScmMission {
  }
  /** WARP_CHAR_INTO_CAR and its task: the player through the host, a script ped into the driver's seat. */
  private warpIntoCar(handle:number,vehicle:number,command:string){
-  if(handle===PLAYER_PED_HANDLE){if(!this.host('warpPlayerIntoCar',command)(this.liveVehicle(vehicle)))throw new UnsupportedScmCommand(-1,0,command,'a player already riding, or a vehicle he cannot be seated in');return;}
+  if(handle===PLAYER_PED_HANDLE){this.clearTasks(handle,command);if(!this.host('warpPlayerIntoCar',command)(this.liveVehicle(vehicle)))throw new UnsupportedScmCommand(-1,0,command,'a player already riding, or a vehicle he cannot be seated in');return;}
   this.livePed(handle);this.peds.warpIntoCar(handle,vehicle,'driver');
  }
  private warpIntoCarAsPassenger(handle:number,vehicle:number,seat:number,command:string){
   if(handle===PLAYER_PED_HANDLE){
+   this.clearTasks(handle,command);
    if(!this.host('warpPlayerIntoCarAsPassenger',command)(this.liveVehicle(vehicle),seat))
     throw new UnsupportedScmCommand(-1,0,command,'a player already in a vehicle, or a vehicle other than a car');
    return;

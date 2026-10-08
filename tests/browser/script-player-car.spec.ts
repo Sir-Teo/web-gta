@@ -79,3 +79,31 @@ test('the script puts the player in its car, moves him, and takes him out',async
  expect(await page.evaluate(()=>(window as any).__game.state().player.health)).toBe(0);
  expect(errors).toEqual([]);
 });
+
+/** WARP_CHAR_INTO_CAR and WARP_CHAR_FROM_CAR_TO_COORD flush the ped's tasks first (FlushImmediately): a leave task
+ * a warp put back in his seat no longer waits for good. TWAR7 waited on GET_SCRIPT_TASK_STATUS for CJ's
+ * TASK_LEAVE_ANY_CAR sequence after he was warped back in mid get-out. */
+test('a warp into or out of a car ends the task the player was running',async({page})=>{
+ test.setTimeout(180000);
+ await page.goto('/');
+ await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:60000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:60000});
+ await expect.poll(async()=>await page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const car=await page.evaluate(()=>{const g=(window as any).__game,m=g.missionForProfiling(),p=g.state().player.position;return m.vehicles.create(400,{x:p.x+6,y:-p.z,z:p.y},0);});
+ await page.waitForFunction((car:number)=>!!(window as any).__game.missionForProfiling().vehicles.entity(car),car,{timeout:45000});
+ await page.evaluate((car:number)=>(window as any).__game.missionForProfiling().runtime.world.warpPedIntoCar(1,car),car);
+ await expect.poll(()=>page.evaluate((car:number)=>(window as any).__game.missionForProfiling().runtime.world.pedIsSittingInCar(1,car),car),{timeout:10000}).toBe(true);
+ // TASK_LEAVE_ANY_CAR (opcode 0x0633) on him: it is on (not 7, FINISHED_TASK) until a warp puts him back in.
+ const status=await page.evaluate((car:number)=>{
+  const w=(window as any).__game.missionForProfiling().runtime.world;w.givePedScriptedTask(1,{kind:'leaveAnyCar'},0x633);
+  const running=w.scriptTaskStatus(1,0x633);w.warpPedIntoCar(1,car);return {running,after:w.scriptTaskStatus(1,0x633),vehicle:w.pedVehicle(1)};
+ },car);
+ expect(status.running).not.toBe(7);expect(status).toMatchObject({after:7,vehicle:car});
+ // The same task, and WARP_CHAR_FROM_CAR_TO_COORD.
+ const out=await page.evaluate((car:number)=>{
+  const m=(window as any).__game.missionForProfiling(),w=m.runtime.world,c=m.vehicles.positionOf(car);w.givePedScriptedTask(1,{kind:'leaveAnyCar'},0x633);
+  w.warpPedFromCarToCoord(1,c.x+4,c.y,c.z);return w.scriptTaskStatus(1,0x633);
+ },car);
+ expect(out).toBe(7);
+});
