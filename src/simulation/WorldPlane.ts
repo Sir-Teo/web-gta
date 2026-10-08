@@ -13,7 +13,7 @@ import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,HELI_FLIGHT_MODEL,HELI_ROTOR_FLY,HELI_ROTOR_FULL,HYDRA_NOZZLE_MAX,HYDRA_NOZZLE_RATE,HYDRA_VTOL_NOZZLE,heliFlyingControl,heliHoverInputs,hydraThrustAxis,stepHeliRotor,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
 import {requireAsset} from '../assets/binary';
-import {MISSION_HELI_CRASH_AND_BURN,MISSION_HELI_FLYTOCOORS,MISSION_HELI_FOLLOW_ENTITY,MISSION_HELI_LAND,MISSION_HELI_LAND_TOUCHING_DOWN,heliCrashYaw,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
+import {MISSION_HELI_CRASH_AND_BURN,MISSION_HELI_FLYTOCOORS,MISSION_HELI_FOLLOW_ENTITY,MISSION_HELI_LAND,MISSION_HELI_LAND_TOUCHING_DOWN,heliCrashYaw,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
@@ -150,6 +150,9 @@ export class WorldPlane {
  tellHeliToLand(x:number,y:number,z:number,minAltitude:number,maxAltitude:number){
   this.tellHeliToGoToCoors(x,y,z,minAltitude,maxAltitude);const pilot=this.heliPilot;if(pilot)pilot.mission=MISSION_HELI_LAND;
  }
+ /** SET_HELI_ORIENTATION (iOS 0x1001e34ac, a heading in degrees) and CLEAR_HELI_ORIENTATION (iOS 0x1001e39c4, −1):
+  * CAutomobile::m_fForcedOrientation. */
+ setHeliOrientation(degrees:number|undefined){const pilot=this.aiPilot();if(pilot)pilot.forcedOrientation=degrees===undefined?-1:heliForcedOrientation(degrees);}
  /** MAKE_HELI_COME_CRASHING_DOWN (iOS 0x1001e5414): MISSION_HELI_CRASH_AND_BURN, unless it is crashing already. */
  makeHeliComeCrashingDown(){const pilot=this.aiPilot();if(pilot&&pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_HELI_CRASH_AND_BURN;}
  /** SET_HELI_REACHED_TARGET_DISTANCE (iOS 0x1001fe394): CAutoPilot's m_ucHeliTargetDist2, a byte. */

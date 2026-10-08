@@ -45,11 +45,38 @@ const atanOfXY=(x:number,y:number)=>x===0&&y===0?0:Math.atan2(y,x);
 export function heliProbeDue(nowMs:number,previousMs:number,seed:number){return (Math.floor(nowMs)+seed)%500<(Math.floor(previousMs)+seed)%500;}
 
 /** SteerAIHeliTowardsTargetCoors (iOS 0x10019c430): with no forced orientation, fly toward the destination along the
- * ground, `toTarget` set. (A forced orientation is FlyAIHeliToTarget_FixedOrientation, iOS 0x1001a068c, not ported:
- * the heli flies nose first all the same.) */
+ * ground, `toTarget` set; with one, hold that heading and slide there (FlyAIHeliToTarget_FixedOrientation). */
 export function steerAIHeliTowardsTargetCoors(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,probe:boolean,ts:number){
+ if(pilot.forcedOrientation>=0){flyAIHeliToTargetFixedOrientation(ai,body,pilot,world,pilot.forcedOrientation,pilot.destination,probe);return;}
  const dx=pilot.destination[0]-body.position[0],dy=pilot.destination[1]-body.position[1];
  flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(dx,dy),Math.hypot(dx,dy),true,probe,ts);
+}
+/** SET_HELI_ORIENTATION (iOS 0x1001e34ac): the script's heading in degrees as CAutomobile::m_fForcedOrientation, an
+ * angle from the x axis (90 degrees on), within 0 to 2π. */
+export function heliForcedOrientation(degrees:number){let a=(degrees+90)*Math.PI/180;while(a<0)a+=Math.PI*2;while(a>=Math.PI*2)a-=Math.PI*2;return a;}
+
+/** FlyAIHeliToTarget_FixedOrientation (iOS 0x1001a068c): the height as FlyAIHeliInCertainDirection holds it (looking
+ * ahead and down along the forced heading, but nothing straight ahead or to the sides); the nose turned to the forced
+ * heading at half the turn left; and it slides to the target, by where the target will be 80 frames on across and
+ * along it: rolled 0.02 and pitched 0.015 of that past 5 units, within it against its own speed that way, the roll
+ * within ±0.75 and the pitch ±0.5. */
+export function flyAIHeliToTargetFixedOrientation(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,orientation:number,target:NativeVec,probe:boolean){
+ const pos=body.position,ms=body.moveSpeed,F=body.forward,R=body.right;
+ if(probe){
+  ai.holdHeight=ai.maxAltitude;
+  const ahead=add(pos,ms,50),c=Math.cos(orientation),s=Math.sin(orientation),l=Math.hypot(c,s,1);
+  const ground=world.lineOfSight(ahead,add(ahead,[c/l,s/l,-1/l],60));
+  if(ground)ai.holdHeight=Math.max(ai.holdHeight,ground[2]+ai.minAltitude);
+ }
+ const facing=atanOfXY(F[0],F[1]);
+ const gap=ai.holdHeight-(pos[2]+ms[2]*100);
+ ai.accel=clamp((gap<=0?gap/5:gap/10)+((world.rand()&15)-7)*.002,-.3,1);
+ ai.yaw=clamp(wrap(orientation-facing)*-.5,-1,1);
+ const tx=target[0]-pos[0],ty=target[1]-pos[1];
+ const velocityRight=R[0]*ms[0]+R[1]*ms[1]+R[2]*ms[2],velocityAlong=F[0]*ms[0]+F[1]*ms[1]+F[2]*ms[2];
+ const right=tx*R[0]+ty*R[1]+velocityRight*80,along=tx*F[0]+ty*F[1]+velocityAlong*80;
+ ai.roll=clamp(Math.abs(right)>=5?right*-.02:velocityRight,-.75,.75);
+ ai.pitch=clamp(Math.abs(along)>=5?along*-.015:velocityAlong,-.5,.5);
 }
 
 /** SteerAIHeliToLand (iOS 0x10019de50), MISSION_HELI_LAND and _TOUCHING_DOWN: toward the spot as toward a target; within
@@ -75,13 +102,14 @@ export function steerAIHeliToCrashAndBurn(ai:HeliAI,seed:number,crashYaw:number)
 
 /** SteerAIHeliToFollowEntity (iOS 0x10019d400), MISSION_HELI_FOLLOW_ENTITY: the destination is the entity's position
  * each step, and the height to hold its own, at least 6, or at least 25 while it is more than 50 units off along the
- * ground; then as toward a target. (The lead ahead of the entity, CAutoPilot +0x4a, is nought unless set, and the
+ * ground; then as toward a target, or with a forced orientation sliding to it. (The lead ahead of the entity, CAutoPilot +0x4a, is nought unless set, and the
  * police and news catch-up flags are not looked at here.) */
 export function steerAIHeliToFollowEntity(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,target:NativeVec,probe:boolean,ts:number){
  pilot.destination=[target[0],target[1],target[2]];
  const dx=target[0]-body.position[0],dy=target[1]-body.position[1],along=Math.hypot(dx,dy),low=Math.max(target[2],6);
  ai.maxAltitude=along>50?Math.max(low,25):low;
- flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(dx,dy),along,true,probe,ts);
+ if(pilot.forcedOrientation>=0)flyAIHeliToTargetFixedOrientation(ai,body,pilot,world,pilot.forcedOrientation,target,probe);
+ else flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(dx,dy),along,true,probe,ts);
 }
 
 /** FlyAIHeliInCertainDirection (iOS 0x10019fcf4): the heli's controls for flying on `heading` with `distance` (along

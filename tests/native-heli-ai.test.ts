@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,heliCrashYaw,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
+import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,flyAIHeliToTargetFixedOrientation,heliCrashYaw,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
 import type {NativeVec} from '../src/simulation/nativeFlyingControl';
 
 const pilot=(destination:NativeVec):HeliPilot=>({mission:MISSION_HELI_FLYTOCOORS,cruiseSpeed:100,heliSpeedMult:0,heliTargetDist2:10,destination,rc:false,forcedOrientation:-1});
@@ -80,4 +80,18 @@ test('landing: over the spot and all but still it sinks, and lets every control 
  const far=newHeliAI();far.maxAltitude=40;
  steerAIHeliToLand(far,body(),{...pilot([0,200,0]),mission:47},open,true,1,true);
  expect(far.maxAltitude).toBe(40);expect(far.pitch).toBeLessThan(0);
+});
+
+test('a forced orientation: the nose held to it, and a slide to the target across and along it',()=>{
+ expect(heliForcedOrientation(0)).toBeCloseTo(Math.PI/2);expect(heliForcedOrientation(270)).toBeCloseTo(0);expect(heliForcedOrientation(-180)).toBeCloseTo(Math.PI*1.5);
+ const ai=newHeliAI();ai.maxAltitude=50;
+ // Facing north and told to face north; the target 100 east and 100 north: rolled right (negative), pitched forward.
+ flyAIHeliToTargetFixedOrientation(ai,body(),pilot([100,100,50]),open,Math.PI/2,[100,100,50],true);
+ expect(ai.yaw).toBeCloseTo(0);expect(ai.roll).toBeCloseTo(-.75);expect(ai.pitch).toBeCloseTo(-.5);
+ // 3 off to the right and drifting right: within 5 it pushes back against the drift (positive, rolling left).
+ const drift={...body(),moveSpeed:[.01,0,0] as NativeVec};
+ flyAIHeliToTargetFixedOrientation(ai,drift,pilot([3,0,50]),open,Math.PI/2,[-.7,0,50],true);
+ expect(ai.roll).toBeCloseTo(.01);
+ // Told to face east while facing north: half the turn, to the right.
+ flyAIHeliToTargetFixedOrientation(ai,body(),pilot([0,0,50]),open,0,[0,0,50],true);expect(ai.yaw).toBeCloseTo(Math.PI/4);
 });

@@ -82,3 +82,24 @@ test('a script helicopter told to land comes down on the spot and rests there',a
  expect(Math.hypot(still.x-rest.x,still.y-rest.y,still.z-rest.z)).toBeLessThan(.5);
  expect(errors).toEqual([]);
 });
+
+/** SET_HELI_ORIENTATION (SYN5): FlyAIHeliToTarget_FixedOrientation (iOS 0x1001a068c) holds the heading and slides. */
+test('a script helicopter with a forced orientation holds it and slides to its target',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const p=await page.evaluate(()=>{const s=(window as any).__game.state().player.position;return {x:s.x,y:-s.z,z:s.y};});
+ const heli=await page.evaluate(([x,y,z])=>(window as any).__game.missionForProfiling().runtime.world.createCar(487,x,y+30,z+40),[p.x,p.y,p.z] as const);
+ await page.waitForFunction(b=>!!(window as any).__game.missionForProfiling().vehicles.entity(b),heli,{timeout:60000});
+ const target={x:p.x,y:p.y+130,z:p.z+40};
+ // Heading 270: facing east while it goes north.
+ await page.evaluate(([b,t])=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.setHeliBladesFullSpeed(b);w.setHeliOrientation(b,270);w.heliGotoCoords(b,t.x,t.y,t.z,10,t.z);},[heli,target] as const);
+ const state=()=>page.evaluate(b=>{const w=(window as any).__game.missionForProfiling().runtime.world;return {at:w.vehiclePosition(b),heading:w.vehicleHeading(b)};},heli);
+ let nearest=Infinity;for(let i=0;i<50;i++){await page.waitForTimeout(500);const s=await state();nearest=Math.min(nearest,Math.hypot(s.at.x-target.x,s.at.y-target.y));}
+ const end=await state();
+ expect(nearest).toBeLessThan(10);
+ expect(Math.abs(((end.heading-270)%360+540)%360-180)).toBeLessThan(15);
+ expect(errors).toEqual([]);
+});

@@ -11435,8 +11435,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   to nothing at m_ucHeliTargetDist2, yaws twice the turn left to make, and with the way ahead blocked rolls from the
   nearer-walled side and brakes. An AI heli flies on out past the 250 units the port steps aircraft within.
   SET_HELI_BLADES_FULL_SPEED sets the rotor to 0.22 (iOS 0x1001faec4); it was stored and never read. Not yet ported:
-  a forced orientation (FlyAIHeliToTarget_FixedOrientation, iOS 0x1001a068c), and the keep-in-view, attack and
-  police missions.
+  the keep-in-view, attack and police missions.
 - HELI_FOLLOW_ENTITY (iOS 0x1001f5edc) follows the ped, or the vehicle: MISSION_HELI_FOLLOW_ENTITY, the command's
   distance as m_fMinAltitude, cruise speed 100. SteerAIHeliToFollowEntity (iOS 0x10019d400) makes the entity's position
   the destination each step and holds its height, at least 6, or 25 while more than 50 units off, flying as toward
@@ -11455,3 +11454,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   SteerAIHeliToLand (iOS 0x10019de50) flies toward the spot. Within 10 units and all but still (under 0.05 a frame),
   both altitudes drop to nought so it sinks onto what is under it, and once a wheel is on the ground every control is
   let go. A wheel on the ground here is the port's aircraft standing within its gear clearance.
+- SET_HELI_ORIENTATION (iOS 0x1001e34ac) sets CAutomobile::m_fForcedOrientation, the heading in degrees made an angle
+  from the x axis ((degrees + 90) in radians, within 0 to 2π); CLEAR_HELI_ORIENTATION (iOS 0x1001e39c4) sets it to −1.
+  With one set, going to coordinates or following is FlyAIHeliToTarget_FixedOrientation (iOS 0x1001a068c). It holds
+  height as the plain flight does (looking ahead and down along the forced heading only). It turns the nose to the
+  heading at half the turn left, and slides there by where the target will be 80 frames on, across and along the heli:
+  rolled 0.02 and pitched 0.015 of that past 5 units, within it against its own speed that way, the roll within ±0.75
+  and the pitch ±0.5.
