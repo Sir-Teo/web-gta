@@ -98,6 +98,9 @@ export class WorldBike {
  autopilot?:import('./WorldCar').WorldCar['autopilot'];scriptDriven?:boolean;
  /** FREEZE_CAR_POSITION: the body held where it is. */
  frozen=false;
+ /** m_autoPilot.m_vehicleRecordingId and the pedals a playback sets (CVehicleRecording plays on any vehicle: TWAR7's
+  * Ballas rider leaves on his PCJ-600 along recording 30). recordingBody.ts drives the body through these. */
+ recordingSlot=-1;recordingControls?:{steerAngle:number;gas:number;brake:number;handbrake:boolean};
  /** The rider's controls from the autopilot. Its native wheel angle (radians, left positive) over the handling's
   * lock is the bike's steer (right positive); gas is the pedal; any brake or the handbrake squeezes the brake.
   * Without native pedals (a stuck car's recovery) the pad's throttle, brake-to-reverse and steering are used. */
@@ -290,6 +293,9 @@ export class WorldBike {
   // worked on with nothing to move it.
   const nearby=this.distance()<250,active=nearby&&!this.frozen&&this.collisionLoaded(dt);this.body.setEnabled(active);this.root.visible=nearby;if(!active)return;
   this.previous={...this.body.translation()};this.previousRotation={...this.body.rotation()};
+  // A playback without car AI owns the body (bDisableCollisionForce, a velocity-driven body here): the bike's own
+  // pedals and balance would fight the recording's speeds.
+  if(this.recordingSlot>=0&&this.body.bodyType()===RAPIER.RigidBodyType.KinematicVelocityBased)return;
   this.throttle=input.throttle;this.steer=input.steer;this.brake=input.brake;
   // The ride clip's clock: the pedal cycle turns while the rider pedals and holds while he coasts.
   if(Math.abs(input.throttle)>.05)this.rideTime+=dt;

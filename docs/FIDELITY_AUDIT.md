@@ -11386,3 +11386,10 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   and the mission waited for him in it for good. GetNearestCarDoor's IsRoomForPedToLeaveCar tests for something in the
   way, not for ground; the entry's test now does the same (the exit's still wants ground, so CJ does not step out over
   a drop the stream has not filled).
+- WARP_CHAR_INTO_CAR, WARP_CHAR_INTO_CAR_AS_PASSENGER and WARP_CHAR_FROM_CAR_TO_COORD flush the player's tasks first
+  (CPedIntelligence::FlushImmediately in all three handlers). The port warped him and left his script task running:
+  a TASK_LEAVE_ANY_CAR whose get-out a warp cut short waited for good with him back in his seat, and
+  GET_SCRIPT_TASK_STATUS never read finished (TWAR7's scene at the Ballas' house, under the sweep's bot).
+- CVehicleRecording plays on bikes. The recording host took only script cars, so TWAR7's Ballas rider sat on his
+  PCJ-600 while recording 30 ran on nothing and the scene waited on him. A bike now has the playback slot and pedals
+  a car has, and its own pedals and balance stand aside while a playback drives its body.
