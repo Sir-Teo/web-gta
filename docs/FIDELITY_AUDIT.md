@@ -11367,3 +11367,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   to the dam happened under the map. It asks twice a second for fixed ground or water within forty units below; a
   plane with a pilot, an autopilot, made flying (PLANE_STARTS_IN_AIR) or already moving goes on. FREEZE_CAR_POSITION
   also holds a plane now: its step had switched the body back on the next frame.
+- The 2026-09-17 "task cutover" never happened: every street ped carried a PedTaskAdapter that mirrored its retaliate,
+  flee, down and stagger timers onto a TaskStack each step, which nothing read but a debug key in the snapshot. The
+  native ports since (scripted tasks, the fight and damage responses) made it redundant; the adapter, the task stack
+  (src/engine/task.ts) and the per-step sync are gone, and src/ped/brain.ts keeps only the live temper routing.
