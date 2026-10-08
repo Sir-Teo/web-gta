@@ -396,6 +396,53 @@ export function missionBotTick(dtSeconds:number){
    return {action:'getting into a car'};
   }
  }
+ // "Shoot the switch" (RYDER2's docks gate and warehouse door): the script's object at the blipped place, not yet
+ // damaged (HAS_OBJECT_BEEN_DAMAGED), is shot from wherever a player could see it: from here when the line is clear,
+ // else from a spot with a floor beside it.
+ // Kept for the place it was asked at after the brief has gone (it shows for seven seconds).
+ const placeKey=(b:any)=>`${Math.round(b.position.x)},${Math.round(b.position.y)}`;
+ if(places.length&&/\bshoot/i.test(objective))mem.shootAt=placeKey(nearest(places));
+ if(mem.shootAt&&!places.some((b:any)=>placeKey(b)===mem.shootAt))mem.shootAt=undefined;
+ if(!vehicle&&places.length&&mem.shootAt){
+  const p=places.find((b:any)=>placeKey(b)===mem.shootAt)??nearest(places),near=(o:any)=>Math.hypot(o.position.x-p.position.x,o.position.y-p.position.y,o.position.z-p.position.z);
+  // Not yet damaged as HAS_OBJECT_BEEN_DAMAGED sees it: its damaged model not showing and still visible (SET_OBJECT_HEALTH
+  // marks the keypad damaged before a shot is fired).
+  const target=[...(r.game.objects?.all??[])].filter((o:any)=>!o.renderDamaged&&o.visible!==false&&near(o)<4).sort((a:any,b:any)=>near(a)-near(b))[0];
+  if(target){
+   const at={x:target.position.x,y:target.position.y,z:target.position.z};
+   // Where the last bullet ended (renderer coordinates turned native) and the object's health, to see a shot that misses.
+   const shotInfo=()=>{const l=g.state?.().lastBulletLine;const e=l?.[1];return {hp:target.health,end:e?`${e.x.toFixed(1)},${(-e.z).toFixed(1)},${e.y.toFixed(1)}`:'-'};};
+   // shoot() aims 0.6 over its point (a ped's chest): an object is aimed at its own centre.
+   const aim={x:at.x,y:at.y,z:at.z-.6};
+   if(distance(at)<25&&clearShot(me,at)){shoot(aim);return {action:'shoot object at place',target:target.handle,...shotInfo()};}
+   // A spot with a floor and a clear line to it, out to twelve units round (a keypad on the far side of RYDER2's wall
+   // is shot from where the line passes over it), the nearest to CJ; else the bot's vantage beside it.
+   const sightOn=(to:any)=>{
+    let best:any,bestD=Infinity;
+    for(const radius of [2,4,6,8,10,12])for(let k=0;k<24;k++){
+     const a=k/24*Math.PI*2,x=to.x+Math.cos(a)*radius,y=to.y+Math.sin(a)*radius,floor=world.groundZFor3DCoord?.(x,y,to.z+6);
+     if(typeof floor!=='number'||floor===0)continue;
+     const spot={x,y,z:floor+1};if(!clearShot(spot,to))continue;
+     const d=Math.hypot(x-me.x,y-me.y);if(d<bestD){bestD=d;best=spot;}
+    }
+    return best;
+   };
+   const spots=mem.objectSpots??={};if(!(target.handle in spots))spots[target.handle]=sightOn(at)??vantageOn(at)??null;
+   const spot=spots[target.handle];
+   if(spot){if(glide(spot,.3))return {action:'go to see object',target:target.handle};shoot(aim);return {action:'shoot object at place',target:target.handle,...shotInfo()};}
+  }
+  mem.objectsAtPlace=[...(r.game.objects?.all??[])].filter((o:any)=>near(o)<8).map((o:any)=>`${o.handle}:${o.model}:${near(o).toFixed(1)}:${o.renderDamaged?'R':'-'}${o.visible===false?'H':''}:${o.health}`).join(' ');
+ }
+ // A car the script has frozen and no longer blips is done with (SWEET7 at the cemetery wall: "climb over the wall"):
+ // a player gets out. One still blipped is where the gang is boarding, and he waits in it, unless the script has locked
+ // the player out of it (RYDER2's van at the docks gate, LOCK_CAR_DOORS 3: "shoot the switch over the wall").
+ if(vehicle&&m.vehicles.entity?.(vehicle)?.frozen){
+  const lockedOut=(()=>{try{return world.vehicleDoorLockStatus?.(vehicle)===3;}catch{return false;}})();
+  if(lockedOut||!blips.some((b:any)=>b.type===BLIP_CAR&&b.handle===vehicle)){
+   try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}
+   return {action:'leave frozen car',target:vehicle};
+  }
+ }
  if(places.length){
   // A place stood at for six seconds with its blip still up is not what the script waits on (CRASH4's Ammu-Nation, for
   // a gun if CJ wants one): a player goes on to the next, before the door near it would take him in.
@@ -488,18 +535,12 @@ export function missionBotTick(dtSeconds:number){
   const anyDoor=g.interiorExitNear?.(me.x,me.y,me.z,false),onDoor=g.interiorExitNear?.(me.x,me.y,me.z,true);
   const enex=anyDoor&&distance(anyDoor)<10?g.state?.().entryExits:undefined;
   const doors=anyDoor&&distance(anyDoor)<10?{doors:`${distance(anyDoor).toFixed(1)}/${onDoor?distance(onDoor).toFixed(1):'-'} enex ${enex?.state}${enex?.active?' '+enex.active:''}`}:{};
-  return {action:marker?'in marker':'at place',...doors,place:`${p.position.x.toFixed(1)},${p.position.y.toFixed(1)},${p.position.z.toFixed(1)}`,peds:`${crowdNow.length}/${crowdNow.filter(p=>p.health>0&&p.gang===0).length}`,...(gw&&gw.state?{war:`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`,wave:((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.attackWave&&p.health>0).map((p:any)=>Math.round(Math.hypot(p.actor.player.position.x-me.x,-p.actor.player.position.z-me.y))).join('/')}:{})};
+  return {action:marker?'in marker':'at place',...doors,...(mem.objectsAtPlace?{objects:mem.objectsAtPlace}:{}),place:`${p.position.x.toFixed(1)},${p.position.y.toFixed(1)},${p.position.z.toFixed(1)}`,peds:`${crowdNow.length}/${crowdNow.filter(p=>p.health>0&&p.gang===0).length}`,...(gw&&gw.state?{war:`${gw.state}/${gw.state2}/${(+gw.provocation).toFixed(2)}`,wave:((g.pedestrians?.() as any)?.people??[]).filter((p:any)=>p.attackWave&&p.health>0).map((p:any)=>Math.round(Math.hypot(p.actor.player.position.x-me.x,-p.actor.player.position.z-me.y))).join('/')}:{})};
  }
  if(chases.length){
   const c=nearest(chases);
   if(glide(c.position,15,true))return {action:'chase car',target:c.handle};
   shoot(c.position);return {action:'shoot car',target:c.handle};
- }
- // A car the script has frozen and no longer blips is done with (SWEET7 at the cemetery wall: "climb over the wall"):
- // a player gets out. One still blipped is where the gang is boarding, and he waits in it.
- if(vehicle&&m.vehicles.entity?.(vehicle)?.frozen&&!blips.some((b:any)=>b.type===BLIP_CAR&&b.handle===vehicle)){
-  try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}
-  return {action:'leave frozen car',target:vehicle};
  }
  // "Get those gang members to join you" (SWEET7's TWAR652): a player walks up to each blipped Families member not yet
  // in his group, faces him and recruits him with the aim held and the group button.
