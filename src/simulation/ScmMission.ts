@@ -2504,6 +2504,8 @@ export class ScmMission {
     const where=this.scriptEntityPosition(ped,vehicle);
     heli.tellHeliToFollowEntity?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},distance);
    },
+   // HELI_ATTACK_PLAYER (iOS 0x1001f6870): the player is the one player there is.
+   heliAttackPlayer:(handle,_player,distance)=>{(this.liveVehicle(handle) as {tellHeliToAttackPlayer?:(min:number)=>void}).tellHeliToAttackPlayer?.(distance);},
    // POLICE_HELI_CHASE_ENTITY (iOS 0x1001f6128): as HELI_FOLLOW_ENTITY, as MISSION_HELI_POLICE_BEHAVIOUR.
    policeHeliChaseEntity:(handle,ped,vehicle,distance)=>{
     const heli=this.liveVehicle(handle) as {tellHeliToFollowEntity?:(target:()=>[number,number,number]|undefined,min:number,police?:boolean)=>void};

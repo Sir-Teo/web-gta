@@ -7,7 +7,7 @@
 import type {NativeVec} from './nativeFlyingControl';
 
 /** eCarMission values the steering looks at. */
-export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_POLICE_BEHAVIOUR=40,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_FLY_AWAY_FROM_PLAYER=42,MISSION_HELI_LAND=47,MISSION_HELI_LAND_TOUCHING_DOWN=48,MISSION_HELI_KEEP_ENTITY_IN_VIEW=51,MISSION_HELI_CRASH_AND_BURN=58;
+export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_ATTACK_PLAYER=23,MISSION_HELI_ATTACK_PLAYER_FLY_AWAY=56,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_POLICE_BEHAVIOUR=40,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_FLY_AWAY_FROM_PLAYER=42,MISSION_HELI_LAND=47,MISSION_HELI_LAND_TOUCHING_DOWN=48,MISSION_HELI_KEEP_ENTITY_IN_VIEW=51,MISSION_HELI_CRASH_AND_BURN=58;
 
 /** CHeli's fields the AI flies by: the controls it writes (m_fLeftRightSkid +0xbcc, positive yawing right;
  * m_fSteeringUpDown +0xbd0, positive nose up; m_fSteeringLeftRight +0xbd4, negative rolling right;
@@ -105,6 +105,20 @@ export function steerAIHeliAsPoliceHeli(ai:HeliAI,body:HeliAIBody,pilot:HeliPilo
  * forward, as on no target 1000 off. */
 export function steerAIHeliFlyingAwayFromPlayer(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,player:NativeVec,probe:boolean,ts:number){
  flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(player[0]-body.position[0],player[1]-body.position[1])+Math.PI,1000,false,probe,ts);
+}
+
+/** SteerAIHeliToAttackPlayer (iOS 0x10019d244), MISSION_HELI_ATTACK_PLAYER and _FLY_AWAY: runs at the player, full
+ * forward at his height (m_fMaxAltitude his z, the destination him), past him inside 15 units along the ground to fly
+ * straight away until 18 off, then round again. Returns the mission to go on with. (Its gun and rocket fire after it,
+ * iOS 0x10019fa50 and 0x1001a0ac0, are not ported.) */
+export function steerAIHeliToAttackPlayer(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,player:NativeVec,probe:boolean,ts:number){
+ const dx=player[0]-body.position[0],dy=player[1]-body.position[1];
+ let heading=atanOfXY(dx,dy),along=Math.hypot(dx,dy),mission=pilot.mission;
+ ai.maxAltitude=player[2];pilot.destination=[player[0],player[1],player[2]];
+ if(mission===MISSION_HELI_ATTACK_PLAYER_FLY_AWAY){if(along>18)mission=MISSION_HELI_ATTACK_PLAYER;heading+=Math.PI;}
+ else if(mission===MISSION_HELI_ATTACK_PLAYER){if(along<15)mission=MISSION_HELI_ATTACK_PLAYER_FLY_AWAY;along+=50;}
+ flyAIHeliInCertainDirection(ai,body,pilot,world,heading,along,false,probe,ts);
+ return mission;
 }
 
 /** SteerAIHeliToKeepEntityInView (iOS 0x10019df68), MISSION_HELI_KEEP_ENTITY_IN_VIEW: further than twice

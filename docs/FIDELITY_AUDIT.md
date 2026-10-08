@@ -11434,8 +11434,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   m_fMinAltitude over what a ray 60 units forward and down finds. It flies full forward (−0.8), eases within 60 units
   to nothing at m_ucHeliTargetDist2, yaws twice the turn left to make, and with the way ahead blocked rolls from the
   nearer-walled side and brakes. An AI heli flies on out past the 250 units the port steps aircraft within.
-  SET_HELI_BLADES_FULL_SPEED sets the rotor to 0.22 (iOS 0x1001faec4); it was stored and never read. Not yet ported:
-  the attack mission.
+  SET_HELI_BLADES_FULL_SPEED sets the rotor to 0.22 (iOS 0x1001faec4); it was stored and never read.
 - HELI_FOLLOW_ENTITY (iOS 0x1001f5edc) follows the ped, or the vehicle: MISSION_HELI_FOLLOW_ENTITY, the command's
   distance as m_fMinAltitude, cruise speed 100. SteerAIHeliToFollowEntity (iOS 0x10019d400) makes the entity's position
   the destination each step and holds its height, at least 6, or 25 while more than 50 units off, flying as toward
@@ -11471,3 +11470,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   SteerAIHeliAsPoliceHeli (iOS 0x10019d6f0) chases as following does (with no forced orientation), and under 230
   health turns to MISSION_HELI_FLY_AWAY_FROM_PLAYER (iOS 0x1001996a8): straight away from the player at full forward.
   The wanted level's police helicopters still fly the port's own pursuit controller (policeHeli.ts).
+- HELI_ATTACK_PLAYER (iOS 0x1001f6870): MISSION_HELI_ATTACK_PLAYER, its distance as m_fMinAltitude, cruise speed 100.
+  SteerAIHeliToAttackPlayer (iOS 0x10019d244) makes runs at the player, full forward at his height. Inside 15 units
+  along the ground it goes past him and straight away (MISSION_HELI_ATTACK_PLAYER_FLY_AWAY) until 18 off, then comes
+  round again. Not ported: the guns and rockets it fires after steering. 0x10019fa50 sets bFireGun with the player
+  within 150 and ahead (direction · forward over 0.8); 0x1001a0ac0 fires the rockets. The port's aircraft guns are the
+  player's alone (WeaponSystem.fireAircraft).

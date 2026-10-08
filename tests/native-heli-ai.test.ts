@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,flyAIHeliToTargetFixedOrientation,heliCrashYaw,steerAIHeliAsPoliceHeli,steerAIHeliFlyingAwayFromPlayer,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToKeepEntityInView,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
+import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,flyAIHeliToTargetFixedOrientation,heliCrashYaw,steerAIHeliAsPoliceHeli,steerAIHeliToAttackPlayer,steerAIHeliFlyingAwayFromPlayer,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToKeepEntityInView,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
 import type {NativeVec} from '../src/simulation/nativeFlyingControl';
 
 const pilot=(destination:NativeVec):HeliPilot=>({mission:MISSION_HELI_FLYTOCOORS,cruiseSpeed:100,heliSpeedMult:0,heliTargetDist2:10,destination,rc:false,forcedOrientation:-1});
@@ -116,4 +116,15 @@ test('a police heli chases as a following one, and turns away from the player un
  const away=newHeliAI();away.maxAltitude=50;
  steerAIHeliFlyingAwayFromPlayer(away,body(),{...pilot([0,0,0]),mission:42},open,[0,100,0],false,1);
  expect(Math.abs(away.yaw)).toBe(1);expect(away.pitch).toBeCloseTo(0);
+});
+
+test('attacking the player: full forward runs at his height, past him inside 15 and away to 18, then round again',()=>{
+ const ai=newHeliAI(),p={...pilot([0,0,0]),mission:23};
+ expect(steerAIHeliToAttackPlayer(ai,body(),p,open,[0,100,20],false,1)).toBe(23);
+ expect(ai.maxAltitude).toBe(20);expect(ai.pitch).toBeCloseTo(-.8);
+ expect(steerAIHeliToAttackPlayer(ai,body(),p,open,[0,10,20],false,1)).toBe(56);
+ p.mission=56;
+ // Flying away: the player behind it is the heading's opposite, so with him ahead it has the whole turn to make.
+ expect(steerAIHeliToAttackPlayer(ai,body(),p,open,[0,16,20],false,1)).toBe(56);expect(Math.abs(ai.yaw)).toBe(1);
+ expect(steerAIHeliToAttackPlayer(ai,body(),p,open,[0,-20,20],false,1)).toBe(23);
 });
