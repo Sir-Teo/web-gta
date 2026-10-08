@@ -1,7 +1,0 @@
-
-Running 1 test using 1 worker
-
-overlays 53 here {"label":"GAN","infoLabel":"GAN1","gangStrength":[0,25,0,0,0,0,0,0,0,0]}
-  ✓  1 [parallel] › tests/browser/tmp-radar-shot.spec.ts:2:1 › radar shot (5.6s)
-
-  1 passed (6.6s)

@@ -6,3 +6,4 @@ playwright-report/
 *.local
 artifacts/
 scripts/port/.cache/
+scratch/
