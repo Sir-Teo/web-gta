@@ -21,8 +21,6 @@ export const WASTED_DELAY_MS=3000,BUSTED_DELAY_MS=4000,FADE_EVENT_WINDOW_MS=3000
 export const FADE_TO_BLACK_SECONDS=2,FADE_FROM_BLACK_SECONDS=3;
 /** Both the wasted and busted sequences advance the clock twelve hours. */
 export const RESURRECTION_PASS_MINUTES=12*60;
-/** CCarCtrl::CountDownToCarsAtStart and CPopulation::m_CountDownToPedsAtStart. */
-export const RESURRECTION_TRAFFIC_COUNTDOWN=10;
 /** eStats ids incremented by KillPlayer and ArrestPlayer. */
 export const STAT_TIMES_BUSTED=133,STAT_DAYS_PASSED_IN_GAME=134,STAT_NUMBER_OF_HOSPITAL_VISITS=135;
 

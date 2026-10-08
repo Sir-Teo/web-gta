@@ -42,8 +42,6 @@ export function nativeJumpGroundSpeed(associations: { run?: number; sprint?: num
   if (associations.run !== undefined) return .1 + (.17 - .1) * associations.run;
   return .1;
 }
-/** Crouch root-motion parity: GunCrouchFwd 3.74 m/s drives the crouch gait. */
-export const NATIVE_CROUCH_SPEED = 3.74;
 
 /** PlayerControlZelda's pedMoveBlendRatio: the stick's deflection (0-1 here, 0-128 on the pad) over 60, and no more
  * than 1 with the walk button held. Sprinting does not change it. */

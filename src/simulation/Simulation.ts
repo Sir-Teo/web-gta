@@ -31,8 +31,6 @@ export const NATIVE_SPRINT_SPEED = 9.562;
 export const NATIVE_CROUCH_WALK_SPEED = 3.74;
 /** CPhysical::ApplyGravity for a ped: GRAVITY a frame squared, in native units. */
 const NATIVE_GRAVITY = 0.008;
-/** Native GunCrouchFwd root-motion speed driving the crouch gait. */
-export const NATIVE_CROUCH_ROOT_SPEED = 3.74;
 /** STAT_PLAYER's table value. Applying this to every damage kind remains an
  * assumption: AccountForPedDamageStats is unreversed in the pinned source. */
 export const NATIVE_PLAYER_DEFEND_MULT = 0.4;

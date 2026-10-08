@@ -4,7 +4,6 @@ import {NATIVE_GRAVITY_MS2} from '../simulation/nativeGravity';
  * executable's (AddProjectile 0x100491668, Update 0x1004925bc): the launches (launchVelocity), the rockets' and
  * heat-seekers' flight (stepRocketVelocity), the thrown weapons' fuses, gravity and elasticity. `bounce` is the
  * projectile's elasticity (CPhysical::m_fElasticity). */
-export type ProjectileKind='rocket'|'guided'|'grenade'|'molotov'|'satchel'|'tear'|'mine';
 export interface ProjectileTuning {gravity:number;drag:number;bounce:number;fuse:number;speed:number;up:number}
 /** The game's frames a second: CTimer's timestep is 1 at 50. */
 const FPS=50;
@@ -100,18 +99,4 @@ export function stepProjectile(p:{position:Vec3;velocity:Vec3;fuse:number;forwar
  }
  p.position={x:p.position.x+p.velocity.x*dt,y:p.position.y+p.velocity.y*dt,z:p.position.z+p.velocity.z*dt};
  p.fuse-=dt;
-}
-/** CWeapon::FireInstantHit spread: weapon.dat accuracy + skill/proficiency,
- * crouch bonus, move penalty and per-pellet golden-angle fan. */
-export function instantHitSpread(baseSpread:number,o:{proficiency:number;crouched:boolean;moving:boolean;aiming:boolean}){
- let s=baseSpread*(1-o.proficiency*0.25);
- if(o.crouched)s*=0.7;
- if(o.moving)s*=1.6;
- if(o.aiming)s*=0.8;
- return Math.max(0.001,s);
-}
-export function pelletOffset(index:number,count:number,spread:number,distance:number){
- if(index===0)return {x:0,y:0};
- const angle=index*2.399963, r=spread*distance*Math.sqrt((index+0.5)/count);
- return {x:Math.cos(angle)*r,y:Math.sin(angle)*r};
 }

@@ -47,16 +47,6 @@ export function heliOrbitPoint(suspect:V3,seconds:number):V3{
  const angle=seconds*0.35;
  return {x:suspect.x+Math.cos(angle)*HELI_ORBIT_RADIUS,y:suspect.y+HELI_HOVER_HEIGHT,z:suspect.z+Math.sin(angle)*HELI_ORBIT_RADIUS};
 }
-/** CHeli flight model: rotor-speed-gated collective/cyclic response with
- * bank-limited turns and vertical-velocity damping (gta-reversed CHeli). */
-export const CHELI_ROTOR_FULL = 0.22;
-export const CHELI_MAX_BANK = 0.5;
-export const CHELI_CLIMB_RATE = 8;
-export function cheliInputs(o:{position:V3;velocity:V3;heading:number;rotor:number},target:V3,dt:number):PlaneControls & {rotor:number}{
- const rotor=clamp(o.rotor+dt*0.4,0,CHELI_ROTOR_FULL)/CHELI_ROTOR_FULL;
- const base=policeHeliInputs(o,target);
- return {...base,pitch:clamp(base.pitch,-CHELI_MAX_BANK,CHELI_MAX_BANK),roll:clamp(base.roll,-CHELI_MAX_BANK,CHELI_MAX_BANK),rotor};
-}
 /** Helicopter searchlight: tracks the suspect within 120 m at night or 3+
  * stars, locking when line-of-sight holds; the cone exposes the suspect and
  * pins the pursuit to the lit position. */

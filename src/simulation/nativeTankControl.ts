@@ -47,6 +47,3 @@ export function tankDefaultMuzzle(t:TankTurret){
  const s=Math.sin(t.yaw),c=Math.cos(t.yaw);
  return {x:TANK_SHOT_DOOM_POS.x+c*d.x-s*d.y,y:TANK_SHOT_DOOM_POS.y+c*d.y+s*d.x,z:TANK_SHOT_DOOM_POS.z+d.z-1};
 }
-/** Native basis entries ([column, row, value]) turning a frame about its Z (the turret's yaw) or X (the barrel's pitch). */
-export function yawBasis(yaw:number):[number,number,number][]{const c=Math.cos(yaw),s=Math.sin(yaw);return [[0,0,c],[0,1,s],[0,2,0],[1,0,-s],[1,1,c],[1,2,0],[2,0,0],[2,1,0],[2,2,1]];}
-export function pitchBasis(pitch:number):[number,number,number][]{const c=Math.cos(pitch),s=Math.sin(pitch);return [[0,0,1],[0,1,0],[0,2,0],[1,0,0],[1,1,c],[1,2,s],[2,0,0],[2,1,-s],[2,2,c]];}

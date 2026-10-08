@@ -135,8 +135,6 @@ function applyRenderPass(part:ScenePart,root:Group){
 /** CBaseModelInfo::m_nAlpha of the models in the live window, by lowercase name (see sceneVisibility's partAlpha).
  * The first window loads like CStreaming's loading scene (255); a later window's newly streamed models start at 0. */
 let modelAlphas=new Map<string,number>();
-/** The live window's model alphas below 255, for tests and the dev hooks. */
-export const fadingModelCount=()=>{let n=0;for(const a of modelAlphas.values())if(a<255)n++;return n;};
 function buildNativeScene(world:RAPIER.World,scene:Scene,parts:ScenePart[],options:SceneOptions,borrowed=new Map<string,PhysicalObject>(),preparedCatalog?:ScenePlacementCatalog,shared?:SharedSceneResources,prebuilt?:PrebuiltWindow):InstalledNativeScene {
   // Only the scene's own transform matters here; a forced update of the whole scene graph cost milliseconds per swap.
   scene.updateWorldMatrix(true,false);

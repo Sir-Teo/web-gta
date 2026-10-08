@@ -1,5 +1,4 @@
 import {requireAsset} from './binary';
-export const POPULATION_ZONE_TYPES=['BUSINESS','DESERT','ENTERTAINMENT','COUNTRYSIDE','RESIDENTIAL_RICH','RESIDENTIAL_AVERAGE','RESIDENTIAL_POOR','GANGLAND','BEACH','SHOPPING','PARK','INDUSTRY','ENTERTAINMENT_BUSY','SHOPPING_BUSY','SHOPPING_POSH','RESIDENTIAL_RICH_SECLUDED','AIRPORT','GOLF_CLUB','OUT_OF_TOWN_FACTORY','AIRPORT_RUNWAY'] as const;
 export interface PopulationCycleRow {
  line:number;zoneType:number;weekType:0|1;timeIndex:number;
  maxPeds:number;maxCars:number;dealers:number;gangs:number;cops:number;other:number;

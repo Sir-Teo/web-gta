@@ -10,8 +10,6 @@ export function piecewiseLinear(points:readonly (readonly [number,number])[],x:n
 }
 /** notsa::step_to without its time-step variant: one fixed step per audio frame. */
 export function stepTo(x:number,to:number,stepUp:number,stepDown=stepUp){if(x===to)return to;return x<to?Math.min(to,x+stepUp):Math.max(to,x-stepDown);}
-export const stepUpTo=(x:number,to:number,step:number)=>Math.min(to,x+step);
-export const stepDownTo=(x:number,to:number,step:number)=>Math.max(to,x-step);
 /** CAEAudioUtility::GetRandomNumberInRange (0x4D9C10 int, inclusive; 0x4D9C50 float). */
 export const randomInt=(random:AudioRandom,min:number,max:number)=>min+Math.floor(random()*(max-min+1));
 export const randomFloat=(random:AudioRandom,min:number,max:number)=>min+(max-min)*random();

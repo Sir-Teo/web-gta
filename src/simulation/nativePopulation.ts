@@ -23,13 +23,9 @@
 export const NATIVE_MIN_CREATION_DIST = 40;
 export const NATIVE_CREATION_RANGE = 10;
 export const NATIVE_OFFSCREEN_MULT = 0.5;
-export const NATIVE_PED_REMOVE_DIST = 51;
-export const NATIVE_PED_REMOVE_SPECIAL = 65;
 export const NATIVE_MANAGE_REMOVE = 54.5;
 export const NATIVE_MANAGE_REMOVE_FAR = 65;
 export const NATIVE_VISIBLE_SPAWN_GATE = 42.5;
-export const NATIVE_PED_GRACE_MS = 4000;
-export const NATIVE_COP_GRACE_MS = 10000;
 
 /** 1.0 on foot, up to 1.5 with vehicle speed (CPopulation::PedCreationDistMultiplier). */
 export function pedCreationDistMultiplier(vehicleSpeed2D: number): number {
@@ -117,10 +113,6 @@ export function separationPush(point:{x:number;z:number},others:readonly {x:numb
   x+=dx/d*push;z+=dz/d*push;
  }
  return {x,z};
-}
-/** >2-star foot `addCop` override (CPopulation::AddToPopulation). */
-export function wantsCopOverride(o: { wanted: number; numCop: number; maxCops: number; playerInVehicle: boolean }): boolean {
-  return o.wanted > 2 && o.numCop < o.maxCops && !o.playerInVehicle;
 }
 
 /** ManagePed removal decision. Returns 'keep' | 'fade' | 'remove'. */

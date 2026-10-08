@@ -7,9 +7,6 @@
  */
 export const DEVICE_MAX_PEDS = 36;
 export const DEVICE_MAX_CARS = 44;
-export const STREET_FALLBACK_PEDS = 18;
-export const STREET_FALLBACK_CARS = 26;
-export const PARKED_CAR_BUDGET = 9;
 
 /** Ambient drivers: the popcycle's car maximum for the zone and hour (CPopCycle splits it between dealer, gang, cop
  * and other cars; all of them drive, parked cars come from the car generators), with a browser ceiling. The

@@ -20,20 +20,3 @@ export function normalPlayerMovement(pack:AnimationPackage):Record<'idle'|'walk'
   fallGlide:(()=>{try{return select('fall_glide',true);}catch{try{return select('fall_glide',false);}catch{return undefined;}}})()};
 }
 
-/** animgrp.dat `man` walkcycle for ordinary street civilians: walk_civi,
- * run_civi, sprint_panic. Speeds 1.522/4.304/5.903 m/s match these clips'
- * root motion, so civilian feet stop sliding. Gang/old/fat variants remain
- * future work; this replaces the previous reuse of player clips for peds. */
-export function civilianPedMovement(pack:AnimationPackage):Record<'idle'|'walk'|'run'|'sprint',CharacterClip>{
- const select=(name:string,moving:boolean):CharacterClip=>{
-  const matches=pack.animations.filter(clip=>clip.name.toLowerCase()===name);
-  if(matches.length!==1)throw new Error(`Civilian movement requires one ${name} clip.`);
-  const clip=matches[0];
-  if(!(clip.duration>0))throw new Error(`Civilian movement requires a nonempty ${name} clip.`);
-  if(!moving)return {clip};
-  const roots=clip.tracks.flatMap((track,index)=>track.boneId===0&&track.translations&&track.times.length?[index]:[]);
-  if(roots.length!==1)throw new Error(`${clip.name} requires one translated root bone (ID 0).`);
-  return {clip,track:roots[0]};
- };
- return {idle:select('idle_stance',false),walk:select('walk_civi',true),run:select('run_civi',true),sprint:select('sprint_panic',true)};
-}

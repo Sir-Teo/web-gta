@@ -92,8 +92,6 @@ export function nativeShotDelayMs(info:NativeWeaponInfo,onFoot=true){
  const instantLoop=[22,23,24,28,29,30,31,32,33,38].includes(info.type);
  return instantLoop&&onFoot?0:Math.trunc(f32(info.loop.end-info.loop.start)*900);
 }
-/** Crosshair pixels to aim radians (shared by player spread and NPC dispersion). */
-export const CROSSHAIR_TANGENT=32/320*Math.tan(35*Math.PI/180);
 /** CPlayerPed::GetWeaponRadiusOnScreen. */
 export function nativeWeaponRadiusOnScreen(info:NativeWeaponInfo,attackButtonCounter=0,ducking=false){
  if(info.fire==='melee')return 0;

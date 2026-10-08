@@ -46,8 +46,6 @@ export const NATIVE_UNARMED_RANGE = NATIVE_MELEE_COMBOS.UNARMED.range;
 export const NATIVE_UNARMED_STAGES: NativeMeleeStage[] = NATIVE_MELEE_COMBOS.UNARMED.stages;
 export const NATIVE_UNARMED_GROUND_DAMAGE = NATIVE_MELEE_COMBOS.UNARMED.ground.damage;
 export const NATIVE_UNARMED_MOVING_DAMAGE = NATIVE_MELEE_COMBOS.UNARMED.moving.damage;
-export const NATIVE_UNARMED_GROUND_HIT = NATIVE_MELEE_COMBOS.UNARMED.ground.hit;
-export const NATIVE_UNARMED_MOVING_HIT = NATIVE_MELEE_COMBOS.UNARMED.moving.hit;
 
 /** CPlayerPed::FindPedToAttack line distance with the gang discount. */
 export function attackLineDistance(origin: { x: number; z: number }, forward: { x: number; z: number }, point: { x: number; z: number }, gang: boolean): number {
@@ -88,7 +86,6 @@ export const MELEE_SWING_CLIPS:Record<string,MeleeSwingClips>={
 };
 /** Which swing a melee attack plays. */
 export type MeleeSwing={kind:'attack';stage:0|1|2}|{kind:'ground'}|{kind:'moving'};
-export function meleeSwingClip(clips:MeleeSwingClips,swing:MeleeSwing){return swing.kind==='attack'?clips.attacks[swing.stage]:clips[swing.kind];}
 
 /** melee.dat FLAGS, least significant hex digit first: attack availability, then
  * FALL_1 (1), FALL_2 (2) and FALL_3 (4), the combo moves whose hit knocks the victim

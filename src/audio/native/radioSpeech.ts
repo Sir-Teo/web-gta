@@ -5,11 +5,6 @@
  * native entity. */
 export const RADIO_STATIONS=['Playback FM','K-Rose','K-DST','Bounce FM','SF-UR','Radio Los Santos','Radio X','CSR 103.9','K-Jah West','Master Sounds','WCTR'] as const;
 export type RadioStation=(typeof RADIO_STATIONS)[number];
-export function radioStationFor(type:string,index:number):RadioStation{
- const i=Math.abs(index)%RADIO_STATIONS.length;
- void type;
- return RADIO_STATIONS[i];
-}
 export function nextStation(current:RadioStation,dir=1){
  const i=RADIO_STATIONS.indexOf(current);
  return RADIO_STATIONS[(i+dir+RADIO_STATIONS.length)%RADIO_STATIONS.length];

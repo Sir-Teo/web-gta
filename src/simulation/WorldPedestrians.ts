@@ -417,10 +417,6 @@ export interface Pedestrian {
 export const NATIVE_PED_WALK_SPEED = 1.522;
 export const NATIVE_PED_RUN_SPEED = 4.304;
 export const NATIVE_PED_SPRINT_SPEED = 5.903;
-/** pedstats.dat STAT_PLAYER row: attack strength 3.0x, defend weakness 0.4x.
- * Ordinary street peds use 1.0/1.0. Applied to player punch damage dealt and
- * damage taken so brawls match the native stat table instead of flat values. */
-export const NATIVE_PLAYER_ATTACK_MULT = 3.0;
 export const NATIVE_PLAYER_DEFEND_MULT = 0.4;
 /** How long a dragged-out driver stays on the ground before his get-up (authored: the stand-up task is unreversed). */
 const JACKED_LIE_SECONDS=.6;
