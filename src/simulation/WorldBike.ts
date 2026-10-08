@@ -479,9 +479,19 @@ export class WorldBike {
   * process: CREATE_CAR leaves one so) stops at once. The port had none of it: an empty bike on a slope rolled away, as
   * TWAR7's PCJ-600 did from behind the Ballas' house, out of its rider's reach. */
  private fakeForce={x:0,y:0,z:0};private fakeTorque={x:0,y:0,z:0};private fakeFrames=0;
+ private get abandoned(){return !(this.occupied||this.autopilot||this.scriptDriven||this.mountTimer>0||WorldBike.hasDriverPed?.(this)||this.inWater);}
+ /** CPlaceable::SetHeading or SetPosn on a bike at rest (SET_CAR_HEADING turning a script's bike where it stands): the
+  * new matrix is all there is to it, as its physics stay skipped, though a wheel the turn sinks a little into a slope
+  * would have the solver throw a woken body out of it. TWAR7's PCJ-600, turned in the yard behind the Ballas' house,
+  * was thrown up and rolled away so. A bike someone rides or drives is placed and goes on. */
+ place(position:{x:number;y:number;z:number},rotation:{x:number;y:number;z:number;w:number}){
+  const rest=this.abandoned&&!this.wrecked,body=this.body;
+  body.setTranslation(position,!rest);body.setRotation(rotation,!rest);body.setLinvel({x:0,y:0,z:0},!rest);body.setAngvel({x:0,y:0,z:0},!rest);
+  if(rest){this.fakeFrames=10;this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};body.sleep();}
+ }
  private skipPhysics(dt:number){
   const body=this.body;
-  if(this.occupied||this.autopilot||this.scriptDriven||this.mountTimer>0||WorldBike.hasDriverPed?.(this)||this.inWater){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
+  if(!this.abandoned){this.fakeFrames=0;if(body.isSleeping())body.wakeUp();return false;}
   if(body.isSleeping()){this.stepVelocity={x:0,y:0,z:0};this.stepTurn={x:0,y:0,z:0};return true;}
   const v=body.linvel(),w=body.angvel(),f=this.fakeForce,t=this.fakeTorque,ts=dt*50;
   const idle=v.x===0&&v.y===0&&v.z===0&&this.wheelsDown();

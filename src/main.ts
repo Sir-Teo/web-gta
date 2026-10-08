@@ -5902,9 +5902,14 @@ async function boot() {
                   if(car instanceof WorldTrain){fleet?.setTrainPosition(car,position);return;}
                   const target=car as ScriptCar;if(target.disposed)return;
                   const yaw=scriptCarRotation(heading),body=target.car.body;
-                  body.setTranslation({x:position.x,y:position.z,z:-position.y},true);
-                  body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
-                  body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
+                  // A bike places itself: one at rest is put there without waking (its physics stay skipped).
+                  const bike=car as Partial<import('./simulation/WorldBike').WorldBike>;
+                  if(!isScriptCar(car)&&typeof bike.place==='function'&&typeof bike.riderPose==='function')bike.place({x:position.x,y:position.z,z:-position.y},{x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)});
+                  else{
+                   body.setTranslation({x:position.x,y:position.z,z:-position.y},true);
+                   body.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
+                   body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);
+                  }
                   // A car set down where the world's collision is not streamed in yet (INTRO2 puts Sweet's car back
                   // outside the pizza place before its LOAD_SCENE; a job's car sent across the city) stands static until
                   // the collision is under it, as the game's synchronous scene load would have it, with CJ in it or

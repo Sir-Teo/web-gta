@@ -55,8 +55,11 @@ test('a script bike made on a slope stays where it was made',async({page})=>{
  await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.setPedCoordinates(1,2469,-1279,30));
  await page.waitForFunction(()=>{const s=(window as any).__game.state();return s.player.grounded&&!s.terrainHold;},undefined,{timeout:90000});
  await page.waitForTimeout(2000);
- const bike=await page.evaluate(()=>(window as any).__game.missionForProfiling().vehicles.create(461,{x:2488.2,y:-1279.9,z:30},286.4));
+ // CREATE_CAR at heading nought, then SET_CAR_HEADING once it rests, as the script does it.
+ const bike=await page.evaluate(()=>(window as any).__game.missionForProfiling().runtime.world.createCar(461,2488.2,-1279.9,30));
  await page.waitForFunction(b=>!!(window as any).__game.missionForProfiling().vehicles.entity(b),bike,{timeout:60000});
+ await page.waitForTimeout(500);
+ await page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.setVehicleHeading(b,286.4),bike);
  const at=()=>page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.vehiclePosition(b),bike);
  const first=await at();await page.waitForTimeout(6000);const later=await at();
  expect(Math.hypot(later.x-first.x,later.y-first.y)).toBeLessThan(.3);
