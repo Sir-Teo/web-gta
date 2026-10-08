@@ -11400,3 +11400,8 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   the yard behind the Ballas' house on a slope, rolled back three units past a ledge, its rider could not reach it,
   and the mission waited on him for good. (CREATE_CAR also puts script bikes on their side stand, iOS 0x10018ce38;
   the stand's lean, which ProcessControl eases toward 20 degrees while the bike rests, is not drawn yet.)
+- SET_CAR_HEADING on a bike at rest turns it where it stands and leaves it at rest, as CPlaceable::SetHeading does on
+  a body whose physics are skipped. The port woke it to place it, and on a slope the turn sank a wheel the solver then
+  threw out: TWAR7's PCJ-600, turned as it was made, flew up and rolled off. A bike in use is placed and goes on.
+- The player's TASK_ENTER_CAR_AS_DRIVER boards a bike: the walk up to it and its jump-on clip, as the enter button
+  from further off. It knew only cars and ended at once on a bike (TWAR7 sends CJ to the second PCJ-600).
