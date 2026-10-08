@@ -509,7 +509,27 @@ export function missionBotTick(dtSeconds:number){
   const anchors=mem.friendAnchor??={},a=anchors[f.handle];
   if(!a||Math.hypot(f.position.x-a.x,f.position.y-a.y)>3)anchors[f.handle]={x:f.position.x,y:f.position.y,for:0};else a.for+=dtSeconds;
   // On foot he walks right up to him (SWEET7: CJ within two units of Sweet in the cemetery).
-  if(anchors[f.handle].for>5){glide(f.position,vehicle?5:1.5);return {action:'join stopped friend',target:f.handle};}
+  if(anchors[f.handle].for>5){
+   // Beside him for twenty seconds with nothing moving on, and the script still asking about an area or a point CJ is
+   // not in (CRASH1's landing at the top of the stairs, which the bot's steps went past on the way to the girl): a
+   // player would be there, so the bot goes.
+   const poll=(window as any).__scriptPoll,fresh=poll&&performance.now()-poll.at<2000;
+   if(!vehicle&&fresh&&distance(f.position)<3)mem.besideFriend=(mem.besideFriend??0)+dtSeconds;else if(!mem.pollGoal)mem.besideFriend=0;
+   if(mem.besideFriend>20&&fresh&&!mem.pollGoal){
+    const v=poll.floats,three=/3D$/.test(poll.name),area=/IN_AREA/.test(poll.name);
+    mem.pollGoal=area?{x:(v[0]+v[three?3:2])/2,y:(v[1]+v[three?4:3])/2,z:three?(v[2]+v[5])/2:me.z}:{x:v[0],y:v[1],z:three?v[2]:me.z};
+    mem.pollKey=poll.name+poll.floats.join();
+   }
+   // Kept until it is reached or the script stops asking it (the stage moved on to another check, or none).
+   const latched=mem.pollKey&&(window as any).__scriptPolls?.get(mem.pollKey);
+   if(mem.pollGoal&&!(latched&&performance.now()-latched.at<2000))mem.pollGoal=undefined;
+   if(mem.pollGoal){
+    const goal=mem.pollGoal;
+    if(glide(goal,0))return {action:'go to polled area',poll:latched.name,goal:`${goal.x.toFixed(1)},${goal.y.toFixed(1)},${goal.z.toFixed(1)}`};
+    mem.pollGoal=undefined;mem.besideFriend=0;
+   }
+   glide(f.position,vehicle?5:1.5);return {action:'join stopped friend',target:f.handle};
+  }
   if(v>.2){
    const ahead=(me.x-f.position.x)*vx+(me.y-f.position.y)*vy>0;if(ahead)return {action:'let him pass',target:f.handle};
    glide({x:f.position.x-vx/v*10,y:f.position.y-vy/v*10,z:f.position.z},1.5);

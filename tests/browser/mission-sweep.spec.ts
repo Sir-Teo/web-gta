@@ -92,6 +92,14 @@ test('mission sweep',async({page})=>{
     const said=()=>{const msg=r.game.messages;return [msg.briefs?.[0]?.key,...msg.big.map((style:any[])=>style[0]?.key)].filter(Boolean);};
     if(!slot)return {ended:true,gaveUp,said:said(),passed:r.game.missionPassedKey??null};
     const t=slot.thread,block=sweep.missions[id],offset=t.ip-t.base,fileOffset=block.start+offset;
+    // The area and locate checks the script makes on CJ, as it makes them (from any subroutine): the last is kept for
+    // the bot (window.__scriptPoll), floats read through the thread so a variable's value is the one tested.
+    if(!t.__pollHook){t.__pollHook=true;const original=t.updateCompareFlag;
+     t.updateCompareFlag=function(this:any,...args:any[]){
+      try{const d=this.decoded;if(d&&/^(IS_CHAR_IN_AREA_(ON_FOOT_|IN_CAR_)?[23]D|LOCATE_(STOPPED_)?CHAR_(ANY_MEANS|ON_FOOT|IN_CAR)_[23]D)$/.test(d.name)&&this.readInt(d.parameters[0])===1)
+       {const poll={name:d.name,floats:d.parameters.slice(1,7).map((p:any)=>{try{return this.readFloat(p);}catch{return NaN;}}),at:performance.now()};
+        const w=window as any;w.__scriptPoll=poll;(w.__scriptPolls??=new Map()).set(poll.name+poll.floats.join(),poll);}}catch{}
+      return original.apply(this,args);};}
     // Keep CJ alive and out of trouble.
     try{r.world.setPedHealth(1,100);}catch{}g.setWantedLevel(0);
     // The autopilot. Its candidates are the locate and area tests with literal coordinates round where the thread
