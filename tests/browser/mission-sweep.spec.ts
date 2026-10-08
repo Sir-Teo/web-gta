@@ -206,6 +206,8 @@ test('mission sweep',async({page})=>{
    if((s.bot as {action?:string}|null)?.action==='menu accept'){await page.keyboard.down('ShiftLeft');await page.waitForTimeout(150);await page.keyboard.up('ShiftLeft');}
    // Triangle is the enter-car key.
    if((s.bot as {action?:string}|null)?.action==='menu back'){await page.keyboard.down('KeyF');await page.waitForTimeout(150);await page.keyboard.up('KeyF');}
+   // The enter-car key for a car the bot has walked up to.
+   if((s.bot as {action?:string}|null)?.action==='press enter car'){await page.keyboard.down('KeyF');await page.waitForTimeout(150);await page.keyboard.up('KeyF');}
    if((s.bot as {action?:string}|null)?.action==='press collect'){await page.keyboard.down('Tab');await page.waitForTimeout(150);await page.keyboard.up('Tab');}
    // The bot's decisions as they change, and a progress line every twenty samples.
    const decision=s.bot?JSON.stringify(s.bot):null;if(decision&&decision!==timeline.at(-1)?.decision)timeline.push({at:samples,offset:s.offset??-1,decision});

@@ -379,6 +379,18 @@ export function missionBotTick(dtSeconds:number){
   const ws=g.weapons?.(),proj=(ws?.projectiles??[]).map((q:any)=>`${q.position.x.toFixed(1)},${(-q.position.z).toFixed(1)},${q.position.y.toFixed(1)}`).join(' ');
   return {action:'throw at window',target:w.handle,win:`${w.position.x.toFixed(1)},${w.position.y.toFixed(1)},${w.position.z.toFixed(1)}`,d:distance(w.position).toFixed(1),ammo:(()=>{try{return world.pedWeaponAmmo?.(1,18);}catch{return -1;}})(),held:ws?.inventory?.weapon?.kind,throwing:!!ws?.throwing,proj};
  }
+ // "Drive the girl home" (CRASH1): on foot with someone to take somewhere and no car of the script's to use, a player
+ // takes the nearest car, walking up to it and pressing the enter-car key (the game's own entry, a jacking when it has a
+ // driver), and his group gets in with him.
+ if(!vehicle&&me.z<500&&/\bdrive\b|take (her|him|them) home/i.test(objective)){
+  const near=[...(g.fleet?.()?.cars??[])].filter((c:any)=>!c.disposed&&!c.wrecked&&c.car?.body?.isValid?.())
+   .map((c:any)=>{const t=c.car.body.translation();return {x:t.x,y:-t.z,z:t.y};}).filter((p:any)=>distance(p)<80).sort((a:any,b:any)=>distance(a)-distance(b));
+  if(near.length){
+   if(glide(near[0],2.5))return {action:'go to a car'};
+   const now=performance.now();if(now-(mem.enterKeyAt??0)>2500){mem.enterKeyAt=now;return {action:'press enter car'};}
+   return {action:'getting into a car'};
+  }
+ }
  if(places.length){
   // A place stood at for six seconds with its blip still up is not what the script waits on (CRASH4's Ammu-Nation, for
   // a gun if CJ wants one): a player goes on to the next, before the door near it would take him in.
