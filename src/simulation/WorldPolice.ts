@@ -389,7 +389,8 @@ export class WorldPolice {
   const spots=roadblockCrewPlacements(type,count,Math.max(.5,radius/DEFAULT_COP_CAR_RADIUS),special);
   spots.forEach((spot,seat)=>{
    if(!u.seats[seat])return;u.seats[seat]=false;
-   const local=new RAPIER.Vector3(spot.x,0,-spot.y),world=car.worldPoint(local);
+   // worldPoint takes native car space (x right, y forward, z up): the placement is on the car's ground plane.
+   const world=car.worldPoint({x:spot.x,y:spot.y,z:0});
    const hit=this.sim.world.castRay(new RAPIER.Ray({x:world.x,y:world.y+1,z:world.z},{x:0,y:-1,z:0}),4,true,RAPIER.QueryFilterFlags.ONLY_FIXED);
    this.spawnOfficer?.(u.member.model,u.member.weapon,{x:world.x,y:(hit?world.y+1-hit.timeOfImpact:world.y-1)+.03,z:world.z},Math.atan2(player.x-world.x,player.z-world.z),{unit:u,seat,roadblock:true},u.member.accuracy);
   });

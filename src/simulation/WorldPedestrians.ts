@@ -4184,6 +4184,9 @@ export class WorldPedestrians {
      p.arrest=0;p.fight=undefined;
      // CEventPedToChase's CTaskComplexSeekEntity: run at the criminal, walk inside 2 m, stop within 1 m.
      if(p.chase&&p.down===0){const t=p.chase.target.actor.player.position;dx=t.x-state.position.x;dz=t.z-state.position.z;const d=Math.hypot(dx,dz);policeSpeed=d>2?p.runSpeed:d>1?p.walkSpeed:0;}
+     // GenerateRoadBlockPedsForCar gives a roadblock cop CTaskComplexWanderCop at PEDMOVE_STILL and bStayInSamePlace:
+     // outside the pursuit he stands at his post rather than walking off.
+     else if(p.crew?.roadblock&&policeSpeed===undefined)policeSpeed=0;
     }
     if(p.weapon&&p.gunState)this.stepPedGun(p,p.weapon,eye,aim,offset,cars,dt,engaged);
     if(p.gun)p.gun.root.visible=p.copWeapon==='pistol'&&!p.weaponHidden;

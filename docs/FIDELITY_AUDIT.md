@@ -11343,3 +11343,9 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   to nothing and clears m_bFading. The port followed gta-reversed's reconstruction, which adds nothing to the alpha when
   the duration is zero, so after a fade to black the overlay stayed and GET_FADING_STATUS answered true for ever:
   RYDER2 hung at its start, waiting for the fade it had just made.
+- Roadblock cops were placed up or down rather than beside the car: placeRoadblockCrew handed WorldCar.worldPoint a
+  renderer-frame offset, but worldPoint takes native car space (x right, y forward, z up), so each placement's forward
+  distance became a height. Every pair of GenerateRoadBlockPedsForCar's PLACEMENTS stood on one spot, one about two
+  units in the air and the other under the road, falling through the map. They now stand at the placements on the
+  car's ground plane. A roadblock cop outside the pursuit also walked off as a wandering cop; GenerateRoadBlockPedsForCar
+  gives him CTaskComplexWanderCop at PEDMOVE_STILL and bStayInSamePlace, so he now stands at his post.
