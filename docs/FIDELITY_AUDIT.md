@@ -11435,7 +11435,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   to nothing at m_ucHeliTargetDist2, yaws twice the turn left to make, and with the way ahead blocked rolls from the
   nearer-walled side and brakes. An AI heli flies on out past the 250 units the port steps aircraft within.
   SET_HELI_BLADES_FULL_SPEED sets the rotor to 0.22 (iOS 0x1001faec4); it was stored and never read. Not yet ported:
-  the attack and police missions.
+  the attack mission.
 - HELI_FOLLOW_ENTITY (iOS 0x1001f5edc) follows the ped, or the vehicle: MISSION_HELI_FOLLOW_ENTITY, the command's
   distance as m_fMinAltitude, cruise speed 100. SteerAIHeliToFollowEntity (iOS 0x10019d400) makes the entity's position
   the destination each step and holds its height, at least 6, or 25 while more than 50 units off, flying as toward
@@ -11467,3 +11467,7 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   on its right) at the whole turn left and holds 15 over the entity's height, the collective 0.3 up and within 0 and 1.
   It rolls away inside half the distance and toward the entity beyond the whole; in between it leans against its own
   drift, pitched too inside one and a half times it. It looks out for nothing in the way.
+- POLICE_HELI_CHASE_ENTITY (iOS 0x1001f6128) is HELI_FOLLOW_ENTITY with MISSION_HELI_POLICE_BEHAVIOUR.
+  SteerAIHeliAsPoliceHeli (iOS 0x10019d6f0) chases as following does (with no forced orientation), and under 230
+  health turns to MISSION_HELI_FLY_AWAY_FROM_PLAYER (iOS 0x1001996a8): straight away from the player at full forward.
+  The wanted level's police helicopters still fly the port's own pursuit controller (policeHeli.ts).

@@ -2504,6 +2504,12 @@ export class ScmMission {
     const where=this.scriptEntityPosition(ped,vehicle);
     heli.tellHeliToFollowEntity?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},distance);
    },
+   // POLICE_HELI_CHASE_ENTITY (iOS 0x1001f6128): as HELI_FOLLOW_ENTITY, as MISSION_HELI_POLICE_BEHAVIOUR.
+   policeHeliChaseEntity:(handle,ped,vehicle,distance)=>{
+    const heli=this.liveVehicle(handle) as {tellHeliToFollowEntity?:(target:()=>[number,number,number]|undefined,min:number,police?:boolean)=>void};
+    const where=this.scriptEntityPosition(ped,vehicle);
+    heli.tellHeliToFollowEntity?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},distance,true);
+   },
    // HELI_KEEP_ENTITY_IN_VIEW (iOS 0x1001f8ae4): the same entity, side on at the first distance.
    heliKeepEntityInView:(handle,ped,vehicle,distance,minAltitude)=>{
     const heli=this.liveVehicle(handle) as {tellHeliToKeepEntityInView?:(target:()=>[number,number,number]|undefined,d:number,min:number)=>void};

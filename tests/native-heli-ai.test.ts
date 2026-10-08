@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,flyAIHeliToTargetFixedOrientation,heliCrashYaw,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToKeepEntityInView,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
+import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,flyAIHeliToTargetFixedOrientation,heliCrashYaw,steerAIHeliAsPoliceHeli,steerAIHeliFlyingAwayFromPlayer,heliForcedOrientation,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliToKeepEntityInView,steerAIHeliToLand,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
 import type {NativeVec} from '../src/simulation/nativeFlyingControl';
 
 const pilot=(destination:NativeVec):HeliPilot=>({mission:MISSION_HELI_FLYTOCOORS,cruiseSpeed:100,heliSpeedMult:0,heliTargetDist2:10,destination,rc:false,forcedOrientation:-1});
@@ -105,4 +105,15 @@ test('keeping an entity in view: side on to it at its distance, 15 over it; foll
  expect(ai.yaw).toBe(-1);expect(ai.roll).toBe(-.5);expect(ai.pitch).toBe(0);expect(ai.holdHeight).toBe(28);expect(ai.accel).toBe(0);
  // 10 off, inside half the distance: it rolls away, and pitches against its (nil) drift.
  steerAIHeliToKeepEntityInView(ai,body(),p,open,[0,10,60],false,1);expect(ai.roll).toBe(.5);expect(ai.pitch).toBe(0);expect(ai.accel).toBe(1);
+});
+
+test('a police heli chases as a following one, and turns away from the player under 230 health',()=>{
+ const ai=newHeliAI(),p={...pilot([0,0,0]),mission:40};
+ expect(steerAIHeliAsPoliceHeli(ai,body(),p,open,[0,100,13],500,false,1)).toBe(40);
+ expect(ai.maxAltitude).toBe(25);expect(p.destination).toEqual([0,100,13]);
+ expect(steerAIHeliAsPoliceHeli(ai,body(),p,open,[0,100,13],229,false,1)).toBe(42);
+ // Flying away from a player due north of it: it turns to face south (a full turn to make, the yaw at its limit).
+ const away=newHeliAI();away.maxAltitude=50;
+ steerAIHeliFlyingAwayFromPlayer(away,body(),{...pilot([0,0,0]),mission:42},open,[0,100,0],false,1);
+ expect(Math.abs(away.yaw)).toBe(1);expect(away.pitch).toBeCloseTo(0);
 });

@@ -7,7 +7,7 @@
 import type {NativeVec} from './nativeFlyingControl';
 
 /** eCarMission values the steering looks at. */
-export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_LAND=47,MISSION_HELI_LAND_TOUCHING_DOWN=48,MISSION_HELI_KEEP_ENTITY_IN_VIEW=51,MISSION_HELI_CRASH_AND_BURN=58;
+export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_POLICE_BEHAVIOUR=40,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_FLY_AWAY_FROM_PLAYER=42,MISSION_HELI_LAND=47,MISSION_HELI_LAND_TOUCHING_DOWN=48,MISSION_HELI_KEEP_ENTITY_IN_VIEW=51,MISSION_HELI_CRASH_AND_BURN=58;
 
 /** CHeli's fields the AI flies by: the controls it writes (m_fLeftRightSkid +0xbcc, positive yawing right;
  * m_fSteeringUpDown +0xbd0, positive nose up; m_fSteeringLeftRight +0xbd4, negative rolling right;
@@ -89,6 +89,22 @@ export function steerAIHeliToLand(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,worl
   ai.minAltitude=0;ai.maxAltitude=0;
   if(wheelOnGround){ai.yaw=0;ai.pitch=0;ai.roll=0;ai.accel=0;}
  }
+}
+
+/** SteerAIHeliAsPoliceHeli (iOS 0x10019d6f0), MISSION_HELI_POLICE_BEHAVIOUR: after the entity as following it does
+ * (with no forced orientation), and away from the player (MISSION_HELI_FLY_AWAY_FROM_PLAYER) once under 230 health.
+ * Returns the mission to go on with. */
+export function steerAIHeliAsPoliceHeli(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,target:NativeVec,health:number,probe:boolean,ts:number){
+ pilot.destination=[target[0],target[1],target[2]];
+ const dx=target[0]-body.position[0],dy=target[1]-body.position[1],along=Math.hypot(dx,dy),low=Math.max(target[2],6);
+ ai.maxAltitude=along>50?Math.max(low,25):low;
+ flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(dx,dy),along,true,probe,ts);
+ return health<230?MISSION_HELI_FLY_AWAY_FROM_PLAYER:pilot.mission;
+}
+/** SteerAICarWithPhysics' MISSION_HELI_FLY_AWAY_FROM_PLAYER (iOS 0x1001996a8): straight away from the player, full
+ * forward, as on no target 1000 off. */
+export function steerAIHeliFlyingAwayFromPlayer(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,player:NativeVec,probe:boolean,ts:number){
+ flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(player[0]-body.position[0],player[1]-body.position[1])+Math.PI,1000,false,probe,ts);
 }
 
 /** SteerAIHeliToKeepEntityInView (iOS 0x10019df68), MISSION_HELI_KEEP_ENTITY_IN_VIEW: further than twice
