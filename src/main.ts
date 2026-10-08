@@ -127,6 +127,7 @@ import {CRIME,LAW_ENFORCEMENT_MODELS} from './simulation/nativeWanted';
 import {GangWars,GANG_COLOURS,attackBlipSprite,attackWaveComposition} from './simulation/GangWars';
 import {HeadlightBeams} from './render/HeadlightBeams';
 import {SearchlightBeams} from './render/SearchlightBeams';
+import {SPARK} from './simulation/fx/nativeFxEffects';
 import {FRAME_LIMITER_FPS,MENU_FPS,frameDue,readDisplaySettings,saveDisplaySettings,type DisplaySettings,type FramePacer} from './core/frameLimiter';
 import {getUpClip,getUpBlockedBy,isFrontClip,stuckUnderCarDamage,GET_UP_CLEAR_RADIUS} from './ped/nativeGetUp';
 import {WaterCannon,initialCannonAim,stepFireTruckAim,cannonDirection,cannonEmission,CANNON_MODELS,CANNON_DEFAULT_NOZZLE,type CannonAim} from './simulation/nativeWaterCannon';
@@ -5754,6 +5755,7 @@ async function boot() {
                  takeScriptPedPhotographed:ped=>{const p=onFoot(ped);if(!p?.photographed)return false;p.photographed=false;return true;},
                  // CMatrix's rows in the script's own axes: right, forward, up and the position.
                  scriptVehicleVelocity:car=>{const v=(car as ScriptCar).car.body.linvel();return {x:v.x,y:-v.z,z:v.y};},
+                 addSparks:(o,d,force,amount)=>{worldFx.effects?.sparks([o.x,o.y,o.z],[d.x,d.y,d.z],force,amount,[0,0,0],SPARK.spark2,.4,1);},
                  attachScriptVehicle:(child,parent,offset,rotation)=>attachVehicle(child as object,parent as object,offset,rotation),
                  detachScriptVehicle:(child,x,y,push,turn)=>detachVehicle(child as object,x,y,push,turn),
                  scriptVehicleMatrix:car=>{

@@ -687,6 +687,9 @@ export interface ScmMissionWorld {
  playerVehiclePose?():{position:{x:number;y:number;z:number};right:{x:number;y:number;z:number};forward:{x:number;y:number;z:number};up:{x:number;y:number;z:number};heading:number}|undefined;
  spawnScriptVehicle(model:number|string,position:{x:number;y:number;z:number},heading:number,componentsToUse?:readonly [number,number]):Promise<unknown>;
  placeScriptVehicle(car:unknown,position:{x:number;y:number;z:number},heading:number):void;
+ /** Fx_c::AddSparks (g_fx), native: the point, the unit direction, its force, the count, no spread across, prt_spark_2,
+  * spread 0.4 and life 1 as ADD_SPARKS gives them. */
+ addSparks?(origin:{x:number;y:number;z:number},direction:{x:number;y:number;z:number},force:number,amount:number):void;
  /** ATTACH_CAR_TO_CAR: CPhysical::AttachEntityToEntity of one script vehicle on another, the offset and rotation
   * (radians) native, or neither to keep where it sits relative to the parent. */
  attachScriptVehicle?(child:unknown,parent:unknown,offset?:{x:number;y:number;z:number},rotation?:{x:number;y:number;z:number}):void;
@@ -2546,6 +2549,12 @@ export class ScmMission {
    },
    // DETACH_CAR (iOS 0x1001ee0a8): x in degrees, y in degrees turned the other way, the push as given.
    detachVehicle:(handle,x,y,z,applyTurnForce)=>{this.world.detachScriptVehicle?.(this.liveVehicle(handle),x*Math.PI/180,-y*Math.PI/180,z,applyTurnForce);},
+   // ADD_SPARKS (iOS 0x100200738): CVector::NormaliseAndMag of the direction (no length makes it (1, y, z) and 1), the
+   // length as the force.
+   addSparks:(position,direction,amount)=>{
+    const l=Math.hypot(direction.x,direction.y,direction.z),unit=l>0?{x:direction.x/l,y:direction.y/l,z:direction.z/l}:{x:1,y:direction.y,z:direction.z};
+    this.world.addSparks?.(position,unit,l>0?l:1,amount);
+   },
    setDrunkInputDelay:(pad,delay)=>{this.runtime.game.pads.setDrunkInputDelay(pad,delay);},
    heliLandAtCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToLand?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToLand?.(x,y,z,minAltitude,maxAltitude);},
    setHeliOrientation:(handle,angle)=>{(this.liveVehicle(handle) as {setHeliOrientation?:(a:number|undefined)=>void}).setHeliOrientation?.(angle);},

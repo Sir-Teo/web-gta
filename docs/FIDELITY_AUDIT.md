@@ -11512,3 +11512,6 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   - Detaching (iOS 0x1001ee0a8, DettachEntityFromEntity) makes it dynamic again at the parent's speed plus the push
     along the parent's turned forward. The turn force it may also add is not ported.
 - script-car-force-hydraulics.spec.ts fails on main 8771fb3e too.
+- ADD_SPARKS (iOS 0x100200738) throws Fx_c::AddSparks: at the point, along the direction CVector::NormaliseAndMag
+  leaves (a direction of no length becomes (1, its y, its z)), its length the force, the script's count, nothing
+  across, prt_spark_2, spread 0.4, life 1. DRUGS1 throws them seventeen times; the command had no world hook.
