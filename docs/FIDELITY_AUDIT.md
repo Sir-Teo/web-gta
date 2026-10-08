@@ -11435,5 +11435,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   to nothing at m_ucHeliTargetDist2, yaws twice the turn left to make, and with the way ahead blocked rolls from the
   nearer-walled side and brakes. An AI heli flies on out past the 250 units the port steps aircraft within.
   SET_HELI_BLADES_FULL_SPEED sets the rotor to 0.22 (iOS 0x1001faec4); it was stored and never read. Not yet ported:
-  a forced orientation (FlyAIHeliToTarget_FixedOrientation, iOS 0x1001a068c), and the follow, land, keep-in-view,
-  attack and crash missions.
+  a forced orientation (FlyAIHeliToTarget_FixedOrientation, iOS 0x1001a068c), and the land, keep-in-view, attack,
+  police and crash missions.
+- HELI_FOLLOW_ENTITY (iOS 0x1001f5edc) follows the ped, or the vehicle: MISSION_HELI_FOLLOW_ENTITY, the command's
+  distance as m_fMinAltitude, cruise speed 100. SteerAIHeliToFollowEntity (iOS 0x10019d400) makes the entity's position
+  the destination each step and holds its height, at least 6, or 25 while more than 50 units off, flying as toward
+  coordinates; with no brake but the back-off once the target is behind, it swings past and comes round. The police
+  and news catch-up flags it also reads are not looked at. SET_HELI_REACHED_TARGET_DISTANCE sets
+  m_ucHeliTargetDist2 (iOS 0x1001fe394), the distance the forward pitch eases to nothing at.

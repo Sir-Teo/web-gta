@@ -7,7 +7,7 @@
 import type {NativeVec} from './nativeFlyingControl';
 
 /** eCarMission values the steering looks at. */
-export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_LAND_TOUCHING_DOWN=48;
+export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_LAND_TOUCHING_DOWN=48;
 
 /** CHeli's fields the AI flies by: the controls it writes (m_fLeftRightSkid +0xbcc, positive yawing right;
  * m_fSteeringUpDown +0xbd0, positive nose up; m_fSteeringLeftRight +0xbd4, negative rolling right;
@@ -50,6 +50,17 @@ export function heliProbeDue(nowMs:number,previousMs:number,seed:number){return 
 export function steerAIHeliTowardsTargetCoors(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,probe:boolean,ts:number){
  const dx=pilot.destination[0]-body.position[0],dy=pilot.destination[1]-body.position[1];
  flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(dx,dy),Math.hypot(dx,dy),true,probe,ts);
+}
+
+/** SteerAIHeliToFollowEntity (iOS 0x10019d400), MISSION_HELI_FOLLOW_ENTITY: the destination is the entity's position
+ * each step, and the height to hold its own, at least 6, or at least 25 while it is more than 50 units off along the
+ * ground; then as toward a target. (The lead ahead of the entity, CAutoPilot +0x4a, is nought unless set, and the
+ * police and news catch-up flags are not looked at here.) */
+export function steerAIHeliToFollowEntity(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,target:NativeVec,probe:boolean,ts:number){
+ pilot.destination=[target[0],target[1],target[2]];
+ const dx=target[0]-body.position[0],dy=target[1]-body.position[1],along=Math.hypot(dx,dy),low=Math.max(target[2],6);
+ ai.maxAltitude=along>50?Math.max(low,25):low;
+ flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(dx,dy),along,true,probe,ts);
 }
 
 /** FlyAIHeliInCertainDirection (iOS 0x10019fcf4): the heli's controls for flying on `heading` with `distance` (along

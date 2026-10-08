@@ -24,3 +24,22 @@ test('a script helicopter flies to its coordinates at its altitude, out past the
  const end=await at();expect(Math.abs(end.z-target.z)).toBeLessThan(10);
  expect(errors).toEqual([]);
 });
+
+/** HELI_FOLLOW_ENTITY (TRUTH2's police helicopter, DRUGS4, DES3): SteerAIHeliToFollowEntity (iOS 0x10019d400). */
+test('a script helicopter made 150 units off comes to CJ and stays over him',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const p=await page.evaluate(()=>{const s=(window as any).__game.state().player.position;return {x:s.x,y:-s.z,z:s.y};});
+ const heli=await page.evaluate(([x,y,z])=>(window as any).__game.missionForProfiling().runtime.world.createCar(497,x+150,y,z+30),[p.x,p.y,p.z] as const);
+ await page.waitForFunction(b=>!!(window as any).__game.missionForProfiling().vehicles.entity(b),heli,{timeout:60000});
+ await page.evaluate(b=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.setHeliBladesFullSpeed(b);w.heliFollowEntity(b,1,-1,20);},heli);
+ const apart=async()=>{const [q,c]=await page.evaluate(b=>{const w=(window as any).__game.missionForProfiling().runtime.world;return [w.vehiclePosition(b),w.pedPosition(1)];},heli);return {along:Math.hypot(q.x-c.x,q.y-c.y),above:q.z-c.z};};
+ // It closes on him and stays over him; with no brake but a back-off once he is behind it, it swings past him and
+ // comes round again.
+ const closest=async(seconds:number)=>{let nearest=Infinity,above=-Infinity;for(let i=0;i<seconds*2;i++){await page.waitForTimeout(500);const a=await apart();if(a.along<nearest){nearest=a.along;above=a.above;}}return {nearest,above};};
+ const first=await closest(20);expect(first.nearest).toBeLessThan(20);expect(first.above).toBeGreaterThan(5);
+ expect(errors).toEqual([]);
+});

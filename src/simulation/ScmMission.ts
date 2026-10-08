@@ -2497,6 +2497,15 @@ export class ScmMission {
    setHeliBladesFullSpeed:handle=>{const heli=this.liveVehicle(handle) as {helicopter?:boolean;rotorSpeed?:number};if(heli.helicopter)heli.rotorSpeed=.22;},
    // HELI_GOTO_COORDS (iOS 0x1001e268c): CAutomobile::TellHeliToGoToCoors with the command's arguments as they are.
    heliGotoCoords:(handle,x,y,z,minAltitude,maxAltitude)=>{(this.liveVehicle(handle) as {tellHeliToGoToCoors?:(x:number,y:number,z:number,min:number,max:number)=>void}).tellHeliToGoToCoors?.(x,y,z,minAltitude,maxAltitude);},
+   // HELI_FOLLOW_ENTITY (iOS 0x1001f5edc): the ped, or with none (-1) the vehicle, as m_TargetEntity, followed until it
+   // is gone.
+   heliFollowEntity:(handle,ped,vehicle,distance)=>{
+    const heli=this.liveVehicle(handle) as {tellHeliToFollowEntity?:(target:()=>[number,number,number]|undefined,min:number)=>void};
+    const where=ped!==-1?()=>ped===PLAYER_PED_HANDLE||this.peds.exists(ped)?(ped===PLAYER_PED_HANDLE?this.world.playerPed().position:this.ridingIn(ped)??this.peds.positionOf(ped)):undefined
+     :()=>vehicle===PLAYER_VEHICLE_HANDLE?this.playerPose(vehicle).position:this.vehicles.exists(vehicle)&&this.vehicles.entity(vehicle)?this.vehicles.positionOf(vehicle):undefined;
+    heli.tellHeliToFollowEntity?.(()=>{const p=where();return p?[p.x,p.y,p.z]:undefined;},distance);
+   },
+   setHeliReachedTargetDistance:(handle,distance)=>{(this.liveVehicle(handle) as {setHeliReachedTargetDistance?:(d:number)=>void}).setHeliReachedTargetDistance?.(distance);},
    // The car's own fields the script sets that the browser's cars keep but do not act on: CVehicle's status and
    // CAutomobile::m_fCarTraction.
    // DISABLE_HELI_AUDIO: the vehicle audio entity's EnableHelicoptor (true) or DisableHelicoptor (false), kept on the

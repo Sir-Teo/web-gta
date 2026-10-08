@@ -13,7 +13,7 @@ import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,HELI_FLIGHT_MODEL,HELI_ROTOR_FLY,HELI_ROTOR_FULL,HYDRA_NOZZLE_MAX,HYDRA_NOZZLE_RATE,HYDRA_VTOL_NOZZLE,heliFlyingControl,heliHoverInputs,hydraThrustAxis,stepHeliRotor,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
 import {requireAsset} from '../assets/binary';
-import {MISSION_HELI_FLYTOCOORS,heliProbeDue,newHeliAI,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
+import {MISSION_HELI_FLYTOCOORS,MISSION_HELI_FOLLOW_ENTITY,heliProbeDue,newHeliAI,steerAIHeliToFollowEntity,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
@@ -125,21 +125,34 @@ export class WorldPlane {
  autopilot?:PlaneControls;
  /** A helicopter's AI pilot: the CAutoPilot fields and CHeli's own the native steering flies it by (nativeHeliAI.ts),
   * from TellHeliToGoToCoors on. */
- heliPilot?:HeliPilot&{ai:HeliAI};
+ heliPilot?:HeliPilot&{ai:HeliAI;target?:()=>NV|undefined};
  private heliClockMs=0;private readonly heliSeed=randomSeed()&0xffff;
  /** CAutomobile::TellHeliToGoToCoors (0x6A2390, iOS 0x100440880), which HELI_GOTO_COORDS calls with its arguments as
   * they are: the destination (native), MISSION_HELI_FLYTOCOORS at cruise speed 100, the altitude band (the heli holds
   * the maximum, an absolute height, or the minimum over what lies ahead), and STATUS_PHYSICS. */
  tellHeliToGoToCoors(x:number,y:number,z:number,minAltitude:number,maxAltitude:number){
-  if(!this.helicopter)return;
-  const pilot=this.heliPilot??={mission:0,cruiseSpeed:0,heliSpeedMult:0,heliTargetDist2:10,destination:[0,0,0],rc:this.rcHeli,forcedOrientation:-1,ai:newHeliAI()};
-  pilot.destination=[x,y,z];pilot.mission=MISSION_HELI_FLYTOCOORS;pilot.cruiseSpeed=100;pilot.ai.minAltitude=minAltitude;pilot.ai.maxAltitude=maxAltitude;
+  const pilot=this.aiPilot();if(!pilot)return;
+  pilot.destination=[x,y,z];pilot.mission=MISSION_HELI_FLYTOCOORS;pilot.cruiseSpeed=100;pilot.ai.minAltitude=minAltitude;pilot.ai.maxAltitude=maxAltitude;pilot.target=undefined;
+ }
+ /** HELI_FOLLOW_ENTITY (iOS 0x1001f5edc): MISSION_HELI_FOLLOW_ENTITY on the entity (`target` its native position, or
+  * nothing once it is gone), the command's distance as m_fMinAltitude, cruise speed 100; a heli coming down in a crash
+  * (missions 57 and 58) keeps to that. */
+ tellHeliToFollowEntity(target:()=>NV|undefined,minAltitude:number){
+  const pilot=this.aiPilot();if(!pilot)return;
+  if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_HELI_FOLLOW_ENTITY;
+  pilot.target=target;pilot.ai.minAltitude=minAltitude;pilot.cruiseSpeed=100;
+ }
+ /** SET_HELI_REACHED_TARGET_DISTANCE (iOS 0x1001fe394): CAutoPilot's m_ucHeliTargetDist2, a byte. */
+ setHeliReachedTargetDistance(distance:number){const pilot=this.aiPilot();if(pilot)pilot.heliTargetDist2=distance&0xff;}
+ private aiPilot(){
+  if(!this.helicopter)return undefined;
   this.autopilot??={throttle:0,pitch:0,roll:0,rudder:0,brake:false};
+  return this.heliPilot??={mission:0,cruiseSpeed:0,heliSpeedMult:0,heliTargetDist2:10,destination:[0,0,0],rc:this.rcHeli,forcedOrientation:-1,ai:newHeliAI()};
  }
  /** CCarCtrl::SteerAICarWithPhysics for an AI helicopter's mission: its four controls for this step, as the autopilot's
   * (the roll field is FlyingControl's own sign, which flyHeli turns back). */
  private steerAIHeli(dt:number){
-  const pilot=this.heliPilot;if(!pilot||pilot.mission!==MISSION_HELI_FLYTOCOORS||this.occupied||this.health<=0)return;
+  const pilot=this.heliPilot;if(!pilot||pilot.mission!==MISSION_HELI_FLYTOCOORS&&pilot.mission!==MISSION_HELI_FOLLOW_ENTITY||this.occupied||this.health<=0)return;
   const previous=this.heliClockMs;this.heliClockMs+=dt*1000;
   const body=this.flyingBody(),world=this.sim.world;
   const port=(v:NV)=>({x:v[0],y:v[2],z:-v[1]});
@@ -148,7 +161,10 @@ export class WorldPlane {
    const hit=world.castRay(new RAPIER.Ray(a,{x:d.x/l,y:d.y/l,z:d.z/l}),l,true,RAPIER.QueryFilterFlags.ONLY_FIXED);if(!hit)return undefined;
    const t=hit.timeOfImpact/l;return [from[0]+(to[0]-from[0])*t,from[1]+(to[1]-from[1])*t,from[2]+(to[2]-from[2])*t];
   };
-  steerAIHeliTowardsTargetCoors(pilot.ai,body,pilot,{lineOfSight,rand:()=>Math.floor(Math.random()*32768)},heliProbeDue(this.heliClockMs,previous,this.heliSeed),dt*50);
+  const env={lineOfSight,rand:()=>Math.floor(Math.random()*32768)},probe=heliProbeDue(this.heliClockMs,previous,this.heliSeed);
+  const target=pilot.mission===MISSION_HELI_FOLLOW_ENTITY?pilot.target?.():undefined;
+  if(target)steerAIHeliToFollowEntity(pilot.ai,body,pilot,env,target,probe,dt*50);
+  else steerAIHeliTowardsTargetCoors(pilot.ai,body,pilot,env,probe,dt*50);
   // m_ucHeliSpeedMult's push forward is on the move speed itself.
   if(pilot.heliSpeedMult!==0)this.body.setLinvel({x:body.moveSpeed[0]*50,y:body.moveSpeed[2]*50,z:-body.moveSpeed[1]*50},true);
   const ai=pilot.ai;this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:-ai.roll,rudder:ai.yaw,brake:false};

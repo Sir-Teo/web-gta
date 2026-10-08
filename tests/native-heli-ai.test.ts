@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,heliProbeDue,newHeliAI,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
+import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,heliProbeDue,newHeliAI,steerAIHeliToFollowEntity,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
 import type {NativeVec} from '../src/simulation/nativeFlyingControl';
 
 const pilot=(destination:NativeVec):HeliPilot=>({mission:MISSION_HELI_FLYTOCOORS,cruiseSpeed:100,heliSpeedMult:0,heliTargetDist2:10,destination,rc:false,forcedOrientation:-1});
@@ -52,4 +52,12 @@ test('within 60 of the target the pitch eases to nothing at m_ucHeliTargetDist2,
  const past={...body(),moveSpeed:[0,.3,0] as NativeVec};
  steerAIHeliTowardsTargetCoors(ai,past,pilot([0,-40,50]),open,true,1);
  expect(ai.pitch).toBeCloseTo(.3);
+});
+
+test('following an entity: its position is the destination, and the height held at least 6, or 25 when over 50 off',()=>{
+ const ai=newHeliAI(),p={...pilot([0,0,0]),mission:39};
+ steerAIHeliToFollowEntity(ai,body(),p,open,[0,40,13],false,1);
+ expect(p.destination).toEqual([0,40,13]);expect(ai.maxAltitude).toBe(13);
+ steerAIHeliToFollowEntity(ai,body(),p,open,[0,80,13],false,1);expect(ai.maxAltitude).toBe(25);
+ steerAIHeliToFollowEntity(ai,body(),p,open,[0,40,2],false,1);expect(ai.maxAltitude).toBe(6);
 });
