@@ -258,6 +258,25 @@ export function missionBotTick(dtSeconds:number){
  }
  if(marker&&distance(marker)>.15&&!enemies.length&&glide({x:marker.x,y:marker.y,z:marker.z??me.z-1},.1))return {action:'go to marker'};
  if(!blips.length)return {action:'in marker'};
+ // "Get on the motorbike with Big Smoke, chase down the Vagos" (SMOKE3): the ride the brief names comes before the
+ // chase, which on foot loses the train.
+ if(!vehicle&&cars.length&&enemies.length&&/\bget (on|in(to)?)\b/i.test(objective)){
+  const c=nearest(cars);
+  if(distance(c.position)>4.5&&glide(c.position,3))return {action:'go to car first',target:c.handle};
+  const now=performance.now();
+  if(now-(mem.lastEnter??0)>3000){mem.lastEnter=now;try{world.warpPedIntoCar(1,c.handle);}catch{}}
+  return {action:'get in car first',target:c.handle};
+ }
+ // A homie of CJ's group on foot beside his ride is getting on it (SMOKE3's Big Smoke climbing onto the bike behind
+ // him): CJ waits for him, up to fifteen seconds, before setting off after anyone.
+ if(vehicle&&enemies.length){
+  const boarding=members.find((h:number)=>{try{if(world.pedVehicle?.(h)>0)return false;const p=world.pedPosition(h);return distance(p)<12;}catch{return false;}});
+  if(boarding!==undefined&&(mem.boardWait=(mem.boardWait??0)+dtSeconds)<15){
+   if(mem.drive){mem.drive=undefined;try{world.clearPedTasks?.(1);}catch{}}
+   return {action:'wait for homie to board',target:boarding};
+  }
+  if(boarding===undefined)mem.boardWait=0;
+ }
  if(enemies.length){
   const e=nearest(enemies);
   if(vehicle&&distance(e.position)<25){try{world.warpPedFromCarToCoord(1,me.x+1.5,me.y,me.z);}catch{}return {action:'leave car to fight',target:e.handle};}

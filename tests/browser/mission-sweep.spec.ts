@@ -120,7 +120,9 @@ test('mission sweep',async({page})=>{
     // A loop that waits for CJ in a car or on a bike the script named (the BMX, Sweet's Greenwood) puts him in it.
     // Not while the bot is playing: it gets into what the blips ask, and a check nearby may only be a fail test.
     const ride=block.instructions.find((x:any)=>x.offset>=fileOffset-40&&x.offset<fileOffset+200&&/^IS_CHAR_(SITTING_)?IN_CAR$/.test(x.name));
-    if(ride&&!botAction&&!((r.world.pedVehicle(1)??0)>0)){
+    // Never with the bot: in a cut it does nothing, and SMOKE3's cut at Unity Station takes CJ out of the car its main loop
+    // asks about, and he was put straight back in.
+    if(ride&&!bot&&!((r.world.pedVehicle(1)??0)>0)){
      try{if(t.readInt(ride.parameters[0])===1){const car=t.readInt(ride.parameters[1]);if(m.vehicles.exists(car)&&now-state.lastAt>8000){r.world.warpPedIntoCar(1,car);state.lastAt=now;moved=true;}}}catch{}
     }
     if(ahead){
