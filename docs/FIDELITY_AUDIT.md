@@ -11371,3 +11371,11 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   flee, down and stagger timers onto a TaskStack each step, which nothing read but a debug key in the snapshot. The
   native ports since (scripted tasks, the fight and damage responses) made it redundant; the adapter, the task stack
   (src/engine/task.ts) and the per-step sync are gone, and src/ped/brain.ts keeps only the live temper routing.
+- A driver CJ drags out now starts the pull in his seat. The door point had an authored "door-ajar" clearance
+  (2026-09-17) that pushed it out by sin(angle)·1.1 whenever the door was open: CAR_jackedLHS's first, seated frame
+  (root 0.97, 0.49, the get-in end key) was drawn 1.18 units out of the car, so the man sat beside his car for the
+  clip's first 0.8 s, and CJ's get-in ended a metre out on the sill and slid in as the door closed. The III/VC
+  GetPositionToOpenCarDoor this follows has no door-angle term, and the police and medic crews never used it. The
+  dragged man is lined up with no seat offset (he is in the car until his clip sets him out), so the last frame is
+  where he lands; and the ground pose he holds before CTaskSimpleGetUp drops the jacked clip's root X/Y, which a
+  reaction pinned at its first key, a metre from where the drag ended. A cop dragging CJ out uses the same line-up.

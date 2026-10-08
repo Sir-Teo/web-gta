@@ -49,13 +49,12 @@ test('alarms count down and reach the horn as an active alarm state',()=>{  expe
   expect(worldCarAudioInput(audioCar(0),true).alarmState).toBe(0);
 });
 
-test('door points clear swung-open doors',()=>{
-  const seat={x:1,y:0,z:0},end={x:0.2,y:0.1,z:0.1};
-  const closed=nativeDoorPoint(seat,end,0.5,'right',1,0);
-  const ajar=nativeDoorPoint(seat,end,0.5,'right',1,1.0);
-  expect(ajar.x).toBeGreaterThan(closed.x);
-  const left=nativeDoorPoint({x:-1,y:0,z:0},end,0.5,'left',1,1.0);
-  expect(left.x).toBeLessThan(-1);
+test('the jacked driver starts in his seat: CAR_jackedLHS\'s first root key from the door point lands within the seat offset of the seat',()=>{
+  // Greenwood: ped_frontseat, the CAR_getin_LHS end key and the handling seat offset; CAR_jackedLHS's first root key.
+  const seat={x:-.463,y:.14,z:-.095},getInEnd={x:.949,y:.489,z:-.348},jacked0={x:.97,y:.489,z:-.358};
+  const door=nativeDoorPoint(seat,getInEnd,.22,'left');
+  // Whatever the door's swing: the pelvis is put back over the seat, pushed out by no more than the seat offset.
+  expect(door.x+jacked0.x).toBeCloseTo(seat.x-.22+.021,3);expect(door.y+jacked0.y).toBeCloseTo(seat.y,2);
 });
 
 test('active light switching brightens brake and headlight lamps',()=>{

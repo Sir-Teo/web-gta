@@ -131,14 +131,20 @@ test('entering an NPC-driven car drags the driver out with CAR_pullout and CAR_j
  const result=await page.evaluate(()=>{
   const h=(window as any).__entry,run=(x:number)=>{
    h.car.driverOut=false;h.car.autopilot={throttle:0,brake:0,steering:0,handbrake:true};h.reset(x,1);h.entry.enter(h.car);const out:{position:any;heading:number}[]=[];h.entry.onDriverOut=(_car:any,position:any,heading:number)=>out.push({position,heading});
-   const phases:string[]=[];let npc:any=null;for(let i=0;i<60*14&&!h.entry.seated;i++){h.step();const phase=h.entry.phase;if(phases.at(-1)!==phase)phases.push(phase);npc??=h.entry.npcPose()?.clip??null;}
-   const state={phases,npc,out,driverOut:h.car.driverOut,autopilot:h.car.autopilot??null,occupied:h.car.occupied};
+   const phases:string[]=[];let npc:any=null,seated:number|null=null;for(let i=0;i<60*14&&!h.entry.seated;i++){h.step();const phase=h.entry.phase;if(phases.at(-1)!==phase)phases.push(phase);
+    const pose=h.entry.npcPose();
+    // The jacked driver's first frame: how far across the car his pelvis (the door point plus the clip's first root key) is from his seat.
+    if(pose&&npc===null&&pose.clip==='car_jackedlhs'){const root=h.entry.npcClip.clip.tracks.find((t:any)=>t.boneId===0&&t.translations);seated=Math.abs(pose.local.x+root.translations[0]-h.car.seat('left').x);}
+    npc??=pose?.clip??null;}
+   const state={phases,npc,out,seated,driverOut:h.car.driverOut,autopilot:h.car.autopilot??null,occupied:h.car.occupied};
    for(let i=0;i<30;i++)h.step();h.entry.exit();for(let i=0;i<60*4&&h.entry.active;i++)h.step();return state;
   };
   return {left:run(-4),right:run(4)};
  });
  console.log(JSON.stringify(result));
  expect(result.left.phases).toEqual(['approach','align','open','pullout','getIn','closeInside','seated']);expect(result.left.npc).toBe('car_jackedlhs');expect(result.left.out).toHaveLength(1);
+ // He starts in his seat, not a metre out by the open door (an authored door-ajar clearance once did that).
+ expect(result.left.seated).toBeLessThan(.05);
  expect(result.left.out[0].position.x).toBeLessThan(-3);expect(result.left.driverOut).toBe(true);expect(result.left.autopilot).toBeNull();expect(result.left.occupied).toBe(true);
  expect(result.right.phases).toEqual(['approach','align','open','getIn','closeInside','shuffle','seated']);expect(result.right.npc).toBe('car_getout_lhs');expect(result.right.out).toHaveLength(1);expect(result.right.out[0].position.x).toBeLessThan(-1);
  await page.evaluate(()=>(window as any).__entry.dispose());expect(errors).toEqual([]);

@@ -52,11 +52,12 @@ export function clipRootEnd(clip:NativeAnimation){const root=clip.tracks.find(t=
 /** GetPositionToOpenCarDoor in native car space (GTA III/VC lineage with SA
  * inputs): the seat pushed out by the handling seat offset × `mult`, minus
  * the ENTER_FRONT offset — the get-in clip's final root key, mirrored for
- * right doors — plus clearance outside a door already swung open. */
-export function nativeDoorPoint(seat:V3,getInEnd:V3,seatOffset:number,side:Side,mult=1,openAngle=0){
+ * right doors. The door's own swing plays no part: an authored clearance
+ * outside an open door put CJ's get-in and the jacked driver's first,
+ * seated frame a metre out of the seat. */
+export function nativeDoorPoint(seat:V3,getInEnd:V3,seatOffset:number,side:Side,mult=1){
  const sign=side==='left'?-1:1;
- const ajar=Math.sin(Math.min(Math.abs(openAngle),1.1))*1.1;
- return {x:sign*(Math.abs(seat.x)+seatOffset*mult+getInEnd.x+ajar),y:seat.y-getInEnd.y,z:seat.z-getInEnd.z};
+ return {x:sign*(Math.abs(seat.x)+seatOffset*mult+getInEnd.x),y:seat.y-getInEnd.y,z:seat.z-getInEnd.z};
 }
 /** Street population surface for passenger boarding and ejection. */
 export interface PassengerCrowd {
@@ -72,6 +73,10 @@ export interface PassengerCrowd {
 }
 /** CTaskSimpleCarGetOut's upside-down clip, ANIM_ID_DEFAULT_CAR_CRAWLOUTRHS_0 and _1. */
 const CRAWL_OUT='CAR_crawloutRHS';
+/** The share of the handling seat offset an NPC leaving his seat is lined up with: none for a man being dragged out
+ * (he is still in the car until his clip sets him out, so CAR_jackedLHS's first, seated frame is in his seat and its
+ * last is where he lands), and growing through a get-out as the player's own does. */
+function npcSeatMult(npc:{kind:'jacked'|'getOut';time:number;clip:{clip:{duration:number}}}){return npc.kind==='jacked'?0:Math.min(1,npc.time/Math.max(npc.clip.clip.duration,1e-3));}
 /** Passenger seats behind the driver: front-right plus both rear seats when the car has them. */
 const PASSENGER_SEATS=[{seat:1,door:DOOR.rightFront,side:'right'},{seat:2,door:DOOR.leftRear,side:'left'},{seat:3,door:DOOR.rightRear,side:'right'}] as const;
 /** Player entry, exit and driving poses (CTaskComplexEnterCarAsDriver, CTaskComplexLeaveCar and their simple tasks). The entity is
@@ -242,10 +247,8 @@ export class CarEntry {
  private get door(){return this.side==='left'?DOOR.leftFront:DOOR.rightFront;}
  doorPoint(car:WorldCar,side:Side,mult=1):V3|undefined{
   const seat=car.seat(side),getIn=this.slotFor(car,VEHICLE_ANIM.getinLHS);if(!seat||!getIn)return;
-  const door=car.doors[this.doorFor(side)] as {angle:number}|undefined;
-  return nativeDoorPoint(seat,clipRootEnd(getIn.clip),car.assets.handling.values.seatOffset,side,mult,door?.angle??0);
+  return nativeDoorPoint(seat,clipRootEnd(getIn.clip),car.assets.handling.values.seatOffset,side,mult);
  }
- private doorFor(side:Side){return side==='left'?DOOR.leftFront:DOOR.rightFront;}
  /** GetPositionToOpenCarDoor for a script's seat: the driver's door, or passenger seat 0 (front right), 1 (rear left)
   * or 2 (rear right), front seats from ped_frontseat and rear ones from ped_backseat, in native car space. Without
   * the car's get-in clip yet the seat is pushed out by its handling seat offset alone. Nothing for a rear seat the
@@ -254,14 +257,13 @@ export class CarEntry {
   const rear=seat!=='driver'&&seat>=1,side:Side=seat==='driver'||seat===1?'left':'right';
   const frame=car.car.nativeFramePosition(rear?'ped_backseat':'ped_frontseat');if(!frame)return undefined;
   const getIn=this.slotFor(car,VEHICLE_ANIM.getinLHS);
-  const door=car.doors[rear?(side==='left'?DOOR.leftRear:DOOR.rightRear):this.doorFor(side)] as {angle:number}|undefined;
-  return nativeDoorPoint({x:frame.x,y:frame.y,z:frame.z},getIn?clipRootEnd(getIn.clip):{x:0,y:0,z:0},car.assets.handling.values.seatOffset,side,1,door?.angle??0);
+  return nativeDoorPoint({x:frame.x,y:frame.y,z:frame.z},getIn?clipRootEnd(getIn.clip):{x:0,y:0,z:0},car.assets.handling.values.seatOffset,side,1);
  }
  private ground(point:V3,car:WorldCar){
   const hit=this.sim.world.castRay(new RAPIER.Ray({x:point.x,y:point.y+1.5,z:point.z},{x:0,y:-1,z:0}),6,true,RAPIER.QueryFilterFlags.EXCLUDE_SENSORS,undefined,this.sim.playerCollider,car.car.body);
   return hit?point.y+1.5-hit.timeOfImpact:undefined;
  }
- /** CCarEnterExit::IsRoomForPedToLeaveCar port: a standing capsule fits at the door point (with door-ajar clearance). */
+ /** CCarEnterExit::IsRoomForPedToLeaveCar port: a standing capsule fits at the door point. */
  private room(car:WorldCar,side:Side,overAir=false){
   const local=this.doorPoint(car,side);if(!local)return false;const world=car.worldPoint(local),ground=this.ground(world,car);if(ground===undefined&&!overAir)return false;
   // A roll-out at speed may leave over open air (a car off a ramp or a pier): the capsule stands at the door point.
@@ -592,7 +594,7 @@ export class CarEntry {
   if(npc.time<npc.clip.clip.duration)return;
   // The car stays held while the player who dragged the driver out is still climbing in.
   npc.done=true;if(npc.kind==='jacked'&&!npc.onOut)npc.held=HELD_SECONDS;if(this.car!==npc.car||!this.phase)npc.car.holdForEntry=false;if(!npc.seat)npc.car.driverLeaving=false;
-  const local=this.doorPoint(npc.car,npc.seat?'right':'left');if(!local)return;
+  const local=this.doorPoint(npc.car,npc.seat?'right':'left',npcSeatMult(npc));if(!local)return;
   const end=clipRootEnd(npc.clip.clip),base=npc.car.worldPoint(npc.kind==='jacked'?{x:local.x+end.x,y:local.y+end.y,z:local.z}:local),ground=this.ground(base,npc.car)??base.y-1;
   if(npc.onOut)npc.onOut({x:base.x,y:ground+.03,z:base.z},npc.car.heading());else this.onDriverOut?.(npc.car,{x:base.x,y:ground+.03,z:base.z},npc.car.heading(),npc.kind==='jacked'?{key:npc.clip.key,clip:npc.clip.clip}:undefined,npc.who,npc.seat);
  }
@@ -600,7 +602,7 @@ export class CarEntry {
  /** Every NPC still leaving a car, with its clip. */
  npcPoses():{pose:NpcPose;clip:{key:string;clip:NativeAnimation}}[]{
   const out:{pose:NpcPose;clip:{key:string;clip:NativeAnimation}}[]=[];
-  for(const npc of this.npcs){if(npc.done&&npc.held===undefined)continue;const local=this.doorPoint(npc.car,npc.seat?'right':'left');if(local)out.push({pose:{car:npc.car,seat:npc.seat,local,clip:npc.clip.key,seconds:Math.min(npc.time,npc.clip.clip.duration),who:npc.who},clip:{key:npc.clip.key,clip:npc.clip.clip}});}
+  for(const npc of this.npcs){if(npc.done&&npc.held===undefined)continue;const local=this.doorPoint(npc.car,npc.seat?'right':'left',npcSeatMult(npc));if(local)out.push({pose:{car:npc.car,seat:npc.seat,local,clip:npc.clip.key,seconds:Math.min(npc.time,npc.clip.clip.duration),who:npc.who},clip:{key:npc.clip.key,clip:npc.clip.clip}});}
   return out;
  }
  get npcClip(){return this.npcPoses()[0]?.clip;}
@@ -666,7 +668,7 @@ export class CarEntry {
    case 'draggedOut':{
     if(this.doorExisted&&this.upright(car))this.openDoor(car,this.door,'jacked',this.time,group);
     if(!finished||!clip)break;
-    const local=this.doorPoint(car,'left');
+    const local=this.doorPoint(car,'left',0);
     const end=clipRootEnd(clip.clip),base=local?car.worldPoint({x:local.x+end.x,y:local.y+end.y,z:local.z}):car.worldPoint({x:-1.4,y:0,z:0}),ground=this.ground(base,car)??base.y-1;
     car.setPedOut({x:base.x,y:ground+.03,z:base.z},car.heading());car.driverless=true;car.exitHandbrake=false;
     this.finishOnFoot();this.onPlayerDraggedOut?.(clip);
@@ -696,7 +698,7 @@ export class CarEntry {
   }
   if(phase==='jumpOut'&&!this.setOut){const seat=car.seat('left');return seat?{car,local:seat,clip:clip.key,seconds:this.time,blend}:undefined;}
   if(this.rolling||phase==='crawlOut'){const p=this.sim.player.position;return {world:{x:p.x,y:p.y+1,z:p.z},heading:this.sim.player.heading,clip:clip.key,seconds:this.time,blend};}
-  const length=Math.max(clip.clip.duration,1e-3),mult=phase==='getIn'?Math.max(0,1-this.time/length):phase==='getOut'?Math.min(1,this.time/length):phase==='closeInside'||phase==='shuffle'?0:1;
+  const length=Math.max(clip.clip.duration,1e-3),mult=phase==='getIn'?Math.max(0,1-this.time/length):phase==='getOut'?Math.min(1,this.time/length):phase==='closeInside'||phase==='shuffle'||phase==='draggedOut'?0:1;
   const local=this.doorPoint(car,this.side,mult);if(!local)return;
   let headingOffset=0;
   if(this.lineUp&&this.lineUp.time<LINE_UP_SECONDS){const u=1-this.lineUp.time/LINE_UP_SECONDS;local.x+=this.lineUp.local.x*u;local.y+=this.lineUp.local.y*u;local.z+=this.lineUp.local.z*u;headingOffset=this.lineUp.heading*u;}

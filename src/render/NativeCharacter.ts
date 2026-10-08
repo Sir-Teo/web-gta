@@ -307,10 +307,16 @@ export class NativeCharacter {
     r.time=fraction*(this.reactions.get(name)?.duration??0);return true;
   }
   /** Plays a vehicle clip's last frame as a reaction for `seconds`, such as the ground pose CAR_jackedLHS
-   * ends on. Helper tracks the ped skeleton lacks are dropped, as installVehicleClips does. */
+   * ends on. Helper tracks the ped skeleton lacks are dropped, as installVehicleClips does. The ped stands where
+   * the clip's root ends, so the root's X/Y are taken out: a reaction keeps them at the clip's first key, which for
+   * CAR_jackedLHS (0.97, 0.49, still in the seat) drew the man lying a metre off where his drag ended. */
   holdClipEnd(name:string,source:NativeAnimation,seconds:number){
     if(!this.reactions.has(name)){
-      const frames=this.source.model.frames,clip={...source,tracks:source.tracks.filter(t=>frames.filter(f=>t.boneId>=0?f.hanim?.id===t.boneId:f.name.trim().toLowerCase()===t.name.trim().toLowerCase()).length===1)};
+      const frames=this.source.model.frames,clip={...source,tracks:source.tracks.filter(t=>frames.filter(f=>t.boneId>=0?f.hanim?.id===t.boneId:f.name.trim().toLowerCase()===t.name.trim().toLowerCase()).length===1).map(t=>{
+        if(t.boneId!==0||!t.translations)return t;
+        const translations=t.translations.slice();for(let i=0;i<translations.length;i+=3){translations[i]=0;translations[i+1]=0;}
+        return {...t,translations};
+      })};
       if(!clip.tracks.some(t=>t.times.length))return false;
       this.installReactions({[name]:clip});
     }
