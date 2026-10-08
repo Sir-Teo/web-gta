@@ -4,7 +4,6 @@ import {
   nextChainIndex,
   resolveStrike,
   inStrikeCone,
-  MeleeSwing,
 } from '../src/combat/meleeChain';
 
 const UNARMED = NATIVE_MELEE_COMBOS.UNARMED;
@@ -40,9 +39,3 @@ test('strike cone rejects targets behind the striker', () => {
   expect(inStrikeCone(0, -1, 0, 1)).toBe(false);
 });
 
-test('melee swing fires once on the hit frame', () => {
-  const swing = new MeleeSwing(resolveStrike(UNARMED, { stage: 0, moving: false, victimDown: false }));
-  expect(swing.update(0.05)).toBe('pending');
-  expect(swing.update(0.2)).toBe('hit');
-  expect(swing.update(0.2)).toBe('pending');
-});

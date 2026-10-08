@@ -32,21 +32,6 @@ export const LINE_UP_SECONDS = 0.6;
 export const JUMP_OUT_SET_OUT = 0.07;
 export const JUMP_OUT_CARRY = 0.45;
 
-export interface EntryGuards {
-  carSpeed2D: number;
-  locked: boolean;
-  doorBlocked: boolean;
-  victimInside: boolean;
-}
-
-/** Whether a driver entry may start under native guards. */
-export function canEnterCar(g: EntryGuards): 'ok' | 'too-fast' | 'locked' | 'blocked' {
-  if (g.carSpeed2D > PLAYER_ENTER_SPEED_LIMIT) return 'too-fast';
-  if (g.doorBlocked) return 'blocked';
-  if (g.locked) return 'locked';
-  return 'ok';
-}
-
 /** Next phase in the driver sequence; jacking inserts `pullout` after `open`. */
 export function nextEntryPhase(phase: EntryPhase, victimInside: boolean): EntryPhase | undefined {
   switch (phase) {
@@ -71,6 +56,3 @@ export function approachStall(stall: number, dt: number, grounded: boolean): num
   return grounded ? stall + dt : stall;
 }
 
-export function exitPhaseForSpeed(carSpeed2D: number): 'getOut' | 'jumpOut' {
-  return carSpeed2D > PLAYER_ENTER_SPEED_LIMIT ? 'jumpOut' : 'getOut';
-}

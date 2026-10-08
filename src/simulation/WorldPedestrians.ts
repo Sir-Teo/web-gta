@@ -20,7 +20,7 @@ import {draggedOutDecisionTask} from '../ped/nativeJackedDecision';
 const ATTRACTOR_TYPES=new Set<number>([PED_ATTRACTOR.atm,PED_ATTRACTOR.seat,PED_ATTRACTOR.stop,PED_ATTRACTOR.pizza,PED_ATTRACTOR.shelter,PED_ATTRACTOR.lookAt,PED_ATTRACTOR.step]);
 import {SpecificDrivers} from './nativeCarDrivers';
 import {deadPedMoney,pedMoneyCount} from './MoneyDrops';
-import {stepNpcGun,type NpcGunState} from '../weapons/gunnery';
+import {stepNpcGun,type NpcGunState} from './npcGun';
 import {npcShotEnd,shotgunPelletCount,shotgunPelletOffset,SHOTGUN_TYPES} from './npcGun';
 import type {DamageKind} from '../weapons/WeaponSystem';
 import {WALK_ROUND_PAD,walkRoundCar} from '../ped/nativeWalkRoundCar';
