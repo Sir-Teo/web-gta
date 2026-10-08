@@ -43,3 +43,22 @@ test('a script helicopter made 150 units off comes to CJ and stays over him',asy
  const first=await closest(20);expect(first.nearest).toBeLessThan(20);expect(first.above).toBeGreaterThan(5);
  expect(errors).toEqual([]);
 });
+
+/** MAKE_HELI_COME_CRASHING_DOWN (WUZI5, SYN6, DES3, VCRASH1): MISSION_HELI_CRASH_AND_BURN (iOS 0x100199928) spins it
+ * down, and CAutomobile::ProcessControl blows it up when it strikes the ground burning. */
+test('a burning script helicopter told to crash spins down and blows up',async({page})=>{
+ test.setTimeout(240000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await page.getByRole('button',{name:'Explore San Andreas',exact:true}).click({timeout:120000});
+ await page.waitForFunction(()=>(window as any).__game?.state()?.player?.grounded===true,undefined,{timeout:90000});
+ await expect.poll(()=>page.evaluate(()=>(window as any).__game.missionForProfiling()?.snapshot()?.started??false),{timeout:60000}).toBe(true);
+ await endStoryMission(page);
+ const p=await page.evaluate(()=>{const s=(window as any).__game.state().player.position;return {x:s.x,y:-s.z,z:s.y};});
+ const heli=await page.evaluate(([x,y,z])=>(window as any).__game.missionForProfiling().runtime.world.createCar(487,x+40,y+40,z+40),[p.x,p.y,p.z] as const);
+ await page.waitForFunction(b=>!!(window as any).__game.missionForProfiling().vehicles.entity(b),heli,{timeout:60000});
+ await page.evaluate(([b,x,y,z])=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.setHeliBladesFullSpeed(b);w.heliGotoCoords(b,x+40,y+40,z+40,10,z+40);},[heli,p.x,p.y,p.z] as const);
+ await page.waitForTimeout(2000);
+ await page.evaluate(b=>{const w=(window as any).__game.missionForProfiling().runtime.world;w.setVehicleHealth(b,240);w.makeHeliComeCrashingDown(b);},heli);
+ const dead=()=>page.evaluate(b=>(window as any).__game.missionForProfiling().runtime.world.vehicleIsDeadForScript(b),heli);
+ await expect.poll(dead,{timeout:15000}).toBe(true);
+ expect(errors).toEqual([]);
+});

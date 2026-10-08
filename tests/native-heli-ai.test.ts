@@ -1,5 +1,5 @@
 import {expect,test} from 'vitest';
-import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,heliProbeDue,newHeliAI,steerAIHeliToFollowEntity,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
+import {MISSION_HELI_FLYTOCOORS,flyAIHeliInCertainDirection,heliCrashYaw,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliTowardsTargetCoors,type HeliPilot} from '../src/simulation/nativeHeliAI';
 import type {NativeVec} from '../src/simulation/nativeFlyingControl';
 
 const pilot=(destination:NativeVec):HeliPilot=>({mission:MISSION_HELI_FLYTOCOORS,cruiseSpeed:100,heliSpeedMult:0,heliTargetDist2:10,destination,rc:false,forcedOrientation:-1});
@@ -60,4 +60,11 @@ test('following an entity: its position is the destination, and the height held 
  expect(p.destination).toEqual([0,40,13]);expect(ai.maxAltitude).toBe(13);
  steerAIHeliToFollowEntity(ai,body(),p,open,[0,80,13],false,1);expect(ai.maxAltitude).toBe(25);
  steerAIHeliToFollowEntity(ai,body(),p,open,[0,40,2],false,1);expect(ai.maxAltitude).toBe(6);
+});
+
+test('coming down in a crash: nose down 0.3, collective −0.5, spinning and rolled one way or the other by the seed',()=>{
+ const ai=newHeliAI();
+ steerAIHeliToCrashAndBurn(ai,3,5);expect([ai.pitch,ai.yaw,ai.roll,ai.accel]).toEqual([-.3,5,1,-.5]);
+ steerAIHeliToCrashAndBurn(ai,4,5);expect([ai.yaw,ai.roll]).toEqual([-5,-1]);
+ expect(heliCrashYaw(()=>0)).toBe(2);expect(heliCrashYaw(()=>.999)).toBeCloseTo(7.994);
 });

@@ -7,7 +7,7 @@
 import type {NativeVec} from './nativeFlyingControl';
 
 /** eCarMission values the steering looks at. */
-export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_LAND_TOUCHING_DOWN=48;
+export const MISSION_HELI_FLYTOCOORS=20,MISSION_HELI_FOLLOW_ENTITY=39,MISSION_HELI_NEWS_BEHAVIOUR=41,MISSION_HELI_LAND_TOUCHING_DOWN=48,MISSION_HELI_CRASH_AND_BURN=58;
 
 /** CHeli's fields the AI flies by: the controls it writes (m_fLeftRightSkid +0xbcc, positive yawing right;
  * m_fSteeringUpDown +0xbd0, positive nose up; m_fSteeringLeftRight +0xbd4, negative rolling right;
@@ -50,6 +50,15 @@ export function heliProbeDue(nowMs:number,previousMs:number,seed:number){return 
 export function steerAIHeliTowardsTargetCoors(ai:HeliAI,body:HeliAIBody,pilot:HeliPilot,world:HeliAIWorld,probe:boolean,ts:number){
  const dx=pilot.destination[0]-body.position[0],dy=pilot.destination[1]-body.position[1];
  flyAIHeliInCertainDirection(ai,body,pilot,world,atanOfXY(dx,dy),Math.hypot(dx,dy),true,probe,ts);
+}
+
+/** CHeli's constructor (iOS 0x1004645cc): the yaw it spins at coming down in a crash, 2 to 8. */
+export function heliCrashYaw(random:()=>number){return random()*6+2;}
+/** SteerAICarWithPhysics' MISSION_HELI_CRASH_AND_BURN (iOS 0x100199928): nose down 0.3, the collective at −0.5, spinning
+ * at its crash yaw and rolled full over, both one way or the other by the bottom bit of its random seed. */
+export function steerAIHeliToCrashAndBurn(ai:HeliAI,seed:number,crashYaw:number){
+ const odd=(seed&1)!==0;
+ ai.pitch=-.3;ai.yaw=odd?crashYaw:-crashYaw;ai.roll=odd?1:-1;ai.accel=-.5;
 }
 
 /** SteerAIHeliToFollowEntity (iOS 0x10019d400), MISSION_HELI_FOLLOW_ENTITY: the destination is the entity's position

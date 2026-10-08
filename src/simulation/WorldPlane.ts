@@ -13,7 +13,7 @@ import {prepareHandling} from './nativeHandling';
 import {interpolateVehiclePose} from '../render/vehiclePose';
 import {FLIGHT_MODEL,applyGravityAndAirResistance,heightAboveCeiling as nativeHeightAboveCeiling,planeFlyingControl,smoothPlaneInput,stepPropSpeed,HELI_FLIGHT_MODEL,HELI_ROTOR_FLY,HELI_ROTOR_FULL,HYDRA_NOZZLE_MAX,HYDRA_NOZZLE_RATE,HYDRA_VTOL_NOZZLE,heliFlyingControl,heliHoverInputs,hydraThrustAxis,stepHeliRotor,type FlyingBody,type NativeVec as NV,type PlaneControls} from './nativeFlyingControl';
 import {requireAsset} from '../assets/binary';
-import {MISSION_HELI_FLYTOCOORS,MISSION_HELI_FOLLOW_ENTITY,heliProbeDue,newHeliAI,steerAIHeliToFollowEntity,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
+import {MISSION_HELI_CRASH_AND_BURN,MISSION_HELI_FLYTOCOORS,MISSION_HELI_FOLLOW_ENTITY,heliCrashYaw,heliProbeDue,newHeliAI,steerAIHeliToCrashAndBurn,steerAIHeliToFollowEntity,steerAIHeliTowardsTargetCoors,type HeliAI,type HeliPilot} from './nativeHeliAI';
 import {blastBombTimerMs,firesExplodesOrShoots,notePlayerVehicleHarm,playerVehicleDamage} from './carDamageHost';
 import {stepBombTimer} from '../vehicle/nativeCarBomb';
 import {stepPlaneWheelRoll,type PlaneWheelRoll} from './planeWheelRoll';
@@ -111,6 +111,9 @@ export class WorldPlane {
  /** m_wBombTimer (ms): a blast's victim blows up when ProcessDelayedExplosion (CAutomobile::ProcessControl, which
   * CPlane and CHeli run) has counted it down. */
  bombTimerMs=0;
+ /** STATUS_WRECKED, which BlowUpCar sets: blown up, its health gone and no bomb timer left to run. IS_CAR_DEAD asks it;
+  * a shot-down helicopter never counted as dead, and a mission waiting on one waited for good. */
+ get wrecked(){return this.health<=0&&this.bombTimerMs<=0;}
  /** BlowUpCar's end for the aircraft: the engine stops and the player aboard dies with it. */
  private destroyed(){this.throttle=0;if(this.occupied){this.occupied=false;this.sim.cameraExcludedBody=undefined;this.sim.playerCollider.setEnabled(true);this.sim.vehicleOccupantDied();}}
  toggleVtol(){if(this.modelId!==520)return '';this.vtol=!this.vtol;return this.vtol?'Hydra: vertical lift':'Hydra: forward flight';}
@@ -126,7 +129,7 @@ export class WorldPlane {
  /** A helicopter's AI pilot: the CAutoPilot fields and CHeli's own the native steering flies it by (nativeHeliAI.ts),
   * from TellHeliToGoToCoors on. */
  heliPilot?:HeliPilot&{ai:HeliAI;target?:()=>NV|undefined};
- private heliClockMs=0;private readonly heliSeed=randomSeed()&0xffff;
+ private heliClockMs=0;private readonly heliSeed=randomSeed()&0xffff;private readonly crashYaw=heliCrashYaw(Math.random);
  /** CAutomobile::TellHeliToGoToCoors (0x6A2390, iOS 0x100440880), which HELI_GOTO_COORDS calls with its arguments as
   * they are: the destination (native), MISSION_HELI_FLYTOCOORS at cruise speed 100, the altitude band (the heli holds
   * the maximum, an absolute height, or the minimum over what lies ahead), and STATUS_PHYSICS. */
@@ -142,6 +145,8 @@ export class WorldPlane {
   if(pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_HELI_FOLLOW_ENTITY;
   pilot.target=target;pilot.ai.minAltitude=minAltitude;pilot.cruiseSpeed=100;
  }
+ /** MAKE_HELI_COME_CRASHING_DOWN (iOS 0x1001e5414): MISSION_HELI_CRASH_AND_BURN, unless it is crashing already. */
+ makeHeliComeCrashingDown(){const pilot=this.aiPilot();if(pilot&&pilot.mission!==57&&pilot.mission!==58)pilot.mission=MISSION_HELI_CRASH_AND_BURN;}
  /** SET_HELI_REACHED_TARGET_DISTANCE (iOS 0x1001fe394): CAutoPilot's m_ucHeliTargetDist2, a byte. */
  setHeliReachedTargetDistance(distance:number){const pilot=this.aiPilot();if(pilot)pilot.heliTargetDist2=distance&0xff;}
  private aiPilot(){
@@ -152,7 +157,10 @@ export class WorldPlane {
  /** CCarCtrl::SteerAICarWithPhysics for an AI helicopter's mission: its four controls for this step, as the autopilot's
   * (the roll field is FlyingControl's own sign, which flyHeli turns back). */
  private steerAIHeli(dt:number){
-  const pilot=this.heliPilot;if(!pilot||pilot.mission!==MISSION_HELI_FLYTOCOORS&&pilot.mission!==MISSION_HELI_FOLLOW_ENTITY||this.occupied||this.health<=0)return;
+  const pilot=this.heliPilot;if(!pilot||this.occupied||this.health<=0)return;
+  const ai=pilot.ai,controls=()=>{this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:-ai.roll,rudder:ai.yaw,brake:false};};
+  if(pilot.mission===MISSION_HELI_CRASH_AND_BURN){steerAIHeliToCrashAndBurn(ai,this.heliSeed,this.crashYaw);controls();return;}
+  if(pilot.mission!==MISSION_HELI_FLYTOCOORS&&pilot.mission!==MISSION_HELI_FOLLOW_ENTITY)return;
   const previous=this.heliClockMs;this.heliClockMs+=dt*1000;
   const body=this.flyingBody(),world=this.sim.world;
   const port=(v:NV)=>({x:v[0],y:v[2],z:-v[1]});
@@ -167,7 +175,7 @@ export class WorldPlane {
   else steerAIHeliTowardsTargetCoors(pilot.ai,body,pilot,env,probe,dt*50);
   // m_ucHeliSpeedMult's push forward is on the move speed itself.
   if(pilot.heliSpeedMult!==0)this.body.setLinvel({x:body.moveSpeed[0]*50,y:body.moveSpeed[2]*50,z:-body.moveSpeed[1]*50},true);
-  const ai=pilot.ai;this.autopilot={throttle:ai.accel,pitch:ai.pitch,roll:-ai.roll,rudder:ai.yaw,brake:false};
+  controls();
  }
  /** Law-enforcement air unit: the fleet never retires it as ambient traffic. */
  policeHeli=false;
@@ -547,11 +555,11 @@ export class WorldPlane {
   else if(this.exitPending&&this.leaveMode()==='wait')this.slowForExit(this.stepDt);
   const change=new Vector3().copy(this.body.linvel()).sub(this.impactVelocity).length();
   if(this.health>0&&change>12){let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});if(contact)destroyed=this.damage((change-10)*45);}
-  // CAutomobile::ProcessControl's crash-and-burn: the player's plane or helicopter burning (under 250 health, where its
-  // fire starts) whose fire started in the air (m_fireParticleCounter 2) blows up at once when it strikes something
-  // rising or is down, unless it is still sinking.
+  // CAutomobile::ProcessControl's crash-and-burn: a helicopter told to come down (MISSION_HELI_CRASH_AND_BURN), or the
+  // player's plane or helicopter burning whose fire started in the air (m_fireParticleCounter 2), blows up at once,
+  // burning (under 250 health), when it strikes something rising or is down, unless it is still sinking.
   if(!destroyed)destroyed=this.burn(this.stepDt);
-  if(!destroyed&&this.occupied&&this.health>0&&this.health<250&&this.fireCounter===2){
+  if(!destroyed&&this.health>0&&this.health<250&&(this.occupied&&this.fireCounter===2||this.heliPilot?.mission===MISSION_HELI_CRASH_AND_BURN)){
    let contact=false;for(let i=0;i<this.body.numColliders();i++)this.sim.world.contactPairsWith(this.body.collider(i),c=>{if(!c.parent()||c.parent()!.isFixed())contact=true;});
    const v=this.body.linvel(),rising=contact&&v.y-this.impactVelocity.y>0;
    if((rising||this.grounded)&&(v.y>=0||this.inWater))destroyed=this.damage(this.health);
@@ -566,7 +574,7 @@ export class WorldPlane {
   * contact brightness of 0.5 stands in (this vehicle keeps no contact lighting). */
  private updateReflection(rgb:readonly number[]|undefined){
   // A blown-up vehicle's atomics lose their reflection passes.
-  this.reflection.state.enabled.value=!(this as {wrecked?:boolean}).wrecked;
+  this.reflection.state.enabled.value=!this.wrecked;
   const mean=rgb?(rgb[0]+rgb[1]+rgb[2])/3:.5;
   this.reflection.update(Math.min(1.05,(mean+.5)*.95+.05),this.body.translation(),this.body.rotation());
  }

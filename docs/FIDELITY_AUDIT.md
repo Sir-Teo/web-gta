@@ -11435,11 +11435,18 @@ Bugs and mission gaps closed one at a time against the iOS executable (Google61/
   to nothing at m_ucHeliTargetDist2, yaws twice the turn left to make, and with the way ahead blocked rolls from the
   nearer-walled side and brakes. An AI heli flies on out past the 250 units the port steps aircraft within.
   SET_HELI_BLADES_FULL_SPEED sets the rotor to 0.22 (iOS 0x1001faec4); it was stored and never read. Not yet ported:
-  a forced orientation (FlyAIHeliToTarget_FixedOrientation, iOS 0x1001a068c), and the land, keep-in-view, attack,
-  police and crash missions.
+  a forced orientation (FlyAIHeliToTarget_FixedOrientation, iOS 0x1001a068c), and the land, keep-in-view, attack
+  and police missions.
 - HELI_FOLLOW_ENTITY (iOS 0x1001f5edc) follows the ped, or the vehicle: MISSION_HELI_FOLLOW_ENTITY, the command's
   distance as m_fMinAltitude, cruise speed 100. SteerAIHeliToFollowEntity (iOS 0x10019d400) makes the entity's position
   the destination each step and holds its height, at least 6, or 25 while more than 50 units off, flying as toward
   coordinates; with no brake but the back-off once the target is behind, it swings past and comes round. The police
   and news catch-up flags it also reads are not looked at. SET_HELI_REACHED_TARGET_DISTANCE sets
   m_ucHeliTargetDist2 (iOS 0x1001fe394), the distance the forward pitch eases to nothing at.
+- MAKE_HELI_COME_CRASHING_DOWN (iOS 0x1001e5414) sets MISSION_HELI_CRASH_AND_BURN, unless the heli is crashing
+  already. SteerAICarWithPhysics flies it down (iOS 0x100199928): nose down 0.3, the collective at −0.5, rolled full
+  over and spinning at the crash yaw CHeli's constructor rolls, 2 to 8 (iOS 0x1004645cc), one way or the other by
+  the bottom bit of its random seed. CAutomobile::ProcessControl blows a crashing heli up at once, burning, when it
+  strikes something rising or is down; the port did that for the player's burning aircraft alone. A blown-up plane
+  or helicopter is now wrecked (STATUS_WRECKED, which IS_CAR_DEAD asks): it had kept no such state, so a mission
+  waiting for a shot-down helicopter to be dead waited for good.
